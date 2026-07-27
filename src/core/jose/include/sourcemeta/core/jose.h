@@ -7,10 +7,17 @@
 
 // NOLINTBEGIN(misc-include-cleaner)
 #include <sourcemeta/core/jose_algorithm.h>
+#include <sourcemeta/core/jose_decrypt.h>
+#include <sourcemeta/core/jose_encrypt.h>
 #include <sourcemeta/core/jose_error.h>
+#include <sourcemeta/core/jose_jwe.h>
 #include <sourcemeta/core/jose_jwk.h>
+#include <sourcemeta/core/jose_jwk_private.h>
 #include <sourcemeta/core/jose_jwks.h>
+#include <sourcemeta/core/jose_jwks_provider.h>
 #include <sourcemeta/core/jose_jwt.h>
+#include <sourcemeta/core/jose_sign.h>
+#include <sourcemeta/core/jose_verify.h>
 // NOLINTEND(misc-include-cleaner)
 
 /// @defgroup jose JOSE

@@ -8,7 +8,7 @@
 #include <cstddef>          // std::size_t
 #include <functional>       // std::reference_wrapper
 #include <initializer_list> // std::initializer_list
-#include <iterator>         // std::advance, std::back_inserter
+#include <iterator>         // std::advance, std::back_inserter, std::next
 #include <optional>         // std::optional
 #include <ranges>           // std::ranges::subrange
 #include <type_traits>      // std::is_same_v, std::decay_t
@@ -20,10 +20,15 @@
 namespace sourcemeta::core {
 
 /// @ingroup jsonpointer
+/// A sequence of reference tokens that identifies a location within a JSON
+/// document.
 template <typename PropertyT, typename Hash> class GenericPointer {
 public:
+  /// A single reference token within this pointer
   using Token = GenericToken<PropertyT, Hash>;
+  /// The JSON value type used for serialisation
   using Value = typename Token::Value;
+  /// The underlying sequence container of tokens
   using Container = std::vector<Token>;
 
   /// This constructor creates an empty JSON Pointer. For example:
@@ -35,7 +40,7 @@ public:
   /// const sourcemeta::core::Pointer pointer;
   /// assert(pointer.empty());
   /// ```
-  GenericPointer() : data{} {}
+  GenericPointer() noexcept : data{} {}
 
   /// This constructor is the preferred way of creating a pointer.
   /// For example:
@@ -535,6 +540,40 @@ public:
     return result;
   }
 
+  /// Concatenate a JSON Pointer with a single property token, getting a new
+  /// pointer as a result. For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/jsonpointer.h>
+  /// #include <cassert>
+  ///
+  /// const sourcemeta::core::Pointer pointer{"foo"};
+  /// assert(pointer.concat("bar") == sourcemeta::core::Pointer{"foo", "bar"});
+  /// ```
+  [[nodiscard]] auto concat(const typename Token::Property &property) const
+      -> GenericPointer<PropertyT, Hash> {
+    GenericPointer<PropertyT, Hash> result{*this};
+    result.push_back(property);
+    return result;
+  }
+
+  /// Concatenate a JSON Pointer with a single index token, getting a new
+  /// pointer as a result. For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/jsonpointer.h>
+  /// #include <cassert>
+  ///
+  /// const sourcemeta::core::Pointer pointer{"foo"};
+  /// assert(pointer.concat(0) == sourcemeta::core::Pointer{"foo", 0});
+  /// ```
+  [[nodiscard]] auto concat(const typename Token::Index &index) const
+      -> GenericPointer<PropertyT, Hash> {
+    GenericPointer<PropertyT, Hash> result{*this};
+    result.push_back(index);
+    return result;
+  }
+
   /// Check whether a JSON Pointer starts with another JSON Pointer. For
   /// example:
   ///
@@ -622,6 +661,47 @@ public:
            this->starts_with(other, tail_left) &&
            this->data[prefix_size + 1].is_property() &&
            this->data[prefix_size + 1].to_property() == tail_right;
+  }
+
+  /// Check whether two JSON Pointers are equal up to a given number of
+  /// leading tokens. For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/jsonpointer.h>
+  /// #include <cassert>
+  ///
+  /// const sourcemeta::core::Pointer pointer{"foo", "bar", "baz"};
+  /// const sourcemeta::core::Pointer other{"foo", "bar", "qux"};
+  /// assert(pointer.shares_prefix(other, 2));
+  /// assert(!pointer.shares_prefix(other, 3));
+  /// ```
+  [[nodiscard]] auto shares_prefix(const GenericPointer<PropertyT, Hash> &other,
+                                   const size_type prefix_size) const -> bool {
+    return this->data.size() >= prefix_size &&
+           other.data.size() >= prefix_size &&
+           std::equal(this->data.cbegin(),
+                      std::next(this->data.cbegin(),
+                                static_cast<difference_type>(prefix_size)),
+                      other.data.cbegin());
+  }
+
+  /// Check whether a JSON Pointer starts with another JSON Pointer without
+  /// the two being equal. For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/jsonpointer.h>
+  /// #include <cassert>
+  ///
+  /// const sourcemeta::core::Pointer pointer{"foo", "bar", "baz"};
+  /// const sourcemeta::core::Pointer prefix{"foo", "bar"};
+  /// assert(pointer.starts_with_strict(prefix));
+  /// assert(!pointer.starts_with_strict(pointer));
+  /// ```
+  [[nodiscard]] auto
+  starts_with_strict(const GenericPointer<PropertyT, Hash> &other) const
+      -> bool {
+    return this->data.size() > other.data.size() &&
+           this->shares_prefix(other, other.data.size());
   }
 
   /// Check whether a JSON Pointer starts with the initial part of another JSON

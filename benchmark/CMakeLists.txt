@@ -12,6 +12,10 @@ if(SOURCEMETA_CORE_JSONPOINTER)
   list(APPEND BENCHMARK_SOURCES jsonpointer.cc)
 endif()
 
+if(SOURCEMETA_CORE_JSONPATH)
+  list(APPEND BENCHMARK_SOURCES jsonpath.cc)
+endif()
+
 if(SOURCEMETA_CORE_URITEMPLATE)
   list(APPEND BENCHMARK_SOURCES uritemplate.cc)
 endif()
@@ -20,12 +24,20 @@ if(SOURCEMETA_CORE_JSONL)
   list(APPEND BENCHMARK_SOURCES jsonl.cc)
 endif()
 
+if(SOURCEMETA_CORE_JSONLD)
+  list(APPEND BENCHMARK_SOURCES jsonld.cc)
+endif()
+
 if(SOURCEMETA_CORE_HTML)
   list(APPEND BENCHMARK_SOURCES html.cc)
 endif()
 
 if(SOURCEMETA_CORE_GZIP)
   list(APPEND BENCHMARK_SOURCES gzip.cc)
+endif()
+
+if(SOURCEMETA_CORE_JOSE)
+  list(APPEND BENCHMARK_SOURCES jose.cc)
 endif()
 
 if(BENCHMARK_SOURCES)
@@ -49,6 +61,12 @@ if(BENCHMARK_SOURCES)
       PRIVATE sourcemeta::core::jsonpointer)
   endif()
 
+  if(SOURCEMETA_CORE_JSONPATH)
+    target_link_libraries(sourcemeta_core_benchmark
+      PRIVATE sourcemeta::core::jsonpath sourcemeta::core::json
+              sourcemeta::core::jsonpointer)
+  endif()
+
   if(SOURCEMETA_CORE_URITEMPLATE)
     target_link_libraries(sourcemeta_core_benchmark
       PRIVATE sourcemeta::core::uritemplate)
@@ -59,6 +77,12 @@ if(BENCHMARK_SOURCES)
       PRIVATE sourcemeta::core::jsonl)
   endif()
 
+  if(SOURCEMETA_CORE_JSONLD)
+    target_link_libraries(sourcemeta_core_benchmark
+      PRIVATE sourcemeta::core::jsonld sourcemeta::core::json
+              sourcemeta::core::jsonpointer)
+  endif()
+
   if(SOURCEMETA_CORE_HTML)
     target_link_libraries(sourcemeta_core_benchmark
       PRIVATE sourcemeta::core::html)
@@ -67,6 +91,12 @@ if(BENCHMARK_SOURCES)
   if(SOURCEMETA_CORE_GZIP)
     target_link_libraries(sourcemeta_core_benchmark
       PRIVATE sourcemeta::core::gzip sourcemeta::core::io)
+  endif()
+
+  if(SOURCEMETA_CORE_JOSE)
+    target_link_libraries(sourcemeta_core_benchmark
+      PRIVATE sourcemeta::core::jose sourcemeta::core::crypto
+              sourcemeta::core::json)
   endif()
 
   add_custom_target(benchmark_all

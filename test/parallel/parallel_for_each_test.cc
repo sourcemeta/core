@@ -1,17 +1,17 @@
-#include <gtest/gtest.h>
-
 #include <sourcemeta/core/parallel.h>
+#include <sourcemeta/core/test.h>
 
 #include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <mutex>
 #include <numeric>
+#include <set>
 #include <stdexcept>
 #include <thread>
 #include <vector>
 
-TEST(Parallel_for_each, processes_all_elements_once) {
+TEST(processes_all_elements_once) {
   std::vector<std::size_t> items;
   for (std::size_t index = 0; index < 20; index++) {
     items.push_back(index);
@@ -32,7 +32,7 @@ TEST(Parallel_for_each, processes_all_elements_once) {
   EXPECT_EQ(processed, items);
 }
 
-TEST(Parallel_for_each, processes_all_elements_once_concurrency_1) {
+TEST(processes_all_elements_once_concurrency_1) {
   std::vector<std::size_t> items;
   for (std::size_t index = 0; index < 20; index++) {
     items.push_back(index);
@@ -62,7 +62,7 @@ TEST(Parallel_for_each, processes_all_elements_once_concurrency_1) {
   EXPECT_EQ(cursors, items);
 }
 
-TEST(Parallel_for_each, single_element) {
+TEST(single_element) {
   std::vector<std::size_t> items{42};
 
   std::vector<std::size_t> processed;
@@ -85,7 +85,7 @@ TEST(Parallel_for_each, single_element) {
             std::max<std::size_t>(std::thread::hardware_concurrency(), 1));
 }
 
-TEST(Parallel_for_each, empty_range) {
+TEST(empty_range) {
   std::vector<std::size_t> items;
   std::atomic<std::size_t> touched{0};
   sourcemeta::core::parallel_for_each(
@@ -97,15 +97,19 @@ TEST(Parallel_for_each, empty_range) {
   EXPECT_EQ(touched.load(), 0);
 }
 
-TEST(Parallel_for_each, work_callback_throw) {
+TEST(work_callback_throw) {
   std::vector<std::size_t> items{1, 2, 3, 4, 5};
 
-  EXPECT_THROW(sourcemeta::core::parallel_for_each(
-                   items.begin(), items.end(),
-                   [](const auto value, const auto, const auto) {
-                     if (value == 3) {
-                       throw std::runtime_error("error");
-                     }
-                   }),
-               std::runtime_error);
+  try {
+    sourcemeta::core::parallel_for_each(
+        items.begin(), items.end(),
+        [](const auto value, const auto, const auto) {
+          if (value == 3) {
+            throw std::runtime_error("error");
+          }
+        });
+    FAIL();
+  } catch (const std::runtime_error &error) {
+    EXPECT_STREQ(error.what(), "error");
+  }
 }

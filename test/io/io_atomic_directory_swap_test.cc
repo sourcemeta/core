@@ -1,12 +1,11 @@
-#include <gtest/gtest.h>
-
 #include <sourcemeta/core/io.h>
+#include <sourcemeta/core/test.h>
 
 #include <filesystem> // std::filesystem
 #include <fstream>    // std::ofstream, std::ifstream
 #include <string>     // std::string
 
-TEST(IO_atomic_directory_swap, creates_when_original_absent) {
+TEST(creates_when_original_absent) {
   const sourcemeta::core::TemporaryDirectory workspace{
       std::filesystem::path{BUILD_DIRECTORY}, ".test-atomic-"};
   const auto original{workspace.path() / "original"};
@@ -29,7 +28,7 @@ TEST(IO_atomic_directory_swap, creates_when_original_absent) {
   EXPECT_EQ(content, "hello");
 }
 
-TEST(IO_atomic_directory_swap, swaps_existing_directories) {
+TEST(swaps_existing_directories) {
   const sourcemeta::core::TemporaryDirectory workspace{
       std::filesystem::path{BUILD_DIRECTORY}, ".test-atomic-"};
   const auto original{workspace.path() / "original"};
@@ -62,7 +61,7 @@ TEST(IO_atomic_directory_swap, swaps_existing_directories) {
   EXPECT_EQ(old_content, "old");
 }
 
-TEST(IO_atomic_directory_swap, old_directory_preserved_at_replacement_path) {
+TEST(old_directory_preserved_at_replacement_path) {
   const sourcemeta::core::TemporaryDirectory workspace{
       std::filesystem::path{BUILD_DIRECTORY}, ".test-atomic-"};
   const auto original{workspace.path() / "original"};
@@ -83,7 +82,7 @@ TEST(IO_atomic_directory_swap, old_directory_preserved_at_replacement_path) {
   EXPECT_FALSE(std::filesystem::exists(replacement / "file.txt"));
 }
 
-TEST(IO_atomic_directory_swap, preserves_nested_structure) {
+TEST(preserves_nested_structure) {
   const sourcemeta::core::TemporaryDirectory workspace{
       std::filesystem::path{BUILD_DIRECTORY}, ".test-atomic-"};
   const auto original{workspace.path() / "original"};
@@ -112,7 +111,7 @@ TEST(IO_atomic_directory_swap, preserves_nested_structure) {
   EXPECT_FALSE(std::filesystem::exists(replacement / "root.txt"));
 }
 
-TEST(IO_atomic_directory_swap, no_leftover_temporary) {
+TEST(no_leftover_temporary) {
   const sourcemeta::core::TemporaryDirectory workspace{
       std::filesystem::path{BUILD_DIRECTORY}, ".test-atomic-"};
   const auto original{workspace.path() / "original"};
@@ -129,7 +128,6 @@ TEST(IO_atomic_directory_swap, no_leftover_temporary) {
   for (const auto &entry :
        std::filesystem::directory_iterator{workspace.path()}) {
     const auto filename{entry.path().filename().string()};
-    EXPECT_FALSE(filename.starts_with(".swap-"))
-        << "leftover temporary directory found: " << filename;
+    EXPECT_FALSE(filename.starts_with(".swap-"));
   }
 }

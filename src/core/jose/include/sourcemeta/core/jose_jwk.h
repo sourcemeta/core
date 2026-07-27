@@ -10,6 +10,7 @@
 #include <sourcemeta/core/jose_error.h>
 // NOLINTEND(misc-include-cleaner)
 
+#include <sourcemeta/core/crypto.h>
 #include <sourcemeta/core/json.h>
 
 #include <cstdint>     // std::uint8_t
@@ -20,9 +21,10 @@
 namespace sourcemeta::core {
 
 /// @ingroup jose
-/// A parsed public JSON Web Key (RFC 7517), restricted to RSA and elliptic
-/// curve keys. The key owns its decoded material, so the source JSON document
-/// does not need to outlive it. For example:
+/// A parsed public JSON Web Key (RFC 7517), restricted to RSA, elliptic curve,
+/// octet key pair (RFC 8037), and symmetric octet (RFC 7518 Section 6.4) keys.
+/// The key owns its decoded material, so the source JSON document does not need
+/// to outlive it. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/jose.h>
@@ -37,13 +39,29 @@ namespace sourcemeta::core {
 /// ```
 class SOURCEMETA_CORE_JOSE_EXPORT JWK {
 public:
-  enum class Type : std::uint8_t { RSA, EllipticCurve };
+  /// The family of key material a key holds.
+  enum class Type : std::uint8_t {
+    /// The RSA key type.
+    RSA,
+    /// The elliptic-curve key type.
+    EllipticCurve,
+    /// The Edwards-curve octet key pair type.
+    OctetKeyPair,
+    /// The symmetric octet sequence key type.
+    Octet
+  };
 
   /// Parse a JSON Web Key from a JSON value, throwing on invalid input.
   explicit JWK(const JSON &value);
 
   /// Parse a JSON Web Key from a JSON value, throwing on invalid input.
   explicit JWK(JSON &&value);
+
+  /// A key exclusively owns its parsed public key, so it is move-only.
+  JWK(JWK &&other) noexcept = default;
+  auto operator=(JWK &&other) noexcept -> JWK & = default;
+  JWK(const JWK &) = delete;
+  auto operator=(const JWK &) -> JWK & = delete;
 
   /// Parse a JSON Web Key from a JSON value, returning no value on invalid
   /// input.
@@ -53,42 +71,71 @@ public:
   /// input.
   [[nodiscard]] static auto from(JSON &&value) -> std::optional<JWK>;
 
+  /// Build a symmetric octet key (RFC 7518 Section 6.4) directly from raw
+  /// secret octets, taken as-is rather than base64url-decoded, so a caller
+  /// holding a shared secret does not assemble and re-parse an `oct` JSON Web
+  /// Key. The minimum secret size each symmetric algorithm demands is enforced
+  /// where the key is used, not here. For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/jose.h>
+  /// #include <cassert>
+  ///
+  /// const auto key{sourcemeta::core::JWK::from_octets("my-shared-secret")};
+  /// assert(key.type() == sourcemeta::core::JWK::Type::Octet);
+  /// ```
+  [[nodiscard]] static auto from_octets(const std::string_view secret) -> JWK;
+
+  /// The family of key material this key holds.
   [[nodiscard]] auto type() const noexcept -> Type { return this->type_; }
 
+  /// The key identifier used to select this key, if present.
   [[nodiscard]] auto key_id() const noexcept
       -> std::optional<std::string_view> {
     if (this->key_id_.has_value()) {
-      return std::string_view{this->key_id_.value()};
+      return std::string_view{*this->key_id_};
     }
 
     return std::nullopt;
   }
 
+  /// The algorithm this key is intended for, if present.
   [[nodiscard]] auto algorithm() const noexcept -> std::optional<JWSAlgorithm> {
     return this->algorithm_;
   }
 
-  // RSA keys (RFC 7518 Section 6.3): big-endian modulus and exponent
-  [[nodiscard]] auto modulus() const noexcept -> std::string_view {
-    return this->modulus_;
-  }
-
-  [[nodiscard]] auto exponent() const noexcept -> std::string_view {
-    return this->exponent_;
-  }
-
-  // Elliptic curve keys (RFC 7518 Section 6.2): curve name and coordinates
+  // Elliptic curve keys (RFC 7518 Section 6.2) and octet key pairs (RFC 8037
+  // Section 2) carry a curve name, which the elliptic curve algorithms pin to
+  // exactly one curve
+  /// The curve this key is pinned to, empty when it carries none.
   [[nodiscard]] auto curve() const noexcept -> std::string_view {
     return this->curve_;
   }
 
-  [[nodiscard]] auto coordinate_x() const noexcept -> std::string_view {
-    return this->coordinate_x_;
+  // The parsed platform key, built once from the decoded material so that
+  // verification reuses it rather than reconstructing it per signature. It is
+  // null when the material could not be turned into a key
+  /// The parsed platform key, null when the material could not be turned into
+  /// one.
+  [[nodiscard]] auto public_key() const noexcept -> const PublicKey * {
+    return this->public_key_.has_value() ? &*this->public_key_ : nullptr;
   }
 
-  [[nodiscard]] auto coordinate_y() const noexcept -> std::string_view {
-    return this->coordinate_y_;
+  // Symmetric keys carry their raw secret rather than a parsed platform key
+  // (RFC 7518 Section 6.4), and knowing the secret is required for both
+  // producing and checking an HMAC, so the public key class carries it
+  /// The raw symmetric secret, empty for asymmetric keys.
+  [[nodiscard]] auto secret() const noexcept -> std::string_view {
+    return this->secret_;
   }
+
+  /// Serialize the public part of this key as a JSON Web Key (RFC 7517),
+  /// returning no value for a symmetric key, which has no public form.
+  [[nodiscard]] auto public_jwk() const -> std::optional<JSON>;
+
+  /// The SHA-256 JSON Web Key thumbprint of this key (RFC 7638),
+  /// base64url-encoded.
+  [[nodiscard]] auto thumbprint() const -> std::optional<std::string>;
 
 private:
   JWK() = default;
@@ -100,11 +147,14 @@ private:
   Type type_{Type::RSA};
   std::optional<std::string> key_id_;
   std::optional<JWSAlgorithm> algorithm_;
+  std::string curve_;
+  std::optional<PublicKey> public_key_;
+  std::string secret_;
   std::string modulus_;
   std::string exponent_;
-  std::string curve_;
   std::string coordinate_x_;
   std::string coordinate_y_;
+  std::string public_point_;
 #if defined(_MSC_VER)
 #pragma warning(default : 4251)
 #endif

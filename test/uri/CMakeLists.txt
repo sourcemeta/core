@@ -1,15 +1,18 @@
-sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME uri
+sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME uri
   SOURCES
     uri_test.cc
     uri_fragment_test.cc
     uri_empty_test.cc
     uri_host_test.cc
+    uri_authority_test.cc
     uri_path_test.cc
     uri_from_path_test.cc
     uri_to_path_test.cc
     uri_parse_test.cc
     uri_port_test.cc
     uri_scheme_test.cc
+    uri_is_scheme_test.cc
+    uri_is_gen_delim_test.cc
     uri_query_test.cc
     uri_is_absolute_test.cc
     uri_is_relative_test.cc
@@ -27,11 +30,18 @@ sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME uri
     uri_recompose_relative_test.cc
     uri_has_same_authority_test.cc
     uri_canonicalize_test.cc
+    uri_escape_test.cc
+    uri_unescape_test.cc
+    uri_unescape_form_test.cc
+    uri_append_query_parameter_test.cc
+    uri_normalize_path_test.cc
     uri_resolve_from_test.cc
     uri_relative_to_test.cc
     uri_extension_test.cc
     uri_user_info_test.cc
-    uri_is_iri_test.cc)
+    uri_is_iri_test.cc
+    uri_from_iri_test.cc
+    uri_is_internationalized_test.cc)
 
 target_link_libraries(sourcemeta_core_uri_unit
   PRIVATE sourcemeta::core::uri)

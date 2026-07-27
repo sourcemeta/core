@@ -1,0 +1,4 @@
+Hint Value,Change Controller,Reference
+access_token,IETF,[RFC7009]
+refresh_token,IETF,[RFC7009]
+pct,[Kantara_UMA_WG],"[UMA 2.0 Grant for OAuth 2.0, Section 3.7]"

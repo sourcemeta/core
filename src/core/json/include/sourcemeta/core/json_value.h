@@ -21,9 +21,12 @@
 #include <cstdint>          // std::int64_t, std::uint8_t
 #include <functional>       // std::less, std::reference_wrapper, std::function
 #include <initializer_list> // std::initializer_list
+#include <limits>           // std::numeric_limits
 #include <memory>           // std::allocator
 #include <set>              // std::set
+#include <span>             // std::span
 #include <sstream>          // std::basic_istringstream
+#include <stdexcept>        // std::out_of_range
 #include <string>           // std::basic_string, std::char_traits
 #include <string_view>      // std::basic_string_view
 #include <type_traits>      // std::is_same_v, std::remove_cvref_t
@@ -32,6 +35,7 @@
 namespace sourcemeta::core {
 
 /// @ingroup json
+/// This class represents a JSON document.
 class SOURCEMETA_CORE_JSON_EXPORT JSON {
 public:
   /// The character type used by the JSON document.
@@ -53,18 +57,31 @@ public:
   /// The object type used by the JSON document.
   using Object = JSONObject<String, JSON, PropertyHashJSON<JSON::String>>;
   /// The parsing phase of a JSON document.
-  enum class ParsePhase : std::uint8_t { Pre, Post };
+  enum class ParsePhase : std::uint8_t {
+    /// The phase before a value is parsed.
+    Pre,
+    /// The phase after a value is parsed.
+    Post
+  };
 
   // The enumeration indexes must stay in sync with the internal variant
   /// The different types of a JSON instance.
   enum class Type : std::uint8_t {
+    /// The JSON null type.
     Null = 0,
+    /// The JSON boolean type.
     Boolean = 1,
+    /// The JSON integer type.
     Integer = 2,
+    /// The JSON real number type.
     Real = 3,
+    /// The JSON string type.
     String = 4,
+    /// The JSON array type.
     Array = 5,
+    /// The JSON object type.
     Object = 6,
+    /// The JSON decimal type.
     Decimal = 7
   };
 
@@ -72,7 +89,14 @@ public:
   using TypeSet = std::bitset<8>;
 
   /// The context type for parse callbacks
-  enum class ParseContext : std::uint8_t { Root, Property, Index };
+  enum class ParseContext : std::uint8_t {
+    /// The root value of the document
+    Root,
+    /// An object property value
+    Property,
+    /// An array element value
+    Index
+  };
 
   /// An optional callback that can be passed to parsing functions to obtain
   /// metadata during the parsing process
@@ -120,6 +144,7 @@ public:
   explicit JSON(const int value);
 
   // On some systems, `std::int64_t` might be equal to `long`
+  /// This constructor creates a JSON document from an integer type.
   template <typename T = std::int64_t>
   explicit JSON(const long value)
     requires(!std::is_same_v<T, std::int64_t>)
@@ -248,6 +273,7 @@ public:
 
   /// Misc constructors
   JSON(const JSON &);
+  /// A move constructor.
   JSON(JSON &&) noexcept;
   auto operator=(const JSON &) -> JSON &;
   auto operator=(JSON &&) noexcept -> JSON &;
@@ -303,12 +329,25 @@ public:
    * Operators
    */
 
-  auto operator<(const JSON &other) const noexcept -> bool;
-  auto operator<=(const JSON &other) const noexcept -> bool;
-  auto operator>(const JSON &other) const noexcept -> bool;
-  auto operator>=(const JSON &other) const noexcept -> bool;
-  auto operator==(const JSON &other) const noexcept -> bool;
-  auto operator!=(const JSON &) const noexcept -> bool = default;
+  auto operator<(const JSON &other) const -> bool;
+  auto operator<=(const JSON &other) const -> bool;
+  auto operator>(const JSON &other) const -> bool;
+  auto operator>=(const JSON &other) const -> bool;
+
+  /// Compare two JSON instances for equality. Numbers compare by exact
+  /// mathematical value across the integer, real, and decimal representations,
+  /// so the same value in different forms is equal. A real compares by the
+  /// exact number its floating point form stores, which can differ from the
+  /// same digits written as a decimal. For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/json.h>
+  /// #include <cassert>
+  ///
+  /// assert(sourcemeta::core::JSON{2} == sourcemeta::core::JSON{2.0});
+  /// ```
+  auto operator==(const JSON &other) const -> bool;
+  auto operator!=(const JSON &) const -> bool = default;
 
   /// Add two numeric JSON instances and get a new instance with the result. For
   /// example:
@@ -774,7 +813,9 @@ public:
   }
 
   /// Get the JSON numeric document as a real number if it is not one already.
-  /// For example:
+  /// A decimal whose magnitude does not fit in a double throws
+  /// `std::out_of_range`, matching the behaviour of converting that decimal
+  /// directly. For example:
   ///
   /// ```cpp
   /// #include <sourcemeta/core/json.h>
@@ -783,16 +824,21 @@ public:
   /// const sourcemeta::core::JSON document{5};
   /// assert(document.as_real() == 5.0);
   /// ```
-  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto as_real() const noexcept
-      -> Real {
+  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto as_real() const -> Real {
     assert(this->is_number());
-    return this->is_real() ? this->to_real()
-                           : static_cast<Real>(this->to_integer());
+    if (this->is_real()) {
+      return this->to_real();
+    } else if (this->is_integer()) {
+      return static_cast<Real>(this->to_integer());
+    } else {
+      return this->to_decimal().to_double();
+    }
   }
 
   /// Get the JSON numeric document as an integer number if it is not one
-  /// already. If the number is a real number, truncation will take place. For
-  /// example:
+  /// already. If the number is a real number, truncation will take place. A
+  /// value whose magnitude does not fit in a 64-bit integer throws
+  /// `std::out_of_range`. For example:
   ///
   /// ```cpp
   /// #include <sourcemeta/core/json.h>
@@ -801,13 +847,28 @@ public:
   /// const sourcemeta::core::JSON document{5.3};
   /// assert(document.as_integer() == 5);
   /// ```
-  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto as_integer() const noexcept
+  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto as_integer() const
       -> Integer {
     assert(this->is_number());
     if (this->is_integer()) {
       return this->to_integer();
+    } else if (this->is_real()) {
+      const auto truncated{std::trunc(this->to_real())};
+      if (truncated < static_cast<Real>(std::numeric_limits<Integer>::min()) ||
+          truncated >= static_cast<Real>(std::numeric_limits<Integer>::max())) {
+        throw std::out_of_range{
+            "The real number does not fit in a 64-bit integer"};
+      }
+
+      return static_cast<Integer>(truncated);
     } else {
-      return static_cast<Integer>(std::trunc(this->to_real()));
+      const auto integral{this->to_decimal().to_integral()};
+      if (!integral.is_int64()) {
+        throw std::out_of_range{
+            "The decimal number does not fit in a 64-bit integer"};
+      }
+
+      return integral.to_int64();
     }
   }
 
@@ -1306,6 +1367,7 @@ public:
   /// const auto result = document.try_at("foo");
   /// EXPECT_TRUE(result);
   /// EXPECT_EQ(result->to_integer(), 1);
+  /// ```
   [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto
   try_at(const String &key) const -> const JSON * {
     assert(this->is_object());
@@ -1338,6 +1400,7 @@ public:
   ///   document.as_object().hash("foo"));
   /// EXPECT_TRUE(result);
   /// EXPECT_EQ(result->to_integer(), 1);
+  /// ```
   [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto
   try_at(const String &key, const typename Object::hash_type hash) const
       -> const JSON * {
@@ -1355,6 +1418,67 @@ public:
     assert(this->is_object());
     const auto &object{this->data_object};
     return object.try_at(key, hash);
+  }
+
+  /// This method tries to retrieve a mutable object element by key. For
+  /// example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/json.h>
+  /// #include <cassert>
+  ///
+  /// sourcemeta::core::JSON document =
+  ///   sourcemeta::core::parse_json("{ \"foo\": 1 }");
+  /// auto result{document.try_at("foo")};
+  /// assert(result);
+  /// result->into(sourcemeta::core::JSON{2});
+  /// assert(document.at("foo").to_integer() == 2);
+  /// ```
+  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto try_at(const String &key)
+      -> JSON * {
+    assert(this->is_object());
+    auto &object{this->data_object};
+    return object.try_at(key, object.hash(key));
+  }
+
+  /// This method tries to retrieve a mutable object element by string view key
+  template <typename T>
+    requires std::same_as<std::remove_cvref_t<T>, StringView>
+  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto try_at(T key) -> JSON * {
+    assert(this->is_object());
+    auto &object{this->data_object};
+    return object.try_at(key, object.hash(key));
+  }
+
+  /// This method tries to retrieve a mutable object element given a
+  /// pre-calculated property hash. For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/json.h>
+  /// #include <cassert>
+  ///
+  /// sourcemeta::core::JSON document =
+  ///   sourcemeta::core::parse_json("{ \"foo\": 1 }");
+  /// auto result{document.try_at("foo",
+  ///   document.as_object().hash("foo"))};
+  /// assert(result);
+  /// result->into(sourcemeta::core::JSON{2});
+  /// assert(document.at("foo").to_integer() == 2);
+  /// ```
+  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto
+  try_at(const String &key, const typename Object::hash_type hash) -> JSON * {
+    assert(this->is_object());
+    return this->data_object.try_at(key, hash);
+  }
+
+  /// This method tries to retrieve a mutable object element by string view key
+  /// given a pre-calculated property hash
+  template <typename T>
+    requires std::same_as<std::remove_cvref_t<T>, StringView>
+  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto
+  try_at(T key, const typename Object::hash_type hash) -> JSON * {
+    assert(this->is_object());
+    return this->data_object.try_at(key, hash);
   }
 
   /// Try to get a property, scanning from a caller-provided start offset.
@@ -1497,8 +1621,9 @@ public:
   template <typename Iterator>
   [[nodiscard]] auto defines_any(Iterator begin, Iterator end) const -> bool {
     assert(this->is_object());
-    return std::any_of(begin, end,
-                       [this](const auto &key) { return this->defines(key); });
+    return std::any_of(begin, end, [this](const auto &key) -> auto {
+      return this->defines(key);
+    });
   }
 
   /// This method checks whether an input JSON object defines at least one given
@@ -1544,6 +1669,70 @@ public:
   /// ```
   [[nodiscard]] auto contains(const StringView element) const -> bool;
 
+  /// This method checks, given a pre-calculated hash, whether an array-valued
+  /// object member contains a string, returning false when the member is absent
+  /// or is not such an array. The instance must be an object. For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/json.h>
+  /// #include <cassert>
+  ///
+  /// const sourcemeta::core::JSON document =
+  ///   sourcemeta::core::parse_json(R"JSON({ "tags": [ "a", "b" ] })JSON");
+  /// assert(document.array_member_contains("tags",
+  ///   document.as_object().hash("tags"), "b"));
+  /// ```
+  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto
+  array_member_contains(const StringView key,
+                        const typename Object::hash_type hash,
+                        const StringView value) const -> bool {
+    assert(this->is_object());
+    const auto *member{this->try_at(key, hash)};
+    return member != nullptr && member->is_array() && member->contains(value);
+  }
+
+  /// This method checks whether an array-valued object member contains a
+  /// string. For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/json.h>
+  /// #include <cassert>
+  ///
+  /// const sourcemeta::core::JSON document =
+  ///   sourcemeta::core::parse_json(R"JSON({ "tags": [ "a", "b" ] })JSON");
+  /// assert(document.array_member_contains("tags", "b"));
+  /// ```
+  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto
+  array_member_contains(const StringView key, const StringView value) const
+      -> bool {
+    return this->array_member_contains(key, Object::hash(key), value);
+  }
+
+  /// This method checks whether this value is an array whose every element is a
+  /// string. For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/json.h>
+  /// #include <cassert>
+  ///
+  /// const sourcemeta::core::JSON document =
+  ///   sourcemeta::core::parse_json(R"JSON([ "a", "b" ])JSON");
+  /// assert(document.is_array_of_strings());
+  /// ```
+  [[nodiscard]] auto is_array_of_strings() const -> bool {
+    if (!this->is_array()) {
+      return false;
+    }
+
+    for (const auto &element : this->as_array()) {
+      if (!element.is_string()) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
   /// This method checks if a JSON string includes a given substring. For
   /// example:
   ///
@@ -1582,6 +1771,19 @@ public:
   /// assert(document.unique());
   /// ```
   [[nodiscard]] auto unique() const -> bool;
+
+  /// This method checks if a JSON object does not name any key more than once.
+  /// The parser preserves repeated members rather than collapsing them, so this
+  /// detects a document whose object named a key twice. For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/json.h>
+  /// #include <cassert>
+  ///
+  /// const auto document{sourcemeta::core::parse_json(R"({ "foo": 1 })")};
+  /// assert(document.unique_keys());
+  /// ```
+  [[nodiscard]] auto unique_keys() const -> bool;
 
   /*
    * Write operations
@@ -1822,6 +2024,95 @@ public:
   /// inserted value
   auto assign_assume_new(String &&key, JSON &&value, Object::hash_type hash)
       -> JSON &;
+
+  /// This method assigns a string object member with a pre-computed hash unless
+  /// the value is empty, in which case the member is left absent, assuming the
+  /// key is new. For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/json.h>
+  /// #include <cassert>
+  ///
+  /// sourcemeta::core::JSON document = sourcemeta::core::JSON::make_object();
+  /// document.assign_if_nonempty("foo", document.as_object().hash("foo"),
+  ///                             "bar");
+  /// assert(document.at("foo").to_string() == "bar");
+  /// ```
+  SOURCEMETA_FORCEINLINE inline auto
+  assign_if_nonempty(const StringView key,
+                     const typename Object::hash_type hash,
+                     const StringView value) -> void {
+    if (!value.empty()) {
+      this->assign_assume_new(String{key}, JSON{value}, hash);
+    }
+  }
+
+  /// This method assigns a string object member unless the value is empty, in
+  /// which case the member is left absent, assuming the key is new. For
+  /// example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/json.h>
+  /// #include <cassert>
+  ///
+  /// sourcemeta::core::JSON document = sourcemeta::core::JSON::make_object();
+  /// document.assign_if_nonempty("foo", "bar");
+  /// assert(document.at("foo").to_string() == "bar");
+  /// ```
+  SOURCEMETA_FORCEINLINE inline auto assign_if_nonempty(const StringView key,
+                                                        const StringView value)
+      -> void {
+    this->assign_if_nonempty(key, Object::hash(key), value);
+  }
+
+  /// This method assigns an array-of-strings object member with a pre-computed
+  /// hash unless the array is empty, in which case the member is left absent,
+  /// assuming the key is new. For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/json.h>
+  /// #include <array>
+  /// #include <cassert>
+  ///
+  /// sourcemeta::core::JSON document = sourcemeta::core::JSON::make_object();
+  /// const std::array<std::string_view, 2> values{{"a", "b"}};
+  /// document.assign_if_nonempty("foo", document.as_object().hash("foo"),
+  ///                             values);
+  /// assert(document.at("foo").size() == 2);
+  /// ```
+  auto assign_if_nonempty(const StringView key,
+                          const typename Object::hash_type hash,
+                          const std::span<const StringView> values) -> void {
+    if (values.empty()) {
+      return;
+    }
+
+    auto array{JSON::make_array()};
+    for (const auto value : values) {
+      array.push_back(JSON{value});
+    }
+
+    this->assign_assume_new(String{key}, std::move(array), hash);
+  }
+
+  /// This method assigns an array-of-strings object member unless the array is
+  /// empty, in which case the member is left absent, assuming the key is new.
+  /// For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/json.h>
+  /// #include <array>
+  /// #include <cassert>
+  ///
+  /// sourcemeta::core::JSON document = sourcemeta::core::JSON::make_object();
+  /// const std::array<std::string_view, 2> values{{"a", "b"}};
+  /// document.assign_if_nonempty("foo", values);
+  /// assert(document.at("foo").size() == 2);
+  /// ```
+  auto assign_if_nonempty(const StringView key,
+                          const std::span<const StringView> values) -> void {
+    this->assign_if_nonempty(key, Object::hash(key), values);
+  }
 
   /// This method deletes an object key. For example:
   ///

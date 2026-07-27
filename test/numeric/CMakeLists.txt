@@ -1,4 +1,4 @@
-sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME numeric
+sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME numeric
   SOURCES numeric_decimal_test.cc numeric_parse_test.cc numeric_uint128_test.cc
           numeric_util_test.cc numeric_zigzag_test.cc)
 
@@ -7,7 +7,7 @@ target_link_libraries(sourcemeta_core_numeric_unit
 
 # IBM General Decimal Arithmetic Test Suite
 # See https://speleotrove.com/decimal/
-sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME ibm_dectest
+sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME ibm_dectest
   SOURCES decimal_ibm_dectest.cc)
 target_compile_definitions(sourcemeta_core_ibm_dectest_unit
   PRIVATE DECTEST_PATH="${CMAKE_CURRENT_SOURCE_DIR}/dectest")

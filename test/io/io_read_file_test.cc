@@ -1,11 +1,10 @@
-#include <gtest/gtest.h>
-
 #include <sourcemeta/core/io.h>
+#include <sourcemeta/core/test.h>
 
 #include <algorithm>
 #include <sstream>
 
-TEST(IO_read_file, text_file) {
+TEST(text_file) {
   auto stream{sourcemeta::core::read_file(
       std::filesystem::path{STUBS_DIRECTORY} / "test.txt")};
   std::ostringstream contents;
@@ -17,7 +16,7 @@ TEST(IO_read_file, text_file) {
   EXPECT_EQ(result, "Hello World\n");
 }
 
-TEST(IO_read_file, directory) {
+TEST(directory) {
   const std::filesystem::path path{STUBS_DIRECTORY};
   try {
     sourcemeta::core::read_file(path);
@@ -29,7 +28,7 @@ TEST(IO_read_file, directory) {
   }
 }
 
-TEST(IO_read_file, not_exists) {
+TEST(not_exists) {
   const auto path{std::filesystem::path{STUBS_DIRECTORY} / "missing.txt"};
   try {
     sourcemeta::core::read_file(path);

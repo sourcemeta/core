@@ -1,0 +1,7 @@
+Usage: sourcemeta_core_test_success [options]
+
+Run the registered tests.
+
+Options:
+  -f, --filter <prefix>  Only run tests whose <suite>.<name> starts with <prefix>
+  -h, --help             Show this message

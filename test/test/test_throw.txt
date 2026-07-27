@@ -1,0 +1,5 @@
+TAP version 14
+1..1
+not ok 1 - test_throw.unexpected_throw
+# test_throw.cc:5: threw an unexpected exception: something went wrong
+# 0 passed, 1 failed

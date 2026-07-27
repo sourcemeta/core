@@ -1,4 +1,4 @@
-sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME yaml
+sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME yaml
   SOURCES
     yaml_parse_test.cc
     yaml_parse_callback_test.cc
@@ -17,7 +17,7 @@ target_compile_definitions(sourcemeta_core_yaml_unit
 
 # YAML Test Suite
 # See https://github.com/yaml/yaml-test-suite
-sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME yamltestsuite
+sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME yamltestsuite
   SOURCES yamltestsuite.cc)
 target_compile_definitions(sourcemeta_core_yamltestsuite_unit
   PRIVATE YAMLTESTSUITE_PATH="${PROJECT_SOURCE_DIR}/vendor/yaml-test-suite")

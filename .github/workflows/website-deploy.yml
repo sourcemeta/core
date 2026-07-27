@@ -19,10 +19,12 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+    # Fedora provides a modern Doxygen out of the box
+    container: fedora:latest
     steps:
+      - name: Install dependencies
+        run: dnf install --assumeyes doxygen cmake gcc-c++ graphviz git
       - uses: actions/checkout@v4
-      - run: sudo apt update
-      - run: sudo apt install -y doxygen
       - run: >
           cmake -S . -B ./build
           -DCMAKE_BUILD_TYPE:STRING=Release
@@ -35,6 +37,7 @@ jobs:
           -DSOURCEMETA_CORE_LANG_OPTIONS:BOOL=OFF
           -DSOURCEMETA_CORE_LANG_TEXT:BOOL=OFF
           -DSOURCEMETA_CORE_LANG_STACKTRACE:BOOL=OFF
+          -DSOURCEMETA_CORE_LANG_TEST:BOOL=OFF
           -DSOURCEMETA_CORE_UNICODE:BOOL=OFF
           -DSOURCEMETA_CORE_PUNYCODE:BOOL=OFF
           -DSOURCEMETA_CORE_TIME:BOOL=OFF
@@ -44,16 +47,21 @@ jobs:
           -DSOURCEMETA_CORE_IDNA:BOOL=OFF
           -DSOURCEMETA_CORE_DNS:BOOL=OFF
           -DSOURCEMETA_CORE_EMAIL:BOOL=OFF
+          -DSOURCEMETA_CORE_LANGTAG:BOOL=OFF
           -DSOURCEMETA_CORE_URI:BOOL=OFF
           -DSOURCEMETA_CORE_URITEMPLATE:BOOL=OFF
           -DSOURCEMETA_CORE_JSON:BOOL=OFF
           -DSOURCEMETA_CORE_JSONL:BOOL=OFF
           -DSOURCEMETA_CORE_JSONPOINTER:BOOL=OFF
+          -DSOURCEMETA_CORE_JSONPATH:BOOL=OFF
+          -DSOURCEMETA_CORE_JSONLD:BOOL=OFF
           -DSOURCEMETA_CORE_YAML:BOOL=OFF
           -DSOURCEMETA_CORE_JSONRPC:BOOL=OFF
           -DSOURCEMETA_CORE_MCP:BOOL=OFF
           -DSOURCEMETA_CORE_HTTP:BOOL=OFF
           -DSOURCEMETA_CORE_JOSE:BOOL=OFF
+          -DSOURCEMETA_CORE_OAUTH:BOOL=OFF
+          -DSOURCEMETA_CORE_OIDC:BOOL=OFF
           -DSOURCEMETA_CORE_SEMVER:BOOL=OFF
           -DSOURCEMETA_CORE_GZIP:BOOL=OFF
           -DSOURCEMETA_CORE_HTML:BOOL=OFF

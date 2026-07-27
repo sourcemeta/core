@@ -5,7 +5,8 @@
 #include <sourcemeta/core/regex_export.h>
 #endif
 
-#include <cstdint>     // std::uint8_t, std::uint64_t
+#include <cstddef>     // std::size_t
+#include <cstdint>     // std::uint8_t
 #include <memory>      // std::shared_ptr
 #include <optional>    // std::optional
 #include <string>      // std::string
@@ -26,6 +27,7 @@
 namespace sourcemeta::core {
 
 /// @ingroup regex
+/// Matches any string that begins with a fixed prefix.
 using RegexTypePrefix = std::string;
 
 /// @ingroup regex
@@ -34,10 +36,13 @@ struct RegexTypeNonEmpty {
 };
 
 /// @ingroup regex
-using RegexTypeRange = std::pair<std::uint64_t, std::uint64_t>;
+/// Matches any string whose length falls within an inclusive range.
+using RegexTypeRange = std::pair<std::size_t, std::size_t>;
 
 /// @ingroup regex
+/// A regular expression compiled through the PCRE2 engine.
 struct RegexTypePCRE2 {
+  /// The opaque handle to the compiled expression.
   std::shared_ptr<void> code;
   auto operator==(const RegexTypePCRE2 &other) const noexcept -> bool {
     return this->code == other.code;
@@ -50,6 +55,7 @@ struct RegexTypeNoop {
 };
 
 /// @ingroup regex
+/// A compiled regular expression in one of its supported representations.
 using Regex = std::variant<RegexTypePrefix, RegexTypeNonEmpty, RegexTypeRange,
                            RegexTypePCRE2, RegexTypeNoop>;
 #if !defined(DOXYGEN)
@@ -64,12 +70,28 @@ enum class RegexIndex : std::uint8_t {
 #endif
 
 /// @ingroup regex
+/// The dialects that a regular expression pattern can be interpreted with.
+enum class RegexDialect : std::uint8_t {
+  /// A permissive superset of ECMA 262 with PCRE2 extensions
+  Permissive,
+  /// Strict RFC 9485 I-Regexp, where any pattern outside the grammar is
+  /// rejected, matching considers the whole input, and an unescaped caret
+  /// or dollar sign outside a character class is an ordinary character
+  IRegexp,
+  /// Like the strict RFC 9485 dialect, except that matching considers any
+  /// substring of the input
+  IRegexpSearch
+};
+
+/// @ingroup regex
 ///
 /// Compile a regular expression from a string. If the regular expression is
 /// invalid, no value is returned. In this function:
 ///
-/// - Regexes are NOT automatically anchored
-/// - Regexes assume `DOTALL`
+/// - Permissive regexes are NOT automatically anchored
+/// - Permissive regexes assume `DOTALL`
+/// - RFC 9485 regexes match the whole input, except in the search dialect,
+///   which matches any substring
 /// - Regexes assume Unicode
 /// - Regexes are case sensitive
 /// - No matching happens (only boolean validation)
@@ -81,11 +103,14 @@ enum class RegexIndex : std::uint8_t {
 /// #include <cassert>
 ///
 /// const sourcemeta::core::Regex regex{
-///   sourcemeta::core::to_regex("^foo")};
+///   sourcemeta::core::to_regex("^foo",
+///     sourcemeta::core::RegexDialect::Permissive)};
 /// assert(regex.has_value());
 /// ```
 SOURCEMETA_CORE_REGEX_EXPORT
-auto to_regex(const std::string_view pattern) -> std::optional<Regex>;
+auto to_regex(const std::string_view pattern,
+              const RegexDialect dialect = RegexDialect::Permissive)
+    -> std::optional<Regex>;
 
 /// @ingroup regex
 ///
@@ -117,7 +142,9 @@ auto matches(const Regex &regex, const std::string_view value) -> bool;
 /// ```
 SOURCEMETA_CORE_REGEX_EXPORT
 auto matches_if_valid(const std::string_view pattern,
-                      const std::string_view value) -> bool;
+                      const std::string_view value,
+                      const RegexDialect dialect = RegexDialect::Permissive)
+    -> bool;
 
 /// @ingroup regex
 ///

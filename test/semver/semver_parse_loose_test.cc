@@ -1,8 +1,7 @@
-#include <gtest/gtest.h>
-
 #include <sourcemeta/core/semver.h>
+#include <sourcemeta/core/test.h>
 
-TEST(SemVer_parse_loose, v_prefix_full) {
+TEST(v_prefix_full) {
   const sourcemeta::core::SemVer version{"v1.2.3",
                                          sourcemeta::core::SemVer::Mode::Loose};
   EXPECT_EQ(version.major(), 1);
@@ -12,7 +11,7 @@ TEST(SemVer_parse_loose, v_prefix_full) {
   EXPECT_TRUE(version.build().empty());
 }
 
-TEST(SemVer_parse_loose, V_prefix_full) {
+TEST(V_prefix_full) {
   const sourcemeta::core::SemVer version{"V1.2.3",
                                          sourcemeta::core::SemVer::Mode::Loose};
   EXPECT_EQ(version.major(), 1);
@@ -20,7 +19,7 @@ TEST(SemVer_parse_loose, V_prefix_full) {
   EXPECT_EQ(version.patch(), 3);
 }
 
-TEST(SemVer_parse_loose, major_minor_only) {
+TEST(major_minor_only) {
   const sourcemeta::core::SemVer version{"1.2",
                                          sourcemeta::core::SemVer::Mode::Loose};
   EXPECT_EQ(version.major(), 1);
@@ -28,7 +27,7 @@ TEST(SemVer_parse_loose, major_minor_only) {
   EXPECT_EQ(version.patch(), 0);
 }
 
-TEST(SemVer_parse_loose, major_only) {
+TEST(major_only) {
   const sourcemeta::core::SemVer version{"1",
                                          sourcemeta::core::SemVer::Mode::Loose};
   EXPECT_EQ(version.major(), 1);
@@ -36,7 +35,7 @@ TEST(SemVer_parse_loose, major_only) {
   EXPECT_EQ(version.patch(), 0);
 }
 
-TEST(SemVer_parse_loose, zero_only) {
+TEST(zero_only) {
   const sourcemeta::core::SemVer version{"0",
                                          sourcemeta::core::SemVer::Mode::Loose};
   EXPECT_EQ(version.major(), 0);
@@ -44,7 +43,7 @@ TEST(SemVer_parse_loose, zero_only) {
   EXPECT_EQ(version.patch(), 0);
 }
 
-TEST(SemVer_parse_loose, v_prefix_major_minor) {
+TEST(v_prefix_major_minor) {
   const sourcemeta::core::SemVer version{"v1.2",
                                          sourcemeta::core::SemVer::Mode::Loose};
   EXPECT_EQ(version.major(), 1);
@@ -52,7 +51,7 @@ TEST(SemVer_parse_loose, v_prefix_major_minor) {
   EXPECT_EQ(version.patch(), 0);
 }
 
-TEST(SemVer_parse_loose, v_prefix_major_only) {
+TEST(v_prefix_major_only) {
   const sourcemeta::core::SemVer version{"v1",
                                          sourcemeta::core::SemVer::Mode::Loose};
   EXPECT_EQ(version.major(), 1);
@@ -60,7 +59,7 @@ TEST(SemVer_parse_loose, v_prefix_major_only) {
   EXPECT_EQ(version.patch(), 0);
 }
 
-TEST(SemVer_parse_loose, V_prefix_major_minor) {
+TEST(V_prefix_major_minor) {
   const sourcemeta::core::SemVer version{"V1.2",
                                          sourcemeta::core::SemVer::Mode::Loose};
   EXPECT_EQ(version.major(), 1);
@@ -68,7 +67,7 @@ TEST(SemVer_parse_loose, V_prefix_major_minor) {
   EXPECT_EQ(version.patch(), 0);
 }
 
-TEST(SemVer_parse_loose, V_prefix_major_only) {
+TEST(V_prefix_major_only) {
   const sourcemeta::core::SemVer version{"V1",
                                          sourcemeta::core::SemVer::Mode::Loose};
   EXPECT_EQ(version.major(), 1);
@@ -76,7 +75,7 @@ TEST(SemVer_parse_loose, V_prefix_major_only) {
   EXPECT_EQ(version.patch(), 0);
 }
 
-TEST(SemVer_parse_loose, v_prefix_zero) {
+TEST(v_prefix_zero) {
   const sourcemeta::core::SemVer version{"v0",
                                          sourcemeta::core::SemVer::Mode::Loose};
   EXPECT_EQ(version.major(), 0);
@@ -84,7 +83,7 @@ TEST(SemVer_parse_loose, v_prefix_zero) {
   EXPECT_EQ(version.patch(), 0);
 }
 
-TEST(SemVer_parse_loose, v_prefix_zero_zero) {
+TEST(v_prefix_zero_zero) {
   const sourcemeta::core::SemVer version{"v0.0",
                                          sourcemeta::core::SemVer::Mode::Loose};
   EXPECT_EQ(version.major(), 0);
@@ -92,7 +91,7 @@ TEST(SemVer_parse_loose, v_prefix_zero_zero) {
   EXPECT_EQ(version.patch(), 0);
 }
 
-TEST(SemVer_parse_loose, multi_digit_major_minor) {
+TEST(multi_digit_major_minor) {
   const sourcemeta::core::SemVer version{"v10.20",
                                          sourcemeta::core::SemVer::Mode::Loose};
   EXPECT_EQ(version.major(), 10);
@@ -100,7 +99,7 @@ TEST(SemVer_parse_loose, multi_digit_major_minor) {
   EXPECT_EQ(version.patch(), 0);
 }
 
-TEST(SemVer_parse_loose, major_minor_with_pre_release) {
+TEST(major_minor_with_pre_release) {
   const sourcemeta::core::SemVer version{"1.2-alpha",
                                          sourcemeta::core::SemVer::Mode::Loose};
   EXPECT_EQ(version.major(), 1);
@@ -109,7 +108,7 @@ TEST(SemVer_parse_loose, major_minor_with_pre_release) {
   EXPECT_EQ(version.pre_release(), "alpha");
 }
 
-TEST(SemVer_parse_loose, major_only_with_pre_release) {
+TEST(major_only_with_pre_release) {
   const sourcemeta::core::SemVer version{"1-alpha",
                                          sourcemeta::core::SemVer::Mode::Loose};
   EXPECT_EQ(version.major(), 1);
@@ -118,7 +117,7 @@ TEST(SemVer_parse_loose, major_only_with_pre_release) {
   EXPECT_EQ(version.pre_release(), "alpha");
 }
 
-TEST(SemVer_parse_loose, v_prefix_major_minor_with_build) {
+TEST(v_prefix_major_minor_with_build) {
   const sourcemeta::core::SemVer version{"v1.2+build",
                                          sourcemeta::core::SemVer::Mode::Loose};
   EXPECT_EQ(version.major(), 1);
@@ -127,7 +126,7 @@ TEST(SemVer_parse_loose, v_prefix_major_minor_with_build) {
   EXPECT_EQ(version.build(), "build");
 }
 
-TEST(SemVer_parse_loose, v_prefix_major_minor_pre_release_and_build) {
+TEST(v_prefix_major_minor_pre_release_and_build) {
   const sourcemeta::core::SemVer version{"v1.2-alpha+build",
                                          sourcemeta::core::SemVer::Mode::Loose};
   EXPECT_EQ(version.major(), 1);
@@ -137,7 +136,7 @@ TEST(SemVer_parse_loose, v_prefix_major_minor_pre_release_and_build) {
   EXPECT_EQ(version.build(), "build");
 }
 
-TEST(SemVer_parse_loose, v_prefix_full_with_pre_release_and_build) {
+TEST(v_prefix_full_with_pre_release_and_build) {
   const sourcemeta::core::SemVer version{"v1.2.3-alpha.1+build.123",
                                          sourcemeta::core::SemVer::Mode::Loose};
   EXPECT_EQ(version.major(), 1);
@@ -147,7 +146,7 @@ TEST(SemVer_parse_loose, v_prefix_full_with_pre_release_and_build) {
   EXPECT_EQ(version.build(), "build.123");
 }
 
-TEST(SemVer_parse_loose, strict_valid_still_works) {
+TEST(strict_valid_still_works) {
   const sourcemeta::core::SemVer version{"1.2.3",
                                          sourcemeta::core::SemVer::Mode::Loose};
   EXPECT_EQ(version.major(), 1);
@@ -155,7 +154,7 @@ TEST(SemVer_parse_loose, strict_valid_still_works) {
   EXPECT_EQ(version.patch(), 3);
 }
 
-TEST(SemVer_parse_loose, from_v_prefix) {
+TEST(from_v_prefix) {
   const auto result = sourcemeta::core::SemVer::from(
       "v1.2.3", sourcemeta::core::SemVer::Mode::Loose);
   EXPECT_TRUE(result.has_value());
@@ -164,7 +163,7 @@ TEST(SemVer_parse_loose, from_v_prefix) {
   EXPECT_EQ(result->patch(), 3);
 }
 
-TEST(SemVer_parse_loose, from_major_only) {
+TEST(from_major_only) {
   const auto result = sourcemeta::core::SemVer::from(
       "1", sourcemeta::core::SemVer::Mode::Loose);
   EXPECT_TRUE(result.has_value());
@@ -173,7 +172,7 @@ TEST(SemVer_parse_loose, from_major_only) {
   EXPECT_EQ(result->patch(), 0);
 }
 
-TEST(SemVer_parse_loose, from_v_prefix_major_minor) {
+TEST(from_v_prefix_major_minor) {
   const auto result = sourcemeta::core::SemVer::from(
       "v1.2", sourcemeta::core::SemVer::Mode::Loose);
   EXPECT_TRUE(result.has_value());
@@ -182,31 +181,31 @@ TEST(SemVer_parse_loose, from_v_prefix_major_minor) {
   EXPECT_EQ(result->patch(), 0);
 }
 
-TEST(SemVer_parse_loose, from_invalid_still_returns_nullopt) {
+TEST(from_invalid_still_returns_nullopt) {
   EXPECT_FALSE(sourcemeta::core::SemVer::from(
                    "v01.2.3", sourcemeta::core::SemVer::Mode::Loose)
                    .has_value());
 }
 
-TEST(SemVer_parse_loose, to_string_major_only) {
+TEST(to_string_major_only) {
   const sourcemeta::core::SemVer version{"1",
                                          sourcemeta::core::SemVer::Mode::Loose};
   EXPECT_EQ(version.to_string(), "1.0.0");
 }
 
-TEST(SemVer_parse_loose, to_string_major_minor) {
+TEST(to_string_major_minor) {
   const sourcemeta::core::SemVer version{"1.2",
                                          sourcemeta::core::SemVer::Mode::Loose};
   EXPECT_EQ(version.to_string(), "1.2.0");
 }
 
-TEST(SemVer_parse_loose, to_string_v_prefix) {
+TEST(to_string_v_prefix) {
   const sourcemeta::core::SemVer version{"v1.2.3",
                                          sourcemeta::core::SemVer::Mode::Loose};
   EXPECT_EQ(version.to_string(), "1.2.3");
 }
 
-TEST(SemVer_parse_loose, major_only_with_build) {
+TEST(major_only_with_build) {
   const sourcemeta::core::SemVer version{"1+build",
                                          sourcemeta::core::SemVer::Mode::Loose};
   EXPECT_EQ(version.major(), 1);

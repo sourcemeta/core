@@ -11,17 +11,19 @@
 #include <utility>     // std::move
 
 namespace {
+using namespace std::string_view_literals;
 
-const auto HASH_ALG{sourcemeta::core::JSON::Object::hash("alg")};
-const auto HASH_CRIT{sourcemeta::core::JSON::Object::hash("crit")};
-const auto HASH_KID{sourcemeta::core::JSON::Object::hash("kid")};
-const auto HASH_ISS{sourcemeta::core::JSON::Object::hash("iss")};
-const auto HASH_SUB{sourcemeta::core::JSON::Object::hash("sub")};
-const auto HASH_AUD{sourcemeta::core::JSON::Object::hash("aud")};
-const auto HASH_EXP{sourcemeta::core::JSON::Object::hash("exp")};
-const auto HASH_NBF{sourcemeta::core::JSON::Object::hash("nbf")};
-const auto HASH_IAT{sourcemeta::core::JSON::Object::hash("iat")};
-const auto HASH_JTI{sourcemeta::core::JSON::Object::hash("jti")};
+constexpr auto HASH_ALG{sourcemeta::core::JSON::Object::hash("alg"sv)};
+constexpr auto HASH_CRIT{sourcemeta::core::JSON::Object::hash("crit"sv)};
+constexpr auto HASH_KID{sourcemeta::core::JSON::Object::hash("kid"sv)};
+constexpr auto HASH_TYP{sourcemeta::core::JSON::Object::hash("typ"sv)};
+constexpr auto HASH_ISS{sourcemeta::core::JSON::Object::hash("iss"sv)};
+constexpr auto HASH_SUB{sourcemeta::core::JSON::Object::hash("sub"sv)};
+constexpr auto HASH_AUD{sourcemeta::core::JSON::Object::hash("aud"sv)};
+constexpr auto HASH_EXP{sourcemeta::core::JSON::Object::hash("exp"sv)};
+constexpr auto HASH_NBF{sourcemeta::core::JSON::Object::hash("nbf"sv)};
+constexpr auto HASH_IAT{sourcemeta::core::JSON::Object::hash("iat"sv)};
+constexpr auto HASH_JTI{sourcemeta::core::JSON::Object::hash("jti"sv)};
 
 auto string_claim(const sourcemeta::core::JSON &object,
                   const sourcemeta::core::JSON::StringView name,
@@ -35,6 +37,22 @@ auto string_claim(const sourcemeta::core::JSON &object,
   return std::string_view{member->to_string()};
 }
 
+// RFC 7519 Section 5.1: a "typ" value not containing a slash is treated as if
+// "application/" were prepended, so the compact and prefixed forms compare
+// equal, and RFC 7515 Section 4.1.9 makes the media type case-insensitive
+auto strip_application_prefix(const std::string_view value)
+    -> std::string_view {
+  constexpr std::string_view prefix{"application/"};
+  if (value.size() > prefix.size() &&
+      sourcemeta::core::equals_ignore_case(value.substr(0, prefix.size()),
+                                           prefix) &&
+      value.find('/', prefix.size()) == std::string_view::npos) {
+    return value.substr(prefix.size());
+  }
+
+  return value;
+}
+
 auto date_claim(const sourcemeta::core::JSON &object,
                 const sourcemeta::core::JSON::StringView name,
                 const sourcemeta::core::JSON::Object::hash_type hash)
@@ -45,22 +63,14 @@ auto date_claim(const sourcemeta::core::JSON &object,
   }
 
   // A NumericDate is the number of seconds since the Unix epoch, possibly
-  // non-integer (RFC 7519 Section 2). A number can be backed by an integer, a
-  // real, or a decimal (such as the exponent form "1e9"), each of which must
-  // be read through its own accessor
+  // non-integer (RFC 7519 Section 2). A decimal-backed number (such as the
+  // exponent form "1e9") whose magnitude exceeds the range of a double cannot
+  // stand for a usable timestamp, and untrusted input must not abort
   double seconds{0};
-  if (member->is_integer()) {
-    seconds = static_cast<double>(member->to_integer());
-  } else if (member->is_real()) {
-    seconds = member->to_real();
-  } else {
-    // A decimal whose magnitude exceeds the range of a double cannot stand for
-    // a usable timestamp
-    try {
-      seconds = member->to_decimal().to_double();
-    } catch (const std::out_of_range &) {
-      return std::nullopt;
-    }
+  try {
+    seconds = member->as_real();
+  } catch (const std::out_of_range &) {
+    return std::nullopt;
   }
 
   return sourcemeta::core::from_unix_timestamp(
@@ -106,6 +116,14 @@ auto JWT::parse(const std::string_view input, JWT &result) -> bool {
     return false;
   }
 
+  // RFC 7515 Section 4: the header parameter names must be unique, and RFC 7519
+  // Section 4: the claim names must be unique, so a duplicate in either the
+  // header or the payload is rejected (RFC 8725 Section 2.4)
+  if (!header_json.value().unique_keys() ||
+      !payload_json.value().unique_keys()) {
+    return false;
+  }
+
   // The algorithm header parameter is required and must be a string (RFC 7515
   // Section 4.1.1)
   const auto *algorithm{header_json.value().try_at("alg", HASH_ALG)};
@@ -147,6 +165,17 @@ auto JWT::key_id() const noexcept -> std::optional<std::string_view> {
   return string_claim(this->header_, "kid", HASH_KID);
 }
 
+auto JWT::type() const noexcept -> std::optional<std::string_view> {
+  return string_claim(this->header_, "typ", HASH_TYP);
+}
+
+auto JWT::has_type(const std::string_view media_type) const -> bool {
+  const auto value{this->type()};
+  return value.has_value() &&
+         equals_ignore_case(strip_application_prefix(value.value()),
+                            strip_application_prefix(media_type));
+}
+
 auto JWT::issuer() const noexcept -> std::optional<std::string_view> {
   return string_claim(this->payload_, "iss", HASH_ISS);
 }
@@ -160,7 +189,7 @@ auto JWT::token_id() const noexcept -> std::optional<std::string_view> {
 }
 
 auto JWT::has_audience(const std::string_view audience) const noexcept -> bool {
-  const auto *member{this->payload_.try_at("aud", HASH_AUD)};
+  const auto *member{this->payload_.try_at("aud"sv, HASH_AUD)};
   if (member == nullptr) {
     return false;
   }

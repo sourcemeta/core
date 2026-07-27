@@ -1,0 +1,51 @@
+Name,Usage Location,Protocol Extension,Change Controller,Reference
+invalid_request,"authorization endpoint, token endpoint, resource access error response","OAuth 2.0 Authorization Framework, bearer access token type",IETF,[RFC6749][RFC6750]
+unauthorized_client,"authorization endpoint, token endpoint",OAuth 2.0 Authorization Framework,IETF,[RFC6749]
+access_denied,authorization endpoint,OAuth 2.0 Authorization Framework,IETF,[RFC6749]
+unsupported_response_type,authorization endpoint,OAuth 2.0 Authorization Framework,IETF,[RFC6749]
+invalid_scope,"authorization endpoint, token endpoint",OAuth 2.0 Authorization Framework,IETF,[RFC6749]
+server_error,authorization endpoint,OAuth 2.0 Authorization Framework,IETF,[RFC6749]
+temporarily_unavailable,authorization endpoint,OAuth 2.0 Authorization Framework,IETF,[RFC6749]
+invalid_client,"token endpoint, authorization endpoint",OAuth 2.0 Authorization Framework,IETF,[RFC6749]
+invalid_grant,token endpoint,OAuth 2.0 Authorization Framework,IETF,[RFC6749]
+unsupported_grant_type,token endpoint,OAuth 2.0 Authorization Framework,IETF,[RFC6749]
+invalid_token,resource access error response,bearer access token type,IETF,[RFC6750]
+insufficient_scope,resource access error response,bearer access token type,IETF,[RFC6750]
+unsupported_token_type,revocation endpoint error response,token revocation endpoint,IETF,[RFC7009]
+interaction_required,authorization endpoint,OpenID Connect,[OpenID_Foundation_Artifact_Binding_WG],[OpenID Connect Core 1.0 incorporating errata set 1]
+login_required,authorization endpoint,OpenID Connect,[OpenID_Foundation_Artifact_Binding_WG],[OpenID Connect Core 1.0 incorporating errata set 1]
+account_selection_required,authorization endpoint,OpenID Connect,[OpenID_Foundation_Artifact_Binding_WG],[OpenID Connect Core 1.0 incorporating errata set 1]
+consent_required,authorization endpoint,OpenID Connect,[OpenID_Foundation_Artifact_Binding_WG],[OpenID Connect Core 1.0 incorporating errata set 1]
+invalid_request_uri,authorization endpoint,OpenID Connect,[OpenID_Foundation_Artifact_Binding_WG],[OpenID Connect Core 1.0 incorporating errata set 1]
+invalid_request_object,authorization endpoint,OpenID Connect,[OpenID_Foundation_Artifact_Binding_WG],[OpenID Connect Core 1.0 incorporating errata set 1]
+request_not_supported,authorization endpoint,OpenID Connect,[OpenID_Foundation_Artifact_Binding_WG],[OpenID Connect Core 1.0 incorporating errata set 1]
+request_uri_not_supported,authorization endpoint,OpenID Connect,[OpenID_Foundation_Artifact_Binding_WG],[OpenID Connect Core 1.0 incorporating errata set 1]
+registration_not_supported,authorization endpoint,OpenID Connect,[OpenID_Foundation_Artifact_Binding_WG],[OpenID Connect Core 1.0 incorporating errata set 1]
+need_info (and its subsidiary parameters),"authorization server response, token endpoint",Kantara UMA,[Kantara_UMA_WG],"[UMA 2.0 Grant for OAuth 2.0, Section 3.3.6]"
+request_denied,"authorization server response, token endpoint",Kantara UMA,[Kantara_UMA_WG],"[UMA 2.0 Grant for OAuth 2.0, Section 3.3.6]"
+request_submitted (and its subsidiary parameters),"authorization server response, token endpoint",Kantara UMA,[Kantara_UMA_WG],"[UMA 2.0 Grant for OAuth 2.0, Section 3.3.6]"
+invalid_redirect_uri,registration endpoint,Dynamic Client Registration,IETF,"[RFC7591, Section 3.2.2]"
+invalid_client_metadata,registration endpoint,Dynamic Client Registration,IETF,"[RFC7591, Section 3.2.2]"
+invalid_software_statement,registration endpoint,Dynamic Client Registration,IETF,"[RFC7591, Section 3.2.2]"
+unapproved_software_statement,registration endpoint,Dynamic Client Registration,IETF,"[RFC7591, Section 3.2.2]"
+authorization_pending,Token endpoint response,[RFC8628],IETF,"[RFC8628, Section 3.5]"
+access_denied,Token endpoint response,[RFC8628],IETF,"[RFC8628, Section 3.5]"
+slow_down,Token endpoint response,[RFC8628],IETF,"[RFC8628, Section 3.5]"
+expired_token,Token endpoint response,[RFC8628],IETF,"[RFC8628, Section 3.5]"
+invalid_target,"implicit grant error response, token error response",resource parameter,IESG,[RFC8707]
+unsupported_pop_key,token error response,[RFC9200],IETF,"[RFC9200, Section 5.8.3]"
+incompatible_ace_profiles,token error response,[RFC9200],IETF,"[RFC9200, Section 5.8.3]"
+invalid_authorization_details,"token endpoint, authorization endpoint",OAuth 2.0 Rich Authorization Requests,IETF,"[RFC9396, Section 5]"
+invalid_dpop_proof,"token error response, resource access error response",Demonstrating Proof of Possession (DPoP),IETF,[RFC9449]
+use_dpop_nonce,"token error response, resource access error response",Demonstrating Proof of Possession (DPoP),IETF,[RFC9449]
+insufficient_user_authentication,resource access error response,OAuth 2.0 Step Up Authentication Challenge Protocol,IETF,"[RFC9470, Section 3]"
+invalid_issuer,authorization endpoint,OpenID Federation,[OpenID_Foundation_Artifact_Binding_WG],[Section 8.9 of OpenID Federation 1.0]
+invalid_subject,authorization endpoint,OpenID Federation,[OpenID_Foundation_Artifact_Binding_WG],[Section 8.9 of OpenID Federation 1.0]
+invalid_trust_anchor,authorization endpoint,OpenID Federation,[OpenID_Foundation_Artifact_Binding_WG],[Section 8.9 of OpenID Federation 1.0]
+invalid_trust_chain,authorization endpoint,OpenID Federation,[OpenID_Foundation_Artifact_Binding_WG],[Section 8.9 of OpenID Federation 1.0]
+invalid_metadata,authorization endpoint,OpenID Federation,[OpenID_Foundation_Artifact_Binding_WG],[Section 8.9 of OpenID Federation 1.0]
+not_found,authorization endpoint,OpenID Federation,[OpenID_Foundation_Artifact_Binding_WG],[Section 8.9 of OpenID Federation 1.0]
+unsupported_parameter,authorization endpoint,OpenID Federation,[OpenID_Foundation_Artifact_Binding_WG],[Section 8.9 of OpenID Federation 1.0]
+vp_formats_not_supported,"authorization endpoint, token endpoint",OpenID for Verifiable Presentations,[OpenID_Foundation_Digital_Credentials_Protocols_WG],"[OpenID for Verifiable Presentations 1.0, Section 8.5]"
+invalid_request_uri_method,authorization endpoint,OpenID for Verifiable Presentations,[OpenID_Foundation_Digital_Credentials_Protocols_WG],"[OpenID for Verifiable Presentations 1.0, Section 8.5]"
+wallet_unavailable,"authorization endpoint, token endpoint",OpenID for Verifiable Presentations,[OpenID_Foundation_Digital_Credentials_Protocols_WG],"[OpenID for Verifiable Presentations 1.0, Section 8.5]"

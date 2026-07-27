@@ -1,6 +1,5 @@
-#include <gtest/gtest.h>
-
 #include <sourcemeta/core/json.h>
+#include <sourcemeta/core/test.h>
 
 #include <sstream>
 #include <tuple>
@@ -60,70 +59,70 @@
   EXPECT_EQ(std::get<5>(traces.at(index)), expected_index);                    \
   EXPECT_EQ(std::get<6>(traces.at(index)), expected_property)
 
-TEST(JSON_parse_callback, true) {
+TEST(true) {
   const auto input{"true"};
   PARSE_WITH_TRACES(document, input, 2);
   EXPECT_TRACE(0, Pre, Boolean, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Post, Boolean, 1, 4, Root, 0, "");
 }
 
-TEST(JSON_parse_callback, true_with_padding) {
+TEST(true_with_padding) {
   const auto input{"  true  "};
   PARSE_WITH_TRACES(document, input, 2);
   EXPECT_TRACE(0, Pre, Boolean, 1, 3, Root, 0, "");
   EXPECT_TRACE(1, Post, Boolean, 1, 6, Root, 0, "");
 }
 
-TEST(JSON_parse_callback, false) {
+TEST(false) {
   const auto input{"false"};
   PARSE_WITH_TRACES(document, input, 2);
   EXPECT_TRACE(0, Pre, Boolean, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Post, Boolean, 1, 5, Root, 0, "");
 }
 
-TEST(JSON_parse_callback, null) {
+TEST(null) {
   const auto input{"null"};
   PARSE_WITH_TRACES(document, input, 2);
   EXPECT_TRACE(0, Pre, Null, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Post, Null, 1, 4, Root, 0, "");
 }
 
-TEST(JSON_parse_callback, empty_string) {
+TEST(empty_string) {
   const auto input{"\"\""};
   PARSE_WITH_TRACES(document, input, 2);
   EXPECT_TRACE(0, Pre, String, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Post, String, 1, 2, Root, 0, "");
 }
 
-TEST(JSON_parse_callback, non_empty_string) {
+TEST(non_empty_string) {
   const auto input{"\"foo\""};
   PARSE_WITH_TRACES(document, input, 2);
   EXPECT_TRACE(0, Pre, String, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Post, String, 1, 5, Root, 0, "");
 }
 
-TEST(JSON_parse_callback, integer) {
+TEST(integer) {
   const auto input{"1234"};
   PARSE_WITH_TRACES(document, input, 2);
   EXPECT_TRACE(0, Pre, Integer, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Post, Integer, 1, 4, Root, 0, "");
 }
 
-TEST(JSON_parse_callback, real) {
+TEST(real) {
   const auto input{"3.5"};
   PARSE_WITH_TRACES(document, input, 2);
   EXPECT_TRACE(0, Pre, Real, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Post, Real, 1, 3, Root, 0, "");
 }
 
-TEST(JSON_parse_callback, empty_array) {
+TEST(empty_array) {
   const auto input{"[]"};
   PARSE_WITH_TRACES(document, input, 2);
   EXPECT_TRACE(0, Pre, Array, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Post, Array, 1, 2, Root, 0, "");
 }
 
-TEST(JSON_parse_callback, array_booleans) {
+TEST(array_booleans) {
   const auto input{"[\n  true,\n  false\n]"};
 
   PARSE_WITH_TRACES(document, input, 6);
@@ -135,7 +134,7 @@ TEST(JSON_parse_callback, array_booleans) {
   EXPECT_TRACE(5, Post, Array, 4, 1, Root, 0, "");
 }
 
-TEST(JSON_parse_callback, array_nulls) {
+TEST(array_nulls) {
   const auto input{"[\n  null,\n  null\n]"};
   PARSE_WITH_TRACES(document, input, 6);
   EXPECT_TRACE(0, Pre, Array, 1, 1, Root, 0, "");
@@ -146,7 +145,7 @@ TEST(JSON_parse_callback, array_nulls) {
   EXPECT_TRACE(5, Post, Array, 4, 1, Root, 0, "");
 }
 
-TEST(JSON_parse_callback, array_strings) {
+TEST(array_strings) {
   const auto input{"[\n  \"foo\",\n  \"bar\"\n]"};
   PARSE_WITH_TRACES(document, input, 6);
   EXPECT_TRACE(0, Pre, Array, 1, 1, Root, 0, "");
@@ -157,7 +156,7 @@ TEST(JSON_parse_callback, array_strings) {
   EXPECT_TRACE(5, Post, Array, 4, 1, Root, 0, "");
 }
 
-TEST(JSON_parse_callback, array_integers) {
+TEST(array_integers) {
   const auto input{"[\n  1,\n  234\n]"};
   PARSE_WITH_TRACES(document, input, 6);
   EXPECT_TRACE(0, Pre, Array, 1, 1, Root, 0, "");
@@ -168,7 +167,7 @@ TEST(JSON_parse_callback, array_integers) {
   EXPECT_TRACE(5, Post, Array, 4, 1, Root, 0, "");
 }
 
-TEST(JSON_parse_callback, array_reals) {
+TEST(array_reals) {
   const auto input{"[\n  1.0,\n  2.5\n]"};
   PARSE_WITH_TRACES(document, input, 6);
   EXPECT_TRACE(0, Pre, Array, 1, 1, Root, 0, "");
@@ -179,7 +178,7 @@ TEST(JSON_parse_callback, array_reals) {
   EXPECT_TRACE(5, Post, Array, 4, 1, Root, 0, "");
 }
 
-TEST(JSON_parse_callback, array_empty_objects) {
+TEST(array_empty_objects) {
   const auto input{"[\n  {},\n  {}\n]"};
   PARSE_WITH_TRACES(document, input, 6);
   EXPECT_TRACE(0, Pre, Array, 1, 1, Root, 0, "");
@@ -190,7 +189,7 @@ TEST(JSON_parse_callback, array_empty_objects) {
   EXPECT_TRACE(5, Post, Array, 4, 1, Root, 0, "");
 }
 
-TEST(JSON_parse_callback, array_empty_arrays) {
+TEST(array_empty_arrays) {
   const auto input{"[\n  [],\n  []\n]"};
   PARSE_WITH_TRACES(document, input, 6);
   EXPECT_TRACE(0, Pre, Array, 1, 1, Root, 0, "");
@@ -201,14 +200,14 @@ TEST(JSON_parse_callback, array_empty_arrays) {
   EXPECT_TRACE(5, Post, Array, 4, 1, Root, 0, "");
 }
 
-TEST(JSON_parse_callback, empty_object) {
+TEST(empty_object) {
   const auto input{"{}"};
   PARSE_WITH_TRACES(document, input, 2);
   EXPECT_TRACE(0, Pre, Object, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Post, Object, 1, 2, Root, 0, "");
 }
 
-TEST(JSON_parse_callback, object_booleans) {
+TEST(object_booleans) {
   const auto input{"{\n  \"foo\": true,\n  \"bar\": false\n}"};
   PARSE_WITH_TRACES(document, input, 6);
   EXPECT_TRACE(0, Pre, Object, 1, 1, Root, 0, "");
@@ -219,7 +218,7 @@ TEST(JSON_parse_callback, object_booleans) {
   EXPECT_TRACE(5, Post, Object, 4, 1, Root, 0, "");
 }
 
-TEST(JSON_parse_callback, object_nulls) {
+TEST(object_nulls) {
   const auto input{"{\n  \"foo\": null,\n  \"bar\": null\n}"};
   PARSE_WITH_TRACES(document, input, 6);
   EXPECT_TRACE(0, Pre, Object, 1, 1, Root, 0, "");
@@ -230,7 +229,7 @@ TEST(JSON_parse_callback, object_nulls) {
   EXPECT_TRACE(5, Post, Object, 4, 1, Root, 0, "");
 }
 
-TEST(JSON_parse_callback, object_strings) {
+TEST(object_strings) {
   const auto input{"{\n  \"foo\": \"baz\",\n  \"bar\": \"qux\"\n}"};
   PARSE_WITH_TRACES(document, input, 6);
   EXPECT_TRACE(0, Pre, Object, 1, 1, Root, 0, "");
@@ -241,7 +240,7 @@ TEST(JSON_parse_callback, object_strings) {
   EXPECT_TRACE(5, Post, Object, 4, 1, Root, 0, "");
 }
 
-TEST(JSON_parse_callback, object_integers) {
+TEST(object_integers) {
   const auto input{"{\n  \"foo\": 1,\n  \"bar\": 234\n}"};
   PARSE_WITH_TRACES(document, input, 6);
   EXPECT_TRACE(0, Pre, Object, 1, 1, Root, 0, "");
@@ -252,7 +251,7 @@ TEST(JSON_parse_callback, object_integers) {
   EXPECT_TRACE(5, Post, Object, 4, 1, Root, 0, "");
 }
 
-TEST(JSON_parse_callback, object_reals) {
+TEST(object_reals) {
   const auto input{"{\n  \"foo\": 1.0,\n  \"bar\": 2.5\n}"};
   PARSE_WITH_TRACES(document, input, 6);
   EXPECT_TRACE(0, Pre, Object, 1, 1, Root, 0, "");
@@ -263,7 +262,7 @@ TEST(JSON_parse_callback, object_reals) {
   EXPECT_TRACE(5, Post, Object, 4, 1, Root, 0, "");
 }
 
-TEST(JSON_parse_callback, object_empty_arrays) {
+TEST(object_empty_arrays) {
   const auto input{"{\n  \"foo\": [],\n  \"bar\": []\n}"};
   PARSE_WITH_TRACES(document, input, 6);
   EXPECT_TRACE(0, Pre, Object, 1, 1, Root, 0, "");
@@ -274,7 +273,7 @@ TEST(JSON_parse_callback, object_empty_arrays) {
   EXPECT_TRACE(5, Post, Object, 4, 1, Root, 0, "");
 }
 
-TEST(JSON_parse_callback, object_empty_objects) {
+TEST(object_empty_objects) {
   const auto input{"{\n  \"foo\": {},\n  \"bar\": {}\n}"};
   PARSE_WITH_TRACES(document, input, 6);
   EXPECT_TRACE(0, Pre, Object, 1, 1, Root, 0, "");
@@ -285,7 +284,7 @@ TEST(JSON_parse_callback, object_empty_objects) {
   EXPECT_TRACE(5, Post, Object, 4, 1, Root, 0, "");
 }
 
-TEST(JSON_parse_callback, complex_1) {
+TEST(complex_1) {
   const auto input{R"JSON([
   {
     "foo": {
@@ -305,7 +304,7 @@ TEST(JSON_parse_callback, complex_1) {
   EXPECT_TRACE(7, Post, Array, 7, 1, Root, 0, "");
 }
 
-TEST(JSON_parse_callback, read_json_stub_valid) {
+TEST(read_json_stub_valid) {
   const auto input{std::filesystem::path{TEST_DIRECTORY} / "stub_valid.json"};
   READ_WITH_TRACES(document, input, 4);
   EXPECT_TRACE(0, Pre, Object, 1, 1, Root, 0, "");
@@ -314,21 +313,21 @@ TEST(JSON_parse_callback, read_json_stub_valid) {
   EXPECT_TRACE(3, Post, Object, 1, 12, Root, 0, "");
 }
 
-TEST(JSON_parse_callback, decimal_simple) {
+TEST(decimal_simple) {
   const auto input{"9223372036854776000"};
   PARSE_WITH_TRACES(document, input, 2);
   EXPECT_TRACE(0, Pre, Decimal, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Post, Decimal, 1, 19, Root, 0, "");
 }
 
-TEST(JSON_parse_callback, decimal_negative) {
+TEST(decimal_negative) {
   const auto input{"-9223372036854776000"};
   PARSE_WITH_TRACES(document, input, 2);
   EXPECT_TRACE(0, Pre, Decimal, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Post, Decimal, 1, 20, Root, 0, "");
 }
 
-TEST(JSON_parse_callback, decimal_in_array) {
+TEST(decimal_in_array) {
   const auto input{"[1, 9223372036854776000, 3]"};
   PARSE_WITH_TRACES(document, input, 8);
   EXPECT_TRACE(0, Pre, Array, 1, 1, Root, 0, "");
@@ -341,7 +340,7 @@ TEST(JSON_parse_callback, decimal_in_array) {
   EXPECT_TRACE(7, Post, Array, 1, 27, Root, 0, "");
 }
 
-TEST(JSON_parse_callback, decimal_in_object) {
+TEST(decimal_in_object) {
   const auto input{"{\"big\":9223372036854776000}"};
   PARSE_WITH_TRACES(document, input, 4);
   EXPECT_TRACE(0, Pre, Object, 1, 1, Root, 0, "");
@@ -350,7 +349,7 @@ TEST(JSON_parse_callback, decimal_in_object) {
   EXPECT_TRACE(3, Post, Object, 1, 27, Root, 0, "");
 }
 
-TEST(JSON_parse_callback, decimals_mixed_in_object) {
+TEST(decimals_mixed_in_object) {
   const auto input{"{\"big\":9223372036854776000,\"small\":42}"};
   PARSE_WITH_TRACES(document, input, 6);
   EXPECT_TRACE(0, Pre, Object, 1, 1, Root, 0, "");
@@ -361,14 +360,14 @@ TEST(JSON_parse_callback, decimals_mixed_in_object) {
   EXPECT_TRACE(5, Post, Object, 1, 38, Root, 0, "");
 }
 
-TEST(JSON_parse_callback, decimal_big_real) {
+TEST(decimal_big_real) {
   const auto input{"3.14159265358979323846264338327950288419716939937510"};
   PARSE_WITH_TRACES(document, input, 2);
   EXPECT_TRACE(0, Pre, Decimal, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Post, Decimal, 1, 52, Root, 0, "");
 }
 
-TEST(JSON_parse_callback, nested_decimals) {
+TEST(nested_decimals) {
   const auto input{"{\"data\":[{\"big_int\":9223372036854776000}]}"};
   PARSE_WITH_TRACES(document, input, 8);
   EXPECT_TRACE(0, Pre, Object, 1, 1, Root, 0, "");
@@ -381,9 +380,27 @@ TEST(JSON_parse_callback, nested_decimals) {
   EXPECT_TRACE(7, Post, Object, 1, 42, Root, 0, "");
 }
 
-TEST(JSON_parse_callback, read_json_stub_bigint) {
+TEST(read_json_stub_bigint) {
   const auto input{std::filesystem::path{TEST_DIRECTORY} / "stub_bigint.json"};
   READ_WITH_TRACES(document, input, 2);
   EXPECT_TRACE(0, Pre, Decimal, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Post, Decimal, 1, 19, Root, 0, "");
+}
+
+// A trailing-content failure must leave the output untouched, since the value
+// is parsed into a temporary and only moved out on success.
+TEST(trailing_content_leaves_output_untouched) {
+  sourcemeta::core::JSON output{"sentinel"};
+  const auto callback =
+      [](const sourcemeta::core::JSON::ParsePhase,
+         const sourcemeta::core::JSON::Type, const std::uint64_t,
+         const std::uint64_t, const sourcemeta::core::JSON::ParseContext,
+         const std::size_t, const sourcemeta::core::JSON::String &) {};
+  try {
+    sourcemeta::core::parse_json("1 x", output, callback);
+    FAIL();
+  } catch (const sourcemeta::core::JSONParseError &) {
+    EXPECT_TRUE(output.is_string());
+    EXPECT_EQ(output.to_string(), "sentinel");
+  }
 }

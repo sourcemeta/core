@@ -1,0 +1,24 @@
+Metadata Name,Metadata Description,Change Controller,Reference
+resource,Protected resource's resource identifier URL,IETF,"[RFC9728, Section 2]"
+authorization_servers,JSON array containing a list of OAuth authorization server issuer identifiers,IETF,"[RFC9728, Section 2]"
+jwks_uri,URL of the protected resource's JWK Set document,IETF,"[RFC9728, Section 2]"
+scopes_supported,JSON array containing a list of the OAuth 2.0 scope values that are used in authorization requests to request access to this protected resource,IETF,"[RFC9728, Section 2]"
+bearer_methods_supported,JSON array containing a list of the OAuth 2.0 bearer token presentation methods that this protected resource supports,IETF,"[RFC9728, Section 2]"
+resource_signing_alg_values_supported,JSON array containing a list of the JWS signing algorithms (alg values) supported by the protected resource for signed content,IETF,"[RFC9728, Section 2]"
+resource_name,Human-readable name of the protected resource,IETF,"[RFC9728, Section 2]"
+resource_documentation,URL of a page containing human-readable information that developers might want or need to know when using the protected resource,IETF,"[RFC9728, Section 2]"
+resource_policy_uri,URL of a page containing human-readable information about the protected resource's requirements on how the client can use the data provided by the protected resource,IETF,"[RFC9728, Section 2]"
+resource_tos_uri,URL of a page containing human-readable information about the protected resource's terms of service,IETF,"[RFC9728, Section 2]"
+tls_client_certificate_bound_access_tokens,Boolean value indicating protected resource support for mutual-TLS client certificate-bound access tokens,IETF,"[RFC9728, Section 2]"
+authorization_details_types_supported,JSON array containing a list of the authorization details type values supported by the resource server when the authorization_details request parameter is used,IETF,"[RFC9728, Section 2]"
+dpop_signing_alg_values_supported,JSON array containing a list of the JWS alg values supported by the resource server for validating DPoP proof JWTs,IETF,"[RFC9728, Section 2]"
+dpop_bound_access_tokens_required,Boolean value specifying whether the protected resource always requires the use of DPoP-bound access tokens,IETF,"[RFC9728, Section 2]"
+signed_metadata,Signed JWT containing metadata parameters about the protected resource as claims,IETF,"[RFC9728, Section 2.2]"
+signed_jwks_uri,URL referencing a signed JWT having the protected resource's JWK Set document as its payload,[OpenID_Foundation_Artifact_Binding_WG],[Section 5.2.1 of OpenID Federation 1.0]
+jwks,"JSON Web Key Set document, passed by value",[OpenID_Foundation_Artifact_Binding_WG],[Section 5.2.1 of OpenID Federation 1.0]
+organization_name,Human-readable name representing the organization owning this protected resource,[OpenID_Foundation_Artifact_Binding_WG],[Section 5.2.2 of OpenID Federation 1.0]
+description,Human-readable brief description of this protected resource presentable to the End-User,[OpenID_Foundation_Artifact_Binding_WG],[Section 5.2.2 of OpenID Federation 1.0]
+keywords,"JSON array with one or more strings representing search keywords, tags, categories, or labels that apply to this protected resource",[OpenID_Foundation_Artifact_Binding_WG],[Section 5.2.2 of OpenID Federation 1.0]
+contacts,"Array of strings representing ways to contact people responsible for this protected resource, typically email addresses",[OpenID_Foundation_Artifact_Binding_WG],[Section 5.2.2 of OpenID Federation 1.0]
+logo_uri,URL that references a logo for the organization owning this protected resource,[OpenID_Foundation_Artifact_Binding_WG],[Section 5.2.2 of OpenID Federation 1.0]
+organization_uri,URL of a Web page for the organization owning this protected resource,[OpenID_Foundation_Artifact_Binding_WG],[Section 5.2.2 of OpenID Federation 1.0]

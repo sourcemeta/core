@@ -1,7 +1,6 @@
 #include <sourcemeta/core/text.h>
 
 #include <cstddef>     // std::size_t
-#include <cstdint>     // std::int8_t
 #include <filesystem>  // std::filesystem::path
 #include <optional>    // std::optional, std::nullopt
 #include <string>      // std::string
@@ -24,18 +23,6 @@ auto to_ascii_uppercase(const char character) noexcept -> char {
   return (character >= 'a' && character <= 'z')
              ? static_cast<char>(character - ('a' - 'A'))
              : character;
-}
-
-auto hex_digit_value(const char character) noexcept -> std::int8_t {
-  if (character >= '0' && character <= '9') {
-    return static_cast<std::int8_t>(character - '0');
-  } else if (character >= 'a' && character <= 'f') {
-    return static_cast<std::int8_t>(character - 'a' + 10);
-  } else if (character >= 'A' && character <= 'F') {
-    return static_cast<std::int8_t>(character - 'A' + 10);
-  } else {
-    return -1;
-  }
 }
 
 } // namespace
@@ -157,6 +144,19 @@ auto split_once(const std::string_view input, const char delimiter) noexcept
   return std::pair{before, after};
 }
 
+auto rsplit_once(const std::string_view input, const char delimiter) noexcept
+    -> std::optional<std::pair<std::string_view, std::string_view>> {
+  const auto position{input.rfind(delimiter)};
+  if (position == std::string_view::npos) {
+    return std::nullopt;
+  }
+  std::string_view before{input};
+  before.remove_suffix(input.size() - position);
+  std::string_view after{input};
+  after.remove_prefix(position + 1);
+  return std::pair{before, after};
+}
+
 auto split_once(const std::string_view input,
                 const std::string_view delimiter) noexcept
     -> std::optional<std::pair<std::string_view, std::string_view>> {
@@ -172,6 +172,31 @@ auto split_once(const std::string_view input,
   std::string_view after{input};
   after.remove_prefix(position + delimiter.size());
   return std::pair{before, after};
+}
+
+auto squeeze(const std::string_view input, const char character,
+             std::string &output) -> void {
+  bool in_run{false};
+  for (const auto value : input) {
+    if (value == character) {
+      if (!in_run) {
+        output.push_back(value);
+      }
+
+      in_run = true;
+    } else {
+      output.push_back(value);
+      in_run = false;
+    }
+  }
+}
+
+auto squeeze(const std::string_view input, const char character)
+    -> std::string {
+  std::string result;
+  result.reserve(input.size());
+  squeeze(input, character, result);
+  return result;
 }
 
 auto remove_suffix_ignore_case(const std::string_view input,

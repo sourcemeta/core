@@ -1,15 +1,20 @@
 #include <sourcemeta/core/http_problem.h>
 
-#include <cassert> // assert
-#include <cstdint> // std::int64_t
+#include <cassert>     // assert
+#include <cstdint>     // std::int64_t
+#include <string_view> // std::string_view, std::string_view_literals
 
 namespace {
+using namespace std::string_view_literals;
 
-const auto HTTP_HASH_TYPE{sourcemeta::core::JSON::Object::hash("type")};
-const auto HTTP_HASH_TITLE{sourcemeta::core::JSON::Object::hash("title")};
-const auto HTTP_HASH_STATUS{sourcemeta::core::JSON::Object::hash("status")};
-const auto HTTP_HASH_DETAIL{sourcemeta::core::JSON::Object::hash("detail")};
-const auto HTTP_HASH_INSTANCE{sourcemeta::core::JSON::Object::hash("instance")};
+constexpr auto HTTP_HASH_TYPE{sourcemeta::core::JSON::Object::hash("type"sv)};
+constexpr auto HTTP_HASH_TITLE{sourcemeta::core::JSON::Object::hash("title"sv)};
+constexpr auto HTTP_HASH_STATUS{
+    sourcemeta::core::JSON::Object::hash("status"sv)};
+constexpr auto HTTP_HASH_DETAIL{
+    sourcemeta::core::JSON::Object::hash("detail"sv)};
+constexpr auto HTTP_HASH_INSTANCE{
+    sourcemeta::core::JSON::Object::hash("instance"sv)};
 
 } // namespace
 

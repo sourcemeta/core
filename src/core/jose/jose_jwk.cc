@@ -2,68 +2,46 @@
 
 #include <sourcemeta/core/crypto.h>
 
-#include <cstddef>     // std::size_t
+#include "jose_key.h"
+
 #include <optional>    // std::optional, std::nullopt
 #include <string_view> // std::string_view
 #include <utility>     // std::move, std::unreachable
 
 namespace {
+using namespace std::string_view_literals;
 
-const auto HASH_KTY{sourcemeta::core::JSON::Object::hash("kty")};
-const auto HASH_N{sourcemeta::core::JSON::Object::hash("n")};
-const auto HASH_E{sourcemeta::core::JSON::Object::hash("e")};
-const auto HASH_CRV{sourcemeta::core::JSON::Object::hash("crv")};
-const auto HASH_X{sourcemeta::core::JSON::Object::hash("x")};
-const auto HASH_Y{sourcemeta::core::JSON::Object::hash("y")};
-const auto HASH_KID{sourcemeta::core::JSON::Object::hash("kid")};
-const auto HASH_ALG{sourcemeta::core::JSON::Object::hash("alg")};
-const auto HASH_D{sourcemeta::core::JSON::Object::hash("d")};
-const auto HASH_P{sourcemeta::core::JSON::Object::hash("p")};
-const auto HASH_Q{sourcemeta::core::JSON::Object::hash("q")};
-const auto HASH_DP{sourcemeta::core::JSON::Object::hash("dp")};
-const auto HASH_DQ{sourcemeta::core::JSON::Object::hash("dq")};
-const auto HASH_QI{sourcemeta::core::JSON::Object::hash("qi")};
-const auto HASH_OTH{sourcemeta::core::JSON::Object::hash("oth")};
+constexpr auto HASH_KTY{sourcemeta::core::JSON::Object::hash("kty"sv)};
+constexpr auto HASH_N{sourcemeta::core::JSON::Object::hash("n"sv)};
+constexpr auto HASH_E{sourcemeta::core::JSON::Object::hash("e"sv)};
+constexpr auto HASH_CRV{sourcemeta::core::JSON::Object::hash("crv"sv)};
+constexpr auto HASH_X{sourcemeta::core::JSON::Object::hash("x"sv)};
+constexpr auto HASH_Y{sourcemeta::core::JSON::Object::hash("y"sv)};
+constexpr auto HASH_KID{sourcemeta::core::JSON::Object::hash("kid"sv)};
+constexpr auto HASH_ALG{sourcemeta::core::JSON::Object::hash("alg"sv)};
+constexpr auto HASH_D{sourcemeta::core::JSON::Object::hash("d"sv)};
+constexpr auto HASH_P{sourcemeta::core::JSON::Object::hash("p"sv)};
+constexpr auto HASH_Q{sourcemeta::core::JSON::Object::hash("q"sv)};
+constexpr auto HASH_DP{sourcemeta::core::JSON::Object::hash("dp"sv)};
+constexpr auto HASH_DQ{sourcemeta::core::JSON::Object::hash("dq"sv)};
+constexpr auto HASH_QI{sourcemeta::core::JSON::Object::hash("qi"sv)};
+constexpr auto HASH_OTH{sourcemeta::core::JSON::Object::hash("oth"sv)};
+constexpr auto HASH_K{sourcemeta::core::JSON::Object::hash("k"sv)};
 
-// The RSA algorithms only require an RSA key, while each ECDSA algorithm is
-// tied to a specific curve (RFC 7518 Section 3.1)
-auto algorithm_matches_key(const sourcemeta::core::JWSAlgorithm algorithm,
-                           const sourcemeta::core::JWK::Type type,
-                           const std::string_view curve) -> bool {
-  switch (algorithm) {
-    case sourcemeta::core::JWSAlgorithm::RS256:
-    case sourcemeta::core::JWSAlgorithm::RS384:
-    case sourcemeta::core::JWSAlgorithm::RS512:
-    case sourcemeta::core::JWSAlgorithm::PS256:
-    case sourcemeta::core::JWSAlgorithm::PS384:
-    case sourcemeta::core::JWSAlgorithm::PS512:
-      return type == sourcemeta::core::JWK::Type::RSA;
-    case sourcemeta::core::JWSAlgorithm::ES256:
-      return type == sourcemeta::core::JWK::Type::EllipticCurve &&
-             curve == "P-256";
-    case sourcemeta::core::JWSAlgorithm::ES384:
-      return type == sourcemeta::core::JWK::Type::EllipticCurve &&
-             curve == "P-384";
-    case sourcemeta::core::JWSAlgorithm::ES512:
-      return type == sourcemeta::core::JWK::Type::EllipticCurve &&
-             curve == "P-521";
+auto to_jwk_kind(const sourcemeta::core::JWK::Type type) noexcept
+    -> sourcemeta::core::JWKKind {
+  switch (type) {
+    case sourcemeta::core::JWK::Type::RSA:
+      return sourcemeta::core::JWKKind::RSA;
+    case sourcemeta::core::JWK::Type::EllipticCurve:
+      return sourcemeta::core::JWKKind::EllipticCurve;
+    case sourcemeta::core::JWK::Type::OctetKeyPair:
+      return sourcemeta::core::JWKKind::OctetKeyPair;
+    case sourcemeta::core::JWK::Type::Octet:
+      return sourcemeta::core::JWKKind::Octet;
   }
 
   std::unreachable();
-}
-
-// The coordinate octet length is fixed per curve (RFC 7518 Section 6.2.1.2)
-auto ec_coordinate_bytes(const std::string_view curve)
-    -> std::optional<std::size_t> {
-  if (curve == "P-256") {
-    return 32;
-  } else if (curve == "P-384") {
-    return 48;
-  } else if (curve == "P-521") {
-    return 66;
-  } else {
-    return std::nullopt;
-  }
 }
 
 } // namespace
@@ -81,6 +59,7 @@ auto JWK::parse(const JSON &value, JWK &result) -> bool {
   }
 
   const auto &key_type_value{key_type->to_string()};
+  std::optional<PublicKey> parsed_key;
   if (key_type_value == "RSA") {
     // A public key must not carry the private parameters (RFC 7518 Section
     // 6.3.2), and rejecting them early surfaces dangerous misconfigurations
@@ -108,9 +87,14 @@ auto JWK::parse(const JSON &value, JWK &result) -> bool {
       return false;
     }
 
+    if (!jwk_rsa_modulus_is_allowed(decoded_modulus.value())) {
+      return false;
+    }
+
     result.type_ = Type::RSA;
-    result.modulus_ = std::move(decoded_modulus).value();
-    result.exponent_ = std::move(decoded_exponent).value();
+    result.modulus_ = decoded_modulus.value();
+    result.exponent_ = decoded_exponent.value();
+    parsed_key = make_rsa_public_key(result.modulus_, result.exponent_);
   } else if (key_type_value == "EC") {
     // A public key must not carry the private parameter (RFC 7518 Section
     // 6.2.2)
@@ -127,7 +111,7 @@ auto JWK::parse(const JSON &value, JWK &result) -> bool {
       return false;
     }
 
-    const auto coordinate_bytes{ec_coordinate_bytes(curve->to_string())};
+    const auto coordinate_bytes{jwk_ec_coordinate_bytes(curve->to_string())};
     if (!coordinate_bytes.has_value()) {
       return false;
     }
@@ -143,8 +127,52 @@ auto JWK::parse(const JSON &value, JWK &result) -> bool {
 
     result.type_ = Type::EllipticCurve;
     result.curve_ = curve->to_string();
-    result.coordinate_x_ = std::move(decoded_x).value();
-    result.coordinate_y_ = std::move(decoded_y).value();
+    result.coordinate_x_ = decoded_x.value();
+    result.coordinate_y_ = decoded_y.value();
+    parsed_key = make_ec_public_key(jwk_to_elliptic_curve(result.curve_),
+                                    result.coordinate_x_, result.coordinate_y_);
+  } else if (key_type_value == "OKP") {
+    // A public key must not carry the private parameter (RFC 8037 Section 2)
+    if (value.try_at("d", HASH_D) != nullptr) {
+      return false;
+    }
+
+    const auto *curve{value.try_at("crv", HASH_CRV)};
+    const auto *public_key{value.try_at("x", HASH_X)};
+    if (curve == nullptr || !curve->is_string() || public_key == nullptr ||
+        !public_key->is_string()) {
+      return false;
+    }
+
+    const auto key_bytes{jwk_okp_key_bytes(curve->to_string())};
+    if (!key_bytes.has_value()) {
+      return false;
+    }
+
+    auto decoded_public_key{base64url_decode(public_key->to_string())};
+    if (!decoded_public_key.has_value() ||
+        decoded_public_key.value().size() != key_bytes.value()) {
+      return false;
+    }
+
+    result.type_ = Type::OctetKeyPair;
+    result.curve_ = curve->to_string();
+    result.public_point_ = decoded_public_key.value();
+    parsed_key = make_eddsa_public_key(jwk_to_edwards_curve(result.curve_),
+                                       result.public_point_);
+  } else if (key_type_value == "oct") {
+    const auto *key_value{value.try_at("k", HASH_K)};
+    if (key_value == nullptr || !key_value->is_string()) {
+      return false;
+    }
+
+    auto decoded_key{base64url_decode(key_value->to_string())};
+    if (!decoded_key.has_value() || decoded_key.value().empty()) {
+      return false;
+    }
+
+    result.type_ = Type::Octet;
+    result.secret_ = std::move(decoded_key).value();
   } else {
     return false;
   }
@@ -169,11 +197,16 @@ auto JWK::parse(const JSON &value, JWK &result) -> bool {
     // and otherwise leave it unset rather than rejecting an otherwise valid key
     const auto parsed{to_jws_algorithm(algorithm->to_string())};
     if (parsed.has_value() &&
-        algorithm_matches_key(parsed.value(), result.type_, result.curve_)) {
+        jwk_algorithm_matches_key(parsed.value(), to_jwk_kind(result.type_),
+                                  result.curve_)) {
       result.algorithm_ = parsed;
     }
   }
 
+  // The platform key is built once when the material is decoded, so
+  // verification reuses it. A key that cannot be turned into one stays null and
+  // simply fails to verify
+  result.public_key_ = std::move(parsed_key);
   return true;
 }
 
@@ -198,5 +231,12 @@ auto JWK::from(const JSON &value) -> std::optional<JWK> {
 }
 
 auto JWK::from(JSON &&value) -> std::optional<JWK> { return from(value); }
+
+auto JWK::from_octets(const std::string_view secret) -> JWK {
+  JWK result;
+  result.type_ = Type::Octet;
+  result.secret_ = secret;
+  return result;
+}
 
 } // namespace sourcemeta::core

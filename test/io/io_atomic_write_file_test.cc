@@ -1,24 +1,27 @@
-#include <gtest/gtest.h>
-
 #include <sourcemeta/core/io.h>
+#include <sourcemeta/core/test.h>
 
-#include <array>      // std::array
-#include <cstddef>    // std::byte
-#include <filesystem> // std::filesystem
-#include <fstream>    // std::ifstream, std::istreambuf_iterator
-#include <ios>        // std::ios::binary
-#include <ostream>    // std::ostream
-#include <span>       // std::span
-#include <stdexcept>  // std::runtime_error
-#include <string>     // std::string
+#include <array>        // std::array
+#include <cstddef>      // std::byte
+#include <filesystem>   // std::filesystem
+#include <fstream>      // std::ifstream, std::istreambuf_iterator
+#include <ios>          // std::ios::binary
+#include <ostream>      // std::ostream
+#include <span>         // std::span
+#include <stdexcept>    // std::runtime_error
+#include <string>       // std::string
+#include <system_error> // std::error_code
 
-class IOAtomicWriteFileTest : public ::testing::Test {
+class IOAtomicWriteFileTest {
 protected:
-  void SetUp() override {
+  IOAtomicWriteFileTest() {
     std::filesystem::create_directories(this->workspace);
   }
 
-  void TearDown() override { std::filesystem::remove_all(this->workspace); }
+  ~IOAtomicWriteFileTest() {
+    std::error_code error;
+    std::filesystem::remove_all(this->workspace, error);
+  }
 
   // The tests are always sequential, so using the same path is safe
   std::filesystem::path workspace{std::filesystem::path{BUILD_DIRECTORY} /

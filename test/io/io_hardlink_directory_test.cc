@@ -1,12 +1,11 @@
-#include <gtest/gtest.h>
-
 #include <sourcemeta/core/io.h>
+#include <sourcemeta/core/test.h>
 
 #include <filesystem> // std::filesystem
 #include <fstream>    // std::ofstream, std::ifstream
 #include <string>     // std::string
 
-TEST(IO_hardlink_directory, mirrors_structure) {
+TEST(mirrors_structure) {
   const sourcemeta::core::TemporaryDirectory workspace{
       std::filesystem::path{BUILD_DIRECTORY}, ".test-hardlink-"};
   const auto source{workspace.path() / "source"};
@@ -23,7 +22,7 @@ TEST(IO_hardlink_directory, mirrors_structure) {
   EXPECT_TRUE(std::filesystem::is_directory(destination / "subdir"));
 }
 
-TEST(IO_hardlink_directory, files_share_inodes) {
+TEST(files_share_inodes) {
   const sourcemeta::core::TemporaryDirectory workspace{
       std::filesystem::path{BUILD_DIRECTORY}, ".test-hardlink-"};
   const auto source{workspace.path() / "source"};
@@ -40,7 +39,7 @@ TEST(IO_hardlink_directory, files_share_inodes) {
                                           destination / "file.txt"));
 }
 
-TEST(IO_hardlink_directory, unlink_then_write_independence) {
+TEST(unlink_then_write_independence) {
   const sourcemeta::core::TemporaryDirectory workspace{
       std::filesystem::path{BUILD_DIRECTORY}, ".test-hardlink-"};
   const auto source{workspace.path() / "source"};
@@ -65,7 +64,7 @@ TEST(IO_hardlink_directory, unlink_then_write_independence) {
   EXPECT_EQ(destination_content, "modified");
 }
 
-TEST(IO_hardlink_directory, empty_source) {
+TEST(empty_source) {
   const sourcemeta::core::TemporaryDirectory workspace{
       std::filesystem::path{BUILD_DIRECTORY}, ".test-hardlink-"};
   const auto source{workspace.path() / "source"};
@@ -80,7 +79,7 @@ TEST(IO_hardlink_directory, empty_source) {
   EXPECT_TRUE(std::filesystem::is_empty(destination));
 }
 
-TEST(IO_hardlink_directory, deeply_nested) {
+TEST(deeply_nested) {
   const sourcemeta::core::TemporaryDirectory workspace{
       std::filesystem::path{BUILD_DIRECTORY}, ".test-hardlink-"};
   const auto source{workspace.path() / "source"};

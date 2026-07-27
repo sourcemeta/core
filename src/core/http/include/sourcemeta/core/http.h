@@ -6,11 +6,14 @@
 #endif
 
 // NOLINTBEGIN(misc-include-cleaner)
+#include <sourcemeta/core/http_aws_sigv4.h>
 #include <sourcemeta/core/http_error.h>
 #include <sourcemeta/core/http_message.h>
 #include <sourcemeta/core/http_method.h>
 #include <sourcemeta/core/http_problem.h>
 #include <sourcemeta/core/http_status.h>
+#include <sourcemeta/core/http_syntax.h>
+#include <sourcemeta/core/http_system.h>
 // NOLINTEND(misc-include-cleaner)
 
 #include <chrono>           // std::chrono::system_clock
@@ -37,7 +40,9 @@ namespace sourcemeta::core {
 /// @ingroup http
 /// A content coding supported by this implementation.
 enum class HTTPContentEncoding : std::uint8_t {
+  /// The identity coding that applies no transformation.
   Identity,
+  /// The gzip coding per RFC 9110 §8.4.1.3.
   GZIP,
 };
 
@@ -154,12 +159,35 @@ auto http_from_date(const std::string_view value) noexcept
     -> std::optional<std::chrono::system_clock::time_point>;
 
 /// @ingroup http
+/// Read the `max-age` response directive from a `Cache-Control` header value
+/// per RFC 9111 §5.2.2.1. Returns an empty value when the directive is absent
+/// or malformed. A value larger than the cache can represent saturates to
+/// `2147483648` seconds as mandated by RFC 9111 §1.2.2. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/http.h>
+/// #include <cassert>
+/// #include <chrono>
+///
+/// const auto max_age{sourcemeta::core::http_cache_control_max_age(
+///     "public, max-age=600")};
+/// assert(max_age.has_value());
+/// assert(max_age.value() == std::chrono::seconds{600});
+/// ```
+SOURCEMETA_CORE_HTTP_EXPORT
+auto http_cache_control_max_age(const std::string_view cache_control) noexcept
+    -> std::optional<std::chrono::seconds>;
+
+/// @ingroup http
 /// A typed RFC 8288 §3 link-value. The caller owns the backing storage for
 /// every field, must URI-escape `target`, and must ensure parameter values are
 /// valid `quoted-string` content.
 struct HTTPLink {
+  /// The link target reference
   std::string_view target;
+  /// The link relation type
   std::string_view rel;
+  /// The additional target attributes of the link
   std::span<const std::pair<std::string_view, std::string_view>> parameters{};
 };
 
@@ -231,6 +259,97 @@ auto http_format_links(std::span<const HTTPLink> links, std::string &out)
 /// ```
 SOURCEMETA_CORE_HTTP_EXPORT
 auto http_format_links(std::span<const HTTPLink> links) -> std::string;
+
+/// @ingroup http
+/// The `SameSite` attribute of a cookie per RFC 6265bis §5.2.
+enum class HTTPCookieSameSite : std::uint8_t {
+  /// The cookie is withheld from every cross-site request.
+  Strict,
+  /// The cookie is sent on top-level cross-site navigations only.
+  Lax,
+  /// The cookie is sent on every cross-site request.
+  None
+};
+
+/// @ingroup http
+/// A cookie to serialise into an RFC 6265 §4.1 `Set-Cookie` response header
+/// value. The caller owns the backing storage for every field. A valid cookie
+/// has a name that is an RFC 9110 §5.6.2 token and a value made of RFC 6265
+/// §4.1.1 cookie-octets. RFC 6265bis §5.7 requires a cookie with a same-site
+/// mode of none to also be secure.
+struct HTTPCookie {
+  /// The cookie name
+  std::string_view name{};
+  /// The cookie value
+  std::string_view value{};
+  /// The path the cookie is scoped to
+  std::optional<std::string_view> path{};
+  /// The host the cookie is scoped to
+  std::optional<std::string_view> domain{};
+  /// The cookie lifetime
+  std::optional<std::chrono::seconds> max_age{};
+  /// Whether the cookie is withheld from scripts
+  bool http_only{false};
+  /// Whether the cookie is only sent over secure channels
+  bool secure{false};
+  /// The cross-site request policy for the cookie
+  std::optional<HTTPCookieSameSite> same_site{};
+};
+
+/// @ingroup http
+/// Test whether a cookie can be serialised into a valid RFC 6265 §4.1
+/// `Set-Cookie` header value: the name is a non-empty RFC 9110 §5.6.2 token,
+/// the value is made of RFC 6265 §4.1.1 cookie-octets, any path is made of RFC
+/// 6265bis av-octets, any domain is a valid RFC 1123 host name allowing an
+/// ignorable leading dot, a present `max_age` is not negative, per RFC 6265bis
+/// §5.7 a `HTTPCookieSameSite::None` cookie is also `secure`, and the RFC
+/// 6265bis §4.1.3 `__Secure-` and `__Host-` name prefixes carry their required
+/// attributes. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/http.h>
+/// #include <cassert>
+///
+/// assert(sourcemeta::core::http_cookie_valid({.name = "a", .value = "b"}));
+/// assert(!sourcemeta::core::http_cookie_valid({.name = "a", .value = "b;c"}));
+/// ```
+SOURCEMETA_CORE_HTTP_EXPORT
+auto http_cookie_valid(const HTTPCookie &cookie) -> bool;
+
+/// @ingroup http
+/// Append an RFC 6265 §4.1 `Set-Cookie` header value to `out`, returning `true`
+/// on success. When the cookie is not `http_cookie_valid`, `out` is left
+/// unchanged and this returns `false`. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/http.h>
+/// #include <cassert>
+/// #include <string>
+///
+/// std::string buffer;
+/// const auto ok{sourcemeta::core::http_serialize_cookie(
+///     {.name = "session", .value = "abc", .http_only = true}, buffer)};
+/// assert(ok);
+/// assert(buffer == "session=abc; HttpOnly");
+/// ```
+SOURCEMETA_CORE_HTTP_EXPORT
+auto http_serialize_cookie(const HTTPCookie &cookie, std::string &out) -> bool;
+
+/// @ingroup http
+/// Serialise an RFC 6265 §4.1 `Set-Cookie` header value, returning no value
+/// when the cookie is not `http_cookie_valid`. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/http.h>
+/// #include <cassert>
+///
+/// const auto value{sourcemeta::core::http_serialize_cookie(
+///     {.name = "session", .value = "abc", .secure = true})};
+/// assert(value == "session=abc; Secure");
+/// ```
+SOURCEMETA_CORE_HTTP_EXPORT
+auto http_serialize_cookie(const HTTPCookie &cookie)
+    -> std::optional<std::string>;
 
 /// @ingroup http
 /// Test whether a comma-separated header value per RFC 9110 §5.6.1 lists any

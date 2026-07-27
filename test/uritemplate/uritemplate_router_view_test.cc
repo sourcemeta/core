@@ -1,5 +1,4 @@
-#include <gtest/gtest.h>
-
+#include <sourcemeta/core/test.h>
 #include <sourcemeta/core/uritemplate.h>
 
 #include "uritemplate_helpers.h"
@@ -10,16 +9,21 @@
 #include <cstring>    // std::memset
 #include <filesystem> // std::filesystem::path, std::filesystem::remove, std::filesystem::temp_directory_path
 #include <fstream>    // std::ifstream
+#include <iterator>   // std::istreambuf_iterator
 #include <span>       // std::span
 #include <string>     // std::string
-#include <string_view> // std::string_view
-#include <utility>     // std::pair
-#include <variant>     // std::holds_alternative, std::get
-#include <vector>      // std::vector
+#include <string_view>  // std::string_view
+#include <system_error> // std::error_code
+#include <utility>      // std::pair
+#include <variant>      // std::holds_alternative, std::get
+#include <vector>       // std::vector
 
-class URITemplateRouterViewTest : public ::testing::Test {
+class URITemplateRouterViewTest {
 protected:
-  void TearDown() override { std::filesystem::remove(this->path); }
+  ~URITemplateRouterViewTest() {
+    std::error_code error;
+    std::filesystem::remove(this->path, error);
+  }
   // The tests are always sequential, so using the same path is safe
   std::filesystem::path path{std::filesystem::temp_directory_path() /
                              "sourcemeta_core_uritemplate_router_test.bin"};
@@ -710,20 +714,41 @@ TEST_F(URITemplateRouterViewTest, expansion_matches_double_slashes) {
   EXPECT_ROUTER_CAPTURE(captures, 0, "path", "foo//bar");
 }
 
-TEST(URITemplateRouterView, corrupt_empty_data) {
+TEST(corrupt_empty_data) {
   const sourcemeta::core::URITemplateRouterView view{nullptr, 0};
   EXPECT_ROUTER_MATCH(view, "/users", 0, 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
 
-TEST(URITemplateRouterView, corrupt_too_small_for_header) {
+TEST_F(URITemplateRouterViewTest, matches_from_unaligned_external_buffer) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/users", "op_1", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  std::ifstream input{this->path, std::ios::binary};
+  const std::vector<std::uint8_t> bytes{std::istreambuf_iterator<char>{input},
+                                        std::istreambuf_iterator<char>{}};
+
+  // Offset the serialized bytes by one so the pointer the view receives is not
+  // aligned to the over-aligned node type
+  std::vector<std::uint8_t> misaligned(bytes.size() + 1);
+  std::memcpy(misaligned.data() + 1, bytes.data(), bytes.size());
+
+  const sourcemeta::core::URITemplateRouterView view{misaligned.data() + 1,
+                                                     bytes.size()};
+  EXPECT_ROUTER_MATCH(view, "/users", 1, 0, captures);
+}
+
+TEST(corrupt_too_small_for_header) {
   const std::uint8_t data[] = {0xDE, 0xAD, 0xBE, 0xEF, 0x01, 0x02, 0x03};
   const sourcemeta::core::URITemplateRouterView view{data, sizeof(data)};
   EXPECT_ROUTER_MATCH(view, "/users", 0, 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
 
-TEST(URITemplateRouterView, corrupt_wrong_magic) {
+TEST(corrupt_wrong_magic) {
   const std::uint32_t data[] = {0xDEADBEEF, 5, 1, 64, 64, 0, 0, 0};
   const sourcemeta::core::URITemplateRouterView view{
       reinterpret_cast<const std::uint8_t *>(data), sizeof(data)};
@@ -731,7 +756,7 @@ TEST(URITemplateRouterView, corrupt_wrong_magic) {
   EXPECT_EQ(captures.size(), 0);
 }
 
-TEST(URITemplateRouterView, corrupt_wrong_version) {
+TEST(corrupt_wrong_version) {
   const std::uint32_t data[] = {0x52544552, 99, 1, 64, 64, 0, 0, 0};
   const sourcemeta::core::URITemplateRouterView view{
       reinterpret_cast<const std::uint8_t *>(data), sizeof(data)};
@@ -739,7 +764,7 @@ TEST(URITemplateRouterView, corrupt_wrong_version) {
   EXPECT_EQ(captures.size(), 0);
 }
 
-TEST(URITemplateRouterView, corrupt_node_count_exceeds_file) {
+TEST(corrupt_node_count_exceeds_file) {
   const std::uint32_t data[] = {0x52544552, 5, 10, 32, 32, 0, 0, 0};
   const sourcemeta::core::URITemplateRouterView view{
       reinterpret_cast<const std::uint8_t *>(data), sizeof(data)};
@@ -747,7 +772,7 @@ TEST(URITemplateRouterView, corrupt_node_count_exceeds_file) {
   EXPECT_EQ(captures.size(), 0);
 }
 
-TEST(URITemplateRouterView, corrupt_literal_child_out_of_bounds) {
+TEST(corrupt_literal_child_out_of_bounds) {
   const std::uint32_t data[] = {0x52544552, 5, 1,   64, 64,         0, 0, 0,
                                 0,          0, 999, 1,  0xFFFFFFFF, 0, 0, 0};
   const sourcemeta::core::URITemplateRouterView view{
@@ -756,7 +781,7 @@ TEST(URITemplateRouterView, corrupt_literal_child_out_of_bounds) {
   EXPECT_EQ(captures.size(), 0);
 }
 
-TEST(URITemplateRouterView, corrupt_variable_child_out_of_bounds) {
+TEST(corrupt_variable_child_out_of_bounds) {
   const std::uint32_t data[] = {0x52544552, 5, 1,          64, 64,  0, 0, 0,
                                 0,          0, 0xFFFFFFFF, 0,  500, 0, 0, 0};
   const sourcemeta::core::URITemplateRouterView view{
@@ -765,7 +790,7 @@ TEST(URITemplateRouterView, corrupt_variable_child_out_of_bounds) {
   EXPECT_EQ(captures.size(), 0);
 }
 
-TEST(URITemplateRouterView, corrupt_string_offset_out_of_bounds) {
+TEST(corrupt_string_offset_out_of_bounds) {
   const std::uint32_t data[] = {
       0x52544552, 5, 2, 96, 96,   0, 0,          0, 0,          0, 0, 1, 1,
       0xFFFFFFFF, 0, 0, 0,  9999, 5, 0xFFFFFFFF, 0, 0xFFFFFFFF, 0, 0, 0};
@@ -775,7 +800,7 @@ TEST(URITemplateRouterView, corrupt_string_offset_out_of_bounds) {
   EXPECT_EQ(captures.size(), 0);
 }
 
-TEST(URITemplateRouterView, corrupt_variable_string_offset_out_of_bounds) {
+TEST(corrupt_variable_string_offset_out_of_bounds) {
   const std::uint32_t data[] = {
       0x52544552, 5,   2,          96, 96,         0,          0, 0,
       0,          0,   0xFFFFFFFF, 0,  1,          0,          0, 0,
@@ -786,14 +811,14 @@ TEST(URITemplateRouterView, corrupt_variable_string_offset_out_of_bounds) {
   EXPECT_EQ(captures.size(), 0);
 }
 
-TEST(URITemplateRouterView, corrupt_all_zeroes) {
+TEST(corrupt_all_zeroes) {
   const std::uint8_t data[128] = {};
   const sourcemeta::core::URITemplateRouterView view{data, sizeof(data)};
   EXPECT_ROUTER_MATCH(view, "/users", 0, 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
 
-TEST(URITemplateRouterView, corrupt_all_ones) {
+TEST(corrupt_all_ones) {
   std::uint8_t data[128];
   std::memset(data, 0xFF, sizeof(data));
   const sourcemeta::core::URITemplateRouterView view{data, sizeof(data)};
@@ -801,7 +826,7 @@ TEST(URITemplateRouterView, corrupt_all_ones) {
   EXPECT_EQ(captures.size(), 0);
 }
 
-TEST(URITemplateRouterView, corrupt_string_table_offset_overlaps_header) {
+TEST(corrupt_string_table_offset_overlaps_header) {
   const std::uint32_t data[] = {0x52544552, 5, 1,          4, 64, 0, 0, 0, 0, 0,
                                 0xFFFFFFFF, 0, 0xFFFFFFFF, 0, 0,  0};
   const sourcemeta::core::URITemplateRouterView view{
@@ -810,7 +835,7 @@ TEST(URITemplateRouterView, corrupt_string_table_offset_overlaps_header) {
   EXPECT_EQ(captures.size(), 0);
 }
 
-TEST(URITemplateRouterView, corrupt_string_table_offset_past_end) {
+TEST(corrupt_string_table_offset_past_end) {
   const std::uint32_t data[] = {0x52544552, 5, 1, 99999, 99999,      0,
                                 0,          0, 0, 0,     0xFFFFFFFF, 0,
                                 0xFFFFFFFF, 0, 0, 0};
@@ -820,7 +845,7 @@ TEST(URITemplateRouterView, corrupt_string_table_offset_past_end) {
   EXPECT_EQ(captures.size(), 0);
 }
 
-TEST(URITemplateRouterView, corrupt_zero_node_count) {
+TEST(corrupt_zero_node_count) {
   const std::uint32_t data[] = {0x52544552, 5, 0, 32, 32, 0, 0, 0};
   const sourcemeta::core::URITemplateRouterView view{
       reinterpret_cast<const std::uint8_t *>(data), sizeof(data)};
@@ -828,19 +853,19 @@ TEST(URITemplateRouterView, corrupt_zero_node_count) {
   EXPECT_EQ(captures.size(), 0);
 }
 
-TEST(URITemplateRouterView, corrupt_empty_data_match_empty_path) {
+TEST(corrupt_empty_data_match_empty_path) {
   const sourcemeta::core::URITemplateRouterView view{nullptr, 0};
   EXPECT_ROUTER_MATCH(view, "", 0, 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
 
-TEST(URITemplateRouterView, corrupt_empty_data_match_root) {
+TEST(corrupt_empty_data_match_root) {
   const sourcemeta::core::URITemplateRouterView view{nullptr, 0};
   EXPECT_ROUTER_MATCH(view, "/", 0, 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
 
-TEST(URITemplateRouterView, corrupt_literal_child_count_overflow) {
+TEST(corrupt_literal_child_count_overflow) {
   const std::uint32_t data[] = {
       0x52544552, 5, 2, 96, 96, 0, 0,          0, 0,          0, 1, 0xFFFFFFFF,
       0xFFFFFFFF, 0, 0, 0,  0,  0, 0xFFFFFFFF, 0, 0xFFFFFFFF, 0, 0, 0};
@@ -850,7 +875,7 @@ TEST(URITemplateRouterView, corrupt_literal_child_count_overflow) {
   EXPECT_EQ(captures.size(), 0);
 }
 
-TEST(URITemplateRouterView, corrupt_root_literal_child_oob_match_root) {
+TEST(corrupt_root_literal_child_oob_match_root) {
   const std::uint32_t data[] = {0x52544552, 5, 1,   64, 64,         0, 0, 0,
                                 0,          0, 999, 1,  0xFFFFFFFF, 0, 0, 0};
   const sourcemeta::core::URITemplateRouterView view{
@@ -859,7 +884,7 @@ TEST(URITemplateRouterView, corrupt_root_literal_child_oob_match_root) {
   EXPECT_EQ(captures.size(), 0);
 }
 
-TEST(URITemplateRouterView, corrupt_deep_node_variable_child_oob) {
+TEST(corrupt_deep_node_variable_child_oob) {
   std::vector<std::uint8_t> data;
   const std::uint32_t header[] = {0x52544552, 5, 2, 96, 101, 0, 0, 0};
   const std::uint32_t root[] = {0, 0, 1, 1, 0xFFFFFFFF, 0, 0, 0};
@@ -877,7 +902,7 @@ TEST(URITemplateRouterView, corrupt_deep_node_variable_child_oob) {
   EXPECT_EQ(captures.size(), 0);
 }
 
-TEST(URITemplateRouterView, corrupt_expansion_string_oob) {
+TEST(corrupt_expansion_string_oob) {
   const std::uint32_t data[] = {
       0x52544552, 5,   2,          96, 96,         0,          0, 0,
       0,          0,   0xFFFFFFFF, 0,  1,          0,          0, 0,
@@ -888,7 +913,7 @@ TEST(URITemplateRouterView, corrupt_expansion_string_oob) {
   EXPECT_EQ(captures.size(), 0);
 }
 
-TEST(URITemplateRouterView, corrupt_empty_string_table_with_string_ref) {
+TEST(corrupt_empty_string_table_with_string_ref) {
   const std::uint32_t data[] = {
       0x52544552, 5, 2, 96, 96, 0,  0,          0, 0,          0, 1, 1,
       0xFFFFFFFF, 0, 0, 0,  0,  10, 0xFFFFFFFF, 0, 0xFFFFFFFF, 0, 0, 0};
@@ -898,7 +923,7 @@ TEST(URITemplateRouterView, corrupt_empty_string_table_with_string_ref) {
   EXPECT_EQ(captures.size(), 0);
 }
 
-TEST(URITemplateRouterView, corrupt_node_count_max_uint32) {
+TEST(corrupt_node_count_max_uint32) {
   const std::uint32_t data[] = {0x52544552, 5, 0xFFFFFFFF, 44, 44, 0,
                                 0,          0, 0,          0,  0};
   const sourcemeta::core::URITemplateRouterView view{
@@ -907,7 +932,7 @@ TEST(URITemplateRouterView, corrupt_node_count_max_uint32) {
   EXPECT_EQ(captures.size(), 0);
 }
 
-TEST(URITemplateRouterView, corrupt_string_offset_plus_length_overflow) {
+TEST(corrupt_string_offset_plus_length_overflow) {
   const std::uint32_t data[] = {
       0x52544552, 5,          2,          96, 96,         0,          0, 0,
       0,          0,          0xFFFFFFFF, 0,  1,          0,          0, 0,
@@ -918,8 +943,7 @@ TEST(URITemplateRouterView, corrupt_string_offset_plus_length_overflow) {
   EXPECT_EQ(captures.size(), 0);
 }
 
-TEST(URITemplateRouterView,
-     corrupt_string_offset_plus_length_overflow_with_data) {
+TEST(corrupt_string_offset_plus_length_overflow_with_data) {
   std::vector<std::uint8_t> data;
   const std::uint32_t header[] = {0x52544552, 5, 2, 96, 97, 0, 0, 0};
   const std::uint32_t root[] = {0, 0, 0xFFFFFFFF, 0, 1, 0, 0, 0};
@@ -939,8 +963,7 @@ TEST(URITemplateRouterView,
   EXPECT_EQ(captures.size(), 0);
 }
 
-TEST(URITemplateRouterView,
-     corrupt_literal_string_offset_plus_length_overflow) {
+TEST(corrupt_literal_string_offset_plus_length_overflow) {
   std::vector<std::uint8_t> data;
   const std::uint32_t header[] = {0x52544552, 5, 2, 96, 97, 0, 0, 0};
   const std::uint32_t root[] = {0, 0, 1, 1, 0xFFFFFFFF, 0, 0, 0};
@@ -2243,7 +2266,7 @@ TEST_F(URITemplateRouterViewTest, base_url_arguments_still_resolve) {
                             std::string{std::get<std::string_view>(value)});
         }
       });
-  ASSERT_EQ(seen.size(), 1);
+  EXPECT_EQ(seen.size(), 1);
   EXPECT_EQ(seen.at(0).first, "schema");
   EXPECT_EQ(seen.at(0).second, "schemas/health");
 }
@@ -2354,10 +2377,10 @@ TEST_F(URITemplateRouterViewTest, add_with_context_and_arguments) {
         }
       });
 
-  ASSERT_EQ(seen_string.size(), 1);
+  EXPECT_EQ(seen_string.size(), 1);
   EXPECT_EQ(seen_string.at(0).first, "schema");
   EXPECT_EQ(seen_string.at(0).second, "schemas/health");
-  ASSERT_EQ(seen_bool.size(), 1);
+  EXPECT_EQ(seen_bool.size(), 1);
   EXPECT_EQ(seen_bool.at(0).first, "enabled");
   EXPECT_TRUE(seen_bool.at(0).second);
 }
@@ -3684,4 +3707,307 @@ TEST_F(URITemplateRouterViewTest, strict_root_template_still_works) {
   EXPECT_ROUTER_MATCH(restored, "/", 1, 0, captures_match);
   EXPECT_EQ(captures_match.size(), 0);
   EXPECT_ROUTER_MATCH(restored, "//", 0, 0, captures_double);
+}
+
+TEST_F(URITemplateRouterViewTest, describes_worked_example_table) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/self/v1/api/schemas/health/{+schema}", "op_957", 1);
+    router.add("/self/v1/api/{+any}", "op_958", 2);
+    router.add("/self/v1/mcp", "op_959", 3);
+    router.add("/self/v1/health", "op_960", 4);
+    router.add("/self/v1/static/{+path}", "op_961", 5);
+    router.otherwise(0);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.describes("/self/v1/api"));
+  EXPECT_TRUE(restored.describes("/self/v1/api/schemas/health"));
+  EXPECT_TRUE(restored.describes("/self/v1/api/schemas/health/acme"));
+  EXPECT_TRUE(restored.describes("/self/v1/mcp"));
+  EXPECT_TRUE(restored.describes("/self/v1/static/css/app.css"));
+  EXPECT_TRUE(restored.describes("/self/v1"));
+  EXPECT_FALSE(restored.describes("/self/v1/mpc"));
+  EXPECT_FALSE(restored.describes("/self/v1/healthz"));
+  EXPECT_FALSE(restored.describes("/acme/foo"));
+  EXPECT_TRUE(restored.describes("/"));
+}
+
+TEST_F(URITemplateRouterViewTest, describes_intermediate_prefixes) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/self/v1/mcp", "op_962", 1);
+    router.otherwise(0);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.describes("/self"));
+  EXPECT_TRUE(restored.describes("/self/v1"));
+  EXPECT_TRUE(restored.describes("/self/v1/mcp"));
+  EXPECT_FALSE(restored.describes("/self/v1/mcp/extra"));
+  EXPECT_FALSE(restored.describes("/self/v2"));
+  EXPECT_FALSE(restored.describes("/other"));
+}
+
+TEST_F(URITemplateRouterViewTest, describes_expansion_capture) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/files/{+path}", "op_963", 1);
+    router.otherwise(0);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.describes("/files"));
+  EXPECT_TRUE(restored.describes("/files/a"));
+  EXPECT_TRUE(restored.describes("/files/a/b/c"));
+  EXPECT_FALSE(restored.describes("/file"));
+  EXPECT_FALSE(restored.describes("/filesx"));
+}
+
+TEST_F(URITemplateRouterViewTest, describes_optional_expansion_capture) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/docs/{/rest*}", "op_964", 1);
+    router.otherwise(0);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.describes("/docs"));
+  EXPECT_TRUE(restored.describes("/docs/a"));
+  EXPECT_TRUE(restored.describes("/docs/a/b/c"));
+  EXPECT_FALSE(restored.describes("/doc"));
+  EXPECT_FALSE(restored.describes("/docsx"));
+}
+
+TEST_F(URITemplateRouterViewTest,
+       describes_single_segment_variable_does_not_over_absorb) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/foo/{bar}/baz", "op_965", 1);
+    router.otherwise(0);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.describes("/foo"));
+  EXPECT_TRUE(restored.describes("/foo/anything"));
+  EXPECT_TRUE(restored.describes("/foo/anything/baz"));
+  EXPECT_FALSE(restored.describes("/foo/anything/qux"));
+  EXPECT_FALSE(restored.describes("/foo/anything/baz/extra"));
+}
+
+TEST_F(URITemplateRouterViewTest, describes_whole_segment_discipline) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/internalish", "op_966", 1);
+    router.otherwise(0);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.describes("/internalish"));
+  EXPECT_FALSE(restored.describes("/internal"));
+  EXPECT_FALSE(restored.describes("/internalisher"));
+}
+
+TEST_F(URITemplateRouterViewTest, describes_excludes_otherwise_fallback) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/known", "op_967", 1);
+    router.otherwise(7);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.describes("/known"));
+  EXPECT_FALSE(restored.describes("/unknown"));
+  EXPECT_FALSE(restored.describes("/known/deeper"));
+}
+
+TEST_F(URITemplateRouterViewTest, describes_empty_router_describes_nothing) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.otherwise(3);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_FALSE(restored.describes("/"));
+  EXPECT_FALSE(restored.describes(""));
+  EXPECT_FALSE(restored.describes("/anything"));
+}
+
+TEST_F(URITemplateRouterViewTest, describes_root_and_empty_path) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/users", "op_968", 1);
+    router.otherwise(0);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.describes("/"));
+  EXPECT_TRUE(restored.describes(""));
+}
+
+TEST_F(URITemplateRouterViewTest, describes_requires_leading_slash) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/users", "op_969", 1);
+    router.otherwise(0);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_FALSE(restored.describes("users"));
+  EXPECT_FALSE(restored.describes("users/list"));
+}
+
+TEST_F(URITemplateRouterViewTest, describes_with_base_path) {
+  {
+    sourcemeta::core::URITemplateRouter router{"/api"};
+    router.add("/foo", "op_970", 1);
+    router.otherwise(0);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.describes("/api/foo"));
+  EXPECT_TRUE(restored.describes("/api"));
+  EXPECT_FALSE(restored.describes("/foo"));
+  EXPECT_FALSE(restored.describes("/api/bar"));
+}
+
+TEST_F(URITemplateRouterViewTest, describes_literal_preferred_over_variable) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/users/me", "op_971", 1);
+    router.add("/users/{id}/posts", "op_972", 2);
+    router.otherwise(0);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.describes("/users/me"));
+  EXPECT_TRUE(restored.describes("/users/42"));
+  EXPECT_TRUE(restored.describes("/users/42/posts"));
+  EXPECT_FALSE(restored.describes("/users/42/comments"));
+  EXPECT_FALSE(restored.describes("/users/me/posts"));
+}
+
+TEST_F(URITemplateRouterViewTest, describes_empty_template_root_route) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("", "op_973", 1);
+    router.otherwise(0);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.describes(""));
+  EXPECT_TRUE(restored.describes("/"));
+  EXPECT_FALSE(restored.describes("/foo"));
+}
+
+TEST_F(URITemplateRouterViewTest, describes_on_corrupt_buffer) {
+  std::array<std::uint8_t, 4> buffer{};
+  const sourcemeta::core::URITemplateRouterView view{buffer.data(),
+                                                     buffer.size()};
+  EXPECT_FALSE(view.describes("/anything"));
+  EXPECT_FALSE(view.describes("/"));
+}
+
+TEST_F(URITemplateRouterViewTest,
+       describes_with_base_argument_equivalent_to_concat) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/self/v1/api/{+any}", "op_974", 1);
+    router.add("/self/v1/mcp", "op_975", 2);
+    router.otherwise(0);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.describes("/api", "/self/v1"));
+  EXPECT_TRUE(restored.describes("/self/v1/api"));
+  EXPECT_TRUE(restored.describes("/api/foo", "/self/v1"));
+  EXPECT_TRUE(restored.describes("/mcp", "/self/v1"));
+  EXPECT_FALSE(restored.describes("/mpc", "/self/v1"));
+  EXPECT_FALSE(restored.describes("/api", "/self/v2"));
+}
+
+TEST_F(URITemplateRouterViewTest,
+       describes_with_base_argument_prefix_and_capture) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/files/{+path}", "op_976", 1);
+    router.otherwise(0);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.describes("/files", ""));
+  EXPECT_TRUE(restored.describes("/files/a/b", ""));
+  EXPECT_TRUE(restored.describes("", "/files"));
+  EXPECT_TRUE(restored.describes("/", "/files"));
+  EXPECT_TRUE(restored.describes("/a/b", "/files"));
+  EXPECT_FALSE(restored.describes("/a/b", "/file"));
+}
+
+TEST_F(URITemplateRouterViewTest,
+       describes_with_base_argument_captured_in_base) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/files/{+path}", "op_977", 1);
+    router.otherwise(0);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.describes("/anything", "/files/already"));
+}
+
+TEST_F(URITemplateRouterViewTest, describes_with_base_argument_base_mismatch) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/self/v1/mcp", "op_978", 1);
+    router.otherwise(0);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_FALSE(restored.describes("/mcp", "/other"));
+  EXPECT_FALSE(restored.describes("/mcp", "/self/v2"));
+}
+
+TEST_F(URITemplateRouterViewTest,
+       describes_with_router_base_path_split_argument) {
+  {
+    sourcemeta::core::URITemplateRouter router{"/prefix"};
+    router.add("/foo", "op_979", 1);
+    router.otherwise(0);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.describes("/foo", "/prefix"));
+  EXPECT_TRUE(restored.describes("/prefix/foo"));
+  EXPECT_TRUE(restored.describes("", "/prefix"));
+  EXPECT_FALSE(restored.describes("/bar", "/prefix"));
+}
+
+TEST_F(URITemplateRouterViewTest, describes_with_base_argument_empty_router) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.otherwise(0);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_FALSE(restored.describes("/foo", "/bar"));
+  EXPECT_FALSE(restored.describes("", "/bar"));
 }

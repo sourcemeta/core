@@ -1,4 +1,4 @@
-sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME css
+sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME css
   SOURCES css2_hex_color_test.cc css2_color_keyword_test.cc
           css2_rgb_function_test.cc css2_color_test.cc)
 

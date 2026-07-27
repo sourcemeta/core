@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.24)
 project(core VERSION 0.0.0 LANGUAGES C CXX ASM_MASM DESCRIPTION "Sourcemeta Core")
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
@@ -12,6 +12,7 @@ option(SOURCEMETA_CORE_LANG_ERROR "Build the Sourcemeta Core language error libr
 option(SOURCEMETA_CORE_LANG_OPTIONS "Build the Sourcemeta Core Options library" ON)
 option(SOURCEMETA_CORE_LANG_TEXT "Build the Sourcemeta Core language text library" ON)
 option(SOURCEMETA_CORE_LANG_STACKTRACE "Build the Sourcemeta Core language stacktrace library" ON)
+option(SOURCEMETA_CORE_LANG_TEST "Build the Sourcemeta Core language test library" ON)
 option(SOURCEMETA_CORE_UNICODE "Build the Sourcemeta Core Unicode library" ON)
 option(SOURCEMETA_CORE_PUNYCODE "Build the Sourcemeta Core Punycode library" ON)
 option(SOURCEMETA_CORE_TIME "Build the Sourcemeta Core time library" ON)
@@ -22,28 +23,34 @@ option(SOURCEMETA_CORE_IP "Build the Sourcemeta Core IP library" ON)
 option(SOURCEMETA_CORE_IDNA "Build the Sourcemeta Core IDNA library" ON)
 option(SOURCEMETA_CORE_DNS "Build the Sourcemeta Core DNS library" ON)
 option(SOURCEMETA_CORE_EMAIL "Build the Sourcemeta Core Email library" ON)
+option(SOURCEMETA_CORE_LANGTAG "Build the Sourcemeta Core LangTag library" ON)
 option(SOURCEMETA_CORE_URI "Build the Sourcemeta Core URI library" ON)
 option(SOURCEMETA_CORE_URITEMPLATE "Build the Sourcemeta Core URI Template library" ON)
 option(SOURCEMETA_CORE_JSON "Build the Sourcemeta Core JSON library" ON)
 option(SOURCEMETA_CORE_JSONPOINTER "Build the Sourcemeta Core JSON Pointer library" ON)
+option(SOURCEMETA_CORE_JSONPATH "Build the Sourcemeta Core JSON Path library" ON)
+option(SOURCEMETA_CORE_JSONLD "Build the Sourcemeta Core JSON-LD library" ON)
 option(SOURCEMETA_CORE_JSONL "Build the Sourcemeta Core JSONL library" ON)
 option(SOURCEMETA_CORE_YAML "Build the Sourcemeta Core YAML library" ON)
 option(SOURCEMETA_CORE_JSONRPC "Build the Sourcemeta Core JSON-RPC library" ON)
 option(SOURCEMETA_CORE_MCP "Build the Sourcemeta Core MCP library" ON)
 option(SOURCEMETA_CORE_HTTP "Build the Sourcemeta Core HTTP library" ON)
+option(SOURCEMETA_CORE_HTTP_USE_SYSTEM_CURL "Use system cURL for the Sourcemeta Core HTTP library" OFF)
 option(SOURCEMETA_CORE_JOSE "Build the Sourcemeta Core JOSE library" ON)
+option(SOURCEMETA_CORE_OAUTH "Build the Sourcemeta Core OAuth library" ON)
+option(SOURCEMETA_CORE_OIDC "Build the Sourcemeta Core OIDC library" ON)
 option(SOURCEMETA_CORE_SEMVER "Build the Sourcemeta Core SemVer library" ON)
 option(SOURCEMETA_CORE_GZIP "Build the Sourcemeta Core GZIP library" ON)
 option(SOURCEMETA_CORE_HTML "Build the Sourcemeta Core HTML library" ON)
 option(SOURCEMETA_CORE_CSS "Build the Sourcemeta Core CSS library" ON)
 option(SOURCEMETA_CORE_MARKDOWN "Build the Sourcemeta Core Markdown library" ON)
 option(SOURCEMETA_CORE_TESTS "Build the Sourcemeta Core tests" OFF)
+option(SOURCEMETA_CORE_TESTS_CI "Build the Sourcemeta Core CI tests" OFF)
 option(SOURCEMETA_CORE_BENCHMARK "Build the Sourcemeta Core benchmarks" OFF)
 option(SOURCEMETA_CORE_DOCS "Build the Sourcemeta Core docs" OFF)
 option(SOURCEMETA_CORE_INSTALL "Install the Sourcemeta Core library" ON)
 option(SOURCEMETA_CORE_ADDRESS_SANITIZER "Build Sourcemeta Core with an address sanitizer" OFF)
 option(SOURCEMETA_CORE_UNDEFINED_SANITIZER "Build Sourcemeta Core with an undefined behavior sanitizer" OFF)
-option(SOURCEMETA_CORE_CONTRIB_GOOGLETEST "Build the GoogleTest library for downstream consumers" OFF)
 option(SOURCEMETA_CORE_CONTRIB_GOOGLEBENCHMARK "Build the GoogleBenchmark library for downstream consumers" OFF)
 
 include(Sourcemeta)
@@ -51,6 +58,13 @@ include(Sourcemeta)
 # Don't force downstream consumers on this
 if(PROJECT_IS_TOP_LEVEL)
   sourcemeta_enable_simd()
+endif()
+
+# Enable the sanitizers before defining any target
+if(SOURCEMETA_CORE_ADDRESS_SANITIZER)
+  sourcemeta_sanitizer(TYPE address)
+elseif(SOURCEMETA_CORE_UNDEFINED_SANITIZER)
+  sourcemeta_sanitizer(TYPE undefined)
 endif()
 
 # TODO: Turn this into a re-usable utility CMake function
@@ -108,6 +122,10 @@ if(SOURCEMETA_CORE_LANG_STACKTRACE)
   add_subdirectory(src/lang/stacktrace)
 endif()
 
+if(SOURCEMETA_CORE_LANG_TEST)
+  add_subdirectory(src/lang/test)
+endif()
+
 if(SOURCEMETA_CORE_UNICODE)
   add_subdirectory(src/core/unicode)
 endif()
@@ -148,6 +166,10 @@ if(SOURCEMETA_CORE_EMAIL)
   add_subdirectory(src/core/email)
 endif()
 
+if(SOURCEMETA_CORE_LANGTAG)
+  add_subdirectory(src/core/langtag)
+endif()
+
 if(SOURCEMETA_CORE_URI)
   add_subdirectory(src/core/uri)
 endif()
@@ -162,6 +184,14 @@ endif()
 
 if(SOURCEMETA_CORE_JSONPOINTER)
   add_subdirectory(src/core/jsonpointer)
+endif()
+
+if(SOURCEMETA_CORE_JSONPATH)
+  add_subdirectory(src/core/jsonpath)
+endif()
+
+if(SOURCEMETA_CORE_JSONLD)
+  add_subdirectory(src/core/jsonld)
 endif()
 
 if(SOURCEMETA_CORE_GZIP)
@@ -193,6 +223,14 @@ if(SOURCEMETA_CORE_JOSE)
   add_subdirectory(src/core/jose)
 endif()
 
+if(SOURCEMETA_CORE_OAUTH)
+  add_subdirectory(src/core/oauth)
+endif()
+
+if(SOURCEMETA_CORE_OIDC)
+  add_subdirectory(src/core/oidc)
+endif()
+
 if(SOURCEMETA_CORE_SEMVER)
   add_subdirectory(src/core/semver)
 endif()
@@ -210,12 +248,6 @@ if(SOURCEMETA_CORE_MARKDOWN)
   add_subdirectory(src/core/markdown)
 endif()
 
-if(SOURCEMETA_CORE_ADDRESS_SANITIZER)
-  sourcemeta_sanitizer(TYPE address)
-elseif(SOURCEMETA_CORE_UNDEFINED_SANITIZER)
-  sourcemeta_sanitizer(TYPE undefined)
-endif()
-
 if(SOURCEMETA_CORE_DOCS)
   sourcemeta_target_doxygen(CONFIG "${PROJECT_SOURCE_DIR}/doxygen/Doxyfile.in"
     OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/website")
@@ -229,10 +261,6 @@ if(PROJECT_IS_TOP_LEVEL)
 endif()
 
 # Testing
-
-if(SOURCEMETA_CORE_CONTRIB_GOOGLETEST OR SOURCEMETA_CORE_TESTS)
-  find_package(GoogleTest REQUIRED)
-endif()
 
 if(SOURCEMETA_CORE_CONTRIB_GOOGLEBENCHMARK OR SOURCEMETA_CORE_BENCHMARK)
   find_package(GoogleBenchmark REQUIRED)
@@ -275,6 +303,10 @@ if(SOURCEMETA_CORE_TESTS)
     add_subdirectory(test/stacktrace)
   endif()
 
+  if(SOURCEMETA_CORE_LANG_TEST)
+    add_subdirectory(test/test)
+  endif()
+
   if(SOURCEMETA_CORE_UNICODE)
     add_subdirectory(test/unicode)
   endif()
@@ -311,6 +343,10 @@ if(SOURCEMETA_CORE_TESTS)
     add_subdirectory(test/email)
   endif()
 
+  if(SOURCEMETA_CORE_LANGTAG)
+    add_subdirectory(test/langtag)
+  endif()
+
   if(SOURCEMETA_CORE_URI)
     add_subdirectory(test/uri)
   endif()
@@ -325,6 +361,14 @@ if(SOURCEMETA_CORE_TESTS)
 
   if(SOURCEMETA_CORE_JSONPOINTER)
     add_subdirectory(test/jsonpointer)
+  endif()
+
+  if(SOURCEMETA_CORE_JSONPATH)
+    add_subdirectory(test/jsonpath)
+  endif()
+
+  if(SOURCEMETA_CORE_JSONLD)
+    add_subdirectory(test/jsonld)
   endif()
 
   if(SOURCEMETA_CORE_GZIP)
@@ -355,6 +399,14 @@ if(SOURCEMETA_CORE_TESTS)
     add_subdirectory(test/jose)
   endif()
 
+  if(SOURCEMETA_CORE_OAUTH)
+    add_subdirectory(test/oauth)
+  endif()
+
+  if(SOURCEMETA_CORE_OIDC)
+    add_subdirectory(test/oidc)
+  endif()
+
   if(SOURCEMETA_CORE_SEMVER)
     add_subdirectory(test/semver)
   endif()
@@ -377,6 +429,14 @@ if(SOURCEMETA_CORE_TESTS)
     if(NOT SOURCEMETA_CORE_ADDRESS_SANITIZER AND NOT SOURCEMETA_CORE_UNDEFINED_SANITIZER)
       add_subdirectory(test/packaging)
     endif()
+  endif()
+endif()
+
+if(SOURCEMETA_CORE_TESTS_CI)
+  enable_testing()
+
+  if(SOURCEMETA_CORE_HTTP)
+    add_subdirectory(test/http/ci)
   endif()
 endif()
 

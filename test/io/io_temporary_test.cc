@@ -1,26 +1,25 @@
-#include <gtest/gtest.h>
-
 #include <sourcemeta/core/io.h>
+#include <sourcemeta/core/test.h>
 
 #include <filesystem> // std::filesystem
 #include <fstream>    // std::ofstream
 #include <string>     // std::string
 
-TEST(IO_TemporaryDirectory, creates_directory) {
+TEST(creates_directory) {
   const auto parent{std::filesystem::path{BUILD_DIRECTORY}};
   const sourcemeta::core::TemporaryDirectory temporary{parent, ".test-"};
   EXPECT_TRUE(std::filesystem::exists(temporary.path()));
   EXPECT_TRUE(std::filesystem::is_directory(temporary.path()));
 }
 
-TEST(IO_TemporaryDirectory, unique_names) {
+TEST(unique_names) {
   const auto parent{std::filesystem::path{BUILD_DIRECTORY}};
   const sourcemeta::core::TemporaryDirectory first{parent, ".test-"};
   const sourcemeta::core::TemporaryDirectory second{parent, ".test-"};
   EXPECT_NE(first.path(), second.path());
 }
 
-TEST(IO_TemporaryDirectory, custom_prefix) {
+TEST(custom_prefix) {
   const auto parent{std::filesystem::path{BUILD_DIRECTORY}};
   const sourcemeta::core::TemporaryDirectory temporary{parent,
                                                        ".my-test-prefix-"};
@@ -28,7 +27,7 @@ TEST(IO_TemporaryDirectory, custom_prefix) {
   EXPECT_TRUE(filename.starts_with(".my-test-prefix-"));
 }
 
-TEST(IO_TemporaryDirectory, removed_on_destruction) {
+TEST(removed_on_destruction) {
   std::filesystem::path path_copy;
   {
     const sourcemeta::core::TemporaryDirectory temporary{
@@ -39,7 +38,7 @@ TEST(IO_TemporaryDirectory, removed_on_destruction) {
   EXPECT_FALSE(std::filesystem::exists(path_copy));
 }
 
-TEST(IO_TemporaryDirectory, removed_on_destruction_non_empty) {
+TEST(removed_on_destruction_non_empty) {
   std::filesystem::path path_copy;
   {
     const sourcemeta::core::TemporaryDirectory temporary{
@@ -53,14 +52,14 @@ TEST(IO_TemporaryDirectory, removed_on_destruction_non_empty) {
   EXPECT_FALSE(std::filesystem::exists(path_copy));
 }
 
-TEST(IO_TemporaryDirectory, inside_parent) {
+TEST(inside_parent) {
   const auto parent{
       std::filesystem::canonical(std::filesystem::path{BUILD_DIRECTORY})};
   const sourcemeta::core::TemporaryDirectory temporary{parent, ".test-"};
   EXPECT_EQ(temporary.path().parent_path(), parent);
 }
 
-TEST(IO_TemporaryDirectory, creates_nonexistent_parent) {
+TEST(creates_nonexistent_parent) {
   const sourcemeta::core::TemporaryDirectory unique_parent{
       std::filesystem::path{BUILD_DIRECTORY}, ".test-parent-"};
   const auto parent{unique_parent.path() / "nonexistent"};
@@ -70,7 +69,7 @@ TEST(IO_TemporaryDirectory, creates_nonexistent_parent) {
   EXPECT_TRUE(std::filesystem::is_directory(temporary.path()));
 }
 
-TEST(IO_TemporaryDirectory, creates_nested_nonexistent_parents) {
+TEST(creates_nested_nonexistent_parents) {
   const sourcemeta::core::TemporaryDirectory unique_parent{
       std::filesystem::path{BUILD_DIRECTORY}, ".test-parent-"};
   const auto parent{unique_parent.path() / "nested_a" / "nested_b"};
@@ -80,7 +79,7 @@ TEST(IO_TemporaryDirectory, creates_nested_nonexistent_parents) {
   EXPECT_TRUE(std::filesystem::is_directory(temporary.path()));
 }
 
-TEST(IO_TemporaryDirectory, parent_is_a_file) {
+TEST(parent_is_a_file) {
   const sourcemeta::core::TemporaryDirectory unique_parent{
       std::filesystem::path{BUILD_DIRECTORY}, ".test-parent-"};
   const auto file_path{unique_parent.path() / "test_parent_file"};

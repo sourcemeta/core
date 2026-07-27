@@ -5,6 +5,8 @@
 #include <sourcemeta/core/uri_export.h>
 #endif
 
+#include <sourcemeta/core/text.h>
+
 // NOLINTBEGIN(misc-include-cleaner)
 #include <sourcemeta/core/uri_error.h>
 // NOLINTEND(misc-include-cleaner)
@@ -37,6 +39,7 @@
 namespace sourcemeta::core {
 
 /// @ingroup uri
+/// A parsed URI that can be inspected, resolved, and recomposed
 class SOURCEMETA_CORE_URI_EXPORT URI {
 public:
   /// Default constructor creates an empty URI
@@ -227,6 +230,26 @@ public:
   /// ```
   [[nodiscard]] auto port() const -> std::optional<std::uint32_t>;
 
+  /// Get the recomposed authority component of the URI, if any, in the RFC 3986
+  /// form `[ userinfo "@" ] host [ ":" port ]`, with IPv6 hosts wrapped in
+  /// brackets. A URI with an empty authority, such as `file:///path`, returns a
+  /// present but empty value, so a caller must not treat a present value as
+  /// necessarily non-empty. For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/uri.h>
+  /// #include <cassert>
+  ///
+  /// const sourcemeta::core::URI uri{"https://example.com:8443/foo"};
+  /// assert(uri.authority().has_value());
+  /// assert(uri.authority().value() == "example.com:8443");
+  ///
+  /// const sourcemeta::core::URI file{"file:///path"};
+  /// assert(file.authority().has_value());
+  /// assert(file.authority().value().empty());
+  /// ```
+  [[nodiscard]] auto authority() const -> std::optional<std::string>;
+
   /// Get the path part of the URI, if any. For example:
   ///
   /// ```cpp
@@ -265,6 +288,7 @@ public:
   /// uri.path(std::move(path));
   /// assert(uri.path().has_value());
   /// assert(uri.path().value() == "/foo/bar");
+  /// ```
   auto path(std::string &&path) -> URI &;
 
   /// Append a path to the existing URI path or set a path if such component
@@ -279,6 +303,7 @@ public:
   /// sourcemeta::core::URI uri{"https://www.sourcemeta.com/foo"};
   /// uri.append_path("bar/baz");
   /// assert(uri.recompose() == "https://www.sourcemeta.com/foo/bar/baz");
+  /// ```
   auto append_path(std::string_view path) -> URI &;
 
   /// Append a path to the existing URI from a parsed reference. The
@@ -293,6 +318,7 @@ public:
   /// const sourcemeta::core::URI reference{"bar/baz"};
   /// uri.append_path(reference);
   /// assert(uri.recompose() == "https://www.sourcemeta.com/foo/bar/baz");
+  /// ```
   auto append_path(const URI &reference) -> URI &;
 
   /// Append a path to the existing URI from a parsed reference, moving the
@@ -322,6 +348,7 @@ public:
   /// sourcemeta::core::URI uri{"https://www.sourcemeta.com/foo"};
   /// uri.extension("json");
   /// assert(uri.recompose() == "https://www.sourcemeta.com/foo.json");
+  /// ```
   auto extension(std::string &&extension) -> URI &;
 
   /// Get the fragment part of the URI, if any. For example:
@@ -664,8 +691,9 @@ public:
   /// ```
   auto userinfo(const std::string_view userinfo) -> URI &;
 
-  /// To support equality of URIs
-  auto operator==(const URI &other) const noexcept -> bool = default;
+  /// Two URIs are equal when their components match, independent of how the
+  /// input was parsed
+  auto operator==(const URI &other) const noexcept -> bool;
 
   /// To support ordering of URIs
   auto operator<(const URI &other) const noexcept -> bool;
@@ -695,6 +723,34 @@ public:
   /// ```
   static auto from_path(const std::filesystem::path &path) -> URI;
 
+  /// Create a URI from a string that may be an Internationalized Resource
+  /// Identifier (IRI) as defined by RFC 3987, accepting the non-ASCII
+  /// characters that a plain URI does not permit. For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/uri.h>
+  /// #include <cassert>
+  ///
+  /// const auto
+  /// uri{sourcemeta::core::URI::from_iri("https://example.com/café")};
+  /// assert(uri.recompose() == "https://example.com/café");
+  /// ```
+  static auto from_iri(std::string_view input) -> URI;
+
+  /// Check whether this object holds an Internationalized Resource Identifier
+  /// (IRI) as defined by RFC 3987, rather than a plain URI. For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/uri.h>
+  /// #include <cassert>
+  ///
+  /// const auto
+  /// iri{sourcemeta::core::URI::from_iri("https://example.com/foo")};
+  /// assert(iri.is_internationalized());
+  /// assert(!sourcemeta::core::URI{"https://example.com/foo"}.is_internationalized());
+  /// ```
+  [[nodiscard]] auto is_internationalized() const noexcept -> bool;
+
   /// A convenient method to canonicalize and recompose a URI from a string. For
   /// example:
   ///
@@ -707,6 +763,209 @@ public:
   /// assert(result == "http://example.com/TEST");
   /// ```
   static auto canonicalize(std::string_view input) -> std::string;
+
+  /// Percent-encode a string per RFC 3986, escaping every octet outside the
+  /// unreserved set. The input can optionally be treated as possibly already
+  /// encoded, preserving valid escapes and decoding needlessly encoded
+  /// unreserved octets so the result is stable under repeated application. For
+  /// example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/uri.h>
+  /// #include <cassert>
+  ///
+  /// assert(sourcemeta::core::URI::escape("foo bar/baz") == "foo%20bar%2Fbaz");
+  /// assert(sourcemeta::core::URI::escape("a b%2Fc", true) == "a%20b%2Fc");
+  /// ```
+  [[nodiscard]] static auto escape(std::string_view input,
+                                   bool maybe_encoded = false) -> std::string;
+
+  /// Percent-encode a string per RFC 3986, appending the result to a string
+  /// like output sink rather than allocating a new string. Besides a
+  /// `std::string` the sink can be a wiping string for secret material. The
+  /// input can optionally be treated as possibly already encoded. The output
+  /// must not alias the input. For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/uri.h>
+  /// #include <cassert>
+  /// #include <string>
+  ///
+  /// std::string output{"key="};
+  /// sourcemeta::core::URI::escape("foo bar", output);
+  /// assert(output == "key=foo%20bar");
+  /// ```
+  template <typename Output>
+  static auto escape(const std::string_view input, Output &output,
+                     const bool maybe_encoded = false) -> void {
+    output.reserve(output.size() + input.size() * 3);
+    for (std::size_t position = 0; position < input.size();) {
+      auto byte{static_cast<unsigned char>(input[position])};
+      std::size_t advance{1};
+      // Treat the input as possibly already encoded by decoding each valid
+      // escape before re-encoding, so a valid escape survives and a needlessly
+      // encoded unreserved octet is decoded
+      if (maybe_encoded && input[position] == '%' &&
+          position + 2 < input.size()) {
+        const auto high{hex_digit_value(input[position + 1])};
+        const auto low{high < 0 ? static_cast<std::int8_t>(-1)
+                                : hex_digit_value(input[position + 2])};
+        if (low >= 0) {
+          byte = static_cast<unsigned char>((high << 4) | low);
+          advance = 3;
+        }
+      }
+
+      position += advance;
+      // RFC 3986 Section 2.3: the unreserved set passes through unescaped
+      if (is_alphanum(static_cast<char>(byte)) || byte == '-' || byte == '.' ||
+          byte == '_' || byte == '~') {
+        output.push_back(static_cast<char>(byte));
+      } else {
+        // RFC 3986 Section 2.1: percent-encode with uppercase hexadecimal
+        const auto high{static_cast<unsigned char>((byte >> 4U) & 0x0FU)};
+        const auto low{static_cast<unsigned char>(byte & 0x0FU)};
+        output.push_back('%');
+        output.push_back(
+            static_cast<char>(high < 10 ? '0' + high : 'A' + high - 10));
+        output.push_back(
+            static_cast<char>(low < 10 ? '0' + low : 'A' + low - 10));
+      }
+    }
+  }
+
+  /// Append a percent-encoded name and value pair to a query, form body, or
+  /// fragment under construction (RFC 3986 Section 2.1), joining it to any
+  /// preceding pair. The caller writes the opening character of a fresh
+  /// parameter list, the "?" of a query unless overridden through the opener,
+  /// and the sink must not alias the name or value. For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/uri.h>
+  /// #include <cassert>
+  /// #include <string>
+  ///
+  /// std::string query{"https://example.com/authorize?"};
+  /// sourcemeta::core::URI::append_query_parameter(query, "response_type",
+  ///                                               "code");
+  /// sourcemeta::core::URI::append_query_parameter(query, "scope",
+  ///                                               "openid profile");
+  /// assert(query ==
+  ///        "https://example.com/authorize?response_type=code"
+  ///        "&scope=openid%20profile");
+  /// ```
+  template <typename Output>
+  static auto append_query_parameter(Output &sink, const std::string_view name,
+                                     const std::string_view value,
+                                     const char opener = '?') -> void {
+    if (!sink.empty() && sink.back() != opener && sink.back() != '&') {
+      sink.push_back('&');
+    }
+
+    URI::escape(name, sink);
+    sink.push_back('=');
+    URI::escape(value, sink);
+  }
+
+  /// Percent-decode every escape sequence in a string per RFC 3986, leaving
+  /// malformed sequences untouched. For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/uri.h>
+  /// #include <cassert>
+  ///
+  /// const auto decoded{sourcemeta::core::URI::unescape("foo%20bar%2Fbaz")};
+  /// assert(decoded == "foo bar/baz");
+  /// ```
+  [[nodiscard]] static auto unescape(std::string_view input) -> std::string;
+
+  /// Decode an "application/x-www-form-urlencoded" component (RFC 6749 Appendix
+  /// B and the HTML URL-encoded form syntax), appending the decoded bytes to
+  /// the output. Besides a `std::string` the sink can be a wiping string for a
+  /// secret such as a decoded client credential. Each "+" becomes a space and
+  /// each "%" followed by two hexadecimal digits becomes its octet. A "%" that
+  /// is not followed by two hexadecimal digits is rejected, returning false
+  /// with the output restored to its original contents. The output must not
+  /// alias the input. For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/uri.h>
+  /// #include <cassert>
+  /// #include <string>
+  ///
+  /// std::string output;
+  /// assert(sourcemeta::core::URI::unescape_form("a+b%2Fc", output));
+  /// assert(output == "a b/c");
+  /// ```
+  template <typename Output>
+  [[nodiscard]] static auto unescape_form(const std::string_view input,
+                                          Output &output) -> bool {
+    const auto base{output.size()};
+    output.reserve(base + input.size());
+    for (std::size_t position = 0; position < input.size();) {
+      const auto character{input[position]};
+      if (character == '+') {
+        output.push_back(' ');
+        position += 1;
+      } else if (character == '%') {
+        const auto high{position + 2 < input.size()
+                            ? hex_digit_value(input[position + 1])
+                            : static_cast<std::int8_t>(-1)};
+        const auto low{high < 0 ? static_cast<std::int8_t>(-1)
+                                : hex_digit_value(input[position + 2])};
+        if (low < 0) {
+          output.resize(base, '\0');
+          return false;
+        }
+
+        output.push_back(static_cast<char>((high << 4) | low));
+        position += 3;
+      } else {
+        output.push_back(character);
+        position += 1;
+      }
+    }
+
+    return true;
+  }
+
+  /// Remove the "." and ".." segments from a URI path per RFC 3986 Section
+  /// 5.2.4, preserving leading ".." segments in a relative path. For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/uri.h>
+  /// #include <cassert>
+  ///
+  /// assert(sourcemeta::core::URI::normalize_path("/foo/bar/../baz") ==
+  ///        "/foo/baz");
+  /// ```
+  [[nodiscard]] static auto normalize_path(std::string_view path)
+      -> std::string;
+
+  /// Check if the given string is a valid URI scheme per RFC 3986
+  /// (`ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )`). For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/uri.h>
+  /// #include <cassert>
+  ///
+  /// assert(sourcemeta::core::URI::is_scheme("https"));
+  /// assert(!sourcemeta::core::URI::is_scheme("1https"));
+  /// assert(!sourcemeta::core::URI::is_scheme("http:"));
+  /// ```
+  [[nodiscard]] static auto is_scheme(std::string_view input) noexcept -> bool;
+
+  /// Check if the given character is a URI generic delimiter per RFC 3986
+  /// (`":" / "/" / "?" / "#" / "[" / "]" / "@"`). For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/uri.h>
+  /// #include <cassert>
+  ///
+  /// assert(sourcemeta::core::URI::is_gen_delim(':'));
+  /// assert(!sourcemeta::core::URI::is_gen_delim('a'));
+  /// ```
+  [[nodiscard]] static auto is_gen_delim(char character) noexcept -> bool;
 
   /// Check if the given string is a valid absolute URI (has a scheme) per
   /// RFC 3986 without constructing a full URI object. For example:
@@ -811,6 +1070,9 @@ private:
   std::optional<std::string> fragment_{};
   std::optional<std::string> query_{};
   bool ip_literal_{false};
+  // Whether this object was parsed as an IRI (RFC 3987) rather than a URI
+  // (RFC 3986)
+  bool iri_{false};
 #if defined(_MSC_VER)
 #pragma warning(default : 4251)
 #endif

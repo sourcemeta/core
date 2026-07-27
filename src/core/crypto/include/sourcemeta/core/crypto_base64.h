@@ -5,8 +5,12 @@
 #include <sourcemeta/core/crypto_export.h>
 #endif
 
+#include <sourcemeta/core/crypto_secure.h>
+
+#include <cstdint>     // std::uint8_t
 #include <optional>    // std::optional
 #include <ostream>     // std::ostream
+#include <span>        // std::span
 #include <string>      // std::string
 #include <string_view> // std::string_view
 
@@ -41,6 +45,22 @@ auto SOURCEMETA_CORE_CRYPTO_EXPORT base64_encode(const std::string_view input)
     -> std::string;
 
 /// @ingroup crypto
+/// Encode a byte sequence using Base64 (RFC 4648 Section 4), appending to a
+/// wiping string so that an encoded secret is never held in ordinary storage.
+/// The output must not alias the input. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/crypto.h>
+/// #include <cassert>
+///
+/// sourcemeta::core::SecureString result;
+/// sourcemeta::core::base64_encode("foobar", result);
+/// assert(result == "Zm9vYmFy");
+/// ```
+auto SOURCEMETA_CORE_CRYPTO_EXPORT base64_encode(const std::string_view input,
+                                                 SecureString &output) -> void;
+
+/// @ingroup crypto
 /// Decode a Base64 string (RFC 4648 Section 4), returning no value unless the
 /// input is a canonical padded encoding. For example:
 ///
@@ -54,6 +74,24 @@ auto SOURCEMETA_CORE_CRYPTO_EXPORT base64_encode(const std::string_view input)
 /// ```
 auto SOURCEMETA_CORE_CRYPTO_EXPORT base64_decode(const std::string_view input)
     -> std::optional<std::string>;
+
+/// @ingroup crypto
+/// Decode a Base64 string (RFC 4648 Section 4) into a wiping string, for a
+/// decoded value that is secret such as a client credential, returning whether
+/// the input is a canonical padded encoding. On success the decoded bytes are
+/// appended, and on failure the output is left with its original contents, so a
+/// reused buffer never keeps a partial decode. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/crypto.h>
+/// #include <cassert>
+///
+/// sourcemeta::core::SecureString result;
+/// assert(sourcemeta::core::base64_decode("Zm9vYmFy", result));
+/// assert(result == "foobar");
+/// ```
+auto SOURCEMETA_CORE_CRYPTO_EXPORT base64_decode(const std::string_view input,
+                                                 SecureString &output) -> bool;
 
 /// @ingroup crypto
 /// Encode a byte sequence using unpadded Base64url (RFC 4648 Section 5) into a
@@ -83,6 +121,36 @@ base64url_encode(const std::string_view input, std::ostream &output) -> void;
 /// ```
 auto SOURCEMETA_CORE_CRYPTO_EXPORT
 base64url_encode(const std::string_view input) -> std::string;
+
+/// @ingroup crypto
+/// Encode raw bytes using unpadded Base64url (RFC 4648 Section 5), for a byte
+/// buffer such as a hash digest rather than a character string. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/crypto.h>
+/// #include <cassert>
+///
+/// const auto digest{sourcemeta::core::sha256_digest("fo")};
+/// assert(!sourcemeta::core::base64url_encode(digest).empty());
+/// ```
+auto SOURCEMETA_CORE_CRYPTO_EXPORT
+base64url_encode(std::span<const std::uint8_t> input) -> std::string;
+
+/// @ingroup crypto
+/// Append the unpadded Base64url encoding (RFC 4648 Section 5) of a byte
+/// sequence to a wiping string, so that encoding a secret does not leave it in
+/// an intermediate buffer. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/crypto.h>
+/// #include <cassert>
+///
+/// sourcemeta::core::SecureString result;
+/// sourcemeta::core::base64url_encode("fo", result);
+/// assert(result == "Zm8");
+/// ```
+auto SOURCEMETA_CORE_CRYPTO_EXPORT
+base64url_encode(const std::string_view input, SecureString &output) -> void;
 
 /// @ingroup crypto
 /// Decode an unpadded Base64url string (RFC 4648 Section 5), returning no

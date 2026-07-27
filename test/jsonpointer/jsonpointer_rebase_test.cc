@@ -1,8 +1,7 @@
-#include <gtest/gtest.h>
-
 #include <sourcemeta/core/jsonpointer.h>
+#include <sourcemeta/core/test.h>
 
-TEST(JSONPointer_rebase, first_property_for_one) {
+TEST(first_property_for_one) {
   const sourcemeta::core::Pointer pointer{"foo", "bar"};
   const sourcemeta::core::Pointer prefix{"foo"};
   const sourcemeta::core::Pointer replacement{"baz"};
@@ -10,7 +9,7 @@ TEST(JSONPointer_rebase, first_property_for_one) {
   EXPECT_EQ(pointer.rebase(prefix, replacement), expected);
 }
 
-TEST(JSONPointer_rebase, first_property_for_two) {
+TEST(first_property_for_two) {
   const sourcemeta::core::Pointer pointer{"foo", "bar"};
   const sourcemeta::core::Pointer prefix{"foo"};
   const sourcemeta::core::Pointer replacement{"baz", "qux"};
@@ -18,7 +17,7 @@ TEST(JSONPointer_rebase, first_property_for_two) {
   EXPECT_EQ(pointer.rebase(prefix, replacement), expected);
 }
 
-TEST(JSONPointer_rebase, first_property_for_empty) {
+TEST(first_property_for_empty) {
   const sourcemeta::core::Pointer pointer{"foo", "bar"};
   const sourcemeta::core::Pointer prefix{"foo"};
   const sourcemeta::core::Pointer replacement;
@@ -26,7 +25,7 @@ TEST(JSONPointer_rebase, first_property_for_empty) {
   EXPECT_EQ(pointer.rebase(prefix, replacement), expected);
 }
 
-TEST(JSONPointer_rebase, empty_for_single_property) {
+TEST(empty_for_single_property) {
   const sourcemeta::core::Pointer pointer{"foo", "bar"};
   const sourcemeta::core::Pointer prefix;
   const sourcemeta::core::Pointer replacement{"baz"};
@@ -34,7 +33,7 @@ TEST(JSONPointer_rebase, empty_for_single_property) {
   EXPECT_EQ(pointer.rebase(prefix, replacement), expected);
 }
 
-TEST(JSONPointer_rebase, empty_for_multi_property) {
+TEST(empty_for_multi_property) {
   const sourcemeta::core::Pointer pointer{"foo", "bar"};
   const sourcemeta::core::Pointer prefix;
   const sourcemeta::core::Pointer replacement{"baz", "qux"};
@@ -42,7 +41,7 @@ TEST(JSONPointer_rebase, empty_for_multi_property) {
   EXPECT_EQ(pointer.rebase(prefix, replacement), expected);
 }
 
-TEST(JSONPointer_rebase, prefix_equal_pointer) {
+TEST(prefix_equal_pointer) {
   const sourcemeta::core::Pointer pointer{"foo", "bar"};
   const sourcemeta::core::Pointer prefix{"foo", "bar"};
   const sourcemeta::core::Pointer replacement{"baz", "qux"};
@@ -50,7 +49,7 @@ TEST(JSONPointer_rebase, prefix_equal_pointer) {
   EXPECT_EQ(pointer.rebase(prefix, replacement), expected);
 }
 
-TEST(JSONPointer_rebase, empty_replacement) {
+TEST(empty_replacement) {
   const sourcemeta::core::Pointer pointer{"foo", "bar", "baz"};
   const sourcemeta::core::Pointer prefix{"foo"};
   const sourcemeta::core::Pointer replacement;
@@ -58,7 +57,7 @@ TEST(JSONPointer_rebase, empty_replacement) {
   EXPECT_EQ(pointer.rebase(prefix, replacement), expected);
 }
 
-TEST(JSONPointer_rebase, empty_empty_empty) {
+TEST(empty_empty_empty) {
   const sourcemeta::core::Pointer pointer;
   const sourcemeta::core::Pointer prefix;
   const sourcemeta::core::Pointer replacement;
@@ -66,7 +65,7 @@ TEST(JSONPointer_rebase, empty_empty_empty) {
   EXPECT_EQ(pointer.rebase(prefix, replacement), expected);
 }
 
-TEST(JSONPointer_rebase, no_prefix_match_1) {
+TEST(no_prefix_match_1) {
   const sourcemeta::core::Pointer pointer{"foo", "bar"};
   const sourcemeta::core::Pointer prefix{"bar"};
   const sourcemeta::core::Pointer replacement{"baz"};

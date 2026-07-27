@@ -1,17 +1,16 @@
-#include <gtest/gtest.h>
-
+#include <sourcemeta/core/test.h>
 #include <sourcemeta/core/uritemplate.h>
 
 #include "uritemplate_helpers.h"
 
-TEST(URITemplate_parse, empty_string) {
+TEST(empty_string) {
   const sourcemeta::core::URITemplate uri_template{""};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate(""));
   EXPECT_TRUE(uri_template.empty());
   EXPECT_EQ(uri_template.size(), 0);
 }
 
-TEST(URITemplate_parse, literal_only) {
+TEST(literal_only) {
   const sourcemeta::core::URITemplate uri_template{
       "http://example.com/path/to/resource"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate(
@@ -22,7 +21,7 @@ TEST(URITemplate_parse, literal_only) {
                              "http://example.com/path/to/resource");
 }
 
-TEST(URITemplate_parse, single_variable) {
+TEST(single_variable) {
   const sourcemeta::core::URITemplate uri_template{"{var}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{var}"));
   EXPECT_EQ(uri_template.size(), 1);
@@ -31,7 +30,7 @@ TEST(URITemplate_parse, single_variable) {
                                "var", 0, false);
 }
 
-TEST(URITemplate_parse, variable_with_underscore) {
+TEST(variable_with_underscore) {
   const sourcemeta::core::URITemplate uri_template{"{my_var}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{my_var}"));
   EXPECT_EQ(uri_template.size(), 1);
@@ -39,7 +38,7 @@ TEST(URITemplate_parse, variable_with_underscore) {
                                "my_var", 0, false);
 }
 
-TEST(URITemplate_parse, variable_with_digits) {
+TEST(variable_with_digits) {
   const sourcemeta::core::URITemplate uri_template{"{var123}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{var123}"));
   EXPECT_EQ(uri_template.size(), 1);
@@ -47,7 +46,7 @@ TEST(URITemplate_parse, variable_with_digits) {
                                "var123", 0, false);
 }
 
-TEST(URITemplate_parse, variable_with_dot) {
+TEST(variable_with_dot) {
   const sourcemeta::core::URITemplate uri_template{"{foo.bar}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{foo.bar}"));
   EXPECT_EQ(uri_template.size(), 1);
@@ -55,7 +54,7 @@ TEST(URITemplate_parse, variable_with_dot) {
                                "foo.bar", 0, false);
 }
 
-TEST(URITemplate_parse, variable_with_multiple_dots) {
+TEST(variable_with_multiple_dots) {
   const sourcemeta::core::URITemplate uri_template{"{foo.bar.baz}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{foo.bar.baz}"));
   EXPECT_EQ(uri_template.size(), 1);
@@ -63,7 +62,7 @@ TEST(URITemplate_parse, variable_with_multiple_dots) {
                                "foo.bar.baz", 0, false);
 }
 
-TEST(URITemplate_parse, variable_with_percent_encoded) {
+TEST(variable_with_percent_encoded) {
   const sourcemeta::core::URITemplate uri_template{"{%3Bvar}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{%3Bvar}"));
   EXPECT_EQ(uri_template.size(), 1);
@@ -71,7 +70,7 @@ TEST(URITemplate_parse, variable_with_percent_encoded) {
                                "%3Bvar", 0, false);
 }
 
-TEST(URITemplate_parse, literal_then_variable) {
+TEST(literal_then_variable) {
   const sourcemeta::core::URITemplate uri_template{"http://example.com/{id}"};
   EXPECT_TRUE(
       sourcemeta::core::URITemplate::is_uritemplate("http://example.com/{id}"));
@@ -81,7 +80,7 @@ TEST(URITemplate_parse, literal_then_variable) {
                                "id", 0, false);
 }
 
-TEST(URITemplate_parse, variable_then_literal) {
+TEST(variable_then_literal) {
   const sourcemeta::core::URITemplate uri_template{"{id}/resource"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{id}/resource"));
   EXPECT_EQ(uri_template.size(), 2);
@@ -90,7 +89,7 @@ TEST(URITemplate_parse, variable_then_literal) {
   EXPECT_URITEMPLATE_LITERAL(uri_template, 1, "/resource");
 }
 
-TEST(URITemplate_parse, literal_variable_literal) {
+TEST(literal_variable_literal) {
   const sourcemeta::core::URITemplate uri_template{
       "http://example.com/~{username}/"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate(
@@ -102,7 +101,7 @@ TEST(URITemplate_parse, literal_variable_literal) {
   EXPECT_URITEMPLATE_LITERAL(uri_template, 2, "/");
 }
 
-TEST(URITemplate_parse, multiple_variables) {
+TEST(multiple_variables) {
   const sourcemeta::core::URITemplate uri_template{
       "/users/{id}/posts/{postId}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate(
@@ -116,7 +115,7 @@ TEST(URITemplate_parse, multiple_variables) {
                                "postId", 0, false);
 }
 
-TEST(URITemplate_parse, adjacent_variables) {
+TEST(adjacent_variables) {
   const sourcemeta::core::URITemplate uri_template{"{x}{y}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{x}{y}"));
   EXPECT_EQ(uri_template.size(), 2);
@@ -126,7 +125,7 @@ TEST(URITemplate_parse, adjacent_variables) {
                                "y", 0, false);
 }
 
-TEST(URITemplate_parse, reserved_expansion) {
+TEST(reserved_expansion) {
   const sourcemeta::core::URITemplate uri_template{"{+var}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{+var}"));
   EXPECT_EQ(uri_template.size(), 1);
@@ -134,7 +133,7 @@ TEST(URITemplate_parse, reserved_expansion) {
       uri_template, 0, URITemplateTokenReservedExpansion, 0, "var", 0, false);
 }
 
-TEST(URITemplate_parse, reserved_expansion_with_dots) {
+TEST(reserved_expansion_with_dots) {
   const sourcemeta::core::URITemplate uri_template{"{+foo.bar}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{+foo.bar}"));
   EXPECT_EQ(uri_template.size(), 1);
@@ -143,7 +142,7 @@ TEST(URITemplate_parse, reserved_expansion_with_dots) {
                                0, false);
 }
 
-TEST(URITemplate_parse, reserved_expansion_with_literal) {
+TEST(reserved_expansion_with_literal) {
   const sourcemeta::core::URITemplate uri_template{"http://example.com{+path}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate(
       "http://example.com{+path}"));
@@ -153,7 +152,7 @@ TEST(URITemplate_parse, reserved_expansion_with_literal) {
       uri_template, 1, URITemplateTokenReservedExpansion, 0, "path", 0, false);
 }
 
-TEST(URITemplate_parse, fragment_expansion) {
+TEST(fragment_expansion) {
   const sourcemeta::core::URITemplate uri_template{"{#var}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{#var}"));
   EXPECT_EQ(uri_template.size(), 1);
@@ -161,7 +160,7 @@ TEST(URITemplate_parse, fragment_expansion) {
       uri_template, 0, URITemplateTokenFragmentExpansion, 0, "var", 0, false);
 }
 
-TEST(URITemplate_parse, fragment_expansion_with_dots) {
+TEST(fragment_expansion_with_dots) {
   const sourcemeta::core::URITemplate uri_template{"{#foo.bar}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{#foo.bar}"));
   EXPECT_EQ(uri_template.size(), 1);
@@ -170,7 +169,7 @@ TEST(URITemplate_parse, fragment_expansion_with_dots) {
                                0, false);
 }
 
-TEST(URITemplate_parse, fragment_expansion_with_literal) {
+TEST(fragment_expansion_with_literal) {
   const sourcemeta::core::URITemplate uri_template{"http://example.com{#frag}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate(
       "http://example.com{#frag}"));
@@ -180,7 +179,7 @@ TEST(URITemplate_parse, fragment_expansion_with_literal) {
       uri_template, 1, URITemplateTokenFragmentExpansion, 0, "frag", 0, false);
 }
 
-TEST(URITemplate_parse, mixed_level1_and_level2) {
+TEST(mixed_level1_and_level2) {
   const sourcemeta::core::URITemplate uri_template{
       "http://example.com{+path}{#frag}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate(
@@ -193,7 +192,7 @@ TEST(URITemplate_parse, mixed_level1_and_level2) {
       uri_template, 2, URITemplateTokenFragmentExpansion, 0, "frag", 0, false);
 }
 
-TEST(URITemplate_parse, variable_list_two) {
+TEST(variable_list_two) {
   const sourcemeta::core::URITemplate uri_template{"{x,y}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{x,y}"));
   EXPECT_EQ(uri_template.size(), 1);
@@ -203,7 +202,7 @@ TEST(URITemplate_parse, variable_list_two) {
                                "y", 0, false);
 }
 
-TEST(URITemplate_parse, variable_list_three) {
+TEST(variable_list_three) {
   const sourcemeta::core::URITemplate uri_template{"{x,hello,y}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{x,hello,y}"));
   EXPECT_EQ(uri_template.size(), 1);
@@ -215,7 +214,7 @@ TEST(URITemplate_parse, variable_list_three) {
                                "y", 0, false);
 }
 
-TEST(URITemplate_parse, variable_list_with_literal) {
+TEST(variable_list_with_literal) {
   const sourcemeta::core::URITemplate uri_template{"map?{x,y}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("map?{x,y}"));
   EXPECT_EQ(uri_template.size(), 2);
@@ -226,7 +225,7 @@ TEST(URITemplate_parse, variable_list_with_literal) {
                                "y", 0, false);
 }
 
-TEST(URITemplate_parse, reserved_expansion_variable_list) {
+TEST(reserved_expansion_variable_list) {
   const sourcemeta::core::URITemplate uri_template{"{+x,hello,y}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{+x,hello,y}"));
   EXPECT_EQ(uri_template.size(), 1);
@@ -238,7 +237,7 @@ TEST(URITemplate_parse, reserved_expansion_variable_list) {
       uri_template, 0, URITemplateTokenReservedExpansion, 2, "y", 0, false);
 }
 
-TEST(URITemplate_parse, reserved_expansion_variable_list_with_literal) {
+TEST(reserved_expansion_variable_list_with_literal) {
   const sourcemeta::core::URITemplate uri_template{"{+path,x}/here"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{+path,x}/here"));
   EXPECT_EQ(uri_template.size(), 2);
@@ -249,7 +248,7 @@ TEST(URITemplate_parse, reserved_expansion_variable_list_with_literal) {
   EXPECT_URITEMPLATE_LITERAL(uri_template, 1, "/here");
 }
 
-TEST(URITemplate_parse, fragment_expansion_variable_list) {
+TEST(fragment_expansion_variable_list) {
   const sourcemeta::core::URITemplate uri_template{"{#x,hello,y}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{#x,hello,y}"));
   EXPECT_EQ(uri_template.size(), 1);
@@ -261,7 +260,7 @@ TEST(URITemplate_parse, fragment_expansion_variable_list) {
       uri_template, 0, URITemplateTokenFragmentExpansion, 2, "y", 0, false);
 }
 
-TEST(URITemplate_parse, fragment_expansion_variable_list_with_literal) {
+TEST(fragment_expansion_variable_list_with_literal) {
   const sourcemeta::core::URITemplate uri_template{"{#path,x}/here"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{#path,x}/here"));
   EXPECT_EQ(uri_template.size(), 2);
@@ -272,7 +271,7 @@ TEST(URITemplate_parse, fragment_expansion_variable_list_with_literal) {
   EXPECT_URITEMPLATE_LITERAL(uri_template, 1, "/here");
 }
 
-TEST(URITemplate_parse, label_expansion_single) {
+TEST(label_expansion_single) {
   const sourcemeta::core::URITemplate uri_template{"{.var}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{.var}"));
   EXPECT_EQ(uri_template.size(), 1);
@@ -280,7 +279,7 @@ TEST(URITemplate_parse, label_expansion_single) {
                                0, "var", 0, false);
 }
 
-TEST(URITemplate_parse, label_expansion_multiple) {
+TEST(label_expansion_multiple) {
   const sourcemeta::core::URITemplate uri_template{"{.x,y}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{.x,y}"));
   EXPECT_EQ(uri_template.size(), 1);
@@ -290,7 +289,7 @@ TEST(URITemplate_parse, label_expansion_multiple) {
                                1, "y", 0, false);
 }
 
-TEST(URITemplate_parse, label_expansion_with_literal) {
+TEST(label_expansion_with_literal) {
   const sourcemeta::core::URITemplate uri_template{"X{.var}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("X{.var}"));
   EXPECT_EQ(uri_template.size(), 2);
@@ -299,7 +298,7 @@ TEST(URITemplate_parse, label_expansion_with_literal) {
                                0, "var", 0, false);
 }
 
-TEST(URITemplate_parse, path_expansion_single) {
+TEST(path_expansion_single) {
   const sourcemeta::core::URITemplate uri_template{"{/var}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{/var}"));
   EXPECT_EQ(uri_template.size(), 1);
@@ -307,7 +306,7 @@ TEST(URITemplate_parse, path_expansion_single) {
                                0, "var", 0, false);
 }
 
-TEST(URITemplate_parse, path_expansion_multiple) {
+TEST(path_expansion_multiple) {
   const sourcemeta::core::URITemplate uri_template{"{/var,x}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{/var,x}"));
   EXPECT_EQ(uri_template.size(), 1);
@@ -317,7 +316,7 @@ TEST(URITemplate_parse, path_expansion_multiple) {
                                1, "x", 0, false);
 }
 
-TEST(URITemplate_parse, path_expansion_with_literal) {
+TEST(path_expansion_with_literal) {
   const sourcemeta::core::URITemplate uri_template{"{/var,x}/here"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{/var,x}/here"));
   EXPECT_EQ(uri_template.size(), 2);
@@ -328,7 +327,7 @@ TEST(URITemplate_parse, path_expansion_with_literal) {
   EXPECT_URITEMPLATE_LITERAL(uri_template, 1, "/here");
 }
 
-TEST(URITemplate_parse, path_parameter_expansion_single) {
+TEST(path_parameter_expansion_single) {
   const sourcemeta::core::URITemplate uri_template{"{;x}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{;x}"));
   EXPECT_EQ(uri_template.size(), 1);
@@ -337,7 +336,7 @@ TEST(URITemplate_parse, path_parameter_expansion_single) {
                                0, false);
 }
 
-TEST(URITemplate_parse, path_parameter_expansion_multiple) {
+TEST(path_parameter_expansion_multiple) {
   const sourcemeta::core::URITemplate uri_template{"{;x,y}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{;x,y}"));
   EXPECT_EQ(uri_template.size(), 1);
@@ -349,7 +348,7 @@ TEST(URITemplate_parse, path_parameter_expansion_multiple) {
                                0, false);
 }
 
-TEST(URITemplate_parse, path_parameter_expansion_three) {
+TEST(path_parameter_expansion_three) {
   const sourcemeta::core::URITemplate uri_template{"{;x,y,empty}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{;x,y,empty}"));
   EXPECT_EQ(uri_template.size(), 1);
@@ -364,7 +363,7 @@ TEST(URITemplate_parse, path_parameter_expansion_three) {
                                "empty", 0, false);
 }
 
-TEST(URITemplate_parse, query_expansion_single) {
+TEST(query_expansion_single) {
   const sourcemeta::core::URITemplate uri_template{"{?x}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{?x}"));
   EXPECT_EQ(uri_template.size(), 1);
@@ -372,7 +371,7 @@ TEST(URITemplate_parse, query_expansion_single) {
                                0, "x", 0, false);
 }
 
-TEST(URITemplate_parse, query_expansion_multiple) {
+TEST(query_expansion_multiple) {
   const sourcemeta::core::URITemplate uri_template{"{?x,y}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{?x,y}"));
   EXPECT_EQ(uri_template.size(), 1);
@@ -382,7 +381,7 @@ TEST(URITemplate_parse, query_expansion_multiple) {
                                1, "y", 0, false);
 }
 
-TEST(URITemplate_parse, query_expansion_three) {
+TEST(query_expansion_three) {
   const sourcemeta::core::URITemplate uri_template{"{?x,y,empty}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{?x,y,empty}"));
   EXPECT_EQ(uri_template.size(), 1);
@@ -394,7 +393,7 @@ TEST(URITemplate_parse, query_expansion_three) {
                                2, "empty", 0, false);
 }
 
-TEST(URITemplate_parse, query_continuation_expansion_single) {
+TEST(query_continuation_expansion_single) {
   const sourcemeta::core::URITemplate uri_template{"{&x}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{&x}"));
   EXPECT_EQ(uri_template.size(), 1);
@@ -403,7 +402,7 @@ TEST(URITemplate_parse, query_continuation_expansion_single) {
                                "x", 0, false);
 }
 
-TEST(URITemplate_parse, query_continuation_expansion_multiple) {
+TEST(query_continuation_expansion_multiple) {
   const sourcemeta::core::URITemplate uri_template{"{&x,y,empty}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{&x,y,empty}"));
   EXPECT_EQ(uri_template.size(), 1);
@@ -418,7 +417,7 @@ TEST(URITemplate_parse, query_continuation_expansion_multiple) {
                                "empty", 0, false);
 }
 
-TEST(URITemplate_parse, query_continuation_with_literal) {
+TEST(query_continuation_with_literal) {
   const sourcemeta::core::URITemplate uri_template{"?fixed=yes{&x}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("?fixed=yes{&x}"));
   EXPECT_EQ(uri_template.size(), 2);
@@ -428,7 +427,7 @@ TEST(URITemplate_parse, query_continuation_with_literal) {
                                "x", 0, false);
 }
 
-TEST(URITemplate_parse, prefix_modifier) {
+TEST(prefix_modifier) {
   const sourcemeta::core::URITemplate uri_template{"{var:3}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{var:3}"));
   EXPECT_EQ(uri_template.size(), 1);
@@ -436,7 +435,7 @@ TEST(URITemplate_parse, prefix_modifier) {
                                "var", 3, false);
 }
 
-TEST(URITemplate_parse, prefix_modifier_max) {
+TEST(prefix_modifier_max) {
   const sourcemeta::core::URITemplate uri_template{"{var:9999}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{var:9999}"));
   EXPECT_EQ(uri_template.size(), 1);
@@ -444,7 +443,7 @@ TEST(URITemplate_parse, prefix_modifier_max) {
                                "var", 9999, false);
 }
 
-TEST(URITemplate_parse, explode_modifier) {
+TEST(explode_modifier) {
   const sourcemeta::core::URITemplate uri_template{"{list*}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{list*}"));
   EXPECT_EQ(uri_template.size(), 1);
@@ -452,7 +451,7 @@ TEST(URITemplate_parse, explode_modifier) {
                                "list", 0, true);
 }
 
-TEST(URITemplate_parse, reserved_with_prefix) {
+TEST(reserved_with_prefix) {
   const sourcemeta::core::URITemplate uri_template{"{+path:6}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{+path:6}"));
   EXPECT_EQ(uri_template.size(), 1);
@@ -460,7 +459,7 @@ TEST(URITemplate_parse, reserved_with_prefix) {
       uri_template, 0, URITemplateTokenReservedExpansion, 0, "path", 6, false);
 }
 
-TEST(URITemplate_parse, fragment_with_prefix) {
+TEST(fragment_with_prefix) {
   const sourcemeta::core::URITemplate uri_template{"{#path:6}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{#path:6}"));
   EXPECT_EQ(uri_template.size(), 1);
@@ -468,7 +467,7 @@ TEST(URITemplate_parse, fragment_with_prefix) {
       uri_template, 0, URITemplateTokenFragmentExpansion, 0, "path", 6, false);
 }
 
-TEST(URITemplate_parse, label_with_prefix) {
+TEST(label_with_prefix) {
   const sourcemeta::core::URITemplate uri_template{"{.var:3}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{.var:3}"));
   EXPECT_EQ(uri_template.size(), 1);
@@ -476,7 +475,7 @@ TEST(URITemplate_parse, label_with_prefix) {
                                0, "var", 3, false);
 }
 
-TEST(URITemplate_parse, path_with_explode) {
+TEST(path_with_explode) {
   const sourcemeta::core::URITemplate uri_template{"{/list*}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{/list*}"));
   EXPECT_EQ(uri_template.size(), 1);
@@ -484,7 +483,7 @@ TEST(URITemplate_parse, path_with_explode) {
                                0, "list", 0, true);
 }
 
-TEST(URITemplate_parse, query_with_prefix) {
+TEST(query_with_prefix) {
   const sourcemeta::core::URITemplate uri_template{"{?var:3}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{?var:3}"));
   EXPECT_EQ(uri_template.size(), 1);
@@ -492,7 +491,7 @@ TEST(URITemplate_parse, query_with_prefix) {
                                0, "var", 3, false);
 }
 
-TEST(URITemplate_parse, mixed_modifiers_in_list) {
+TEST(mixed_modifiers_in_list) {
   const sourcemeta::core::URITemplate uri_template{"{/var:1,var}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{/var:1,var}"));
   EXPECT_EQ(uri_template.size(), 1);
@@ -502,7 +501,7 @@ TEST(URITemplate_parse, mixed_modifiers_in_list) {
                                1, "var", 0, false);
 }
 
-TEST(URITemplate_parse, variable_single_char) {
+TEST(variable_single_char) {
   const sourcemeta::core::URITemplate uri_template{"{x}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{x}"));
   EXPECT_EQ(uri_template.size(), 1);
@@ -510,7 +509,7 @@ TEST(URITemplate_parse, variable_single_char) {
                                "x", 0, false);
 }
 
-TEST(URITemplate_parse, variable_starting_with_digit) {
+TEST(variable_starting_with_digit) {
   const sourcemeta::core::URITemplate uri_template{"{1var}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{1var}"));
   EXPECT_EQ(uri_template.size(), 1);
@@ -518,7 +517,7 @@ TEST(URITemplate_parse, variable_starting_with_digit) {
                                "1var", 0, false);
 }
 
-TEST(URITemplate_parse, variable_only_digit) {
+TEST(variable_only_digit) {
   const sourcemeta::core::URITemplate uri_template{"{1}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{1}"));
   EXPECT_EQ(uri_template.size(), 1);
@@ -526,7 +525,7 @@ TEST(URITemplate_parse, variable_only_digit) {
                                "1", 0, false);
 }
 
-TEST(URITemplate_parse, variable_only_underscore) {
+TEST(variable_only_underscore) {
   const sourcemeta::core::URITemplate uri_template{"{_}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{_}"));
   EXPECT_EQ(uri_template.size(), 1);
@@ -534,7 +533,7 @@ TEST(URITemplate_parse, variable_only_underscore) {
                                "_", 0, false);
 }
 
-TEST(URITemplate_parse, variable_starting_with_underscore) {
+TEST(variable_starting_with_underscore) {
   const sourcemeta::core::URITemplate uri_template{"{_private}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{_private}"));
   EXPECT_EQ(uri_template.size(), 1);
@@ -542,7 +541,7 @@ TEST(URITemplate_parse, variable_starting_with_underscore) {
                                "_private", 0, false);
 }
 
-TEST(URITemplate_parse, variable_percent_encoded_start) {
+TEST(variable_percent_encoded_start) {
   const sourcemeta::core::URITemplate uri_template{"{%41bc}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{%41bc}"));
   EXPECT_EQ(uri_template.size(), 1);
@@ -550,7 +549,7 @@ TEST(URITemplate_parse, variable_percent_encoded_start) {
                                "%41bc", 0, false);
 }
 
-TEST(URITemplate_parse, variable_multiple_percent_encoded) {
+TEST(variable_multiple_percent_encoded) {
   const sourcemeta::core::URITemplate uri_template{"{%41%42%43}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{%41%42%43}"));
   EXPECT_EQ(uri_template.size(), 1);
@@ -558,7 +557,7 @@ TEST(URITemplate_parse, variable_multiple_percent_encoded) {
                                "%41%42%43", 0, false);
 }
 
-TEST(URITemplate_parse, variable_with_dot_and_digits) {
+TEST(variable_with_dot_and_digits) {
   const sourcemeta::core::URITemplate uri_template{"{a.1.b.2}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{a.1.b.2}"));
   EXPECT_EQ(uri_template.size(), 1);
@@ -566,7 +565,7 @@ TEST(URITemplate_parse, variable_with_dot_and_digits) {
                                "a.1.b.2", 0, false);
 }
 
-TEST(URITemplate_parse, prefix_single_digit) {
+TEST(prefix_single_digit) {
   const sourcemeta::core::URITemplate uri_template{"{var:1}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{var:1}"));
   EXPECT_EQ(uri_template.size(), 1);
@@ -574,7 +573,7 @@ TEST(URITemplate_parse, prefix_single_digit) {
                                "var", 1, false);
 }
 
-TEST(URITemplate_parse, prefix_four_digits) {
+TEST(prefix_four_digits) {
   const sourcemeta::core::URITemplate uri_template{"{var:1234}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{var:1234}"));
   EXPECT_EQ(uri_template.size(), 1);
@@ -582,7 +581,7 @@ TEST(URITemplate_parse, prefix_four_digits) {
                                "var", 1234, false);
 }
 
-TEST(URITemplate_parse, explode_with_reserved_expansion) {
+TEST(explode_with_reserved_expansion) {
   const sourcemeta::core::URITemplate uri_template{"{+list*}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{+list*}"));
   EXPECT_EQ(uri_template.size(), 1);
@@ -590,7 +589,7 @@ TEST(URITemplate_parse, explode_with_reserved_expansion) {
       uri_template, 0, URITemplateTokenReservedExpansion, 0, "list", 0, true);
 }
 
-TEST(URITemplate_parse, explode_with_fragment_expansion) {
+TEST(explode_with_fragment_expansion) {
   const sourcemeta::core::URITemplate uri_template{"{#keys*}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{#keys*}"));
   EXPECT_EQ(uri_template.size(), 1);
@@ -598,7 +597,7 @@ TEST(URITemplate_parse, explode_with_fragment_expansion) {
       uri_template, 0, URITemplateTokenFragmentExpansion, 0, "keys", 0, true);
 }
 
-TEST(URITemplate_parse, explode_with_label_expansion) {
+TEST(explode_with_label_expansion) {
   const sourcemeta::core::URITemplate uri_template{"{.list*}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{.list*}"));
   EXPECT_EQ(uri_template.size(), 1);
@@ -606,7 +605,7 @@ TEST(URITemplate_parse, explode_with_label_expansion) {
                                0, "list", 0, true);
 }
 
-TEST(URITemplate_parse, explode_with_path_parameter) {
+TEST(explode_with_path_parameter) {
   const sourcemeta::core::URITemplate uri_template{"{;keys*}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{;keys*}"));
   EXPECT_EQ(uri_template.size(), 1);
@@ -615,7 +614,7 @@ TEST(URITemplate_parse, explode_with_path_parameter) {
                                "keys", 0, true);
 }
 
-TEST(URITemplate_parse, explode_with_query_expansion) {
+TEST(explode_with_query_expansion) {
   const sourcemeta::core::URITemplate uri_template{"{?list*}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{?list*}"));
   EXPECT_EQ(uri_template.size(), 1);
@@ -623,7 +622,7 @@ TEST(URITemplate_parse, explode_with_query_expansion) {
                                0, "list", 0, true);
 }
 
-TEST(URITemplate_parse, explode_with_query_continuation) {
+TEST(explode_with_query_continuation) {
   const sourcemeta::core::URITemplate uri_template{"{&keys*}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{&keys*}"));
   EXPECT_EQ(uri_template.size(), 1);
@@ -632,7 +631,7 @@ TEST(URITemplate_parse, explode_with_query_continuation) {
                                "keys", 0, true);
 }
 
-TEST(URITemplate_parse, multiple_variables_with_explode) {
+TEST(multiple_variables_with_explode) {
   const sourcemeta::core::URITemplate uri_template{"{?x,list*,y}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{?x,list*,y}"));
   EXPECT_EQ(uri_template.size(), 1);
@@ -644,7 +643,7 @@ TEST(URITemplate_parse, multiple_variables_with_explode) {
                                2, "y", 0, false);
 }
 
-TEST(URITemplate_parse, multiple_variables_with_prefix) {
+TEST(multiple_variables_with_prefix) {
   const sourcemeta::core::URITemplate uri_template{"{x:3,y:5,z}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{x:3,y:5,z}"));
   EXPECT_EQ(uri_template.size(), 1);
@@ -656,7 +655,7 @@ TEST(URITemplate_parse, multiple_variables_with_prefix) {
                                "z", 0, false);
 }
 
-TEST(URITemplate_parse, long_variable_name) {
+TEST(long_variable_name) {
   const sourcemeta::core::URITemplate uri_template{
       "{abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate(
@@ -668,7 +667,7 @@ TEST(URITemplate_parse, long_variable_name) {
       false);
 }
 
-TEST(URITemplate_parse, variable_list_many) {
+TEST(variable_list_many) {
   const sourcemeta::core::URITemplate uri_template{"{a,b,c,d,e,f,g,h,i,j}"};
   EXPECT_TRUE(
       sourcemeta::core::URITemplate::is_uritemplate("{a,b,c,d,e,f,g,h,i,j}"));
@@ -695,7 +694,7 @@ TEST(URITemplate_parse, variable_list_many) {
                                "j", 0, false);
 }
 
-TEST(URITemplate_parse, lowercase_percent_encoding) {
+TEST(lowercase_percent_encoding) {
   const sourcemeta::core::URITemplate uri_template{"{%3avar}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{%3avar}"));
   EXPECT_EQ(uri_template.size(), 1);
@@ -703,7 +702,7 @@ TEST(URITemplate_parse, lowercase_percent_encoding) {
                                "%3avar", 0, false);
 }
 
-TEST(URITemplate_parse, mixed_case_percent_encoding) {
+TEST(mixed_case_percent_encoding) {
   const sourcemeta::core::URITemplate uri_template{"{%3Avar}"};
   EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{%3Avar}"));
   EXPECT_EQ(uri_template.size(), 1);

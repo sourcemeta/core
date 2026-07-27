@@ -1,9 +1,8 @@
-#include <gtest/gtest.h>
-
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonpointer.h>
+#include <sourcemeta/core/test.h>
 
-TEST(JSONPointer_position, track_1) {
+TEST(track_1) {
   const auto input{R"JSON([
   {
     "foo": {
@@ -39,7 +38,7 @@ TEST(JSONPointer_position, track_1) {
             sourcemeta::core::PointerPositionTracker::Position({4, 7, 4, 14}));
 }
 
-TEST(JSONPointer_position, to_json_1) {
+TEST(to_json_1) {
   const auto input{R"JSON([
   {
     "foo": {

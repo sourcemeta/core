@@ -1,6 +1,5 @@
-#include <gtest/gtest.h>
-
 #include <sourcemeta/core/http_message.h>
+#include <sourcemeta/core/test.h>
 
 #include <functional> // std::less
 #include <map>        // std::map
@@ -8,7 +7,7 @@
 #include <utility>    // std::pair
 #include <vector>     // std::vector
 
-TEST(HTTP_header_find, present) {
+TEST(present) {
   const std::vector<std::pair<std::string, std::string>> headers{
       {"content-type", "text/html"}, {"server", "test"}};
   const auto result{
@@ -17,7 +16,7 @@ TEST(HTTP_header_find, present) {
   EXPECT_EQ(result.value(), "text/html");
 }
 
-TEST(HTTP_header_find, repeated_returns_first) {
+TEST(repeated_returns_first) {
   const std::vector<std::pair<std::string, std::string>> headers{
       {"set-cookie", "a=1"}, {"set-cookie", "b=2"}};
   const auto result{sourcemeta::core::http_header_find(headers, "set-cookie")};
@@ -25,27 +24,27 @@ TEST(HTTP_header_find, repeated_returns_first) {
   EXPECT_EQ(result.value(), "a=1");
 }
 
-TEST(HTTP_header_find, missing) {
+TEST(missing) {
   const std::vector<std::pair<std::string, std::string>> headers{
       {"server", "test"}};
   EXPECT_FALSE(
       sourcemeta::core::http_header_find(headers, "content-type").has_value());
 }
 
-TEST(HTTP_header_find, empty_headers) {
+TEST(empty_headers) {
   const std::vector<std::pair<std::string, std::string>> headers;
   EXPECT_FALSE(
       sourcemeta::core::http_header_find(headers, "server").has_value());
 }
 
-TEST(HTTP_header_find, lookup_is_exact_match) {
+TEST(lookup_is_exact_match) {
   const std::vector<std::pair<std::string, std::string>> headers{
       {"server", "test"}};
   EXPECT_FALSE(
       sourcemeta::core::http_header_find(headers, "Server").has_value());
 }
 
-TEST(HTTP_header_find, empty_value_is_a_match) {
+TEST(empty_value_is_a_match) {
   const std::vector<std::pair<std::string, std::string>> headers{
       {"x-empty", ""}};
   const auto result{sourcemeta::core::http_header_find(headers, "x-empty")};
@@ -53,7 +52,7 @@ TEST(HTTP_header_find, empty_value_is_a_match) {
   EXPECT_TRUE(result.value().empty());
 }
 
-TEST(HTTP_header_find, associative_container_present) {
+TEST(associative_container_present) {
   const std::map<std::string, std::string, std::less<>> headers{
       {"content-type", "text/html"}, {"server", "test"}};
   const auto result{sourcemeta::core::http_header_find(headers, "server")};
@@ -61,14 +60,14 @@ TEST(HTTP_header_find, associative_container_present) {
   EXPECT_EQ(result.value(), "test");
 }
 
-TEST(HTTP_header_find, associative_container_missing) {
+TEST(associative_container_missing) {
   const std::map<std::string, std::string, std::less<>> headers{
       {"server", "test"}};
   EXPECT_FALSE(
       sourcemeta::core::http_header_find(headers, "content-type").has_value());
 }
 
-TEST(HTTP_header_find, associative_container_without_transparent_lookup) {
+TEST(associative_container_without_transparent_lookup) {
   const std::map<std::string, std::string> headers{{"server", "test"}};
   const auto result{sourcemeta::core::http_header_find(headers, "server")};
   EXPECT_TRUE(result.has_value());

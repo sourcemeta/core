@@ -1,6 +1,5 @@
-#include <gtest/gtest.h>
-
 #include <sourcemeta/core/io.h>
+#include <sourcemeta/core/test.h>
 #include <sourcemeta/core/unicode.h>
 
 #include <array>       // std::array
@@ -49,65 +48,55 @@ auto parse_codepoint_sequence(const std::string_view field) -> std::u32string {
   return result;
 }
 
-class NormalizationTest : public testing::Test {
-public:
-  explicit NormalizationTest(const std::string_view raw_line)
-      : raw_line_{raw_line} {}
-
-  auto TestBody() -> void override {
-    auto data{this->raw_line_};
-    const auto hash{data.find('#')};
-    if (hash != std::string_view::npos) {
-      data = data.substr(0, hash);
-    }
-
-    std::array<std::u32string, 5> fields;
-    std::size_t start{0};
-    std::size_t field_index{0};
-    while (field_index < fields.size()) {
-      const auto separator{data.find(';', start)};
-      const auto end{separator == std::string_view::npos ? data.size()
-                                                         : separator};
-      fields[field_index] =
-          parse_codepoint_sequence(data.substr(start, end - start));
-      field_index += 1;
-      if (separator == std::string_view::npos) {
-        break;
-      }
-      start = separator + 1;
-    }
-    ASSERT_EQ(field_index, fields.size())
-        << "Expected 5 semicolon-separated columns, got " << field_index;
-
-    // Per the NormalizationTest.txt header, the NFC invariants over the
-    // five columns are:
-    //
-    //   c2 == toNFC(c1) == toNFC(c2) == toNFC(c3)
-    //   c4 == toNFC(c4) == toNFC(c5)
-    //
-    // and a codepoint is in NFC iff its NFC form equals itself.
-    const auto &c1{fields[0]};
-    const auto &c2{fields[1]};
-    const auto &c3{fields[2]};
-    const auto &c4{fields[3]};
-    const auto &c5{fields[4]};
-
-    EXPECT_EQ(sourcemeta::core::nfc(c1), c2);
-    EXPECT_EQ(sourcemeta::core::nfc(c2), c2);
-    EXPECT_EQ(sourcemeta::core::nfc(c3), c2);
-    EXPECT_EQ(sourcemeta::core::nfc(c4), c4);
-    EXPECT_EQ(sourcemeta::core::nfc(c5), c4);
-
-    EXPECT_TRUE(sourcemeta::core::is_nfc(c2));
-    EXPECT_TRUE(sourcemeta::core::is_nfc(c4));
-    EXPECT_EQ(sourcemeta::core::is_nfc(c1), c1 == c2);
-    EXPECT_EQ(sourcemeta::core::is_nfc(c3), c3 == c2);
-    EXPECT_EQ(sourcemeta::core::is_nfc(c5), c5 == c4);
+auto run_normalization_test_case(const std::string_view raw_line) -> void {
+  auto data{raw_line};
+  const auto hash{data.find('#')};
+  if (hash != std::string_view::npos) {
+    data = data.substr(0, hash);
   }
 
-private:
-  std::string_view raw_line_;
-};
+  std::array<std::u32string, 5> fields;
+  std::size_t start{0};
+  std::size_t field_index{0};
+  while (field_index < fields.size()) {
+    const auto separator{data.find(';', start)};
+    const auto end{separator == std::string_view::npos ? data.size()
+                                                       : separator};
+    fields[field_index] =
+        parse_codepoint_sequence(data.substr(start, end - start));
+    field_index += 1;
+    if (separator == std::string_view::npos) {
+      break;
+    }
+    start = separator + 1;
+  }
+  EXPECT_EQ(field_index, fields.size());
+
+  // Per the NormalizationTest.txt header, the NFC invariants over the
+  // five columns are:
+  //
+  //   c2 == toNFC(c1) == toNFC(c2) == toNFC(c3)
+  //   c4 == toNFC(c4) == toNFC(c5)
+  //
+  // and a codepoint is in NFC iff its NFC form equals itself.
+  const auto &c1{fields[0]};
+  const auto &c2{fields[1]};
+  const auto &c3{fields[2]};
+  const auto &c4{fields[3]};
+  const auto &c5{fields[4]};
+
+  EXPECT_EQ(sourcemeta::core::nfc(c1), c2);
+  EXPECT_EQ(sourcemeta::core::nfc(c2), c2);
+  EXPECT_EQ(sourcemeta::core::nfc(c3), c2);
+  EXPECT_EQ(sourcemeta::core::nfc(c4), c4);
+  EXPECT_EQ(sourcemeta::core::nfc(c5), c4);
+
+  EXPECT_TRUE(sourcemeta::core::is_nfc(c2));
+  EXPECT_TRUE(sourcemeta::core::is_nfc(c4));
+  EXPECT_EQ(sourcemeta::core::is_nfc(c1), c1 == c2);
+  EXPECT_EQ(sourcemeta::core::is_nfc(c3), c3 == c2);
+  EXPECT_EQ(sourcemeta::core::is_nfc(c5), c5 == c4);
+}
 
 auto register_tests(const std::string_view contents) -> void {
   std::size_t position{0};
@@ -146,22 +135,17 @@ auto register_tests(const std::string_view contents) -> void {
 
     std::ostringstream test_name;
     test_name << "Part" << current_part << "_line_" << line_number;
-    const auto test_name_string{test_name.str()};
-
-    testing::RegisterTest("UnicodeNormalizationTestSuite",
-                          test_name_string.c_str(), nullptr, nullptr, __FILE__,
-                          __LINE__, [line]() -> NormalizationTest * {
-                            return new NormalizationTest{line};
-                          });
+    sourcemeta::core::test_register(test_name.str(), [line]() -> void {
+      run_normalization_test_case(line);
+    });
   }
 }
 
 } // namespace
 
 auto main(int argc, char **argv) -> int {
-  testing::InitGoogleTest(&argc, argv);
   const auto contents{sourcemeta::core::read_file_to_string(
       std::filesystem::path{NORMALIZATIONTEST_PATH})};
   register_tests(contents);
-  return RUN_ALL_TESTS();
+  return sourcemeta::core::test_run(argc, argv);
 }

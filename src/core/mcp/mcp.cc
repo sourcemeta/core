@@ -3,68 +3,78 @@
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonrpc.h>
 
-#include <algorithm> // std::clamp
-#include <cassert>   // assert
-#include <cmath>     // std::isnan
-#include <cstddef>   // std::size_t
-#include <optional>  // std::optional
-#include <sstream>   // std::ostringstream
-#include <string>    // std::string
-#include <utility>   // std::move
+#include <algorithm>   // std::clamp
+#include <cassert>     // assert
+#include <cmath>       // std::isnan
+#include <cstddef>     // std::size_t
+#include <optional>    // std::optional
+#include <sstream>     // std::ostringstream
+#include <string>      // std::string
+#include <string_view> // std::string_view_literals
+#include <utility>     // std::move
 
 namespace {
+using namespace std::string_view_literals;
 
-const auto MCP_HASH_ANNOTATIONS{
-    sourcemeta::core::JSON::Object::hash("annotations")};
-const auto MCP_HASH_ARGUMENTS{
-    sourcemeta::core::JSON::Object::hash("arguments")};
-const auto MCP_HASH_CAPABILITIES{
-    sourcemeta::core::JSON::Object::hash("capabilities")};
-const auto MCP_HASH_COMPLETIONS{
-    sourcemeta::core::JSON::Object::hash("completions")};
-const auto MCP_HASH_CONTENT{sourcemeta::core::JSON::Object::hash("content")};
-const auto MCP_HASH_CONTENTS{sourcemeta::core::JSON::Object::hash("contents")};
-const auto MCP_HASH_DESCRIPTION{
-    sourcemeta::core::JSON::Object::hash("description")};
-const auto MCP_HASH_DESTRUCTIVE_HINT{
-    sourcemeta::core::JSON::Object::hash("destructiveHint")};
-const auto MCP_HASH_IDEMPOTENT_HINT{
-    sourcemeta::core::JSON::Object::hash("idempotentHint")};
-const auto MCP_HASH_INPUT_SCHEMA{
-    sourcemeta::core::JSON::Object::hash("inputSchema")};
-const auto MCP_HASH_INSTRUCTIONS{
-    sourcemeta::core::JSON::Object::hash("instructions")};
-const auto MCP_HASH_IS_ERROR{sourcemeta::core::JSON::Object::hash("isError")};
-const auto MCP_HASH_LOGGING{sourcemeta::core::JSON::Object::hash("logging")};
-const auto MCP_HASH_MIME_TYPE{sourcemeta::core::JSON::Object::hash("mimeType")};
-const auto MCP_HASH_NAME{sourcemeta::core::JSON::Object::hash("name")};
-const auto MCP_HASH_OPEN_WORLD_HINT{
-    sourcemeta::core::JSON::Object::hash("openWorldHint")};
-const auto MCP_HASH_OUTPUT_SCHEMA{
-    sourcemeta::core::JSON::Object::hash("outputSchema")};
-const auto MCP_HASH_PRIORITY{sourcemeta::core::JSON::Object::hash("priority")};
-const auto MCP_HASH_PROMPTS{sourcemeta::core::JSON::Object::hash("prompts")};
-const auto MCP_HASH_PROTOCOL_VERSION{
-    sourcemeta::core::JSON::Object::hash("protocolVersion")};
-const auto MCP_HASH_READ_ONLY_HINT{
-    sourcemeta::core::JSON::Object::hash("readOnlyHint")};
-const auto MCP_HASH_RESOURCES{
-    sourcemeta::core::JSON::Object::hash("resources")};
-const auto MCP_HASH_SERVER_INFO{
-    sourcemeta::core::JSON::Object::hash("serverInfo")};
-const auto MCP_HASH_SIZE{sourcemeta::core::JSON::Object::hash("size")};
-const auto MCP_HASH_STRUCTURED_CONTENT{
-    sourcemeta::core::JSON::Object::hash("structuredContent")};
-const auto MCP_HASH_TEXT{sourcemeta::core::JSON::Object::hash("text")};
-const auto MCP_HASH_TITLE{sourcemeta::core::JSON::Object::hash("title")};
-const auto MCP_HASH_TOOLS{sourcemeta::core::JSON::Object::hash("tools")};
-const auto MCP_HASH_TYPE{sourcemeta::core::JSON::Object::hash("type")};
-const auto MCP_HASH_URI{sourcemeta::core::JSON::Object::hash("uri")};
-const auto MCP_HASH_URI_TEMPLATE{
-    sourcemeta::core::JSON::Object::hash("uriTemplate")};
-const auto MCP_HASH_VERSION{sourcemeta::core::JSON::Object::hash("version")};
-const auto MCP_HASH_WEBSITE_URL{
-    sourcemeta::core::JSON::Object::hash("websiteUrl")};
+constexpr auto MCP_HASH_ANNOTATIONS{
+    sourcemeta::core::JSON::Object::hash("annotations"sv)};
+constexpr auto MCP_HASH_ARGUMENTS{
+    sourcemeta::core::JSON::Object::hash("arguments"sv)};
+constexpr auto MCP_HASH_CAPABILITIES{
+    sourcemeta::core::JSON::Object::hash("capabilities"sv)};
+constexpr auto MCP_HASH_COMPLETIONS{
+    sourcemeta::core::JSON::Object::hash("completions"sv)};
+constexpr auto MCP_HASH_CONTENT{
+    sourcemeta::core::JSON::Object::hash("content"sv)};
+constexpr auto MCP_HASH_CONTENTS{
+    sourcemeta::core::JSON::Object::hash("contents"sv)};
+constexpr auto MCP_HASH_DESCRIPTION{
+    sourcemeta::core::JSON::Object::hash("description"sv)};
+constexpr auto MCP_HASH_DESTRUCTIVE_HINT{
+    sourcemeta::core::JSON::Object::hash("destructiveHint"sv)};
+constexpr auto MCP_HASH_IDEMPOTENT_HINT{
+    sourcemeta::core::JSON::Object::hash("idempotentHint"sv)};
+constexpr auto MCP_HASH_INPUT_SCHEMA{
+    sourcemeta::core::JSON::Object::hash("inputSchema"sv)};
+constexpr auto MCP_HASH_INSTRUCTIONS{
+    sourcemeta::core::JSON::Object::hash("instructions"sv)};
+constexpr auto MCP_HASH_IS_ERROR{
+    sourcemeta::core::JSON::Object::hash("isError"sv)};
+constexpr auto MCP_HASH_LOGGING{
+    sourcemeta::core::JSON::Object::hash("logging"sv)};
+constexpr auto MCP_HASH_MIME_TYPE{
+    sourcemeta::core::JSON::Object::hash("mimeType"sv)};
+constexpr auto MCP_HASH_NAME{sourcemeta::core::JSON::Object::hash("name"sv)};
+constexpr auto MCP_HASH_OPEN_WORLD_HINT{
+    sourcemeta::core::JSON::Object::hash("openWorldHint"sv)};
+constexpr auto MCP_HASH_OUTPUT_SCHEMA{
+    sourcemeta::core::JSON::Object::hash("outputSchema"sv)};
+constexpr auto MCP_HASH_PRIORITY{
+    sourcemeta::core::JSON::Object::hash("priority"sv)};
+constexpr auto MCP_HASH_PROMPTS{
+    sourcemeta::core::JSON::Object::hash("prompts"sv)};
+constexpr auto MCP_HASH_PROTOCOL_VERSION{
+    sourcemeta::core::JSON::Object::hash("protocolVersion"sv)};
+constexpr auto MCP_HASH_READ_ONLY_HINT{
+    sourcemeta::core::JSON::Object::hash("readOnlyHint"sv)};
+constexpr auto MCP_HASH_RESOURCES{
+    sourcemeta::core::JSON::Object::hash("resources"sv)};
+constexpr auto MCP_HASH_SERVER_INFO{
+    sourcemeta::core::JSON::Object::hash("serverInfo"sv)};
+constexpr auto MCP_HASH_SIZE{sourcemeta::core::JSON::Object::hash("size"sv)};
+constexpr auto MCP_HASH_STRUCTURED_CONTENT{
+    sourcemeta::core::JSON::Object::hash("structuredContent"sv)};
+constexpr auto MCP_HASH_TEXT{sourcemeta::core::JSON::Object::hash("text"sv)};
+constexpr auto MCP_HASH_TITLE{sourcemeta::core::JSON::Object::hash("title"sv)};
+constexpr auto MCP_HASH_TOOLS{sourcemeta::core::JSON::Object::hash("tools"sv)};
+constexpr auto MCP_HASH_TYPE{sourcemeta::core::JSON::Object::hash("type"sv)};
+constexpr auto MCP_HASH_URI{sourcemeta::core::JSON::Object::hash("uri"sv)};
+constexpr auto MCP_HASH_URI_TEMPLATE{
+    sourcemeta::core::JSON::Object::hash("uriTemplate"sv)};
+constexpr auto MCP_HASH_VERSION{
+    sourcemeta::core::JSON::Object::hash("version"sv)};
+constexpr auto MCP_HASH_WEBSITE_URL{
+    sourcemeta::core::JSON::Object::hash("websiteUrl"sv)};
 
 } // namespace
 
@@ -313,13 +323,16 @@ auto mcp_make_initialize_result(const sourcemeta::core::JSON &request,
     return sourcemeta::core::jsonrpc_make_error_invalid_request(identifier);
   }
 
-  JSON::StringView requested_version{};
   const auto *protocol_version_field{
       parameters->try_at("protocolVersion", MCP_HASH_PROTOCOL_VERSION)};
-  if (protocol_version_field != nullptr &&
-      protocol_version_field->is_string()) {
-    requested_version = protocol_version_field->to_string();
+  // MCP requires protocolVersion in the initialize request, so a missing or
+  // non-string value is a malformed request rather than a version to negotiate
+  if (protocol_version_field == nullptr ||
+      !protocol_version_field->is_string()) {
+    return sourcemeta::core::jsonrpc_make_error_invalid_params(*identifier);
   }
+
+  const JSON::StringView requested_version{protocol_version_field->to_string()};
   const auto resolved{mcp_resolve_protocol_version(requested_version)};
   // MCP lifecycle, version negotiation: "If the server supports the requested
   // protocol version, it MUST respond with the same version. Otherwise, the

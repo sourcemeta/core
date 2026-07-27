@@ -15,6 +15,7 @@
 namespace sourcemeta::core {
 
 /// @ingroup json
+/// A JSON object mapping property keys to values
 template <typename Key, typename Value, typename Hash> class JSONObject {
 public:
   JSONObject() = default;
@@ -23,9 +24,11 @@ public:
   using mapped_type = Value;
   using hash_type = typename Hash::hash_type;
   using pair_value_type = std::pair<key_type, mapped_type>;
+  /// The string view type used to look up object keys
   using KeyView = std::basic_string_view<typename Key::value_type,
                                          typename Key::traits_type>;
 
+  /// Construct an object from a list of key and value pairs
   JSONObject(std::initializer_list<pair_value_type> entries) : data{} {
     this->data.reserve(entries.size());
     for (auto &&entry : entries) {
@@ -33,10 +36,40 @@ public:
     }
   }
 
+  /// A single object property entry
   struct Entry {
+    /// The property key
     key_type first;
+    /// The property value
     mapped_type second;
+    /// The precomputed hash of the property key
     hash_type hash;
+
+    /// Check whether this entry's key equals the given key, comparing the
+    /// precomputed hashes first and only falling back to a string comparison
+    /// when the hash is not perfect. For example:
+    ///
+    /// ```cpp
+    /// #include <sourcemeta/core/json.h>
+    /// #include <cassert>
+    ///
+    /// const sourcemeta::core::JSON document =
+    ///   sourcemeta::core::parse_json("{ \"foo\": 1 }");
+    /// const auto &entry{*document.as_object().cbegin()};
+    /// assert(entry.key_equals(
+    ///   "foo", sourcemeta::core::JSON::Object::hash("foo")));
+    /// ```
+    [[nodiscard]] inline auto key_equals(const KeyView key,
+                                         const hash_type key_hash) const
+        -> bool {
+      assert(JSONObject::hash(key) == key_hash);
+      // A perfect hash captures the key bytes but not its length, so two keys
+      // that differ only by trailing NUL bytes hash equal. Comparing sizes
+      // disambiguates them without the cost of a full string comparison
+      return this->hash == key_hash &&
+             (hasher.is_perfect(key_hash) ? this->first.size() == key.size()
+                                          : this->first == key);
+    }
   };
 
   using underlying_type = std::vector<Entry>;
@@ -145,20 +178,21 @@ public:
   // the `Key`-accepting overload as before.
 
   /// Compute a hash for a key
-  [[nodiscard]] static inline auto hash(const Key &key) noexcept -> hash_type {
+  [[nodiscard]] static constexpr auto hash(const Key &key) noexcept
+      -> hash_type {
     return hasher(key);
   }
 
   /// Compute a hash for a key
   template <typename T>
     requires std::same_as<std::remove_cvref_t<T>, KeyView>
-  [[nodiscard]] static inline auto hash(T key) noexcept -> hash_type {
+  [[nodiscard]] static constexpr auto hash(T key) noexcept -> hash_type {
     return hasher(key.data(), key.size());
   }
 
   /// Compute a hash from raw data
-  [[nodiscard]] static inline auto hash(const char *raw_data,
-                                        const std::size_t raw_size) noexcept
+  [[nodiscard]] static constexpr auto hash(const char *raw_data,
+                                           const std::size_t raw_size) noexcept
       -> hash_type {
     return hasher(raw_data, raw_size);
   }
@@ -170,7 +204,8 @@ public:
     // Move the perfect hash condition out of the loop for extra performance
     if (this->hasher.is_perfect(key_hash)) {
       for (size_type index = 0; index < this->size(); index++) {
-        if (this->data[index].hash == key_hash) {
+        if (this->data[index].hash == key_hash &&
+            this->data[index].first.size() == key.size()) {
           auto iterator{this->cbegin()};
           std::advance(iterator, index);
           return iterator;
@@ -199,7 +234,8 @@ public:
     // Move the perfect hash condition out of the loop for extra performance
     if (this->hasher.is_perfect(key_hash)) {
       for (size_type index = 0; index < this->size(); index++) {
-        if (this->data[index].hash == key_hash) {
+        if (this->data[index].hash == key_hash &&
+            this->data[index].first.size() == key.size()) {
           auto iterator{this->cbegin()};
           std::advance(iterator, index);
           return iterator;
@@ -227,7 +263,7 @@ public:
     // Move the perfect hash condition out of the loop for extra performance
     if (this->hasher.is_perfect(hash)) {
       for (const auto &entry : *this) {
-        if (entry.hash == hash) {
+        if (entry.hash == hash && entry.first.size() == key.size()) {
           return true;
         }
       }
@@ -251,7 +287,7 @@ public:
     // Move the perfect hash condition out of the loop for extra performance
     if (this->hasher.is_perfect(hash)) {
       for (const auto &entry : *this) {
-        if (entry.hash == hash) {
+        if (entry.hash == hash && entry.first.size() == key.size()) {
           return true;
         }
       }
@@ -292,7 +328,7 @@ public:
     // Move the perfect hash condition out of the loop for extra performance
     if (this->hasher.is_perfect(key_hash)) {
       for (const auto &entry : *this) {
-        if (entry.hash == key_hash) {
+        if (entry.hash == key_hash && entry.first.size() == key.size()) {
           return entry.second;
         }
       }
@@ -317,7 +353,7 @@ public:
     // Move the perfect hash condition out of the loop for extra performance
     if (this->hasher.is_perfect(key_hash)) {
       for (const auto &entry : *this) {
-        if (entry.hash == key_hash) {
+        if (entry.hash == key_hash && entry.first.size() == key.size()) {
           return entry.second;
         }
       }
@@ -339,7 +375,7 @@ public:
     // Move the perfect hash condition out of the loop for extra performance
     if (this->hasher.is_perfect(key_hash)) {
       for (auto &entry : this->data) {
-        if (entry.hash == key_hash) {
+        if (entry.hash == key_hash && entry.first.size() == key.size()) {
           return entry.second;
         }
       }
@@ -363,7 +399,7 @@ public:
     // Move the perfect hash condition out of the loop for extra performance
     if (this->hasher.is_perfect(key_hash)) {
       for (auto &entry : this->data) {
-        if (entry.hash == key_hash) {
+        if (entry.hash == key_hash && entry.first.size() == key.size()) {
           return entry.second;
         }
       }
@@ -378,6 +414,54 @@ public:
     std::unreachable();
   }
 
+  /// Try to access an object entry by its key name
+  [[nodiscard]] inline auto try_at(const Key &key, const hash_type key_hash)
+      -> mapped_type * {
+    assert(this->hash(key) == key_hash);
+
+    // Move the perfect hash condition out of the loop for extra performance
+    if (this->hasher.is_perfect(key_hash)) {
+      for (auto &entry : this->data) {
+        if (entry.hash == key_hash && entry.first.size() == key.size()) {
+          return &entry.second;
+        }
+      }
+    } else {
+      for (auto &entry : this->data) {
+        if (entry.hash == key_hash && entry.first == key) {
+          return &entry.second;
+        }
+      }
+    }
+
+    return nullptr;
+  }
+
+  /// Try to access an object entry by its key name
+  template <typename T>
+    requires std::same_as<std::remove_cvref_t<T>, KeyView>
+  [[nodiscard]] inline auto try_at(T key, const hash_type key_hash)
+      -> mapped_type * {
+    assert(this->hash(key) == key_hash);
+
+    // Move the perfect hash condition out of the loop for extra performance
+    if (this->hasher.is_perfect(key_hash)) {
+      for (auto &entry : this->data) {
+        if (entry.hash == key_hash && entry.first.size() == key.size()) {
+          return &entry.second;
+        }
+      }
+    } else {
+      for (auto &entry : this->data) {
+        if (entry.hash == key_hash && entry.first == key) {
+          return &entry.second;
+        }
+      }
+    }
+
+    return nullptr;
+  }
+
   /// Try to access an object entry by its underlying positional index
   [[nodiscard]] inline auto try_at(const Key &key,
                                    const hash_type key_hash) const
@@ -387,7 +471,8 @@ public:
     // Move the perfect hash condition out of the loop for extra performance
     if (this->hasher.is_perfect(key_hash)) {
       for (size_type index = 0; index < this->size(); index++) {
-        if (this->data[index].hash == key_hash) {
+        if (this->data[index].hash == key_hash &&
+            this->data[index].first.size() == key.size()) {
           return &this->data[index].second;
         }
       }
@@ -413,7 +498,8 @@ public:
     // Move the perfect hash condition out of the loop for extra performance
     if (this->hasher.is_perfect(key_hash)) {
       for (size_type index = 0; index < this->size(); index++) {
-        if (this->data[index].hash == key_hash) {
+        if (this->data[index].hash == key_hash &&
+            this->data[index].first.size() == key.size()) {
           return &this->data[index].second;
         }
       }
@@ -440,7 +526,8 @@ public:
     if (this->hasher.is_perfect(key_hash)) {
       for (size_type count = 0; count < object_size; count++) {
         const auto index{(start + count) % object_size};
-        if (this->data[index].hash == key_hash) {
+        if (this->data[index].hash == key_hash &&
+            this->data[index].first.size() == key.size()) {
           start = index + 1;
           return &this->data[index].second;
         }
@@ -472,7 +559,8 @@ public:
     if (this->hasher.is_perfect(key_hash)) {
       for (size_type count = 0; count < object_size; count++) {
         const auto index{(start + count) % object_size};
-        if (this->data[index].hash == key_hash) {
+        if (this->data[index].hash == key_hash &&
+            this->data[index].first.size() == key.size()) {
           start = index + 1;
           return &this->data[index].second;
         }
@@ -500,7 +588,8 @@ public:
     if (this->hasher.is_perfect(key_hash)) {
       for (auto iterator = this->data.begin(); iterator != this->data.end();
            ++iterator) {
-        if (iterator->hash == key_hash) {
+        if (iterator->hash == key_hash &&
+            iterator->first.size() == key.size()) {
           iterator->second = value;
           return key_hash;
         } else if (iterator->hash == suffix_hash && iterator->first == suffix) {
@@ -531,7 +620,7 @@ public:
 
     if (this->hasher.is_perfect(key_hash)) {
       for (auto &entry : this->data) {
-        if (entry.hash == key_hash) {
+        if (entry.hash == key_hash && entry.first.size() == key.size()) {
           entry.second = std::move(value);
           return key_hash;
         }
@@ -555,7 +644,7 @@ public:
 
     if (this->hasher.is_perfect(key_hash)) {
       for (auto &entry : this->data) {
-        if (entry.hash == key_hash) {
+        if (entry.hash == key_hash && entry.first.size() == key.size()) {
           entry.second = std::move(value);
           return key_hash;
         }
@@ -579,7 +668,7 @@ public:
 
     if (this->hasher.is_perfect(key_hash)) {
       for (auto &entry : this->data) {
-        if (entry.hash == key_hash) {
+        if (entry.hash == key_hash && entry.first.size() == key.size()) {
           entry.second = value;
           return key_hash;
         }
@@ -642,7 +731,7 @@ public:
 
     if (this->hasher.is_perfect(key_hash)) {
       for (auto &entry : this->data) {
-        if (entry.hash == key_hash) {
+        if (entry.hash == key_hash && entry.first.size() == key.size()) {
           entry.first = std::move(to);
           entry.hash = to_hash;
           break;
@@ -666,7 +755,8 @@ public:
     if (this->hasher.is_perfect(key_hash)) {
       for (auto iterator = this->data.begin(); iterator != this->data.end();
            ++iterator) {
-        if (iterator->hash == key_hash) {
+        if (iterator->hash == key_hash &&
+            iterator->first.size() == key.size()) {
           this->data.erase(iterator);
           return current_size - 1;
         }
@@ -693,7 +783,8 @@ public:
     if (this->hasher.is_perfect(key_hash)) {
       for (auto iterator = this->data.begin(); iterator != this->data.end();
            ++iterator) {
-        if (iterator->hash == key_hash) {
+        if (iterator->hash == key_hash &&
+            iterator->first.size() == key.size()) {
           this->data.erase(iterator);
           return current_size - 1;
         }
@@ -726,7 +817,7 @@ public:
   /// Reorder object properties by keys according to a comparator function
   template <typename Compare> auto reorder(const Compare &compare) -> void {
     std::sort(this->data.begin(), this->data.end(),
-              [&compare](const auto &left, const auto &right) {
+              [&compare](const auto &left, const auto &right) -> auto {
                 return compare(left.first, right.first);
               });
   }

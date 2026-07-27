@@ -15,11 +15,11 @@ auto language_specificity(const std::string_view range,
   if (range == "*") {
     return 1;
   }
-  if (sourcemeta::core::http_iequals_ascii(range, candidate)) {
+  if (sourcemeta::core::equals_ignore_case(range, candidate)) {
     return candidate.size() + 1;
   }
   if (range.size() > candidate.size() && range[candidate.size()] == '-' &&
-      sourcemeta::core::http_iequals_ascii(
+      sourcemeta::core::equals_ignore_case(
           sourcemeta::core::http_subview(range, 0, candidate.size()),
           candidate)) {
     return candidate.size();
@@ -57,14 +57,18 @@ auto http_match_accept_language(
     std::size_t candidate_specificity{0};
     http_for_each_accept_entry(
         accept_language_header,
-        [&](const std::string_view value, const float quality) {
+        [&](const std::string_view value, const float quality) -> void {
           const std::size_t specificity{language_specificity(value, candidate)};
           if (specificity == 0) {
             return;
           }
-          if (quality > candidate_quality ||
-              (quality == candidate_quality &&
-               specificity > candidate_specificity)) {
+          // RFC 9110 Section 12.4.2: a quality of zero means "not acceptable".
+          // Honour that by letting the most specific matching range govern, so
+          // an explicit refusal of a specific range is not overridden by a less
+          // specific range that offers a higher quality
+          if (specificity > candidate_specificity ||
+              (specificity == candidate_specificity &&
+               quality > candidate_quality)) {
             candidate_quality = quality;
             candidate_specificity = specificity;
           }
