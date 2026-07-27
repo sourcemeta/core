@@ -29,6 +29,27 @@ namespace {
 
 using namespace std::literals::string_view_literals;
 
+// When an entry stops guarding against a replay, saturating at the newest
+// instant the clock can express. A caller derives the window from a token
+// lifetime, so the value is attacker-influenced and adding it to the clock
+// unchecked would overflow, wrap negative, and have the entry pruned on the
+// very next call, silently disabling the replay guard it was inserted for
+[[maybe_unused]] auto
+replay_expiry(const std::chrono::system_clock::time_point now,
+              const std::chrono::seconds window)
+    -> std::chrono::system_clock::time_point {
+  using Clock = std::chrono::system_clock;
+  constexpr auto limit{
+      std::chrono::duration_cast<std::chrono::seconds>(Clock::duration::max())};
+  const auto ticks{std::chrono::duration_cast<Clock::duration>(
+      std::clamp(window, std::chrono::seconds::zero(), limit))};
+  if (now.time_since_epoch() > Clock::duration::max() - ticks) {
+    return Clock::time_point{Clock::duration::max()};
+  }
+
+  return now + ticks;
+}
+
 constexpr auto HASH_TYP{JSON::Object::hash("typ"sv)};
 constexpr auto HASH_ALG{JSON::Object::hash("alg"sv)};
 constexpr auto HASH_JWK{JSON::Object::hash("jwk"sv)};
@@ -403,7 +424,8 @@ auto OAuthDPoPReplayStore::check_and_insert(
     return false;
   }
 
-  this->entries_.push_back(Entry{.digest = digest, .expiry = now + window});
+  this->entries_.push_back(
+      Entry{.digest = digest, .expiry = replay_expiry(now, window)});
   return true;
 }
 
