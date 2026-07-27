@@ -75,6 +75,21 @@ DfTWodnkF5l+wSvP3gkiTAD453bpHdTsxVthAoGAB3Um+ocT8vaeV1PaS90Ztll1
 zz/p2wIRJlfNHxRap+Q=
 -----END PRIVATE KEY-----)"};
 
+// A PKCS1-v1_5 signature over LEADING_ZERO_MESSAGE under the key above whose
+// leading octet is zero, which holds for roughly one signature in 256. Signing
+// cannot be asked for that property, so a known pair is pinned to keep the
+// truncation case deterministic rather than a rare coincidence
+static const std::string LEADING_ZERO_MESSAGE{"probe-962"};
+static const std::string LEADING_ZERO_SIGNATURE_HEX{
+    "006dd09d02b89420a6485f64197ae248fceb2bfdc83ea36a544c92317c04b64c"
+    "304f5d204a8c85f79d78b6a234d1b8e47b1b79331d835862f8096fa2524f0c9a"
+    "728d6b0872d04198fed0c2d9790281a018482ff072f7ad4113b5a05fb3d034b6"
+    "bfe171f3b8ea32b7debf07607736b49f4de633849835894a34340452b6fa3082"
+    "b5990771e168c0606d03f7a4efcf88dd3d92f2a07b9c0127b33c89c21169fbd9"
+    "466b5af8a451768a629d42a64fc7283f7682e734da3374a654b6d2c75c0f4867"
+    "38b4745418e788ecb037d9ca714b53e546d5dfacfe4a8fcf9af095ae5f581960"
+    "bc91c2b308b65aac038b12de9275bad0020e8ea11bf788402c506920c5f4dc60"};
+
 static const std::string MODULUS_HEX{
     "9fe8af58b37409348b5dcec635c1c63ae64776ee907064f74a515369fd9c9312"
     "d51037005387c87b3eeb2adbd9682ce9289e9c6f92999c37089fe80e0ab13414"
@@ -711,4 +726,40 @@ TEST(make_rsa_public_key_rejects_exponent_at_or_above_modulus) {
   EXPECT_FALSE(sourcemeta::core::make_rsa_public_key(std::string{'\x05'},
                                                      std::string{'\x07'})
                    .has_value());
+}
+
+TEST(verify_rejects_a_signature_missing_a_leading_zero) {
+  // A signature is a big-endian integer, so dropping a leading zero octet
+  // leaves the same value and a range check that strips leading zeros accepts
+  // it. RFC 8017 Section 8.2.2 step 1 requires the length to be exactly the
+  // modulus size, which is what refuses the second encoding
+  const auto key{sourcemeta::core::make_rsa_public_key(
+      sourcemeta::core::hex_to_bytes(MODULUS_HEX).value(),
+      sourcemeta::core::hex_to_bytes(EXPONENT_HEX).value())};
+  EXPECT_TRUE(key.has_value());
+  const auto signature{
+      sourcemeta::core::hex_to_bytes(LEADING_ZERO_SIGNATURE_HEX).value()};
+  EXPECT_EQ(signature.size(), std::string::size_type{256});
+  EXPECT_EQ(signature.front(), '\x00');
+
+  // The pinned signature is genuinely valid at its full length
+  EXPECT_TRUE(sourcemeta::core::rsassa_pkcs1_v15_verify(
+      key.value(), sourcemeta::core::SignatureHashFunction::SHA256,
+      LEADING_ZERO_MESSAGE, signature));
+
+  EXPECT_FALSE(sourcemeta::core::rsassa_pkcs1_v15_verify(
+      key.value(), sourcemeta::core::SignatureHashFunction::SHA256,
+      LEADING_ZERO_MESSAGE, signature.substr(1)));
+}
+
+TEST(verify_rejects_a_zero_padded_signature) {
+  const auto key{sourcemeta::core::make_rsa_public_key(
+      sourcemeta::core::hex_to_bytes(MODULUS_HEX).value(),
+      sourcemeta::core::hex_to_bytes(EXPONENT_HEX).value())};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_FALSE(sourcemeta::core::rsassa_pkcs1_v15_verify(
+      key.value(), sourcemeta::core::SignatureHashFunction::SHA256,
+      LEADING_ZERO_MESSAGE,
+      sourcemeta::core::hex_to_bytes("00" + LEADING_ZERO_SIGNATURE_HEX)
+          .value()));
 }

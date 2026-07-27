@@ -1094,3 +1094,26 @@ TEST(proof_thumbprint_rejects_a_private_key_in_the_header) {
   EXPECT_FALSE(
       sourcemeta::core::oauth_dpop_proof_thumbprint(proof.value()).has_value());
 }
+
+TEST(replay_store_saturates_an_enormous_window) {
+  // A window derived from a token lifetime is attacker-influenced, so adding it
+  // to the clock unchecked would wrap negative and have the entry pruned on the
+  // very next call, silently disabling the guard it was inserted for
+  sourcemeta::core::OAuthDPoPReplayStore store;
+  EXPECT_TRUE(store.check_and_insert("id", "https://server.example.com/token",
+                                     FIXED_TIME, std::chrono::seconds::max()));
+  EXPECT_EQ(store.size(FIXED_TIME), std::size_t{1});
+  EXPECT_FALSE(store.check_and_insert("id", "https://server.example.com/token",
+                                      FIXED_TIME, std::chrono::seconds::max()));
+}
+
+TEST(replay_store_saturates_a_window_beyond_the_clock) {
+  sourcemeta::core::OAuthDPoPReplayStore store;
+  const auto window{std::chrono::duration_cast<std::chrono::seconds>(
+      std::chrono::system_clock::duration::max())};
+  EXPECT_TRUE(store.check_and_insert("id", "https://server.example.com/token",
+                                     FIXED_TIME, window));
+  EXPECT_EQ(store.size(FIXED_TIME), std::size_t{1});
+  EXPECT_FALSE(store.check_and_insert("id", "https://server.example.com/token",
+                                      FIXED_TIME, window));
+}

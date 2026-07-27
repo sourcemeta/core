@@ -1,5 +1,6 @@
 #include <sourcemeta/core/crypto.h>
 #include <sourcemeta/core/test.h>
+#include <sourcemeta/core/text.h>
 
 #include <string>      // std::string
 #include <string_view> // std::string_view
@@ -69,6 +70,20 @@ DfTWodnkF5l+wSvP3gkiTAD453bpHdTsxVthAoGAB3Um+ocT8vaeV1PaS90Ztll1
 zz/p2wIRJlfNHxRap+Q=
 -----END PRIVATE KEY-----
 )"};
+
+// A ciphertext of "hello" under the test key above whose leading octet is zero,
+// which holds for roughly one ciphertext in 256. Encrypting cannot be asked for
+// that property, so a known one is pinned to keep the truncation case
+// deterministic rather than a rare coincidence
+static constexpr std::string_view LEADING_ZERO_CIPHERTEXT_HEX{
+    "00baf76551170422f767d2e90f80eb09304e0424030106bca40fc766c8b7adc200373"
+    "59ef47ba652354d47719619db6a9243732c3c13fd4122b9f961fe4c9a3bcbb82d72a1"
+    "64e91a718a35dc0124e6a1ee83a50ca22588e30a5291a8f2c4a374744bad2849f9e88"
+    "bb542a9447f7763e4688009a6a5565a3cc3adcdd39cb73cc9c50dbe91cdf7a9b618b9"
+    "b8d3496c73d0f9a984d41684d6b4c41152dd9a14e76c888d513e1e724339628e3b226"
+    "07899a7ab76125f7504c2848e7c2bb61353bce525512c5060244e79a174b200392453"
+    "5456091a4e873dbf8060a52422a3b8a777e1c99c1af2670e93757692440bdd17a765c"
+    "4356aa111d21eca7e241151bd1601"};
 
 TEST(rsa_oaep_round_trips_with_sha256) {
   const std::string_view plaintext{"a content encryption key"};
@@ -186,6 +201,63 @@ TEST(rsa_oaep_decrypt_rejects_a_ciphertext_of_the_wrong_length) {
   EXPECT_FALSE(
       sourcemeta::core::rsa_oaep_decrypt(
           private_key.value(), sourcemeta::core::RSAOAEPHash::SHA256, truncated)
+          .has_value());
+}
+
+TEST(rsa_oaep_decrypt_rejects_a_ciphertext_missing_a_leading_zero) {
+  // A ciphertext is a big-endian integer, so dropping a leading zero octet
+  // leaves the same value and a backend that reads it as a bare number decrypts
+  // it happily. RFC 8017 Section 7.1.2 requires the length to be exactly the
+  // modulus size, which is what refuses it
+  const auto private_key{sourcemeta::core::make_private_key(PRIVATE_KEY_PEM)};
+  EXPECT_TRUE(private_key.has_value());
+  const auto ciphertext{
+      sourcemeta::core::hex_to_bytes(LEADING_ZERO_CIPHERTEXT_HEX)};
+  EXPECT_TRUE(ciphertext.has_value());
+  EXPECT_EQ(ciphertext.value().size(), std::string::size_type{256});
+  EXPECT_EQ(ciphertext.value().front(), '\x00');
+
+  // The pinned ciphertext is genuinely valid at its full length
+  const auto whole{sourcemeta::core::rsa_oaep_decrypt(
+      private_key.value(), sourcemeta::core::RSAOAEPHash::SHA256,
+      ciphertext.value())};
+  EXPECT_TRUE(whole.has_value());
+  EXPECT_EQ(whole.value(), "hello");
+
+  const std::string truncated{ciphertext.value().substr(1)};
+  EXPECT_EQ(truncated.size(), std::string::size_type{255});
+  EXPECT_FALSE(
+      sourcemeta::core::rsa_oaep_decrypt(
+          private_key.value(), sourcemeta::core::RSAOAEPHash::SHA256, truncated)
+          .has_value());
+}
+
+TEST(rsa_oaep_decrypt_rejects_a_zero_padded_ciphertext) {
+  // The same rule in the other direction, where a leading zero octet is added
+  // rather than removed
+  const auto private_key{sourcemeta::core::make_private_key(PRIVATE_KEY_PEM)};
+  EXPECT_TRUE(private_key.has_value());
+  const auto public_key{
+      sourcemeta::core::derive_public_key(private_key.value())};
+  EXPECT_TRUE(public_key.has_value());
+  const auto wrapped{sourcemeta::core::rsa_oaep_encrypt(
+      public_key.value(), sourcemeta::core::RSAOAEPHash::SHA256, "hello")};
+  EXPECT_TRUE(wrapped.has_value());
+
+  const std::string padded{std::string(1, '\x00') + wrapped.value()};
+  EXPECT_EQ(padded.size(), wrapped.value().size() + 1);
+  EXPECT_FALSE(
+      sourcemeta::core::rsa_oaep_decrypt(
+          private_key.value(), sourcemeta::core::RSAOAEPHash::SHA256, padded)
+          .has_value());
+}
+
+TEST(rsa_oaep_decrypt_rejects_an_empty_ciphertext) {
+  const auto private_key{sourcemeta::core::make_private_key(PRIVATE_KEY_PEM)};
+  EXPECT_TRUE(private_key.has_value());
+  EXPECT_FALSE(
+      sourcemeta::core::rsa_oaep_decrypt(
+          private_key.value(), sourcemeta::core::RSAOAEPHash::SHA256, "")
           .has_value());
 }
 

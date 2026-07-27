@@ -293,6 +293,71 @@ TEST(client_metadata_reads_the_response_only_fields) {
             "https://server.example/register/s6BhdRkqt3");
 }
 
+TEST(client_metadata_rejects_a_cleartext_management_uri) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "client_id": "s6BhdRkqt3",
+    "registration_access_token": "reg-23410913-abewfq",
+    "registration_client_uri": "http://server.example/register/s6BhdRkqt3"
+  })JSON")};
+  const auto metadata{
+      sourcemeta::core::OAuthClientMetadata::from(std::move(document))};
+  EXPECT_FALSE(metadata.has_value());
+}
+
+TEST(client_metadata_rejects_a_management_uri_with_a_fragment) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "client_id": "s6BhdRkqt3",
+    "registration_client_uri": "https://server.example/register#s6BhdRkqt3"
+  })JSON")};
+  const auto metadata{
+      sourcemeta::core::OAuthClientMetadata::from(std::move(document))};
+  EXPECT_FALSE(metadata.has_value());
+}
+
+TEST(client_metadata_rejects_a_non_string_management_uri) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "client_id": "s6BhdRkqt3",
+    "registration_client_uri": 42
+  })JSON")};
+  const auto metadata{
+      sourcemeta::core::OAuthClientMetadata::from(std::move(document))};
+  EXPECT_FALSE(metadata.has_value());
+}
+
+TEST(client_metadata_rejects_a_relative_management_uri) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "client_id": "s6BhdRkqt3",
+    "registration_client_uri": "/register/s6BhdRkqt3"
+  })JSON")};
+  const auto metadata{
+      sourcemeta::core::OAuthClientMetadata::from(std::move(document))};
+  EXPECT_FALSE(metadata.has_value());
+}
+
+TEST(client_metadata_accepts_an_uppercase_management_uri_scheme) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "client_id": "s6BhdRkqt3",
+    "registration_client_uri": "HTTPS://server.example/register/s6BhdRkqt3"
+  })JSON")};
+  const auto metadata{
+      sourcemeta::core::OAuthClientMetadata::from(std::move(document))};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata.value().registration_client_uri().value(),
+            "HTTPS://server.example/register/s6BhdRkqt3");
+}
+
+TEST(client_metadata_accepts_a_management_uri_with_a_query) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "client_id": "s6BhdRkqt3",
+    "registration_client_uri": "https://server.example/register?id=s6BhdRkqt3"
+  })JSON")};
+  const auto metadata{
+      sourcemeta::core::OAuthClientMetadata::from(std::move(document))};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata.value().registration_client_uri().value(),
+            "https://server.example/register?id=s6BhdRkqt3");
+}
+
 TEST(client_metadata_absent_response_only_fields_are_empty) {
   auto document{sourcemeta::core::parse_json(R"JSON({})JSON")};
   const auto metadata{
@@ -788,6 +853,39 @@ TEST(make_registration_response_rejects_a_malformed_management_uri) {
   result.client_id = "s6BhdRkqt3";
   result.registration_access_token = "reg-23410913-abewfq";
   result.registration_client_uri = "not a uri";
+  const auto body{
+      sourcemeta::core::oauth_make_registration_response(metadata, result)};
+  EXPECT_FALSE(body.has_value());
+}
+
+TEST(make_registration_response_rejects_a_cleartext_management_uri) {
+  const auto metadata{sourcemeta::core::parse_json(R"JSON({})JSON")};
+  sourcemeta::core::OAuthClientRegistrationResult result;
+  result.client_id = "s6BhdRkqt3";
+  result.registration_access_token = "reg-23410913-abewfq";
+  result.registration_client_uri = "http://server.example/register/s6BhdRkqt3";
+  const auto body{
+      sourcemeta::core::oauth_make_registration_response(metadata, result)};
+  EXPECT_FALSE(body.has_value());
+}
+
+TEST(make_registration_response_rejects_a_fragment_bearing_management_uri) {
+  const auto metadata{sourcemeta::core::parse_json(R"JSON({})JSON")};
+  sourcemeta::core::OAuthClientRegistrationResult result;
+  result.client_id = "s6BhdRkqt3";
+  result.registration_access_token = "reg-23410913-abewfq";
+  result.registration_client_uri = "https://server.example/register#s6BhdRkqt3";
+  const auto body{
+      sourcemeta::core::oauth_make_registration_response(metadata, result)};
+  EXPECT_FALSE(body.has_value());
+}
+
+TEST(make_registration_response_rejects_a_relative_management_uri) {
+  const auto metadata{sourcemeta::core::parse_json(R"JSON({})JSON")};
+  sourcemeta::core::OAuthClientRegistrationResult result;
+  result.client_id = "s6BhdRkqt3";
+  result.registration_access_token = "reg-23410913-abewfq";
+  result.registration_client_uri = "/register/s6BhdRkqt3";
   const auto body{
       sourcemeta::core::oauth_make_registration_response(metadata, result)};
   EXPECT_FALSE(body.has_value());

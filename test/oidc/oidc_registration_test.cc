@@ -165,3 +165,58 @@ TEST(sector_identifier_rejects_a_non_array_document) {
   EXPECT_FALSE(
       sourcemeta::core::oidc_sector_identifier_contains(document, registered));
 }
+
+TEST(from_rejects_a_cleartext_client_jwks_uri) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "redirect_uris": [ "https://client.example/cb" ],
+    "jwks_uri": "http://client.example/jwks"
+  })JSON")};
+  const auto metadata{
+      sourcemeta::core::OIDCClientMetadata::from(std::move(document))};
+  EXPECT_FALSE(metadata.has_value());
+}
+
+TEST(from_rejects_a_non_string_client_jwks_uri) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "redirect_uris": [ "https://client.example/cb" ],
+    "jwks_uri": 42
+  })JSON")};
+  const auto metadata{
+      sourcemeta::core::OIDCClientMetadata::from(std::move(document))};
+  EXPECT_FALSE(metadata.has_value());
+}
+
+TEST(from_rejects_a_hostless_client_jwks_uri) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "redirect_uris": [ "https://client.example/cb" ],
+    "jwks_uri": "https:///jwks"
+  })JSON")};
+  const auto metadata{
+      sourcemeta::core::OIDCClientMetadata::from(std::move(document))};
+  EXPECT_FALSE(metadata.has_value());
+}
+
+TEST(from_accepts_an_https_client_jwks_uri) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "redirect_uris": [ "https://client.example/cb" ],
+    "jwks_uri": "https://client.example/jwks"
+  })JSON")};
+  const auto metadata{
+      sourcemeta::core::OIDCClientMetadata::from(std::move(document))};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata.value().oauth().jwks_uri().value(),
+            "https://client.example/jwks");
+}
+
+TEST(from_accepts_a_cleartext_request_uri) {
+  // OpenID Connect Dynamic Client Registration 1.0 Section 2 makes the https
+  // rule for request_uris conditional, "unless the target Request Object is
+  // signed in a way that is verifiable by the OP", which is not knowable here
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "redirect_uris": [ "https://client.example/cb" ],
+    "request_uris": [ "http://client.example/request.jwt" ]
+  })JSON")};
+  const auto metadata{
+      sourcemeta::core::OIDCClientMetadata::from(std::move(document))};
+  EXPECT_TRUE(metadata.has_value());
+}

@@ -5,6 +5,7 @@
 
 #include <array>       // std::array
 #include <chrono>      // std::chrono
+#include <cstdint>     // std::int64_t
 #include <string>      // std::string
 #include <string_view> // std::string_view
 
@@ -26,11 +27,16 @@ static auto oct_key_set() -> sourcemeta::core::JWKS {
       .value();
 }
 
-static auto sign_id_token(const std::string_view payload) -> std::string {
+static auto sign_id_token(const sourcemeta::core::JSON &payload)
+    -> std::string {
   return sourcemeta::core::jwt_sign(
              sourcemeta::core::parse_json(R"JSON({ "alg": "HS256" })JSON"),
-             sourcemeta::core::parse_json(payload), oct_private_key())
+             payload, oct_private_key())
       .value();
+}
+
+static auto sign_id_token(const std::string_view payload) -> std::string {
+  return sign_id_token(sourcemeta::core::parse_json(payload));
 }
 
 static constexpr std::array<sourcemeta::core::JWSAlgorithm, 1> allowed_hs256{
@@ -39,6 +45,40 @@ static constexpr std::array<sourcemeta::core::JWSAlgorithm, 1> allowed_hs256{
 // A fixed reference time, 2023-11-14T22:13:20Z
 static const auto reference_now{
     std::chrono::system_clock::from_time_t(1700000000)};
+
+// The oldest whole second the clock can represent and a conversion still
+// admits. The tick period differs across standard libraries, so the bound is
+// derived rather than written out
+static auto lowest_representable_second() -> std::int64_t {
+  return std::chrono::duration_cast<std::chrono::seconds>(
+             std::chrono::system_clock::duration::min())
+             .count() +
+         2;
+}
+
+static auto id_token_claims() -> sourcemeta::core::JSON {
+  auto payload{sourcemeta::core::JSON::make_object()};
+  payload.assign("iss", sourcemeta::core::JSON{"https://issuer.example"});
+  payload.assign("sub", sourcemeta::core::JSON{"user-1"});
+  payload.assign("aud", sourcemeta::core::JSON{"client-id"});
+  payload.assign("exp", sourcemeta::core::JSON{std::int64_t{2000000000}});
+  return payload;
+}
+
+static auto id_token_issued_at(const std::int64_t issued_at)
+    -> sourcemeta::core::JSON {
+  auto payload{id_token_claims()};
+  payload.assign("iat", sourcemeta::core::JSON{issued_at});
+  return payload;
+}
+
+static auto id_token_authenticated_at(const std::int64_t authenticated_at)
+    -> sourcemeta::core::JSON {
+  auto payload{id_token_claims()};
+  payload.assign("iat", sourcemeta::core::JSON{std::int64_t{1699996400}});
+  payload.assign("auth_time", sourcemeta::core::JSON{authenticated_at});
+  return payload;
+}
 
 TEST(mint_and_validate_round_trip) {
   sourcemeta::core::OIDCIdTokenClaims claims;
@@ -389,6 +429,115 @@ TEST(validate_rejects_a_future_auth_time) {
       token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
       "client-id", reference_now, options)};
   EXPECT_FALSE(identity.has_value());
+}
+
+TEST(validate_enforces_the_maximum_issued_at_age) {
+  const auto compact{sign_id_token(id_token_issued_at(1699996400))};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  sourcemeta::core::OIDCValidationOptions options;
+  options.maximum_issued_at_age = std::chrono::minutes{5};
+  const auto rejected{sourcemeta::core::oidc_validate_id_token(
+      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
+      "client-id", reference_now, options)};
+  EXPECT_FALSE(rejected.has_value());
+
+  options.maximum_issued_at_age = std::chrono::hours{2};
+  const auto accepted{sourcemeta::core::oidc_validate_id_token(
+      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
+      "client-id", reference_now, options)};
+  EXPECT_TRUE(accepted.has_value());
+}
+
+TEST(validate_accepts_an_issued_at_exactly_at_the_age_boundary) {
+  const auto compact{sign_id_token(id_token_issued_at(1699996400))};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  sourcemeta::core::OIDCValidationOptions options;
+  options.maximum_issued_at_age = std::chrono::seconds{3600};
+  const auto accepted{sourcemeta::core::oidc_validate_id_token(
+      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
+      "client-id", reference_now, options)};
+  EXPECT_TRUE(accepted.has_value());
+
+  options.maximum_issued_at_age = std::chrono::seconds{3599};
+  const auto rejected{sourcemeta::core::oidc_validate_id_token(
+      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
+      "client-id", reference_now, options)};
+  EXPECT_FALSE(rejected.has_value());
+}
+
+TEST(validate_rejects_an_issued_at_near_the_representable_bound) {
+  // Subtracting a claim this far in the past from the server clock
+  // overflows the tick type, so the window is applied to the clock instead
+  // and the stale token is still refused
+  const auto compact{
+      sign_id_token(id_token_issued_at(lowest_representable_second()))};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  sourcemeta::core::OIDCValidationOptions options;
+  options.maximum_issued_at_age = std::chrono::minutes{5};
+  const auto rejected{sourcemeta::core::oidc_validate_id_token(
+      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
+      "client-id", reference_now, options)};
+  EXPECT_FALSE(rejected.has_value());
+}
+
+TEST(validate_rejects_an_auth_time_near_the_representable_bound) {
+  const auto compact{
+      sign_id_token(id_token_authenticated_at(lowest_representable_second()))};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  sourcemeta::core::OIDCValidationOptions options;
+  options.maximum_authentication_age = std::chrono::minutes{5};
+  const auto rejected{sourcemeta::core::oidc_validate_id_token(
+      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
+      "client-id", reference_now, options)};
+  EXPECT_FALSE(rejected.has_value());
+}
+
+TEST(validate_accepts_a_recent_issued_at_under_an_unbounded_age) {
+  // A window wider than the clock saturates to the oldest representable
+  // instant rather than wrapping, so nothing is rejected for being too old
+  const auto compact{sign_id_token(id_token_issued_at(1699996400))};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  sourcemeta::core::OIDCValidationOptions options;
+  options.maximum_issued_at_age = std::chrono::seconds::max();
+  const auto accepted{sourcemeta::core::oidc_validate_id_token(
+      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
+      "client-id", reference_now, options)};
+  EXPECT_TRUE(accepted.has_value());
+}
+
+TEST(validate_rejects_an_ancient_issued_at_under_an_unbounded_age) {
+  // Even the widest window the clock can express is measured back from now, so
+  // its oldest instant is later than the oldest the clock can represent and a
+  // claim at that floor stays too old rather than wrapping into acceptance
+  const auto compact{
+      sign_id_token(id_token_issued_at(lowest_representable_second()))};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  sourcemeta::core::OIDCValidationOptions options;
+  options.maximum_issued_at_age = std::chrono::seconds::max();
+  const auto rejected{sourcemeta::core::oidc_validate_id_token(
+      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
+      "client-id", reference_now, options)};
+  EXPECT_FALSE(rejected.has_value());
+}
+
+TEST(validate_rejects_a_stale_issued_at_under_a_negative_age) {
+  // A window that runs backwards cannot admit anything issued before now,
+  // so it fails closed rather than wrapping into an unbounded window
+  const auto compact{sign_id_token(id_token_issued_at(1699996400))};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  sourcemeta::core::OIDCValidationOptions options;
+  options.maximum_issued_at_age = std::chrono::seconds::min();
+  const auto rejected{sourcemeta::core::oidc_validate_id_token(
+      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
+      "client-id", reference_now, options)};
+  EXPECT_FALSE(rejected.has_value());
 }
 
 TEST(validate_rejects_an_algorithm_outside_the_allow_list) {

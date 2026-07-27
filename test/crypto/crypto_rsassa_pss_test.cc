@@ -219,3 +219,23 @@ TEST(verify_rejects_oversized_exponent) {
       sourcemeta::core::hex_to_bytes(MODULUS_HEX).value(), exponent, MESSAGE,
       sourcemeta::core::hex_to_bytes(SIGNATURE_SHA256_HEX).value()));
 }
+
+TEST(verify_rejects_a_zero_padded_signature) {
+  // RFC 8017 Section 8.1.2 step 1, the same length rule the PKCS1-v1_5
+  // verification follows, so a leading zero octet cannot give a signature a
+  // second encoding
+  EXPECT_FALSE(verify_pss(
+      sourcemeta::core::SignatureHashFunction::SHA256,
+      sourcemeta::core::hex_to_bytes(MODULUS_HEX).value(),
+      sourcemeta::core::hex_to_bytes(EXPONENT_HEX).value(), MESSAGE,
+      sourcemeta::core::hex_to_bytes("00" + SIGNATURE_SHA256_HEX).value()));
+}
+
+TEST(verify_rejects_a_truncated_signature) {
+  const auto signature{
+      sourcemeta::core::hex_to_bytes(SIGNATURE_SHA256_HEX).value()};
+  EXPECT_FALSE(verify_pss(sourcemeta::core::SignatureHashFunction::SHA256,
+                          sourcemeta::core::hex_to_bytes(MODULUS_HEX).value(),
+                          sourcemeta::core::hex_to_bytes(EXPONENT_HEX).value(),
+                          MESSAGE, signature.substr(1)));
+}
