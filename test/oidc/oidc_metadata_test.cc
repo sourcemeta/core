@@ -474,6 +474,22 @@ TEST(from_rejects_a_malformed_userinfo_endpoint) {
   EXPECT_FALSE(metadata.has_value());
 }
 
+TEST(from_rejects_a_userinfo_endpoint_with_a_template_placeholder) {
+  // Braces are outside the RFC 3986 grammar, so this must be refused on the
+  // same terms as the endpoints the OAuth layer validates
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://example.com",
+    "userinfo_endpoint": "https://example.com/{tenant}/userinfo",
+    "jwks_uri": "https://example.com/jwks",
+    "response_types_supported": [ "code" ],
+    "subject_types_supported": [ "public" ],
+    "id_token_signing_alg_values_supported": [ "RS256" ]
+  })JSON")};
+  const auto metadata{sourcemeta::core::OIDCProviderMetadata::from(
+      std::move(document), "https://example.com")};
+  EXPECT_FALSE(metadata.has_value());
+}
+
 TEST(from_rejects_a_javascript_scheme_userinfo_endpoint) {
   auto document{sourcemeta::core::parse_json(R"JSON({
     "issuer": "https://example.com",

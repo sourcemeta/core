@@ -515,6 +515,42 @@ TEST(server_metadata_rejects_a_cleartext_par_endpoint) {
   EXPECT_FALSE(metadata.has_value());
 }
 
+TEST(server_metadata_rejects_a_cleartext_device_authorization_endpoint) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://example.com",
+    "response_types_supported": [ "code" ],
+    "device_authorization_endpoint": "http://example.com/device"
+  })JSON")};
+  const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
+      std::move(document), "https://example.com")};
+  EXPECT_FALSE(metadata.has_value());
+}
+
+TEST(server_metadata_rejects_a_non_string_device_authorization_endpoint) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://example.com",
+    "response_types_supported": [ "code" ],
+    "device_authorization_endpoint": 42
+  })JSON")};
+  const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
+      std::move(document), "https://example.com")};
+  EXPECT_FALSE(metadata.has_value());
+}
+
+TEST(server_metadata_accepts_an_https_device_authorization_endpoint) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://example.com",
+    "response_types_supported": [ "code" ],
+    "device_authorization_endpoint": "https://example.com/device"
+  })JSON")};
+  const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
+      std::move(document), "https://example.com")};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(
+      metadata.value().data().at("device_authorization_endpoint").to_string(),
+      "https://example.com/device");
+}
+
 TEST(server_metadata_rejects_a_cleartext_revocation_endpoint) {
   auto document{sourcemeta::core::parse_json(R"JSON({
     "issuer": "https://example.com",
@@ -1155,6 +1191,38 @@ TEST(resource_metadata_rejects_an_authorization_server_with_a_fragment) {
   const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
       std::move(document), "https://api.example.com")};
   EXPECT_FALSE(metadata.has_value());
+}
+
+TEST(resource_metadata_accepts_an_uppercase_authorization_server_scheme) {
+  // An advertised issuer is matched against nothing at parse time, so its
+  // scheme is case-insensitive, unlike the resource identifier the document is
+  // checked against
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "resource": "https://api.example.com",
+    "authorization_servers": [ "HTTPS://auth.example.com" ]
+  })JSON")};
+  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
+      std::move(document), "https://api.example.com")};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata.value().first_authorization_server().value(),
+            "HTTPS://auth.example.com");
+}
+
+TEST(
+    resource_metadata_uppercase_authorization_server_does_not_match_lowercase) {
+  // The membership test compares by code points, so a case-varied entry never
+  // reports a false match for a caller holding the canonical form
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "resource": "https://api.example.com",
+    "authorization_servers": [ "HTTPS://auth.example.com" ]
+  })JSON")};
+  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
+      std::move(document), "https://api.example.com")};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_FALSE(metadata.value().supports_authorization_server(
+      "https://auth.example.com"));
+  EXPECT_TRUE(metadata.value().supports_authorization_server(
+      "HTTPS://auth.example.com"));
 }
 
 TEST(resource_metadata_accepts_multiple_authorization_servers) {

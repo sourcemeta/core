@@ -85,9 +85,11 @@ auto is_https_url(const std::string_view value) -> bool {
   // using the https scheme
   try {
     const URI uri{value};
-    // A fragment is never sent in an HTTP request, so an endpoint carrying one
-    // would advertise a location clients cannot reach and is rejected. RFC 3986
-    // Section 3.1 makes the scheme case-insensitive
+    // Section 3 enumerates what an endpoint may carry as "port, path, and query
+    // parameter components", so a fragment is refused as outside that list
+    // rather than because it could not be dereferenced, which would be the
+    // wrong reason for the two endpoints a user agent loads. RFC 3986 Section
+    // 3.1 makes the scheme case-insensitive
     return uri.scheme().has_value() &&
            equals_ignore_case(uri.scheme().value(), "https") &&
            uri.host().has_value() && !uri.host().value().empty() &&

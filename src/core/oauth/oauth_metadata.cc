@@ -29,6 +29,8 @@ constexpr auto HASH_PAR_ENDPOINT{
     JSON::Object::hash("pushed_authorization_request_endpoint"sv)};
 constexpr auto HASH_REQUIRE_PAR{
     JSON::Object::hash("require_pushed_authorization_requests"sv)};
+constexpr auto HASH_DEVICE_AUTHORIZATION_ENDPOINT{
+    JSON::Object::hash("device_authorization_endpoint"sv)};
 constexpr auto HASH_REVOCATION_ENDPOINT{
     JSON::Object::hash("revocation_endpoint"sv)};
 constexpr auto HASH_INTROSPECTION_ENDPOINT{
@@ -123,7 +125,10 @@ auto validated_server_metadata(JSON &&data, const std::string_view issuer)
   // endpoints. RFC 7591 Section 3: the "registration endpoint MUST be protected
   // by a transport-layer security mechanism". RFC 7662 Section 2: "The
   // introspection endpoint MUST be protected by a transport-layer security
-  // mechanism"
+  // mechanism". RFC 8628 Section 3.1 on the device authorization endpoint:
+  // "All requests from the device MUST use the Transport Layer Security (TLS)
+  // protocol", and the client authentication rules of RFC 6749 Section 3.2.1
+  // apply there too, so it carries credentials just as the token endpoint does
   validate_endpoint(data, "authorization_endpoint"sv,
                     HASH_AUTHORIZATION_ENDPOINT);
   validate_endpoint(data, "token_endpoint"sv, HASH_TOKEN_ENDPOINT);
@@ -131,6 +136,8 @@ auto validated_server_metadata(JSON &&data, const std::string_view issuer)
                     HASH_REGISTRATION_ENDPOINT);
   validate_endpoint(data, "pushed_authorization_request_endpoint"sv,
                     HASH_PAR_ENDPOINT);
+  validate_endpoint(data, "device_authorization_endpoint"sv,
+                    HASH_DEVICE_AUTHORIZATION_ENDPOINT);
   validate_endpoint(data, "revocation_endpoint"sv, HASH_REVOCATION_ENDPOINT);
   validate_endpoint(data, "introspection_endpoint"sv,
                     HASH_INTROSPECTION_ENDPOINT);
@@ -195,7 +202,9 @@ auto validated_resource_metadata(JSON &&data, const std::string_view resource)
   // RFC 9728 Section 2: the authorization servers are "OAuth authorization
   // server issuer identifiers, as defined in [RFC8414]", and each one is where
   // the client starts its next discovery request, so an entry that is not a
-  // valid issuer identifier is rejected rather than handed onwards. Section
+  // valid issuer identifier is rejected rather than handed onwards. RFC 8414
+  // Section 2 requires the https scheme, a host, and no query or fragment,
+  // while leaving the scheme case-insensitive for an advertised value. Section
   // 3.2: "Parameters with zero values MUST be omitted from the response", so a
   // present but empty array is a malformed document
   const auto *authorization_servers{
@@ -207,7 +216,7 @@ auto validated_resource_metadata(JSON &&data, const std::string_view resource)
 
     for (const auto &element : authorization_servers->as_array()) {
       if (!element.is_string() ||
-          !oauth_is_issuer_identifier(element.to_string())) {
+          !oauth_is_advertised_issuer(element.to_string())) {
         throw OAuthMetadataParseError{};
       }
     }
