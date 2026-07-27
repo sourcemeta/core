@@ -151,7 +151,8 @@ inline auto http_parse_headers(const std::string_view input, Callback callback)
 /// with the name and value. A request cookie header carries only names and
 /// values, never attributes. Surrounding whitespace is trimmed, values are
 /// otherwise reported verbatim, and pairs that lack a `=` or have an empty name
-/// are skipped. For example:
+/// are skipped. Neither argument allocates, as both are borrowed from the
+/// input, so anything the callback keeps must not outlive it. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/http.h>
@@ -203,9 +204,8 @@ inline auto http_parse_cookies(const std::string_view input, Callback callback)
 /// @ingroup http
 /// Parse the value of an RFC 6265 §4.2 `Cookie` request header, given without
 /// the field name, into any container of name and value pairs. The names and
-/// values are forwarded as views that borrow from `input`, so a container of
-/// `std::string_view` pairs collects them without copying, while a container of
-/// `std::string` pairs owns them. For example:
+/// values are borrowed from `input` rather than copied, so a container of views
+/// must not outlive it, while an owning container may. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/http.h>
@@ -242,7 +242,10 @@ inline auto http_parse_cookies(const std::string_view input, Container &cookies)
 /// "SHOULD NOT rely upon the order in which these cookies appear", so a caller
 /// verifying a signed cookie tries every value rather than any single one.
 /// Naming a cookie with the RFC 6265bis §4.1.3.2 `__Host-` prefix prevents the
-/// collision at the source. For example:
+/// collision at the source.
+///
+/// The values are borrowed from `input` rather than copied, so a container of
+/// views must not outlive it, while an owning container may. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/http.h>
