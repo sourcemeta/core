@@ -61,8 +61,6 @@ struct PKCS8Key {
   bool rsa_pss_restricted{false};
 };
 
-// Parse an RFC 5958 PrivateKeyInfo, identifying the algorithm from its object
-// identifier and returning the raw privateKey octets
 // Whether a PKCS#1 RSAPrivateKey carries usable components (RFC 8017 Appendix
 // A.1.2). Every field is decoded as a canonical non-negative DER INTEGER, so a
 // negative or non-canonically encoded value cannot be silently reinterpreted as
@@ -110,6 +108,8 @@ inline auto rsa_private_key_acceptable(const std::string_view key) -> bool {
                                         modulus_value.value());
 }
 
+// Parse an RFC 5958 PrivateKeyInfo, identifying the algorithm from its object
+// identifier and returning the raw privateKey octets
 inline auto parse_pkcs8(const std::string_view der) -> std::optional<PKCS8Key> {
   const auto outer{der_read(der)};
   // A canonical PrivateKeyInfo is exactly one SEQUENCE, so bytes trailing the
