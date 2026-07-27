@@ -119,9 +119,11 @@ TEST(clock_shift_forward_from_the_oldest_instant_moves_normally) {
 }
 
 TEST(clock_shift_backward_at_the_epoch) {
+  // Expressed without `from_time_t(-40)`, as `time_t` is not guaranteed to be
+  // signed
   EXPECT_EQ(sourcemeta::core::clock_shift_backward(Clock::from_time_t(0),
                                                    std::chrono::seconds{40}),
-            Clock::from_time_t(-40));
+            Clock::from_time_t(0) - std::chrono::seconds{40});
 }
 
 TEST(clock_shift_forward_at_the_epoch) {

@@ -62,15 +62,22 @@ struct PKCS8Key {
 };
 
 // Whether a PKCS#1 RSAPrivateKey carries usable components (RFC 8017 Appendix
-// A.1.2). Every field is decoded as a canonical non-negative DER INTEGER, so a
-// negative or non-canonically encoded value cannot be silently reinterpreted as
-// a different positive number and signed with, and the public exponent is
-// range-checked per RFC 8017 Section 3.1. Checked here rather than in each
-// backend, since only the reference one reads these components itself and the
-// rest hand the blob straight to a platform that does not apply the rule
+// A.1.2). The modulus and both exponents are decoded as canonical non-negative
+// DER INTEGERs, so a negative or non-canonically encoded one cannot be silently
+// reinterpreted as a different positive number and signed with, and the public
+// exponent is range-checked per RFC 8017 Section 3.1. The version is required
+// to be present as an INTEGER but its value is left to the backends, which
+// differ on whether they accept the multi-prime form. Checked here rather than
+// in each backend, since only the reference one reads these components itself
+// and the rest hand the blob straight to a platform that does not apply the
+// rule
 inline auto rsa_private_key_acceptable(const std::string_view key) -> bool {
+  // A canonical RSAPrivateKey is exactly one SEQUENCE, so bytes trailing it
+  // mark a malformed encoding (X.690 Section 10.1), the same rule the enclosing
+  // PrivateKeyInfo is held to
   const auto sequence{der_read(key)};
-  if (!sequence.has_value() || sequence->tag != 0x30) {
+  if (!sequence.has_value() || sequence->tag != 0x30 ||
+      !sequence->rest.empty()) {
     return false;
   }
 
