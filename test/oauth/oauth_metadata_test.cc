@@ -622,6 +622,8 @@ TEST(server_metadata_accepts_every_https_endpoint) {
             "https://example.com/register");
   EXPECT_EQ(metadata.value().pushed_authorization_request_endpoint().value(),
             "https://example.com/par");
+  EXPECT_EQ(metadata.value().device_authorization_endpoint().has_value(),
+            false);
   EXPECT_EQ(metadata.value().revocation_endpoint().value(),
             "https://example.com/revoke");
   EXPECT_EQ(metadata.value().introspection_endpoint().value(),

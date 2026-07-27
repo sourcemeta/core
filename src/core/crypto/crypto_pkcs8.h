@@ -63,6 +63,53 @@ struct PKCS8Key {
 
 // Parse an RFC 5958 PrivateKeyInfo, identifying the algorithm from its object
 // identifier and returning the raw privateKey octets
+// Whether a PKCS#1 RSAPrivateKey carries usable components (RFC 8017 Appendix
+// A.1.2). Every field is decoded as a canonical non-negative DER INTEGER, so a
+// negative or non-canonically encoded value cannot be silently reinterpreted as
+// a different positive number and signed with, and the public exponent is
+// range-checked per RFC 8017 Section 3.1. Checked here rather than in each
+// backend, since only the reference one reads these components itself and the
+// rest hand the blob straight to a platform that does not apply the rule
+inline auto rsa_private_key_acceptable(const std::string_view key) -> bool {
+  const auto sequence{der_read(key)};
+  if (!sequence.has_value() || sequence->tag != 0x30) {
+    return false;
+  }
+
+  const auto version{der_read(sequence->content)};
+  if (!version.has_value() || version->tag != 0x02) {
+    return false;
+  }
+
+  const auto modulus{der_read(version->rest)};
+  if (!modulus.has_value() || modulus->tag != 0x02) {
+    return false;
+  }
+
+  const auto public_exponent{der_read(modulus->rest)};
+  if (!public_exponent.has_value() || public_exponent->tag != 0x02) {
+    return false;
+  }
+
+  const auto private_exponent{der_read(public_exponent->rest)};
+  if (!private_exponent.has_value() || private_exponent->tag != 0x02) {
+    return false;
+  }
+
+  const auto modulus_value{der_unsigned_integer(modulus->content)};
+  const auto public_exponent_value{
+      der_unsigned_integer(public_exponent->content)};
+  const auto private_exponent_value{
+      der_unsigned_integer(private_exponent->content)};
+  return modulus_value.has_value() && public_exponent_value.has_value() &&
+         private_exponent_value.has_value() && !modulus_value->empty() &&
+         !private_exponent_value->empty() &&
+         modulus_value->size() <= MAXIMUM_KEY_BYTES &&
+         private_exponent_value->size() <= MAXIMUM_KEY_BYTES &&
+         rsa_public_exponent_acceptable(public_exponent_value.value(),
+                                        modulus_value.value());
+}
+
 inline auto parse_pkcs8(const std::string_view der) -> std::optional<PKCS8Key> {
   const auto outer{der_read(der)};
   // A canonical PrivateKeyInfo is exactly one SEQUENCE, so bytes trailing the
@@ -106,6 +153,10 @@ inline auto parse_pkcs8(const std::string_view der) -> std::optional<PKCS8Key> {
   // NOLINTEND(modernize-raw-string-literal)
 
   if (oid->content == rsa || oid->content == rsa_pss) {
+    if (!rsa_private_key_acceptable(private_key->content)) {
+      return std::nullopt;
+    }
+
     return PKCS8Key{.kind = PKCS8KeyKind::RSA,
                     .curve = {},
                     .edwards_curve = {},
