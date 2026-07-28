@@ -111,6 +111,16 @@ TEST(ipv6_loopback) {
   EXPECT_FALSE(uri.is_localhost());
 }
 
+TEST(ipvfuture_ending_in_name) {
+  const sourcemeta::core::URI uri{"http://[v1.localhost]"};
+  EXPECT_FALSE(uri.is_localhost());
+}
+
+TEST(ipvfuture_name_only_label) {
+  const sourcemeta::core::URI uri{"http://[v1.foo.localhost]"};
+  EXPECT_FALSE(uri.is_localhost());
+}
+
 TEST(domain) {
   const sourcemeta::core::URI uri{"https://www.sourcemeta.com"};
   EXPECT_FALSE(uri.is_localhost());

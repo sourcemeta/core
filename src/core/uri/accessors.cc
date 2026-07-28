@@ -69,7 +69,10 @@ auto URI::is_loopback() const -> bool {
 }
 
 auto URI::is_localhost() const -> bool {
-  if (!this->host_.has_value()) {
+  // RFC 3986 Section 3.2.2 separates an IP literal from a registered name, and
+  // only the latter can be a domain name, so a bracketed host such as an
+  // IPvFuture ending in the reserved labels does not qualify
+  if (!this->host_.has_value() || this->ip_literal_) {
     return false;
   }
 

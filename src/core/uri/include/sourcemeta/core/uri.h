@@ -206,9 +206,11 @@ public:
   [[nodiscard]] auto is_ipv6() const -> bool;
 
   /// Check if the host is a loopback IP literal, any address in `127.0.0.0/8`
-  /// (RFC 1122 Section 3.2.1.3) or `::1` (RFC 4291 Section 2.5.3). The name
-  /// `localhost` is deliberately not a loopback host, as it usually resolves
-  /// to one but that is a different claim (RFC 8252 Section 8.3). For example:
+  /// (RFC 1122 Section 3.2.1.3), `::1` (RFC 4291 Section 2.5.3), or an
+  /// IPv4-mapped or IPv4-compatible IPv6 address embedding a `127.0.0.0/8`
+  /// address (RFC 4291 Section 2.5.5). The name `localhost` is deliberately
+  /// not a loopback host, as it usually resolves to one but that is a
+  /// different claim (RFC 8252 Section 8.3). For example:
   ///
   /// ```cpp
   /// #include <sourcemeta/core/uri.h>
