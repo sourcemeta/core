@@ -22,6 +22,10 @@ sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME uri
     uri_is_file_test.cc
     uri_is_ipv4_test.cc
     uri_is_ipv6_test.cc
+    uri_is_loopback_test.cc
+    uri_is_localhost_test.cc
+    uri_is_http_test.cc
+    uri_is_https_test.cc
     uri_rebase_test.cc
     uri_rebase_path_test.cc
     uri_strip_path_prefix_test.cc
