@@ -6,6 +6,7 @@
 #include <string>      // std::string
 #include <string_view> // std::string_view
 #include <utility>     // std::pair
+#include <variant>     // std::holds_alternative
 #include <vector>      // std::vector
 
 namespace {
@@ -47,9 +48,30 @@ TEST(headers_returns_added_headers_in_order) {
   request.header("X-Custom", "value");
   EXPECT_EQ(request.headers().size(), 2);
   EXPECT_EQ(request.headers().at(0).first, "Accept");
-  EXPECT_EQ(request.headers().at(0).second, "application/json");
+  EXPECT_EQ(request.headers().at(0).second.bytes(), "application/json");
   EXPECT_EQ(request.headers().at(1).first, "X-Custom");
-  EXPECT_EQ(request.headers().at(1).second, "value");
+  EXPECT_EQ(request.headers().at(1).second.bytes(), "value");
+}
+
+TEST(header_from_wiping_storage_lookup) {
+  sourcemeta::core::HTTPSystemRequest request{"https://example.com"};
+  request.header("Authorization",
+                 sourcemeta::core::SecureString{"Basic czZCaGRSa3F0Mw=="});
+  EXPECT_EQ(request.headers().size(), 1);
+  EXPECT_EQ(request.headers().at(0).first, "Authorization");
+  EXPECT_EQ(request.headers().at(0).second.bytes(), "Basic czZCaGRSa3F0Mw==");
+  EXPECT_TRUE(request.header("authorization").has_value());
+  EXPECT_EQ(request.header("authorization").value(), "Basic czZCaGRSa3F0Mw==");
+}
+
+TEST(header_storage_matches_the_overload) {
+  sourcemeta::core::HTTPSystemRequest request{"https://example.com"};
+  request.header("Accept", "application/json");
+  request.header("Authorization", sourcemeta::core::SecureString{"Basic Zm9v"});
+  EXPECT_TRUE(
+      std::holds_alternative<std::string>(request.headers().at(0).second.data));
+  EXPECT_TRUE(std::holds_alternative<sourcemeta::core::SecureString>(
+      request.headers().at(1).second.data));
 }
 
 TEST(header_lookup_present) {
@@ -320,4 +342,26 @@ TEST(sign_aws_sigv4_replaces_stale_signing_headers) {
   EXPECT_EQ(request.header("x-amz-date").value(), "20150830T123600Z");
   EXPECT_EQ(request.header("Authorization").value(),
             expected_get_authorization("example.amazonaws.com"));
+}
+
+TEST(sign_aws_sigv4_wiping_storage_header_signs_identically) {
+  const auto moment{
+      sourcemeta::core::from_iso8601_basic("20150830T123600Z").value()};
+  const sourcemeta::core::HTTPAWSCredentials credentials{
+      .access_key_id = "AKIDEXAMPLE",
+      .secret_access_key = "wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY",
+      .session_token = ""};
+
+  sourcemeta::core::HTTPSystemRequest plain{"https://example.amazonaws.com/",
+                                            sourcemeta::core::HTTPMethod::GET};
+  plain.header("X-Api-Token", "secret-token");
+  plain.sign_aws_sigv4(credentials, "us-east-1", "service", moment);
+
+  sourcemeta::core::HTTPSystemRequest wiping{"https://example.amazonaws.com/",
+                                             sourcemeta::core::HTTPMethod::GET};
+  wiping.header("X-Api-Token", sourcemeta::core::SecureString{"secret-token"});
+  wiping.sign_aws_sigv4(credentials, "us-east-1", "service", moment);
+
+  EXPECT_EQ(plain.header("Authorization").value(),
+            wiping.header("Authorization").value());
 }

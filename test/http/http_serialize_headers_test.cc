@@ -1,4 +1,5 @@
-#include <sourcemeta/core/http_message.h>
+#include <sourcemeta/core/crypto.h>
+#include <sourcemeta/core/http.h>
 #include <sourcemeta/core/test.h>
 
 #include <string>      // std::string
@@ -43,6 +44,14 @@ TEST(view_pairs) {
       {"Accept", "application/json"}};
   EXPECT_EQ(sourcemeta::core::http_serialize_headers(headers),
             "Accept: application/json\r\n");
+}
+
+TEST(request_headers_with_wiping_values) {
+  sourcemeta::core::HTTPSystemRequest request{"https://example.com"};
+  request.header("Accept", "application/json");
+  request.header("Authorization", sourcemeta::core::SecureString{"Basic Zm9v"});
+  EXPECT_EQ(sourcemeta::core::http_serialize_headers(request.headers()),
+            "Accept: application/json\r\nAuthorization: Basic Zm9v\r\n");
 }
 
 TEST(round_trip_through_parse) {
