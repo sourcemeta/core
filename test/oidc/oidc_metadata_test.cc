@@ -53,6 +53,32 @@ TEST(from_exposes_the_supported_predicates) {
   EXPECT_FALSE(metadata.value().supports_scope("email"));
   EXPECT_TRUE(metadata.value().supports_claim("sub"));
   EXPECT_FALSE(metadata.value().supports_claim("email"));
+  EXPECT_TRUE(metadata.value().supports_token_endpoint_auth_method(
+      "client_secret_basic"));
+  EXPECT_FALSE(metadata.value().supports_token_endpoint_auth_method(
+      "client_secret_post"));
+}
+
+TEST(from_exposes_explicit_token_endpoint_auth_methods) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://example.com",
+    "authorization_endpoint": "https://example.com/authorize",
+    "token_endpoint": "https://example.com/token",
+    "jwks_uri": "https://example.com/jwks",
+    "response_types_supported": [ "code" ],
+    "subject_types_supported": [ "public" ],
+    "id_token_signing_alg_values_supported": [ "RS256" ],
+    "token_endpoint_auth_methods_supported":
+      [ "client_secret_post", "none" ]
+  })JSON")};
+  const auto metadata{sourcemeta::core::OIDCProviderMetadata::from(
+      std::move(document), "https://example.com")};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_TRUE(metadata.value().supports_token_endpoint_auth_method(
+      "client_secret_post"));
+  EXPECT_TRUE(metadata.value().supports_token_endpoint_auth_method("none"));
+  EXPECT_FALSE(metadata.value().supports_token_endpoint_auth_method(
+      "client_secret_basic"));
 }
 
 TEST(from_delegates_to_the_oauth_metadata) {
