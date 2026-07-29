@@ -314,7 +314,7 @@ auto HTTPSystemRequest::sign_aws_sigv4(
   }
 
   for (const auto &[name, value] : this->headers_) {
-    headers.emplace_back(name, value);
+    headers.emplace_back(name, value.bytes());
   }
 
   const auto canonical{http_aws_sigv4_canonical_request(

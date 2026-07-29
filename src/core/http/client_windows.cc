@@ -190,6 +190,7 @@ auto HTTPSystemRequest::send() const -> HTTPResponse {
                    &decompression, sizeof(decompression));
 
   auto serialized_headers{http_serialize_headers(this->headers_)};
+  const SecureStringScope serialized_headers_scope{serialized_headers};
   LPVOID body_data{WINHTTP_NO_REQUEST_DATA};
   DWORD body_size{0};
   if (this->body_.has_value()) {
@@ -206,16 +207,16 @@ auto HTTPSystemRequest::send() const -> HTTPResponse {
     body_size = static_cast<DWORD>(this->body_.value().bytes().size());
   }
 
-  const auto request_headers{
-      sourcemeta::core::utf8_to_wide(serialized_headers)};
+  auto request_headers{sourcemeta::core::utf8_to_wide(serialized_headers)};
 
-  if (!WinHttpSendRequest(
-          request_handle.get(),
-          request_headers.empty() ? WINHTTP_NO_ADDITIONAL_HEADERS
-                                  : request_headers.c_str(),
-          request_headers.empty() ? 0
-                                  : static_cast<DWORD>(request_headers.size()),
-          body_data, body_size, body_size, 0)) {
+  const auto sent{WinHttpSendRequest(
+      request_handle.get(),
+      request_headers.empty() ? WINHTTP_NO_ADDITIONAL_HEADERS
+                              : request_headers.c_str(),
+      request_headers.empty() ? 0 : static_cast<DWORD>(request_headers.size()),
+      body_data, body_size, body_size, 0)};
+  secure_zero(request_headers.data(), request_headers.size() * sizeof(wchar_t));
+  if (!sent) {
     throw HTTPError{this->method_, this->url_,
                     "Failed to send the HTTP request"};
   }

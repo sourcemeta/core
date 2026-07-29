@@ -350,13 +350,14 @@ auto HTTPSystemRequest::send() const -> HTTPResponse {
   CurlHeaderList header_list{api};
   for (const auto &[name, value] : this->headers_) {
     std::string line{name};
+    const SecureStringScope line_scope{line};
     // The semicolon form is how cURL distinguishes a header with an
     // empty value from a header to suppress
-    if (value.empty()) {
+    if (value.bytes().empty()) {
       line += ";";
     } else {
       line += ": ";
-      line += value;
+      line += value.bytes();
     }
 
     header_list.append(line);
