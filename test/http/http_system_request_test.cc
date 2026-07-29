@@ -343,3 +343,25 @@ TEST(sign_aws_sigv4_replaces_stale_signing_headers) {
   EXPECT_EQ(request.header("Authorization").value(),
             expected_get_authorization("example.amazonaws.com"));
 }
+
+TEST(sign_aws_sigv4_wiping_storage_header_signs_identically) {
+  const auto moment{
+      sourcemeta::core::from_iso8601_basic("20150830T123600Z").value()};
+  const sourcemeta::core::HTTPAWSCredentials credentials{
+      .access_key_id = "AKIDEXAMPLE",
+      .secret_access_key = "wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY",
+      .session_token = ""};
+
+  sourcemeta::core::HTTPSystemRequest plain{"https://example.amazonaws.com/",
+                                            sourcemeta::core::HTTPMethod::GET};
+  plain.header("X-Api-Token", "secret-token");
+  plain.sign_aws_sigv4(credentials, "us-east-1", "service", moment);
+
+  sourcemeta::core::HTTPSystemRequest wiping{"https://example.amazonaws.com/",
+                                             sourcemeta::core::HTTPMethod::GET};
+  wiping.header("X-Api-Token", sourcemeta::core::SecureString{"secret-token"});
+  wiping.sign_aws_sigv4(credentials, "us-east-1", "service", moment);
+
+  EXPECT_EQ(plain.header("Authorization").value(),
+            wiping.header("Authorization").value());
+}
