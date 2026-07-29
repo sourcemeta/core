@@ -317,9 +317,12 @@ auto HTTPSystemRequest::sign_aws_sigv4(
     headers.emplace_back(name, value.bytes());
   }
 
-  const auto canonical{http_aws_sigv4_canonical_request(
+  // The canonical request spells out every signed header value, which may
+  // include one held in wiping storage, so it is wiped once consumed
+  auto canonical{http_aws_sigv4_canonical_request(
       http_method_string(this->method_), path, query, headers, payload_hash,
       service != "s3")};
+  const SecureStringScope canonical_scope{canonical};
   const auto scope{http_aws_sigv4_credential_scope(date, region, service)};
   const auto string_to_sign{
       http_aws_sigv4_string_to_sign(amz_date, scope, canonical)};

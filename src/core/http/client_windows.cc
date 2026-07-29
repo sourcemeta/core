@@ -189,7 +189,10 @@ auto HTTPSystemRequest::send() const -> HTTPResponse {
   WinHttpSetOption(request_handle.get(), WINHTTP_OPTION_DECOMPRESSION,
                    &decompression, sizeof(decompression));
 
-  auto serialized_headers{http_serialize_headers(this->headers_)};
+  // The possibly secret header lines are appended last, so this buffer never
+  // grows once it holds a secret, which would leave the previous storage in
+  // freed memory without a wipe
+  std::string serialized_headers;
   const SecureStringScope serialized_headers_scope{serialized_headers};
   LPVOID body_data{WINHTTP_NO_REQUEST_DATA};
   DWORD body_size{0};
@@ -205,6 +208,12 @@ auto HTTPSystemRequest::send() const -> HTTPResponse {
     serialized_headers += "\r\n";
     body_data = const_cast<char *>(this->body_.value().bytes().data());
     body_size = static_cast<DWORD>(this->body_.value().bytes().size());
+  }
+
+  {
+    auto header_lines{http_serialize_headers(this->headers_)};
+    const SecureStringScope header_lines_scope{header_lines};
+    serialized_headers += header_lines;
   }
 
   auto request_headers{sourcemeta::core::utf8_to_wide(serialized_headers)};
