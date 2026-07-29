@@ -296,6 +296,22 @@ TEST(server_metadata_token_auth_method_default) {
       "client_secret_post"));
 }
 
+TEST(server_metadata_token_auth_method_explicit) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://example.com",
+    "response_types_supported": [ "code" ],
+    "token_endpoint_auth_methods_supported":
+      [ "client_secret_post", "none" ]
+  })JSON")};
+  const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
+      std::move(document), "https://example.com")};
+  EXPECT_TRUE(metadata.value().supports_token_endpoint_auth_method(
+      "client_secret_post"));
+  EXPECT_TRUE(metadata.value().supports_token_endpoint_auth_method("none"));
+  EXPECT_FALSE(metadata.value().supports_token_endpoint_auth_method(
+      "client_secret_basic"));
+}
+
 TEST(server_metadata_supports_response_type) {
   auto document{sourcemeta::core::parse_json(R"JSON({
     "issuer": "https://example.com",
