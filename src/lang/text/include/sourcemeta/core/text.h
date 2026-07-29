@@ -767,8 +767,7 @@ auto squeeze(const std::string_view input, const char character) -> std::string;
 ///
 /// Collapse consecutive runs of a character into a single occurrence, appending
 /// the result to a string like output sink rather than allocating a new
-/// string. Besides a `std::string` the sink can be a wiping string for secret
-/// material. The output must not alias the input. For example:
+/// string. The output must not alias the input. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/text.h>
