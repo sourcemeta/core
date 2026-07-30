@@ -156,12 +156,59 @@ inline auto http_for_each_parameter(const std::string_view parameters,
   }
 }
 
+// RFC 9110 §5.6.4: a parameter value is either a token or a quoted-string, and
+// §5.6.6 states "The quoted and unquoted values are equivalent". So the decoded
+// content is compared rather than the raw syntax, treating charset="utf-8" and
+// charset=utf-8 as the same value. Inside a quoted-string a quoted-pair carries
+// only its second octet. RFC 2978 §2.3: charset names "are case-insensitive",
+// so that one parameter folds case, while all others compare octet for octet
+// because their case sensitivity depends on the parameter semantics.
+inline auto http_parameter_value_equal(const std::string_view name,
+                                       std::string_view left,
+                                       std::string_view right) noexcept
+    -> bool {
+  const bool fold_case{equals_ignore_case(name, "charset")};
+  const bool left_quoted{left.size() >= 2 && left.front() == '"' &&
+                         left.back() == '"'};
+  const bool right_quoted{right.size() >= 2 && right.front() == '"' &&
+                          right.back() == '"'};
+  if (left_quoted) {
+    left = http_subview(left, 1, left.size() - 2);
+  }
+  if (right_quoted) {
+    right = http_subview(right, 1, right.size() - 2);
+  }
+  std::size_t left_index{0};
+  std::size_t right_index{0};
+  while (left_index < left.size() && right_index < right.size()) {
+    char left_character{left[left_index]};
+    if (left_quoted && left_character == '\\' && left_index + 1 < left.size()) {
+      left_character = left[++left_index];
+    }
+    char right_character{right[right_index]};
+    if (right_quoted && right_character == '\\' &&
+        right_index + 1 < right.size()) {
+      right_character = right[++right_index];
+    }
+    if (fold_case) {
+      left_character = to_lowercase(left_character);
+      right_character = to_lowercase(right_character);
+    }
+    if (left_character != right_character) {
+      return false;
+    }
+    ++left_index;
+    ++right_index;
+  }
+  return left_index == left.size() && right_index == right.size();
+}
+
 // RFC 9110 §12.5.1 lets a media range carry media-type parameters, and "a
 // parameter value that matches the [media-range] parameter" is required for
 // the range to apply. A named parameter of the range is satisfied only when the
 // candidate media type carries the same parameter. Parameter names are
-// case-insensitive per RFC 9110 §5.6.6, while values are compared verbatim
-// because their case sensitivity depends on the parameter semantics.
+// case-insensitive per RFC 9110 §5.6.6, while values are matched by their
+// decoded content.
 inline auto
 http_candidate_has_parameter(const std::string_view candidate_parameters,
                              const std::string_view name,
@@ -172,7 +219,7 @@ http_candidate_has_parameter(const std::string_view candidate_parameters,
       [&](const std::string_view candidate_name,
           const std::string_view candidate_value) noexcept -> void {
         if (equals_ignore_case(candidate_name, name) &&
-            candidate_value == value) {
+            http_parameter_value_equal(name, candidate_value, value)) {
           found = true;
         }
       });

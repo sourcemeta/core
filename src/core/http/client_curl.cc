@@ -390,6 +390,14 @@ auto HTTPSystemRequest::send() const -> HTTPResponse {
         static_cast<curl_off_t>(this->body_.value().bytes().size()));
     api.easy_setopt(handle.get(), CURLOPT_POSTFIELDS,
                     this->body_.value().bytes().data());
+  } else if (this->method_ == HTTPMethod::POST &&
+             !this->header("Content-Type").has_value()) {
+    // A bodyless POST carries no representation, so libcurl's default
+    // Content-Type of application/x-www-form-urlencoded, added when the POST
+    // data is set, is unsolicited. It is suppressed unless the caller supplied
+    // a Content-Type, matching the other backends. The bare-colon form removes
+    // an internally generated header
+    header_list.append("Content-Type:");
   }
 
   if (header_list.get()) {

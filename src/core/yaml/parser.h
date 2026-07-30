@@ -462,16 +462,20 @@ private:
     return stream.str();
   }
 
-  auto resolve_scalar_key(const Token &token) -> std::string {
+  auto resolve_scalar_key(const Token &token,
+                          const std::optional<std::string> &tag = std::nullopt)
+      -> std::string {
     // Round-trip mode preserves the original key text, so it is not resolved
     if (this->roundtrip_) {
       return std::string{token.value};
     }
     // Resolve a scalar key to its typed value and stringify it, so that keys
     // such as 0x1 and 1 collapse to the same member name, keeping key handling
-    // consistent with values and alias keys
+    // consistent with values and alias keys. An explicit tag is honored the
+    // same way it would be for a scalar value, so a string-tagged key keeps its
+    // literal text
     const auto value{
-        this->interpret_scalar(token.value, token.scalar_style, std::nullopt)};
+        this->interpret_scalar(token.value, token.scalar_style, tag)};
     return this->json_to_key_string(value, token.line, token.column);
   }
 
@@ -672,7 +676,7 @@ private:
           }
           result = this->parse_block_mapping_from_first_key(
               current_token, context, index, property, key_line, key_column,
-              node_start_column);
+              node_start_column, tag);
         } else {
           if (anchor_count > 1) [[unlikely]] {
             throw YAMLParseError{current_token.line, current_token.column,
@@ -722,7 +726,7 @@ private:
           key_token.value = key_string;
           result = this->parse_block_mapping_from_first_key(
               key_token, context, index, property, key_line, key_column,
-              node_start_column);
+              node_start_column, std::nullopt, true);
         } else {
           if (anchor_name.has_value()) [[unlikely]] {
             throw YAMLParseError{current_token.line, current_token.column,
@@ -799,6 +803,14 @@ private:
     return result;
   }
 
+  [[nodiscard]] static auto is_special_float(const std::string_view value)
+      -> bool {
+    return value == ".inf" || value == ".Inf" || value == ".INF" ||
+           value == "+.inf" || value == "+.Inf" || value == "+.INF" ||
+           value == "-.inf" || value == "-.Inf" || value == "-.INF" ||
+           value == ".nan" || value == ".NaN" || value == ".NAN";
+  }
+
   auto interpret_scalar(const std::string_view value, const ScalarStyle style,
                         const std::optional<std::string> &tag) -> JSON {
     if (tag.has_value()) {
@@ -819,6 +831,16 @@ private:
         return this->parse_integer(value);
       }
       if (tag_value == "tag:yaml.org,2002:float") {
+        // RFC 8259 Section 6: Infinity and NaN are not permitted in JSON, so an
+        // explicitly floated infinity or not-a-number has no JSON
+        // representation. Round-trip mode preserves the original text instead
+        if (is_special_float(value)) [[unlikely]] {
+          if (!this->roundtrip_) {
+            throw YAMLParseError{this->lexer_->line(), this->lexer_->column(),
+                                 "Infinity and NaN are not permitted"};
+          }
+          return JSON{value};
+        }
         return this->parse_float(value);
       }
       return JSON{value};
@@ -844,10 +866,7 @@ private:
       return JSON{false};
     }
 
-    if (value == ".inf" || value == ".Inf" || value == ".INF" ||
-        value == "+.inf" || value == "+.Inf" || value == "+.INF" ||
-        value == "-.inf" || value == "-.Inf" || value == "-.INF" ||
-        value == ".nan" || value == ".NaN" || value == ".NAN") {
+    if (is_special_float(value)) {
       // RFC 8259 Section 6: numeric values that cannot be represented in the
       // JSON grammar, such as Infinity and NaN, are not permitted, so a YAML
       // infinity or not-a-number float has no JSON representation. Round-trip
@@ -1058,7 +1077,7 @@ private:
           key = "";
         }
       } else if (key_token.type == TokenType::Scalar) {
-        key = this->resolve_scalar_key(key_token);
+        key = this->resolve_scalar_key(key_token, key_tag);
         this->record_key_scalar_style(key, key_token.scalar_style,
                                       key_token.quoted_original);
       } else [[unlikely]] {
@@ -1200,7 +1219,7 @@ private:
 
         std::string key_string;
         if (token->type == TokenType::Scalar) {
-          key_string = std::string{token->value};
+          key_string = this->resolve_scalar_key(token.value());
           token = this->next_token();
         } else {
           const auto explicit_key_line{token->line};
@@ -1403,7 +1422,11 @@ private:
         token = next.value();
       }
 
+      std::optional<std::string> key_tag;
       while (token.type == TokenType::Tag || token.type == TokenType::Anchor) {
+        if (token.type == TokenType::Tag) {
+          key_tag = this->resolve_tag(token.value);
+        }
         auto next{this->next_token()};
         assert(next.has_value());
         token = next.value();
@@ -1434,7 +1457,7 @@ private:
       std::uint64_t current_key_column{0};
 
       if (token.type == TokenType::Scalar) {
-        key = this->resolve_scalar_key(token);
+        key = this->resolve_scalar_key(token, key_tag);
         key_present = true;
         current_key_line = token.line;
         current_key_column = token.column;
@@ -1600,7 +1623,9 @@ private:
       const std::size_t index, const std::string &property,
       const std::uint64_t parent_key_line = 0,
       const std::uint64_t parent_key_column = 0,
-      const std::uint64_t node_start_column = 0) -> JSON {
+      const std::uint64_t node_start_column = 0,
+      const std::optional<std::string> &key_tag = std::nullopt,
+      const bool key_pre_resolved = false) -> JSON {
     this->invoke_callback(
         JSON::ParsePhase::Pre, JSON::Type::Object,
         this->effective_line(key_token, context, parent_key_line),
@@ -1614,7 +1639,11 @@ private:
 
     this->detect_indent_width(parent_key_column, base_column);
 
-    std::string key{this->resolve_scalar_key(key_token)};
+    // An alias key arrives already stringified from its anchor value, so it
+    // must not be resolved a second time
+    std::string key{key_pre_resolved
+                        ? std::string{key_token.value}
+                        : this->resolve_scalar_key(key_token, key_tag)};
     std::uint64_t key_line{key_token.line};
     std::uint64_t key_column{key_token.column};
     const auto first_key_line{key_token.line};
@@ -1744,6 +1773,7 @@ private:
       }
 
       auto effective_column{next->column};
+      std::optional<std::string> subsequent_key_tag;
 
       if (next->type == TokenType::Anchor) {
         next = this->next_token();
@@ -1753,6 +1783,7 @@ private:
       }
 
       if (next->type == TokenType::Tag) {
+        subsequent_key_tag = this->resolve_tag(next->value);
         next = this->next_token();
         if (!next.has_value() || next->type != TokenType::Scalar) {
           continue;
@@ -1820,7 +1851,7 @@ private:
       }
 
       this->record_inline_comment_for_key(key);
-      key = this->resolve_scalar_key(next.value());
+      key = this->resolve_scalar_key(next.value(), subsequent_key_tag);
       key_line = next->line;
       key_column = next->column;
       this->record_key_scalar_style(key, next->scalar_style,

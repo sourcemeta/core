@@ -88,6 +88,31 @@ TEST(parameterized_range_includes_type_with_parameter) {
       "text/html;charset=UTF-8", {"text/html;charset=UTF-8"}));
 }
 
+// RFC 2978 §2.3: charset names are case-insensitive, so the two spellings match
+TEST(parameterized_range_matches_charset_case_insensitively) {
+  EXPECT_TRUE(sourcemeta::core::http_accept_includes_all(
+      "text/html;charset=UTF-8", {"text/html;charset=utf-8"}));
+}
+
+// RFC 9110 §5.6.6: the quoted and unquoted values are equivalent
+TEST(parameterized_range_matches_quoted_and_unquoted_charset) {
+  EXPECT_TRUE(sourcemeta::core::http_accept_includes_all(
+      "text/html;charset=\"utf-8\"", {"text/html;charset=utf-8"}));
+}
+
+// RFC 9110 §5.6.6: distinct charset values still do not match
+TEST(parameterized_range_rejects_a_different_charset) {
+  EXPECT_FALSE(sourcemeta::core::http_accept_includes_all(
+      "text/html;charset=utf-8", {"text/html;charset=iso-8859-1"}));
+}
+
+// RFC 9110 §5.6.6: parameters other than charset compare by exact value, so a
+// case difference is a mismatch
+TEST(parameterized_range_matches_non_charset_parameter_case_sensitively) {
+  EXPECT_FALSE(sourcemeta::core::http_accept_includes_all(
+      "text/plain;format=Flowed", {"text/plain;format=flowed"}));
+}
+
 // RFC 9110 §12.5.1: a bare media range still includes a candidate that carries
 // extra parameters
 TEST(bare_range_includes_parameterized_candidate) {

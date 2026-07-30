@@ -143,26 +143,14 @@ auto validated_server_metadata(JSON &&data, const std::string_view issuer)
                     HASH_INTROSPECTION_ENDPOINT);
   validate_endpoint(data, "jwks_uri"sv, HASH_JWKS_URI);
 
-  // RFC 8414 Section 2: response_types_supported is REQUIRED unless no grant
-  // type that uses the authorization endpoint is supported, which mirrors the
-  // authorization_endpoint condition (grant_types_supported defaults to
-  // authorization_code and implicit when absent). Section 3.2: "Claims with
-  // zero elements MUST be omitted", so a present array must not be empty
-  const bool authorization_grant{
-      !data.defines("grant_types_supported"sv, HASH_GRANT_TYPES) ||
-      data.array_member_contains("grant_types_supported"sv, HASH_GRANT_TYPES,
-                                 "authorization_code") ||
-      data.array_member_contains("grant_types_supported"sv, HASH_GRANT_TYPES,
-                                 "implicit")};
+  // RFC 8414 Section 2: response_types_supported is REQUIRED (unconditionally,
+  // unlike authorization_endpoint which is conditional), and Section 3.2:
+  // "Claims with zero elements MUST be omitted from the response", so a present
+  // but empty array is a malformed document
   const auto *response_types{
       data.try_at("response_types_supported"sv, HASH_RESPONSE_TYPES)};
-  if (authorization_grant) {
-    if (response_types == nullptr || !response_types->is_array() ||
-        response_types->empty()) {
-      throw OAuthMetadataParseError{};
-    }
-  } else if (response_types != nullptr &&
-             (!response_types->is_array() || response_types->empty())) {
+  if (response_types == nullptr || !response_types->is_array() ||
+      response_types->empty()) {
     throw OAuthMetadataParseError{};
   }
 
@@ -590,12 +578,10 @@ auto oauth_make_server_metadata(const OAuthServerMetadataConfig &config)
                             return grant != "implicit";
                           })};
 
-  // RFC 8414 Section 2: response_types_supported is REQUIRED, and Section 3.2
-  // forbids a zero-element array. It describes the authorization endpoint, so
-  // it is required only when an authorization endpoint grant type is supported
-  // and may be omitted otherwise
-  if (authorization_endpoint_needed &&
-      config.response_types_supported.empty()) {
+  // RFC 8414 Section 2: response_types_supported is REQUIRED unconditionally
+  // (unlike authorization_endpoint, which is conditional), and Section 3.2
+  // forbids a zero-element array
+  if (config.response_types_supported.empty()) {
     return std::nullopt;
   }
 

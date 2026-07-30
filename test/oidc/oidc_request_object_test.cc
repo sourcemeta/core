@@ -115,9 +115,10 @@ TEST(verify_accepts_a_missing_issuer) {
   EXPECT_EQ(verified.value().at("state").to_string(), "xyz");
 }
 
-TEST(verify_accepts_a_missing_audience) {
-  // OpenID Connect Core 1.0 Section 6.1: aud is only a SHOULD, so its absence
-  // is accepted when the present issuer still identifies the client
+TEST(verify_rejects_a_missing_audience) {
+  // OpenID Connect Core 1.0 Section 6.1: the aud binds the object to the
+  // provider, so a signed object without it could be replayed to another
+  // provider and is rejected even when the present issuer identifies the client
   const auto parameters{sourcemeta::core::parse_json(
       R"JSON({
     "iss": "client",
@@ -131,11 +132,10 @@ TEST(verify_accepts_a_missing_audience) {
   const auto verified{sourcemeta::core::oidc_verify_request_object(
       token.value(), oct_key_set(), allowed_hs256, "client",
       "https://op.example")};
-  EXPECT_TRUE(verified.has_value());
-  EXPECT_EQ(verified.value().at("state").to_string(), "xyz");
+  EXPECT_FALSE(verified.has_value());
 }
 
-TEST(verify_accepts_a_missing_issuer_and_audience) {
+TEST(verify_rejects_a_missing_issuer_and_audience) {
   const auto parameters{sourcemeta::core::parse_json(
       R"JSON({
     "scope": "openid",
@@ -148,8 +148,7 @@ TEST(verify_accepts_a_missing_issuer_and_audience) {
   const auto verified{sourcemeta::core::oidc_verify_request_object(
       token.value(), oct_key_set(), allowed_hs256, "client",
       "https://op.example")};
-  EXPECT_TRUE(verified.has_value());
-  EXPECT_EQ(verified.value().at("state").to_string(), "xyz");
+  EXPECT_FALSE(verified.has_value());
 }
 
 TEST(verify_rejects_an_unknown_kid) {

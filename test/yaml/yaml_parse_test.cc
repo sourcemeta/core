@@ -1674,3 +1674,68 @@ TEST(block_explicit_scalar_key_is_resolved) {
       sourcemeta::core::parse_json(R"JSON({ "1": "v" })JSON")};
   EXPECT_EQ(result, expected);
 }
+
+// RFC 8259 Section 6: Infinity and NaN are not permitted, and an explicit float
+// tag does not exempt them in conversion mode.
+TEST(float_tag_infinity_is_rejected) {
+  const std::string input{"!!float .inf"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Infinity and NaN are not permitted");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(float_tag_not_a_number_is_rejected) {
+  const std::string input{"!!float .nan"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Infinity and NaN are not permitted");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// Round-trip mode preserves the original text, so an explicitly floated
+// infinity is kept as a string rather than rejected.
+TEST(float_tag_infinity_preserved_in_roundtrip) {
+  const std::string input{"!!float .inf"};
+  sourcemeta::core::YAMLRoundTrip roundtrip;
+  const auto result{sourcemeta::core::parse_yaml(input, roundtrip)};
+  EXPECT_TRUE(result.is_string());
+  EXPECT_EQ(result, sourcemeta::core::JSON{".inf"});
+}
+
+// An explicit string tag on a key keeps the key's literal text as the member
+// name rather than resolving it to a typed value.
+TEST(str_tagged_key_keeps_literal_text) {
+  const std::string input{"!!str null: value"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON({ "null": "value" })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(str_tagged_numeric_key_keeps_literal_text) {
+  const std::string input{"!!str 01: value"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON({ "01": "value" })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+// An alias key is stringified from its already-resolved anchor value, so a
+// quoted keyword anchor keeps its literal text as the member name rather than
+// being resolved a second time.
+TEST(alias_quoted_keyword_key_is_preserved) {
+  const std::string input{"- &a \"null\"\n- *a : value"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const sourcemeta::core::JSON expected{sourcemeta::core::parse_json(
+      R"JSON([ "null", { "null": "value" } ])JSON")};
+  EXPECT_EQ(result, expected);
+}
