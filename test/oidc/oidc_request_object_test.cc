@@ -95,11 +95,35 @@ TEST(verify_rejects_a_wrong_audience) {
   EXPECT_FALSE(verified.has_value());
 }
 
-TEST(verify_rejects_a_missing_issuer) {
+TEST(verify_accepts_a_missing_issuer) {
+  // OpenID Connect Core 1.0 Section 6.1: iss is only a SHOULD, so its absence
+  // is accepted when the present audience still addresses the provider
   const auto parameters{sourcemeta::core::parse_json(
       R"JSON({
     "aud": "https://op.example",
-    "scope": "openid"
+    "scope": "openid",
+    "state": "xyz"
+  })JSON")};
+  const auto object{sourcemeta::core::oidc_build_request_object(
+      parameters, oct_private_key(), sourcemeta::core::JWSAlgorithm::HS256)};
+  const auto token{sourcemeta::core::JWT::from(object.value())};
+  EXPECT_TRUE(token.has_value());
+  const auto verified{sourcemeta::core::oidc_verify_request_object(
+      token.value(), oct_key_set(), allowed_hs256, "client",
+      "https://op.example")};
+  EXPECT_TRUE(verified.has_value());
+  EXPECT_EQ(verified.value().at("state").to_string(), "xyz");
+}
+
+TEST(verify_rejects_a_missing_audience) {
+  // OpenID Connect Core 1.0 Section 6.1: the aud binds the object to the
+  // provider, so a signed object without it could be replayed to another
+  // provider and is rejected even when the present issuer identifies the client
+  const auto parameters{sourcemeta::core::parse_json(
+      R"JSON({
+    "iss": "client",
+    "scope": "openid",
+    "state": "xyz"
   })JSON")};
   const auto object{sourcemeta::core::oidc_build_request_object(
       parameters, oct_private_key(), sourcemeta::core::JWSAlgorithm::HS256)};
@@ -111,11 +135,11 @@ TEST(verify_rejects_a_missing_issuer) {
   EXPECT_FALSE(verified.has_value());
 }
 
-TEST(verify_rejects_a_missing_audience) {
+TEST(verify_rejects_a_missing_issuer_and_audience) {
   const auto parameters{sourcemeta::core::parse_json(
       R"JSON({
-    "iss": "client",
-    "scope": "openid"
+    "scope": "openid",
+    "state": "xyz"
   })JSON")};
   const auto object{sourcemeta::core::oidc_build_request_object(
       parameters, oct_private_key(), sourcemeta::core::JWSAlgorithm::HS256)};

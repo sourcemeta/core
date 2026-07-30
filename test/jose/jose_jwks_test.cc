@@ -119,15 +119,24 @@ TEST(skips_non_object_entries) {
   EXPECT_EQ(key->key_id().value(), "good");
 }
 
-TEST(rejects_all_keys_unsupported) {
+TEST(accepts_set_with_all_keys_unsupported) {
   const auto document{sourcemeta::core::parse_json(
       R"({ "keys": [ { "kty": "unsupported" } ] })")};
-  EXPECT_FALSE(sourcemeta::core::JWKS::from(document).has_value());
+  const auto keys{sourcemeta::core::JWKS::from(document)};
+  EXPECT_TRUE(keys.has_value());
+  EXPECT_EQ(keys.value().size(), 0);
+  EXPECT_TRUE(keys.value().empty());
+  EXPECT_EQ(keys.value().find("anything"), nullptr);
 }
 
-TEST(rejects_empty_key_array) {
+TEST(accepts_empty_key_array) {
   const auto document{sourcemeta::core::parse_json(R"({ "keys": [] })")};
-  EXPECT_FALSE(sourcemeta::core::JWKS::from(document).has_value());
+  const auto keys{sourcemeta::core::JWKS::from(document)};
+  EXPECT_TRUE(keys.has_value());
+  EXPECT_EQ(keys.value().size(), 0);
+  EXPECT_TRUE(keys.value().empty());
+  EXPECT_EQ(keys.value().find("anything"), nullptr);
+  EXPECT_EQ(keys.value().begin(), keys.value().end());
 }
 
 TEST(rejects_missing_keys) {
@@ -235,7 +244,7 @@ TEST(from_accepts_rvalue) {
 }
 
 TEST(constructor_throws_on_invalid_input) {
-  const auto document{sourcemeta::core::parse_json(R"({ "keys": [] })")};
+  const auto document{sourcemeta::core::parse_json(R"("not an object")")};
   try {
     sourcemeta::core::JWKS{document};
     FAIL();

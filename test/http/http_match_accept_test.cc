@@ -1,6 +1,22 @@
 #include <sourcemeta/core/http.h>
 #include <sourcemeta/core/test.h>
 
+#include <string_view> // std::string_view
+
+// RFC 9110 §12.5.1 Table 5 example Accept header
+static constexpr std::string_view RFC9110_TABLE5_ACCEPT{
+    "text/*;q=0.3, text/plain;q=0.7, text/plain;format=flowed, "
+    "text/plain;format=fixed;q=0.4, */*;q=0.5"};
+
+// RFC 9110 §12.5.1 media-range precedence example
+static constexpr std::string_view RFC9110_PRECEDENCE_ACCEPT{
+    "text/*, text/plain, text/plain;format=flowed, */*"};
+
+// Historic RFC 2616 §14.1 level example, retained by RFC 9110 §12.5.1 semantics
+static constexpr std::string_view RFC9110_LEVEL_ACCEPT{
+    "text/*;q=0.3, text/html;q=0.7, text/html;level=1, "
+    "text/html;level=2;q=0.4, */*;q=0.5"};
+
 TEST(exact_match) {
   EXPECT_EQ(sourcemeta::core::http_match_accept(
                 "text/html", {"text/html", "application/json"}),
@@ -103,11 +119,14 @@ TEST(q_value_tie_broken_by_candidate_order_reversed) {
             "application/json");
 }
 
-TEST(ignores_non_q_parameters) {
+// RFC 9110 §12.5.1: a media range that carries a media-type parameter only
+// applies to a type that also carries it, so a parameterized range does not
+// lend its weight to a bare candidate that lacks the parameter
+TEST(media_type_parameter_must_be_carried_by_candidate) {
   EXPECT_EQ(sourcemeta::core::http_match_accept(
                 "text/html;level=2;q=0.4, application/json;q=0.3",
                 {"text/html", "application/json"}),
-            "text/html");
+            "application/json");
 }
 
 TEST(q_value_default_is_one) {
@@ -149,12 +168,14 @@ TEST(malformed_q_treated_as_zero) {
 }
 
 // RFC 9110 §5.6.6: a semicolon inside a quoted string does not separate
-// parameters, so the quoted content does not synthesise a phantom q parameter
+// parameters, so the quoted content does not synthesise a phantom q parameter.
+// The text/html range therefore keeps its default weight of 1.0 and, matching
+// the candidate that carries the same parameter, outranks application/json
 TEST(quoted_parameter_semicolon_not_split) {
   EXPECT_EQ(sourcemeta::core::http_match_accept(
                 "text/html;foo=\"a;q=0.1\", application/json;q=0.5",
-                {"text/html", "application/json"}),
-            "text/html");
+                {"text/html;foo=\"a;q=0.1\"", "application/json"}),
+            "text/html;foo=\"a;q=0.1\"");
 }
 
 TEST(html_or_json_returns_html_for_html_accept) {
@@ -237,10 +258,20 @@ TEST(many_empty_entries_tolerated) {
       "text/html");
 }
 
-TEST(charset_parameter_does_not_change_match) {
+// RFC 9110 §12.5.1: a parameterized media range applies only to a type that
+// carries the parameter, so a bare candidate without it is not acceptable
+TEST(parameterized_range_does_not_match_bare_candidate) {
   EXPECT_EQ(sourcemeta::core::http_match_accept("text/html;charset=UTF-8",
                                                 {"text/html"}),
-            "text/html");
+            "");
+}
+
+// RFC 9110 §12.5.1: the same range does match a candidate that carries the
+// parameter
+TEST(parameterized_range_matches_candidate_with_parameter) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept("text/html;charset=UTF-8",
+                                                {"text/html;charset=UTF-8"}),
+            "text/html;charset=UTF-8");
 }
 
 TEST(type_wildcard_specificity_beats_full_wildcard) {
@@ -274,19 +305,25 @@ TEST(specific_low_q_wins_over_wildcard_high_q_within_candidate) {
       "application/json");
 }
 
+// RFC 9110 §5.6.6: a comma inside a quoted string does not split the list, so
+// the whole quoted parameter stays with the text/html range and matches the
+// candidate that carries it
 TEST(quoted_string_with_comma_does_not_split_entry) {
   EXPECT_EQ(sourcemeta::core::http_match_accept(
                 R"(text/html;profile="urn:a,b", application/json;q=0.5)",
-                {"text/html", "application/json"}),
-            "text/html");
+                {R"(text/html;profile="urn:a,b")", "application/json"}),
+            R"(text/html;profile="urn:a,b")");
 }
 
+// RFC 9110 §5.6.4: an escaped quote inside a quoted string is content, so the
+// quoted parameter is preserved intact and matches the candidate that carries
+// it
 TEST(escaped_quote_inside_quoted_string_handled) {
   const std::string_view header{
       "text/html;profile=\"a\\\"b,c\", application/json;q=0.5"};
   EXPECT_EQ(sourcemeta::core::http_match_accept(
-                header, {"text/html", "application/json"}),
-            "text/html");
+                header, {"text/html;profile=\"a\\\"b,c\"", "application/json"}),
+            "text/html;profile=\"a\\\"b,c\"");
 }
 
 TEST(q_value_zero_dot_no_digits_is_zero) {
@@ -310,4 +347,122 @@ TEST(q_value_four_decimal_digits_treated_as_zero) {
                 "text/html;q=0.1234, application/json;q=0.5",
                 {"text/html", "application/json"}),
             "application/json");
+}
+
+// RFC 9110 §12.5.1 Table 5 associates text/plain;format=flowed with 1.0, so it
+// outranks text/plain at 0.7
+TEST(table5_flowed_beats_plain) {
+  EXPECT_EQ(
+      sourcemeta::core::http_match_accept(
+          RFC9110_TABLE5_ACCEPT, {"text/plain;format=flowed", "text/plain"}),
+      "text/plain;format=flowed");
+}
+
+// RFC 9110 §12.5.1 Table 5 associates text/plain with 0.7, so it outranks
+// image/jpeg at 0.5
+TEST(table5_plain_beats_jpeg) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept(RFC9110_TABLE5_ACCEPT,
+                                                {"text/plain", "image/jpeg"}),
+            "text/plain");
+}
+
+// RFC 9110 §12.5.1 Table 5 associates image/jpeg with 0.5, so it outranks
+// text/plain;format=fixed at 0.4
+TEST(table5_jpeg_beats_fixed) {
+  EXPECT_EQ(
+      sourcemeta::core::http_match_accept(
+          RFC9110_TABLE5_ACCEPT, {"image/jpeg", "text/plain;format=fixed"}),
+      "image/jpeg");
+}
+
+// RFC 9110 §12.5.1 Table 5 associates text/plain;format=fixed with 0.4, so it
+// outranks text/html at 0.3
+TEST(table5_fixed_beats_html) {
+  EXPECT_EQ(
+      sourcemeta::core::http_match_accept(
+          RFC9110_TABLE5_ACCEPT, {"text/plain;format=fixed", "text/html"}),
+      "text/plain;format=fixed");
+}
+
+// RFC 9110 §12.5.1 Table 5 associates both text/html and text/html;level=1 with
+// 0.3 through the text/* range, so the tie falls to candidate order
+TEST(table5_html_and_level1_tie_on_candidate_order) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept(
+                RFC9110_TABLE5_ACCEPT, {"text/html", "text/html;level=1"}),
+            "text/html");
+}
+
+// RFC 9110 §12.5.1 Table 5: text/plain;format=flowed at 1.0 is the overall best
+TEST(table5_flowed_is_overall_best) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept(
+                RFC9110_TABLE5_ACCEPT,
+                {"text/html", "image/jpeg", "text/plain;format=fixed",
+                 "text/plain", "text/plain;format=flowed"}),
+            "text/plain;format=flowed");
+}
+
+// RFC 9110 §12.5.1 Table 5: with the flowed candidate removed, text/plain at
+// 0.7 is the best remaining
+TEST(table5_plain_is_best_without_flowed) {
+  EXPECT_EQ(
+      sourcemeta::core::http_match_accept(
+          RFC9110_TABLE5_ACCEPT,
+          {"text/html", "image/jpeg", "text/plain;format=fixed", "text/plain"}),
+      "text/plain");
+}
+
+// RFC 9110 §12.5.1: with equal weights the most specific media range has
+// precedence, so text/plain;format=flowed outranks text/plain
+TEST(precedence_flowed_over_plain) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept(
+                RFC9110_PRECEDENCE_ACCEPT,
+                {"text/plain", "text/plain;format=flowed"}),
+            "text/plain;format=flowed");
+}
+
+// RFC 9110 §12.5.1: text/plain (matched by the type/subtype range) outranks
+// image/jpeg (matched only by */*)
+TEST(precedence_plain_over_wildcard_only) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept(RFC9110_PRECEDENCE_ACCEPT,
+                                                {"text/plain", "image/jpeg"}),
+            "text/plain");
+}
+
+// RFC 9110 §12.5.1 level example: text/html;level=1 at 1.0 outranks text/html
+// at 0.7
+TEST(level_example_level1_beats_html) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept(
+                RFC9110_LEVEL_ACCEPT, {"text/html;level=1", "text/html"}),
+            "text/html;level=1");
+}
+
+// RFC 9110 §12.5.1 level example: text/html at 0.7 outranks image/jpeg at 0.5
+TEST(level_example_html_beats_jpeg) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept(RFC9110_LEVEL_ACCEPT,
+                                                {"text/html", "image/jpeg"}),
+            "text/html");
+}
+
+// RFC 9110 §12.5.1 level example: image/jpeg at 0.5 outranks text/html;level=2
+// at 0.4
+TEST(level_example_jpeg_beats_level2) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept(
+                RFC9110_LEVEL_ACCEPT, {"image/jpeg", "text/html;level=2"}),
+            "image/jpeg");
+}
+
+// RFC 9110 §12.5.1 level example: text/html;level=2 at 0.4 outranks text/plain
+// at 0.3
+TEST(level_example_level2_beats_plain) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept(
+                RFC9110_LEVEL_ACCEPT, {"text/html;level=2", "text/plain"}),
+            "text/html;level=2");
+}
+
+// RFC 9110 §12.5.1 level example: text/html;level=3 falls back to text/html at
+// 0.7, tying text/html so candidate order decides
+TEST(level_example_level3_matches_html_weight) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept(
+                RFC9110_LEVEL_ACCEPT, {"text/html;level=3", "text/html"}),
+            "text/html;level=3");
 }

@@ -322,8 +322,12 @@ auto compact_iri(const ActiveContext &active_context,
         }
       }
     } else if (value == nullptr) {
-      // A bare vocabulary reference may match a term that coerces @id or
-      // @vocab.
+      // For a bare value the preferred list is the type or language value
+      // followed by @none (JSON-LD 1.1 API Section 6.2.3). The @vocab candidate
+      // is not literally listed there for this case, but it is load-bearing:
+      // the W3C compaction suite case 0114 regresses without it, so a bare
+      // vocabulary reference must also be allowed to match a term coercing
+      // @vocab, exactly as the @none candidate is required for the graph branch
       preferred.emplace_back(KEYWORD_ID);
       preferred.emplace_back(KEYWORD_VOCAB);
       preferred.emplace_back(KEYWORD_NONE);
