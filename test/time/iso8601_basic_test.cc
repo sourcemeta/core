@@ -221,7 +221,8 @@ TEST(parse_rejects_second_sixty_one) {
 TEST(format_year_below_1000_pads_to_four_digits) {
   const auto point{sourcemeta::core::from_iso8601_basic("09000101T000000Z")};
   if (point.has_value()) {
-    EXPECT_EQ(sourcemeta::core::to_iso8601_basic(point.value()),
-              "09000101T000000Z");
+    const auto formatted{sourcemeta::core::to_iso8601_basic(point.value())};
+    EXPECT_EQ(formatted, "09000101T000000Z");
+    EXPECT_EQ(sourcemeta::core::from_iso8601_basic(formatted), point);
   }
 }

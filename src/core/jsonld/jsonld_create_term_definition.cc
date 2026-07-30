@@ -340,12 +340,9 @@ auto create_term_definition(ExpansionState &state,
     if (const auto *container_entry{
             value.try_at(KEYWORD_CONTAINER, KEYWORD_CONTAINER_HASH)}) {
       const auto &container{*container_entry};
-      // "If value contains an @container entry, set the container mapping of
-      // definition to an array containing its value; if its value is neither
-      // @set, nor @index, nor null, an invalid reverse property error has been
-      // detected and processing is aborted." (JSON-LD 1.1 API Section 4.2): a
-      // reverse property accepts a null container, leaving no container
-      // mapping.
+      // A reverse property accepts only an @set, @index, or null container, and
+      // a null container leaves no container mapping (JSON-LD 1.1 API Section
+      // 4.2)
       const bool reverse_null_container{definition.reverse &&
                                         container.is_null()};
       if (container.is_array()) {

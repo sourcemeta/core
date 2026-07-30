@@ -121,8 +121,10 @@ TEST(webfinger_request_uses_https_for_a_user_and_host_with_a_port) {
       sourcemeta::core::oidc_webfinger_request("joe@example.com:8080")};
   EXPECT_TRUE(request.has_value());
   EXPECT_EQ(request.value().resource, "https://joe@example.com:8080");
-  EXPECT_TRUE(request.value().url.starts_with(
-      "https://example.com:8080/.well-known/webfinger?"));
+  EXPECT_EQ(request.value().url,
+            "https://example.com:8080/.well-known/"
+            "webfinger?resource=https%3A%2F%2Fjoe%40example.com%3A8080&rel="
+            "http%3A%2F%2Fopenid.net%2Fspecs%2Fconnect%2F1.0%2Fissuer");
 }
 
 TEST(webfinger_request_uses_https_for_a_user_and_host_with_a_path) {
@@ -130,8 +132,10 @@ TEST(webfinger_request_uses_https_for_a_user_and_host_with_a_path) {
       sourcemeta::core::oidc_webfinger_request("joe@example.com/path")};
   EXPECT_TRUE(request.has_value());
   EXPECT_EQ(request.value().resource, "https://joe@example.com/path");
-  EXPECT_TRUE(request.value().url.starts_with(
-      "https://example.com/.well-known/webfinger?"));
+  EXPECT_EQ(request.value().url,
+            "https://example.com/.well-known/"
+            "webfinger?resource=https%3A%2F%2Fjoe%40example.com%2Fpath&rel="
+            "http%3A%2F%2Fopenid.net%2Fspecs%2Fconnect%2F1.0%2Fissuer");
 }
 
 TEST(webfinger_request_strips_a_fragment_from_a_url_identifier) {
@@ -139,8 +143,10 @@ TEST(webfinger_request_strips_a_fragment_from_a_url_identifier) {
       sourcemeta::core::oidc_webfinger_request("https://example.com/joe#top")};
   EXPECT_TRUE(request.has_value());
   EXPECT_EQ(request.value().resource, "https://example.com/joe");
-  EXPECT_TRUE(request.value().url.starts_with(
-      "https://example.com/.well-known/webfinger?"));
+  EXPECT_EQ(request.value().url,
+            "https://example.com/.well-known/"
+            "webfinger?resource=https%3A%2F%2Fexample.com%2Fjoe&rel="
+            "http%3A%2F%2Fopenid.net%2Fspecs%2Fconnect%2F1.0%2Fissuer");
 }
 
 TEST(webfinger_request_normalizes_a_bare_host_and_path) {
@@ -148,8 +154,10 @@ TEST(webfinger_request_normalizes_a_bare_host_and_path) {
       sourcemeta::core::oidc_webfinger_request("example.com/joe")};
   EXPECT_TRUE(request.has_value());
   EXPECT_EQ(request.value().resource, "https://example.com/joe");
-  EXPECT_TRUE(request.value().url.starts_with(
-      "https://example.com/.well-known/webfinger?"));
+  EXPECT_EQ(request.value().url,
+            "https://example.com/.well-known/"
+            "webfinger?resource=https%3A%2F%2Fexample.com%2Fjoe&rel="
+            "http%3A%2F%2Fopenid.net%2Fspecs%2Fconnect%2F1.0%2Fissuer");
 }
 
 TEST(webfinger_issuer_extracts_the_href) {

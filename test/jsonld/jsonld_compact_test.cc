@@ -250,7 +250,16 @@ TEST(iri_compaction_prefers_plain_graph_over_graph_id) {
 
   const auto result{sourcemeta::core::jsonld_compact(input, context)};
 
-  EXPECT_TRUE(result.is_object());
-  EXPECT_TRUE(result.defines("g"));
-  EXPECT_FALSE(result.defines("gid"));
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "g": { "@id": "http://example.com/node" },
+    "@context": {
+      "g": { "@id": "http://example.com/g", "@container": "@graph" },
+      "gid": {
+        "@id": "http://example.com/g",
+        "@container": [ "@graph", "@id" ]
+      }
+    }
+  })");
+
+  EXPECT_EQ(result, expected);
 }

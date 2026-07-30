@@ -122,13 +122,10 @@ auto compact_iri(const ActiveContext &active_context,
       const JSON::String graph{KEYWORD_GRAPH};
       const JSON::String set{KEYWORD_SET};
       const bool has_id{value->defines(KEYWORD_ID, KEYWORD_ID_HASH)};
-      // "If value contains an @index entry, append @graph@index and
-      // @graph@index@set. If value contains an @id entry, append @graph@id and
-      // @graph@id@set. Append @graph, @graph@set, and @set. If value does not
-      // contain an @index entry, append @graph@index and @graph@index@set. If
-      // value does not contain an @id entry, append @graph@id and
-      // @graph@id@set. Append @index and @index@set." (JSON-LD 1.1 API
-      // Section 6.2.3)
+      // Container preference for a graph object: the @graph@index and @graph@id
+      // variants rank first only when the value carries the matching entry,
+      // otherwise the plain graph containers rank ahead of them (JSON-LD 1.1
+      // API Section 6.2.3)
       if (has_index) {
         containers.emplace_back(graph + JSON::String{KEYWORD_INDEX});
         containers.emplace_back(graph + JSON::String{KEYWORD_INDEX} + set);
@@ -258,9 +255,8 @@ auto compact_iri(const ActiveContext &active_context,
       }
       containers.emplace_back(KEYWORD_SET);
       containers.emplace_back(KEYWORD_NONE);
-      // "If processing mode is not json-ld-1.0 and value is not a map or does
-      // not contain an @index entry, append @index and @index@set to
-      // containers." (JSON-LD 1.1 API Section 6.2.3)
+      // A value with no @index entry may also match an @index container, but
+      // never under the 1.0 processing mode (JSON-LD 1.1 API Section 6.2.3)
       if (!active_context.processing_1_0 && !has_index) {
         containers.emplace_back(KEYWORD_INDEX);
         containers.emplace_back(JSON::String{KEYWORD_INDEX} +
@@ -275,9 +271,9 @@ auto compact_iri(const ActiveContext &active_context,
     } else {
       type_language = KEYWORD_TYPE;
       type_language_value = KEYWORD_ID;
-      // "append @id, @id@set, @type, and @set@type, to containers. Append @set
-      // to containers. Append @none to containers ... append @index and
-      // @index@set to containers." (JSON-LD 1.1 API Section 6.2.3)
+      // Container preference for a node reference or null: the @id and @type
+      // containers first, then a plain @set, then no container, and an @index
+      // container last (JSON-LD 1.1 API Section 6.2.3)
       containers.emplace_back(KEYWORD_ID);
       containers.emplace_back(JSON::String{KEYWORD_ID} +
                               JSON::String{KEYWORD_SET});

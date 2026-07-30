@@ -293,7 +293,7 @@ TEST(format_year_below_1000_pads_to_four_digits) {
       sourcemeta::core::from_imf_fixdate("Mon, 01 Jan 0900 00:00:00 GMT")};
   if (point.has_value()) {
     const auto formatted{sourcemeta::core::to_imf_fixdate(point.value())};
-    EXPECT_NE(formatted.find(" 0900 "), std::string::npos);
+    EXPECT_EQ(formatted, "Fri, 01 Jan 0900 00:00:00 GMT");
     EXPECT_EQ(sourcemeta::core::from_imf_fixdate(formatted), point);
   }
 }

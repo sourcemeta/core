@@ -111,12 +111,14 @@ TEST(header_with_nul_in_value_is_refused) {
   sourcemeta::core::HTTPSystemRequest request{"https://example.com"};
   request.header("X-Injected", std::string{"value\0more", 10});
   EXPECT_TRUE(request.headers().empty());
+  EXPECT_FALSE(request.header("X-Injected").has_value());
 }
 
 TEST(header_with_crlf_in_name_is_refused) {
   sourcemeta::core::HTTPSystemRequest request{"https://example.com"};
   request.header("X-Bad\r\nEvil", "value");
   EXPECT_TRUE(request.headers().empty());
+  EXPECT_FALSE(request.header("X-Bad\r\nEvil").has_value());
 }
 
 TEST(header_from_wiping_storage_with_crlf_is_refused) {
@@ -124,6 +126,7 @@ TEST(header_from_wiping_storage_with_crlf_is_refused) {
   request.header("Authorization",
                  sourcemeta::core::SecureString{"Basic\r\nEvil: yes"});
   EXPECT_TRUE(request.headers().empty());
+  EXPECT_FALSE(request.header("Authorization").has_value());
 }
 
 TEST(header_refusal_leaves_valid_headers_intact) {
@@ -131,6 +134,9 @@ TEST(header_refusal_leaves_valid_headers_intact) {
   request.header("Accept", "application/json");
   request.header("X-Injected", "value\r\nEvil: yes");
   EXPECT_EQ(request.headers().size(), 1);
+  EXPECT_EQ(request.headers().at(0).first, "Accept");
+  EXPECT_EQ(request.headers().at(0).second.bytes(), "application/json");
+  EXPECT_FALSE(request.header("X-Injected").has_value());
   EXPECT_EQ(request.header("Accept").value(), "application/json");
 }
 

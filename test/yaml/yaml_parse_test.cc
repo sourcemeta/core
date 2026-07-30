@@ -1105,9 +1105,11 @@ TEST(tab_line_start_after_blank_indented_line_is_rejected) {
 TEST(signed_hexadecimal_is_a_string) {
   const std::string input{"key: -0x10"};
   const auto result{sourcemeta::core::parse_yaml(input)};
-  EXPECT_TRUE(result.is_object());
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON({ "key": "-0x10" })JSON")};
+  EXPECT_EQ(result, expected);
   EXPECT_TRUE(result.at("key").is_string());
-  EXPECT_EQ(result.at("key"), sourcemeta::core::JSON{"-0x10"});
+  EXPECT_FALSE(result.at("key").is_integer());
 }
 
 // YAML 1.2.2 Section 10.3.2: the octal integer form carries no sign, so a
@@ -1115,9 +1117,11 @@ TEST(signed_hexadecimal_is_a_string) {
 TEST(signed_octal_is_a_string) {
   const std::string input{"key: +0o7"};
   const auto result{sourcemeta::core::parse_yaml(input)};
-  EXPECT_TRUE(result.is_object());
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON({ "key": "+0o7" })JSON")};
+  EXPECT_EQ(result, expected);
   EXPECT_TRUE(result.at("key").is_string());
-  EXPECT_EQ(result.at("key"), sourcemeta::core::JSON{"+0o7"});
+  EXPECT_FALSE(result.at("key").is_integer());
 }
 
 // YAML 1.2.2 Section 10.3.2: the base-ten integer form does carry a sign, so a
@@ -1125,11 +1129,13 @@ TEST(signed_octal_is_a_string) {
 TEST(negative_decimal_integers_are_preserved) {
   const std::string input{"a: -16\nb: -12"};
   const auto result{sourcemeta::core::parse_yaml(input)};
-  EXPECT_TRUE(result.is_object());
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON({ "a": -16, "b": -12 })JSON")};
+  EXPECT_EQ(result, expected);
   EXPECT_TRUE(result.at("a").is_integer());
-  EXPECT_EQ(result.at("a"), sourcemeta::core::JSON{-16});
+  EXPECT_FALSE(result.at("a").is_real());
   EXPECT_TRUE(result.at("b").is_integer());
-  EXPECT_EQ(result.at("b"), sourcemeta::core::JSON{-12});
+  EXPECT_FALSE(result.at("b").is_real());
 }
 
 // YAML 1.2.2 Section 10.3.2: the octal indicator is lowercase, so an uppercase
@@ -1137,9 +1143,11 @@ TEST(negative_decimal_integers_are_preserved) {
 TEST(uppercase_octal_indicator_is_a_string) {
   const std::string input{"key: 0O17"};
   const auto result{sourcemeta::core::parse_yaml(input)};
-  EXPECT_TRUE(result.is_object());
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON({ "key": "0O17" })JSON")};
+  EXPECT_EQ(result, expected);
   EXPECT_TRUE(result.at("key").is_string());
-  EXPECT_EQ(result.at("key"), sourcemeta::core::JSON{"0O17"});
+  EXPECT_FALSE(result.at("key").is_integer());
 }
 
 // YAML 1.2.2 Section 10.3.2: the hexadecimal indicator is lowercase, so an
@@ -1147,9 +1155,11 @@ TEST(uppercase_octal_indicator_is_a_string) {
 TEST(uppercase_hexadecimal_indicator_is_a_string) {
   const std::string input{"key: 0X1F"};
   const auto result{sourcemeta::core::parse_yaml(input)};
-  EXPECT_TRUE(result.is_object());
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON({ "key": "0X1F" })JSON")};
+  EXPECT_EQ(result, expected);
   EXPECT_TRUE(result.at("key").is_string());
-  EXPECT_EQ(result.at("key"), sourcemeta::core::JSON{"0X1F"});
+  EXPECT_FALSE(result.at("key").is_integer());
 }
 
 // YAML 1.2.2 Section 10.3.2: a lowercase octal indicator resolves to an
@@ -1157,9 +1167,11 @@ TEST(uppercase_hexadecimal_indicator_is_a_string) {
 TEST(lowercase_octal_integer_is_parsed) {
   const std::string input{"key: 0o17"};
   const auto result{sourcemeta::core::parse_yaml(input)};
-  EXPECT_TRUE(result.is_object());
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON({ "key": 15 })JSON")};
+  EXPECT_EQ(result, expected);
   EXPECT_TRUE(result.at("key").is_integer());
-  EXPECT_EQ(result.at("key"), sourcemeta::core::JSON{15});
+  EXPECT_FALSE(result.at("key").is_real());
 }
 
 // YAML 1.2.2 Section 10.3.2: a lowercase hexadecimal indicator resolves to an
@@ -1167,9 +1179,11 @@ TEST(lowercase_octal_integer_is_parsed) {
 TEST(lowercase_hexadecimal_integer_is_parsed) {
   const std::string input{"key: 0x1f"};
   const auto result{sourcemeta::core::parse_yaml(input)};
-  EXPECT_TRUE(result.is_object());
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON({ "key": 31 })JSON")};
+  EXPECT_EQ(result, expected);
   EXPECT_TRUE(result.at("key").is_integer());
-  EXPECT_EQ(result.at("key"), sourcemeta::core::JSON{31});
+  EXPECT_FALSE(result.at("key").is_real());
 }
 
 // YAML 1.2.2 Section 5.1: the printable character set excludes the control
@@ -1184,6 +1198,13 @@ TEST(raw_control_character_is_rejected) {
   } catch (...) {
     FAIL();
   }
+
+  const std::string valid{"key: caf\xc3\xa9"};
+  const auto result{sourcemeta::core::parse_yaml(valid)};
+  auto expected{sourcemeta::core::JSON::make_object()};
+  expected.assign("key", sourcemeta::core::JSON{"caf\xc3\xa9"});
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.at("key").is_string());
 }
 
 // YAML 1.2.2 Section 5.1: a non-ASCII character encoded as a multibyte sequence
@@ -1192,8 +1213,10 @@ TEST(raw_control_character_is_rejected) {
 TEST(utf8_multibyte_scalar_is_accepted) {
   const std::string input{"key: caf\xc3\xa9"};
   const auto result{sourcemeta::core::parse_yaml(input)};
-  EXPECT_TRUE(result.is_object());
-  EXPECT_EQ(result.at("key"), sourcemeta::core::JSON{"caf\xc3\xa9"});
+  auto expected{sourcemeta::core::JSON::make_object()};
+  expected.assign("key", sourcemeta::core::JSON{"caf\xc3\xa9"});
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.at("key").is_string());
 }
 
 // YAML 1.2.2 Section 5.2: a stream may begin with a byte order mark, which is
@@ -1202,9 +1225,9 @@ TEST(leading_byte_order_mark_is_stripped) {
   const std::string input{"\xef\xbb\xbf"
                           "foo: bar"};
   const auto result{sourcemeta::core::parse_yaml(input)};
-  EXPECT_TRUE(result.is_object());
-  EXPECT_TRUE(result.defines("foo"));
-  EXPECT_EQ(result.at("foo"), sourcemeta::core::JSON{"bar"});
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON({ "foo": "bar" })JSON")};
+  EXPECT_EQ(result, expected);
 }
 
 // YAML 1.2.2 Section 6.8.1: a document naming a higher major version is
@@ -1219,6 +1242,12 @@ TEST(yaml_directive_higher_major_version_is_rejected) {
   } catch (...) {
     FAIL();
   }
+
+  const std::string valid{"%YAML 1.2\n--- value\n"};
+  const auto result{sourcemeta::core::parse_yaml(valid)};
+  const sourcemeta::core::JSON expected{"value"};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.is_string());
 }
 
 // YAML 1.2.2 Section 6.8.1: a higher minor version of the same major version is
@@ -1226,7 +1255,9 @@ TEST(yaml_directive_higher_major_version_is_rejected) {
 TEST(yaml_directive_higher_minor_version_is_accepted) {
   const std::string input{"%YAML 1.3\n--- value\n"};
   const auto result{sourcemeta::core::parse_yaml(input)};
-  EXPECT_EQ(result, sourcemeta::core::JSON{"value"});
+  const sourcemeta::core::JSON expected{"value"};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.is_string());
 }
 
 // YAML 1.2.2 Section 6.8.2: a handle may carry at most one tag directive in a
@@ -1243,6 +1274,14 @@ TEST(duplicate_tag_directive_same_handle_is_rejected) {
   } catch (...) {
     FAIL();
   }
+
+  const std::string valid{"%TAG !e! tag:example.com,2000:app/\n"
+                          "%TAG !f! tag:example.com,2000:other/\n"
+                          "--- value\n"};
+  const auto result{sourcemeta::core::parse_yaml(valid)};
+  const sourcemeta::core::JSON expected{"value"};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.is_string());
 }
 
 // YAML 1.2.2 Section 6.8.2: distinct handles each carry their own tag
@@ -1252,7 +1291,9 @@ TEST(distinct_tag_directive_handles_are_accepted) {
                           "%TAG !f! tag:example.com,2000:other/\n"
                           "--- value\n"};
   const auto result{sourcemeta::core::parse_yaml(input)};
-  EXPECT_EQ(result, sourcemeta::core::JSON{"value"});
+  const sourcemeta::core::JSON expected{"value"};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.is_string());
 }
 
 // YAML 1.2.2 Section 6.8.2.1: a named tag handle must be associated with a
@@ -1267,6 +1308,12 @@ TEST(undefined_tag_handle_is_rejected) {
   } catch (...) {
     FAIL();
   }
+
+  const std::string valid{"!!str foo\n"};
+  const auto result{sourcemeta::core::parse_yaml(valid)};
+  const sourcemeta::core::JSON expected{"foo"};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.is_string());
 }
 
 // YAML 1.2.2 Section 6.8.2.1: the secondary tag handle is associated with a
@@ -1274,8 +1321,10 @@ TEST(undefined_tag_handle_is_rejected) {
 TEST(secondary_tag_handle_str_is_accepted) {
   const std::string input{"!!str 1"};
   const auto result{sourcemeta::core::parse_yaml(input)};
+  const sourcemeta::core::JSON expected{"1"};
+  EXPECT_EQ(result, expected);
   EXPECT_TRUE(result.is_string());
-  EXPECT_EQ(result, sourcemeta::core::JSON{"1"});
+  EXPECT_FALSE(result.is_integer());
 }
 
 // YAML 1.2.2 Section 6.8.2.1: the primary tag handle is associated with a
@@ -1283,6 +1332,7 @@ TEST(secondary_tag_handle_str_is_accepted) {
 TEST(primary_tag_handle_plain_is_accepted) {
   const std::string input{"! plain"};
   const auto result{sourcemeta::core::parse_yaml(input)};
+  const sourcemeta::core::JSON expected{"plain"};
+  EXPECT_EQ(result, expected);
   EXPECT_TRUE(result.is_string());
-  EXPECT_EQ(result, sourcemeta::core::JSON{"plain"});
 }

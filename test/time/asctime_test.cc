@@ -202,7 +202,7 @@ TEST(format_year_below_1000_pads_to_four_digits) {
   const auto point{sourcemeta::core::from_asctime("Mon Jan  1 00:00:00 0900")};
   if (point.has_value()) {
     const auto formatted{sourcemeta::core::to_asctime(point.value())};
-    EXPECT_NE(formatted.find(" 0900"), std::string::npos);
+    EXPECT_EQ(formatted, "Fri Jan  1 00:00:00 0900");
     EXPECT_EQ(sourcemeta::core::from_asctime(formatted), point);
   }
 }

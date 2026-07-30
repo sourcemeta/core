@@ -11,10 +11,9 @@ auto html_escape(std::string &text) -> void {
   std::size_t required_size{0};
   for (std::string::size_type position{0}; position < text.size();
        position += 1) {
-    // The no-break space is replaced by its named entity (HTML Living Standard
-    // "escaping a string" step 2 "Replace any occurrences of the U+00A0
-    // NO-BREAK SPACE character by the string &nbsp;"), whose two UTF-8 bytes
-    // become six output bytes
+    // The no-break space is replaced by its named entity, so its two UTF-8
+    // bytes become six output bytes (HTML Living Standard "escaping a string"
+    // step 2)
     if (static_cast<unsigned char>(text[position]) == 0xC2 &&
         position + 1 < text.size() &&
         static_cast<unsigned char>(text[position + 1]) == 0xA0) {
@@ -59,8 +58,7 @@ auto html_escape(std::string &text) -> void {
 
           // The no-break space (its two trailing UTF-8 bytes seen back to
           // front) is replaced by its named entity (HTML Living Standard
-          // "escaping a string" step 2 "Replace any occurrences of the U+00A0
-          // NO-BREAK SPACE character by the string &nbsp;")
+          // "escaping a string" step 2)
           if (static_cast<unsigned char>(buffer[read_position]) == 0xA0 &&
               read_position > 0 &&
               static_cast<unsigned char>(buffer[read_position - 1]) == 0xC2) {
@@ -131,8 +129,7 @@ static auto needs_escape(const std::string_view input) -> bool {
   for (std::string_view::size_type position{0}; position < input.size();
        position += 1) {
     // The no-break space also requires escaping (HTML Living Standard "escaping
-    // a string" step 2 "Replace any occurrences of the U+00A0 NO-BREAK SPACE
-    // character by the string &nbsp;")
+    // a string" step 2)
     if (static_cast<unsigned char>(input[position]) == 0xC2 &&
         position + 1 < input.size() &&
         static_cast<unsigned char>(input[position + 1]) == 0xA0) {
@@ -164,8 +161,7 @@ auto html_escape_append(std::string &output, const std::string_view input)
   for (std::string_view::size_type position{0}; position < input.size();
        position += 1) {
     // The no-break space is replaced by its named entity (HTML Living Standard
-    // "escaping a string" step 2 "Replace any occurrences of the U+00A0
-    // NO-BREAK SPACE character by the string &nbsp;")
+    // "escaping a string" step 2)
     if (static_cast<unsigned char>(input[position]) == 0xC2 &&
         position + 1 < input.size() &&
         static_cast<unsigned char>(input[position + 1]) == 0xA0) {
@@ -206,8 +202,7 @@ auto html_escape_append(HTMLBuffer &output, const std::string_view input)
   for (std::string_view::size_type position{0}; position < input.size();
        position += 1) {
     // The no-break space is replaced by its named entity (HTML Living Standard
-    // "escaping a string" step 2 "Replace any occurrences of the U+00A0
-    // NO-BREAK SPACE character by the string &nbsp;")
+    // "escaping a string" step 2)
     if (static_cast<unsigned char>(input[position]) == 0xC2 &&
         position + 1 < input.size() &&
         static_cast<unsigned char>(input[position + 1]) == 0xA0) {
