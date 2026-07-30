@@ -207,3 +207,50 @@ TEST(list_object_stays_array_without_compact_arrays) {
 
   EXPECT_EQ(result, expected);
 }
+
+TEST(iri_compaction_prefers_no_container_type_over_index) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    { "@type": [ "http://example.com/T" ] }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({
+    "t": "http://example.com/T",
+    "idx": { "@id": "http://example.com/T", "@container": "@index" }
+  })");
+
+  const auto result{sourcemeta::core::jsonld_compact(input, context)};
+
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "@type": "t",
+    "@context": {
+      "t": "http://example.com/T",
+      "idx": { "@id": "http://example.com/T", "@container": "@index" }
+    }
+  })");
+
+  EXPECT_EQ(result, expected);
+}
+
+TEST(iri_compaction_prefers_plain_graph_over_graph_id) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/g": [
+        { "@graph": [ { "@id": "http://example.com/node" } ] }
+      ]
+    }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({
+    "g": { "@id": "http://example.com/g", "@container": "@graph" },
+    "gid": {
+      "@id": "http://example.com/g",
+      "@container": [ "@graph", "@id" ]
+    }
+  })");
+
+  const auto result{sourcemeta::core::jsonld_compact(input, context)};
+
+  EXPECT_TRUE(result.is_object());
+  EXPECT_TRUE(result.defines("g"));
+  EXPECT_FALSE(result.defines("gid"));
+}

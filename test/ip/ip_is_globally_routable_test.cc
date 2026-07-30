@@ -59,6 +59,30 @@ TEST(blocks_ipv4_documentation) {
   EXPECT_FALSE(sourcemeta::core::ip_is_globally_routable("198.51.100.1"));
 }
 
+TEST(public_ipv4_pcp_anycast) {
+  EXPECT_TRUE(sourcemeta::core::ip_is_globally_routable("192.0.0.9"));
+}
+
+TEST(public_ipv4_turn_anycast) {
+  EXPECT_TRUE(sourcemeta::core::ip_is_globally_routable("192.0.0.10"));
+}
+
+TEST(public_ipv4_dns_resolver_anycast) {
+  EXPECT_TRUE(sourcemeta::core::ip_is_globally_routable("192.0.0.11"));
+}
+
+TEST(blocks_ipv4_protocol_assignments_base) {
+  EXPECT_FALSE(sourcemeta::core::ip_is_globally_routable("192.0.0.1"));
+}
+
+TEST(blocks_ipv4_protocol_assignments_below_anycast) {
+  EXPECT_FALSE(sourcemeta::core::ip_is_globally_routable("192.0.0.8"));
+}
+
+TEST(blocks_ipv4_protocol_assignments_above_anycast) {
+  EXPECT_FALSE(sourcemeta::core::ip_is_globally_routable("192.0.0.12"));
+}
+
 TEST(blocks_ipv6_loopback) {
   EXPECT_FALSE(sourcemeta::core::ip_is_globally_routable("::1"));
 }

@@ -67,7 +67,9 @@ struct Token {
 class Lexer {
 public:
   Lexer(const std::string_view input, const bool roundtrip_mode = false)
-      : input_{input}, roundtrip_{roundtrip_mode} {}
+      : input_{strip_byte_order_mark(input)}, roundtrip_{roundtrip_mode} {
+    this->validate_characters();
+  }
 
   auto next() -> std::optional<Token> {
     if (this->roundtrip_) {
@@ -352,6 +354,63 @@ public:
   }
 
 private:
+  // YAML 1.2.2 Section 5.2: a stream may begin with a byte order mark that
+  // selects the character encoding. Only the UTF-8 encoding is supported here,
+  // so its byte order mark is skipped before lexing
+  [[nodiscard]] static auto
+  strip_byte_order_mark(const std::string_view input) noexcept
+      -> std::string_view {
+    if (input.size() >= 3 && static_cast<unsigned char>(input[0]) == 0xEF &&
+        static_cast<unsigned char>(input[1]) == 0xBB &&
+        static_cast<unsigned char>(input[2]) == 0xBF) {
+      return std::string_view{input.data() + 3, input.size() - 3};
+    }
+    return input;
+  }
+
+  // YAML 1.2.2 Section 5.1: the printable character set excludes the control
+  // block below the space other than tab, line feed, and carriage return, the
+  // delete character, and the high control block other than the next line
+  // character
+  [[nodiscard]] static auto
+  is_disallowed_control(const char32_t codepoint) noexcept -> bool {
+    if (codepoint <= 0x1F) {
+      return codepoint != 0x09 && codepoint != 0x0A && codepoint != 0x0D;
+    }
+    if (codepoint == 0x7F) {
+      return true;
+    }
+    if (codepoint >= 0x80 && codepoint <= 0x9F) {
+      return codepoint != 0x85;
+    }
+    return false;
+  }
+
+  auto validate_characters() const -> void {
+    std::uint64_t line{1};
+    std::uint64_t column{1};
+    std::size_t position{0};
+    while (position < this->input_.size()) {
+      const auto decoded{utf8_decode(this->input_, position)};
+      if (!decoded.has_value()) {
+        position++;
+        column++;
+        continue;
+      }
+      if (is_disallowed_control(decoded->first)) [[unlikely]] {
+        throw YAMLParseError{line, column,
+                             "Control character not allowed in YAML stream"};
+      }
+      if (decoded->first == '\n') {
+        line++;
+        column = 1;
+      } else {
+        column++;
+      }
+      position += decoded->second;
+    }
+  }
+
   [[nodiscard]] static auto is_whitespace(const char character) noexcept
       -> bool {
     return character == ' ' || character == '\t' || character == '\n' ||

@@ -247,3 +247,44 @@ TEST(container_empty_value) {
   EXPECT_EQ(headers.at(0).first, "x-empty");
   EXPECT_TRUE(headers.at(0).second.empty());
 }
+
+TEST(callback_discards_value_with_embedded_nul) {
+  const std::string input{std::string{"HTTP/1.1 200 OK\r\nServer: te"} + '\0' +
+                          "st\r\n\r\n"};
+  EXPECT_TRUE(collect(input).empty());
+}
+
+TEST(callback_discards_value_with_bare_carriage_return) {
+  EXPECT_TRUE(collect("HTTP/1.1 200 OK\r\nServer: te\rst\r\n\r\n").empty());
+}
+
+TEST(callback_discards_value_with_bare_line_feed) {
+  EXPECT_TRUE(collect("HTTP/1.1 200 OK\r\nServer: te\nst\r\n\r\n").empty());
+}
+
+TEST(callback_discards_injected_field_but_keeps_valid_ones) {
+  const std::string input{std::string{"HTTP/1.1 200 OK\r\nBad: te"} + '\0' +
+                          "st\r\nServer: ok\r\n\r\n"};
+  const auto headers{collect(input)};
+  EXPECT_EQ(headers.size(), 1);
+  EXPECT_EQ(headers.at(0).first, "Server");
+  EXPECT_EQ(headers.at(0).second, "ok");
+}
+
+TEST(callback_discards_folded_continuation_with_embedded_nul) {
+  const std::string input{
+      std::string{"HTTP/1.1 200 OK\r\nX-Long: first\r\n co"} + '\0' +
+      "nt\r\n\r\n"};
+  const auto headers{collect(input)};
+  EXPECT_EQ(headers.size(), 1);
+  EXPECT_EQ(headers.at(0).first, "X-Long");
+  EXPECT_EQ(headers.at(0).second, "first");
+}
+
+TEST(container_discards_value_with_embedded_nul) {
+  std::vector<std::pair<std::string, std::string>> headers;
+  const std::string input{std::string{"HTTP/1.1 200 OK\r\nServer: te"} + '\0' +
+                          "st\r\n\r\n"};
+  sourcemeta::core::http_parse_headers(input, headers);
+  EXPECT_TRUE(headers.empty());
+}

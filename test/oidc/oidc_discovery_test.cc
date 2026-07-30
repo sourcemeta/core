@@ -116,6 +116,42 @@ TEST(webfinger_request_accepts_an_uppercase_https_scheme) {
       "https://example.com/.well-known/webfinger?"));
 }
 
+TEST(webfinger_request_uses_https_for_a_user_and_host_with_a_port) {
+  const auto request{
+      sourcemeta::core::oidc_webfinger_request("joe@example.com:8080")};
+  EXPECT_TRUE(request.has_value());
+  EXPECT_EQ(request.value().resource, "https://joe@example.com:8080");
+  EXPECT_TRUE(request.value().url.starts_with(
+      "https://example.com:8080/.well-known/webfinger?"));
+}
+
+TEST(webfinger_request_uses_https_for_a_user_and_host_with_a_path) {
+  const auto request{
+      sourcemeta::core::oidc_webfinger_request("joe@example.com/path")};
+  EXPECT_TRUE(request.has_value());
+  EXPECT_EQ(request.value().resource, "https://joe@example.com/path");
+  EXPECT_TRUE(request.value().url.starts_with(
+      "https://example.com/.well-known/webfinger?"));
+}
+
+TEST(webfinger_request_strips_a_fragment_from_a_url_identifier) {
+  const auto request{
+      sourcemeta::core::oidc_webfinger_request("https://example.com/joe#top")};
+  EXPECT_TRUE(request.has_value());
+  EXPECT_EQ(request.value().resource, "https://example.com/joe");
+  EXPECT_TRUE(request.value().url.starts_with(
+      "https://example.com/.well-known/webfinger?"));
+}
+
+TEST(webfinger_request_normalizes_a_bare_host_and_path) {
+  const auto request{
+      sourcemeta::core::oidc_webfinger_request("example.com/joe")};
+  EXPECT_TRUE(request.has_value());
+  EXPECT_EQ(request.value().resource, "https://example.com/joe");
+  EXPECT_TRUE(request.value().url.starts_with(
+      "https://example.com/.well-known/webfinger?"));
+}
+
 TEST(webfinger_issuer_extracts_the_href) {
   const auto descriptor{sourcemeta::core::parse_json(R"JSON({
     "subject": "acct:joe@example.com",

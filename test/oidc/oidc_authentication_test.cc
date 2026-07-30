@@ -402,14 +402,30 @@ TEST(parse_rejects_a_non_exclusive_none_prompt) {
       storage, request));
 }
 
-TEST(parse_rejects_offline_access_with_a_none_prompt) {
+TEST(parse_ignores_offline_access_with_a_none_prompt) {
   std::string storage;
   sourcemeta::core::OIDCAuthenticationRequest request;
-  EXPECT_FALSE(sourcemeta::core::oidc_parse_authentication_request(
+  EXPECT_TRUE(sourcemeta::core::oidc_parse_authentication_request(
       "response_type=code&client_id=s6BhdRkqt3&"
       "redirect_uri=https%3A%2F%2Fclient.example%2Fcb&"
-      "scope=openid%20offline_access&prompt=none",
+      "scope=openid%20offline_access&prompt=none&"
+      "code_challenge=E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM&code_"
+      "challenge_method=S256",
       storage, request));
+  EXPECT_EQ(request.scope, "openid");
+}
+
+TEST(parse_drops_offline_access_but_keeps_other_scopes_with_a_none_prompt) {
+  std::string storage;
+  sourcemeta::core::OIDCAuthenticationRequest request;
+  EXPECT_TRUE(sourcemeta::core::oidc_parse_authentication_request(
+      "response_type=code&client_id=s6BhdRkqt3&"
+      "redirect_uri=https%3A%2F%2Fclient.example%2Fcb&"
+      "scope=openid%20offline_access%20profile&prompt=none&"
+      "code_challenge=E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM&code_"
+      "challenge_method=S256",
+      storage, request));
+  EXPECT_EQ(request.scope, "openid profile");
 }
 
 TEST(parse_accepts_offline_access_with_a_consent_prompt) {

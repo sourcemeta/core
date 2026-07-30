@@ -295,6 +295,13 @@ private:
           throw YAMLParseError{token.line, token.column,
                                "Invalid version in %YAML directive"};
         }
+        // YAML 1.2.2 Section 6.8.1: a document that names a higher major
+        // version than this processor supports must be rejected
+        const auto major{version.substr(0, version_dot)};
+        if (major.size() > 1 || major.front() > '1') [[unlikely]] {
+          throw YAMLParseError{token.line, token.column,
+                               "Unsupported major version in %YAML directive"};
+        }
         while (cursor < content.size() &&
                (content[cursor] == ' ' || content[cursor] == '\t')) {
           cursor++;
@@ -330,6 +337,13 @@ private:
         const auto prefix{
             std::string{content.substr(prefix_start, cursor - prefix_start)}};
         if (!handle.empty() && !prefix.empty()) {
+          // YAML 1.2.2 Section 6.8.2: a handle may carry at most one tag
+          // directive in a document, even when both give the same prefix
+          if (this->tag_directives_.contains(handle)) [[unlikely]] {
+            throw YAMLParseError{
+                token.line, token.column,
+                "Duplicate %TAG directive for the same handle"};
+          }
           this->tag_directives_.insert_or_assign(handle, prefix);
         }
       }
@@ -365,6 +379,10 @@ private:
           return iterator->second +
                  std::string{raw_tag.substr(second_bang + 1)};
         }
+        // YAML 1.2.2 Section 6.8.2.1: a named tag handle must be associated
+        // with a prefix by a tag directive, so an undefined handle is an error
+        throw YAMLParseError{this->lexer_->line(), this->lexer_->column(),
+                             "Undefined tag handle"};
       }
     }
 
@@ -819,11 +837,11 @@ private:
       }
     }
 
-    if (value.size() > start + 1 && value[start] == '0') {
-      if (value[start + 1] == 'x' || value[start + 1] == 'X') {
-        return true;
-      }
-      if (value[start + 1] == 'o' || value[start + 1] == 'O') {
+    // YAML 1.2.2 Section 10.3.2: the hexadecimal and octal integer forms carry
+    // no sign and use a lowercase indicator, so a preceding sign or an
+    // uppercase indicator makes the value a plain string rather than an integer
+    if (start == 0 && value.size() > 1 && value[0] == '0') {
+      if (value[1] == 'x' || value[1] == 'o') {
         return true;
       }
     }
@@ -866,12 +884,14 @@ private:
 
   auto parse_number(const std::string_view value) -> JSON {
     const std::size_t prefix{(value[0] == '-' || value[0] == '+') ? 1u : 0u};
-    if (value.size() > prefix + 1 && value[prefix] == '0') {
-      const char indicator{value[prefix + 1]};
-      if (indicator == 'x' || indicator == 'X') {
+    // YAML 1.2.2 Section 10.3.2: the hexadecimal and octal integer forms carry
+    // no sign and use a lowercase indicator
+    if (prefix == 0 && value.size() > 1 && value[0] == '0') {
+      const char indicator{value[1]};
+      if (indicator == 'x') {
         return this->parse_base_integer(value, 16);
       }
-      if (indicator == 'o' || indicator == 'O') {
+      if (indicator == 'o') {
         return this->parse_base_integer(value, 8);
       }
     }
@@ -910,11 +930,11 @@ private:
 
   auto parse_base_integer(const std::string_view value, const int base)
       -> JSON {
-    const bool negative{value[0] == '-'};
-    const std::size_t start{(value[0] == '-' || value[0] == '+') ? 3u : 2u};
-    const auto result{to_int64_t(std::string{value.substr(start)}, base)};
+    // YAML 1.2.2 Section 10.3.2: the base indicator is two characters and no
+    // sign precedes it, so parsing starts at the third character
+    const auto result{to_int64_t(std::string{value.substr(2)}, base)};
     if (result.has_value()) {
-      return JSON{negative ? -result.value() : result.value()};
+      return JSON{result.value()};
     }
     return JSON{value};
   }

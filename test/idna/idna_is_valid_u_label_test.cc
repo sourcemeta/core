@@ -169,16 +169,29 @@ TEST(hangul_precomposed_syllable_accepted) {
   EXPECT_TRUE(sourcemeta::core::idna_is_valid_u_label(U"\uAC00"));
 }
 
-// RFC 5890 \u00A72.3.2.1: the corresponding A-label must be at most 63 octets.
-// A pure-ASCII label of 58 "a" characters encodes to a 59-octet Punycode
-// body, which with the 4-octet "xn--" prefix is exactly 63 octets
-TEST(a_label_form_exactly_63_octets_accepted) {
-  const std::u32string label(58, U'a');
+// RFC 5890 \u00A72.3.2.1: the 63-octet limit applies to the A-label form. A
+// pure-ASCII label stays in that form, so its own octet length is what is
+// bounded, and a 59-character ASCII label is well within the limit
+TEST(pure_ascii_label_of_59_octets_accepted) {
+  const std::u32string label(59, U'a');
   EXPECT_TRUE(sourcemeta::core::idna_is_valid_u_label(label));
 }
 
-// One additional character pushes the A-label form to 64 octets
-TEST(a_label_form_64_octets_rejected) {
-  const std::u32string label(59, U'a');
+// A pure-ASCII label of exactly 63 octets sits on the boundary
+TEST(pure_ascii_label_of_63_octets_accepted) {
+  const std::u32string label(63, U'a');
+  EXPECT_TRUE(sourcemeta::core::idna_is_valid_u_label(label));
+}
+
+// One octet past the boundary is rejected
+TEST(pure_ascii_label_of_64_octets_rejected) {
+  const std::u32string label(64, U'a');
+  EXPECT_FALSE(sourcemeta::core::idna_is_valid_u_label(label));
+}
+
+// A label carrying non-ASCII is measured by its A-label form, so enough
+// non-ASCII code points push the "xn--" plus Punycode body past 63 octets
+TEST(non_ascii_label_with_a_label_over_63_octets_rejected) {
+  const std::u32string label(60, U'\u00E9');
   EXPECT_FALSE(sourcemeta::core::idna_is_valid_u_label(label));
 }

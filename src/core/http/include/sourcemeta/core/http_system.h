@@ -9,6 +9,7 @@
 #include <sourcemeta/core/http_aws_sigv4.h>
 #include <sourcemeta/core/http_method.h>
 #include <sourcemeta/core/http_status.h>
+#include <sourcemeta/core/http_syntax.h>
 #include <sourcemeta/core/text.h>
 
 #include <chrono>      // std::chrono::milliseconds, std::chrono::seconds
@@ -46,9 +47,10 @@ struct HTTPResponse {
   /// The response status code
   HTTPStatus status{};
   /// The response headers, with names normalised to lowercase. Repeated
-  /// headers are preserved as separate entries, except on backends that fold
-  /// them into a single comma-separated entry, which is semantically
-  /// equivalent per RFC 9110
+  /// headers are preserved as separate entries, though some backends fold them
+  /// into a single comma-separated entry, which is lossy and incorrect for a
+  /// `Set-Cookie` header that "cannot be combined into a single field value"
+  /// (RFC 9110 §5.3)
   std::vector<std::pair<std::string, std::string>> headers;
   /// The response body, owned by this result
   std::string body;
@@ -142,8 +144,18 @@ public:
     }
   };
 
-  /// Add a request header. Repeated names are permitted
+  /// Add a request header. Repeated names are permitted. A name or value
+  /// carrying a carriage return, line feed, or NUL is refused, leaving the
+  /// request unchanged
   auto header(std::string name, std::string value) -> HTTPSystemRequest & {
+    // RFC 9110 §5.5: "a recipient of CR, LF, or NUL within a field value MUST
+    // either reject the message or replace each of those characters with SP",
+    // so a header carrying one is not added as a header-injection defense
+    if (http_field_line_has_forbidden_byte(name) ||
+        http_field_line_has_forbidden_byte(value)) {
+      return *this;
+    }
+
     this->headers_.emplace_back(std::move(name),
                                 HeaderValue{.data = std::move(value)});
     return *this;
@@ -154,6 +166,14 @@ public:
   /// retained in an ordinary string, and the transient serialisation a backend
   /// builds at send time is wiped
   auto header(std::string name, SecureString value) -> HTTPSystemRequest & {
+    // RFC 9110 §5.5: "a recipient of CR, LF, or NUL within a field value MUST
+    // either reject the message or replace each of those characters with SP",
+    // so a header carrying one is not added as a header-injection defense
+    if (http_field_line_has_forbidden_byte(name) ||
+        http_field_line_has_forbidden_byte(value)) {
+      return *this;
+    }
+
     this->headers_.emplace_back(std::move(name),
                                 HeaderValue{.data = std::move(value)});
     return *this;

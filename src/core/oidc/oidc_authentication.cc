@@ -6,6 +6,7 @@
 #include <algorithm>   // std::ranges::all_of
 #include <array>       // std::array
 #include <cstddef>     // std::size_t
+#include <functional>  // std::less
 #include <optional>    // std::optional, std::nullopt
 #include <span>        // std::span
 #include <string>      // std::string
@@ -51,6 +52,45 @@ auto offline_access_is_valid(const std::string_view scope,
                              const std::string_view prompt) -> bool {
   return !space_list_contains(scope, "offline_access") ||
          !space_list_contains(prompt, "none");
+}
+
+// OpenID Connect Core 1.0 Section 11: when the conditions that authorize
+// issuing a refresh token are not met, the Authorization Server "MUST ignore
+// the offline_access request", so the token is dropped from the parsed scope
+// rather than the whole request being refused. The decoded scope lives in the
+// arena, so the retained tokens are compacted back into its own bytes, which
+// only shrinks and therefore never disturbs another borrowed view into the
+// arena. A scope carrying more than one token was percent-encoded and so lands
+// in the arena, so an in-place rewrite applies only when the value points there
+auto drop_offline_access(std::string_view &scope, std::string &storage)
+    -> void {
+  const auto *const arena{storage.data()};
+  const std::less<const char *> before{};
+  if (before(scope.data(), arena) ||
+      !before(scope.data(), arena + storage.size())) {
+    return;
+  }
+
+  const auto offset{static_cast<std::size_t>(scope.data() - arena)};
+  std::size_t length{0};
+  split(scope, ' ',
+        [&storage, offset, &length](const std::string_view token) -> void {
+          if (token.empty() || token == "offline_access") {
+            return;
+          }
+
+          if (length != 0) {
+            storage[offset + length] = ' ';
+            length += 1;
+          }
+
+          for (const auto character : token) {
+            storage[offset + length] = character;
+            length += 1;
+          }
+        });
+
+  scope = std::string_view{storage.data() + offset, length};
 }
 
 // OpenID Connect Core 1.0 Section 3, module design Section 14: the
@@ -323,19 +363,24 @@ auto oidc_parse_authentication_request(const std::string_view query,
   result.code_challenge_method = base.code_challenge_method;
   result.request_uri = base.request_uri;
 
+  // OpenID Connect Core 1.0 Section 11: on the provider side an offline_access
+  // request that cannot yield a refresh token, such as one paired with a none
+  // prompt that forbids gathering consent, is ignored rather than refused, so
+  // the token is removed from the scope and the request continues to be parsed
+  if (!offline_access_is_valid(result.scope, result.prompt)) {
+    drop_offline_access(result.scope, storage);
+  }
+
   // The same OpenID Connect well-formedness the builder enforces, so parsing
   // never accepts a request the module could not build: the client identifier
   // and redirection URI are REQUIRED, the scope must contain openid, a none
-  // prompt must appear alone, offline_access cannot pair with a none prompt,
-  // the response_type is REQUIRED and limited by the profile, a returned ID
-  // Token requires a nonce, and the strict profile requires PKCE (OpenID
-  // Connect Core 1.0 Section 3.1.2.1, Section 3.3.2.11, Section 11, RFC 9700
-  // Section 2.1.1)
+  // prompt must appear alone, the response_type is REQUIRED and limited by the
+  // profile, a returned ID Token requires a nonce, and the strict profile
+  // requires PKCE (OpenID Connect Core 1.0 Section 3.1.2.1, Section 3.3.2.11,
+  // RFC 9700 Section 2.1.1)
   return !result.client_id.empty() && !result.redirect_uri.empty() &&
          space_list_contains(result.scope, "openid") &&
-         prompt_is_valid(result.prompt) &&
-         offline_access_is_valid(result.scope, result.prompt) &&
-         !result.response_type.empty() &&
+         prompt_is_valid(result.prompt) && !result.response_type.empty() &&
          response_type_is_allowed(result.response_type, profile) &&
          !(response_type_requires_nonce(result.response_type) &&
            result.nonce.empty()) &&

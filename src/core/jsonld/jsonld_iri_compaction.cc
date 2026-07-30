@@ -121,19 +121,38 @@ auto compact_iri(const ActiveContext &active_context,
     } else if (is_graph) {
       const JSON::String graph{KEYWORD_GRAPH};
       const JSON::String set{KEYWORD_SET};
-      // A graph object may match any graph container the term declares, mapping
-      // by @id or @index when present and by @none otherwise.
-      containers.emplace_back(graph + JSON::String{KEYWORD_ID});
-      containers.emplace_back(graph + JSON::String{KEYWORD_ID} + set);
-      containers.emplace_back(graph + JSON::String{KEYWORD_INDEX});
-      containers.emplace_back(graph + JSON::String{KEYWORD_INDEX} + set);
+      const bool has_id{value->defines(KEYWORD_ID, KEYWORD_ID_HASH)};
+      // "If value contains an @index entry, append @graph@index and
+      // @graph@index@set. If value contains an @id entry, append @graph@id and
+      // @graph@id@set. Append @graph, @graph@set, and @set. If value does not
+      // contain an @index entry, append @graph@index and @graph@index@set. If
+      // value does not contain an @id entry, append @graph@id and
+      // @graph@id@set. Append @index and @index@set." (JSON-LD 1.1 API
+      // Section 6.2.3)
+      if (has_index) {
+        containers.emplace_back(graph + JSON::String{KEYWORD_INDEX});
+        containers.emplace_back(graph + JSON::String{KEYWORD_INDEX} + set);
+      }
+      if (has_id) {
+        containers.emplace_back(graph + JSON::String{KEYWORD_ID});
+        containers.emplace_back(graph + JSON::String{KEYWORD_ID} + set);
+      }
       containers.emplace_back(graph);
       containers.emplace_back(graph + set);
-      if (has_index) {
-        containers.emplace_back(KEYWORD_INDEX);
-        containers.emplace_back(JSON::String{KEYWORD_INDEX} + set);
-      }
       containers.emplace_back(KEYWORD_SET);
+      if (!has_index) {
+        containers.emplace_back(graph + JSON::String{KEYWORD_INDEX});
+        containers.emplace_back(graph + JSON::String{KEYWORD_INDEX} + set);
+      }
+      if (!has_id) {
+        containers.emplace_back(graph + JSON::String{KEYWORD_ID});
+        containers.emplace_back(graph + JSON::String{KEYWORD_ID} + set);
+      }
+      containers.emplace_back(KEYWORD_INDEX);
+      containers.emplace_back(JSON::String{KEYWORD_INDEX} + set);
+      // The spec graph-object branch does not list @none. It is retained as a
+      // last-resort fallback only, so a graph object still matches a term with
+      // no container mapping when nothing more specific applies.
       containers.emplace_back(KEYWORD_NONE);
       type_language = KEYWORD_TYPE;
       type_language_value = KEYWORD_ID;
@@ -239,7 +258,10 @@ auto compact_iri(const ActiveContext &active_context,
       }
       containers.emplace_back(KEYWORD_SET);
       containers.emplace_back(KEYWORD_NONE);
-      if (!has_index) {
+      // "If processing mode is not json-ld-1.0 and value is not a map or does
+      // not contain an @index entry, append @index and @index@set to
+      // containers." (JSON-LD 1.1 API Section 6.2.3)
+      if (!active_context.processing_1_0 && !has_index) {
         containers.emplace_back(KEYWORD_INDEX);
         containers.emplace_back(JSON::String{KEYWORD_INDEX} +
                                 JSON::String{KEYWORD_SET});
@@ -253,19 +275,20 @@ auto compact_iri(const ActiveContext &active_context,
     } else {
       type_language = KEYWORD_TYPE;
       type_language_value = KEYWORD_ID;
+      // "append @id, @id@set, @type, and @set@type, to containers. Append @set
+      // to containers. Append @none to containers ... append @index and
+      // @index@set to containers." (JSON-LD 1.1 API Section 6.2.3)
       containers.emplace_back(KEYWORD_ID);
       containers.emplace_back(JSON::String{KEYWORD_ID} +
                               JSON::String{KEYWORD_SET});
       containers.emplace_back(KEYWORD_TYPE);
-      // The inverse context stores container keys sorted, so @set precedes
-      // @type.
       containers.emplace_back(JSON::String{KEYWORD_SET} +
                               JSON::String{KEYWORD_TYPE});
+      containers.emplace_back(KEYWORD_SET);
+      containers.emplace_back(KEYWORD_NONE);
       containers.emplace_back(KEYWORD_INDEX);
       containers.emplace_back(JSON::String{KEYWORD_INDEX} +
                               JSON::String{KEYWORD_SET});
-      containers.emplace_back(KEYWORD_SET);
-      containers.emplace_back(KEYWORD_NONE);
     }
 
     std::vector<JSON::String> preferred;
