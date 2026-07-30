@@ -67,8 +67,17 @@ struct Token {
 class Lexer {
 public:
   Lexer(const std::string_view input, const bool roundtrip_mode = false)
-      : input_{strip_byte_order_mark(input)}, roundtrip_{roundtrip_mode} {
+      : input_{strip_byte_order_mark(input)},
+        bom_length_{input.size() - this->input_.size()},
+        roundtrip_{roundtrip_mode} {
     this->validate_characters();
+  }
+
+  // The number of leading bytes consumed by a stripped byte order mark, so a
+  // caller reading from a stream can map a consumed count back to the original
+  // input offset
+  [[nodiscard]] auto bom_length() const noexcept -> std::size_t {
+    return this->bom_length_;
   }
 
   auto next() -> std::optional<Token> {
@@ -383,7 +392,10 @@ private:
     if (codepoint >= 0x80 && codepoint <= 0x9F) {
       return codepoint != 0x85;
     }
-    return false;
+    // YAML 1.2.2 Section 5.1: the printable set spans the basic multilingual
+    // plane up to and including the last valid character below the two
+    // permanently unassigned code points at its end
+    return codepoint == 0xFFFE || codepoint == 0xFFFF;
   }
 
   auto validate_characters() const -> void {
@@ -392,10 +404,12 @@ private:
     std::size_t position{0};
     while (position < this->input_.size()) {
       const auto decoded{utf8_decode(this->input_, position)};
-      if (!decoded.has_value()) {
-        position++;
-        column++;
-        continue;
+      // YAML 1.2.2 Section 5.2: a stream is a sequence of characters in one of
+      // the supported encodings, so a byte sequence that does not decode is not
+      // a well-formed stream
+      if (!decoded.has_value()) [[unlikely]] {
+        throw YAMLParseError{line, column,
+                             "Invalid UTF-8 sequence in YAML stream"};
       }
       if (is_disallowed_control(decoded->first)) [[unlikely]] {
         throw YAMLParseError{line, column,
@@ -1709,6 +1723,7 @@ private:
   }
 
   std::string_view input_;
+  std::size_t bom_length_{0};
   std::size_t position_{0};
   std::uint64_t line_{1};
   std::uint64_t column_{1};

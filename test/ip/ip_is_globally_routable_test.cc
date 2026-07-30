@@ -67,8 +67,8 @@ TEST(public_ipv4_turn_anycast) {
   EXPECT_TRUE(sourcemeta::core::ip_is_globally_routable("192.0.0.10"));
 }
 
-TEST(public_ipv4_dns_resolver_anycast) {
-  EXPECT_TRUE(sourcemeta::core::ip_is_globally_routable("192.0.0.11"));
+TEST(blocks_ipv4_protocol_assignments_192_0_0_11) {
+  EXPECT_FALSE(sourcemeta::core::ip_is_globally_routable("192.0.0.11"));
 }
 
 TEST(blocks_ipv4_protocol_assignments_base) {

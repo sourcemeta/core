@@ -65,12 +65,11 @@ inline auto ipv4_classify_octets(const std::array<std::uint8_t, 4> &octets)
     return IPAddressClass::LinkLocal;
   }
 
-  // RFC 7723 Section 4.1, RFC 8155, and RFC 9665: the anycast addresses
-  // 192.0.0.9, 192.0.0.10, and 192.0.0.11 are registered as globally
-  // reachable, carved out of the surrounding not-globally-reachable
-  // 192.0.0.0/24 block that follows
-  if (first == 192 && second == 0 && third == 0 && fourth >= 9 &&
-      fourth <= 11) {
+  // RFC 7723 Section 4.1 and RFC 8155: the anycast addresses 192.0.0.9 and
+  // 192.0.0.10 are registered as globally reachable, carved out of the
+  // surrounding not-globally-reachable 192.0.0.0/24 block that follows
+  if (first == 192 && second == 0 && third == 0 &&
+      (fourth == 9 || fourth == 10)) {
     return IPAddressClass::Public;
   }
 

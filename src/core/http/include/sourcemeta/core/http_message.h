@@ -366,10 +366,21 @@ template <typename Headers>
 inline auto http_serialize_headers(const Headers &headers) -> std::string {
   std::size_t total_size{0};
   for (const auto &[name, value] : headers) {
+    // A field dropped for a forbidden byte contributes no bytes, so the reserve
+    // is sized from only the fields that are actually emitted
+    if (http_field_line_has_forbidden_byte(name)) {
+      continue;
+    }
     // Account for the colon, the space, and the trailing CRLF
     if constexpr (requires { value.bytes(); }) {
+      if (http_field_line_has_forbidden_byte(value.bytes())) {
+        continue;
+      }
       total_size += name.size() + value.bytes().size() + 4;
     } else {
+      if (http_field_line_has_forbidden_byte(value)) {
+        continue;
+      }
       total_size += name.size() + value.size() + 4;
     }
   }

@@ -80,6 +80,26 @@ TEST(from_rejects_a_native_client_with_an_https_redirect_uri) {
                    .has_value());
 }
 
+TEST(from_rejects_a_web_implicit_client_with_a_hostless_https_redirect_uri) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "application_type": "web",
+    "grant_types": [ "implicit" ],
+    "response_types": [ "token" ],
+    "redirect_uris": [ "https:///cb" ]
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::OIDCClientMetadata::from(std::move(document))
+                   .has_value());
+}
+
+TEST(from_rejects_an_unknown_application_type) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "application_type": "desktop",
+    "redirect_uris": [ "https://client.example/cb" ]
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::OIDCClientMetadata::from(std::move(document))
+                   .has_value());
+}
+
 TEST(from_accepts_a_native_client_with_a_custom_scheme_redirect_uri) {
   auto document{sourcemeta::core::parse_json(R"JSON({
     "application_type": "native",

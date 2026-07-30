@@ -1336,3 +1336,62 @@ TEST(primary_tag_handle_plain_is_accepted) {
   EXPECT_EQ(result, expected);
   EXPECT_TRUE(result.is_string());
 }
+
+// YAML 1.2.2 Section 5.1: the two permanently unassigned code points at the end
+// of the basic multilingual plane are outside the printable character set.
+TEST(permanently_unassigned_code_point_is_rejected) {
+  const std::string input{std::string{"key: va"} + "\xEF\xBF\xBE" + "lue"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Control character not allowed in YAML stream");
+  } catch (...) {
+    FAIL();
+  }
+
+  const std::string valid{"key: caf\xc3\xa9"};
+  const auto result{sourcemeta::core::parse_yaml(valid)};
+  auto expected{sourcemeta::core::JSON::make_object()};
+  expected.assign("key", sourcemeta::core::JSON{"caf\xc3\xa9"});
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.at("key").is_string());
+}
+
+// YAML 1.2.2 Section 5.2: a stream is a sequence of characters in a supported
+// encoding, so a byte sequence that is not well-formed UTF-8 is not a stream.
+TEST(invalid_utf8_sequence_is_rejected) {
+  const std::string input{std::string{"key: va"} + '\xFF' + "lue"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid UTF-8 sequence in YAML stream");
+  } catch (...) {
+    FAIL();
+  }
+
+  const std::string valid{"key: caf\xc3\xa9"};
+  const auto result{sourcemeta::core::parse_yaml(valid)};
+  auto expected{sourcemeta::core::JSON::make_object()};
+  expected.assign("key", sourcemeta::core::JSON{"caf\xc3\xa9"});
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.at("key").is_string());
+}
+
+// YAML 1.2.2 Section 5.2: a stream that begins with a byte order mark is read
+// in the encoding it selects, so a stream reader resumes a later document at
+// the correct byte rather than one offset by the mark.
+TEST(byte_order_mark_stream_resumes_at_the_correct_document) {
+  std::istringstream stream{std::string{"\xEF\xBB\xBF"} + "a: 1\n---\nb: 2\n"};
+
+  const auto first{sourcemeta::core::parse_yaml(stream)};
+  const sourcemeta::core::JSON expected_first{
+      sourcemeta::core::parse_json(R"JSON({ "a": 1 })JSON")};
+  EXPECT_EQ(first, expected_first);
+
+  const auto second{sourcemeta::core::parse_yaml(stream)};
+  const sourcemeta::core::JSON expected_second{
+      sourcemeta::core::parse_json(R"JSON({ "b": 2 })JSON")};
+  EXPECT_EQ(second, expected_second);
+}

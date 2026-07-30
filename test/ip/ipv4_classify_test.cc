@@ -101,9 +101,9 @@ TEST(public_turn_anycast_192_0_0_10) {
             sourcemeta::core::IPAddressClass::Public);
 }
 
-TEST(public_dns_resolver_anycast_192_0_0_11) {
+TEST(reserved_protocol_assignments_192_0_0_11) {
   EXPECT_EQ(sourcemeta::core::ipv4_classify("192.0.0.11").value(),
-            sourcemeta::core::IPAddressClass::Public);
+            sourcemeta::core::IPAddressClass::Reserved);
 }
 
 TEST(reserved_protocol_assignments_192_0_0_8) {

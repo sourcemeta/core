@@ -84,7 +84,8 @@ auto is_https_url_with_host(const std::string_view value) -> bool {
 auto is_web_implicit_redirect_uri(const std::string_view value) -> bool {
   try {
     const URI uri{value};
-    return uri.is_https() && !uri.is_localhost();
+    return uri.is_https() && uri.host().has_value() &&
+           !uri.host().value().empty() && !uri.is_localhost();
   } catch (const URIParseError &) {
     return false;
   }
@@ -150,6 +151,12 @@ auto validate_client_metadata(const OAuthClientMetadata &oauth) -> void {
   const auto application_type{
       string_member(data, "application_type"sv, HASH_APPLICATION_TYPE)
           .value_or("web"sv)};
+  // OpenID Connect Dynamic Client Registration 1.0 Section 2 defines only the
+  // web and native application types, so an unknown value is rejected rather
+  // than defaulted and left unrestricted
+  if (application_type != "web"sv && application_type != "native"sv) {
+    throw OIDCRegistrationParseError{};
+  }
   const bool native{application_type == "native"sv};
   if (native || oauth.supports_grant_type("implicit"sv)) {
     for (const auto &element : redirect_uris->as_array()) {

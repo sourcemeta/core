@@ -16,9 +16,9 @@ namespace sourcemeta::core {
 /// HTML character escaping implementation per HTML Living Standard.
 /// See: https://html.spec.whatwg.org/multipage/parsing.html#escapingString
 ///
-/// This function escapes the five HTML special characters in-place: the
-/// ampersand, less-than sign, greater-than sign, double quote, and apostrophe
-/// each become their corresponding HTML entity.
+/// This function escapes the five HTML special characters in-place, the
+/// ampersand, less-than sign, greater-than sign, double quote, and apostrophe,
+/// along with the no-break space, each becoming its corresponding HTML entity.
 ///
 /// For example:
 ///

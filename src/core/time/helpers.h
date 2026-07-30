@@ -75,7 +75,9 @@ inline auto time_point_to_broken_down(
 // that asctime and the ISO 8601 basic format share, yet rendering the year
 // through the standard library omits its leading zeros for a year below 1000 on
 // several platforms, which the parsers here then reject. The field is built
-// explicitly so a representable year is always at least four digits
+// explicitly so a representable year is always at least four digits. The year
+// is expected to be non-negative, as every caller derives it from a broken-down
+// time whose year is offset from 1900
 inline auto format_four_digit_year(const int year) -> std::string {
   std::string digits{std::to_string(year)};
   if (digits.size() < 4) {

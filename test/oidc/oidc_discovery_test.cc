@@ -74,6 +74,28 @@ TEST(webfinger_request_normalizes_a_bare_host) {
   EXPECT_EQ(request.value().resource, "https://example.com");
 }
 
+TEST(webfinger_request_keeps_an_acct_scheme_with_a_digit_userinfo) {
+  const auto request{
+      sourcemeta::core::oidc_webfinger_request("acct:123@example.com")};
+  EXPECT_TRUE(request.has_value());
+  EXPECT_EQ(request.value().resource, "acct:123@example.com");
+  EXPECT_EQ(request.value().url,
+            "https://example.com/.well-known/"
+            "webfinger?resource=acct%3A123%40example.com&rel="
+            "http%3A%2F%2Fopenid.net%2Fspecs%2Fconnect%2F1.0%2Fissuer");
+}
+
+TEST(webfinger_request_recognizes_an_uppercase_acct_scheme) {
+  const auto request{
+      sourcemeta::core::oidc_webfinger_request("ACCT:joe@example.com")};
+  EXPECT_TRUE(request.has_value());
+  EXPECT_EQ(request.value().resource, "ACCT:joe@example.com");
+  EXPECT_EQ(request.value().url,
+            "https://example.com/.well-known/"
+            "webfinger?resource=ACCT%3Ajoe%40example.com&rel="
+            "http%3A%2F%2Fopenid.net%2Fspecs%2Fconnect%2F1.0%2Fissuer");
+}
+
 TEST(webfinger_request_rejects_a_non_https_url_identifier) {
   EXPECT_FALSE(
       sourcemeta::core::oidc_webfinger_request("http://example.com/joe")

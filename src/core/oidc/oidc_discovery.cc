@@ -45,8 +45,22 @@ auto identifier_has_scheme(const std::string_view identifier) -> bool {
     }
   }
 
+  // A colon that begins an all-digit port up to the next component delimiter is
+  // the "host:port" shape rather than a scheme, so only that shape overrides
+  // the RFC 3986 scheme detection
   const auto rest{identifier.substr(delimiter + 1)};
-  return rest.empty() || !is_digit(rest.front());
+  const auto port{rest.substr(0, rest.find_first_of("/?#"))};
+  if (port.empty()) {
+    return true;
+  }
+
+  for (const auto character : port) {
+    if (!is_digit(character)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 // OpenID Connect Discovery 1.0 Section 2.1: "If the userinfo and host
@@ -120,7 +134,9 @@ auto oidc_webfinger_request(const std::string_view identifier)
   // host, but a URL resource is parsed rather than scanned by hand. The host is
   // copied out because the parsed URI does not outlive this scope
   std::string host;
-  if (request.resource.starts_with("acct:")) {
+  // RFC 3986 Section 3.1: a scheme is case-insensitive, so an acct resource is
+  // recognized regardless of the case the caller used
+  if (starts_with_ignore_case(request.resource, "acct:")) {
     const auto account{
         rsplit_once(std::string_view{request.resource}.substr(5), '@')};
     if (!account.has_value()) {
