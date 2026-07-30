@@ -102,6 +102,7 @@ public:
       throw YAMLParseError{1, 1, "Empty YAML document"};
     } else if (token->type == TokenType::DocumentEnd) {
       while (token.has_value() && token->type == TokenType::DocumentEnd) {
+        this->document_ended_ = true;
         token = this->lexer_->next();
       }
       if (!token.has_value() || token->type == TokenType::StreamEnd)
@@ -135,6 +136,7 @@ public:
       }
     }
     while (token.has_value() && token->type == TokenType::DocumentEnd) {
+      this->document_ended_ = true;
       if (this->roundtrip_) {
         this->roundtrip_->pre_end_comments =
             this->lexer_->take_preceding_comments();
@@ -176,9 +178,17 @@ public:
 
   auto validate_end_of_stream() -> void {
     auto token{this->next_token()};
-    bool saw_document_end{false};
+    // The preceding parse already consumed a document, so its end marker, if
+    // any, is not among the tokens seen here. YAML 1.2.2 Section 6.8.2: tag
+    // directives are local to one document, so crossing that boundary begins a
+    // fresh directive scope.
+    bool saw_document_end{this->document_ended_};
+    if (saw_document_end) {
+      this->tag_directives_.clear();
+    }
     while (token.has_value() && token->type == TokenType::DocumentEnd) {
       saw_document_end = true;
+      this->tag_directives_.clear();
       token = this->next_token();
     }
     if (!token.has_value() || token->type == TokenType::StreamEnd) {
@@ -186,7 +196,6 @@ public:
     }
     while (token.has_value() && token->type != TokenType::StreamEnd) {
       if (token->type == TokenType::DocumentStart) {
-        this->tag_directives_.clear();
         token = this->next_token();
         if (!token.has_value() || token->type == TokenType::StreamEnd) {
           return;
@@ -218,6 +227,9 @@ public:
       token = this->next_token();
       while (token.has_value() && token->type == TokenType::DocumentEnd) {
         saw_document_end = true;
+        // YAML 1.2.2 Section 6.8.2: the next document begins with an empty
+        // directive scope
+        this->tag_directives_.clear();
         token = this->next_token();
       }
     }
@@ -295,6 +307,13 @@ private:
           throw YAMLParseError{token.line, token.column,
                                "Invalid version in %YAML directive"};
         }
+        // YAML 1.2.2 Section 6.8.1: a document that names a higher major
+        // version than this processor supports must be rejected
+        const auto major{version.substr(0, version_dot)};
+        if (major.size() > 1 || major.front() > '1') [[unlikely]] {
+          throw YAMLParseError{token.line, token.column,
+                               "Unsupported major version in %YAML directive"};
+        }
         while (cursor < content.size() &&
                (content[cursor] == ' ' || content[cursor] == '\t')) {
           cursor++;
@@ -330,6 +349,13 @@ private:
         const auto prefix{
             std::string{content.substr(prefix_start, cursor - prefix_start)}};
         if (!handle.empty() && !prefix.empty()) {
+          // YAML 1.2.2 Section 6.8.2: a handle may carry at most one tag
+          // directive in a document, even when both give the same prefix
+          if (this->tag_directives_.contains(handle)) [[unlikely]] {
+            throw YAMLParseError{
+                token.line, token.column,
+                "Duplicate %TAG directive for the same handle"};
+          }
           this->tag_directives_.insert_or_assign(handle, prefix);
         }
       }
@@ -365,6 +391,10 @@ private:
           return iterator->second +
                  std::string{raw_tag.substr(second_bang + 1)};
         }
+        // YAML 1.2.2 Section 6.8.2.1: a named tag handle must be associated
+        // with a prefix by a tag directive, so an undefined handle is an error
+        throw YAMLParseError{this->lexer_->line(), this->lexer_->column(),
+                             "Undefined tag handle"};
       }
     }
 
@@ -819,11 +849,11 @@ private:
       }
     }
 
-    if (value.size() > start + 1 && value[start] == '0') {
-      if (value[start + 1] == 'x' || value[start + 1] == 'X') {
-        return true;
-      }
-      if (value[start + 1] == 'o' || value[start + 1] == 'O') {
+    // YAML 1.2.2 Section 10.3.2: the hexadecimal and octal integer forms carry
+    // no sign and use a lowercase indicator, so a preceding sign or an
+    // uppercase indicator makes the value a plain string rather than an integer
+    if (start == 0 && value.size() > 1 && value[0] == '0') {
+      if (value[1] == 'x' || value[1] == 'o') {
         return true;
       }
     }
@@ -866,12 +896,14 @@ private:
 
   auto parse_number(const std::string_view value) -> JSON {
     const std::size_t prefix{(value[0] == '-' || value[0] == '+') ? 1u : 0u};
-    if (value.size() > prefix + 1 && value[prefix] == '0') {
-      const char indicator{value[prefix + 1]};
-      if (indicator == 'x' || indicator == 'X') {
+    // YAML 1.2.2 Section 10.3.2: the hexadecimal and octal integer forms carry
+    // no sign and use a lowercase indicator
+    if (prefix == 0 && value.size() > 1 && value[0] == '0') {
+      const char indicator{value[1]};
+      if (indicator == 'x') {
         return this->parse_base_integer(value, 16);
       }
-      if (indicator == 'o' || indicator == 'O') {
+      if (indicator == 'o') {
         return this->parse_base_integer(value, 8);
       }
     }
@@ -910,11 +942,11 @@ private:
 
   auto parse_base_integer(const std::string_view value, const int base)
       -> JSON {
-    const bool negative{value[0] == '-'};
-    const std::size_t start{(value[0] == '-' || value[0] == '+') ? 3u : 2u};
-    const auto result{to_int64_t(std::string{value.substr(start)}, base)};
+    // YAML 1.2.2 Section 10.3.2: the base indicator is two characters and no
+    // sign precedes it, so parsing starts at the third character
+    const auto result{to_int64_t(std::string{value.substr(2)}, base)};
     if (result.has_value()) {
-      return JSON{negative ? -result.value() : result.value()};
+      return JSON{result.value()};
     }
     return JSON{value};
   }
@@ -2054,6 +2086,10 @@ private:
   std::optional<std::size_t> pending_token_position_;
   std::unordered_map<std::string, std::string> tag_directives_;
   std::uint64_t document_start_line_{0};
+  // Whether the document parsed by the most recent call ended with an explicit
+  // document end marker, so a subsequent stream validation knows a document
+  // boundary was already crossed
+  bool document_ended_{false};
 };
 
 } // namespace sourcemeta::core::yaml

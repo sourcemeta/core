@@ -212,3 +212,17 @@ TEST(parse_rejects_second_sixty_one) {
   EXPECT_FALSE(
       sourcemeta::core::from_iso8601_basic("20150830T123661Z").has_value());
 }
+
+// The basic format is fixed width (ISO 8601-1 §5.4.2.1), so a year below 1000
+// must render as four digits rather than three. A system clock whose range
+// excludes a pre-1000 instant yields no value here, so the round-trip is
+// asserted only where the year is representable, which excludes a nanosecond
+// libstdc++ clock
+TEST(format_year_below_1000_pads_to_four_digits) {
+  const auto point{sourcemeta::core::from_iso8601_basic("09000101T000000Z")};
+  if (point.has_value()) {
+    const auto formatted{sourcemeta::core::to_iso8601_basic(point.value())};
+    EXPECT_EQ(formatted, "09000101T000000Z");
+    EXPECT_EQ(sourcemeta::core::from_iso8601_basic(formatted), point);
+  }
+}

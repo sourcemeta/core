@@ -283,3 +283,17 @@ TEST(parse_upper_case_month_name) {
       sourcemeta::core::from_imf_fixdate("Wed, 21 OCT 2015 11:28:00 GMT")
           .has_value());
 }
+
+// RFC 9110 §5.6.7: "year = 4DIGIT", so a year below 1000 must render with a
+// leading zero rather than three digits. A system clock whose range excludes a
+// pre-1000 instant yields no value here, so the round-trip is asserted only
+// where the year is representable, which excludes a nanosecond libstdc++ clock
+TEST(format_year_below_1000_pads_to_four_digits) {
+  const auto point{
+      sourcemeta::core::from_imf_fixdate("Mon, 01 Jan 0900 00:00:00 GMT")};
+  if (point.has_value()) {
+    const auto formatted{sourcemeta::core::to_imf_fixdate(point.value())};
+    EXPECT_EQ(formatted, "Fri, 01 Jan 0900 00:00:00 GMT");
+    EXPECT_EQ(sourcemeta::core::from_imf_fixdate(formatted), point);
+  }
+}

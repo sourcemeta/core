@@ -125,6 +125,28 @@ TEST(jwt_sign_hs256_from_octets_round_trips) {
       sourcemeta::core::jwt_verify_signature(token.value(), verification_key));
 }
 
+TEST(jwt_sign_rejects_duplicate_header_members) {
+  const auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(OCT_JWK))};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_FALSE(
+      sourcemeta::core::jwt_sign(
+          sourcemeta::core::parse_json(R"({"alg":"HS256","alg":"RS256"})"),
+          sourcemeta::core::parse_json(R"({"iss":"acme"})"), key.value())
+          .has_value());
+}
+
+TEST(jwt_sign_rejects_duplicate_payload_members) {
+  const auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(OCT_JWK))};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_FALSE(sourcemeta::core::jwt_sign(
+                   sourcemeta::core::parse_json(R"({"alg":"HS256"})"),
+                   sourcemeta::core::parse_json(R"({"iss":"a","iss":"b"})"),
+                   key.value())
+                   .has_value());
+}
+
 TEST(jwt_sign_hs256_from_octets_rejects_short_secret) {
   const auto key{sourcemeta::core::JWKPrivate::from_octets("too-short")};
   EXPECT_FALSE(sourcemeta::core::jwt_sign(

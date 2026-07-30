@@ -91,6 +91,31 @@ TEST(reserved_documentation_192_0_2) {
             sourcemeta::core::IPAddressClass::Reserved);
 }
 
+TEST(public_pcp_anycast_192_0_0_9) {
+  EXPECT_EQ(sourcemeta::core::ipv4_classify("192.0.0.9").value(),
+            sourcemeta::core::IPAddressClass::Public);
+}
+
+TEST(public_turn_anycast_192_0_0_10) {
+  EXPECT_EQ(sourcemeta::core::ipv4_classify("192.0.0.10").value(),
+            sourcemeta::core::IPAddressClass::Public);
+}
+
+TEST(reserved_protocol_assignments_192_0_0_11) {
+  EXPECT_EQ(sourcemeta::core::ipv4_classify("192.0.0.11").value(),
+            sourcemeta::core::IPAddressClass::Reserved);
+}
+
+TEST(reserved_protocol_assignments_192_0_0_8) {
+  EXPECT_EQ(sourcemeta::core::ipv4_classify("192.0.0.8").value(),
+            sourcemeta::core::IPAddressClass::Reserved);
+}
+
+TEST(reserved_protocol_assignments_192_0_0_12) {
+  EXPECT_EQ(sourcemeta::core::ipv4_classify("192.0.0.12").value(),
+            sourcemeta::core::IPAddressClass::Reserved);
+}
+
 TEST(reserved_benchmarking_198_18) {
   EXPECT_EQ(sourcemeta::core::ipv4_classify("198.18.0.1").value(),
             sourcemeta::core::IPAddressClass::Reserved);

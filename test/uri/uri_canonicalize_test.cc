@@ -72,6 +72,30 @@ TEST(percent_encoded_uppercase_host_letter) {
   EXPECT_EQ(uri.recompose(), "http://aexample.com/path");
 }
 
+// RFC 3986 Section 6.2.2.1: percent-encoding triplet hex is normalized to
+// uppercase, so a non-ASCII host octet keeps uppercase hex after case folding
+TEST(percent_encoded_non_ascii_host_keeps_uppercase_hex) {
+  sourcemeta::core::URI uri{"http://caf%C3%A9.example/"};
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "http://caf%C3%A9.example/");
+}
+
+// RFC 3986 Section 6.2.2.1: a reserved host octet stays percent-encoded with
+// uppercase hex even though the host is folded to lowercase
+TEST(percent_encoded_reserved_host_keeps_uppercase_hex) {
+  sourcemeta::core::URI uri{"http://ex%3Dample.com/"};
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "http://ex%3Dample.com/");
+}
+
+// A percent-encoded unreserved host octet is decoded and then folded to
+// lowercase
+TEST(percent_encoded_unreserved_host_octet_decodes_and_folds) {
+  sourcemeta::core::URI uri{"http://%41.example/"};
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "http://a.example/");
+}
+
 // Paths are case sensitive
 TEST(example_9) {
   sourcemeta::core::URI uri{"hTtP://exAmpLe.com/case-SENSITIVE-path"};

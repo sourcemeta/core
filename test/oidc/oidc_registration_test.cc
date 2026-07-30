@@ -71,6 +71,157 @@ TEST(from_rejects_a_fragment_bearing_redirect_uri) {
                    .has_value());
 }
 
+TEST(from_rejects_a_native_client_with_an_https_redirect_uri) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "application_type": "native",
+    "redirect_uris": [ "https://client.example/cb" ]
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::OIDCClientMetadata::from(std::move(document))
+                   .has_value());
+}
+
+TEST(from_rejects_a_web_implicit_client_with_a_hostless_https_redirect_uri) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "application_type": "web",
+    "grant_types": [ "implicit" ],
+    "response_types": [ "token" ],
+    "redirect_uris": [ "https:///cb" ]
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::OIDCClientMetadata::from(std::move(document))
+                   .has_value());
+}
+
+TEST(from_rejects_an_unknown_application_type) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "application_type": "desktop",
+    "redirect_uris": [ "https://client.example/cb" ]
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::OIDCClientMetadata::from(std::move(document))
+                   .has_value());
+}
+
+TEST(from_accepts_a_native_client_with_a_custom_scheme_redirect_uri) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "application_type": "native",
+    "redirect_uris": [ "com.example.app:/cb" ]
+  })JSON")};
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "application_type": "native",
+    "redirect_uris": [ "com.example.app:/cb" ]
+  })JSON")};
+  const auto metadata{
+      sourcemeta::core::OIDCClientMetadata::from(std::move(document))};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().application_type(), "native");
+  EXPECT_EQ(metadata.value().id_token_signed_response_alg(), "RS256");
+  EXPECT_FALSE(metadata.value().require_auth_time());
+  EXPECT_FALSE(metadata.value().subject_type().has_value());
+  EXPECT_FALSE(metadata.value().default_max_age().has_value());
+  EXPECT_TRUE(metadata.value().has_redirect_uri("com.example.app:/cb"));
+}
+
+TEST(from_accepts_a_native_client_with_a_loopback_redirect_uri) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "application_type": "native",
+    "redirect_uris": [ "http://127.0.0.1/cb" ]
+  })JSON")};
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "application_type": "native",
+    "redirect_uris": [ "http://127.0.0.1/cb" ]
+  })JSON")};
+  const auto metadata{
+      sourcemeta::core::OIDCClientMetadata::from(std::move(document))};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().application_type(), "native");
+  EXPECT_EQ(metadata.value().id_token_signed_response_alg(), "RS256");
+  EXPECT_FALSE(metadata.value().require_auth_time());
+  EXPECT_TRUE(metadata.value().has_redirect_uri("http://127.0.0.1/cb"));
+}
+
+TEST(from_rejects_a_web_implicit_client_with_a_localhost_redirect_uri) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "application_type": "web",
+    "grant_types": [ "implicit" ],
+    "redirect_uris": [ "http://localhost/cb" ]
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::OIDCClientMetadata::from(std::move(document))
+                   .has_value());
+}
+
+TEST(from_rejects_a_web_implicit_client_with_a_cleartext_redirect_uri) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "application_type": "web",
+    "grant_types": [ "implicit" ],
+    "redirect_uris": [ "http://client.example/cb" ]
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::OIDCClientMetadata::from(std::move(document))
+                   .has_value());
+}
+
+TEST(from_accepts_a_web_implicit_client_with_an_https_redirect_uri) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "application_type": "web",
+    "grant_types": [ "implicit" ],
+    "redirect_uris": [ "https://client.example/cb" ]
+  })JSON")};
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "application_type": "web",
+    "grant_types": [ "implicit" ],
+    "redirect_uris": [ "https://client.example/cb" ]
+  })JSON")};
+  const auto metadata{
+      sourcemeta::core::OIDCClientMetadata::from(std::move(document))};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().application_type(), "web");
+  EXPECT_EQ(metadata.value().id_token_signed_response_alg(), "RS256");
+  EXPECT_FALSE(metadata.value().require_auth_time());
+  EXPECT_TRUE(metadata.value().has_redirect_uri("https://client.example/cb"));
+}
+
+TEST(from_accepts_a_web_authorization_code_client_with_an_https_redirect_uri) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "application_type": "web",
+    "grant_types": [ "authorization_code" ],
+    "redirect_uris": [ "https://client.example/cb" ]
+  })JSON")};
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "application_type": "web",
+    "grant_types": [ "authorization_code" ],
+    "redirect_uris": [ "https://client.example/cb" ]
+  })JSON")};
+  const auto metadata{
+      sourcemeta::core::OIDCClientMetadata::from(std::move(document))};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().application_type(), "web");
+  EXPECT_EQ(metadata.value().id_token_signed_response_alg(), "RS256");
+  EXPECT_FALSE(metadata.value().require_auth_time());
+  EXPECT_TRUE(metadata.value().has_redirect_uri("https://client.example/cb"));
+}
+
+TEST(
+    from_accepts_a_web_authorization_code_client_with_a_localhost_redirect_uri) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "application_type": "web",
+    "redirect_uris": [ "http://localhost/cb" ]
+  })JSON")};
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "application_type": "web",
+    "redirect_uris": [ "http://localhost/cb" ]
+  })JSON")};
+  const auto metadata{
+      sourcemeta::core::OIDCClientMetadata::from(std::move(document))};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().application_type(), "web");
+  EXPECT_EQ(metadata.value().id_token_signed_response_alg(), "RS256");
+  EXPECT_FALSE(metadata.value().require_auth_time());
+  EXPECT_TRUE(metadata.value().has_redirect_uri("http://localhost/cb"));
+}
+
 TEST(from_rejects_a_wrong_typed_require_auth_time) {
   auto document{sourcemeta::core::parse_json(R"JSON({
     "redirect_uris": [ "https://client.example/cb" ],

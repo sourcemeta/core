@@ -399,3 +399,66 @@ TEST(language_map_direction_uses_property_scoped_context) {
 
   EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
 }
+
+TEST(reverse_term_with_set_container) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "rev": { "@reverse": "http://example.com/x", "@container": "@set" }
+    },
+    "@id": "http://example.com/subject",
+    "rev": { "@id": "http://example.com/object" }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "http://example.com/subject",
+      "@reverse": {
+        "http://example.com/x": [ { "@id": "http://example.com/object" } ]
+      }
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(reverse_term_with_null_container) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "rev": { "@reverse": "http://example.com/x", "@container": null }
+    },
+    "@id": "http://example.com/subject",
+    "rev": { "@id": "http://example.com/object" }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "http://example.com/subject",
+      "@reverse": {
+        "http://example.com/x": [ { "@id": "http://example.com/object" } ]
+      }
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(reverse_term_ignores_prefix_entry) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "rev": { "@reverse": "http://example.com/x", "@prefix": "not-a-boolean" }
+    },
+    "@id": "http://example.com/subject",
+    "rev": { "@id": "http://example.com/object" }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "http://example.com/subject",
+      "@reverse": {
+        "http://example.com/x": [ { "@id": "http://example.com/object" } ]
+      }
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}

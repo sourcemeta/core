@@ -38,6 +38,35 @@ TEST(track_1) {
             sourcemeta::core::PointerPositionTracker::Position({4, 7, 4, 14}));
 }
 
+TEST(track_index_token_against_object_member) {
+  const auto input{R"JSON({ "0": 1 })JSON"};
+
+  sourcemeta::core::PointerPositionTracker tracker;
+  sourcemeta::core::JSON result{nullptr};
+  sourcemeta::core::parse_json(input, result, std::ref(tracker));
+
+  const sourcemeta::core::Pointer property_pointer{"0"};
+  const auto index_pointer{sourcemeta::core::to_pointer("/0")};
+
+  EXPECT_EQ(tracker.get(index_pointer).value(),
+            tracker.get(property_pointer).value());
+  EXPECT_EQ(tracker.get(index_pointer).value(),
+            sourcemeta::core::PointerPositionTracker::Position({1, 3, 1, 8}));
+}
+
+TEST(track_index_token_against_array_element) {
+  const auto input{R"JSON([ 10, 20 ])JSON"};
+
+  sourcemeta::core::PointerPositionTracker tracker;
+  sourcemeta::core::JSON result{nullptr};
+  sourcemeta::core::parse_json(input, result, std::ref(tracker));
+
+  const auto index_pointer{sourcemeta::core::to_pointer("/1")};
+
+  EXPECT_EQ(tracker.get(index_pointer).value(),
+            sourcemeta::core::PointerPositionTracker::Position({1, 7, 1, 8}));
+}
+
 TEST(to_json_1) {
   const auto input{R"JSON([
   {

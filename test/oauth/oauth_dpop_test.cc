@@ -1,3 +1,4 @@
+#include <sourcemeta/core/crypto.h>
 #include <sourcemeta/core/jose.h>
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/oauth.h>
@@ -6,6 +7,7 @@
 #include <array>    // std::array
 #include <chrono>   // std::chrono::system_clock, std::chrono::seconds
 #include <optional> // std::optional
+#include <sstream>  // std::ostringstream
 #include <string>   // std::string
 #include <utility>  // std::move
 
@@ -286,13 +288,28 @@ TEST(verify_rejects_a_proof_with_a_duplicate_claim) {
       R"({"jti":"x","htm":"POST",)"
       R"("htu":"https://server.example.com/token",)"
       R"("htu":"https://evil.example/token","iat":1562262616})")};
-  const auto proof{sourcemeta::core::jwt_sign(header, payload, key.value())};
-  EXPECT_TRUE(proof.has_value());
+
+  // A conforming producer never emits duplicate claim names, so the malformed
+  // proof is assembled at the signature layer to exercise rejection on the
+  // verifying side (RFC 7519 Section 4 "The Claim Names within a JWT Claims Set
+  // MUST be unique")
+  std::ostringstream header_stream;
+  sourcemeta::core::stringify(header, header_stream);
+  std::ostringstream payload_stream;
+  sourcemeta::core::stringify(payload, payload_stream);
+  std::string proof{sourcemeta::core::base64url_encode(header_stream.str())};
+  proof.push_back('.');
+  proof.append(sourcemeta::core::base64url_encode(payload_stream.str()));
+  const auto signature{sourcemeta::core::jws_sign(
+      sourcemeta::core::JWSAlgorithm::ES256, proof, key.value())};
+  EXPECT_TRUE(signature.has_value());
+  proof.push_back('.');
+  proof.append(sourcemeta::core::base64url_encode(signature.value()));
 
   const sourcemeta::core::OAuthDPoPVerifyOptions options;
   EXPECT_EQ(sourcemeta::core::oauth_dpop_verify(
-                proof.value(), "POST", "https://server.example.com/token",
-                FIXED_TIME, options)
+                proof, "POST", "https://server.example.com/token", FIXED_TIME,
+                options)
                 .value(),
             sourcemeta::core::OAuthDPoPError::Malformed);
 }

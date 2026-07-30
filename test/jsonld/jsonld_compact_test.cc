@@ -207,3 +207,108 @@ TEST(list_object_stays_array_without_compact_arrays) {
 
   EXPECT_EQ(result, expected);
 }
+
+TEST(iri_compaction_prefers_no_container_type_over_index) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    { "@type": [ "http://example.com/T" ] }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({
+    "t": "http://example.com/T",
+    "idx": { "@id": "http://example.com/T", "@container": "@index" }
+  })");
+
+  const auto result{sourcemeta::core::jsonld_compact(input, context)};
+
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "@type": "t",
+    "@context": {
+      "t": "http://example.com/T",
+      "idx": { "@id": "http://example.com/T", "@container": "@index" }
+    }
+  })");
+
+  EXPECT_EQ(result, expected);
+}
+
+TEST(iri_compaction_prefers_plain_graph_over_graph_id) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/g": [
+        { "@graph": [ { "@id": "http://example.com/node" } ] }
+      ]
+    }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({
+    "g": { "@id": "http://example.com/g", "@container": "@graph" },
+    "gid": {
+      "@id": "http://example.com/g",
+      "@container": [ "@graph", "@id" ]
+    }
+  })");
+
+  const auto result{sourcemeta::core::jsonld_compact(input, context)};
+
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "g": { "@id": "http://example.com/node" },
+    "@context": {
+      "g": { "@id": "http://example.com/g", "@container": "@graph" },
+      "gid": {
+        "@id": "http://example.com/g",
+        "@container": [ "@graph", "@id" ]
+      }
+    }
+  })");
+
+  EXPECT_EQ(result, expected);
+}
+
+// JSON-LD 1.1 API Section 6.2.3: an @index container is added as a candidate
+// only when the processing mode is not json-ld-1.0. Nullifying the compaction
+// context must not discard that processing mode, otherwise a 1.0 compaction
+// would wrongly select the @index-container term. Under 1.0 the term is not a
+// candidate, so the property stays expanded.
+TEST(iri_compaction_1_0_preserves_processing_mode_across_a_null_context) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    { "http://example.com/prop": [ { "@value": "x" } ] }
+  ])");
+  const auto context = sourcemeta::core::parse_json(R"([
+    null,
+    { "prop": { "@id": "http://example.com/prop", "@container": "@index" } }
+  ])");
+  const auto result{sourcemeta::core::jsonld_compact(
+      input, context, "", {}, sourcemeta::core::JSONLDVersion::V1_0)};
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "http://example.com/prop": "x",
+    "@context": [
+      null,
+      { "prop": { "@id": "http://example.com/prop", "@container": "@index" } }
+    ]
+  })");
+  EXPECT_EQ(result, expected);
+}
+
+// JSON-LD 1.1 API Section 6.2.3: the @index candidate is added only when the
+// processing mode is not json-ld-1.0. This applies to the node-reference branch
+// too, so under 1.0 a node reference does not select the @index-container term
+// and its property stays expanded.
+TEST(iri_compaction_1_0_does_not_add_index_candidate_for_a_node_reference) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    { "http://example.com/prop": [ { "@id": "http://example.com/n" } ] }
+  ])");
+  const auto context = sourcemeta::core::parse_json(R"([
+    null,
+    { "prop": { "@id": "http://example.com/prop", "@container": "@index" } }
+  ])");
+  const auto result{sourcemeta::core::jsonld_compact(
+      input, context, "", {}, sourcemeta::core::JSONLDVersion::V1_0)};
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "http://example.com/prop": { "@id": "http://example.com/n" },
+    "@context": [
+      null,
+      { "prop": { "@id": "http://example.com/prop", "@container": "@index" } }
+    ]
+  })");
+  EXPECT_EQ(result, expected);
+}

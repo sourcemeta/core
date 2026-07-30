@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include <ctime>
+#include <string>
 
 #include <sourcemeta/core/time.h>
 
@@ -191,4 +192,17 @@ TEST(parse_wrong_case_month_name) {
 TEST(parse_wrong_case_day_name) {
   EXPECT_FALSE(
       sourcemeta::core::from_asctime("sun Nov  6 08:49:37 1994").has_value());
+}
+
+// RFC 9110 §5.6.7: "year = 4DIGIT", so a year below 1000 must render with a
+// leading zero rather than three digits. A system clock whose range excludes a
+// pre-1000 instant yields no value here, so the round-trip is asserted only
+// where the year is representable, which excludes a nanosecond libstdc++ clock
+TEST(format_year_below_1000_pads_to_four_digits) {
+  const auto point{sourcemeta::core::from_asctime("Mon Jan  1 00:00:00 0900")};
+  if (point.has_value()) {
+    const auto formatted{sourcemeta::core::to_asctime(point.value())};
+    EXPECT_EQ(formatted, "Fri Jan  1 00:00:00 0900");
+    EXPECT_EQ(sourcemeta::core::from_asctime(formatted), point);
+  }
 }

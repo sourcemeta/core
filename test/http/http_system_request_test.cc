@@ -100,6 +100,46 @@ TEST(header_lookup_returns_first_of_repeated) {
   EXPECT_EQ(request.header("X-Repeated").value(), "first");
 }
 
+TEST(header_with_crlf_in_value_is_refused) {
+  sourcemeta::core::HTTPSystemRequest request{"https://example.com"};
+  request.header("X-Injected", "value\r\nEvil: yes");
+  EXPECT_TRUE(request.headers().empty());
+  EXPECT_FALSE(request.header("X-Injected").has_value());
+}
+
+TEST(header_with_nul_in_value_is_refused) {
+  sourcemeta::core::HTTPSystemRequest request{"https://example.com"};
+  request.header("X-Injected", std::string{"value\0more", 10});
+  EXPECT_TRUE(request.headers().empty());
+  EXPECT_FALSE(request.header("X-Injected").has_value());
+}
+
+TEST(header_with_crlf_in_name_is_refused) {
+  sourcemeta::core::HTTPSystemRequest request{"https://example.com"};
+  request.header("X-Bad\r\nEvil", "value");
+  EXPECT_TRUE(request.headers().empty());
+  EXPECT_FALSE(request.header("X-Bad\r\nEvil").has_value());
+}
+
+TEST(header_from_wiping_storage_with_crlf_is_refused) {
+  sourcemeta::core::HTTPSystemRequest request{"https://example.com"};
+  request.header("Authorization",
+                 sourcemeta::core::SecureString{"Basic\r\nEvil: yes"});
+  EXPECT_TRUE(request.headers().empty());
+  EXPECT_FALSE(request.header("Authorization").has_value());
+}
+
+TEST(header_refusal_leaves_valid_headers_intact) {
+  sourcemeta::core::HTTPSystemRequest request{"https://example.com"};
+  request.header("Accept", "application/json");
+  request.header("X-Injected", "value\r\nEvil: yes");
+  EXPECT_EQ(request.headers().size(), 1);
+  EXPECT_EQ(request.headers().at(0).first, "Accept");
+  EXPECT_EQ(request.headers().at(0).second.bytes(), "application/json");
+  EXPECT_FALSE(request.header("X-Injected").has_value());
+  EXPECT_EQ(request.header("Accept").value(), "application/json");
+}
+
 TEST(sign_aws_sigv4_stamps_amz_headers_and_authorization) {
   const auto moment{
       sourcemeta::core::from_iso8601_basic("20150830T123600Z").value()};
@@ -224,6 +264,41 @@ TEST(sign_aws_sigv4_hashes_an_empty_secure_string_body) {
 
   // An empty wiping-storage body views a possibly-null buffer and must hash as
   // the empty string
+  EXPECT_EQ(request.header("x-amz-content-sha256").value(),
+            sourcemeta::core::sha256(""));
+}
+
+TEST(body_with_crlf_in_content_type_is_refused) {
+  const auto moment{
+      sourcemeta::core::from_iso8601_basic("20150830T123600Z").value()};
+  sourcemeta::core::HTTPSystemRequest request{
+      "https://example.amazonaws.com/", sourcemeta::core::HTTPMethod::POST};
+  request.body("Param1=value1", std::string{"text/plain\r\nEvil: yes"});
+  request.sign_aws_sigv4(
+      {.access_key_id = "AKIDEXAMPLE",
+       .secret_access_key = "wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY",
+       .session_token = ""},
+      "us-east-1", "service", moment);
+
+  // The body was refused, so no payload is signed
+  EXPECT_EQ(request.header("x-amz-content-sha256").value(),
+            sourcemeta::core::sha256(""));
+}
+
+TEST(body_from_wiping_storage_with_crlf_in_content_type_is_refused) {
+  const auto moment{
+      sourcemeta::core::from_iso8601_basic("20150830T123600Z").value()};
+  sourcemeta::core::HTTPSystemRequest request{
+      "https://example.amazonaws.com/", sourcemeta::core::HTTPMethod::POST};
+  request.body(sourcemeta::core::SecureString{"Param1=value1"},
+               std::string{"text/plain\r\nEvil: yes"});
+  request.sign_aws_sigv4(
+      {.access_key_id = "AKIDEXAMPLE",
+       .secret_access_key = "wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY",
+       .session_token = ""},
+      "us-east-1", "service", moment);
+
+  // The wiping-storage body was refused, so no payload is signed
   EXPECT_EQ(request.header("x-amz-content-sha256").value(),
             sourcemeta::core::sha256(""));
 }

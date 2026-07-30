@@ -74,6 +74,28 @@ TEST(webfinger_request_normalizes_a_bare_host) {
   EXPECT_EQ(request.value().resource, "https://example.com");
 }
 
+TEST(webfinger_request_keeps_an_acct_scheme_with_a_digit_userinfo) {
+  const auto request{
+      sourcemeta::core::oidc_webfinger_request("acct:123@example.com")};
+  EXPECT_TRUE(request.has_value());
+  EXPECT_EQ(request.value().resource, "acct:123@example.com");
+  EXPECT_EQ(request.value().url,
+            "https://example.com/.well-known/"
+            "webfinger?resource=acct%3A123%40example.com&rel="
+            "http%3A%2F%2Fopenid.net%2Fspecs%2Fconnect%2F1.0%2Fissuer");
+}
+
+TEST(webfinger_request_recognizes_an_uppercase_acct_scheme) {
+  const auto request{
+      sourcemeta::core::oidc_webfinger_request("ACCT:joe@example.com")};
+  EXPECT_TRUE(request.has_value());
+  EXPECT_EQ(request.value().resource, "ACCT:joe@example.com");
+  EXPECT_EQ(request.value().url,
+            "https://example.com/.well-known/"
+            "webfinger?resource=ACCT%3Ajoe%40example.com&rel="
+            "http%3A%2F%2Fopenid.net%2Fspecs%2Fconnect%2F1.0%2Fissuer");
+}
+
 TEST(webfinger_request_rejects_a_non_https_url_identifier) {
   EXPECT_FALSE(
       sourcemeta::core::oidc_webfinger_request("http://example.com/joe")
@@ -114,6 +136,50 @@ TEST(webfinger_request_accepts_an_uppercase_https_scheme) {
   EXPECT_TRUE(request.has_value());
   EXPECT_TRUE(request.value().url.starts_with(
       "https://example.com/.well-known/webfinger?"));
+}
+
+TEST(webfinger_request_uses_https_for_a_user_and_host_with_a_port) {
+  const auto request{
+      sourcemeta::core::oidc_webfinger_request("joe@example.com:8080")};
+  EXPECT_TRUE(request.has_value());
+  EXPECT_EQ(request.value().resource, "https://joe@example.com:8080");
+  EXPECT_EQ(request.value().url,
+            "https://example.com:8080/.well-known/"
+            "webfinger?resource=https%3A%2F%2Fjoe%40example.com%3A8080&rel="
+            "http%3A%2F%2Fopenid.net%2Fspecs%2Fconnect%2F1.0%2Fissuer");
+}
+
+TEST(webfinger_request_uses_https_for_a_user_and_host_with_a_path) {
+  const auto request{
+      sourcemeta::core::oidc_webfinger_request("joe@example.com/path")};
+  EXPECT_TRUE(request.has_value());
+  EXPECT_EQ(request.value().resource, "https://joe@example.com/path");
+  EXPECT_EQ(request.value().url,
+            "https://example.com/.well-known/"
+            "webfinger?resource=https%3A%2F%2Fjoe%40example.com%2Fpath&rel="
+            "http%3A%2F%2Fopenid.net%2Fspecs%2Fconnect%2F1.0%2Fissuer");
+}
+
+TEST(webfinger_request_strips_a_fragment_from_a_url_identifier) {
+  const auto request{
+      sourcemeta::core::oidc_webfinger_request("https://example.com/joe#top")};
+  EXPECT_TRUE(request.has_value());
+  EXPECT_EQ(request.value().resource, "https://example.com/joe");
+  EXPECT_EQ(request.value().url,
+            "https://example.com/.well-known/"
+            "webfinger?resource=https%3A%2F%2Fexample.com%2Fjoe&rel="
+            "http%3A%2F%2Fopenid.net%2Fspecs%2Fconnect%2F1.0%2Fissuer");
+}
+
+TEST(webfinger_request_normalizes_a_bare_host_and_path) {
+  const auto request{
+      sourcemeta::core::oidc_webfinger_request("example.com/joe")};
+  EXPECT_TRUE(request.has_value());
+  EXPECT_EQ(request.value().resource, "https://example.com/joe");
+  EXPECT_EQ(request.value().url,
+            "https://example.com/.well-known/"
+            "webfinger?resource=https%3A%2F%2Fexample.com%2Fjoe&rel="
+            "http%3A%2F%2Fopenid.net%2Fspecs%2Fconnect%2F1.0%2Fissuer");
 }
 
 TEST(webfinger_issuer_extracts_the_href) {

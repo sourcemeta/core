@@ -427,6 +427,36 @@ TEST(possessive_with_quotes_and_entities) {
             "Tom&#39;s &quot;Café&quot; &amp; Jerry&#39;s &lt;adventures&gt;");
 }
 
+TEST(no_break_space_single) {
+  std::string text = "a b";
+  sourcemeta::core::html_escape(text);
+  EXPECT_EQ(text, "a&nbsp;b");
+}
+
+TEST(regular_space_left_unchanged) {
+  std::string text = "a b";
+  sourcemeta::core::html_escape(text);
+  EXPECT_EQ(text, "a b");
+}
+
+TEST(no_break_space_with_entities) {
+  std::string text = "a <b>";
+  sourcemeta::core::html_escape(text);
+  EXPECT_EQ(text, "a&nbsp;&lt;b&gt;");
+}
+
+TEST(append_no_break_space) {
+  std::string output;
+  sourcemeta::core::html_escape_append(output, "a b");
+  EXPECT_EQ(output, "a&nbsp;b");
+}
+
+TEST(buffer_no_break_space) {
+  sourcemeta::core::HTMLBuffer buffer;
+  sourcemeta::core::html_escape_append(buffer, "a b");
+  EXPECT_EQ(buffer.str(), "a&nbsp;b");
+}
+
 TEST(empty) {
   std::string output;
   sourcemeta::core::html_escape_append(output, "");

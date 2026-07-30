@@ -61,3 +61,42 @@ TEST(round_trip_through_parse) {
   EXPECT_EQ(sourcemeta::core::http_serialize_headers(parsed),
             "server: test\r\ndate: now\r\n");
 }
+
+TEST(rejects_value_with_crlf) {
+  const std::vector<std::pair<std::string, std::string>> headers{
+      {"X-Injected", "value\r\nEvil: yes"}};
+  EXPECT_EQ(sourcemeta::core::http_serialize_headers(headers), "");
+}
+
+TEST(rejects_value_with_bare_carriage_return) {
+  const std::vector<std::pair<std::string, std::string>> headers{
+      {"X-Injected", "value\rmore"}};
+  EXPECT_EQ(sourcemeta::core::http_serialize_headers(headers), "");
+}
+
+TEST(rejects_value_with_bare_line_feed) {
+  const std::vector<std::pair<std::string, std::string>> headers{
+      {"X-Injected", "value\nmore"}};
+  EXPECT_EQ(sourcemeta::core::http_serialize_headers(headers), "");
+}
+
+TEST(rejects_value_with_nul) {
+  const std::vector<std::pair<std::string, std::string>> headers{
+      {"X-Injected", std::string{"value\0more", 10}}};
+  EXPECT_EQ(sourcemeta::core::http_serialize_headers(headers), "");
+}
+
+TEST(rejects_name_with_crlf) {
+  const std::vector<std::pair<std::string, std::string>> headers{
+      {"X-Bad\r\nEvil", "value"}};
+  EXPECT_EQ(sourcemeta::core::http_serialize_headers(headers), "");
+}
+
+TEST(drops_only_the_injected_header) {
+  const std::vector<std::pair<std::string, std::string>> headers{
+      {"Accept", "application/json"},
+      {"X-Injected", "value\r\nEvil: yes"},
+      {"User-Agent", "test/1.0"}};
+  EXPECT_EQ(sourcemeta::core::http_serialize_headers(headers),
+            "Accept: application/json\r\nUser-Agent: test/1.0\r\n");
+}

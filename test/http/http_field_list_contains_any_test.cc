@@ -148,3 +148,30 @@ TEST(weak_etag_with_comma_in_opaque_tag_kept_whole) {
   EXPECT_TRUE(sourcemeta::core::http_field_list_contains_any(
       R"(W/"abc,def", "ghi")", {R"(W/"abc,def")"}));
 }
+
+TEST(etag_with_semicolon_inside_quotes_kept_whole) {
+  EXPECT_TRUE(
+      sourcemeta::core::http_field_list_contains_any(R"("a;b")", {R"("a;b")"}));
+  EXPECT_FALSE(
+      sourcemeta::core::http_field_list_contains_any(R"("a;b")", {R"("c")"}));
+}
+
+TEST(etag_with_semicolon_inside_quotes_not_split_on_parameter) {
+  EXPECT_FALSE(
+      sourcemeta::core::http_field_list_contains_any(R"("a;b")", {R"("a)"}));
+  EXPECT_TRUE(
+      sourcemeta::core::http_field_list_contains_any(R"("a;b")", {R"("a;b")"}));
+}
+
+TEST(etag_list_with_semicolon_inside_quotes_matches) {
+  EXPECT_TRUE(sourcemeta::core::http_field_list_contains_any(R"("a;b", "c;d")",
+                                                             {R"("c;d")"}));
+  EXPECT_FALSE(sourcemeta::core::http_field_list_contains_any(R"("a;b", "c;d")",
+                                                              {R"("e;f")"}));
+}
+
+TEST(unquoted_entry_still_splits_on_parameter) {
+  EXPECT_TRUE(sourcemeta::core::http_field_list_contains_any("a;p=1", {"a"}));
+  EXPECT_FALSE(
+      sourcemeta::core::http_field_list_contains_any("a;p=1", {"a;p=1"}));
+}

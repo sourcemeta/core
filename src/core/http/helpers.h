@@ -86,7 +86,23 @@ inline auto http_for_each_list_entry(const std::string_view header,
 inline auto http_split_entry(const std::string_view entry) noexcept
     -> std::pair<std::string_view, std::string_view> {
   std::size_t semicolon{0};
-  while (semicolon < entry.size() && entry[semicolon] != ';') {
+  bool in_quotes{false};
+  // RFC 9110 §8.8.3: "etagc = %x21 / %x23-7E / obs-text", so a semicolon
+  // inside a double-quoted value is content and must not split the entry from
+  // its parameters
+  while (semicolon < entry.size()) {
+    const char current{entry[semicolon]};
+    if (in_quotes) {
+      if (current == '\\' && semicolon + 1 < entry.size()) {
+        ++semicolon;
+      } else if (current == '"') {
+        in_quotes = false;
+      }
+    } else if (current == '"') {
+      in_quotes = true;
+    } else if (current == ';') {
+      break;
+    }
     ++semicolon;
   }
   return {http_trim_trailing_ows(http_subview(entry, 0, semicolon)),

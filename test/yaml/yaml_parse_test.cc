@@ -192,6 +192,17 @@ TEST(stub_test_1) {
   EXPECT_EQ(result, expected);
 }
 
+// YAML 1.2.2 Section 6.8.2: a tag directive applies to the document that
+// follows it, so a handle declared before a later document resolves within that
+// document rather than being discarded at its document start marker.
+TEST(read_yaml_resolves_a_tag_directive_before_a_later_document) {
+  const auto result{sourcemeta::core::read_yaml(
+      std::filesystem::path{STUBS_PATH} / "multi_document_tag_directive.yaml")};
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON({ "first": "document" })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
 TEST(yaml_or_json_stub_test_1) {
   const auto result{sourcemeta::core::read_yaml_or_json(
       std::filesystem::path{STUBS_PATH} / "test_1.yaml")};
@@ -1098,4 +1109,315 @@ TEST(tab_line_start_after_blank_indented_line_is_rejected) {
   } catch (...) {
     FAIL();
   }
+}
+
+// YAML 1.2.2 Section 10.3.2: the hexadecimal integer form carries no sign, so a
+// signed value is a plain string rather than an integer.
+TEST(signed_hexadecimal_is_a_string) {
+  const std::string input{"key: -0x10"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON({ "key": "-0x10" })JSON")};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.at("key").is_string());
+  EXPECT_FALSE(result.at("key").is_integer());
+}
+
+// YAML 1.2.2 Section 10.3.2: the octal integer form carries no sign, so a
+// signed value is a plain string rather than an integer.
+TEST(signed_octal_is_a_string) {
+  const std::string input{"key: +0o7"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON({ "key": "+0o7" })JSON")};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.at("key").is_string());
+  EXPECT_FALSE(result.at("key").is_integer());
+}
+
+// YAML 1.2.2 Section 10.3.2: the base-ten integer form does carry a sign, so a
+// signed decimal remains an integer.
+TEST(negative_decimal_integers_are_preserved) {
+  const std::string input{"a: -16\nb: -12"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON({ "a": -16, "b": -12 })JSON")};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.at("a").is_integer());
+  EXPECT_FALSE(result.at("a").is_real());
+  EXPECT_TRUE(result.at("b").is_integer());
+  EXPECT_FALSE(result.at("b").is_real());
+}
+
+// YAML 1.2.2 Section 10.3.2: the octal indicator is lowercase, so an uppercase
+// indicator makes the value a plain string.
+TEST(uppercase_octal_indicator_is_a_string) {
+  const std::string input{"key: 0O17"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON({ "key": "0O17" })JSON")};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.at("key").is_string());
+  EXPECT_FALSE(result.at("key").is_integer());
+}
+
+// YAML 1.2.2 Section 10.3.2: the hexadecimal indicator is lowercase, so an
+// uppercase indicator makes the value a plain string.
+TEST(uppercase_hexadecimal_indicator_is_a_string) {
+  const std::string input{"key: 0X1F"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON({ "key": "0X1F" })JSON")};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.at("key").is_string());
+  EXPECT_FALSE(result.at("key").is_integer());
+}
+
+// YAML 1.2.2 Section 10.3.2: a lowercase octal indicator resolves to an
+// integer.
+TEST(lowercase_octal_integer_is_parsed) {
+  const std::string input{"key: 0o17"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON({ "key": 15 })JSON")};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.at("key").is_integer());
+  EXPECT_FALSE(result.at("key").is_real());
+}
+
+// YAML 1.2.2 Section 10.3.2: a lowercase hexadecimal indicator resolves to an
+// integer.
+TEST(lowercase_hexadecimal_integer_is_parsed) {
+  const std::string input{"key: 0x1f"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON({ "key": 31 })JSON")};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.at("key").is_integer());
+  EXPECT_FALSE(result.at("key").is_real());
+}
+
+// YAML 1.2.2 Section 5.1: the printable character set excludes the control
+// block below the space, so a raw control character is rejected.
+TEST(raw_control_character_is_rejected) {
+  const std::string input{std::string{"key: va"} + '\x01' + "lue"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Control character not allowed in YAML stream");
+  } catch (...) {
+    FAIL();
+  }
+
+  const std::string valid{"key: caf\xc3\xa9"};
+  const auto result{sourcemeta::core::parse_yaml(valid)};
+  auto expected{sourcemeta::core::JSON::make_object()};
+  expected.assign("key", sourcemeta::core::JSON{"caf\xc3\xa9"});
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.at("key").is_string());
+}
+
+// YAML 1.2.2 Section 5.1: a non-ASCII character encoded as a multibyte sequence
+// is printable, so its continuation bytes are not treated as control
+// characters.
+TEST(utf8_multibyte_scalar_is_accepted) {
+  const std::string input{"key: caf\xc3\xa9"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  auto expected{sourcemeta::core::JSON::make_object()};
+  expected.assign("key", sourcemeta::core::JSON{"caf\xc3\xa9"});
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.at("key").is_string());
+}
+
+// YAML 1.2.2 Section 5.2: a stream may begin with a byte order mark, which is
+// skipped rather than becoming part of the first token.
+TEST(leading_byte_order_mark_is_stripped) {
+  const std::string input{"\xef\xbb\xbf"
+                          "foo: bar"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON({ "foo": "bar" })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+// YAML 1.2.2 Section 6.8.1: a document naming a higher major version is
+// rejected.
+TEST(yaml_directive_higher_major_version_is_rejected) {
+  const std::string input{"%YAML 2.0\n---\nfoo: bar\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_EQ(error.line(), 1);
+  } catch (...) {
+    FAIL();
+  }
+
+  const std::string valid{"%YAML 1.2\n--- value\n"};
+  const auto result{sourcemeta::core::parse_yaml(valid)};
+  const sourcemeta::core::JSON expected{"value"};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.is_string());
+}
+
+// YAML 1.2.2 Section 6.8.1: a higher minor version of the same major version is
+// accepted.
+TEST(yaml_directive_higher_minor_version_is_accepted) {
+  const std::string input{"%YAML 1.3\n--- value\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const sourcemeta::core::JSON expected{"value"};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.is_string());
+}
+
+// YAML 1.2.2 Section 6.8.2: a handle may carry at most one tag directive in a
+// document.
+TEST(duplicate_tag_directive_same_handle_is_rejected) {
+  const std::string input{"%TAG !e! tag:example.com,2000:app/\n"
+                          "%TAG !e! tag:example.com,2000:other/\n"
+                          "--- value\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Duplicate %TAG directive for the same handle");
+  } catch (...) {
+    FAIL();
+  }
+
+  const std::string valid{"%TAG !e! tag:example.com,2000:app/\n"
+                          "%TAG !f! tag:example.com,2000:other/\n"
+                          "--- value\n"};
+  const auto result{sourcemeta::core::parse_yaml(valid)};
+  const sourcemeta::core::JSON expected{"value"};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.is_string());
+}
+
+// YAML 1.2.2 Section 6.8.2: distinct handles each carry their own tag
+// directive.
+TEST(distinct_tag_directive_handles_are_accepted) {
+  const std::string input{"%TAG !e! tag:example.com,2000:app/\n"
+                          "%TAG !f! tag:example.com,2000:other/\n"
+                          "--- value\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const sourcemeta::core::JSON expected{"value"};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.is_string());
+}
+
+// YAML 1.2.2 Section 6.8.2.1: a named tag handle must be associated with a
+// prefix by a tag directive.
+TEST(undefined_tag_handle_is_rejected) {
+  const std::string input{"!e!foo bar\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Undefined tag handle");
+  } catch (...) {
+    FAIL();
+  }
+
+  const std::string valid{"!!str foo\n"};
+  const auto result{sourcemeta::core::parse_yaml(valid)};
+  const sourcemeta::core::JSON expected{"foo"};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.is_string());
+}
+
+// YAML 1.2.2 Section 6.8.2.1: the secondary tag handle is associated with a
+// prefix by default.
+TEST(secondary_tag_handle_str_is_accepted) {
+  const std::string input{"!!str 1"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const sourcemeta::core::JSON expected{"1"};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.is_string());
+  EXPECT_FALSE(result.is_integer());
+}
+
+// YAML 1.2.2 Section 6.8.2.1: the primary tag handle is associated with a
+// prefix by default.
+TEST(primary_tag_handle_plain_is_accepted) {
+  const std::string input{"! plain"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const sourcemeta::core::JSON expected{"plain"};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.is_string());
+}
+
+// YAML 1.2.2 Section 5.1: "To ensure JSON compatibility, YAML processors must
+// allow all non-C0 characters inside quoted scalars" (the nb-json production
+// "x09 | [x20-x10FFFF]"), so a delete character or a permanently unassigned
+// code point inside a double-quoted scalar is content rather than an error.
+TEST(non_c0_control_inside_a_quoted_scalar_is_accepted) {
+  const std::string input{std::string{"key: \"a"} + "\x7F" + "b\""};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  auto expected{sourcemeta::core::JSON::make_object()};
+  expected.assign("key",
+                  sourcemeta::core::JSON{std::string{"a"} + "\x7F" + "b"});
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.at("key").is_string());
+
+  const std::string noncharacter{std::string{"key: \"a"} + "\xEF\xBF\xBE" +
+                                 "b\""};
+  const auto noncharacter_result{sourcemeta::core::parse_yaml(noncharacter)};
+  auto noncharacter_expected{sourcemeta::core::JSON::make_object()};
+  noncharacter_expected.assign(
+      "key", sourcemeta::core::JSON{std::string{"a"} + "\xEF\xBF\xBE" + "b"});
+  EXPECT_EQ(noncharacter_result, noncharacter_expected);
+}
+
+// YAML 1.2.2 Section 5.1: the nb-json production excludes the C0 control block
+// other than tab, so a C0 control is rejected even inside a quoted scalar.
+TEST(c0_control_inside_a_quoted_scalar_is_rejected) {
+  const std::string input{std::string{"key: \"a"} + '\x01' + "b\""};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Control character not allowed in YAML stream");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// YAML 1.2.2 Section 5.2: a stream is a sequence of characters in a supported
+// encoding, so a byte sequence that is not well-formed UTF-8 is not a stream.
+TEST(invalid_utf8_sequence_is_rejected) {
+  const std::string input{std::string{"key: va"} + '\xFF' + "lue"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid UTF-8 sequence in YAML stream");
+  } catch (...) {
+    FAIL();
+  }
+
+  const std::string valid{"key: caf\xc3\xa9"};
+  const auto result{sourcemeta::core::parse_yaml(valid)};
+  auto expected{sourcemeta::core::JSON::make_object()};
+  expected.assign("key", sourcemeta::core::JSON{"caf\xc3\xa9"});
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.at("key").is_string());
+}
+
+// YAML 1.2.2 Section 5.2: a stream that begins with a byte order mark is read
+// in the encoding it selects, so a stream reader resumes a later document at
+// the correct byte rather than one offset by the mark.
+TEST(byte_order_mark_stream_resumes_at_the_correct_document) {
+  std::istringstream stream{std::string{"\xEF\xBB\xBF"} + "a: 1\n---\nb: 2\n"};
+
+  const auto first{sourcemeta::core::parse_yaml(stream)};
+  const sourcemeta::core::JSON expected_first{
+      sourcemeta::core::parse_json(R"JSON({ "a": 1 })JSON")};
+  EXPECT_EQ(first, expected_first);
+
+  const auto second{sourcemeta::core::parse_yaml(stream)};
+  const sourcemeta::core::JSON expected_second{
+      sourcemeta::core::parse_json(R"JSON({ "b": 2 })JSON")};
+  EXPECT_EQ(second, expected_second);
 }
