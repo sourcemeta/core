@@ -263,3 +263,28 @@ TEST(iri_compaction_prefers_plain_graph_over_graph_id) {
 
   EXPECT_EQ(result, expected);
 }
+
+// JSON-LD 1.1 API Section 6.2.3: an @index container is added as a candidate
+// only when the processing mode is not json-ld-1.0. Nullifying the compaction
+// context must not discard that processing mode, otherwise a 1.0 compaction
+// would wrongly select the @index-container term. Under 1.0 the term is not a
+// candidate, so the property stays expanded.
+TEST(iri_compaction_1_0_preserves_processing_mode_across_a_null_context) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    { "http://example.com/prop": [ { "@value": "x" } ] }
+  ])");
+  const auto context = sourcemeta::core::parse_json(R"([
+    null,
+    { "prop": { "@id": "http://example.com/prop", "@container": "@index" } }
+  ])");
+  const auto result{sourcemeta::core::jsonld_compact(
+      input, context, "", {}, sourcemeta::core::JSONLDVersion::V1_0)};
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "http://example.com/prop": "x",
+    "@context": [
+      null,
+      { "prop": { "@id": "http://example.com/prop", "@container": "@index" } }
+    ]
+  })");
+  EXPECT_EQ(result, expected);
+}
