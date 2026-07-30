@@ -28,10 +28,12 @@ namespace sourcemeta::core {
 /// though the grammar alone would accept it. This is a deliberate strictness
 /// choice that keeps the accepted set to domains that name a real IDNA label.
 /// Second, an `[IPv6:...]` address literal is validated per RFC 4291, following
-/// the RFC 5321 Section 4.1.3 prose, because the Section 4.1.3 `IPv6-addr` ABNF
-/// is self-contradictory. A bracketed `[IPv6:...]` whose body is not a valid
-/// address is still accepted through the Section 4.1.3 General-address-literal
-/// alternative, whose unordered ABNF alternatives make it grammatically valid.
+/// the RFC 5321 Section 4.1.3 prose, which defers to RFC 4291, rather than the
+/// stricter `IPv6-addr` ABNF in the same section that conflicts with it. A
+/// bracketed `[IPv6:...]` whose body is not a valid address is still accepted
+/// through the Section 4.1.3 General-address-literal alternative, whose unordered
+/// ABNF alternatives make it grammatically valid.
+///
 /// For example:
 ///
 /// ```cpp
