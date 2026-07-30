@@ -466,6 +466,38 @@ TEST(parse_drops_offline_access_but_keeps_other_scopes_with_a_none_prompt) {
   EXPECT_EQ(request.response_mode, "");
 }
 
+TEST(parse_drops_offline_access_from_a_scope_borrowed_from_the_query) {
+  std::string storage;
+  sourcemeta::core::OIDCAuthenticationRequest request;
+  EXPECT_TRUE(sourcemeta::core::oidc_parse_authentication_request(
+      "response_type=code&client_id=s6BhdRkqt3&"
+      "redirect_uri=https%3A%2F%2Fclient.example%2Fcb&"
+      "scope=openid offline_access profile&prompt=none&"
+      "code_challenge=E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM&code_"
+      "challenge_method=S256",
+      storage, request));
+  EXPECT_EQ(request.client_id, "s6BhdRkqt3");
+  EXPECT_EQ(request.redirect_uri, "https://client.example/cb");
+  EXPECT_EQ(request.scope, "openid profile");
+  EXPECT_EQ(request.response_type, "code");
+  EXPECT_EQ(request.state, "");
+  EXPECT_EQ(request.code_challenge,
+            "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM");
+  EXPECT_EQ(request.code_challenge_method, "S256");
+  EXPECT_EQ(request.nonce, "");
+  EXPECT_EQ(request.display, "");
+  EXPECT_EQ(request.prompt, "none");
+  EXPECT_EQ(request.max_age, "");
+  EXPECT_EQ(request.ui_locales, "");
+  EXPECT_EQ(request.id_token_hint, "");
+  EXPECT_EQ(request.login_hint, "");
+  EXPECT_EQ(request.acr_values, "");
+  EXPECT_EQ(request.claims, "");
+  EXPECT_EQ(request.request, "");
+  EXPECT_EQ(request.request_uri, "");
+  EXPECT_EQ(request.response_mode, "");
+}
+
 TEST(parse_accepts_offline_access_with_a_consent_prompt) {
   std::string storage;
   sourcemeta::core::OIDCAuthenticationRequest request;

@@ -192,6 +192,17 @@ TEST(stub_test_1) {
   EXPECT_EQ(result, expected);
 }
 
+// YAML 1.2.2 Section 6.8.2: a tag directive applies to the document that
+// follows it, so a handle declared before a later document resolves within that
+// document rather than being discarded at its document start marker.
+TEST(read_yaml_resolves_a_tag_directive_before_a_later_document) {
+  const auto result{sourcemeta::core::read_yaml(
+      std::filesystem::path{STUBS_PATH} / "multi_document_tag_directive.yaml")};
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON({ "first": "document" })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
 TEST(yaml_or_json_stub_test_1) {
   const auto result{sourcemeta::core::read_yaml_or_json(
       std::filesystem::path{STUBS_PATH} / "test_1.yaml")};

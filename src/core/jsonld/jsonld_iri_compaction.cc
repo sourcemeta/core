@@ -147,10 +147,6 @@ auto compact_iri(const ActiveContext &active_context,
       }
       containers.emplace_back(KEYWORD_INDEX);
       containers.emplace_back(JSON::String{KEYWORD_INDEX} + set);
-      // The spec graph-object branch does not list @none. It is retained as a
-      // last-resort fallback only, so a graph object still matches a term with
-      // no container mapping when nothing more specific applies.
-      containers.emplace_back(KEYWORD_NONE);
       type_language = KEYWORD_TYPE;
       type_language_value = KEYWORD_ID;
     } else if (is_object && value->defines(KEYWORD_LIST, KEYWORD_LIST_HASH)) {

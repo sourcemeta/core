@@ -57,21 +57,32 @@ auto offline_access_is_valid(const std::string_view scope,
 // OpenID Connect Core 1.0 Section 11: when the conditions that authorize
 // issuing a refresh token are not met, the Authorization Server "MUST ignore
 // the offline_access request", so the token is dropped from the parsed scope
-// rather than the whole request being refused. The decoded scope lives in the
-// arena, so the retained tokens are compacted back into its own bytes, which
-// only shrinks and therefore never disturbs another borrowed view into the
-// arena. A scope carrying more than one token was percent-encoded and so lands
-// in the arena, so an in-place rewrite applies only when the value points there
+// rather than the whole request being refused. A scope decoded into the arena
+// is compacted back into its own bytes, which only shrinks and so never
+// disturbs another borrowed view into the arena. A scope borrowed directly from
+// the query cannot be edited in place, so its retained tokens are compacted
+// into the arena instead. The parser reserved the whole query length up front
+// and a borrowed value consumed none of it, so this append stays within the
+// existing capacity and never reallocates a buffer that other views borrow from
 auto drop_offline_access(std::string_view &scope, std::string &storage)
     -> void {
   const auto *const arena{storage.data()};
   const std::less<const char *> before{};
-  if (before(scope.data(), arena) ||
-      !before(scope.data(), arena + storage.size())) {
-    return;
+  const bool in_arena{!before(scope.data(), arena) &&
+                      before(scope.data(), arena + storage.size())};
+
+  std::size_t offset{0};
+  if (in_arena) {
+    offset = static_cast<std::size_t>(scope.data() - arena);
+  } else {
+    if (storage.capacity() - storage.size() < scope.size()) {
+      return;
+    }
+
+    offset = storage.size();
+    storage.resize(storage.size() + scope.size());
   }
 
-  const auto offset{static_cast<std::size_t>(scope.data() - arena)};
   std::size_t length{0};
   split(scope, ' ',
         [&storage, offset, &length](const std::string_view token) -> void {

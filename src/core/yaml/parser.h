@@ -102,6 +102,7 @@ public:
       throw YAMLParseError{1, 1, "Empty YAML document"};
     } else if (token->type == TokenType::DocumentEnd) {
       while (token.has_value() && token->type == TokenType::DocumentEnd) {
+        this->document_ended_ = true;
         token = this->lexer_->next();
       }
       if (!token.has_value() || token->type == TokenType::StreamEnd)
@@ -135,6 +136,7 @@ public:
       }
     }
     while (token.has_value() && token->type == TokenType::DocumentEnd) {
+      this->document_ended_ = true;
       if (this->roundtrip_) {
         this->roundtrip_->pre_end_comments =
             this->lexer_->take_preceding_comments();
@@ -176,9 +178,17 @@ public:
 
   auto validate_end_of_stream() -> void {
     auto token{this->next_token()};
-    bool saw_document_end{false};
+    // The preceding parse already consumed a document, so its end marker, if
+    // any, is not among the tokens seen here. YAML 1.2.2 Section 6.8.2: tag
+    // directives are local to one document, so crossing that boundary begins a
+    // fresh directive scope.
+    bool saw_document_end{this->document_ended_};
+    if (saw_document_end) {
+      this->tag_directives_.clear();
+    }
     while (token.has_value() && token->type == TokenType::DocumentEnd) {
       saw_document_end = true;
+      this->tag_directives_.clear();
       token = this->next_token();
     }
     if (!token.has_value() || token->type == TokenType::StreamEnd) {
@@ -186,7 +196,6 @@ public:
     }
     while (token.has_value() && token->type != TokenType::StreamEnd) {
       if (token->type == TokenType::DocumentStart) {
-        this->tag_directives_.clear();
         token = this->next_token();
         if (!token.has_value() || token->type == TokenType::StreamEnd) {
           return;
@@ -218,6 +227,9 @@ public:
       token = this->next_token();
       while (token.has_value() && token->type == TokenType::DocumentEnd) {
         saw_document_end = true;
+        // YAML 1.2.2 Section 6.8.2: the next document begins with an empty
+        // directive scope
+        this->tag_directives_.clear();
         token = this->next_token();
       }
     }
@@ -2074,6 +2086,10 @@ private:
   std::optional<std::size_t> pending_token_position_;
   std::unordered_map<std::string, std::string> tag_directives_;
   std::uint64_t document_start_line_{0};
+  // Whether the document parsed by the most recent call ended with an explicit
+  // document end marker, so a subsequent stream validation knows a document
+  // boundary was already crossed
+  bool document_ended_{false};
 };
 
 } // namespace sourcemeta::core::yaml
