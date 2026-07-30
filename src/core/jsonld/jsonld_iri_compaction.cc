@@ -147,6 +147,12 @@ auto compact_iri(const ActiveContext &active_context,
       }
       containers.emplace_back(KEYWORD_INDEX);
       containers.emplace_back(JSON::String{KEYWORD_INDEX} + set);
+      // The graph-object candidate list ends with @none as a last resort, after
+      // every graph container above, so a graph object still compacts against a
+      // term with no container mapping when the active context defines no
+      // graph-container term for its property (W3C JSON-LD 1.1 compaction suite
+      // cases 0090 through 0094)
+      containers.emplace_back(KEYWORD_NONE);
       type_language = KEYWORD_TYPE;
       type_language_value = KEYWORD_ID;
     } else if (is_object && value->defines(KEYWORD_LIST, KEYWORD_LIST_HASH)) {
