@@ -377,25 +377,18 @@ private:
     return input;
   }
 
-  // YAML 1.2.2 Section 5.1: the printable character set excludes the control
-  // block below the space other than tab, line feed, and carriage return, the
-  // delete character, and the high control block other than the next line
-  // character
+  // YAML 1.2.2 Section 5.1: the JSON-compatible production is "nb-json ::= x09
+  // | [x20-x10FFFF]", and every character in the stream is built on it, so a C0
+  // control other than tab, line feed, and carriage return is never allowed in
+  // any context, including inside a quoted scalar. The narrower printable set
+  // excludes further code points such as the delete character, the high control
+  // block, and the two permanently unassigned code points, but only outside
+  // quoted scalars, so that context-specific restriction is left to the
+  // per-context scanners rather than enforced by this whole-stream pass
   [[nodiscard]] static auto
   is_disallowed_control(const char32_t codepoint) noexcept -> bool {
-    if (codepoint <= 0x1F) {
-      return codepoint != 0x09 && codepoint != 0x0A && codepoint != 0x0D;
-    }
-    if (codepoint == 0x7F) {
-      return true;
-    }
-    if (codepoint >= 0x80 && codepoint <= 0x9F) {
-      return codepoint != 0x85;
-    }
-    // YAML 1.2.2 Section 5.1: the printable set spans the basic multilingual
-    // plane up to and including the last valid character below the two
-    // permanently unassigned code points at its end
-    return codepoint == 0xFFFE || codepoint == 0xFFFF;
+    return codepoint <= 0x1F && codepoint != 0x09 && codepoint != 0x0A &&
+           codepoint != 0x0D;
   }
 
   auto validate_characters() const -> void {

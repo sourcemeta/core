@@ -206,8 +206,18 @@ public:
     return this->headers_;
   }
 
-  /// Set the request body, sent along with the given `Content-Type` header
+  /// Set the request body, sent along with the given `Content-Type` header. A
+  /// content type carrying a carriage return, line feed, or NUL is refused,
+  /// leaving the request unchanged
   auto body(std::string data, std::string content_type) -> HTTPSystemRequest & {
+    // RFC 9110 §5.5: "a recipient of CR, LF, or NUL within a field value MUST
+    // either reject the message or replace each of those characters with SP",
+    // so a content type carrying one is refused, since a backend writes it
+    // straight into the Content-Type field on the wire
+    if (http_field_line_has_forbidden_byte(content_type)) {
+      return *this;
+    }
+
     this->body_ =
         Body{.data = std::move(data), .content_type = std::move(content_type)};
     return *this;
@@ -216,9 +226,18 @@ public:
   /// Set the request body from wiping storage, sent along with the given
   /// `Content-Type` header. The body is held in the wiping storage so a secret
   /// it carries, such as a client secret or PKCE code verifier, is never copied
-  /// into an ordinary string
+  /// into an ordinary string. A content type carrying a carriage return, line
+  /// feed, or NUL is refused, leaving the request unchanged
   auto body(SecureString data, std::string content_type)
       -> HTTPSystemRequest & {
+    // RFC 9110 §5.5: "a recipient of CR, LF, or NUL within a field value MUST
+    // either reject the message or replace each of those characters with SP",
+    // so a content type carrying one is refused, since a backend writes it
+    // straight into the Content-Type field on the wire
+    if (http_field_line_has_forbidden_byte(content_type)) {
+      return *this;
+    }
+
     this->body_ =
         Body{.data = std::move(data), .content_type = std::move(content_type)};
     return *this;

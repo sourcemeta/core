@@ -45,9 +45,15 @@ auto prompt_is_valid(const std::string_view prompt) -> bool {
   return token_count == 1;
 }
 
-// OpenID Connect Core 1.0 Section 11: obtaining a refresh token through the
-// offline_access scope requires the end user's consent, which the none prompt
-// forbids gathering, so the two cannot be requested together
+// OpenID Connect Core 1.0 Section 11: on receipt of an offline_access scope the
+// Authorization Server "MUST ensure that the prompt parameter contains consent
+// unless other conditions for processing the request permitting offline access
+// to the requested resources are in place; unless one or both of these
+// conditions are fulfilled, then it MUST ignore the offline_access request". A
+// none prompt forbids gathering consent, so absent server-specific conditions
+// the request cannot yield a refresh token. Whether such other conditions hold
+// is provider policy this parser cannot see, so it treats a none prompt as the
+// conservative case where offline_access is ignored
 auto offline_access_is_valid(const std::string_view scope,
                              const std::string_view prompt) -> bool {
   return !space_list_contains(scope, "offline_access") ||
@@ -396,7 +402,11 @@ auto oidc_parse_authentication_request(const std::string_view query,
          !(response_type_requires_nonce(result.response_type) &&
            result.nonce.empty()) &&
          pkce_is_valid(result.code_challenge, result.code_challenge_method,
-                       profile);
+                       profile) &&
+         // A refusable offline_access request must have been dropped above, so
+         // its survival means the drop could not be applied and the request
+         // fails closed rather than being accepted with the forbidden token
+         offline_access_is_valid(result.scope, result.prompt);
 }
 
 } // namespace sourcemeta::core

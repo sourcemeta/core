@@ -268,6 +268,41 @@ TEST(sign_aws_sigv4_hashes_an_empty_secure_string_body) {
             sourcemeta::core::sha256(""));
 }
 
+TEST(body_with_crlf_in_content_type_is_refused) {
+  const auto moment{
+      sourcemeta::core::from_iso8601_basic("20150830T123600Z").value()};
+  sourcemeta::core::HTTPSystemRequest request{
+      "https://example.amazonaws.com/", sourcemeta::core::HTTPMethod::POST};
+  request.body("Param1=value1", std::string{"text/plain\r\nEvil: yes"});
+  request.sign_aws_sigv4(
+      {.access_key_id = "AKIDEXAMPLE",
+       .secret_access_key = "wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY",
+       .session_token = ""},
+      "us-east-1", "service", moment);
+
+  // The body was refused, so no payload is signed
+  EXPECT_EQ(request.header("x-amz-content-sha256").value(),
+            sourcemeta::core::sha256(""));
+}
+
+TEST(body_from_wiping_storage_with_crlf_in_content_type_is_refused) {
+  const auto moment{
+      sourcemeta::core::from_iso8601_basic("20150830T123600Z").value()};
+  sourcemeta::core::HTTPSystemRequest request{
+      "https://example.amazonaws.com/", sourcemeta::core::HTTPMethod::POST};
+  request.body(sourcemeta::core::SecureString{"Param1=value1"},
+               std::string{"text/plain\r\nEvil: yes"});
+  request.sign_aws_sigv4(
+      {.access_key_id = "AKIDEXAMPLE",
+       .secret_access_key = "wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY",
+       .session_token = ""},
+      "us-east-1", "service", moment);
+
+  // The wiping-storage body was refused, so no payload is signed
+  EXPECT_EQ(request.header("x-amz-content-sha256").value(),
+            sourcemeta::core::sha256(""));
+}
+
 TEST(sign_aws_sigv4_adds_session_token_when_present) {
   const auto moment{
       sourcemeta::core::from_iso8601_basic("20150830T123600Z").value()};

@@ -288,3 +288,27 @@ TEST(iri_compaction_1_0_preserves_processing_mode_across_a_null_context) {
   })");
   EXPECT_EQ(result, expected);
 }
+
+// JSON-LD 1.1 API Section 6.2.3: the @index candidate is added only when the
+// processing mode is not json-ld-1.0. This applies to the node-reference branch
+// too, so under 1.0 a node reference does not select the @index-container term
+// and its property stays expanded.
+TEST(iri_compaction_1_0_does_not_add_index_candidate_for_a_node_reference) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    { "http://example.com/prop": [ { "@id": "http://example.com/n" } ] }
+  ])");
+  const auto context = sourcemeta::core::parse_json(R"([
+    null,
+    { "prop": { "@id": "http://example.com/prop", "@container": "@index" } }
+  ])");
+  const auto result{sourcemeta::core::jsonld_compact(
+      input, context, "", {}, sourcemeta::core::JSONLDVersion::V1_0)};
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "http://example.com/prop": { "@id": "http://example.com/n" },
+    "@context": [
+      null,
+      { "prop": { "@id": "http://example.com/prop", "@container": "@index" } }
+    ]
+  })");
+  EXPECT_EQ(result, expected);
+}

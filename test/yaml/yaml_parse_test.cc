@@ -1348,10 +1348,32 @@ TEST(primary_tag_handle_plain_is_accepted) {
   EXPECT_TRUE(result.is_string());
 }
 
-// YAML 1.2.2 Section 5.1: the two permanently unassigned code points at the end
-// of the basic multilingual plane are outside the printable character set.
-TEST(permanently_unassigned_code_point_is_rejected) {
-  const std::string input{std::string{"key: va"} + "\xEF\xBF\xBE" + "lue"};
+// YAML 1.2.2 Section 5.1: "To ensure JSON compatibility, YAML processors must
+// allow all non-C0 characters inside quoted scalars" (the nb-json production
+// "x09 | [x20-x10FFFF]"), so a delete character or a permanently unassigned
+// code point inside a double-quoted scalar is content rather than an error.
+TEST(non_c0_control_inside_a_quoted_scalar_is_accepted) {
+  const std::string input{std::string{"key: \"a"} + "\x7F" + "b\""};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  auto expected{sourcemeta::core::JSON::make_object()};
+  expected.assign("key",
+                  sourcemeta::core::JSON{std::string{"a"} + "\x7F" + "b"});
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.at("key").is_string());
+
+  const std::string noncharacter{std::string{"key: \"a"} + "\xEF\xBF\xBE" +
+                                 "b\""};
+  const auto noncharacter_result{sourcemeta::core::parse_yaml(noncharacter)};
+  auto noncharacter_expected{sourcemeta::core::JSON::make_object()};
+  noncharacter_expected.assign(
+      "key", sourcemeta::core::JSON{std::string{"a"} + "\xEF\xBF\xBE" + "b"});
+  EXPECT_EQ(noncharacter_result, noncharacter_expected);
+}
+
+// YAML 1.2.2 Section 5.1: the nb-json production excludes the C0 control block
+// other than tab, so a C0 control is rejected even inside a quoted scalar.
+TEST(c0_control_inside_a_quoted_scalar_is_rejected) {
+  const std::string input{std::string{"key: \"a"} + '\x01' + "b\""};
   try {
     sourcemeta::core::parse_yaml(input);
     FAIL();
@@ -1360,13 +1382,6 @@ TEST(permanently_unassigned_code_point_is_rejected) {
   } catch (...) {
     FAIL();
   }
-
-  const std::string valid{"key: caf\xc3\xa9"};
-  const auto result{sourcemeta::core::parse_yaml(valid)};
-  auto expected{sourcemeta::core::JSON::make_object()};
-  expected.assign("key", sourcemeta::core::JSON{"caf\xc3\xa9"});
-  EXPECT_EQ(result, expected);
-  EXPECT_TRUE(result.at("key").is_string());
 }
 
 // YAML 1.2.2 Section 5.2: a stream is a sequence of characters in a supported

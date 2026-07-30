@@ -111,9 +111,10 @@ auto compact_iri(const ActiveContext &active_context,
       type_language_value = KEYWORD_REVERSE;
       containers.emplace_back(KEYWORD_SET);
       containers.emplace_back(KEYWORD_NONE);
-      // A reverse value that is a node without an explicit index may still
-      // match a reverse term that declares an index container.
-      if (!has_index) {
+      // JSON-LD 1.1 API Section 6.2.3: the @index and @index@set candidates are
+      // added only when the processing mode is not json-ld-1.0 and the value
+      // carries no @index entry
+      if (!active_context.processing_1_0 && !has_index) {
         containers.emplace_back(KEYWORD_INDEX);
         containers.emplace_back(JSON::String{KEYWORD_INDEX} +
                                 JSON::String{KEYWORD_SET});
@@ -264,9 +265,10 @@ auto compact_iri(const ActiveContext &active_context,
         containers.emplace_back(JSON::String{KEYWORD_INDEX} +
                                 JSON::String{KEYWORD_SET});
       }
-      // A value object carrying only @value also matches a language container
-      // term as a last resort, after a no-container term has been considered.
-      if (value->object_size() == 1) {
+      // JSON-LD 1.1 API Section 6.2.3: a value object carrying only @value also
+      // matches a language container term as a last resort, but only when the
+      // processing mode is not json-ld-1.0
+      if (!active_context.processing_1_0 && value->object_size() == 1) {
         containers.emplace_back(KEYWORD_LANGUAGE);
         containers.emplace_back(language_set);
       }
@@ -284,9 +286,14 @@ auto compact_iri(const ActiveContext &active_context,
                               JSON::String{KEYWORD_TYPE});
       containers.emplace_back(KEYWORD_SET);
       containers.emplace_back(KEYWORD_NONE);
-      containers.emplace_back(KEYWORD_INDEX);
-      containers.emplace_back(JSON::String{KEYWORD_INDEX} +
-                              JSON::String{KEYWORD_SET});
+      // JSON-LD 1.1 API Section 6.2.3: the @index and @index@set candidates are
+      // added only when the processing mode is not json-ld-1.0 and the value
+      // carries no @index entry
+      if (!active_context.processing_1_0 && !has_index) {
+        containers.emplace_back(KEYWORD_INDEX);
+        containers.emplace_back(JSON::String{KEYWORD_INDEX} +
+                                JSON::String{KEYWORD_SET});
+      }
     }
 
     std::vector<JSON::String> preferred;
