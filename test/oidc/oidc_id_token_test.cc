@@ -291,12 +291,74 @@ TEST(validate_echoes_a_matching_nonce) {
   EXPECT_EQ(identity.value().subject, "user-1");
 }
 
-TEST(validate_accepts_a_multi_audience_token_with_matching_azp) {
+TEST(validate_rejects_an_untrusted_additional_audience) {
+  // With the default empty trusted set every audience beyond the client is
+  // untrusted, so a multi-audience token is rejected even with a matching azp
   const auto compact{sign_id_token(R"JSON({
     "iss": "https://issuer.example",
     "sub": "user-1",
     "aud": [ "client-id", "other" ],
     "azp": "client-id",
+    "iat": 1699996400,
+    "exp": 2000000000
+  })JSON")};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  const auto identity{sourcemeta::core::oidc_validate_id_token(
+      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
+      "client-id", reference_now)};
+  EXPECT_FALSE(identity.has_value());
+}
+
+TEST(validate_accepts_a_trusted_additional_audience_with_matching_azp) {
+  const auto compact{sign_id_token(R"JSON({
+    "iss": "https://issuer.example",
+    "sub": "user-1",
+    "aud": [ "client-id", "other" ],
+    "azp": "client-id",
+    "iat": 1699996400,
+    "exp": 2000000000
+  })JSON")};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  const std::array<std::string_view, 1> trusted{{"other"}};
+  sourcemeta::core::OIDCValidationOptions options;
+  options.trusted_audiences = trusted;
+  const auto identity{sourcemeta::core::oidc_validate_id_token(
+      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
+      "client-id", reference_now, options)};
+  EXPECT_TRUE(identity.has_value());
+  EXPECT_EQ(identity.value().subject, "user-1");
+}
+
+TEST(validate_rejects_a_trusted_additional_audience_without_azp) {
+  // The azp requirement for multi-audience tokens is retained even when every
+  // additional audience is trusted
+  const auto compact{sign_id_token(R"JSON({
+    "iss": "https://issuer.example",
+    "sub": "user-1",
+    "aud": [ "client-id", "other" ],
+    "iat": 1699996400,
+    "exp": 2000000000
+  })JSON")};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  const std::array<std::string_view, 1> trusted{{"other"}};
+  sourcemeta::core::OIDCValidationOptions options;
+  options.trusted_audiences = trusted;
+  const auto identity{sourcemeta::core::oidc_validate_id_token(
+      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
+      "client-id", reference_now, options)};
+  EXPECT_FALSE(identity.has_value());
+}
+
+TEST(validate_accepts_a_single_audience_under_an_empty_trusted_set) {
+  // A single-string audience carries no additional audience, so the strict
+  // default trusted set does not affect it
+  const auto compact{sign_id_token(R"JSON({
+    "iss": "https://issuer.example",
+    "sub": "user-1",
+    "aud": "client-id",
     "iat": 1699996400,
     "exp": 2000000000
   })JSON")};

@@ -9,6 +9,7 @@
 #include <array>     // std::array
 #include <cassert>   // assert
 #include <charconv>  // std::to_chars
+#include <cmath>     // std::signbit
 #include <cstddef>   // std::size_t
 #include <cstdint>   // std::int64_t
 #include <iterator>  // std::next, std::cbegin, std::cend, std::back_inserter
@@ -76,7 +77,12 @@ auto stringify(
     const double value, const bool is_integral,
     std::basic_ostream<typename JSON::Char, typename JSON::CharTraits> &stream)
     -> void {
-  if (value == static_cast<double>(0.0)) {
+  // RFC 8259 Section 6 permits a signed zero, and our parser produces a
+  // distinct negative zero real, so preserving the sign keeps round-trip
+  // fidelity
+  if (value == static_cast<double>(0.0) && std::signbit(value)) {
+    stream.write("-0.0", 4);
+  } else if (value == static_cast<double>(0.0)) {
     stream.write("0.0", 3);
   } else if (is_integral) {
     // Write the integer digits followed by an explicit ".0" to preserve the

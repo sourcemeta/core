@@ -160,6 +160,23 @@ TEST(blocks_compatible_loopback_bypass) {
   EXPECT_FALSE(sourcemeta::core::ip_is_globally_routable("::127.0.0.1"));
 }
 
+TEST(public_ipv6_nat64_wellknown) {
+  EXPECT_TRUE(sourcemeta::core::ip_is_globally_routable("64:ff9b::8.8.8.8"));
+}
+
+TEST(blocks_ipv6_nat64_loopback_bypass) {
+  EXPECT_FALSE(sourcemeta::core::ip_is_globally_routable("64:ff9b::127.0.0.1"));
+}
+
+TEST(blocks_ipv6_nat64_private_bypass) {
+  EXPECT_FALSE(
+      sourcemeta::core::ip_is_globally_routable("64:ff9b::192.168.0.1"));
+}
+
+TEST(blocks_ipv6_nat64_local_use) {
+  EXPECT_FALSE(sourcemeta::core::ip_is_globally_routable("64:ff9b:1::1"));
+}
+
 TEST(blocks_a_hostname) {
   EXPECT_FALSE(sourcemeta::core::ip_is_globally_routable("example.com"));
 }

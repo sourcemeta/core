@@ -156,6 +156,61 @@ inline auto http_for_each_parameter(const std::string_view parameters,
   }
 }
 
+// RFC 9110 §12.5.1 lets a media range carry media-type parameters, and "a
+// parameter value that matches the [media-range] parameter" is required for
+// the range to apply. A named parameter of the range is satisfied only when the
+// candidate media type carries the same parameter. Parameter names are
+// case-insensitive per RFC 9110 §5.6.6, while values are compared verbatim
+// because their case sensitivity depends on the parameter semantics.
+inline auto
+http_candidate_has_parameter(const std::string_view candidate_parameters,
+                             const std::string_view name,
+                             const std::string_view value) noexcept -> bool {
+  bool found{false};
+  http_for_each_parameter(
+      candidate_parameters,
+      [&](const std::string_view candidate_name,
+          const std::string_view candidate_value) noexcept -> void {
+        if (equals_ignore_case(candidate_name, name) &&
+            candidate_value == value) {
+          found = true;
+        }
+      });
+  return found;
+}
+
+// RFC 9110 §12.5.1: "Media ranges can be overridden by more specific media
+// ranges or specific media types. If more than one media range applies to a
+// given type, the most specific reference has precedence." The base tier ranks
+// */* below type/* below type/subtype, and each media-type parameter the range
+// pins that the candidate also carries makes the range strictly more specific.
+// A range that pins a parameter the candidate lacks does not match at all.
+inline auto http_media_range_specificity(
+    const std::string_view range, const std::string_view range_parameters,
+    const std::string_view candidate,
+    const std::string_view candidate_parameters) noexcept -> std::uint8_t {
+  const std::uint8_t base{http_media_specificity(range, candidate)};
+  if (base == 0) {
+    return 0;
+  }
+  std::uint8_t matched{0};
+  bool all_present{true};
+  http_for_each_parameter(
+      range_parameters,
+      [&](const std::string_view name,
+          const std::string_view value) noexcept -> void {
+        if (http_candidate_has_parameter(candidate_parameters, name, value)) {
+          ++matched;
+        } else {
+          all_present = false;
+        }
+      });
+  if (!all_present) {
+    return 0;
+  }
+  return static_cast<std::uint8_t>(base + matched);
+}
+
 // RFC 9110 §12.4.2 q-value. A malformed weight is a fail-safe refusal, so it
 // is treated as 0 rather than maximal preference. An absent weight is not
 // routed here and keeps its 1.0 default at the call site.
@@ -206,6 +261,66 @@ inline auto http_extract_quality(const std::string_view parameters) noexcept
   return quality;
 }
 
+// RFC 9110 §12.5.1: "media-range = ( "*/*" / ( type "/" "*" ) / ( type "/"
+// subtype ) ) parameters" followed by an optional "weight". The "q" parameter
+// both carries the weight and closes the media-type parameter list, so every
+// parameter before "q" is a media-type parameter that participates in matching,
+// while "q" and any accept-ext after it do not. This returns the media-type
+// parameter span (the prefix up to but excluding the "q" parameter) together
+// with the parsed weight, which defaults to 1.0 when no "q" is present.
+inline auto http_split_media_range(const std::string_view parameters) noexcept
+    -> std::pair<std::string_view, float> {
+  std::size_t position{0};
+  std::size_t media_parameters_end{parameters.size()};
+  float quality{1.0f};
+  while (position < parameters.size()) {
+    const std::size_t separator{position};
+    if (parameters[position] == ';') {
+      ++position;
+    }
+    while (position < parameters.size() && http_is_ows(parameters[position])) {
+      ++position;
+    }
+    std::size_t end_position{position};
+    bool in_quotes{false};
+    while (end_position < parameters.size()) {
+      const char current{parameters[end_position]};
+      if (in_quotes) {
+        if (current == '\\' && end_position + 1 < parameters.size()) {
+          ++end_position;
+        } else if (current == '"') {
+          in_quotes = false;
+        }
+      } else if (current == '"') {
+        in_quotes = true;
+      } else if (current == ';') {
+        break;
+      }
+      ++end_position;
+    }
+    const auto raw{http_subview(parameters, position, end_position - position)};
+    position = end_position;
+    if (raw.empty()) {
+      continue;
+    }
+    std::size_t equals{0};
+    while (equals < raw.size() && raw[equals] != '=') {
+      ++equals;
+    }
+    const auto name{http_trim_trailing_ows(http_subview(raw, 0, equals))};
+    if (name.size() == 1 && (name[0] == 'q' || name[0] == 'Q')) {
+      media_parameters_end = separator;
+      const auto value{(equals == raw.size())
+                           ? std::string_view{}
+                           : http_trim_trailing_ows(http_subview(
+                                 raw, equals + 1, raw.size() - equals - 1))};
+      quality = http_parse_qvalue(value);
+      break;
+    }
+  }
+  return {http_subview(parameters, 0, media_parameters_end), quality};
+}
+
 template <typename Visitor>
 inline auto http_for_each_accept_entry(const std::string_view header,
                                        Visitor visit) -> void {
@@ -215,6 +330,24 @@ inline auto http_for_each_accept_entry(const std::string_view header,
         if (!value.empty()) {
           visit(value, http_extract_quality(parameters));
         }
+      });
+}
+
+// RFC 9110 §12.5.1 media ranges, exposing the media type, its media-type
+// parameters, and the weight separately so a parameterized range is matched
+// against a candidate's own parameters rather than being collapsed to its type.
+template <typename Visitor>
+inline auto http_for_each_media_range(const std::string_view header,
+                                      Visitor visit) -> void {
+  http_for_each_list_entry(
+      header, [&visit](const std::string_view entry) -> auto {
+        const auto [value, parameters] = http_split_entry(entry);
+        if (value.empty()) {
+          return;
+        }
+        const auto [media_parameters, quality] =
+            http_split_media_range(parameters);
+        visit(value, media_parameters, quality);
       });
 }
 

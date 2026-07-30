@@ -1669,6 +1669,45 @@ TEST(make_server_metadata_allows_a_missing_token_endpoint_for_implicit_only) {
   EXPECT_FALSE(document.value().defines("token_endpoint"));
 }
 
+TEST(
+    make_server_metadata_allows_omitting_the_authorization_members_for_client_credentials_only) {
+  const std::array<std::string_view, 1> grant_types{{"client_credentials"}};
+  sourcemeta::core::OAuthServerMetadataConfig config;
+  config.issuer = "https://server.example";
+  config.token_endpoint = "https://server.example/token";
+  config.grant_types_supported = grant_types;
+  const auto document{sourcemeta::core::oauth_make_server_metadata(config)};
+  EXPECT_TRUE(document.has_value());
+  EXPECT_FALSE(document.value().defines("authorization_endpoint"));
+  EXPECT_FALSE(document.value().defines("response_types_supported"));
+  EXPECT_EQ(document.value().at("token_endpoint").to_string(),
+            "https://server.example/token");
+}
+
+TEST(
+    make_server_metadata_requires_the_authorization_endpoint_for_authorization_code) {
+  const std::array<std::string_view, 1> response_types{{"code"}};
+  const std::array<std::string_view, 1> grant_types{{"authorization_code"}};
+  sourcemeta::core::OAuthServerMetadataConfig config;
+  config.issuer = "https://server.example";
+  config.token_endpoint = "https://server.example/token";
+  config.response_types_supported = response_types;
+  config.grant_types_supported = grant_types;
+  const auto document{sourcemeta::core::oauth_make_server_metadata(config)};
+  EXPECT_FALSE(document.has_value());
+}
+
+TEST(make_server_metadata_requires_response_types_for_authorization_code) {
+  const std::array<std::string_view, 1> grant_types{{"authorization_code"}};
+  sourcemeta::core::OAuthServerMetadataConfig config;
+  config.issuer = "https://server.example";
+  config.authorization_endpoint = "https://server.example/authorize";
+  config.token_endpoint = "https://server.example/token";
+  config.grant_types_supported = grant_types;
+  const auto document{sourcemeta::core::oauth_make_server_metadata(config)};
+  EXPECT_FALSE(document.has_value());
+}
+
 TEST(make_server_metadata_rejects_none_without_jwt_methods) {
   const std::array<std::string_view, 1> response_types{{"code"}};
   const std::array<std::string_view, 1> algs{{"none"}};

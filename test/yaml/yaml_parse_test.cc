@@ -1421,3 +1421,256 @@ TEST(byte_order_mark_stream_resumes_at_the_correct_document) {
       sourcemeta::core::parse_json(R"JSON({ "b": 2 })JSON")};
   EXPECT_EQ(second, expected_second);
 }
+
+// YAML 1.2.2 Section 10.3.2: a value with a fractional part is a float, so an
+// integral-valued float resolves to a real rather than an integer.
+TEST(integral_valued_float_is_a_real) {
+  const std::string input{"key: 1.0"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON({ "key": 1.0 })JSON")};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.at("key").is_real());
+  EXPECT_FALSE(result.at("key").is_integer());
+}
+
+TEST(bare_integral_float_is_a_real) {
+  const std::string input{"1.0"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const sourcemeta::core::JSON expected{sourcemeta::core::parse_json("1.0")};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.is_real());
+  EXPECT_FALSE(result.is_integer());
+}
+
+// YAML 1.2.2 Section 10.3.2: an explicit float tag on an integer produces a
+// float, so it resolves to a real rather than an integer.
+TEST(float_tag_on_integer_is_a_real) {
+  const std::string input{"!!float 1"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_TRUE(result.is_real());
+  EXPECT_FALSE(result.is_integer());
+  EXPECT_EQ(result.to_real(), 1.0);
+}
+
+TEST(plain_integer_stays_an_integer) {
+  const std::string input{"1"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const sourcemeta::core::JSON expected{1};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.is_integer());
+  EXPECT_FALSE(result.is_real());
+}
+
+// RFC 8259 Section 6: numeric values that cannot be represented in the JSON
+// grammar, such as Infinity and NaN, are not permitted.
+TEST(positive_infinity_is_rejected) {
+  const std::string input{".inf"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Infinity and NaN are not permitted");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(negative_infinity_is_rejected) {
+  const std::string input{"-.inf"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Infinity and NaN are not permitted");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(not_a_number_is_rejected) {
+  const std::string input{".nan"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Infinity and NaN are not permitted");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(infinity_as_mapping_value_is_rejected) {
+  const std::string input{"key: .inf"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Infinity and NaN are not permitted");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// RFC 8259 Section 6 forbids only the special numeric values, so a quoted
+// infinity token is an ordinary string and a normal float still parses.
+TEST(quoted_infinity_is_a_string) {
+  const std::string input{"key: \".inf\""};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON({ "key": ".inf" })JSON")};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.at("key").is_string());
+}
+
+TEST(normal_float_still_parses) {
+  const std::string input{"key: 1.5"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON({ "key": 1.5 })JSON")};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.at("key").is_real());
+}
+
+// RFC 8259 Section 4: an object member name is a string, so an explicit block
+// mapping key that is a flow sequence cannot be represented and is rejected,
+// matching PyYAML and js-yaml.
+TEST(block_explicit_flow_sequence_key_is_rejected) {
+  const std::string input{"? [a, b]\n: value"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Mapping key cannot be a collection");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(block_explicit_flow_mapping_key_is_rejected) {
+  const std::string input{"? {a: b}\n: value"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Mapping key cannot be a collection");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(block_explicit_block_sequence_key_is_rejected) {
+  const std::string input{"?\n  - a\n  - b\n: value"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Mapping key cannot be a collection");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// RFC 8259 Section 4: an alias that resolves to a collection cannot be used as
+// an object member name.
+TEST(alias_collection_key_is_rejected) {
+  const std::string input{"first: &a [1, 2]\n*a : value"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Mapping key cannot be a collection");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(flow_sequence_explicit_collection_key_is_rejected) {
+  const std::string input{"[ ? [a, b] : v ]"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Mapping key cannot be a collection");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// A scalar key that resolves to a non-string is still stringified into an
+// object member name rather than rejected.
+TEST(integer_key_is_stringified) {
+  const std::string input{"1: v"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON({ "1": "v" })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(boolean_key_is_stringified) {
+  const std::string input{"true: v"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON({ "true": "v" })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+// A scalar key is resolved to its typed value before becoming a member name,
+// so a hexadecimal key and its decimal equivalent collide.
+TEST(flow_mapping_resolved_key_duplicate_is_rejected) {
+  const std::string input{"{0x1: a, 1: b}"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLDuplicateKeyError &error) {
+    EXPECT_EQ(error.key(), "1");
+    EXPECT_STREQ(error.what(), "Duplicate key in YAML mapping");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(block_mapping_resolved_key_duplicate_is_rejected) {
+  const std::string input{"0x1: a\n1: b"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLDuplicateKeyError &error) {
+    EXPECT_EQ(error.key(), "1");
+    EXPECT_STREQ(error.what(), "Duplicate key in YAML mapping");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(flow_mapping_null_key_resolves_to_empty_string) {
+  const std::string input{"{~: v}"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON({ "": "v" })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(flow_mapping_integer_key_resolves_to_string) {
+  const std::string input{"{1: a}"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON({ "1": "a" })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(flow_mapping_distinct_keys_are_accepted) {
+  const std::string input{"{a: 1, b: 2}"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON({ "a": 1, "b": 2 })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(block_explicit_scalar_key_is_resolved) {
+  const std::string input{"? 0x1\n: v"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON({ "1": "v" })JSON")};
+  EXPECT_EQ(result, expected);
+}

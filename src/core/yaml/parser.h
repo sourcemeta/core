@@ -11,7 +11,6 @@
 
 #include <cassert>       // assert
 #include <cstdint>       // std::uint64_t, std::int64_t
-#include <limits>        // std::numeric_limits
 #include <optional>      // std::optional
 #include <sstream>       // std::ostringstream
 #include <string>        // std::string
@@ -440,8 +439,18 @@ private:
                : token.column;
   }
 
-  [[nodiscard]] auto json_to_key_string(const JSON &value) const
+  [[nodiscard]] auto json_to_key_string(const JSON &value,
+                                        const std::uint64_t key_line,
+                                        const std::uint64_t key_column) const
       -> std::string {
+    // RFC 8259 Section 4: an object member name is a string, so a mapping key
+    // that resolves to a collection cannot be represented as JSON. PyYAML
+    // raises on the unhashable key and js-yaml rejects the complex key, so a
+    // collection key is rejected rather than silently stringified
+    if (value.is_array() || value.is_object()) [[unlikely]] {
+      throw YAMLParseError{key_line, key_column,
+                           "Mapping key cannot be a collection"};
+    }
     if (value.is_string()) {
       return value.to_string();
     }
@@ -451,6 +460,19 @@ private:
     std::ostringstream stream;
     stream << value;
     return stream.str();
+  }
+
+  auto resolve_scalar_key(const Token &token) -> std::string {
+    // Round-trip mode preserves the original key text, so it is not resolved
+    if (this->roundtrip_) {
+      return std::string{token.value};
+    }
+    // Resolve a scalar key to its typed value and stringify it, so that keys
+    // such as 0x1 and 1 collapse to the same member name, keeping key handling
+    // consistent with values and alias keys
+    const auto value{
+        this->interpret_scalar(token.value, token.scalar_style, std::nullopt)};
+    return this->json_to_key_string(value, token.line, token.column);
   }
 
   auto parse_value(const Token &token, const JSON::ParseContext context,
@@ -692,8 +714,9 @@ private:
             throw YAMLUnknownAnchorError{alias_name, current_token.line,
                                          current_token.column};
           }
-          const auto key_string{
-              this->json_to_key_string(iterator->second.value)};
+          const auto key_string{this->json_to_key_string(iterator->second.value,
+                                                         current_token.line,
+                                                         current_token.column)};
           Token key_token{current_token};
           key_token.type = TokenType::Scalar;
           key_token.value = key_string;
@@ -825,6 +848,14 @@ private:
         value == "+.inf" || value == "+.Inf" || value == "+.INF" ||
         value == "-.inf" || value == "-.Inf" || value == "-.INF" ||
         value == ".nan" || value == ".NaN" || value == ".NAN") {
+      // RFC 8259 Section 6: numeric values that cannot be represented in the
+      // JSON grammar, such as Infinity and NaN, are not permitted, so a YAML
+      // infinity or not-a-number float has no JSON representation. Round-trip
+      // mode preserves the original text instead, so it keeps the string
+      if (!this->roundtrip_) [[unlikely]] {
+        throw YAMLParseError{this->lexer_->line(), this->lexer_->column(),
+                             "Infinity and NaN are not permitted"};
+      }
       return JSON{value};
     }
 
@@ -973,21 +1004,10 @@ private:
       return JSON{Decimal{value}};
     }
 
-    // Only convert to an integer when the value is within the representable
-    // range, since casting an out-of-range double to an integer is undefined
-    // behavior
-    const auto number{result.value()};
-    if (number >=
-            static_cast<double>(std::numeric_limits<std::int64_t>::min()) &&
-        number <
-            static_cast<double>(std::numeric_limits<std::int64_t>::max())) {
-      const auto as_integer{static_cast<std::int64_t>(number)};
-      if (number == static_cast<double>(as_integer)) {
-        return JSON{as_integer};
-      }
-    }
-
-    return JSON{number};
+    // YAML 1.2.2 Section 10.3.2 tags a dotted or explicitly floated value as a
+    // float, so an integral-valued float stays a real rather than collapsing to
+    // an integer, matching the JSON parser where a dotted literal is a real
+    return JSON{result.value()};
   }
 
   auto parse_flow_mapping(const Token &start_token,
@@ -1038,7 +1058,7 @@ private:
           key = "";
         }
       } else if (key_token.type == TokenType::Scalar) {
-        key = std::string{key_token.value};
+        key = this->resolve_scalar_key(key_token);
         this->record_key_scalar_style(key, key_token.scalar_style,
                                       key_token.quoted_original);
       } else [[unlikely]] {
@@ -1183,11 +1203,13 @@ private:
           key_string = std::string{token->value};
           token = this->next_token();
         } else {
-          // For non-scalar keys, parse the value and stringify
+          const auto explicit_key_line{token->line};
+          const auto explicit_key_column{token->column};
           auto key_value{this->parse_value(token.value(),
                                            JSON::ParseContext::Index,
                                            element_index, empty_property_)};
-          key_string = this->json_to_key_string(key_value);
+          key_string = this->json_to_key_string(key_value, explicit_key_line,
+                                                explicit_key_column);
           token = this->next_token();
         }
 
@@ -1389,6 +1411,16 @@ private:
 
       if (token.type != TokenType::Scalar &&
           token.type != TokenType::BlockMappingValue) {
+        // RFC 8259 Section 4: an object member name is a string, so an explicit
+        // mapping key that is itself a collection cannot be represented as
+        // JSON. PyYAML raises on the unhashable key and js-yaml rejects the
+        // complex key, so such a key is rejected rather than silently dropped
+        if (token.type == TokenType::SequenceStart ||
+            token.type == TokenType::MappingStart ||
+            token.type == TokenType::BlockSequenceEntry) [[unlikely]] {
+          throw YAMLParseError{token.line, token.column,
+                               "Mapping key cannot be a collection"};
+        }
         if (token.type == TokenType::DocumentEnd ||
             token.type == TokenType::DocumentStart) {
           this->pending_tokens_.push_back(token);
@@ -1397,11 +1429,13 @@ private:
       }
 
       std::string key;
+      bool key_present{false};
       std::uint64_t current_key_line{0};
       std::uint64_t current_key_column{0};
 
       if (token.type == TokenType::Scalar) {
-        key = token.value;
+        key = this->resolve_scalar_key(token);
+        key_present = true;
         current_key_line = token.line;
         current_key_column = token.column;
 
@@ -1436,9 +1470,14 @@ private:
           continue;
         }
 
+        // In round-trip mode the key text is kept raw, so a null-like key such
+        // as ~ stays non-empty and the historical empty-string sentinel still
+        // marks the absence of a key. In conversion mode a null-like key
+        // resolves to an empty string, so a dedicated flag marks its presence
+        const bool key_absent{this->roundtrip_ ? key.empty() : !key_present};
         if (next->type == TokenType::BlockMappingValue ||
             next->type == TokenType::BlockMappingKey) {
-          if (key.empty() && next->type == TokenType::BlockMappingKey) {
+          if (key_absent && next->type == TokenType::BlockMappingKey) {
             token = next.value();
             continue;
           }
@@ -1447,8 +1486,8 @@ private:
           continue;
         }
 
-        if (key.empty() && next->type == TokenType::Scalar) {
-          key = next->value;
+        if (key_absent && next->type == TokenType::Scalar) {
+          key = this->resolve_scalar_key(next.value());
           if (seen_keys.contains(key)) [[unlikely]] {
             throw YAMLDuplicateKeyError{key, next->line, next->column};
           }
@@ -1575,7 +1614,7 @@ private:
 
     this->detect_indent_width(parent_key_column, base_column);
 
-    std::string key{key_token.value};
+    std::string key{this->resolve_scalar_key(key_token)};
     std::uint64_t key_line{key_token.line};
     std::uint64_t key_column{key_token.column};
     const auto first_key_line{key_token.line};
@@ -1657,7 +1696,7 @@ private:
           continue;
         }
 
-        key = next->value;
+        key = this->resolve_scalar_key(next.value());
         key_line = next->line;
         key_column = next->column;
         this->record_key_scalar_style(key, next->scalar_style,
@@ -1729,7 +1768,8 @@ private:
         if (iterator == this->anchors_.end()) [[unlikely]] {
           throw YAMLUnknownAnchorError{alias_name, next->line, next->column};
         }
-        key = this->json_to_key_string(iterator->second.value);
+        key = this->json_to_key_string(iterator->second.value, next->line,
+                                       next->column);
         key_line = next->line;
         key_column = next->column;
 
@@ -1780,7 +1820,7 @@ private:
       }
 
       this->record_inline_comment_for_key(key);
-      key = next->value;
+      key = this->resolve_scalar_key(next.value());
       key_line = next->line;
       key_column = next->column;
       this->record_key_scalar_style(key, next->scalar_style,

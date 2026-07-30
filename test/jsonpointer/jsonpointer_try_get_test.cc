@@ -151,3 +151,21 @@ TEST(non_array) {
   const auto result{sourcemeta::core::try_get(document, pointer)};
   EXPECT_FALSE(result);
 }
+
+TEST(out_of_range_index_resolves_object_member) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "18446744073709551616": 42
+  })JSON")};
+
+  const auto pointer{sourcemeta::core::to_pointer("/18446744073709551616")};
+  const auto result{sourcemeta::core::try_get(document, pointer)};
+  EXPECT_TRUE(result);
+  EXPECT_EQ(*result, document.at("18446744073709551616"));
+}
+
+TEST(out_of_range_index_not_found_against_array) {
+  const auto document{sourcemeta::core::parse_json(R"JSON([ 1, 2, 3 ])JSON")};
+  const auto pointer{sourcemeta::core::to_pointer("/18446744073709551616")};
+  const auto result{sourcemeta::core::try_get(document, pointer)};
+  EXPECT_FALSE(result);
+}

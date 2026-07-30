@@ -143,13 +143,26 @@ auto validated_server_metadata(JSON &&data, const std::string_view issuer)
                     HASH_INTROSPECTION_ENDPOINT);
   validate_endpoint(data, "jwks_uri"sv, HASH_JWKS_URI);
 
-  // RFC 8414 Section 2: response_types_supported is REQUIRED, and Section 3.2:
-  // "Claims with zero elements MUST be omitted from the response", so a
-  // present but empty array is a malformed document
+  // RFC 8414 Section 2: response_types_supported is REQUIRED unless no grant
+  // type that uses the authorization endpoint is supported, which mirrors the
+  // authorization_endpoint condition (grant_types_supported defaults to
+  // authorization_code and implicit when absent). Section 3.2: "Claims with
+  // zero elements MUST be omitted", so a present array must not be empty
+  const bool authorization_grant{
+      !data.defines("grant_types_supported"sv, HASH_GRANT_TYPES) ||
+      data.array_member_contains("grant_types_supported"sv, HASH_GRANT_TYPES,
+                                 "authorization_code") ||
+      data.array_member_contains("grant_types_supported"sv, HASH_GRANT_TYPES,
+                                 "implicit")};
   const auto *response_types{
       data.try_at("response_types_supported"sv, HASH_RESPONSE_TYPES)};
-  if (response_types == nullptr || !response_types->is_array() ||
-      response_types->empty()) {
+  if (authorization_grant) {
+    if (response_types == nullptr || !response_types->is_array() ||
+        response_types->empty()) {
+      throw OAuthMetadataParseError{};
+    }
+  } else if (response_types != nullptr &&
+             (!response_types->is_array() || response_types->empty())) {
     throw OAuthMetadataParseError{};
   }
 
@@ -549,30 +562,53 @@ auto span_contains(const std::span<const std::string_view> values,
 
 auto oauth_make_server_metadata(const OAuthServerMetadataConfig &config)
     -> std::optional<JSON> {
-  // RFC 8414 Section 2: issuer and a non-empty response_types_supported are
-  // REQUIRED, and the issuer must be a valid issuer identifier
-  if (!oauth_is_issuer_identifier(config.issuer) ||
-      config.response_types_supported.empty()) {
+  // RFC 8414 Section 2: the issuer is REQUIRED and must be a valid issuer
+  // identifier
+  if (!oauth_is_issuer_identifier(config.issuer)) {
     return std::nullopt;
   }
 
-  // RFC 8414 Section 2: the authorization endpoint is REQUIRED once a response
-  // type is advertised, and the token endpoint unless the only grant type is
-  // the implicit one, and every advertised URL is an https location. A present
-  // scalar that is not a valid https URL, or a missing required endpoint, would
-  // yield an unusable discovery document. The same predicate the parse path
-  // applies is used here, so a document this builder emits always parses back
+  // RFC 8414 Section 2: the authorization endpoint is "REQUIRED unless no grant
+  // types are supported that use the authorization endpoint", and the token
+  // endpoint is REQUIRED unless the only grant type is the implicit one. The
+  // authorization endpoint grant types are the authorization code and implicit
+  // grants, and an omitted grant type list defaults to both, so both endpoints
+  // are needed by default. Every advertised URL is an https location, and a
+  // present scalar that is not a valid https URL, or a missing required
+  // endpoint, would yield an unusable discovery document
+  const bool authorization_endpoint_needed{
+      config.grant_types_supported.empty() ||
+      std::ranges::any_of(config.grant_types_supported,
+                          [](const std::string_view grant) -> bool {
+                            return grant == "authorization_code" ||
+                                   grant == "implicit";
+                          })};
   const bool token_endpoint_needed{
       config.grant_types_supported.empty() ||
       std::ranges::any_of(config.grant_types_supported,
                           [](const std::string_view grant) -> bool {
                             return grant != "implicit";
                           })};
+
+  // RFC 8414 Section 2: response_types_supported is REQUIRED, and Section 3.2
+  // forbids a zero-element array. It describes the authorization endpoint, so
+  // it is required only when an authorization endpoint grant type is supported
+  // and may be omitted otherwise
+  if (authorization_endpoint_needed &&
+      config.response_types_supported.empty()) {
+    return std::nullopt;
+  }
+
+  const bool authorization_endpoint_required_and_valid{
+      authorization_endpoint_needed
+          ? oauth_is_endpoint_url(config.authorization_endpoint)
+          : config.authorization_endpoint.empty() ||
+                oauth_is_endpoint_url(config.authorization_endpoint)};
   const bool token_endpoint_required_and_valid{
       token_endpoint_needed ? oauth_is_endpoint_url(config.token_endpoint)
                             : config.token_endpoint.empty() ||
                                   oauth_is_endpoint_url(config.token_endpoint)};
-  if (!oauth_is_endpoint_url(config.authorization_endpoint) ||
+  if (!authorization_endpoint_required_and_valid ||
       !token_endpoint_required_and_valid ||
       (!config.registration_endpoint.empty() &&
        !oauth_is_endpoint_url(config.registration_endpoint)) ||

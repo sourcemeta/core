@@ -21,6 +21,17 @@ namespace sourcemeta::core {
 /// @ingroup email
 /// Check whether the given string is a valid `Mailbox` per RFC 5321
 /// Section 4.1.2, under the length constraints from Section 4.5.3.1.
+///
+/// Two domain interpretations go beyond the bare RFC 5321 Section 4.1.2
+/// grammar. First, a domain label beginning with the `xn--` ACE prefix is
+/// validated as an IDNA A-label, so an unresolvable ACE domain is rejected even
+/// though the grammar alone would accept it. This is a deliberate strictness
+/// choice that keeps the accepted set to domains that name a real IDNA label.
+/// Second, an `[IPv6:...]` address literal is validated per RFC 4291, following
+/// the RFC 5321 Section 4.1.3 prose, because the Section 4.1.3 `IPv6-addr` ABNF
+/// is self-contradictory. A bracketed `[IPv6:...]` whose body is not a valid
+/// address is still accepted through the Section 4.1.3 General-address-literal
+/// alternative, whose unordered ABNF alternatives make it grammatically valid.
 /// For example:
 ///
 /// ```cpp

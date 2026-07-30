@@ -206,6 +206,26 @@ TEST(compatible_public) {
             sourcemeta::core::IPAddressClass::Public);
 }
 
+TEST(nat64_wellknown_public) {
+  EXPECT_EQ(sourcemeta::core::ipv6_classify("64:ff9b::8.8.8.8").value(),
+            sourcemeta::core::IPAddressClass::Public);
+}
+
+TEST(nat64_wellknown_loopback) {
+  EXPECT_EQ(sourcemeta::core::ipv6_classify("64:ff9b::127.0.0.1").value(),
+            sourcemeta::core::IPAddressClass::Loopback);
+}
+
+TEST(nat64_wellknown_private) {
+  EXPECT_EQ(sourcemeta::core::ipv6_classify("64:ff9b::192.168.0.1").value(),
+            sourcemeta::core::IPAddressClass::Private);
+}
+
+TEST(nat64_local_use_reserved) {
+  EXPECT_EQ(sourcemeta::core::ipv6_classify("64:ff9b:1::1").value(),
+            sourcemeta::core::IPAddressClass::Reserved);
+}
+
 TEST(invalid_hostname) {
   EXPECT_FALSE(sourcemeta::core::ipv6_classify("not:an:address").has_value());
 }

@@ -1256,3 +1256,24 @@ TEST(percent_7e_foo) {
   EXPECT_TRUE(pointer.at(0).is_property());
   EXPECT_EQ(pointer.at(0).to_property(), "%7Efoo");
 }
+
+TEST(out_of_range_index_as_property) {
+  EXPECT_TRUE(sourcemeta::core::is_pointer("/18446744073709551616"));
+  const auto pointer = sourcemeta::core::to_pointer("/18446744073709551616");
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_FALSE(pointer.at(0).is_index());
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), "18446744073709551616");
+}
+
+TEST(out_of_range_index_as_property_before_slash) {
+  EXPECT_TRUE(sourcemeta::core::is_pointer("/18446744073709551616/foo"));
+  const auto pointer =
+      sourcemeta::core::to_pointer("/18446744073709551616/foo");
+  EXPECT_EQ(pointer.size(), 2);
+  EXPECT_FALSE(pointer.at(0).is_index());
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), "18446744073709551616");
+  EXPECT_TRUE(pointer.at(1).is_property());
+  EXPECT_EQ(pointer.at(1).to_property(), "foo");
+}

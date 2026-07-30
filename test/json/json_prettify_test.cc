@@ -77,7 +77,7 @@ TEST(real_minus_zero) {
   const sourcemeta::core::JSON document{-0.0};
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);
-  EXPECT_EQ(stream.str(), "0.0");
+  EXPECT_EQ(stream.str(), "-0.0");
 }
 
 TEST(empty_string) {
