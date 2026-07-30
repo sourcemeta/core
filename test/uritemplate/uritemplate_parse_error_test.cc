@@ -113,3 +113,88 @@ TEST(query_expansion_empty) { EXPECT_URITEMPLATE_PARSE_ERROR("{?}", 3); }
 TEST(query_continuation_expansion_empty) {
   EXPECT_URITEMPLATE_PARSE_ERROR("{&}", 3);
 }
+
+TEST(literal_space) { EXPECT_URITEMPLATE_PARSE_ERROR("a b", 2); }
+
+TEST(literal_double_quote) { EXPECT_URITEMPLATE_PARSE_ERROR("a\"b", 2); }
+
+TEST(literal_less_than) { EXPECT_URITEMPLATE_PARSE_ERROR("a<b", 2); }
+
+TEST(literal_greater_than) { EXPECT_URITEMPLATE_PARSE_ERROR("a>b", 2); }
+
+TEST(literal_backslash) { EXPECT_URITEMPLATE_PARSE_ERROR("a\\b", 2); }
+
+TEST(literal_caret) { EXPECT_URITEMPLATE_PARSE_ERROR("a^b", 2); }
+
+TEST(literal_backtick) { EXPECT_URITEMPLATE_PARSE_ERROR("a`b", 2); }
+
+TEST(literal_pipe) { EXPECT_URITEMPLATE_PARSE_ERROR("a|b", 2); }
+
+TEST(literal_delete) {
+  EXPECT_URITEMPLATE_PARSE_ERROR("a\x7F"
+                                 "b",
+                                 2);
+}
+
+TEST(literal_null) {
+  EXPECT_URITEMPLATE_PARSE_ERROR((std::string_view{"a\x00"
+                                                   "b",
+                                                   3}),
+                                 2);
+}
+
+TEST(literal_line_feed) { EXPECT_URITEMPLATE_PARSE_ERROR("a\nb", 2); }
+
+TEST(literal_carriage_return) { EXPECT_URITEMPLATE_PARSE_ERROR("a\rb", 2); }
+
+TEST(literal_tab) { EXPECT_URITEMPLATE_PARSE_ERROR("a\tb", 2); }
+
+TEST(literal_unit_separator) {
+  EXPECT_URITEMPLATE_PARSE_ERROR("a\x1F"
+                                 "b",
+                                 2);
+}
+
+TEST(literal_percent_at_end) { EXPECT_URITEMPLATE_PARSE_ERROR("a%", 2); }
+
+TEST(literal_percent_one_digit) { EXPECT_URITEMPLATE_PARSE_ERROR("a%4", 2); }
+
+TEST(literal_percent_bad_second_digit) {
+  EXPECT_URITEMPLATE_PARSE_ERROR("a%4G", 2);
+}
+
+TEST(literal_percent_bad_first_digit) {
+  EXPECT_URITEMPLATE_PARSE_ERROR("a%G4", 2);
+}
+
+TEST(literal_percent_alone) { EXPECT_URITEMPLATE_PARSE_ERROR("%", 1); }
+
+TEST(literal_space_at_start) { EXPECT_URITEMPLATE_PARSE_ERROR(" {var}", 1); }
+
+TEST(prefix_leading_zero) { EXPECT_URITEMPLATE_PARSE_ERROR("{var:01}", 6); }
+
+TEST(prefix_leading_zero_four_digits) {
+  EXPECT_URITEMPLATE_PARSE_ERROR("{var:0001}", 6);
+}
+
+TEST(varname_dot_then_invalid) { EXPECT_URITEMPLATE_PARSE_ERROR("{a.-}", 4); }
+
+TEST(open_brace_alone) { EXPECT_URITEMPLATE_PARSE_ERROR("{", 1); }
+
+TEST(close_brace_alone) { EXPECT_URITEMPLATE_PARSE_ERROR("}", 1); }
+
+TEST(expression_trailing_dot_joiner) {
+  EXPECT_URITEMPLATE_PARSE_ERROR("{a.}", 4);
+}
+
+TEST(unclosed_brace_after_expression) {
+  EXPECT_URITEMPLATE_PARSE_ERROR("{a}{", 4);
+}
+
+TEST(unclosed_brace_after_comma) { EXPECT_URITEMPLATE_PARSE_ERROR("{a,", 4); }
+
+TEST(modifier_without_varname) { EXPECT_URITEMPLATE_PARSE_ERROR("{:1}", 2); }
+
+TEST(two_prefix_modifiers) { EXPECT_URITEMPLATE_PARSE_ERROR("{a:1:2}", 5); }
+
+TEST(varname_after_explode) { EXPECT_URITEMPLATE_PARSE_ERROR("{a*b}", 4); }
