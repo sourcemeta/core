@@ -1030,6 +1030,106 @@ TEST(named_graph) {
   EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
 }
 
+// The free-floating drop applies inside a named graph too (JSON-LD 1.1 API
+// Section 5.1.2: "If active property is null or @graph, drop free-floating
+// values")
+TEST(standalone_empty_node_inside_named_graph_is_dropped) {
+  const auto instance = sourcemeta::core::parse_json(
+      R"({ "prov": { "meta": "Y", "who": "X" } })");
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{},
+      sourcemeta::core::JSONLDDescriptor{.edges = {},
+                                         .value = sourcemeta::core::JSONLDNode{
+                                             .id = "https://example.com/doc"}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"prov"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{"https://example.com/statedIn", false}},
+          .value = sourcemeta::core::JSONLDNode{
+              .id = "https://example.com/graph", .graph = true}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"prov", "meta"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {}, .value = sourcemeta::core::JSONLDNode{}});
+  annotations.emplace_back(sourcemeta::core::Pointer{"prov", "who"},
+                           sourcemeta::core::JSONLDDescriptor{
+                               .edges = {{"https://schema.org/name", false}},
+                               .value = sourcemeta::core::JSONLDLiteral{}});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "https://example.com/doc",
+      "https://example.com/statedIn": [
+        {
+          "@id": "https://example.com/graph",
+          "@graph": [
+            {
+              "@id": "https://example.com/graph",
+              "https://schema.org/name": [ { "@value": "X" } ]
+            }
+          ]
+        }
+      ]
+    }
+  ])");
+
+  const auto result{
+      sourcemeta::core::jsonld_materialize(instance, annotations)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+TEST(edge_attached_empty_node_inside_named_graph_is_kept) {
+  const auto instance = sourcemeta::core::parse_json(
+      R"({ "prov": { "meta": "Y", "who": "X" } })");
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{},
+      sourcemeta::core::JSONLDDescriptor{.edges = {},
+                                         .value = sourcemeta::core::JSONLDNode{
+                                             .id = "https://example.com/doc"}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"prov"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{"https://example.com/statedIn", false}},
+          .value = sourcemeta::core::JSONLDNode{
+              .id = "https://example.com/graph", .graph = true}});
+  annotations.emplace_back(sourcemeta::core::Pointer{"prov", "meta"},
+                           sourcemeta::core::JSONLDDescriptor{
+                               .edges = {{"https://example.com/meta", false}},
+                               .value = sourcemeta::core::JSONLDNode{}});
+  annotations.emplace_back(sourcemeta::core::Pointer{"prov", "who"},
+                           sourcemeta::core::JSONLDDescriptor{
+                               .edges = {{"https://schema.org/name", false}},
+                               .value = sourcemeta::core::JSONLDLiteral{}});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "https://example.com/doc",
+      "https://example.com/statedIn": [
+        {
+          "@id": "https://example.com/graph",
+          "@graph": [
+            {
+              "@id": "https://example.com/graph",
+              "https://example.com/meta": [ {} ],
+              "https://schema.org/name": [ { "@value": "X" } ]
+            }
+          ]
+        }
+      ]
+    }
+  ])");
+
+  const auto result{
+      sourcemeta::core::jsonld_materialize(instance, annotations)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
 TEST(scalar_root_reference) {
   const auto instance = sourcemeta::core::parse_json(R"("USD")");
 

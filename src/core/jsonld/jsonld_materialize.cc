@@ -402,8 +402,13 @@ auto materialize_node(const JSONLDNode &descriptor, const JSON &value,
     if (inner.object_size() > (descriptor.id.has_value() ? 1 : 0)) {
       graph.push_back(std::move(inner));
     }
+    // The free-floating drop applies inside a named graph just like at the
+    // top level (JSON-LD 1.1 API Section 5.1.2: "If active property is null
+    // or @graph, drop free-floating values").
     for (auto &extra : graph_nodes) {
-      graph.push_back(std::move(extra));
+      if (!extra.empty()) {
+        graph.push_back(std::move(extra));
+      }
     }
     node.assign_assume_new(JSON::String{KEYWORD_GRAPH}, std::move(graph),
                            KEYWORD_GRAPH_HASH);
