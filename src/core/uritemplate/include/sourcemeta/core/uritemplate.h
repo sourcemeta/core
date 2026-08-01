@@ -38,19 +38,18 @@ using URITemplateValue = std::optional<
     std::tuple<std::string_view, std::optional<std::string_view>, bool>>;
 
 /// @ingroup uritemplate
-/// The alphabet that expansion encodes variable values against. RFC 6570
-/// Section 1.1 acknowledges that "a URI Template is also an IRI template",
-/// but only by expanding to a URI and converting the result per RFC 3987
-/// Section 3.2, a conversion that also decodes percent encoded triplets
-/// already present in variable values. The IRI mode instead widens the set
-/// of characters that pass through unencoded and never decodes anything.
-/// Passed through characters are not validated against the RFC 3987 grammar,
-/// which is left to the caller
+/// The alphabet that expansion encodes variable values against
 enum class URITemplateExpansionMode : std::uint8_t {
   /// Encode against the URI alphabet as defined by RFC 6570
   URI,
   /// Encode against the IRI alphabet, passing internationalized characters
-  /// through unencoded rather than percent encoding them
+  /// through unencoded rather than percent encoding them. RFC 6570 Section
+  /// 1.1 acknowledges that "a URI Template is also an IRI template", but
+  /// only by expanding to a URI and converting the result per RFC 3987
+  /// Section 3.2, a conversion that also decodes percent encoded triplets
+  /// already present in variable values, whereas this mode never decodes
+  /// anything. Passed through characters are not validated against the
+  /// RFC 3987 grammar, which is left to the caller
   IRI
 };
 
