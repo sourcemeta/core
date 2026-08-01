@@ -73,18 +73,26 @@ TEST(real_zero) {
   EXPECT_EQ(stream.str(), "0.0");
 }
 
-TEST(real_minus_zero_normalizes_to_zero) {
+TEST(real_minus_zero_keeps_sign) {
   const sourcemeta::core::JSON document{-0.0};
   std::ostringstream stream;
   sourcemeta::core::stringify(document, stream);
-  EXPECT_EQ(stream.str(), "0.0");
+  EXPECT_EQ(stream.str(), "-0.0");
 }
 
-TEST(real_minus_zero_roundtrip_normalizes_to_zero) {
+TEST(real_minus_zero_roundtrip_keeps_sign) {
   const sourcemeta::core::JSON document{sourcemeta::core::parse_json("-0.0")};
   std::ostringstream stream;
   sourcemeta::core::stringify(document, stream);
-  EXPECT_EQ(stream.str(), "0.0");
+  EXPECT_EQ(stream.str(), "-0.0");
+}
+
+TEST(real_minus_zero_in_array_keeps_sign) {
+  const sourcemeta::core::JSON document{
+      sourcemeta::core::parse_json("[ -0.0, 0.0 ]")};
+  std::ostringstream stream;
+  sourcemeta::core::stringify(document, stream);
+  EXPECT_EQ(stream.str(), "[-0.0,0.0]");
 }
 
 TEST(real_zero_roundtrip) {

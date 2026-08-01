@@ -312,3 +312,83 @@ TEST(iri_compaction_1_0_does_not_add_index_candidate_for_a_node_reference) {
   })");
   EXPECT_EQ(result, expected);
 }
+
+// A JSON literal holding null compacts to a bare null under a term coerced
+// to @json, and the null is data rather than absence, so it survives inside
+// compacted lists instead of being dropped with other null items
+TEST(json_literal_null_in_list_is_kept) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.org/vocab#e": [
+        {
+          "@list": [
+            { "@value": null, "@type": "@json" },
+            { "@value": 1, "@type": "@json" }
+          ]
+        }
+      ]
+    }
+  ])");
+  const auto context = sourcemeta::core::parse_json(R"({
+    "e": {
+      "@id": "http://example.org/vocab#e",
+      "@type": "@json",
+      "@container": "@list"
+    }
+  })");
+  const auto result{sourcemeta::core::jsonld_compact(input, context)};
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "e": [ null, 1 ],
+    "@context": {
+      "e": {
+        "@id": "http://example.org/vocab#e",
+        "@type": "@json",
+        "@container": "@list"
+      }
+    }
+  })");
+  EXPECT_EQ(result, expected);
+}
+
+TEST(json_literal_null_among_property_values_is_kept) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.org/vocab#e": [
+        { "@value": null, "@type": "@json" },
+        { "@value": true, "@type": "@json" }
+      ]
+    }
+  ])");
+  const auto context = sourcemeta::core::parse_json(R"({
+    "e": { "@id": "http://example.org/vocab#e", "@type": "@json" }
+  })");
+  const auto result{sourcemeta::core::jsonld_compact(input, context)};
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "e": [ null, true ],
+    "@context": {
+      "e": { "@id": "http://example.org/vocab#e", "@type": "@json" }
+    }
+  })");
+  EXPECT_EQ(result, expected);
+}
+
+TEST(json_literal_null_without_json_term_keeps_value_object) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.org/vocab#e": [
+        { "@value": null, "@type": "@json" }
+      ]
+    }
+  ])");
+  const auto context = sourcemeta::core::parse_json(R"({
+    "e": { "@id": "http://example.org/vocab#e" }
+  })");
+  const auto result{sourcemeta::core::jsonld_compact(input, context)};
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "e": { "@value": null, "@type": "@json" },
+    "@context": {
+      "e": { "@id": "http://example.org/vocab#e" }
+    }
+  })");
+  EXPECT_EQ(result, expected);
+}
