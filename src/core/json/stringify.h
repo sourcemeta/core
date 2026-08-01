@@ -5,17 +5,17 @@
 
 #include "grammar.h"
 
-#include <algorithm> // std::transform, std::sort
-#include <array>     // std::array
-#include <cassert>   // assert
-#include <charconv>  // std::to_chars
-#include <cstddef>   // std::size_t
-#include <cstdint>   // std::int64_t
-#include <iterator>  // std::next, std::cbegin, std::cend, std::back_inserter
-#include <ostream>   // std::basic_ostream
-#include <sstream>   // std::ostringstream
-#include <string>    // std::basic_string
-#include <vector>    // std::vector
+#include <array>    // std::array
+#include <cassert>  // assert
+#include <charconv> // std::to_chars
+#include <cmath>    // std::signbit
+#include <cstddef>  // std::size_t
+#include <cstdint>  // std::int64_t
+#include <iterator> // std::next, std::cbegin, std::cend, std::back_inserter
+#include <ostream>  // std::basic_ostream
+#include <sstream>  // std::ostringstream
+#include <string>   // std::basic_string
+#include <vector>   // std::vector
 
 namespace sourcemeta::core::internal {
 constexpr auto LINE_WIDTH{80};
@@ -76,15 +76,15 @@ auto stringify(
     const double value, const bool is_integral,
     std::basic_ostream<typename JSON::Char, typename JSON::CharTraits> &stream)
     -> void {
-  // RFC 8259 Section 6 permits the -0.0 number syntax, but this build compiles
-  // with -fno-signed-zeros, which lets the compiler assume the sign of a zero
-  // is insignificant, so the distinction between a negative and a positive zero
-  // cannot be relied upon here. Under GCC that assumption folds a negative zero
-  // to a positive one and makes std::signbit report it as positive, so probing
-  // the sign to emit "-0.0" is not portable. Every zero is therefore written
-  // with the same spelling
+  // RFC 8259 Section 6 permits the -0.0 number syntax and parsing preserves
+  // the sign of a zero, so serialisation keeps the sign as well and the
+  // round trip is lossless
   if (value == static_cast<double>(0.0)) {
-    stream.write("0.0", 3);
+    if (std::signbit(value)) {
+      stream.write("-0.0", 4);
+    } else {
+      stream.write("0.0", 3);
+    }
   } else if (is_integral) {
     // Write the integer digits followed by an explicit ".0" to preserve the
     // real type. Using to_chars rather than a formatted stream keeps the
