@@ -4,7 +4,8 @@ sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME uritemplate
     uritemplate_test.cc
     uritemplate_parse_test.cc
     uritemplate_parse_error_test.cc
-    uritemplate_expand_test.cc
+    uritemplate_expand_uri_test.cc
+    uritemplate_expand_iri_test.cc
     uritemplate_router_test.cc
     uritemplate_router_view_test.cc)
 
