@@ -229,9 +229,21 @@ auto validated_server_metadata(JSON &&data, const std::string_view issuer)
 
   // RFC 9728 Section 4: the protected resources are "resource identifiers for
   // OAuth protected resources that can be used with this authorization
-  // server", and RFC 8414 Section 3.2 forbids a zero-element array
+  // server", the Section 1.2 form, so an entry that is not one is rejected
+  // like an invalid advertised issuer, with the scheme case-insensitive for a
+  // received value per RFC 3986 Section 3.1. RFC 8414 Section 3.2 forbids a
+  // zero-element array
   validate_string_array(data, "protected_resources"sv, HASH_PROTECTED_RESOURCES,
                         false);
+  const auto *protected_resources{
+      data.try_at("protected_resources"sv, HASH_PROTECTED_RESOURCES)};
+  if (protected_resources != nullptr) {
+    for (const auto &element : protected_resources->as_array()) {
+      if (!oauth_is_advertised_resource(element.to_string())) {
+        throw OAuthMetadataParseError{};
+      }
+    }
+  }
 
   return std::move(data);
 }

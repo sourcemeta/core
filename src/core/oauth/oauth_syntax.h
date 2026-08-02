@@ -39,6 +39,15 @@ inline auto oauth_is_advertised_issuer(const std::string_view value) -> bool {
          !uri->fragment().has_value();
 }
 
+// A resource identifier a document advertises for someone else, given the same
+// case-insensitive scheme treatment as an advertised issuer, with a query
+// tolerated per RFC 9728 Section 1.2 and RFC 8707 Section 2
+inline auto oauth_is_advertised_resource(const std::string_view value) -> bool {
+  const auto uri{oauth_try_parse_uri(value)};
+  return uri.has_value() && uri->is_https() && uri->host().has_value() &&
+         !uri->host().value().empty() && !uri->fragment().has_value();
+}
+
 // RFC 3986 Section 2.3: "unreserved = ALPHA / DIGIT / "-" / "." / "_" / "~"",
 // the character set RFC 7636 reuses for the PKCE verifier and challenge
 inline auto oauth_is_unreserved(const char character) noexcept -> bool {

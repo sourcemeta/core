@@ -2545,3 +2545,119 @@ TEST(make_server_metadata_rejects_an_uppercase_protected_resource_scheme) {
   const auto document{sourcemeta::core::oauth_make_server_metadata(config)};
   EXPECT_FALSE(document.has_value());
 }
+
+TEST(server_metadata_rejects_a_cleartext_protected_resource_entry) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://server.example",
+    "response_types_supported": [ "code" ],
+    "protected_resources": [ "http://api.example.com" ]
+  })JSON")};
+  const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
+      std::move(document), "https://server.example")};
+  EXPECT_FALSE(metadata.has_value());
+}
+
+TEST(server_metadata_rejects_a_protected_resource_entry_with_a_fragment) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://server.example",
+    "response_types_supported": [ "code" ],
+    "protected_resources": [ "https://api.example.com#section" ]
+  })JSON")};
+  const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
+      std::move(document), "https://server.example")};
+  EXPECT_FALSE(metadata.has_value());
+}
+
+TEST(server_metadata_rejects_a_trailing_invalid_protected_resource_entry) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://server.example",
+    "response_types_supported": [ "code" ],
+    "protected_resources":
+      [ "https://api.example.com", "http://cleartext.example.com" ]
+  })JSON")};
+  const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
+      std::move(document), "https://server.example")};
+  EXPECT_FALSE(metadata.has_value());
+}
+
+TEST(server_metadata_accepts_an_uppercase_protected_resource_entry) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://server.example",
+    "response_types_supported": [ "code" ],
+    "protected_resources": [ "HTTPS://api.example.com" ]
+  })JSON")};
+  const auto expected{document};
+  const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
+      std::move(document), "https://server.example")};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().issuer(), "https://server.example");
+  EXPECT_FALSE(metadata.value().authorization_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().token_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().registration_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().device_authorization_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().revocation_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().introspection_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(
+      metadata.value().pushed_authorization_request_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().require_pushed_authorization_requests());
+  EXPECT_FALSE(
+      metadata.value().authorization_response_iss_parameter_supported());
+  EXPECT_TRUE(metadata.value().supports_response_type("code"));
+  EXPECT_FALSE(metadata.value().supports_response_type("nonexistent"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("authorization_code"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("implicit"));
+  EXPECT_FALSE(metadata.value().supports_grant_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("S256"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("plain"));
+  EXPECT_TRUE(metadata.value().supports_token_endpoint_auth_method(
+      "client_secret_basic"));
+  EXPECT_FALSE(
+      metadata.value().supports_token_endpoint_auth_method("nonexistent"));
+  EXPECT_TRUE(
+      metadata.value().supports_protected_resource("HTTPS://api.example.com"));
+  EXPECT_FALSE(metadata.value().supports_protected_resource(
+      "https://nonexistent.example.invalid"));
+}
+
+TEST(server_metadata_accepts_a_protected_resource_entry_with_a_query) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://server.example",
+    "response_types_supported": [ "code" ],
+    "protected_resources": [ "https://api.example.com/mcp?tenant=1" ]
+  })JSON")};
+  const auto expected{document};
+  const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
+      std::move(document), "https://server.example")};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().issuer(), "https://server.example");
+  EXPECT_FALSE(metadata.value().authorization_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().token_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().registration_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().device_authorization_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().revocation_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().introspection_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(
+      metadata.value().pushed_authorization_request_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().require_pushed_authorization_requests());
+  EXPECT_FALSE(
+      metadata.value().authorization_response_iss_parameter_supported());
+  EXPECT_TRUE(metadata.value().supports_response_type("code"));
+  EXPECT_FALSE(metadata.value().supports_response_type("nonexistent"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("authorization_code"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("implicit"));
+  EXPECT_FALSE(metadata.value().supports_grant_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("S256"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("plain"));
+  EXPECT_TRUE(metadata.value().supports_token_endpoint_auth_method(
+      "client_secret_basic"));
+  EXPECT_FALSE(
+      metadata.value().supports_token_endpoint_auth_method("nonexistent"));
+  EXPECT_TRUE(metadata.value().supports_protected_resource(
+      "https://api.example.com/mcp?tenant=1"));
+  EXPECT_FALSE(metadata.value().supports_protected_resource(
+      "https://nonexistent.example.invalid"));
+}
