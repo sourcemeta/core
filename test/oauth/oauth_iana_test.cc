@@ -227,7 +227,7 @@ auto main(int argc, char **argv) -> int {
   // OAuth Authorization Server Metadata (RFC 8414 Section 7.1)
   const auto server_metadata{
       load_registry(base / "authorization-server-metadata.csv")};
-  const std::array<std::string_view, 16> server_metadata_names{
+  const std::array<std::string_view, 17> server_metadata_names{
       {"issuer", "authorization_endpoint", "token_endpoint",
        "registration_endpoint", "jwks_uri", "response_types_supported",
        "grant_types_supported", "code_challenge_methods_supported",
@@ -236,17 +236,22 @@ auto main(int argc, char **argv) -> int {
        "revocation_endpoint", "introspection_endpoint",
        "pushed_authorization_request_endpoint",
        "require_pushed_authorization_requests",
-       "authorization_response_iss_parameter_supported"}};
+       "authorization_response_iss_parameter_supported",
+       "protected_resources"}};
   register_all("OAuth_IANA_ServerMetadata", server_metadata_names,
                server_metadata);
 
-  // OAuth Protected Resource Metadata (RFC 9728 Section 6.1)
+  // OAuth Protected Resource Metadata (RFC 9728 Section 8.1)
   const auto resource_metadata{
       load_registry(base / "protected-resource-metadata.csv")};
-  const std::array<std::string_view, 7> resource_metadata_names{
+  const std::array<std::string_view, 14> resource_metadata_names{
       {"resource", "authorization_servers", "jwks_uri",
        "bearer_methods_supported", "resource_signing_alg_values_supported",
-       "scopes_supported", "dpop_bound_access_tokens_required"}};
+       "scopes_supported", "dpop_bound_access_tokens_required", "resource_name",
+       "resource_documentation", "resource_policy_uri", "resource_tos_uri",
+       "tls_client_certificate_bound_access_tokens",
+       "authorization_details_types_supported",
+       "dpop_signing_alg_values_supported"}};
   register_all("OAuth_IANA_ResourceMetadata", resource_metadata_names,
                resource_metadata);
 
