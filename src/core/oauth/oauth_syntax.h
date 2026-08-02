@@ -37,28 +37,6 @@ inline auto oauth_is_issuer_identifier(const std::string_view value) -> bool {
          !uri->fragment().has_value();
 }
 
-// RFC 9728 Section 1.2 and RFC 8707 Section 2: a resource is an https URL with
-// a non-empty host and no fragment, a query tolerated unlike an issuer
-inline auto oauth_is_resource_identifier(const std::string_view value) -> bool {
-  const auto uri{oauth_try_parse_uri(value)};
-  return uri.has_value() && uri->scheme().has_value() &&
-         uri->scheme().value() == "https" && uri->host().has_value() &&
-         !uri->host().value().empty() && !uri->fragment().has_value();
-}
-
-// An issuer identifier a document advertises for someone else, rather than the
-// one the document was retrieved for. RFC 8414 Section 2 gives it the same
-// shape, but Section 4 scopes code-point comparison to "comparing values in the
-// messages to known values", and an advertised issuer is matched against
-// nothing at parse time. Its validity therefore follows RFC 3986 Section 3.1,
-// which makes the scheme case-insensitive
-inline auto oauth_is_advertised_issuer(const std::string_view value) -> bool {
-  const auto uri{oauth_try_parse_uri(value)};
-  return uri.has_value() && uri->is_https() && uri->host().has_value() &&
-         !uri->host().value().empty() && !uri->query().has_value() &&
-         !uri->fragment().has_value();
-}
-
 // RFC 3986 Section 2.3: "unreserved = ALPHA / DIGIT / "-" / "." / "_" / "~"",
 // the character set RFC 7636 reuses for the PKCE verifier and challenge
 inline auto oauth_is_unreserved(const char character) noexcept -> bool {

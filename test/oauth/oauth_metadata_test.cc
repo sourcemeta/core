@@ -872,360 +872,6 @@ TEST(server_metadata_rejects_a_cross_origin_cleartext_jwks_uri) {
   EXPECT_FALSE(metadata.has_value());
 }
 
-TEST(resource_metadata_rejects_a_cleartext_jwks_uri) {
-  auto document{sourcemeta::core::parse_json(R"JSON({
-    "resource": "https://api.example.com",
-    "jwks_uri": "http://api.example.com/jwks"
-  })JSON")};
-  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
-      std::move(document), "https://api.example.com")};
-  EXPECT_FALSE(metadata.has_value());
-}
-
-TEST(resource_metadata_rejects_a_jwks_uri_with_a_fragment) {
-  auto document{sourcemeta::core::parse_json(R"JSON({
-    "resource": "https://api.example.com",
-    "jwks_uri": "https://api.example.com/jwks#keys"
-  })JSON")};
-  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
-      std::move(document), "https://api.example.com")};
-  EXPECT_FALSE(metadata.has_value());
-}
-
-TEST(resource_metadata_rejects_a_non_string_jwks_uri) {
-  auto document{sourcemeta::core::parse_json(R"JSON({
-    "resource": "https://api.example.com",
-    "jwks_uri": 42
-  })JSON")};
-  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
-      std::move(document), "https://api.example.com")};
-  EXPECT_FALSE(metadata.has_value());
-}
-
-TEST(resource_metadata_accepts_an_https_jwks_uri) {
-  auto document{sourcemeta::core::parse_json(R"JSON({
-    "resource": "https://api.example.com",
-    "jwks_uri": "https://api.example.com/jwks"
-  })JSON")};
-  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
-      std::move(document), "https://api.example.com")};
-  EXPECT_TRUE(metadata.has_value());
-  EXPECT_EQ(metadata.value().jwks_uri().value(),
-            "https://api.example.com/jwks");
-}
-
-TEST(resource_metadata_parses_a_valid_document) {
-  auto document{sourcemeta::core::parse_json(R"JSON({
-    "resource": "https://api.example.com",
-    "authorization_servers": [ "https://auth.example.com" ],
-    "jwks_uri": "https://api.example.com/jwks",
-    "scopes_supported": [ "read", "write" ],
-    "bearer_methods_supported": [ "header" ],
-    "dpop_bound_access_tokens_required": true
-  })JSON")};
-  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
-      std::move(document), "https://api.example.com")};
-  EXPECT_TRUE(metadata.has_value());
-  EXPECT_EQ(metadata.value().resource(), "https://api.example.com");
-  EXPECT_TRUE(metadata.value().first_authorization_server().has_value());
-  EXPECT_EQ(metadata.value().first_authorization_server().value(),
-            "https://auth.example.com");
-  EXPECT_TRUE(metadata.value().jwks_uri().has_value());
-  EXPECT_EQ(metadata.value().jwks_uri().value(),
-            "https://api.example.com/jwks");
-  EXPECT_TRUE(metadata.value().dpop_bound_access_tokens_required());
-}
-
-TEST(resource_metadata_rejects_a_missing_resource) {
-  auto document{sourcemeta::core::parse_json(R"JSON({
-    "authorization_servers": [ "https://auth.example.com" ]
-  })JSON")};
-  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
-      std::move(document), "https://api.example.com")};
-  EXPECT_FALSE(metadata.has_value());
-}
-
-TEST(resource_metadata_rejects_a_non_string_resource) {
-  auto document{sourcemeta::core::parse_json(R"JSON({
-    "resource": 42
-  })JSON")};
-  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
-      std::move(document), "https://api.example.com")};
-  EXPECT_FALSE(metadata.has_value());
-}
-
-TEST(resource_metadata_rejects_a_mismatched_resource) {
-  auto document{sourcemeta::core::parse_json(R"JSON({
-    "resource": "https://api.example.com"
-  })JSON")};
-  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
-      std::move(document), "https://other.example.com")};
-  EXPECT_FALSE(metadata.has_value());
-}
-
-TEST(resource_metadata_rejects_a_non_https_resource) {
-  auto document{sourcemeta::core::parse_json(R"JSON({
-    "resource": "http://api.example.com"
-  })JSON")};
-  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
-      std::move(document), "http://api.example.com")};
-  EXPECT_FALSE(metadata.has_value());
-}
-
-TEST(resource_metadata_rejects_a_resource_with_a_fragment) {
-  auto document{sourcemeta::core::parse_json(R"JSON({
-    "resource": "https://api.example.com/path#section"
-  })JSON")};
-  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
-      std::move(document), "https://api.example.com/path#section")};
-  EXPECT_FALSE(metadata.has_value());
-}
-
-TEST(resource_metadata_allows_a_resource_with_a_query) {
-  auto document{sourcemeta::core::parse_json(R"JSON({
-    "resource": "https://api.example.com/path?tenant=a"
-  })JSON")};
-  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
-      std::move(document), "https://api.example.com/path?tenant=a")};
-  EXPECT_TRUE(metadata.has_value());
-  EXPECT_EQ(metadata.value().resource(),
-            "https://api.example.com/path?tenant=a");
-}
-
-TEST(resource_metadata_rejects_an_empty_authority) {
-  auto document{sourcemeta::core::parse_json(R"JSON({
-    "resource": "https:///path"
-  })JSON")};
-  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
-      std::move(document), "https:///path")};
-  EXPECT_FALSE(metadata.has_value());
-}
-
-TEST(resource_metadata_rejects_a_signing_alg_none) {
-  auto document{sourcemeta::core::parse_json(R"JSON({
-    "resource": "https://api.example.com",
-    "resource_signing_alg_values_supported": [ "RS256", "none" ]
-  })JSON")};
-  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
-      std::move(document), "https://api.example.com")};
-  EXPECT_FALSE(metadata.has_value());
-}
-
-TEST(resource_metadata_rejects_an_empty_signing_alg_list) {
-  auto document{sourcemeta::core::parse_json(R"JSON({
-    "resource": "https://api.example.com",
-    "resource_signing_alg_values_supported": []
-  })JSON")};
-  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
-      std::move(document), "https://api.example.com")};
-  EXPECT_FALSE(metadata.has_value());
-}
-
-TEST(resource_metadata_first_authorization_server_when_absent) {
-  auto document{sourcemeta::core::parse_json(R"JSON({
-    "resource": "https://api.example.com"
-  })JSON")};
-  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
-      std::move(document), "https://api.example.com")};
-  EXPECT_TRUE(metadata.has_value());
-  EXPECT_FALSE(metadata.value().first_authorization_server().has_value());
-}
-
-TEST(resource_metadata_supports_authorization_server) {
-  auto document{sourcemeta::core::parse_json(R"JSON({
-    "resource": "https://api.example.com",
-    "authorization_servers": [ "https://a.example.com", "https://b.example.com" ]
-  })JSON")};
-  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
-      std::move(document), "https://api.example.com")};
-  EXPECT_TRUE(metadata.has_value());
-  EXPECT_TRUE(
-      metadata.value().supports_authorization_server("https://b.example.com"));
-  EXPECT_FALSE(
-      metadata.value().supports_authorization_server("https://c.example.com"));
-  EXPECT_EQ(metadata.value().first_authorization_server().value(),
-            "https://a.example.com");
-}
-
-TEST(resource_metadata_supports_bearer_method) {
-  auto document{sourcemeta::core::parse_json(R"JSON({
-    "resource": "https://api.example.com",
-    "bearer_methods_supported": [ "header", "body" ]
-  })JSON")};
-  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
-      std::move(document), "https://api.example.com")};
-  EXPECT_TRUE(metadata.has_value());
-  EXPECT_TRUE(metadata.value().supports_bearer_method("header"));
-  EXPECT_FALSE(metadata.value().supports_bearer_method("query"));
-}
-
-TEST(resource_metadata_bearer_method_absent_is_false) {
-  auto document{sourcemeta::core::parse_json(R"JSON({
-    "resource": "https://api.example.com"
-  })JSON")};
-  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
-      std::move(document), "https://api.example.com")};
-  EXPECT_TRUE(metadata.has_value());
-  EXPECT_FALSE(metadata.value().supports_bearer_method("header"));
-}
-
-TEST(resource_metadata_supports_scope) {
-  auto document{sourcemeta::core::parse_json(R"JSON({
-    "resource": "https://api.example.com",
-    "scopes_supported": [ "read", "write" ]
-  })JSON")};
-  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
-      std::move(document), "https://api.example.com")};
-  EXPECT_TRUE(metadata.has_value());
-  EXPECT_TRUE(metadata.value().supports_scope("read"));
-  EXPECT_FALSE(metadata.value().supports_scope("admin"));
-}
-
-TEST(resource_metadata_dpop_bound_required_defaults_to_false) {
-  auto document{sourcemeta::core::parse_json(R"JSON({
-    "resource": "https://api.example.com"
-  })JSON")};
-  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
-      std::move(document), "https://api.example.com")};
-  EXPECT_TRUE(metadata.has_value());
-  EXPECT_FALSE(metadata.value().dpop_bound_access_tokens_required());
-}
-
-TEST(resource_metadata_data_exposes_untyped_members) {
-  auto document{sourcemeta::core::parse_json(R"JSON({
-    "resource": "https://api.example.com",
-    "resource_name": "Example API"
-  })JSON")};
-  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
-      std::move(document), "https://api.example.com")};
-  EXPECT_TRUE(metadata.has_value());
-  EXPECT_TRUE(metadata.value().data().defines("resource_name"));
-}
-
-TEST(resource_metadata_rejects_an_uppercase_scheme) {
-  auto document{sourcemeta::core::parse_json(R"JSON({
-    "resource": "HTTPS://api.example.com"
-  })JSON")};
-  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
-      std::move(document), "HTTPS://api.example.com")};
-  EXPECT_FALSE(metadata.has_value());
-}
-
-TEST(resource_metadata_rejects_a_resource_with_a_space) {
-  auto document{sourcemeta::core::parse_json(R"JSON({
-    "resource": "https://api example.com"
-  })JSON")};
-  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
-      std::move(document), "https://api example.com")};
-  EXPECT_FALSE(metadata.has_value());
-}
-
-TEST(resource_metadata_rejects_a_non_string_authorization_server) {
-  auto document{sourcemeta::core::parse_json(R"JSON({
-    "resource": "https://api.example.com",
-    "authorization_servers": [ 42, "https://auth.example.com" ]
-  })JSON")};
-  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
-      std::move(document), "https://api.example.com")};
-  EXPECT_FALSE(metadata.has_value());
-}
-
-TEST(resource_metadata_rejects_a_trailing_non_string_authorization_server) {
-  auto document{sourcemeta::core::parse_json(R"JSON({
-    "resource": "https://api.example.com",
-    "authorization_servers": [ "https://auth.example.com", 42 ]
-  })JSON")};
-  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
-      std::move(document), "https://api.example.com")};
-  EXPECT_FALSE(metadata.has_value());
-}
-
-TEST(resource_metadata_rejects_all_non_string_authorization_servers) {
-  auto document{sourcemeta::core::parse_json(R"JSON({
-    "resource": "https://api.example.com",
-    "authorization_servers": [ 1, 2, 3 ]
-  })JSON")};
-  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
-      std::move(document), "https://api.example.com")};
-  EXPECT_FALSE(metadata.has_value());
-}
-
-TEST(resource_metadata_rejects_an_empty_authorization_server_array) {
-  auto document{sourcemeta::core::parse_json(R"JSON({
-    "resource": "https://api.example.com",
-    "authorization_servers": []
-  })JSON")};
-  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
-      std::move(document), "https://api.example.com")};
-  EXPECT_FALSE(metadata.has_value());
-}
-
-TEST(resource_metadata_rejects_a_non_array_authorization_servers) {
-  auto document{sourcemeta::core::parse_json(R"JSON({
-    "resource": "https://api.example.com",
-    "authorization_servers": "https://auth.example.com"
-  })JSON")};
-  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
-      std::move(document), "https://api.example.com")};
-  EXPECT_FALSE(metadata.has_value());
-}
-
-TEST(resource_metadata_rejects_a_cleartext_authorization_server) {
-  auto document{sourcemeta::core::parse_json(R"JSON({
-    "resource": "https://api.example.com",
-    "authorization_servers": [ "http://auth.example.com" ]
-  })JSON")};
-  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
-      std::move(document), "https://api.example.com")};
-  EXPECT_FALSE(metadata.has_value());
-}
-
-TEST(resource_metadata_rejects_a_second_cleartext_authorization_server) {
-  auto document{sourcemeta::core::parse_json(R"JSON({
-    "resource": "https://api.example.com",
-    "authorization_servers": [
-      "https://auth.example.com", "http://evil.example.com" ]
-  })JSON")};
-  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
-      std::move(document), "https://api.example.com")};
-  EXPECT_FALSE(metadata.has_value());
-}
-
-TEST(resource_metadata_rejects_an_authorization_server_with_a_query) {
-  auto document{sourcemeta::core::parse_json(R"JSON({
-    "resource": "https://api.example.com",
-    "authorization_servers": [ "https://auth.example.com?tenant=1" ]
-  })JSON")};
-  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
-      std::move(document), "https://api.example.com")};
-  EXPECT_FALSE(metadata.has_value());
-}
-
-TEST(resource_metadata_rejects_an_authorization_server_with_a_fragment) {
-  auto document{sourcemeta::core::parse_json(R"JSON({
-    "resource": "https://api.example.com",
-    "authorization_servers": [ "https://auth.example.com#tenant" ]
-  })JSON")};
-  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
-      std::move(document), "https://api.example.com")};
-  EXPECT_FALSE(metadata.has_value());
-}
-
-TEST(resource_metadata_accepts_an_uppercase_authorization_server_scheme) {
-  // An advertised issuer is matched against nothing at parse time, so its
-  // scheme is case-insensitive, unlike the resource identifier the document is
-  // checked against
-  auto document{sourcemeta::core::parse_json(R"JSON({
-    "resource": "https://api.example.com",
-    "authorization_servers": [ "HTTPS://auth.example.com" ]
-  })JSON")};
-  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
-      std::move(document), "https://api.example.com")};
-  EXPECT_TRUE(metadata.has_value());
-  EXPECT_EQ(metadata.value().first_authorization_server().value(),
-            "HTTPS://auth.example.com");
-}
-
 TEST(
     resource_metadata_uppercase_authorization_server_does_not_match_lowercase) {
   // The membership test compares by code points, so a case-varied entry never
@@ -1241,92 +887,6 @@ TEST(
       "https://auth.example.com"));
   EXPECT_TRUE(metadata.value().supports_authorization_server(
       "HTTPS://auth.example.com"));
-}
-
-TEST(resource_metadata_accepts_multiple_authorization_servers) {
-  auto document{sourcemeta::core::parse_json(R"JSON({
-    "resource": "https://api.example.com",
-    "authorization_servers": [
-      "https://auth.example.com", "https://other.example.net/issuer" ]
-  })JSON")};
-  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
-      std::move(document), "https://api.example.com")};
-  EXPECT_TRUE(metadata.has_value());
-  EXPECT_TRUE(metadata.value().first_authorization_server().has_value());
-  EXPECT_EQ(metadata.value().first_authorization_server().value(),
-            "https://auth.example.com");
-  EXPECT_TRUE(metadata.value().supports_authorization_server(
-      "https://other.example.net/issuer"));
-}
-
-TEST(resource_metadata_rejects_a_non_object) {
-  auto document{sourcemeta::core::parse_json(R"JSON([ 1, 2, 3 ])JSON")};
-  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
-      std::move(document), "https://api.example.com")};
-  EXPECT_FALSE(metadata.has_value());
-}
-
-TEST(resource_metadata_rejects_a_non_array_signing_algs) {
-  auto document{sourcemeta::core::parse_json(R"JSON({
-    "resource": "https://api.example.com",
-    "resource_signing_alg_values_supported": "RS256"
-  })JSON")};
-  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
-      std::move(document), "https://api.example.com")};
-  EXPECT_FALSE(metadata.has_value());
-}
-
-TEST(resource_metadata_dpop_bound_wrong_type_is_false) {
-  auto document{sourcemeta::core::parse_json(R"JSON({
-    "resource": "https://api.example.com",
-    "dpop_bound_access_tokens_required": "true"
-  })JSON")};
-  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
-      std::move(document), "https://api.example.com")};
-  EXPECT_TRUE(metadata.has_value());
-  EXPECT_FALSE(metadata.value().dpop_bound_access_tokens_required());
-}
-
-TEST(resource_metadata_empty_bearer_methods_is_false) {
-  auto document{sourcemeta::core::parse_json(R"JSON({
-    "resource": "https://api.example.com",
-    "bearer_methods_supported": []
-  })JSON")};
-  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
-      std::move(document), "https://api.example.com")};
-  EXPECT_TRUE(metadata.has_value());
-  EXPECT_FALSE(metadata.value().supports_bearer_method("header"));
-}
-
-TEST(resource_metadata_accepts_userinfo_and_port) {
-  auto document{sourcemeta::core::parse_json(R"JSON({
-    "resource": "https://user@api.example.com:8443/path"
-  })JSON")};
-  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
-      std::move(document), "https://user@api.example.com:8443/path")};
-  EXPECT_TRUE(metadata.has_value());
-  EXPECT_EQ(metadata.value().resource(),
-            "https://user@api.example.com:8443/path");
-}
-
-TEST(resource_metadata_rejects_an_empty_host) {
-  // https://:443/path has an authority but no host, so it is not a valid
-  // resource identifier (RFC 3986 Section 3.2)
-  auto document{sourcemeta::core::parse_json(R"JSON({
-    "resource": "https://:443/path"
-  })JSON")};
-  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
-      std::move(document), "https://:443/path")};
-  EXPECT_FALSE(metadata.has_value());
-}
-
-TEST(resource_metadata_rejects_an_empty_host_with_userinfo) {
-  auto document{sourcemeta::core::parse_json(R"JSON({
-    "resource": "https://user@:443/path"
-  })JSON")};
-  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
-      std::move(document), "https://user@:443/path")};
-  EXPECT_FALSE(metadata.has_value());
 }
 
 TEST(server_metadata_rejects_an_empty_host) {
@@ -1347,18 +907,6 @@ TEST(well_known_url_rejects_an_empty_host) {
   EXPECT_TRUE(url.empty());
 }
 
-TEST(resource_metadata_rejects_a_port_above_the_limit) {
-  // The port fits the RFC 3986 grammar but exceeds what a URI can hold, so
-  // parsing must be reported as an invalid document rather than escaping as an
-  // exception
-  auto document{sourcemeta::core::parse_json(R"JSON({
-    "resource": "https://api.example.com:99999999999999/path"
-  })JSON")};
-  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
-      std::move(document), "https://api.example.com:99999999999999/path")};
-  EXPECT_FALSE(metadata.has_value());
-}
-
 TEST(server_metadata_rejects_a_port_above_the_limit) {
   auto document{sourcemeta::core::parse_json(R"JSON({
     "issuer": "https://example.com:99999999999999",
@@ -1375,17 +923,6 @@ TEST(well_known_url_rejects_a_port_above_the_limit) {
       "https://example.com:99999999999999",
       sourcemeta::core::OAuthWellKnownKind::ProtectedResource, url));
   EXPECT_TRUE(url.empty());
-}
-
-TEST(resource_metadata_accepts_the_maximum_port) {
-  auto document{sourcemeta::core::parse_json(R"JSON({
-    "resource": "https://api.example.com:4294967295/path"
-  })JSON")};
-  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
-      std::move(document), "https://api.example.com:4294967295/path")};
-  EXPECT_TRUE(metadata.has_value());
-  EXPECT_EQ(metadata.value().resource(),
-            "https://api.example.com:4294967295/path");
 }
 
 TEST(make_server_metadata_emits_the_required_members) {
@@ -1788,4 +1325,286 @@ TEST(is_endpoint_url_rejects_another_scheme) {
 TEST(is_endpoint_url_rejects_a_malformed_url) {
   EXPECT_FALSE(sourcemeta::core::oauth_is_endpoint_url(""));
   EXPECT_FALSE(sourcemeta::core::oauth_is_endpoint_url("https://ex ample.com"));
+}
+
+TEST(is_resource_identifier_accepts_an_https_url) {
+  EXPECT_TRUE(sourcemeta::core::oauth_is_resource_identifier(
+      "https://api.example.com"));
+}
+
+TEST(is_resource_identifier_accepts_a_path) {
+  EXPECT_TRUE(sourcemeta::core::oauth_is_resource_identifier(
+      "https://api.example.com/mcp"));
+}
+
+TEST(is_resource_identifier_accepts_a_query) {
+  EXPECT_TRUE(sourcemeta::core::oauth_is_resource_identifier(
+      "https://api.example.com/mcp?tenant=1"));
+}
+
+TEST(is_resource_identifier_accepts_a_port) {
+  EXPECT_TRUE(sourcemeta::core::oauth_is_resource_identifier(
+      "https://api.example.com:8443/mcp"));
+}
+
+TEST(is_resource_identifier_rejects_a_cleartext_url) {
+  EXPECT_FALSE(
+      sourcemeta::core::oauth_is_resource_identifier("http://api.example.com"));
+}
+
+TEST(is_resource_identifier_rejects_a_fragment) {
+  EXPECT_FALSE(sourcemeta::core::oauth_is_resource_identifier(
+      "https://api.example.com/mcp#section"));
+}
+
+TEST(is_resource_identifier_rejects_an_uppercase_scheme) {
+  EXPECT_FALSE(sourcemeta::core::oauth_is_resource_identifier(
+      "HTTPS://api.example.com"));
+}
+
+TEST(is_resource_identifier_rejects_a_missing_host) {
+  EXPECT_FALSE(sourcemeta::core::oauth_is_resource_identifier("https://"));
+  EXPECT_FALSE(sourcemeta::core::oauth_is_resource_identifier("https://:443"));
+}
+
+TEST(is_resource_identifier_rejects_a_relative_reference) {
+  EXPECT_FALSE(sourcemeta::core::oauth_is_resource_identifier("/mcp"));
+  EXPECT_FALSE(sourcemeta::core::oauth_is_resource_identifier(""));
+}
+
+TEST(is_advertised_issuer_accepts_an_https_url) {
+  EXPECT_TRUE(
+      sourcemeta::core::oauth_is_advertised_issuer("https://auth.example.com"));
+}
+
+TEST(is_advertised_issuer_accepts_a_path) {
+  EXPECT_TRUE(sourcemeta::core::oauth_is_advertised_issuer(
+      "https://auth.example.com/tenant"));
+}
+
+TEST(is_advertised_issuer_accepts_an_uppercase_scheme) {
+  EXPECT_TRUE(
+      sourcemeta::core::oauth_is_advertised_issuer("HTTPS://auth.example.com"));
+}
+
+TEST(is_advertised_issuer_rejects_a_query) {
+  EXPECT_FALSE(sourcemeta::core::oauth_is_advertised_issuer(
+      "https://auth.example.com/?tenant=1"));
+}
+
+TEST(is_advertised_issuer_rejects_a_fragment) {
+  EXPECT_FALSE(sourcemeta::core::oauth_is_advertised_issuer(
+      "https://auth.example.com#main"));
+}
+
+TEST(is_advertised_issuer_rejects_a_cleartext_url) {
+  EXPECT_FALSE(
+      sourcemeta::core::oauth_is_advertised_issuer("http://auth.example.com"));
+}
+
+TEST(is_advertised_issuer_rejects_a_missing_host) {
+  EXPECT_FALSE(sourcemeta::core::oauth_is_advertised_issuer("https://"));
+  EXPECT_FALSE(sourcemeta::core::oauth_is_advertised_issuer("https://:443"));
+}
+
+TEST(is_advertised_issuer_rejects_a_relative_reference) {
+  EXPECT_FALSE(sourcemeta::core::oauth_is_advertised_issuer("/issuer"));
+  EXPECT_FALSE(sourcemeta::core::oauth_is_advertised_issuer(""));
+}
+
+TEST(server_metadata_parses_the_rfc8414_example) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://server.example.com",
+    "authorization_endpoint": "https://server.example.com/authorize",
+    "token_endpoint": "https://server.example.com/token",
+    "token_endpoint_auth_methods_supported":
+      ["client_secret_basic", "private_key_jwt"],
+    "token_endpoint_auth_signing_alg_values_supported": ["RS256", "ES256"],
+    "userinfo_endpoint": "https://server.example.com/userinfo",
+    "jwks_uri": "https://server.example.com/jwks.json",
+    "registration_endpoint": "https://server.example.com/register",
+    "scopes_supported":
+      ["openid", "profile", "email", "address", "phone", "offline_access"],
+    "response_types_supported": ["code", "code token"],
+    "service_documentation":
+      "http://server.example.com/service_documentation.html",
+    "ui_locales_supported": ["en-US", "en-GB", "en-CA", "fr-FR", "fr-CA"]
+  })JSON")};
+  const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
+      std::move(document), "https://server.example.com")};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata.value().issuer(), "https://server.example.com");
+  EXPECT_EQ(metadata.value().authorization_endpoint().value(),
+            "https://server.example.com/authorize");
+  EXPECT_EQ(metadata.value().token_endpoint().value(),
+            "https://server.example.com/token");
+  EXPECT_TRUE(metadata.value().supports_token_endpoint_auth_method(
+      "client_secret_basic"));
+  EXPECT_TRUE(
+      metadata.value().supports_token_endpoint_auth_method("private_key_jwt"));
+  EXPECT_EQ(metadata.value().jwks_uri().value(),
+            "https://server.example.com/jwks.json");
+  EXPECT_EQ(metadata.value().registration_endpoint().value(),
+            "https://server.example.com/register");
+  EXPECT_TRUE(metadata.value().supports_response_type("code"));
+  EXPECT_TRUE(metadata.value().supports_response_type("code token"));
+  EXPECT_EQ(metadata.value().data().at("userinfo_endpoint").to_string(),
+            "https://server.example.com/userinfo");
+  EXPECT_EQ(metadata.value().data().at("service_documentation").to_string(),
+            "http://server.example.com/service_documentation.html");
+  EXPECT_EQ(metadata.value().data().at("ui_locales_supported").size(), 5);
+}
+
+TEST(make_server_metadata_emits_protected_resources) {
+  const std::array<std::string_view, 1> response_types{{"code"}};
+  const std::array<std::string_view, 2> resources{
+      {"https://api.example.com", "https://reports.example.com/v1"}};
+  sourcemeta::core::OAuthServerMetadataConfig config;
+  config.issuer = "https://server.example";
+  config.authorization_endpoint = "https://server.example/authorize";
+  config.token_endpoint = "https://server.example/token";
+  config.response_types_supported = response_types;
+  config.protected_resources = resources;
+  const auto document{sourcemeta::core::oauth_make_server_metadata(config)};
+  EXPECT_TRUE(document.has_value());
+  EXPECT_EQ(document.value().at("protected_resources").size(), 2);
+  EXPECT_EQ(document.value().at("protected_resources").at(0).to_string(),
+            "https://api.example.com");
+  EXPECT_EQ(document.value().at("protected_resources").at(1).to_string(),
+            "https://reports.example.com/v1");
+}
+
+TEST(make_server_metadata_omits_empty_protected_resources) {
+  const std::array<std::string_view, 1> response_types{{"code"}};
+  sourcemeta::core::OAuthServerMetadataConfig config;
+  config.issuer = "https://server.example";
+  config.authorization_endpoint = "https://server.example/authorize";
+  config.token_endpoint = "https://server.example/token";
+  config.response_types_supported = response_types;
+  const auto document{sourcemeta::core::oauth_make_server_metadata(config)};
+  EXPECT_TRUE(document.has_value());
+  EXPECT_FALSE(document.value().defines("protected_resources"));
+}
+
+TEST(make_server_metadata_rejects_a_cleartext_protected_resource) {
+  const std::array<std::string_view, 1> response_types{{"code"}};
+  const std::array<std::string_view, 1> resources{{"http://api.example.com"}};
+  sourcemeta::core::OAuthServerMetadataConfig config;
+  config.issuer = "https://server.example";
+  config.authorization_endpoint = "https://server.example/authorize";
+  config.token_endpoint = "https://server.example/token";
+  config.response_types_supported = response_types;
+  config.protected_resources = resources;
+  const auto document{sourcemeta::core::oauth_make_server_metadata(config)};
+  EXPECT_FALSE(document.has_value());
+}
+
+TEST(make_server_metadata_rejects_a_protected_resource_with_a_fragment) {
+  const std::array<std::string_view, 1> response_types{{"code"}};
+  const std::array<std::string_view, 1> resources{
+      {"https://api.example.com#section"}};
+  sourcemeta::core::OAuthServerMetadataConfig config;
+  config.issuer = "https://server.example";
+  config.authorization_endpoint = "https://server.example/authorize";
+  config.token_endpoint = "https://server.example/token";
+  config.response_types_supported = response_types;
+  config.protected_resources = resources;
+  const auto document{sourcemeta::core::oauth_make_server_metadata(config)};
+  EXPECT_FALSE(document.has_value());
+}
+
+TEST(make_server_metadata_accepts_a_protected_resource_with_a_query) {
+  const std::array<std::string_view, 1> response_types{{"code"}};
+  const std::array<std::string_view, 1> resources{
+      {"https://api.example.com/mcp?tenant=1"}};
+  sourcemeta::core::OAuthServerMetadataConfig config;
+  config.issuer = "https://server.example";
+  config.authorization_endpoint = "https://server.example/authorize";
+  config.token_endpoint = "https://server.example/token";
+  config.response_types_supported = response_types;
+  config.protected_resources = resources;
+  const auto document{sourcemeta::core::oauth_make_server_metadata(config)};
+  EXPECT_TRUE(document.has_value());
+  EXPECT_EQ(document.value().at("protected_resources").at(0).to_string(),
+            "https://api.example.com/mcp?tenant=1");
+}
+
+TEST(make_server_metadata_protected_resources_round_trips) {
+  const std::array<std::string_view, 1> response_types{{"code"}};
+  const std::array<std::string_view, 1> resources{{"https://api.example.com"}};
+  sourcemeta::core::OAuthServerMetadataConfig config;
+  config.issuer = "https://server.example";
+  config.authorization_endpoint = "https://server.example/authorize";
+  config.token_endpoint = "https://server.example/token";
+  config.response_types_supported = response_types;
+  config.protected_resources = resources;
+  auto document{sourcemeta::core::oauth_make_server_metadata(config)};
+  EXPECT_TRUE(document.has_value());
+  const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
+      std::move(document.value()), "https://server.example")};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_TRUE(
+      metadata.value().supports_protected_resource("https://api.example.com"));
+  EXPECT_FALSE(metadata.value().supports_protected_resource(
+      "https://other.example.com"));
+}
+
+TEST(server_metadata_supports_protected_resource) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://server.example",
+    "response_types_supported": [ "code" ],
+    "protected_resources": [ "https://api.example.com" ]
+  })JSON")};
+  const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
+      std::move(document), "https://server.example")};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_TRUE(
+      metadata.value().supports_protected_resource("https://api.example.com"));
+  EXPECT_FALSE(metadata.value().supports_protected_resource(
+      "https://other.example.com"));
+}
+
+TEST(server_metadata_protected_resource_absent_is_false) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://server.example",
+    "response_types_supported": [ "code" ]
+  })JSON")};
+  const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
+      std::move(document), "https://server.example")};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_FALSE(
+      metadata.value().supports_protected_resource("https://api.example.com"));
+}
+
+TEST(server_metadata_rejects_an_empty_protected_resources_array) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://server.example",
+    "response_types_supported": [ "code" ],
+    "protected_resources": []
+  })JSON")};
+  const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
+      std::move(document), "https://server.example")};
+  EXPECT_FALSE(metadata.has_value());
+}
+
+TEST(server_metadata_rejects_a_non_array_protected_resources) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://server.example",
+    "response_types_supported": [ "code" ],
+    "protected_resources": "https://api.example.com"
+  })JSON")};
+  const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
+      std::move(document), "https://server.example")};
+  EXPECT_FALSE(metadata.has_value());
+}
+
+TEST(server_metadata_rejects_a_non_string_protected_resource_element) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://server.example",
+    "response_types_supported": [ "code" ],
+    "protected_resources": [ "https://api.example.com", 42 ]
+  })JSON")};
+  const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
+      std::move(document), "https://server.example")};
+  EXPECT_FALSE(metadata.has_value());
 }
