@@ -575,3 +575,138 @@ TEST(canonical_malformed_rejected) {
   EXPECT_FALSE(sourcemeta::core::is_canonical_langtag("en-"));
   EXPECT_FALSE(sourcemeta::core::is_canonical_langtag("de-419-DE"));
 }
+
+TEST(equals_identical_tags) {
+  EXPECT_TRUE(sourcemeta::core::langtag_equals("en", "en"));
+  EXPECT_TRUE(sourcemeta::core::langtag_equals("en-US", "en-US"));
+  EXPECT_TRUE(sourcemeta::core::langtag_equals("zh-Hant-HK", "zh-Hant-HK"));
+  EXPECT_TRUE(sourcemeta::core::langtag_equals("x-private", "x-private"));
+}
+
+// RFC 5646 Section 2.1.1: the tag mn-Cyrl-MN is not distinct from
+// MN-cYRL-mn or mN-cYrL-Mn
+TEST(equals_rfc_case_insensitivity_examples) {
+  EXPECT_TRUE(sourcemeta::core::langtag_equals("mn-Cyrl-MN", "MN-cYRL-mn"));
+  EXPECT_TRUE(sourcemeta::core::langtag_equals("mn-Cyrl-MN", "mN-cYrL-Mn"));
+  EXPECT_TRUE(sourcemeta::core::langtag_equals("MN-cYRL-mn", "mN-cYrL-Mn"));
+}
+
+// RFC 5646 Section 2.1.1: tags and their subtags are case insensitive
+TEST(equals_primary_language_casing) {
+  EXPECT_TRUE(sourcemeta::core::langtag_equals("en", "EN"));
+  EXPECT_TRUE(sourcemeta::core::langtag_equals("en", "En"));
+  EXPECT_TRUE(sourcemeta::core::langtag_equals("de", "dE"));
+}
+
+// RFC 5646 Section 2.1.1: region subtags are case insensitive even though
+// convention capitalizes them
+TEST(equals_region_casing) {
+  EXPECT_TRUE(sourcemeta::core::langtag_equals("en-US", "en-us"));
+  EXPECT_TRUE(sourcemeta::core::langtag_equals("en-US", "EN-US"));
+  EXPECT_TRUE(sourcemeta::core::langtag_equals("en-us", "EN-Us"));
+  EXPECT_TRUE(sourcemeta::core::langtag_equals("es-419", "ES-419"));
+}
+
+// RFC 5646 Section 2.1.1: script subtags are case insensitive even though
+// convention titlecases them
+TEST(equals_script_casing) {
+  EXPECT_TRUE(sourcemeta::core::langtag_equals("zh-Hant", "zh-hant"));
+  EXPECT_TRUE(sourcemeta::core::langtag_equals("zh-Hant", "ZH-HANT"));
+  EXPECT_TRUE(sourcemeta::core::langtag_equals("sr-Cyrl-RS", "SR-CYRL-RS"));
+}
+
+// RFC 5646 Section 2.1.1: extended language subtags are case insensitive
+TEST(equals_extended_language_casing) {
+  EXPECT_TRUE(
+      sourcemeta::core::langtag_equals("zh-cmn-Hans-CN", "ZH-CMN-HANS-CN"));
+  EXPECT_TRUE(sourcemeta::core::langtag_equals("zh-yue-HK", "zh-YUE-hk"));
+}
+
+// RFC 5646 Section 2.1.1: variant subtags are case insensitive
+TEST(equals_variant_casing) {
+  EXPECT_TRUE(sourcemeta::core::langtag_equals("sl-rozaj", "sl-Rozaj"));
+  EXPECT_TRUE(
+      sourcemeta::core::langtag_equals("sl-rozaj-biske", "SL-ROZAJ-BISKE"));
+  EXPECT_TRUE(sourcemeta::core::langtag_equals("de-CH-1901", "de-ch-1901"));
+}
+
+// RFC 5646 Section 2.1.1: extension subtags, including the singleton, are
+// case insensitive
+TEST(equals_extension_casing) {
+  EXPECT_TRUE(
+      sourcemeta::core::langtag_equals("en-US-u-islamcal", "en-us-U-ISLAMCAL"));
+  EXPECT_TRUE(sourcemeta::core::langtag_equals("zh-CN-a-myext-x-private",
+                                               "ZH-cn-A-MYEXT-X-PRIVATE"));
+}
+
+// RFC 5646 Section 2.1.1: private use subtags, including the singleton, are
+// case insensitive
+TEST(equals_private_use_casing) {
+  EXPECT_TRUE(
+      sourcemeta::core::langtag_equals("de-CH-x-phonebk", "DE-ch-X-PHONEBK"));
+  EXPECT_TRUE(sourcemeta::core::langtag_equals("x-foo", "X-FOO"));
+  EXPECT_TRUE(
+      sourcemeta::core::langtag_equals("az-Arab-x-AYB", "az-arab-x-ayb"));
+}
+
+// RFC 5646 Section 2.1.1: grandfathered tags are case insensitive like any
+// other tag
+TEST(equals_grandfathered_casing) {
+  EXPECT_TRUE(sourcemeta::core::langtag_equals("i-klingon", "I-KLINGON"));
+  EXPECT_TRUE(sourcemeta::core::langtag_equals("en-GB-oed", "EN-gb-OED"));
+  EXPECT_TRUE(sourcemeta::core::langtag_equals("sgn-BE-FR", "sgn-be-fr"));
+  EXPECT_TRUE(sourcemeta::core::langtag_equals("zh-min-nan", "ZH-MIN-NAN"));
+}
+
+TEST(equals_distinct_languages) {
+  EXPECT_FALSE(sourcemeta::core::langtag_equals("en", "fr"));
+  EXPECT_FALSE(sourcemeta::core::langtag_equals("de", "es"));
+  EXPECT_FALSE(sourcemeta::core::langtag_equals("EN", "FR"));
+}
+
+TEST(equals_distinct_regions) {
+  EXPECT_FALSE(sourcemeta::core::langtag_equals("en-US", "en-GB"));
+  EXPECT_FALSE(sourcemeta::core::langtag_equals("en-us", "en-gb"));
+  EXPECT_FALSE(sourcemeta::core::langtag_equals("es-419", "es-420"));
+}
+
+TEST(equals_distinct_scripts) {
+  EXPECT_FALSE(sourcemeta::core::langtag_equals("zh-Hant", "zh-Hans"));
+  EXPECT_FALSE(sourcemeta::core::langtag_equals("sr-Cyrl", "sr-Latn"));
+}
+
+// A tag never equals its own prefix, as a missing subtag is not a subtag
+// difference in casing
+TEST(equals_prefix_is_not_equal) {
+  EXPECT_FALSE(sourcemeta::core::langtag_equals("en", "en-US"));
+  EXPECT_FALSE(sourcemeta::core::langtag_equals("en-US", "en"));
+  EXPECT_FALSE(sourcemeta::core::langtag_equals("zh-Hant", "zh"));
+  EXPECT_FALSE(sourcemeta::core::langtag_equals("zh-Hant-HK", "zh-Hant"));
+}
+
+TEST(equals_distinct_lengths) {
+  EXPECT_FALSE(sourcemeta::core::langtag_equals("en", "eng"));
+  EXPECT_FALSE(sourcemeta::core::langtag_equals("de-CH-1901", "de-CH-19011"));
+}
+
+// RFC 5646 Section 2.1: subtags are distinguished and separated by hyphens,
+// so a different separator never matches
+TEST(equals_distinct_separators) {
+  EXPECT_FALSE(sourcemeta::core::langtag_equals("en-US", "en_US"));
+  EXPECT_FALSE(sourcemeta::core::langtag_equals("en-US", "en US"));
+}
+
+// RFC 5646 Section 4.5: reordering extension sequences is a canonicalization
+// concern, so tags whose extension sequences differ in order are not equal
+TEST(equals_extension_order_matters) {
+  EXPECT_FALSE(
+      sourcemeta::core::langtag_equals("en-a-bbb-b-ccc", "en-b-ccc-a-bbb"));
+}
+
+// The comparison does not validate its arguments
+TEST(equals_no_validation) {
+  EXPECT_TRUE(sourcemeta::core::langtag_equals("", ""));
+  EXPECT_TRUE(sourcemeta::core::langtag_equals("en-", "EN-"));
+  EXPECT_FALSE(sourcemeta::core::langtag_equals("", "en"));
+  EXPECT_FALSE(sourcemeta::core::langtag_equals("en", ""));
+}
