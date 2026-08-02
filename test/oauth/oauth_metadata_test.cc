@@ -128,11 +128,35 @@ TEST(server_metadata_parses_a_valid_document) {
   EXPECT_TRUE(metadata.value().authorization_endpoint().has_value());
   EXPECT_EQ(metadata.value().authorization_endpoint().value(),
             "https://example.com/authorize");
+  EXPECT_TRUE(metadata.value().token_endpoint().has_value());
   EXPECT_EQ(metadata.value().token_endpoint().value(),
             "https://example.com/token");
+  EXPECT_TRUE(metadata.value().registration_endpoint().has_value());
   EXPECT_EQ(metadata.value().registration_endpoint().value(),
             "https://example.com/register");
+  EXPECT_FALSE(metadata.value().device_authorization_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().revocation_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().introspection_endpoint().has_value());
+  EXPECT_TRUE(metadata.value().jwks_uri().has_value());
   EXPECT_EQ(metadata.value().jwks_uri().value(), "https://example.com/jwks");
+  EXPECT_FALSE(
+      metadata.value().pushed_authorization_request_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().require_pushed_authorization_requests());
+  EXPECT_FALSE(
+      metadata.value().authorization_response_iss_parameter_supported());
+  EXPECT_TRUE(metadata.value().supports_response_type("code"));
+  EXPECT_FALSE(metadata.value().supports_response_type("nonexistent"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("authorization_code"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("implicit"));
+  EXPECT_FALSE(metadata.value().supports_grant_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("S256"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("plain"));
+  EXPECT_TRUE(metadata.value().supports_token_endpoint_auth_method(
+      "client_secret_basic"));
+  EXPECT_FALSE(
+      metadata.value().supports_token_endpoint_auth_method("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_protected_resource(
+      "https://nonexistent.example.invalid"));
 }
 
 TEST(server_metadata_rejects_an_issuer_mismatch) {
@@ -201,6 +225,34 @@ TEST(server_metadata_accepts_signing_algs_for_private_key_jwt) {
       std::move(document), "https://example.com")};
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().issuer(), "https://example.com");
+  EXPECT_FALSE(metadata.value().authorization_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().token_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().registration_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().device_authorization_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().revocation_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().introspection_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(
+      metadata.value().pushed_authorization_request_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().require_pushed_authorization_requests());
+  EXPECT_FALSE(
+      metadata.value().authorization_response_iss_parameter_supported());
+  EXPECT_TRUE(metadata.value().supports_response_type("code"));
+  EXPECT_FALSE(metadata.value().supports_response_type("nonexistent"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("authorization_code"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("implicit"));
+  EXPECT_FALSE(metadata.value().supports_grant_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("S256"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("plain"));
+  EXPECT_FALSE(metadata.value().supports_token_endpoint_auth_method(
+      "client_secret_basic"));
+  EXPECT_TRUE(
+      metadata.value().supports_token_endpoint_auth_method("private_key_jwt"));
+  EXPECT_FALSE(
+      metadata.value().supports_token_endpoint_auth_method("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_protected_resource(
+      "https://nonexistent.example.invalid"));
 }
 
 TEST(server_metadata_rejects_none_in_signing_algs) {
@@ -225,8 +277,32 @@ TEST(server_metadata_iss_parameter_supported_defaults_to_false) {
       std::move(document), "https://example.com")};
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().issuer(), "https://example.com");
+  EXPECT_FALSE(metadata.value().authorization_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().token_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().registration_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().device_authorization_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().revocation_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().introspection_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(
+      metadata.value().pushed_authorization_request_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().require_pushed_authorization_requests());
   EXPECT_FALSE(
       metadata.value().authorization_response_iss_parameter_supported());
+  EXPECT_TRUE(metadata.value().supports_response_type("code"));
+  EXPECT_FALSE(metadata.value().supports_response_type("nonexistent"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("authorization_code"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("implicit"));
+  EXPECT_FALSE(metadata.value().supports_grant_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("S256"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("plain"));
+  EXPECT_TRUE(metadata.value().supports_token_endpoint_auth_method(
+      "client_secret_basic"));
+  EXPECT_FALSE(
+      metadata.value().supports_token_endpoint_auth_method("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_protected_resource(
+      "https://nonexistent.example.invalid"));
 }
 
 TEST(server_metadata_iss_parameter_supported_reads_true) {
@@ -240,8 +316,32 @@ TEST(server_metadata_iss_parameter_supported_reads_true) {
       std::move(document), "https://example.com")};
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().issuer(), "https://example.com");
+  EXPECT_FALSE(metadata.value().authorization_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().token_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().registration_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().device_authorization_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().revocation_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().introspection_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(
+      metadata.value().pushed_authorization_request_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().require_pushed_authorization_requests());
   EXPECT_TRUE(
       metadata.value().authorization_response_iss_parameter_supported());
+  EXPECT_TRUE(metadata.value().supports_response_type("code"));
+  EXPECT_FALSE(metadata.value().supports_response_type("nonexistent"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("authorization_code"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("implicit"));
+  EXPECT_FALSE(metadata.value().supports_grant_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("S256"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("plain"));
+  EXPECT_TRUE(metadata.value().supports_token_endpoint_auth_method(
+      "client_secret_basic"));
+  EXPECT_FALSE(
+      metadata.value().supports_token_endpoint_auth_method("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_protected_resource(
+      "https://nonexistent.example.invalid"));
 }
 
 TEST(server_metadata_grant_types_default) {
@@ -249,11 +349,37 @@ TEST(server_metadata_grant_types_default) {
     "issuer": "https://example.com",
     "response_types_supported": [ "code" ]
   })JSON")};
+  const auto expected{document};
   const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
       std::move(document), "https://example.com")};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().issuer(), "https://example.com");
+  EXPECT_FALSE(metadata.value().authorization_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().token_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().registration_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().device_authorization_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().revocation_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().introspection_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(
+      metadata.value().pushed_authorization_request_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().require_pushed_authorization_requests());
+  EXPECT_FALSE(
+      metadata.value().authorization_response_iss_parameter_supported());
+  EXPECT_TRUE(metadata.value().supports_response_type("code"));
+  EXPECT_FALSE(metadata.value().supports_response_type("nonexistent"));
   EXPECT_TRUE(metadata.value().supports_grant_type("authorization_code"));
   EXPECT_TRUE(metadata.value().supports_grant_type("implicit"));
-  EXPECT_FALSE(metadata.value().supports_grant_type("refresh_token"));
+  EXPECT_FALSE(metadata.value().supports_grant_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("S256"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("plain"));
+  EXPECT_TRUE(metadata.value().supports_token_endpoint_auth_method(
+      "client_secret_basic"));
+  EXPECT_FALSE(
+      metadata.value().supports_token_endpoint_auth_method("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_protected_resource(
+      "https://nonexistent.example.invalid"));
 }
 
 TEST(server_metadata_grant_types_explicit) {
@@ -262,11 +388,38 @@ TEST(server_metadata_grant_types_explicit) {
     "response_types_supported": [ "code" ],
     "grant_types_supported": [ "authorization_code", "refresh_token" ]
   })JSON")};
+  const auto expected{document};
   const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
       std::move(document), "https://example.com")};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().issuer(), "https://example.com");
+  EXPECT_FALSE(metadata.value().authorization_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().token_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().registration_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().device_authorization_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().revocation_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().introspection_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(
+      metadata.value().pushed_authorization_request_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().require_pushed_authorization_requests());
+  EXPECT_FALSE(
+      metadata.value().authorization_response_iss_parameter_supported());
+  EXPECT_TRUE(metadata.value().supports_response_type("code"));
+  EXPECT_FALSE(metadata.value().supports_response_type("nonexistent"));
   EXPECT_TRUE(metadata.value().supports_grant_type("authorization_code"));
-  EXPECT_TRUE(metadata.value().supports_grant_type("refresh_token"));
   EXPECT_FALSE(metadata.value().supports_grant_type("implicit"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("refresh_token"));
+  EXPECT_FALSE(metadata.value().supports_grant_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("S256"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("plain"));
+  EXPECT_TRUE(metadata.value().supports_token_endpoint_auth_method(
+      "client_secret_basic"));
+  EXPECT_FALSE(
+      metadata.value().supports_token_endpoint_auth_method("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_protected_resource(
+      "https://nonexistent.example.invalid"));
 }
 
 TEST(server_metadata_code_challenge_methods_absent_is_unsupported) {
@@ -274,9 +427,37 @@ TEST(server_metadata_code_challenge_methods_absent_is_unsupported) {
     "issuer": "https://example.com",
     "response_types_supported": [ "code" ]
   })JSON")};
+  const auto expected{document};
   const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
       std::move(document), "https://example.com")};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().issuer(), "https://example.com");
+  EXPECT_FALSE(metadata.value().authorization_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().token_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().registration_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().device_authorization_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().revocation_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().introspection_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(
+      metadata.value().pushed_authorization_request_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().require_pushed_authorization_requests());
+  EXPECT_FALSE(
+      metadata.value().authorization_response_iss_parameter_supported());
+  EXPECT_TRUE(metadata.value().supports_response_type("code"));
+  EXPECT_FALSE(metadata.value().supports_response_type("nonexistent"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("authorization_code"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("implicit"));
+  EXPECT_FALSE(metadata.value().supports_grant_type("nonexistent"));
   EXPECT_FALSE(metadata.value().supports_code_challenge_method("S256"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("plain"));
+  EXPECT_TRUE(metadata.value().supports_token_endpoint_auth_method(
+      "client_secret_basic"));
+  EXPECT_FALSE(
+      metadata.value().supports_token_endpoint_auth_method("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_protected_resource(
+      "https://nonexistent.example.invalid"));
 }
 
 TEST(server_metadata_code_challenge_methods_present) {
@@ -285,10 +466,37 @@ TEST(server_metadata_code_challenge_methods_present) {
     "response_types_supported": [ "code" ],
     "code_challenge_methods_supported": [ "S256" ]
   })JSON")};
+  const auto expected{document};
   const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
       std::move(document), "https://example.com")};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().issuer(), "https://example.com");
+  EXPECT_FALSE(metadata.value().authorization_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().token_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().registration_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().device_authorization_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().revocation_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().introspection_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(
+      metadata.value().pushed_authorization_request_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().require_pushed_authorization_requests());
+  EXPECT_FALSE(
+      metadata.value().authorization_response_iss_parameter_supported());
+  EXPECT_TRUE(metadata.value().supports_response_type("code"));
+  EXPECT_FALSE(metadata.value().supports_response_type("nonexistent"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("authorization_code"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("implicit"));
+  EXPECT_FALSE(metadata.value().supports_grant_type("nonexistent"));
   EXPECT_TRUE(metadata.value().supports_code_challenge_method("S256"));
   EXPECT_FALSE(metadata.value().supports_code_challenge_method("plain"));
+  EXPECT_TRUE(metadata.value().supports_token_endpoint_auth_method(
+      "client_secret_basic"));
+  EXPECT_FALSE(
+      metadata.value().supports_token_endpoint_auth_method("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_protected_resource(
+      "https://nonexistent.example.invalid"));
 }
 
 TEST(server_metadata_token_auth_method_default) {
@@ -296,12 +504,37 @@ TEST(server_metadata_token_auth_method_default) {
     "issuer": "https://example.com",
     "response_types_supported": [ "code" ]
   })JSON")};
+  const auto expected{document};
   const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
       std::move(document), "https://example.com")};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().issuer(), "https://example.com");
+  EXPECT_FALSE(metadata.value().authorization_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().token_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().registration_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().device_authorization_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().revocation_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().introspection_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(
+      metadata.value().pushed_authorization_request_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().require_pushed_authorization_requests());
+  EXPECT_FALSE(
+      metadata.value().authorization_response_iss_parameter_supported());
+  EXPECT_TRUE(metadata.value().supports_response_type("code"));
+  EXPECT_FALSE(metadata.value().supports_response_type("nonexistent"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("authorization_code"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("implicit"));
+  EXPECT_FALSE(metadata.value().supports_grant_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("S256"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("plain"));
   EXPECT_TRUE(metadata.value().supports_token_endpoint_auth_method(
       "client_secret_basic"));
-  EXPECT_FALSE(metadata.value().supports_token_endpoint_auth_method(
-      "client_secret_post"));
+  EXPECT_FALSE(
+      metadata.value().supports_token_endpoint_auth_method("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_protected_resource(
+      "https://nonexistent.example.invalid"));
 }
 
 TEST(server_metadata_token_auth_method_explicit) {
@@ -311,13 +544,40 @@ TEST(server_metadata_token_auth_method_explicit) {
     "token_endpoint_auth_methods_supported":
       [ "client_secret_post", "none" ]
   })JSON")};
+  const auto expected{document};
   const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
       std::move(document), "https://example.com")};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().issuer(), "https://example.com");
+  EXPECT_FALSE(metadata.value().authorization_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().token_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().registration_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().device_authorization_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().revocation_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().introspection_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(
+      metadata.value().pushed_authorization_request_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().require_pushed_authorization_requests());
+  EXPECT_FALSE(
+      metadata.value().authorization_response_iss_parameter_supported());
+  EXPECT_TRUE(metadata.value().supports_response_type("code"));
+  EXPECT_FALSE(metadata.value().supports_response_type("nonexistent"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("authorization_code"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("implicit"));
+  EXPECT_FALSE(metadata.value().supports_grant_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("S256"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("plain"));
+  EXPECT_FALSE(metadata.value().supports_token_endpoint_auth_method(
+      "client_secret_basic"));
   EXPECT_TRUE(metadata.value().supports_token_endpoint_auth_method(
       "client_secret_post"));
   EXPECT_TRUE(metadata.value().supports_token_endpoint_auth_method("none"));
-  EXPECT_FALSE(metadata.value().supports_token_endpoint_auth_method(
-      "client_secret_basic"));
+  EXPECT_FALSE(
+      metadata.value().supports_token_endpoint_auth_method("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_protected_resource(
+      "https://nonexistent.example.invalid"));
 }
 
 TEST(server_metadata_supports_response_type) {
@@ -325,11 +585,38 @@ TEST(server_metadata_supports_response_type) {
     "issuer": "https://example.com",
     "response_types_supported": [ "code", "token" ]
   })JSON")};
+  const auto expected{document};
   const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
       std::move(document), "https://example.com")};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().issuer(), "https://example.com");
+  EXPECT_FALSE(metadata.value().authorization_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().token_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().registration_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().device_authorization_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().revocation_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().introspection_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(
+      metadata.value().pushed_authorization_request_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().require_pushed_authorization_requests());
+  EXPECT_FALSE(
+      metadata.value().authorization_response_iss_parameter_supported());
   EXPECT_TRUE(metadata.value().supports_response_type("code"));
   EXPECT_TRUE(metadata.value().supports_response_type("token"));
-  EXPECT_FALSE(metadata.value().supports_response_type("id_token"));
+  EXPECT_FALSE(metadata.value().supports_response_type("nonexistent"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("authorization_code"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("implicit"));
+  EXPECT_FALSE(metadata.value().supports_grant_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("S256"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("plain"));
+  EXPECT_TRUE(metadata.value().supports_token_endpoint_auth_method(
+      "client_secret_basic"));
+  EXPECT_FALSE(
+      metadata.value().supports_token_endpoint_auth_method("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_protected_resource(
+      "https://nonexistent.example.invalid"));
 }
 
 TEST(server_metadata_absent_endpoints_are_empty) {
@@ -337,14 +624,37 @@ TEST(server_metadata_absent_endpoints_are_empty) {
     "issuer": "https://example.com",
     "response_types_supported": [ "code" ]
   })JSON")};
+  const auto expected{document};
   const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
       std::move(document), "https://example.com")};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().issuer(), "https://example.com");
   EXPECT_FALSE(metadata.value().authorization_endpoint().has_value());
   EXPECT_FALSE(metadata.value().token_endpoint().has_value());
   EXPECT_FALSE(metadata.value().registration_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().device_authorization_endpoint().has_value());
   EXPECT_FALSE(metadata.value().revocation_endpoint().has_value());
   EXPECT_FALSE(metadata.value().introspection_endpoint().has_value());
   EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(
+      metadata.value().pushed_authorization_request_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().require_pushed_authorization_requests());
+  EXPECT_FALSE(
+      metadata.value().authorization_response_iss_parameter_supported());
+  EXPECT_TRUE(metadata.value().supports_response_type("code"));
+  EXPECT_FALSE(metadata.value().supports_response_type("nonexistent"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("authorization_code"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("implicit"));
+  EXPECT_FALSE(metadata.value().supports_grant_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("S256"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("plain"));
+  EXPECT_TRUE(metadata.value().supports_token_endpoint_auth_method(
+      "client_secret_basic"));
+  EXPECT_FALSE(
+      metadata.value().supports_token_endpoint_auth_method("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_protected_resource(
+      "https://nonexistent.example.invalid"));
 }
 
 TEST(server_metadata_passthrough) {
@@ -353,8 +663,37 @@ TEST(server_metadata_passthrough) {
     "response_types_supported": [ "code" ],
     "service_documentation": "https://example.com/docs"
   })JSON")};
+  const auto expected{document};
   const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
       std::move(document), "https://example.com")};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().issuer(), "https://example.com");
+  EXPECT_FALSE(metadata.value().authorization_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().token_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().registration_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().device_authorization_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().revocation_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().introspection_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(
+      metadata.value().pushed_authorization_request_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().require_pushed_authorization_requests());
+  EXPECT_FALSE(
+      metadata.value().authorization_response_iss_parameter_supported());
+  EXPECT_TRUE(metadata.value().supports_response_type("code"));
+  EXPECT_FALSE(metadata.value().supports_response_type("nonexistent"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("authorization_code"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("implicit"));
+  EXPECT_FALSE(metadata.value().supports_grant_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("S256"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("plain"));
+  EXPECT_TRUE(metadata.value().supports_token_endpoint_auth_method(
+      "client_secret_basic"));
+  EXPECT_FALSE(
+      metadata.value().supports_token_endpoint_auth_method("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_protected_resource(
+      "https://nonexistent.example.invalid"));
   const auto *documentation{
       metadata.value().data().try_at("service_documentation")};
   EXPECT_TRUE(documentation != nullptr);
@@ -397,6 +736,31 @@ TEST(server_metadata_accepts_an_issuer_with_a_path) {
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), expected);
   EXPECT_EQ(metadata.value().issuer(), "https://example.com/tenant");
+  EXPECT_FALSE(metadata.value().authorization_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().token_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().registration_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().device_authorization_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().revocation_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().introspection_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(
+      metadata.value().pushed_authorization_request_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().require_pushed_authorization_requests());
+  EXPECT_FALSE(
+      metadata.value().authorization_response_iss_parameter_supported());
+  EXPECT_TRUE(metadata.value().supports_response_type("code"));
+  EXPECT_FALSE(metadata.value().supports_response_type("nonexistent"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("authorization_code"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("implicit"));
+  EXPECT_FALSE(metadata.value().supports_grant_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("S256"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("plain"));
+  EXPECT_TRUE(metadata.value().supports_token_endpoint_auth_method(
+      "client_secret_basic"));
+  EXPECT_FALSE(
+      metadata.value().supports_token_endpoint_auth_method("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_protected_resource(
+      "https://nonexistent.example.invalid"));
 }
 
 TEST(server_metadata_accepts_an_issuer_with_a_trailing_slash) {
@@ -409,6 +773,32 @@ TEST(server_metadata_accepts_an_issuer_with_a_trailing_slash) {
       std::move(document), "https://example.com/")};
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().issuer(), "https://example.com/");
+  EXPECT_FALSE(metadata.value().authorization_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().token_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().registration_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().device_authorization_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().revocation_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().introspection_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(
+      metadata.value().pushed_authorization_request_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().require_pushed_authorization_requests());
+  EXPECT_FALSE(
+      metadata.value().authorization_response_iss_parameter_supported());
+  EXPECT_TRUE(metadata.value().supports_response_type("code"));
+  EXPECT_FALSE(metadata.value().supports_response_type("nonexistent"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("authorization_code"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("implicit"));
+  EXPECT_FALSE(metadata.value().supports_grant_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("S256"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("plain"));
+  EXPECT_TRUE(metadata.value().supports_token_endpoint_auth_method(
+      "client_secret_basic"));
+  EXPECT_FALSE(
+      metadata.value().supports_token_endpoint_auth_method("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_protected_resource(
+      "https://nonexistent.example.invalid"));
 }
 
 TEST(server_metadata_rejects_an_empty_issuer) {
@@ -432,8 +822,32 @@ TEST(server_metadata_grant_types_wrong_type_falls_back_to_default) {
       std::move(document), "https://example.com")};
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().issuer(), "https://example.com");
+  EXPECT_FALSE(metadata.value().authorization_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().token_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().registration_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().device_authorization_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().revocation_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().introspection_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(
+      metadata.value().pushed_authorization_request_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().require_pushed_authorization_requests());
+  EXPECT_FALSE(
+      metadata.value().authorization_response_iss_parameter_supported());
+  EXPECT_TRUE(metadata.value().supports_response_type("code"));
+  EXPECT_FALSE(metadata.value().supports_response_type("nonexistent"));
   EXPECT_TRUE(metadata.value().supports_grant_type("authorization_code"));
   EXPECT_TRUE(metadata.value().supports_grant_type("implicit"));
+  EXPECT_FALSE(metadata.value().supports_grant_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("S256"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("plain"));
+  EXPECT_TRUE(metadata.value().supports_token_endpoint_auth_method(
+      "client_secret_basic"));
+  EXPECT_FALSE(
+      metadata.value().supports_token_endpoint_auth_method("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_protected_resource(
+      "https://nonexistent.example.invalid"));
 }
 
 TEST(server_metadata_iss_parameter_supported_wrong_type_is_false) {
@@ -447,8 +861,32 @@ TEST(server_metadata_iss_parameter_supported_wrong_type_is_false) {
       std::move(document), "https://example.com")};
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().issuer(), "https://example.com");
+  EXPECT_FALSE(metadata.value().authorization_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().token_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().registration_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().device_authorization_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().revocation_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().introspection_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(
+      metadata.value().pushed_authorization_request_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().require_pushed_authorization_requests());
   EXPECT_FALSE(
       metadata.value().authorization_response_iss_parameter_supported());
+  EXPECT_TRUE(metadata.value().supports_response_type("code"));
+  EXPECT_FALSE(metadata.value().supports_response_type("nonexistent"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("authorization_code"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("implicit"));
+  EXPECT_FALSE(metadata.value().supports_grant_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("S256"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("plain"));
+  EXPECT_TRUE(metadata.value().supports_token_endpoint_auth_method(
+      "client_secret_basic"));
+  EXPECT_FALSE(
+      metadata.value().supports_token_endpoint_auth_method("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_protected_resource(
+      "https://nonexistent.example.invalid"));
 }
 
 TEST(server_metadata_non_string_response_type_elements_do_not_match) {
@@ -461,7 +899,31 @@ TEST(server_metadata_non_string_response_type_elements_do_not_match) {
       std::move(document), "https://example.com")};
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), expected);
-  EXPECT_FALSE(metadata.value().supports_response_type("code"));
+  EXPECT_EQ(metadata.value().issuer(), "https://example.com");
+  EXPECT_FALSE(metadata.value().authorization_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().token_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().registration_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().device_authorization_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().revocation_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().introspection_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(
+      metadata.value().pushed_authorization_request_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().require_pushed_authorization_requests());
+  EXPECT_FALSE(
+      metadata.value().authorization_response_iss_parameter_supported());
+  EXPECT_FALSE(metadata.value().supports_response_type("nonexistent"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("authorization_code"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("implicit"));
+  EXPECT_FALSE(metadata.value().supports_grant_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("S256"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("plain"));
+  EXPECT_TRUE(metadata.value().supports_token_endpoint_auth_method(
+      "client_secret_basic"));
+  EXPECT_FALSE(
+      metadata.value().supports_token_endpoint_auth_method("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_protected_resource(
+      "https://nonexistent.example.invalid"));
 }
 
 TEST(well_known_url_authorization_server_with_a_port) {
@@ -582,6 +1044,34 @@ TEST(server_metadata_accepts_an_https_device_authorization_endpoint) {
       std::move(document), "https://example.com")};
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().issuer(), "https://example.com");
+  EXPECT_FALSE(metadata.value().authorization_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().token_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().registration_endpoint().has_value());
+  EXPECT_TRUE(metadata.value().device_authorization_endpoint().has_value());
+  EXPECT_EQ(metadata.value().device_authorization_endpoint().value(),
+            "https://example.com/device");
+  EXPECT_FALSE(metadata.value().revocation_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().introspection_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(
+      metadata.value().pushed_authorization_request_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().require_pushed_authorization_requests());
+  EXPECT_FALSE(
+      metadata.value().authorization_response_iss_parameter_supported());
+  EXPECT_TRUE(metadata.value().supports_response_type("code"));
+  EXPECT_FALSE(metadata.value().supports_response_type("nonexistent"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("authorization_code"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("implicit"));
+  EXPECT_FALSE(metadata.value().supports_grant_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("S256"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("plain"));
+  EXPECT_TRUE(metadata.value().supports_token_endpoint_auth_method(
+      "client_secret_basic"));
+  EXPECT_FALSE(
+      metadata.value().supports_token_endpoint_auth_method("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_protected_resource(
+      "https://nonexistent.example.invalid"));
   EXPECT_EQ(
       metadata.value().data().at("device_authorization_endpoint").to_string(),
       "https://example.com/device");
@@ -652,21 +1142,45 @@ TEST(server_metadata_accepts_every_https_endpoint) {
       std::move(document), "https://example.com")};
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().issuer(), "https://example.com");
+  EXPECT_TRUE(metadata.value().authorization_endpoint().has_value());
   EXPECT_EQ(metadata.value().authorization_endpoint().value(),
             "https://example.com/authorize");
+  EXPECT_TRUE(metadata.value().token_endpoint().has_value());
   EXPECT_EQ(metadata.value().token_endpoint().value(),
             "https://example.com/token");
+  EXPECT_TRUE(metadata.value().registration_endpoint().has_value());
   EXPECT_EQ(metadata.value().registration_endpoint().value(),
             "https://example.com/register");
-  EXPECT_EQ(metadata.value().pushed_authorization_request_endpoint().value(),
-            "https://example.com/par");
-  EXPECT_EQ(metadata.value().device_authorization_endpoint().has_value(),
-            false);
+  EXPECT_FALSE(metadata.value().device_authorization_endpoint().has_value());
+  EXPECT_TRUE(metadata.value().revocation_endpoint().has_value());
   EXPECT_EQ(metadata.value().revocation_endpoint().value(),
             "https://example.com/revoke");
+  EXPECT_TRUE(metadata.value().introspection_endpoint().has_value());
   EXPECT_EQ(metadata.value().introspection_endpoint().value(),
             "https://example.com/introspect");
+  EXPECT_TRUE(metadata.value().jwks_uri().has_value());
   EXPECT_EQ(metadata.value().jwks_uri().value(), "https://example.com/jwks");
+  EXPECT_TRUE(
+      metadata.value().pushed_authorization_request_endpoint().has_value());
+  EXPECT_EQ(metadata.value().pushed_authorization_request_endpoint().value(),
+            "https://example.com/par");
+  EXPECT_FALSE(metadata.value().require_pushed_authorization_requests());
+  EXPECT_FALSE(
+      metadata.value().authorization_response_iss_parameter_supported());
+  EXPECT_TRUE(metadata.value().supports_response_type("code"));
+  EXPECT_FALSE(metadata.value().supports_response_type("nonexistent"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("authorization_code"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("implicit"));
+  EXPECT_FALSE(metadata.value().supports_grant_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("S256"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("plain"));
+  EXPECT_TRUE(metadata.value().supports_token_endpoint_auth_method(
+      "client_secret_basic"));
+  EXPECT_FALSE(
+      metadata.value().supports_token_endpoint_auth_method("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_protected_resource(
+      "https://nonexistent.example.invalid"));
 }
 
 TEST(server_metadata_rejects_a_token_endpoint_with_a_fragment) {
@@ -704,8 +1218,34 @@ TEST(server_metadata_accepts_a_token_endpoint_with_a_query) {
       std::move(document), "https://example.com")};
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().issuer(), "https://example.com");
+  EXPECT_FALSE(metadata.value().authorization_endpoint().has_value());
+  EXPECT_TRUE(metadata.value().token_endpoint().has_value());
   EXPECT_EQ(metadata.value().token_endpoint().value(),
             "https://example.com/token?tenant=1");
+  EXPECT_FALSE(metadata.value().registration_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().device_authorization_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().revocation_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().introspection_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(
+      metadata.value().pushed_authorization_request_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().require_pushed_authorization_requests());
+  EXPECT_FALSE(
+      metadata.value().authorization_response_iss_parameter_supported());
+  EXPECT_TRUE(metadata.value().supports_response_type("code"));
+  EXPECT_FALSE(metadata.value().supports_response_type("nonexistent"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("authorization_code"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("implicit"));
+  EXPECT_FALSE(metadata.value().supports_grant_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("S256"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("plain"));
+  EXPECT_TRUE(metadata.value().supports_token_endpoint_auth_method(
+      "client_secret_basic"));
+  EXPECT_FALSE(
+      metadata.value().supports_token_endpoint_auth_method("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_protected_resource(
+      "https://nonexistent.example.invalid"));
 }
 
 TEST(server_metadata_accepts_a_token_endpoint_with_a_port) {
@@ -719,8 +1259,34 @@ TEST(server_metadata_accepts_a_token_endpoint_with_a_port) {
       std::move(document), "https://example.com")};
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().issuer(), "https://example.com");
+  EXPECT_FALSE(metadata.value().authorization_endpoint().has_value());
+  EXPECT_TRUE(metadata.value().token_endpoint().has_value());
   EXPECT_EQ(metadata.value().token_endpoint().value(),
             "https://example.com:8443/token");
+  EXPECT_FALSE(metadata.value().registration_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().device_authorization_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().revocation_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().introspection_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(
+      metadata.value().pushed_authorization_request_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().require_pushed_authorization_requests());
+  EXPECT_FALSE(
+      metadata.value().authorization_response_iss_parameter_supported());
+  EXPECT_TRUE(metadata.value().supports_response_type("code"));
+  EXPECT_FALSE(metadata.value().supports_response_type("nonexistent"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("authorization_code"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("implicit"));
+  EXPECT_FALSE(metadata.value().supports_grant_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("S256"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("plain"));
+  EXPECT_TRUE(metadata.value().supports_token_endpoint_auth_method(
+      "client_secret_basic"));
+  EXPECT_FALSE(
+      metadata.value().supports_token_endpoint_auth_method("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_protected_resource(
+      "https://nonexistent.example.invalid"));
 }
 
 TEST(server_metadata_accepts_an_uppercase_endpoint_scheme) {
@@ -737,8 +1303,34 @@ TEST(server_metadata_accepts_an_uppercase_endpoint_scheme) {
       std::move(document), "https://example.com")};
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().issuer(), "https://example.com");
+  EXPECT_FALSE(metadata.value().authorization_endpoint().has_value());
+  EXPECT_TRUE(metadata.value().token_endpoint().has_value());
   EXPECT_EQ(metadata.value().token_endpoint().value(),
             "HTTPS://example.com/token");
+  EXPECT_FALSE(metadata.value().registration_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().device_authorization_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().revocation_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().introspection_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(
+      metadata.value().pushed_authorization_request_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().require_pushed_authorization_requests());
+  EXPECT_FALSE(
+      metadata.value().authorization_response_iss_parameter_supported());
+  EXPECT_TRUE(metadata.value().supports_response_type("code"));
+  EXPECT_FALSE(metadata.value().supports_response_type("nonexistent"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("authorization_code"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("implicit"));
+  EXPECT_FALSE(metadata.value().supports_grant_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("S256"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("plain"));
+  EXPECT_TRUE(metadata.value().supports_token_endpoint_auth_method(
+      "client_secret_basic"));
+  EXPECT_FALSE(
+      metadata.value().supports_token_endpoint_auth_method("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_protected_resource(
+      "https://nonexistent.example.invalid"));
 }
 
 TEST(server_metadata_accepts_a_mixed_case_endpoint_scheme) {
@@ -752,6 +1344,34 @@ TEST(server_metadata_accepts_a_mixed_case_endpoint_scheme) {
       std::move(document), "https://example.com")};
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().issuer(), "https://example.com");
+  EXPECT_FALSE(metadata.value().authorization_endpoint().has_value());
+  EXPECT_TRUE(metadata.value().token_endpoint().has_value());
+  EXPECT_EQ(metadata.value().token_endpoint().value(),
+            "HtTpS://example.com/token");
+  EXPECT_FALSE(metadata.value().registration_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().device_authorization_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().revocation_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().introspection_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(
+      metadata.value().pushed_authorization_request_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().require_pushed_authorization_requests());
+  EXPECT_FALSE(
+      metadata.value().authorization_response_iss_parameter_supported());
+  EXPECT_TRUE(metadata.value().supports_response_type("code"));
+  EXPECT_FALSE(metadata.value().supports_response_type("nonexistent"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("authorization_code"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("implicit"));
+  EXPECT_FALSE(metadata.value().supports_grant_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("S256"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("plain"));
+  EXPECT_TRUE(metadata.value().supports_token_endpoint_auth_method(
+      "client_secret_basic"));
+  EXPECT_FALSE(
+      metadata.value().supports_token_endpoint_auth_method("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_protected_resource(
+      "https://nonexistent.example.invalid"));
 }
 
 TEST(server_metadata_rejects_a_non_string_token_endpoint) {
@@ -915,10 +1535,29 @@ TEST(
       std::move(document), "https://api.example.com")};
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), expected);
-  EXPECT_FALSE(metadata.value().supports_authorization_server(
-      "https://auth.example.com"));
+  EXPECT_EQ(metadata.value().resource(), "https://api.example.com");
+  EXPECT_TRUE(metadata.value().first_authorization_server().has_value());
+  EXPECT_EQ(metadata.value().first_authorization_server().value(),
+            "HTTPS://auth.example.com");
   EXPECT_TRUE(metadata.value().supports_authorization_server(
       "HTTPS://auth.example.com"));
+  EXPECT_FALSE(metadata.value().supports_authorization_server(
+      "https://nonexistent.example.invalid"));
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(metadata.value().supports_bearer_method("header"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("body"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("query"));
+  EXPECT_FALSE(metadata.value().supports_scope("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_resource_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().resource_name().has_value());
+  EXPECT_FALSE(metadata.value().resource_documentation().has_value());
+  EXPECT_FALSE(metadata.value().resource_policy_uri().has_value());
+  EXPECT_FALSE(metadata.value().resource_tos_uri().has_value());
+  EXPECT_FALSE(metadata.value().tls_client_certificate_bound_access_tokens());
+  EXPECT_FALSE(
+      metadata.value().supports_authorization_details_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_dpop_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().dpop_bound_access_tokens_required());
 }
 
 TEST(server_metadata_rejects_an_empty_host) {
@@ -1108,11 +1747,39 @@ TEST(server_metadata_reads_the_par_members) {
     "pushed_authorization_request_endpoint": "https://example.com/par",
     "require_pushed_authorization_requests": true
   })JSON")};
+  const auto expected{document};
   const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
       std::move(document), "https://example.com")};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().issuer(), "https://example.com");
+  EXPECT_FALSE(metadata.value().authorization_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().token_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().registration_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().device_authorization_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().revocation_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().introspection_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_TRUE(
+      metadata.value().pushed_authorization_request_endpoint().has_value());
   EXPECT_EQ(metadata.value().pushed_authorization_request_endpoint().value(),
             "https://example.com/par");
   EXPECT_TRUE(metadata.value().require_pushed_authorization_requests());
+  EXPECT_FALSE(
+      metadata.value().authorization_response_iss_parameter_supported());
+  EXPECT_TRUE(metadata.value().supports_response_type("code"));
+  EXPECT_FALSE(metadata.value().supports_response_type("nonexistent"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("authorization_code"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("implicit"));
+  EXPECT_FALSE(metadata.value().supports_grant_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("S256"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("plain"));
+  EXPECT_TRUE(metadata.value().supports_token_endpoint_auth_method(
+      "client_secret_basic"));
+  EXPECT_FALSE(
+      metadata.value().supports_token_endpoint_auth_method("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_protected_resource(
+      "https://nonexistent.example.invalid"));
 }
 
 TEST(server_metadata_require_par_defaults_to_false) {
@@ -1120,11 +1787,37 @@ TEST(server_metadata_require_par_defaults_to_false) {
     "issuer": "https://example.com",
     "response_types_supported": [ "code" ]
   })JSON")};
+  const auto expected{document};
   const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
       std::move(document), "https://example.com")};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().issuer(), "https://example.com");
+  EXPECT_FALSE(metadata.value().authorization_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().token_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().registration_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().device_authorization_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().revocation_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().introspection_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
   EXPECT_FALSE(
       metadata.value().pushed_authorization_request_endpoint().has_value());
   EXPECT_FALSE(metadata.value().require_pushed_authorization_requests());
+  EXPECT_FALSE(
+      metadata.value().authorization_response_iss_parameter_supported());
+  EXPECT_TRUE(metadata.value().supports_response_type("code"));
+  EXPECT_FALSE(metadata.value().supports_response_type("nonexistent"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("authorization_code"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("implicit"));
+  EXPECT_FALSE(metadata.value().supports_grant_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("S256"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("plain"));
+  EXPECT_TRUE(metadata.value().supports_token_endpoint_auth_method(
+      "client_secret_basic"));
+  EXPECT_FALSE(
+      metadata.value().supports_token_endpoint_auth_method("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_protected_resource(
+      "https://nonexistent.example.invalid"));
 }
 
 TEST(server_metadata_require_par_wrong_type_is_false) {
@@ -1133,9 +1826,37 @@ TEST(server_metadata_require_par_wrong_type_is_false) {
     "response_types_supported": [ "code" ],
     "require_pushed_authorization_requests": "true"
   })JSON")};
+  const auto expected{document};
   const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
       std::move(document), "https://example.com")};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().issuer(), "https://example.com");
+  EXPECT_FALSE(metadata.value().authorization_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().token_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().registration_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().device_authorization_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().revocation_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().introspection_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(
+      metadata.value().pushed_authorization_request_endpoint().has_value());
   EXPECT_FALSE(metadata.value().require_pushed_authorization_requests());
+  EXPECT_FALSE(
+      metadata.value().authorization_response_iss_parameter_supported());
+  EXPECT_TRUE(metadata.value().supports_response_type("code"));
+  EXPECT_FALSE(metadata.value().supports_response_type("nonexistent"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("authorization_code"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("implicit"));
+  EXPECT_FALSE(metadata.value().supports_grant_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("S256"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("plain"));
+  EXPECT_TRUE(metadata.value().supports_token_endpoint_auth_method(
+      "client_secret_basic"));
+  EXPECT_FALSE(
+      metadata.value().supports_token_endpoint_auth_method("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_protected_resource(
+      "https://nonexistent.example.invalid"));
 }
 
 TEST(make_server_metadata_par_round_trips) {
@@ -1154,9 +1875,38 @@ TEST(make_server_metadata_par_round_trips) {
       std::move(document.value()), "https://server.example")};
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().issuer(), "https://server.example");
+  EXPECT_TRUE(metadata.value().authorization_endpoint().has_value());
+  EXPECT_EQ(metadata.value().authorization_endpoint().value(),
+            "https://server.example/authorize");
+  EXPECT_TRUE(metadata.value().token_endpoint().has_value());
+  EXPECT_EQ(metadata.value().token_endpoint().value(),
+            "https://server.example/token");
+  EXPECT_FALSE(metadata.value().registration_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().device_authorization_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().revocation_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().introspection_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_TRUE(
+      metadata.value().pushed_authorization_request_endpoint().has_value());
   EXPECT_EQ(metadata.value().pushed_authorization_request_endpoint().value(),
             "https://server.example/par");
   EXPECT_TRUE(metadata.value().require_pushed_authorization_requests());
+  EXPECT_FALSE(
+      metadata.value().authorization_response_iss_parameter_supported());
+  EXPECT_TRUE(metadata.value().supports_response_type("code"));
+  EXPECT_FALSE(metadata.value().supports_response_type("nonexistent"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("authorization_code"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("implicit"));
+  EXPECT_FALSE(metadata.value().supports_grant_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("S256"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("plain"));
+  EXPECT_TRUE(metadata.value().supports_token_endpoint_auth_method(
+      "client_secret_basic"));
+  EXPECT_FALSE(
+      metadata.value().supports_token_endpoint_auth_method("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_protected_resource(
+      "https://nonexistent.example.invalid"));
 }
 
 TEST(make_server_metadata_rejects_jwt_auth_without_signing_algs) {
@@ -1492,6 +2242,43 @@ TEST(server_metadata_parses_the_rfc8414_example) {
       std::move(document), "https://server.example.com")};
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().issuer(), "https://server.example.com");
+  EXPECT_TRUE(metadata.value().authorization_endpoint().has_value());
+  EXPECT_EQ(metadata.value().authorization_endpoint().value(),
+            "https://server.example.com/authorize");
+  EXPECT_TRUE(metadata.value().token_endpoint().has_value());
+  EXPECT_EQ(metadata.value().token_endpoint().value(),
+            "https://server.example.com/token");
+  EXPECT_TRUE(metadata.value().registration_endpoint().has_value());
+  EXPECT_EQ(metadata.value().registration_endpoint().value(),
+            "https://server.example.com/register");
+  EXPECT_FALSE(metadata.value().device_authorization_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().revocation_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().introspection_endpoint().has_value());
+  EXPECT_TRUE(metadata.value().jwks_uri().has_value());
+  EXPECT_EQ(metadata.value().jwks_uri().value(),
+            "https://server.example.com/jwks.json");
+  EXPECT_FALSE(
+      metadata.value().pushed_authorization_request_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().require_pushed_authorization_requests());
+  EXPECT_FALSE(
+      metadata.value().authorization_response_iss_parameter_supported());
+  EXPECT_TRUE(metadata.value().supports_response_type("code"));
+  EXPECT_TRUE(metadata.value().supports_response_type("code token"));
+  EXPECT_FALSE(metadata.value().supports_response_type("nonexistent"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("authorization_code"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("implicit"));
+  EXPECT_FALSE(metadata.value().supports_grant_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("S256"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("plain"));
+  EXPECT_TRUE(metadata.value().supports_token_endpoint_auth_method(
+      "client_secret_basic"));
+  EXPECT_TRUE(
+      metadata.value().supports_token_endpoint_auth_method("private_key_jwt"));
+  EXPECT_FALSE(
+      metadata.value().supports_token_endpoint_auth_method("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_protected_resource(
+      "https://nonexistent.example.invalid"));
 }
 
 TEST(make_server_metadata_emits_protected_resources) {
@@ -1600,10 +2387,38 @@ TEST(make_server_metadata_protected_resources_round_trips) {
       std::move(document.value()), "https://server.example")};
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().issuer(), "https://server.example");
+  EXPECT_TRUE(metadata.value().authorization_endpoint().has_value());
+  EXPECT_EQ(metadata.value().authorization_endpoint().value(),
+            "https://server.example/authorize");
+  EXPECT_TRUE(metadata.value().token_endpoint().has_value());
+  EXPECT_EQ(metadata.value().token_endpoint().value(),
+            "https://server.example/token");
+  EXPECT_FALSE(metadata.value().registration_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().device_authorization_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().revocation_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().introspection_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(
+      metadata.value().pushed_authorization_request_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().require_pushed_authorization_requests());
+  EXPECT_FALSE(
+      metadata.value().authorization_response_iss_parameter_supported());
+  EXPECT_TRUE(metadata.value().supports_response_type("code"));
+  EXPECT_FALSE(metadata.value().supports_response_type("nonexistent"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("authorization_code"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("implicit"));
+  EXPECT_FALSE(metadata.value().supports_grant_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("S256"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("plain"));
+  EXPECT_TRUE(metadata.value().supports_token_endpoint_auth_method(
+      "client_secret_basic"));
+  EXPECT_FALSE(
+      metadata.value().supports_token_endpoint_auth_method("nonexistent"));
   EXPECT_TRUE(
       metadata.value().supports_protected_resource("https://api.example.com"));
   EXPECT_FALSE(metadata.value().supports_protected_resource(
-      "https://other.example.com"));
+      "https://nonexistent.example.invalid"));
 }
 
 TEST(server_metadata_supports_protected_resource) {
@@ -1617,10 +2432,34 @@ TEST(server_metadata_supports_protected_resource) {
       std::move(document), "https://server.example")};
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().issuer(), "https://server.example");
+  EXPECT_FALSE(metadata.value().authorization_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().token_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().registration_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().device_authorization_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().revocation_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().introspection_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(
+      metadata.value().pushed_authorization_request_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().require_pushed_authorization_requests());
+  EXPECT_FALSE(
+      metadata.value().authorization_response_iss_parameter_supported());
+  EXPECT_TRUE(metadata.value().supports_response_type("code"));
+  EXPECT_FALSE(metadata.value().supports_response_type("nonexistent"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("authorization_code"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("implicit"));
+  EXPECT_FALSE(metadata.value().supports_grant_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("S256"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("plain"));
+  EXPECT_TRUE(metadata.value().supports_token_endpoint_auth_method(
+      "client_secret_basic"));
+  EXPECT_FALSE(
+      metadata.value().supports_token_endpoint_auth_method("nonexistent"));
   EXPECT_TRUE(
       metadata.value().supports_protected_resource("https://api.example.com"));
   EXPECT_FALSE(metadata.value().supports_protected_resource(
-      "https://other.example.com"));
+      "https://nonexistent.example.invalid"));
 }
 
 TEST(server_metadata_protected_resource_absent_is_false) {
@@ -1633,8 +2472,32 @@ TEST(server_metadata_protected_resource_absent_is_false) {
       std::move(document), "https://server.example")};
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().issuer(), "https://server.example");
+  EXPECT_FALSE(metadata.value().authorization_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().token_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().registration_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().device_authorization_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().revocation_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().introspection_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
   EXPECT_FALSE(
-      metadata.value().supports_protected_resource("https://api.example.com"));
+      metadata.value().pushed_authorization_request_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().require_pushed_authorization_requests());
+  EXPECT_FALSE(
+      metadata.value().authorization_response_iss_parameter_supported());
+  EXPECT_TRUE(metadata.value().supports_response_type("code"));
+  EXPECT_FALSE(metadata.value().supports_response_type("nonexistent"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("authorization_code"));
+  EXPECT_TRUE(metadata.value().supports_grant_type("implicit"));
+  EXPECT_FALSE(metadata.value().supports_grant_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("S256"));
+  EXPECT_FALSE(metadata.value().supports_code_challenge_method("plain"));
+  EXPECT_TRUE(metadata.value().supports_token_endpoint_auth_method(
+      "client_secret_basic"));
+  EXPECT_FALSE(
+      metadata.value().supports_token_endpoint_auth_method("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_protected_resource(
+      "https://nonexistent.example.invalid"));
 }
 
 TEST(server_metadata_rejects_an_empty_protected_resources_array) {

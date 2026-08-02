@@ -46,8 +46,27 @@ TEST(resource_metadata_accepts_an_https_jwks_uri) {
       std::move(document), "https://api.example.com")};
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().resource(), "https://api.example.com");
+  EXPECT_FALSE(metadata.value().first_authorization_server().has_value());
+  EXPECT_FALSE(metadata.value().supports_authorization_server(
+      "https://nonexistent.example.invalid"));
+  EXPECT_TRUE(metadata.value().jwks_uri().has_value());
   EXPECT_EQ(metadata.value().jwks_uri().value(),
             "https://api.example.com/jwks");
+  EXPECT_FALSE(metadata.value().supports_bearer_method("header"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("body"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("query"));
+  EXPECT_FALSE(metadata.value().supports_scope("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_resource_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().resource_name().has_value());
+  EXPECT_FALSE(metadata.value().resource_documentation().has_value());
+  EXPECT_FALSE(metadata.value().resource_policy_uri().has_value());
+  EXPECT_FALSE(metadata.value().resource_tos_uri().has_value());
+  EXPECT_FALSE(metadata.value().tls_client_certificate_bound_access_tokens());
+  EXPECT_FALSE(
+      metadata.value().supports_authorization_details_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_dpop_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().dpop_bound_access_tokens_required());
 }
 
 TEST(resource_metadata_parses_a_valid_document) {
@@ -68,9 +87,28 @@ TEST(resource_metadata_parses_a_valid_document) {
   EXPECT_TRUE(metadata.value().first_authorization_server().has_value());
   EXPECT_EQ(metadata.value().first_authorization_server().value(),
             "https://auth.example.com");
+  EXPECT_TRUE(metadata.value().supports_authorization_server(
+      "https://auth.example.com"));
+  EXPECT_FALSE(metadata.value().supports_authorization_server(
+      "https://nonexistent.example.invalid"));
   EXPECT_TRUE(metadata.value().jwks_uri().has_value());
   EXPECT_EQ(metadata.value().jwks_uri().value(),
             "https://api.example.com/jwks");
+  EXPECT_TRUE(metadata.value().supports_bearer_method("header"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("body"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("query"));
+  EXPECT_TRUE(metadata.value().supports_scope("read"));
+  EXPECT_TRUE(metadata.value().supports_scope("write"));
+  EXPECT_FALSE(metadata.value().supports_scope("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_resource_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().resource_name().has_value());
+  EXPECT_FALSE(metadata.value().resource_documentation().has_value());
+  EXPECT_FALSE(metadata.value().resource_policy_uri().has_value());
+  EXPECT_FALSE(metadata.value().resource_tos_uri().has_value());
+  EXPECT_FALSE(metadata.value().tls_client_certificate_bound_access_tokens());
+  EXPECT_FALSE(
+      metadata.value().supports_authorization_details_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_dpop_signing_alg("nonexistent"));
   EXPECT_TRUE(metadata.value().dpop_bound_access_tokens_required());
 }
 
@@ -130,6 +168,24 @@ TEST(resource_metadata_allows_a_resource_with_a_query) {
   EXPECT_EQ(metadata.value().data(), expected);
   EXPECT_EQ(metadata.value().resource(),
             "https://api.example.com/path?tenant=a");
+  EXPECT_FALSE(metadata.value().first_authorization_server().has_value());
+  EXPECT_FALSE(metadata.value().supports_authorization_server(
+      "https://nonexistent.example.invalid"));
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(metadata.value().supports_bearer_method("header"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("body"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("query"));
+  EXPECT_FALSE(metadata.value().supports_scope("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_resource_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().resource_name().has_value());
+  EXPECT_FALSE(metadata.value().resource_documentation().has_value());
+  EXPECT_FALSE(metadata.value().resource_policy_uri().has_value());
+  EXPECT_FALSE(metadata.value().resource_tos_uri().has_value());
+  EXPECT_FALSE(metadata.value().tls_client_certificate_bound_access_tokens());
+  EXPECT_FALSE(
+      metadata.value().supports_authorization_details_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_dpop_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().dpop_bound_access_tokens_required());
 }
 
 TEST(resource_metadata_rejects_an_empty_authority) {
@@ -170,7 +226,25 @@ TEST(resource_metadata_first_authorization_server_when_absent) {
       std::move(document), "https://api.example.com")};
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().resource(), "https://api.example.com");
   EXPECT_FALSE(metadata.value().first_authorization_server().has_value());
+  EXPECT_FALSE(metadata.value().supports_authorization_server(
+      "https://nonexistent.example.invalid"));
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(metadata.value().supports_bearer_method("header"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("body"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("query"));
+  EXPECT_FALSE(metadata.value().supports_scope("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_resource_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().resource_name().has_value());
+  EXPECT_FALSE(metadata.value().resource_documentation().has_value());
+  EXPECT_FALSE(metadata.value().resource_policy_uri().has_value());
+  EXPECT_FALSE(metadata.value().resource_tos_uri().has_value());
+  EXPECT_FALSE(metadata.value().tls_client_certificate_bound_access_tokens());
+  EXPECT_FALSE(
+      metadata.value().supports_authorization_details_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_dpop_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().dpop_bound_access_tokens_required());
 }
 
 TEST(resource_metadata_supports_authorization_server) {
@@ -183,12 +257,31 @@ TEST(resource_metadata_supports_authorization_server) {
       std::move(document), "https://api.example.com")};
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), expected);
-  EXPECT_TRUE(
-      metadata.value().supports_authorization_server("https://b.example.com"));
-  EXPECT_FALSE(
-      metadata.value().supports_authorization_server("https://c.example.com"));
+  EXPECT_EQ(metadata.value().resource(), "https://api.example.com");
+  EXPECT_TRUE(metadata.value().first_authorization_server().has_value());
   EXPECT_EQ(metadata.value().first_authorization_server().value(),
             "https://a.example.com");
+  EXPECT_TRUE(
+      metadata.value().supports_authorization_server("https://a.example.com"));
+  EXPECT_TRUE(
+      metadata.value().supports_authorization_server("https://b.example.com"));
+  EXPECT_FALSE(metadata.value().supports_authorization_server(
+      "https://nonexistent.example.invalid"));
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(metadata.value().supports_bearer_method("header"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("body"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("query"));
+  EXPECT_FALSE(metadata.value().supports_scope("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_resource_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().resource_name().has_value());
+  EXPECT_FALSE(metadata.value().resource_documentation().has_value());
+  EXPECT_FALSE(metadata.value().resource_policy_uri().has_value());
+  EXPECT_FALSE(metadata.value().resource_tos_uri().has_value());
+  EXPECT_FALSE(metadata.value().tls_client_certificate_bound_access_tokens());
+  EXPECT_FALSE(
+      metadata.value().supports_authorization_details_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_dpop_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().dpop_bound_access_tokens_required());
 }
 
 TEST(resource_metadata_supports_bearer_method) {
@@ -201,8 +294,25 @@ TEST(resource_metadata_supports_bearer_method) {
       std::move(document), "https://api.example.com")};
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().resource(), "https://api.example.com");
+  EXPECT_FALSE(metadata.value().first_authorization_server().has_value());
+  EXPECT_FALSE(metadata.value().supports_authorization_server(
+      "https://nonexistent.example.invalid"));
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
   EXPECT_TRUE(metadata.value().supports_bearer_method("header"));
+  EXPECT_TRUE(metadata.value().supports_bearer_method("body"));
   EXPECT_FALSE(metadata.value().supports_bearer_method("query"));
+  EXPECT_FALSE(metadata.value().supports_scope("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_resource_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().resource_name().has_value());
+  EXPECT_FALSE(metadata.value().resource_documentation().has_value());
+  EXPECT_FALSE(metadata.value().resource_policy_uri().has_value());
+  EXPECT_FALSE(metadata.value().resource_tos_uri().has_value());
+  EXPECT_FALSE(metadata.value().tls_client_certificate_bound_access_tokens());
+  EXPECT_FALSE(
+      metadata.value().supports_authorization_details_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_dpop_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().dpop_bound_access_tokens_required());
 }
 
 TEST(resource_metadata_bearer_method_absent_is_false) {
@@ -214,7 +324,25 @@ TEST(resource_metadata_bearer_method_absent_is_false) {
       std::move(document), "https://api.example.com")};
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().resource(), "https://api.example.com");
+  EXPECT_FALSE(metadata.value().first_authorization_server().has_value());
+  EXPECT_FALSE(metadata.value().supports_authorization_server(
+      "https://nonexistent.example.invalid"));
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
   EXPECT_FALSE(metadata.value().supports_bearer_method("header"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("body"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("query"));
+  EXPECT_FALSE(metadata.value().supports_scope("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_resource_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().resource_name().has_value());
+  EXPECT_FALSE(metadata.value().resource_documentation().has_value());
+  EXPECT_FALSE(metadata.value().resource_policy_uri().has_value());
+  EXPECT_FALSE(metadata.value().resource_tos_uri().has_value());
+  EXPECT_FALSE(metadata.value().tls_client_certificate_bound_access_tokens());
+  EXPECT_FALSE(
+      metadata.value().supports_authorization_details_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_dpop_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().dpop_bound_access_tokens_required());
 }
 
 TEST(resource_metadata_supports_scope) {
@@ -227,8 +355,27 @@ TEST(resource_metadata_supports_scope) {
       std::move(document), "https://api.example.com")};
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().resource(), "https://api.example.com");
+  EXPECT_FALSE(metadata.value().first_authorization_server().has_value());
+  EXPECT_FALSE(metadata.value().supports_authorization_server(
+      "https://nonexistent.example.invalid"));
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(metadata.value().supports_bearer_method("header"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("body"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("query"));
   EXPECT_TRUE(metadata.value().supports_scope("read"));
-  EXPECT_FALSE(metadata.value().supports_scope("admin"));
+  EXPECT_TRUE(metadata.value().supports_scope("write"));
+  EXPECT_FALSE(metadata.value().supports_scope("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_resource_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().resource_name().has_value());
+  EXPECT_FALSE(metadata.value().resource_documentation().has_value());
+  EXPECT_FALSE(metadata.value().resource_policy_uri().has_value());
+  EXPECT_FALSE(metadata.value().resource_tos_uri().has_value());
+  EXPECT_FALSE(metadata.value().tls_client_certificate_bound_access_tokens());
+  EXPECT_FALSE(
+      metadata.value().supports_authorization_details_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_dpop_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().dpop_bound_access_tokens_required());
 }
 
 TEST(resource_metadata_dpop_bound_required_defaults_to_false) {
@@ -240,6 +387,24 @@ TEST(resource_metadata_dpop_bound_required_defaults_to_false) {
       std::move(document), "https://api.example.com")};
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().resource(), "https://api.example.com");
+  EXPECT_FALSE(metadata.value().first_authorization_server().has_value());
+  EXPECT_FALSE(metadata.value().supports_authorization_server(
+      "https://nonexistent.example.invalid"));
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(metadata.value().supports_bearer_method("header"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("body"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("query"));
+  EXPECT_FALSE(metadata.value().supports_scope("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_resource_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().resource_name().has_value());
+  EXPECT_FALSE(metadata.value().resource_documentation().has_value());
+  EXPECT_FALSE(metadata.value().resource_policy_uri().has_value());
+  EXPECT_FALSE(metadata.value().resource_tos_uri().has_value());
+  EXPECT_FALSE(metadata.value().tls_client_certificate_bound_access_tokens());
+  EXPECT_FALSE(
+      metadata.value().supports_authorization_details_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_dpop_signing_alg("nonexistent"));
   EXPECT_FALSE(metadata.value().dpop_bound_access_tokens_required());
 }
 
@@ -253,6 +418,26 @@ TEST(resource_metadata_data_exposes_untyped_members) {
       std::move(document), "https://api.example.com")};
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().resource(), "https://api.example.com");
+  EXPECT_FALSE(metadata.value().first_authorization_server().has_value());
+  EXPECT_FALSE(metadata.value().supports_authorization_server(
+      "https://nonexistent.example.invalid"));
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(metadata.value().supports_bearer_method("header"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("body"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("query"));
+  EXPECT_FALSE(metadata.value().supports_scope("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_resource_signing_alg("nonexistent"));
+  EXPECT_TRUE(metadata.value().resource_name().has_value());
+  EXPECT_EQ(metadata.value().resource_name().value(), "Example API");
+  EXPECT_FALSE(metadata.value().resource_documentation().has_value());
+  EXPECT_FALSE(metadata.value().resource_policy_uri().has_value());
+  EXPECT_FALSE(metadata.value().resource_tos_uri().has_value());
+  EXPECT_FALSE(metadata.value().tls_client_certificate_bound_access_tokens());
+  EXPECT_FALSE(
+      metadata.value().supports_authorization_details_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_dpop_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().dpop_bound_access_tokens_required());
   EXPECT_TRUE(metadata.value().data().defines("resource_name"));
 }
 
@@ -378,8 +563,29 @@ TEST(resource_metadata_accepts_an_uppercase_authorization_server_scheme) {
       std::move(document), "https://api.example.com")};
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().resource(), "https://api.example.com");
+  EXPECT_TRUE(metadata.value().first_authorization_server().has_value());
   EXPECT_EQ(metadata.value().first_authorization_server().value(),
             "HTTPS://auth.example.com");
+  EXPECT_TRUE(metadata.value().supports_authorization_server(
+      "HTTPS://auth.example.com"));
+  EXPECT_FALSE(metadata.value().supports_authorization_server(
+      "https://nonexistent.example.invalid"));
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(metadata.value().supports_bearer_method("header"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("body"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("query"));
+  EXPECT_FALSE(metadata.value().supports_scope("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_resource_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().resource_name().has_value());
+  EXPECT_FALSE(metadata.value().resource_documentation().has_value());
+  EXPECT_FALSE(metadata.value().resource_policy_uri().has_value());
+  EXPECT_FALSE(metadata.value().resource_tos_uri().has_value());
+  EXPECT_FALSE(metadata.value().tls_client_certificate_bound_access_tokens());
+  EXPECT_FALSE(
+      metadata.value().supports_authorization_details_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_dpop_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().dpop_bound_access_tokens_required());
 }
 
 TEST(resource_metadata_accepts_multiple_authorization_servers) {
@@ -393,11 +599,31 @@ TEST(resource_metadata_accepts_multiple_authorization_servers) {
       std::move(document), "https://api.example.com")};
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().resource(), "https://api.example.com");
   EXPECT_TRUE(metadata.value().first_authorization_server().has_value());
   EXPECT_EQ(metadata.value().first_authorization_server().value(),
             "https://auth.example.com");
   EXPECT_TRUE(metadata.value().supports_authorization_server(
+      "https://auth.example.com"));
+  EXPECT_TRUE(metadata.value().supports_authorization_server(
       "https://other.example.net/issuer"));
+  EXPECT_FALSE(metadata.value().supports_authorization_server(
+      "https://nonexistent.example.invalid"));
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(metadata.value().supports_bearer_method("header"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("body"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("query"));
+  EXPECT_FALSE(metadata.value().supports_scope("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_resource_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().resource_name().has_value());
+  EXPECT_FALSE(metadata.value().resource_documentation().has_value());
+  EXPECT_FALSE(metadata.value().resource_policy_uri().has_value());
+  EXPECT_FALSE(metadata.value().resource_tos_uri().has_value());
+  EXPECT_FALSE(metadata.value().tls_client_certificate_bound_access_tokens());
+  EXPECT_FALSE(
+      metadata.value().supports_authorization_details_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_dpop_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().dpop_bound_access_tokens_required());
 }
 
 TEST(resource_metadata_rejects_a_non_object) {
@@ -437,7 +663,25 @@ TEST(resource_metadata_empty_bearer_methods_is_false) {
       std::move(document), "https://api.example.com")};
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().resource(), "https://api.example.com");
+  EXPECT_FALSE(metadata.value().first_authorization_server().has_value());
+  EXPECT_FALSE(metadata.value().supports_authorization_server(
+      "https://nonexistent.example.invalid"));
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
   EXPECT_FALSE(metadata.value().supports_bearer_method("header"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("body"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("query"));
+  EXPECT_FALSE(metadata.value().supports_scope("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_resource_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().resource_name().has_value());
+  EXPECT_FALSE(metadata.value().resource_documentation().has_value());
+  EXPECT_FALSE(metadata.value().resource_policy_uri().has_value());
+  EXPECT_FALSE(metadata.value().resource_tos_uri().has_value());
+  EXPECT_FALSE(metadata.value().tls_client_certificate_bound_access_tokens());
+  EXPECT_FALSE(
+      metadata.value().supports_authorization_details_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_dpop_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().dpop_bound_access_tokens_required());
 }
 
 TEST(resource_metadata_accepts_userinfo_and_port) {
@@ -451,6 +695,24 @@ TEST(resource_metadata_accepts_userinfo_and_port) {
   EXPECT_EQ(metadata.value().data(), expected);
   EXPECT_EQ(metadata.value().resource(),
             "https://user@api.example.com:8443/path");
+  EXPECT_FALSE(metadata.value().first_authorization_server().has_value());
+  EXPECT_FALSE(metadata.value().supports_authorization_server(
+      "https://nonexistent.example.invalid"));
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(metadata.value().supports_bearer_method("header"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("body"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("query"));
+  EXPECT_FALSE(metadata.value().supports_scope("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_resource_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().resource_name().has_value());
+  EXPECT_FALSE(metadata.value().resource_documentation().has_value());
+  EXPECT_FALSE(metadata.value().resource_policy_uri().has_value());
+  EXPECT_FALSE(metadata.value().resource_tos_uri().has_value());
+  EXPECT_FALSE(metadata.value().tls_client_certificate_bound_access_tokens());
+  EXPECT_FALSE(
+      metadata.value().supports_authorization_details_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_dpop_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().dpop_bound_access_tokens_required());
 }
 
 TEST(resource_metadata_rejects_an_empty_host) {
@@ -496,6 +758,24 @@ TEST(resource_metadata_accepts_the_maximum_port) {
   EXPECT_EQ(metadata.value().data(), expected);
   EXPECT_EQ(metadata.value().resource(),
             "https://api.example.com:4294967295/path");
+  EXPECT_FALSE(metadata.value().first_authorization_server().has_value());
+  EXPECT_FALSE(metadata.value().supports_authorization_server(
+      "https://nonexistent.example.invalid"));
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(metadata.value().supports_bearer_method("header"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("body"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("query"));
+  EXPECT_FALSE(metadata.value().supports_scope("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_resource_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().resource_name().has_value());
+  EXPECT_FALSE(metadata.value().resource_documentation().has_value());
+  EXPECT_FALSE(metadata.value().resource_policy_uri().has_value());
+  EXPECT_FALSE(metadata.value().resource_tos_uri().has_value());
+  EXPECT_FALSE(metadata.value().tls_client_certificate_bound_access_tokens());
+  EXPECT_FALSE(
+      metadata.value().supports_authorization_details_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_dpop_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().dpop_bound_access_tokens_required());
 }
 
 TEST(make_resource_metadata_emits_the_required_member) {
@@ -918,6 +1198,23 @@ TEST(make_resource_metadata_minimal_round_trips) {
   EXPECT_EQ(metadata.value().data(), expected);
   EXPECT_EQ(metadata.value().resource(), "https://api.example.com");
   EXPECT_FALSE(metadata.value().first_authorization_server().has_value());
+  EXPECT_FALSE(metadata.value().supports_authorization_server(
+      "https://nonexistent.example.invalid"));
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(metadata.value().supports_bearer_method("header"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("body"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("query"));
+  EXPECT_FALSE(metadata.value().supports_scope("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_resource_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().resource_name().has_value());
+  EXPECT_FALSE(metadata.value().resource_documentation().has_value());
+  EXPECT_FALSE(metadata.value().resource_policy_uri().has_value());
+  EXPECT_FALSE(metadata.value().resource_tos_uri().has_value());
+  EXPECT_FALSE(metadata.value().tls_client_certificate_bound_access_tokens());
+  EXPECT_FALSE(
+      metadata.value().supports_authorization_details_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_dpop_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().dpop_bound_access_tokens_required());
 }
 
 TEST(make_resource_metadata_round_trips) {
@@ -952,27 +1249,44 @@ TEST(make_resource_metadata_round_trips) {
   EXPECT_EQ(metadata.value().data(), expected);
   EXPECT_EQ(metadata.value().resource(),
             "https://api.example.com/mcp?tenant=1");
+  EXPECT_TRUE(metadata.value().first_authorization_server().has_value());
   EXPECT_EQ(metadata.value().first_authorization_server().value(),
             "https://auth.example.com");
   EXPECT_TRUE(metadata.value().supports_authorization_server(
+      "https://auth.example.com"));
+  EXPECT_TRUE(metadata.value().supports_authorization_server(
       "https://backup.example.net"));
+  EXPECT_FALSE(metadata.value().supports_authorization_server(
+      "https://nonexistent.example.invalid"));
+  EXPECT_TRUE(metadata.value().jwks_uri().has_value());
   EXPECT_EQ(metadata.value().jwks_uri().value(),
             "https://api.example.com/jwks");
+  EXPECT_TRUE(metadata.value().supports_bearer_method("header"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("body"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("query"));
   EXPECT_TRUE(metadata.value().supports_scope("read"));
   EXPECT_TRUE(metadata.value().supports_scope("write"));
-  EXPECT_TRUE(metadata.value().supports_bearer_method("header"));
+  EXPECT_FALSE(metadata.value().supports_scope("nonexistent"));
   EXPECT_TRUE(metadata.value().supports_resource_signing_alg("ES256"));
+  EXPECT_FALSE(metadata.value().supports_resource_signing_alg("nonexistent"));
+  EXPECT_TRUE(metadata.value().resource_name().has_value());
   EXPECT_EQ(metadata.value().resource_name().value(), "Example API");
+  EXPECT_TRUE(metadata.value().resource_documentation().has_value());
   EXPECT_EQ(metadata.value().resource_documentation().value(),
             "https://api.example.com/docs");
+  EXPECT_TRUE(metadata.value().resource_policy_uri().has_value());
   EXPECT_EQ(metadata.value().resource_policy_uri().value(),
             "https://api.example.com/policy");
+  EXPECT_TRUE(metadata.value().resource_tos_uri().has_value());
   EXPECT_EQ(metadata.value().resource_tos_uri().value(),
             "https://api.example.com/terms");
   EXPECT_TRUE(metadata.value().tls_client_certificate_bound_access_tokens());
   EXPECT_TRUE(metadata.value().supports_authorization_details_type(
       "payment_initiation"));
+  EXPECT_FALSE(
+      metadata.value().supports_authorization_details_type("nonexistent"));
   EXPECT_TRUE(metadata.value().supports_dpop_signing_alg("ES256"));
+  EXPECT_FALSE(metadata.value().supports_dpop_signing_alg("nonexistent"));
   EXPECT_TRUE(metadata.value().dpop_bound_access_tokens_required());
 }
 
@@ -988,9 +1302,25 @@ TEST(make_resource_metadata_empty_bearer_methods_round_trips) {
       std::move(document.value()), "https://api.example.com")};
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().resource(), "https://api.example.com");
+  EXPECT_FALSE(metadata.value().first_authorization_server().has_value());
+  EXPECT_FALSE(metadata.value().supports_authorization_server(
+      "https://nonexistent.example.invalid"));
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
   EXPECT_FALSE(metadata.value().supports_bearer_method("header"));
   EXPECT_FALSE(metadata.value().supports_bearer_method("body"));
   EXPECT_FALSE(metadata.value().supports_bearer_method("query"));
+  EXPECT_FALSE(metadata.value().supports_scope("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_resource_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().resource_name().has_value());
+  EXPECT_FALSE(metadata.value().resource_documentation().has_value());
+  EXPECT_FALSE(metadata.value().resource_policy_uri().has_value());
+  EXPECT_FALSE(metadata.value().resource_tos_uri().has_value());
+  EXPECT_FALSE(metadata.value().tls_client_certificate_bound_access_tokens());
+  EXPECT_FALSE(
+      metadata.value().supports_authorization_details_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_dpop_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().dpop_bound_access_tokens_required());
 }
 
 TEST(resource_metadata_resource_name_present) {
@@ -1003,8 +1333,26 @@ TEST(resource_metadata_resource_name_present) {
       std::move(document), "https://api.example.com")};
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().resource(), "https://api.example.com");
+  EXPECT_FALSE(metadata.value().first_authorization_server().has_value());
+  EXPECT_FALSE(metadata.value().supports_authorization_server(
+      "https://nonexistent.example.invalid"));
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(metadata.value().supports_bearer_method("header"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("body"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("query"));
+  EXPECT_FALSE(metadata.value().supports_scope("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_resource_signing_alg("nonexistent"));
   EXPECT_TRUE(metadata.value().resource_name().has_value());
   EXPECT_EQ(metadata.value().resource_name().value(), "Example API");
+  EXPECT_FALSE(metadata.value().resource_documentation().has_value());
+  EXPECT_FALSE(metadata.value().resource_policy_uri().has_value());
+  EXPECT_FALSE(metadata.value().resource_tos_uri().has_value());
+  EXPECT_FALSE(metadata.value().tls_client_certificate_bound_access_tokens());
+  EXPECT_FALSE(
+      metadata.value().supports_authorization_details_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_dpop_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().dpop_bound_access_tokens_required());
 }
 
 TEST(resource_metadata_resource_name_absent) {
@@ -1016,7 +1364,25 @@ TEST(resource_metadata_resource_name_absent) {
       std::move(document), "https://api.example.com")};
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().resource(), "https://api.example.com");
+  EXPECT_FALSE(metadata.value().first_authorization_server().has_value());
+  EXPECT_FALSE(metadata.value().supports_authorization_server(
+      "https://nonexistent.example.invalid"));
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(metadata.value().supports_bearer_method("header"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("body"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("query"));
+  EXPECT_FALSE(metadata.value().supports_scope("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_resource_signing_alg("nonexistent"));
   EXPECT_FALSE(metadata.value().resource_name().has_value());
+  EXPECT_FALSE(metadata.value().resource_documentation().has_value());
+  EXPECT_FALSE(metadata.value().resource_policy_uri().has_value());
+  EXPECT_FALSE(metadata.value().resource_tos_uri().has_value());
+  EXPECT_FALSE(metadata.value().tls_client_certificate_bound_access_tokens());
+  EXPECT_FALSE(
+      metadata.value().supports_authorization_details_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_dpop_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().dpop_bound_access_tokens_required());
 }
 
 TEST(resource_metadata_language_tagged_name_yields_absent_untagged) {
@@ -1029,7 +1395,25 @@ TEST(resource_metadata_language_tagged_name_yields_absent_untagged) {
       std::move(document), "https://api.example.com")};
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().resource(), "https://api.example.com");
+  EXPECT_FALSE(metadata.value().first_authorization_server().has_value());
+  EXPECT_FALSE(metadata.value().supports_authorization_server(
+      "https://nonexistent.example.invalid"));
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(metadata.value().supports_bearer_method("header"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("body"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("query"));
+  EXPECT_FALSE(metadata.value().supports_scope("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_resource_signing_alg("nonexistent"));
   EXPECT_FALSE(metadata.value().resource_name().has_value());
+  EXPECT_FALSE(metadata.value().resource_documentation().has_value());
+  EXPECT_FALSE(metadata.value().resource_policy_uri().has_value());
+  EXPECT_FALSE(metadata.value().resource_tos_uri().has_value());
+  EXPECT_FALSE(metadata.value().tls_client_certificate_bound_access_tokens());
+  EXPECT_FALSE(
+      metadata.value().supports_authorization_details_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_dpop_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().dpop_bound_access_tokens_required());
   EXPECT_TRUE(metadata.value().data().defines("resource_name#it"));
   EXPECT_EQ(metadata.value().data().at("resource_name#it").to_string(),
             "API di esempio");
@@ -1045,9 +1429,27 @@ TEST(resource_metadata_resource_documentation_present) {
       std::move(document), "https://api.example.com")};
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().resource(), "https://api.example.com");
+  EXPECT_FALSE(metadata.value().first_authorization_server().has_value());
+  EXPECT_FALSE(metadata.value().supports_authorization_server(
+      "https://nonexistent.example.invalid"));
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(metadata.value().supports_bearer_method("header"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("body"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("query"));
+  EXPECT_FALSE(metadata.value().supports_scope("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_resource_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().resource_name().has_value());
   EXPECT_TRUE(metadata.value().resource_documentation().has_value());
   EXPECT_EQ(metadata.value().resource_documentation().value(),
             "https://api.example.com/docs");
+  EXPECT_FALSE(metadata.value().resource_policy_uri().has_value());
+  EXPECT_FALSE(metadata.value().resource_tos_uri().has_value());
+  EXPECT_FALSE(metadata.value().tls_client_certificate_bound_access_tokens());
+  EXPECT_FALSE(
+      metadata.value().supports_authorization_details_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_dpop_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().dpop_bound_access_tokens_required());
 }
 
 TEST(resource_metadata_resource_documentation_absent) {
@@ -1059,7 +1461,25 @@ TEST(resource_metadata_resource_documentation_absent) {
       std::move(document), "https://api.example.com")};
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().resource(), "https://api.example.com");
+  EXPECT_FALSE(metadata.value().first_authorization_server().has_value());
+  EXPECT_FALSE(metadata.value().supports_authorization_server(
+      "https://nonexistent.example.invalid"));
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(metadata.value().supports_bearer_method("header"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("body"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("query"));
+  EXPECT_FALSE(metadata.value().supports_scope("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_resource_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().resource_name().has_value());
   EXPECT_FALSE(metadata.value().resource_documentation().has_value());
+  EXPECT_FALSE(metadata.value().resource_policy_uri().has_value());
+  EXPECT_FALSE(metadata.value().resource_tos_uri().has_value());
+  EXPECT_FALSE(metadata.value().tls_client_certificate_bound_access_tokens());
+  EXPECT_FALSE(
+      metadata.value().supports_authorization_details_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_dpop_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().dpop_bound_access_tokens_required());
 }
 
 TEST(resource_metadata_resource_policy_uri_present) {
@@ -1072,9 +1492,27 @@ TEST(resource_metadata_resource_policy_uri_present) {
       std::move(document), "https://api.example.com")};
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().resource(), "https://api.example.com");
+  EXPECT_FALSE(metadata.value().first_authorization_server().has_value());
+  EXPECT_FALSE(metadata.value().supports_authorization_server(
+      "https://nonexistent.example.invalid"));
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(metadata.value().supports_bearer_method("header"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("body"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("query"));
+  EXPECT_FALSE(metadata.value().supports_scope("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_resource_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().resource_name().has_value());
+  EXPECT_FALSE(metadata.value().resource_documentation().has_value());
   EXPECT_TRUE(metadata.value().resource_policy_uri().has_value());
   EXPECT_EQ(metadata.value().resource_policy_uri().value(),
             "https://api.example.com/policy");
+  EXPECT_FALSE(metadata.value().resource_tos_uri().has_value());
+  EXPECT_FALSE(metadata.value().tls_client_certificate_bound_access_tokens());
+  EXPECT_FALSE(
+      metadata.value().supports_authorization_details_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_dpop_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().dpop_bound_access_tokens_required());
 }
 
 TEST(resource_metadata_resource_policy_uri_absent) {
@@ -1086,7 +1524,25 @@ TEST(resource_metadata_resource_policy_uri_absent) {
       std::move(document), "https://api.example.com")};
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().resource(), "https://api.example.com");
+  EXPECT_FALSE(metadata.value().first_authorization_server().has_value());
+  EXPECT_FALSE(metadata.value().supports_authorization_server(
+      "https://nonexistent.example.invalid"));
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(metadata.value().supports_bearer_method("header"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("body"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("query"));
+  EXPECT_FALSE(metadata.value().supports_scope("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_resource_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().resource_name().has_value());
+  EXPECT_FALSE(metadata.value().resource_documentation().has_value());
   EXPECT_FALSE(metadata.value().resource_policy_uri().has_value());
+  EXPECT_FALSE(metadata.value().resource_tos_uri().has_value());
+  EXPECT_FALSE(metadata.value().tls_client_certificate_bound_access_tokens());
+  EXPECT_FALSE(
+      metadata.value().supports_authorization_details_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_dpop_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().dpop_bound_access_tokens_required());
 }
 
 TEST(resource_metadata_resource_tos_uri_present) {
@@ -1099,9 +1555,27 @@ TEST(resource_metadata_resource_tos_uri_present) {
       std::move(document), "https://api.example.com")};
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().resource(), "https://api.example.com");
+  EXPECT_FALSE(metadata.value().first_authorization_server().has_value());
+  EXPECT_FALSE(metadata.value().supports_authorization_server(
+      "https://nonexistent.example.invalid"));
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(metadata.value().supports_bearer_method("header"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("body"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("query"));
+  EXPECT_FALSE(metadata.value().supports_scope("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_resource_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().resource_name().has_value());
+  EXPECT_FALSE(metadata.value().resource_documentation().has_value());
+  EXPECT_FALSE(metadata.value().resource_policy_uri().has_value());
   EXPECT_TRUE(metadata.value().resource_tos_uri().has_value());
   EXPECT_EQ(metadata.value().resource_tos_uri().value(),
             "https://api.example.com/terms");
+  EXPECT_FALSE(metadata.value().tls_client_certificate_bound_access_tokens());
+  EXPECT_FALSE(
+      metadata.value().supports_authorization_details_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_dpop_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().dpop_bound_access_tokens_required());
 }
 
 TEST(resource_metadata_resource_tos_uri_absent) {
@@ -1113,7 +1587,25 @@ TEST(resource_metadata_resource_tos_uri_absent) {
       std::move(document), "https://api.example.com")};
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().resource(), "https://api.example.com");
+  EXPECT_FALSE(metadata.value().first_authorization_server().has_value());
+  EXPECT_FALSE(metadata.value().supports_authorization_server(
+      "https://nonexistent.example.invalid"));
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(metadata.value().supports_bearer_method("header"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("body"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("query"));
+  EXPECT_FALSE(metadata.value().supports_scope("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_resource_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().resource_name().has_value());
+  EXPECT_FALSE(metadata.value().resource_documentation().has_value());
+  EXPECT_FALSE(metadata.value().resource_policy_uri().has_value());
   EXPECT_FALSE(metadata.value().resource_tos_uri().has_value());
+  EXPECT_FALSE(metadata.value().tls_client_certificate_bound_access_tokens());
+  EXPECT_FALSE(
+      metadata.value().supports_authorization_details_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_dpop_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().dpop_bound_access_tokens_required());
 }
 
 TEST(resource_metadata_tls_client_certificate_bound_defaults_to_false) {
@@ -1125,7 +1617,25 @@ TEST(resource_metadata_tls_client_certificate_bound_defaults_to_false) {
       std::move(document), "https://api.example.com")};
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().resource(), "https://api.example.com");
+  EXPECT_FALSE(metadata.value().first_authorization_server().has_value());
+  EXPECT_FALSE(metadata.value().supports_authorization_server(
+      "https://nonexistent.example.invalid"));
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(metadata.value().supports_bearer_method("header"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("body"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("query"));
+  EXPECT_FALSE(metadata.value().supports_scope("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_resource_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().resource_name().has_value());
+  EXPECT_FALSE(metadata.value().resource_documentation().has_value());
+  EXPECT_FALSE(metadata.value().resource_policy_uri().has_value());
+  EXPECT_FALSE(metadata.value().resource_tos_uri().has_value());
   EXPECT_FALSE(metadata.value().tls_client_certificate_bound_access_tokens());
+  EXPECT_FALSE(
+      metadata.value().supports_authorization_details_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_dpop_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().dpop_bound_access_tokens_required());
 }
 
 TEST(resource_metadata_tls_client_certificate_bound_reads_true) {
@@ -1138,7 +1648,25 @@ TEST(resource_metadata_tls_client_certificate_bound_reads_true) {
       std::move(document), "https://api.example.com")};
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().resource(), "https://api.example.com");
+  EXPECT_FALSE(metadata.value().first_authorization_server().has_value());
+  EXPECT_FALSE(metadata.value().supports_authorization_server(
+      "https://nonexistent.example.invalid"));
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(metadata.value().supports_bearer_method("header"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("body"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("query"));
+  EXPECT_FALSE(metadata.value().supports_scope("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_resource_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().resource_name().has_value());
+  EXPECT_FALSE(metadata.value().resource_documentation().has_value());
+  EXPECT_FALSE(metadata.value().resource_policy_uri().has_value());
+  EXPECT_FALSE(metadata.value().resource_tos_uri().has_value());
   EXPECT_TRUE(metadata.value().tls_client_certificate_bound_access_tokens());
+  EXPECT_FALSE(
+      metadata.value().supports_authorization_details_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_dpop_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().dpop_bound_access_tokens_required());
 }
 
 TEST(resource_metadata_tls_client_certificate_bound_reads_false) {
@@ -1151,7 +1679,25 @@ TEST(resource_metadata_tls_client_certificate_bound_reads_false) {
       std::move(document), "https://api.example.com")};
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().resource(), "https://api.example.com");
+  EXPECT_FALSE(metadata.value().first_authorization_server().has_value());
+  EXPECT_FALSE(metadata.value().supports_authorization_server(
+      "https://nonexistent.example.invalid"));
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(metadata.value().supports_bearer_method("header"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("body"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("query"));
+  EXPECT_FALSE(metadata.value().supports_scope("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_resource_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().resource_name().has_value());
+  EXPECT_FALSE(metadata.value().resource_documentation().has_value());
+  EXPECT_FALSE(metadata.value().resource_policy_uri().has_value());
+  EXPECT_FALSE(metadata.value().resource_tos_uri().has_value());
   EXPECT_FALSE(metadata.value().tls_client_certificate_bound_access_tokens());
+  EXPECT_FALSE(
+      metadata.value().supports_authorization_details_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_dpop_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().dpop_bound_access_tokens_required());
 }
 
 TEST(resource_metadata_supports_resource_signing_alg) {
@@ -1164,9 +1710,27 @@ TEST(resource_metadata_supports_resource_signing_alg) {
       std::move(document), "https://api.example.com")};
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().resource(), "https://api.example.com");
+  EXPECT_FALSE(metadata.value().first_authorization_server().has_value());
+  EXPECT_FALSE(metadata.value().supports_authorization_server(
+      "https://nonexistent.example.invalid"));
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(metadata.value().supports_bearer_method("header"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("body"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("query"));
+  EXPECT_FALSE(metadata.value().supports_scope("nonexistent"));
   EXPECT_TRUE(metadata.value().supports_resource_signing_alg("RS256"));
   EXPECT_TRUE(metadata.value().supports_resource_signing_alg("ES256"));
-  EXPECT_FALSE(metadata.value().supports_resource_signing_alg("PS256"));
+  EXPECT_FALSE(metadata.value().supports_resource_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().resource_name().has_value());
+  EXPECT_FALSE(metadata.value().resource_documentation().has_value());
+  EXPECT_FALSE(metadata.value().resource_policy_uri().has_value());
+  EXPECT_FALSE(metadata.value().resource_tos_uri().has_value());
+  EXPECT_FALSE(metadata.value().tls_client_certificate_bound_access_tokens());
+  EXPECT_FALSE(
+      metadata.value().supports_authorization_details_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_dpop_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().dpop_bound_access_tokens_required());
 }
 
 TEST(resource_metadata_resource_signing_alg_absent_is_false) {
@@ -1178,7 +1742,25 @@ TEST(resource_metadata_resource_signing_alg_absent_is_false) {
       std::move(document), "https://api.example.com")};
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), expected);
-  EXPECT_FALSE(metadata.value().supports_resource_signing_alg("RS256"));
+  EXPECT_EQ(metadata.value().resource(), "https://api.example.com");
+  EXPECT_FALSE(metadata.value().first_authorization_server().has_value());
+  EXPECT_FALSE(metadata.value().supports_authorization_server(
+      "https://nonexistent.example.invalid"));
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(metadata.value().supports_bearer_method("header"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("body"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("query"));
+  EXPECT_FALSE(metadata.value().supports_scope("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_resource_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().resource_name().has_value());
+  EXPECT_FALSE(metadata.value().resource_documentation().has_value());
+  EXPECT_FALSE(metadata.value().resource_policy_uri().has_value());
+  EXPECT_FALSE(metadata.value().resource_tos_uri().has_value());
+  EXPECT_FALSE(metadata.value().tls_client_certificate_bound_access_tokens());
+  EXPECT_FALSE(
+      metadata.value().supports_authorization_details_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_dpop_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().dpop_bound_access_tokens_required());
 }
 
 TEST(resource_metadata_supports_dpop_signing_alg) {
@@ -1191,9 +1773,27 @@ TEST(resource_metadata_supports_dpop_signing_alg) {
       std::move(document), "https://api.example.com")};
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().resource(), "https://api.example.com");
+  EXPECT_FALSE(metadata.value().first_authorization_server().has_value());
+  EXPECT_FALSE(metadata.value().supports_authorization_server(
+      "https://nonexistent.example.invalid"));
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(metadata.value().supports_bearer_method("header"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("body"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("query"));
+  EXPECT_FALSE(metadata.value().supports_scope("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_resource_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().resource_name().has_value());
+  EXPECT_FALSE(metadata.value().resource_documentation().has_value());
+  EXPECT_FALSE(metadata.value().resource_policy_uri().has_value());
+  EXPECT_FALSE(metadata.value().resource_tos_uri().has_value());
+  EXPECT_FALSE(metadata.value().tls_client_certificate_bound_access_tokens());
+  EXPECT_FALSE(
+      metadata.value().supports_authorization_details_type("nonexistent"));
   EXPECT_TRUE(metadata.value().supports_dpop_signing_alg("ES256"));
   EXPECT_TRUE(metadata.value().supports_dpop_signing_alg("PS256"));
-  EXPECT_FALSE(metadata.value().supports_dpop_signing_alg("RS256"));
+  EXPECT_FALSE(metadata.value().supports_dpop_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().dpop_bound_access_tokens_required());
 }
 
 TEST(resource_metadata_dpop_signing_alg_absent_is_false) {
@@ -1205,7 +1805,25 @@ TEST(resource_metadata_dpop_signing_alg_absent_is_false) {
       std::move(document), "https://api.example.com")};
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), expected);
-  EXPECT_FALSE(metadata.value().supports_dpop_signing_alg("ES256"));
+  EXPECT_EQ(metadata.value().resource(), "https://api.example.com");
+  EXPECT_FALSE(metadata.value().first_authorization_server().has_value());
+  EXPECT_FALSE(metadata.value().supports_authorization_server(
+      "https://nonexistent.example.invalid"));
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(metadata.value().supports_bearer_method("header"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("body"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("query"));
+  EXPECT_FALSE(metadata.value().supports_scope("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_resource_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().resource_name().has_value());
+  EXPECT_FALSE(metadata.value().resource_documentation().has_value());
+  EXPECT_FALSE(metadata.value().resource_policy_uri().has_value());
+  EXPECT_FALSE(metadata.value().resource_tos_uri().has_value());
+  EXPECT_FALSE(metadata.value().tls_client_certificate_bound_access_tokens());
+  EXPECT_FALSE(
+      metadata.value().supports_authorization_details_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_dpop_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().dpop_bound_access_tokens_required());
 }
 
 TEST(resource_metadata_supports_authorization_details_type) {
@@ -1218,10 +1836,27 @@ TEST(resource_metadata_supports_authorization_details_type) {
       std::move(document), "https://api.example.com")};
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().resource(), "https://api.example.com");
+  EXPECT_FALSE(metadata.value().first_authorization_server().has_value());
+  EXPECT_FALSE(metadata.value().supports_authorization_server(
+      "https://nonexistent.example.invalid"));
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(metadata.value().supports_bearer_method("header"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("body"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("query"));
+  EXPECT_FALSE(metadata.value().supports_scope("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_resource_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().resource_name().has_value());
+  EXPECT_FALSE(metadata.value().resource_documentation().has_value());
+  EXPECT_FALSE(metadata.value().resource_policy_uri().has_value());
+  EXPECT_FALSE(metadata.value().resource_tos_uri().has_value());
+  EXPECT_FALSE(metadata.value().tls_client_certificate_bound_access_tokens());
   EXPECT_TRUE(metadata.value().supports_authorization_details_type(
       "payment_initiation"));
   EXPECT_FALSE(
-      metadata.value().supports_authorization_details_type("account_access"));
+      metadata.value().supports_authorization_details_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_dpop_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().dpop_bound_access_tokens_required());
 }
 
 TEST(resource_metadata_authorization_details_type_absent_is_false) {
@@ -1233,8 +1868,25 @@ TEST(resource_metadata_authorization_details_type_absent_is_false) {
       std::move(document), "https://api.example.com")};
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), expected);
-  EXPECT_FALSE(metadata.value().supports_authorization_details_type(
-      "payment_initiation"));
+  EXPECT_EQ(metadata.value().resource(), "https://api.example.com");
+  EXPECT_FALSE(metadata.value().first_authorization_server().has_value());
+  EXPECT_FALSE(metadata.value().supports_authorization_server(
+      "https://nonexistent.example.invalid"));
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(metadata.value().supports_bearer_method("header"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("body"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("query"));
+  EXPECT_FALSE(metadata.value().supports_scope("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_resource_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().resource_name().has_value());
+  EXPECT_FALSE(metadata.value().resource_documentation().has_value());
+  EXPECT_FALSE(metadata.value().resource_policy_uri().has_value());
+  EXPECT_FALSE(metadata.value().resource_tos_uri().has_value());
+  EXPECT_FALSE(metadata.value().tls_client_certificate_bound_access_tokens());
+  EXPECT_FALSE(
+      metadata.value().supports_authorization_details_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_dpop_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().dpop_bound_access_tokens_required());
 }
 
 TEST(resource_metadata_rejects_an_empty_scopes_supported) {
@@ -1317,7 +1969,26 @@ TEST(resource_metadata_accepts_none_in_dpop_signing_algs) {
       std::move(document), "https://api.example.com")};
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().resource(), "https://api.example.com");
+  EXPECT_FALSE(metadata.value().first_authorization_server().has_value());
+  EXPECT_FALSE(metadata.value().supports_authorization_server(
+      "https://nonexistent.example.invalid"));
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(metadata.value().supports_bearer_method("header"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("body"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("query"));
+  EXPECT_FALSE(metadata.value().supports_scope("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_resource_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().resource_name().has_value());
+  EXPECT_FALSE(metadata.value().resource_documentation().has_value());
+  EXPECT_FALSE(metadata.value().resource_policy_uri().has_value());
+  EXPECT_FALSE(metadata.value().resource_tos_uri().has_value());
+  EXPECT_FALSE(metadata.value().tls_client_certificate_bound_access_tokens());
+  EXPECT_FALSE(
+      metadata.value().supports_authorization_details_type("nonexistent"));
   EXPECT_TRUE(metadata.value().supports_dpop_signing_alg("none"));
+  EXPECT_FALSE(metadata.value().supports_dpop_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().dpop_bound_access_tokens_required());
 }
 
 TEST(resource_metadata_rejects_a_non_array_bearer_methods) {
@@ -1419,6 +2090,36 @@ TEST(resource_metadata_parses_the_rfc9728_example) {
       std::move(document), "https://resource.example.com")};
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().resource(), "https://resource.example.com");
+  EXPECT_TRUE(metadata.value().first_authorization_server().has_value());
+  EXPECT_EQ(metadata.value().first_authorization_server().value(),
+            "https://as1.example.com");
+  EXPECT_TRUE(metadata.value().supports_authorization_server(
+      "https://as1.example.com"));
+  EXPECT_TRUE(metadata.value().supports_authorization_server(
+      "https://as2.example.net"));
+  EXPECT_FALSE(metadata.value().supports_authorization_server(
+      "https://nonexistent.example.invalid"));
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_TRUE(metadata.value().supports_bearer_method("header"));
+  EXPECT_TRUE(metadata.value().supports_bearer_method("body"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("query"));
+  EXPECT_TRUE(metadata.value().supports_scope("profile"));
+  EXPECT_TRUE(metadata.value().supports_scope("email"));
+  EXPECT_TRUE(metadata.value().supports_scope("phone"));
+  EXPECT_FALSE(metadata.value().supports_scope("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_resource_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().resource_name().has_value());
+  EXPECT_TRUE(metadata.value().resource_documentation().has_value());
+  EXPECT_EQ(metadata.value().resource_documentation().value(),
+            "https://resource.example.com/resource_documentation.html");
+  EXPECT_FALSE(metadata.value().resource_policy_uri().has_value());
+  EXPECT_FALSE(metadata.value().resource_tos_uri().has_value());
+  EXPECT_FALSE(metadata.value().tls_client_certificate_bound_access_tokens());
+  EXPECT_FALSE(
+      metadata.value().supports_authorization_details_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_dpop_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().dpop_bound_access_tokens_required());
 }
 
 TEST(resource_metadata_accepts_hs256_in_dpop_signing_algs) {
@@ -1431,7 +2132,26 @@ TEST(resource_metadata_accepts_hs256_in_dpop_signing_algs) {
       std::move(document), "https://api.example.com")};
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().resource(), "https://api.example.com");
+  EXPECT_FALSE(metadata.value().first_authorization_server().has_value());
+  EXPECT_FALSE(metadata.value().supports_authorization_server(
+      "https://nonexistent.example.invalid"));
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(metadata.value().supports_bearer_method("header"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("body"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("query"));
+  EXPECT_FALSE(metadata.value().supports_scope("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_resource_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().resource_name().has_value());
+  EXPECT_FALSE(metadata.value().resource_documentation().has_value());
+  EXPECT_FALSE(metadata.value().resource_policy_uri().has_value());
+  EXPECT_FALSE(metadata.value().resource_tos_uri().has_value());
+  EXPECT_FALSE(metadata.value().tls_client_certificate_bound_access_tokens());
+  EXPECT_FALSE(
+      metadata.value().supports_authorization_details_type("nonexistent"));
   EXPECT_TRUE(metadata.value().supports_dpop_signing_alg("HS256"));
+  EXPECT_FALSE(metadata.value().supports_dpop_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().dpop_bound_access_tokens_required());
 }
 
 TEST(resource_metadata_preserves_language_tagged_page_members) {
@@ -1449,6 +2169,25 @@ TEST(resource_metadata_preserves_language_tagged_page_members) {
   EXPECT_FALSE(metadata.value().resource_policy_uri().has_value());
   EXPECT_FALSE(metadata.value().resource_tos_uri().has_value());
   EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().resource(), "https://api.example.com");
+  EXPECT_FALSE(metadata.value().first_authorization_server().has_value());
+  EXPECT_FALSE(metadata.value().supports_authorization_server(
+      "https://nonexistent.example.invalid"));
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(metadata.value().supports_bearer_method("header"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("body"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("query"));
+  EXPECT_FALSE(metadata.value().supports_scope("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_resource_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().resource_name().has_value());
+  EXPECT_FALSE(metadata.value().resource_documentation().has_value());
+  EXPECT_FALSE(metadata.value().resource_policy_uri().has_value());
+  EXPECT_FALSE(metadata.value().resource_tos_uri().has_value());
+  EXPECT_FALSE(metadata.value().tls_client_certificate_bound_access_tokens());
+  EXPECT_FALSE(
+      metadata.value().supports_authorization_details_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_dpop_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().dpop_bound_access_tokens_required());
 }
 
 TEST(resource_metadata_preserves_a_wrong_typed_language_tagged_member) {
@@ -1462,6 +2201,25 @@ TEST(resource_metadata_preserves_a_wrong_typed_language_tagged_member) {
   EXPECT_TRUE(metadata.has_value());
   EXPECT_FALSE(metadata.value().resource_name().has_value());
   EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().resource(), "https://api.example.com");
+  EXPECT_FALSE(metadata.value().first_authorization_server().has_value());
+  EXPECT_FALSE(metadata.value().supports_authorization_server(
+      "https://nonexistent.example.invalid"));
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(metadata.value().supports_bearer_method("header"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("body"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("query"));
+  EXPECT_FALSE(metadata.value().supports_scope("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_resource_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().resource_name().has_value());
+  EXPECT_FALSE(metadata.value().resource_documentation().has_value());
+  EXPECT_FALSE(metadata.value().resource_policy_uri().has_value());
+  EXPECT_FALSE(metadata.value().resource_tos_uri().has_value());
+  EXPECT_FALSE(metadata.value().tls_client_certificate_bound_access_tokens());
+  EXPECT_FALSE(
+      metadata.value().supports_authorization_details_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_dpop_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().dpop_bound_access_tokens_required());
 }
 
 TEST(resource_metadata_preserves_signed_metadata) {
@@ -1474,6 +2232,25 @@ TEST(resource_metadata_preserves_signed_metadata) {
       std::move(document), "https://api.example.com")};
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().resource(), "https://api.example.com");
+  EXPECT_FALSE(metadata.value().first_authorization_server().has_value());
+  EXPECT_FALSE(metadata.value().supports_authorization_server(
+      "https://nonexistent.example.invalid"));
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(metadata.value().supports_bearer_method("header"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("body"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("query"));
+  EXPECT_FALSE(metadata.value().supports_scope("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_resource_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().resource_name().has_value());
+  EXPECT_FALSE(metadata.value().resource_documentation().has_value());
+  EXPECT_FALSE(metadata.value().resource_policy_uri().has_value());
+  EXPECT_FALSE(metadata.value().resource_tos_uri().has_value());
+  EXPECT_FALSE(metadata.value().tls_client_certificate_bound_access_tokens());
+  EXPECT_FALSE(
+      metadata.value().supports_authorization_details_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_dpop_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().dpop_bound_access_tokens_required());
 }
 
 TEST(resource_metadata_accepts_an_uppercase_advertised_issuer_document) {
@@ -1486,8 +2263,29 @@ TEST(resource_metadata_accepts_an_uppercase_advertised_issuer_document) {
       std::move(document), "https://api.example.com")};
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), expected);
+  EXPECT_EQ(metadata.value().resource(), "https://api.example.com");
+  EXPECT_TRUE(metadata.value().first_authorization_server().has_value());
+  EXPECT_EQ(metadata.value().first_authorization_server().value(),
+            "HTTPS://auth.example.com");
   EXPECT_TRUE(metadata.value().supports_authorization_server(
       "HTTPS://auth.example.com"));
+  EXPECT_FALSE(metadata.value().supports_authorization_server(
+      "https://nonexistent.example.invalid"));
+  EXPECT_FALSE(metadata.value().jwks_uri().has_value());
+  EXPECT_FALSE(metadata.value().supports_bearer_method("header"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("body"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("query"));
+  EXPECT_FALSE(metadata.value().supports_scope("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_resource_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().resource_name().has_value());
+  EXPECT_FALSE(metadata.value().resource_documentation().has_value());
+  EXPECT_FALSE(metadata.value().resource_policy_uri().has_value());
+  EXPECT_FALSE(metadata.value().resource_tos_uri().has_value());
+  EXPECT_FALSE(metadata.value().tls_client_certificate_bound_access_tokens());
+  EXPECT_FALSE(
+      metadata.value().supports_authorization_details_type("nonexistent"));
+  EXPECT_FALSE(metadata.value().supports_dpop_signing_alg("nonexistent"));
+  EXPECT_FALSE(metadata.value().dpop_bound_access_tokens_required());
 }
 
 TEST(make_resource_metadata_emits_duplicate_scopes_as_given) {
