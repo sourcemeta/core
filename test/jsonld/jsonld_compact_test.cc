@@ -392,3 +392,58 @@ TEST(json_literal_null_without_json_term_keeps_value_object) {
   })");
   EXPECT_EQ(result, expected);
 }
+
+// Language tags are case insensitive (RFC 5646 Section 2.1.1), so a value
+// whose language differs from the term language mapping only in casing still
+// compacts to a plain string
+TEST(language_match_is_case_insensitive) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.org/vocab#label": [
+        { "@value": "hello", "@language": "EN-us" }
+      ]
+    }
+  ])");
+  const auto context = sourcemeta::core::parse_json(R"({
+    "label": { "@id": "http://example.org/vocab#label", "@language": "en-US" }
+  })");
+  const auto result{sourcemeta::core::jsonld_compact(input, context)};
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "label": "hello",
+    "@context": {
+      "label": {
+        "@id": "http://example.org/vocab#label",
+        "@language": "en-US"
+      }
+    }
+  })");
+  EXPECT_EQ(result, expected);
+}
+
+// A genuinely different language keeps the value object regardless of casing
+TEST(language_mismatch_keeps_value_object) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.org/vocab#label": [
+        { "@value": "hallo", "@language": "DE-ch" }
+      ]
+    }
+  ])");
+  const auto context = sourcemeta::core::parse_json(R"({
+    "label": { "@id": "http://example.org/vocab#label", "@language": "en-US" }
+  })");
+  const auto result{sourcemeta::core::jsonld_compact(input, context)};
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "http://example.org/vocab#label": {
+      "@value": "hallo",
+      "@language": "DE-ch"
+    },
+    "@context": {
+      "label": {
+        "@id": "http://example.org/vocab#label",
+        "@language": "en-US"
+      }
+    }
+  })");
+  EXPECT_EQ(result, expected);
+}
