@@ -3,7 +3,6 @@
 #include <sourcemeta/core/langtag.h>
 #include <sourcemeta/core/uri.h>
 
-#include "jsonld_algorithms.h"
 #include "jsonld_keywords.h"
 
 #include <cstdint>     // std::uint8_t
@@ -14,6 +13,13 @@
 namespace sourcemeta::core {
 
 namespace {
+
+// A blank node identifier is the prefix "_:" followed by a label (JSON-LD 1.1
+// Section 3.5). Validation requires the label, unlike the processing helper,
+// as a label-less "_:" identifies nothing.
+auto is_blank_node(const std::string_view value) -> bool {
+  return value.size() > 2 && value.starts_with("_:");
+}
 
 // A property term in expanded form is an absolute IRI or a blank node
 // identifier (JSON-LD 1.1 Section 9, "node object").

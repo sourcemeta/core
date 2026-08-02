@@ -46,7 +46,8 @@ struct JSONLDNode {
   /// Whether the node's descendants are asserted in the named graph it denotes.
   bool graph{false};
   /// Constant properties merged into the node, as a canonical fragment of
-  /// predicate to term array. May be empty.
+  /// predicate to term array whose entries are all non-empty term arrays,
+  /// never null removal entries. May be empty.
   JSON constants{JSON::make_object()};
 };
 
@@ -75,13 +76,16 @@ struct JSONLDReference {
   /// The types of the promoted node.
   std::vector<JSON::String> types{};
   /// Constant properties merged into the node, as a canonical fragment of
-  /// predicate to term array. May be empty.
+  /// predicate to term array whose entries are all non-empty term arrays,
+  /// never null removal entries. May be empty.
   JSON constants{JSON::make_object()};
 };
 
 /// @ingroup jsonld
 /// A scalar promoted to a node that carries the scalar as a literal under a
-/// value predicate, plus constant properties
+/// value predicate, plus constant properties. A null value at a promoted
+/// position materializes nothing, as constant properties never appear
+/// without the scalar that legitimizes them.
 struct JSONLDPromotion {
   /// The node identifier, absent for a fresh blank node.
   std::optional<JSON::String> id{};
@@ -89,10 +93,12 @@ struct JSONLDPromotion {
   std::vector<JSON::String> types{};
   /// The predicate that carries the scalar.
   JSON::String value{};
-  /// The literal facets of the carried scalar.
+  /// The literal facets of the carried scalar. The opaque JSON literal facet
+  /// does not apply to a promoted scalar and must stay unset.
   JSONLDLiteral literal{};
   /// Constant properties merged into the node, as a canonical fragment of
-  /// predicate to term array. May be empty.
+  /// predicate to term array whose entries are all non-empty term arrays,
+  /// never null removal entries. May be empty.
   JSON constants{JSON::make_object()};
 };
 
@@ -239,8 +245,10 @@ auto jsonld_materialize(const JSON &instance,
 /// expanded form and return its canonical form: keys sorted, bare scalars
 /// and single terms wrapped into term arrays, duplicate terms removed, and
 /// native numbers or booleans paired with an explicit datatype rewritten to
-/// their canonical string lexical form. A grammar violation throws. For
-/// example:
+/// their canonical string lexical form. A grammar violation throws. A null
+/// entry passes through untouched as the caller's removal channel, so a
+/// canonical fragment only becomes usable as descriptor constants once the
+/// caller resolves removals and strips the null entries. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/jsonld.h>

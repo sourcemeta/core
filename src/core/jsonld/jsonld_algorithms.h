@@ -15,10 +15,12 @@
 
 namespace sourcemeta::core {
 
-// A blank node identifier is the prefix "_:" followed by a label (JSON-LD 1.1
-// Section 3.5).
+// A blank node identifier begins with "_:" (JSON-LD 1.1 Section 3.5). A
+// label-less "_:" still counts, so that processing algorithms relabel every
+// blank-flavored identifier instead of leaking one as an IRI. Expanded form
+// validation additionally requires a label and keeps its own stricter check.
 inline auto is_blank_node(const std::string_view value) -> bool {
-  return value.size() > 2 && value.starts_with("_:");
+  return value.starts_with("_:");
 }
 
 struct TermDefinition {
