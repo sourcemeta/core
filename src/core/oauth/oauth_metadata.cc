@@ -267,9 +267,10 @@ auto validated_resource_metadata(JSON &&data, const std::string_view resource)
   // the client starts its next discovery request, so an entry that is not a
   // valid issuer identifier is rejected rather than handed onwards. RFC 8414
   // Section 2 requires the https scheme, a host, and no query or fragment,
-  // while leaving the scheme case-insensitive for an advertised value. Section
-  // 3.2: "Parameters with zero values MUST be omitted from the response", so a
-  // present but empty array is a malformed document
+  // and the scheme of a received value stays case-insensitive per RFC 3986
+  // Section 3.1 since an advertised issuer is matched against nothing at parse
+  // time. Section 3.2: "Parameters with zero values MUST be omitted from the
+  // response", so a present but empty array is a malformed document
   const auto *authorization_servers{
       data.try_at("authorization_servers"sv, HASH_AUTHORIZATION_SERVERS)};
   if (authorization_servers != nullptr) {
@@ -356,15 +357,13 @@ auto oauth_is_resource_identifier(const std::string_view value) -> bool {
          !uri->host().value().empty() && !uri->fragment().has_value();
 }
 
-// An issuer identifier a document advertises for someone else, rather than the
-// one the document was retrieved for. RFC 8414 Section 2 gives it the same
-// shape, but Section 4 scopes code-point comparison to "comparing values in the
-// messages to known values", and an advertised issuer is matched against
-// nothing at parse time. Its validity therefore follows RFC 3986 Section 3.1,
-// which makes the scheme case-insensitive
-auto oauth_is_advertised_issuer(const std::string_view value) -> bool {
+// RFC 8414 Section 2: an issuer is an https URL with a non-empty host (RFC 3986
+// Section 3.2) and no query or fragment, its scheme matched by code points to
+// reject a non-canonical case
+auto oauth_is_issuer_identifier(const std::string_view value) -> bool {
   const auto uri{oauth_try_parse_uri(value)};
-  return uri.has_value() && uri->is_https() && uri->host().has_value() &&
+  return uri.has_value() && uri->scheme().has_value() &&
+         uri->scheme().value() == "https" && uri->host().has_value() &&
          !uri->host().value().empty() && !uri->query().has_value() &&
          !uri->fragment().has_value();
 }
@@ -873,11 +872,14 @@ auto oauth_make_resource_metadata(const OAuthResourceMetadataConfig &config)
   }
 
   // RFC 9728 Section 2: the authorization servers are "OAuth authorization
-  // server issuer identifiers, as defined in [RFC8414]", so an entry that is
-  // not a valid issuer identifier would yield a document its own parser
-  // rejects
+  // server issuer identifiers, as defined in [RFC8414]". A client resolves an
+  // entry by inserting the well-known string into it (RFC 8414 Section 3) and
+  // then requires the metadata issuer to be "identical" to it by code points
+  // (RFC 8414 Sections 3.3 and 4), so only an entry in the exact issuer
+  // identifier form can ever complete discovery, and emitting any other form
+  // would advertise a dead end
   if (!std::ranges::all_of(config.authorization_servers,
-                           oauth_is_advertised_issuer)) {
+                           oauth_is_issuer_identifier)) {
     return std::nullopt;
   }
 

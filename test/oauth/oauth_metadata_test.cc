@@ -119,9 +119,11 @@ TEST(server_metadata_parses_a_valid_document) {
     "registration_endpoint": "https://example.com/register",
     "jwks_uri": "https://example.com/jwks"
   })JSON")};
+  const auto expected{document};
   const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
       std::move(document), "https://example.com")};
   EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata.value().data(), expected);
   EXPECT_EQ(metadata.value().issuer(), "https://example.com");
   EXPECT_TRUE(metadata.value().authorization_endpoint().has_value());
   EXPECT_EQ(metadata.value().authorization_endpoint().value(),
@@ -194,9 +196,11 @@ TEST(server_metadata_accepts_signing_algs_for_private_key_jwt) {
     "token_endpoint_auth_methods_supported": [ "private_key_jwt" ],
     "token_endpoint_auth_signing_alg_values_supported": [ "RS256" ]
   })JSON")};
+  const auto expected{document};
   const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
       std::move(document), "https://example.com")};
   EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata.value().data(), expected);
 }
 
 TEST(server_metadata_rejects_none_in_signing_algs) {
@@ -216,9 +220,11 @@ TEST(server_metadata_iss_parameter_supported_defaults_to_false) {
     "issuer": "https://example.com",
     "response_types_supported": [ "code" ]
   })JSON")};
+  const auto expected{document};
   const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
       std::move(document), "https://example.com")};
   EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata.value().data(), expected);
   EXPECT_FALSE(
       metadata.value().authorization_response_iss_parameter_supported());
 }
@@ -229,9 +235,11 @@ TEST(server_metadata_iss_parameter_supported_reads_true) {
     "response_types_supported": [ "code" ],
     "authorization_response_iss_parameter_supported": true
   })JSON")};
+  const auto expected{document};
   const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
       std::move(document), "https://example.com")};
   EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata.value().data(), expected);
   EXPECT_TRUE(
       metadata.value().authorization_response_iss_parameter_supported());
 }
@@ -383,9 +391,11 @@ TEST(server_metadata_accepts_an_issuer_with_a_path) {
     "issuer": "https://example.com/tenant",
     "response_types_supported": [ "code" ]
   })JSON")};
+  const auto expected{document};
   const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
       std::move(document), "https://example.com/tenant")};
   EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata.value().data(), expected);
   EXPECT_EQ(metadata.value().issuer(), "https://example.com/tenant");
 }
 
@@ -394,9 +404,11 @@ TEST(server_metadata_accepts_an_issuer_with_a_trailing_slash) {
     "issuer": "https://example.com/",
     "response_types_supported": [ "code" ]
   })JSON")};
+  const auto expected{document};
   const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
       std::move(document), "https://example.com/")};
   EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata.value().data(), expected);
 }
 
 TEST(server_metadata_rejects_an_empty_issuer) {
@@ -415,9 +427,11 @@ TEST(server_metadata_grant_types_wrong_type_falls_back_to_default) {
     "response_types_supported": [ "code" ],
     "grant_types_supported": "authorization_code"
   })JSON")};
+  const auto expected{document};
   const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
       std::move(document), "https://example.com")};
   EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata.value().data(), expected);
   EXPECT_TRUE(metadata.value().supports_grant_type("authorization_code"));
   EXPECT_TRUE(metadata.value().supports_grant_type("implicit"));
 }
@@ -428,9 +442,11 @@ TEST(server_metadata_iss_parameter_supported_wrong_type_is_false) {
     "response_types_supported": [ "code" ],
     "authorization_response_iss_parameter_supported": "true"
   })JSON")};
+  const auto expected{document};
   const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
       std::move(document), "https://example.com")};
   EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata.value().data(), expected);
   EXPECT_FALSE(
       metadata.value().authorization_response_iss_parameter_supported());
 }
@@ -440,9 +456,11 @@ TEST(server_metadata_non_string_response_type_elements_do_not_match) {
     "issuer": "https://example.com",
     "response_types_supported": [ 123 ]
   })JSON")};
+  const auto expected{document};
   const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
       std::move(document), "https://example.com")};
   EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata.value().data(), expected);
   EXPECT_FALSE(metadata.value().supports_response_type("code"));
 }
 
@@ -559,9 +577,11 @@ TEST(server_metadata_accepts_an_https_device_authorization_endpoint) {
     "response_types_supported": [ "code" ],
     "device_authorization_endpoint": "https://example.com/device"
   })JSON")};
+  const auto expected{document};
   const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
       std::move(document), "https://example.com")};
   EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata.value().data(), expected);
   EXPECT_EQ(
       metadata.value().data().at("device_authorization_endpoint").to_string(),
       "https://example.com/device");
@@ -627,9 +647,11 @@ TEST(server_metadata_accepts_every_https_endpoint) {
     "introspection_endpoint": "https://example.com/introspect",
     "jwks_uri": "https://example.com/jwks"
   })JSON")};
+  const auto expected{document};
   const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
       std::move(document), "https://example.com")};
   EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata.value().data(), expected);
   EXPECT_EQ(metadata.value().authorization_endpoint().value(),
             "https://example.com/authorize");
   EXPECT_EQ(metadata.value().token_endpoint().value(),
@@ -677,9 +699,11 @@ TEST(server_metadata_accepts_a_token_endpoint_with_a_query) {
     "response_types_supported": [ "code" ],
     "token_endpoint": "https://example.com/token?tenant=1"
   })JSON")};
+  const auto expected{document};
   const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
       std::move(document), "https://example.com")};
   EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata.value().data(), expected);
   EXPECT_EQ(metadata.value().token_endpoint().value(),
             "https://example.com/token?tenant=1");
 }
@@ -690,9 +714,11 @@ TEST(server_metadata_accepts_a_token_endpoint_with_a_port) {
     "response_types_supported": [ "code" ],
     "token_endpoint": "https://example.com:8443/token"
   })JSON")};
+  const auto expected{document};
   const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
       std::move(document), "https://example.com")};
   EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata.value().data(), expected);
   EXPECT_EQ(metadata.value().token_endpoint().value(),
             "https://example.com:8443/token");
 }
@@ -706,9 +732,11 @@ TEST(server_metadata_accepts_an_uppercase_endpoint_scheme) {
     "response_types_supported": [ "code" ],
     "token_endpoint": "HTTPS://example.com/token"
   })JSON")};
+  const auto expected{document};
   const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
       std::move(document), "https://example.com")};
   EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata.value().data(), expected);
   EXPECT_EQ(metadata.value().token_endpoint().value(),
             "HTTPS://example.com/token");
 }
@@ -719,9 +747,11 @@ TEST(server_metadata_accepts_a_mixed_case_endpoint_scheme) {
     "response_types_supported": [ "code" ],
     "token_endpoint": "HtTpS://example.com/token"
   })JSON")};
+  const auto expected{document};
   const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
       std::move(document), "https://example.com")};
   EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata.value().data(), expected);
 }
 
 TEST(server_metadata_rejects_a_non_string_token_endpoint) {
@@ -880,9 +910,11 @@ TEST(
     "resource": "https://api.example.com",
     "authorization_servers": [ "HTTPS://auth.example.com" ]
   })JSON")};
+  const auto expected{document};
   const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
       std::move(document), "https://api.example.com")};
   EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata.value().data(), expected);
   EXPECT_FALSE(metadata.value().supports_authorization_server(
       "https://auth.example.com"));
   EXPECT_TRUE(metadata.value().supports_authorization_server(
@@ -934,11 +966,13 @@ TEST(make_server_metadata_emits_the_required_members) {
   config.response_types_supported = response_types;
   const auto document{sourcemeta::core::oauth_make_server_metadata(config)};
   EXPECT_TRUE(document.has_value());
-  EXPECT_EQ(document.value().at("issuer").to_string(),
-            "https://server.example");
-  EXPECT_EQ(document.value().at("response_types_supported").size(), 1);
-  EXPECT_EQ(document.value().at("response_types_supported").at(0).to_string(),
-            "code");
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://server.example",
+    "authorization_endpoint": "https://server.example/authorize",
+    "token_endpoint": "https://server.example/token",
+    "response_types_supported": [ "code" ]
+  })JSON")};
+  EXPECT_EQ(document.value(), expected);
 }
 
 TEST(make_server_metadata_emits_endpoints_and_arrays) {
@@ -955,14 +989,15 @@ TEST(make_server_metadata_emits_endpoints_and_arrays) {
   config.code_challenge_methods_supported = challenge_methods;
   const auto document{sourcemeta::core::oauth_make_server_metadata(config)};
   EXPECT_TRUE(document.has_value());
-  EXPECT_EQ(document.value().at("authorization_endpoint").to_string(),
-            "https://server.example/authorize");
-  EXPECT_EQ(document.value().at("token_endpoint").to_string(),
-            "https://server.example/token");
-  EXPECT_EQ(document.value().at("grant_types_supported").size(), 2);
-  EXPECT_EQ(
-      document.value().at("code_challenge_methods_supported").at(0).to_string(),
-      "S256");
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://server.example",
+    "authorization_endpoint": "https://server.example/authorize",
+    "token_endpoint": "https://server.example/token",
+    "response_types_supported": [ "code" ],
+    "grant_types_supported": [ "authorization_code", "refresh_token" ],
+    "code_challenge_methods_supported": [ "S256" ]
+  })JSON")};
+  EXPECT_EQ(document.value(), expected);
 }
 
 TEST(make_server_metadata_rejects_an_invalid_issuer) {
@@ -990,14 +1025,13 @@ TEST(make_server_metadata_omits_absent_members) {
   config.response_types_supported = response_types;
   const auto document{sourcemeta::core::oauth_make_server_metadata(config)};
   EXPECT_TRUE(document.has_value());
-  EXPECT_FALSE(document.value().defines("registration_endpoint"));
-  EXPECT_FALSE(document.value().defines("jwks_uri"));
-  EXPECT_FALSE(document.value().defines("scopes_supported"));
-  EXPECT_FALSE(document.value().defines("grant_types_supported"));
-  EXPECT_FALSE(
-      document.value().defines("pushed_authorization_request_endpoint"));
-  EXPECT_FALSE(
-      document.value().defines("require_pushed_authorization_requests"));
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://server.example",
+    "authorization_endpoint": "https://server.example/authorize",
+    "token_endpoint": "https://server.example/token",
+    "response_types_supported": [ "code" ]
+  })JSON")};
+  EXPECT_EQ(document.value(), expected);
 }
 
 TEST(make_server_metadata_emits_the_par_members) {
@@ -1011,12 +1045,15 @@ TEST(make_server_metadata_emits_the_par_members) {
   config.response_types_supported = response_types;
   const auto document{sourcemeta::core::oauth_make_server_metadata(config)};
   EXPECT_TRUE(document.has_value());
-  EXPECT_EQ(
-      document.value().at("pushed_authorization_request_endpoint").to_string(),
-      "https://server.example/par");
-  EXPECT_TRUE(document.value()
-                  .at("require_pushed_authorization_requests")
-                  .to_boolean());
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://server.example",
+    "authorization_endpoint": "https://server.example/authorize",
+    "token_endpoint": "https://server.example/token",
+    "pushed_authorization_request_endpoint": "https://server.example/par",
+    "response_types_supported": [ "code" ],
+    "require_pushed_authorization_requests": true
+  })JSON")};
+  EXPECT_EQ(document.value(), expected);
 }
 
 TEST(make_server_metadata_omits_require_par_when_false) {
@@ -1030,10 +1067,14 @@ TEST(make_server_metadata_omits_require_par_when_false) {
   config.response_types_supported = response_types;
   const auto document{sourcemeta::core::oauth_make_server_metadata(config)};
   EXPECT_TRUE(document.has_value());
-  EXPECT_TRUE(
-      document.value().defines("pushed_authorization_request_endpoint"));
-  EXPECT_FALSE(
-      document.value().defines("require_pushed_authorization_requests"));
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://server.example",
+    "authorization_endpoint": "https://server.example/authorize",
+    "token_endpoint": "https://server.example/token",
+    "pushed_authorization_request_endpoint": "https://server.example/par",
+    "response_types_supported": [ "code" ]
+  })JSON")};
+  EXPECT_EQ(document.value(), expected);
 }
 
 TEST(make_server_metadata_rejects_a_non_https_par_endpoint) {
@@ -1108,9 +1149,11 @@ TEST(make_server_metadata_par_round_trips) {
   config.response_types_supported = response_types;
   auto document{sourcemeta::core::oauth_make_server_metadata(config)};
   EXPECT_TRUE(document.has_value());
+  const auto expected{document.value()};
   const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
       std::move(document.value()), "https://server.example")};
   EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata.value().data(), expected);
   EXPECT_EQ(metadata.value().pushed_authorization_request_endpoint().value(),
             "https://server.example/par");
   EXPECT_TRUE(metadata.value().require_pushed_authorization_requests());
@@ -1142,11 +1185,15 @@ TEST(make_server_metadata_accepts_jwt_auth_with_signing_algs) {
   config.token_endpoint_auth_signing_alg_values_supported = algs;
   const auto document{sourcemeta::core::oauth_make_server_metadata(config)};
   EXPECT_TRUE(document.has_value());
-  EXPECT_EQ(document.value()
-                .at("token_endpoint_auth_signing_alg_values_supported")
-                .at(0)
-                .to_string(),
-            "RS256");
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://server.example",
+    "authorization_endpoint": "https://server.example/authorize",
+    "token_endpoint": "https://server.example/token",
+    "response_types_supported": [ "code" ],
+    "token_endpoint_auth_methods_supported": [ "private_key_jwt" ],
+    "token_endpoint_auth_signing_alg_values_supported": [ "RS256" ]
+  })JSON")};
+  EXPECT_EQ(document.value(), expected);
 }
 
 TEST(make_server_metadata_rejects_jwt_auth_with_a_none_alg) {
@@ -1203,7 +1250,13 @@ TEST(make_server_metadata_allows_a_missing_token_endpoint_for_implicit_only) {
   config.grant_types_supported = grant_types;
   const auto document{sourcemeta::core::oauth_make_server_metadata(config)};
   EXPECT_TRUE(document.has_value());
-  EXPECT_FALSE(document.value().defines("token_endpoint"));
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://server.example",
+    "authorization_endpoint": "https://server.example/authorize",
+    "response_types_supported": [ "token" ],
+    "grant_types_supported": [ "implicit" ]
+  })JSON")};
+  EXPECT_EQ(document.value(), expected);
 }
 
 TEST(
@@ -1217,9 +1270,13 @@ TEST(
   config.grant_types_supported = grant_types;
   const auto document{sourcemeta::core::oauth_make_server_metadata(config)};
   EXPECT_TRUE(document.has_value());
-  EXPECT_FALSE(document.value().defines("authorization_endpoint"));
-  EXPECT_EQ(document.value().at("token_endpoint").to_string(),
-            "https://server.example/token");
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://server.example",
+    "token_endpoint": "https://server.example/token",
+    "response_types_supported": [ "code" ],
+    "grant_types_supported": [ "client_credentials" ]
+  })JSON")};
+  EXPECT_EQ(document.value(), expected);
 }
 
 TEST(make_server_metadata_requires_response_types_even_for_client_credentials) {
@@ -1372,44 +1429,44 @@ TEST(is_resource_identifier_rejects_a_relative_reference) {
   EXPECT_FALSE(sourcemeta::core::oauth_is_resource_identifier(""));
 }
 
-TEST(is_advertised_issuer_accepts_an_https_url) {
+TEST(is_issuer_identifier_accepts_an_https_url) {
   EXPECT_TRUE(
-      sourcemeta::core::oauth_is_advertised_issuer("https://auth.example.com"));
+      sourcemeta::core::oauth_is_issuer_identifier("https://auth.example.com"));
 }
 
-TEST(is_advertised_issuer_accepts_a_path) {
-  EXPECT_TRUE(sourcemeta::core::oauth_is_advertised_issuer(
+TEST(is_issuer_identifier_accepts_a_path) {
+  EXPECT_TRUE(sourcemeta::core::oauth_is_issuer_identifier(
       "https://auth.example.com/tenant"));
 }
 
-TEST(is_advertised_issuer_accepts_an_uppercase_scheme) {
-  EXPECT_TRUE(
-      sourcemeta::core::oauth_is_advertised_issuer("HTTPS://auth.example.com"));
+TEST(is_issuer_identifier_rejects_an_uppercase_scheme) {
+  EXPECT_FALSE(
+      sourcemeta::core::oauth_is_issuer_identifier("HTTPS://auth.example.com"));
 }
 
-TEST(is_advertised_issuer_rejects_a_query) {
-  EXPECT_FALSE(sourcemeta::core::oauth_is_advertised_issuer(
+TEST(is_issuer_identifier_rejects_a_query) {
+  EXPECT_FALSE(sourcemeta::core::oauth_is_issuer_identifier(
       "https://auth.example.com/?tenant=1"));
 }
 
-TEST(is_advertised_issuer_rejects_a_fragment) {
-  EXPECT_FALSE(sourcemeta::core::oauth_is_advertised_issuer(
+TEST(is_issuer_identifier_rejects_a_fragment) {
+  EXPECT_FALSE(sourcemeta::core::oauth_is_issuer_identifier(
       "https://auth.example.com#main"));
 }
 
-TEST(is_advertised_issuer_rejects_a_cleartext_url) {
+TEST(is_issuer_identifier_rejects_a_cleartext_url) {
   EXPECT_FALSE(
-      sourcemeta::core::oauth_is_advertised_issuer("http://auth.example.com"));
+      sourcemeta::core::oauth_is_issuer_identifier("http://auth.example.com"));
 }
 
-TEST(is_advertised_issuer_rejects_a_missing_host) {
-  EXPECT_FALSE(sourcemeta::core::oauth_is_advertised_issuer("https://"));
-  EXPECT_FALSE(sourcemeta::core::oauth_is_advertised_issuer("https://:443"));
+TEST(is_issuer_identifier_rejects_a_missing_host) {
+  EXPECT_FALSE(sourcemeta::core::oauth_is_issuer_identifier("https://"));
+  EXPECT_FALSE(sourcemeta::core::oauth_is_issuer_identifier("https://:443"));
 }
 
-TEST(is_advertised_issuer_rejects_a_relative_reference) {
-  EXPECT_FALSE(sourcemeta::core::oauth_is_advertised_issuer("/issuer"));
-  EXPECT_FALSE(sourcemeta::core::oauth_is_advertised_issuer(""));
+TEST(is_issuer_identifier_rejects_a_relative_reference) {
+  EXPECT_FALSE(sourcemeta::core::oauth_is_issuer_identifier("/issuer"));
+  EXPECT_FALSE(sourcemeta::core::oauth_is_issuer_identifier(""));
 }
 
 TEST(server_metadata_parses_the_rfc8414_example) {
@@ -1430,29 +1487,11 @@ TEST(server_metadata_parses_the_rfc8414_example) {
       "http://server.example.com/service_documentation.html",
     "ui_locales_supported": ["en-US", "en-GB", "en-CA", "fr-FR", "fr-CA"]
   })JSON")};
+  const auto expected{document};
   const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
       std::move(document), "https://server.example.com")};
   EXPECT_TRUE(metadata.has_value());
-  EXPECT_EQ(metadata.value().issuer(), "https://server.example.com");
-  EXPECT_EQ(metadata.value().authorization_endpoint().value(),
-            "https://server.example.com/authorize");
-  EXPECT_EQ(metadata.value().token_endpoint().value(),
-            "https://server.example.com/token");
-  EXPECT_TRUE(metadata.value().supports_token_endpoint_auth_method(
-      "client_secret_basic"));
-  EXPECT_TRUE(
-      metadata.value().supports_token_endpoint_auth_method("private_key_jwt"));
-  EXPECT_EQ(metadata.value().jwks_uri().value(),
-            "https://server.example.com/jwks.json");
-  EXPECT_EQ(metadata.value().registration_endpoint().value(),
-            "https://server.example.com/register");
-  EXPECT_TRUE(metadata.value().supports_response_type("code"));
-  EXPECT_TRUE(metadata.value().supports_response_type("code token"));
-  EXPECT_EQ(metadata.value().data().at("userinfo_endpoint").to_string(),
-            "https://server.example.com/userinfo");
-  EXPECT_EQ(metadata.value().data().at("service_documentation").to_string(),
-            "http://server.example.com/service_documentation.html");
-  EXPECT_EQ(metadata.value().data().at("ui_locales_supported").size(), 5);
+  EXPECT_EQ(metadata.value().data(), expected);
 }
 
 TEST(make_server_metadata_emits_protected_resources) {
@@ -1467,11 +1506,15 @@ TEST(make_server_metadata_emits_protected_resources) {
   config.protected_resources = resources;
   const auto document{sourcemeta::core::oauth_make_server_metadata(config)};
   EXPECT_TRUE(document.has_value());
-  EXPECT_EQ(document.value().at("protected_resources").size(), 2);
-  EXPECT_EQ(document.value().at("protected_resources").at(0).to_string(),
-            "https://api.example.com");
-  EXPECT_EQ(document.value().at("protected_resources").at(1).to_string(),
-            "https://reports.example.com/v1");
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://server.example",
+    "authorization_endpoint": "https://server.example/authorize",
+    "token_endpoint": "https://server.example/token",
+    "response_types_supported": [ "code" ],
+    "protected_resources":
+      [ "https://api.example.com", "https://reports.example.com/v1" ]
+  })JSON")};
+  EXPECT_EQ(document.value(), expected);
 }
 
 TEST(make_server_metadata_omits_empty_protected_resources) {
@@ -1483,7 +1526,13 @@ TEST(make_server_metadata_omits_empty_protected_resources) {
   config.response_types_supported = response_types;
   const auto document{sourcemeta::core::oauth_make_server_metadata(config)};
   EXPECT_TRUE(document.has_value());
-  EXPECT_FALSE(document.value().defines("protected_resources"));
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://server.example",
+    "authorization_endpoint": "https://server.example/authorize",
+    "token_endpoint": "https://server.example/token",
+    "response_types_supported": [ "code" ]
+  })JSON")};
+  EXPECT_EQ(document.value(), expected);
 }
 
 TEST(make_server_metadata_rejects_a_cleartext_protected_resource) {
@@ -1525,8 +1574,14 @@ TEST(make_server_metadata_accepts_a_protected_resource_with_a_query) {
   config.protected_resources = resources;
   const auto document{sourcemeta::core::oauth_make_server_metadata(config)};
   EXPECT_TRUE(document.has_value());
-  EXPECT_EQ(document.value().at("protected_resources").at(0).to_string(),
-            "https://api.example.com/mcp?tenant=1");
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://server.example",
+    "authorization_endpoint": "https://server.example/authorize",
+    "token_endpoint": "https://server.example/token",
+    "response_types_supported": [ "code" ],
+    "protected_resources": [ "https://api.example.com/mcp?tenant=1" ]
+  })JSON")};
+  EXPECT_EQ(document.value(), expected);
 }
 
 TEST(make_server_metadata_protected_resources_round_trips) {
@@ -1540,9 +1595,11 @@ TEST(make_server_metadata_protected_resources_round_trips) {
   config.protected_resources = resources;
   auto document{sourcemeta::core::oauth_make_server_metadata(config)};
   EXPECT_TRUE(document.has_value());
+  const auto expected{document.value()};
   const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
       std::move(document.value()), "https://server.example")};
   EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata.value().data(), expected);
   EXPECT_TRUE(
       metadata.value().supports_protected_resource("https://api.example.com"));
   EXPECT_FALSE(metadata.value().supports_protected_resource(
@@ -1555,9 +1612,11 @@ TEST(server_metadata_supports_protected_resource) {
     "response_types_supported": [ "code" ],
     "protected_resources": [ "https://api.example.com" ]
   })JSON")};
+  const auto expected{document};
   const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
       std::move(document), "https://server.example")};
   EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata.value().data(), expected);
   EXPECT_TRUE(
       metadata.value().supports_protected_resource("https://api.example.com"));
   EXPECT_FALSE(metadata.value().supports_protected_resource(
@@ -1569,9 +1628,11 @@ TEST(server_metadata_protected_resource_absent_is_false) {
     "issuer": "https://server.example",
     "response_types_supported": [ "code" ]
   })JSON")};
+  const auto expected{document};
   const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
       std::move(document), "https://server.example")};
   EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata.value().data(), expected);
   EXPECT_FALSE(
       metadata.value().supports_protected_resource("https://api.example.com"));
 }
@@ -1607,4 +1668,17 @@ TEST(server_metadata_rejects_a_non_string_protected_resource_element) {
   const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
       std::move(document), "https://server.example")};
   EXPECT_FALSE(metadata.has_value());
+}
+
+TEST(make_server_metadata_rejects_an_uppercase_protected_resource_scheme) {
+  const std::array<std::string_view, 1> response_types{{"code"}};
+  const std::array<std::string_view, 1> resources{{"HTTPS://api.example.com"}};
+  sourcemeta::core::OAuthServerMetadataConfig config;
+  config.issuer = "https://server.example";
+  config.authorization_endpoint = "https://server.example/authorize";
+  config.token_endpoint = "https://server.example/token";
+  config.response_types_supported = response_types;
+  config.protected_resources = resources;
+  const auto document{sourcemeta::core::oauth_make_server_metadata(config)};
+  EXPECT_FALSE(document.has_value());
 }

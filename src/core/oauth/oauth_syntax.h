@@ -26,13 +26,15 @@ inline auto oauth_try_parse_uri(const std::string_view value)
   }
 }
 
-// RFC 8414 Section 2: an issuer is an https URL with a non-empty host (RFC 3986
-// Section 3.2) and no query or fragment, its scheme matched by code points to
-// reject a non-canonical case
-inline auto oauth_is_issuer_identifier(const std::string_view value) -> bool {
+// An issuer identifier a document advertises for someone else, rather than the
+// one the document was retrieved for. RFC 8414 Section 2 gives it the same
+// shape, but Section 4 scopes code-point comparison to "comparing values in the
+// messages to known values", and an advertised issuer is matched against
+// nothing at parse time. Its validity therefore follows RFC 3986 Section 3.1,
+// which makes the scheme case-insensitive
+inline auto oauth_is_advertised_issuer(const std::string_view value) -> bool {
   const auto uri{oauth_try_parse_uri(value)};
-  return uri.has_value() && uri->scheme().has_value() &&
-         uri->scheme().value() == "https" && uri->host().has_value() &&
+  return uri.has_value() && uri->is_https() && uri->host().has_value() &&
          !uri->host().value().empty() && !uri->query().has_value() &&
          !uri->fragment().has_value();
 }

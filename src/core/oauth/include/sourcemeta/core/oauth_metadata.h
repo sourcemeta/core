@@ -99,24 +99,23 @@ SOURCEMETA_CORE_OAUTH_EXPORT
 auto oauth_is_resource_identifier(const std::string_view value) -> bool;
 
 /// @ingroup oauth
-/// Whether a value is usable as an authorization server issuer identifier
-/// advertised inside a metadata document: the `https` scheme compared
-/// case-insensitively, a non-empty host, and no query or fragment (RFC 8414
-/// Section 2). This is the rule the resource metadata builder and parser apply
-/// to `authorization_servers` entries, so a caller assembling a document can
-/// pre-filter with it. For example:
+/// Whether a value is a valid authorization server issuer identifier: the
+/// `https` scheme by exact code points, a non-empty host, and no query or
+/// fragment (RFC 8414 Section 2). This is the rule the metadata builders
+/// apply to `issuer` and to `authorization_servers` entries, so a caller
+/// assembling a document can pre-filter with it. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/oauth.h>
 /// #include <cassert>
 ///
-/// assert(sourcemeta::core::oauth_is_advertised_issuer(
+/// assert(sourcemeta::core::oauth_is_issuer_identifier(
 ///     "https://auth.example.com/tenant"));
-/// assert(!sourcemeta::core::oauth_is_advertised_issuer(
+/// assert(!sourcemeta::core::oauth_is_issuer_identifier(
 ///     "https://auth.example.com/?tenant=1"));
 /// ```
 SOURCEMETA_CORE_OAUTH_EXPORT
-auto oauth_is_advertised_issuer(const std::string_view value) -> bool;
+auto oauth_is_issuer_identifier(const std::string_view value) -> bool;
 
 #if defined(_MSC_VER)
 #pragma warning(disable : 4251)

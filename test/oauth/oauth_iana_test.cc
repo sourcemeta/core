@@ -241,7 +241,7 @@ auto main(int argc, char **argv) -> int {
   register_all("OAuth_IANA_ServerMetadata", server_metadata_names,
                server_metadata);
 
-  // OAuth Protected Resource Metadata (RFC 9728 Section 6.1)
+  // OAuth Protected Resource Metadata (RFC 9728 Section 8.1)
   const auto resource_metadata{
       load_registry(base / "protected-resource-metadata.csv")};
   const std::array<std::string_view, 14> resource_metadata_names{
