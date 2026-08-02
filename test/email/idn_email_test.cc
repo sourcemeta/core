@@ -529,8 +529,6 @@ TEST(valid_ulabel_local_and_alabel_domain) {
   EXPECT_FALSE(sourcemeta::core::is_email("\xce\xb1@xn--nxasmq6b.com"));
 }
 
-// --- RFC 5321 §4.1.3 address-literal: Snum ---------------------------------
-
 // RFC 5321 §4.1.3: Snum = 1*3DIGIT "representing a decimal integer value in
 // the range 0 through 255". The rule constrains the VALUE, not the digit
 // count, so leading zeros are inside the grammar. This is the documented
@@ -599,8 +597,6 @@ TEST(invalid_address_literal_empty_octet) {
   EXPECT_FALSE(sourcemeta::core::is_email("user@[1..2.3]"));
 }
 
-// --- RFC 5321 §4.1.3 General-address-literal -------------------------------
-
 // General-address-literal = Standardized-tag ":" 1*dcontent
 TEST(valid_general_address_literal) {
   EXPECT_TRUE(sourcemeta::core::is_idn_email("user@[unknown-tag:abc]"));
@@ -648,8 +644,6 @@ TEST(invalid_general_address_literal_open_bracket_in_content) {
   EXPECT_FALSE(sourcemeta::core::is_email("user@[tag:ab[c]"));
 }
 
-// --- RFC 5321 §4.1.3 IPv6-address-literal ----------------------------------
-
 // IPv6-comp permits an empty prefix and suffix around "::"
 TEST(valid_address_literal_ipv6_fully_compressed) {
   EXPECT_TRUE(sourcemeta::core::is_idn_email("user@[IPv6:::1]"));
@@ -682,8 +676,6 @@ TEST(invalid_address_literal_ipv6_empty) {
   EXPECT_FALSE(sourcemeta::core::is_email("user@[IPv6:]"));
 }
 
-// --- address-literal shape -------------------------------------------------
-
 TEST(invalid_address_literal_empty) {
   EXPECT_FALSE(sourcemeta::core::is_idn_email("user@[]"));
   EXPECT_FALSE(sourcemeta::core::is_email("user@[]"));
@@ -709,8 +701,6 @@ TEST(invalid_address_literal_trailing_space) {
   EXPECT_FALSE(sourcemeta::core::is_email("user@[192.0.2.1 ]"));
 }
 
-// --- the "@" delimiter -----------------------------------------------------
-
 // RFC 5321 §4.1.2: Mailbox splits on U+0040. A fullwidth (U+FF20, EF BC A0) or
 // small (U+FE6B, EF B9 AB) commercial at is an ordinary character, so a string
 // carrying one instead of "@" has no delimiter at all. Both codepoints map to
@@ -729,8 +719,6 @@ TEST(invalid_small_commercial_at) {
   EXPECT_FALSE(sourcemeta::core::is_email("user\xef\xb9\xab"
                                           "example.com"));
 }
-
-// --- local-part codepoints the ABNF admits ---------------------------------
 
 // RFC 6531 §3.3 extends atext with UTF8-non-ascii and RFC 6532 §3.1 defines
 // that as UTF8-2 / UTF8-3 / UTF8-4, with no codepoint-class filter. So a C1
@@ -759,8 +747,6 @@ TEST(valid_local_supplementary_private_use) {
   EXPECT_TRUE(sourcemeta::core::is_idn_email("\xf3\xb0\x80\x80@example.com"));
   EXPECT_FALSE(sourcemeta::core::is_email("\xf3\xb0\x80\x80@example.com"));
 }
-
-// --- Quoted-string structure -----------------------------------------------
 
 // RFC 5321 §4.1.2: Quoted-string = DQUOTE *QcontentSMTP DQUOTE, so the closing
 // DQUOTE is mandatory
