@@ -5059,3 +5059,626 @@ TEST(huge_exponent_decimal_literal_with_double_datatype) {
   EXPECT_EQ(result, expected);
   EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
 }
+
+TEST(node_with_constants) {
+  const auto instance =
+      sourcemeta::core::parse_json(R"({ "name": "Sourcemeta" })");
+
+  sourcemeta::core::JSONLDNode node;
+  node.id = "https://example.com/org";
+  node.constants = sourcemeta::core::parse_json(R"({
+    "https://example.com/kind": [ { "@id": "https://example.com/Company" } ]
+  })");
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(sourcemeta::core::Pointer{},
+                           sourcemeta::core::JSONLDDescriptor{
+                               .edges = {}, .value = std::move(node)});
+  annotations.emplace_back(sourcemeta::core::Pointer{"name"},
+                           sourcemeta::core::JSONLDDescriptor{
+                               .edges = {{"https://schema.org/name", false}},
+                               .value = sourcemeta::core::JSONLDLiteral{}});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "https://example.com/org",
+      "https://schema.org/name": [ { "@value": "Sourcemeta" } ],
+      "https://example.com/kind": [ { "@id": "https://example.com/Company" } ]
+    }
+  ])");
+
+  const auto result{
+      sourcemeta::core::jsonld_materialize(instance, annotations)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+TEST(node_constants_dedupe_against_instance_members) {
+  const auto instance = sourcemeta::core::parse_json(
+      R"({ "kind": "https://example.com/Company" })");
+
+  sourcemeta::core::JSONLDNode node;
+  node.id = "https://example.com/org";
+  node.constants = sourcemeta::core::parse_json(R"({
+    "https://example.com/kind": [
+      { "@value": "https://example.com/Company" }
+    ]
+  })");
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(sourcemeta::core::Pointer{},
+                           sourcemeta::core::JSONLDDescriptor{
+                               .edges = {}, .value = std::move(node)});
+  annotations.emplace_back(sourcemeta::core::Pointer{"kind"},
+                           sourcemeta::core::JSONLDDescriptor{
+                               .edges = {{"https://example.com/kind", false}},
+                               .value = sourcemeta::core::JSONLDLiteral{}});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "https://example.com/org",
+      "https://example.com/kind": [
+        { "@value": "https://example.com/Company" }
+      ]
+    }
+  ])");
+
+  const auto result{
+      sourcemeta::core::jsonld_materialize(instance, annotations)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+TEST(graph_node_constants_on_inner_subject) {
+  const auto instance =
+      sourcemeta::core::parse_json(R"({ "name": "Sourcemeta" })");
+
+  sourcemeta::core::JSONLDNode node;
+  node.id = "https://example.com/graph";
+  node.graph = true;
+  node.constants = sourcemeta::core::parse_json(R"({
+    "https://example.com/kind": [ { "@id": "https://example.com/Company" } ]
+  })");
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(sourcemeta::core::Pointer{},
+                           sourcemeta::core::JSONLDDescriptor{
+                               .edges = {}, .value = std::move(node)});
+  annotations.emplace_back(sourcemeta::core::Pointer{"name"},
+                           sourcemeta::core::JSONLDDescriptor{
+                               .edges = {{"https://schema.org/name", false}},
+                               .value = sourcemeta::core::JSONLDLiteral{}});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "https://example.com/graph",
+      "@graph": [
+        {
+          "@id": "https://example.com/graph",
+          "https://schema.org/name": [ { "@value": "Sourcemeta" } ],
+          "https://example.com/kind": [
+            { "@id": "https://example.com/Company" }
+          ]
+        }
+      ]
+    }
+  ])");
+
+  const auto result{
+      sourcemeta::core::jsonld_materialize(instance, annotations)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+TEST(reference_with_constants_renders_node_object) {
+  const auto instance = sourcemeta::core::parse_json(R"({ "code": "EUR" })");
+
+  sourcemeta::core::JSONLDReference reference;
+  reference.id = "https://example.com/EUR";
+  reference.constants = sourcemeta::core::parse_json(R"({
+    "https://example.com/kind": [ { "@id": "https://example.com/Currency" } ]
+  })");
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"code"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{"https://example.com/currency", false}},
+          .value = std::move(reference)});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "https://example.com/currency": [
+        {
+          "@id": "https://example.com/EUR",
+          "https://example.com/kind": [
+            { "@id": "https://example.com/Currency" }
+          ]
+        }
+      ]
+    }
+  ])");
+
+  const auto result{
+      sourcemeta::core::jsonld_materialize(instance, annotations)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+TEST(promotion_with_constants) {
+  const auto instance = sourcemeta::core::parse_json(R"({ "height": 1.85 })");
+
+  sourcemeta::core::JSONLDPromotion promotion;
+  promotion.types.push_back("https://example.com/Quantity");
+  promotion.value = "https://example.com/value";
+  promotion.constants = sourcemeta::core::parse_json(R"({
+    "https://example.com/unit": [ { "@id": "https://example.com/metre" } ]
+  })");
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(sourcemeta::core::Pointer{"height"},
+                           sourcemeta::core::JSONLDDescriptor{
+                               .edges = {{"https://example.com/height", false}},
+                               .value = std::move(promotion)});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "https://example.com/height": [
+        {
+          "@type": [ "https://example.com/Quantity" ],
+          "https://example.com/value": [ { "@value": 1.85 } ],
+          "https://example.com/unit": [ { "@id": "https://example.com/metre" } ]
+        }
+      ]
+    }
+  ])");
+
+  const auto result{
+      sourcemeta::core::jsonld_materialize(instance, annotations)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+TEST(promotion_typed_inner_literal_canonical_lexical_form) {
+  const auto instance = sourcemeta::core::parse_json(R"({ "height": 1.85 })");
+
+  sourcemeta::core::JSONLDPromotion promotion;
+  promotion.value = "https://example.com/value";
+  promotion.literal.datatype = "http://www.w3.org/2001/XMLSchema#decimal";
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(sourcemeta::core::Pointer{"height"},
+                           sourcemeta::core::JSONLDDescriptor{
+                               .edges = {{"https://example.com/height", false}},
+                               .value = std::move(promotion)});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "https://example.com/height": [
+        {
+          "https://example.com/value": [
+            {
+              "@value": "1.85",
+              "@type": "http://www.w3.org/2001/XMLSchema#decimal"
+            }
+          ]
+        }
+      ]
+    }
+  ])");
+
+  const auto result{
+      sourcemeta::core::jsonld_materialize(instance, annotations)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+TEST(promotion_language_inner_literal) {
+  const auto instance = sourcemeta::core::parse_json(R"({ "name": "metro" })");
+
+  sourcemeta::core::JSONLDPromotion promotion;
+  promotion.value = "https://example.com/label";
+  promotion.literal.language = "es";
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(sourcemeta::core::Pointer{"name"},
+                           sourcemeta::core::JSONLDDescriptor{
+                               .edges = {{"https://example.com/name", false}},
+                               .value = std::move(promotion)});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "https://example.com/name": [
+        {
+          "https://example.com/label": [
+            { "@value": "metro", "@language": "es" }
+          ]
+        }
+      ]
+    }
+  ])");
+
+  const auto result{
+      sourcemeta::core::jsonld_materialize(instance, annotations)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+TEST(promotion_null_instance_emits_nothing) {
+  const auto instance = sourcemeta::core::parse_json(R"({ "height": null })");
+
+  sourcemeta::core::JSONLDPromotion promotion;
+  promotion.value = "https://example.com/value";
+  promotion.constants = sourcemeta::core::parse_json(R"({
+    "https://example.com/unit": [ { "@id": "https://example.com/metre" } ]
+  })");
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(sourcemeta::core::Pointer{"height"},
+                           sourcemeta::core::JSONLDDescriptor{
+                               .edges = {{"https://example.com/height", false}},
+                               .value = std::move(promotion)});
+
+  const auto expected = sourcemeta::core::parse_json(R"([])");
+  const auto result{
+      sourcemeta::core::jsonld_materialize(instance, annotations)};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(promotion_anonymous_unedged_property_omitted) {
+  const auto instance = sourcemeta::core::parse_json(R"({ "height": 1.85 })");
+
+  sourcemeta::core::JSONLDPromotion promotion;
+  promotion.value = "https://example.com/value";
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(sourcemeta::core::Pointer{"height"},
+                           sourcemeta::core::JSONLDDescriptor{
+                               .edges = {}, .value = std::move(promotion)});
+
+  const auto expected = sourcemeta::core::parse_json(R"([])");
+  const auto result{
+      sourcemeta::core::jsonld_materialize(instance, annotations)};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(promotion_named_unedged_property_standalone) {
+  const auto instance = sourcemeta::core::parse_json(R"({ "height": 1.85 })");
+
+  sourcemeta::core::JSONLDPromotion promotion;
+  promotion.id = "https://example.com/measurement";
+  promotion.value = "https://example.com/value";
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(sourcemeta::core::Pointer{"height"},
+                           sourcemeta::core::JSONLDDescriptor{
+                               .edges = {}, .value = std::move(promotion)});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "https://example.com/measurement",
+      "https://example.com/value": [ { "@value": 1.85 } ]
+    }
+  ])");
+
+  const auto result{
+      sourcemeta::core::jsonld_materialize(instance, annotations)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+TEST(promotion_anonymous_root_omitted) {
+  const auto instance = sourcemeta::core::parse_json(R"(1.85)");
+
+  sourcemeta::core::JSONLDPromotion promotion;
+  promotion.value = "https://example.com/value";
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(sourcemeta::core::Pointer{},
+                           sourcemeta::core::JSONLDDescriptor{
+                               .edges = {}, .value = std::move(promotion)});
+
+  const auto expected = sourcemeta::core::parse_json(R"([])");
+  const auto result{
+      sourcemeta::core::jsonld_materialize(instance, annotations)};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(promotion_named_root_kept) {
+  const auto instance = sourcemeta::core::parse_json(R"(1.85)");
+
+  sourcemeta::core::JSONLDPromotion promotion;
+  promotion.id = "https://example.com/measurement";
+  promotion.value = "https://example.com/value";
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(sourcemeta::core::Pointer{},
+                           sourcemeta::core::JSONLDDescriptor{
+                               .edges = {}, .value = std::move(promotion)});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "https://example.com/measurement",
+      "https://example.com/value": [ { "@value": 1.85 } ]
+    }
+  ])");
+
+  const auto result{
+      sourcemeta::core::jsonld_materialize(instance, annotations)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+TEST(promotion_anonymous_list_member_survives) {
+  const auto instance =
+      sourcemeta::core::parse_json(R"({ "heights": [ 1.85, 1.7 ] })");
+
+  sourcemeta::core::JSONLDPromotion first;
+  first.value = "https://example.com/value";
+  sourcemeta::core::JSONLDPromotion second;
+  second.value = "https://example.com/value";
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"heights"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{"https://example.com/heights", false}},
+          .value = sourcemeta::core::JSONLDCollection{
+              .container = sourcemeta::core::JSONLDContainer::List}});
+  annotations.emplace_back(sourcemeta::core::Pointer{"heights", 0},
+                           sourcemeta::core::JSONLDDescriptor{
+                               .edges = {}, .value = std::move(first)});
+  annotations.emplace_back(sourcemeta::core::Pointer{"heights", 1},
+                           sourcemeta::core::JSONLDDescriptor{
+                               .edges = {}, .value = std::move(second)});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "https://example.com/heights": [
+        {
+          "@list": [
+            { "https://example.com/value": [ { "@value": 1.85 } ] },
+            { "https://example.com/value": [ { "@value": 1.7 } ] }
+          ]
+        }
+      ]
+    }
+  ])");
+
+  const auto result{
+      sourcemeta::core::jsonld_materialize(instance, annotations)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+TEST(promotion_value_predicate_collision_unions) {
+  const auto instance = sourcemeta::core::parse_json(R"({ "height": 1.85 })");
+
+  sourcemeta::core::JSONLDPromotion promotion;
+  promotion.value = "https://example.com/value";
+  promotion.constants = sourcemeta::core::parse_json(R"({
+    "https://example.com/value": [ { "@value": "reference" } ]
+  })");
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(sourcemeta::core::Pointer{"height"},
+                           sourcemeta::core::JSONLDDescriptor{
+                               .edges = {{"https://example.com/height", false}},
+                               .value = std::move(promotion)});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "https://example.com/height": [
+        {
+          "https://example.com/value": [
+            { "@value": 1.85 },
+            { "@value": "reference" }
+          ]
+        }
+      ]
+    }
+  ])");
+
+  const auto result{
+      sourcemeta::core::jsonld_materialize(instance, annotations)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+TEST(promotion_value_predicate_collision_dedupes_equal_terms) {
+  const auto instance = sourcemeta::core::parse_json(R"({ "height": 1 })");
+
+  sourcemeta::core::JSONLDPromotion promotion;
+  promotion.value = "https://example.com/value";
+  promotion.constants = sourcemeta::core::parse_json(R"({
+    "https://example.com/value": [ { "@value": 1.0 } ]
+  })");
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(sourcemeta::core::Pointer{"height"},
+                           sourcemeta::core::JSONLDDescriptor{
+                               .edges = {{"https://example.com/height", false}},
+                               .value = std::move(promotion)});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "https://example.com/height": [
+        { "https://example.com/value": [ { "@value": 1 } ] }
+      ]
+    }
+  ])");
+
+  const auto result{
+      sourcemeta::core::jsonld_materialize(instance, annotations)};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(promotion_under_multiple_edges_distinct_nodes) {
+  const auto instance = sourcemeta::core::parse_json(R"({ "height": 1.85 })");
+
+  sourcemeta::core::JSONLDPromotion promotion;
+  promotion.value = "https://example.com/value";
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"height"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{"https://example.com/height", false},
+                    {"https://example.com/stature", false}},
+          .value = std::move(promotion)});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "https://example.com/height": [
+        { "https://example.com/value": [ { "@value": 1.85 } ] }
+      ],
+      "https://example.com/stature": [
+        { "https://example.com/value": [ { "@value": 1.85 } ] }
+      ]
+    }
+  ])");
+
+  const auto result{
+      sourcemeta::core::jsonld_materialize(instance, annotations)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+TEST(promotion_reverse_edge) {
+  const auto instance = sourcemeta::core::parse_json(R"({ "height": 1.85 })");
+
+  sourcemeta::core::JSONLDPromotion promotion;
+  promotion.value = "https://example.com/value";
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"height"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{"https://example.com/measurementOf", true}},
+          .value = std::move(promotion)});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@reverse": {
+        "https://example.com/measurementOf": [
+          { "https://example.com/value": [ { "@value": 1.85 } ] }
+        ]
+      }
+    }
+  ])");
+
+  const auto result{
+      sourcemeta::core::jsonld_materialize(instance, annotations)};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(promotion_index_container_member_keeps_index) {
+  const auto instance =
+      sourcemeta::core::parse_json(R"({ "readings": { "morning": 1.85 } })");
+
+  sourcemeta::core::JSONLDPromotion promotion;
+  promotion.value = "https://example.com/value";
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"readings"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{"https://example.com/readings", false}},
+          .value = sourcemeta::core::JSONLDCollection{
+              .container = sourcemeta::core::JSONLDContainer::Index}});
+  annotations.emplace_back(sourcemeta::core::Pointer{"readings", "morning"},
+                           sourcemeta::core::JSONLDDescriptor{
+                               .edges = {}, .value = std::move(promotion)});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "https://example.com/readings": [
+        {
+          "https://example.com/value": [ { "@value": 1.85 } ],
+          "@index": "morning"
+        }
+      ]
+    }
+  ])");
+
+  const auto result{
+      sourcemeta::core::jsonld_materialize(instance, annotations)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+TEST(promotion_empty_constants_no_op) {
+  const auto instance = sourcemeta::core::parse_json(R"({ "height": 1.85 })");
+
+  sourcemeta::core::JSONLDPromotion promotion;
+  promotion.value = "https://example.com/value";
+  promotion.constants = sourcemeta::core::JSON::make_object();
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(sourcemeta::core::Pointer{"height"},
+                           sourcemeta::core::JSONLDDescriptor{
+                               .edges = {{"https://example.com/height", false}},
+                               .value = std::move(promotion)});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "https://example.com/height": [
+        { "https://example.com/value": [ { "@value": 1.85 } ] }
+      ]
+    }
+  ])");
+
+  const auto result{
+      sourcemeta::core::jsonld_materialize(instance, annotations)};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(promotion_output_flattens) {
+  const auto instance = sourcemeta::core::parse_json(R"({ "height": 1.85 })");
+
+  sourcemeta::core::JSONLDPromotion promotion;
+  promotion.types.push_back("https://example.com/Quantity");
+  promotion.value = "https://example.com/value";
+  promotion.constants = sourcemeta::core::parse_json(R"({
+    "https://example.com/unit": [ { "@id": "https://example.com/metre" } ]
+  })");
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(sourcemeta::core::Pointer{"height"},
+                           sourcemeta::core::JSONLDDescriptor{
+                               .edges = {{"https://example.com/height", false}},
+                               .value = std::move(promotion)});
+
+  const auto expanded{
+      sourcemeta::core::jsonld_materialize(instance, annotations)};
+  const auto flattened{sourcemeta::core::jsonld_flatten(expanded)};
+  EXPECT_TRUE(flattened.is_array());
+  EXPECT_EQ(flattened.size(), 2);
+}
+
+TEST(promotion_output_compacts_and_re_expands) {
+  const auto instance = sourcemeta::core::parse_json(R"({ "height": 1.85 })");
+
+  sourcemeta::core::JSONLDPromotion promotion;
+  promotion.types.push_back("https://example.com/Quantity");
+  promotion.value = "https://example.com/value";
+  promotion.constants = sourcemeta::core::parse_json(R"({
+    "https://example.com/unit": [ { "@id": "https://example.com/metre" } ]
+  })");
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(sourcemeta::core::Pointer{"height"},
+                           sourcemeta::core::JSONLDDescriptor{
+                               .edges = {{"https://example.com/height", false}},
+                               .value = std::move(promotion)});
+
+  const auto expanded{
+      sourcemeta::core::jsonld_materialize(instance, annotations)};
+  const auto context{sourcemeta::core::parse_json(R"({
+    "value": "https://example.com/value",
+    "unit": { "@id": "https://example.com/unit", "@type": "@id" }
+  })")};
+  const auto compacted{sourcemeta::core::jsonld_compact(expanded, context)};
+  const auto re_expanded{sourcemeta::core::jsonld_expand(compacted)};
+  EXPECT_EQ(re_expanded, expanded);
+}
