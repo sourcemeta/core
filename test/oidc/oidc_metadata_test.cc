@@ -765,3 +765,83 @@ TEST(from_oauth_preserves_the_underlying_oauth_view) {
             "https://example.com/token");
   EXPECT_TRUE(metadata.value().oauth().supports_response_type("code"));
 }
+
+TEST(from_reports_claims_parameter_support_when_advertised_true) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://example.com",
+    "authorization_endpoint": "https://example.com/authorize",
+    "token_endpoint": "https://example.com/token",
+    "jwks_uri": "https://example.com/jwks",
+    "response_types_supported": [ "code" ],
+    "subject_types_supported": [ "public" ],
+    "id_token_signing_alg_values_supported": [ "RS256" ],
+    "claims_parameter_supported": true
+  })JSON")};
+  const auto metadata{sourcemeta::core::OIDCProviderMetadata::from(
+      std::move(document), "https://example.com")};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_TRUE(metadata.value().supports_claims_parameter());
+}
+
+TEST(from_reports_no_claims_parameter_support_when_advertised_false) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://example.com",
+    "authorization_endpoint": "https://example.com/authorize",
+    "token_endpoint": "https://example.com/token",
+    "jwks_uri": "https://example.com/jwks",
+    "response_types_supported": [ "code" ],
+    "subject_types_supported": [ "public" ],
+    "id_token_signing_alg_values_supported": [ "RS256" ],
+    "claims_parameter_supported": false
+  })JSON")};
+  const auto metadata{sourcemeta::core::OIDCProviderMetadata::from(
+      std::move(document), "https://example.com")};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_FALSE(metadata.value().supports_claims_parameter());
+}
+
+TEST(from_reports_no_claims_parameter_support_when_absent) {
+  const auto metadata{sourcemeta::core::OIDCProviderMetadata::from(
+      sourcemeta::core::JSON{VALID_PROVIDER_DOCUMENT}, "https://example.com")};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_FALSE(metadata.value().supports_claims_parameter());
+}
+
+TEST(from_reports_no_claims_parameter_support_when_malformed) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://example.com",
+    "authorization_endpoint": "https://example.com/authorize",
+    "token_endpoint": "https://example.com/token",
+    "jwks_uri": "https://example.com/jwks",
+    "response_types_supported": [ "code" ],
+    "subject_types_supported": [ "public" ],
+    "id_token_signing_alg_values_supported": [ "RS256" ],
+    "claims_parameter_supported": "true"
+  })JSON")};
+  const auto metadata{sourcemeta::core::OIDCProviderMetadata::from(
+      std::move(document), "https://example.com")};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_FALSE(metadata.value().supports_claims_parameter());
+}
+
+TEST(make_round_trips_the_claims_parameter_capability) {
+  const std::array<std::string_view, 1> response_types{{"code"}};
+  const std::array<std::string_view, 1> subject_types{{"public"}};
+  const std::array<std::string_view, 1> id_token_algs{{"RS256"}};
+  sourcemeta::core::OIDCProviderMetadataConfig config;
+  config.base.issuer = "https://server.example";
+  config.base.authorization_endpoint = "https://server.example/authorize";
+  config.base.token_endpoint = "https://server.example/token";
+  config.base.jwks_uri = "https://server.example/jwks";
+  config.base.response_types_supported = response_types;
+  config.subject_types_supported = subject_types;
+  config.id_token_signing_alg_values_supported = id_token_algs;
+  config.claims_parameter_supported = true;
+
+  auto document{sourcemeta::core::oidc_make_provider_metadata(config)};
+  EXPECT_TRUE(document.has_value());
+  const auto metadata{sourcemeta::core::OIDCProviderMetadata::from(
+      std::move(document).value(), "https://server.example")};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_TRUE(metadata.value().supports_claims_parameter());
+}
