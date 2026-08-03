@@ -528,3 +528,242 @@ TEST(valid_ulabel_local_and_alabel_domain) {
   EXPECT_TRUE(sourcemeta::core::is_idn_email("\xce\xb1@xn--nxasmq6b.com"));
   EXPECT_FALSE(sourcemeta::core::is_email("\xce\xb1@xn--nxasmq6b.com"));
 }
+
+// RFC 5321 §4.1.3: Snum = 1*3DIGIT "representing a decimal integer value in
+// the range 0 through 255". The rule constrains the VALUE, not the digit
+// count, so leading zeros are inside the grammar. This is the documented
+// difference from the RFC 3986 dec-octet that backs is_ipv4, which forbids
+// them - so an implementation that reuses its ipv4 checker here is wrong.
+TEST(valid_address_literal_snum_leading_zero) {
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("user@[01.0.0.1]"));
+  EXPECT_TRUE(sourcemeta::core::is_email("user@[01.0.0.1]"));
+}
+
+TEST(valid_address_literal_snum_leading_zero_last_octet) {
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("user@[0.0.0.01]"));
+  EXPECT_TRUE(sourcemeta::core::is_email("user@[0.0.0.01]"));
+}
+
+TEST(valid_address_literal_snum_leading_zeros_every_octet) {
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("user@[001.002.003.004]"));
+  EXPECT_TRUE(sourcemeta::core::is_email("user@[001.002.003.004]"));
+}
+
+TEST(valid_address_literal_snum_padded_zero_octets) {
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("user@[000.000.000.000]"));
+  EXPECT_TRUE(sourcemeta::core::is_email("user@[000.000.000.000]"));
+}
+
+TEST(valid_address_literal_snum_maximum) {
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("user@[255.255.255.255]"));
+  EXPECT_TRUE(sourcemeta::core::is_email("user@[255.255.255.255]"));
+}
+
+// One over the range the comment in the ABNF gives
+TEST(invalid_address_literal_snum_over_maximum) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("user@[256.0.0.1]"));
+  EXPECT_FALSE(sourcemeta::core::is_email("user@[256.0.0.1]"));
+}
+
+// 1*3DIGIT caps the digit count at three even when the value fits
+TEST(invalid_address_literal_snum_four_digits) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("user@[0255.0.0.1]"));
+  EXPECT_FALSE(sourcemeta::core::is_email("user@[0255.0.0.1]"));
+}
+
+// RFC 5321 §4.1.3: IPv4-address-literal = Snum 3("." Snum), so exactly four
+TEST(invalid_address_literal_three_octets) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("user@[1.2.3]"));
+  EXPECT_FALSE(sourcemeta::core::is_email("user@[1.2.3]"));
+}
+
+TEST(invalid_address_literal_five_octets) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("user@[1.2.3.4.5]"));
+  EXPECT_FALSE(sourcemeta::core::is_email("user@[1.2.3.4.5]"));
+}
+
+TEST(invalid_address_literal_trailing_dot) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("user@[1.2.3.]"));
+  EXPECT_FALSE(sourcemeta::core::is_email("user@[1.2.3.]"));
+}
+
+TEST(invalid_address_literal_leading_dot) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("user@[.1.2.3]"));
+  EXPECT_FALSE(sourcemeta::core::is_email("user@[.1.2.3]"));
+}
+
+TEST(invalid_address_literal_empty_octet) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("user@[1..2.3]"));
+  EXPECT_FALSE(sourcemeta::core::is_email("user@[1..2.3]"));
+}
+
+// General-address-literal = Standardized-tag ":" 1*dcontent
+TEST(valid_general_address_literal) {
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("user@[unknown-tag:abc]"));
+  EXPECT_TRUE(sourcemeta::core::is_email("user@[unknown-tag:abc]"));
+}
+
+TEST(valid_general_address_literal_shortest) {
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("user@[a:b]"));
+  EXPECT_TRUE(sourcemeta::core::is_email("user@[a:b]"));
+}
+
+// RFC 5321 §4.1.2: Ldh-str = *( ALPHA / DIGIT / "-" ) Let-dig constrains only
+// the final character, so unlike sub-domain (Let-dig [Ldh-str]) a
+// Standardized-tag may begin with a hyphen
+TEST(valid_general_address_literal_leading_hyphen_tag) {
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("user@[-tag:abc]"));
+  EXPECT_TRUE(sourcemeta::core::is_email("user@[-tag:abc]"));
+}
+
+TEST(invalid_general_address_literal_trailing_hyphen_tag) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("user@[tag-:abc]"));
+  EXPECT_FALSE(sourcemeta::core::is_email("user@[tag-:abc]"));
+}
+
+// 1*dcontent requires at least one octet
+TEST(invalid_general_address_literal_empty_content) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("user@[tag:]"));
+  EXPECT_FALSE(sourcemeta::core::is_email("user@[tag:]"));
+}
+
+TEST(invalid_general_address_literal_empty_tag) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("user@[:abc]"));
+  EXPECT_FALSE(sourcemeta::core::is_email("user@[:abc]"));
+}
+
+// RFC 5321 §4.1.3: dcontent = %d33-90 / %d94-126, which excludes SP, "[",
+// "\" and "]"
+TEST(invalid_general_address_literal_space_in_content) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("user@[tag:ab c]"));
+  EXPECT_FALSE(sourcemeta::core::is_email("user@[tag:ab c]"));
+}
+
+TEST(invalid_general_address_literal_open_bracket_in_content) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("user@[tag:ab[c]"));
+  EXPECT_FALSE(sourcemeta::core::is_email("user@[tag:ab[c]"));
+}
+
+// IPv6-comp permits an empty prefix and suffix around "::"
+TEST(valid_address_literal_ipv6_fully_compressed) {
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("user@[IPv6:::1]"));
+  EXPECT_TRUE(sourcemeta::core::is_email("user@[IPv6:::1]"));
+}
+
+// RFC 5234 §2.3: ABNF literal strings are case-insensitive, so the tag matches
+// in any case. The lowercase form is already covered; this pins the uppercase.
+TEST(valid_address_literal_ipv6_uppercase_tag) {
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("user@[IPV6:2001:db8::1]"));
+  EXPECT_TRUE(sourcemeta::core::is_email("user@[IPV6:2001:db8::1]"));
+}
+
+// IPv6v4-comp = [IPv6-hex *3(":" IPv6-hex)] "::" [...] IPv4-address-literal
+TEST(valid_address_literal_ipv6v4_comp) {
+  EXPECT_TRUE(
+      sourcemeta::core::is_idn_email("user@[IPv6:2001:db8::192.0.2.1]"));
+  EXPECT_TRUE(sourcemeta::core::is_email("user@[IPv6:2001:db8::192.0.2.1]"));
+}
+
+// IPv6v4-full = IPv6-hex 5(":" IPv6-hex) ":" IPv4-address-literal
+TEST(valid_address_literal_ipv6v4_full) {
+  EXPECT_TRUE(
+      sourcemeta::core::is_idn_email("user@[IPv6:1:2:3:4:5:6:1.2.3.4]"));
+  EXPECT_TRUE(sourcemeta::core::is_email("user@[IPv6:1:2:3:4:5:6:1.2.3.4]"));
+}
+
+TEST(invalid_address_literal_ipv6_empty) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("user@[IPv6:]"));
+  EXPECT_FALSE(sourcemeta::core::is_email("user@[IPv6:]"));
+}
+
+TEST(invalid_address_literal_empty) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("user@[]"));
+  EXPECT_FALSE(sourcemeta::core::is_email("user@[]"));
+}
+
+TEST(invalid_address_literal_unterminated) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("user@[192.0.2.1"));
+  EXPECT_FALSE(sourcemeta::core::is_email("user@[192.0.2.1"));
+}
+
+TEST(invalid_address_literal_doubled_brackets) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("user@[[192.0.2.1]]"));
+  EXPECT_FALSE(sourcemeta::core::is_email("user@[[192.0.2.1]]"));
+}
+
+TEST(invalid_address_literal_followed_by_label) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("user@[192.0.2.1].com"));
+  EXPECT_FALSE(sourcemeta::core::is_email("user@[192.0.2.1].com"));
+}
+
+TEST(invalid_address_literal_trailing_space) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("user@[192.0.2.1 ]"));
+  EXPECT_FALSE(sourcemeta::core::is_email("user@[192.0.2.1 ]"));
+}
+
+// RFC 5321 §4.1.2: Mailbox splits on U+0040. A fullwidth (U+FF20, EF BC A0) or
+// small (U+FE6B, EF B9 AB) commercial at is an ordinary character, so a string
+// carrying one instead of "@" has no delimiter at all. Both codepoints map to
+// U+0040 in the UTS #46 table, but that mapping applies to the domain the
+// split produces, so it cannot manufacture the delimiter.
+TEST(invalid_fullwidth_commercial_at) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("user\xef\xbc\xa0"
+                                              "example.com"));
+  EXPECT_FALSE(sourcemeta::core::is_email("user\xef\xbc\xa0"
+                                          "example.com"));
+}
+
+TEST(invalid_small_commercial_at) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("user\xef\xb9\xab"
+                                              "example.com"));
+  EXPECT_FALSE(sourcemeta::core::is_email("user\xef\xb9\xab"
+                                          "example.com"));
+}
+
+// RFC 6531 §3.3 extends atext with UTF8-non-ascii and RFC 6532 §3.1 defines
+// that as UTF8-2 / UTF8-3 / UTF8-4, with no codepoint-class filter. So a C1
+// control, a noncharacter and a supplementary private-use codepoint are all
+// inside the local-part grammar even though they are unusual.
+// U+0085 NEXT LINE (C2 85)
+TEST(valid_local_c1_control) {
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("\xc2\x85@example.com"));
+  EXPECT_FALSE(sourcemeta::core::is_email("\xc2\x85@example.com"));
+}
+
+// U+FFFE noncharacter (EF BF BE)
+TEST(valid_local_noncharacter) {
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("\xef\xbf\xbe@example.com"));
+  EXPECT_FALSE(sourcemeta::core::is_email("\xef\xbf\xbe@example.com"));
+}
+
+// U+FDD0, the start of the noncharacter block (EF B7 90)
+TEST(valid_local_noncharacter_block) {
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("\xef\xb7\x90@example.com"));
+  EXPECT_FALSE(sourcemeta::core::is_email("\xef\xb7\x90@example.com"));
+}
+
+// U+F0000, a supplementary private-use codepoint (F3 B0 80 80)
+TEST(valid_local_supplementary_private_use) {
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("\xf3\xb0\x80\x80@example.com"));
+  EXPECT_FALSE(sourcemeta::core::is_email("\xf3\xb0\x80\x80@example.com"));
+}
+
+// RFC 5321 §4.1.2: Quoted-string = DQUOTE *QcontentSMTP DQUOTE, so the closing
+// DQUOTE is mandatory
+TEST(invalid_quoted_local_unterminated) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("\"unterminated@example.com"));
+  EXPECT_FALSE(sourcemeta::core::is_email("\"unterminated@example.com"));
+}
+
+// Local-part = Dot-string / Quoted-string, so a quoted string cannot be
+// followed by more local-part text
+TEST(invalid_quoted_local_trailing_text) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("\"a\"b@example.com"));
+  EXPECT_FALSE(sourcemeta::core::is_email("\"a\"b@example.com"));
+}
+
+// quoted-pairSMTP = %d92 %d32-126, so a backslash may escape the DQUOTE
+TEST(valid_quoted_local_escaped_dquote) {
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("\"\\\"\"@example.com"));
+  EXPECT_TRUE(sourcemeta::core::is_email("\"\\\"\"@example.com"));
+}
