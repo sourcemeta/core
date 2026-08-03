@@ -709,3 +709,72 @@ TEST(mixed_case_percent_encoding) {
   EXPECT_URITEMPLATE_EXPANSION(uri_template, 0, URITemplateTokenVariable, 0,
                                "%3Avar", 0, false);
 }
+
+TEST(literal_exclamation) {
+  EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("a!b"));
+}
+
+TEST(literal_hash_and_dollar) {
+  EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("a#b$c"));
+}
+
+TEST(literal_ampersand) {
+  EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("a&b"));
+}
+
+TEST(literal_apostrophe) {
+  EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("it's"));
+}
+
+TEST(literal_open_paren_range_start) {
+  EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("a(b"));
+}
+
+TEST(literal_semicolon_range_end) {
+  EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("a;b"));
+}
+
+TEST(literal_equals) {
+  EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("a=b"));
+}
+
+TEST(literal_question_range_start) {
+  EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("a?b"));
+}
+
+TEST(literal_open_bracket_range_end) {
+  EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("a[b"));
+}
+
+TEST(literal_close_bracket) {
+  EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("a]b"));
+}
+
+TEST(literal_underscore) {
+  EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("a_b"));
+}
+
+TEST(literal_tilde) {
+  EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("a~b"));
+}
+
+TEST(literal_uppercase_range) {
+  EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("ABC"));
+}
+
+TEST(literal_percent_encoded) {
+  EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("a%41b"));
+}
+
+TEST(literal_percent_encoded_lowercase_hex) {
+  EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("a%4fb"));
+}
+
+TEST(literal_high_byte) {
+  EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("caf\xC3"
+                                                            "\xA9"));
+}
+
+TEST(varname_dot_then_percent) {
+  EXPECT_TRUE(sourcemeta::core::URITemplate::is_uritemplate("{a.%41}"));
+}
