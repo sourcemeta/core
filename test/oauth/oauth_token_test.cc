@@ -408,3 +408,11 @@ TEST(parse_token_request_decodes_a_percent_encoded_name) {
       [](std::string_view, std::string_view) {}));
   EXPECT_EQ(request.grant_type, "client_credentials");
 }
+
+TEST(token_response_scope_membership_is_case_sensitive) {
+  const auto document{
+      sourcemeta::core::parse_json(R"JSON({ "scope": "Read" })JSON")};
+  const sourcemeta::core::OAuthTokenResponse response{document};
+  EXPECT_TRUE(response.has_scope("Read"));
+  EXPECT_FALSE(response.has_scope("read"));
+}

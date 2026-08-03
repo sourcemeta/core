@@ -706,3 +706,138 @@ TEST(is_dpop_bound_rejects_an_empty_confirmation) {
   })JSON")};
   EXPECT_FALSE(sourcemeta::core::oauth_is_dpop_bound(claims));
 }
+
+TEST(has_scope_matches_a_token_in_a_list) {
+  const auto claims{sourcemeta::core::parse_json(R"JSON({
+    "scope": "read write admin"
+  })JSON")};
+  EXPECT_TRUE(sourcemeta::core::oauth_has_scope(claims, "read"));
+  EXPECT_TRUE(sourcemeta::core::oauth_has_scope(claims, "write"));
+  EXPECT_TRUE(sourcemeta::core::oauth_has_scope(claims, "admin"));
+}
+
+TEST(has_scope_matches_a_single_token) {
+  const auto claims{sourcemeta::core::parse_json(R"JSON({
+    "scope": "read"
+  })JSON")};
+  EXPECT_TRUE(sourcemeta::core::oauth_has_scope(claims, "read"));
+  EXPECT_FALSE(sourcemeta::core::oauth_has_scope(claims, "write"));
+}
+
+TEST(has_scope_rejects_a_token_that_was_not_granted) {
+  const auto claims{sourcemeta::core::parse_json(R"JSON({
+    "scope": "read write"
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::oauth_has_scope(claims, "delete"));
+}
+
+TEST(has_scope_rejects_a_substring_of_a_granted_token) {
+  const auto claims{sourcemeta::core::parse_json(R"JSON({
+    "scope": "registry:readwrite"
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::oauth_has_scope(claims, "registry:read"));
+  EXPECT_FALSE(sourcemeta::core::oauth_has_scope(claims, "readwrite"));
+}
+
+TEST(has_scope_rejects_a_superstring_of_a_granted_token) {
+  const auto claims{sourcemeta::core::parse_json(R"JSON({
+    "scope": "registry:read"
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::oauth_has_scope(claims, "registry:readwrite"));
+}
+
+TEST(has_scope_is_case_sensitive) {
+  const auto claims{sourcemeta::core::parse_json(R"JSON({
+    "scope": "Registry:Read"
+  })JSON")};
+  EXPECT_TRUE(sourcemeta::core::oauth_has_scope(claims, "Registry:Read"));
+  EXPECT_FALSE(sourcemeta::core::oauth_has_scope(claims, "registry:read"));
+  EXPECT_FALSE(sourcemeta::core::oauth_has_scope(claims, "REGISTRY:READ"));
+}
+
+TEST(has_scope_compares_by_code_points_without_decoding) {
+  const auto claims{sourcemeta::core::parse_json(R"JSON({
+    "scope": "registry%3Aread"
+  })JSON")};
+  EXPECT_TRUE(sourcemeta::core::oauth_has_scope(claims, "registry%3Aread"));
+  EXPECT_FALSE(sourcemeta::core::oauth_has_scope(claims, "registry:read"));
+}
+
+TEST(has_scope_does_not_trim_the_sought_value) {
+  const auto claims{sourcemeta::core::parse_json(R"JSON({
+    "scope": "read"
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::oauth_has_scope(claims, " read"));
+  EXPECT_FALSE(sourcemeta::core::oauth_has_scope(claims, "read "));
+}
+
+TEST(has_scope_rejects_an_empty_sought_value) {
+  const auto claims{sourcemeta::core::parse_json(R"JSON({
+    "scope": "read write"
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::oauth_has_scope(claims, ""));
+}
+
+TEST(has_scope_rejects_an_empty_sought_value_between_repeated_separators) {
+  const auto claims{sourcemeta::core::parse_json(R"JSON({
+    "scope": " read  write "
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::oauth_has_scope(claims, ""));
+}
+
+TEST(has_scope_tolerates_repeated_separators) {
+  const auto claims{sourcemeta::core::parse_json(R"JSON({
+    "scope": " read  write "
+  })JSON")};
+  EXPECT_TRUE(sourcemeta::core::oauth_has_scope(claims, "read"));
+  EXPECT_TRUE(sourcemeta::core::oauth_has_scope(claims, "write"));
+}
+
+TEST(has_scope_splits_on_spaces_only) {
+  const auto claims{sourcemeta::core::parse_json(R"JSON({
+    "scope": "read\twrite"
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::oauth_has_scope(claims, "read"));
+  EXPECT_FALSE(sourcemeta::core::oauth_has_scope(claims, "write"));
+  EXPECT_TRUE(sourcemeta::core::oauth_has_scope(claims, "read\twrite"));
+}
+
+TEST(has_scope_rejects_an_empty_scope_claim) {
+  const auto claims{sourcemeta::core::parse_json(R"JSON({
+    "scope": ""
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::oauth_has_scope(claims, "read"));
+}
+
+TEST(has_scope_rejects_when_the_claim_is_absent) {
+  const auto claims{sourcemeta::core::parse_json(R"JSON({
+    "sub": "user"
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::oauth_has_scope(claims, "read"));
+}
+
+TEST(has_scope_rejects_an_array_scope_claim) {
+  const auto claims{sourcemeta::core::parse_json(R"JSON({
+    "scope": [ "read" ]
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::oauth_has_scope(claims, "read"));
+}
+
+TEST(has_scope_rejects_a_numeric_scope_claim) {
+  const auto claims{sourcemeta::core::parse_json(R"JSON({
+    "scope": 42
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::oauth_has_scope(claims, "42"));
+}
+
+TEST(has_scope_rejects_a_null_scope_claim) {
+  const auto claims{sourcemeta::core::parse_json(R"JSON({
+    "scope": null
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::oauth_has_scope(claims, "read"));
+}
+
+TEST(has_scope_rejects_when_the_claims_are_not_an_object) {
+  const auto claims{sourcemeta::core::parse_json(R"JSON([ "scope" ])JSON")};
+  EXPECT_FALSE(sourcemeta::core::oauth_has_scope(claims, "read"));
+}
