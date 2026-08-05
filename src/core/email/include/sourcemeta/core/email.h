@@ -129,6 +129,13 @@ auto mailto_iri(const std::string_view value) -> std::optional<std::string>;
 /// `user@host` account, with no result when the input is not one. The host is
 /// lowercased, as RFC 7565 Section 4 compares these IRIs under RFC 3986
 /// Section 6.2.2.1 case normalization, while the account name keeps its case.
+///
+/// The account name is limited to the printable ASCII repertoire of the
+/// PRECIS IdentifierClass (RFC 7564 Section 9.11) and the host to an ASCII
+/// DNS name, so internationalized forms yield no result. This restriction is
+/// deliberate and may be lifted later without re-minting any identity this
+/// function already produces.
+///
 /// For example:
 ///
 /// ```cpp

@@ -221,12 +221,6 @@ auto acct_iri(const std::string_view value) -> std::optional<std::string> {
     }
   }
 
-  // RFC 7565 §4: the host portion is the DNS domain name of the service
-  // provider
-  if (!is_hostname(parts->second)) {
-    return std::nullopt;
-  }
-
   std::string result;
   result.reserve(value.size() * 3 + 5);
   result.append("acct:");
@@ -240,8 +234,16 @@ auto acct_iri(const std::string_view value) -> std::optional<std::string> {
   result.push_back('@');
   // RFC 7565 §4: acct URIs compare under RFC 3986 §6.2.2.1 case
   // normalization, so the canonical spelling lowercases the host
+  const auto host_offset{result.size()};
   for (const auto character : parts->second) {
     result.push_back(to_lowercase(character));
+  }
+
+  // RFC 7565 §4: the host portion is the DNS domain name of the service
+  // provider. RFC 4343 makes DNS names case-insensitive, so validity is
+  // decided on the lowercased spelling that the canonical output uses
+  if (!is_hostname(std::string_view{result}.substr(host_offset))) {
+    return std::nullopt;
   }
 
   return result;

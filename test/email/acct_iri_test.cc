@@ -228,6 +228,15 @@ TEST(acct_iri_rejects_non_ascii_userpart) {
       sourcemeta::core::acct_iri("caf\xC3\xA9@example.com").has_value());
 }
 
+// RFC 4343: DNS names compare case-insensitively, so an A-label spelled
+// with uppercase Punycode names the same host as its lowercase form and
+// canonicalizes to it
+TEST(acct_iri_lowercases_uppercase_ace_host) {
+  const auto result{sourcemeta::core::acct_iri("user@XN--MNCHEN-3YA.example")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), "acct:user@xn--mnchen-3ya.example");
+}
+
 // RFC 7565 §4: the host portion is a DNS domain name, and underscores are
 // not in the hostname alphabet
 TEST(acct_iri_rejects_underscore_in_host) {
