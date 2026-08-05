@@ -78,12 +78,39 @@ TEST(mailto_iri_preserves_dots) {
   EXPECT_EQ(result.value(), "mailto:first.middle.last@example.com");
 }
 
-// RFC 6068 imposes no case normalization, so the mailbox spelling is
-// preserved byte for byte
-TEST(mailto_iri_preserves_case) {
+// RFC 3986 §6.2.3: "mailto:Joe@Example.COM" is equivalent to
+// "mailto:Joe@example.com", so the canonical spelling lowercases the domain
+// name
+TEST(mailto_iri_rfc_case_normalization_example) {
+  const auto result{sourcemeta::core::mailto_iri("Joe@Example.COM")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), "mailto:Joe@example.com");
+}
+
+// RFC 5321 §2.4: the local-part of a mailbox MUST BE treated as case
+// sensitive, while mailbox domains follow normal DNS rules and are hence
+// not case sensitive
+TEST(mailto_iri_lowercases_domain_name_only) {
   const auto result{sourcemeta::core::mailto_iri("John.Doe@Example.COM")};
   EXPECT_TRUE(result.has_value());
-  EXPECT_EQ(result.value(), "mailto:John.Doe@Example.COM");
+  EXPECT_EQ(result.value(), "mailto:John.Doe@example.com");
+}
+
+// RFC 5321 §2.4: for some hosts, the user "smith" is different from the
+// user "Smith"
+TEST(mailto_iri_preserves_local_part_case) {
+  const auto result{sourcemeta::core::mailto_iri("Smith@example.com")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), "mailto:Smith@example.com");
+}
+
+// RFC 3986 §6.2.3 licenses case normalization for an Internet hostname
+// subcomponent, and an address literal is not a DNS name, so its spelling
+// is preserved
+TEST(mailto_iri_preserves_address_literal_case) {
+  const auto result{sourcemeta::core::mailto_iri("user@[IPv6:2001:DB8::1]")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), "mailto:user@%5BIPv6:2001:DB8::1%5D");
 }
 
 // RFC 3986 §2.2: "!" is a sub-delim that RFC 6068 §2 does not reserve

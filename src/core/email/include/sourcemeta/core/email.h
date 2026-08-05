@@ -106,10 +106,11 @@ auto is_idn_email_uts46(const std::string_view value) -> bool;
 
 /// @ingroup email
 /// Produce the canonical RFC 6068 `mailto` IRI that identifies the given
-/// RFC 5321 `Mailbox`, with no result when the input is not one. The mailbox
-/// spelling, including domain case, is preserved byte for byte, as RFC 6068
-/// authorizes no normalization. This is a deliberate stance rather than an
-/// accident. For example:
+/// RFC 5321 `Mailbox`, with no result when the input is not one. The domain
+/// name is lowercased, the RFC 3986 Section 6.2.3 scheme-based case
+/// normalization that names this very scheme in its example, while the local
+/// part is case sensitive per RFC 5321 Section 2.4 and an address literal is
+/// not a DNS name, so both keep their spelling. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/email.h>

@@ -172,13 +172,34 @@ auto mailto_iri(const std::string_view value) -> std::optional<std::string> {
   std::string result;
   result.reserve(value.size() * 3 + 7);
   result.append("mailto:");
-  for (std::string_view::size_type position{0}; position < value.size();
-       position += 1) {
-    const auto character{value[position]};
-    if (position == separator.value() || is_mailto_verbatim(character)) {
+  for (const auto character : value.substr(0, separator.value())) {
+    if (is_mailto_verbatim(character)) {
       result.push_back(character);
     } else {
       percent_encode(static_cast<unsigned char>(character), result);
+    }
+  }
+  result.push_back('@');
+
+  const auto domain{value.substr(separator.value() + 1)};
+  if (domain.front() == '[') {
+    // RFC 3986 §6.2.3 licenses case normalization for an Internet hostname
+    // subcomponent, and an address literal is not a DNS name, so its
+    // spelling is preserved
+    for (const auto character : domain) {
+      if (is_mailto_verbatim(character)) {
+        result.push_back(character);
+      } else {
+        percent_encode(static_cast<unsigned char>(character), result);
+      }
+    }
+  } else {
+    // RFC 5321 §2.4: "Mailbox domains follow normal DNS rules and are hence
+    // not case sensitive", and RFC 3986 §6.2.3 makes such a subcomponent
+    // "subject to case normalization", naming this very scheme in its
+    // example, so the canonical spelling lowercases the domain name
+    for (const auto character : domain) {
+      result.push_back(to_lowercase(character));
     }
   }
 
