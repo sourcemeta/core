@@ -5,10 +5,13 @@
 #include <sourcemeta/core/email_export.h>
 #endif
 
+#include <optional>    // std::optional
+#include <string>      // std::string
 #include <string_view> // std::string_view
 
 /// @defgroup email Email
-/// @brief E-mail address validation per RFC 5321 and RFC 6531.
+/// @brief E-mail address validation per RFC 5321 and RFC 6531, plus
+/// canonical account identity IRIs per RFC 6068 and RFC 7565.
 ///
 /// This functionality is included as follows:
 ///
@@ -100,6 +103,40 @@ auto is_idn_email(const std::string_view value) -> bool;
 /// ```
 SOURCEMETA_CORE_EMAIL_EXPORT
 auto is_idn_email_uts46(const std::string_view value) -> bool;
+
+/// @ingroup email
+/// Produce the canonical RFC 6068 `mailto` IRI that identifies the given
+/// RFC 5321 `Mailbox`, with no result when the input is not one. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/email.h>
+///
+/// #include <cassert>
+///
+/// const auto iri{sourcemeta::core::mailto_iri("gorby%kremvax@example.com")};
+/// assert(iri.has_value());
+/// assert(iri.value() == "mailto:gorby%25kremvax@example.com");
+/// ```
+SOURCEMETA_CORE_EMAIL_EXPORT
+auto mailto_iri(const std::string_view value) -> std::optional<std::string>;
+
+/// @ingroup email
+/// Produce the canonical RFC 7565 `acct` IRI that identifies the given
+/// `user@host` account, with no result when the input is not one. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/email.h>
+///
+/// #include <cassert>
+///
+/// const auto iri{sourcemeta::core::acct_iri(
+///     "juliet@capulet.example@shoppingsite.example")};
+/// assert(iri.has_value());
+/// assert(iri.value() ==
+///        "acct:juliet%40capulet.example@shoppingsite.example");
+/// ```
+SOURCEMETA_CORE_EMAIL_EXPORT
+auto acct_iri(const std::string_view value) -> std::optional<std::string>;
 
 } // namespace sourcemeta::core
 
