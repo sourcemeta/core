@@ -106,7 +106,10 @@ auto is_idn_email_uts46(const std::string_view value) -> bool;
 
 /// @ingroup email
 /// Produce the canonical RFC 6068 `mailto` IRI that identifies the given
-/// RFC 5321 `Mailbox`, with no result when the input is not one. For example:
+/// RFC 5321 `Mailbox`, with no result when the input is not one. The mailbox
+/// spelling, including domain case, is preserved byte for byte, as RFC 6068
+/// authorizes no normalization. This is a deliberate stance rather than an
+/// accident. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/email.h>
@@ -122,7 +125,10 @@ auto mailto_iri(const std::string_view value) -> std::optional<std::string>;
 
 /// @ingroup email
 /// Produce the canonical RFC 7565 `acct` IRI that identifies the given
-/// `user@host` account, with no result when the input is not one. For example:
+/// `user@host` account, with no result when the input is not one. The host is
+/// lowercased, as RFC 7565 Section 4 compares these IRIs under RFC 3986
+/// Section 6.2.2.1 case normalization, while the account name keeps its case.
+/// For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/email.h>
