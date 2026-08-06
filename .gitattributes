@@ -1,1 +1,2 @@
 /vendor/** linguist-generated=true
+vendor/*.mask text eol=lf
