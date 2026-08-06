@@ -135,7 +135,6 @@ TEST(secure_string_appends_an_empty_view) {
 
 TEST(secure_zero_of_a_null_buffer_is_a_no_op) {
   sourcemeta::core::secure_zero(nullptr, 4);
-  EXPECT_TRUE(true);
 }
 
 TEST(secure_string_from_a_pointer_and_a_length) {

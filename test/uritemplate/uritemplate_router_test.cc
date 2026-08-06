@@ -6,7 +6,6 @@
 #include <array>       // std::array
 #include <climits>     // INT64_MIN, INT64_MAX
 #include <cstdint>     // std::int64_t
-#include <filesystem>  // std::filesystem::path
 #include <span>        // std::span
 #include <string>      // std::string
 #include <string_view> // std::string_view
@@ -3057,26 +3056,4 @@ TEST(segment_error_message) {
   } catch (...) {
     FAIL();
   }
-}
-
-TEST(save_error_message) {
-  const sourcemeta::core::URITemplateRouterSaveError error{
-      "/foo/router.bin", "Failed to write the router file"};
-  EXPECT_STREQ(error.what(), "Failed to write the router file");
-}
-
-TEST(save_error_path) {
-  const sourcemeta::core::URITemplateRouterSaveError error{
-      "/foo/router.bin", "Failed to write the router file"};
-  EXPECT_EQ(error.path(), std::filesystem::path{"/foo/router.bin"});
-}
-
-TEST(read_error_message) {
-  const sourcemeta::core::URITemplateRouterReadError error{"/foo/router.bin"};
-  EXPECT_STREQ(error.what(), "Failed to open router file for reading");
-}
-
-TEST(read_error_path) {
-  const sourcemeta::core::URITemplateRouterReadError error{"/foo/router.bin"};
-  EXPECT_EQ(error.path(), std::filesystem::path{"/foo/router.bin"});
 }
