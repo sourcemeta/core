@@ -8,6 +8,7 @@
     sourcemeta::core::SemVer{(input)};                                         \
     FAIL();                                                                    \
   } catch (const sourcemeta::core::SemVerParseError &error) {                  \
+    EXPECT_STREQ(error.what(), "The input is not a valid Semantic Version");   \
     EXPECT_EQ(error.column(), expected_column);                                \
   } catch (const std::exception &) {                                           \
     FAIL();                                                                    \
@@ -17,7 +18,9 @@
   try {                                                                        \
     sourcemeta::core::SemVer{(input)};                                         \
     FAIL();                                                                    \
-  } catch (const sourcemeta::core::SemVerOverflowError &) {                    \
+  } catch (const sourcemeta::core::SemVerOverflowError &error) {               \
+    EXPECT_STREQ(error.what(),                                                 \
+                 "The numeric component of the Semantic Version overflows");   \
   } catch (const std::exception &) {                                           \
     FAIL();                                                                    \
   }
@@ -168,6 +171,17 @@ TEST(overflow_patch) { EXPECT_SEMVER_OVERFLOW("0.0.99999999999999999999"); }
 
 TEST(overflow_major_boundary) {
   EXPECT_SEMVER_OVERFLOW("18446744073709551616.0.0");
+}
+
+TEST(overflow_major_boundary_column) {
+  try {
+    sourcemeta::core::SemVer{"18446744073709551616.0.0"};
+    FAIL();
+  } catch (const sourcemeta::core::SemVerOverflowError &error) {
+    EXPECT_EQ(error.column(), 20);
+  } catch (const std::exception &) {
+    FAIL();
+  }
 }
 
 TEST(overflow_from_returns_nullopt) {

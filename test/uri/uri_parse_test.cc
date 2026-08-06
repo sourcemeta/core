@@ -9,6 +9,7 @@ TEST(syntax_error_1) {
     sourcemeta::core::URI uri{"//[::44.1"};
     FAIL();
   } catch (const sourcemeta::core::URIParseError &error) {
+    EXPECT_STREQ(error.what(), "The input is not a valid URI");
     EXPECT_EQ(error.column(), 3);
   }
   EXPECT_FALSE(sourcemeta::core::URI::is_uri("//[::44.1"));

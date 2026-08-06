@@ -6,6 +6,7 @@
     const sourcemeta::core::URITemplate uri_template{input};                   \
     FAIL();                                                                    \
   } catch (const sourcemeta::core::URITemplateParseError &error) {             \
+    EXPECT_STREQ(error.what(), "The input is not a valid URI Template");       \
     EXPECT_EQ(error.column(), expected_column);                                \
   } catch (...) {                                                              \
     FAIL();                                                                    \

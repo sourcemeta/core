@@ -6,6 +6,7 @@
 #include <array>       // std::array
 #include <climits>     // INT64_MIN, INT64_MAX
 #include <cstdint>     // std::int64_t
+#include <filesystem>  // std::filesystem::path
 #include <span>        // std::span
 #include <string>      // std::string
 #include <string_view> // std::string_view
@@ -349,6 +350,7 @@ TEST(conflicting_variable_names_throws) {
     FAIL();
   } catch (
       const sourcemeta::core::URITemplateRouterVariableMismatchError &error) {
+    EXPECT_STREQ(error.what(), "Variable name mismatch when adding route");
     EXPECT_EQ(error.left(), "user_id");
     EXPECT_EQ(error.right(), "id");
   }
@@ -1757,6 +1759,7 @@ TEST(operation_id_reject_empty) {
     FAIL();
   } catch (
       const sourcemeta::core::URITemplateRouterInvalidOperationIdError &error) {
+    EXPECT_STREQ(error.what(), "Invalid operation identifier");
     EXPECT_EQ(error.operation_id(), "");
   }
 }
@@ -1841,6 +1844,7 @@ TEST(operation_id_duplicate_throws) {
     FAIL();
   } catch (const sourcemeta::core::URITemplateRouterDuplicateOperationIdError
                &error) {
+    EXPECT_STREQ(error.what(), "Duplicate operation identifier");
     EXPECT_EQ(error.operation_id(), "listUsers");
   } catch (...) {
     FAIL();
@@ -3039,4 +3043,40 @@ TEST(describes_with_base_argument_empty_router) {
 
   EXPECT_FALSE(router.describes("/foo", "/bar"));
   EXPECT_FALSE(router.describes("", "/bar"));
+}
+
+TEST(segment_error_message) {
+  sourcemeta::core::URITemplateRouter router;
+  try {
+    router.add("users/{id}", "op_segment", 1);
+    FAIL();
+  } catch (
+      const sourcemeta::core::URITemplateRouterInvalidSegmentError &error) {
+    EXPECT_STREQ(error.what(), "Template must start with '/'");
+    EXPECT_EQ(error.segment(), "users/{id}");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(save_error_message) {
+  const sourcemeta::core::URITemplateRouterSaveError error{
+      "/foo/router.bin", "Failed to write the router file"};
+  EXPECT_STREQ(error.what(), "Failed to write the router file");
+}
+
+TEST(save_error_path) {
+  const sourcemeta::core::URITemplateRouterSaveError error{
+      "/foo/router.bin", "Failed to write the router file"};
+  EXPECT_EQ(error.path(), std::filesystem::path{"/foo/router.bin"});
+}
+
+TEST(read_error_message) {
+  const sourcemeta::core::URITemplateRouterReadError error{"/foo/router.bin"};
+  EXPECT_STREQ(error.what(), "Failed to open router file for reading");
+}
+
+TEST(read_error_path) {
+  const sourcemeta::core::URITemplateRouterReadError error{"/foo/router.bin"};
+  EXPECT_EQ(error.path(), std::filesystem::path{"/foo/router.bin"});
 }

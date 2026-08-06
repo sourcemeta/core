@@ -5,6 +5,7 @@ sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME io
     io_binary_test.cc
     io_bytestream_test.cc
     io_canonical_test.cc
+    io_error_test.cc
     io_fileview_test.cc
     io_flush_test.cc
     io_for_each_line_test.cc
