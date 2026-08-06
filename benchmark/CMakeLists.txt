@@ -1,119 +1,123 @@
 set(BENCHMARK_SOURCES)
 
-    if (SOURCEMETA_CORE_REGEX) list(APPEND BENCHMARK_SOURCES regex.cc) endif()
+if(SOURCEMETA_CORE_REGEX)
+  list(APPEND BENCHMARK_SOURCES regex.cc)
+endif()
 
-        if (SOURCEMETA_CORE_JSON) list(APPEND BENCHMARK_SOURCES json.cc) endif()
+if(SOURCEMETA_CORE_JSON)
+  list(APPEND BENCHMARK_SOURCES json.cc)
+endif()
 
-            if (SOURCEMETA_CORE_JSONPOINTER) list(
-                APPEND BENCHMARK_SOURCES jsonpointer.cc) endif()
+if(SOURCEMETA_CORE_JSONPOINTER)
+  list(APPEND BENCHMARK_SOURCES jsonpointer.cc)
+endif()
 
-                if (SOURCEMETA_CORE_JSONPATH) list(
-                    APPEND BENCHMARK_SOURCES jsonpath.cc) endif()
+if(SOURCEMETA_CORE_JSONPATH)
+  list(APPEND BENCHMARK_SOURCES jsonpath.cc)
+endif()
 
-                    if (SOURCEMETA_CORE_URITEMPLATE) list(
-                        APPEND BENCHMARK_SOURCES uritemplate.cc) endif()
+if(SOURCEMETA_CORE_URITEMPLATE)
+  list(APPEND BENCHMARK_SOURCES uritemplate.cc)
+endif()
 
-                        if (SOURCEMETA_CORE_JSONL) list(
-                            APPEND BENCHMARK_SOURCES jsonl.cc) endif()
+if(SOURCEMETA_CORE_JSONL)
+  list(APPEND BENCHMARK_SOURCES jsonl.cc)
+endif()
 
-                            if (SOURCEMETA_CORE_JSONLD) list(
-                                APPEND BENCHMARK_SOURCES jsonld.cc) endif()
+if(SOURCEMETA_CORE_JSONLD)
+  list(APPEND BENCHMARK_SOURCES jsonld.cc)
+endif()
 
-                                if (SOURCEMETA_CORE_HTML) list(
-                                    APPEND BENCHMARK_SOURCES html.cc) endif()
+if(SOURCEMETA_CORE_HTML)
+  list(APPEND BENCHMARK_SOURCES html.cc)
+endif()
 
-                                    if (SOURCEMETA_CORE_GZIP) list(
-                                        APPEND BENCHMARK_SOURCES
-                                            gzip.cc) endif()
+if(SOURCEMETA_CORE_GZIP)
+  list(APPEND BENCHMARK_SOURCES gzip.cc)
+endif()
 
-                                        if (SOURCEMETA_CORE_JOSE) list(
-                                            APPEND BENCHMARK_SOURCES
-                                                jose.cc) endif()
+if(SOURCEMETA_CORE_JOSE)
+  list(APPEND BENCHMARK_SOURCES jose.cc)
+endif()
 
-                                            if (BENCHMARK_SOURCES) sourcemeta_googlebenchmark(
-                                                NAMESPACE sourcemeta PROJECT
-                                                    core SOURCES ${
-                                                        BENCHMARK_SOURCES})
-                                                target_compile_definitions(
-                                                    sourcemeta_core_benchmark
-                                                        PRIVATE
-                                                            CURRENT_DIRECTORY =
-                                                                "${CMAKE_"
-                                                                "CURRENT_"
-                                                                "SOURCE_DIR}")
+if(BENCHMARK_SOURCES)
+  sourcemeta_googlebenchmark(NAMESPACE sourcemeta PROJECT core
+    SOURCES ${BENCHMARK_SOURCES})
+  target_compile_definitions(sourcemeta_core_benchmark
+    PRIVATE CURRENT_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}")
 
-                                                    if (SOURCEMETA_CORE_REGEX) target_link_libraries(
-                                                        sourcemeta_core_benchmark
-                                                            PRIVATE sourcemeta::
-                                                                core::
-                                                                    regex) endif()
+  if(SOURCEMETA_CORE_ALLOCATOR STREQUAL "mimalloc")
+    target_link_libraries(sourcemeta_core_benchmark PRIVATE Mimalloc::Mimalloc)
+  endif()
 
-                                                        if (SOURCEMETA_CORE_JSON) target_link_libraries(
-                                                            sourcemeta_core_benchmark PRIVATE
-                                                                sourcemeta::core::json
-                                                                    sourcemeta::core::
-                                                                        io) endif()
+  if(SOURCEMETA_CORE_REGEX)
+    target_link_libraries(sourcemeta_core_benchmark
+      PRIVATE sourcemeta::core::regex)
+  endif()
 
-                                                            if (SOURCEMETA_CORE_JSONPOINTER)
-                                                                target_link_libraries(
-                                                                    sourcemeta_core_benchmark
-                                                                        PRIVATE sourcemeta::
-                                                                            core::
-                                                                                jsonpointer)
-                                                                    endif()
+  if(SOURCEMETA_CORE_JSON)
+    target_link_libraries(sourcemeta_core_benchmark
+      PRIVATE sourcemeta::core::json sourcemeta::core::io)
+  endif()
 
-                                                                        if (SOURCEMETA_CORE_JSONPATH)
-                                                                            target_link_libraries(
-                                                                                sourcemeta_core_benchmark PRIVATE
-                                                                                    sourcemeta::core::jsonpath
-                                                                                        sourcemeta::core::
-                                                                                            json sourcemeta::
-                                                                                                core::
-                                                                                                    jsonpointer)
-                                                                                endif()
+  if(SOURCEMETA_CORE_JSONPOINTER)
+    target_link_libraries(sourcemeta_core_benchmark
+      PRIVATE sourcemeta::core::jsonpointer)
+  endif()
 
-                                                                                    if (SOURCEMETA_CORE_URITEMPLATE)
-                                                                                        target_link_libraries(
-                                                                                            sourcemeta_core_benchmark
-                                                                                                PRIVATE sourcemeta::core::uritemplate)
-                                                                                            endif()
+  if(SOURCEMETA_CORE_JSONPATH)
+    target_link_libraries(sourcemeta_core_benchmark
+      PRIVATE sourcemeta::core::jsonpath sourcemeta::core::json
+              sourcemeta::core::jsonpointer)
+  endif()
 
-                                                                                                if (SOURCEMETA_CORE_JSONL)
-                                                                                                    target_link_libraries(
-                                                                                                        sourcemeta_core_benchmark
-                                                                                                            PRIVATE sourcemeta::core::jsonl)
-                                                                                                        endif()
+  if(SOURCEMETA_CORE_URITEMPLATE)
+    target_link_libraries(sourcemeta_core_benchmark
+      PRIVATE sourcemeta::core::uritemplate)
+  endif()
 
-                                                                                                            if (SOURCEMETA_CORE_JSONLD) target_link_libraries(sourcemeta_core_benchmark
-                                                                                                                                                                  PRIVATE sourcemeta::core::jsonld sourcemeta::core::json sourcemeta::core::jsonpointer)
-                                                                                                                endif()
+  if(SOURCEMETA_CORE_JSONL)
+    target_link_libraries(sourcemeta_core_benchmark
+      PRIVATE sourcemeta::core::jsonl)
+  endif()
 
-                                                                                                                    if (SOURCEMETA_CORE_HTML)
-                                                                                                                        target_link_libraries(sourcemeta_core_benchmark
-                                                                                                                                                  PRIVATE sourcemeta::core::html) endif()
+  if(SOURCEMETA_CORE_JSONLD)
+    target_link_libraries(sourcemeta_core_benchmark
+      PRIVATE sourcemeta::core::jsonld sourcemeta::core::json
+              sourcemeta::core::jsonpointer)
+  endif()
 
-                                                                                                                            if (SOURCEMETA_CORE_GZIP) target_link_libraries(sourcemeta_core_benchmark PRIVATE sourcemeta::core::gzip sourcemeta::core::io) endif()
+  if(SOURCEMETA_CORE_HTML)
+    target_link_libraries(sourcemeta_core_benchmark
+      PRIVATE sourcemeta::core::html)
+  endif()
 
-                                                                                                                                if (SOURCEMETA_CORE_JOSE)
-                                                                                                                                    target_link_libraries(
-                                                                                                                                        sourcemeta_core_benchmark PRIVATE sourcemeta::core::jose
-                                                                                                                                            sourcemeta::core::crypto
-                                                                                                                                                sourcemeta::core::
-                                                                                                                                                    json) endif()
+  if(SOURCEMETA_CORE_GZIP)
+    target_link_libraries(sourcemeta_core_benchmark
+      PRIVATE sourcemeta::core::gzip sourcemeta::core::io)
+  endif()
 
-                                                                                                                                        if (SOURCEMETA_CORE_ALLOCATOR STREQUAL
-                                                                                                                                            "mimalloc") target_link_libraries(sourcemeta_core_benchmark PRIVATE Mimalloc::Mimalloc) endif()
+  if(SOURCEMETA_CORE_JOSE)
+    target_link_libraries(sourcemeta_core_benchmark
+      PRIVATE sourcemeta::core::jose sourcemeta::core::crypto
+              sourcemeta::core::json)
+  endif()
 
-                                                                                                                                            add_custom_target(benchmark_all
-                                                                                                                                                                  COMMAND sourcemeta_core_benchmark
-                                                                                                                                                                      DEPENDS
-                                                                                                                                                                          sourcemeta_core_benchmark COMMENT "Running benchmark...") add_custom_target(benchmark_json
-                                                                                                                                                                                                                                                          COMMAND sourcemeta_core_benchmark-- benchmark_format = json-- benchmark_out = "${PROJECT_BINARY_DIR}/benchmark.json" DEPENDS sourcemeta_core_benchmark COMMENT "Running benchmark...") else() add_custom_target(benchmark_all
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                              VERBATIM COMMAND
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                          "${CMAKE_COMMAND}" -
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                          E echo
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                          "Nothing to benchmark" COMMAND
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                          "${CMAKE_COMMAND}" -
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                          E false) add_custom_target(benchmark_json VERBATIM COMMAND "${CMAKE_COMMAND}" - E echo "Nothing to benchmark" COMMAND "${CMAKE_COMMAND}" -
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     E false)
-                                                                                                                                                endif()
+  add_custom_target(benchmark_all
+    COMMAND sourcemeta_core_benchmark
+    DEPENDS sourcemeta_core_benchmark
+    COMMENT "Running benchmark...")
+  add_custom_target(benchmark_json
+    COMMAND sourcemeta_core_benchmark
+      --benchmark_format=json
+      --benchmark_out="${PROJECT_BINARY_DIR}/benchmark.json"
+    DEPENDS sourcemeta_core_benchmark
+    COMMENT "Running benchmark...")
+else()
+  add_custom_target(benchmark_all VERBATIM
+    COMMAND "${CMAKE_COMMAND}" -E echo "Nothing to benchmark"
+    COMMAND "${CMAKE_COMMAND}" -E false)
+  add_custom_target(benchmark_json VERBATIM
+    COMMAND "${CMAKE_COMMAND}" -E echo "Nothing to benchmark"
+    COMMAND "${CMAKE_COMMAND}" -E false)
+endif()

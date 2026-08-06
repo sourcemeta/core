@@ -61,10 +61,6 @@ sourcemeta_option_enum(
   CHOICES "system" "mimalloc"
   DESCRIPTION "Memory allocator to use: system or mimalloc")
 
-if(SOURCEMETA_CORE_ALLOCATOR STREQUAL "mimalloc")
-  find_package(Mimalloc REQUIRED)
-endif()
-
 #Don't force downstream consumers on this
 if(PROJECT_IS_TOP_LEVEL)
   sourcemeta_enable_simd()
@@ -75,6 +71,10 @@ if(SOURCEMETA_CORE_ADDRESS_SANITIZER)
   sourcemeta_sanitizer(TYPE address)
 elseif(SOURCEMETA_CORE_UNDEFINED_SANITIZER)
   sourcemeta_sanitizer(TYPE undefined)
+endif()
+
+if(SOURCEMETA_CORE_ALLOCATOR STREQUAL "mimalloc")
+  find_package(Mimalloc REQUIRED)
 endif()
 
 #TODO : Turn this into a re - usable utility CMake function
