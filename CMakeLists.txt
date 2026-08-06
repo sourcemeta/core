@@ -55,6 +55,7 @@ option(SOURCEMETA_CORE_CLANG_TIDY_ANALYZER "Run the Clang static analyzer alongs
 option(SOURCEMETA_CORE_INSTALL "Install the Sourcemeta Core library" ON)
 option(SOURCEMETA_CORE_ADDRESS_SANITIZER "Build Sourcemeta Core with an address sanitizer" OFF)
 option(SOURCEMETA_CORE_UNDEFINED_SANITIZER "Build Sourcemeta Core with an undefined behavior sanitizer" OFF)
+option(SOURCEMETA_CORE_COVERAGE "Build Sourcemeta Core with code coverage instrumentation" OFF)
 option(SOURCEMETA_CORE_CONTRIB_GOOGLEBENCHMARK "Build the GoogleBenchmark library for downstream consumers" OFF)
 option(SOURCEMETA_CORE_USE_SYSTEM_ALLOCATOR "Always use the system allocator" OFF)
 
@@ -70,6 +71,11 @@ if(SOURCEMETA_CORE_ADDRESS_SANITIZER)
   sourcemeta_sanitizer(TYPE address)
 elseif(SOURCEMETA_CORE_UNDEFINED_SANITIZER)
   sourcemeta_sanitizer(TYPE undefined)
+endif()
+
+# Enable coverage instrumentation before defining any target
+if(SOURCEMETA_CORE_COVERAGE)
+  sourcemeta_coverage()
 endif()
 
 # TODO: Turn this into a re-usable utility CMake function
@@ -471,6 +477,12 @@ if(SOURCEMETA_CORE_TESTS)
     if(NOT SOURCEMETA_CORE_ADDRESS_SANITIZER AND NOT SOURCEMETA_CORE_UNDEFINED_SANITIZER)
       add_subdirectory(test/packaging)
     endif()
+  endif()
+
+  if(SOURCEMETA_CORE_COVERAGE)
+    sourcemeta_target_coverage(
+      OUTPUT "${PROJECT_BINARY_DIR}/coverage"
+      EXCLUDE "${PROJECT_SOURCE_DIR}/vendor" "${PROJECT_SOURCE_DIR}/test")
   endif()
 endif()
 

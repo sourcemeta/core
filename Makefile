@@ -33,6 +33,16 @@ test: .always
 benchmark: .always
 	$(CMAKE) --build ./build --config $(PRESET) --target benchmark_all
 
+coverage: .always
+	$(CMAKE) -S . -B ./build/coverage \
+		-DCMAKE_BUILD_TYPE:STRING=Debug \
+		-DCMAKE_COMPILE_WARNING_AS_ERROR:BOOL=ON \
+		-DSOURCEMETA_CORE_TESTS:BOOL=ON \
+		-DSOURCEMETA_CORE_COVERAGE:BOOL=ON \
+		-DBUILD_SHARED_LIBS:BOOL=OFF
+	$(CMAKE) --build ./build/coverage --config Debug
+	$(CMAKE) --build ./build/coverage --config Debug --target coverage
+
 doxygen: .always
 	$(CMAKE) --build ./build --config $(PRESET) --target doxygen
 

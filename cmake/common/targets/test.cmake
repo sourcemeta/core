@@ -32,4 +32,6 @@ function(sourcemeta_test)
 
   add_test(NAME "${SOURCEMETA_TEST_PROJECT}.${SOURCEMETA_TEST_NAME}"
     COMMAND "${TARGET_NAME}")
+
+  set_property(GLOBAL APPEND PROPERTY SOURCEMETA_TEST_TARGETS "${TARGET_NAME}")
 endfunction()
