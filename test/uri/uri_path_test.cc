@@ -996,7 +996,10 @@ TEST(set_path_second_percent_digit_invalid) {
   try {
     uri.path("/%Ag");
     FAIL();
-  } catch (const sourcemeta::core::URIError &) {
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(
+        error.what(),
+        "You cannot set a path with an invalid percent-encoded sequence");
   }
 }
 
@@ -1048,7 +1051,10 @@ TEST(append_path_rejects_reference_with_userinfo) {
   try {
     uri.append_path(sourcemeta::core::URI{"//user@host"});
     FAIL();
-  } catch (const sourcemeta::core::URIError &) {
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(
+        error.what(),
+        "Cannot append a URI as a path that contains a scheme or authority");
   }
 }
 
@@ -1057,6 +1063,9 @@ TEST(append_path_rejects_reference_with_fragment) {
   try {
     uri.append_path(sourcemeta::core::URI{"#frag"});
     FAIL();
-  } catch (const sourcemeta::core::URIError &) {
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(
+        error.what(),
+        "Cannot append a URI as a path that contains a query or fragment");
   }
 }

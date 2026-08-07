@@ -1774,7 +1774,8 @@ TEST(escape_incomplete_hex) {
   try {
     const auto result{sourcemeta::core::parse_yaml(input)};
     FAIL();
-  } catch (const sourcemeta::core::YAMLParseError &) {
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid hex escape sequence");
   }
 }
 
@@ -1783,7 +1784,8 @@ TEST(unterminated_single_quote) {
   try {
     const auto result{sourcemeta::core::parse_yaml(input)};
     FAIL();
-  } catch (const sourcemeta::core::YAMLParseError &) {
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Missing closing quote in single-quoted scalar");
   }
 }
 
@@ -1833,7 +1835,8 @@ TEST(flow_mapping_bare_key_at_eof_is_rejected) {
   try {
     const auto result{sourcemeta::core::parse_yaml("{a")};
     FAIL();
-  } catch (const sourcemeta::core::YAMLParseError &) {
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Expected ':' after mapping key");
   }
 }
 
@@ -1841,7 +1844,8 @@ TEST(flow_mapping_colon_at_eof_is_rejected) {
   try {
     const auto result{sourcemeta::core::parse_yaml("{a:")};
     FAIL();
-  } catch (const sourcemeta::core::YAMLParseError &) {
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Unexpected token");
   }
 }
 
@@ -1849,7 +1853,8 @@ TEST(flow_mapping_anchor_key_at_eof_is_rejected) {
   try {
     const auto result{sourcemeta::core::parse_yaml("{&a")};
     FAIL();
-  } catch (const sourcemeta::core::YAMLParseError &) {
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Expected scalar key in mapping");
   }
 }
 
@@ -1905,7 +1910,8 @@ TEST(flow_sequence_dash_at_eof_is_rejected) {
   try {
     const auto result{sourcemeta::core::parse_yaml("[-")};
     FAIL();
-  } catch (const sourcemeta::core::YAMLParseError &) {
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid plain scalar start in flow context");
   }
 }
 
@@ -1930,7 +1936,8 @@ TEST(alias_key_referencing_unknown_anchor_is_rejected) {
   try {
     const auto result{sourcemeta::core::parse_yaml("*a: b")};
     FAIL();
-  } catch (const sourcemeta::core::YAMLParseError &) {
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "YAML alias references undefined anchor");
   }
 }
 
@@ -1938,7 +1945,8 @@ TEST(flow_explicit_key_at_eof_is_rejected) {
   try {
     const auto result{sourcemeta::core::parse_yaml("[?")};
     FAIL();
-  } catch (const sourcemeta::core::YAMLParseError &) {
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Unexpected token");
   }
 }
 
@@ -1946,7 +1954,8 @@ TEST(flow_collection_indented_at_parent_block_level_is_rejected) {
   try {
     const auto result{sourcemeta::core::parse_yaml("a: [\n1]")};
     FAIL();
-  } catch (const sourcemeta::core::YAMLParseError &) {
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Insufficient indentation in flow collection");
   }
 }
 
@@ -1954,7 +1963,8 @@ TEST(explicit_key_block_mapping_duplicate_is_rejected) {
   try {
     const auto result{sourcemeta::core::parse_yaml("? a\n: 1\n? a\n: 2")};
     FAIL();
-  } catch (const sourcemeta::core::YAMLParseError &) {
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Duplicate key in YAML mapping");
   }
 }
 
@@ -1974,6 +1984,7 @@ TEST(block_mapping_second_key_value_at_document_end) {
 TEST(leading_colon_value_indicator_mapping) {
   const auto result{sourcemeta::core::parse_yaml(": v")};
   EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 1);
 }
 
 TEST(anchor_empty_value_before_document_start) {
@@ -1985,7 +1996,8 @@ TEST(mapping_key_that_is_a_collection_is_rejected) {
   try {
     const auto result{sourcemeta::core::parse_yaml("[? {a: 1}: b]")};
     FAIL();
-  } catch (const sourcemeta::core::YAMLParseError &) {
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Mapping key cannot be a collection");
   }
 }
 
@@ -1993,7 +2005,8 @@ TEST(tab_trailing_after_quoted_scalar_is_rejected) {
   try {
     const auto result{sourcemeta::core::parse_yaml("'x'\tbad")};
     FAIL();
-  } catch (const sourcemeta::core::YAMLParseError &) {
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid trailing content");
   }
 }
 
@@ -2006,9 +2019,11 @@ TEST(cr_trailing_after_quoted_scalar) {
 TEST(block_scalar_blank_lines_with_cr) {
   const auto result{sourcemeta::core::parse_yaml("|\r  a\r\r  b")};
   EXPECT_TRUE(result.is_string());
+  EXPECT_EQ(result.to_string(), "a\n\nb");
 }
 
 TEST(tab_after_escaped_line_break) {
   const auto result{sourcemeta::core::parse_yaml("\"a\\\n\tb\"")};
   EXPECT_TRUE(result.is_string());
+  EXPECT_EQ(result.to_string(), "ab");
 }

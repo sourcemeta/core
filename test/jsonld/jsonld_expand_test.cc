@@ -568,7 +568,8 @@ TEST(type_array_with_non_string_item_is_rejected) {
   try {
     const auto result{sourcemeta::core::jsonld_expand(input)};
     FAIL();
-  } catch (const sourcemeta::core::JSONLDError &) {
+  } catch (const sourcemeta::core::JSONLDError &error) {
+    EXPECT_STREQ(error.what(), "Invalid type value");
   }
 }
 
@@ -577,7 +578,8 @@ TEST(top_level_non_string_direction_is_rejected) {
   try {
     const auto result{sourcemeta::core::jsonld_expand(input)};
     FAIL();
-  } catch (const sourcemeta::core::JSONLDError &) {
+  } catch (const sourcemeta::core::JSONLDError &error) {
+    EXPECT_STREQ(error.what(), "Invalid base direction");
   }
 }
 
@@ -589,7 +591,8 @@ TEST(nest_array_item_not_an_object_is_rejected) {
   try {
     const auto result{sourcemeta::core::jsonld_expand(input)};
     FAIL();
-  } catch (const sourcemeta::core::JSONLDError &) {
+  } catch (const sourcemeta::core::JSONLDError &error) {
+    EXPECT_STREQ(error.what(), "Invalid @nest value");
   }
 }
 
@@ -601,7 +604,8 @@ TEST(nest_array_item_value_object_is_rejected) {
   try {
     const auto result{sourcemeta::core::jsonld_expand(input)};
     FAIL();
-  } catch (const sourcemeta::core::JSONLDError &) {
+  } catch (const sourcemeta::core::JSONLDError &error) {
+    EXPECT_STREQ(error.what(), "Invalid @nest value");
   }
 }
 
@@ -613,7 +617,8 @@ TEST(term_container_array_with_non_string_is_rejected) {
   try {
     const auto result{sourcemeta::core::jsonld_expand(input)};
     FAIL();
-  } catch (const sourcemeta::core::JSONLDError &) {
+  } catch (const sourcemeta::core::JSONLDError &error) {
+    EXPECT_STREQ(error.what(), "Invalid container mapping");
   }
 }
 
@@ -625,7 +630,8 @@ TEST(term_container_array_with_invalid_container_is_rejected) {
   try {
     const auto result{sourcemeta::core::jsonld_expand(input)};
     FAIL();
-  } catch (const sourcemeta::core::JSONLDError &) {
+  } catch (const sourcemeta::core::JSONLDError &error) {
+    EXPECT_STREQ(error.what(), "Invalid container mapping");
   }
 }
 
@@ -637,7 +643,8 @@ TEST(term_direction_non_string_is_rejected) {
   try {
     const auto result{sourcemeta::core::jsonld_expand(input)};
     FAIL();
-  } catch (const sourcemeta::core::JSONLDError &) {
+  } catch (const sourcemeta::core::JSONLDError &error) {
+    EXPECT_STREQ(error.what(), "Invalid base direction");
   }
 }
 
@@ -649,6 +656,7 @@ TEST(term_nest_non_string_is_rejected) {
   try {
     const auto result{sourcemeta::core::jsonld_expand(input)};
     FAIL();
-  } catch (const sourcemeta::core::JSONLDError &) {
+  } catch (const sourcemeta::core::JSONLDError &error) {
+    EXPECT_STREQ(error.what(), "Invalid @nest value");
   }
 }

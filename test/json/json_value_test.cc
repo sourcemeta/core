@@ -1,9 +1,10 @@
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/test.h>
 
-#include <cstddef>       // std::size_t
-#include <cstdint>       // std::int64_t
+#include <cstddef> // std::size_t
+#include <cstdint>
 #include <functional>    // std::reference_wrapper
+#include <stdexcept>     // std::int64_t
 #include <string>        // std::string
 #include <type_traits>   // std::is_default_constructible, etc
 #include <unordered_map> // std::unordered_map
@@ -845,20 +846,24 @@ TEST(deep_copy_of_a_nested_object) {
 TEST(add_integer_overflow_promotes_to_decimal) {
   const sourcemeta::core::JSON left{std::numeric_limits<std::int64_t>::min()};
   const sourcemeta::core::JSON right{-1};
-  // The integer sum overflows int64, so the operator promotes to Decimal.
-  // The promoted result is currently rounded to the decimal working precision
-  // rather than exact (tracked in the decimal precision bug report), so this
-  // asserts only that the overflow branch is taken
+  // The integer sum overflows int64, so the operator promotes to Decimal. The
+  // exact value would be -9223372036854775809, but the Decimal add currently
+  // rounds to the working precision (tracked in the decimal precision bug
+  // report). Pin the exact current output so a change in either direction is
+  // caught
   const auto result{left + right};
   EXPECT_TRUE(result.is_decimal());
+  EXPECT_EQ(result.to_decimal().to_string(), "-9.223372036854776e+18");
 }
 
 TEST(subtract_integer_overflow_promotes_to_decimal) {
   const sourcemeta::core::JSON left{std::numeric_limits<std::int64_t>::max()};
   const sourcemeta::core::JSON right{-1};
-  // See the note on the addition overflow test above
+  // See the note on the addition overflow test above. Exact value would be
+  // 9223372036854775808; pin the current rounded output
   const auto result{left - right};
   EXPECT_TRUE(result.is_decimal());
+  EXPECT_EQ(result.to_decimal().to_string(), "9.223372036854776e+18");
 }
 
 TEST(copy_self_assignment) {
@@ -887,7 +892,7 @@ TEST(real_below_int64_range_throws_on_as_integer) {
   try {
     static_cast<void>(value.as_integer());
     FAIL();
-  } catch (...) {
+  } catch (const std::out_of_range &) {
   }
 }
 
@@ -898,14 +903,13 @@ TEST(empty_on_string_returns_false) {
 
 TEST(fast_hash_of_real_below_int64_range) {
   const sourcemeta::core::JSON value{-1e300};
-  static_cast<void>(value.fast_hash());
-  EXPECT_TRUE(value.is_real());
+  // A real outside the int64 range falls back to the real type hash
+  EXPECT_EQ(value.fast_hash(), 5);
 }
 
 TEST(fast_hash_of_real_above_int64_range) {
   const sourcemeta::core::JSON value{1e300};
-  static_cast<void>(value.fast_hash());
-  EXPECT_TRUE(value.is_real());
+  EXPECT_EQ(value.fast_hash(), 5);
 }
 
 TEST(merge_object_key_over_non_object_source) {
