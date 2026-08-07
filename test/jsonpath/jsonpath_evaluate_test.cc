@@ -405,3 +405,12 @@ TEST(jsonpath_evaluate_deep_descendant_then_filter_on_object) {
   EXPECT_EQ(nodes.size(), 1);
   EXPECT_EQ(nodes.at(0).value->to_integer(), 7);
 }
+
+TEST(jsonpath_evaluate_multibyte_shorthand) {
+  const auto document{sourcemeta::core::parse_json("{ \"a\xc3\xa9\": 1 }")};
+  const sourcemeta::core::JSONPath path{"$.a\xc3\xa9"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 1);
+  EXPECT_TRUE(nodes.at(0).value->is_integer());
+  EXPECT_EQ(nodes.at(0).value->to_integer(), 1);
+}

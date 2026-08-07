@@ -16,10 +16,15 @@
     FAIL();                                                                    \
   }
 
+// A valid query must parse without throwing and survive a serialization
+// round trip unchanged
 #define EXPECT_JSONPATH_VALID(input)                                           \
   {                                                                            \
     const sourcemeta::core::JSONPath path{input};                              \
-    EXPECT_TRUE(true);                                                         \
+    const auto path_json{path.to_json()};                                      \
+    const auto reparsed{sourcemeta::core::JSONPath::from_json(path_json)};     \
+    EXPECT_TRUE(reparsed.has_value());                                         \
+    EXPECT_EQ(reparsed.value().to_json(), path_json);                          \
   }
 
 TEST(jsonpath_parse_root_only) { EXPECT_JSONPATH_VALID("$"); }
@@ -401,20 +406,7 @@ TEST(jsonpath_parse_error_single_equals_comparison){
 TEST(jsonpath_parse_error_negation_without_equals){
     EXPECT_JSONPATH_PARSE_ERROR("$[?@.a !< 1]", 8)}
 
-TEST(jsonpath_parse_multibyte_shorthand) {
-  const sourcemeta::core::JSONPath path{"$.a\xc3\xa9"};
-  const auto document{sourcemeta::core::parse_json("{ \"a\xc3\xa9\": 1 }")};
-  std::size_t matches{0};
-  std::int64_t value{0};
-  path.evaluate(document,
-                [&matches, &value](const sourcemeta::core::JSON &node,
-                                   const sourcemeta::core::WeakPointer &) {
-                  matches += 1;
-                  value = node.to_integer();
-                });
-  EXPECT_EQ(matches, 1);
-  EXPECT_EQ(value, 1);
-}
+TEST(jsonpath_parse_multibyte_shorthand){EXPECT_JSONPATH_VALID("$.a\xc3\xa9")}
 
 TEST(jsonpath_parse_error_truncated_after_test_query){
     EXPECT_JSONPATH_PARSE_ERROR("$[?@.a", 7)}

@@ -41,6 +41,9 @@ TEST(unmapped_error_surfaces_as_filesystem_error) {
 }
 #endif
 
+// On Windows, resolving through a file reports path not found, which the
+// canonicalization helpers convert to a file not found error instead
+#if !defined(_WIN32)
 TEST(file_as_intermediate_directory_throws) {
   const auto path{std::filesystem::path{STUBS_DIRECTORY} / "test.txt" /
                   "child"};
@@ -52,3 +55,4 @@ TEST(file_as_intermediate_directory_throws) {
     FAIL();
   }
 }
+#endif
