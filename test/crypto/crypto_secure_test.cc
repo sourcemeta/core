@@ -141,6 +141,7 @@ TEST(secure_string_from_a_pointer_and_a_length) {
   const char content[]{"hunter2"};
   const sourcemeta::core::SecureString secret{content, 7};
   EXPECT_EQ(secret.size(), 7);
+  EXPECT_EQ(secret, "hunter2");
   EXPECT_EQ(secret[0], 'h');
   EXPECT_EQ(secret[6], '2');
 }
@@ -148,6 +149,7 @@ TEST(secure_string_from_a_pointer_and_a_length) {
 TEST(secure_string_of_a_repeated_byte) {
   const sourcemeta::core::SecureString secret{5, 'x'};
   EXPECT_EQ(secret.size(), 5);
+  EXPECT_EQ(secret, "xxxxx");
   EXPECT_EQ(secret[0], 'x');
   EXPECT_EQ(secret[4], 'x');
 }
@@ -157,6 +159,7 @@ TEST(secure_string_writes_a_byte_by_index) {
   secret[0] = 'H';
   EXPECT_EQ(secret[0], 'H');
   EXPECT_EQ(secret.size(), 7);
+  EXPECT_EQ(secret, "Hunter2");
 }
 
 TEST(secure_allocator_instances_are_interchangeable) {

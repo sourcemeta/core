@@ -466,3 +466,103 @@ TEST(level_example_level3_matches_html_weight) {
                 RFC9110_LEVEL_ACCEPT, {"text/html;level=3", "text/html"}),
             "text/html;level=3");
 }
+
+TEST(range_without_slash_is_ignored) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept("foo, application/json",
+                                                {"application/json"}),
+            "application/json");
+}
+
+TEST(range_without_slash_matches_nothing) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept("foo", {"application/json"}),
+            "");
+}
+
+TEST(type_wildcard_with_different_slash_position_matches_nothing) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept("text/*", {"ab/cd"}), "");
+}
+
+TEST(type_wildcard_with_different_type_of_same_length_matches_nothing) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept("text/*", {"abcd/efg"}), "");
+}
+
+TEST(empty_q_value_excludes_the_candidate) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept("text/html;q=", {"text/html"}),
+            "");
+}
+
+TEST(q_parameter_without_a_value_excludes_the_candidate) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept("text/html;q", {"text/html"}),
+            "");
+}
+
+TEST(q_value_above_one_excludes_the_candidate) {
+  EXPECT_EQ(
+      sourcemeta::core::http_match_accept("text/html;q=1.5", {"text/html"}),
+      "");
+}
+
+TEST(q_value_with_leading_digit_above_one_excludes_the_candidate) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept("text/html;q=2", {"text/html"}),
+            "");
+}
+
+TEST(q_value_without_a_dot_separator_excludes_the_candidate) {
+  EXPECT_EQ(
+      sourcemeta::core::http_match_accept("text/html;q=0x5", {"text/html"}),
+      "");
+}
+
+TEST(q_value_with_a_non_numeric_fraction_excludes_the_candidate) {
+  EXPECT_EQ(
+      sourcemeta::core::http_match_accept("text/html;q=0.a", {"text/html"}),
+      "");
+}
+
+TEST(q_value_with_too_many_digits_excludes_the_candidate) {
+  EXPECT_EQ(
+      sourcemeta::core::http_match_accept("text/html;q=0.1234", {"text/html"}),
+      "");
+}
+
+TEST(uppercase_q_value_is_recognised) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept("text/html;Q=0", {"text/html"}),
+            "");
+}
+
+TEST(empty_parameter_before_the_q_value_is_skipped) {
+  EXPECT_EQ(
+      sourcemeta::core::http_match_accept("text/html;;q=0.5", {"text/html"}),
+      "text/html");
+}
+
+TEST(range_with_multiple_parameters_matches_a_candidate_with_them) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept(
+                "text/html;a=1;b=2", {"text/html;a=1;b=2", "text/html"}),
+            "text/html;a=1;b=2");
+}
+
+TEST(range_with_a_quoted_escaped_parameter_value) {
+  const std::string_view header{R"(text/html;title="a\"b")"};
+  const std::string_view candidate{R"(text/html;title="a\"b")"};
+  EXPECT_EQ(sourcemeta::core::http_match_accept(header, {candidate}),
+            candidate);
+}
+
+TEST(range_with_a_flag_parameter_matches_a_candidate_with_it) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept(
+                "text/html;flag", {"text/html;flag", "text/plain"}),
+            "text/html;flag");
+}
+
+TEST(range_parameters_with_whitespace_after_semicolon) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept(
+                "text/html;a=1; b=2", {"text/html;b=2;a=1", "text/plain"}),
+            "text/html;b=2;a=1");
+}
+
+TEST(range_with_an_empty_type_is_ignored) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept(";q=0.5, application/json",
+                                                {"application/json"}),
+            "application/json");
+}

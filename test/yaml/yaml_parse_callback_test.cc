@@ -486,3 +486,61 @@ TEST(scalar_alias_pre_post_balance) {
   EXPECT_TRACE(4, Post, String, 2, 12, Root, 0, "");
   EXPECT_TRACE(5, Post, Object, 3, 0, Root, 0, "");
 }
+
+TEST(parse_stream_in_place_with_callback) {
+  std::istringstream stream{"foo: 1\n"};
+  sourcemeta::core::JSON output{nullptr};
+  std::size_t events{0};
+  sourcemeta::core::parse_yaml(
+      stream, output,
+      [&events](const sourcemeta::core::JSON::ParsePhase,
+                const sourcemeta::core::JSON::Type, const std::uint64_t,
+                const std::uint64_t, const sourcemeta::core::JSON::ParseContext,
+                const std::size_t,
+                const sourcemeta::core::JSON::String &) { events += 1; });
+  EXPECT_TRUE(output.is_object());
+  EXPECT_EQ(output.size(), 1);
+  EXPECT_EQ(output.at("foo").to_integer(), 1);
+  EXPECT_EQ(events, 4);
+}
+
+TEST(read_in_place_with_callback_invalid) {
+  sourcemeta::core::JSON output{nullptr};
+  try {
+    sourcemeta::core::read_yaml(
+        std::filesystem::path{STUBS_PATH} / "invalid.yaml", output, nullptr);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLFileParseError &error) {
+    EXPECT_EQ(error.path(), std::filesystem::path{STUBS_PATH} / "invalid.yaml");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 15);
+  }
+}
+
+TEST(read_yaml_or_json_in_place_falls_back_to_yaml) {
+  sourcemeta::core::JSON output{nullptr};
+  sourcemeta::core::read_yaml_or_json(std::filesystem::path{STUBS_PATH} /
+                                          "test_no_extension_yaml",
+                                      output, nullptr);
+  const auto expected{
+      sourcemeta::core::parse_json(R"JSON({ "foo": "bar", "baz": 2 })JSON")};
+  EXPECT_EQ(output, expected);
+}
+
+TEST(parse_in_place_with_roundtrip_and_callback) {
+  const std::string input{"foo: 1\n"};
+  sourcemeta::core::YAMLRoundTrip metadata;
+  sourcemeta::core::JSON output{nullptr};
+  std::size_t events{0};
+  sourcemeta::core::parse_yaml(
+      input, metadata, output,
+      [&events](const sourcemeta::core::JSON::ParsePhase,
+                const sourcemeta::core::JSON::Type, const std::uint64_t,
+                const std::uint64_t, const sourcemeta::core::JSON::ParseContext,
+                const std::size_t,
+                const sourcemeta::core::JSON::String &) { events += 1; });
+  EXPECT_TRUE(output.is_object());
+  EXPECT_EQ(output.size(), 1);
+  EXPECT_EQ(output.at("foo").to_integer(), 1);
+  EXPECT_EQ(events, 4);
+}

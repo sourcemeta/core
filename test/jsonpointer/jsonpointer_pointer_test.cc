@@ -341,3 +341,9 @@ TEST(hash_three_token_consistency) {
   EXPECT_EQ(hasher(multi_1), hasher(multi_2));
   EXPECT_NE(hasher(multi_1), hasher(multi_3));
 }
+
+TEST(to_pointer_from_json_string) {
+  const sourcemeta::core::JSON document{"/foo/0"};
+  const auto pointer{sourcemeta::core::to_pointer(document)};
+  EXPECT_EQ(pointer, sourcemeta::core::to_pointer("/foo/0"));
+}

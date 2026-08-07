@@ -985,3 +985,217 @@ TEST(dynamic_block_incomplete_code_throws) {
     EXPECT_EQ(std::string{error.what()}, "Incomplete Huffman code");
   }
 }
+
+TEST(fixed_huffman_block_round_trip) {
+  const std::string compressed{
+      "\x1f\x8b\x08\x00\x00\x00\x00\x00\x04\x13\xcb\x48\xcd\xc9\xc9\x57\xc8\xc0"
+      "\x4e\x02\x00\xf6\xd2\x53\x38\x1d\x00\x00\x00",
+      29};
+  const auto result{decompress_via_stream(compressed)};
+  EXPECT_EQ(result, "hello hello hello hello hello");
+}
+
+TEST(fixed_huffman_empty_block) {
+  const std::string compressed{"\x1f\x8b\x08\x00\x00\x00\x00\x00\x04\x13\x03"
+                               "\x00\x00\x00\x00\x00\x00\x00\x00\x00",
+                               20};
+  const auto result{decompress_via_stream(compressed)};
+  EXPECT_EQ(result, std::string{});
+}
+
+TEST(fixed_backref_before_any_output_throws) {
+  const std::string compressed{"\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\x03\x03"
+                               "\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00",
+                               22};
+  try {
+    decompress_via_stream(compressed);
+    FAIL();
+  } catch (const sourcemeta::core::GZIPError &error) {
+    EXPECT_EQ(std::string{error.what()},
+              "Backref distance exceeds bytes available");
+  }
+}
+
+TEST(fixed_unassigned_distance_code_throws) {
+  const std::string compressed{
+      "\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\x03\x4b\x04\x3e\x00\x00\x00\x00\x00"
+      "\x00\x00\x00\x00\x00",
+      23};
+  try {
+    decompress_via_stream(compressed);
+    FAIL();
+  } catch (const sourcemeta::core::GZIPError &error) {
+    EXPECT_EQ(std::string{error.what()}, "Invalid Huffman code");
+  }
+}
+
+TEST(fixed_invalid_literal_length_symbol_throws) {
+  const std::string compressed{"\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\x03\x1b"
+                               "\x03\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00",
+                               22};
+  try {
+    decompress_via_stream(compressed);
+    FAIL();
+  } catch (const sourcemeta::core::GZIPError &error) {
+    EXPECT_EQ(std::string{error.what()}, "Invalid literal/length code");
+  }
+}
+
+TEST(dynamic_repeat_without_previous_throws) {
+  const std::string compressed{
+      "\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\x03\x05\x00\x02\x24\x00\x00\x00\x00"
+      "\x00\x00\x00\x00\x00\x00",
+      24};
+  try {
+    decompress_via_stream(compressed);
+    FAIL();
+  } catch (const sourcemeta::core::GZIPError &error) {
+    EXPECT_EQ(std::string{error.what()},
+              "Repeat-previous code length with no previous");
+  }
+}
+
+TEST(dynamic_code_length_overshoot_throws) {
+  const std::string compressed{
+      "\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\x03\x05\x00\x80\xe4\xff\x1f\x00\x00"
+      "\x00\x00\x00\x00\x00\x00\x00\x00",
+      26};
+  try {
+    decompress_via_stream(compressed);
+    FAIL();
+  } catch (const sourcemeta::core::GZIPError &error) {
+    EXPECT_EQ(std::string{error.what()}, "Code length count overflow");
+  }
+}
+
+TEST(dynamic_code_length_cap_overflow_throws) {
+  const std::string compressed{
+      "\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\x03\xed\x1f\x80\xe4\xff\xff\x1f\x00"
+      "\x00\x00\x00\x00\x00\x00\x00\x00\x00",
+      27};
+  try {
+    decompress_via_stream(compressed);
+    FAIL();
+  } catch (const sourcemeta::core::GZIPError &error) {
+    EXPECT_EQ(std::string{error.what()}, "Code length count overflow");
+  }
+}
+
+TEST(dynamic_oversubscribed_code_lengths_throws) {
+  const std::string compressed{
+      "\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\x03\x05\x20\x92\x24\x00\x00\x00\x00"
+      "\x00\x00\x00\x00\x00\x00",
+      24};
+  try {
+    decompress_via_stream(compressed);
+    FAIL();
+  } catch (const sourcemeta::core::GZIPError &error) {
+    EXPECT_EQ(std::string{error.what()}, "Over-subscribed Huffman code");
+  }
+}
+
+TEST(dynamic_block_without_distance_codes) {
+  const std::string compressed{
+      "\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\x03\x05\xc0\x81\x08\x00\x00\x00\x00"
+      "\x20\x7f\xeb\x03\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00",
+      32};
+  const auto result{decompress_via_stream(compressed)};
+  EXPECT_EQ(result, std::string{});
+}
+
+TEST(window_wraparound_round_trip) {
+  const std::string input(200000, 'a');
+  const auto compressed{sourcemeta::core::gzip(
+      reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
+  const auto result{decompress_via_stream(compressed)};
+  EXPECT_EQ(result.size(), input.size());
+  EXPECT_EQ(result, input);
+}
+
+TEST(window_wrapping_backrefs_round_trip) {
+  const std::string compressed{
+      "\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\x03\x4b\x4c\x1a\x85\xa3\x70\x14"
+      "\x8e\xc2\x51\x38\x0a\x47\xe1\x28\x1c\x85\xa3\x70\x14\x8e\xc2\x51\x38"
+      "\x0a\x47\xe1\x28\x1c\x85\xa3\x70\x14\x8e\xc2\x51\x38\x0a\x47\xe1\x28"
+      "\x1c\x85\xa3\x70\x14\x8e\xc2\x51\x38\x0a\x47\xe1\x28\x1c\x85\xa3\x70"
+      "\x14\x8e\xc2\x51\x38\x0a\x47\xe1\x28\x1c\x85\xa3\x70\x14\x8e\xc2\x51"
+      "\x38\x0a\x47\xe1\x28\x1c\x85\xa3\x70\x14\x8e\xc2\x51\x38\x0a\x47\xe1"
+      "\x28\x1c\x85\xa3\x70\x14\x8e\xc2\x51\x38\x0a\x47\xe1\x28\x1c\x85\xa3"
+      "\x70\x14\x8e\xc2\x51\x38\x0a\x47\xe1\x28\x1c\x85\xa3\x70\x14\x8e\xc2"
+      "\x51\x38\x0a\x47\xe1\x28\x1c\x85\xa3\x70\x14\x8e\xc2\x51\x38\x0a\x47"
+      "\xe1\x28\x1c\x85\xa3\x70\x14\x8e\xc2\x51\x38\x0a\x47\xe1\x28\x1c\x85"
+      "\xa3\x70\x14\x8e\xc2\x51\x38\x0a\x47\xe1\x28\x1c\x85\xa3\x70\x14\x8e"
+      "\xc2\x51\x38\x0a\x47\xe1\x28\x1c\x85\xa3\x70\x14\x8e\xc2\x51\x38\x0a"
+      "\x47\xe1\x28\x1c\x85\xa3\x70\x14\x8e\xc2\x51\x38\x0a\x87\x36\x1c\x0d"
+      "\xab\xd1\x10\x00\x00\xba\xf1\x51\x56\xc0\x81\x00\x00",
+      234};
+  // The member trailer carries the CRC32 of the full expected output, so a
+  // successful decode already proves every byte, and the probes pin the
+  // alternating pattern at the start, both window boundary copies, and the end
+  const auto result{decompress_via_stream(compressed)};
+  EXPECT_EQ(result.size(), 33216);
+  EXPECT_EQ(result.at(0), 'a');
+  EXPECT_EQ(result.at(1), 'b');
+  EXPECT_EQ(result.at(32700), 'a');
+  EXPECT_EQ(result.at(32701), 'b');
+  EXPECT_EQ(result.at(32958), 'a');
+  EXPECT_EQ(result.at(32959), 'b');
+  EXPECT_EQ(result.at(33214), 'a');
+  EXPECT_EQ(result.at(33215), 'b');
+}
+
+TEST(dynamic_repeat_previous_cap_overflow_throws) {
+  const std::string compressed{
+      "\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\x03\xed\x1f\x84\x28\x7f\xff\xff"
+      "\xff\xff\x79\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00",
+      30};
+  try {
+    decompress_via_stream(compressed);
+    FAIL();
+  } catch (const sourcemeta::core::GZIPError &error) {
+    EXPECT_EQ(std::string{error.what()}, "Code length count overflow");
+  }
+}
+
+TEST(dynamic_repeat_zero_cap_overflow_throws) {
+  const std::string compressed{
+      "\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\x03\xed\x1f\x20\xe5\xff\xff\xde"
+      "\x7b\xef\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00",
+      29};
+  try {
+    decompress_via_stream(compressed);
+    FAIL();
+  } catch (const sourcemeta::core::GZIPError &error) {
+    EXPECT_EQ(std::string{error.what()}, "Code length count overflow");
+  }
+}
+
+TEST(multiple_members_concatenate) {
+  const std::string first{"hello "};
+  const std::string second{"world"};
+  const auto compressed_first{sourcemeta::core::gzip(
+      reinterpret_cast<const std::uint8_t *>(first.data()), first.size())};
+  const auto compressed_second{sourcemeta::core::gzip(
+      reinterpret_cast<const std::uint8_t *>(second.data()), second.size())};
+  const auto result{
+      decompress_via_stream(compressed_first + compressed_second)};
+  EXPECT_EQ(result, "hello world");
+}
+
+TEST(trailing_garbage_after_member_is_ignored) {
+  const std::string input{"hello world"};
+  const auto compressed{sourcemeta::core::gzip(
+      reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
+  const auto result{decompress_via_stream(compressed + "trailing garbage")};
+  EXPECT_EQ(result, input);
+}
+
+TEST(truncated_trailer_throws) {
+  const std::string compressed{
+      "\x1f\x8b\x08\x00\x00\x00\x00\x00\x04\x13\x03\x00\x00\x00\x00\x00", 16};
+  try {
+    decompress_via_stream(compressed);
+    FAIL();
+  } catch (const sourcemeta::core::GZIPError &) {
+  }
+}

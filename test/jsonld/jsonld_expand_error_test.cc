@@ -618,3 +618,34 @@ TEST(error_code_value_is_owned) {
   EXPECT_STREQ(error.what(),
                "A custom error code longer than small string optimization");
 }
+
+TEST(type_redefinition_with_non_boolean_protected) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "@type": { "@container": "@set", "@protected": 1 } }
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Invalid @protected value",
+                             "/@context/@type/@protected");
+}
+
+TEST(type_redefinition_with_invalid_container) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "@type": { "@container": "@list" } }
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Keyword redefinition", "/@context/@type");
+}
+
+TEST(null_term_with_non_boolean_protected) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "term": { "@id": null, "@protected": "yes" }
+    }
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Invalid @protected value",
+                             "/@context/term/@protected");
+}

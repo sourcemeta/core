@@ -783,3 +783,61 @@ TEST(direct_list_inits_deeply_nested_array_without_stack_overflow) {
   sourcemeta::core::JSON copy{source};
   EXPECT_TRUE(copy.is_array());
 }
+
+TEST(boolean_ordering) {
+  EXPECT_LT(sourcemeta::core::JSON{false}, sourcemeta::core::JSON{true});
+  EXPECT_FALSE(sourcemeta::core::JSON{true} < sourcemeta::core::JSON{false});
+}
+
+TEST(object_ordering) {
+  const auto left{sourcemeta::core::parse_json(R"JSON({ "a": 1 })JSON")};
+  const auto right{sourcemeta::core::parse_json(R"JSON({ "b": 2 })JSON")};
+  EXPECT_LT(left, right);
+  EXPECT_FALSE(right < left);
+}
+
+TEST(array_is_not_positive) {
+  const auto document{sourcemeta::core::parse_json(R"JSON([ 1 ])JSON")};
+  EXPECT_FALSE(document.is_positive());
+}
+
+TEST(copy_assign_integer_over_object) {
+  auto document{sourcemeta::core::parse_json(R"JSON({ "a": 1 })JSON")};
+  const sourcemeta::core::JSON other{42};
+  document = other;
+  EXPECT_TRUE(document.is_integer());
+  EXPECT_EQ(document.to_integer(), 42);
+}
+
+TEST(copy_assign_real_over_object) {
+  auto document{sourcemeta::core::parse_json(R"JSON({ "a": 1 })JSON")};
+  const sourcemeta::core::JSON other{1.5};
+  document = other;
+  EXPECT_TRUE(document.is_real());
+  EXPECT_EQ(document.to_real(), 1.5);
+}
+
+TEST(copy_assign_string_over_object) {
+  auto document{sourcemeta::core::parse_json(R"JSON({ "a": 1 })JSON")};
+  const sourcemeta::core::JSON other{"hello"};
+  document = other;
+  EXPECT_TRUE(document.is_string());
+  EXPECT_EQ(document.to_string(), "hello");
+}
+
+TEST(copy_assign_decimal_over_object) {
+  auto document{sourcemeta::core::parse_json(R"JSON({ "a": 1 })JSON")};
+  const auto other{sourcemeta::core::parse_json("3.14159265358979323846")};
+  EXPECT_TRUE(other.is_decimal());
+  document = other;
+  EXPECT_TRUE(document.is_decimal());
+  EXPECT_EQ(document, other);
+}
+
+TEST(deep_copy_of_a_nested_object) {
+  const auto document{sourcemeta::core::parse_json(
+      R"JSON([ { "a": { "b": [ 1, 2 ] } }, 3 ])JSON")};
+  const sourcemeta::core::JSON copy{document};
+  EXPECT_EQ(copy, document);
+  EXPECT_EQ(copy.at(0).at("a").at("b").at(1).to_integer(), 2);
+}

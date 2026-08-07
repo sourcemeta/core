@@ -1211,3 +1211,104 @@ TEST(build_authorization_error_form_post_honors_a_custom_title) {
             "<input type=\"hidden\" name=\"error\" value=\"access_denied\" />"
             "</form></body></html>");
 }
+
+TEST(build_authorization_error_form_post_rejects_a_fragment_redirect) {
+  sourcemeta::core::OAuthAuthorizationResponse response;
+  response.error = "access_denied";
+  std::string page;
+  EXPECT_FALSE(sourcemeta::core::oauth_build_authorization_error_form_post(
+      "https://client.example/cb#section", response, page));
+  EXPECT_TRUE(page.empty());
+}
+
+TEST(build_authorization_error_form_post_rejects_an_invalid_iss) {
+  sourcemeta::core::OAuthAuthorizationResponse response;
+  response.error = "access_denied";
+  response.iss = "https://server.example?x=1";
+  std::string page;
+  EXPECT_FALSE(sourcemeta::core::oauth_build_authorization_error_form_post(
+      "https://client.example/cb", response, page));
+  EXPECT_TRUE(page.empty());
+}
+
+TEST(build_authorization_error_form_post_emits_iss) {
+  sourcemeta::core::OAuthAuthorizationResponse response;
+  response.error = "access_denied";
+  response.iss = "https://server.example";
+  std::string page;
+  EXPECT_TRUE(sourcemeta::core::oauth_build_authorization_error_form_post(
+      "https://client.example/cb", response, page));
+  EXPECT_EQ(page,
+            "<html><head><title>Submit This Form</title></head>"
+            "<body onload=\"javascript:document.forms[0].submit()\">"
+            "<form method=\"post\" action=\"https://client.example/cb\">"
+            "<input type=\"hidden\" name=\"error\" value=\"access_denied\" />"
+            "<input type=\"hidden\" name=\"iss\" "
+            "value=\"https://server.example\" />"
+            "</form></body></html>");
+}
+
+TEST(build_authorization_form_post_rejects_an_unclosed_bracket_iss) {
+  sourcemeta::core::OAuthAuthorizationResponse response;
+  response.code = "abc";
+  response.iss = "https://[::1";
+  std::string page;
+  EXPECT_FALSE(sourcemeta::core::oauth_build_authorization_form_post(
+      "https://client.example/cb", response, page));
+  EXPECT_TRUE(page.empty());
+}
+
+TEST(parse_authorization_response_rejects_a_malformed_name_escape) {
+  std::string storage;
+  sourcemeta::core::OAuthAuthorizationResponse response;
+  EXPECT_FALSE(sourcemeta::core::oauth_parse_authorization_response(
+      "%GG=x", storage, response));
+}
+
+TEST(parse_authorization_response_rejects_a_duplicate_error_uri) {
+  std::string storage;
+  sourcemeta::core::OAuthAuthorizationResponse response;
+  EXPECT_FALSE(sourcemeta::core::oauth_parse_authorization_response(
+      "error=a&error_uri=x&error_uri=y", storage, response));
+}
+
+TEST(parse_authorization_response_rejects_a_malformed_state_value) {
+  std::string storage;
+  sourcemeta::core::OAuthAuthorizationResponse response;
+  EXPECT_FALSE(sourcemeta::core::oauth_parse_authorization_response(
+      "code=a&state=x%2", storage, response));
+}
+
+TEST(parse_authorization_response_rejects_a_malformed_iss_value) {
+  std::string storage;
+  sourcemeta::core::OAuthAuthorizationResponse response;
+  EXPECT_FALSE(sourcemeta::core::oauth_parse_authorization_response(
+      "code=a&iss=x%2", storage, response));
+}
+
+TEST(parse_authorization_response_rejects_a_malformed_error_value) {
+  std::string storage;
+  sourcemeta::core::OAuthAuthorizationResponse response;
+  EXPECT_FALSE(sourcemeta::core::oauth_parse_authorization_response(
+      "error=x%2", storage, response));
+}
+
+TEST(parse_authorization_response_rejects_a_malformed_error_description) {
+  std::string storage;
+  sourcemeta::core::OAuthAuthorizationResponse response;
+  EXPECT_FALSE(sourcemeta::core::oauth_parse_authorization_response(
+      "error=a&error_description=x%2", storage, response));
+}
+
+TEST(parse_authorization_response_rejects_a_malformed_error_uri) {
+  std::string storage;
+  sourcemeta::core::OAuthAuthorizationResponse response;
+  EXPECT_FALSE(sourcemeta::core::oauth_parse_authorization_response(
+      "error=a&error_uri=x%2", storage, response));
+}
+
+TEST(redirect_uri_matches_rejects_an_unclosed_bracket_host) {
+  EXPECT_FALSE(sourcemeta::core::oauth_redirect_uri_matches(
+      "http://[::1/cb", "http://[::1:8080/cb",
+      sourcemeta::core::OAuthProfile::Strict));
+}

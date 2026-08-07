@@ -876,3 +876,40 @@ TEST(sequence_with_quoted_strings) {
   sourcemeta::core::stringify_yaml(document, stream);
   EXPECT_EQ(stream.str(), "- \"true\"\n- \"42\"\n- \"null\"\n");
 }
+
+TEST(string_with_carriage_return) {
+  const sourcemeta::core::JSON document{"a\rb"};
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream);
+  EXPECT_EQ(stream.str(), "\"a\\rb\"\n");
+}
+
+TEST(string_with_tab) {
+  const sourcemeta::core::JSON document{"a\tb"};
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream);
+  EXPECT_EQ(stream.str(), "\"a\\tb\"\n");
+}
+
+TEST(string_with_null_byte) {
+  const sourcemeta::core::JSON document{std::string{"a\0b", 3}};
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream);
+  EXPECT_EQ(stream.str(), "\"a\\0b\"\n");
+}
+
+TEST(string_with_control_byte) {
+  const sourcemeta::core::JSON document{std::string{"a\x01"
+                                                    "b",
+                                                    3}};
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream);
+  EXPECT_EQ(stream.str(), "\"a\\x01b\"\n");
+}
+
+TEST(string_with_quote_backslash_and_newline) {
+  const sourcemeta::core::JSON document{"a\"b\\c\nd"};
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream);
+  EXPECT_EQ(stream.str(), "\"a\\\"b\\\\c\\nd\"\n");
+}

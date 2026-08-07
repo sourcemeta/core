@@ -371,3 +371,80 @@ TEST(from_accepts_a_cleartext_request_uri) {
       sourcemeta::core::OIDCClientMetadata::from(std::move(document))};
   EXPECT_TRUE(metadata.has_value());
 }
+
+TEST(from_rejects_an_unparseable_redirect_uri) {
+  auto document{
+      sourcemeta::core::parse_json(R"JSON({ "redirect_uris": [ "%" ] })JSON")};
+  EXPECT_FALSE(sourcemeta::core::OIDCClientMetadata::from(std::move(document))
+                   .has_value());
+}
+
+TEST(from_rejects_an_unparseable_sector_identifier_uri) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "redirect_uris": [ "https://client.example/cb" ],
+    "sector_identifier_uri": "%"
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::OIDCClientMetadata::from(std::move(document))
+                   .has_value());
+}
+
+TEST(from_rejects_an_unparseable_initiate_login_uri) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "redirect_uris": [ "https://client.example/cb" ],
+    "initiate_login_uri": "%"
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::OIDCClientMetadata::from(std::move(document))
+                   .has_value());
+}
+
+TEST(from_rejects_a_non_integer_default_max_age) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "redirect_uris": [ "https://client.example/cb" ],
+    "default_max_age": "soon"
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::OIDCClientMetadata::from(std::move(document))
+                   .has_value());
+}
+
+TEST(from_rejects_a_negative_default_max_age) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "redirect_uris": [ "https://client.example/cb" ],
+    "default_max_age": -1
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::OIDCClientMetadata::from(std::move(document))
+                   .has_value());
+}
+
+TEST(from_rejects_a_non_boolean_require_auth_time) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "redirect_uris": [ "https://client.example/cb" ],
+    "require_auth_time": 1
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::OIDCClientMetadata::from(std::move(document))
+                   .has_value());
+}
+
+TEST(from_rejects_a_non_array_post_logout_redirect_uris) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "redirect_uris": [ "https://client.example/cb" ],
+    "post_logout_redirect_uris": 42
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::OIDCClientMetadata::from(std::move(document))
+                   .has_value());
+}
+
+TEST(encrypted_and_userinfo_algorithm_accessors) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "redirect_uris": [ "https://client.example/cb" ],
+    "id_token_encrypted_response_alg": "RSA-OAEP",
+    "userinfo_signed_response_alg": "ES256"
+  })JSON")};
+  const auto metadata{
+      sourcemeta::core::OIDCClientMetadata::from(std::move(document))};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_TRUE(metadata.value().id_token_encrypted_response_alg().has_value());
+  EXPECT_EQ(metadata.value().id_token_encrypted_response_alg().value(),
+            "RSA-OAEP");
+  EXPECT_TRUE(metadata.value().userinfo_signed_response_alg().has_value());
+  EXPECT_EQ(metadata.value().userinfo_signed_response_alg().value(), "ES256");
+}
