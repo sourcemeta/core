@@ -471,6 +471,12 @@ TEST(type_redefinition_with_set_container) {
 
   const auto result{sourcemeta::core::jsonld_expand(input)};
   EXPECT_TRUE(result.is_array());
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_TRUE(result.at(0).defines("@type"));
+  EXPECT_TRUE(result.at(0).at("@type").is_array());
+  EXPECT_EQ(result.at(0).at("@type").size(), 1);
+  EXPECT_EQ(result.at(0).at("@type").at(0).to_string(),
+            "http://example.com/Type");
 }
 
 TEST(term_with_slash_expands_against_vocabulary) {
