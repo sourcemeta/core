@@ -852,6 +852,12 @@ TEST(mint_emits_optional_claims) {
 
   const auto token{sourcemeta::core::JWT::from(compact.value())};
   EXPECT_TRUE(token.has_value());
+  EXPECT_EQ(token.value().payload().at("iss").to_string(),
+            "https://issuer.example");
+  EXPECT_EQ(token.value().payload().at("sub").to_string(), "user-1");
+  EXPECT_EQ(token.value().payload().at("aud").to_string(), "client-id");
+  EXPECT_EQ(token.value().payload().at("iat").to_integer(), 1700000000);
+  EXPECT_EQ(token.value().payload().at("exp").to_integer(), 1700003600);
   EXPECT_EQ(token.value().payload().at("azp").to_string(), "client-id");
   EXPECT_EQ(token.value().payload().at("acr").to_string(),
             "urn:mace:incommon:iap:silver");

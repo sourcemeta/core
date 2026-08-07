@@ -25,6 +25,23 @@ auto evaluate_nodes(const sourcemeta::core::JSONPath &path,
   return result;
 }
 
+// A single-element array whose item nests three hundred arrays deep with a
+// small object at the bottom, so filter sub-queries exceed the recursion
+// limit and continue on the iterative walk
+auto deep_candidate_document() -> sourcemeta::core::JSON {
+  auto current{sourcemeta::core::parse_json(
+      R"JSON({ "b": [ 1, 2 ], "c": { "d": 7 } })JSON")};
+  for (std::size_t depth{0}; depth < 300; depth += 1) {
+    auto wrapper{sourcemeta::core::JSON::make_array()};
+    wrapper.push_back(std::move(current));
+    current = std::move(wrapper);
+  }
+
+  auto document{sourcemeta::core::JSON::make_array()};
+  document.push_back(std::move(current));
+  return document;
+}
+
 } // namespace
 
 TEST(jsonpath_filter_existence) {
@@ -425,10 +442,7 @@ TEST(jsonpath_filter_nested_filter_on_object) {
 }
 
 TEST(jsonpath_filter_deep_descendant_existence) {
-  const auto document{sourcemeta::core::parse_json(
-      "[" + std::string(300, '[') +
-      R"JSON({ "b": [ 1, 2 ], "c": { "d": 7 } })JSON" + std::string(300, ']') +
-      "]")};
+  const auto document{deep_candidate_document()};
   const sourcemeta::core::JSONPath path{"$[?@..b[1]]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
@@ -437,10 +451,7 @@ TEST(jsonpath_filter_deep_descendant_existence) {
 }
 
 TEST(jsonpath_filter_deep_descendant_single_name_existence) {
-  const auto document{sourcemeta::core::parse_json(
-      "[" + std::string(300, '[') +
-      R"JSON({ "b": [ 1, 2 ], "c": { "d": 7 } })JSON" + std::string(300, ']') +
-      "]")};
+  const auto document{deep_candidate_document()};
   const sourcemeta::core::JSONPath path{"$[?@..c.d]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
@@ -449,10 +460,7 @@ TEST(jsonpath_filter_deep_descendant_single_name_existence) {
 }
 
 TEST(jsonpath_filter_deep_descendant_wildcard_existence) {
-  const auto document{sourcemeta::core::parse_json(
-      "[" + std::string(300, '[') +
-      R"JSON({ "b": [ 1, 2 ], "c": { "d": 7 } })JSON" + std::string(300, ']') +
-      "]")};
+  const auto document{deep_candidate_document()};
   const sourcemeta::core::JSONPath path{"$[?@..c[*]]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
@@ -461,10 +469,7 @@ TEST(jsonpath_filter_deep_descendant_wildcard_existence) {
 }
 
 TEST(jsonpath_filter_deep_descendant_slice_existence) {
-  const auto document{sourcemeta::core::parse_json(
-      "[" + std::string(300, '[') +
-      R"JSON({ "b": [ 1, 2 ], "c": { "d": 7 } })JSON" + std::string(300, ']') +
-      "]")};
+  const auto document{deep_candidate_document()};
   const sourcemeta::core::JSONPath path{"$[?@..b[0:2]]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
@@ -473,10 +478,7 @@ TEST(jsonpath_filter_deep_descendant_slice_existence) {
 }
 
 TEST(jsonpath_filter_deep_descendant_negative_step_slice_existence) {
-  const auto document{sourcemeta::core::parse_json(
-      "[" + std::string(300, '[') +
-      R"JSON({ "b": [ 1, 2 ], "c": { "d": 7 } })JSON" + std::string(300, ']') +
-      "]")};
+  const auto document{deep_candidate_document()};
   const sourcemeta::core::JSONPath path{"$[?@..b[::-1]]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
@@ -485,10 +487,7 @@ TEST(jsonpath_filter_deep_descendant_negative_step_slice_existence) {
 }
 
 TEST(jsonpath_filter_deep_descendant_nested_filter_array_existence) {
-  const auto document{sourcemeta::core::parse_json(
-      "[" + std::string(300, '[') +
-      R"JSON({ "b": [ 1, 2 ], "c": { "d": 7 } })JSON" + std::string(300, ']') +
-      "]")};
+  const auto document{deep_candidate_document()};
   const sourcemeta::core::JSONPath path{"$[?@..b[?@ > 1]]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
@@ -497,10 +496,7 @@ TEST(jsonpath_filter_deep_descendant_nested_filter_array_existence) {
 }
 
 TEST(jsonpath_filter_deep_descendant_nested_filter_object_existence) {
-  const auto document{sourcemeta::core::parse_json(
-      "[" + std::string(300, '[') +
-      R"JSON({ "b": [ 1, 2 ], "c": { "d": 7 } })JSON" + std::string(300, ']') +
-      "]")};
+  const auto document{deep_candidate_document()};
   const sourcemeta::core::JSONPath path{"$[?@..c[?@ == 7]]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
@@ -509,10 +505,7 @@ TEST(jsonpath_filter_deep_descendant_nested_filter_object_existence) {
 }
 
 TEST(jsonpath_filter_deep_descendant_index_pair_existence) {
-  const auto document{sourcemeta::core::parse_json(
-      "[" + std::string(300, '[') +
-      R"JSON({ "b": [ 1, 2 ], "c": { "d": 7 } })JSON" + std::string(300, ']') +
-      "]")};
+  const auto document{deep_candidate_document()};
   const sourcemeta::core::JSONPath path{"$[?@..b[0, 1]]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
@@ -521,10 +514,7 @@ TEST(jsonpath_filter_deep_descendant_index_pair_existence) {
 }
 
 TEST(jsonpath_filter_deep_descendant_value_comparison) {
-  const auto document{sourcemeta::core::parse_json(
-      "[" + std::string(300, '[') +
-      R"JSON({ "b": [ 1, 2 ], "c": { "d": 7 } })JSON" + std::string(300, ']') +
-      "]")};
+  const auto document{deep_candidate_document()};
   const sourcemeta::core::JSONPath path{"$[?value(@..d) == 7]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
@@ -533,10 +523,7 @@ TEST(jsonpath_filter_deep_descendant_value_comparison) {
 }
 
 TEST(jsonpath_filter_deep_descendant_wildcard_array_existence) {
-  const auto document{sourcemeta::core::parse_json(
-      "[" + std::string(300, '[') +
-      R"JSON({ "b": [ 1, 2 ], "c": { "d": 7 } })JSON" + std::string(300, ']') +
-      "]")};
+  const auto document{deep_candidate_document()};
   const sourcemeta::core::JSONPath path{"$[?@..b[*]]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
@@ -545,10 +532,7 @@ TEST(jsonpath_filter_deep_descendant_wildcard_array_existence) {
 }
 
 TEST(jsonpath_filter_deep_descendant_zero_step_slice_existence) {
-  const auto document{sourcemeta::core::parse_json(
-      "[" + std::string(300, '[') +
-      R"JSON({ "b": [ 1, 2 ], "c": { "d": 7 } })JSON" + std::string(300, ']') +
-      "]")};
+  const auto document{deep_candidate_document()};
   const sourcemeta::core::JSONPath path{"$[?@..b[0:2:0]]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 0);

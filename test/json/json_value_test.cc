@@ -831,6 +831,7 @@ TEST(copy_assign_decimal_over_object) {
   EXPECT_TRUE(other.is_decimal());
   document = other;
   EXPECT_TRUE(document.is_decimal());
+  EXPECT_EQ(document, other);
 }
 
 TEST(deep_copy_of_a_nested_object) {

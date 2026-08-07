@@ -1,5 +1,6 @@
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonpath.h>
+#include <sourcemeta/core/jsonpointer.h>
 #include <sourcemeta/core/test.h>
 
 #include <string> // std::string
@@ -22,6 +23,20 @@ auto evaluate_nodes(const sourcemeta::core::JSONPath &path,
         result.push_back({&value, location});
       });
   return result;
+}
+
+// Wraps the given document in three hundred nested single-element arrays so
+// evaluation exceeds the recursion limit and continues on the iterative walk
+auto deeply_nested_array(sourcemeta::core::JSON &&bottom)
+    -> sourcemeta::core::JSON {
+  auto current{std::move(bottom)};
+  for (std::size_t depth{0}; depth < 300; depth += 1) {
+    auto wrapper{sourcemeta::core::JSON::make_array()};
+    wrapper.push_back(std::move(current));
+    current = std::move(wrapper);
+  }
+
+  return current;
 }
 
 } // namespace
@@ -281,129 +296,135 @@ TEST(jsonpath_evaluate_move_construction) {
 }
 
 TEST(jsonpath_evaluate_deep_descendant_name) {
-  const auto document{sourcemeta::core::parse_json(
-      std::string(300, '[') + R"JSON({ "a": { "b": 7 } })JSON" +
-      std::string(300, ']'))};
+  const auto document{deeply_nested_array(
+      sourcemeta::core::parse_json(R"JSON({ "a": { "b": 7 } })JSON"))};
   const sourcemeta::core::JSONPath path{"$..b"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
   EXPECT_EQ(nodes.at(0).value->to_integer(), 7);
+  EXPECT_EQ(nodes.at(0).location.size(), 302);
 }
 
 TEST(jsonpath_evaluate_deep_descendant_then_single_name) {
-  const auto document{sourcemeta::core::parse_json(
-      std::string(300, '[') + R"JSON({ "a": { "b": 7 } })JSON" +
-      std::string(300, ']'))};
+  const auto document{deeply_nested_array(
+      sourcemeta::core::parse_json(R"JSON({ "a": { "b": 7 } })JSON"))};
   const sourcemeta::core::JSONPath path{"$..a.b"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
   EXPECT_EQ(nodes.at(0).value->to_integer(), 7);
+  EXPECT_EQ(nodes.at(0).location.size(), 302);
 }
 
 TEST(jsonpath_evaluate_deep_descendant_then_single_index) {
-  const auto document{sourcemeta::core::parse_json(
-      std::string(300, '[') + R"JSON({ "values": [ 1, 2, 3 ] })JSON" +
-      std::string(300, ']'))};
+  const auto document{deeply_nested_array(
+      sourcemeta::core::parse_json(R"JSON({ "values": [ 1, 2, 3 ] })JSON"))};
   const sourcemeta::core::JSONPath path{"$..values[1]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
   EXPECT_EQ(nodes.at(0).value->to_integer(), 2);
+  EXPECT_EQ(nodes.at(0).location.size(), 302);
 }
 
 TEST(jsonpath_evaluate_deep_descendant_then_negative_index) {
-  const auto document{sourcemeta::core::parse_json(
-      std::string(300, '[') + R"JSON({ "values": [ 1, 2, 3 ] })JSON" +
-      std::string(300, ']'))};
+  const auto document{deeply_nested_array(
+      sourcemeta::core::parse_json(R"JSON({ "values": [ 1, 2, 3 ] })JSON"))};
   const sourcemeta::core::JSONPath path{"$..values[-1]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
   EXPECT_EQ(nodes.at(0).value->to_integer(), 3);
+  EXPECT_EQ(nodes.at(0).location.size(), 302);
 }
 
 TEST(jsonpath_evaluate_deep_descendant_then_wildcard_array) {
-  const auto document{sourcemeta::core::parse_json(
-      std::string(300, '[') + R"JSON({ "values": [ 1, 2, 3 ] })JSON" +
-      std::string(300, ']'))};
+  const auto document{deeply_nested_array(
+      sourcemeta::core::parse_json(R"JSON({ "values": [ 1, 2, 3 ] })JSON"))};
   const sourcemeta::core::JSONPath path{"$..values[*]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 3);
   EXPECT_EQ(nodes.at(0).value->to_integer(), 1);
   EXPECT_EQ(nodes.at(1).value->to_integer(), 2);
   EXPECT_EQ(nodes.at(2).value->to_integer(), 3);
+  EXPECT_EQ(nodes.at(0).location.size(), 302);
+  EXPECT_EQ(nodes.at(1).location.size(), 302);
+  EXPECT_EQ(nodes.at(2).location.size(), 302);
 }
 
 TEST(jsonpath_evaluate_deep_descendant_then_wildcard_object) {
-  const auto document{sourcemeta::core::parse_json(
-      std::string(300, '[') + R"JSON({ "a": { "b": 7 } })JSON" +
-      std::string(300, ']'))};
+  const auto document{deeply_nested_array(
+      sourcemeta::core::parse_json(R"JSON({ "a": { "b": 7 } })JSON"))};
   const sourcemeta::core::JSONPath path{"$..a[*]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
   EXPECT_EQ(nodes.at(0).value->to_integer(), 7);
+  EXPECT_EQ(nodes.at(0).location.size(), 302);
 }
 
 TEST(jsonpath_evaluate_deep_descendant_then_slice) {
-  const auto document{sourcemeta::core::parse_json(
-      std::string(300, '[') + R"JSON({ "values": [ 1, 2, 3 ] })JSON" +
-      std::string(300, ']'))};
+  const auto document{deeply_nested_array(
+      sourcemeta::core::parse_json(R"JSON({ "values": [ 1, 2, 3 ] })JSON"))};
   const sourcemeta::core::JSONPath path{"$..values[0:2]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 2);
   EXPECT_EQ(nodes.at(0).value->to_integer(), 1);
   EXPECT_EQ(nodes.at(1).value->to_integer(), 2);
+  EXPECT_EQ(nodes.at(0).location.size(), 302);
+  EXPECT_EQ(nodes.at(1).location.size(), 302);
 }
 
 TEST(jsonpath_evaluate_deep_descendant_then_negative_step_slice) {
-  const auto document{sourcemeta::core::parse_json(
-      std::string(300, '[') + R"JSON({ "values": [ 1, 2, 3 ] })JSON" +
-      std::string(300, ']'))};
+  const auto document{deeply_nested_array(
+      sourcemeta::core::parse_json(R"JSON({ "values": [ 1, 2, 3 ] })JSON"))};
   const sourcemeta::core::JSONPath path{"$..values[::-1]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 3);
   EXPECT_EQ(nodes.at(0).value->to_integer(), 3);
   EXPECT_EQ(nodes.at(1).value->to_integer(), 2);
   EXPECT_EQ(nodes.at(2).value->to_integer(), 1);
+  EXPECT_EQ(nodes.at(0).location.size(), 302);
+  EXPECT_EQ(nodes.at(1).location.size(), 302);
+  EXPECT_EQ(nodes.at(2).location.size(), 302);
 }
 
 TEST(jsonpath_evaluate_deep_descendant_then_filter) {
-  const auto document{sourcemeta::core::parse_json(
-      std::string(300, '[') + R"JSON({ "values": [ 1, 2, 3 ] })JSON" +
-      std::string(300, ']'))};
+  const auto document{deeply_nested_array(
+      sourcemeta::core::parse_json(R"JSON({ "values": [ 1, 2, 3 ] })JSON"))};
   const sourcemeta::core::JSONPath path{"$..values[?@ > 1]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 2);
   EXPECT_EQ(nodes.at(0).value->to_integer(), 2);
   EXPECT_EQ(nodes.at(1).value->to_integer(), 3);
+  EXPECT_EQ(nodes.at(0).location.size(), 302);
+  EXPECT_EQ(nodes.at(1).location.size(), 302);
 }
 
 TEST(jsonpath_evaluate_deep_descendant_then_index_pair) {
-  const auto document{sourcemeta::core::parse_json(
-      std::string(300, '[') + R"JSON({ "values": [ 1, 2, 3 ] })JSON" +
-      std::string(300, ']'))};
+  const auto document{deeply_nested_array(
+      sourcemeta::core::parse_json(R"JSON({ "values": [ 1, 2, 3 ] })JSON"))};
   const sourcemeta::core::JSONPath path{"$..values[0, 2]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 2);
   EXPECT_EQ(nodes.at(0).value->to_integer(), 1);
   EXPECT_EQ(nodes.at(1).value->to_integer(), 3);
+  EXPECT_EQ(nodes.at(0).location.size(), 302);
+  EXPECT_EQ(nodes.at(1).location.size(), 302);
 }
 
 TEST(jsonpath_evaluate_deep_descendant_then_zero_step_slice) {
-  const auto document{sourcemeta::core::parse_json(
-      std::string(300, '[') + R"JSON({ "values": [ 1, 2, 3 ] })JSON" +
-      std::string(300, ']'))};
+  const auto document{deeply_nested_array(
+      sourcemeta::core::parse_json(R"JSON({ "values": [ 1, 2, 3 ] })JSON"))};
   const sourcemeta::core::JSONPath path{"$..values[0:2:0]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 0);
 }
 
 TEST(jsonpath_evaluate_deep_descendant_then_filter_on_object) {
-  const auto document{sourcemeta::core::parse_json(
-      std::string(300, '[') + R"JSON({ "a": { "b": 7 } })JSON" +
-      std::string(300, ']'))};
+  const auto document{deeply_nested_array(
+      sourcemeta::core::parse_json(R"JSON({ "a": { "b": 7 } })JSON"))};
   const sourcemeta::core::JSONPath path{"$..a[?@ == 7]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
   EXPECT_EQ(nodes.at(0).value->to_integer(), 7);
+  EXPECT_EQ(nodes.at(0).location.size(), 302);
 }
 
 TEST(jsonpath_evaluate_multibyte_shorthand) {
@@ -413,4 +434,5 @@ TEST(jsonpath_evaluate_multibyte_shorthand) {
   EXPECT_EQ(nodes.size(), 1);
   EXPECT_TRUE(nodes.at(0).value->is_integer());
   EXPECT_EQ(nodes.at(0).value->to_integer(), 1);
+  EXPECT_EQ(sourcemeta::core::to_string(nodes.at(0).location), "/a\xc3\xa9");
 }

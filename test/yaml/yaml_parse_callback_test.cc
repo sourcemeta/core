@@ -512,6 +512,8 @@ TEST(read_in_place_with_callback_invalid) {
     FAIL();
   } catch (const sourcemeta::core::YAMLFileParseError &error) {
     EXPECT_EQ(error.path(), std::filesystem::path{STUBS_PATH} / "invalid.yaml");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 15);
   }
 }
 

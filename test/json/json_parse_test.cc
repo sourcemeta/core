@@ -1830,6 +1830,8 @@ TEST(parse_root_decimal_with_callback) {
                 const std::size_t,
                 const sourcemeta::core::JSON::String &) { events += 1; });
   EXPECT_TRUE(output.is_decimal());
+  EXPECT_EQ(output.to_decimal(),
+            sourcemeta::core::Decimal{"3.14159265358979323846"});
   EXPECT_EQ(events, 2);
 }
 
@@ -1852,9 +1854,12 @@ TEST(parse_root_real_with_callback) {
 TEST(parse_high_precision_decimal_root) {
   const auto result{sourcemeta::core::parse_json("3.14159265358979323846")};
   EXPECT_TRUE(result.is_decimal());
+  EXPECT_EQ(result.to_decimal(),
+            sourcemeta::core::Decimal{"3.14159265358979323846"});
 }
 
 TEST(parse_exponent_number_root) {
   const auto result{sourcemeta::core::parse_json("1e309")};
   EXPECT_TRUE(result.is_decimal());
+  EXPECT_EQ(result.to_decimal(), sourcemeta::core::Decimal{"1e309"});
 }

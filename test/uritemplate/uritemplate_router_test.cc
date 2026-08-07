@@ -3098,6 +3098,7 @@ TEST(add_rejects_an_unmatched_closing_brace) {
   } catch (
       const sourcemeta::core::URITemplateRouterInvalidSegmentError &error) {
     EXPECT_STREQ(error.what(), "Unmatched closing brace");
+    EXPECT_EQ(error.segment(), "}x");
   } catch (...) {
     FAIL();
   }
@@ -3111,6 +3112,7 @@ TEST(add_rejects_an_unclosed_trailing_brace) {
   } catch (
       const sourcemeta::core::URITemplateRouterInvalidSegmentError &error) {
     EXPECT_STREQ(error.what(), "Unclosed brace");
+    EXPECT_EQ(error.segment(), "{");
   } catch (...) {
     FAIL();
   }
@@ -3125,6 +3127,7 @@ TEST(add_rejects_a_mixed_literal_and_variable_segment) {
       const sourcemeta::core::URITemplateRouterInvalidSegmentError &error) {
     EXPECT_STREQ(error.what(),
                  "Path segment cannot mix literals and variables");
+    EXPECT_EQ(error.segment(), "a{x}");
   } catch (...) {
     FAIL();
   }
@@ -3139,6 +3142,7 @@ TEST(add_rejects_a_variable_then_literal_segment) {
       const sourcemeta::core::URITemplateRouterInvalidSegmentError &error) {
     EXPECT_STREQ(error.what(),
                  "Path segment cannot mix literals and variables");
+    EXPECT_EQ(error.segment(), "{x}a");
   } catch (...) {
     FAIL();
   }
