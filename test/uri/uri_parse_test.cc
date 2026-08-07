@@ -947,3 +947,25 @@ TEST(uri_constructor_rejects_non_ascii) {
     EXPECT_EQ(error.column(), 24);
   }
 }
+
+TEST(ipvfuture_uppercase_marker) {
+  const sourcemeta::core::URI uri{"http://[V1.a]/"};
+  EXPECT_TRUE(uri.host().has_value());
+  EXPECT_EQ(uri.host().value(), "V1.a");
+}
+
+TEST(ipvfuture_missing_version_hexdigit) {
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri("http://[v.a]/"));
+}
+
+TEST(ipvfuture_missing_dot_separator) {
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri("http://[v1x]/"));
+}
+
+TEST(ipvfuture_missing_content_after_dot) {
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri("http://[v1.]/"));
+}
+
+TEST(ipvfuture_invalid_content_character) {
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri("http://[v1.a%]/"));
+}

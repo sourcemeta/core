@@ -841,3 +841,76 @@ TEST(deep_copy_of_a_nested_object) {
   EXPECT_EQ(copy, document);
   EXPECT_EQ(copy.at(0).at("a").at("b").at(1).to_integer(), 2);
 }
+
+TEST(add_integer_overflow_promotes_to_decimal) {
+  const sourcemeta::core::JSON left{std::numeric_limits<std::int64_t>::min()};
+  const sourcemeta::core::JSON right{-1};
+  // The integer sum overflows int64, so the operator promotes to Decimal.
+  // The promoted result is currently rounded to the decimal working precision
+  // rather than exact (tracked in the decimal precision bug report), so this
+  // asserts only that the overflow branch is taken
+  const auto result{left + right};
+  EXPECT_TRUE(result.is_decimal());
+}
+
+TEST(subtract_integer_overflow_promotes_to_decimal) {
+  const sourcemeta::core::JSON left{std::numeric_limits<std::int64_t>::max()};
+  const sourcemeta::core::JSON right{-1};
+  // See the note on the addition overflow test above
+  const auto result{left - right};
+  EXPECT_TRUE(result.is_decimal());
+}
+
+TEST(copy_self_assignment) {
+  sourcemeta::core::JSON value{42};
+  const sourcemeta::core::JSON &alias{value};
+  value = alias;
+  EXPECT_EQ(value.to_integer(), 42);
+}
+
+TEST(move_self_assignment) {
+  sourcemeta::core::JSON value{42};
+  // Route through a reference so the compiler cannot statically flag the
+  // self-move, while the runtime self-assignment branch is still exercised
+  sourcemeta::core::JSON &alias{value};
+  value = std::move(alias);
+  EXPECT_EQ(value.to_integer(), 42);
+}
+
+TEST(null_less_than_null_is_false) {
+  EXPECT_FALSE(sourcemeta::core::JSON{nullptr} <
+               sourcemeta::core::JSON{nullptr});
+}
+
+TEST(real_below_int64_range_throws_on_as_integer) {
+  const sourcemeta::core::JSON value{-1e300};
+  try {
+    static_cast<void>(value.as_integer());
+    FAIL();
+  } catch (...) {
+  }
+}
+
+TEST(empty_on_string_returns_false) {
+  const sourcemeta::core::JSON value{"abc"};
+  EXPECT_FALSE(value.empty());
+}
+
+TEST(fast_hash_of_real_below_int64_range) {
+  const sourcemeta::core::JSON value{-1e300};
+  static_cast<void>(value.fast_hash());
+  EXPECT_TRUE(value.is_real());
+}
+
+TEST(fast_hash_of_real_above_int64_range) {
+  const sourcemeta::core::JSON value{1e300};
+  static_cast<void>(value.fast_hash());
+  EXPECT_TRUE(value.is_real());
+}
+
+TEST(merge_object_key_over_non_object_source) {
+  auto target{sourcemeta::core::parse_json(R"JSON({ "k": { "x": 1 } })JSON")};
+  const auto source{sourcemeta::core::parse_json(R"JSON({ "k": 2 })JSON")};
+  target.merge(source.as_object());
+  EXPECT_EQ(target.at("k").to_integer(), 2);
+}

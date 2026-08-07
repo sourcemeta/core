@@ -91,3 +91,15 @@ TEST(oversized_unicode_brace_escape_does_not_overflow) {
   const auto regex{sourcemeta::core::to_regex("\\u{FFFFFFFFFFFFFFFFFFFFFFFF}")};
   EXPECT_FALSE(regex.has_value());
 }
+
+TEST(permissive_named_group_uppercase_start) {
+  EXPECT_TRUE(sourcemeta::core::to_regex("(?<Name>x)").has_value());
+}
+
+TEST(permissive_named_group_underscore_start) {
+  EXPECT_TRUE(sourcemeta::core::to_regex("(?<_a>x)").has_value());
+}
+
+TEST(permissive_negated_unicode_property) {
+  EXPECT_TRUE(sourcemeta::core::to_regex("\\P{Letter}").has_value());
+}

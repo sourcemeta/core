@@ -199,3 +199,7 @@ TEST(modifier_without_varname) { EXPECT_URITEMPLATE_PARSE_ERROR("{:1}", 2); }
 TEST(two_prefix_modifiers) { EXPECT_URITEMPLATE_PARSE_ERROR("{a:1:2}", 5); }
 
 TEST(varname_after_explode) { EXPECT_URITEMPLATE_PARSE_ERROR("{a*b}", 4); }
+
+TEST(prefix_colon_not_followed_by_positive_digit) {
+  EXPECT_URITEMPLATE_PARSE_ERROR("{a:x}", 4);
+}

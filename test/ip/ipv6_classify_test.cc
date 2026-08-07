@@ -241,3 +241,18 @@ TEST(invalid_empty) {
 TEST(invalid_ipv4) {
   EXPECT_FALSE(sourcemeta::core::ipv6_classify("127.0.0.1").has_value());
 }
+
+TEST(teredo_prefix_nonzero_middle_not_anycast) {
+  const auto result{sourcemeta::core::ipv6_classify("2001:1:0:0:0:0:100:1")};
+  EXPECT_EQ(result.value(), sourcemeta::core::IPAddressClass::Reserved);
+}
+
+TEST(benchmarking_prefix_last_byte_above_three) {
+  const auto result{sourcemeta::core::ipv6_classify("2001:1::4")};
+  EXPECT_EQ(result.value(), sourcemeta::core::IPAddressClass::Reserved);
+}
+
+TEST(leading_zero_but_not_mapped_form) {
+  const auto result{sourcemeta::core::ipv6_classify("::100:0:0")};
+  EXPECT_EQ(result.value(), sourcemeta::core::IPAddressClass::Reserved);
+}

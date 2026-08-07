@@ -580,3 +580,39 @@ TEST(jsonpath_filter_negated_search) {
   EXPECT_EQ(nodes.size(), 1);
   EXPECT_EQ(nodes.at(0).value->at("a").to_string(), "xyz");
 }
+
+TEST(jsonpath_filter_singular_index_comparison) {
+  const auto document{
+      sourcemeta::core::parse_json(R"JSON([ [ 1, 9 ], [ 5, 9 ] ])JSON")};
+  const sourcemeta::core::JSONPath path{"$[?@[0]==1]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(nodes.at(0).value->at(0).to_integer(), 1);
+}
+
+TEST(jsonpath_filter_singular_negative_index_comparison) {
+  const auto document{
+      sourcemeta::core::parse_json(R"JSON([ [ 1, 9 ], [ 5, 3 ] ])JSON")};
+  const sourcemeta::core::JSONPath path{"$[?@[-1]==9]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(nodes.at(0).value->at(1).to_integer(), 9);
+}
+
+TEST(jsonpath_filter_match_over_non_string_subject) {
+  const auto document{
+      sourcemeta::core::parse_json(R"JSON([ { "a": 5 }, { "a": "ab" } ])JSON")};
+  const sourcemeta::core::JSONPath path{R"($[?match(@.a, "ab")])"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(nodes.at(0).value->at("a").to_string(), "ab");
+}
+
+TEST(jsonpath_filter_search_over_non_string_subject) {
+  const auto document{sourcemeta::core::parse_json(
+      R"JSON([ { "a": 5 }, { "a": "xby" } ])JSON")};
+  const sourcemeta::core::JSONPath path{R"($[?search(@.a, "b")])"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(nodes.at(0).value->at("a").to_string(), "xby");
+}

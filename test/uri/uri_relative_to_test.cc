@@ -370,3 +370,28 @@ TEST(authority_no_path_base_query_target_none) {
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "https://www.example.com");
 }
+
+TEST(relative_to_same_path_with_query_in_base) {
+  sourcemeta::core::URI target{"schema:foo?bar=1"};
+  target.relative_to(sourcemeta::core::URI{"schema:foo"});
+  EXPECT_EQ(target.recompose(), "?bar=1");
+}
+
+TEST(relative_to_sibling_directory_yields_empty) {
+  sourcemeta::core::URI target{"https://example.com/test/"};
+  target.relative_to(
+      sourcemeta::core::URI{"https://example.com/test/foo.json"});
+  EXPECT_EQ(target.recompose(), "");
+}
+
+TEST(relative_to_root_from_authority_yields_empty) {
+  sourcemeta::core::URI target{"https://example.com/"};
+  target.relative_to(sourcemeta::core::URI{"https://example.com"});
+  EXPECT_EQ(target.recompose(), "");
+}
+
+TEST(relative_to_slashless_base_path) {
+  sourcemeta::core::URI target{"schema:bar"};
+  target.relative_to(sourcemeta::core::URI{"schema:foo"});
+  EXPECT_EQ(target.recompose(), "schema:bar");
+}

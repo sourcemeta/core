@@ -347,3 +347,29 @@ TEST(to_pointer_from_json_string) {
   const auto pointer{sourcemeta::core::to_pointer(document)};
   EXPECT_EQ(pointer, sourcemeta::core::to_pointer("/foo/0"));
 }
+
+TEST(push_back_empty_pointer_is_noop) {
+  sourcemeta::core::Pointer target{"foo"};
+  const sourcemeta::core::Pointer other;
+  target.push_back(other);
+  EXPECT_EQ(target, sourcemeta::core::Pointer{"foo"});
+}
+
+TEST(push_back_single_token_pointer) {
+  sourcemeta::core::Pointer target{"foo"};
+  const sourcemeta::core::Pointer other{"bar"};
+  target.push_back(other);
+  EXPECT_EQ(target, (sourcemeta::core::Pointer{"foo", "bar"}));
+}
+
+TEST(push_back_empty_rvalue_pointer_is_noop) {
+  sourcemeta::core::Pointer target{"foo"};
+  target.push_back(sourcemeta::core::Pointer{});
+  EXPECT_EQ(target, sourcemeta::core::Pointer{"foo"});
+}
+
+TEST(push_back_single_token_rvalue_pointer) {
+  sourcemeta::core::Pointer target{"foo"};
+  target.push_back(sourcemeta::core::Pointer{"bar"});
+  EXPECT_EQ(target, (sourcemeta::core::Pointer{"foo", "bar"}));
+}
