@@ -513,6 +513,65 @@ public:
     return {std::move(quotient), std::move(remainder)};
   }
 
+  [[nodiscard]] auto multiply_modulo(const BigCoefficient &other,
+                                     const BigCoefficient &modulus) const
+      -> BigCoefficient {
+    auto product = this->multiply(other);
+    return product.divide_modulo(modulus).second;
+  }
+
+  [[nodiscard]] static auto pow10_modulo(std::uint64_t power,
+                                         const BigCoefficient &modulus)
+      -> BigCoefficient {
+    BigCoefficient base{1};
+    base.words[0] = 10;
+    base.length = 1;
+    base = base.divide_modulo(modulus).second;
+
+    BigCoefficient result{1};
+    result.words[0] = 1;
+    result.length = 1;
+    result = result.divide_modulo(modulus).second;
+
+    auto remaining = power;
+    while (remaining > 0) {
+      if (remaining & 1) {
+        result = result.multiply_modulo(base, modulus);
+      }
+
+      remaining >>= 1;
+      if (remaining > 0) {
+        base = base.multiply_modulo(base, modulus);
+      }
+    }
+
+    return result;
+  }
+
+  // The exponent difference between two decimal operands can reach billions,
+  // so scaling the dividend coefficient digit by digit before dividing would
+  // materialize gigabytes. Reducing the dividend first and folding the scale
+  // in through modular exponentiation keeps every intermediate bounded by the
+  // divisor size
+  [[nodiscard]] auto modulo_scaled(const BigCoefficient &divisor,
+                                   std::int64_t exponent_difference) const
+      -> BigCoefficient {
+    if (exponent_difference > 0) {
+      auto reduced = this->divide_modulo(divisor).second;
+      auto scale = pow10_modulo(static_cast<std::uint64_t>(exponent_difference),
+                                divisor);
+      return reduced.multiply_modulo(scale, divisor);
+    }
+
+    if (exponent_difference < 0) {
+      auto scaled_divisor = divisor.multiply_pow10(
+          static_cast<std::uint32_t>(-exponent_difference));
+      return this->divide_modulo(scaled_divisor).second;
+    }
+
+    return this->divide_modulo(divisor).second;
+  }
+
   [[nodiscard]] static auto from_uint64(std::uint64_t value) -> BigCoefficient {
     if (value < BASE) {
       BigCoefficient result{1};

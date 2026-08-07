@@ -4448,6 +4448,37 @@ TEST(modulo_huge_divisor_returns_dividend) {
   EXPECT_EQ(dividend % divisor, sourcemeta::core::Decimal{"0.5"});
 }
 
+TEST(modulo_extreme_positive_dividend_exponent) {
+  const sourcemeta::core::Decimal dividend{"1e+2147483647"};
+  const sourcemeta::core::Decimal divisor{1};
+  EXPECT_TRUE((dividend % divisor).is_zero());
+}
+
+TEST(modulo_huge_exponent_multi_word_divisor) {
+  const sourcemeta::core::Decimal dividend{"1e+1000000"};
+  const sourcemeta::core::Decimal divisor{"1234567890123456789012345"};
+  EXPECT_EQ((dividend % divisor).to_string(), "140735615018817496539760");
+}
+
+TEST(modulo_opposite_extreme_exponents) {
+  const sourcemeta::core::Decimal dividend{"1e+2147483647"};
+  const sourcemeta::core::Decimal divisor{"1e-2147483648"};
+  EXPECT_TRUE((dividend % divisor).is_zero());
+}
+
+TEST(divisible_by_huge_exponent_multi_word_divisor) {
+  const sourcemeta::core::Decimal dividend{"1e+1000000"};
+  const sourcemeta::core::Decimal divisor{"1234567890123456789012345"};
+  EXPECT_FALSE(dividend.divisible_by(divisor));
+}
+
+TEST(divisible_by_huge_exponent_power_of_ten_divisor) {
+  const sourcemeta::core::Decimal dividend{"1e+1000000"};
+  const sourcemeta::core::Decimal divisor{
+      "1000000000000000000000000000000000000000"};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
 TEST(add_exact_below_int64_minimum) {
   const sourcemeta::core::Decimal left{
       std::numeric_limits<std::int64_t>::min()};

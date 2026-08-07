@@ -1117,17 +1117,24 @@ auto Decimal::divisible_by(const Decimal &divisor) const -> bool {
     return static_cast<std::uint64_t>(remaining % divisor_value) == 0;
   }
 
+  Decimal dividend_magnitude{*this};
+  dividend_magnitude.flags_ =
+      static_cast<std::uint8_t>(dividend_magnitude.flags_ & ~FLAG_SIGN);
+  Decimal divisor_magnitude{divisor};
+  divisor_magnitude.flags_ =
+      static_cast<std::uint8_t>(divisor_magnitude.flags_ & ~FLAG_SIGN);
+  if (dividend_magnitude < divisor_magnitude) {
+    return false;
+  }
+
   auto dividend_big = coefficient_as_big(this->coefficient_,
                                          this->coefficient_high_, this->flags_);
   auto divisor_big = coefficient_as_big(
       divisor.coefficient_, divisor.coefficient_high_, divisor.flags_);
 
-  BigCoefficient::align_exponents(dividend_big, divisor_big, this->exponent_,
-                                  divisor.exponent_);
-
-  auto [quotient, remainder] = dividend_big.divide_modulo(divisor_big);
-
-  return remainder.is_zero();
+  auto exponent_difference =
+      static_cast<std::int64_t>(this->exponent_) - divisor.exponent_;
+  return dividend_big.modulo_scaled(divisor_big, exponent_difference).is_zero();
 }
 
 auto Decimal::same_quantum(const Decimal &other) const -> bool {
@@ -2028,10 +2035,9 @@ auto Decimal::operator%=(const Decimal &other) -> Decimal & {
   auto divisor_big = coefficient_as_big(other.coefficient_,
                                         other.coefficient_high_, other.flags_);
 
-  BigCoefficient::align_exponents(dividend_big, divisor_big, this->exponent_,
-                                  other.exponent_);
-
-  auto [quotient, remainder] = dividend_big.divide_modulo(divisor_big);
+  auto exponent_difference =
+      static_cast<std::int64_t>(this->exponent_) - other.exponent_;
+  auto remainder = dividend_big.modulo_scaled(divisor_big, exponent_difference);
 
   free_big_coefficient(this->coefficient_, this->flags_);
   store_big_result(this->coefficient_, this->coefficient_high_, this->flags_,
