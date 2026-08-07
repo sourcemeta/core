@@ -333,3 +333,30 @@ TEST(utf8_stream_api_with_non_ascii) {
   // Decodes to "München" in UTF-8
   EXPECT_EQ(output.str(), "M\xC3\xBCnchen");
 }
+
+TEST(error_decode_produces_invalid_code_point) {
+  try {
+    sourcemeta::core::punycode_to_utf32("999999v");
+    FAIL();
+  } catch (const sourcemeta::core::PunycodeError &error) {
+    EXPECT_STREQ(error.what(), "Invalid code point");
+  }
+}
+
+TEST(error_decode_weight_overflow) {
+  try {
+    sourcemeta::core::punycode_to_utf32(std::string(200, '9'));
+    FAIL();
+  } catch (const sourcemeta::core::PunycodeError &error) {
+    EXPECT_STREQ(error.what(), "Decode overflow");
+  }
+}
+
+TEST(error_encode_invalid_utf8) {
+  try {
+    sourcemeta::core::utf8_to_punycode(std::string_view{"\xFF\xFE", 2});
+    FAIL();
+  } catch (const sourcemeta::core::PunycodeError &error) {
+    EXPECT_STREQ(error.what(), "Invalid UTF-8 input");
+  }
+}

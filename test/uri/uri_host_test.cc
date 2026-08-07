@@ -116,3 +116,15 @@ TEST(iri_unicode_host) {
   EXPECT_TRUE(uri.host().has_value());
   EXPECT_EQ(uri.host().value(), "\xE4\xBE\x8B\xE3\x81\x88.jp");
 }
+
+TEST(ipvfuture_host_is_preserved) {
+  const sourcemeta::core::URI uri{"http://[v1.fe80::a+en1]/path"};
+  EXPECT_TRUE(uri.host().has_value());
+  EXPECT_EQ(uri.host().value(), "v1.fe80::a+en1");
+}
+
+TEST(ipvfuture_host_uppercase_version) {
+  const sourcemeta::core::URI uri{"http://[vA.abc:def]"};
+  EXPECT_TRUE(uri.host().has_value());
+  EXPECT_EQ(uri.host().value(), "vA.abc:def");
+}
