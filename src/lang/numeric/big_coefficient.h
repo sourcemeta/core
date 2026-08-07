@@ -550,9 +550,12 @@ public:
 
   // The exponent difference between two decimal operands can reach billions,
   // so scaling the dividend coefficient digit by digit before dividing would
-  // materialize gigabytes. Reducing the dividend first and folding the scale
-  // in through modular exponentiation keeps every intermediate bounded by the
-  // divisor size
+  // materialize gigabytes. When the dividend carries the larger exponent,
+  // reducing it first and folding the scale in through modular exponentiation
+  // keeps every intermediate bounded by the divisor size. When the divisor
+  // carries the larger exponent, its coefficient is scaled up by the full
+  // difference, so callers must first rule out dividends smaller in magnitude
+  // than the divisor, which bounds that scaling by the dividend digit count
   [[nodiscard]] auto modulo_scaled(const BigCoefficient &divisor,
                                    std::int64_t exponent_difference) const
       -> BigCoefficient {
