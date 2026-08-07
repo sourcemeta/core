@@ -301,45 +301,46 @@ TEST(webfinger_issuer_rejects_non_object) {
 }
 
 TEST(webfinger_issuer_rejects_non_array_links) {
-  EXPECT_FALSE(sourcemeta::core::oidc_webfinger_issuer(
-                   sourcemeta::core::parse_json(R"({ "links": "x" })"))
-                   .has_value());
+  const auto descriptor{
+      sourcemeta::core::parse_json(R"JSON({ "links": "x" })JSON")};
+  EXPECT_FALSE(sourcemeta::core::oidc_webfinger_issuer(descriptor).has_value());
 }
 
 TEST(webfinger_issuer_rejects_non_object_link) {
-  EXPECT_FALSE(sourcemeta::core::oidc_webfinger_issuer(
-                   sourcemeta::core::parse_json(R"({ "links": [ 123 ] })"))
-                   .has_value());
+  const auto descriptor{
+      sourcemeta::core::parse_json(R"JSON({ "links": [ 123 ] })JSON")};
+  EXPECT_FALSE(sourcemeta::core::oidc_webfinger_issuer(descriptor).has_value());
 }
 
 TEST(webfinger_issuer_skips_link_without_rel) {
-  EXPECT_FALSE(
-      sourcemeta::core::oidc_webfinger_issuer(
-          sourcemeta::core::parse_json(
-              R"({ "links": [ { "href": "https://issuer.example.com" } ] })"))
-          .has_value());
+  const auto descriptor{sourcemeta::core::parse_json(R"JSON({
+    "links": [ { "href": "https://issuer.example.com" } ]
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::oidc_webfinger_issuer(descriptor).has_value());
 }
 
 TEST(webfinger_issuer_skips_link_with_non_string_rel) {
-  EXPECT_FALSE(
-      sourcemeta::core::oidc_webfinger_issuer(
-          sourcemeta::core::parse_json(
-              R"({ "links": [ { "rel": 123, "href": "https://issuer.example.com" } ] })"))
-          .has_value());
+  const auto descriptor{sourcemeta::core::parse_json(R"JSON({
+    "links": [ { "rel": 123, "href": "https://issuer.example.com" } ]
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::oidc_webfinger_issuer(descriptor).has_value());
 }
 
 TEST(webfinger_issuer_skips_link_with_other_rel) {
-  EXPECT_FALSE(
-      sourcemeta::core::oidc_webfinger_issuer(
-          sourcemeta::core::parse_json(
-              R"({ "links": [ { "rel": "other", "href": "https://issuer.example.com" } ] })"))
-          .has_value());
+  const auto descriptor{sourcemeta::core::parse_json(R"JSON({
+    "links": [ { "rel": "other", "href": "https://issuer.example.com" } ]
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::oidc_webfinger_issuer(descriptor).has_value());
 }
 
 TEST(webfinger_issuer_rejects_matching_rel_with_non_string_href) {
-  EXPECT_FALSE(
-      sourcemeta::core::oidc_webfinger_issuer(
-          sourcemeta::core::parse_json(
-              R"({ "links": [ { "rel": "http://openid.net/specs/connect/1.0/issuer", "href": 123 } ] })"))
-          .has_value());
+  const auto descriptor{sourcemeta::core::parse_json(R"JSON({
+    "links": [
+      {
+        "rel": "http://openid.net/specs/connect/1.0/issuer",
+        "href": 123
+      }
+    ]
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::oidc_webfinger_issuer(descriptor).has_value());
 }
