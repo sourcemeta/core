@@ -2,7 +2,6 @@
 #include <sourcemeta/core/test.h>
 
 #include <cstddef>
-#include <cstdint>
 #include <string>
 
 #define EXPECT_JSONPATH_PARSE_ERROR(input, expected_column)                    \
