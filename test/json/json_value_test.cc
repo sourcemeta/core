@@ -1,10 +1,11 @@
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/test.h>
 
-#include <cstddef> // std::size_t
-#include <cstdint>
+#include <cstddef>       // std::size_t
+#include <cstdint>       // std::int64_t
 #include <functional>    // std::reference_wrapper
-#include <stdexcept>     // std::int64_t
+#include <limits>        // std::numeric_limits
+#include <stdexcept>     // std::out_of_range
 #include <string>        // std::string
 #include <type_traits>   // std::is_default_constructible, etc
 #include <unordered_map> // std::unordered_map
