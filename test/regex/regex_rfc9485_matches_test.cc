@@ -1127,3 +1127,76 @@ TEST(rfc9485_matches_class_double_dash) {
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "-"));
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
 }
+
+TEST(iregexp_mark_category) {
+  EXPECT_TRUE(sourcemeta::core::to_regex(
+                  "\\p{M}", sourcemeta::core::RegexDialect::IRegexp)
+                  .has_value());
+}
+
+TEST(iregexp_punctuation_category) {
+  EXPECT_TRUE(sourcemeta::core::to_regex(
+                  "\\p{P}", sourcemeta::core::RegexDialect::IRegexp)
+                  .has_value());
+}
+
+TEST(iregexp_separator_category) {
+  EXPECT_TRUE(sourcemeta::core::to_regex(
+                  "\\p{Z}", sourcemeta::core::RegexDialect::IRegexp)
+                  .has_value());
+}
+
+TEST(iregexp_symbol_category) {
+  EXPECT_TRUE(sourcemeta::core::to_regex(
+                  "\\p{S}", sourcemeta::core::RegexDialect::IRegexp)
+                  .has_value());
+}
+
+TEST(iregexp_number_category_single_letter) {
+  EXPECT_TRUE(sourcemeta::core::to_regex(
+                  "\\p{N}", sourcemeta::core::RegexDialect::IRegexp)
+                  .has_value());
+}
+
+TEST(iregexp_other_category_single_letter) {
+  EXPECT_TRUE(sourcemeta::core::to_regex(
+                  "\\p{C}", sourcemeta::core::RegexDialect::IRegexp)
+                  .has_value());
+}
+
+TEST(iregexp_letter_subcategory_invalid) {
+  EXPECT_FALSE(sourcemeta::core::to_regex(
+                   "\\p{Lx}", sourcemeta::core::RegexDialect::IRegexp)
+                   .has_value());
+}
+
+TEST(iregexp_property_at_end_incomplete) {
+  EXPECT_FALSE(
+      sourcemeta::core::to_regex("\\p", sourcemeta::core::RegexDialect::IRegexp)
+          .has_value());
+}
+
+TEST(iregexp_malformed_utf8_pattern) {
+  EXPECT_FALSE(
+      sourcemeta::core::to_regex(std::string_view{"\xC3\x28", 2},
+                                 sourcemeta::core::RegexDialect::IRegexp)
+          .has_value());
+}
+
+TEST(iregexp_unclosed_nested_class) {
+  EXPECT_FALSE(
+      sourcemeta::core::to_regex("[a[", sourcemeta::core::RegexDialect::IRegexp)
+          .has_value());
+}
+
+TEST(iregexp_quantifier_max_overflow) {
+  EXPECT_FALSE(sourcemeta::core::to_regex(
+                   "a{0,9999999999}", sourcemeta::core::RegexDialect::IRegexp)
+                   .has_value());
+}
+
+TEST(iregexp_quantifier_junk_after_digits) {
+  EXPECT_FALSE(sourcemeta::core::to_regex(
+                   "a{1x}", sourcemeta::core::RegexDialect::IRegexp)
+                   .has_value());
+}

@@ -437,6 +437,24 @@ TEST(jsonpath_parse_error_value_function_call_as_test){
 TEST(jsonpath_parse_error_negated_value_function_as_test){
     EXPECT_JSONPATH_PARSE_ERROR("$[?!length(@.a)]", 16)}
 
-TEST(jsonpath_parse_error_negated_literal) {
-  EXPECT_JSONPATH_PARSE_ERROR("$[?!1]", 5)
+TEST(jsonpath_parse_error_negated_literal){
+    EXPECT_JSONPATH_PARSE_ERROR("$[?!1]", 5)}
+
+TEST(jsonpath_parse_error_lone_high_surrogate_at_string_end){
+    EXPECT_JSONPATH_PARSE_ERROR("$[\"\\uD800\"]", 10)}
+
+TEST(jsonpath_parse_error_high_surrogate_then_non_low){
+    EXPECT_JSONPATH_PARSE_ERROR("$[\"\\uD800\\u0041\"]", 16)}
+
+TEST(jsonpath_parse_error_fraction_without_digit){
+    EXPECT_JSONPATH_PARSE_ERROR("$[?@.a==1.]", 11)}
+
+TEST(jsonpath_parse_error_exponent_without_digit){
+    EXPECT_JSONPATH_PARSE_ERROR("$[?@.a==1e]", 11)}
+
+TEST(jsonpath_parse_error_integer_above_maximum){
+    EXPECT_JSONPATH_PARSE_ERROR("$[?@.a==999999999999999999]", 27)}
+
+TEST(jsonpath_parse_error_slice_step_non_digit) {
+  EXPECT_JSONPATH_PARSE_ERROR("$[1:2:x]", 7)
 }

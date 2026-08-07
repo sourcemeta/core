@@ -448,3 +448,92 @@ TEST(encrypted_and_userinfo_algorithm_accessors) {
   EXPECT_TRUE(metadata.value().userinfo_signed_response_alg().has_value());
   EXPECT_EQ(metadata.value().userinfo_signed_response_alg().value(), "ES256");
 }
+
+TEST(from_rejects_non_array_redirect_uris) {
+  auto document{
+      sourcemeta::core::parse_json(R"JSON({ "redirect_uris": "x" })JSON")};
+  EXPECT_FALSE(sourcemeta::core::OIDCClientMetadata::from(std::move(document))
+                   .has_value());
+}
+
+TEST(from_rejects_non_string_redirect_uri_element) {
+  auto document{
+      sourcemeta::core::parse_json(R"JSON({ "redirect_uris": [ 123 ] })JSON")};
+  EXPECT_FALSE(sourcemeta::core::OIDCClientMetadata::from(std::move(document))
+                   .has_value());
+}
+
+TEST(from_rejects_non_string_subject_type) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "redirect_uris": [ "https://cb.example.com" ],
+    "subject_type": 123
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::OIDCClientMetadata::from(std::move(document))
+                   .has_value());
+}
+
+TEST(from_rejects_non_string_id_token_signed_alg) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "redirect_uris": [ "https://cb.example.com" ],
+    "id_token_signed_response_alg": 123
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::OIDCClientMetadata::from(std::move(document))
+                   .has_value());
+}
+
+TEST(from_rejects_non_string_id_token_encrypted_alg) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "redirect_uris": [ "https://cb.example.com" ],
+    "id_token_encrypted_response_alg": 123
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::OIDCClientMetadata::from(std::move(document))
+                   .has_value());
+}
+
+TEST(from_rejects_non_string_userinfo_signed_alg) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "redirect_uris": [ "https://cb.example.com" ],
+    "userinfo_signed_response_alg": 123
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::OIDCClientMetadata::from(std::move(document))
+                   .has_value());
+}
+
+TEST(from_rejects_non_string_sector_identifier_uri) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "redirect_uris": [ "https://cb.example.com" ],
+    "sector_identifier_uri": 123
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::OIDCClientMetadata::from(std::move(document))
+                   .has_value());
+}
+
+TEST(from_rejects_non_string_initiate_login_uri) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "redirect_uris": [ "https://cb.example.com" ],
+    "initiate_login_uri": 123
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::OIDCClientMetadata::from(std::move(document))
+                   .has_value());
+}
+
+TEST(from_accepts_valid_initiate_login_uri) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "redirect_uris": [ "https://cb.example.com" ],
+    "initiate_login_uri": "https://login.example.com"
+  })JSON")};
+  const auto metadata{
+      sourcemeta::core::OIDCClientMetadata::from(std::move(document))};
+  EXPECT_TRUE(metadata.has_value());
+}
+
+TEST(require_auth_time_false_accessor) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "redirect_uris": [ "https://cb.example.com" ],
+    "require_auth_time": false
+  })JSON")};
+  const auto metadata{
+      sourcemeta::core::OIDCClientMetadata::from(std::move(document))};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_FALSE(metadata.value().require_auth_time());
+}

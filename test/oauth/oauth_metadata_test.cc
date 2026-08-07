@@ -2661,3 +2661,45 @@ TEST(server_metadata_accepts_a_protected_resource_entry_with_a_query) {
   EXPECT_FALSE(metadata.value().supports_protected_resource(
       "https://nonexistent.example.invalid"));
 }
+
+TEST(server_metadata_rejects_non_string_issuer) {
+  EXPECT_FALSE(sourcemeta::core::OAuthServerMetadata::from(
+                   sourcemeta::core::parse_json(R"JSON({ "issuer": 123 })JSON"),
+                   "https://as.example.com")
+                   .has_value());
+}
+
+TEST(server_metadata_rejects_non_array_response_types) {
+  EXPECT_FALSE(sourcemeta::core::OAuthServerMetadata::from(
+                   sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://as.example.com",
+    "response_types_supported": 123
+  })JSON"),
+                   "https://as.example.com")
+                   .has_value());
+}
+
+TEST(server_metadata_explicit_false_pushed_authorization) {
+  const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
+      sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://as.example.com",
+    "response_types_supported": [ "code" ],
+    "require_pushed_authorization_requests": false
+  })JSON"),
+      "https://as.example.com")};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_FALSE(metadata.value().require_pushed_authorization_requests());
+}
+
+TEST(server_metadata_explicit_false_iss_parameter) {
+  const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
+      sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://as.example.com",
+    "response_types_supported": [ "code" ],
+    "authorization_response_iss_parameter_supported": false
+  })JSON"),
+      "https://as.example.com")};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_FALSE(
+      metadata.value().authorization_response_iss_parameter_supported());
+}

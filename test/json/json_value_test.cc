@@ -4,6 +4,8 @@
 #include <cstddef>       // std::size_t
 #include <cstdint>       // std::int64_t
 #include <functional>    // std::reference_wrapper
+#include <limits>        // std::numeric_limits
+#include <stdexcept>     // std::out_of_range
 #include <string>        // std::string
 #include <type_traits>   // std::is_default_constructible, etc
 #include <unordered_map> // std::unordered_map
@@ -840,4 +842,84 @@ TEST(deep_copy_of_a_nested_object) {
   const sourcemeta::core::JSON copy{document};
   EXPECT_EQ(copy, document);
   EXPECT_EQ(copy.at(0).at("a").at("b").at(1).to_integer(), 2);
+}
+
+TEST(add_integer_overflow_promotes_to_decimal) {
+  const sourcemeta::core::JSON left{std::numeric_limits<std::int64_t>::min()};
+  const sourcemeta::core::JSON right{-1};
+  // The integer sum overflows int64, so the operator promotes to Decimal. The
+  // exact value would be -9223372036854775809, but the Decimal add currently
+  // rounds to the working precision (tracked in the decimal precision bug
+  // report). Pin the exact current output so a change in either direction is
+  // caught
+  const auto result{left + right};
+  EXPECT_TRUE(result.is_decimal());
+  EXPECT_EQ(result.to_decimal().to_string(), "-9.223372036854776e+18");
+}
+
+TEST(subtract_integer_overflow_promotes_to_decimal) {
+  const sourcemeta::core::JSON left{std::numeric_limits<std::int64_t>::max()};
+  const sourcemeta::core::JSON right{-1};
+  // See the note on the addition overflow test above. Exact value would be
+  // 9223372036854775808; pin the current rounded output
+  const auto result{left - right};
+  EXPECT_TRUE(result.is_decimal());
+  EXPECT_EQ(result.to_decimal().to_string(), "9.223372036854776e+18");
+}
+
+TEST(copy_self_assignment) {
+  sourcemeta::core::JSON value{
+      sourcemeta::core::parse_json(R"JSON({ "a": [ 1, 2 ] })JSON")};
+  const sourcemeta::core::JSON &alias{value};
+  value = alias;
+  EXPECT_EQ(value,
+            sourcemeta::core::parse_json(R"JSON({ "a": [ 1, 2 ] })JSON"));
+}
+
+TEST(move_self_assignment) {
+  sourcemeta::core::JSON value{
+      sourcemeta::core::parse_json(R"JSON({ "a": [ 1, 2 ] })JSON")};
+  // Route through a reference so the compiler cannot statically flag the
+  // self-move, while the runtime self-assignment branch is still exercised
+  sourcemeta::core::JSON &alias{value};
+  value = std::move(alias);
+  EXPECT_EQ(value,
+            sourcemeta::core::parse_json(R"JSON({ "a": [ 1, 2 ] })JSON"));
+}
+
+TEST(null_less_than_null_is_false) {
+  EXPECT_FALSE(sourcemeta::core::JSON{nullptr} <
+               sourcemeta::core::JSON{nullptr});
+}
+
+TEST(real_below_int64_range_throws_on_as_integer) {
+  const sourcemeta::core::JSON value{-1e300};
+  try {
+    static_cast<void>(value.as_integer());
+    FAIL();
+  } catch (const std::out_of_range &) {
+  }
+}
+
+TEST(empty_on_string_returns_false) {
+  const sourcemeta::core::JSON value{"abc"};
+  EXPECT_FALSE(value.empty());
+}
+
+TEST(fast_hash_of_real_below_int64_range) {
+  const sourcemeta::core::JSON value{-1e300};
+  // A real outside the int64 range falls back to the real type hash
+  EXPECT_EQ(value.fast_hash(), 5);
+}
+
+TEST(fast_hash_of_real_above_int64_range) {
+  const sourcemeta::core::JSON value{1e300};
+  EXPECT_EQ(value.fast_hash(), 5);
+}
+
+TEST(merge_object_key_over_non_object_source) {
+  auto target{sourcemeta::core::parse_json(R"JSON({ "k": { "x": 1 } })JSON")};
+  const auto source{sourcemeta::core::parse_json(R"JSON({ "k": 2 })JSON")};
+  target.merge(source.as_object());
+  EXPECT_EQ(target.at("k").to_integer(), 2);
 }

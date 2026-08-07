@@ -1134,3 +1134,13 @@ TEST(replay_store_saturates_a_window_beyond_the_clock) {
   EXPECT_FALSE(store.check_and_insert("id", "https://server.example.com/token",
                                       FIXED_TIME, window));
 }
+
+TEST(proof_thumbprint_rejects_non_object_jwk_header) {
+  const std::string proof{
+      "eyJ0eXAiOiJkcG9wK2p3dCIsImFsZyI6IkVTMjU2IiwiandrIjoibm90LWFuLW9iamVjdCJ9"
+      ".eyJodHUiOiJodHRwczovL3JzLmV4YW1wbGUuY29tL3giLCJodG0iOiJQT1NUIiwianRpIjo"
+      "i"
+      "YWJjIiwiaWF0IjoxNzAwMDAwMDAwfQ.c2ln"};
+  EXPECT_FALSE(
+      sourcemeta::core::oauth_dpop_proof_thumbprint(proof).has_value());
+}

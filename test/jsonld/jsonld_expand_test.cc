@@ -562,3 +562,101 @@ TEST(self_referential_compact_term_via_prefix) {
   ])")};
   EXPECT_EQ(result, expected);
 }
+
+TEST(type_array_with_non_string_item_is_rejected) {
+  const auto input = sourcemeta::core::parse_json(R"({ "@type": [ 123 ] })");
+  try {
+    const auto result{sourcemeta::core::jsonld_expand(input)};
+    FAIL();
+  } catch (const sourcemeta::core::JSONLDError &error) {
+    EXPECT_STREQ(error.what(), "Invalid type value");
+  }
+}
+
+TEST(top_level_non_string_direction_is_rejected) {
+  const auto input = sourcemeta::core::parse_json(R"({ "@direction": 123 })");
+  try {
+    const auto result{sourcemeta::core::jsonld_expand(input)};
+    FAIL();
+  } catch (const sourcemeta::core::JSONLDError &error) {
+    EXPECT_STREQ(error.what(), "Invalid base direction");
+  }
+}
+
+TEST(nest_array_item_not_an_object_is_rejected) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "@vocab": "http://example.com/" },
+    "@nest": [ "x" ]
+  })");
+  try {
+    const auto result{sourcemeta::core::jsonld_expand(input)};
+    FAIL();
+  } catch (const sourcemeta::core::JSONLDError &error) {
+    EXPECT_STREQ(error.what(), "Invalid @nest value");
+  }
+}
+
+TEST(nest_array_item_value_object_is_rejected) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "@vocab": "http://example.com/" },
+    "@nest": [ { "@value": "x" } ]
+  })");
+  try {
+    const auto result{sourcemeta::core::jsonld_expand(input)};
+    FAIL();
+  } catch (const sourcemeta::core::JSONLDError &error) {
+    EXPECT_STREQ(error.what(), "Invalid @nest value");
+  }
+}
+
+TEST(term_container_array_with_non_string_is_rejected) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "t": { "@id": "http://ex/t", "@container": [ 123 ] } },
+    "t": "x"
+  })");
+  try {
+    const auto result{sourcemeta::core::jsonld_expand(input)};
+    FAIL();
+  } catch (const sourcemeta::core::JSONLDError &error) {
+    EXPECT_STREQ(error.what(), "Invalid container mapping");
+  }
+}
+
+TEST(term_container_array_with_invalid_container_is_rejected) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "t": { "@id": "http://ex/t", "@container": [ "@bogus" ] } },
+    "t": "x"
+  })");
+  try {
+    const auto result{sourcemeta::core::jsonld_expand(input)};
+    FAIL();
+  } catch (const sourcemeta::core::JSONLDError &error) {
+    EXPECT_STREQ(error.what(), "Invalid container mapping");
+  }
+}
+
+TEST(term_direction_non_string_is_rejected) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "t": { "@id": "http://ex/t", "@direction": 123 } },
+    "t": "x"
+  })");
+  try {
+    const auto result{sourcemeta::core::jsonld_expand(input)};
+    FAIL();
+  } catch (const sourcemeta::core::JSONLDError &error) {
+    EXPECT_STREQ(error.what(), "Invalid base direction");
+  }
+}
+
+TEST(term_nest_non_string_is_rejected) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "t": { "@id": "http://ex/t", "@nest": 123 } },
+    "t": "x"
+  })");
+  try {
+    const auto result{sourcemeta::core::jsonld_expand(input)};
+    FAIL();
+  } catch (const sourcemeta::core::JSONLDError &error) {
+    EXPECT_STREQ(error.what(), "Invalid @nest value");
+  }
+}

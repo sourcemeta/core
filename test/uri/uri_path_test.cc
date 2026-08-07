@@ -990,3 +990,82 @@ TEST(append_path_that_normalizes_away) {
   uri.append_path("..");
   EXPECT_EQ(uri.recompose(), "");
 }
+
+TEST(set_path_second_percent_digit_invalid) {
+  sourcemeta::core::URI uri{"http://example.com"};
+  try {
+    uri.path("/%Ag");
+    FAIL();
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(
+        error.what(),
+        "You cannot set a path with an invalid percent-encoded sequence");
+  }
+}
+
+TEST(set_path_with_sub_delim) {
+  sourcemeta::core::URI uri{"http://example.com"};
+  uri.path("/a!b");
+  EXPECT_EQ(uri.path().value(), "/a!b");
+}
+
+TEST(set_path_with_colon) {
+  sourcemeta::core::URI uri{"http://example.com"};
+  uri.path("/a:b");
+  EXPECT_EQ(uri.path().value(), "/a:b");
+}
+
+TEST(set_path_with_at_sign) {
+  sourcemeta::core::URI uri{"http://example.com"};
+  uri.path("/a@b");
+  EXPECT_EQ(uri.path().value(), "/a@b");
+}
+
+TEST(set_rvalue_path_with_host_no_scheme) {
+  sourcemeta::core::URI uri{"//example.com"};
+  uri.path(std::string{"foo"});
+  EXPECT_EQ(uri.recompose(), "//example.com/foo");
+}
+
+TEST(set_const_path_with_host_no_scheme) {
+  sourcemeta::core::URI uri{"//example.com"};
+  const std::string value{"foo"};
+  uri.path(value);
+  EXPECT_EQ(uri.recompose(), "//example.com/foo");
+}
+
+TEST(append_path_view_with_host_no_scheme) {
+  sourcemeta::core::URI uri{"//example.com"};
+  uri.append_path("foo");
+  EXPECT_EQ(uri.recompose(), "//example.com/foo");
+}
+
+TEST(append_path_reference_with_host_no_scheme) {
+  sourcemeta::core::URI uri{"//example.com"};
+  uri.append_path(sourcemeta::core::URI{"rel"});
+  EXPECT_EQ(uri.recompose(), "//example.com/rel");
+}
+
+TEST(append_path_rejects_reference_with_userinfo) {
+  sourcemeta::core::URI uri{"http://x"};
+  try {
+    uri.append_path(sourcemeta::core::URI{"//user@host"});
+    FAIL();
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(
+        error.what(),
+        "Cannot append a URI as a path that contains a scheme or authority");
+  }
+}
+
+TEST(append_path_rejects_reference_with_fragment) {
+  sourcemeta::core::URI uri{"http://x"};
+  try {
+    uri.append_path(sourcemeta::core::URI{"#frag"});
+    FAIL();
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(
+        error.what(),
+        "Cannot append a URI as a path that contains a query or fragment");
+  }
+}
