@@ -1758,3 +1758,100 @@ TEST(parse_default_string_view_with_line_column_does_not_invoke_ub) {
     EXPECT_EQ(error.column(), 1);
   }
 }
+
+TEST(parse_in_place_stream_with_positions_and_callback) {
+  std::istringstream stream{"{ \"foo\": 1 }"};
+  std::uint64_t line{1};
+  std::uint64_t column{0};
+  sourcemeta::core::JSON output{nullptr};
+  std::size_t events{0};
+  sourcemeta::core::parse_json(
+      stream, line, column, output,
+      [&events](const sourcemeta::core::JSON::ParsePhase,
+                const sourcemeta::core::JSON::Type, const std::uint64_t,
+                const std::uint64_t, const sourcemeta::core::JSON::ParseContext,
+                const std::size_t,
+                const sourcemeta::core::JSON::String &) { events += 1; });
+  EXPECT_TRUE(output.is_object());
+  EXPECT_EQ(output.at("foo").to_integer(), 1);
+  EXPECT_EQ(line, 1);
+  EXPECT_EQ(column, 12);
+  EXPECT_TRUE(events > 0);
+}
+
+TEST(parse_in_place_string_with_positions_and_callback) {
+  const std::string input{"[ 1, 2 ]"};
+  std::uint64_t line{1};
+  std::uint64_t column{0};
+  sourcemeta::core::JSON output{nullptr};
+  std::size_t events{0};
+  sourcemeta::core::parse_json(
+      input, line, column, output,
+      [&events](const sourcemeta::core::JSON::ParsePhase,
+                const sourcemeta::core::JSON::Type, const std::uint64_t,
+                const std::uint64_t, const sourcemeta::core::JSON::ParseContext,
+                const std::size_t,
+                const sourcemeta::core::JSON::String &) { events += 1; });
+  EXPECT_TRUE(output.is_array());
+  EXPECT_EQ(output.size(), 2);
+  EXPECT_EQ(line, 1);
+  EXPECT_EQ(column, 8);
+  EXPECT_TRUE(events > 0);
+}
+
+TEST(parse_in_place_stream_with_callback) {
+  std::istringstream stream{"\"hello\""};
+  sourcemeta::core::JSON output{nullptr};
+  std::size_t events{0};
+  sourcemeta::core::parse_json(
+      stream, output,
+      [&events](const sourcemeta::core::JSON::ParsePhase,
+                const sourcemeta::core::JSON::Type, const std::uint64_t,
+                const std::uint64_t, const sourcemeta::core::JSON::ParseContext,
+                const std::size_t,
+                const sourcemeta::core::JSON::String &) { events += 1; });
+  EXPECT_TRUE(output.is_string());
+  EXPECT_EQ(output.to_string(), "hello");
+  EXPECT_TRUE(events > 0);
+}
+
+TEST(parse_root_decimal_with_callback) {
+  const std::string input{"3.14159265358979323846"};
+  sourcemeta::core::JSON output{nullptr};
+  std::size_t events{0};
+  sourcemeta::core::parse_json(
+      input, output,
+      [&events](const sourcemeta::core::JSON::ParsePhase,
+                const sourcemeta::core::JSON::Type, const std::uint64_t,
+                const std::uint64_t, const sourcemeta::core::JSON::ParseContext,
+                const std::size_t,
+                const sourcemeta::core::JSON::String &) { events += 1; });
+  EXPECT_TRUE(output.is_decimal());
+  EXPECT_EQ(events, 2);
+}
+
+TEST(parse_root_real_with_callback) {
+  const std::string input{"1.5"};
+  sourcemeta::core::JSON output{nullptr};
+  std::size_t events{0};
+  sourcemeta::core::parse_json(
+      input, output,
+      [&events](const sourcemeta::core::JSON::ParsePhase,
+                const sourcemeta::core::JSON::Type, const std::uint64_t,
+                const std::uint64_t, const sourcemeta::core::JSON::ParseContext,
+                const std::size_t,
+                const sourcemeta::core::JSON::String &) { events += 1; });
+  EXPECT_TRUE(output.is_real());
+  EXPECT_EQ(output.to_real(), 1.5);
+  EXPECT_EQ(events, 2);
+}
+
+TEST(parse_high_precision_decimal_root) {
+  const auto result{sourcemeta::core::parse_json("3.14159265358979323846")};
+  EXPECT_TRUE(result.is_decimal());
+}
+
+TEST(parse_exponent_number_root) {
+  const auto result{sourcemeta::core::parse_json("1e309")};
+  EXPECT_TRUE(result.is_decimal());
+}

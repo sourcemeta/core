@@ -40,3 +40,15 @@ TEST(unmapped_error_surfaces_as_filesystem_error) {
   std::filesystem::remove(loop_path);
 }
 #endif
+
+TEST(file_as_intermediate_directory_throws) {
+  const auto path{std::filesystem::path{STUBS_DIRECTORY} / "test.txt" /
+                  "child"};
+  try {
+    sourcemeta::core::canonical(path);
+    FAIL();
+  } catch (const std::filesystem::filesystem_error &) {
+  } catch (...) {
+    FAIL();
+  }
+}

@@ -2,6 +2,8 @@
 #include <sourcemeta/core/jsonpath.h>
 #include <sourcemeta/core/test.h>
 
+#include <string> // std::string
+
 namespace {
 
 struct ResultNode {
@@ -382,4 +384,192 @@ TEST(jsonpath_filter_current_node_comparison) {
   const sourcemeta::core::JSONPath path{"$[?@ > 4]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 2);
+}
+
+TEST(jsonpath_filter_single_index_tail_existence) {
+  const auto document{
+      sourcemeta::core::parse_json(R"JSON([ [ 5 ], [], { "x": 1 } ])JSON")};
+  const sourcemeta::core::JSONPath path{"$[?@[0]]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(nodes.at(0).value->at(0).to_integer(), 5);
+}
+
+TEST(jsonpath_filter_empty_slice_existence) {
+  const auto document{
+      sourcemeta::core::parse_json(R"JSON([ [ 1, 2, 3 ] ])JSON")};
+  const sourcemeta::core::JSONPath path{"$[?@[1:1]]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 0);
+}
+
+TEST(jsonpath_filter_negative_step_slice_existence) {
+  const auto document{
+      sourcemeta::core::parse_json(R"JSON([ [ 1, 2 ], [] ])JSON")};
+  const sourcemeta::core::JSONPath path{"$[?@[::-1]]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(nodes.at(0).value->size(), 2);
+}
+
+TEST(jsonpath_filter_nested_filter_on_object) {
+  const auto document{
+      sourcemeta::core::parse_json(R"JSON([ { "x": 1 }, { "x": 2 } ])JSON")};
+  const sourcemeta::core::JSONPath path{"$[?@[?@ == 1]]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(nodes.at(0).value->at("x").to_integer(), 1);
+}
+
+TEST(jsonpath_filter_deep_descendant_existence) {
+  const auto document{sourcemeta::core::parse_json(
+      "[" + std::string(300, '[') +
+      R"JSON({ "b": [ 1, 2 ], "c": { "d": 7 } })JSON" + std::string(300, ']') +
+      "]")};
+  const sourcemeta::core::JSONPath path{"$[?@..b[1]]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 1);
+}
+
+TEST(jsonpath_filter_deep_descendant_single_name_existence) {
+  const auto document{sourcemeta::core::parse_json(
+      "[" + std::string(300, '[') +
+      R"JSON({ "b": [ 1, 2 ], "c": { "d": 7 } })JSON" + std::string(300, ']') +
+      "]")};
+  const sourcemeta::core::JSONPath path{"$[?@..c.d]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 1);
+}
+
+TEST(jsonpath_filter_deep_descendant_wildcard_existence) {
+  const auto document{sourcemeta::core::parse_json(
+      "[" + std::string(300, '[') +
+      R"JSON({ "b": [ 1, 2 ], "c": { "d": 7 } })JSON" + std::string(300, ']') +
+      "]")};
+  const sourcemeta::core::JSONPath path{"$[?@..c[*]]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 1);
+}
+
+TEST(jsonpath_filter_deep_descendant_slice_existence) {
+  const auto document{sourcemeta::core::parse_json(
+      "[" + std::string(300, '[') +
+      R"JSON({ "b": [ 1, 2 ], "c": { "d": 7 } })JSON" + std::string(300, ']') +
+      "]")};
+  const sourcemeta::core::JSONPath path{"$[?@..b[0:2]]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 1);
+}
+
+TEST(jsonpath_filter_deep_descendant_negative_step_slice_existence) {
+  const auto document{sourcemeta::core::parse_json(
+      "[" + std::string(300, '[') +
+      R"JSON({ "b": [ 1, 2 ], "c": { "d": 7 } })JSON" + std::string(300, ']') +
+      "]")};
+  const sourcemeta::core::JSONPath path{"$[?@..b[::-1]]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 1);
+}
+
+TEST(jsonpath_filter_deep_descendant_nested_filter_array_existence) {
+  const auto document{sourcemeta::core::parse_json(
+      "[" + std::string(300, '[') +
+      R"JSON({ "b": [ 1, 2 ], "c": { "d": 7 } })JSON" + std::string(300, ']') +
+      "]")};
+  const sourcemeta::core::JSONPath path{"$[?@..b[?@ > 1]]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 1);
+}
+
+TEST(jsonpath_filter_deep_descendant_nested_filter_object_existence) {
+  const auto document{sourcemeta::core::parse_json(
+      "[" + std::string(300, '[') +
+      R"JSON({ "b": [ 1, 2 ], "c": { "d": 7 } })JSON" + std::string(300, ']') +
+      "]")};
+  const sourcemeta::core::JSONPath path{"$[?@..c[?@ == 7]]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 1);
+}
+
+TEST(jsonpath_filter_deep_descendant_index_pair_existence) {
+  const auto document{sourcemeta::core::parse_json(
+      "[" + std::string(300, '[') +
+      R"JSON({ "b": [ 1, 2 ], "c": { "d": 7 } })JSON" + std::string(300, ']') +
+      "]")};
+  const sourcemeta::core::JSONPath path{"$[?@..b[0, 1]]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 1);
+}
+
+TEST(jsonpath_filter_deep_descendant_value_comparison) {
+  const auto document{sourcemeta::core::parse_json(
+      "[" + std::string(300, '[') +
+      R"JSON({ "b": [ 1, 2 ], "c": { "d": 7 } })JSON" + std::string(300, ']') +
+      "]")};
+  const sourcemeta::core::JSONPath path{"$[?value(@..d) == 7]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 1);
+}
+
+TEST(jsonpath_filter_deep_descendant_wildcard_array_existence) {
+  const auto document{sourcemeta::core::parse_json(
+      "[" + std::string(300, '[') +
+      R"JSON({ "b": [ 1, 2 ], "c": { "d": 7 } })JSON" + std::string(300, ']') +
+      "]")};
+  const sourcemeta::core::JSONPath path{"$[?@..b[*]]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 1);
+}
+
+TEST(jsonpath_filter_deep_descendant_zero_step_slice_existence) {
+  const auto document{sourcemeta::core::parse_json(
+      "[" + std::string(300, '[') +
+      R"JSON({ "b": [ 1, 2 ], "c": { "d": 7 } })JSON" + std::string(300, ']') +
+      "]")};
+  const sourcemeta::core::JSONPath path{"$[?@..b[0:2:0]]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 0);
+}
+
+TEST(jsonpath_filter_zero_step_slice_existence) {
+  const auto document{sourcemeta::core::parse_json(R"JSON([ [ 1, 2 ] ])JSON")};
+  const sourcemeta::core::JSONPath path{"$[?@[0:2:0]]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 0);
+}
+
+TEST(jsonpath_filter_less_than_reals) {
+  const auto document{sourcemeta::core::parse_json(
+      R"JSON([ { "a": 1.5 }, { "a": 3.5 } ])JSON")};
+  const sourcemeta::core::JSONPath path{"$[?@.a < 2.5]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(nodes.at(0).value->at("a").to_real(), 1.5);
+}
+
+TEST(jsonpath_filter_match_considers_the_whole_input) {
+  const auto document{sourcemeta::core::parse_json(
+      R"JSON([ { "a": "abc" }, { "a": "xabc" } ])JSON")};
+  const sourcemeta::core::JSONPath path{R"($[?match(@.a, "ab.*")])"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(nodes.at(0).value->at("a").to_string(), "abc");
+}
+
+TEST(jsonpath_filter_search_considers_any_substring) {
+  const auto document{sourcemeta::core::parse_json(
+      R"JSON([ { "a": "abc" }, { "a": "xyz" } ])JSON")};
+  const sourcemeta::core::JSONPath path{R"($[?search(@.a, "b")])"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(nodes.at(0).value->at("a").to_string(), "abc");
+}
+
+TEST(jsonpath_filter_negated_search) {
+  const auto document{sourcemeta::core::parse_json(
+      R"JSON([ { "a": "abc" }, { "a": "xyz" } ])JSON")};
+  const sourcemeta::core::JSONPath path{R"($[?!search(@.a, "b")])"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(nodes.at(0).value->at("a").to_string(), "xyz");
 }

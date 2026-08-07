@@ -766,3 +766,21 @@ TEST(trailing_content_after_newline_reports_position) {
     EXPECT_EQ(error.column(), 3);
   }
 }
+
+TEST(read_json_in_place_with_callback_invalid) {
+  sourcemeta::core::JSON output{nullptr};
+  try {
+    sourcemeta::core::read_json(std::filesystem::path{TEST_DIRECTORY} /
+                                    "stub_invalid_1.json",
+                                output, nullptr);
+    FAIL();
+  } catch (const sourcemeta::core::JSONFileParseError &error) {
+    EXPECT_EQ(error.path(),
+              std::filesystem::path{TEST_DIRECTORY} / "stub_invalid_1.json");
+    EXPECT_EQ(error.line(), 3);
+    EXPECT_EQ(error.column(), 9);
+    EXPECT_STREQ(error.what(), "Failed to parse the JSON document");
+  } catch (...) {
+    FAIL();
+  }
+}

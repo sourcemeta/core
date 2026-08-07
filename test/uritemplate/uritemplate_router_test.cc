@@ -3057,3 +3057,85 @@ TEST(segment_error_message) {
     FAIL();
   }
 }
+
+TEST(empty_template_re_registration_replaces_the_root) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("", "op_first", 1, 11);
+  router.add("", "op_second", 2, 22);
+  EXPECT_ROUTER_MATCH(router, "", 2, 22, captures);
+  EXPECT_EQ(captures.size(), 0);
+  EXPECT_EQ(router.operation("op_second").first, 2);
+  EXPECT_EQ(router.operation("op_first").first, 0);
+}
+
+TEST(empty_template_re_registration_with_arguments) {
+  sourcemeta::core::URITemplateRouter router;
+  const std::string argument_value{"value"};
+  const std::array<sourcemeta::core::URITemplateRouter::Argument, 1> arguments{
+      {{"key", std::string_view{argument_value}}}};
+  router.add("", "op_first", 1, 11);
+  router.add("", "op_second", 2, 22, arguments);
+  EXPECT_ROUTER_MATCH(router, "", 2, 22, captures);
+  bool argument_seen{false};
+  router.arguments(
+      2, [&argument_seen](
+             const std::string_view name,
+             const sourcemeta::core::URITemplateRouter::ArgumentValue &) {
+        argument_seen = name == "key";
+      });
+  EXPECT_TRUE(argument_seen);
+}
+
+TEST(add_rejects_an_unmatched_closing_brace) {
+  sourcemeta::core::URITemplateRouter router;
+  try {
+    router.add("/}x", "op_bad", 1);
+    FAIL();
+  } catch (
+      const sourcemeta::core::URITemplateRouterInvalidSegmentError &error) {
+    EXPECT_STREQ(error.what(), "Unmatched closing brace");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(add_rejects_an_unclosed_trailing_brace) {
+  sourcemeta::core::URITemplateRouter router;
+  try {
+    router.add("/{", "op_bad", 1);
+    FAIL();
+  } catch (
+      const sourcemeta::core::URITemplateRouterInvalidSegmentError &error) {
+    EXPECT_STREQ(error.what(), "Unclosed brace");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(add_rejects_a_mixed_literal_and_variable_segment) {
+  sourcemeta::core::URITemplateRouter router;
+  try {
+    router.add("/a{x}", "op_bad", 1);
+    FAIL();
+  } catch (
+      const sourcemeta::core::URITemplateRouterInvalidSegmentError &error) {
+    EXPECT_STREQ(error.what(),
+                 "Path segment cannot mix literals and variables");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(add_rejects_a_variable_then_literal_segment) {
+  sourcemeta::core::URITemplateRouter router;
+  try {
+    router.add("/{x}a", "op_bad", 1);
+    FAIL();
+  } catch (
+      const sourcemeta::core::URITemplateRouterInvalidSegmentError &error) {
+    EXPECT_STREQ(error.what(),
+                 "Path segment cannot mix literals and variables");
+  } catch (...) {
+    FAIL();
+  }
+}

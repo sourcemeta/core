@@ -336,3 +336,102 @@ TEST(jsonpath_parse_deep_function_nesting_rejected) {
 TEST(jsonpath_parse_invalid_selector_character) {
   EXPECT_JSONPATH_PARSE_ERROR("$[!]", 3);
 }
+
+TEST(jsonpath_parse_error_truncated_after_bracket){
+    EXPECT_JSONPATH_PARSE_ERROR("$[", 3)}
+
+TEST(jsonpath_parse_error_truncated_escape){
+    EXPECT_JSONPATH_PARSE_ERROR("$['a\\", 6)}
+
+TEST(jsonpath_parse_error_surrogate_followed_by_other_escape){
+    EXPECT_JSONPATH_PARSE_ERROR("$[\"\\uD834\\t\"]", 11)}
+
+TEST(jsonpath_parse_error_truncated_hex_quad){
+    EXPECT_JSONPATH_PARSE_ERROR("$[\"\\u12", 8)}
+
+TEST(jsonpath_parse_error_truncated_after_unicode_escape){
+    EXPECT_JSONPATH_PARSE_ERROR("$[\"\\u", 6)}
+
+TEST(jsonpath_parse_error_truncated_shorthand){
+    EXPECT_JSONPATH_PARSE_ERROR("$.", 3)}
+
+TEST(jsonpath_parse_error_truncated_filter){
+    EXPECT_JSONPATH_PARSE_ERROR("$[?", 4)}
+
+TEST(jsonpath_parse_error_truncated_negation){
+    EXPECT_JSONPATH_PARSE_ERROR("$[?!", 5)}
+
+TEST(jsonpath_parse_error_truncated_filter_query){
+    EXPECT_JSONPATH_PARSE_ERROR("$[?@", 5)}
+
+TEST(jsonpath_parse_error_value_function_as_test){
+    EXPECT_JSONPATH_PARSE_ERROR("$[?length(@.a)]", 15)}
+
+TEST(jsonpath_parse_error_non_singular_comparable){
+    EXPECT_JSONPATH_PARSE_ERROR("$[?@..a == 1]", 9)}
+
+TEST(jsonpath_parse_error_logical_function_as_comparable){
+    EXPECT_JSONPATH_PARSE_ERROR("$[?match(@.a, \"x\") == 1]", 20)}
+
+TEST(jsonpath_parse_error_integer_literal_beyond_ijson_range){
+    EXPECT_JSONPATH_PARSE_ERROR("$[?@.a == 9007199254740992]", 27)}
+
+TEST(jsonpath_parse_error_real_literal_overflow){
+    EXPECT_JSONPATH_PARSE_ERROR("$[?@.a == 1e999]", 16)}
+
+TEST(jsonpath_parse_error_function_without_parenthesis){
+    EXPECT_JSONPATH_PARSE_ERROR("$[?count]", 9)}
+
+TEST(jsonpath_parse_error_truncated_function_arguments){
+    EXPECT_JSONPATH_PARSE_ERROR("$[?count(", 10)}
+
+TEST(jsonpath_parse_error_unterminated_function_arguments){
+    EXPECT_JSONPATH_PARSE_ERROR("$[?count(@.a", 13)}
+
+TEST(jsonpath_parse_error_truncated_after_argument_comma){
+    EXPECT_JSONPATH_PARSE_ERROR("$[?count(@.a,", 14)}
+
+TEST(jsonpath_parse_error_parenthesized_function_argument){
+    EXPECT_JSONPATH_PARSE_ERROR("$[?count((@.a))]", 10)}
+
+TEST(jsonpath_parse_error_single_equals_comparison){
+    EXPECT_JSONPATH_PARSE_ERROR("$[?@.a =1]", 8)}
+
+TEST(jsonpath_parse_error_negation_without_equals){
+    EXPECT_JSONPATH_PARSE_ERROR("$[?@.a !< 1]", 8)}
+
+TEST(jsonpath_parse_multibyte_shorthand){EXPECT_JSONPATH_VALID("$.a\xc3\xa9")}
+
+TEST(jsonpath_parse_error_truncated_after_test_query){
+    EXPECT_JSONPATH_PARSE_ERROR("$[?@.a", 7)}
+
+TEST(jsonpath_parse_error_truncated_after_comparison_operator){
+    EXPECT_JSONPATH_PARSE_ERROR("$[?@.a ==", 10)}
+
+TEST(jsonpath_parse_error_non_singular_right_comparable){
+    EXPECT_JSONPATH_PARSE_ERROR("$[?@.a == @..b]", 15)}
+
+TEST(jsonpath_parse_error_logical_function_as_right_comparable){
+    EXPECT_JSONPATH_PARSE_ERROR("$[?@.a == match(@.b, \"x\")]", 26)}
+
+TEST(jsonpath_parse_error_function_name_without_call_as_comparable){
+    EXPECT_JSONPATH_PARSE_ERROR("$[?@.a == length]", 17)}
+
+TEST(jsonpath_parse_error_invalid_hex_digit){
+    EXPECT_JSONPATH_PARSE_ERROR("$[\"\\u12G4\"]", 8)}
+
+TEST(jsonpath_parse_error_truncated_after_conjunction){
+    EXPECT_JSONPATH_PARSE_ERROR("$[?@.a &&", 10)}
+
+TEST(jsonpath_parse_error_truncated_after_negation_in_conjunction){
+    EXPECT_JSONPATH_PARSE_ERROR("$[?@.a && !", 12)}
+
+TEST(jsonpath_parse_error_value_function_call_as_test){
+    EXPECT_JSONPATH_PARSE_ERROR("$[?value(@.a)]", 14)}
+
+TEST(jsonpath_parse_error_negated_value_function_as_test){
+    EXPECT_JSONPATH_PARSE_ERROR("$[?!length(@.a)]", 16)}
+
+TEST(jsonpath_parse_error_negated_literal) {
+  EXPECT_JSONPATH_PARSE_ERROR("$[?!1]", 5)
+}

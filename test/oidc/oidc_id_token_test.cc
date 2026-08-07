@@ -823,3 +823,69 @@ TEST(mint_embeds_a_code_hash) {
       "the-authorization-code", sourcemeta::core::JWSAlgorithm::HS256,
       token.value().payload().at("c_hash").to_string()));
 }
+
+TEST(parse_id_token_rejects_a_non_object) {
+  const sourcemeta::core::JSON response{"not an object"};
+  EXPECT_FALSE(sourcemeta::core::oidc_parse_id_token(response).has_value());
+}
+
+TEST(parse_id_token_rejects_a_missing_member) {
+  const auto response{sourcemeta::core::parse_json(R"JSON({
+    "access_token": "abc"
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::oidc_parse_id_token(response).has_value());
+}
+
+TEST(mint_emits_optional_claims) {
+  sourcemeta::core::OIDCIdTokenClaims claims;
+  claims.issuer = "https://issuer.example";
+  claims.subject = "user-1";
+  claims.audience = "client-id";
+  claims.issued_at = reference_now;
+  claims.expiration = reference_now + std::chrono::hours{1};
+  claims.authorized_party = "client-id";
+  claims.authentication_context_class = "urn:mace:incommon:iap:silver";
+  claims.authentication_time = reference_now - std::chrono::minutes{5};
+  const auto compact{sourcemeta::core::oidc_mint_id_token(
+      claims, oct_private_key(), sourcemeta::core::JWSAlgorithm::HS256)};
+  EXPECT_TRUE(compact.has_value());
+
+  const auto token{sourcemeta::core::JWT::from(compact.value())};
+  EXPECT_TRUE(token.has_value());
+  EXPECT_EQ(token.value().payload().at("azp").to_string(), "client-id");
+  EXPECT_EQ(token.value().payload().at("acr").to_string(),
+            "urn:mace:incommon:iap:silver");
+  EXPECT_TRUE(token.value().payload().defines("auth_time"));
+}
+
+TEST(validate_rejects_a_missing_acr_when_a_set_was_requested) {
+  const auto compact{sign_id_token(id_token_issued_at(1699996400))};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  sourcemeta::core::OIDCValidationOptions options;
+  const std::array<std::string_view, 1> classes{{"urn:example:gold"}};
+  options.acceptable_authentication_context_classes = classes;
+  const auto identity{sourcemeta::core::oidc_validate_id_token(
+      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
+      "client-id", reference_now, options)};
+  EXPECT_FALSE(identity.has_value());
+}
+
+TEST(validate_treats_an_overflowing_auth_time_as_absent) {
+  const auto compact{sign_id_token(R"JSON({
+    "iss": "https://issuer.example",
+    "sub": "user-1",
+    "aud": "client-id",
+    "iat": 1699996400,
+    "exp": 2000000000,
+    "auth_time": 1e300
+  })JSON")};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  sourcemeta::core::OIDCValidationOptions options;
+  options.maximum_authentication_age = std::chrono::seconds{60};
+  const auto identity{sourcemeta::core::oidc_validate_id_token(
+      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
+      "client-id", reference_now, options)};
+  EXPECT_FALSE(identity.has_value());
+}

@@ -4927,3 +4927,43 @@ TEST(implicit_null_anchor_with_inline_comment_sequence) {
 )YAML"};
   EXPECT_EQ(roundtrip(input), input);
 }
+
+TEST(single_quoted_scalar_with_exponent_shape) {
+  const std::string input{"foo: '1e+5'\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(single_quoted_scalar_with_embedded_quote) {
+  const std::string input{"foo: 'it''s'\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(double_quoted_scalar_with_carriage_return) {
+  const std::string input{"foo: \"a\\rb\"\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(double_quoted_scalar_with_tab_escape) {
+  const std::string input{"foo: \"a\\tb\"\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(double_quoted_scalar_with_null_escape) {
+  const std::string input{"foo: \"a\\0b\"\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(double_quoted_scalar_with_control_escape) {
+  const std::string input{"foo: \"a\\x01b\"\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(anchored_null_alias) {
+  const std::string input{"a: &x null\nb: *x\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(flow_sequence_anchor_alias) {
+  const std::string input{"c: [&y 1, *y]\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}

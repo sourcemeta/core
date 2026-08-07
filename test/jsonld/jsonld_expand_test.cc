@@ -462,3 +462,42 @@ TEST(reverse_term_ignores_prefix_entry) {
 
   EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
 }
+
+TEST(type_redefinition_with_set_container) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "@type": { "@container": "@set" } },
+    "@type": "http://example.com/Type"
+  })");
+
+  const auto result{sourcemeta::core::jsonld_expand(input)};
+  EXPECT_TRUE(result.is_array());
+}
+
+TEST(term_with_slash_expands_against_vocabulary) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "@vocab": "http://vocab.example/",
+      "a/b": { "@type": "@id" }
+    },
+    "a/b": "http://example.com/x"
+  })");
+
+  const auto result{sourcemeta::core::jsonld_expand(input)};
+  EXPECT_TRUE(result.is_array());
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_TRUE(result.at(0).defines("http://vocab.example/a/b"));
+}
+
+TEST(compact_iri_term_with_unresolvable_prefix) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "ex:suffix": { "@type": "@id" }
+    },
+    "ex:suffix": "http://example.com/x"
+  })");
+
+  const auto result{sourcemeta::core::jsonld_expand(input)};
+  EXPECT_TRUE(result.is_array());
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_TRUE(result.at(0).defines("ex:suffix"));
+}
