@@ -450,7 +450,7 @@ public:
              trial_word * next_divisor_word >
                  trial_remainder * BASE +
                      normalized_dividend.words[position + divisor.length - 2]) {
-        trial_word--;
+        trial_word -= 1;
         trial_remainder += top_divisor_word;
         if (trial_remainder >= BASE) {
           break;
@@ -473,7 +473,7 @@ public:
 
       auto top_word = normalized_dividend.words[position + divisor.length];
       if (top_word < borrow) {
-        trial_word--;
+        trial_word -= 1;
         std::uint64_t add_carry = 0;
         for (std::uint32_t index = 0; index < divisor.length; index++) {
           auto &word = normalized_dividend.words[position + index];
