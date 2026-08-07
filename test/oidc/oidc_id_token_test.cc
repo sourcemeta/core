@@ -855,7 +855,7 @@ TEST(mint_emits_optional_claims) {
   EXPECT_EQ(token.value().payload().at("azp").to_string(), "client-id");
   EXPECT_EQ(token.value().payload().at("acr").to_string(),
             "urn:mace:incommon:iap:silver");
-  EXPECT_TRUE(token.value().payload().defines("auth_time"));
+  EXPECT_EQ(token.value().payload().at("auth_time").to_integer(), 1699999700);
 }
 
 TEST(validate_rejects_a_missing_acr_when_a_set_was_requested) {

@@ -1,5 +1,6 @@
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonpath.h>
+#include <sourcemeta/core/jsonpointer.h>
 #include <sourcemeta/core/test.h>
 
 #include <string> // std::string
@@ -410,6 +411,8 @@ TEST(jsonpath_filter_negative_step_slice_existence) {
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
   EXPECT_EQ(nodes.at(0).value->size(), 2);
+  EXPECT_EQ(nodes.at(0).value->at(0).to_integer(), 1);
+  EXPECT_EQ(nodes.at(0).value->at(1).to_integer(), 2);
 }
 
 TEST(jsonpath_filter_nested_filter_on_object) {
@@ -429,6 +432,8 @@ TEST(jsonpath_filter_deep_descendant_existence) {
   const sourcemeta::core::JSONPath path{"$[?@..b[1]]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
+  EXPECT_TRUE(nodes.at(0).value->is_array());
+  EXPECT_EQ(sourcemeta::core::to_string(nodes.at(0).location), "/0");
 }
 
 TEST(jsonpath_filter_deep_descendant_single_name_existence) {
@@ -439,6 +444,8 @@ TEST(jsonpath_filter_deep_descendant_single_name_existence) {
   const sourcemeta::core::JSONPath path{"$[?@..c.d]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
+  EXPECT_TRUE(nodes.at(0).value->is_array());
+  EXPECT_EQ(sourcemeta::core::to_string(nodes.at(0).location), "/0");
 }
 
 TEST(jsonpath_filter_deep_descendant_wildcard_existence) {
@@ -449,6 +456,8 @@ TEST(jsonpath_filter_deep_descendant_wildcard_existence) {
   const sourcemeta::core::JSONPath path{"$[?@..c[*]]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
+  EXPECT_TRUE(nodes.at(0).value->is_array());
+  EXPECT_EQ(sourcemeta::core::to_string(nodes.at(0).location), "/0");
 }
 
 TEST(jsonpath_filter_deep_descendant_slice_existence) {
@@ -459,6 +468,8 @@ TEST(jsonpath_filter_deep_descendant_slice_existence) {
   const sourcemeta::core::JSONPath path{"$[?@..b[0:2]]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
+  EXPECT_TRUE(nodes.at(0).value->is_array());
+  EXPECT_EQ(sourcemeta::core::to_string(nodes.at(0).location), "/0");
 }
 
 TEST(jsonpath_filter_deep_descendant_negative_step_slice_existence) {
@@ -469,6 +480,8 @@ TEST(jsonpath_filter_deep_descendant_negative_step_slice_existence) {
   const sourcemeta::core::JSONPath path{"$[?@..b[::-1]]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
+  EXPECT_TRUE(nodes.at(0).value->is_array());
+  EXPECT_EQ(sourcemeta::core::to_string(nodes.at(0).location), "/0");
 }
 
 TEST(jsonpath_filter_deep_descendant_nested_filter_array_existence) {
@@ -479,6 +492,8 @@ TEST(jsonpath_filter_deep_descendant_nested_filter_array_existence) {
   const sourcemeta::core::JSONPath path{"$[?@..b[?@ > 1]]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
+  EXPECT_TRUE(nodes.at(0).value->is_array());
+  EXPECT_EQ(sourcemeta::core::to_string(nodes.at(0).location), "/0");
 }
 
 TEST(jsonpath_filter_deep_descendant_nested_filter_object_existence) {
@@ -489,6 +504,8 @@ TEST(jsonpath_filter_deep_descendant_nested_filter_object_existence) {
   const sourcemeta::core::JSONPath path{"$[?@..c[?@ == 7]]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
+  EXPECT_TRUE(nodes.at(0).value->is_array());
+  EXPECT_EQ(sourcemeta::core::to_string(nodes.at(0).location), "/0");
 }
 
 TEST(jsonpath_filter_deep_descendant_index_pair_existence) {
@@ -499,6 +516,8 @@ TEST(jsonpath_filter_deep_descendant_index_pair_existence) {
   const sourcemeta::core::JSONPath path{"$[?@..b[0, 1]]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
+  EXPECT_TRUE(nodes.at(0).value->is_array());
+  EXPECT_EQ(sourcemeta::core::to_string(nodes.at(0).location), "/0");
 }
 
 TEST(jsonpath_filter_deep_descendant_value_comparison) {
@@ -509,6 +528,8 @@ TEST(jsonpath_filter_deep_descendant_value_comparison) {
   const sourcemeta::core::JSONPath path{"$[?value(@..d) == 7]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
+  EXPECT_TRUE(nodes.at(0).value->is_array());
+  EXPECT_EQ(sourcemeta::core::to_string(nodes.at(0).location), "/0");
 }
 
 TEST(jsonpath_filter_deep_descendant_wildcard_array_existence) {
@@ -519,6 +540,8 @@ TEST(jsonpath_filter_deep_descendant_wildcard_array_existence) {
   const sourcemeta::core::JSONPath path{"$[?@..b[*]]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
+  EXPECT_TRUE(nodes.at(0).value->is_array());
+  EXPECT_EQ(sourcemeta::core::to_string(nodes.at(0).location), "/0");
 }
 
 TEST(jsonpath_filter_deep_descendant_zero_step_slice_existence) {

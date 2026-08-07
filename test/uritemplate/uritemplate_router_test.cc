@@ -3065,7 +3065,9 @@ TEST(empty_template_re_registration_replaces_the_root) {
   EXPECT_ROUTER_MATCH(router, "", 2, 22, captures);
   EXPECT_EQ(captures.size(), 0);
   EXPECT_EQ(router.operation("op_second").first, 2);
+  EXPECT_EQ(router.operation("op_second").second, 22);
   EXPECT_EQ(router.operation("op_first").first, 0);
+  EXPECT_EQ(router.operation("op_first").second, 0);
 }
 
 TEST(empty_template_re_registration_with_arguments) {
@@ -3080,8 +3082,10 @@ TEST(empty_template_re_registration_with_arguments) {
   router.arguments(
       2, [&argument_seen](
              const std::string_view name,
-             const sourcemeta::core::URITemplateRouter::ArgumentValue &) {
-        argument_seen = name == "key";
+             const sourcemeta::core::URITemplateRouter::ArgumentValue &value) {
+        const auto *content{std::get_if<std::string_view>(&value)};
+        argument_seen =
+            name == "key" && content != nullptr && *content == "value";
       });
   EXPECT_TRUE(argument_seen);
 }

@@ -792,7 +792,8 @@ TEST(boolean_ordering) {
 TEST(object_ordering) {
   const auto left{sourcemeta::core::parse_json(R"JSON({ "a": 1 })JSON")};
   const auto right{sourcemeta::core::parse_json(R"JSON({ "b": 2 })JSON")};
-  EXPECT_TRUE(left < right || right < left);
+  EXPECT_LT(left, right);
+  EXPECT_FALSE(right < left);
 }
 
 TEST(array_is_not_positive) {

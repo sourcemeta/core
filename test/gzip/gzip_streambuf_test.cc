@@ -1129,10 +1129,17 @@ TEST(window_wrapping_backrefs_round_trip) {
       "\x47\xe1\x28\x1c\x85\xa3\x70\x14\x8e\xc2\x51\x38\x0a\x87\x36\x1c\x0d"
       "\xab\xd1\x10\x00\x00\xba\xf1\x51\x56\xc0\x81\x00\x00",
       234};
+  // The member trailer carries the CRC32 of the full expected output, so a
+  // successful decode already proves every byte, and the probes pin the
+  // alternating pattern at the start, both window boundary copies, and the end
   const auto result{decompress_via_stream(compressed)};
   EXPECT_EQ(result.size(), 33216);
   EXPECT_EQ(result.at(0), 'a');
   EXPECT_EQ(result.at(1), 'b');
+  EXPECT_EQ(result.at(32700), 'a');
+  EXPECT_EQ(result.at(32701), 'b');
+  EXPECT_EQ(result.at(32958), 'a');
+  EXPECT_EQ(result.at(32959), 'b');
   EXPECT_EQ(result.at(33214), 'a');
   EXPECT_EQ(result.at(33215), 'b');
 }

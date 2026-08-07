@@ -489,9 +489,14 @@ TEST(term_with_slash_expands_against_vocabulary) {
   })");
 
   const auto result{sourcemeta::core::jsonld_expand(input)};
-  EXPECT_TRUE(result.is_array());
-  EXPECT_EQ(result.size(), 1);
-  EXPECT_TRUE(result.at(0).defines("http://vocab.example/a/b"));
+  const auto expected{sourcemeta::core::parse_json(R"JSON([
+    {
+      "http://vocab.example/a/b": [
+        { "@id": "http://example.com/x" }
+      ]
+    }
+  ])JSON")};
+  EXPECT_EQ(result, expected);
 }
 
 TEST(compact_iri_term_with_unresolvable_prefix) {
@@ -503,7 +508,12 @@ TEST(compact_iri_term_with_unresolvable_prefix) {
   })");
 
   const auto result{sourcemeta::core::jsonld_expand(input)};
-  EXPECT_TRUE(result.is_array());
-  EXPECT_EQ(result.size(), 1);
-  EXPECT_TRUE(result.at(0).defines("ex:suffix"));
+  const auto expected{sourcemeta::core::parse_json(R"JSON([
+    {
+      "ex:suffix": [
+        { "@id": "http://example.com/x" }
+      ]
+    }
+  ])JSON")};
+  EXPECT_EQ(result, expected);
 }

@@ -1773,10 +1773,11 @@ TEST(parse_in_place_stream_with_positions_and_callback) {
                 const std::size_t,
                 const sourcemeta::core::JSON::String &) { events += 1; });
   EXPECT_TRUE(output.is_object());
+  EXPECT_EQ(output.size(), 1);
   EXPECT_EQ(output.at("foo").to_integer(), 1);
   EXPECT_EQ(line, 1);
   EXPECT_EQ(column, 12);
-  EXPECT_TRUE(events > 0);
+  EXPECT_EQ(events, 4);
 }
 
 TEST(parse_in_place_string_with_positions_and_callback) {
@@ -1794,9 +1795,11 @@ TEST(parse_in_place_string_with_positions_and_callback) {
                 const sourcemeta::core::JSON::String &) { events += 1; });
   EXPECT_TRUE(output.is_array());
   EXPECT_EQ(output.size(), 2);
+  EXPECT_EQ(output.at(0).to_integer(), 1);
+  EXPECT_EQ(output.at(1).to_integer(), 2);
   EXPECT_EQ(line, 1);
   EXPECT_EQ(column, 8);
-  EXPECT_TRUE(events > 0);
+  EXPECT_EQ(events, 6);
 }
 
 TEST(parse_in_place_stream_with_callback) {
@@ -1812,7 +1815,7 @@ TEST(parse_in_place_stream_with_callback) {
                 const sourcemeta::core::JSON::String &) { events += 1; });
   EXPECT_TRUE(output.is_string());
   EXPECT_EQ(output.to_string(), "hello");
-  EXPECT_TRUE(events > 0);
+  EXPECT_EQ(events, 2);
 }
 
 TEST(parse_root_decimal_with_callback) {

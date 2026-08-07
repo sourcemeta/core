@@ -1238,9 +1238,14 @@ TEST(build_authorization_error_form_post_emits_iss) {
   std::string page;
   EXPECT_TRUE(sourcemeta::core::oauth_build_authorization_error_form_post(
       "https://client.example/cb", response, page));
-  EXPECT_TRUE(page.find("<input type=\"hidden\" name=\"iss\" "
-                        "value=\"https://server.example\" />") !=
-              std::string::npos);
+  EXPECT_EQ(page,
+            "<html><head><title>Submit This Form</title></head>"
+            "<body onload=\"javascript:document.forms[0].submit()\">"
+            "<form method=\"post\" action=\"https://client.example/cb\">"
+            "<input type=\"hidden\" name=\"error\" value=\"access_denied\" />"
+            "<input type=\"hidden\" name=\"iss\" "
+            "value=\"https://server.example\" />"
+            "</form></body></html>");
 }
 
 TEST(build_authorization_form_post_rejects_an_unclosed_bracket_iss) {

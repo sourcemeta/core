@@ -499,8 +499,9 @@ TEST(parse_stream_in_place_with_callback) {
                 const std::size_t,
                 const sourcemeta::core::JSON::String &) { events += 1; });
   EXPECT_TRUE(output.is_object());
+  EXPECT_EQ(output.size(), 1);
   EXPECT_EQ(output.at("foo").to_integer(), 1);
-  EXPECT_TRUE(events > 0);
+  EXPECT_EQ(events, 4);
 }
 
 TEST(read_in_place_with_callback_invalid) {
@@ -519,7 +520,9 @@ TEST(read_yaml_or_json_in_place_falls_back_to_yaml) {
   sourcemeta::core::read_yaml_or_json(std::filesystem::path{STUBS_PATH} /
                                           "test_no_extension_yaml",
                                       output, nullptr);
-  EXPECT_TRUE(output.is_object());
+  const auto expected{
+      sourcemeta::core::parse_json(R"JSON({ "foo": "bar", "baz": 2 })JSON")};
+  EXPECT_EQ(output, expected);
 }
 
 TEST(parse_in_place_with_roundtrip_and_callback) {
@@ -535,6 +538,7 @@ TEST(parse_in_place_with_roundtrip_and_callback) {
                 const std::size_t,
                 const sourcemeta::core::JSON::String &) { events += 1; });
   EXPECT_TRUE(output.is_object());
+  EXPECT_EQ(output.size(), 1);
   EXPECT_EQ(output.at("foo").to_integer(), 1);
-  EXPECT_TRUE(events > 0);
+  EXPECT_EQ(events, 4);
 }
