@@ -867,19 +867,23 @@ TEST(subtract_integer_overflow_promotes_to_decimal) {
 }
 
 TEST(copy_self_assignment) {
-  sourcemeta::core::JSON value{42};
+  sourcemeta::core::JSON value{
+      sourcemeta::core::parse_json(R"JSON({ "a": [ 1, 2 ] })JSON")};
   const sourcemeta::core::JSON &alias{value};
   value = alias;
-  EXPECT_EQ(value.to_integer(), 42);
+  EXPECT_EQ(value,
+            sourcemeta::core::parse_json(R"JSON({ "a": [ 1, 2 ] })JSON"));
 }
 
 TEST(move_self_assignment) {
-  sourcemeta::core::JSON value{42};
+  sourcemeta::core::JSON value{
+      sourcemeta::core::parse_json(R"JSON({ "a": [ 1, 2 ] })JSON")};
   // Route through a reference so the compiler cannot statically flag the
   // self-move, while the runtime self-assignment branch is still exercised
   sourcemeta::core::JSON &alias{value};
   value = std::move(alias);
-  EXPECT_EQ(value.to_integer(), 42);
+  EXPECT_EQ(value,
+            sourcemeta::core::parse_json(R"JSON({ "a": [ 1, 2 ] })JSON"));
 }
 
 TEST(null_less_than_null_is_false) {
