@@ -4073,3 +4073,225 @@ TEST(exact_from_negative_infinity) {
   EXPECT_TRUE(value.is_infinite());
   EXPECT_TRUE(value.is_signed());
 }
+
+TEST(signalling_nan_payload_string) {
+  EXPECT_EQ(sourcemeta::core::Decimal::snan(123).to_string(), "sNaN123");
+}
+
+TEST(negative_signalling_nan_round_trip) {
+  const sourcemeta::core::Decimal value{"-sNaN123"};
+  EXPECT_TRUE(value.is_nan());
+  EXPECT_TRUE(value.is_signed());
+  EXPECT_EQ(value.to_string(), "-sNaN123");
+}
+
+TEST(quiet_nan_payload_string) {
+  EXPECT_EQ(sourcemeta::core::Decimal::nan(456).to_string(), "NaN456");
+}
+
+TEST(big_coefficient_copy_assignment) {
+  const sourcemeta::core::Decimal source{"12345678901234567890123456789"};
+  sourcemeta::core::Decimal target{"98765432109876543210987654321"};
+  target = source;
+  EXPECT_EQ(target, source);
+  EXPECT_EQ(target.to_string(), "12345678901234567890123456789");
+}
+
+TEST(big_coefficient_copy_assignment_over_small) {
+  const sourcemeta::core::Decimal source{"12345678901234567890123456789"};
+  sourcemeta::core::Decimal target{42};
+  target = source;
+  EXPECT_EQ(target.to_string(), "12345678901234567890123456789");
+}
+
+TEST(engineering_string_of_zero_with_positive_exponent) {
+  const sourcemeta::core::Decimal value{"0E+5"};
+  EXPECT_EQ(value.to_string(), "0.0e+6");
+}
+
+TEST(divide_integer_with_big_quotient) {
+  const sourcemeta::core::Decimal dividend{"100000000000000000000000000000"};
+  const sourcemeta::core::Decimal divisor{7};
+  EXPECT_EQ(dividend.divide_integer(divisor).to_string(),
+            "14285714285714285714285714285");
+}
+
+TEST(divide_integer_negative_big_quotient) {
+  const sourcemeta::core::Decimal dividend{"-100000000000000000000000000000"};
+  const sourcemeta::core::Decimal divisor{7};
+  EXPECT_EQ(dividend.divide_integer(divisor).to_string(),
+            "-14285714285714285714285714285");
+}
+
+TEST(subtract_with_borrow_cascade) {
+  const sourcemeta::core::Decimal left{"1000000000000000000000000000000"};
+  const sourcemeta::core::Decimal right{1};
+  EXPECT_EQ((left - right).to_string(), "1.0000000000000000e+30");
+}
+
+TEST(subtract_bigs_to_small_result) {
+  const sourcemeta::core::Decimal left{"12345678901234567890123456790"};
+  const sourcemeta::core::Decimal right{"12345678901234567890123456789"};
+  EXPECT_EQ((left - right).to_string(), "1");
+}
+
+TEST(compare_equal_length_bigs_differing_in_last_digit) {
+  const sourcemeta::core::Decimal left{"12345678901234567890123456788"};
+  const sourcemeta::core::Decimal right{"12345678901234567890123456789"};
+  EXPECT_LT(left, right);
+  EXPECT_FALSE(right < left);
+}
+
+TEST(positive_exponent_to_uint64) {
+  const sourcemeta::core::Decimal value{"12E+3"};
+  EXPECT_EQ(value.to_uint64(), 12000);
+}
+
+TEST(positive_exponent_is_integral) {
+  const sourcemeta::core::Decimal value{"123E+2"};
+  EXPECT_TRUE(value.is_integral());
+}
+
+TEST(multiply_bigs_with_carry) {
+  const sourcemeta::core::Decimal left{"99999999999999999999"};
+  const sourcemeta::core::Decimal right{"99999999999999999999"};
+  EXPECT_EQ((left * right).to_string(), "10.000000000000000e+39");
+}
+
+TEST(to_integral_of_big_fraction) {
+  const sourcemeta::core::Decimal value{"12345678901234567890123456789.5"};
+  EXPECT_EQ(value.to_integral().to_string(), "12345678901234567890123456789");
+}
+
+TEST(remainder_of_sixteen_digit_dividend) {
+  EXPECT_EQ((sourcemeta::core::Decimal{"9999999999999999"} %
+             sourcemeta::core::Decimal{7})
+                .to_string(),
+            "3");
+}
+
+TEST(divisible_by_at_seventeen_digits) {
+  EXPECT_TRUE(sourcemeta::core::Decimal{"99999999999999999"}.divisible_by(
+      sourcemeta::core::Decimal{3}));
+}
+
+TEST(heap_coefficient_to_string_round_trip) {
+  const sourcemeta::core::Decimal value{
+      "123456789012345678901234567890123456789012345"};
+  EXPECT_EQ(value.to_string(), "123456789012345678901234567890123456789012345");
+}
+
+TEST(heap_coefficient_copy_assignment) {
+  const sourcemeta::core::Decimal source{
+      "123456789012345678901234567890123456789012345"};
+  sourcemeta::core::Decimal target{
+      "987654321098765432109876543210987654321098765"};
+  target = source;
+  EXPECT_EQ(target, source);
+  EXPECT_EQ(target.to_string(),
+            "123456789012345678901234567890123456789012345");
+}
+
+TEST(heap_coefficient_copy_assignment_over_small) {
+  const sourcemeta::core::Decimal source{
+      "123456789012345678901234567890123456789012345"};
+  sourcemeta::core::Decimal target{42};
+  target = source;
+  EXPECT_EQ(target.to_string(),
+            "123456789012345678901234567890123456789012345");
+}
+
+TEST(heap_coefficient_copy_construction) {
+  const sourcemeta::core::Decimal source{
+      "123456789012345678901234567890123456789012345"};
+  const sourcemeta::core::Decimal copy{source};
+  EXPECT_EQ(copy, source);
+  EXPECT_EQ(copy.to_string(), "123456789012345678901234567890123456789012345");
+}
+
+TEST(heap_coefficient_comparison) {
+  const sourcemeta::core::Decimal left{
+      "12345678901234567890123456789012345678901234"};
+  const sourcemeta::core::Decimal right{
+      "98765432109876543210987654321098765432109876"};
+  EXPECT_LT(left, right);
+  EXPECT_FALSE(right < left);
+  EXPECT_NE(left, right);
+}
+
+TEST(heap_coefficient_divide_integer) {
+  const sourcemeta::core::Decimal dividend{
+      "999999999999999999999999999999999999999999999"};
+  const sourcemeta::core::Decimal divisor{7};
+  EXPECT_EQ(dividend.divide_integer(divisor).to_string(),
+            "142857142857142857142857142857142857142857142");
+}
+
+TEST(heap_coefficient_negation) {
+  const sourcemeta::core::Decimal value{
+      "123456789012345678901234567890123456789012345"};
+  EXPECT_EQ((-value).to_string(),
+            "-123456789012345678901234567890123456789012345");
+}
+
+TEST(heap_coefficient_to_integral_truncates) {
+  const sourcemeta::core::Decimal value{
+      "123456789012345678901234567890123456789012345.75"};
+  EXPECT_EQ(value.to_integral().to_string(),
+            "123456789012345678901234567890123456789012345");
+}
+
+TEST(heap_coefficient_is_integral) {
+  const sourcemeta::core::Decimal value{
+      "123456789012345678901234567890123456789012345"};
+  EXPECT_TRUE(value.is_integral());
+  const sourcemeta::core::Decimal fractional{
+      "123456789012345678901234567890123456789012345.5"};
+  EXPECT_FALSE(fractional.is_integral());
+}
+
+TEST(heap_coefficient_reduce) {
+  const sourcemeta::core::Decimal value{
+      "123456789012345678901234567890123456789000000"};
+  EXPECT_EQ(value.reduce().to_string(),
+            "123.456789012345678901234567890123456789e+42");
+}
+
+TEST(heap_subtraction_to_zero) {
+  const sourcemeta::core::Decimal value{
+      "123456789012345678901234567890123456789012345"};
+  EXPECT_EQ((value - value).to_string(), "0");
+  EXPECT_TRUE((value - value).is_zero());
+}
+
+TEST(heap_move_assignment) {
+  sourcemeta::core::Decimal source{
+      "123456789012345678901234567890123456789012345"};
+  sourcemeta::core::Decimal target{
+      "987654321098765432109876543210987654321098765"};
+  target = std::move(source);
+  EXPECT_EQ(target.to_string(),
+            "123456789012345678901234567890123456789012345");
+}
+
+TEST(heap_move_construction) {
+  sourcemeta::core::Decimal source{
+      "123456789012345678901234567890123456789012345"};
+  const sourcemeta::core::Decimal target{std::move(source)};
+  EXPECT_EQ(target.to_string(),
+            "123456789012345678901234567890123456789012345");
+}
+
+TEST(divide_integer_equal_word_length_operands) {
+  const sourcemeta::core::Decimal dividend{"123456789012345678901234567"};
+  const sourcemeta::core::Decimal divisor{"123456789012345678901"};
+  EXPECT_EQ(dividend.divide_integer(divisor).to_string(), "1000000");
+}
+
+TEST(divide_integer_shifted_estimate_small_quotient) {
+  const sourcemeta::core::Decimal dividend{
+      "999999999999999999999999999999999999999999999"};
+  const sourcemeta::core::Decimal divisor{
+      "1000000000000000000000000000000000000000000"};
+  EXPECT_EQ(dividend.divide_integer(divisor).to_string(), "999");
+}

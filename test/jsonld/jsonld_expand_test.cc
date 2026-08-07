@@ -517,3 +517,48 @@ TEST(compact_iri_term_with_unresolvable_prefix) {
   ])JSON")};
   EXPECT_EQ(result, expected);
 }
+
+TEST(type_redefinition_protected_with_matching_definition) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": [
+      { "@type": { "@container": "@set", "@protected": true } },
+      { "@type": { "@container": "@set" } }
+    ],
+    "@type": "http://example.com/T"
+  })");
+
+  const auto result{sourcemeta::core::jsonld_expand(input)};
+  const auto expected{sourcemeta::core::parse_json(R"([
+    { "@type": [ "http://example.com/T" ] }
+  ])")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(simple_term_with_keyword_form_is_dropped) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "@vocab": "http://example.com/", "ignored": "@nest" },
+    "ignored": { "http://example.com/foo": "bar" }
+  })");
+
+  const auto result{sourcemeta::core::jsonld_expand(input)};
+  const auto expected{sourcemeta::core::parse_json(R"([
+    { "http://example.com/foo": [ { "@value": "bar" } ] }
+  ])")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(self_referential_compact_term_via_prefix) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "ex": "http://example.com/",
+      "ex:name": "ex:name"
+    },
+    "ex:name": "value"
+  })");
+
+  const auto result{sourcemeta::core::jsonld_expand(input)};
+  const auto expected{sourcemeta::core::parse_json(R"([
+    { "http://example.com/name": [ { "@value": "value" } ] }
+  ])")};
+  EXPECT_EQ(result, expected);
+}
