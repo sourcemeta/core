@@ -4,6 +4,7 @@
 #include <string>      // std::string
 #include <string_view> // std::string_view
 #include <utility>     // std::move
+#include <variant>     // std::holds_alternative
 
 TEST(copy_construct) {
   const auto regex{sourcemeta::core::to_regex("^foo")};
@@ -87,4 +88,21 @@ TEST(catastrophic_backtracking_terminates) {
   EXPECT_TRUE(regex.has_value());
   const std::string value{std::string(64, 'a') + "!"};
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), value));
+}
+
+TEST(pcre2_equality_of_a_copy) {
+  const auto regex{sourcemeta::core::to_regex("(foo|bar)+")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(
+      std::holds_alternative<sourcemeta::core::RegexTypePCRE2>(regex.value()));
+  const sourcemeta::core::Regex copy{regex.value()};
+  EXPECT_EQ(copy, regex.value());
+}
+
+TEST(pcre2_inequality_of_distinct_compilations) {
+  const auto first{sourcemeta::core::to_regex("(foo|bar)+")};
+  const auto second{sourcemeta::core::to_regex("(foo|bar)+")};
+  EXPECT_TRUE(first.has_value());
+  EXPECT_TRUE(second.has_value());
+  EXPECT_NE(first.value(), second.value());
 }

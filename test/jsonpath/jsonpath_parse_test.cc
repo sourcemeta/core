@@ -9,6 +9,7 @@
     const sourcemeta::core::JSONPath path{input};                              \
     FAIL();                                                                    \
   } catch (const sourcemeta::core::JSONPathParseError &error) {                \
+    EXPECT_STREQ(error.what(), "The input is not a valid JSON Path query");    \
     EXPECT_EQ(error.column(), expected_column);                                \
   } catch (...) {                                                              \
     FAIL();                                                                    \

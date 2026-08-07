@@ -4011,3 +4011,34 @@ TEST_F(URITemplateRouterViewTest, describes_with_base_argument_empty_router) {
   EXPECT_FALSE(restored.describes("/foo", "/bar"));
   EXPECT_FALSE(restored.describes("", "/bar"));
 }
+
+TEST_F(URITemplateRouterViewTest, save_to_an_unwritable_path_throws) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/users", "op_1", 1);
+  const std::filesystem::path target{std::filesystem::temp_directory_path() /
+                                     "sourcemeta_core_nonexistent_directory" /
+                                     "router.bin"};
+  try {
+    sourcemeta::core::URITemplateRouterView::save(router, target);
+    FAIL();
+  } catch (const sourcemeta::core::URITemplateRouterSaveError &error) {
+    EXPECT_STREQ(error.what(), "Failed to open file for writing");
+    EXPECT_EQ(error.path(), target);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST_F(URITemplateRouterViewTest, view_of_a_missing_file_throws) {
+  const std::filesystem::path target{std::filesystem::temp_directory_path() /
+                                     "sourcemeta_core_missing_router.bin"};
+  try {
+    const sourcemeta::core::URITemplateRouterView view{target};
+    FAIL();
+  } catch (const sourcemeta::core::URITemplateRouterReadError &error) {
+    EXPECT_STREQ(error.what(), "Failed to open router file for reading");
+    EXPECT_EQ(error.path(), target);
+  } catch (...) {
+    FAIL();
+  }
+}

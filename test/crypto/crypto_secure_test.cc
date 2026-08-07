@@ -1,7 +1,10 @@
 #include <sourcemeta/core/crypto.h>
 #include <sourcemeta/core/test.h>
 
-#include <string> // std::string
+#include <cstdint> // std::uint64_t
+#include <limits>  // std::numeric_limits
+#include <new>     // std::bad_array_new_length
+#include <string>  // std::string
 
 TEST(secure_zero_clears_a_string) {
   std::string secret{"password"};
@@ -128,4 +131,47 @@ TEST(secure_string_appends_an_empty_view) {
   sourcemeta::core::SecureString secret{"data"};
   secret.append(std::string_view{});
   EXPECT_TRUE(secret == "data");
+}
+
+TEST(secure_zero_of_a_null_buffer_is_a_no_op) {
+  sourcemeta::core::secure_zero(nullptr, 4);
+}
+
+TEST(secure_string_from_a_pointer_and_a_length) {
+  const char content[]{"hunter2"};
+  const sourcemeta::core::SecureString secret{content, 7};
+  EXPECT_EQ(secret.size(), 7);
+  EXPECT_EQ(secret[0], 'h');
+  EXPECT_EQ(secret[6], '2');
+}
+
+TEST(secure_string_of_a_repeated_byte) {
+  const sourcemeta::core::SecureString secret{5, 'x'};
+  EXPECT_EQ(secret.size(), 5);
+  EXPECT_EQ(secret[0], 'x');
+  EXPECT_EQ(secret[4], 'x');
+}
+
+TEST(secure_string_writes_a_byte_by_index) {
+  sourcemeta::core::SecureString secret{"hunter2"};
+  secret[0] = 'H';
+  EXPECT_EQ(secret[0], 'H');
+  EXPECT_EQ(secret.size(), 7);
+}
+
+TEST(secure_allocator_instances_are_interchangeable) {
+  const sourcemeta::core::SecureAllocator<char> left;
+  const sourcemeta::core::SecureAllocator<char> right;
+  EXPECT_EQ(left, right);
+  EXPECT_FALSE(left != right);
+}
+
+TEST(secure_allocator_rejects_an_overflowing_allocation) {
+  sourcemeta::core::SecureAllocator<std::uint64_t> allocator;
+  try {
+    [[maybe_unused]] const auto *result{
+        allocator.allocate(std::numeric_limits<std::size_t>::max())};
+    FAIL();
+  } catch (const std::bad_array_new_length &) {
+  }
 }

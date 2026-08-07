@@ -158,6 +158,7 @@ TEST(unknown_option_throws) {
     app.parse(argc, argv);
     FAIL();
   } catch (const sourcemeta::core::OptionsUnknownOptionError &error) {
+    EXPECT_STREQ(error.what(), "Unknown option");
     EXPECT_EQ(error.option(), "unknown");
   }
 }
@@ -175,6 +176,7 @@ TEST(flag_given_value_throws) {
     app.parse(argc, argv);
     FAIL();
   } catch (const sourcemeta::core::OptionsUnexpectedValueFlagError &error) {
+    EXPECT_STREQ(error.what(), "This flag cannot take a value");
     EXPECT_EQ(error.option(), "verbose");
   }
 }
@@ -284,6 +286,7 @@ TEST(long_option_without_value) {
     app.parse(argc, argv);
     FAIL();
   } catch (const sourcemeta::core::OptionsMissingOptionValueError &error) {
+    EXPECT_STREQ(error.what(), "This option must take a value");
     EXPECT_EQ(error.option(), "file");
   }
 }

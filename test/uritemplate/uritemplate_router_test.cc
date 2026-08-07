@@ -349,6 +349,7 @@ TEST(conflicting_variable_names_throws) {
     FAIL();
   } catch (
       const sourcemeta::core::URITemplateRouterVariableMismatchError &error) {
+    EXPECT_STREQ(error.what(), "Variable name mismatch when adding route");
     EXPECT_EQ(error.left(), "user_id");
     EXPECT_EQ(error.right(), "id");
   }
@@ -1757,6 +1758,7 @@ TEST(operation_id_reject_empty) {
     FAIL();
   } catch (
       const sourcemeta::core::URITemplateRouterInvalidOperationIdError &error) {
+    EXPECT_STREQ(error.what(), "Invalid operation identifier");
     EXPECT_EQ(error.operation_id(), "");
   }
 }
@@ -1841,6 +1843,7 @@ TEST(operation_id_duplicate_throws) {
     FAIL();
   } catch (const sourcemeta::core::URITemplateRouterDuplicateOperationIdError
                &error) {
+    EXPECT_STREQ(error.what(), "Duplicate operation identifier");
     EXPECT_EQ(error.operation_id(), "listUsers");
   } catch (...) {
     FAIL();
@@ -3039,4 +3042,18 @@ TEST(describes_with_base_argument_empty_router) {
 
   EXPECT_FALSE(router.describes("/foo", "/bar"));
   EXPECT_FALSE(router.describes("", "/bar"));
+}
+
+TEST(segment_error_message) {
+  sourcemeta::core::URITemplateRouter router;
+  try {
+    router.add("users/{id}", "op_segment", 1);
+    FAIL();
+  } catch (
+      const sourcemeta::core::URITemplateRouterInvalidSegmentError &error) {
+    EXPECT_STREQ(error.what(), "Template must start with '/'");
+    EXPECT_EQ(error.segment(), "users/{id}");
+  } catch (...) {
+    FAIL();
+  }
 }
