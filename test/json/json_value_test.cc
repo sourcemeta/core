@@ -847,24 +847,17 @@ TEST(deep_copy_of_a_nested_object) {
 TEST(add_integer_overflow_promotes_to_decimal) {
   const sourcemeta::core::JSON left{std::numeric_limits<std::int64_t>::min()};
   const sourcemeta::core::JSON right{-1};
-  // The integer sum overflows int64, so the operator promotes to Decimal. The
-  // exact value would be -9223372036854775809, but the Decimal add currently
-  // rounds to the working precision (tracked in the decimal precision bug
-  // report). Pin the exact current output so a change in either direction is
-  // caught
   const auto result{left + right};
   EXPECT_TRUE(result.is_decimal());
-  EXPECT_EQ(result.to_decimal().to_string(), "-9.223372036854776e+18");
+  EXPECT_EQ(result.to_decimal().to_string(), "-9223372036854775809");
 }
 
 TEST(subtract_integer_overflow_promotes_to_decimal) {
   const sourcemeta::core::JSON left{std::numeric_limits<std::int64_t>::max()};
   const sourcemeta::core::JSON right{-1};
-  // See the note on the addition overflow test above. Exact value would be
-  // 9223372036854775808; pin the current rounded output
   const auto result{left - right};
   EXPECT_TRUE(result.is_decimal());
-  EXPECT_EQ(result.to_decimal().to_string(), "9.223372036854776e+18");
+  EXPECT_EQ(result.to_decimal().to_string(), "9223372036854775808");
 }
 
 TEST(copy_self_assignment) {

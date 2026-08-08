@@ -343,7 +343,7 @@ TEST(large_multiplication) {
 TEST(high_precision_addition) {
   const sourcemeta::core::Decimal left{"0.1111111111111111111111111111"};
   const sourcemeta::core::Decimal right{"0.2222222222222222222222222222"};
-  const sourcemeta::core::Decimal expected{"0.3333333333333333"};
+  const sourcemeta::core::Decimal expected{"0.3333333333333333333333333333"};
   EXPECT_EQ(left + right, expected);
 }
 
@@ -809,6 +809,18 @@ TEST(to_float_negative_infinity) {
 
 TEST(to_double_nan) {
   const auto nan_value{sourcemeta::core::Decimal::nan()};
+  const double result{nan_value.to_double()};
+  EXPECT_TRUE(std::isnan(result));
+}
+
+TEST(to_float_signaling_nan) {
+  const auto nan_value{sourcemeta::core::Decimal::snan()};
+  const float result{nan_value.to_float()};
+  EXPECT_TRUE(std::isnan(result));
+}
+
+TEST(to_double_signaling_nan) {
+  const auto nan_value{sourcemeta::core::Decimal::snan()};
   const double result{nan_value.to_double()};
   EXPECT_TRUE(std::isnan(result));
 }
@@ -4126,7 +4138,7 @@ TEST(divide_integer_negative_big_quotient) {
 TEST(subtract_with_borrow_cascade) {
   const sourcemeta::core::Decimal left{"1000000000000000000000000000000"};
   const sourcemeta::core::Decimal right{1};
-  EXPECT_EQ((left - right).to_string(), "1.0000000000000000e+30");
+  EXPECT_EQ((left - right).to_string(), "999999999999999999999999999999");
 }
 
 TEST(subtract_bigs_to_small_result) {
@@ -4294,4 +4306,210 @@ TEST(divide_integer_shifted_estimate_small_quotient) {
   const sourcemeta::core::Decimal divisor{
       "1000000000000000000000000000000000000000000"};
   EXPECT_EQ(dividend.divide_integer(divisor).to_string(), "999");
+}
+
+TEST(divide_integer_multi_word_divisor_large_quotient) {
+  const sourcemeta::core::Decimal dividend{
+      "999999999999999999999999999999999999999999999"};
+  const sourcemeta::core::Decimal divisor{"1234567890123456789012345"};
+  EXPECT_EQ(dividend.divide_integer(divisor).to_string(),
+            "810000007290000066339");
+}
+
+TEST(divide_integer_multi_word_divisor_exact_multiple) {
+  const sourcemeta::core::Decimal dividend{
+      "999999999999999999999998704799994976289954955"};
+  const sourcemeta::core::Decimal divisor{"1234567890123456789012345"};
+  EXPECT_EQ(dividend.divide_integer(divisor).to_string(),
+            "810000007290000066339");
+}
+
+TEST(divide_integer_two_word_divisor_power_of_ten_quotient) {
+  const sourcemeta::core::Decimal dividend{
+      "999999999999999999999999999999999999999999999"};
+  const sourcemeta::core::Decimal divisor{
+      "999999999999999999000000000000000005"};
+  EXPECT_EQ(dividend.divide_integer(divisor).to_string(), "1000000000");
+}
+
+TEST(divide_integer_heap_dividend_multi_word_divisor) {
+  const sourcemeta::core::Decimal dividend{
+      "1428571428571428571428571428571428571428571428571428571428571428571428"
+      "57142857142857142857142857142"};
+  const sourcemeta::core::Decimal divisor{
+      "9999999999999999999999999999999999999997"};
+  EXPECT_EQ(dividend.divide_integer(divisor).to_string(),
+            "14285714285714285714285714285714285714290000000000000000000");
+}
+
+TEST(divide_multi_word_divisor_large_quotient) {
+  const sourcemeta::core::Decimal dividend{
+      "999999999999999999999999999999999999999999999"};
+  const sourcemeta::core::Decimal divisor{"1234567890123456789012345"};
+  EXPECT_EQ(dividend / divisor,
+            sourcemeta::core::Decimal{"8.100000072900001e+20"});
+}
+
+TEST(divisible_by_multi_word_divisor_false) {
+  const sourcemeta::core::Decimal dividend{
+      "999999999999999999999999999999999999999999999"};
+  const sourcemeta::core::Decimal divisor{"1234567890123456789012345"};
+  EXPECT_FALSE(dividend.divisible_by(divisor));
+}
+
+TEST(divisible_by_multi_word_divisor_true) {
+  const sourcemeta::core::Decimal dividend{
+      "999999999999999999999998704799994976289954955"};
+  const sourcemeta::core::Decimal divisor{"1234567890123456789012345"};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
+// The trial quotient word passes the two word correction test because the
+// middle divisor word is zero, yet is still one in excess due to the lowest
+// divisor word, forcing the rare add back step of the long division
+TEST(divide_integer_trial_word_excess_add_back) {
+  const sourcemeta::core::Decimal dividend{
+      "499999999999999999500000000000000000000000000000000000"
+      "999999999999999998"};
+  const sourcemeta::core::Decimal divisor{
+      "500000000000000000000000000000000000000000000000000001"};
+  EXPECT_EQ(dividend.divide_integer(divisor).to_string(), "999999999999999998");
+}
+
+TEST(modulo_trial_word_excess_add_back) {
+  const sourcemeta::core::Decimal dividend{
+      "499999999999999999500000000000000000000000000000000000"
+      "999999999999999998"};
+  const sourcemeta::core::Decimal divisor{
+      "500000000000000000000000000000000000000000000000000001"};
+  EXPECT_EQ((dividend % divisor).to_string(),
+            "500000000000000000000000000000000000000000000000000000");
+}
+
+TEST(modulo_eighteen_digit_exact_multiple) {
+  const sourcemeta::core::Decimal dividend{"999999999999999999"};
+  const sourcemeta::core::Decimal divisor{7};
+  EXPECT_EQ((dividend % divisor).to_string(), "0");
+}
+
+TEST(modulo_seventeen_digit_dividend) {
+  const sourcemeta::core::Decimal dividend{"99999999999999999"};
+  const sourcemeta::core::Decimal divisor{7};
+  EXPECT_EQ((dividend % divisor).to_string(), "4");
+}
+
+TEST(modulo_negative_seventeen_digit_dividend) {
+  const sourcemeta::core::Decimal dividend{"-99999999999999999"};
+  const sourcemeta::core::Decimal divisor{7};
+  EXPECT_EQ((dividend % divisor).to_string(), "-4");
+}
+
+TEST(modulo_exact_multiple_takes_dividend_sign) {
+  const sourcemeta::core::Decimal dividend{"-999999999999999999"};
+  const sourcemeta::core::Decimal divisor{7};
+  const sourcemeta::core::Decimal result{dividend % divisor};
+  EXPECT_TRUE(result.is_zero());
+  EXPECT_TRUE(result.is_signed());
+}
+
+TEST(modulo_multi_word_divisor) {
+  const sourcemeta::core::Decimal dividend{
+      "999999999999999999999999999999999999999999999"};
+  const sourcemeta::core::Decimal divisor{"1234567890123456789012345"};
+  EXPECT_EQ((dividend % divisor).to_string(), "1295200005023710045044");
+}
+
+TEST(modulo_multi_word_divisor_exact_multiple) {
+  const sourcemeta::core::Decimal dividend{
+      "999999999999999999999998704799994976289954955"};
+  const sourcemeta::core::Decimal divisor{"1234567890123456789012345"};
+  EXPECT_EQ((dividend % divisor).to_string(), "0");
+}
+
+TEST(modulo_heap_dividend_multi_word_divisor) {
+  const sourcemeta::core::Decimal dividend{
+      "1428571428571428571428571428571428571428571428571428571428571428571428"
+      "57142857142857142857142857142"};
+  const sourcemeta::core::Decimal divisor{
+      "9999999999999999999999999999999999999997"};
+  EXPECT_EQ((dividend % divisor).to_string(), "12857142857142857142");
+}
+
+TEST(modulo_high_precision_fractional_operands) {
+  const sourcemeta::core::Decimal dividend{"1.000000000000000001"};
+  const sourcemeta::core::Decimal divisor{"0.000000000000000002"};
+  EXPECT_EQ(dividend % divisor,
+            sourcemeta::core::Decimal{"0.000000000000000001"});
+}
+
+TEST(modulo_huge_divisor_returns_dividend) {
+  const sourcemeta::core::Decimal dividend{"0.5"};
+  const sourcemeta::core::Decimal divisor{"1e+100"};
+  EXPECT_EQ(dividend % divisor, sourcemeta::core::Decimal{"0.5"});
+}
+
+TEST(modulo_extreme_positive_dividend_exponent) {
+  const sourcemeta::core::Decimal dividend{"1e+2147483647"};
+  const sourcemeta::core::Decimal divisor{1};
+  EXPECT_TRUE((dividend % divisor).is_zero());
+}
+
+TEST(modulo_huge_exponent_multi_word_divisor) {
+  const sourcemeta::core::Decimal dividend{"1e+1000000"};
+  const sourcemeta::core::Decimal divisor{"1234567890123456789012345"};
+  EXPECT_EQ((dividend % divisor).to_string(), "140735615018817496539760");
+}
+
+TEST(modulo_opposite_extreme_exponents) {
+  const sourcemeta::core::Decimal dividend{"1e+2147483647"};
+  const sourcemeta::core::Decimal divisor{"1e-2147483648"};
+  EXPECT_TRUE((dividend % divisor).is_zero());
+}
+
+TEST(divisible_by_huge_exponent_multi_word_divisor) {
+  const sourcemeta::core::Decimal dividend{"1e+1000000"};
+  const sourcemeta::core::Decimal divisor{"1234567890123456789012345"};
+  EXPECT_FALSE(dividend.divisible_by(divisor));
+}
+
+TEST(divisible_by_huge_exponent_power_of_ten_divisor) {
+  const sourcemeta::core::Decimal dividend{"1e+1000000"};
+  const sourcemeta::core::Decimal divisor{
+      "1000000000000000000000000000000000000000"};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
+TEST(add_exact_below_int64_minimum) {
+  const sourcemeta::core::Decimal left{
+      std::numeric_limits<std::int64_t>::min()};
+  const sourcemeta::core::Decimal right{-1};
+  EXPECT_EQ((left + right).to_string(), "-9223372036854775809");
+}
+
+TEST(subtract_exact_above_int64_maximum) {
+  const sourcemeta::core::Decimal left{
+      std::numeric_limits<std::int64_t>::max()};
+  const sourcemeta::core::Decimal right{-1};
+  EXPECT_EQ((left - right).to_string(), "9223372036854775808");
+}
+
+TEST(subtract_exact_twenty_five_digit_result) {
+  const sourcemeta::core::Decimal left{"10000000000000000000000000"};
+  const sourcemeta::core::Decimal right{1};
+  EXPECT_EQ((left - right).to_string(), "9999999999999999999999999");
+}
+
+TEST(add_exact_heap_operands) {
+  const sourcemeta::core::Decimal left{
+      "999999999999999999999999999999999999999999999"};
+  const sourcemeta::core::Decimal right{
+      "123456789012345678901234567890123456789012345"};
+  EXPECT_EQ((left + right).to_string(),
+            "1123456789012345678901234567890123456789012344");
+}
+
+TEST(add_exact_fractional_carry_chain) {
+  const sourcemeta::core::Decimal left{"9999999999999999.9999999999999999"};
+  const sourcemeta::core::Decimal right{"0.0000000000000001"};
+  EXPECT_EQ(left + right, sourcemeta::core::Decimal{"10000000000000000"});
 }
