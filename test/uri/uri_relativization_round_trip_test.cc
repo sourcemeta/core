@@ -1,8 +1,6 @@
 #include <sourcemeta/core/test.h>
 #include <sourcemeta/core/uri.h>
 
-#include <string> // std::string
-
 // RFC 3986 defines resolution but no way to compute a relative reference, so
 // the correctness of relativization is defined by resolution undoing it:
 //
@@ -14,43 +12,39 @@
 // implementation that relativization is measured against rather than as
 // another moving part.
 
-static auto round_trip(const std::string &base_string,
-                       const std::string &target_string) -> std::string {
-  const sourcemeta::core::URI base{base_string};
-  sourcemeta::core::URI target{target_string};
-  // RFC 3986 Section 5.1 resolves against an absolute base, and a relative
-  // target is not something the equation can reproduce
-  EXPECT_TRUE(base.is_absolute());
-  EXPECT_TRUE(target.is_absolute());
-  target.relative_to(base);
-  sourcemeta::core::URI resolved{target.recompose()};
-  resolved.resolve_from(base);
-  return resolved.recompose();
-}
+// Both preconditions are asserted rather than assumed. RFC 3986 Section 5.1
+// resolves against an absolute base, and a relative target is not something the
+// equation can reproduce. The expected value is the target parsed and
+// recomposed rather than the target string itself, because the parser decodes
+// percent-encoded unreserved characters and that has nothing to do with
+// relativization
+#define EXPECT_ROUND_TRIP(base_string, target_string)                          \
+  {                                                                            \
+    const sourcemeta::core::URI base{(base_string)};                           \
+    sourcemeta::core::URI target{(target_string)};                             \
+    EXPECT_TRUE(base.is_absolute());                                           \
+    EXPECT_TRUE(target.is_absolute());                                         \
+    target.relative_to(base);                                                  \
+    sourcemeta::core::URI resolved{target.recompose()};                        \
+    resolved.resolve_from(base);                                               \
+    EXPECT_EQ(resolved.recompose(),                                            \
+              sourcemeta::core::URI{(target_string)}.recompose());             \
+  }
 
 // RFC 3986 is ASCII only, so a non-ASCII input has to travel the RFC 3987 path
 // from parsing through to recomposition for the equation to mean anything
-static auto round_trip_iri(const std::string &base_string,
-                           const std::string &target_string) -> std::string {
-  const auto base{sourcemeta::core::URI::from_iri(base_string)};
-  auto target{sourcemeta::core::URI::from_iri(target_string)};
-  EXPECT_TRUE(base.is_absolute());
-  EXPECT_TRUE(target.is_absolute());
-  target.relative_to(base);
-  auto resolved{sourcemeta::core::URI::from_iri(target.recompose())};
-  resolved.resolve_from(base);
-  return resolved.recompose();
-}
-
-// The expected value is the target parsed and recomposed, rather than the
-// target string itself, because the parser decodes percent-encoded unreserved
-// characters and that has nothing to do with relativization
-#define EXPECT_ROUND_TRIP(base, target)                                        \
-  EXPECT_EQ(round_trip((base), (target)),                                      \
-            sourcemeta::core::URI{(target)}.recompose());
-
-#define EXPECT_IRI_ROUND_TRIP(base, target)                                    \
-  EXPECT_EQ(round_trip_iri((base), (target)), (target));
+#define EXPECT_IRI_ROUND_TRIP(base_string, target_string)                      \
+  {                                                                            \
+    const auto base{sourcemeta::core::URI::from_iri(base_string)};             \
+    auto target{sourcemeta::core::URI::from_iri(target_string)};               \
+    EXPECT_TRUE(base.is_absolute());                                           \
+    EXPECT_TRUE(target.is_absolute());                                         \
+    target.relative_to(base);                                                  \
+    auto resolved{sourcemeta::core::URI::from_iri(target.recompose())};        \
+    resolved.resolve_from(base);                                               \
+    EXPECT_EQ(resolved.recompose(),                                            \
+              sourcemeta::core::URI::from_iri(target_string).recompose());     \
+  }
 
 TEST(absolute_absolute_base_true_1) {
   EXPECT_ROUND_TRIP("https://www.example.com", "https://www.example.com/foo");
