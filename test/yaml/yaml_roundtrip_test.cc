@@ -4,12 +4,18 @@
 
 #include <sstream> // std::ostringstream
 
-static auto roundtrip(const std::string &input) -> std::string {
-  sourcemeta::core::YAMLRoundTrip metadata;
-  const auto document{sourcemeta::core::parse_yaml(input, metadata)};
+static auto stringify(const sourcemeta::core::JSON &document,
+                      const sourcemeta::core::YAMLRoundTrip &metadata)
+    -> std::string {
   std::ostringstream stream;
   sourcemeta::core::stringify_yaml(document, stream, metadata);
   return stream.str();
+}
+
+static auto roundtrip(const std::string &input) -> std::string {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  const auto document{sourcemeta::core::parse_yaml(input, metadata)};
+  return stringify(document, metadata);
 }
 
 TEST(block_mapping_simple) {
@@ -4966,4 +4972,195 @@ TEST(anchored_null_alias) {
 TEST(flow_sequence_anchor_alias) {
   const std::string input{"c: [&y 1, *y]\n"};
   EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(mutated_plain_scalar) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  auto document{sourcemeta::core::parse_yaml("foo: bar\n", metadata)};
+  document.assign("foo", sourcemeta::core::JSON{"qux"});
+  EXPECT_EQ(stringify(document, metadata), "foo: qux\n");
+}
+
+TEST(mutated_plain_scalar_into_another_type) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  auto document{sourcemeta::core::parse_yaml("key: 0x3A\n", metadata)};
+  document.assign("key", sourcemeta::core::JSON{42});
+  EXPECT_EQ(stringify(document, metadata), "key: 42\n");
+}
+
+TEST(mutated_plain_scalar_needing_quotes) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  auto document{sourcemeta::core::parse_yaml("foo: bar\n", metadata)};
+  document.assign("foo", sourcemeta::core::JSON{"true"});
+  EXPECT_EQ(stringify(document, metadata), "foo: \"true\"\n");
+}
+
+TEST(mutated_single_quoted_scalar) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  auto document{sourcemeta::core::parse_yaml("foo: 'bar'\n", metadata)};
+  document.assign("foo", sourcemeta::core::JSON{"qux"});
+  EXPECT_EQ(stringify(document, metadata), "foo: 'qux'\n");
+}
+
+TEST(mutated_single_quoted_scalar_into_embedded_quote) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  auto document{sourcemeta::core::parse_yaml("foo: 'bar'\n", metadata)};
+  document.assign("foo", sourcemeta::core::JSON{"it's"});
+  EXPECT_EQ(stringify(document, metadata), "foo: 'it''s'\n");
+}
+
+TEST(mutated_double_quoted_scalar) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  auto document{sourcemeta::core::parse_yaml("foo: \"bar\"\n", metadata)};
+  document.assign("foo", sourcemeta::core::JSON{"qux"});
+  EXPECT_EQ(stringify(document, metadata), "foo: \"qux\"\n");
+}
+
+TEST(mutated_double_quoted_scalar_into_escape) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  auto document{sourcemeta::core::parse_yaml("foo: \"a\\nb\"\n", metadata)};
+  document.assign("foo", sourcemeta::core::JSON{"c\td"});
+  EXPECT_EQ(stringify(document, metadata), "foo: \"c\\td\"\n");
+}
+
+TEST(mutated_literal_block_scalar) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  auto document{
+      sourcemeta::core::parse_yaml("foo: |\n  one\n  two\n", metadata)};
+  document.assign("foo", sourcemeta::core::JSON{"three\n"});
+  EXPECT_EQ(stringify(document, metadata), "foo: |\n  three\n");
+}
+
+TEST(mutated_folded_block_scalar) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  auto document{
+      sourcemeta::core::parse_yaml("foo: >\n  one\n  two\n", metadata)};
+  document.assign("foo", sourcemeta::core::JSON{"three\n"});
+  EXPECT_EQ(stringify(document, metadata), "foo: >\n  three\n");
+}
+
+TEST(mutated_scalar_preserves_sibling_content) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  auto document{
+      sourcemeta::core::parse_yaml("foo: 'bar'\nbaz: 'qux'\n", metadata)};
+  document.assign("baz", sourcemeta::core::JSON{"new"});
+  EXPECT_EQ(stringify(document, metadata), "foo: 'bar'\nbaz: 'new'\n");
+}
+
+TEST(mutated_nested_scalar) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  auto document{sourcemeta::core::parse_yaml("foo:\n  bar: 'baz'\n", metadata)};
+  document.at("foo").assign("bar", sourcemeta::core::JSON{"qux"});
+  EXPECT_EQ(stringify(document, metadata), "foo:\n  bar: 'qux'\n");
+}
+
+TEST(mutated_sequence_item) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  auto document{sourcemeta::core::parse_yaml("- 'one'\n- 'two'\n", metadata)};
+  document.at(1) = sourcemeta::core::JSON{"three"};
+  EXPECT_EQ(stringify(document, metadata), "- 'one'\n- 'three'\n");
+}
+
+TEST(mutated_flow_sequence_item) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  auto document{
+      sourcemeta::core::parse_yaml("foo: ['one', 'two']\n", metadata)};
+  document.at("foo").at(0) = sourcemeta::core::JSON{"three"};
+  EXPECT_EQ(stringify(document, metadata), "foo: ['three', 'two']\n");
+}
+
+TEST(mutated_scalar_under_quoted_key) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  auto document{sourcemeta::core::parse_yaml("\"foo\": 'bar'\n", metadata)};
+  document.assign("foo", sourcemeta::core::JSON{"qux"});
+  EXPECT_EQ(stringify(document, metadata), "\"foo\": 'qux'\n");
+}
+
+TEST(mutated_scalar_with_comments) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  auto document{sourcemeta::core::parse_yaml("# leading\nfoo: 'bar' # inline\n",
+                                             metadata)};
+  document.assign("foo", sourcemeta::core::JSON{"qux"});
+  EXPECT_EQ(stringify(document, metadata), "# leading\nfoo: 'qux' # inline\n");
+}
+
+TEST(renamed_quoted_key_reverts_to_plain) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  auto document{sourcemeta::core::parse_yaml("\"foo\": bar\n", metadata)};
+  document.erase("foo");
+  document.assign("baz", sourcemeta::core::JSON{"bar"});
+  EXPECT_EQ(stringify(document, metadata), "baz: bar\n");
+}
+
+TEST(mutated_alias_value) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  auto document{sourcemeta::core::parse_yaml("a: &x 1\nb: *x\n", metadata)};
+  document.assign("b", sourcemeta::core::JSON{2});
+  EXPECT_EQ(stringify(document, metadata), "a: &x 1\nb: 2\n");
+}
+
+TEST(mutated_anchor_value) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  auto document{sourcemeta::core::parse_yaml("a: &x 1\nb: *x\n", metadata)};
+  document.assign("a", sourcemeta::core::JSON{2});
+  EXPECT_EQ(stringify(document, metadata), "a: &x 2\nb: 1\n");
+}
+
+TEST(mutated_alias_and_anchor_to_the_same_value) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  auto document{sourcemeta::core::parse_yaml("a: &x 1\nb: *x\n", metadata)};
+  document.assign("a", sourcemeta::core::JSON{2});
+  document.assign("b", sourcemeta::core::JSON{2});
+  EXPECT_EQ(stringify(document, metadata), "a: &x 2\nb: *x\n");
+}
+
+TEST(mutated_alias_to_null) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  auto document{sourcemeta::core::parse_yaml("a: &x null\nb: *x\n", metadata)};
+  document.assign("b", sourcemeta::core::JSON{1});
+  EXPECT_EQ(stringify(document, metadata), "a: &x null\nb: 1\n");
+}
+
+TEST(mutated_alias_in_flow_sequence) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  auto document{sourcemeta::core::parse_yaml("c: [&y 1, *y]\n", metadata)};
+  document.at("c").at(1) = sourcemeta::core::JSON{2};
+  EXPECT_EQ(stringify(document, metadata), "c: [&y 1, 2]\n");
+}
+
+TEST(mutated_alias_to_mapping) {
+  const std::string input{R"YAML(defaults: &defaults
+  color: red
+ref: *defaults
+)YAML"};
+  sourcemeta::core::YAMLRoundTrip metadata;
+  auto document{sourcemeta::core::parse_yaml(input, metadata)};
+  document.at("ref").assign("color", sourcemeta::core::JSON{"blue"});
+  EXPECT_EQ(stringify(document, metadata), R"YAML(defaults: &defaults
+  color: red
+ref:
+  color: blue
+)YAML");
+}
+
+TEST(mutated_alias_to_sequence) {
+  const std::string input{R"YAML(defaults: &defaults
+  - one
+ref: *defaults
+)YAML"};
+  sourcemeta::core::YAMLRoundTrip metadata;
+  auto document{sourcemeta::core::parse_yaml(input, metadata)};
+  document.at("ref").at(0) = sourcemeta::core::JSON{"two"};
+  EXPECT_EQ(stringify(document, metadata), R"YAML(defaults: &defaults
+  - one
+ref:
+  - two
+)YAML");
+}
+
+TEST(mutated_alias_in_sequence_item) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  auto document{sourcemeta::core::parse_yaml("- &x 1\n- *x\n", metadata)};
+  document.at(1) = sourcemeta::core::JSON{2};
+  EXPECT_EQ(stringify(document, metadata), "- &x 1\n- 2\n");
 }
