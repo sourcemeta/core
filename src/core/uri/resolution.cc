@@ -193,7 +193,35 @@ auto URI::relative_to(const URI &base) -> URI & {
 
   const auto &base_path = base.path_.value_or("");
 
-  // Case 1: Check if this_path starts with base_path followed by "/"
+  // Case 1: Base has no path or empty path
+  // Examples: "https://example.com" or "schema:"
+  // Strip leading slash and make relative
+  if (base_path.empty()) {
+    auto relative_path = this_path;
+
+    // RFC 3986 Section 5.2.3: "If the base URI has a defined authority
+    // component and an empty path, then return a string consisting of "/"
+    // concatenated with the reference's path", so the leading slash is implied
+    // there. Without an authority, merging appends the reference to a base
+    // path that has no segments at all, so dropping the slash would name a
+    // rootless path instead. A path of just "/" names the root either way
+    if (base.host_.has_value() && relative_path.starts_with('/') &&
+        relative_path.length() > 1) {
+      relative_path.erase(0, 1);
+    }
+
+    this->scheme_.reset();
+    this->userinfo_.reset();
+    this->host_.reset();
+    this->port_.reset();
+    this->path_ = relative_path.empty()
+                      ? std::nullopt
+                      : std::optional<std::string>{relative_path};
+
+    return *this;
+  }
+
+  // Case 2: Check if this_path starts with base_path followed by "/"
   // This handles: base="/foo" and this="/foo/bar" = "bar"
   // But NOT: base="/spec" and this="/spec/" (different resources)
   const std::string base_with_slash =
@@ -217,7 +245,7 @@ auto URI::relative_to(const URI &base) -> URI & {
   const auto base_last_slash = base_path.rfind('/');
   const auto this_last_slash = this_path.rfind('/');
 
-  // Case 2: Check if both paths share the same parent directory (siblings)
+  // Case 3: Check if both paths share the same parent directory (siblings)
   // This handles: base="/test/bar.json" and this="/test/foo.json" =
   // "foo.json"
   if (base_last_slash != std::string::npos &&
@@ -232,33 +260,14 @@ auto URI::relative_to(const URI &base) -> URI & {
       this->userinfo_.reset();
       this->host_.reset();
       this->port_.reset();
-      this->path_ = relative_path.empty()
-                        ? std::nullopt
-                        : std::optional<std::string>{relative_path};
+      // RFC 3986 Section 5.4.1 resolves "" back to the path of the base and
+      // "./" to the directory that contains it, so a target that is exactly
+      // that directory has no last segment to name and takes a dot segment
+      this->path_ =
+          relative_path.empty() ? std::string{"./"} : std::move(relative_path);
 
       return *this;
     }
-  }
-
-  // Case 3: Base has no path or empty path
-  // Examples: "https://example.com" or "schema:"
-  // Strip leading slash and make relative
-  if (base_path.empty()) {
-    auto relative_path = this_path;
-
-    if (relative_path.starts_with('/')) {
-      relative_path = relative_path.substr(1);
-    }
-
-    this->scheme_.reset();
-    this->userinfo_.reset();
-    this->host_.reset();
-    this->port_.reset();
-    this->path_ = relative_path.empty()
-                      ? std::nullopt
-                      : std::optional<std::string>{relative_path};
-
-    return *this;
   }
 
   // Case 4: General case - compute relative path using .. segments
