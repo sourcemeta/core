@@ -13,28 +13,19 @@
 // asserted in the resolution tests, so it can be treated as the reference
 // implementation that relativization is measured against rather than as
 // another moving part.
-//
-// Both inputs must be absolute, as Section 5.1 requires an absolute base, and
-// the target path must be free of dot segments, as Section 5.2.2 removes those
-// on every resolution branch and no reference can reproduce them. Every case in
-// the relativization tests that meets those conditions has an entry here. A
-// failure means the implementation is wrong, not the expectation.
 
 static auto round_trip(const std::string &base_string,
                        const std::string &target_string) -> std::string {
   const sourcemeta::core::URI base{base_string};
   sourcemeta::core::URI target{target_string};
+  // RFC 3986 Section 5.1 resolves against an absolute base, and a relative
+  // target is not something the equation can reproduce
+  EXPECT_TRUE(base.is_absolute());
+  EXPECT_TRUE(target.is_absolute());
   target.relative_to(base);
   sourcemeta::core::URI resolved{target.recompose()};
   resolved.resolve_from(base);
   return resolved.recompose();
-}
-
-// The parser decodes percent-encoded unreserved characters, so comparing
-// against the raw target string would fail for reasons unrelated to
-// relativization
-static auto normalised(const std::string &input) -> std::string {
-  return sourcemeta::core::URI{input}.recompose();
 }
 
 // RFC 3986 is ASCII only, so a non-ASCII input has to travel the RFC 3987 path
@@ -43,883 +34,683 @@ static auto round_trip_iri(const std::string &base_string,
                            const std::string &target_string) -> std::string {
   const auto base{sourcemeta::core::URI::from_iri(base_string)};
   auto target{sourcemeta::core::URI::from_iri(target_string)};
+  EXPECT_TRUE(base.is_absolute());
+  EXPECT_TRUE(target.is_absolute());
   target.relative_to(base);
   auto resolved{sourcemeta::core::URI::from_iri(target.recompose())};
   resolved.resolve_from(base);
   return resolved.recompose();
 }
 
+// The expected value is the target parsed and recomposed, rather than the
+// target string itself, because the parser decodes percent-encoded unreserved
+// characters and that has nothing to do with relativization
+#define EXPECT_ROUND_TRIP(base, target)                                        \
+  EXPECT_EQ(round_trip((base), (target)),                                      \
+            sourcemeta::core::URI{(target)}.recompose());
+
+#define EXPECT_IRI_ROUND_TRIP(base, target)                                    \
+  EXPECT_EQ(round_trip_iri((base), (target)), (target));
+
 TEST(absolute_absolute_base_true_1) {
-  EXPECT_EQ(
-      round_trip("https://www.example.com", "https://www.example.com/foo"),
-      normalised("https://www.example.com/foo"));
+  EXPECT_ROUND_TRIP("https://www.example.com", "https://www.example.com/foo");
 }
 
 TEST(absolute_absolute_base_true_2) {
-  EXPECT_EQ(
-      round_trip("https://www.example.com/foo", "https://www.example.com/foo"),
-      normalised("https://www.example.com/foo"));
+  EXPECT_ROUND_TRIP("https://www.example.com/foo",
+                    "https://www.example.com/foo");
 }
 
 TEST(absolute_absolute_base_true_3) {
-  EXPECT_EQ(round_trip("https://www.example.com/foo",
-                       "https://www.example.com/foo/bar?q=1"),
-            normalised("https://www.example.com/foo/bar?q=1"));
+  EXPECT_ROUND_TRIP("https://www.example.com/foo",
+                    "https://www.example.com/foo/bar?q=1");
 }
 
 TEST(absolute_absolute_base_true_4) {
-  EXPECT_EQ(round_trip("https://www.example.com/foo",
-                       "https://www.example.com/foo/bar#baz"),
-            normalised("https://www.example.com/foo/bar#baz"));
+  EXPECT_ROUND_TRIP("https://www.example.com/foo",
+                    "https://www.example.com/foo/bar#baz");
 }
 
 TEST(absolute_absolute_base_false_1) {
-  EXPECT_EQ(
-      round_trip("https://www.example.com/foo", "http://www.example.com/foo"),
-      normalised("http://www.example.com/foo"));
+  EXPECT_ROUND_TRIP("https://www.example.com/foo",
+                    "http://www.example.com/foo");
 }
 
 TEST(absolute_absolute_base_false_2) {
-  EXPECT_EQ(
-      round_trip("https://www.example.com/foo", "https://www.example.com"),
-      normalised("https://www.example.com"));
+  EXPECT_ROUND_TRIP("https://www.example.com/foo", "https://www.example.com");
 }
 
 TEST(absolute_absolute_base_false_3) {
-  EXPECT_EQ(round_trip("https://www.example.com/foo/bar",
-                       "https://www.example.com/foo"),
-            normalised("https://www.example.com/foo"));
+  EXPECT_ROUND_TRIP("https://www.example.com/foo/bar",
+                    "https://www.example.com/foo");
 }
 
 TEST(absolute_absolute_base_false_4) {
-  EXPECT_EQ(round_trip("https://foo.com", "https://bar.com"),
-            normalised("https://bar.com"));
+  EXPECT_ROUND_TRIP("https://foo.com", "https://bar.com");
 }
 
 TEST(absolute_absolute_base_false_different_ports) {
-  EXPECT_EQ(round_trip("http://localhost:8000",
-                       "http://localhost:9000/schemas/test.json"),
-            normalised("http://localhost:9000/schemas/test.json"));
+  EXPECT_ROUND_TRIP("http://localhost:8000",
+                    "http://localhost:9000/schemas/test.json");
 }
 
 TEST(absolute_absolute_base_false_different_userinfo) {
-  EXPECT_EQ(round_trip("https://alice@example.com/foo",
-                       "https://bob@example.com/foo/bar"),
-            normalised("https://bob@example.com/foo/bar"));
+  EXPECT_ROUND_TRIP("https://alice@example.com/foo",
+                    "https://bob@example.com/foo/bar");
 }
 
 TEST(absolute_absolute_base_false_userinfo_vs_none) {
-  EXPECT_EQ(round_trip("https://example.com/foo",
-                       "https://alice@example.com/foo/bar"),
-            normalised("https://alice@example.com/foo/bar"));
+  EXPECT_ROUND_TRIP("https://example.com/foo",
+                    "https://alice@example.com/foo/bar");
 }
 
-TEST(urn_1) {
-  EXPECT_EQ(round_trip("schema:", "schema:myschema"),
-            normalised("schema:myschema"));
-}
+TEST(urn_1) { EXPECT_ROUND_TRIP("schema:", "schema:myschema"); }
 
 TEST(absolute_absolute_trailing_slash) {
-  EXPECT_EQ(
-      round_trip("https://github.com/apis-json/api-json/blob/develop/spec",
-                 "https://github.com/apis-json/api-json/blob/develop/spec/"),
-      normalised("https://github.com/apis-json/api-json/blob/develop/spec/"));
+  EXPECT_ROUND_TRIP("https://github.com/apis-json/api-json/blob/develop/spec",
+                    "https://github.com/apis-json/api-json/blob/develop/spec/");
 }
 
 TEST(target_is_prefix_of_base_parent) {
-  EXPECT_EQ(
-      round_trip("https://example.com/foo/bar/baz", "https://example.com/foo"),
-      normalised("https://example.com/foo"));
+  EXPECT_ROUND_TRIP("https://example.com/foo/bar/baz",
+                    "https://example.com/foo");
 }
 
 TEST(target_is_one_level_up_at_root) {
-  EXPECT_EQ(
-      round_trip("https://example.com/foo/bar", "https://example.com/foo"),
-      normalised("https://example.com/foo"));
+  EXPECT_ROUND_TRIP("https://example.com/foo/bar", "https://example.com/foo");
 }
 
 TEST(target_is_root) {
-  EXPECT_EQ(round_trip("https://example.com/foo/bar", "https://example.com/"),
-            normalised("https://example.com/"));
+  EXPECT_ROUND_TRIP("https://example.com/foo/bar", "https://example.com/");
 }
 
 TEST(base_ends_with_slash) {
-  EXPECT_EQ(
-      round_trip("https://example.com/foo/", "https://example.com/foo/bar"),
-      normalised("https://example.com/foo/bar"));
+  EXPECT_ROUND_TRIP("https://example.com/foo/", "https://example.com/foo/bar");
 }
 
 TEST(base_root_only) {
-  EXPECT_EQ(round_trip("https://example.com/", "https://example.com/foo"),
-            normalised("https://example.com/foo"));
+  EXPECT_ROUND_TRIP("https://example.com/", "https://example.com/foo");
 }
 
 TEST(sibling_paths_same_directory) {
-  EXPECT_EQ(round_trip("https://example.com/schemas/bar.json",
-                       "https://example.com/schemas/foo.json"),
-            normalised("https://example.com/schemas/foo.json"));
+  EXPECT_ROUND_TRIP("https://example.com/schemas/bar.json",
+                    "https://example.com/schemas/foo.json");
 }
 
 TEST(double_slash_with_trailing_slash) {
-  EXPECT_EQ(round_trip("https://example.com/slash/",
-                       "https://example.com/slash/file.json"),
-            normalised("https://example.com/slash/file.json"));
+  EXPECT_ROUND_TRIP("https://example.com/slash/",
+                    "https://example.com/slash/file.json");
 }
 
 TEST(different_directories_same_host_needs_dotdot) {
-  EXPECT_EQ(round_trip("https://example.com/schemas/with-rebase-same-host.json",
-                       "https://example.com/bundling/single"),
-            normalised("https://example.com/bundling/single"));
+  EXPECT_ROUND_TRIP("https://example.com/schemas/with-rebase-same-host.json",
+                    "https://example.com/bundling/single");
 }
 
 TEST(different_directories_same_host_needs_dotdot_2) {
-  EXPECT_EQ(round_trip("https://example.com/foo/bar/baz.json",
-                       "https://example.com/qux/test.json"),
-            normalised("https://example.com/qux/test.json"));
+  EXPECT_ROUND_TRIP("https://example.com/foo/bar/baz.json",
+                    "https://example.com/qux/test.json");
 }
 
 TEST(different_directories_same_host_needs_dotdot_3) {
-  EXPECT_EQ(round_trip("https://example.com/a/b/c.json",
-                       "https://example.com/d.json"),
-            normalised("https://example.com/d.json"));
+  EXPECT_ROUND_TRIP("https://example.com/a/b/c.json",
+                    "https://example.com/d.json");
 }
 
 TEST(file_same_directory) {
-  EXPECT_EQ(round_trip("file:///home/user/schemas/base.json",
-                       "file:///home/user/schemas/other.json"),
-            normalised("file:///home/user/schemas/other.json"));
+  EXPECT_ROUND_TRIP("file:///home/user/schemas/base.json",
+                    "file:///home/user/schemas/other.json");
 }
 
 TEST(file_subdirectory) {
-  EXPECT_EQ(round_trip("file:///home/user/schemas",
-                       "file:///home/user/schemas/sub/test.json"),
-            normalised("file:///home/user/schemas/sub/test.json"));
+  EXPECT_ROUND_TRIP("file:///home/user/schemas",
+                    "file:///home/user/schemas/sub/test.json");
 }
 
 TEST(file_parent_directory) {
-  EXPECT_EQ(round_trip("file:///home/user/schemas/sub/base.json",
-                       "file:///home/user/schemas/other.json"),
-            normalised("file:///home/user/schemas/other.json"));
+  EXPECT_ROUND_TRIP("file:///home/user/schemas/sub/base.json",
+                    "file:///home/user/schemas/other.json");
 }
 
 TEST(file_different_root) {
-  EXPECT_EQ(round_trip("file:///home/user/schemas/base.json",
-                       "file:///var/data/test.json"),
-            normalised("file:///var/data/test.json"));
+  EXPECT_ROUND_TRIP("file:///home/user/schemas/base.json",
+                    "file:///var/data/test.json");
 }
 
 TEST(file_same_file) {
-  EXPECT_EQ(round_trip("file:///home/user/schemas/base.json",
-                       "file:///home/user/schemas/base.json"),
-            normalised("file:///home/user/schemas/base.json"));
+  EXPECT_ROUND_TRIP("file:///home/user/schemas/base.json",
+                    "file:///home/user/schemas/base.json");
 }
 
 TEST(file_with_fragment) {
-  EXPECT_EQ(round_trip("file:///home/user/schemas/base.json",
-                       "file:///home/user/schemas/other.json#/defs/foo"),
-            normalised("file:///home/user/schemas/other.json#/defs/foo"));
+  EXPECT_ROUND_TRIP("file:///home/user/schemas/base.json",
+                    "file:///home/user/schemas/other.json#/defs/foo");
 }
 
 TEST(file_windows_same_directory) {
-  EXPECT_EQ(round_trip("file:///C:/Users/user/schemas/base.json",
-                       "file:///C:/Users/user/schemas/other.json"),
-            normalised("file:///C:/Users/user/schemas/other.json"));
+  EXPECT_ROUND_TRIP("file:///C:/Users/user/schemas/base.json",
+                    "file:///C:/Users/user/schemas/other.json");
 }
 
 TEST(file_windows_subdirectory) {
-  EXPECT_EQ(round_trip("file:///C:/Users/user/schemas",
-                       "file:///C:/Users/user/schemas/sub/test.json"),
-            normalised("file:///C:/Users/user/schemas/sub/test.json"));
+  EXPECT_ROUND_TRIP("file:///C:/Users/user/schemas",
+                    "file:///C:/Users/user/schemas/sub/test.json");
 }
 
 TEST(file_windows_parent_directory) {
-  EXPECT_EQ(round_trip("file:///C:/Users/user/schemas/sub/base.json",
-                       "file:///C:/Users/user/schemas/other.json"),
-            normalised("file:///C:/Users/user/schemas/other.json"));
+  EXPECT_ROUND_TRIP("file:///C:/Users/user/schemas/sub/base.json",
+                    "file:///C:/Users/user/schemas/other.json");
 }
 
 TEST(file_windows_different_drive) {
-  EXPECT_EQ(round_trip("file:///C:/Users/user/schemas/base.json",
-                       "file:///D:/Data/test.json"),
-            normalised("file:///D:/Data/test.json"));
+  EXPECT_ROUND_TRIP("file:///C:/Users/user/schemas/base.json",
+                    "file:///D:/Data/test.json");
 }
 
 TEST(file_windows_same_file) {
-  EXPECT_EQ(round_trip("file:///C:/Users/user/schemas/base.json",
-                       "file:///C:/Users/user/schemas/base.json"),
-            normalised("file:///C:/Users/user/schemas/base.json"));
+  EXPECT_ROUND_TRIP("file:///C:/Users/user/schemas/base.json",
+                    "file:///C:/Users/user/schemas/base.json");
 }
 
 TEST(file_windows_with_fragment) {
-  EXPECT_EQ(round_trip("file:///C:/Users/user/schemas/base.json",
-                       "file:///C:/Users/user/schemas/other.json#/defs/foo"),
-            normalised("file:///C:/Users/user/schemas/other.json#/defs/foo"));
+  EXPECT_ROUND_TRIP("file:///C:/Users/user/schemas/base.json",
+                    "file:///C:/Users/user/schemas/other.json#/defs/foo");
 }
 
 TEST(same_path_only_query_differs) {
-  EXPECT_EQ(round_trip("https://www.example.com/foo/bar",
-                       "https://www.example.com/foo/bar?q=1"),
-            normalised("https://www.example.com/foo/bar?q=1"));
+  EXPECT_ROUND_TRIP("https://www.example.com/foo/bar",
+                    "https://www.example.com/foo/bar?q=1");
 }
 
 TEST(same_path_only_fragment_differs) {
-  EXPECT_EQ(round_trip("https://www.example.com/foo/bar",
-                       "https://www.example.com/foo/bar#baz"),
-            normalised("https://www.example.com/foo/bar#baz"));
+  EXPECT_ROUND_TRIP("https://www.example.com/foo/bar",
+                    "https://www.example.com/foo/bar#baz");
 }
 
 TEST(same_path_query_and_fragment_differ) {
-  EXPECT_EQ(round_trip("https://www.example.com/foo/bar",
-                       "https://www.example.com/foo/bar?q=1#baz"),
-            normalised("https://www.example.com/foo/bar?q=1#baz"));
+  EXPECT_ROUND_TRIP("https://www.example.com/foo/bar",
+                    "https://www.example.com/foo/bar?q=1#baz");
 }
 
 TEST(same_path_base_query_target_none) {
-  EXPECT_EQ(round_trip("https://www.example.com/foo/bar?q=1",
-                       "https://www.example.com/foo/bar"),
-            normalised("https://www.example.com/foo/bar"));
+  EXPECT_ROUND_TRIP("https://www.example.com/foo/bar?q=1",
+                    "https://www.example.com/foo/bar");
 }
 
 TEST(same_path_base_query_target_fragment_only) {
-  EXPECT_EQ(round_trip("https://www.example.com/foo/bar?q=1",
-                       "https://www.example.com/foo/bar#baz"),
-            normalised("https://www.example.com/foo/bar#baz"));
+  EXPECT_ROUND_TRIP("https://www.example.com/foo/bar?q=1",
+                    "https://www.example.com/foo/bar#baz");
 }
 
 TEST(same_path_base_query_target_other_query) {
-  EXPECT_EQ(round_trip("https://www.example.com/foo/bar?q=1",
-                       "https://www.example.com/foo/bar?q=2"),
-            normalised("https://www.example.com/foo/bar?q=2"));
+  EXPECT_ROUND_TRIP("https://www.example.com/foo/bar?q=1",
+                    "https://www.example.com/foo/bar?q=2");
 }
 
 TEST(same_directory_path_base_query_target_none) {
-  EXPECT_EQ(round_trip("https://www.example.com/foo/?q=1",
-                       "https://www.example.com/foo/"),
-            normalised("https://www.example.com/foo/"));
+  EXPECT_ROUND_TRIP("https://www.example.com/foo/?q=1",
+                    "https://www.example.com/foo/");
 }
 
 TEST(same_directory_path_base_query_target_fragment) {
-  EXPECT_EQ(round_trip("https://www.example.com/foo/?q=1",
-                       "https://www.example.com/foo/#baz"),
-            normalised("https://www.example.com/foo/#baz"));
+  EXPECT_ROUND_TRIP("https://www.example.com/foo/?q=1",
+                    "https://www.example.com/foo/#baz");
 }
 
 TEST(same_directory_path_target_query) {
-  EXPECT_EQ(round_trip("https://www.example.com/foo/?q=1",
-                       "https://www.example.com/foo/?q=2"),
-            normalised("https://www.example.com/foo/?q=2"));
+  EXPECT_ROUND_TRIP("https://www.example.com/foo/?q=1",
+                    "https://www.example.com/foo/?q=2");
 }
 
 TEST(authority_no_path_only_fragment_differs) {
-  EXPECT_EQ(
-      round_trip("https://www.example.com", "https://www.example.com#baz"),
-      normalised("https://www.example.com#baz"));
+  EXPECT_ROUND_TRIP("https://www.example.com", "https://www.example.com#baz");
 }
 
 TEST(authority_no_path_only_query_differs) {
-  EXPECT_EQ(
-      round_trip("https://www.example.com?q=1", "https://www.example.com?q=2"),
-      normalised("https://www.example.com?q=2"));
+  EXPECT_ROUND_TRIP("https://www.example.com?q=1",
+                    "https://www.example.com?q=2");
 }
 
 TEST(authority_no_path_base_query_target_none) {
-  EXPECT_EQ(
-      round_trip("https://www.example.com?q=1", "https://www.example.com"),
-      normalised("https://www.example.com"));
+  EXPECT_ROUND_TRIP("https://www.example.com?q=1", "https://www.example.com");
 }
 
 TEST(relative_to_same_path_with_query_in_base) {
-  EXPECT_EQ(round_trip("schema:foo", "schema:foo?bar=1"),
-            normalised("schema:foo?bar=1"));
+  EXPECT_ROUND_TRIP("schema:foo", "schema:foo?bar=1");
 }
 
 TEST(relative_to_slashless_base_path) {
-  EXPECT_EQ(round_trip("schema:foo", "schema:bar"), normalised("schema:bar"));
+  EXPECT_ROUND_TRIP("schema:foo", "schema:bar");
 }
 
 TEST(target_is_directory_of_base) {
-  EXPECT_EQ(round_trip("https://example.com/test/foo.json",
-                       "https://example.com/test/"),
-            normalised("https://example.com/test/"));
+  EXPECT_ROUND_TRIP("https://example.com/test/foo.json",
+                    "https://example.com/test/");
 }
 
 TEST(target_is_nested_directory_of_base) {
-  EXPECT_EQ(round_trip("https://example.com/foo/bar/baz.json",
-                       "https://example.com/foo/bar/"),
-            normalised("https://example.com/foo/bar/"));
+  EXPECT_ROUND_TRIP("https://example.com/foo/bar/baz.json",
+                    "https://example.com/foo/bar/");
 }
 
 TEST(target_is_directory_of_base_with_query) {
-  EXPECT_EQ(round_trip("https://example.com/test/foo.json",
-                       "https://example.com/test/?q=1"),
-            normalised("https://example.com/test/?q=1"));
+  EXPECT_ROUND_TRIP("https://example.com/test/foo.json",
+                    "https://example.com/test/?q=1");
 }
 
 TEST(target_is_directory_of_base_with_fragment) {
-  EXPECT_EQ(round_trip("https://example.com/test/foo.json",
-                       "https://example.com/test/#baz"),
-            normalised("https://example.com/test/#baz"));
+  EXPECT_ROUND_TRIP("https://example.com/test/foo.json",
+                    "https://example.com/test/#baz");
 }
 
 TEST(file_target_is_directory_of_base) {
-  EXPECT_EQ(round_trip("file:///home/user/schemas/base.json",
-                       "file:///home/user/schemas/"),
-            normalised("file:///home/user/schemas/"));
+  EXPECT_ROUND_TRIP("file:///home/user/schemas/base.json",
+                    "file:///home/user/schemas/");
 }
 
 TEST(target_is_root_of_base_without_path) {
-  EXPECT_EQ(round_trip("https://example.com", "https://example.com/"),
-            normalised("https://example.com/"));
+  EXPECT_ROUND_TRIP("https://example.com", "https://example.com/");
 }
 
 TEST(target_with_empty_first_segment_of_base_without_path) {
-  EXPECT_EQ(round_trip("https://example.com", "https://example.com//foo"),
-            normalised("https://example.com//foo"));
+  EXPECT_ROUND_TRIP("https://example.com", "https://example.com//foo");
 }
 
 TEST(target_with_empty_first_segment_of_root_base) {
-  EXPECT_EQ(round_trip("https://example.com/foo", "https://example.com//bar"),
-            normalised("https://example.com//bar"));
+  EXPECT_ROUND_TRIP("https://example.com/foo", "https://example.com//bar");
 }
 
 TEST(target_with_empty_segment_below_base) {
-  EXPECT_EQ(
-      round_trip("https://example.com/foo", "https://example.com/foo//bar"),
-      normalised("https://example.com/foo//bar"));
+  EXPECT_ROUND_TRIP("https://example.com/foo", "https://example.com/foo//bar");
 }
 
 TEST(target_with_empty_first_segment_from_nested_base) {
-  EXPECT_EQ(round_trip("https://example.com/a/b", "https://example.com//bar"),
-            normalised("https://example.com//bar"));
+  EXPECT_ROUND_TRIP("https://example.com/a/b", "https://example.com//bar");
 }
 
 TEST(target_with_empty_segment_below_directory_base) {
-  EXPECT_EQ(
-      round_trip("https://example.com/foo/", "https://example.com/foo//bar"),
-      normalised("https://example.com/foo//bar"));
+  EXPECT_ROUND_TRIP("https://example.com/foo/", "https://example.com/foo//bar");
 }
 
 TEST(target_with_empty_segment_below_nested_directory_base) {
-  EXPECT_EQ(round_trip("https://example.com/a/b/c.json",
-                       "https://example.com/a/b//d"),
-            normalised("https://example.com/a/b//d"));
+  EXPECT_ROUND_TRIP("https://example.com/a/b/c.json",
+                    "https://example.com/a/b//d");
 }
 
 TEST(target_is_absolute_path_of_base_without_authority) {
-  EXPECT_EQ(round_trip("schema:", "schema:/foo"), normalised("schema:/foo"));
+  EXPECT_ROUND_TRIP("schema:", "schema:/foo");
 }
 
 TEST(sibling_with_colon_in_first_segment) {
-  EXPECT_EQ(round_trip("file:///C:/Users/user/schemas/base.json",
-                       "file:///C:/Users/user/schemas/D:foo.json"),
-            normalised("file:///C:/Users/user/schemas/D:foo.json"));
+  EXPECT_ROUND_TRIP("file:///C:/Users/user/schemas/base.json",
+                    "file:///C:/Users/user/schemas/D:foo.json");
 }
 
 TEST(descendant_of_base_names_the_base_segment) {
-  EXPECT_EQ(
-      round_trip("https://example.com/foo", "https://example.com/foo/bar"),
-      normalised("https://example.com/foo/bar"));
+  EXPECT_ROUND_TRIP("https://example.com/foo", "https://example.com/foo/bar");
 }
 
 TEST(base_with_fragment) {
-  EXPECT_EQ(
-      round_trip("https://example.com/a/b#frag", "https://example.com/a/c"),
-      normalised("https://example.com/a/c"));
+  EXPECT_ROUND_TRIP("https://example.com/a/b#frag", "https://example.com/a/c");
 }
 
 TEST(base_with_query) {
-  EXPECT_EQ(
-      round_trip("https://example.com/a/b?q=1", "https://example.com/a/c"),
-      normalised("https://example.com/a/c"));
+  EXPECT_ROUND_TRIP("https://example.com/a/b?q=1", "https://example.com/a/c");
 }
 
 TEST(userinfo) {
-  EXPECT_EQ(round_trip("https://user:pass@example.com/a/b",
-                       "https://user:pass@example.com/a/c"),
-            normalised("https://user:pass@example.com/a/c"));
+  EXPECT_ROUND_TRIP("https://user:pass@example.com/a/b",
+                    "https://user:pass@example.com/a/c");
 }
 
 TEST(non_default_port) {
-  EXPECT_EQ(round_trip("https://example.com:8443/a/b",
-                       "https://example.com:8443/a/c"),
-            normalised("https://example.com:8443/a/c"));
+  EXPECT_ROUND_TRIP("https://example.com:8443/a/b",
+                    "https://example.com:8443/a/c");
 }
 
 TEST(percent_encoded_space) {
-  EXPECT_EQ(
-      round_trip("https://example.com/a/b", "https://example.com/a/c%20d"),
-      normalised("https://example.com/a/c%20d"));
+  EXPECT_ROUND_TRIP("https://example.com/a/b", "https://example.com/a/c%20d");
 }
 
 TEST(percent_encoded_unreserved) {
-  EXPECT_EQ(
-      round_trip("https://example.com/a/b", "https://example.com/a/c%41d"),
-      normalised("https://example.com/a/c%41d"));
+  EXPECT_ROUND_TRIP("https://example.com/a/b", "https://example.com/a/c%41d");
 }
 
 TEST(percent_encoded_slash) {
-  EXPECT_EQ(
-      round_trip("https://example.com/a/b", "https://example.com/a/c%2Fd"),
-      normalised("https://example.com/a/c%2Fd"));
+  EXPECT_ROUND_TRIP("https://example.com/a/b", "https://example.com/a/c%2Fd");
 }
 
 TEST(literal_dotdot_prefix_segment) {
-  EXPECT_EQ(
-      round_trip("https://example.com/a/b", "https://example.com/a/..foo"),
-      normalised("https://example.com/a/..foo"));
+  EXPECT_ROUND_TRIP("https://example.com/a/b", "https://example.com/a/..foo");
 }
 
 TEST(literal_dotdot_suffix_segment) {
-  EXPECT_EQ(
-      round_trip("https://example.com/a/b", "https://example.com/a/foo.."),
-      normalised("https://example.com/a/foo.."));
+  EXPECT_ROUND_TRIP("https://example.com/a/b", "https://example.com/a/foo..");
 }
 
 TEST(literal_dot_prefix_segment) {
-  EXPECT_EQ(round_trip("https://example.com/a/b", "https://example.com/a/.foo"),
-            normalised("https://example.com/a/.foo"));
+  EXPECT_ROUND_TRIP("https://example.com/a/b", "https://example.com/a/.foo");
 }
 
 TEST(target_without_path) {
-  EXPECT_EQ(round_trip("https://example.com/a/b", "https://example.com"),
-            normalised("https://example.com"));
+  EXPECT_ROUND_TRIP("https://example.com/a/b", "https://example.com");
 }
 
 TEST(identical_without_path) {
-  EXPECT_EQ(round_trip("https://example.com", "https://example.com"),
-            normalised("https://example.com"));
+  EXPECT_ROUND_TRIP("https://example.com", "https://example.com");
 }
 
 TEST(foreign_authority) {
-  EXPECT_EQ(round_trip("https://example.com/a/b", "https://other.com/x"),
-            normalised("https://other.com/x"));
+  EXPECT_ROUND_TRIP("https://example.com/a/b", "https://other.com/x");
 }
 
-TEST(slashless_base) {
-  EXPECT_EQ(round_trip("schema:foo", "schema:bar"), normalised("schema:bar"));
-}
+TEST(slashless_base) { EXPECT_ROUND_TRIP("schema:foo", "schema:bar"); }
 
 TEST(deep_target_from_root_base) {
-  EXPECT_EQ(round_trip("https://example.com/", "https://example.com/a/b/c"),
-            normalised("https://example.com/a/b/c"));
+  EXPECT_ROUND_TRIP("https://example.com/", "https://example.com/a/b/c");
 }
 
 TEST(parent_of_base_directory) {
-  EXPECT_EQ(round_trip("https://example.com/a/", "https://example.com/"),
-            normalised("https://example.com/"));
+  EXPECT_ROUND_TRIP("https://example.com/a/", "https://example.com/");
 }
 
 TEST(query_and_fragment) {
-  EXPECT_EQ(
-      round_trip("https://example.com/a/b", "https://example.com/a/b?q=1#f"),
-      normalised("https://example.com/a/b?q=1#f"));
+  EXPECT_ROUND_TRIP("https://example.com/a/b", "https://example.com/a/b?q=1#f");
 }
 
 TEST(windows_drive_sibling) {
-  EXPECT_EQ(round_trip("file:///C:/x/y.json", "file:///C:/x/D:foo.json"),
-            normalised("file:///C:/x/D:foo.json"));
+  EXPECT_ROUND_TRIP("file:///C:/x/y.json", "file:///C:/x/D:foo.json");
 }
 
 TEST(target_with_trailing_slash_at_depth) {
-  EXPECT_EQ(
-      round_trip("https://example.com/a/b/c", "https://example.com/a/b/d/"),
-      normalised("https://example.com/a/b/d/"));
+  EXPECT_ROUND_TRIP("https://example.com/a/b/c", "https://example.com/a/b/d/");
 }
 
 TEST(target_is_base_with_trailing_slash) {
-  EXPECT_EQ(round_trip("https://example.com/a/b", "https://example.com/a/b/"),
-            normalised("https://example.com/a/b/"));
+  EXPECT_ROUND_TRIP("https://example.com/a/b", "https://example.com/a/b/");
 }
 
 TEST(deep_descendant) {
-  EXPECT_EQ(
-      round_trip("https://example.com/a/b", "https://example.com/a/b/c/d"),
-      normalised("https://example.com/a/b/c/d"));
+  EXPECT_ROUND_TRIP("https://example.com/a/b", "https://example.com/a/b/c/d");
 }
 
 TEST(descendant_with_query_and_fragment) {
-  EXPECT_EQ(
-      round_trip("https://example.com/a/b", "https://example.com/a/b/c?q=1#f"),
-      normalised("https://example.com/a/b/c?q=1#f"));
+  EXPECT_ROUND_TRIP("https://example.com/a/b",
+                    "https://example.com/a/b/c?q=1#f");
 }
 
 TEST(base_last_segment_has_literal_dots) {
-  EXPECT_EQ(
-      round_trip("https://example.com/a/b..", "https://example.com/a/b../c"),
-      normalised("https://example.com/a/b../c"));
+  EXPECT_ROUND_TRIP("https://example.com/a/b..", "https://example.com/a/b../c");
 }
 
 TEST(windows_descendant) {
-  EXPECT_EQ(round_trip("file:///C:/x", "file:///C:/x/y.json"),
-            normalised("file:///C:/x/y.json"));
+  EXPECT_ROUND_TRIP("file:///C:/x", "file:///C:/x/y.json");
 }
 
 TEST(colon_in_base_last_segment_descendant) {
-  EXPECT_EQ(
-      round_trip("https://example.com/D:foo", "https://example.com/D:foo/bar"),
-      normalised("https://example.com/D:foo/bar"));
+  EXPECT_ROUND_TRIP("https://example.com/D:foo",
+                    "https://example.com/D:foo/bar");
 }
 
 TEST(descendant_with_empty_segment) {
-  EXPECT_EQ(round_trip("https://example.com/a/b", "https://example.com/a/b//c"),
-            normalised("https://example.com/a/b//c"));
+  EXPECT_ROUND_TRIP("https://example.com/a/b", "https://example.com/a/b//c");
 }
 
 TEST(descendant_of_single_segment_base) {
-  EXPECT_EQ(round_trip("https://example.com/a", "https://example.com/a/b"),
-            normalised("https://example.com/a/b"));
+  EXPECT_ROUND_TRIP("https://example.com/a", "https://example.com/a/b");
 }
 
 TEST(iri_preserves_ucschar) {
-  const auto base{sourcemeta::core::URI::from_iri("https://example.com/dir/")};
-  auto target{
-      sourcemeta::core::URI::from_iri("https://example.com/dir/caf\xC3\xA9")};
-  target.relative_to(base);
-  auto resolved{sourcemeta::core::URI::from_iri(target.recompose())};
-  resolved.resolve_from(base);
-  EXPECT_EQ(resolved.recompose(), "https://example.com/dir/caf\xC3\xA9");
+  EXPECT_IRI_ROUND_TRIP("https://example.com/dir/",
+                        "https://example.com/dir/caf\xC3\xA9");
 }
 
 TEST(slashless_base_with_descendant_target) {
-  EXPECT_EQ(round_trip("schema:foo", "schema:foo/bar"),
-            normalised("schema:foo/bar"));
+  EXPECT_ROUND_TRIP("schema:foo", "schema:foo/bar");
 }
 
-TEST(ipv6_host) {
-  EXPECT_EQ(round_trip("https://[::1]/a/b", "https://[::1]/a/c"),
-            normalised("https://[::1]/a/c"));
-}
+TEST(ipv6_host) { EXPECT_ROUND_TRIP("https://[::1]/a/b", "https://[::1]/a/c"); }
 
 TEST(parent_of_nested_directory_base) {
-  EXPECT_EQ(round_trip("https://example.com/a/b/", "https://example.com/a/"),
-            normalised("https://example.com/a/"));
+  EXPECT_ROUND_TRIP("https://example.com/a/b/", "https://example.com/a/");
 }
 
 TEST(ancestor_two_levels_up) {
-  EXPECT_EQ(round_trip("https://example.com/a/b/c", "https://example.com/a"),
-            normalised("https://example.com/a"));
+  EXPECT_ROUND_TRIP("https://example.com/a/b/c", "https://example.com/a");
 }
 
 TEST(directory_base_with_target_of_the_same_name) {
-  EXPECT_EQ(round_trip("https://example.com/a/", "https://example.com/a"),
-            normalised("https://example.com/a"));
+  EXPECT_ROUND_TRIP("https://example.com/a/", "https://example.com/a");
 }
 
 TEST(file_base_with_directory_target_of_the_same_name) {
-  EXPECT_EQ(round_trip("https://example.com/a", "https://example.com/a/"),
-            normalised("https://example.com/a/"));
+  EXPECT_ROUND_TRIP("https://example.com/a", "https://example.com/a/");
 }
 
 TEST(windows_drive_root_from_nested_base) {
-  EXPECT_EQ(round_trip("file:///C:/x/y/", "file:///C:/"),
-            normalised("file:///C:/"));
+  EXPECT_ROUND_TRIP("file:///C:/x/y/", "file:///C:/");
 }
 
 TEST(identical_without_path_but_with_query) {
-  EXPECT_EQ(round_trip("https://example.com?q=1", "https://example.com?q=1"),
-            normalised("https://example.com?q=1"));
+  EXPECT_ROUND_TRIP("https://example.com?q=1", "https://example.com?q=1");
 }
 
 TEST(ancestor_three_levels_up) {
-  EXPECT_EQ(round_trip("https://example.com/a/b/c/d", "https://example.com/a"),
-            normalised("https://example.com/a"));
+  EXPECT_ROUND_TRIP("https://example.com/a/b/c/d", "https://example.com/a");
 }
 
-TEST(mailto_slashless_base) {
-  EXPECT_EQ(round_trip("mailto:foo", "mailto:bar"), normalised("mailto:bar"));
-}
+TEST(mailto_slashless_base) { EXPECT_ROUND_TRIP("mailto:foo", "mailto:bar"); }
 
 TEST(target_with_empty_fragment) {
-  EXPECT_EQ(round_trip("https://example.com/a/b", "https://example.com/a/b#"),
-            normalised("https://example.com/a/b#"));
+  EXPECT_ROUND_TRIP("https://example.com/a/b", "https://example.com/a/b#");
 }
 
 TEST(target_with_empty_query) {
-  EXPECT_EQ(round_trip("https://example.com/a/b", "https://example.com/a/b?"),
-            normalised("https://example.com/a/b?"));
+  EXPECT_ROUND_TRIP("https://example.com/a/b", "https://example.com/a/b?");
 }
 
 TEST(sibling_carrying_the_same_query) {
-  EXPECT_EQ(
-      round_trip("https://example.com/a/b?x=1", "https://example.com/a/c?x=1"),
-      normalised("https://example.com/a/c?x=1"));
+  EXPECT_ROUND_TRIP("https://example.com/a/b?x=1",
+                    "https://example.com/a/c?x=1");
 }
 
 TEST(root_base_with_target_without_path) {
-  EXPECT_EQ(round_trip("https://example.com/", "https://example.com"),
-            normalised("https://example.com"));
+  EXPECT_ROUND_TRIP("https://example.com/", "https://example.com");
 }
 
 TEST(descendant_of_a_base_with_an_empty_first_segment) {
-  EXPECT_EQ(round_trip("https://example.com//a", "https://example.com//a/b"),
-            normalised("https://example.com//a/b"));
+  EXPECT_ROUND_TRIP("https://example.com//a", "https://example.com//a/b");
 }
 
 TEST(target_gains_an_empty_first_segment) {
-  EXPECT_EQ(round_trip("https://example.com/a", "https://example.com//a"),
-            normalised("https://example.com//a"));
+  EXPECT_ROUND_TRIP("https://example.com/a", "https://example.com//a");
 }
 
 TEST(base_with_dot_segment) {
-  EXPECT_EQ(round_trip("https://example.com/a/./b", "https://example.com/a/c"),
-            normalised("https://example.com/a/c"));
+  EXPECT_ROUND_TRIP("https://example.com/a/./b", "https://example.com/a/c");
 }
 
 TEST(base_with_dotdot_segment) {
-  EXPECT_EQ(round_trip("https://example.com/a/../b", "https://example.com/a/c"),
-            normalised("https://example.com/a/c"));
+  EXPECT_ROUND_TRIP("https://example.com/a/../b", "https://example.com/a/c");
 }
 
 TEST(uppercase_scheme_in_base) {
-  EXPECT_EQ(round_trip("HTTPS://example.com/a/b", "https://example.com/a/c"),
-            normalised("https://example.com/a/c"));
+  EXPECT_ROUND_TRIP("HTTPS://example.com/a/b", "https://example.com/a/c");
 }
 
 TEST(uppercase_host_in_base) {
-  EXPECT_EQ(round_trip("https://EXAMPLE.COM/a/b", "https://example.com/a/c"),
-            normalised("https://example.com/a/c"));
+  EXPECT_ROUND_TRIP("https://EXAMPLE.COM/a/b", "https://example.com/a/c");
 }
 
 TEST(explicit_default_port) {
-  EXPECT_EQ(
-      round_trip("https://example.com:443/a/b", "https://example.com:443/a/c"),
-      normalised("https://example.com:443/a/c"));
+  EXPECT_ROUND_TRIP("https://example.com:443/a/b",
+                    "https://example.com:443/a/c");
 }
 
 TEST(base_with_port_and_target_without) {
-  EXPECT_EQ(
-      round_trip("https://example.com:443/a/b", "https://example.com/a/c"),
-      normalised("https://example.com/a/c"));
+  EXPECT_ROUND_TRIP("https://example.com:443/a/b", "https://example.com/a/c");
 }
 
 TEST(deep_ancestor_traversal) {
-  EXPECT_EQ(
-      round_trip("https://example.com/a/b/c/d/e/f", "https://example.com/x"),
-      normalised("https://example.com/x"));
+  EXPECT_ROUND_TRIP("https://example.com/a/b/c/d/e/f", "https://example.com/x");
 }
 
 TEST(repeated_empty_segments) {
-  EXPECT_EQ(
-      round_trip("https://example.com/a//b//c", "https://example.com/a//b//d"),
-      normalised("https://example.com/a//b//d"));
+  EXPECT_ROUND_TRIP("https://example.com/a//b//c",
+                    "https://example.com/a//b//d");
 }
 
 TEST(file_with_localhost_authority) {
-  EXPECT_EQ(round_trip("file://localhost/a/b", "file://localhost/a/c"),
-            normalised("file://localhost/a/c"));
+  EXPECT_ROUND_TRIP("file://localhost/a/b", "file://localhost/a/c");
 }
 
 TEST(file_with_empty_authority) {
-  EXPECT_EQ(round_trip("file:///a/b", "file:///a/c"),
-            normalised("file:///a/c"));
+  EXPECT_ROUND_TRIP("file:///a/b", "file:///a/c");
 }
 
 TEST(scheme_with_plus_hyphen_and_dot) {
-  EXPECT_EQ(round_trip("a+b-c.d:/x/y", "a+b-c.d:/x/z"),
-            normalised("a+b-c.d:/x/z"));
+  EXPECT_ROUND_TRIP("a+b-c.d:/x/y", "a+b-c.d:/x/z");
 }
 
 TEST(query_containing_slashes) {
-  EXPECT_EQ(
-      round_trip("https://example.com/a/b", "https://example.com/a/c?x=/y/z"),
-      normalised("https://example.com/a/c?x=/y/z"));
+  EXPECT_ROUND_TRIP("https://example.com/a/b",
+                    "https://example.com/a/c?x=/y/z");
 }
 
 TEST(fragment_containing_slashes) {
-  EXPECT_EQ(
-      round_trip("https://example.com/a/b", "https://example.com/a/c#/defs/x"),
-      normalised("https://example.com/a/c#/defs/x"));
+  EXPECT_ROUND_TRIP("https://example.com/a/b",
+                    "https://example.com/a/c#/defs/x");
 }
 
 TEST(fragment_containing_question_mark) {
-  EXPECT_EQ(
-      round_trip("https://example.com/a/b", "https://example.com/a/c#x?y"),
-      normalised("https://example.com/a/c#x?y"));
+  EXPECT_ROUND_TRIP("https://example.com/a/b", "https://example.com/a/c#x?y");
 }
 
 TEST(userinfo_with_colon) {
-  EXPECT_EQ(round_trip("https://u:p@example.com/a/b",
-                       "https://u:p@example.com/a/b/c"),
-            normalised("https://u:p@example.com/a/b/c"));
+  EXPECT_ROUND_TRIP("https://u:p@example.com/a/b",
+                    "https://u:p@example.com/a/b/c");
 }
 
 TEST(percent_encoded_userinfo) {
-  EXPECT_EQ(round_trip("https://u%40x@example.com/a/b",
-                       "https://u%40x@example.com/a/c"),
-            normalised("https://u%40x@example.com/a/c"));
+  EXPECT_ROUND_TRIP("https://u%40x@example.com/a/b",
+                    "https://u%40x@example.com/a/c");
 }
 
 TEST(path_with_semicolon_parameters) {
-  EXPECT_EQ(
-      round_trip("https://example.com/a/b;x=1", "https://example.com/a/c;y=2"),
-      normalised("https://example.com/a/c;y=2"));
+  EXPECT_ROUND_TRIP("https://example.com/a/b;x=1",
+                    "https://example.com/a/c;y=2");
 }
 
 TEST(path_segment_with_at_sign) {
-  EXPECT_EQ(round_trip("https://example.com/a/b", "https://example.com/a/@c"),
-            normalised("https://example.com/a/@c"));
+  EXPECT_ROUND_TRIP("https://example.com/a/b", "https://example.com/a/@c");
 }
 
 TEST(deeply_nested_descendant) {
-  EXPECT_EQ(
-      round_trip("https://example.com/a", "https://example.com/a/b/c/d/e/f/g"),
-      normalised("https://example.com/a/b/c/d/e/f/g"));
+  EXPECT_ROUND_TRIP("https://example.com/a",
+                    "https://example.com/a/b/c/d/e/f/g");
 }
 
 TEST(shared_prefix_without_a_segment_boundary) {
-  EXPECT_EQ(
-      round_trip("https://example.com/foo", "https://example.com/foobar/baz"),
-      normalised("https://example.com/foobar/baz"));
-}
-
-// A target path that carries dot segments cannot be named by any relative
-// reference, since RFC 3986 Section 5.2.2 removes them on every resolution
-// branch. These pin what resolution leaves instead, so the limit stays visible
-TEST(encoded_dotdot_segment_is_removed) {
-  EXPECT_EQ(
-      round_trip("https://example.com/a/b", "https://example.com/a/%2E%2E/c"),
-      "https://example.com/c");
-}
-
-TEST(encoded_dot_segment_is_removed) {
-  EXPECT_EQ(
-      round_trip("https://example.com/a/b", "https://example.com/a/%2E/c"),
-      "https://example.com/a/c");
-}
-
-TEST(dot_named_final_segment_is_removed) {
-  EXPECT_EQ(round_trip("https://example.com/a/b", "https://example.com/a/."),
-            "https://example.com/a/");
-}
-
-TEST(dotdot_named_final_segment_is_removed) {
-  EXPECT_EQ(round_trip("https://example.com/a/b", "https://example.com/a/.."),
-            "https://example.com/");
+  EXPECT_ROUND_TRIP("https://example.com/foo",
+                    "https://example.com/foobar/baz");
 }
 
 TEST(target_of_only_slashes) {
-  EXPECT_EQ(round_trip("https://example.com/a", "https://example.com///"),
-            normalised("https://example.com///"));
+  EXPECT_ROUND_TRIP("https://example.com/a", "https://example.com///");
 }
 
 TEST(base_of_only_slashes) {
-  EXPECT_EQ(round_trip("https://example.com///", "https://example.com/a"),
-            normalised("https://example.com/a"));
+  EXPECT_ROUND_TRIP("https://example.com///", "https://example.com/a");
 }
 
 TEST(root_base_with_empty_first_segment_target) {
-  EXPECT_EQ(round_trip("https://example.com/", "https://example.com//x"),
-            normalised("https://example.com//x"));
+  EXPECT_ROUND_TRIP("https://example.com/", "https://example.com//x");
 }
 
-TEST(urn_siblings) {
-  EXPECT_EQ(round_trip("urn:example:a", "urn:example:b"),
-            normalised("urn:example:b"));
-}
+TEST(urn_siblings) { EXPECT_ROUND_TRIP("urn:example:a", "urn:example:b"); }
 
 TEST(tag_uri_siblings) {
-  EXPECT_EQ(round_trip("tag:example.com,2024:a", "tag:example.com,2024:b"),
-            normalised("tag:example.com,2024:b"));
+  EXPECT_ROUND_TRIP("tag:example.com,2024:a", "tag:example.com,2024:b");
 }
 
 TEST(long_ancestor_chain) {
-  EXPECT_EQ(round_trip("https://example.com/a/b/c/d/e/f/g/h/i/j/k",
-                       "https://example.com/z"),
-            normalised("https://example.com/z"));
+  EXPECT_ROUND_TRIP("https://example.com/a/b/c/d/e/f/g/h/i/j/k",
+                    "https://example.com/z");
 }
 
 TEST(long_descendant_chain) {
-  EXPECT_EQ(round_trip("https://example.com/a",
-                       "https://example.com/a/b/c/d/e/f/g/h/i/j/k"),
-            normalised("https://example.com/a/b/c/d/e/f/g/h/i/j/k"));
+  EXPECT_ROUND_TRIP("https://example.com/a",
+                    "https://example.com/a/b/c/d/e/f/g/h/i/j/k");
 }
 
 TEST(base_with_dotdot_as_its_last_segment) {
-  EXPECT_EQ(round_trip("https://example.com/a/b/..", "https://example.com/a/c"),
-            normalised("https://example.com/a/c"));
+  EXPECT_ROUND_TRIP("https://example.com/a/b/..", "https://example.com/a/c");
 }
 
 TEST(base_with_dot_as_its_last_segment) {
-  EXPECT_EQ(
-      round_trip("https://example.com/a/b/.", "https://example.com/a/b/c"),
-      normalised("https://example.com/a/b/c"));
+  EXPECT_ROUND_TRIP("https://example.com/a/b/.", "https://example.com/a/b/c");
 }
 
 TEST(base_with_dotdot_beyond_the_root) {
-  EXPECT_EQ(round_trip("https://example.com/../../a", "https://example.com/b"),
-            normalised("https://example.com/b"));
+  EXPECT_ROUND_TRIP("https://example.com/../../a", "https://example.com/b");
 }
 
 TEST(target_is_an_empty_segment_at_the_root) {
-  EXPECT_EQ(round_trip("https://example.com/a/b", "https://example.com//"),
-            normalised("https://example.com//"));
+  EXPECT_ROUND_TRIP("https://example.com/a/b", "https://example.com//");
 }
 
 TEST(target_is_the_base_parent_exactly) {
-  EXPECT_EQ(round_trip("https://example.com/a/b/c", "https://example.com/a/b"),
-            normalised("https://example.com/a/b"));
+  EXPECT_ROUND_TRIP("https://example.com/a/b/c", "https://example.com/a/b");
 }
 
 TEST(single_character_segments) {
-  EXPECT_EQ(
-      round_trip("https://example.com/a/b/c", "https://example.com/a/b/d"),
-      normalised("https://example.com/a/b/d"));
+  EXPECT_ROUND_TRIP("https://example.com/a/b/c", "https://example.com/a/b/d");
 }
 
 TEST(iri_base_and_target) {
-  EXPECT_EQ(round_trip_iri("https://example.com/caf\xC3\xA9/a",
-                           "https://example.com/caf\xC3\xA9/b"),
-            "https://example.com/caf\xC3\xA9/b");
+  EXPECT_IRI_ROUND_TRIP("https://example.com/caf\xC3\xA9/a",
+                        "https://example.com/caf\xC3\xA9/b");
 }
 
 TEST(iri_query) {
-  EXPECT_EQ(round_trip_iri("https://example.com/a/b",
-                           "https://example.com/a/c?q=caf\xC3\xA9"),
-            "https://example.com/a/c?q=caf\xC3\xA9");
+  EXPECT_IRI_ROUND_TRIP("https://example.com/a/b",
+                        "https://example.com/a/c?q=caf\xC3\xA9");
 }
 
 TEST(iri_fragment) {
-  EXPECT_EQ(round_trip_iri("https://example.com/a/b",
-                           "https://example.com/a/c#caf\xC3\xA9"),
-            "https://example.com/a/c#caf\xC3\xA9");
+  EXPECT_IRI_ROUND_TRIP("https://example.com/a/b",
+                        "https://example.com/a/c#caf\xC3\xA9");
 }
 
 TEST(iri_descendant) {
-  EXPECT_EQ(round_trip_iri("https://example.com/caf\xC3\xA9",
-                           "https://example.com/caf\xC3\xA9/x"),
-            "https://example.com/caf\xC3\xA9/x");
+  EXPECT_IRI_ROUND_TRIP("https://example.com/caf\xC3\xA9",
+                        "https://example.com/caf\xC3\xA9/x");
 }
 
 TEST(iri_ancestor) {
-  EXPECT_EQ(round_trip_iri("https://example.com/caf\xC3\xA9/x/y",
-                           "https://example.com/caf\xC3\xA9"),
-            "https://example.com/caf\xC3\xA9");
+  EXPECT_IRI_ROUND_TRIP("https://example.com/caf\xC3\xA9/x/y",
+                        "https://example.com/caf\xC3\xA9");
 }
 
 TEST(iri_host) {
-  EXPECT_EQ(round_trip_iri("https://caf\xC3\xA9.example/a/b",
-                           "https://caf\xC3\xA9.example/a/c"),
-            "https://caf\xC3\xA9.example/a/c");
+  EXPECT_IRI_ROUND_TRIP("https://caf\xC3\xA9.example/a/b",
+                        "https://caf\xC3\xA9.example/a/c");
 }
 
 TEST(identical_uris_with_a_fragment) {
-  EXPECT_EQ(
-      round_trip("https://example.com/foo#bar", "https://example.com/foo#bar"),
-      normalised("https://example.com/foo#bar"));
+  EXPECT_ROUND_TRIP("https://example.com/foo#bar",
+                    "https://example.com/foo#bar");
 }
 
 TEST(identical_uris_with_a_query_and_fragment) {
-  EXPECT_EQ(round_trip("https://example.com/foo?q=1#bar",
-                       "https://example.com/foo?q=1#bar"),
-            normalised("https://example.com/foo?q=1#bar"));
+  EXPECT_ROUND_TRIP("https://example.com/foo?q=1#bar",
+                    "https://example.com/foo?q=1#bar");
 }
 
 TEST(identical_authority_less_uris_with_a_fragment) {
-  EXPECT_EQ(round_trip("schema:foo#bar", "schema:foo#bar"),
-            normalised("schema:foo#bar"));
+  EXPECT_ROUND_TRIP("schema:foo#bar", "schema:foo#bar");
 }
 
 TEST(identical_uris_without_a_path_but_with_a_fragment) {
-  EXPECT_EQ(round_trip("https://example.com#bar", "https://example.com#bar"),
-            normalised("https://example.com#bar"));
+  EXPECT_ROUND_TRIP("https://example.com#bar", "https://example.com#bar");
 }

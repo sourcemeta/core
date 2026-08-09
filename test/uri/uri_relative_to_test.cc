@@ -612,3 +612,34 @@ TEST(identical_uris_with_a_query_and_fragment_keep_the_fragment) {
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "#bar");
 }
+
+// A dot segment in the target survives into the reference, which is as close
+// as relativization can get. Resolution removes dot segments on every branch,
+// so no reference can name such a target and these do not resolve back to it
+TEST(target_with_a_dot_segment_yields_a_dot_reference) {
+  const sourcemeta::core::URI base{"https://example.com/a/b"};
+  sourcemeta::core::URI uri{"https://example.com/a/./c"};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), "./c");
+}
+
+TEST(target_with_a_dotdot_segment_yields_a_dotdot_reference) {
+  const sourcemeta::core::URI base{"https://example.com/a/b"};
+  sourcemeta::core::URI uri{"https://example.com/a/../c"};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), "../c");
+}
+
+TEST(target_ending_in_a_dot_segment) {
+  const sourcemeta::core::URI base{"https://example.com/a/b"};
+  sourcemeta::core::URI uri{"https://example.com/a/."};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), ".");
+}
+
+TEST(target_ending_in_a_dotdot_segment) {
+  const sourcemeta::core::URI base{"https://example.com/a/b"};
+  sourcemeta::core::URI uri{"https://example.com/a/.."};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), "..");
+}

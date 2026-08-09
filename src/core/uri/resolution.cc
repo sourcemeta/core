@@ -367,20 +367,22 @@ auto merge_new_base_path(std::optional<std::string> &target_path,
   }
 }
 
-} // namespace
-
-auto URI::path_under(const URI &base) const -> std::optional<std::string> {
-  if (this->scheme_ != base.scheme_ || this->userinfo_ != base.userinfo_ ||
-      this->host_ != base.host_ || this->port_ != base.port_) {
+// The portion of a path that lies below a base, or no value when the URI is
+// neither the base nor under it. Component boundaries are respected, so a path
+// of "/foobar" does not lie under "/foo"
+auto path_under(const URI &uri, const URI &base) -> std::optional<std::string> {
+  if (uri.scheme() != base.scheme() || !uri.has_same_authority(base)) {
     return std::nullopt;
   }
 
-  return URI::strip_path_prefix(this->path_.value_or(""),
-                                base.path_.value_or(""));
+  return URI::strip_path_prefix(uri.path().value_or(""),
+                                base.path().value_or(""));
 }
 
+} // namespace
+
 auto URI::rebase(const URI &base, const URI &new_base) -> URI & {
-  auto suffix{this->path_under(base)};
+  auto suffix{path_under(*this, base)};
   if (!suffix.has_value()) {
     return *this;
   }
@@ -407,7 +409,7 @@ auto URI::rebase(const URI &base, const URI &new_base) -> URI & {
 }
 
 auto URI::rebase(const URI &base, URI &&new_base) -> URI & {
-  auto suffix{this->path_under(base)};
+  auto suffix{path_under(*this, base)};
   if (!suffix.has_value()) {
     return *this;
   }

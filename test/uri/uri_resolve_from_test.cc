@@ -541,3 +541,17 @@ TEST(network_path_reference_with_an_empty_authority) {
   reference.resolve_from(base);
   EXPECT_EQ(reference.recompose(), "http://");
 }
+
+TEST(a_dot_reference_resolves_to_the_base_directory) {
+  const sourcemeta::core::URI base{"https://example.com/a/b"};
+  sourcemeta::core::URI reference{"./c"};
+  reference.resolve_from(base);
+  EXPECT_EQ(reference.recompose(), "https://example.com/a/c");
+}
+
+TEST(a_dotdot_reference_steps_out_of_the_base_directory) {
+  const sourcemeta::core::URI base{"https://example.com/a/b"};
+  sourcemeta::core::URI reference{"../c"};
+  reference.resolve_from(base);
+  EXPECT_EQ(reference.recompose(), "https://example.com/c");
+}

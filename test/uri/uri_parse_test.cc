@@ -969,3 +969,12 @@ TEST(ipvfuture_missing_content_after_dot) {
 TEST(ipvfuture_invalid_content_character) {
   EXPECT_FALSE(sourcemeta::core::URI::is_uri("http://[v1.a%]/"));
 }
+
+TEST(success_with_percent_encoded_unreserved_is_decoded) {
+  // RFC 3986 Section 6.2.2.2 equates a percent-encoded unreserved character
+  // with the character itself, so decoding one can turn what looks like an
+  // ordinary segment into a dot segment
+  sourcemeta::core::URI uri{"https://www.example.com/a/%2E%2E/b"};
+  EXPECT_EQ(uri.path(), "/a/../b");
+  EXPECT_EQ(uri.recompose(), "https://www.example.com/a/../b");
+}
