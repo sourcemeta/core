@@ -382,3 +382,167 @@ TEST(relative_to_slashless_base_path) {
   target.relative_to(sourcemeta::core::URI{"schema:foo"});
   EXPECT_EQ(target.recompose(), "schema:bar");
 }
+
+TEST(target_is_directory_of_base) {
+  const sourcemeta::core::URI base{"https://example.com/test/foo.json"};
+  sourcemeta::core::URI uri{"https://example.com/test/"};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), "./");
+}
+
+TEST(target_is_directory_of_base_resolves_back) {
+  const sourcemeta::core::URI base{"https://example.com/test/foo.json"};
+  sourcemeta::core::URI uri{"https://example.com/test/"};
+  uri.relative_to(base);
+  sourcemeta::core::URI resolved{uri.recompose()};
+  resolved.resolve_from(base);
+  EXPECT_EQ(resolved.recompose(), "https://example.com/test/");
+}
+
+TEST(target_is_nested_directory_of_base) {
+  const sourcemeta::core::URI base{"https://example.com/foo/bar/baz.json"};
+  sourcemeta::core::URI uri{"https://example.com/foo/bar/"};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), "./");
+}
+
+TEST(target_is_directory_of_base_with_query) {
+  const sourcemeta::core::URI base{"https://example.com/test/foo.json"};
+  sourcemeta::core::URI uri{"https://example.com/test/?q=1"};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), "./?q=1");
+}
+
+TEST(target_is_directory_of_base_with_query_resolves_back) {
+  const sourcemeta::core::URI base{"https://example.com/test/foo.json"};
+  sourcemeta::core::URI uri{"https://example.com/test/?q=1"};
+  uri.relative_to(base);
+  sourcemeta::core::URI resolved{uri.recompose()};
+  resolved.resolve_from(base);
+  EXPECT_EQ(resolved.recompose(), "https://example.com/test/?q=1");
+}
+
+TEST(target_is_directory_of_base_with_fragment) {
+  const sourcemeta::core::URI base{"https://example.com/test/foo.json"};
+  sourcemeta::core::URI uri{"https://example.com/test/#baz"};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), "./#baz");
+}
+
+TEST(target_is_directory_of_base_with_fragment_resolves_back) {
+  const sourcemeta::core::URI base{"https://example.com/test/foo.json"};
+  sourcemeta::core::URI uri{"https://example.com/test/#baz"};
+  uri.relative_to(base);
+  sourcemeta::core::URI resolved{uri.recompose()};
+  resolved.resolve_from(base);
+  EXPECT_EQ(resolved.recompose(), "https://example.com/test/#baz");
+}
+
+TEST(file_target_is_directory_of_base) {
+  const sourcemeta::core::URI base{"file:///home/user/schemas/base.json"};
+  sourcemeta::core::URI uri{"file:///home/user/schemas/"};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), "./");
+}
+
+TEST(target_is_root_of_base_without_path) {
+  const sourcemeta::core::URI base{"https://example.com"};
+  sourcemeta::core::URI uri{"https://example.com/"};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), "/");
+}
+
+TEST(target_is_root_of_base_without_path_resolves_back) {
+  const sourcemeta::core::URI base{"https://example.com"};
+  sourcemeta::core::URI uri{"https://example.com/"};
+  uri.relative_to(base);
+  sourcemeta::core::URI resolved{uri.recompose()};
+  resolved.resolve_from(base);
+  EXPECT_EQ(resolved.recompose(), "https://example.com/");
+}
+
+TEST(target_with_empty_first_segment_of_base_without_path) {
+  const sourcemeta::core::URI base{"https://example.com"};
+  sourcemeta::core::URI uri{"https://example.com//foo"};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), "/.//foo");
+}
+
+TEST(target_with_empty_first_segment_of_base_without_path_resolves_back) {
+  const sourcemeta::core::URI base{"https://example.com"};
+  sourcemeta::core::URI uri{"https://example.com//foo"};
+  uri.relative_to(base);
+  sourcemeta::core::URI resolved{uri.recompose()};
+  resolved.resolve_from(base);
+  EXPECT_EQ(resolved.recompose(), "https://example.com//foo");
+}
+
+TEST(target_with_empty_first_segment_of_root_base_resolves_back) {
+  const sourcemeta::core::URI base{"https://example.com/foo"};
+  sourcemeta::core::URI uri{"https://example.com//bar"};
+  uri.relative_to(base);
+  sourcemeta::core::URI resolved{uri.recompose()};
+  resolved.resolve_from(base);
+  EXPECT_EQ(resolved.recompose(), "https://example.com//bar");
+}
+
+TEST(target_with_empty_segment_below_base_resolves_back) {
+  const sourcemeta::core::URI base{"https://example.com/foo"};
+  sourcemeta::core::URI uri{"https://example.com/foo//bar"};
+  uri.relative_to(base);
+  sourcemeta::core::URI resolved{uri.recompose()};
+  resolved.resolve_from(base);
+  EXPECT_EQ(resolved.recompose(), "https://example.com/foo//bar");
+}
+
+TEST(target_with_empty_first_segment_from_nested_base_resolves_back) {
+  const sourcemeta::core::URI base{"https://example.com/a/b"};
+  sourcemeta::core::URI uri{"https://example.com//bar"};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), "..//bar");
+  sourcemeta::core::URI resolved{uri.recompose()};
+  resolved.resolve_from(base);
+  EXPECT_EQ(resolved.recompose(), "https://example.com//bar");
+}
+
+TEST(target_with_empty_segment_below_directory_base) {
+  const sourcemeta::core::URI base{"https://example.com/foo/"};
+  sourcemeta::core::URI uri{"https://example.com/foo//bar"};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), ".//bar");
+}
+
+TEST(target_with_empty_segment_below_directory_base_resolves_back) {
+  const sourcemeta::core::URI base{"https://example.com/foo/"};
+  sourcemeta::core::URI uri{"https://example.com/foo//bar"};
+  uri.relative_to(base);
+  sourcemeta::core::URI resolved{uri.recompose()};
+  resolved.resolve_from(base);
+  EXPECT_EQ(resolved.recompose(), "https://example.com/foo//bar");
+}
+
+TEST(target_with_empty_segment_below_nested_directory_base_resolves_back) {
+  const sourcemeta::core::URI base{"https://example.com/a/b/c.json"};
+  sourcemeta::core::URI uri{"https://example.com/a/b//d"};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), ".//d");
+  sourcemeta::core::URI resolved{uri.recompose()};
+  resolved.resolve_from(base);
+  EXPECT_EQ(resolved.recompose(), "https://example.com/a/b//d");
+}
+
+TEST(target_is_absolute_path_of_base_without_authority) {
+  const sourcemeta::core::URI base{"schema:"};
+  sourcemeta::core::URI uri{"schema:/foo"};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), "/foo");
+}
+
+TEST(target_is_absolute_path_of_base_without_authority_resolves_back) {
+  const sourcemeta::core::URI base{"schema:"};
+  sourcemeta::core::URI uri{"schema:/foo"};
+  uri.relative_to(base);
+  sourcemeta::core::URI resolved{uri.recompose()};
+  resolved.resolve_from(base);
+  EXPECT_EQ(resolved.recompose(), "schema:/foo");
+}
