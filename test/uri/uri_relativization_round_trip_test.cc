@@ -901,3 +901,25 @@ TEST(iri_host) {
                            "https://caf\xC3\xA9.example/a/c"),
             "https://caf\xC3\xA9.example/a/c");
 }
+
+TEST(identical_uris_with_a_fragment) {
+  EXPECT_EQ(
+      round_trip("https://example.com/foo#bar", "https://example.com/foo#bar"),
+      normalised("https://example.com/foo#bar"));
+}
+
+TEST(identical_uris_with_a_query_and_fragment) {
+  EXPECT_EQ(round_trip("https://example.com/foo?q=1#bar",
+                       "https://example.com/foo?q=1#bar"),
+            normalised("https://example.com/foo?q=1#bar"));
+}
+
+TEST(identical_authority_less_uris_with_a_fragment) {
+  EXPECT_EQ(round_trip("schema:foo#bar", "schema:foo#bar"),
+            normalised("schema:foo#bar"));
+}
+
+TEST(identical_uris_without_a_path_but_with_a_fragment) {
+  EXPECT_EQ(round_trip("https://example.com#bar", "https://example.com#bar"),
+            normalised("https://example.com#bar"));
+}

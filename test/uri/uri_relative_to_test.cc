@@ -598,3 +598,17 @@ TEST(slashless_base_with_descendant_target) {
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "schema:foo/bar");
 }
+
+TEST(identical_uris_with_a_fragment_keep_it) {
+  const sourcemeta::core::URI base{"https://example.com/foo#bar"};
+  sourcemeta::core::URI uri{"https://example.com/foo#bar"};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), "#bar");
+}
+
+TEST(identical_uris_with_a_query_and_fragment_keep_the_fragment) {
+  const sourcemeta::core::URI base{"https://example.com/foo?q=1#bar"};
+  sourcemeta::core::URI uri{"https://example.com/foo?q=1#bar"};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), "#bar");
+}

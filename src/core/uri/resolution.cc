@@ -156,14 +156,16 @@ auto URI::relative_to(const URI &base) -> URI & {
   // Special case: both URIs are exactly the same
   if (this->path_ == base.path_ && this->query_ == base.query_ &&
       this->fragment_ == base.fragment_) {
-    // Clear all components to make it empty relative URI
+    // Clear every component the base supplies back on resolution, which is
+    // everything but the fragment. RFC 3986 Section 5.2.2 always takes the
+    // fragment from the reference, as "T.fragment = R.fragment", so an empty
+    // reference names the base without one and has to keep it here
     this->scheme_.reset();
     this->userinfo_.reset();
     this->host_.reset();
     this->port_.reset();
     this->path_.reset();
     this->query_.reset();
-    this->fragment_.reset();
     return *this;
   }
 
