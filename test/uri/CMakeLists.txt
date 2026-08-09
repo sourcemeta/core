@@ -41,6 +41,7 @@ sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME uri
     uri_normalize_path_test.cc
     uri_resolve_from_test.cc
     uri_relative_to_test.cc
+    uri_relativization_round_trip_test.cc
     uri_extension_test.cc
     uri_user_info_test.cc
     uri_is_iri_test.cc

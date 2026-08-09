@@ -102,3 +102,10 @@ TEST(iri_same_unicode_host) {
       "https://\xE4\xBE\x8B\xE3\x81\x88.jp/bar")};
   EXPECT_TRUE(left.has_same_authority(right));
 }
+
+TEST(ip_literal_vs_registered_name_of_the_same_text) {
+  const sourcemeta::core::URI left{"https://[v1.x]/foo"};
+  const sourcemeta::core::URI right{"https://v1.x/foo"};
+  EXPECT_FALSE(left.has_same_authority(right));
+  EXPECT_FALSE(right.has_same_authority(left));
+}
