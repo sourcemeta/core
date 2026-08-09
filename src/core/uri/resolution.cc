@@ -141,15 +141,7 @@ auto URI::relative_to(const URI &base) -> URI & {
   }
 
   // The full authority must match (but components can be null for URNs)
-  if (this->userinfo_ != base.userinfo_) {
-    return *this;
-  }
-
-  if (this->host_ != base.host_) {
-    return *this;
-  }
-
-  if (this->port_ != base.port_) {
+  if (!this->has_same_authority(base)) {
     return *this;
   }
 
@@ -349,16 +341,14 @@ auto merge_new_base_path(std::optional<std::string> &target_path,
   if (new_base_path.has_value() && saved_path.has_value()) {
     auto merged{std::move(new_base_path.value())};
     const auto &relative_path = saved_path.value();
-    const auto base_ends_with_slash = merged.ends_with('/');
-    const auto relative_starts_with_slash = relative_path.starts_with('/');
-    if (base_ends_with_slash && relative_starts_with_slash) {
-      merged.append(relative_path, 1);
-    } else if (!base_ends_with_slash && !relative_starts_with_slash) {
+    // The suffix is what lies below the old base with the separating slash
+    // already removed, so a slash it does start with opens an empty segment
+    // and must not be mistaken for that separator
+    if (!merged.empty() && !merged.ends_with('/')) {
       merged += '/';
-      merged += relative_path;
-    } else {
-      merged += relative_path;
     }
+
+    merged += relative_path;
     target_path = std::move(merged);
   } else if (new_base_path.has_value()) {
     target_path = std::move(new_base_path);

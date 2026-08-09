@@ -708,3 +708,11 @@ TEST(identical_authority_less_uris_with_a_fragment) {
 TEST(identical_uris_without_a_path_but_with_a_fragment) {
   EXPECT_ROUND_TRIP("https://example.com#bar", "https://example.com#bar");
 }
+
+TEST(ip_literal_base_with_registered_name_target) {
+  EXPECT_ROUND_TRIP("https://[v1.x]/a/b", "https://v1.x/a/c");
+}
+
+TEST(registered_name_base_with_ip_literal_target) {
+  EXPECT_ROUND_TRIP("https://v1.x/a/b", "https://[v1.x]/a/c");
+}

@@ -665,10 +665,12 @@ public:
   ///
   /// That equation is the definition of a correct result, as RFC 3986 states
   /// how to resolve a reference but never how to compute one. It holds when
-  /// both URIs are absolute and the target path carries no dot segments, which
-  /// resolution always removes and so can never reproduce. When no such
-  /// reference exists, the URI is left intact, which satisfies the equation
-  /// too. For example:
+  /// both URIs are absolute and the target path carries no dot segments.
+  /// Resolution strips those from a reference that keeps its scheme just as it
+  /// does from a relative one, so a target carrying them is outside the
+  /// guarantee whether or not a reference gets built. Within those bounds, a
+  /// URI left intact because no reference expresses it satisfies the equation
+  /// as well. For example:
   ///
   /// ```cpp
   /// #include <sourcemeta/core/uri.h>

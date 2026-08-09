@@ -201,3 +201,17 @@ TEST(a_base_with_a_trailing_slash_matches_the_same_suffix) {
              sourcemeta::core::URI{"/new"});
   EXPECT_EQ(uri.recompose(), "/new/x");
 }
+
+TEST(an_empty_segment_below_the_base_is_preserved) {
+  sourcemeta::core::URI uri{"https://example.com/foo//bar"};
+  uri.rebase(sourcemeta::core::URI{"https://example.com/foo"},
+             sourcemeta::core::URI{"/qux"});
+  EXPECT_EQ(uri.recompose(), "/qux//bar");
+}
+
+TEST(an_ip_literal_base_does_not_match_a_registered_name) {
+  sourcemeta::core::URI uri{"https://v1.x/foo/bar"};
+  uri.rebase(sourcemeta::core::URI{"https://[v1.x]/foo"},
+             sourcemeta::core::URI{"/qux"});
+  EXPECT_EQ(uri.recompose(), "https://v1.x/foo/bar");
+}

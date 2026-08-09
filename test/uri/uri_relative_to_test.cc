@@ -643,3 +643,10 @@ TEST(target_ending_in_a_dotdot_segment) {
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "..");
 }
+
+TEST(ip_literal_base_and_registered_name_target_stay_absolute) {
+  const sourcemeta::core::URI base{"https://[v1.x]/a/b"};
+  sourcemeta::core::URI uri{"https://v1.x/a/c"};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), "https://v1.x/a/c");
+}
