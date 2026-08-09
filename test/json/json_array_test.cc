@@ -36,9 +36,9 @@ TEST(move_traits) {
       std::is_nothrow_move_constructible<sourcemeta::core::JSON::Array>::value);
 }
 
-TEST(initializer_list_2_booleans) {
-  const sourcemeta::core::JSON document{sourcemeta::core::JSON{false},
-                                        sourcemeta::core::JSON{true}};
+TEST(make_array_2_booleans) {
+  const auto document{sourcemeta::core::JSON::make_array(
+      {sourcemeta::core::JSON{false}, sourcemeta::core::JSON{true}})};
 
   EXPECT_TRUE(document.is_array());
   EXPECT_EQ(document.size(), 2);
@@ -49,9 +49,71 @@ TEST(initializer_list_2_booleans) {
   EXPECT_TRUE(document.at(1).to_boolean());
 }
 
+TEST(make_array_3_integers) {
+  const auto document{sourcemeta::core::JSON::make_array(
+      {sourcemeta::core::JSON{1}, sourcemeta::core::JSON{2},
+       sourcemeta::core::JSON{3}})};
+
+  EXPECT_TRUE(document.is_array());
+  EXPECT_EQ(document.size(), 3);
+  EXPECT_EQ(document.array_size(), 3);
+  EXPECT_EQ(document.at(0).to_integer(), 1);
+  EXPECT_EQ(document.at(1).to_integer(), 2);
+  EXPECT_EQ(document.at(2).to_integer(), 3);
+}
+
+TEST(make_array_empty_initializer_list) {
+  const auto document{sourcemeta::core::JSON::make_array({})};
+
+  EXPECT_TRUE(document.is_array());
+  EXPECT_EQ(document.size(), 0);
+  EXPECT_EQ(document.array_size(), 0);
+}
+
+TEST(make_array_1_integer) {
+  const sourcemeta::core::JSON element{1};
+  const auto document{sourcemeta::core::JSON::make_array({element})};
+
+  EXPECT_TRUE(document.is_array());
+  EXPECT_EQ(document.size(), 1);
+  EXPECT_EQ(document.array_size(), 1);
+  EXPECT_EQ(document.at(0).to_integer(), 1);
+}
+
+TEST(make_array_1_array) {
+  const auto element{sourcemeta::core::JSON::make_array(
+      {sourcemeta::core::JSON{1}, sourcemeta::core::JSON{2}})};
+  const auto document{sourcemeta::core::JSON::make_array({element})};
+
+  EXPECT_TRUE(document.is_array());
+  EXPECT_EQ(document.size(), 1);
+  EXPECT_TRUE(document.at(0).is_array());
+  EXPECT_EQ(document.at(0).size(), 2);
+}
+
+TEST(brace_initialization_from_integer_document) {
+  const sourcemeta::core::JSON element{1};
+  const sourcemeta::core::JSON document{element};
+
+  EXPECT_FALSE(document.is_array());
+  EXPECT_TRUE(document.is_integer());
+  EXPECT_EQ(document.to_integer(), 1);
+}
+
+TEST(brace_initialization_from_array_document) {
+  const auto element{sourcemeta::core::JSON::make_array(
+      {sourcemeta::core::JSON{1}, sourcemeta::core::JSON{2}})};
+  const sourcemeta::core::JSON document{element};
+
+  EXPECT_TRUE(document.is_array());
+  EXPECT_EQ(document.size(), 2);
+  EXPECT_EQ(document.at(0).to_integer(), 1);
+  EXPECT_EQ(document.at(1).to_integer(), 2);
+}
+
 TEST(type) {
-  const sourcemeta::core::JSON document{sourcemeta::core::JSON{false},
-                                        sourcemeta::core::JSON{true}};
+  const auto document{sourcemeta::core::JSON::make_array(
+      {sourcemeta::core::JSON{false}, sourcemeta::core::JSON{true}})};
   EXPECT_EQ(document.type(), sourcemeta::core::JSON::Type::Array);
 }
 
@@ -84,9 +146,9 @@ TEST(push_back_booleans) {
 }
 
 TEST(boolean_iterator) {
-  const sourcemeta::core::JSON document{sourcemeta::core::JSON{true},
-                                        sourcemeta::core::JSON{false},
-                                        sourcemeta::core::JSON{false}};
+  const auto document{sourcemeta::core::JSON::make_array(
+      {sourcemeta::core::JSON{true}, sourcemeta::core::JSON{false},
+       sourcemeta::core::JSON{false}})};
 
   std::vector<bool> result;
   for (const auto &element : document.as_array()) {
@@ -100,9 +162,9 @@ TEST(boolean_iterator) {
 }
 
 TEST(reverse_boolean_iterator) {
-  const sourcemeta::core::JSON document{sourcemeta::core::JSON{true},
-                                        sourcemeta::core::JSON{false},
-                                        sourcemeta::core::JSON{false}};
+  const auto document{sourcemeta::core::JSON::make_array(
+      {sourcemeta::core::JSON{true}, sourcemeta::core::JSON{false},
+       sourcemeta::core::JSON{false}})};
 
   std::vector<bool> result;
   for (auto iterator = document.as_array().crbegin();
@@ -117,8 +179,8 @@ TEST(reverse_boolean_iterator) {
 }
 
 TEST(push_back_json_copy) {
-  sourcemeta::core::JSON document{sourcemeta::core::JSON{1},
-                                  sourcemeta::core::JSON{2}};
+  auto document{sourcemeta::core::JSON::make_array(
+      {sourcemeta::core::JSON{1}, sourcemeta::core::JSON{2}})};
 
   EXPECT_TRUE(document.is_array());
   EXPECT_EQ(document.size(), 2);
@@ -138,8 +200,8 @@ TEST(push_back_json_copy) {
 }
 
 TEST(push_back_json_move) {
-  sourcemeta::core::JSON document{sourcemeta::core::JSON{1},
-                                  sourcemeta::core::JSON{2}};
+  auto document{sourcemeta::core::JSON::make_array(
+      {sourcemeta::core::JSON{1}, sourcemeta::core::JSON{2}})};
 
   EXPECT_TRUE(document.is_array());
   EXPECT_EQ(document.size(), 2);
@@ -160,9 +222,9 @@ TEST(push_back_json_move) {
 
 TEST(modify_array_after_copy) {
   // Original document
-  sourcemeta::core::JSON document{sourcemeta::core::JSON{1},
-                                  sourcemeta::core::JSON{2},
-                                  sourcemeta::core::JSON{3}};
+  auto document{sourcemeta::core::JSON::make_array(
+      {sourcemeta::core::JSON{1}, sourcemeta::core::JSON{2},
+       sourcemeta::core::JSON{3}})};
   EXPECT_EQ(document.size(), 3);
   EXPECT_EQ(document.array_size(), 3);
   EXPECT_EQ(document.at(0).to_integer(), 1);
