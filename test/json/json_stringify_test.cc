@@ -138,18 +138,18 @@ TEST(small_string) {
 }
 
 TEST(array_integers) {
-  const sourcemeta::core::JSON document{
-      sourcemeta::core::JSON{1}, sourcemeta::core::JSON{2},
-      sourcemeta::core::JSON{3}, sourcemeta::core::JSON{4}};
+  const auto document{sourcemeta::core::JSON::make_array(
+      {sourcemeta::core::JSON{1}, sourcemeta::core::JSON{2},
+       sourcemeta::core::JSON{3}, sourcemeta::core::JSON{4}})};
   std::ostringstream stream;
   sourcemeta::core::stringify(document, stream);
   EXPECT_EQ(stream.str(), "[1,2,3,4]");
 }
 
 TEST(array_nested) {
-  sourcemeta::core::JSON array{
-      sourcemeta::core::JSON{1}, sourcemeta::core::JSON{2},
-      sourcemeta::core::JSON{3}, sourcemeta::core::JSON{4}};
+  auto array{sourcemeta::core::JSON::make_array(
+      {sourcemeta::core::JSON{1}, sourcemeta::core::JSON{2},
+       sourcemeta::core::JSON{3}, sourcemeta::core::JSON{4}})};
   sourcemeta::core::JSON document{sourcemeta::core::JSON::Array{}};
   document.push_back(std::move(array));
   std::ostringstream stream;
@@ -611,9 +611,9 @@ TEST(decimal_in_array) {
   const sourcemeta::core::Decimal value1{100};
   const sourcemeta::core::Decimal value2{"999.999"};
   const sourcemeta::core::Decimal value3{"-42"};
-  const sourcemeta::core::JSON document{sourcemeta::core::JSON{value1},
-                                        sourcemeta::core::JSON{value2},
-                                        sourcemeta::core::JSON{value3}};
+  const auto document{sourcemeta::core::JSON::make_array(
+      {sourcemeta::core::JSON{value1}, sourcemeta::core::JSON{value2},
+       sourcemeta::core::JSON{value3}})};
   std::ostringstream stream;
   sourcemeta::core::stringify(document, stream);
   EXPECT_EQ(stream.str(), "[1.00e+2,9.99999e+2,-4.2e+1]");
@@ -623,8 +623,8 @@ TEST(decimal_large_numbers_in_array) {
   const sourcemeta::core::Decimal value1{"123456789012345678901234567890"};
   const sourcemeta::core::Decimal value2{
       "98765432109876543210.98765432109876543210"};
-  const sourcemeta::core::JSON document{sourcemeta::core::JSON{value1},
-                                        sourcemeta::core::JSON{value2}};
+  const auto document{sourcemeta::core::JSON::make_array(
+      {sourcemeta::core::JSON{value1}, sourcemeta::core::JSON{value2}})};
   std::ostringstream stream;
   sourcemeta::core::stringify(document, stream);
   EXPECT_EQ(stream.str(), "[1.23456789012345678901234567890e+29,9."
@@ -634,8 +634,8 @@ TEST(decimal_large_numbers_in_array) {
 TEST(decimal_nested_in_array) {
   const sourcemeta::core::Decimal value1{"111.111"};
   const sourcemeta::core::Decimal value2{"222.222"};
-  sourcemeta::core::JSON inner_array{sourcemeta::core::JSON{value1},
-                                     sourcemeta::core::JSON{value2}};
+  auto inner_array{sourcemeta::core::JSON::make_array(
+      {sourcemeta::core::JSON{value1}, sourcemeta::core::JSON{value2}})};
   sourcemeta::core::JSON document{sourcemeta::core::JSON::Array{}};
   document.push_back(std::move(inner_array));
   std::ostringstream stream;

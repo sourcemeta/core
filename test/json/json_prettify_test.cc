@@ -95,20 +95,21 @@ TEST(small_string) {
 }
 
 TEST(array_integers) {
-  const sourcemeta::core::JSON document{
-      sourcemeta::core::JSON{1}, sourcemeta::core::JSON{2},
-      sourcemeta::core::JSON{3}, sourcemeta::core::JSON{4}};
+  const auto document{sourcemeta::core::JSON::make_array(
+      {sourcemeta::core::JSON{1}, sourcemeta::core::JSON{2},
+       sourcemeta::core::JSON{3}, sourcemeta::core::JSON{4}})};
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);
   EXPECT_EQ(stream.str(), "[ 1, 2, 3, 4 ]");
 }
 
 TEST(array_strings_almost_long) {
-  const sourcemeta::core::JSON document{sourcemeta::core::JSON{"aaaaaaaaaa"},
-                                        sourcemeta::core::JSON{"bbbbbbbbbb"},
-                                        sourcemeta::core::JSON{"cccccccccc"},
-                                        sourcemeta::core::JSON{"dddddddddd"},
-                                        sourcemeta::core::JSON{"eeeeeeeeee"}};
+  const auto document{sourcemeta::core::JSON::make_array(
+      {sourcemeta::core::JSON{"aaaaaaaaaa"},
+       sourcemeta::core::JSON{"bbbbbbbbbb"},
+       sourcemeta::core::JSON{"cccccccccc"},
+       sourcemeta::core::JSON{"dddddddddd"},
+       sourcemeta::core::JSON{"eeeeeeeeee"}})};
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);
   EXPECT_EQ(stream.str(), "[ \"aaaaaaaaaa\", \"bbbbbbbbbb\", \"cccccccccc\", "
@@ -192,14 +193,15 @@ TEST(array_strings_almost_long_with_long_property) {
 }
 
 TEST(array_strings_long) {
-  const sourcemeta::core::JSON document{sourcemeta::core::JSON{"aaaaaaaaaa"},
-                                        sourcemeta::core::JSON{"bbbbbbbbbb"},
-                                        sourcemeta::core::JSON{"cccccccccc"},
-                                        sourcemeta::core::JSON{"dddddddddd"},
-                                        sourcemeta::core::JSON{"eeeeeeeeee"},
-                                        sourcemeta::core::JSON{"ffffffffff"},
-                                        sourcemeta::core::JSON{"gggggggggg"},
-                                        sourcemeta::core::JSON{"hhhhhhhhhh"}};
+  const auto document{sourcemeta::core::JSON::make_array(
+      {sourcemeta::core::JSON{"aaaaaaaaaa"},
+       sourcemeta::core::JSON{"bbbbbbbbbb"},
+       sourcemeta::core::JSON{"cccccccccc"},
+       sourcemeta::core::JSON{"dddddddddd"},
+       sourcemeta::core::JSON{"eeeeeeeeee"},
+       sourcemeta::core::JSON{"ffffffffff"},
+       sourcemeta::core::JSON{"gggggggggg"},
+       sourcemeta::core::JSON{"hhhhhhhhhh"}})};
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);
   EXPECT_EQ(stream.str(),
@@ -209,9 +211,9 @@ TEST(array_strings_long) {
 }
 
 TEST(array_nested_1) {
-  sourcemeta::core::JSON array{
-      sourcemeta::core::JSON{1}, sourcemeta::core::JSON{2},
-      sourcemeta::core::JSON{3}, sourcemeta::core::JSON{4}};
+  auto array{sourcemeta::core::JSON::make_array(
+      {sourcemeta::core::JSON{1}, sourcemeta::core::JSON{2},
+       sourcemeta::core::JSON{3}, sourcemeta::core::JSON{4}})};
   sourcemeta::core::JSON document{sourcemeta::core::JSON::Array{}};
   document.push_back(std::move(array));
   std::ostringstream stream;
@@ -222,8 +224,8 @@ TEST(array_nested_1) {
 TEST(array_nested_2) {
   sourcemeta::core::JSON document{sourcemeta::core::JSON::Array{}};
   document.push_back(sourcemeta::core::JSON{1});
-  sourcemeta::core::JSON nested{sourcemeta::core::JSON{2},
-                                sourcemeta::core::JSON{3}};
+  auto nested{sourcemeta::core::JSON::make_array(
+      {sourcemeta::core::JSON{2}, sourcemeta::core::JSON{3}})};
   document.push_back(std::move(nested));
   document.push_back(sourcemeta::core::JSON{4});
   std::ostringstream stream;
@@ -425,8 +427,8 @@ TEST(object_nested_with_4_spaces) {
 TEST(array_nested_with_0_spaces) {
   sourcemeta::core::JSON document{sourcemeta::core::JSON::Array{}};
   document.push_back(sourcemeta::core::JSON{1});
-  sourcemeta::core::JSON nested{sourcemeta::core::JSON{2},
-                                sourcemeta::core::JSON{3}};
+  auto nested{sourcemeta::core::JSON::make_array(
+      {sourcemeta::core::JSON{2}, sourcemeta::core::JSON{3}})};
   document.push_back(std::move(nested));
   document.push_back(sourcemeta::core::JSON{4});
   std::ostringstream stream;
@@ -437,8 +439,8 @@ TEST(array_nested_with_0_spaces) {
 TEST(array_nested_with_1_space) {
   sourcemeta::core::JSON document{sourcemeta::core::JSON::Array{}};
   document.push_back(sourcemeta::core::JSON{1});
-  sourcemeta::core::JSON nested{sourcemeta::core::JSON{2},
-                                sourcemeta::core::JSON{3}};
+  auto nested{sourcemeta::core::JSON::make_array(
+      {sourcemeta::core::JSON{2}, sourcemeta::core::JSON{3}})};
   document.push_back(std::move(nested));
   document.push_back(sourcemeta::core::JSON{4});
   std::ostringstream stream;
@@ -449,8 +451,8 @@ TEST(array_nested_with_1_space) {
 TEST(array_nested_with_2_spaces) {
   sourcemeta::core::JSON document{sourcemeta::core::JSON::Array{}};
   document.push_back(sourcemeta::core::JSON{1});
-  sourcemeta::core::JSON nested{sourcemeta::core::JSON{2},
-                                sourcemeta::core::JSON{3}};
+  auto nested{sourcemeta::core::JSON::make_array(
+      {sourcemeta::core::JSON{2}, sourcemeta::core::JSON{3}})};
   document.push_back(std::move(nested));
   document.push_back(sourcemeta::core::JSON{4});
   std::ostringstream stream;
@@ -461,8 +463,8 @@ TEST(array_nested_with_2_spaces) {
 TEST(array_nested_with_3_spaces) {
   sourcemeta::core::JSON document{sourcemeta::core::JSON::Array{}};
   document.push_back(sourcemeta::core::JSON{1});
-  sourcemeta::core::JSON nested{sourcemeta::core::JSON{2},
-                                sourcemeta::core::JSON{3}};
+  auto nested{sourcemeta::core::JSON::make_array(
+      {sourcemeta::core::JSON{2}, sourcemeta::core::JSON{3}})};
   document.push_back(std::move(nested));
   document.push_back(sourcemeta::core::JSON{4});
   std::ostringstream stream;
@@ -473,8 +475,8 @@ TEST(array_nested_with_3_spaces) {
 TEST(array_nested_with_4_spaces) {
   sourcemeta::core::JSON document{sourcemeta::core::JSON::Array{}};
   document.push_back(sourcemeta::core::JSON{1});
-  sourcemeta::core::JSON nested{sourcemeta::core::JSON{2},
-                                sourcemeta::core::JSON{3}};
+  auto nested{sourcemeta::core::JSON::make_array(
+      {sourcemeta::core::JSON{2}, sourcemeta::core::JSON{3}})};
   document.push_back(std::move(nested));
   document.push_back(sourcemeta::core::JSON{4});
   std::ostringstream stream;
@@ -586,9 +588,9 @@ TEST(decimal_in_array) {
   const sourcemeta::core::Decimal value1{100};
   const sourcemeta::core::Decimal value2{"999.999"};
   const sourcemeta::core::Decimal value3{"-42"};
-  const sourcemeta::core::JSON document{sourcemeta::core::JSON{value1},
-                                        sourcemeta::core::JSON{value2},
-                                        sourcemeta::core::JSON{value3}};
+  const auto document{sourcemeta::core::JSON::make_array(
+      {sourcemeta::core::JSON{value1}, sourcemeta::core::JSON{value2},
+       sourcemeta::core::JSON{value3}})};
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);
   EXPECT_EQ(stream.str(), "[ 1.00e+2, 9.99999e+2, -4.2e+1 ]");
@@ -598,8 +600,8 @@ TEST(decimal_large_numbers_in_array) {
   const sourcemeta::core::Decimal value1{"123456789012345678901234567890"};
   const sourcemeta::core::Decimal value2{
       "98765432109876543210.98765432109876543210"};
-  const sourcemeta::core::JSON document{sourcemeta::core::JSON{value1},
-                                        sourcemeta::core::JSON{value2}};
+  const auto document{sourcemeta::core::JSON::make_array(
+      {sourcemeta::core::JSON{value1}, sourcemeta::core::JSON{value2}})};
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);
   EXPECT_EQ(stream.str(), "[\n"
@@ -611,8 +613,8 @@ TEST(decimal_large_numbers_in_array) {
 TEST(decimal_nested_in_array) {
   const sourcemeta::core::Decimal value1{"111.111"};
   const sourcemeta::core::Decimal value2{"222.222"};
-  sourcemeta::core::JSON inner_array{sourcemeta::core::JSON{value1},
-                                     sourcemeta::core::JSON{value2}};
+  auto inner_array{sourcemeta::core::JSON::make_array(
+      {sourcemeta::core::JSON{value1}, sourcemeta::core::JSON{value2}})};
   sourcemeta::core::JSON document{sourcemeta::core::JSON::Array{}};
   document.push_back(std::move(inner_array));
   std::ostringstream stream;

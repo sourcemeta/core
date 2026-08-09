@@ -352,9 +352,9 @@ TEST(into_string_from_string) {
 }
 
 TEST(to_ostream) {
-  const sourcemeta::core::JSON document{
-      sourcemeta::core::JSON{1}, sourcemeta::core::JSON{2},
-      sourcemeta::core::JSON{3}, sourcemeta::core::JSON{4}};
+  const auto document{sourcemeta::core::JSON::make_array(
+      {sourcemeta::core::JSON{1}, sourcemeta::core::JSON{2},
+       sourcemeta::core::JSON{3}, sourcemeta::core::JSON{4}})};
   std::ostringstream stream;
   stream << document;
 #ifdef NDEBUG
