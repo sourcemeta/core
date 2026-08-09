@@ -77,14 +77,14 @@ TEST(query_and_fragment_no_path) {
   EXPECT_EQ(uri.recompose_relative(), "?x=1#bar");
 }
 
-TEST(path_noscheme_first_segment_colon_encoded) {
+TEST(path_noscheme_first_segment_colon_takes_a_dot_segment) {
   const sourcemeta::core::URI uri{"urn:foo:bar"};
-  EXPECT_EQ(uri.recompose_relative(), "foo%3Abar");
+  EXPECT_EQ(uri.recompose_relative(), "./foo:bar");
 }
 
 TEST(path_noscheme_colon_only_in_first_segment) {
   const sourcemeta::core::URI uri{"urn:foo:bar/baz:qux"};
-  EXPECT_EQ(uri.recompose_relative(), "foo%3Abar/baz:qux");
+  EXPECT_EQ(uri.recompose_relative(), "./foo:bar/baz:qux");
 }
 
 TEST(path_absolute_first_segment_colon_preserved) {

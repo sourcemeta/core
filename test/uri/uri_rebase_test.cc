@@ -56,3 +56,43 @@ TEST(iri_flag_propagates_from_new_base) {
   EXPECT_EQ(uri.recompose(), "https://example.com/caf\xC3\xA9/file");
   EXPECT_TRUE(uri.is_internationalized());
 }
+
+TEST(sibling_of_base_is_left_intact) {
+  sourcemeta::core::URI uri{"https://example.com/foo/other"};
+  const sourcemeta::core::URI base{"https://example.com/foo/bar"};
+  const sourcemeta::core::URI new_base{"/qux"};
+  uri.rebase(base, new_base);
+  EXPECT_EQ(uri.recompose(), "https://example.com/foo/other");
+}
+
+TEST(unrelated_directory_is_left_intact) {
+  sourcemeta::core::URI uri{"https://example.com/qux/x"};
+  const sourcemeta::core::URI base{"https://example.com/foo/bar"};
+  const sourcemeta::core::URI new_base{"/new"};
+  uri.rebase(base, new_base);
+  EXPECT_EQ(uri.recompose(), "https://example.com/qux/x");
+}
+
+TEST(partial_segment_match_is_left_intact) {
+  sourcemeta::core::URI uri{"https://example.com/foobar/baz"};
+  const sourcemeta::core::URI base{"https://example.com/foo"};
+  const sourcemeta::core::URI new_base{"/qux"};
+  uri.rebase(base, new_base);
+  EXPECT_EQ(uri.recompose(), "https://example.com/foobar/baz");
+}
+
+TEST(base_without_path_moves_whole_path) {
+  sourcemeta::core::URI uri{"https://example.com/foo/bar"};
+  const sourcemeta::core::URI base{"https://example.com"};
+  const sourcemeta::core::URI new_base{"/qux"};
+  uri.rebase(base, new_base);
+  EXPECT_EQ(uri.recompose(), "/qux/foo/bar");
+}
+
+TEST(different_host_is_left_intact) {
+  sourcemeta::core::URI uri{"https://other.com/foo/bar"};
+  const sourcemeta::core::URI base{"https://example.com/foo"};
+  const sourcemeta::core::URI new_base{"/qux"};
+  uri.rebase(base, new_base);
+  EXPECT_EQ(uri.recompose(), "https://other.com/foo/bar");
+}

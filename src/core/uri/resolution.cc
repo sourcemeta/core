@@ -227,35 +227,11 @@ auto URI::relative_to(const URI &base) -> URI & {
     return *this;
   }
 
-  // Case 2: Check if this_path starts with base_path followed by "/"
-  // This handles: base="/foo" and this="/foo/bar" = "bar"
-  // But NOT: base="/spec" and this="/spec/" (different resources)
-  // RFC 3986 Section 5.2.2 uses a reference path that starts with a slash as
-  // is, so a remainder that begins with one would drop the base prefix rather
-  // than name something below it
-  const std::string base_with_slash =
-      base_path.ends_with('/') ? base_path : base_path + "/";
-  if (this_path.starts_with(base_with_slash) &&
-      this_path.length() > base_with_slash.length() &&
-      this_path[base_with_slash.length()] != '/') {
-    auto relative_path = this_path.substr(base_with_slash.length());
-
-    this->scheme_.reset();
-    this->userinfo_.reset();
-    this->host_.reset();
-    this->port_.reset();
-    this->path_ = relative_path.empty()
-                      ? std::nullopt
-                      : std::optional<std::string>{relative_path};
-
-    return *this;
-  }
-
   // Find last slash positions (needed for multiple cases below)
   const auto base_last_slash = base_path.rfind('/');
   const auto this_last_slash = this_path.rfind('/');
 
-  // Case 3: Check if both paths share the same parent directory (siblings)
+  // Case 2: Check if both paths share the same parent directory (siblings)
   // This handles: base="/test/bar.json" and this="/test/foo.json" =
   // "foo.json"
   if (base_last_slash != std::string::npos &&
@@ -280,7 +256,7 @@ auto URI::relative_to(const URI &base) -> URI & {
     }
   }
 
-  // Case 4: General case - compute relative path using .. segments
+  // Case 3: General case - compute relative path using .. segments
   // This handles cases like: base="/schemas/foo.json" and this="/bundling/bar"
   // Result should be "../bundling/bar"
   // Note: We don't make URIs relative if the target is just a shallow path
@@ -381,15 +357,26 @@ auto merge_new_base_path(std::optional<std::string> &target_path,
 
 } // namespace
 
+auto URI::path_under(const URI &base) const -> std::optional<std::string> {
+  if (this->scheme_ != base.scheme_ || this->userinfo_ != base.userinfo_ ||
+      this->host_ != base.host_ || this->port_ != base.port_) {
+    return std::nullopt;
+  }
+
+  return URI::strip_path_prefix(this->path_.value_or(""),
+                                base.path_.value_or(""));
+}
+
 auto URI::rebase(const URI &base, const URI &new_base) -> URI & {
-  this->relative_to(base);
-  if (!this->is_relative()) {
+  auto suffix{this->path_under(base)};
+  if (!suffix.has_value()) {
     return *this;
   }
 
-  auto saved_path = std::move(this->path_);
-  auto saved_fragment = std::move(this->fragment_);
-  auto saved_query = std::move(this->query_);
+  std::optional<std::string> relative_path;
+  if (!suffix.value().empty()) {
+    relative_path = std::move(suffix.value());
+  }
 
   this->scheme_ = new_base.scheme_;
   this->userinfo_ = new_base.userinfo_;
@@ -401,23 +388,21 @@ auto URI::rebase(const URI &base, const URI &new_base) -> URI & {
 
   std::optional<std::string> new_base_path_copy{new_base.path_};
   merge_new_base_path(this->path_, std::move(new_base_path_copy),
-                      std::move(saved_path));
-
-  this->fragment_ = std::move(saved_fragment);
-  this->query_ = std::move(saved_query);
+                      std::move(relative_path));
 
   return *this;
 }
 
 auto URI::rebase(const URI &base, URI &&new_base) -> URI & {
-  this->relative_to(base);
-  if (!this->is_relative()) {
+  auto suffix{this->path_under(base)};
+  if (!suffix.has_value()) {
     return *this;
   }
 
-  auto saved_path = std::move(this->path_);
-  auto saved_fragment = std::move(this->fragment_);
-  auto saved_query = std::move(this->query_);
+  std::optional<std::string> relative_path;
+  if (!suffix.value().empty()) {
+    relative_path = std::move(suffix.value());
+  }
 
   this->scheme_ = std::move(new_base.scheme_);
   this->userinfo_ = std::move(new_base.userinfo_);
@@ -428,10 +413,7 @@ auto URI::rebase(const URI &base, URI &&new_base) -> URI & {
   this->iri_ = this->iri_ || new_base.iri_;
 
   merge_new_base_path(this->path_, std::move(new_base.path_),
-                      std::move(saved_path));
-
-  this->fragment_ = std::move(saved_fragment);
-  this->query_ = std::move(saved_query);
+                      std::move(relative_path));
 
   return *this;
 }

@@ -656,22 +656,35 @@ public:
   /// ```
   auto resolve_from(const URI &base) -> URI &;
 
-  /// Attempt to resolve a URI relative to another URI. If the latter URI is not
-  /// a base for the former, leave the URI intact. For example:
+  /// Express a URI as a relative reference against a base URI, such that
+  /// resolving the result against that base reproduces this URI:
+  ///
+  /// ```
+  /// resolve_from(relative_to(target, base), base) == target
+  /// ```
+  ///
+  /// That equation is the definition of a correct result, as RFC 3986 states
+  /// how to resolve a reference but never how to compute one. It holds when
+  /// both URIs are absolute and the target path carries no dot segments, which
+  /// resolution always removes and so can never reproduce. When no such
+  /// reference exists, the URI is left intact, which satisfies the equation
+  /// too. For example:
   ///
   /// ```cpp
   /// #include <sourcemeta/core/uri.h>
   /// #include <cassert>
   ///
-  /// const sourcemeta::core::URI base{"https://www.sourcemeta.com"};
+  /// const sourcemeta::core::URI base{"https://www.sourcemeta.com/"};
   /// sourcemeta::core::URI result{"https://www.sourcemeta.com/foo"};
   /// result.relative_to(base);
   /// assert(result.recompose() == "foo");
   /// ```
   auto relative_to(const URI &base) -> URI &;
 
-  /// Attempt to change the base of a URI. If the URI is not relative to
-  /// the former, leave the URI intact. For example:
+  /// Move a URI that lies under a base to the same position under a new base.
+  /// A URI that is neither the base nor under it is left intact, and so is one
+  /// that only shares a textual prefix without matching whole path segments.
+  /// For example:
   ///
   /// ```cpp
   /// #include <sourcemeta/core/uri.h>
@@ -685,9 +698,9 @@ public:
   /// ```
   auto rebase(const URI &base, const URI &new_base) -> URI &;
 
-  /// Attempt to change the base of a URI, moving components out of
-  /// `new_base` rather than copying them. If the URI is not relative to
-  /// the former base, leave the URI intact. For example:
+  /// Move a URI that lies under a base to the same position under a new base,
+  /// taking components out of `new_base` rather than copying them. A URI that
+  /// is neither the base nor under it is left intact. For example:
   ///
   /// ```cpp
   /// #include <sourcemeta/core/uri.h>
@@ -1113,6 +1126,9 @@ public:
 
 private:
   auto parse(std::string_view input) -> void;
+
+  [[nodiscard]] auto path_under(const URI &base) const
+      -> std::optional<std::string>;
 
 // Exporting symbols that depends on the standard C++ library is considered
 // safe.
