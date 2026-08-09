@@ -567,3 +567,83 @@ TEST(iri_preserves_ucschar) {
   resolved.resolve_from(base);
   EXPECT_EQ(resolved.recompose(), "https://example.com/dir/caf\xC3\xA9");
 }
+
+TEST(slashless_base_with_descendant_target) {
+  EXPECT_EQ(round_trip("schema:foo", "schema:foo/bar"),
+            normalised("schema:foo/bar"));
+}
+
+TEST(ipv6_host) {
+  EXPECT_EQ(round_trip("https://[::1]/a/b", "https://[::1]/a/c"),
+            normalised("https://[::1]/a/c"));
+}
+
+TEST(parent_of_nested_directory_base) {
+  EXPECT_EQ(round_trip("https://example.com/a/b/", "https://example.com/a/"),
+            normalised("https://example.com/a/"));
+}
+
+TEST(ancestor_two_levels_up) {
+  EXPECT_EQ(round_trip("https://example.com/a/b/c", "https://example.com/a"),
+            normalised("https://example.com/a"));
+}
+
+TEST(directory_base_with_target_of_the_same_name) {
+  EXPECT_EQ(round_trip("https://example.com/a/", "https://example.com/a"),
+            normalised("https://example.com/a"));
+}
+
+TEST(file_base_with_directory_target_of_the_same_name) {
+  EXPECT_EQ(round_trip("https://example.com/a", "https://example.com/a/"),
+            normalised("https://example.com/a/"));
+}
+
+TEST(windows_drive_root_from_nested_base) {
+  EXPECT_EQ(round_trip("file:///C:/x/y/", "file:///C:/"),
+            normalised("file:///C:/"));
+}
+
+TEST(identical_without_path_but_with_query) {
+  EXPECT_EQ(round_trip("https://example.com?q=1", "https://example.com?q=1"),
+            normalised("https://example.com?q=1"));
+}
+
+TEST(ancestor_three_levels_up) {
+  EXPECT_EQ(round_trip("https://example.com/a/b/c/d", "https://example.com/a"),
+            normalised("https://example.com/a"));
+}
+
+TEST(mailto_slashless_base) {
+  EXPECT_EQ(round_trip("mailto:foo", "mailto:bar"), normalised("mailto:bar"));
+}
+
+TEST(target_with_empty_fragment) {
+  EXPECT_EQ(round_trip("https://example.com/a/b", "https://example.com/a/b#"),
+            normalised("https://example.com/a/b#"));
+}
+
+TEST(target_with_empty_query) {
+  EXPECT_EQ(round_trip("https://example.com/a/b", "https://example.com/a/b?"),
+            normalised("https://example.com/a/b?"));
+}
+
+TEST(sibling_carrying_the_same_query) {
+  EXPECT_EQ(
+      round_trip("https://example.com/a/b?x=1", "https://example.com/a/c?x=1"),
+      normalised("https://example.com/a/c?x=1"));
+}
+
+TEST(root_base_with_target_without_path) {
+  EXPECT_EQ(round_trip("https://example.com/", "https://example.com"),
+            normalised("https://example.com"));
+}
+
+TEST(descendant_of_a_base_with_an_empty_first_segment) {
+  EXPECT_EQ(round_trip("https://example.com//a", "https://example.com//a/b"),
+            normalised("https://example.com//a/b"));
+}
+
+TEST(target_gains_an_empty_first_segment) {
+  EXPECT_EQ(round_trip("https://example.com/a", "https://example.com//a"),
+            normalised("https://example.com//a"));
+}

@@ -489,3 +489,17 @@ TEST(iri_reference_against_plain_uri_base) {
   EXPECT_EQ(reference.recompose(), "https://example.com/dir/caf\xC3\xA9");
   EXPECT_TRUE(reference.is_internationalized());
 }
+
+TEST(ipv6_base_authority_is_inherited) {
+  const sourcemeta::core::URI base{"https://[::1]/a/b"};
+  sourcemeta::core::URI reference{"c"};
+  reference.resolve_from(base);
+  EXPECT_EQ(reference.recompose(), "https://[::1]/a/c");
+}
+
+TEST(ipv6_base_authority_is_inherited_by_a_fragment) {
+  const sourcemeta::core::URI base{"https://[2001:db8::1]:8443/a"};
+  sourcemeta::core::URI reference{"#frag"};
+  reference.resolve_from(base);
+  EXPECT_EQ(reference.recompose(), "https://[2001:db8::1]:8443/a#frag");
+}

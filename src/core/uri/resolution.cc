@@ -98,6 +98,10 @@ auto URI::resolve_from(const URI &base) -> URI & {
   this->userinfo_ = base.userinfo_;
   this->host_ = base.host_;
   this->port_ = base.port_;
+  // RFC 3986 Section 5.2.2 inherits the whole authority, and whether the host
+  // is an IP literal is part of it, as Section 3.2.2 only writes the enclosing
+  // brackets for that form
+  this->ip_literal_ = base.ip_literal_;
 
   // Reference has empty path
   if (!this->path_.has_value() || this->path_.value().empty()) {
@@ -261,9 +265,14 @@ auto URI::relative_to(const URI &base) -> URI & {
   // Result should be "../bundling/bar"
   // Note: We don't make URIs relative if the target is just a shallow path
   // like "/foo" (only one level deep) as that's not meaningfully navigable
+  // RFC 3986 Section 5.2.3 appends the reference to the base path "excluding
+  // any characters after the right-most "/" in the base URI path, or excluding
+  // the entire base URI path if it does not contain any "/" characters", so a
+  // base path without a slash anchors nothing and no suffix of it can be
+  // stripped to form a reference
   const auto base_parent = base_last_slash != std::string::npos
                                ? base_path.substr(0, base_last_slash + 1)
-                               : base_path;
+                               : std::string{};
 
   std::string relative_path;
   std::string current_base_parent{base_parent};
@@ -382,6 +391,7 @@ auto URI::rebase(const URI &base, const URI &new_base) -> URI & {
   this->userinfo_ = new_base.userinfo_;
   this->host_ = new_base.host_;
   this->port_ = new_base.port_;
+  this->ip_literal_ = new_base.ip_literal_;
   // The new components come from the new base, so the result is an IRI if the
   // new base is one
   this->iri_ = this->iri_ || new_base.iri_;
@@ -408,6 +418,7 @@ auto URI::rebase(const URI &base, URI &&new_base) -> URI & {
   this->userinfo_ = std::move(new_base.userinfo_);
   this->host_ = std::move(new_base.host_);
   this->port_ = new_base.port_;
+  this->ip_literal_ = new_base.ip_literal_;
   // The new components come from the new base, so the result is an IRI if the
   // new base is one
   this->iri_ = this->iri_ || new_base.iri_;

@@ -591,3 +591,10 @@ TEST(descendant_of_base_with_trailing_slash_resolves_back) {
   resolved.resolve_from(base);
   EXPECT_EQ(resolved.recompose(), "https://example.com/foo/bar");
 }
+
+TEST(slashless_base_with_descendant_target) {
+  const sourcemeta::core::URI base{"schema:foo"};
+  sourcemeta::core::URI uri{"schema:foo/bar"};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), "schema:foo/bar");
+}

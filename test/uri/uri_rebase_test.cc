@@ -96,3 +96,35 @@ TEST(different_host_is_left_intact) {
   uri.rebase(base, new_base);
   EXPECT_EQ(uri.recompose(), "https://other.com/foo/bar");
 }
+
+TEST(identical_uri_keeps_its_query) {
+  sourcemeta::core::URI uri{"https://example.com/foo?q=1"};
+  const sourcemeta::core::URI base{"https://example.com/foo?q=1"};
+  const sourcemeta::core::URI new_base{"/qux"};
+  uri.rebase(base, new_base);
+  EXPECT_EQ(uri.recompose(), "/qux?q=1");
+}
+
+TEST(identical_uri_keeps_its_fragment) {
+  sourcemeta::core::URI uri{"https://example.com/foo#frag"};
+  const sourcemeta::core::URI base{"https://example.com/foo#frag"};
+  const sourcemeta::core::URI new_base{"/qux"};
+  uri.rebase(base, new_base);
+  EXPECT_EQ(uri.recompose(), "/qux#frag");
+}
+
+TEST(relative_uri_is_left_intact) {
+  sourcemeta::core::URI uri{"foo/bar"};
+  const sourcemeta::core::URI base{"foo"};
+  const sourcemeta::core::URI new_base{"/qux"};
+  uri.rebase(base, new_base);
+  EXPECT_EQ(uri.recompose(), "foo/bar");
+}
+
+TEST(ipv6_new_base_keeps_its_brackets) {
+  sourcemeta::core::URI uri{"https://example.com/foo/bar"};
+  const sourcemeta::core::URI base{"https://example.com/foo"};
+  const sourcemeta::core::URI new_base{"https://[::1]/qux"};
+  uri.rebase(base, new_base);
+  EXPECT_EQ(uri.recompose(), "https://[::1]/qux/bar");
+}
