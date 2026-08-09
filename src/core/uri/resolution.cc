@@ -30,6 +30,13 @@ auto merge_paths(const std::string &base_path, const std::string &ref_path,
   return base_path.substr(0, last_slash + 1) + ref_path;
 }
 
+// RFC 3986 Section 4.2: "A relative reference that begins with two slash
+// characters is termed a network-path reference", so a leading slash can only
+// be dropped from a path when another one does not immediately follow it
+auto can_drop_leading_slash(const std::string &path) -> bool {
+  return path.length() > 1 && path.starts_with('/') && path[1] != '/';
+}
+
 } // namespace
 
 namespace sourcemeta::core {
@@ -205,8 +212,7 @@ auto URI::relative_to(const URI &base) -> URI & {
     // there. Without an authority, merging appends the reference to a base
     // path that has no segments at all, so dropping the slash would name a
     // rootless path instead. A path of just "/" names the root either way
-    if (base.host_.has_value() && relative_path.starts_with('/') &&
-        relative_path.length() > 1) {
+    if (base.host_.has_value() && can_drop_leading_slash(relative_path)) {
       relative_path.erase(0, 1);
     }
 
@@ -224,10 +230,14 @@ auto URI::relative_to(const URI &base) -> URI & {
   // Case 2: Check if this_path starts with base_path followed by "/"
   // This handles: base="/foo" and this="/foo/bar" = "bar"
   // But NOT: base="/spec" and this="/spec/" (different resources)
+  // RFC 3986 Section 5.2.2 uses a reference path that starts with a slash as
+  // is, so a remainder that begins with one would drop the base prefix rather
+  // than name something below it
   const std::string base_with_slash =
       base_path.ends_with('/') ? base_path : base_path + "/";
   if (this_path.starts_with(base_with_slash) &&
-      this_path.length() > base_with_slash.length()) {
+      this_path.length() > base_with_slash.length() &&
+      this_path[base_with_slash.length()] != '/') {
     auto relative_path = this_path.substr(base_with_slash.length());
 
     this->scheme_.reset();
@@ -310,7 +320,14 @@ auto URI::relative_to(const URI &base) -> URI & {
   }
 
   if (current_base_parent == "/" && this_path.starts_with('/')) {
-    relative_path += this_path.substr(1);
+    // Without a parent segment to step out of, the reference is the target
+    // path minus the slash that merging puts back, unless that slash cannot
+    // be dropped, in which case the whole path names the target on its own
+    if (relative_path.empty() && !can_drop_leading_slash(this_path)) {
+      relative_path = this_path;
+    } else {
+      relative_path += this_path.substr(1);
+    }
 
     this->scheme_.reset();
     this->userinfo_.reset();

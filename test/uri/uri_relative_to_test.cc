@@ -461,6 +461,49 @@ TEST(target_is_root_of_base_without_path_resolves_back) {
   EXPECT_EQ(resolved.recompose(), "https://example.com/");
 }
 
+TEST(target_with_empty_first_segment_of_base_without_path) {
+  const sourcemeta::core::URI base{"https://example.com"};
+  sourcemeta::core::URI uri{"https://example.com//foo"};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), "/.//foo");
+}
+
+TEST(target_with_empty_first_segment_of_base_without_path_resolves_back) {
+  const sourcemeta::core::URI base{"https://example.com"};
+  sourcemeta::core::URI uri{"https://example.com//foo"};
+  uri.relative_to(base);
+  sourcemeta::core::URI resolved{uri.recompose()};
+  resolved.resolve_from(base);
+  EXPECT_EQ(resolved.recompose(), "https://example.com//foo");
+}
+
+TEST(target_with_empty_first_segment_of_root_base_resolves_back) {
+  const sourcemeta::core::URI base{"https://example.com/foo"};
+  sourcemeta::core::URI uri{"https://example.com//bar"};
+  uri.relative_to(base);
+  sourcemeta::core::URI resolved{uri.recompose()};
+  resolved.resolve_from(base);
+  EXPECT_EQ(resolved.recompose(), "https://example.com//bar");
+}
+
+TEST(target_with_empty_segment_below_base_resolves_back) {
+  const sourcemeta::core::URI base{"https://example.com/foo"};
+  sourcemeta::core::URI uri{"https://example.com/foo//bar"};
+  uri.relative_to(base);
+  sourcemeta::core::URI resolved{uri.recompose()};
+  resolved.resolve_from(base);
+  EXPECT_EQ(resolved.recompose(), "https://example.com/foo//bar");
+}
+
+TEST(target_with_empty_first_segment_from_nested_base_resolves_back) {
+  const sourcemeta::core::URI base{"https://example.com/a/b"};
+  sourcemeta::core::URI uri{"https://example.com//bar"};
+  uri.relative_to(base);
+  sourcemeta::core::URI resolved{uri.recompose()};
+  resolved.resolve_from(base);
+  EXPECT_EQ(resolved.recompose(), "https://example.com//bar");
+}
+
 TEST(target_is_absolute_path_of_base_without_authority) {
   const sourcemeta::core::URI base{"schema:"};
   sourcemeta::core::URI uri{"schema:/foo"};
