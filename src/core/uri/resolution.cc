@@ -235,15 +235,25 @@ auto URI::relative_to(const URI &base) -> URI & {
   const auto base_last_slash = base_path.rfind('/');
   const auto this_last_slash = this_path.rfind('/');
 
+  // RFC 3986 Section 5.2.3 merges against the base path with everything after
+  // its right-most slash excluded, and Section 5.2.2 removes dot segments only
+  // once that merge has happened, so what a reference is really measured
+  // against is that prefix after normalisation. Normalising the whole base
+  // path instead would be wrong, as a dot segment sitting after the last slash
+  // is dropped by the merge rather than applied
+  const auto base_anchor =
+      base_last_slash != std::string::npos
+          ? remove_dot_segments(base_path.substr(0, base_last_slash + 1))
+          : std::string{};
+
   // Case 2: Check if both paths share the same parent directory (siblings)
   // This handles: base="/test/bar.json" and this="/test/foo.json" =
   // "foo.json"
   if (base_last_slash != std::string::npos &&
       this_last_slash != std::string::npos) {
-    const auto base_parent = base_path.substr(0, base_last_slash + 1);
     const auto this_parent = this_path.substr(0, this_last_slash + 1);
 
-    if (base_parent == this_parent) {
+    if (base_anchor == this_parent) {
       auto relative_path = this_path.substr(this_last_slash + 1);
 
       this->scheme_.reset();
@@ -265,17 +275,8 @@ auto URI::relative_to(const URI &base) -> URI & {
   // Result should be "../bundling/bar"
   // Note: We don't make URIs relative if the target is just a shallow path
   // like "/foo" (only one level deep) as that's not meaningfully navigable
-  // RFC 3986 Section 5.2.3 appends the reference to the base path "excluding
-  // any characters after the right-most "/" in the base URI path, or excluding
-  // the entire base URI path if it does not contain any "/" characters", so a
-  // base path without a slash anchors nothing and no suffix of it can be
-  // stripped to form a reference
-  const auto base_parent = base_last_slash != std::string::npos
-                               ? base_path.substr(0, base_last_slash + 1)
-                               : std::string{};
-
   std::string relative_path;
-  std::string current_base_parent{base_parent};
+  std::string current_base_parent{base_anchor};
 
   while (!current_base_parent.empty() && current_base_parent != "/") {
     if (this_path.starts_with(current_base_parent)) {

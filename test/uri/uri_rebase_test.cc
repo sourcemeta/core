@@ -128,3 +128,76 @@ TEST(ipv6_new_base_keeps_its_brackets) {
   uri.rebase(base, new_base);
   EXPECT_EQ(uri.recompose(), "https://[::1]/qux/bar");
 }
+
+TEST(rebasing_back_to_the_original_base_restores_the_uri) {
+  sourcemeta::core::URI uri{"https://a.com/base/x/y"};
+  uri.rebase(sourcemeta::core::URI{"https://a.com/base"},
+             sourcemeta::core::URI{"https://b.com/new"});
+  EXPECT_EQ(uri.recompose(), "https://b.com/new/x/y");
+  uri.rebase(sourcemeta::core::URI{"https://b.com/new"},
+             sourcemeta::core::URI{"https://a.com/base"});
+  EXPECT_EQ(uri.recompose(), "https://a.com/base/x/y");
+}
+
+TEST(rebasing_onto_the_same_base_is_a_no_op) {
+  sourcemeta::core::URI uri{"https://a.com/base/x"};
+  uri.rebase(sourcemeta::core::URI{"https://a.com/base"},
+             sourcemeta::core::URI{"https://a.com/base"});
+  EXPECT_EQ(uri.recompose(), "https://a.com/base/x");
+}
+
+TEST(dot_segments_in_the_uri_are_resolved) {
+  sourcemeta::core::URI uri{"https://a.com/base/./x"};
+  uri.rebase(sourcemeta::core::URI{"https://a.com/base"},
+             sourcemeta::core::URI{"/new"});
+  EXPECT_EQ(uri.recompose(), "/new/x");
+}
+
+TEST(a_uri_escaping_the_base_is_left_intact) {
+  sourcemeta::core::URI uri{"https://a.com/base/../etc"};
+  uri.rebase(sourcemeta::core::URI{"https://a.com/base"},
+             sourcemeta::core::URI{"/new"});
+  EXPECT_EQ(uri.recompose(), "https://a.com/base/../etc");
+}
+
+TEST(dot_segments_in_the_base_are_resolved) {
+  sourcemeta::core::URI uri{"https://a.com/base/x"};
+  uri.rebase(sourcemeta::core::URI{"https://a.com/base/."},
+             sourcemeta::core::URI{"/new"});
+  EXPECT_EQ(uri.recompose(), "/new/x");
+}
+
+TEST(a_query_on_the_new_base_is_not_carried_over) {
+  sourcemeta::core::URI uri{"https://a.com/base/x"};
+  uri.rebase(sourcemeta::core::URI{"https://a.com/base"},
+             sourcemeta::core::URI{"/new?q=1"});
+  EXPECT_EQ(uri.recompose(), "/new/x");
+}
+
+TEST(an_empty_new_base_yields_the_suffix_alone) {
+  sourcemeta::core::URI uri{"https://a.com/base/x"};
+  uri.rebase(sourcemeta::core::URI{"https://a.com/base"},
+             sourcemeta::core::URI{""});
+  EXPECT_EQ(uri.recompose(), "x");
+}
+
+TEST(a_new_base_with_a_trailing_slash_does_not_double_it) {
+  sourcemeta::core::URI uri{"https://a.com/base/x"};
+  uri.rebase(sourcemeta::core::URI{"https://a.com/base"},
+             sourcemeta::core::URI{"/new/"});
+  EXPECT_EQ(uri.recompose(), "/new/x");
+}
+
+TEST(a_uri_equal_to_the_base_keeps_the_new_base_trailing_slash) {
+  sourcemeta::core::URI uri{"https://a.com/base"};
+  uri.rebase(sourcemeta::core::URI{"https://a.com/base"},
+             sourcemeta::core::URI{"/new/"});
+  EXPECT_EQ(uri.recompose(), "/new/");
+}
+
+TEST(a_base_with_a_trailing_slash_matches_the_same_suffix) {
+  sourcemeta::core::URI uri{"https://a.com/base/x"};
+  uri.rebase(sourcemeta::core::URI{"https://a.com/base/"},
+             sourcemeta::core::URI{"/new"});
+  EXPECT_EQ(uri.recompose(), "/new/x");
+}

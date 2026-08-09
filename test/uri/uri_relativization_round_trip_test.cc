@@ -37,6 +37,18 @@ static auto normalised(const std::string &input) -> std::string {
   return sourcemeta::core::URI{input}.recompose();
 }
 
+// RFC 3986 is ASCII only, so a non-ASCII input has to travel the RFC 3987 path
+// from parsing through to recomposition for the equation to mean anything
+static auto round_trip_iri(const std::string &base_string,
+                           const std::string &target_string) -> std::string {
+  const auto base{sourcemeta::core::URI::from_iri(base_string)};
+  auto target{sourcemeta::core::URI::from_iri(target_string)};
+  target.relative_to(base);
+  auto resolved{sourcemeta::core::URI::from_iri(target.recompose())};
+  resolved.resolve_from(base);
+  return resolved.recompose();
+}
+
 TEST(absolute_absolute_base_true_1) {
   EXPECT_EQ(
       round_trip("https://www.example.com", "https://www.example.com/foo"),
@@ -646,4 +658,246 @@ TEST(descendant_of_a_base_with_an_empty_first_segment) {
 TEST(target_gains_an_empty_first_segment) {
   EXPECT_EQ(round_trip("https://example.com/a", "https://example.com//a"),
             normalised("https://example.com//a"));
+}
+
+TEST(base_with_dot_segment) {
+  EXPECT_EQ(round_trip("https://example.com/a/./b", "https://example.com/a/c"),
+            normalised("https://example.com/a/c"));
+}
+
+TEST(base_with_dotdot_segment) {
+  EXPECT_EQ(round_trip("https://example.com/a/../b", "https://example.com/a/c"),
+            normalised("https://example.com/a/c"));
+}
+
+TEST(uppercase_scheme_in_base) {
+  EXPECT_EQ(round_trip("HTTPS://example.com/a/b", "https://example.com/a/c"),
+            normalised("https://example.com/a/c"));
+}
+
+TEST(uppercase_host_in_base) {
+  EXPECT_EQ(round_trip("https://EXAMPLE.COM/a/b", "https://example.com/a/c"),
+            normalised("https://example.com/a/c"));
+}
+
+TEST(explicit_default_port) {
+  EXPECT_EQ(
+      round_trip("https://example.com:443/a/b", "https://example.com:443/a/c"),
+      normalised("https://example.com:443/a/c"));
+}
+
+TEST(base_with_port_and_target_without) {
+  EXPECT_EQ(
+      round_trip("https://example.com:443/a/b", "https://example.com/a/c"),
+      normalised("https://example.com/a/c"));
+}
+
+TEST(deep_ancestor_traversal) {
+  EXPECT_EQ(
+      round_trip("https://example.com/a/b/c/d/e/f", "https://example.com/x"),
+      normalised("https://example.com/x"));
+}
+
+TEST(repeated_empty_segments) {
+  EXPECT_EQ(
+      round_trip("https://example.com/a//b//c", "https://example.com/a//b//d"),
+      normalised("https://example.com/a//b//d"));
+}
+
+TEST(file_with_localhost_authority) {
+  EXPECT_EQ(round_trip("file://localhost/a/b", "file://localhost/a/c"),
+            normalised("file://localhost/a/c"));
+}
+
+TEST(file_with_empty_authority) {
+  EXPECT_EQ(round_trip("file:///a/b", "file:///a/c"),
+            normalised("file:///a/c"));
+}
+
+TEST(scheme_with_plus_hyphen_and_dot) {
+  EXPECT_EQ(round_trip("a+b-c.d:/x/y", "a+b-c.d:/x/z"),
+            normalised("a+b-c.d:/x/z"));
+}
+
+TEST(query_containing_slashes) {
+  EXPECT_EQ(
+      round_trip("https://example.com/a/b", "https://example.com/a/c?x=/y/z"),
+      normalised("https://example.com/a/c?x=/y/z"));
+}
+
+TEST(fragment_containing_slashes) {
+  EXPECT_EQ(
+      round_trip("https://example.com/a/b", "https://example.com/a/c#/defs/x"),
+      normalised("https://example.com/a/c#/defs/x"));
+}
+
+TEST(fragment_containing_question_mark) {
+  EXPECT_EQ(
+      round_trip("https://example.com/a/b", "https://example.com/a/c#x?y"),
+      normalised("https://example.com/a/c#x?y"));
+}
+
+TEST(userinfo_with_colon) {
+  EXPECT_EQ(round_trip("https://u:p@example.com/a/b",
+                       "https://u:p@example.com/a/b/c"),
+            normalised("https://u:p@example.com/a/b/c"));
+}
+
+TEST(percent_encoded_userinfo) {
+  EXPECT_EQ(round_trip("https://u%40x@example.com/a/b",
+                       "https://u%40x@example.com/a/c"),
+            normalised("https://u%40x@example.com/a/c"));
+}
+
+TEST(path_with_semicolon_parameters) {
+  EXPECT_EQ(
+      round_trip("https://example.com/a/b;x=1", "https://example.com/a/c;y=2"),
+      normalised("https://example.com/a/c;y=2"));
+}
+
+TEST(path_segment_with_at_sign) {
+  EXPECT_EQ(round_trip("https://example.com/a/b", "https://example.com/a/@c"),
+            normalised("https://example.com/a/@c"));
+}
+
+TEST(deeply_nested_descendant) {
+  EXPECT_EQ(
+      round_trip("https://example.com/a", "https://example.com/a/b/c/d/e/f/g"),
+      normalised("https://example.com/a/b/c/d/e/f/g"));
+}
+
+TEST(shared_prefix_without_a_segment_boundary) {
+  EXPECT_EQ(
+      round_trip("https://example.com/foo", "https://example.com/foobar/baz"),
+      normalised("https://example.com/foobar/baz"));
+}
+
+// A target path that carries dot segments cannot be named by any relative
+// reference, since RFC 3986 Section 5.2.2 removes them on every resolution
+// branch. These pin what resolution leaves instead, so the limit stays visible
+TEST(encoded_dotdot_segment_is_removed) {
+  EXPECT_EQ(
+      round_trip("https://example.com/a/b", "https://example.com/a/%2E%2E/c"),
+      "https://example.com/c");
+}
+
+TEST(encoded_dot_segment_is_removed) {
+  EXPECT_EQ(
+      round_trip("https://example.com/a/b", "https://example.com/a/%2E/c"),
+      "https://example.com/a/c");
+}
+
+TEST(dot_named_final_segment_is_removed) {
+  EXPECT_EQ(round_trip("https://example.com/a/b", "https://example.com/a/."),
+            "https://example.com/a/");
+}
+
+TEST(dotdot_named_final_segment_is_removed) {
+  EXPECT_EQ(round_trip("https://example.com/a/b", "https://example.com/a/.."),
+            "https://example.com/");
+}
+
+TEST(target_of_only_slashes) {
+  EXPECT_EQ(round_trip("https://example.com/a", "https://example.com///"),
+            normalised("https://example.com///"));
+}
+
+TEST(base_of_only_slashes) {
+  EXPECT_EQ(round_trip("https://example.com///", "https://example.com/a"),
+            normalised("https://example.com/a"));
+}
+
+TEST(root_base_with_empty_first_segment_target) {
+  EXPECT_EQ(round_trip("https://example.com/", "https://example.com//x"),
+            normalised("https://example.com//x"));
+}
+
+TEST(urn_siblings) {
+  EXPECT_EQ(round_trip("urn:example:a", "urn:example:b"),
+            normalised("urn:example:b"));
+}
+
+TEST(tag_uri_siblings) {
+  EXPECT_EQ(round_trip("tag:example.com,2024:a", "tag:example.com,2024:b"),
+            normalised("tag:example.com,2024:b"));
+}
+
+TEST(long_ancestor_chain) {
+  EXPECT_EQ(round_trip("https://example.com/a/b/c/d/e/f/g/h/i/j/k",
+                       "https://example.com/z"),
+            normalised("https://example.com/z"));
+}
+
+TEST(long_descendant_chain) {
+  EXPECT_EQ(round_trip("https://example.com/a",
+                       "https://example.com/a/b/c/d/e/f/g/h/i/j/k"),
+            normalised("https://example.com/a/b/c/d/e/f/g/h/i/j/k"));
+}
+
+TEST(base_with_dotdot_as_its_last_segment) {
+  EXPECT_EQ(round_trip("https://example.com/a/b/..", "https://example.com/a/c"),
+            normalised("https://example.com/a/c"));
+}
+
+TEST(base_with_dot_as_its_last_segment) {
+  EXPECT_EQ(
+      round_trip("https://example.com/a/b/.", "https://example.com/a/b/c"),
+      normalised("https://example.com/a/b/c"));
+}
+
+TEST(base_with_dotdot_beyond_the_root) {
+  EXPECT_EQ(round_trip("https://example.com/../../a", "https://example.com/b"),
+            normalised("https://example.com/b"));
+}
+
+TEST(target_is_an_empty_segment_at_the_root) {
+  EXPECT_EQ(round_trip("https://example.com/a/b", "https://example.com//"),
+            normalised("https://example.com//"));
+}
+
+TEST(target_is_the_base_parent_exactly) {
+  EXPECT_EQ(round_trip("https://example.com/a/b/c", "https://example.com/a/b"),
+            normalised("https://example.com/a/b"));
+}
+
+TEST(single_character_segments) {
+  EXPECT_EQ(
+      round_trip("https://example.com/a/b/c", "https://example.com/a/b/d"),
+      normalised("https://example.com/a/b/d"));
+}
+
+TEST(iri_base_and_target) {
+  EXPECT_EQ(round_trip_iri("https://example.com/caf\xC3\xA9/a",
+                           "https://example.com/caf\xC3\xA9/b"),
+            "https://example.com/caf\xC3\xA9/b");
+}
+
+TEST(iri_query) {
+  EXPECT_EQ(round_trip_iri("https://example.com/a/b",
+                           "https://example.com/a/c?q=caf\xC3\xA9"),
+            "https://example.com/a/c?q=caf\xC3\xA9");
+}
+
+TEST(iri_fragment) {
+  EXPECT_EQ(round_trip_iri("https://example.com/a/b",
+                           "https://example.com/a/c#caf\xC3\xA9"),
+            "https://example.com/a/c#caf\xC3\xA9");
+}
+
+TEST(iri_descendant) {
+  EXPECT_EQ(round_trip_iri("https://example.com/caf\xC3\xA9",
+                           "https://example.com/caf\xC3\xA9/x"),
+            "https://example.com/caf\xC3\xA9/x");
+}
+
+TEST(iri_ancestor) {
+  EXPECT_EQ(round_trip_iri("https://example.com/caf\xC3\xA9/x/y",
+                           "https://example.com/caf\xC3\xA9"),
+            "https://example.com/caf\xC3\xA9");
+}
+
+TEST(iri_host) {
+  EXPECT_EQ(round_trip_iri("https://caf\xC3\xA9.example/a/b",
+                           "https://caf\xC3\xA9.example/a/c"),
+            "https://caf\xC3\xA9.example/a/c");
 }
