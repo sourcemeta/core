@@ -296,6 +296,15 @@ auto URI::relative_to(const URI &base) -> URI & {
     if (this_path.starts_with(current_base_parent)) {
       const auto remainder{this_path.substr(current_base_parent.length())};
       if (!remainder.empty()) {
+        // A remainder that opens with an empty segment would turn the whole
+        // reference into an absolute path that keeps nothing of the base. A
+        // leading "./" stands in for the directory the merge already supplies
+        // and is consumed along with its own slash, which leaves the slash
+        // that opens the remainder to form the empty segment
+        if (relative_path.empty() && remainder.starts_with('/')) {
+          relative_path += "./";
+        }
+
         relative_path += remainder;
       }
 
