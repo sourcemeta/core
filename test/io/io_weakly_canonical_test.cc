@@ -139,14 +139,18 @@ TEST(posix_no_change_for_clean_path) {
 }
 
 TEST(posix_relative_fifo) {
-  const std::filesystem::path name{
-      "sourcemeta-core-weakly-canonical-test-fifo"};
-  std::filesystem::remove(name);
-  EXPECT_EQ(::mkfifo(name.c_str(), S_IRUSR | S_IWUSR), 0);
-  const auto path{sourcemeta::core::weakly_canonical(name)};
-  std::filesystem::remove(name);
+  const auto fifo_path{std::filesystem::path{BUILD_DIRECTORY} /
+                       "sourcemeta_core_io_weakly_canonical_fifo"};
+  std::filesystem::remove(fifo_path);
+  EXPECT_EQ(::mkfifo(fifo_path.c_str(), S_IRUSR | S_IWUSR), 0);
+  const auto relative_fifo_path{std::filesystem::relative(fifo_path)};
+  const auto path{sourcemeta::core::weakly_canonical(relative_fifo_path)};
+  const auto expected{sourcemeta::core::weakly_canonical(fifo_path)};
+  std::filesystem::remove(fifo_path);
+
+  EXPECT_TRUE(relative_fifo_path.is_relative());
   EXPECT_TRUE(path.is_absolute());
-  EXPECT_EQ(path, std::filesystem::current_path() / name);
+  EXPECT_EQ(path, expected);
 }
 
 #endif
