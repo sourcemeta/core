@@ -1,6 +1,12 @@
 #include <sourcemeta/core/io.h>
 #include <sourcemeta/core/test.h>
 
+#include <filesystem> // std::filesystem
+
+#if !defined(_WIN32)
+#include <sys/stat.h> // mkfifo, S_IRUSR, S_IWUSR
+#endif
+
 TEST(test_txt) {
   const auto path{sourcemeta::core::weakly_canonical(
       std::filesystem::path{STUBS_DIRECTORY} / "test.txt")};
@@ -16,6 +22,43 @@ TEST(not_exists) {
 TEST(empty) {
   EXPECT_EQ(sourcemeta::core::weakly_canonical(std::filesystem::path{}),
             std::filesystem::path{});
+}
+
+TEST(relative_that_does_not_exist) {
+  const auto path{sourcemeta::core::weakly_canonical(
+      std::filesystem::path{"sourcemeta-core-does-not-exist.txt"})};
+  EXPECT_TRUE(path.is_absolute());
+  EXPECT_EQ(path,
+            std::filesystem::current_path() /
+                std::filesystem::path{"sourcemeta-core-does-not-exist.txt"});
+}
+
+TEST(relative_with_missing_leading_component) {
+  const auto path{sourcemeta::core::weakly_canonical(
+      std::filesystem::path{"sourcemeta-core-nope"} /
+      std::filesystem::path{"also-nope.txt"})};
+  EXPECT_TRUE(path.is_absolute());
+  EXPECT_EQ(path, std::filesystem::current_path() /
+                      std::filesystem::path{"sourcemeta-core-nope"} /
+                      std::filesystem::path{"also-nope.txt"});
+}
+
+TEST(relative_with_dot_segments_that_does_not_exist) {
+  const auto path{sourcemeta::core::weakly_canonical(
+      std::filesystem::path{"."} /
+      std::filesystem::path{"sourcemeta-core-nope"} /
+      std::filesystem::path{".."} /
+      std::filesystem::path{"sourcemeta-core-also-nope.txt"})};
+  EXPECT_TRUE(path.is_absolute());
+  EXPECT_EQ(path, std::filesystem::current_path() /
+                      std::filesystem::path{"sourcemeta-core-also-nope.txt"});
+}
+
+TEST(relative_that_exists) {
+  const auto path{sourcemeta::core::weakly_canonical(
+      std::filesystem::path{"."} / std::filesystem::path{"."})};
+  EXPECT_TRUE(path.is_absolute());
+  EXPECT_EQ(path, std::filesystem::current_path());
 }
 
 #ifndef _WIN32
@@ -93,6 +136,17 @@ TEST(posix_no_change_for_clean_path) {
   EXPECT_EQ(
       sourcemeta::core::weakly_canonical(std::filesystem::path{"/foo/bar/baz"}),
       std::filesystem::path{"/foo/bar/baz"});
+}
+
+TEST(posix_relative_fifo) {
+  const std::filesystem::path name{
+      "sourcemeta-core-weakly-canonical-test-fifo"};
+  std::filesystem::remove(name);
+  EXPECT_EQ(::mkfifo(name.c_str(), S_IRUSR | S_IWUSR), 0);
+  const auto path{sourcemeta::core::weakly_canonical(name)};
+  std::filesystem::remove(name);
+  EXPECT_TRUE(path.is_absolute());
+  EXPECT_EQ(path, std::filesystem::current_path() / name);
 }
 
 #endif
