@@ -14,17 +14,18 @@
 #include <sourcemeta/core/io_temporary.h>
 // NOLINTEND(misc-include-cleaner)
 
-#include <cstddef>      // std::byte
-#include <filesystem>   // std::filesystem
-#include <fstream>      // std::basic_ifstream
-#include <functional>   // std::function
-#include <iostream>     // std::cin
-#include <istream>      // std::basic_istream
-#include <limits>       // std::numeric_limits
-#include <ostream>      // std::ostream
-#include <span>         // std::span
-#include <sstream>      // std::basic_ostringstream
-#include <string>       // std::basic_string, std::char_traits, std::string
+#include <cstddef>    // std::byte
+#include <filesystem> // std::filesystem
+#include <fstream>    // std::basic_ifstream
+#include <functional> // std::function
+#include <ios>      // std::ios, std::streamoff, std::streampos, std::streamsize
+#include <iostream> // std::cin
+#include <istream>  // std::basic_istream
+#include <limits>   // std::numeric_limits
+#include <ostream>  // std::ostream
+#include <span>     // std::span
+#include <sstream>  // std::basic_ostringstream
+#include <string>   // std::basic_string, std::char_traits, std::string
 #include <string_view>  // std::string_view
 #include <system_error> // std::error_code
 
@@ -120,7 +121,8 @@ auto strip_path_prefix(const std::filesystem::path &path,
 
 /// @ingroup io
 ///
-/// A convenience function to open a stream from a file. For example:
+/// A convenience function to open a stream from a file in binary mode, so that
+/// its positions are byte offsets on every platform. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/io.h>
@@ -137,7 +139,10 @@ auto read_file(const std::filesystem::path &path)
   }
 
   const auto canonical_path{sourcemeta::core::canonical(path)};
-  std::basic_ifstream<CharT, Traits> stream{canonical_path};
+  // Text mode translates line endings on some platforms, which desynchronises
+  // character offsets from byte offsets and makes the stream impossible to
+  // reposition by arithmetic
+  std::basic_ifstream<CharT, Traits> stream{canonical_path, std::ios::binary};
   if (!stream.is_open()) {
     throw IOFilePermissionError{canonical_path};
   }
@@ -187,7 +192,8 @@ auto read_to_string(std::basic_istream<CharT, Traits> &stream)
 ///
 /// Position an input stream a given number of characters after a position it
 /// previously reported, leaving a stream that could not report one untouched.
-/// For example:
+/// The stream must address its contents in bytes, as one opened in binary mode
+/// does. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/io.h>
@@ -207,13 +213,8 @@ auto resume_stream(std::basic_istream<CharT, Traits> &stream,
     return;
   }
 
-  // Line ending translation makes a character offset differ from a byte
-  // offset, and only a position the stream itself reported can be restored, so
-  // rewind and skip the characters that were consumed rather than computing a
-  // new position
   stream.clear();
-  stream.seekg(start);
-  stream.ignore(count);
+  stream.seekg(start + static_cast<std::streamoff>(count));
 }
 
 /// @ingroup io
