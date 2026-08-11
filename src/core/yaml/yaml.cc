@@ -8,27 +8,6 @@
 
 namespace sourcemeta::core {
 
-// Leave the stream on the character that follows the document that was parsed,
-// so that the caller can read the next one
-static auto
-resume_stream(std::basic_istream<JSON::Char, JSON::CharTraits> &stream,
-              const std::streampos start, const std::streamsize consumed)
-    -> void {
-  // A stream that cannot report a position cannot be resumed, and it has
-  // already been drained in full
-  if (start == static_cast<std::streampos>(-1)) {
-    return;
-  }
-
-  // Line ending translation makes a character offset differ from a byte
-  // offset, and only a position the stream itself reported can be restored, so
-  // rewind and skip the characters that were consumed rather than computing a
-  // new position
-  stream.clear();
-  stream.seekg(start);
-  stream.ignore(consumed);
-}
-
 auto parse_yaml(std::basic_istream<JSON::Char, JSON::CharTraits> &stream)
     -> JSON {
   const auto start_pos{stream.tellg()};

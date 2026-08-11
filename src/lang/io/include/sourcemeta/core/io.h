@@ -185,6 +185,39 @@ auto read_to_string(std::basic_istream<CharT, Traits> &stream)
 
 /// @ingroup io
 ///
+/// Position an input stream a given number of characters after a position it
+/// previously reported, leaving a stream that could not report one untouched.
+/// For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/io.h>
+/// #include <sstream>
+/// #include <cassert>
+///
+/// std::istringstream stream{"foobar"};
+/// const auto start{stream.tellg()};
+/// sourcemeta::core::resume_stream(stream, start, 3);
+/// assert(stream.peek() == 'b');
+/// ```
+template <typename CharT = char, typename Traits = std::char_traits<CharT>>
+auto resume_stream(std::basic_istream<CharT, Traits> &stream,
+                   const std::streampos start, const std::streamsize count)
+    -> void {
+  if (start == static_cast<std::streampos>(-1)) {
+    return;
+  }
+
+  // Line ending translation makes a character offset differ from a byte
+  // offset, and only a position the stream itself reported can be restored, so
+  // rewind and skip the characters that were consumed rather than computing a
+  // new position
+  stream.clear();
+  stream.seekg(start);
+  stream.ignore(count);
+}
+
+/// @ingroup io
+///
 /// Read an entire file into a string. For example:
 ///
 /// ```cpp
