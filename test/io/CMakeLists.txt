@@ -12,6 +12,7 @@ sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME io
     io_hardlink_directory_test.cc
     io_read_file_test.cc
     io_read_to_string_test.cc
+    io_resume_stream_test.cc
     io_is_under_path_test.cc
     io_is_lexically_under_path_test.cc
     io_strip_path_prefix_test.cc

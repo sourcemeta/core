@@ -1,0 +1,7 @@
+foo: 1
+
+---
+
+# A comment between documents
+
+bar: 2
