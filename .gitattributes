@@ -1,6 +1,7 @@
 /vendor/** linguist-generated=true
 
-# The line endings of these fixtures are part of what they exercise, so they
-# must reach the working directory exactly as committed on every platform
-/test/json/stub_multi_document.json -text
-/test/yaml/stubs/multi_document_*.yaml -text
+# These fixtures are parser input, so their bytes, including their line
+# endings, must reach the working directory exactly as committed on every
+# platform
+/test/json/stub_*.json -text
+/test/yaml/stubs/** -text
