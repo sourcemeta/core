@@ -1413,6 +1413,23 @@ TEST(read_file_multi_document) {
   EXPECT_EQ(sourcemeta::core::read_to_string(stream), "\n");
 }
 
+TEST(read_file_multi_document_windows_line_endings) {
+  auto stream{sourcemeta::core::read_file(
+      std::filesystem::path{TEST_DIRECTORY} / "stub_multi_document_crlf.json")};
+
+  const auto first{sourcemeta::core::parse_json(stream)};
+  EXPECT_EQ(first, sourcemeta::core::parse_json(R"JSON({ "foo": 1 })JSON"));
+  EXPECT_TRUE(stream.good());
+
+  const auto second{sourcemeta::core::parse_json(stream)};
+  EXPECT_EQ(second, sourcemeta::core::parse_json(R"JSON({ "bar": 2 })JSON"));
+  EXPECT_TRUE(stream.good());
+
+  const auto third{sourcemeta::core::parse_json(stream)};
+  EXPECT_EQ(third, sourcemeta::core::parse_json(R"JSON({ "baz": 3 })JSON"));
+  EXPECT_TRUE(stream.good());
+}
+
 TEST(big_integer_beyond_64_bit) {
   std::istringstream input{"9223372036854776000"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);

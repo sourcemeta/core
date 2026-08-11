@@ -8,6 +8,27 @@
 
 namespace sourcemeta::core {
 
+// Leave the stream on the character that follows the document that was parsed,
+// so that the caller can read the next one
+static auto
+resume_stream(std::basic_istream<JSON::Char, JSON::CharTraits> &stream,
+              const std::streampos start, const std::streamsize consumed)
+    -> void {
+  // A stream that cannot report a position cannot be resumed, and it has
+  // already been drained in full
+  if (start == static_cast<std::streampos>(-1)) {
+    return;
+  }
+
+  // Line ending translation makes a character offset differ from a byte
+  // offset, and only a position the stream itself reported can be restored, so
+  // rewind and skip the characters that were consumed rather than computing a
+  // new position
+  stream.clear();
+  stream.seekg(start);
+  stream.ignore(consumed);
+}
+
 auto parse_yaml(std::basic_istream<JSON::Char, JSON::CharTraits> &stream)
     -> JSON {
   const auto start_pos{stream.tellg()};
@@ -19,11 +40,10 @@ auto parse_yaml(std::basic_istream<JSON::Char, JSON::CharTraits> &stream)
 
   // The parser position is relative to the input after any byte order mark has
   // been stripped, so the mark is added back to resume the stream at the right
-  // byte
-  const auto consumed{static_cast<std::streamoff>(lexer.bom_length()) +
-                      static_cast<std::streamoff>(parser.position())};
-  stream.clear();
-  stream.seekg(start_pos + consumed);
+  // character
+  resume_stream(stream, start_pos,
+                static_cast<std::streamsize>(lexer.bom_length()) +
+                    static_cast<std::streamsize>(parser.position()));
 
   return result;
 }
@@ -62,11 +82,10 @@ auto parse_yaml(std::basic_istream<JSON::Char, JSON::CharTraits> &stream,
 
   // The parser position is relative to the input after any byte order mark has
   // been stripped, so the mark is added back to resume the stream at the right
-  // byte
-  const auto consumed{static_cast<std::streamoff>(lexer.bom_length()) +
-                      static_cast<std::streamoff>(parser.position())};
-  stream.clear();
-  stream.seekg(start_pos + consumed);
+  // character
+  resume_stream(stream, start_pos,
+                static_cast<std::streamsize>(lexer.bom_length()) +
+                    static_cast<std::streamsize>(parser.position()));
 }
 
 auto parse_yaml(const JSON::String &input, JSON &output,

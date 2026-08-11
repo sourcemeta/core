@@ -120,6 +120,27 @@ static auto position_of(const char *begin, const char *target,
   }
 }
 
+// Leave the stream on the character that follows what was parsed, so that the
+// caller can read whatever comes next
+static auto
+resume_stream(std::basic_istream<JSON::Char, JSON::CharTraits> &stream,
+              const std::streampos start, const std::streamsize consumed)
+    -> void {
+  // A stream that cannot report a position cannot be resumed, and it has
+  // already been drained in full
+  if (start == static_cast<std::streampos>(-1)) {
+    return;
+  }
+
+  // Line ending translation makes a character offset differ from a byte
+  // offset, and only a position the stream itself reported can be restored, so
+  // rewind and skip the characters that were consumed rather than computing a
+  // new position
+  stream.clear();
+  stream.seekg(start);
+  stream.ignore(consumed);
+}
+
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 auto parse_json(std::basic_istream<JSON::Char, JSON::CharTraits> &stream,
                 std::uint64_t &line, std::uint64_t &column) -> JSON {
@@ -128,11 +149,8 @@ auto parse_json(std::basic_istream<JSON::Char, JSON::CharTraits> &stream,
   const char *cursor{input.data()};
   const char *end{input.data() + input.size()};
   auto result{internal_parse_json(cursor, end, line, column, true)};
-  if (start_position != static_cast<std::streampos>(-1)) {
-    const auto consumed{static_cast<std::streamoff>(cursor - input.data())};
-    stream.clear();
-    stream.seekg(start_position + consumed);
-  }
+  resume_stream(stream, start_position,
+                static_cast<std::streamsize>(cursor - input.data()));
 
   return result;
 }
@@ -157,11 +175,8 @@ auto parse_json(std::basic_istream<JSON::Char, JSON::CharTraits> &stream)
   std::uint64_t line{1};
   std::uint64_t column{0};
   auto result{internal_parse_json(cursor, end, line, column, false)};
-  if (start_position != static_cast<std::streampos>(-1)) {
-    const auto consumed{static_cast<std::streamoff>(cursor - input.data())};
-    stream.clear();
-    stream.seekg(start_position + consumed);
-  }
+  resume_stream(stream, start_position,
+                static_cast<std::streamsize>(cursor - input.data()));
   return result;
 }
 
@@ -217,11 +232,8 @@ auto parse_json(std::basic_istream<JSON::Char, JSON::CharTraits> &stream,
   const char *cursor{input.data()};
   const char *end{input.data() + input.size()};
   internal_parse_json<true>(cursor, end, line, column, callback, true, output);
-  if (start_position != static_cast<std::streampos>(-1)) {
-    const auto consumed{static_cast<std::streamoff>(cursor - input.data())};
-    stream.clear();
-    stream.seekg(start_position + consumed);
-  }
+  resume_stream(stream, start_position,
+                static_cast<std::streamsize>(cursor - input.data()));
 }
 
 auto parse_json(
@@ -244,11 +256,8 @@ auto parse_json(std::basic_istream<JSON::Char, JSON::CharTraits> &stream,
   std::uint64_t line{1};
   std::uint64_t column{0};
   internal_parse_json<true>(cursor, end, line, column, callback, false, output);
-  if (start_position != static_cast<std::streampos>(-1)) {
-    const auto consumed{static_cast<std::streamoff>(cursor - input.data())};
-    stream.clear();
-    stream.seekg(start_position + consumed);
-  }
+  resume_stream(stream, start_position,
+                static_cast<std::streamsize>(cursor - input.data()));
 }
 
 auto parse_json(
