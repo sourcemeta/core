@@ -1,3 +1,4 @@
+#include <sourcemeta/core/io.h>
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/test.h>
 #include <sourcemeta/core/yaml.h>
@@ -502,6 +503,33 @@ TEST(parse_stream_in_place_with_callback) {
   EXPECT_EQ(output.size(), 1);
   EXPECT_EQ(output.at("foo").to_integer(), 1);
   EXPECT_EQ(events, 4);
+}
+
+TEST(parse_file_stream_multi_document_with_callback) {
+  auto stream{sourcemeta::core::read_file(std::filesystem::path{STUBS_PATH} /
+                                          "multi_document_objects.yaml")};
+  sourcemeta::core::JSON output{nullptr};
+  std::size_t events{0};
+  const auto callback{
+      [&events](const sourcemeta::core::JSON::ParsePhase,
+                const sourcemeta::core::JSON::Type, const std::uint64_t,
+                const std::uint64_t, const sourcemeta::core::JSON::ParseContext,
+                const std::size_t,
+                const sourcemeta::core::JSON::String &) { events += 1; }};
+
+  sourcemeta::core::parse_yaml(stream, output, callback);
+  EXPECT_EQ(output, sourcemeta::core::parse_json(R"JSON({ "foo": 1 })JSON"));
+  EXPECT_EQ(events, 4);
+
+  sourcemeta::core::parse_yaml(stream, output, callback);
+  EXPECT_EQ(output, sourcemeta::core::parse_json(R"JSON({ "bar": 2 })JSON"));
+  EXPECT_EQ(events, 8);
+
+  sourcemeta::core::parse_yaml(stream, output, callback);
+  EXPECT_EQ(output, sourcemeta::core::parse_json(R"JSON({ "baz": 3 })JSON"));
+  EXPECT_EQ(events, 12);
+
+  EXPECT_EQ(stream.peek(), EOF);
 }
 
 TEST(read_in_place_with_callback_invalid) {

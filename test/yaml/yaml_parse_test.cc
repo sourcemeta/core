@@ -3,6 +3,8 @@
 #include <sourcemeta/core/test.h>
 #include <sourcemeta/core/yaml.h>
 
+#include <fstream>  // std::ifstream
+#include <ios>      // std::ios::binary
 #include <iostream> // std::cerr
 #include <sstream>  // std::istringstream
 #include <string>   // std::string
@@ -301,6 +303,164 @@ TEST(multi_document_windows_line_endings) {
 
   const auto doc3{sourcemeta::core::parse_yaml(stream)};
   EXPECT_EQ(doc3, sourcemeta::core::JSON{"baz"});
+
+  EXPECT_EQ(stream.peek(), EOF);
+}
+
+TEST(file_stream_single_document_exhausts_the_stream) {
+  auto stream{sourcemeta::core::read_file(std::filesystem::path{STUBS_PATH} /
+                                          "test_1.yaml")};
+
+  const auto result{sourcemeta::core::parse_yaml(stream)};
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "foo": "bar",
+    "baz": 2
+  })JSON");
+
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(stream.good());
+  EXPECT_EQ(stream.peek(), EOF);
+}
+
+TEST(file_stream_multi_document_unix_line_endings) {
+  auto stream{sourcemeta::core::read_file(std::filesystem::path{STUBS_PATH} /
+                                          "multi_document_lf.yaml")};
+
+  const auto first{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(first, sourcemeta::core::JSON{"foo"});
+  EXPECT_TRUE(stream.good());
+
+  const auto second{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(second, sourcemeta::core::JSON{"bar"});
+  EXPECT_TRUE(stream.good());
+
+  const auto third{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(third, sourcemeta::core::JSON{"baz"});
+  EXPECT_TRUE(stream.good());
+
+  EXPECT_EQ(stream.peek(), EOF);
+}
+
+TEST(file_stream_multi_document_windows_line_endings) {
+  auto stream{sourcemeta::core::read_file(std::filesystem::path{STUBS_PATH} /
+                                          "multi_document_crlf.yaml")};
+
+  const auto first{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(first, sourcemeta::core::JSON{"foo"});
+  EXPECT_TRUE(stream.good());
+
+  const auto second{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(second, sourcemeta::core::JSON{"bar"});
+  EXPECT_TRUE(stream.good());
+
+  const auto third{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(third, sourcemeta::core::JSON{"baz"});
+  EXPECT_TRUE(stream.good());
+
+  EXPECT_EQ(stream.peek(), EOF);
+}
+
+TEST(file_stream_multi_document_byte_order_mark) {
+  auto stream{sourcemeta::core::read_file(std::filesystem::path{STUBS_PATH} /
+                                          "multi_document_bom.yaml")};
+
+  const auto first{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(first, sourcemeta::core::JSON{"foo"});
+  EXPECT_TRUE(stream.good());
+
+  const auto second{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(second, sourcemeta::core::JSON{"bar"});
+  EXPECT_TRUE(stream.good());
+
+  EXPECT_EQ(stream.peek(), EOF);
+}
+
+TEST(file_stream_multi_document_objects) {
+  auto stream{sourcemeta::core::read_file(std::filesystem::path{STUBS_PATH} /
+                                          "multi_document_objects.yaml")};
+
+  const auto first{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(first, sourcemeta::core::parse_json(R"JSON({ "foo": 1 })JSON"));
+
+  const auto second{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(second, sourcemeta::core::parse_json(R"JSON({ "bar": 2 })JSON"));
+
+  const auto third{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(third, sourcemeta::core::parse_json(R"JSON({ "baz": 3 })JSON"));
+
+  EXPECT_EQ(stream.peek(), EOF);
+}
+
+TEST(file_stream_multi_document_blank_lines) {
+  auto stream{sourcemeta::core::read_file(std::filesystem::path{STUBS_PATH} /
+                                          "multi_document_blank_lines.yaml")};
+
+  const auto first{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(first, sourcemeta::core::parse_json(R"JSON({ "foo": 1 })JSON"));
+
+  const auto second{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(second, sourcemeta::core::parse_json(R"JSON({ "bar": 2 })JSON"));
+
+  EXPECT_EQ(stream.peek(), EOF);
+}
+
+TEST(file_stream_multi_document_tag_directive) {
+  auto stream{sourcemeta::core::read_file(std::filesystem::path{STUBS_PATH} /
+                                          "multi_document_tag_directive.yaml")};
+
+  const auto first{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(first,
+            sourcemeta::core::parse_json(R"JSON({ "first": "document" })JSON"));
+
+  const auto second{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(second, sourcemeta::core::JSON{"bar"});
+
+  EXPECT_EQ(stream.peek(), EOF);
+}
+
+TEST(file_stream_leaves_the_remaining_documents_unread) {
+  auto stream{sourcemeta::core::read_file(std::filesystem::path{STUBS_PATH} /
+                                          "multi_document_lf.yaml")};
+
+  const auto first{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(first, sourcemeta::core::JSON{"foo"});
+  EXPECT_EQ(stream.tellg(), std::streampos{8});
+  EXPECT_EQ(sourcemeta::core::read_to_string(stream), "---\nbar\n---\nbaz\n");
+}
+
+TEST(binary_file_stream_multi_document_windows_line_endings) {
+  std::ifstream stream{std::filesystem::path{STUBS_PATH} /
+                           "multi_document_crlf.yaml",
+                       std::ios::binary};
+
+  const auto first{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(first, sourcemeta::core::JSON{"foo"});
+  EXPECT_TRUE(stream.good());
+
+  const auto second{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(second, sourcemeta::core::JSON{"bar"});
+  EXPECT_TRUE(stream.good());
+
+  const auto third{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(third, sourcemeta::core::JSON{"baz"});
+  EXPECT_TRUE(stream.good());
+
+  EXPECT_EQ(stream.peek(), EOF);
+}
+
+TEST(binary_file_stream_multi_document_unix_line_endings) {
+  std::ifstream stream{std::filesystem::path{STUBS_PATH} /
+                           "multi_document_lf.yaml",
+                       std::ios::binary};
+
+  const auto first{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(first, sourcemeta::core::JSON{"foo"});
+
+  const auto second{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(second, sourcemeta::core::JSON{"bar"});
+
+  const auto third{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(third, sourcemeta::core::JSON{"baz"});
 
   EXPECT_EQ(stream.peek(), EOF);
 }
