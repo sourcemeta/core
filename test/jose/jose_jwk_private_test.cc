@@ -253,3 +253,59 @@ TEST(jwk_private_from_octets) {
   EXPECT_FALSE(key.algorithm().has_value());
   EXPECT_FALSE(key.public_jwk().has_value());
 }
+
+TEST(jwk_private_from_json_rejects_unknown_key_type) {
+  EXPECT_FALSE(sourcemeta::core::JWKPrivate::from(
+                   sourcemeta::core::parse_json(R"({"kty":"XYZ","d":"abc"})"))
+                   .has_value());
+}
+
+TEST(jwk_private_from_json_rejects_missing_key_type) {
+  EXPECT_FALSE(sourcemeta::core::JWKPrivate::from(
+                   sourcemeta::core::parse_json(R"({"crv":"P-256","d":"abc"})"))
+                   .has_value());
+}
+
+TEST(jwk_private_from_json_rejects_non_string_key_type) {
+  EXPECT_FALSE(sourcemeta::core::JWKPrivate::from(
+                   sourcemeta::core::parse_json(R"({"kty":42})"))
+                   .has_value());
+}
+
+TEST(jwk_private_from_json_rejects_rsa_multi_prime) {
+  EXPECT_FALSE(sourcemeta::core::JWKPrivate::from(
+                   sourcemeta::core::parse_json(
+                       R"({"kty":"RSA","n":"n","e":"AQAB","d":"d","p":"p",)"
+                       R"("q":"q","dp":"dp","dq":"dq","qi":"qi","oth":[]})"))
+                   .has_value());
+}
+
+TEST(jwk_private_from_json_rejects_rsa_missing_component) {
+  EXPECT_FALSE(sourcemeta::core::JWKPrivate::from(
+                   sourcemeta::core::parse_json(
+                       R"({"kty":"RSA","n":"n","e":"AQAB","d":"d","p":"p",)"
+                       R"("q":"q","dp":"dp","dq":"dq"})"))
+                   .has_value());
+}
+
+TEST(jwk_private_from_json_rejects_rsa_with_invalid_base64url) {
+  EXPECT_FALSE(sourcemeta::core::JWKPrivate::from(
+                   sourcemeta::core::parse_json(
+                       R"({"kty":"RSA","n":"!!!","e":"AQAB","d":"d","p":"p",)"
+                       R"("q":"q","dp":"dp","dq":"dq","qi":"qi"})"))
+                   .has_value());
+}
+
+TEST(jwk_private_from_json_rejects_ec_unknown_curve) {
+  EXPECT_FALSE(sourcemeta::core::JWKPrivate::from(
+                   sourcemeta::core::parse_json(
+                       R"({"kty":"EC","crv":"P-999","x":"x","y":"y","d":"d"})"))
+                   .has_value());
+}
+
+TEST(jwk_private_from_json_rejects_okp_unknown_curve) {
+  EXPECT_FALSE(sourcemeta::core::JWKPrivate::from(
+                   sourcemeta::core::parse_json(
+                       R"({"kty":"OKP","crv":"X25519","x":"x","d":"d"})"))
+                   .has_value());
+}

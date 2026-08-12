@@ -906,3 +906,166 @@ TEST(iri_unicode_path) {
   EXPECT_TRUE(uri.path().has_value());
   EXPECT_EQ(uri.path().value(), "/caf\xC3\xA9");
 }
+
+TEST(set_path_with_authority_prefix) {
+  sourcemeta::core::URI uri{"https://example.com"};
+  try {
+    uri.path("//evil.com/x");
+    FAIL();
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(error.what(),
+                 "You cannot set a path that contains an authority");
+  }
+}
+
+TEST(set_path_with_truncated_percent_sequence) {
+  sourcemeta::core::URI uri{"https://example.com"};
+  try {
+    uri.path("/a%2");
+    FAIL();
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(
+        error.what(),
+        "You cannot set a path with an invalid percent-encoded sequence");
+  }
+}
+
+TEST(set_path_with_non_hex_percent_sequence) {
+  sourcemeta::core::URI uri{"https://example.com"};
+  try {
+    uri.path("/a%GG");
+    FAIL();
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(
+        error.what(),
+        "You cannot set a path with an invalid percent-encoded sequence");
+  }
+}
+
+TEST(set_path_with_invalid_character) {
+  sourcemeta::core::URI uri{"https://example.com"};
+  try {
+    uri.path("/a b");
+    FAIL();
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(error.what(),
+                 "You cannot set a path that contains an invalid character");
+  }
+}
+
+TEST(append_path_reference_without_path) {
+  sourcemeta::core::URI uri{"https://example.com/foo"};
+  const sourcemeta::core::URI reference{""};
+  uri.append_path(reference);
+  EXPECT_EQ(uri.recompose(), "https://example.com/foo");
+}
+
+TEST(append_path_moved_reference_without_path) {
+  sourcemeta::core::URI uri{"https://example.com/foo"};
+  uri.append_path(sourcemeta::core::URI{""});
+  EXPECT_EQ(uri.recompose(), "https://example.com/foo");
+}
+
+TEST(set_empty_path_from_const_string) {
+  sourcemeta::core::URI uri{"https://example.com/foo"};
+  const std::string empty;
+  uri.path(empty);
+  EXPECT_EQ(uri.recompose(), "https://example.com");
+}
+
+TEST(set_relative_path_from_const_string) {
+  sourcemeta::core::URI uri{"https://example.com"};
+  const std::string relative{"./foo"};
+  try {
+    uri.path(relative);
+    FAIL();
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(error.what(),
+                 "You cannot set a relative path to an absolute URI");
+  }
+}
+
+TEST(append_path_that_normalizes_away) {
+  sourcemeta::core::URI uri{"a"};
+  uri.append_path("..");
+  EXPECT_EQ(uri.recompose(), "");
+}
+
+TEST(set_path_second_percent_digit_invalid) {
+  sourcemeta::core::URI uri{"http://example.com"};
+  try {
+    uri.path("/%Ag");
+    FAIL();
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(
+        error.what(),
+        "You cannot set a path with an invalid percent-encoded sequence");
+  }
+}
+
+TEST(set_path_with_sub_delim) {
+  sourcemeta::core::URI uri{"http://example.com"};
+  uri.path("/a!b");
+  EXPECT_EQ(uri.path().value(), "/a!b");
+}
+
+TEST(set_path_with_colon) {
+  sourcemeta::core::URI uri{"http://example.com"};
+  uri.path("/a:b");
+  EXPECT_EQ(uri.path().value(), "/a:b");
+}
+
+TEST(set_path_with_at_sign) {
+  sourcemeta::core::URI uri{"http://example.com"};
+  uri.path("/a@b");
+  EXPECT_EQ(uri.path().value(), "/a@b");
+}
+
+TEST(set_rvalue_path_with_host_no_scheme) {
+  sourcemeta::core::URI uri{"//example.com"};
+  uri.path(std::string{"foo"});
+  EXPECT_EQ(uri.recompose(), "//example.com/foo");
+}
+
+TEST(set_const_path_with_host_no_scheme) {
+  sourcemeta::core::URI uri{"//example.com"};
+  const std::string value{"foo"};
+  uri.path(value);
+  EXPECT_EQ(uri.recompose(), "//example.com/foo");
+}
+
+TEST(append_path_view_with_host_no_scheme) {
+  sourcemeta::core::URI uri{"//example.com"};
+  uri.append_path("foo");
+  EXPECT_EQ(uri.recompose(), "//example.com/foo");
+}
+
+TEST(append_path_reference_with_host_no_scheme) {
+  sourcemeta::core::URI uri{"//example.com"};
+  uri.append_path(sourcemeta::core::URI{"rel"});
+  EXPECT_EQ(uri.recompose(), "//example.com/rel");
+}
+
+TEST(append_path_rejects_reference_with_userinfo) {
+  sourcemeta::core::URI uri{"http://x"};
+  try {
+    uri.append_path(sourcemeta::core::URI{"//user@host"});
+    FAIL();
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(
+        error.what(),
+        "Cannot append a URI as a path that contains a scheme or authority");
+  }
+}
+
+TEST(append_path_rejects_reference_with_fragment) {
+  sourcemeta::core::URI uri{"http://x"};
+  try {
+    uri.append_path(sourcemeta::core::URI{"#frag"});
+    FAIL();
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(
+        error.what(),
+        "Cannot append a URI as a path that contains a query or fragment");
+  }
+}

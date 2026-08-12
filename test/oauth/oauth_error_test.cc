@@ -343,3 +343,15 @@ TEST(bearer_error_status_mapping) {
                 .code,
             401);
 }
+
+TEST(metadata_parse_error_message) {
+  const sourcemeta::core::OAuthMetadataParseError error{};
+  EXPECT_STREQ(error.what(),
+               "The input is not a valid OAuth metadata document");
+}
+
+TEST(registration_parse_error_message) {
+  const sourcemeta::core::OAuthRegistrationParseError error{};
+  EXPECT_STREQ(error.what(),
+               "The input is not a valid OAuth client registration document");
+}

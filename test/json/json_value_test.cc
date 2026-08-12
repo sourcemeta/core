@@ -4,6 +4,8 @@
 #include <cstddef>       // std::size_t
 #include <cstdint>       // std::int64_t
 #include <functional>    // std::reference_wrapper
+#include <limits>        // std::numeric_limits
+#include <stdexcept>     // std::out_of_range
 #include <string>        // std::string
 #include <type_traits>   // std::is_default_constructible, etc
 #include <unordered_map> // std::unordered_map
@@ -350,9 +352,9 @@ TEST(into_string_from_string) {
 }
 
 TEST(to_ostream) {
-  const sourcemeta::core::JSON document{
-      sourcemeta::core::JSON{1}, sourcemeta::core::JSON{2},
-      sourcemeta::core::JSON{3}, sourcemeta::core::JSON{4}};
+  const auto document{sourcemeta::core::JSON::make_array(
+      {sourcemeta::core::JSON{1}, sourcemeta::core::JSON{2},
+       sourcemeta::core::JSON{3}, sourcemeta::core::JSON{4}})};
   std::ostringstream stream;
   stream << document;
 #ifdef NDEBUG
@@ -782,4 +784,135 @@ TEST(direct_list_inits_deeply_nested_array_without_stack_overflow) {
   auto source = sourcemeta::core::parse_json(deep);
   sourcemeta::core::JSON copy{source};
   EXPECT_TRUE(copy.is_array());
+}
+
+TEST(boolean_ordering) {
+  EXPECT_LT(sourcemeta::core::JSON{false}, sourcemeta::core::JSON{true});
+  EXPECT_FALSE(sourcemeta::core::JSON{true} < sourcemeta::core::JSON{false});
+}
+
+TEST(object_ordering) {
+  const auto left{sourcemeta::core::parse_json(R"JSON({ "a": 1 })JSON")};
+  const auto right{sourcemeta::core::parse_json(R"JSON({ "b": 2 })JSON")};
+  EXPECT_LT(left, right);
+  EXPECT_FALSE(right < left);
+}
+
+TEST(array_is_not_positive) {
+  const auto document{sourcemeta::core::parse_json(R"JSON([ 1 ])JSON")};
+  EXPECT_FALSE(document.is_positive());
+}
+
+TEST(copy_assign_integer_over_object) {
+  auto document{sourcemeta::core::parse_json(R"JSON({ "a": 1 })JSON")};
+  const sourcemeta::core::JSON other{42};
+  document = other;
+  EXPECT_TRUE(document.is_integer());
+  EXPECT_EQ(document.to_integer(), 42);
+}
+
+TEST(copy_assign_real_over_object) {
+  auto document{sourcemeta::core::parse_json(R"JSON({ "a": 1 })JSON")};
+  const sourcemeta::core::JSON other{1.5};
+  document = other;
+  EXPECT_TRUE(document.is_real());
+  EXPECT_EQ(document.to_real(), 1.5);
+}
+
+TEST(copy_assign_string_over_object) {
+  auto document{sourcemeta::core::parse_json(R"JSON({ "a": 1 })JSON")};
+  const sourcemeta::core::JSON other{"hello"};
+  document = other;
+  EXPECT_TRUE(document.is_string());
+  EXPECT_EQ(document.to_string(), "hello");
+}
+
+TEST(copy_assign_decimal_over_object) {
+  auto document{sourcemeta::core::parse_json(R"JSON({ "a": 1 })JSON")};
+  const auto other{sourcemeta::core::parse_json("3.14159265358979323846")};
+  EXPECT_TRUE(other.is_decimal());
+  document = other;
+  EXPECT_TRUE(document.is_decimal());
+  EXPECT_EQ(document, other);
+}
+
+TEST(deep_copy_of_a_nested_object) {
+  const auto document{sourcemeta::core::parse_json(
+      R"JSON([ { "a": { "b": [ 1, 2 ] } }, 3 ])JSON")};
+  const sourcemeta::core::JSON copy{document};
+  EXPECT_EQ(copy, document);
+  EXPECT_EQ(copy.at(0).at("a").at("b").at(1).to_integer(), 2);
+}
+
+TEST(add_integer_overflow_promotes_to_decimal) {
+  const sourcemeta::core::JSON left{std::numeric_limits<std::int64_t>::min()};
+  const sourcemeta::core::JSON right{-1};
+  const auto result{left + right};
+  EXPECT_TRUE(result.is_decimal());
+  EXPECT_EQ(result.to_decimal().to_string(), "-9223372036854775809");
+}
+
+TEST(subtract_integer_overflow_promotes_to_decimal) {
+  const sourcemeta::core::JSON left{std::numeric_limits<std::int64_t>::max()};
+  const sourcemeta::core::JSON right{-1};
+  const auto result{left - right};
+  EXPECT_TRUE(result.is_decimal());
+  EXPECT_EQ(result.to_decimal().to_string(), "9223372036854775808");
+}
+
+TEST(copy_self_assignment) {
+  sourcemeta::core::JSON value{
+      sourcemeta::core::parse_json(R"JSON({ "a": [ 1, 2 ] })JSON")};
+  const sourcemeta::core::JSON &alias{value};
+  value = alias;
+  EXPECT_EQ(value,
+            sourcemeta::core::parse_json(R"JSON({ "a": [ 1, 2 ] })JSON"));
+}
+
+TEST(move_self_assignment) {
+  sourcemeta::core::JSON value{
+      sourcemeta::core::parse_json(R"JSON({ "a": [ 1, 2 ] })JSON")};
+  // Route through a reference so the compiler cannot statically flag the
+  // self-move, while the runtime self-assignment branch is still exercised
+  sourcemeta::core::JSON &alias{value};
+  value = std::move(alias);
+  EXPECT_EQ(value,
+            sourcemeta::core::parse_json(R"JSON({ "a": [ 1, 2 ] })JSON"));
+}
+
+TEST(null_less_than_null_is_false) {
+  EXPECT_FALSE(sourcemeta::core::JSON{nullptr} <
+               sourcemeta::core::JSON{nullptr});
+}
+
+TEST(real_below_int64_range_throws_on_as_integer) {
+  const sourcemeta::core::JSON value{-1e300};
+  try {
+    static_cast<void>(value.as_integer());
+    FAIL();
+  } catch (const std::out_of_range &) {
+  }
+}
+
+TEST(empty_on_string_returns_false) {
+  const sourcemeta::core::JSON value{"abc"};
+  EXPECT_FALSE(value.empty());
+}
+
+TEST(fast_hash_of_real_below_int64_range) {
+  const sourcemeta::core::JSON value{-1e300};
+  // A real outside the int64 range falls back to the real type hash
+  EXPECT_EQ(value.fast_hash(), 5);
+}
+
+TEST(fast_hash_of_real_above_int64_range) {
+  const sourcemeta::core::JSON value{1e300};
+  EXPECT_EQ(value.fast_hash(), 5);
+}
+
+TEST(merge_object_key_over_non_object_source) {
+  auto target{sourcemeta::core::parse_json(R"JSON({ "k": { "x": 1 } })JSON")};
+  const auto source{sourcemeta::core::parse_json(R"JSON({ "k": 2 })JSON")};
+  target.merge(source.as_object());
+  EXPECT_EQ(target.at("k").to_integer(), 2);
 }

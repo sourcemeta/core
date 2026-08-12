@@ -29,6 +29,27 @@ protected:
                              "sourcemeta_core_uritemplate_router_test.bin"};
 };
 
+namespace {
+
+// A well-formed 80 byte serialization holding a single childless root node,
+// an empty string table, and the argument, operation, and path table offsets
+// the caller chooses, so each test can append a corrupt table at the end
+auto corrupt_router_core(const std::uint32_t operations_offset,
+                         const std::uint32_t paths_offset)
+    -> std::vector<std::uint8_t> {
+  const std::uint32_t words[] = {0x52544552, 9, 1,          80, 80, 0x50, 0,
+                                 0,          0, 0,          0,  0,  0,    0,
+                                 0xFFFFFFFF, 0, 0xFFFFFFFF, 0,  0,  0};
+  std::vector<std::uint8_t> bytes{
+      reinterpret_cast<const std::uint8_t *>(words),
+      reinterpret_cast<const std::uint8_t *>(words) + sizeof(words)};
+  std::memcpy(bytes.data() + 20, &operations_offset, sizeof(operations_offset));
+  std::memcpy(bytes.data() + 44, &paths_offset, sizeof(paths_offset));
+  return bytes;
+}
+
+} // namespace
+
 TEST_F(URITemplateRouterViewTest, single_literal_route) {
   {
     sourcemeta::core::URITemplateRouter router;
@@ -749,7 +770,8 @@ TEST(corrupt_too_small_for_header) {
 }
 
 TEST(corrupt_wrong_magic) {
-  const std::uint32_t data[] = {0xDEADBEEF, 5, 1, 64, 64, 0, 0, 0};
+  const std::uint32_t data[] = {0xDEADBEEF, 9, 1, 80, 80, 0, 0, 0, 0, 0,
+                                0,          0, 0, 0,  0,  0, 0, 0, 0, 0};
   const sourcemeta::core::URITemplateRouterView view{
       reinterpret_cast<const std::uint8_t *>(data), sizeof(data)};
   EXPECT_ROUTER_MATCH(view, "/users", 0, 0, captures);
@@ -757,7 +779,8 @@ TEST(corrupt_wrong_magic) {
 }
 
 TEST(corrupt_wrong_version) {
-  const std::uint32_t data[] = {0x52544552, 99, 1, 64, 64, 0, 0, 0};
+  const std::uint32_t data[] = {0x52544552, 99, 1, 80, 80, 0, 0, 0, 0, 0,
+                                0,          0,  0, 0,  0,  0, 0, 0, 0, 0};
   const sourcemeta::core::URITemplateRouterView view{
       reinterpret_cast<const std::uint8_t *>(data), sizeof(data)};
   EXPECT_ROUTER_MATCH(view, "/users", 0, 0, captures);
@@ -765,7 +788,7 @@ TEST(corrupt_wrong_version) {
 }
 
 TEST(corrupt_node_count_exceeds_file) {
-  const std::uint32_t data[] = {0x52544552, 5, 10, 32, 32, 0, 0, 0};
+  const std::uint32_t data[] = {0x52544552, 9, 10, 48, 48, 0, 0, 0, 0, 0, 0, 0};
   const sourcemeta::core::URITemplateRouterView view{
       reinterpret_cast<const std::uint8_t *>(data), sizeof(data)};
   EXPECT_ROUTER_MATCH(view, "/users", 0, 0, captures);
@@ -773,8 +796,9 @@ TEST(corrupt_node_count_exceeds_file) {
 }
 
 TEST(corrupt_literal_child_out_of_bounds) {
-  const std::uint32_t data[] = {0x52544552, 5, 1,   64, 64,         0, 0, 0,
-                                0,          0, 999, 1,  0xFFFFFFFF, 0, 0, 0};
+  const std::uint32_t data[] = {0x52544552, 9, 1,          80, 80, 0, 0,
+                                0,          0, 0,          0,  0,  0, 0,
+                                999,        1, 0xFFFFFFFF, 0,  0,  0};
   const sourcemeta::core::URITemplateRouterView view{
       reinterpret_cast<const std::uint8_t *>(data), sizeof(data)};
   EXPECT_ROUTER_MATCH(view, "/users", 0, 0, captures);
@@ -782,8 +806,9 @@ TEST(corrupt_literal_child_out_of_bounds) {
 }
 
 TEST(corrupt_variable_child_out_of_bounds) {
-  const std::uint32_t data[] = {0x52544552, 5, 1,          64, 64,  0, 0, 0,
-                                0,          0, 0xFFFFFFFF, 0,  500, 0, 0, 0};
+  const std::uint32_t data[] = {0x52544552, 9, 1,   80, 80, 0, 0,
+                                0,          0, 0,   0,  0,  0, 0,
+                                0xFFFFFFFF, 0, 500, 0,  0,  0};
   const sourcemeta::core::URITemplateRouterView view{
       reinterpret_cast<const std::uint8_t *>(data), sizeof(data)};
   EXPECT_ROUTER_MATCH(view, "/users", 0, 0, captures);
@@ -791,9 +816,10 @@ TEST(corrupt_variable_child_out_of_bounds) {
 }
 
 TEST(corrupt_string_offset_out_of_bounds) {
-  const std::uint32_t data[] = {
-      0x52544552, 5, 2, 96, 96,   0, 0,          0, 0,          0, 0, 1, 1,
-      0xFFFFFFFF, 0, 0, 0,  9999, 5, 0xFFFFFFFF, 0, 0xFFFFFFFF, 0, 0, 0};
+  const std::uint32_t data[] = {0x52544552, 9, 2, 112, 112,  0, 0,          0,
+                                0,          0, 0, 0,   0,    0, 1,          1,
+                                0xFFFFFFFF, 0, 0, 0,   9999, 5, 0xFFFFFFFF, 0,
+                                0xFFFFFFFF, 0, 0, 0};
   const sourcemeta::core::URITemplateRouterView view{
       reinterpret_cast<const std::uint8_t *>(data), sizeof(data)};
   EXPECT_ROUTER_MATCH(view, "/users", 0, 0, captures);
@@ -802,9 +828,9 @@ TEST(corrupt_string_offset_out_of_bounds) {
 
 TEST(corrupt_variable_string_offset_out_of_bounds) {
   const std::uint32_t data[] = {
-      0x52544552, 5,   2,          96, 96,         0,          0, 0,
-      0,          0,   0xFFFFFFFF, 0,  1,          0,          0, 0,
-      9999,       100, 0xFFFFFFFF, 0,  0xFFFFFFFF, 0x00000002, 0, 0};
+      0x52544552, 9,   2,          112, 112,        0,          0, 0, 0, 0,
+      0,          0,   0,          0,   0xFFFFFFFF, 0,          1, 0, 0, 0,
+      9999,       100, 0xFFFFFFFF, 0,   0xFFFFFFFF, 0x00000002, 0, 0};
   const sourcemeta::core::URITemplateRouterView view{
       reinterpret_cast<const std::uint8_t *>(data), sizeof(data)};
   EXPECT_ROUTER_MATCH(view, "/users", 0, 0, captures);
@@ -827,7 +853,8 @@ TEST(corrupt_all_ones) {
 }
 
 TEST(corrupt_string_table_offset_overlaps_header) {
-  const std::uint32_t data[] = {0x52544552, 5, 1,          4, 64, 0, 0, 0, 0, 0,
+  const std::uint32_t data[] = {0x52544552, 9, 1,          4, 80, 0, 0,
+                                0,          0, 0,          0, 0,  0, 0,
                                 0xFFFFFFFF, 0, 0xFFFFFFFF, 0, 0,  0};
   const sourcemeta::core::URITemplateRouterView view{
       reinterpret_cast<const std::uint8_t *>(data), sizeof(data)};
@@ -836,9 +863,9 @@ TEST(corrupt_string_table_offset_overlaps_header) {
 }
 
 TEST(corrupt_string_table_offset_past_end) {
-  const std::uint32_t data[] = {0x52544552, 5, 1, 99999, 99999,      0,
-                                0,          0, 0, 0,     0xFFFFFFFF, 0,
-                                0xFFFFFFFF, 0, 0, 0};
+  const std::uint32_t data[] = {0x52544552, 9, 1,          99999, 99999, 0, 0,
+                                0,          0, 0,          0,     0,     0, 0,
+                                0xFFFFFFFF, 0, 0xFFFFFFFF, 0,     0,     0};
   const sourcemeta::core::URITemplateRouterView view{
       reinterpret_cast<const std::uint8_t *>(data), sizeof(data)};
   EXPECT_ROUTER_MATCH(view, "/users", 0, 0, captures);
@@ -846,7 +873,7 @@ TEST(corrupt_string_table_offset_past_end) {
 }
 
 TEST(corrupt_zero_node_count) {
-  const std::uint32_t data[] = {0x52544552, 5, 0, 32, 32, 0, 0, 0};
+  const std::uint32_t data[] = {0x52544552, 9, 0, 48, 48, 0, 0, 0, 0, 0, 0, 0};
   const sourcemeta::core::URITemplateRouterView view{
       reinterpret_cast<const std::uint8_t *>(data), sizeof(data)};
   EXPECT_ROUTER_MATCH(view, "/users", 0, 0, captures);
@@ -867,8 +894,9 @@ TEST(corrupt_empty_data_match_root) {
 
 TEST(corrupt_literal_child_count_overflow) {
   const std::uint32_t data[] = {
-      0x52544552, 5, 2, 96, 96, 0, 0,          0, 0,          0, 1, 0xFFFFFFFF,
-      0xFFFFFFFF, 0, 0, 0,  0,  0, 0xFFFFFFFF, 0, 0xFFFFFFFF, 0, 0, 0};
+      0x52544552, 9, 2,          112, 112,        0,          0, 0, 0, 0, 0,
+      0,          0, 0,          1,   0xFFFFFFFF, 0xFFFFFFFF, 0, 0, 0, 0, 0,
+      0xFFFFFFFF, 0, 0xFFFFFFFF, 0,   0,          0};
   const sourcemeta::core::URITemplateRouterView view{
       reinterpret_cast<const std::uint8_t *>(data), sizeof(data)};
   EXPECT_ROUTER_MATCH(view, "/users", 0, 0, captures);
@@ -876,8 +904,9 @@ TEST(corrupt_literal_child_count_overflow) {
 }
 
 TEST(corrupt_root_literal_child_oob_match_root) {
-  const std::uint32_t data[] = {0x52544552, 5, 1,   64, 64,         0, 0, 0,
-                                0,          0, 999, 1,  0xFFFFFFFF, 0, 0, 0};
+  const std::uint32_t data[] = {0x52544552, 9, 1,          80, 80, 0, 0,
+                                0,          0, 0,          0,  0,  0, 0,
+                                999,        1, 0xFFFFFFFF, 0,  0,  0};
   const sourcemeta::core::URITemplateRouterView view{
       reinterpret_cast<const std::uint8_t *>(data), sizeof(data)};
   EXPECT_ROUTER_MATCH(view, "/", 0, 0, captures);
@@ -886,7 +915,8 @@ TEST(corrupt_root_literal_child_oob_match_root) {
 
 TEST(corrupt_deep_node_variable_child_oob) {
   std::vector<std::uint8_t> data;
-  const std::uint32_t header[] = {0x52544552, 5, 2, 96, 101, 0, 0, 0};
+  const std::uint32_t header[] = {0x52544552, 9, 2, 112, 117, 0,
+                                  0,          0, 0, 0,   0,   0};
   const std::uint32_t root[] = {0, 0, 1, 1, 0xFFFFFFFF, 0, 0, 0};
   const std::uint32_t child[] = {0, 5, 0xFFFFFFFF, 0, 999, 0x00000001, 0, 0};
   data.insert(data.end(), reinterpret_cast<const std::uint8_t *>(header),
@@ -904,9 +934,9 @@ TEST(corrupt_deep_node_variable_child_oob) {
 
 TEST(corrupt_expansion_string_oob) {
   const std::uint32_t data[] = {
-      0x52544552, 5,   2,          96, 96,         0,          0, 0,
-      0,          0,   0xFFFFFFFF, 0,  1,          0,          0, 0,
-      5000,       200, 0xFFFFFFFF, 0,  0xFFFFFFFF, 0x00000003, 0, 0};
+      0x52544552, 9,   2,          112, 112,        0,          0, 0, 0, 0,
+      0,          0,   0,          0,   0xFFFFFFFF, 0,          1, 0, 0, 0,
+      5000,       200, 0xFFFFFFFF, 0,   0xFFFFFFFF, 0x00000003, 0, 0};
   const sourcemeta::core::URITemplateRouterView view{
       reinterpret_cast<const std::uint8_t *>(data), sizeof(data)};
   EXPECT_ROUTER_MATCH(view, "/files/foo/bar", 0, 0, captures);
@@ -914,9 +944,10 @@ TEST(corrupt_expansion_string_oob) {
 }
 
 TEST(corrupt_empty_string_table_with_string_ref) {
-  const std::uint32_t data[] = {
-      0x52544552, 5, 2, 96, 96, 0,  0,          0, 0,          0, 1, 1,
-      0xFFFFFFFF, 0, 0, 0,  0,  10, 0xFFFFFFFF, 0, 0xFFFFFFFF, 0, 0, 0};
+  const std::uint32_t data[] = {0x52544552, 9, 2, 112, 112, 0,  0,          0,
+                                0,          0, 0, 0,   0,   0,  1,          1,
+                                0xFFFFFFFF, 0, 0, 0,   0,   10, 0xFFFFFFFF, 0,
+                                0xFFFFFFFF, 0, 0, 0};
   const sourcemeta::core::URITemplateRouterView view{
       reinterpret_cast<const std::uint8_t *>(data), sizeof(data)};
   EXPECT_ROUTER_MATCH(view, "/users", 0, 0, captures);
@@ -924,8 +955,8 @@ TEST(corrupt_empty_string_table_with_string_ref) {
 }
 
 TEST(corrupt_node_count_max_uint32) {
-  const std::uint32_t data[] = {0x52544552, 5, 0xFFFFFFFF, 44, 44, 0,
-                                0,          0, 0,          0,  0};
+  const std::uint32_t data[] = {0x52544552, 9, 0xFFFFFFFF, 48, 48, 0,
+                                0,          0, 0,          0,  0,  0};
   const sourcemeta::core::URITemplateRouterView view{
       reinterpret_cast<const std::uint8_t *>(data), sizeof(data)};
   EXPECT_ROUTER_MATCH(view, "/users", 0, 0, captures);
@@ -934,9 +965,10 @@ TEST(corrupt_node_count_max_uint32) {
 
 TEST(corrupt_string_offset_plus_length_overflow) {
   const std::uint32_t data[] = {
-      0x52544552, 5,          2,          96, 96,         0,          0, 0,
-      0,          0,          0xFFFFFFFF, 0,  1,          0,          0, 0,
-      0x80000000, 0x80000001, 0xFFFFFFFF, 0,  0xFFFFFFFF, 0x00000002, 0, 0};
+      0x52544552, 9,          2, 112,        112,        0, 0,
+      0,          0,          0, 0,          0,          0, 0,
+      0xFFFFFFFF, 0,          1, 0,          0,          0, 0x80000000,
+      0x80000001, 0xFFFFFFFF, 0, 0xFFFFFFFF, 0x00000002, 0, 0};
   const sourcemeta::core::URITemplateRouterView view{
       reinterpret_cast<const std::uint8_t *>(data), sizeof(data)};
   EXPECT_ROUTER_MATCH(view, "/users", 0, 0, captures);
@@ -945,7 +977,8 @@ TEST(corrupt_string_offset_plus_length_overflow) {
 
 TEST(corrupt_string_offset_plus_length_overflow_with_data) {
   std::vector<std::uint8_t> data;
-  const std::uint32_t header[] = {0x52544552, 5, 2, 96, 97, 0, 0, 0};
+  const std::uint32_t header[] = {0x52544552, 9, 2, 112, 113, 0,
+                                  0,          0, 0, 0,   0,   0};
   const std::uint32_t root[] = {0, 0, 0xFFFFFFFF, 0, 1, 0, 0, 0};
   const std::uint32_t variable[] = {0xFFFFFFFF, 2,          0xFFFFFFFF, 0,
                                     0xFFFFFFFF, 0x00000002, 0,          0};
@@ -965,7 +998,8 @@ TEST(corrupt_string_offset_plus_length_overflow_with_data) {
 
 TEST(corrupt_literal_string_offset_plus_length_overflow) {
   std::vector<std::uint8_t> data;
-  const std::uint32_t header[] = {0x52544552, 5, 2, 96, 97, 0, 0, 0};
+  const std::uint32_t header[] = {0x52544552, 9, 2, 112, 113, 0,
+                                  0,          0, 0, 0,   0,   0};
   const std::uint32_t root[] = {0, 0, 1, 1, 0xFFFFFFFF, 0, 0, 0};
   const std::uint32_t child[] = {0xFFFFFFFF, 2, 0xFFFFFFFF, 0,
                                  0xFFFFFFFF, 0, 0,          0};
@@ -4010,4 +4044,494 @@ TEST_F(URITemplateRouterViewTest, describes_with_base_argument_empty_router) {
   const sourcemeta::core::URITemplateRouterView restored{this->path};
   EXPECT_FALSE(restored.describes("/foo", "/bar"));
   EXPECT_FALSE(restored.describes("", "/bar"));
+}
+
+TEST_F(URITemplateRouterViewTest, save_to_an_unwritable_path_throws) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/users", "op_1", 1);
+  const std::filesystem::path target{std::filesystem::temp_directory_path() /
+                                     "sourcemeta_core_nonexistent_directory" /
+                                     "router.bin"};
+  try {
+    sourcemeta::core::URITemplateRouterView::save(router, target);
+    FAIL();
+  } catch (const sourcemeta::core::URITemplateRouterSaveError &error) {
+    EXPECT_STREQ(error.what(), "Failed to open file for writing");
+    EXPECT_EQ(error.path(), target);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST_F(URITemplateRouterViewTest, view_of_a_missing_file_throws) {
+  const std::filesystem::path target{std::filesystem::temp_directory_path() /
+                                     "sourcemeta_core_missing_router.bin"};
+  try {
+    const sourcemeta::core::URITemplateRouterView view{target};
+    FAIL();
+  } catch (const sourcemeta::core::URITemplateRouterReadError &error) {
+    EXPECT_STREQ(error.what(), "Failed to open router file for reading");
+    EXPECT_EQ(error.path(), target);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(corrupt_too_small_accessors_yield_defaults) {
+  const std::uint8_t data[] = {0xDE, 0xAD, 0xBE, 0xEF, 0x01, 0x02, 0x03};
+  const sourcemeta::core::URITemplateRouterView view{data, sizeof(data)};
+  EXPECT_EQ(view.size(), 0);
+  EXPECT_TRUE(view.base_path().empty());
+  EXPECT_TRUE(view.base_url().empty());
+  EXPECT_EQ(view.at(0), 0);
+  EXPECT_EQ(view.context(1), 0);
+  EXPECT_EQ(view.path(1), "");
+  EXPECT_EQ(view.operation("op_1").first, 0);
+  EXPECT_EQ(view.operation("op_1").second, 0);
+  EXPECT_TRUE(view.operation_id(1).empty());
+  EXPECT_FALSE(view.describes("/users"));
+  bool argument_fired{false};
+  view.arguments(
+      1, [&argument_fired](
+             const std::string_view,
+             const sourcemeta::core::URITemplateRouter::ArgumentValue &) {
+        argument_fired = true;
+      });
+  EXPECT_FALSE(argument_fired);
+}
+
+TEST(corrupt_wrong_magic_accessors_yield_defaults) {
+  const std::uint32_t data[] = {0xDEADBEEF, 9,  1, 64, 64, 64, 0, 5, 0, 0,
+                                5,          64, 0, 0,  0,  0,  0, 0, 0, 0};
+  const sourcemeta::core::URITemplateRouterView view{
+      reinterpret_cast<const std::uint8_t *>(data), sizeof(data)};
+  EXPECT_EQ(view.size(), 0);
+  EXPECT_TRUE(view.base_path().empty());
+  EXPECT_TRUE(view.base_url().empty());
+  EXPECT_EQ(view.at(0), 0);
+  EXPECT_EQ(view.context(1), 0);
+  EXPECT_EQ(view.path(1), "");
+  EXPECT_EQ(view.operation("op_1").first, 0);
+  EXPECT_EQ(view.operation("op_1").second, 0);
+  EXPECT_TRUE(view.operation_id(1).empty());
+  EXPECT_FALSE(view.describes("/users"));
+  bool argument_fired{false};
+  view.arguments(
+      1, [&argument_fired](
+             const std::string_view,
+             const sourcemeta::core::URITemplateRouter::ArgumentValue &) {
+        argument_fired = true;
+      });
+  EXPECT_FALSE(argument_fired);
+}
+
+TEST(corrupt_wrong_version_accessors_yield_defaults) {
+  const std::uint32_t data[] = {0x52544552, 99, 1, 64, 64, 64, 0, 5, 0, 0,
+                                5,          64, 0, 0,  0,  0,  0, 0, 0, 0};
+  const sourcemeta::core::URITemplateRouterView view{
+      reinterpret_cast<const std::uint8_t *>(data), sizeof(data)};
+  EXPECT_EQ(view.size(), 0);
+  EXPECT_TRUE(view.base_path().empty());
+  EXPECT_TRUE(view.base_url().empty());
+  EXPECT_EQ(view.at(0), 0);
+  EXPECT_EQ(view.context(1), 0);
+  EXPECT_EQ(view.path(1), "");
+  EXPECT_EQ(view.operation("op_1").first, 0);
+  EXPECT_EQ(view.operation("op_1").second, 0);
+  EXPECT_TRUE(view.operation_id(1).empty());
+  EXPECT_FALSE(view.describes("/users"));
+}
+
+TEST(corrupt_offsets_accessors_yield_defaults) {
+  const std::uint32_t data[] = {0x52544552, 9, 1, 99999, 99999, 99999, 0,
+                                5,          0, 0, 5,     99999, 0,     0,
+                                0,          0, 0, 0,     0,     0};
+  const sourcemeta::core::URITemplateRouterView view{
+      reinterpret_cast<const std::uint8_t *>(data), sizeof(data)};
+  EXPECT_TRUE(view.base_path().empty());
+  EXPECT_TRUE(view.base_url().empty());
+  EXPECT_EQ(view.at(0), 0);
+  EXPECT_EQ(view.context(1), 0);
+  EXPECT_EQ(view.path(1), "");
+  EXPECT_EQ(view.operation("op_1").first, 0);
+  EXPECT_EQ(view.operation("op_1").second, 0);
+  EXPECT_TRUE(view.operation_id(1).empty());
+  EXPECT_FALSE(view.describes("/users"));
+  bool argument_fired{false};
+  view.arguments(
+      1, [&argument_fired](
+             const std::string_view,
+             const sourcemeta::core::URITemplateRouter::ArgumentValue &) {
+        argument_fired = true;
+      });
+  EXPECT_FALSE(argument_fired);
+}
+
+TEST(corrupt_zero_node_count_accessors_yield_defaults) {
+  const std::uint32_t data[] = {0x52544552, 9, 0, 48, 48, 48,
+                                0,          0, 0, 0,  0,  48};
+  const sourcemeta::core::URITemplateRouterView view{
+      reinterpret_cast<const std::uint8_t *>(data), sizeof(data)};
+  EXPECT_EQ(view.size(), 0);
+  EXPECT_EQ(view.at(0), 0);
+  EXPECT_FALSE(view.describes("/users"));
+}
+
+TEST(corrupt_literal_child_out_of_bounds_describes_nothing) {
+  const std::uint32_t data[] = {0x52544552, 9, 1,          80, 80, 0, 0,
+                                0,          0, 0,          0,  0,  0, 0,
+                                999,        1, 0xFFFFFFFF, 0,  0,  0};
+  const sourcemeta::core::URITemplateRouterView view{
+      reinterpret_cast<const std::uint8_t *>(data), sizeof(data)};
+  EXPECT_FALSE(view.describes("/users"));
+}
+
+TEST(corrupt_variable_child_out_of_bounds_describes_nothing) {
+  const std::uint32_t data[] = {0x52544552, 9, 1,   80, 80, 0, 0,
+                                0,          0, 0,   0,  0,  0, 0,
+                                0xFFFFFFFF, 0, 500, 0,  0,  0};
+  const sourcemeta::core::URITemplateRouterView view{
+      reinterpret_cast<const std::uint8_t *>(data), sizeof(data)};
+  EXPECT_FALSE(view.describes("/users"));
+}
+
+TEST(corrupt_variable_string_offset_out_of_bounds_describes_nothing) {
+  const std::uint32_t data[] = {
+      0x52544552, 9,   2,          112, 112,        0,          0, 0, 0, 0,
+      0,          0,   0,          0,   0xFFFFFFFF, 0,          1, 0, 0, 0,
+      9999,       100, 0xFFFFFFFF, 0,   0xFFFFFFFF, 0x00000002, 0, 0};
+  const sourcemeta::core::URITemplateRouterView view{
+      reinterpret_cast<const std::uint8_t *>(data), sizeof(data)};
+  EXPECT_FALSE(view.describes("/users"));
+}
+
+TEST(corrupt_literal_string_offset_describes_nothing) {
+  const std::uint32_t data[] = {0x52544552, 9, 2, 112, 112,  0, 0,          0,
+                                0,          0, 0, 0,   0,    0, 1,          1,
+                                0xFFFFFFFF, 0, 0, 0,   9999, 5, 0xFFFFFFFF, 0,
+                                0xFFFFFFFF, 0, 0, 0};
+  const sourcemeta::core::URITemplateRouterView view{
+      reinterpret_cast<const std::uint8_t *>(data), sizeof(data)};
+  EXPECT_FALSE(view.describes("/users"));
+}
+
+// The hand-crafted corrupt buffers in this file hardcode the serialization
+// version, so a format bump must fail here loudly rather than silently
+// downgrading those tests into version mismatch rejections
+TEST_F(URITemplateRouterViewTest, serialized_version_matches_corrupt_fixtures) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/users", "op_1", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  std::ifstream input{this->path, std::ios::binary};
+  const std::vector<std::uint8_t> bytes{std::istreambuf_iterator<char>{input},
+                                        std::istreambuf_iterator<char>{}};
+  std::uint32_t version{0};
+  std::memcpy(&version, bytes.data() + sizeof(std::uint32_t), sizeof(version));
+  EXPECT_EQ(version, 9);
+}
+
+TEST(corrupt_arguments_offset_before_string_table_describes_nothing) {
+  const std::uint32_t data[] = {0x52544552, 9, 1, 80, 4, 0, 0, 0, 0, 0,
+                                0,          0, 0, 0,  0, 0, 0, 0, 0, 0};
+  const sourcemeta::core::URITemplateRouterView view{
+      reinterpret_cast<const std::uint8_t *>(data), sizeof(data)};
+  EXPECT_FALSE(view.describes("/users"));
+}
+
+TEST(corrupt_match_arguments_offset_before_string_table) {
+  const std::uint32_t data[] = {0x52544552, 9, 1, 80, 4, 0, 0, 0, 0, 0,
+                                0,          0, 0, 0,  0, 0, 0, 0, 0, 0};
+  const sourcemeta::core::URITemplateRouterView view{
+      reinterpret_cast<const std::uint8_t *>(data), sizeof(data)};
+  EXPECT_ROUTER_MATCH(view, "/users", 0, 0, captures);
+  EXPECT_EQ(captures.size(), 0);
+}
+
+TEST_F(URITemplateRouterViewTest, match_without_leading_slash_is_otherwise) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/users", "op_1", 1);
+    router.otherwise(99);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView view{this->path};
+  EXPECT_ROUTER_MATCH(view, "users", 0, 99, captures);
+  EXPECT_EQ(captures.size(), 0);
+}
+
+TEST_F(URITemplateRouterViewTest, lookup_of_unknown_identifiers_misses) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/users", "op_1", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView view{this->path};
+  EXPECT_EQ(view.at(5), 0);
+  EXPECT_EQ(view.context(12345), 0);
+  EXPECT_EQ(view.path(12345), "");
+  EXPECT_TRUE(view.operation_id(12345).empty());
+}
+
+TEST(corrupt_arguments_section_too_small_for_count) {
+  auto bytes{corrupt_router_core(0x50, 0x50)};
+  bytes.push_back(0x00);
+  const sourcemeta::core::URITemplateRouterView view{bytes.data(),
+                                                     bytes.size()};
+  bool argument_fired{false};
+  view.arguments(
+      1, [&argument_fired](
+             const std::string_view,
+             const sourcemeta::core::URITemplateRouter::ArgumentValue &) {
+        argument_fired = true;
+      });
+  EXPECT_FALSE(argument_fired);
+}
+
+TEST(corrupt_arguments_entries_exceed_buffer) {
+  auto bytes{corrupt_router_core(0x50, 0x50)};
+  bytes.insert(bytes.end(), {0xFF, 0xFF});
+  const sourcemeta::core::URITemplateRouterView view{bytes.data(),
+                                                     bytes.size()};
+  bool argument_fired{false};
+  view.arguments(
+      1, [&argument_fired](
+             const std::string_view,
+             const sourcemeta::core::URITemplateRouter::ArgumentValue &) {
+        argument_fired = true;
+      });
+  EXPECT_FALSE(argument_fired);
+}
+
+TEST(corrupt_argument_blob_too_short) {
+  auto bytes{corrupt_router_core(0x50, 0x50)};
+  bytes.insert(bytes.end(), {0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+                             0x01, 0x00, 0x00, 0x00});
+  const sourcemeta::core::URITemplateRouterView view{bytes.data(),
+                                                     bytes.size()};
+  bool argument_fired{false};
+  view.arguments(
+      1, [&argument_fired](
+             const std::string_view,
+             const sourcemeta::core::URITemplateRouter::ArgumentValue &) {
+        argument_fired = true;
+      });
+  EXPECT_FALSE(argument_fired);
+}
+
+TEST(corrupt_argument_blob_truncated_after_count) {
+  auto bytes{corrupt_router_core(0x50, 0x50)};
+  bytes.insert(bytes.end(), {0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+                             0x02, 0x00, 0x00, 0x00, 0x01, 0x00});
+  const sourcemeta::core::URITemplateRouterView view{bytes.data(),
+                                                     bytes.size()};
+  bool argument_fired{false};
+  view.arguments(
+      1, [&argument_fired](
+             const std::string_view,
+             const sourcemeta::core::URITemplateRouter::ArgumentValue &) {
+        argument_fired = true;
+      });
+  EXPECT_FALSE(argument_fired);
+}
+
+TEST(corrupt_argument_key_length_exceeds_blob) {
+  auto bytes{corrupt_router_core(0x50, 0x50)};
+  bytes.insert(bytes.end(), {0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+                             0x04, 0x00, 0x00, 0x00, 0x01, 0x00, 0xC8, 0x00});
+  const sourcemeta::core::URITemplateRouterView view{bytes.data(),
+                                                     bytes.size()};
+  bool argument_fired{false};
+  view.arguments(
+      1, [&argument_fired](
+             const std::string_view,
+             const sourcemeta::core::URITemplateRouter::ArgumentValue &) {
+        argument_fired = true;
+      });
+  EXPECT_FALSE(argument_fired);
+}
+
+TEST(corrupt_argument_truncated_after_key) {
+  auto bytes{corrupt_router_core(0x50, 0x50)};
+  bytes.insert(bytes.end(),
+               {0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x00,
+                0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 'k'});
+  const sourcemeta::core::URITemplateRouterView view{bytes.data(),
+                                                     bytes.size()};
+  bool argument_fired{false};
+  view.arguments(
+      1, [&argument_fired](
+             const std::string_view,
+             const sourcemeta::core::URITemplateRouter::ArgumentValue &) {
+        argument_fired = true;
+      });
+  EXPECT_FALSE(argument_fired);
+}
+
+TEST(corrupt_argument_value_length_exceeds_blob) {
+  auto bytes{corrupt_router_core(0x50, 0x50)};
+  bytes.insert(bytes.end(),
+               {0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x08, 0x00,
+                0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 'k',  0x00, 0xC8, 0x00});
+  const sourcemeta::core::URITemplateRouterView view{bytes.data(),
+                                                     bytes.size()};
+  bool argument_fired{false};
+  view.arguments(
+      1, [&argument_fired](
+             const std::string_view,
+             const sourcemeta::core::URITemplateRouter::ArgumentValue &) {
+        argument_fired = true;
+      });
+  EXPECT_FALSE(argument_fired);
+}
+
+TEST(corrupt_argument_integer_with_wrong_width) {
+  auto bytes{corrupt_router_core(0x50, 0x50)};
+  bytes.insert(bytes.end(), {0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+                             0x0C, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00,
+                             'k',  0x01, 0x04, 0x00, 0xAA, 0xBB, 0xCC, 0xDD});
+  const sourcemeta::core::URITemplateRouterView view{bytes.data(),
+                                                     bytes.size()};
+  bool argument_fired{false};
+  view.arguments(
+      1, [&argument_fired](
+             const std::string_view,
+             const sourcemeta::core::URITemplateRouter::ArgumentValue &) {
+        argument_fired = true;
+      });
+  EXPECT_FALSE(argument_fired);
+}
+
+TEST(corrupt_argument_boolean_with_wrong_width) {
+  auto bytes{corrupt_router_core(0x50, 0x50)};
+  bytes.insert(bytes.end(), {0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+                             0x0A, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00,
+                             'k',  0x02, 0x02, 0x00, 0x01, 0x01});
+  const sourcemeta::core::URITemplateRouterView view{bytes.data(),
+                                                     bytes.size()};
+  bool argument_fired{false};
+  view.arguments(
+      1, [&argument_fired](
+             const std::string_view,
+             const sourcemeta::core::URITemplateRouter::ArgumentValue &) {
+        argument_fired = true;
+      });
+  EXPECT_FALSE(argument_fired);
+}
+
+TEST(corrupt_argument_unknown_type_tag) {
+  auto bytes{corrupt_router_core(0x50, 0x50)};
+  bytes.insert(bytes.end(), {0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+                             0x00, 0x09, 0x00, 0x00, 0x00, 0x01, 0x00,
+                             0x01, 0x00, 'k',  0x09, 0x01, 0x00, 0x01});
+  const sourcemeta::core::URITemplateRouterView view{bytes.data(),
+                                                     bytes.size()};
+  bool argument_fired{false};
+  view.arguments(
+      1, [&argument_fired](
+             const std::string_view,
+             const sourcemeta::core::URITemplateRouter::ArgumentValue &) {
+        argument_fired = true;
+      });
+  EXPECT_FALSE(argument_fired);
+}
+
+TEST(corrupt_operations_entries_exceed_buffer) {
+  auto bytes{corrupt_router_core(0x50, 0x50)};
+  bytes.insert(bytes.end(), {0xFF, 0xFF});
+  const sourcemeta::core::URITemplateRouterView view{bytes.data(),
+                                                     bytes.size()};
+  EXPECT_EQ(view.operation("op_1").first, 0);
+  EXPECT_EQ(view.operation("op_1").second, 0);
+  EXPECT_TRUE(view.operation_id(1).empty());
+}
+
+TEST(corrupt_operation_entry_string_out_of_bounds) {
+  auto bytes{corrupt_router_core(0x50, 0x50)};
+  bytes.insert(bytes.end(), {0x01, 0x00});
+  bytes.insert(bytes.end(), {0x0F, 0x27, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00,
+                             0x01, 0x00, 0x0B, 0x00});
+  const sourcemeta::core::URITemplateRouterView view{bytes.data(),
+                                                     bytes.size()};
+  EXPECT_EQ(view.operation("op_1").first, 0);
+  EXPECT_EQ(view.operation("op_1").second, 0);
+  EXPECT_TRUE(view.operation_id(1).empty());
+}
+
+TEST(corrupt_paths_entries_exceed_buffer) {
+  auto bytes{corrupt_router_core(0x50, 0x50)};
+  bytes.insert(bytes.end(), {0xFF, 0xFF});
+  const sourcemeta::core::URITemplateRouterView view{bytes.data(),
+                                                     bytes.size()};
+  EXPECT_EQ(view.at(0), 0);
+  EXPECT_EQ(view.context(1), 0);
+  EXPECT_EQ(view.path(1), "");
+}
+
+TEST(corrupt_path_entry_string_out_of_bounds) {
+  auto bytes{corrupt_router_core(0x50, 0x50)};
+  bytes.insert(bytes.end(), {0x01, 0x00});
+  bytes.insert(bytes.end(), {0x01, 0x00, 0x0B, 0x00, 0x0F, 0x27, 0x00, 0x00,
+                             0x05, 0x00, 0x00, 0x00});
+  const sourcemeta::core::URITemplateRouterView view{bytes.data(),
+                                                     bytes.size()};
+  EXPECT_EQ(view.at(0), 1);
+  EXPECT_EQ(view.context(1), 11);
+  EXPECT_EQ(view.path(1), "");
+}
+
+TEST(corrupt_base_path_outside_string_table) {
+  const std::uint32_t data[] = {0x52544552, 9, 1,          80, 80, 0, 999,
+                                5,          0, 0,          0,  0,  0, 0,
+                                0xFFFFFFFF, 0, 0xFFFFFFFF, 0,  0,  0};
+  const sourcemeta::core::URITemplateRouterView view{
+      reinterpret_cast<const std::uint8_t *>(data), sizeof(data)};
+  EXPECT_TRUE(view.base_path().empty());
+}
+
+TEST(corrupt_base_url_outside_string_table) {
+  const std::uint32_t data[] = {0x52544552, 9, 1,          80, 80, 0, 0,
+                                0,          0, 999,        5,  0,  0, 0,
+                                0xFFFFFFFF, 0, 0xFFFFFFFF, 0,  0,  0};
+  const sourcemeta::core::URITemplateRouterView view{
+      reinterpret_cast<const std::uint8_t *>(data), sizeof(data)};
+  EXPECT_TRUE(view.base_url().empty());
+}
+
+TEST(corrupt_string_table_with_valid_operation_and_path_tables) {
+  const std::uint32_t words[] = {
+      0x52544552, 9, 1, 99999, 99999,      0x50, 0,          0, 0, 0,
+      0,          0, 0, 0,     0xFFFFFFFF, 0,    0xFFFFFFFF, 0, 0, 0};
+  std::vector<std::uint8_t> bytes{
+      reinterpret_cast<const std::uint8_t *>(words),
+      reinterpret_cast<const std::uint8_t *>(words) + sizeof(words)};
+  const std::uint32_t paths_offset{static_cast<std::uint32_t>(bytes.size())};
+  std::memcpy(bytes.data() + 44, &paths_offset, sizeof(paths_offset));
+  bytes.insert(bytes.end(), {0x01, 0x00});
+  bytes.insert(bytes.end(), {0x01, 0x00, 0x0B, 0x00, 0x00, 0x00, 0x00, 0x00,
+                             0x05, 0x00, 0x00, 0x00});
+  const std::uint32_t operations_offset{
+      static_cast<std::uint32_t>(bytes.size())};
+  std::memcpy(bytes.data() + 20, &operations_offset, sizeof(operations_offset));
+  bytes.insert(bytes.end(), {0x01, 0x00});
+  bytes.insert(bytes.end(), {0x00, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00,
+                             0x01, 0x00, 0x0B, 0x00});
+  const sourcemeta::core::URITemplateRouterView view{bytes.data(),
+                                                     bytes.size()};
+  EXPECT_EQ(view.operation("op_1").first, 0);
+  EXPECT_EQ(view.operation("op_1").second, 0);
+  EXPECT_EQ(view.path(1), "");
+  EXPECT_TRUE(view.operation_id(1).empty());
+}
+
+TEST(corrupt_paths_offset_past_end) {
+  auto bytes{corrupt_router_core(0x50, 0xFFFF)};
+  const sourcemeta::core::URITemplateRouterView view{bytes.data(),
+                                                     bytes.size()};
+  EXPECT_EQ(view.at(0), 0);
+  EXPECT_EQ(view.context(1), 0);
 }

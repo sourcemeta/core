@@ -3,8 +3,11 @@
 #include <sourcemeta/core/test.h>
 #include <sourcemeta/core/yaml.h>
 
-#include <sstream> // std::istringstream
-#include <string>  // std::string
+#include <fstream>  // std::ifstream
+#include <ios>      // std::ios::binary
+#include <iostream> // std::cerr
+#include <sstream>  // std::istringstream
+#include <string>   // std::string
 
 TEST(deeply_nested_flow_is_rejected) {
   const std::string input{std::string(2000, '[') + std::string(2000, ']')};
@@ -300,6 +303,164 @@ TEST(multi_document_windows_line_endings) {
 
   const auto doc3{sourcemeta::core::parse_yaml(stream)};
   EXPECT_EQ(doc3, sourcemeta::core::JSON{"baz"});
+
+  EXPECT_EQ(stream.peek(), EOF);
+}
+
+TEST(file_stream_single_document_exhausts_the_stream) {
+  auto stream{sourcemeta::core::read_file(std::filesystem::path{STUBS_PATH} /
+                                          "test_1.yaml")};
+
+  const auto result{sourcemeta::core::parse_yaml(stream)};
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "foo": "bar",
+    "baz": 2
+  })JSON");
+
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(stream.good());
+  EXPECT_EQ(stream.peek(), EOF);
+}
+
+TEST(file_stream_multi_document_unix_line_endings) {
+  auto stream{sourcemeta::core::read_file(std::filesystem::path{STUBS_PATH} /
+                                          "multi_document_lf.yaml")};
+
+  const auto first{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(first, sourcemeta::core::JSON{"foo"});
+  EXPECT_TRUE(stream.good());
+
+  const auto second{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(second, sourcemeta::core::JSON{"bar"});
+  EXPECT_TRUE(stream.good());
+
+  const auto third{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(third, sourcemeta::core::JSON{"baz"});
+  EXPECT_TRUE(stream.good());
+
+  EXPECT_EQ(stream.peek(), EOF);
+}
+
+TEST(file_stream_multi_document_windows_line_endings) {
+  auto stream{sourcemeta::core::read_file(std::filesystem::path{STUBS_PATH} /
+                                          "multi_document_crlf.yaml")};
+
+  const auto first{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(first, sourcemeta::core::JSON{"foo"});
+  EXPECT_TRUE(stream.good());
+
+  const auto second{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(second, sourcemeta::core::JSON{"bar"});
+  EXPECT_TRUE(stream.good());
+
+  const auto third{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(third, sourcemeta::core::JSON{"baz"});
+  EXPECT_TRUE(stream.good());
+
+  EXPECT_EQ(stream.peek(), EOF);
+}
+
+TEST(file_stream_multi_document_byte_order_mark) {
+  auto stream{sourcemeta::core::read_file(std::filesystem::path{STUBS_PATH} /
+                                          "multi_document_bom.yaml")};
+
+  const auto first{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(first, sourcemeta::core::JSON{"foo"});
+  EXPECT_TRUE(stream.good());
+
+  const auto second{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(second, sourcemeta::core::JSON{"bar"});
+  EXPECT_TRUE(stream.good());
+
+  EXPECT_EQ(stream.peek(), EOF);
+}
+
+TEST(file_stream_multi_document_objects) {
+  auto stream{sourcemeta::core::read_file(std::filesystem::path{STUBS_PATH} /
+                                          "multi_document_objects.yaml")};
+
+  const auto first{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(first, sourcemeta::core::parse_json(R"JSON({ "foo": 1 })JSON"));
+
+  const auto second{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(second, sourcemeta::core::parse_json(R"JSON({ "bar": 2 })JSON"));
+
+  const auto third{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(third, sourcemeta::core::parse_json(R"JSON({ "baz": 3 })JSON"));
+
+  EXPECT_EQ(stream.peek(), EOF);
+}
+
+TEST(file_stream_multi_document_blank_lines) {
+  auto stream{sourcemeta::core::read_file(std::filesystem::path{STUBS_PATH} /
+                                          "multi_document_blank_lines.yaml")};
+
+  const auto first{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(first, sourcemeta::core::parse_json(R"JSON({ "foo": 1 })JSON"));
+
+  const auto second{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(second, sourcemeta::core::parse_json(R"JSON({ "bar": 2 })JSON"));
+
+  EXPECT_EQ(stream.peek(), EOF);
+}
+
+TEST(file_stream_multi_document_tag_directive) {
+  auto stream{sourcemeta::core::read_file(std::filesystem::path{STUBS_PATH} /
+                                          "multi_document_tag_directive.yaml")};
+
+  const auto first{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(first,
+            sourcemeta::core::parse_json(R"JSON({ "first": "document" })JSON"));
+
+  const auto second{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(second, sourcemeta::core::JSON{"bar"});
+
+  EXPECT_EQ(stream.peek(), EOF);
+}
+
+TEST(file_stream_leaves_the_remaining_documents_unread) {
+  auto stream{sourcemeta::core::read_file(std::filesystem::path{STUBS_PATH} /
+                                          "multi_document_lf.yaml")};
+
+  const auto first{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(first, sourcemeta::core::JSON{"foo"});
+  EXPECT_EQ(stream.tellg(), std::streampos{8});
+  EXPECT_EQ(sourcemeta::core::read_to_string(stream), "---\nbar\n---\nbaz\n");
+}
+
+TEST(binary_file_stream_multi_document_windows_line_endings) {
+  std::ifstream stream{std::filesystem::path{STUBS_PATH} /
+                           "multi_document_crlf.yaml",
+                       std::ios::binary};
+
+  const auto first{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(first, sourcemeta::core::JSON{"foo"});
+  EXPECT_TRUE(stream.good());
+
+  const auto second{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(second, sourcemeta::core::JSON{"bar"});
+  EXPECT_TRUE(stream.good());
+
+  const auto third{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(third, sourcemeta::core::JSON{"baz"});
+  EXPECT_TRUE(stream.good());
+
+  EXPECT_EQ(stream.peek(), EOF);
+}
+
+TEST(binary_file_stream_multi_document_unix_line_endings) {
+  std::ifstream stream{std::filesystem::path{STUBS_PATH} /
+                           "multi_document_lf.yaml",
+                       std::ios::binary};
+
+  const auto first{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(first, sourcemeta::core::JSON{"foo"});
+
+  const auto second{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(second, sourcemeta::core::JSON{"bar"});
+
+  const auto third{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(third, sourcemeta::core::JSON{"baz"});
 
   EXPECT_EQ(stream.peek(), EOF);
 }
@@ -1738,4 +1899,291 @@ TEST(alias_quoted_keyword_key_is_preserved) {
   const sourcemeta::core::JSON expected{sourcemeta::core::parse_json(
       R"JSON([ "null", { "null": "value" } ])JSON")};
   EXPECT_EQ(result, expected);
+}
+
+TEST(escape_vertical_tab) {
+  const std::string input{"\"\\v\""};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_TRUE(result.is_string());
+  EXPECT_EQ(result.to_string(), std::string("\x0b", 1));
+}
+
+TEST(escape_form_feed) {
+  const std::string input{"\"\\f\""};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_TRUE(result.is_string());
+  EXPECT_EQ(result.to_string(), std::string("\x0c", 1));
+}
+
+TEST(escape_line_separator) {
+  const std::string input{"\"\\L\""};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_TRUE(result.is_string());
+  EXPECT_EQ(result.to_string(), std::string("\xe2\x80\xa8", 3));
+}
+
+TEST(escape_paragraph_separator) {
+  const std::string input{"\"\\P\""};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_TRUE(result.is_string());
+  EXPECT_EQ(result.to_string(), std::string("\xe2\x80\xa9", 3));
+}
+
+TEST(escape_incomplete_hex) {
+  const std::string input{"\"\\xZ\""};
+  try {
+    const auto result{sourcemeta::core::parse_yaml(input)};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid hex escape sequence");
+  }
+}
+
+TEST(unterminated_single_quote) {
+  const std::string input{"'abc"};
+  try {
+    const auto result{sourcemeta::core::parse_yaml(input)};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Missing closing quote in single-quoted scalar");
+  }
+}
+
+TEST(single_quoted_cr_folds_to_space) {
+  const std::string input{"'a\rb'"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result.to_string(), "a b");
+}
+
+TEST(single_quoted_crlf_folds_to_space) {
+  const std::string input{"'a\r\nb'"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result.to_string(), "a b");
+}
+
+TEST(double_quoted_cr_folds_to_space) {
+  const std::string input{"\"a\rb\""};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result.to_string(), "a b");
+}
+
+TEST(double_quoted_escaped_cr_line_continuation) {
+  const std::string input{"\"a\\\rb\""};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result.to_string(), "ab");
+}
+
+TEST(double_quoted_escaped_crlf_line_continuation) {
+  const std::string input{"\"a\\\r\nb\""};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result.to_string(), "ab");
+}
+
+TEST(block_scalar_with_cr_line_breaks) {
+  const std::string input{"|\r  a\r  b\r"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result.to_string(), "a\nb\n");
+}
+
+TEST(block_scalar_with_crlf_line_breaks) {
+  const std::string input{"|\r\n  a\r\n  b\r\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result.to_string(), "a\nb\n");
+}
+
+TEST(flow_mapping_bare_key_at_eof_is_rejected) {
+  try {
+    const auto result{sourcemeta::core::parse_yaml("{a")};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Expected ':' after mapping key");
+  }
+}
+
+TEST(flow_mapping_colon_at_eof_is_rejected) {
+  try {
+    const auto result{sourcemeta::core::parse_yaml("{a:")};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Unexpected token");
+  }
+}
+
+TEST(flow_mapping_anchor_key_at_eof_is_rejected) {
+  try {
+    const auto result{sourcemeta::core::parse_yaml("{&a")};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Expected scalar key in mapping");
+  }
+}
+
+TEST(explicit_bool_true_capitalized) {
+  const auto result{sourcemeta::core::parse_yaml("!!bool True")};
+  EXPECT_TRUE(result.is_boolean());
+  EXPECT_TRUE(result.to_boolean());
+}
+
+TEST(explicit_bool_true_uppercase) {
+  const auto result{sourcemeta::core::parse_yaml("!!bool TRUE")};
+  EXPECT_TRUE(result.is_boolean());
+  EXPECT_TRUE(result.to_boolean());
+}
+
+TEST(sign_only_scalar_is_a_string) {
+  const auto result{sourcemeta::core::parse_yaml("+")};
+  EXPECT_TRUE(result.is_string());
+  EXPECT_EQ(result.to_string(), "+");
+}
+
+TEST(dot_after_exponent_is_a_string) {
+  const auto result{sourcemeta::core::parse_yaml("1e1.5")};
+  EXPECT_TRUE(result.is_string());
+  EXPECT_EQ(result.to_string(), "1e1.5");
+}
+
+TEST(double_exponent_is_a_string) {
+  const auto result{sourcemeta::core::parse_yaml("1e2e3")};
+  EXPECT_TRUE(result.is_string());
+  EXPECT_EQ(result.to_string(), "1e2e3");
+}
+
+TEST(line_starting_with_double_dash_non_marker) {
+  const auto result{sourcemeta::core::parse_yaml("--x")};
+  EXPECT_TRUE(result.is_string());
+  EXPECT_EQ(result.to_string(), "--x");
+}
+
+TEST(flow_mapping_colon_before_flow_indicator) {
+  const auto result{sourcemeta::core::parse_yaml("{a:}")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_TRUE(result.defines("a"));
+}
+
+TEST(colon_as_final_byte_no_newline) {
+  const auto result{sourcemeta::core::parse_yaml("a:")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_TRUE(result.defines("a"));
+}
+
+TEST(flow_sequence_dash_at_eof_is_rejected) {
+  try {
+    const auto result{sourcemeta::core::parse_yaml("[-")};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid plain scalar start in flow context");
+  }
+}
+
+TEST(anchor_with_empty_value_before_document_end) {
+  const auto result{sourcemeta::core::parse_yaml("&a\n...")};
+  EXPECT_TRUE(result.is_null());
+}
+
+TEST(tag_then_flow_mapping_end) {
+  const auto result{sourcemeta::core::parse_yaml("{ a: !!str }")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_TRUE(result.defines("a"));
+}
+
+TEST(tag_then_flow_sequence_end) {
+  const auto result{sourcemeta::core::parse_yaml("[ !!str ]")};
+  EXPECT_TRUE(result.is_array());
+  EXPECT_EQ(result.size(), 1);
+}
+
+TEST(alias_key_referencing_unknown_anchor_is_rejected) {
+  try {
+    const auto result{sourcemeta::core::parse_yaml("*a: b")};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "YAML alias references undefined anchor");
+  }
+}
+
+TEST(flow_explicit_key_at_eof_is_rejected) {
+  try {
+    const auto result{sourcemeta::core::parse_yaml("[?")};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Unexpected token");
+  }
+}
+
+TEST(flow_collection_indented_at_parent_block_level_is_rejected) {
+  try {
+    const auto result{sourcemeta::core::parse_yaml("a: [\n1]")};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Insufficient indentation in flow collection");
+  }
+}
+
+TEST(explicit_key_block_mapping_duplicate_is_rejected) {
+  try {
+    const auto result{sourcemeta::core::parse_yaml("? a\n: 1\n? a\n: 2")};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Duplicate key in YAML mapping");
+  }
+}
+
+TEST(explicit_key_value_at_document_end) {
+  const auto result{sourcemeta::core::parse_yaml("? a\n:\n...")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_TRUE(result.defines("a"));
+}
+
+TEST(block_mapping_second_key_value_at_document_end) {
+  const auto result{sourcemeta::core::parse_yaml("a: 1\nb:\n...")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.at("a").to_integer(), 1);
+  EXPECT_TRUE(result.at("b").is_null());
+}
+
+TEST(leading_colon_value_indicator_mapping) {
+  const auto result{sourcemeta::core::parse_yaml(": v")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 1);
+}
+
+TEST(anchor_empty_value_before_document_start) {
+  const auto result{sourcemeta::core::parse_yaml("&a\n---\nb")};
+  EXPECT_TRUE(result.is_null());
+}
+
+TEST(mapping_key_that_is_a_collection_is_rejected) {
+  try {
+    const auto result{sourcemeta::core::parse_yaml("[? {a: 1}: b]")};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Mapping key cannot be a collection");
+  }
+}
+
+TEST(tab_trailing_after_quoted_scalar_is_rejected) {
+  try {
+    const auto result{sourcemeta::core::parse_yaml("'x'\tbad")};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid trailing content");
+  }
+}
+
+TEST(cr_trailing_after_quoted_scalar) {
+  const auto result{sourcemeta::core::parse_yaml("'x'\r")};
+  EXPECT_TRUE(result.is_string());
+  EXPECT_EQ(result.to_string(), "x");
+}
+
+TEST(block_scalar_blank_lines_with_cr) {
+  const auto result{sourcemeta::core::parse_yaml("|\r  a\r\r  b")};
+  EXPECT_TRUE(result.is_string());
+  EXPECT_EQ(result.to_string(), "a\n\nb");
+}
+
+TEST(tab_after_escaped_line_break) {
+  const auto result{sourcemeta::core::parse_yaml("\"a\\\n\tb\"")};
+  EXPECT_TRUE(result.is_string());
+  EXPECT_EQ(result.to_string(), "ab");
 }

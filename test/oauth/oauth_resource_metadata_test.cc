@@ -2327,3 +2327,25 @@ TEST(make_resource_metadata_accepts_a_cleartext_tos_uri) {
   })JSON")};
   EXPECT_EQ(document.value(), expected);
 }
+
+TEST(resource_metadata_explicit_false_dpop_bound) {
+  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
+      sourcemeta::core::parse_json(R"JSON({
+    "resource": "https://rs.example.com",
+    "dpop_bound_access_tokens_required": false
+  })JSON"),
+      "https://rs.example.com")};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_FALSE(metadata.value().dpop_bound_access_tokens_required());
+}
+
+TEST(resource_metadata_explicit_false_tls_client_cert) {
+  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
+      sourcemeta::core::parse_json(R"JSON({
+    "resource": "https://rs.example.com",
+    "tls_client_certificate_bound_access_tokens": false
+  })JSON"),
+      "https://rs.example.com")};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_FALSE(metadata.value().tls_client_certificate_bound_access_tokens());
+}

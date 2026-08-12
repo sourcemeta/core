@@ -122,3 +122,45 @@ TEST(result_to_string) {
 TEST(invalid_not_valid) {
   EXPECT_FALSE(sourcemeta::core::SemVer::from("not valid").has_value());
 }
+
+TEST(invalid_major_returns_nullopt) {
+  EXPECT_FALSE(sourcemeta::core::SemVer::from("x.2.3").has_value());
+}
+
+TEST(missing_minor_returns_nullopt) {
+  EXPECT_FALSE(sourcemeta::core::SemVer::from("1").has_value());
+}
+
+TEST(overflow_minor_returns_nullopt) {
+  EXPECT_FALSE(
+      sourcemeta::core::SemVer::from("1.99999999999999999999.0").has_value());
+}
+
+TEST(invalid_minor_returns_nullopt) {
+  EXPECT_FALSE(sourcemeta::core::SemVer::from("1.x.3").has_value());
+}
+
+TEST(missing_patch_returns_nullopt) {
+  EXPECT_FALSE(sourcemeta::core::SemVer::from("1.2").has_value());
+}
+
+TEST(overflow_patch_returns_nullopt) {
+  EXPECT_FALSE(
+      sourcemeta::core::SemVer::from("1.2.99999999999999999999").has_value());
+}
+
+TEST(invalid_patch_returns_nullopt) {
+  EXPECT_FALSE(sourcemeta::core::SemVer::from("1.2.x").has_value());
+}
+
+TEST(invalid_pre_release_returns_nullopt) {
+  EXPECT_FALSE(sourcemeta::core::SemVer::from("1.2.3-!").has_value());
+}
+
+TEST(invalid_build_returns_nullopt) {
+  EXPECT_FALSE(sourcemeta::core::SemVer::from("1.2.3+!").has_value());
+}
+
+TEST(trailing_garbage_returns_nullopt) {
+  EXPECT_FALSE(sourcemeta::core::SemVer::from("1.2.3x").has_value());
+}

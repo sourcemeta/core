@@ -345,3 +345,233 @@ TEST(reverse_value_not_array) {
   ])");
   EXPECT_FALSE(sourcemeta::core::jsonld_is_expanded(document));
 }
+
+TEST(value_object_with_type_and_direction_no_language) {
+  const auto document = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/p": [
+        {
+          "@value": "x",
+          "@type": "http://example.com/t",
+          "@direction": "ltr"
+        }
+      ]
+    }
+  ])");
+  EXPECT_FALSE(sourcemeta::core::jsonld_is_expanded(document));
+}
+
+TEST(value_object_with_non_string_type) {
+  const auto document = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/p": [
+        {
+          "@value": "x",
+          "@type": 123
+        }
+      ]
+    }
+  ])");
+  EXPECT_FALSE(sourcemeta::core::jsonld_is_expanded(document));
+}
+
+TEST(value_object_with_non_iri_type) {
+  const auto document = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/p": [
+        {
+          "@value": "x",
+          "@type": "notaniri"
+        }
+      ]
+    }
+  ])");
+  EXPECT_FALSE(sourcemeta::core::jsonld_is_expanded(document));
+}
+
+TEST(value_object_with_object_contents_and_type) {
+  const auto document = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/p": [
+        {
+          "@value": {
+            "a": 1
+          },
+          "@type": "http://example.com/t"
+        }
+      ]
+    }
+  ])");
+  EXPECT_FALSE(sourcemeta::core::jsonld_is_expanded(document));
+}
+
+TEST(value_object_with_array_contents_and_type) {
+  const auto document = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/p": [
+        {
+          "@value": [ 1, 2 ],
+          "@type": "http://example.com/t"
+        }
+      ]
+    }
+  ])");
+  EXPECT_FALSE(sourcemeta::core::jsonld_is_expanded(document));
+}
+
+TEST(value_object_with_array_contents_no_type) {
+  const auto document = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/p": [
+        {
+          "@value": [ 1, 2 ]
+        }
+      ]
+    }
+  ])");
+  EXPECT_FALSE(sourcemeta::core::jsonld_is_expanded(document));
+}
+
+TEST(value_object_with_non_string_language) {
+  const auto document = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/p": [
+        {
+          "@value": "x",
+          "@language": 123
+        }
+      ]
+    }
+  ])");
+  EXPECT_FALSE(sourcemeta::core::jsonld_is_expanded(document));
+}
+
+TEST(value_object_with_language_but_non_string_value) {
+  const auto document = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/p": [
+        {
+          "@value": 123,
+          "@language": "en"
+        }
+      ]
+    }
+  ])");
+  EXPECT_FALSE(sourcemeta::core::jsonld_is_expanded(document));
+}
+
+TEST(value_object_with_non_string_direction) {
+  const auto document = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/p": [
+        {
+          "@value": "x",
+          "@direction": 123
+        }
+      ]
+    }
+  ])");
+  EXPECT_FALSE(sourcemeta::core::jsonld_is_expanded(document));
+}
+
+TEST(value_object_with_direction_but_non_string_value) {
+  const auto document = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/p": [
+        {
+          "@value": 123,
+          "@direction": "ltr"
+        }
+      ]
+    }
+  ])");
+  EXPECT_FALSE(sourcemeta::core::jsonld_is_expanded(document));
+}
+
+TEST(value_object_with_non_string_index) {
+  const auto document = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/p": [
+        {
+          "@value": "x",
+          "@index": 123
+        }
+      ]
+    }
+  ])");
+  EXPECT_FALSE(sourcemeta::core::jsonld_is_expanded(document));
+}
+
+TEST(node_with_non_string_index) {
+  const auto document = sourcemeta::core::parse_json(R"([
+    {
+      "@index": 123
+    }
+  ])");
+  EXPECT_FALSE(sourcemeta::core::jsonld_is_expanded(document));
+}
+
+TEST(node_type_array_with_invalid_reference) {
+  const auto document = sourcemeta::core::parse_json(R"([
+    {
+      "@type": [ "bad ref with spaces" ]
+    }
+  ])");
+  EXPECT_FALSE(sourcemeta::core::jsonld_is_expanded(document));
+}
+
+TEST(node_with_non_array_graph) {
+  const auto document = sourcemeta::core::parse_json(R"([
+    {
+      "@graph": "x"
+    }
+  ])");
+  EXPECT_FALSE(sourcemeta::core::jsonld_is_expanded(document));
+}
+
+TEST(node_with_non_object_reverse) {
+  const auto document = sourcemeta::core::parse_json(R"([
+    {
+      "@reverse": "x"
+    }
+  ])");
+  EXPECT_FALSE(sourcemeta::core::jsonld_is_expanded(document));
+}
+
+TEST(node_reverse_with_non_iri_key) {
+  const auto document = sourcemeta::core::parse_json(R"([
+    {
+      "@reverse": {
+        "notaterm": []
+      }
+    }
+  ])");
+  EXPECT_FALSE(sourcemeta::core::jsonld_is_expanded(document));
+}
+
+TEST(list_object_with_non_array_list) {
+  const auto document = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/p": [
+        {
+          "@list": "x"
+        }
+      ]
+    }
+  ])");
+  EXPECT_FALSE(sourcemeta::core::jsonld_is_expanded(document));
+}
+
+TEST(list_object_with_non_string_index) {
+  const auto document = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/p": [
+        {
+          "@list": [],
+          "@index": 123
+        }
+      ]
+    }
+  ])");
+  EXPECT_FALSE(sourcemeta::core::jsonld_is_expanded(document));
+}

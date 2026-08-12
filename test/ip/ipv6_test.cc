@@ -355,3 +355,15 @@ TEST(valid_two_digit_hex_groups_with_leading_zeros) {
 TEST(valid_three_digit_hex_groups_with_leading_zeros) {
   EXPECT_TRUE(sourcemeta::core::is_ipv6("001:002:003:004:005:006:007:008"));
 }
+
+TEST(rejects_trailing_bracket) {
+  EXPECT_FALSE(sourcemeta::core::is_ipv6("1::]"));
+}
+
+TEST(rejects_leading_single_colon_with_double) {
+  EXPECT_FALSE(sourcemeta::core::is_ipv6(":1::2"));
+}
+
+TEST(rejects_trailing_single_colon_with_double) {
+  EXPECT_FALSE(sourcemeta::core::is_ipv6("1::2:"));
+}

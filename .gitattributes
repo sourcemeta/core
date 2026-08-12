@@ -2,3 +2,9 @@
 vendor/*.mask text eol=lf
 *.sh text eol=lf
 test/test/*.txt text eol=lf
+
+# These fixtures are parser input, so their bytes, including their line
+# endings, must reach the working directory exactly as committed on every
+# platform
+/test/json/stub_*.json -text
+/test/yaml/stubs/** -text

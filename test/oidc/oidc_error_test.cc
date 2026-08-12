@@ -120,3 +120,16 @@ TEST(to_authentication_error_rejects_an_oauth_code) {
   EXPECT_FALSE(sourcemeta::core::to_oidc_authentication_error("access_denied")
                    .has_value());
 }
+
+TEST(metadata_parse_error_message) {
+  const sourcemeta::core::OIDCMetadataParseError error{};
+  EXPECT_STREQ(error.what(),
+               "The input is not a valid OpenID Provider metadata document");
+}
+
+TEST(registration_parse_error_message) {
+  const sourcemeta::core::OIDCRegistrationParseError error{};
+  EXPECT_STREQ(
+      error.what(),
+      "The input is not a valid OpenID Connect client registration document");
+}

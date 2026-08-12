@@ -213,3 +213,60 @@ TEST(major_only_with_build) {
   EXPECT_EQ(version.patch(), 0);
   EXPECT_EQ(version.build(), "build");
 }
+
+TEST(from_loose_invalid_major_returns_nullopt) {
+  EXPECT_FALSE(sourcemeta::core::SemVer::from(
+                   "x.2.3", sourcemeta::core::SemVer::Mode::Loose)
+                   .has_value());
+}
+
+TEST(from_loose_overflow_major_returns_nullopt) {
+  EXPECT_FALSE(
+      sourcemeta::core::SemVer::from("99999999999999999999.0.0",
+                                     sourcemeta::core::SemVer::Mode::Loose)
+          .has_value());
+}
+
+TEST(from_loose_overflow_minor_returns_nullopt) {
+  EXPECT_FALSE(
+      sourcemeta::core::SemVer::from("1.99999999999999999999.0",
+                                     sourcemeta::core::SemVer::Mode::Loose)
+          .has_value());
+}
+
+TEST(from_loose_invalid_minor_returns_nullopt) {
+  EXPECT_FALSE(sourcemeta::core::SemVer::from(
+                   "1.x.3", sourcemeta::core::SemVer::Mode::Loose)
+                   .has_value());
+}
+
+TEST(from_loose_overflow_patch_returns_nullopt) {
+  EXPECT_FALSE(
+      sourcemeta::core::SemVer::from("1.2.99999999999999999999",
+                                     sourcemeta::core::SemVer::Mode::Loose)
+          .has_value());
+}
+
+TEST(from_loose_invalid_patch_returns_nullopt) {
+  EXPECT_FALSE(sourcemeta::core::SemVer::from(
+                   "1.2.x", sourcemeta::core::SemVer::Mode::Loose)
+                   .has_value());
+}
+
+TEST(from_loose_invalid_pre_release_returns_nullopt) {
+  EXPECT_FALSE(sourcemeta::core::SemVer::from(
+                   "1.2.3-!", sourcemeta::core::SemVer::Mode::Loose)
+                   .has_value());
+}
+
+TEST(from_loose_invalid_build_returns_nullopt) {
+  EXPECT_FALSE(sourcemeta::core::SemVer::from(
+                   "1.2.3+!", sourcemeta::core::SemVer::Mode::Loose)
+                   .has_value());
+}
+
+TEST(from_loose_trailing_garbage_returns_nullopt) {
+  EXPECT_FALSE(sourcemeta::core::SemVer::from(
+                   "1.2.3x", sourcemeta::core::SemVer::Mode::Loose)
+                   .has_value());
+}

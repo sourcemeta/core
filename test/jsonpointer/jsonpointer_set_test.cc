@@ -219,3 +219,31 @@ TEST(positive_integer_property) {
   EXPECT_TRUE(document.at("0").is_integer());
   EXPECT_EQ(document.at("0").to_integer(), 4);
 }
+
+TEST(set_index_token_on_object) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "0": 1
+  })JSON");
+
+  const auto pointer{sourcemeta::core::to_pointer("/0")};
+  sourcemeta::core::set(document, pointer, sourcemeta::core::JSON{2});
+  EXPECT_EQ(document.at("0").to_integer(), 2);
+}
+
+TEST(set_through_index_token_on_array) {
+  sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json(R"JSON([ { "x": 1 } ])JSON");
+
+  const sourcemeta::core::Pointer pointer{0, "x"};
+  sourcemeta::core::set(document, pointer, sourcemeta::core::JSON{2});
+  EXPECT_EQ(document.at(0).at("x").to_integer(), 2);
+}
+
+TEST(set_through_index_token_on_object) {
+  sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json(R"JSON({ "0": { "x": 1 } })JSON");
+
+  const sourcemeta::core::Pointer pointer{0, "x"};
+  sourcemeta::core::set(document, pointer, sourcemeta::core::JSON{2});
+  EXPECT_EQ(document.at("0").at("x").to_integer(), 2);
+}

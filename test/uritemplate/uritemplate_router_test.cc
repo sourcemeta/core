@@ -349,6 +349,7 @@ TEST(conflicting_variable_names_throws) {
     FAIL();
   } catch (
       const sourcemeta::core::URITemplateRouterVariableMismatchError &error) {
+    EXPECT_STREQ(error.what(), "Variable name mismatch when adding route");
     EXPECT_EQ(error.left(), "user_id");
     EXPECT_EQ(error.right(), "id");
   }
@@ -1757,6 +1758,7 @@ TEST(operation_id_reject_empty) {
     FAIL();
   } catch (
       const sourcemeta::core::URITemplateRouterInvalidOperationIdError &error) {
+    EXPECT_STREQ(error.what(), "Invalid operation identifier");
     EXPECT_EQ(error.operation_id(), "");
   }
 }
@@ -1841,6 +1843,7 @@ TEST(operation_id_duplicate_throws) {
     FAIL();
   } catch (const sourcemeta::core::URITemplateRouterDuplicateOperationIdError
                &error) {
+    EXPECT_STREQ(error.what(), "Duplicate operation identifier");
     EXPECT_EQ(error.operation_id(), "listUsers");
   } catch (...) {
     FAIL();
@@ -3039,4 +3042,108 @@ TEST(describes_with_base_argument_empty_router) {
 
   EXPECT_FALSE(router.describes("/foo", "/bar"));
   EXPECT_FALSE(router.describes("", "/bar"));
+}
+
+TEST(segment_error_message) {
+  sourcemeta::core::URITemplateRouter router;
+  try {
+    router.add("users/{id}", "op_segment", 1);
+    FAIL();
+  } catch (
+      const sourcemeta::core::URITemplateRouterInvalidSegmentError &error) {
+    EXPECT_STREQ(error.what(), "Template must start with '/'");
+    EXPECT_EQ(error.segment(), "users/{id}");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(empty_template_re_registration_replaces_the_root) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("", "op_first", 1, 11);
+  router.add("", "op_second", 2, 22);
+  EXPECT_ROUTER_MATCH(router, "", 2, 22, captures);
+  EXPECT_EQ(captures.size(), 0);
+  EXPECT_EQ(router.operation("op_second").first, 2);
+  EXPECT_EQ(router.operation("op_second").second, 22);
+  EXPECT_EQ(router.operation("op_first").first, 0);
+  EXPECT_EQ(router.operation("op_first").second, 0);
+}
+
+TEST(empty_template_re_registration_with_arguments) {
+  sourcemeta::core::URITemplateRouter router;
+  const std::string argument_value{"value"};
+  const std::array<sourcemeta::core::URITemplateRouter::Argument, 1> arguments{
+      {{"key", std::string_view{argument_value}}}};
+  router.add("", "op_first", 1, 11);
+  router.add("", "op_second", 2, 22, arguments);
+  EXPECT_ROUTER_MATCH(router, "", 2, 22, captures);
+  bool argument_seen{false};
+  router.arguments(
+      2, [&argument_seen](
+             const std::string_view name,
+             const sourcemeta::core::URITemplateRouter::ArgumentValue &value) {
+        const auto *content{std::get_if<std::string_view>(&value)};
+        argument_seen =
+            name == "key" && content != nullptr && *content == "value";
+      });
+  EXPECT_TRUE(argument_seen);
+}
+
+TEST(add_rejects_an_unmatched_closing_brace) {
+  sourcemeta::core::URITemplateRouter router;
+  try {
+    router.add("/}x", "op_bad", 1);
+    FAIL();
+  } catch (
+      const sourcemeta::core::URITemplateRouterInvalidSegmentError &error) {
+    EXPECT_STREQ(error.what(), "Unmatched closing brace");
+    EXPECT_EQ(error.segment(), "}x");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(add_rejects_an_unclosed_trailing_brace) {
+  sourcemeta::core::URITemplateRouter router;
+  try {
+    router.add("/{", "op_bad", 1);
+    FAIL();
+  } catch (
+      const sourcemeta::core::URITemplateRouterInvalidSegmentError &error) {
+    EXPECT_STREQ(error.what(), "Unclosed brace");
+    EXPECT_EQ(error.segment(), "{");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(add_rejects_a_mixed_literal_and_variable_segment) {
+  sourcemeta::core::URITemplateRouter router;
+  try {
+    router.add("/a{x}", "op_bad", 1);
+    FAIL();
+  } catch (
+      const sourcemeta::core::URITemplateRouterInvalidSegmentError &error) {
+    EXPECT_STREQ(error.what(),
+                 "Path segment cannot mix literals and variables");
+    EXPECT_EQ(error.segment(), "a{x}");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(add_rejects_a_variable_then_literal_segment) {
+  sourcemeta::core::URITemplateRouter router;
+  try {
+    router.add("/{x}a", "op_bad", 1);
+    FAIL();
+  } catch (
+      const sourcemeta::core::URITemplateRouterInvalidSegmentError &error) {
+    EXPECT_STREQ(error.what(),
+                 "Path segment cannot mix literals and variables");
+    EXPECT_EQ(error.segment(), "{x}a");
+  } catch (...) {
+    FAIL();
+  }
 }

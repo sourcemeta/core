@@ -462,3 +462,201 @@ TEST(reverse_term_ignores_prefix_entry) {
 
   EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
 }
+
+TEST(type_redefinition_with_set_container) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "@type": { "@container": "@set" } },
+    "@type": "http://example.com/Type"
+  })");
+
+  const auto result{sourcemeta::core::jsonld_expand(input)};
+  EXPECT_TRUE(result.is_array());
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_TRUE(result.at(0).defines("@type"));
+  EXPECT_TRUE(result.at(0).at("@type").is_array());
+  EXPECT_EQ(result.at(0).at("@type").size(), 1);
+  EXPECT_EQ(result.at(0).at("@type").at(0).to_string(),
+            "http://example.com/Type");
+}
+
+TEST(term_with_slash_expands_against_vocabulary) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "@vocab": "http://vocab.example/",
+      "a/b": { "@type": "@id" }
+    },
+    "a/b": "http://example.com/x"
+  })");
+
+  const auto result{sourcemeta::core::jsonld_expand(input)};
+  const auto expected{sourcemeta::core::parse_json(R"JSON([
+    {
+      "http://vocab.example/a/b": [
+        { "@id": "http://example.com/x" }
+      ]
+    }
+  ])JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(compact_iri_term_with_unresolvable_prefix) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "ex:suffix": { "@type": "@id" }
+    },
+    "ex:suffix": "http://example.com/x"
+  })");
+
+  const auto result{sourcemeta::core::jsonld_expand(input)};
+  const auto expected{sourcemeta::core::parse_json(R"JSON([
+    {
+      "ex:suffix": [
+        { "@id": "http://example.com/x" }
+      ]
+    }
+  ])JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(type_redefinition_protected_with_matching_definition) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": [
+      { "@type": { "@container": "@set", "@protected": true } },
+      { "@type": { "@container": "@set" } }
+    ],
+    "@type": "http://example.com/T"
+  })");
+
+  const auto result{sourcemeta::core::jsonld_expand(input)};
+  const auto expected{sourcemeta::core::parse_json(R"([
+    { "@type": [ "http://example.com/T" ] }
+  ])")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(simple_term_with_keyword_form_is_dropped) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "@vocab": "http://example.com/", "ignored": "@nest" },
+    "ignored": { "http://example.com/foo": "bar" }
+  })");
+
+  const auto result{sourcemeta::core::jsonld_expand(input)};
+  const auto expected{sourcemeta::core::parse_json(R"([
+    { "http://example.com/foo": [ { "@value": "bar" } ] }
+  ])")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(self_referential_compact_term_via_prefix) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "ex": "http://example.com/",
+      "ex:name": "ex:name"
+    },
+    "ex:name": "value"
+  })");
+
+  const auto result{sourcemeta::core::jsonld_expand(input)};
+  const auto expected{sourcemeta::core::parse_json(R"([
+    { "http://example.com/name": [ { "@value": "value" } ] }
+  ])")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(type_array_with_non_string_item_is_rejected) {
+  const auto input = sourcemeta::core::parse_json(R"({ "@type": [ 123 ] })");
+  try {
+    const auto result{sourcemeta::core::jsonld_expand(input)};
+    FAIL();
+  } catch (const sourcemeta::core::JSONLDError &error) {
+    EXPECT_STREQ(error.what(), "Invalid type value");
+  }
+}
+
+TEST(top_level_non_string_direction_is_rejected) {
+  const auto input = sourcemeta::core::parse_json(R"({ "@direction": 123 })");
+  try {
+    const auto result{sourcemeta::core::jsonld_expand(input)};
+    FAIL();
+  } catch (const sourcemeta::core::JSONLDError &error) {
+    EXPECT_STREQ(error.what(), "Invalid base direction");
+  }
+}
+
+TEST(nest_array_item_not_an_object_is_rejected) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "@vocab": "http://example.com/" },
+    "@nest": [ "x" ]
+  })");
+  try {
+    const auto result{sourcemeta::core::jsonld_expand(input)};
+    FAIL();
+  } catch (const sourcemeta::core::JSONLDError &error) {
+    EXPECT_STREQ(error.what(), "Invalid @nest value");
+  }
+}
+
+TEST(nest_array_item_value_object_is_rejected) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "@vocab": "http://example.com/" },
+    "@nest": [ { "@value": "x" } ]
+  })");
+  try {
+    const auto result{sourcemeta::core::jsonld_expand(input)};
+    FAIL();
+  } catch (const sourcemeta::core::JSONLDError &error) {
+    EXPECT_STREQ(error.what(), "Invalid @nest value");
+  }
+}
+
+TEST(term_container_array_with_non_string_is_rejected) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "t": { "@id": "http://ex/t", "@container": [ 123 ] } },
+    "t": "x"
+  })");
+  try {
+    const auto result{sourcemeta::core::jsonld_expand(input)};
+    FAIL();
+  } catch (const sourcemeta::core::JSONLDError &error) {
+    EXPECT_STREQ(error.what(), "Invalid container mapping");
+  }
+}
+
+TEST(term_container_array_with_invalid_container_is_rejected) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "t": { "@id": "http://ex/t", "@container": [ "@bogus" ] } },
+    "t": "x"
+  })");
+  try {
+    const auto result{sourcemeta::core::jsonld_expand(input)};
+    FAIL();
+  } catch (const sourcemeta::core::JSONLDError &error) {
+    EXPECT_STREQ(error.what(), "Invalid container mapping");
+  }
+}
+
+TEST(term_direction_non_string_is_rejected) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "t": { "@id": "http://ex/t", "@direction": 123 } },
+    "t": "x"
+  })");
+  try {
+    const auto result{sourcemeta::core::jsonld_expand(input)};
+    FAIL();
+  } catch (const sourcemeta::core::JSONLDError &error) {
+    EXPECT_STREQ(error.what(), "Invalid base direction");
+  }
+}
+
+TEST(term_nest_non_string_is_rejected) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "t": { "@id": "http://ex/t", "@nest": 123 } },
+    "t": "x"
+  })");
+  try {
+    const auto result{sourcemeta::core::jsonld_expand(input)};
+    FAIL();
+  } catch (const sourcemeta::core::JSONLDError &error) {
+    EXPECT_STREQ(error.what(), "Invalid @nest value");
+  }
+}

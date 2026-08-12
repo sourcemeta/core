@@ -489,3 +489,69 @@ TEST(iri_reference_against_plain_uri_base) {
   EXPECT_EQ(reference.recompose(), "https://example.com/dir/caf\xC3\xA9");
   EXPECT_TRUE(reference.is_internationalized());
 }
+
+TEST(ipv6_base_authority_is_inherited) {
+  const sourcemeta::core::URI base{"https://[::1]/a/b"};
+  sourcemeta::core::URI reference{"c"};
+  reference.resolve_from(base);
+  EXPECT_EQ(reference.recompose(), "https://[::1]/a/c");
+}
+
+TEST(ipv6_base_authority_is_inherited_by_a_fragment) {
+  const sourcemeta::core::URI base{"https://[2001:db8::1]:8443/a"};
+  sourcemeta::core::URI reference{"#frag"};
+  reference.resolve_from(base);
+  EXPECT_EQ(reference.recompose(), "https://[2001:db8::1]:8443/a#frag");
+}
+
+// An empty path segment carries meaning and RFC 3986 Section 5.2.4 never
+// removes one, so these survive resolution. Some widely used implementations
+// collapse them, which is a deviation rather than a licence to follow
+TEST(empty_segment_in_the_reference_is_preserved) {
+  const sourcemeta::core::URI base{"http://a/b/c/d;p?q"};
+  sourcemeta::core::URI reference{"g//h"};
+  reference.resolve_from(base);
+  EXPECT_EQ(reference.recompose(), "http://a/b/c/g//h");
+}
+
+TEST(dot_segment_before_an_empty_segment_is_preserved) {
+  const sourcemeta::core::URI base{"http://a/b/c/d;p?q"};
+  sourcemeta::core::URI reference{".//g"};
+  reference.resolve_from(base);
+  EXPECT_EQ(reference.recompose(), "http://a/b/c//g");
+}
+
+TEST(empty_segment_in_the_base_is_preserved) {
+  const sourcemeta::core::URI base{"http://a//b/c"};
+  sourcemeta::core::URI reference{"g"};
+  reference.resolve_from(base);
+  EXPECT_EQ(reference.recompose(), "http://a//b/g");
+}
+
+TEST(empty_segment_in_the_base_survives_a_parent_step) {
+  const sourcemeta::core::URI base{"http://a//b/c"};
+  sourcemeta::core::URI reference{".."};
+  reference.resolve_from(base);
+  EXPECT_EQ(reference.recompose(), "http://a//");
+}
+
+TEST(network_path_reference_with_an_empty_authority) {
+  const sourcemeta::core::URI base{"http://a/b/c/d;p?q"};
+  sourcemeta::core::URI reference{"//"};
+  reference.resolve_from(base);
+  EXPECT_EQ(reference.recompose(), "http://");
+}
+
+TEST(a_dot_reference_resolves_to_the_base_directory) {
+  const sourcemeta::core::URI base{"https://example.com/a/b"};
+  sourcemeta::core::URI reference{"./c"};
+  reference.resolve_from(base);
+  EXPECT_EQ(reference.recompose(), "https://example.com/a/c");
+}
+
+TEST(a_dotdot_reference_steps_out_of_the_base_directory) {
+  const sourcemeta::core::URI base{"https://example.com/a/b"};
+  sourcemeta::core::URI reference{"../c"};
+  reference.resolve_from(base);
+  EXPECT_EQ(reference.recompose(), "https://example.com/c");
+}

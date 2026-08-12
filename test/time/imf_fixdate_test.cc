@@ -297,3 +297,123 @@ TEST(format_year_below_1000_pads_to_four_digits) {
     EXPECT_EQ(sourcemeta::core::from_imf_fixdate(formatted), point);
   }
 }
+
+TEST(rejects_separator_at_3) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_imf_fixdate("Sun. 06 Nov 1994 08:49:37 GMT")
+          .has_value());
+}
+
+TEST(rejects_separator_at_4) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_imf_fixdate("Sun,_06 Nov 1994 08:49:37 GMT")
+          .has_value());
+}
+
+TEST(rejects_separator_at_7) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_imf_fixdate("Sun, 06_Nov 1994 08:49:37 GMT")
+          .has_value());
+}
+
+TEST(rejects_separator_at_11) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_imf_fixdate("Sun, 06 Nov_1994 08:49:37 GMT")
+          .has_value());
+}
+
+TEST(rejects_separator_at_16) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_imf_fixdate("Sun, 06 Nov 1994_08:49:37 GMT")
+          .has_value());
+}
+
+TEST(rejects_separator_at_19) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_imf_fixdate("Sun, 06 Nov 1994 08.49:37 GMT")
+          .has_value());
+}
+
+TEST(rejects_separator_at_22) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_imf_fixdate("Sun, 06 Nov 1994 08:49.37 GMT")
+          .has_value());
+}
+
+TEST(rejects_separator_at_25) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_imf_fixdate("Sun, 06 Nov 1994 08:49:37_GMT")
+          .has_value());
+}
+
+TEST(rejects_non_digit_at_5) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_imf_fixdate("Sun, X6 Nov 1994 08:49:37 GMT")
+          .has_value());
+}
+
+TEST(rejects_non_digit_at_6) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_imf_fixdate("Sun, 0X Nov 1994 08:49:37 GMT")
+          .has_value());
+}
+
+TEST(rejects_non_digit_at_12) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_imf_fixdate("Sun, 06 Nov X994 08:49:37 GMT")
+          .has_value());
+}
+
+TEST(rejects_non_digit_at_13) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_imf_fixdate("Sun, 06 Nov 1X94 08:49:37 GMT")
+          .has_value());
+}
+
+TEST(rejects_non_digit_at_14) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_imf_fixdate("Sun, 06 Nov 19X4 08:49:37 GMT")
+          .has_value());
+}
+
+TEST(rejects_non_digit_at_15) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_imf_fixdate("Sun, 06 Nov 199X 08:49:37 GMT")
+          .has_value());
+}
+
+TEST(rejects_non_digit_at_17) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_imf_fixdate("Sun, 06 Nov 1994 X8:49:37 GMT")
+          .has_value());
+}
+
+TEST(rejects_non_digit_at_18) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_imf_fixdate("Sun, 06 Nov 1994 0X:49:37 GMT")
+          .has_value());
+}
+
+TEST(rejects_non_digit_at_20) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_imf_fixdate("Sun, 06 Nov 1994 08:X9:37 GMT")
+          .has_value());
+}
+
+TEST(rejects_non_digit_at_21) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_imf_fixdate("Sun, 06 Nov 1994 08:4X:37 GMT")
+          .has_value());
+}
+
+TEST(rejects_non_digit_at_23) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_imf_fixdate("Sun, 06 Nov 1994 08:49:X7 GMT")
+          .has_value());
+}
+
+TEST(rejects_non_digit_at_24) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_imf_fixdate("Sun, 06 Nov 1994 08:49:3X GMT")
+          .has_value());
+}

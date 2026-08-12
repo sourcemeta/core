@@ -9,6 +9,7 @@ TEST(syntax_error_1) {
     sourcemeta::core::URI uri{"//[::44.1"};
     FAIL();
   } catch (const sourcemeta::core::URIParseError &error) {
+    EXPECT_STREQ(error.what(), "The input is not a valid URI");
     EXPECT_EQ(error.column(), 3);
   }
   EXPECT_FALSE(sourcemeta::core::URI::is_uri("//[::44.1"));
@@ -945,4 +946,35 @@ TEST(uri_constructor_rejects_non_ascii) {
   } catch (const sourcemeta::core::URIParseError &error) {
     EXPECT_EQ(error.column(), 24);
   }
+}
+
+TEST(ipvfuture_uppercase_marker) {
+  const sourcemeta::core::URI uri{"http://[V1.a]/"};
+  EXPECT_TRUE(uri.host().has_value());
+  EXPECT_EQ(uri.host().value(), "V1.a");
+}
+
+TEST(ipvfuture_missing_version_hexdigit) {
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri("http://[v.a]/"));
+}
+
+TEST(ipvfuture_missing_dot_separator) {
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri("http://[v1x]/"));
+}
+
+TEST(ipvfuture_missing_content_after_dot) {
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri("http://[v1.]/"));
+}
+
+TEST(ipvfuture_invalid_content_character) {
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri("http://[v1.a%]/"));
+}
+
+TEST(success_with_percent_encoded_unreserved_is_decoded) {
+  // RFC 3986 Section 6.2.2.2 equates a percent-encoded unreserved character
+  // with the character itself, so decoding one can turn what looks like an
+  // ordinary segment into a dot segment
+  sourcemeta::core::URI uri{"https://www.example.com/a/%2E%2E/b"};
+  EXPECT_EQ(uri.path(), "/a/../b");
+  EXPECT_EQ(uri.recompose(), "https://www.example.com/a/../b");
 }

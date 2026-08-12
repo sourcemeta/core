@@ -5,12 +5,14 @@ sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME io
     io_binary_test.cc
     io_bytestream_test.cc
     io_canonical_test.cc
+    io_error_test.cc
     io_fileview_test.cc
     io_flush_test.cc
     io_for_each_line_test.cc
     io_hardlink_directory_test.cc
     io_read_file_test.cc
     io_read_to_string_test.cc
+    io_resume_stream_test.cc
     io_is_under_path_test.cc
     io_is_lexically_under_path_test.cc
     io_strip_path_prefix_test.cc

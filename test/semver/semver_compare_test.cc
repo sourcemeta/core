@@ -352,3 +352,78 @@ TEST(overflow_pre_release_same_length_lexical) {
   EXPECT_GT(sourcemeta::core::SemVer{"1.0.0-99999999999999999999"},
             sourcemeta::core::SemVer{"1.0.0-99999999999999999998"});
 }
+
+TEST(numeric_pre_release_identifiers_compare_by_value) {
+  EXPECT_LT(sourcemeta::core::SemVer{"1.0.0-alpha.2"},
+            sourcemeta::core::SemVer{"1.0.0-alpha.10"});
+}
+
+TEST(numeric_pre_release_identifiers_compare_by_value_reversed) {
+  EXPECT_GT(sourcemeta::core::SemVer{"1.0.0-alpha.10"},
+            sourcemeta::core::SemVer{"1.0.0-alpha.2"});
+}
+
+TEST(alphanumeric_pre_release_identifiers_compare_lexically) {
+  EXPECT_LT(sourcemeta::core::SemVer{"1.0.0-alpha.beta"},
+            sourcemeta::core::SemVer{"1.0.0-alpha.gamma"});
+}
+
+TEST(alphanumeric_pre_release_identifiers_compare_lexically_reversed) {
+  EXPECT_GT(sourcemeta::core::SemVer{"1.0.0-alpha.gamma"},
+            sourcemeta::core::SemVer{"1.0.0-alpha.beta"});
+}
+
+TEST(numeric_pre_release_identifier_below_alphanumeric) {
+  EXPECT_LT(sourcemeta::core::SemVer{"1.0.0-1"},
+            sourcemeta::core::SemVer{"1.0.0-alpha"});
+}
+
+TEST(alphanumeric_pre_release_identifier_above_numeric) {
+  EXPECT_GT(sourcemeta::core::SemVer{"1.0.0-alpha"},
+            sourcemeta::core::SemVer{"1.0.0-1"});
+}
+
+TEST(shorter_pre_release_below_longer_with_same_prefix) {
+  EXPECT_LT(sourcemeta::core::SemVer{"1.0.0-alpha"},
+            sourcemeta::core::SemVer{"1.0.0-alpha.1"});
+}
+
+TEST(longer_pre_release_above_shorter_with_same_prefix) {
+  EXPECT_GT(sourcemeta::core::SemVer{"1.0.0-alpha.1"},
+            sourcemeta::core::SemVer{"1.0.0-alpha"});
+}
+
+TEST(release_not_less_than_pre_release) {
+  EXPECT_FALSE(sourcemeta::core::SemVer{"1.0.0"} <
+               sourcemeta::core::SemVer{"1.0.0-alpha"});
+}
+
+TEST(greater_numeric_pre_release_identifier_not_less) {
+  EXPECT_FALSE(sourcemeta::core::SemVer{"1.0.0-alpha.10"} <
+               sourcemeta::core::SemVer{"1.0.0-alpha.2"});
+}
+
+TEST(greater_alphanumeric_pre_release_identifier_not_less) {
+  EXPECT_FALSE(sourcemeta::core::SemVer{"1.0.0-alpha.gamma"} <
+               sourcemeta::core::SemVer{"1.0.0-alpha.beta"});
+}
+
+TEST(alphanumeric_pre_release_identifier_not_less_than_numeric) {
+  EXPECT_FALSE(sourcemeta::core::SemVer{"1.0.0-alpha"} <
+               sourcemeta::core::SemVer{"1.0.0-1"});
+}
+
+TEST(longer_pre_release_not_less_than_shorter_prefix) {
+  EXPECT_FALSE(sourcemeta::core::SemVer{"1.0.0-alpha.1"} <
+               sourcemeta::core::SemVer{"1.0.0-alpha"});
+}
+
+TEST(overflowing_numeric_pre_release_identifiers_compare_by_digits) {
+  EXPECT_LT(sourcemeta::core::SemVer{"1.0.0-11111111111111111111111"},
+            sourcemeta::core::SemVer{"1.0.0-99999999999999999999999"});
+}
+
+TEST(overflowing_numeric_pre_release_identifiers_not_less_reversed) {
+  EXPECT_FALSE(sourcemeta::core::SemVer{"1.0.0-99999999999999999999999"} <
+               sourcemeta::core::SemVer{"1.0.0-11111111111111111111111"});
+}

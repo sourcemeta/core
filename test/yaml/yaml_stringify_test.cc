@@ -876,3 +876,103 @@ TEST(sequence_with_quoted_strings) {
   sourcemeta::core::stringify_yaml(document, stream);
   EXPECT_EQ(stream.str(), "- \"true\"\n- \"42\"\n- \"null\"\n");
 }
+
+TEST(string_with_carriage_return) {
+  const sourcemeta::core::JSON document{"a\rb"};
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream);
+  EXPECT_EQ(stream.str(), "\"a\\rb\"\n");
+}
+
+TEST(string_with_tab) {
+  const sourcemeta::core::JSON document{"a\tb"};
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream);
+  EXPECT_EQ(stream.str(), "\"a\\tb\"\n");
+}
+
+TEST(string_with_null_byte) {
+  const sourcemeta::core::JSON document{std::string{"a\0b", 3}};
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream);
+  EXPECT_EQ(stream.str(), "\"a\\0b\"\n");
+}
+
+TEST(string_with_control_byte) {
+  const sourcemeta::core::JSON document{std::string{"a\x01"
+                                                    "b",
+                                                    3}};
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream);
+  EXPECT_EQ(stream.str(), "\"a\\x01b\"\n");
+}
+
+TEST(string_with_quote_backslash_and_newline) {
+  const sourcemeta::core::JSON document{"a\"b\\c\nd"};
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream);
+  EXPECT_EQ(stream.str(), "\"a\\\"b\\\\c\\nd\"\n");
+}
+
+TEST(quotes_uppercase_hex_lookalike) {
+  const sourcemeta::core::JSON document{"0X1"};
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream);
+  EXPECT_EQ(stream.str(), "\"0X1\"\n");
+}
+
+TEST(quotes_uppercase_exponent_lookalike) {
+  const sourcemeta::core::JSON document{"1E5"};
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream);
+  EXPECT_EQ(stream.str(), "\"1E5\"\n");
+}
+
+TEST(quotes_positive_exponent_lookalike) {
+  const sourcemeta::core::JSON document{"1e+5"};
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream);
+  EXPECT_EQ(stream.str(), "\"1e+5\"\n");
+}
+
+TEST(quotes_negative_exponent_lookalike) {
+  const sourcemeta::core::JSON document{"1e-5"};
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream);
+  EXPECT_EQ(stream.str(), "\"1e-5\"\n");
+}
+
+TEST(quotes_uppercase_positive_infinity) {
+  const sourcemeta::core::JSON document{".INF"};
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream);
+  EXPECT_EQ(stream.str(), "\".INF\"\n");
+}
+
+TEST(quotes_signed_positive_infinity) {
+  const sourcemeta::core::JSON document{"+.inf"};
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream);
+  EXPECT_EQ(stream.str(), "\"+.inf\"\n");
+}
+
+TEST(quotes_signed_negative_infinity) {
+  const sourcemeta::core::JSON document{"-.Inf"};
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream);
+  EXPECT_EQ(stream.str(), "\"-.Inf\"\n");
+}
+
+TEST(quotes_uppercase_nan) {
+  const sourcemeta::core::JSON document{".NAN"};
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream);
+  EXPECT_EQ(stream.str(), "\".NAN\"\n");
+}
+
+TEST(quotes_document_marker_with_tab) {
+  const sourcemeta::core::JSON document{"---\t"};
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream);
+  EXPECT_EQ(stream.str(), "\"---\\t\"\n");
+}

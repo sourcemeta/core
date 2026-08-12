@@ -610,3 +610,42 @@ TEST(parse_rejects_a_duplicated_parameter) {
   EXPECT_FALSE(sourcemeta::core::oidc_parse_authentication_request(
       "client_id=a&client_id=b&scope=openid", storage, request));
 }
+
+TEST(parse_populates_all_optional_openid_parameters) {
+  std::string storage;
+  sourcemeta::core::OIDCAuthenticationRequest request;
+  EXPECT_TRUE(sourcemeta::core::oidc_parse_authentication_request(
+      "client_id=x&redirect_uri=https%3A%2F%2Fcb.example.com&scope=openid&"
+      "response_type=code&display=page&ui_locales=en-US&id_token_hint=abc&"
+      "login_hint=user&claims=%7B%7D&request=jwt&response_mode=query",
+      storage, request, sourcemeta::core::OIDCProfile::Legacy));
+  EXPECT_EQ(request.display, "page");
+  EXPECT_EQ(request.ui_locales, "en-US");
+  EXPECT_EQ(request.id_token_hint, "abc");
+  EXPECT_EQ(request.login_hint, "user");
+  EXPECT_EQ(request.claims, "{}");
+  EXPECT_EQ(request.request, "jwt");
+  EXPECT_EQ(request.response_mode, "query");
+}
+
+TEST(parse_accepts_code_challenge_with_underscore) {
+  std::string storage;
+  sourcemeta::core::OIDCAuthenticationRequest request;
+  EXPECT_TRUE(sourcemeta::core::oidc_parse_authentication_request(
+      "client_id=x&redirect_uri=https%3A%2F%2Fcb.example.com&scope=openid&"
+      "response_type=code&code_challenge_method=S256&"
+      "code_challenge=abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOP_",
+      storage, request, sourcemeta::core::OIDCProfile::Strict));
+  EXPECT_EQ(request.code_challenge,
+            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOP_");
+}
+
+TEST(parse_drops_offline_access_scope_with_prompt_none) {
+  std::string storage;
+  sourcemeta::core::OIDCAuthenticationRequest request;
+  EXPECT_TRUE(sourcemeta::core::oidc_parse_authentication_request(
+      "client_id=x&redirect_uri=https%3A%2F%2Fcb.example.com&"
+      "scope=openid%20offline_access&response_type=code&prompt=none",
+      storage, request, sourcemeta::core::OIDCProfile::Legacy));
+  EXPECT_EQ(request.scope, "openid");
+}
