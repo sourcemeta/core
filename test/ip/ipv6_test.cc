@@ -367,3 +367,327 @@ TEST(rejects_leading_single_colon_with_double) {
 TEST(rejects_trailing_single_colon_with_double) {
   EXPECT_FALSE(sourcemeta::core::is_ipv6("1::2:"));
 }
+
+TEST(valid_no_groups_before_elision_six_groups_after) {
+  EXPECT_TRUE(sourcemeta::core::is_ipv6("::1:2:3:4:5:6"));
+}
+
+TEST(valid_no_groups_before_elision_five_groups_after_with_ipv4) {
+  EXPECT_TRUE(sourcemeta::core::is_ipv6("::1:2:3:4:1.2.3.4"));
+}
+
+TEST(valid_one_group_before_elision_five_groups_after_with_ipv4) {
+  EXPECT_TRUE(sourcemeta::core::is_ipv6("1::2:3:4:5:1.2.3.4"));
+}
+
+TEST(valid_no_groups_before_elision_five_groups_after) {
+  EXPECT_TRUE(sourcemeta::core::is_ipv6("::1:2:3:4:5"));
+}
+
+TEST(valid_no_groups_before_elision_four_groups_after_with_ipv4) {
+  EXPECT_TRUE(sourcemeta::core::is_ipv6("::1:2:3:1.2.3.4"));
+}
+
+TEST(valid_one_group_before_elision_five_groups_after) {
+  EXPECT_TRUE(sourcemeta::core::is_ipv6("1::2:3:4:5:6"));
+}
+
+TEST(valid_two_groups_before_elision_four_groups_after_with_ipv4) {
+  EXPECT_TRUE(sourcemeta::core::is_ipv6("1:2::3:4:5:1.2.3.4"));
+}
+
+TEST(valid_no_groups_before_elision_four_groups_after) {
+  EXPECT_TRUE(sourcemeta::core::is_ipv6("::1:2:3:4"));
+}
+
+TEST(valid_one_group_before_elision_four_groups_after) {
+  EXPECT_TRUE(sourcemeta::core::is_ipv6("1::2:3:4:5"));
+}
+
+TEST(valid_one_group_before_elision_three_groups_after_with_ipv4) {
+  EXPECT_TRUE(sourcemeta::core::is_ipv6("1::2:3:1.2.3.4"));
+}
+
+TEST(valid_two_groups_before_elision_four_groups_after) {
+  EXPECT_TRUE(sourcemeta::core::is_ipv6("1:2::3:4:5:6"));
+}
+
+TEST(valid_three_groups_before_elision_three_groups_after_with_ipv4) {
+  EXPECT_TRUE(sourcemeta::core::is_ipv6("1:2:3::4:5:1.2.3.4"));
+}
+
+TEST(valid_no_groups_before_elision_three_groups_after) {
+  EXPECT_TRUE(sourcemeta::core::is_ipv6("::1:2:3"));
+}
+
+TEST(valid_one_group_before_elision_three_groups_after) {
+  EXPECT_TRUE(sourcemeta::core::is_ipv6("1::2:3:4"));
+}
+
+TEST(valid_one_group_before_elision_two_groups_after_with_ipv4) {
+  EXPECT_TRUE(sourcemeta::core::is_ipv6("1::2:1.2.3.4"));
+}
+
+TEST(valid_two_groups_before_elision_three_groups_after) {
+  EXPECT_TRUE(sourcemeta::core::is_ipv6("1:2::3:4:5"));
+}
+
+TEST(valid_two_groups_before_elision_two_groups_after_with_ipv4) {
+  EXPECT_TRUE(sourcemeta::core::is_ipv6("1:2::3:1.2.3.4"));
+}
+
+TEST(valid_three_groups_before_elision_two_groups_after_with_ipv4) {
+  EXPECT_TRUE(sourcemeta::core::is_ipv6("1:2:3::4:1.2.3.4"));
+}
+
+TEST(valid_four_groups_before_elision_two_groups_after_with_ipv4) {
+  EXPECT_TRUE(sourcemeta::core::is_ipv6("1:2:3:4::5:1.2.3.4"));
+}
+
+TEST(valid_no_groups_before_elision_two_groups_after) {
+  EXPECT_TRUE(sourcemeta::core::is_ipv6("::1:2"));
+}
+
+TEST(valid_one_group_before_elision_two_groups_after) {
+  EXPECT_TRUE(sourcemeta::core::is_ipv6("1::2:3"));
+}
+
+TEST(valid_three_groups_before_elision_one_group_after_with_ipv4) {
+  EXPECT_TRUE(sourcemeta::core::is_ipv6("1:2:3::1.2.3.4"));
+}
+
+TEST(valid_four_groups_before_elision_two_groups_after) {
+  EXPECT_TRUE(sourcemeta::core::is_ipv6("1:2:3:4::5:6"));
+}
+
+TEST(valid_three_groups_before_elision_one_group_after) {
+  EXPECT_TRUE(sourcemeta::core::is_ipv6("1:2:3::4"));
+}
+
+TEST(valid_five_groups_before_elision_one_group_after) {
+  EXPECT_TRUE(sourcemeta::core::is_ipv6("1:2:3:4:5::6"));
+}
+
+TEST(valid_two_groups_before_elision_nothing_after) {
+  EXPECT_TRUE(sourcemeta::core::is_ipv6("1:2::"));
+}
+
+TEST(valid_three_groups_before_elision_nothing_after) {
+  EXPECT_TRUE(sourcemeta::core::is_ipv6("1:2:3::"));
+}
+
+TEST(valid_four_groups_before_elision_nothing_after) {
+  EXPECT_TRUE(sourcemeta::core::is_ipv6("1:2:3:4::"));
+}
+
+TEST(valid_five_groups_before_elision_nothing_after) {
+  EXPECT_TRUE(sourcemeta::core::is_ipv6("1:2:3:4:5::"));
+}
+
+TEST(valid_six_groups_before_elision_nothing_after) {
+  EXPECT_TRUE(sourcemeta::core::is_ipv6("1:2:3:4:5:6::"));
+}
+
+TEST(valid_embedded_ipv4_dec_octet_one_digit) {
+  EXPECT_TRUE(sourcemeta::core::is_ipv6("::ffff:0.0.0.0"));
+}
+
+TEST(valid_embedded_ipv4_dec_octet_two_digit) {
+  EXPECT_TRUE(sourcemeta::core::is_ipv6("::ffff:42.42.42.42"));
+}
+
+TEST(valid_embedded_ipv4_dec_octet_one_hundreds) {
+  EXPECT_TRUE(sourcemeta::core::is_ipv6("::ffff:199.199.199.199"));
+}
+
+TEST(valid_embedded_ipv4_dec_octet_two_hundreds) {
+  EXPECT_TRUE(sourcemeta::core::is_ipv6("::ffff:249.249.249.249"));
+}
+
+TEST(valid_embedded_ipv4_dec_octet_two_five_zero) {
+  EXPECT_TRUE(sourcemeta::core::is_ipv6("::ffff:250.250.250.250"));
+}
+
+TEST(valid_embedded_ipv4_dec_octet_two_five_five) {
+  EXPECT_TRUE(sourcemeta::core::is_ipv6("::ffff:255.255.255.255"));
+}
+
+TEST(invalid_embedded_ipv4_octet_over_255_position_1) {
+  EXPECT_FALSE(sourcemeta::core::is_ipv6("::ffff:256.1.1.1"));
+}
+
+TEST(invalid_embedded_ipv4_leading_zero_position_1) {
+  EXPECT_FALSE(sourcemeta::core::is_ipv6("::ffff:01.1.1.1"));
+}
+
+TEST(invalid_embedded_ipv4_octet_over_255_position_2) {
+  EXPECT_FALSE(sourcemeta::core::is_ipv6("::ffff:1.256.1.1"));
+}
+
+TEST(invalid_embedded_ipv4_leading_zero_position_2) {
+  EXPECT_FALSE(sourcemeta::core::is_ipv6("::ffff:1.01.1.1"));
+}
+
+TEST(invalid_embedded_ipv4_octet_over_255_position_3) {
+  EXPECT_FALSE(sourcemeta::core::is_ipv6("::ffff:1.1.256.1"));
+}
+
+TEST(invalid_embedded_ipv4_leading_zero_position_3) {
+  EXPECT_FALSE(sourcemeta::core::is_ipv6("::ffff:1.1.01.1"));
+}
+
+TEST(invalid_embedded_ipv4_octet_over_255_position_4) {
+  EXPECT_FALSE(sourcemeta::core::is_ipv6("::ffff:1.1.1.256"));
+}
+
+TEST(invalid_embedded_ipv4_leading_zero_position_4) {
+  EXPECT_FALSE(sourcemeta::core::is_ipv6("::ffff:1.1.1.01"));
+}
+
+TEST(valid_compressed_group_one_digit) {
+  EXPECT_TRUE(sourcemeta::core::is_ipv6("::a"));
+}
+
+TEST(valid_compressed_group_two_digits) {
+  EXPECT_TRUE(sourcemeta::core::is_ipv6("::ab"));
+}
+
+TEST(valid_compressed_group_three_digits) {
+  EXPECT_TRUE(sourcemeta::core::is_ipv6("::abc"));
+}
+
+TEST(valid_compressed_group_four_digits) {
+  EXPECT_TRUE(sourcemeta::core::is_ipv6("::abcd"));
+}
+
+TEST(valid_compressed_group_leading_zero_two) {
+  EXPECT_TRUE(sourcemeta::core::is_ipv6("::0a"));
+}
+
+TEST(valid_compressed_group_leading_zero_three) {
+  EXPECT_TRUE(sourcemeta::core::is_ipv6("::00a"));
+}
+
+TEST(valid_compressed_group_leading_zero_four) {
+  EXPECT_TRUE(sourcemeta::core::is_ipv6("::000a"));
+}
+
+TEST(valid_compressed_group_all_zero_four) {
+  EXPECT_TRUE(sourcemeta::core::is_ipv6("::0000"));
+}
+
+TEST(valid_compressed_uppercase) {
+  EXPECT_TRUE(sourcemeta::core::is_ipv6("2001:DB8::AB"));
+}
+
+TEST(valid_compressed_mixed_case) {
+  EXPECT_TRUE(sourcemeta::core::is_ipv6("2001:dB8::aB"));
+}
+
+TEST(valid_uppercase_ls32_hex) {
+  EXPECT_TRUE(sourcemeta::core::is_ipv6("1:2:3:4:5:6:AB:CD"));
+}
+
+TEST(invalid_eight_groups_with_trailing_elision) {
+  EXPECT_FALSE(sourcemeta::core::is_ipv6("1:2:3:4:5:6:7:8::"));
+}
+
+TEST(invalid_ipv4_before_elision) {
+  EXPECT_FALSE(sourcemeta::core::is_ipv6("1.2.3.4::"));
+}
+
+TEST(invalid_ipv4_before_final_group) {
+  EXPECT_FALSE(sourcemeta::core::is_ipv6("::1.2.3.4:5"));
+}
+
+TEST(invalid_ipv4_in_first_position) {
+  EXPECT_FALSE(sourcemeta::core::is_ipv6("1.2.3.4:5:6:7:8:9:10"));
+}
+
+TEST(invalid_five_hex_digits_after_elision) {
+  EXPECT_FALSE(sourcemeta::core::is_ipv6("2001:db8::00001"));
+}
+
+TEST(invalid_five_hex_digits_first_group) {
+  EXPECT_FALSE(sourcemeta::core::is_ipv6("12345::1"));
+}
+
+TEST(invalid_empty_group_in_middle) {
+  EXPECT_FALSE(sourcemeta::core::is_ipv6("1:2::3::4"));
+}
+
+TEST(invalid_quadruple_colon) {
+  EXPECT_FALSE(sourcemeta::core::is_ipv6("1::::8"));
+}
+
+TEST(invalid_only_double_colon_pair) {
+  EXPECT_FALSE(sourcemeta::core::is_ipv6("::::"));
+}
+
+TEST(invalid_trailing_dot_after_ipv4) {
+  EXPECT_FALSE(sourcemeta::core::is_ipv6("::1.2.3.4."));
+}
+
+TEST(invalid_open_bracket_only) {
+  EXPECT_FALSE(sourcemeta::core::is_ipv6("[::1"));
+}
+
+TEST(invalid_close_bracket_only) {
+  EXPECT_FALSE(sourcemeta::core::is_ipv6("::1]"));
+}
+
+TEST(invalid_zone_identifier_percent_encoded) {
+  EXPECT_FALSE(sourcemeta::core::is_ipv6("fe80::1%25eth0"));
+}
+
+TEST(invalid_zone_identifier_empty) {
+  EXPECT_FALSE(sourcemeta::core::is_ipv6("fe80::1%"));
+}
+
+TEST(invalid_prefix_length_zero) {
+  EXPECT_FALSE(sourcemeta::core::is_ipv6("::/0"));
+}
+
+TEST(invalid_prefix_length_empty) {
+  EXPECT_FALSE(sourcemeta::core::is_ipv6("::1/"));
+}
+
+TEST(invalid_trailing_newline) {
+  EXPECT_FALSE(sourcemeta::core::is_ipv6("::1\n"));
+}
+
+TEST(invalid_leading_newline) {
+  EXPECT_FALSE(sourcemeta::core::is_ipv6("\n::1"));
+}
+
+TEST(invalid_trailing_tab) { EXPECT_FALSE(sourcemeta::core::is_ipv6("::1\t")); }
+
+TEST(invalid_trailing_carriage_return) {
+  EXPECT_FALSE(sourcemeta::core::is_ipv6("::1\r"));
+}
+
+TEST(invalid_embedded_space) {
+  EXPECT_FALSE(sourcemeta::core::is_ipv6("::1 2"));
+}
+
+TEST(invalid_leading_space) { EXPECT_FALSE(sourcemeta::core::is_ipv6(" ::1")); }
+
+TEST(invalid_fullwidth_hex_digit) {
+  EXPECT_FALSE(sourcemeta::core::is_ipv6("1:2:3:4:5:6:7:Ａ"));
+}
+
+TEST(invalid_fullwidth_digit) {
+  EXPECT_FALSE(sourcemeta::core::is_ipv6("１２３４::1"));
+}
+
+TEST(invalid_arabic_indic_digit) {
+  EXPECT_FALSE(sourcemeta::core::is_ipv6("1:2:3:4:5:6:7:٤"));
+}
+
+TEST(invalid_bengali_digit_in_embedded_ipv4) {
+  EXPECT_FALSE(sourcemeta::core::is_ipv6("1:2::192.16৪.0.1"));
+}
+
+TEST(invalid_fullwidth_colon) {
+  EXPECT_FALSE(sourcemeta::core::is_ipv6("1：2:3:4:5:6:7:8"));
+}
