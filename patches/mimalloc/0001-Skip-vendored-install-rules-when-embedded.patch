@@ -1,5 +1,5 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 3189dec42..eb952d259 100644
+index 3189dec42..565852ecd 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -705,8 +705,10 @@ if(MI_BUILD_SHARED)
@@ -15,7 +15,7 @@ index 3189dec42..eb952d259 100644
  
    if(WIN32 AND NOT MINGW)
      # On windows, the import library name for the dll would clash with the static mimalloc.lib library
-@@ -757,8 +759,10 @@ if (MI_BUILD_STATIC)
+@@ -757,17 +759,21 @@ if (MI_BUILD_STATIC)
        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
        $<INSTALL_INTERFACE:${mi_install_incdir}>
    )
@@ -27,4 +27,22 @@ index 3189dec42..eb952d259 100644
 +  endif()
  endif()
  
- # install include files
+-# install include files
+-install(FILES include/mimalloc.h DESTINATION ${mi_install_incdir})
+-install(FILES include/mimalloc-override.h DESTINATION ${mi_install_incdir})
+-install(FILES include/mimalloc-new-delete.h DESTINATION ${mi_install_incdir})
+-install(FILES include/mimalloc-stats.h DESTINATION ${mi_install_incdir})
+-install(FILES cmake/mimalloc-config.cmake DESTINATION ${mi_install_cmakedir})
+-install(FILES cmake/mimalloc-config-version.cmake DESTINATION ${mi_install_cmakedir})
++if(NOT MI_SKIP_INSTALL)
++  # install include files
++  install(FILES include/mimalloc.h DESTINATION ${mi_install_incdir})
++  install(FILES include/mimalloc-override.h DESTINATION ${mi_install_incdir})
++  install(FILES include/mimalloc-new-delete.h DESTINATION ${mi_install_incdir})
++  install(FILES include/mimalloc-stats.h DESTINATION ${mi_install_incdir})
++  install(FILES cmake/mimalloc-config.cmake DESTINATION ${mi_install_cmakedir})
++  install(FILES cmake/mimalloc-config-version.cmake DESTINATION ${mi_install_cmakedir})
++endif()
+ 
+ 
+ # single object file for more predictable static overriding

@@ -765,13 +765,15 @@ if (MI_BUILD_STATIC)
   endif()
 endif()
 
-# install include files
-install(FILES include/mimalloc.h DESTINATION ${mi_install_incdir})
-install(FILES include/mimalloc-override.h DESTINATION ${mi_install_incdir})
-install(FILES include/mimalloc-new-delete.h DESTINATION ${mi_install_incdir})
-install(FILES include/mimalloc-stats.h DESTINATION ${mi_install_incdir})
-install(FILES cmake/mimalloc-config.cmake DESTINATION ${mi_install_cmakedir})
-install(FILES cmake/mimalloc-config-version.cmake DESTINATION ${mi_install_cmakedir})
+if(NOT MI_SKIP_INSTALL)
+  # install include files
+  install(FILES include/mimalloc.h DESTINATION ${mi_install_incdir})
+  install(FILES include/mimalloc-override.h DESTINATION ${mi_install_incdir})
+  install(FILES include/mimalloc-new-delete.h DESTINATION ${mi_install_incdir})
+  install(FILES include/mimalloc-stats.h DESTINATION ${mi_install_incdir})
+  install(FILES cmake/mimalloc-config.cmake DESTINATION ${mi_install_cmakedir})
+  install(FILES cmake/mimalloc-config-version.cmake DESTINATION ${mi_install_cmakedir})
+endif()
 
 
 # single object file for more predictable static overriding
