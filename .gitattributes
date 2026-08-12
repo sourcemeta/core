@@ -1,2 +1,4 @@
 /vendor/** linguist-generated=true
 vendor/*.mask text eol=lf
+*.sh text eol=lf
+test/test/*.txt text eol=lf

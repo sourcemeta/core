@@ -66,6 +66,27 @@ function(sourcemeta_library)
 
   add_library(${ALIAS_NAME} ALIAS ${TARGET_NAME})
 
+  if(SOURCEMETA_OS_LINUX)
+    if(BUILD_SHARED_LIBS)
+      set(SOURCEMETA_MIMALLOC_LINK_LIBRARY mimalloc)
+    else()
+      set(SOURCEMETA_MIMALLOC_LINK_LIBRARY
+        "$<LINK_LIBRARY:WHOLE_ARCHIVE,mimalloc-static>")
+    endif()
+
+    if(SOURCEMETA_LIBRARY_SOURCES)
+      if(NOT BUILD_SHARED_LIBS)
+        add_dependencies(${TARGET_NAME} mimalloc-static)
+      endif()
+
+      target_link_libraries(${TARGET_NAME} PRIVATE
+        "${SOURCEMETA_MIMALLOC_LINK_LIBRARY}")
+    else()
+      target_link_libraries(${TARGET_NAME} INTERFACE
+        "${SOURCEMETA_MIMALLOC_LINK_LIBRARY}")
+    endif()
+  endif()
+
   if(NOT SOURCEMETA_LIBRARY_VARIANT)
     set(include_dir "${CMAKE_CURRENT_SOURCE_DIR}/include")
   else()

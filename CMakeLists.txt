@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.24)
 project(core VERSION 0.0.0 LANGUAGES C CXX ASM_MASM DESCRIPTION "Sourcemeta Core")
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
-#Options
+# Options
 option(SOURCEMETA_CORE_LANG_PREPROCESSOR "Build the Sourcemeta Core language preprocessor library" ON)
 option(SOURCEMETA_CORE_LANG_IO "Build the Sourcemeta Core language I/O library" ON)
 option(SOURCEMETA_CORE_LANG_PROCESS "Build the Sourcemeta Core language Process library" ON)
@@ -55,29 +55,23 @@ option(SOURCEMETA_CORE_CONTRIB_GOOGLEBENCHMARK "Build the GoogleBenchmark librar
 
 include(Sourcemeta)
 
-sourcemeta_option_enum(
-  NAME SOURCEMETA_CORE_ALLOCATOR
-  DEFAULT "system"
-  CHOICES "system" "mimalloc"
-  DESCRIPTION "Memory allocator to use: system or mimalloc")
-
-#Don't force downstream consumers on this
+# Don't force downstream consumers on this
 if(PROJECT_IS_TOP_LEVEL)
   sourcemeta_enable_simd()
 endif()
 
-#Enable the sanitizers before defining any target
+# Enable the sanitizers before defining any target
 if(SOURCEMETA_CORE_ADDRESS_SANITIZER)
   sourcemeta_sanitizer(TYPE address)
 elseif(SOURCEMETA_CORE_UNDEFINED_SANITIZER)
   sourcemeta_sanitizer(TYPE undefined)
 endif()
 
-if(SOURCEMETA_CORE_ALLOCATOR STREQUAL "mimalloc")
+if(SOURCEMETA_OS_LINUX)
   find_package(Mimalloc REQUIRED)
 endif()
 
-#TODO : Turn this into a re - usable utility CMake function
+# TODO: Turn this into a re-usable utility CMake function
 if(SOURCEMETA_CORE_INSTALL)
   include(GNUInstallDirs)
   include(CMakePackageConfigHelpers)

@@ -46,10 +46,6 @@ if(BENCHMARK_SOURCES)
   target_compile_definitions(sourcemeta_core_benchmark
     PRIVATE CURRENT_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}")
 
-  if(SOURCEMETA_CORE_ALLOCATOR STREQUAL "mimalloc")
-    target_link_libraries(sourcemeta_core_benchmark PRIVATE Mimalloc::Mimalloc)
-  endif()
-
   if(SOURCEMETA_CORE_REGEX)
     target_link_libraries(sourcemeta_core_benchmark
       PRIVATE sourcemeta::core::regex)

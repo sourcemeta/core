@@ -705,8 +705,10 @@ if(MI_BUILD_SHARED)
       $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
       $<INSTALL_INTERFACE:${mi_install_incdir}>
   )
-  install(TARGETS mimalloc EXPORT mimalloc ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
-  install(EXPORT mimalloc DESTINATION ${mi_install_cmakedir})
+  if(NOT MI_SKIP_INSTALL)
+    install(TARGETS mimalloc EXPORT mimalloc ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+    install(EXPORT mimalloc DESTINATION ${mi_install_cmakedir})
+  endif()
 
   if(WIN32 AND NOT MINGW)
     # On windows, the import library name for the dll would clash with the static mimalloc.lib library
@@ -757,8 +759,10 @@ if (MI_BUILD_STATIC)
       $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
       $<INSTALL_INTERFACE:${mi_install_incdir}>
   )
-  install(TARGETS mimalloc-static EXPORT mimalloc DESTINATION ${mi_install_objdir} LIBRARY)
-  install(EXPORT mimalloc DESTINATION ${mi_install_cmakedir})
+  if(NOT MI_SKIP_INSTALL)
+    install(TARGETS mimalloc-static EXPORT mimalloc DESTINATION ${mi_install_objdir} LIBRARY)
+    install(EXPORT mimalloc DESTINATION ${mi_install_cmakedir})
+  endif()
 endif()
 
 # install include files
