@@ -1,0 +1,10 @@
+function(sourcemeta_coverage)
+  if(SOURCEMETA_COMPILER_LLVM)
+    # See https://clang.llvm.org/docs/SourceBasedCodeCoverage.html
+    message(STATUS "Enabling coverage: LLVM source-based coverage")
+    add_compile_options(-fprofile-instr-generate -fcoverage-mapping)
+    add_link_options(-fprofile-instr-generate)
+  else()
+    message(FATAL_ERROR "Unrecognized compiler for coverage instrumentation")
+  endif()
+endfunction()
