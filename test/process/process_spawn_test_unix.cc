@@ -69,8 +69,8 @@ TEST(empty_argument_is_preserved) {
 }
 
 TEST(pwd_with_custom_directory) {
-  const int exit_code{
-      sourcemeta::core::spawn("pwd", {}, std::filesystem::path{"/tmp"})};
+  const int exit_code{sourcemeta::core::spawn(
+      "pwd", {}, {.directory = std::filesystem::path{"/tmp"}})};
   EXPECT_EQ(exit_code, 0);
 }
 
