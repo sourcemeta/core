@@ -1,6 +1,6 @@
 #include <cstddef>     // std::size_t
 #include <cstdio>      // std::fread, std::fwrite, std::fflush, std::FILE
-#include <cstdlib>     // std::atoi, std::atoll, std::getenv
+#include <cstdlib>     // std::atoi, std::atoll
 #include <filesystem>  // std::filesystem::current_path
 #include <string>      // std::string, std::to_string
 #include <string_view> // std::string_view
@@ -22,6 +22,22 @@ auto environment_entries() -> char ** {
 #else
   return environ;
 #endif
+}
+
+// Scanning the block avoids the lookup the Microsoft runtime deprecates, and
+// keeps one way of reading the environment across every platform
+auto find_environment(const std::string_view name) -> const char * {
+  for (char **entry = environment_entries(); entry != nullptr && *entry;
+       ++entry) {
+    const std::string_view current{*entry};
+    const auto separator{current.find('=')};
+    if (separator != std::string_view::npos &&
+        current.substr(0, separator) == name) {
+      return *entry + separator + 1;
+    }
+  }
+
+  return nullptr;
 }
 
 auto write_all(std::FILE *stream, const std::string_view payload) -> void {
@@ -156,12 +172,18 @@ auto main(int argc, char *argv[]) -> int {
   }
 
   if (command == "expect-environment") {
-    const char *value{std::getenv(argv[2])};
+    const char *value{find_environment(argv[2])};
     return value != nullptr && std::string_view{value} == argv[3] ? 0 : 1;
   }
 
   if (command == "expect-no-environment") {
-    return std::getenv(argv[2]) == nullptr ? 0 : 1;
+    return find_environment(argv[2]) == nullptr ? 0 : 1;
+  }
+
+  if (command == "expect-directory") {
+    return std::filesystem::current_path() == std::filesystem::path{argv[2]}
+               ? 0
+               : 1;
   }
 
   if (command == "directory") {

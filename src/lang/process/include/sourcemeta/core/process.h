@@ -30,6 +30,9 @@ namespace sourcemeta::core {
 
 /// @ingroup process
 /// The settings for running a program.
+///
+/// Every member carries a default so that naming only the ones that matter
+/// stays free of missing-initializer warnings.
 struct ProcessInput {
   /// The working directory of the program. It must be an absolute path to an
   /// existing directory
@@ -38,10 +41,11 @@ struct ProcessInput {
   /// environment of the caller. Without a value, the caller's environment is
   /// inherited as it stands. The referenced names and values must outlive the
   /// call
-  std::optional<std::map<std::string_view, std::string_view>> environment;
+  std::optional<std::map<std::string_view, std::string_view>> environment{
+      std::nullopt};
   /// The bytes to feed the program on its standard input. The referenced buffer
   /// must outlive the call
-  std::string_view standard_input;
+  std::string_view standard_input{};
 };
 
 /// @ingroup process
@@ -85,11 +89,11 @@ auto spawn(const std::string &program,
 struct ProcessOutput {
   /// The code the program exited with, or no value if it terminated abnormally,
   /// such as by a signal
-  std::optional<int> exit_code;
+  std::optional<int> exit_code{std::nullopt};
   /// Everything the program wrote to its standard output
-  std::string standard_output;
+  std::string standard_output{};
   /// Everything the program wrote to its standard error
-  std::string standard_error;
+  std::string standard_error{};
 };
 
 /// @ingroup process

@@ -128,6 +128,27 @@ auto make_pipe(Handle &read_end, Handle &write_end, const bool inherit_read)
   return SetHandleInformation(parent_end, HANDLE_FLAG_INHERIT, 0) != 0;
 }
 
+// A standard handle the caller owns may be absent, as when there is no console,
+// or may not be inheritable. Naming any handle means naming all three, so the
+// ones this call does not replace are handed over as inheritable duplicates it
+// owns and closes
+auto inheritable_standard_handle(const DWORD stream, Handle &storage)
+    -> HANDLE {
+  const HANDLE original{GetStdHandle(stream)};
+  if (original == nullptr || original == INVALID_HANDLE_VALUE) {
+    return INVALID_HANDLE_VALUE;
+  }
+
+  HANDLE duplicate{nullptr};
+  if (!DuplicateHandle(GetCurrentProcess(), original, GetCurrentProcess(),
+                       &duplicate, 0, TRUE, DUPLICATE_SAME_ACCESS)) {
+    return INVALID_HANDLE_VALUE;
+  }
+
+  storage = Handle{duplicate};
+  return duplicate;
+}
+
 auto read_handle_to_string(HANDLE handle, std::string &destination) -> void {
   std::array<char, TRANSFER_BUFFER_SIZE> buffer{};
   DWORD count{0};
@@ -160,6 +181,12 @@ auto to_environment_block(
     block.append(to_wide(entry->first));
     block.push_back(L'=');
     block.append(to_wide(entry->second));
+    block.push_back(L'\0');
+  }
+
+  // The block closes with an empty entry, so an environment with nothing in it
+  // is still two nulls rather than one
+  if (entries.empty()) {
     block.push_back(L'\0');
   }
 
@@ -256,14 +283,35 @@ private:
   bool active_{false};
 };
 
+#if !defined(__linux__) && !defined(__FreeBSD__)
 auto set_close_on_exec(const int descriptor) -> bool {
   const int flags{fcntl(descriptor, F_GETFD)};
   return flags != -1 && fcntl(descriptor, F_SETFD, flags | FD_CLOEXEC) != -1;
 }
+#endif
 
 auto set_non_blocking(const int descriptor) -> bool {
   const int flags{fcntl(descriptor, F_GETFL)};
   return flags != -1 && fcntl(descriptor, F_SETFL, flags | O_NONBLOCK) != -1;
+}
+
+// Duplicating a descriptor onto itself is defined to leave its flags alone, so
+// an endpoint that landed on one of the standard descriptors, which happens
+// when the caller closed one of its own, would keep close-on-exec and be shut
+// rather than handed over. Moving it out of the way keeps every duplication a
+// real one
+auto relocate_above_standard(Descriptor &descriptor) -> bool {
+  if (descriptor.get() > STDERR_FILENO) {
+    return true;
+  }
+
+  const int moved{fcntl(descriptor.get(), F_DUPFD_CLOEXEC, STDERR_FILENO + 1)};
+  if (moved == -1) {
+    return false;
+  }
+
+  descriptor = Descriptor{moved};
+  return true;
 }
 
 // Both ends are marked close-on-exec so that a spawn running concurrently on
@@ -272,14 +320,34 @@ auto set_non_blocking(const int descriptor) -> bool {
 // clears that flag on the copy
 auto make_pipe(Descriptor &read_end, Descriptor &write_end) -> bool {
   std::array<int, 2> descriptors{};
+
+#if defined(__linux__) || defined(__FreeBSD__)
+  // Setting the flag as part of the creation leaves no window in which another
+  // thread can spawn a program that inherits these
+  if (::pipe2(descriptors.data(), O_CLOEXEC) != 0) {
+    return false;
+  }
+
+  read_end = Descriptor{descriptors[0]};
+  write_end = Descriptor{descriptors[1]};
+#else
+  // Without an atomic creation the flag has to be set afterwards, which leaves
+  // a window that only matters to a program spawned by another thread in
+  // between
   if (::pipe(descriptors.data()) != 0) {
     return false;
   }
 
   read_end = Descriptor{descriptors[0]};
   write_end = Descriptor{descriptors[1]};
-  return set_close_on_exec(read_end.get()) &&
-         set_close_on_exec(write_end.get());
+  if (!set_close_on_exec(read_end.get()) ||
+      !set_close_on_exec(write_end.get())) {
+    return false;
+  }
+#endif
+
+  return relocate_above_standard(read_end) &&
+         relocate_above_standard(write_end);
 }
 
 // On every platform this builds for, a would-block error shares its value with
@@ -393,6 +461,8 @@ auto transfer(Descriptor &input_descriptor, Descriptor &output_descriptor,
 
 #endif
 
+namespace sourcemeta::core {
+
 namespace {
 
 // The two entry points differ only in what they pipe. Capturing always replaces
@@ -401,11 +471,7 @@ namespace {
 // Without capturing, a stream is only replaced when there is input to deliver
 auto execute(const std::string &program,
              std::span<const std::string_view> arguments,
-             const sourcemeta::core::ProcessInput &input, const bool capture)
-    -> sourcemeta::core::ProcessOutput {
-  using sourcemeta::core::ProcessProgramNotFoundError;
-  using sourcemeta::core::ProcessSpawnError;
-
+             const ProcessInput &input, const bool capture) -> ProcessOutput {
   assert(input.directory.is_absolute());
   assert(std::filesystem::exists(input.directory));
   assert(std::filesystem::is_directory(input.directory));
@@ -447,18 +513,25 @@ auto execute(const std::string &program,
     environment_block = to_environment_block(input.environment.value());
   }
 
+  Handle inherited_input;
+  Handle inherited_output;
+  Handle inherited_error;
   STARTUPINFOW startup_info{};
   startup_info.cb = sizeof(startup_info);
-  // Naming any handle means naming all three, so the ones left alone are filled
-  // with whatever the caller already has
   if (input_piped || output_piped) {
     startup_info.dwFlags = STARTF_USESTDHANDLES;
     startup_info.hStdInput =
-        input_piped ? input_read.get() : GetStdHandle(STD_INPUT_HANDLE);
+        input_piped
+            ? input_read.get()
+            : inheritable_standard_handle(STD_INPUT_HANDLE, inherited_input);
     startup_info.hStdOutput =
-        output_piped ? output_write.get() : GetStdHandle(STD_OUTPUT_HANDLE);
+        output_piped
+            ? output_write.get()
+            : inheritable_standard_handle(STD_OUTPUT_HANDLE, inherited_output);
     startup_info.hStdError =
-        output_piped ? error_write.get() : GetStdHandle(STD_ERROR_HANDLE);
+        output_piped
+            ? error_write.get()
+            : inheritable_standard_handle(STD_ERROR_HANDLE, inherited_error);
   }
 
   PROCESS_INFORMATION process_info{};
@@ -503,10 +576,14 @@ auto execute(const std::string &program,
 
   std::size_t offset{0};
   while (input_piped && offset < input.standard_input.size()) {
+    // Bounded so that an input of four gibibytes or more cannot wrap on its way
+    // into the smaller count this call takes
+    const std::size_t remaining{input.standard_input.size() - offset};
+    const DWORD chunk{static_cast<DWORD>(
+        remaining < TRANSFER_BUFFER_SIZE ? remaining : TRANSFER_BUFFER_SIZE)};
     DWORD written{0};
     if (!WriteFile(input_write.get(), input.standard_input.data() + offset,
-                   static_cast<DWORD>(input.standard_input.size() - offset),
-                   &written, nullptr) ||
+                   chunk, &written, nullptr) ||
         written == 0) {
       break;
     }
@@ -690,8 +767,6 @@ auto execute(const std::string &program,
 }
 
 } // namespace
-
-namespace sourcemeta::core {
 
 auto spawn(const std::string &program,
            std::span<const std::string_view> arguments,

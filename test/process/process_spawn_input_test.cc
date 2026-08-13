@@ -89,8 +89,18 @@ TEST(the_working_directory_is_honoured_without_capturing) {
   const auto directory{
       std::filesystem::canonical(std::filesystem::temp_directory_path())};
   const sourcemeta::core::ProcessInput input{.directory = directory};
-  const int exit_code{sourcemeta::core::spawn(HELPER, {"silent"}, input)};
+  const int exit_code{sourcemeta::core::spawn(
+      HELPER, {"expect-directory", directory.string().c_str()}, input)};
   EXPECT_EQ(exit_code, 0);
+}
+
+TEST(a_program_reports_a_working_directory_that_does_not_match) {
+  const auto directory{
+      std::filesystem::canonical(std::filesystem::temp_directory_path())};
+  const sourcemeta::core::ProcessInput input{.directory = directory};
+  const int exit_code{
+      sourcemeta::core::spawn(HELPER, {"expect-directory", "/nowhere"}, input)};
+  EXPECT_EQ(exit_code, 1);
 }
 
 TEST(the_environment_and_the_standard_input_combine) {
