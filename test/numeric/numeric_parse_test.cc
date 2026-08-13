@@ -383,6 +383,38 @@ TEST(to_int64_t_base8_invalid_digit) {
   EXPECT_FALSE(result.has_value());
 }
 
+// A digit that is valid for the base followed by one that is not must be
+// rejected outright, rather than resolving to the prefix that did parse
+TEST(to_int64_t_base8_trailing_invalid_digit) {
+  const std::string input{"18"};
+  const auto result{sourcemeta::core::to_int64_t(input, 8)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(to_int64_t_base16_trailing_invalid_digit) {
+  const std::string input{"1g"};
+  const auto result{sourcemeta::core::to_int64_t(input, 16)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(to_int64_t_base10_trailing_letters) {
+  const std::string input{"123abc"};
+  const auto result{sourcemeta::core::to_int64_t(input, 10)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(to_int64_t_trailing_letters) {
+  const std::string input{"123abc"};
+  const auto result{sourcemeta::core::to_int64_t(input)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(to_int64_t_trailing_whitespace) {
+  const std::string input{"123 "};
+  const auto result{sourcemeta::core::to_int64_t(input)};
+  EXPECT_FALSE(result.has_value());
+}
+
 TEST(to_int64_t_base8_out_of_range) {
   const std::string input{"7777777777777777777777777"};
   const auto result{sourcemeta::core::to_int64_t(input, 8)};

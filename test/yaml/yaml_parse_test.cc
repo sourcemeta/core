@@ -1358,6 +1358,26 @@ TEST(lowercase_hexadecimal_integer_is_parsed) {
   EXPECT_FALSE(result.at("key").is_real());
 }
 
+// A digit outside the indicated base makes the whole scalar fail to resolve as
+// an integer, so it stays a string rather than becoming the prefix that parsed
+TEST(octal_integer_with_invalid_digit_stays_a_string) {
+  const std::string input{"key: 0o18"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON({ "key": "0o18" })JSON")};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.at("key").is_string());
+}
+
+TEST(hexadecimal_integer_with_invalid_digit_stays_a_string) {
+  const std::string input{"key: 0x1g"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON({ "key": "0x1g" })JSON")};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.at("key").is_string());
+}
+
 // YAML 1.2.2 Section 5.1: the printable character set excludes the control
 // block below the space, so a raw control character is rejected.
 TEST(raw_control_character_is_rejected) {
