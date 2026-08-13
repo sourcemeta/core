@@ -1804,6 +1804,36 @@ TEST(block_mapping_resolved_key_duplicate_is_rejected) {
   }
 }
 
+// The position reported is that of the offending second key, rather than of the
+// mapping or of the first occurrence
+TEST(block_mapping_duplicate_reports_the_second_key_position) {
+  const std::string input{"foo: 1\nbar: 2\nfoo: 3"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLDuplicateKeyError &error) {
+    EXPECT_EQ(error.key(), "foo");
+    EXPECT_EQ(error.line(), 3);
+    EXPECT_EQ(error.column(), 1);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(flow_mapping_duplicate_reports_the_second_key_position) {
+  const std::string input{"{foo: 1, foo: 2}"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLDuplicateKeyError &error) {
+    EXPECT_EQ(error.key(), "foo");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 10);
+  } catch (...) {
+    FAIL();
+  }
+}
+
 TEST(flow_mapping_null_key_resolves_to_empty_string) {
   const std::string input{"{~: v}"};
   const auto result{sourcemeta::core::parse_yaml(input)};
@@ -2123,8 +2153,11 @@ TEST(explicit_key_block_mapping_duplicate_is_rejected) {
   try {
     const auto result{sourcemeta::core::parse_yaml("? a\n: 1\n? a\n: 2")};
     FAIL();
-  } catch (const sourcemeta::core::YAMLParseError &error) {
+  } catch (const sourcemeta::core::YAMLDuplicateKeyError &error) {
+    EXPECT_EQ(error.key(), "a");
     EXPECT_STREQ(error.what(), "Duplicate key in YAML mapping");
+  } catch (...) {
+    FAIL();
   }
 }
 

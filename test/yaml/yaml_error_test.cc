@@ -46,3 +46,28 @@ TEST(file_parse_error_column) {
                                                    "Unexpected scalar"};
   EXPECT_EQ(error.column(), 7);
 }
+
+TEST(duplicate_key_error_message) {
+  const sourcemeta::core::YAMLDuplicateKeyError error{"foo", 4, 7};
+  EXPECT_STREQ(error.what(), "Duplicate key in YAML mapping");
+}
+
+TEST(duplicate_key_error_key) {
+  const sourcemeta::core::YAMLDuplicateKeyError error{"foo", 4, 7};
+  EXPECT_EQ(error.key(), "foo");
+}
+
+TEST(duplicate_key_error_empty_key) {
+  const sourcemeta::core::YAMLDuplicateKeyError error{"", 4, 7};
+  EXPECT_EQ(error.key(), "");
+}
+
+TEST(duplicate_key_error_line) {
+  const sourcemeta::core::YAMLDuplicateKeyError error{"foo", 4, 7};
+  EXPECT_EQ(error.line(), 4);
+}
+
+TEST(duplicate_key_error_column) {
+  const sourcemeta::core::YAMLDuplicateKeyError error{"foo", 4, 7};
+  EXPECT_EQ(error.column(), 7);
+}
