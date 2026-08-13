@@ -66,10 +66,8 @@ function(sourcemeta_library)
 
   add_library(${ALIAS_NAME} ALIAS ${TARGET_NAME})
 
-  if(SOURCEMETA_OS_LINUX
-     AND (TARGET mimalloc-static OR TARGET mimalloc)
-     AND NOT SOURCEMETA_CORE_ADDRESS_SANITIZER
-     AND NOT SOURCEMETA_CORE_UNDEFINED_SANITIZER)
+  if(SOURCEMETA_CORE_MIMALLOC_ENABLED
+     AND (TARGET mimalloc-static OR TARGET mimalloc))
     if(BUILD_SHARED_LIBS)
       set(SOURCEMETA_MIMALLOC_LINK_LIBRARY mimalloc)
     else()
