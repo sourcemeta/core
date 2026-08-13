@@ -1423,9 +1423,12 @@ private:
       }
 
       std::optional<std::string> key_tag;
+      std::optional<std::string> key_anchor;
       while (token.type == TokenType::Tag || token.type == TokenType::Anchor) {
         if (token.type == TokenType::Tag) {
           key_tag = this->resolve_tag(token.value);
+        } else {
+          key_anchor = std::string{token.value};
         }
         auto next{this->next_token()};
         assert(next.has_value());
@@ -1433,7 +1436,8 @@ private:
       }
 
       if (token.type != TokenType::Scalar &&
-          token.type != TokenType::BlockMappingValue) {
+          token.type != TokenType::BlockMappingValue &&
+          token.type != TokenType::Alias) {
         // RFC 8259 Section 4: an object member name is a string, so an explicit
         // mapping key that is itself a collection cannot be represented as
         // JSON. PyYAML raises on the unhashable key and js-yaml rejects the
@@ -1458,6 +1462,48 @@ private:
 
       if (token.type == TokenType::Scalar) {
         key = this->resolve_scalar_key(token, key_tag);
+        key_present = true;
+        current_key_line = token.line;
+        current_key_column = token.column;
+
+        // YAML 1.2.2 Section 7.1: an anchor on an explicit key names that key
+        // for later aliases, exactly as it would on any other node
+        if (key_anchor.has_value()) {
+          this->anchors_.insert_or_assign(
+              key_anchor.value(),
+              AnchoredValue{.value = JSON{std::string{token.value}},
+                            .callbacks = {}});
+        }
+
+        if (seen_keys.contains(key)) [[unlikely]] {
+          throw YAMLDuplicateKeyError{key, token.line, token.column};
+        }
+        seen_keys.insert(key);
+
+        auto next{this->next_token()};
+        if (!next.has_value() || next->type != TokenType::BlockMappingValue) {
+          result.assign(key, JSON{nullptr});
+          if (!next.has_value()) {
+            break;
+          }
+          token = next.value();
+          continue;
+        }
+        token = next.value();
+      }
+
+      // YAML 1.2.2 Section 7.1: an alias node in key position stands for the
+      // value of the anchor it names, which is already resolved and so must not
+      // be resolved a second time
+      if (token.type == TokenType::Alias) {
+        const std::string alias_name{token.value};
+        const auto iterator{this->anchors_.find(alias_name)};
+        if (iterator == this->anchors_.end()) [[unlikely]] {
+          throw YAMLUnknownAnchorError{alias_name, token.line, token.column};
+        }
+
+        key = this->json_to_key_string(iterator->second.value, token.line,
+                                       token.column);
         key_present = true;
         current_key_line = token.line;
         current_key_column = token.column;
@@ -1719,17 +1765,45 @@ private:
           break;
         }
         next = this->next_token();
-        if (!next.has_value() || next->type != TokenType::Scalar) {
+
+        // YAML 1.2.2 Section 7.1: an anchor on an explicit key names that key
+        // for later aliases, exactly as it would on any other node
+        std::optional<std::string> explicit_key_anchor;
+        if (next.has_value() && next->type == TokenType::Anchor) {
+          explicit_key_anchor = std::string{next->value};
+          next = this->next_token();
+        }
+
+        if (next.has_value() && next->type == TokenType::Alias) {
+          // YAML 1.2.2 Section 7.1: an alias node in key position stands for
+          // the value of the anchor it names, which is already resolved and so
+          // must not be resolved a second time
+          const std::string alias_name{next->value};
+          const auto iterator{this->anchors_.find(alias_name)};
+          if (iterator == this->anchors_.end()) [[unlikely]] {
+            throw YAMLUnknownAnchorError{alias_name, next->line, next->column};
+          }
+
+          key = this->json_to_key_string(iterator->second.value, next->line,
+                                         next->column);
+        } else if (!next.has_value() || next->type != TokenType::Scalar) {
           result.assign("", JSON{nullptr});
           next = this->next_token();
           continue;
+        } else {
+          key = this->resolve_scalar_key(next.value());
+          this->record_key_scalar_style(key, next->scalar_style,
+                                        next->quoted_original);
+          if (explicit_key_anchor.has_value()) {
+            this->anchors_.insert_or_assign(
+                explicit_key_anchor.value(),
+                AnchoredValue{.value = JSON{std::string{next->value}},
+                              .callbacks = {}});
+          }
         }
 
-        key = this->resolve_scalar_key(next.value());
         key_line = next->line;
         key_column = next->column;
-        this->record_key_scalar_style(key, next->scalar_style,
-                                      next->quoted_original);
 
         if (seen_keys.contains(key)) [[unlikely]] {
           throw YAMLDuplicateKeyError{key, next->line, next->column};

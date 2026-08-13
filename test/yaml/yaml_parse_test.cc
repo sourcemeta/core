@@ -2240,3 +2240,64 @@ TEST(tab_after_escaped_line_break) {
   EXPECT_TRUE(result.is_string());
   EXPECT_EQ(result.to_string(), "ab");
 }
+
+// YAML 1.2.2 Section 7.1: an alias in key position stands for the value of its
+// anchor, so it collides with an identical key that is already present
+TEST(explicit_key_alias_duplicate_is_rejected) {
+  const std::string input{"? &anchor foo\n: 1\n? *anchor\n: 2"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLDuplicateKeyError &error) {
+    EXPECT_EQ(error.key(), "foo");
+    EXPECT_STREQ(error.what(), "Duplicate key in YAML mapping");
+    EXPECT_EQ(error.line(), 3);
+    EXPECT_EQ(error.column(), 3);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(explicit_key_alias_duplicate_after_plain_key_is_rejected) {
+  const std::string input{"x: 1\n? &anchor foo\n: 2\n? *anchor\n: 3"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLDuplicateKeyError &error) {
+    EXPECT_EQ(error.key(), "foo");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(explicit_key_alias_resolves_to_its_anchor_value) {
+  const std::string input{"x: &a zzz\n? *a\n: 2"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON({ "x": "zzz", "zzz": 2 })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(explicit_key_alias_resolves_when_mapping_starts_with_it) {
+  const std::string input{"? &a foo\n: 1\n? *a\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLDuplicateKeyError &error) {
+    EXPECT_EQ(error.key(), "foo");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(explicit_key_alias_to_unknown_anchor_is_rejected) {
+  const std::string input{"x: 1\n? *missing\n: 2"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLUnknownAnchorError &error) {
+    EXPECT_EQ(error.anchor(), "missing");
+  } catch (...) {
+    FAIL();
+  }
+}
