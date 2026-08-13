@@ -2301,3 +2301,51 @@ TEST(explicit_key_alias_to_unknown_anchor_is_rejected) {
     FAIL();
   }
 }
+
+// An anchor names the resolved node, so aliasing a key whose text differs from
+// the member name it resolves to still collides with that member name
+TEST(explicit_key_alias_duplicate_through_resolved_key_is_rejected) {
+  const std::string input{"? &a 0x1\n: 1\n? *a\n: 2"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLDuplicateKeyError &error) {
+    EXPECT_EQ(error.key(), "1");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(explicit_key_alias_duplicate_through_null_key_is_rejected) {
+  const std::string input{"? &a ~\n: 1\n? *a\n: 2"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLDuplicateKeyError &error) {
+    EXPECT_EQ(error.key(), "");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// The same anchor used as a value yields the typed node, not the member name
+TEST(explicit_key_anchor_aliased_as_a_value_keeps_its_type) {
+  const std::string input{"? &a 0x1\n: 1\nb: *a"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON({ "1": 1, "b": 1 })JSON")};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.at("b").is_integer());
+}
+
+TEST(explicit_key_alias_duplicate_through_resolved_key_after_plain_key) {
+  const std::string input{"x: 1\n? &a 0x1\n: 2\n? *a\n: 3"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLDuplicateKeyError &error) {
+    EXPECT_EQ(error.key(), "1");
+  } catch (...) {
+    FAIL();
+  }
+}

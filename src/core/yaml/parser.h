@@ -462,21 +462,28 @@ private:
     return stream.str();
   }
 
+  // The node a scalar key denotes, which is what an anchor on that key has to
+  // name so that aliasing it yields the very same key
+  auto resolve_scalar_node(const Token &token,
+                           const std::optional<std::string> &tag = std::nullopt)
+      -> JSON {
+    // Round-trip mode preserves the original key text, so it is not resolved
+    if (this->roundtrip_) {
+      return JSON{std::string{token.value}};
+    }
+
+    // Resolve a scalar key to its typed value, so that keys such as 0x1 and 1
+    // collapse to the same member name, keeping key handling consistent with
+    // values and alias keys. An explicit tag is honored the same way it would
+    // be for a scalar value, so a string-tagged key keeps its literal text
+    return this->interpret_scalar(token.value, token.scalar_style, tag);
+  }
+
   auto resolve_scalar_key(const Token &token,
                           const std::optional<std::string> &tag = std::nullopt)
       -> std::string {
-    // Round-trip mode preserves the original key text, so it is not resolved
-    if (this->roundtrip_) {
-      return std::string{token.value};
-    }
-    // Resolve a scalar key to its typed value and stringify it, so that keys
-    // such as 0x1 and 1 collapse to the same member name, keeping key handling
-    // consistent with values and alias keys. An explicit tag is honored the
-    // same way it would be for a scalar value, so a string-tagged key keeps its
-    // literal text
-    const auto value{
-        this->interpret_scalar(token.value, token.scalar_style, tag)};
-    return this->json_to_key_string(value, token.line, token.column);
+    return this->json_to_key_string(this->resolve_scalar_node(token, tag),
+                                    token.line, token.column);
   }
 
   auto parse_value(const Token &token, const JSON::ParseContext context,
@@ -1471,7 +1478,7 @@ private:
         if (key_anchor.has_value()) {
           this->anchors_.insert_or_assign(
               key_anchor.value(),
-              AnchoredValue{.value = JSON{std::string{token.value}},
+              AnchoredValue{.value = this->resolve_scalar_node(token, key_tag),
                             .callbacks = {}});
         }
 
@@ -1797,7 +1804,7 @@ private:
           if (explicit_key_anchor.has_value()) {
             this->anchors_.insert_or_assign(
                 explicit_key_anchor.value(),
-                AnchoredValue{.value = JSON{std::string{next->value}},
+                AnchoredValue{.value = this->resolve_scalar_node(next.value()),
                               .callbacks = {}});
           }
         }
