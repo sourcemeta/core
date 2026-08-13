@@ -1,5 +1,5 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 3189dec42..f76757cd3 100644
+index 3189dec42426f4f3cbd88f54e72f8c5eb557073a..f76757cd3ae68624c2dbf1c6ad882bcae6c7bc15 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -705,14 +705,18 @@ if(MI_BUILD_SHARED)
@@ -91,3 +91,6 @@ index 3189dec42..f76757cd3 100644
 +  install(FILES "${CMAKE_CURRENT_BINARY_DIR}/mimalloc.pc"
 +          DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig/")
 +endif()
+ 
+ 
+ 
