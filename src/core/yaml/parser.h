@@ -671,7 +671,9 @@ private:
                 "document start line"};
           }
           if (anchor_name.has_value() && anchor_line == current_token.line) {
-            JSON key_value{current_token.value};
+            // The anchor names the resolved key node, so that aliasing it
+            // yields the very same member name rather than the raw text
+            JSON key_value{this->resolve_scalar_node(current_token, tag)};
             this->recording_anchor_ = false;
             this->anchors_.insert_or_assign(
                 std::string{anchor_name.value()},

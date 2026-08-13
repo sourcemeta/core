@@ -2349,3 +2349,46 @@ TEST(explicit_key_alias_duplicate_through_resolved_key_after_plain_key) {
     FAIL();
   }
 }
+
+// An anchor on an implicit key names the resolved key node too, so aliasing it
+// collides with the member name that key produced rather than with its raw text
+TEST(implicit_key_alias_duplicate_through_resolved_key_is_rejected) {
+  const std::string input{"&a 0x1: first\n*a : second"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLDuplicateKeyError &error) {
+    EXPECT_EQ(error.key(), "1");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(implicit_key_alias_duplicate_is_rejected) {
+  const std::string input{"&a foo: 1\nbar: 2\n*a : 3"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLDuplicateKeyError &error) {
+    EXPECT_EQ(error.key(), "foo");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(implicit_key_anchor_aliased_as_a_value_keeps_its_type) {
+  const std::string input{"&a 0x1: first\nb: *a"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON({ "1": "first", "b": 1 })JSON")};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.at("b").is_integer());
+}
+
+TEST(implicit_key_anchor_on_a_plain_scalar_stays_a_string) {
+  const std::string input{"&a foo: 1\nb: *a"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON({ "foo": 1, "b": "foo" })JSON")};
+  EXPECT_EQ(result, expected);
+}
