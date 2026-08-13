@@ -1,3 +1,5 @@
+#include <sourcemeta/core/text.h>
+
 #include <cstddef>     // std::size_t
 #include <cstdio>      // std::fread, std::fwrite, std::fflush, std::FILE
 #include <cstdlib>     // std::atoi, std::atoll
@@ -24,6 +26,17 @@ auto environment_entries() -> char ** {
 #endif
 }
 
+auto environment_name_matches(const std::string_view left,
+                              const std::string_view right) -> bool {
+#if defined(_WIN32)
+  // Windows compares environment variable names without regard to case, and
+  // spells the search path "Path" rather than "PATH"
+  return sourcemeta::core::equals_ignore_case(left, right);
+#else
+  return left == right;
+#endif
+}
+
 // Scanning the block avoids the lookup the Microsoft runtime deprecates, and
 // keeps one way of reading the environment across every platform
 auto find_environment(const std::string_view name) -> const char * {
@@ -32,7 +45,7 @@ auto find_environment(const std::string_view name) -> const char * {
     const std::string_view current{*entry};
     const auto separator{current.find('=')};
     if (separator != std::string_view::npos &&
-        current.substr(0, separator) == name) {
+        environment_name_matches(current.substr(0, separator), name)) {
       return *entry + separator + 1;
     }
   }

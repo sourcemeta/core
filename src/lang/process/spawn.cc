@@ -26,7 +26,7 @@
 #include <functional> // std::ref
 #include <map>        // std::map
 #include <thread>     // std::thread
-#include <windows.h> // CreateProcessW, CreatePipe, ReadFile, WriteFile, SetHandleInformation, STARTUPINFOW, PROCESS_INFORMATION, WaitForSingleObject, GetExitCodeProcess, MultiByteToWideChar, CloseHandle, WAIT_FAILED
+#include <windows.h> // CreateProcessW, CreatePipe, CreateFileW, DuplicateHandle, GetStdHandle, ReadFile, WriteFile, SetHandleInformation, STARTUPINFOW, PROCESS_INFORMATION, WaitForSingleObject, GetExitCodeProcess, MultiByteToWideChar, CloseHandle, WAIT_FAILED
 #else
 #include <csignal> // sigset_t, sigemptyset, sigaddset, sigismember, sigpending, sigwait, SIGPIPE, SIG_BLOCK, SIG_SETMASK
 #include <fcntl.h> // fcntl, FD_CLOEXEC, F_GETFD, F_SETFD, F_GETFL, F_SETFL, O_NONBLOCK
@@ -131,22 +131,33 @@ auto make_pipe(Handle &read_end, Handle &write_end, const bool inherit_read)
 // A standard handle the caller owns may be absent, as when there is no console,
 // or may not be inheritable. Naming any handle means naming all three, so the
 // ones this call does not replace are handed over as inheritable duplicates it
-// owns and closes
+// owns and closes, falling back to the null device so that the program always
+// receives something it can use
 auto inheritable_standard_handle(const DWORD stream, Handle &storage)
     -> HANDLE {
   const HANDLE original{GetStdHandle(stream)};
-  if (original == nullptr || original == INVALID_HANDLE_VALUE) {
+  if (original != nullptr && original != INVALID_HANDLE_VALUE) {
+    HANDLE duplicate{nullptr};
+    if (DuplicateHandle(GetCurrentProcess(), original, GetCurrentProcess(),
+                        &duplicate, 0, TRUE, DUPLICATE_SAME_ACCESS)) {
+      storage = Handle{duplicate};
+      return duplicate;
+    }
+  }
+
+  SECURITY_ATTRIBUTES attributes{};
+  attributes.nLength = sizeof(attributes);
+  attributes.lpSecurityDescriptor = nullptr;
+  attributes.bInheritHandle = TRUE;
+  const HANDLE null_device{CreateFileW(
+      L"NUL", GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE,
+      &attributes, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr)};
+  if (null_device == INVALID_HANDLE_VALUE) {
     return INVALID_HANDLE_VALUE;
   }
 
-  HANDLE duplicate{nullptr};
-  if (!DuplicateHandle(GetCurrentProcess(), original, GetCurrentProcess(),
-                       &duplicate, 0, TRUE, DUPLICATE_SAME_ACCESS)) {
-    return INVALID_HANDLE_VALUE;
-  }
-
-  storage = Handle{duplicate};
-  return duplicate;
+  storage = Handle{null_device};
+  return null_device;
 }
 
 auto read_handle_to_string(HANDLE handle, std::string &destination) -> void {

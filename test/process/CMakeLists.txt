@@ -24,6 +24,8 @@ target_link_libraries(sourcemeta_core_process_unit_spawn_main
 add_executable(sourcemeta_core_process_unit_capture_main
   process_spawn_and_capture_main.cc)
 sourcemeta_add_default_options(PRIVATE sourcemeta_core_process_unit_capture_main)
+target_link_libraries(sourcemeta_core_process_unit_capture_main
+  PRIVATE sourcemeta::core::text)
 
 add_dependencies(sourcemeta_core_process_unit
   sourcemeta_core_process_unit_capture_main)
