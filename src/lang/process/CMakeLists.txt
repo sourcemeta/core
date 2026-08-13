@@ -6,6 +6,4 @@ if(SOURCEMETA_CORE_INSTALL)
   sourcemeta_library_install(NAMESPACE sourcemeta PROJECT core NAME process)
 endif()
 
-if(WIN32)
-  target_link_libraries(sourcemeta_core_process PRIVATE sourcemeta::core::text)
-endif()
+target_link_libraries(sourcemeta_core_process PRIVATE sourcemeta::core::text)
