@@ -1358,6 +1358,26 @@ TEST(lowercase_hexadecimal_integer_is_parsed) {
   EXPECT_FALSE(result.at("key").is_real());
 }
 
+// A digit outside the indicated base makes the whole scalar fail to resolve as
+// an integer, so it stays a string rather than becoming the prefix that parsed
+TEST(octal_integer_with_invalid_digit_stays_a_string) {
+  const std::string input{"key: 0o18"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON({ "key": "0o18" })JSON")};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.at("key").is_string());
+}
+
+TEST(hexadecimal_integer_with_invalid_digit_stays_a_string) {
+  const std::string input{"key: 0x1g"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON({ "key": "0x1g" })JSON")};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.at("key").is_string());
+}
+
 // YAML 1.2.2 Section 5.1: the printable character set excludes the control
 // block below the space, so a raw control character is rejected.
 TEST(raw_control_character_is_rejected) {
@@ -2219,4 +2239,156 @@ TEST(tab_after_escaped_line_break) {
   const auto result{sourcemeta::core::parse_yaml("\"a\\\n\tb\"")};
   EXPECT_TRUE(result.is_string());
   EXPECT_EQ(result.to_string(), "ab");
+}
+
+// YAML 1.2.2 Section 7.1: an alias in key position stands for the value of its
+// anchor, so it collides with an identical key that is already present
+TEST(explicit_key_alias_duplicate_is_rejected) {
+  const std::string input{"? &anchor foo\n: 1\n? *anchor\n: 2"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLDuplicateKeyError &error) {
+    EXPECT_EQ(error.key(), "foo");
+    EXPECT_STREQ(error.what(), "Duplicate key in YAML mapping");
+    EXPECT_EQ(error.line(), 3);
+    EXPECT_EQ(error.column(), 3);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(explicit_key_alias_duplicate_after_plain_key_is_rejected) {
+  const std::string input{"x: 1\n? &anchor foo\n: 2\n? *anchor\n: 3"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLDuplicateKeyError &error) {
+    EXPECT_EQ(error.key(), "foo");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(explicit_key_alias_resolves_to_its_anchor_value) {
+  const std::string input{"x: &a zzz\n? *a\n: 2"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON({ "x": "zzz", "zzz": 2 })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(explicit_key_alias_resolves_when_mapping_starts_with_it) {
+  const std::string input{"? &a foo\n: 1\n? *a\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLDuplicateKeyError &error) {
+    EXPECT_EQ(error.key(), "foo");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(explicit_key_alias_to_unknown_anchor_is_rejected) {
+  const std::string input{"x: 1\n? *missing\n: 2"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLUnknownAnchorError &error) {
+    EXPECT_EQ(error.anchor(), "missing");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// An anchor names the resolved node, so aliasing a key whose text differs from
+// the member name it resolves to still collides with that member name
+TEST(explicit_key_alias_duplicate_through_resolved_key_is_rejected) {
+  const std::string input{"? &a 0x1\n: 1\n? *a\n: 2"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLDuplicateKeyError &error) {
+    EXPECT_EQ(error.key(), "1");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(explicit_key_alias_duplicate_through_null_key_is_rejected) {
+  const std::string input{"? &a ~\n: 1\n? *a\n: 2"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLDuplicateKeyError &error) {
+    EXPECT_EQ(error.key(), "");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// The same anchor used as a value yields the typed node, not the member name
+TEST(explicit_key_anchor_aliased_as_a_value_keeps_its_type) {
+  const std::string input{"? &a 0x1\n: 1\nb: *a"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON({ "1": 1, "b": 1 })JSON")};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.at("b").is_integer());
+}
+
+TEST(explicit_key_alias_duplicate_through_resolved_key_after_plain_key) {
+  const std::string input{"x: 1\n? &a 0x1\n: 2\n? *a\n: 3"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLDuplicateKeyError &error) {
+    EXPECT_EQ(error.key(), "1");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// An anchor on an implicit key names the resolved key node too, so aliasing it
+// collides with the member name that key produced rather than with its raw text
+TEST(implicit_key_alias_duplicate_through_resolved_key_is_rejected) {
+  const std::string input{"&a 0x1: first\n*a : second"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLDuplicateKeyError &error) {
+    EXPECT_EQ(error.key(), "1");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(implicit_key_alias_duplicate_is_rejected) {
+  const std::string input{"&a foo: 1\nbar: 2\n*a : 3"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLDuplicateKeyError &error) {
+    EXPECT_EQ(error.key(), "foo");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(implicit_key_anchor_aliased_as_a_value_keeps_its_type) {
+  const std::string input{"&a 0x1: first\nb: *a"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON({ "1": "first", "b": 1 })JSON")};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.at("b").is_integer());
+}
+
+TEST(implicit_key_anchor_on_a_plain_scalar_stays_a_string) {
+  const std::string input{"&a foo: 1\nb: *a"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON({ "foo": 1, "b": "foo" })JSON")};
+  EXPECT_EQ(result, expected);
 }
