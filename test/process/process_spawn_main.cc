@@ -14,5 +14,5 @@ auto main(int argc, char *argv[]) -> int {
     arguments.emplace_back(argv[index]);
   }
 
-  return sourcemeta::core::spawn(program, arguments, directory);
+  return sourcemeta::core::spawn(program, arguments, {.directory = directory});
 }

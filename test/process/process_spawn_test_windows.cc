@@ -55,8 +55,8 @@ TEST(cmd_echo_with_arguments) {
 TEST(cmd_cd_with_custom_directory) {
   // Get the Windows temp directory
   const auto temp_dir = std::filesystem::temp_directory_path();
-  const int exit_code{
-      sourcemeta::core::spawn("cmd.exe", {"/c", "cd"}, temp_dir)};
+  const int exit_code{sourcemeta::core::spawn("cmd.exe", {"/c", "cd"},
+                                              {.directory = temp_dir})};
   EXPECT_EQ(exit_code, 0);
 }
 
