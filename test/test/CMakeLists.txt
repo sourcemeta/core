@@ -6,6 +6,10 @@ add_executable(sourcemeta_core_test_failure test_failure.cc)
 target_link_libraries(sourcemeta_core_test_failure
   PRIVATE sourcemeta::core::test sourcemeta::core::test_main)
 
+add_executable(sourcemeta_core_test_diff test_diff.cc)
+target_link_libraries(sourcemeta_core_test_diff
+  PRIVATE sourcemeta::core::test sourcemeta::core::test_main)
+
 add_executable(sourcemeta_core_test_throw test_throw.cc)
 target_link_libraries(sourcemeta_core_test_throw
   PRIVATE sourcemeta::core::test sourcemeta::core::test_main)
@@ -36,6 +40,10 @@ add_test(NAME core.test.success COMMAND ${SOURCEMETA_CORE_TEST_RUNNER}
 add_test(NAME core.test.failure COMMAND ${SOURCEMETA_CORE_TEST_RUNNER}
   "$<TARGET_FILE:sourcemeta_core_test_failure>" 1
   "${CMAKE_CURRENT_SOURCE_DIR}/test_failure.txt")
+
+add_test(NAME core.test.diff COMMAND ${SOURCEMETA_CORE_TEST_RUNNER}
+  "$<TARGET_FILE:sourcemeta_core_test_diff>" 1
+  "${CMAKE_CURRENT_SOURCE_DIR}/test_diff.txt")
 
 add_test(NAME core.test.throw COMMAND ${SOURCEMETA_CORE_TEST_RUNNER}
   "$<TARGET_FILE:sourcemeta_core_test_throw>" 1
