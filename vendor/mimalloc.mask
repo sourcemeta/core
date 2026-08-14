@@ -8,3 +8,6 @@ contrib/
 ide/
 readme.md
 SECURITY.md
+CMakeLists.txt
+cmake/
+mimalloc.pc.in

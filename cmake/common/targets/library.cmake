@@ -70,15 +70,15 @@ function(sourcemeta_library)
   # as a wrapper that exports this for consumers to use?
   if(Mimalloc_FOUND)
     if(BUILD_SHARED_LIBS)
-      set(SOURCEMETA_MIMALLOC_LINK_LIBRARY mimalloc)
+      set(SOURCEMETA_MIMALLOC_LINK_LIBRARY Mimalloc::Mimalloc)
     else()
       set(SOURCEMETA_MIMALLOC_LINK_LIBRARY
-        "$<LINK_LIBRARY:WHOLE_ARCHIVE,mimalloc-static>")
+        "$<LINK_LIBRARY:WHOLE_ARCHIVE,Mimalloc::Mimalloc>")
     endif()
 
     if(SOURCEMETA_LIBRARY_SOURCES)
       if(NOT BUILD_SHARED_LIBS)
-        add_dependencies(${TARGET_NAME} mimalloc-static)
+        add_dependencies(${TARGET_NAME} mimalloc)
       endif()
 
       target_link_libraries(${TARGET_NAME} PRIVATE
