@@ -1,5 +1,6 @@
 #include <sourcemeta/core/crypto.h>
 #include <sourcemeta/core/css.h>
+#include <sourcemeta/core/diff.h>
 #include <sourcemeta/core/dns.h>
 #include <sourcemeta/core/email.h>
 #include <sourcemeta/core/error.h>

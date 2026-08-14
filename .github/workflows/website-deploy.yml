@@ -67,6 +67,7 @@ jobs:
           -DSOURCEMETA_CORE_HTML:BOOL=OFF
           -DSOURCEMETA_CORE_CSS:BOOL=OFF
           -DSOURCEMETA_CORE_MARKDOWN:BOOL=OFF
+          -DSOURCEMETA_CORE_DIFF:BOOL=OFF
           -DSOURCEMETA_CORE_DOCS:BOOL=ON
       - run: cmake --build ./build --config Release --target doxygen
       - name: Setup Pages
