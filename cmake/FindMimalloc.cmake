@@ -1,66 +1,144 @@
 if(NOT Mimalloc_FOUND)
+  # This module runs before the top-level project sets up its install
+  # locations, so the interface that installed consumers see would otherwise
+  # be built out of empty directory variables
+  include(GNUInstallDirs)
+
   set(MIMALLOC_DIR "${PROJECT_SOURCE_DIR}/vendor/mimalloc")
+  set(MIMALLOC_SOURCE_DIR "${MIMALLOC_DIR}/src")
+  set(MIMALLOC_PUBLIC_HEADERS
+    "${MIMALLOC_DIR}/include/mimalloc.h"
+    "${MIMALLOC_DIR}/include/mimalloc-new-delete.h"
+    "${MIMALLOC_DIR}/include/mimalloc-override.h"
+    "${MIMALLOC_DIR}/include/mimalloc-stats.h")
 
-  set(MI_INSTALL_TOPLEVEL ON CACHE BOOL "" FORCE)
-  set(MI_BUILD_SHARED ${BUILD_SHARED_LIBS} CACHE BOOL "" FORCE)
+  set(MIMALLOC_SOURCES
+    "${MIMALLOC_SOURCE_DIR}/alloc.c"
+    "${MIMALLOC_SOURCE_DIR}/alloc-aligned.c"
+    "${MIMALLOC_SOURCE_DIR}/alloc-posix.c"
+    "${MIMALLOC_SOURCE_DIR}/arena.c"
+    "${MIMALLOC_SOURCE_DIR}/arena-meta.c"
+    "${MIMALLOC_SOURCE_DIR}/bitmap.c"
+    "${MIMALLOC_SOURCE_DIR}/heap.c"
+    "${MIMALLOC_SOURCE_DIR}/init.c"
+    "${MIMALLOC_SOURCE_DIR}/libc.c"
+    "${MIMALLOC_SOURCE_DIR}/options.c"
+    "${MIMALLOC_SOURCE_DIR}/os.c"
+    "${MIMALLOC_SOURCE_DIR}/page.c"
+    "${MIMALLOC_SOURCE_DIR}/page-map.c"
+    "${MIMALLOC_SOURCE_DIR}/prim/prim.c"
+    "${MIMALLOC_SOURCE_DIR}/random.c"
+    "${MIMALLOC_SOURCE_DIR}/stats.c"
+    "${MIMALLOC_SOURCE_DIR}/theap.c"
+    "${MIMALLOC_SOURCE_DIR}/threadlocal.c")
+
+  add_library(mimalloc ${MIMALLOC_SOURCES})
+  sourcemeta_add_default_options(PRIVATE mimalloc)
+
+  find_package(Threads REQUIRED)
+  target_link_libraries(mimalloc PRIVATE Threads::Threads)
+
+  target_include_directories(mimalloc PUBLIC
+    "$<BUILD_INTERFACE:${MIMALLOC_DIR}/include>"
+    "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>")
+
+  # Define the standard allocation entry points, so that every allocation
+  # in the program goes through this library rather than through the
+  # allocator that the platform happens to ship with
+  target_compile_definitions(mimalloc PRIVATE MI_MALLOC_OVERRIDE)
+
+  # This project compiles its optimised debuggable configuration without
+  # disabling assertions, which this library would otherwise read as a
+  # request for its own assertions and statistics collection
+  target_compile_definitions(mimalloc PRIVATE
+    $<$<NOT:$<CONFIG:Debug>>:MI_BUILD_RELEASE>)
+
   if(BUILD_SHARED_LIBS)
-    set(MI_BUILD_STATIC OFF CACHE BOOL "" FORCE)
-    set(MIMALLOC_TARGET mimalloc)
+    target_compile_definitions(mimalloc PRIVATE MI_SHARED_LIB MI_SHARED_LIB_EXPORT)
+    # When overriding from a shared library, a pointer handed back to us may
+    # have been allocated before this library was loaded, so deallocation
+    # has to determine who owns the pointer first
+    target_compile_definitions(mimalloc PRIVATE MI_FREE_IS_CHECKED=1)
   else()
-    set(MI_BUILD_STATIC ON CACHE BOOL "" FORCE)
-    set(MIMALLOC_TARGET mimalloc-static)
+    target_compile_definitions(mimalloc PRIVATE MI_STATIC_LIB)
   endif()
-  set(MI_BUILD_OBJECT OFF CACHE BOOL "" FORCE)
-  set(MI_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-  set(MI_OVERRIDE ON CACHE BOOL "" FORCE)
 
-  set(SOURCEMETA_CORE_MIMALLOC_SKIP_INSTALL "${MI_SKIP_INSTALL}")
-  set(MI_SKIP_INSTALL ON)
-  add_subdirectory(
-    "${MIMALLOC_DIR}"
-    "${CMAKE_CURRENT_BINARY_DIR}/mimalloc" EXCLUDE_FROM_ALL)
-  set(MI_SKIP_INSTALL "${SOURCEMETA_CORE_MIMALLOC_SKIP_INSTALL}")
-  unset(SOURCEMETA_CORE_MIMALLOC_SKIP_INSTALL)
-
-  if(TARGET ${MIMALLOC_TARGET})
-    set_target_properties(${MIMALLOC_TARGET}
-      PROPERTIES COMPILE_WARNING_AS_ERROR OFF)
-    set(Mimalloc_FOUND ON)
-
-    if(SOURCEMETA_CORE_INSTALL)
-      include(GNUInstallDirs)
-      if(BUILD_SHARED_LIBS)
-        install(TARGETS ${MIMALLOC_TARGET}
-          EXPORT mimalloc
-          RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
-            COMPONENT sourcemeta_core
-          LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-            COMPONENT sourcemeta_core
-            NAMELINK_COMPONENT sourcemeta_core_dev
-          ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-            COMPONENT sourcemeta_core_dev)
-      else()
-        install(TARGETS ${MIMALLOC_TARGET}
-          EXPORT mimalloc
-          ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-            COMPONENT sourcemeta_core_dev)
-      endif()
-      install(EXPORT mimalloc
-        FILE mimalloc.cmake
-        DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/mimalloc"
-        COMPONENT sourcemeta_core_dev)
-      install(FILES
-        "${MIMALLOC_DIR}/include/mimalloc.h"
-        "${MIMALLOC_DIR}/include/mimalloc-new-delete.h"
-        "${MIMALLOC_DIR}/include/mimalloc-override.h"
-        "${MIMALLOC_DIR}/include/mimalloc-stats.h"
-        DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
-        COMPONENT sourcemeta_core_dev)
-      install(FILES
-        "${MIMALLOC_DIR}/cmake/mimalloc-config.cmake"
-        "${MIMALLOC_DIR}/cmake/mimalloc-config-version.cmake"
-        DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/mimalloc"
-        COMPONENT sourcemeta_core_dev)
-    endif()
+  if(SOURCEMETA_COMPILER_LLVM OR SOURCEMETA_COMPILER_GCC)
+    # Allocation sits on the hot path of every thread, so pay for the
+    # cheapest thread-local access sequence that a non-dlopen'ed library
+    # is allowed to use
+    target_compile_options(mimalloc PRIVATE -ftls-model=initial-exec)
+    # This library is the allocator, so the compiler cannot be allowed to
+    # reason about the standard entry points or to synthesise calls to them
+    target_compile_options(mimalloc PRIVATE -fno-builtin-malloc)
+    target_compile_options(mimalloc PRIVATE
+      -Wno-conversion -Wno-sign-conversion -Wno-pedantic)
+    # The thread local slot table is a trailing single-element array that is
+    # over-allocated and indexed past its first element, so the strictest
+    # interpretation of what counts as a trailing flexible array would treat
+    # every one of those accesses as running off the end of the object
+    target_compile_options(mimalloc PRIVATE -fstrict-flex-arrays=0)
   endif()
+
+  if(SOURCEMETA_COMPILER_GCC)
+    # Reading an atomic word out of a block whose size the compiler cannot
+    # see is reported as if it overflowed the block
+    target_compile_options(mimalloc PRIVATE -Wno-stringop-overflow)
+  endif()
+
+  if(SOURCEMETA_COMPILER_LLVM)
+    target_compile_options(mimalloc PRIVATE -Wno-comma)
+  endif()
+
+  set_target_properties(mimalloc
+    PROPERTIES
+      OUTPUT_NAME mimalloc
+      PUBLIC_HEADER "${MIMALLOC_PUBLIC_HEADERS}"
+      EXPORT_NAME mimalloc)
+
+  # Nothing refers to the entry points that replace the standard allocator by
+  # name, so a linker that only pulls in the archive members it needs would
+  # leave the program running on the allocator it was trying to replace
+  add_library(mimalloc_interface INTERFACE)
+  if(BUILD_SHARED_LIBS)
+    target_link_libraries(mimalloc_interface INTERFACE mimalloc)
+  else()
+    target_link_libraries(mimalloc_interface INTERFACE
+      "$<LINK_LIBRARY:WHOLE_ARCHIVE,$<TARGET_NAME:mimalloc>>")
+  endif()
+
+  set_target_properties(mimalloc_interface
+    PROPERTIES EXPORT_NAME Mimalloc)
+
+  add_library(Mimalloc::Mimalloc ALIAS mimalloc_interface)
+
+  if(SOURCEMETA_CORE_INSTALL)
+    install(TARGETS mimalloc mimalloc_interface
+      EXPORT mimalloc
+      PUBLIC_HEADER DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
+        COMPONENT sourcemeta_core_dev
+      RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
+        COMPONENT sourcemeta_core
+      LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+        COMPONENT sourcemeta_core
+        NAMELINK_COMPONENT sourcemeta_core_dev
+      ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+        COMPONENT sourcemeta_core_dev)
+    install(EXPORT mimalloc
+      DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/mimalloc"
+      NAMESPACE Mimalloc::
+      COMPONENT sourcemeta_core_dev)
+
+    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/mimalloc-config.cmake
+      "include(CMakeFindDependencyMacro)\n"
+      "find_dependency(Threads)\n"
+      "include(\"\${CMAKE_CURRENT_LIST_DIR}/mimalloc.cmake\")\n"
+      "check_required_components(\"mimalloc\")\n")
+    install(FILES
+      "${CMAKE_CURRENT_BINARY_DIR}/mimalloc-config.cmake"
+      DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/mimalloc"
+      COMPONENT sourcemeta_core_dev)
+  endif()
+
+  set(Mimalloc_FOUND ON)
 endif()

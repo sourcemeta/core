@@ -66,26 +66,11 @@ function(sourcemeta_library)
 
   add_library(${ALIAS_NAME} ALIAS ${TARGET_NAME})
 
-  # TODO: Any way to simplify this? Maybe a src/lang/alloc
-  # as a wrapper that exports this for consumers to use?
   if(Mimalloc_FOUND)
-    if(BUILD_SHARED_LIBS)
-      set(SOURCEMETA_MIMALLOC_LINK_LIBRARY mimalloc)
-    else()
-      set(SOURCEMETA_MIMALLOC_LINK_LIBRARY
-        "$<LINK_LIBRARY:WHOLE_ARCHIVE,mimalloc-static>")
-    endif()
-
     if(SOURCEMETA_LIBRARY_SOURCES)
-      if(NOT BUILD_SHARED_LIBS)
-        add_dependencies(${TARGET_NAME} mimalloc-static)
-      endif()
-
-      target_link_libraries(${TARGET_NAME} PRIVATE
-        "${SOURCEMETA_MIMALLOC_LINK_LIBRARY}")
+      target_link_libraries(${TARGET_NAME} PRIVATE Mimalloc::Mimalloc)
     else()
-      target_link_libraries(${TARGET_NAME} INTERFACE
-        "${SOURCEMETA_MIMALLOC_LINK_LIBRARY}")
+      target_link_libraries(${TARGET_NAME} INTERFACE Mimalloc::Mimalloc)
     endif()
   endif()
 
