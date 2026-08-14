@@ -656,6 +656,192 @@ TEST(hunk_headers_bypass_stream_formatting) {
                           "+extra\n");
 }
 
+TEST(a_single_blank_line_deleted_to_an_empty_input) {
+  const auto result{
+      sourcemeta::core::diff("\n", "", sourcemeta::core::Diff::Mode::Line,
+                             sourcemeta::core::Diff::Algorithm::Myers)};
+  EXPECT_EQ(
+      result.operations,
+      (std::vector<sourcemeta::core::Diff::Operation>{
+          {sourcemeta::core::Diff::Operation::Type::Delete, 0, 1, 0, 0}}));
+  EXPECT_EQ(render(result), "--- a\n"
+                            "+++ b\n"
+                            "@@ -1 +0,0 @@\n"
+                            "-\n");
+}
+
+TEST(inputs_of_blank_lines_only) {
+  const auto result{sourcemeta::core::diff(
+      "\n\n\n", "\n\n", sourcemeta::core::Diff::Mode::Line,
+      sourcemeta::core::Diff::Algorithm::Myers)};
+  EXPECT_EQ(
+      result.operations,
+      (std::vector<sourcemeta::core::Diff::Operation>{
+          {sourcemeta::core::Diff::Operation::Type::Equal, 0, 2, 0, 2},
+          {sourcemeta::core::Diff::Operation::Type::Delete, 2, 3, 2, 2}}));
+  EXPECT_EQ(render(result), "--- a\n"
+                            "+++ b\n"
+                            "@@ -1,3 +1,2 @@\n"
+                            " \n"
+                            " \n"
+                            "-\n");
+}
+
+TEST(trailing_line_deleted) {
+  const auto result{sourcemeta::core::diff(
+      "a\nb\nc\n", "a\nb\n", sourcemeta::core::Diff::Mode::Line,
+      sourcemeta::core::Diff::Algorithm::Myers)};
+  EXPECT_EQ(
+      result.operations,
+      (std::vector<sourcemeta::core::Diff::Operation>{
+          {sourcemeta::core::Diff::Operation::Type::Equal, 0, 2, 0, 2},
+          {sourcemeta::core::Diff::Operation::Type::Delete, 2, 3, 2, 2}}));
+  EXPECT_EQ(render(result), "--- a\n"
+                            "+++ b\n"
+                            "@@ -1,3 +1,2 @@\n"
+                            " a\n"
+                            " b\n"
+                            "-c\n");
+}
+
+TEST(context_wider_than_the_input_is_clamped) {
+  const auto result{sourcemeta::core::diff(
+      "a\nb\nc\n", "a\nb\n", sourcemeta::core::Diff::Mode::Line,
+      sourcemeta::core::Diff::Algorithm::Myers)};
+  EXPECT_EQ(
+      result.operations,
+      (std::vector<sourcemeta::core::Diff::Operation>{
+          {sourcemeta::core::Diff::Operation::Type::Equal, 0, 2, 0, 2},
+          {sourcemeta::core::Diff::Operation::Type::Delete, 2, 3, 2, 2}}));
+  EXPECT_EQ(render(result, 100), "--- a\n"
+                                 "+++ b\n"
+                                 "@@ -1,3 +1,2 @@\n"
+                                 " a\n"
+                                 " b\n"
+                                 "-c\n");
+}
+
+TEST(changes_two_times_a_one_line_context_apart_share_a_hunk) {
+  const auto result{
+      sourcemeta::core::diff("c1\ne1\ne2\nc2\n", "C1\ne1\ne2\nC2\n",
+                             sourcemeta::core::Diff::Mode::Line,
+                             sourcemeta::core::Diff::Algorithm::Myers)};
+  EXPECT_EQ(
+      result.operations,
+      (std::vector<sourcemeta::core::Diff::Operation>{
+          {sourcemeta::core::Diff::Operation::Type::Delete, 0, 1, 0, 0},
+          {sourcemeta::core::Diff::Operation::Type::Insert, 1, 1, 0, 1},
+          {sourcemeta::core::Diff::Operation::Type::Equal, 1, 3, 1, 3},
+          {sourcemeta::core::Diff::Operation::Type::Delete, 3, 4, 3, 3},
+          {sourcemeta::core::Diff::Operation::Type::Insert, 4, 4, 3, 4}}));
+  EXPECT_EQ(render(result, 1), "--- a\n"
+                               "+++ b\n"
+                               "@@ -1,4 +1,4 @@\n"
+                               "-c1\n"
+                               "+C1\n"
+                               " e1\n"
+                               " e2\n"
+                               "-c2\n"
+                               "+C2\n");
+}
+
+TEST(changes_beyond_a_one_line_context_split_the_hunk) {
+  const auto result{
+      sourcemeta::core::diff("c1\ne1\ne2\ne3\nc2\n", "C1\ne1\ne2\ne3\nC2\n",
+                             sourcemeta::core::Diff::Mode::Line,
+                             sourcemeta::core::Diff::Algorithm::Myers)};
+  EXPECT_EQ(
+      result.operations,
+      (std::vector<sourcemeta::core::Diff::Operation>{
+          {sourcemeta::core::Diff::Operation::Type::Delete, 0, 1, 0, 0},
+          {sourcemeta::core::Diff::Operation::Type::Insert, 1, 1, 0, 1},
+          {sourcemeta::core::Diff::Operation::Type::Equal, 1, 4, 1, 4},
+          {sourcemeta::core::Diff::Operation::Type::Delete, 4, 5, 4, 4},
+          {sourcemeta::core::Diff::Operation::Type::Insert, 5, 5, 4, 5}}));
+  EXPECT_EQ(render(result, 1), "--- a\n"
+                               "+++ b\n"
+                               "@@ -1,2 +1,2 @@\n"
+                               "-c1\n"
+                               "+C1\n"
+                               " e1\n"
+                               "@@ -4,2 +4,2 @@\n"
+                               " e3\n"
+                               "-c2\n"
+                               "+C2\n");
+}
+
+TEST(two_separate_replacements_without_context) {
+  const auto result{sourcemeta::core::diff(
+      "a\nb\nc\nd\n", "a\nx\nc\ny\n", sourcemeta::core::Diff::Mode::Line,
+      sourcemeta::core::Diff::Algorithm::Myers)};
+  EXPECT_EQ(
+      result.operations,
+      (std::vector<sourcemeta::core::Diff::Operation>{
+          {sourcemeta::core::Diff::Operation::Type::Equal, 0, 1, 0, 1},
+          {sourcemeta::core::Diff::Operation::Type::Delete, 1, 2, 1, 1},
+          {sourcemeta::core::Diff::Operation::Type::Insert, 2, 2, 1, 2},
+          {sourcemeta::core::Diff::Operation::Type::Equal, 2, 3, 2, 3},
+          {sourcemeta::core::Diff::Operation::Type::Delete, 3, 4, 3, 3},
+          {sourcemeta::core::Diff::Operation::Type::Insert, 4, 4, 3, 4}}));
+  EXPECT_EQ(render(result, 0), "--- a\n"
+                               "+++ b\n"
+                               "@@ -2 +2 @@\n"
+                               "-b\n"
+                               "+x\n"
+                               "@@ -4 +4 @@\n"
+                               "-d\n"
+                               "+y\n");
+}
+
+TEST(embedded_null_bytes_are_line_content) {
+  // Built with explicit lengths, as a view over a character array would
+  // otherwise stop at the first null byte
+  const std::string_view original{"a\0b\nc\n", 6};
+  const std::string_view modified{"a\0b\nd\n", 6};
+  const auto result{sourcemeta::core::diff(
+      original, modified, sourcemeta::core::Diff::Mode::Line,
+      sourcemeta::core::Diff::Algorithm::Myers)};
+  EXPECT_EQ(result.original.at(0), std::string_view("a\0b", 3));
+  EXPECT_EQ(
+      result.operations,
+      (std::vector<sourcemeta::core::Diff::Operation>{
+          {sourcemeta::core::Diff::Operation::Type::Equal, 0, 1, 0, 1},
+          {sourcemeta::core::Diff::Operation::Type::Delete, 1, 2, 1, 1},
+          {sourcemeta::core::Diff::Operation::Type::Insert, 2, 2, 1, 2}}));
+
+  std::string expected{"--- a\n"
+                       "+++ b\n"
+                       "@@ -1,2 +1,2 @@\n"
+                       " a"};
+  expected.push_back('\0');
+  expected += "b\n"
+              "-c\n"
+              "+d\n";
+  EXPECT_EQ(render(result), expected);
+}
+
+TEST(very_long_lines) {
+  const std::string original{std::string(4096, 'x') + "\n"};
+  const std::string modified{std::string(4096, 'y') + "\n"};
+  const auto result{sourcemeta::core::diff(
+      original, modified, sourcemeta::core::Diff::Mode::Line,
+      sourcemeta::core::Diff::Algorithm::Myers)};
+  EXPECT_EQ(result.original.at(0).size(), 4096);
+  EXPECT_EQ(
+      result.operations,
+      (std::vector<sourcemeta::core::Diff::Operation>{
+          {sourcemeta::core::Diff::Operation::Type::Delete, 0, 1, 0, 0},
+          {sourcemeta::core::Diff::Operation::Type::Insert, 1, 1, 0, 1}}));
+  EXPECT_EQ(render(result), "--- a\n"
+                            "+++ b\n"
+                            "@@ -1 +1 @@\n"
+                            "-" +
+                                std::string(4096, 'x') +
+                                "\n"
+                                "+" +
+                                std::string(4096, 'y') + "\n");
+}
+
 TEST(lao_versus_tzu) {
   const auto result{
       sourcemeta::core::diff(LAO, TZU, sourcemeta::core::Diff::Mode::Line,
