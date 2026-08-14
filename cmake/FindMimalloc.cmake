@@ -79,13 +79,27 @@ if(NOT Mimalloc_FOUND)
     PROPERTIES
       OUTPUT_NAME mimalloc
       PUBLIC_HEADER "${MIMALLOC_PUBLIC_HEADER}"
-      EXPORT_NAME Mimalloc)
+      EXPORT_NAME mimalloc)
 
-  add_library(Mimalloc::Mimalloc ALIAS mimalloc)
+  # Nothing refers to the entry points that replace the standard allocator by
+  # name, so a linker that only pulls in the archive members it needs would
+  # leave the program running on the allocator it was trying to replace
+  add_library(mimalloc_interface INTERFACE)
+  if(BUILD_SHARED_LIBS)
+    target_link_libraries(mimalloc_interface INTERFACE mimalloc)
+  else()
+    target_link_libraries(mimalloc_interface INTERFACE
+      "$<LINK_LIBRARY:WHOLE_ARCHIVE,mimalloc>")
+  endif()
+
+  set_target_properties(mimalloc_interface
+    PROPERTIES EXPORT_NAME Mimalloc)
+
+  add_library(Mimalloc::Mimalloc ALIAS mimalloc_interface)
 
   if(SOURCEMETA_CORE_INSTALL)
     include(GNUInstallDirs)
-    install(TARGETS mimalloc
+    install(TARGETS mimalloc mimalloc_interface
       EXPORT mimalloc
       PUBLIC_HEADER DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
         COMPONENT sourcemeta_core_dev
