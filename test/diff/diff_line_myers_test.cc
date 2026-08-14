@@ -647,7 +647,8 @@ TEST(hunk_headers_are_not_formatted_through_the_stream_locale) {
 
   std::ostringstream stream;
   stream.imbue(std::locale{stream.getloc(), new GroupingNumPunct{}});
-  sourcemeta::core::stringify(result, stream);
+  sourcemeta::core::stringify(result, stream,
+                              sourcemeta::core::Diff::Format::Unified);
   EXPECT_EQ(stream.str(), "--- a\n"
                           "+++ b\n"
                           "@@ -1498,3 +1498,4 @@\n"

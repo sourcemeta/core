@@ -40,13 +40,16 @@ struct Diff {
   /// The strategy used to locate the common subsequences of two inputs
   enum class Algorithm : std::uint8_t {
     /// A greedy shortest edit script search over the edit graph, as described
-    /// by Myers in "An O(ND) Difference Algorithm and Its Variations" (1986)
+    /// by Eugene W. Myers in "An O(ND) Difference Algorithm and Its
+    /// Variations", Algorithmica Vol. 1, 1986, pp. 251-266
+    /// (http://www.xmailserver.org/diff2.pdf)
     Myers
   };
 
   /// The textual serialisation used to render a set of differences
   enum class Format : std::uint8_t {
-    /// The unified format, as standardised by POSIX
+    /// The unified format, as standardised by POSIX in IEEE Std 1003.1-2024
+    /// (https://pubs.opengroup.org/onlinepubs/9799919799/utilities/diff.html)
     Unified
   };
 
@@ -111,13 +114,18 @@ struct Diff {
 /// ```cpp
 /// #include <sourcemeta/core/diff.h>
 /// #include <cassert>
+/// #include <vector>
 ///
 /// const auto result{sourcemeta::core::diff(
 ///     "foo\nbar\n", "foo\nbaz\n", sourcemeta::core::Diff::Mode::Line,
 ///     sourcemeta::core::Diff::Algorithm::Myers)};
-/// assert(result.operations.size() == 3);
-/// assert(result.operations.at(0).type ==
-///        sourcemeta::core::Diff::Operation::Type::Equal);
+///
+/// assert((result.operations ==
+///         std::vector<sourcemeta::core::Diff::Operation>{
+///             {sourcemeta::core::Diff::Operation::Type::Equal, 0, 1, 0, 1},
+///             {sourcemeta::core::Diff::Operation::Type::Delete, 1, 2, 1, 1},
+///             {sourcemeta::core::Diff::Operation::Type::Insert, 2, 2, 1,
+///             2}}));
 /// ```
 ///
 /// The tokens of the result are views into the given inputs, which must
@@ -133,16 +141,23 @@ auto diff(const std::string_view original, const std::string_view modified,
 ///
 /// ```cpp
 /// #include <sourcemeta/core/diff.h>
-/// #include <iostream>
+/// #include <cassert>
 /// #include <sstream>
 ///
 /// const auto result{sourcemeta::core::diff(
 ///     "foo\nbar\n", "foo\nbaz\n", sourcemeta::core::Diff::Mode::Line,
 ///     sourcemeta::core::Diff::Algorithm::Myers)};
+///
 /// std::ostringstream stream;
 /// sourcemeta::core::stringify(result, stream,
 ///                             sourcemeta::core::Diff::Format::Unified);
-/// std::cout << stream.str();
+///
+/// assert(stream.str() == "--- a\n"
+///                        "+++ b\n"
+///                        "@@ -1,2 +1,2 @@\n"
+///                        " foo\n"
+///                        "-bar\n"
+///                        "+baz\n");
 /// ```
 SOURCEMETA_CORE_DIFF_EXPORT
 auto stringify(const Diff &document, std::ostream &stream,
