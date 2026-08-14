@@ -234,7 +234,10 @@ auto replace_all(const Regex &regex, const std::string_view subject,
       reinterpret_cast<PCRE2_SPTR>(replacement.data()), replacement.size(),
       reinterpret_cast<PCRE2_UCHAR *>(result.data()), &result_size)};
 
-  if (substitute_result == PCRE2_ERROR_NOMEMORY) {
+  // The room an overflow needs is reported back through the length, which stays
+  // unset when the substitution ran out of memory for something else. Only the
+  // former can be retried, as the latter would size the buffer from a sentinel
+  if (substitute_result == PCRE2_ERROR_NOMEMORY && result_size != PCRE2_UNSET) {
     result.resize(result_size);
     result_size = result.size();
     substitute_result = pcre2_substitute(
