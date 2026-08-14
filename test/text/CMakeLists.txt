@@ -13,7 +13,8 @@ sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME text
           text_hex_to_bytes_test.cc text_bytes_to_hex_test.cc
           text_is_hex_digit_test.cc text_hex_digit_value_test.cc
           text_strip_left_test.cc text_strip_right_test.cc
-          text_pad_left_test.cc text_squeeze_test.cc)
+          text_pad_left_test.cc text_squeeze_test.cc
+          text_digits_test.cc)
 
 target_link_libraries(sourcemeta_core_text_unit
   PRIVATE sourcemeta::core::text)
