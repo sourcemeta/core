@@ -89,7 +89,7 @@ if(NOT Mimalloc_FOUND)
     target_link_libraries(mimalloc_interface INTERFACE mimalloc)
   else()
     target_link_libraries(mimalloc_interface INTERFACE
-      "$<LINK_LIBRARY:WHOLE_ARCHIVE,mimalloc>")
+      "$<LINK_LIBRARY:WHOLE_ARCHIVE,$<TARGET_NAME:mimalloc>>")
   endif()
 
   set_target_properties(mimalloc_interface
