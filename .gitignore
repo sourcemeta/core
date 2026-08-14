@@ -12,5 +12,5 @@ _deps
 Brewfile.lock.json
 .DS_Store
 .cache
-out/
+/out/
 CMakeSettings.json

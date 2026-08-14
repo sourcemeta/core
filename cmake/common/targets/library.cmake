@@ -66,8 +66,9 @@ function(sourcemeta_library)
 
   add_library(${ALIAS_NAME} ALIAS ${TARGET_NAME})
 
-  if(SOURCEMETA_CORE_MIMALLOC_ENABLED
-     AND (TARGET mimalloc-static OR TARGET mimalloc))
+  # TODO: Any way to simplify this? Maybe a src/lang/alloc
+  # as a wrapper that exports this for consumers to use?
+  if(Mimalloc_FOUND)
     if(BUILD_SHARED_LIBS)
       set(SOURCEMETA_MIMALLOC_LINK_LIBRARY mimalloc)
     else()
