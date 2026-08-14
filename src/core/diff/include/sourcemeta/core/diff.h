@@ -23,90 +23,85 @@
 namespace sourcemeta::core {
 
 /// @ingroup diff
-/// The granularity at which inputs are compared
-enum class DiffMode : std::uint8_t {
-  /// Compare newline-delimited lines
-  Line
-};
-
-/// @ingroup diff
-/// The strategy used to locate the common subsequences of two inputs
-enum class DiffAlgorithm : std::uint8_t {
-  /// A greedy shortest edit script search over the edit graph, as described by
-  /// Myers in "An O(ND) Difference Algorithm and Its Variations" (1986)
-  Myers
-};
-
-/// @ingroup diff
-/// The kind of transformation that a difference operation represents
-enum class DiffOperationType : std::uint8_t {
-  /// The spans are present in both inputs
-  Equal,
-  /// The span is only present in the original input
-  Delete,
-  /// The span is only present in the modified input
-  Insert
-};
-
-/// @ingroup diff
-///
-/// A single contiguous transformation between two inputs, expressed as a
-/// half-open range into the tokens of each of them.
-///
-/// A deletion carries an empty modified range that marks where in the modified
-/// input the removal occurred, and an insertion carries an empty original range
-/// that marks where in the original input the addition occurred.
-struct DiffOperation {
-  /// The kind of transformation
-  DiffOperationType type;
-  /// The index of the first affected token of the original input
-  std::size_t original_start;
-  /// The index one past the last affected token of the original input
-  std::size_t original_end;
-  /// The index of the first affected token of the modified input
-  std::size_t modified_start;
-  /// The index one past the last affected token of the modified input
-  std::size_t modified_end;
-
-  auto operator==(const DiffOperation &) const noexcept -> bool = default;
-};
-
-/// @ingroup diff
 ///
 /// The result of comparing two inputs, holding the tokens of each alongside the
-/// operations that relate them.
+/// operations that relate them, plus the vocabulary that describes how a
+/// comparison is performed and rendered.
 ///
 /// The tokens are views into the inputs that were compared, which must outlive
 /// this result.
 struct Diff {
+  /// The granularity at which inputs are compared
+  enum class Mode : std::uint8_t {
+    /// Compare newline-delimited lines
+    Line
+  };
+
+  /// The strategy used to locate the common subsequences of two inputs
+  enum class Algorithm : std::uint8_t {
+    /// A greedy shortest edit script search over the edit graph, as described
+    /// by Myers in "An O(ND) Difference Algorithm and Its Variations" (1986)
+    Myers
+  };
+
+  /// The textual serialisation used to render a set of differences
+  enum class Format : std::uint8_t {
+    /// The unified format, as standardised by POSIX
+    Unified
+  };
+
+  /// A single contiguous transformation between two inputs, expressed as a
+  /// half-open range into the tokens of each of them.
+  ///
+  /// A deletion carries an empty modified range that marks where in the
+  /// modified input the removal occurred, and an insertion carries an empty
+  /// original range that marks where in the original input the addition
+  /// occurred.
+  struct Operation {
+    /// The kind of transformation that a difference operation represents
+    enum class Type : std::uint8_t {
+      /// The spans are present in both inputs
+      Equal,
+      /// The span is only present in the original input
+      Delete,
+      /// The span is only present in the modified input
+      Insert
+    };
+
+    /// The kind of transformation
+    Type type;
+    /// The index of the first affected token of the original input
+    std::size_t original_start;
+    /// The index one past the last affected token of the original input
+    std::size_t original_end;
+    /// The index of the first affected token of the modified input
+    std::size_t modified_start;
+    /// The index one past the last affected token of the modified input
+    std::size_t modified_end;
+
+    auto operator==(const Operation &) const noexcept -> bool = default;
+  };
+
+  /// Controls the presentation of a rendered set of differences
+  struct FormatOptions {
+    /// The name given to the original input in the header
+    std::string_view original_label{"a"};
+    /// The name given to the modified input in the header
+    std::string_view modified_label{"b"};
+    /// The number of unchanged lines shown around each change
+    std::size_t context{3};
+  };
+
   /// The tokens of the original input
   std::vector<std::string_view> original;
   /// The tokens of the modified input
   std::vector<std::string_view> modified;
   /// The transformations that turn the original input into the modified one
-  std::vector<DiffOperation> operations;
+  std::vector<Operation> operations;
   /// Whether the original input ended with a line terminator
   bool original_ends_with_newline{true};
   /// Whether the modified input ended with a line terminator
   bool modified_ends_with_newline{true};
-};
-
-/// @ingroup diff
-/// The textual serialisation used to render a set of differences
-enum class DiffFormat : std::uint8_t {
-  /// The unified format, as standardised by POSIX
-  Unified
-};
-
-/// @ingroup diff
-/// Controls the presentation of a rendered set of differences
-struct DiffFormatOptions {
-  /// The name given to the original input in the header
-  std::string_view original_label{"a"};
-  /// The name given to the modified input in the header
-  std::string_view modified_label{"b"};
-  /// The number of unchanged lines shown around each change
-  std::size_t context{3};
 };
 
 /// @ingroup diff
@@ -117,18 +112,19 @@ struct DiffFormatOptions {
 /// #include <sourcemeta/core/diff.h>
 /// #include <cassert>
 ///
-/// const auto result{sourcemeta::core::diff("foo\nbar\n", "foo\nbaz\n")};
+/// const auto result{sourcemeta::core::diff(
+///     "foo\nbar\n", "foo\nbaz\n", sourcemeta::core::Diff::Mode::Line,
+///     sourcemeta::core::Diff::Algorithm::Myers)};
 /// assert(result.operations.size() == 3);
 /// assert(result.operations.at(0).type ==
-///        sourcemeta::core::DiffOperationType::Equal);
+///        sourcemeta::core::Diff::Operation::Type::Equal);
 /// ```
 ///
 /// The tokens of the result are views into the given inputs, which must
 /// outlive it.
 SOURCEMETA_CORE_DIFF_EXPORT
 auto diff(const std::string_view original, const std::string_view modified,
-          const DiffMode mode = DiffMode::Line,
-          const DiffAlgorithm algorithm = DiffAlgorithm::Myers) -> Diff;
+          const Diff::Mode mode, const Diff::Algorithm algorithm) -> Diff;
 
 /// @ingroup diff
 ///
@@ -140,15 +136,18 @@ auto diff(const std::string_view original, const std::string_view modified,
 /// #include <iostream>
 /// #include <sstream>
 ///
-/// const auto result{sourcemeta::core::diff("foo\nbar\n", "foo\nbaz\n")};
+/// const auto result{sourcemeta::core::diff(
+///     "foo\nbar\n", "foo\nbaz\n", sourcemeta::core::Diff::Mode::Line,
+///     sourcemeta::core::Diff::Algorithm::Myers)};
 /// std::ostringstream stream;
-/// sourcemeta::core::stringify(result, stream);
-/// std::cout << stream.str() << std::endl;
+/// sourcemeta::core::stringify(result, stream,
+///                             sourcemeta::core::Diff::Format::Unified);
+/// std::cout << stream.str();
 /// ```
 SOURCEMETA_CORE_DIFF_EXPORT
 auto stringify(const Diff &document, std::ostream &stream,
-               const DiffFormat format = DiffFormat::Unified,
-               const DiffFormatOptions &options = {}) -> void;
+               const Diff::Format format,
+               const Diff::FormatOptions &options = {}) -> void;
 
 } // namespace sourcemeta::core
 

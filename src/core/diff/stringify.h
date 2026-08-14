@@ -40,7 +40,7 @@ inline auto write_diff_line(std::ostream &stream, const char prefix,
 }
 
 inline auto stringify_diff_unified(const Diff &document, std::ostream &stream,
-                                   const DiffFormatOptions &options) -> void {
+                                   const Diff::FormatOptions &options) -> void {
   const auto &operations{document.operations};
   const auto size{operations.size()};
   const auto context{options.context};
@@ -48,7 +48,8 @@ inline auto stringify_diff_unified(const Diff &document, std::ostream &stream,
   std::size_t index{0};
 
   while (index < size) {
-    while (index < size && operations[index].type == DiffOperationType::Equal) {
+    while (index < size &&
+           operations[index].type == Diff::Operation::Type::Equal) {
       index += 1;
     }
 
@@ -61,7 +62,7 @@ inline auto stringify_diff_unified(const Diff &document, std::ostream &stream,
     auto cursor{index + 1};
 
     while (cursor < size) {
-      if (operations[cursor].type != DiffOperationType::Equal) {
+      if (operations[cursor].type != Diff::Operation::Type::Equal) {
         change_end = cursor + 1;
         cursor += 1;
         continue;
@@ -121,7 +122,7 @@ inline auto stringify_diff_unified(const Diff &document, std::ostream &stream,
     for (auto position{change_begin}; position < change_end; ++position) {
       const auto &operation{operations[position]};
       switch (operation.type) {
-        case DiffOperationType::Equal:
+        case Diff::Operation::Type::Equal:
           for (auto line{operation.original_start};
                line < operation.original_end; ++line) {
             write_diff_line(stream, ' ', document.original, line,
@@ -129,7 +130,7 @@ inline auto stringify_diff_unified(const Diff &document, std::ostream &stream,
           }
 
           break;
-        case DiffOperationType::Delete:
+        case Diff::Operation::Type::Delete:
           for (auto line{operation.original_start};
                line < operation.original_end; ++line) {
             write_diff_line(stream, '-', document.original, line,
@@ -137,7 +138,7 @@ inline auto stringify_diff_unified(const Diff &document, std::ostream &stream,
           }
 
           break;
-        case DiffOperationType::Insert:
+        case Diff::Operation::Type::Insert:
           for (auto line{operation.modified_start};
                line < operation.modified_end; ++line) {
             write_diff_line(stream, '+', document.modified, line,

@@ -87,9 +87,9 @@ auto compact_changes(const std::vector<std::size_t> &identities,
 
 auto to_operations(const std::vector<bool> &original_changed,
                    const std::vector<bool> &modified_changed)
-    -> std::vector<sourcemeta::core::DiffOperation> {
-  using sourcemeta::core::DiffOperationType;
-  std::vector<sourcemeta::core::DiffOperation> operations;
+    -> std::vector<sourcemeta::core::Diff::Operation> {
+  using Type = sourcemeta::core::Diff::Operation::Type;
+  std::vector<sourcemeta::core::Diff::Operation> operations;
   const auto original_size{original_changed.size()};
   const auto modified_size{modified_changed.size()};
   std::size_t original_index{0};
@@ -108,7 +108,7 @@ auto to_operations(const std::vector<bool> &original_changed,
         modified_index += 1;
       }
 
-      operations.push_back({.type = DiffOperationType::Equal,
+      operations.push_back({.type = Type::Equal,
                             .original_start = original_begin,
                             .original_end = original_index,
                             .modified_start = modified_begin,
@@ -131,7 +131,7 @@ auto to_operations(const std::vector<bool> &original_changed,
     assert(original_index > original_begin || modified_index > modified_begin);
 
     if (original_index > original_begin) {
-      operations.push_back({.type = DiffOperationType::Delete,
+      operations.push_back({.type = Type::Delete,
                             .original_start = original_begin,
                             .original_end = original_index,
                             .modified_start = modified_begin,
@@ -139,7 +139,7 @@ auto to_operations(const std::vector<bool> &original_changed,
     }
 
     if (modified_index > modified_begin) {
-      operations.push_back({.type = DiffOperationType::Insert,
+      operations.push_back({.type = Type::Insert,
                             .original_start = original_index,
                             .original_end = original_index,
                             .modified_start = modified_begin,
@@ -155,11 +155,11 @@ auto to_operations(const std::vector<bool> &original_changed,
 namespace sourcemeta::core {
 
 auto diff(const std::string_view original, const std::string_view modified,
-          const DiffMode mode, const DiffAlgorithm algorithm) -> Diff {
+          const Diff::Mode mode, const Diff::Algorithm algorithm) -> Diff {
   Diff result;
 
   switch (mode) {
-    case DiffMode::Line:
+    case Diff::Mode::Line:
       result.original_ends_with_newline =
           tokenise_lines(original, result.original);
       result.modified_ends_with_newline =
@@ -181,7 +181,7 @@ auto diff(const std::string_view original, const std::string_view modified,
   std::vector<bool> modified_changed(modified_identities.size(), false);
 
   switch (algorithm) {
-    case DiffAlgorithm::Myers: {
+    case Diff::Algorithm::Myers: {
       const auto span{original_identities.size() + modified_identities.size()};
       internal::MyersWorkspace workspace{
           .forward = std::vector<std::ptrdiff_t>((2 * span) + 3, 0),
@@ -203,10 +203,10 @@ auto diff(const std::string_view original, const std::string_view modified,
 }
 
 auto stringify(const Diff &document, std::ostream &stream,
-               const DiffFormat format, const DiffFormatOptions &options)
+               const Diff::Format format, const Diff::FormatOptions &options)
     -> void {
   switch (format) {
-    case DiffFormat::Unified:
+    case Diff::Format::Unified:
       internal::stringify_diff_unified(document, stream, options);
       break;
   }
