@@ -5,6 +5,10 @@ sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME regex
     regex_permissive_matches_rfc9485_test.cc
     regex_rfc9485_matches_test.cc
     regex_rfc9485_search_matches_test.cc
+    regex_permissive_replace_all_ecma262_test.cc
+    regex_permissive_replace_all_rfc9485_test.cc
+    regex_rfc9485_replace_all_test.cc
+    regex_rfc9485_search_replace_all_test.cc
     regex_is_ecma_test.cc
     regex_to_regex_test.cc
     regex_test.cc)

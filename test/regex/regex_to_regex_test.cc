@@ -103,3 +103,78 @@ TEST(permissive_named_group_underscore_start) {
 TEST(permissive_negated_unicode_property) {
   EXPECT_TRUE(sourcemeta::core::to_regex("\\P{Letter}").has_value());
 }
+
+TEST(optimise_for_match_keeps_the_noop_shortcut) {
+  const auto regex{sourcemeta::core::to_regex(".*")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(
+      std::holds_alternative<sourcemeta::core::RegexTypeNoop>(regex.value()));
+}
+
+TEST(without_optimise_for_match_the_noop_shortcut_is_skipped) {
+  const auto regex{sourcemeta::core::to_regex(
+      ".*", sourcemeta::core::RegexDialect::Permissive, false)};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(
+      std::holds_alternative<sourcemeta::core::RegexTypePCRE2>(regex.value()));
+}
+
+TEST(optimise_for_match_keeps_the_non_empty_shortcut) {
+  const auto regex{sourcemeta::core::to_regex(".")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(std::holds_alternative<sourcemeta::core::RegexTypeNonEmpty>(
+      regex.value()));
+}
+
+TEST(without_optimise_for_match_the_non_empty_shortcut_is_skipped) {
+  const auto regex{sourcemeta::core::to_regex(
+      ".", sourcemeta::core::RegexDialect::Permissive, false)};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(
+      std::holds_alternative<sourcemeta::core::RegexTypePCRE2>(regex.value()));
+}
+
+TEST(optimise_for_match_keeps_the_prefix_shortcut) {
+  const auto regex{sourcemeta::core::to_regex("^foo")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(
+      std::holds_alternative<sourcemeta::core::RegexTypePrefix>(regex.value()));
+}
+
+TEST(without_optimise_for_match_the_prefix_shortcut_is_skipped) {
+  const auto regex{sourcemeta::core::to_regex(
+      "^foo", sourcemeta::core::RegexDialect::Permissive, false)};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(
+      std::holds_alternative<sourcemeta::core::RegexTypePCRE2>(regex.value()));
+}
+
+TEST(optimise_for_match_keeps_the_range_shortcut) {
+  const auto regex{sourcemeta::core::to_regex("^.{2,4}$")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(
+      std::holds_alternative<sourcemeta::core::RegexTypeRange>(regex.value()));
+}
+
+TEST(without_optimise_for_match_the_range_shortcut_is_skipped) {
+  const auto regex{sourcemeta::core::to_regex(
+      "^.{2,4}$", sourcemeta::core::RegexDialect::Permissive, false)};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(
+      std::holds_alternative<sourcemeta::core::RegexTypePCRE2>(regex.value()));
+}
+
+TEST(without_optimise_for_match_an_invalid_range_is_still_rejected) {
+  EXPECT_FALSE(
+      sourcemeta::core::to_regex(
+          "^.{4,2}$", sourcemeta::core::RegexDialect::Permissive, false)
+          .has_value());
+}
+
+TEST(without_optimise_for_match_the_iregexp_dialect_is_unchanged) {
+  const auto regex{sourcemeta::core::to_regex(
+      "a", sourcemeta::core::RegexDialect::IRegexp, false)};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(
+      std::holds_alternative<sourcemeta::core::RegexTypePCRE2>(regex.value()));
+}
