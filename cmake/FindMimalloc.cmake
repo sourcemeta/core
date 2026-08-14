@@ -32,6 +32,11 @@ if(NOT Mimalloc_FOUND)
     "${MIMALLOC_SOURCE_DIR}/theap.c"
     "${MIMALLOC_SOURCE_DIR}/threadlocal.c")
 
+  if(SOURCEMETA_OS_MACOS)
+    list(APPEND MIMALLOC_SOURCES
+      "${MIMALLOC_SOURCE_DIR}/prim/osx/alloc-override-zone.c")
+  endif()
+
   add_library(mimalloc ${MIMALLOC_SOURCES})
   sourcemeta_add_default_options(PRIVATE mimalloc)
 
@@ -52,6 +57,16 @@ if(NOT Mimalloc_FOUND)
   # request for its own assertions and statistics collection
   target_compile_definitions(mimalloc PRIVATE
     $<$<NOT:$<CONFIG:Debug>>:MI_BUILD_RELEASE>)
+
+  if(SOURCEMETA_OS_MACOS)
+    # The only two ways into this platform's allocation path, one of which
+    # is only available to a shared library
+    target_compile_definitions(mimalloc PRIVATE MI_OSX_ZONE=1 MI_OSX_INTERPOSE=1)
+    # Taking over the allocation path here happens after the system has
+    # already handed out memory of its own, so deallocation has to determine
+    # who owns the pointer rather than assume it is ours
+    target_compile_definitions(mimalloc PRIVATE MI_FREE_IS_CHECKED=1)
+  endif()
 
   if(BUILD_SHARED_LIBS)
     target_compile_definitions(mimalloc PRIVATE MI_SHARED_LIB MI_SHARED_LIB_EXPORT)
