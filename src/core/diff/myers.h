@@ -21,7 +21,7 @@ struct MyersSnake {
 struct MyersWorkspace {
   std::vector<std::ptrdiff_t> forward;
   std::vector<std::ptrdiff_t> backward;
-  std::ptrdiff_t offset;
+  std::ptrdiff_t offset{0};
 };
 
 inline auto myers_middle_snake(const std::vector<std::size_t> &original,

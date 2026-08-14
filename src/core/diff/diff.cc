@@ -4,6 +4,7 @@
 #include "myers.h"
 #include "stringify.h"
 
+#include <algorithm>     // std::count
 #include <cassert>       // assert
 #include <cstddef>       // std::size_t, std::ptrdiff_t
 #include <string_view>   // std::string_view
@@ -21,26 +22,42 @@ auto tokenise_lines(const std::string_view input,
     return true;
   }
 
-  lines = sourcemeta::core::split(input, '\n');
-  if (lines.back().empty()) {
+  const auto ends_with_newline{input.back() == '\n'};
+  const auto terminators{
+      static_cast<std::size_t>(std::count(input.cbegin(), input.cend(), '\n'))};
+  lines.reserve(ends_with_newline ? terminators : terminators + 1);
+  sourcemeta::core::split(
+      input, '\n',
+      [&lines](const std::string_view line) -> void { lines.push_back(line); });
+  if (ends_with_newline) {
     lines.pop_back();
-    return true;
   }
 
-  return false;
+  return ends_with_newline;
+}
+
+// Whether the given lines of each input are the same line. The final line of an
+// input without a terminator is never the same as that text followed by one
+auto lines_match(const sourcemeta::core::Diff &result,
+                 const std::size_t original_index,
+                 const std::size_t modified_index) -> bool {
+  const auto original_incomplete{!result.original_ends_with_newline &&
+                                 original_index + 1 == result.original.size()};
+  const auto modified_incomplete{!result.modified_ends_with_newline &&
+                                 modified_index + 1 == result.modified.size()};
+  return original_incomplete == modified_incomplete &&
+         result.original[original_index] == result.modified[modified_index];
 }
 
 // A line that closes an input without a terminator can never equal the same
 // text followed by one, so it draws its identity from a separate table
 auto to_identities(
     const std::vector<std::string_view> &lines, const bool ends_with_newline,
+    const std::size_t begin, const std::size_t end,
     std::unordered_map<std::string_view, std::size_t> &complete,
     std::unordered_map<std::string_view, std::size_t> &incomplete,
-    std::size_t &counter) -> std::vector<std::size_t> {
-  std::vector<std::size_t> identities;
-  identities.reserve(lines.size());
-
-  for (std::size_t index{0}; index < lines.size(); ++index) {
+    std::size_t &counter, std::vector<std::size_t> &identities) -> void {
+  for (auto index{begin}; index < end; ++index) {
     const auto is_incomplete{!ends_with_newline && index + 1 == lines.size()};
     auto &table{is_incomplete ? incomplete : complete};
     const auto match{table.emplace(lines[index], counter)};
@@ -48,17 +65,16 @@ auto to_identities(
       counter += 1;
     }
 
-    identities.push_back(match.first->second);
+    identities[index] = match.first->second;
   }
-
-  return identities;
 }
 
 // Slide every run of changed lines as far towards the end of the input as the
 // surrounding lines allow, which is what makes paired changes line up
-auto compact_changes(const std::vector<std::size_t> &identities,
-                     std::vector<bool> &changed) -> void {
-  const auto size{identities.size()};
+auto compact_changes(const std::vector<std::string_view> &lines,
+                     const bool ends_with_newline, std::vector<bool> &changed)
+    -> void {
+  const auto size{lines.size()};
   std::size_t index{0};
 
   while (index < size) {
@@ -74,7 +90,8 @@ auto compact_changes(const std::vector<std::size_t> &identities,
     }
 
     while (group_end < size && !changed[group_end] &&
-           identities[group_start] == identities[group_end]) {
+           (ends_with_newline || group_end + 1 != size) &&
+           lines[group_start] == lines[group_end]) {
       changed[group_start] = false;
       changed[group_end] = true;
       group_start += 1;
@@ -167,36 +184,69 @@ auto diff(const std::string_view original, const std::string_view modified,
       break;
   }
 
+  // Lines shared by the head and the tail of both inputs cannot take part in
+  // any change, so trimming them first keeps the identity tables and the search
+  // workspace proportional to the region that can actually differ rather than
+  // to the size of the inputs
+  const auto original_size{result.original.size()};
+  const auto modified_size{result.modified.size()};
+  std::size_t prefix{0};
+  while (prefix < original_size && prefix < modified_size &&
+         lines_match(result, prefix, prefix)) {
+    prefix += 1;
+  }
+
+  const auto shortest{original_size < modified_size ? original_size
+                                                    : modified_size};
+  std::size_t suffix{0};
+  while (suffix < shortest - prefix &&
+         lines_match(result, original_size - suffix - 1,
+                     modified_size - suffix - 1)) {
+    suffix += 1;
+  }
+
+  const auto original_end{original_size - suffix};
+  const auto modified_end{modified_size - suffix};
+
   std::unordered_map<std::string_view, std::size_t> complete;
   std::unordered_map<std::string_view, std::size_t> incomplete;
+  complete.reserve((original_end - prefix) + (modified_end - prefix));
   std::size_t counter{0};
-  const auto original_identities{
-      to_identities(result.original, result.original_ends_with_newline,
-                    complete, incomplete, counter)};
-  const auto modified_identities{
-      to_identities(result.modified, result.modified_ends_with_newline,
-                    complete, incomplete, counter)};
+  std::vector<std::size_t> original_identities(original_size, 0);
+  std::vector<std::size_t> modified_identities(modified_size, 0);
+  to_identities(result.original, result.original_ends_with_newline, prefix,
+                original_end, complete, incomplete, counter,
+                original_identities);
+  to_identities(result.modified, result.modified_ends_with_newline, prefix,
+                modified_end, complete, incomplete, counter,
+                modified_identities);
 
-  std::vector<bool> original_changed(original_identities.size(), false);
-  std::vector<bool> modified_changed(modified_identities.size(), false);
+  std::vector<bool> original_changed(original_size, false);
+  std::vector<bool> modified_changed(modified_size, false);
 
   switch (algorithm) {
     case Diff::Algorithm::Myers: {
-      const auto span{original_identities.size() + modified_identities.size()};
-      internal::MyersWorkspace workspace{
-          .forward = std::vector<std::ptrdiff_t>((2 * span) + 3, 0),
-          .backward = std::vector<std::ptrdiff_t>((2 * span) + 3, 0),
-          .offset = static_cast<std::ptrdiff_t>(span + 1)};
-      internal::myers_compare(original_identities, 0,
-                              original_identities.size(), modified_identities,
-                              0, modified_identities.size(), original_changed,
-                              modified_changed, workspace);
+      internal::MyersWorkspace workspace;
+      // A search only needs its workspace once both sides have something left,
+      // as any other case resolves to a plain insertion or deletion
+      if (original_end > prefix && modified_end > prefix) {
+        const auto span{(original_end - prefix) + (modified_end - prefix)};
+        workspace.forward.assign((2 * span) + 3, 0);
+        workspace.backward.assign((2 * span) + 3, 0);
+        workspace.offset = static_cast<std::ptrdiff_t>(span + 1);
+      }
+
+      internal::myers_compare(original_identities, prefix, original_end,
+                              modified_identities, prefix, modified_end,
+                              original_changed, modified_changed, workspace);
       break;
     }
   }
 
-  compact_changes(original_identities, original_changed);
-  compact_changes(modified_identities, modified_changed);
+  compact_changes(result.original, result.original_ends_with_newline,
+                  original_changed);
+  compact_changes(result.modified, result.modified_ends_with_newline,
+                  modified_changed);
 
   result.operations = to_operations(original_changed, modified_changed);
   return result;
