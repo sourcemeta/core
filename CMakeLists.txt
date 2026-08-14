@@ -67,6 +67,12 @@ elseif(SOURCEMETA_CORE_UNDEFINED_SANITIZER)
   sourcemeta_sanitizer(TYPE undefined)
 endif()
 
+if(SOURCEMETA_OS_LINUX
+   AND NOT SOURCEMETA_CORE_ADDRESS_SANITIZER
+   AND NOT SOURCEMETA_CORE_UNDEFINED_SANITIZER)
+  find_package(Mimalloc REQUIRED)
+endif()
+
 # TODO: Turn this into a re-usable utility CMake function
 if(SOURCEMETA_CORE_INSTALL)
   include(GNUInstallDirs)
