@@ -58,6 +58,11 @@ if(NOT Mimalloc_FOUND)
     target_compile_options(mimalloc PRIVATE -fno-builtin-malloc)
     target_compile_options(mimalloc PRIVATE
       -Wno-conversion -Wno-sign-conversion -Wno-pedantic)
+    # The thread local slot table is a trailing single-element array that is
+    # over-allocated and indexed past its first element, so the strictest
+    # interpretation of what counts as a trailing flexible array would treat
+    # every one of those accesses as running off the end of the object
+    target_compile_options(mimalloc PRIVATE -fstrict-flex-arrays=0)
   endif()
 
   if(SOURCEMETA_COMPILER_GCC)
