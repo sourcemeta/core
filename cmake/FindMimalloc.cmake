@@ -1,7 +1,16 @@
 if(NOT Mimalloc_FOUND)
+  # This module runs before the top-level project sets up its install
+  # locations, so the interface that installed consumers see would otherwise
+  # be built out of empty directory variables
+  include(GNUInstallDirs)
+
   set(MIMALLOC_DIR "${PROJECT_SOURCE_DIR}/vendor/mimalloc")
   set(MIMALLOC_SOURCE_DIR "${MIMALLOC_DIR}/src")
-  set(MIMALLOC_PUBLIC_HEADER "${MIMALLOC_DIR}/include/mimalloc.h")
+  set(MIMALLOC_PUBLIC_HEADERS
+    "${MIMALLOC_DIR}/include/mimalloc.h"
+    "${MIMALLOC_DIR}/include/mimalloc-new-delete.h"
+    "${MIMALLOC_DIR}/include/mimalloc-override.h"
+    "${MIMALLOC_DIR}/include/mimalloc-stats.h")
 
   set(MIMALLOC_SOURCES
     "${MIMALLOC_SOURCE_DIR}/alloc.c"
@@ -37,6 +46,12 @@ if(NOT Mimalloc_FOUND)
   # in the program goes through this library rather than through the
   # allocator that the platform happens to ship with
   target_compile_definitions(mimalloc PRIVATE MI_MALLOC_OVERRIDE)
+
+  # This project compiles its optimised debuggable configuration without
+  # disabling assertions, which this library would otherwise read as a
+  # request for its own assertions and statistics collection
+  target_compile_definitions(mimalloc PRIVATE
+    $<$<NOT:$<CONFIG:Debug>>:MI_BUILD_RELEASE>)
 
   if(BUILD_SHARED_LIBS)
     target_compile_definitions(mimalloc PRIVATE MI_SHARED_LIB MI_SHARED_LIB_EXPORT)
@@ -78,7 +93,7 @@ if(NOT Mimalloc_FOUND)
   set_target_properties(mimalloc
     PROPERTIES
       OUTPUT_NAME mimalloc
-      PUBLIC_HEADER "${MIMALLOC_PUBLIC_HEADER}"
+      PUBLIC_HEADER "${MIMALLOC_PUBLIC_HEADERS}"
       EXPORT_NAME mimalloc)
 
   # Nothing refers to the entry points that replace the standard allocator by
@@ -98,7 +113,6 @@ if(NOT Mimalloc_FOUND)
   add_library(Mimalloc::Mimalloc ALIAS mimalloc_interface)
 
   if(SOURCEMETA_CORE_INSTALL)
-    include(GNUInstallDirs)
     install(TARGETS mimalloc mimalloc_interface
       EXPORT mimalloc
       PUBLIC_HEADER DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
@@ -116,6 +130,8 @@ if(NOT Mimalloc_FOUND)
       COMPONENT sourcemeta_core_dev)
 
     file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/mimalloc-config.cmake
+      "include(CMakeFindDependencyMacro)\n"
+      "find_dependency(Threads)\n"
       "include(\"\${CMAKE_CURRENT_LIST_DIR}/mimalloc.cmake\")\n"
       "check_required_components(\"mimalloc\")\n")
     install(FILES
