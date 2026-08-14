@@ -2,19 +2,12 @@
 #include <sourcemeta/core/test.h>
 
 #include <cstddef>     // std::size_t
-#include <locale>      // std::locale, std::numpunct
 #include <sstream>     // std::ostringstream
 #include <string>      // std::string
 #include <string_view> // std::string_view
 #include <vector>      // std::vector
 
 namespace {
-
-class GroupingNumPunct : public std::numpunct<char> {
-protected:
-  auto do_thousands_sep() const -> char override { return ','; }
-  auto do_grouping() const -> std::string override { return "\3"; }
-};
 
 auto render(const sourcemeta::core::Diff &result, const std::size_t context = 3)
     -> std::string {
@@ -623,11 +616,15 @@ TEST(no_marker_when_both_inputs_are_complete) {
                             "+c\n");
 }
 
-TEST(hunk_headers_are_not_formatted_through_the_stream_locale) {
+// A hunk header must not travel through the stream insertion operator, which
+// would format its numbers against the stream width and the imbued locale. A
+// stream left with a width detects that without depending on any locale
+TEST(hunk_headers_bypass_stream_formatting) {
   std::ostringstream probe;
-  probe.imbue(std::locale{probe.getloc(), new GroupingNumPunct{}});
+  probe.width(8);
+  probe.fill('*');
   probe << 1498;
-  EXPECT_EQ(probe.str(), "1,498");
+  EXPECT_EQ(probe.str(), "****1498");
 
   std::string original;
   for (std::size_t index{0}; index < 1500; ++index) {
@@ -646,7 +643,8 @@ TEST(hunk_headers_are_not_formatted_through_the_stream_locale) {
            1501}}));
 
   std::ostringstream stream;
-  stream.imbue(std::locale{stream.getloc(), new GroupingNumPunct{}});
+  stream.width(8);
+  stream.fill('*');
   sourcemeta::core::stringify(result, stream,
                               sourcemeta::core::Diff::Format::Unified);
   EXPECT_EQ(stream.str(), "--- a\n"
