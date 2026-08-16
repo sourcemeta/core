@@ -1,15 +1,15 @@
 #include <sourcemeta/core/io.h>
 #include <sourcemeta/core/test.h>
 
-#include <array>        // std::array
-#include <cstddef>      // std::byte
-#include <filesystem>   // std::filesystem
-#include <fstream>      // std::ifstream, std::istreambuf_iterator
-#include <ios>          // std::ios::binary
-#include <ostream>      // std::ostream
-#include <span>         // std::span
-#include <stdexcept>    // std::runtime_error
-#include <string>       // std::string
+#include <array>      // std::array
+#include <cstddef>    // std::byte
+#include <filesystem> // std::filesystem
+#include <fstream>    // std::ifstream, std::istreambuf_iterator, std::ofstream
+#include <ios>        // std::ios::binary
+#include <ostream>    // std::ostream
+#include <span>       // std::span
+#include <stdexcept>  // std::runtime_error
+#include <string>     // std::string
 #include <system_error> // std::error_code
 
 class IOWriteFileTest {
@@ -145,10 +145,24 @@ TEST_F(IOWriteFileTest, read_only_parent_throws_permission_error) {
                                std::filesystem::perm_options::replace);
   const auto path{read_only_dir / "out.txt"};
 
+  // A process that bypasses the mode bits, such as one running as root, and a
+  // filesystem that ignores them at all, both still write here. What the mode
+  // amounts to is settled by trying it rather than by assuming
+  const auto probe_path{read_only_dir / "probe.txt"};
+  std::ofstream probe{probe_path};
+  if (probe.is_open()) {
+    probe.close();
+    std::filesystem::remove(probe_path);
+    sourcemeta::core::write_file(path, "written");
+    EXPECT_EQ(sourcemeta::core::read_file_to_string(path), "written");
+    return;
+  }
+
   try {
-    sourcemeta::core::write_file(path, "should fail");
+    sourcemeta::core::write_file(path, "written");
     FAIL();
   } catch (const sourcemeta::core::IOFilePermissionError &error) {
+    EXPECT_STREQ(error.what(), "Permission denied");
     EXPECT_EQ(error.path(), path);
   } catch (...) {
     FAIL();
