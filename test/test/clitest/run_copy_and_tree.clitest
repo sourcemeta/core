@@ -1,0 +1,13 @@
+RUN --out content STDIN /dev/null IN . INTO result.txt EXPECTING 0
+MAKE DIRECTORY listing/inner
+COPY result.txt TO listing/inner/copied.txt
+TREE listing INTO tree.txt
+WRITE expected_tree.txt UNTIL END
+./inner
+./inner/copied.txt
+END
+COMPARE tree.txt AGAINST expected_tree.txt
+WRITE expected.txt UNTIL END
+1> content
+END
+COMPARE listing/inner/copied.txt AGAINST expected.txt

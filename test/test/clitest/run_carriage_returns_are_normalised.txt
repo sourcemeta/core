@@ -1,0 +1,4 @@
+TAP version 14
+1..1
+ok 1 - run_carriage_returns_are_normalised.clitest
+# 1 passed, 0 failed

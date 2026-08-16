@@ -1,0 +1,1 @@
+EXTRACT STDOUT FROM result.txt INTO output.json

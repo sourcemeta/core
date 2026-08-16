@@ -1,0 +1,5 @@
+RUN --bytes 0a STDIN /dev/null IN . INTO result.txt EXPECTING 0
+WRITE expected.txt UNTIL END
+1>
+END
+COMPARE result.txt AGAINST expected.txt

@@ -1,0 +1,3 @@
+RUN validate STDIN /dev/null IN . INTO result.txt EXPECTING 0
+REPLACE MATCHING '$schema' WITH x IN result.txt
+COMPARE result.txt AGAINST expected.txt

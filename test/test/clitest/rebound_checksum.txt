@@ -1,0 +1,5 @@
+TAP version 14
+1..1
+not ok 1 - rebound_checksum.clitest
+# rebound_checksum.clitest:1: nothing expands this variable: HASH
+# 0 passed, 1 failed

@@ -1,0 +1,5 @@
+TAP version 14
+1..1
+not ok 1 - unread_copy.clitest
+# unread_copy.clitest:2: nothing reads the file this copy produced: copy.txt
+# 0 passed, 1 failed

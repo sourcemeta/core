@@ -1,0 +1,5 @@
+RUN --err only STDIN /dev/null IN . INTO result.txt EXPECTING 0
+WRITE expected.txt UNTIL END
+2> only
+END
+COMPARE result.txt AGAINST expected.txt

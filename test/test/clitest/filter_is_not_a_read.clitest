@@ -1,0 +1,4 @@
+RUN validate STDIN /dev/null IN . INTO result.txt EXPECTING 0
+REPLACE a WITH b IN result.txt
+SORT result.txt
+DROP LINES CONTAINING x IN result.txt

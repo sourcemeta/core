@@ -1,0 +1,6 @@
+TAP version 14
+1..1
+not ok 1 - run_exit_code_mismatch.clitest
+# run_exit_code_mismatch.clitest:1: unexpected exit code: expected 0, got 3
+# 1> spoken
+# 0 passed, 1 failed

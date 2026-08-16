@@ -1,0 +1,6 @@
+ENV GREETING hello
+RUN --env GREETING STDIN /dev/null IN . INTO result.txt EXPECTING 0
+WRITE expected.txt UNTIL END
+1> GREETING=hello
+END
+COMPARE result.txt AGAINST expected.txt

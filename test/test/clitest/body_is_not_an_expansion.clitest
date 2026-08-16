@@ -1,0 +1,4 @@
+CHECKSUM SHA256 schema.json AS HASH
+WRITE schema.json UNTIL END
+{ "value": "$HASH" }
+END

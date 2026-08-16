@@ -1,0 +1,2 @@
+WRITE schema.json UNTIL END
+{ "value": 1 }

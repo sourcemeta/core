@@ -1,0 +1,4 @@
+WRITE payload.txt UNTIL END
+content
+END
+REPLACE MATCHING '[' WITH x IN payload.txt

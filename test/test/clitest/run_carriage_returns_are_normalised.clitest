@@ -1,0 +1,6 @@
+RUN --crlf alpha --crlf beta STDIN /dev/null IN . INTO result.txt EXPECTING 0
+WRITE expected.txt UNTIL END
+1> alpha
+1> beta
+END
+COMPARE result.txt AGAINST expected.txt

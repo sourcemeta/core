@@ -1,0 +1,10 @@
+WRITE payload.txt UNTIL END
+hashed
+END
+CHECKSUM SHA256 payload.txt AS HASH
+RUN --out '[HASH]' STDIN /dev/null IN . INTO result.txt EXPECTING 0
+REPLACE '[HASH]' WITH $HASH IN result.txt
+WRITE expected.txt UNTIL END
+1> 83d82f15278553f1c37b03d7bd41ac3bd6abb65347796dcf002651fb3d394414
+END
+COMPARE result.txt AGAINST expected.txt

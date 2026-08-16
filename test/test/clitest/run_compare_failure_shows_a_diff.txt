@@ -1,0 +1,11 @@
+TAP version 14
+1..1
+not ok 1 - run_compare_failure_shows_a_diff.clitest
+# run_compare_failure_shows_a_diff.clitest:6: the files differ:
+# --- expected.txt
+# +++ result.txt
+# @@ -1,2 +1,2 @@
+#  1> alpha
+# -1> gamma
+# +1> beta
+# 0 passed, 1 failed

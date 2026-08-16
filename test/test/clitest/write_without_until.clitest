@@ -1,0 +1,2 @@
+WRITE schema.json FOO END
+END

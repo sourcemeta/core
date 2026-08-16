@@ -1,0 +1,5 @@
+TAP version 14
+1..1
+not ok 1 - error_not_an_exit_code.clitest
+# error_not_an_exit_code.clitest:3: not an exit code: later
+# 0 passed, 1 failed

@@ -1,0 +1,5 @@
+TAP version 14
+1..1
+not ok 1 - unread_extract.clitest
+# unread_extract.clitest:1: nothing reads what this extracted: output.json
+# 0 passed, 1 failed

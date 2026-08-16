@@ -1,0 +1,2 @@
+RUN validate STDIN /dev/null IN . INTO result.txt EXPECTING 0
+COMPARE result.txt AGAINST expected.txt

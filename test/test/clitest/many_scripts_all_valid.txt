@@ -1,0 +1,5 @@
+TAP version 14
+1..2
+ok 1 - accepts_comparison.clitest
+ok 2 - accepts_paths.clitest
+# 2 passed, 0 failed

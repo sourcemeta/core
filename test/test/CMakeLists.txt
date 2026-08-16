@@ -72,3 +72,5 @@ add_test(NAME core.test.fixture COMMAND ${SOURCEMETA_CORE_TEST_RUNNER}
 add_test(NAME core.test.dynamic COMMAND ${SOURCEMETA_CORE_TEST_RUNNER}
   "$<TARGET_FILE:sourcemeta_core_test_dynamic>" 0
   "${CMAKE_CURRENT_SOURCE_DIR}/test_dynamic.txt")
+
+add_subdirectory(clitest)

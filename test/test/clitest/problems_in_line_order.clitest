@@ -1,0 +1,2 @@
+TREE . INTO tree.txt
+CHECKSUM SHA256 schema.json AS HASH

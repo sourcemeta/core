@@ -1,0 +1,5 @@
+TAP version 14
+1..1
+not ok 1 - error_reserved_checksum_name.clitest
+# error_reserved_checksum_name.clitest:4: this name is reserved and cannot be set: CORES
+# 0 passed, 1 failed

@@ -1,0 +1,22 @@
+MAKE DIRECTORY doomed/inner
+WRITE doomed/inner/file.txt UNTIL END
+gone
+END
+REMOVE doomed
+MAKE DIRECTORY kept
+WRITE kept/file.txt UNTIL END
+here
+END
+TREE . INTO tree.txt
+DROP LINES CONTAINING tree.txt IN tree.txt
+DROP LINES CONTAINING result.txt IN tree.txt
+RUN --out done STDIN /dev/null IN . INTO result.txt EXPECTING 0
+WRITE expected_tree.txt UNTIL END
+./kept
+./kept/file.txt
+END
+COMPARE tree.txt AGAINST expected_tree.txt
+WRITE expected.txt UNTIL END
+1> done
+END
+COMPARE result.txt AGAINST expected.txt

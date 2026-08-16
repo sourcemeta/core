@@ -1,0 +1,5 @@
+TAP version 14
+1..1
+not ok 1 - unread_compress.clitest
+# unread_compress.clitest:1: nothing reads the archive this produced: schema.gz
+# 0 passed, 1 failed

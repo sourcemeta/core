@@ -1,0 +1,4 @@
+WRITE expected.txt UNTIL END
+END
+RUN arg STDIN /dev/null IN . BAD result.txt EXPECTING 0
+COMPARE result.txt AGAINST expected.txt
