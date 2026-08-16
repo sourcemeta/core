@@ -267,8 +267,8 @@ auto read_file_to_string(const std::filesystem::path &path)
   std::basic_string<CharT, Traits> result;
   result.resize(static_cast<std::size_t>(size));
   stream.read(result.data(), static_cast<std::streamsize>(result.size()));
-  // Text-mode reads may return fewer characters than the byte count
-  // (i.e. CRLF collapses to LF on Windows), so trim to actual.
+  // The size was taken before the read, so a file that shrank in between hands
+  // back fewer bytes than were asked for
   result.resize(static_cast<std::size_t>(stream.gcount()));
   return result;
 }
