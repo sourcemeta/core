@@ -8,6 +8,8 @@ sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME unicode
     unicode_utf8_codepoint_length_test.cc
     unicode_utf8_decode_test.cc
     unicode_utf8_lead_byte_size_test.cc
+  unicode_utf8_sequence_size_test.cc
+  unicode_to_valid_utf8_test.cc
     unicode_utf8_codepoint_byte_count_test.cc
     unicode_utf8_codepoint_count_test.cc
     unicode_utf8_codepoint_within_test.cc
