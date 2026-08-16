@@ -54,7 +54,11 @@ TEST(a_missing_file) {
   try {
     sourcemeta::core::read_file_to_string(path);
     FAIL();
-  } catch (const sourcemeta::core::IOFileNotFoundError &) {
+  } catch (const sourcemeta::core::IOFileNotFoundError &error) {
+    EXPECT_STREQ(error.what(), "File not found");
+    EXPECT_EQ(error.path(), path);
+  } catch (...) {
+    FAIL();
   }
 }
 
@@ -64,6 +68,34 @@ TEST(a_directory) {
   try {
     sourcemeta::core::read_file_to_string(directory.path());
     FAIL();
-  } catch (const sourcemeta::core::IOIsADirectoryError &) {
+  } catch (const sourcemeta::core::IOIsADirectoryError &error) {
+    EXPECT_STREQ(error.what(), "Expected a file but got a directory");
+    EXPECT_EQ(error.path(), directory.path());
+  } catch (...) {
+    FAIL();
   }
 }
+
+// POSIX permission bits don't map cleanly to Windows ACLs
+#if !defined(_WIN32)
+TEST(an_unreadable_file) {
+  const sourcemeta::core::TemporaryDirectory directory{
+      std::filesystem::temp_directory_path(), "core-io-"};
+  const auto path{directory.path() / "locked.txt"};
+  sourcemeta::core::write_file(path, std::string{"secret"});
+  std::filesystem::permissions(path, std::filesystem::perms::none,
+                               std::filesystem::perm_options::replace);
+
+  try {
+    sourcemeta::core::read_file_to_string(path);
+    FAIL();
+  } catch (const sourcemeta::core::IOFilePermissionError &error) {
+    EXPECT_STREQ(error.what(), "Permission denied");
+    // The path is resolved before the file is opened, so the error carries the
+    // canonical form rather than the one that was asked for
+    EXPECT_EQ(error.path(), sourcemeta::core::canonical(path));
+  } catch (...) {
+    FAIL();
+  }
+}
+#endif
