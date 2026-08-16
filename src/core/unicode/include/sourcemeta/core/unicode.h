@@ -154,7 +154,10 @@ auto utf32_to_utf8_lenient(const std::u32string_view input) -> std::string;
 /// #include <sourcemeta/core/unicode.h>
 /// #include <cassert>
 ///
-/// assert(sourcemeta::core::to_valid_utf8("a\xFFb") == "a\xEF\xBF\xBDb");
+/// // The escapes are broken across literals, as a hexadecimal one otherwise
+/// // swallows the letter that follows it
+/// assert(sourcemeta::core::to_valid_utf8("a\xFF" "b") ==
+///        "a\xEF\xBF\xBD" "b");
 /// ```
 SOURCEMETA_CORE_UNICODE_EXPORT
 auto to_valid_utf8(const std::string_view input) -> std::string;
