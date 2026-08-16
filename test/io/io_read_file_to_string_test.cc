@@ -2,6 +2,7 @@
 #include <sourcemeta/core/test.h>
 
 #include <filesystem> // std::filesystem::path
+#include <fstream>    // std::ifstream
 #include <string>     // std::string
 
 // A whole-file read hands back the bytes the file holds. Text mode would
@@ -85,6 +86,15 @@ TEST(an_unreadable_file) {
   sourcemeta::core::write_file(path, std::string{"secret"});
   std::filesystem::permissions(path, std::filesystem::perms::none,
                                std::filesystem::perm_options::replace);
+
+  // A process that bypasses the mode bits, such as one running as root, and a
+  // filesystem that ignores them at all, both still hand the file over. What
+  // the mode amounts to here is settled by trying it rather than by assuming
+  std::ifstream probe{path};
+  if (probe.is_open()) {
+    EXPECT_EQ(sourcemeta::core::read_file_to_string(path), "secret");
+    return;
+  }
 
   try {
     sourcemeta::core::read_file_to_string(path);
