@@ -581,7 +581,7 @@ inline auto split(const std::string_view input, const char delimiter)
 /// #include <cassert>
 /// #include <string_view>
 ///
-/// constexpr std::array<std::string_view, 3> values{"a", "b", "c"};
+/// constexpr std::array<std::string_view, 3> values{{"a", "b", "c"}};
 /// assert(sourcemeta::core::join(values, ", ") == "a, b, c");
 /// ```
 template <typename Range>
@@ -610,7 +610,7 @@ auto join(const Range &items, const std::string_view separator) -> std::string {
 /// #include <array>
 /// #include <iostream>
 ///
-/// constexpr std::array<int, 3> values{1, 2, 3};
+/// constexpr std::array<int, 3> values{{1, 2, 3}};
 /// sourcemeta::core::join_to(std::cout, values, ", ");
 /// // prints: 1, 2, 3
 /// ```
