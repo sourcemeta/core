@@ -337,6 +337,21 @@ auto truncate(std::string &input, const std::size_t maximum_length,
 
 /// @ingroup text
 ///
+/// Return `input` with every occurrence of `target` replaced by `replacement`.
+/// An empty target matches nothing. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/text.h>
+/// #include <cassert>
+///
+/// assert(sourcemeta::core::replace("a.b.c", ".", "/") == "a/b/c");
+/// ```
+SOURCEMETA_CORE_TEXT_EXPORT
+auto replace(const std::string_view input, const std::string_view target,
+             const std::string_view replacement) -> std::string;
+
+/// @ingroup text
+///
 /// Return `input` with leading and trailing ASCII whitespace removed. For
 /// example:
 ///
@@ -553,6 +568,36 @@ inline auto split(const std::string_view input, const char delimiter)
       input, delimiter,
       [&parts](const std::string_view part) -> void { parts.push_back(part); });
   return parts;
+}
+
+/// @ingroup text
+///
+/// Return the items of `items` as a string, separated by `separator`. The items
+/// must be string-like, as nothing is formatted along the way. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/text.h>
+/// #include <array>
+/// #include <cassert>
+/// #include <string_view>
+///
+/// constexpr std::array<std::string_view, 3> values{"a", "b", "c"};
+/// assert(sourcemeta::core::join(values, ", ") == "a, b, c");
+/// ```
+template <typename Range>
+auto join(const Range &items, const std::string_view separator) -> std::string {
+  std::string result;
+  bool first{true};
+  for (const auto &item : items) {
+    if (!first) {
+      result.append(separator);
+    }
+
+    result.append(item);
+    first = false;
+  }
+
+  return result;
 }
 
 /// @ingroup text
