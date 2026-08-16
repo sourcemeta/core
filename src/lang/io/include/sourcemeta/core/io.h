@@ -236,7 +236,10 @@ auto read_file_to_string(const std::filesystem::path &path)
   }
 
   const auto canonical_path{sourcemeta::core::canonical(path)};
-  std::basic_ifstream<CharT, Traits> stream{canonical_path};
+  // Binary, so that the result is the bytes the file holds. Text mode collapses
+  // CRLF to LF on some platforms, which silently makes the contents, its size
+  // and every offset into it disagree with the file itself
+  std::basic_ifstream<CharT, Traits> stream{canonical_path, std::ios::binary};
   if (!stream.is_open()) {
     throw IOFilePermissionError{canonical_path};
   }
