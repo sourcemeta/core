@@ -5,3 +5,5 @@
 # platform
 /test/json/stub_*.json -text
 /test/yaml/stubs/** -text
+/vendor/aws-sig-v4-test-suite/** -text
+/vendor/unicodetools/unicodetools/data/** -text
