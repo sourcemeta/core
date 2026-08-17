@@ -79,12 +79,14 @@ static auto run(const std::string &script, const bool check,
                 std::vector<std::string> &notes) -> bool {
   std::string contents;
   try {
-    // Read the script exactly as it stands, so that a body keeps every byte it
-    // was written with. Splitting on a line feed alone, rather than on
-    // everything a line terminator can be, is what keeps a script meaning the
-    // same thing on every platform
     auto stream{sourcemeta::core::read_file(script)};
-    contents = sourcemeta::core::read_to_string(stream);
+    // A script checked out on a platform that spells a line ending with a
+    // carriage return is the same script, so the runner takes it rather than
+    // asking every consumer to configure their checkout. Beyond that a line
+    // ends at a line feed and nothing else, which is what keeps a script
+    // meaning the same thing everywhere
+    contents = sourcemeta::core::replace(
+        sourcemeta::core::read_to_string(stream), "\r\n", "\n");
   } catch (const sourcemeta::core::IOFileNotFoundError &) {
     notes.emplace_back(script + ": no such file");
     return false;

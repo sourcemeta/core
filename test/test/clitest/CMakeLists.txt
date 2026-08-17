@@ -152,6 +152,7 @@ set_tests_properties(core.clitest.error_unknown_command PROPERTIES
   WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 
 add_clitest_run_test(braces_are_literal 0)
+add_clitest_run_test(carriage_return_script 0)
 add_clitest_run_test(expecting_a_variable 0)
 add_clitest_run_test(cores 0)
 
