@@ -114,9 +114,9 @@ auto collect_frame(_Unwind_Context *context, void *argument)
     return _URC_END_OF_STACK;
   }
 
+  const auto index{static_cast<std::size_t>(buffer->count)};
   // NOLINTNEXTLINE(performance-no-int-to-ptr)
-  buffer->frames[static_cast<std::size_t>(buffer->count)] =
-      reinterpret_cast<void *>(program_counter);
+  buffer->frames[index] = reinterpret_cast<void *>(program_counter);
   buffer->count = buffer->count + 1;
   return buffer->count == maximum_frames ? _URC_NORMAL_STOP : _URC_NO_REASON;
 }
