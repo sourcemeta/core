@@ -1020,6 +1020,31 @@ inline auto clitest_command_env(const CLITestCommand &command) -> void {
                                                 command.expand(1));
 }
 
+// Read a variable of the environment this runner was started from. The standard
+// way of doing so is deprecated by one toolchain over a hazard that does not
+// arise here, as the value is copied before anything else can run
+inline auto clitest_inherited(const char *const name)
+    -> std::optional<std::string> {
+#if defined(_MSC_VER)
+  char *value{nullptr};
+  std::size_t size{0};
+  if (::_dupenv_s(&value, &size, name) != 0 || value == nullptr) {
+    return std::nullopt;
+  }
+
+  std::string result{value};
+  std::free(value);
+  return result;
+#else
+  const char *const value{std::getenv(name)};
+  if (value == nullptr) {
+    return std::nullopt;
+  }
+
+  return std::string{value};
+#endif
+}
+
 inline auto clitest_command_run(const CLITestCommand &command) -> void {
   if (command.size() < 8) {
     command.fail("RUN needs STDIN, IN, INTO and EXPECTING");
@@ -1069,16 +1094,20 @@ inline auto clitest_command_run(const CLITestCommand &command) -> void {
     }
   }
 
-  const char *const inherited_path{std::getenv("PATH")};
-  const std::string path_value{inherited_path == nullptr ? "" : inherited_path};
+  const auto path_value{clitest_inherited("PATH").value_or(std::string{})};
   child.insert_or_assign("PATH", path_value);
 
-  std::vector<std::string> essentials;
 #if defined(_WIN32)
-  for (const auto name : {"SYSTEMROOT", "COMSPEC", "TEMP"}) {
-    const char *const value{std::getenv(name)};
-    if (value != nullptr) {
-      essentials.emplace_back(value);
+  // Reserved up front, as the map holds views into these and a reallocation
+  // would move a short string along with the storage it lives inside
+  constexpr std::array<const char *, 3> ESSENTIALS{
+      {"SYSTEMROOT", "COMSPEC", "TEMP"}};
+  std::vector<std::string> essentials;
+  essentials.reserve(ESSENTIALS.size());
+  for (const auto name : ESSENTIALS) {
+    const auto value{clitest_inherited(name)};
+    if (value.has_value()) {
+      essentials.push_back(value.value());
       child.insert_or_assign(name, essentials.back());
     }
   }
