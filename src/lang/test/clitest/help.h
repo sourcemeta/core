@@ -53,9 +53,10 @@ IN, INTO or EXPECTING. STDIN /dev/null is empty input on every platform. TREE on
 the root lists the harness's own scratch files, so list a subdirectory instead.
 
 A carriage return before a line feed is dropped as the script is read, so a
-checkout that spells line endings either way runs the same. Beyond that a line
-ends at a line feed and nothing else. A WRITE terminator is compared against the
-whole line, so it closes a body only at the very start of one.
+checkout that spells line endings either way runs the same, and a WRITE body
+cannot hold one. Beyond that a line ends at a line feed and nothing else. A
+WRITE terminator is compared against the whole line, so it closes a body only
+at the very start of one.
 
 PATHS AND VARIABLES
 
