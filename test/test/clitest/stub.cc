@@ -9,11 +9,17 @@
 #include <algorithm>   // std::replace
 #include <cstddef>     // std::size_t
 #include <cstdint>     // std::uint8_t
+#include <cstdio>      // stdout
 #include <cstdlib>     // EXIT_SUCCESS, EXIT_FAILURE, std::getenv
 #include <filesystem>  // std::filesystem::current_path
 #include <iostream>    // std::cin, std::cout, std::cerr
 #include <string>      // std::string
 #include <string_view> // std::string_view
+
+#if defined(_WIN32)
+#include <fcntl.h> // _O_BINARY
+#include <io.h>    // _setmode, _fileno
+#endif
 
 // Emit an arbitrary byte, so that a fixture can hand the runner something that
 // is not text at all. Whether it did so is reported, as an odd number of
@@ -32,6 +38,14 @@ static auto write_bytes(const std::string_view hex) -> bool {
 }
 
 auto main(int argc, char *argv[]) -> int {
+#if defined(_WIN32)
+  // Say exactly what the fixture asked for. The standard output of a program is
+  // otherwise in text mode here, which turns every line feed into a carriage
+  // return and a line feed, so a fixture asking for one of its own would get
+  // two
+  _setmode(_fileno(stdout), _O_BINARY);
+#endif
+
   sourcemeta::core::Options application;
   application.option("out", {});
   application.option("err", {});
