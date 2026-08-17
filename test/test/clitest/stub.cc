@@ -6,19 +6,29 @@
 #include <sourcemeta/core/io.h>
 #include <sourcemeta/core/options.h>
 
-#include <cstdint>    // std::uint8_t
-#include <cstdlib>    // EXIT_SUCCESS, std::getenv
-#include <filesystem> // std::filesystem::current_path
-#include <iostream>   // std::cin, std::cout, std::cerr
-#include <string>     // std::string
+#include <algorithm>   // std::replace
+#include <cstddef>     // std::size_t
+#include <cstdint>     // std::uint8_t
+#include <cstdlib>     // EXIT_SUCCESS, EXIT_FAILURE, std::getenv
+#include <filesystem>  // std::filesystem::current_path
+#include <iostream>    // std::cin, std::cout, std::cerr
+#include <string>      // std::string
+#include <string_view> // std::string_view
 
 // Emit an arbitrary byte, so that a fixture can hand the runner something that
-// is not text at all
-static auto write_bytes(const std::string_view hex) -> void {
-  for (std::size_t index{0}; index + 1 < hex.size(); index += 2) {
+// is not text at all. Whether it did so is reported, as an odd number of
+// digits would otherwise quietly emit one byte fewer than the fixture meant
+static auto write_bytes(const std::string_view hex) -> bool {
+  if (hex.size() % 2 != 0) {
+    return false;
+  }
+
+  for (std::size_t index{0}; index < hex.size(); index += 2) {
     std::cout.put(static_cast<char>(
         std::stoi(std::string{hex.substr(index, 2)}, nullptr, 16)));
   }
+
+  return true;
 }
 
 auto main(int argc, char *argv[]) -> int {
@@ -54,7 +64,10 @@ auto main(int argc, char *argv[]) -> int {
   }
 
   for (const auto hex : application.at("bytes")) {
-    write_bytes(hex);
+    if (!write_bytes(hex)) {
+      std::cerr << "not a whole number of bytes: " << hex << "\n";
+      return EXIT_FAILURE;
+    }
   }
 
   for (const auto name : application.at("gunzip")) {

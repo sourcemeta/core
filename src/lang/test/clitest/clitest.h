@@ -630,7 +630,8 @@ inline auto clitest_asserted(
 // command whose result nothing reads is a command whose result nobody checked,
 // and without this a script can run the tool and silently throw away everything
 // it printed, passing on the exit code alone
-inline auto clitest_check(const std::vector<CLITestStatement> &statements)
+inline auto clitest_check(const std::vector<CLITestStatement> &statements,
+                          CLITestBindings bindings = {})
     -> std::vector<CLITestProblem> {
   std::vector<CLITestProduction> observations;
   std::vector<CLITestProduction> artifacts;
@@ -639,7 +640,6 @@ inline auto clitest_check(const std::vector<CLITestStatement> &statements)
   CLITestTargets consumed;
   std::vector<CLITestDefinition> definitions;
   std::map<std::string, std::vector<std::size_t>, std::less<>> expansions;
-  CLITestBindings bindings;
   std::vector<CLITestProblem> problems;
 
   for (std::size_t position{0}; position < statements.size(); position += 1) {
@@ -692,7 +692,13 @@ inline auto clitest_check(const std::vector<CLITestStatement> &statements)
       }
 
       for (std::size_t index{0}; index + 8 < operands.size(); index += 1) {
-        clitest_collect(consumed, operands[index], bindings);
+        // A program reads its arguments before this run writes its own
+        // observation, so naming the destination among them reads whatever was
+        // there beforehand and cannot stand in for asserting on this run
+        const auto argument{clitest_target_of(operands[index], bindings)};
+        if (argument.has_value() && argument != destination) {
+          consumed.insert(argument.value());
+        }
       }
 
       clitest_collect(consumed, operands[operands.size() - 7], bindings);
@@ -1072,10 +1078,10 @@ inline auto clitest_command_run(const CLITestCommand &command) -> void {
     argument_views.emplace_back(argument);
   }
 
-  const auto expected_code{
-      sourcemeta::core::to_int64_t(command.at(trailer + 7))};
+  const auto code{command.expand(trailer + 7)};
+  const auto expected_code{sourcemeta::core::to_int64_t(code)};
   if (!expected_code.has_value()) {
-    command.fail("not an exit code", command.at(trailer + 7));
+    command.fail("not an exit code", code);
   }
 
   // The null device means empty input on every platform, including the ones
@@ -1353,9 +1359,13 @@ inline auto clitest_command_remove(const CLITestCommand &command) -> void {
     command.usage("REMOVE <path>");
   }
 
-  // Silent when the target was never there to begin with
+  // Silent when the target was never there to begin with, but a target that is
+  // there and survives anyway leaves the script running against a stale file
   std::error_code error;
   std::filesystem::remove_all(command.resolve(0), error);
+  if (error) {
+    command.fail("cannot remove this path", command.expand(0), error);
+  }
 }
 
 inline auto clitest_command_make_directory(const CLITestCommand &command)

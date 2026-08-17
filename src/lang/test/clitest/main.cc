@@ -106,7 +106,7 @@ static auto run(const std::string &script, const bool check,
     return false;
   }
 
-  const auto problems{sourcemeta::core::clitest_check(statements)};
+  const auto problems{sourcemeta::core::clitest_check(statements, bindings)};
   if (!problems.empty()) {
     for (const auto &problem : problems) {
       notes.push_back(describe(script, problem));

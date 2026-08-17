@@ -1,0 +1,1 @@
+RUN result.txt STDIN /dev/null IN . INTO result.txt EXPECTING 0

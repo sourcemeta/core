@@ -30,6 +30,7 @@ macro(add_clitest_run_test name code)
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 endmacro()
 
+add_clitest_test(argument_aliasing_is_not_an_assertion 1)
 add_clitest_test(accepts_chains 0)
 add_clitest_test(accepts_comments_and_blanks 0)
 add_clitest_test(accepts_comparison 0)
@@ -151,6 +152,7 @@ set_tests_properties(core.clitest.error_unknown_command PROPERTIES
   WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 
 add_clitest_run_test(braces_are_literal 0)
+add_clitest_run_test(expecting_a_variable 0)
 add_clitest_run_test(cores 0)
 
 # Bindings injected on the command line are ordinary ones, and reach the
@@ -201,6 +203,15 @@ add_test(NAME core.clitest.many_scripts_all_valid COMMAND ${SOURCEMETA_CORE_TEST
   "${CMAKE_CURRENT_SOURCE_DIR}/many_scripts_all_valid.txt"
   "accepts_comparison.clitest" "accepts_paths.clitest" --check)
 set_tests_properties(core.clitest.many_scripts_all_valid PROPERTIES
+  WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+
+# A binding given on the command line is known to the check, so a destination
+# spelled through one is not left until the script runs
+add_test(NAME core.clitest.injected_binding_is_known COMMAND ${SOURCEMETA_CORE_TEST_RUNNER}
+  "$<TARGET_FILE:sourcemeta_core_clitest>" 1
+  "${CMAKE_CURRENT_SOURCE_DIR}/injected_binding_is_known.txt"
+  "injected_binding_is_known.clitest" --check --environment OUT=result.txt)
+set_tests_properties(core.clitest.injected_binding_is_known PROPERTIES
   WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 
 # The language has no home outside this program, so asking for help prints it
