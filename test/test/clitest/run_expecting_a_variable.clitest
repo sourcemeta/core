@@ -1,0 +1,6 @@
+ENV STATUS 3
+RUN --out spoken --code 3 STDIN /dev/null IN . INTO result.txt EXPECTING $STATUS
+WRITE expected.txt UNTIL END
+1> spoken
+END
+COMPARE result.txt AGAINST expected.txt

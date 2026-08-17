@@ -1,0 +1,5 @@
+TAP version 14
+1..1
+not ok 1 - drop_pattern_holds_a_variable.clitest
+# drop_pattern_holds_a_variable.clitest:2: a pattern cannot expand this name, so use the literal form: name
+# 0 passed, 1 failed

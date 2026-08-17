@@ -1,0 +1,8 @@
+ENV NAM wrong
+ENV NAME result
+RUN validate STDIN /dev/null IN . INTO $CWD/$NAME.txt EXPECTING 0
+COMPARE result.txt AGAINST expected.txt
+CHECKSUM SHA256 result.txt AS HASH
+REPLACE '[HASH]' WITH $HASH IN result.txt
+TREE . INTO $$literal.txt
+COMPARE $$literal.txt AGAINST expected.txt

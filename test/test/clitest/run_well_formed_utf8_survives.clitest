@@ -1,0 +1,7 @@
+RUN --bytes 63616ec3a9200ae282ac0af09f8ca80a STDIN /dev/null IN . INTO result.txt EXPECTING 0
+WRITE expected.txt UNTIL END
+1> cané 
+1> €
+1> 🌨
+END
+COMPARE result.txt AGAINST expected.txt

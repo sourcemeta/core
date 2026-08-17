@@ -1,0 +1,2 @@
+RUN validate 'a b' "c d" STDIN /dev/null IN . INTO 'my result.txt' EXPECTING 0
+COMPARE 'my result.txt' AGAINST expected.txt

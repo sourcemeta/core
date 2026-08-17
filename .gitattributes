@@ -7,3 +7,8 @@
 /test/yaml/stubs/** -text
 /vendor/aws-sig-v4-test-suite/** -text
 /vendor/unicodetools/unicodetools/data/** -text
+
+# One of these is committed with carriage returns on purpose, to prove the
+# script runner takes a script written the way a Windows checkout spells one, so
+# a checkout that rewrote it would leave that test passing without testing that
+/test/test/clitest/*.clitest -text

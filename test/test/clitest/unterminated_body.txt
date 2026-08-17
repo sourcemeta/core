@@ -1,0 +1,5 @@
+TAP version 14
+1..1
+not ok 1 - unterminated_body.clitest
+# unterminated_body.clitest:1: this body is never closed: END
+# 0 passed, 1 failed

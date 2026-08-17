@@ -1,0 +1,8 @@
+RUN --out first --out '' --out second --err warning STDIN /dev/null IN . INTO result.txt EXPECTING 0
+WRITE expected.txt UNTIL END
+1> first
+1>
+1> second
+2> warning
+END
+COMPARE result.txt AGAINST expected.txt

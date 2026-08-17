@@ -1,0 +1,9 @@
+RUN --filter test_filter.alpha STDIN /dev/null IN . INTO result.txt EXPECTING 0
+WRITE expected.txt UNTIL EXPECTED
+1> TAP version 14
+1> 1..2
+1> ok 1 - test_filter.alpha
+1> ok 2 - test_filter.alphabet
+1> # 2 passed, 0 failed
+EXPECTED
+COMPARE result.txt AGAINST expected.txt

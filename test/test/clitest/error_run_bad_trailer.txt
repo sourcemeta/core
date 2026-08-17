@@ -1,0 +1,5 @@
+TAP version 14
+1..1
+not ok 1 - error_run_bad_trailer.clitest
+# error_run_bad_trailer.clitest:3: usage: RUN [arguments...] STDIN <file> IN <dir> INTO <dest> EXPECTING <code>
+# 0 passed, 1 failed

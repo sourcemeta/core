@@ -1,0 +1,5 @@
+TAP version 14
+1..1
+not ok 1 - argument_aliasing_is_not_an_assertion.clitest
+# argument_aliasing_is_not_an_assertion.clitest:1: nothing compares this file, so the run asserts only its exit code: result.txt
+# 0 passed, 1 failed

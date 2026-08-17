@@ -1,0 +1,7 @@
+RUN --out '[V]' --env INJECTED STDIN /dev/null IN . INTO result.txt EXPECTING 0
+REPLACE '[V]' WITH $INJECTED IN result.txt
+WRITE expected.txt UNTIL END
+1> from-cmake
+1> INJECTED=from-cmake
+END
+COMPARE result.txt AGAINST expected.txt

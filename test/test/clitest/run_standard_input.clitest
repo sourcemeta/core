@@ -1,0 +1,8 @@
+WRITE input.txt UNTIL END
+delivered
+END
+RUN --cat STDIN input.txt IN . INTO result.txt EXPECTING 0
+WRITE expected.txt UNTIL END
+1> delivered
+END
+COMPARE result.txt AGAINST expected.txt

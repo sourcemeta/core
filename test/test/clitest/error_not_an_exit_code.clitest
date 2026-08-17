@@ -1,0 +1,4 @@
+WRITE expected.txt UNTIL END
+END
+RUN --out x STDIN /dev/null IN . INTO result.txt EXPECTING later
+COMPARE result.txt AGAINST expected.txt

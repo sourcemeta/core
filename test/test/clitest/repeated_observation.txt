@@ -1,0 +1,6 @@
+TAP version 14
+1..1
+not ok 1 - repeated_observation.clitest
+# repeated_observation.clitest:1: nothing compares this file, so the run asserts only its exit code: result.txt
+# repeated_observation.clitest:2: nothing compares this file, so the run asserts only its exit code: result.txt
+# 0 passed, 1 failed

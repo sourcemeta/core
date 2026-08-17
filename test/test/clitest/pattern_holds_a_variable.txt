@@ -1,0 +1,5 @@
+TAP version 14
+1..1
+not ok 1 - pattern_holds_a_variable.clitest
+# pattern_holds_a_variable.clitest:2: a pattern cannot expand this name, so use the literal form: schema
+# 0 passed, 1 failed

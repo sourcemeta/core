@@ -1,0 +1,45 @@
+RUN STDIN /dev/null IN . INTO result.txt EXPECTING 1
+WRITE expected.txt UNTIL EXPECTED
+1> TAP version 14
+1> 1..5
+1> not ok 1 - test_diff.multiple_lines
+1> # test_diff.cc:8: expected actual == expected
+1> # --- actual
+1> # +++ expected
+1> # @@ -1,3 +1,3 @@
+1> #  alpha
+1> # -beta
+1> # +delta
+1> #  gamma
+1> not ok 2 - test_diff.single_line
+1> # test_diff.cc:14: expected actual == expected
+1> #   actual:   alpha
+1> #   expected: beta
+1> not ok 3 - test_diff.missing_line_terminator
+1> # test_diff.cc:20: expected actual == expected
+1> # --- actual
+1> # +++ expected
+1> # @@ -1,2 +1,2 @@
+1> #  alpha
+1> # -beta
+1> # \ No newline at end of file
+1> # +beta
+1> not ok 4 - test_diff.unexpected_equality
+1> # test_diff.cc:26: expected actual != expected
+1> #   actual:   alpha
+1> # beta
+1> # 
+1> #   expected: alpha
+1> # beta
+1> # 
+1> not ok 5 - test_diff.c_string
+1> # test_diff.cc:29: expected "alpha\nbeta\n" == "alpha\ngamma\n"
+1> # --- actual
+1> # +++ expected
+1> # @@ -1,2 +1,2 @@
+1> #  alpha
+1> # -beta
+1> # +gamma
+1> # 0 passed, 5 failed
+EXPECTED
+COMPARE result.txt AGAINST expected.txt

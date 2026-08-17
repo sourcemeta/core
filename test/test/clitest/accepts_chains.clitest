@@ -1,0 +1,5 @@
+RUN compile STDIN /dev/null IN . INTO template.txt EXPECTING 0
+RUN render template.txt STDIN /dev/null IN . INTO first.txt EXPECTING 0
+COPY first.txt TO second.txt
+COPY second.txt TO third.txt
+COMPARE third.txt AGAINST expected.txt

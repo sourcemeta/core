@@ -1,0 +1,2 @@
+RUN one STDIN /dev/null IN . INTO result.txt EXPECTING 0
+RUN two STDIN /dev/null IN . INTO result.txt EXPECTING 0

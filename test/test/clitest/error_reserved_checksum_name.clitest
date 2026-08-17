@@ -1,0 +1,5 @@
+WRITE payload.txt UNTIL END
+content
+END
+CHECKSUM SHA256 payload.txt AS CORES
+REPLACE '[X]' WITH $CORES IN payload.txt

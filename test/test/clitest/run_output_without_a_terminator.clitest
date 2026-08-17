@@ -1,0 +1,5 @@
+RUN --bytes 616c706861 STDIN /dev/null IN . INTO result.txt EXPECTING 0
+WRITE expected.txt UNTIL END
+1> alpha
+END
+COMPARE result.txt AGAINST expected.txt

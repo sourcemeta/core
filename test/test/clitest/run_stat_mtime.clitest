@@ -1,0 +1,11 @@
+WRITE payload.txt UNTIL END
+stamped
+END
+STAT MTIME payload.txt INTO before.txt
+RUN --cat STDIN payload.txt IN . INTO result.txt EXPECTING 0
+STAT MTIME payload.txt INTO after.txt
+COMPARE before.txt AGAINST after.txt
+WRITE expected.txt UNTIL END
+1> stamped
+END
+COMPARE result.txt AGAINST expected.txt

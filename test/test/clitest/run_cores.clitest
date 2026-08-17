@@ -1,0 +1,11 @@
+ENV LABEL cores
+RUN --out '[C]' --out '[L]' STDIN /dev/null IN . INTO result.txt EXPECTING 0
+EXTRACT STDOUT FROM result.txt INTO output.txt
+REPLACE '[C]' WITH $CORES IN output.txt
+REPLACE '[L]' WITH $LABEL IN output.txt
+REPLACE MATCHING '[0-9]+' WITH '<N>' IN output.txt
+WRITE expected.txt UNTIL END
+<N>
+cores
+END
+COMPARE output.txt AGAINST expected.txt

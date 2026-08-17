@@ -1,0 +1,6 @@
+WRITE deep/nested/file.txt UNTIL END
+buried
+END
+RUN --out buried STDIN /dev/null IN . INTO result.txt EXPECTING 0
+EXTRACT STDOUT FROM result.txt INTO output.txt
+COMPARE deep/nested/file.txt AGAINST output.txt

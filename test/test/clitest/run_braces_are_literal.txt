@@ -1,0 +1,4 @@
+TAP version 14
+1..1
+ok 1 - run_braces_are_literal.clitest
+# 1 passed, 0 failed

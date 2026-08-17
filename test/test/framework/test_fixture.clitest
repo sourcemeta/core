@@ -1,0 +1,9 @@
+RUN STDIN /dev/null IN . INTO result.txt EXPECTING 0
+WRITE expected.txt UNTIL EXPECTED
+1> TAP version 14
+1> 1..2
+1> ok 1 - test_fixture.sees_constructed_member
+1> ok 2 - test_fixture.teardown_runs_between_tests
+1> # 2 passed, 0 failed
+EXPECTED
+COMPARE result.txt AGAINST expected.txt

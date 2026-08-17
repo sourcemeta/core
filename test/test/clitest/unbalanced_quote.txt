@@ -1,0 +1,5 @@
+TAP version 14
+1..1
+not ok 1 - unbalanced_quote.clitest
+# unbalanced_quote.clitest:2: a quote is left open at the end of the line
+# 0 passed, 1 failed

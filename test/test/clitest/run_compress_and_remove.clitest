@@ -1,0 +1,18 @@
+WRITE payload.txt UNTIL END
+compress me
+END
+COMPRESS GZIP payload.txt INTO payload.gz
+RUN payload.gz STDIN /dev/null IN . INTO result.txt EXPECTING 0
+REMOVE payload.txt
+REMOVE never-existed.txt
+TREE . INTO tree.txt
+DROP LINES CONTAINING result.txt IN tree.txt
+DROP LINES CONTAINING tree.txt IN tree.txt
+WRITE expected_tree.txt UNTIL END
+./payload.gz
+END
+COMPARE tree.txt AGAINST expected_tree.txt
+WRITE expected.txt UNTIL END
+1> argument: payload.gz
+END
+COMPARE result.txt AGAINST expected.txt

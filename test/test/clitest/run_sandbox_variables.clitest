@@ -1,0 +1,10 @@
+RUN --out '[CWD]' --out '[URI]' STDIN /dev/null IN . INTO result.txt EXPECTING 0
+REPLACE '[CWD]' WITH $CWD IN result.txt
+REPLACE '[URI]' WITH $CWD_URI IN result.txt
+REPLACE $CWD_URI WITH '<URI>' IN result.txt
+REPLACE $CWD WITH '<CWD>' IN result.txt
+WRITE expected.txt UNTIL END
+1> <CWD>
+1> <URI>
+END
+COMPARE result.txt AGAINST expected.txt

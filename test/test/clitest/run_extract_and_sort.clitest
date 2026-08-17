@@ -1,0 +1,9 @@
+RUN --out charlie --out '' --out alpha --err noise STDIN /dev/null IN . INTO result.txt EXPECTING 0
+EXTRACT STDOUT FROM result.txt INTO output.txt
+SORT output.txt
+WRITE expected.txt UNTIL END
+
+alpha
+charlie
+END
+COMPARE output.txt AGAINST expected.txt

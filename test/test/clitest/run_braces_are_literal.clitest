@@ -1,0 +1,8 @@
+RUN --out '[A]' --out '[B]' STDIN /dev/null IN . INTO result.txt EXPECTING 0
+REPLACE '[A]' WITH '${NOPE}' IN result.txt
+REPLACE '[B]' WITH '$1abc' IN result.txt
+WRITE expected.txt UNTIL END
+1> ${NOPE}
+1> $1abc
+END
+COMPARE result.txt AGAINST expected.txt

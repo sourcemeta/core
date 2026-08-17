@@ -1,0 +1,11 @@
+WRITE first.txt UNTIL END
+first
+END
+WRITE second.txt UNTIL END
+second
+END
+COPY first.txt TO second.txt
+WRITE expected.txt UNTIL END
+first
+END
+COMPARE second.txt AGAINST expected.txt

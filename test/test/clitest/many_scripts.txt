@@ -1,0 +1,7 @@
+TAP version 14
+1..3
+ok 1 - accepts_comparison.clitest
+not ok 2 - unread_tree.clitest
+# unread_tree.clitest:1: nothing reads the listing this produced: tree.txt
+ok 3 - accepts_paths.clitest
+# 2 passed, 1 failed

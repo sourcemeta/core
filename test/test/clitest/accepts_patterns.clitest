@@ -1,0 +1,7 @@
+RUN validate STDIN /dev/null IN . INTO result.txt EXPECTING 0
+REPLACE MATCHING '\$schema' WITH a IN result.txt
+REPLACE MATCHING '$$' WITH b IN result.txt
+REPLACE MATCHING '[$a]' WITH c IN result.txt
+REPLACE MATCHING '[]$a]' WITH d IN result.txt
+DROP LINES MATCHING ': PASS 1/1$' IN result.txt
+COMPARE result.txt AGAINST expected.txt

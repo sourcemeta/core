@@ -1,0 +1,7 @@
+MAKE DIRECTORY nested
+RUN --pwd STDIN /dev/null IN nested INTO result.txt EXPECTING 0
+REPLACE $CWD WITH '[CWD]' IN result.txt
+WRITE expected.txt UNTIL END
+1> [CWD]/nested
+END
+COMPARE result.txt AGAINST expected.txt

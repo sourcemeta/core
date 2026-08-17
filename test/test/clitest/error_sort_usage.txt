@@ -1,0 +1,5 @@
+TAP version 14
+1..1
+not ok 1 - error_sort_usage.clitest
+# error_sort_usage.clitest:1: usage: SORT <file>
+# 0 passed, 1 failed

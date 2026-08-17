@@ -1,0 +1,4 @@
+TAP version 14
+1..1
+ok 1 - run_stream_of_one_terminator_is_one_empty_line.clitest
+# 1 passed, 0 failed

@@ -1,0 +1,9 @@
+WRITE payload.txt UNTIL END
+compress me
+END
+COMPRESS GZIP payload.txt INTO payload.gz
+RUN --gunzip payload.gz STDIN /dev/null IN . INTO result.txt EXPECTING 0
+WRITE expected.txt UNTIL END
+1> compress me
+END
+COMPARE result.txt AGAINST expected.txt

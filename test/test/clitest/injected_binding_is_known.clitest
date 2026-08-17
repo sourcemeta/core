@@ -1,0 +1,1 @@
+RUN validate STDIN /dev/null IN . INTO $OUT EXPECTING 0

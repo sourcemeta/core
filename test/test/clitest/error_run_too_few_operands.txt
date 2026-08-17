@@ -1,0 +1,5 @@
+TAP version 14
+1..1
+not ok 1 - error_run_too_few_operands.clitest
+# error_run_too_few_operands.clitest:1: RUN needs STDIN, IN, INTO and EXPECTING
+# 0 passed, 1 failed

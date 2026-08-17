@@ -1,0 +1,13 @@
+RUN STDIN /dev/null IN . INTO result.txt EXPECTING 0
+WRITE expected.txt UNTIL EXPECTED
+1> TAP version 14
+1> 1..6
+1> ok 1 - test_success.arithmetic
+1> ok 2 - test_success.truth
+1> ok 3 - test_success.ordering
+1> ok 4 - test_success.double_approximate
+1> ok 5 - test_success.float_approximate
+1> ok 6 - test_success.string_equal
+1> # 6 passed, 0 failed
+EXPECTED
+COMPARE result.txt AGAINST expected.txt
