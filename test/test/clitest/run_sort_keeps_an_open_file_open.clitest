@@ -1,0 +1,8 @@
+RUN --unterminated payload.txt --out '[HASH]' STDIN /dev/null IN . INTO result.txt EXPECTING 0
+SORT payload.txt
+CHECKSUM SHA256 payload.txt AS HASH
+REPLACE '[HASH]' WITH $HASH IN result.txt
+WRITE expected.txt UNTIL END
+1> f3220283d05d1ff2ae350cfe9e0e367cb5aef46e10efb203c8a53c678e2218c8
+END
+COMPARE result.txt AGAINST expected.txt

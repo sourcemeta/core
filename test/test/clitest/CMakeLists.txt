@@ -18,6 +18,8 @@ target_link_libraries(sourcemeta_core_clitest_stub
   PRIVATE sourcemeta::core::gzip)
 target_link_libraries(sourcemeta_core_clitest_stub
   PRIVATE sourcemeta::core::io)
+target_link_libraries(sourcemeta_core_clitest_stub
+  PRIVATE sourcemeta::core::numeric)
 
 macro(add_clitest_test name code)
   add_test(NAME core.clitest.${name} COMMAND ${SOURCEMETA_CORE_TEST_RUNNER}
@@ -81,6 +83,7 @@ add_clitest_run_test(run_extract_and_sort 0)
 add_clitest_run_test(run_observation_format 0)
 add_clitest_run_test(run_replace_and_drop 0)
 add_clitest_run_test(run_sandbox_variables 0)
+add_clitest_run_test(run_sort_keeps_an_open_file_open 0)
 add_clitest_run_test(run_standard_input 0)
 add_clitest_run_test(run_stat_mtime 0)
 add_clitest_run_test(run_working_directory 0)

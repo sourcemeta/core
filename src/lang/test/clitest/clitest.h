@@ -1256,7 +1256,9 @@ inline auto clitest_command_sort(const CLITestCommand &command) -> void {
   const auto content{command.read(0)};
   auto lines{clitest_lines(content)};
   std::sort(lines.values.begin(), lines.values.end());
-  command.write(0, clitest_join(lines.values));
+  // A filter that rewrites a file in place changes its order, not its shape, so
+  // a file that ended without a terminator still does
+  command.write(0, clitest_join(lines.values, lines.terminated));
 }
 
 inline auto clitest_command_copy(const CLITestCommand &command) -> void {

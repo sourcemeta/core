@@ -6,6 +6,7 @@
 #include <sourcemeta/core/text.h>
 
 #include <cstdlib>    // EXIT_FAILURE, EXIT_SUCCESS
+#include <exception>  // std::exception
 #include <filesystem> // std::filesystem::temp_directory_path
 #include <iostream>   // std::cout
 #include <sstream>    // std::ostringstream
@@ -96,6 +97,9 @@ static auto run(const std::string &script, const bool check,
   } catch (const sourcemeta::core::IOFilePermissionError &) {
     notes.emplace_back(script + ": cannot be read");
     return false;
+  } catch (const std::exception &error) {
+    notes.emplace_back(script + ": " + error.what());
+    return false;
   }
 
   const auto lines{sourcemeta::core::split(contents, '\n')};
@@ -137,6 +141,11 @@ static auto run(const std::string &script, const bool check,
   } catch (const sourcemeta::core::CLITestExitError &error) {
     notes.push_back(describe(script, error));
     return false;
+  } catch (const std::exception &error) {
+    // Whatever went wrong, it went wrong in one script. Letting it escape would
+    // abandon the run without a test point for this script or a final count
+    notes.emplace_back(script + ": " + error.what());
+    return false;
   }
 
   return true;
@@ -165,7 +174,11 @@ auto main(int argc, char *argv[]) -> int {
   sourcemeta::core::CLITestBindings bindings;
   for (const auto entry : application.at("environment")) {
     const auto separator{entry.find('=')};
-    if (separator == std::string_view::npos) {
+    if (separator == 0) {
+      std::cout << "TAP version 14\n"
+                   "Bail out! a binding needs a name before its value\n";
+      return EXIT_FAILURE;
+    } else if (separator == std::string_view::npos) {
       bindings.insert_or_assign(std::string{entry}, "");
     } else {
       bindings.insert_or_assign(std::string{entry.substr(0, separator)},

@@ -4,6 +4,7 @@
 
 #include <sourcemeta/core/gzip.h>
 #include <sourcemeta/core/io.h>
+#include <sourcemeta/core/numeric.h>
 #include <sourcemeta/core/options.h>
 
 #include <algorithm>   // std::replace
@@ -54,6 +55,7 @@ auto main(int argc, char *argv[]) -> int {
   application.option("bytes", {});
   application.option("crlf", {});
   application.option("gunzip", {});
+  application.option("unterminated", {});
   application.flag("cat", {});
   application.flag("pwd", {});
   application.parse(argc, argv);
@@ -92,6 +94,13 @@ auto main(int argc, char *argv[]) -> int {
         compressed.size());
   }
 
+  // Written without a closing terminator, which no command of the language
+  // produces but a program under test certainly can
+  for (const auto name : application.at("unterminated")) {
+    sourcemeta::core::write_file(std::filesystem::path{std::string{name}},
+                                 std::string_view{"gamma\nbeta\nalpha"});
+  }
+
   if (application.contains("cat")) {
     std::cout << std::cin.rdbuf();
   }
@@ -108,7 +117,15 @@ auto main(int argc, char *argv[]) -> int {
   std::cerr.flush();
 
   if (application.contains("code")) {
-    return std::stoi(std::string{application.at("code").front()});
+    const auto code{
+        sourcemeta::core::to_int64_t(application.at("code").front())};
+    if (!code.has_value()) {
+      std::cerr << "not an exit code: " << application.at("code").front()
+                << "\n";
+      return EXIT_FAILURE;
+    }
+
+    return static_cast<int>(code.value());
   }
 
   return EXIT_SUCCESS;
