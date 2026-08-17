@@ -11,7 +11,7 @@
 #include <cstddef>     // std::size_t
 #include <cstdint>     // std::uint8_t
 #include <cstdio>      // stdout
-#include <cstdlib>     // EXIT_SUCCESS, EXIT_FAILURE, std::getenv
+#include <cstdlib>     // EXIT_SUCCESS, EXIT_FAILURE, std::getenv, std::free
 #include <filesystem>  // std::filesystem::current_path
 #include <iostream>    // std::cin, std::cout, std::cerr
 #include <string>      // std::string
@@ -21,6 +21,26 @@
 #include <fcntl.h> // _O_BINARY
 #include <io.h>    // _setmode, _fileno
 #endif
+
+// Read a variable of the environment this program was started with. The
+// standard way of doing so is deprecated by one toolchain over a hazard that
+// does not arise here, as the value is copied before anything else can run
+static auto inherited(const std::string &name) -> std::string {
+#if defined(_MSC_VER)
+  char *value{nullptr};
+  std::size_t size{0};
+  if (::_dupenv_s(&value, &size, name.c_str()) != 0 || value == nullptr) {
+    return {};
+  }
+
+  std::string result{value};
+  std::free(value);
+  return result;
+#else
+  const char *const value{std::getenv(name.c_str())};
+  return value == nullptr ? std::string{} : std::string{value};
+#endif
+}
 
 // Emit an arbitrary byte, so that a fixture can hand the runner something that
 // is not text at all. Whether it did so is reported, as an odd number of
@@ -71,8 +91,7 @@ auto main(int argc, char *argv[]) -> int {
   }
 
   for (const auto name : application.at("env")) {
-    const char *const value{std::getenv(std::string{name}.c_str())};
-    std::cout << name << "=" << (value == nullptr ? "" : value) << "\n";
+    std::cout << name << "=" << inherited(std::string{name}) << "\n";
   }
 
   for (const auto line : application.at("crlf")) {
