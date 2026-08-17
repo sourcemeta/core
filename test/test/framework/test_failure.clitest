@@ -1,0 +1,11 @@
+RUN STDIN /dev/null IN . INTO result.txt EXPECTING 1
+WRITE expected.txt UNTIL EXPECTED
+1> TAP version 14
+1> 1..1
+1> not ok 1 - test_failure.mismatch
+1> # test_failure.cc:3: expected 1 + 1 == 3
+1> #   actual:   2
+1> #   expected: 3
+1> # 0 passed, 1 failed
+EXPECTED
+COMPARE result.txt AGAINST expected.txt

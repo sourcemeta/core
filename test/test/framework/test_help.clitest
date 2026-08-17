@@ -1,0 +1,11 @@
+RUN --help STDIN /dev/null IN . INTO result.txt EXPECTING 1
+WRITE expected.txt UNTIL EXPECTED
+1> Usage: sourcemeta_core_test_success [options]
+1>
+1> Run the registered tests.
+1>
+1> Options:
+1>   -f, --filter <prefix>  Only run tests whose <suite>.<name> starts with <prefix>
+1>   -h, --help             Show this message
+EXPECTED
+COMPARE result.txt AGAINST expected.txt

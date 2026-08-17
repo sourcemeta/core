@@ -1,3 +1,12 @@
+# A comparison implemented outside the program under test, so that a runner
+# broken enough to report success is still caught here
+if(WIN32)
+  set(SOURCEMETA_CORE_TEST_RUNNER powershell -ExecutionPolicy Bypass -File
+    "${CMAKE_CURRENT_SOURCE_DIR}/runner.ps1")
+else()
+  set(SOURCEMETA_CORE_TEST_RUNNER "${CMAKE_CURRENT_SOURCE_DIR}/runner.sh")
+endif()
+
 # The script runner has no public headers, so it is exercised the same way the
 # framework itself is: through its command line, against a golden diagnostic.
 # Each case runs from the fixture directory so that the path a diagnostic names
