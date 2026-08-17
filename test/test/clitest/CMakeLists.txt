@@ -31,11 +31,11 @@ endmacro()
 # A case that runs its script rather than only checking it, against a program
 # this project builds for the purpose so that no real tool has to be present
 macro(add_clitest_run_test name code)
-  add_test(NAME core.clitest.run_${name} COMMAND ${SOURCEMETA_CORE_TEST_RUNNER}
+  add_test(NAME core.clitest.${name} COMMAND ${SOURCEMETA_CORE_TEST_RUNNER}
     "$<TARGET_FILE:sourcemeta_core_clitest>" ${code}
-    "${CMAKE_CURRENT_SOURCE_DIR}/run_${name}.txt"
-    "run_${name}.clitest" --binary "$<TARGET_FILE:sourcemeta_core_clitest_stub>")
-  set_tests_properties(core.clitest.run_${name} PROPERTIES
+    "${CMAKE_CURRENT_SOURCE_DIR}/${name}.txt"
+    "${name}.clitest" --binary "$<TARGET_FILE:sourcemeta_core_clitest_stub>")
+  set_tests_properties(core.clitest.${name} PROPERTIES
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 endmacro()
 
@@ -70,100 +70,49 @@ add_clitest_test(unterminated_body 1)
 add_clitest_test(write_without_until 1)
 
 
-add_clitest_run_test(arguments_are_expanded 0)
-add_clitest_run_test(checksum 0)
-add_clitest_run_test(compress_and_remove 0)
-add_clitest_run_test(copy_and_tree 0)
-add_clitest_run_test(drop_lines_containing 0)
-add_clitest_run_test(empty_stream_is_absent 0)
-add_clitest_run_test(exports_variables 0)
-add_clitest_run_test(extract_and_sort 0)
-add_clitest_run_test(observation_format 0)
-add_clitest_run_test(replace_and_drop 0)
-add_clitest_run_test(sandbox_variables 0)
-add_clitest_run_test(standard_input 0)
-add_clitest_run_test(stat_mtime 0)
-add_clitest_run_test(working_directory 0)
-add_clitest_run_test(write_creates_parents 0)
-add_clitest_run_test(compare_failure_shows_a_diff 1)
-add_clitest_run_test(exit_code_mismatch 1)
+add_clitest_run_test(run_arguments_are_expanded 0)
+add_clitest_run_test(run_checksum 0)
+add_clitest_run_test(run_compress_and_remove 0)
+add_clitest_run_test(run_copy_and_tree 0)
+add_clitest_run_test(run_drop_lines_containing 0)
+add_clitest_run_test(run_empty_stream_is_absent 0)
+add_clitest_run_test(run_exports_variables 0)
+add_clitest_run_test(run_extract_and_sort 0)
+add_clitest_run_test(run_observation_format 0)
+add_clitest_run_test(run_replace_and_drop 0)
+add_clitest_run_test(run_sandbox_variables 0)
+add_clitest_run_test(run_standard_input 0)
+add_clitest_run_test(run_stat_mtime 0)
+add_clitest_run_test(run_working_directory 0)
+add_clitest_run_test(run_write_creates_parents 0)
+add_clitest_run_test(run_compare_failure_shows_a_diff 1)
+add_clitest_run_test(run_exit_code_mismatch 1)
 
-add_clitest_run_test(carriage_returns_are_normalised 0)
-add_clitest_run_test(compress_roundtrip 0)
-add_clitest_run_test(copy_overwrites 0)
-add_clitest_run_test(invalid_utf8_is_replaced 0)
-add_clitest_run_test(one_trailing_terminator_is_dropped 0)
-add_clitest_run_test(output_without_a_terminator 0)
-add_clitest_run_test(remove_a_directory 0)
-add_clitest_run_test(stream_of_one_terminator_is_one_empty_line 0)
-add_clitest_run_test(surrogate_utf8_is_replaced 0)
-add_clitest_run_test(truncated_utf8_is_one_replacement 0)
-add_clitest_run_test(well_formed_utf8_survives 0)
-add_test(NAME core.clitest.error_bad_pattern COMMAND ${SOURCEMETA_CORE_TEST_RUNNER}
-  "$<TARGET_FILE:sourcemeta_core_clitest>" 1
-  "${CMAKE_CURRENT_SOURCE_DIR}/error_bad_pattern.txt"
-  "error_bad_pattern.clitest" --binary "$<TARGET_FILE:sourcemeta_core_clitest_stub>")
-set_tests_properties(core.clitest.error_bad_pattern PROPERTIES
-  WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
-add_test(NAME core.clitest.error_compare_missing_file COMMAND ${SOURCEMETA_CORE_TEST_RUNNER}
-  "$<TARGET_FILE:sourcemeta_core_clitest>" 1
-  "${CMAKE_CURRENT_SOURCE_DIR}/error_compare_missing_file.txt"
-  "error_compare_missing_file.clitest" --binary "$<TARGET_FILE:sourcemeta_core_clitest_stub>")
-set_tests_properties(core.clitest.error_compare_missing_file PROPERTIES
-  WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
-add_test(NAME core.clitest.error_not_an_exit_code COMMAND ${SOURCEMETA_CORE_TEST_RUNNER}
-  "$<TARGET_FILE:sourcemeta_core_clitest>" 1
-  "${CMAKE_CURRENT_SOURCE_DIR}/error_not_an_exit_code.txt"
-  "error_not_an_exit_code.clitest" --binary "$<TARGET_FILE:sourcemeta_core_clitest_stub>")
-set_tests_properties(core.clitest.error_not_an_exit_code PROPERTIES
-  WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
-add_test(NAME core.clitest.error_reserved_checksum_name COMMAND ${SOURCEMETA_CORE_TEST_RUNNER}
-  "$<TARGET_FILE:sourcemeta_core_clitest>" 1
-  "${CMAKE_CURRENT_SOURCE_DIR}/error_reserved_checksum_name.txt"
-  "error_reserved_checksum_name.clitest" --binary "$<TARGET_FILE:sourcemeta_core_clitest_stub>")
-set_tests_properties(core.clitest.error_reserved_checksum_name PROPERTIES
-  WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
-add_test(NAME core.clitest.error_reserved_environment_name COMMAND ${SOURCEMETA_CORE_TEST_RUNNER}
-  "$<TARGET_FILE:sourcemeta_core_clitest>" 1
-  "${CMAKE_CURRENT_SOURCE_DIR}/error_reserved_environment_name.txt"
-  "error_reserved_environment_name.clitest" --binary "$<TARGET_FILE:sourcemeta_core_clitest_stub>")
-set_tests_properties(core.clitest.error_reserved_environment_name PROPERTIES
-  WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
-add_test(NAME core.clitest.error_run_bad_trailer COMMAND ${SOURCEMETA_CORE_TEST_RUNNER}
-  "$<TARGET_FILE:sourcemeta_core_clitest>" 1
-  "${CMAKE_CURRENT_SOURCE_DIR}/error_run_bad_trailer.txt"
-  "error_run_bad_trailer.clitest" --binary "$<TARGET_FILE:sourcemeta_core_clitest_stub>")
-set_tests_properties(core.clitest.error_run_bad_trailer PROPERTIES
-  WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
-add_test(NAME core.clitest.error_run_too_few_operands COMMAND ${SOURCEMETA_CORE_TEST_RUNNER}
-  "$<TARGET_FILE:sourcemeta_core_clitest>" 1
-  "${CMAKE_CURRENT_SOURCE_DIR}/error_run_too_few_operands.txt"
-  "error_run_too_few_operands.clitest" --binary "$<TARGET_FILE:sourcemeta_core_clitest_stub>")
-set_tests_properties(core.clitest.error_run_too_few_operands PROPERTIES
-  WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
-add_test(NAME core.clitest.error_sort_usage COMMAND ${SOURCEMETA_CORE_TEST_RUNNER}
-  "$<TARGET_FILE:sourcemeta_core_clitest>" 1
-  "${CMAKE_CURRENT_SOURCE_DIR}/error_sort_usage.txt"
-  "error_sort_usage.clitest" --binary "$<TARGET_FILE:sourcemeta_core_clitest_stub>")
-set_tests_properties(core.clitest.error_sort_usage PROPERTIES
-  WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
-add_test(NAME core.clitest.error_undefined_variable COMMAND ${SOURCEMETA_CORE_TEST_RUNNER}
-  "$<TARGET_FILE:sourcemeta_core_clitest>" 1
-  "${CMAKE_CURRENT_SOURCE_DIR}/error_undefined_variable.txt"
-  "error_undefined_variable.clitest" --binary "$<TARGET_FILE:sourcemeta_core_clitest_stub>")
-set_tests_properties(core.clitest.error_undefined_variable PROPERTIES
-  WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
-add_test(NAME core.clitest.error_unknown_command COMMAND ${SOURCEMETA_CORE_TEST_RUNNER}
-  "$<TARGET_FILE:sourcemeta_core_clitest>" 1
-  "${CMAKE_CURRENT_SOURCE_DIR}/error_unknown_command.txt"
-  "error_unknown_command.clitest" --binary "$<TARGET_FILE:sourcemeta_core_clitest_stub>")
-set_tests_properties(core.clitest.error_unknown_command PROPERTIES
-  WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
-
-add_clitest_run_test(braces_are_literal 0)
-add_clitest_run_test(carriage_return_script 0)
-add_clitest_run_test(expecting_a_variable 0)
-add_clitest_run_test(cores 0)
+add_clitest_run_test(run_carriage_returns_are_normalised 0)
+add_clitest_run_test(run_compress_roundtrip 0)
+add_clitest_run_test(run_copy_overwrites 0)
+add_clitest_run_test(run_invalid_utf8_is_replaced 0)
+add_clitest_run_test(run_one_trailing_terminator_is_dropped 0)
+add_clitest_run_test(run_output_without_a_terminator 0)
+add_clitest_run_test(run_remove_a_directory 0)
+add_clitest_run_test(run_stream_of_one_terminator_is_one_empty_line 0)
+add_clitest_run_test(run_surrogate_utf8_is_replaced 0)
+add_clitest_run_test(run_truncated_utf8_is_one_replacement 0)
+add_clitest_run_test(run_well_formed_utf8_survives 0)
+add_clitest_run_test(error_bad_pattern 1)
+add_clitest_run_test(error_compare_missing_file 1)
+add_clitest_run_test(error_not_an_exit_code 1)
+add_clitest_run_test(error_reserved_checksum_name 1)
+add_clitest_run_test(error_reserved_environment_name 1)
+add_clitest_run_test(error_run_bad_trailer 1)
+add_clitest_run_test(error_run_too_few_operands 1)
+add_clitest_run_test(error_sort_usage 1)
+add_clitest_run_test(error_undefined_variable 1)
+add_clitest_run_test(error_unknown_command 1)
+add_clitest_run_test(run_braces_are_literal 0)
+add_clitest_run_test(run_carriage_return_script 0)
+add_clitest_run_test(run_expecting_a_variable 0)
+add_clitest_run_test(run_cores 0)
 
 # Bindings injected on the command line are ordinary ones, and reach the
 # program that a script starts like any other
