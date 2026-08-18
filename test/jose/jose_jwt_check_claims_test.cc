@@ -3,6 +3,7 @@
 #include <sourcemeta/core/test.h>
 
 #include <chrono>      // std::chrono::system_clock, std::chrono::seconds
+#include <optional>    // std::optional, std::nullopt
 #include <string>      // std::string
 #include <string_view> // std::string_view
 
@@ -551,4 +552,236 @@ TEST(uniform_seconds_skew_still_converts) {
       token.value(), "acme", "client",
       std::chrono::system_clock::from_time_t(1000), std::chrono::seconds{60})};
   EXPECT_FALSE(error.has_value());
+}
+
+// The lifetime a token claims is the interval between the instant it says it
+// was issued and the instant it says it stops being honoured, so bounding it
+// refuses a value claiming to outlive anything the caller ever mints
+TEST(lifetime_within_the_bound) {
+  const auto input{make_token(
+      R"({ "alg": "RS256" })",
+      R"({ "iss": "acme", "aud": "client", "iat": 1000, "exp": 2000 })",
+      "sig")};
+  const auto token{sourcemeta::core::JWT::from(input)};
+  EXPECT_TRUE(token.has_value());
+  const auto error{sourcemeta::core::jwt_check_claims(
+      token.value(), "acme", "client",
+      std::chrono::system_clock::from_time_t(1500), {}, std::nullopt,
+      std::chrono::seconds{1000})};
+  EXPECT_FALSE(error.has_value());
+}
+
+TEST(lifetime_past_the_bound) {
+  const auto input{make_token(
+      R"({ "alg": "RS256" })",
+      R"({ "iss": "acme", "aud": "client", "iat": 1000, "exp": 2001 })",
+      "sig")};
+  const auto token{sourcemeta::core::JWT::from(input)};
+  EXPECT_TRUE(token.has_value());
+  const auto error{sourcemeta::core::jwt_check_claims(
+      token.value(), "acme", "client",
+      std::chrono::system_clock::from_time_t(1500), {}, std::nullopt,
+      std::chrono::seconds{1000})};
+  EXPECT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(), sourcemeta::core::JWTClaimError::Lifetime);
+}
+
+// A bound nothing carries the issuance instant cannot be applied at all, so
+// leaving the claim out would otherwise lift the bound for whoever left it out
+TEST(lifetime_bound_requires_an_issuance_time) {
+  const auto input{
+      make_token(R"({ "alg": "RS256" })",
+                 R"({ "iss": "acme", "aud": "client", "exp": 2000 })", "sig")};
+  const auto token{sourcemeta::core::JWT::from(input)};
+  EXPECT_TRUE(token.has_value());
+  const auto error{sourcemeta::core::jwt_check_claims(
+      token.value(), "acme", "client",
+      std::chrono::system_clock::from_time_t(1500), {}, std::nullopt,
+      std::chrono::seconds{1000})};
+  EXPECT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(), sourcemeta::core::JWTClaimError::Lifetime);
+}
+
+// A token expiring before it was issued names no interval at all
+TEST(lifetime_expiring_before_issuance) {
+  const auto input{make_token(
+      R"({ "alg": "RS256" })",
+      R"({ "iss": "acme", "aud": "client", "iat": 3000, "exp": 2000 })",
+      "sig")};
+  const auto token{sourcemeta::core::JWT::from(input)};
+  EXPECT_TRUE(token.has_value());
+  const auto error{sourcemeta::core::jwt_check_claims(
+      token.value(), "acme", "client",
+      std::chrono::system_clock::from_time_t(1500), {}, std::nullopt,
+      std::chrono::seconds{1000})};
+  EXPECT_TRUE(error.has_value());
+}
+
+// Without a bound the claim relationship is not examined, so nothing an
+// existing caller passes changes meaning
+TEST(lifetime_unbounded_by_default) {
+  const auto input{make_token(
+      R"({ "alg": "RS256" })",
+      R"({ "iss": "acme", "aud": "client", "iat": 1000, "exp": 2000000 })",
+      "sig")};
+  const auto token{sourcemeta::core::JWT::from(input)};
+  EXPECT_TRUE(token.has_value());
+  const auto error{sourcemeta::core::jwt_check_claims(
+      token.value(), "acme", "client",
+      std::chrono::system_clock::from_time_t(1500))};
+  EXPECT_FALSE(error.has_value());
+}
+
+// The interval is a relationship between two claims, so the tolerance for a
+// disagreeing server clock has no bearing on it
+TEST(lifetime_is_unaffected_by_clock_skew) {
+  const auto input{make_token(
+      R"({ "alg": "RS256" })",
+      R"({ "iss": "acme", "aud": "client", "iat": 1000, "exp": 2001 })",
+      "sig")};
+  const auto token{sourcemeta::core::JWT::from(input)};
+  EXPECT_TRUE(token.has_value());
+  const auto error{sourcemeta::core::jwt_check_claims(
+      token.value(), "acme", "client",
+      std::chrono::system_clock::from_time_t(1500), std::chrono::seconds{3600},
+      std::nullopt, std::chrono::seconds{1000})};
+  EXPECT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(), sourcemeta::core::JWTClaimError::Lifetime);
+}
+
+// Bounding the interval is only worth anything alongside refusing a token
+// issued in the future, since a lifetime measured from an instant that has not
+// arrived would otherwise start whenever its holder chose
+TEST(lifetime_bound_still_refuses_a_future_issuance) {
+  const auto input{make_token(
+      R"({ "alg": "RS256" })",
+      R"({ "iss": "acme", "aud": "client", "iat": 9000, "exp": 9500 })",
+      "sig")};
+  const auto token{sourcemeta::core::JWT::from(input)};
+  EXPECT_TRUE(token.has_value());
+  const auto error{sourcemeta::core::jwt_check_claims(
+      token.value(), "acme", "client",
+      std::chrono::system_clock::from_time_t(1500), {}, std::nullopt,
+      std::chrono::seconds{1000})};
+  EXPECT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(), sourcemeta::core::JWTClaimError::IssuedAt);
+}
+
+// Both instants are attacker controlled and each is only held within the
+// clock's representable window, so the span between the two extremes does not
+// fit the tick count that would carry it. Subtracting them would wrap and read
+// as within any bound, letting a token claim centuries and evade the check
+TEST(lifetime_across_the_clock_range_does_not_overflow) {
+  const auto maximum{std::chrono::duration_cast<std::chrono::duration<double>>(
+                         std::chrono::system_clock::duration::max())
+                         .count()};
+  const auto minimum{std::chrono::duration_cast<std::chrono::duration<double>>(
+                         std::chrono::system_clock::duration::min())
+                         .count()};
+  const auto payload{
+      std::string{R"({ "iss": "acme", "aud": "client", "iat": )"} +
+      std::to_string(minimum + 2.0) + R"(, "exp": )" +
+      std::to_string(maximum - 2.0) + " }"};
+  const auto input{make_token(R"({ "alg": "RS256" })", payload, "sig")};
+  const auto token{sourcemeta::core::JWT::from(input)};
+  EXPECT_TRUE(token.has_value());
+  const auto error{sourcemeta::core::jwt_check_claims(
+      token.value(), "acme", "client",
+      std::chrono::system_clock::from_time_t(1000), {}, std::nullopt,
+      std::chrono::seconds{3600})};
+  EXPECT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(), sourcemeta::core::JWTClaimError::Lifetime);
+}
+
+// A bound that is not positive admits no interval, so it refuses rather than
+// silently lifting the check
+TEST(lifetime_bound_that_is_negative_admits_nothing) {
+  const auto input{make_token(
+      R"({ "alg": "RS256" })",
+      R"({ "iss": "acme", "aud": "client", "iat": 1000, "exp": 2000 })",
+      "sig")};
+  const auto token{sourcemeta::core::JWT::from(input)};
+  EXPECT_TRUE(token.has_value());
+  const auto error{sourcemeta::core::jwt_check_claims(
+      token.value(), "acme", "client",
+      std::chrono::system_clock::from_time_t(1500), {}, std::nullopt,
+      std::chrono::seconds{-1})};
+  EXPECT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(), sourcemeta::core::JWTClaimError::Lifetime);
+}
+
+// A bound of zero says a token may claim no life, which the token expiring at
+// the very instant it was issued satisfies exactly
+TEST(lifetime_bound_of_zero_admits_a_zero_length_interval) {
+  const auto input{make_token(
+      R"({ "alg": "RS256" })",
+      R"({ "iss": "acme", "aud": "client", "iat": 2000, "exp": 2000 })",
+      "sig")};
+  const auto token{sourcemeta::core::JWT::from(input)};
+  EXPECT_TRUE(token.has_value());
+  const auto error{sourcemeta::core::jwt_check_claims(
+      token.value(), "acme", "client",
+      std::chrono::system_clock::from_time_t(1500),
+      sourcemeta::core::JWTClockSkew{std::chrono::seconds{0},
+                                     std::chrono::seconds{0},
+                                     std::chrono::seconds{600}},
+      std::nullopt, std::chrono::seconds{0})};
+  EXPECT_FALSE(error.has_value());
+}
+
+// A negative bound admits no interval at all, the empty one included
+TEST(lifetime_bound_that_is_negative_refuses_a_zero_length_interval) {
+  const auto input{make_token(
+      R"({ "alg": "RS256" })",
+      R"({ "iss": "acme", "aud": "client", "iat": 2000, "exp": 2000 })",
+      "sig")};
+  const auto token{sourcemeta::core::JWT::from(input)};
+  EXPECT_TRUE(token.has_value());
+  const auto error{sourcemeta::core::jwt_check_claims(
+      token.value(), "acme", "client",
+      std::chrono::system_clock::from_time_t(1500),
+      sourcemeta::core::JWTClockSkew{std::chrono::seconds{0},
+                                     std::chrono::seconds{0},
+                                     std::chrono::seconds{600}},
+      std::nullopt, std::chrono::seconds{-1})};
+  EXPECT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(), sourcemeta::core::JWTClaimError::Lifetime);
+}
+
+// A bound wider than any interval two representable instants can span admits
+// every one of them, where saturating the shift would refuse the widest
+TEST(lifetime_bound_wider_than_the_clock_admits_every_interval) {
+  const auto maximum{std::chrono::duration_cast<std::chrono::duration<double>>(
+                         std::chrono::system_clock::duration::max())
+                         .count()};
+  const auto minimum{std::chrono::duration_cast<std::chrono::duration<double>>(
+                         std::chrono::system_clock::duration::min())
+                         .count()};
+  const auto payload{
+      std::string{R"({ "iss": "acme", "aud": "client", "iat": )"} +
+      std::to_string(minimum + 2.0) + R"(, "exp": )" +
+      std::to_string(maximum - 2.0) + " }"};
+  const auto input{make_token(R"({ "alg": "RS256" })", payload, "sig")};
+  const auto token{sourcemeta::core::JWT::from(input)};
+  EXPECT_TRUE(token.has_value());
+  const auto error{sourcemeta::core::jwt_check_claims(
+      token.value(), "acme", "client",
+      std::chrono::system_clock::from_time_t(1000), {}, std::nullopt,
+      std::chrono::seconds::max())};
+  EXPECT_FALSE(error.has_value());
+}
+
+TEST(lifetime_bound_of_zero_admits_nothing_longer) {
+  const auto input{make_token(
+      R"({ "alg": "RS256" })",
+      R"({ "iss": "acme", "aud": "client", "iat": 1000, "exp": 2000 })",
+      "sig")};
+  const auto token{sourcemeta::core::JWT::from(input)};
+  EXPECT_TRUE(token.has_value());
+  const auto error{sourcemeta::core::jwt_check_claims(
+      token.value(), "acme", "client",
+      std::chrono::system_clock::from_time_t(1500), {}, std::nullopt,
+      std::chrono::seconds{0})};
+  EXPECT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(), sourcemeta::core::JWTClaimError::Lifetime);
 }
