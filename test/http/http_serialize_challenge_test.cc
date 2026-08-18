@@ -370,3 +370,15 @@ TEST(serialize_challenge_error_uri_relative_reference) {
                   {.scheme = "Bearer", .parameters = parameters})
                   .has_value());
 }
+
+// RFC 6749 Appendix A.9 bounds this by RFC 3986 alone, where §4.1 reaches an
+// empty reference through a relative one whose path is empty, so unlike the
+// other three parameters it carries no repetition bound to fall foul of. Note
+// that only the quoted-string spelling can express it, since a token is 1*tchar
+TEST(serialize_challenge_empty_error_uri) {
+  const std::array<Parameter, 1> parameters{{{"error_uri", ""}}};
+  const auto value{sourcemeta::core::http_serialize_challenge(
+      {.scheme = "Bearer", .parameters = parameters})};
+  EXPECT_TRUE(value.has_value());
+  EXPECT_EQ(value.value(), "Bearer error_uri=\"\"");
+}
