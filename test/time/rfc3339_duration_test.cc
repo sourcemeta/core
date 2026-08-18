@@ -1089,17 +1089,17 @@ TEST(ext_invalid_garbage_8) {
 }
 
 TEST(delta_u0000_u0050_day_0) {
-  static constexpr char value[] = "\x00P1D";
-  static_assert(sizeof(value) - 1 == 4);
+  static constexpr char VALUE[] = "\x00P1D";
+  static_assert(sizeof(VALUE) - 1 == 4);
   EXPECT_FALSE(
-      sourcemeta::core::is_rfc3339_duration(std::string_view{value, 4}));
+      sourcemeta::core::is_rfc3339_duration(std::string_view{VALUE, 4}));
 }
 
 TEST(delta_u0000_u0050_day_u0000_1) {
-  static constexpr char value[] = "\x00P1D\x00";
-  static_assert(sizeof(value) - 1 == 5);
+  static constexpr char VALUE[] = "\x00P1D\x00";
+  static_assert(sizeof(VALUE) - 1 == 5);
   EXPECT_FALSE(
-      sourcemeta::core::is_rfc3339_duration(std::string_view{value, 5}));
+      sourcemeta::core::is_rfc3339_duration(std::string_view{VALUE, 5}));
 }
 
 TEST(delta_u0009_u0050_day_u0009_2) {
@@ -1259,11 +1259,11 @@ TEST(delta_u0078_year_40) {
 }
 
 TEST(delta_u0000_day_41) {
-  static constexpr char value[] = "P1\x00"
+  static constexpr char VALUE[] = "P1\x00"
                                   "D";
-  static_assert(sizeof(value) - 1 == 4);
+  static_assert(sizeof(VALUE) - 1 == 4);
   EXPECT_FALSE(
-      sourcemeta::core::is_rfc3339_duration(std::string_view{value, 4}));
+      sourcemeta::core::is_rfc3339_duration(std::string_view{VALUE, 4}));
 }
 
 TEST(delta_u0009_day_42) {
@@ -1414,10 +1414,10 @@ TEST(delta_u0043_76) {
 }
 
 TEST(delta_day_u0000_77) {
-  static constexpr char value[] = "P1D\x00";
-  static_assert(sizeof(value) - 1 == 4);
+  static constexpr char VALUE[] = "P1D\x00";
+  static_assert(sizeof(VALUE) - 1 == 4);
   EXPECT_FALSE(
-      sourcemeta::core::is_rfc3339_duration(std::string_view{value, 4}));
+      sourcemeta::core::is_rfc3339_duration(std::string_view{VALUE, 4}));
 }
 
 TEST(delta_day_u000b_78) {

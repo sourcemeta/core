@@ -5209,7 +5209,7 @@ TEST(promotion_with_constants) {
   const auto instance = sourcemeta::core::parse_json(R"({ "height": 1.85 })");
 
   sourcemeta::core::JSONLDPromotion promotion;
-  promotion.types.push_back("https://example.com/Quantity");
+  promotion.types.emplace_back("https://example.com/Quantity");
   promotion.value = "https://example.com/value";
   promotion.constants = sourcemeta::core::parse_json(R"({
     "https://example.com/unit": [ { "@id": "https://example.com/metre" } ]
@@ -5637,7 +5637,7 @@ TEST(promotion_output_flattens) {
   const auto instance = sourcemeta::core::parse_json(R"({ "height": 1.85 })");
 
   sourcemeta::core::JSONLDPromotion promotion;
-  promotion.types.push_back("https://example.com/Quantity");
+  promotion.types.emplace_back("https://example.com/Quantity");
   promotion.value = "https://example.com/value";
   promotion.constants = sourcemeta::core::parse_json(R"({
     "https://example.com/unit": [ { "@id": "https://example.com/metre" } ]
@@ -5660,7 +5660,7 @@ TEST(promotion_output_compacts_and_re_expands) {
   const auto instance = sourcemeta::core::parse_json(R"({ "height": 1.85 })");
 
   sourcemeta::core::JSONLDPromotion promotion;
-  promotion.types.push_back("https://example.com/Quantity");
+  promotion.types.emplace_back("https://example.com/Quantity");
   promotion.value = "https://example.com/value";
   promotion.constants = sourcemeta::core::parse_json(R"({
     "https://example.com/unit": [ { "@id": "https://example.com/metre" } ]

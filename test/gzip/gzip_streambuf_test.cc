@@ -244,8 +244,8 @@ TEST(incompressible_random_bytes) {
   std::uniform_int_distribution<int> distribution{0, 255};
   std::string input;
   input.resize(65536);
-  for (std::size_t index = 0; index < input.size(); ++index) {
-    input[index] = static_cast<char>(distribution(generator));
+  for (char &index : input) {
+    index = static_cast<char>(distribution(generator));
   }
   const auto compressed{sourcemeta::core::gzip(
       reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};

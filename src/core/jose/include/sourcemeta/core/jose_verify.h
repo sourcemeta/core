@@ -99,9 +99,9 @@ inline auto jwt_bounded_clock_skew(const std::chrono::seconds skew) noexcept
     -> std::chrono::seconds {
   // A mean Gregorian year, the widest grace period any deployment plausibly
   // needs, so an extreme value cannot widen the acceptance window without bound
-  constexpr std::chrono::seconds maximum{31556952};
+  constexpr std::chrono::seconds MAXIMUM{31556952};
   return skew < std::chrono::seconds::zero() ? std::chrono::seconds::zero()
-         : skew > maximum                    ? maximum
+         : skew > MAXIMUM                    ? MAXIMUM
                                              : skew;
 }
 

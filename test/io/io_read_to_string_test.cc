@@ -76,22 +76,22 @@ TEST(missing_file_throws) {
 class IOReadFileToStringTest {
 protected:
   IOReadFileToStringTest() {
-    std::filesystem::create_directories(this->workspace);
+    std::filesystem::create_directories(this->workspace_);
   }
 
   ~IOReadFileToStringTest() {
     std::error_code error;
-    std::filesystem::remove_all(this->workspace, error);
+    std::filesystem::remove_all(this->workspace_, error);
   }
 
   // The tests are always sequential, so using the same path is safe
-  std::filesystem::path workspace{
+  std::filesystem::path workspace_{
       std::filesystem::path{BUILD_DIRECTORY} /
       "sourcemeta_core_io_read_file_to_string_test"};
 };
 
 TEST_F(IOReadFileToStringTest, freshly_written_file) {
-  const auto path{this->workspace / "payload.txt"};
+  const auto path{this->workspace_ / "payload.txt"};
   {
     std::ofstream stream{path};
     stream << "first line\nsecond line\n";
@@ -103,7 +103,7 @@ TEST_F(IOReadFileToStringTest, freshly_written_file) {
 }
 
 TEST_F(IOReadFileToStringTest, empty_file) {
-  const auto path{this->workspace / "empty.txt"};
+  const auto path{this->workspace_ / "empty.txt"};
   std::ofstream{path};
   EXPECT_EQ(sourcemeta::core::read_file_to_string(path), "");
 }
@@ -119,7 +119,7 @@ TEST_F(IOReadFileToStringTest, fifo) {
     }
   };
 
-  const auto path{this->workspace / "fifo"};
+  const auto path{this->workspace_ / "fifo"};
   std::filesystem::remove(path);
   EXPECT_EQ(::mkfifo(path.c_str(), S_IRUSR | S_IWUSR), 0);
   std::thread writer{[&path]() {

@@ -2,6 +2,6 @@
 #include <sourcemeta/core/test.h>
 
 TEST(is_empty) {
-  EXPECT_TRUE(sourcemeta::core::empty_pointer.empty());
-  EXPECT_EQ(sourcemeta::core::empty_pointer, sourcemeta::core::Pointer{});
+  EXPECT_TRUE(sourcemeta::core::EMPTY_POINTER.empty());
+  EXPECT_EQ(sourcemeta::core::EMPTY_POINTER, sourcemeta::core::Pointer{});
 }

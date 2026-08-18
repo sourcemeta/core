@@ -117,11 +117,11 @@ auto main(int argc, char **argv) -> int {
   // The single-signature compact examples, which our engine runs in full. The
   // detached, unprotected-header, and general serialization examples stay
   // masked out of the vendored tree
-  constexpr std::array<std::string_view, 4> examples{
+  constexpr std::array<std::string_view, 4> EXAMPLES{
       {"4_1.rsa_v15_signature.json", "4_2.rsa-pss_signature.json",
        "4_3.ecdsa_signature.json", "4_4.hmac-sha2_integrity_protection.json"}};
 
-  for (const auto example : examples) {
+  for (const auto example : EXAMPLES) {
     const auto name{std::filesystem::path{example}.stem().string()};
     sourcemeta::core::test_register(name + ".verify", [example]() {
       EXPECT_TRUE(verify_example(load("jws", example)));
@@ -134,17 +134,17 @@ auto main(int argc, char **argv) -> int {
   // The compact JWE examples whose key-management and content encryption
   // algorithms this module implements. The masked-out examples use RSA1_5,
   // PBES2, AES-GCM key wrapping, compression, or the JSON serialization
-  constexpr std::string_view ecdh_es_kw_example{
+  constexpr std::string_view ECDH_ES_KW_EXAMPLE{
       "5_4.key_agreement_with_key_wrapping_using_ecdh-es_and_aes-keywrap_with_"
       "aes-gcm.json"};
-  constexpr std::array<std::string_view, 5> encryption_examples{
+  constexpr std::array<std::string_view, 5> ENCRYPTION_EXAMPLES{
       {"5_2.key_encryption_using_rsa-oaep_with_aes-gcm.json",
-       ecdh_es_kw_example,
+       ECDH_ES_KW_EXAMPLE,
        "5_5.key_agreement_using_ecdh-es_with_aes-cbc-hmac-sha2.json",
        "5_6.direct_encryption_using_aes-gcm.json",
        "5_8.key_wrap_using_aes-keywrap_with_aes-gcm.json"}};
 
-  for (const auto example : encryption_examples) {
+  for (const auto example : ENCRYPTION_EXAMPLES) {
     const auto name{std::filesystem::path{example}.stem().string()};
     sourcemeta::core::test_register(name + ".decrypt", [example]() {
       EXPECT_TRUE(decrypt_example(load("jwe", example)));

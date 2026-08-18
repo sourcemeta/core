@@ -36,7 +36,8 @@ public:
     if (value.is_string()) {
       return std::make_tuple(std::string_view{value.to_string()}, std::nullopt,
                              false);
-    } else if (value.is_array()) {
+    }
+    if (value.is_array()) {
       if (value.empty()) {
         return std::nullopt;
       }
@@ -53,7 +54,8 @@ public:
       std::advance(iterator, 1);
       return std::make_tuple(std::string_view{element.to_string()},
                              std::nullopt, iterator != array.cend());
-    } else if (value.is_object()) {
+    }
+    if (value.is_object()) {
       if (value.empty()) {
         return std::nullopt;
       }
@@ -71,18 +73,17 @@ public:
       return std::make_tuple(std::string_view{entry.second.to_string()},
                              std::string_view{entry.first},
                              iterator != object.cend());
-    } else {
-      auto cache_entry = this->cache_.find(name);
-      if (cache_entry == this->cache_.end()) {
-        std::ostringstream stream;
-        sourcemeta::core::stringify(value, stream);
-        cache_entry = this->cache_.emplace(name, stream.str()).first;
-      }
-
-      return std::make_tuple(
-          std::string_view{std::get<std::string>(cache_entry->second)},
-          std::nullopt, false);
     }
+    auto cache_entry = this->cache_.find(name);
+    if (cache_entry == this->cache_.end()) {
+      std::ostringstream stream;
+      sourcemeta::core::stringify(value, stream);
+      cache_entry = this->cache_.emplace(name, stream.str()).first;
+    }
+
+    return std::make_tuple(
+        std::string_view{std::get<std::string>(cache_entry->second)},
+        std::nullopt, false);
   }
 
 private:
