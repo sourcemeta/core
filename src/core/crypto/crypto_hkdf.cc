@@ -7,6 +7,7 @@
 #include <cstddef>     // std::size_t
 #include <cstdint>     // std::uint8_t
 #include <optional>    // std::optional, std::nullopt
+#include <stdexcept>   // std::runtime_error
 #include <string>      // std::string
 #include <string_view> // std::string_view
 
@@ -27,7 +28,15 @@ auto extract(const sourcemeta::core::KDFHash hash, const std::string_view salt,
              const std::string_view input_key_material)
     -> std::array<std::uint8_t, Size> {
   std::array<std::uint8_t, Size> output{};
-  sourcemeta::core::hkdf_extract(hash, salt, input_key_material, output.data());
+  // A refused extraction would otherwise leave the zero-filled buffer standing
+  // in for a pseudorandom key, which is both wrong and predictable, so it
+  // throws as the HMAC underneath does rather than reporting a derivation that
+  // never happened
+  if (!sourcemeta::core::hkdf_extract(hash, salt, input_key_material,
+                                      output.data())) {
+    throw std::runtime_error("Could not extract an HKDF pseudorandom key");
+  }
+
   return output;
 }
 

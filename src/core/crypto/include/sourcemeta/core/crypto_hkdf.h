@@ -19,7 +19,8 @@ namespace sourcemeta::core {
 /// the first step of RFC 5869 Section 2.2. The salt is optional and need not
 /// be secret, and an empty one stands for the string of digest-length zeros
 /// that section substitutes when none is provided. RFC 5869 Section 3.1
-/// recommends supplying one. For example:
+/// recommends supplying one. Throws when the underlying provider refuses the
+/// extraction, since there is no pseudorandom key to report. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/crypto.h>
