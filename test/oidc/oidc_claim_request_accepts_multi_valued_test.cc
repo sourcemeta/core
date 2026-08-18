@@ -163,3 +163,38 @@ TEST(multi_valued_does_not_compare_the_array_as_a_whole) {
   EXPECT_FALSE(sourcemeta::core::oidc_claim_request_accepts_multi_valued(
       request, value));
 }
+
+// RFC 7643 Section 2.5: an unassigned attribute, the null value, and the empty
+// array "SHALL be considered to be equivalent in state", so a null claim
+// carries no membership any more than an empty one does
+TEST(multi_valued_null_claim_matches_nothing) {
+  const auto request{sourcemeta::core::parse_json(R"JSON(null)JSON")};
+  const auto value{sourcemeta::core::parse_json(R"JSON(null)JSON")};
+  EXPECT_FALSE(sourcemeta::core::oidc_claim_request_accepts_multi_valued(
+      request, value));
+}
+
+TEST(multi_valued_null_member_matches_nothing) {
+  const auto request{sourcemeta::core::parse_json(R"JSON(null)JSON")};
+  const auto value{sourcemeta::core::parse_json(R"JSON([ null ])JSON")};
+  EXPECT_FALSE(sourcemeta::core::oidc_claim_request_accepts_multi_valued(
+      request, value));
+}
+
+TEST(multi_valued_scim_member_with_a_null_value_matches_nothing) {
+  const auto request{sourcemeta::core::parse_json(R"JSON(null)JSON")};
+  const auto value{sourcemeta::core::parse_json(
+      R"JSON([ { "value": null, "display": "Administrators" } ])JSON")};
+  EXPECT_FALSE(sourcemeta::core::oidc_claim_request_accepts_multi_valued(
+      request, value));
+}
+
+// A null member alongside a real one does not spoil the set
+TEST(multi_valued_null_member_beside_a_matching_one) {
+  const auto request{
+      sourcemeta::core::parse_json(R"JSON({ "value": "admin" })JSON")};
+  const auto value{
+      sourcemeta::core::parse_json(R"JSON([ null, "admin" ])JSON")};
+  EXPECT_TRUE(sourcemeta::core::oidc_claim_request_accepts_multi_valued(request,
+                                                                        value));
+}
