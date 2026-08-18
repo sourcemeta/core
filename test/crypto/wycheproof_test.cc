@@ -579,6 +579,67 @@ auto register_aes_kw_tests(const std::filesystem::path &path,
   }
 }
 
+using HkdfFunction = std::optional<std::string> (*)(const std::string_view,
+                                                    const std::string_view,
+                                                    const std::string_view,
+                                                    const std::size_t);
+
+auto check_hkdf(const HkdfFunction derive,
+                const std::string &input_key_material, const std::string &salt,
+                const std::string &info, const std::size_t size,
+                const std::string &expected, const bool valid) -> void {
+  const auto result{derive(input_key_material, salt, info, size)};
+  if (!valid) {
+    EXPECT_FALSE(result.has_value());
+    return;
+  }
+
+  EXPECT_TRUE(result.has_value());
+  if (result.has_value()) {
+    EXPECT_EQ(sourcemeta::core::bytes_to_hex(result.value()), expected);
+  }
+}
+
+auto register_hkdf_tests(const std::filesystem::path &path,
+                         const std::string &suite_name,
+                         const HkdfFunction derive) -> void {
+  const auto document{load(path)};
+  const auto stem{path.stem().string()};
+  for (const auto &group : document.at("testGroups").as_array()) {
+    for (const auto &test : group.at("tests").as_array()) {
+      const std::string result{test.at("result").to_string()};
+      if (result == "acceptable") {
+        continue;
+      }
+
+      const auto input_key_material{
+          sourcemeta::core::hex_to_bytes(test.at("ikm").to_string())};
+      const auto salt{
+          sourcemeta::core::hex_to_bytes(test.at("salt").to_string())};
+      const auto info{
+          sourcemeta::core::hex_to_bytes(test.at("info").to_string())};
+      if (!input_key_material.has_value() || !salt.has_value() ||
+          !info.has_value()) {
+        continue;
+      }
+
+      // An invalid case carries no output keying material to compare against
+      const auto *const okm{test.try_at("okm")};
+      register_case(
+          suite_name,
+          stem + "_tc" + std::to_string(test.at("tcId").to_integer()),
+          [derive, input_key_material = input_key_material.value(),
+           salt = salt.value(), info = info.value(),
+           size = static_cast<std::size_t>(test.at("size").to_integer()),
+           expected = (okm == nullptr ? std::string{} : okm->to_string()),
+           valid = (result == "valid")]() {
+            check_hkdf(derive, input_key_material, salt, info, size, expected,
+                       valid);
+          });
+    }
+  }
+}
+
 auto to_oaep_hash(const std::string_view name)
     -> std::optional<sourcemeta::core::RSAOAEPHash> {
   if (name == "SHA-1") {
@@ -881,6 +942,13 @@ auto main(int argc, char **argv) -> int {
                           "Wycheproof_RSA_OAEP_3072_SHA256");
   register_rsa_oaep_tests(vectors / "rsa_oaep_4096_sha256_mgf1sha256_test.json",
                           "Wycheproof_RSA_OAEP_4096_SHA256");
+
+  register_hkdf_tests(vectors / "hkdf_sha256_test.json",
+                      "Wycheproof_HKDF_SHA256", sourcemeta::core::hkdf_sha256);
+  register_hkdf_tests(vectors / "hkdf_sha384_test.json",
+                      "Wycheproof_HKDF_SHA384", sourcemeta::core::hkdf_sha384);
+  register_hkdf_tests(vectors / "hkdf_sha512_test.json",
+                      "Wycheproof_HKDF_SHA512", sourcemeta::core::hkdf_sha512);
 
   register_ecdh_tests(vectors / "ecdh_secp256r1_ecpoint_test.json",
                       "Wycheproof_ECDH_P256");

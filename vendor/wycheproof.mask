@@ -159,9 +159,6 @@ testvectors_v1/ecdsa_secp521r1_sha512_test.json
 testvectors_v1/ecdsa_secp521r1_shake256_p1363_test.json
 testvectors_v1/ecdsa_secp521r1_shake256_test.json
 testvectors_v1/hkdf_sha1_test.json
-testvectors_v1/hkdf_sha256_test.json
-testvectors_v1/hkdf_sha384_test.json
-testvectors_v1/hkdf_sha512_test.json
 testvectors_v1/hmac_sha1_test.json
 testvectors_v1/hmac_sha224_test.json
 testvectors_v1/hmac_sha3_224_test.json
