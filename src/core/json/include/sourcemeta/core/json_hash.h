@@ -35,9 +35,13 @@ template <typename T> struct HashJSON {
 /// @ingroup json
 /// A hash function object for JSON object property keys
 template <typename T> struct PropertyHashJSON {
+  /// The two halves that make up a property key hash
   struct HashType {
+    /// The unsigned integer type each half is stored as
     using type = sourcemeta::core::uint128_t;
+    /// The first half of the hash
     type a{0};
+    /// The second half of the hash
     type b{0};
 
     auto operator==(const HashType &) const noexcept -> bool = default;
