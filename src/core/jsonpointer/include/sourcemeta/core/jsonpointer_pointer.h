@@ -238,8 +238,8 @@ public:
 #if __cpp_lib_containers_ranges >= 202202L
     this->data_.append_range(other.data_);
 #else
-    std::copy(other.data.cbegin(), other.data.cend(),
-              std::back_inserter(this->data));
+    std::copy(other.data_.cbegin(), other.data_.cend(),
+              std::back_inserter(this->data_));
 #endif
   }
 
@@ -481,7 +481,7 @@ public:
     result.data_.append_range(
         std::ranges::subrange(new_begin, this->data_.cend()));
 #else
-    std::copy(new_begin, this->data.cend(), std::back_inserter(result.data));
+    std::copy(new_begin, this->data_.cend(), std::back_inserter(result.data_));
 #endif
     return result;
   }
@@ -517,7 +517,7 @@ public:
 #if __cpp_lib_containers_ranges >= 202202L
     result.data_.append_range(std::ranges::subrange(new_begin, new_end));
 #else
-    std::copy(new_begin, new_end, std::back_inserter(result.data));
+    std::copy(new_begin, new_end, std::back_inserter(result.data_));
 #endif
     return result;
   }
@@ -770,7 +770,7 @@ public:
     result.data_.append_range(
         std::ranges::subrange(new_begin, this->data_.cend()));
 #else
-    std::copy(new_begin, this->data.cend(), std::back_inserter(result.data));
+    std::copy(new_begin, this->data_.cend(), std::back_inserter(result.data_));
 #endif
     return result;
   }
@@ -816,7 +816,7 @@ public:
     result.data_.append_range(
         std::ranges::subrange(new_begin, this->data_.cend()));
 #else
-    std::copy(new_begin, this->data.cend(), std::back_inserter(result.data));
+    std::copy(new_begin, this->data_.cend(), std::back_inserter(result.data_));
 #endif
     return result;
   }
@@ -832,7 +832,7 @@ public:
   [[nodiscard]] auto
   operator==(const std::reference_wrapper<const GenericPointer<PropertyT, Hash>>
                  &other) const noexcept -> bool {
-    return this->data_ == other.get().data;
+    return this->data_ == other.get().data_;
   }
 
   /// Overload to support ordering of JSON Pointers. Typically for sorting
@@ -847,7 +847,7 @@ public:
   [[nodiscard]] auto
   operator<(const std::reference_wrapper<const GenericPointer<PropertyT, Hash>>
                 &other) const noexcept -> bool {
-    return this->data_ < other.get().data;
+    return this->data_ < other.get().data_;
   }
 
   /// Hash functor for use with containers
