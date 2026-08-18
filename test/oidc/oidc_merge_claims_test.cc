@@ -359,3 +359,65 @@ TEST(merge_claims_all_groups_and_the_fill_together) {
     "_claim_sources": { "src1": { "JWT": "a.b.c" } }
   })JSON"));
 }
+
+// Section 5.6.2 makes _claim_names the object naming the aggregated claims, so
+// one with no members names none and leaves the other answer free to supply a
+// pair, exactly as a null one does
+TEST(merge_claims_empty_aggregated_names_do_not_block_the_other) {
+  const auto result{merge(R"JSON({ "sub": "u1", "_claim_names": {} })JSON",
+                          R"JSON({
+    "sub": "u1",
+    "_claim_names": { "phone_number": "src2" },
+    "_claim_sources": { "src2": { "JWT": "d.e.f" } }
+  })JSON")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), sourcemeta::core::parse_json(R"JSON({
+    "sub": "u1",
+    "_claim_names": { "phone_number": "src2" },
+    "_claim_sources": { "src2": { "JWT": "d.e.f" } }
+  })JSON"));
+}
+
+TEST(merge_claims_empty_aggregated_sources_do_not_block_the_other) {
+  const auto result{merge(R"JSON({ "sub": "u1", "_claim_sources": {} })JSON",
+                          R"JSON({
+    "sub": "u1",
+    "_claim_names": { "phone_number": "src2" },
+    "_claim_sources": { "src2": { "JWT": "d.e.f" } }
+  })JSON")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), sourcemeta::core::parse_json(R"JSON({
+    "sub": "u1",
+    "_claim_names": { "phone_number": "src2" },
+    "_claim_sources": { "src2": { "JWT": "d.e.f" } }
+  })JSON"));
+}
+
+// A pair that is not the object shape Section 5.6.2 defines resolves nothing
+TEST(merge_claims_malformed_aggregated_names_do_not_block_the_other) {
+  const auto result{merge(R"JSON({ "sub": "u1", "_claim_names": "src1" })JSON",
+                          R"JSON({
+    "sub": "u1",
+    "_claim_names": { "phone_number": "src2" },
+    "_claim_sources": { "src2": { "JWT": "d.e.f" } }
+  })JSON")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), sourcemeta::core::parse_json(R"JSON({
+    "sub": "u1",
+    "_claim_names": { "phone_number": "src2" },
+    "_claim_sources": { "src2": { "JWT": "d.e.f" } }
+  })JSON"));
+}
+
+// Section 5.3.2 names only the null and the empty string, so an ordinary claim
+// that is an empty array or object is a value the merge carries as it stands
+TEST(merge_claims_carries_an_empty_array_or_object) {
+  const auto result{merge(R"JSON({ "sub": "u1" })JSON",
+                          R"JSON({
+    "sub": "u1", "groups": [], "address": {}
+  })JSON")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), sourcemeta::core::parse_json(R"JSON({
+    "sub": "u1", "groups": [], "address": {}
+  })JSON"));
+}

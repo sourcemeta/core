@@ -107,11 +107,14 @@ auto oidc_verify_userinfo(
 ///   resolve against. They are taken together or not at all, and are never
 ///   merged across the two answers.
 ///
-/// A claim carries nothing unless it is there with something in it, since
-/// Section 5.3.2 has an unreturned claim omitted rather than "present with a
-/// null or empty string value". So a null or empty-string claim neither
-/// delivers a subject its assertion could speak for, nor blocks the other
-/// answer from filling it, nor is itself carried over. For example:
+/// A claim that is absent, null, or an empty string delivers nothing, those
+/// being the shapes Section 5.3.2 names in having an unreturned claim omitted
+/// rather than "present with a null or empty string value". Such a claim
+/// neither delivers a subject its assertion could speak for, nor blocks the
+/// other answer from filling it, nor is itself carried over. Every other
+/// value, an empty array or object included, is delivered as it stands, save
+/// for the aggregated members, which name and resolve nothing when empty. For
+/// example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/oidc.h>
