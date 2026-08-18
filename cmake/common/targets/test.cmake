@@ -16,6 +16,11 @@ function(sourcemeta_test)
     SOURCES "${SOURCEMETA_TEST_SOURCES}"
     OUTPUT TARGET_NAME)
 
+  if(PROJECT_IS_TOP_LEVEL)
+    sourcemeta_clang_tidy_attempt_enable(TARGET "${TARGET_NAME}"
+      CONFIG "clang-tidy-test.json")
+  endif()
+
   target_link_libraries("${TARGET_NAME}"
     PRIVATE sourcemeta::core::test)
   # Provides a default entry point through static archive resolution unless the
