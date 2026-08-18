@@ -1,7 +1,7 @@
+#include <sourcemeta/core/jose_compact.h>
 #include <sourcemeta/core/jose_jwe.h>
 
 #include <sourcemeta/core/crypto.h>
-#include <sourcemeta/core/jose_compact.h>
 
 #include <optional>    // std::optional, std::nullopt
 #include <string_view> // std::string_view

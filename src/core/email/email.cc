@@ -163,11 +163,10 @@ auto is_idn_email_uts46(const std::string_view value) -> bool {
   return mailbox_separator<true, true>(value).has_value();
 }
 
-auto email_domain(const std::string_view value)
-    -> std::optional<std::string_view> {
+auto email_domain(const std::string_view value) -> std::string_view {
   const auto separator{mailbox_separator<false>(value)};
   if (!separator.has_value()) {
-    return std::nullopt;
+    return {};
   }
 
   return value.substr(separator.value() + 1);

@@ -1,7 +1,7 @@
+#include <sourcemeta/core/jose_compact.h>
 #include <sourcemeta/core/jose_jwt.h>
 
 #include <sourcemeta/core/crypto.h>
-#include <sourcemeta/core/jose_compact.h>
 #include <sourcemeta/core/text.h>
 #include <sourcemeta/core/time.h>
 

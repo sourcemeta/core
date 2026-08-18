@@ -125,15 +125,18 @@ auto http_expire_cookie(const HTTPCookie &cookie) -> HTTPCookie {
 }
 
 auto http_cookie_valid(const HTTPCookie &cookie) -> bool {
-  if (!sourcemeta::core::http_is_token(cookie.name) ||
-      !is_cookie_value(cookie.value)) {
-    return false;
-  }
+  // Every length ceiling is weighed before the scans below, so an oversized
+  // input is refused without a pass over it
 
   // RFC 6265bis §5.7 ignores a cookie whose name and value are together longer
   // than the ceiling, so one that large can never be stored
   if (cookie.name.size() + cookie.value.size() >
       HTTP_COOKIE_MAXIMUM_NAME_VALUE_LENGTH) {
+    return false;
+  }
+
+  if (!sourcemeta::core::http_is_token(cookie.name) ||
+      !is_cookie_value(cookie.value)) {
     return false;
   }
 
@@ -143,8 +146,8 @@ auto http_cookie_valid(const HTTPCookie &cookie) -> bool {
   // host name is already bounded by RFC 1123 §2.1 and a lifetime by the digits
   // of a second count
   if (cookie.path.has_value() &&
-      (!is_attribute_value(*cookie.path) ||
-       cookie.path->size() > HTTP_COOKIE_MAXIMUM_ATTRIBUTE_VALUE_LENGTH)) {
+      (cookie.path->size() > HTTP_COOKIE_MAXIMUM_ATTRIBUTE_VALUE_LENGTH ||
+       !is_attribute_value(*cookie.path))) {
     return false;
   }
 
