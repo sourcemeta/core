@@ -86,7 +86,7 @@ function(sourcemeta_clang_tidy_attempt_install)
 endfunction()
 
 function(sourcemeta_clang_tidy_attempt_enable)
-  cmake_parse_arguments(SOURCEMETA_TARGET_CLANG_TIDY_ATTEMPT_ENABLE "" "TARGET" "" ${ARGN})
+  cmake_parse_arguments(SOURCEMETA_TARGET_CLANG_TIDY_ATTEMPT_ENABLE "" "TARGET;CONFIG" "" ${ARGN})
   if(NOT SOURCEMETA_TARGET_CLANG_TIDY_ATTEMPT_ENABLE_TARGET)
     message(FATAL_ERROR "You must pass the target name using the TARGET option")
   endif()
@@ -111,13 +111,34 @@ function(sourcemeta_clang_tidy_attempt_enable)
     set(CLANG_TIDY_CONFIG "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/clang-tidy.json")
     execute_process(COMMAND xcrun --show-sdk-path
         OUTPUT_VARIABLE MACOSX_SDK_PATH OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+    # The static analyzer roughly triples ClangTidy time per translation unit,
+    # so it stays out of the local edit loop. The `--checks` argument is
+    # appended to the `Checks` option of the configuration file rather than
+    # replacing it, so the group composes with whatever the file enables
+    set(CLANG_TIDY_EXTRA_CHECKS "")
+    if(SOURCEMETA_CORE_CLANG_TIDY_ANALYZER)
+      set(CLANG_TIDY_EXTRA_CHECKS "--checks=clang-analyzer-*")
+    endif()
+
     set(SOURCEMETA_CXX_CLANG_TIDY
         "${CLANG_TIDY_BIN};--config-file=${CLANG_TIDY_CONFIG};-header-filter=${PROJECT_SOURCE_DIR}/src/*"
+        ${CLANG_TIDY_EXTRA_CHECKS}
         "--extra-arg=-isysroot"
         "--extra-arg=${MACOSX_SDK_PATH}"
         CACHE STRING "CXX_CLANG_TIDY")
   endif()
 
+  # Test code legitimately relies on idioms that library code must not, such as
+  # the static registration and do-while expansions of the test macros, so a
+  # target may ask for a configuration of its own
+  set(TARGET_CLANG_TIDY "${SOURCEMETA_CXX_CLANG_TIDY}")
+  if(SOURCEMETA_TARGET_CLANG_TIDY_ATTEMPT_ENABLE_CONFIG)
+    list(TRANSFORM TARGET_CLANG_TIDY REPLACE
+      "^--config-file=.*$"
+      "--config-file=${CMAKE_CURRENT_FUNCTION_LIST_DIR}/${SOURCEMETA_TARGET_CLANG_TIDY_ATTEMPT_ENABLE_CONFIG}")
+  endif()
+
   set_target_properties("${SOURCEMETA_TARGET_CLANG_TIDY_ATTEMPT_ENABLE_TARGET}"
-    PROPERTIES CXX_CLANG_TIDY "${SOURCEMETA_CXX_CLANG_TIDY}")
+    PROPERTIES CXX_CLANG_TIDY "${TARGET_CLANG_TIDY}")
 endfunction()
