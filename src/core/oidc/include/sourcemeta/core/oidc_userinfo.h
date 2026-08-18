@@ -107,9 +107,11 @@ auto oidc_verify_userinfo(
 ///   resolve against. They are taken together or not at all, and are never
 ///   merged across the two answers.
 ///
-/// A claim present with a null value carries nothing, since Section 5.3.2 has
-/// an unreturned claim omitted rather than "present with a null or empty
-/// string value". For example:
+/// A claim carries nothing unless it is there with something in it, since
+/// Section 5.3.2 has an unreturned claim omitted rather than "present with a
+/// null or empty string value". So a null or empty-string claim neither
+/// delivers a subject its assertion could speak for, nor blocks the other
+/// answer from filling it, nor is itself carried over. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/oidc.h>

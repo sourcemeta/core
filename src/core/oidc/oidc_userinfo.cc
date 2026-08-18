@@ -12,13 +12,14 @@
 
 namespace {
 
-// A claim present with a null value carries nothing, since OpenID Connect Core
-// 1.0 Section 5.3.2 has an unreturned claim omitted rather than "present with
-// a null or empty string value"
+// A claim carries nothing unless it is there with something in it, since
+// OpenID Connect Core 1.0 Section 5.3.2 has an unreturned claim omitted rather
+// than "present with a null or empty string value"
 auto carries(const sourcemeta::core::JSON &claims,
              const sourcemeta::core::JSON::String &name) -> bool {
   const auto *claim{claims.try_at(name)};
-  return claim != nullptr && !claim->is_null();
+  return claim != nullptr && !claim->is_null() &&
+         !(claim->is_string() && claim->empty());
 }
 
 // A verified assertion speaks for the value delivered alongside it, so the two
@@ -36,7 +37,7 @@ auto merge_verified_pair(sourcemeta::core::JSON &result,
 
   if (carries(userinfo, subject)) {
     result.assign(subject, userinfo.at(subject));
-    if (userinfo.defines(assertion)) {
+    if (carries(userinfo, assertion)) {
       result.assign(assertion, userinfo.at(assertion));
     } else {
       result.erase(assertion);
@@ -148,10 +149,10 @@ auto oidc_merge_claims(const JSON &id_token_claims, const JSON &userinfo)
   // member names in the `_claim_sources` member", so the two are taken from
   // one answer or neither, never spliced into a reference with nothing to
   // resolve against
-  const auto aggregated{id_token_claims.defines("_claim_names") ||
-                        id_token_claims.defines("_claim_sources")};
-  if (!aggregated && userinfo.defines("_claim_names") &&
-      userinfo.defines("_claim_sources")) {
+  const auto aggregated{carries(id_token_claims, "_claim_names") ||
+                        carries(id_token_claims, "_claim_sources")};
+  if (!aggregated && carries(userinfo, "_claim_names") &&
+      carries(userinfo, "_claim_sources")) {
     result.assign("_claim_names", userinfo.at("_claim_names"));
     result.assign("_claim_sources", userinfo.at("_claim_sources"));
   }
@@ -164,7 +165,9 @@ auto oidc_merge_claims(const JSON &id_token_claims, const JSON &userinfo)
       continue;
     }
 
-    if (!result.defines(claim.first)) {
+    // A second answer only fills what the first left out, and neither side
+    // fills anything with a value that carries nothing
+    if (carries(userinfo, claim.first) && !carries(result, claim.first)) {
       result.assign(claim.first, claim.second);
     }
   }

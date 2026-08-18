@@ -196,3 +196,77 @@ TEST(merge_claims_without_a_userinfo_claim_leaves_the_token_untouched) {
   EXPECT_TRUE(result.has_value());
   EXPECT_EQ(result.value().at("name").to_string(), "Jane");
 }
+
+// Section 5.3.2 names the empty string alongside null, so an address that is
+// there but empty delivers nothing an assertion could speak for
+TEST(merge_claims_treats_an_empty_address_as_carrying_nothing) {
+  const auto result{merge(R"JSON({ "sub": "u1", "email": "",
+                     "email_verified": true })JSON",
+                          R"JSON({ "sub": "u1", "email": "a@b.test",
+                     "email_verified": false })JSON")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value().at("email").to_string(), "a@b.test");
+  EXPECT_FALSE(result.value().at("email_verified").to_boolean());
+}
+
+TEST(merge_claims_drops_an_empty_assertion_arriving_with_an_address) {
+  const auto result{merge(R"JSON({ "sub": "u1" })JSON",
+                          R"JSON({ "sub": "u1", "email": "a@b.test",
+                     "email_verified": null })JSON")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value().at("email").to_string(), "a@b.test");
+  EXPECT_FALSE(result.value().defines("email_verified"));
+}
+
+// A reference that is there but carries nothing is no reference at all, so the
+// answer that carried a whole pair supplies it
+TEST(merge_claims_null_aggregated_names_do_not_block_the_other_answer) {
+  const auto result{merge(R"JSON({ "sub": "u1", "_claim_names": null })JSON",
+                          R"JSON({ "sub": "u1",
+                     "_claim_names": { "phone_number": "src2" },
+                     "_claim_sources": { "src2": { "JWT": "d.e.f" } } })JSON")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_TRUE(result.value().at("_claim_names").defines("phone_number"));
+  EXPECT_TRUE(result.value().at("_claim_sources").defines("src2"));
+}
+
+// An ordinary claim that carries nothing neither blocks the other answer from
+// filling it nor travels across on its own
+TEST(merge_claims_null_id_token_claim_does_not_block_the_fill) {
+  const auto result{merge(R"JSON({ "sub": "u1", "name": null })JSON",
+                          R"JSON({ "sub": "u1", "name": "Jane" })JSON")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value().at("name").to_string(), "Jane");
+}
+
+TEST(merge_claims_empty_id_token_claim_does_not_block_the_fill) {
+  const auto result{merge(R"JSON({ "sub": "u1", "name": "" })JSON",
+                          R"JSON({ "sub": "u1", "name": "Jane" })JSON")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value().at("name").to_string(), "Jane");
+}
+
+TEST(merge_claims_does_not_carry_over_a_null_userinfo_claim) {
+  const auto result{merge(R"JSON({ "sub": "u1" })JSON",
+                          R"JSON({ "sub": "u1", "nickname": null })JSON")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_FALSE(result.value().defines("nickname"));
+}
+
+TEST(merge_claims_does_not_carry_over_an_empty_userinfo_claim) {
+  const auto result{merge(R"JSON({ "sub": "u1" })JSON",
+                          R"JSON({ "sub": "u1", "nickname": "" })JSON")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_FALSE(result.value().defines("nickname"));
+}
+
+// A claim that is genuinely false or zero carries a value, so the rule reaches
+// only the shapes Section 5.3.2 names
+TEST(merge_claims_carries_a_false_or_zero_value) {
+  const auto result{merge(R"JSON({ "sub": "u1" })JSON",
+                          R"JSON({ "sub": "u1", "flag": false,
+                                   "count": 0 })JSON")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_TRUE(result.value().defines("flag"));
+  EXPECT_TRUE(result.value().defines("count"));
+}
