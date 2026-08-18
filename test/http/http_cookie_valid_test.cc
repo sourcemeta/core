@@ -414,3 +414,66 @@ TEST(name_equal_to_secure_prefix_with_secure_is_valid) {
   EXPECT_TRUE(sourcemeta::core::http_cookie_valid(
       {.name = "__Secure-", .value = "b", .secure = true}));
 }
+
+// RFC 6265bis §5.7: "If the sum of the lengths of cookie-name and cookie-value
+// is more than 4096 octets, abort these steps and ignore the cookie entirely"
+TEST(the_name_and_value_maximum_is_the_one_the_standard_gives) {
+  EXPECT_EQ(sourcemeta::core::HTTP_COOKIE_MAXIMUM_NAME_VALUE_LENGTH, 4096);
+}
+
+// RFC 6265bis §5.6: "If the attribute-value is longer than 1024 octets, ignore
+// the cookie-av string and return to Step 1 of this algorithm"
+TEST(the_attribute_value_maximum_is_the_one_the_standard_gives) {
+  EXPECT_EQ(sourcemeta::core::HTTP_COOKIE_MAXIMUM_ATTRIBUTE_VALUE_LENGTH, 1024);
+}
+
+// RFC 6265bis §5.7: "If the sum of the lengths of cookie-name and cookie-value
+// is more than 4096 octets, abort these steps and ignore the cookie entirely"
+TEST(name_and_value_summing_to_the_maximum_is_valid) {
+  const std::string value(
+      sourcemeta::core::HTTP_COOKIE_MAXIMUM_NAME_VALUE_LENGTH - 7, 'a');
+  EXPECT_TRUE(
+      sourcemeta::core::http_cookie_valid({.name = "session", .value = value}));
+}
+
+TEST(name_and_value_summing_past_the_maximum_is_invalid) {
+  const std::string value(
+      sourcemeta::core::HTTP_COOKIE_MAXIMUM_NAME_VALUE_LENGTH - 6, 'a');
+  EXPECT_FALSE(
+      sourcemeta::core::http_cookie_valid({.name = "session", .value = value}));
+}
+
+TEST(a_long_name_counts_toward_the_same_maximum) {
+  const std::string name(
+      sourcemeta::core::HTTP_COOKIE_MAXIMUM_NAME_VALUE_LENGTH + 1, 'a');
+  EXPECT_FALSE(
+      sourcemeta::core::http_cookie_valid({.name = name, .value = ""}));
+}
+
+// RFC 6265bis §5.7 sums only the name and the value, unlike the RFC 6265 §6.1
+// measurement, so an attribute does not push a cookie over that limit
+TEST(attributes_do_not_count_toward_the_name_and_value_maximum) {
+  const std::string value(
+      sourcemeta::core::HTTP_COOKIE_MAXIMUM_NAME_VALUE_LENGTH - 7, 'a');
+  const std::string path(
+      sourcemeta::core::HTTP_COOKIE_MAXIMUM_ATTRIBUTE_VALUE_LENGTH, '/');
+  EXPECT_TRUE(sourcemeta::core::http_cookie_valid(
+      {.name = "session", .value = value, .path = path}));
+}
+
+// RFC 6265bis §5.6: "If the attribute-value is longer than 1024 octets, ignore
+// the cookie-av string"
+TEST(path_past_the_attribute_maximum_is_invalid) {
+  const std::string path(
+      sourcemeta::core::HTTP_COOKIE_MAXIMUM_ATTRIBUTE_VALUE_LENGTH + 1, '/');
+  EXPECT_FALSE(sourcemeta::core::http_cookie_valid(
+      {.name = "session", .value = "b", .path = path}));
+}
+
+TEST(an_oversized_cookie_does_not_serialize) {
+  const std::string value(
+      sourcemeta::core::HTTP_COOKIE_MAXIMUM_NAME_VALUE_LENGTH, 'a');
+  EXPECT_FALSE(sourcemeta::core::http_serialize_cookie(
+                   {.name = "session", .value = value})
+                   .has_value());
+}

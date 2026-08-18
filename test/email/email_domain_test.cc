@@ -1,0 +1,78 @@
+#include <sourcemeta/core/email.h>
+#include <sourcemeta/core/test.h>
+
+#include <string_view> // std::string_view
+
+TEST(email_domain_ordinary_address) {
+  const auto result{sourcemeta::core::email_domain("user@example.com")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), "example.com");
+}
+
+// RFC 5321 §4.1.2: Local-part = Dot-string / Quoted-string, and qtextSMTP
+// admits the at sign, so the separator is not the first one in the string
+TEST(email_domain_quoted_local_part_carrying_an_at_sign) {
+  const auto result{sourcemeta::core::email_domain("\"not@me\"@example.org")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), "example.org");
+}
+
+// RFC 5321 §4.1.3: General-address-literal content is 1*dcontent, and
+// dcontent = %d33-90 / %d94-126 admits the at sign, so the separator is not
+// the last one in the string either
+TEST(email_domain_address_literal_carrying_an_at_sign) {
+  const auto result{sourcemeta::core::email_domain("user@[tag:a@b]")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), "[tag:a@b]");
+}
+
+TEST(email_domain_ipv4_address_literal) {
+  const auto result{sourcemeta::core::email_domain("user@[192.168.1.1]")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), "[192.168.1.1]");
+}
+
+// RFC 5321 §2.4: mailbox domains are not case sensitive, but the domain is
+// reported as it was written, since the view borrows from the input
+TEST(email_domain_preserves_the_spelling_of_the_domain) {
+  const auto result{sourcemeta::core::email_domain("user@Example.COM")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), "Example.COM");
+}
+
+TEST(email_domain_borrows_from_the_input) {
+  const std::string_view address{"user@example.com"};
+  const auto result{sourcemeta::core::email_domain(address)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_TRUE(result.value().data() == address.data() + 5);
+}
+
+TEST(email_domain_without_a_separator) {
+  EXPECT_FALSE(sourcemeta::core::email_domain("plain").has_value());
+}
+
+TEST(email_domain_empty_input) {
+  EXPECT_FALSE(sourcemeta::core::email_domain("").has_value());
+}
+
+TEST(email_domain_empty_local_part) {
+  EXPECT_FALSE(sourcemeta::core::email_domain("@example.com").has_value());
+}
+
+TEST(email_domain_empty_domain) {
+  EXPECT_FALSE(sourcemeta::core::email_domain("user@").has_value());
+}
+
+TEST(email_domain_invalid_domain) {
+  EXPECT_FALSE(sourcemeta::core::email_domain("user@-example.com").has_value());
+}
+
+// RFC 6531 §3.3 extends the mailbox grammar with non-ASCII, which this
+// function does not accept, since only the ASCII grammar is in scope
+TEST(email_domain_internationalized_address) {
+  EXPECT_FALSE(
+      sourcemeta::core::email_domain(
+          "\xec\x8b\xa4\xeb\xa1\x80@\xec\x8b\xa4\xeb\xa1\x80.\xed\x85\x8c"
+          "\xec\x8a\xa4\xed\x8a\xb8")
+          .has_value());
+}

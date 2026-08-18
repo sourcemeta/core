@@ -17,6 +17,7 @@
 // NOLINTEND(misc-include-cleaner)
 
 #include <chrono>           // std::chrono::system_clock
+#include <cstddef>          // std::size_t
 #include <cstdint>          // std::uint8_t
 #include <initializer_list> // std::initializer_list
 #include <optional>         // std::optional
@@ -299,6 +300,20 @@ struct HTTPCookie {
 };
 
 /// @ingroup http
+/// The RFC 6265bis §5.7 ceiling on the sum of the lengths of a cookie name and
+/// its value, past which a user agent ignores the cookie entirely. Note that
+/// the RFC 6265 §6.1 minimum capability names the same number but measures the
+/// attributes into it as well, so a cookie sized against this one is not
+/// necessarily within that older bound.
+inline constexpr std::size_t HTTP_COOKIE_MAXIMUM_NAME_VALUE_LENGTH{4096};
+
+/// @ingroup http
+/// The RFC 6265bis §5.6 ceiling on the length of a single cookie attribute
+/// value, past which a user agent ignores that attribute while keeping the
+/// cookie, silently widening or narrowing the scope the server asked for.
+inline constexpr std::size_t HTTP_COOKIE_MAXIMUM_ATTRIBUTE_VALUE_LENGTH{1024};
+
+/// @ingroup http
 /// Test whether a cookie can be serialised into a valid RFC 6265 §4.1
 /// `Set-Cookie` header value: the name is a non-empty RFC 9110 §5.6.2 token,
 /// the value is made of RFC 6265 §4.1.1 cookie-octets, any path is made of RFC
@@ -306,7 +321,9 @@ struct HTTPCookie {
 /// ignorable leading dot, a present `max_age` is not negative, per RFC 6265bis
 /// §5.7 a `HTTPCookieSameSite::None` cookie is also `secure`, and the RFC
 /// 6265bis §4.1.3 `__Secure-` and `__Host-` name prefixes carry their required
-/// attributes. For example:
+/// attributes. The RFC 6265bis §5.6 and §5.7 length ceilings are enforced too,
+/// since a cookie past either is ignored in whole or in part by the user
+/// agent. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/http.h>
@@ -354,6 +371,25 @@ auto http_serialize_cookie(const HTTPCookie &cookie)
     -> std::optional<std::string>;
 
 /// @ingroup http
+/// Derive the cookie that removes a cookie, carrying its name and every
+/// attribute across so that the RFC 6265 §3.1 requirement to match the path
+/// and the domain of the original is met by construction. The value is
+/// dropped, and the lifetime is set to zero, which RFC 6265bis §5.6.2 maps to
+/// "the earliest representable date and time". For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/http.h>
+/// #include <cassert>
+///
+/// const auto value{sourcemeta::core::http_serialize_cookie(
+///     sourcemeta::core::http_expire_cookie(
+///         {.name = "session", .value = "abc", .http_only = true}))};
+/// assert(value == "session=; Max-Age=0; HttpOnly");
+/// ```
+SOURCEMETA_CORE_HTTP_EXPORT
+auto http_expire_cookie(const HTTPCookie &cookie) -> HTTPCookie;
+
+/// @ingroup http
 /// Test whether a comma-separated header value per RFC 9110 §5.6.1 lists any
 /// of the given tokens. For example:
 ///
@@ -370,6 +406,55 @@ SOURCEMETA_CORE_HTTP_EXPORT
 auto http_field_list_contains_any(
     const std::string_view header_value,
     std::initializer_list<std::string_view> tokens) noexcept -> bool;
+
+/// @ingroup http
+/// Append an RFC 9110 §12.5.5 `Vary` header value to `out`, returning `true`
+/// on success. Every member must be a non-empty RFC 9110 §5.6.2 token, which
+/// the wildcard also is, since §5.1 defines a field name as one and §5.6.1.1
+/// forbids a sender from generating an empty list element. An empty list has
+/// nothing to send, so the header is left to be omitted rather than emitted
+/// blank. The spelling of each name is kept as given, as §5.1 makes field
+/// names case-insensitive. Nothing is appended and this returns `false` when
+/// any member is refused, which keeps a name from injecting a further field.
+/// For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/http.h>
+/// #include <array>
+/// #include <cassert>
+/// #include <string>
+/// #include <string_view>
+///
+/// const std::array<std::string_view, 2> names{{"Accept", "Accept-Encoding"}};
+/// std::string buffer;
+/// const auto ok{sourcemeta::core::http_format_vary(names, buffer)};
+/// assert(ok);
+/// assert(buffer == "Accept, Accept-Encoding");
+/// ```
+SOURCEMETA_CORE_HTTP_EXPORT
+auto http_format_vary(std::span<const std::string_view> field_names,
+                      std::string &out) -> bool;
+
+/// @ingroup http
+/// Compose an RFC 9110 §12.5.5 `Vary` header value, returning no value when
+/// any member is not an RFC 9110 §5.6.2 token or when there are none.
+///
+/// Note that RFC 9110 §12.5.5 forbids a proxy from generating the wildcard
+/// member, so only an origin server may compose one. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/http.h>
+/// #include <array>
+/// #include <cassert>
+/// #include <string_view>
+///
+/// const std::array<std::string_view, 2> names{{"Accept", "Accept-Encoding"}};
+/// const auto value{sourcemeta::core::http_format_vary(names)};
+/// assert(value == "Accept, Accept-Encoding");
+/// ```
+SOURCEMETA_CORE_HTTP_EXPORT
+auto http_format_vary(std::span<const std::string_view> field_names)
+    -> std::optional<std::string>;
 
 /// @ingroup http
 /// Extract the credential from an `Authorization` header that uses the Bearer
