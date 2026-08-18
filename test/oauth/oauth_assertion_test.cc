@@ -807,7 +807,7 @@ TEST(verify_client_assertion_rejects_a_lifetime_past_the_bound) {
       assertion.value(), AUDIENCES, "s6BhdRkqt3", keys.value(), FIXED_TIME,
       options)};
   EXPECT_TRUE(error.has_value());
-  EXPECT_TRUE(error.value() == sourcemeta::core::OAuthAssertionError::Lifetime);
+  EXPECT_EQ(error.value(), sourcemeta::core::OAuthAssertionError::Lifetime);
 }
 
 // An unset bound leaves the interval unexamined, so nothing an existing caller

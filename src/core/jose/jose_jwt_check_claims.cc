@@ -101,8 +101,17 @@ auto jwt_check_claims(
     const auto issued_at{token.issued_at()};
     // RFC 9068 Section 2.2 requires the issuance time of an access token in
     // any case, and without it the bound could be escaped by omission
-    if (!issued_at.has_value() || expires_at.value() < issued_at.value() ||
-        expires_at.value() - issued_at.value() > maximum_lifetime.value()) {
+    if (!issued_at.has_value() || expires_at.value() < issued_at.value()) {
+      return JWTClaimError::Lifetime;
+    }
+
+    // The bound is applied by shifting the claimed issuance forward, which
+    // saturates, rather than by subtracting one attacker-controlled date from
+    // another. Both are only held within the clock's representable window, so
+    // the difference between the two extremes does not fit the tick count that
+    // would carry it, and the wrapped result would read as within any bound
+    if (expires_at.value() >
+        clock_shift_forward(issued_at.value(), maximum_lifetime.value())) {
       return JWTClaimError::Lifetime;
     }
   }
