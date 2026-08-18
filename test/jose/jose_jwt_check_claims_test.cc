@@ -710,7 +710,68 @@ TEST(lifetime_bound_that_is_negative_admits_nothing) {
   EXPECT_EQ(error.value(), sourcemeta::core::JWTClaimError::Lifetime);
 }
 
-TEST(lifetime_bound_of_zero_admits_nothing) {
+// A bound of zero says a token may claim no life, which the token expiring at
+// the very instant it was issued satisfies exactly
+TEST(lifetime_bound_of_zero_admits_a_zero_length_interval) {
+  const auto input{make_token(
+      R"({ "alg": "RS256" })",
+      R"({ "iss": "acme", "aud": "client", "iat": 2000, "exp": 2000 })",
+      "sig")};
+  const auto token{sourcemeta::core::JWT::from(input)};
+  EXPECT_TRUE(token.has_value());
+  const auto error{sourcemeta::core::jwt_check_claims(
+      token.value(), "acme", "client",
+      std::chrono::system_clock::from_time_t(1500),
+      sourcemeta::core::JWTClockSkew{std::chrono::seconds{0},
+                                     std::chrono::seconds{0},
+                                     std::chrono::seconds{600}},
+      std::nullopt, std::chrono::seconds{0})};
+  EXPECT_FALSE(error.has_value());
+}
+
+// A negative bound admits no interval at all, the empty one included
+TEST(lifetime_bound_that_is_negative_refuses_a_zero_length_interval) {
+  const auto input{make_token(
+      R"({ "alg": "RS256" })",
+      R"({ "iss": "acme", "aud": "client", "iat": 2000, "exp": 2000 })",
+      "sig")};
+  const auto token{sourcemeta::core::JWT::from(input)};
+  EXPECT_TRUE(token.has_value());
+  const auto error{sourcemeta::core::jwt_check_claims(
+      token.value(), "acme", "client",
+      std::chrono::system_clock::from_time_t(1500),
+      sourcemeta::core::JWTClockSkew{std::chrono::seconds{0},
+                                     std::chrono::seconds{0},
+                                     std::chrono::seconds{600}},
+      std::nullopt, std::chrono::seconds{-1})};
+  EXPECT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(), sourcemeta::core::JWTClaimError::Lifetime);
+}
+
+// A bound wider than any interval two representable instants can span admits
+// every one of them, where saturating the shift would refuse the widest
+TEST(lifetime_bound_wider_than_the_clock_admits_every_interval) {
+  const auto maximum{std::chrono::duration_cast<std::chrono::duration<double>>(
+                         std::chrono::system_clock::duration::max())
+                         .count()};
+  const auto minimum{std::chrono::duration_cast<std::chrono::duration<double>>(
+                         std::chrono::system_clock::duration::min())
+                         .count()};
+  const auto payload{
+      std::string{R"({ "iss": "acme", "aud": "client", "iat": )"} +
+      std::to_string(minimum + 2.0) + R"(, "exp": )" +
+      std::to_string(maximum - 2.0) + " }"};
+  const auto input{make_token(R"({ "alg": "RS256" })", payload, "sig")};
+  const auto token{sourcemeta::core::JWT::from(input)};
+  EXPECT_TRUE(token.has_value());
+  const auto error{sourcemeta::core::jwt_check_claims(
+      token.value(), "acme", "client",
+      std::chrono::system_clock::from_time_t(1000), {}, std::nullopt,
+      std::chrono::seconds::max())};
+  EXPECT_FALSE(error.has_value());
+}
+
+TEST(lifetime_bound_of_zero_admits_nothing_longer) {
   const auto input{make_token(
       R"({ "alg": "RS256" })",
       R"({ "iss": "acme", "aud": "client", "iat": 1000, "exp": 2000 })",

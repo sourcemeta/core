@@ -121,8 +121,8 @@ inline auto jwt_bounded_clock_skew(const std::chrono::seconds skew) noexcept
 /// bound makes the issuance time required, since a token leaving it out could
 /// otherwise escape the bound by omission, and it relates two claims to each
 /// other rather than to the server clock, so no tolerance applies to it. A
-/// bound that is not positive admits no interval at all, so it refuses every
-/// token rather than lifting the check. For example:
+/// negative bound refuses every token, and a bound of zero admits only one
+/// whose expiration is the very instant it was issued. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/jose.h>

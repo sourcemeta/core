@@ -176,9 +176,9 @@ struct OAuthAssertionVerifyOptions {
   /// times, unbounded when unset. RFC 7523 Section 3 check 4 notes a server
   /// "may reject JWTs with an "exp" claim value that is unreasonably far in
   /// the future", and Section 5 names the "maximum JWT lifetime allowed" among
-  /// the values two parties agree out of band. A bound that is not positive
-  /// admits no interval at all, so it refuses every assertion rather than
-  /// lifting the check.
+  /// the values two parties agree out of band. A negative bound refuses every
+  /// assertion, and a bound of zero admits only one whose expiration is the
+  /// very instant it was issued.
   std::optional<std::chrono::seconds> maximum_lifetime{};
 };
 

@@ -105,13 +105,31 @@ auto jwt_check_claims(
       return JWTClaimError::Lifetime;
     }
 
+    // A negative bound admits no interval at all, the empty one included. The
+    // shift below cannot express that, since it reads a span running backwards
+    // as none at all and so would admit a token expiring as it was issued
+    if (maximum_lifetime.value() < std::chrono::seconds::zero()) {
+      return JWTClaimError::Lifetime;
+    }
+
+    // The widest interval two representable instants can span, in seconds so
+    // that the tick count which cannot carry it plays no part. A bound at
+    // least this wide admits every interval there is, and the shift below
+    // would otherwise refuse one measured from an instant near the oldest,
+    // where moving forward by the whole span still lands short of the newest
+    constexpr auto WIDEST{std::chrono::duration_cast<std::chrono::seconds>(
+                              Clock::duration::max()) -
+                          std::chrono::duration_cast<std::chrono::seconds>(
+                              Clock::duration::min())};
+
     // The bound is applied by shifting the claimed issuance forward, which
     // saturates, rather than by subtracting one attacker-controlled date from
     // another. Both are only held within the clock's representable window, so
     // the difference between the two extremes does not fit the tick count that
     // would carry it, and the wrapped result would read as within any bound
-    if (expires_at.value() >
-        clock_shift_forward(issued_at.value(), maximum_lifetime.value())) {
+    if (maximum_lifetime.value() < WIDEST &&
+        expires_at.value() >
+            clock_shift_forward(issued_at.value(), maximum_lifetime.value())) {
       return JWTClaimError::Lifetime;
     }
   }
