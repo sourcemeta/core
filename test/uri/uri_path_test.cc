@@ -173,7 +173,7 @@ TEST(set_relative_path) {
 
   auto path{"../foo"};
   try {
-    uri.path(std::move(path));
+    uri.path(path);
     FAIL();
   } catch (const sourcemeta::core::URIError &error) {
     EXPECT_STREQ(error.what(),
@@ -183,7 +183,7 @@ TEST(set_relative_path) {
 
   path = "./foo";
   try {
-    uri.path(std::move(path));
+    uri.path(path);
     FAIL();
   } catch (const sourcemeta::core::URIError &error) {
     EXPECT_STREQ(error.what(),

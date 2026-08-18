@@ -155,9 +155,9 @@ TEST(conformance_pkce_mint_round_trips) {
 
 TEST(conformance_full_code_pkce_exchange) {
   // The client mints a PKCE pair and drives a code request through the server.
-  static constexpr std::string_view verifier{
+  static constexpr std::string_view VERIFIER{
       "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"};
-  const auto challenge{sourcemeta::core::oauth_pkce_challenge(verifier)};
+  const auto challenge{sourcemeta::core::oauth_pkce_challenge(VERIFIER)};
   const std::string_view challenge_view{challenge.data(), challenge.size()};
 
   sourcemeta::core::OAuthAuthorizationRequest authorization;
@@ -203,7 +203,7 @@ TEST(conformance_full_code_pkce_exchange) {
   const std::span<const sourcemeta::core::OAuthParameter> resources;
   sourcemeta::core::SecureString body;
   sourcemeta::core::oauth_build_token_request_code(
-      callback.code, "https://client.example/cb", verifier, resources, body);
+      callback.code, "https://client.example/cb", VERIFIER, resources, body);
   sourcemeta::core::SecureString header;
   sourcemeta::core::oauth_client_secret_basic("s6BhdRkqt3", "gX1fBat3bV",
                                               header);

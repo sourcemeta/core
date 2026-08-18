@@ -10,10 +10,10 @@
 #include <unordered_map>
 #include <unordered_set>
 
-static const std::string foo = "foo";
-static const std::string bar = "bar";
-static const std::string baz = "baz";
-static const std::string qux = "qux";
+static const std::string FOO = "foo";
+static const std::string BAR = "bar";
+static const std::string BAZ = "baz";
+static const std::string QUX = "qux";
 
 TEST(general_traits) {
   EXPECT_TRUE(
@@ -50,48 +50,48 @@ TEST(empty) {
 }
 
 TEST(store_a_const_ref) {
-  const sourcemeta::core::WeakPointer pointer{std::cref(foo)};
+  const sourcemeta::core::WeakPointer pointer{std::cref(FOO)};
 
   EXPECT_EQ(pointer.size(), 1);
   EXPECT_FALSE(pointer.empty());
   EXPECT_TRUE(pointer.at(0).is_property());
-  EXPECT_EQ(pointer.at(0).to_property(), foo);
+  EXPECT_EQ(pointer.at(0).to_property(), FOO);
 }
 
 TEST(one_fragment_back) {
-  const sourcemeta::core::WeakPointer pointer{std::cref(foo)};
+  const sourcemeta::core::WeakPointer pointer{std::cref(FOO)};
 
   EXPECT_EQ(pointer.size(), 1);
   EXPECT_TRUE(pointer.back().is_property());
-  EXPECT_EQ(pointer.back().to_property(), foo);
+  EXPECT_EQ(pointer.back().to_property(), FOO);
 }
 
 TEST(multiple_fragments_mixed) {
-  const sourcemeta::core::WeakPointer pointer{std::cref(foo), 2,
-                                              std::cref(bar)};
+  const sourcemeta::core::WeakPointer pointer{std::cref(FOO), 2,
+                                              std::cref(BAR)};
   EXPECT_EQ(pointer.size(), 3);
   EXPECT_FALSE(pointer.empty());
   EXPECT_TRUE(pointer.at(0).is_property());
   EXPECT_TRUE(pointer.at(1).is_index());
   EXPECT_TRUE(pointer.at(2).is_property());
-  EXPECT_EQ(pointer.at(0).to_property(), foo);
+  EXPECT_EQ(pointer.at(0).to_property(), FOO);
   EXPECT_EQ(pointer.at(1).to_index(), 2);
-  EXPECT_EQ(pointer.at(2).to_property(), bar);
+  EXPECT_EQ(pointer.at(2).to_property(), BAR);
 }
 
 TEST(multiple_fragments_back) {
-  const sourcemeta::core::WeakPointer pointer{std::cref(foo), 2,
-                                              std::cref(bar)};
+  const sourcemeta::core::WeakPointer pointer{std::cref(FOO), 2,
+                                              std::cref(BAR)};
   EXPECT_TRUE(pointer.back().is_property());
-  EXPECT_EQ(pointer.back().to_property(), bar);
+  EXPECT_EQ(pointer.back().to_property(), BAR);
 }
 
 TEST(build_with_emplace_back) {
   sourcemeta::core::WeakPointer pointer;
   EXPECT_EQ(pointer.size(), 0);
-  auto &result_1{pointer.emplace_back(std::cref(foo))};
+  auto &result_1{pointer.emplace_back(std::cref(FOO))};
   EXPECT_TRUE(result_1.is_property());
-  EXPECT_EQ(result_1.to_property(), foo);
+  EXPECT_EQ(result_1.to_property(), FOO);
 
   auto &result_2{pointer.emplace_back(1)};
   EXPECT_TRUE(result_2.is_index());
@@ -100,7 +100,7 @@ TEST(build_with_emplace_back) {
   EXPECT_EQ(pointer.size(), 2);
   EXPECT_TRUE(pointer.at(0).is_property());
   EXPECT_TRUE(pointer.at(1).is_index());
-  EXPECT_EQ(pointer.at(0).to_property(), foo);
+  EXPECT_EQ(pointer.at(0).to_property(), FOO);
   EXPECT_EQ(pointer.at(1).to_index(), 1);
 }
 
@@ -111,23 +111,23 @@ TEST(equality_empty) {
 }
 
 TEST(equality_true) {
-  const sourcemeta::core::WeakPointer pointer_1{std::cref(foo), 1,
-                                                std::cref(bar)};
-  const sourcemeta::core::WeakPointer pointer_2{std::cref(foo), 1,
-                                                std::cref(bar)};
+  const sourcemeta::core::WeakPointer pointer_1{std::cref(FOO), 1,
+                                                std::cref(BAR)};
+  const sourcemeta::core::WeakPointer pointer_2{std::cref(FOO), 1,
+                                                std::cref(BAR)};
   EXPECT_EQ(pointer_1, pointer_2);
 }
 
 TEST(equality_false) {
-  const sourcemeta::core::WeakPointer pointer_1{std::cref(foo), 1,
-                                                std::cref(bar)};
-  const sourcemeta::core::WeakPointer pointer_2{std::cref(foo), 3,
-                                                std::cref(bar)};
+  const sourcemeta::core::WeakPointer pointer_1{std::cref(FOO), 1,
+                                                std::cref(BAR)};
+  const sourcemeta::core::WeakPointer pointer_2{std::cref(FOO), 3,
+                                                std::cref(BAR)};
   EXPECT_FALSE(pointer_1 == pointer_2);
 }
 
 TEST(pop_back_non_empty) {
-  sourcemeta::core::WeakPointer pointer{std::cref(foo), std::cref(bar)};
+  sourcemeta::core::WeakPointer pointer{std::cref(FOO), std::cref(BAR)};
 
   pointer.pop_back();
   EXPECT_EQ(pointer.size(), 1);
@@ -136,9 +136,9 @@ TEST(pop_back_non_empty) {
 }
 
 TEST(ordering_less_than) {
-  const sourcemeta::core::WeakPointer pointer_1{std::cref(foo), std::cref(bar)};
-  const sourcemeta::core::WeakPointer pointer_2{std::cref(foo)};
-  const sourcemeta::core::WeakPointer pointer_3{std::cref(baz)};
+  const sourcemeta::core::WeakPointer pointer_1{std::cref(FOO), std::cref(BAR)};
+  const sourcemeta::core::WeakPointer pointer_2{std::cref(FOO)};
+  const sourcemeta::core::WeakPointer pointer_3{std::cref(BAZ)};
   EXPECT_TRUE(pointer_2 < pointer_1);
   EXPECT_TRUE(pointer_3 < pointer_1);
   EXPECT_TRUE(pointer_3 < pointer_2);
@@ -151,8 +151,8 @@ TEST(pop_back_zero_empty) {
 }
 
 TEST(pop_back_many_subset) {
-  sourcemeta::core::WeakPointer pointer{std::cref(foo), std::cref(bar),
-                                        std::cref(baz)};
+  sourcemeta::core::WeakPointer pointer{std::cref(FOO), std::cref(BAR),
+                                        std::cref(BAZ)};
   pointer.pop_back(2);
   EXPECT_EQ(pointer.size(), 1);
   EXPECT_TRUE(pointer.at(0).is_property());
@@ -160,15 +160,15 @@ TEST(pop_back_many_subset) {
 }
 
 TEST(pop_back_many_all) {
-  sourcemeta::core::WeakPointer pointer{std::cref(foo), std::cref(bar),
-                                        std::cref(baz)};
+  sourcemeta::core::WeakPointer pointer{std::cref(FOO), std::cref(BAR),
+                                        std::cref(BAZ)};
   pointer.pop_back(3);
   EXPECT_EQ(pointer.size(), 0);
 }
 
 TEST(push_back_pointer_copy) {
-  sourcemeta::core::WeakPointer pointer{std::cref(foo), std::cref(bar)};
-  const sourcemeta::core::WeakPointer other{std::cref(baz), std::cref(qux)};
+  sourcemeta::core::WeakPointer pointer{std::cref(FOO), std::cref(BAR)};
+  const sourcemeta::core::WeakPointer other{std::cref(BAZ), std::cref(QUX)};
   pointer.push_back(other);
   EXPECT_EQ(pointer.size(), 4);
   EXPECT_TRUE(pointer.at(0).is_property());
@@ -182,8 +182,8 @@ TEST(push_back_pointer_copy) {
 }
 
 TEST(push_back_pointer_move) {
-  sourcemeta::core::WeakPointer pointer{std::cref(foo), std::cref(bar)};
-  sourcemeta::core::WeakPointer other{std::cref(baz), std::cref(qux)};
+  sourcemeta::core::WeakPointer pointer{std::cref(FOO), std::cref(BAR)};
+  sourcemeta::core::WeakPointer other{std::cref(BAZ), std::cref(QUX)};
 
   pointer.push_back(std::move(other));
   EXPECT_EQ(pointer.size(), 4);
@@ -200,13 +200,13 @@ TEST(push_back_pointer_move) {
 }
 
 TEST(initial_with_one_token) {
-  const sourcemeta::core::WeakPointer pointer{std::cref(foo)};
+  const sourcemeta::core::WeakPointer pointer{std::cref(FOO)};
   const sourcemeta::core::WeakPointer result{pointer.initial()};
   EXPECT_EQ(result.size(), 0);
 }
 
 TEST(initial_with_two_tokens) {
-  sourcemeta::core::WeakPointer pointer{std::cref(foo), std::cref(bar)};
+  sourcemeta::core::WeakPointer pointer{std::cref(FOO), std::cref(BAR)};
   const sourcemeta::core::WeakPointer result{pointer.initial()};
   EXPECT_EQ(result.size(), 1);
   EXPECT_TRUE(pointer.at(0).is_property());
@@ -214,8 +214,8 @@ TEST(initial_with_two_tokens) {
 }
 
 TEST(initial_with_three_tokens) {
-  sourcemeta::core::WeakPointer pointer{std::cref(foo), std::cref(bar),
-                                        std::cref(baz)};
+  sourcemeta::core::WeakPointer pointer{std::cref(FOO), std::cref(BAR),
+                                        std::cref(BAZ)};
   const sourcemeta::core::WeakPointer result{pointer.initial()};
   EXPECT_EQ(result.size(), 2);
   EXPECT_TRUE(pointer.at(0).is_property());
@@ -225,8 +225,8 @@ TEST(initial_with_three_tokens) {
 }
 
 TEST(push_back_property_copy) {
-  sourcemeta::core::WeakPointer pointer{std::cref(foo)};
-  const sourcemeta::core::WeakPointer other{std::cref(bar)};
+  sourcemeta::core::WeakPointer pointer{std::cref(FOO)};
+  const sourcemeta::core::WeakPointer other{std::cref(BAR)};
   pointer.push_back(other.back().to_property());
   EXPECT_EQ(pointer.size(), 2);
   EXPECT_TRUE(pointer.at(0).is_property());
@@ -236,8 +236,8 @@ TEST(push_back_property_copy) {
 }
 
 TEST(push_back_property_move) {
-  sourcemeta::core::WeakPointer pointer{std::cref(foo)};
-  pointer.push_back(std::cref(bar));
+  sourcemeta::core::WeakPointer pointer{std::cref(FOO)};
+  pointer.push_back(std::cref(BAR));
   EXPECT_EQ(pointer.size(), 2);
   EXPECT_TRUE(pointer.at(0).is_property());
   EXPECT_EQ(pointer.at(0).to_property(), "foo");
@@ -246,7 +246,7 @@ TEST(push_back_property_move) {
 }
 
 TEST(push_back_index_copy) {
-  sourcemeta::core::WeakPointer pointer{std::cref(foo)};
+  sourcemeta::core::WeakPointer pointer{std::cref(FOO)};
   const sourcemeta::core::WeakPointer other{0};
   pointer.push_back(other.back().to_index());
   EXPECT_EQ(pointer.size(), 2);
@@ -257,7 +257,7 @@ TEST(push_back_index_copy) {
 }
 
 TEST(push_back_index_move) {
-  sourcemeta::core::WeakPointer pointer{std::cref(foo)};
+  sourcemeta::core::WeakPointer pointer{std::cref(FOO)};
   pointer.push_back(0);
   EXPECT_EQ(pointer.size(), 2);
   EXPECT_TRUE(pointer.at(0).is_property());
@@ -267,8 +267,8 @@ TEST(push_back_index_move) {
 }
 
 TEST(push_back_pointer) {
-  const sourcemeta::core::Pointer pointer{bar, baz};
-  sourcemeta::core::WeakPointer destination{std::cref(foo)};
+  const sourcemeta::core::Pointer pointer{BAR, BAZ};
+  sourcemeta::core::WeakPointer destination{std::cref(FOO)};
   destination.push_back(pointer);
   EXPECT_EQ(destination.size(), 3);
   EXPECT_TRUE(destination.at(0).is_property());
@@ -286,8 +286,8 @@ TEST(try_get_complex_true) {
     }
   })JSON")};
 
-  const sourcemeta::core::WeakPointer pointer{std::cref(foo), std::cref(bar), 2,
-                                              std::cref(baz)};
+  const sourcemeta::core::WeakPointer pointer{std::cref(FOO), std::cref(BAR), 2,
+                                              std::cref(BAZ)};
 
   const auto result{sourcemeta::core::try_get(document, pointer)};
   EXPECT_TRUE(result);
@@ -301,8 +301,8 @@ TEST(try_get_complex_false) {
     }
   })JSON")};
 
-  const sourcemeta::core::WeakPointer pointer{std::cref(foo), 2,
-                                              std::cref(baz)};
+  const sourcemeta::core::WeakPointer pointer{std::cref(FOO), 2,
+                                              std::cref(BAZ)};
 
   const auto result{sourcemeta::core::try_get(document, pointer)};
   EXPECT_FALSE(result);
@@ -326,8 +326,8 @@ TEST(get_mutable_nested) {
     }
   })JSON")};
 
-  const sourcemeta::core::WeakPointer pointer{std::cref(foo), std::cref(bar), 2,
-                                              std::cref(baz)};
+  const sourcemeta::core::WeakPointer pointer{std::cref(FOO), std::cref(BAR), 2,
+                                              std::cref(BAZ)};
   sourcemeta::core::JSON &result{sourcemeta::core::get(document, pointer)};
   EXPECT_TRUE(result.is_string());
   EXPECT_EQ(result.to_string(), "qux");
@@ -355,7 +355,7 @@ TEST(get_mutable_from_pointer_conversion) {
 }
 
 TEST(to_pointer) {
-  const sourcemeta::core::WeakPointer weak{std::cref(foo), 0};
+  const sourcemeta::core::WeakPointer weak{std::cref(FOO), 0};
   const sourcemeta::core::Pointer pointer{sourcemeta::core::to_pointer(weak)};
 
   EXPECT_EQ(weak.size(), 2);
@@ -394,16 +394,16 @@ TEST(hash_unordered_set) {
   // Test empty pointer
   const sourcemeta::core::WeakPointer empty{};
   // Test single token
-  const sourcemeta::core::WeakPointer single{std::cref(foo)};
+  const sourcemeta::core::WeakPointer single{std::cref(FOO)};
   // Test two tokens
-  const sourcemeta::core::WeakPointer two{std::cref(foo), std::cref(bar)};
+  const sourcemeta::core::WeakPointer two{std::cref(FOO), std::cref(BAR)};
   // Test three or more tokens
-  const sourcemeta::core::WeakPointer three{std::cref(foo), std::cref(bar),
-                                            std::cref(baz)};
-  const sourcemeta::core::WeakPointer four{std::cref(foo), std::cref(bar),
-                                           std::cref(baz), 1};
+  const sourcemeta::core::WeakPointer three{std::cref(FOO), std::cref(BAR),
+                                            std::cref(BAZ)};
+  const sourcemeta::core::WeakPointer four{std::cref(FOO), std::cref(BAR),
+                                           std::cref(BAZ), 1};
   // Duplicate to test deduplication
-  const sourcemeta::core::WeakPointer two_dup{std::cref(foo), std::cref(bar)};
+  const sourcemeta::core::WeakPointer two_dup{std::cref(FOO), std::cref(BAR)};
 
   set.insert(empty);
   set.insert(single);
@@ -429,12 +429,12 @@ TEST(hash_unordered_map) {
   // Test empty pointer
   const sourcemeta::core::WeakPointer empty{};
   // Test single token
-  const sourcemeta::core::WeakPointer single{std::cref(foo)};
+  const sourcemeta::core::WeakPointer single{std::cref(FOO)};
   // Test two tokens
-  const sourcemeta::core::WeakPointer two{std::cref(foo), 0};
+  const sourcemeta::core::WeakPointer two{std::cref(FOO), 0};
   // Test three or more tokens
-  const sourcemeta::core::WeakPointer four{std::cref(foo), std::cref(bar),
-                                           std::cref(baz), 1};
+  const sourcemeta::core::WeakPointer four{std::cref(FOO), std::cref(BAR),
+                                           std::cref(BAZ), 1};
 
   map[empty] = 0;
   map[single] = 1;
@@ -457,39 +457,39 @@ TEST(hash_empty_consistency) {
 
 TEST(hash_single_token_consistency) {
   const sourcemeta::core::WeakPointer::Hasher hasher;
-  const sourcemeta::core::WeakPointer single_1{std::cref(foo)};
-  const sourcemeta::core::WeakPointer single_2{std::cref(foo)};
-  const sourcemeta::core::WeakPointer single_3{std::cref(bar)};
+  const sourcemeta::core::WeakPointer single_1{std::cref(FOO)};
+  const sourcemeta::core::WeakPointer single_2{std::cref(FOO)};
+  const sourcemeta::core::WeakPointer single_3{std::cref(BAR)};
   EXPECT_EQ(hasher(single_1), hasher(single_2));
   EXPECT_NE(hasher(single_1), hasher(single_3));
 }
 
 TEST(hash_two_token_consistency) {
   const sourcemeta::core::WeakPointer::Hasher hasher;
-  const sourcemeta::core::WeakPointer two_1{std::cref(foo), std::cref(bar)};
-  const sourcemeta::core::WeakPointer two_2{std::cref(foo), std::cref(bar)};
-  const sourcemeta::core::WeakPointer two_3{std::cref(foo), std::cref(baz)};
+  const sourcemeta::core::WeakPointer two_1{std::cref(FOO), std::cref(BAR)};
+  const sourcemeta::core::WeakPointer two_2{std::cref(FOO), std::cref(BAR)};
+  const sourcemeta::core::WeakPointer two_3{std::cref(FOO), std::cref(BAZ)};
   EXPECT_EQ(hasher(two_1), hasher(two_2));
   EXPECT_NE(hasher(two_1), hasher(two_3));
 }
 
 TEST(hash_three_token_consistency) {
   const sourcemeta::core::WeakPointer::Hasher hasher;
-  const sourcemeta::core::WeakPointer multi_1{std::cref(foo), std::cref(bar),
+  const sourcemeta::core::WeakPointer multi_1{std::cref(FOO), std::cref(BAR),
                                               1};
-  const sourcemeta::core::WeakPointer multi_2{std::cref(foo), std::cref(bar),
+  const sourcemeta::core::WeakPointer multi_2{std::cref(FOO), std::cref(BAR),
                                               1};
-  const sourcemeta::core::WeakPointer multi_3{std::cref(foo), std::cref(baz),
+  const sourcemeta::core::WeakPointer multi_3{std::cref(FOO), std::cref(BAZ),
                                               1};
   EXPECT_EQ(hasher(multi_1), hasher(multi_2));
   EXPECT_NE(hasher(multi_1), hasher(multi_3));
 }
 
 TEST(hash_reference_wrapper_unordered_map) {
-  const sourcemeta::core::WeakPointer pointer_1{std::cref(foo), std::cref(bar)};
-  const sourcemeta::core::WeakPointer pointer_2{std::cref(baz)};
-  const sourcemeta::core::WeakPointer pointer_3{std::cref(foo), std::cref(bar),
-                                                std::cref(baz)};
+  const sourcemeta::core::WeakPointer pointer_1{std::cref(FOO), std::cref(BAR)};
+  const sourcemeta::core::WeakPointer pointer_2{std::cref(BAZ)};
+  const sourcemeta::core::WeakPointer pointer_3{std::cref(FOO), std::cref(BAR),
+                                                std::cref(BAZ)};
 
   std::unordered_map<
       std::reference_wrapper<const sourcemeta::core::WeakPointer>, int,
@@ -509,17 +509,17 @@ TEST(hash_reference_wrapper_unordered_map) {
   EXPECT_EQ(map.at(pointer_2), 2);
   EXPECT_EQ(map.at(pointer_3), 3);
 
-  const sourcemeta::core::WeakPointer lookup{std::cref(foo), std::cref(bar)};
+  const sourcemeta::core::WeakPointer lookup{std::cref(FOO), std::cref(BAR)};
   EXPECT_TRUE(map.contains(lookup));
   EXPECT_EQ(map.at(lookup), 1);
 
-  const sourcemeta::core::WeakPointer missing{std::cref(qux)};
+  const sourcemeta::core::WeakPointer missing{std::cref(QUX)};
   EXPECT_FALSE(map.contains(missing));
 }
 
 TEST(slice_from_zero) {
-  const sourcemeta::core::WeakPointer pointer{std::cref(foo), std::cref(bar),
-                                              std::cref(baz)};
+  const sourcemeta::core::WeakPointer pointer{std::cref(FOO), std::cref(BAR),
+                                              std::cref(BAZ)};
   const sourcemeta::core::WeakPointer result{pointer.slice(0)};
   EXPECT_EQ(result.size(), 3);
   EXPECT_TRUE(result.at(0).is_property());
@@ -531,8 +531,8 @@ TEST(slice_from_zero) {
 }
 
 TEST(slice_from_one) {
-  const sourcemeta::core::WeakPointer pointer{std::cref(foo), std::cref(bar),
-                                              std::cref(baz)};
+  const sourcemeta::core::WeakPointer pointer{std::cref(FOO), std::cref(BAR),
+                                              std::cref(BAZ)};
   const sourcemeta::core::WeakPointer result{pointer.slice(1)};
   EXPECT_EQ(result.size(), 2);
   EXPECT_TRUE(result.at(0).is_property());
@@ -542,8 +542,8 @@ TEST(slice_from_one) {
 }
 
 TEST(slice_from_two) {
-  const sourcemeta::core::WeakPointer pointer{std::cref(foo), std::cref(bar),
-                                              std::cref(baz)};
+  const sourcemeta::core::WeakPointer pointer{std::cref(FOO), std::cref(BAR),
+                                              std::cref(BAZ)};
   const sourcemeta::core::WeakPointer result{pointer.slice(2)};
   EXPECT_EQ(result.size(), 1);
   EXPECT_TRUE(result.at(0).is_property());
@@ -551,8 +551,8 @@ TEST(slice_from_two) {
 }
 
 TEST(slice_from_end) {
-  const sourcemeta::core::WeakPointer pointer{std::cref(foo), std::cref(bar),
-                                              std::cref(baz)};
+  const sourcemeta::core::WeakPointer pointer{std::cref(FOO), std::cref(BAR),
+                                              std::cref(BAZ)};
   const sourcemeta::core::WeakPointer result{pointer.slice(3)};
   EXPECT_EQ(result.size(), 0);
   EXPECT_TRUE(result.empty());
@@ -566,7 +566,7 @@ TEST(slice_empty_from_zero) {
 }
 
 TEST(slice_with_indices) {
-  const sourcemeta::core::WeakPointer pointer{std::cref(foo), 1, std::cref(bar),
+  const sourcemeta::core::WeakPointer pointer{std::cref(FOO), 1, std::cref(BAR),
                                               2};
   const sourcemeta::core::WeakPointer result{pointer.slice(1)};
   EXPECT_EQ(result.size(), 3);
@@ -585,8 +585,8 @@ TEST(to_uri_empty) {
 }
 
 TEST(with_property_tokens) {
-  const sourcemeta::core::WeakPointer pointer{std::cref(foo), std::cref(bar),
-                                              std::cref(baz)};
+  const sourcemeta::core::WeakPointer pointer{std::cref(FOO), std::cref(BAR),
+                                              std::cref(BAZ)};
   const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer)};
   EXPECT_EQ(fragment.recompose(), "#/foo/bar/baz");
 }
@@ -598,55 +598,55 @@ TEST(with_index_tokens) {
 }
 
 TEST(with_mixed_tokens) {
-  const sourcemeta::core::WeakPointer pointer{std::cref(foo), 1,
-                                              std::cref(bar)};
+  const sourcemeta::core::WeakPointer pointer{std::cref(FOO), 1,
+                                              std::cref(BAR)};
   const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer)};
   EXPECT_EQ(fragment.recompose(), "#/foo/1/bar");
 }
 
 TEST(with_absolute_base_uri) {
-  const sourcemeta::core::WeakPointer pointer{std::cref(foo), std::cref(bar)};
+  const sourcemeta::core::WeakPointer pointer{std::cref(FOO), std::cref(BAR)};
   const sourcemeta::core::URI base{"https://www.example.com"};
   const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer, base)};
   EXPECT_EQ(fragment.recompose(), "https://www.example.com#/foo/bar");
 }
 
 TEST(with_relative_base_uri) {
-  const sourcemeta::core::WeakPointer pointer{std::cref(foo), std::cref(bar)};
+  const sourcemeta::core::WeakPointer pointer{std::cref(FOO), std::cref(BAR)};
   const sourcemeta::core::URI base{"../baz"};
   const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer, base)};
   EXPECT_EQ(fragment.recompose(), "../baz#/foo/bar");
 }
 
 TEST(with_absolute_base_string_view) {
-  const sourcemeta::core::WeakPointer pointer{std::cref(foo), std::cref(bar)};
+  const sourcemeta::core::WeakPointer pointer{std::cref(FOO), std::cref(BAR)};
   const std::string_view base{"https://www.example.com"};
   const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer, base)};
   EXPECT_EQ(fragment.recompose(), "https://www.example.com#/foo/bar");
 }
 
 TEST(with_empty_base_string_view) {
-  const sourcemeta::core::WeakPointer pointer{std::cref(foo), std::cref(bar)};
+  const sourcemeta::core::WeakPointer pointer{std::cref(FOO), std::cref(BAR)};
   const std::string_view base{""};
   const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer, base)};
   EXPECT_EQ(fragment.recompose(), "#/foo/bar");
 }
 
 TEST(with_relative_base_string_view) {
-  const sourcemeta::core::WeakPointer pointer{std::cref(foo), std::cref(bar)};
+  const sourcemeta::core::WeakPointer pointer{std::cref(FOO), std::cref(BAR)};
   const std::string_view base{"../baz"};
   const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer, base)};
   EXPECT_EQ(fragment.recompose(), "../baz#/foo/bar");
 }
 
 TEST(single_property_token) {
-  const sourcemeta::core::WeakPointer pointer{std::cref(foo)};
-  const sourcemeta::core::WeakPointer result{std::cref(foo), std::cref(bar)};
-  EXPECT_EQ(pointer.concat(std::cref(bar)), result);
+  const sourcemeta::core::WeakPointer pointer{std::cref(FOO)};
+  const sourcemeta::core::WeakPointer result{std::cref(FOO), std::cref(BAR)};
+  EXPECT_EQ(pointer.concat(std::cref(BAR)), result);
 }
 
 TEST(single_index_token) {
-  const sourcemeta::core::WeakPointer pointer{std::cref(foo)};
-  const sourcemeta::core::WeakPointer result{std::cref(foo), 1};
+  const sourcemeta::core::WeakPointer pointer{std::cref(FOO)};
+  const sourcemeta::core::WeakPointer result{std::cref(FOO), 1};
   EXPECT_EQ(pointer.concat(1), result);
 }

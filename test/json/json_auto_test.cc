@@ -17,11 +17,11 @@
 #include <sourcemeta/core/json.h>
 
 struct ClassWithCustomMethod {
-  auto to_json() const -> sourcemeta::core::JSON {
+  [[nodiscard]] auto to_json() const -> sourcemeta::core::JSON {
     return sourcemeta::core::JSON{42};
   }
 
-  static auto from_json(const sourcemeta::core::JSON &)
+  static auto from_json([[maybe_unused]] const sourcemeta::core::JSON &value)
       -> std::optional<ClassWithCustomMethod> {
     return ClassWithCustomMethod{};
   }
@@ -30,7 +30,7 @@ struct ClassWithCustomMethod {
       -> bool = default;
 };
 
-enum class SampleEnum { Foo = 0, Bar = 1, Baz };
+enum class SampleEnum { Foo = 0, Bar = 1, Baz = 2 };
 
 TEST(class_with_custom_method) {
   const ClassWithCustomMethod value;

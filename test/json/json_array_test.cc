@@ -2,6 +2,7 @@
 #include <sourcemeta/core/test.h>
 
 #include <algorithm>
+#include <ranges>
 #include <set>
 #include <string>
 #include <type_traits>
@@ -167,9 +168,8 @@ TEST(reverse_boolean_iterator) {
        sourcemeta::core::JSON{false}})};
 
   std::vector<bool> result;
-  for (auto iterator = document.as_array().crbegin();
-       iterator != document.as_array().crend(); iterator++) {
-    result.push_back(iterator->to_boolean());
+  for (const auto &element : std::views::reverse(document.as_array())) {
+    result.push_back(element.to_boolean());
   }
 
   EXPECT_EQ(result.size(), 3);

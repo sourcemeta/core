@@ -871,7 +871,7 @@ public:
   template <typename Output>
   static auto escape(const std::string_view input, Output &output,
                      const bool maybe_encoded = false) -> void {
-    output.reserve(output.size() + input.size() * 3);
+    output.reserve(output.size() + (input.size() * 3));
     for (std::size_t position = 0; position < input.size();) {
       auto byte{static_cast<unsigned char>(input[position])};
       std::size_t advance{1};

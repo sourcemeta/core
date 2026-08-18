@@ -35,13 +35,14 @@ auto to_signature_hash_function(const std::string_view name)
     -> std::optional<sourcemeta::core::SignatureHashFunction> {
   if (name == "SHA256" || name == "SHA-256") {
     return sourcemeta::core::SignatureHashFunction::SHA256;
-  } else if (name == "SHA384" || name == "SHA-384") {
-    return sourcemeta::core::SignatureHashFunction::SHA384;
-  } else if (name == "SHA512" || name == "SHA-512") {
-    return sourcemeta::core::SignatureHashFunction::SHA512;
-  } else {
-    return std::nullopt;
   }
+  if (name == "SHA384" || name == "SHA-384") {
+    return sourcemeta::core::SignatureHashFunction::SHA384;
+  }
+  if (name == "SHA512" || name == "SHA-512") {
+    return sourcemeta::core::SignatureHashFunction::SHA512;
+  }
+  return std::nullopt;
 }
 
 struct CurveParameters {
@@ -52,13 +53,14 @@ struct CurveParameters {
 auto to_curve(const std::string_view name) -> std::optional<CurveParameters> {
   if (name == "P-256") {
     return CurveParameters{sourcemeta::core::EllipticCurve::P256, 32};
-  } else if (name == "P-384") {
-    return CurveParameters{sourcemeta::core::EllipticCurve::P384, 48};
-  } else if (name == "P-521") {
-    return CurveParameters{sourcemeta::core::EllipticCurve::P521, 66};
-  } else {
-    return std::nullopt;
   }
+  if (name == "P-384") {
+    return CurveParameters{sourcemeta::core::EllipticCurve::P384, 48};
+  }
+  if (name == "P-521") {
+    return CurveParameters{sourcemeta::core::EllipticCurve::P521, 66};
+  }
+  return std::nullopt;
 }
 
 // The hash functions are overloaded, so the registrars name the digest variant

@@ -1832,11 +1832,11 @@ TEST(construct_from_float_high_precision) {
 }
 
 TEST(multithreaded_construction) {
-  constexpr int number_of_threads{4};
+  constexpr int NUMBER_OF_THREADS{4};
   std::vector<std::thread> threads;
-  threads.reserve(number_of_threads);
+  threads.reserve(NUMBER_OF_THREADS);
 
-  for (int index = 0; index < number_of_threads; index++) {
+  for (int index = 0; index < NUMBER_OF_THREADS; index++) {
     threads.emplace_back([]() {
       const sourcemeta::core::Decimal value{42};
       const sourcemeta::core::Decimal result{value +
@@ -3311,11 +3311,11 @@ TEST(compound_modulo_self_gives_zero) {
 }
 
 TEST(multithreaded_parsing) {
-  constexpr int number_of_threads{16};
+  constexpr int NUMBER_OF_THREADS{16};
   std::vector<std::thread> threads;
-  threads.reserve(number_of_threads);
+  threads.reserve(NUMBER_OF_THREADS);
 
-  for (int index = 0; index < number_of_threads; index++) {
+  for (int index = 0; index < NUMBER_OF_THREADS; index++) {
     threads.emplace_back([]() {
       const sourcemeta::core::Decimal value{"3.14159265358979"};
       EXPECT_FALSE(value.is_zero());
@@ -3329,11 +3329,11 @@ TEST(multithreaded_parsing) {
 }
 
 TEST(multithreaded_stringification) {
-  constexpr int number_of_threads{16};
+  constexpr int NUMBER_OF_THREADS{16};
   std::vector<std::thread> threads;
-  threads.reserve(number_of_threads);
+  threads.reserve(NUMBER_OF_THREADS);
 
-  for (int index = 0; index < number_of_threads; index++) {
+  for (int index = 0; index < NUMBER_OF_THREADS; index++) {
     threads.emplace_back([]() {
       const sourcemeta::core::Decimal value{12345};
       EXPECT_EQ(value.to_string(), "12345");
@@ -3346,11 +3346,11 @@ TEST(multithreaded_stringification) {
 }
 
 TEST(multithreaded_comparison) {
-  constexpr int number_of_threads{16};
+  constexpr int NUMBER_OF_THREADS{16};
   std::vector<std::thread> threads;
-  threads.reserve(number_of_threads);
+  threads.reserve(NUMBER_OF_THREADS);
 
-  for (int index = 0; index < number_of_threads; index++) {
+  for (int index = 0; index < NUMBER_OF_THREADS; index++) {
     threads.emplace_back([]() {
       const sourcemeta::core::Decimal left{100};
       const sourcemeta::core::Decimal right{200};
@@ -3366,11 +3366,11 @@ TEST(multithreaded_comparison) {
 }
 
 TEST(multithreaded_divisibility) {
-  constexpr int number_of_threads{16};
+  constexpr int NUMBER_OF_THREADS{16};
   std::vector<std::thread> threads;
-  threads.reserve(number_of_threads);
+  threads.reserve(NUMBER_OF_THREADS);
 
-  for (int index = 0; index < number_of_threads; index++) {
+  for (int index = 0; index < NUMBER_OF_THREADS; index++) {
     threads.emplace_back([]() {
       const sourcemeta::core::Decimal dividend{100};
       const sourcemeta::core::Decimal divisor{5};
@@ -3384,11 +3384,11 @@ TEST(multithreaded_divisibility) {
 }
 
 TEST(multithreaded_mixed_operations) {
-  constexpr int number_of_threads{16};
+  constexpr int NUMBER_OF_THREADS{16};
   std::vector<std::thread> threads;
-  threads.reserve(number_of_threads);
+  threads.reserve(NUMBER_OF_THREADS);
 
-  for (int index = 0; index < number_of_threads; index++) {
+  for (int index = 0; index < NUMBER_OF_THREADS; index++) {
     threads.emplace_back([index]() {
       if (index % 4 == 0) {
         EXPECT_EQ(sourcemeta::core::Decimal{10} + sourcemeta::core::Decimal{5},
@@ -3411,11 +3411,11 @@ TEST(multithreaded_mixed_operations) {
 }
 
 TEST(multithreaded_high_thread_count) {
-  constexpr int number_of_threads{32};
+  constexpr int NUMBER_OF_THREADS{32};
   std::vector<std::thread> threads;
-  threads.reserve(number_of_threads);
+  threads.reserve(NUMBER_OF_THREADS);
 
-  for (int index = 0; index < number_of_threads; index++) {
+  for (int index = 0; index < NUMBER_OF_THREADS; index++) {
     threads.emplace_back([]() {
       const sourcemeta::core::Decimal value{42};
       const sourcemeta::core::Decimal result{value +

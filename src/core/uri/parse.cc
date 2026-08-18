@@ -661,7 +661,12 @@ auto URI::is_gen_delim(const char character) noexcept -> bool {
 
 auto URI::is_uri(const std::string_view input) noexcept -> bool {
   try {
-    std::optional<std::string> scheme, userinfo, host, path, query, fragment;
+    std::optional<std::string> scheme;
+    std::optional<std::string> userinfo;
+    std::optional<std::string> host;
+    std::optional<std::string> path;
+    std::optional<std::string> query;
+    std::optional<std::string> fragment;
     std::optional<std::uint32_t> port;
     bool ip_literal{false};
     return do_parse<true, false>(input, scheme, userinfo, host, port, path,
@@ -673,7 +678,12 @@ auto URI::is_uri(const std::string_view input) noexcept -> bool {
 
 auto URI::is_uri_reference(const std::string_view input) noexcept -> bool {
   try {
-    std::optional<std::string> scheme, userinfo, host, path, query, fragment;
+    std::optional<std::string> scheme;
+    std::optional<std::string> userinfo;
+    std::optional<std::string> host;
+    std::optional<std::string> path;
+    std::optional<std::string> query;
+    std::optional<std::string> fragment;
     std::optional<std::uint32_t> port;
     bool ip_literal{false};
     do_parse<true, false>(input, scheme, userinfo, host, port, path, query,
@@ -686,7 +696,12 @@ auto URI::is_uri_reference(const std::string_view input) noexcept -> bool {
 
 auto URI::is_iri(const std::string_view input) noexcept -> bool {
   try {
-    std::optional<std::string> scheme, userinfo, host, path, query, fragment;
+    std::optional<std::string> scheme;
+    std::optional<std::string> userinfo;
+    std::optional<std::string> host;
+    std::optional<std::string> path;
+    std::optional<std::string> query;
+    std::optional<std::string> fragment;
     std::optional<std::uint32_t> port;
     bool ip_literal{false};
     return do_parse<true, true>(input, scheme, userinfo, host, port, path,
@@ -698,7 +713,12 @@ auto URI::is_iri(const std::string_view input) noexcept -> bool {
 
 auto URI::is_iri_reference(const std::string_view input) noexcept -> bool {
   try {
-    std::optional<std::string> scheme, userinfo, host, path, query, fragment;
+    std::optional<std::string> scheme;
+    std::optional<std::string> userinfo;
+    std::optional<std::string> host;
+    std::optional<std::string> path;
+    std::optional<std::string> query;
+    std::optional<std::string> fragment;
     std::optional<std::uint32_t> port;
     bool ip_literal{false};
     do_parse<true, true>(input, scheme, userinfo, host, port, path, query,
