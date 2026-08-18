@@ -214,16 +214,23 @@ auto oidc_claim_request_accepts(const JSON &request, const JSON &value) -> bool;
 /// attributes of RFC 7643 Section 4.1.2.
 ///
 /// An array is a set the caller belongs to, so any one member satisfying the
-/// request satisfies it, and an empty one satisfies nothing at all. A member
-/// is either a primitive or a complex object (RFC 7643 Section 2.4), so one
-/// list may carry both. A complex member is compared on its `value`
+/// request satisfies it. A member is either a primitive or a complex object
+/// (RFC 7643 Section 2.4), so one list may carry both, and anything else, a
+/// nested array among them, is no member shape that section defines and
+/// satisfies nothing. A complex member is compared on its `value`
 /// sub-attribute alone, which that section defines as "the attribute's
 /// significant value", never on `display`, which is "a human-readable name,
 /// primarily used for display purposes" and so would let whoever can rename a
 /// group grant access. A member carrying no `value` satisfies nothing.
 ///
-/// A value that is neither an array nor a complex member is compared exactly
-/// as `oidc_claim_request_accepts` compares it. For example:
+/// RFC 7643 Section 2.5 holds an unassigned attribute, the null value, and the
+/// empty array to be equivalent in state, so none of them carries membership.
+/// An empty array, a null claim, a null member, and a complex member whose
+/// `value` is null all satisfy nothing, even where the request constrains
+/// nothing and would otherwise permit any value.
+///
+/// Any other value is compared as `oidc_claim_request_accepts` compares it.
+/// For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/oidc.h>
