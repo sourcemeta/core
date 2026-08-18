@@ -330,4 +330,40 @@ auto oidc_claims_parameter_accepts(const JSON &claims,
          oidc_claim_request_accepts(*specification, value);
 }
 
+// RFC 7643 Section 2.4: an element of a multi-valued attribute is either a
+// primitive or a complex object, where the significant value lives under
+// "value" and every other sub-attribute is descriptive
+auto oidc_claim_request_accepts_member(const JSON &request, const JSON &value)
+    -> bool {
+  if (value.is_object()) {
+    const auto *significant{value.try_at("value"sv, HASH_VALUE)};
+    return significant != nullptr &&
+           oidc_claim_request_accepts(request, *significant);
+  }
+
+  // A nested array is no member shape the schema defines
+  if (value.is_array()) {
+    return false;
+  }
+
+  return oidc_claim_request_accepts(request, value);
+}
+
+auto oidc_claim_request_accepts_multi_valued(const JSON &request,
+                                             const JSON &value) -> bool {
+  // A set the caller belongs to, so belonging by any one of its members is
+  // what the request asks about, and belonging to none is belonging to nothing
+  if (value.is_array()) {
+    for (const auto &member : value.as_array()) {
+      if (oidc_claim_request_accepts_member(request, member)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  return oidc_claim_request_accepts_member(request, value);
+}
+
 } // namespace sourcemeta::core
