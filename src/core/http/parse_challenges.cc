@@ -64,34 +64,6 @@ auto ends_an_element(const std::string_view input, std::size_t position)
   return next >= input.size() || input[next] == ',';
 }
 
-// RFC 9110 §5.6.4: a quoted-string carries qdtext and quoted-pair, and a
-// quoted-pair contributes only its second octet
-auto scan_quoted_value(const std::string_view input, std::size_t position,
-                       std::string &value) -> std::optional<std::size_t> {
-  position += 1;
-  while (position < input.size()) {
-    const auto character{input[position]};
-    if (character == '\\') {
-      if (position + 1 >= input.size()) {
-        return std::nullopt;
-      }
-
-      value.push_back(input[position + 1]);
-      position += 2;
-      continue;
-    }
-
-    if (character == '"') {
-      return position + 1;
-    }
-
-    value.push_back(character);
-    position += 1;
-  }
-
-  return std::nullopt;
-}
-
 } // namespace
 
 namespace sourcemeta::core {
@@ -148,6 +120,7 @@ auto http_parse_challenges(const std::string_view input,
     }
 
     // RFC 9110 §11.2: auth-param = token BWS "=" BWS ( token / quoted-string )
+    bool first_parameter{true};
     while (true) {
       const auto name_start{position};
       const auto name_end{scan_token(input, name_start)};
@@ -159,10 +132,19 @@ auto http_parse_challenges(const std::string_view input,
       const auto after_name{skip_whitespace(input, name_end)};
       if (after_name >= input.size() || input[after_name] != '=') {
         // A token that no equals sign follows opens the next challenge rather
-        // than continuing this one, so it is left for the outer loop to read
+        // than continuing this one, so it is left for the outer loop to read.
+        // RFC 9110 §11.6.1 delimits that list with a comma, so one may only
+        // begin where a separator has just been passed
+        if (first_parameter) {
+          challenges.clear();
+          return false;
+        }
+
         position = name_start;
         break;
       }
+
+      first_parameter = false;
 
       const auto value_start{skip_whitespace(input, after_name + 1)};
       if (value_start >= input.size()) {
@@ -170,14 +152,20 @@ auto http_parse_challenges(const std::string_view input,
         return false;
       }
 
+      // The unescaping, and the refusal of any control character a
+      // quoted-string does not admit, is the module's own
+      std::string storage;
+      std::string_view scanned;
       std::string value;
       if (input[value_start] == '"') {
-        const auto value_end{scan_quoted_value(input, value_start, value)};
+        const auto value_end{
+            http_scan_quoted_string(input, value_start, storage, scanned)};
         if (!value_end.has_value()) {
           challenges.clear();
           return false;
         }
 
+        value = std::string{scanned};
         position = value_end.value();
       } else {
         const auto value_end{scan_token(input, value_start)};
@@ -195,8 +183,15 @@ auto http_parse_challenges(const std::string_view input,
           std::move(value));
 
       position = skip_whitespace(input, position);
-      if (position >= input.size() || input[position] != ',') {
+      if (position >= input.size()) {
         break;
+      }
+
+      // RFC 9110 §11.6.1: the field is a comma-delimited list, so nothing but
+      // a separator may follow a parameter
+      if (input[position] != ',') {
+        challenges.clear();
+        return false;
       }
 
       // The separator between two parameters is the same one that separates

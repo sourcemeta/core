@@ -309,3 +309,64 @@ TEST(challenge_valid_agrees_with_serialization) {
       {.scheme = "Bearer", .parameters = parameters}));
   EXPECT_FALSE(sourcemeta::core::http_challenge_valid({.scheme = "Bearer"}));
 }
+
+// RFC 6749 Appendix A.4: scope = scope-token *( SP scope-token ), so the space
+// only ever stands between two non-empty values
+TEST(serialize_challenge_rejects_an_empty_scope) {
+  const std::array<Parameter, 1> parameters{{{"scope", ""}}};
+  EXPECT_FALSE(sourcemeta::core::http_serialize_challenge(
+                   {.scheme = "Bearer", .parameters = parameters})
+                   .has_value());
+}
+
+TEST(serialize_challenge_rejects_a_scope_with_a_leading_space) {
+  const std::array<Parameter, 1> parameters{{{"scope", " openid"}}};
+  EXPECT_FALSE(sourcemeta::core::http_serialize_challenge(
+                   {.scheme = "Bearer", .parameters = parameters})
+                   .has_value());
+}
+
+TEST(serialize_challenge_rejects_a_scope_with_a_trailing_space) {
+  const std::array<Parameter, 1> parameters{{{"scope", "openid "}}};
+  EXPECT_FALSE(sourcemeta::core::http_serialize_challenge(
+                   {.scheme = "Bearer", .parameters = parameters})
+                   .has_value());
+}
+
+TEST(serialize_challenge_rejects_a_scope_with_consecutive_spaces) {
+  const std::array<Parameter, 1> parameters{{{"scope", "openid  profile"}}};
+  EXPECT_FALSE(sourcemeta::core::http_serialize_challenge(
+                   {.scheme = "Bearer", .parameters = parameters})
+                   .has_value());
+}
+
+// RFC 6749 Appendix A.7 and A.8: both are 1*NQSCHAR
+TEST(serialize_challenge_rejects_an_empty_error) {
+  const std::array<Parameter, 1> parameters{{{"error", ""}}};
+  EXPECT_FALSE(sourcemeta::core::http_serialize_challenge(
+                   {.scheme = "Bearer", .parameters = parameters})
+                   .has_value());
+}
+
+TEST(serialize_challenge_rejects_an_empty_error_description) {
+  const std::array<Parameter, 1> parameters{{{"error_description", ""}}};
+  EXPECT_FALSE(sourcemeta::core::http_serialize_challenge(
+                   {.scheme = "Bearer", .parameters = parameters})
+                   .has_value());
+}
+
+// RFC 6749 Appendix A.9: error-uri = URI-reference, which a charset check
+// alone does not decide
+TEST(serialize_challenge_rejects_an_error_uri_that_is_not_a_uri_reference) {
+  const std::array<Parameter, 1> parameters{{{"error_uri", "://bad"}}};
+  EXPECT_FALSE(sourcemeta::core::http_serialize_challenge(
+                   {.scheme = "Bearer", .parameters = parameters})
+                   .has_value());
+}
+
+TEST(serialize_challenge_error_uri_relative_reference) {
+  const std::array<Parameter, 1> parameters{{{"error_uri", "/errors/token"}}};
+  EXPECT_TRUE(sourcemeta::core::http_serialize_challenge(
+                  {.scheme = "Bearer", .parameters = parameters})
+                  .has_value());
+}

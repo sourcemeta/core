@@ -253,3 +253,33 @@ TEST(parse_challenges_round_trips_a_serialized_challenge) {
   EXPECT_EQ(challenges.at(0).parameters.at(0).second, "a\"b");
   EXPECT_EQ(challenges.at(0).parameters.at(1).second, "invalid_token");
 }
+
+// RFC 9110 §5.6.4: qdtext and the escaped octet of a quoted-pair admit HTAB,
+// SP, the visible characters and obs-text, so any other control character
+// makes the value unreadable rather than carrying it through
+TEST(parse_challenges_rejects_a_control_character_within_a_value) {
+  Challenges challenges;
+  EXPECT_FALSE(sourcemeta::core::http_parse_challenges(
+      "Bearer realm=\"a\r\nb\"", challenges));
+}
+
+TEST(parse_challenges_admits_a_horizontal_tab_within_a_value) {
+  Challenges challenges;
+  EXPECT_TRUE(sourcemeta::core::http_parse_challenges("Bearer realm=\"a\tb\"",
+                                                      challenges));
+  EXPECT_EQ(challenges.at(0).parameters.at(0).second, "a\tb");
+}
+
+// RFC 9110 §11.6.1: WWW-Authenticate = #challenge, so a comma delimits two
+// challenges and one cannot simply abut the other
+TEST(parse_challenges_rejects_a_missing_separator_between_challenges) {
+  Challenges challenges;
+  EXPECT_FALSE(sourcemeta::core::http_parse_challenges(
+      "Bearer realm=\"a\" Basic realm=\"b\"", challenges));
+}
+
+TEST(parse_challenges_rejects_a_token_that_opens_no_parameter) {
+  Challenges challenges;
+  EXPECT_FALSE(
+      sourcemeta::core::http_parse_challenges("Bearer abc def", challenges));
+}

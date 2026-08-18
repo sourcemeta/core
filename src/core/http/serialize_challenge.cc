@@ -1,6 +1,8 @@
 #include <sourcemeta/core/http.h>
 #include <sourcemeta/core/text.h>
+#include <sourcemeta/core/uri.h>
 
+#include <algorithm>   // std::ranges::all_of
 #include <cstddef>     // std::size_t
 #include <optional>    // std::optional, std::nullopt
 #include <span>        // std::span
@@ -13,39 +15,46 @@ constexpr std::string_view CHALLENGE_SCHEME_SEPARATOR{" "};
 constexpr std::string_view CHALLENGE_PARAMETER_SEPARATOR{", "};
 constexpr std::string_view CHALLENGE_PARAMETER_EQUALS{"="};
 
-// RFC 6750 §3: "Values for the 'scope' attribute MUST NOT include characters
-// outside the set %x21 / %x23-5B / %x5D-7E for representing scope values and
-// %x20 for delimiters between scope values"
-auto is_scope_octet(const char character) noexcept -> bool {
-  const auto value{static_cast<unsigned char>(character)};
-  return value == 0x20 || value == 0x21 || (value >= 0x23 && value <= 0x5B) ||
-         (value >= 0x5D && value <= 0x7E);
-}
-
-// RFC 6750 §3: "Values for the 'error' and 'error_description' attributes
-// MUST NOT include characters outside the set %x20-21 / %x23-5B / %x5D-7E"
-auto is_error_octet(const char character) noexcept -> bool {
-  const auto value{static_cast<unsigned char>(character)};
-  return (value >= 0x20 && value <= 0x21) || (value >= 0x23 && value <= 0x5B) ||
-         (value >= 0x5D && value <= 0x7E);
-}
-
-// RFC 6750 §3: "Values for the 'error_uri' attribute MUST conform to the
-// URI-reference syntax and thus MUST NOT include characters outside the set
-// %x21 / %x23-5B / %x5D-7E"
-auto is_error_uri_octet(const char character) noexcept -> bool {
+// RFC 6749 Appendix A: NQCHAR = %x21 / %x23-5B / %x5D-7E
+auto is_nqchar(const char character) noexcept -> bool {
   const auto value{static_cast<unsigned char>(character)};
   return value == 0x21 || (value >= 0x23 && value <= 0x5B) ||
          (value >= 0x5D && value <= 0x7E);
 }
 
-template <typename Predicate>
-auto every_octet(const std::string_view value, Predicate predicate) noexcept
-    -> bool {
+// RFC 6749 Appendix A: NQSCHAR = %x20-21 / %x23-5B / %x5D-7E
+auto is_nqschar(const char character) noexcept -> bool {
+  const auto value{static_cast<unsigned char>(character)};
+  return (value >= 0x20 && value <= 0x21) || (value >= 0x23 && value <= 0x5B) ||
+         (value >= 0x5D && value <= 0x7E);
+}
+
+// RFC 6749 Appendix A.4: scope = scope-token *( SP scope-token ), where
+// scope-token = 1*NQCHAR. The space delimits two values rather than being
+// content, so it can neither open nor close the list nor stand doubled, which
+// is what RFC 6750 §3 means by admitting it only "for delimiters between
+// scope values"
+auto is_scope(const std::string_view value) noexcept -> bool {
+  if (value.empty() || value.front() == ' ' || value.back() == ' ') {
+    return false;
+  }
+
+  bool previous_was_space{false};
   for (const auto character : value) {
-    if (!predicate(character)) {
+    if (character == ' ') {
+      if (previous_was_space) {
+        return false;
+      }
+
+      previous_was_space = true;
+      continue;
+    }
+
+    if (!is_nqchar(character)) {
       return false;
     }
+
+    previous_was_space = false;
   }
 
   return true;
@@ -54,18 +63,24 @@ auto every_octet(const std::string_view value, Predicate predicate) noexcept
 // The parameters RFC 6750 §3 constrains beyond the RFC 9110 grammar, which
 // only bind when the challenge carries the scheme that specification defines
 auto bearer_parameter_valid(const std::string_view name,
-                            const std::string_view value) noexcept -> bool {
+                            const std::string_view value) -> bool {
   if (sourcemeta::core::equals_ignore_case(name, "scope")) {
-    return every_octet(value, is_scope_octet);
+    return is_scope(value);
   }
 
+  // RFC 6749 Appendix A.7 and A.8: error = 1*NQSCHAR and
+  // error-description = 1*NQSCHAR, so neither may be empty
   if (sourcemeta::core::equals_ignore_case(name, "error") ||
       sourcemeta::core::equals_ignore_case(name, "error_description")) {
-    return every_octet(value, is_error_octet);
+    return !value.empty() && std::ranges::all_of(value, is_nqschar);
   }
 
+  // RFC 6749 Appendix A.9: error-uri = URI-reference, which RFC 6750 §3 notes
+  // "thus MUST NOT include characters outside the set %x21 / %x23-5B /
+  // %x5D-7E", so the grammar is checked rather than only its consequence
   if (sourcemeta::core::equals_ignore_case(name, "error_uri")) {
-    return every_octet(value, is_error_uri_octet);
+    return !value.empty() && std::ranges::all_of(value, is_nqchar) &&
+           sourcemeta::core::URI::is_uri_reference(value);
   }
 
   return true;
