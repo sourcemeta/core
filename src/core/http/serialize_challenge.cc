@@ -78,9 +78,9 @@ auto bearer_parameter_valid(const std::string_view name,
   // RFC 6749 Appendix A.9: error-uri = URI-reference, which RFC 6750 §3 notes
   // "thus MUST NOT include characters outside the set %x21 / %x23-5B /
   // %x5D-7E", so the grammar is checked rather than only its consequence.
-  // Unlike the parameters above it carries no repetition bound, and RFC 3986
-  // §4.1 reaches an empty reference through a relative one whose path is
-  // empty, so this is the one value of the four that may be
+  // Alone among the four it carries no repetition bound, and RFC 3986 §4.1
+  // admits an empty reference through a relative one whose path is empty, so
+  // this value may be empty where the others may not
   if (sourcemeta::core::equals_ignore_case(name, "error_uri")) {
     return std::ranges::all_of(value, is_nqchar) &&
            sourcemeta::core::URI::is_uri_reference(value);
