@@ -114,7 +114,8 @@ public:
   /// const sourcemeta::core::Pointer::Token token{1};
   /// ```
   GenericToken(const unsigned long value)
-      : as_property{false}, property{DEFAULT_PROPERTY}, hash{0}, index{value} {}
+      : as_property_{false}, property_{DEFAULT_PROPERTY}, hash_{0},
+        index_{value} {}
 #endif
 
   /// Check if a JSON Pointer token represents an object property.
