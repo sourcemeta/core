@@ -31,11 +31,13 @@ auto shift_forward(const Clock::time_point now, const std::chrono::seconds skew)
 
 namespace sourcemeta::core {
 
-auto jwt_check_claims(const JWT &token, const std::string_view expected_issuer,
-                      const std::string_view expected_audience,
-                      const std::chrono::system_clock::time_point now,
-                      const JWTClockSkew clock_skew,
-                      const std::optional<std::string_view> expected_subject)
+auto jwt_check_claims(
+    const JWT &token, const std::string_view expected_issuer,
+    const std::string_view expected_audience,
+    const std::chrono::system_clock::time_point now,
+    const JWTClockSkew clock_skew,
+    const std::optional<std::string_view> expected_subject,
+    const std::optional<std::chrono::seconds> maximum_lifetime)
     -> std::optional<JWTClaimError> {
   // The issuer must be present and match the expected value (RFC 7519 Section
   // 4.1.1)
@@ -88,6 +90,20 @@ auto jwt_check_claims(const JWT &token, const std::string_view expected_issuer,
     if (!issued_at.has_value() ||
         shift_forward(now, clock_skew.issued_at) < issued_at.value()) {
       return JWTClaimError::IssuedAt;
+    }
+  }
+
+  // The interval a token claims for itself, which a caller bounds so that one
+  // claiming to outlive anything it mints is refused whatever signature it
+  // carries. Both instants come from the token, so the tolerance for a
+  // disagreeing server clock has no part in the comparison
+  if (maximum_lifetime.has_value()) {
+    const auto issued_at{token.issued_at()};
+    // RFC 9068 Section 2.2 requires the issuance time of an access token in
+    // any case, and without it the bound could be escaped by omission
+    if (!issued_at.has_value() || expires_at.value() < issued_at.value() ||
+        expires_at.value() - issued_at.value() > maximum_lifetime.value()) {
+      return JWTClaimError::Lifetime;
     }
   }
 

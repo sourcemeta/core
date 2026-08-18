@@ -3,6 +3,7 @@
 #include <sourcemeta/core/test.h>
 
 #include <chrono>      // std::chrono::system_clock, std::chrono::seconds
+#include <optional>    // std::optional, std::nullopt
 #include <string>      // std::string
 #include <string_view> // std::string_view
 
@@ -551,4 +552,117 @@ TEST(uniform_seconds_skew_still_converts) {
       token.value(), "acme", "client",
       std::chrono::system_clock::from_time_t(1000), std::chrono::seconds{60})};
   EXPECT_FALSE(error.has_value());
+}
+
+// The lifetime a token claims is the interval between the instant it says it
+// was issued and the instant it says it stops being honoured, so bounding it
+// refuses a value claiming to outlive anything the caller ever mints
+TEST(lifetime_within_the_bound) {
+  const auto input{make_token(
+      R"({ "alg": "RS256" })",
+      R"({ "iss": "acme", "aud": "client", "iat": 1000, "exp": 2000 })",
+      "sig")};
+  const auto token{sourcemeta::core::JWT::from(input)};
+  EXPECT_TRUE(token.has_value());
+  const auto error{sourcemeta::core::jwt_check_claims(
+      token.value(), "acme", "client",
+      std::chrono::system_clock::from_time_t(1500), {}, std::nullopt,
+      std::chrono::seconds{1000})};
+  EXPECT_FALSE(error.has_value());
+}
+
+TEST(lifetime_past_the_bound) {
+  const auto input{make_token(
+      R"({ "alg": "RS256" })",
+      R"({ "iss": "acme", "aud": "client", "iat": 1000, "exp": 2001 })",
+      "sig")};
+  const auto token{sourcemeta::core::JWT::from(input)};
+  EXPECT_TRUE(token.has_value());
+  const auto error{sourcemeta::core::jwt_check_claims(
+      token.value(), "acme", "client",
+      std::chrono::system_clock::from_time_t(1500), {}, std::nullopt,
+      std::chrono::seconds{1000})};
+  EXPECT_TRUE(error.has_value());
+  EXPECT_TRUE(error.value() == sourcemeta::core::JWTClaimError::Lifetime);
+}
+
+// A bound nothing carries the issuance instant cannot be applied at all, so
+// leaving the claim out would otherwise lift the bound for whoever left it out
+TEST(lifetime_bound_requires_an_issuance_time) {
+  const auto input{
+      make_token(R"({ "alg": "RS256" })",
+                 R"({ "iss": "acme", "aud": "client", "exp": 2000 })", "sig")};
+  const auto token{sourcemeta::core::JWT::from(input)};
+  EXPECT_TRUE(token.has_value());
+  const auto error{sourcemeta::core::jwt_check_claims(
+      token.value(), "acme", "client",
+      std::chrono::system_clock::from_time_t(1500), {}, std::nullopt,
+      std::chrono::seconds{1000})};
+  EXPECT_TRUE(error.has_value());
+  EXPECT_TRUE(error.value() == sourcemeta::core::JWTClaimError::Lifetime);
+}
+
+// A token expiring before it was issued names no interval at all
+TEST(lifetime_expiring_before_issuance) {
+  const auto input{make_token(
+      R"({ "alg": "RS256" })",
+      R"({ "iss": "acme", "aud": "client", "iat": 3000, "exp": 2000 })",
+      "sig")};
+  const auto token{sourcemeta::core::JWT::from(input)};
+  EXPECT_TRUE(token.has_value());
+  const auto error{sourcemeta::core::jwt_check_claims(
+      token.value(), "acme", "client",
+      std::chrono::system_clock::from_time_t(1500), {}, std::nullopt,
+      std::chrono::seconds{1000})};
+  EXPECT_TRUE(error.has_value());
+}
+
+// Without a bound the claim relationship is not examined, so nothing an
+// existing caller passes changes meaning
+TEST(lifetime_unbounded_by_default) {
+  const auto input{make_token(
+      R"({ "alg": "RS256" })",
+      R"({ "iss": "acme", "aud": "client", "iat": 1000, "exp": 2000000 })",
+      "sig")};
+  const auto token{sourcemeta::core::JWT::from(input)};
+  EXPECT_TRUE(token.has_value());
+  const auto error{sourcemeta::core::jwt_check_claims(
+      token.value(), "acme", "client",
+      std::chrono::system_clock::from_time_t(1500))};
+  EXPECT_FALSE(error.has_value());
+}
+
+// The interval is a relationship between two claims, so the tolerance for a
+// disagreeing server clock has no bearing on it
+TEST(lifetime_is_unaffected_by_clock_skew) {
+  const auto input{make_token(
+      R"({ "alg": "RS256" })",
+      R"({ "iss": "acme", "aud": "client", "iat": 1000, "exp": 2001 })",
+      "sig")};
+  const auto token{sourcemeta::core::JWT::from(input)};
+  EXPECT_TRUE(token.has_value());
+  const auto error{sourcemeta::core::jwt_check_claims(
+      token.value(), "acme", "client",
+      std::chrono::system_clock::from_time_t(1500), std::chrono::seconds{3600},
+      std::nullopt, std::chrono::seconds{1000})};
+  EXPECT_TRUE(error.has_value());
+  EXPECT_TRUE(error.value() == sourcemeta::core::JWTClaimError::Lifetime);
+}
+
+// Bounding the interval is only worth anything alongside refusing a token
+// issued in the future, since a lifetime measured from an instant that has not
+// arrived would otherwise start whenever its holder chose
+TEST(lifetime_bound_still_refuses_a_future_issuance) {
+  const auto input{make_token(
+      R"({ "alg": "RS256" })",
+      R"({ "iss": "acme", "aud": "client", "iat": 9000, "exp": 9500 })",
+      "sig")};
+  const auto token{sourcemeta::core::JWT::from(input)};
+  EXPECT_TRUE(token.has_value());
+  const auto error{sourcemeta::core::jwt_check_claims(
+      token.value(), "acme", "client",
+      std::chrono::system_clock::from_time_t(1500), {}, std::nullopt,
+      std::chrono::seconds{1000})};
+  EXPECT_TRUE(error.has_value());
+  EXPECT_TRUE(error.value() == sourcemeta::core::JWTClaimError::IssuedAt);
 }

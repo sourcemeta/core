@@ -35,7 +35,10 @@ enum class JWTClaimError : std::uint8_t {
   /// The not-before time claim is malformed or lies in the future.
   NotBefore,
   /// The issued-at time claim is malformed or lies in the future.
-  IssuedAt
+  IssuedAt,
+  /// The token claims to live longer than the caller admits, names no
+  /// interval at all, or leaves out the issuance time a bound needs.
+  Lifetime
 };
 
 /// @ingroup jose
@@ -110,7 +113,15 @@ inline auto jwt_bounded_clock_skew(const std::chrono::seconds skew) noexcept
 /// issuer and audience at a given time, returning the first failing check or no
 /// value when every check passes. The expiration claim is required (RFC 9068
 /// Section 2.2), and the subject is checked only when an expected value is
-/// supplied. For example:
+/// supplied.
+///
+/// Supplying a maximum lifetime additionally bounds the interval the token
+/// claims between its issuance and its expiration, so one claiming to outlive
+/// anything the caller mints is refused whatever signature it carries. That
+/// bound makes the issuance time required, since a token leaving it out could
+/// otherwise escape the bound by omission, and it relates two claims to each
+/// other rather than to the server clock, so no tolerance applies to it. For
+/// example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/jose.h>
@@ -129,12 +140,14 @@ inline auto jwt_bounded_clock_skew(const std::chrono::seconds skew) noexcept
 /// assert(!error.has_value());
 /// ```
 SOURCEMETA_CORE_JOSE_EXPORT
-auto jwt_check_claims(const JWT &token, const std::string_view expected_issuer,
-                      const std::string_view expected_audience,
-                      const std::chrono::system_clock::time_point now,
-                      const JWTClockSkew clock_skew = {},
-                      const std::optional<std::string_view> expected_subject =
-                          std::nullopt) -> std::optional<JWTClaimError>;
+auto jwt_check_claims(
+    const JWT &token, const std::string_view expected_issuer,
+    const std::string_view expected_audience,
+    const std::chrono::system_clock::time_point now,
+    const JWTClockSkew clock_skew = {},
+    const std::optional<std::string_view> expected_subject = std::nullopt,
+    const std::optional<std::chrono::seconds> maximum_lifetime = std::nullopt)
+    -> std::optional<JWTClaimError>;
 
 /// @ingroup jose
 /// Verify a JSON Web Signature given its algorithm, its signing input, and its
@@ -211,7 +224,10 @@ enum class JWTVerificationError : std::uint8_t {
   /// The not-before time claim is malformed or lies in the future.
   NotBefore,
   /// The issued-at time claim is malformed or lies in the future.
-  IssuedAt
+  IssuedAt,
+  /// The token claims to live longer than the caller admits, names no
+  /// interval at all, or leaves out the issuance time a bound needs.
+  Lifetime
 };
 
 /// @ingroup jose
@@ -253,8 +269,9 @@ auto jwt_verify(const JWT &token, const JWKS &keys,
                 const std::chrono::system_clock::time_point now,
                 const JWTClockSkew clock_skew,
                 const std::optional<std::string_view> expected_subject,
-                const std::optional<std::string_view> expected_type)
-    -> std::optional<JWTVerificationError>;
+                const std::optional<std::string_view> expected_type,
+                const std::optional<std::chrono::seconds> maximum_lifetime =
+                    std::nullopt) -> std::optional<JWTVerificationError>;
 
 } // namespace sourcemeta::core
 
