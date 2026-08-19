@@ -1561,3 +1561,493 @@ TEST(valid_ipv4_literal_four_octets) {
   EXPECT_TRUE(sourcemeta::core::is_email("user@[192.168.1.1]"));
   EXPECT_TRUE(sourcemeta::core::is_idn_email("user@[192.168.1.1]"));
 }
+
+// RFC 5322 3.2.3: '"' is not atext, so a Dot-string cannot contain it
+TEST(invalid_local_quote) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a\"b@b.com"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("a\"b@b.com"));
+}
+
+// RFC 5322 3.2.3: '(' is not atext, so a Dot-string cannot contain it
+TEST(invalid_local_paren_open) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a(b@b.com"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("a(b@b.com"));
+}
+
+// RFC 5322 3.2.3: ')' is not atext, so a Dot-string cannot contain it
+TEST(invalid_local_paren_close) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a)b@b.com"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("a)b@b.com"));
+}
+
+// RFC 5322 3.2.3: ',' is not atext, so a Dot-string cannot contain it
+TEST(invalid_local_comma) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a,b@b.com"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("a,b@b.com"));
+}
+
+// RFC 5322 3.2.3: ':' is not atext, so a Dot-string cannot contain it
+TEST(invalid_local_colon) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a:b@b.com"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("a:b@b.com"));
+}
+
+// RFC 5322 3.2.3: ';' is not atext, so a Dot-string cannot contain it
+TEST(invalid_local_semicolon) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a;b@b.com"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("a;b@b.com"));
+}
+
+// RFC 5322 3.2.3: '<' is not atext, so a Dot-string cannot contain it
+TEST(invalid_local_less_than) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a<b@b.com"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("a<b@b.com"));
+}
+
+// RFC 5322 3.2.3: '>' is not atext, so a Dot-string cannot contain it
+TEST(invalid_local_greater_than) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a>b@b.com"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("a>b@b.com"));
+}
+
+// RFC 5322 3.2.3: '@' is not atext, so a Dot-string cannot contain it
+TEST(invalid_local_at) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a@b@b.com"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("a@b@b.com"));
+}
+
+// RFC 5322 3.2.3: '[' is not atext, so a Dot-string cannot contain it
+TEST(invalid_local_bracket_open) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a[b@b.com"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("a[b@b.com"));
+}
+
+// RFC 5322 3.2.3: '\\' is not atext, so a Dot-string cannot contain it
+TEST(invalid_local_backslash) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a\\b@b.com"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("a\\b@b.com"));
+}
+
+// RFC 5322 3.2.3: ']' is not atext, so a Dot-string cannot contain it
+TEST(invalid_local_bracket_close) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a]b@b.com"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("a]b@b.com"));
+}
+
+// RFC 5322 3.2.3: ' ' is not atext, so a Dot-string cannot contain it
+TEST(invalid_local_space) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a b@b.com"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("a b@b.com"));
+}
+
+// RFC 5321 4.1.2: Dot-string = Atom *("." Atom) with 1 atoms
+TEST(valid_dot_string_one_atoms) {
+  EXPECT_TRUE(sourcemeta::core::is_email("a@b.com"));
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("a@b.com"));
+}
+
+// RFC 5321 4.1.2: Dot-string = Atom *("." Atom) with 3 atoms
+TEST(valid_dot_string_three_atoms) {
+  EXPECT_TRUE(sourcemeta::core::is_email("a.a.a@b.com"));
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("a.a.a@b.com"));
+}
+
+// RFC 5321 4.1.2: Dot-string = Atom *("." Atom) with 6 atoms
+TEST(valid_dot_string_six_atoms) {
+  EXPECT_TRUE(sourcemeta::core::is_email("a.a.a.a.a.a@b.com"));
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("a.a.a.a.a.a@b.com"));
+}
+
+// RFC 5321 4.1.2: Atom = 1*atext, so a leading dot leaves an empty Atom
+TEST(invalid_dot_string_leading_dot) {
+  EXPECT_FALSE(sourcemeta::core::is_email(".a@b.com"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_email(".a@b.com"));
+}
+
+// RFC 5321 4.1.2: Atom = 1*atext, so a trailing dot leaves an empty Atom
+TEST(invalid_dot_string_trailing_dot) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a.@b.com"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("a.@b.com"));
+}
+
+// RFC 5321 4.1.2: Atom = 1*atext, so two dots leave an empty Atom between them
+TEST(invalid_dot_string_consecutive_dots) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a..b@b.com"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("a..b@b.com"));
+}
+
+// RFC 5321 4.1.2: Atom = 1*atext, so a lone dot has no Atom on either side
+TEST(invalid_dot_string_only_dot) {
+  EXPECT_FALSE(sourcemeta::core::is_email(".@b.com"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_email(".@b.com"));
+}
+
+// RFC 5321 4.1.2: Atom = 1*atext, so two dots have no Atom anywhere
+TEST(invalid_dot_string_only_two_dots) {
+  EXPECT_FALSE(sourcemeta::core::is_email("..@b.com"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("..@b.com"));
+}
+
+// RFC 5321 4.1.2: Atom = 1*atext, so three dots have no Atom anywhere
+TEST(invalid_dot_string_only_three_dots) {
+  EXPECT_FALSE(sourcemeta::core::is_email("...@b.com"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("...@b.com"));
+}
+
+// RFC 5321 4.1.2: Quoted-string = DQUOTE *QcontentSMTP DQUOTE permits zero
+// content
+TEST(valid_quoted_string_empty) {
+  EXPECT_TRUE(sourcemeta::core::is_email("\"\"@b.com"));
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("\"\"@b.com"));
+}
+
+// RFC 5321 4.1.2: Quoted-string with a single QcontentSMTP
+TEST(valid_quoted_string_one_qcontent) {
+  EXPECT_TRUE(sourcemeta::core::is_email("\"a\"@b.com"));
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("\"a\"@b.com"));
+}
+
+// RFC 5321 4.1.2: Quoted-string with two QcontentSMTP
+TEST(valid_quoted_string_two_qcontent) {
+  EXPECT_TRUE(sourcemeta::core::is_email("\"ab\"@b.com"));
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("\"ab\"@b.com"));
+}
+
+// RFC 5321 4.1.2: Quoted-string needs a closing DQUOTE
+TEST(invalid_quoted_string_unterminated) {
+  EXPECT_FALSE(sourcemeta::core::is_email("\"@b.com"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("\"@b.com"));
+}
+
+// RFC 5321 4.1.2: the empty Quoted-string closes at the second DQUOTE, so the
+// third is not '@'
+TEST(invalid_quoted_string_three_dquote) {
+  EXPECT_FALSE(sourcemeta::core::is_email("\"\"\"@b.com"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("\"\"\"@b.com"));
+}
+
+// RFC 5321 4.1.2: quoted-pairSMTP consumes the closing DQUOTE, leaving the
+// string open
+TEST(invalid_quoted_string_trailing_backslash) {
+  EXPECT_FALSE(sourcemeta::core::is_email("\"\\\"@b.com"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("\"\\\"@b.com"));
+}
+
+// RFC 5321 4.1.2: Local-part is Dot-string or Quoted-string, never a
+// concatenation
+TEST(invalid_quoted_string_text_after_close) {
+  EXPECT_FALSE(sourcemeta::core::is_email("\"a\"b\"@b.com"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("\"a\"b\"@b.com"));
+}
+
+// RFC 5321 4.1.2: qtextSMTP = %d32-33 / %d35-91 / %d93-126 excludes %d31
+TEST(invalid_qtext_smtp_us) {
+  EXPECT_FALSE(sourcemeta::core::is_email("\"x\x1fy\"@b.com"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("\"x\x1fy\"@b.com"));
+}
+
+// RFC 5321 4.1.2: qtextSMTP = %d32-33 / %d35-91 / %d93-126 includes %d32
+TEST(valid_qtext_smtp_space) {
+  EXPECT_TRUE(sourcemeta::core::is_email("\"x y\"@b.com"));
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("\"x y\"@b.com"));
+}
+
+// RFC 5321 4.1.2: qtextSMTP = %d32-33 / %d35-91 / %d93-126 includes %d33
+TEST(valid_qtext_smtp_bang) {
+  EXPECT_TRUE(sourcemeta::core::is_email("\"x!y\"@b.com"));
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("\"x!y\"@b.com"));
+}
+
+// RFC 5321 4.1.2: qtextSMTP = %d32-33 / %d35-91 / %d93-126 excludes %d34
+TEST(invalid_qtext_smtp_dquote) {
+  EXPECT_FALSE(sourcemeta::core::is_email("\"x\"y\"@b.com"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("\"x\"y\"@b.com"));
+}
+
+// RFC 5321 4.1.2: qtextSMTP = %d32-33 / %d35-91 / %d93-126 includes %d35
+TEST(valid_qtext_smtp_hash) {
+  EXPECT_TRUE(sourcemeta::core::is_email("\"x#y\"@b.com"));
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("\"x#y\"@b.com"));
+}
+
+// RFC 5321 4.1.2: qtextSMTP = %d32-33 / %d35-91 / %d93-126 includes %d91
+TEST(valid_qtext_smtp_bracket_open) {
+  EXPECT_TRUE(sourcemeta::core::is_email("\"x[y\"@b.com"));
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("\"x[y\"@b.com"));
+}
+
+// RFC 5321 4.1.2: qtextSMTP = %d32-33 / %d35-91 / %d93-126 includes %d93
+TEST(valid_qtext_smtp_bracket_close) {
+  EXPECT_TRUE(sourcemeta::core::is_email("\"x]y\"@b.com"));
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("\"x]y\"@b.com"));
+}
+
+// RFC 5321 4.1.2: qtextSMTP = %d32-33 / %d35-91 / %d93-126 includes %d126
+TEST(valid_qtext_smtp_tilde) {
+  EXPECT_TRUE(sourcemeta::core::is_email("\"x~y\"@b.com"));
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("\"x~y\"@b.com"));
+}
+
+// RFC 5321 4.1.2: qtextSMTP = %d32-33 / %d35-91 / %d93-126 excludes %d127
+TEST(invalid_qtext_smtp_del) {
+  EXPECT_FALSE(sourcemeta::core::is_email("\"x\x7fy\"@b.com"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("\"x\x7fy\"@b.com"));
+}
+
+// RFC 5321 4.1.2: quoted-pairSMTP = %d92 %d32-126 excludes %d31 after the
+// backslash
+TEST(invalid_quoted_pair_smtp_us) {
+  EXPECT_FALSE(sourcemeta::core::is_email("\"\\\x1f\"@b.com"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("\"\\\x1f\"@b.com"));
+}
+
+// RFC 5321 4.1.2: quoted-pairSMTP = %d92 %d32-126 admits %d32 after the
+// backslash
+TEST(valid_quoted_pair_smtp_space) {
+  EXPECT_TRUE(sourcemeta::core::is_email("\"\\ \"@b.com"));
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("\"\\ \"@b.com"));
+}
+
+// RFC 5321 4.1.2: quoted-pairSMTP = %d92 %d32-126 admits %d33 after the
+// backslash
+TEST(valid_quoted_pair_smtp_bang) {
+  EXPECT_TRUE(sourcemeta::core::is_email("\"\\!\"@b.com"));
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("\"\\!\"@b.com"));
+}
+
+// RFC 5321 4.1.2: quoted-pairSMTP = %d92 %d32-126 admits %d92 after the
+// backslash
+TEST(valid_quoted_pair_smtp_backslash) {
+  EXPECT_TRUE(sourcemeta::core::is_email("\"\\\\\"@b.com"));
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("\"\\\\\"@b.com"));
+}
+
+// RFC 5321 4.1.2: quoted-pairSMTP = %d92 %d32-126 admits %d126 after the
+// backslash
+TEST(valid_quoted_pair_smtp_tilde) {
+  EXPECT_TRUE(sourcemeta::core::is_email("\"\\~\"@b.com"));
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("\"\\~\"@b.com"));
+}
+
+// RFC 5321 4.1.2: quoted-pairSMTP = %d92 %d32-126 excludes %d127 after the
+// backslash
+TEST(invalid_quoted_pair_smtp_del) {
+  EXPECT_FALSE(sourcemeta::core::is_email("\"\\\x7f\"@b.com"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("\"\\\x7f\"@b.com"));
+}
+
+// RFC 5321 4.1.2: sub-domain = Let-dig [Ldh-str] with Ldh-str absent
+TEST(valid_sub_domain_single_letter_label) {
+  EXPECT_TRUE(sourcemeta::core::is_email("a@x"));
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("a@x"));
+}
+
+// RFC 5321 4.1.2: Let-dig admits DIGIT in the leading position
+TEST(valid_sub_domain_digit_then_alpha) {
+  EXPECT_TRUE(sourcemeta::core::is_email("a@1a"));
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("a@1a"));
+}
+
+// RFC 5321 4.1.2: Ldh-str may end on a DIGIT Let-dig
+TEST(valid_sub_domain_alpha_then_digit) {
+  EXPECT_TRUE(sourcemeta::core::is_email("a@a1"));
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("a@a1"));
+}
+
+// RFC 5321 4.1.2: Ldh-str admits a hyphen between two Let-dig
+TEST(valid_sub_domain_interior_hyphen) {
+  EXPECT_TRUE(sourcemeta::core::is_email("a@x-y"));
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("a@x-y"));
+}
+
+// RFC 5321 4.1.2: Ldh-str admits a run of hyphens
+TEST(valid_sub_domain_two_interior_hyphens) {
+  EXPECT_TRUE(sourcemeta::core::is_email("a@x--y"));
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("a@x--y"));
+}
+
+// RFC 5321 4.1.2: sub-domain begins with Let-dig, and a hyphen is not one
+TEST(invalid_sub_domain_leading_hyphen) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a@-x"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("a@-x"));
+}
+
+// RFC 5321 4.1.2: Ldh-str ends with Let-dig, and a hyphen is not one
+TEST(invalid_sub_domain_trailing_hyphen) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a@x-"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("a@x-"));
+}
+
+// RFC 5321 4.1.2: a lone hyphen is neither Let-dig nor Ldh-str
+TEST(invalid_sub_domain_only_hyphen) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a@-"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("a@-"));
+}
+
+// RFC 5321 4.1.2: a hyphen run with no Let-dig cannot end an Ldh-str
+TEST(invalid_sub_domain_only_two_hyphens) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a@--"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("a@--"));
+}
+
+// RFC 5321 4.1.2: Domain with three repetitions
+TEST(valid_domain_four_labels) {
+  EXPECT_TRUE(sourcemeta::core::is_email("a@w.x.y.z"));
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("a@w.x.y.z"));
+}
+
+// RFC 5321 4.1.2: a dotted quad with no brackets is an ordinary Domain, not an
+// address-literal
+TEST(valid_domain_all_digit_labels) {
+  EXPECT_TRUE(sourcemeta::core::is_email("a@255.255.255.255"));
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("a@255.255.255.255"));
+}
+
+// RFC 5321 4.1.2: a lone dot contains no sub-domain
+TEST(invalid_domain_only_dot) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a@."));
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("a@."));
+}
+
+// RFC 5321 4.1.3: no alternative admits '[' inside the brackets
+TEST(invalid_address_literal_nested_brackets) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a@[[1.2.3.4]]"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("a@[[1.2.3.4]]"));
+}
+
+// RFC 5321 4.1.3: IPv4-address-literal = Snum 3("." Snum) is exactly four, not
+// 1
+TEST(invalid_ipv4_address_literal_1_octets) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a@[1]"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("a@[1]"));
+}
+
+// RFC 5321 4.1.3: IPv4-address-literal = Snum 3("." Snum) is exactly four, not
+// 2
+TEST(invalid_ipv4_address_literal_2_octets) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a@[1.1]"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("a@[1.1]"));
+}
+
+// RFC 5321 4.1.3: IPv4-address-literal = Snum 3("." Snum) is exactly four, not
+// 3
+TEST(invalid_ipv4_address_literal_3_octets) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a@[1.1.1]"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("a@[1.1.1]"));
+}
+
+// RFC 5321 4.1.3: IPv4-address-literal = Snum 3("." Snum) is exactly four, not
+// 5
+TEST(invalid_ipv4_address_literal_5_octets) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a@[1.1.1.1.1]"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("a@[1.1.1.1.1]"));
+}
+
+// RFC 5321 4.1.3: IPv4-address-literal = Snum 3("." Snum) is exactly four, not
+// 6
+TEST(invalid_ipv4_address_literal_6_octets) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a@[1.1.1.1.1.1]"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("a@[1.1.1.1.1.1]"));
+}
+
+// RFC 5321 4.1.3: Snum = 1*3DIGIT in the range 0 through 255, so Snum admits 0
+TEST(valid_snum_zero) {
+  EXPECT_TRUE(sourcemeta::core::is_email("a@[0.1.2.3]"));
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("a@[0.1.2.3]"));
+}
+
+// RFC 5321 4.1.3: Snum = 1*3DIGIT in the range 0 through 255, so Snum admits
+// 255
+TEST(valid_snum_max) {
+  EXPECT_TRUE(sourcemeta::core::is_email("a@[255.1.2.3]"));
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("a@[255.1.2.3]"));
+}
+
+// RFC 5321 4.1.3: Snum = 1*3DIGIT in the range 0 through 255, so Snum is capped
+// at 255
+TEST(invalid_snum_over_max) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a@[256.1.2.3]"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("a@[256.1.2.3]"));
+}
+
+// RFC 5321 4.1.3: Snum = 1*3DIGIT in the range 0 through 255, so 999 is three
+// digits but above 255
+TEST(invalid_snum_three_nines) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a@[999.1.2.3]"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("a@[999.1.2.3]"));
+}
+
+// RFC 5321 4.1.3: Snum = 1*3DIGIT in the range 0 through 255, so Snum =
+// 1*3DIGIT admits at most three digits
+TEST(invalid_snum_four_digits) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a@[1000.1.2.3]"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("a@[1000.1.2.3]"));
+}
+
+// RFC 5321 4.1.3: Snum = 1*3DIGIT in the range 0 through 255, so Snum
+// constrains the value, not the digit count
+TEST(valid_snum_leading_zero) {
+  EXPECT_TRUE(sourcemeta::core::is_email("a@[00.1.2.3]"));
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("a@[00.1.2.3]"));
+}
+
+// RFC 5321 4.1.3: Snum = 1*3DIGIT in the range 0 through 255, so the cap
+// applies to every Snum
+TEST(invalid_snum_last_octet_over_max) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a@[1.2.3.256]"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("a@[1.2.3.256]"));
+}
+
+// RFC 5321 4.1.3: Standardized-tag = Ldh-str cannot be empty
+TEST(invalid_general_address_literal_empty_tag) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a@[:y]"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("a@[:y]"));
+}
+
+// RFC 5321 4.1.3: Ldh-str ends with Let-dig, so a tag cannot end in a hyphen
+TEST(invalid_general_address_literal_trailing_hyphen_tag) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a@[x-:y]"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("a@[x-:y]"));
+}
+
+// RFC 5321 4.1.3: General-address-literal needs 1*dcontent after the colon
+TEST(invalid_general_address_literal_no_dcontent) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a@[x:]"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("a@[x:]"));
+}
+
+// RFC 5321 4.1.3: dcontent = %d33-90 / %d94-126 excludes %d32
+TEST(invalid_dcontent_space) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a@[x: ]"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("a@[x: ]"));
+}
+
+// RFC 5321 4.1.3: dcontent = %d33-90 / %d94-126 includes %d33
+TEST(valid_dcontent_bang) {
+  EXPECT_TRUE(sourcemeta::core::is_email("a@[x:!]"));
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("a@[x:!]"));
+}
+
+// RFC 5321 4.1.3: dcontent = %d33-90 / %d94-126 includes %d90
+TEST(valid_dcontent_upper_z) {
+  EXPECT_TRUE(sourcemeta::core::is_email("a@[x:Z]"));
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("a@[x:Z]"));
+}
+
+// RFC 5321 4.1.3: dcontent = %d33-90 / %d94-126 includes %d94
+TEST(valid_dcontent_caret) {
+  EXPECT_TRUE(sourcemeta::core::is_email("a@[x:^]"));
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("a@[x:^]"));
+}
+
+// RFC 5321 4.1.3: dcontent = %d33-90 / %d94-126 includes %d126
+TEST(valid_dcontent_tilde) {
+  EXPECT_TRUE(sourcemeta::core::is_email("a@[x:~]"));
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("a@[x:~]"));
+}
+
+// RFC 5321 4.1.3: dcontent = %d33-90 / %d94-126 excludes %d127
+TEST(invalid_dcontent_del) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a@[x:\x7f]"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("a@[x:\x7f]"));
+}
