@@ -2520,3 +2520,47 @@ TEST(valid_single_digit_nine) {
   // the top of the digit range
   EXPECT_TRUE(sourcemeta::core::is_hostname("9"));
 }
+
+// RFC 5891 §5.3: "first ensuring that the A-label is entirely in lowercase
+// (converting it to lowercase if necessary)". RFC 5890 §2.3.2.4 notes an
+// A-label matches "other (mixed-case or uppercase) potential labels in the DNS"
+TEST(xn_uppercase_body) {
+  EXPECT_TRUE(sourcemeta::core::is_hostname("xn--NXASMQ6B"));
+  EXPECT_TRUE(sourcemeta::core::is_idn_hostname("xn--NXASMQ6B"));
+}
+
+TEST(xn_uppercase_body_with_tld) {
+  EXPECT_TRUE(sourcemeta::core::is_hostname("xn--NXASMQ6B.com"));
+  EXPECT_TRUE(sourcemeta::core::is_idn_hostname("xn--NXASMQ6B.com"));
+}
+
+TEST(xn_uppercase_prefix_and_body) {
+  EXPECT_TRUE(sourcemeta::core::is_hostname("XN--NXASMQ6B.COM"));
+  EXPECT_TRUE(sourcemeta::core::is_idn_hostname("XN--NXASMQ6B.COM"));
+}
+
+TEST(xn_mixed_case_body) {
+  EXPECT_TRUE(sourcemeta::core::is_hostname("xn--NxAsMq6B.com"));
+  EXPECT_TRUE(sourcemeta::core::is_idn_hostname("xn--NxAsMq6B.com"));
+}
+
+TEST(xn_uppercase_basic_portion) {
+  EXPECT_TRUE(sourcemeta::core::is_hostname("XN--MNCHEN-3YA"));
+  EXPECT_TRUE(sourcemeta::core::is_idn_hostname("XN--MNCHEN-3YA"));
+}
+
+TEST(xn_uppercase_multiple_a_labels) {
+  EXPECT_TRUE(sourcemeta::core::is_hostname("XN--4GBWDL.XN--WGBH1C"));
+  EXPECT_TRUE(sourcemeta::core::is_idn_hostname("XN--4GBWDL.XN--WGBH1C"));
+}
+
+// Case folding must not rescue a label that is invalid on its own merits
+TEST(xn_uppercase_leading_spacing_combining_mark) {
+  EXPECT_FALSE(sourcemeta::core::is_hostname("XN--HELLO-TXK"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname("XN--HELLO-TXK"));
+}
+
+TEST(xn_uppercase_leading_nonspacing_mark) {
+  EXPECT_FALSE(sourcemeta::core::is_hostname("XN--HELLO-ZED"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname("XN--HELLO-ZED"));
+}

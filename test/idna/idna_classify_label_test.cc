@@ -125,3 +125,56 @@ TEST(invalid_u_label_disallowed_codepoint) {
   EXPECT_EQ(sourcemeta::core::idna_classify_label(U"a\u302Eb", decoded),
             std::nullopt);
 }
+
+// RFC 5891 §5.3: "first ensuring that the A-label is entirely in lowercase
+// (converting it to lowercase if necessary)"
+TEST(valid_a_label_uppercase_body) {
+  std::u32string decoded;
+  const auto kind{
+      sourcemeta::core::idna_classify_label(U"xn--NXASMQ6B", decoded)};
+  EXPECT_TRUE(kind.has_value());
+  EXPECT_EQ(*kind, sourcemeta::core::IDNALabelKind::ALabel);
+  EXPECT_EQ(decoded, U"\U000003B2\U000003CC\U000003BB\U000003BF\U000003C3");
+}
+
+TEST(valid_a_label_uppercase_prefix_and_body) {
+  std::u32string decoded;
+  const auto kind{
+      sourcemeta::core::idna_classify_label(U"XN--NXASMQ6B", decoded)};
+  EXPECT_TRUE(kind.has_value());
+  EXPECT_EQ(*kind, sourcemeta::core::IDNALabelKind::ALabel);
+  EXPECT_EQ(decoded, U"\U000003B2\U000003CC\U000003BB\U000003BF\U000003C3");
+}
+
+TEST(valid_a_label_mixed_case_body) {
+  std::u32string decoded;
+  const auto kind{
+      sourcemeta::core::idna_classify_label(U"xn--NxAsMq6B", decoded)};
+  EXPECT_TRUE(kind.has_value());
+  EXPECT_EQ(*kind, sourcemeta::core::IDNALabelKind::ALabel);
+  EXPECT_EQ(decoded, U"\U000003B2\U000003CC\U000003BB\U000003BF\U000003C3");
+}
+
+// RFC 3492 §5: the decoder copies basic code points verbatim, so the decoded
+// U-label comes from the lowercased body rather than the input as given
+TEST(valid_a_label_uppercase_basic_portion) {
+  std::u32string decoded;
+  const auto kind{
+      sourcemeta::core::idna_classify_label(U"XN--MNCHEN-3YA", decoded)};
+  EXPECT_TRUE(kind.has_value());
+  EXPECT_EQ(*kind, sourcemeta::core::IDNALabelKind::ALabel);
+  EXPECT_EQ(decoded, U"m\U000000FCnchen");
+}
+
+// Case folding must not rescue a label that is invalid on its own merits
+TEST(invalid_a_label_uppercase_decodes_to_pure_ascii) {
+  std::u32string decoded;
+  EXPECT_EQ(sourcemeta::core::idna_classify_label(U"XN--ABC-", decoded),
+            std::nullopt);
+}
+
+TEST(invalid_a_label_uppercase_leading_combining_mark) {
+  std::u32string decoded;
+  EXPECT_EQ(sourcemeta::core::idna_classify_label(U"XN--HELLO-TXK", decoded),
+            std::nullopt);
+}

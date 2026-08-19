@@ -757,3 +757,14 @@ TEST(valid_quoted_local_escaped_dquote) {
   EXPECT_TRUE(sourcemeta::core::is_idn_email("\"\\\"\"@example.com"));
   EXPECT_TRUE(sourcemeta::core::is_email("\"\\\"\"@example.com"));
 }
+
+// RFC 5891 §5.3: an A-label domain is lowercased before validation, so the
+// uppercase form of a valid A-label is equally acceptable here
+TEST(valid_uppercase_a_label_domain) {
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("\xce\xb1@xn--NXASMQ6B.com"));
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("\xce\xb1@XN--NXASMQ6B.COM"));
+}
+
+TEST(invalid_uppercase_a_label_domain) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("\xce\xb1@XN--HELLO-TXK"));
+}
