@@ -1,6 +1,8 @@
 #include <sourcemeta/core/regex.h>
 #include <sourcemeta/core/test.h>
 
+#include <string> // std::string
+
 TEST(suite_valid_basic) {
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("([abc])+\\s+$"));
 }
@@ -91,6 +93,10 @@ TEST(valid_unicode_4digit) {
 
 TEST(valid_unicode_braced) {
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\u{1F600}"));
+}
+
+TEST(valid_unicode_braced_out_of_range) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\u{110000}"));
 }
 
 TEST(valid_control_escape) {
@@ -189,12 +195,12 @@ TEST(invalid_possessive_open_quantifier) {
   EXPECT_FALSE(sourcemeta::core::is_regex_ecma("a{3,}+"));
 }
 
-TEST(valid_plus_after_literal_brace) {
-  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a}+"));
+TEST(invalid_plus_after_unescaped_brace) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("a}+"));
 }
 
-TEST(valid_plus_after_escaped_brace_quantifier) {
-  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a\\{2,3}+"));
+TEST(invalid_plus_after_escaped_brace_quantifier) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("a\\{2,3}+"));
 }
 
 TEST(valid_variable_width_lookbehind) {
@@ -257,8 +263,8 @@ TEST(invalid_inline_option_group) {
   EXPECT_FALSE(sourcemeta::core::is_regex_ecma("(?i)foo"));
 }
 
-TEST(invalid_inline_option_scoped) {
-  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("(?i:foo)"));
+TEST(valid_inline_option_scoped) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("(?i:foo)"));
 }
 
 TEST(invalid_branch_reset_group) {
@@ -289,8 +295,8 @@ TEST(invalid_quote_sequence) {
   EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\Qfoo\\E"));
 }
 
-TEST(invalid_posix_class_alpha) {
-  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("[[:alpha:]]"));
+TEST(posix_class_alpha_reads_as_a_nested_class) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[[:alpha:]]"));
 }
 
 TEST(invalid_possessive_quantifier) {
@@ -411,6 +417,54 @@ TEST(escape_binary_prop) {
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Alphabetic}"));
 }
 
+TEST(escape_general_category_prop) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{General_Category=Lu}"));
+}
+
+TEST(escape_general_category_alias_prop) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{gc=Lu}"));
+}
+
+TEST(escape_general_category_long_value_prop) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{gc=Uppercase_Letter}"));
+}
+
+TEST(escape_negated_general_category_prop) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\P{gc=Lu}"));
+}
+
+TEST(escape_general_category_prop_in_class) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[\\p{gc=Lu}]"));
+}
+
+TEST(escape_general_category_prop_unknown_value) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\p{gc=NotAProperty}"));
+}
+
+TEST(escape_general_category_prop_empty_value) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\p{gc=}"));
+}
+
+TEST(escape_cased_letter_prop) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Cased_Letter}"));
+}
+
+TEST(escape_combining_mark_prop) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Combining_Mark}"));
+}
+
+TEST(escape_surrogate_prop) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Surrogate}"));
+}
+
+TEST(escape_punct_prop) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{punct}"));
+}
+
+TEST(escape_cntrl_prop) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{cntrl}"));
+}
+
 TEST(escape_uxxxx) { EXPECT_TRUE(sourcemeta::core::is_regex_ecma("A")); }
 
 TEST(escape_escaped_slash) {
@@ -430,15 +484,15 @@ TEST(inline_flag_flag_u) {
 }
 
 TEST(inline_flag_scoped_flag_on) {
-  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("(?i:abc)"));
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("(?i:abc)"));
 }
 
 TEST(inline_flag_scoped_flag_off) {
-  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("(?-i:abc)"));
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("(?-i:abc)"));
 }
 
 TEST(inline_flag_scoped_on_off) {
-  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("(?i-s:abc)"));
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("(?i-s:abc)"));
 }
 
 TEST(inline_flag_verbose_extended) {
@@ -551,6 +605,58 @@ TEST(quantifier_open_upper_control) {
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a{2,}"));
 }
 
+TEST(quantifier_exact_at_pcre2_limit) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a{65535}"));
+}
+
+TEST(quantifier_exact_past_pcre2_limit) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a{65536}"));
+}
+
+TEST(quantifier_exact_past_unsigned_range) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a{4294967295}"));
+}
+
+TEST(quantifier_exact_padded_past_pcre2_limit) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a{0000070000}"));
+}
+
+TEST(quantifier_interval_past_pcre2_limit) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a{1,99999}"));
+}
+
+TEST(quantifier_open_past_pcre2_limit) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a{99999,}"));
+}
+
+TEST(quantifier_reversed_interval_past_pcre2_limit) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("a{99999,2}"));
+}
+
+TEST(quantifier_reversed_interval_both_past_pcre2_limit) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("a{100000,99999}"));
+}
+
+TEST(quantifier_class_past_pcre2_limit) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[a-z]{70000}"));
+}
+
+TEST(quantifier_group_past_pcre2_limit) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("(?:ab){70000}"));
+}
+
+TEST(quantifier_capturing_group_past_pcre2_size) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("(ab){10000}"));
+}
+
+TEST(quantifier_escaped_braces_past_pcre2_limit) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a\\{70000\\}"));
+}
+
+TEST(quantifier_class_member_braces_past_pcre2_limit) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[a{70000}]"));
+}
+
 TEST(quantifier_no_atom) {
   EXPECT_FALSE(sourcemeta::core::is_regex_ecma("{2}"));
 }
@@ -601,4 +707,204 @@ TEST(redos_alternation_star_valid) {
 
 TEST(redos_repeated_group_valid) {
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("(.*a){20}"));
+}
+
+TEST(modifier_group_add_flags) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("(?ims:abc)"));
+}
+
+TEST(modifier_group_remove_flags) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("(?-ims:abc)"));
+}
+
+TEST(modifier_group_both_empty) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("(?-:abc)"));
+}
+
+TEST(modifier_group_repeated_flag) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("(?ii:abc)"));
+}
+
+TEST(modifier_group_flag_on_both_sides) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("(?i-i:abc)"));
+}
+
+TEST(modifier_group_unknown_flag) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("(?x:abc)"));
+}
+
+TEST(group_name_leading_dollar_sign) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("(?<$foo>a)"));
+}
+
+TEST(group_name_escaped_code_point) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("(?<\\u0041>a)"));
+}
+
+TEST(group_name_outside_ascii) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("(?<caf\xc3\xa9>a)"));
+}
+
+TEST(group_name_not_an_identifier) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("(?<a\xe2\x98\x83>x)"));
+}
+
+TEST(group_name_repeated_across_alternatives) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("(?<x>a)|(?<x>b)"));
+}
+
+TEST(group_name_repeated_within_one_alternative) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("(?<x>a)(?<x>b)"));
+}
+
+TEST(group_name_repeated_across_nested_alternatives) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("(?:(?<x>a)|(?<x>b))"));
+}
+
+TEST(group_name_repeated_after_an_alternation) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("(?:(?<x>a)|(?<x>b))(?<x>c)"));
+}
+
+TEST(group_name_repeated_beside_an_alternation) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("(?:(?<x>a)|(?<x>b))|(?<x>c)"));
+}
+
+TEST(group_name_repeated_across_wrapped_alternatives) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("((?<x>a))|(?<x>b)"));
+}
+
+TEST(group_name_repeated_within_its_own_group) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("(?<x>(?<x>a))"));
+}
+
+TEST(group_name_repeated_within_its_own_alternation) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("(?<x>a|(?<x>b))"));
+}
+
+TEST(group_name_repeated_through_an_escape) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("(?<\\u0041>a)(?<A>b)"));
+}
+
+TEST(group_name_repeated_through_an_escape_across_alternatives) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("(?<\\u0041>a)|(?<A>b)"));
+}
+
+TEST(named_backreference_without_a_group) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\k<x>"));
+}
+
+TEST(numbered_backreference_past_the_group_count) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("(a)\\2"));
+}
+
+TEST(lone_lead_surrogate_escape) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\uD83D"));
+}
+
+TEST(surrogate_pair_escape) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\uD83D\\uDE00"));
+}
+
+TEST(surrogate_pair_escape_in_class) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[\\uD83D\\uDE00]"));
+}
+
+TEST(code_point_escape_past_the_unicode_range) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\u{110000}"));
+}
+
+TEST(quantified_lookbehind) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("(?<=a)*"));
+}
+
+TEST(quantified_negative_lookbehind) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("(?<!a)+"));
+}
+
+TEST(quantified_word_boundary) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\b*"));
+}
+
+TEST(quantified_non_word_boundary) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\B{2}"));
+}
+
+TEST(quantified_lookahead) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("(?=a)*"));
+}
+
+TEST(assigned_binary_property) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Assigned}"));
+}
+
+TEST(nfkc_casefold_binary_property) {
+  EXPECT_TRUE(
+      sourcemeta::core::is_regex_ecma("\\p{Changes_When_NFKC_Casefolded}"));
+}
+
+TEST(nfkc_casefold_binary_property_alias) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{CWKCF}"));
+}
+
+TEST(script_value_alias) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Script=Grek}"));
+}
+
+TEST(script_value_unknown) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\p{Script=Nowhere}"));
+}
+
+TEST(general_category_value_rejected_for_script) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\p{Script=Lu}"));
+}
+
+TEST(script_value_rejected_for_general_category) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\p{gc=Greek}"));
+}
+
+TEST(lone_script_value) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\p{Greek}"));
+}
+
+TEST(property_of_strings_needs_set_notation) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[\\p{RGI_Emoji}]"));
+}
+
+TEST(property_of_strings_cannot_be_negated) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\P{RGI_Emoji}"));
+}
+
+TEST(set_notation_string_disjunction) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[\\q{abc|d}]"));
+}
+
+TEST(set_notation_strings_cannot_be_negated) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("[^\\q{abc}]"));
+}
+
+TEST(set_notation_range_cannot_lead_an_operator) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("[a-z--[aeiou]]"));
+}
+
+TEST(set_notation_doubled_punctuator) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("[\\q{a}$$]"));
+}
+
+TEST(doubled_punctuator_outside_set_notation) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[a$$b]"));
+}
+
+TEST(deeply_nested_groups_within_the_depth_bound) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma(std::string(200, '(') + "a" +
+                                              std::string(200, ')')));
+}
+
+TEST(deeply_nested_groups_past_the_depth_bound) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma(std::string(100000, '(') + "a" +
+                                               std::string(100000, ')')));
+}
+
+TEST(deeply_nested_classes_past_the_depth_bound) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma(std::string(100000, '[') + "a" +
+                                               std::string(100000, ']')));
 }

@@ -702,6 +702,53 @@ TEST(ecma262_unicode_property_letter_uppercase) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "Abc"));
 }
 
+TEST(ecma262_unicode_property_general_category) {
+  const auto regex{
+      sourcemeta::core::to_regex("^\\p{General_Category=Lu}+$",
+                                 sourcemeta::core::RegexDialect::Permissive)};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("^\\p{General_Category=Lu}+$"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "ABC"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "abc"));
+}
+
+TEST(ecma262_unicode_property_general_category_alias) {
+  const auto regex{
+      sourcemeta::core::to_regex("^\\p{gc=Uppercase_Letter}+$",
+                                 sourcemeta::core::RegexDialect::Permissive)};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("^\\p{gc=Uppercase_Letter}+$"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "ABC"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "abc"));
+}
+
+TEST(ecma262_unicode_property_general_category_negated) {
+  const auto regex{sourcemeta::core::to_regex(
+      "^\\P{gc=Lu}+$", sourcemeta::core::RegexDialect::Permissive)};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("^\\P{gc=Lu}+$"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "abc"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "ABC"));
+}
+
+TEST(ecma262_unicode_property_cased_letter) {
+  const auto regex{sourcemeta::core::to_regex(
+      "^\\p{Cased_Letter}+$", sourcemeta::core::RegexDialect::Permissive)};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("^\\p{Cased_Letter}+$"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "aBc"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "123"));
+}
+
+TEST(ecma262_unicode_property_punctuation_lowercase) {
+  const auto regex{sourcemeta::core::to_regex(
+      "^\\p{punct}+$", sourcemeta::core::RegexDialect::Permissive)};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("^\\p{punct}+$"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), ".,;"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "abc"));
+}
+
 TEST(ecma262_unicode_property_letter_lowercase) {
   const auto regex{sourcemeta::core::to_regex(
       "^\\p{Ll}+$", sourcemeta::core::RegexDialect::Permissive)};
@@ -1241,7 +1288,7 @@ TEST(ecma262_right_bracket_as_first_char_in_class) {
   const auto regex{sourcemeta::core::to_regex(
       "[]]", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
-  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[]]"));
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("[]]"));
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "]"));
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "["));
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
@@ -1252,7 +1299,7 @@ TEST(ecma262_right_bracket_negated_class) {
   const auto regex{sourcemeta::core::to_regex(
       "[^]]", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
-  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[^]]"));
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("[^]]"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a]"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "x]"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "]]"));
@@ -2755,7 +2802,7 @@ TEST(ecma262_v_flag_double_operator_subtraction) {
   const auto regex{sourcemeta::core::to_regex(
       "[a-z----abc]", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_FALSE(regex.has_value());
-  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("[a-z----abc]"));
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[a-z----abc]"));
 }
 
 TEST(ecma262_v_flag_subtract_abc_from_az) {
