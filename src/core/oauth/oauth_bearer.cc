@@ -23,6 +23,8 @@ constexpr auto HASH_AUD{JSON::Object::hash("aud"sv)};
 constexpr auto HASH_CNF{JSON::Object::hash("cnf"sv)};
 constexpr auto HASH_JKT{JSON::Object::hash("jkt"sv)};
 constexpr auto HASH_SCOPE{JSON::Object::hash("scope"sv)};
+constexpr auto HASH_VALUE{JSON::Object::hash("value"sv)};
+constexpr auto HASH_VALUES{JSON::Object::hash("values"sv)};
 
 auto oauth_skip_ows(const std::string_view value, std::size_t position) noexcept
     -> std::size_t {
@@ -272,6 +274,61 @@ auto oauth_is_dpop_bound(const JSON &claims) -> bool {
   // proof-of-possession key as the "jkt" confirmation member
   const auto *thumbprint{confirmation->try_at("jkt"sv, HASH_JKT)};
   return thumbprint != nullptr && thumbprint->is_string();
+}
+
+auto oauth_scope_request_accepts(const JSON &claims, const JSON &request)
+    -> OAuthScopeDecision {
+  // OpenID Connect Core 1.0 Section 5.5.1 shapes a rule as an object, so
+  // anything else is not a rule this can read, and it is read before the
+  // claims are so that a token granting nothing does not mask a broken one
+  if (!request.is_object()) {
+    return OAuthScopeDecision::Unreadable;
+  }
+
+  const auto *single{request.try_at("value"sv, HASH_VALUE)};
+  const auto *listed{request.try_at("values"sv, HASH_VALUES)};
+
+  if (single != nullptr && !single->is_string()) {
+    return OAuthScopeDecision::Unreadable;
+  }
+
+  if (listed != nullptr) {
+    if (!listed->is_array()) {
+      return OAuthScopeDecision::Unreadable;
+    }
+
+    for (const auto &candidate : listed->as_array()) {
+      if (!candidate.is_string()) {
+        return OAuthScopeDecision::Unreadable;
+      }
+    }
+  }
+
+  // RFC 6749 Section 3.3 makes the granted scope a set, so a rule constraining
+  // none of its members asks only that some scope be carried at all. RFC 9068
+  // Section 2.2.3 has that carried as one string of scope tokens, and an empty
+  // one names none
+  if (single == nullptr && listed == nullptr) {
+    const auto *granted{
+        claims.is_object() ? claims.try_at("scope"sv, HASH_SCOPE) : nullptr};
+    return (granted != nullptr && granted->is_string() && !granted->empty())
+               ? OAuthScopeDecision::Accepted
+               : OAuthScopeDecision::Refused;
+  }
+
+  if (single != nullptr && oauth_has_scope(claims, single->to_string())) {
+    return OAuthScopeDecision::Accepted;
+  }
+
+  if (listed != nullptr) {
+    for (const auto &candidate : listed->as_array()) {
+      if (oauth_has_scope(claims, candidate.to_string())) {
+        return OAuthScopeDecision::Accepted;
+      }
+    }
+  }
+
+  return OAuthScopeDecision::Refused;
 }
 
 } // namespace sourcemeta::core
