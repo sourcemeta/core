@@ -180,15 +180,20 @@ enum class OAuthScopeDecision : std::uint8_t {
 ///
 /// Because the claim is a set rather than a value, a rule naming a `value` or
 /// any member of `values` is satisfied by that one being granted, and a rule
-/// constraining neither asks only that some scope be carried at all. Matching
-/// is by whole token and code points, as `oauth_has_scope` does it.
+/// constraining neither asks only that some scope be carried at all, which a
+/// claim of nothing but delimiters does not, since Section 3.3 makes every
+/// scope token at least one character long. Matching is by whole token and
+/// code points, as `oauth_has_scope` does it.
 ///
-/// A rule that is not an object, or whose `value` is not a string, or whose
-/// `values` is not an array of strings, is reported as unreadable rather than
-/// refused. Whether an unreadable rule denies is a deployment's policy rather
-/// than anything these specifications settle, so it is not decided here. The
-/// rule is read before the claims are, so an unreadable one is reported as
-/// such even where the token grants nothing. For example:
+/// A `null` rule is one "being requested in the default manner" (Section
+/// 5.5.1) and so constrains nothing, exactly as `oidc_claim_request_accepts`
+/// reads it. A rule that is neither null nor an object, or whose `value` is
+/// not a string, or whose `values` is not an array of strings, is reported as
+/// unreadable rather than refused. Whether an unreadable rule denies is a
+/// deployment's policy rather than anything these specifications settle, so it
+/// is not decided here. The rule is read before the claims are, so an
+/// unreadable one is reported as such even where the token grants nothing. For
+/// example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/oauth.h>

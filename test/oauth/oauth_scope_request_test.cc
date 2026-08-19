@@ -113,9 +113,16 @@ TEST(scope_request_rule_that_is_not_an_object) {
             sourcemeta::core::OAuthScopeDecision::Unreadable);
 }
 
-TEST(scope_request_rule_that_is_null) {
+// OpenID Connect Core 1.0 Section 5.5.1: a null rule "indicates that this
+// Claim is being requested in the default manner", so it constrains nothing
+TEST(scope_request_null_rule_with_a_scope) {
   EXPECT_EQ(decide(R"JSON({ "scope": "read" })JSON", R"JSON(null)JSON"),
-            sourcemeta::core::OAuthScopeDecision::Unreadable);
+            sourcemeta::core::OAuthScopeDecision::Accepted);
+}
+
+TEST(scope_request_null_rule_without_a_scope) {
+  EXPECT_EQ(decide(R"JSON({ "sub": "u1" })JSON", R"JSON(null)JSON"),
+            sourcemeta::core::OAuthScopeDecision::Refused);
 }
 
 TEST(scope_request_value_that_is_not_a_string) {
@@ -148,4 +155,27 @@ TEST(scope_request_unreadable_rule_without_a_scope_claim) {
 TEST(scope_request_unreadable_rule_outranks_a_missing_scope) {
   EXPECT_EQ(decide(R"JSON({})JSON", R"JSON("read")JSON"),
             sourcemeta::core::OAuthScopeDecision::Unreadable);
+}
+
+// RFC 6749 Section 3.3: scope-token = 1*( %x21 / %x23-5B / %x5D-7E ), so a
+// claim of nothing but delimiters names no scope and grants none
+TEST(scope_request_whitespace_only_scope_claim) {
+  EXPECT_EQ(decide(R"JSON({ "scope": " " })JSON", R"JSON({})JSON"),
+            sourcemeta::core::OAuthScopeDecision::Refused);
+}
+
+TEST(scope_request_several_delimiters_only_scope_claim) {
+  EXPECT_EQ(decide(R"JSON({ "scope": "   " })JSON", R"JSON({})JSON"),
+            sourcemeta::core::OAuthScopeDecision::Refused);
+}
+
+TEST(scope_request_whitespace_only_scope_claim_against_a_null_rule) {
+  EXPECT_EQ(decide(R"JSON({ "scope": " " })JSON", R"JSON(null)JSON"),
+            sourcemeta::core::OAuthScopeDecision::Refused);
+}
+
+// A claim padded around a real token still names one
+TEST(scope_request_padded_scope_claim_names_a_scope) {
+  EXPECT_EQ(decide(R"JSON({ "scope": " read " })JSON", R"JSON({})JSON"),
+            sourcemeta::core::OAuthScopeDecision::Accepted);
 }

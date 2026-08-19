@@ -278,15 +278,20 @@ auto oauth_is_dpop_bound(const JSON &claims) -> bool {
 
 auto oauth_scope_request_accepts(const JSON &claims, const JSON &request)
     -> OAuthScopeDecision {
-  // OpenID Connect Core 1.0 Section 5.5.1 shapes a rule as an object, so
-  // anything else is not a rule this can read, and it is read before the
-  // claims are so that a token granting nothing does not mask a broken one
-  if (!request.is_object()) {
+  // OpenID Connect Core 1.0 Section 5.5.1: a rule's value "MUST be one of the
+  // following: null [...] JSON Object", so anything else is not a rule this
+  // can read, and it is read before the claims are so that a token granting
+  // nothing does not mask a broken one
+  if (!(request.is_null() || request.is_object())) {
     return OAuthScopeDecision::Unreadable;
   }
 
-  const auto *single{request.try_at("value"sv, HASH_VALUE)};
-  const auto *listed{request.try_at("values"sv, HASH_VALUES)};
+  // A null rule "indicates that this Claim is being requested in the default
+  // manner", which constrains no value at all
+  const auto *single{request.is_null() ? nullptr
+                                       : request.try_at("value"sv, HASH_VALUE)};
+  const auto *listed{
+      request.is_null() ? nullptr : request.try_at("values"sv, HASH_VALUES)};
 
   if (single != nullptr && !single->is_string()) {
     return OAuthScopeDecision::Unreadable;
@@ -306,14 +311,20 @@ auto oauth_scope_request_accepts(const JSON &claims, const JSON &request)
 
   // RFC 6749 Section 3.3 makes the granted scope a set, so a rule constraining
   // none of its members asks only that some scope be carried at all. RFC 9068
-  // Section 2.2.3 has that carried as one string of scope tokens, and an empty
-  // one names none
+  // Section 2.2.3 has that carried as one string of scope tokens
   if (single == nullptr && listed == nullptr) {
     const auto *granted{
         claims.is_object() ? claims.try_at("scope"sv, HASH_SCOPE) : nullptr};
-    return (granted != nullptr && granted->is_string() && !granted->empty())
-               ? OAuthScopeDecision::Accepted
-               : OAuthScopeDecision::Refused;
+    if (granted == nullptr || !granted->is_string()) {
+      return OAuthScopeDecision::Refused;
+    }
+
+    // RFC 6749 Section 3.3: scope = scope-token *( SP scope-token ), where a
+    // scope-token is at least one character, so a claim of nothing but the
+    // delimiter names no scope however long it runs
+    return granted->to_string().find_first_not_of(' ') == JSON::String::npos
+               ? OAuthScopeDecision::Refused
+               : OAuthScopeDecision::Accepted;
   }
 
   if (single != nullptr && oauth_has_scope(claims, single->to_string())) {
