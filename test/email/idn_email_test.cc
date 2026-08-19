@@ -597,46 +597,36 @@ TEST(invalid_address_literal_empty_octet) {
   EXPECT_FALSE(sourcemeta::core::is_email("user@[1..2.3]"));
 }
 
-// General-address-literal = Standardized-tag ":" 1*dcontent
-TEST(valid_general_address_literal) {
-  EXPECT_TRUE(sourcemeta::core::is_idn_email("user@[unknown-tag:abc]"));
-  EXPECT_TRUE(sourcemeta::core::is_email("user@[unknown-tag:abc]"));
+// RFC 5321 §4.1.3: a Standardized-tag MUST be registered with IANA before
+// being used, and the registry carries the IPv6 tag alone, so the general
+// form admits nothing beyond what the IPv6 branch already covers
+TEST(invalid_general_address_literal_unregistered_tag) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("user@[unknown-tag:abc]"));
+  EXPECT_FALSE(sourcemeta::core::is_email("user@[unknown-tag:abc]"));
 }
 
-TEST(valid_general_address_literal_shortest) {
-  EXPECT_TRUE(sourcemeta::core::is_idn_email("user@[a:b]"));
-  EXPECT_TRUE(sourcemeta::core::is_email("user@[a:b]"));
+// RFC 5321 §4.1.3: the tag names the syntax that the rest of the literal
+// follows, so a payload under the IPv6 tag that is not an address is turned
+// down rather than read as a general literal, which would otherwise leave the
+// IPv6 form unable to fail
+TEST(invalid_address_literal_ipv6_tag_with_letters) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("user@[IPv6:zzz]"));
+  EXPECT_FALSE(sourcemeta::core::is_email("user@[IPv6:zzz]"));
 }
 
-// RFC 5321 §4.1.2: Ldh-str = *( ALPHA / DIGIT / "-" ) Let-dig constrains only
-// the final character, so unlike sub-domain (Let-dig [Ldh-str]) a
-// Standardized-tag may begin with a hyphen
-TEST(valid_general_address_literal_leading_hyphen_tag) {
-  EXPECT_TRUE(sourcemeta::core::is_idn_email("user@[-tag:abc]"));
-  EXPECT_TRUE(sourcemeta::core::is_email("user@[-tag:abc]"));
+TEST(invalid_address_literal_ipv6_tag_with_non_hexadecimal_groups) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("user@[IPv6:g:g:g:g:g:g:g:g]"));
+  EXPECT_FALSE(sourcemeta::core::is_email("user@[IPv6:g:g:g:g:g:g:g:g]"));
 }
 
-TEST(invalid_general_address_literal_trailing_hyphen_tag) {
-  EXPECT_FALSE(sourcemeta::core::is_idn_email("user@[tag-:abc]"));
-  EXPECT_FALSE(sourcemeta::core::is_email("user@[tag-:abc]"));
+TEST(invalid_address_literal_ipv6_tag_with_two_elisions) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("user@[IPv6:2001:db8::1::2]"));
+  EXPECT_FALSE(sourcemeta::core::is_email("user@[IPv6:2001:db8::1::2]"));
 }
 
-// 1*dcontent requires at least one octet
-TEST(invalid_general_address_literal_empty_content) {
-  EXPECT_FALSE(sourcemeta::core::is_idn_email("user@[tag:]"));
-  EXPECT_FALSE(sourcemeta::core::is_email("user@[tag:]"));
-}
-
-TEST(invalid_general_address_literal_empty_tag) {
-  EXPECT_FALSE(sourcemeta::core::is_idn_email("user@[:abc]"));
-  EXPECT_FALSE(sourcemeta::core::is_email("user@[:abc]"));
-}
-
-// RFC 5321 §4.1.3: dcontent = %d33-90 / %d94-126, which excludes SP, "[",
-// "\" and "]"
-TEST(invalid_general_address_literal_space_in_content) {
-  EXPECT_FALSE(sourcemeta::core::is_idn_email("user@[tag:ab c]"));
-  EXPECT_FALSE(sourcemeta::core::is_email("user@[tag:ab c]"));
+TEST(invalid_address_literal_ipv6_tag_with_only_colons) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("user@[IPv6:::::::::]"));
+  EXPECT_FALSE(sourcemeta::core::is_email("user@[IPv6:::::::::]"));
 }
 
 TEST(invalid_general_address_literal_open_bracket_in_content) {

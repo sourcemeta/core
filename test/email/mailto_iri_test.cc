@@ -316,12 +316,11 @@ TEST(mailto_iri_encodes_ipv6_address_literal) {
   EXPECT_EQ(result.value(), "mailto:user@%5BIPv6:2001:db8::1%5D");
 }
 
-// RFC 5321 §4.1.3: General-address-literal = Standardized-tag ":"
-// 1*dcontent, characters reserved by RFC 6068 §2 inside it are encoded
-TEST(mailto_iri_encodes_general_address_literal) {
-  const auto result{sourcemeta::core::mailto_iri("user@[foo:bar/baz]")};
-  EXPECT_TRUE(result.has_value());
-  EXPECT_EQ(result.value(), "mailto:user@%5Bfoo:bar%2Fbaz%5D");
+// RFC 5321 §4.1.3: a Standardized-tag has to be registered with IANA before
+// being used, and only the IPv6 tag is, so a literal under any other tag is
+// not a Mailbox to render
+TEST(mailto_iri_rejects_general_address_literal) {
+  EXPECT_FALSE(sourcemeta::core::mailto_iri("user@[foo:bar/baz]").has_value());
 }
 
 // RFC 5321 §4.1.2: Mailbox = Local-part "@" ( Domain / address-literal ),
