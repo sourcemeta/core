@@ -17,6 +17,7 @@ sourcemeta_library(NAMESPACE sourcemeta PROJECT core NAME http
           accept_includes_all.cc content_type_matches.cc parse_bearer.cc
           cache_control_max_age.cc serialize_cookie.cc aws_sigv4.cc
           serialize_challenge.cc parse_challenges.cc
+          serialize_cache_control.cc
           scan_quoted_string.cc
           ${SOURCEMETA_CORE_HTTP_CLIENT_SOURCE})
 
