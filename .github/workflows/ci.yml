@@ -110,6 +110,9 @@ jobs:
       - name: Install dependencies (Linux)
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install --yes ccache ${{ matrix.platform.apt }}
+      - name: Install dependencies (Windows)
+        if: runner.os == 'Windows'
+        run: choco install ccache --no-progress --yes
 
       # The Visual Studio generator ignores the compiler launchers, so on
       # Windows `ccache` takes the place of `cl.exe` and MSBuild is pointed at
@@ -118,7 +121,6 @@ jobs:
       - name: Prepare ccache (Windows)
         if: runner.os == 'Windows'
         run: |
-          choco install ccache --no-progress --yes
           $binary = Get-ChildItem -Path 'C:\ProgramData\chocolatey\lib\ccache\tools' -Filter ccache.exe -Recurse | Select-Object -First 1
           New-Item -ItemType Directory -Force -Path 'C:\ccache-cl' | Out-Null
           Copy-Item $binary.FullName 'C:\ccache-cl\cl.exe'
