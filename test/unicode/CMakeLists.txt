@@ -21,6 +21,8 @@ sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME unicode
     unicode_bidi_class_test.cc
     unicode_script_test.cc
     unicode_is_combining_mark_test.cc
+    unicode_is_id_continue_test.cc
+    unicode_is_id_start_test.cc
     unicode_nfc_quick_check_test.cc
     unicode_canonical_decomposition_test.cc
     unicode_canonical_composition_test.cc
