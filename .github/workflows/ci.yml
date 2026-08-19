@@ -78,12 +78,18 @@ jobs:
     env:
       CC: ${{ matrix.platform.cc }}
       CXX: ${{ matrix.platform.cxx }}
+
       # Compiler caching, on continuous integration only. On the Visual Studio
       # generator these launchers are ignored, and `ccache` masquerades as
       # `cl.exe` instead. See the Windows setup step below
       CMAKE_C_COMPILER_LAUNCHER: ccache
       CMAKE_CXX_COMPILER_LAUNCHER: ccache
       CMAKE_OBJCXX_COMPILER_LAUNCHER: ccache
+      # Expanded by `ccache` itself, which understands neither a leading tilde
+      # nor the shell. Keeping the cache out of the source and build trees
+      # matters on Windows, where Visual Studio would otherwise mistake the
+      # statistics and temporary files for build inputs and rebuild needlessly
+      CCACHE_DIR: ${RUNNER_TEMP}/ccache
       # Runner images are re-provisioned on every run, so the default check of
       # the compiler modification time and size would miss on an unchanged
       # compiler. Hash its contents instead
@@ -102,36 +108,21 @@ jobs:
           HOMEBREW_NO_ANALYTICS: 1
           HOMEBREW_NO_AUTO_UPDATE: 1
       - name: Install dependencies (Linux)
-        if: runner.os == 'Linux' && matrix.platform.apt
-        run: sudo apt-get update && sudo apt-get install --yes ${{ matrix.platform.apt }}
-
-      - name: Install ccache (macOS)
-        if: runner.os == 'macos'
-        run: |
-          brew install ccache
-          echo "CCACHE_DIR=$HOME/.ccache" >> "$GITHUB_ENV"
-        env:
-          HOMEBREW_NO_ANALYTICS: 1
-          HOMEBREW_NO_AUTO_UPDATE: 1
-      - name: Install ccache (Linux)
         if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update && sudo apt-get install --yes ccache
-          echo "CCACHE_DIR=$HOME/.ccache" >> "$GITHUB_ENV"
+        run: sudo apt-get update && sudo apt-get install --yes ccache ${{ matrix.platform.apt }}
+
       # The Visual Studio generator ignores the compiler launchers, so on
       # Windows `ccache` takes the place of `cl.exe` and MSBuild is pointed at
       # it. The Chocolatey shim cannot run under another name, so the real
       # executable is the one that gets copied
-      - name: Install ccache (Windows)
+      - name: Prepare ccache (Windows)
         if: runner.os == 'Windows'
         run: |
           choco install ccache --no-progress --yes
           $binary = Get-ChildItem -Path 'C:\ProgramData\chocolatey\lib\ccache\tools' -Filter ccache.exe -Recurse | Select-Object -First 1
           New-Item -ItemType Directory -Force -Path 'C:\ccache-cl' | Out-Null
           Copy-Item $binary.FullName 'C:\ccache-cl\cl.exe'
-          "CCACHE_DIR=$env:USERPROFILE\.ccache" >> $env:GITHUB_ENV
           'MSVC_CCACHE_ARGUMENTS="-DCMAKE_VS_GLOBALS:STRING=CLToolExe=cl.exe;CLToolPath=C:/ccache-cl;UseMultiToolTask=true"' >> $env:GITHUB_ENV
-
       # The primary key never matches, as it carries the run identifier, so a
       # restore always walks the fallbacks in order. A previous run of this same
       # pull request comes first, as it is the closest to what we are about to
@@ -142,7 +133,7 @@ jobs:
         id: ccache
         uses: actions/cache/restore@v4
         with:
-          path: ~/.ccache
+          path: ${{ runner.temp }}/ccache
           key: ${{ env.CACHE_KEY }}-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
             ${{ env.CACHE_KEY }}-${{ github.ref_name }}-
@@ -220,5 +211,5 @@ jobs:
         if: success() || failure()
         uses: actions/cache/save@v4
         with:
-          path: ~/.ccache
+          path: ${{ runner.temp }}/ccache
           key: ${{ steps.ccache.outputs.cache-primary-key }}
