@@ -46,6 +46,7 @@ sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME uri
     uri_extension_test.cc
     uri_user_info_test.cc
     uri_is_iri_test.cc
+    uri_is_uri_reference_test.cc
     uri_from_iri_test.cc
     uri_is_internationalized_test.cc)
 
