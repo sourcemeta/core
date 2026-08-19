@@ -265,6 +265,113 @@ SOURCEMETA_CORE_HTTP_EXPORT
 auto http_format_links(std::span<const HTTPLink> links) -> std::string;
 
 /// @ingroup http
+/// Whether a cached response may be stored by a shared cache or only by a
+/// private one (RFC 9111 §5.2.2.7 and §5.2.2.9). The two are alternatives
+/// rather than flags, so a response cannot be marked both.
+enum class HTTPCacheVisibility : std::uint8_t {
+  /// A cache may store the response even where it would otherwise be
+  /// prohibited, which includes a shared cache reusing a response to an
+  /// authorized request.
+  Public,
+  /// A shared cache must not store the response, the response being intended
+  /// for a single user.
+  Private
+};
+
+/// @ingroup http
+/// The response directives to serialise into an RFC 9111 §5.2 `Cache-Control`
+/// header value. The caller owns the backing storage for every field.
+///
+/// Whether a response may be stored by a shared cache is an access decision as
+/// much as a performance one, so it is carried as one alternative rather than
+/// as two independent flags that could both be set.
+struct HTTPCacheControl {
+  /// Which caches may store the response
+  std::optional<HTTPCacheVisibility> visibility{};
+  /// How long the response stays fresh (RFC 9111 §5.2.2.1)
+  std::optional<std::chrono::seconds> max_age{};
+  /// How long the response stays fresh for a shared cache, overriding the
+  /// above for one (RFC 9111 §5.2.2.10)
+  std::optional<std::chrono::seconds> shared_max_age{};
+  /// Whether no cache may store any part of the exchange (RFC 9111 §5.2.2.5)
+  bool no_store{false};
+  /// Whether the response must be validated before every reuse (RFC 9111
+  /// §5.2.2.4), ignored when a field list qualifies it below
+  bool no_cache{false};
+  /// Whether a stale response must be validated before reuse (RFC 9111
+  /// §5.2.2.2)
+  bool must_revalidate{false};
+  /// The same for a shared cache alone (RFC 9111 §5.2.2.8)
+  bool proxy_revalidate{false};
+  /// Whether storing is limited to a cache that implements the status code's
+  /// caching requirements (RFC 9111 §5.2.2.3)
+  bool must_understand{false};
+  /// Whether the payload must not be transformed (RFC 9111 §5.2.2.6)
+  bool no_transform{false};
+  /// Whether the response will not be updated while fresh (RFC 8246)
+  bool immutable{false};
+  /// The fields a shared cache must not store, which qualifies the private
+  /// directive and so requires it (RFC 9111 §5.2.2.7)
+  std::span<const std::string_view> private_fields{};
+  /// The fields that must be revalidated before reuse, which qualifies the
+  /// no-cache directive (RFC 9111 §5.2.2.4)
+  std::span<const std::string_view> no_cache_fields{};
+};
+
+/// @ingroup http
+/// Test whether a set of directives can be serialised into a valid RFC 9111
+/// §5.2 `Cache-Control` header value: every duration is the non-negative
+/// integer §1.2.2 defines, every qualifying field name is an RFC 9110 §5.6.2
+/// token, a private field list is accompanied by the directive it qualifies,
+/// and at least one directive is named, since §5.2 lists them and RFC 9110
+/// §5.6.1.1 forbids a sender from generating an empty list element.
+SOURCEMETA_CORE_HTTP_EXPORT
+auto http_cache_control_valid(const HTTPCacheControl &directives) -> bool;
+
+/// @ingroup http
+/// Append an RFC 9111 §5.2 `Cache-Control` header value to `out`, returning
+/// `true` on success. When the directives are not `http_cache_control_valid`,
+/// `out` is left unchanged and this returns `false`.
+///
+/// A duration is written in the token form §5.2.2.1 requires, never quoted,
+/// while a field list is written in the quoted-string form §5.2.2.4 and
+/// §5.2.2.7 ask a sender to use even for a single entry. A qualifying field
+/// list replaces the bare directive rather than joining it. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/http.h>
+/// #include <cassert>
+/// #include <chrono>
+/// #include <string>
+///
+/// std::string buffer;
+/// const auto ok{sourcemeta::core::http_serialize_cache_control(
+///     {.visibility = sourcemeta::core::HTTPCacheVisibility::Private,
+///      .max_age = std::chrono::seconds{60}}, buffer)};
+/// assert(ok);
+/// assert(buffer == "private, max-age=60");
+/// ```
+SOURCEMETA_CORE_HTTP_EXPORT
+auto http_serialize_cache_control(const HTTPCacheControl &directives,
+                                  std::string &out) -> bool;
+
+/// @ingroup http
+/// Serialise an RFC 9111 §5.2 `Cache-Control` header value, returning no value
+/// when the directives are not `http_cache_control_valid`. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/http.h>
+/// #include <cassert>
+///
+/// const auto value{sourcemeta::core::http_serialize_cache_control(
+///     {.no_store = true})};
+/// assert(value == "no-store");
+/// ```
+SOURCEMETA_CORE_HTTP_EXPORT
+auto http_serialize_cache_control(const HTTPCacheControl &directives)
+    -> std::optional<std::string>;
+
+/// @ingroup http
 /// A challenge to serialise into an RFC 9110 §11.6.1 `WWW-Authenticate`
 /// response header value. The caller owns the backing storage for every field.
 ///
