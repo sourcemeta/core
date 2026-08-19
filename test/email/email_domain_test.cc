@@ -14,11 +14,11 @@ TEST(email_domain_quoted_local_part_carrying_an_at_sign) {
             "example.org");
 }
 
-// RFC 5321 §4.1.3: General-address-literal content is 1*dcontent, and
-// dcontent = %d33-90 / %d94-126 admits the at sign, so the separator is not
-// the last one in the string either
+// RFC 5321 §4.1.3: no address-literal carries an at sign, as the only tag the
+// registry holds is the IPv6 one and no address spells one, so a literal that
+// does is not a Mailbox and reports no domain at all
 TEST(email_domain_address_literal_carrying_an_at_sign) {
-  EXPECT_EQ(sourcemeta::core::email_domain("user@[tag:a@b]"), "[tag:a@b]");
+  EXPECT_TRUE(sourcemeta::core::email_domain("user@[tag:a@b]").empty());
 }
 
 TEST(email_domain_ipv4_address_literal) {
