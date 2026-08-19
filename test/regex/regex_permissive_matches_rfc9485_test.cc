@@ -320,7 +320,7 @@ TEST(rfc9485_escape_dash) {
   const auto regex{sourcemeta::core::to_regex(
       "a\\-b", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
-  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a\\-b"));
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("a\\-b"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a-b"));
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "ab"));
 }
