@@ -46,11 +46,11 @@ TEST(valid_uppercase_non_ascii_is_folded) {
   EXPECT_FALSE(sourcemeta::core::is_idn_hostname("M\xc3\x9cNCHEN"));
 }
 
-// An uppercase A-label is lowercased by the mapping and then validates. The
-// strict validator rejects the uppercase Punycode body
+// An uppercase A-label is lowercased by the mapping and then validates. RFC
+// 5891 §5.3 has the strict validator lowercase it too, so both accept it
 TEST(valid_uppercase_a_label_is_folded) {
   EXPECT_TRUE(sourcemeta::core::is_idn_hostname_uts46("XN--MNCHEN-3YA"));
-  EXPECT_FALSE(sourcemeta::core::is_idn_hostname("XN--MNCHEN-3YA"));
+  EXPECT_TRUE(sourcemeta::core::is_idn_hostname("XN--MNCHEN-3YA"));
 }
 
 // UTS #46 step 1: SOFT HYPHEN (U+00AD) is ignored, so "a<SHY>b" maps to "ab".
