@@ -107,8 +107,12 @@ jobs:
         env:
           HOMEBREW_NO_ANALYTICS: 1
           HOMEBREW_NO_AUTO_UPDATE: 1
+      # The Azure Ubuntu mirror stalls often enough to matter now that every
+      # Linux job needs this step. Without a bound, a stalled mirror burns the
+      # entire job timeout rather than failing while the run is still useful
       - name: Install dependencies (Linux)
         if: runner.os == 'Linux'
+        timeout-minutes: 5
         run: sudo apt-get update && sudo apt-get install --yes ccache ${{ matrix.platform.apt }}
       - name: Install dependencies (Windows)
         if: runner.os == 'Windows'
