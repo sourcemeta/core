@@ -78,6 +78,21 @@ jobs:
     env:
       CC: ${{ matrix.platform.cc }}
       CXX: ${{ matrix.platform.cxx }}
+      # Compiler caching, on continuous integration only. On the Visual Studio
+      # generator these launchers are ignored, and `ccache` masquerades as
+      # `cl.exe` instead. See the Windows setup step below
+      CMAKE_C_COMPILER_LAUNCHER: ccache
+      CMAKE_CXX_COMPILER_LAUNCHER: ccache
+      CMAKE_OBJCXX_COMPILER_LAUNCHER: ccache
+      # Runner images are re-provisioned on every run, so the default check of
+      # the compiler modification time and size would miss on an unchanged
+      # compiler. Hash its contents instead
+      CCACHE_COMPILERCHECK: content
+      CCACHE_MAXSIZE: 500M
+      # Bump the version segment to invalidate every compiler cache by hand.
+      # The job index disambiguates matrix entries that otherwise share an
+      # operating system, a compiler, and a linkage
+      CACHE_KEY: ccache-v1-${{ matrix.platform.os }}-${{ matrix.platform.cc || 'msvc' }}-${{ matrix.platform.type }}-${{ strategy.job-index }}
     steps:
       - uses: actions/checkout@v4
       - name: Install dependencies (macOS)
@@ -89,6 +104,50 @@ jobs:
       - name: Install dependencies (Linux)
         if: runner.os == 'Linux' && matrix.platform.apt
         run: sudo apt-get update && sudo apt-get install --yes ${{ matrix.platform.apt }}
+
+      - name: Install ccache (macOS)
+        if: runner.os == 'macos'
+        run: |
+          brew install ccache
+          echo "CCACHE_DIR=$HOME/.ccache" >> "$GITHUB_ENV"
+        env:
+          HOMEBREW_NO_ANALYTICS: 1
+          HOMEBREW_NO_AUTO_UPDATE: 1
+      - name: Install ccache (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update && sudo apt-get install --yes ccache
+          echo "CCACHE_DIR=$HOME/.ccache" >> "$GITHUB_ENV"
+      # The Visual Studio generator ignores the compiler launchers, so on
+      # Windows `ccache` takes the place of `cl.exe` and MSBuild is pointed at
+      # it. The Chocolatey shim cannot run under another name, so the real
+      # executable is the one that gets copied
+      - name: Install ccache (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          choco install ccache --no-progress --yes
+          $binary = Get-ChildItem -Path 'C:\ProgramData\chocolatey\lib\ccache\tools' -Filter ccache.exe -Recurse | Select-Object -First 1
+          New-Item -ItemType Directory -Force -Path 'C:\ccache-cl' | Out-Null
+          Copy-Item $binary.FullName 'C:\ccache-cl\cl.exe'
+          "CCACHE_DIR=$env:USERPROFILE\.ccache" >> $env:GITHUB_ENV
+          'MSVC_CCACHE_ARGUMENTS="-DCMAKE_VS_GLOBALS:STRING=CLToolExe=cl.exe;CLToolPath=C:/ccache-cl;UseMultiToolTask=true"' >> $env:GITHUB_ENV
+
+      # The primary key never matches, as it carries the run identifier, so a
+      # restore always walks the fallbacks in order. A previous run of this same
+      # pull request comes first, as it is the closest to what we are about to
+      # compile, and `main` is the fallback. A cache written by a pull request
+      # run is only visible to re-runs of that same pull request, so no entry
+      # here can leak sideways into an unrelated branch
+      - name: Restore ccache
+        id: ccache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.ccache
+          key: ${{ env.CACHE_KEY }}-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            ${{ env.CACHE_KEY }}-${{ github.ref_name }}-
+            ${{ env.CACHE_KEY }}-main-
+      - run: ccache --zero-stats
 
       - run: cmake --version
       - name: Configure (static)
@@ -103,6 +162,7 @@ jobs:
           -DBUILD_SHARED_LIBS:BOOL=OFF
           -DCMAKE_COMPILE_WARNING_AS_ERROR:BOOL=ON
           ${{ matrix.platform.options }}
+          ${{ env.MSVC_CCACHE_ARGUMENTS }}
       - name: Configure (shared)
         if: matrix.platform.type == 'shared'
         run: >
@@ -115,8 +175,10 @@ jobs:
           -DBUILD_SHARED_LIBS:BOOL=ON
           -DCMAKE_COMPILE_WARNING_AS_ERROR:BOOL=ON
           ${{ matrix.platform.options }}
+          ${{ env.MSVC_CCACHE_ARGUMENTS }}
       - run: cmake --build ./build --config Release --target clang_format_test
       - run: cmake --build ./build --config Release --parallel 4
+      - run: ccache --show-stats
       - run: >
           cmake --install ./build --prefix ./build/dist --config Release --verbose
           --component sourcemeta_core
@@ -151,3 +213,12 @@ jobs:
           alert-threshold: '5%'
           comment-always: true
           fail-on-alert: false
+
+      # Saving on a cancelled run is pointless, as the cache would only hold
+      # whatever the build got through before the interruption
+      - name: Save ccache
+        if: success() || failure()
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.ccache
+          key: ${{ steps.ccache.outputs.cache-primary-key }}
