@@ -8,6 +8,7 @@
 #include <span>        // std::span
 #include <string>      // std::string
 #include <string_view> // std::string_view
+#include <utility>     // std::unreachable
 
 namespace {
 
@@ -55,6 +56,21 @@ auto append_fields(std::string &out, const std::string_view name,
   out.push_back('"');
 }
 
+// RFC 9111 §5.2.2.7 and §5.2.2.9 name the two, which the shared entry point
+// has already established the value to be one of
+auto visibility_directive(
+    const sourcemeta::core::HTTPCacheVisibility value) noexcept
+    -> std::string_view {
+  switch (value) {
+    case sourcemeta::core::HTTPCacheVisibility::Public:
+      return "public";
+    case sourcemeta::core::HTTPCacheVisibility::Private:
+      return "private";
+  }
+
+  std::unreachable();
+}
+
 // RFC 9110 §5.1: field-name = token, so a name outside that set could not be
 // carried even by the quoting
 auto fields_valid(const std::span<const std::string_view> fields) -> bool {
@@ -68,6 +84,14 @@ auto fields_valid(const std::span<const std::string_view> fields) -> bool {
 namespace sourcemeta::core {
 
 auto http_cache_control_valid(const HTTPCacheControl &directives) -> bool {
+  // A visibility naming neither of the two directives names no directive at
+  // all, so it cannot stand in for one below
+  if (directives.visibility.has_value() &&
+      directives.visibility != HTTPCacheVisibility::Public &&
+      directives.visibility != HTTPCacheVisibility::Private) {
+    return false;
+  }
+
   // RFC 9111 §1.2.2: "The delta-seconds rule specifies a non-negative integer"
   if ((directives.max_age.has_value() && directives.max_age->count() < 0) ||
       (directives.shared_max_age.has_value() &&
@@ -105,13 +129,12 @@ auto http_serialize_cache_control(const HTTPCacheControl &directives,
   }
 
   bool first{true};
-  if (directives.visibility == HTTPCacheVisibility::Public) {
-    append_directive(out, "public", first);
-  } else if (directives.visibility == HTTPCacheVisibility::Private) {
+  if (directives.visibility.has_value()) {
+    const auto directive{visibility_directive(directives.visibility.value())};
     if (directives.private_fields.empty()) {
-      append_directive(out, "private", first);
+      append_directive(out, directive, first);
     } else {
-      append_fields(out, "private", directives.private_fields, first);
+      append_fields(out, directive, directives.private_fields, first);
     }
   }
 

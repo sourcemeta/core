@@ -207,3 +207,21 @@ TEST(cache_control_round_trips_through_the_parser) {
   EXPECT_TRUE(parsed.has_value());
   EXPECT_EQ(parsed.value(), std::chrono::seconds{60});
 }
+
+// A visibility naming neither directive names none, so it cannot satisfy the
+// requirement that at least one be present and leave an empty header behind
+TEST(cache_control_refuses_a_visibility_naming_no_directive) {
+  const auto visibility{static_cast<sourcemeta::core::HTTPCacheVisibility>(99)};
+  EXPECT_FALSE(
+      sourcemeta::core::http_cache_control_valid({.visibility = visibility}));
+  EXPECT_FALSE(
+      sourcemeta::core::http_serialize_cache_control({.visibility = visibility})
+          .has_value());
+}
+
+TEST(cache_control_refuses_a_visibility_naming_no_directive_beside_others) {
+  const auto visibility{static_cast<sourcemeta::core::HTTPCacheVisibility>(99)};
+  EXPECT_FALSE(sourcemeta::core::http_serialize_cache_control(
+                   {.visibility = visibility, .no_store = true})
+                   .has_value());
+}
