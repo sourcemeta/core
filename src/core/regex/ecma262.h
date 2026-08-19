@@ -5,13 +5,13 @@
 
 #include "ecma262_properties.h"
 
-#include <algorithm>   // std::min
-#include <cstddef>     // std::size_t
-#include <optional>    // std::optional
-#include <string>      // std::string, std::u32string
-#include <string_view> // std::string_view, std::u32string_view
-#include <utility>     // std::move, std::pair
-#include <vector>      // std::vector
+#include <cstddef>       // std::size_t
+#include <optional>      // std::optional
+#include <string>        // std::string, std::u32string
+#include <string_view>   // std::string_view, std::u32string_view
+#include <unordered_set> // std::unordered_set
+#include <utility>       // std::move
+#include <vector>        // std::vector
 
 namespace sourcemeta::core {
 
@@ -40,15 +40,6 @@ constexpr std::u32string_view ECMA262_SET_RESERVED_PUNCTUATORS{
     U"&-!#%,:;<=>@`~"};
 constexpr std::u32string_view ECMA262_SET_DOUBLED_PUNCTUATORS{
     U"&!#$%*+,.:;<=>?@^`~"};
-
-// A capturing group records where it sits among the alternatives that enclose
-// it, as an alternation is what lets two of the same name coexist
-using Ecma262Alternation = std::vector<std::pair<std::size_t, std::size_t>>;
-
-struct Ecma262Capture {
-  std::u32string name;
-  Ecma262Alternation alternation;
-};
 
 // The outcome of reading one member of a character class, where a shorthand
 // or a property stands for a set rather than for a single code point
@@ -127,24 +118,6 @@ inline auto decimal_greater(const std::u32string_view left,
              : left_value.size() > right_value.size();
 }
 
-// Whether two capturing groups could take part in one and the same match,
-// which ECMA-262 settles by looking for an alternation that separates them
-inline auto might_both_participate(const Ecma262Alternation &left,
-                                   const Ecma262Alternation &right) -> bool {
-  const auto shared{std::min(left.size(), right.size())};
-  for (std::size_t depth = 0; depth < shared; ++depth) {
-    if (left[depth].first != right[depth].first) {
-      break;
-    }
-
-    if (left[depth].second != right[depth].second) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
 // Groups and classes both nest, and reading them is recursive, so a pattern
 // that nests past this many levels is turned down rather than allowed to run
 // the stack out on input that may not be trusted. No real pattern comes close,
@@ -162,9 +135,10 @@ struct Ecma262Reader {
   std::size_t depth{0};
   std::size_t position{0};
   std::size_t capture_count{0};
-  std::size_t alternation_count{0};
-  Ecma262Alternation alternation;
-  std::vector<Ecma262Capture> captures;
+  // The names that the alternative being read has declared, at every level of
+  // alternation, as a name may only repeat across alternatives
+  std::vector<std::unordered_set<std::u32string>> declared;
+  std::unordered_set<std::u32string> names;
   std::vector<std::u32string> references;
   std::u32string largest_reference;
 
@@ -202,15 +176,7 @@ struct Ecma262Reader {
     }
 
     for (const auto &reference : this->references) {
-      bool matched{false};
-      for (const auto &capture : this->captures) {
-        if (capture.name == reference) {
-          matched = true;
-          break;
-        }
-      }
-
-      if (!matched) {
+      if (!this->names.contains(reference)) {
         return false;
       }
     }
@@ -219,16 +185,6 @@ struct Ecma262Reader {
         decimal_greater(this->largest_reference,
                         to_decimal_string(this->capture_count))) {
       return false;
-    }
-
-    for (std::size_t left = 0; left < this->captures.size(); ++left) {
-      for (auto right = left + 1; right < this->captures.size(); ++right) {
-        if (this->captures[left].name == this->captures[right].name &&
-            might_both_participate(this->captures[left].alternation,
-                                   this->captures[right].alternation)) {
-          return false;
-        }
-      }
     }
 
     return true;
@@ -260,21 +216,35 @@ struct Ecma262Reader {
   }
 
   auto read_disjunction_contents() -> bool {
-    const auto identifier{this->alternation_count};
-    this->alternation_count += 1;
-    this->alternation.emplace_back(identifier, 0);
+    this->declared.emplace_back();
+    std::unordered_set<std::u32string> gathered;
     if (!this->read_alternative()) {
       return false;
     }
 
     while (this->consume(U'|')) {
-      this->alternation.back().second += 1;
+      gathered.merge(this->declared.back());
+      this->declared.back().clear();
       if (!this->read_alternative()) {
         return false;
       }
     }
 
-    this->alternation.pop_back();
+    gathered.merge(this->declared.back());
+    this->declared.pop_back();
+
+    // What every alternative declared belongs to the alternative that encloses
+    // them, where the same name may not already stand
+    if (this->declared.empty()) {
+      return true;
+    }
+
+    for (const auto &name : gathered) {
+      if (!this->declared.back().insert(name).second) {
+        return false;
+      }
+    }
+
     return true;
   }
 
@@ -402,8 +372,11 @@ struct Ecma262Reader {
       }
 
       this->capture_count += 1;
-      this->captures.push_back(
-          {.name = std::move(name.value()), .alternation = this->alternation});
+      if (!this->declared.back().insert(name.value()).second) {
+        return false;
+      }
+
+      this->names.insert(std::move(name.value()));
       return this->read_disjunction() && this->consume(U')');
     }
 

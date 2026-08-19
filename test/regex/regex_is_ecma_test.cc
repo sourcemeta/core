@@ -761,6 +761,34 @@ TEST(group_name_repeated_across_nested_alternatives) {
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("(?:(?<x>a)|(?<x>b))"));
 }
 
+TEST(group_name_repeated_after_an_alternation) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("(?:(?<x>a)|(?<x>b))(?<x>c)"));
+}
+
+TEST(group_name_repeated_beside_an_alternation) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("(?:(?<x>a)|(?<x>b))|(?<x>c)"));
+}
+
+TEST(group_name_repeated_across_wrapped_alternatives) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("((?<x>a))|(?<x>b)"));
+}
+
+TEST(group_name_repeated_within_its_own_group) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("(?<x>(?<x>a))"));
+}
+
+TEST(group_name_repeated_within_its_own_alternation) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("(?<x>a|(?<x>b))"));
+}
+
+TEST(group_name_repeated_through_an_escape) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("(?<\\u0041>a)(?<A>b)"));
+}
+
+TEST(group_name_repeated_through_an_escape_across_alternatives) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("(?<\\u0041>a)|(?<A>b)"));
+}
+
 TEST(named_backreference_without_a_group) {
   EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\k<x>"));
 }
