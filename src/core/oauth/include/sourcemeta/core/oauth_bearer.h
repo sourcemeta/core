@@ -186,8 +186,11 @@ enum class OAuthScopeDecision : std::uint8_t {
 /// code points, as `oauth_has_scope` does it.
 ///
 /// A `null` rule is one "being requested in the default manner" (Section
-/// 5.5.1) and so constrains nothing, exactly as `oidc_claim_request_accepts`
-/// reads it. A rule that is neither null nor an object, or whose `value` is
+/// 5.5.1) rather than a malformed one, and since it constrains neither member
+/// it too asks only that some scope be carried. That is stricter than the
+/// unconditional acceptance `oidc_claim_request_accepts` gives a null request,
+/// which is handed a claim the caller has already found rather than looking
+/// one up. A rule that is neither null nor an object, or whose `value` is
 /// not a string, or whose `values` is not an array of strings, is reported as
 /// unreadable rather than refused. Whether an unreadable rule denies is a
 /// deployment's policy rather than anything these specifications settle, so it
