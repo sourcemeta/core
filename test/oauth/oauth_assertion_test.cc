@@ -763,3 +763,71 @@ TEST(verify_client_assertion_keys_replay_by_exact_audience) {
                    FIXED_TIME, options)
                    .has_value());
 }
+
+// RFC 7523 Section 3 check 4: a server "may reject JWTs with an "exp" claim
+// value that is unreasonably far in the future", and Section 5 names the
+// "maximum JWT lifetime allowed" among the values two parties agree out of band
+TEST(verify_client_assertion_accepts_a_lifetime_within_the_bound) {
+  auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(EC_PRIVATE_JWK))};
+  EXPECT_TRUE(key.has_value());
+  const auto assertion{sourcemeta::core::oauth_build_client_assertion(
+      "s6BhdRkqt3", "https://server.example/token", std::chrono::seconds{300},
+      FIXED_TIME, key.value(), sourcemeta::core::JWSAlgorithm::ES256)};
+  EXPECT_TRUE(assertion.has_value());
+
+  const auto keys{
+      sourcemeta::core::JWKS::from(sourcemeta::core::parse_json(JWKS_JSON))};
+  EXPECT_TRUE(keys.has_value());
+  sourcemeta::core::OAuthAssertionVerifyOptions options;
+  options.allowed_algorithms = ALLOWED;
+  options.maximum_lifetime = std::chrono::seconds{300};
+  EXPECT_FALSE(sourcemeta::core::oauth_verify_client_assertion(
+                   assertion.value(), AUDIENCES, "s6BhdRkqt3", keys.value(),
+                   FIXED_TIME, options)
+                   .has_value());
+}
+
+TEST(verify_client_assertion_rejects_a_lifetime_past_the_bound) {
+  auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(EC_PRIVATE_JWK))};
+  EXPECT_TRUE(key.has_value());
+  const auto assertion{sourcemeta::core::oauth_build_client_assertion(
+      "s6BhdRkqt3", "https://server.example/token", std::chrono::seconds{300},
+      FIXED_TIME, key.value(), sourcemeta::core::JWSAlgorithm::ES256)};
+  EXPECT_TRUE(assertion.has_value());
+
+  const auto keys{
+      sourcemeta::core::JWKS::from(sourcemeta::core::parse_json(JWKS_JSON))};
+  EXPECT_TRUE(keys.has_value());
+  sourcemeta::core::OAuthAssertionVerifyOptions options;
+  options.allowed_algorithms = ALLOWED;
+  options.maximum_lifetime = std::chrono::seconds{299};
+  const auto error{sourcemeta::core::oauth_verify_client_assertion(
+      assertion.value(), AUDIENCES, "s6BhdRkqt3", keys.value(), FIXED_TIME,
+      options)};
+  EXPECT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(), sourcemeta::core::OAuthAssertionError::Lifetime);
+}
+
+// An unset bound leaves the interval unexamined, so nothing an existing caller
+// passes changes meaning
+TEST(verify_client_assertion_leaves_the_lifetime_unbounded_by_default) {
+  auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(EC_PRIVATE_JWK))};
+  EXPECT_TRUE(key.has_value());
+  const auto assertion{sourcemeta::core::oauth_build_client_assertion(
+      "s6BhdRkqt3", "https://server.example/token", std::chrono::seconds{86400},
+      FIXED_TIME, key.value(), sourcemeta::core::JWSAlgorithm::ES256)};
+  EXPECT_TRUE(assertion.has_value());
+
+  const auto keys{
+      sourcemeta::core::JWKS::from(sourcemeta::core::parse_json(JWKS_JSON))};
+  EXPECT_TRUE(keys.has_value());
+  sourcemeta::core::OAuthAssertionVerifyOptions options;
+  options.allowed_algorithms = ALLOWED;
+  EXPECT_FALSE(sourcemeta::core::oauth_verify_client_assertion(
+                   assertion.value(), AUDIENCES, "s6BhdRkqt3", keys.value(),
+                   FIXED_TIME, options)
+                   .has_value());
+}

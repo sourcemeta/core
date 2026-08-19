@@ -42,8 +42,8 @@ TEST(a_line_terminator_as_the_separator) {
 }
 
 TEST(an_array_of_views) {
-  constexpr std::array<std::string_view, 3> items{{"a", "b", "c"}};
-  EXPECT_EQ(sourcemeta::core::join(items, ", "), "a, b, c");
+  constexpr std::array<std::string_view, 3> ITEMS{{"a", "b", "c"}};
+  EXPECT_EQ(sourcemeta::core::join(ITEMS, ", "), "a, b, c");
 }
 
 TEST(a_vector_of_strings) {

@@ -337,12 +337,12 @@ TEST(string_invalid_control_characters) {
   std::istringstream input07{"\"foo \u0007 bar\""};
   std::istringstream input08{"\"foo \u0008 bar\""};
   std::istringstream input09{"\"foo \u0009 bar\""};
-  std::istringstream input0A{"\"foo \u000A bar\""};
-  std::istringstream input0B{"\"foo \u000B bar\""};
-  std::istringstream input0C{"\"foo \u000C bar\""};
-  std::istringstream input0D{"\"foo \u000D bar\""};
-  std::istringstream input0E{"\"foo \u000E bar\""};
-  std::istringstream input0F{"\"foo \u000F bar\""};
+  std::istringstream input0_a{"\"foo \u000A bar\""};
+  std::istringstream input0_b{"\"foo \u000B bar\""};
+  std::istringstream input0_c{"\"foo \u000C bar\""};
+  std::istringstream input0_d{"\"foo \u000D bar\""};
+  std::istringstream input0_e{"\"foo \u000E bar\""};
+  std::istringstream input0_f{"\"foo \u000F bar\""};
   std::istringstream input10{"\"foo \u0010 bar\""};
   std::istringstream input11{"\"foo \u0011 bar\""};
   std::istringstream input12{"\"foo \u0012 bar\""};
@@ -353,12 +353,12 @@ TEST(string_invalid_control_characters) {
   std::istringstream input17{"\"foo \u0017 bar\""};
   std::istringstream input18{"\"foo \u0018 bar\""};
   std::istringstream input19{"\"foo \u0019 bar\""};
-  std::istringstream input1A{"\"foo \u001A bar\""};
-  std::istringstream input1B{"\"foo \u001B bar\""};
-  std::istringstream input1C{"\"foo \u001C bar\""};
-  std::istringstream input1D{"\"foo \u001D bar\""};
-  std::istringstream input1E{"\"foo \u001E bar\""};
-  std::istringstream input1F{"\"foo \u001F bar\""};
+  std::istringstream input1_a{"\"foo \u001A bar\""};
+  std::istringstream input1_b{"\"foo \u001B bar\""};
+  std::istringstream input1_c{"\"foo \u001C bar\""};
+  std::istringstream input1_d{"\"foo \u001D bar\""};
+  std::istringstream input1_e{"\"foo \u001E bar\""};
+  std::istringstream input1_f{"\"foo \u001F bar\""};
 
   EXPECT_PARSE_ERROR(input00, 1, 6);
   EXPECT_PARSE_ERROR(input01, 1, 6);
@@ -370,12 +370,12 @@ TEST(string_invalid_control_characters) {
   EXPECT_PARSE_ERROR(input07, 1, 6);
   EXPECT_PARSE_ERROR(input08, 1, 6);
   EXPECT_PARSE_ERROR(input09, 1, 6);
-  EXPECT_PARSE_ERROR(input0A, 1, 6);
-  EXPECT_PARSE_ERROR(input0B, 1, 6);
-  EXPECT_PARSE_ERROR(input0C, 1, 6);
-  EXPECT_PARSE_ERROR(input0D, 1, 6);
-  EXPECT_PARSE_ERROR(input0E, 1, 6);
-  EXPECT_PARSE_ERROR(input0F, 1, 6);
+  EXPECT_PARSE_ERROR(input0_a, 1, 6);
+  EXPECT_PARSE_ERROR(input0_b, 1, 6);
+  EXPECT_PARSE_ERROR(input0_c, 1, 6);
+  EXPECT_PARSE_ERROR(input0_d, 1, 6);
+  EXPECT_PARSE_ERROR(input0_e, 1, 6);
+  EXPECT_PARSE_ERROR(input0_f, 1, 6);
   EXPECT_PARSE_ERROR(input10, 1, 6);
   EXPECT_PARSE_ERROR(input11, 1, 6);
   EXPECT_PARSE_ERROR(input12, 1, 6);
@@ -386,12 +386,12 @@ TEST(string_invalid_control_characters) {
   EXPECT_PARSE_ERROR(input17, 1, 6);
   EXPECT_PARSE_ERROR(input18, 1, 6);
   EXPECT_PARSE_ERROR(input19, 1, 6);
-  EXPECT_PARSE_ERROR(input1A, 1, 6);
-  EXPECT_PARSE_ERROR(input1B, 1, 6);
-  EXPECT_PARSE_ERROR(input1C, 1, 6);
-  EXPECT_PARSE_ERROR(input1D, 1, 6);
-  EXPECT_PARSE_ERROR(input1E, 1, 6);
-  EXPECT_PARSE_ERROR(input1F, 1, 6);
+  EXPECT_PARSE_ERROR(input1_a, 1, 6);
+  EXPECT_PARSE_ERROR(input1_b, 1, 6);
+  EXPECT_PARSE_ERROR(input1_c, 1, 6);
+  EXPECT_PARSE_ERROR(input1_d, 1, 6);
+  EXPECT_PARSE_ERROR(input1_e, 1, 6);
+  EXPECT_PARSE_ERROR(input1_f, 1, 6);
 }
 
 TEST(string_invalid_code_point) {

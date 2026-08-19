@@ -32,9 +32,8 @@ TEST(single_variable) {
         if (name == "var") {
           return std::make_tuple(std::string_view{"value"}, std::nullopt,
                                  false);
-        } else {
-          return std::nullopt;
         }
+        return std::nullopt;
       });
 
   EXPECT_EQ(result, "value");
@@ -46,9 +45,8 @@ TEST(literal_then_variable) {
       [](const std::string_view name) -> sourcemeta::core::URITemplateValue {
         if (name == "id") {
           return std::make_tuple(std::string_view{"123"}, std::nullopt, false);
-        } else {
-          return std::nullopt;
         }
+        return std::nullopt;
       });
 
   EXPECT_EQ(result, "http://example.com/123");
@@ -60,9 +58,8 @@ TEST(variable_then_literal) {
       [](const std::string_view name) -> sourcemeta::core::URITemplateValue {
         if (name == "id") {
           return std::make_tuple(std::string_view{"456"}, std::nullopt, false);
-        } else {
-          return std::nullopt;
         }
+        return std::nullopt;
       });
 
   EXPECT_EQ(result, "456/resource");
@@ -75,9 +72,8 @@ TEST(literal_variable_literal) {
       [](const std::string_view name) -> sourcemeta::core::URITemplateValue {
         if (name == "username") {
           return std::make_tuple(std::string_view{"john"}, std::nullopt, false);
-        } else {
-          return std::nullopt;
         }
+        return std::nullopt;
       });
 
   EXPECT_EQ(result, "http://example.com/~john/");
@@ -90,11 +86,11 @@ TEST(multiple_variables) {
       [](const std::string_view name) -> sourcemeta::core::URITemplateValue {
         if (name == "id") {
           return std::make_tuple(std::string_view{"42"}, std::nullopt, false);
-        } else if (name == "postId") {
-          return std::make_tuple(std::string_view{"99"}, std::nullopt, false);
-        } else {
-          return std::nullopt;
         }
+        if (name == "postId") {
+          return std::make_tuple(std::string_view{"99"}, std::nullopt, false);
+        }
+        return std::nullopt;
       });
 
   EXPECT_EQ(result, "/users/42/posts/99");
@@ -107,12 +103,12 @@ TEST(adjacent_variables) {
         if (name == "x") {
           return std::make_tuple(std::string_view{"hello"}, std::nullopt,
                                  false);
-        } else if (name == "y") {
+        }
+        if (name == "y") {
           return std::make_tuple(std::string_view{"world"}, std::nullopt,
                                  false);
-        } else {
-          return std::nullopt;
         }
+        return std::nullopt;
       });
 
   EXPECT_EQ(result, "helloworld");
@@ -135,9 +131,8 @@ TEST(partial_variables_defined) {
       [](const std::string_view name) -> sourcemeta::core::URITemplateValue {
         if (name == "id") {
           return std::make_tuple(std::string_view{"42"}, std::nullopt, false);
-        } else {
-          return std::nullopt;
         }
+        return std::nullopt;
       });
 
   EXPECT_EQ(result, "/users/42/posts/");
@@ -157,9 +152,8 @@ TEST(empty_value) {
       [](const std::string_view name) -> sourcemeta::core::URITemplateValue {
         if (name == "var") {
           return std::make_tuple(std::string_view{""}, std::nullopt, false);
-        } else {
-          return std::nullopt;
         }
+        return std::nullopt;
       });
 
   EXPECT_EQ(result, "");
@@ -172,9 +166,8 @@ TEST(percent_encode_space) {
         if (name == "var") {
           return std::make_tuple(std::string_view{"hello world"}, std::nullopt,
                                  false);
-        } else {
-          return std::nullopt;
         }
+        return std::nullopt;
       });
 
   EXPECT_EQ(result, "hello%20world");
@@ -187,9 +180,8 @@ TEST(percent_encode_slash) {
         if (name == "var") {
           return std::make_tuple(std::string_view{"foo/bar"}, std::nullopt,
                                  false);
-        } else {
-          return std::nullopt;
         }
+        return std::nullopt;
       });
 
   EXPECT_EQ(result, "foo%2Fbar");
@@ -202,9 +194,8 @@ TEST(percent_encode_reserved_chars) {
         if (name == "var") {
           return std::make_tuple(std::string_view{":/?#[]@!$&'()*+,;="},
                                  std::nullopt, false);
-        } else {
-          return std::nullopt;
         }
+        return std::nullopt;
       });
 
   EXPECT_EQ(result, "%3A%2F%3F%23%5B%5D%40%21%24%26%27%28%29%2A%2B%2C%3B%3D");
@@ -217,9 +208,8 @@ TEST(unreserved_chars_not_encoded) {
         if (name == "var") {
           return std::make_tuple(std::string_view{"azAZ09-._~"}, std::nullopt,
                                  false);
-        } else {
-          return std::nullopt;
         }
+        return std::nullopt;
       });
 
   EXPECT_EQ(result, "azAZ09-._~");
@@ -231,9 +221,8 @@ TEST(percent_encode_unicode) {
       [](const std::string_view name) -> sourcemeta::core::URITemplateValue {
         if (name == "var") {
           return std::make_tuple(std::string_view{"café"}, std::nullopt, false);
-        } else {
-          return std::nullopt;
         }
+        return std::nullopt;
       });
 
   EXPECT_EQ(result, "caf%C3%A9");
@@ -295,9 +284,8 @@ TEST(reserved_expansion_simple) {
         if (name == "var") {
           return std::make_tuple(std::string_view{"value"}, std::nullopt,
                                  false);
-        } else {
-          return std::nullopt;
         }
+        return std::nullopt;
       });
 
   EXPECT_EQ(result, "value");
@@ -310,9 +298,8 @@ TEST(reserved_expansion_preserves_reserved) {
         if (name == "path") {
           return std::make_tuple(std::string_view{"/foo/bar"}, std::nullopt,
                                  false);
-        } else {
-          return std::nullopt;
         }
+        return std::nullopt;
       });
 
   EXPECT_EQ(result, "/foo/bar");
@@ -325,9 +312,8 @@ TEST(reserved_expansion_all_reserved_chars) {
         if (name == "reserved") {
           return std::make_tuple(std::string_view{":/?#[]@!$&'()*+,;="},
                                  std::nullopt, false);
-        } else {
-          return std::nullopt;
         }
+        return std::nullopt;
       });
 
   EXPECT_EQ(result, ":/?#[]@!$&'()*+,;=");
@@ -340,9 +326,8 @@ TEST(reserved_expansion_encodes_non_reserved) {
         if (name == "var") {
           return std::make_tuple(std::string_view{"hello world"}, std::nullopt,
                                  false);
-        } else {
-          return std::nullopt;
         }
+        return std::nullopt;
       });
 
   EXPECT_EQ(result, "hello%20world");
@@ -365,9 +350,8 @@ TEST(fragment_expansion_simple) {
         if (name == "var") {
           return std::make_tuple(std::string_view{"value"}, std::nullopt,
                                  false);
-        } else {
-          return std::nullopt;
         }
+        return std::nullopt;
       });
 
   EXPECT_EQ(result, "#value");
@@ -380,9 +364,8 @@ TEST(fragment_expansion_preserves_reserved) {
         if (name == "path") {
           return std::make_tuple(std::string_view{"/foo/bar"}, std::nullopt,
                                  false);
-        } else {
-          return std::nullopt;
         }
+        return std::nullopt;
       });
 
   EXPECT_EQ(result, "#/foo/bar");
@@ -395,9 +378,8 @@ TEST(fragment_expansion_encodes_non_reserved) {
         if (name == "var") {
           return std::make_tuple(std::string_view{"hello world"}, std::nullopt,
                                  false);
-        } else {
-          return std::nullopt;
         }
+        return std::nullopt;
       });
 
   EXPECT_EQ(result, "#hello%20world");
@@ -686,13 +668,12 @@ TEST(list_no_explode) {
           call_count++;
           if (call_count == 1) {
             return std::make_tuple(std::string_view{"red"}, std::nullopt, true);
-          } else if (call_count == 2) {
+          }
+          if (call_count == 2) {
             return std::make_tuple(std::string_view{"green"}, std::nullopt,
                                    true);
-          } else {
-            return std::make_tuple(std::string_view{"blue"}, std::nullopt,
-                                   false);
           }
+          return std::make_tuple(std::string_view{"blue"}, std::nullopt, false);
         }
         return std::nullopt;
       });
@@ -710,13 +691,12 @@ TEST(list_explode_path) {
           call_count++;
           if (call_count == 1) {
             return std::make_tuple(std::string_view{"red"}, std::nullopt, true);
-          } else if (call_count == 2) {
+          }
+          if (call_count == 2) {
             return std::make_tuple(std::string_view{"green"}, std::nullopt,
                                    true);
-          } else {
-            return std::make_tuple(std::string_view{"blue"}, std::nullopt,
-                                   false);
           }
+          return std::make_tuple(std::string_view{"blue"}, std::nullopt, false);
         }
         return std::nullopt;
       });
@@ -734,13 +714,12 @@ TEST(list_explode_query) {
           call_count++;
           if (call_count == 1) {
             return std::make_tuple(std::string_view{"red"}, std::nullopt, true);
-          } else if (call_count == 2) {
+          }
+          if (call_count == 2) {
             return std::make_tuple(std::string_view{"green"}, std::nullopt,
                                    true);
-          } else {
-            return std::make_tuple(std::string_view{"blue"}, std::nullopt,
-                                   false);
           }
+          return std::make_tuple(std::string_view{"blue"}, std::nullopt, false);
         }
         return std::nullopt;
       });
@@ -758,13 +737,12 @@ TEST(list_explode_label) {
           call_count++;
           if (call_count == 1) {
             return std::make_tuple(std::string_view{"red"}, std::nullopt, true);
-          } else if (call_count == 2) {
+          }
+          if (call_count == 2) {
             return std::make_tuple(std::string_view{"green"}, std::nullopt,
                                    true);
-          } else {
-            return std::make_tuple(std::string_view{"blue"}, std::nullopt,
-                                   false);
           }
+          return std::make_tuple(std::string_view{"blue"}, std::nullopt, false);
         }
         return std::nullopt;
       });
@@ -783,10 +761,9 @@ TEST(object_no_explode) {
           if (call_count == 1) {
             return std::make_tuple(std::string_view{"1"},
                                    std::string_view{"one"}, true);
-          } else {
-            return std::make_tuple(std::string_view{"2"},
-                                   std::string_view{"two"}, false);
           }
+          return std::make_tuple(std::string_view{"2"}, std::string_view{"two"},
+                                 false);
         }
         return std::nullopt;
       });
@@ -805,10 +782,9 @@ TEST(object_explode_query) {
           if (call_count == 1) {
             return std::make_tuple(std::string_view{"1"},
                                    std::string_view{"one"}, true);
-          } else {
-            return std::make_tuple(std::string_view{"2"},
-                                   std::string_view{"two"}, false);
           }
+          return std::make_tuple(std::string_view{"2"}, std::string_view{"two"},
+                                 false);
         }
         return std::nullopt;
       });
@@ -827,10 +803,9 @@ TEST(object_explode_path_param) {
           if (call_count == 1) {
             return std::make_tuple(std::string_view{";"},
                                    std::string_view{"semi"}, true);
-          } else {
-            return std::make_tuple(std::string_view{"."},
-                                   std::string_view{"dot"}, false);
           }
+          return std::make_tuple(std::string_view{"."}, std::string_view{"dot"},
+                                 false);
         }
         return std::nullopt;
       });

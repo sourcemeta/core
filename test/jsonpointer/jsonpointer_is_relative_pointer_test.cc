@@ -421,29 +421,29 @@ TEST(valid_tab_inside_reference_token) {
 
 // embedded NUL - legal in a token; a truncating validator would differ
 TEST(valid_nul_inside_reference_token) {
-  static constexpr char value[]{"0/foo\x00"
+  static constexpr char VALUE[]{"0/foo\x00"
                                 "bar"};
-  static_assert(sizeof(value) - 1 == 9,
+  static_assert(sizeof(VALUE) - 1 == 9,
                 "string literal length changed - check \\xNN escaping");
   EXPECT_TRUE(
-      sourcemeta::core::is_relative_pointer(std::string_view{value, 9}));
+      sourcemeta::core::is_relative_pointer(std::string_view{VALUE, 9}));
 }
 
 TEST(invalid_nul_then_dangling_tilde) {
-  static constexpr char value[]{"0/foo\x00~"};
-  static_assert(sizeof(value) - 1 == 7,
+  static constexpr char VALUE[]{"0/foo\x00~"};
+  static_assert(sizeof(VALUE) - 1 == 7,
                 "string literal length changed - check \\xNN escaping");
   EXPECT_FALSE(
-      sourcemeta::core::is_relative_pointer(std::string_view{value, 7}));
+      sourcemeta::core::is_relative_pointer(std::string_view{VALUE, 7}));
 }
 
 TEST(invalid_nul_before_integer) {
-  static constexpr char value[]{"\x00"
+  static constexpr char VALUE[]{"\x00"
                                 "0"};
-  static_assert(sizeof(value) - 1 == 2,
+  static_assert(sizeof(VALUE) - 1 == 2,
                 "string literal length changed - check \\xNN escaping");
   EXPECT_FALSE(
-      sourcemeta::core::is_relative_pointer(std::string_view{value, 2}));
+      sourcemeta::core::is_relative_pointer(std::string_view{VALUE, 2}));
 }
 
 // escape sequences inherited from RFC 6901 section 3 through the wrapper

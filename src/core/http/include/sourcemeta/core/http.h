@@ -25,6 +25,7 @@
 #include <string>           // std::string
 #include <string_view>      // std::string_view
 #include <utility>          // std::pair
+#include <vector>           // std::vector
 
 /// @defgroup http HTTP
 /// @brief An implementation of HTTP-protocol parsing, formatting, and
@@ -262,6 +263,273 @@ auto http_format_links(std::span<const HTTPLink> links, std::string &out)
 /// ```
 SOURCEMETA_CORE_HTTP_EXPORT
 auto http_format_links(std::span<const HTTPLink> links) -> std::string;
+
+/// @ingroup http
+/// Whether a cached response may be stored by a shared cache or only by a
+/// private one (RFC 9111 §5.2.2.7 and §5.2.2.9). The two are alternatives
+/// rather than flags, so a response cannot be marked both.
+enum class HTTPCacheVisibility : std::uint8_t {
+  /// A cache may store the response even where it would otherwise be
+  /// prohibited, which includes a shared cache reusing a response to an
+  /// authorized request.
+  Public,
+  /// A shared cache must not store the response, the response being intended
+  /// for a single user.
+  Private
+};
+
+/// @ingroup http
+/// The response directives to serialise into an RFC 9111 §5.2 `Cache-Control`
+/// header value. The caller owns the backing storage for every field.
+///
+/// Whether a response may be stored by a shared cache is an access decision as
+/// much as a performance one, so it is carried as one alternative rather than
+/// as two independent flags that could both be set.
+struct HTTPCacheControl {
+  /// Which caches may store the response
+  std::optional<HTTPCacheVisibility> visibility{};
+  /// How long the response stays fresh (RFC 9111 §5.2.2.1)
+  std::optional<std::chrono::seconds> max_age{};
+  /// How long the response stays fresh for a shared cache, overriding the
+  /// above for one (RFC 9111 §5.2.2.10)
+  std::optional<std::chrono::seconds> shared_max_age{};
+  /// Whether no cache may store any part of the exchange (RFC 9111 §5.2.2.5)
+  bool no_store{false};
+  /// Whether the response must be validated before every reuse (RFC 9111
+  /// §5.2.2.4), ignored when a field list qualifies it below
+  bool no_cache{false};
+  /// Whether a stale response must be validated before reuse (RFC 9111
+  /// §5.2.2.2)
+  bool must_revalidate{false};
+  /// The same for a shared cache alone (RFC 9111 §5.2.2.8)
+  bool proxy_revalidate{false};
+  /// Whether storing is limited to a cache that implements the status code's
+  /// caching requirements (RFC 9111 §5.2.2.3)
+  bool must_understand{false};
+  /// Whether the payload must not be transformed (RFC 9111 §5.2.2.6)
+  bool no_transform{false};
+  /// Whether the response will not be updated while fresh (RFC 8246)
+  bool immutable{false};
+  /// The fields a shared cache must not store, which qualifies the private
+  /// directive and so requires it (RFC 9111 §5.2.2.7)
+  std::span<const std::string_view> private_fields{};
+  /// The fields that must be revalidated before reuse, which qualifies the
+  /// no-cache directive (RFC 9111 §5.2.2.4)
+  std::span<const std::string_view> no_cache_fields{};
+};
+
+/// @ingroup http
+/// Test whether a set of directives can be serialised into a valid RFC 9111
+/// §5.2 `Cache-Control` header value: every duration is the non-negative
+/// integer §1.2.2 defines, every qualifying field name is an RFC 9110 §5.6.2
+/// token, a private field list is accompanied by the directive it qualifies,
+/// and at least one directive is named, since §5.2 lists them and RFC 9110
+/// §5.6.1.1 forbids a sender from generating an empty list element.
+SOURCEMETA_CORE_HTTP_EXPORT
+auto http_cache_control_valid(const HTTPCacheControl &directives) -> bool;
+
+/// @ingroup http
+/// Append an RFC 9111 §5.2 `Cache-Control` header value to `out`, returning
+/// `true` on success. When the directives are not `http_cache_control_valid`,
+/// `out` is left unchanged and this returns `false`.
+///
+/// A duration is written in the token form §5.2.2.1 requires, never quoted,
+/// while a field list is written in the quoted-string form §5.2.2.4 and
+/// §5.2.2.7 ask a sender to use even for a single entry. A qualifying field
+/// list replaces the bare directive rather than joining it. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/http.h>
+/// #include <cassert>
+/// #include <chrono>
+/// #include <string>
+///
+/// std::string buffer;
+/// const auto ok{sourcemeta::core::http_serialize_cache_control(
+///     {.visibility = sourcemeta::core::HTTPCacheVisibility::Private,
+///      .max_age = std::chrono::seconds{60}}, buffer)};
+/// assert(ok);
+/// assert(buffer == "private, max-age=60");
+/// ```
+SOURCEMETA_CORE_HTTP_EXPORT
+auto http_serialize_cache_control(const HTTPCacheControl &directives,
+                                  std::string &out) -> bool;
+
+/// @ingroup http
+/// Serialise an RFC 9111 §5.2 `Cache-Control` header value, returning no value
+/// when the directives are not `http_cache_control_valid`. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/http.h>
+/// #include <cassert>
+///
+/// const auto value{sourcemeta::core::http_serialize_cache_control(
+///     {.no_store = true})};
+/// assert(value == "no-store");
+/// ```
+SOURCEMETA_CORE_HTTP_EXPORT
+auto http_serialize_cache_control(const HTTPCacheControl &directives)
+    -> std::optional<std::string>;
+
+/// @ingroup http
+/// A challenge to serialise into an RFC 9110 §11.6.1 `WWW-Authenticate`
+/// response header value. The caller owns the backing storage for every field.
+///
+/// RFC 9110 §11.3 gives `challenge = auth-scheme [ 1*SP ( token68 /
+/// #auth-param ) ]`, so a challenge carries either a credential or a parameter
+/// list and never both.
+struct HTTPChallenge {
+  /// The authentication scheme
+  std::string_view scheme{};
+  /// The credential the challenge carries in place of parameters
+  std::optional<std::string_view> token68{};
+  /// The authentication parameters
+  std::span<const std::pair<std::string_view, std::string_view>> parameters{};
+};
+
+/// @ingroup http
+/// Test whether a challenge can be serialised into a valid RFC 9110 §11.6.1
+/// `WWW-Authenticate` header value: the scheme is a non-empty RFC 9110 §5.6.2
+/// token, a present credential is a §11.2 token68 and stands alone, every
+/// parameter name is a token, no parameter name repeats under the
+/// case-insensitive matching §11.2 mandates, and every value is encodable as a
+/// §5.6.4 quoted-string.
+///
+/// A challenge naming the Bearer scheme is held to RFC 6750 §3 as well, which
+/// requires at least one parameter and bounds the octets `scope`, `error`,
+/// `error_description` and `error_uri` may carry. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/http.h>
+/// #include <array>
+/// #include <cassert>
+/// #include <string_view>
+/// #include <utility>
+///
+/// const std::array<std::pair<std::string_view, std::string_view>, 1>
+///     parameters{{{"realm", "example"}}};
+/// assert(sourcemeta::core::http_challenge_valid(
+///     {.scheme = "Bearer", .parameters = parameters}));
+/// ```
+SOURCEMETA_CORE_HTTP_EXPORT
+auto http_challenge_valid(const HTTPChallenge &challenge) -> bool;
+
+/// @ingroup http
+/// Append an RFC 9110 §11.6.1 `WWW-Authenticate` challenge to `out`, returning
+/// `true` on success. When the challenge is not `http_challenge_valid`, `out`
+/// is left unchanged and this returns `false`.
+///
+/// Every parameter value is spelled as a §5.6.4 quoted-string, since §11.5
+/// leaves a sender no other choice for a realm, and the encoding escapes a
+/// quote or a backslash rather than letting either close the value early. For
+/// example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/http.h>
+/// #include <array>
+/// #include <cassert>
+/// #include <string>
+/// #include <string_view>
+/// #include <utility>
+///
+/// const std::array<std::pair<std::string_view, std::string_view>, 1>
+///     parameters{{{"realm", "example"}}};
+/// std::string buffer;
+/// const auto ok{sourcemeta::core::http_serialize_challenge(
+///     {.scheme = "Bearer", .parameters = parameters}, buffer)};
+/// assert(ok);
+/// assert(buffer == "Bearer realm=\"example\"");
+/// ```
+SOURCEMETA_CORE_HTTP_EXPORT
+auto http_serialize_challenge(const HTTPChallenge &challenge, std::string &out)
+    -> bool;
+
+/// @ingroup http
+/// Serialise an RFC 9110 §11.6.1 `WWW-Authenticate` challenge, returning no
+/// value when the challenge is not `http_challenge_valid`.
+SOURCEMETA_CORE_HTTP_EXPORT
+auto http_serialize_challenge(const HTTPChallenge &challenge)
+    -> std::optional<std::string>;
+
+/// @ingroup http
+/// Append a whole RFC 9110 §11.6.1 `WWW-Authenticate` header value to `out`,
+/// which is a list of challenges. Returns `false` without touching `out` when
+/// the list is empty, since §11.6.1 requires a 401 to carry at least one
+/// challenge, or when any challenge is not `http_challenge_valid`.
+SOURCEMETA_CORE_HTTP_EXPORT
+auto http_serialize_challenges(std::span<const HTTPChallenge> challenges,
+                               std::string &out) -> bool;
+
+/// @ingroup http
+/// Serialise a whole RFC 9110 §11.6.1 `WWW-Authenticate` header value,
+/// returning no value when the list is empty or carries an invalid challenge.
+/// For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/http.h>
+/// #include <array>
+/// #include <cassert>
+/// #include <string_view>
+/// #include <utility>
+///
+/// const std::array<std::pair<std::string_view, std::string_view>, 1>
+///     parameters{{{"realm", "api"}}};
+/// const std::array<sourcemeta::core::HTTPChallenge, 1> challenges{
+///     {{.scheme = "Bearer", .parameters = parameters}}};
+/// const auto value{sourcemeta::core::http_serialize_challenges(challenges)};
+/// assert(value == "Bearer realm=\"api\"");
+/// ```
+SOURCEMETA_CORE_HTTP_EXPORT
+auto http_serialize_challenges(std::span<const HTTPChallenge> challenges)
+    -> std::optional<std::string>;
+
+/// @ingroup http
+/// A challenge read out of an RFC 9110 §11.6.1 `WWW-Authenticate` header
+/// value. Unlike the challenge a caller hands to the serialiser, this one owns
+/// its strings, since a quoted-pair means a value does not always appear
+/// verbatim in the field it was read from.
+struct HTTPParsedChallenge {
+  /// The authentication scheme, as spelled in the field
+  std::string scheme;
+  /// The credential the challenge carried in place of parameters
+  std::optional<std::string> token68;
+  /// The authentication parameters, in the order they appeared
+  std::vector<std::pair<std::string, std::string>> parameters;
+};
+
+/// @ingroup http
+/// Parse an RFC 9110 §11.6.1 `WWW-Authenticate` header value, given without
+/// the field name, into its challenges, returning `false` and leaving the
+/// container empty when the value is malformed or carries no challenge at all.
+///
+/// The field is a list of challenges whose parameters are themselves
+/// comma-separated, so §11.6.1 warns recipients to take special care. A token
+/// followed by an equals sign continues the challenge being read, while one
+/// that is not opens the next, and a run of token characters closed by equals
+/// padding and nothing else is a §11.2 token68 rather than a parameter without
+/// a value. Empty list elements are ignored as §5.6.1.2 requires.
+///
+/// This applies the RFC 9110 grammar alone. A recipient judges nothing beyond
+/// it, so a challenge that `http_challenge_valid` would refuse a sender, such
+/// as a bare Bearer, still parses. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/http.h>
+/// #include <cassert>
+/// #include <vector>
+///
+/// std::vector<sourcemeta::core::HTTPParsedChallenge> challenges;
+/// const auto ok{sourcemeta::core::http_parse_challenges(
+///     "Bearer realm=\"example\"", challenges)};
+/// assert(ok);
+/// assert(challenges.size() == 1);
+/// assert(challenges.at(0).scheme == "Bearer");
+/// assert(challenges.at(0).parameters.at(0).second == "example");
+/// ```
+SOURCEMETA_CORE_HTTP_EXPORT
+auto http_parse_challenges(const std::string_view input,
+                           std::vector<HTTPParsedChallenge> &challenges)
+    -> bool;
 
 /// @ingroup http
 /// The `SameSite` attribute of a cookie per RFC 6265bis §5.2.

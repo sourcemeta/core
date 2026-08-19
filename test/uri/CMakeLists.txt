@@ -12,6 +12,7 @@ sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME uri
     uri_port_test.cc
     uri_scheme_test.cc
     uri_is_scheme_test.cc
+    uri_is_absolute_path_reference_test.cc
     uri_is_gen_delim_test.cc
     uri_query_test.cc
     uri_is_absolute_test.cc
@@ -46,6 +47,7 @@ sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME uri
     uri_user_info_test.cc
     uri_is_iri_test.cc
     uri_is_uri_test.cc
+    uri_is_uri_reference_test.cc
     uri_from_iri_test.cc
     uri_is_internationalized_test.cc)
 

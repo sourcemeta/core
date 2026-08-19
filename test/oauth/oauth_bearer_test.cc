@@ -156,22 +156,22 @@ TEST(challenge_parameter_rejects_an_unterminated_quoted_string) {
 
 TEST(challenge_parameter_parses_the_rfc7235_example) {
   // RFC 7235 Section 4.1 example, adapted with the standard schemes
-  static constexpr std::string_view header{
+  static constexpr std::string_view HEADER{
       R"(Newauth realm="apps", type=1, title="Login", Basic realm="simple")"};
   EXPECT_EQ(
-      sourcemeta::core::oauth_challenge_parameter(header, "Newauth", "realm")
+      sourcemeta::core::oauth_challenge_parameter(HEADER, "Newauth", "realm")
           .value(),
       "apps");
   EXPECT_EQ(
-      sourcemeta::core::oauth_challenge_parameter(header, "Newauth", "type")
+      sourcemeta::core::oauth_challenge_parameter(HEADER, "Newauth", "type")
           .value(),
       "1");
   EXPECT_EQ(
-      sourcemeta::core::oauth_challenge_parameter(header, "Newauth", "title")
+      sourcemeta::core::oauth_challenge_parameter(HEADER, "Newauth", "title")
           .value(),
       "Login");
   EXPECT_EQ(
-      sourcemeta::core::oauth_challenge_parameter(header, "Basic", "realm")
+      sourcemeta::core::oauth_challenge_parameter(HEADER, "Basic", "realm")
           .value(),
       "simple");
 }

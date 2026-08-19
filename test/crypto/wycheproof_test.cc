@@ -20,13 +20,14 @@ auto to_signature_hash_function(const std::string_view name)
     -> std::optional<sourcemeta::core::SignatureHashFunction> {
   if (name == "SHA-256") {
     return sourcemeta::core::SignatureHashFunction::SHA256;
-  } else if (name == "SHA-384") {
-    return sourcemeta::core::SignatureHashFunction::SHA384;
-  } else if (name == "SHA-512") {
-    return sourcemeta::core::SignatureHashFunction::SHA512;
-  } else {
-    return std::nullopt;
   }
+  if (name == "SHA-384") {
+    return sourcemeta::core::SignatureHashFunction::SHA384;
+  }
+  if (name == "SHA-512") {
+    return sourcemeta::core::SignatureHashFunction::SHA512;
+  }
+  return std::nullopt;
 }
 
 struct CurveParameters {
@@ -37,13 +38,14 @@ struct CurveParameters {
 auto to_curve(const std::string_view name) -> std::optional<CurveParameters> {
   if (name == "secp256r1") {
     return CurveParameters{sourcemeta::core::EllipticCurve::P256, 32};
-  } else if (name == "secp384r1") {
-    return CurveParameters{sourcemeta::core::EllipticCurve::P384, 48};
-  } else if (name == "secp521r1") {
-    return CurveParameters{sourcemeta::core::EllipticCurve::P521, 66};
-  } else {
-    return std::nullopt;
   }
+  if (name == "secp384r1") {
+    return CurveParameters{sourcemeta::core::EllipticCurve::P384, 48};
+  }
+  if (name == "secp521r1") {
+    return CurveParameters{sourcemeta::core::EllipticCurve::P521, 66};
+  }
+  return std::nullopt;
 }
 
 // Each vector reduces to a closure that asserts on data captured at
@@ -579,15 +581,76 @@ auto register_aes_kw_tests(const std::filesystem::path &path,
   }
 }
 
+using HkdfFunction = std::optional<std::string> (*)(const std::string_view,
+                                                    const std::string_view,
+                                                    const std::string_view,
+                                                    const std::size_t);
+
+auto check_hkdf(const HkdfFunction derive,
+                const std::string &input_key_material, const std::string &salt,
+                const std::string &info, const std::size_t size,
+                const std::string &expected, const bool valid) -> void {
+  const auto result{derive(input_key_material, salt, info, size)};
+  if (!valid) {
+    EXPECT_FALSE(result.has_value());
+    return;
+  }
+
+  EXPECT_TRUE(result.has_value());
+  if (result.has_value()) {
+    EXPECT_EQ(sourcemeta::core::bytes_to_hex(result.value()), expected);
+  }
+}
+
+auto register_hkdf_tests(const std::filesystem::path &path,
+                         const std::string &suite_name,
+                         const HkdfFunction derive) -> void {
+  const auto document{load(path)};
+  const auto stem{path.stem().string()};
+  for (const auto &group : document.at("testGroups").as_array()) {
+    for (const auto &test : group.at("tests").as_array()) {
+      const std::string result{test.at("result").to_string()};
+      if (result == "acceptable") {
+        continue;
+      }
+
+      const auto input_key_material{
+          sourcemeta::core::hex_to_bytes(test.at("ikm").to_string())};
+      const auto salt{
+          sourcemeta::core::hex_to_bytes(test.at("salt").to_string())};
+      const auto info{
+          sourcemeta::core::hex_to_bytes(test.at("info").to_string())};
+      if (!input_key_material.has_value() || !salt.has_value() ||
+          !info.has_value()) {
+        continue;
+      }
+
+      // An invalid case carries no output keying material to compare against
+      const auto *const okm{test.try_at("okm")};
+      register_case(
+          suite_name,
+          stem + "_tc" + std::to_string(test.at("tcId").to_integer()),
+          [derive, input_key_material = input_key_material.value(),
+           salt = salt.value(), info = info.value(),
+           size = static_cast<std::size_t>(test.at("size").to_integer()),
+           expected = (okm == nullptr ? std::string{} : okm->to_string()),
+           valid = (result == "valid")]() {
+            check_hkdf(derive, input_key_material, salt, info, size, expected,
+                       valid);
+          });
+    }
+  }
+}
+
 auto to_oaep_hash(const std::string_view name)
     -> std::optional<sourcemeta::core::RSAOAEPHash> {
   if (name == "SHA-1") {
     return sourcemeta::core::RSAOAEPHash::SHA1;
-  } else if (name == "SHA-256") {
-    return sourcemeta::core::RSAOAEPHash::SHA256;
-  } else {
-    return std::nullopt;
   }
+  if (name == "SHA-256") {
+    return sourcemeta::core::RSAOAEPHash::SHA256;
+  }
+  return std::nullopt;
 }
 
 // A valid vector must decrypt to exactly the plaintext. An invalid vector must
@@ -677,7 +740,8 @@ auto to_ecdh_curve(const std::string_view name) -> std::optional<EcdhCurve> {
         "00809c461d8b39163537ff8f5ef5b977e4cdb980e70e38a7ee0b37cc876729e9ff",
         "0468ae7706221e5990f7484d34fbec5a99050179a6c11817bbed4aed962998ff",
         "b5228d89a1b448f12332376c8c7f080763532a055e07f14a5de0dc30104579e1"};
-  } else if (name == "secp384r1") {
+  }
+  if (name == "secp384r1") {
     return EcdhCurve{sourcemeta::core::EllipticCurve::P384, 48,
                      "00c1781d86cac2c052b7e4f48cef415c5c133052f4e504397e75e4d7"
                      "cd0ca149da0b4988b8a6ded5ceae4b580691376187",
@@ -685,7 +749,8 @@ auto to_ecdh_curve(const std::string_view name) -> std::optional<EcdhCurve> {
                      "71e6f03e2926cd60e9a9ccd42e1aa8799d2ef3a7",
                      "9d045f3a3df974743268be650fbaf68c7045a483093ce2e289903097"
                      "396f040058faacb723eb493b5b631bc365c5fc49"};
-  } else if (name == "secp521r1") {
+  }
+  if (name == "secp521r1") {
     return EcdhCurve{
         sourcemeta::core::EllipticCurve::P521, 66,
         "01781d86cac2c052b7e4f48cef415c5c1319e07db70db92a497c2ac764e9509ac0b073"
@@ -694,9 +759,8 @@ auto to_ecdh_curve(const std::string_view name) -> std::optional<EcdhCurve> {
         "376f7d5151db140b3cdae698bca9683f3d041164fe0e3dba0d2f02d6643adb",
         "010a3f1fcb6dbccc773d143d454347145a9bec498e7a5e2d412095b9350c58d8e9411e"
         "a85afe4c56053ad35d8be4230f5e2718365f43dbd2ed44b096a90bfc6227b6"};
-  } else {
-    return std::nullopt;
   }
+  return std::nullopt;
 }
 
 // A valid vector must derive exactly the given shared secret. An invalid vector
@@ -811,40 +875,40 @@ auto main(int argc, char **argv) -> int {
   const std::filesystem::path base{WYCHEPROOF_PATH};
   const auto vectors{base / "testvectors_v1"};
 
-  constexpr std::array<std::string_view, 9> rsa_pkcs1{
+  constexpr std::array<std::string_view, 9> RSA_PKCS1{
       {"rsa_signature_2048_sha256_test", "rsa_signature_2048_sha384_test",
        "rsa_signature_2048_sha512_test", "rsa_signature_3072_sha256_test",
        "rsa_signature_3072_sha384_test", "rsa_signature_3072_sha512_test",
        "rsa_signature_4096_sha256_test", "rsa_signature_4096_sha384_test",
        "rsa_signature_4096_sha512_test"}};
-  for (const auto name : rsa_pkcs1) {
+  for (const auto name : RSA_PKCS1) {
     register_rsa_tests(vectors / (std::string{name} + ".json"),
                        "Wycheproof_RSA_PKCS1", verify_pkcs1);
   }
 
-  constexpr std::array<std::string_view, 6> rsa_pss{
+  constexpr std::array<std::string_view, 6> RSA_PSS{
       {"rsa_pss_2048_sha256_mgf1_32_test", "rsa_pss_2048_sha384_mgf1_48_test",
        "rsa_pss_3072_sha256_mgf1_32_test", "rsa_pss_4096_sha256_mgf1_32_test",
        "rsa_pss_4096_sha384_mgf1_48_test", "rsa_pss_4096_sha512_mgf1_64_test"}};
-  for (const auto name : rsa_pss) {
+  for (const auto name : RSA_PSS) {
     register_rsa_tests(vectors / (std::string{name} + ".json"),
                        "Wycheproof_RSA_PSS", verify_pss);
   }
 
-  constexpr std::array<std::string_view, 5> rsa_pkcs1_sign{
+  constexpr std::array<std::string_view, 5> RSA_PKCS1_SIGN{
       {"rsa_pkcs1_1024_sig_gen_test", "rsa_pkcs1_1536_sig_gen_test",
        "rsa_pkcs1_2048_sig_gen_test", "rsa_pkcs1_3072_sig_gen_test",
        "rsa_pkcs1_4096_sig_gen_test"}};
-  for (const auto name : rsa_pkcs1_sign) {
+  for (const auto name : RSA_PKCS1_SIGN) {
     register_rsa_sign_tests(vectors / (std::string{name} + ".json"),
                             "Wycheproof_RSA_PKCS1_Sign");
   }
 
-  constexpr std::array<std::string_view, 5> ecdsa{
+  constexpr std::array<std::string_view, 5> ECDSA{
       {"ecdsa_secp256r1_sha256_p1363_test", "ecdsa_secp256r1_sha512_p1363_test",
        "ecdsa_secp384r1_sha384_p1363_test", "ecdsa_secp384r1_sha512_p1363_test",
        "ecdsa_secp521r1_sha512_p1363_test"}};
-  for (const auto name : ecdsa) {
+  for (const auto name : ECDSA) {
     register_ecdsa_tests(vectors / (std::string{name} + ".json"),
                          "Wycheproof_ECDSA");
   }
@@ -881,6 +945,13 @@ auto main(int argc, char **argv) -> int {
                           "Wycheproof_RSA_OAEP_3072_SHA256");
   register_rsa_oaep_tests(vectors / "rsa_oaep_4096_sha256_mgf1sha256_test.json",
                           "Wycheproof_RSA_OAEP_4096_SHA256");
+
+  register_hkdf_tests(vectors / "hkdf_sha256_test.json",
+                      "Wycheproof_HKDF_SHA256", sourcemeta::core::hkdf_sha256);
+  register_hkdf_tests(vectors / "hkdf_sha384_test.json",
+                      "Wycheproof_HKDF_SHA384", sourcemeta::core::hkdf_sha384);
+  register_hkdf_tests(vectors / "hkdf_sha512_test.json",
+                      "Wycheproof_HKDF_SHA512", sourcemeta::core::hkdf_sha512);
 
   register_ecdh_tests(vectors / "ecdh_secp256r1_ecpoint_test.json",
                       "Wycheproof_ECDH_P256");

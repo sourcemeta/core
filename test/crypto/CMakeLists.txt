@@ -24,7 +24,7 @@ sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME crypto
     crypto_aes_cbc_hmac_test.cc
     crypto_aes_kw_test.cc
     crypto_rsa_oaep_test.cc
-    crypto_ecdh_test.cc)
+    crypto_ecdh_test.cc crypto_hkdf_test.cc)
 
 target_link_libraries(sourcemeta_core_crypto_unit
   PRIVATE sourcemeta::core::crypto)

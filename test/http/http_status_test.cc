@@ -102,8 +102,8 @@ TEST(inequality_different_codes) {
 }
 
 TEST(equality_copy) {
-  constexpr auto copy{sourcemeta::core::HTTP_STATUS_OK};
-  EXPECT_EQ(copy, sourcemeta::core::HTTP_STATUS_OK);
+  constexpr auto COPY{sourcemeta::core::HTTP_STATUS_OK};
+  EXPECT_EQ(COPY, sourcemeta::core::HTTP_STATUS_OK);
 }
 
 TEST(webdav_multi_status) {

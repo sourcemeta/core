@@ -41,11 +41,11 @@ static auto sign_id_token(const std::string_view payload) -> std::string {
   return sign_id_token(sourcemeta::core::parse_json(payload));
 }
 
-static constexpr std::array<sourcemeta::core::JWSAlgorithm, 1> allowed_hs256{
+static constexpr std::array<sourcemeta::core::JWSAlgorithm, 1> ALLOWED_HS256{
     {sourcemeta::core::JWSAlgorithm::HS256}};
 
 // A fixed reference time, 2023-11-14T22:13:20Z
-static const auto reference_now{
+static const auto REFERENCE_NOW{
     std::chrono::system_clock::from_time_t(1700000000)};
 
 // The oldest whole second the clock can represent and a conversion still
@@ -87,8 +87,8 @@ TEST(mint_and_validate_round_trip) {
   claims.issuer = "https://issuer.example";
   claims.subject = "user-1";
   claims.audience = "client-id";
-  claims.issued_at = reference_now;
-  claims.expiration = reference_now + std::chrono::hours{1};
+  claims.issued_at = REFERENCE_NOW;
+  claims.expiration = REFERENCE_NOW + std::chrono::hours{1};
   claims.nonce = "n-abc";
   claims.access_token = "the-access-token";
   const auto compact{sourcemeta::core::oidc_mint_id_token(
@@ -102,8 +102,8 @@ TEST(mint_and_validate_round_trip) {
   sourcemeta::core::OIDCValidationOptions options;
   options.nonce = "n-abc";
   const auto identity{sourcemeta::core::oidc_validate_id_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now, options)};
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, options)};
   EXPECT_TRUE(identity.has_value());
   EXPECT_EQ(identity.value().subject, "user-1");
   EXPECT_EQ(identity.value().issuer, "https://issuer.example");
@@ -114,8 +114,8 @@ TEST(mint_rejects_a_code_binding_under_eddsa) {
   claims.issuer = "https://issuer.example";
   claims.subject = "user-1";
   claims.audience = "client-id";
-  claims.issued_at = reference_now;
-  claims.expiration = reference_now + std::chrono::hours{1};
+  claims.issued_at = REFERENCE_NOW;
+  claims.expiration = REFERENCE_NOW + std::chrono::hours{1};
   claims.nonce = "n-abc";
   claims.code = "the-authorization-code";
   // EdDSA has no defined c_hash digest, so minting fails rather than emitting a
@@ -130,8 +130,8 @@ TEST(mint_rejects_an_access_token_binding_under_eddsa) {
   claims.issuer = "https://issuer.example";
   claims.subject = "user-1";
   claims.audience = "client-id";
-  claims.issued_at = reference_now;
-  claims.expiration = reference_now + std::chrono::hours{1};
+  claims.issued_at = REFERENCE_NOW;
+  claims.expiration = REFERENCE_NOW + std::chrono::hours{1};
   claims.nonce = "n-abc";
   claims.access_token = "the-access-token";
   const auto compact{sourcemeta::core::oidc_mint_id_token(
@@ -150,8 +150,8 @@ TEST(validate_rejects_an_expired_token) {
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   const auto identity{sourcemeta::core::oidc_validate_id_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now + std::chrono::hours{2})};
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW + std::chrono::hours{2})};
   EXPECT_FALSE(identity.has_value());
 }
 
@@ -166,8 +166,8 @@ TEST(validate_rejects_a_wrong_issuer) {
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   const auto identity{sourcemeta::core::oidc_validate_id_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://attacker.example",
-      "client-id", reference_now)};
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://attacker.example",
+      "client-id", REFERENCE_NOW)};
   EXPECT_FALSE(identity.has_value());
 }
 
@@ -182,8 +182,8 @@ TEST(validate_rejects_a_wrong_audience) {
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   const auto identity{sourcemeta::core::oidc_validate_id_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "other-client", reference_now)};
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "other-client", REFERENCE_NOW)};
   EXPECT_FALSE(identity.has_value());
 }
 
@@ -197,8 +197,8 @@ TEST(validate_rejects_a_missing_subject) {
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   const auto identity{sourcemeta::core::oidc_validate_id_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now)};
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW)};
   EXPECT_FALSE(identity.has_value());
 }
 
@@ -212,8 +212,8 @@ TEST(validate_rejects_a_missing_iat) {
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   const auto identity{sourcemeta::core::oidc_validate_id_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now)};
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW)};
   EXPECT_FALSE(identity.has_value());
 }
 
@@ -229,8 +229,8 @@ TEST(validate_rejects_a_malformed_audience_array) {
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   const auto identity{sourcemeta::core::oidc_validate_id_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now)};
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW)};
   EXPECT_FALSE(identity.has_value());
 }
 
@@ -248,8 +248,8 @@ TEST(validate_rejects_a_mismatched_nonce) {
   sourcemeta::core::OIDCValidationOptions options;
   options.nonce = "n-wrong";
   const auto identity{sourcemeta::core::oidc_validate_id_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now, options)};
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, options)};
   EXPECT_FALSE(identity.has_value());
 }
 
@@ -266,8 +266,8 @@ TEST(validate_rejects_a_missing_nonce_when_one_was_sent) {
   sourcemeta::core::OIDCValidationOptions options;
   options.nonce = "n-abc";
   const auto identity{sourcemeta::core::oidc_validate_id_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now, options)};
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, options)};
   EXPECT_FALSE(identity.has_value());
 }
 
@@ -285,8 +285,8 @@ TEST(validate_echoes_a_matching_nonce) {
   sourcemeta::core::OIDCValidationOptions options;
   options.nonce = "n-abc";
   const auto identity{sourcemeta::core::oidc_validate_id_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now, options)};
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, options)};
   EXPECT_TRUE(identity.has_value());
   EXPECT_EQ(identity.value().subject, "user-1");
 }
@@ -305,8 +305,8 @@ TEST(validate_rejects_an_untrusted_additional_audience) {
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   const auto identity{sourcemeta::core::oidc_validate_id_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now)};
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW)};
   EXPECT_FALSE(identity.has_value());
 }
 
@@ -325,8 +325,8 @@ TEST(validate_accepts_a_trusted_additional_audience_with_matching_azp) {
   sourcemeta::core::OIDCValidationOptions options;
   options.trusted_audiences = trusted;
   const auto identity{sourcemeta::core::oidc_validate_id_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now, options)};
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, options)};
   EXPECT_TRUE(identity.has_value());
   EXPECT_EQ(identity.value().subject, "user-1");
 }
@@ -347,8 +347,8 @@ TEST(validate_rejects_a_trusted_additional_audience_without_azp) {
   sourcemeta::core::OIDCValidationOptions options;
   options.trusted_audiences = trusted;
   const auto identity{sourcemeta::core::oidc_validate_id_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now, options)};
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, options)};
   EXPECT_FALSE(identity.has_value());
 }
 
@@ -365,8 +365,8 @@ TEST(validate_accepts_a_single_audience_under_an_empty_trusted_set) {
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   const auto identity{sourcemeta::core::oidc_validate_id_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now)};
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW)};
   EXPECT_TRUE(identity.has_value());
   EXPECT_EQ(identity.value().subject, "user-1");
 }
@@ -382,8 +382,8 @@ TEST(validate_rejects_a_multi_audience_token_without_azp) {
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   const auto identity{sourcemeta::core::oidc_validate_id_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now)};
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW)};
   EXPECT_FALSE(identity.has_value());
 }
 
@@ -399,8 +399,8 @@ TEST(validate_rejects_a_mismatched_azp) {
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   const auto identity{sourcemeta::core::oidc_validate_id_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now)};
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW)};
   EXPECT_FALSE(identity.has_value());
 }
 
@@ -419,15 +419,15 @@ TEST(validate_enforces_an_acceptable_acr) {
   sourcemeta::core::OIDCValidationOptions options;
   options.acceptable_authentication_context_classes = acceptable;
   const auto rejected{sourcemeta::core::oidc_validate_id_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now, options)};
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, options)};
   EXPECT_FALSE(rejected.has_value());
 
   const std::array<std::string_view, 2> allowed_classes{{"silver", "gold"}};
   options.acceptable_authentication_context_classes = allowed_classes;
   const auto accepted{sourcemeta::core::oidc_validate_id_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now, options)};
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, options)};
   EXPECT_TRUE(accepted.has_value());
   EXPECT_EQ(accepted.value().authentication_context_class.value(), "silver");
 }
@@ -446,14 +446,14 @@ TEST(validate_enforces_the_maximum_authentication_age) {
   sourcemeta::core::OIDCValidationOptions options;
   options.maximum_authentication_age = std::chrono::minutes{5};
   const auto rejected{sourcemeta::core::oidc_validate_id_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now, options)};
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, options)};
   EXPECT_FALSE(rejected.has_value());
 
   options.maximum_authentication_age = std::chrono::hours{2};
   const auto accepted{sourcemeta::core::oidc_validate_id_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now, options)};
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, options)};
   EXPECT_TRUE(accepted.has_value());
 }
 
@@ -471,8 +471,8 @@ TEST(validate_accepts_a_fractional_auth_time) {
   sourcemeta::core::OIDCValidationOptions options;
   options.maximum_authentication_age = std::chrono::hours{2};
   const auto accepted{sourcemeta::core::oidc_validate_id_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now, options)};
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, options)};
   EXPECT_TRUE(accepted.has_value());
 }
 
@@ -490,8 +490,8 @@ TEST(validate_rejects_a_future_auth_time) {
   sourcemeta::core::OIDCValidationOptions options;
   options.maximum_authentication_age = std::chrono::hours{2};
   const auto identity{sourcemeta::core::oidc_validate_id_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now, options)};
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, options)};
   EXPECT_FALSE(identity.has_value());
 }
 
@@ -502,14 +502,14 @@ TEST(validate_enforces_the_maximum_issued_at_age) {
   sourcemeta::core::OIDCValidationOptions options;
   options.maximum_issued_at_age = std::chrono::minutes{5};
   const auto rejected{sourcemeta::core::oidc_validate_id_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now, options)};
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, options)};
   EXPECT_FALSE(rejected.has_value());
 
   options.maximum_issued_at_age = std::chrono::hours{2};
   const auto accepted{sourcemeta::core::oidc_validate_id_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now, options)};
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, options)};
   EXPECT_TRUE(accepted.has_value());
 }
 
@@ -520,14 +520,14 @@ TEST(validate_accepts_an_issued_at_exactly_at_the_age_boundary) {
   sourcemeta::core::OIDCValidationOptions options;
   options.maximum_issued_at_age = std::chrono::seconds{3600};
   const auto accepted{sourcemeta::core::oidc_validate_id_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now, options)};
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, options)};
   EXPECT_TRUE(accepted.has_value());
 
   options.maximum_issued_at_age = std::chrono::seconds{3599};
   const auto rejected{sourcemeta::core::oidc_validate_id_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now, options)};
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, options)};
   EXPECT_FALSE(rejected.has_value());
 }
 
@@ -542,8 +542,8 @@ TEST(validate_rejects_an_issued_at_near_the_representable_bound) {
   sourcemeta::core::OIDCValidationOptions options;
   options.maximum_issued_at_age = std::chrono::minutes{5};
   const auto rejected{sourcemeta::core::oidc_validate_id_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now, options)};
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, options)};
   EXPECT_FALSE(rejected.has_value());
 }
 
@@ -555,8 +555,8 @@ TEST(validate_rejects_an_auth_time_near_the_representable_bound) {
   sourcemeta::core::OIDCValidationOptions options;
   options.maximum_authentication_age = std::chrono::minutes{5};
   const auto rejected{sourcemeta::core::oidc_validate_id_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now, options)};
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, options)};
   EXPECT_FALSE(rejected.has_value());
 }
 
@@ -569,8 +569,8 @@ TEST(validate_accepts_a_recent_issued_at_under_an_unbounded_age) {
   sourcemeta::core::OIDCValidationOptions options;
   options.maximum_issued_at_age = std::chrono::seconds::max();
   const auto accepted{sourcemeta::core::oidc_validate_id_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now, options)};
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, options)};
   EXPECT_TRUE(accepted.has_value());
 }
 
@@ -585,8 +585,8 @@ TEST(validate_rejects_an_ancient_issued_at_under_an_unbounded_age) {
   sourcemeta::core::OIDCValidationOptions options;
   options.maximum_issued_at_age = std::chrono::seconds::max();
   const auto rejected{sourcemeta::core::oidc_validate_id_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now, options)};
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, options)};
   EXPECT_FALSE(rejected.has_value());
 }
 
@@ -599,8 +599,8 @@ TEST(validate_rejects_a_stale_issued_at_under_a_negative_age) {
   sourcemeta::core::OIDCValidationOptions options;
   options.maximum_issued_at_age = std::chrono::seconds::min();
   const auto rejected{sourcemeta::core::oidc_validate_id_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now, options)};
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, options)};
   EXPECT_FALSE(rejected.has_value());
 }
 
@@ -618,7 +618,7 @@ TEST(validate_rejects_an_algorithm_outside_the_allow_list) {
       {sourcemeta::core::JWSAlgorithm::RS256}};
   const auto identity{sourcemeta::core::oidc_validate_id_token(
       token.value(), oct_key_set(), only_rs256, "https://issuer.example",
-      "client-id", reference_now)};
+      "client-id", REFERENCE_NOW)};
   EXPECT_FALSE(identity.has_value());
 }
 
@@ -627,8 +627,8 @@ TEST(validate_enforces_the_access_token_hash) {
   claims.issuer = "https://issuer.example";
   claims.subject = "user-1";
   claims.audience = "client-id";
-  claims.issued_at = reference_now;
-  claims.expiration = reference_now + std::chrono::hours{1};
+  claims.issued_at = REFERENCE_NOW;
+  claims.expiration = REFERENCE_NOW + std::chrono::hours{1};
   claims.access_token = "the-access-token";
   const auto compact{sourcemeta::core::oidc_mint_id_token(
       claims, oct_private_key(), sourcemeta::core::JWSAlgorithm::HS256)};
@@ -638,15 +638,15 @@ TEST(validate_enforces_the_access_token_hash) {
   sourcemeta::core::OIDCValidationOptions matching;
   matching.access_token = "the-access-token";
   const auto accepted{sourcemeta::core::oidc_validate_id_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now, matching)};
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, matching)};
   EXPECT_TRUE(accepted.has_value());
 
   sourcemeta::core::OIDCValidationOptions mismatched;
   mismatched.access_token = "the-wrong-access-token";
   const auto rejected{sourcemeta::core::oidc_validate_id_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now, mismatched)};
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, mismatched)};
   EXPECT_FALSE(rejected.has_value());
 }
 
@@ -664,8 +664,8 @@ TEST(validate_requires_the_access_token_hash_when_configured) {
   options.access_token = "the-access-token";
   options.require_access_token_hash = true;
   const auto identity{sourcemeta::core::oidc_validate_id_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now, options)};
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, options)};
   EXPECT_FALSE(identity.has_value());
 }
 
@@ -674,8 +674,8 @@ TEST(validate_accepts_a_required_access_token_hash_when_present) {
   claims.issuer = "https://issuer.example";
   claims.subject = "user-1";
   claims.audience = "client-id";
-  claims.issued_at = reference_now;
-  claims.expiration = reference_now + std::chrono::hours{1};
+  claims.issued_at = REFERENCE_NOW;
+  claims.expiration = REFERENCE_NOW + std::chrono::hours{1};
   claims.access_token = "the-access-token";
   const auto compact{sourcemeta::core::oidc_mint_id_token(
       claims, oct_private_key(), sourcemeta::core::JWSAlgorithm::HS256)};
@@ -686,8 +686,8 @@ TEST(validate_accepts_a_required_access_token_hash_when_present) {
   options.access_token = "the-access-token";
   options.require_access_token_hash = true;
   const auto identity{sourcemeta::core::oidc_validate_id_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now, options)};
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, options)};
   EXPECT_TRUE(identity.has_value());
 }
 
@@ -696,8 +696,8 @@ TEST(validate_rejects_a_required_access_token_hash_without_the_token) {
   claims.issuer = "https://issuer.example";
   claims.subject = "user-1";
   claims.audience = "client-id";
-  claims.issued_at = reference_now;
-  claims.expiration = reference_now + std::chrono::hours{1};
+  claims.issued_at = REFERENCE_NOW;
+  claims.expiration = REFERENCE_NOW + std::chrono::hours{1};
   claims.access_token = "the-access-token";
   const auto compact{sourcemeta::core::oidc_mint_id_token(
       claims, oct_private_key(), sourcemeta::core::JWSAlgorithm::HS256)};
@@ -710,8 +710,8 @@ TEST(validate_rejects_a_required_access_token_hash_without_the_token) {
   sourcemeta::core::OIDCValidationOptions options;
   options.require_access_token_hash = true;
   const auto identity{sourcemeta::core::oidc_validate_id_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now, options)};
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, options)};
   EXPECT_FALSE(identity.has_value());
 }
 
@@ -720,8 +720,8 @@ TEST(validate_enforces_the_code_hash) {
   claims.issuer = "https://issuer.example";
   claims.subject = "user-1";
   claims.audience = "client-id";
-  claims.issued_at = reference_now;
-  claims.expiration = reference_now + std::chrono::hours{1};
+  claims.issued_at = REFERENCE_NOW;
+  claims.expiration = REFERENCE_NOW + std::chrono::hours{1};
   claims.code = "the-authorization-code";
   const auto compact{sourcemeta::core::oidc_mint_id_token(
       claims, oct_private_key(), sourcemeta::core::JWSAlgorithm::HS256)};
@@ -731,8 +731,8 @@ TEST(validate_enforces_the_code_hash) {
   sourcemeta::core::OIDCValidationOptions mismatched;
   mismatched.code = "the-wrong-code";
   const auto rejected{sourcemeta::core::oidc_validate_id_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now, mismatched)};
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, mismatched)};
   EXPECT_FALSE(rejected.has_value());
 }
 
@@ -750,8 +750,8 @@ TEST(validate_requires_the_code_hash_when_configured) {
   options.code = "the-authorization-code";
   options.require_code_hash = true;
   const auto identity{sourcemeta::core::oidc_validate_id_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now, options)};
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, options)};
   EXPECT_FALSE(identity.has_value());
 }
 
@@ -760,8 +760,8 @@ TEST(validate_rejects_a_required_code_hash_without_the_code) {
   claims.issuer = "https://issuer.example";
   claims.subject = "user-1";
   claims.audience = "client-id";
-  claims.issued_at = reference_now;
-  claims.expiration = reference_now + std::chrono::hours{1};
+  claims.issued_at = REFERENCE_NOW;
+  claims.expiration = REFERENCE_NOW + std::chrono::hours{1};
   claims.code = "the-authorization-code";
   const auto compact{sourcemeta::core::oidc_mint_id_token(
       claims, oct_private_key(), sourcemeta::core::JWSAlgorithm::HS256)};
@@ -774,8 +774,8 @@ TEST(validate_rejects_a_required_code_hash_without_the_code) {
   sourcemeta::core::OIDCValidationOptions options;
   options.require_code_hash = true;
   const auto identity{sourcemeta::core::oidc_validate_id_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now, options)};
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, options)};
   EXPECT_FALSE(identity.has_value());
 }
 
@@ -810,8 +810,8 @@ TEST(mint_embeds_a_code_hash) {
   claims.issuer = "https://issuer.example";
   claims.subject = "user-1";
   claims.audience = "client-id";
-  claims.issued_at = reference_now;
-  claims.expiration = reference_now + std::chrono::hours{1};
+  claims.issued_at = REFERENCE_NOW;
+  claims.expiration = REFERENCE_NOW + std::chrono::hours{1};
   claims.code = "the-authorization-code";
   const auto compact{sourcemeta::core::oidc_mint_id_token(
       claims, oct_private_key(), sourcemeta::core::JWSAlgorithm::HS256)};
@@ -841,11 +841,11 @@ TEST(mint_emits_optional_claims) {
   claims.issuer = "https://issuer.example";
   claims.subject = "user-1";
   claims.audience = "client-id";
-  claims.issued_at = reference_now;
-  claims.expiration = reference_now + std::chrono::hours{1};
+  claims.issued_at = REFERENCE_NOW;
+  claims.expiration = REFERENCE_NOW + std::chrono::hours{1};
   claims.authorized_party = "client-id";
   claims.authentication_context_class = "urn:mace:incommon:iap:silver";
-  claims.authentication_time = reference_now - std::chrono::minutes{5};
+  claims.authentication_time = REFERENCE_NOW - std::chrono::minutes{5};
   const auto compact{sourcemeta::core::oidc_mint_id_token(
       claims, oct_private_key(), sourcemeta::core::JWSAlgorithm::HS256)};
   EXPECT_TRUE(compact.has_value());
@@ -872,8 +872,8 @@ TEST(validate_rejects_a_missing_acr_when_a_set_was_requested) {
   const std::array<std::string_view, 1> classes{{"urn:example:gold"}};
   options.acceptable_authentication_context_classes = classes;
   const auto identity{sourcemeta::core::oidc_validate_id_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now, options)};
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, options)};
   EXPECT_FALSE(identity.has_value());
 }
 
@@ -891,7 +891,7 @@ TEST(validate_treats_an_overflowing_auth_time_as_absent) {
   sourcemeta::core::OIDCValidationOptions options;
   options.maximum_authentication_age = std::chrono::seconds{60};
   const auto identity{sourcemeta::core::oidc_validate_id_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now, options)};
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, options)};
   EXPECT_FALSE(identity.has_value());
 }

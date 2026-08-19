@@ -39,10 +39,10 @@ static auto sign_logout_token(const std::string_view header,
   return sign_logout_token(header, sourcemeta::core::parse_json(payload));
 }
 
-static constexpr std::array<sourcemeta::core::JWSAlgorithm, 1> allowed_hs256{
+static constexpr std::array<sourcemeta::core::JWSAlgorithm, 1> ALLOWED_HS256{
     {sourcemeta::core::JWSAlgorithm::HS256}};
 
-static const auto reference_now{
+static const auto REFERENCE_NOW{
     std::chrono::system_clock::from_time_t(1700000000)};
 
 static constexpr std::string_view VALID_HEADER{R"JSON({
@@ -108,8 +108,8 @@ TEST(validate_logout_token_accepts_a_valid_token) {
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   EXPECT_TRUE(sourcemeta::core::oidc_validate_logout_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now));
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW));
 }
 
 TEST(validate_logout_token_rejects_a_wrong_typ) {
@@ -121,8 +121,8 @@ TEST(validate_logout_token_rejects_a_wrong_typ) {
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   EXPECT_FALSE(sourcemeta::core::oidc_validate_logout_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now));
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW));
 }
 
 TEST(validate_logout_token_accepts_a_missing_typ) {
@@ -133,8 +133,8 @@ TEST(validate_logout_token_accepts_a_missing_typ) {
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   EXPECT_TRUE(sourcemeta::core::oidc_validate_logout_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now));
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW));
 }
 
 TEST(validate_logout_token_accepts_a_mixed_case_typ) {
@@ -146,8 +146,8 @@ TEST(validate_logout_token_accepts_a_mixed_case_typ) {
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   EXPECT_TRUE(sourcemeta::core::oidc_validate_logout_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now));
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW));
 }
 
 TEST(validate_logout_token_rejects_an_unknown_kid) {
@@ -160,8 +160,8 @@ TEST(validate_logout_token_rejects_an_unknown_kid) {
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   EXPECT_FALSE(sourcemeta::core::oidc_validate_logout_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now));
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW));
 }
 
 TEST(validate_logout_token_rejects_a_nonce) {
@@ -180,8 +180,8 @@ TEST(validate_logout_token_rejects_a_nonce) {
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   EXPECT_FALSE(sourcemeta::core::oidc_validate_logout_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now));
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW));
 }
 
 TEST(validate_logout_token_rejects_a_missing_events) {
@@ -196,8 +196,8 @@ TEST(validate_logout_token_rejects_a_missing_events) {
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   EXPECT_FALSE(sourcemeta::core::oidc_validate_logout_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now));
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW));
 }
 
 TEST(validate_logout_token_rejects_a_missing_subject_and_session) {
@@ -214,8 +214,8 @@ TEST(validate_logout_token_rejects_a_missing_subject_and_session) {
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   EXPECT_FALSE(sourcemeta::core::oidc_validate_logout_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now));
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW));
 }
 
 TEST(validate_logout_token_rejects_a_missing_jti) {
@@ -232,8 +232,8 @@ TEST(validate_logout_token_rejects_a_missing_jti) {
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   EXPECT_FALSE(sourcemeta::core::oidc_validate_logout_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now));
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW));
 }
 
 TEST(validate_logout_token_rejects_a_wrong_issuer) {
@@ -241,8 +241,8 @@ TEST(validate_logout_token_rejects_a_wrong_issuer) {
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   EXPECT_FALSE(sourcemeta::core::oidc_validate_logout_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://attacker.example",
-      "client-id", reference_now));
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://attacker.example",
+      "client-id", REFERENCE_NOW));
 }
 
 TEST(validate_logout_token_rejects_a_missing_exp) {
@@ -259,8 +259,8 @@ TEST(validate_logout_token_rejects_a_missing_exp) {
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   EXPECT_FALSE(sourcemeta::core::oidc_validate_logout_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now));
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW));
 }
 
 TEST(validate_logout_token_rejects_an_expired_token) {
@@ -278,8 +278,8 @@ TEST(validate_logout_token_rejects_an_expired_token) {
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   EXPECT_FALSE(sourcemeta::core::oidc_validate_logout_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now));
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW));
 }
 
 TEST(validate_logout_token_rejects_an_exp_at_the_boundary) {
@@ -297,8 +297,8 @@ TEST(validate_logout_token_rejects_an_exp_at_the_boundary) {
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   EXPECT_FALSE(sourcemeta::core::oidc_validate_logout_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now));
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW));
 }
 
 TEST(validate_logout_token_accepts_an_exp_near_the_representable_bound) {
@@ -309,8 +309,8 @@ TEST(validate_logout_token_accepts_an_exp_near_the_representable_bound) {
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   EXPECT_TRUE(sourcemeta::core::oidc_validate_logout_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now, std::chrono::seconds{60}));
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, std::chrono::seconds{60}));
 }
 
 TEST(validate_logout_token_accepts_an_exp_near_the_bound_without_skew) {
@@ -319,8 +319,8 @@ TEST(validate_logout_token_accepts_an_exp_near_the_bound_without_skew) {
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   EXPECT_TRUE(sourcemeta::core::oidc_validate_logout_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now));
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW));
 }
 
 TEST(validate_logout_token_rejects_an_expired_token_under_a_skew) {
@@ -338,12 +338,12 @@ TEST(validate_logout_token_rejects_an_expired_token_under_a_skew) {
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   EXPECT_FALSE(sourcemeta::core::oidc_validate_logout_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now, std::chrono::seconds{60}));
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, std::chrono::seconds{60}));
   // The same token is inside the window once the tolerance covers the gap
   EXPECT_TRUE(sourcemeta::core::oidc_validate_logout_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now, std::chrono::seconds{2000}));
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, std::chrono::seconds{2000}));
 }
 
 TEST(validate_logout_token_rejects_a_future_iat_beyond_the_skew) {
@@ -361,11 +361,11 @@ TEST(validate_logout_token_rejects_a_future_iat_beyond_the_skew) {
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   EXPECT_FALSE(sourcemeta::core::oidc_validate_logout_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now, std::chrono::seconds{60}));
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, std::chrono::seconds{60}));
   EXPECT_TRUE(sourcemeta::core::oidc_validate_logout_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now, std::chrono::seconds{2000}));
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, std::chrono::seconds{2000}));
 }
 
 TEST(validate_logout_token_tolerates_a_saturating_skew) {
@@ -383,8 +383,8 @@ TEST(validate_logout_token_tolerates_a_saturating_skew) {
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   EXPECT_TRUE(sourcemeta::core::oidc_validate_logout_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now, std::chrono::seconds::max()));
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, std::chrono::seconds::max()));
 }
 
 TEST(validate_logout_token_rejects_a_non_string_subject) {
@@ -402,8 +402,8 @@ TEST(validate_logout_token_rejects_a_non_string_subject) {
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   EXPECT_FALSE(sourcemeta::core::oidc_validate_logout_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now));
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW));
 }
 
 TEST(validate_logout_token_rejects_a_non_string_session) {
@@ -421,8 +421,8 @@ TEST(validate_logout_token_rejects_a_non_string_session) {
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   EXPECT_FALSE(sourcemeta::core::oidc_validate_logout_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now));
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW));
 }
 
 TEST(validate_logout_token_rejects_a_non_string_jti) {
@@ -440,8 +440,8 @@ TEST(validate_logout_token_rejects_a_non_string_jti) {
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   EXPECT_FALSE(sourcemeta::core::oidc_validate_logout_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now));
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW));
 }
 
 TEST(build_logout_url_without_parameters_leaves_the_endpoint_untouched) {
@@ -512,11 +512,11 @@ TEST(validate_logout_token_bounds_the_clock_skew_like_the_base_check) {
   const std::chrono::seconds two_years{63113904};
   EXPECT_TRUE(sourcemeta::core::jwt_check_claims(
                   token.value(), "https://issuer.example", "client-id",
-                  reference_now, two_years)
+                  REFERENCE_NOW, two_years)
                   .has_value());
   EXPECT_FALSE(sourcemeta::core::oidc_validate_logout_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now, two_years));
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, two_years));
 }
 
 TEST(validate_logout_token_rejects_a_future_nbf) {
@@ -537,6 +537,6 @@ TEST(validate_logout_token_rejects_a_future_nbf) {
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   EXPECT_FALSE(sourcemeta::core::oidc_validate_logout_token(
-      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
-      "client-id", reference_now));
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW));
 }

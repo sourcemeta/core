@@ -27,7 +27,7 @@ static auto oct_key_set() -> sourcemeta::core::JWKS {
   return sourcemeta::core::JWKS::from(std::move(document)).value();
 }
 
-static constexpr std::array<sourcemeta::core::JWSAlgorithm, 1> allowed_hs256{
+static constexpr std::array<sourcemeta::core::JWSAlgorithm, 1> ALLOWED_HS256{
     {sourcemeta::core::JWSAlgorithm::HS256}};
 
 TEST(pairing_is_valid_for_at_most_one) {
@@ -55,7 +55,7 @@ TEST(build_and_verify_round_trip) {
   const auto token{sourcemeta::core::JWT::from(object.value())};
   EXPECT_TRUE(token.has_value());
   const auto verified{sourcemeta::core::oidc_verify_request_object(
-      token.value(), oct_key_set(), allowed_hs256, "client",
+      token.value(), oct_key_set(), ALLOWED_HS256, "client",
       "https://op.example")};
   EXPECT_TRUE(verified.has_value());
   EXPECT_EQ(verified.value().at("state").to_string(), "xyz");
@@ -73,7 +73,7 @@ TEST(verify_rejects_a_wrong_issuer) {
   const auto token{sourcemeta::core::JWT::from(object.value())};
   EXPECT_TRUE(token.has_value());
   const auto verified{sourcemeta::core::oidc_verify_request_object(
-      token.value(), oct_key_set(), allowed_hs256, "client",
+      token.value(), oct_key_set(), ALLOWED_HS256, "client",
       "https://op.example")};
   EXPECT_FALSE(verified.has_value());
 }
@@ -90,7 +90,7 @@ TEST(verify_rejects_a_wrong_audience) {
   const auto token{sourcemeta::core::JWT::from(object.value())};
   EXPECT_TRUE(token.has_value());
   const auto verified{sourcemeta::core::oidc_verify_request_object(
-      token.value(), oct_key_set(), allowed_hs256, "client",
+      token.value(), oct_key_set(), ALLOWED_HS256, "client",
       "https://op.example")};
   EXPECT_FALSE(verified.has_value());
 }
@@ -109,7 +109,7 @@ TEST(verify_accepts_a_missing_issuer) {
   const auto token{sourcemeta::core::JWT::from(object.value())};
   EXPECT_TRUE(token.has_value());
   const auto verified{sourcemeta::core::oidc_verify_request_object(
-      token.value(), oct_key_set(), allowed_hs256, "client",
+      token.value(), oct_key_set(), ALLOWED_HS256, "client",
       "https://op.example")};
   EXPECT_TRUE(verified.has_value());
   EXPECT_EQ(verified.value().at("state").to_string(), "xyz");
@@ -130,7 +130,7 @@ TEST(verify_rejects_a_missing_audience) {
   const auto token{sourcemeta::core::JWT::from(object.value())};
   EXPECT_TRUE(token.has_value());
   const auto verified{sourcemeta::core::oidc_verify_request_object(
-      token.value(), oct_key_set(), allowed_hs256, "client",
+      token.value(), oct_key_set(), ALLOWED_HS256, "client",
       "https://op.example")};
   EXPECT_FALSE(verified.has_value());
 }
@@ -146,7 +146,7 @@ TEST(verify_rejects_a_missing_issuer_and_audience) {
   const auto token{sourcemeta::core::JWT::from(object.value())};
   EXPECT_TRUE(token.has_value());
   const auto verified{sourcemeta::core::oidc_verify_request_object(
-      token.value(), oct_key_set(), allowed_hs256, "client",
+      token.value(), oct_key_set(), ALLOWED_HS256, "client",
       "https://op.example")};
   EXPECT_FALSE(verified.has_value());
 }
@@ -166,7 +166,7 @@ TEST(verify_rejects_an_unknown_kid) {
   const auto token{sourcemeta::core::JWT::from(object.value())};
   EXPECT_TRUE(token.has_value());
   const auto verified{sourcemeta::core::oidc_verify_request_object(
-      token.value(), oct_key_set(), allowed_hs256, "client",
+      token.value(), oct_key_set(), ALLOWED_HS256, "client",
       "https://op.example")};
   EXPECT_FALSE(verified.has_value());
 }

@@ -41,9 +41,9 @@ auto oauth_bearer_header(const std::string_view token, std::string &sink)
     return false;
   }
 
-  static constexpr std::string_view prefix{"Bearer "};
-  sink.reserve(sink.size() + prefix.size() + token.size());
-  sink.append(prefix);
+  static constexpr std::string_view PREFIX{"Bearer "};
+  sink.reserve(sink.size() + PREFIX.size() + token.size());
+  sink.append(PREFIX);
   sink.append(token);
   return true;
 }

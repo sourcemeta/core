@@ -12,18 +12,18 @@ namespace {
 // Each capacity is exactly the length of the longest spelling of its type:
 // "255", "-128", "4294967295", "-2147483648", "18446744073709551615" and
 // "-9223372036854775808" respectively
-static_assert(sourcemeta::core::digits_capacity<std::uint8_t> == 3);
-static_assert(sourcemeta::core::digits_capacity<std::int8_t> == 4);
-static_assert(sourcemeta::core::digits_capacity<std::uint32_t> == 10);
-static_assert(sourcemeta::core::digits_capacity<std::int32_t> == 11);
-static_assert(sourcemeta::core::digits_capacity<std::uint64_t> == 20);
-static_assert(sourcemeta::core::digits_capacity<std::int64_t> == 20);
+static_assert(sourcemeta::core::DIGITS_CAPACITY<std::uint8_t> == 3);
+static_assert(sourcemeta::core::DIGITS_CAPACITY<std::int8_t> == 4);
+static_assert(sourcemeta::core::DIGITS_CAPACITY<std::uint32_t> == 10);
+static_assert(sourcemeta::core::DIGITS_CAPACITY<std::int32_t> == 11);
+static_assert(sourcemeta::core::DIGITS_CAPACITY<std::uint64_t> == 20);
+static_assert(sourcemeta::core::DIGITS_CAPACITY<std::int64_t> == 20);
 static_assert(std::tuple_size_v<sourcemeta::core::DigitsBuffer> == 20);
 
 } // namespace
 
 TEST(digits_view_accepts_a_buffer_sized_for_a_narrower_type) {
-  std::array<char, sourcemeta::core::digits_capacity<std::uint8_t>> buffer;
+  std::array<char, sourcemeta::core::DIGITS_CAPACITY<std::uint8_t>> buffer;
   EXPECT_EQ(sourcemeta::core::digits_view(std::uint8_t{255}, buffer), "255");
 }
 

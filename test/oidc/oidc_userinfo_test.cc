@@ -31,7 +31,7 @@ static auto sign_userinfo(const std::string_view payload) -> std::string {
       .value();
 }
 
-static constexpr std::array<sourcemeta::core::JWSAlgorithm, 1> allowed_hs256{
+static constexpr std::array<sourcemeta::core::JWSAlgorithm, 1> ALLOWED_HS256{
     {sourcemeta::core::JWSAlgorithm::HS256}};
 
 TEST(build_userinfo_ensures_the_subject) {
@@ -81,7 +81,7 @@ TEST(verify_userinfo_accepts_a_valid_signed_response) {
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   const auto claims{sourcemeta::core::oidc_verify_userinfo(
-      token.value(), oct_key_set(), allowed_hs256, "user-1",
+      token.value(), oct_key_set(), ALLOWED_HS256, "user-1",
       "https://issuer.example", "client-id")};
   EXPECT_TRUE(claims.has_value());
   EXPECT_EQ(claims.value().at("email").to_string(), "a@b.example");
@@ -95,7 +95,7 @@ TEST(verify_userinfo_rejects_a_missing_issuer) {
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   const auto claims{sourcemeta::core::oidc_verify_userinfo(
-      token.value(), oct_key_set(), allowed_hs256, "user-1",
+      token.value(), oct_key_set(), ALLOWED_HS256, "user-1",
       "https://issuer.example", "client-id")};
   EXPECT_FALSE(claims.has_value());
 }
@@ -108,7 +108,7 @@ TEST(verify_userinfo_rejects_a_missing_audience) {
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   const auto claims{sourcemeta::core::oidc_verify_userinfo(
-      token.value(), oct_key_set(), allowed_hs256, "user-1",
+      token.value(), oct_key_set(), ALLOWED_HS256, "user-1",
       "https://issuer.example", "client-id")};
   EXPECT_FALSE(claims.has_value());
 }
@@ -119,7 +119,7 @@ TEST(verify_userinfo_rejects_a_missing_issuer_and_audience) {
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   const auto claims{sourcemeta::core::oidc_verify_userinfo(
-      token.value(), oct_key_set(), allowed_hs256, "user-1",
+      token.value(), oct_key_set(), ALLOWED_HS256, "user-1",
       "https://issuer.example", "client-id")};
   EXPECT_FALSE(claims.has_value());
 }
@@ -129,7 +129,7 @@ TEST(verify_userinfo_rejects_a_substituted_subject) {
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   const auto claims{sourcemeta::core::oidc_verify_userinfo(
-      token.value(), oct_key_set(), allowed_hs256, "user-1",
+      token.value(), oct_key_set(), ALLOWED_HS256, "user-1",
       "https://issuer.example", "client-id")};
   EXPECT_FALSE(claims.has_value());
 }
@@ -146,7 +146,7 @@ TEST(verify_userinfo_rejects_an_unknown_kid) {
   const auto token{sourcemeta::core::JWT::from(compact.value())};
   EXPECT_TRUE(token.has_value());
   const auto claims{sourcemeta::core::oidc_verify_userinfo(
-      token.value(), oct_key_set(), allowed_hs256, "user-1",
+      token.value(), oct_key_set(), ALLOWED_HS256, "user-1",
       "https://issuer.example", "client-id")};
   EXPECT_FALSE(claims.has_value());
 }
@@ -172,7 +172,7 @@ TEST(verify_userinfo_accepts_a_matching_issuer_and_audience) {
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   const auto claims{sourcemeta::core::oidc_verify_userinfo(
-      token.value(), oct_key_set(), allowed_hs256, "user-1",
+      token.value(), oct_key_set(), ALLOWED_HS256, "user-1",
       "https://issuer.example", "client-id")};
   EXPECT_TRUE(claims.has_value());
 }
@@ -186,7 +186,7 @@ TEST(verify_userinfo_accepts_an_audience_array_containing_the_client) {
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   const auto claims{sourcemeta::core::oidc_verify_userinfo(
-      token.value(), oct_key_set(), allowed_hs256, "user-1",
+      token.value(), oct_key_set(), ALLOWED_HS256, "user-1",
       "https://issuer.example", "client-id")};
   EXPECT_TRUE(claims.has_value());
 }
@@ -200,7 +200,7 @@ TEST(verify_userinfo_rejects_a_wrong_issuer) {
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   const auto claims{sourcemeta::core::oidc_verify_userinfo(
-      token.value(), oct_key_set(), allowed_hs256, "user-1",
+      token.value(), oct_key_set(), ALLOWED_HS256, "user-1",
       "https://issuer.example", "client-id")};
   EXPECT_FALSE(claims.has_value());
 }
@@ -214,7 +214,7 @@ TEST(verify_userinfo_rejects_a_non_string_issuer) {
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   const auto claims{sourcemeta::core::oidc_verify_userinfo(
-      token.value(), oct_key_set(), allowed_hs256, "user-1",
+      token.value(), oct_key_set(), ALLOWED_HS256, "user-1",
       "https://issuer.example", "client-id")};
   EXPECT_FALSE(claims.has_value());
 }
@@ -228,7 +228,7 @@ TEST(verify_userinfo_rejects_an_audience_for_another_client) {
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   const auto claims{sourcemeta::core::oidc_verify_userinfo(
-      token.value(), oct_key_set(), allowed_hs256, "user-1",
+      token.value(), oct_key_set(), ALLOWED_HS256, "user-1",
       "https://issuer.example", "client-id")};
   EXPECT_FALSE(claims.has_value());
 }

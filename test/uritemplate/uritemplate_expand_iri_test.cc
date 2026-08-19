@@ -15,9 +15,8 @@ static auto single_value(const std::string_view value) {
           const std::string_view name) -> sourcemeta::core::URITemplateValue {
         if (name == "var") {
           return std::make_tuple(value, std::nullopt, false);
-        } else {
-          return std::nullopt;
         }
+        return std::nullopt;
       };
 }
 
@@ -280,11 +279,11 @@ TEST(multiple_variables_mix_raw_and_encoded_rules) {
       [](const std::string_view name) -> sourcemeta::core::URITemplateValue {
         if (name == "x") {
           return std::make_tuple(std::string_view{"café"}, std::nullopt, false);
-        } else if (name == "y") {
-          return std::make_tuple(std::string_view{"a b"}, std::nullopt, false);
-        } else {
-          return std::nullopt;
         }
+        if (name == "y") {
+          return std::make_tuple(std::string_view{"a b"}, std::nullopt, false);
+        }
+        return std::nullopt;
       },
       sourcemeta::core::URITemplateExpansionMode::IRI);
 
@@ -302,10 +301,8 @@ TEST(list_values_pass_through) {
           if (call_count == 1) {
             return std::make_tuple(std::string_view{"café"}, std::nullopt,
                                    true);
-          } else {
-            return std::make_tuple(std::string_view{"menü"}, std::nullopt,
-                                   false);
           }
+          return std::make_tuple(std::string_view{"menü"}, std::nullopt, false);
         }
         return std::nullopt;
       },
@@ -325,10 +322,8 @@ TEST(list_explode_path_values_pass_through) {
           if (call_count == 1) {
             return std::make_tuple(std::string_view{"café"}, std::nullopt,
                                    true);
-          } else {
-            return std::make_tuple(std::string_view{"東京"}, std::nullopt,
-                                   false);
           }
+          return std::make_tuple(std::string_view{"東京"}, std::nullopt, false);
         }
         return std::nullopt;
       },
@@ -349,11 +344,9 @@ TEST(object_explode_keys_and_values_pass_through) {
             return std::make_tuple(std::string_view{"café"},
                                    std::optional<std::string_view>{"clé"},
                                    true);
-          } else {
-            return std::make_tuple(std::string_view{"menü"},
-                                   std::optional<std::string_view>{"öl"},
-                                   false);
           }
+          return std::make_tuple(std::string_view{"menü"},
+                                 std::optional<std::string_view>{"öl"}, false);
         }
         return std::nullopt;
       },

@@ -15,45 +15,45 @@
 class IOAtomicWriteFileTest {
 protected:
   IOAtomicWriteFileTest() {
-    std::filesystem::create_directories(this->workspace);
+    std::filesystem::create_directories(this->workspace_);
   }
 
   ~IOAtomicWriteFileTest() {
     std::error_code error;
-    std::filesystem::remove_all(this->workspace, error);
+    std::filesystem::remove_all(this->workspace_, error);
   }
 
   // The tests are always sequential, so using the same path is safe
-  std::filesystem::path workspace{std::filesystem::path{BUILD_DIRECTORY} /
-                                  "sourcemeta_core_io_atomic_write_test"};
+  std::filesystem::path workspace_{std::filesystem::path{BUILD_DIRECTORY} /
+                                   "sourcemeta_core_io_atomic_write_test"};
 };
 
 TEST_F(IOAtomicWriteFileTest, string_view_creates_file) {
-  const auto path{this->workspace / "out.txt"};
+  const auto path{this->workspace_ / "out.txt"};
   sourcemeta::core::atomic_write_file(path, "hello");
   EXPECT_TRUE(std::filesystem::exists(path));
   EXPECT_EQ(sourcemeta::core::read_file_to_string(path), "hello");
 }
 
 TEST_F(IOAtomicWriteFileTest, empty_contents) {
-  const auto path{this->workspace / "out.txt"};
+  const auto path{this->workspace_ / "out.txt"};
   sourcemeta::core::atomic_write_file(path, "");
   EXPECT_TRUE(std::filesystem::exists(path));
   EXPECT_EQ(std::filesystem::file_size(path), 0);
 }
 
 TEST_F(IOAtomicWriteFileTest, byte_span_creates_file) {
-  const auto path{this->workspace / "out.bin"};
-  constexpr std::array<std::byte, 5> bytes{{std::byte{0x48}, std::byte{0x65},
+  const auto path{this->workspace_ / "out.bin"};
+  constexpr std::array<std::byte, 5> BYTES{{std::byte{0x48}, std::byte{0x65},
                                             std::byte{0x6c}, std::byte{0x6c},
                                             std::byte{0x6f}}};
-  sourcemeta::core::atomic_write_file(path, std::span<const std::byte>{bytes});
+  sourcemeta::core::atomic_write_file(path, std::span<const std::byte>{BYTES});
   EXPECT_TRUE(std::filesystem::exists(path));
   EXPECT_EQ(sourcemeta::core::read_file_to_string(path), "Hello");
 }
 
 TEST_F(IOAtomicWriteFileTest, callback_variant) {
-  const auto path{this->workspace / "out.txt"};
+  const auto path{this->workspace_ / "out.txt"};
   sourcemeta::core::atomic_write_file(path, [](std::ostream &stream) -> void {
     stream << "first";
     stream << " ";
@@ -63,14 +63,14 @@ TEST_F(IOAtomicWriteFileTest, callback_variant) {
 }
 
 TEST_F(IOAtomicWriteFileTest, creates_parent_directories) {
-  const auto path{this->workspace / "a" / "b" / "c" / "deep.txt"};
+  const auto path{this->workspace_ / "a" / "b" / "c" / "deep.txt"};
   sourcemeta::core::atomic_write_file(path, "nested");
   EXPECT_TRUE(std::filesystem::exists(path));
   EXPECT_EQ(sourcemeta::core::read_file_to_string(path), "nested");
 }
 
 TEST_F(IOAtomicWriteFileTest, overwrites_existing_file) {
-  const auto path{this->workspace / "out.txt"};
+  const auto path{this->workspace_ / "out.txt"};
   sourcemeta::core::atomic_write_file(path, "original");
   sourcemeta::core::atomic_write_file(path, "replacement");
   EXPECT_EQ(sourcemeta::core::read_file_to_string(path), "replacement");
@@ -78,7 +78,7 @@ TEST_F(IOAtomicWriteFileTest, overwrites_existing_file) {
 
 TEST_F(IOAtomicWriteFileTest,
        exception_in_callback_leaves_destination_untouched) {
-  const auto path{this->workspace / "out.txt"};
+  const auto path{this->workspace_ / "out.txt"};
   sourcemeta::core::atomic_write_file(path, "original");
 
   try {
@@ -96,7 +96,7 @@ TEST_F(IOAtomicWriteFileTest,
 }
 
 TEST_F(IOAtomicWriteFileTest, exception_in_callback_removes_staging_file) {
-  const auto path{this->workspace / "out.txt"};
+  const auto path{this->workspace_ / "out.txt"};
   auto staging{path};
   staging += ".tmp";
 
@@ -116,7 +116,7 @@ TEST_F(IOAtomicWriteFileTest, exception_in_callback_removes_staging_file) {
 }
 
 TEST_F(IOAtomicWriteFileTest, no_leftover_staging_on_success) {
-  const auto path{this->workspace / "out.txt"};
+  const auto path{this->workspace_ / "out.txt"};
   auto staging{path};
   staging += ".tmp";
 
@@ -127,7 +127,7 @@ TEST_F(IOAtomicWriteFileTest, no_leftover_staging_on_success) {
 }
 
 TEST_F(IOAtomicWriteFileTest, binary_writes_preserve_exact_bytes) {
-  const auto path{this->workspace / "out.txt"};
+  const auto path{this->workspace_ / "out.txt"};
   sourcemeta::core::atomic_write_file(path, "line one\nline two\n");
 
   std::ifstream stream{path, std::ios::binary};
@@ -141,7 +141,7 @@ TEST_F(IOAtomicWriteFileTest, binary_writes_preserve_exact_bytes) {
 // EACCES-via-errno detection inside `atomic_write_file` is POSIX-only.
 #if !defined(_WIN32)
 TEST_F(IOAtomicWriteFileTest, read_only_parent_throws_permission_error) {
-  const auto read_only_dir{this->workspace / "locked"};
+  const auto read_only_dir{this->workspace_ / "locked"};
   std::filesystem::create_directory(read_only_dir);
   std::filesystem::permissions(read_only_dir,
                                std::filesystem::perms::owner_read |
