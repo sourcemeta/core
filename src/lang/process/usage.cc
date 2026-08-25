@@ -90,9 +90,9 @@ auto to_units(const FILETIME &value) noexcept -> std::uint64_t {
 // The address of an export is fixed for the lifetime of the process, so this
 // remembers a constant rather than a measurement
 auto query_process_information() noexcept -> QueryProcessInformation {
-  static const auto entry{
-      reinterpret_cast<QueryProcessInformation>(GetProcAddress(
-          GetModuleHandleW(L"ntdll.dll"), "NtQueryInformationProcess"))};
+  static const auto entry{reinterpret_cast<QueryProcessInformation>(
+      reinterpret_cast<void *>(GetProcAddress(GetModuleHandleW(L"ntdll.dll"),
+                                              "NtQueryInformationProcess")))};
   return entry;
 }
 
