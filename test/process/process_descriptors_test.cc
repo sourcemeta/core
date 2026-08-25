@@ -1,7 +1,7 @@
 #include <sourcemeta/core/process.h>
 #include <sourcemeta/core/test.h>
 
-#if !defined(_WIN32)
+#if defined(__linux__) || defined(__APPLE__)
 #include <fcntl.h>  // open, O_RDONLY
 #include <unistd.h> // close
 #endif
@@ -20,7 +20,9 @@ TEST(the_maximum_is_absent_where_the_platform_enforces_none) {
 }
 #endif
 
-#if !defined(_WIN32)
+// The two platforms that count descriptors rather than handles, and that
+// enforce a ceiling on them
+#if defined(__linux__) || defined(__APPLE__)
 TEST(the_maximum_is_reported_and_finite) {
   const auto descriptors{sourcemeta::core::process_descriptors()};
   EXPECT_TRUE(descriptors.maximum.has_value());
