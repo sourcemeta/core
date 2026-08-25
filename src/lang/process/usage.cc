@@ -83,9 +83,12 @@ auto process_usage() noexcept -> ProcessUsage {
   if (GetProcessMemoryInfo(GetCurrentProcess(), &counters, sizeof(counters)) !=
       0) {
     result.resident_bytes = counters.WorkingSetSize;
-    result.virtual_bytes = counters.PagefileUsage;
   }
 
+  // Nothing this platform answers cheaply is the size of the mapped address
+  // space. What it offers is the commit charge, which leaves out file backed
+  // mappings and reserved regions, so publishing it would report a different
+  // quantity under a name the other platforms already mean something else by
   return result;
 }
 

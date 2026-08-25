@@ -9,6 +9,8 @@ endif()
 target_link_libraries(sourcemeta_core_process PRIVATE sourcemeta::core::text)
 target_link_libraries(sourcemeta_core_process PRIVATE sourcemeta::core::numeric)
 
-if(WIN32)
+# Matching the condition the sources compile the Windows implementation under,
+# so that a MinGW build does not link what it never calls
+if(WIN32 AND NOT MINGW)
   target_link_libraries(sourcemeta_core_process PRIVATE psapi)
 endif()

@@ -39,19 +39,25 @@ TEST(resident_memory_is_reported) {
   EXPECT_GT(usage.resident_bytes.value(), 0U);
 }
 
+// The two platforms that answer with the size of the mapped address space
+#if defined(__linux__) || defined(__APPLE__)
 TEST(virtual_memory_is_reported) {
   const auto usage{sourcemeta::core::process_usage()};
   EXPECT_TRUE(usage.virtual_bytes.has_value());
   EXPECT_GT(usage.virtual_bytes.value(), 0U);
 }
 
-// The two platforms where both readings come from the same call and the
-// relation between them holds. A Windows working set counts shared pages that
-// its private commit does not, so there the one may legitimately exceed the
-// other
-#if defined(__linux__) || defined(__APPLE__)
 TEST(virtual_memory_covers_at_least_the_resident_set) {
   const auto usage{sourcemeta::core::process_usage()};
   EXPECT_GE(usage.virtual_bytes.value(), usage.resident_bytes.value());
+}
+#endif
+
+// Windows offers commit charge rather than the size of the mapped address
+// space, which is a different quantity from what the others answer with
+#if defined(_WIN32)
+TEST(virtual_memory_is_absent_where_the_platform_measures_something_else) {
+  const auto usage{sourcemeta::core::process_usage()};
+  EXPECT_FALSE(usage.virtual_bytes.has_value());
 }
 #endif
