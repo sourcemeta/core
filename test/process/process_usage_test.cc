@@ -44,3 +44,12 @@ TEST(virtual_memory_is_reported) {
   EXPECT_TRUE(usage.virtual_bytes.has_value());
   EXPECT_GT(usage.virtual_bytes.value(), 0U);
 }
+
+// A Windows working set counts shared pages that its private commit does not,
+// so there the one may legitimately exceed the other
+#if !defined(_WIN32)
+TEST(virtual_memory_covers_at_least_the_resident_set) {
+  const auto usage{sourcemeta::core::process_usage()};
+  EXPECT_GE(usage.virtual_bytes.value(), usage.resident_bytes.value());
+}
+#endif

@@ -41,7 +41,7 @@ struct ProcessDescriptors {
 
 /// @ingroup process
 ///
-/// Read what the running process has consumed so far.
+/// Read what the running process has consumed so far. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/process.h>
@@ -56,7 +56,7 @@ auto process_usage() noexcept -> ProcessUsage;
 /// @ingroup process
 ///
 /// Read what the running process currently holds open. This costs a directory
-/// scan on some platforms, so it is not read along with anything else.
+/// scan on some platforms. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/process.h>
@@ -70,8 +70,8 @@ auto process_descriptors() noexcept -> ProcessDescriptors;
 
 /// @ingroup process
 ///
-/// Read when the running process began. The answer cannot change, so read it
-/// once rather than on every sample.
+/// Read when the running process began. The answer does not change. For
+/// example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/process.h>
