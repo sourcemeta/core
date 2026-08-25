@@ -5,7 +5,7 @@
 #include <sourcemeta/core/process_export.h>
 #endif
 
-#include <chrono>   // std::chrono::system_clock
+#include <chrono>   // std::chrono::nanoseconds, std::chrono::system_clock
 #include <cstdint>  // std::uint64_t
 #include <optional> // std::optional
 
@@ -18,8 +18,8 @@ namespace sourcemeta::core {
 /// that a caller reports nothing rather than a zero it cannot tell apart from
 /// a measurement.
 struct ProcessUsage {
-  /// Combined user and system processor time, in seconds
-  std::optional<double> cpu_seconds{std::nullopt};
+  /// Combined user and system processor time
+  std::optional<std::chrono::nanoseconds> cpu_time{std::nullopt};
   /// Physical memory currently held, in bytes
   std::optional<std::uint64_t> resident_bytes{std::nullopt};
   /// Address space currently mapped, in bytes
@@ -45,10 +45,11 @@ struct ProcessDescriptors {
 ///
 /// ```cpp
 /// #include <sourcemeta/core/process.h>
+/// #include <chrono>
 /// #include <cassert>
 ///
 /// const auto usage{sourcemeta::core::process_usage()};
-/// assert(usage.cpu_seconds.value() >= 0.0);
+/// assert(usage.cpu_time.value() >= std::chrono::nanoseconds::zero());
 /// ```
 SOURCEMETA_CORE_PROCESS_EXPORT
 auto process_usage() noexcept -> ProcessUsage;

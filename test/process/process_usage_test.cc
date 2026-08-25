@@ -1,7 +1,7 @@
 #include <sourcemeta/core/process.h>
 #include <sourcemeta/core/test.h>
 
-#include <chrono>  // std::chrono::milliseconds, std::chrono::steady_clock
+#include <chrono> // std::chrono::milliseconds, std::chrono::nanoseconds, std::chrono::steady_clock
 #include <cstddef> // std::size_t
 
 // Burn enough processor time that the coarsest counter any supported platform
@@ -21,8 +21,8 @@ static auto burn_processor_time() -> double {
 
 TEST(processor_time_is_reported) {
   const auto usage{sourcemeta::core::process_usage()};
-  EXPECT_TRUE(usage.cpu_seconds.has_value());
-  EXPECT_GE(usage.cpu_seconds.value(), 0.0);
+  EXPECT_TRUE(usage.cpu_time.has_value());
+  EXPECT_GE(usage.cpu_time.value(), std::chrono::nanoseconds::zero());
 }
 
 TEST(processor_time_advances_while_the_processor_is_busy) {
@@ -30,7 +30,7 @@ TEST(processor_time_advances_while_the_processor_is_busy) {
   const auto burned{burn_processor_time()};
   const auto after{sourcemeta::core::process_usage()};
   EXPECT_GT(burned, 0.0);
-  EXPECT_GT(after.cpu_seconds.value(), before.cpu_seconds.value());
+  EXPECT_GT(after.cpu_time.value(), before.cpu_time.value());
 }
 
 TEST(resident_memory_is_reported) {

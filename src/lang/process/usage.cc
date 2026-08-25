@@ -1,7 +1,7 @@
 #include <sourcemeta/core/process.h>
 
-#include <chrono> // std::chrono::duration, std::chrono::duration_cast, std::chrono::system_clock
-#include <cstdint>  // std::uint64_t
+#include <chrono> // std::chrono::duration, std::chrono::duration_cast, std::chrono::microseconds, std::chrono::nanoseconds, std::chrono::seconds, std::chrono::system_clock
+#include <cstdint>  // std::int64_t, std::uint64_t
 #include <optional> // std::optional
 
 #if defined(_WIN32) && !defined(__MSYS__) && !defined(__CYGWIN__) &&           \
@@ -47,6 +47,7 @@ namespace {
 
 // The platform counts time in hundreds of nanoseconds
 constexpr double UNITS_PER_SECOND{10000000.0};
+constexpr std::int64_t NANOSECONDS_PER_UNIT{100};
 
 // The platform counts from the start of the year 1601, which is this many of
 // its own units before the Unix epoch
@@ -72,9 +73,9 @@ auto process_usage() noexcept -> ProcessUsage {
   FILETIME user{};
   if (GetProcessTimes(GetCurrentProcess(), &creation, &termination, &kernel,
                       &user) != 0) {
-    result.cpu_seconds =
-        static_cast<double>(to_units(kernel) + to_units(user)) /
-        UNITS_PER_SECOND;
+    result.cpu_time = std::chrono::nanoseconds{
+        static_cast<std::int64_t>(to_units(kernel) + to_units(user)) *
+        NANOSECONDS_PER_UNIT};
   }
 
   PROCESS_MEMORY_COUNTERS counters{};
@@ -149,11 +150,11 @@ auto process_usage() noexcept -> ProcessUsage {
 
   rusage consumed{};
   if (getrusage(RUSAGE_SELF, &consumed) == 0) {
-    result.cpu_seconds =
-        static_cast<double>(consumed.ru_utime.tv_sec) +
-        static_cast<double>(consumed.ru_utime.tv_usec) / 1000000.0 +
-        static_cast<double>(consumed.ru_stime.tv_sec) +
-        static_cast<double>(consumed.ru_stime.tv_usec) / 1000000.0;
+    result.cpu_time =
+        std::chrono::seconds{static_cast<std::chrono::seconds::rep>(
+            consumed.ru_utime.tv_sec + consumed.ru_stime.tv_sec)} +
+        std::chrono::microseconds{static_cast<std::chrono::microseconds::rep>(
+            consumed.ru_utime.tv_usec + consumed.ru_stime.tv_usec)};
   }
 
   mach_task_basic_info information{};
@@ -393,8 +394,13 @@ auto process_usage() noexcept -> ProcessUsage {
   const auto user{to_uint64_t(fields[11])};
   const auto system{to_uint64_t(fields[12])};
   if (ticks > 0 && user.has_value() && system.has_value()) {
-    result.cpu_seconds = static_cast<double>(user.value() + system.value()) /
-                         static_cast<double>(ticks);
+    // Split rather than scaled whole, so that a rate that does not divide a
+    // second evenly still converts exactly and nothing overflows on the way
+    const auto total{static_cast<std::int64_t>(user.value() + system.value())};
+    const auto rate{static_cast<std::int64_t>(ticks)};
+    result.cpu_time =
+        std::chrono::seconds{total / rate} +
+        std::chrono::nanoseconds{(total % rate) * 1000000000 / rate};
   }
 
   result.virtual_bytes = to_uint64_t(fields[20]);
