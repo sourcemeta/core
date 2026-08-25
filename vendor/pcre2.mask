@@ -5,6 +5,7 @@ AUTHORS.md
 autogen.sh
 BUILD.bazel
 build.zig
+build.zig.zon
 ChangeLog
 CMakeLists.txt
 compile
@@ -37,6 +38,7 @@ RunGrepTest.bat
 RunTest
 RunTest.bat
 SECURITY.md
+SUPPORT-LIFECYCLE.md
 test-driver
 vms
 testdata
@@ -44,6 +46,7 @@ m4
 doc
 cmake
 maint
+patches
 deps/sljit/.github
 deps/sljit/docs/
 deps/sljit/test_src/
@@ -54,11 +57,22 @@ deps/sljit/CMakeLists.txt
 deps/sljit/GNUmakefile
 deps/sljit/INTERNAL_CHANGES
 deps/sljit/README.md
+src/config.h.generic
+src/config.h.in
+src/libpcre2-16.sym.in
+src/libpcre2-32.sym.in
+src/libpcre2-8.sym.in
+src/libpcre2-posix.sym.in
+src/pcre2.h.generic
+src/pcre2_chartables.c.ebcdic-1047-nl15
+src/pcre2_chartables.c.ebcdic-1047-nl25
 src/pcre2_dftables.c
 src/pcre2_fuzzsupport.c
 src/pcre2_jit_test.c
 src/pcre2demo.c
 src/pcre2grep.c
 src/pcre2posix.c
+src/pcre2posix.h
 src/pcre2posix_test.c
 src/pcre2test.c
+src/pcre2test_inc.h
