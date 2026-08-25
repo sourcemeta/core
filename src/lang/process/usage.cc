@@ -53,11 +53,67 @@ constexpr std::int64_t NANOSECONDS_PER_UNIT{100};
 // its own units before the Unix epoch
 constexpr std::uint64_t EPOCH_OFFSET_UNITS{11644473600ULL * 10000000ULL};
 
+// The class of process information that carries the size of the mapped address
+// space, which no documented interface answers with
+constexpr ULONG VM_COUNTERS_INFORMATION_CLASS{3};
+
+// What that class answers with, mirroring the kernel's VM_COUNTERS. It is
+// absent from the public headers, so the layout is spelled out here. Only the
+// second member is read, and everything before it has held its place since
+// Windows NT
+struct VirtualMemoryCounters {
+  SIZE_T peak_virtual_size;
+  SIZE_T virtual_size;
+  ULONG page_fault_count;
+  SIZE_T peak_working_set_size;
+  SIZE_T working_set_size;
+  SIZE_T quota_peak_paged_pool_usage;
+  SIZE_T quota_paged_pool_usage;
+  SIZE_T quota_peak_non_paged_pool_usage;
+  SIZE_T quota_non_paged_pool_usage;
+  SIZE_T pagefile_usage;
+  SIZE_T peak_pagefile_usage;
+};
+
+using QueryProcessInformation = LONG(NTAPI *)(HANDLE, ULONG, PVOID, ULONG,
+                                              PULONG);
+
 auto to_units(const FILETIME &value) noexcept -> std::uint64_t {
   ULARGE_INTEGER converted{};
   converted.LowPart = value.dwLowDateTime;
   converted.HighPart = value.dwHighDateTime;
   return converted.QuadPart;
+}
+
+// Resolved once rather than on every call. Looking a module up takes the
+// loader lock, and a reading may be taken on a thread that other work shares.
+// The address of an export is fixed for the lifetime of the process, so this
+// remembers a constant rather than a measurement
+auto query_process_information() noexcept -> QueryProcessInformation {
+  static const auto entry{
+      reinterpret_cast<QueryProcessInformation>(GetProcAddress(
+          GetModuleHandleW(L"ntdll.dll"), "NtQueryInformationProcess"))};
+  return entry;
+}
+
+// The documented memory interface answers with the commit charge, which leaves
+// out file backed mappings and reserved regions and so is a different quantity
+// from what the other platforms report. This asks the undocumented interface
+// that does answer with the mapped address space, and says nothing at all
+// where it is unavailable
+auto mapped_address_space() noexcept -> std::optional<std::uint64_t> {
+  const auto entry{query_process_information()};
+  if (entry == nullptr) {
+    return std::nullopt;
+  }
+
+  VirtualMemoryCounters counters{};
+  if (entry(GetCurrentProcess(), VM_COUNTERS_INFORMATION_CLASS, &counters,
+            static_cast<ULONG>(sizeof(counters)), nullptr) < 0) {
+    return std::nullopt;
+  }
+
+  return counters.virtual_size;
 }
 
 } // namespace
@@ -85,10 +141,7 @@ auto process_usage() noexcept -> ProcessUsage {
     result.resident_bytes = counters.WorkingSetSize;
   }
 
-  // Nothing this platform answers cheaply is the size of the mapped address
-  // space. What it offers is the commit charge, which leaves out file backed
-  // mappings and reserved regions, so publishing it would report a different
-  // quantity under a name the other platforms already mean something else by
+  result.virtual_bytes = mapped_address_space();
   return result;
 }
 
