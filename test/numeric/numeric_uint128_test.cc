@@ -374,3 +374,55 @@ TEST(bitwise_and_mask_low_byte) {
   EXPECT_EQ(static_cast<std::uint64_t>(result), 0xFF);
   EXPECT_EQ(static_cast<std::uint64_t>(result >> 64), 0);
 }
+
+TEST(divide_by_high_divisor) {
+  const auto dividend = (sourcemeta::core::uint128_t{0xFF} << 64) |
+                        sourcemeta::core::uint128_t{0x1234};
+  const auto divisor = sourcemeta::core::uint128_t{1} << 63;
+  const auto result = dividend / divisor;
+  EXPECT_EQ(static_cast<std::uint64_t>(result), 0x1FE);
+  EXPECT_EQ(static_cast<std::uint64_t>(result >> 64), 0);
+}
+
+TEST(divide_with_high_half_dividend) {
+  const auto dividend = sourcemeta::core::uint128_t{1} << 100;
+  const auto divisor = sourcemeta::core::uint128_t{1} << 36;
+  const auto result = dividend / divisor;
+  EXPECT_EQ(static_cast<std::uint64_t>(result), 0);
+  EXPECT_EQ(static_cast<std::uint64_t>(result >> 64), 1);
+}
+
+TEST(shift_at_64_bits) {
+  const sourcemeta::core::uint128_t value{0xDEADBEEFULL};
+  const auto shifted = value << 64;
+  EXPECT_EQ(static_cast<std::uint64_t>(shifted), 0);
+  EXPECT_EQ(static_cast<std::uint64_t>(shifted >> 64), 0xDEADBEEFULL);
+  EXPECT_EQ(static_cast<std::uint64_t>(shifted >> 64 >> 64), 0);
+}
+
+TEST(shift_at_127_bits) {
+  const sourcemeta::core::uint128_t value{1};
+  const auto shifted = value << 127;
+  EXPECT_EQ(static_cast<std::uint64_t>(shifted), 0);
+  EXPECT_EQ(static_cast<std::uint64_t>(shifted >> 64), 1ULL << 63);
+  EXPECT_EQ(static_cast<std::uint64_t>(shifted >> 127), 1);
+}
+
+TEST(bitwise_or_across_words) {
+  const auto left = sourcemeta::core::uint128_t{0xAAAAAAAAAAAAAAAAULL} << 64;
+  const sourcemeta::core::uint128_t right{0x5555555555555555ULL};
+  const auto result = left | right;
+  EXPECT_EQ(static_cast<std::uint64_t>(result), 0x5555555555555555ULL);
+  EXPECT_EQ(static_cast<std::uint64_t>(result >> 64), 0xAAAAAAAAAAAAAAAAULL);
+}
+
+TEST(bitwise_and_across_words) {
+  const auto left = (sourcemeta::core::uint128_t{0xFFFFFFFFFFFFFFFFULL} << 64) |
+                    sourcemeta::core::uint128_t{0xFFFFFFFFFFFFFFFFULL};
+  const auto right =
+      (sourcemeta::core::uint128_t{0x00FF00FF00FF00FFULL} << 64) |
+      sourcemeta::core::uint128_t{0xFF00FF00FF00FF00ULL};
+  const auto result = left & right;
+  EXPECT_EQ(static_cast<std::uint64_t>(result), 0xFF00FF00FF00FF00ULL);
+  EXPECT_EQ(static_cast<std::uint64_t>(result >> 64), 0x00FF00FF00FF00FFULL);
+}

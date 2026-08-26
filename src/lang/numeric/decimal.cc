@@ -3,20 +3,21 @@
 
 #include "big_coefficient.h"
 
-#include <array>     // std::array
-#include <cassert>   // assert
-#include <charconv>  // std::to_chars
-#include <cmath>     // std::isfinite, std::isnan, std::isinf, std::abs,
-                     // std::frexp, std::ldexp, std::signbit
-#include <cstddef>   // std::size_t
-#include <cstring>   // std::strlen
-#include <iomanip>   // std::setprecision
-#include <limits>    // std::numeric_limits
-#include <optional>  // std::optional, std::nullopt
-#include <sstream>   // std::ostringstream
-#include <stdexcept> // std::out_of_range
-#include <string>    // std::string, std::stof, std::stod
-#include <vector>    // std::vector
+#include <array>       // std::array
+#include <cassert>     // assert
+#include <charconv>    // std::to_chars
+#include <cmath>       // std::isfinite, std::isnan, std::isinf, std::abs,
+                       // std::frexp, std::ldexp, std::signbit
+#include <cstddef>     // std::size_t
+#include <cstring>     // std::strlen
+#include <iomanip>     // std::setprecision
+#include <limits>      // std::numeric_limits
+#include <optional>    // std::optional, std::nullopt
+#include <sstream>     // std::ostringstream
+#include <stdexcept>   // std::out_of_range
+#include <string>      // std::string, std::stof, std::stod
+#include <string_view> // std::string_view
+#include <vector>      // std::vector
 
 namespace {
 
@@ -990,7 +991,10 @@ auto Decimal::to_integral() const -> Decimal {
   }
 
   if (this->exponent_ >= 0) {
-    return *this;
+    Decimal result{*this};
+    result.flags_ =
+        static_cast<std::uint8_t>(result.flags_ & ~FLAG_INTEGER_LITERAL);
+    return result;
   }
 
   if ((this->flags_ & FLAG_BIG) != 0) {
@@ -999,14 +1003,28 @@ auto Decimal::to_integral() const -> Decimal {
     auto number_of_digits = static_cast<std::int32_t>(digit_string.size());
     auto digits_to_remove = -this->exponent_;
 
-    if (digits_to_remove >= number_of_digits) {
+    if (digits_to_remove > number_of_digits) {
       Decimal result;
+      if ((this->flags_ & FLAG_SIGN) != 0) {
+        result.flags_ = FLAG_SIGN;
+      }
+
       return result;
     }
 
-    auto integer_string = digit_string.substr(
-        0, static_cast<std::size_t>(number_of_digits - digits_to_remove));
-    Decimal result{integer_string};
+    const auto kept_digits =
+        static_cast<std::size_t>(number_of_digits - digits_to_remove);
+    const std::string_view kept{digit_string.data(), kept_digits};
+    const std::string_view dropped{digit_string.data() + kept_digits,
+                                   digit_string.size() - kept_digits};
+    Decimal result{kept_digits == 0 ? std::string{"0"}
+                                    : digit_string.substr(0, kept_digits)};
+    if (rounds_up_half_even(kept, dropped)) {
+      result += Decimal{1};
+    }
+
+    result.flags_ =
+        static_cast<std::uint8_t>(result.flags_ & ~FLAG_INTEGER_LITERAL);
     if ((this->flags_ & FLAG_SIGN) != 0) {
       result.flags_ |= FLAG_SIGN;
     }
@@ -1017,9 +1035,14 @@ auto Decimal::to_integral() const -> Decimal {
   auto coefficient = this->coefficient_;
   auto digits_to_remove = -this->exponent_;
 
-  if (static_cast<std::uint32_t>(digits_to_remove) >=
+  if (static_cast<std::uint32_t>(digits_to_remove) >
       digit_count(static_cast<std::uint64_t>(coefficient))) {
-    return Decimal{};
+    Decimal result;
+    if ((this->flags_ & FLAG_SIGN) != 0) {
+      result.flags_ = FLAG_SIGN;
+    }
+
+    return result;
   }
 
   std::int64_t divisor = 1;
@@ -1751,11 +1774,15 @@ auto Decimal::operator+=(const Decimal &other) -> Decimal & {
       this->flags_ = static_cast<std::uint8_t>(this->flags_ & ~FLAG_SIGN);
     }
 
+    this->flags_ =
+        static_cast<std::uint8_t>(this->flags_ & ~FLAG_INTEGER_LITERAL);
     return *this;
   }
 
   if (this->is_zero()) {
     *this = other;
+    this->flags_ =
+        static_cast<std::uint8_t>(this->flags_ & ~FLAG_INTEGER_LITERAL);
     return *this;
   }
 
@@ -2032,6 +2059,8 @@ auto Decimal::operator%=(const Decimal &other) -> Decimal & {
   divisor_magnitude.flags_ =
       static_cast<std::uint8_t>(divisor_magnitude.flags_ & ~FLAG_SIGN);
   if (dividend_magnitude < divisor_magnitude) {
+    this->flags_ =
+        static_cast<std::uint8_t>(this->flags_ & ~FLAG_INTEGER_LITERAL);
     return *this;
   }
 
