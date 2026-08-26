@@ -4172,7 +4172,7 @@ TEST(multiply_bigs_with_carry) {
 
 TEST(to_integral_of_big_fraction) {
   const sourcemeta::core::Decimal value{"12345678901234567890123456789.5"};
-  EXPECT_EQ(value.to_integral().to_string(), "12345678901234567890123456789");
+  EXPECT_EQ(value.to_integral().to_string(), "12345678901234567890123456790");
 }
 
 TEST(remainder_of_sixteen_digit_dividend) {
@@ -4246,11 +4246,11 @@ TEST(heap_coefficient_negation) {
             "-123456789012345678901234567890123456789012345");
 }
 
-TEST(heap_coefficient_to_integral_truncates) {
+TEST(heap_coefficient_to_integral_rounds) {
   const sourcemeta::core::Decimal value{
       "123456789012345678901234567890123456789012345.75"};
   EXPECT_EQ(value.to_integral().to_string(),
-            "123456789012345678901234567890123456789012345");
+            "123456789012345678901234567890123456789012346");
 }
 
 TEST(heap_coefficient_is_integral) {
@@ -4791,4 +4791,214 @@ TEST(subtract_equal_negative_values_gives_positive_zero) {
   EXPECT_EQ(result.to_string(), "0");
   EXPECT_TRUE(result.is_zero());
   EXPECT_FALSE(result.is_signed());
+}
+
+TEST(divide_integer_hundred_digit_dividend_by_one) {
+  const sourcemeta::core::Decimal value{
+      "1234567890123456789012345678901234567890"
+      "1234567890123456789012345678901234567890"
+      "12345678901234567890"};
+  const auto quotient{value.divide_integer(sourcemeta::core::Decimal{1})};
+  EXPECT_EQ(quotient, value);
+  EXPECT_EQ(quotient.to_string(), value.to_string());
+  EXPECT_FALSE(quotient.is_nan());
+}
+
+TEST(divide_integer_thirty_six_digits_by_single_limb) {
+  const sourcemeta::core::Decimal dividend{
+      "999999999999999999999999999999999999"};
+  const sourcemeta::core::Decimal divisor{"1000000000000000000"};
+  const auto quotient{dividend.divide_integer(divisor)};
+  EXPECT_EQ(quotient, sourcemeta::core::Decimal{"999999999999999999"});
+  EXPECT_EQ(quotient.to_string(), "999999999999999999");
+}
+
+TEST(divide_integer_thirty_six_digits_by_nearby_divisor) {
+  const sourcemeta::core::Decimal dividend{
+      "999999999999999999999999999999999999"};
+  const sourcemeta::core::Decimal divisor{"1000000000000000001"};
+  const auto quotient{dividend.divide_integer(divisor)};
+  EXPECT_TRUE(quotient.is_finite());
+  EXPECT_EQ(quotient, sourcemeta::core::Decimal{"999999999999999999"});
+  EXPECT_EQ(quotient.to_string(), "999999999999999999");
+}
+
+TEST(nan_with_oversized_payload_saturates) {
+  const sourcemeta::core::Decimal value{"NaN99999999999999999999"};
+  EXPECT_TRUE(value.is_qnan());
+  EXPECT_EQ(value.nan_payload(), static_cast<std::uint64_t>(
+                                     std::numeric_limits<std::int64_t>::max()));
+  EXPECT_EQ(value.to_string(), "NaN9223372036854775807");
+}
+
+TEST(is_integer_add_zero_clears_flag) {
+  auto value{sourcemeta::core::Decimal{3}};
+  EXPECT_TRUE(value.is_integer());
+  value += sourcemeta::core::Decimal{0};
+  EXPECT_FALSE(value.is_integer());
+  EXPECT_TRUE(value.is_integral());
+  EXPECT_EQ(value.to_string(), "3");
+}
+
+TEST(is_integer_zero_plus_integer_clears_flag) {
+  auto value{sourcemeta::core::Decimal{0}};
+  value += sourcemeta::core::Decimal{3};
+  EXPECT_FALSE(value.is_integer());
+  EXPECT_TRUE(value.is_integral());
+  EXPECT_EQ(value.to_string(), "3");
+}
+
+TEST(is_integer_subtract_zero_clears_flag) {
+  auto value{sourcemeta::core::Decimal{3}};
+  value -= sourcemeta::core::Decimal{0};
+  EXPECT_FALSE(value.is_integer());
+  EXPECT_TRUE(value.is_integral());
+  EXPECT_EQ(value.to_string(), "3");
+}
+
+TEST(is_integer_modulo_smaller_dividend_clears_flag) {
+  const sourcemeta::core::Decimal dividend{3};
+  const sourcemeta::core::Decimal divisor{5};
+  const auto result{dividend % divisor};
+  EXPECT_FALSE(result.is_integer());
+  EXPECT_TRUE(result.is_integral());
+  EXPECT_EQ(result.to_string(), "3");
+}
+
+TEST(is_integer_modulo_larger_dividend_clears_flag) {
+  const sourcemeta::core::Decimal dividend{7};
+  const sourcemeta::core::Decimal divisor{5};
+  const auto result{dividend % divisor};
+  EXPECT_FALSE(result.is_integer());
+  EXPECT_TRUE(result.is_integral());
+  EXPECT_EQ(result.to_string(), "2");
+}
+
+TEST(is_integer_to_integral_of_integer_clears_flag) {
+  const sourcemeta::core::Decimal value{3};
+  const auto result{value.to_integral()};
+  EXPECT_FALSE(result.is_integer());
+  EXPECT_TRUE(result.is_integral());
+  EXPECT_EQ(result.to_string(), "3");
+}
+
+TEST(is_integer_to_integral_of_real_clears_flag) {
+  const sourcemeta::core::Decimal value{"3.7"};
+  const auto result{value.to_integral()};
+  EXPECT_FALSE(result.is_integer());
+  EXPECT_TRUE(result.is_integral());
+  EXPECT_EQ(result.to_string(), "4");
+}
+
+TEST(is_integer_to_integral_of_big_real_clears_flag) {
+  const sourcemeta::core::Decimal value{"123456789012345678901234567890.7"};
+  const auto result{value.to_integral()};
+  EXPECT_FALSE(result.is_integer());
+  EXPECT_TRUE(result.is_integral());
+  EXPECT_EQ(result.to_string(), "123456789012345678901234567891");
+}
+
+TEST(to_integral_rounds_fraction_below_one_up) {
+  const sourcemeta::core::Decimal value{"0.7"};
+  const auto result{value.to_integral()};
+  EXPECT_EQ(result, sourcemeta::core::Decimal{1});
+  EXPECT_EQ(result.to_string(), "1");
+}
+
+TEST(to_integral_rounds_fraction_below_one_down) {
+  const sourcemeta::core::Decimal value{"0.4"};
+  const auto result{value.to_integral()};
+  EXPECT_EQ(result, sourcemeta::core::Decimal{0});
+  EXPECT_EQ(result.to_string(), "0");
+}
+
+TEST(to_integral_rounds_half_to_even_below_one) {
+  const sourcemeta::core::Decimal value{"0.5"};
+  const auto result{value.to_integral()};
+  EXPECT_EQ(result, sourcemeta::core::Decimal{0});
+  EXPECT_EQ(result.to_string(), "0");
+}
+
+TEST(to_integral_rounds_half_to_even_above_one) {
+  const sourcemeta::core::Decimal value{"1.5"};
+  const auto result{value.to_integral()};
+  EXPECT_EQ(result, sourcemeta::core::Decimal{2});
+  EXPECT_EQ(result.to_string(), "2");
+}
+
+TEST(to_integral_negative_fraction_below_one_keeps_sign) {
+  const sourcemeta::core::Decimal value{"-0.1"};
+  const auto result{value.to_integral()};
+  EXPECT_TRUE(result.is_zero());
+  EXPECT_TRUE(result.is_signed());
+  EXPECT_EQ(result.to_string(), "-0");
+}
+
+TEST(to_integral_negative_fraction_rounds_away_from_zero) {
+  const sourcemeta::core::Decimal value{"-0.7"};
+  const auto result{value.to_integral()};
+  EXPECT_EQ(result, sourcemeta::core::Decimal{-1});
+  EXPECT_EQ(result.to_string(), "-1");
+}
+
+TEST(to_integral_tiny_fraction_keeps_sign) {
+  const sourcemeta::core::Decimal value{"-0.07"};
+  const auto result{value.to_integral()};
+  EXPECT_TRUE(result.is_zero());
+  EXPECT_TRUE(result.is_signed());
+  EXPECT_EQ(result.to_string(), "-0");
+}
+
+TEST(to_integral_big_coefficient_rounds_up_with_carry) {
+  const sourcemeta::core::Decimal value{"123456789012345678901234567899.9"};
+  const auto result{value.to_integral()};
+  EXPECT_EQ(result,
+            sourcemeta::core::Decimal{"123456789012345678901234567900"});
+  EXPECT_EQ(result.to_string(), "123456789012345678901234567900");
+}
+
+TEST(to_integral_big_coefficient_rounds_half_to_even) {
+  const sourcemeta::core::Decimal value{"123456789012345678901234567890.5"};
+  const auto result{value.to_integral()};
+  EXPECT_EQ(result,
+            sourcemeta::core::Decimal{"123456789012345678901234567890"});
+  EXPECT_EQ(result.to_string(), "123456789012345678901234567890");
+}
+
+TEST(to_integral_big_coefficient_negative_rounds_up) {
+  const sourcemeta::core::Decimal value{"-123456789012345678901234567890.7"};
+  const auto result{value.to_integral()};
+  EXPECT_EQ(result,
+            sourcemeta::core::Decimal{"-123456789012345678901234567891"});
+  EXPECT_EQ(result.to_string(), "-123456789012345678901234567891");
+}
+
+TEST(to_integral_big_fraction_below_one_rounds_up) {
+  const sourcemeta::core::Decimal value{"0.99999999999999999999999999999"};
+  const auto result{value.to_integral()};
+  EXPECT_EQ(result, sourcemeta::core::Decimal{1});
+  EXPECT_EQ(result.to_string(), "1");
+}
+
+TEST(is_integer_unary_minus_preserves_flag) {
+  const sourcemeta::core::Decimal value{3};
+  const auto result{-value};
+  EXPECT_TRUE(result.is_integer());
+  EXPECT_EQ(result, sourcemeta::core::Decimal{-3});
+  EXPECT_EQ(result.to_string(), "-3");
+}
+
+TEST(is_integer_unary_plus_preserves_flag) {
+  const sourcemeta::core::Decimal value{3};
+  const auto result{+value};
+  EXPECT_TRUE(result.is_integer());
+  EXPECT_EQ(result, sourcemeta::core::Decimal{3});
+  EXPECT_EQ(result.to_string(), "3");
+}
+
+TEST(is_integer_unary_minus_of_real_stays_cleared) {
+  const sourcemeta::core::Decimal value{"3.5"};
+  const auto result{-value};
+  EXPECT_FALSE(result.is_integer());
+  EXPECT_EQ(result.to_string(), "-3.5");
 }
