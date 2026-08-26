@@ -1742,6 +1742,15 @@ auto Decimal::operator+=(const Decimal &other) -> Decimal & {
   check_exponent_overflow(this->exponent_, other.exponent_);
 
   if (other.is_zero()) {
+    // The General Decimal Arithmetic Specification states that for addition
+    // "the sign of a zero result is 0 unless either both operands were
+    // negative or the signs of the operands were different and the rounding
+    // is round-floor", so a positive zero addend clears the sign of a
+    // negative zero
+    if (this->is_zero() && (other.flags_ & FLAG_SIGN) == 0) {
+      this->flags_ = static_cast<std::uint8_t>(this->flags_ & ~FLAG_SIGN);
+    }
+
     return *this;
   }
 
@@ -1914,11 +1923,10 @@ auto Decimal::operator*=(const Decimal &other) -> Decimal & {
   if (product <= static_cast<sourcemeta::core::uint128_t>(COMPACT_MAX)) {
     this->coefficient_ = static_cast<std::int64_t>(product);
     this->exponent_ = result_exponent;
+    // The General Decimal Arithmetic Specification states that "the sign of
+    // the result of a multiplication or division will be 1 only if the
+    // operands have different signs", which holds for a zero product too
     this->flags_ = result_negative ? FLAG_SIGN : 0;
-    if (this->coefficient_ == 0) {
-      this->flags_ = 0;
-    }
-
   } else {
     auto left_big = coefficient_as_big(this->coefficient_,
                                        this->coefficient_high_, this->flags_);
@@ -1981,12 +1989,11 @@ auto Decimal::operator/=(const Decimal &other) -> Decimal & {
   auto [quotient, remainder] = scaled.divide_modulo(divisor_big);
 
   free_big_coefficient(this->coefficient_, this->flags_);
+  // The General Decimal Arithmetic Specification states that "the sign of the
+  // result of a multiplication or division will be 1 only if the operands have
+  // different signs", which holds for a zero quotient too
   store_big_result(this->coefficient_, this->coefficient_high_, this->flags_,
                    std::move(quotient), result_negative);
-  if (this->coefficient_ == 0 && ((this->flags_ & FLAG_BIG) == 0)) {
-    this->flags_ = 0;
-  }
-
   this->exponent_ = this->exponent_ - other.exponent_ - WORKING_PRECISION;
 
   round_to_precision(this->coefficient_, this->coefficient_high_,
