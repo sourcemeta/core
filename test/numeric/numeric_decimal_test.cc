@@ -4518,12 +4518,20 @@ TEST(parse_two_thousand_one_digit_literal) {
   const std::string digits(2001, '1');
   const sourcemeta::core::Decimal value{digits};
   EXPECT_EQ(value.to_string(), digits);
+  EXPECT_EQ(value.to_scientific_string(),
+            "1." + std::string(2000, '1') + "e+2000");
+  EXPECT_TRUE(value.is_integer());
+  EXPECT_FALSE(value.is_zero());
+  EXPECT_FALSE(value.is_signed());
 }
 
 TEST(compare_two_thousand_digit_literals) {
   const sourcemeta::core::Decimal shorter{std::string(2000, '1')};
   const sourcemeta::core::Decimal longer{std::string(2001, '1')};
   EXPECT_TRUE(shorter < longer);
+  EXPECT_TRUE(longer > shorter);
+  EXPECT_FALSE(shorter == longer);
+  EXPECT_EQ((longer - shorter).to_string(), "1" + std::string(2000, '0'));
 }
 
 TEST(reduce_big_coefficient_low_word_borrow) {
@@ -4531,6 +4539,8 @@ TEST(reduce_big_coefficient_low_word_borrow) {
   const auto result{value.reduce()};
   EXPECT_EQ(result, value);
   EXPECT_EQ(result.to_string(), "2.00000000000000001e+18");
+  EXPECT_EQ((result - value).to_string(), "0");
+  EXPECT_FALSE(result.is_signed());
 }
 
 TEST(multithreaded_special_construction) {
@@ -4541,42 +4551,54 @@ TEST(multithreaded_special_construction) {
     const sourcemeta::core::Decimal value{"NaN"};
     EXPECT_TRUE(value.is_qnan());
     EXPECT_FALSE(value.is_signed());
+    EXPECT_EQ(value.nan_payload(), 0U);
+    EXPECT_EQ(value.to_string(), "NaN");
   });
   threads.emplace_back([]() {
     const sourcemeta::core::Decimal value{"-NaN"};
     EXPECT_TRUE(value.is_qnan());
     EXPECT_TRUE(value.is_signed());
+    EXPECT_EQ(value.nan_payload(), 0U);
+    EXPECT_EQ(value.to_string(), "-NaN");
   });
   threads.emplace_back([]() {
     const sourcemeta::core::Decimal value{"sNaN"};
     EXPECT_TRUE(value.is_snan());
     EXPECT_FALSE(value.is_signed());
-  });
-  threads.emplace_back([]() {
-    const sourcemeta::core::Decimal value{"-sNaN"};
-    EXPECT_TRUE(value.is_snan());
-    EXPECT_TRUE(value.is_signed());
-  });
-  threads.emplace_back([]() {
-    const sourcemeta::core::Decimal value{"Infinity"};
-    EXPECT_TRUE(value.is_infinite());
-    EXPECT_FALSE(value.is_signed());
-  });
-  threads.emplace_back([]() {
-    const sourcemeta::core::Decimal value{"-Infinity"};
-    EXPECT_TRUE(value.is_infinite());
-    EXPECT_TRUE(value.is_signed());
-  });
-  threads.emplace_back([]() {
-    const sourcemeta::core::Decimal value{"NaN123"};
-    EXPECT_TRUE(value.is_qnan());
-    EXPECT_EQ(value.nan_payload(), 123U);
+    EXPECT_EQ(value.nan_payload(), 0U);
+    EXPECT_EQ(value.to_string(), "sNaN");
   });
   threads.emplace_back([]() {
     const sourcemeta::core::Decimal value{"-sNaN456"};
     EXPECT_TRUE(value.is_snan());
     EXPECT_TRUE(value.is_signed());
     EXPECT_EQ(value.nan_payload(), 456U);
+    EXPECT_EQ(value.to_string(), "-sNaN456");
+  });
+  threads.emplace_back([]() {
+    const sourcemeta::core::Decimal value{"Infinity"};
+    EXPECT_TRUE(value.is_infinite());
+    EXPECT_FALSE(value.is_signed());
+    EXPECT_EQ(value.to_string(), "Infinity");
+  });
+  threads.emplace_back([]() {
+    const sourcemeta::core::Decimal value{"-Infinity"};
+    EXPECT_TRUE(value.is_infinite());
+    EXPECT_TRUE(value.is_signed());
+    EXPECT_EQ(value.to_string(), "-Infinity");
+  });
+  threads.emplace_back([]() {
+    const sourcemeta::core::Decimal value{"NaN123"};
+    EXPECT_TRUE(value.is_qnan());
+    EXPECT_FALSE(value.is_signed());
+    EXPECT_EQ(value.nan_payload(), 123U);
+    EXPECT_EQ(value.to_string(), "NaN123");
+  });
+  threads.emplace_back([]() {
+    const sourcemeta::core::Decimal value{"-Infinity"};
+    EXPECT_TRUE(value.is_infinite());
+    EXPECT_TRUE(value.is_signed());
+    EXPECT_EQ(value.to_string(), "-Infinity");
   });
 
   for (auto &thread : threads) {
@@ -4588,54 +4610,78 @@ TEST(multiply_negative_zero_by_one) {
   const sourcemeta::core::Decimal left{"-0"};
   const sourcemeta::core::Decimal right{1};
   const auto result{left * right};
-  EXPECT_TRUE(result.is_signed());
+  EXPECT_EQ(result, sourcemeta::core::Decimal{"-0"});
   EXPECT_EQ(result.to_string(), "-0");
+  EXPECT_TRUE(result.is_zero());
+  EXPECT_TRUE(result.is_signed());
 }
 
 TEST(multiply_one_by_negative_zero) {
   const sourcemeta::core::Decimal left{1};
   const sourcemeta::core::Decimal right{"-0"};
   const auto result{left * right};
-  EXPECT_TRUE(result.is_signed());
+  EXPECT_EQ(result, sourcemeta::core::Decimal{"-0"});
   EXPECT_EQ(result.to_string(), "-0");
+  EXPECT_TRUE(result.is_zero());
+  EXPECT_TRUE(result.is_signed());
 }
 
 TEST(multiply_negative_one_by_zero) {
   const sourcemeta::core::Decimal left{-1};
   const sourcemeta::core::Decimal right{0};
   const auto result{left * right};
-  EXPECT_TRUE(result.is_signed());
+  EXPECT_EQ(result, sourcemeta::core::Decimal{"-0"});
   EXPECT_EQ(result.to_string(), "-0");
+  EXPECT_TRUE(result.is_zero());
+  EXPECT_TRUE(result.is_signed());
 }
 
 TEST(multiply_negative_scaled_by_zero) {
   const sourcemeta::core::Decimal left{"-1.20"};
   const sourcemeta::core::Decimal right{0};
   const auto result{left * right};
-  EXPECT_TRUE(result.is_signed());
+  EXPECT_EQ(result, sourcemeta::core::Decimal{"-0.00"});
   EXPECT_EQ(result.to_string(), "-0.00");
+  EXPECT_TRUE(result.is_zero());
+  EXPECT_TRUE(result.is_signed());
+}
+
+TEST(multiply_negative_scaled_zeros) {
+  const sourcemeta::core::Decimal left{"-0.00"};
+  const sourcemeta::core::Decimal right{"0.0"};
+  const auto result{left * right};
+  EXPECT_EQ(result, sourcemeta::core::Decimal{"-0.000"});
+  EXPECT_EQ(result.to_string(), "-0.000");
+  EXPECT_TRUE(result.is_zero());
+  EXPECT_TRUE(result.is_signed());
 }
 
 TEST(multiply_negative_zero_by_negative_one) {
   const sourcemeta::core::Decimal left{"-0"};
   const sourcemeta::core::Decimal right{-1};
   const auto result{left * right};
-  EXPECT_FALSE(result.is_signed());
+  EXPECT_EQ(result, sourcemeta::core::Decimal{0});
   EXPECT_EQ(result.to_string(), "0");
+  EXPECT_TRUE(result.is_zero());
+  EXPECT_FALSE(result.is_signed());
 }
 
 TEST(multiply_negative_big_coefficient_by_zero) {
   const sourcemeta::core::Decimal left{"-123456789012345678901234567890"};
   const sourcemeta::core::Decimal right{0};
   const auto result{left * right};
-  EXPECT_TRUE(result.is_signed());
+  EXPECT_EQ(result, sourcemeta::core::Decimal{"-0"});
   EXPECT_EQ(result.to_string(), "-0");
+  EXPECT_TRUE(result.is_zero());
+  EXPECT_TRUE(result.is_signed());
 }
 
 TEST(divide_negative_zero_by_one) {
   const sourcemeta::core::Decimal left{"-0"};
   const sourcemeta::core::Decimal right{1};
   const auto result{left / right};
+  EXPECT_EQ(result, sourcemeta::core::Decimal{0});
+  EXPECT_TRUE(result.is_zero());
   EXPECT_TRUE(result.is_signed());
 }
 
@@ -4643,6 +4689,8 @@ TEST(divide_zero_by_negative_one) {
   const sourcemeta::core::Decimal left{0};
   const sourcemeta::core::Decimal right{-1};
   const auto result{left / right};
+  EXPECT_EQ(result, sourcemeta::core::Decimal{0});
+  EXPECT_TRUE(result.is_zero());
   EXPECT_TRUE(result.is_signed());
 }
 
@@ -4650,6 +4698,8 @@ TEST(divide_negative_zero_by_negative_one) {
   const sourcemeta::core::Decimal left{"-0"};
   const sourcemeta::core::Decimal right{-1};
   const auto result{left / right};
+  EXPECT_EQ(result, sourcemeta::core::Decimal{0});
+  EXPECT_TRUE(result.is_zero());
   EXPECT_FALSE(result.is_signed());
 }
 
@@ -4657,6 +4707,9 @@ TEST(add_negative_zero_to_negative_zero) {
   const sourcemeta::core::Decimal left{"-0"};
   const sourcemeta::core::Decimal right{"-0"};
   const auto result{left + right};
+  EXPECT_EQ(result, sourcemeta::core::Decimal{"-0"});
+  EXPECT_EQ(result.to_string(), "-0");
+  EXPECT_TRUE(result.is_zero());
   EXPECT_TRUE(result.is_signed());
 }
 
@@ -4664,6 +4717,9 @@ TEST(add_negative_zero_to_positive_zero) {
   const sourcemeta::core::Decimal left{"-0"};
   const sourcemeta::core::Decimal right{"0"};
   const auto result{left + right};
+  EXPECT_EQ(result, sourcemeta::core::Decimal{0});
+  EXPECT_EQ(result.to_string(), "0");
+  EXPECT_TRUE(result.is_zero());
   EXPECT_FALSE(result.is_signed());
 }
 
@@ -4671,13 +4727,19 @@ TEST(add_positive_zero_to_negative_zero) {
   const sourcemeta::core::Decimal left{"0"};
   const sourcemeta::core::Decimal right{"-0"};
   const auto result{left + right};
+  EXPECT_EQ(result, sourcemeta::core::Decimal{0});
+  EXPECT_EQ(result.to_string(), "0");
+  EXPECT_TRUE(result.is_zero());
   EXPECT_FALSE(result.is_signed());
 }
 
-TEST(add_positive_zero_to_positive_zero) {
-  const sourcemeta::core::Decimal left{"0"};
-  const sourcemeta::core::Decimal right{"0"};
+TEST(add_negative_scaled_zero_to_positive_zero) {
+  const sourcemeta::core::Decimal left{"-0.00"};
+  const sourcemeta::core::Decimal right{"0.0"};
   const auto result{left + right};
+  EXPECT_EQ(result, sourcemeta::core::Decimal{0});
+  EXPECT_EQ(result.to_string(), "0.00");
+  EXPECT_TRUE(result.is_zero());
   EXPECT_FALSE(result.is_signed());
 }
 
@@ -4685,21 +4747,9 @@ TEST(add_opposite_signs_gives_positive_zero) {
   const sourcemeta::core::Decimal left{-5};
   const sourcemeta::core::Decimal right{5};
   const auto result{left + right};
-  EXPECT_FALSE(result.is_signed());
+  EXPECT_EQ(result, sourcemeta::core::Decimal{0});
   EXPECT_EQ(result.to_string(), "0");
-}
-
-TEST(subtract_positive_zero_from_negative_zero) {
-  const sourcemeta::core::Decimal left{"-0"};
-  const sourcemeta::core::Decimal right{"0"};
-  const auto result{left - right};
-  EXPECT_TRUE(result.is_signed());
-}
-
-TEST(subtract_negative_zero_from_positive_zero) {
-  const sourcemeta::core::Decimal left{"0"};
-  const sourcemeta::core::Decimal right{"-0"};
-  const auto result{left - right};
+  EXPECT_TRUE(result.is_zero());
   EXPECT_FALSE(result.is_signed());
 }
 
@@ -4707,6 +4757,38 @@ TEST(add_negative_zero_to_positive_value) {
   const sourcemeta::core::Decimal left{"-0"};
   const sourcemeta::core::Decimal right{5};
   const auto result{left + right};
-  EXPECT_FALSE(result.is_signed());
+  EXPECT_EQ(result, sourcemeta::core::Decimal{5});
   EXPECT_EQ(result.to_string(), "5");
+  EXPECT_FALSE(result.is_zero());
+  EXPECT_FALSE(result.is_signed());
+}
+
+TEST(subtract_positive_zero_from_negative_zero) {
+  const sourcemeta::core::Decimal left{"-0"};
+  const sourcemeta::core::Decimal right{"0"};
+  const auto result{left - right};
+  EXPECT_EQ(result, sourcemeta::core::Decimal{"-0"});
+  EXPECT_EQ(result.to_string(), "-0");
+  EXPECT_TRUE(result.is_zero());
+  EXPECT_TRUE(result.is_signed());
+}
+
+TEST(subtract_negative_zero_from_positive_zero) {
+  const sourcemeta::core::Decimal left{"0"};
+  const sourcemeta::core::Decimal right{"-0"};
+  const auto result{left - right};
+  EXPECT_EQ(result, sourcemeta::core::Decimal{0});
+  EXPECT_EQ(result.to_string(), "0");
+  EXPECT_TRUE(result.is_zero());
+  EXPECT_FALSE(result.is_signed());
+}
+
+TEST(subtract_equal_negative_values_gives_positive_zero) {
+  const sourcemeta::core::Decimal left{-5};
+  const sourcemeta::core::Decimal right{-5};
+  const auto result{left - right};
+  EXPECT_EQ(result, sourcemeta::core::Decimal{0});
+  EXPECT_EQ(result.to_string(), "0");
+  EXPECT_TRUE(result.is_zero());
+  EXPECT_FALSE(result.is_signed());
 }
