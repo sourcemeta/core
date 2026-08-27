@@ -107,3 +107,25 @@ TEST(make_set_no_intersection) {
   const auto intersection = types_a & types_b;
   EXPECT_TRUE(intersection.none());
 }
+
+TEST(make_set_constexpr) {
+  constexpr auto types =
+      sourcemeta::core::make_set({sourcemeta::core::JSON::Type::Integer,
+                                  sourcemeta::core::JSON::Type::Real});
+  static_assert(types.test(
+      static_cast<std::size_t>(sourcemeta::core::JSON::Type::Integer)));
+  static_assert(
+      types.test(static_cast<std::size_t>(sourcemeta::core::JSON::Type::Real)));
+  static_assert(!types.test(
+      static_cast<std::size_t>(sourcemeta::core::JSON::Type::String)));
+  static_assert(!types.test(
+      static_cast<std::size_t>(sourcemeta::core::JSON::Type::Object)));
+  EXPECT_TRUE(types.test(
+      static_cast<std::size_t>(sourcemeta::core::JSON::Type::Integer)));
+  EXPECT_TRUE(
+      types.test(static_cast<std::size_t>(sourcemeta::core::JSON::Type::Real)));
+  EXPECT_FALSE(types.test(
+      static_cast<std::size_t>(sourcemeta::core::JSON::Type::String)));
+  EXPECT_FALSE(types.test(
+      static_cast<std::size_t>(sourcemeta::core::JSON::Type::Object)));
+}
