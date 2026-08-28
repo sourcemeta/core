@@ -1,6 +1,7 @@
 #include <sourcemeta/core/memory.h>
 #include <sourcemeta/core/test.h>
 
+#include <memory>
 #include <optional>
 #include <string>
 #include <type_traits>
@@ -14,6 +15,11 @@ struct Point {
   int y{0};
 };
 
+struct HostileAddress {
+  int value{0};
+  auto operator&() const -> const HostileAddress * { return nullptr; }
+};
+
 struct MoveOnly {
   MoveOnly() = default;
   MoveOnly(const MoveOnly &) = delete;
@@ -22,6 +28,12 @@ struct MoveOnly {
   auto operator=(MoveOnly &&) -> MoveOnly & = default;
   ~MoveOnly() = default;
 };
+
+template <typename T>
+concept can_take_ownership =
+    requires(sourcemeta::core::OwnedOrReference<T> value) {
+      std::move(value).to_owned();
+    };
 
 TEST(default_constructed_has_no_value) {
   const sourcemeta::core::OwnedOrReference<std::string> result;
@@ -177,6 +189,20 @@ TEST(cannot_refer_to_a_constant_temporary) {
 TEST(holds_a_move_only_value) {
   const sourcemeta::core::OwnedOrReference<MoveOnly> result{MoveOnly{}};
   EXPECT_TRUE(result.has_value());
+}
+
+TEST(cannot_take_ownership_of_a_move_only_value) {
+  EXPECT_FALSE(can_take_ownership<MoveOnly>);
+  EXPECT_TRUE(can_take_ownership<std::string>);
+}
+
+TEST(refers_to_a_value_that_overloads_address_of) {
+  static const HostileAddress HOSTILE{.value = 7};
+  const sourcemeta::core::OwnedOrReference<HostileAddress> result{HOSTILE};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value().value, 7);
+  EXPECT_EQ(result->value, 7);
+  EXPECT_EQ(std::addressof(result.value()), std::addressof(HOSTILE));
 }
 
 TEST(ownable_accepts_object_types) {

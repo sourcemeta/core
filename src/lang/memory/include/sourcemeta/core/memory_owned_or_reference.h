@@ -3,6 +3,7 @@
 
 #include <cassert>     // assert
 #include <concepts>    // std::move_constructible, std::copy_constructible
+#include <memory>      // std::addressof
 #include <optional>    // std::optional, std::nullopt_t
 #include <type_traits> // std::is_object_v
 #include <utility>     // std::move
@@ -42,7 +43,8 @@ concept Ownable = std::is_object_v<T> && std::move_constructible<T>;
 ///
 /// A reference must stay put and stay alive for as long as the consumer reads
 /// it. Anything temporary binds to the owning constructor, so a temporary can
-/// never be captured by reference here.
+/// never be captured by reference here. A value that another one of these owns
+/// does not qualify either, as assigning to that one destroys what it holds.
 template <Ownable T> class OwnedOrReference {
 public:
   /// Hold nothing
@@ -63,7 +65,7 @@ public:
   /// Refer to a value that outlives this. Anything temporary binds to the
   /// owning constructor above instead, so this never refers to a dead value
   // NOLINTNEXTLINE(google-explicit-constructor,hicpp-explicit-conversions)
-  OwnedOrReference(const T &value) : referenced_{&value} {}
+  OwnedOrReference(const T &value) : referenced_{std::addressof(value)} {}
 
   // A constant temporary would otherwise bind to the referencing constructor
   // and leave a dangling pointer behind
@@ -95,7 +97,9 @@ public:
   [[nodiscard]] auto operator*() const -> const T & { return this->value(); }
 
   /// Read the value, however it is held
-  [[nodiscard]] auto operator->() const -> const T * { return &this->value(); }
+  [[nodiscard]] auto operator->() const -> const T * {
+    return std::addressof(this->value());
+  }
 
   /// Get a value the caller owns, moving out of this one when it owns it and
   /// copying only when it holds a reference
