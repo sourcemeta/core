@@ -20,6 +20,7 @@
 #include <sourcemeta/core/langtag.h>
 #include <sourcemeta/core/markdown.h>
 #include <sourcemeta/core/mcp.h>
+#include <sourcemeta/core/memory.h>
 #include <sourcemeta/core/numeric.h>
 #include <sourcemeta/core/oidc.h>
 #include <sourcemeta/core/options.h>
