@@ -243,6 +243,86 @@ TEST(set_non_ascii_character) {
   EXPECT_EQ(uri.recompose(), "https://www.sourcemeta.com#/foo%C3%A9");
 }
 
+TEST(set_unescaped_simple) {
+  sourcemeta::core::URI uri{"https://www.sourcemeta.com"};
+  uri.unescaped_fragment("/foo/bar");
+  EXPECT_EQ(uri.fragment(), "/foo/bar");
+  EXPECT_EQ(uri.recompose(), "https://www.sourcemeta.com#/foo/bar");
+}
+
+TEST(set_unescaped_empty) {
+  sourcemeta::core::URI uri{"https://www.sourcemeta.com"};
+  uri.unescaped_fragment("");
+  EXPECT_EQ(uri.fragment(), "");
+  EXPECT_EQ(uri.recompose(), "https://www.sourcemeta.com#");
+}
+
+TEST(set_unescaped_percentage) {
+  sourcemeta::core::URI uri{"https://www.sourcemeta.com"};
+  uri.unescaped_fragment("/foo%bar");
+  EXPECT_EQ(uri.fragment(), "/foo%25bar");
+  EXPECT_EQ(uri.recompose(), "https://www.sourcemeta.com#/foo%25bar");
+}
+
+TEST(set_unescaped_percentage_at_end) {
+  sourcemeta::core::URI uri{"https://www.sourcemeta.com"};
+  uri.unescaped_fragment("/foo%");
+  EXPECT_EQ(uri.fragment(), "/foo%25");
+  EXPECT_EQ(uri.recompose(), "https://www.sourcemeta.com#/foo%25");
+}
+
+TEST(set_unescaped_percentage_followed_by_valid_hex_sequence) {
+  sourcemeta::core::URI uri{"https://www.sourcemeta.com"};
+  uri.unescaped_fragment("/foo%2Fbar");
+  EXPECT_EQ(uri.fragment(), "/foo%252Fbar");
+  EXPECT_EQ(uri.recompose(), "https://www.sourcemeta.com#/foo%252Fbar");
+}
+
+TEST(set_unescaped_multiple_percentages) {
+  sourcemeta::core::URI uri{"https://www.sourcemeta.com"};
+  uri.unescaped_fragment("/foo%%bar");
+  EXPECT_EQ(uri.fragment(), "/foo%25%25bar");
+  EXPECT_EQ(uri.recompose(), "https://www.sourcemeta.com#/foo%25%25bar");
+}
+
+TEST(set_unescaped_hash) {
+  sourcemeta::core::URI uri{"https://www.sourcemeta.com"};
+  uri.unescaped_fragment("#foo");
+  EXPECT_EQ(uri.fragment(), "#foo");
+  EXPECT_EQ(uri.recompose(), "https://www.sourcemeta.com#%23foo");
+}
+
+TEST(set_unescaped_space_character) {
+  sourcemeta::core::URI uri{"https://www.sourcemeta.com"};
+  uri.unescaped_fragment("/foo bar");
+  EXPECT_EQ(uri.fragment(), "/foo bar");
+  EXPECT_EQ(uri.recompose(), "https://www.sourcemeta.com#/foo%20bar");
+}
+
+TEST(set_unescaped_non_ascii_character) {
+  sourcemeta::core::URI uri{"https://www.sourcemeta.com"};
+  uri.unescaped_fragment("/foo\xC3\xA9");
+  EXPECT_EQ(uri.fragment(), "/foo\xC3\xA9");
+  EXPECT_EQ(uri.recompose(), "https://www.sourcemeta.com#/foo%C3%A9");
+}
+
+TEST(set_unescaped_percentage_survives_canonicalize) {
+  sourcemeta::core::URI uri{"https://www.sourcemeta.com"};
+  uri.unescaped_fragment("/foo%bar");
+  uri.canonicalize();
+  EXPECT_EQ(uri.fragment(), "/foo%25bar");
+  EXPECT_EQ(uri.recompose(), "https://www.sourcemeta.com#/foo%25bar");
+}
+
+TEST(set_unescaped_distinct_from_encoded_space) {
+  sourcemeta::core::URI space{"https://www.sourcemeta.com"};
+  space.unescaped_fragment("/a b");
+  sourcemeta::core::URI percentage{"https://www.sourcemeta.com"};
+  percentage.unescaped_fragment("/a%20b");
+  EXPECT_EQ(space.recompose(), "https://www.sourcemeta.com#/a%20b");
+  EXPECT_EQ(percentage.recompose(), "https://www.sourcemeta.com#/a%2520b");
+}
+
 TEST(getter_setter_invariant_simple) {
   sourcemeta::core::URI uri{"https://example.com/path#foo"};
   EXPECT_TRUE(uri.fragment().has_value());
