@@ -44,6 +44,26 @@ TEST(escape_uri_percentage) {
   EXPECT_EQ(fragment.recompose(), "#/foo/percent%25field");
 }
 
+TEST(escape_uri_percentage_before_hex_digits) {
+  const sourcemeta::core::Pointer pointer{"foo", "a%20b"};
+  const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer)};
+  EXPECT_EQ(fragment.recompose(), "#/foo/a%2520b");
+}
+
+// RFC 6901 Section 6 lists the fragment "#/c%25d" for the property "c%d"
+TEST(escape_uri_percentage_rfc_6901_example) {
+  const sourcemeta::core::Pointer pointer{"c%d"};
+  const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer)};
+  EXPECT_EQ(fragment.recompose(), "#/c%25d");
+}
+
+TEST(escape_uri_percentage_distinct_from_encoded_space) {
+  const sourcemeta::core::Pointer space{"a b"};
+  const sourcemeta::core::Pointer percentage{"a%20b"};
+  EXPECT_EQ(sourcemeta::core::to_uri(space).recompose(), "#/a%20b");
+  EXPECT_EQ(sourcemeta::core::to_uri(percentage).recompose(), "#/a%2520b");
+}
+
 TEST(escape_uri_quote) {
   const sourcemeta::core::Pointer pointer{"foo", "quote\"field"};
   const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer)};
@@ -297,9 +317,7 @@ TEST(with_absolute_base_percentage) {
   const sourcemeta::core::Pointer pointer{"foo%bar"};
   const sourcemeta::core::URI base{"https://www.example.com"};
   const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer, base)};
-  // The %ba in foo%bar happens to be a valid percent-encoded sequence.
-  // Canonicalize uppercases the hex digits.
-  EXPECT_EQ(fragment.recompose(), "https://www.example.com#/foo%BAr");
+  EXPECT_EQ(fragment.recompose(), "https://www.example.com#/foo%25bar");
 }
 
 TEST(with_relative_base) {

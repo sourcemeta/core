@@ -112,6 +112,46 @@ TEST(from_fragment_with_hash_empty) {
   EXPECT_EQ(uri.recompose(), "#");
 }
 
+TEST(from_unescaped_fragment) {
+  const auto uri{sourcemeta::core::URI::from_unescaped_fragment("foo")};
+  const auto fragment{uri.fragment()};
+  EXPECT_TRUE(fragment.has_value());
+  EXPECT_EQ(fragment.value(), "foo");
+  EXPECT_EQ(uri.recompose(), "#foo");
+}
+
+TEST(from_unescaped_fragment_with_percentage) {
+  const auto uri{sourcemeta::core::URI::from_unescaped_fragment("/100%")};
+  const auto fragment{uri.fragment()};
+  EXPECT_TRUE(fragment.has_value());
+  EXPECT_EQ(fragment.value(), "/100%25");
+  EXPECT_EQ(uri.recompose(), "#/100%25");
+}
+
+TEST(from_unescaped_fragment_with_percentage_sequence) {
+  const auto uri{sourcemeta::core::URI::from_unescaped_fragment("/a%20b")};
+  const auto fragment{uri.fragment()};
+  EXPECT_TRUE(fragment.has_value());
+  EXPECT_EQ(fragment.value(), "/a%2520b");
+  EXPECT_EQ(uri.recompose(), "#/a%2520b");
+}
+
+TEST(from_unescaped_fragment_with_hash) {
+  const auto uri{sourcemeta::core::URI::from_unescaped_fragment("#foo")};
+  const auto fragment{uri.fragment()};
+  EXPECT_TRUE(fragment.has_value());
+  EXPECT_EQ(fragment.value(), "#foo");
+  EXPECT_EQ(uri.recompose(), "#%23foo");
+}
+
+TEST(from_unescaped_fragment_empty) {
+  const auto uri{sourcemeta::core::URI::from_unescaped_fragment("")};
+  const auto fragment{uri.fragment()};
+  EXPECT_TRUE(fragment.has_value());
+  EXPECT_EQ(fragment.value(), "");
+  EXPECT_EQ(uri.recompose(), "#");
+}
+
 TEST(using_istream) {
   std::istringstream input{"https://example.com"};
   const sourcemeta::core::URI uri{input};

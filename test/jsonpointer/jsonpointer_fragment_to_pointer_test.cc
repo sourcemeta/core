@@ -154,6 +154,23 @@ TEST(round_trip_tricky_tokens_with_base) {
   EXPECT_EQ(result.value(), pointer);
 }
 
+TEST(round_trip_token_with_percent_encoded_sequence) {
+  const sourcemeta::core::Pointer pointer{"a%20b"};
+  const auto result{
+      sourcemeta::core::fragment_to_pointer(sourcemeta::core::to_uri(pointer))};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), pointer);
+}
+
+TEST(round_trip_token_with_percent_encoded_sequence_with_base) {
+  const sourcemeta::core::Pointer pointer{"a%20b"};
+  const sourcemeta::core::URI base{"https://www.example.com"};
+  const auto result{sourcemeta::core::fragment_to_pointer(
+      sourcemeta::core::to_uri(pointer, base))};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), pointer);
+}
+
 TEST(round_trip_percent_encoded_colon) {
   const sourcemeta::core::Pointer pointer{"$defs",
                                           "https://example.com/schema/type"};
