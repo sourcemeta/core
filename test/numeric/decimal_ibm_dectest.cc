@@ -551,13 +551,26 @@ static auto should_skip_file(const std::string &filename) -> bool {
 }
 
 static auto nan_payload_digits(const std::string &operand) -> std::size_t {
-  const auto lower{to_lower(operand)};
+  const auto lower{to_lower(strip_quotes(operand))};
   const auto position{lower.find("nan")};
   if (position == std::string::npos) {
     return 0;
   }
 
-  return lower.size() - position - 3;
+  std::size_t count{0};
+  bool found_nonzero{false};
+  for (auto index = position + 3; index < lower.size(); index++) {
+    if (!std::isdigit(static_cast<unsigned char>(lower[index]))) {
+      break;
+    }
+
+    if (lower[index] != '0' || found_nonzero) {
+      found_nonzero = true;
+      count++;
+    }
+  }
+
+  return count;
 }
 
 static auto should_skip_test(const DecTestCase &test_case,
