@@ -970,6 +970,42 @@ TEST(divisible_by_negative) {
   EXPECT_TRUE(dividend.divisible_by(divisor));
 }
 
+TEST(divisible_by_huge_exponent_power_of_two) {
+  const sourcemeta::core::Decimal dividend{"1e100001"};
+  const sourcemeta::core::Decimal divisor{2};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
+TEST(divisible_by_huge_exponent_power_of_five) {
+  const sourcemeta::core::Decimal dividend{"1e100001"};
+  const sourcemeta::core::Decimal divisor{5};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
+TEST(divisible_by_huge_exponent_product_of_two_and_five) {
+  const sourcemeta::core::Decimal dividend{"1e100001"};
+  const sourcemeta::core::Decimal divisor{20};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
+TEST(divisible_by_huge_exponent_multiple_of_eleven_is_false) {
+  const sourcemeta::core::Decimal dividend{"1e100001"};
+  const sourcemeta::core::Decimal divisor{22};
+  EXPECT_FALSE(dividend.divisible_by(divisor));
+}
+
+TEST(divisible_by_million_exponent_power_of_two) {
+  const sourcemeta::core::Decimal dividend{"1e1000001"};
+  const sourcemeta::core::Decimal divisor{2};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
+TEST(divisible_by_million_exponent_multiple_of_eleven_is_false) {
+  const sourcemeta::core::Decimal dividend{"1e1000001"};
+  const sourcemeta::core::Decimal divisor{22};
+  EXPECT_FALSE(dividend.divisible_by(divisor));
+}
+
 TEST(divisible_by_very_large_number_not_divisible_false) {
   const sourcemeta::core::Decimal dividend{"1e308"};
   const sourcemeta::core::Decimal divisor{"0.123456789"};
@@ -1890,6 +1926,101 @@ TEST(is_qnan_false_for_snan) {
 TEST(is_nan_true_for_both) {
   EXPECT_TRUE(sourcemeta::core::Decimal::nan().is_nan());
   EXPECT_TRUE(sourcemeta::core::Decimal::snan().is_nan());
+}
+
+TEST(add_propagates_left_nan_payload) {
+  const auto result{sourcemeta::core::Decimal::nan(1) +
+                    -sourcemeta::core::Decimal::infinity()};
+  EXPECT_TRUE(result.is_qnan());
+  EXPECT_EQ(result.nan_payload(), 1);
+  EXPECT_FALSE(result.is_signed());
+}
+
+TEST(add_propagates_right_nan_payload) {
+  const auto result{-sourcemeta::core::Decimal::infinity() +
+                    sourcemeta::core::Decimal::nan(7)};
+  EXPECT_TRUE(result.is_qnan());
+  EXPECT_EQ(result.nan_payload(), 7);
+  EXPECT_FALSE(result.is_signed());
+}
+
+TEST(add_selects_the_first_nan_when_both_are_quiet) {
+  const auto result{sourcemeta::core::Decimal::nan(5) +
+                    sourcemeta::core::Decimal::nan(6)};
+  EXPECT_TRUE(result.is_qnan());
+  EXPECT_EQ(result.nan_payload(), 5);
+}
+
+TEST(add_selects_the_signaling_nan_over_a_leading_quiet_nan) {
+  const auto result{sourcemeta::core::Decimal::nan(16) +
+                    sourcemeta::core::Decimal::snan(191)};
+  EXPECT_TRUE(result.is_qnan());
+  EXPECT_FALSE(result.is_snan());
+  EXPECT_EQ(result.nan_payload(), 191);
+}
+
+TEST(add_propagates_the_left_nan_sign) {
+  const auto result{-sourcemeta::core::Decimal::nan(26) +
+                    sourcemeta::core::Decimal::nan(28)};
+  EXPECT_TRUE(result.is_qnan());
+  EXPECT_EQ(result.nan_payload(), 26);
+  EXPECT_TRUE(result.is_signed());
+}
+
+TEST(add_propagates_the_right_nan_sign) {
+  const auto result{sourcemeta::core::Decimal{1000} +
+                    -sourcemeta::core::Decimal::nan(30)};
+  EXPECT_TRUE(result.is_qnan());
+  EXPECT_EQ(result.nan_payload(), 30);
+  EXPECT_TRUE(result.is_signed());
+}
+
+TEST(add_quiets_a_signaling_nan_and_keeps_its_payload) {
+  const auto result{sourcemeta::core::Decimal::snan(11) +
+                    -sourcemeta::core::Decimal::infinity()};
+  EXPECT_TRUE(result.is_qnan());
+  EXPECT_FALSE(result.is_snan());
+  EXPECT_EQ(result.nan_payload(), 11);
+}
+
+TEST(subtract_does_not_flip_the_right_nan_sign) {
+  const auto result{-sourcemeta::core::Decimal::infinity() -
+                    -sourcemeta::core::Decimal::nan(71)};
+  EXPECT_TRUE(result.is_qnan());
+  EXPECT_EQ(result.nan_payload(), 71);
+  EXPECT_TRUE(result.is_signed());
+}
+
+TEST(multiply_propagates_the_nan_payload_and_sign) {
+  const auto result{-sourcemeta::core::Decimal::nan(9) *
+                    -sourcemeta::core::Decimal::infinity()};
+  EXPECT_TRUE(result.is_qnan());
+  EXPECT_EQ(result.nan_payload(), 9);
+  EXPECT_TRUE(result.is_signed());
+}
+
+TEST(divide_propagates_the_nan_payload_and_sign) {
+  const auto result{sourcemeta::core::Decimal{-1000} /
+                    -sourcemeta::core::Decimal::nan(3)};
+  EXPECT_TRUE(result.is_qnan());
+  EXPECT_EQ(result.nan_payload(), 3);
+  EXPECT_TRUE(result.is_signed());
+}
+
+TEST(remainder_propagates_the_nan_payload_and_sign) {
+  const auto result{sourcemeta::core::Decimal{1} %
+                    -sourcemeta::core::Decimal::nan(4)};
+  EXPECT_TRUE(result.is_qnan());
+  EXPECT_EQ(result.nan_payload(), 4);
+  EXPECT_TRUE(result.is_signed());
+}
+
+TEST(divide_integer_propagates_the_nan_payload_and_sign) {
+  const auto result{sourcemeta::core::Decimal::infinity().divide_integer(
+      -sourcemeta::core::Decimal::nan(2))};
+  EXPECT_TRUE(result.is_qnan());
+  EXPECT_EQ(result.nan_payload(), 2);
+  EXPECT_TRUE(result.is_signed());
 }
 
 TEST(nan_payload_zero_for_plain_nan) {
@@ -4119,6 +4250,21 @@ TEST(big_coefficient_copy_assignment_over_small) {
 TEST(engineering_string_of_zero_with_positive_exponent) {
   const sourcemeta::core::Decimal value{"0E+5"};
   EXPECT_EQ(value.to_string(), "0.0e+6");
+}
+
+TEST(divide_integer_by_one_preserves_a_hundred_thousand_digits) {
+  const std::string digits(100001, '9');
+  const sourcemeta::core::Decimal value{digits};
+  const auto quotient{value.divide_integer(sourcemeta::core::Decimal{1})};
+  EXPECT_FALSE(quotient.is_nan());
+  EXPECT_EQ(quotient, value);
+}
+
+TEST(divide_integer_by_one_preserves_a_two_million_exponent) {
+  const sourcemeta::core::Decimal value{"1e2000001"};
+  const auto quotient{value.divide_integer(sourcemeta::core::Decimal{1})};
+  EXPECT_FALSE(quotient.is_nan());
+  EXPECT_EQ(quotient, value);
 }
 
 TEST(divide_integer_with_big_quotient) {
