@@ -291,6 +291,46 @@ TEST(divisible_by_real_real_false) {
   EXPECT_FALSE(dividend.divisible_by(divisor));
 }
 
+TEST(divisible_by_integer_real_true_above_double_precision) {
+  const sourcemeta::core::JSON dividend{std::int64_t{9007199254740993}};
+  EXPECT_TRUE(dividend.is_integer());
+  const sourcemeta::core::JSON divisor{3.0};
+  EXPECT_TRUE(divisor.is_real());
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
+TEST(divisible_by_integer_real_false_above_double_precision) {
+  const sourcemeta::core::JSON dividend{std::int64_t{9007199254740993}};
+  EXPECT_TRUE(dividend.is_integer());
+  const sourcemeta::core::JSON divisor{2.0};
+  EXPECT_TRUE(divisor.is_real());
+  EXPECT_FALSE(dividend.divisible_by(divisor));
+}
+
+TEST(divisible_by_integer_real_true_at_double_precision_limit) {
+  const sourcemeta::core::JSON dividend{std::int64_t{9007199254740992}};
+  EXPECT_TRUE(dividend.is_integer());
+  const sourcemeta::core::JSON divisor{2.0};
+  EXPECT_TRUE(divisor.is_real());
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
+TEST(divisible_by_integer_real_false_at_double_precision_limit) {
+  const sourcemeta::core::JSON dividend{std::int64_t{9007199254740992}};
+  EXPECT_TRUE(dividend.is_integer());
+  const sourcemeta::core::JSON divisor{3.0};
+  EXPECT_TRUE(divisor.is_real());
+  EXPECT_FALSE(dividend.divisible_by(divisor));
+}
+
+TEST(divisible_by_real_integer_false_above_double_precision) {
+  const sourcemeta::core::JSON dividend{9007199254740992.0};
+  EXPECT_TRUE(dividend.is_real());
+  const sourcemeta::core::JSON divisor{std::int64_t{9007199254740993}};
+  EXPECT_TRUE(divisor.is_integer());
+  EXPECT_FALSE(dividend.divisible_by(divisor));
+}
+
 TEST(divisible_by_infinity) {
   const sourcemeta::core::JSON dividend{1e308};
   const sourcemeta::core::JSON divisor{0.123456789};

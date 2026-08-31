@@ -4,6 +4,7 @@
 
 #include <algorithm>   // std::transform, std::any_of
 #include <cctype>      // std::tolower, std::isalnum
+#include <cstddef>     // std::size_t
 #include <filesystem>  // std::filesystem
 #include <iostream>    // std::cerr
 #include <sstream>     // std::istringstream
@@ -114,9 +115,22 @@ static auto make_decimal(const std::string &raw) -> sourcemeta::core::Decimal {
   return sourcemeta::core::Decimal{value};
 }
 
-static auto decimal_abs(const sourcemeta::core::Decimal &value)
+// The copy family manipulates the sign directly, including on a NaN
+static auto decimal_copy_abs(const sourcemeta::core::Decimal &value)
     -> sourcemeta::core::Decimal {
   return value.is_signed() ? -value : value;
+}
+
+// The General Decimal Arithmetic Specification defines the arithmetic
+// operations "plus(a) and minus(a) [...] as the operations add('0', a) and
+// subtract('0', b)", and abs as "the same as using the minus operation on the
+// operand" when it is negative and "the same as using the plus operation"
+// otherwise, so a NaN operand is propagated rather than having its sign
+// rewritten
+static auto decimal_abs(const sourcemeta::core::Decimal &value)
+    -> sourcemeta::core::Decimal {
+  const sourcemeta::core::Decimal zero{0};
+  return value.is_signed() ? zero - value : zero + value;
 }
 
 static auto expect_comparison_result(const sourcemeta::core::Decimal &left,
@@ -145,6 +159,8 @@ static auto expect_decimal_eq(const sourcemeta::core::Decimal &result,
     } else {
       EXPECT_TRUE(result.is_qnan());
     }
+    EXPECT_EQ(result.nan_payload(), expected.nan_payload());
+    EXPECT_EQ(result.is_signed(), expected.is_signed());
   } else if (expected.is_infinite()) {
     EXPECT_TRUE(result.is_infinite());
     EXPECT_EQ(result.is_signed(), expected.is_signed());
@@ -245,9 +261,9 @@ static auto run_conversion(const DecTestCase &test_case) -> void {
 static auto run_copysign(const DecTestCase &test_case) -> void {
   const auto left{make_decimal(test_case.operand1)};
   const auto right{make_decimal(test_case.operand2)};
-  auto result = decimal_abs(left);
+  auto result = decimal_copy_abs(left);
   if (right.is_signed()) {
-    result = -decimal_abs(result);
+    result = -decimal_copy_abs(result);
   }
 
   expect_decimal_eq(result, make_decimal(test_case.expected));
@@ -339,12 +355,21 @@ static auto run_dectest_case(const DecTestCase &test_case) -> void {
     run_binary(test_case, [](const auto &left, const auto &right) {
       return left % right;
     });
-  } else if (operation == "minus" || operation == "copynegate") {
+  } else if (operation == "copynegate") {
     run_unary(test_case, [](const auto &value) { return -value; });
+  } else if (operation == "minus") {
+    run_unary(test_case, [](const auto &value) {
+      return sourcemeta::core::Decimal{0} - value;
+    });
   } else if (operation == "plus") {
-    run_unary(test_case, [](const auto &value) { return +value; });
-  } else if (operation == "abs" || operation == "copyabs") {
+    run_unary(test_case, [](const auto &value) {
+      return sourcemeta::core::Decimal{0} + value;
+    });
+  } else if (operation == "abs") {
     run_unary(test_case, [](const auto &value) { return decimal_abs(value); });
+  } else if (operation == "copyabs") {
+    run_unary(test_case,
+              [](const auto &value) { return decimal_copy_abs(value); });
   } else if (operation == "tointegral" || operation == "tointegralx") {
     run_unary(test_case, [](const auto &value) { return value.to_integral(); });
   } else if (operation == "tosci" || operation == "toeng") {
@@ -359,7 +384,7 @@ static auto run_dectest_case(const DecTestCase &test_case) -> void {
     });
   } else if (operation == "comparetotmag") {
     run_binary(test_case, [](const auto &left, const auto &right) {
-      return decimal_abs(left).compare_total(decimal_abs(right));
+      return decimal_copy_abs(left).compare_total(decimal_copy_abs(right));
     });
   } else if (operation == "max") {
     run_max_min(test_case, true, false);
@@ -525,6 +550,29 @@ static auto should_skip_file(const std::string &filename) -> bool {
          lower == "rounding.dectest" || lower == "powersqrt.dectest";
 }
 
+static auto nan_payload_digits(const std::string &operand) -> std::size_t {
+  const auto lower{to_lower(strip_quotes(operand))};
+  const auto position{lower.find("nan")};
+  if (position == std::string::npos) {
+    return 0;
+  }
+
+  std::size_t count{0};
+  bool found_nonzero{false};
+  for (auto index = position + 3; index < lower.size(); index++) {
+    if (!std::isdigit(static_cast<unsigned char>(lower[index]))) {
+      break;
+    }
+
+    if (lower[index] != '0' || found_nonzero) {
+      found_nonzero = true;
+      count++;
+    }
+  }
+
+  return count;
+}
+
 static auto should_skip_test(const DecTestCase &test_case,
                              const DecTestContext &context) -> bool {
   const auto operation{to_lower(test_case.operation)};
@@ -562,6 +610,16 @@ static auto should_skip_test(const DecTestCase &test_case,
   // expecting results with more significant digits would produce
   // different (truncated) results in our context.
   if (count_significant_digits(test_case.expected) > 16) {
+    return true;
+  }
+
+  // The corpus truncates a NaN payload longer than the context precision,
+  // while our Decimal has no context bound and keeps every digit the operand
+  // carried
+  if (nan_payload_digits(test_case.operand1) >
+          static_cast<std::size_t>(context.precision) ||
+      nan_payload_digits(test_case.operand2) >
+          static_cast<std::size_t>(context.precision)) {
     return true;
   }
 
