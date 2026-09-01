@@ -1,3 +1,6 @@
 brew "ccache"
 brew "cmake"
 brew "doxygen"
+brew "meson"
+brew "ninja"
+brew "pkgconf"

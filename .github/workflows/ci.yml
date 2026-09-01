@@ -113,7 +113,14 @@ jobs:
       - name: Install dependencies (Linux)
         if: runner.os == 'Linux'
         timeout-minutes: 5
-        run: sudo apt-get update && sudo apt-get install --yes ccache ${{ matrix.platform.apt }}
+        run: sudo apt-get update && sudo apt-get install --yes ccache pkg-config ${{ matrix.platform.apt }}
+      # The packaged Meson trails the current release by years, and the
+      # packaging tests exercise how it reads what we install
+      - name: Install Meson (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          pipx install meson
+          pipx install ninja
       - name: Install dependencies (Windows)
         if: runner.os == 'Windows'
         run: choco install ccache --no-progress --yes
@@ -147,6 +154,8 @@ jobs:
       - run: ccache --zero-stats
 
       - run: cmake --version
+      - run: meson --version
+        if: runner.os != 'Windows'
       - name: Configure (static)
         if: matrix.platform.type == 'static'
         run: >

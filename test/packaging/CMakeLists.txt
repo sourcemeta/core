@@ -12,3 +12,44 @@ add_test(NAME ${PROJECT_NAME}.find_package_build COMMAND
   --config "${CMAKE_BUILD_TYPE}")
 set_tests_properties(${PROJECT_NAME}.find_package_build
   PROPERTIES DEPENDS ${PROJECT_NAME}.find_package_configure)
+
+# This consumption path speaks in `-l` flags and relies on pkg-config being
+# around, neither of which is how a library is found on Windows
+find_program(MESON_EXECUTABLE NAMES meson)
+if(MESON_EXECUTABLE AND NOT WIN32)
+  # Unlike a plain setup, this works both on a fresh build directory and on one
+  # left behind by a previous run, which is what makes the test repeatable
+  add_test(NAME ${PROJECT_NAME}.meson_pkgconfig_setup COMMAND
+    "${MESON_EXECUTABLE}" setup --reconfigure
+    "${CMAKE_CURRENT_BINARY_DIR}/meson_pkgconfig"
+    "${CMAKE_CURRENT_SOURCE_DIR}/meson_pkgconfig"
+    "-Dpkg_config_path=${PROJECT_SOURCE_DIR}/build/dist/${CMAKE_INSTALL_LIBDIR}/pkgconfig")
+  add_test(NAME ${PROJECT_NAME}.meson_pkgconfig_compile COMMAND
+    "${MESON_EXECUTABLE}" compile -C "${CMAKE_CURRENT_BINARY_DIR}/meson_pkgconfig")
+  set_tests_properties(${PROJECT_NAME}.meson_pkgconfig_compile
+    PROPERTIES DEPENDS ${PROJECT_NAME}.meson_pkgconfig_setup)
+endif()
+
+# The allocator is the one dependency whose absence a consumer cannot notice on
+# its own, as a program links and runs perfectly well without it
+find_program(PKG_CONFIG_EXECUTABLE NAMES pkg-config)
+if(PKG_CONFIG_EXECUTABLE AND NOT WIN32)
+  set(PKG_CONFIG_ENVIRONMENT
+    "PKG_CONFIG_PATH=${PROJECT_SOURCE_DIR}/build/dist/${CMAKE_INSTALL_LIBDIR}/pkgconfig")
+  if(TARGET Mimalloc::Mimalloc)
+    add_test(NAME ${PROJECT_NAME}.pkg_config_allocator COMMAND
+      "${PKG_CONFIG_EXECUTABLE}" --static --libs sourcemeta_core)
+    set_tests_properties(${PROJECT_NAME}.pkg_config_allocator
+      PROPERTIES
+        PASS_REGULAR_EXPRESSION "mimalloc"
+        ENVIRONMENT "${PKG_CONFIG_ENVIRONMENT}")
+  endif()
+
+  # Asking for every module at once only resolves if each of them is packaged
+  # and none of them names something that is not
+  get_property(PKG_CONFIG_MODULES GLOBAL PROPERTY SOURCEMETA_PKGCONFIG_TARGETS)
+  add_test(NAME ${PROJECT_NAME}.pkg_config_modules COMMAND
+    "${PKG_CONFIG_EXECUTABLE}" --static --libs ${PKG_CONFIG_MODULES})
+  set_tests_properties(${PROJECT_NAME}.pkg_config_modules
+    PROPERTIES ENVIRONMENT "${PKG_CONFIG_ENVIRONMENT}")
+endif()

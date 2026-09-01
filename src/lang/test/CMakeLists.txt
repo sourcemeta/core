@@ -43,4 +43,7 @@ if(SOURCEMETA_CORE_INSTALL)
     DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/core"
     NAMESPACE sourcemeta::
     COMPONENT sourcemeta_core_dev)
+  sourcemeta_pkgconfig_install(TARGET sourcemeta_core_test_main
+    DESCRIPTION "The test entry point library of ${PROJECT_DESCRIPTION}"
+    COMPONENT sourcemeta_core_dev)
 endif()

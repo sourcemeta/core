@@ -267,6 +267,12 @@ if(SOURCEMETA_CORE_DIFF)
   add_subdirectory(src/core/diff)
 endif()
 
+if(SOURCEMETA_CORE_INSTALL)
+  sourcemeta_pkgconfig_install_aggregate(NAME sourcemeta_core
+    DESCRIPTION "${PROJECT_DESCRIPTION}"
+    COMPONENT sourcemeta_core_dev)
+endif()
+
 if(SOURCEMETA_CORE_DOCS)
   sourcemeta_target_doxygen(CONFIG "${PROJECT_SOURCE_DIR}/doxygen/Doxyfile.in"
     OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/website")

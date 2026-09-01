@@ -177,4 +177,8 @@ function(sourcemeta_library_install)
     DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${SOURCEMETA_LIBRARY_PROJECT}"
     NAMESPACE ${NAMESPACE_PREFIX}
     COMPONENT ${COMPONENT_NAME}_dev)
+
+  sourcemeta_pkgconfig_install(TARGET ${TARGET_NAME}
+    DESCRIPTION "The ${SOURCEMETA_LIBRARY_NAME} library of ${PROJECT_DESCRIPTION}"
+    COMPONENT ${COMPONENT_NAME}_dev)
 endfunction()
