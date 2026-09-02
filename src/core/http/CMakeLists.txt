@@ -37,6 +37,7 @@ if(SOURCEMETA_CORE_HTTP_USE_SYSTEM_CURL)
   target_compile_definitions(sourcemeta_core_http
     PRIVATE SOURCEMETA_CORE_HTTP_USE_SYSTEM_CURL)
   target_link_libraries(sourcemeta_core_http PRIVATE CURL::libcurl)
+  sourcemeta_pkgconfig_declare(TARGET CURL::libcurl LIBS "-lcurl")
 elseif(APPLE)
   # Resolve the framework to an absolute bundle path rather than passing a raw
   # linker flag, as the exported interface is also read by build systems that

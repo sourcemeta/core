@@ -178,6 +178,7 @@ if(NOT PCRE2_FOUND)
   target_link_libraries(pcre2 PRIVATE sljit)
 
   add_library(PCRE2::pcre2 ALIAS pcre2)
+  sourcemeta_pkgconfig_declare(TARGET PCRE2::pcre2 LIBS "-lpcre2" "-lsljit")
 
   set_target_properties(pcre2
     PROPERTIES

@@ -30,6 +30,7 @@ if(SOURCEMETA_CORE_CRYPTO_USE_SYSTEM_OPENSSL)
     crypto_hkdf_openssl.cc
     crypto_openssl.h crypto_pkcs8.h)
   target_link_libraries(sourcemeta_core_crypto PRIVATE OpenSSL::Crypto)
+  sourcemeta_pkgconfig_declare(TARGET OpenSSL::Crypto LIBS "-lcrypto")
 elseif(APPLE)
   enable_language(OBJCXX)
 

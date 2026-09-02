@@ -33,23 +33,12 @@ endif()
 # The allocator is the one dependency whose absence a consumer cannot notice on
 # its own, as a program links and runs perfectly well without it
 find_program(PKG_CONFIG_EXECUTABLE NAMES pkg-config)
-if(PKG_CONFIG_EXECUTABLE AND NOT WIN32)
-  set(PKG_CONFIG_ENVIRONMENT
-    "PKG_CONFIG_PATH=${PROJECT_SOURCE_DIR}/build/dist/${CMAKE_INSTALL_LIBDIR}/pkgconfig")
-  if(TARGET Mimalloc::Mimalloc)
-    add_test(NAME ${PROJECT_NAME}.pkg_config_allocator COMMAND
-      "${PKG_CONFIG_EXECUTABLE}" --static --libs sourcemeta_core)
-    set_tests_properties(${PROJECT_NAME}.pkg_config_allocator
-      PROPERTIES
-        PASS_REGULAR_EXPRESSION "mimalloc"
-        ENVIRONMENT "${PKG_CONFIG_ENVIRONMENT}")
-  endif()
-
-  # Asking for every module at once only resolves if each of them is packaged
-  # and none of them names something that is not
-  get_property(PKG_CONFIG_MODULES GLOBAL PROPERTY SOURCEMETA_PKGCONFIG_TARGETS)
-  add_test(NAME ${PROJECT_NAME}.pkg_config_modules COMMAND
-    "${PKG_CONFIG_EXECUTABLE}" --static --libs ${PKG_CONFIG_MODULES})
-  set_tests_properties(${PROJECT_NAME}.pkg_config_modules
-    PROPERTIES ENVIRONMENT "${PKG_CONFIG_ENVIRONMENT}")
+if(PKG_CONFIG_EXECUTABLE AND NOT WIN32 AND TARGET Mimalloc::Mimalloc)
+  add_test(NAME ${PROJECT_NAME}.pkg_config_allocator COMMAND
+    "${PKG_CONFIG_EXECUTABLE}" --libs sourcemeta_core)
+  set_tests_properties(${PROJECT_NAME}.pkg_config_allocator
+    PROPERTIES
+      PASS_REGULAR_EXPRESSION "mimalloc"
+      ENVIRONMENT
+        "PKG_CONFIG_PATH=${PROJECT_SOURCE_DIR}/build/dist/${CMAKE_INSTALL_LIBDIR}/pkgconfig")
 endif()

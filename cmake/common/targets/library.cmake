@@ -178,7 +178,5 @@ function(sourcemeta_library_install)
     NAMESPACE ${NAMESPACE_PREFIX}
     COMPONENT ${COMPONENT_NAME}_dev)
 
-  sourcemeta_pkgconfig_install(TARGET ${TARGET_NAME}
-    DESCRIPTION "The ${SOURCEMETA_LIBRARY_NAME} library of ${PROJECT_DESCRIPTION}"
-    COMPONENT ${COMPONENT_NAME}_dev)
+  sourcemeta_pkgconfig_register(${TARGET_NAME})
 endfunction()

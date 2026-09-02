@@ -268,7 +268,7 @@ if(SOURCEMETA_CORE_DIFF)
 endif()
 
 if(SOURCEMETA_CORE_INSTALL)
-  sourcemeta_pkgconfig_install_aggregate(NAME sourcemeta_core
+  sourcemeta_pkgconfig_install(NAME sourcemeta_core
     DESCRIPTION "${PROJECT_DESCRIPTION}"
     COMPONENT sourcemeta_core_dev)
 endif()

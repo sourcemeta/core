@@ -127,6 +127,22 @@ if(NOT Mimalloc_FOUND)
 
   add_library(Mimalloc::Mimalloc ALIAS mimalloc_interface)
 
+  # The same whole archive requirement as above, spelled for the consumers that
+  # read what we package rather than what CMake exports
+  if(BUILD_SHARED_LIBS)
+    sourcemeta_pkgconfig_declare(TARGET Mimalloc::Mimalloc LIBS "-lmimalloc")
+  elseif(APPLE)
+    sourcemeta_pkgconfig_declare(TARGET Mimalloc::Mimalloc
+      LIBS "-Wl,-force_load,\${libdir}/libmimalloc.a")
+  elseif(SOURCEMETA_COMPILER_MSVC)
+    sourcemeta_pkgconfig_declare(TARGET Mimalloc::Mimalloc
+      LIBS "/WHOLEARCHIVE:mimalloc.lib")
+  else()
+    sourcemeta_pkgconfig_declare(TARGET Mimalloc::Mimalloc
+      LIBS "-Wl,--whole-archive \${libdir}/libmimalloc.a"
+           "-Wl,--no-whole-archive")
+  endif()
+
   if(SOURCEMETA_CORE_INSTALL)
     install(TARGETS mimalloc mimalloc_interface
       EXPORT mimalloc

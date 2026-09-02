@@ -69,37 +69,6 @@ target_link_libraries(my_executable_or_library PUBLIC sourcemeta::core::jsonpoin
 target_link_libraries(my_executable_or_library PUBLIC sourcemeta::core::jsonl)
 ```
 
-### Using pkg-config
-
-Assuming you have installed Sourcemeta Core in a place where pkg-config can
-find it, the entire library is available under a single name:
-
-```sh
-$ c++ -std=c++23 my_example.cc $(pkg-config --cflags --libs --static sourcemeta_core)
-```
-
-Every module is also packaged on its own, for programs that would rather link
-against only what they use:
-
-```sh
-$ c++ -std=c++23 my_example.cc $(pkg-config --cflags --libs --static sourcemeta_core_json sourcemeta_core_jsonpointer)
-```
-
-The bundled mimalloc allocator comes with the aggregate but not with the
-individual modules, as it is linked whole and a linker rejects being handed it
-more than once. Name it alongside the modules to opt in:
-
-```sh
-$ c++ -std=c++23 my_example.cc $(pkg-config --cflags --libs --static sourcemeta_core_json sourcemeta_core_mimalloc)
-```
-
-Build systems that read pkg-config find the library the same way. For example,
-with Meson:
-
-```meson
-core_dependency = dependency('sourcemeta_core', static : true)
-```
-
 CMake
 -----
 

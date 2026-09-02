@@ -136,6 +136,7 @@ if(NOT LibDeflate_FOUND)
       EXPORT_NAME LibDeflate)
 
   add_library(LibDeflate::LibDeflate ALIAS libdeflate)
+  sourcemeta_pkgconfig_declare(TARGET LibDeflate::LibDeflate LIBS "-ldeflate")
 
   if(SOURCEMETA_CORE_INSTALL)
     include(GNUInstallDirs)

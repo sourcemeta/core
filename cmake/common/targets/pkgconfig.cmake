@@ -1,19 +1,17 @@
-# Nothing refers to the entry points that replace the standard allocator by
-# name, so a linker that only pulls in the archive members it needs would leave
-# the program running on the allocator it was trying to replace
-function(sourcemeta_pkgconfig_allocator OUTPUT_VARIABLE)
-  if(BUILD_SHARED_LIBS)
-    set(FLAGS "-lmimalloc")
-  elseif(APPLE)
-    set(FLAGS "-Wl,-force_load,\${libdir}/libmimalloc.a")
-  elseif(SOURCEMETA_COMPILER_MSVC)
-    set(FLAGS "/WHOLEARCHIVE:mimalloc.lib")
-  else()
-    set(FLAGS
-      "-Wl,--whole-archive \${libdir}/libmimalloc.a -Wl,--no-whole-archive")
-  endif()
+# Teach the packaging how to link against something that is not one of our own
+# modules. A project states this next to wherever it brings the dependency in,
+# so that adding one never means editing this file
+function(sourcemeta_pkgconfig_declare)
+  cmake_parse_arguments(SOURCEMETA_PKGCONFIG "" "TARGET" "LIBS" ${ARGN})
+  set_property(GLOBAL PROPERTY
+    "SOURCEMETA_PKGCONFIG_LIBS_${SOURCEMETA_PKGCONFIG_TARGET}"
+    "${SOURCEMETA_PKGCONFIG_LIBS}")
+endfunction()
 
-  set("${OUTPUT_VARIABLE}" "${FLAGS}" PARENT_SCOPE)
+# The order matters, as a module is declared after everything it depends on
+function(sourcemeta_pkgconfig_register TARGET_NAME)
+  set_property(GLOBAL APPEND PROPERTY
+    SOURCEMETA_PKGCONFIG_TARGETS "${TARGET_NAME}")
 endfunction()
 
 function(sourcemeta_pkgconfig_dependency LIBRARY MODULES_VARIABLE LIBS_VARIABLE)
@@ -25,29 +23,16 @@ function(sourcemeta_pkgconfig_dependency LIBRARY MODULES_VARIABLE LIBS_VARIABLE)
   # in compiling against the library
   string(REGEX REPLACE "^\\$<LINK_ONLY:(.+)>$" "\\1" LIBRARY "${LIBRARY}")
 
+  get_property(DECLARED GLOBAL PROPERTY
+    "SOURCEMETA_PKGCONFIG_LIBS_${LIBRARY}" SET)
+
   if(LIBRARY MATCHES "^sourcemeta::")
     string(REPLACE "::" "_" MODULE "${LIBRARY}")
     list(APPEND MODULES "${MODULE}")
-  elseif(LIBRARY STREQUAL "Mimalloc::Mimalloc")
-    # The allocator is a property of the program rather than of any one module,
-    # and it is pulled in whole. Naming it here would make a consumer that asks
-    # for two modules at once hand the same archive to the linker twice, which
-    # reports every symbol in it as duplicated. It ships as a module of its own
-    # instead, which the aggregate carries
-  elseif(LIBRARY STREQUAL "PCRE2::pcre2")
-    list(APPEND LIBS "-lpcre2" "-lsljit")
-  elseif(LIBRARY STREQUAL "LibDeflate::LibDeflate")
-    list(APPEND LIBS "-ldeflate")
-  elseif(LIBRARY STREQUAL "CMarkGFM::cmark_gfm")
-    list(APPEND LIBS "-lcmark_gfm")
-  elseif(LIBRARY STREQUAL "OpenSSL::Crypto")
-    list(APPEND LIBS "-lcrypto")
-  elseif(LIBRARY STREQUAL "CURL::libcurl")
-    list(APPEND LIBS "-lcurl")
-  elseif(LIBRARY STREQUAL "Threads::Threads")
-    if(CMAKE_USE_PTHREADS_INIT)
-      list(APPEND LIBS "-pthread")
-    endif()
+  elseif(DECLARED)
+    get_property(DECLARED_LIBS GLOBAL PROPERTY
+      "SOURCEMETA_PKGCONFIG_LIBS_${LIBRARY}")
+    list(APPEND LIBS ${DECLARED_LIBS})
   elseif(LIBRARY MATCHES "\\.framework$")
     get_filename_component(FRAMEWORK "${LIBRARY}" NAME_WE)
     list(APPEND LIBS "-framework ${FRAMEWORK}")
@@ -59,8 +44,8 @@ function(sourcemeta_pkgconfig_dependency LIBRARY MODULES_VARIABLE LIBS_VARIABLE)
     list(APPEND LIBS "-l${LIBRARY}")
   else()
     message(FATAL_ERROR "Cannot express the dependency on ${LIBRARY} as a "
-      "pkg-config flag. Teach ${CMAKE_CURRENT_FUNCTION} how to spell it, so "
-      "that consumers that do not read CMake keep linking against it")
+      "pkg-config flag. Declare it with sourcemeta_pkgconfig_declare, so that "
+      "consumers that do not read CMake keep linking against it")
   endif()
 
   set("${MODULES_VARIABLE}" ${MODULES} PARENT_SCOPE)
@@ -115,10 +100,6 @@ function(sourcemeta_pkgconfig_direct
   set("${LIBS_VARIABLE}" ${LIBS} PARENT_SCOPE)
 endfunction()
 
-# Walk the whole graph below a module rather than pointing at the neighbours it
-# happens to touch. Naming the neighbours reads better, but pkg-config expands
-# such a chain once per path that reaches a module, and a linker handed the
-# resulting hundreds of repeated archives either takes minutes or gives up
 function(sourcemeta_pkgconfig_closure
     ROOTS MODULES_VARIABLE OPTIONS_VARIABLE LIBS_VARIABLE)
   set(PENDING ${ROOTS})
@@ -169,20 +150,27 @@ function(sourcemeta_pkgconfig_closure
   set("${LIBS_VARIABLE}" ${LIBS} PARENT_SCOPE)
 endfunction()
 
-function(sourcemeta_pkgconfig_flags TARGET_NAME OUTPUT_VARIABLE)
-  get_target_property(TARGET_TYPE ${TARGET_NAME} TYPE)
-  if(TARGET_TYPE STREQUAL "INTERFACE_LIBRARY")
-    set("${OUTPUT_VARIABLE}" "" PARENT_SCOPE)
-  else()
-    get_target_property(OUTPUT_NAME ${TARGET_NAME} OUTPUT_NAME)
-    if(NOT OUTPUT_NAME)
-      set(OUTPUT_NAME "${TARGET_NAME}")
-    endif()
-    set("${OUTPUT_VARIABLE}" "-l${OUTPUT_NAME}" PARENT_SCOPE)
-  endif()
-endfunction()
+function(sourcemeta_pkgconfig_write NAME OUTPUT DESCRIPTION)
+  get_property(TARGETS GLOBAL PROPERTY SOURCEMETA_PKGCONFIG_TARGETS)
+  sourcemeta_pkgconfig_closure("${TARGETS}" MODULES OPTIONS LIBS)
 
-function(sourcemeta_pkgconfig_file OUTPUT NAME DESCRIPTION LIBS PRIVATE_LIBS)
+  # Ahead of the libraries, as some of them are the search paths that the
+  # libraries are then looked up in
+  set(FLAGS ${OPTIONS})
+  list(APPEND FLAGS "-L\${libdir}")
+  foreach(MODULE IN LISTS MODULES)
+    get_target_property(TARGET_TYPE ${MODULE} TYPE)
+    if(NOT TARGET_TYPE STREQUAL "INTERFACE_LIBRARY")
+      get_target_property(OUTPUT_NAME ${MODULE} OUTPUT_NAME)
+      if(NOT OUTPUT_NAME)
+        set(OUTPUT_NAME "${MODULE}")
+      endif()
+      list(APPEND FLAGS "-l${OUTPUT_NAME}")
+    endif()
+  endforeach()
+  list(APPEND FLAGS ${LIBS})
+  list(JOIN FLAGS " " FLAGS)
+
   # Anchoring at the location of the file itself, rather than at the prefix
   # that was configured, keeps the result correct for an installation that is
   # staged, relocated, or packaged somewhere other than where it was built
@@ -204,68 +192,20 @@ function(sourcemeta_pkgconfig_file OUTPUT NAME DESCRIPTION LIBS PRIVATE_LIBS)
     "Description: ${DESCRIPTION}\n"
     "Version: ${PROJECT_VERSION}\n"
     "Cflags: -I\${includedir}\n"
-    "Libs: ${LIBS}\n"
-    "Libs.private: ${PRIVATE_LIBS}\n")
+    "Libs: ${FLAGS}\n")
 
   # Generated rather than written, as a link option is allowed to be a
   # generator expression and only CMake itself knows what it stands for
   file(GENERATE OUTPUT "${OUTPUT}" CONTENT "${CONTENT}")
 endfunction()
 
-function(sourcemeta_pkgconfig_write TARGET_NAME OUTPUT DESCRIPTION)
-  sourcemeta_pkgconfig_closure("${TARGET_NAME}" MODULES OPTIONS LIBS)
-  list(REMOVE_ITEM MODULES "${TARGET_NAME}")
-
-  sourcemeta_pkgconfig_flags("${TARGET_NAME}" LIBRARY_FLAGS)
-  if(LIBRARY_FLAGS)
-    set(LIBRARY_FLAGS "-L\${libdir} ${LIBRARY_FLAGS}")
-  endif()
-
-  # Ahead of the libraries, as some of them are the search paths that the
-  # libraries are then looked up in
-  set(PRIVATE_FLAGS ${OPTIONS})
-  foreach(MODULE IN LISTS MODULES)
-    sourcemeta_pkgconfig_flags("${MODULE}" MODULE_FLAGS)
-    if(MODULE_FLAGS)
-      list(APPEND PRIVATE_FLAGS "${MODULE_FLAGS}")
-    endif()
-  endforeach()
-  list(APPEND PRIVATE_FLAGS ${LIBS})
-  list(JOIN PRIVATE_FLAGS " " PRIVATE_FLAGS)
-
-  sourcemeta_pkgconfig_file("${OUTPUT}" "${TARGET_NAME}" "${DESCRIPTION}"
-    "${LIBRARY_FLAGS}" "${PRIVATE_FLAGS}")
-endfunction()
-
-function(sourcemeta_pkgconfig_write_aggregate NAME OUTPUT DESCRIPTION)
-  get_property(TARGETS GLOBAL PROPERTY SOURCEMETA_PKGCONFIG_TARGETS)
-  sourcemeta_pkgconfig_closure("${TARGETS}" MODULES OPTIONS LIBS)
-
-  set(FLAGS ${OPTIONS})
-  list(APPEND FLAGS "-L\${libdir}")
-  foreach(MODULE IN LISTS MODULES)
-    sourcemeta_pkgconfig_flags("${MODULE}" MODULE_FLAGS)
-    if(MODULE_FLAGS)
-      list(APPEND FLAGS "${MODULE_FLAGS}")
-    endif()
-  endforeach()
-  list(APPEND FLAGS ${LIBS})
-  if(TARGET Mimalloc::Mimalloc)
-    sourcemeta_pkgconfig_allocator(ALLOCATOR_FLAGS)
-    list(APPEND FLAGS "${ALLOCATOR_FLAGS}")
-  endif()
-  list(JOIN FLAGS " " FLAGS)
-
-  sourcemeta_pkgconfig_file("${OUTPUT}" "${NAME}" "${DESCRIPTION}" "${FLAGS}" "")
-endfunction()
-
+# The whole library behind a single name, which is all a consumer that does not
+# read CMake needs to know about how we are put together
 function(sourcemeta_pkgconfig_install)
   cmake_parse_arguments(SOURCEMETA_PKGCONFIG ""
-    "TARGET;DESCRIPTION;COMPONENT" "" ${ARGN})
+    "NAME;DESCRIPTION;COMPONENT" "" ${ARGN})
 
-  set_property(GLOBAL APPEND PROPERTY SOURCEMETA_PKGCONFIG_TARGETS
-    "${SOURCEMETA_PKGCONFIG_TARGET}")
-  set(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${SOURCEMETA_PKGCONFIG_TARGET}.pc")
+  set(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${SOURCEMETA_PKGCONFIG_NAME}.pc")
 
   # A module states some of its dependencies after asking to be installed, so
   # the link interface is only complete once the project has been walked. The
@@ -274,25 +214,6 @@ function(sourcemeta_pkgconfig_install)
   cmake_language(EVAL CODE
     "cmake_language(DEFER DIRECTORY \"${PROJECT_SOURCE_DIR}\"
        CALL sourcemeta_pkgconfig_write
-       \"${SOURCEMETA_PKGCONFIG_TARGET}\" \"${OUTPUT}\"
-       \"${SOURCEMETA_PKGCONFIG_DESCRIPTION}\")")
-
-  include(GNUInstallDirs)
-  install(FILES "${OUTPUT}"
-    DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig"
-    COMPONENT ${SOURCEMETA_PKGCONFIG_COMPONENT})
-endfunction()
-
-# The whole library behind a single name, which is how a consumer that does not
-# read CMake gets the allocator along with everything else
-function(sourcemeta_pkgconfig_install_aggregate)
-  cmake_parse_arguments(SOURCEMETA_PKGCONFIG ""
-    "NAME;DESCRIPTION;COMPONENT" "" ${ARGN})
-
-  set(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${SOURCEMETA_PKGCONFIG_NAME}.pc")
-  cmake_language(EVAL CODE
-    "cmake_language(DEFER DIRECTORY \"${PROJECT_SOURCE_DIR}\"
-       CALL sourcemeta_pkgconfig_write_aggregate
        \"${SOURCEMETA_PKGCONFIG_NAME}\" \"${OUTPUT}\"
        \"${SOURCEMETA_PKGCONFIG_DESCRIPTION}\")")
 
@@ -300,17 +221,4 @@ function(sourcemeta_pkgconfig_install_aggregate)
   install(FILES "${OUTPUT}"
     DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig"
     COMPONENT ${SOURCEMETA_PKGCONFIG_COMPONENT})
-
-  if(TARGET Mimalloc::Mimalloc)
-    sourcemeta_pkgconfig_allocator(ALLOCATOR_FLAGS)
-    set(ALLOCATOR_OUTPUT
-      "${CMAKE_CURRENT_BINARY_DIR}/${SOURCEMETA_PKGCONFIG_NAME}_mimalloc.pc")
-    sourcemeta_pkgconfig_file("${ALLOCATOR_OUTPUT}"
-      "${SOURCEMETA_PKGCONFIG_NAME}_mimalloc"
-      "The bundled mimalloc allocator of ${SOURCEMETA_PKGCONFIG_DESCRIPTION}"
-      "-L\${libdir} ${ALLOCATOR_FLAGS}" "")
-    install(FILES "${ALLOCATOR_OUTPUT}"
-      DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig"
-      COMPONENT ${SOURCEMETA_PKGCONFIG_COMPONENT})
-  endif()
 endfunction()

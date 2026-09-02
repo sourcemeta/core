@@ -112,6 +112,7 @@ if(NOT CMarkGFM_FOUND)
     EXPORT_FILE_NAME "${CMARK_GFM_BINARY_DIR}/include/cmark-gfm_export.h")
 
   add_library(CMarkGFM::cmark_gfm ALIAS cmark_gfm)
+  sourcemeta_pkgconfig_declare(TARGET CMarkGFM::cmark_gfm LIBS "-lcmark_gfm")
 
   set_target_properties(cmark_gfm
     PROPERTIES

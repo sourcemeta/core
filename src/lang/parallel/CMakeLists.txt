@@ -6,3 +6,8 @@ if(SOURCEMETA_CORE_INSTALL)
 endif()
 
 target_link_libraries(sourcemeta_core_parallel INTERFACE Threads::Threads)
+if(CMAKE_USE_PTHREADS_INIT)
+  sourcemeta_pkgconfig_declare(TARGET Threads::Threads LIBS "-pthread")
+else()
+  sourcemeta_pkgconfig_declare(TARGET Threads::Threads LIBS)
+endif()
