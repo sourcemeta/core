@@ -3,12 +3,13 @@
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/test.h>
 
-#include <string> // std::string
+#include <string>      // std::string
+#include <string_view> // std::string_view
 
 // A private RSA JSON Web Key in the two-prime form, its elliptic curve and
 // octet key pair counterparts, and the same RSA key as a PKCS#8 PEM document.
 // The material matches the keys exercised by the crypto module tests
-static const std::string RSA_PRIVATE_JWK{
+static constexpr std::string_view RSA_PRIVATE_JWK{
     R"({"kty":"RSA",)"
     R"("n":"n-ivWLN0CTSLXc7GNcHGOuZHdu6QcGT3SlFTaf2ckxLVEDcAU4fIez7rKtvZaCzp)"
     R"(KJ6cb5KZnDcIn-gOCrE0FI6OZdCvgAGNqoFH6D1AANk8lWSFc1bWoti5xzXls2IN4fDRDa)"
@@ -37,23 +38,23 @@ static const std::string RSA_PRIVATE_JWK{
     R"(jGKFMuXAJo4pz6IBgS5eN6uzPvfvqJUiMGc6lG_zBFKsc-WnveUIzYqqz3gNrA_gwN872o)"
     R"(JCzSsEiFwMKFkui2fIAH8-c7Z5Tpo63qroRxk"})"};
 
-static const std::string EC_PUBLIC_X_B64URL{
+static constexpr std::string_view EC_PUBLIC_X_B64URL{
     "2TARGSWq8F97iq3Ng48wCEN26cxzy8OCzbFa-6ZfnaI"};
-static const std::string EC_PUBLIC_Y_B64URL{
+static constexpr std::string_view EC_PUBLIC_Y_B64URL{
     "5lkzZqhWOkc2m2zJOotl6K3_x6-TSs9OnzQKwb35DxQ"};
 
-static const std::string EC_PRIVATE_JWK{
+static constexpr std::string_view EC_PRIVATE_JWK{
     R"({"kty":"EC","crv":"P-256",)"
     R"("x":"2TARGSWq8F97iq3Ng48wCEN26cxzy8OCzbFa-6ZfnaI",)"
     R"("y":"5lkzZqhWOkc2m2zJOotl6K3_x6-TSs9OnzQKwb35DxQ",)"
     R"("d":"ttepxcp-OwXCj4-v4sGcxRxQRXA8D5Svu02yhcHvbd0"})"};
 
-static const std::string OKP_PRIVATE_JWK{
+static constexpr std::string_view OKP_PRIVATE_JWK{
     R"({"kty":"OKP","crv":"Ed25519",)"
     R"("x":"SFOeT7YjsNIh-M1-nCBGnB9VWYu1uyNqiizCZhwddDo",)"
     R"("d":"dB7DXOXgcInKeC-I3gDYEDoc2OixFqzYr9kiwBvueGc"})"};
 
-static const std::string RSA_PRIVATE_KEY_PEM{
+static constexpr std::string_view RSA_PRIVATE_KEY_PEM{
     R"(-----BEGIN PRIVATE KEY-----
 MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCf6K9Ys3QJNItd
 zsY1wcY65kd27pBwZPdKUVNp/ZyTEtUQNwBTh8h7Pusq29loLOkonpxvkpmcNwif

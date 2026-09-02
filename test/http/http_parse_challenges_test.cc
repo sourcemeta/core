@@ -9,7 +9,7 @@
 
 namespace {
 using Challenges = std::vector<sourcemeta::core::HTTPParsedChallenge>;
-}
+} // namespace
 
 // RFC 6750 §3: "WWW-Authenticate: Bearer realm="example""
 TEST(parse_challenges_bearer_with_a_realm) {

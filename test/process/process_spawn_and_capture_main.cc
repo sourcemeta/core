@@ -1,8 +1,9 @@
 #include <sourcemeta/core/text.h>
 
+#include <array>       // std::array
 #include <cstddef>     // std::size_t
 #include <cstdio>      // std::fread, std::fwrite, std::fflush, std::FILE
-#include <cstdlib>     // std::atoi, std::atoll
+#include <cstdlib>     // std::strtol, std::strtoll
 #include <filesystem>  // std::filesystem::current_path
 #include <string>      // std::string, std::to_string
 #include <string_view> // std::string_view
@@ -40,8 +41,8 @@ auto environment_name_matches(const std::string_view left,
 // Scanning the block avoids the lookup the Microsoft runtime deprecates, and
 // keeps one way of reading the environment across every platform
 auto find_environment(const std::string_view name) -> const char * {
-  for (char **entry = environment_entries(); entry != nullptr && *entry;
-       ++entry) {
+  for (char **entry = environment_entries();
+       entry != nullptr && ((*entry) != nullptr); ++entry) {
     const std::string_view current{*entry};
     const auto separator{current.find('=')};
     if (separator != std::string_view::npos &&
@@ -63,10 +64,10 @@ auto write_all(std::FILE *stream, const std::string_view payload) -> void {
 
 auto read_all(std::FILE *stream) -> std::string {
   std::string result;
-  char buffer[4096];
+  std::array<char, 4096> buffer{};
   std::size_t count{0};
-  while ((count = std::fread(buffer, 1, sizeof(buffer), stream)) > 0) {
-    result.append(buffer, count);
+  while ((count = std::fread(buffer.data(), 1, buffer.size(), stream)) > 0) {
+    result.append(buffer.data(), count);
   }
 
   return result;
@@ -85,7 +86,7 @@ auto payload_of(const std::size_t size) -> std::string {
 }
 
 auto to_size(const char *value) -> std::size_t {
-  return static_cast<std::size_t>(std::atoll(value));
+  return static_cast<std::size_t>(std::strtoll(value, nullptr, 10));
 }
 
 } // namespace
@@ -106,7 +107,7 @@ auto main(int argc, char *argv[]) -> int {
   const std::string_view command{argv[1]};
 
   if (command == "exit") {
-    return std::atoi(argv[2]);
+    return static_cast<int>(std::strtol(argv[2], nullptr, 10));
   }
 
   if (command == "stdout") {
@@ -163,8 +164,8 @@ auto main(int argc, char *argv[]) -> int {
 
   if (command == "environment") {
     std::string result;
-    for (char **entry = environment_entries(); entry != nullptr && *entry;
-         ++entry) {
+    for (char **entry = environment_entries();
+         entry != nullptr && ((*entry) != nullptr); ++entry) {
       result.append(*entry);
       result.push_back('\n');
     }

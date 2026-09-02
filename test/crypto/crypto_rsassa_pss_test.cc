@@ -9,9 +9,9 @@
 // The same 2048-bit test key as the RSASSA-PKCS1-v1_5 tests, along with
 // RSASSA-PSS signatures over the message below using a salt as long as the
 // hash function output, one per supported hash function
-static const std::string MESSAGE{"sourcemeta core JWS signing input"};
+static constexpr std::string_view MESSAGE{"sourcemeta core JWS signing input"};
 
-static const std::string MODULUS_HEX{
+static constexpr std::string_view MODULUS_HEX{
     "c18bb08bad1c930bb6eed38f60299c28f28e0dabf53557fa8ac9a63044413a3c"
     "74671a8b316ec972b25faa13826b10e0d78f90da1b697805202faf58c5768361"
     "ad0006364e5f5bbf6e95a222f894be4cdccfe52aca34b48a1f92a1192214f78e"
@@ -21,9 +21,9 @@ static const std::string MODULUS_HEX{
     "4fa1506e0d5d5d9c7f531112485219c783228ae9b81ff65725513d559131ee06"
     "c5299d6531d0b9abe13ee19924f1fa47f25136fc948daf0cac721a277255af3d"};
 
-static const std::string EXPONENT_HEX{"010001"};
+static constexpr std::string_view EXPONENT_HEX{"010001"};
 
-static const std::string SIGNATURE_SHA256_HEX{
+static constexpr std::string_view SIGNATURE_SHA256_HEX{
     "9ce80cd6ab0f6b11df7b5cbabd2c3a274bb25065d1be44d42ea7fc6b36d77f15"
     "971e5741dc19ae58c4a7459d3a571407efe41c125935e43804ecbd97ce36a6e4"
     "4ee4d4a700e2fb40e5694178c9897dbb50cf0d9fa7de7fb8501d601edde08519"
@@ -33,7 +33,7 @@ static const std::string SIGNATURE_SHA256_HEX{
     "7fe292ef9df85629ef98c66df0a3a113bd0bb9156a49297da8ecd8eb374b6f09"
     "1d596e1d7917c654a8332c0cfe72593cdd4d8c5ec32d18849018e24ba2ea7460"};
 
-static const std::string SIGNATURE_SHA384_HEX{
+static constexpr std::string_view SIGNATURE_SHA384_HEX{
     "8bff2ed16017c973ea443044b8c44d2618ba6c5c5b0de90a3ac62312cfa6f28b"
     "5b17cc113a9628d2b83c116cba723eb33677b5ad12a85708f41e26817621a1ef"
     "c60fa8bb11cf2279e8be2d3301e0811fbcf2a8c7b36b50521ecb6124b9d82b2b"
@@ -43,7 +43,7 @@ static const std::string SIGNATURE_SHA384_HEX{
     "cb7c616a28a3eb563a49d0ff8584d18265deba60ef0bed17ef447477c6f6668f"
     "d97a130d6988a508c9fa333a31a37d1ee3200b777850b2305c3171600f770f82"};
 
-static const std::string SIGNATURE_SHA512_HEX{
+static constexpr std::string_view SIGNATURE_SHA512_HEX{
     "10c523c1742867b219193507ebbc5cd3d149d39400d615ef30136374b8dd454f"
     "a677352abd46260f4e33a27660c6d7f3576c2645e49412176fb921bcc3842d63"
     "d7360fc08a0797f5a6e7a05a0be67987525f308badbb415797f899316070b7a4"
@@ -55,7 +55,7 @@ static const std::string SIGNATURE_SHA512_HEX{
 
 // A signature over the same message and hash that uses a 10-byte salt
 // rather than one as long as the hash function output
-static const std::string SIGNATURE_SHA256_SALT_10_HEX{
+static constexpr std::string_view SIGNATURE_SHA256_SALT_10_HEX{
     "9a8f3208169b0c6f10f0e7246d2a3e028b746a1215daaa9b89fbb93dc3a09f47"
     "ae4a60c696107d93bfb1e1b6ed1e830980b972b17659f2d023c4c5a3aaa2497e"
     "1d7f70b431ea552ae38d95bbf5c777d40f8c35882e91a3fb3b2cf567a5f0c3ac"
@@ -67,7 +67,7 @@ static const std::string SIGNATURE_SHA256_SALT_10_HEX{
 
 // The RSASSA-PKCS1-v1_5 signature over the same message and hash, which
 // must never verify under RSASSA-PSS
-static const std::string SIGNATURE_SHA256_PKCS1_V15_HEX{
+static constexpr std::string_view SIGNATURE_SHA256_PKCS1_V15_HEX{
     "b03580590d438d7a0cec9dbaf9046414c8474ec5bfa0809ce456036110730d72"
     "1ce914ccda9da01d80d4f21490a1e9263391f434ede0c901d4bfcf983b8ad1c1"
     "cc97d879a0315b0b69ee13c5a2fd2ddfce4d407d65351a902f90630eb398a2d6"
@@ -196,11 +196,12 @@ TEST(verify_rejects_empty_exponent) {
 }
 
 TEST(verify_modulus_with_leading_zeros) {
-  EXPECT_TRUE(
-      verify_pss(sourcemeta::core::SignatureHashFunction::SHA256,
-                 sourcemeta::core::hex_to_bytes("0000" + MODULUS_HEX).value(),
-                 sourcemeta::core::hex_to_bytes(EXPONENT_HEX).value(), MESSAGE,
-                 sourcemeta::core::hex_to_bytes(SIGNATURE_SHA256_HEX).value()));
+  EXPECT_TRUE(verify_pss(
+      sourcemeta::core::SignatureHashFunction::SHA256,
+      sourcemeta::core::hex_to_bytes(std::string{"0000"}.append(MODULUS_HEX))
+          .value(),
+      sourcemeta::core::hex_to_bytes(EXPONENT_HEX).value(), MESSAGE,
+      sourcemeta::core::hex_to_bytes(SIGNATURE_SHA256_HEX).value()));
 }
 
 TEST(verify_rejects_oversized_modulus) {
@@ -224,11 +225,13 @@ TEST(verify_rejects_a_zero_padded_signature) {
   // RFC 8017 Section 8.1.2 step 1, the same length rule the PKCS1-v1_5
   // verification follows, so a leading zero octet cannot give a signature a
   // second encoding
-  EXPECT_FALSE(verify_pss(
-      sourcemeta::core::SignatureHashFunction::SHA256,
-      sourcemeta::core::hex_to_bytes(MODULUS_HEX).value(),
-      sourcemeta::core::hex_to_bytes(EXPONENT_HEX).value(), MESSAGE,
-      sourcemeta::core::hex_to_bytes("00" + SIGNATURE_SHA256_HEX).value()));
+  EXPECT_FALSE(verify_pss(sourcemeta::core::SignatureHashFunction::SHA256,
+                          sourcemeta::core::hex_to_bytes(MODULUS_HEX).value(),
+                          sourcemeta::core::hex_to_bytes(EXPONENT_HEX).value(),
+                          MESSAGE,
+                          sourcemeta::core::hex_to_bytes(
+                              std::string{"00"}.append(SIGNATURE_SHA256_HEX))
+                              .value()));
 }
 
 TEST(verify_rejects_a_truncated_signature) {

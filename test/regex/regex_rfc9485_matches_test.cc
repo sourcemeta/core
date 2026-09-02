@@ -142,7 +142,7 @@ TEST(rfc9485_matches_bare_dash) {
 
 TEST(rfc9485_matches_single_char_escapes_punctuation) {
   const auto regex{sourcemeta::core::to_regex(
-      "\\(\\)\\*\\+\\.\\?\\[\\\\", sourcemeta::core::RegexDialect::IRegexp)};
+      R"(\(\)\*\+\.\?\[\\)", sourcemeta::core::RegexDialect::IRegexp)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "()*+.?[\\"));
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "()*+.?["));
@@ -150,7 +150,7 @@ TEST(rfc9485_matches_single_char_escapes_punctuation) {
 
 TEST(rfc9485_matches_single_char_escapes_delimiters) {
   const auto regex{sourcemeta::core::to_regex(
-      "\\]\\{\\|\\}\\t\\r\\n", sourcemeta::core::RegexDialect::IRegexp)};
+      R"(\]\{\|\}\t\r\n)", sourcemeta::core::RegexDialect::IRegexp)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "]{|}\t\r\n"));
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "]{|}trn"));

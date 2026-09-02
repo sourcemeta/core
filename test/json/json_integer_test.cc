@@ -31,6 +31,7 @@ TEST(zero) {
 // creating an array with a single integer item instead.
 TEST(copy_constructor) {
   const sourcemeta::core::JSON integer{5};
+  // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
   const sourcemeta::core::JSON document{integer};
   EXPECT_TRUE(document.is_integer());
   EXPECT_EQ(document.to_integer(), 5);

@@ -7,6 +7,9 @@
 #include <string>      // std::string
 #include <string_view> // std::string_view
 
+// Spawning takes the program by string reference, so the path to the
+// helper needs storage of its own
+// NOLINTNEXTLINE(cert-err58-cpp,bugprone-throwing-static-initialization)
 static const std::string HELPER{HELPER_BINARY};
 
 static auto payload_of(const std::size_t size) -> std::string {
@@ -40,7 +43,7 @@ TEST(an_absent_standard_input_leaves_the_stream_alone) {
 }
 
 TEST(a_large_standard_input_is_delivered_without_capturing) {
-  const auto payload{payload_of(1024 * 1024)};
+  const auto payload{payload_of(std::size_t{1024} * 1024)};
   const sourcemeta::core::ProcessInput input{.standard_input = payload};
   const int exit_code{
       sourcemeta::core::spawn(HELPER, {"expect-stdin-size", "1048576"}, input)};
@@ -55,7 +58,7 @@ TEST(a_short_standard_input_is_measured_exactly_without_capturing) {
 }
 
 TEST(a_program_that_never_reads_a_large_input_does_not_kill_the_caller) {
-  const auto payload{payload_of(1024 * 1024)};
+  const auto payload{payload_of(std::size_t{1024} * 1024)};
   const sourcemeta::core::ProcessInput input{.standard_input = payload};
   const int exit_code{sourcemeta::core::spawn(HELPER, {"exit", "3"}, input)};
   EXPECT_EQ(exit_code, 3);
@@ -90,7 +93,7 @@ TEST(the_working_directory_is_honoured_without_capturing) {
       std::filesystem::canonical(std::filesystem::temp_directory_path())};
   const sourcemeta::core::ProcessInput input{.directory = directory};
   const int exit_code{sourcemeta::core::spawn(
-      HELPER, {"expect-directory", directory.string().c_str()}, input)};
+      HELPER, {"expect-directory", directory.string()}, input)};
   EXPECT_EQ(exit_code, 0);
 }
 

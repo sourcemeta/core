@@ -4,6 +4,10 @@
 
 #include <exception>
 #include <sstream>
+#include <string>
+#include <string_view> // std::string_view
+
+using namespace std::literals::string_view_literals;
 
 #define __EXPECT_PARSE_ERROR(input, expected_line, expected_column,            \
                              expected_error, expected_message)                 \
@@ -262,12 +266,12 @@ TEST(object_key_without_value) {
 }
 
 TEST(object_key_without_value_after_valid_key) {
-  std::istringstream input{"{\"foo\": 1,\"bar\"}"};
+  std::istringstream input{R"({"foo": 1,"bar"})"};
   EXPECT_PARSE_ERROR(input, 1, 16);
 }
 
 TEST(object_trailing_comma_after_element) {
-  std::istringstream input{"{\"foo\": 1,\"bar\":0,}"};
+  std::istringstream input{R"({"foo": 1,"bar":0,})"};
   EXPECT_PARSE_ERROR(input, 1, 19);
 }
 
@@ -317,17 +321,18 @@ TEST(string_only_quote) {
 }
 
 TEST(string_escaped_invalid) {
-  std::istringstream input{"\"foo\\xbar\""};
+  std::istringstream input{R"("foo\xbar")"};
   EXPECT_PARSE_ERROR(input, 1, 6);
 }
 
 TEST(string_escaped_incomplete) {
-  std::istringstream input{"\"foo\\\""};
+  std::istringstream input{R"("foo\")"};
   EXPECT_PARSE_ERROR(input, 1, 7);
 }
 
 TEST(string_invalid_control_characters) {
-  std::istringstream input00{"\"foo \u0000 bar\""};
+  std::istringstream input00{std::string{"\"foo \x00"
+                                         " bar\""sv}};
   std::istringstream input01{"\"foo \u0001 bar\""};
   std::istringstream input02{"\"foo \u0002 bar\""};
   std::istringstream input03{"\"foo \u0003 bar\""};
@@ -395,37 +400,37 @@ TEST(string_invalid_control_characters) {
 }
 
 TEST(string_invalid_code_point) {
-  std::istringstream input{"\"\\uXXXX\""};
+  std::istringstream input{R"("\uXXXX")"};
   EXPECT_PARSE_ERROR(input, 1, 4);
 }
 
 TEST(string_invalid_lowercase_code_point) {
-  std::istringstream input{"\"\\uqqqq\""};
+  std::istringstream input{R"("\uqqqq")"};
   EXPECT_PARSE_ERROR(input, 1, 4);
 }
 
 TEST(string_incomplete_code_point_0) {
-  std::istringstream input{"\"\\u\""};
+  std::istringstream input{R"("\u")"};
   EXPECT_PARSE_ERROR(input, 1, 4);
 }
 
 TEST(string_incomplete_code_point_1) {
-  std::istringstream input{"\"\\u6\""};
+  std::istringstream input{R"("\u6")"};
   EXPECT_PARSE_ERROR(input, 1, 5);
 }
 
 TEST(string_incomplete_code_point_2) {
-  std::istringstream input{"\"\\u2F\""};
+  std::istringstream input{R"("\u2F")"};
   EXPECT_PARSE_ERROR(input, 1, 6);
 }
 
 TEST(string_incomplete_code_point_3) {
-  std::istringstream input{"\"\\u02F\""};
+  std::istringstream input{R"("\u02F")"};
   EXPECT_PARSE_ERROR(input, 1, 7);
 }
 
 TEST(string_incomplete_code_point_space) {
-  std::istringstream input{"\"\\u0F 2F\""};
+  std::istringstream input{R"("\u0F 2F")"};
   EXPECT_PARSE_ERROR(input, 1, 6);
 }
 

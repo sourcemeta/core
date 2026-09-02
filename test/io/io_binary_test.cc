@@ -110,7 +110,8 @@ TEST(put_bytes_zero_length_is_noop) {
 }
 
 TEST(put_pod_via_put_bytes) {
-  const ExampleHeader expected{0xDEADBEEF, 7, 0x42, 1024};
+  const ExampleHeader expected{
+      .magic = 0xDEADBEEF, .version = 7, .flags = 0x42, .payload_size = 1024};
   std::ostringstream stream;
   sourcemeta::core::BinaryWriter writer{stream};
   writer.put_bytes(reinterpret_cast<const std::byte *>(&expected),
@@ -173,7 +174,8 @@ TEST(get_qword_roundtrip_via_stringstream) {
 }
 
 TEST(get_pod_roundtrip_via_stringstream) {
-  const ExampleHeader expected{0xDEADBEEF, 7, 0x42, 1024};
+  const ExampleHeader expected{
+      .magic = 0xDEADBEEF, .version = 7, .flags = 0x42, .payload_size = 1024};
   std::ostringstream output;
   sourcemeta::core::BinaryWriter writer{output};
   writer.put_bytes(reinterpret_cast<const std::byte *>(&expected),
@@ -303,7 +305,8 @@ TEST_F(IOBinaryTest, get_after_put_integer_roundtrip_via_file) {
 
 TEST_F(IOBinaryTest, get_after_put_struct_roundtrip_via_file) {
   const auto path{this->workspace_ / "header.bin"};
-  const ExampleHeader expected{0xDEADBEEF, 7, 0x42, 1024};
+  const ExampleHeader expected{
+      .magic = 0xDEADBEEF, .version = 7, .flags = 0x42, .payload_size = 1024};
   {
     std::ofstream raw{path, std::ios::binary};
     sourcemeta::core::BinaryWriter writer{raw};

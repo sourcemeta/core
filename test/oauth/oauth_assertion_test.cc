@@ -55,9 +55,9 @@ static constexpr std::string_view OTHER_OCT_JWKS_JSON{
 static const auto FIXED_TIME{
     std::chrono::system_clock::from_time_t(1562262616)};
 
-static const std::array<std::string_view, 1> AUDIENCES{
+static constexpr std::array<std::string_view, 1> AUDIENCES{
     {"https://server.example/token"}};
-static const std::array<sourcemeta::core::JWSAlgorithm, 1> ALLOWED{
+static constexpr std::array<sourcemeta::core::JWSAlgorithm, 1> ALLOWED{
     {sourcemeta::core::JWSAlgorithm::ES256}};
 
 TEST(grant_type_and_assertion_type_constants) {

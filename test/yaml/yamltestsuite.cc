@@ -3,13 +3,14 @@
 #include <sourcemeta/core/yaml.h>
 
 #include <algorithm>  // std::min
+#include <cstdint>    // std::uint8_t
 #include <filesystem> // std::filesystem
 #include <fstream>    // std::ifstream
 #include <string>     // std::string
 #include <vector>     // std::vector
 
 namespace {
-enum class YAMLTestType { Success, Error };
+enum class YAMLTestType : std::uint8_t { Success, Error };
 
 auto run_yaml_test_case(const std::filesystem::path &test_directory,
                         const YAMLTestType type) -> void {
@@ -88,7 +89,7 @@ auto main(int argc, char **argv) -> int {
       continue;
     }
 
-    const auto test_directory{entry.path()};
+    const auto &test_directory{entry.path()};
     const auto test_name{test_directory.filename().string()};
 
     // A suite entry either holds the case files directly or, for the

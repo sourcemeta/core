@@ -2,6 +2,9 @@
 #include <sourcemeta/core/test.h>
 
 #include <string>
+#include <string_view> // std::string_view
+
+using namespace std::literals::string_view_literals;
 
 // RFC 5321 §4.1.2: minimal Dot-string Atom + minimal Domain sub-domain
 TEST(valid_dot_string_single_letter) {
@@ -1133,8 +1136,10 @@ TEST(invalid_trailing_space) {
 
 // RFC 5321 §4.1.2 Domain: NUL is not in Ldh-str
 TEST(invalid_nul_in_domain) {
-  EXPECT_FALSE(sourcemeta::core::is_email(std::string_view{"a@b\x00c", 5}));
-  EXPECT_FALSE(sourcemeta::core::is_idn_email(std::string_view{"a@b\x00c", 5}));
+  EXPECT_FALSE(sourcemeta::core::is_email("a@b\x00"
+                                          "c"sv));
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("a@b\x00"
+                                              "c"sv));
 }
 
 // RFC 5321 §4.1.2: CRLF bytes are not in the Mailbox alphabet

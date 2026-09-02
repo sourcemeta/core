@@ -104,7 +104,7 @@ TEST_F(IOReadFileToStringTest, freshly_written_file) {
 
 TEST_F(IOReadFileToStringTest, empty_file) {
   const auto path{this->workspace_ / "empty.txt"};
-  std::ofstream{path};
+  const std::ofstream stream{path};
   EXPECT_EQ(sourcemeta::core::read_file_to_string(path), "");
 }
 

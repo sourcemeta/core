@@ -7,7 +7,7 @@
 #include <string>      // std::string
 #include <string_view> // std::string_view
 
-static const std::string PLAINTEXT{
+static constexpr std::string_view PLAINTEXT{
     "The true sign of intelligence is not knowledge but imagination."};
 
 static auto header_for(const std::string_view algorithm,

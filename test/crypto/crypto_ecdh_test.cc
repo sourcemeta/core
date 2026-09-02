@@ -8,24 +8,24 @@
 
 namespace {
 // A pair of P-256 keys and their agreed secret, generated out of band
-const std::string A_SCALAR{
+constexpr std::string_view A_SCALAR{
     "2f2ca554ea1dabab39212f78b4238238b64b246ba7573cd76ef3f8d6705dfde0"};
-const std::string A_COORDINATE_X{
+constexpr std::string_view A_COORDINATE_X{
     "7ba511d9f36a052945e3229573db7d5ed17141897e58e9f64abb5464264b7d56"};
-const std::string A_COORDINATE_Y{
+constexpr std::string_view A_COORDINATE_Y{
     "d5ee7f014ea98dadab10cb47e6f7ff423a10e02540194e642354b1f56bc17c94"};
-const std::string B_SCALAR{
+constexpr std::string_view B_SCALAR{
     "a80aeab3dca90d227049a8197f3198160b1f38bcfbc08955411e1c254858ca6a"};
-const std::string B_COORDINATE_X{
+constexpr std::string_view B_COORDINATE_X{
     "6b307d19db9d33d779644c95aca80f23738254deeee8266bc1e4b134686f2c4b"};
-const std::string B_COORDINATE_Y{
+constexpr std::string_view B_COORDINATE_Y{
     "b1aa1b614cd45a38b79f75ace6489ff60852cb6c05369034d1729f2d2ec911ac"};
-const std::string SHARED_SECRET{
+constexpr std::string_view SHARED_SECRET{
     "07915976af1a99f773825059cd8ca4b1ee2c7dde4bac4d8d0b4175d9760b14e0"};
-const std::string P384_COORDINATE_X{
+constexpr std::string_view P384_COORDINATE_X{
     "fbc48e6c25b8b4a04f9fe830dc558906c972118856aef6dd154c7f2d8d0beddb"
     "d7a91430e0ef3a583eaad396d8d27651"};
-const std::string P384_COORDINATE_Y{
+constexpr std::string_view P384_COORDINATE_Y{
     "b941e926ead50d193eae772510b2baca2cf0866eb438938b4c38a2b7f124fae4"
     "9c698ac2524b3e4ded5d1098d0e5fac5"};
 

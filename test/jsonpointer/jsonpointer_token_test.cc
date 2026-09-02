@@ -7,32 +7,29 @@
 
 TEST(general_traits) {
   EXPECT_FALSE(
-      std::is_default_constructible<sourcemeta::core::Pointer::Token>::value);
-  EXPECT_FALSE(std::is_nothrow_default_constructible<
-               sourcemeta::core::Pointer::Token>::value);
-  EXPECT_TRUE(std::is_destructible<sourcemeta::core::Pointer::Token>::value);
-  EXPECT_TRUE(
-      std::is_nothrow_destructible<sourcemeta::core::Pointer::Token>::value);
+      std::is_default_constructible_v<sourcemeta::core::Pointer::Token>);
+  EXPECT_FALSE(std::is_nothrow_default_constructible_v<
+               sourcemeta::core::Pointer::Token>);
+  EXPECT_TRUE(std::is_destructible_v<sourcemeta::core::Pointer::Token>);
+  EXPECT_TRUE(std::is_nothrow_destructible_v<sourcemeta::core::Pointer::Token>);
 }
 
 TEST(copy_traits) {
-  EXPECT_TRUE(std::is_copy_assignable<sourcemeta::core::Pointer::Token>::value);
-  EXPECT_TRUE(
-      std::is_copy_constructible<sourcemeta::core::Pointer::Token>::value);
+  EXPECT_TRUE(std::is_copy_assignable_v<sourcemeta::core::Pointer::Token>);
+  EXPECT_TRUE(std::is_copy_constructible_v<sourcemeta::core::Pointer::Token>);
   EXPECT_FALSE(
-      std::is_nothrow_copy_assignable<sourcemeta::core::Pointer::Token>::value);
-  EXPECT_FALSE(std::is_nothrow_copy_constructible<
-               sourcemeta::core::Pointer::Token>::value);
+      std::is_nothrow_copy_assignable_v<sourcemeta::core::Pointer::Token>);
+  EXPECT_FALSE(
+      std::is_nothrow_copy_constructible_v<sourcemeta::core::Pointer::Token>);
 }
 
 TEST(move_traits) {
-  EXPECT_TRUE(std::is_move_assignable<sourcemeta::core::Pointer::Token>::value);
+  EXPECT_TRUE(std::is_move_assignable_v<sourcemeta::core::Pointer::Token>);
+  EXPECT_TRUE(std::is_move_constructible_v<sourcemeta::core::Pointer::Token>);
   EXPECT_TRUE(
-      std::is_move_constructible<sourcemeta::core::Pointer::Token>::value);
+      std::is_nothrow_move_assignable_v<sourcemeta::core::Pointer::Token>);
   EXPECT_TRUE(
-      std::is_nothrow_move_assignable<sourcemeta::core::Pointer::Token>::value);
-  EXPECT_TRUE(std::is_nothrow_move_constructible<
-              sourcemeta::core::Pointer::Token>::value);
+      std::is_nothrow_move_constructible_v<sourcemeta::core::Pointer::Token>);
 }
 
 TEST(character_token) {

@@ -12,31 +12,27 @@
 #include <utility>
 
 TEST(general_traits) {
+  EXPECT_TRUE(std::is_default_constructible_v<sourcemeta::core::JSON::Object>);
   EXPECT_TRUE(
-      std::is_default_constructible<sourcemeta::core::JSON::Object>::value);
-  EXPECT_TRUE(std::is_nothrow_default_constructible<
-              sourcemeta::core::JSON::Object>::value);
-  EXPECT_TRUE(std::is_destructible<sourcemeta::core::JSON::Object>::value);
-  EXPECT_TRUE(
-      std::is_nothrow_destructible<sourcemeta::core::JSON::Object>::value);
+      std::is_nothrow_default_constructible_v<sourcemeta::core::JSON::Object>);
+  EXPECT_TRUE(std::is_destructible_v<sourcemeta::core::JSON::Object>);
+  EXPECT_TRUE(std::is_nothrow_destructible_v<sourcemeta::core::JSON::Object>);
 }
 
 TEST(copy_traits) {
-  EXPECT_TRUE(std::is_copy_assignable<sourcemeta::core::JSON::Object>::value);
-  EXPECT_TRUE(
-      std::is_copy_constructible<sourcemeta::core::JSON::Object>::value);
+  EXPECT_TRUE(std::is_copy_assignable_v<sourcemeta::core::JSON::Object>);
+  EXPECT_TRUE(std::is_copy_constructible_v<sourcemeta::core::JSON::Object>);
   EXPECT_FALSE(
-      std::is_nothrow_copy_assignable<sourcemeta::core::JSON::Object>::value);
-  EXPECT_FALSE(std::is_nothrow_copy_constructible<
-               sourcemeta::core::JSON::Object>::value);
+      std::is_nothrow_copy_assignable_v<sourcemeta::core::JSON::Object>);
+  EXPECT_FALSE(
+      std::is_nothrow_copy_constructible_v<sourcemeta::core::JSON::Object>);
 }
 
 TEST(move_traits) {
-  EXPECT_TRUE(std::is_move_assignable<sourcemeta::core::JSON::Object>::value);
+  EXPECT_TRUE(std::is_move_assignable_v<sourcemeta::core::JSON::Object>);
+  EXPECT_TRUE(std::is_move_constructible_v<sourcemeta::core::JSON::Object>);
   EXPECT_TRUE(
-      std::is_move_constructible<sourcemeta::core::JSON::Object>::value);
-  EXPECT_TRUE(
-      std::is_nothrow_move_assignable<sourcemeta::core::JSON::Object>::value);
+      std::is_nothrow_move_assignable_v<sourcemeta::core::JSON::Object>);
 }
 
 TEST(type) {
@@ -295,7 +291,7 @@ TEST(key_move_assignment_different_type) {
 
 TEST(all_of_true) {
   sourcemeta::core::JSON document =
-      sourcemeta::core::parse_json("{ \"foo\": 1, \"bar\": 2 }");
+      sourcemeta::core::parse_json(R"({ "foo": 1, "bar": 2 })");
   const bool result =
       std::all_of(document.as_object().begin(), document.as_object().end(),
                   [](auto &pair) { return pair.second.is_integer(); });
@@ -304,7 +300,7 @@ TEST(all_of_true) {
 
 TEST(all_of_with_key_true) {
   sourcemeta::core::JSON document =
-      sourcemeta::core::parse_json("{ \"foo\": 1, \"bar\": 2 }");
+      sourcemeta::core::parse_json(R"({ "foo": 1, "bar": 2 })");
   const bool result =
       std::all_of(document.as_object().begin(), document.as_object().end(),
                   [](auto &pair) { return pair.first.size() > 2; });
@@ -313,7 +309,7 @@ TEST(all_of_with_key_true) {
 
 TEST(all_of_with_key_false) {
   sourcemeta::core::JSON document =
-      sourcemeta::core::parse_json("{ \"f\": 1, \"bar\": 2 }");
+      sourcemeta::core::parse_json(R"({ "f": 1, "bar": 2 })");
   const bool result =
       std::all_of(document.as_object().begin(), document.as_object().end(),
                   [](auto &pair) { return pair.first.size() > 2; });
@@ -323,7 +319,7 @@ TEST(all_of_with_key_false) {
 TEST(const_object_iterator) {
   std::map<std::string, std::int64_t> result;
   const sourcemeta::core::JSON document =
-      sourcemeta::core::parse_json("{ \"foo\": 1, \"bar\": 2 }");
+      sourcemeta::core::parse_json(R"({ "foo": 1, "bar": 2 })");
   for (const auto &pair : document.as_object()) {
     result.insert({pair.first, pair.second.to_integer()});
   }
@@ -336,8 +332,8 @@ TEST(const_object_iterator) {
 TEST(iterator) {
   std::map<std::string, std::int64_t> result;
   sourcemeta::core::JSON document =
-      sourcemeta::core::parse_json("{ \"foo\": 1, \"bar\": 2 }");
-  for (auto &pair : document.as_object()) {
+      sourcemeta::core::parse_json(R"({ "foo": 1, "bar": 2 })");
+  for (const auto &pair : document.as_object()) {
     result.insert({pair.first, pair.second.to_integer()});
   }
 
@@ -357,7 +353,7 @@ TEST(into_object) {
 
 TEST(erase_with_initializer_list) {
   sourcemeta::core::JSON document =
-      sourcemeta::core::parse_json("{\"foo\":true,\"bar\":false,\"baz\":true}");
+      sourcemeta::core::parse_json(R"({"foo":true,"bar":false,"baz":true})");
   EXPECT_TRUE(document.is_object());
   EXPECT_EQ(document.size(), 3);
   EXPECT_EQ(document.object_size(), 3);
@@ -372,7 +368,7 @@ TEST(erase_with_initializer_list) {
 
 TEST(erase_with_vector_iterators) {
   sourcemeta::core::JSON document =
-      sourcemeta::core::parse_json("{\"foo\":true,\"bar\":false,\"baz\":true}");
+      sourcemeta::core::parse_json(R"({"foo":true,"bar":false,"baz":true})");
   EXPECT_TRUE(document.is_object());
   EXPECT_EQ(document.size(), 3);
   EXPECT_EQ(document.object_size(), 3);
@@ -388,7 +384,7 @@ TEST(erase_with_vector_iterators) {
 
 TEST(erase_non_existent) {
   sourcemeta::core::JSON document =
-      sourcemeta::core::parse_json("{\"foo\":true,\"bar\":false,\"baz\":true}");
+      sourcemeta::core::parse_json(R"({"foo":true,"bar":false,"baz":true})");
   EXPECT_TRUE(document.is_object());
   EXPECT_EQ(document.size(), 3);
   EXPECT_EQ(document.object_size(), 3);
@@ -486,7 +482,7 @@ TEST(long_key_move_assignment_hash_collision) {
 
 TEST(clear_except_one_key_initializer_list) {
   sourcemeta::core::JSON document =
-      sourcemeta::core::parse_json("{\"foo\":true,\"bar\":false}");
+      sourcemeta::core::parse_json(R"({"foo":true,"bar":false})");
   EXPECT_TRUE(document.is_object());
   EXPECT_EQ(document.size(), 2);
   EXPECT_EQ(document.object_size(), 2);
@@ -501,7 +497,7 @@ TEST(clear_except_one_key_initializer_list) {
 
 TEST(clear_except_extra_key_initializer_list) {
   sourcemeta::core::JSON document =
-      sourcemeta::core::parse_json("{\"foo\":true,\"bar\":false}");
+      sourcemeta::core::parse_json(R"({"foo":true,"bar":false})");
   EXPECT_TRUE(document.is_object());
   EXPECT_EQ(document.size(), 2);
   EXPECT_EQ(document.object_size(), 2);
@@ -513,7 +509,7 @@ TEST(clear_except_extra_key_initializer_list) {
 
 TEST(clear_except_multiple_intersection_initializer_list) {
   sourcemeta::core::JSON document =
-      sourcemeta::core::parse_json("{\"foo\":1,\"bar\":2,\"baz\":3,\"qux\":4}");
+      sourcemeta::core::parse_json(R"({"foo":1,"bar":2,"baz":3,"qux":4})");
   EXPECT_TRUE(document.is_object());
   EXPECT_EQ(document.size(), 4);
   EXPECT_EQ(document.object_size(), 4);
@@ -532,7 +528,7 @@ TEST(clear_except_multiple_intersection_initializer_list) {
 
 TEST(at_index_using_integer) {
   const sourcemeta::core::JSON document =
-      sourcemeta::core::parse_json("{\"0\":1,\"1\":2,\"2\":3}");
+      sourcemeta::core::parse_json(R"({"0":1,"1":2,"2":3})");
   EXPECT_TRUE(document.is_object());
   EXPECT_EQ(document.size(), 3);
   EXPECT_EQ(document.object_size(), 3);
@@ -549,7 +545,7 @@ TEST(at_index_using_integer) {
 
 TEST(at_index_using_integer_non_const) {
   sourcemeta::core::JSON document =
-      sourcemeta::core::parse_json("{\"0\":1,\"1\":2,\"2\":3}");
+      sourcemeta::core::parse_json(R"({"0":1,"1":2,"2":3})");
   EXPECT_TRUE(document.is_object());
   EXPECT_EQ(document.size(), 3);
   EXPECT_EQ(document.object_size(), 3);
@@ -566,7 +562,7 @@ TEST(at_index_using_integer_non_const) {
 
 TEST(defines_property_using_integer) {
   const sourcemeta::core::JSON document =
-      sourcemeta::core::parse_json("{\"0\":1,\"1\":2,\"2\":3}");
+      sourcemeta::core::parse_json(R"({"0":1,"1":2,"2":3})");
   EXPECT_TRUE(document.is_object());
   EXPECT_EQ(document.size(), 3);
   EXPECT_EQ(document.object_size(), 3);
@@ -746,25 +742,25 @@ TEST(assign_assume_new_rvalue_key_with_hash) {
 
 TEST(estimated_byte_size_integers) {
   const sourcemeta::core::JSON document =
-      sourcemeta::core::parse_json("{ \"foo\": 1, \"bar\": 2 }");
+      sourcemeta::core::parse_json(R"({ "foo": 1, "bar": 2 })");
   EXPECT_EQ(document.estimated_byte_size(), 22);
 }
 
 TEST(estimated_byte_size_nested) {
-  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(
-      "{ \"foo\": 1, \"bar\": { \"bar\": true } }");
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json(R"({ "foo": 1, "bar": { "bar": true } })");
   EXPECT_EQ(document.estimated_byte_size(), 18);
 }
 
 TEST(fast_hash_integers) {
   const sourcemeta::core::JSON document =
-      sourcemeta::core::parse_json("{ \"foo\": 1, \"bar\": 2 }");
+      sourcemeta::core::parse_json(R"({ "foo": 1, "bar": 2 })");
   EXPECT_EQ(document.fast_hash(), 26);
 }
 
 TEST(fast_hash_nested) {
-  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(
-      "{ \"foo\": 1, \"bar\": { \"bar\": true } }");
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json(R"({ "foo": 1, "bar": { "bar": true } })");
   EXPECT_EQ(document.fast_hash(), 32);
 }
 
@@ -1233,7 +1229,7 @@ TEST(reorder_already_ordered) {
 
 TEST(try_at_start_hit) {
   const sourcemeta::core::JSON document =
-      sourcemeta::core::parse_json("{\"foo\":1,\"bar\":2,\"baz\":3}");
+      sourcemeta::core::parse_json(R"({"foo":1,"bar":2,"baz":3})");
   const auto &object{document.as_object()};
   sourcemeta::core::JSON::Object::size_type start{0};
 
@@ -1258,7 +1254,7 @@ TEST(try_at_start_hit) {
 
 TEST(try_at_start_miss) {
   const sourcemeta::core::JSON document =
-      sourcemeta::core::parse_json("{\"foo\":1,\"bar\":2}");
+      sourcemeta::core::parse_json(R"({"foo":1,"bar":2})");
   const auto &object{document.as_object()};
   sourcemeta::core::JSON::Object::size_type start{0};
 
@@ -1270,7 +1266,7 @@ TEST(try_at_start_miss) {
 
 TEST(try_at_start_reverse_order) {
   const sourcemeta::core::JSON document =
-      sourcemeta::core::parse_json("{\"foo\":1,\"bar\":2,\"baz\":3}");
+      sourcemeta::core::parse_json(R"({"foo":1,"bar":2,"baz":3})");
   const auto &object{document.as_object()};
   sourcemeta::core::JSON::Object::size_type start{0};
 
@@ -1308,7 +1304,7 @@ TEST(try_at_start_single_property) {
 
 TEST(try_at_start_wraparound) {
   const sourcemeta::core::JSON document =
-      sourcemeta::core::parse_json("{\"foo\":1,\"bar\":2,\"baz\":3}");
+      sourcemeta::core::parse_json(R"({"foo":1,"bar":2,"baz":3})");
   const auto &object{document.as_object()};
   sourcemeta::core::JSON::Object::size_type start{object.size()};
 
@@ -1321,7 +1317,7 @@ TEST(try_at_start_wraparound) {
 
 TEST(try_at_start_sequential_advances) {
   const sourcemeta::core::JSON document =
-      sourcemeta::core::parse_json("{\"a\":1,\"b\":2,\"c\":3,\"d\":4}");
+      sourcemeta::core::parse_json(R"({"a":1,"b":2,"c":3,"d":4})");
   const auto &object{document.as_object()};
   sourcemeta::core::JSON::Object::size_type start{0};
 
@@ -1350,7 +1346,7 @@ TEST(try_at_start_sequential_advances) {
 
 TEST(defines_with_string_view) {
   const sourcemeta::core::JSON document =
-      sourcemeta::core::parse_json("{\"foo\":1,\"bar\":2}");
+      sourcemeta::core::parse_json(R"({"foo":1,"bar":2})");
   const std::string_view foo{"foo"};
   const std::string_view bar{"bar"};
   const std::string_view qux{"qux"};
@@ -1361,7 +1357,7 @@ TEST(defines_with_string_view) {
 
 TEST(defines_with_string_view_subview) {
   const sourcemeta::core::JSON document =
-      sourcemeta::core::parse_json("{\"foo\":1,\"bar\":2}");
+      sourcemeta::core::parse_json(R"({"foo":1,"bar":2})");
   const std::string buffer{"foobar"};
   const std::string_view foo_view{buffer.data(), 3};
   const std::string_view bar_view{buffer.data() + 3, 3};
@@ -1371,7 +1367,7 @@ TEST(defines_with_string_view_subview) {
 
 TEST(defines_with_string_view_and_hash) {
   const sourcemeta::core::JSON document =
-      sourcemeta::core::parse_json("{\"foo\":1,\"bar\":2}");
+      sourcemeta::core::parse_json(R"({"foo":1,"bar":2})");
   const auto &object{document.as_object()};
   const std::string_view foo{"foo"};
   const auto foo_hash{object.hash(foo)};
@@ -1380,7 +1376,7 @@ TEST(defines_with_string_view_and_hash) {
 
 TEST(at_const_with_string_view) {
   const sourcemeta::core::JSON document =
-      sourcemeta::core::parse_json("{\"foo\":1,\"bar\":2}");
+      sourcemeta::core::parse_json(R"({"foo":1,"bar":2})");
   const std::string_view foo{"foo"};
   const std::string_view bar{"bar"};
   EXPECT_EQ(document.at(foo).to_integer(), 1);
@@ -1389,7 +1385,7 @@ TEST(at_const_with_string_view) {
 
 TEST(at_const_with_string_view_subview) {
   const sourcemeta::core::JSON document =
-      sourcemeta::core::parse_json("{\"foo\":1,\"bar\":2}");
+      sourcemeta::core::parse_json(R"({"foo":1,"bar":2})");
   const std::string buffer{"foobar"};
   const std::string_view foo_view{buffer.data(), 3};
   const std::string_view bar_view{buffer.data() + 3, 3};
@@ -1399,7 +1395,7 @@ TEST(at_const_with_string_view_subview) {
 
 TEST(at_mutable_with_string_view) {
   sourcemeta::core::JSON document =
-      sourcemeta::core::parse_json("{\"foo\":1,\"bar\":2}");
+      sourcemeta::core::parse_json(R"({"foo":1,"bar":2})");
   const std::string_view foo{"foo"};
   document.at(foo) = sourcemeta::core::JSON{42};
   EXPECT_EQ(document.at("foo").to_integer(), 42);
@@ -1407,7 +1403,7 @@ TEST(at_mutable_with_string_view) {
 
 TEST(at_const_with_string_view_and_hash) {
   const sourcemeta::core::JSON document =
-      sourcemeta::core::parse_json("{\"foo\":1,\"bar\":2}");
+      sourcemeta::core::parse_json(R"({"foo":1,"bar":2})");
   const auto &object{document.as_object()};
   const std::string_view foo{"foo"};
   const auto foo_hash{object.hash(foo)};
@@ -1453,7 +1449,7 @@ TEST(assign_with_string_view_subview_key) {
 
 TEST(erase_with_string_view) {
   sourcemeta::core::JSON document =
-      sourcemeta::core::parse_json("{\"foo\":1,\"bar\":2}");
+      sourcemeta::core::parse_json(R"({"foo":1,"bar":2})");
   const std::string_view foo{"foo"};
   document.erase(foo);
   EXPECT_FALSE(document.defines("foo"));
@@ -1462,7 +1458,7 @@ TEST(erase_with_string_view) {
 
 TEST(erase_with_string_view_subview) {
   sourcemeta::core::JSON document =
-      sourcemeta::core::parse_json("{\"foo\":1,\"bar\":2}");
+      sourcemeta::core::parse_json(R"({"foo":1,"bar":2})");
   const std::string buffer{"foobar"};
   const std::string_view foo_view{buffer.data(), 3};
   document.erase(foo_view);

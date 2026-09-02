@@ -2,10 +2,11 @@
 #include <sourcemeta/core/test.h>
 #include <sourcemeta/core/text.h>
 
-#include <string> // std::string
+#include <string>      // std::string
+#include <string_view> // std::string_view
 
 // RFC 7638 Section 3.1: the RSA public key whose thumbprint the RFC publishes
-static const std::string RFC7638_RSA_N{
+static constexpr std::string_view RFC7638_RSA_N{
     "0vx7agoebGcQSuuPiLJXZptN9nndrQmbXEps2aiAFbWhM78LhWx4cbbfAAtVT86zwu1RK"
     "7aPFFxuhDR1L6tSoc_BJECPebWKRXjBZCiFV4n3oknjhMstn64tZ_2W-5JsGY4Hc5n9yB"
     "XArwl93lqt7_RN5w6Cf0h4QyQ5v-65YGjQR0_FDW2QvzqY368QQMicAtaSqzs8KJZgnYb"
@@ -13,30 +14,30 @@ static const std::string RFC7638_RSA_N{
     "M4lFd2NcRwr3XPksINHaQ-G_xBniIqbw0Ls1jF44-csFCur-kEgU8awapJzKnqDKgw"};
 
 // RFC 6979 Appendix A.2.5: the NIST P-256 example key and its public point
-static const std::string P256_D_HEX{
+static constexpr std::string_view P256_D_HEX{
     "c9afa9d845ba75166b5c215767b1d6934e50c3db36e89b127b8a622b120f6721"};
-static const std::string P256_QX_HEX{
+static constexpr std::string_view P256_QX_HEX{
     "60fed4ba255a9d31c961eb74c6356d68c049b8923b61fa6ce669622e60f29fb6"};
-static const std::string P256_QY_HEX{
+static constexpr std::string_view P256_QY_HEX{
     "7903fe1008b8bc99a41ae9e95628bc64f2f1b20c2d7e9f5177a3c294d4462299"};
 
 // A NIST P-384 public point, so the wider field width is exercised too
-static const std::string P384_QX_HEX{
+static constexpr std::string_view P384_QX_HEX{
     "f3fe7867cd5320449ad98b477d19946ed3488a56c89662fce74ff51afaac5ab6"
     "0854755c5af8367f916b67accaa444d1"};
-static const std::string P384_QY_HEX{
+static constexpr std::string_view P384_QY_HEX{
     "0de9485115027c8dea96c921cda5b071e24c1985ad658284fcac8e4d5abe8362"
     "10824b5b4142f383d8e7cc62b7842028"};
 
 // The Ed25519 and Ed448 seeds and public keys from the signing test vectors
-static const std::string ED25519_SEED_HEX{
+static constexpr std::string_view ED25519_SEED_HEX{
     "741ec35ce5e07089ca782f88de00d8103a1cd8e8b116acd8afd922c01bee7867"};
-static const std::string ED25519_PUBLIC_HEX{
+static constexpr std::string_view ED25519_PUBLIC_HEX{
     "48539e4fb623b0d221f8cd7e9c20469c1f55598bb5bb236a8a2cc2661c1d743a"};
-static const std::string ED448_SEED_HEX{
+static constexpr std::string_view ED448_SEED_HEX{
     "7027028140c9eb422935e1d309e01e66670389173da4f66c4016c2492513b4c1"
     "989263ea13250e65a784aa8c01a9960a7416c2e2879b2a2295"};
-static const std::string ED448_PUBLIC_HEX{
+static constexpr std::string_view ED448_PUBLIC_HEX{
     "04a74611a3714c06363868b8801b3c81d1b373ac7621eef20cf2793518450e60"
     "7e455b12f21c98fc5ad5098e15604e4e5236a8a455e1280f00"};
 

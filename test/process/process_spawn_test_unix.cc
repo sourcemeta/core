@@ -39,7 +39,7 @@ TEST(test_command_passing_condition) {
 }
 
 TEST(nonexistent_program_throws_exception) {
-  const auto program{"/bin/this_program_definitely_does_not_exist"};
+  const auto *const program{"/bin/this_program_definitely_does_not_exist"};
   try {
     sourcemeta::core::spawn(program, {});
     FAIL();
@@ -55,16 +55,15 @@ TEST(echo_with_arguments) {
 
 TEST(argument_with_spaces_is_a_single_argument) {
   const int exit_code{sourcemeta::core::spawn(
-      "/bin/sh",
-      {"-c", "test \"$#\" -eq 1 && test \"$1\" = \"alpha beta gamma\"", "sh",
-       "alpha beta gamma"})};
+      "/bin/sh", {"-c", R"(test "$#" -eq 1 && test "$1" = "alpha beta gamma")",
+                  "sh", "alpha beta gamma"})};
   EXPECT_EQ(exit_code, 0);
 }
 
 TEST(empty_argument_is_preserved) {
   const int exit_code{sourcemeta::core::spawn(
       "/bin/sh",
-      {"-c", "test \"$#\" -eq 2 && test -z \"$1\"", "sh", "", "second"})};
+      {"-c", R"(test "$#" -eq 2 && test -z "$1")", "sh", "", "second"})};
   EXPECT_EQ(exit_code, 0);
 }
 

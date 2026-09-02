@@ -400,7 +400,7 @@ TEST(consecutive_greater_than) {
 }
 
 TEST(consecutive_double_quotes) {
-  std::string text = "\"\"\"";
+  std::string text = R"(""")";
   sourcemeta::core::html_escape(text);
   EXPECT_EQ(text, "&quot;&quot;&quot;");
 }

@@ -1,6 +1,10 @@
 #include <sourcemeta/core/test.h>
 #include <sourcemeta/core/time.h>
 
+#include <string_view> // std::string_view
+
+using namespace std::literals::string_view_literals;
+
 TEST(valid_basic) {
   EXPECT_TRUE(sourcemeta::core::is_rfc3339_fulldate("2024-01-15"));
 }
@@ -340,8 +344,7 @@ TEST(length_11_trailing_cr) {
 }
 
 TEST(length_11_trailing_nul) {
-  EXPECT_FALSE(sourcemeta::core::is_rfc3339_fulldate(
-      std::string_view("2020-01-01\x00", 11)));
+  EXPECT_FALSE(sourcemeta::core::is_rfc3339_fulldate("2020-01-01\x00"sv));
 }
 
 TEST(length_11_leading_newline) {
@@ -632,18 +635,19 @@ TEST(both_separators_newline) {
 }
 
 TEST(first_separator_nul) {
-  EXPECT_FALSE(sourcemeta::core::is_rfc3339_fulldate(
-      std::string_view("2020\x0001-01", 10)));
+  EXPECT_FALSE(sourcemeta::core::is_rfc3339_fulldate("2020\x00"
+                                                     "01-01"sv));
 }
 
 TEST(second_separator_nul) {
-  EXPECT_FALSE(sourcemeta::core::is_rfc3339_fulldate(
-      std::string_view("2020-01\x0001", 10)));
+  EXPECT_FALSE(sourcemeta::core::is_rfc3339_fulldate("2020-01\x00"
+                                                     "01"sv));
 }
 
 TEST(both_separators_nul) {
-  EXPECT_FALSE(sourcemeta::core::is_rfc3339_fulldate(
-      std::string_view("2020\x0001\x0001", 10)));
+  EXPECT_FALSE(sourcemeta::core::is_rfc3339_fulldate("2020\x00"
+                                                     "01\x00"
+                                                     "01"sv));
 }
 
 TEST(digit_slot_year_d1_alpha) {
@@ -667,8 +671,8 @@ TEST(digit_slot_year_d1_slash) {
 }
 
 TEST(digit_slot_year_d1_nul) {
-  EXPECT_FALSE(sourcemeta::core::is_rfc3339_fulldate(
-      std::string_view("\x00020-01-01", 10)));
+  EXPECT_FALSE(sourcemeta::core::is_rfc3339_fulldate("\x00"
+                                                     "020-01-01"sv));
 }
 
 TEST(digit_slot_year_d2_alpha) {
@@ -692,8 +696,8 @@ TEST(digit_slot_year_d2_slash) {
 }
 
 TEST(digit_slot_year_d2_nul) {
-  EXPECT_FALSE(sourcemeta::core::is_rfc3339_fulldate(
-      std::string_view("2\x0020-01-01", 10)));
+  EXPECT_FALSE(sourcemeta::core::is_rfc3339_fulldate("2\x00"
+                                                     "20-01-01"sv));
 }
 
 TEST(digit_slot_year_d3_alpha) {
@@ -717,8 +721,8 @@ TEST(digit_slot_year_d3_slash) {
 }
 
 TEST(digit_slot_year_d3_nul) {
-  EXPECT_FALSE(sourcemeta::core::is_rfc3339_fulldate(
-      std::string_view("20\x000-01-01", 10)));
+  EXPECT_FALSE(sourcemeta::core::is_rfc3339_fulldate("20\x00"
+                                                     "0-01-01"sv));
 }
 
 TEST(digit_slot_year_d4_alpha) {
@@ -742,8 +746,8 @@ TEST(digit_slot_year_d4_slash) {
 }
 
 TEST(digit_slot_year_d4_nul) {
-  EXPECT_FALSE(sourcemeta::core::is_rfc3339_fulldate(
-      std::string_view("202\x00-01-01", 10)));
+  EXPECT_FALSE(sourcemeta::core::is_rfc3339_fulldate("202\x00"
+                                                     "-01-01"sv));
 }
 
 TEST(digit_slot_month_d1_alpha) {
@@ -767,8 +771,8 @@ TEST(digit_slot_month_d1_slash) {
 }
 
 TEST(digit_slot_month_d1_nul) {
-  EXPECT_FALSE(sourcemeta::core::is_rfc3339_fulldate(
-      std::string_view("2020-\x001-01", 10)));
+  EXPECT_FALSE(sourcemeta::core::is_rfc3339_fulldate("2020-\x00"
+                                                     "1-01"sv));
 }
 
 TEST(digit_slot_month_d2_alpha) {
@@ -792,8 +796,8 @@ TEST(digit_slot_month_d2_slash) {
 }
 
 TEST(digit_slot_month_d2_nul) {
-  EXPECT_FALSE(sourcemeta::core::is_rfc3339_fulldate(
-      std::string_view("2020-0\x00-01", 10)));
+  EXPECT_FALSE(sourcemeta::core::is_rfc3339_fulldate("2020-0\x00"
+                                                     "-01"sv));
 }
 
 TEST(digit_slot_day_d1_alpha) {
@@ -817,8 +821,8 @@ TEST(digit_slot_day_d1_slash) {
 }
 
 TEST(digit_slot_day_d1_nul) {
-  EXPECT_FALSE(sourcemeta::core::is_rfc3339_fulldate(
-      std::string_view("2020-01-\x001", 10)));
+  EXPECT_FALSE(sourcemeta::core::is_rfc3339_fulldate("2020-01-\x00"
+                                                     "1"sv));
 }
 
 TEST(digit_slot_day_d2_alpha) {
@@ -842,8 +846,7 @@ TEST(digit_slot_day_d2_slash) {
 }
 
 TEST(digit_slot_day_d2_nul) {
-  EXPECT_FALSE(sourcemeta::core::is_rfc3339_fulldate(
-      std::string_view("2020-01-0\x00", 10)));
+  EXPECT_FALSE(sourcemeta::core::is_rfc3339_fulldate("2020-01-0\x00"sv));
 }
 
 TEST(month_second_digit_colon_lands_in_range) {

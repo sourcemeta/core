@@ -37,13 +37,16 @@ struct CurveParameters {
 
 auto to_curve(const std::string_view name) -> std::optional<CurveParameters> {
   if (name == "secp256r1") {
-    return CurveParameters{sourcemeta::core::EllipticCurve::P256, 32};
+    return CurveParameters{.curve = sourcemeta::core::EllipticCurve::P256,
+                           .coordinate_bytes = 32};
   }
   if (name == "secp384r1") {
-    return CurveParameters{sourcemeta::core::EllipticCurve::P384, 48};
+    return CurveParameters{.curve = sourcemeta::core::EllipticCurve::P384,
+                           .coordinate_bytes = 48};
   }
   if (name == "secp521r1") {
-    return CurveParameters{sourcemeta::core::EllipticCurve::P521, 66};
+    return CurveParameters{.curve = sourcemeta::core::EllipticCurve::P521,
+                           .coordinate_bytes = 66};
   }
   return std::nullopt;
 }
@@ -736,29 +739,45 @@ struct EcdhCurve {
 auto to_ecdh_curve(const std::string_view name) -> std::optional<EcdhCurve> {
   if (name == "secp256r1") {
     return EcdhCurve{
-        sourcemeta::core::EllipticCurve::P256, 32,
-        "00809c461d8b39163537ff8f5ef5b977e4cdb980e70e38a7ee0b37cc876729e9ff",
-        "0468ae7706221e5990f7484d34fbec5a99050179a6c11817bbed4aed962998ff",
-        "b5228d89a1b448f12332376c8c7f080763532a055e07f14a5de0dc30104579e1"};
+        .curve = sourcemeta::core::EllipticCurve::P256,
+        .field_bytes = 32,
+        .private_scalar = "00809c461d8b39163537ff8f5ef5b977e4cdb980e70e38a7ee0b"
+                          "37cc876729e9ff",
+        .coordinate_x =
+            "0468ae7706221e5990f7484d34fbec5a99050179a6c11817bbed4aed962998ff",
+        .coordinate_y =
+            "b5228d89a1b448f12332376c8c7f080763532a055e07f14a5de0dc30104579e1"};
   }
   if (name == "secp384r1") {
-    return EcdhCurve{sourcemeta::core::EllipticCurve::P384, 48,
-                     "00c1781d86cac2c052b7e4f48cef415c5c133052f4e504397e75e4d7"
-                     "cd0ca149da0b4988b8a6ded5ceae4b580691376187",
-                     "29eb9c63a12322cd99de0e8e3c11e6c8a486b1008181be4c825f38b3"
-                     "71e6f03e2926cd60e9a9ccd42e1aa8799d2ef3a7",
-                     "9d045f3a3df974743268be650fbaf68c7045a483093ce2e289903097"
-                     "396f040058faacb723eb493b5b631bc365c5fc49"};
+    return EcdhCurve{
+        .curve = sourcemeta::core::EllipticCurve::P384,
+        .field_bytes = 48,
+        .private_scalar =
+            "00c1781d86cac2c052b7e4f48cef415c5c133052f4e504397e75e4d7"
+            "cd0ca149da0b4988b8a6ded5ceae4b580691376187",
+        .coordinate_x =
+            "29eb9c63a12322cd99de0e8e3c11e6c8a486b1008181be4c825f38b3"
+            "71e6f03e2926cd60e9a9ccd42e1aa8799d2ef3a7",
+        .coordinate_y =
+            "9d045f3a3df974743268be650fbaf68c7045a483093ce2e289903097"
+            "396f040058faacb723eb493b5b631bc365c5fc49"};
   }
   if (name == "secp521r1") {
     return EcdhCurve{
-        sourcemeta::core::EllipticCurve::P521, 66,
-        "01781d86cac2c052b7e4f48cef415c5c1319e07db70db92a497c2ac764e9509ac0b073"
-        "22801f5ae1f28c9d7db71f79e5f51bf646790af988d62339a6d1543192e327",
-        "0026e4bc8e3dfcb2898f9fb71eb373199ecd58b13b66c221110819bd05159eb5e3b8d1"
-        "376f7d5151db140b3cdae698bca9683f3d041164fe0e3dba0d2f02d6643adb",
-        "010a3f1fcb6dbccc773d143d454347145a9bec498e7a5e2d412095b9350c58d8e9411e"
-        "a85afe4c56053ad35d8be4230f5e2718365f43dbd2ed44b096a90bfc6227b6"};
+        .curve = sourcemeta::core::EllipticCurve::P521,
+        .field_bytes = 66,
+        .private_scalar =
+            "01781d86cac2c052b7e4f48cef415c5c1319e07db70db92a497c2ac764e9509ac0"
+            "b073"
+            "22801f5ae1f28c9d7db71f79e5f51bf646790af988d62339a6d1543192e327",
+        .coordinate_x =
+            "0026e4bc8e3dfcb2898f9fb71eb373199ecd58b13b66c221110819bd05159eb5e3"
+            "b8d1"
+            "376f7d5151db140b3cdae698bca9683f3d041164fe0e3dba0d2f02d6643adb",
+        .coordinate_y =
+            "010a3f1fcb6dbccc773d143d454347145a9bec498e7a5e2d412095b9350c58d8e9"
+            "411e"
+            "a85afe4c56053ad35d8be4230f5e2718365f43dbd2ed44b096a90bfc6227b6"};
   }
   return std::nullopt;
 }

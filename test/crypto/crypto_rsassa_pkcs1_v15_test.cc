@@ -8,9 +8,9 @@
 
 // A 2048-bit test key with the usual public exponent, along with
 // signatures over the message below, one per supported hash function
-static const std::string MESSAGE{"sourcemeta core JWS signing input"};
+static constexpr std::string_view MESSAGE{"sourcemeta core JWS signing input"};
 
-static const std::string MODULUS_HEX{
+static constexpr std::string_view MODULUS_HEX{
     "c18bb08bad1c930bb6eed38f60299c28f28e0dabf53557fa8ac9a63044413a3c"
     "74671a8b316ec972b25faa13826b10e0d78f90da1b697805202faf58c5768361"
     "ad0006364e5f5bbf6e95a222f894be4cdccfe52aca34b48a1f92a1192214f78e"
@@ -20,9 +20,9 @@ static const std::string MODULUS_HEX{
     "4fa1506e0d5d5d9c7f531112485219c783228ae9b81ff65725513d559131ee06"
     "c5299d6531d0b9abe13ee19924f1fa47f25136fc948daf0cac721a277255af3d"};
 
-static const std::string EXPONENT_HEX{"010001"};
+static constexpr std::string_view EXPONENT_HEX{"010001"};
 
-static const std::string SIGNATURE_SHA256_HEX{
+static constexpr std::string_view SIGNATURE_SHA256_HEX{
     "b03580590d438d7a0cec9dbaf9046414c8474ec5bfa0809ce456036110730d72"
     "1ce914ccda9da01d80d4f21490a1e9263391f434ede0c901d4bfcf983b8ad1c1"
     "cc97d879a0315b0b69ee13c5a2fd2ddfce4d407d65351a902f90630eb398a2d6"
@@ -32,7 +32,7 @@ static const std::string SIGNATURE_SHA256_HEX{
     "7080b42118a2380d03d58f488a4241f1624cbda93d9f50b95fbd0f2ff7e35b54"
     "f0c410dd41988958e0400e20442efdd2f8a7c963b9e874f50bf489b553269ba4"};
 
-static const std::string SIGNATURE_SHA384_HEX{
+static constexpr std::string_view SIGNATURE_SHA384_HEX{
     "6ef5d288aaead69bf4743721be8ade1b3d1e49070655159cba6d0c856a9c189f"
     "70d0862d18904b8ed991a8e6c29fc93493b59123da80ef8d20434c08fea261d6"
     "fa403cee6f322fc1d0dd23398f11df9e39456f08a2576b7b5b7051927769593f"
@@ -42,7 +42,7 @@ static const std::string SIGNATURE_SHA384_HEX{
     "c847a79311730949ae988a0665f009f17f6cd417f4885cdf7739a8f5f8d481ea"
     "5185cab358b6bd0605fcb868ec912e11f20e679d01310379ae0fbd71c16d94bf"};
 
-static const std::string SIGNATURE_SHA512_HEX{
+static constexpr std::string_view SIGNATURE_SHA512_HEX{
     "2b4e81f5f54a1e152b2369679c124869d0c9b8548bd561ad0f8db31c037126d3"
     "b122cca0202891ec827a14ecbbe3fa76dfb2aec9884eb45a54888f9f39614b73"
     "ca55cd270fa538a81a1c841757f390c8d04973e8eea09d35b6b95172c3a10545"
@@ -92,7 +92,9 @@ TEST(verify_exponent_with_leading_zeros) {
   EXPECT_TRUE(verify_pkcs1(
       sourcemeta::core::SignatureHashFunction::SHA256,
       sourcemeta::core::hex_to_bytes(MODULUS_HEX).value(),
-      sourcemeta::core::hex_to_bytes("00000000" + EXPONENT_HEX).value(),
+      sourcemeta::core::hex_to_bytes(
+          std::string{"00000000"}.append(EXPONENT_HEX))
+          .value(),
       MESSAGE, sourcemeta::core::hex_to_bytes(SIGNATURE_SHA256_HEX).value()));
 }
 
@@ -191,7 +193,8 @@ TEST(verify_rejects_empty_message) {
 TEST(verify_modulus_with_leading_zeros) {
   EXPECT_TRUE(verify_pkcs1(
       sourcemeta::core::SignatureHashFunction::SHA256,
-      sourcemeta::core::hex_to_bytes("0000" + MODULUS_HEX).value(),
+      sourcemeta::core::hex_to_bytes(std::string{"0000"}.append(MODULUS_HEX))
+          .value(),
       sourcemeta::core::hex_to_bytes(EXPONENT_HEX).value(), MESSAGE,
       sourcemeta::core::hex_to_bytes(SIGNATURE_SHA256_HEX).value()));
 }
@@ -222,7 +225,9 @@ TEST(verify_rejects_a_zero_padded_signature) {
       sourcemeta::core::SignatureHashFunction::SHA256,
       sourcemeta::core::hex_to_bytes(MODULUS_HEX).value(),
       sourcemeta::core::hex_to_bytes(EXPONENT_HEX).value(), MESSAGE,
-      sourcemeta::core::hex_to_bytes("00" + SIGNATURE_SHA256_HEX).value()));
+      sourcemeta::core::hex_to_bytes(
+          std::string{"00"}.append(SIGNATURE_SHA256_HEX))
+          .value()));
 }
 
 TEST(verify_rejects_a_truncated_signature) {

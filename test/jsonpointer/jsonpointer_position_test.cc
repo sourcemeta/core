@@ -3,7 +3,7 @@
 #include <sourcemeta/core/test.h>
 
 TEST(track_1) {
-  const auto input{R"JSON([
+  const auto *const input{R"JSON([
   {
     "foo": {
       "bar": 3
@@ -39,7 +39,7 @@ TEST(track_1) {
 }
 
 TEST(track_index_token_against_object_member) {
-  const auto input{R"JSON({ "0": 1 })JSON"};
+  const auto *const input{R"JSON({ "0": 1 })JSON"};
 
   sourcemeta::core::PointerPositionTracker tracker;
   sourcemeta::core::JSON result{nullptr};
@@ -55,7 +55,7 @@ TEST(track_index_token_against_object_member) {
 }
 
 TEST(track_index_token_against_array_element) {
-  const auto input{R"JSON([ 10, 20 ])JSON"};
+  const auto *const input{R"JSON([ 10, 20 ])JSON"};
 
   sourcemeta::core::PointerPositionTracker tracker;
   sourcemeta::core::JSON result{nullptr};
@@ -68,7 +68,7 @@ TEST(track_index_token_against_array_element) {
 }
 
 TEST(to_json_1) {
-  const auto input{R"JSON([
+  const auto *const input{R"JSON([
   {
     "foo": {
       "bar": 3

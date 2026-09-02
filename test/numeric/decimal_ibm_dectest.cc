@@ -3,6 +3,7 @@
 #include <sourcemeta/core/test.h>
 
 #include <algorithm>   // std::transform, std::any_of
+#include <array>       // std::array
 #include <cctype>      // std::tolower, std::isalnum
 #include <cstddef>     // std::size_t
 #include <filesystem>  // std::filesystem
@@ -12,26 +13,25 @@
 #include <string_view> // std::string_view
 #include <vector>      // std::vector
 
-static constexpr std::string_view SUPPORTED_OPERATIONS[] = {
-    "compare",     "add",      "subtract",   "multiply",     "divide",
-    "remainder",   "minus",    "plus",       "abs",          "tointegral",
-    "tointegralx", "tosci",    "toeng",      "copy",         "copyabs",
-    "copynegate",  "copysign", "comparesig", "comparetotal", "comparetotmag",
-    "max",         "min",      "maxmag",     "minmag",       "divideint",
-    "samequantum", "logb",     "scaleb",     "reduce",       "trim"};
+static constexpr std::array<std::string_view, 30> SUPPORTED_OPERATIONS{
+    {"compare",     "add",      "subtract",   "multiply",     "divide",
+     "remainder",   "minus",    "plus",       "abs",          "tointegral",
+     "tointegralx", "tosci",    "toeng",      "copy",         "copyabs",
+     "copynegate",  "copysign", "comparesig", "comparetotal", "comparetotmag",
+     "max",         "min",      "maxmag",     "minmag",       "divideint",
+     "samequantum", "logb",     "scaleb",     "reduce",       "trim"}};
 
-static constexpr std::string_view UNARY_OPERATIONS[] = {
-    "minus", "plus",   "abs",  "tointegral", "tointegralx",
-    "tosci", "toeng",  "copy", "copyabs",    "copynegate",
-    "logb",  "reduce", "trim"};
+static constexpr std::array<std::string_view, 13> UNARY_OPERATIONS{
+    {"minus", "plus", "abs", "tointegral", "tointegralx", "tosci", "toeng",
+     "copy", "copyabs", "copynegate", "logb", "reduce", "trim"}};
 
-static constexpr std::string_view SKIP_CONDITIONS[] = {
-    "inexact",   "rounded", "overflow",           "underflow",
-    "subnormal", "clamped", "division_impossible"};
+static constexpr std::array<std::string_view, 7> SKIP_CONDITIONS{
+    {"inexact", "rounded", "overflow", "underflow", "subnormal", "clamped",
+     "division_impossible"}};
 
-static constexpr std::string_view KNOWN_DIRECTIVES[] = {
-    "precision", "rounding", "maxexponent", "minexponent",
-    "extended",  "clamp",    "version",     "dectest"};
+static constexpr std::array<std::string_view, 8> KNOWN_DIRECTIVES{
+    {"precision", "rounding", "maxexponent", "minexponent", "extended", "clamp",
+     "version", "dectest"}};
 
 struct DecTestCase {
   std::string id;
@@ -93,7 +93,7 @@ static auto count_significant_digits(const std::string &value) -> std::size_t {
     if (character == 'e' || character == 'E') {
       in_exponent = true;
     } else if (!in_exponent &&
-               std::isdigit(static_cast<unsigned char>(character))) {
+               (std::isdigit(static_cast<unsigned char>(character)) != 0)) {
       if (character != '0' || found_nonzero) {
         found_nonzero = true;
         count++;
@@ -185,7 +185,8 @@ static auto run_comparison(const DecTestCase &test_case, bool signal_on_nan)
 }
 
 template <typename Operation>
-static auto run_binary(const DecTestCase &test_case, Operation op) -> void {
+static auto run_binary(const DecTestCase &test_case, Operation operation)
+    -> void {
   const auto has_invalid{
       has_condition(test_case.conditions, "invalid_operation") ||
       has_condition(test_case.conditions, "division_undefined")};
@@ -194,19 +195,21 @@ static auto run_binary(const DecTestCase &test_case, Operation op) -> void {
 
   if (has_invalid) {
     try {
-      const auto result{op(make_decimal(test_case.operand1),
-                           make_decimal(test_case.operand2))};
+      const auto result{operation(make_decimal(test_case.operand1),
+                                  make_decimal(test_case.operand2))};
       EXPECT_TRUE(result.is_nan());
     } catch (const sourcemeta::core::NumericInvalidOperationError &) {
+      // Signalling the condition rather than returning NaN is expected too
     } catch (const sourcemeta::core::NumericDivisionByZeroError &) {
+      // Signalling the condition rather than returning NaN is expected too
     }
     return;
   }
 
   if (has_divzero) {
     try {
-      const auto result{op(make_decimal(test_case.operand1),
-                           make_decimal(test_case.operand2))};
+      const auto result{operation(make_decimal(test_case.operand1),
+                                  make_decimal(test_case.operand2))};
       const auto expected_value{make_decimal(test_case.expected)};
       if (expected_value.is_infinite() && result.is_infinite()) {
         EXPECT_EQ(result.is_signed(), expected_value.is_signed());
@@ -214,27 +217,30 @@ static auto run_binary(const DecTestCase &test_case, Operation op) -> void {
         FAIL();
       }
     } catch (const sourcemeta::core::NumericDivisionByZeroError &) {
+      // Signalling the condition rather than returning infinity is expected too
     }
     return;
   }
 
   const auto expected_value{make_decimal(test_case.expected)};
-  const auto result{
-      op(make_decimal(test_case.operand1), make_decimal(test_case.operand2))};
+  const auto result{operation(make_decimal(test_case.operand1),
+                              make_decimal(test_case.operand2))};
   expect_decimal_eq(result, expected_value);
 }
 
 template <typename Operation>
-static auto run_unary(const DecTestCase &test_case, Operation op) -> void {
+static auto run_unary(const DecTestCase &test_case, Operation operation)
+    -> void {
   if (has_condition(test_case.conditions, "invalid_operation")) {
     try {
-      EXPECT_TRUE(op(make_decimal(test_case.operand1)).is_nan());
+      EXPECT_TRUE(operation(make_decimal(test_case.operand1)).is_nan());
     } catch (const sourcemeta::core::NumericInvalidOperationError &) {
+      // Signalling the condition rather than returning NaN is expected too
     }
     return;
   }
 
-  expect_decimal_eq(op(make_decimal(test_case.operand1)),
+  expect_decimal_eq(operation(make_decimal(test_case.operand1)),
                     make_decimal(test_case.expected));
 }
 
@@ -250,6 +256,7 @@ static auto run_conversion(const DecTestCase &test_case) -> void {
       const auto result{sourcemeta::core::Decimal{input}};
       EXPECT_TRUE(result.is_nan());
     } catch (const sourcemeta::core::DecimalParseError &) {
+      // Rejecting the operand outright is expected too
     }
     return;
   }
@@ -276,6 +283,7 @@ static auto run_logb(const DecTestCase &test_case) -> void {
       static_cast<void>(result);
       FAIL();
     } catch (const sourcemeta::core::NumericDivisionByZeroError &) {
+      // Signalling the condition rather than returning infinity is expected too
     }
     return;
   }
@@ -560,7 +568,7 @@ static auto nan_payload_digits(const std::string &operand) -> std::size_t {
   std::size_t count{0};
   bool found_nonzero{false};
   for (auto index = position + 3; index < lower.size(); index++) {
-    if (!std::isdigit(static_cast<unsigned char>(lower[index]))) {
+    if (std::isdigit(static_cast<unsigned char>(lower[index])) == 0) {
       break;
     }
 
@@ -675,7 +683,7 @@ auto main(int argc, char **argv) -> int {
       continue;
     }
 
-    const auto filepath{entry.path()};
+    const auto &filepath{entry.path()};
     if (filepath.extension() != ".decTest") {
       continue;
     }

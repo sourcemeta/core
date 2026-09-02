@@ -13,9 +13,9 @@
 #include <utility>       // std::move
 
 TEST(general_traits) {
-  EXPECT_FALSE(std::is_default_constructible<sourcemeta::core::JSON>::value);
-  EXPECT_TRUE(std::is_destructible<sourcemeta::core::JSON>::value);
-  EXPECT_TRUE(std::is_nothrow_destructible<sourcemeta::core::JSON>::value);
+  EXPECT_FALSE(std::is_default_constructible_v<sourcemeta::core::JSON>);
+  EXPECT_TRUE(std::is_destructible_v<sourcemeta::core::JSON>);
+  EXPECT_TRUE(std::is_nothrow_destructible_v<sourcemeta::core::JSON>);
 }
 
 // BIG WARNING! Increase this number will make projects like Blaze slower,
@@ -28,16 +28,15 @@ TEST(size) {
 }
 
 TEST(copy_traits) {
-  EXPECT_TRUE(std::is_copy_assignable<sourcemeta::core::JSON>::value);
-  EXPECT_TRUE(std::is_copy_constructible<sourcemeta::core::JSON>::value);
-  EXPECT_FALSE(std::is_nothrow_copy_assignable<sourcemeta::core::JSON>::value);
-  EXPECT_FALSE(
-      std::is_nothrow_copy_constructible<sourcemeta::core::JSON>::value);
+  EXPECT_TRUE(std::is_copy_assignable_v<sourcemeta::core::JSON>);
+  EXPECT_TRUE(std::is_copy_constructible_v<sourcemeta::core::JSON>);
+  EXPECT_FALSE(std::is_nothrow_copy_assignable_v<sourcemeta::core::JSON>);
+  EXPECT_FALSE(std::is_nothrow_copy_constructible_v<sourcemeta::core::JSON>);
 }
 
 TEST(move_traits) {
-  EXPECT_TRUE(std::is_move_assignable<sourcemeta::core::JSON>::value);
-  EXPECT_TRUE(std::is_move_constructible<sourcemeta::core::JSON>::value);
+  EXPECT_TRUE(std::is_move_assignable_v<sourcemeta::core::JSON>);
+  EXPECT_TRUE(std::is_move_constructible_v<sourcemeta::core::JSON>);
 }
 
 TEST(copy_equivalence_assignment) {
@@ -227,7 +226,7 @@ TEST(compare_object_object_different) {
   const sourcemeta::core::JSON left =
       sourcemeta::core::parse_json("{\"foo\":1}");
   const sourcemeta::core::JSON right =
-      sourcemeta::core::parse_json("{\"foo\":1, \"bar\":2}");
+      sourcemeta::core::parse_json(R"({"foo":1, "bar":2})");
   EXPECT_TRUE(left < right);
   EXPECT_FALSE(right < left);
 }
@@ -389,7 +388,7 @@ TEST(try_at) {
   const sourcemeta::core::JSON document =
       sourcemeta::core::parse_json("{\"foo\":5}");
   EXPECT_TRUE(document.is_object());
-  const auto result = document.try_at("foo");
+  const auto *const result = document.try_at("foo");
   EXPECT_TRUE(result);
   EXPECT_EQ(result->to_integer(), 5);
 }
@@ -398,14 +397,14 @@ TEST(try_at_fail) {
   const sourcemeta::core::JSON document =
       sourcemeta::core::parse_json("{\"foo\":5}");
   EXPECT_TRUE(document.is_object());
-  const auto result = document.try_at("boo");
+  const auto *const result = document.try_at("boo");
   EXPECT_FALSE(result);
 }
 
 TEST(try_at_mutable) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json("{\"foo\":5}");
   EXPECT_TRUE(document.is_object());
-  const auto result = document.try_at("foo");
+  auto *const result = document.try_at("foo");
   EXPECT_TRUE(result);
   EXPECT_EQ(result->to_integer(), 5);
   result->into(sourcemeta::core::JSON{7});
@@ -415,7 +414,7 @@ TEST(try_at_mutable) {
 TEST(try_at_mutable_fail) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json("{\"foo\":5}");
   EXPECT_TRUE(document.is_object());
-  const auto result = document.try_at("boo");
+  auto *const result = document.try_at("boo");
   EXPECT_FALSE(result);
 }
 
@@ -423,7 +422,7 @@ TEST(try_at_mutable_string_view) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json("{\"foo\":5}");
   EXPECT_TRUE(document.is_object());
   const sourcemeta::core::JSON::StringView key{"foo"};
-  const auto result = document.try_at(key);
+  auto *const result = document.try_at(key);
   EXPECT_TRUE(result);
   EXPECT_EQ(result->to_integer(), 5);
   result->into(sourcemeta::core::JSON{7});
@@ -433,7 +432,7 @@ TEST(try_at_mutable_string_view) {
 TEST(try_at_mutable_with_hash) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json("{\"foo\":5}");
   EXPECT_TRUE(document.is_object());
-  const auto result = document.try_at("foo", document.as_object().hash("foo"));
+  auto *const result = document.try_at("foo", document.as_object().hash("foo"));
   EXPECT_TRUE(result);
   EXPECT_EQ(result->to_integer(), 5);
   result->into(sourcemeta::core::JSON{7});
@@ -443,7 +442,7 @@ TEST(try_at_mutable_with_hash) {
 TEST(try_at_mutable_with_hash_fail) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json("{\"foo\":5}");
   EXPECT_TRUE(document.is_object());
-  const auto result = document.try_at("boo", document.as_object().hash("boo"));
+  auto *const result = document.try_at("boo", document.as_object().hash("boo"));
   EXPECT_FALSE(result);
 }
 
@@ -451,7 +450,7 @@ TEST(try_at_mutable_string_view_with_hash) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json("{\"foo\":5}");
   EXPECT_TRUE(document.is_object());
   const sourcemeta::core::JSON::StringView key{"foo"};
-  const auto result = document.try_at(key, document.as_object().hash(key));
+  auto *const result = document.try_at(key, document.as_object().hash(key));
   EXPECT_TRUE(result);
   EXPECT_EQ(result->to_integer(), 5);
   result->into(sourcemeta::core::JSON{7});
@@ -700,7 +699,8 @@ TEST(copies_deeply_nested_array_without_stack_overflow) {
   deep.push_back('0');
   deep.append(DEPTH, ']');
   auto document = sourcemeta::core::parse_json(deep);
-  auto copy = document;
+  // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
+  const auto copy = document;
   EXPECT_TRUE(copy.is_array());
 }
 
@@ -714,7 +714,8 @@ TEST(copies_deeply_nested_object_without_stack_overflow) {
   deep.push_back('0');
   deep.append(DEPTH, '}');
   auto document = sourcemeta::core::parse_json(deep);
-  auto copy = document;
+  // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
+  const auto copy = document;
   EXPECT_TRUE(copy.is_object());
 }
 
@@ -784,7 +785,8 @@ TEST(direct_list_inits_deeply_nested_array_without_stack_overflow) {
   deep.push_back('0');
   deep.append(DEPTH, ']');
   auto source = sourcemeta::core::parse_json(deep);
-  sourcemeta::core::JSON copy{source};
+  // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
+  const sourcemeta::core::JSON copy{source};
   EXPECT_TRUE(copy.is_array());
 }
 
@@ -841,6 +843,7 @@ TEST(copy_assign_decimal_over_object) {
 TEST(deep_copy_of_a_nested_object) {
   const auto document{sourcemeta::core::parse_json(
       R"JSON([ { "a": { "b": [ 1, 2 ] } }, 3 ])JSON")};
+  // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
   const sourcemeta::core::JSON copy{document};
   EXPECT_EQ(copy, document);
   EXPECT_EQ(copy.at(0).at("a").at("b").at(1).to_integer(), 2);
@@ -893,6 +896,7 @@ TEST(real_below_int64_range_throws_on_as_integer) {
     static_cast<void>(value.as_integer());
     FAIL();
   } catch (const std::out_of_range &) {
+    // Refusing the out of range value is expected
   }
 }
 

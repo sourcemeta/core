@@ -4,12 +4,13 @@
 #include <sourcemeta/core/oauth.h>
 #include <sourcemeta/core/test.h>
 
-#include <array>    // std::array
-#include <chrono>   // std::chrono::system_clock, std::chrono::seconds
-#include <optional> // std::optional
-#include <sstream>  // std::ostringstream
-#include <string>   // std::string
-#include <utility>  // std::move
+#include <array>       // std::array
+#include <chrono>      // std::chrono::system_clock, std::chrono::seconds
+#include <optional>    // std::optional
+#include <sstream>     // std::ostringstream
+#include <string>      // std::string
+#include <string_view> // std::string_view
+#include <utility>     // std::move
 
 static constexpr std::string_view EC_PRIVATE_JWK{
     R"({"kty":"EC","crv":"P-256",)"
@@ -35,7 +36,7 @@ static constexpr std::string_view OCT_JWK{
 static constexpr std::string_view OTHER_THUMBPRINT{
     "0ZcOCORZNYy-DWpqq30jZyJGHTN0d2HglBV3uiguA4I"};
 
-static const std::string RSA_PRIVATE_JWK{
+static constexpr std::string_view RSA_PRIVATE_JWK{
     R"({"kty":"RSA",)"
     R"("n":"n-ivWLN0CTSLXc7GNcHGOuZHdu6QcGT3SlFTaf2ckxLVEDcAU4fIez7rKtvZaCzp)"
     R"(KJ6cb5KZnDcIn-gOCrE0FI6OZdCvgAGNqoFH6D1AANk8lWSFc1bWoti5xzXls2IN4fDRDa)"

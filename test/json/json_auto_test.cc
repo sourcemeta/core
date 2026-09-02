@@ -30,7 +30,7 @@ struct ClassWithCustomMethod {
       -> bool = default;
 };
 
-enum class SampleEnum { Foo = 0, Bar = 1, Baz = 2 };
+enum class SampleEnum : std::uint8_t { Foo = 0, Bar = 1, Baz = 2 };
 
 TEST(class_with_custom_method) {
   const ClassWithCustomMethod value;
@@ -65,7 +65,7 @@ TEST(json) {
 }
 
 TEST(from_constructor) {
-  const auto value{"foo bar"};
+  const auto *const value{"foo bar"};
   const auto result{sourcemeta::core::to_json(value)};
   const sourcemeta::core::JSON expected{"foo bar"};
   EXPECT_EQ(result, expected);

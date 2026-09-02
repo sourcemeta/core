@@ -23,7 +23,7 @@ auto evaluate_nodes(const sourcemeta::core::JSONPath &path,
       document,
       [&result](const sourcemeta::core::JSON &value,
                 const sourcemeta::core::WeakPointer &location) -> void {
-        result.push_back({&value, location});
+        result.push_back({.value = &value, .location = location});
       });
   return result;
 }

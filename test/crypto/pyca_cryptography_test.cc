@@ -52,13 +52,16 @@ struct CurveParameters {
 
 auto to_curve(const std::string_view name) -> std::optional<CurveParameters> {
   if (name == "P-256") {
-    return CurveParameters{sourcemeta::core::EllipticCurve::P256, 32};
+    return CurveParameters{.curve = sourcemeta::core::EllipticCurve::P256,
+                           .coordinate_bytes = 32};
   }
   if (name == "P-384") {
-    return CurveParameters{sourcemeta::core::EllipticCurve::P384, 48};
+    return CurveParameters{.curve = sourcemeta::core::EllipticCurve::P384,
+                           .coordinate_bytes = 48};
   }
   if (name == "P-521") {
-    return CurveParameters{sourcemeta::core::EllipticCurve::P521, 66};
+    return CurveParameters{.curve = sourcemeta::core::EllipticCurve::P521,
+                           .coordinate_bytes = 66};
   }
   return std::nullopt;
 }
@@ -215,7 +218,7 @@ auto register_sha_msg_tests(const std::filesystem::path &file_path,
     } else if (field->first == "MD") {
       const auto expected_digest{std::string{field->second}};
       const auto empty_message{current_length == "0"};
-      const auto message_hex{current_message_hex};
+      const auto &message_hex{current_message_hex};
 
       register_case(suite_name, "len_" + current_length, [=]() {
         const auto message{
@@ -272,8 +275,9 @@ auto register_sha_monte_tests(const std::filesystem::path &file_path,
         for (std::uint64_t iteration{3}; iteration <= 1002; ++iteration) {
           std::string next;
           if (multi_part_digest == nullptr) {
-            next = sourcemeta::core::hex_to_bytes(digest(md_0 + md_1 + md_2))
-                       .value();
+            std::string message{md_0};
+            message.append(md_1).append(md_2);
+            next = sourcemeta::core::hex_to_bytes(digest(message)).value();
           } else {
             const std::array<std::string_view, 3> parts{{md_0, md_1, md_2}};
             const auto raw_digest{multi_part_digest(parts)};
@@ -332,8 +336,8 @@ auto register_hmac_tests(const std::filesystem::path &file_path,
       message_hex = field->second;
     } else if (field->first == "MD") {
       const auto expected_tag{std::string{field->second}};
-      const auto current_key{key_hex};
-      const auto current_message{message_hex};
+      const auto &current_key{key_hex};
+      const auto &current_message{message_hex};
       case_count += 1;
       register_case(suite_name, "case_" + std::to_string(case_count), [=]() {
         const auto key{sourcemeta::core::hex_to_bytes(current_key).value()};
@@ -696,8 +700,8 @@ auto register_eddsa_448_tests(const std::filesystem::path &file_path) -> void {
         return;
       }
 
-      const auto public_key{public_key_hex};
-      const auto message{message_hex};
+      const auto &public_key{public_key_hex};
+      const auto &message{message_hex};
       const auto signature{signature_hex};
       register_case("PyCA_Cryptography_Ed448_SigVer", "count_" + current_count,
                     [=]() {
@@ -786,8 +790,8 @@ auto register_eddsa_448_sign_tests(const std::filesystem::path &file_path)
         return;
       }
 
-      const auto seed{secret_hex};
-      const auto message{message_hex};
+      const auto &seed{secret_hex};
+      const auto &message{message_hex};
       const std::string expected_signature_hex{value};
       register_case(
           "PyCA_Cryptography_Ed448_SigGen", "count_" + current_count, [=]() {

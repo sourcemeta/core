@@ -13,6 +13,7 @@
 
 TEST(processes_all_elements_once) {
   std::vector<std::size_t> items;
+  items.reserve(20);
   for (std::size_t index = 0; index < 20; index++) {
     items.push_back(index);
   }
@@ -23,7 +24,7 @@ TEST(processes_all_elements_once) {
   sourcemeta::core::parallel_for_each(
       items.cbegin(), items.cend(),
       [&mutex, &processed](const auto value, const auto, const auto) {
-        std::lock_guard<std::mutex> lock{mutex};
+        std::scoped_lock lock{mutex};
         processed.push_back(value);
       });
 
@@ -34,6 +35,7 @@ TEST(processes_all_elements_once) {
 
 TEST(processes_all_elements_once_concurrency_1) {
   std::vector<std::size_t> items;
+  items.reserve(20);
   for (std::size_t index = 0; index < 20; index++) {
     items.push_back(index);
   }
@@ -47,7 +49,7 @@ TEST(processes_all_elements_once_concurrency_1) {
       items.cbegin(), items.cend(),
       [&mutex, &processed, &parallelism,
        &cursors](const auto value, const auto concurrency, const auto cursor) {
-        std::lock_guard<std::mutex> lock{mutex};
+        std::scoped_lock lock{mutex};
         processed.push_back(value);
         parallelism.emplace(concurrency);
         cursors.push_back(cursor - 1);

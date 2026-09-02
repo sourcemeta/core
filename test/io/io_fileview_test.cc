@@ -43,8 +43,8 @@ TEST(as_with_offset) {
 
 TEST(file_not_found) {
   try {
-    sourcemeta::core::FileView(std::filesystem::path{STUBS_DIRECTORY} /
-                               "nonexistent.bin");
+    const sourcemeta::core::FileView view{
+        std::filesystem::path{STUBS_DIRECTORY} / "nonexistent.bin"};
     FAIL();
   } catch (const sourcemeta::core::FileViewError &error) {
     EXPECT_EQ(error.path(),

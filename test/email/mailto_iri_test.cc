@@ -46,7 +46,7 @@ TEST(mailto_iri_rfc_quoted_at_sign) {
 // RFC 6068 §6.2: email address "oh\\no"@example.org corresponds to
 // <mailto:%22oh%5C%5Cno%22@example.org>
 TEST(mailto_iri_rfc_quoted_backslash_pairs) {
-  const auto result{sourcemeta::core::mailto_iri("\"oh\\\\no\"@example.org")};
+  const auto result{sourcemeta::core::mailto_iri(R"("oh\\no"@example.org)")};
   EXPECT_TRUE(result.has_value());
   EXPECT_EQ(result.value(), "mailto:%22oh%5C%5Cno%22@example.org");
 }
@@ -54,8 +54,8 @@ TEST(mailto_iri_rfc_quoted_backslash_pairs) {
 // RFC 6068 §6.2: email address "\\\"it's\ ugly\\\""@example.org corresponds
 // to <mailto:%22%5C%5C%5C%22it's%5C%20ugly%5C%5C%5C%22%22@example.org>
 TEST(mailto_iri_rfc_quoted_ugly_address) {
-  const auto result{sourcemeta::core::mailto_iri(
-      "\"\\\\\\\"it's\\ ugly\\\\\\\"\"@example.org")};
+  const auto result{
+      sourcemeta::core::mailto_iri(R"("\\\"it's\ ugly\\\""@example.org)")};
   EXPECT_TRUE(result.has_value());
   EXPECT_EQ(result.value(),
             "mailto:%22%5C%5C%5C%22it's%5C%20ugly%5C%5C%5C%22%22@example.org");
@@ -278,7 +278,7 @@ TEST(mailto_iri_encodes_quoted_angle_brackets) {
 // RFC 5321 §4.1.2: quoted-pairSMTP = %d92 %d32-126, the backslash cannot
 // appear in a URI and is percent-encoded
 TEST(mailto_iri_encodes_quoted_pair) {
-  const auto result{sourcemeta::core::mailto_iri("\"\\a\"@example.com")};
+  const auto result{sourcemeta::core::mailto_iri(R"("\a"@example.com)")};
   EXPECT_TRUE(result.has_value());
   EXPECT_EQ(result.value(), "mailto:%22%5Ca%22@example.com");
 }

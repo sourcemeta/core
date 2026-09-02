@@ -63,7 +63,7 @@ TEST(build_par_request_emits_a_challenge_without_a_method) {
 
 TEST(build_par_request_emits_extension_parameters) {
   const std::array<sourcemeta::core::OAuthParameter, 1> extra{
-      {{"nonce", "n-0S6_WzA2Mj"}}};
+      {{.name = "nonce", .value = "n-0S6_WzA2Mj"}}};
   sourcemeta::core::OAuthAuthorizationRequest request;
   request.scope = "read";
   request.extra = extra;
@@ -108,8 +108,8 @@ TEST(build_par_request_honors_a_custom_response_type) {
 
 TEST(build_par_request_emits_repeatable_resources) {
   const std::array<sourcemeta::core::OAuthParameter, 2> resources{
-      {{"resource", "https://api.example"},
-       {"resource", "https://other.example"}}};
+      {{.name = "resource", .value = "https://api.example"},
+       {.name = "resource", .value = "https://other.example"}}};
   sourcemeta::core::OAuthAuthorizationRequest request;
   request.scope = "read";
   request.resources = resources;
@@ -122,7 +122,8 @@ TEST(build_par_request_emits_repeatable_resources) {
 
 TEST(build_par_request_drops_a_smuggled_request_uri) {
   const std::array<sourcemeta::core::OAuthParameter, 2> extra{
-      {{"request_uri", "urn:evil"}, {"nonce", "n-0S6"}}};
+      {{.name = "request_uri", .value = "urn:evil"},
+       {.name = "nonce", .value = "n-0S6"}}};
   sourcemeta::core::OAuthAuthorizationRequest request;
   request.scope = "read";
   request.extra = extra;

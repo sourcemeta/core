@@ -51,6 +51,7 @@ TEST(iterator) {
 
 TEST(copy_constructor) {
   const sourcemeta::core::URITemplate original{"http://example.com/{id}"};
+  // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
   const sourcemeta::core::URITemplate copy{original};
 
   EXPECT_EQ(copy.size(), 2);

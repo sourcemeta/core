@@ -14,6 +14,11 @@ auto bytes(const std::string_view hexadecimal) -> std::string {
   return sourcemeta::core::hex_to_bytes(hexadecimal).value();
 }
 
+// RFC 5869 §2.3: the expand step emits at most 255 blocks of the hash length
+constexpr std::size_t MAXIMUM_SHA256_OUTPUT{std::size_t{255} * 32};
+constexpr std::size_t MAXIMUM_SHA384_OUTPUT{std::size_t{255} * 48};
+constexpr std::size_t MAXIMUM_SHA512_OUTPUT{std::size_t{255} * 64};
+
 template <std::size_t Size>
 auto to_hex(const std::array<std::uint8_t, Size> &digest) -> std::string {
   return sourcemeta::core::bytes_to_hex(
@@ -138,22 +143,22 @@ TEST(hkdf_sha256_absent_salt_equals_a_zero_filled_one) {
 
 // RFC 5869 §2.3: L is at most 255*HashLen octets
 TEST(hkdf_sha256_maximum_output_length) {
-  const auto okm{
-      sourcemeta::core::hkdf_sha256(bytes(CASE_1_IKM), "", "", 255 * 32)};
+  const auto okm{sourcemeta::core::hkdf_sha256(bytes(CASE_1_IKM), "", "",
+                                               MAXIMUM_SHA256_OUTPUT)};
   EXPECT_TRUE(okm.has_value());
-  EXPECT_EQ(okm.value().size(), static_cast<std::size_t>(255 * 32));
+  EXPECT_EQ(okm.value().size(), MAXIMUM_SHA256_OUTPUT);
 }
 
 TEST(hkdf_sha256_output_length_past_the_maximum) {
-  EXPECT_FALSE(
-      sourcemeta::core::hkdf_sha256(bytes(CASE_1_IKM), "", "", 255 * 32 + 1)
-          .has_value());
+  EXPECT_FALSE(sourcemeta::core::hkdf_sha256(bytes(CASE_1_IKM), "", "",
+                                             MAXIMUM_SHA256_OUTPUT + 1)
+                   .has_value());
 }
 
 TEST(hkdf_sha256_expand_output_length_past_the_maximum) {
-  EXPECT_FALSE(
-      sourcemeta::core::hkdf_sha256_expand(bytes(CASE_1_PRK), "", 255 * 32 + 1)
-          .has_value());
+  EXPECT_FALSE(sourcemeta::core::hkdf_sha256_expand(bytes(CASE_1_PRK), "",
+                                                    MAXIMUM_SHA256_OUTPUT + 1)
+                   .has_value());
 }
 
 // RFC 5869 §2.3: the pseudorandom key is at least HashLen octets
@@ -186,16 +191,16 @@ TEST(hkdf_sha384_extract_produces_a_digest_sized_key) {
 }
 
 TEST(hkdf_sha384_maximum_output_length) {
-  const auto okm{
-      sourcemeta::core::hkdf_sha384(bytes(CASE_1_IKM), "", "", 255 * 48)};
+  const auto okm{sourcemeta::core::hkdf_sha384(bytes(CASE_1_IKM), "", "",
+                                               MAXIMUM_SHA384_OUTPUT)};
   EXPECT_TRUE(okm.has_value());
-  EXPECT_EQ(okm.value().size(), static_cast<std::size_t>(255 * 48));
+  EXPECT_EQ(okm.value().size(), MAXIMUM_SHA384_OUTPUT);
 }
 
 TEST(hkdf_sha384_output_length_past_the_maximum) {
-  EXPECT_FALSE(
-      sourcemeta::core::hkdf_sha384(bytes(CASE_1_IKM), "", "", 255 * 48 + 1)
-          .has_value());
+  EXPECT_FALSE(sourcemeta::core::hkdf_sha384(bytes(CASE_1_IKM), "", "",
+                                             MAXIMUM_SHA384_OUTPUT + 1)
+                   .has_value());
 }
 
 TEST(hkdf_sha512_extract_produces_a_digest_sized_key) {
@@ -205,16 +210,16 @@ TEST(hkdf_sha512_extract_produces_a_digest_sized_key) {
 }
 
 TEST(hkdf_sha512_maximum_output_length) {
-  const auto okm{
-      sourcemeta::core::hkdf_sha512(bytes(CASE_1_IKM), "", "", 255 * 64)};
+  const auto okm{sourcemeta::core::hkdf_sha512(bytes(CASE_1_IKM), "", "",
+                                               MAXIMUM_SHA512_OUTPUT)};
   EXPECT_TRUE(okm.has_value());
-  EXPECT_EQ(okm.value().size(), static_cast<std::size_t>(255 * 64));
+  EXPECT_EQ(okm.value().size(), MAXIMUM_SHA512_OUTPUT);
 }
 
 TEST(hkdf_sha512_output_length_past_the_maximum) {
-  EXPECT_FALSE(
-      sourcemeta::core::hkdf_sha512(bytes(CASE_1_IKM), "", "", 255 * 64 + 1)
-          .has_value());
+  EXPECT_FALSE(sourcemeta::core::hkdf_sha512(bytes(CASE_1_IKM), "", "",
+                                             MAXIMUM_SHA512_OUTPUT + 1)
+                   .has_value());
 }
 
 // Each width is a distinct derivation from the same inputs

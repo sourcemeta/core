@@ -171,7 +171,7 @@ TEST(set_relative_path) {
                  "You cannot set a relative path to an absolute URI");
   }
 
-  auto path{"../foo"};
+  const auto *path{"../foo"};
   try {
     uri.path(path);
     FAIL();
@@ -321,7 +321,7 @@ TEST(lowercase_relative_path) {
   EXPECT_EQ(uri.recompose(), "../SERVER.JSON");
   uri.path("../server.json");
   EXPECT_EQ(uri.recompose(), "../server.json");
-  const auto const_path{"../foo.json"};
+  const auto *const const_path{"../foo.json"};
   uri.path(const_path);
   EXPECT_EQ(uri.recompose(), "../foo.json");
 }

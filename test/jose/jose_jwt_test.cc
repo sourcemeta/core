@@ -354,7 +354,7 @@ TEST(rejects_critical_header) {
 
 TEST(constructor_throws_on_invalid_input) {
   try {
-    sourcemeta::core::JWT{"abc.def"};
+    const sourcemeta::core::JWT token{"abc.def"};
     FAIL();
   } catch (const sourcemeta::core::JWTParseError &error) {
     EXPECT_STREQ(error.what(), "The input is not a valid JSON Web Token");

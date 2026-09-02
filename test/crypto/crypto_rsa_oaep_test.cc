@@ -7,7 +7,7 @@
 
 // A 2048-bit RSA test key in unencrypted PKCS#8, from which the public key is
 // derived for the encryption side of each round trip
-static const std::string PRIVATE_KEY_PEM{
+static constexpr std::string_view PRIVATE_KEY_PEM{
     R"(-----BEGIN PRIVATE KEY-----
 MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCwidOHq7tHMyQk
 rKtggHsdpTNL7fv+Rjlve5AgNGbTDMJCWga7LbOxS1B/iaOVyn7pNX4+XVXgRGYG
@@ -40,7 +40,7 @@ VoqHMouZBlcLfRprpPpQWlay
 
 // A 2048-bit key whose PKCS#8 algorithm is id-RSASSA-PSS rather than
 // rsaEncryption, so it is restricted to PSS and must refuse OAEP decryption
-static const std::string PSS_RESTRICTED_PRIVATE_KEY_PEM{
+static constexpr std::string_view PSS_RESTRICTED_PRIVATE_KEY_PEM{
     R"(-----BEGIN PRIVATE KEY-----
 MIIEugIBADALBgkqhkiG9w0BAQoEggSmMIIEogIBAAKCAQEAmLPlf54G5cTEBgZs
 sMSaCFtdTcy0Yjv6HAHK0BLYqdsnff6WMGmuSDdNZ/Oh++a3hTGV6ZdpvNFEo1MD

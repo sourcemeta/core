@@ -5,6 +5,8 @@
 #include <string>      // std::string
 #include <string_view> // std::string_view
 
+// The key material is binary, so it can only come from decoding at runtime
+// NOLINTBEGIN(cert-err58-cpp,bugprone-throwing-static-initialization)
 static const std::string KEK_128{
     sourcemeta::core::hex_to_bytes("000102030405060708090a0b0c0d0e0f").value()};
 
@@ -26,6 +28,7 @@ static const std::string OTHER_KEK_128{
 // The key being wrapped, a 128-bit content encryption key
 static const std::string KEY{
     sourcemeta::core::hex_to_bytes("00112233445566778899aabbccddeeff").value()};
+// NOLINTEND(cert-err58-cpp,bugprone-throwing-static-initialization)
 
 TEST(aes_key_wrap_round_trips_with_a_128_bit_kek) {
   const auto wrapped{sourcemeta::core::aes_key_wrap(KEK_128, KEY)};

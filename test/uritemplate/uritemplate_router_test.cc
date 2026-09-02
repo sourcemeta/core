@@ -1706,6 +1706,7 @@ TEST(listing_iterate_via_size_and_at) {
   router.add("/c/{+rest}", "op_202", 30);
 
   std::vector<sourcemeta::core::URITemplateRouter::Identifier> seen;
+  seen.reserve(router.size());
   for (std::size_t index = 0; index < router.size(); ++index) {
     seen.push_back(router.at(index));
   }

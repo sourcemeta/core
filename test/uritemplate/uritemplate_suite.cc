@@ -145,7 +145,9 @@ auto register_tests(const sourcemeta::core::JSON &document,
       std::ostringstream test_name;
       test_name << prefix << "_";
       for (const auto character : entry.first) {
-        test_name << (std::isalnum(character) ? character : '_');
+        test_name << ((std::isalnum(static_cast<unsigned char>(character)) != 0)
+                          ? character
+                          : '_');
       }
 
       test_name << "_testcase_" << index;

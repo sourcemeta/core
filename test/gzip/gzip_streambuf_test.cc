@@ -208,7 +208,7 @@ TEST(output_size_32768) {
 
 TEST(output_size_one_megabyte) {
   std::string input;
-  input.resize(1024 * 1024);
+  input.resize(std::size_t{1024} * 1024);
   for (std::size_t index = 0; index < input.size(); ++index) {
     input[index] = static_cast<char>(index & 0xff);
   }
@@ -240,6 +240,8 @@ TEST(highly_compressible_repeated_byte) {
 }
 
 TEST(incompressible_random_bytes) {
+  // A fixed seed keeps the incompressible payload identical across runs
+  // NOLINTNEXTLINE(cert-msc32-c,cert-msc51-cpp,bugprone-random-generator-seed)
   std::mt19937 generator{42};
   std::uniform_int_distribution<int> distribution{0, 255};
   std::string input;
@@ -1197,5 +1199,6 @@ TEST(truncated_trailer_throws) {
     decompress_via_stream(compressed);
     FAIL();
   } catch (const sourcemeta::core::GZIPError &) {
+    // Rejecting the corrupt stream is expected
   }
 }

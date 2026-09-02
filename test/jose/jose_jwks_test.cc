@@ -49,14 +49,15 @@ TEST(parses_multiple_keys) {
   EXPECT_TRUE(rsa->key_id().has_value());
   EXPECT_EQ(rsa->key_id().value(), "rsa-1");
 
-  const auto *ec{keys.value().find("ec-1")};
-  EXPECT_NE(ec, nullptr);
-  EXPECT_EQ(ec->type(), sourcemeta::core::JWK::Type::EllipticCurve);
-  EXPECT_EQ(ec->curve(), "P-256");
-  EXPECT_TRUE(ec->algorithm().has_value());
-  EXPECT_EQ(ec->algorithm().value(), sourcemeta::core::JWSAlgorithm::ES256);
-  EXPECT_TRUE(ec->key_id().has_value());
-  EXPECT_EQ(ec->key_id().value(), "ec-1");
+  const auto *elliptic_curve{keys.value().find("ec-1")};
+  EXPECT_NE(elliptic_curve, nullptr);
+  EXPECT_EQ(elliptic_curve->type(), sourcemeta::core::JWK::Type::EllipticCurve);
+  EXPECT_EQ(elliptic_curve->curve(), "P-256");
+  EXPECT_TRUE(elliptic_curve->algorithm().has_value());
+  EXPECT_EQ(elliptic_curve->algorithm().value(),
+            sourcemeta::core::JWSAlgorithm::ES256);
+  EXPECT_TRUE(elliptic_curve->key_id().has_value());
+  EXPECT_EQ(elliptic_curve->key_id().value(), "ec-1");
 }
 
 TEST(skips_unsupported_key) {
@@ -246,7 +247,7 @@ TEST(from_accepts_rvalue) {
 TEST(constructor_throws_on_invalid_input) {
   const auto document{sourcemeta::core::parse_json(R"("not an object")")};
   try {
-    sourcemeta::core::JWKS{document};
+    const sourcemeta::core::JWKS keys{document};
     FAIL();
   } catch (const sourcemeta::core::JWKSParseError &error) {
     EXPECT_STREQ(error.what(), "The input is not a valid JSON Web Key Set");

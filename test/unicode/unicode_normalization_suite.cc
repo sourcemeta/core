@@ -75,27 +75,27 @@ auto run_normalization_test_case(const std::string_view raw_line) -> void {
   // Per the NormalizationTest.txt header, the NFC invariants over the
   // five columns are:
   //
-  //   c2 == toNFC(c1) == toNFC(c2) == toNFC(c3)
-  //   c4 == toNFC(c4) == toNFC(c5)
+  //   column2 == toNFC(column1) == toNFC(column2) == toNFC(column3)
+  //   column4 == toNFC(column4) == toNFC(column5)
   //
   // and a codepoint is in NFC iff its NFC form equals itself.
-  const auto &c1{fields[0]};
-  const auto &c2{fields[1]};
-  const auto &c3{fields[2]};
-  const auto &c4{fields[3]};
-  const auto &c5{fields[4]};
+  const auto &column1{fields[0]};
+  const auto &column2{fields[1]};
+  const auto &column3{fields[2]};
+  const auto &column4{fields[3]};
+  const auto &column5{fields[4]};
 
-  EXPECT_EQ(sourcemeta::core::nfc(c1), c2);
-  EXPECT_EQ(sourcemeta::core::nfc(c2), c2);
-  EXPECT_EQ(sourcemeta::core::nfc(c3), c2);
-  EXPECT_EQ(sourcemeta::core::nfc(c4), c4);
-  EXPECT_EQ(sourcemeta::core::nfc(c5), c4);
+  EXPECT_EQ(sourcemeta::core::nfc(column1), column2);
+  EXPECT_EQ(sourcemeta::core::nfc(column2), column2);
+  EXPECT_EQ(sourcemeta::core::nfc(column3), column2);
+  EXPECT_EQ(sourcemeta::core::nfc(column4), column4);
+  EXPECT_EQ(sourcemeta::core::nfc(column5), column4);
 
-  EXPECT_TRUE(sourcemeta::core::is_nfc(c2));
-  EXPECT_TRUE(sourcemeta::core::is_nfc(c4));
-  EXPECT_EQ(sourcemeta::core::is_nfc(c1), c1 == c2);
-  EXPECT_EQ(sourcemeta::core::is_nfc(c3), c3 == c2);
-  EXPECT_EQ(sourcemeta::core::is_nfc(c5), c5 == c4);
+  EXPECT_TRUE(sourcemeta::core::is_nfc(column2));
+  EXPECT_TRUE(sourcemeta::core::is_nfc(column4));
+  EXPECT_EQ(sourcemeta::core::is_nfc(column1), column1 == column2);
+  EXPECT_EQ(sourcemeta::core::is_nfc(column3), column3 == column2);
+  EXPECT_EQ(sourcemeta::core::is_nfc(column5), column5 == column4);
 }
 
 auto register_tests(const std::string_view contents) -> void {

@@ -85,7 +85,7 @@ TEST(array_element_to_integer_copy) {
 
 TEST(hyphen_property_in_object) {
   sourcemeta::core::JSON document =
-      sourcemeta::core::parse_json("{ \"foo\": { \"-\": 1 } }");
+      sourcemeta::core::parse_json(R"({ "foo": { "-": 1 } })");
   const sourcemeta::core::Pointer pointer{"foo", "-"};
   sourcemeta::core::set(document, pointer, sourcemeta::core::JSON{2});
   EXPECT_TRUE(document.is_object());

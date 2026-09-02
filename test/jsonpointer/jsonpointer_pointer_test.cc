@@ -6,29 +6,25 @@
 #include <unordered_set>
 
 TEST(general_traits) {
-  EXPECT_TRUE(std::is_default_constructible<sourcemeta::core::Pointer>::value);
+  EXPECT_TRUE(std::is_default_constructible_v<sourcemeta::core::Pointer>);
   EXPECT_TRUE(
-      std::is_nothrow_default_constructible<sourcemeta::core::Pointer>::value);
-  EXPECT_TRUE(std::is_destructible<sourcemeta::core::Pointer>::value);
-  EXPECT_TRUE(std::is_nothrow_destructible<sourcemeta::core::Pointer>::value);
+      std::is_nothrow_default_constructible_v<sourcemeta::core::Pointer>);
+  EXPECT_TRUE(std::is_destructible_v<sourcemeta::core::Pointer>);
+  EXPECT_TRUE(std::is_nothrow_destructible_v<sourcemeta::core::Pointer>);
 }
 
 TEST(copy_traits) {
-  EXPECT_TRUE(std::is_copy_assignable<sourcemeta::core::Pointer>::value);
-  EXPECT_TRUE(std::is_copy_constructible<sourcemeta::core::Pointer>::value);
-  EXPECT_FALSE(
-      std::is_nothrow_copy_assignable<sourcemeta::core::Pointer>::value);
-  EXPECT_FALSE(
-      std::is_nothrow_copy_constructible<sourcemeta::core::Pointer>::value);
+  EXPECT_TRUE(std::is_copy_assignable_v<sourcemeta::core::Pointer>);
+  EXPECT_TRUE(std::is_copy_constructible_v<sourcemeta::core::Pointer>);
+  EXPECT_FALSE(std::is_nothrow_copy_assignable_v<sourcemeta::core::Pointer>);
+  EXPECT_FALSE(std::is_nothrow_copy_constructible_v<sourcemeta::core::Pointer>);
 }
 
 TEST(move_traits) {
-  EXPECT_TRUE(std::is_move_assignable<sourcemeta::core::Pointer>::value);
-  EXPECT_TRUE(std::is_move_constructible<sourcemeta::core::Pointer>::value);
-  EXPECT_TRUE(
-      std::is_nothrow_move_assignable<sourcemeta::core::Pointer>::value);
-  EXPECT_TRUE(
-      std::is_nothrow_move_constructible<sourcemeta::core::Pointer>::value);
+  EXPECT_TRUE(std::is_move_assignable_v<sourcemeta::core::Pointer>);
+  EXPECT_TRUE(std::is_move_constructible_v<sourcemeta::core::Pointer>);
+  EXPECT_TRUE(std::is_nothrow_move_assignable_v<sourcemeta::core::Pointer>);
+  EXPECT_TRUE(std::is_nothrow_move_constructible_v<sourcemeta::core::Pointer>);
 }
 
 TEST(empty) {

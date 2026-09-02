@@ -139,8 +139,8 @@ TEST(etag_with_comma_inside_quotes_not_split_into_pieces) {
 }
 
 TEST(escaped_quote_in_quoted_string_handled) {
-  const std::string_view header{"\"a\\\"b,c\", \"xyz\""};
-  const std::string_view token{"\"a\\\"b,c\""};
+  const std::string_view header{R"("a\"b,c", "xyz")"};
+  const std::string_view token{R"("a\"b,c")"};
   EXPECT_TRUE(sourcemeta::core::http_field_list_contains_any(header, {token}));
 }
 

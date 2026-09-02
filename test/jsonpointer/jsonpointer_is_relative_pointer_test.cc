@@ -1,7 +1,9 @@
 #include <sourcemeta/core/jsonpointer.h>
 #include <sourcemeta/core/test.h>
 
-#include <string_view>
+#include <string_view> // std::string_view
+
+using namespace std::literals::string_view_literals;
 
 TEST(valid_zero) { EXPECT_TRUE(sourcemeta::core::is_relative_pointer("0")); }
 
@@ -421,29 +423,26 @@ TEST(valid_tab_inside_reference_token) {
 
 // embedded NUL - legal in a token; a truncating validator would differ
 TEST(valid_nul_inside_reference_token) {
-  static constexpr char VALUE[]{"0/foo\x00"
-                                "bar"};
-  static_assert(sizeof(VALUE) - 1 == 9,
+  static constexpr auto VALUE{"0/foo\x00"
+                              "bar"sv};
+  static_assert(VALUE.size() == 9,
                 "string literal length changed - check \\xNN escaping");
-  EXPECT_TRUE(
-      sourcemeta::core::is_relative_pointer(std::string_view{VALUE, 9}));
+  EXPECT_TRUE(sourcemeta::core::is_relative_pointer(VALUE));
 }
 
 TEST(invalid_nul_then_dangling_tilde) {
-  static constexpr char VALUE[]{"0/foo\x00~"};
-  static_assert(sizeof(VALUE) - 1 == 7,
+  static constexpr auto VALUE{"0/foo\x00~"sv};
+  static_assert(VALUE.size() == 7,
                 "string literal length changed - check \\xNN escaping");
-  EXPECT_FALSE(
-      sourcemeta::core::is_relative_pointer(std::string_view{VALUE, 7}));
+  EXPECT_FALSE(sourcemeta::core::is_relative_pointer(VALUE));
 }
 
 TEST(invalid_nul_before_integer) {
-  static constexpr char VALUE[]{"\x00"
-                                "0"};
-  static_assert(sizeof(VALUE) - 1 == 2,
+  static constexpr auto VALUE{"\x00"
+                              "0"sv};
+  static_assert(VALUE.size() == 2,
                 "string literal length changed - check \\xNN escaping");
-  EXPECT_FALSE(
-      sourcemeta::core::is_relative_pointer(std::string_view{VALUE, 2}));
+  EXPECT_FALSE(sourcemeta::core::is_relative_pointer(VALUE));
 }
 
 // escape sequences inherited from RFC 6901 section 3 through the wrapper

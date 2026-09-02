@@ -83,12 +83,12 @@ TEST(parent_is_a_file) {
   const sourcemeta::core::TemporaryDirectory unique_parent{
       std::filesystem::path{BUILD_DIRECTORY}, ".test-parent-"};
   const auto file_path{unique_parent.path() / "test_parent_file"};
-  std::ofstream{file_path};
+  const std::ofstream stream{file_path};
   EXPECT_TRUE(std::filesystem::exists(file_path));
   EXPECT_FALSE(std::filesystem::is_directory(file_path));
 
   try {
-    sourcemeta::core::TemporaryDirectory(file_path, ".test-");
+    const sourcemeta::core::TemporaryDirectory directory{file_path, ".test-"};
     FAIL();
   } catch (const sourcemeta::core::IONotADirectoryError &error) {
     EXPECT_EQ(error.path(), file_path);
