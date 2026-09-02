@@ -783,7 +783,8 @@ TEST(direct_list_inits_deeply_nested_array_without_stack_overflow) {
   deep.push_back('0');
   deep.append(DEPTH, ']');
   auto source = sourcemeta::core::parse_json(deep);
-  const sourcemeta::core::JSON &copy{source};
+  // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
+  const sourcemeta::core::JSON copy{source};
   EXPECT_TRUE(copy.is_array());
 }
 
@@ -840,7 +841,8 @@ TEST(copy_assign_decimal_over_object) {
 TEST(deep_copy_of_a_nested_object) {
   const auto document{sourcemeta::core::parse_json(
       R"JSON([ { "a": { "b": [ 1, 2 ] } }, 3 ])JSON")};
-  const sourcemeta::core::JSON &copy{document};
+  // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
+  const sourcemeta::core::JSON copy{document};
   EXPECT_EQ(copy, document);
   EXPECT_EQ(copy.at(0).at("a").at("b").at(1).to_integer(), 2);
 }

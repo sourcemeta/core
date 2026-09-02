@@ -48,13 +48,15 @@ TEST(from_path) {
 TEST(survives_copy) {
   const auto original{
       sourcemeta::core::URI::from_iri("https://example.com/caf\xC3\xA9")};
-  const sourcemeta::core::URI &copy{original};
+  // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
+  const sourcemeta::core::URI copy{original};
   EXPECT_TRUE(copy.is_internationalized());
 }
 
 TEST(plain_uri_survives_copy) {
   const sourcemeta::core::URI original{"https://example.com/foo"};
-  const sourcemeta::core::URI &copy{original};
+  // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
+  const sourcemeta::core::URI copy{original};
   EXPECT_FALSE(copy.is_internationalized());
 }
 

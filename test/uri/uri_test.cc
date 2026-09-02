@@ -19,13 +19,15 @@ TEST(default_constructor_equals_empty_string) {
 
 TEST(copy_constructor) {
   const sourcemeta::core::URI uri_1{"https://example.com"};
-  const sourcemeta::core::URI &uri_2{uri_1};
+  // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
+  const sourcemeta::core::URI uri_2{uri_1};
   EXPECT_EQ(uri_1.recompose(), uri_2.recompose());
 }
 
 TEST(copy_constructor_empty) {
   const sourcemeta::core::URI uri_1;
-  const sourcemeta::core::URI &uri_2{uri_1};
+  // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
+  const sourcemeta::core::URI uri_2{uri_1};
   EXPECT_TRUE(uri_2.empty());
   EXPECT_EQ(uri_1, uri_2);
 }

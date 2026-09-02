@@ -282,7 +282,8 @@ TEST(jsonpath_evaluate_deep_name_chain_document) {
 TEST(jsonpath_evaluate_copy_construction) {
   const auto document{sourcemeta::core::parse_json(R"JSON({ "a": 1 })JSON")};
   const sourcemeta::core::JSONPath original{"$.a"};
-  const sourcemeta::core::JSONPath &copy{original};
+  // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
+  const sourcemeta::core::JSONPath copy{original};
   EXPECT_EQ(evaluate_nodes(original, document).size(), 1);
   EXPECT_EQ(evaluate_nodes(copy, document).size(), 1);
 }

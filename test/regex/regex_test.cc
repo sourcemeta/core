@@ -9,7 +9,8 @@
 TEST(copy_construct) {
   const auto regex{sourcemeta::core::to_regex("^foo")};
   EXPECT_TRUE(regex.has_value());
-  const sourcemeta::core::Regex &copy{regex.value()};
+  // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
+  const sourcemeta::core::Regex copy{regex.value()};
   EXPECT_TRUE(sourcemeta::core::matches(copy, "foo bar"));
   EXPECT_FALSE(sourcemeta::core::matches(copy, "bar foo"));
 }
@@ -95,7 +96,8 @@ TEST(pcre2_equality_of_a_copy) {
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(
       std::holds_alternative<sourcemeta::core::RegexTypePCRE2>(regex.value()));
-  const sourcemeta::core::Regex &copy{regex.value()};
+  // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
+  const sourcemeta::core::Regex copy{regex.value()};
   EXPECT_EQ(copy, regex.value());
 }
 

@@ -1273,14 +1273,16 @@ TEST(default_constructor) {
 
 TEST(copy_constructor) {
   const sourcemeta::core::Decimal original{42};
-  const sourcemeta::core::Decimal &copy{original};
+  // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
+  const sourcemeta::core::Decimal copy{original};
   EXPECT_EQ(copy, original);
   EXPECT_EQ(copy, sourcemeta::core::Decimal{42});
 }
 
 TEST(copy_constructor_decimal_value) {
   const sourcemeta::core::Decimal original{"3.14159"};
-  const sourcemeta::core::Decimal &copy{original};
+  // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
+  const sourcemeta::core::Decimal copy{original};
   EXPECT_EQ(copy, original);
 }
 
@@ -1321,8 +1323,10 @@ TEST(copy_then_modify) {
 
 TEST(multiple_copies) {
   const sourcemeta::core::Decimal value1{7};
-  const sourcemeta::core::Decimal &value2{value1};
-  const sourcemeta::core::Decimal &value3{value2};
+  // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
+  const sourcemeta::core::Decimal value2{value1};
+  // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
+  const sourcemeta::core::Decimal value3{value2};
   EXPECT_EQ(value1, value2);
   EXPECT_EQ(value2, value3);
   EXPECT_EQ(value1, value3);
@@ -1619,7 +1623,8 @@ TEST(exception_overflow_addition) {
 
 TEST(copy_constructor_preserves_negative_sign) {
   const sourcemeta::core::Decimal original{"-123.456"};
-  const sourcemeta::core::Decimal &copy{original};
+  // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
+  const sourcemeta::core::Decimal copy{original};
   EXPECT_EQ(copy.to_string(), "-123.456");
   EXPECT_TRUE(copy.is_signed());
 }
@@ -1649,9 +1654,12 @@ TEST(move_assignment_preserves_negative_sign) {
 
 TEST(multiple_copies_preserve_negative_sign) {
   const sourcemeta::core::Decimal first{"-55.55"};
-  const sourcemeta::core::Decimal &second{first};
-  const sourcemeta::core::Decimal &third{second};
-  const sourcemeta::core::Decimal &fourth{third};
+  // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
+  const sourcemeta::core::Decimal second{first};
+  // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
+  const sourcemeta::core::Decimal third{second};
+  // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
+  const sourcemeta::core::Decimal fourth{third};
   EXPECT_EQ(fourth.to_string(), "-55.55");
   EXPECT_TRUE(fourth.is_signed());
 }
@@ -1667,14 +1675,16 @@ TEST(copy_then_move_preserves_negative_sign) {
 TEST(move_then_copy_preserves_negative_sign) {
   sourcemeta::core::Decimal original{"-444.444"};
   const sourcemeta::core::Decimal moved{std::move(original)};
-  const sourcemeta::core::Decimal &copy{moved};
+  // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
+  const sourcemeta::core::Decimal copy{moved};
   EXPECT_EQ(copy.to_string(), "-444.444");
   EXPECT_TRUE(copy.is_signed());
 }
 
 TEST(negative_integer_copy) {
   const sourcemeta::core::Decimal original{-12345};
-  const sourcemeta::core::Decimal &copy{original};
+  // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
+  const sourcemeta::core::Decimal copy{original};
   EXPECT_EQ(copy.to_int64(), -12345);
   EXPECT_TRUE(copy.is_signed());
 }
@@ -1688,7 +1698,8 @@ TEST(negative_integer_move) {
 
 TEST(very_small_negative_copy) {
   const sourcemeta::core::Decimal original{"-0.000000000000001"};
-  const sourcemeta::core::Decimal &copy{original};
+  // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
+  const sourcemeta::core::Decimal copy{original};
   EXPECT_TRUE(copy.is_signed());
   EXPECT_TRUE(copy < sourcemeta::core::Decimal{0});
 }
@@ -1702,7 +1713,8 @@ TEST(very_small_negative_move) {
 
 TEST(large_negative_number_copy) {
   const sourcemeta::core::Decimal original{"-999999999999999999999999999999"};
-  const sourcemeta::core::Decimal &copy{original};
+  // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
+  const sourcemeta::core::Decimal copy{original};
   EXPECT_EQ(copy.to_string(), "-999999999999999999999999999999");
   EXPECT_TRUE(copy.is_signed());
 }
@@ -1716,7 +1728,8 @@ TEST(large_negative_number_move) {
 
 TEST(negative_scientific_notation_copy) {
   const sourcemeta::core::Decimal original{"-1.23e50"};
-  const sourcemeta::core::Decimal &copy{original};
+  // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
+  const sourcemeta::core::Decimal copy{original};
   EXPECT_TRUE(copy.is_signed());
   EXPECT_TRUE(copy < sourcemeta::core::Decimal{0});
 }
@@ -1742,7 +1755,8 @@ TEST(assignment_chain_with_negative) {
 
 TEST(positive_not_signed_after_copy) {
   const sourcemeta::core::Decimal original{"123.456"};
-  const sourcemeta::core::Decimal &copy{original};
+  // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
+  const sourcemeta::core::Decimal copy{original};
   EXPECT_FALSE(copy.is_signed());
 }
 
@@ -1754,13 +1768,15 @@ TEST(positive_not_signed_after_move) {
 
 TEST(zero_not_signed_after_copy) {
   const sourcemeta::core::Decimal original{0};
-  const sourcemeta::core::Decimal &copy{original};
+  // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
+  const sourcemeta::core::Decimal copy{original};
   EXPECT_FALSE(copy.is_signed());
 }
 
 TEST(negative_zero_preserves_sign) {
   const sourcemeta::core::Decimal original{"-0"};
-  const sourcemeta::core::Decimal &copy{original};
+  // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
+  const sourcemeta::core::Decimal copy{original};
   EXPECT_TRUE(copy.is_signed());
   EXPECT_TRUE(copy.is_zero());
 }
@@ -4362,7 +4378,8 @@ TEST(heap_coefficient_copy_assignment_over_small) {
 TEST(heap_coefficient_copy_construction) {
   const sourcemeta::core::Decimal source{
       "123456789012345678901234567890123456789012345"};
-  const sourcemeta::core::Decimal &copy{source};
+  // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
+  const sourcemeta::core::Decimal copy{source};
   EXPECT_EQ(copy, source);
   EXPECT_EQ(copy.to_string(), "123456789012345678901234567890123456789012345");
 }

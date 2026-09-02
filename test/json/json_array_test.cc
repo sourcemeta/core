@@ -91,7 +91,8 @@ TEST(make_array_1_array) {
 
 TEST(brace_initialization_from_integer_document) {
   const sourcemeta::core::JSON element{1};
-  const sourcemeta::core::JSON &document{element};
+  // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
+  const sourcemeta::core::JSON document{element};
 
   EXPECT_FALSE(document.is_array());
   EXPECT_TRUE(document.is_integer());
@@ -101,7 +102,8 @@ TEST(brace_initialization_from_integer_document) {
 TEST(brace_initialization_from_array_document) {
   const auto element{sourcemeta::core::JSON::make_array(
       {sourcemeta::core::JSON{1}, sourcemeta::core::JSON{2}})};
-  const sourcemeta::core::JSON &document{element};
+  // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
+  const sourcemeta::core::JSON document{element};
 
   EXPECT_TRUE(document.is_array());
   EXPECT_EQ(document.size(), 2);

@@ -31,7 +31,8 @@ TEST(zero) {
 TEST(copy_constructor_from_json) {
   const sourcemeta::core::Decimal value{123};
   const sourcemeta::core::JSON decimal{value};
-  const sourcemeta::core::JSON &document{decimal};
+  // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
+  const sourcemeta::core::JSON document{decimal};
   EXPECT_TRUE(document.is_decimal());
   EXPECT_EQ(document.to_decimal().to_int64(), 123);
 }
@@ -152,7 +153,8 @@ TEST(copy_preserves_precision) {
   const sourcemeta::core::Decimal value{
       "12345678901234567890.123456789012345678901234567890"};
   const sourcemeta::core::JSON original{value};
-  const sourcemeta::core::JSON &copy{original};
+  // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
+  const sourcemeta::core::JSON copy{original};
   EXPECT_EQ(copy.to_decimal().to_string(), original.to_decimal().to_string());
 }
 
@@ -207,8 +209,10 @@ TEST(unsigned_integer_construction) {
 TEST(multiple_copies) {
   const sourcemeta::core::Decimal value{111};
   const sourcemeta::core::JSON first{value};
-  const sourcemeta::core::JSON &second{first};
-  const sourcemeta::core::JSON &third{second};
+  // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
+  const sourcemeta::core::JSON second{first};
+  // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
+  const sourcemeta::core::JSON third{second};
   EXPECT_TRUE(third.is_decimal());
   EXPECT_EQ(third.to_decimal().to_int64(), 111);
 }
