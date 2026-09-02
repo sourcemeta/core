@@ -6,7 +6,6 @@
   "CheckOptions": {
     "bugprone-empty-catch.IgnoreCatchWithKeywords": "@TODO;@FIXME;expected",
     "portability-restrict-system-includes.Includes": "*,-expected",
-    "readability-function-cognitive-complexity.Threshold": "100",
     "readability-identifier-length.IgnoredVariableNames": "^([a-h]|[x-z]|r|s|iv|IV)$",
     "readability-identifier-length.IgnoredParameterNames": "^(iv|n|x|y)$",
     "readability-identifier-naming.NamespaceCase": "lower_case",

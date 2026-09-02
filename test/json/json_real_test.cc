@@ -91,6 +91,8 @@ TEST(copy_constructor_cannot_create_invalid_json) {
   try {
     const sourcemeta::core::JSON source{
         std::numeric_limits<double>::quiet_NaN()};
+    // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
+    const sourcemeta::core::JSON copy{source};
     FAIL();
   } catch (const std::invalid_argument &error) {
     EXPECT_STREQ(error.what(), "JSON does not support Infinity or NaN");

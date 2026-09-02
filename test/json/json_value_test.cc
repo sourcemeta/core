@@ -699,7 +699,8 @@ TEST(copies_deeply_nested_array_without_stack_overflow) {
   deep.push_back('0');
   deep.append(DEPTH, ']');
   auto document = sourcemeta::core::parse_json(deep);
-  const auto &copy = document;
+  // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
+  const auto copy = document;
   EXPECT_TRUE(copy.is_array());
 }
 
@@ -713,7 +714,8 @@ TEST(copies_deeply_nested_object_without_stack_overflow) {
   deep.push_back('0');
   deep.append(DEPTH, '}');
   auto document = sourcemeta::core::parse_json(deep);
-  const auto &copy = document;
+  // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
+  const auto copy = document;
   EXPECT_TRUE(copy.is_object());
 }
 
