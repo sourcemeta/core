@@ -12,7 +12,8 @@ static constexpr std::string_view MESSAGE{"sourcemeta core JWS signing input"};
 
 // A 2048-bit RSA private key in unencrypted PKCS#8, with the deterministic
 // RSASSA-PKCS1-v1_5 signatures it produces, one per supported hash function
-static constexpr std::string_view RSA_PRIVATE_KEY{R"(-----BEGIN PRIVATE KEY-----
+static constexpr std::string_view RSA_PRIVATE_KEY{
+    R"(-----BEGIN PRIVATE KEY-----
 MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCf6K9Ys3QJNItd
 zsY1wcY65kd27pBwZPdKUVNp/ZyTEtUQNwBTh8h7Pusq29loLOkonpxvkpmcNwif
 6A4KsTQUjo5l0K+AAY2qgUfoPUAA2TyVZIVzVtai2LnHNeWzYg3h8NENoGhd5cGe

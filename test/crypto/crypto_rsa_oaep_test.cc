@@ -7,7 +7,8 @@
 
 // A 2048-bit RSA test key in unencrypted PKCS#8, from which the public key is
 // derived for the encryption side of each round trip
-static constexpr std::string_view PRIVATE_KEY_PEM{R"(-----BEGIN PRIVATE KEY-----
+static constexpr std::string_view PRIVATE_KEY_PEM{
+    R"(-----BEGIN PRIVATE KEY-----
 MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCwidOHq7tHMyQk
 rKtggHsdpTNL7fv+Rjlve5AgNGbTDMJCWga7LbOxS1B/iaOVyn7pNX4+XVXgRGYG
 qwOOaiKnU0S2aE7TL7aqTwaPLABGS3e0A2yx1vm6sDMi5UpvboEX5Da49xZp5nU3
