@@ -51,7 +51,7 @@ TEST(iterator) {
 
 TEST(copy_constructor) {
   const sourcemeta::core::URITemplate original{"http://example.com/{id}"};
-  const sourcemeta::core::URITemplate copy{original};
+  const sourcemeta::core::URITemplate &copy{original};
 
   EXPECT_EQ(copy.size(), 2);
   EXPECT_URITEMPLATE_LITERAL(copy, 0, "http://example.com/");

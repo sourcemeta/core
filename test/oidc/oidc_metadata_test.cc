@@ -6,6 +6,7 @@
 #include <string_view> // std::string_view
 #include <utility>     // std::move
 
+// NOLINTNEXTLINE(cert-err58-cpp,bugprone-throwing-static-initialization)
 static const auto VALID_PROVIDER_DOCUMENT{sourcemeta::core::parse_json(R"JSON({
   "issuer": "https://example.com",
   "authorization_endpoint": "https://example.com/authorize",

@@ -15,10 +15,11 @@ TEST(node_with_literal_property) {
       sourcemeta::core::JSONLDDescriptor{.edges = {},
                                          .value = sourcemeta::core::JSONLDNode{
                                              .id = "https://example.com/org"}});
-  annotations.emplace_back(sourcemeta::core::Pointer{"name"},
-                           sourcemeta::core::JSONLDDescriptor{
-                               .edges = {{"https://schema.org/name", false}},
-                               .value = sourcemeta::core::JSONLDLiteral{}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"name"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{.predicate = "https://schema.org/name"}},
+          .value = sourcemeta::core::JSONLDLiteral{}});
 
   const auto expected = sourcemeta::core::parse_json(R"([
     {
@@ -46,7 +47,7 @@ TEST(literal_with_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"isbn"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://schema.org/isbn", false}},
+          .edges = {{.predicate = "https://schema.org/isbn"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#string"}});
 
@@ -80,7 +81,7 @@ TEST(literal_with_language_and_direction) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"title"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://schema.org/name", false}},
+          .edges = {{.predicate = "https://schema.org/name"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .language = "ar",
               .direction = sourcemeta::core::JSONLDDirection::RTL}});
@@ -113,7 +114,7 @@ TEST(reference_property) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"currency"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://schema.org/priceCurrency", false}},
+          .edges = {{.predicate = "https://schema.org/priceCurrency"}},
           .value = sourcemeta::core::JSONLDReference{
               .id = "https://www.iso.org/iso-4217/USD",
               .types = {"https://schema.org/Currency"}}});
@@ -149,7 +150,7 @@ TEST(ordered_collection_becomes_list) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"authors"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://schema.org/author", false}},
+          .edges = {{.predicate = "https://schema.org/author"}},
           .value = sourcemeta::core::JSONLDCollection{
               .container = sourcemeta::core::JSONLDContainer::List}});
   annotations.emplace_back(
@@ -198,7 +199,7 @@ TEST(unordered_collection_spreads_into_property) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"tags"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://schema.org/keywords", false}},
+          .edges = {{.predicate = "https://schema.org/keywords"}},
           .value = sourcemeta::core::JSONLDCollection{
               .container = sourcemeta::core::JSONLDContainer::Set}});
   annotations.emplace_back(
@@ -235,8 +236,9 @@ TEST(field_with_multiple_predicates) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"label"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://schema.org/name", false},
-                    {"http://www.w3.org/2000/01/rdf-schema#label", false}},
+          .edges = {{.predicate = "https://schema.org/name"},
+                    {.predicate =
+                         "http://www.w3.org/2000/01/rdf-schema#label"}},
           .value = sourcemeta::core::JSONLDLiteral{}});
 
   const auto expected = sourcemeta::core::parse_json(R"([
@@ -263,14 +265,17 @@ TEST(reverse_edge) {
                                .edges = {},
                                .value = sourcemeta::core::JSONLDNode{
                                    .id = "https://example.com/book"}});
-  annotations.emplace_back(sourcemeta::core::Pointer{"series"},
-                           sourcemeta::core::JSONLDDescriptor{
-                               .edges = {{"https://schema.org/hasPart", true}},
-                               .value = sourcemeta::core::JSONLDNode{}});
-  annotations.emplace_back(sourcemeta::core::Pointer{"series", "name"},
-                           sourcemeta::core::JSONLDDescriptor{
-                               .edges = {{"https://schema.org/name", false}},
-                               .value = sourcemeta::core::JSONLDLiteral{}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"series"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{.predicate = "https://schema.org/hasPart",
+                     .reverse = true}},
+          .value = sourcemeta::core::JSONLDNode{}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"series", "name"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{.predicate = "https://schema.org/name"}},
+          .value = sourcemeta::core::JSONLDLiteral{}});
 
   const auto expected = sourcemeta::core::parse_json(R"([
     {
@@ -302,12 +307,12 @@ TEST(shared_blank_node_identifier_co_refers) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"billing"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/billing", false}},
+          .edges = {{.predicate = "https://example.com/billing"}},
           .value = sourcemeta::core::JSONLDNode{.id = "_:address"}});
   annotations.emplace_back(
       sourcemeta::core::Pointer{"shipping"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/shipping", false}},
+          .edges = {{.predicate = "https://example.com/shipping"}},
           .value = sourcemeta::core::JSONLDNode{.id = "_:address"}});
 
   const auto expected = sourcemeta::core::parse_json(R"([
@@ -337,7 +342,7 @@ TEST(json_literal_preserved_verbatim) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"payload"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/raw", false}},
+          .edges = {{.predicate = "https://example.com/raw"}},
           .value = sourcemeta::core::JSONLDLiteral{.json = true}});
 
   const auto expected = sourcemeta::core::parse_json(R"([
@@ -368,7 +373,7 @@ TEST(nested_ordered_collection_is_list_of_lists) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"matrix"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/rows", false}},
+          .edges = {{.predicate = "https://example.com/rows"}},
           .value = sourcemeta::core::JSONLDCollection{
               .container = sourcemeta::core::JSONLDContainer::List}});
   annotations.emplace_back(
@@ -427,7 +432,7 @@ TEST(ordered_collection_wraps_undescribed_nested_arrays) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"tags"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/tags", false}},
+          .edges = {{.predicate = "https://example.com/tags"}},
           .value = sourcemeta::core::JSONLDCollection{
               .container = sourcemeta::core::JSONLDContainer::List}});
 
@@ -464,7 +469,7 @@ TEST(ordered_collection_wraps_deeply_nested_undescribed_arrays) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"matrix"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/rows", false}},
+          .edges = {{.predicate = "https://example.com/rows"}},
           .value = sourcemeta::core::JSONLDCollection{
               .container = sourcemeta::core::JSONLDContainer::List}});
 
@@ -504,7 +509,7 @@ TEST(ordered_collection_wraps_mixed_nested_and_scalar_members) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"tags"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/tags", false}},
+          .edges = {{.predicate = "https://example.com/tags"}},
           .value = sourcemeta::core::JSONLDCollection{
               .container = sourcemeta::core::JSONLDContainer::List}});
 
@@ -540,7 +545,7 @@ TEST(ordered_collection_wraps_empty_nested_array) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"tags"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/tags", false}},
+          .edges = {{.predicate = "https://example.com/tags"}},
           .value = sourcemeta::core::JSONLDCollection{
               .container = sourcemeta::core::JSONLDContainer::List}});
 
@@ -578,7 +583,7 @@ TEST(weak_ordered_collection_wraps_undescribed_nested_arrays) {
   annotations.emplace_back(
       sourcemeta::core::WeakPointer{std::cref(tags_key)},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/tags", false}},
+          .edges = {{.predicate = "https://example.com/tags"}},
           .value = sourcemeta::core::JSONLDCollection{
               .container = sourcemeta::core::JSONLDContainer::List}});
 
@@ -612,14 +617,16 @@ TEST(undescribed_object_with_described_child) {
       sourcemeta::core::JSONLDDescriptor{.edges = {},
                                          .value = sourcemeta::core::JSONLDNode{
                                              .id = "https://example.com/doc"}});
-  annotations.emplace_back(sourcemeta::core::Pointer{"name"},
-                           sourcemeta::core::JSONLDDescriptor{
-                               .edges = {{"https://schema.org/name", false}},
-                               .value = sourcemeta::core::JSONLDLiteral{}});
-  annotations.emplace_back(sourcemeta::core::Pointer{"meta", "title"},
-                           sourcemeta::core::JSONLDDescriptor{
-                               .edges = {{"https://example.com/title", false}},
-                               .value = sourcemeta::core::JSONLDLiteral{}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"name"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{.predicate = "https://schema.org/name"}},
+          .value = sourcemeta::core::JSONLDLiteral{}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"meta", "title"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{.predicate = "https://example.com/title"}},
+          .value = sourcemeta::core::JSONLDLiteral{}});
 
   const auto expected = sourcemeta::core::parse_json(R"([
     {
@@ -650,10 +657,11 @@ TEST(described_node_without_edge_is_standalone) {
                                .edges = {},
                                .value = sourcemeta::core::JSONLDNode{
                                    .id = "https://example.com/other"}});
-  annotations.emplace_back(sourcemeta::core::Pointer{"extra", "x"},
-                           sourcemeta::core::JSONLDDescriptor{
-                               .edges = {{"https://example.com/x", false}},
-                               .value = sourcemeta::core::JSONLDLiteral{}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"extra", "x"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{.predicate = "https://example.com/x"}},
+          .value = sourcemeta::core::JSONLDLiteral{}});
 
   const auto expected = sourcemeta::core::parse_json(R"([
     { "@id": "https://example.com/doc" },
@@ -678,10 +686,11 @@ TEST(null_value_produces_no_triple) {
       sourcemeta::core::JSONLDDescriptor{.edges = {},
                                          .value = sourcemeta::core::JSONLDNode{
                                              .id = "https://example.com/doc"}});
-  annotations.emplace_back(sourcemeta::core::Pointer{"maybe"},
-                           sourcemeta::core::JSONLDDescriptor{
-                               .edges = {{"https://schema.org/name", false}},
-                               .value = sourcemeta::core::JSONLDLiteral{}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"maybe"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{.predicate = "https://schema.org/name"}},
+          .value = sourcemeta::core::JSONLDLiteral{}});
 
   const auto expected = sourcemeta::core::parse_json(R"([
     { "@id": "https://example.com/doc" }
@@ -702,12 +711,13 @@ TEST(null_value_with_node_descriptor_produces_no_triple) {
       sourcemeta::core::JSONLDDescriptor{.edges = {},
                                          .value = sourcemeta::core::JSONLDNode{
                                              .id = "https://example.com/doc"}});
-  annotations.emplace_back(sourcemeta::core::Pointer{"maybe"},
-                           sourcemeta::core::JSONLDDescriptor{
-                               .edges = {{"https://example.com/child", false}},
-                               .value = sourcemeta::core::JSONLDNode{
-                                   .id = "https://example.com/thing",
-                                   .types = {"https://example.com/Thing"}}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"maybe"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{.predicate = "https://example.com/child"}},
+          .value = sourcemeta::core::JSONLDNode{
+              .id = "https://example.com/thing",
+              .types = {"https://example.com/Thing"}}});
 
   const auto expected = sourcemeta::core::parse_json(R"([
     { "@id": "https://example.com/doc" }
@@ -728,11 +738,12 @@ TEST(null_value_with_reference_descriptor_produces_no_triple) {
       sourcemeta::core::JSONLDDescriptor{.edges = {},
                                          .value = sourcemeta::core::JSONLDNode{
                                              .id = "https://example.com/doc"}});
-  annotations.emplace_back(sourcemeta::core::Pointer{"maybe"},
-                           sourcemeta::core::JSONLDDescriptor{
-                               .edges = {{"https://example.com/child", false}},
-                               .value = sourcemeta::core::JSONLDReference{
-                                   .id = "https://example.com/ref"}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"maybe"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{.predicate = "https://example.com/child"}},
+          .value = sourcemeta::core::JSONLDReference{
+              .id = "https://example.com/ref"}});
 
   const auto expected = sourcemeta::core::parse_json(R"([
     { "@id": "https://example.com/doc" }
@@ -756,7 +767,7 @@ TEST(null_value_with_collection_descriptor_produces_no_triple) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"maybe"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/items", false}},
+          .edges = {{.predicate = "https://example.com/items"}},
           .value = sourcemeta::core::JSONLDCollection{
               .container = sourcemeta::core::JSONLDContainer::List}});
 
@@ -785,7 +796,7 @@ TEST(json_literal_null_is_data) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"payload"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/raw", false}},
+          .edges = {{.predicate = "https://example.com/raw"}},
           .value = sourcemeta::core::JSONLDLiteral{.json = true}});
 
   const auto expected = sourcemeta::core::parse_json(R"([
@@ -816,7 +827,7 @@ TEST(json_literal_null_member_in_ordered_collection) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"items"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/items", false}},
+          .edges = {{.predicate = "https://example.com/items"}},
           .value = sourcemeta::core::JSONLDCollection{
               .container = sourcemeta::core::JSONLDContainer::List}});
   annotations.emplace_back(
@@ -857,7 +868,7 @@ TEST(weak_json_literal_null_is_data) {
   annotations.emplace_back(
       sourcemeta::core::WeakPointer{std::cref(payload_key)},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/raw", false}},
+          .edges = {{.predicate = "https://example.com/raw"}},
           .value = sourcemeta::core::JSONLDLiteral{.json = true}});
 
   const auto expected = sourcemeta::core::parse_json(R"([
@@ -968,10 +979,11 @@ TEST(edge_attached_empty_node_below_root_is_kept) {
       sourcemeta::core::JSONLDDescriptor{.edges = {},
                                          .value = sourcemeta::core::JSONLDNode{
                                              .id = "https://example.com/doc"}});
-  annotations.emplace_back(sourcemeta::core::Pointer{"meta"},
-                           sourcemeta::core::JSONLDDescriptor{
-                               .edges = {{"https://example.com/meta", false}},
-                               .value = sourcemeta::core::JSONLDNode{}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"meta"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{.predicate = "https://example.com/meta"}},
+          .value = sourcemeta::core::JSONLDNode{}});
 
   const auto expected = sourcemeta::core::parse_json(R"([
     {
@@ -999,13 +1011,14 @@ TEST(named_graph) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"prov"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/statedIn", false}},
+          .edges = {{.predicate = "https://example.com/statedIn"}},
           .value = sourcemeta::core::JSONLDNode{
               .id = "https://example.com/graph", .graph = true}});
-  annotations.emplace_back(sourcemeta::core::Pointer{"prov", "who"},
-                           sourcemeta::core::JSONLDDescriptor{
-                               .edges = {{"https://schema.org/name", false}},
-                               .value = sourcemeta::core::JSONLDLiteral{}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"prov", "who"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{.predicate = "https://schema.org/name"}},
+          .value = sourcemeta::core::JSONLDLiteral{}});
 
   const auto expected = sourcemeta::core::parse_json(R"([
     {
@@ -1046,17 +1059,18 @@ TEST(standalone_empty_node_inside_named_graph_is_dropped) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"prov"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/statedIn", false}},
+          .edges = {{.predicate = "https://example.com/statedIn"}},
           .value = sourcemeta::core::JSONLDNode{
               .id = "https://example.com/graph", .graph = true}});
   annotations.emplace_back(
       sourcemeta::core::Pointer{"prov", "meta"},
       sourcemeta::core::JSONLDDescriptor{
           .edges = {}, .value = sourcemeta::core::JSONLDNode{}});
-  annotations.emplace_back(sourcemeta::core::Pointer{"prov", "who"},
-                           sourcemeta::core::JSONLDDescriptor{
-                               .edges = {{"https://schema.org/name", false}},
-                               .value = sourcemeta::core::JSONLDLiteral{}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"prov", "who"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{.predicate = "https://schema.org/name"}},
+          .value = sourcemeta::core::JSONLDLiteral{}});
 
   const auto expected = sourcemeta::core::parse_json(R"([
     {
@@ -1094,17 +1108,19 @@ TEST(edge_attached_empty_node_inside_named_graph_is_kept) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"prov"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/statedIn", false}},
+          .edges = {{.predicate = "https://example.com/statedIn"}},
           .value = sourcemeta::core::JSONLDNode{
               .id = "https://example.com/graph", .graph = true}});
-  annotations.emplace_back(sourcemeta::core::Pointer{"prov", "meta"},
-                           sourcemeta::core::JSONLDDescriptor{
-                               .edges = {{"https://example.com/meta", false}},
-                               .value = sourcemeta::core::JSONLDNode{}});
-  annotations.emplace_back(sourcemeta::core::Pointer{"prov", "who"},
-                           sourcemeta::core::JSONLDDescriptor{
-                               .edges = {{"https://schema.org/name", false}},
-                               .value = sourcemeta::core::JSONLDLiteral{}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"prov", "meta"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{.predicate = "https://example.com/meta"}},
+          .value = sourcemeta::core::JSONLDNode{}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"prov", "who"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{.predicate = "https://schema.org/name"}},
+          .value = sourcemeta::core::JSONLDLiteral{}});
 
   const auto expected = sourcemeta::core::parse_json(R"([
     {
@@ -1176,10 +1192,11 @@ TEST(node_with_type) {
                                .value = sourcemeta::core::JSONLDNode{
                                    .id = "https://example.com/ada",
                                    .types = {"https://schema.org/Person"}}});
-  annotations.emplace_back(sourcemeta::core::Pointer{"name"},
-                           sourcemeta::core::JSONLDDescriptor{
-                               .edges = {{"https://schema.org/name", false}},
-                               .value = sourcemeta::core::JSONLDLiteral{}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"name"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{.predicate = "https://schema.org/name"}},
+          .value = sourcemeta::core::JSONLDLiteral{}});
 
   const auto expected = sourcemeta::core::parse_json(R"([
     {
@@ -1233,7 +1250,7 @@ TEST(reference_without_types) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"currency"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://schema.org/priceCurrency", false}},
+          .edges = {{.predicate = "https://schema.org/priceCurrency"}},
           .value = sourcemeta::core::JSONLDReference{
               .id = "https://www.iso.org/iso-4217/USD"}});
 
@@ -1264,7 +1281,7 @@ TEST(literal_with_language_only) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"title"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://schema.org/name", false}},
+          .edges = {{.predicate = "https://schema.org/name"}},
           .value = sourcemeta::core::JSONLDLiteral{.language = "en"}});
 
   const auto expected = sourcemeta::core::parse_json(R"([
@@ -1292,7 +1309,7 @@ TEST(literal_with_ltr_direction) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"title"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://schema.org/name", false}},
+          .edges = {{.predicate = "https://schema.org/name"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .language = "en",
               .direction = sourcemeta::core::JSONLDDirection::LTR}});
@@ -1321,10 +1338,11 @@ TEST(boolean_literal) {
       sourcemeta::core::JSONLDDescriptor{.edges = {},
                                          .value = sourcemeta::core::JSONLDNode{
                                              .id = "https://example.com/doc"}});
-  annotations.emplace_back(sourcemeta::core::Pointer{"active"},
-                           sourcemeta::core::JSONLDDescriptor{
-                               .edges = {{"https://example.com/active", false}},
-                               .value = sourcemeta::core::JSONLDLiteral{}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"active"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{.predicate = "https://example.com/active"}},
+          .value = sourcemeta::core::JSONLDLiteral{}});
 
   const auto expected = sourcemeta::core::parse_json(R"([
     {
@@ -1348,10 +1366,11 @@ TEST(integer_literal_without_datatype) {
       sourcemeta::core::JSONLDDescriptor{.edges = {},
                                          .value = sourcemeta::core::JSONLDNode{
                                              .id = "https://example.com/doc"}});
-  annotations.emplace_back(sourcemeta::core::Pointer{"count"},
-                           sourcemeta::core::JSONLDDescriptor{
-                               .edges = {{"https://example.com/count", false}},
-                               .value = sourcemeta::core::JSONLDLiteral{}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"count"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{.predicate = "https://example.com/count"}},
+          .value = sourcemeta::core::JSONLDLiteral{}});
 
   const auto expected = sourcemeta::core::parse_json(R"([
     {
@@ -1379,17 +1398,18 @@ TEST(ordered_collection_of_nodes) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"authors"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://schema.org/author", false}},
+          .edges = {{.predicate = "https://schema.org/author"}},
           .value = sourcemeta::core::JSONLDCollection{
               .container = sourcemeta::core::JSONLDContainer::List}});
   annotations.emplace_back(
       sourcemeta::core::Pointer{"authors", 0},
       sourcemeta::core::JSONLDDescriptor{
           .edges = {}, .value = sourcemeta::core::JSONLDNode{}});
-  annotations.emplace_back(sourcemeta::core::Pointer{"authors", 0, "name"},
-                           sourcemeta::core::JSONLDDescriptor{
-                               .edges = {{"https://schema.org/name", false}},
-                               .value = sourcemeta::core::JSONLDLiteral{}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"authors", 0, "name"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{.predicate = "https://schema.org/name"}},
+          .value = sourcemeta::core::JSONLDLiteral{}});
 
   const auto expected = sourcemeta::core::parse_json(R"([
     {
@@ -1423,25 +1443,27 @@ TEST(unordered_collection_of_nodes) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"items"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/item", false}},
+          .edges = {{.predicate = "https://example.com/item"}},
           .value = sourcemeta::core::JSONLDCollection{
               .container = sourcemeta::core::JSONLDContainer::Set}});
   annotations.emplace_back(
       sourcemeta::core::Pointer{"items", 0},
       sourcemeta::core::JSONLDDescriptor{
           .edges = {}, .value = sourcemeta::core::JSONLDNode{}});
-  annotations.emplace_back(sourcemeta::core::Pointer{"items", 0, "sku"},
-                           sourcemeta::core::JSONLDDescriptor{
-                               .edges = {{"https://example.com/sku", false}},
-                               .value = sourcemeta::core::JSONLDLiteral{}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"items", 0, "sku"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{.predicate = "https://example.com/sku"}},
+          .value = sourcemeta::core::JSONLDLiteral{}});
   annotations.emplace_back(
       sourcemeta::core::Pointer{"items", 1},
       sourcemeta::core::JSONLDDescriptor{
           .edges = {}, .value = sourcemeta::core::JSONLDNode{}});
-  annotations.emplace_back(sourcemeta::core::Pointer{"items", 1, "sku"},
-                           sourcemeta::core::JSONLDDescriptor{
-                               .edges = {{"https://example.com/sku", false}},
-                               .value = sourcemeta::core::JSONLDLiteral{}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"items", 1, "sku"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{.predicate = "https://example.com/sku"}},
+          .value = sourcemeta::core::JSONLDLiteral{}});
 
   const auto expected = sourcemeta::core::parse_json(R"([
     {
@@ -1471,7 +1493,7 @@ TEST(empty_ordered_collection_is_rdf_nil) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"authors"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://schema.org/author", false}},
+          .edges = {{.predicate = "https://schema.org/author"}},
           .value = sourcemeta::core::JSONLDCollection{
               .container = sourcemeta::core::JSONLDContainer::List}});
 
@@ -1500,7 +1522,7 @@ TEST(empty_unordered_collection_adds_no_property) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"tags"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://schema.org/keywords", false}},
+          .edges = {{.predicate = "https://schema.org/keywords"}},
           .value = sourcemeta::core::JSONLDCollection{
               .container = sourcemeta::core::JSONLDContainer::Set}});
 
@@ -1527,7 +1549,7 @@ TEST(collection_defaults_undescribed_scalar_elements) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"authors"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://schema.org/author", false}},
+          .edges = {{.predicate = "https://schema.org/author"}},
           .value = sourcemeta::core::JSONLDCollection{
               .container = sourcemeta::core::JSONLDContainer::List}});
   annotations.emplace_back(
@@ -1569,7 +1591,7 @@ TEST(unordered_collection_defaults_all_undescribed_elements) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"keywords"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://schema.org/keywords", false}},
+          .edges = {{.predicate = "https://schema.org/keywords"}},
           .value = sourcemeta::core::JSONLDCollection{
               .container = sourcemeta::core::JSONLDContainer::Set}});
 
@@ -1604,7 +1626,7 @@ TEST(index_collection_defaults_undescribed_members) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"identifiers"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://schema.org/identifier", false}},
+          .edges = {{.predicate = "https://schema.org/identifier"}},
           .value = sourcemeta::core::JSONLDCollection{
               .container = sourcemeta::core::JSONLDContainer::Index}});
 
@@ -1637,7 +1659,7 @@ TEST(collection_defaults_nested_undescribed_array_as_set) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"groups"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/member", false}},
+          .edges = {{.predicate = "https://example.com/member"}},
           .value = sourcemeta::core::JSONLDCollection{
               .container = sourcemeta::core::JSONLDContainer::Set}});
 
@@ -1669,7 +1691,7 @@ TEST(collection_undescribed_object_element_is_still_dropped) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"keywords"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://schema.org/keywords", false}},
+          .edges = {{.predicate = "https://schema.org/keywords"}},
           .value = sourcemeta::core::JSONLDCollection{
               .container = sourcemeta::core::JSONLDContainer::Set}});
 
@@ -1699,7 +1721,7 @@ TEST(collection_null_element_is_still_dropped) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"keywords"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://schema.org/keywords", false}},
+          .edges = {{.predicate = "https://schema.org/keywords"}},
           .value = sourcemeta::core::JSONLDCollection{
               .container = sourcemeta::core::JSONLDContainer::Set}});
 
@@ -1731,7 +1753,7 @@ TEST(nested_unordered_collection_flattens) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"groups"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/member", false}},
+          .edges = {{.predicate = "https://example.com/member"}},
           .value = sourcemeta::core::JSONLDCollection{
               .container = sourcemeta::core::JSONLDContainer::Set}});
   annotations.emplace_back(
@@ -1790,19 +1812,21 @@ TEST(array_root_spreads_into_default_graph) {
       sourcemeta::core::JSONLDDescriptor{.edges = {},
                                          .value = sourcemeta::core::JSONLDNode{
                                              .id = "https://example.com/a"}});
-  annotations.emplace_back(sourcemeta::core::Pointer{0, "name"},
-                           sourcemeta::core::JSONLDDescriptor{
-                               .edges = {{"https://schema.org/name", false}},
-                               .value = sourcemeta::core::JSONLDLiteral{}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{0, "name"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{.predicate = "https://schema.org/name"}},
+          .value = sourcemeta::core::JSONLDLiteral{}});
   annotations.emplace_back(
       sourcemeta::core::Pointer{1},
       sourcemeta::core::JSONLDDescriptor{.edges = {},
                                          .value = sourcemeta::core::JSONLDNode{
                                              .id = "https://example.com/b"}});
-  annotations.emplace_back(sourcemeta::core::Pointer{1, "name"},
-                           sourcemeta::core::JSONLDDescriptor{
-                               .edges = {{"https://schema.org/name", false}},
-                               .value = sourcemeta::core::JSONLDLiteral{}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{1, "name"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{.predicate = "https://schema.org/name"}},
+          .value = sourcemeta::core::JSONLDLiteral{}});
 
   const auto expected = sourcemeta::core::parse_json(R"([
     {
@@ -1864,10 +1888,11 @@ TEST(root_collection_keeps_only_node_elements) {
       sourcemeta::core::JSONLDDescriptor{.edges = {},
                                          .value = sourcemeta::core::JSONLDNode{
                                              .id = "https://example.com/a"}});
-  annotations.emplace_back(sourcemeta::core::Pointer{0, "name"},
-                           sourcemeta::core::JSONLDDescriptor{
-                               .edges = {{"https://schema.org/name", false}},
-                               .value = sourcemeta::core::JSONLDLiteral{}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{0, "name"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{.predicate = "https://schema.org/name"}},
+          .value = sourcemeta::core::JSONLDLiteral{}});
   annotations.emplace_back(
       sourcemeta::core::Pointer{1},
       sourcemeta::core::JSONLDDescriptor{
@@ -1915,7 +1940,7 @@ TEST(collection_descriptor_on_non_array_is_dropped) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"x"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/x", false}},
+          .edges = {{.predicate = "https://example.com/x"}},
           .value = sourcemeta::core::JSONLDCollection{
               .container = sourcemeta::core::JSONLDContainer::List}});
 
@@ -1943,19 +1968,21 @@ TEST(output_is_a_fixed_point_of_expansion) {
                                .value = sourcemeta::core::JSONLDNode{
                                    .id = "https://example.com/ada",
                                    .types = {"https://schema.org/Person"}}});
-  annotations.emplace_back(sourcemeta::core::Pointer{"name"},
-                           sourcemeta::core::JSONLDDescriptor{
-                               .edges = {{"https://schema.org/name", false}},
-                               .value = sourcemeta::core::JSONLDLiteral{}});
-  annotations.emplace_back(sourcemeta::core::Pointer{"homepage"},
-                           sourcemeta::core::JSONLDDescriptor{
-                               .edges = {{"https://schema.org/url", false}},
-                               .value = sourcemeta::core::JSONLDReference{
-                                   .id = "https://ada.example"}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"name"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{.predicate = "https://schema.org/name"}},
+          .value = sourcemeta::core::JSONLDLiteral{}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"homepage"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{.predicate = "https://schema.org/url"}},
+          .value =
+              sourcemeta::core::JSONLDReference{.id = "https://ada.example"}});
   annotations.emplace_back(
       sourcemeta::core::Pointer{"books"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://schema.org/author", false}},
+          .edges = {{.predicate = "https://schema.org/author"}},
           .value = sourcemeta::core::JSONLDCollection{
               .container = sourcemeta::core::JSONLDContainer::List}});
   annotations.emplace_back(
@@ -1983,11 +2010,12 @@ TEST(node_descriptor_on_scalar_ignores_value) {
       sourcemeta::core::JSONLDDescriptor{.edges = {},
                                          .value = sourcemeta::core::JSONLDNode{
                                              .id = "https://example.com/doc"}});
-  annotations.emplace_back(sourcemeta::core::Pointer{"x"},
-                           sourcemeta::core::JSONLDDescriptor{
-                               .edges = {{"https://example.com/x", false}},
-                               .value = sourcemeta::core::JSONLDNode{
-                                   .id = "https://example.com/other"}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"x"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{.predicate = "https://example.com/x"}},
+          .value =
+              sourcemeta::core::JSONLDNode{.id = "https://example.com/other"}});
 
   const auto expected = sourcemeta::core::parse_json(R"([
     {
@@ -2014,10 +2042,11 @@ TEST(weak_node_with_literal_property) {
       sourcemeta::core::JSONLDDescriptor{.edges = {},
                                          .value = sourcemeta::core::JSONLDNode{
                                              .id = "https://example.com/org"}});
-  annotations.emplace_back(sourcemeta::core::WeakPointer{std::cref(name_key)},
-                           sourcemeta::core::JSONLDDescriptor{
-                               .edges = {{"https://schema.org/name", false}},
-                               .value = sourcemeta::core::JSONLDLiteral{}});
+  annotations.emplace_back(
+      sourcemeta::core::WeakPointer{std::cref(name_key)},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{.predicate = "https://schema.org/name"}},
+          .value = sourcemeta::core::JSONLDLiteral{}});
 
   const auto expected = sourcemeta::core::parse_json(R"([
     {
@@ -2047,7 +2076,7 @@ TEST(weak_reference_property) {
   annotations.emplace_back(
       sourcemeta::core::WeakPointer{std::cref(currency_key)},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://schema.org/priceCurrency", false}},
+          .edges = {{.predicate = "https://schema.org/priceCurrency"}},
           .value = sourcemeta::core::JSONLDReference{
               .id = "https://www.iso.org/iso-4217/USD",
               .types = {"https://schema.org/Currency"}}});
@@ -2085,7 +2114,7 @@ TEST(weak_ordered_collection_becomes_list) {
   annotations.emplace_back(
       sourcemeta::core::WeakPointer{std::cref(authors_key)},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://schema.org/author", false}},
+          .edges = {{.predicate = "https://schema.org/author"}},
           .value = sourcemeta::core::JSONLDCollection{
               .container = sourcemeta::core::JSONLDContainer::List}});
   annotations.emplace_back(
@@ -2134,14 +2163,16 @@ TEST(weak_reverse_edge) {
                                .edges = {},
                                .value = sourcemeta::core::JSONLDNode{
                                    .id = "https://example.com/book"}});
-  annotations.emplace_back(sourcemeta::core::WeakPointer{std::cref(series_key)},
-                           sourcemeta::core::JSONLDDescriptor{
-                               .edges = {{"https://schema.org/hasPart", true}},
-                               .value = sourcemeta::core::JSONLDNode{}});
+  annotations.emplace_back(
+      sourcemeta::core::WeakPointer{std::cref(series_key)},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{.predicate = "https://schema.org/hasPart",
+                     .reverse = true}},
+          .value = sourcemeta::core::JSONLDNode{}});
   annotations.emplace_back(
       sourcemeta::core::WeakPointer{std::cref(series_key), std::cref(name_key)},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://schema.org/name", false}},
+          .edges = {{.predicate = "https://schema.org/name"}},
           .value = sourcemeta::core::JSONLDLiteral{}});
 
   const auto expected = sourcemeta::core::parse_json(R"([
@@ -2182,7 +2213,7 @@ TEST(weak_array_root_spreads_into_default_graph) {
   annotations.emplace_back(
       sourcemeta::core::WeakPointer{0, std::cref(name_key)},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://schema.org/name", false}},
+          .edges = {{.predicate = "https://schema.org/name"}},
           .value = sourcemeta::core::JSONLDLiteral{}});
   annotations.emplace_back(
       sourcemeta::core::WeakPointer{1},
@@ -2192,7 +2223,7 @@ TEST(weak_array_root_spreads_into_default_graph) {
   annotations.emplace_back(
       sourcemeta::core::WeakPointer{1, std::cref(name_key)},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://schema.org/name", false}},
+          .edges = {{.predicate = "https://schema.org/name"}},
           .value = sourcemeta::core::JSONLDLiteral{}});
 
   const auto expected = sourcemeta::core::parse_json(R"([
@@ -2225,7 +2256,7 @@ TEST(language_container) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"label"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://schema.org/name", false}},
+          .edges = {{.predicate = "https://schema.org/name"}},
           .value = sourcemeta::core::JSONLDCollection{
               .container = sourcemeta::core::JSONLDContainer::Language}});
 
@@ -2259,7 +2290,7 @@ TEST(language_container_empty) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"label"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://schema.org/name", false}},
+          .edges = {{.predicate = "https://schema.org/name"}},
           .value = sourcemeta::core::JSONLDCollection{
               .container = sourcemeta::core::JSONLDContainer::Language}});
 
@@ -2286,7 +2317,7 @@ TEST(language_container_null_value) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"label"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://schema.org/name", false}},
+          .edges = {{.predicate = "https://schema.org/name"}},
           .value = sourcemeta::core::JSONLDCollection{
               .container = sourcemeta::core::JSONLDContainer::Language}});
 
@@ -2318,7 +2349,7 @@ TEST(language_container_null_array_element) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"label"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://schema.org/name", false}},
+          .edges = {{.predicate = "https://schema.org/name"}},
           .value = sourcemeta::core::JSONLDCollection{
               .container = sourcemeta::core::JSONLDContainer::Language}});
 
@@ -2351,7 +2382,7 @@ TEST(language_container_null_none) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"label"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://schema.org/name", false}},
+          .edges = {{.predicate = "https://schema.org/name"}},
           .value = sourcemeta::core::JSONLDCollection{
               .container = sourcemeta::core::JSONLDContainer::Language}});
 
@@ -2383,7 +2414,7 @@ TEST(language_container_all_null) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"label"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://schema.org/name", false}},
+          .edges = {{.predicate = "https://schema.org/name"}},
           .value = sourcemeta::core::JSONLDCollection{
               .container = sourcemeta::core::JSONLDContainer::Language}});
 
@@ -2410,7 +2441,7 @@ TEST(index_container_of_nodes) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"posts"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://schema.org/blogPost", false}},
+          .edges = {{.predicate = "https://schema.org/blogPost"}},
           .value = sourcemeta::core::JSONLDCollection{
               .container = sourcemeta::core::JSONLDContainer::Index}});
   annotations.emplace_back(sourcemeta::core::Pointer{"posts", "2023"},
@@ -2421,7 +2452,7 @@ TEST(index_container_of_nodes) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"posts", "2023", "title"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://schema.org/headline", false}},
+          .edges = {{.predicate = "https://schema.org/headline"}},
           .value = sourcemeta::core::JSONLDLiteral{}});
   annotations.emplace_back(sourcemeta::core::Pointer{"posts", "2024"},
                            sourcemeta::core::JSONLDDescriptor{
@@ -2431,7 +2462,7 @@ TEST(index_container_of_nodes) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"posts", "2024", "title"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://schema.org/headline", false}},
+          .edges = {{.predicate = "https://schema.org/headline"}},
           .value = sourcemeta::core::JSONLDLiteral{}});
 
   const auto expected = sourcemeta::core::parse_json(R"([
@@ -2471,7 +2502,7 @@ TEST(index_container_of_literals) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"scores"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://schema.org/value", false}},
+          .edges = {{.predicate = "https://schema.org/value"}},
           .value = sourcemeta::core::JSONLDCollection{
               .container = sourcemeta::core::JSONLDContainer::Index}});
   annotations.emplace_back(
@@ -2512,7 +2543,7 @@ TEST(index_container_with_nested_set) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"groups"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://schema.org/item", false}},
+          .edges = {{.predicate = "https://schema.org/item"}},
           .value = sourcemeta::core::JSONLDCollection{
               .container = sourcemeta::core::JSONLDContainer::Index}});
   annotations.emplace_back(
@@ -2558,7 +2589,7 @@ TEST(index_container_empty) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"posts"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://schema.org/blogPost", false}},
+          .edges = {{.predicate = "https://schema.org/blogPost"}},
           .value = sourcemeta::core::JSONLDCollection{
               .container = sourcemeta::core::JSONLDContainer::Index}});
 
@@ -2587,7 +2618,7 @@ TEST(index_container_none_key_carries_no_index) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"posts"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://schema.org/blogPost", false}},
+          .edges = {{.predicate = "https://schema.org/blogPost"}},
           .value = sourcemeta::core::JSONLDCollection{
               .container = sourcemeta::core::JSONLDContainer::Index}});
 
@@ -2620,7 +2651,7 @@ TEST(index_container_of_described_typed_literals) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"scores"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://schema.org/value", false}},
+          .edges = {{.predicate = "https://schema.org/value"}},
           .value = sourcemeta::core::JSONLDCollection{
               .container = sourcemeta::core::JSONLDContainer::Index}});
   annotations.emplace_back(
@@ -2664,7 +2695,7 @@ TEST(weak_collection_defaults_undescribed_scalar_elements) {
   annotations.emplace_back(
       sourcemeta::core::WeakPointer{std::cref(keywords_key)},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://schema.org/keywords", false}},
+          .edges = {{.predicate = "https://schema.org/keywords"}},
           .value = sourcemeta::core::JSONLDCollection{
               .container = sourcemeta::core::JSONLDContainer::Set}});
 
@@ -2692,10 +2723,11 @@ TEST(duplicate_annotations_first_one_wins) {
                                .edges = {},
                                .value = sourcemeta::core::JSONLDNode{
                                    .id = "https://example.com/person"}});
-  annotations.emplace_back(sourcemeta::core::Pointer{"name"},
-                           sourcemeta::core::JSONLDDescriptor{
-                               .edges = {{"https://schema.org/name", false}},
-                               .value = sourcemeta::core::JSONLDLiteral{}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"name"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{.predicate = "https://schema.org/name"}},
+          .value = sourcemeta::core::JSONLDLiteral{}});
   annotations.emplace_back(sourcemeta::core::Pointer{},
                            sourcemeta::core::JSONLDDescriptor{
                                .edges = {},
@@ -2704,7 +2736,7 @@ TEST(duplicate_annotations_first_one_wins) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"name"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/ignored", false}},
+          .edges = {{.predicate = "https://example.com/ignored"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "https://example.com/ignored"}});
 
@@ -2738,7 +2770,7 @@ TEST(fractional_literal_with_decimal_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#decimal"}});
 
@@ -2772,7 +2804,7 @@ TEST(precise_fractional_literal_with_decimal_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#decimal"}});
 
@@ -2809,7 +2841,7 @@ TEST(integer_literal_with_decimal_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#decimal"}});
 
@@ -2845,7 +2877,7 @@ TEST(integral_real_literal_with_decimal_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#decimal"}});
 
@@ -2879,7 +2911,7 @@ TEST(zero_real_literal_with_decimal_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#decimal"}});
 
@@ -2913,7 +2945,7 @@ TEST(negative_fractional_literal_with_decimal_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#decimal"}});
 
@@ -2947,7 +2979,7 @@ TEST(negative_integer_literal_with_decimal_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#decimal"}});
 
@@ -2984,7 +3016,7 @@ TEST(small_fractional_literal_with_decimal_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#decimal"}});
 
@@ -3021,7 +3053,7 @@ TEST(large_real_literal_with_decimal_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#decimal"}});
 
@@ -3057,7 +3089,7 @@ TEST(exponent_notation_literal_with_decimal_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#decimal"}});
 
@@ -3094,7 +3126,7 @@ TEST(long_fractional_literal_with_decimal_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#decimal"}});
 
@@ -3130,7 +3162,7 @@ TEST(fractional_literal_with_integer_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#integer"}});
 
@@ -3164,7 +3196,7 @@ TEST(integer_literal_with_integer_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#integer"}});
 
@@ -3199,7 +3231,7 @@ TEST(large_integer_literal_with_integer_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#integer"}});
 
@@ -3236,7 +3268,7 @@ TEST(high_precision_fractional_literal_with_decimal_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#decimal"}});
 
@@ -3271,7 +3303,7 @@ TEST(huge_integer_literal_with_integer_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#integer"}});
 
@@ -3308,7 +3340,7 @@ TEST(fractional_literal_with_double_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#double"}});
 
@@ -3342,7 +3374,7 @@ TEST(precise_fractional_literal_with_double_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#double"}});
 
@@ -3376,7 +3408,7 @@ TEST(integer_literal_with_double_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#double"}});
 
@@ -3410,7 +3442,7 @@ TEST(integral_real_literal_with_double_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#double"}});
 
@@ -3446,7 +3478,7 @@ TEST(zero_real_literal_with_double_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#double"}});
 
@@ -3482,7 +3514,7 @@ TEST(negative_zero_real_literal_with_double_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#double"}});
 
@@ -3516,7 +3548,7 @@ TEST(negative_zero_real_literal_with_float_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#float"}});
 
@@ -3552,7 +3584,7 @@ TEST(negative_integer_zero_literal_with_double_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#double"}});
 
@@ -3586,7 +3618,7 @@ TEST(negative_fractional_literal_with_double_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#double"}});
 
@@ -3620,7 +3652,7 @@ TEST(small_fractional_literal_with_double_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#double"}});
 
@@ -3654,7 +3686,7 @@ TEST(large_real_literal_with_double_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#double"}});
 
@@ -3692,7 +3724,7 @@ TEST(large_integer_literal_with_double_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#double"}});
 
@@ -3728,7 +3760,7 @@ TEST(tiny_real_literal_with_double_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#double"}});
 
@@ -3764,7 +3796,7 @@ TEST(fractional_literal_with_float_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#float"}});
 
@@ -3800,7 +3832,7 @@ TEST(true_literal_with_boolean_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#boolean"}});
 
@@ -3834,7 +3866,7 @@ TEST(false_literal_with_boolean_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#boolean"}});
 
@@ -3870,7 +3902,7 @@ TEST(true_literal_with_double_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#double"}});
 
@@ -3901,11 +3933,12 @@ TEST(true_literal_with_custom_datatype) {
       sourcemeta::core::JSONLDDescriptor{.edges = {},
                                          .value = sourcemeta::core::JSONLDNode{
                                              .id = "https://example.com/doc"}});
-  annotations.emplace_back(sourcemeta::core::Pointer{"value"},
-                           sourcemeta::core::JSONLDDescriptor{
-                               .edges = {{"https://example.com/value", false}},
-                               .value = sourcemeta::core::JSONLDLiteral{
-                                   .datatype = "https://example.com/flag"}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"value"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{.predicate = "https://example.com/value"}},
+          .value = sourcemeta::core::JSONLDLiteral{
+              .datatype = "https://example.com/flag"}});
 
   const auto expected = sourcemeta::core::parse_json(R"([
     {
@@ -3937,7 +3970,7 @@ TEST(fractional_literal_with_custom_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "https://example.com/quantity"}});
 
@@ -3971,7 +4004,7 @@ TEST(integer_literal_with_custom_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "https://example.com/quantity"}});
 
@@ -4005,10 +4038,11 @@ TEST(fractional_literal_without_datatype) {
       sourcemeta::core::JSONLDDescriptor{.edges = {},
                                          .value = sourcemeta::core::JSONLDNode{
                                              .id = "https://example.com/doc"}});
-  annotations.emplace_back(sourcemeta::core::Pointer{"value"},
-                           sourcemeta::core::JSONLDDescriptor{
-                               .edges = {{"https://example.com/value", false}},
-                               .value = sourcemeta::core::JSONLDLiteral{}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"value"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{.predicate = "https://example.com/value"}},
+          .value = sourcemeta::core::JSONLDLiteral{}});
 
   const auto expected = sourcemeta::core::parse_json(R"([
     {
@@ -4032,10 +4066,11 @@ TEST(boolean_literal_without_datatype) {
       sourcemeta::core::JSONLDDescriptor{.edges = {},
                                          .value = sourcemeta::core::JSONLDNode{
                                              .id = "https://example.com/doc"}});
-  annotations.emplace_back(sourcemeta::core::Pointer{"value"},
-                           sourcemeta::core::JSONLDDescriptor{
-                               .edges = {{"https://example.com/value", false}},
-                               .value = sourcemeta::core::JSONLDLiteral{}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"value"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{.predicate = "https://example.com/value"}},
+          .value = sourcemeta::core::JSONLDLiteral{}});
 
   const auto expected = sourcemeta::core::parse_json(R"([
     {
@@ -4062,7 +4097,7 @@ TEST(fractional_json_literal_preserved_verbatim) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{.json = true}});
 
   const auto expected = sourcemeta::core::parse_json(R"([
@@ -4094,7 +4129,7 @@ TEST(string_literal_with_decimal_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#decimal"}});
 
@@ -4129,7 +4164,7 @@ TEST(minimum_integer_literal_with_integer_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#integer"}});
 
@@ -4164,7 +4199,7 @@ TEST(maximum_integer_literal_with_integer_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#integer"}});
 
@@ -4198,7 +4233,7 @@ TEST(zero_integer_literal_with_decimal_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#decimal"}});
 
@@ -4232,7 +4267,7 @@ TEST(zero_integer_literal_with_double_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#double"}});
 
@@ -4267,7 +4302,7 @@ TEST(minimum_integer_literal_with_double_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#double"}});
 
@@ -4301,7 +4336,7 @@ TEST(integer_literal_with_float_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#float"}});
 
@@ -4340,7 +4375,7 @@ TEST(maximum_real_literal_with_decimal_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#decimal"}});
 
@@ -4377,7 +4412,7 @@ TEST(subnormal_real_literal_with_decimal_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#decimal"}});
 
@@ -4411,7 +4446,7 @@ TEST(negative_large_decimal_literal_with_decimal_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#decimal"}});
 
@@ -4445,7 +4480,7 @@ TEST(negative_fraction_decimal_literal_with_decimal_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#decimal"}});
 
@@ -4480,7 +4515,7 @@ TEST(interior_point_decimal_literal_with_decimal_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#decimal"}});
 
@@ -4517,7 +4552,7 @@ TEST(trailing_zeros_decimal_literal_with_decimal_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#decimal"}});
 
@@ -4552,7 +4587,7 @@ TEST(trailing_zeros_integer_decimal_literal_with_integer_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#integer"}});
 
@@ -4586,7 +4621,7 @@ TEST(zero_decimal_literal_with_decimal_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#decimal"}});
 
@@ -4620,7 +4655,7 @@ TEST(zero_decimal_literal_with_double_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#double"}});
 
@@ -4656,7 +4691,7 @@ TEST(overflowing_decimal_literal_with_double_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#double"}});
 
@@ -4690,7 +4725,7 @@ TEST(underflowing_decimal_literal_with_double_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#double"}});
 
@@ -4725,7 +4760,7 @@ TEST(high_precision_fraction_decimal_literal_with_decimal_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#decimal"}});
 
@@ -4760,7 +4795,7 @@ TEST(maximum_double_decimal_literal_with_double_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#double"}});
 
@@ -4796,7 +4831,7 @@ TEST(json_literal_ignores_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#decimal",
               .json = true}});
@@ -4829,7 +4864,7 @@ TEST(null_literal_with_decimal_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#decimal"}});
 
@@ -4859,7 +4894,7 @@ TEST(boundary_exponent_decimal_literal_with_decimal_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#decimal"}});
 
@@ -4896,7 +4931,7 @@ TEST(above_boundary_exponent_decimal_literal_with_decimal_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#decimal"}});
 
@@ -4931,7 +4966,7 @@ TEST(below_boundary_exponent_decimal_literal_with_decimal_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#decimal"}});
 
@@ -4966,7 +5001,7 @@ TEST(maximum_exponent_decimal_literal_with_decimal_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#decimal"}});
 
@@ -5001,7 +5036,7 @@ TEST(minimum_exponent_decimal_literal_with_decimal_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#decimal"}});
 
@@ -5038,7 +5073,7 @@ TEST(huge_exponent_decimal_literal_with_double_datatype) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"value"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/value", false}},
+          .edges = {{.predicate = "https://example.com/value"}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#double"}});
 
@@ -5074,10 +5109,11 @@ TEST(node_with_constants) {
   annotations.emplace_back(sourcemeta::core::Pointer{},
                            sourcemeta::core::JSONLDDescriptor{
                                .edges = {}, .value = std::move(node)});
-  annotations.emplace_back(sourcemeta::core::Pointer{"name"},
-                           sourcemeta::core::JSONLDDescriptor{
-                               .edges = {{"https://schema.org/name", false}},
-                               .value = sourcemeta::core::JSONLDLiteral{}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"name"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{.predicate = "https://schema.org/name"}},
+          .value = sourcemeta::core::JSONLDLiteral{}});
 
   const auto expected = sourcemeta::core::parse_json(R"([
     {
@@ -5109,10 +5145,11 @@ TEST(node_constants_dedupe_against_instance_members) {
   annotations.emplace_back(sourcemeta::core::Pointer{},
                            sourcemeta::core::JSONLDDescriptor{
                                .edges = {}, .value = std::move(node)});
-  annotations.emplace_back(sourcemeta::core::Pointer{"kind"},
-                           sourcemeta::core::JSONLDDescriptor{
-                               .edges = {{"https://example.com/kind", false}},
-                               .value = sourcemeta::core::JSONLDLiteral{}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"kind"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{.predicate = "https://example.com/kind"}},
+          .value = sourcemeta::core::JSONLDLiteral{}});
 
   const auto expected = sourcemeta::core::parse_json(R"([
     {
@@ -5144,10 +5181,11 @@ TEST(graph_node_constants_on_inner_subject) {
   annotations.emplace_back(sourcemeta::core::Pointer{},
                            sourcemeta::core::JSONLDDescriptor{
                                .edges = {}, .value = std::move(node)});
-  annotations.emplace_back(sourcemeta::core::Pointer{"name"},
-                           sourcemeta::core::JSONLDDescriptor{
-                               .edges = {{"https://schema.org/name", false}},
-                               .value = sourcemeta::core::JSONLDLiteral{}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"name"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{.predicate = "https://schema.org/name"}},
+          .value = sourcemeta::core::JSONLDLiteral{}});
 
   const auto expected = sourcemeta::core::parse_json(R"([
     {
@@ -5183,7 +5221,7 @@ TEST(reference_with_constants_renders_node_object) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"code"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/currency", false}},
+          .edges = {{.predicate = "https://example.com/currency"}},
           .value = std::move(reference)});
 
   const auto expected = sourcemeta::core::parse_json(R"([
@@ -5216,10 +5254,11 @@ TEST(promotion_with_constants) {
   })");
 
   sourcemeta::core::JSONLDAnnotationList annotations;
-  annotations.emplace_back(sourcemeta::core::Pointer{"height"},
-                           sourcemeta::core::JSONLDDescriptor{
-                               .edges = {{"https://example.com/height", false}},
-                               .value = std::move(promotion)});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"height"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{.predicate = "https://example.com/height"}},
+          .value = std::move(promotion)});
 
   const auto expected = sourcemeta::core::parse_json(R"([
     {
@@ -5247,10 +5286,11 @@ TEST(promotion_typed_inner_literal_canonical_lexical_form) {
   promotion.literal.datatype = "http://www.w3.org/2001/XMLSchema#decimal";
 
   sourcemeta::core::JSONLDAnnotationList annotations;
-  annotations.emplace_back(sourcemeta::core::Pointer{"height"},
-                           sourcemeta::core::JSONLDDescriptor{
-                               .edges = {{"https://example.com/height", false}},
-                               .value = std::move(promotion)});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"height"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{.predicate = "https://example.com/height"}},
+          .value = std::move(promotion)});
 
   const auto expected = sourcemeta::core::parse_json(R"([
     {
@@ -5281,10 +5321,11 @@ TEST(promotion_language_inner_literal) {
   promotion.literal.language = "es";
 
   sourcemeta::core::JSONLDAnnotationList annotations;
-  annotations.emplace_back(sourcemeta::core::Pointer{"name"},
-                           sourcemeta::core::JSONLDDescriptor{
-                               .edges = {{"https://example.com/name", false}},
-                               .value = std::move(promotion)});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"name"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{.predicate = "https://example.com/name"}},
+          .value = std::move(promotion)});
 
   const auto expected = sourcemeta::core::parse_json(R"([
     {
@@ -5314,10 +5355,11 @@ TEST(promotion_null_instance_emits_nothing) {
   })");
 
   sourcemeta::core::JSONLDAnnotationList annotations;
-  annotations.emplace_back(sourcemeta::core::Pointer{"height"},
-                           sourcemeta::core::JSONLDDescriptor{
-                               .edges = {{"https://example.com/height", false}},
-                               .value = std::move(promotion)});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"height"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{.predicate = "https://example.com/height"}},
+          .value = std::move(promotion)});
 
   const auto expected = sourcemeta::core::parse_json(R"([])");
   const auto result{
@@ -5422,7 +5464,7 @@ TEST(promotion_anonymous_list_member_survives) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"heights"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/heights", false}},
+          .edges = {{.predicate = "https://example.com/heights"}},
           .value = sourcemeta::core::JSONLDCollection{
               .container = sourcemeta::core::JSONLDContainer::List}});
   annotations.emplace_back(sourcemeta::core::Pointer{"heights", 0},
@@ -5461,10 +5503,11 @@ TEST(promotion_value_predicate_collision_unions) {
   })");
 
   sourcemeta::core::JSONLDAnnotationList annotations;
-  annotations.emplace_back(sourcemeta::core::Pointer{"height"},
-                           sourcemeta::core::JSONLDDescriptor{
-                               .edges = {{"https://example.com/height", false}},
-                               .value = std::move(promotion)});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"height"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{.predicate = "https://example.com/height"}},
+          .value = std::move(promotion)});
 
   const auto expected = sourcemeta::core::parse_json(R"([
     {
@@ -5495,10 +5538,11 @@ TEST(promotion_value_predicate_collision_dedupes_equal_terms) {
   })");
 
   sourcemeta::core::JSONLDAnnotationList annotations;
-  annotations.emplace_back(sourcemeta::core::Pointer{"height"},
-                           sourcemeta::core::JSONLDDescriptor{
-                               .edges = {{"https://example.com/height", false}},
-                               .value = std::move(promotion)});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"height"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{.predicate = "https://example.com/height"}},
+          .value = std::move(promotion)});
 
   const auto expected = sourcemeta::core::parse_json(R"([
     {
@@ -5523,8 +5567,8 @@ TEST(promotion_under_multiple_edges_distinct_nodes) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"height"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/height", false},
-                    {"https://example.com/stature", false}},
+          .edges = {{.predicate = "https://example.com/height"},
+                    {.predicate = "https://example.com/stature"}},
           .value = std::move(promotion)});
 
   const auto expected = sourcemeta::core::parse_json(R"([
@@ -5554,7 +5598,8 @@ TEST(promotion_reverse_edge) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"height"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/measurementOf", true}},
+          .edges = {{.predicate = "https://example.com/measurementOf",
+                     .reverse = true}},
           .value = std::move(promotion)});
 
   const auto expected = sourcemeta::core::parse_json(R"([
@@ -5583,7 +5628,7 @@ TEST(promotion_index_container_member_keeps_index) {
   annotations.emplace_back(
       sourcemeta::core::Pointer{"readings"},
       sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/readings", false}},
+          .edges = {{.predicate = "https://example.com/readings"}},
           .value = sourcemeta::core::JSONLDCollection{
               .container = sourcemeta::core::JSONLDContainer::Index}});
   annotations.emplace_back(sourcemeta::core::Pointer{"readings", "morning"},
@@ -5615,10 +5660,11 @@ TEST(promotion_empty_constants_no_op) {
   promotion.constants = sourcemeta::core::JSON::make_object();
 
   sourcemeta::core::JSONLDAnnotationList annotations;
-  annotations.emplace_back(sourcemeta::core::Pointer{"height"},
-                           sourcemeta::core::JSONLDDescriptor{
-                               .edges = {{"https://example.com/height", false}},
-                               .value = std::move(promotion)});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"height"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{.predicate = "https://example.com/height"}},
+          .value = std::move(promotion)});
 
   const auto expected = sourcemeta::core::parse_json(R"([
     {
@@ -5644,10 +5690,11 @@ TEST(promotion_output_flattens) {
   })");
 
   sourcemeta::core::JSONLDAnnotationList annotations;
-  annotations.emplace_back(sourcemeta::core::Pointer{"height"},
-                           sourcemeta::core::JSONLDDescriptor{
-                               .edges = {{"https://example.com/height", false}},
-                               .value = std::move(promotion)});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"height"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{.predicate = "https://example.com/height"}},
+          .value = std::move(promotion)});
 
   const auto expanded{
       sourcemeta::core::jsonld_materialize(instance, annotations)};
@@ -5667,10 +5714,11 @@ TEST(promotion_output_compacts_and_re_expands) {
   })");
 
   sourcemeta::core::JSONLDAnnotationList annotations;
-  annotations.emplace_back(sourcemeta::core::Pointer{"height"},
-                           sourcemeta::core::JSONLDDescriptor{
-                               .edges = {{"https://example.com/height", false}},
-                               .value = std::move(promotion)});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"height"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{.predicate = "https://example.com/height"}},
+          .value = std::move(promotion)});
 
   const auto expanded{
       sourcemeta::core::jsonld_materialize(instance, annotations)};

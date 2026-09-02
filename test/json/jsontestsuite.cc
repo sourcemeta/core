@@ -1,13 +1,14 @@
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/test.h>
 
+#include <cstdint>    // std::uint8_t
 #include <filesystem> // std::filesystem
 #include <fstream>    // std::ifstream
 #include <ios>        // std::ios::binary, std::ios_base::badbit
 #include <string>     // std::string, std::char_traits
 
 namespace {
-enum class JSONTestType { Accept, Reject };
+enum class JSONTestType : std::uint8_t { Accept, Reject };
 
 auto run_json_test_case(const std::filesystem::path &path,
                         const JSONTestType type) -> void {
@@ -48,7 +49,7 @@ auto main(int argc, char **argv) -> int {
       std::filesystem::path{JSONTESTSUITE_PATH} / "test_parsing"};
   for (const std::filesystem::directory_entry &entry :
        std::filesystem::directory_iterator{test_parsing_path}) {
-    const std::filesystem::path test_path{entry.path()};
+    const std::filesystem::path &test_path{entry.path()};
     const char front{test_path.filename().string().front()};
     const JSONTestType type{front == 'n' || front == 'i'
                                 ? JSONTestType::Reject

@@ -152,7 +152,7 @@ TEST(windows_relative_with_dot) {
 }
 
 TEST(windows_relative_with_dotdot) {
-  const std::filesystem::path example{"..\\up\\one\\level"};
+  const std::filesystem::path example{R"(..\up\one\level)"};
   try {
     sourcemeta::core::URI::from_path(example);
     FAIL();

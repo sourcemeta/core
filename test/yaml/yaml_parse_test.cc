@@ -715,7 +715,7 @@ TEST(plain_scalar_triple_dot_value) {
 }
 
 TEST(invalid_hex_escape) {
-  const std::string input{"\"\\xGG\""};
+  const std::string input{R"("\xGG")"};
   try {
     sourcemeta::core::parse_yaml(input);
     FAIL();
@@ -727,7 +727,7 @@ TEST(invalid_hex_escape) {
 }
 
 TEST(invalid_unicode_escape_4) {
-  const std::string input{"\"\\uZZZZ\""};
+  const std::string input{R"("\uZZZZ")"};
   try {
     sourcemeta::core::parse_yaml(input);
     FAIL();
@@ -739,7 +739,7 @@ TEST(invalid_unicode_escape_4) {
 }
 
 TEST(invalid_unicode_escape_8) {
-  const std::string input{"\"\\UZZZZZZZZ\""};
+  const std::string input{R"("\UZZZZZZZZ")"};
   try {
     sourcemeta::core::parse_yaml(input);
     FAIL();
@@ -751,14 +751,14 @@ TEST(invalid_unicode_escape_8) {
 }
 
 TEST(valid_bmp_unicode_escape) {
-  const std::string input{"\"\\u00e9\""};
+  const std::string input{R"("\u00e9")"};
   const auto result{sourcemeta::core::parse_yaml(input)};
   const sourcemeta::core::JSON expected{"\xC3\xA9"};
   EXPECT_EQ(result, expected);
 }
 
 TEST(valid_astral_unicode_escape) {
-  const std::string input{"\"\\U0001F600\""};
+  const std::string input{R"("\U0001F600")"};
   const auto result{sourcemeta::core::parse_yaml(input)};
   const sourcemeta::core::JSON expected{"\xF0\x9F\x98\x80"};
   EXPECT_EQ(result, expected);
@@ -766,7 +766,7 @@ TEST(valid_astral_unicode_escape) {
 
 TEST(surrogate_unicode_escape_is_rejected) {
   // YAML 1.2.2 Section 5.7: a lone surrogate is not a Unicode scalar value
-  const std::string input{"\"\\uD800\""};
+  const std::string input{R"("\uD800")"};
   try {
     sourcemeta::core::parse_yaml(input);
     FAIL();
@@ -778,7 +778,7 @@ TEST(surrogate_unicode_escape_is_rejected) {
 }
 
 TEST(out_of_range_unicode_escape_is_rejected) {
-  const std::string input{"\"\\UFFFFFFFF\""};
+  const std::string input{R"("\UFFFFFFFF")"};
   try {
     sourcemeta::core::parse_yaml(input);
     FAIL();
@@ -1241,7 +1241,8 @@ TEST(tab_after_spaces_flow_scalar_continuation_is_rejected) {
     sourcemeta::core::parse_yaml(input);
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &) {
-    // Expected: the continuation reaches only the block indentation with spaces
+    // The continuation reaching only the block indentation with spaces is
+    // expected
   } catch (...) {
     FAIL();
   }
@@ -1952,35 +1953,35 @@ TEST(alias_quoted_keyword_key_is_preserved) {
 }
 
 TEST(escape_vertical_tab) {
-  const std::string input{"\"\\v\""};
+  const std::string input{R"("\v")"};
   const auto result{sourcemeta::core::parse_yaml(input)};
   EXPECT_TRUE(result.is_string());
   EXPECT_EQ(result.to_string(), std::string("\x0b", 1));
 }
 
 TEST(escape_form_feed) {
-  const std::string input{"\"\\f\""};
+  const std::string input{R"("\f")"};
   const auto result{sourcemeta::core::parse_yaml(input)};
   EXPECT_TRUE(result.is_string());
   EXPECT_EQ(result.to_string(), std::string("\x0c", 1));
 }
 
 TEST(escape_line_separator) {
-  const std::string input{"\"\\L\""};
+  const std::string input{R"("\L")"};
   const auto result{sourcemeta::core::parse_yaml(input)};
   EXPECT_TRUE(result.is_string());
   EXPECT_EQ(result.to_string(), std::string("\xe2\x80\xa8", 3));
 }
 
 TEST(escape_paragraph_separator) {
-  const std::string input{"\"\\P\""};
+  const std::string input{R"("\P")"};
   const auto result{sourcemeta::core::parse_yaml(input)};
   EXPECT_TRUE(result.is_string());
   EXPECT_EQ(result.to_string(), std::string("\xe2\x80\xa9", 3));
 }
 
 TEST(escape_incomplete_hex) {
-  const std::string input{"\"\\xZ\""};
+  const std::string input{R"("\xZ")"};
   try {
     const auto result{sourcemeta::core::parse_yaml(input)};
     FAIL();

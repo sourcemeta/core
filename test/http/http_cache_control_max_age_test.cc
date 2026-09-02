@@ -110,7 +110,7 @@ TEST(non_numeric_quoted_value_rejected) {
 
 TEST(quoted_pair_escaped_digits) {
   const auto result{
-      sourcemeta::core::http_cache_control_max_age("max-age=\"6\\0\\0\"")};
+      sourcemeta::core::http_cache_control_max_age(R"(max-age="6\0\0")")};
   EXPECT_TRUE(result.has_value());
   EXPECT_EQ(result.value(), std::chrono::seconds{600});
 }

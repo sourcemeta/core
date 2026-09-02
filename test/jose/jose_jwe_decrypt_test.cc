@@ -8,7 +8,7 @@
 #include <string>      // std::string
 #include <string_view> // std::string_view
 
-static const std::string PLAINTEXT{"Encrypt then authenticate."};
+static constexpr std::string_view PLAINTEXT{"Encrypt then authenticate."};
 
 static auto header_for(const std::string_view algorithm,
                        const std::string_view encryption)

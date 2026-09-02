@@ -60,70 +60,70 @@
   EXPECT_EQ(std::get<6>(traces.at(index)), expected_property)
 
 TEST(true) {
-  const auto input{"true"};
+  const auto *const input{"true"};
   PARSE_WITH_TRACES(document, input, 2);
   EXPECT_TRACE(0, Pre, Boolean, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Post, Boolean, 1, 4, Root, 0, "");
 }
 
 TEST(true_with_padding) {
-  const auto input{"  true  "};
+  const auto *const input{"  true  "};
   PARSE_WITH_TRACES(document, input, 2);
   EXPECT_TRACE(0, Pre, Boolean, 1, 3, Root, 0, "");
   EXPECT_TRACE(1, Post, Boolean, 1, 6, Root, 0, "");
 }
 
 TEST(false) {
-  const auto input{"false"};
+  const auto *const input{"false"};
   PARSE_WITH_TRACES(document, input, 2);
   EXPECT_TRACE(0, Pre, Boolean, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Post, Boolean, 1, 5, Root, 0, "");
 }
 
 TEST(null) {
-  const auto input{"null"};
+  const auto *const input{"null"};
   PARSE_WITH_TRACES(document, input, 2);
   EXPECT_TRACE(0, Pre, Null, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Post, Null, 1, 4, Root, 0, "");
 }
 
 TEST(empty_string) {
-  const auto input{"\"\""};
+  const auto *const input{"\"\""};
   PARSE_WITH_TRACES(document, input, 2);
   EXPECT_TRACE(0, Pre, String, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Post, String, 1, 2, Root, 0, "");
 }
 
 TEST(non_empty_string) {
-  const auto input{"\"foo\""};
+  const auto *const input{"\"foo\""};
   PARSE_WITH_TRACES(document, input, 2);
   EXPECT_TRACE(0, Pre, String, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Post, String, 1, 5, Root, 0, "");
 }
 
 TEST(integer) {
-  const auto input{"1234"};
+  const auto *const input{"1234"};
   PARSE_WITH_TRACES(document, input, 2);
   EXPECT_TRACE(0, Pre, Integer, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Post, Integer, 1, 4, Root, 0, "");
 }
 
 TEST(real) {
-  const auto input{"3.5"};
+  const auto *const input{"3.5"};
   PARSE_WITH_TRACES(document, input, 2);
   EXPECT_TRACE(0, Pre, Real, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Post, Real, 1, 3, Root, 0, "");
 }
 
 TEST(empty_array) {
-  const auto input{"[]"};
+  const auto *const input{"[]"};
   PARSE_WITH_TRACES(document, input, 2);
   EXPECT_TRACE(0, Pre, Array, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Post, Array, 1, 2, Root, 0, "");
 }
 
 TEST(array_booleans) {
-  const auto input{"[\n  true,\n  false\n]"};
+  const auto *const input{"[\n  true,\n  false\n]"};
 
   PARSE_WITH_TRACES(document, input, 6);
   EXPECT_TRACE(0, Pre, Array, 1, 1, Root, 0, "");
@@ -135,7 +135,7 @@ TEST(array_booleans) {
 }
 
 TEST(array_nulls) {
-  const auto input{"[\n  null,\n  null\n]"};
+  const auto *const input{"[\n  null,\n  null\n]"};
   PARSE_WITH_TRACES(document, input, 6);
   EXPECT_TRACE(0, Pre, Array, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Pre, Null, 2, 3, Index, 0, "");
@@ -146,7 +146,7 @@ TEST(array_nulls) {
 }
 
 TEST(array_strings) {
-  const auto input{"[\n  \"foo\",\n  \"bar\"\n]"};
+  const auto *const input{"[\n  \"foo\",\n  \"bar\"\n]"};
   PARSE_WITH_TRACES(document, input, 6);
   EXPECT_TRACE(0, Pre, Array, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Pre, String, 2, 3, Index, 0, "");
@@ -157,7 +157,7 @@ TEST(array_strings) {
 }
 
 TEST(array_integers) {
-  const auto input{"[\n  1,\n  234\n]"};
+  const auto *const input{"[\n  1,\n  234\n]"};
   PARSE_WITH_TRACES(document, input, 6);
   EXPECT_TRACE(0, Pre, Array, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Pre, Integer, 2, 3, Index, 0, "");
@@ -168,7 +168,7 @@ TEST(array_integers) {
 }
 
 TEST(array_reals) {
-  const auto input{"[\n  1.0,\n  2.5\n]"};
+  const auto *const input{"[\n  1.0,\n  2.5\n]"};
   PARSE_WITH_TRACES(document, input, 6);
   EXPECT_TRACE(0, Pre, Array, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Pre, Real, 2, 3, Index, 0, "");
@@ -179,7 +179,7 @@ TEST(array_reals) {
 }
 
 TEST(array_empty_objects) {
-  const auto input{"[\n  {},\n  {}\n]"};
+  const auto *const input{"[\n  {},\n  {}\n]"};
   PARSE_WITH_TRACES(document, input, 6);
   EXPECT_TRACE(0, Pre, Array, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Pre, Object, 2, 3, Index, 0, "");
@@ -190,7 +190,7 @@ TEST(array_empty_objects) {
 }
 
 TEST(array_empty_arrays) {
-  const auto input{"[\n  [],\n  []\n]"};
+  const auto *const input{"[\n  [],\n  []\n]"};
   PARSE_WITH_TRACES(document, input, 6);
   EXPECT_TRACE(0, Pre, Array, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Pre, Array, 2, 3, Index, 0, "");
@@ -201,14 +201,14 @@ TEST(array_empty_arrays) {
 }
 
 TEST(empty_object) {
-  const auto input{"{}"};
+  const auto *const input{"{}"};
   PARSE_WITH_TRACES(document, input, 2);
   EXPECT_TRACE(0, Pre, Object, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Post, Object, 1, 2, Root, 0, "");
 }
 
 TEST(object_booleans) {
-  const auto input{"{\n  \"foo\": true,\n  \"bar\": false\n}"};
+  const auto *const input{"{\n  \"foo\": true,\n  \"bar\": false\n}"};
   PARSE_WITH_TRACES(document, input, 6);
   EXPECT_TRACE(0, Pre, Object, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Pre, Boolean, 2, 3, Property, 0, "foo");
@@ -219,7 +219,7 @@ TEST(object_booleans) {
 }
 
 TEST(object_nulls) {
-  const auto input{"{\n  \"foo\": null,\n  \"bar\": null\n}"};
+  const auto *const input{"{\n  \"foo\": null,\n  \"bar\": null\n}"};
   PARSE_WITH_TRACES(document, input, 6);
   EXPECT_TRACE(0, Pre, Object, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Pre, Null, 2, 3, Property, 0, "foo");
@@ -230,7 +230,7 @@ TEST(object_nulls) {
 }
 
 TEST(object_strings) {
-  const auto input{"{\n  \"foo\": \"baz\",\n  \"bar\": \"qux\"\n}"};
+  const auto *const input{"{\n  \"foo\": \"baz\",\n  \"bar\": \"qux\"\n}"};
   PARSE_WITH_TRACES(document, input, 6);
   EXPECT_TRACE(0, Pre, Object, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Pre, String, 2, 3, Property, 0, "foo");
@@ -241,7 +241,7 @@ TEST(object_strings) {
 }
 
 TEST(object_integers) {
-  const auto input{"{\n  \"foo\": 1,\n  \"bar\": 234\n}"};
+  const auto *const input{"{\n  \"foo\": 1,\n  \"bar\": 234\n}"};
   PARSE_WITH_TRACES(document, input, 6);
   EXPECT_TRACE(0, Pre, Object, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Pre, Integer, 2, 3, Property, 0, "foo");
@@ -252,7 +252,7 @@ TEST(object_integers) {
 }
 
 TEST(object_reals) {
-  const auto input{"{\n  \"foo\": 1.0,\n  \"bar\": 2.5\n}"};
+  const auto *const input{"{\n  \"foo\": 1.0,\n  \"bar\": 2.5\n}"};
   PARSE_WITH_TRACES(document, input, 6);
   EXPECT_TRACE(0, Pre, Object, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Pre, Real, 2, 3, Property, 0, "foo");
@@ -263,7 +263,7 @@ TEST(object_reals) {
 }
 
 TEST(object_empty_arrays) {
-  const auto input{"{\n  \"foo\": [],\n  \"bar\": []\n}"};
+  const auto *const input{"{\n  \"foo\": [],\n  \"bar\": []\n}"};
   PARSE_WITH_TRACES(document, input, 6);
   EXPECT_TRACE(0, Pre, Object, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Pre, Array, 2, 3, Property, 0, "foo");
@@ -274,7 +274,7 @@ TEST(object_empty_arrays) {
 }
 
 TEST(object_empty_objects) {
-  const auto input{"{\n  \"foo\": {},\n  \"bar\": {}\n}"};
+  const auto *const input{"{\n  \"foo\": {},\n  \"bar\": {}\n}"};
   PARSE_WITH_TRACES(document, input, 6);
   EXPECT_TRACE(0, Pre, Object, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Pre, Object, 2, 3, Property, 0, "foo");
@@ -285,7 +285,7 @@ TEST(object_empty_objects) {
 }
 
 TEST(complex_1) {
-  const auto input{R"JSON([
+  const auto *const input{R"JSON([
   {
     "foo": {
       "bar": 3
@@ -314,21 +314,21 @@ TEST(read_json_stub_valid) {
 }
 
 TEST(decimal_simple) {
-  const auto input{"9223372036854776000"};
+  const auto *const input{"9223372036854776000"};
   PARSE_WITH_TRACES(document, input, 2);
   EXPECT_TRACE(0, Pre, Decimal, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Post, Decimal, 1, 19, Root, 0, "");
 }
 
 TEST(decimal_negative) {
-  const auto input{"-9223372036854776000"};
+  const auto *const input{"-9223372036854776000"};
   PARSE_WITH_TRACES(document, input, 2);
   EXPECT_TRACE(0, Pre, Decimal, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Post, Decimal, 1, 20, Root, 0, "");
 }
 
 TEST(decimal_in_array) {
-  const auto input{"[1, 9223372036854776000, 3]"};
+  const auto *const input{"[1, 9223372036854776000, 3]"};
   PARSE_WITH_TRACES(document, input, 8);
   EXPECT_TRACE(0, Pre, Array, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Pre, Integer, 1, 2, Index, 0, "");
@@ -341,7 +341,7 @@ TEST(decimal_in_array) {
 }
 
 TEST(decimal_in_object) {
-  const auto input{"{\"big\":9223372036854776000}"};
+  const auto *const input{"{\"big\":9223372036854776000}"};
   PARSE_WITH_TRACES(document, input, 4);
   EXPECT_TRACE(0, Pre, Object, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Pre, Decimal, 1, 2, Property, 0, "big");
@@ -350,7 +350,7 @@ TEST(decimal_in_object) {
 }
 
 TEST(decimals_mixed_in_object) {
-  const auto input{"{\"big\":9223372036854776000,\"small\":42}"};
+  const auto *const input{R"({"big":9223372036854776000,"small":42})"};
   PARSE_WITH_TRACES(document, input, 6);
   EXPECT_TRACE(0, Pre, Object, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Pre, Decimal, 1, 2, Property, 0, "big");
@@ -361,14 +361,15 @@ TEST(decimals_mixed_in_object) {
 }
 
 TEST(decimal_big_real) {
-  const auto input{"3.14159265358979323846264338327950288419716939937510"};
+  const auto *const input{
+      "3.14159265358979323846264338327950288419716939937510"};
   PARSE_WITH_TRACES(document, input, 2);
   EXPECT_TRACE(0, Pre, Decimal, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Post, Decimal, 1, 52, Root, 0, "");
 }
 
 TEST(nested_decimals) {
-  const auto input{"{\"data\":[{\"big_int\":9223372036854776000}]}"};
+  const auto *const input{R"({"data":[{"big_int":9223372036854776000}]})"};
   PARSE_WITH_TRACES(document, input, 8);
   EXPECT_TRACE(0, Pre, Object, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Pre, Array, 1, 2, Property, 0, "data");

@@ -870,7 +870,11 @@ TEST(make_initialize_result_minimal_2025_11_25) {
     "params": { "protocolVersion": "2025-11-25" }
   })JSON")};
   const sourcemeta::core::MCPServerCapabilities capabilities;
-  const sourcemeta::core::MCPImplementation server{"srv", "1.0.0", {}, {}, {}};
+  const sourcemeta::core::MCPImplementation server{.name = "srv",
+                                                   .version = "1.0.0",
+                                                   .title = {},
+                                                   .description = {},
+                                                   .website_url = {}};
   const auto envelope{sourcemeta::core::mcp_make_initialize_result(
       request, capabilities, server)};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
@@ -893,7 +897,11 @@ TEST(make_initialize_result_missing_protocol_version_is_invalid_params) {
     "params": {}
   })JSON")};
   const sourcemeta::core::MCPServerCapabilities capabilities;
-  const sourcemeta::core::MCPImplementation server{"srv", "1.0.0", {}, {}, {}};
+  const sourcemeta::core::MCPImplementation server{.name = "srv",
+                                                   .version = "1.0.0",
+                                                   .title = {},
+                                                   .description = {},
+                                                   .website_url = {}};
   const auto envelope{sourcemeta::core::mcp_make_initialize_result(
       request, capabilities, server)};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
@@ -912,7 +920,11 @@ TEST(make_initialize_result_non_string_protocol_version_is_invalid_params) {
     "params": { "protocolVersion": 123 }
   })JSON")};
   const sourcemeta::core::MCPServerCapabilities capabilities;
-  const sourcemeta::core::MCPImplementation server{"srv", "1.0.0", {}, {}, {}};
+  const sourcemeta::core::MCPImplementation server{.name = "srv",
+                                                   .version = "1.0.0",
+                                                   .title = {},
+                                                   .description = {},
+                                                   .website_url = {}};
   const auto envelope{sourcemeta::core::mcp_make_initialize_result(
       request, capabilities, server)};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
@@ -931,7 +943,11 @@ TEST(make_initialize_result_unsupported_protocol_version_negotiates_latest) {
     "params": { "protocolVersion": "9999-01-01" }
   })JSON")};
   const sourcemeta::core::MCPServerCapabilities capabilities;
-  const sourcemeta::core::MCPImplementation server{"srv", "1.0.0", {}, {}, {}};
+  const sourcemeta::core::MCPImplementation server{.name = "srv",
+                                                   .version = "1.0.0",
+                                                   .title = {},
+                                                   .description = {},
+                                                   .website_url = {}};
   const auto envelope{sourcemeta::core::mcp_make_initialize_result(
       request, capabilities, server)};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
@@ -959,7 +975,11 @@ TEST(make_initialize_result_with_all_capabilities) {
   capabilities.tools = true;
   capabilities.logging = true;
   capabilities.completions = true;
-  const sourcemeta::core::MCPImplementation server{"srv", "1.0.0", {}, {}, {}};
+  const sourcemeta::core::MCPImplementation server{.name = "srv",
+                                                   .version = "1.0.0",
+                                                   .title = {},
+                                                   .description = {},
+                                                   .website_url = {}};
   const auto envelope{sourcemeta::core::mcp_make_initialize_result(
       request, capabilities, server)};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
@@ -988,7 +1008,11 @@ TEST(make_initialize_result_includes_instructions_when_provided) {
     "params": { "protocolVersion": "2025-11-25" }
   })JSON")};
   const sourcemeta::core::MCPServerCapabilities capabilities;
-  const sourcemeta::core::MCPImplementation server{"srv", "1.0.0", {}, {}, {}};
+  const sourcemeta::core::MCPImplementation server{.name = "srv",
+                                                   .version = "1.0.0",
+                                                   .title = {},
+                                                   .description = {},
+                                                   .website_url = {}};
   const auto envelope{sourcemeta::core::mcp_make_initialize_result(
       request, capabilities, server, "Be careful.")};
   EXPECT_EQ(envelope.at("result").at("instructions").to_string(),
@@ -1003,8 +1027,11 @@ TEST(make_initialize_result_includes_title_on_2025_06_18) {
     "params": { "protocolVersion": "2025-06-18" }
   })JSON")};
   const sourcemeta::core::MCPServerCapabilities capabilities;
-  const sourcemeta::core::MCPImplementation server{"srv", "1.0.0", "Server",
-                                                   "desc", "https://x"};
+  const sourcemeta::core::MCPImplementation server{.name = "srv",
+                                                   .version = "1.0.0",
+                                                   .title = "Server",
+                                                   .description = "desc",
+                                                   .website_url = "https://x"};
   const auto envelope{sourcemeta::core::mcp_make_initialize_result(
       request, capabilities, server)};
   EXPECT_EQ(envelope.at("result").at("serverInfo").at("title").to_string(),
@@ -1021,8 +1048,11 @@ TEST(make_initialize_result_includes_full_implementation_on_2025_11_25) {
     "params": { "protocolVersion": "2025-11-25" }
   })JSON")};
   const sourcemeta::core::MCPServerCapabilities capabilities;
-  const sourcemeta::core::MCPImplementation server{"srv", "1.0.0", "Server",
-                                                   "desc", "https://x"};
+  const sourcemeta::core::MCPImplementation server{.name = "srv",
+                                                   .version = "1.0.0",
+                                                   .title = "Server",
+                                                   .description = "desc",
+                                                   .website_url = "https://x"};
   const auto envelope{sourcemeta::core::mcp_make_initialize_result(
       request, capabilities, server)};
   EXPECT_EQ(envelope.at("result").at("serverInfo").at("title").to_string(),
@@ -1043,8 +1073,11 @@ TEST(
     "params": { "protocolVersion": "2025-03-26" }
   })JSON")};
   const sourcemeta::core::MCPServerCapabilities capabilities;
-  const sourcemeta::core::MCPImplementation server{"srv", "1.0.0", "Server",
-                                                   "desc", "https://x"};
+  const sourcemeta::core::MCPImplementation server{.name = "srv",
+                                                   .version = "1.0.0",
+                                                   .title = "Server",
+                                                   .description = "desc",
+                                                   .website_url = "https://x"};
   const auto envelope{sourcemeta::core::mcp_make_initialize_result(
       request, capabilities, server)};
   EXPECT_FALSE(envelope.at("result").at("serverInfo").defines("title"));
@@ -1060,7 +1093,11 @@ TEST(make_initialize_result_falls_back_to_2025_11_25_on_unknown_version) {
     "params": { "protocolVersion": "9999-01-01" }
   })JSON")};
   const sourcemeta::core::MCPServerCapabilities capabilities;
-  const sourcemeta::core::MCPImplementation server{"srv", "1.0.0", {}, {}, {}};
+  const sourcemeta::core::MCPImplementation server{.name = "srv",
+                                                   .version = "1.0.0",
+                                                   .title = {},
+                                                   .description = {},
+                                                   .website_url = {}};
   const auto envelope{sourcemeta::core::mcp_make_initialize_result(
       request, capabilities, server)};
   EXPECT_EQ(envelope.at("result").at("protocolVersion").to_string(),
@@ -1072,7 +1109,11 @@ TEST(make_initialize_result_returns_invalid_request_when_missing_params) {
     "jsonrpc": "2.0", "id": 1, "method": "initialize"
   })JSON")};
   const sourcemeta::core::MCPServerCapabilities capabilities;
-  const sourcemeta::core::MCPImplementation server{"srv", "1.0.0", {}, {}, {}};
+  const sourcemeta::core::MCPImplementation server{.name = "srv",
+                                                   .version = "1.0.0",
+                                                   .title = {},
+                                                   .description = {},
+                                                   .website_url = {}};
   const auto envelope{sourcemeta::core::mcp_make_initialize_result(
       request, capabilities, server)};
   EXPECT_EQ(envelope.at("error").at("code").to_integer(),
@@ -1084,7 +1125,11 @@ TEST(make_initialize_result_returns_invalid_request_when_id_missing) {
     "jsonrpc": "2.0", "method": "initialize", "params": {}
   })JSON")};
   const sourcemeta::core::MCPServerCapabilities capabilities;
-  const sourcemeta::core::MCPImplementation server{"srv", "1.0.0", {}, {}, {}};
+  const sourcemeta::core::MCPImplementation server{.name = "srv",
+                                                   .version = "1.0.0",
+                                                   .title = {},
+                                                   .description = {},
+                                                   .website_url = {}};
   const auto envelope{sourcemeta::core::mcp_make_initialize_result(
       request, capabilities, server)};
   EXPECT_EQ(envelope.at("error").at("code").to_integer(),

@@ -28,6 +28,7 @@ TEST(flush_a_directory_throws) {
     sourcemeta::core::flush(path);
     FAIL();
   } catch (const std::filesystem::filesystem_error &) {
+    // Refusing the unflushable path is expected
   } catch (...) {
     FAIL();
   }

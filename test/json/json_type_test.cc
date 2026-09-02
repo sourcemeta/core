@@ -109,23 +109,23 @@ TEST(make_set_no_intersection) {
 }
 
 TEST(make_set_constexpr) {
-  constexpr auto types =
+  constexpr auto TYPES =
       sourcemeta::core::make_set({sourcemeta::core::JSON::Type::Integer,
                                   sourcemeta::core::JSON::Type::Real});
-  static_assert(types.test(
+  static_assert(TYPES.test(
       static_cast<std::size_t>(sourcemeta::core::JSON::Type::Integer)));
   static_assert(
-      types.test(static_cast<std::size_t>(sourcemeta::core::JSON::Type::Real)));
-  static_assert(!types.test(
+      TYPES.test(static_cast<std::size_t>(sourcemeta::core::JSON::Type::Real)));
+  static_assert(!TYPES.test(
       static_cast<std::size_t>(sourcemeta::core::JSON::Type::String)));
-  static_assert(!types.test(
+  static_assert(!TYPES.test(
       static_cast<std::size_t>(sourcemeta::core::JSON::Type::Object)));
-  EXPECT_TRUE(types.test(
+  EXPECT_TRUE(TYPES.test(
       static_cast<std::size_t>(sourcemeta::core::JSON::Type::Integer)));
   EXPECT_TRUE(
-      types.test(static_cast<std::size_t>(sourcemeta::core::JSON::Type::Real)));
-  EXPECT_FALSE(types.test(
+      TYPES.test(static_cast<std::size_t>(sourcemeta::core::JSON::Type::Real)));
+  EXPECT_FALSE(TYPES.test(
       static_cast<std::size_t>(sourcemeta::core::JSON::Type::String)));
-  EXPECT_FALSE(types.test(
+  EXPECT_FALSE(TYPES.test(
       static_cast<std::size_t>(sourcemeta::core::JSON::Type::Object)));
 }

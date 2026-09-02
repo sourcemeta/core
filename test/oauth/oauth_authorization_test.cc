@@ -182,7 +182,8 @@ TEST(build_url_emits_repeatable_resources) {
   sourcemeta::core::OAuthAuthorizationRequest request;
   request.client_id = "abc";
   const std::array<sourcemeta::core::OAuthParameter, 2> resources{
-      {{"resource", "https://api.a"}, {"resource", "https://api.b"}}};
+      {{.name = "resource", .value = "https://api.a"},
+       {.name = "resource", .value = "https://api.b"}}};
   request.resources = resources;
   std::string url;
   sourcemeta::core::oauth_build_authorization_url("https://server.example/auth",
@@ -195,7 +196,7 @@ TEST(build_url_emits_extra_parameters) {
   sourcemeta::core::OAuthAuthorizationRequest request;
   request.client_id = "abc";
   const std::array<sourcemeta::core::OAuthParameter, 1> extra{
-      {{"nonce", "n-0S6_WzA2Mj"}}};
+      {{.name = "nonce", .value = "n-0S6_WzA2Mj"}}};
   request.extra = extra;
   std::string url;
   sourcemeta::core::oauth_build_authorization_url("https://server.example/auth",
@@ -328,7 +329,8 @@ TEST(parse_authorization_response_accepts_an_empty_query) {
 TEST(build_url_escapes_an_extra_parameter_name) {
   sourcemeta::core::OAuthAuthorizationRequest request;
   request.client_id = "abc";
-  const std::array<sourcemeta::core::OAuthParameter, 1> extra{{{"a b", "c"}}};
+  const std::array<sourcemeta::core::OAuthParameter, 1> extra{
+      {{.name = "a b", .value = "c"}}};
   request.extra = extra;
   std::string url;
   sourcemeta::core::oauth_build_authorization_url("https://server.example/auth",

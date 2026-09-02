@@ -166,7 +166,7 @@ TEST(rejects_rsa_modulus_below_minimum) {
 TEST(constructor_throws_on_invalid_input) {
   const auto document{sourcemeta::core::parse_json(R"({ "kty": "oct" })")};
   try {
-    sourcemeta::core::JWK{document};
+    const sourcemeta::core::JWK key{document};
     FAIL();
   } catch (const sourcemeta::core::JWKParseError &error) {
     EXPECT_STREQ(error.what(), "The input is not a valid JSON Web Key");

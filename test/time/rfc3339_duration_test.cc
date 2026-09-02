@@ -1,7 +1,9 @@
 #include <sourcemeta/core/test.h>
 #include <sourcemeta/core/time.h>
 
-#include <string_view>
+#include <string_view> // std::string_view
+
+using namespace std::literals::string_view_literals;
 
 TEST(valid_year_only) {
   EXPECT_TRUE(sourcemeta::core::is_rfc3339_duration("P1Y"));
@@ -1089,17 +1091,15 @@ TEST(ext_invalid_garbage_8) {
 }
 
 TEST(delta_u0000_u0050_day_0) {
-  static constexpr char VALUE[] = "\x00P1D";
-  static_assert(sizeof(VALUE) - 1 == 4);
-  EXPECT_FALSE(
-      sourcemeta::core::is_rfc3339_duration(std::string_view{VALUE, 4}));
+  static constexpr auto VALUE{"\x00P1D"sv};
+  static_assert(VALUE.size() == 4);
+  EXPECT_FALSE(sourcemeta::core::is_rfc3339_duration(VALUE));
 }
 
 TEST(delta_u0000_u0050_day_u0000_1) {
-  static constexpr char VALUE[] = "\x00P1D\x00";
-  static_assert(sizeof(VALUE) - 1 == 5);
-  EXPECT_FALSE(
-      sourcemeta::core::is_rfc3339_duration(std::string_view{VALUE, 5}));
+  static constexpr auto VALUE{"\x00P1D\x00"sv};
+  static_assert(VALUE.size() == 5);
+  EXPECT_FALSE(sourcemeta::core::is_rfc3339_duration(VALUE));
 }
 
 TEST(delta_u0009_u0050_day_u0009_2) {
@@ -1259,11 +1259,10 @@ TEST(delta_u0078_year_40) {
 }
 
 TEST(delta_u0000_day_41) {
-  static constexpr char VALUE[] = "P1\x00"
-                                  "D";
-  static_assert(sizeof(VALUE) - 1 == 4);
-  EXPECT_FALSE(
-      sourcemeta::core::is_rfc3339_duration(std::string_view{VALUE, 4}));
+  static constexpr auto VALUE{"P1\x00"
+                              "D"sv};
+  static_assert(VALUE.size() == 4);
+  EXPECT_FALSE(sourcemeta::core::is_rfc3339_duration(VALUE));
 }
 
 TEST(delta_u0009_day_42) {
@@ -1414,10 +1413,9 @@ TEST(delta_u0043_76) {
 }
 
 TEST(delta_day_u0000_77) {
-  static constexpr char VALUE[] = "P1D\x00";
-  static_assert(sizeof(VALUE) - 1 == 4);
-  EXPECT_FALSE(
-      sourcemeta::core::is_rfc3339_duration(std::string_view{VALUE, 4}));
+  static constexpr auto VALUE{"P1D\x00"sv};
+  static_assert(VALUE.size() == 4);
+  EXPECT_FALSE(sourcemeta::core::is_rfc3339_duration(VALUE));
 }
 
 TEST(delta_day_u000b_78) {

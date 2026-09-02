@@ -8,12 +8,11 @@
 
 // The message signed throughout, along with keys and known-answer signatures
 // generated with OpenSSL over that message using each scheme
-static const std::string MESSAGE{"sourcemeta core JWS signing input"};
+static constexpr std::string_view MESSAGE{"sourcemeta core JWS signing input"};
 
 // A 2048-bit RSA private key in unencrypted PKCS#8, with the deterministic
 // RSASSA-PKCS1-v1_5 signatures it produces, one per supported hash function
-static const std::string RSA_PRIVATE_KEY{
-    R"(-----BEGIN PRIVATE KEY-----
+static constexpr std::string_view RSA_PRIVATE_KEY{R"(-----BEGIN PRIVATE KEY-----
 MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCf6K9Ys3QJNItd
 zsY1wcY65kd27pBwZPdKUVNp/ZyTEtUQNwBTh8h7Pusq29loLOkonpxvkpmcNwif
 6A4KsTQUjo5l0K+AAY2qgUfoPUAA2TyVZIVzVtai2LnHNeWzYg3h8NENoGhd5cGe
@@ -45,7 +44,7 @@ LotnyAB/PnO2eU6aOt6q6EcZ
 
 // A 2048-bit key whose PKCS#8 algorithm is id-RSASSA-PSS rather than
 // rsaEncryption, so it is restricted to PSS and must refuse PKCS1v15 signing
-static const std::string PSS_RESTRICTED_PRIVATE_KEY{
+static constexpr std::string_view PSS_RESTRICTED_PRIVATE_KEY{
     R"(-----BEGIN PRIVATE KEY-----
 MIIEugIBADALBgkqhkiG9w0BAQoEggSmMIIEogIBAAKCAQEAmLPlf54G5cTEBgZs
 sMSaCFtdTcy0Yjv6HAHK0BLYqdsnff6WMGmuSDdNZ/Oh++a3hTGV6ZdpvNFEo1MD
@@ -79,8 +78,8 @@ zz/p2wIRJlfNHxRap+Q=
 // leading octet is zero, which holds for roughly one signature in 256. Signing
 // cannot be asked for that property, so a known pair is pinned to keep the
 // truncation case deterministic rather than a rare coincidence
-static const std::string LEADING_ZERO_MESSAGE{"probe-962"};
-static const std::string LEADING_ZERO_SIGNATURE_HEX{
+static constexpr std::string_view LEADING_ZERO_MESSAGE{"probe-962"};
+static constexpr std::string_view LEADING_ZERO_SIGNATURE_HEX{
     "006dd09d02b89420a6485f64197ae248fceb2bfdc83ea36a544c92317c04b64c"
     "304f5d204a8c85f79d78b6a234d1b8e47b1b79331d835862f8096fa2524f0c9a"
     "728d6b0872d04198fed0c2d9790281a018482ff072f7ad4113b5a05fb3d034b6"
@@ -94,7 +93,7 @@ static const std::string LEADING_ZERO_SIGNATURE_HEX{
 // 65536, which RFC 8017 Section 3.1 excludes because an even exponent is
 // not invertible modulo the totient. Every octet length is unchanged, so
 // only the value is unacceptable
-static const std::string EVEN_EXPONENT_KEY{
+static constexpr std::string_view EVEN_EXPONENT_KEY{
     R"(-----BEGIN PRIVATE KEY-----
 MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCf6K9Ys3QJNItd
 zsY1wcY65kd27pBwZPdKUVNp/ZyTEtUQNwBTh8h7Pusq29loLOkonpxvkpmcNwif
@@ -128,7 +127,7 @@ LotnyAB/PnO2eU6aOt6q6EcZ
 // The same key with its public exponent given a leading zero octet where
 // the next octet is already below 0x80, which X.690 Section 8.3 makes a
 // non-canonical encoding
-static const std::string NONCANONICAL_EXPONENT_KEY{
+static constexpr std::string_view NONCANONICAL_EXPONENT_KEY{
     R"(-----BEGIN PRIVATE KEY-----
 MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCf6K9Ys3QJNItd
 zsY1wcY65kd27pBwZPdKUVNp/ZyTEtUQNwBTh8h7Pusq29loLOkonpxvkpmcNwif
@@ -161,7 +160,7 @@ LotnyAB/PnO2eU6aOt6q6EcZ
 
 // The same key with the modulus sign octet set, making it a negative
 // INTEGER that must not be reinterpreted as a large positive one
-static const std::string NEGATIVE_MODULUS_KEY{
+static constexpr std::string_view NEGATIVE_MODULUS_KEY{
     R"(-----BEGIN PRIVATE KEY-----
 MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAYCf6K9Ys3QJNItd
 zsY1wcY65kd27pBwZPdKUVNp/ZyTEtUQNwBTh8h7Pusq29loLOkonpxvkpmcNwif
@@ -195,7 +194,7 @@ LotnyAB/PnO2eU6aOt6q6EcZ
 // The same key with one octet appended inside the privateKey octets, so the
 // RSAPrivateKey SEQUENCE no longer fills them. The enclosing lengths are
 // widened to match, leaving the outer structure well formed
-static const std::string TRAILING_BYTES_KEY{
+static constexpr std::string_view TRAILING_BYTES_KEY{
     R"(-----BEGIN PRIVATE KEY-----
 MIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSkAgEAAoIBAQCf6K9Ys3QJNItd
 zsY1wcY65kd27pBwZPdKUVNp/ZyTEtUQNwBTh8h7Pusq29loLOkonpxvkpmcNwif
@@ -226,7 +225,7 @@ LotnyAB/PnO2eU6aOt6q6EcZAA==
 -----END PRIVATE KEY-----
 )"};
 
-static const std::string MODULUS_HEX{
+static constexpr std::string_view MODULUS_HEX{
     "9fe8af58b37409348b5dcec635c1c63ae64776ee907064f74a515369fd9c9312"
     "d51037005387c87b3eeb2adbd9682ce9289e9c6f92999c37089fe80e0ab13414"
     "8e8e65d0af80018daa8147e83d4000d93c9564857356d6a2d8b9c735e5b3620d"
@@ -236,9 +235,9 @@ static const std::string MODULUS_HEX{
     "f7438ea455b9e33c625f611f7f9f5ecf8ea3f75ff677a4a54b3161370aef6996"
     "0a04997ebcd7a0273c6c1d63f0ac670d477d631176ba91ea636c0b29d0538127"};
 
-static const std::string EXPONENT_HEX{"010001"};
+static constexpr std::string_view EXPONENT_HEX{"010001"};
 
-static const std::string SIGNATURE_SHA256_HEX{
+static constexpr std::string_view SIGNATURE_SHA256_HEX{
     "935fb06194272d8c59729a4ebc19b1152ed553030ba2175d52d4a65f6577444a"
     "cac9cc65296b85ec76e243a8b71c3ecc8db9d4595b7b7a598fd07fb538854f54"
     "0aaaaf9d7c00697f5e8146d48ef8968daf74c369fd32f51769a8dd53dec10223"
@@ -248,7 +247,7 @@ static const std::string SIGNATURE_SHA256_HEX{
     "5f97c76e5e77aac1472365f92d6254d5e77ba1f73879c47b1cccf93dc7780546"
     "25229f7a6b39445d377f10c922399e31447ece1a40587dabd55660bc708bfde5"};
 
-static const std::string SIGNATURE_SHA384_HEX{
+static constexpr std::string_view SIGNATURE_SHA384_HEX{
     "7b23a38a1f9e222ee227c251548ca052ae35f7d748d4394e9b1ea6037d7f10d5"
     "aafc677a3864111e479a4d29937e980b00fcf2a481719dff7e53748eb4be1823"
     "88bd590a78ca5b0cbed432e54ef1dcb5ce00964c59c7eb02bb196f09904944a6"
@@ -258,7 +257,7 @@ static const std::string SIGNATURE_SHA384_HEX{
     "34b27aa6572ac5dcb4aff40104457d9ec36282f8db2e29a5e78d0c5c055c979d"
     "52cf463962974976cce6c71179b9c95c04e2a3133d6157f911dbce83583a21d4"};
 
-static const std::string SIGNATURE_SHA512_HEX{
+static constexpr std::string_view SIGNATURE_SHA512_HEX{
     "15e37914281fb105f833706b3c1796dd6bbb740873668812df8d68727e0d80b2"
     "befee774d16f97927caa63a86fcb31d2f65c9572ba49750364de26e650899361"
     "746496c692ac9a0e1977b9df286cce35dd3cce2ef16246771fca40362f8aae90"
@@ -270,7 +269,7 @@ static const std::string SIGNATURE_SHA512_HEX{
 
 // The private components of the RSA key above, so that the same known-answer
 // signatures can be reproduced from the raw integers rather than the document
-static const std::string PRIVATE_EXPONENT_HEX{
+static constexpr std::string_view PRIVATE_EXPONENT_HEX{
     "0dd258f051228dcbcd8d60300b0ecd5ee344a367b4c8623c6b0a0dd7082573ce"
     "443da5e365ff988e93e8fe72b39f5387c66109f882dd657e999a3e13e8a20474"
     "6516088039e080973423a9decdb1d88b990c4dfca84985e7dc2a6d539ff51a06"
@@ -279,27 +278,27 @@ static const std::string PRIVATE_EXPONENT_HEX{
     "a196d323abf7a85463639c6b1f7dc5bb63332898841e47bbdf721e7ed93d1b5f"
     "0139e602e8e358f57b2a777d9f578efa10ba5fc7fe78a97dbfe8aa2ee84d9c50"
     "461e17774a8fc56745b7a974d77c2d0eab84d4b118dfe24e04b4e7067fcd12a1"};
-static const std::string PRIME1_HEX{
+static constexpr std::string_view PRIME1_HEX{
     "cd80890bbd2a523348971519e2efd798317c16222c128e40d3d7913507212e71"
     "82969fe9550f73efb99289c5acc9424eb48f584ca58a0b09e23744483d93363b"
     "7715e190bc85d58fe67a13c62b676cb61ec9fa190ebfa2f2e3ea1c7bb7bda5be"
     "5498467898f9c842c5acec570258a403641091e727f7886cde243db5d14573ef"};
-static const std::string PRIME2_HEX{
+static constexpr std::string_view PRIME2_HEX{
     "c734085a976b91e4273a4dff6283bb5d8f19c91890c2ffbc92a43ca1a7b7363a"
     "34ea83160b455b57ca391cf8fea4231606fc007cc759ce73a13068d5d808e56b"
     "ecf600db5e59e6c5558b75c6ed9bc6c30320fa8c7d74f15947ed1ed9858ba3d2"
     "4bd64de66236d806ab4749cb0ee147af7286de55a6d7bdfe45f82f847fd7ae49"};
-static const std::string EXPONENT1_HEX{
+static constexpr std::string_view EXPONENT1_HEX{
     "59259f4df65bbb98ffae7abae615818346443c1dcadca9d53990d42f1aceac25"
     "15af5de38cc0cd5c7b36348a0a30ac911406f3191cdecb7718293d77d12e6162"
     "5e80a17f7628e0c2320b5734aa738d575bf7e684a43f41e2f83800ef328014bc"
     "825a24880064ab193c438dab191b76daf9b7ae738684fd2bad1a2fa3060b8905"};
-static const std::string EXPONENT2_HEX{
+static constexpr std::string_view EXPONENT2_HEX{
     "a34f250a1fd93061bb47316a8d7931c221ef21cde1dffb88bd2fa8055f59f43b"
     "03e6be50f42c881610d381cd1ff5b04dfeabda3a71b44e6cbd58d2997de2cd33"
     "0db12042b7b73c59cb27ea068c05898d96a312c4da9564c7ad0fd89abbc11f2c"
     "e8bf685dd766def398b778e7dfeb10b9e54a6c3c0bec12f6c2a6154eab004701"};
-static const std::string COEFFICIENT_HEX{
+static constexpr std::string_view COEFFICIENT_HEX{
     "a8d8d74eb3ac304a8a61224db24e99d2c8c3076cae1d2e3b09b9166638a48384"
     "c84785a6a58558ec439f89da1ba1e9f98c628532e5c0268e29cfa201812e5e37"
     "abb33ef7efa8952230673a946ff30452ac73e5a7bde508cd8aaacf780dac0fe0"
@@ -307,32 +306,32 @@ static const std::string COEFFICIENT_HEX{
 
 // Elliptic curve keys, one per supported curve, as the private scalar and the
 // public point coordinates
-static const std::string P256_D_HEX{
+static constexpr std::string_view P256_D_HEX{
     "b6d7a9c5ca7e3b05c28f8fafe2c19cc51c5045703c0f94afbb4db285c1ef6ddd"};
-static const std::string P256_QX_HEX{
+static constexpr std::string_view P256_QX_HEX{
     "d930111925aaf05f7b8aadcd838f30084376e9cc73cbc382cdb15afba65f9da2"};
-static const std::string P256_QY_HEX{
+static constexpr std::string_view P256_QY_HEX{
     "e6593366a8563a47369b6cc93a8b65e8adffc7af934acf4e9f340ac1bdf90f14"};
 
-static const std::string P384_D_HEX{
+static constexpr std::string_view P384_D_HEX{
     "02d5a44b4f3b542bdcfd311b0697d2cc8f593453fce78a65af26fa2d5a2f1534"
     "6880d0904bafd103b1e0e6a0d7e25b50"};
-static const std::string P384_QX_HEX{
+static constexpr std::string_view P384_QX_HEX{
     "9c0c86e4069fbc1334034e6746ba23bce4c280d36bc147245b422f9767ed6bf9"
     "60c1f5e13138dbff9f72d012cedc61ff"};
-static const std::string P384_QY_HEX{
+static constexpr std::string_view P384_QY_HEX{
     "86d66436fd623dfd007354ef241d0b45d1480f5295f56c4e86243411cdf671d6"
     "d359a4aef3e36eb0a5acea677cd15f06"};
 
-static const std::string P521_D_HEX{
+static constexpr std::string_view P521_D_HEX{
     "011d9c388a9f757f0b665a7dfc5c877eed242ee30eeee9d4e7fa5bbfeaae19d9"
     "c7bfc093b7004cae81e4448eb7a0929080fff4600bd2493fd87eaf9557fed1aa"
     "45ff"};
-static const std::string P521_QX_HEX{
+static constexpr std::string_view P521_QX_HEX{
     "01471aed01e0ebd9486a5acc37de6e1928e7aa9c4d542e63c4fae50ee9126d17"
     "1cd101e90f38f9d18dd29cc609489a4063e844e6b7246cb48808f910ae389e77"
     "216f"};
-static const std::string P521_QY_HEX{
+static constexpr std::string_view P521_QY_HEX{
     "0144d992633416fec1c5e87e156f4551e26ff34f6a494f7ea9e891c8f41bc6ee"
     "5b08d302f139eda5656c3a139ab71f1db2879170a1a5dedc3214e3e7ce630fef"
     "4300"};
@@ -340,29 +339,29 @@ static const std::string P521_QY_HEX{
 // RFC 6979 Appendix A.2.5: the NIST P-256 example key and the deterministic
 // ECDSA signature it produces over the message below with SHA-256, reproduced
 // only by a backend that derives the nonce deterministically
-static const std::string RFC6979_MESSAGE{"sample"};
-static const std::string RFC6979_P256_D_HEX{
+static constexpr std::string_view RFC6979_MESSAGE{"sample"};
+static constexpr std::string_view RFC6979_P256_D_HEX{
     "c9afa9d845ba75166b5c215767b1d6934e50c3db36e89b127b8a622b120f6721"};
-static const std::string RFC6979_P256_QX_HEX{
+static constexpr std::string_view RFC6979_P256_QX_HEX{
     "60fed4ba255a9d31c961eb74c6356d68c049b8923b61fa6ce669622e60f29fb6"};
-static const std::string RFC6979_P256_QY_HEX{
+static constexpr std::string_view RFC6979_P256_QY_HEX{
     "7903fe1008b8bc99a41ae9e95628bc64f2f1b20c2d7e9f5177a3c294d4462299"};
-static const std::string RFC6979_P256_SIGNATURE_HEX{
+static constexpr std::string_view RFC6979_P256_SIGNATURE_HEX{
     "efd48b2aacb6a8fd1140dd9cd45e81d69d2c877b56aaf991c34d0ea84eaf3716"
     "f7cb1c942d657c41d436c7a1b6e29f65f3e900dbb9aff4064dc4ab2f843acda8"};
 
 // RFC 6979 Appendix A.2.6: the NIST P-384 example key and the deterministic
 // ECDSA signature it produces over the same message with SHA-384
-static const std::string RFC6979_P384_D_HEX{
+static constexpr std::string_view RFC6979_P384_D_HEX{
     "6b9d3dad2e1b8c1c05b19875b6659f4de23c3b667bf297ba9aa47740787137d8"
     "96d5724e4c70a825f872c9ea60d2edf5"};
-static const std::string RFC6979_P384_QX_HEX{
+static constexpr std::string_view RFC6979_P384_QX_HEX{
     "ec3a4e415b4e19a4568618029f427fa5da9a8bc4ae92e02e06aae5286b300c64"
     "def8f0ea9055866064a254515480bc13"};
-static const std::string RFC6979_P384_QY_HEX{
+static constexpr std::string_view RFC6979_P384_QY_HEX{
     "8015d9b72d7d57244ea8ef9ac0c621896708a59367f9dfb9f54ca84b3f1c9db1"
     "288b231c3ae0d4fe7344fd2533264720"};
-static const std::string RFC6979_P384_SIGNATURE_HEX{
+static constexpr std::string_view RFC6979_P384_SIGNATURE_HEX{
     "94edbb92a5ecb8aad4736e56c691916b3f88140666ce9fa73d64c4ea95ad133c"
     "81a648152e44acf96e36dd1e80fabe46"
     "99ef4aeb15f178cea1fe40db2603138f130e740a19624526203b6351d0a3a94f"
@@ -371,30 +370,28 @@ static const std::string RFC6979_P384_SIGNATURE_HEX{
 // The same keys signing a second message draw a different deterministic nonce,
 // so these exercise the signing scalar multiplication and inverse over another
 // secret value (RFC 6979 Appendix A.2.5 and A.2.6, message "test")
-static const std::string RFC6979_TEST_MESSAGE{"test"};
-static const std::string RFC6979_P256_TEST_SIGNATURE_HEX{
+static constexpr std::string_view RFC6979_TEST_MESSAGE{"test"};
+static constexpr std::string_view RFC6979_P256_TEST_SIGNATURE_HEX{
     "f1abb023518351cd71d881567b1ea663ed3efcf6c5132b354f28d3b0b7d38367"
     "019f4113742a2b14bd25926b49c649155f267e60d3814b4c0cc84250e46f0083"};
-static const std::string RFC6979_P384_TEST_SIGNATURE_HEX{
+static constexpr std::string_view RFC6979_P384_TEST_SIGNATURE_HEX{
     "8203b63d3c853e8d77227fb377bcf7b7b772e97892a80f36ab775d509d7a5feb"
     "0542a7f0812998da8f1dd3ca3cf023db"
     "ddd0760448d42d8a43af45af836fce4de8be06b485e9b61b827c2f13173923e0"
     "6a739f040649a667bf3b828246baa5a5"};
 
-// Edwards keys as their raw seed and public key, with the deterministic Ed448
+// Edwards keys as their raw seed, the Ed25519 public key that verifies a
+// signature the Apple backend randomizes, and the deterministic Ed448
 // signature over the message (RFC 8032 uses no randomization for Ed448)
-static const std::string ED25519_SEED_HEX{
+static constexpr std::string_view ED25519_SEED_HEX{
     "741ec35ce5e07089ca782f88de00d8103a1cd8e8b116acd8afd922c01bee7867"};
-static const std::string ED25519_PUBLIC_HEX{
+static constexpr std::string_view ED25519_PUBLIC_HEX{
     "48539e4fb623b0d221f8cd7e9c20469c1f55598bb5bb236a8a2cc2661c1d743a"};
 
-static const std::string ED448_SEED_HEX{
+static constexpr std::string_view ED448_SEED_HEX{
     "7027028140c9eb422935e1d309e01e66670389173da4f66c4016c2492513b4c1"
     "989263ea13250e65a784aa8c01a9960a7416c2e2879b2a2295"};
-static const std::string ED448_PUBLIC_HEX{
-    "04a74611a3714c06363868b8801b3c81d1b373ac7621eef20cf2793518450e60"
-    "7e455b12f21c98fc5ad5098e15604e4e5236a8a455e1280f00"};
-static const std::string ED448_SIGNATURE_HEX{
+static constexpr std::string_view ED448_SIGNATURE_HEX{
     "cb5ee48e2aa415ed66c0b0485683af33f66976193425e6306eda272f9258dd0b"
     "d9a14223a295425d21adc4128f326f80805532ac3af546eb806c922e7cfda76a"
     "e959fc284b2c1fe36291845a4ce6133d7a8ca63396cd36e4568628d74c4e583f"
@@ -896,7 +893,8 @@ TEST(verify_rejects_a_zero_padded_signature) {
   EXPECT_FALSE(sourcemeta::core::rsassa_pkcs1_v15_verify(
       key.value(), sourcemeta::core::SignatureHashFunction::SHA256,
       LEADING_ZERO_MESSAGE,
-      sourcemeta::core::hex_to_bytes("00" + LEADING_ZERO_SIGNATURE_HEX)
+      sourcemeta::core::hex_to_bytes(
+          std::string{"00"}.append(LEADING_ZERO_SIGNATURE_HEX))
           .value()));
 }
 

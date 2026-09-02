@@ -100,7 +100,7 @@ TEST(string_empty) {
 }
 
 TEST(string_with_null) {
-  std::istringstream input{"\"foo \\u0000 bar\""};
+  std::istringstream input{R"("foo \u0000 bar")"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_string());
   EXPECT_EQ(document.size(), 9);
@@ -139,7 +139,7 @@ TEST(string_foo_padded) {
 }
 
 TEST(string_escape_quote) {
-  std::istringstream input{"\"foo\\\"bar\""};
+  std::istringstream input{R"("foo\"bar")"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_string());
   EXPECT_EQ(document.size(), 7);
@@ -245,7 +245,7 @@ TEST(array_false_true_false) {
 }
 
 TEST(array_foo_bar_baz) {
-  std::istringstream input{"[\"foo\",\"bar\",\"baz\"]"};
+  std::istringstream input{R"(["foo","bar","baz"])"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_array());
   EXPECT_EQ(document.size(), 3);
@@ -442,7 +442,7 @@ TEST(object_single_null_with_spaces) {
 }
 
 TEST(object_multiple_null) {
-  std::istringstream input{"{\"foo\":null,\"bar\":null,\"baz\":null}"};
+  std::istringstream input{R"({"foo":null,"bar":null,"baz":null})"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_object());
   EXPECT_EQ(document.size(), 3);
@@ -465,7 +465,7 @@ TEST(array_with_object_size_1) {
 }
 
 TEST(array_with_object_size_2) {
-  std::istringstream input{"[ { \"foo\": false, \"bar\": true } ]"};
+  std::istringstream input{R"([ { "foo": false, "bar": true } ])"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_array());
   EXPECT_EQ(document.size(), 1);
@@ -489,7 +489,7 @@ TEST(array_with_empty_object) {
 }
 
 TEST(array_escaped_quote_within_string_element) {
-  std::istringstream input{"[\"foo\\\"bar\"]"};
+  std::istringstream input{R"(["foo\"bar"])"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_array());
   EXPECT_EQ(document.size(), 1);
@@ -523,7 +523,7 @@ TEST(object_with_array_two_elements) {
 }
 
 TEST(object_with_object) {
-  std::istringstream input{"{ \"foo\": { \"bar\": null } }"};
+  std::istringstream input{R"({ "foo": { "bar": null } })"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_object());
   EXPECT_EQ(document.size(), 1);
@@ -559,7 +559,7 @@ TEST(empty_object_with_spacing) {
 }
 
 TEST(object_string_value_with_comma) {
-  std::istringstream input{"{\"foo\":\"bar,baz\"}"};
+  std::istringstream input{R"({"foo":"bar,baz"})"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_object());
   EXPECT_EQ(document.size(), 1);
@@ -569,7 +569,7 @@ TEST(object_string_value_with_comma) {
 }
 
 TEST(object_string_value_with_escaped_quote) {
-  std::istringstream input{"{\"foo\":\"bar\\\"baz\"}"};
+  std::istringstream input{R"({"foo":"bar\"baz"})"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_object());
   EXPECT_EQ(document.size(), 1);
@@ -579,7 +579,7 @@ TEST(object_string_value_with_escaped_quote) {
 }
 
 TEST(object_empty_string_key) {
-  std::istringstream input{"{\"\":\"foo\"}"};
+  std::istringstream input{R"({"":"foo"})"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_object());
   EXPECT_EQ(document.size(), 1);
@@ -589,7 +589,7 @@ TEST(object_empty_string_key) {
 }
 
 TEST(object_string_key_with_comma) {
-  std::istringstream input{"{\"foo,bar\":\"baz\"}"};
+  std::istringstream input{R"({"foo,bar":"baz"})"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_object());
   EXPECT_EQ(document.size(), 1);
@@ -599,7 +599,7 @@ TEST(object_string_key_with_comma) {
 }
 
 TEST(object_string_key_with_space) {
-  std::istringstream input{"{\"foo bar\":\"baz\"}"};
+  std::istringstream input{R"({"foo bar":"baz"})"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_object());
   EXPECT_EQ(document.size(), 1);
@@ -609,7 +609,7 @@ TEST(object_string_key_with_space) {
 }
 
 TEST(object_string_value_with_stringified) {
-  std::istringstream input{"{\"foo\":\"{\\\"x\\\":1}\"}"};
+  std::istringstream input{R"({"foo":"{\"x\":1}"})"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_object());
   EXPECT_EQ(document.size(), 1);
@@ -630,7 +630,7 @@ TEST(object_one_true_boolean_element_with_space) {
 
 TEST(object_two_boolean_values_with_space) {
   std::istringstream input{
-      "{   \"foo\"  :   true    ,     \"bar\"   :   false}"};
+      R"({   "foo"  :   true    ,     "bar"   :   false})"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_object());
   EXPECT_EQ(document.size(), 2);
@@ -657,7 +657,7 @@ TEST(object_one_array_element_with_space) {
 }
 
 TEST(object_minified_nested) {
-  std::istringstream input{"{\"foo\":{\"bar\":true}}"};
+  std::istringstream input{R"({"foo":{"bar":true}})"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_object());
   EXPECT_EQ(document.size(), 1);
@@ -1065,7 +1065,7 @@ TEST(integer_real_equal) {
 }
 
 TEST(string_escaped_quotes) {
-  std::istringstream input{"\"\\\"foo\\\"\""};
+  std::istringstream input{R"("\"foo\"")"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_string());
   EXPECT_EQ(document.size(), 5);
@@ -1073,7 +1073,7 @@ TEST(string_escaped_quotes) {
 }
 
 TEST(string_escaped_reverse_solidus) {
-  std::istringstream input{"\"foo\\\\bar\""};
+  std::istringstream input{R"("foo\\bar")"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_string());
   EXPECT_EQ(document.size(), 7);
@@ -1081,7 +1081,7 @@ TEST(string_escaped_reverse_solidus) {
 }
 
 TEST(string_escaped_solidus) {
-  std::istringstream input{"\"foo\\/bar\""};
+  std::istringstream input{R"("foo\/bar")"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_string());
   EXPECT_EQ(document.size(), 7);
@@ -1089,7 +1089,7 @@ TEST(string_escaped_solidus) {
 }
 
 TEST(string_escaped_backspace) {
-  std::istringstream input{"\"foo\\bbar\""};
+  std::istringstream input{R"("foo\bbar")"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_string());
   EXPECT_EQ(document.size(), 7);
@@ -1097,7 +1097,7 @@ TEST(string_escaped_backspace) {
 }
 
 TEST(string_escaped_form_feed) {
-  std::istringstream input{"\"foo\\fbar\""};
+  std::istringstream input{R"("foo\fbar")"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_string());
   EXPECT_EQ(document.size(), 7);
@@ -1105,7 +1105,7 @@ TEST(string_escaped_form_feed) {
 }
 
 TEST(string_escaped_line_feed) {
-  std::istringstream input{"\"foo\\nbar\""};
+  std::istringstream input{R"("foo\nbar")"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_string());
   EXPECT_EQ(document.size(), 7);
@@ -1113,7 +1113,7 @@ TEST(string_escaped_line_feed) {
 }
 
 TEST(string_escaped_carriage_return) {
-  std::istringstream input{"\"foo\\rbar\""};
+  std::istringstream input{R"("foo\rbar")"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_string());
   EXPECT_EQ(document.size(), 7);
@@ -1121,7 +1121,7 @@ TEST(string_escaped_carriage_return) {
 }
 
 TEST(string_escaped_tab) {
-  std::istringstream input{"\"foo\\tbar\""};
+  std::istringstream input{R"("foo\tbar")"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_string());
   EXPECT_EQ(document.size(), 7);
@@ -1129,7 +1129,7 @@ TEST(string_escaped_tab) {
 }
 
 TEST(string_unicode_code_points) {
-  std::istringstream input{"\"\\u002F\""};
+  std::istringstream input{R"("\u002F")"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_string());
   EXPECT_EQ(document.size(), 1);
@@ -1140,7 +1140,7 @@ TEST(string_unicode_length_surrogates) {
   // See https://en.wikipedia.org/wiki/UTF-8#Surrogates
   // https://unicodeplus.com/U+D83D
   // https://unicodeplus.com/U+DCA9
-  std::istringstream input{"\"\\uD83D\\uDCA9\""};
+  std::istringstream input{R"("\uD83D\uDCA9")"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_string());
   EXPECT_EQ(document.size(), 1);
@@ -1148,9 +1148,9 @@ TEST(string_unicode_length_surrogates) {
 }
 
 TEST(string_unicode_code_point_equality) {
-  std::istringstream input_1{"\"\\u002F\""};
-  std::istringstream input_2{"\"\\u002f\""};
-  std::istringstream input_3{"\"\\/\""};
+  std::istringstream input_1{R"("\u002F")"};
+  std::istringstream input_2{R"("\u002f")"};
+  std::istringstream input_3{R"("\/")"};
   std::istringstream input_4{"\"/\""};
 
   const sourcemeta::core::JSON document_1 =
@@ -1466,7 +1466,7 @@ TEST(big_integer_in_array) {
 }
 
 TEST(big_integer_in_object) {
-  std::istringstream input{"{\"big\":9223372036854776000,\"small\":42}"};
+  std::istringstream input{R"({"big":9223372036854776000,"small":42})"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_object());
   EXPECT_EQ(document.size(), 2);

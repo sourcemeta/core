@@ -243,7 +243,7 @@ TEST(ecma262_lookbehind_negative) {
 
 TEST(ecma262_combined_digit_word_anchors) {
   const auto regex{sourcemeta::core::to_regex(
-      "^\\w+@\\w+\\.\\w+$", sourcemeta::core::RegexDialect::Permissive)};
+      R"(^\w+@\w+\.\w+$)", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("^\\w+@\\w+\\.\\w+$"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "user@example.com"));
@@ -252,7 +252,7 @@ TEST(ecma262_combined_digit_word_anchors) {
 
 TEST(ecma262_digit_range_pattern) {
   const auto regex{sourcemeta::core::to_regex(
-      "\\d{3}-\\d{2}-\\d{4}", sourcemeta::core::RegexDialect::Permissive)};
+      R"(\d{3}-\d{2}-\d{4})", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\d{3}-\\d{2}-\\d{4}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "123-45-6789"));
@@ -261,7 +261,7 @@ TEST(ecma262_digit_range_pattern) {
 
 TEST(ecma262_mixed_escapes) {
   const auto regex{sourcemeta::core::to_regex(
-      "\\w+\\s+\\d+", sourcemeta::core::RegexDialect::Permissive)};
+      R"(\w+\s+\d+)", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\w+\\s+\\d+"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "hello 123"));
@@ -281,7 +281,7 @@ TEST(ecma262_anchor_with_digit) {
 
 TEST(ecma262_word_boundary_with_digit) {
   const auto regex{sourcemeta::core::to_regex(
-      "\\b\\d{3}\\b", sourcemeta::core::RegexDialect::Permissive)};
+      R"(\b\d{3}\b)", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\b\\d{3}\\b"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "123"));
@@ -303,7 +303,7 @@ TEST(ecma262_whitespace_variants) {
 
 TEST(ecma262_complex_email_pattern) {
   const auto regex{
-      sourcemeta::core::to_regex("^[\\w.+-]+@[\\w.-]+\\.[a-zA-Z]{2,}$",
+      sourcemeta::core::to_regex(R"(^[\w.+-]+@[\w.-]+\.[a-zA-Z]{2,}$)",
                                  sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(
@@ -329,7 +329,7 @@ TEST(ecma262_complex_url_pattern) {
 
 TEST(ecma262_phone_number_pattern) {
   const auto regex{
-      sourcemeta::core::to_regex("^\\(\\d{3}\\)\\s*\\d{3}-\\d{4}$",
+      sourcemeta::core::to_regex(R"(^\(\d{3}\)\s*\d{3}-\d{4}$)",
                                  sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(
@@ -372,7 +372,7 @@ TEST(ecma262_lookahead_with_quantifier) {
 
 TEST(ecma262_multiple_word_boundaries) {
   const auto regex{sourcemeta::core::to_regex(
-      "\\btest\\b.*\\bcase\\b", sourcemeta::core::RegexDialect::Permissive)};
+      R"(\btest\b.*\bcase\b)", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\btest\\b.*\\bcase\\b"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "test case"));
@@ -665,7 +665,7 @@ TEST(ecma262_negated_charclass) {
 
 TEST(ecma262_escaped_metacharacters) {
   const auto regex{sourcemeta::core::to_regex(
-      "^\\.\\.\\.$", sourcemeta::core::RegexDialect::Permissive)};
+      R"(^\.\.\.$)", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("^\\.\\.\\.$"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "..."));
@@ -980,7 +980,7 @@ TEST(ecma262_unicode_escape_4digit_arabic_digit_range) {
 
 TEST(ecma262_unicode_property_letter_identifier) {
   const auto regex{
-      sourcemeta::core::to_regex("^\\p{Letter}[\\p{Letter}\\p{Number}]*$",
+      sourcemeta::core::to_regex(R"(^\p{Letter}[\p{Letter}\p{Number}]*$)",
                                  sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma(
@@ -995,7 +995,7 @@ TEST(ecma262_unicode_property_letter_identifier) {
 
 TEST(ecma262_unicode_property_negative_lookahead_identifier) {
   const auto regex{sourcemeta::core::to_regex(
-      "^(?!\\p{Number})\\p{Letter}[\\p{Letter}\\p{Number}\\-_.]*$",
+      R"(^(?!\p{Number})\p{Letter}[\p{Letter}\p{Number}\-_.]*$)",
       sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma(
@@ -1104,7 +1104,7 @@ TEST(ecma262_escaped_backslash_before_bracket) {
 
 TEST(ecma262_triple_backslash_before_bracket) {
   const auto regex{sourcemeta::core::to_regex(
-      "\\\\\\[", sourcemeta::core::RegexDialect::Permissive)};
+      R"(\\\[)", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\\\\\["));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\\["));
@@ -1218,7 +1218,7 @@ TEST(ecma262_backslash_in_char_class) {
 
 TEST(ecma262_complex_char_class_with_escaped_chars) {
   const auto regex{sourcemeta::core::to_regex(
-      "[a\\]b\\\\c]", sourcemeta::core::RegexDialect::Permissive)};
+      R"([a\]b\\c])", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[a\\]b\\\\c]"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a"));
@@ -1277,7 +1277,7 @@ TEST(ecma262_dollar_before_alternation) {
 
 TEST(ecma262_multiple_backslashes_complex) {
   const auto regex{sourcemeta::core::to_regex(
-      "\\\\\\\\\\\\\\\\", sourcemeta::core::RegexDialect::Permissive)};
+      R"(\\\\\\\\)", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\\\\\\\\\\\\\\\"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\\\\\\\\"));
@@ -1340,7 +1340,7 @@ TEST(ecma262_caret_in_middle_of_pattern) {
 
 TEST(ecma262_backslash_before_digit_escape) {
   const auto regex{sourcemeta::core::to_regex(
-      "\\\\\\d", sourcemeta::core::RegexDialect::Permissive)};
+      R"(\\\d)", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\\\\\d"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\\0"));
@@ -1479,7 +1479,7 @@ TEST(ecma262_unicode_hex_too_large) {
 
 TEST(ecma262_multiple_backslashes_before_d) {
   const auto regex{sourcemeta::core::to_regex(
-      "\\\\\\\\d", sourcemeta::core::RegexDialect::Permissive)};
+      R"(\\\\d)", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\\\\\\\d"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\\\\d"));
@@ -1649,7 +1649,7 @@ TEST(ecma262_caret_at_end) {
 
 TEST(ecma262_escaped_quantifiers) {
   const auto regex{sourcemeta::core::to_regex(
-      "\\*\\+\\?", sourcemeta::core::RegexDialect::Permissive)};
+      R"(\*\+\?)", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\*\\+\\?"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "*+?"));
@@ -2228,7 +2228,7 @@ TEST(ecma262_v_flag_intersect_single_chars_different) {
 
 TEST(ecma262_v_flag_hex_intersect_hex) {
   const auto regex{
-      sourcemeta::core::to_regex("[[\\x30-\\x39]&&[\\x33-\\x37]]",
+      sourcemeta::core::to_regex(R"([[\x30-\x39]&&[\x33-\x37]])",
                                  sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(
@@ -2255,7 +2255,7 @@ TEST(ecma262_v_flag_subtract_all_digits_from_word) {
 
 TEST(ecma262_v_flag_intersect_with_escaped_backslash) {
   const auto regex{sourcemeta::core::to_regex(
-      "[[\\\\a-z]&&[\\\\]]", sourcemeta::core::RegexDialect::Permissive)};
+      R"([[\\a-z]&&[\\]])", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[[\\\\a-z]&&[\\\\]]"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\\"));
@@ -2265,7 +2265,7 @@ TEST(ecma262_v_flag_intersect_with_escaped_backslash) {
 
 TEST(ecma262_v_flag_subtract_control_chars) {
   const auto regex{
-      sourcemeta::core::to_regex("[[\\x00-\\x1f]--[\\x00-\\x08]]",
+      sourcemeta::core::to_regex(R"([[\x00-\x1f]--[\x00-\x08]])",
                                  sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(
@@ -2278,7 +2278,7 @@ TEST(ecma262_v_flag_subtract_control_chars) {
 
 TEST(ecma262_v_flag_intersect_with_tab_newline) {
   const auto regex{sourcemeta::core::to_regex(
-      "[[\\t\\n\\r ]&&[\\t\\n]]", sourcemeta::core::RegexDialect::Permissive)};
+      R"([[\t\n\r ]&&[\t\n]])", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[[\\t\\n\\r ]&&[\\t\\n]]"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\t"));
@@ -2334,7 +2334,7 @@ TEST(ecma262_v_flag_subtract_boundary_chars) {
 
 TEST(ecma262_v_flag_intersect_complement_like) {
   const auto regex{
-      sourcemeta::core::to_regex("[[\\x00-\\x60\\x7b-\\x7f]&&[\\x00-\\x7f]]",
+      sourcemeta::core::to_regex(R"([[\x00-\x60\x7b-\x7f]&&[\x00-\x7f]])",
                                  sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma(
@@ -2348,7 +2348,7 @@ TEST(ecma262_v_flag_intersect_complement_like) {
 
 TEST(ecma262_v_flag_subtract_from_shorthand_with_hex) {
   const auto regex{sourcemeta::core::to_regex(
-      "[[\\d]--[\\x30-\\x34]]", sourcemeta::core::RegexDialect::Permissive)};
+      R"([[\d]--[\x30-\x34]])", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[[\\d]--[\\x30-\\x34]]"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "5"));
@@ -2398,7 +2398,7 @@ TEST(ecma262_v_flag_subtract_all_but_one_from_range) {
 
 TEST(ecma262_v_flag_multiple_hex_escapes_in_subtraction) {
   const auto regex{sourcemeta::core::to_regex(
-      "[[\\x20-\\x7e]--[\\x30-\\x39]--[\\x41-\\x5a]--[\\x61-\\x7a]]",
+      R"([[\x20-\x7e]--[\x30-\x39]--[\x41-\x5a]--[\x61-\x7a]])",
       sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma(
@@ -2653,7 +2653,7 @@ TEST(ecma262_v_flag_negated_digit_intersect) {
 
 TEST(ecma262_v_flag_negated_word_intersect) {
   const auto regex{sourcemeta::core::to_regex(
-      "[[\\W]&&[\\!-\\/]]", sourcemeta::core::RegexDialect::Permissive)};
+      R"([[\W]&&[\!-\/]])", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[[\\W]&&[\\!-\\/]]"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "!"));
@@ -2774,7 +2774,7 @@ TEST(ecma262_v_flag_backspace_in_class) {
 
 TEST(ecma262_v_flag_control_escape_intersect) {
   const auto regex{
-      sourcemeta::core::to_regex("[[\\cA-\\cZ]&&[\\x01-\\x03]]",
+      sourcemeta::core::to_regex(R"([[\cA-\cZ]&&[\x01-\x03]])",
                                  sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[[\\cA-\\cZ]&&[\\x01-\\x03]]"));
@@ -2893,7 +2893,7 @@ TEST(ecma262_v_flag_word_minus_alphanumeric) {
 
 TEST(ecma262_v_flag_multiple_escape_sequences_subtract) {
   const auto regex{sourcemeta::core::to_regex(
-      "[[[\\t\\n\\r]]--[\\t]]", sourcemeta::core::RegexDialect::Permissive)};
+      R"([[[\t\n\r]]--[\t]])", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[[[\\t\\n\\r]]--[\\t]]"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\n"));
@@ -2915,7 +2915,7 @@ TEST(ecma262_v_flag_mixed_unicode_escape_types) {
 
 TEST(ecma262_v_flag_control_char_range_intersect) {
   const auto regex{
-      sourcemeta::core::to_regex("[[\\x00-\\x1F]&&[\\x00-\\x0F]]",
+      sourcemeta::core::to_regex(R"([[\x00-\x1F]&&[\x00-\x0F]])",
                                  sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(
@@ -2928,7 +2928,7 @@ TEST(ecma262_v_flag_control_char_range_intersect) {
 
 TEST(ecma262_v_flag_del_char_subtract) {
   const auto regex{sourcemeta::core::to_regex(
-      "[[\\x7E-\\x7F]--[\\x7E]]", sourcemeta::core::RegexDialect::Permissive)};
+      R"([[\x7E-\x7F]--[\x7E]])", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[[\\x7E-\\x7F]--[\\x7E]]"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\x7F"));
@@ -2938,7 +2938,7 @@ TEST(ecma262_v_flag_del_char_subtract) {
 
 TEST(ecma262_v_flag_form_feed_and_vertical_tab) {
   const auto regex{sourcemeta::core::to_regex(
-      "[[\\f\\v]--[\\f]]", sourcemeta::core::RegexDialect::Permissive)};
+      R"([[\f\v]--[\f]])", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[[\\f\\v]--[\\f]]"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\v"));
@@ -2947,7 +2947,7 @@ TEST(ecma262_v_flag_form_feed_and_vertical_tab) {
 
 TEST(ecma262_v_flag_null_char_in_operation) {
   const auto regex{sourcemeta::core::to_regex(
-      "[[\\x00-\\x02]--[\\x00]]", sourcemeta::core::RegexDialect::Permissive)};
+      R"([[\x00-\x02]--[\x00]])", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[[\\x00-\\x02]--[\\x00]]"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\x01"));
@@ -2984,7 +2984,7 @@ TEST(ecma262_v_flag_five_way_chained_intersection) {
 
 TEST(ecma262_v_flag_lowercase_control_escape) {
   const auto regex{
-      sourcemeta::core::to_regex("[[\\ca-\\cz]&&[\\x01-\\x03]]",
+      sourcemeta::core::to_regex(R"([[\ca-\cz]&&[\x01-\x03]])",
                                  sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[[\\ca-\\cz]&&[\\x01-\\x03]]"));
@@ -3090,7 +3090,7 @@ TEST(ecma262_v_flag_escaped_open_bracket) {
 
 TEST(ecma262_v_flag_only_special_punctuation) {
   const auto regex{sourcemeta::core::to_regex(
-      "[[\\!-\\/]&&[\\(-+]]", sourcemeta::core::RegexDialect::Permissive)};
+      R"([[\!-\/]&&[\(-+]])", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[[\\!-\\/]&&[\\(-+]]"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "("));
@@ -3334,7 +3334,7 @@ TEST(ecma262_v_flag_space_in_operation) {
 
 TEST(ecma262_v_flag_bell_char_subtract) {
   const auto regex{sourcemeta::core::to_regex(
-      "[[\\x07-\\x09]--[\\x08]]", sourcemeta::core::RegexDialect::Permissive)};
+      R"([[\x07-\x09]--[\x08]])", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[[\\x07-\\x09]--[\\x08]]"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\x07"));
@@ -3353,7 +3353,7 @@ TEST(ecma262_v_flag_escape_sequence_vs_hex) {
 
 TEST(ecma262_v_flag_carriage_return_line_feed) {
   const auto regex{sourcemeta::core::to_regex(
-      "[[\\r\\n]--[\\n]]", sourcemeta::core::RegexDialect::Permissive)};
+      R"([[\r\n]--[\n]])", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[[\\r\\n]--[\\n]]"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\r"));
@@ -3468,7 +3468,7 @@ TEST(ecma262_v_flag_equals_and_less_greater) {
 
 TEST(ecma262_v_flag_curly_braces_in_class) {
   const auto regex{sourcemeta::core::to_regex(
-      "[[\\{\\}]--[\\{]]", sourcemeta::core::RegexDialect::Permissive)};
+      R"([[\{\}]--[\{]])", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[[\\{\\}]--[\\{]]"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "}"));
@@ -3477,7 +3477,7 @@ TEST(ecma262_v_flag_curly_braces_in_class) {
 
 TEST(ecma262_v_flag_parentheses_in_class) {
   const auto regex{sourcemeta::core::to_regex(
-      "[[\\(\\)]--[\\(]]", sourcemeta::core::RegexDialect::Permissive)};
+      R"([[\(\)]--[\(]])", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[[\\(\\)]--[\\(]]"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), ")"));
@@ -3580,7 +3580,7 @@ TEST(ecma262_v_flag_single_quote_double_quote) {
 
 TEST(ecma262_v_flag_forward_slash_backslash) {
   const auto regex{sourcemeta::core::to_regex(
-      "[[\\\\]--[\\/]]", sourcemeta::core::RegexDialect::Permissive)};
+      R"([[\\]--[\/]])", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[[\\\\]--[\\/]]"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\\"));

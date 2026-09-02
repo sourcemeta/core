@@ -30,7 +30,7 @@ TEST(type) {
 TEST(long_double_nan) {
   const double value{static_cast<double>(NAN)};
   try {
-    sourcemeta::core::JSON{value};
+    const sourcemeta::core::JSON document{value};
     FAIL();
   } catch (const std::invalid_argument &error) {
     EXPECT_STREQ(error.what(), "JSON does not support Infinity or NaN");
@@ -40,7 +40,7 @@ TEST(long_double_nan) {
 TEST(double_nan) {
   const double value{static_cast<double>(NAN)};
   try {
-    sourcemeta::core::JSON{value};
+    const sourcemeta::core::JSON document{value};
     FAIL();
   } catch (const std::invalid_argument &error) {
     EXPECT_STREQ(error.what(), "JSON does not support Infinity or NaN");
@@ -50,7 +50,7 @@ TEST(double_nan) {
 TEST(float_nan) {
   const float value{NAN};
   try {
-    sourcemeta::core::JSON{value};
+    const sourcemeta::core::JSON document{value};
     FAIL();
   } catch (const std::invalid_argument &error) {
     EXPECT_STREQ(error.what(), "JSON does not support Infinity or NaN");
@@ -60,7 +60,7 @@ TEST(float_nan) {
 TEST(long_double_infinity) {
   const double value{std::numeric_limits<double>::infinity()};
   try {
-    sourcemeta::core::JSON{value};
+    const sourcemeta::core::JSON document{value};
     FAIL();
   } catch (const std::invalid_argument &error) {
     EXPECT_STREQ(error.what(), "JSON does not support Infinity or NaN");
@@ -70,7 +70,7 @@ TEST(long_double_infinity) {
 TEST(double_infinity) {
   const double value{std::numeric_limits<double>::infinity()};
   try {
-    sourcemeta::core::JSON{value};
+    const sourcemeta::core::JSON document{value};
     FAIL();
   } catch (const std::invalid_argument &error) {
     EXPECT_STREQ(error.what(), "JSON does not support Infinity or NaN");
@@ -80,7 +80,7 @@ TEST(double_infinity) {
 TEST(float_infinity) {
   const float value{std::numeric_limits<float>::infinity()};
   try {
-    sourcemeta::core::JSON{value};
+    const sourcemeta::core::JSON document{value};
     FAIL();
   } catch (const std::invalid_argument &error) {
     EXPECT_STREQ(error.what(), "JSON does not support Infinity or NaN");
@@ -91,7 +91,6 @@ TEST(copy_constructor_cannot_create_invalid_json) {
   try {
     const sourcemeta::core::JSON source{
         std::numeric_limits<double>::quiet_NaN()};
-    const sourcemeta::core::JSON copy{source};
     FAIL();
   } catch (const std::invalid_argument &error) {
     EXPECT_STREQ(error.what(), "JSON does not support Infinity or NaN");

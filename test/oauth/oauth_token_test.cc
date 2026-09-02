@@ -32,7 +32,7 @@ TEST(build_token_request_code_escapes_the_code) {
 
 TEST(build_token_request_code_with_resources) {
   const std::array<sourcemeta::core::OAuthParameter, 1> resources{
-      {{"resource", "https://api.example"}}};
+      {{.name = "resource", .value = "https://api.example"}}};
   sourcemeta::core::SecureString body;
   sourcemeta::core::oauth_build_token_request_code("abc", "", "", resources,
                                                    body);
@@ -227,7 +227,7 @@ TEST(token_response_scope_with_trailing_and_double_spaces) {
 
 TEST(build_token_request_refresh_with_resources) {
   const std::array<sourcemeta::core::OAuthParameter, 1> resources{
-      {{"resource", "https://api.example"}}};
+      {{.name = "resource", .value = "https://api.example"}}};
   sourcemeta::core::SecureString body;
   sourcemeta::core::oauth_build_token_request_refresh("rt", "", resources,
                                                       body);
@@ -237,7 +237,8 @@ TEST(build_token_request_refresh_with_resources) {
 
 TEST(build_token_request_client_credentials_with_two_resources) {
   const std::array<sourcemeta::core::OAuthParameter, 2> resources{
-      {{"resource", "https://a"}, {"resource", "https://b"}}};
+      {{.name = "resource", .value = "https://a"},
+       {.name = "resource", .value = "https://b"}}};
   sourcemeta::core::SecureString body;
   sourcemeta::core::oauth_build_token_request_client_credentials(
       "read", resources, body);

@@ -941,7 +941,7 @@ TEST(rfc3986_empty_path_with_fragment) {
 TEST(uri_constructor_rejects_non_ascii) {
   // The plain URI constructor does not accept IRI characters
   try {
-    sourcemeta::core::URI{"https://example.com/caf\xC3\xA9"};
+    const sourcemeta::core::URI uri{"https://example.com/caf\xC3\xA9"};
     FAIL();
   } catch (const sourcemeta::core::URIParseError &error) {
     EXPECT_EQ(error.column(), 24);

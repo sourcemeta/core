@@ -61,56 +61,56 @@
   EXPECT_EQ(std::get<6>(traces.at(index)), expected_property)
 
 TEST(yaml_true) {
-  const auto input{"true"};
+  const auto *const input{"true"};
   PARSE_YAML_WITH_TRACES(document, input, 2);
   EXPECT_TRACE(0, Pre, Boolean, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Post, Boolean, 1, 4, Root, 0, "");
 }
 
 TEST(yaml_false) {
-  const auto input{"false"};
+  const auto *const input{"false"};
   PARSE_YAML_WITH_TRACES(document, input, 2);
   EXPECT_TRACE(0, Pre, Boolean, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Post, Boolean, 1, 5, Root, 0, "");
 }
 
 TEST(yaml_null) {
-  const auto input{"null"};
+  const auto *const input{"null"};
   PARSE_YAML_WITH_TRACES(document, input, 2);
   EXPECT_TRACE(0, Pre, Null, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Post, Null, 1, 4, Root, 0, "");
 }
 
 TEST(yaml_string) {
-  const auto input{"\"foo\""};
+  const auto *const input{"\"foo\""};
   PARSE_YAML_WITH_TRACES(document, input, 2);
   EXPECT_TRACE(0, Pre, String, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Post, String, 1, 5, Root, 0, "");
 }
 
 TEST(yaml_integer) {
-  const auto input{"1234"};
+  const auto *const input{"1234"};
   PARSE_YAML_WITH_TRACES(document, input, 2);
   EXPECT_TRACE(0, Pre, Integer, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Post, Integer, 1, 4, Root, 0, "");
 }
 
 TEST(yaml_real) {
-  const auto input{"3.5"};
+  const auto *const input{"3.5"};
   PARSE_YAML_WITH_TRACES(document, input, 2);
   EXPECT_TRACE(0, Pre, Real, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Post, Real, 1, 3, Root, 0, "");
 }
 
 TEST(yaml_empty_array) {
-  const auto input{"[]"};
+  const auto *const input{"[]"};
   PARSE_YAML_WITH_TRACES(document, input, 2);
   EXPECT_TRACE(0, Pre, Array, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Post, Array, 1, 2, Root, 0, "");
 }
 
 TEST(yaml_array_integers) {
-  const auto input{"[1, 2, 3]"};
+  const auto *const input{"[1, 2, 3]"};
   PARSE_YAML_WITH_TRACES(document, input, 8);
   EXPECT_TRACE(0, Pre, Array, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Pre, Integer, 1, 2, Index, 0, "");
@@ -123,14 +123,14 @@ TEST(yaml_array_integers) {
 }
 
 TEST(yaml_empty_object) {
-  const auto input{"{}"};
+  const auto *const input{"{}"};
   PARSE_YAML_WITH_TRACES(document, input, 2);
   EXPECT_TRACE(0, Pre, Object, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Post, Object, 1, 2, Root, 0, "");
 }
 
 TEST(yaml_object_simple) {
-  const auto input{"{\"foo\": \"bar\"}"};
+  const auto *const input{R"({"foo": "bar"})"};
   PARSE_YAML_WITH_TRACES(document, input, 4);
   EXPECT_TRACE(0, Pre, Object, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Pre, String, 1, 2, Property, 0, "foo");
@@ -139,7 +139,7 @@ TEST(yaml_object_simple) {
 }
 
 TEST(yaml_block_mapping_multiline) {
-  const auto input{"foo: bar\nbaz: qux\ntest: 123"};
+  const auto *const input{"foo: bar\nbaz: qux\ntest: 123"};
   PARSE_YAML_WITH_TRACES(document, input, 8);
   EXPECT_TRACE(0, Pre, Object, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Pre, String, 1, 1, Property, 0, "foo");
@@ -152,7 +152,7 @@ TEST(yaml_block_mapping_multiline) {
 }
 
 TEST(yaml_block_sequence_multiline) {
-  const auto input{"- foo\n- bar\n- baz"};
+  const auto *const input{"- foo\n- bar\n- baz"};
   PARSE_YAML_WITH_TRACES(document, input, 8);
   EXPECT_TRACE(0, Pre, Array, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Pre, String, 1, 3, Index, 0, "");
@@ -165,7 +165,7 @@ TEST(yaml_block_sequence_multiline) {
 }
 
 TEST(yaml_nested_arrays) {
-  const auto input{"[[1, 2], [3, 4]]"};
+  const auto *const input{"[[1, 2], [3, 4]]"};
   PARSE_YAML_WITH_TRACES(document, input, 14);
   EXPECT_TRACE(0, Pre, Array, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Pre, Array, 1, 2, Index, 0, "");
@@ -184,7 +184,7 @@ TEST(yaml_nested_arrays) {
 }
 
 TEST(yaml_nested_objects) {
-  const auto input{"{\"outer\": {\"inner\": \"value\"}}"};
+  const auto *const input{R"({"outer": {"inner": "value"}})"};
   PARSE_YAML_WITH_TRACES(document, input, 6);
   EXPECT_TRACE(0, Pre, Object, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Pre, Object, 1, 2, Property, 0, "outer");
@@ -195,7 +195,7 @@ TEST(yaml_nested_objects) {
 }
 
 TEST(yaml_block_nested_objects) {
-  const auto input{"outer:\n  inner:\n    deep: value"};
+  const auto *const input{"outer:\n  inner:\n    deep: value"};
   PARSE_YAML_WITH_TRACES(document, input, 8);
   EXPECT_TRACE(0, Pre, Object, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Pre, Object, 1, 1, Property, 0, "outer");
@@ -208,7 +208,7 @@ TEST(yaml_block_nested_objects) {
 }
 
 TEST(yaml_block_nested_arrays) {
-  const auto input{"- - foo\n  - bar\n- - baz"};
+  const auto *const input{"- - foo\n  - bar\n- - baz"};
   PARSE_YAML_WITH_TRACES(document, input, 12);
   EXPECT_TRACE(0, Pre, Array, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Pre, Array, 1, 3, Index, 0, "");
@@ -225,7 +225,7 @@ TEST(yaml_block_nested_arrays) {
 }
 
 TEST(yaml_mixed_block_and_flow) {
-  const auto input{"array:\n  - {key: value}\n  - [1, 2, 3]"};
+  const auto *const input{"array:\n  - {key: value}\n  - [1, 2, 3]"};
   PARSE_YAML_WITH_TRACES(document, input, 16);
   EXPECT_TRACE(0, Pre, Object, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Pre, Array, 1, 1, Property, 0, "array");
@@ -246,7 +246,7 @@ TEST(yaml_mixed_block_and_flow) {
 }
 
 TEST(yaml_quoted_strings) {
-  const auto input{"single: 'foo bar'\ndouble: \"baz qux\""};
+  const auto *const input{"single: 'foo bar'\ndouble: \"baz qux\""};
   PARSE_YAML_WITH_TRACES(document, input, 6);
   EXPECT_TRACE(0, Pre, Object, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Pre, String, 1, 1, Property, 0, "single");
@@ -257,7 +257,7 @@ TEST(yaml_quoted_strings) {
 }
 
 TEST(yaml_unquoted_strings) {
-  const auto input{"plain: hello world\nunquoted: test"};
+  const auto *const input{"plain: hello world\nunquoted: test"};
   PARSE_YAML_WITH_TRACES(document, input, 6);
   EXPECT_TRACE(0, Pre, Object, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Pre, String, 1, 1, Property, 0, "plain");
@@ -268,7 +268,8 @@ TEST(yaml_unquoted_strings) {
 }
 
 TEST(yaml_numbers_various_formats) {
-  const auto input{"decimal: 42\nfloat: 3.5\nnegative: -10\nexponential: 1e10"};
+  const auto *const input{
+      "decimal: 42\nfloat: 3.5\nnegative: -10\nexponential: 1e10"};
   PARSE_YAML_WITH_TRACES(document, input, 10);
   EXPECT_TRACE(0, Pre, Object, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Pre, Integer, 1, 1, Property, 0, "decimal");
@@ -283,7 +284,7 @@ TEST(yaml_numbers_various_formats) {
 }
 
 TEST(yaml_booleans_all_forms) {
-  const auto input{"bool_true: true\nbool_false: false"};
+  const auto *const input{"bool_true: true\nbool_false: false"};
   PARSE_YAML_WITH_TRACES(document, input, 6);
   EXPECT_TRACE(0, Pre, Object, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Pre, Boolean, 1, 1, Property, 0, "bool_true");
@@ -294,7 +295,7 @@ TEST(yaml_booleans_all_forms) {
 }
 
 TEST(yaml_null_values) {
-  const auto input{"explicit_null: null\n"};
+  const auto *const input{"explicit_null: null\n"};
   PARSE_YAML_WITH_TRACES(document, input, 4);
   EXPECT_TRACE(0, Pre, Object, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Pre, Null, 1, 1, Property, 0, "explicit_null");
@@ -303,7 +304,7 @@ TEST(yaml_null_values) {
 }
 
 TEST(yaml_empty_values) {
-  const auto input{"empty_key:"};
+  const auto *const input{"empty_key:"};
   PARSE_YAML_WITH_TRACES(document, input, 4);
   EXPECT_TRACE(0, Pre, Object, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Pre, Null, 1, 1, Property, 0, "empty_key");
@@ -312,7 +313,7 @@ TEST(yaml_empty_values) {
 }
 
 TEST(yaml_simple_multiline_object) {
-  const auto input{"name: Alice\nage: 30"};
+  const auto *const input{"name: Alice\nage: 30"};
   PARSE_YAML_WITH_TRACES(document, input, 6);
   EXPECT_TRACE(0, Pre, Object, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Pre, String, 1, 1, Property, 0, "name");
@@ -323,7 +324,7 @@ TEST(yaml_simple_multiline_object) {
 }
 
 TEST(yaml_array_of_objects) {
-  const auto input{"[\n  {id: 1, name: foo},\n  {id: 2, name: bar}\n]"};
+  const auto *const input{"[\n  {id: 1, name: foo},\n  {id: 2, name: bar}\n]"};
   PARSE_YAML_WITH_TRACES(document, input, 14);
   EXPECT_TRACE(0, Pre, Array, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Pre, Object, 2, 3, Index, 0, "");
@@ -342,7 +343,7 @@ TEST(yaml_array_of_objects) {
 }
 
 TEST(yaml_deeply_nested) {
-  const auto input{"{a: {b: {c: {d: {e: 42}}}}}"};
+  const auto *const input{"{a: {b: {c: {d: {e: 42}}}}}"};
   PARSE_YAML_WITH_TRACES(document, input, 12);
   EXPECT_TRACE(0, Pre, Object, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Pre, Object, 1, 2, Property, 0, "a");
@@ -381,7 +382,7 @@ TEST(yaml_or_json_stub_test_2) {
 }
 
 TEST(yaml_simple_anchor_and_alias) {
-  const auto input{"anchor: &node foo\nalias: *node"};
+  const auto *const input{"anchor: &node foo\nalias: *node"};
   PARSE_YAML_WITH_TRACES(document, input, 6);
   EXPECT_TRACE(0, Pre, Object, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Pre, String, 1, 1, Property, 0, "anchor");
@@ -392,7 +393,7 @@ TEST(yaml_simple_anchor_and_alias) {
 }
 
 TEST(yaml_anchor_object_with_alias) {
-  const auto input{"original: &obj {x: 1, y: 2}\ncopy: *obj"};
+  const auto *const input{"original: &obj {x: 1, y: 2}\ncopy: *obj"};
   PARSE_YAML_WITH_TRACES(document, input, 14);
   EXPECT_TRACE(0, Pre, Object, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Pre, Object, 1, 1, Property, 0, "original");
@@ -411,7 +412,8 @@ TEST(yaml_anchor_object_with_alias) {
 }
 
 TEST(yaml_anchor_array_with_multiple_aliases) {
-  const auto input{"items: &list [a, b, c]\nfirst: *list\nsecond: *list"};
+  const auto *const input{
+      "items: &list [a, b, c]\nfirst: *list\nsecond: *list"};
   PARSE_YAML_WITH_TRACES(document, input, 26);
   EXPECT_TRACE(0, Pre, Object, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Pre, Array, 1, 1, Property, 0, "items");
@@ -442,7 +444,7 @@ TEST(yaml_anchor_array_with_multiple_aliases) {
 }
 
 TEST(yaml_nested_anchor_and_alias) {
-  const auto input{"outer:\n  inner: &val 42\n  ref: *val"};
+  const auto *const input{"outer:\n  inner: &val 42\n  ref: *val"};
   PARSE_YAML_WITH_TRACES(document, input, 8);
   EXPECT_TRACE(0, Pre, Object, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Pre, Object, 1, 1, Property, 0, "outer");
@@ -455,21 +457,21 @@ TEST(yaml_nested_anchor_and_alias) {
 }
 
 TEST(decimal_large_integer) {
-  const auto input{"123456789012345678901234567890"};
+  const auto *const input{"123456789012345678901234567890"};
   PARSE_YAML_WITH_TRACES(document, input, 2);
   EXPECT_TRACE(0, Pre, Decimal, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Post, Decimal, 1, 30, Root, 0, "");
 }
 
 TEST(decimal_high_precision_real) {
-  const auto input{"3.141592653589793238462643383279"};
+  const auto *const input{"3.141592653589793238462643383279"};
   PARSE_YAML_WITH_TRACES(document, input, 2);
   EXPECT_TRACE(0, Pre, Decimal, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Post, Decimal, 1, 32, Root, 0, "");
 }
 
 TEST(decimal_in_object) {
-  const auto input{"large: 999999999999999999999999999999"};
+  const auto *const input{"large: 999999999999999999999999999999"};
   PARSE_YAML_WITH_TRACES(document, input, 4);
   EXPECT_TRACE(0, Pre, Object, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Pre, Decimal, 1, 1, Property, 0, "large");
@@ -478,7 +480,7 @@ TEST(decimal_in_object) {
 }
 
 TEST(scalar_alias_pre_post_balance) {
-  const auto input{"anchor: &node foo\nalias: *node"};
+  const auto *const input{"anchor: &node foo\nalias: *node"};
   PARSE_YAML_WITH_TRACES(document, input, 6);
   EXPECT_TRACE(0, Pre, Object, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Pre, String, 1, 1, Property, 0, "anchor");

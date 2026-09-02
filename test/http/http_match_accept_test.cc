@@ -320,7 +320,7 @@ TEST(quoted_string_with_comma_does_not_split_entry) {
 // it
 TEST(escaped_quote_inside_quoted_string_handled) {
   const std::string_view header{
-      "text/html;profile=\"a\\\"b,c\", application/json;q=0.5"};
+      R"(text/html;profile="a\"b,c", application/json;q=0.5)"};
   EXPECT_EQ(sourcemeta::core::http_match_accept(
                 header, {"text/html;profile=\"a\\\"b,c\"", "application/json"}),
             "text/html;profile=\"a\\\"b,c\"");

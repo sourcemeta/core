@@ -5,6 +5,8 @@
 #include <string>      // std::string
 #include <string_view> // std::string_view
 
+// The key material is binary, so it can only come from decoding at runtime
+// NOLINTBEGIN(cert-err58-cpp,bugprone-throwing-static-initialization)
 static const std::string KEY{
     sourcemeta::core::hex_to_bytes(
         "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f")
@@ -20,6 +22,7 @@ static const std::string KEY_192{
 
 static const std::string IV{
     sourcemeta::core::hex_to_bytes("101112131415161718191a1b").value()};
+// NOLINTEND(cert-err58-cpp,bugprone-throwing-static-initialization)
 
 static constexpr std::string_view ASSOCIATED_DATA{"protected-header"};
 

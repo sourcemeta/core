@@ -1048,7 +1048,7 @@ TEST(rfc9485_edge_charclass_with_unicode_properties) {
 
 TEST(rfc9485_all_major_categories_combined) {
   const auto regex{
-      sourcemeta::core::to_regex("[\\p{L}\\p{M}\\p{N}\\p{P}\\p{Z}\\p{S}\\p{C}]",
+      sourcemeta::core::to_regex(R"([\p{L}\p{M}\p{N}\p{P}\p{Z}\p{S}\p{C}])",
                                  sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma(
@@ -1062,7 +1062,7 @@ TEST(rfc9485_all_major_categories_combined) {
 
 TEST(rfc9485_complement_all_major_categories) {
   const auto regex{sourcemeta::core::to_regex(
-      "\\P{L}\\P{N}\\P{P}", sourcemeta::core::RegexDialect::Permissive)};
+      R"(\P{L}\P{N}\P{P})", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\P{L}\\P{N}\\P{P}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "   "));
@@ -1129,7 +1129,7 @@ TEST(rfc9485_edge_mixed_quantifiers_sequence) {
 
 TEST(rfc9485_edge_unicode_in_alternation) {
   const auto regex{sourcemeta::core::to_regex(
-      "\\p{Lu}|\\p{Ll}|\\p{Nd}", sourcemeta::core::RegexDialect::Permissive)};
+      R"(\p{Lu}|\p{Ll}|\p{Nd})", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Lu}|\\p{Ll}|\\p{Nd}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "A"));
@@ -1186,7 +1186,7 @@ TEST(rfc9485_edge_complex_real_world_uuid_partial) {
 
 TEST(rfc9485_preprocessing_literal_backslash_p) {
   const auto regex{sourcemeta::core::to_regex(
-      "\\\\p\\{L\\}", sourcemeta::core::RegexDialect::Permissive)};
+      R"(\\p\{L\})", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\\\p\\{L\\}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\\p{L}"));
@@ -1195,7 +1195,7 @@ TEST(rfc9485_preprocessing_literal_backslash_p) {
 
 TEST(rfc9485_preprocessing_literal_backslash_P) {
   const auto regex{sourcemeta::core::to_regex(
-      "\\\\P\\{N\\}", sourcemeta::core::RegexDialect::Permissive)};
+      R"(\\P\{N\})", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\\\P\\{N\\}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\\P{N}"));
@@ -1204,7 +1204,7 @@ TEST(rfc9485_preprocessing_literal_backslash_P) {
 
 TEST(rfc9485_preprocessing_mixed_escaped_and_unicode) {
   const auto regex{sourcemeta::core::to_regex(
-      "\\\\p\\{L\\} \\p{L}", sourcemeta::core::RegexDialect::Permissive)};
+      R"(\\p\{L\} \p{L})", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\\\p\\{L\\} \\p{L}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\\p{L} A"));

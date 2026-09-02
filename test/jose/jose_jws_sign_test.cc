@@ -6,33 +6,33 @@
 #include <string_view> // std::string_view
 
 // An Ed25519 key pair, since the JOSE cookbook carries no Edwards example
-static const std::string OKP_PRIVATE_JWK{
+static constexpr std::string_view OKP_PRIVATE_JWK{
     R"({"kty":"OKP","crv":"Ed25519",)"
     R"("x":"SFOeT7YjsNIh-M1-nCBGnB9VWYu1uyNqiizCZhwddDo",)"
     R"("d":"dB7DXOXgcInKeC-I3gDYEDoc2OixFqzYr9kiwBvueGc"})"};
-static const std::string OKP_PUBLIC_JWK{
+static constexpr std::string_view OKP_PUBLIC_JWK{
     R"({"kty":"OKP","crv":"Ed25519",)"
     R"("x":"SFOeT7YjsNIh-M1-nCBGnB9VWYu1uyNqiizCZhwddDo"})"};
 
 // A P-256 key as PEM, whose parsed form carries no curve name, with its public
 // coordinates
-static const std::string EC_PRIVATE_KEY_PEM{
+static constexpr std::string_view EC_PRIVATE_KEY_PEM{
     R"(-----BEGIN PRIVATE KEY-----
 MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQg+WFQs5q2XetYWqZm
 Ci8zy4KBzd25YLQ/9CCEgd/fZVWhRANCAATbql1xB7Tw6SgrR2SdqcmKGpxOuTaz
 tFKcM9RWrXyBKkkB1YI1epQBgrAVNIfpp4k/nzHACQBp5iZictVxHsBm
 -----END PRIVATE KEY-----
 )"};
-static const std::string EC_PUBLIC_JWK{
+static constexpr std::string_view EC_PUBLIC_JWK{
     R"({"kty":"EC","crv":"P-256",)"
     R"("x":"26pdcQe08OkoK0dknanJihqcTrk2s7RSnDPUVq18gSo",)"
     R"("y":"SQHVgjV6lAGCsBU0h-mniT-fMcAJAGnmJmJy1XEewGY"})"};
 
 // The RFC 7515 Appendix A.1 example key and signing input
-static const std::string OCT_JWK{
+static constexpr std::string_view OCT_JWK{
     R"({"kty":"oct","k":"AyM1SysPpbyDfgZld3umj1qzKObwVMkoqQ-EstJQLr_T)"
     R"(-1qS0gZH75aKtMN3Yj0iPS4hcgUuTwjAzZr1Z9CAow"})"};
-static const std::string_view RFC7515_A1_SIGNING_INPUT{
+static constexpr std::string_view RFC7515_A1_SIGNING_INPUT{
     "eyJ0eXAiOiJKV1QiLA0KICJhbGciOiJIUzI1NiJ9."
     "eyJpc3MiOiJqb2UiLA0KICJleHAiOjEzMDA4MTkzODAsDQogImh0dHA6Ly9leGFtcGxlL"
     "mNvbS9pc19yb290Ijp0cnVlfQ"};

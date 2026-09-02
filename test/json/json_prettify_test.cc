@@ -140,7 +140,7 @@ TEST(array_strings_almost_long_with_indentation) {
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);
 
-  const auto expected = R"JSON({
+  const auto *const expected = R"JSON({
   "1": {
     "2": {
       "3": {
@@ -180,7 +180,7 @@ TEST(array_strings_almost_long_with_long_property) {
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);
 
-  const auto expected = R"JSON({
+  const auto *const expected = R"JSON({
   "longlonglonglonglonglonglonglonglonglong": [
     "aaaaaaaaaa",
     "bbbbbbbbbb",

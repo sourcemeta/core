@@ -10,9 +10,9 @@ TEST(parse_error) {
   static_assert(
       std::is_base_of_v<std::exception, sourcemeta::core::PointerParseError>,
       "Must subclass std::exception");
-  auto exception{sourcemeta::core::PointerParseError(5)};
+  const auto exception{sourcemeta::core::PointerParseError(5)};
   try {
-    throw exception;
+    throw sourcemeta::core::PointerParseError{5};
     FAIL();
   } catch (const sourcemeta::core::PointerParseError &error) {
     EXPECT_STREQ(error.what(), "The input is not a valid JSON Pointer");

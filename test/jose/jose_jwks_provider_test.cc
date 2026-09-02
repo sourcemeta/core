@@ -98,8 +98,8 @@ auto oct_provider() -> sourcemeta::core::JWKSProvider {
       "https://issuer.test/jwks",
       [](const std::string_view)
           -> std::optional<sourcemeta::core::JWKSProvider::FetchResult> {
-        return sourcemeta::core::JWKSProvider::FetchResult{oct_key_document(),
-                                                           std::nullopt};
+        return sourcemeta::core::JWKSProvider::FetchResult{
+            .body = oct_key_document(), .max_age = std::nullopt};
       }};
 }
 
@@ -131,8 +131,8 @@ TEST(malformed_body_is_treated_as_failure) {
   const auto fetcher{
       [](const std::string_view)
           -> std::optional<sourcemeta::core::JWKSProvider::FetchResult> {
-        return sourcemeta::core::JWKSProvider::FetchResult{"not json at all",
-                                                           std::nullopt};
+        return sourcemeta::core::JWKSProvider::FetchResult{
+            .body = "not json at all", .max_age = std::nullopt};
       }};
   auto now{std::chrono::system_clock::from_time_t(1000000000)};
   sourcemeta::core::JWKSProvider provider{
@@ -154,7 +154,7 @@ TEST(cache_hit_does_not_refetch) {
           -> std::optional<sourcemeta::core::JWKSProvider::FetchResult> {
         calls += 1;
         return sourcemeta::core::JWKSProvider::FetchResult{
-            std::string{SIGNED_KEYS}, std::nullopt};
+            .body = std::string{SIGNED_KEYS}, .max_age = std::nullopt};
       }};
   auto now{std::chrono::system_clock::from_time_t(1000000000)};
   sourcemeta::core::JWKSProvider provider{
@@ -183,7 +183,7 @@ TEST(cache_control_absent_uses_fallback) {
           -> std::optional<sourcemeta::core::JWKSProvider::FetchResult> {
         calls += 1;
         return sourcemeta::core::JWKSProvider::FetchResult{
-            std::string{SIGNED_KEYS}, std::nullopt};
+            .body = std::string{SIGNED_KEYS}, .max_age = std::nullopt};
       }};
   auto now{std::chrono::system_clock::from_time_t(1000000000)};
   sourcemeta::core::JWKSProvider provider{
@@ -222,7 +222,8 @@ TEST(cache_control_above_maximum_clamps_down) {
           -> std::optional<sourcemeta::core::JWKSProvider::FetchResult> {
         calls += 1;
         return sourcemeta::core::JWKSProvider::FetchResult{
-            std::string{SIGNED_KEYS}, std::chrono::hours{48}};
+            .body = std::string{SIGNED_KEYS},
+            .max_age = std::chrono::hours{48}};
       }};
   auto now{std::chrono::system_clock::from_time_t(1000000000)};
   sourcemeta::core::JWKSProvider provider{
@@ -261,7 +262,8 @@ TEST(cache_control_below_minimum_clamps_up) {
           -> std::optional<sourcemeta::core::JWKSProvider::FetchResult> {
         calls += 1;
         return sourcemeta::core::JWKSProvider::FetchResult{
-            std::string{SIGNED_KEYS}, std::chrono::seconds{60}};
+            .body = std::string{SIGNED_KEYS},
+            .max_age = std::chrono::seconds{60}};
       }};
   auto now{std::chrono::system_clock::from_time_t(1000000000)};
   sourcemeta::core::JWKSProvider provider{
@@ -301,7 +303,8 @@ TEST(cache_control_zero_clamps_to_minimum) {
         calls += 1;
         // A real, advertised lifetime of zero, distinct from no advertisement
         return sourcemeta::core::JWKSProvider::FetchResult{
-            std::string{SIGNED_KEYS}, std::chrono::seconds{0}};
+            .body = std::string{SIGNED_KEYS},
+            .max_age = std::chrono::seconds{0}};
       }};
   auto now{std::chrono::system_clock::from_time_t(1000000000)};
   sourcemeta::core::JWKSProvider provider{
@@ -343,8 +346,8 @@ TEST(unknown_key_triggers_one_guarded_refetch) {
           -> std::optional<sourcemeta::core::JWKSProvider::FetchResult> {
         calls += 1;
         return sourcemeta::core::JWKSProvider::FetchResult{
-            std::string{calls == 1 ? ELLIPTIC_CURVE_KEYS : SIGNED_KEYS},
-            std::nullopt};
+            .body = std::string{calls == 1 ? ELLIPTIC_CURVE_KEYS : SIGNED_KEYS},
+            .max_age = std::nullopt};
       }};
   auto now{std::chrono::system_clock::from_time_t(1000000000)};
   sourcemeta::core::JWKSProvider provider{
@@ -366,7 +369,7 @@ TEST(signature_failure_is_not_retried) {
           -> std::optional<sourcemeta::core::JWKSProvider::FetchResult> {
         calls += 1;
         return sourcemeta::core::JWKSProvider::FetchResult{
-            std::string{RSA_KEYS_KEY_ID_K1}, std::nullopt};
+            .body = std::string{RSA_KEYS_KEY_ID_K1}, .max_age = std::nullopt};
       }};
   auto now{std::chrono::system_clock::from_time_t(1300000000)};
   sourcemeta::core::JWKSProvider provider{
@@ -395,7 +398,8 @@ TEST(unknown_key_refetch_is_bounded_by_cooldown) {
           -> std::optional<sourcemeta::core::JWKSProvider::FetchResult> {
         calls += 1;
         return sourcemeta::core::JWKSProvider::FetchResult{
-            std::string{RSA_KEYS_KEY_ID_OTHER}, std::nullopt};
+            .body = std::string{RSA_KEYS_KEY_ID_OTHER},
+            .max_age = std::nullopt};
       }};
   auto now{std::chrono::system_clock::from_time_t(1300000000)};
   sourcemeta::core::JWKSProvider provider{
@@ -436,7 +440,7 @@ TEST(failed_refresh_serves_stale_keys) {
         calls += 1;
         if (calls == 1) {
           return sourcemeta::core::JWKSProvider::FetchResult{
-              std::string{SIGNED_KEYS}, std::nullopt};
+              .body = std::string{SIGNED_KEYS}, .max_age = std::nullopt};
         }
         return std::nullopt;
       }};
@@ -477,7 +481,7 @@ TEST(expected_type_is_forwarded) {
       [](const std::string_view)
           -> std::optional<sourcemeta::core::JWKSProvider::FetchResult> {
         return sourcemeta::core::JWKSProvider::FetchResult{
-            std::string{SIGNED_KEYS}, std::nullopt};
+            .body = std::string{SIGNED_KEYS}, .max_age = std::nullopt};
       }};
   auto now{std::chrono::system_clock::from_time_t(1000000000)};
   sourcemeta::core::JWKSProvider provider{
@@ -500,7 +504,7 @@ TEST(clock_skew_tolerates_recent_expiry) {
       [](const std::string_view)
           -> std::optional<sourcemeta::core::JWKSProvider::FetchResult> {
         return sourcemeta::core::JWKSProvider::FetchResult{
-            std::string{SIGNED_KEYS}, std::nullopt};
+            .body = std::string{SIGNED_KEYS}, .max_age = std::nullopt};
       }};
   // Thirty seconds past the token's expiry, but a sixty second skew absorbs it,
   // proving the configured tolerance reaches the underlying verification
@@ -550,7 +554,7 @@ TEST(fetcher_recovers_after_exception) {
           throw std::runtime_error{"transport failure"};
         }
         return sourcemeta::core::JWKSProvider::FetchResult{
-            std::string{SIGNED_KEYS}, std::nullopt};
+            .body = std::string{SIGNED_KEYS}, .max_age = std::nullopt};
       }};
   auto now{std::chrono::system_clock::from_time_t(1000000000)};
   sourcemeta::core::JWKSProvider provider{
@@ -581,7 +585,7 @@ TEST(fetcher_exception_serves_stale_keys) {
         calls += 1;
         if (calls == 1) {
           return sourcemeta::core::JWKSProvider::FetchResult{
-              std::string{SIGNED_KEYS}, std::nullopt};
+              .body = std::string{SIGNED_KEYS}, .max_age = std::nullopt};
         }
         throw std::runtime_error{"transport failure"};
       }};
@@ -612,8 +616,8 @@ TEST(empty_key_set_is_treated_as_failure) {
   const auto fetcher{
       [](const std::string_view)
           -> std::optional<sourcemeta::core::JWKSProvider::FetchResult> {
-        return sourcemeta::core::JWKSProvider::FetchResult{R"({ "keys": [] })",
-                                                           std::nullopt};
+        return sourcemeta::core::JWKSProvider::FetchResult{
+            .body = R"({ "keys": [] })", .max_age = std::nullopt};
       }};
   auto now{std::chrono::system_clock::from_time_t(1000000000)};
   sourcemeta::core::JWKSProvider provider{
@@ -635,7 +639,7 @@ TEST(disallowed_algorithm_denies) {
           -> std::optional<sourcemeta::core::JWKSProvider::FetchResult> {
         calls += 1;
         return sourcemeta::core::JWKSProvider::FetchResult{
-            std::string{SIGNED_KEYS}, std::nullopt};
+            .body = std::string{SIGNED_KEYS}, .max_age = std::nullopt};
       }};
   auto now{std::chrono::system_clock::from_time_t(1000000000)};
   sourcemeta::core::JWKSProvider provider{
@@ -661,7 +665,7 @@ TEST(expired_token_denies) {
       [](const std::string_view)
           -> std::optional<sourcemeta::core::JWKSProvider::FetchResult> {
         return sourcemeta::core::JWKSProvider::FetchResult{
-            std::string{SIGNED_KEYS}, std::nullopt};
+            .body = std::string{SIGNED_KEYS}, .max_age = std::nullopt};
       }};
   // One second past the token's expiry of 2000000000
   auto now{std::chrono::system_clock::from_time_t(2000000001)};
@@ -682,7 +686,7 @@ TEST(wrong_audience_denies) {
       [](const std::string_view)
           -> std::optional<sourcemeta::core::JWKSProvider::FetchResult> {
         return sourcemeta::core::JWKSProvider::FetchResult{
-            std::string{SIGNED_KEYS}, std::nullopt};
+            .body = std::string{SIGNED_KEYS}, .max_age = std::nullopt};
       }};
   auto now{std::chrono::system_clock::from_time_t(1000000000)};
   sourcemeta::core::JWKSProvider provider{
@@ -704,7 +708,7 @@ TEST(inverted_lifetime_bounds_stay_well_defined) {
           -> std::optional<sourcemeta::core::JWKSProvider::FetchResult> {
         calls += 1;
         return sourcemeta::core::JWKSProvider::FetchResult{
-            std::string{SIGNED_KEYS}, std::chrono::hours{1}};
+            .body = std::string{SIGNED_KEYS}, .max_age = std::chrono::hours{1}};
       }};
   auto now{std::chrono::system_clock::from_time_t(1000000000)};
   // A misconfiguration with the minimum above the maximum must not be undefined
@@ -745,7 +749,7 @@ TEST(empty_clock_falls_back_to_the_system_clock) {
       [](const std::string_view)
           -> std::optional<sourcemeta::core::JWKSProvider::FetchResult> {
         return sourcemeta::core::JWKSProvider::FetchResult{
-            std::string{SIGNED_KEYS}, std::nullopt};
+            .body = std::string{SIGNED_KEYS}, .max_age = std::nullopt};
       }};
   // A default-constructed clock falls back to real time rather than calling an
   // empty target, so the far-future token verifies instead of throwing
@@ -766,7 +770,7 @@ TEST(verify_shares_its_resolved_clock_reading) {
       [](const std::string_view)
           -> std::optional<sourcemeta::core::JWKSProvider::FetchResult> {
         return sourcemeta::core::JWKSProvider::FetchResult{
-            std::string{SIGNED_KEYS}, std::nullopt};
+            .body = std::string{SIGNED_KEYS}, .max_age = std::nullopt};
       }};
   const auto now{std::chrono::system_clock::from_time_t(1000000000)};
   sourcemeta::core::JWKSProvider provider{

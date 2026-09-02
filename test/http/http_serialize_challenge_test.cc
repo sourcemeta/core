@@ -8,7 +8,7 @@
 
 namespace {
 using Parameter = std::pair<std::string_view, std::string_view>;
-}
+} // namespace
 
 // RFC 6750 §3: "WWW-Authenticate: Bearer realm="example""
 TEST(serialize_challenge_bearer_with_a_realm) {

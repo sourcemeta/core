@@ -2,12 +2,12 @@
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/test.h>
 
-#include <string> // std::string
+#include <string>      // std::string
+#include <string_view> // std::string_view
 
 // A 2048-bit RSA private key in unencrypted PKCS#8, reused from the signing
 // tests, to exercise the PEM public-recovery path
-static const std::string RSA_PRIVATE_KEY{
-    R"(-----BEGIN PRIVATE KEY-----
+static constexpr std::string_view RSA_PRIVATE_KEY{R"(-----BEGIN PRIVATE KEY-----
 MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCf6K9Ys3QJNItd
 zsY1wcY65kd27pBwZPdKUVNp/ZyTEtUQNwBTh8h7Pusq29loLOkonpxvkpmcNwif
 6A4KsTQUjo5l0K+AAY2qgUfoPUAA2TyVZIVzVtai2LnHNeWzYg3h8NENoGhd5cGe

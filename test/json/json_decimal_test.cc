@@ -31,7 +31,7 @@ TEST(zero) {
 TEST(copy_constructor_from_json) {
   const sourcemeta::core::Decimal value{123};
   const sourcemeta::core::JSON decimal{value};
-  const sourcemeta::core::JSON document{decimal};
+  const sourcemeta::core::JSON &document{decimal};
   EXPECT_TRUE(document.is_decimal());
   EXPECT_EQ(document.to_decimal().to_int64(), 123);
 }
@@ -152,7 +152,7 @@ TEST(copy_preserves_precision) {
   const sourcemeta::core::Decimal value{
       "12345678901234567890.123456789012345678901234567890"};
   const sourcemeta::core::JSON original{value};
-  const sourcemeta::core::JSON copy{original};
+  const sourcemeta::core::JSON &copy{original};
   EXPECT_EQ(copy.to_decimal().to_string(), original.to_decimal().to_string());
 }
 
@@ -207,8 +207,8 @@ TEST(unsigned_integer_construction) {
 TEST(multiple_copies) {
   const sourcemeta::core::Decimal value{111};
   const sourcemeta::core::JSON first{value};
-  const sourcemeta::core::JSON second{first};
-  const sourcemeta::core::JSON third{second};
+  const sourcemeta::core::JSON &second{first};
+  const sourcemeta::core::JSON &third{second};
   EXPECT_TRUE(third.is_decimal());
   EXPECT_EQ(third.to_decimal().to_int64(), 111);
 }
@@ -536,7 +536,7 @@ TEST(is_integral_zero_real) {
 TEST(construction_rejects_nan) {
   const sourcemeta::core::Decimal value{sourcemeta::core::Decimal::nan()};
   try {
-    sourcemeta::core::JSON{value};
+    const sourcemeta::core::JSON document{value};
     FAIL();
   } catch (const std::invalid_argument &error) {
     EXPECT_STREQ(error.what(), "JSON does not support Infinity or NaN");
@@ -546,7 +546,7 @@ TEST(construction_rejects_nan) {
 TEST(construction_rejects_positive_infinity) {
   const sourcemeta::core::Decimal value{sourcemeta::core::Decimal::infinity()};
   try {
-    sourcemeta::core::JSON{value};
+    const sourcemeta::core::JSON document{value};
     FAIL();
   } catch (const std::invalid_argument &error) {
     EXPECT_STREQ(error.what(), "JSON does not support Infinity or NaN");
@@ -557,7 +557,7 @@ TEST(construction_rejects_negative_infinity) {
   const sourcemeta::core::Decimal value{
       sourcemeta::core::Decimal::negative_infinity()};
   try {
-    sourcemeta::core::JSON{value};
+    const sourcemeta::core::JSON document{value};
     FAIL();
   } catch (const std::invalid_argument &error) {
     EXPECT_STREQ(error.what(), "JSON does not support Infinity or NaN");
@@ -567,7 +567,7 @@ TEST(construction_rejects_negative_infinity) {
 TEST(construction_move_rejects_nan) {
   sourcemeta::core::Decimal value{sourcemeta::core::Decimal::nan()};
   try {
-    sourcemeta::core::JSON{std::move(value)};
+    const sourcemeta::core::JSON document{std::move(value)};
     FAIL();
   } catch (const std::invalid_argument &error) {
     EXPECT_STREQ(error.what(), "JSON does not support Infinity or NaN");
@@ -577,7 +577,7 @@ TEST(construction_move_rejects_nan) {
 TEST(construction_move_rejects_positive_infinity) {
   sourcemeta::core::Decimal value{sourcemeta::core::Decimal::infinity()};
   try {
-    sourcemeta::core::JSON{std::move(value)};
+    const sourcemeta::core::JSON document{std::move(value)};
     FAIL();
   } catch (const std::invalid_argument &error) {
     EXPECT_STREQ(error.what(), "JSON does not support Infinity or NaN");
@@ -588,7 +588,7 @@ TEST(construction_move_rejects_negative_infinity) {
   sourcemeta::core::Decimal value{
       sourcemeta::core::Decimal::negative_infinity()};
   try {
-    sourcemeta::core::JSON{std::move(value)};
+    const sourcemeta::core::JSON document{std::move(value)};
     FAIL();
   } catch (const std::invalid_argument &error) {
     EXPECT_STREQ(error.what(), "JSON does not support Infinity or NaN");
@@ -598,7 +598,6 @@ TEST(construction_move_rejects_negative_infinity) {
 TEST(copy_constructor_cannot_create_invalid_json) {
   try {
     const sourcemeta::core::JSON source{sourcemeta::core::Decimal::nan()};
-    const sourcemeta::core::JSON copy{source};
     FAIL();
   } catch (const std::invalid_argument &error) {
     EXPECT_STREQ(error.what(), "JSON does not support Infinity or NaN");

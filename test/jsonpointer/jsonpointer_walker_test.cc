@@ -134,7 +134,7 @@ TEST(object_empty) {
 
 TEST(object_scalars) {
   const sourcemeta::core::JSON document =
-      sourcemeta::core::parse_json("{ \"foo\": 1, \"bar\": 2, \"baz\": 3 }");
+      sourcemeta::core::parse_json(R"({ "foo": 1, "bar": 2, "baz": 3 })");
   // Do a set to not depend on object property ordering
   std::set<std::string> subpointers;
   for (const auto &subpointer : sourcemeta::core::PointerWalker{document}) {
@@ -150,7 +150,7 @@ TEST(object_scalars) {
 
 TEST(object_nested) {
   const sourcemeta::core::JSON document =
-      sourcemeta::core::parse_json("{ \"foo\": { \"bar\": 1 } }");
+      sourcemeta::core::parse_json(R"({ "foo": { "bar": 1 } })");
   std::vector<std::string> subpointers;
   for (const auto &subpointer : sourcemeta::core::PointerWalker{document}) {
     subpointers.push_back(sourcemeta::core::to_string(subpointer));

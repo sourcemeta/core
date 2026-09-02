@@ -4,10 +4,14 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view> // std::string_view
 #include <type_traits>
 #include <utility>
 #include <vector>
 
+// The reference case asserts on the address of this object, so it needs
+// the storage that a view cannot provide
+// NOLINTNEXTLINE(cert-err58-cpp,bugprone-throwing-static-initialization)
 static const std::string CACHED{"cached"};
 
 struct Point {
@@ -17,6 +21,8 @@ struct Point {
 
 struct HostileAddress {
   int value{0};
+  // The point of this type is that taking its address misbehaves
+  // NOLINTNEXTLINE(google-runtime-operator)
   auto operator&() const -> const HostileAddress * { return nullptr; }
 };
 

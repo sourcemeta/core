@@ -725,6 +725,7 @@ TEST(userinfo_with_non_ascii) {
 }
 
 TEST(path_with_right_to_left_override) {
+  // NOLINTNEXTLINE(misc-misleading-bidirectional)
   const std::string input{"http://example.com/a\xE2\x80\xAE"
                           "b"};
   EXPECT_FALSE(sourcemeta::core::URI::is_uri(input));

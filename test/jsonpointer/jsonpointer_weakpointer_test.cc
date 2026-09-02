@@ -10,37 +10,37 @@
 #include <unordered_map>
 #include <unordered_set>
 
+// A weak pointer refers to these by address, so they need real storage
+// NOLINTBEGIN(cert-err58-cpp,bugprone-throwing-static-initialization)
 static const std::string FOO = "foo";
 static const std::string BAR = "bar";
 static const std::string BAZ = "baz";
 static const std::string QUX = "qux";
+// NOLINTEND(cert-err58-cpp,bugprone-throwing-static-initialization)
 
 TEST(general_traits) {
+  EXPECT_TRUE(std::is_default_constructible_v<sourcemeta::core::WeakPointer>);
   EXPECT_TRUE(
-      std::is_default_constructible<sourcemeta::core::WeakPointer>::value);
-  EXPECT_TRUE(std::is_nothrow_default_constructible<
-              sourcemeta::core::WeakPointer>::value);
-  EXPECT_TRUE(std::is_destructible<sourcemeta::core::WeakPointer>::value);
-  EXPECT_TRUE(
-      std::is_nothrow_destructible<sourcemeta::core::WeakPointer>::value);
+      std::is_nothrow_default_constructible_v<sourcemeta::core::WeakPointer>);
+  EXPECT_TRUE(std::is_destructible_v<sourcemeta::core::WeakPointer>);
+  EXPECT_TRUE(std::is_nothrow_destructible_v<sourcemeta::core::WeakPointer>);
 }
 
 TEST(copy_traits) {
-  EXPECT_TRUE(std::is_copy_assignable<sourcemeta::core::WeakPointer>::value);
-  EXPECT_TRUE(std::is_copy_constructible<sourcemeta::core::WeakPointer>::value);
+  EXPECT_TRUE(std::is_copy_assignable_v<sourcemeta::core::WeakPointer>);
+  EXPECT_TRUE(std::is_copy_constructible_v<sourcemeta::core::WeakPointer>);
   EXPECT_FALSE(
-      std::is_nothrow_copy_assignable<sourcemeta::core::WeakPointer>::value);
+      std::is_nothrow_copy_assignable_v<sourcemeta::core::WeakPointer>);
   EXPECT_FALSE(
-      std::is_nothrow_copy_constructible<sourcemeta::core::WeakPointer>::value);
+      std::is_nothrow_copy_constructible_v<sourcemeta::core::WeakPointer>);
 }
 
 TEST(move_traits) {
-  EXPECT_TRUE(std::is_move_assignable<sourcemeta::core::WeakPointer>::value);
-  EXPECT_TRUE(std::is_move_constructible<sourcemeta::core::WeakPointer>::value);
+  EXPECT_TRUE(std::is_move_assignable_v<sourcemeta::core::WeakPointer>);
+  EXPECT_TRUE(std::is_move_constructible_v<sourcemeta::core::WeakPointer>);
+  EXPECT_TRUE(std::is_nothrow_move_assignable_v<sourcemeta::core::WeakPointer>);
   EXPECT_TRUE(
-      std::is_nothrow_move_assignable<sourcemeta::core::WeakPointer>::value);
-  EXPECT_TRUE(
-      std::is_nothrow_move_constructible<sourcemeta::core::WeakPointer>::value);
+      std::is_nothrow_move_constructible_v<sourcemeta::core::WeakPointer>);
 }
 
 TEST(empty) {
@@ -289,7 +289,7 @@ TEST(try_get_complex_true) {
   const sourcemeta::core::WeakPointer pointer{std::cref(FOO), std::cref(BAR), 2,
                                               std::cref(BAZ)};
 
-  const auto result{sourcemeta::core::try_get(document, pointer)};
+  const auto *const result{sourcemeta::core::try_get(document, pointer)};
   EXPECT_TRUE(result);
   EXPECT_EQ(*result, document.at("foo").at("bar").at(2).at("baz"));
 }
@@ -304,7 +304,7 @@ TEST(try_get_complex_false) {
   const sourcemeta::core::WeakPointer pointer{std::cref(FOO), 2,
                                               std::cref(BAZ)};
 
-  const auto result{sourcemeta::core::try_get(document, pointer)};
+  const auto *const result{sourcemeta::core::try_get(document, pointer)};
   EXPECT_FALSE(result);
 }
 

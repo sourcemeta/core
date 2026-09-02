@@ -10,31 +10,28 @@
 #include <vector>
 
 TEST(general_traits) {
-  EXPECT_TRUE(
-      std::is_default_constructible<sourcemeta::core::JSON::Array>::value);
-  EXPECT_FALSE(std::is_nothrow_default_constructible<
-               sourcemeta::core::JSON::Array>::value);
-  EXPECT_TRUE(std::is_destructible<sourcemeta::core::JSON::Array>::value);
-  EXPECT_TRUE(
-      std::is_nothrow_destructible<sourcemeta::core::JSON::Array>::value);
+  EXPECT_TRUE(std::is_default_constructible_v<sourcemeta::core::JSON::Array>);
+  EXPECT_FALSE(
+      std::is_nothrow_default_constructible_v<sourcemeta::core::JSON::Array>);
+  EXPECT_TRUE(std::is_destructible_v<sourcemeta::core::JSON::Array>);
+  EXPECT_TRUE(std::is_nothrow_destructible_v<sourcemeta::core::JSON::Array>);
 }
 
 TEST(copy_traits) {
-  EXPECT_TRUE(std::is_copy_assignable<sourcemeta::core::JSON::Array>::value);
-  EXPECT_TRUE(std::is_copy_constructible<sourcemeta::core::JSON::Array>::value);
+  EXPECT_TRUE(std::is_copy_assignable_v<sourcemeta::core::JSON::Array>);
+  EXPECT_TRUE(std::is_copy_constructible_v<sourcemeta::core::JSON::Array>);
   EXPECT_FALSE(
-      std::is_nothrow_copy_assignable<sourcemeta::core::JSON::Array>::value);
+      std::is_nothrow_copy_assignable_v<sourcemeta::core::JSON::Array>);
   EXPECT_FALSE(
-      std::is_nothrow_copy_constructible<sourcemeta::core::JSON::Array>::value);
+      std::is_nothrow_copy_constructible_v<sourcemeta::core::JSON::Array>);
 }
 
 TEST(move_traits) {
-  EXPECT_TRUE(std::is_move_assignable<sourcemeta::core::JSON::Array>::value);
-  EXPECT_TRUE(std::is_move_constructible<sourcemeta::core::JSON::Array>::value);
+  EXPECT_TRUE(std::is_move_assignable_v<sourcemeta::core::JSON::Array>);
+  EXPECT_TRUE(std::is_move_constructible_v<sourcemeta::core::JSON::Array>);
+  EXPECT_TRUE(std::is_nothrow_move_assignable_v<sourcemeta::core::JSON::Array>);
   EXPECT_TRUE(
-      std::is_nothrow_move_assignable<sourcemeta::core::JSON::Array>::value);
-  EXPECT_TRUE(
-      std::is_nothrow_move_constructible<sourcemeta::core::JSON::Array>::value);
+      std::is_nothrow_move_constructible_v<sourcemeta::core::JSON::Array>);
 }
 
 TEST(make_array_2_booleans) {
@@ -94,7 +91,7 @@ TEST(make_array_1_array) {
 
 TEST(brace_initialization_from_integer_document) {
   const sourcemeta::core::JSON element{1};
-  const sourcemeta::core::JSON document{element};
+  const sourcemeta::core::JSON &document{element};
 
   EXPECT_FALSE(document.is_array());
   EXPECT_TRUE(document.is_integer());
@@ -104,7 +101,7 @@ TEST(brace_initialization_from_integer_document) {
 TEST(brace_initialization_from_array_document) {
   const auto element{sourcemeta::core::JSON::make_array(
       {sourcemeta::core::JSON{1}, sourcemeta::core::JSON{2}})};
-  const sourcemeta::core::JSON document{element};
+  const sourcemeta::core::JSON &document{element};
 
   EXPECT_TRUE(document.is_array());
   EXPECT_EQ(document.size(), 2);
@@ -404,13 +401,13 @@ TEST(erase_many_full_const) {
 
 TEST(contains_string_key_true) {
   const sourcemeta::core::JSON document =
-      sourcemeta::core::parse_json("[ \"foo\", \"bar\" ]");
+      sourcemeta::core::parse_json(R"([ "foo", "bar" ])");
   EXPECT_TRUE(document.contains(sourcemeta::core::JSON{"bar"}));
 }
 
 TEST(contains_string_key_false) {
   const sourcemeta::core::JSON document =
-      sourcemeta::core::parse_json("[ \"foo\", \"bar\" ]");
+      sourcemeta::core::parse_json(R"([ "foo", "bar" ])");
   EXPECT_FALSE(document.contains(sourcemeta::core::JSON{"baz"}));
 }
 
@@ -456,7 +453,7 @@ TEST(contains_string_in_mixed_array) {
 
 TEST(defines_any_with_iterators_has_one) {
   const sourcemeta::core::JSON document =
-      sourcemeta::core::parse_json("{\"foo\":true,\"bar\":false,\"baz\":true}");
+      sourcemeta::core::parse_json(R"({"foo":true,"bar":false,"baz":true})");
   EXPECT_TRUE(document.is_object());
   EXPECT_EQ(document.size(), 3);
   EXPECT_TRUE(document.defines("foo"));
@@ -468,7 +465,7 @@ TEST(defines_any_with_iterators_has_one) {
 
 TEST(defines_any_with_iterators_has_two) {
   const sourcemeta::core::JSON document =
-      sourcemeta::core::parse_json("{\"foo\":true,\"bar\":false,\"baz\":true}");
+      sourcemeta::core::parse_json(R"({"foo":true,"bar":false,"baz":true})");
   EXPECT_TRUE(document.is_object());
   EXPECT_EQ(document.size(), 3);
   const std::vector<std::string> keys{"foo", "baz"};
@@ -477,7 +474,7 @@ TEST(defines_any_with_iterators_has_two) {
 
 TEST(defines_any_with_iterators_has_none) {
   const sourcemeta::core::JSON document =
-      sourcemeta::core::parse_json("{\"foo\":true,\"bar\":false,\"baz\":true}");
+      sourcemeta::core::parse_json(R"({"foo":true,"bar":false,"baz":true})");
   EXPECT_TRUE(document.is_object());
   EXPECT_EQ(document.size(), 3);
   const std::vector<std::string> keys{"qux", "test"};
@@ -486,7 +483,7 @@ TEST(defines_any_with_iterators_has_none) {
 
 TEST(defines_any_with_initializer_list_has_one) {
   const sourcemeta::core::JSON document =
-      sourcemeta::core::parse_json("{\"foo\":true,\"bar\":false,\"baz\":true}");
+      sourcemeta::core::parse_json(R"({"foo":true,"bar":false,"baz":true})");
   EXPECT_TRUE(document.is_object());
   EXPECT_EQ(document.size(), 3);
   EXPECT_TRUE(document.defines_any({"foo", "qux"}));
@@ -494,7 +491,7 @@ TEST(defines_any_with_initializer_list_has_one) {
 
 TEST(defines_any_with_initializer_list_has_two) {
   const sourcemeta::core::JSON document =
-      sourcemeta::core::parse_json("{\"foo\":true,\"bar\":false,\"baz\":true}");
+      sourcemeta::core::parse_json(R"({"foo":true,"bar":false,"baz":true})");
   EXPECT_TRUE(document.is_object());
   EXPECT_EQ(document.size(), 3);
   EXPECT_TRUE(document.defines_any({"foo", "baz"}));
@@ -502,7 +499,7 @@ TEST(defines_any_with_initializer_list_has_two) {
 
 TEST(defines_any_with_initializer_list_has_none) {
   const sourcemeta::core::JSON document =
-      sourcemeta::core::parse_json("{\"foo\":true,\"bar\":false,\"baz\":true}");
+      sourcemeta::core::parse_json(R"({"foo":true,"bar":false,"baz":true})");
   EXPECT_TRUE(document.is_object());
   EXPECT_EQ(document.size(), 3);
   EXPECT_FALSE(document.defines_any({"qux", "test"}));

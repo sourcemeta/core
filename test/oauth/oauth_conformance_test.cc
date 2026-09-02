@@ -54,7 +54,8 @@ TEST(conformance_authorization_request_round_trips) {
 
 TEST(conformance_authorization_request_resources_round_trip) {
   const std::array<sourcemeta::core::OAuthParameter, 2> resources{
-      {{"resource", "https://a.example"}, {"resource", "https://b.example"}}};
+      {{.name = "resource", .value = "https://a.example"},
+       {.name = "resource", .value = "https://b.example"}}};
   sourcemeta::core::OAuthAuthorizationRequest built;
   built.client_id = "s6BhdRkqt3";
   built.resources = resources;

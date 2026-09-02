@@ -1,10 +1,11 @@
 #include <sourcemeta/core/crypto.h>
 #include <sourcemeta/core/test.h>
 
-#include <cstdint> // std::uint64_t
-#include <limits>  // std::numeric_limits
-#include <new>     // std::bad_array_new_length
-#include <string>  // std::string
+#include <cstdint>     // std::uint64_t
+#include <limits>      // std::numeric_limits
+#include <new>         // std::bad_array_new_length
+#include <string>      // std::string
+#include <string_view> // std::string_view
 
 TEST(secure_zero_clears_a_string) {
   std::string secret{"password"};
@@ -138,8 +139,8 @@ TEST(secure_zero_of_a_null_buffer_is_a_no_op) {
 }
 
 TEST(secure_string_from_a_pointer_and_a_length) {
-  const char content[]{"hunter2"};
-  const sourcemeta::core::SecureString secret{content, 7};
+  const std::string_view content{"hunter2"};
+  const sourcemeta::core::SecureString secret{content.data(), content.size()};
   EXPECT_EQ(secret.size(), 7);
   EXPECT_EQ(secret, "hunter2");
   EXPECT_EQ(secret[0], 'h');
@@ -176,5 +177,6 @@ TEST(secure_allocator_rejects_an_overflowing_allocation) {
         allocator.allocate(std::numeric_limits<std::size_t>::max())};
     FAIL();
   } catch (const std::bad_array_new_length &) {
+    // Refusing the allocation is expected
   }
 }

@@ -51,6 +51,7 @@ TEST(file_as_intermediate_directory_throws) {
     sourcemeta::core::canonical(path);
     FAIL();
   } catch (const std::filesystem::filesystem_error &) {
+    // Refusing the missing path is expected
   } catch (...) {
     FAIL();
   }

@@ -2,20 +2,21 @@
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/test.h>
 
-#include <string> // std::string
+#include <string>      // std::string
+#include <string_view> // std::string_view
 
-static const std::string EC_PRIVATE_JWK{
+static constexpr std::string_view EC_PRIVATE_JWK{
     R"({"kty":"EC","crv":"P-256",)"
     R"("x":"2TARGSWq8F97iq3Ng48wCEN26cxzy8OCzbFa-6ZfnaI",)"
     R"("y":"5lkzZqhWOkc2m2zJOotl6K3_x6-TSs9OnzQKwb35DxQ",)"
     R"("d":"ttepxcp-OwXCj4-v4sGcxRxQRXA8D5Svu02yhcHvbd0"})"};
-static const std::string EC_PUBLIC_JWK{
+static constexpr std::string_view EC_PUBLIC_JWK{
     R"({"kty":"EC","crv":"P-256",)"
     R"("x":"2TARGSWq8F97iq3Ng48wCEN26cxzy8OCzbFa-6ZfnaI",)"
     R"("y":"5lkzZqhWOkc2m2zJOotl6K3_x6-TSs9OnzQKwb35DxQ"})"};
 
 // The RFC 7515 Appendix A.1 example symmetric key
-static const std::string OCT_JWK{
+static constexpr std::string_view OCT_JWK{
     R"({"kty":"oct","k":"AyM1SysPpbyDfgZld3umj1qzKObwVMkoqQ-EstJQLr_T)"
     R"(-1qS0gZH75aKtMN3Yj0iPS4hcgUuTwjAzZr1Z9CAow"})"};
 

@@ -1,16 +1,15 @@
 #include <sourcemeta/core/options.h>
 #include <sourcemeta/core/test.h>
 
+#include <array> // std::array
+
 TEST(long_option_equals_parses_value_with_equal_sign) {
   sourcemeta::core::Options app;
   app.option("foo", {"f"});
 
-  const char arg0[] = "prog";
-  const char arg1[] = "--foo=bar";
-  const char *const argv[] = {arg0, arg1};
-  const int argc = 2;
+  const std::array<const char *, 2> argv{{"prog", "--foo=bar"}};
 
-  app.parse(argc, argv);
+  app.parse(static_cast<int>(argv.size()), argv.data());
 
   EXPECT_TRUE(app.positional().empty());
   EXPECT_EQ(app.at("foo").size(), 1);
@@ -22,13 +21,9 @@ TEST(long_option_space_parses_value_after_space) {
   sourcemeta::core::Options app;
   app.option("foo", {"f"});
 
-  const char arg0[] = "prog";
-  const char arg1[] = "--foo";
-  const char arg2[] = "bar";
-  const char *const argv[] = {arg0, arg1, arg2};
-  const int argc = 3;
+  const std::array<const char *, 3> argv{{"prog", "--foo", "bar"}};
 
-  app.parse(argc, argv);
+  app.parse(static_cast<int>(argv.size()), argv.data());
 
   EXPECT_TRUE(app.positional().empty());
   EXPECT_EQ(app.at("foo").size(), 1);
@@ -39,13 +34,9 @@ TEST(short_option_space_parses_short_option_with_space_value) {
   sourcemeta::core::Options app;
   app.option("file", {"f"});
 
-  const char arg0[] = "prog";
-  const char arg1[] = "-f";
-  const char arg2[] = "path/to/x";
-  const char *const argv[] = {arg0, arg1, arg2};
-  const int argc = 3;
+  const std::array<const char *, 3> argv{{"prog", "-f", "path/to/x"}};
 
-  app.parse(argc, argv);
+  app.parse(static_cast<int>(argv.size()), argv.data());
 
   EXPECT_TRUE(app.positional().empty());
   EXPECT_EQ(app.at("file").size(), 1);
@@ -56,12 +47,9 @@ TEST(short_option_attached_value_parses_short_option_attached_value) {
   sourcemeta::core::Options app;
   app.option("file", {"f"});
 
-  const char arg0[] = "prog";
-  const char arg1[] = "-fpath";
-  const char *const argv[] = {arg0, arg1};
-  const int argc = 2;
+  const std::array<const char *, 2> argv{{"prog", "-fpath"}};
 
-  app.parse(argc, argv);
+  app.parse(static_cast<int>(argv.size()), argv.data());
 
   EXPECT_TRUE(app.positional().empty());
   EXPECT_EQ(app.at("file").size(), 1);
@@ -74,12 +62,9 @@ TEST(combined_flags_parses_combined_short_flags) {
   app.flag("beta", {"b"});
   app.flag("gamma", {"c"});
 
-  const char arg0[] = "prog";
-  const char arg1[] = "-abc";
-  const char *const argv[] = {arg0, arg1};
-  const int argc = 2;
+  const std::array<const char *, 2> argv{{"prog", "-abc"}};
 
-  app.parse(argc, argv);
+  app.parse(static_cast<int>(argv.size()), argv.data());
 
   EXPECT_TRUE(app.positional().empty());
   EXPECT_EQ(app.at("alpha").size(), 1);
@@ -93,12 +78,9 @@ TEST(
   app.flag("alpha", {"a"});
   app.option("bopt", {"b"});
 
-  const char arg0[] = "prog";
-  const char arg1[] = "-abvalue";
-  const char *const argv[] = {arg0, arg1};
-  const int argc = 2;
+  const std::array<const char *, 2> argv{{"prog", "-abvalue"}};
 
-  app.parse(argc, argv);
+  app.parse(static_cast<int>(argv.size()), argv.data());
 
   EXPECT_TRUE(app.positional().empty());
   EXPECT_EQ(app.at("alpha").size(), 1);
@@ -110,16 +92,10 @@ TEST(repeated_options_preserved_order) {
   sourcemeta::core::Options app;
   app.option("foo", {"f"});
 
-  const char arg0[] = "prog";
-  const char arg1[] = "--foo=one";
-  const char arg2[] = "--foo";
-  const char arg3[] = "two";
-  const char arg4[] = "-f";
-  const char arg5[] = "three";
-  const char *const argv[] = {arg0, arg1, arg2, arg3, arg4, arg5};
-  const int argc = 6;
+  const std::array<const char *, 6> argv{
+      {"prog", "--foo=one", "--foo", "two", "-f", "three"}};
 
-  app.parse(argc, argv);
+  app.parse(static_cast<int>(argv.size()), argv.data());
 
   EXPECT_TRUE(app.positional().empty());
   EXPECT_EQ(app.at("foo").size(), 3);
@@ -132,13 +108,9 @@ TEST(flags_count_multiple_occurrences) {
   sourcemeta::core::Options app;
   app.flag("exclude", {"x"});
 
-  const char arg0[] = "prog";
-  const char arg1[] = "-x";
-  const char arg2[] = "--exclude";
-  const char *const argv[] = {arg0, arg1, arg2};
-  const int argc = 3;
+  const std::array<const char *, 3> argv{{"prog", "-x", "--exclude"}};
 
-  app.parse(argc, argv);
+  app.parse(static_cast<int>(argv.size()), argv.data());
 
   EXPECT_TRUE(app.positional().empty());
   EXPECT_EQ(app.at("exclude").size(), 2);
@@ -149,13 +121,10 @@ TEST(unknown_option_throws) {
   sourcemeta::core::Options app;
   app.option("foo", {"f"});
 
-  const char arg0[] = "prog";
-  const char arg1[] = "--unknown";
-  const char *const argv[] = {arg0, arg1};
-  const int argc = 2;
+  const std::array<const char *, 2> argv{{"prog", "--unknown"}};
 
   try {
-    app.parse(argc, argv);
+    app.parse(static_cast<int>(argv.size()), argv.data());
     FAIL();
   } catch (const sourcemeta::core::OptionsUnknownOptionError &error) {
     EXPECT_STREQ(error.what(), "Unknown option");
@@ -167,13 +136,10 @@ TEST(flag_given_value_throws) {
   sourcemeta::core::Options app;
   app.flag("verbose", {"v"});
 
-  const char arg0[] = "prog";
-  const char arg1[] = "--verbose=1";
-  const char *const argv[] = {arg0, arg1};
-  const int argc = 2;
+  const std::array<const char *, 2> argv{{"prog", "--verbose=1"}};
 
   try {
-    app.parse(argc, argv);
+    app.parse(static_cast<int>(argv.size()), argv.data());
     FAIL();
   } catch (const sourcemeta::core::OptionsUnexpectedValueFlagError &error) {
     EXPECT_STREQ(error.what(), "This flag cannot take a value");
@@ -186,14 +152,9 @@ TEST(positional_after_double_dash) {
   app.option("foo", {"f"});
   app.flag("x", {"x"});
 
-  const char arg0[] = "prog";
-  const char arg1[] = "--";
-  const char arg2[] = "-not-an-opt";
-  const char arg3[] = "pos2";
-  const char *const argv[] = {arg0, arg1, arg2, arg3};
-  const int argc = 4;
+  const std::array<const char *, 4> argv{{"prog", "--", "-not-an-opt", "pos2"}};
 
-  app.parse(argc, argv);
+  app.parse(static_cast<int>(argv.size()), argv.data());
 
   EXPECT_EQ(app.positional().size(), 2);
   EXPECT_EQ(app.positional()[0], "-not-an-opt");
@@ -204,14 +165,9 @@ TEST(positional_before_options) {
   sourcemeta::core::Options app;
   app.option("foo", {"foo"});
 
-  const char arg0[] = "prog";
-  const char arg1[] = "pos1";
-  const char arg2[] = "--foo";
-  const char arg3[] = "bar";
-  const char *const argv[] = {arg0, arg1, arg2, arg3};
-  const int argc = 4;
+  const std::array<const char *, 4> argv{{"prog", "pos1", "--foo", "bar"}};
 
-  app.parse(argc, argv);
+  app.parse(static_cast<int>(argv.size()), argv.data());
 
   EXPECT_EQ(app.positional().size(), 1);
   EXPECT_EQ(app.positional()[0], "pos1");
@@ -223,14 +179,9 @@ TEST(skip_parameter_works) {
   sourcemeta::core::Options app;
   app.option("file", {"f"});
 
-  const char arg0[] = "prog";
-  const char arg1[] = "cmd";
-  const char arg2[] = "-f";
-  const char arg3[] = "file.txt";
-  const char *const argv[] = {arg0, arg1, arg2, arg3};
-  const int argc = 4;
+  const std::array<const char *, 4> argv{{"prog", "cmd", "-f", "file.txt"}};
 
-  app.parse(argc, argv, {.skip = 1});
+  app.parse(static_cast<int>(argv.size()), argv.data(), {.skip = 1});
 
   EXPECT_TRUE(app.positional().empty());
   EXPECT_EQ(app.at("file").size(), 1);
@@ -241,13 +192,9 @@ TEST(alias_mapping_recognizes_aliases) {
   sourcemeta::core::Options app;
   app.option("file", {"f", "a"});
 
-  const char arg0[] = "prog";
-  const char arg1[] = "-a";
-  const char arg2[] = "ok";
-  const char *const argv[] = {arg0, arg1, arg2};
-  const int argc = 3;
+  const std::array<const char *, 3> argv{{"prog", "-a", "ok"}};
 
-  app.parse(argc, argv);
+  app.parse(static_cast<int>(argv.size()), argv.data());
 
   EXPECT_TRUE(app.positional().empty());
   EXPECT_EQ(app.at("file").size(), 1);
@@ -259,13 +206,9 @@ TEST(option_value) {
   app.option("file", {"f"});
   app.flag("other", {"o"});
 
-  const char arg0[] = "prog";
-  const char arg1[] = "--file";
-  const char arg2[] = "--other";
-  const char *const argv[] = {arg0, arg1, arg2};
-  const int argc = 3;
+  const std::array<const char *, 3> argv{{"prog", "--file", "--other"}};
 
-  app.parse(argc, argv);
+  app.parse(static_cast<int>(argv.size()), argv.data());
 
   EXPECT_TRUE(app.positional().empty());
   EXPECT_EQ(app.at("file").size(), 1);
@@ -277,13 +220,10 @@ TEST(long_option_without_value) {
   sourcemeta::core::Options app;
   app.option("file", {"f"});
 
-  const char arg0[] = "prog";
-  const char arg1[] = "--file";
-  const char *const argv[] = {arg0, arg1};
-  const int argc = 2;
+  const std::array<const char *, 2> argv{{"prog", "--file"}};
 
   try {
-    app.parse(argc, argv);
+    app.parse(static_cast<int>(argv.size()), argv.data());
     FAIL();
   } catch (const sourcemeta::core::OptionsMissingOptionValueError &error) {
     EXPECT_STREQ(error.what(), "This option must take a value");
@@ -295,13 +235,10 @@ TEST(short_option_without_value) {
   sourcemeta::core::Options app;
   app.option("file", {"f"});
 
-  const char arg0[] = "prog";
-  const char arg1[] = "-f";
-  const char *const argv[] = {arg0, arg1};
-  const int argc = 2;
+  const std::array<const char *, 2> argv{{"prog", "-f"}};
 
   try {
-    app.parse(argc, argv);
+    app.parse(static_cast<int>(argv.size()), argv.data());
     FAIL();
   } catch (const sourcemeta::core::OptionsMissingOptionValueError &error) {
     EXPECT_EQ(error.option(), "f");
@@ -312,13 +249,9 @@ TEST(single_dash_is_consumed_as_value) {
   sourcemeta::core::Options app;
   app.option("file", {"f"});
 
-  const char arg0[] = "prog";
-  const char arg1[] = "-f";
-  const char arg2[] = "-";
-  const char *const argv[] = {arg0, arg1, arg2};
-  const int argc = 3;
+  const std::array<const char *, 3> argv{{"prog", "-f", "-"}};
 
-  app.parse(argc, argv);
+  app.parse(static_cast<int>(argv.size()), argv.data());
 
   EXPECT_TRUE(app.positional().empty());
   EXPECT_EQ(app.at("file").size(), 1);
@@ -329,11 +262,9 @@ TEST(empty_result_for_missing_option) {
   sourcemeta::core::Options app;
   app.option("file", {"f"});
 
-  const char arg0[] = "prog";
-  const char *const argv[] = {arg0};
-  const int argc = 1;
+  const std::array<const char *, 1> argv{{"prog"}};
 
-  app.parse(argc, argv);
+  app.parse(static_cast<int>(argv.size()), argv.data());
 
   EXPECT_TRUE(app.positional().empty());
 }
@@ -345,24 +276,11 @@ TEST(mixed_complex_scenario_parses_complex_mixture_correctly) {
   app.option("opt", {"o"});
   app.flag("x", {"x"});
 
-  const char arg0[] = "prog";
-  const char arg1[] = "-vx";
-  const char arg2[] = "--file=first";
-  const char arg3[] = "-o";
-  const char arg4[] = "second";
-  const char arg5[] = "-vfthird";
-  const char arg6[] = "pos1";
-  const char arg7[] = "--";
-  const char arg8[] = "should-be-pos";
-  const char arg9[] = "--also-pos";
-  const char arg10[] = "extra";
-  const char arg11[] = "ignored";
-  const char arg12[] = "values";
-  const char *const argv[] = {arg0, arg1, arg2, arg3,  arg4,  arg5, arg6,
-                              arg7, arg8, arg9, arg10, arg11, arg12};
-  const int argc = 13;
+  const std::array<const char *, 13> argv{
+      {"prog", "-vx", "--file=first", "-o", "second", "-vfthird", "pos1", "--",
+       "should-be-pos", "--also-pos", "extra", "ignored", "values"}};
 
-  app.parse(argc, argv);
+  app.parse(static_cast<int>(argv.size()), argv.data());
 
   EXPECT_GE(app.at("verbose").size(), 2);
   EXPECT_EQ(app.at("x").size(), 1);
@@ -381,13 +299,9 @@ TEST(no_skip_includes_program_name_as_positional) {
   sourcemeta::core::Options app;
   app.option("foo", {"f"});
 
-  const char arg0[] = "prog";
-  const char arg1[] = "--foo";
-  const char arg2[] = "bar";
-  const char *const argv[] = {arg0, arg1, arg2};
-  const int argc = 3;
+  const std::array<const char *, 3> argv{{"prog", "--foo", "bar"}};
 
-  app.parse(argc, argv);
+  app.parse(static_cast<int>(argv.size()), argv.data());
 
   EXPECT_TRUE(app.positional().empty());
   EXPECT_EQ(app.at("foo").size(), 1);
@@ -398,12 +312,9 @@ TEST(no_skip_treats_program_name_as_option_if_prefixed) {
   sourcemeta::core::Options app;
   app.option("file", {"f"});
 
-  const char arg0[] = "prog";
-  const char arg1[] = "-ffromprog";
-  const char *const argv[] = {arg0, arg1};
-  const int argc = 2;
+  const std::array<const char *, 2> argv{{"prog", "-ffromprog"}};
 
-  app.parse(argc, argv);
+  app.parse(static_cast<int>(argv.size()), argv.data());
 
   EXPECT_EQ(app.at("file").size(), 1);
   EXPECT_EQ(app.at("file")[0], "fromprog");

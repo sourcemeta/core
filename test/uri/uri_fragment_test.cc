@@ -45,7 +45,7 @@ TEST(encoded_question_mark_preserved) {
 
 TEST(invalid_fragment_with_pointer) {
   try {
-    sourcemeta::core::URI{"#foo#/$defs/bar"};
+    const sourcemeta::core::URI uri{"#foo#/$defs/bar"};
     FAIL();
   } catch (const sourcemeta::core::URIParseError &error) {
     EXPECT_EQ(error.column(), 5);

@@ -9,11 +9,14 @@
 #include <thread>      // std::thread
 #include <vector>      // std::vector
 
+// Spawning takes the program by string reference, so the path to the
+// helper needs storage of its own
+// NOLINTNEXTLINE(cert-err58-cpp,bugprone-throwing-static-initialization)
 static const std::string HELPER{HELPER_BINARY};
 
 // Enough to overrun the pipe buffer of every platform this builds on, so that a
 // transfer that does not interleave reading and writing cannot complete
-static constexpr std::size_t FLOOD_SIZE{1024 * 1024};
+static constexpr std::size_t FLOOD_SIZE{std::size_t{1024} * 1024};
 
 // Mirrors what the helper program writes, so that a truncated or reordered
 // transfer cannot pass by accident

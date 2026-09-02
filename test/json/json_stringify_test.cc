@@ -170,8 +170,8 @@ TEST(object_integers) {
   std::ostringstream stream;
   sourcemeta::core::stringify(document, stream);
   // Because order is irrelevant
-  const bool matches = stream.str() == "{\"foo\":1,\"bar\":2}" ||
-                       stream.str() == "{\"bar\":2,\"foo\":1}";
+  const bool matches = stream.str() == R"({"foo":1,"bar":2})" ||
+                       stream.str() == R"({"bar":2,"foo":1})";
   EXPECT_TRUE(matches);
 }
 
@@ -652,8 +652,8 @@ TEST(decimal_in_object) {
   std::ostringstream stream;
   sourcemeta::core::stringify(document, stream);
   const bool matches =
-      stream.str() == "{\"integer\":1.2345e+4,\"fractional\":-6.789e+1}" ||
-      stream.str() == "{\"fractional\":-6.789e+1,\"integer\":1.2345e+4}";
+      stream.str() == R"({"integer":1.2345e+4,"fractional":-6.789e+1})" ||
+      stream.str() == R"({"fractional":-6.789e+1,"integer":1.2345e+4})";
   EXPECT_TRUE(matches);
 }
 
