@@ -26,6 +26,10 @@ add_executable(sourcemeta_core_test_dynamic test_dynamic.cc)
 target_link_libraries(sourcemeta_core_test_dynamic
   PRIVATE sourcemeta::core::test sourcemeta::core::test_main)
 
+add_executable(sourcemeta_core_test_empty test_empty.cc)
+target_link_libraries(sourcemeta_core_test_empty
+  PRIVATE sourcemeta::core::test sourcemeta::core::test_main)
+
 # The framework's own command line is exercised through the script runner that
 # this module ships, so the language is proven against the framework hosting it
 macro(add_framework_test name binary)
@@ -45,3 +49,4 @@ add_framework_test(filter_short sourcemeta_core_test_filter)
 add_framework_test(filter_none sourcemeta_core_test_filter)
 add_framework_test(fixture sourcemeta_core_test_fixture)
 add_framework_test(dynamic sourcemeta_core_test_dynamic)
+add_framework_test(empty sourcemeta_core_test_empty)
