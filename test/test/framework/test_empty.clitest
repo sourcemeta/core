@@ -1,0 +1,7 @@
+RUN STDIN /dev/null IN . INTO result.txt EXPECTING 1
+WRITE expected.txt UNTIL EXPECTED
+1> TAP version 14
+1> 1..0
+1> # no tests were registered
+EXPECTED
+COMPARE result.txt AGAINST expected.txt
