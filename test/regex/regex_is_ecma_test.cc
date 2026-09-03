@@ -11,6 +11,7 @@ TEST(suite_invalid_unclosed_paren) {
   EXPECT_FALSE(sourcemeta::core::is_regex_ecma("^(abc]"));
 }
 
+// Node reads this as literal text through Annex B of ECMA-262
 TEST(suite_invalid_perl_extension_alarm) {
   EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\a"));
 }
@@ -95,6 +96,7 @@ TEST(valid_unicode_braced) {
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\u{1F600}"));
 }
 
+// Without a Unicode reading Annex B of ECMA-262 has Node take this literally
 TEST(valid_unicode_braced_out_of_range) {
   EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\u{110000}"));
 }
@@ -107,14 +109,18 @@ TEST(valid_unicode_property) {
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Letter}"));
 }
 
+// Node reads this as literal text through Annex B of ECMA-262
 TEST(invalid_alarm_escape) {
   EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\a"));
 }
 
+// Node reads this as literal text through Annex B of ECMA-262
 TEST(invalid_escape_e) { EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\e")); }
 
+// Node reads this as literal text through Annex B of ECMA-262
 TEST(invalid_escape_h) { EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\h")); }
 
+// Node reads this as literal text through Annex B of ECMA-262
 TEST(invalid_escape_q) { EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\q")); }
 
 TEST(valid_quantifier_star) {
@@ -195,10 +201,12 @@ TEST(invalid_possessive_open_quantifier) {
   EXPECT_FALSE(sourcemeta::core::is_regex_ecma("a{3,}+"));
 }
 
+// Node reads a brace outside a quantifier as literal text through Annex B
 TEST(invalid_plus_after_unescaped_brace) {
   EXPECT_FALSE(sourcemeta::core::is_regex_ecma("a}+"));
 }
 
+// Node reads a brace outside a quantifier as literal text through Annex B
 TEST(invalid_plus_after_escaped_brace_quantifier) {
   EXPECT_FALSE(sourcemeta::core::is_regex_ecma("a\\{2,3}+"));
 }
@@ -283,14 +291,17 @@ TEST(invalid_recursion) {
   EXPECT_FALSE(sourcemeta::core::is_regex_ecma("(?R)"));
 }
 
+// Node reads this as literal text through Annex B of ECMA-262
 TEST(invalid_backreference_uppercase_k) {
   EXPECT_FALSE(sourcemeta::core::is_regex_ecma("foo\\Kbar"));
 }
 
+// Node reads this as literal text through Annex B of ECMA-262
 TEST(invalid_line_break_escape) {
   EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\R"));
 }
 
+// Node reads this as literal text through Annex B of ECMA-262
 TEST(invalid_quote_sequence) {
   EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\Qfoo\\E"));
 }
@@ -307,6 +318,7 @@ TEST(invalid_backtracking_control) {
   EXPECT_FALSE(sourcemeta::core::is_regex_ecma("(*FAIL)"));
 }
 
+// Node reads this as literal text through Annex B of ECMA-262
 TEST(invalid_perl_g_backreference) {
   EXPECT_FALSE(sourcemeta::core::is_regex_ecma("(foo)\\g{1}"));
 }
@@ -319,10 +331,12 @@ TEST(valid_literal_colon_inside_class) {
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[a:b]"));
 }
 
+// Node reads this as literal text through Annex B of ECMA-262
 TEST(invalid_unterminated_named_backreference) {
   EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\k<name"));
 }
 
+// Node reads this as literal text through Annex B of ECMA-262
 TEST(invalid_empty_named_backreference) {
   EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\k<>"));
 }
@@ -437,10 +451,12 @@ TEST(escape_general_category_prop_in_class) {
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[\\p{gc=Lu}]"));
 }
 
+// Without a Unicode reading Annex B of ECMA-262 has Node take this literally
 TEST(escape_general_category_prop_unknown_value) {
   EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\p{gc=NotAProperty}"));
 }
 
+// Without a Unicode reading Annex B of ECMA-262 has Node take this literally
 TEST(escape_general_category_prop_empty_value) {
   EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\p{gc=}"));
 }
@@ -789,10 +805,12 @@ TEST(group_name_repeated_through_an_escape_across_alternatives) {
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("(?<\\u0041>a)|(?<A>b)"));
 }
 
+// Node reads this as literal text through Annex B of ECMA-262
 TEST(named_backreference_without_a_group) {
   EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\k<x>"));
 }
 
+// Annex B of ECMA-262 has Node read this as a legacy octal escape
 TEST(numbered_backreference_past_the_group_count) {
   EXPECT_FALSE(sourcemeta::core::is_regex_ecma("(a)\\2"));
 }
@@ -809,6 +827,7 @@ TEST(surrogate_pair_escape_in_class) {
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[\\uD83D\\uDE00]"));
 }
 
+// Without a Unicode reading Annex B of ECMA-262 has Node take this literally
 TEST(code_point_escape_past_the_unicode_range) {
   EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\u{110000}"));
 }
@@ -829,6 +848,7 @@ TEST(quantified_non_word_boundary) {
   EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\B{2}"));
 }
 
+// Annex B of ECMA-262 lets Node put a quantifier on a lookahead
 TEST(quantified_lookahead) {
   EXPECT_FALSE(sourcemeta::core::is_regex_ecma("(?=a)*"));
 }
@@ -850,18 +870,22 @@ TEST(script_value_alias) {
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Script=Grek}"));
 }
 
+// Without a Unicode reading Annex B of ECMA-262 has Node take this literally
 TEST(script_value_unknown) {
   EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\p{Script=Nowhere}"));
 }
 
+// Without a Unicode reading Annex B of ECMA-262 has Node take this literally
 TEST(general_category_value_rejected_for_script) {
   EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\p{Script=Lu}"));
 }
 
+// Without a Unicode reading Annex B of ECMA-262 has Node take this literally
 TEST(script_value_rejected_for_general_category) {
   EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\p{gc=Greek}"));
 }
 
+// Without a Unicode reading Annex B of ECMA-262 has Node take this literally
 TEST(lone_script_value) {
   EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\p{Greek}"));
 }
@@ -870,6 +894,7 @@ TEST(property_of_strings_needs_set_notation) {
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[\\p{RGI_Emoji}]"));
 }
 
+// Without a Unicode reading Annex B of ECMA-262 has Node take this literally
 TEST(property_of_strings_cannot_be_negated) {
   EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\P{RGI_Emoji}"));
 }
@@ -878,14 +903,17 @@ TEST(set_notation_string_disjunction) {
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[\\q{abc|d}]"));
 }
 
+// Only the set notation reading rejects this, so Node accepts it
 TEST(set_notation_strings_cannot_be_negated) {
   EXPECT_FALSE(sourcemeta::core::is_regex_ecma("[^\\q{abc}]"));
 }
 
+// Only the set notation reading rejects this, so Node accepts it
 TEST(set_notation_range_cannot_lead_an_operator) {
   EXPECT_FALSE(sourcemeta::core::is_regex_ecma("[a-z--[aeiou]]"));
 }
 
+// Only the set notation reading rejects this, so Node accepts it
 TEST(set_notation_doubled_punctuator) {
   EXPECT_FALSE(sourcemeta::core::is_regex_ecma("[\\q{a}$$]"));
 }
@@ -907,4 +935,384 @@ TEST(deeply_nested_groups_past_the_depth_bound) {
 TEST(deeply_nested_classes_past_the_depth_bound) {
   EXPECT_FALSE(sourcemeta::core::is_regex_ecma(std::string(100000, '[') + "a" +
                                                std::string(100000, ']')));
+}
+
+// Node reads this as literal text through Annex B of ECMA-262
+TEST(lone_closing_bracket) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("]"));
+}
+
+// Node reads this as literal text through Annex B of ECMA-262
+TEST(lone_closing_bracket_after_an_atom) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("a]"));
+}
+
+// Node reads this as literal text through Annex B of ECMA-262
+TEST(closing_bracket_after_a_character_class) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("[a]]"));
+}
+
+// Node reads this as literal text through Annex B of ECMA-262
+TEST(closing_bracket_between_literals) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("foo]bar"));
+}
+
+// Node reads a brace outside a quantifier as literal text through Annex B
+TEST(lone_closing_brace) { EXPECT_FALSE(sourcemeta::core::is_regex_ecma("}")); }
+
+// Node reads a brace outside a quantifier as literal text through Annex B
+TEST(lone_closing_brace_after_an_atom) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("a}"));
+}
+
+// Node reads a brace outside a quantifier as literal text through Annex B
+TEST(lone_opening_brace) { EXPECT_FALSE(sourcemeta::core::is_regex_ecma("{")); }
+
+// Node reads a brace outside a quantifier as literal text through Annex B
+TEST(lone_opening_brace_after_an_atom) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("a{"));
+}
+
+// Node reads a brace outside a quantifier as literal text through Annex B
+TEST(braces_in_reverse_order) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("}{"));
+}
+
+// Node reads a brace outside a quantifier as literal text through Annex B
+TEST(empty_braces) { EXPECT_FALSE(sourcemeta::core::is_regex_ecma("{}")); }
+
+// Node reads a brace outside a quantifier as literal text through Annex B
+TEST(empty_braces_after_an_atom) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("x{}"));
+}
+
+// Node reads a brace outside a quantifier as literal text through Annex B
+TEST(brace_quantifier_without_a_lower_bound) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("a{,3}"));
+}
+
+// Node reads a brace outside a quantifier as literal text through Annex B
+TEST(brace_quantifier_left_unterminated) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("a{2,"));
+}
+
+// Node reads a brace outside a quantifier as literal text through Annex B
+TEST(brace_quantifier_with_three_bounds) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("a{1,2,3}"));
+}
+
+// Node reads a brace outside a quantifier as literal text through Annex B
+TEST(brace_quantifier_with_a_negative_bound) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("a{-1}"));
+}
+
+// Node reads this as literal text through Annex B of ECMA-262
+TEST(escaped_opening_bracket_without_a_closing_one) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\d+:\\[1-9]+|N"));
+}
+
+TEST(alternation_grouped_between_anchors) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("^\\d+:([1-9]+|N)$"));
+}
+
+TEST(lone_closing_paren) { EXPECT_FALSE(sourcemeta::core::is_regex_ecma(")")); }
+
+TEST(lone_opening_bracket) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("["));
+}
+
+// Node reads this as literal text through Annex B of ECMA-262
+TEST(perl_match_reset_escape) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\K"));
+}
+
+// Node reads this as literal text through Annex B of ECMA-262
+TEST(perl_quote_start_escape) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\Q"));
+}
+
+// Node reads this as literal text through Annex B of ECMA-262
+TEST(perl_quote_end_escape) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\E"));
+}
+
+// Node reads this as literal text through Annex B of ECMA-262
+TEST(perl_subroutine_escape) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\g"));
+}
+
+// Node reads this as literal text through Annex B of ECMA-262
+TEST(perl_absolute_start_anchor) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\A"));
+}
+
+// Node reads this as literal text through Annex B of ECMA-262
+TEST(perl_absolute_end_anchor) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\z"));
+}
+
+// Node reads this as literal text through Annex B of ECMA-262
+TEST(perl_end_of_input_anchor) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\Z"));
+}
+
+// Node reads this as literal text through Annex B of ECMA-262
+TEST(perl_end_of_input_anchor_after_a_literal) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("foo\\Z"));
+}
+
+// Node reads this as literal text through Annex B of ECMA-262
+TEST(perl_match_start_anchor) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\G"));
+}
+
+// Node reads this as literal text through Annex B of ECMA-262
+TEST(perl_non_newline_escape) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\N"));
+}
+
+// Node reads this as literal text through Annex B of ECMA-262
+TEST(perl_grapheme_cluster_escape) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\X"));
+}
+
+// Node reads this as literal text through Annex B of ECMA-262
+TEST(perl_single_byte_escape) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\C"));
+}
+
+// Node reads this as literal text through Annex B of ECMA-262
+TEST(escape_of_an_arbitrary_letter) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\m"));
+}
+
+// Node reads this as literal text through Annex B of ECMA-262
+TEST(alarm_escape_inside_a_class) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("[\\a]"));
+}
+
+// Node reads this as literal text through Annex B of ECMA-262
+TEST(escape_of_an_arbitrary_letter_inside_a_class) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("[\\q]"));
+}
+
+// Node reads this as literal text through Annex B of ECMA-262
+TEST(perl_end_of_input_anchor_inside_a_class) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("[\\Z]"));
+}
+
+// Only the reading with neither Unicode flag allows escaping punctuation
+TEST(escaped_dash_outside_a_class) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\-"));
+}
+
+// Only the reading with neither Unicode flag allows escaping punctuation
+TEST(escaped_space) { EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\ ")); }
+
+// Only the reading with neither Unicode flag allows escaping punctuation
+TEST(escaped_tilde) { EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\~")); }
+
+// Only the reading with neither Unicode flag allows escaping punctuation
+TEST(escaped_percent_sign) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\%"));
+}
+
+TEST(escaped_dash_inside_a_class) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[\\-]"));
+}
+
+// Node reads this as literal text through Annex B of ECMA-262
+TEST(control_escape_without_a_letter) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\c"));
+}
+
+TEST(control_escape_with_a_lowercase_letter) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\ck"));
+}
+
+// Node reads this as literal text through Annex B of ECMA-262
+TEST(control_escape_with_a_digit) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\c1"));
+}
+
+// Node reads this as literal text through Annex B of ECMA-262
+TEST(control_escape_with_an_underscore) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\c_"));
+}
+
+// Node reads this as literal text through Annex B of ECMA-262
+TEST(control_escape_with_a_digit_inside_a_class) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("[\\c1]"));
+}
+
+// Node reads this as literal text through Annex B of ECMA-262
+TEST(control_escape_with_an_underscore_inside_a_class) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("[\\c_]"));
+}
+
+// Annex B of ECMA-262 has Node read this as a legacy octal escape
+TEST(legacy_octal_escape) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\012"));
+}
+
+// Annex B of ECMA-262 has Node read this as a legacy octal escape
+TEST(legacy_octal_escape_of_two_zeroes) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\00"));
+}
+
+// Annex B of ECMA-262 has Node read this as a legacy octal escape
+TEST(null_escape_followed_by_a_digit) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\08"));
+}
+
+// Annex B of ECMA-262 has Node read this as a legacy octal escape
+TEST(legacy_octal_escape_inside_a_class) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("[\\012]"));
+}
+
+// Annex B of ECMA-262 has Node read a backreference with no group as octal
+TEST(backreference_without_any_group) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\1"));
+}
+
+// Annex B of ECMA-262 has Node read a backreference with no group as octal
+TEST(backreference_inside_a_class) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("[\\1]"));
+}
+
+TEST(backreference_within_the_group_count) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("(a)(b)\\2"));
+}
+
+// Node reads this as literal text through Annex B of ECMA-262
+TEST(escape_of_the_digit_eight) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\8"));
+}
+
+// Node reads this as literal text through Annex B of ECMA-262
+TEST(escape_of_the_digit_nine) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\9"));
+}
+
+// Node reads this as literal text through Annex B of ECMA-262
+TEST(escape_of_the_digit_eight_inside_a_class) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("[\\8]"));
+}
+
+// Annex B of ECMA-262 lets Node put a quantifier on a lookahead
+TEST(quantified_negative_lookahead) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("(?!a)+"));
+}
+
+// Annex B of ECMA-262 lets Node put a quantifier on a lookahead
+TEST(optional_lookahead) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("(?=a)?"));
+}
+
+// Annex B of ECMA-262 lets Node put a quantifier on a lookahead
+TEST(lookahead_with_a_brace_quantifier) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("(?=a){2}"));
+}
+
+TEST(quantified_start_anchor) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("^*"));
+}
+
+TEST(quantified_end_anchor) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("$*"));
+}
+
+// Annex B of ECMA-262 lets Node use a shorthand as a range endpoint
+TEST(class_range_starting_with_a_shorthand) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("[\\d-z]"));
+}
+
+// Annex B of ECMA-262 lets Node use a shorthand as a range endpoint
+TEST(class_range_ending_with_a_shorthand) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("[a-\\d]"));
+}
+
+// Annex B of ECMA-262 lets Node use a shorthand as a range endpoint
+TEST(class_range_between_two_shorthands) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("[\\w-\\d]"));
+}
+
+TEST(shorthand_before_a_trailing_dash) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[\\d-]"));
+}
+
+TEST(leading_dash_before_a_shorthand) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[-\\d]"));
+}
+
+TEST(class_range_between_braced_code_point_escapes) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[\\u{1F600}-\\u{1F601}]"));
+}
+
+TEST(braced_code_point_escape_in_the_basic_plane) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\u{61}"));
+}
+
+TEST(braced_code_point_escape_inside_a_class) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[\\u{61}]"));
+}
+
+TEST(set_notation_difference_with_a_property) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[\\p{L}--[aeiou]]"));
+}
+
+TEST(set_notation_intersection_of_two_classes) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[[a-z]&&[b-d]]"));
+}
+
+TEST(set_notation_single_string) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[\\q{abc}]"));
+}
+
+TEST(basic_emoji_property_of_strings) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[\\p{Basic_Emoji}]"));
+}
+
+TEST(lone_trailing_surrogate_escape) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\uDE00"));
+}
+
+TEST(astral_character_as_a_literal) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\xf0\x9f\x98\x80"));
+}
+
+TEST(astral_character_inside_a_class) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[\xf0\x9f\x98\x80]"));
+}
+
+TEST(class_range_between_astral_characters) {
+  EXPECT_TRUE(
+      sourcemeta::core::is_regex_ecma("[\xf0\x9f\x98\x80-\xf0\x9f\x98\x81]"));
+}
+
+TEST(base64_pattern) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma(
+      "^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$"));
+}
+
+TEST(capitalised_word_pattern) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("^\\p{Lu}\\p{Ll}+$"));
+}
+
+TEST(blank_string_pattern) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("^\\s*$"));
+}
+
+TEST(non_whitespace_pattern) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[^\\s]+"));
+}
+
+TEST(deeply_nested_groups_at_the_depth_bound) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma(std::string(255, '(') + "a" +
+                                              std::string(255, ')')));
+}
+
+TEST(deeply_nested_groups_one_past_the_depth_bound) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma(std::string(256, '(') + "a" +
+                                               std::string(256, ')')));
 }
