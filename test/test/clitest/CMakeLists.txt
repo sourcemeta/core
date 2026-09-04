@@ -11,7 +11,8 @@ endif()
 # framework itself is: through its command line, against a golden diagnostic.
 # Each case runs from the fixture directory so that the path a diagnostic names
 # is the bare script name rather than wherever the checkout happens to live
-add_executable(sourcemeta_core_clitest_stub stub.cc)
+sourcemeta_executable(NAMESPACE sourcemeta PROJECT core NAME clitest
+  VARIANT stub SOURCES stub.cc)
 target_link_libraries(sourcemeta_core_clitest_stub
   PRIVATE sourcemeta::core::options)
 target_link_libraries(sourcemeta_core_clitest_stub
