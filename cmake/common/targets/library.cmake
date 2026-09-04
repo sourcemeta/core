@@ -146,8 +146,16 @@ function(sourcemeta_library_export_flatten TARGET_NAME)
     set(SOURCEMETA_LIBRARY_FLATTENED)
     foreach(entry IN LISTS SOURCEMETA_LIBRARY_INTERFACE)
       string(REGEX REPLACE "^\\$<LINK_ONLY:(.*)>$" "\\1" unwrapped "${entry}")
+      set(dependency_type)
+      if(TARGET "${unwrapped}")
+        get_target_property(dependency_type "${unwrapped}" TYPE)
+      endif()
       if(unwrapped STREQUAL entry)
         list(APPEND SOURCEMETA_LIBRARY_FLATTENED "${entry}")
+      elseif(dependency_type STREQUAL "OBJECT_LIBRARY")
+        # The objects of such a dependency are already part of this library,
+        # so there is nothing left for an installed consumer to link against
+        list(APPEND SOURCEMETA_LIBRARY_FLATTENED "$<BUILD_INTERFACE:${entry}>")
       else()
         list(APPEND SOURCEMETA_LIBRARY_FLATTENED
           "$<BUILD_INTERFACE:${entry}>"
