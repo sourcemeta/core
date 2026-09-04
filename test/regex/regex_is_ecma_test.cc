@@ -870,6 +870,16 @@ TEST(script_value_alias) {
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Script=Grek}"));
 }
 
+// ECMA-262 22.2.1 defers to PropertyValueAliases.txt, which lists this value
+// even though no code point carries it, so Node turns it down and we do not
+TEST(script_value_that_no_code_point_carries) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Script=Hrkt}"));
+}
+
+TEST(script_value_alias_that_no_code_point_carries) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{sc=Katakana_Or_Hiragana}"));
+}
+
 // Without a Unicode reading Annex B of ECMA-262 has Node take this literally
 TEST(script_value_unknown) {
   EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\p{Script=Nowhere}"));
@@ -906,6 +916,22 @@ TEST(set_notation_string_disjunction) {
 // Only the set notation reading rejects this, so Node accepts it
 TEST(set_notation_strings_cannot_be_negated) {
   EXPECT_FALSE(sourcemeta::core::is_regex_ecma("[^\\q{abc}]"));
+}
+
+// ECMA-262 22.2.1.8 carries the flag past a range, as a union that starts with
+// one returns "MayContainStrings of the ClassUnion" that trails it
+TEST(set_notation_strings_cannot_be_negated_after_a_range) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("[^a-z\\q{ab}]"));
+}
+
+// ECMA-262 22.2.1.8 gives the empty string the same flag, as the empty
+// alternative of a string disjunction "returns true"
+TEST(set_notation_empty_string_cannot_be_negated) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("[^\\q{}]"));
+}
+
+TEST(set_notation_one_character_string_can_be_negated) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[^\\q{a}]"));
 }
 
 // Only the set notation reading rejects this, so Node accepts it
