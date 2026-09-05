@@ -34,8 +34,8 @@ function(sourcemeta_executable)
   # Linking the library that carries the allocator is what puts it in place,
   # as the standard allocation entry points it defines are the ones this
   # program already calls
-  if(SOURCEMETA_ALLOCATOR_TARGET)
-    target_link_libraries("${TARGET_NAME}" PRIVATE ${SOURCEMETA_ALLOCATOR_TARGET})
+  if(SOURCEMETA_CORE_ALLOCATOR_TARGET)
+    target_link_libraries("${TARGET_NAME}" PRIVATE ${SOURCEMETA_CORE_ALLOCATOR_TARGET})
   endif()
 
   # See https://best.openssf.org/Compiler-Hardening-Guides/Compiler-Options-Hardening-Guide-for-C-and-C++.html
