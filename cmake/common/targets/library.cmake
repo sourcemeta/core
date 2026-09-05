@@ -61,7 +61,6 @@ function(sourcemeta_library)
   else()
     add_library(${TARGET_NAME} INTERFACE
       ${PUBLIC_HEADER} ${ABSOLUTE_PRIVATE_HEADERS})
-    sourcemeta_add_default_options(INTERFACE ${TARGET_NAME})
   endif()
 
   add_library(${ALIAS_NAME} ALIAS ${TARGET_NAME})

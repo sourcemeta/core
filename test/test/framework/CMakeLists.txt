@@ -1,32 +1,40 @@
-add_executable(sourcemeta_core_test_success test_success.cc)
+sourcemeta_executable(NAMESPACE sourcemeta PROJECT core NAME test
+  VARIANT success SOURCES test_success.cc)
 target_link_libraries(sourcemeta_core_test_success
   PRIVATE sourcemeta::core::test sourcemeta::core::test_main)
 
-add_executable(sourcemeta_core_test_failure test_failure.cc)
+sourcemeta_executable(NAMESPACE sourcemeta PROJECT core NAME test
+  VARIANT failure SOURCES test_failure.cc)
 target_link_libraries(sourcemeta_core_test_failure
   PRIVATE sourcemeta::core::test sourcemeta::core::test_main)
 
-add_executable(sourcemeta_core_test_diff test_diff.cc)
+sourcemeta_executable(NAMESPACE sourcemeta PROJECT core NAME test
+  VARIANT diff SOURCES test_diff.cc)
 target_link_libraries(sourcemeta_core_test_diff
   PRIVATE sourcemeta::core::test sourcemeta::core::test_main)
 
-add_executable(sourcemeta_core_test_throw test_throw.cc)
+sourcemeta_executable(NAMESPACE sourcemeta PROJECT core NAME test
+  VARIANT throw SOURCES test_throw.cc)
 target_link_libraries(sourcemeta_core_test_throw
   PRIVATE sourcemeta::core::test sourcemeta::core::test_main)
 
-add_executable(sourcemeta_core_test_filter test_filter.cc)
+sourcemeta_executable(NAMESPACE sourcemeta PROJECT core NAME test
+  VARIANT filter SOURCES test_filter.cc)
 target_link_libraries(sourcemeta_core_test_filter
   PRIVATE sourcemeta::core::test sourcemeta::core::test_main)
 
-add_executable(sourcemeta_core_test_fixture test_fixture.cc)
+sourcemeta_executable(NAMESPACE sourcemeta PROJECT core NAME test
+  VARIANT fixture SOURCES test_fixture.cc)
 target_link_libraries(sourcemeta_core_test_fixture
   PRIVATE sourcemeta::core::test sourcemeta::core::test_main)
 
-add_executable(sourcemeta_core_test_dynamic test_dynamic.cc)
+sourcemeta_executable(NAMESPACE sourcemeta PROJECT core NAME test
+  VARIANT dynamic SOURCES test_dynamic.cc)
 target_link_libraries(sourcemeta_core_test_dynamic
   PRIVATE sourcemeta::core::test sourcemeta::core::test_main)
 
-add_executable(sourcemeta_core_test_empty test_empty.cc)
+sourcemeta_executable(NAMESPACE sourcemeta PROJECT core NAME test
+  VARIANT empty SOURCES test_empty.cc)
 target_link_libraries(sourcemeta_core_test_empty
   PRIVATE sourcemeta::core::test sourcemeta::core::test_main)
 
