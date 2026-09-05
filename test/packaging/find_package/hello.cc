@@ -1,3 +1,4 @@
+#include <sourcemeta/core/allocator.h>
 #include <sourcemeta/core/crypto.h>
 #include <sourcemeta/core/css.h>
 #include <sourcemeta/core/diff.h>
