@@ -100,6 +100,11 @@ if(SOURCEMETA_CORE_LANG_ALLOCATOR)
     find_package(Mimalloc REQUIRED)
   endif()
   add_subdirectory(src/lang/allocator)
+else()
+  # A previous configuration of this same directory may have recorded a library
+  # that this one does not define, which every executable would then try to
+  # link by name
+  unset(SOURCEMETA_CORE_ALLOCATOR_TARGET CACHE)
 endif()
 
 if(SOURCEMETA_CORE_LANG_PREPROCESSOR)

@@ -38,11 +38,13 @@ enum class Allocator : std::uint8_t {
 ///
 /// ```cpp
 /// #include <sourcemeta/core/allocator.h>
-/// #include <cassert>
+/// #include <iostream>
 ///
 /// auto main() -> int {
-///   assert(sourcemeta::core::allocator() ==
-///          sourcemeta::core::Allocator::Mimalloc);
+///   const auto selected{sourcemeta::core::allocator()};
+///   if (selected == sourcemeta::core::Allocator::Mimalloc) {
+///     std::cerr << "This program brings its own allocator\n";
+///   }
 /// }
 /// ```
 SOURCEMETA_CORE_ALLOCATOR_EXPORT
