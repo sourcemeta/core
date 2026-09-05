@@ -21,13 +21,13 @@ endif()
 
 target_link_libraries(sourcemeta_core_process_unit PRIVATE sourcemeta::core::process)
 
-add_executable(sourcemeta_core_process_unit_spawn_main process_spawn_main.cc)
+sourcemeta_executable(NAMESPACE sourcemeta PROJECT core NAME process
+  VARIANT unit_spawn_main SOURCES process_spawn_main.cc)
 target_link_libraries(sourcemeta_core_process_unit_spawn_main
   PRIVATE sourcemeta::core::process)
 
-add_executable(sourcemeta_core_process_unit_capture_main
-  process_spawn_and_capture_main.cc)
-sourcemeta_add_default_options(PRIVATE sourcemeta_core_process_unit_capture_main)
+sourcemeta_executable(NAMESPACE sourcemeta PROJECT core NAME process
+  VARIANT unit_capture_main SOURCES process_spawn_and_capture_main.cc)
 target_link_libraries(sourcemeta_core_process_unit_capture_main
   PRIVATE sourcemeta::core::text)
 

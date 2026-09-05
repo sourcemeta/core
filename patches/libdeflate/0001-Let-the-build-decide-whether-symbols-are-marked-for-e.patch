@@ -1,0 +1,39 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Juan Cruz Viotti <jviotti@sourcemeta.com>
+Date: Sat, 5 Sep 2026 00:00:00 -0300
+Subject: [PATCH] Let the build decide whether symbols are marked for export
+
+This library marks every entry point with default visibility whenever
+the compiler is GCC or Clang, with no way to ask for anything else. A
+build that compiles this library into a larger one rather than shipping
+it on its own then publishes these symbols from whatever binary they end
+up in, where they collide with a real installation of this library.
+
+Honour a definition the build provides, leaving the existing behaviour
+in place for everyone else.
+---
+diff --git a/lib/lib_common.h b/lib/lib_common.h
+index faedfcb03..9246ca1e5 100644
+--- a/lib/lib_common.h
++++ b/lib/lib_common.h
+@@ -13,6 +13,12 @@
+ #  error "lib_common.h must always be included before libdeflate.h"
+ #endif
+ 
++/*
++ * A build that compiles this library into a larger one does not want its
++ * symbols marked for export, as they would then leave whatever binary it
++ * ends up in.  Such a build can say so by defining this itself.
++ */
++#ifndef LIBDEFLATE_EXPORT_SYM
+ #if defined(LIBDEFLATE_DLL) && (defined(_WIN32) || defined(__CYGWIN__))
+ #  define LIBDEFLATE_EXPORT_SYM  __declspec(dllexport)
+ #elif defined(__GNUC__)
+@@ -20,6 +26,7 @@
+ #else
+ #  define LIBDEFLATE_EXPORT_SYM
+ #endif
++#endif
+ 
+ /*
+  * On i386, gcc assumes that the stack is 16-byte aligned at function entry.

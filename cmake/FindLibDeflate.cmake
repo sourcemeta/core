@@ -105,6 +105,10 @@ if(NOT LibDeflate_FOUND)
   target_include_directories(libdeflate PRIVATE
     "${LIBDEFLATE_LIB_DIR}")
 
+  # Marking every entry point as visible would publish this library from the
+  # one it is merged into, where it can collide with a real installation of it
+  target_compile_definitions(libdeflate PRIVATE LIBDEFLATE_EXPORT_SYM=)
+
   # The processor feature detection this library performs on Linux reaches for
   # interfaces that the C library only declares outside the strict ISO mode
   # this project otherwise compiles C in
