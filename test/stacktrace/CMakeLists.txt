@@ -3,6 +3,12 @@ macro(add_stacktrace_test_unix scenario debug_flag)
     set(target sourcemeta_core_stacktrace_unit_${scenario}_main_${debug_flag})
     add_executable(${target} stacktrace_${scenario}_main.cc)
     target_link_libraries(${target} PRIVATE sourcemeta::core::stacktrace)
+    # These programs set their own diagnostics and their own visibility, so
+    # they are not built through the usual helper, but they are still programs
+    # of this project and run on the allocator that this project ships
+    if(SOURCEMETA_CORE_ALLOCATOR_TARGET)
+      target_link_libraries(${target} PRIVATE ${SOURCEMETA_CORE_ALLOCATOR_TARGET})
+    endif()
     if("${debug_flag}" STREQUAL "none")
       target_compile_options(${target} PRIVATE -g0 -fvisibility=default)
     else()
@@ -21,6 +27,12 @@ macro(add_stacktrace_test_windows scenario)
     set(target sourcemeta_core_stacktrace_unit_${scenario}_main)
     add_executable(${target} stacktrace_${scenario}_main.cc)
     target_link_libraries(${target} PRIVATE sourcemeta::core::stacktrace)
+    # These programs set their own diagnostics and their own visibility, so
+    # they are not built through the usual helper, but they are still programs
+    # of this project and run on the allocator that this project ships
+    if(SOURCEMETA_CORE_ALLOCATOR_TARGET)
+      target_link_libraries(${target} PRIVATE ${SOURCEMETA_CORE_ALLOCATOR_TARGET})
+    endif()
     target_compile_options(${target} PRIVATE /Zi)
     target_link_options(${target} PRIVATE /DEBUG)
     add_test(NAME core.stacktrace.${scenario}.e2e
@@ -37,6 +49,12 @@ macro(add_stacktrace_test_windows_no_debug scenario)
     set(target sourcemeta_core_stacktrace_unit_${scenario}_main_no_debug)
     add_executable(${target} stacktrace_${scenario}_main.cc)
     target_link_libraries(${target} PRIVATE sourcemeta::core::stacktrace)
+    # These programs set their own diagnostics and their own visibility, so
+    # they are not built through the usual helper, but they are still programs
+    # of this project and run on the allocator that this project ships
+    if(SOURCEMETA_CORE_ALLOCATOR_TARGET)
+      target_link_libraries(${target} PRIVATE ${SOURCEMETA_CORE_ALLOCATOR_TARGET})
+    endif()
     add_test(NAME core.stacktrace.${scenario}.no_debug.e2e
       COMMAND powershell -ExecutionPolicy Bypass -File
         "${CMAKE_CURRENT_SOURCE_DIR}/stacktrace_${scenario}_no_debug_test.ps1"
