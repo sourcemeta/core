@@ -2,11 +2,11 @@
 
 namespace sourcemeta::core {
 
-auto allocator_name() -> std::string_view {
+auto allocator() -> Allocator {
 #ifdef SOURCEMETA_CORE_ALLOCATOR_MIMALLOC
-  return "mimalloc";
+  return Allocator::Mimalloc;
 #else
-  return "system";
+  return Allocator::System;
 #endif
 }
 

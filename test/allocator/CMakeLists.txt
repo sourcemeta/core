@@ -1,5 +1,5 @@
 sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME allocator
-  SOURCES allocator_name_test.cc)
+  SOURCES allocator_test.cc)
 
 target_link_libraries(sourcemeta_core_allocator_unit
   PRIVATE sourcemeta::core::allocator)
@@ -8,8 +8,5 @@ target_link_libraries(sourcemeta_core_allocator_unit
 # the expectation comes from the same condition that selects it
 if(Mimalloc_FOUND)
   target_compile_definitions(sourcemeta_core_allocator_unit
-    PRIVATE SOURCEMETA_CORE_TEST_ALLOCATOR="mimalloc")
-else()
-  target_compile_definitions(sourcemeta_core_allocator_unit
-    PRIVATE SOURCEMETA_CORE_TEST_ALLOCATOR="system")
+    PRIVATE SOURCEMETA_CORE_TEST_ALLOCATOR_MIMALLOC)
 endif()

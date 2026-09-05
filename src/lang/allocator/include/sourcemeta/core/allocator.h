@@ -5,7 +5,7 @@
 #include <sourcemeta/core/allocator_export.h>
 #endif
 
-#include <string_view> // std::string_view
+#include <cstdint> // std::uint8_t
 
 /// @defgroup allocator Allocator
 /// @brief The allocator that every program in this project runs on.
@@ -24,6 +24,15 @@
 namespace sourcemeta::core {
 
 /// @ingroup allocator
+/// The allocators that a program can be built against.
+enum class Allocator : std::uint8_t {
+  /// The allocator this project vendors and links into its own programs
+  Mimalloc,
+  /// The allocator the platform ships with
+  System
+};
+
+/// @ingroup allocator
 ///
 /// Report the allocator this program was linked against. For example:
 ///
@@ -32,11 +41,12 @@ namespace sourcemeta::core {
 /// #include <cassert>
 ///
 /// auto main() -> int {
-///   assert(!sourcemeta::core::allocator_name().empty());
+///   assert(sourcemeta::core::allocator() ==
+///          sourcemeta::core::Allocator::Mimalloc);
 /// }
 /// ```
 SOURCEMETA_CORE_ALLOCATOR_EXPORT
-auto allocator_name() -> std::string_view;
+auto allocator() -> Allocator;
 
 } // namespace sourcemeta::core
 
