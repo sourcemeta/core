@@ -72,14 +72,6 @@ elseif(SOURCEMETA_CORE_UNDEFINED_SANITIZER)
   sourcemeta_sanitizer(TYPE undefined)
 endif()
 
-if((SOURCEMETA_OS_LINUX OR SOURCEMETA_OS_MACOS)
-   AND NOT SOURCEMETA_CORE_ADDRESS_SANITIZER
-   AND NOT SOURCEMETA_CORE_UNDEFINED_SANITIZER
-   AND NOT SOURCEMETA_CORE_USE_SYSTEM_ALLOCATOR)
-  message(STATUS "Using the mimalloc allocator")
-  find_package(Mimalloc REQUIRED)
-endif()
-
 # TODO: Turn this into a re-usable utility CMake function
 if(SOURCEMETA_CORE_INSTALL)
   include(GNUInstallDirs)
@@ -100,6 +92,13 @@ endif()
 
 # Every executable in this build links this one, so it comes first
 if(SOURCEMETA_CORE_LANG_ALLOCATOR)
+  if((SOURCEMETA_OS_LINUX OR SOURCEMETA_OS_MACOS)
+     AND NOT SOURCEMETA_CORE_ADDRESS_SANITIZER
+     AND NOT SOURCEMETA_CORE_UNDEFINED_SANITIZER
+     AND NOT SOURCEMETA_CORE_USE_SYSTEM_ALLOCATOR)
+    message(STATUS "Using the mimalloc allocator")
+    find_package(Mimalloc REQUIRED)
+  endif()
   add_subdirectory(src/lang/allocator)
 endif()
 
