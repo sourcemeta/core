@@ -11,9 +11,6 @@
 #include <filesystem>  // std::filesystem
 #include <string_view> // std::string_view
 
-// GoogleBenchmark reports the name of each of these functions as the label
-// of its result, and the tooling that tracks those results over time keys
-// its history on that label, so they do not follow the usual convention
 // NOLINTNEXTLINE(readability-identifier-naming)
 static void JSON_Array_Of_Objects_Unique(benchmark::State &state) {
   // From Unreal Engine `uproject` files

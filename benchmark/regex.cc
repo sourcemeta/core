@@ -17,9 +17,6 @@
   }                                                                            \
   BENCHMARK(name);
 
-// GoogleBenchmark reports the name of each of these functions as the label
-// of its result, and the tooling that tracks those results over time keys
-// its history on that label, so they do not follow the usual convention
 // NOLINTBEGIN(readability-identifier-naming)
 BENCHMARK_REGEX(Regex_Lower_S_Or_Upper_S_Asterisk, "[\\s\\S]*", "foo")
 BENCHMARK_REGEX(Regex_Caret_Lower_S_Or_Upper_S_Asterisk_Dollar, "^[\\s\\S]*$",

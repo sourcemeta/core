@@ -349,9 +349,6 @@ static auto populate_annotation_list(
   }
 }
 
-// GoogleBenchmark reports the name of each of these functions as the label
-// of its result, and the tooling that tracks those results over time keys
-// its history on that label, so they do not follow the usual convention
 // NOLINTNEXTLINE(readability-identifier-naming)
 static void JSONLD_Catalog_Annotation_List_Populate(benchmark::State &state) {
   for (auto iteration : state) {

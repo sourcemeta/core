@@ -30,9 +30,6 @@ constexpr std::string_view ES512_JWK{
     R"JSON({ "kty": "EC", "crv": "P-521", "x": "ASTBdxhoeBK4-OqrpidcXbsz_Gsd-TRgqkZGD9ROv7r_kBHW1_is2HDctAOVBWC3ywSUS5MZJIl17xJuYCyZA-Rg", "y": "AOQCwwmrhHkVTm9BgloMWDc7T3hw5yQM5Z-YhVumpCYyFIGuyrziD5iqsH8uQvsNXGqnMKhOJ26X8ADhvP20RIAW" })JSON"};
 } // namespace
 
-// GoogleBenchmark reports the name of each of these functions as the label
-// of its result, and the tooling that tracks those results over time keys
-// its history on that label, so they do not follow the usual convention
 // NOLINTNEXTLINE(readability-identifier-naming)
 static void JOSE_VerifySignature_RS256(benchmark::State &state) {
   const auto token{sourcemeta::core::JWT::from(RS256_TOKEN)};

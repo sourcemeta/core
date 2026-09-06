@@ -62,9 +62,6 @@ static void write_table(sourcemeta::core::HTMLWriter &document) {
   document.close();
 }
 
-// GoogleBenchmark reports the name of each of these functions as the label
-// of its result, and the tooling that tracks those results over time keys
-// its history on that label, so they do not follow the usual convention
 // NOLINTNEXTLINE(readability-identifier-naming)
 static void HTML_Build_Table_100000(benchmark::State &state) {
   for (auto iteration : state) {

@@ -8,9 +8,6 @@
 #include <fstream>    // std::ifstream
 #include <ios>        // std::ios
 
-// GoogleBenchmark reports the name of each of these functions as the label
-// of its result, and the tooling that tracks those results over time keys
-// its history on that label, so they do not follow the usual convention
 // NOLINTNEXTLINE(readability-identifier-naming)
 static void JSONL_Parse_Large(benchmark::State &state) {
   const std::filesystem::path filepath{std::string{CURRENT_DIRECTORY} +

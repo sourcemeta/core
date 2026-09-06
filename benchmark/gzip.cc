@@ -6,9 +6,6 @@
 #include <cstdint>    // std::uint8_t
 #include <filesystem> // std::filesystem
 
-// GoogleBenchmark reports the name of each of these functions as the label
-// of its result, and the tooling that tracks those results over time keys
-// its history on that label, so they do not follow the usual convention
 static void
 // NOLINTNEXTLINE(readability-identifier-naming)
 GZIP_Compress_ISO_Language_Set_3_Locations(benchmark::State &state) {

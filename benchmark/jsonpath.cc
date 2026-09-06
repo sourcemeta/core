@@ -6,9 +6,6 @@
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonpath.h>
 
-// GoogleBenchmark reports the name of each of these functions as the label
-// of its result, and the tooling that tracks those results over time keys
-// its history on that label, so they do not follow the usual convention
 // NOLINTNEXTLINE(readability-identifier-naming)
 static void JSONPath_Descendant_Filter_Nested(benchmark::State &state) {
   const auto document{sourcemeta::core::parse_json(R"JSON({

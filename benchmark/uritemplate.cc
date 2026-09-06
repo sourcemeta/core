@@ -131,9 +131,6 @@ static auto operation_id_table()
   return INSTANCE;
 }
 
-// GoogleBenchmark reports the name of each of these functions as the label
-// of its result, and the tooling that tracks those results over time keys
-// its history on that label, so they do not follow the usual convention
 // NOLINTNEXTLINE(readability-identifier-naming)
 static void URITemplateRouter_Create(benchmark::State &state) {
   const auto &operation_ids{operation_id_table()};
