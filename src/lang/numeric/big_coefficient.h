@@ -376,9 +376,9 @@ public:
       return {std::move(quotient), std::move(remainder)};
     }
 
-    // A divisor without words defines no quotient, and the long division below
-    // reads the top two divisor words
-    if (divisor.length == 0) {
+    // A zero divisor defines no quotient, and the divisions below would either
+    // divide by that zero word or read past the divisor
+    if (divisor.is_zero()) {
       BigCoefficient quotient{1};
       quotient.words[0] = 0;
       quotient.length = 1;
