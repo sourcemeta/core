@@ -376,6 +376,15 @@ public:
       return {std::move(quotient), std::move(remainder)};
     }
 
+    // A divisor without words defines no quotient, and the long division below
+    // reads the top two divisor words
+    if (divisor.length == 0) {
+      BigCoefficient quotient{1};
+      quotient.words[0] = 0;
+      quotient.length = 1;
+      return {std::move(quotient), this->clone()};
+    }
+
     if (divisor.length == 1) {
       BigCoefficient quotient{this->length};
       quotient.length = this->length;
