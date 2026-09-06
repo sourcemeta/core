@@ -13,13 +13,13 @@
 // The catalog dimensions set how many entries the annotation list carries
 // and how many instance positions materialization visits, so they are the
 // knobs to turn when stress testing this functionality
-static constexpr std::size_t catalog_member_count{256};
-static constexpr std::size_t authors_per_member{3};
-static constexpr std::size_t keywords_per_member{3};
-static constexpr std::size_t annotations_per_member{19 +
-                                                    (authors_per_member * 2)};
-static constexpr std::size_t total_annotation_count{
-    2 + (catalog_member_count * annotations_per_member)};
+static constexpr std::size_t CATALOG_MEMBER_COUNT{256};
+static constexpr std::size_t AUTHORS_PER_MEMBER{3};
+static constexpr std::size_t KEYWORDS_PER_MEMBER{3};
+static constexpr std::size_t ANNOTATIONS_PER_MEMBER{19 +
+                                                    (AUTHORS_PER_MEMBER * 2)};
+static constexpr std::size_t TOTAL_ANNOTATION_COUNT{
+    2 + (CATALOG_MEMBER_COUNT * ANNOTATIONS_PER_MEMBER)};
 
 struct CatalogKeys {
   const sourcemeta::core::JSON::String members{"members"};
@@ -45,8 +45,8 @@ struct CatalogKeys {
 // The pointers these benchmarks build borrow their tokens rather than own
 // them, so the keys have to outlive every list that refers back to them
 static auto catalog_keys() -> const CatalogKeys & {
-  static const CatalogKeys instance;
-  return instance;
+  static const CatalogKeys INSTANCE;
+  return INSTANCE;
 }
 
 static auto currency_code(const std::size_t index) -> std::string {
@@ -72,7 +72,7 @@ static auto make_title(const std::size_t index) -> sourcemeta::core::JSON {
 
 static auto make_keywords() -> sourcemeta::core::JSON {
   auto keywords{sourcemeta::core::JSON::make_array()};
-  for (std::size_t offset = 0; offset < keywords_per_member; offset += 1) {
+  for (std::size_t offset = 0; offset < KEYWORDS_PER_MEMBER; offset += 1) {
     keywords.push_back(
         sourcemeta::core::JSON{"keyword-" + std::to_string(offset)});
   }
@@ -147,7 +147,7 @@ static auto make_member(const std::size_t index) -> sourcemeta::core::JSON {
   member.assign("datePublished", sourcemeta::core::JSON{"2020-05-15"});
 
   auto authors{sourcemeta::core::JSON::make_array()};
-  for (std::size_t offset = 0; offset < authors_per_member; offset += 1) {
+  for (std::size_t offset = 0; offset < AUTHORS_PER_MEMBER; offset += 1) {
     authors.push_back(make_person((index * 10) + offset));
   }
   member.assign("authors", std::move(authors));
@@ -164,7 +164,7 @@ static auto make_member(const std::size_t index) -> sourcemeta::core::JSON {
 
 static auto make_catalog() -> sourcemeta::core::JSON {
   auto members{sourcemeta::core::JSON::make_array()};
-  for (std::size_t index = 0; index < catalog_member_count; index += 1) {
+  for (std::size_t index = 0; index < CATALOG_MEMBER_COUNT; index += 1) {
     members.push_back(make_member(index));
   }
 
@@ -217,7 +217,7 @@ populate_member(sourcemeta::core::JSONLDWeakAnnotationList &annotations,
           .edges = {{.predicate = "https://schema.org/author"}},
           .value = sourcemeta::core::JSONLDCollection{
               .container = sourcemeta::core::JSONLDContainer::List}});
-  for (std::size_t offset = 0; offset < authors_per_member; offset += 1) {
+  for (std::size_t offset = 0; offset < AUTHORS_PER_MEMBER; offset += 1) {
     annotations.emplace_back(
         WeakPointer{std::cref(keys.members), index, std::cref(keys.authors),
                     offset},
@@ -330,7 +330,7 @@ populate_member(sourcemeta::core::JSONLDWeakAnnotationList &annotations,
 static auto populate_annotation_list(
     sourcemeta::core::JSONLDWeakAnnotationList &annotations) -> void {
   const auto &keys{catalog_keys()};
-  annotations.reserve(total_annotation_count);
+  annotations.reserve(TOTAL_ANNOTATION_COUNT);
   annotations.emplace_back(
       sourcemeta::core::WeakPointer{},
       sourcemeta::core::JSONLDDescriptor{
@@ -344,27 +344,32 @@ static auto populate_annotation_list(
           .edges = {{.predicate = "https://schema.org/dataset"}},
           .value = sourcemeta::core::JSONLDCollection{
               .container = sourcemeta::core::JSONLDContainer::Set}});
-  for (std::size_t index = 0; index < catalog_member_count; index += 1) {
+  for (std::size_t index = 0; index < CATALOG_MEMBER_COUNT; index += 1) {
     populate_member(annotations, index);
   }
 }
 
+// GoogleBenchmark reports the name of each of these functions as the label
+// of its result, and the tooling that tracks those results over time keys
+// its history on that label, so they do not follow the usual convention
+// NOLINTNEXTLINE(readability-identifier-naming)
 static void JSONLD_Catalog_Annotation_List_Populate(benchmark::State &state) {
-  for (auto _ : state) {
+  for (auto iteration : state) {
     sourcemeta::core::JSONLDWeakAnnotationList annotations;
     populate_annotation_list(annotations);
-    assert(annotations.size() == total_annotation_count);
+    assert(annotations.size() == TOTAL_ANNOTATION_COUNT);
     benchmark::DoNotOptimize(annotations);
   }
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 static void JSONLD_Catalog_Materialize(benchmark::State &state) {
   const auto instance{make_catalog()};
   sourcemeta::core::JSONLDWeakAnnotationList annotations;
   populate_annotation_list(annotations);
-  assert(annotations.size() == total_annotation_count);
+  assert(annotations.size() == TOTAL_ANNOTATION_COUNT);
 
-  for (auto _ : state) {
+  for (auto iteration : state) {
     auto result{sourcemeta::core::jsonld_materialize(instance, annotations)};
     assert(result.is_array());
     assert(!result.empty());

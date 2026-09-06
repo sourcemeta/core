@@ -9,7 +9,10 @@ macro(add_stacktrace_test_unix scenario debug_flag)
     if(SOURCEMETA_CORE_ALLOCATOR_TARGET)
       target_link_libraries(${target} PRIVATE ${SOURCEMETA_CORE_ALLOCATOR_TARGET})
     endif()
-    sourcemeta_clang_tidy_attempt_enable(TARGET ${target})
+    # We don't want consumers to be bothered with this
+    if(PROJECT_IS_TOP_LEVEL)
+      sourcemeta_clang_tidy_attempt_enable(TARGET ${target})
+    endif()
     if("${debug_flag}" STREQUAL "none")
       target_compile_options(${target} PRIVATE -g0 -fvisibility=default)
     else()
@@ -34,7 +37,10 @@ macro(add_stacktrace_test_windows scenario)
     if(SOURCEMETA_CORE_ALLOCATOR_TARGET)
       target_link_libraries(${target} PRIVATE ${SOURCEMETA_CORE_ALLOCATOR_TARGET})
     endif()
-    sourcemeta_clang_tidy_attempt_enable(TARGET ${target})
+    # We don't want consumers to be bothered with this
+    if(PROJECT_IS_TOP_LEVEL)
+      sourcemeta_clang_tidy_attempt_enable(TARGET ${target})
+    endif()
     target_compile_options(${target} PRIVATE /Zi)
     target_link_options(${target} PRIVATE /DEBUG)
     add_test(NAME core.stacktrace.${scenario}.e2e
@@ -57,7 +63,10 @@ macro(add_stacktrace_test_windows_no_debug scenario)
     if(SOURCEMETA_CORE_ALLOCATOR_TARGET)
       target_link_libraries(${target} PRIVATE ${SOURCEMETA_CORE_ALLOCATOR_TARGET})
     endif()
-    sourcemeta_clang_tidy_attempt_enable(TARGET ${target})
+    # We don't want consumers to be bothered with this
+    if(PROJECT_IS_TOP_LEVEL)
+      sourcemeta_clang_tidy_attempt_enable(TARGET ${target})
+    endif()
     add_test(NAME core.stacktrace.${scenario}.no_debug.e2e
       COMMAND powershell -ExecutionPolicy Bypass -File
         "${CMAKE_CURRENT_SOURCE_DIR}/stacktrace_${scenario}_no_debug_test.ps1"

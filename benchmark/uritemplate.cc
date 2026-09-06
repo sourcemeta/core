@@ -127,13 +127,17 @@ static auto make_operation_ids() -> std::array<std::string, ROUTE_COUNT> {
 // goes wrong, and every benchmark below takes its own reference anyway
 static auto operation_id_table()
     -> const std::array<std::string, ROUTE_COUNT> & {
-  static const auto instance{make_operation_ids()};
-  return instance;
+  static const auto INSTANCE{make_operation_ids()};
+  return INSTANCE;
 }
 
+// GoogleBenchmark reports the name of each of these functions as the label
+// of its result, and the tooling that tracks those results over time keys
+// its history on that label, so they do not follow the usual convention
+// NOLINTNEXTLINE(readability-identifier-naming)
 static void URITemplateRouter_Create(benchmark::State &state) {
   const auto &operation_ids{operation_id_table()};
-  for (auto _ : state) {
+  for (auto iteration : state) {
     sourcemeta::core::URITemplateRouter router;
     for (std::size_t index = 0; index < ROUTE_COUNT; ++index) {
       router.add(ROUTES[index], operation_ids[index],
@@ -145,6 +149,7 @@ static void URITemplateRouter_Create(benchmark::State &state) {
   }
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 static void URITemplateRouter_Match(benchmark::State &state) {
   const auto &operation_ids{operation_id_table()};
   sourcemeta::core::URITemplateRouter router;
@@ -154,7 +159,7 @@ static void URITemplateRouter_Match(benchmark::State &state) {
                    index + 1));
   }
 
-  for (auto _ : state) {
+  for (auto iteration : state) {
     auto result = router.match(
         "/api/v1/organizations/12345/teams/67890/projects/abc/issues/999/"
         "comments/42/reactions/1",
@@ -164,6 +169,7 @@ static void URITemplateRouter_Match(benchmark::State &state) {
   }
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 static void URITemplateRouterView_Restore(benchmark::State &state) {
   const auto &operation_ids{operation_id_table()};
   const auto path{std::filesystem::temp_directory_path() /
@@ -180,7 +186,7 @@ static void URITemplateRouterView_Restore(benchmark::State &state) {
     sourcemeta::core::URITemplateRouterView::save(router, path);
   }
 
-  for (auto _ : state) {
+  for (auto iteration : state) {
     sourcemeta::core::URITemplateRouterView view{path};
     benchmark::DoNotOptimize(view);
   }
@@ -188,6 +194,7 @@ static void URITemplateRouterView_Restore(benchmark::State &state) {
   std::filesystem::remove(path);
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 static void URITemplateRouterView_Match(benchmark::State &state) {
   const auto &operation_ids{operation_id_table()};
   const auto path{std::filesystem::temp_directory_path() /
@@ -208,7 +215,7 @@ static void URITemplateRouterView_Match(benchmark::State &state) {
   // file
   {
     sourcemeta::core::URITemplateRouterView view{path};
-    for (auto _ : state) {
+    for (auto iteration : state) {
       auto result = view.match(
           "/api/v1/organizations/12345/teams/67890/projects/abc/issues/999/"
           "comments/42/reactions/1",
@@ -221,12 +228,13 @@ static void URITemplateRouterView_Match(benchmark::State &state) {
   std::filesystem::remove(path);
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 static void URITemplateRouterView_Arguments(benchmark::State &state) {
   const auto path{std::filesystem::temp_directory_path() /
                   "uritemplate_benchmark_arguments.bin"};
 
   // clang-format off
-  constexpr std::string_view long_value =
+  constexpr std::string_view LONG_VALUE =
       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
       "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
@@ -240,7 +248,7 @@ static void URITemplateRouterView_Arguments(benchmark::State &state) {
           {"argument_00", std::string_view{"short_value_0"}},
           {"argument_01", std::int64_t{1}},
           {"argument_02", true},
-          {"argument_03", long_value},
+          {"argument_03", LONG_VALUE},
           {"argument_04", std::int64_t{-100}},
           {"argument_05", false},
           {"argument_06", std::string_view{"response/schema/path"}},
@@ -249,7 +257,7 @@ static void URITemplateRouterView_Arguments(benchmark::State &state) {
           {"argument_09", std::string_view{"another_short"}},
           {"argument_10", std::int64_t{0}},
           {"argument_11", false},
-          {"argument_12", long_value},
+          {"argument_12", LONG_VALUE},
           {"argument_13", std::int64_t{42}},
           {"argument_14", true},
           {"argument_15", std::string_view{"path/to/resource"}},
@@ -258,7 +266,7 @@ static void URITemplateRouterView_Arguments(benchmark::State &state) {
           {"argument_18", std::string_view{"value_18"}},
           {"argument_19", std::int64_t{12345}},
           {"argument_20", true},
-          {"argument_21", long_value},
+          {"argument_21", LONG_VALUE},
           {"argument_22", std::int64_t{67890}},
           {"argument_23", false},
           {"argument_24", std::string_view{"config/key"}},
@@ -267,7 +275,7 @@ static void URITemplateRouterView_Arguments(benchmark::State &state) {
           {"argument_27", std::string_view{"value_27"}},
           {"argument_28", std::int64_t{100}},
           {"argument_29", false},
-          {"argument_30", long_value},
+          {"argument_30", LONG_VALUE},
           {"argument_31", std::int64_t{200}},
           {"argument_32", true},
           {"argument_33", std::string_view{"schemas/api/list"}},
@@ -276,7 +284,7 @@ static void URITemplateRouterView_Arguments(benchmark::State &state) {
           {"argument_36", std::string_view{"value_36"}},
           {"argument_37", std::int64_t{400}},
           {"argument_38", true},
-          {"argument_39", long_value},
+          {"argument_39", LONG_VALUE},
           {"argument_40", std::int64_t{500}},
           {"argument_41", false},
           {"argument_42", std::string_view{"target/url/path"}},
@@ -285,7 +293,7 @@ static void URITemplateRouterView_Arguments(benchmark::State &state) {
           {"argument_45", std::string_view{"value_45"}},
           {"argument_46", std::int64_t{700}},
           {"argument_47", false},
-          {"argument_48", long_value},
+          {"argument_48", LONG_VALUE},
           {"argument_49", std::int64_t{800}},
           {"argument_50", true},
           {"argument_51", std::string_view{"redirect/path"}},
@@ -294,7 +302,7 @@ static void URITemplateRouterView_Arguments(benchmark::State &state) {
           {"argument_54", std::string_view{"value_54"}},
           {"argument_55", std::int64_t{1000}},
           {"argument_56", true},
-          {"argument_57", long_value},
+          {"argument_57", LONG_VALUE},
           {"argument_58", std::int64_t{1100}},
           {"argument_59", false},
           {"argument_60", std::string_view{"webhook/endpoint"}},
@@ -303,7 +311,7 @@ static void URITemplateRouterView_Arguments(benchmark::State &state) {
           {"argument_63", std::string_view{"value_63"}},
           {"argument_64", std::int64_t{1300}},
           {"argument_65", false},
-          {"argument_66", long_value},
+          {"argument_66", LONG_VALUE},
           {"argument_67", std::int64_t{1400}},
           {"argument_68", true},
           {"argument_69", std::string_view{"proxy/upstream"}},
@@ -312,7 +320,7 @@ static void URITemplateRouterView_Arguments(benchmark::State &state) {
           {"argument_72", std::string_view{"value_72"}},
           {"argument_73", std::int64_t{1600}},
           {"argument_74", true},
-          {"argument_75", long_value},
+          {"argument_75", LONG_VALUE},
           {"argument_76", std::int64_t{1700}},
           {"argument_77", false},
           {"argument_78", std::string_view{"static/directory"}},
@@ -321,7 +329,7 @@ static void URITemplateRouterView_Arguments(benchmark::State &state) {
           {"argument_81", std::string_view{"value_81"}},
           {"argument_82", std::int64_t{1900}},
           {"argument_83", false},
-          {"argument_84", long_value},
+          {"argument_84", LONG_VALUE},
           {"argument_85", std::int64_t{2000}},
           {"argument_86", true},
           {"argument_87", std::string_view{"cache/control"}},
@@ -330,7 +338,7 @@ static void URITemplateRouterView_Arguments(benchmark::State &state) {
           {"argument_90", std::string_view{"value_90"}},
           {"argument_91", std::int64_t{2200}},
           {"argument_92", true},
-          {"argument_93", long_value},
+          {"argument_93", LONG_VALUE},
           {"argument_94", std::int64_t{2300}},
           {"argument_95", false},
           {"argument_96", std::string_view{"auth/token/path"}},
@@ -353,7 +361,7 @@ static void URITemplateRouterView_Arguments(benchmark::State &state) {
   {
     sourcemeta::core::URITemplateRouterView view{path};
 
-    for (auto _ : state) {
+    for (auto iteration : state) {
       auto result = view.match("/api/v1/many", [](auto, auto, auto) {});
       assert(result.first == 3);
       benchmark::DoNotOptimize(result);
@@ -369,6 +377,7 @@ static void URITemplateRouterView_Arguments(benchmark::State &state) {
   std::filesystem::remove(path);
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 static void URITemplateRouter_Match_BasePath(benchmark::State &state) {
   const auto &operation_ids{operation_id_table()};
   sourcemeta::core::URITemplateRouter router{"/v1/catalog"};
@@ -378,7 +387,7 @@ static void URITemplateRouter_Match_BasePath(benchmark::State &state) {
                    index + 1));
   }
 
-  for (auto _ : state) {
+  for (auto iteration : state) {
     auto result = router.match(
         "/v1/catalog/api/v1/organizations/12345/teams/67890/projects/abc/"
         "issues/999/comments/42/reactions/1",
@@ -388,6 +397,7 @@ static void URITemplateRouter_Match_BasePath(benchmark::State &state) {
   }
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 static void URITemplateRouterView_Match_BasePath(benchmark::State &state) {
   const auto &operation_ids{operation_id_table()};
   const auto path{std::filesystem::temp_directory_path() /
@@ -406,7 +416,7 @@ static void URITemplateRouterView_Match_BasePath(benchmark::State &state) {
 
   {
     sourcemeta::core::URITemplateRouterView view{path};
-    for (auto _ : state) {
+    for (auto iteration : state) {
       auto result = view.match(
           "/v1/catalog/api/v1/organizations/12345/teams/67890/projects/abc/"
           "issues/999/comments/42/reactions/1",

@@ -86,7 +86,7 @@ function(sourcemeta_clang_tidy_attempt_install)
 endfunction()
 
 function(sourcemeta_clang_tidy_attempt_enable)
-  cmake_parse_arguments(SOURCEMETA_TARGET_CLANG_TIDY_ATTEMPT_ENABLE "" "TARGET" "DISABLE" ${ARGN})
+  cmake_parse_arguments(SOURCEMETA_TARGET_CLANG_TIDY_ATTEMPT_ENABLE "" "TARGET" "" ${ARGN})
   if(NOT SOURCEMETA_TARGET_CLANG_TIDY_ATTEMPT_ENABLE_TARGET)
     message(FATAL_ERROR "You must pass the target name using the TARGET option")
   endif()
@@ -123,8 +123,8 @@ function(sourcemeta_clang_tidy_attempt_enable)
   # it stays out of the local edit loop. This sits outside the cache guard above
   # so that toggling the option takes effect on an existing build tree. The
   # `--checks` argument is appended to the `Checks` option of the configuration
-  # file rather than replacing it, so both the group below and whatever a target
-  # opts out of compose with what the file enables
+  # file rather than replacing it, so the group composes with whatever the file
+  # enables
   set(TARGET_CLANG_TIDY "${SOURCEMETA_CXX_CLANG_TIDY}")
 
   # This tool bundles a newer compiler than the ones this project builds with,
@@ -132,16 +132,8 @@ function(sourcemeta_clang_tidy_attempt_enable)
   # a feature of a language revision that is yet to be released
   list(APPEND TARGET_CLANG_TIDY "--extra-arg=-Wno-c2y-extensions")
 
-  set(TARGET_CLANG_TIDY_CHECKS)
   if(SOURCEMETA_CORE_CLANG_TIDY_ANALYZER)
-    list(APPEND TARGET_CLANG_TIDY_CHECKS "clang-analyzer-*")
-  endif()
-  foreach(CHECK IN LISTS SOURCEMETA_TARGET_CLANG_TIDY_ATTEMPT_ENABLE_DISABLE)
-    list(APPEND TARGET_CLANG_TIDY_CHECKS "-${CHECK}")
-  endforeach()
-  if(TARGET_CLANG_TIDY_CHECKS)
-    list(JOIN TARGET_CLANG_TIDY_CHECKS "," TARGET_CLANG_TIDY_CHECKS)
-    list(APPEND TARGET_CLANG_TIDY "--checks=${TARGET_CLANG_TIDY_CHECKS}")
+    list(APPEND TARGET_CLANG_TIDY "--checks=clang-analyzer-*")
   endif()
 
   set_target_properties("${SOURCEMETA_TARGET_CLANG_TIDY_ATTEMPT_ENABLE_TARGET}"

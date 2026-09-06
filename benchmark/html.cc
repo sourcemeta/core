@@ -62,8 +62,12 @@ static void write_table(sourcemeta::core::HTMLWriter &document) {
   document.close();
 }
 
+// GoogleBenchmark reports the name of each of these functions as the label
+// of its result, and the tooling that tracks those results over time keys
+// its history on that label, so they do not follow the usual convention
+// NOLINTNEXTLINE(readability-identifier-naming)
 static void HTML_Build_Table_100000(benchmark::State &state) {
-  for (auto _ : state) {
+  for (auto iteration : state) {
     sourcemeta::core::HTMLWriter document;
     document.reserve(std::size_t{100000} * 300);
     write_table(document);
@@ -72,11 +76,12 @@ static void HTML_Build_Table_100000(benchmark::State &state) {
   }
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 static void HTML_Render_Table_100000(benchmark::State &state) {
   sourcemeta::core::HTMLWriter document;
   document.reserve(std::size_t{100000} * 300);
   write_table(document);
-  for (auto _ : state) {
+  for (auto iteration : state) {
     auto result{std::string(document.str())};
     benchmark::DoNotOptimize(result);
   }

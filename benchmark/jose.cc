@@ -30,6 +30,10 @@ constexpr std::string_view ES512_JWK{
     R"JSON({ "kty": "EC", "crv": "P-521", "x": "ASTBdxhoeBK4-OqrpidcXbsz_Gsd-TRgqkZGD9ROv7r_kBHW1_is2HDctAOVBWC3ywSUS5MZJIl17xJuYCyZA-Rg", "y": "AOQCwwmrhHkVTm9BgloMWDc7T3hw5yQM5Z-YhVumpCYyFIGuyrziD5iqsH8uQvsNXGqnMKhOJ26X8ADhvP20RIAW" })JSON"};
 } // namespace
 
+// GoogleBenchmark reports the name of each of these functions as the label
+// of its result, and the tooling that tracks those results over time keys
+// its history on that label, so they do not follow the usual convention
+// NOLINTNEXTLINE(readability-identifier-naming)
 static void JOSE_VerifySignature_RS256(benchmark::State &state) {
   const auto token{sourcemeta::core::JWT::from(RS256_TOKEN)};
   const auto key{
@@ -38,7 +42,7 @@ static void JOSE_VerifySignature_RS256(benchmark::State &state) {
   assert(key.has_value());
   const auto *public_key{key.value().public_key()};
   assert(public_key != nullptr);
-  for (auto _ : state) {
+  for (auto iteration : state) {
     auto result{sourcemeta::core::rsassa_pkcs1_v15_verify(
         *public_key, sourcemeta::core::SignatureHashFunction::SHA256,
         token.value().signing_input(), token.value().signature())};
@@ -47,6 +51,7 @@ static void JOSE_VerifySignature_RS256(benchmark::State &state) {
   }
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 static void JOSE_VerifySignature_ES512(benchmark::State &state) {
   const auto token{sourcemeta::core::JWT::from(ES512_TOKEN)};
   const auto key{
@@ -55,7 +60,7 @@ static void JOSE_VerifySignature_ES512(benchmark::State &state) {
   assert(key.has_value());
   const auto *public_key{key.value().public_key()};
   assert(public_key != nullptr);
-  for (auto _ : state) {
+  for (auto iteration : state) {
     auto result{sourcemeta::core::ecdsa_verify(
         *public_key, sourcemeta::core::SignatureHashFunction::SHA512,
         token.value().signing_input(), token.value().signature())};
