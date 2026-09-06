@@ -2,7 +2,8 @@
 
 #include <sourcemeta/core/html.h>
 
-#include <string> // std::string, std::to_string
+#include <cstddef> // std::size_t
+#include <string>  // std::string, std::to_string
 
 static void write_table(sourcemeta::core::HTMLWriter &document) {
   document.table().attribute("class", "file-table");
@@ -61,21 +62,23 @@ static void write_table(sourcemeta::core::HTMLWriter &document) {
   document.close();
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 static void HTML_Build_Table_100000(benchmark::State &state) {
-  for (auto _ : state) {
+  for (auto iteration : state) {
     sourcemeta::core::HTMLWriter document;
-    document.reserve(100000 * 300);
+    document.reserve(std::size_t{100000} * 300);
     write_table(document);
     auto result{std::string(document.str())};
     benchmark::DoNotOptimize(result);
   }
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 static void HTML_Render_Table_100000(benchmark::State &state) {
   sourcemeta::core::HTMLWriter document;
-  document.reserve(100000 * 300);
+  document.reserve(std::size_t{100000} * 300);
   write_table(document);
-  for (auto _ : state) {
+  for (auto iteration : state) {
     auto result{std::string(document.str())};
     benchmark::DoNotOptimize(result);
   }

@@ -6,6 +6,7 @@
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonpath.h>
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 static void JSONPath_Descendant_Filter_Nested(benchmark::State &state) {
   const auto document{sourcemeta::core::parse_json(R"JSON({
     "store": {
@@ -57,7 +58,7 @@ static void JSONPath_Descendant_Filter_Nested(benchmark::State &state) {
   const sourcemeta::core::JSONPath path{
       "$..books[?@.price < 10 && match(@.category, 'fic.*')]"};
 
-  for (auto _ : state) {
+  for (auto iteration : state) {
     std::size_t count{0};
     path.evaluate(document,
                   [&count](const auto &, const auto &) { count += 1; });

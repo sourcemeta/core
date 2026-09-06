@@ -7,6 +7,7 @@
 #include <filesystem> // std::filesystem
 
 static void
+// NOLINTNEXTLINE(readability-identifier-naming)
 GZIP_Compress_ISO_Language_Set_3_Locations(benchmark::State &state) {
   const sourcemeta::core::FileView view{
       std::filesystem::path{CURRENT_DIRECTORY} / "files" /
@@ -14,7 +15,7 @@ GZIP_Compress_ISO_Language_Set_3_Locations(benchmark::State &state) {
   const auto contents{
       sourcemeta::core::gunzip(view.as<std::uint8_t>(), view.size())};
 
-  for (auto _ : state) {
+  for (auto iteration : state) {
     auto result{sourcemeta::core::gzip(
         reinterpret_cast<const std::uint8_t *>(contents.data()),
         contents.size())};
@@ -23,6 +24,7 @@ GZIP_Compress_ISO_Language_Set_3_Locations(benchmark::State &state) {
 }
 
 static void
+// NOLINTNEXTLINE(readability-identifier-naming)
 GZIP_Decompress_ISO_Language_Set_3_Locations(benchmark::State &state) {
   const sourcemeta::core::FileView view{
       std::filesystem::path{CURRENT_DIRECTORY} / "files" /
@@ -30,13 +32,14 @@ GZIP_Decompress_ISO_Language_Set_3_Locations(benchmark::State &state) {
   const auto output_hint{
       sourcemeta::core::gunzip(view.as<std::uint8_t>(), view.size()).size()};
 
-  for (auto _ : state) {
+  for (auto iteration : state) {
     auto result{sourcemeta::core::gunzip(view.as<std::uint8_t>(), view.size(),
                                          output_hint)};
     benchmark::DoNotOptimize(result);
   }
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 static void GZIP_Compress_ISO_Language_Set_3_Schema(benchmark::State &state) {
   const sourcemeta::core::FileView view{
       std::filesystem::path{CURRENT_DIRECTORY} / "files" /
@@ -44,7 +47,7 @@ static void GZIP_Compress_ISO_Language_Set_3_Schema(benchmark::State &state) {
   const auto contents{
       sourcemeta::core::gunzip(view.as<std::uint8_t>(), view.size())};
 
-  for (auto _ : state) {
+  for (auto iteration : state) {
     auto result{sourcemeta::core::gzip(
         reinterpret_cast<const std::uint8_t *>(contents.data()),
         contents.size())};
@@ -52,6 +55,7 @@ static void GZIP_Compress_ISO_Language_Set_3_Schema(benchmark::State &state) {
   }
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 static void GZIP_Decompress_ISO_Language_Set_3_Schema(benchmark::State &state) {
   const sourcemeta::core::FileView view{
       std::filesystem::path{CURRENT_DIRECTORY} / "files" /
@@ -59,7 +63,7 @@ static void GZIP_Decompress_ISO_Language_Set_3_Schema(benchmark::State &state) {
   const auto output_hint{
       sourcemeta::core::gunzip(view.as<std::uint8_t>(), view.size()).size()};
 
-  for (auto _ : state) {
+  for (auto iteration : state) {
     auto result{sourcemeta::core::gunzip(view.as<std::uint8_t>(), view.size(),
                                          output_hint)};
     benchmark::DoNotOptimize(result);

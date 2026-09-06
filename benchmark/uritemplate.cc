@@ -10,110 +10,110 @@
 #include <string>      // std::string, std::to_string
 #include <string_view> // std::string_view
 
-static constexpr std::string_view ROUTES[] = {
-    "/api/v1",
-    "/api/v2",
-    "/api/v3",
-    "/api/v1/health",
-    "/api/v2/health",
-    "/api/v3/health",
-    "/api/v1/users",
-    "/api/v1/users/{user_id}",
-    "/api/v1/users/{user_id}/profile",
-    "/api/v1/users/{user_id}/settings",
-    "/api/v1/users/{user_id}/preferences",
-    "/api/v1/users/{user_id}/avatar",
-    "/api/v1/users/{user_id}/posts",
-    "/api/v1/users/{user_id}/posts/{post_id}",
-    "/api/v1/users/{user_id}/posts/{post_id}/comments",
-    "/api/v1/users/{user_id}/posts/{post_id}/comments/{comment_id}",
-    "/api/v1/users/{user_id}/posts/{post_id}/likes",
-    "/api/v1/users/{user_id}/followers",
-    "/api/v1/users/{user_id}/following",
-    "/api/v1/users/{user_id}/notifications",
-    "/api/v1/users/{user_id}/notifications/{notification_id}",
-    "/api/v1/organizations",
-    "/api/v1/organizations/{org_id}",
-    "/api/v1/organizations/{org_id}/members",
-    "/api/v1/organizations/{org_id}/members/{member_id}",
-    "/api/v1/organizations/{org_id}/teams",
-    "/api/v1/organizations/{org_id}/teams/{team_id}",
-    "/api/v1/organizations/{org_id}/teams/{team_id}/members",
-    "/api/v1/organizations/{org_id}/projects",
-    "/api/v1/organizations/{org_id}/projects/{project_id}",
-    "/api/v1/organizations/{org_id}/billing",
-    "/api/v1/organizations/{org_id}/invoices",
-    "/api/v1/organizations/{org_id}/invoices/{invoice_id}",
-    "/api/v1/projects",
-    "/api/v1/projects/{project_id}",
-    "/api/v1/projects/{project_id}/issues",
-    "/api/v1/projects/{project_id}/issues/{issue_id}",
-    "/api/v1/projects/{project_id}/issues/{issue_id}/comments",
-    "/api/v1/projects/{project_id}/issues/{issue_id}/comments/{comment_id}",
-    "/api/v1/projects/{project_id}/issues/{issue_id}/labels",
-    "/api/v1/projects/{project_id}/issues/{issue_id}/assignees",
-    "/api/v1/projects/{project_id}/milestones",
-    "/api/v1/projects/{project_id}/milestones/{milestone_id}",
-    "/api/v1/projects/{project_id}/releases",
-    "/api/v1/projects/{project_id}/releases/{release_id}",
-    "/api/v1/projects/{project_id}/releases/{release_id}/assets",
-    "/api/v1/projects/{project_id}/branches",
-    "/api/v1/projects/{project_id}/branches/{branch_name}",
-    "/api/v1/projects/{project_id}/commits",
-    "/api/v1/projects/{project_id}/commits/{commit_sha}",
-    "/api/v1/projects/{project_id}/pulls",
-    "/api/v1/projects/{project_id}/pulls/{pull_id}",
-    "/api/v1/projects/{project_id}/pulls/{pull_id}/reviews",
-    "/api/v1/projects/{project_id}/pulls/{pull_id}/reviews/{review_id}",
-    "/api/v1/projects/{project_id}/pulls/{pull_id}/commits",
-    "/api/v1/projects/{project_id}/pulls/{pull_id}/files",
-    "/api/v1/documents",
-    "/api/v1/documents/{document_id}",
-    "/api/v1/documents/{document_id}/versions",
-    "/api/v1/documents/{document_id}/versions/{version_id}",
-    "/api/v1/documents/{document_id}/permissions",
-    "/api/v1/documents/{document_id}/comments",
-    "/api/v1/documents/{document_id}/comments/{comment_id}",
-    "/api/v1/documents/{document_id}/shares",
-    "/api/v1/documents/{document_id}/exports/{format}",
-    "/api/v1/storage/buckets",
-    "/api/v1/storage/buckets/{bucket_id}",
-    "/api/v1/storage/buckets/{bucket_id}/objects",
-    "/api/v1/storage/buckets/{bucket_id}/objects/{object_key}",
-    "/api/v1/storage/buckets/{bucket_id}/objects/{object_key}/metadata",
-    "/api/v1/storage/buckets/{bucket_id}/objects/{object_key}/versions",
-    "/api/v1/storage/buckets/{bucket_id}/policies",
-    "/api/v1/analytics/events",
-    "/api/v1/analytics/events/{event_id}",
-    "/api/v1/analytics/reports",
-    "/api/v1/analytics/reports/{report_id}",
-    "/api/v1/analytics/dashboards",
-    "/api/v1/analytics/dashboards/{dashboard_id}",
-    "/api/v1/analytics/dashboards/{dashboard_id}/widgets",
-    "/api/v1/analytics/dashboards/{dashboard_id}/widgets/{widget_id}",
-    "/api/v1/webhooks",
-    "/api/v1/webhooks/{webhook_id}",
-    "/api/v1/webhooks/{webhook_id}/deliveries",
-    "/api/v1/webhooks/{webhook_id}/deliveries/{delivery_id}",
-    "/api/v1/search/users",
-    "/api/v1/search/projects",
-    "/api/v1/search/documents",
-    "/api/v1/search/issues",
-    "/api/v1/admin/users",
-    "/api/v1/admin/users/{user_id}",
-    "/api/v1/admin/organizations",
-    "/api/v1/admin/organizations/{org_id}",
-    "/api/v1/admin/logs",
-    "/api/v1/admin/logs/{log_id}",
-    "/api/v1/admin/settings",
-    "/api/v1/admin/settings/{setting_key}",
-    "/api/v1/organizations/{org_id}/teams/{team_id}/projects/{project_id}/"
-    "issues/{issue_id}/comments/{comment_id}/reactions/{reaction_id}",
-    "/api/v1/workspaces/{workspace_id}/folders/{folder_id}/documents/"
-    "{document_id}/sections/{section_id}/paragraphs/{paragraph_id}/comments/"
-    "{comment_id}"};
+static constexpr auto ROUTES{std::to_array<std::string_view>(
+    {"/api/v1",
+     "/api/v2",
+     "/api/v3",
+     "/api/v1/health",
+     "/api/v2/health",
+     "/api/v3/health",
+     "/api/v1/users",
+     "/api/v1/users/{user_id}",
+     "/api/v1/users/{user_id}/profile",
+     "/api/v1/users/{user_id}/settings",
+     "/api/v1/users/{user_id}/preferences",
+     "/api/v1/users/{user_id}/avatar",
+     "/api/v1/users/{user_id}/posts",
+     "/api/v1/users/{user_id}/posts/{post_id}",
+     "/api/v1/users/{user_id}/posts/{post_id}/comments",
+     "/api/v1/users/{user_id}/posts/{post_id}/comments/{comment_id}",
+     "/api/v1/users/{user_id}/posts/{post_id}/likes",
+     "/api/v1/users/{user_id}/followers",
+     "/api/v1/users/{user_id}/following",
+     "/api/v1/users/{user_id}/notifications",
+     "/api/v1/users/{user_id}/notifications/{notification_id}",
+     "/api/v1/organizations",
+     "/api/v1/organizations/{org_id}",
+     "/api/v1/organizations/{org_id}/members",
+     "/api/v1/organizations/{org_id}/members/{member_id}",
+     "/api/v1/organizations/{org_id}/teams",
+     "/api/v1/organizations/{org_id}/teams/{team_id}",
+     "/api/v1/organizations/{org_id}/teams/{team_id}/members",
+     "/api/v1/organizations/{org_id}/projects",
+     "/api/v1/organizations/{org_id}/projects/{project_id}",
+     "/api/v1/organizations/{org_id}/billing",
+     "/api/v1/organizations/{org_id}/invoices",
+     "/api/v1/organizations/{org_id}/invoices/{invoice_id}",
+     "/api/v1/projects",
+     "/api/v1/projects/{project_id}",
+     "/api/v1/projects/{project_id}/issues",
+     "/api/v1/projects/{project_id}/issues/{issue_id}",
+     "/api/v1/projects/{project_id}/issues/{issue_id}/comments",
+     "/api/v1/projects/{project_id}/issues/{issue_id}/comments/{comment_id}",
+     "/api/v1/projects/{project_id}/issues/{issue_id}/labels",
+     "/api/v1/projects/{project_id}/issues/{issue_id}/assignees",
+     "/api/v1/projects/{project_id}/milestones",
+     "/api/v1/projects/{project_id}/milestones/{milestone_id}",
+     "/api/v1/projects/{project_id}/releases",
+     "/api/v1/projects/{project_id}/releases/{release_id}",
+     "/api/v1/projects/{project_id}/releases/{release_id}/assets",
+     "/api/v1/projects/{project_id}/branches",
+     "/api/v1/projects/{project_id}/branches/{branch_name}",
+     "/api/v1/projects/{project_id}/commits",
+     "/api/v1/projects/{project_id}/commits/{commit_sha}",
+     "/api/v1/projects/{project_id}/pulls",
+     "/api/v1/projects/{project_id}/pulls/{pull_id}",
+     "/api/v1/projects/{project_id}/pulls/{pull_id}/reviews",
+     "/api/v1/projects/{project_id}/pulls/{pull_id}/reviews/{review_id}",
+     "/api/v1/projects/{project_id}/pulls/{pull_id}/commits",
+     "/api/v1/projects/{project_id}/pulls/{pull_id}/files",
+     "/api/v1/documents",
+     "/api/v1/documents/{document_id}",
+     "/api/v1/documents/{document_id}/versions",
+     "/api/v1/documents/{document_id}/versions/{version_id}",
+     "/api/v1/documents/{document_id}/permissions",
+     "/api/v1/documents/{document_id}/comments",
+     "/api/v1/documents/{document_id}/comments/{comment_id}",
+     "/api/v1/documents/{document_id}/shares",
+     "/api/v1/documents/{document_id}/exports/{format}",
+     "/api/v1/storage/buckets",
+     "/api/v1/storage/buckets/{bucket_id}",
+     "/api/v1/storage/buckets/{bucket_id}/objects",
+     "/api/v1/storage/buckets/{bucket_id}/objects/{object_key}",
+     "/api/v1/storage/buckets/{bucket_id}/objects/{object_key}/metadata",
+     "/api/v1/storage/buckets/{bucket_id}/objects/{object_key}/versions",
+     "/api/v1/storage/buckets/{bucket_id}/policies",
+     "/api/v1/analytics/events",
+     "/api/v1/analytics/events/{event_id}",
+     "/api/v1/analytics/reports",
+     "/api/v1/analytics/reports/{report_id}",
+     "/api/v1/analytics/dashboards",
+     "/api/v1/analytics/dashboards/{dashboard_id}",
+     "/api/v1/analytics/dashboards/{dashboard_id}/widgets",
+     "/api/v1/analytics/dashboards/{dashboard_id}/widgets/{widget_id}",
+     "/api/v1/webhooks",
+     "/api/v1/webhooks/{webhook_id}",
+     "/api/v1/webhooks/{webhook_id}/deliveries",
+     "/api/v1/webhooks/{webhook_id}/deliveries/{delivery_id}",
+     "/api/v1/search/users",
+     "/api/v1/search/projects",
+     "/api/v1/search/documents",
+     "/api/v1/search/issues",
+     "/api/v1/admin/users",
+     "/api/v1/admin/users/{user_id}",
+     "/api/v1/admin/organizations",
+     "/api/v1/admin/organizations/{org_id}",
+     "/api/v1/admin/logs",
+     "/api/v1/admin/logs/{log_id}",
+     "/api/v1/admin/settings",
+     "/api/v1/admin/settings/{setting_key}",
+     "/api/v1/organizations/{org_id}/teams/{team_id}/projects/{project_id}/"
+     "issues/{issue_id}/comments/{comment_id}/reactions/{reaction_id}",
+     "/api/v1/workspaces/{workspace_id}/folders/{folder_id}/documents/"
+     "{document_id}/sections/{section_id}/paragraphs/{paragraph_id}/comments/"
+     "{comment_id}"})};
 
-static constexpr std::size_t ROUTE_COUNT = sizeof(ROUTES) / sizeof(ROUTES[0]);
+static constexpr std::size_t ROUTE_COUNT{ROUTES.size()};
 
 static auto make_operation_ids() -> std::array<std::string, ROUTE_COUNT> {
   std::array<std::string, ROUTE_COUNT> ids;
@@ -123,13 +123,21 @@ static auto make_operation_ids() -> std::array<std::string, ROUTE_COUNT> {
   return ids;
 }
 
-static const auto OPERATION_IDS = make_operation_ids();
+// Building these eagerly would run before the program can catch anything that
+// goes wrong, and every benchmark below takes its own reference anyway
+static auto operation_id_table()
+    -> const std::array<std::string, ROUTE_COUNT> & {
+  static const auto INSTANCE{make_operation_ids()};
+  return INSTANCE;
+}
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 static void URITemplateRouter_Create(benchmark::State &state) {
-  for (auto _ : state) {
+  const auto &operation_ids{operation_id_table()};
+  for (auto iteration : state) {
     sourcemeta::core::URITemplateRouter router;
     for (std::size_t index = 0; index < ROUTE_COUNT; ++index) {
-      router.add(ROUTES[index], OPERATION_IDS[index],
+      router.add(ROUTES[index], operation_ids[index],
                  static_cast<sourcemeta::core::URITemplateRouter::Identifier>(
                      index + 1));
     }
@@ -138,15 +146,17 @@ static void URITemplateRouter_Create(benchmark::State &state) {
   }
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 static void URITemplateRouter_Match(benchmark::State &state) {
+  const auto &operation_ids{operation_id_table()};
   sourcemeta::core::URITemplateRouter router;
   for (std::size_t index = 0; index < ROUTE_COUNT; ++index) {
-    router.add(ROUTES[index], OPERATION_IDS[index],
+    router.add(ROUTES[index], operation_ids[index],
                static_cast<sourcemeta::core::URITemplateRouter::Identifier>(
                    index + 1));
   }
 
-  for (auto _ : state) {
+  for (auto iteration : state) {
     auto result = router.match(
         "/api/v1/organizations/12345/teams/67890/projects/abc/issues/999/"
         "comments/42/reactions/1",
@@ -156,14 +166,16 @@ static void URITemplateRouter_Match(benchmark::State &state) {
   }
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 static void URITemplateRouterView_Restore(benchmark::State &state) {
+  const auto &operation_ids{operation_id_table()};
   const auto path{std::filesystem::temp_directory_path() /
                   "uritemplate_benchmark.bin"};
 
   {
     sourcemeta::core::URITemplateRouter router;
     for (std::size_t index = 0; index < ROUTE_COUNT; ++index) {
-      router.add(ROUTES[index], OPERATION_IDS[index],
+      router.add(ROUTES[index], operation_ids[index],
                  static_cast<sourcemeta::core::URITemplateRouter::Identifier>(
                      index + 1));
     }
@@ -171,7 +183,7 @@ static void URITemplateRouterView_Restore(benchmark::State &state) {
     sourcemeta::core::URITemplateRouterView::save(router, path);
   }
 
-  for (auto _ : state) {
+  for (auto iteration : state) {
     sourcemeta::core::URITemplateRouterView view{path};
     benchmark::DoNotOptimize(view);
   }
@@ -179,14 +191,16 @@ static void URITemplateRouterView_Restore(benchmark::State &state) {
   std::filesystem::remove(path);
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 static void URITemplateRouterView_Match(benchmark::State &state) {
+  const auto &operation_ids{operation_id_table()};
   const auto path{std::filesystem::temp_directory_path() /
                   "uritemplate_benchmark.bin"};
 
   {
     sourcemeta::core::URITemplateRouter router;
     for (std::size_t index = 0; index < ROUTE_COUNT; ++index) {
-      router.add(ROUTES[index], OPERATION_IDS[index],
+      router.add(ROUTES[index], operation_ids[index],
                  static_cast<sourcemeta::core::URITemplateRouter::Identifier>(
                      index + 1));
     }
@@ -198,7 +212,7 @@ static void URITemplateRouterView_Match(benchmark::State &state) {
   // file
   {
     sourcemeta::core::URITemplateRouterView view{path};
-    for (auto _ : state) {
+    for (auto iteration : state) {
       auto result = view.match(
           "/api/v1/organizations/12345/teams/67890/projects/abc/issues/999/"
           "comments/42/reactions/1",
@@ -211,12 +225,13 @@ static void URITemplateRouterView_Match(benchmark::State &state) {
   std::filesystem::remove(path);
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 static void URITemplateRouterView_Arguments(benchmark::State &state) {
   const auto path{std::filesystem::temp_directory_path() /
                   "uritemplate_benchmark_arguments.bin"};
 
   // clang-format off
-  constexpr std::string_view long_value =
+  constexpr std::string_view LONG_VALUE =
       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
       "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
@@ -230,7 +245,7 @@ static void URITemplateRouterView_Arguments(benchmark::State &state) {
           {"argument_00", std::string_view{"short_value_0"}},
           {"argument_01", std::int64_t{1}},
           {"argument_02", true},
-          {"argument_03", long_value},
+          {"argument_03", LONG_VALUE},
           {"argument_04", std::int64_t{-100}},
           {"argument_05", false},
           {"argument_06", std::string_view{"response/schema/path"}},
@@ -239,7 +254,7 @@ static void URITemplateRouterView_Arguments(benchmark::State &state) {
           {"argument_09", std::string_view{"another_short"}},
           {"argument_10", std::int64_t{0}},
           {"argument_11", false},
-          {"argument_12", long_value},
+          {"argument_12", LONG_VALUE},
           {"argument_13", std::int64_t{42}},
           {"argument_14", true},
           {"argument_15", std::string_view{"path/to/resource"}},
@@ -248,7 +263,7 @@ static void URITemplateRouterView_Arguments(benchmark::State &state) {
           {"argument_18", std::string_view{"value_18"}},
           {"argument_19", std::int64_t{12345}},
           {"argument_20", true},
-          {"argument_21", long_value},
+          {"argument_21", LONG_VALUE},
           {"argument_22", std::int64_t{67890}},
           {"argument_23", false},
           {"argument_24", std::string_view{"config/key"}},
@@ -257,7 +272,7 @@ static void URITemplateRouterView_Arguments(benchmark::State &state) {
           {"argument_27", std::string_view{"value_27"}},
           {"argument_28", std::int64_t{100}},
           {"argument_29", false},
-          {"argument_30", long_value},
+          {"argument_30", LONG_VALUE},
           {"argument_31", std::int64_t{200}},
           {"argument_32", true},
           {"argument_33", std::string_view{"schemas/api/list"}},
@@ -266,7 +281,7 @@ static void URITemplateRouterView_Arguments(benchmark::State &state) {
           {"argument_36", std::string_view{"value_36"}},
           {"argument_37", std::int64_t{400}},
           {"argument_38", true},
-          {"argument_39", long_value},
+          {"argument_39", LONG_VALUE},
           {"argument_40", std::int64_t{500}},
           {"argument_41", false},
           {"argument_42", std::string_view{"target/url/path"}},
@@ -275,7 +290,7 @@ static void URITemplateRouterView_Arguments(benchmark::State &state) {
           {"argument_45", std::string_view{"value_45"}},
           {"argument_46", std::int64_t{700}},
           {"argument_47", false},
-          {"argument_48", long_value},
+          {"argument_48", LONG_VALUE},
           {"argument_49", std::int64_t{800}},
           {"argument_50", true},
           {"argument_51", std::string_view{"redirect/path"}},
@@ -284,7 +299,7 @@ static void URITemplateRouterView_Arguments(benchmark::State &state) {
           {"argument_54", std::string_view{"value_54"}},
           {"argument_55", std::int64_t{1000}},
           {"argument_56", true},
-          {"argument_57", long_value},
+          {"argument_57", LONG_VALUE},
           {"argument_58", std::int64_t{1100}},
           {"argument_59", false},
           {"argument_60", std::string_view{"webhook/endpoint"}},
@@ -293,7 +308,7 @@ static void URITemplateRouterView_Arguments(benchmark::State &state) {
           {"argument_63", std::string_view{"value_63"}},
           {"argument_64", std::int64_t{1300}},
           {"argument_65", false},
-          {"argument_66", long_value},
+          {"argument_66", LONG_VALUE},
           {"argument_67", std::int64_t{1400}},
           {"argument_68", true},
           {"argument_69", std::string_view{"proxy/upstream"}},
@@ -302,7 +317,7 @@ static void URITemplateRouterView_Arguments(benchmark::State &state) {
           {"argument_72", std::string_view{"value_72"}},
           {"argument_73", std::int64_t{1600}},
           {"argument_74", true},
-          {"argument_75", long_value},
+          {"argument_75", LONG_VALUE},
           {"argument_76", std::int64_t{1700}},
           {"argument_77", false},
           {"argument_78", std::string_view{"static/directory"}},
@@ -311,7 +326,7 @@ static void URITemplateRouterView_Arguments(benchmark::State &state) {
           {"argument_81", std::string_view{"value_81"}},
           {"argument_82", std::int64_t{1900}},
           {"argument_83", false},
-          {"argument_84", long_value},
+          {"argument_84", LONG_VALUE},
           {"argument_85", std::int64_t{2000}},
           {"argument_86", true},
           {"argument_87", std::string_view{"cache/control"}},
@@ -320,7 +335,7 @@ static void URITemplateRouterView_Arguments(benchmark::State &state) {
           {"argument_90", std::string_view{"value_90"}},
           {"argument_91", std::int64_t{2200}},
           {"argument_92", true},
-          {"argument_93", long_value},
+          {"argument_93", LONG_VALUE},
           {"argument_94", std::int64_t{2300}},
           {"argument_95", false},
           {"argument_96", std::string_view{"auth/token/path"}},
@@ -343,7 +358,7 @@ static void URITemplateRouterView_Arguments(benchmark::State &state) {
   {
     sourcemeta::core::URITemplateRouterView view{path};
 
-    for (auto _ : state) {
+    for (auto iteration : state) {
       auto result = view.match("/api/v1/many", [](auto, auto, auto) {});
       assert(result.first == 3);
       benchmark::DoNotOptimize(result);
@@ -359,15 +374,17 @@ static void URITemplateRouterView_Arguments(benchmark::State &state) {
   std::filesystem::remove(path);
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 static void URITemplateRouter_Match_BasePath(benchmark::State &state) {
+  const auto &operation_ids{operation_id_table()};
   sourcemeta::core::URITemplateRouter router{"/v1/catalog"};
   for (std::size_t index = 0; index < ROUTE_COUNT; ++index) {
-    router.add(ROUTES[index], OPERATION_IDS[index],
+    router.add(ROUTES[index], operation_ids[index],
                static_cast<sourcemeta::core::URITemplateRouter::Identifier>(
                    index + 1));
   }
 
-  for (auto _ : state) {
+  for (auto iteration : state) {
     auto result = router.match(
         "/v1/catalog/api/v1/organizations/12345/teams/67890/projects/abc/"
         "issues/999/comments/42/reactions/1",
@@ -377,14 +394,16 @@ static void URITemplateRouter_Match_BasePath(benchmark::State &state) {
   }
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 static void URITemplateRouterView_Match_BasePath(benchmark::State &state) {
+  const auto &operation_ids{operation_id_table()};
   const auto path{std::filesystem::temp_directory_path() /
                   "uritemplate_benchmark_basepath.bin"};
 
   {
     sourcemeta::core::URITemplateRouter router{"/v1/catalog"};
     for (std::size_t index = 0; index < ROUTE_COUNT; ++index) {
-      router.add(ROUTES[index], OPERATION_IDS[index],
+      router.add(ROUTES[index], operation_ids[index],
                  static_cast<sourcemeta::core::URITemplateRouter::Identifier>(
                      index + 1));
     }
@@ -394,7 +413,7 @@ static void URITemplateRouterView_Match_BasePath(benchmark::State &state) {
 
   {
     sourcemeta::core::URITemplateRouterView view{path};
-    for (auto _ : state) {
+    for (auto iteration : state) {
       auto result = view.match(
           "/v1/catalog/api/v1/organizations/12345/teams/67890/projects/abc/"
           "issues/999/comments/42/reactions/1",

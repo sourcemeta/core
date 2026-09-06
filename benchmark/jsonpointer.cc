@@ -9,6 +9,7 @@
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonpointer.h>
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 static void Pointer_Object_Traverse(benchmark::State &state) {
   const auto document{sourcemeta::core::parse_json(R"JSON({
     "one": {
@@ -36,7 +37,7 @@ static void Pointer_Object_Traverse(benchmark::State &state) {
                                           "five", "six", "seven", "eight",
                                           "nine", "ten"};
 
-  for (auto _ : state) {
+  for (auto iteration : state) {
     auto result{sourcemeta::core::get(document, pointer)};
     assert(result.is_boolean());
     assert(result.to_boolean());
@@ -44,6 +45,7 @@ static void Pointer_Object_Traverse(benchmark::State &state) {
   }
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 static void Pointer_Object_Try_Traverse(benchmark::State &state) {
   const auto document{sourcemeta::core::parse_json(R"JSON({
     "one": {
@@ -71,8 +73,8 @@ static void Pointer_Object_Try_Traverse(benchmark::State &state) {
                                           "five", "six", "seven", "eight",
                                           "nine", "ten"};
 
-  for (auto _ : state) {
-    auto result{sourcemeta::core::try_get(document, pointer)};
+  for (auto iteration : state) {
+    const auto *result{sourcemeta::core::try_get(document, pointer)};
     assert(result);
     assert(result->is_boolean());
     assert(result->to_boolean());
@@ -80,6 +82,7 @@ static void Pointer_Object_Try_Traverse(benchmark::State &state) {
   }
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 static void Pointer_Push_Back_Pointer_To_Weak_Pointer(benchmark::State &state) {
   const sourcemeta::core::Pointer pointer{"QG5",
                                           "hzh4HOy0CDatvDds",
@@ -143,7 +146,7 @@ static void Pointer_Push_Back_Pointer_To_Weak_Pointer(benchmark::State &state) {
                                           "Q6OQxzHNwZsSpM0Fib",
                                           "ltLJ5HS1fUXQIIE"};
 
-  for (auto _ : state) {
+  for (auto iteration : state) {
     sourcemeta::core::WeakPointer destination;
     destination.push_back(pointer);
     assert(destination.size() == pointer.size());
@@ -151,12 +154,13 @@ static void Pointer_Push_Back_Pointer_To_Weak_Pointer(benchmark::State &state) {
   }
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 static void Pointer_Walker_Schema_ISO_Language(benchmark::State &state) {
   const auto schema{sourcemeta::core::read_json(
       std::filesystem::path{CURRENT_DIRECTORY} / "files" /
       "2020_12_iso_language_2023_set_3.json")};
 
-  for (auto _ : state) {
+  for (auto iteration : state) {
     sourcemeta::core::PointerWalker walker{schema};
     auto pointer_count =
         static_cast<std::size_t>(std::distance(walker.cbegin(), walker.cend()));
@@ -164,6 +168,7 @@ static void Pointer_Walker_Schema_ISO_Language(benchmark::State &state) {
   }
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 static void Pointer_Maybe_Tracked_Deeply_Nested(benchmark::State &state) {
   const auto enable_tracker{static_cast<bool>(state.range(0))};
   const std::filesystem::path path{std::filesystem::path{CURRENT_DIRECTORY} /
@@ -173,7 +178,7 @@ static void Pointer_Maybe_Tracked_Deeply_Nested(benchmark::State &state) {
   buffer << file.rdbuf();
   const auto content{buffer.str()};
 
-  for (auto _ : state) {
+  for (auto iteration : state) {
     if (enable_tracker) {
       sourcemeta::core::PointerPositionTracker tracker;
       sourcemeta::core::JSON result{nullptr};
@@ -190,6 +195,7 @@ static void Pointer_Maybe_Tracked_Deeply_Nested(benchmark::State &state) {
 }
 
 static void
+// NOLINTNEXTLINE(readability-identifier-naming)
 Pointer_Position_Tracker_Get_Deeply_Nested(benchmark::State &state) {
   const std::filesystem::path path{std::filesystem::path{CURRENT_DIRECTORY} /
                                    "files" / "deeply_nested.json"};
@@ -208,7 +214,7 @@ Pointer_Position_Tracker_Get_Deeply_Nested(benchmark::State &state) {
       "next", "next", "next", "next", "next", "next", "next", "next",
       "next", "next", "next", "next", "next", "next", "p0"};
 
-  for (auto _ : state) {
+  for (auto iteration : state) {
     auto position{tracker.get(pointer)};
     assert(position.has_value());
     benchmark::DoNotOptimize(position);
@@ -219,5 +225,5 @@ BENCHMARK(Pointer_Object_Traverse);
 BENCHMARK(Pointer_Object_Try_Traverse);
 BENCHMARK(Pointer_Push_Back_Pointer_To_Weak_Pointer);
 BENCHMARK(Pointer_Walker_Schema_ISO_Language);
-BENCHMARK(Pointer_Maybe_Tracked_Deeply_Nested)->Arg(false)->Arg(true);
+BENCHMARK(Pointer_Maybe_Tracked_Deeply_Nested)->Arg(0)->Arg(1);
 BENCHMARK(Pointer_Position_Tracker_Get_Deeply_Nested);

@@ -8,11 +8,12 @@
 #include <fstream>    // std::ifstream
 #include <ios>        // std::ios
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 static void JSONL_Parse_Large(benchmark::State &state) {
   const std::filesystem::path filepath{std::string{CURRENT_DIRECTORY} +
                                        "/files/large.jsonl"};
 
-  for (auto _ : state) {
+  for (auto iteration : state) {
     std::ifstream stream{filepath};
     assert(stream.is_open());
     std::size_t count{0};
@@ -25,11 +26,12 @@ static void JSONL_Parse_Large(benchmark::State &state) {
   }
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 static void JSONL_Parse_Large_GZIP(benchmark::State &state) {
   const std::filesystem::path filepath{std::string{CURRENT_DIRECTORY} +
                                        "/files/large.jsonl.gz"};
 
-  for (auto _ : state) {
+  for (auto iteration : state) {
     std::ifstream stream{filepath, std::ios::binary};
     assert(stream.is_open());
     std::size_t count{0};
