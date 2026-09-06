@@ -43,7 +43,7 @@ static void JSON_Array_Of_Objects_Unique(benchmark::State &state) {
 }
 
 static void JSON_Parse_1(benchmark::State &state) {
-  const auto document{R"JSON({
+  const auto *const document{R"JSON({
     "metadata": {
         "description": "Comprehensive JSON grammar stress test",
         "version": 1.0,
@@ -100,7 +100,7 @@ static void JSON_Parse_1(benchmark::State &state) {
 }
 
 static void JSON_Parse_Real(benchmark::State &state) {
-  const auto document{R"JSON([
+  const auto *const document{R"JSON([
     1.0,
     2.0,
     3.5,
@@ -214,7 +214,7 @@ static void JSON_Parse_Real(benchmark::State &state) {
 }
 
 static void JSON_Parse_Decimal(benchmark::State &state) {
-  const auto document{R"JSON([
+  const auto *const document{R"JSON([
     123456789012345678901234567890,
     987654321098765432109876543210,
     111111111111111111111111111111,

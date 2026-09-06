@@ -1,6 +1,6 @@
 function(sourcemeta_executable)
   cmake_parse_arguments(SOURCEMETA_EXECUTABLE ""
-    "NAMESPACE;PROJECT;NAME;VARIANT;OUTPUT" "SOURCES" ${ARGN})
+    "NAMESPACE;PROJECT;NAME;VARIANT;OUTPUT" "SOURCES;CLANG_TIDY_DISABLE" ${ARGN})
 
   if(NOT SOURCEMETA_EXECUTABLE_PROJECT)
     message(FATAL_ERROR "You must pass the project name using the PROJECT option")
@@ -81,6 +81,7 @@ function(sourcemeta_executable)
 
   # We don't want consumers to be bothered with this
   if(PROJECT_IS_TOP_LEVEL)
-    sourcemeta_clang_tidy_attempt_enable(TARGET "${TARGET_NAME}")
+    sourcemeta_clang_tidy_attempt_enable(TARGET "${TARGET_NAME}"
+      DISABLE ${SOURCEMETA_EXECUTABLE_CLANG_TIDY_DISABLE})
   endif()
 endfunction()

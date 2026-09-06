@@ -72,7 +72,7 @@ static void Pointer_Object_Try_Traverse(benchmark::State &state) {
                                           "nine", "ten"};
 
   for (auto _ : state) {
-    auto result{sourcemeta::core::try_get(document, pointer)};
+    const auto *result{sourcemeta::core::try_get(document, pointer)};
     assert(result);
     assert(result->is_boolean());
     assert(result->to_boolean());
@@ -219,5 +219,5 @@ BENCHMARK(Pointer_Object_Traverse);
 BENCHMARK(Pointer_Object_Try_Traverse);
 BENCHMARK(Pointer_Push_Back_Pointer_To_Weak_Pointer);
 BENCHMARK(Pointer_Walker_Schema_ISO_Language);
-BENCHMARK(Pointer_Maybe_Tracked_Deeply_Nested)->Arg(false)->Arg(true);
+BENCHMARK(Pointer_Maybe_Tracked_Deeply_Nested)->Arg(0)->Arg(1);
 BENCHMARK(Pointer_Position_Tracker_Get_Deeply_Nested);
