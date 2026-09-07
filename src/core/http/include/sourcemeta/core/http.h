@@ -152,10 +152,10 @@ auto http_parse_media_type(const std::string_view media_type) noexcept
 
 /// @ingroup http
 /// Pick the most specific media range that a media type matches per RFC 9110
-/// §12.5.1, where `type/subtype` beats `type/*` beats `*/*` and a range that
-/// pins a parameter the media type also carries is more specific still.
-/// Returns an empty value when none match. The returned view borrows from
-/// `ranges`. For example:
+/// §12.5.1, where an exact type beats a subtype wildcard, which in turn beats
+/// a full wildcard, and a range that pins a parameter the media type also
+/// carries is more specific still. Returns an empty value when none match. The
+/// returned view borrows from `ranges`. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/http.h>
@@ -163,8 +163,7 @@ auto http_parse_media_type(const std::string_view media_type) noexcept
 /// #include <cassert>
 /// #include <string_view>
 ///
-/// const std::array<std::string_view, 3> ranges{
-///     {"*/*", "text/*", "text/plain"}};
+/// const std::array<std::string_view, 2> ranges{{"text/*", "text/plain"}};
 /// const auto best{
 ///     sourcemeta::core::http_match_media_range("text/plain", ranges)};
 /// assert(best == "text/plain");
