@@ -15,7 +15,8 @@ sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME http
           http_serialize_cookie_test.cc http_parse_cookies_test.cc
           http_cookie_values_test.cc
           http_cookie_valid_test.cc http_aws_sigv4_test.cc
-          http_syntax_test.cc
+          http_syntax_test.cc http_parse_media_type_test.cc
+          http_match_media_range_test.cc
           http_system_request_test.cc)
 
 target_link_libraries(sourcemeta_core_http_unit
