@@ -38,6 +38,9 @@ sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME uri
     uri_escape_test.cc
     uri_unescape_test.cc
     uri_unescape_form_test.cc
+    uri_escape_form_test.cc
+    uri_append_form_parameter_test.cc
+    uri_parse_form_test.cc
     uri_append_query_parameter_test.cc
     uri_normalize_path_test.cc
     uri_resolve_from_test.cc
