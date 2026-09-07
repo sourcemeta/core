@@ -23,7 +23,7 @@
 #include <string>      // std::string
 #include <string_view> // std::string_view
 #include <type_traits> // std::is_same_v, std::remove_cvref_t
-#include <utility>     // std::pair, std::forward, std::move
+#include <utility>     // std::pair, std::forward
 #include <vector>      // std::vector
 
 /// @defgroup uri URI
@@ -1113,9 +1113,11 @@ public:
 
   /// Decode an "application/x-www-form-urlencoded" body into its name and
   /// value pairs (WHATWG URL Section 5.1), appending them to a container in
-  /// the order they appear and keeping repeats. Each "+" becomes a space and
-  /// each percent escape becomes its octet, while a "%" that is not followed
-  /// by two hexadecimal digits is kept as it appears. For example:
+  /// the order they appear and keeping repeats. Decoding produces bytes the
+  /// input does not carry, so the pairs own their characters rather than
+  /// borrow them. Each "+" becomes a space and each percent escape becomes its
+  /// octet, while a "%" that is not followed by two hexadecimal digits is kept
+  /// as it appears. For example:
   ///
   /// ```cpp
   /// #include <sourcemeta/core/uri.h>
@@ -1131,6 +1133,11 @@ public:
   /// assert(parameters.at(1).second == "x y");
   /// ```
   template <typename Container>
+    requires requires(Container container, Container::value_type entry) {
+      container.emplace_back();
+      entry.first.push_back('\0');
+      entry.second.push_back('\0');
+    }
   static auto parse_form(const std::string_view input, Container &output)
       -> void {
     std::size_t position{0};
@@ -1152,16 +1159,13 @@ public:
       // 0x3D (=), and let value be the bytes, if any, after the first 0x3D
       // (=) up to the end of bytes"
       const auto equals{sequence.find('=')};
-      std::string name;
-      std::string value;
+      auto &entry{output.emplace_back()};
       if (equals == std::string_view::npos) {
-        URI::decode_form_component(sequence, name);
+        URI::decode_form_component(sequence, entry.first);
       } else {
-        URI::decode_form_component(sequence.substr(0, equals), name);
-        URI::decode_form_component(sequence.substr(equals + 1), value);
+        URI::decode_form_component(sequence.substr(0, equals), entry.first);
+        URI::decode_form_component(sequence.substr(equals + 1), entry.second);
       }
-
-      output.emplace_back(std::move(name), std::move(value));
     }
   }
 
@@ -1326,8 +1330,9 @@ private:
   // (SP)" and then percent-decode, which Section 1.3 defines to append a "%"
   // that is not followed by two hexadecimal digits as it appears rather than
   // to fail
+  template <typename Output>
   static auto decode_form_component(const std::string_view input,
-                                    std::string &output) -> void {
+                                    Output &output) -> void {
     output.reserve(output.size() + input.size());
     for (std::size_t position = 0; position < input.size();) {
       const auto character{input[position]};
