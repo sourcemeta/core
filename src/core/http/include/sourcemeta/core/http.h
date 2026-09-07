@@ -132,7 +132,8 @@ struct HTTPMediaType {
 /// @ingroup http
 /// Parse a media type into its parts per RFC 9110 §8.3.1, splitting off any
 /// structured syntax suffix per RFC 6838 §4.2. Returns no value when the input
-/// is not well-formed. A media range such as `text/*` parses the same way. For
+/// is not well-formed, including when its parameters do not follow RFC 9110
+/// §5.6.6. A media range such as `text/*` parses the same way. For
 /// example:
 ///
 /// ```cpp
@@ -147,15 +148,18 @@ struct HTTPMediaType {
 /// assert(result.value().suffix == "+json");
 /// ```
 SOURCEMETA_CORE_HTTP_EXPORT
-auto http_parse_media_type(const std::string_view media_type) noexcept
+auto http_parse_media_type(const std::string_view media_type)
     -> std::optional<HTTPMediaType>;
 
 /// @ingroup http
 /// Pick the most specific media range that a media type matches per RFC 9110
 /// §12.5.1, where an exact type beats a subtype wildcard, which in turn beats
 /// a full wildcard, and a range that pins a parameter the media type also
-/// carries is more specific still. Returns an empty value when none match. The
-/// returned view borrows from `ranges`. For example:
+/// carries is more specific still. A weight on a range is not a media type
+/// parameter and takes no part in matching. Selection looks only at the type
+/// and the parameters it is given, so neither side has to be well-formed
+/// beyond its type. Returns an empty value when none match. The returned view
+/// borrows from `ranges`. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/http.h>

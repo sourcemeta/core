@@ -119,3 +119,38 @@ TEST(the_range_is_returned_as_given) {
   EXPECT_EQ(sourcemeta::core::http_match_media_range("text/plain", ranges),
             "  text/plain  ");
 }
+
+TEST(a_weight_on_a_range_is_not_a_media_type_parameter) {
+  const std::array<std::string_view, 1> ranges{{"text/plain;q=0.8"}};
+  EXPECT_EQ(sourcemeta::core::http_match_media_range("text/plain", ranges),
+            "text/plain;q=0.8");
+}
+
+TEST(a_weight_after_a_media_type_parameter) {
+  const std::array<std::string_view, 1> ranges{
+      {"text/plain;charset=utf-8;q=0.8"}};
+  EXPECT_EQ(sourcemeta::core::http_match_media_range(
+                "text/plain; charset=utf-8", ranges),
+            "text/plain;charset=utf-8;q=0.8");
+}
+
+TEST(parameters_after_a_weight_are_not_media_type_parameters) {
+  const std::array<std::string_view, 1> ranges{
+      {"text/plain;q=0.8;charset=utf-8"}};
+  EXPECT_EQ(sourcemeta::core::http_match_media_range("text/plain", ranges),
+            "text/plain;q=0.8;charset=utf-8");
+}
+
+TEST(a_weight_does_not_affect_specificity) {
+  const std::array<std::string_view, 2> ranges{
+      {"text/*;q=1", "text/plain;q=0.1"}};
+  EXPECT_EQ(sourcemeta::core::http_match_media_range("text/plain", ranges),
+            "text/plain;q=0.1");
+}
+
+TEST(malformed_parameters_do_not_prevent_matching) {
+  const std::array<std::string_view, 1> ranges{{"text/plain"}};
+  EXPECT_EQ(
+      sourcemeta::core::http_match_media_range("text/plain; charset", ranges),
+      "text/plain");
+}

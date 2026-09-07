@@ -1,6 +1,8 @@
 #include <sourcemeta/core/http.h>
 #include <sourcemeta/core/test.h>
 
+#include <string> // std::string
+
 TEST(simple) {
   const auto result{
       sourcemeta::core::http_parse_media_type("application/json")};
@@ -189,5 +191,107 @@ TEST(invalid_space_within) {
 
 TEST(invalid_mime_comment) {
   EXPECT_FALSE(sourcemeta::core::http_parse_media_type("text/plain(comment)")
+                   .has_value());
+}
+
+TEST(empty_parameter_slot) {
+  const auto result{sourcemeta::core::http_parse_media_type("text/plain;")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value().type, "text");
+  EXPECT_EQ(result.value().subtype, "plain");
+  EXPECT_EQ(result.value().suffix, "");
+  EXPECT_EQ(result.value().parameters, ";");
+}
+
+TEST(consecutive_parameter_separators) {
+  const auto result{sourcemeta::core::http_parse_media_type("text/plain;;")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value().type, "text");
+  EXPECT_EQ(result.value().subtype, "plain");
+  EXPECT_EQ(result.value().suffix, "");
+  EXPECT_EQ(result.value().parameters, ";;");
+}
+
+TEST(empty_parameter_slot_after_a_parameter) {
+  const auto result{
+      sourcemeta::core::http_parse_media_type("text/plain; charset=utf-8;")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value().type, "text");
+  EXPECT_EQ(result.value().subtype, "plain");
+  EXPECT_EQ(result.value().suffix, "");
+  EXPECT_EQ(result.value().parameters, "; charset=utf-8;");
+}
+
+TEST(quoted_parameter_value) {
+  const auto result{
+      sourcemeta::core::http_parse_media_type("text/plain; charset=\"utf-8\"")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value().type, "text");
+  EXPECT_EQ(result.value().subtype, "plain");
+  EXPECT_EQ(result.value().suffix, "");
+  EXPECT_EQ(result.value().parameters, "; charset=\"utf-8\"");
+}
+
+TEST(quoted_parameter_value_with_a_quoted_pair) {
+  const std::string input{R"(text/plain; x="a\"b")"};
+  const std::string parameters{R"(; x="a\"b")"};
+  const auto result{sourcemeta::core::http_parse_media_type(input)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value().type, "text");
+  EXPECT_EQ(result.value().subtype, "plain");
+  EXPECT_EQ(result.value().suffix, "");
+  EXPECT_EQ(result.value().parameters, parameters);
+}
+
+TEST(parameter_with_trailing_whitespace) {
+  const auto result{
+      sourcemeta::core::http_parse_media_type("text/plain; charset=utf-8   ")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value().type, "text");
+  EXPECT_EQ(result.value().subtype, "plain");
+  EXPECT_EQ(result.value().suffix, "");
+  EXPECT_EQ(result.value().parameters, "; charset=utf-8   ");
+}
+
+TEST(invalid_parameter_without_a_value) {
+  EXPECT_FALSE(sourcemeta::core::http_parse_media_type("text/plain; charset")
+                   .has_value());
+}
+
+TEST(invalid_parameter_with_an_empty_value) {
+  EXPECT_FALSE(sourcemeta::core::http_parse_media_type("text/plain; charset=")
+                   .has_value());
+}
+
+TEST(invalid_parameter_with_an_unterminated_quote) {
+  EXPECT_FALSE(
+      sourcemeta::core::http_parse_media_type("text/plain; charset=\"utf-8")
+          .has_value());
+}
+
+TEST(invalid_parameter_with_a_control_character_in_its_value) {
+  EXPECT_FALSE(sourcemeta::core::http_parse_media_type("text/plain; x=\"a\nb\"")
+                   .has_value());
+}
+
+TEST(invalid_whitespace_before_the_parameter_equals) {
+  EXPECT_FALSE(
+      sourcemeta::core::http_parse_media_type("text/plain; charset =utf-8")
+          .has_value());
+}
+
+TEST(invalid_whitespace_after_the_parameter_equals) {
+  EXPECT_FALSE(
+      sourcemeta::core::http_parse_media_type("text/plain; charset= utf-8")
+          .has_value());
+}
+
+TEST(invalid_parameter_name) {
+  EXPECT_FALSE(
+      sourcemeta::core::http_parse_media_type("text/plain; (x)=1").has_value());
+}
+
+TEST(invalid_parameter_without_a_separator) {
+  EXPECT_FALSE(sourcemeta::core::http_parse_media_type("text/plain; a=1 b=2")
                    .has_value());
 }
