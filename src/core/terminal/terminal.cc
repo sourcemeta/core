@@ -69,7 +69,7 @@ auto terminal_color_enabled(TerminalStream stream) noexcept -> bool {
 }
 
 auto terminal_sgr_reset() noexcept -> std::string_view {
-  return internal::escape_reset;
+  return internal::ESCAPE_RESET;
 }
 
 auto terminal_sgr_sequence(TerminalStyle style) noexcept -> std::string_view {
@@ -82,23 +82,23 @@ auto terminal_sgr_sequence(TerminalStyle style) noexcept -> std::string_view {
   const bool has_bold{(style & TerminalStyle::Bold) != TerminalStyle::None};
 
   if ((style & TerminalStyle::Red) != TerminalStyle::None) {
-    return has_bold ? internal::escape_bold_red : internal::escape_red;
+    return has_bold ? internal::ESCAPE_BOLD_RED : internal::ESCAPE_RED;
   }
   if ((style & TerminalStyle::Green) != TerminalStyle::None) {
-    return has_bold ? internal::escape_bold_green : internal::escape_green;
+    return has_bold ? internal::ESCAPE_BOLD_GREEN : internal::ESCAPE_GREEN;
   }
   if ((style & TerminalStyle::Yellow) != TerminalStyle::None) {
-    return has_bold ? internal::escape_bold_yellow : internal::escape_yellow;
+    return has_bold ? internal::ESCAPE_BOLD_YELLOW : internal::ESCAPE_YELLOW;
   }
   if ((style & TerminalStyle::Blue) != TerminalStyle::None) {
-    return has_bold ? internal::escape_bold_blue : internal::escape_blue;
+    return has_bold ? internal::ESCAPE_BOLD_BLUE : internal::ESCAPE_BLUE;
   }
   if ((style & TerminalStyle::Cyan) != TerminalStyle::None) {
-    return has_bold ? internal::escape_bold_cyan : internal::escape_cyan;
+    return has_bold ? internal::ESCAPE_BOLD_CYAN : internal::ESCAPE_CYAN;
   }
 
   if (has_bold) {
-    return internal::escape_bold;
+    return internal::ESCAPE_BOLD;
   }
 
   return {};

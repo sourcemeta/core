@@ -229,7 +229,7 @@ enum class TerminalStyle : std::uint8_t {
 [[nodiscard]] constexpr auto
 terminal_style_is_valid(TerminalStyle style) noexcept -> bool {
   using Underlying = std::underlying_type_t<TerminalStyle>;
-  constexpr Underlying defined_mask{
+  constexpr Underlying DEFINED_MASK{
       static_cast<Underlying>(TerminalStyle::Bold) |
       static_cast<Underlying>(TerminalStyle::Red) |
       static_cast<Underlying>(TerminalStyle::Green) |
@@ -238,7 +238,7 @@ terminal_style_is_valid(TerminalStyle style) noexcept -> bool {
       static_cast<Underlying>(TerminalStyle::Cyan)};
 
   const auto raw{static_cast<Underlying>(style)};
-  if ((raw & ~defined_mask) != 0) {
+  if ((raw & ~DEFINED_MASK) != 0) {
     return false;
   }
 

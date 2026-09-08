@@ -14,40 +14,40 @@ namespace sourcemeta::core::internal {
 /// @{
 
 /// Reset or normal display (ECMA-48 SGR parameter 0).
-constexpr std::string_view escape_reset{"\033[0m"};
+constexpr std::string_view ESCAPE_RESET{"\033[0m"};
 
 /// Bold or increased intensity (ECMA-48 SGR parameter 1).
-constexpr std::string_view escape_bold{"\033[1m"};
+constexpr std::string_view ESCAPE_BOLD{"\033[1m"};
 
 /// Red foreground color (ECMA-48 SGR parameter 31).
-constexpr std::string_view escape_red{"\033[31m"};
+constexpr std::string_view ESCAPE_RED{"\033[31m"};
 
 /// Green foreground color (ECMA-48 SGR parameter 32).
-constexpr std::string_view escape_green{"\033[32m"};
+constexpr std::string_view ESCAPE_GREEN{"\033[32m"};
 
 /// Yellow foreground color (ECMA-48 SGR parameter 33).
-constexpr std::string_view escape_yellow{"\033[33m"};
+constexpr std::string_view ESCAPE_YELLOW{"\033[33m"};
 
 /// Blue foreground color (ECMA-48 SGR parameter 34).
-constexpr std::string_view escape_blue{"\033[34m"};
+constexpr std::string_view ESCAPE_BLUE{"\033[34m"};
 
 /// Cyan foreground color (ECMA-48 SGR parameter 36).
-constexpr std::string_view escape_cyan{"\033[36m"};
+constexpr std::string_view ESCAPE_CYAN{"\033[36m"};
 
 /// Bold red foreground color (ECMA-48 SGR parameters 1 and 31).
-constexpr std::string_view escape_bold_red{"\033[1;31m"};
+constexpr std::string_view ESCAPE_BOLD_RED{"\033[1;31m"};
 
 /// Bold green foreground color (ECMA-48 SGR parameters 1 and 32).
-constexpr std::string_view escape_bold_green{"\033[1;32m"};
+constexpr std::string_view ESCAPE_BOLD_GREEN{"\033[1;32m"};
 
 /// Bold yellow foreground color (ECMA-48 SGR parameters 1 and 33).
-constexpr std::string_view escape_bold_yellow{"\033[1;33m"};
+constexpr std::string_view ESCAPE_BOLD_YELLOW{"\033[1;33m"};
 
 /// Bold blue foreground color (ECMA-48 SGR parameters 1 and 34).
-constexpr std::string_view escape_bold_blue{"\033[1;34m"};
+constexpr std::string_view ESCAPE_BOLD_BLUE{"\033[1;34m"};
 
 /// Bold cyan foreground color (ECMA-48 SGR parameters 1 and 36).
-constexpr std::string_view escape_bold_cyan{"\033[1;36m"};
+constexpr std::string_view ESCAPE_BOLD_CYAN{"\033[1;36m"};
 
 /// @}
 
