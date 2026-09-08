@@ -15,9 +15,9 @@
 set -o errexit
 set -o nounset
 
-if [ "$#" -ne 2 ]
+if [ "$#" -lt 2 ]
 then
-  echo "Usage: $0 <build-directory> <report-directory>" >&2
+  echo "Usage: $0 <build-directory> <report-directory> [cmake-option...]" >&2
   exit 1
 fi
 
@@ -25,6 +25,7 @@ SOURCE_DIRECTORY="$(cd "$(dirname "$0")/.." && pwd)"
 mkdir -p "$1" "$2"
 BUILD_DIRECTORY="$(cd "$1" && pwd)"
 REPORT_DIRECTORY="$(cd "$2" && pwd)"
+shift 2
 
 # Everything the report is derived from stays next to the build it came from,
 # so that the report directory holds nothing but the pages themselves
@@ -69,7 +70,8 @@ cmake -S "$SOURCE_DIRECTORY" -B "$BUILD_DIRECTORY" \
   -DCMAKE_C_FLAGS:STRING="-fprofile-instr-generate -fcoverage-mapping" \
   -DCMAKE_CXX_FLAGS:STRING="-fprofile-instr-generate -fcoverage-mapping" \
   -DCMAKE_EXE_LINKER_FLAGS:STRING="-fprofile-instr-generate" \
-  -DCMAKE_SHARED_LINKER_FLAGS:STRING="-fprofile-instr-generate"
+  -DCMAKE_SHARED_LINKER_FLAGS:STRING="-fprofile-instr-generate" \
+  "$@"
 
 cmake --build "$BUILD_DIRECTORY" --config Debug
 
@@ -77,9 +79,12 @@ PROFILE_DIRECTORY="$OUTPUT_DIRECTORY/profile"
 rm -rf "$PROFILE_DIRECTORY"
 mkdir -p "$PROFILE_DIRECTORY"
 
+# The packaging tests drive a separate build of a consuming project, which
+# carries no instrumentation and contributes no coverage, and which expects an
+# installation that this script has no reason to produce
 LLVM_PROFILE_FILE="$PROFILE_DIRECTORY/%p.profraw" \
   ctest --test-dir "$BUILD_DIRECTORY" --build-config Debug \
-    --output-on-failure
+    --output-on-failure --exclude-regex find_package
 
 PROFILE_DATA="$OUTPUT_DIRECTORY/coverage.profdata"
 "$LLVM_PROFDATA" merge -sparse -o "$PROFILE_DATA" "$PROFILE_DIRECTORY"/*.profraw

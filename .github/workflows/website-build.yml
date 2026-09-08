@@ -11,54 +11,55 @@ jobs:
     runs-on: ubuntu-latest
     # Fedora provides a modern Doxygen out of the box
     container: fedora:latest
+    env:
+      # Compiler caching, matching the setup of the main CI workflow
+      CMAKE_C_COMPILER_LAUNCHER: ccache
+      CMAKE_CXX_COMPILER_LAUNCHER: ccache
+      # Expanded by `ccache` itself, which understands neither a leading tilde
+      # nor the shell
+      CCACHE_DIR: ${RUNNER_TEMP}/ccache
+      # Runner images are re-provisioned on every run, so the default check of
+      # the compiler modification time and size would miss on an unchanged
+      # compiler. Hash its contents instead
+      CCACHE_COMPILERCHECK: content
+      CCACHE_MAXSIZE: 500M
+      # Bump the version segment to invalidate the compiler cache by hand
+      CACHE_KEY: ccache-v1-website-coverage
     steps:
       - name: Install dependencies
-        run: dnf install --assumeyes doxygen cmake gcc-c++ graphviz git
+        run: dnf install --assumeyes doxygen cmake gcc-c++ graphviz git clang llvm ccache libstdc++-static diffutils util-linux
       - uses: actions/checkout@v7
-      - run: >
-          cmake -S . -B ./build
-          -DCMAKE_BUILD_TYPE:STRING=Release
-          -DSOURCEMETA_CORE_LANG_ALLOCATOR:BOOL=OFF
-          -DSOURCEMETA_CORE_LANG_PREPROCESSOR:BOOL=OFF
-          -DSOURCEMETA_CORE_LANG_IO:BOOL=OFF
-          -DSOURCEMETA_CORE_LANG_PROCESS:BOOL=OFF
-          -DSOURCEMETA_CORE_LANG_PARALLEL:BOOL=OFF
-          -DSOURCEMETA_CORE_LANG_NUMERIC:BOOL=OFF
-          -DSOURCEMETA_CORE_LANG_MEMORY:BOOL=OFF
-          -DSOURCEMETA_CORE_LANG_ERROR:BOOL=OFF
-          -DSOURCEMETA_CORE_LANG_OPTIONS:BOOL=OFF
-          -DSOURCEMETA_CORE_LANG_TEXT:BOOL=OFF
-          -DSOURCEMETA_CORE_LANG_STACKTRACE:BOOL=OFF
-          -DSOURCEMETA_CORE_LANG_TEST:BOOL=OFF
-          -DSOURCEMETA_CORE_UNICODE:BOOL=OFF
-          -DSOURCEMETA_CORE_PUNYCODE:BOOL=OFF
-          -DSOURCEMETA_CORE_TIME:BOOL=OFF
-          -DSOURCEMETA_CORE_CRYPTO:BOOL=OFF
-          -DSOURCEMETA_CORE_REGEX:BOOL=OFF
-          -DSOURCEMETA_CORE_IP:BOOL=OFF
-          -DSOURCEMETA_CORE_IDNA:BOOL=OFF
-          -DSOURCEMETA_CORE_DNS:BOOL=OFF
-          -DSOURCEMETA_CORE_EMAIL:BOOL=OFF
-          -DSOURCEMETA_CORE_LANGTAG:BOOL=OFF
-          -DSOURCEMETA_CORE_URI:BOOL=OFF
-          -DSOURCEMETA_CORE_URITEMPLATE:BOOL=OFF
-          -DSOURCEMETA_CORE_JSON:BOOL=OFF
-          -DSOURCEMETA_CORE_JSONL:BOOL=OFF
-          -DSOURCEMETA_CORE_JSONPOINTER:BOOL=OFF
-          -DSOURCEMETA_CORE_JSONPATH:BOOL=OFF
-          -DSOURCEMETA_CORE_JSONLD:BOOL=OFF
-          -DSOURCEMETA_CORE_YAML:BOOL=OFF
-          -DSOURCEMETA_CORE_JSONRPC:BOOL=OFF
-          -DSOURCEMETA_CORE_MCP:BOOL=OFF
-          -DSOURCEMETA_CORE_HTTP:BOOL=OFF
-          -DSOURCEMETA_CORE_JOSE:BOOL=OFF
-          -DSOURCEMETA_CORE_OAUTH:BOOL=OFF
-          -DSOURCEMETA_CORE_OIDC:BOOL=OFF
-          -DSOURCEMETA_CORE_SEMVER:BOOL=OFF
-          -DSOURCEMETA_CORE_GZIP:BOOL=OFF
-          -DSOURCEMETA_CORE_HTML:BOOL=OFF
-          -DSOURCEMETA_CORE_CSS:BOOL=OFF
-          -DSOURCEMETA_CORE_MARKDOWN:BOOL=OFF
-          -DSOURCEMETA_CORE_DIFF:BOOL=OFF
-          -DSOURCEMETA_CORE_DOCS:BOOL=ON
-      - run: cmake --build ./build --config Release --target doxygen
+      # The primary key never matches, as it carries the run identifier, so a
+      # restore always walks the fallbacks in order. A previous run of this same
+      # pull request comes first, as it is the closest to what we are about to
+      # compile, and `main` is the fallback
+      - name: Restore ccache
+        id: ccache
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ runner.temp }}/ccache
+          key: ${{ env.CACHE_KEY }}-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            ${{ env.CACHE_KEY }}-${{ github.ref_name }}-
+            ${{ env.CACHE_KEY }}-main-
+      - run: ccache --zero-stats
+      # Container jobs run as root, and a superuser is not constrained by the
+      # permission bits that part of the suite asserts on
+      - name: Build the website
+        run: |
+          useradd --create-home builder
+          mkdir -p "${{ runner.temp }}/ccache"
+          chown -R builder . "${{ runner.temp }}/ccache"
+          runuser -u builder -- ./contrib/website.sh ./build
+        env:
+          CC: clang
+          CXX: clang++
+      - run: ccache --show-stats
+      # Saving on a cancelled run is pointless, as the cache would only hold
+      # whatever the build got through before the interruption
+      - name: Save ccache
+        if: success() || failure()
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ runner.temp }}/ccache
+          key: ${{ steps.ccache.outputs.cache-primary-key }}
