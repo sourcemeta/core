@@ -34,3 +34,10 @@ target_link_libraries(sourcemeta_core_jsonpointer_unit
   PRIVATE sourcemeta::core::json)
 target_link_libraries(sourcemeta_core_jsonpointer_unit
   PRIVATE sourcemeta::core::uri)
+
+# GCC 16 at -O3 reports an out of bounds read on the branch that the size
+# check in the two tail prefix comparison makes unreachable
+if(SOURCEMETA_COMPILER_GCC)
+  set_source_files_properties(jsonpointer_starts_with_test.cc
+    PROPERTIES COMPILE_OPTIONS -Wno-array-bounds)
+endif()
