@@ -1,0 +1,18 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "pathItems": {
+        "/pets": {}
+      }
+    }
+  },
+  "error": {
+    "message": "The Components Object keys may only hold letters, digits, dots, hyphens and underscores",
+    "location": "/components/pathItems/~1pets"
+  }
+}

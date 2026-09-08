@@ -1,0 +1,18 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "links": {
+        "Item": {}
+      }
+    }
+  },
+  "error": {
+    "message": "The Link Object must declare an operation reference or an operation identifier",
+    "location": "/components/links/Item"
+  }
+}

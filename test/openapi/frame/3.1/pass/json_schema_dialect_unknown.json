@@ -1,0 +1,35 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "jsonSchemaDialect": "https://example.com/whatever",
+    "paths": {}
+  },
+  "frame": {
+    "version": "3.1",
+    "base": "",
+    "standalone": true,
+    "locations": {
+      "": {
+        "type": "openapi",
+        "pointer": "",
+        "parent": null,
+        "dialect": "https://example.com/whatever"
+      },
+      "#/info": {
+        "type": "info",
+        "pointer": "/info",
+        "parent": ""
+      },
+      "#/paths": {
+        "type": "paths",
+        "pointer": "/paths",
+        "parent": ""
+      }
+    },
+    "operations": []
+  }
+}

@@ -1,0 +1,168 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "responses": {
+        "SameDocument": {
+          "$ref": "#/components/responses/Other"
+        },
+        "RelativeDocument": {
+          "$ref": "common.yaml#/components/responses/NotFound"
+        },
+        "AbsolutePath": {
+          "$ref": "/shared/common.yaml#/components/responses/NotFound"
+        },
+        "Absolute": {
+          "$ref": "https://example.com/common.yaml#/components/responses/NotFound"
+        },
+        "NoFragment": {
+          "$ref": "common.yaml"
+        },
+        "Empty": {
+          "$ref": ""
+        },
+        "Escaped": {
+          "$ref": "#/paths/~1pets/get/responses/200"
+        },
+        "Other": {
+          "description": "ok"
+        }
+      }
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "200": {
+              "description": "ok"
+            }
+          }
+        }
+      }
+    }
+  },
+  "frame": {
+    "version": "3.1",
+    "base": "",
+    "standalone": false,
+    "locations": {
+      "": {
+        "type": "openapi",
+        "pointer": "",
+        "parent": null,
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+      },
+      "#/components": {
+        "type": "components",
+        "pointer": "/components",
+        "parent": ""
+      },
+      "#/components/responses/Absolute": {
+        "type": "reference",
+        "pointer": "/components/responses/Absolute",
+        "parent": "#/components",
+        "original": "https://example.com/common.yaml#/components/responses/NotFound",
+        "destination": "https://example.com/common.yaml#/components/responses/NotFound"
+      },
+      "#/components/responses/AbsolutePath": {
+        "type": "reference",
+        "pointer": "/components/responses/AbsolutePath",
+        "parent": "#/components",
+        "original": "/shared/common.yaml#/components/responses/NotFound",
+        "destination": "/shared/common.yaml#/components/responses/NotFound"
+      },
+      "#/components/responses/Empty": {
+        "type": "reference",
+        "pointer": "/components/responses/Empty",
+        "parent": "#/components",
+        "original": "",
+        "destination": ""
+      },
+      "#/components/responses/Escaped": {
+        "type": "reference",
+        "pointer": "/components/responses/Escaped",
+        "parent": "#/components",
+        "original": "#/paths/~1pets/get/responses/200",
+        "destination": "#/paths/~1pets/get/responses/200"
+      },
+      "#/components/responses/NoFragment": {
+        "type": "reference",
+        "pointer": "/components/responses/NoFragment",
+        "parent": "#/components",
+        "original": "common.yaml",
+        "destination": "common.yaml"
+      },
+      "#/components/responses/Other": {
+        "type": "response",
+        "pointer": "/components/responses/Other",
+        "parent": "#/components"
+      },
+      "#/components/responses/RelativeDocument": {
+        "type": "reference",
+        "pointer": "/components/responses/RelativeDocument",
+        "parent": "#/components",
+        "original": "common.yaml#/components/responses/NotFound",
+        "destination": "common.yaml#/components/responses/NotFound"
+      },
+      "#/components/responses/SameDocument": {
+        "type": "reference",
+        "pointer": "/components/responses/SameDocument",
+        "parent": "#/components",
+        "original": "#/components/responses/Other",
+        "destination": "#/components/responses/Other"
+      },
+      "#/info": {
+        "type": "info",
+        "pointer": "/info",
+        "parent": ""
+      },
+      "#/paths": {
+        "type": "paths",
+        "pointer": "/paths",
+        "parent": ""
+      },
+      "#/paths/~1pets": {
+        "type": "path-item",
+        "pointer": "/paths/~1pets",
+        "parent": "#/paths"
+      },
+      "#/paths/~1pets/get": {
+        "type": "operation",
+        "pointer": "/paths/~1pets/get",
+        "parent": "#/paths/~1pets"
+      },
+      "#/paths/~1pets/get/responses": {
+        "type": "responses",
+        "pointer": "/paths/~1pets/get/responses",
+        "parent": "#/paths/~1pets/get"
+      },
+      "#/paths/~1pets/get/responses/200": {
+        "type": "response",
+        "pointer": "/paths/~1pets/get/responses/200",
+        "parent": "#/paths/~1pets/get/responses"
+      }
+    },
+    "operations": [
+      {
+        "type": "path",
+        "path": "/pets",
+        "method": "get",
+        "origin": "#/paths/~1pets/get",
+        "tags": [],
+        "servers": [],
+        "security": [],
+        "parameters": []
+      }
+    ]
+  },
+  "dangling": [
+    "https://example.com/common.yaml#/components/responses/NotFound",
+    "/shared/common.yaml#/components/responses/NotFound",
+    "common.yaml",
+    "common.yaml#/components/responses/NotFound"
+  ]
+}

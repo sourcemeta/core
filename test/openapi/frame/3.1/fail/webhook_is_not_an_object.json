@@ -1,0 +1,16 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "webhooks": {
+      "newPet": 1
+    }
+  },
+  "error": {
+    "message": "The Path Item Object must be an object",
+    "location": "/webhooks/newPet"
+  }
+}

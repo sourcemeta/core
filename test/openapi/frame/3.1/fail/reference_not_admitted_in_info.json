@@ -1,0 +1,15 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "E",
+      "version": "1",
+      "$ref": "#/components/schemas/Pet"
+    },
+    "paths": {}
+  },
+  "error": {
+    "message": "The Info Object does not define this field",
+    "location": "/info/$ref"
+  }
+}

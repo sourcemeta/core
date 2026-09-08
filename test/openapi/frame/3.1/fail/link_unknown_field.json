@@ -1,0 +1,21 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "links": {
+        "Item": {
+          "operationId": "list",
+          "headers": {}
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "The Link Object does not define this field",
+    "location": "/components/links/Item/headers"
+  }
+}

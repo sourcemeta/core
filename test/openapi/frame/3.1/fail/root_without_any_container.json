@@ -1,0 +1,13 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    }
+  },
+  "error": {
+    "message": "The OpenAPI Description must declare paths, components or webhooks",
+    "location": ""
+  }
+}

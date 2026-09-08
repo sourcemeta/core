@@ -1,0 +1,28 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "servers": [
+      {
+        "url": "/{version}",
+        "variables": {
+          "version": {
+            "default": "v1",
+            "enum": [
+              "v1",
+              2
+            ]
+          }
+        }
+      }
+    ],
+    "paths": {}
+  },
+  "error": {
+    "message": "The Server Variable Object enumeration must only hold strings",
+    "location": "/servers/0/variables/version/enum/1"
+  }
+}

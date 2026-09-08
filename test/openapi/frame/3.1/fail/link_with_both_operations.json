@@ -1,0 +1,21 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "links": {
+        "Item": {
+          "operationRef": "#/x",
+          "operationId": "list"
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "The Link Object operation reference and operation identifier are mutually exclusive",
+    "location": "/components/links/Item"
+  }
+}

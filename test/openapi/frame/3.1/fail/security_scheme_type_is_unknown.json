@@ -1,0 +1,20 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "securitySchemes": {
+        "Item": {
+          "type": "basic"
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "The Security Scheme Object type is not one this specification defines",
+    "location": "/components/securitySchemes/Item/type"
+  }
+}

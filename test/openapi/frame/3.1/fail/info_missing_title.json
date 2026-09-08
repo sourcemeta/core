@@ -1,0 +1,13 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "version": "1.0.0"
+    },
+    "paths": {}
+  },
+  "error": {
+    "message": "The Info Object must declare a title",
+    "location": "/info"
+  }
+}

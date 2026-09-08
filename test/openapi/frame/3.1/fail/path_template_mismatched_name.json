@@ -1,0 +1,33 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets/{petId}": {
+        "get": {
+          "responses": {
+            "200": {
+              "description": "ok"
+            }
+          },
+          "parameters": [
+            {
+              "name": "id",
+              "in": "path",
+              "required": true,
+              "schema": {}
+            }
+          ]
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "error": {
+    "message": "A path Parameter Object must name a template expression of the path it is under",
+    "location": "/paths/~1pets~1{petId}/get/parameters/0"
+  }
+}

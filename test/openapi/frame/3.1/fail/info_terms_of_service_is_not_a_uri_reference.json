@@ -1,0 +1,15 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0",
+      "termsOfService": "https://example.com/ terms"
+    },
+    "paths": {}
+  },
+  "error": {
+    "message": "The Info Object terms of service must be a URI reference",
+    "location": "/info/termsOfService"
+  }
+}

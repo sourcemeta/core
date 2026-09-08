@@ -1,0 +1,105 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "jsonSchemaDialect": "https://example.com/entry-dialect",
+    "components": {
+      "schemas": {
+        "Local": {}
+      },
+      "responses": {
+        "R": {
+          "$ref": "https://example.com/common.json#/components/responses/NotFound"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "resolver": {
+    "https://example.com/common.json": {
+      "openapi": "3.1.1",
+      "info": {
+        "title": "Common",
+        "version": "1.0.0"
+      },
+      "jsonSchemaDialect": "https://example.com/common-dialect",
+      "components": {
+        "schemas": {
+          "Remote": {}
+        },
+        "responses": {
+          "NotFound": {
+            "description": "ok"
+          }
+        }
+      }
+    }
+  },
+  "frame": {
+    "version": "3.1",
+    "base": "https://example.com/openapi.json",
+    "standalone": true,
+    "locations": {
+      "https://example.com/common.json": {
+        "type": "openapi",
+        "pointer": "",
+        "parent": null,
+        "dialect": "https://example.com/common-dialect"
+      },
+      "https://example.com/common.json#/components": {
+        "type": "components",
+        "pointer": "/components",
+        "parent": "https://example.com/common.json"
+      },
+      "https://example.com/common.json#/components/responses/NotFound": {
+        "type": "response",
+        "pointer": "/components/responses/NotFound",
+        "parent": "https://example.com/common.json#/components"
+      },
+      "https://example.com/common.json#/components/schemas/Remote": {
+        "type": "schema",
+        "pointer": "/components/schemas/Remote",
+        "parent": "https://example.com/common.json#/components",
+        "dialect": "https://example.com/common-dialect"
+      },
+      "https://example.com/common.json#/info": {
+        "type": "info",
+        "pointer": "/info",
+        "parent": "https://example.com/common.json"
+      },
+      "https://example.com/openapi.json": {
+        "type": "openapi",
+        "pointer": "",
+        "parent": null,
+        "dialect": "https://example.com/entry-dialect"
+      },
+      "https://example.com/openapi.json#/components": {
+        "type": "components",
+        "pointer": "/components",
+        "parent": "https://example.com/openapi.json"
+      },
+      "https://example.com/openapi.json#/components/responses/R": {
+        "type": "reference",
+        "pointer": "/components/responses/R",
+        "parent": "https://example.com/openapi.json#/components",
+        "original": "https://example.com/common.json#/components/responses/NotFound",
+        "destination": "https://example.com/common.json#/components/responses/NotFound"
+      },
+      "https://example.com/openapi.json#/components/schemas/Local": {
+        "type": "schema",
+        "pointer": "/components/schemas/Local",
+        "parent": "https://example.com/openapi.json#/components",
+        "dialect": "https://example.com/entry-dialect"
+      },
+      "https://example.com/openapi.json#/info": {
+        "type": "info",
+        "pointer": "/info",
+        "parent": "https://example.com/openapi.json"
+      }
+    },
+    "operations": []
+  }
+}

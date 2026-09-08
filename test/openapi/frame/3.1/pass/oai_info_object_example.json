@@ -1,0 +1,65 @@
+{
+  "document": {
+    "openapi": "3.1.0",
+    "info": {
+      "title": "Example Pet Store App",
+      "summary": "A pet store manager.",
+      "description": "This is an example server for a pet store.",
+      "termsOfService": "https://example.com/terms/",
+      "contact": {
+        "name": "API Support",
+        "url": "https://www.example.com/support",
+        "email": "support@example.com"
+      },
+      "license": {
+        "name": "Apache 2.0",
+        "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
+      },
+      "version": "1.0.1"
+    },
+    "externalDocs": {
+      "description": "Find more info here",
+      "url": "https://example.com"
+    },
+    "components": {}
+  },
+  "frame": {
+    "version": "3.1",
+    "base": "",
+    "standalone": true,
+    "locations": {
+      "": {
+        "type": "openapi",
+        "pointer": "",
+        "parent": null,
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+      },
+      "#/components": {
+        "type": "components",
+        "pointer": "/components",
+        "parent": ""
+      },
+      "#/externalDocs": {
+        "type": "external-documentation",
+        "pointer": "/externalDocs",
+        "parent": ""
+      },
+      "#/info": {
+        "type": "info",
+        "pointer": "/info",
+        "parent": ""
+      },
+      "#/info/contact": {
+        "type": "contact",
+        "pointer": "/info/contact",
+        "parent": "#/info"
+      },
+      "#/info/license": {
+        "type": "license",
+        "pointer": "/info/license",
+        "parent": "#/info"
+      }
+    },
+    "operations": []
+  }
+}

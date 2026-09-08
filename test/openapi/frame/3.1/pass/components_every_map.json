@@ -1,0 +1,273 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "schemas": {
+        "Pet": {
+          "type": "object"
+        }
+      },
+      "responses": {
+        "NotFound": {
+          "description": "Not found"
+        },
+        "Ref": {
+          "$ref": "#/components/responses/NotFound"
+        }
+      },
+      "parameters": {
+        "Limit": {
+          "name": "limit",
+          "in": "query",
+          "schema": {}
+        }
+      },
+      "examples": {
+        "Sample": {
+          "summary": "A sample",
+          "value": {
+            "id": 1
+          }
+        },
+        "External": {
+          "externalValue": "https://example.com/sample.json"
+        }
+      },
+      "requestBodies": {
+        "Pet": {
+          "content": {
+            "application/json": {
+              "schema": {}
+            }
+          },
+          "required": true
+        }
+      },
+      "headers": {
+        "Rate": {
+          "description": "Rate limit",
+          "schema": {},
+          "style": "simple",
+          "explode": false
+        },
+        "Complex": {
+          "content": {
+            "text/plain": {}
+          }
+        }
+      },
+      "securitySchemes": {
+        "Key": {
+          "type": "apiKey",
+          "name": "X-Key",
+          "in": "cookie"
+        }
+      },
+      "links": {
+        "ById": {
+          "operationId": "getPet",
+          "parameters": {
+            "id": "$response.body#/id"
+          }
+        },
+        "ByRef": {
+          "operationRef": "#/paths/~1pets/get",
+          "description": "By ref"
+        }
+      },
+      "callbacks": {
+        "OnData": {
+          "{$request.body#/url}": {
+            "post": {
+              "responses": {
+                "200": {
+                  "description": "ok"
+                }
+              }
+            }
+          }
+        }
+      },
+      "pathItems": {
+        "Pets": {
+          "get": {
+            "responses": {
+              "200": {
+                "description": "ok"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "frame": {
+    "version": "3.1",
+    "base": "",
+    "standalone": false,
+    "locations": {
+      "": {
+        "type": "openapi",
+        "pointer": "",
+        "parent": null,
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+      },
+      "#/components": {
+        "type": "components",
+        "pointer": "/components",
+        "parent": ""
+      },
+      "#/components/callbacks/OnData": {
+        "type": "callback",
+        "pointer": "/components/callbacks/OnData",
+        "parent": "#/components"
+      },
+      "#/components/callbacks/OnData/%7B$request.body%23~1url%7D": {
+        "type": "path-item",
+        "pointer": "/components/callbacks/OnData/{$request.body#~1url}",
+        "parent": "#/components/callbacks/OnData"
+      },
+      "#/components/callbacks/OnData/%7B$request.body%23~1url%7D/post": {
+        "type": "operation",
+        "pointer": "/components/callbacks/OnData/{$request.body#~1url}/post",
+        "parent": "#/components/callbacks/OnData/%7B$request.body%23~1url%7D"
+      },
+      "#/components/callbacks/OnData/%7B$request.body%23~1url%7D/post/responses": {
+        "type": "responses",
+        "pointer": "/components/callbacks/OnData/{$request.body#~1url}/post/responses",
+        "parent": "#/components/callbacks/OnData/%7B$request.body%23~1url%7D/post"
+      },
+      "#/components/callbacks/OnData/%7B$request.body%23~1url%7D/post/responses/200": {
+        "type": "response",
+        "pointer": "/components/callbacks/OnData/{$request.body#~1url}/post/responses/200",
+        "parent": "#/components/callbacks/OnData/%7B$request.body%23~1url%7D/post/responses"
+      },
+      "#/components/examples/External": {
+        "type": "example",
+        "pointer": "/components/examples/External",
+        "parent": "#/components"
+      },
+      "#/components/examples/Sample": {
+        "type": "example",
+        "pointer": "/components/examples/Sample",
+        "parent": "#/components"
+      },
+      "#/components/headers/Complex": {
+        "type": "header",
+        "pointer": "/components/headers/Complex",
+        "parent": "#/components"
+      },
+      "#/components/headers/Complex/content/text~1plain": {
+        "type": "media-type",
+        "pointer": "/components/headers/Complex/content/text~1plain",
+        "parent": "#/components/headers/Complex"
+      },
+      "#/components/headers/Rate": {
+        "type": "header",
+        "pointer": "/components/headers/Rate",
+        "parent": "#/components"
+      },
+      "#/components/headers/Rate/schema": {
+        "type": "schema",
+        "pointer": "/components/headers/Rate/schema",
+        "parent": "#/components/headers/Rate",
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+      },
+      "#/components/links/ById": {
+        "type": "link",
+        "pointer": "/components/links/ById",
+        "parent": "#/components"
+      },
+      "#/components/links/ByRef": {
+        "type": "link",
+        "pointer": "/components/links/ByRef",
+        "parent": "#/components",
+        "original": "#/paths/~1pets/get",
+        "destination": "#/paths/~1pets/get"
+      },
+      "#/components/parameters/Limit": {
+        "type": "parameter",
+        "pointer": "/components/parameters/Limit",
+        "parent": "#/components"
+      },
+      "#/components/parameters/Limit/schema": {
+        "type": "schema",
+        "pointer": "/components/parameters/Limit/schema",
+        "parent": "#/components/parameters/Limit",
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+      },
+      "#/components/pathItems/Pets": {
+        "type": "path-item",
+        "pointer": "/components/pathItems/Pets",
+        "parent": "#/components"
+      },
+      "#/components/pathItems/Pets/get": {
+        "type": "operation",
+        "pointer": "/components/pathItems/Pets/get",
+        "parent": "#/components/pathItems/Pets"
+      },
+      "#/components/pathItems/Pets/get/responses": {
+        "type": "responses",
+        "pointer": "/components/pathItems/Pets/get/responses",
+        "parent": "#/components/pathItems/Pets/get"
+      },
+      "#/components/pathItems/Pets/get/responses/200": {
+        "type": "response",
+        "pointer": "/components/pathItems/Pets/get/responses/200",
+        "parent": "#/components/pathItems/Pets/get/responses"
+      },
+      "#/components/requestBodies/Pet": {
+        "type": "request-body",
+        "pointer": "/components/requestBodies/Pet",
+        "parent": "#/components"
+      },
+      "#/components/requestBodies/Pet/content/application~1json": {
+        "type": "media-type",
+        "pointer": "/components/requestBodies/Pet/content/application~1json",
+        "parent": "#/components/requestBodies/Pet"
+      },
+      "#/components/requestBodies/Pet/content/application~1json/schema": {
+        "type": "schema",
+        "pointer": "/components/requestBodies/Pet/content/application~1json/schema",
+        "parent": "#/components/requestBodies/Pet/content/application~1json",
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+      },
+      "#/components/responses/NotFound": {
+        "type": "response",
+        "pointer": "/components/responses/NotFound",
+        "parent": "#/components"
+      },
+      "#/components/responses/Ref": {
+        "type": "reference",
+        "pointer": "/components/responses/Ref",
+        "parent": "#/components",
+        "original": "#/components/responses/NotFound",
+        "destination": "#/components/responses/NotFound"
+      },
+      "#/components/schemas/Pet": {
+        "type": "schema",
+        "pointer": "/components/schemas/Pet",
+        "parent": "#/components",
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+      },
+      "#/components/securitySchemes/Key": {
+        "type": "security-scheme",
+        "pointer": "/components/securitySchemes/Key",
+        "parent": "#/components"
+      },
+      "#/info": {
+        "type": "info",
+        "pointer": "/info",
+        "parent": ""
+      }
+    },
+    "operations": []
+  },
+  "dangling": [
+    "#/paths/~1pets/get"
+  ]
+}

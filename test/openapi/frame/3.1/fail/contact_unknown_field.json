@@ -1,0 +1,17 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0",
+      "contact": {
+        "phone": "555"
+      }
+    },
+    "paths": {}
+  },
+  "error": {
+    "message": "The Contact Object does not define this field",
+    "location": "/info/contact/phone"
+  }
+}

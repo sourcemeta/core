@@ -1,0 +1,18 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "externalDocs": {
+      "url": "https://example.com",
+      "title": "Docs"
+    },
+    "paths": {}
+  },
+  "error": {
+    "message": "The External Documentation Object does not define this field",
+    "location": "/externalDocs/title"
+  }
+}

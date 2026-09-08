@@ -1,0 +1,28 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "requestBodies": {
+        "R": {
+          "content": {
+            "multipart/form-data": {
+              "encoding": {
+                "part": {
+                  "$ref": "#/components/schemas/Pet"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "The Encoding Object does not define this field",
+    "location": "/components/requestBodies/R/content/multipart~1form-data/encoding/part/$ref"
+  }
+}

@@ -1,0 +1,459 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "responses": {
+        "R": {
+          "$ref": "#/components/responses/Other"
+        },
+        "Other": {
+          "description": "ok"
+        }
+      },
+      "parameters": {
+        "P": {
+          "$ref": "#/components/parameters/Other"
+        },
+        "Other": {
+          "name": "q",
+          "in": "query",
+          "schema": {}
+        }
+      },
+      "examples": {
+        "E": {
+          "$ref": "#/components/examples/Other"
+        },
+        "Other": {
+          "value": 1
+        }
+      },
+      "requestBodies": {
+        "B": {
+          "$ref": "#/components/requestBodies/Other"
+        },
+        "Other": {
+          "content": {}
+        }
+      },
+      "headers": {
+        "H": {
+          "$ref": "#/components/headers/Other"
+        },
+        "Other": {
+          "schema": {}
+        }
+      },
+      "securitySchemes": {
+        "S": {
+          "$ref": "#/components/securitySchemes/Other"
+        },
+        "Other": {
+          "type": "mutualTLS"
+        }
+      },
+      "links": {
+        "L": {
+          "$ref": "#/components/links/Other"
+        },
+        "Other": {
+          "operationId": "listPets"
+        }
+      },
+      "callbacks": {
+        "C": {
+          "$ref": "#/components/callbacks/Other"
+        },
+        "Other": {
+          "{$request.body#/url}": {}
+        }
+      }
+    },
+    "paths": {
+      "/pets": {
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Other"
+          }
+        ],
+        "get": {
+          "operationId": "listPets",
+          "parameters": [
+            {
+              "$ref": "#/components/parameters/Other"
+            }
+          ],
+          "requestBody": {
+            "$ref": "#/components/requestBodies/Other"
+          },
+          "callbacks": {
+            "onData": {
+              "$ref": "#/components/callbacks/Other"
+            }
+          },
+          "responses": {
+            "default": {
+              "$ref": "#/components/responses/Other"
+            },
+            "200": {
+              "description": "ok",
+              "headers": {
+                "X-Rate": {
+                  "$ref": "#/components/headers/Other"
+                }
+              },
+              "links": {
+                "Self": {
+                  "$ref": "#/components/links/Other"
+                }
+              },
+              "content": {
+                "multipart/form-data": {
+                  "encoding": {
+                    "part": {
+                      "headers": {
+                        "X-Part": {
+                          "$ref": "#/components/headers/Other"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "post": {
+          "parameters": [
+            {
+              "name": "q",
+              "in": "query",
+              "schema": {},
+              "examples": {
+                "E": {
+                  "$ref": "#/components/examples/Other"
+                }
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "ok",
+              "content": {
+                "application/json": {
+                  "examples": {
+                    "E": {
+                      "$ref": "#/components/examples/Other"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "frame": {
+    "version": "3.1",
+    "base": "",
+    "standalone": true,
+    "locations": {
+      "": {
+        "type": "openapi",
+        "pointer": "",
+        "parent": null,
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+      },
+      "#/components": {
+        "type": "components",
+        "pointer": "/components",
+        "parent": ""
+      },
+      "#/components/callbacks/C": {
+        "type": "reference",
+        "pointer": "/components/callbacks/C",
+        "parent": "#/components",
+        "original": "#/components/callbacks/Other",
+        "destination": "#/components/callbacks/Other"
+      },
+      "#/components/callbacks/Other": {
+        "type": "callback",
+        "pointer": "/components/callbacks/Other",
+        "parent": "#/components"
+      },
+      "#/components/callbacks/Other/%7B$request.body%23~1url%7D": {
+        "type": "path-item",
+        "pointer": "/components/callbacks/Other/{$request.body#~1url}",
+        "parent": "#/components/callbacks/Other"
+      },
+      "#/components/examples/E": {
+        "type": "reference",
+        "pointer": "/components/examples/E",
+        "parent": "#/components",
+        "original": "#/components/examples/Other",
+        "destination": "#/components/examples/Other"
+      },
+      "#/components/examples/Other": {
+        "type": "example",
+        "pointer": "/components/examples/Other",
+        "parent": "#/components"
+      },
+      "#/components/headers/H": {
+        "type": "reference",
+        "pointer": "/components/headers/H",
+        "parent": "#/components",
+        "original": "#/components/headers/Other",
+        "destination": "#/components/headers/Other"
+      },
+      "#/components/headers/Other": {
+        "type": "header",
+        "pointer": "/components/headers/Other",
+        "parent": "#/components"
+      },
+      "#/components/headers/Other/schema": {
+        "type": "schema",
+        "pointer": "/components/headers/Other/schema",
+        "parent": "#/components/headers/Other",
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+      },
+      "#/components/links/L": {
+        "type": "reference",
+        "pointer": "/components/links/L",
+        "parent": "#/components",
+        "original": "#/components/links/Other",
+        "destination": "#/components/links/Other"
+      },
+      "#/components/links/Other": {
+        "type": "link",
+        "pointer": "/components/links/Other",
+        "parent": "#/components"
+      },
+      "#/components/parameters/Other": {
+        "type": "parameter",
+        "pointer": "/components/parameters/Other",
+        "parent": "#/components"
+      },
+      "#/components/parameters/Other/schema": {
+        "type": "schema",
+        "pointer": "/components/parameters/Other/schema",
+        "parent": "#/components/parameters/Other",
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+      },
+      "#/components/parameters/P": {
+        "type": "reference",
+        "pointer": "/components/parameters/P",
+        "parent": "#/components",
+        "original": "#/components/parameters/Other",
+        "destination": "#/components/parameters/Other"
+      },
+      "#/components/requestBodies/B": {
+        "type": "reference",
+        "pointer": "/components/requestBodies/B",
+        "parent": "#/components",
+        "original": "#/components/requestBodies/Other",
+        "destination": "#/components/requestBodies/Other"
+      },
+      "#/components/requestBodies/Other": {
+        "type": "request-body",
+        "pointer": "/components/requestBodies/Other",
+        "parent": "#/components"
+      },
+      "#/components/responses/Other": {
+        "type": "response",
+        "pointer": "/components/responses/Other",
+        "parent": "#/components"
+      },
+      "#/components/responses/R": {
+        "type": "reference",
+        "pointer": "/components/responses/R",
+        "parent": "#/components",
+        "original": "#/components/responses/Other",
+        "destination": "#/components/responses/Other"
+      },
+      "#/components/securitySchemes/Other": {
+        "type": "security-scheme",
+        "pointer": "/components/securitySchemes/Other",
+        "parent": "#/components"
+      },
+      "#/components/securitySchemes/S": {
+        "type": "reference",
+        "pointer": "/components/securitySchemes/S",
+        "parent": "#/components",
+        "original": "#/components/securitySchemes/Other",
+        "destination": "#/components/securitySchemes/Other"
+      },
+      "#/info": {
+        "type": "info",
+        "pointer": "/info",
+        "parent": ""
+      },
+      "#/paths": {
+        "type": "paths",
+        "pointer": "/paths",
+        "parent": ""
+      },
+      "#/paths/~1pets": {
+        "type": "path-item",
+        "pointer": "/paths/~1pets",
+        "parent": "#/paths"
+      },
+      "#/paths/~1pets/get": {
+        "type": "operation",
+        "pointer": "/paths/~1pets/get",
+        "parent": "#/paths/~1pets"
+      },
+      "#/paths/~1pets/get/callbacks/onData": {
+        "type": "reference",
+        "pointer": "/paths/~1pets/get/callbacks/onData",
+        "parent": "#/paths/~1pets/get",
+        "original": "#/components/callbacks/Other",
+        "destination": "#/components/callbacks/Other"
+      },
+      "#/paths/~1pets/get/parameters/0": {
+        "type": "reference",
+        "pointer": "/paths/~1pets/get/parameters/0",
+        "parent": "#/paths/~1pets/get",
+        "original": "#/components/parameters/Other",
+        "destination": "#/components/parameters/Other"
+      },
+      "#/paths/~1pets/get/requestBody": {
+        "type": "reference",
+        "pointer": "/paths/~1pets/get/requestBody",
+        "parent": "#/paths/~1pets/get",
+        "original": "#/components/requestBodies/Other",
+        "destination": "#/components/requestBodies/Other"
+      },
+      "#/paths/~1pets/get/responses": {
+        "type": "responses",
+        "pointer": "/paths/~1pets/get/responses",
+        "parent": "#/paths/~1pets/get"
+      },
+      "#/paths/~1pets/get/responses/200": {
+        "type": "response",
+        "pointer": "/paths/~1pets/get/responses/200",
+        "parent": "#/paths/~1pets/get/responses"
+      },
+      "#/paths/~1pets/get/responses/200/content/multipart~1form-data": {
+        "type": "media-type",
+        "pointer": "/paths/~1pets/get/responses/200/content/multipart~1form-data",
+        "parent": "#/paths/~1pets/get/responses/200"
+      },
+      "#/paths/~1pets/get/responses/200/content/multipart~1form-data/encoding/part": {
+        "type": "encoding",
+        "pointer": "/paths/~1pets/get/responses/200/content/multipart~1form-data/encoding/part",
+        "parent": "#/paths/~1pets/get/responses/200/content/multipart~1form-data"
+      },
+      "#/paths/~1pets/get/responses/200/content/multipart~1form-data/encoding/part/headers/X-Part": {
+        "type": "reference",
+        "pointer": "/paths/~1pets/get/responses/200/content/multipart~1form-data/encoding/part/headers/X-Part",
+        "parent": "#/paths/~1pets/get/responses/200/content/multipart~1form-data/encoding/part",
+        "original": "#/components/headers/Other",
+        "destination": "#/components/headers/Other"
+      },
+      "#/paths/~1pets/get/responses/200/headers/X-Rate": {
+        "type": "reference",
+        "pointer": "/paths/~1pets/get/responses/200/headers/X-Rate",
+        "parent": "#/paths/~1pets/get/responses/200",
+        "original": "#/components/headers/Other",
+        "destination": "#/components/headers/Other"
+      },
+      "#/paths/~1pets/get/responses/200/links/Self": {
+        "type": "reference",
+        "pointer": "/paths/~1pets/get/responses/200/links/Self",
+        "parent": "#/paths/~1pets/get/responses/200",
+        "original": "#/components/links/Other",
+        "destination": "#/components/links/Other"
+      },
+      "#/paths/~1pets/get/responses/default": {
+        "type": "reference",
+        "pointer": "/paths/~1pets/get/responses/default",
+        "parent": "#/paths/~1pets/get/responses",
+        "original": "#/components/responses/Other",
+        "destination": "#/components/responses/Other"
+      },
+      "#/paths/~1pets/parameters/0": {
+        "type": "reference",
+        "pointer": "/paths/~1pets/parameters/0",
+        "parent": "#/paths/~1pets",
+        "original": "#/components/parameters/Other",
+        "destination": "#/components/parameters/Other"
+      },
+      "#/paths/~1pets/post": {
+        "type": "operation",
+        "pointer": "/paths/~1pets/post",
+        "parent": "#/paths/~1pets"
+      },
+      "#/paths/~1pets/post/parameters/0": {
+        "type": "parameter",
+        "pointer": "/paths/~1pets/post/parameters/0",
+        "parent": "#/paths/~1pets/post"
+      },
+      "#/paths/~1pets/post/parameters/0/examples/E": {
+        "type": "reference",
+        "pointer": "/paths/~1pets/post/parameters/0/examples/E",
+        "parent": "#/paths/~1pets/post/parameters/0",
+        "original": "#/components/examples/Other",
+        "destination": "#/components/examples/Other"
+      },
+      "#/paths/~1pets/post/parameters/0/schema": {
+        "type": "schema",
+        "pointer": "/paths/~1pets/post/parameters/0/schema",
+        "parent": "#/paths/~1pets/post/parameters/0",
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+      },
+      "#/paths/~1pets/post/responses": {
+        "type": "responses",
+        "pointer": "/paths/~1pets/post/responses",
+        "parent": "#/paths/~1pets/post"
+      },
+      "#/paths/~1pets/post/responses/200": {
+        "type": "response",
+        "pointer": "/paths/~1pets/post/responses/200",
+        "parent": "#/paths/~1pets/post/responses"
+      },
+      "#/paths/~1pets/post/responses/200/content/application~1json": {
+        "type": "media-type",
+        "pointer": "/paths/~1pets/post/responses/200/content/application~1json",
+        "parent": "#/paths/~1pets/post/responses/200"
+      },
+      "#/paths/~1pets/post/responses/200/content/application~1json/examples/E": {
+        "type": "reference",
+        "pointer": "/paths/~1pets/post/responses/200/content/application~1json/examples/E",
+        "parent": "#/paths/~1pets/post/responses/200/content/application~1json",
+        "original": "#/components/examples/Other",
+        "destination": "#/components/examples/Other"
+      }
+    },
+    "operations": [
+      {
+        "type": "path",
+        "path": "/pets",
+        "method": "get",
+        "origin": "#/paths/~1pets/get",
+        "tags": [],
+        "servers": [],
+        "security": [],
+        "parameters": [
+          "#/paths/~1pets/get/parameters/0"
+        ]
+      },
+      {
+        "type": "path",
+        "path": "/pets",
+        "method": "post",
+        "origin": "#/paths/~1pets/post",
+        "tags": [],
+        "servers": [],
+        "security": [],
+        "parameters": [
+          "#/paths/~1pets/post/parameters/0"
+        ]
+      }
+    ]
+  }
+}

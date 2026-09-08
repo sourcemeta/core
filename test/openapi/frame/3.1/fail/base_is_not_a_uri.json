@@ -1,0 +1,16 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {}
+  },
+  "defaultBase": "https://example.com/a b",
+  "error": {
+    "message": "The OpenAPI Description base must be a URI with a scheme",
+    "location": "",
+    "base": ""
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "examples": {
+        "Item": {
+          "value": 1,
+          "externalValue": "https://example.com"
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "The Example Object value and external value are mutually exclusive",
+    "location": "/components/examples/Item"
+  }
+}

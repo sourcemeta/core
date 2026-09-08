@@ -1,0 +1,20 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "tags": [
+      {
+        "name": "pet",
+        "externalDocs": "https://example.com"
+      }
+    ],
+    "paths": {}
+  },
+  "error": {
+    "message": "The External Documentation Object must be an object",
+    "location": "/tags/0/externalDocs"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "document": {
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {}
+  },
+  "error": {
+    "message": "The OpenAPI Description must declare its version",
+    "location": ""
+  }
+}

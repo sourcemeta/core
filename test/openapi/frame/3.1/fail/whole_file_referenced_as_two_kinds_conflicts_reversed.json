@@ -1,0 +1,32 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "responses": {
+        "R": {
+          "$ref": "https://example.com/target.json"
+        }
+      },
+      "headers": {
+        "H": {
+          "$ref": "https://example.com/target.json"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "resolver": {
+    "https://example.com/target.json": {
+      "schema": {}
+    }
+  },
+  "error": {
+    "message": "The Response Object does not define this field",
+    "location": "/schema",
+    "base": "https://example.com/target.json"
+  }
+}

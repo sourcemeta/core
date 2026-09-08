@@ -1,0 +1,50 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "responses": {
+        "R": {
+          "$ref": "https://example.com/first.json#/components/responses/Onward"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "resolver": {
+    "https://example.com/first.json": {
+      "openapi": "3.1.1",
+      "info": {
+        "title": "Example",
+        "version": "1.0.0"
+      },
+      "components": {
+        "responses": {
+          "Onward": {
+            "$ref": "https://example.com/second.json#/components/responses/Ok"
+          }
+        }
+      }
+    },
+    "https://example.com/second.json": {
+      "openapi": "3.1.1",
+      "info": {
+        "title": "Example",
+        "version": "1.0.0"
+      },
+      "components": {
+        "responses": {
+          "Ok": {}
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "The Response Object must declare a description",
+    "location": "/components/responses/Ok",
+    "base": "https://example.com/second.json"
+  }
+}

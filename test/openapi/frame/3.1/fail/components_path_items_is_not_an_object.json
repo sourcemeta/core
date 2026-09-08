@@ -1,0 +1,16 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "pathItems": null
+    }
+  },
+  "error": {
+    "message": "The Components Object fields must each be an object",
+    "location": "/components/pathItems"
+  }
+}

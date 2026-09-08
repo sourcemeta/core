@@ -1,0 +1,19 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0",
+      "license": {
+        "name": "MIT",
+        "identifier": "MIT",
+        "url": "https://example.com"
+      }
+    },
+    "paths": {}
+  },
+  "error": {
+    "message": "The License Object identifier and URI are mutually exclusive",
+    "location": "/info/license"
+  }
+}

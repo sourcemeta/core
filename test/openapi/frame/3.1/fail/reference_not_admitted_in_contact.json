@@ -1,0 +1,17 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "E",
+      "version": "1",
+      "contact": {
+        "$ref": "#/components/schemas/Pet"
+      }
+    },
+    "paths": {}
+  },
+  "error": {
+    "message": "The Contact Object does not define this field",
+    "location": "/info/contact/$ref"
+  }
+}

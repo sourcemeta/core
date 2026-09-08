@@ -1,0 +1,19 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "tags": [
+      {
+        "name": 1
+      }
+    ],
+    "paths": {}
+  },
+  "error": {
+    "message": "The Tag Object name must be a string",
+    "location": "/tags/0/name"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "$ref": "#/components/schemas/Pet"
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "The Operation Object does not define this field",
+    "location": "/paths/~1pets/get/$ref"
+  }
+}

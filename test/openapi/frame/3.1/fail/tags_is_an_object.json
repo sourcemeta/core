@@ -1,0 +1,17 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "tags": {
+      "name": "pet"
+    },
+    "paths": {}
+  },
+  "error": {
+    "message": "The OpenAPI Description tags must be an array",
+    "location": "/tags"
+  }
+}

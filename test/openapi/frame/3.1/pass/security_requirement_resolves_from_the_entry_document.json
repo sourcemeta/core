@@ -1,0 +1,147 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "securitySchemes": {
+        "MySecurity": {
+          "type": "apiKey",
+          "name": "X-Key",
+          "in": "header"
+        }
+      },
+      "pathItems": {}
+    },
+    "paths": {
+      "/foo": {
+        "$ref": "https://example.com/other.json#/components/pathItems/Foo"
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "resolver": {
+    "https://example.com/other.json": {
+      "openapi": "3.1.1",
+      "info": {
+        "title": "Other",
+        "version": "1.0.0"
+      },
+      "components": {
+        "pathItems": {
+          "Foo": {
+            "get": {
+              "responses": {
+                "200": {
+                  "description": "ok"
+                }
+              },
+              "security": [
+                {
+                  "MySecurity": []
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  },
+  "frame": {
+    "version": "3.1",
+    "base": "https://example.com/openapi.json",
+    "standalone": true,
+    "locations": {
+      "https://example.com/openapi.json": {
+        "type": "openapi",
+        "pointer": "",
+        "parent": null,
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+      },
+      "https://example.com/openapi.json#/components": {
+        "type": "components",
+        "pointer": "/components",
+        "parent": "https://example.com/openapi.json"
+      },
+      "https://example.com/openapi.json#/components/securitySchemes/MySecurity": {
+        "type": "security-scheme",
+        "pointer": "/components/securitySchemes/MySecurity",
+        "parent": "https://example.com/openapi.json#/components"
+      },
+      "https://example.com/openapi.json#/info": {
+        "type": "info",
+        "pointer": "/info",
+        "parent": "https://example.com/openapi.json"
+      },
+      "https://example.com/openapi.json#/paths": {
+        "type": "paths",
+        "pointer": "/paths",
+        "parent": "https://example.com/openapi.json"
+      },
+      "https://example.com/openapi.json#/paths/~1foo": {
+        "type": "path-item",
+        "pointer": "/paths/~1foo",
+        "parent": "https://example.com/openapi.json#/paths",
+        "original": "https://example.com/other.json#/components/pathItems/Foo",
+        "destination": "https://example.com/other.json#/components/pathItems/Foo"
+      },
+      "https://example.com/other.json": {
+        "type": "openapi",
+        "pointer": "",
+        "parent": null,
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+      },
+      "https://example.com/other.json#/components": {
+        "type": "components",
+        "pointer": "/components",
+        "parent": "https://example.com/other.json"
+      },
+      "https://example.com/other.json#/components/pathItems/Foo": {
+        "type": "path-item",
+        "pointer": "/components/pathItems/Foo",
+        "parent": "https://example.com/other.json#/components"
+      },
+      "https://example.com/other.json#/components/pathItems/Foo/get": {
+        "type": "operation",
+        "pointer": "/components/pathItems/Foo/get",
+        "parent": "https://example.com/other.json#/components/pathItems/Foo"
+      },
+      "https://example.com/other.json#/components/pathItems/Foo/get/responses": {
+        "type": "responses",
+        "pointer": "/components/pathItems/Foo/get/responses",
+        "parent": "https://example.com/other.json#/components/pathItems/Foo/get"
+      },
+      "https://example.com/other.json#/components/pathItems/Foo/get/responses/200": {
+        "type": "response",
+        "pointer": "/components/pathItems/Foo/get/responses/200",
+        "parent": "https://example.com/other.json#/components/pathItems/Foo/get/responses"
+      },
+      "https://example.com/other.json#/components/pathItems/Foo/get/security/0": {
+        "type": "security-requirement",
+        "pointer": "/components/pathItems/Foo/get/security/0",
+        "parent": "https://example.com/other.json#/components/pathItems/Foo/get"
+      },
+      "https://example.com/other.json#/info": {
+        "type": "info",
+        "pointer": "/info",
+        "parent": "https://example.com/other.json"
+      }
+    },
+    "operations": [
+      {
+        "type": "path",
+        "path": "/foo",
+        "method": "get",
+        "origin": "https://example.com/other.json#/components/pathItems/Foo/get",
+        "tags": [],
+        "servers": [],
+        "security": [
+          "https://example.com/other.json#/components/pathItems/Foo/get/security/0"
+        ],
+        "parameters": []
+      }
+    ]
+  }
+}

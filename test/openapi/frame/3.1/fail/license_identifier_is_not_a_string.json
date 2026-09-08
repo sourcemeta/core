@@ -1,0 +1,18 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0",
+      "license": {
+        "name": "MIT",
+        "identifier": 1
+      }
+    },
+    "paths": {}
+  },
+  "error": {
+    "message": "The License Object identifier must be a string",
+    "location": "/info/license/identifier"
+  }
+}

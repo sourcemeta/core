@@ -1,0 +1,132 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "webhooks": {
+      "newPet": {
+        "post": {
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "ok"
+            }
+          }
+        }
+      },
+      "x-legacy": {
+        "get": {
+          "responses": {
+            "200": {
+              "description": "ok"
+            }
+          }
+        }
+      }
+    }
+  },
+  "frame": {
+    "version": "3.1",
+    "base": "",
+    "standalone": true,
+    "locations": {
+      "": {
+        "type": "openapi",
+        "pointer": "",
+        "parent": null,
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+      },
+      "#/info": {
+        "type": "info",
+        "pointer": "/info",
+        "parent": ""
+      },
+      "#/webhooks/newPet": {
+        "type": "path-item",
+        "pointer": "/webhooks/newPet",
+        "parent": ""
+      },
+      "#/webhooks/newPet/post": {
+        "type": "operation",
+        "pointer": "/webhooks/newPet/post",
+        "parent": "#/webhooks/newPet"
+      },
+      "#/webhooks/newPet/post/requestBody": {
+        "type": "request-body",
+        "pointer": "/webhooks/newPet/post/requestBody",
+        "parent": "#/webhooks/newPet/post"
+      },
+      "#/webhooks/newPet/post/requestBody/content/application~1json": {
+        "type": "media-type",
+        "pointer": "/webhooks/newPet/post/requestBody/content/application~1json",
+        "parent": "#/webhooks/newPet/post/requestBody"
+      },
+      "#/webhooks/newPet/post/requestBody/content/application~1json/schema": {
+        "type": "schema",
+        "pointer": "/webhooks/newPet/post/requestBody/content/application~1json/schema",
+        "parent": "#/webhooks/newPet/post/requestBody/content/application~1json",
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+      },
+      "#/webhooks/newPet/post/responses": {
+        "type": "responses",
+        "pointer": "/webhooks/newPet/post/responses",
+        "parent": "#/webhooks/newPet/post"
+      },
+      "#/webhooks/newPet/post/responses/200": {
+        "type": "response",
+        "pointer": "/webhooks/newPet/post/responses/200",
+        "parent": "#/webhooks/newPet/post/responses"
+      },
+      "#/webhooks/x-legacy": {
+        "type": "path-item",
+        "pointer": "/webhooks/x-legacy",
+        "parent": ""
+      },
+      "#/webhooks/x-legacy/get": {
+        "type": "operation",
+        "pointer": "/webhooks/x-legacy/get",
+        "parent": "#/webhooks/x-legacy"
+      },
+      "#/webhooks/x-legacy/get/responses": {
+        "type": "responses",
+        "pointer": "/webhooks/x-legacy/get/responses",
+        "parent": "#/webhooks/x-legacy/get"
+      },
+      "#/webhooks/x-legacy/get/responses/200": {
+        "type": "response",
+        "pointer": "/webhooks/x-legacy/get/responses/200",
+        "parent": "#/webhooks/x-legacy/get/responses"
+      }
+    },
+    "operations": [
+      {
+        "type": "webhook",
+        "path": "newPet",
+        "method": "post",
+        "origin": "#/webhooks/newPet/post",
+        "tags": [],
+        "servers": [],
+        "security": [],
+        "parameters": []
+      },
+      {
+        "type": "webhook",
+        "path": "x-legacy",
+        "method": "get",
+        "origin": "#/webhooks/x-legacy/get",
+        "tags": [],
+        "servers": [],
+        "security": [],
+        "parameters": []
+      }
+    ]
+  }
+}

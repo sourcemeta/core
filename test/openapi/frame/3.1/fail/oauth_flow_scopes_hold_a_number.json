@@ -1,0 +1,28 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "securitySchemes": {
+        "Item": {
+          "type": "oauth2",
+          "flows": {
+            "implicit": {
+              "authorizationUrl": "/auth",
+              "scopes": {
+                "read": 1
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "The OAuth Flow Object scopes must hold strings",
+    "location": "/components/securitySchemes/Item/flows/implicit/scopes/read"
+  }
+}

@@ -24,6 +24,7 @@
 #include <sourcemeta/core/memory.h>
 #include <sourcemeta/core/numeric.h>
 #include <sourcemeta/core/oidc.h>
+#include <sourcemeta/core/openapi.h>
 #include <sourcemeta/core/options.h>
 #include <sourcemeta/core/parallel.h>
 #include <sourcemeta/core/preprocessor.h>

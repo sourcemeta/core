@@ -1,0 +1,22 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "x-note": true
+          }
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "The Responses Object must declare a default or a status code",
+    "location": "/paths/~1pets/get/responses"
+  }
+}

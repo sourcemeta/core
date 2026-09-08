@@ -1,0 +1,23 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "securitySchemes": {
+        "Item": {
+          "type": "oauth2",
+          "flows": {
+            "application": {}
+          }
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "The OAuth Flows Object does not define this field",
+    "location": "/components/securitySchemes/Item/flows/application"
+  }
+}

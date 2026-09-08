@@ -1,0 +1,202 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "200": {
+              "description": "ok"
+            }
+          }
+        }
+      },
+      "/{entity}/me": {
+        "get": {
+          "responses": {
+            "default": {
+              "description": "ok"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "entity",
+            "in": "path",
+            "required": true,
+            "schema": {}
+          }
+        ]
+      },
+      "/books/{id}": {
+        "get": {
+          "responses": {
+            "2XX": {
+              "description": "ok"
+            }
+          },
+          "parameters": [
+            {
+              "name": "id",
+              "in": "path",
+              "required": true,
+              "schema": {}
+            }
+          ]
+        }
+      },
+      "/pets/mine": {},
+      "x-internal": true
+    }
+  },
+  "frame": {
+    "version": "3.1",
+    "base": "",
+    "standalone": true,
+    "locations": {
+      "": {
+        "type": "openapi",
+        "pointer": "",
+        "parent": null,
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+      },
+      "#/info": {
+        "type": "info",
+        "pointer": "/info",
+        "parent": ""
+      },
+      "#/paths": {
+        "type": "paths",
+        "pointer": "/paths",
+        "parent": ""
+      },
+      "#/paths/~1%7Bentity%7D~1me": {
+        "type": "path-item",
+        "pointer": "/paths/~1{entity}~1me",
+        "parent": "#/paths"
+      },
+      "#/paths/~1%7Bentity%7D~1me/get": {
+        "type": "operation",
+        "pointer": "/paths/~1{entity}~1me/get",
+        "parent": "#/paths/~1%7Bentity%7D~1me"
+      },
+      "#/paths/~1%7Bentity%7D~1me/get/responses": {
+        "type": "responses",
+        "pointer": "/paths/~1{entity}~1me/get/responses",
+        "parent": "#/paths/~1%7Bentity%7D~1me/get"
+      },
+      "#/paths/~1%7Bentity%7D~1me/get/responses/default": {
+        "type": "response",
+        "pointer": "/paths/~1{entity}~1me/get/responses/default",
+        "parent": "#/paths/~1%7Bentity%7D~1me/get/responses"
+      },
+      "#/paths/~1%7Bentity%7D~1me/parameters/0": {
+        "type": "parameter",
+        "pointer": "/paths/~1{entity}~1me/parameters/0",
+        "parent": "#/paths/~1%7Bentity%7D~1me"
+      },
+      "#/paths/~1%7Bentity%7D~1me/parameters/0/schema": {
+        "type": "schema",
+        "pointer": "/paths/~1{entity}~1me/parameters/0/schema",
+        "parent": "#/paths/~1%7Bentity%7D~1me/parameters/0",
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+      },
+      "#/paths/~1books~1%7Bid%7D": {
+        "type": "path-item",
+        "pointer": "/paths/~1books~1{id}",
+        "parent": "#/paths"
+      },
+      "#/paths/~1books~1%7Bid%7D/get": {
+        "type": "operation",
+        "pointer": "/paths/~1books~1{id}/get",
+        "parent": "#/paths/~1books~1%7Bid%7D"
+      },
+      "#/paths/~1books~1%7Bid%7D/get/parameters/0": {
+        "type": "parameter",
+        "pointer": "/paths/~1books~1{id}/get/parameters/0",
+        "parent": "#/paths/~1books~1%7Bid%7D/get"
+      },
+      "#/paths/~1books~1%7Bid%7D/get/parameters/0/schema": {
+        "type": "schema",
+        "pointer": "/paths/~1books~1{id}/get/parameters/0/schema",
+        "parent": "#/paths/~1books~1%7Bid%7D/get/parameters/0",
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+      },
+      "#/paths/~1books~1%7Bid%7D/get/responses": {
+        "type": "responses",
+        "pointer": "/paths/~1books~1{id}/get/responses",
+        "parent": "#/paths/~1books~1%7Bid%7D/get"
+      },
+      "#/paths/~1books~1%7Bid%7D/get/responses/2XX": {
+        "type": "response",
+        "pointer": "/paths/~1books~1{id}/get/responses/2XX",
+        "parent": "#/paths/~1books~1%7Bid%7D/get/responses"
+      },
+      "#/paths/~1pets": {
+        "type": "path-item",
+        "pointer": "/paths/~1pets",
+        "parent": "#/paths"
+      },
+      "#/paths/~1pets/get": {
+        "type": "operation",
+        "pointer": "/paths/~1pets/get",
+        "parent": "#/paths/~1pets"
+      },
+      "#/paths/~1pets/get/responses": {
+        "type": "responses",
+        "pointer": "/paths/~1pets/get/responses",
+        "parent": "#/paths/~1pets/get"
+      },
+      "#/paths/~1pets/get/responses/200": {
+        "type": "response",
+        "pointer": "/paths/~1pets/get/responses/200",
+        "parent": "#/paths/~1pets/get/responses"
+      },
+      "#/paths/~1pets~1mine": {
+        "type": "path-item",
+        "pointer": "/paths/~1pets~1mine",
+        "parent": "#/paths"
+      }
+    },
+    "operations": [
+      {
+        "type": "path",
+        "path": "/pets",
+        "method": "get",
+        "origin": "#/paths/~1pets/get",
+        "tags": [],
+        "servers": [],
+        "security": [],
+        "parameters": []
+      },
+      {
+        "type": "path",
+        "path": "/{entity}/me",
+        "method": "get",
+        "origin": "#/paths/~1%7Bentity%7D~1me/get",
+        "tags": [],
+        "servers": [],
+        "security": [],
+        "parameters": [
+          "#/paths/~1%7Bentity%7D~1me/parameters/0"
+        ]
+      },
+      {
+        "type": "path",
+        "path": "/books/{id}",
+        "method": "get",
+        "origin": "#/paths/~1books~1%7Bid%7D/get",
+        "tags": [],
+        "servers": [],
+        "security": [],
+        "parameters": [
+          "#/paths/~1books~1%7Bid%7D/get/parameters/0"
+        ]
+      }
+    ]
+  }
+}

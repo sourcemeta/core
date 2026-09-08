@@ -1,0 +1,20 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "security": {}
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "The Operation Object security must be an array",
+    "location": "/paths/~1pets/get/security"
+  }
+}

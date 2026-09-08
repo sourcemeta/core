@@ -1,0 +1,75 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "pathItems": {
+        "A": {
+          "$ref": "#/components/pathItems/B"
+        },
+        "B": {
+          "$ref": "#/components/pathItems/A"
+        }
+      }
+    },
+    "paths": {
+      "/pets": {
+        "$ref": "#/components/pathItems/A"
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "frame": {
+    "version": "3.1",
+    "base": "https://example.com/openapi.json",
+    "standalone": true,
+    "locations": {
+      "https://example.com/openapi.json": {
+        "type": "openapi",
+        "pointer": "",
+        "parent": null,
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+      },
+      "https://example.com/openapi.json#/components": {
+        "type": "components",
+        "pointer": "/components",
+        "parent": "https://example.com/openapi.json"
+      },
+      "https://example.com/openapi.json#/components/pathItems/A": {
+        "type": "path-item",
+        "pointer": "/components/pathItems/A",
+        "parent": "https://example.com/openapi.json#/components",
+        "original": "#/components/pathItems/B",
+        "destination": "https://example.com/openapi.json#/components/pathItems/B"
+      },
+      "https://example.com/openapi.json#/components/pathItems/B": {
+        "type": "path-item",
+        "pointer": "/components/pathItems/B",
+        "parent": "https://example.com/openapi.json#/components",
+        "original": "#/components/pathItems/A",
+        "destination": "https://example.com/openapi.json#/components/pathItems/A"
+      },
+      "https://example.com/openapi.json#/info": {
+        "type": "info",
+        "pointer": "/info",
+        "parent": "https://example.com/openapi.json"
+      },
+      "https://example.com/openapi.json#/paths": {
+        "type": "paths",
+        "pointer": "/paths",
+        "parent": "https://example.com/openapi.json"
+      },
+      "https://example.com/openapi.json#/paths/~1pets": {
+        "type": "path-item",
+        "pointer": "/paths/~1pets",
+        "parent": "https://example.com/openapi.json#/paths",
+        "original": "#/components/pathItems/A",
+        "destination": "https://example.com/openapi.json#/components/pathItems/A"
+      }
+    },
+    "operations": []
+  }
+}

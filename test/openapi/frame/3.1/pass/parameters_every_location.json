@@ -1,0 +1,237 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "parameters": {
+        "Path": {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {},
+          "style": "simple",
+          "explode": false
+        },
+        "PathMatrix": {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {},
+          "style": "matrix"
+        },
+        "PathLabel": {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {},
+          "style": "label"
+        },
+        "Query": {
+          "name": "q",
+          "in": "query",
+          "schema": {},
+          "style": "form",
+          "explode": true,
+          "allowReserved": true,
+          "allowEmptyValue": true,
+          "deprecated": false,
+          "required": false,
+          "description": "A query"
+        },
+        "QueryDeep": {
+          "name": "q",
+          "in": "query",
+          "schema": {},
+          "style": "deepObject"
+        },
+        "Header": {
+          "name": "X-Trace",
+          "in": "header",
+          "schema": {},
+          "style": "simple"
+        },
+        "Cookie": {
+          "name": "session",
+          "in": "cookie",
+          "schema": {},
+          "style": "form"
+        },
+        "Content": {
+          "name": "filter",
+          "in": "query",
+          "content": {
+            "application/json": {
+              "schema": {}
+            }
+          }
+        },
+        "Examples": {
+          "name": "e",
+          "in": "query",
+          "schema": {},
+          "examples": {
+            "One": {
+              "value": 1
+            },
+            "Ref": {
+              "$ref": "#/components/examples/One"
+            }
+          }
+        }
+      },
+      "examples": {
+        "One": {
+          "value": 1
+        }
+      }
+    }
+  },
+  "frame": {
+    "version": "3.1",
+    "base": "",
+    "standalone": true,
+    "locations": {
+      "": {
+        "type": "openapi",
+        "pointer": "",
+        "parent": null,
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+      },
+      "#/components": {
+        "type": "components",
+        "pointer": "/components",
+        "parent": ""
+      },
+      "#/components/examples/One": {
+        "type": "example",
+        "pointer": "/components/examples/One",
+        "parent": "#/components"
+      },
+      "#/components/parameters/Content": {
+        "type": "parameter",
+        "pointer": "/components/parameters/Content",
+        "parent": "#/components"
+      },
+      "#/components/parameters/Content/content/application~1json": {
+        "type": "media-type",
+        "pointer": "/components/parameters/Content/content/application~1json",
+        "parent": "#/components/parameters/Content"
+      },
+      "#/components/parameters/Content/content/application~1json/schema": {
+        "type": "schema",
+        "pointer": "/components/parameters/Content/content/application~1json/schema",
+        "parent": "#/components/parameters/Content/content/application~1json",
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+      },
+      "#/components/parameters/Cookie": {
+        "type": "parameter",
+        "pointer": "/components/parameters/Cookie",
+        "parent": "#/components"
+      },
+      "#/components/parameters/Cookie/schema": {
+        "type": "schema",
+        "pointer": "/components/parameters/Cookie/schema",
+        "parent": "#/components/parameters/Cookie",
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+      },
+      "#/components/parameters/Examples": {
+        "type": "parameter",
+        "pointer": "/components/parameters/Examples",
+        "parent": "#/components"
+      },
+      "#/components/parameters/Examples/examples/One": {
+        "type": "example",
+        "pointer": "/components/parameters/Examples/examples/One",
+        "parent": "#/components/parameters/Examples"
+      },
+      "#/components/parameters/Examples/examples/Ref": {
+        "type": "reference",
+        "pointer": "/components/parameters/Examples/examples/Ref",
+        "parent": "#/components/parameters/Examples",
+        "original": "#/components/examples/One",
+        "destination": "#/components/examples/One"
+      },
+      "#/components/parameters/Examples/schema": {
+        "type": "schema",
+        "pointer": "/components/parameters/Examples/schema",
+        "parent": "#/components/parameters/Examples",
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+      },
+      "#/components/parameters/Header": {
+        "type": "parameter",
+        "pointer": "/components/parameters/Header",
+        "parent": "#/components"
+      },
+      "#/components/parameters/Header/schema": {
+        "type": "schema",
+        "pointer": "/components/parameters/Header/schema",
+        "parent": "#/components/parameters/Header",
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+      },
+      "#/components/parameters/Path": {
+        "type": "parameter",
+        "pointer": "/components/parameters/Path",
+        "parent": "#/components"
+      },
+      "#/components/parameters/Path/schema": {
+        "type": "schema",
+        "pointer": "/components/parameters/Path/schema",
+        "parent": "#/components/parameters/Path",
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+      },
+      "#/components/parameters/PathLabel": {
+        "type": "parameter",
+        "pointer": "/components/parameters/PathLabel",
+        "parent": "#/components"
+      },
+      "#/components/parameters/PathLabel/schema": {
+        "type": "schema",
+        "pointer": "/components/parameters/PathLabel/schema",
+        "parent": "#/components/parameters/PathLabel",
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+      },
+      "#/components/parameters/PathMatrix": {
+        "type": "parameter",
+        "pointer": "/components/parameters/PathMatrix",
+        "parent": "#/components"
+      },
+      "#/components/parameters/PathMatrix/schema": {
+        "type": "schema",
+        "pointer": "/components/parameters/PathMatrix/schema",
+        "parent": "#/components/parameters/PathMatrix",
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+      },
+      "#/components/parameters/Query": {
+        "type": "parameter",
+        "pointer": "/components/parameters/Query",
+        "parent": "#/components"
+      },
+      "#/components/parameters/Query/schema": {
+        "type": "schema",
+        "pointer": "/components/parameters/Query/schema",
+        "parent": "#/components/parameters/Query",
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+      },
+      "#/components/parameters/QueryDeep": {
+        "type": "parameter",
+        "pointer": "/components/parameters/QueryDeep",
+        "parent": "#/components"
+      },
+      "#/components/parameters/QueryDeep/schema": {
+        "type": "schema",
+        "pointer": "/components/parameters/QueryDeep/schema",
+        "parent": "#/components/parameters/QueryDeep",
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+      },
+      "#/info": {
+        "type": "info",
+        "pointer": "/info",
+        "parent": ""
+      }
+    },
+    "operations": []
+  }
+}

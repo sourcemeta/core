@@ -1,0 +1,23 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "parameters": {
+        "Item": {
+          "name": "{id}",
+          "in": "path",
+          "required": true,
+          "schema": {}
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "A path Parameter Object name must not hold braces",
+    "location": "/components/parameters/Item/name"
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "jsonSchemaDialect": "dialects/../custom.json",
+    "paths": {}
+  },
+  "defaultBase": "https://example.com/schemas/openapi.json",
+  "frame": {
+    "version": "3.1",
+    "base": "https://example.com/schemas/openapi.json",
+    "standalone": true,
+    "locations": {
+      "https://example.com/schemas/openapi.json": {
+        "type": "openapi",
+        "pointer": "",
+        "parent": null,
+        "dialect": "https://example.com/schemas/custom.json"
+      },
+      "https://example.com/schemas/openapi.json#/info": {
+        "type": "info",
+        "pointer": "/info",
+        "parent": "https://example.com/schemas/openapi.json"
+      },
+      "https://example.com/schemas/openapi.json#/paths": {
+        "type": "paths",
+        "pointer": "/paths",
+        "parent": "https://example.com/schemas/openapi.json"
+      }
+    },
+    "operations": []
+  }
+}

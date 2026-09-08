@@ -1,0 +1,11 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": null,
+    "paths": {}
+  },
+  "error": {
+    "message": "The Info Object must be an object",
+    "location": "/info"
+  }
+}

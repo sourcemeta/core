@@ -1,0 +1,17 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0",
+      "contact": {
+        "email": "support"
+      }
+    },
+    "paths": {}
+  },
+  "error": {
+    "message": "The Contact Object email must be an email address",
+    "location": "/info/contact/email"
+  }
+}

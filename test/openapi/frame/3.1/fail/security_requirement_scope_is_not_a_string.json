@@ -1,0 +1,30 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "security": [
+      {
+        "ApiKey": [
+          1
+        ]
+      }
+    ],
+    "components": {
+      "securitySchemes": {
+        "ApiKey": {
+          "type": "apiKey",
+          "name": "X-Key",
+          "in": "header"
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "The Security Requirement Object entries must hold strings",
+    "location": "/security/0/ApiKey/0"
+  }
+}

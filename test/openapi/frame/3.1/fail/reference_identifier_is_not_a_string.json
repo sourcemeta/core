@@ -1,0 +1,20 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "responses": {
+        "Item": {
+          "$ref": 1
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "The Reference Object identifier must be a string",
+    "location": "/components/responses/Item/$ref"
+  }
+}

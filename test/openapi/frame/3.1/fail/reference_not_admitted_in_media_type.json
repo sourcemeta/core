@@ -1,0 +1,25 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "responses": {
+        "R": {
+          "description": "ok",
+          "content": {
+            "application/json": {
+              "$ref": "#/components/schemas/Pet"
+            }
+          }
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "The Media Type Object does not define this field",
+    "location": "/components/responses/R/content/application~1json/$ref"
+  }
+}

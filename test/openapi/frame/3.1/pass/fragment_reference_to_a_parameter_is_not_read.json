@@ -1,0 +1,57 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "parameters": {
+        "P": {
+          "$ref": "https://example.com/target.json#/anything"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "resolver": {
+    "https://example.com/target.json": {
+      "in": "query",
+      "schema": {}
+    }
+  },
+  "frame": {
+    "version": "3.1",
+    "base": "https://example.com/openapi.json",
+    "standalone": false,
+    "locations": {
+      "https://example.com/openapi.json": {
+        "type": "openapi",
+        "pointer": "",
+        "parent": null,
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+      },
+      "https://example.com/openapi.json#/components": {
+        "type": "components",
+        "pointer": "/components",
+        "parent": "https://example.com/openapi.json"
+      },
+      "https://example.com/openapi.json#/components/parameters/P": {
+        "type": "reference",
+        "pointer": "/components/parameters/P",
+        "parent": "https://example.com/openapi.json#/components",
+        "original": "https://example.com/target.json#/anything",
+        "destination": "https://example.com/target.json#/anything"
+      },
+      "https://example.com/openapi.json#/info": {
+        "type": "info",
+        "pointer": "/info",
+        "parent": "https://example.com/openapi.json"
+      }
+    },
+    "operations": []
+  },
+  "dangling": [
+    "https://example.com/target.json#/anything"
+  ]
+}

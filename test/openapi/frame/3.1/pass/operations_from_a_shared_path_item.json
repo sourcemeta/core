@@ -1,0 +1,115 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "pathItems": {
+        "Shared": {
+          "get": {
+            "responses": {
+              "200": {
+                "description": "ok"
+              }
+            }
+          }
+        }
+      }
+    },
+    "paths": {
+      "/a": {
+        "$ref": "#/components/pathItems/Shared"
+      },
+      "/b": {
+        "$ref": "#/components/pathItems/Shared"
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "frame": {
+    "version": "3.1",
+    "base": "https://example.com/openapi.json",
+    "standalone": true,
+    "locations": {
+      "https://example.com/openapi.json": {
+        "type": "openapi",
+        "pointer": "",
+        "parent": null,
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+      },
+      "https://example.com/openapi.json#/components": {
+        "type": "components",
+        "pointer": "/components",
+        "parent": "https://example.com/openapi.json"
+      },
+      "https://example.com/openapi.json#/components/pathItems/Shared": {
+        "type": "path-item",
+        "pointer": "/components/pathItems/Shared",
+        "parent": "https://example.com/openapi.json#/components"
+      },
+      "https://example.com/openapi.json#/components/pathItems/Shared/get": {
+        "type": "operation",
+        "pointer": "/components/pathItems/Shared/get",
+        "parent": "https://example.com/openapi.json#/components/pathItems/Shared"
+      },
+      "https://example.com/openapi.json#/components/pathItems/Shared/get/responses": {
+        "type": "responses",
+        "pointer": "/components/pathItems/Shared/get/responses",
+        "parent": "https://example.com/openapi.json#/components/pathItems/Shared/get"
+      },
+      "https://example.com/openapi.json#/components/pathItems/Shared/get/responses/200": {
+        "type": "response",
+        "pointer": "/components/pathItems/Shared/get/responses/200",
+        "parent": "https://example.com/openapi.json#/components/pathItems/Shared/get/responses"
+      },
+      "https://example.com/openapi.json#/info": {
+        "type": "info",
+        "pointer": "/info",
+        "parent": "https://example.com/openapi.json"
+      },
+      "https://example.com/openapi.json#/paths": {
+        "type": "paths",
+        "pointer": "/paths",
+        "parent": "https://example.com/openapi.json"
+      },
+      "https://example.com/openapi.json#/paths/~1a": {
+        "type": "path-item",
+        "pointer": "/paths/~1a",
+        "parent": "https://example.com/openapi.json#/paths",
+        "original": "#/components/pathItems/Shared",
+        "destination": "https://example.com/openapi.json#/components/pathItems/Shared"
+      },
+      "https://example.com/openapi.json#/paths/~1b": {
+        "type": "path-item",
+        "pointer": "/paths/~1b",
+        "parent": "https://example.com/openapi.json#/paths",
+        "original": "#/components/pathItems/Shared",
+        "destination": "https://example.com/openapi.json#/components/pathItems/Shared"
+      }
+    },
+    "operations": [
+      {
+        "type": "path",
+        "path": "/a",
+        "method": "get",
+        "origin": "https://example.com/openapi.json#/components/pathItems/Shared/get",
+        "tags": [],
+        "servers": [],
+        "security": [],
+        "parameters": []
+      },
+      {
+        "type": "path",
+        "path": "/b",
+        "method": "get",
+        "origin": "https://example.com/openapi.json#/components/pathItems/Shared/get",
+        "tags": [],
+        "servers": [],
+        "security": [],
+        "parameters": []
+      }
+    ]
+  }
+}

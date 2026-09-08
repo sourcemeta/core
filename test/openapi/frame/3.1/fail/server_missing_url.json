@@ -1,0 +1,19 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "servers": [
+      {
+        "description": "Production"
+      }
+    ],
+    "paths": {}
+  },
+  "error": {
+    "message": "The Server Object must declare a URL",
+    "location": "/servers/0"
+  }
+}

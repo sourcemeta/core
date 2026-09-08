@@ -1,0 +1,18 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "headers": {
+        "Item": {}
+      }
+    }
+  },
+  "error": {
+    "message": "The Header Object must declare a schema or a content",
+    "location": "/components/headers/Item"
+  }
+}

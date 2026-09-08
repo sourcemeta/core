@@ -1,0 +1,29 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "links": {
+        "ByRef": {
+          "operationRef": "#/components/parameters/Limit"
+        }
+      },
+      "parameters": {
+        "Limit": {
+          "name": "limit",
+          "in": "query",
+          "schema": {}
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "error": {
+    "message": "The Operation Object does not define this field",
+    "location": "/components/parameters/Limit/name",
+    "base": "https://example.com/openapi.json"
+  }
+}

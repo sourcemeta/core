@@ -1,0 +1,404 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "summary": "Pets",
+        "description": "Everything about pets",
+        "servers": [
+          {
+            "url": "/v1"
+          }
+        ],
+        "parameters": [
+          {
+            "name": "trace",
+            "in": "header",
+            "schema": {}
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          }
+        ],
+        "get": {
+          "responses": {
+            "200": {
+              "description": "ok"
+            }
+          }
+        },
+        "put": {
+          "responses": {
+            "200": {
+              "description": "ok"
+            }
+          }
+        },
+        "post": {
+          "responses": {
+            "201": {
+              "description": "created"
+            }
+          }
+        },
+        "delete": {
+          "responses": {
+            "204": {
+              "description": "gone"
+            }
+          }
+        },
+        "options": {
+          "responses": {
+            "200": {
+              "description": "ok"
+            }
+          }
+        },
+        "head": {
+          "responses": {
+            "200": {
+              "description": "ok"
+            }
+          }
+        },
+        "patch": {
+          "responses": {
+            "200": {
+              "description": "ok"
+            }
+          }
+        },
+        "trace": {
+          "responses": {
+            "200": {
+              "description": "ok"
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "parameters": {
+        "Limit": {
+          "name": "limit",
+          "in": "query",
+          "schema": {}
+        }
+      }
+    }
+  },
+  "frame": {
+    "version": "3.1",
+    "base": "",
+    "standalone": true,
+    "locations": {
+      "": {
+        "type": "openapi",
+        "pointer": "",
+        "parent": null,
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+      },
+      "#/components": {
+        "type": "components",
+        "pointer": "/components",
+        "parent": ""
+      },
+      "#/components/parameters/Limit": {
+        "type": "parameter",
+        "pointer": "/components/parameters/Limit",
+        "parent": "#/components"
+      },
+      "#/components/parameters/Limit/schema": {
+        "type": "schema",
+        "pointer": "/components/parameters/Limit/schema",
+        "parent": "#/components/parameters/Limit",
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+      },
+      "#/info": {
+        "type": "info",
+        "pointer": "/info",
+        "parent": ""
+      },
+      "#/paths": {
+        "type": "paths",
+        "pointer": "/paths",
+        "parent": ""
+      },
+      "#/paths/~1pets": {
+        "type": "path-item",
+        "pointer": "/paths/~1pets",
+        "parent": "#/paths"
+      },
+      "#/paths/~1pets/delete": {
+        "type": "operation",
+        "pointer": "/paths/~1pets/delete",
+        "parent": "#/paths/~1pets"
+      },
+      "#/paths/~1pets/delete/responses": {
+        "type": "responses",
+        "pointer": "/paths/~1pets/delete/responses",
+        "parent": "#/paths/~1pets/delete"
+      },
+      "#/paths/~1pets/delete/responses/204": {
+        "type": "response",
+        "pointer": "/paths/~1pets/delete/responses/204",
+        "parent": "#/paths/~1pets/delete/responses"
+      },
+      "#/paths/~1pets/get": {
+        "type": "operation",
+        "pointer": "/paths/~1pets/get",
+        "parent": "#/paths/~1pets"
+      },
+      "#/paths/~1pets/get/responses": {
+        "type": "responses",
+        "pointer": "/paths/~1pets/get/responses",
+        "parent": "#/paths/~1pets/get"
+      },
+      "#/paths/~1pets/get/responses/200": {
+        "type": "response",
+        "pointer": "/paths/~1pets/get/responses/200",
+        "parent": "#/paths/~1pets/get/responses"
+      },
+      "#/paths/~1pets/head": {
+        "type": "operation",
+        "pointer": "/paths/~1pets/head",
+        "parent": "#/paths/~1pets"
+      },
+      "#/paths/~1pets/head/responses": {
+        "type": "responses",
+        "pointer": "/paths/~1pets/head/responses",
+        "parent": "#/paths/~1pets/head"
+      },
+      "#/paths/~1pets/head/responses/200": {
+        "type": "response",
+        "pointer": "/paths/~1pets/head/responses/200",
+        "parent": "#/paths/~1pets/head/responses"
+      },
+      "#/paths/~1pets/options": {
+        "type": "operation",
+        "pointer": "/paths/~1pets/options",
+        "parent": "#/paths/~1pets"
+      },
+      "#/paths/~1pets/options/responses": {
+        "type": "responses",
+        "pointer": "/paths/~1pets/options/responses",
+        "parent": "#/paths/~1pets/options"
+      },
+      "#/paths/~1pets/options/responses/200": {
+        "type": "response",
+        "pointer": "/paths/~1pets/options/responses/200",
+        "parent": "#/paths/~1pets/options/responses"
+      },
+      "#/paths/~1pets/parameters/0": {
+        "type": "parameter",
+        "pointer": "/paths/~1pets/parameters/0",
+        "parent": "#/paths/~1pets"
+      },
+      "#/paths/~1pets/parameters/0/schema": {
+        "type": "schema",
+        "pointer": "/paths/~1pets/parameters/0/schema",
+        "parent": "#/paths/~1pets/parameters/0",
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+      },
+      "#/paths/~1pets/parameters/1": {
+        "type": "reference",
+        "pointer": "/paths/~1pets/parameters/1",
+        "parent": "#/paths/~1pets",
+        "original": "#/components/parameters/Limit",
+        "destination": "#/components/parameters/Limit"
+      },
+      "#/paths/~1pets/patch": {
+        "type": "operation",
+        "pointer": "/paths/~1pets/patch",
+        "parent": "#/paths/~1pets"
+      },
+      "#/paths/~1pets/patch/responses": {
+        "type": "responses",
+        "pointer": "/paths/~1pets/patch/responses",
+        "parent": "#/paths/~1pets/patch"
+      },
+      "#/paths/~1pets/patch/responses/200": {
+        "type": "response",
+        "pointer": "/paths/~1pets/patch/responses/200",
+        "parent": "#/paths/~1pets/patch/responses"
+      },
+      "#/paths/~1pets/post": {
+        "type": "operation",
+        "pointer": "/paths/~1pets/post",
+        "parent": "#/paths/~1pets"
+      },
+      "#/paths/~1pets/post/responses": {
+        "type": "responses",
+        "pointer": "/paths/~1pets/post/responses",
+        "parent": "#/paths/~1pets/post"
+      },
+      "#/paths/~1pets/post/responses/201": {
+        "type": "response",
+        "pointer": "/paths/~1pets/post/responses/201",
+        "parent": "#/paths/~1pets/post/responses"
+      },
+      "#/paths/~1pets/put": {
+        "type": "operation",
+        "pointer": "/paths/~1pets/put",
+        "parent": "#/paths/~1pets"
+      },
+      "#/paths/~1pets/put/responses": {
+        "type": "responses",
+        "pointer": "/paths/~1pets/put/responses",
+        "parent": "#/paths/~1pets/put"
+      },
+      "#/paths/~1pets/put/responses/200": {
+        "type": "response",
+        "pointer": "/paths/~1pets/put/responses/200",
+        "parent": "#/paths/~1pets/put/responses"
+      },
+      "#/paths/~1pets/servers/0": {
+        "type": "server",
+        "pointer": "/paths/~1pets/servers/0",
+        "parent": "#/paths/~1pets"
+      },
+      "#/paths/~1pets/trace": {
+        "type": "operation",
+        "pointer": "/paths/~1pets/trace",
+        "parent": "#/paths/~1pets"
+      },
+      "#/paths/~1pets/trace/responses": {
+        "type": "responses",
+        "pointer": "/paths/~1pets/trace/responses",
+        "parent": "#/paths/~1pets/trace"
+      },
+      "#/paths/~1pets/trace/responses/200": {
+        "type": "response",
+        "pointer": "/paths/~1pets/trace/responses/200",
+        "parent": "#/paths/~1pets/trace/responses"
+      }
+    },
+    "operations": [
+      {
+        "type": "path",
+        "path": "/pets",
+        "method": "get",
+        "origin": "#/paths/~1pets/get",
+        "tags": [],
+        "servers": [
+          "#/paths/~1pets/servers/0"
+        ],
+        "security": [],
+        "parameters": [
+          "#/paths/~1pets/parameters/0",
+          "#/paths/~1pets/parameters/1"
+        ]
+      },
+      {
+        "type": "path",
+        "path": "/pets",
+        "method": "put",
+        "origin": "#/paths/~1pets/put",
+        "tags": [],
+        "servers": [
+          "#/paths/~1pets/servers/0"
+        ],
+        "security": [],
+        "parameters": [
+          "#/paths/~1pets/parameters/0",
+          "#/paths/~1pets/parameters/1"
+        ]
+      },
+      {
+        "type": "path",
+        "path": "/pets",
+        "method": "post",
+        "origin": "#/paths/~1pets/post",
+        "tags": [],
+        "servers": [
+          "#/paths/~1pets/servers/0"
+        ],
+        "security": [],
+        "parameters": [
+          "#/paths/~1pets/parameters/0",
+          "#/paths/~1pets/parameters/1"
+        ]
+      },
+      {
+        "type": "path",
+        "path": "/pets",
+        "method": "delete",
+        "origin": "#/paths/~1pets/delete",
+        "tags": [],
+        "servers": [
+          "#/paths/~1pets/servers/0"
+        ],
+        "security": [],
+        "parameters": [
+          "#/paths/~1pets/parameters/0",
+          "#/paths/~1pets/parameters/1"
+        ]
+      },
+      {
+        "type": "path",
+        "path": "/pets",
+        "method": "options",
+        "origin": "#/paths/~1pets/options",
+        "tags": [],
+        "servers": [
+          "#/paths/~1pets/servers/0"
+        ],
+        "security": [],
+        "parameters": [
+          "#/paths/~1pets/parameters/0",
+          "#/paths/~1pets/parameters/1"
+        ]
+      },
+      {
+        "type": "path",
+        "path": "/pets",
+        "method": "head",
+        "origin": "#/paths/~1pets/head",
+        "tags": [],
+        "servers": [
+          "#/paths/~1pets/servers/0"
+        ],
+        "security": [],
+        "parameters": [
+          "#/paths/~1pets/parameters/0",
+          "#/paths/~1pets/parameters/1"
+        ]
+      },
+      {
+        "type": "path",
+        "path": "/pets",
+        "method": "patch",
+        "origin": "#/paths/~1pets/patch",
+        "tags": [],
+        "servers": [
+          "#/paths/~1pets/servers/0"
+        ],
+        "security": [],
+        "parameters": [
+          "#/paths/~1pets/parameters/0",
+          "#/paths/~1pets/parameters/1"
+        ]
+      },
+      {
+        "type": "path",
+        "path": "/pets",
+        "method": "trace",
+        "origin": "#/paths/~1pets/trace",
+        "tags": [],
+        "servers": [
+          "#/paths/~1pets/servers/0"
+        ],
+        "security": [],
+        "parameters": [
+          "#/paths/~1pets/parameters/0",
+          "#/paths/~1pets/parameters/1"
+        ]
+      }
+    ]
+  }
+}

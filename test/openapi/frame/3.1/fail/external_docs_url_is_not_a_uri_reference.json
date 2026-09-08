@@ -1,0 +1,17 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "externalDocs": {
+      "url": "https://example.com/a b"
+    },
+    "paths": {}
+  },
+  "error": {
+    "message": "The External Documentation Object URI must be a URI reference",
+    "location": "/externalDocs/url"
+  }
+}

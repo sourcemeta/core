@@ -1,0 +1,72 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "schemas": {
+        "User": {},
+        "User_1": {},
+        "User_Name": {},
+        "user-name": {},
+        "my.org.User": {}
+      }
+    }
+  },
+  "frame": {
+    "version": "3.1",
+    "base": "",
+    "standalone": true,
+    "locations": {
+      "": {
+        "type": "openapi",
+        "pointer": "",
+        "parent": null,
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+      },
+      "#/components": {
+        "type": "components",
+        "pointer": "/components",
+        "parent": ""
+      },
+      "#/components/schemas/User": {
+        "type": "schema",
+        "pointer": "/components/schemas/User",
+        "parent": "#/components",
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+      },
+      "#/components/schemas/User_1": {
+        "type": "schema",
+        "pointer": "/components/schemas/User_1",
+        "parent": "#/components",
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+      },
+      "#/components/schemas/User_Name": {
+        "type": "schema",
+        "pointer": "/components/schemas/User_Name",
+        "parent": "#/components",
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+      },
+      "#/components/schemas/my.org.User": {
+        "type": "schema",
+        "pointer": "/components/schemas/my.org.User",
+        "parent": "#/components",
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+      },
+      "#/components/schemas/user-name": {
+        "type": "schema",
+        "pointer": "/components/schemas/user-name",
+        "parent": "#/components",
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+      },
+      "#/info": {
+        "type": "info",
+        "pointer": "/info",
+        "parent": ""
+      }
+    },
+    "operations": []
+  }
+}

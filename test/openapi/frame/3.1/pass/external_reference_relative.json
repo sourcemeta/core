@@ -1,0 +1,85 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "responses": {
+        "R": {
+          "$ref": "common.json#/components/responses/NotFound"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "frame": {
+    "version": "3.1",
+    "base": "https://example.com/openapi.json",
+    "standalone": true,
+    "locations": {
+      "https://example.com/common.json": {
+        "type": "openapi",
+        "pointer": "",
+        "parent": null,
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+      },
+      "https://example.com/common.json#/components": {
+        "type": "components",
+        "pointer": "/components",
+        "parent": "https://example.com/common.json"
+      },
+      "https://example.com/common.json#/components/responses/NotFound": {
+        "type": "response",
+        "pointer": "/components/responses/NotFound",
+        "parent": "https://example.com/common.json#/components"
+      },
+      "https://example.com/common.json#/info": {
+        "type": "info",
+        "pointer": "/info",
+        "parent": "https://example.com/common.json"
+      },
+      "https://example.com/openapi.json": {
+        "type": "openapi",
+        "pointer": "",
+        "parent": null,
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+      },
+      "https://example.com/openapi.json#/components": {
+        "type": "components",
+        "pointer": "/components",
+        "parent": "https://example.com/openapi.json"
+      },
+      "https://example.com/openapi.json#/components/responses/R": {
+        "type": "reference",
+        "pointer": "/components/responses/R",
+        "parent": "https://example.com/openapi.json#/components",
+        "original": "common.json#/components/responses/NotFound",
+        "destination": "https://example.com/common.json#/components/responses/NotFound"
+      },
+      "https://example.com/openapi.json#/info": {
+        "type": "info",
+        "pointer": "/info",
+        "parent": "https://example.com/openapi.json"
+      }
+    },
+    "operations": []
+  },
+  "resolver": {
+    "https://example.com/common.json": {
+      "openapi": "3.1.1",
+      "info": {
+        "title": "Common",
+        "version": "1.0.0"
+      },
+      "components": {
+        "responses": {
+          "NotFound": {
+            "description": "Not found"
+          }
+        }
+      }
+    }
+  }
+}
