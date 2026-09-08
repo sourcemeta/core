@@ -26,8 +26,10 @@ macro(add_stacktrace_test_unix scenario debug_flag)
   endif()
 endmacro()
 
+# These variants assert symbolized frames, which dbghelp can only resolve from
+# the PDB that MSVC emits
 macro(add_stacktrace_test_windows scenario)
-  if(WIN32)
+  if(MSVC)
     set(target sourcemeta_core_stacktrace_unit_${scenario}_main)
     add_executable(${target} stacktrace_${scenario}_main.cc)
     target_link_libraries(${target} PRIVATE sourcemeta::core::stacktrace)
