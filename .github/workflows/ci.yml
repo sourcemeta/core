@@ -61,6 +61,12 @@ jobs:
           - os: windows-latest
             type: shared
             shell: pwsh
+          - os: windows-latest
+            cc: gcc
+            cxx: g++
+            type: static
+            shell: 'msys2 {0}'
+            msystem: MINGW64
 
           # Sanitizers
           - os: ubuntu-latest
@@ -101,6 +107,13 @@ jobs:
       CACHE_KEY: ccache-v1-${{ matrix.platform.os }}-${{ matrix.platform.cc || 'msvc' }}-${{ matrix.platform.type }}-${{ strategy.job-index }}
     steps:
       - uses: actions/checkout@v4
+      - name: Setup MSYS2 (Windows)
+        if: matrix.platform.msystem
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: ${{ matrix.platform.msystem }}
+          update: true
+          pacboy: gcc:p cmake:p ccache:p
       - name: Install dependencies (macOS)
         if: runner.os == 'macos'
         run: brew bundle
@@ -115,7 +128,7 @@ jobs:
         timeout-minutes: 5
         run: sudo apt-get update && sudo apt-get install --yes ccache ${{ matrix.platform.apt }}
       - name: Install dependencies (Windows)
-        if: runner.os == 'Windows'
+        if: runner.os == 'Windows' && !matrix.platform.msystem
         run: choco install ccache --no-progress --yes
 
       # The Visual Studio generator ignores the compiler launchers, so on
@@ -123,7 +136,7 @@ jobs:
       # it. The Chocolatey shim cannot run under another name, so the real
       # executable is the one that gets copied
       - name: Prepare ccache (Windows)
-        if: runner.os == 'Windows'
+        if: runner.os == 'Windows' && !matrix.platform.msystem
         run: |
           $binary = Get-ChildItem -Path 'C:\ProgramData\chocolatey\lib\ccache\tools' -Filter ccache.exe -Recurse | Select-Object -First 1
           New-Item -ItemType Directory -Force -Path 'C:\ccache-cl' | Out-Null
