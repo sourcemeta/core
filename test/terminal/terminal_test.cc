@@ -12,6 +12,12 @@
 #include <unistd.h> // pipe, close
 #endif
 
+TEST(stream_integer_constants) {
+  EXPECT_EQ(static_cast<int>(sourcemeta::core::TerminalStream::Stdin), 0);
+  EXPECT_EQ(static_cast<int>(sourcemeta::core::TerminalStream::Stdout), 1);
+  EXPECT_EQ(static_cast<int>(sourcemeta::core::TerminalStream::Stderr), 2);
+}
+
 TEST(sgr_sequence_none) {
   EXPECT_EQ(sourcemeta::core::terminal_sgr_sequence(
                 sourcemeta::core::TerminalStyle::None),
@@ -65,28 +71,29 @@ TEST(sgr_sequence_bold_combined_with_colors) {
             "\033[1;36m");
 }
 
-TEST(sgr_sequence_conflicting_colors_precedence) {
-  // Verifies documented precedence order: Red > Green > Yellow > Blue > Cyan
-  EXPECT_EQ(sourcemeta::core::terminal_sgr_sequence(
-                sourcemeta::core::TerminalStyle::Red |
-                sourcemeta::core::TerminalStyle::Green),
-            "\033[31m");
-  EXPECT_EQ(sourcemeta::core::terminal_sgr_sequence(
-                sourcemeta::core::TerminalStyle::Green |
-                sourcemeta::core::TerminalStyle::Yellow),
-            "\033[32m");
-  EXPECT_EQ(sourcemeta::core::terminal_sgr_sequence(
-                sourcemeta::core::TerminalStyle::Yellow |
-                sourcemeta::core::TerminalStyle::Blue),
-            "\033[33m");
-  EXPECT_EQ(sourcemeta::core::terminal_sgr_sequence(
-                sourcemeta::core::TerminalStyle::Blue |
-                sourcemeta::core::TerminalStyle::Cyan),
-            "\033[34m");
-}
-
 TEST(sgr_reset_sequence) {
   EXPECT_EQ(sourcemeta::core::terminal_sgr_reset(), "\033[0m");
+}
+
+TEST(style_validity) {
+  EXPECT_TRUE(sourcemeta::core::terminal_style_is_valid(
+      sourcemeta::core::TerminalStyle::None));
+  EXPECT_TRUE(sourcemeta::core::terminal_style_is_valid(
+      sourcemeta::core::TerminalStyle::Bold));
+  EXPECT_TRUE(sourcemeta::core::terminal_style_is_valid(
+      sourcemeta::core::TerminalStyle::Red));
+  EXPECT_TRUE(sourcemeta::core::terminal_style_is_valid(
+      sourcemeta::core::TerminalStyle::Bold |
+      sourcemeta::core::TerminalStyle::Red));
+  EXPECT_FALSE(sourcemeta::core::terminal_style_is_valid(
+      sourcemeta::core::TerminalStyle::Red |
+      sourcemeta::core::TerminalStyle::Green));
+  EXPECT_FALSE(sourcemeta::core::terminal_style_is_valid(
+      sourcemeta::core::TerminalStyle::Red |
+      sourcemeta::core::TerminalStyle::Blue |
+      sourcemeta::core::TerminalStyle::Bold));
+  EXPECT_FALSE(sourcemeta::core::terminal_style_is_valid(
+      static_cast<sourcemeta::core::TerminalStyle>(1 << 7)));
 }
 
 TEST(paint_string_when_enabled) {
@@ -113,6 +120,12 @@ TEST(paint_string_when_disabled) {
   EXPECT_EQ(sourcemeta::core::terminal_paint(
                 "NoneStyle", sourcemeta::core::TerminalStyle::None, true),
             "NoneStyle");
+}
+
+TEST(paint_string_default_argument) {
+  EXPECT_EQ(sourcemeta::core::terminal_paint(
+                "DefaultEnabled", sourcemeta::core::TerminalStyle::Red),
+            "\033[31mDefaultEnabled\033[0m");
 }
 
 TEST(paint_string_empty) {
@@ -150,23 +163,51 @@ TEST(paint_stream_when_disabled) {
   EXPECT_EQ(none_stream_output.str(), "NoneStyle");
 }
 
-TEST(style_bitwise_operators) {
+TEST(paint_stream_default_argument) {
+  std::ostringstream stream_output;
+  sourcemeta::core::terminal_paint(stream_output, "StreamDefault",
+                                   sourcemeta::core::TerminalStyle::Red);
+  EXPECT_EQ(stream_output.str(), "\033[31mStreamDefault\033[0m");
+}
+
+TEST(style_bitwise_or) {
   const auto combined{sourcemeta::core::TerminalStyle::Bold |
                       sourcemeta::core::TerminalStyle::Blue};
   EXPECT_EQ((combined & sourcemeta::core::TerminalStyle::Bold),
             sourcemeta::core::TerminalStyle::Bold);
   EXPECT_EQ((combined & sourcemeta::core::TerminalStyle::Blue),
             sourcemeta::core::TerminalStyle::Blue);
+}
+
+TEST(style_bitwise_and) {
+  const auto combined{sourcemeta::core::TerminalStyle::Bold |
+                      sourcemeta::core::TerminalStyle::Blue};
+  EXPECT_EQ((combined & sourcemeta::core::TerminalStyle::Bold),
+            sourcemeta::core::TerminalStyle::Bold);
   EXPECT_EQ((combined & sourcemeta::core::TerminalStyle::Red),
             sourcemeta::core::TerminalStyle::None);
+}
 
+TEST(style_bitwise_not) {
   const auto inverted{~sourcemeta::core::TerminalStyle::None};
   EXPECT_EQ((inverted & sourcemeta::core::TerminalStyle::Bold),
             sourcemeta::core::TerminalStyle::Bold);
+}
 
-  const auto xor_style{sourcemeta::core::TerminalStyle::Bold ^
-                       sourcemeta::core::TerminalStyle::Bold};
-  EXPECT_EQ(xor_style, sourcemeta::core::TerminalStyle::None);
+TEST(style_bitwise_xor) {
+  const auto cleared{sourcemeta::core::TerminalStyle::Bold ^
+                     sourcemeta::core::TerminalStyle::Bold};
+  EXPECT_EQ(cleared, sourcemeta::core::TerminalStyle::None);
+
+  const auto preserved{sourcemeta::core::TerminalStyle::Bold ^
+                       sourcemeta::core::TerminalStyle::None};
+  EXPECT_EQ(preserved, sourcemeta::core::TerminalStyle::Bold);
+}
+
+TEST(policy_default_argument) {
+  EXPECT_EQ(sourcemeta::core::terminal_color_policy(),
+            sourcemeta::core::terminal_color_policy(
+                sourcemeta::core::TerminalStream::Stdout));
 }
 
 TEST(policy_lifecycle_and_isolation) {
@@ -219,15 +260,15 @@ TEST(policy_lifecycle_and_isolation) {
 
 TEST(stream_detection_runs_safely) {
   // Exercises stream queries without throws or crashes
-  const bool stdin_is_term{sourcemeta::core::terminal_is_interactive(
-      sourcemeta::core::TerminalStream::Stdin)};
-  const bool stdout_is_term{sourcemeta::core::terminal_is_interactive(
-      sourcemeta::core::TerminalStream::Stdout)};
-  const bool stderr_is_term{sourcemeta::core::terminal_is_interactive(
-      sourcemeta::core::TerminalStream::Stderr)};
-  static_cast<void>(stdin_is_term);
-  static_cast<void>(stdout_is_term);
-  static_cast<void>(stderr_is_term);
+  [[maybe_unused]] const bool stdin_is_term{
+      sourcemeta::core::terminal_is_interactive(
+          sourcemeta::core::TerminalStream::Stdin)};
+  [[maybe_unused]] const bool stdout_is_term{
+      sourcemeta::core::terminal_is_interactive(
+          sourcemeta::core::TerminalStream::Stdout)};
+  [[maybe_unused]] const bool stderr_is_term{
+      sourcemeta::core::terminal_is_interactive(
+          sourcemeta::core::TerminalStream::Stderr)};
 }
 
 TEST(non_interactive_file_descriptors) {

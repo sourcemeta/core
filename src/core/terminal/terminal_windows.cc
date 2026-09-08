@@ -7,10 +7,14 @@
 #define NOMINMAX
 #endif
 #include <io.h>      // _isatty
+#include <utility>   // std::unreachable
 #include <windows.h> // GetStdHandle, GetConsoleMode, SetConsoleMode, STD_INPUT_HANDLE, STD_OUTPUT_HANDLE, STD_ERROR_HANDLE, ENABLE_VIRTUAL_TERMINAL_PROCESSING, DWORD, HANDLE, INVALID_HANDLE_VALUE
 
 namespace sourcemeta::core::internal {
 
+// Enables native processing of ECMA-48 / ANSI SGR escape sequences on Windows.
+// Reference:
+// https://learn.microsoft.com/en-us/windows/console/console-virtual-terminal-sequences
 auto is_interactive_stream(TerminalStream stream) noexcept -> bool {
   DWORD standard_handle_id{STD_OUTPUT_HANDLE};
   switch (stream) {
@@ -23,6 +27,8 @@ auto is_interactive_stream(TerminalStream stream) noexcept -> bool {
     case TerminalStream::Stderr:
       standard_handle_id = STD_ERROR_HANDLE;
       break;
+    default:
+      std::unreachable();
   }
 
   const HANDLE handle{GetStdHandle(standard_handle_id)};
@@ -69,6 +75,8 @@ auto enable_virtual_terminal_stream(TerminalStream stream) noexcept -> void {
     case TerminalStream::Stderr:
       standard_handle_id = STD_ERROR_HANDLE;
       break;
+    default:
+      std::unreachable();
   }
 
   const HANDLE handle{GetStdHandle(standard_handle_id)};

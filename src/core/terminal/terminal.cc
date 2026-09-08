@@ -1,20 +1,24 @@
-#include "terminal_internal.h"
 #include <sourcemeta/core/terminal.h>
+
+#include "terminal_ansi_escapes.h"
+#include "terminal_internal.h"
 
 #include <array>       // std::array
 #include <atomic>      // std::atomic, std::memory_order_relaxed
+#include <cassert>     // assert
 #include <cstddef>     // std::size_t
 #include <ostream>     // std::ostream
 #include <string>      // std::string
 #include <string_view> // std::string_view
+#include <utility>     // std::unreachable
 
 namespace {
 
 // Indices match TerminalStream: Stdin = 0, Stdout = 1, Stderr = 2
 std::array<std::atomic<sourcemeta::core::TerminalColorPolicy>, 3>
-    g_stream_policies{{sourcemeta::core::TerminalColorPolicy::WhenInteractive,
-                       sourcemeta::core::TerminalColorPolicy::WhenInteractive,
-                       sourcemeta::core::TerminalColorPolicy::WhenInteractive}};
+    stream_policies{{sourcemeta::core::TerminalColorPolicy::WhenInteractive,
+                     sourcemeta::core::TerminalColorPolicy::WhenInteractive,
+                     sourcemeta::core::TerminalColorPolicy::WhenInteractive}};
 
 constexpr auto stream_index(sourcemeta::core::TerminalStream stream) noexcept
     -> std::size_t {
@@ -25,8 +29,9 @@ constexpr auto stream_index(sourcemeta::core::TerminalStream stream) noexcept
       return 1;
     case sourcemeta::core::TerminalStream::Stderr:
       return 2;
+    default:
+      std::unreachable();
   }
-  return 1;
 }
 
 } // namespace
@@ -42,33 +47,34 @@ auto terminal_is_interactive(int file_descriptor) noexcept -> bool {
 }
 
 auto terminal_set_color_policy(TerminalColorPolicy policy) noexcept -> void {
-  for (auto &stream_policy : g_stream_policies) {
+  for (auto &stream_policy : stream_policies) {
     stream_policy.store(policy, std::memory_order_relaxed);
   }
 }
 
 auto terminal_set_color_policy(TerminalStream stream,
                                TerminalColorPolicy policy) noexcept -> void {
-  g_stream_policies[stream_index(stream)].store(policy,
-                                                std::memory_order_relaxed);
+  stream_policies[stream_index(stream)].store(policy,
+                                              std::memory_order_relaxed);
 }
 
 auto terminal_color_policy(TerminalStream stream) noexcept
     -> TerminalColorPolicy {
-  return g_stream_policies[stream_index(stream)].load(
-      std::memory_order_relaxed);
+  return stream_policies[stream_index(stream)].load(std::memory_order_relaxed);
 }
 
 auto terminal_color_enabled(TerminalStream stream) noexcept -> bool {
-  if (terminal_color_policy(stream) == TerminalColorPolicy::Disabled) {
-    return false;
-  }
-  return terminal_is_interactive(stream);
+  return terminal_color_policy(stream) != TerminalColorPolicy::Disabled &&
+         terminal_is_interactive(stream);
 }
 
-auto terminal_sgr_reset() noexcept -> std::string_view { return "\033[0m"; }
+auto terminal_sgr_reset() noexcept -> std::string_view {
+  return internal::escape_reset;
+}
 
 auto terminal_sgr_sequence(TerminalStyle style) noexcept -> std::string_view {
+  assert(terminal_style_is_valid(style));
+
   if (style == TerminalStyle::None) {
     return {};
   }
@@ -76,23 +82,23 @@ auto terminal_sgr_sequence(TerminalStyle style) noexcept -> std::string_view {
   const bool has_bold{(style & TerminalStyle::Bold) != TerminalStyle::None};
 
   if ((style & TerminalStyle::Red) != TerminalStyle::None) {
-    return has_bold ? "\033[1;31m" : "\033[31m";
+    return has_bold ? internal::escape_bold_red : internal::escape_red;
   }
   if ((style & TerminalStyle::Green) != TerminalStyle::None) {
-    return has_bold ? "\033[1;32m" : "\033[32m";
+    return has_bold ? internal::escape_bold_green : internal::escape_green;
   }
   if ((style & TerminalStyle::Yellow) != TerminalStyle::None) {
-    return has_bold ? "\033[1;33m" : "\033[33m";
+    return has_bold ? internal::escape_bold_yellow : internal::escape_yellow;
   }
   if ((style & TerminalStyle::Blue) != TerminalStyle::None) {
-    return has_bold ? "\033[1;34m" : "\033[34m";
+    return has_bold ? internal::escape_bold_blue : internal::escape_blue;
   }
   if ((style & TerminalStyle::Cyan) != TerminalStyle::None) {
-    return has_bold ? "\033[1;36m" : "\033[36m";
+    return has_bold ? internal::escape_bold_cyan : internal::escape_cyan;
   }
 
   if (has_bold) {
-    return "\033[1m";
+    return internal::escape_bold;
   }
 
   return {};
@@ -100,6 +106,8 @@ auto terminal_sgr_sequence(TerminalStyle style) noexcept -> std::string_view {
 
 auto terminal_paint(std::string_view text, TerminalStyle style, bool enabled)
     -> std::string {
+  assert(terminal_style_is_valid(style));
+
   if (!enabled || style == TerminalStyle::None || text.empty()) {
     return std::string{text};
   }
@@ -120,6 +128,8 @@ auto terminal_paint(std::string_view text, TerminalStyle style, bool enabled)
 
 auto terminal_paint(TerminalStream stream, std::string_view text,
                     TerminalStyle style) -> std::string {
+  assert(terminal_style_is_valid(style));
+
   const bool enabled{terminal_color_enabled(stream)};
   if (enabled && style != TerminalStyle::None && !text.empty()) {
     internal::enable_virtual_terminal_stream(stream);
@@ -129,6 +139,8 @@ auto terminal_paint(TerminalStream stream, std::string_view text,
 
 auto terminal_paint(std::ostream &output, std::string_view text,
                     TerminalStyle style, bool enabled) -> std::ostream & {
+  assert(terminal_style_is_valid(style));
+
   if (!enabled || style == TerminalStyle::None || text.empty()) {
     output << text;
     return output;
@@ -147,6 +159,8 @@ auto terminal_paint(std::ostream &output, std::string_view text,
 auto terminal_paint(std::ostream &output, TerminalStream stream,
                     std::string_view text, TerminalStyle style)
     -> std::ostream & {
+  assert(terminal_style_is_valid(style));
+
   const bool enabled{terminal_color_enabled(stream)};
   if (enabled && style != TerminalStyle::None && !text.empty()) {
     internal::enable_virtual_terminal_stream(stream);

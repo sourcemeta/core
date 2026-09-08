@@ -1,25 +1,17 @@
 #include "terminal_internal.h"
 
-#include <unistd.h> // isatty, STDIN_FILENO, STDOUT_FILENO, STDERR_FILENO
+#include <unistd.h> // isatty
 
 namespace sourcemeta::core::internal {
 
+// Standards reference: POSIX.1-2017 (<unistd.h>), isatty()
+// https://pubs.opengroup.org/onlinepubs/9699919799/functions/isatty.html
 auto is_interactive_stream(TerminalStream stream) noexcept -> bool {
-  int file_descriptor{STDOUT_FILENO};
-  switch (stream) {
-    case TerminalStream::Stdin:
-      file_descriptor = STDIN_FILENO;
-      break;
-    case TerminalStream::Stdout:
-      file_descriptor = STDOUT_FILENO;
-      break;
-    case TerminalStream::Stderr:
-      file_descriptor = STDERR_FILENO;
-      break;
-  }
-  return ::isatty(file_descriptor) == 1;
+  return ::isatty(static_cast<int>(stream)) == 1;
 }
 
+// Standards reference: POSIX.1-2017 (<unistd.h>), isatty()
+// https://pubs.opengroup.org/onlinepubs/9699919799/functions/isatty.html
 auto is_interactive_fd(int file_descriptor) noexcept -> bool {
   if (file_descriptor < 0) {
     return false;
@@ -27,8 +19,7 @@ auto is_interactive_fd(int file_descriptor) noexcept -> bool {
   return ::isatty(file_descriptor) == 1;
 }
 
-auto enable_virtual_terminal_stream(TerminalStream /*stream*/) noexcept
-    -> void {
+auto enable_virtual_terminal_stream(TerminalStream) noexcept -> void {
   // POSIX terminals interpret ANSI escape sequences natively.
 }
 
