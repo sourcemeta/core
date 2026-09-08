@@ -3,6 +3,7 @@ Makefile
 README.markdown
 test
 benchmark
+contrib
 patches
 vendor/jsontestsuite
 vendor/vendorpull
