@@ -62,9 +62,6 @@ jobs:
           mkdir -p /tmp/ccache
           chown -R builder . /tmp/ccache
           runuser -u builder -- ./contrib/website.sh ./build
-        env:
-          CC: clang
-          CXX: clang++
       - run: ccache --show-stats
       # Saving on a cancelled run is pointless, as the cache would only hold
       # whatever the build got through before the interruption
