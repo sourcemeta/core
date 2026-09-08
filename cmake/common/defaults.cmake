@@ -97,7 +97,7 @@ endif()
 # Every translation unit must be compiled with LTO flags for the linker
 # to perform cross-module optimization effectively.
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
-  if(SOURCEMETA_COMPILER_GCC AND NOT BUILD_SHARED_LIBS)
+  if(SOURCEMETA_COMPILER_GCC AND NOT BUILD_SHARED_LIBS AND NOT MINGW)
     message(STATUS "Enabling Fat LTO")
     add_compile_options(-flto -ffat-lto-objects)
     add_link_options(-flto)
