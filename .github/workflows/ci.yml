@@ -106,7 +106,7 @@ jobs:
       # operating system, a compiler, and a linkage
       CACHE_KEY: ccache-v1-${{ matrix.platform.os }}-${{ matrix.platform.cc || 'msvc' }}-${{ matrix.platform.type }}-${{ strategy.job-index }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Setup MSYS2 (Windows)
         if: matrix.platform.msystem
         uses: msys2/setup-msys2@v2
@@ -150,7 +150,7 @@ jobs:
       # here can leak sideways into an unrelated branch
       - name: Restore ccache
         id: ccache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: ${{ runner.temp }}/ccache
           key: ${{ env.CACHE_KEY }}-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}
@@ -228,7 +228,7 @@ jobs:
       # whatever the build got through before the interruption
       - name: Save ccache
         if: success() || failure()
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: ${{ runner.temp }}/ccache
           key: ${{ steps.ccache.outputs.cache-primary-key }}
