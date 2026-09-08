@@ -6,6 +6,12 @@ CTEST = ctest
 PRESET = Debug
 SHARED = OFF
 
+# Compilation parallelism comes from the environment rather than from a flag, as
+# this Makefile also has to run under NMake, where there is no portable way of
+# counting the cores. Export CMAKE_BUILD_PARALLEL_LEVEL from your shell to
+# compile in parallel. The test target instead asks CTest for its own default,
+# which takes precedence over the matching environment variable
+
 all: configure compile test
 
 configure: .always

@@ -166,6 +166,12 @@ auto main(int argc, char *argv[]) -> int {
     std::string result;
     for (char **entry = environment_entries();
          entry != nullptr && ((*entry) != nullptr); ++entry) {
+      // Coverage instrumentation sets this on the program itself before it
+      // starts, so it is not part of what the caller handed over
+      if (std::string_view{*entry}.starts_with("__LLVM_PROFILE")) {
+        continue;
+      }
+
       result.append(*entry);
       result.push_back('\n');
     }
