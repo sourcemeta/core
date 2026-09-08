@@ -1,11 +1,13 @@
 #!/bin/sh
 
-# Produces an LLVM source based code coverage report for the project
+# Assembles the published website out of a single build tree: the API
+# reference, plus the LLVM source based coverage report that sits alongside it
 # See https://clang.llvm.org/docs/SourceBasedCodeCoverage.html
 #
-# Takes the directory to build in and the directory to leave the browsable
-# report in. Naming the same build directory twice reuses the previous build,
-# while naming a scratch one makes the whole run disposable
+# Takes the directory to build in. The site is left in a subdirectory of it,
+# which is where the reference generator writes on its own. Naming the same
+# build directory twice reuses the previous build, while naming a scratch one
+# makes the whole run disposable
 #
 # Instrumentation is observable from inside the suite, as the profile runtime
 # adds a variable to the environment of every child process and writes a
@@ -15,21 +17,29 @@
 set -o errexit
 set -o nounset
 
-if [ "$#" -ne 2 ]
+if [ "$#" -ne 1 ]
 then
-  echo "Usage: $0 <build-directory> <report-directory>" >&2
+  echo "Usage: $0 <build-directory>" >&2
   exit 1
 fi
 
 SOURCE_DIRECTORY="$(cd "$(dirname "$0")/.." && pwd)"
-mkdir -p "$1" "$2"
+mkdir -p "$1"
 BUILD_DIRECTORY="$(cd "$1" && pwd)"
-REPORT_DIRECTORY="$(cd "$2" && pwd)"
+SITE_DIRECTORY="$BUILD_DIRECTORY/website"
+REPORT_DIRECTORY="$SITE_DIRECTORY/coverage"
 
 # Everything the report is derived from stays next to the build it came from,
-# so that the report directory holds nothing but the pages themselves
-OUTPUT_DIRECTORY="$BUILD_DIRECTORY/coverage"
-mkdir -p "$OUTPUT_DIRECTORY"
+# so that the published pages sit on their own
+WORK_DIRECTORY="$BUILD_DIRECTORY/coverage"
+mkdir -p "$REPORT_DIRECTORY" "$WORK_DIRECTORY"
+
+# The kind of coverage this produces is an LLVM feature, so the toolchain is
+# not a choice the caller gets to make
+CC=clang
+CXX=clang++
+export CC
+export CXX
 
 # On Apple platforms, the LLVM tools that understand the profile format
 # emitted by the system compiler are only reachable through Xcode
@@ -60,11 +70,14 @@ export CTEST_PARALLEL_LEVEL
 
 # Instrumentation is injected through the standard CMake flag variables so that
 # the project build system does not need to know about coverage at all. Static
-# linking keeps every library under measurement inside the test binaries
+# linking keeps every library under measurement inside the test binaries. The
+# reference is read out of the sources rather than out of anything the build
+# produces, so one tree can carry both
 cmake -S "$SOURCE_DIRECTORY" -B "$BUILD_DIRECTORY" \
   -DCMAKE_BUILD_TYPE:STRING=Debug \
   -DCMAKE_COMPILE_WARNING_AS_ERROR:BOOL=ON \
   -DSOURCEMETA_CORE_TESTS:BOOL=ON \
+  -DSOURCEMETA_CORE_DOCS:BOOL=ON \
   -DBUILD_SHARED_LIBS:BOOL=OFF \
   -DCMAKE_C_FLAGS:STRING="-fprofile-instr-generate -fcoverage-mapping" \
   -DCMAKE_CXX_FLAGS:STRING="-fprofile-instr-generate -fcoverage-mapping" \
@@ -73,21 +86,24 @@ cmake -S "$SOURCE_DIRECTORY" -B "$BUILD_DIRECTORY" \
 
 cmake --build "$BUILD_DIRECTORY" --config Debug
 
-PROFILE_DIRECTORY="$OUTPUT_DIRECTORY/profile"
+PROFILE_DIRECTORY="$WORK_DIRECTORY/profile"
 rm -rf "$PROFILE_DIRECTORY"
 mkdir -p "$PROFILE_DIRECTORY"
 
+# The packaging tests drive a separate build of a consuming project, which
+# carries no instrumentation and contributes no coverage, and which expects an
+# installation that this script has no reason to produce
 LLVM_PROFILE_FILE="$PROFILE_DIRECTORY/%p.profraw" \
   ctest --test-dir "$BUILD_DIRECTORY" --build-config Debug \
-    --output-on-failure
+    --output-on-failure --exclude-regex find_package
 
-PROFILE_DATA="$OUTPUT_DIRECTORY/coverage.profdata"
+PROFILE_DATA="$WORK_DIRECTORY/coverage.profdata"
 "$LLVM_PROFDATA" merge -sparse -o "$PROFILE_DATA" "$PROFILE_DIRECTORY"/*.profraw
 
 # CTest already knows every binary the suite runs, including the ones that the
 # shell script based tests take as arguments, which removes the need for the
 # build system to keep a registry of test targets
-OBJECT_LIST="$OUTPUT_DIRECTORY/objects.txt"
+OBJECT_LIST="$WORK_DIRECTORY/objects.txt"
 : > "$OBJECT_LIST"
 ctest --test-dir "$BUILD_DIRECTORY" --show-only=json-v1 | awk '
 /"command" : *$/ { collecting = 1; next }
@@ -123,7 +139,7 @@ EXCLUDE="$BUILD_DIRECTORY|$SOURCE_DIRECTORY/vendor|$SOURCE_DIRECTORY/test"
 # executed one and report covered code as untouched. Exporting one LCOV trace
 # per binary and keeping the highest execution count per line sidesteps the
 # collision entirely, so a line counts as covered when any binary truly ran it
-LCOV_DIRECTORY="$OUTPUT_DIRECTORY/lcov"
+LCOV_DIRECTORY="$WORK_DIRECTORY/lcov"
 rm -rf "$LCOV_DIRECTORY"
 mkdir -p "$LCOV_DIRECTORY"
 TRACE_INDEX=0
@@ -138,7 +154,7 @@ done < "$OBJECT_LIST"
 
 # Merge the traces line by line, keeping the highest count observed for every
 # line and branch, then emit a merged LCOV trace plus a per file summary
-MERGE_PROGRAM="$OUTPUT_DIRECTORY/merge.awk"
+MERGE_PROGRAM="$WORK_DIRECTORY/merge.awk"
 cat > "$MERGE_PROGRAM" <<'AWK'
 /^SF:/ { source = substr($0, 4); files[source] = 1; next }
 /^DA:/ {
@@ -215,8 +231,8 @@ END {
 }
 AWK
 
-awk -v "merged=$OUTPUT_DIRECTORY/coverage.lcov" -f "$MERGE_PROGRAM" \
-  "$LCOV_DIRECTORY"/*.lcov > "$OUTPUT_DIRECTORY/summary.txt"
+awk -v "merged=$WORK_DIRECTORY/coverage.lcov" -f "$MERGE_PROGRAM" \
+  "$LCOV_DIRECTORY"/*.lcov > "$WORK_DIRECTORY/summary.txt"
 
 # The browsable report keeps the combined view. Its annotated sources can still
 # under count the header inline cases described above, so the summary file
@@ -233,21 +249,37 @@ done < "$OBJECT_LIST"
 
 "$LLVM_COV" show "$MAIN_OBJECT" "$@" \
   "-instr-profile=$PROFILE_DATA" \
-  -format=html "-output-dir=$OUTPUT_DIRECTORY/html" \
+  -format=html "-output-dir=$WORK_DIRECTORY/html" \
   "-ignore-filename-regex=$EXCLUDE" \
   -show-branches=count
 
 # Whatever the report generator emitted is taken as is rather than named entry
 # by entry, and only the entries about to be written are cleared, so that the
 # destination is never removed wholesale
-for ENTRY in "$OUTPUT_DIRECTORY"/html/*
+for ENTRY in "$WORK_DIRECTORY"/html/*
 do
   TARGET="$REPORT_DIRECTORY/$(basename "$ENTRY")"
   rm -rf "$TARGET"
   cp -R "$ENTRY" "$TARGET"
 done
 
-grep TOTAL "$OUTPUT_DIRECTORY/summary.txt"
-echo "Coverage summary: $OUTPUT_DIRECTORY/summary.txt"
-echo "Coverage trace: $OUTPUT_DIRECTORY/coverage.lcov"
-echo "Coverage report: $REPORT_DIRECTORY/index.html"
+# Runs last because the reference only adds to its output directory, whereas
+# the coverage report replaces the tree it is given
+cmake --build "$BUILD_DIRECTORY" --config Debug --target doxygen
+
+# The pages a visitor lands on, confirmed rather than assumed, as each of the
+# steps above reports success on its own terms without knowing what the ones
+# after it expect to find
+for PAGE in "$SITE_DIRECTORY/index.html" "$REPORT_DIRECTORY/index.html"
+do
+  if [ ! -f "$PAGE" ]
+  then
+    echo "Missing from the assembled website: $PAGE" >&2
+    exit 1
+  fi
+done
+
+grep TOTAL "$WORK_DIRECTORY/summary.txt"
+echo "Coverage summary: $WORK_DIRECTORY/summary.txt"
+echo "Coverage trace: $WORK_DIRECTORY/coverage.lcov"
+echo "Website: $SITE_DIRECTORY/index.html"
