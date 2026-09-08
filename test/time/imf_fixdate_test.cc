@@ -17,7 +17,7 @@ TEST(format_round_trip) {
   parts.tm_sec = 0;
   parts.tm_isdst = 0;
 
-#if defined(_MSC_VER)
+#if defined(_WIN32)
   const auto point{std::chrono::system_clock::from_time_t(_mkgmtime(&parts))};
 #else
   const auto point{std::chrono::system_clock::from_time_t(timegm(&parts))};
@@ -41,7 +41,7 @@ TEST(parse_valid) {
   parts.tm_sec = 0;
   parts.tm_isdst = 0;
 
-#if defined(_MSC_VER)
+#if defined(_WIN32)
   const auto expected{
       std::chrono::system_clock::from_time_t(_mkgmtime(&parts))};
 #else

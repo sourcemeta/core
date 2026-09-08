@@ -16,7 +16,7 @@ auto make_nov_6_1994_08_49_37() -> std::chrono::system_clock::time_point {
   parts.tm_min = 49;
   parts.tm_sec = 37;
   parts.tm_isdst = 0;
-#if defined(_MSC_VER)
+#if defined(_WIN32)
   return std::chrono::system_clock::from_time_t(_mkgmtime(&parts));
 #else
   return std::chrono::system_clock::from_time_t(timegm(&parts));

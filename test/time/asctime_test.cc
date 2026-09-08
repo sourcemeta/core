@@ -18,7 +18,7 @@ TEST(parse_rfc_example) {
   parts.tm_min = 49;
   parts.tm_sec = 37;
   parts.tm_isdst = 0;
-#if defined(_MSC_VER)
+#if defined(_WIN32)
   const auto expected{
       std::chrono::system_clock::from_time_t(_mkgmtime(&parts))};
 #else
@@ -39,7 +39,7 @@ TEST(parse_two_digit_day) {
   parts.tm_min = 28;
   parts.tm_sec = 0;
   parts.tm_isdst = 0;
-#if defined(_MSC_VER)
+#if defined(_WIN32)
   const auto expected{
       std::chrono::system_clock::from_time_t(_mkgmtime(&parts))};
 #else
@@ -80,7 +80,7 @@ TEST(format_round_trip) {
   parts.tm_min = 0;
   parts.tm_sec = 0;
   parts.tm_isdst = 0;
-#if defined(_MSC_VER)
+#if defined(_WIN32)
   const auto point{std::chrono::system_clock::from_time_t(_mkgmtime(&parts))};
 #else
   const auto point{std::chrono::system_clock::from_time_t(timegm(&parts))};
@@ -175,7 +175,7 @@ TEST(format_two_digit_day) {
   parts.tm_min = 28;
   parts.tm_sec = 0;
   parts.tm_isdst = 0;
-#if defined(_MSC_VER)
+#if defined(_WIN32)
   const auto point{std::chrono::system_clock::from_time_t(_mkgmtime(&parts))};
 #else
   const auto point{std::chrono::system_clock::from_time_t(timegm(&parts))};
