@@ -32,6 +32,15 @@ else
   LLVM_COV="$(command -v llvm-cov)"
 fi
 
+# Spelled out rather than left to the build tool, as the Makefile generator
+# reads a bare parallel option as a licence for unbounded parallelism
+if command -v nproc > /dev/null 2>&1
+then
+  JOBS="$(nproc)"
+else
+  JOBS="$(sysctl -n hw.ncpu)"
+fi
+
 # Instrumentation is injected through the standard CMake flag variables so that
 # the project build system does not need to know about coverage at all. Static
 # linking keeps every library under measurement inside the test binaries
@@ -45,7 +54,7 @@ cmake -S "$SOURCE_DIRECTORY" -B "$BUILD_DIRECTORY" \
   -DCMAKE_EXE_LINKER_FLAGS:STRING="-fprofile-instr-generate" \
   -DCMAKE_SHARED_LINKER_FLAGS:STRING="-fprofile-instr-generate"
 
-cmake --build "$BUILD_DIRECTORY" --config Debug
+cmake --build "$BUILD_DIRECTORY" --config Debug --parallel "$JOBS"
 
 PROFILE_DIRECTORY="$OUTPUT_DIRECTORY/profile"
 rm -rf "$PROFILE_DIRECTORY"
@@ -53,7 +62,7 @@ mkdir -p "$PROFILE_DIRECTORY"
 
 if LLVM_PROFILE_FILE="$PROFILE_DIRECTORY/%p.profraw" \
   ctest --test-dir "$BUILD_DIRECTORY" --build-config Debug \
-    --output-on-failure --parallel
+    --output-on-failure --parallel "$JOBS"
 then
   TESTS_PASSED="yes"
 else
