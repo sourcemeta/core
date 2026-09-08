@@ -82,9 +82,10 @@ jobs:
   deploy:
     if: github.event_name != 'pull_request'
     needs: build
-    # Replaces the read-only default above, and only for this job, so that a
-    # pull request never runs with the ability to publish
+    # Replaces rather than extends the read-only default above, and only for
+    # this job, so that a pull request never runs with the ability to publish
     permissions:
+      contents: read
       pages: write
       id-token: write
     environment:

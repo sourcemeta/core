@@ -267,6 +267,18 @@ done
 # the coverage report replaces the tree it is given
 cmake --build "$BUILD_DIRECTORY" --config Debug --target doxygen
 
+# The pages a visitor lands on, confirmed rather than assumed, as each of the
+# steps above reports success on its own terms without knowing what the ones
+# after it expect to find
+for PAGE in "$SITE_DIRECTORY/index.html" "$REPORT_DIRECTORY/index.html"
+do
+  if [ ! -f "$PAGE" ]
+  then
+    echo "Missing from the assembled website: $PAGE" >&2
+    exit 1
+  fi
+done
+
 grep TOTAL "$WORK_DIRECTORY/summary.txt"
 echo "Coverage summary: $WORK_DIRECTORY/summary.txt"
 echo "Coverage trace: $WORK_DIRECTORY/coverage.lcov"
