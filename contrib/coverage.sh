@@ -3,9 +3,9 @@
 # Produces an LLVM source based code coverage report for the project
 # See https://clang.llvm.org/docs/SourceBasedCodeCoverage.html
 #
-# The build tree lives inside the given output directory, so pointing this
-# script at a scratch location makes the whole run disposable, while pointing
-# it at the same location twice reuses the previous build
+# Takes the directory to build in and the directory to leave the browsable
+# report in. Naming the same build directory twice reuses the previous build,
+# while naming a scratch one makes the whole run disposable
 #
 # Instrumentation is observable from inside the suite, as the profile runtime
 # adds a variable to the environment of every child process and writes a
@@ -16,10 +16,21 @@
 set -o errexit
 set -o nounset
 
+if [ "$#" -ne 2 ]
+then
+  echo "Usage: $0 <build-directory> <report-directory>" >&2
+  exit 1
+fi
+
 SOURCE_DIRECTORY="$(cd "$(dirname "$0")/.." && pwd)"
-mkdir -p "${1:-$SOURCE_DIRECTORY/build/coverage}"
-OUTPUT_DIRECTORY="$(cd "${1:-$SOURCE_DIRECTORY/build/coverage}" && pwd)"
-BUILD_DIRECTORY="$OUTPUT_DIRECTORY/build"
+mkdir -p "$1" "$2"
+BUILD_DIRECTORY="$(cd "$1" && pwd)"
+REPORT_DIRECTORY="$(cd "$2" && pwd)"
+
+# Everything the report is derived from stays next to the build it came from,
+# so that the report directory holds nothing but the pages themselves
+OUTPUT_DIRECTORY="$BUILD_DIRECTORY/coverage"
+mkdir -p "$OUTPUT_DIRECTORY"
 
 # On Apple platforms, the LLVM tools that understand the profile format
 # emitted by the system compiler are only reachable through Xcode
@@ -225,10 +236,20 @@ done < "$OBJECT_LIST"
   "-ignore-filename-regex=$EXCLUDE" \
   -show-branches=count
 
+# Whatever the report generator emitted is taken as is rather than named entry
+# by entry, and only the entries about to be written are cleared, so that the
+# destination is never removed wholesale
+for ENTRY in "$OUTPUT_DIRECTORY"/html/*
+do
+  TARGET="$REPORT_DIRECTORY/$(basename "$ENTRY")"
+  rm -rf "$TARGET"
+  cp -R "$ENTRY" "$TARGET"
+done
+
 grep TOTAL "$OUTPUT_DIRECTORY/summary.txt"
 echo "Coverage summary: $OUTPUT_DIRECTORY/summary.txt"
 echo "Coverage trace: $OUTPUT_DIRECTORY/coverage.lcov"
-echo "Coverage report: $OUTPUT_DIRECTORY/html/index.html"
+echo "Coverage report: $REPORT_DIRECTORY/index.html"
 
 if [ "$TESTS_PASSED" = "no" ]
 then
