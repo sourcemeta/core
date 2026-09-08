@@ -19,7 +19,7 @@ auto make_point(const int year, const int month, const int day, const int hour,
   parts.tm_min = minute;
   parts.tm_sec = second;
   parts.tm_isdst = 0;
-#if defined(_MSC_VER)
+#if defined(_WIN32)
   return std::chrono::system_clock::from_time_t(_mkgmtime(&parts));
 #else
   return std::chrono::system_clock::from_time_t(timegm(&parts));
