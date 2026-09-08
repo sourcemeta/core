@@ -1,9 +1,17 @@
 name: website
 on:
   pull_request:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+# What a pull request is allowed to do, which is nothing beyond reading the
+# repository. The job that publishes asks for more on its own
+permissions:
+  contents: read
 
 concurrency:
-  group: website-build-${{ github.ref }}
+  group: website-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -33,7 +41,9 @@ jobs:
       # The primary key never matches, as it carries the run identifier, so a
       # restore always walks the fallbacks in order. A previous run of this same
       # pull request comes first, as it is the closest to what we are about to
-      # compile, and `main` is the fallback
+      # compile, and `main` is the fallback. A cache written by a pull request
+      # run is only visible to re-runs of that same pull request, so the entry
+      # every branch shares is the one a push to `main` leaves behind
       - name: Restore ccache
         id: ccache
         uses: actions/cache/restore@v6
@@ -61,3 +71,29 @@ jobs:
         with:
           path: /tmp/ccache
           key: ${{ steps.ccache.outputs.cache-primary-key }}
+      # A pull request builds the site to prove that it still builds, and stops
+      # there, so nothing is uploaded for it
+      - name: Upload artifact
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: ./build/website
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: build
+    # Replaces the read-only default above, and only for this job, so that a
+    # pull request never runs with the ability to publish
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Pages
+        uses: actions/configure-pages@v6
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
