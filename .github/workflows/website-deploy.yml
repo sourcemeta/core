@@ -24,7 +24,7 @@ jobs:
     steps:
       - name: Install dependencies
         run: dnf install --assumeyes doxygen cmake gcc-c++ graphviz git
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: >
           cmake -S . -B ./build
           -DCMAKE_BUILD_TYPE:STRING=Release
@@ -73,11 +73,11 @@ jobs:
           -DSOURCEMETA_CORE_DOCS:BOOL=ON
       - run: cmake --build ./build --config Release --target doxygen
       - name: Setup Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: ./build/website
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
