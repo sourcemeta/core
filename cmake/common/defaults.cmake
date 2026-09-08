@@ -111,6 +111,15 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
   endif()
 endif()
 
+# The compiler runtime that MinGW links against by default sits next to the
+# toolchain and is found through the PATH, so a program that runs with a reduced
+# environment cannot start at all. Linking it in keeps every program this build
+# produces self-contained. Shared libraries keep it dynamic, as a private copy
+# inside each one would not interoperate across their boundaries
+if(MINGW)
+  add_link_options("$<$<STREQUAL:$<TARGET_PROPERTY:TYPE>,EXECUTABLE>:-static>")
+endif()
+
 # Turn on POSIX.1-2008 compatibility on MSYS2
 # Some projects do not seem to compile without this
 if(CMAKE_SYSTEM_NAME STREQUAL "MSYS")
