@@ -10,8 +10,7 @@
 # Instrumentation is observable from inside the suite, as the profile runtime
 # adds a variable to the environment of every child process and writes a
 # profile into the working directory of a program that was started without one.
-# Suites that assert on either of those will fail here while passing in an
-# ordinary build, so a failing suite still produces a report
+# The suite accounts for both, so a failure here is a real one
 
 set -o errexit
 set -o nounset
@@ -78,14 +77,9 @@ PROFILE_DIRECTORY="$OUTPUT_DIRECTORY/profile"
 rm -rf "$PROFILE_DIRECTORY"
 mkdir -p "$PROFILE_DIRECTORY"
 
-if LLVM_PROFILE_FILE="$PROFILE_DIRECTORY/%p.profraw" \
+LLVM_PROFILE_FILE="$PROFILE_DIRECTORY/%p.profraw" \
   ctest --test-dir "$BUILD_DIRECTORY" --build-config Debug \
     --output-on-failure
-then
-  TESTS_PASSED="yes"
-else
-  TESTS_PASSED="no"
-fi
 
 PROFILE_DATA="$OUTPUT_DIRECTORY/coverage.profdata"
 "$LLVM_PROFDATA" merge -sparse -o "$PROFILE_DATA" "$PROFILE_DIRECTORY"/*.profraw
@@ -195,6 +189,13 @@ END {
         printf "DA:%s,%s\n", parts[2], lines[key] > merged
       }
     }
+    for (key in branches) {
+      split(key, parts, SUBSEP)
+      if (parts[1] == source) {
+        printf "BRDA:%s,%s,%s,%s\n", parts[2], parts[3], parts[4],
+          branches[key] > merged
+      }
+    }
     printf "end_of_record\n" > merged
     covered = file_covered[source] + 0
     percentage = file_lines[source] > 0 \
@@ -250,8 +251,3 @@ grep TOTAL "$OUTPUT_DIRECTORY/summary.txt"
 echo "Coverage summary: $OUTPUT_DIRECTORY/summary.txt"
 echo "Coverage trace: $OUTPUT_DIRECTORY/coverage.lcov"
 echo "Coverage report: $REPORT_DIRECTORY/index.html"
-
-if [ "$TESTS_PASSED" = "no" ]
-then
-  echo "Some tests failed under instrumentation. See the CTest output above" >&2
-fi
