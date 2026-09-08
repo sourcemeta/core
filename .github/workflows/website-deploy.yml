@@ -25,9 +25,10 @@ jobs:
       # Compiler caching, matching the setup of the main CI workflow
       CMAKE_C_COMPILER_LAUNCHER: ccache
       CMAKE_CXX_COMPILER_LAUNCHER: ccache
-      # Expanded by `ccache` itself, which understands neither a leading tilde
-      # nor the shell
-      CCACHE_DIR: ${RUNNER_TEMP}/ccache
+      # A fixed path inside the container, as the temporary directory of the
+      # runner answers to one name on the host and another one in here, and no
+      # single spelling of it is correct on both sides
+      CCACHE_DIR: /tmp/ccache
       # Runner images are re-provisioned on every run, so the default check of
       # the compiler modification time and size would miss on an unchanged
       # compiler. Hash its contents instead
@@ -47,7 +48,7 @@ jobs:
         id: ccache
         uses: actions/cache/restore@v6
         with:
-          path: ${{ runner.temp }}/ccache
+          path: /tmp/ccache
           key: ${{ env.CACHE_KEY }}-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
             ${{ env.CACHE_KEY }}-${{ github.ref_name }}-
@@ -58,8 +59,8 @@ jobs:
       - name: Build the website
         run: |
           useradd --create-home builder
-          mkdir -p "${{ runner.temp }}/ccache"
-          chown -R builder . "${{ runner.temp }}/ccache"
+          mkdir -p /tmp/ccache
+          chown -R builder . /tmp/ccache
           runuser -u builder -- ./contrib/website.sh ./build
         env:
           CC: clang
@@ -71,7 +72,7 @@ jobs:
         if: success() || failure()
         uses: actions/cache/save@v6
         with:
-          path: ${{ runner.temp }}/ccache
+          path: /tmp/ccache
           key: ${{ steps.ccache.outputs.cache-primary-key }}
       - name: Setup Pages
         uses: actions/configure-pages@v6
