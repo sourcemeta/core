@@ -32,14 +32,21 @@ else
   LLVM_COV="$(command -v llvm-cov)"
 fi
 
-# Spelled out rather than left to the build tool, as the Makefile generator
-# reads a bare parallel option as a licence for unbounded parallelism
+# A count is spelled out rather than left to the build tool, as the Makefile
+# generator reads a bare parallel option as a licence for unbounded
+# parallelism. These are the documented way of asking for it, so a caller that
+# already exports either one keeps the last word
 if command -v nproc > /dev/null 2>&1
 then
   JOBS="$(nproc)"
 else
   JOBS="$(sysctl -n hw.ncpu)"
 fi
+
+CMAKE_BUILD_PARALLEL_LEVEL="${CMAKE_BUILD_PARALLEL_LEVEL:-$JOBS}"
+CTEST_PARALLEL_LEVEL="${CTEST_PARALLEL_LEVEL:-$JOBS}"
+export CMAKE_BUILD_PARALLEL_LEVEL
+export CTEST_PARALLEL_LEVEL
 
 # Instrumentation is injected through the standard CMake flag variables so that
 # the project build system does not need to know about coverage at all. Static
@@ -54,7 +61,7 @@ cmake -S "$SOURCE_DIRECTORY" -B "$BUILD_DIRECTORY" \
   -DCMAKE_EXE_LINKER_FLAGS:STRING="-fprofile-instr-generate" \
   -DCMAKE_SHARED_LINKER_FLAGS:STRING="-fprofile-instr-generate"
 
-cmake --build "$BUILD_DIRECTORY" --config Debug --parallel "$JOBS"
+cmake --build "$BUILD_DIRECTORY" --config Debug
 
 PROFILE_DIRECTORY="$OUTPUT_DIRECTORY/profile"
 rm -rf "$PROFILE_DIRECTORY"
@@ -62,7 +69,7 @@ mkdir -p "$PROFILE_DIRECTORY"
 
 if LLVM_PROFILE_FILE="$PROFILE_DIRECTORY/%p.profraw" \
   ctest --test-dir "$BUILD_DIRECTORY" --build-config Debug \
-    --output-on-failure --parallel "$JOBS"
+    --output-on-failure
 then
   TESTS_PASSED="yes"
 else
