@@ -5,6 +5,7 @@
 #include <sourcemeta/core/terminal_export.h>
 #endif
 
+#include <array>       // std::array
 #include <cstdint>     // std::uint8_t
 #include <iosfwd>      // std::ostream
 #include <string>      // std::string
@@ -242,24 +243,21 @@ terminal_style_is_valid(TerminalStyle style) noexcept -> bool {
     return false;
   }
 
+  constexpr std::array<TerminalStyle, 5> COLORS{
+      {TerminalStyle::Red, TerminalStyle::Green, TerminalStyle::Yellow,
+       TerminalStyle::Blue, TerminalStyle::Cyan}};
+
   int color_count{0};
-  if ((style & TerminalStyle::Red) != TerminalStyle::None) {
-    ++color_count;
-  }
-  if ((style & TerminalStyle::Green) != TerminalStyle::None) {
-    ++color_count;
-  }
-  if ((style & TerminalStyle::Yellow) != TerminalStyle::None) {
-    ++color_count;
-  }
-  if ((style & TerminalStyle::Blue) != TerminalStyle::None) {
-    ++color_count;
-  }
-  if ((style & TerminalStyle::Cyan) != TerminalStyle::None) {
-    ++color_count;
+  for (const auto color : COLORS) {
+    if ((style & color) != TerminalStyle::None) {
+      ++color_count;
+      if (color_count > 1) {
+        return false;
+      }
+    }
   }
 
-  return color_count <= 1;
+  return true;
 }
 
 /// @ingroup terminal

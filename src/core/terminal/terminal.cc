@@ -10,7 +10,7 @@
 #include <ostream>     // std::ostream
 #include <string>      // std::string
 #include <string_view> // std::string_view
-#include <utility>     // std::unreachable
+#include <utility>     // std::to_underlying
 
 namespace {
 
@@ -22,16 +22,7 @@ std::array<std::atomic<sourcemeta::core::TerminalColorPolicy>, 3>
 
 constexpr auto stream_index(sourcemeta::core::TerminalStream stream) noexcept
     -> std::size_t {
-  switch (stream) {
-    case sourcemeta::core::TerminalStream::Stdin:
-      return 0;
-    case sourcemeta::core::TerminalStream::Stdout:
-      return 1;
-    case sourcemeta::core::TerminalStream::Stderr:
-      return 2;
-    default:
-      std::unreachable();
-  }
+  return static_cast<std::size_t>(std::to_underlying(stream));
 }
 
 } // namespace
