@@ -67,6 +67,28 @@ TEST(track_index_token_against_array_element) {
             sourcemeta::core::PointerPositionTracker::Position({1, 7, 1, 8}));
 }
 
+TEST(get_missing_property) {
+  const auto *const input{R"JSON({ "foo": 1 })JSON"};
+
+  sourcemeta::core::PointerPositionTracker tracker;
+  sourcemeta::core::JSON result{nullptr};
+  sourcemeta::core::parse_json(input, result, std::ref(tracker));
+
+  const sourcemeta::core::Pointer pointer{"bar"};
+  EXPECT_FALSE(tracker.get(pointer).has_value());
+}
+
+TEST(get_missing_index_against_array) {
+  const auto *const input{R"JSON([ 10, 20 ])JSON"};
+
+  sourcemeta::core::PointerPositionTracker tracker;
+  sourcemeta::core::JSON result{nullptr};
+  sourcemeta::core::parse_json(input, result, std::ref(tracker));
+
+  const auto pointer{sourcemeta::core::to_pointer("/5")};
+  EXPECT_FALSE(tracker.get(pointer).has_value());
+}
+
 TEST(to_json_1) {
   const auto *const input{R"JSON([
   {
