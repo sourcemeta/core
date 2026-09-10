@@ -245,8 +245,18 @@ inline auto openapi_follow_reference(const JSON::StringView reference,
     if (known != walk.documents_by_uri.cend()) {
       auto base{identifier.value()};
       const auto *document{known->second};
-      auto dialect{walk.dialect};
       bool entry{false};
+
+      // Section 4.10 scopes `jsonSchemaDialect` to "all Schema Objects
+      // contained within an OAS document", so a Schema Object inside this
+      // fragment hands on the dialect of the document it sits in rather than
+      // the one in force where the reference was written. Reading that
+      // document again would settle it, and it was read once already, so what
+      // it settled on is taken from the location of its root
+      const auto root{walk.locations.find(identifier.value())};
+      auto dialect{root == walk.locations.cend() ? walk.dialect
+                                                 : root->second.dialect};
+      std::swap(walk.dialect, dialect);
       std::swap(walk.base, base);
       std::swap(walk.document, document);
       std::swap(walk.entry, entry);
@@ -306,8 +316,19 @@ inline auto openapi_follow_reference(const JSON::StringView reference,
 
   auto base{identifier.value()};
   const auto *document{&contents};
-  auto dialect{walk.dialect};
   bool entry{false};
+
+  // Section 4.10 sets `jsonSchemaDialect` "within the OpenAPI Object", and
+  // "if this default is not set, then the OAS dialect schema id MUST be used".
+  // A document holding a referenceable Object rather than a Description has no
+  // OpenAPI Object and so sets none, which makes the OAS dialect the one in
+  // force for its Schema Objects rather than whatever the referring document
+  // happened to declare. A document that is a Description settles its own
+  // below, when it is read
+  auto dialect{document_kind == OpenAPIObjectKind::Document
+                   ? walk.dialect
+                   : JSON::String{OPENAPI_DIALECT}};
+  std::swap(walk.dialect, dialect);
   std::swap(walk.base, base);
   std::swap(walk.document, document);
   std::swap(walk.entry, entry);
