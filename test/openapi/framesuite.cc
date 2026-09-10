@@ -162,8 +162,13 @@ auto check_frame_invariants(const sourcemeta::core::JSON &frame,
   const auto *dangling{test.try_at("dangling")};
   std::vector<sourcemeta::core::JSON> unresolved;
 
-  // The entry document is an Object like any other, so the base names it
-  EXPECT_TRUE(locations.defines(frame.at("base").to_string()));
+  // The entry document is an Object like any other, so the base names it, and
+  // what it names is the OpenAPI Object at its root
+  const auto &base{frame.at("base").to_string()};
+  EXPECT_TRUE(locations.defines(base));
+  if (locations.defines(base)) {
+    EXPECT_EQ(locations.at(base).at("type").to_string(), "openapi");
+  }
 
   // A frame stands alone when everything it references is inside it, which is
   // exactly the set of destinations a fixture had to declare
