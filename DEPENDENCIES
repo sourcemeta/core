@@ -24,6 +24,7 @@ jsonschema-draft2 https://github.com/json-schema-org/json-schema-spec 707f65070d
 jsonschema-draft1 https://github.com/json-schema-org/json-schema-spec 2072feec9fc7a7ff0b2bb5b02c2d6742c554cc4a
 jsonschema-draft0 https://github.com/json-schema-org/json-schema-spec 7ea575aef8d5c0183acbe6ff65b4c98ee9c236ec
 openapi https://github.com/OAI/OpenAPI-Specification 74906beddddab9e555337031b2a8d8e9338c4972
+openapi-test-suite-3-1 https://github.com/OAI/OpenAPI-Specification 8df69dd6b8c12f50c99e28a864e500aadf3394e5
 referencing-suite https://github.com/python-jsonschema/referencing-suite 61c4cc202b1e96ed5adcaf4842a595f68d659212
 iana-oauth/parameters.csv https://www.iana.org/assignments/oauth-parameters/parameters.csv acfe19a091a15279587e761a399704e886447eec906b19a41528cb37dc2afc35
 iana-oauth/extensions-error.csv https://www.iana.org/assignments/oauth-parameters/extensions-error.csv b49d3e1c9904667551170d12d0943ae9613751f42581f6438a4714c774d64838

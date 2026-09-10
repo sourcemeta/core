@@ -1,0 +1,155 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "pathItems": {
+        "Zebra": {
+          "get": {
+            "responses": {
+              "200": {
+                "description": "ok"
+              }
+            }
+          }
+        },
+        "Ant": {
+          "get": {
+            "responses": {
+              "200": {
+                "description": "ok"
+              }
+            }
+          }
+        }
+      }
+    },
+    "paths": {
+      "/zebra": {
+        "$ref": "#/components/pathItems/Zebra"
+      },
+      "/ant": {
+        "$ref": "#/components/pathItems/Ant"
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "frame": {
+    "version": "3.1",
+    "base": "https://example.com/openapi.json",
+    "standalone": true,
+    "info": {
+      "title": "Example",
+      "version": "1.0.0",
+      "summary": null,
+      "description": null,
+      "termsOfService": null,
+      "contact": null,
+      "license": null
+    },
+    "locations": {
+      "https://example.com/openapi.json": {
+        "type": "openapi",
+        "pointer": "",
+        "parent": null,
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+      },
+      "https://example.com/openapi.json#/components": {
+        "type": "components",
+        "pointer": "/components",
+        "parent": "https://example.com/openapi.json"
+      },
+      "https://example.com/openapi.json#/components/pathItems/Ant": {
+        "type": "path-item",
+        "pointer": "/components/pathItems/Ant",
+        "parent": "https://example.com/openapi.json#/components"
+      },
+      "https://example.com/openapi.json#/components/pathItems/Ant/get": {
+        "type": "operation",
+        "pointer": "/components/pathItems/Ant/get",
+        "parent": "https://example.com/openapi.json#/components/pathItems/Ant"
+      },
+      "https://example.com/openapi.json#/components/pathItems/Ant/get/responses": {
+        "type": "responses",
+        "pointer": "/components/pathItems/Ant/get/responses",
+        "parent": "https://example.com/openapi.json#/components/pathItems/Ant/get"
+      },
+      "https://example.com/openapi.json#/components/pathItems/Ant/get/responses/200": {
+        "type": "response",
+        "pointer": "/components/pathItems/Ant/get/responses/200",
+        "parent": "https://example.com/openapi.json#/components/pathItems/Ant/get/responses"
+      },
+      "https://example.com/openapi.json#/components/pathItems/Zebra": {
+        "type": "path-item",
+        "pointer": "/components/pathItems/Zebra",
+        "parent": "https://example.com/openapi.json#/components"
+      },
+      "https://example.com/openapi.json#/components/pathItems/Zebra/get": {
+        "type": "operation",
+        "pointer": "/components/pathItems/Zebra/get",
+        "parent": "https://example.com/openapi.json#/components/pathItems/Zebra"
+      },
+      "https://example.com/openapi.json#/components/pathItems/Zebra/get/responses": {
+        "type": "responses",
+        "pointer": "/components/pathItems/Zebra/get/responses",
+        "parent": "https://example.com/openapi.json#/components/pathItems/Zebra/get"
+      },
+      "https://example.com/openapi.json#/components/pathItems/Zebra/get/responses/200": {
+        "type": "response",
+        "pointer": "/components/pathItems/Zebra/get/responses/200",
+        "parent": "https://example.com/openapi.json#/components/pathItems/Zebra/get/responses"
+      },
+      "https://example.com/openapi.json#/info": {
+        "type": "info",
+        "pointer": "/info",
+        "parent": "https://example.com/openapi.json"
+      },
+      "https://example.com/openapi.json#/paths": {
+        "type": "paths",
+        "pointer": "/paths",
+        "parent": "https://example.com/openapi.json"
+      },
+      "https://example.com/openapi.json#/paths/~1ant": {
+        "type": "path-item",
+        "pointer": "/paths/~1ant",
+        "parent": "https://example.com/openapi.json#/paths",
+        "original": "#/components/pathItems/Ant",
+        "destination": "https://example.com/openapi.json#/components/pathItems/Ant"
+      },
+      "https://example.com/openapi.json#/paths/~1zebra": {
+        "type": "path-item",
+        "pointer": "/paths/~1zebra",
+        "parent": "https://example.com/openapi.json#/paths",
+        "original": "#/components/pathItems/Zebra",
+        "destination": "https://example.com/openapi.json#/components/pathItems/Zebra"
+      }
+    },
+    "operations": [
+      {
+        "type": "path",
+        "path": "/zebra",
+        "method": "get",
+        "origin": "https://example.com/openapi.json#/components/pathItems/Zebra/get",
+        "endpoint": "https://example.com/openapi.json#/paths/~1zebra",
+        "tags": [],
+        "servers": [],
+        "security": [],
+        "parameters": []
+      },
+      {
+        "type": "path",
+        "path": "/ant",
+        "method": "get",
+        "origin": "https://example.com/openapi.json#/components/pathItems/Ant/get",
+        "endpoint": "https://example.com/openapi.json#/paths/~1ant",
+        "tags": [],
+        "servers": [],
+        "security": [],
+        "parameters": []
+      }
+    ]
+  }
+}

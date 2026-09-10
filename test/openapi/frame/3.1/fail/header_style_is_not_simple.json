@@ -1,0 +1,21 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "headers": {
+        "Item": {
+          "schema": {},
+          "style": "form"
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "The Header Object style must be simple",
+    "location": "/components/headers/Item/style"
+  }
+}

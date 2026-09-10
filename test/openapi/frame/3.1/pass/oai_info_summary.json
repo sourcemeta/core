@@ -1,0 +1,44 @@
+{
+  "document": {
+    "openapi": "3.1.0",
+    "info": {
+      "title": "API",
+      "summary": "My lovely API",
+      "version": "1.0.0"
+    },
+    "components": {}
+  },
+  "frame": {
+    "version": "3.1",
+    "base": "",
+    "standalone": true,
+    "info": {
+      "title": "API",
+      "version": "1.0.0",
+      "summary": "My lovely API",
+      "description": null,
+      "termsOfService": null,
+      "contact": null,
+      "license": null
+    },
+    "locations": {
+      "": {
+        "type": "openapi",
+        "pointer": "",
+        "parent": null,
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+      },
+      "#/components": {
+        "type": "components",
+        "pointer": "/components",
+        "parent": ""
+      },
+      "#/info": {
+        "type": "info",
+        "pointer": "/info",
+        "parent": ""
+      }
+    },
+    "operations": []
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "responses": {
+        "A": {
+          "$ref": "#/paths/~1pets~1{petId}/get/responses/200"
+        }
+      }
+    },
+    "paths": {
+      "/pets/{petId}": {
+        "parameters": [
+          {
+            "name": "petId",
+            "in": "path",
+            "required": true,
+            "schema": {}
+          }
+        ],
+        "get": {
+          "responses": {
+            "200": {
+              "description": "ok"
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "error": {
+    "message": "The Reference Object identifier must be a URI reference",
+    "location": "/components/responses/A/$ref",
+    "base": "https://example.com/openapi.json"
+  }
+}

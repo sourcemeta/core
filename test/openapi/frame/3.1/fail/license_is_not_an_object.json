@@ -1,0 +1,15 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0",
+      "license": "MIT"
+    },
+    "paths": {}
+  },
+  "error": {
+    "message": "The License Object must be an object",
+    "location": "/info/license"
+  }
+}

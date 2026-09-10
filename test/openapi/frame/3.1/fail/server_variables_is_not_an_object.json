@@ -1,0 +1,20 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "servers": [
+      {
+        "url": "/{version}",
+        "variables": []
+      }
+    ],
+    "paths": {}
+  },
+  "error": {
+    "message": "The Server Object variables must be an object",
+    "location": "/servers/0/variables"
+  }
+}

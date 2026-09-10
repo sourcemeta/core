@@ -1,0 +1,72 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "tags": [
+      {
+        "name": "pet",
+        "description": "Pets operations",
+        "externalDocs": {
+          "description": "Find more info here",
+          "url": "https://example.com/pets"
+        },
+        "x-display-order": 1
+      },
+      {
+        "name": "store"
+      }
+    ],
+    "paths": {}
+  },
+  "frame": {
+    "version": "3.1",
+    "base": "",
+    "standalone": true,
+    "info": {
+      "title": "Example",
+      "version": "1.0.0",
+      "summary": null,
+      "description": null,
+      "termsOfService": null,
+      "contact": null,
+      "license": null
+    },
+    "locations": {
+      "": {
+        "type": "openapi",
+        "pointer": "",
+        "parent": null,
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+      },
+      "#/info": {
+        "type": "info",
+        "pointer": "/info",
+        "parent": ""
+      },
+      "#/paths": {
+        "type": "paths",
+        "pointer": "/paths",
+        "parent": ""
+      },
+      "#/tags/0": {
+        "type": "tag",
+        "pointer": "/tags/0",
+        "parent": ""
+      },
+      "#/tags/0/externalDocs": {
+        "type": "external-documentation",
+        "pointer": "/tags/0/externalDocs",
+        "parent": "#/tags/0"
+      },
+      "#/tags/1": {
+        "type": "tag",
+        "pointer": "/tags/1",
+        "parent": ""
+      }
+    },
+    "operations": []
+  }
+}

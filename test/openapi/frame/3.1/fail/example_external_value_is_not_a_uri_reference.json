@@ -1,0 +1,20 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "examples": {
+        "Item": {
+          "externalValue": "https://example.com/a b"
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "The Example Object external value must be a URI reference",
+    "location": "/components/examples/Item/externalValue"
+  }
+}

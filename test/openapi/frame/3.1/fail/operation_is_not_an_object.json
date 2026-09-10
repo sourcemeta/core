@@ -1,0 +1,18 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": []
+      }
+    }
+  },
+  "error": {
+    "message": "The Operation Object must be an object",
+    "location": "/paths/~1pets/get"
+  }
+}

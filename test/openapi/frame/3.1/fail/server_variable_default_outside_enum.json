@@ -1,0 +1,28 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "servers": [
+      {
+        "url": "/{version}",
+        "variables": {
+          "version": {
+            "default": "v3",
+            "enum": [
+              "v1",
+              "v2"
+            ]
+          }
+        }
+      }
+    ],
+    "paths": {}
+  },
+  "error": {
+    "message": "The Server Variable Object default must exist in its enumeration",
+    "location": "/servers/0/variables/version/default"
+  }
+}

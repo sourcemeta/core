@@ -1,0 +1,72 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "servers": [
+      {
+        "url": "https://development.gigantic-server.com/v1",
+        "description": "Development server"
+      },
+      {
+        "url": "https://staging.gigantic-server.com/v1",
+        "description": "Staging server"
+      },
+      {
+        "url": "https://api.gigantic-server.com/v1",
+        "description": "Production server"
+      }
+    ],
+    "paths": {}
+  },
+  "frame": {
+    "version": "3.1",
+    "base": "",
+    "standalone": true,
+    "info": {
+      "title": "Example",
+      "version": "1.0.0",
+      "summary": null,
+      "description": null,
+      "termsOfService": null,
+      "contact": null,
+      "license": null
+    },
+    "locations": {
+      "": {
+        "type": "openapi",
+        "pointer": "",
+        "parent": null,
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+      },
+      "#/info": {
+        "type": "info",
+        "pointer": "/info",
+        "parent": ""
+      },
+      "#/paths": {
+        "type": "paths",
+        "pointer": "/paths",
+        "parent": ""
+      },
+      "#/servers/0": {
+        "type": "server",
+        "pointer": "/servers/0",
+        "parent": ""
+      },
+      "#/servers/1": {
+        "type": "server",
+        "pointer": "/servers/1",
+        "parent": ""
+      },
+      "#/servers/2": {
+        "type": "server",
+        "pointer": "/servers/2",
+        "parent": ""
+      }
+    },
+    "operations": []
+  }
+}

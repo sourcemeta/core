@@ -1,0 +1,21 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "securitySchemes": {
+        "Item": {
+          "type": "apiKey",
+          "name": "X-Key"
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "An apiKey Security Scheme Object must declare a location",
+    "location": "/components/securitySchemes/Item"
+  }
+}

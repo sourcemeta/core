@@ -1,0 +1,100 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "pathItems": {
+        "NewPet": {
+          "post": {
+            "responses": {
+              "200": {
+                "description": "ok"
+              }
+            }
+          }
+        }
+      }
+    },
+    "webhooks": {
+      "newPet": {
+        "$ref": "#/components/pathItems/NewPet"
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "frame": {
+    "version": "3.1",
+    "base": "https://example.com/openapi.json",
+    "standalone": true,
+    "info": {
+      "title": "Example",
+      "version": "1.0.0",
+      "summary": null,
+      "description": null,
+      "termsOfService": null,
+      "contact": null,
+      "license": null
+    },
+    "locations": {
+      "https://example.com/openapi.json": {
+        "type": "openapi",
+        "pointer": "",
+        "parent": null,
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+      },
+      "https://example.com/openapi.json#/components": {
+        "type": "components",
+        "pointer": "/components",
+        "parent": "https://example.com/openapi.json"
+      },
+      "https://example.com/openapi.json#/components/pathItems/NewPet": {
+        "type": "path-item",
+        "pointer": "/components/pathItems/NewPet",
+        "parent": "https://example.com/openapi.json#/components"
+      },
+      "https://example.com/openapi.json#/components/pathItems/NewPet/post": {
+        "type": "operation",
+        "pointer": "/components/pathItems/NewPet/post",
+        "parent": "https://example.com/openapi.json#/components/pathItems/NewPet"
+      },
+      "https://example.com/openapi.json#/components/pathItems/NewPet/post/responses": {
+        "type": "responses",
+        "pointer": "/components/pathItems/NewPet/post/responses",
+        "parent": "https://example.com/openapi.json#/components/pathItems/NewPet/post"
+      },
+      "https://example.com/openapi.json#/components/pathItems/NewPet/post/responses/200": {
+        "type": "response",
+        "pointer": "/components/pathItems/NewPet/post/responses/200",
+        "parent": "https://example.com/openapi.json#/components/pathItems/NewPet/post/responses"
+      },
+      "https://example.com/openapi.json#/info": {
+        "type": "info",
+        "pointer": "/info",
+        "parent": "https://example.com/openapi.json"
+      },
+      "https://example.com/openapi.json#/webhooks/newPet": {
+        "type": "path-item",
+        "pointer": "/webhooks/newPet",
+        "parent": "https://example.com/openapi.json",
+        "original": "#/components/pathItems/NewPet",
+        "destination": "https://example.com/openapi.json#/components/pathItems/NewPet"
+      }
+    },
+    "operations": [
+      {
+        "type": "webhook",
+        "path": "newPet",
+        "method": "post",
+        "origin": "https://example.com/openapi.json#/components/pathItems/NewPet/post",
+        "endpoint": "https://example.com/openapi.json#/webhooks/newPet",
+        "tags": [],
+        "servers": [],
+        "security": [],
+        "parameters": []
+      }
+    ]
+  }
+}

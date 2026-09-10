@@ -1,0 +1,15 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "jsonSchemaDialect": "https://spec.openapis.org/oas/3.1/dialect /base",
+    "paths": {}
+  },
+  "error": {
+    "message": "The OpenAPI dialect must be a URI reference",
+    "location": "/jsonSchemaDialect"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "document": true,
+  "error": {
+    "message": "The OpenAPI Description must be an object",
+    "location": ""
+  }
+}

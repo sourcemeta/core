@@ -1,0 +1,16 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "pets": {}
+    }
+  },
+  "error": {
+    "message": "The Paths Object keys must begin with a slash",
+    "location": "/paths/pets"
+  }
+}

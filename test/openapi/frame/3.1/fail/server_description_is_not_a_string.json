@@ -1,0 +1,20 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "servers": [
+      {
+        "url": "/v1",
+        "description": 1
+      }
+    ],
+    "paths": {}
+  },
+  "error": {
+    "message": "The Server Object description must be a string",
+    "location": "/servers/0/description"
+  }
+}

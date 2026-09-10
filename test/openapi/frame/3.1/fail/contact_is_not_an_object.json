@@ -1,0 +1,15 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0",
+      "contact": "support@example.com"
+    },
+    "paths": {}
+  },
+  "error": {
+    "message": "The Contact Object must be an object",
+    "location": "/info/contact"
+  }
+}

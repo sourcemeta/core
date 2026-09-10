@@ -1,0 +1,16 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": []
+    }
+  },
+  "error": {
+    "message": "The Path Item Object must be an object",
+    "location": "/paths/~1pets"
+  }
+}

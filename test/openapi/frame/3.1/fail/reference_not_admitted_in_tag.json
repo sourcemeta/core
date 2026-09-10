@@ -1,0 +1,20 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "tags": [
+      {
+        "name": "pet",
+        "$ref": "#/components/schemas/Pet"
+      }
+    ]
+  },
+  "error": {
+    "message": "The Tag Object does not define this field",
+    "location": "/tags/0/$ref"
+  }
+}

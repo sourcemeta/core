@@ -1,0 +1,29 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "responses": {
+        "Item": {
+          "description": "ok",
+          "content": {
+            "application/json": {
+              "encoding": {
+                "part": {
+                  "explode": 1
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "The Encoding Object explode must be a boolean",
+    "location": "/components/responses/Item/content/application~1json/encoding/part/explode"
+  }
+}

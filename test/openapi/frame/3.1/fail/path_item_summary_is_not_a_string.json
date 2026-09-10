@@ -1,0 +1,18 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "summary": 1
+      }
+    }
+  },
+  "error": {
+    "message": "The Path Item Object summary must be a string",
+    "location": "/paths/~1pets/summary"
+  }
+}

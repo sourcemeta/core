@@ -1,0 +1,22 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "$ref": "#/components/schemas/Pet"
+          }
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "The Responses Object keys must be an HTTP status code or a status code range",
+    "location": "/paths/~1pets/get/responses/$ref"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "headers": {
+        "Item": {
+          "schema": {},
+          "content": {
+            "text/plain": {}
+          }
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "The Header Object schema and content are mutually exclusive",
+    "location": "/components/headers/Item"
+  }
+}

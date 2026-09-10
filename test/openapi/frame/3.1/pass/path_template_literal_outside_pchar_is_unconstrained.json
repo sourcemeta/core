@@ -1,0 +1,86 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/a b/c": {
+        "get": {
+          "responses": {
+            "200": {
+              "description": "ok"
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "frame": {
+    "version": "3.1",
+    "base": "https://example.com/openapi.json",
+    "standalone": true,
+    "info": {
+      "title": "Example",
+      "version": "1.0.0",
+      "summary": null,
+      "description": null,
+      "termsOfService": null,
+      "contact": null,
+      "license": null
+    },
+    "locations": {
+      "https://example.com/openapi.json": {
+        "type": "openapi",
+        "pointer": "",
+        "parent": null,
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+      },
+      "https://example.com/openapi.json#/info": {
+        "type": "info",
+        "pointer": "/info",
+        "parent": "https://example.com/openapi.json"
+      },
+      "https://example.com/openapi.json#/paths": {
+        "type": "paths",
+        "pointer": "/paths",
+        "parent": "https://example.com/openapi.json"
+      },
+      "https://example.com/openapi.json#/paths/~1a%20b~1c": {
+        "type": "path-item",
+        "pointer": "/paths/~1a b~1c",
+        "parent": "https://example.com/openapi.json#/paths"
+      },
+      "https://example.com/openapi.json#/paths/~1a%20b~1c/get": {
+        "type": "operation",
+        "pointer": "/paths/~1a b~1c/get",
+        "parent": "https://example.com/openapi.json#/paths/~1a%20b~1c"
+      },
+      "https://example.com/openapi.json#/paths/~1a%20b~1c/get/responses": {
+        "type": "responses",
+        "pointer": "/paths/~1a b~1c/get/responses",
+        "parent": "https://example.com/openapi.json#/paths/~1a%20b~1c/get"
+      },
+      "https://example.com/openapi.json#/paths/~1a%20b~1c/get/responses/200": {
+        "type": "response",
+        "pointer": "/paths/~1a b~1c/get/responses/200",
+        "parent": "https://example.com/openapi.json#/paths/~1a%20b~1c/get/responses"
+      }
+    },
+    "operations": [
+      {
+        "type": "path",
+        "path": "/a b/c",
+        "method": "get",
+        "origin": "https://example.com/openapi.json#/paths/~1a%20b~1c/get",
+        "endpoint": "https://example.com/openapi.json#/paths/~1a%20b~1c",
+        "tags": [],
+        "servers": [],
+        "security": [],
+        "parameters": []
+      }
+    ]
+  }
+}

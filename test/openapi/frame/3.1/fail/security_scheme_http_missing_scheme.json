@@ -1,0 +1,20 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "securitySchemes": {
+        "Item": {
+          "type": "http"
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "An http Security Scheme Object must declare a scheme",
+    "location": "/components/securitySchemes/Item"
+  }
+}

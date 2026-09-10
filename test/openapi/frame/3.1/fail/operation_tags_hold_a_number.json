@@ -1,0 +1,23 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "tags": [
+            "pet",
+            1
+          ]
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "The Operation Object tags must hold strings",
+    "location": "/paths/~1pets/get/tags/1"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "links": {
+        "L": {
+          "operationId": "listPets"
+        }
+      }
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "200": {
+              "description": "ok"
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "error": {
+    "message": "The Link Object operation identifier must name an operation the OpenAPI Description declares",
+    "location": "/components/links/L/operationId",
+    "base": "https://example.com/openapi.json"
+  }
+}

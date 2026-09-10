@@ -1,0 +1,45 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "E",
+      "version": "1"
+    },
+    "components": {
+      "parameters": {
+        "Limit": {
+          "name": "limit",
+          "in": "query",
+          "schema": {}
+        }
+      }
+    },
+    "paths": {
+      "/pets": {
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {}
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          }
+        ],
+        "get": {
+          "responses": {
+            "200": {
+              "description": "ok"
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "error": {
+    "message": "The Path Item Object parameters must not repeat a name and location",
+    "location": "/paths/~1pets/parameters/1",
+    "base": "https://example.com/openapi.json"
+  }
+}
