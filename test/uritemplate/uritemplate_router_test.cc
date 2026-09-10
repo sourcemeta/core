@@ -3148,3 +3148,75 @@ TEST(add_rejects_a_variable_then_literal_segment) {
     FAIL();
   }
 }
+
+TEST(root_reflects_literal_variable_expansion_and_optional_expansion_nodes) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/users", "op_root_1", 1);
+  router.add("/users/{id}", "op_root_2", 2);
+  router.add("/files/{+path}", "op_root_3", 3);
+  router.add("/assets/{/rest*}", "op_root_4", 4);
+
+  const auto &root = router.root();
+  EXPECT_EQ(root.type, sourcemeta::core::URITemplateRouter::NodeType::Root);
+  EXPECT_EQ(root.identifier, 0);
+  EXPECT_FALSE(root.variable);
+  EXPECT_EQ(root.literals.size(), 3);
+
+  const auto &assets = *root.literals.at(0);
+  EXPECT_EQ(assets.type,
+            sourcemeta::core::URITemplateRouter::NodeType::Literal);
+  EXPECT_EQ(assets.value, "assets");
+  EXPECT_EQ(assets.identifier, 0);
+  EXPECT_TRUE(assets.literals.empty());
+  EXPECT_TRUE(assets.variable);
+  EXPECT_EQ(assets.variable->type,
+            sourcemeta::core::URITemplateRouter::NodeType::OptionalExpansion);
+  EXPECT_EQ(assets.variable->value, "rest");
+  EXPECT_EQ(assets.variable->identifier, 4);
+
+  const auto &files = *root.literals.at(1);
+  EXPECT_EQ(files.type, sourcemeta::core::URITemplateRouter::NodeType::Literal);
+  EXPECT_EQ(files.value, "files");
+  EXPECT_EQ(files.identifier, 0);
+  EXPECT_TRUE(files.variable);
+  EXPECT_EQ(files.variable->type,
+            sourcemeta::core::URITemplateRouter::NodeType::Expansion);
+  EXPECT_EQ(files.variable->value, "path");
+  EXPECT_EQ(files.variable->identifier, 3);
+
+  const auto &users = *root.literals.at(2);
+  EXPECT_EQ(users.type, sourcemeta::core::URITemplateRouter::NodeType::Literal);
+  EXPECT_EQ(users.value, "users");
+  EXPECT_EQ(users.identifier, 1);
+  EXPECT_TRUE(users.variable);
+  EXPECT_EQ(users.variable->type,
+            sourcemeta::core::URITemplateRouter::NodeType::Variable);
+  EXPECT_EQ(users.variable->value, "id");
+  EXPECT_EQ(users.variable->identifier, 2);
+}
+
+TEST(root_literals_are_sorted_and_nest_across_multiple_segments) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/zebra/a/c", "op_nest_3", 3);
+  router.add("/zebra/a/b", "op_nest_2", 2);
+  router.add("/apple", "op_nest_1", 1);
+
+  const auto &root = router.root();
+  EXPECT_EQ(root.literals.size(), 2);
+  EXPECT_EQ(root.literals.at(0)->value, "apple");
+  EXPECT_EQ(root.literals.at(1)->value, "zebra");
+
+  const auto &zebra = *root.literals.at(1);
+  EXPECT_EQ(zebra.identifier, 0);
+  EXPECT_FALSE(zebra.variable);
+  EXPECT_EQ(zebra.literals.size(), 1);
+
+  const auto &segment_a = *zebra.literals.at(0);
+  EXPECT_EQ(segment_a.value, "a");
+  EXPECT_EQ(segment_a.identifier, 0);
+  EXPECT_EQ(segment_a.literals.size(), 2);
+  EXPECT_EQ(segment_a.literals.at(0)->value, "b");
+  EXPECT_EQ(segment_a.literals.at(0)->identifier, 2);
+  EXPECT_EQ(segment_a.literals.at(1)->value, "c");
+  EXPECT_EQ(segment_a.literals.at(1)->identifier, 3);
+}
