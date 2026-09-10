@@ -804,7 +804,61 @@ TEST(exponential_alias_expansion_is_bounded) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 5);
-    EXPECT_EQ(error.column(), 17);
+    EXPECT_EQ(error.column(), 9);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// The allowance is a ratio to the text that has been read rather than a fixed
+// count, so the very same aliases are turned away in a short document and
+// expanded in full in a long one
+TEST(alias_expansion_allowance_scales_with_the_input) {
+  const std::string aliases{"a: &a [ x, x, x, x, x, x, x, x, x, x ]\n"
+                            "b: &b [ *a, *a, *a, *a, *a, *a, *a, *a, *a, *a ]\n"
+                            "c: &c [ *b, *b, *b, *b, *b, *b, *b, *b, *b, *b ]\n"
+                            "d: &d [ *c, *c, *c, *c, *c, *c, *c, *c, *c, *c ]\n"
+                            "e: [ *d, *d, *d, *d, *d, *d, *d, *d, *d, *d ]\n"};
+
+  try {
+    sourcemeta::core::parse_yaml(aliases);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_EQ(error.line(), 5);
+    EXPECT_EQ(error.column(), 6);
+  } catch (...) {
+    FAIL();
+  }
+
+  const auto result{sourcemeta::core::parse_yaml(
+      "filler: " + std::string(2000, 'x') + "\n" + aliases)};
+
+  const sourcemeta::core::JSON expected_leaf = sourcemeta::core::parse_json(
+      R"JSON([ "x", "x", "x", "x", "x", "x", "x", "x", "x", "x" ])JSON");
+
+  EXPECT_EQ(result.at("e").size(), 10);
+  EXPECT_EQ(result.at("e").at(9).at(9).at(9).at(9), expected_leaf);
+}
+
+// Text the parser has not reached cannot pay for an expansion it takes no part
+// in, so trailing content leaves the allowance where it stood. This is what
+// keeps a short document from buying room out of the documents that follow it
+// in a stream
+TEST(alias_expansion_allowance_ignores_text_after_the_expansion) {
+  const std::string input{"a: &a [ x, x, x, x, x, x, x, x, x, x ]\n"
+                          "b: &b [ *a, *a, *a, *a, *a, *a, *a, *a, *a, *a ]\n"
+                          "c: &c [ *b, *b, *b, *b, *b, *b, *b, *b, *b, *b ]\n"
+                          "d: &d [ *c, *c, *c, *c, *c, *c, *c, *c, *c, *c ]\n"
+                          "e: [ *d, *d, *d, *d, *d, *d, *d, *d, *d, *d ]\n"
+                          "filler: " +
+                          std::string(2000, 'x') + "\n"};
+
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_EQ(error.line(), 5);
+    EXPECT_EQ(error.column(), 6);
   } catch (...) {
     FAIL();
   }
