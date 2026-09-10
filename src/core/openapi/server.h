@@ -116,16 +116,27 @@ inline auto openapi_check_server(const JSON &value, const Pointer &base,
 
   // OpenAPI Specification 3.1.1, Section 4.8.5: "url | string | REQUIRED. A
   // URL to the target host. This URL supports Server Variables and MAY be
-  // relative". It carries no requirement on its form, and it is a template
-  // rather than a URL once a variable is named in braces, so the type is all
-  // there is to check here
+  // relative". Beyond its type there is little to check, as it is a template
+  // rather than a URL once a variable is named in braces
   const auto *url{value.try_at("url", OPENAPI_HASH_URL)};
   if (url == nullptr) {
     throw OpenAPIError{base, "The Server Object must declare a URL"};
   }
 
-  openapi_expect_string(*url, base, "url"sv,
-                        "The Server Object URL must be a string");
+  const auto address{openapi_expect_string(
+      *url, base, "url"sv, "The Server Object URL must be a string")};
+
+  // OpenAPI Specification 3.1.2, Section 4.8.5 adds to that row: "Query and
+  // fragment MUST NOT be part of this URL". A query begins at the first `?`
+  // and a fragment at the first `#`, so either character in the template
+  // starts one, whether or not it sits inside a variable expression. A
+  // percent-encoded one is neither and is left alone
+  if (address.find('?') != JSON::StringView::npos ||
+      address.find('#') != JSON::StringView::npos) {
+    throw OpenAPIError{
+        openapi_child(base, "url"sv),
+        "The Server Object URL must carry no query and no fragment"};
+  }
 
   const auto *description{
       value.try_at("description", OPENAPI_HASH_DESCRIPTION)};
