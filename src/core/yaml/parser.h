@@ -35,6 +35,7 @@ struct CallbackRecord {
 struct AnchoredValue {
   JSON value;
   std::vector<CallbackRecord> callbacks;
+  std::size_t node_count;
 };
 
 class Parser {
@@ -405,9 +406,11 @@ private:
                        const JSON::ParseContext context,
                        const std::size_t index, const std::string &property)
       -> void {
-    if ((this->callback_ != nullptr) && *this->callback_) {
-      (*this->callback_)(phase, type, line, column, context, index, property);
+    if ((this->callback_ == nullptr) || !*this->callback_) {
+      return;
     }
+
+    (*this->callback_)(phase, type, line, column, context, index, property);
 
     if (this->recording_anchor_) {
       this->current_anchor_callbacks_.push_back(
@@ -681,9 +684,10 @@ private:
             this->recording_anchor_ = false;
             this->anchors_.insert_or_assign(
                 std::string{anchor_name.value()},
-                AnchoredValue{.value = key_value,
-                              .callbacks =
-                                  std::move(this->current_anchor_callbacks_)});
+                AnchoredValue{
+                    .value = key_value,
+                    .callbacks = std::move(this->current_anchor_callbacks_),
+                    .node_count = this->count_expanded_nodes(key_value)});
             this->current_anchor_callbacks_.clear();
             anchor_name.reset();
           }
@@ -767,8 +771,8 @@ private:
       this->anchors_.insert_or_assign(
           std::string{anchor_name.value()},
           AnchoredValue{.value = result,
-                        .callbacks =
-                            std::move(this->current_anchor_callbacks_)});
+                        .callbacks = std::move(this->current_anchor_callbacks_),
+                        .node_count = this->count_expanded_nodes(result)});
       this->current_anchor_callbacks_.clear();
 
       if (this->roundtrip_ != nullptr) {
@@ -1482,10 +1486,12 @@ private:
         // YAML 1.2.2 Section 7.1: an anchor on an explicit key names that key
         // for later aliases, exactly as it would on any other node
         if (key_anchor.has_value()) {
+          JSON key_value{this->resolve_scalar_node(token, key_tag)};
+          const auto key_node_count{this->count_expanded_nodes(key_value)};
           this->anchors_.insert_or_assign(
-              key_anchor.value(),
-              AnchoredValue{.value = this->resolve_scalar_node(token, key_tag),
-                            .callbacks = {}});
+              key_anchor.value(), AnchoredValue{.value = std::move(key_value),
+                                                .callbacks = {},
+                                                .node_count = key_node_count});
         }
 
         if (seen_keys.contains(key)) [[unlikely]] {
@@ -1655,7 +1661,7 @@ private:
       callback_index++;
     }
 
-    this->expanded_nodes_ += this->count_expanded_nodes(anchored.value);
+    this->expanded_nodes_ += anchored.node_count;
     if (this->expanded_nodes_ > MAXIMUM_EXPANDED_NODES) [[unlikely]] {
       throw YAMLParseError{token.line, token.column,
                            "Maximum YAML alias expansion exceeded"};
@@ -1809,10 +1815,13 @@ private:
           this->record_key_scalar_style(key, next->scalar_style,
                                         next->quoted_original);
           if (explicit_key_anchor.has_value()) {
+            JSON key_value{this->resolve_scalar_node(next.value())};
+            const auto key_node_count{this->count_expanded_nodes(key_value)};
             this->anchors_.insert_or_assign(
                 explicit_key_anchor.value(),
-                AnchoredValue{.value = this->resolve_scalar_node(next.value()),
-                              .callbacks = {}});
+                AnchoredValue{.value = std::move(key_value),
+                              .callbacks = {},
+                              .node_count = key_node_count});
           }
         }
 
@@ -2105,7 +2114,8 @@ private:
     this->anchors_.insert_or_assign(
         std::string{anchor_name},
         AnchoredValue{.value = null_value,
-                      .callbacks = std::move(this->current_anchor_callbacks_)});
+                      .callbacks = std::move(this->current_anchor_callbacks_),
+                      .node_count = this->count_expanded_nodes(null_value)});
     this->current_anchor_callbacks_.clear();
     if (this->roundtrip_ != nullptr) {
       auto &style{this->roundtrip_->styles[this->pointer_stack_]};
