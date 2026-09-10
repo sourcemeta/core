@@ -284,6 +284,7 @@
         "path": "/pets",
         "method": "get",
         "origin": "#/paths/~1pets/get",
+        "endpoint": "#/paths/~1pets",
         "tags": [],
         "servers": [
           "#/paths/~1pets/servers/0"
@@ -299,6 +300,7 @@
         "path": "/pets",
         "method": "put",
         "origin": "#/paths/~1pets/put",
+        "endpoint": "#/paths/~1pets",
         "tags": [],
         "servers": [
           "#/paths/~1pets/servers/0"
@@ -314,6 +316,7 @@
         "path": "/pets",
         "method": "post",
         "origin": "#/paths/~1pets/post",
+        "endpoint": "#/paths/~1pets",
         "tags": [],
         "servers": [
           "#/paths/~1pets/servers/0"
@@ -329,6 +332,7 @@
         "path": "/pets",
         "method": "delete",
         "origin": "#/paths/~1pets/delete",
+        "endpoint": "#/paths/~1pets",
         "tags": [],
         "servers": [
           "#/paths/~1pets/servers/0"
@@ -344,6 +348,7 @@
         "path": "/pets",
         "method": "options",
         "origin": "#/paths/~1pets/options",
+        "endpoint": "#/paths/~1pets",
         "tags": [],
         "servers": [
           "#/paths/~1pets/servers/0"
@@ -359,6 +364,7 @@
         "path": "/pets",
         "method": "head",
         "origin": "#/paths/~1pets/head",
+        "endpoint": "#/paths/~1pets",
         "tags": [],
         "servers": [
           "#/paths/~1pets/servers/0"
@@ -374,6 +380,7 @@
         "path": "/pets",
         "method": "patch",
         "origin": "#/paths/~1pets/patch",
+        "endpoint": "#/paths/~1pets",
         "tags": [],
         "servers": [
           "#/paths/~1pets/servers/0"
@@ -389,6 +396,7 @@
         "path": "/pets",
         "method": "trace",
         "origin": "#/paths/~1pets/trace",
+        "endpoint": "#/paths/~1pets",
         "tags": [],
         "servers": [
           "#/paths/~1pets/servers/0"

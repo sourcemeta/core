@@ -85,6 +85,7 @@
         "path": "/a/{}",
         "method": "get",
         "origin": "https://example.com/openapi.json#/paths/~1a~1%7B%7D/get",
+        "endpoint": "https://example.com/openapi.json#/paths/~1a~1%7B%7D",
         "tags": [],
         "servers": [],
         "security": [],

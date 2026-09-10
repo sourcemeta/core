@@ -24,6 +24,40 @@ const std::vector<std::string> KNOWN_KEYS{
 const std::vector<std::string> KNOWN_ERROR_KEYS{"message", "location", "base"};
 const std::vector<std::string> KNOWN_METHODS{
     "get", "put", "post", "delete", "options", "head", "patch", "trace"};
+// The serialised names of the Objects a location may hold, and of the routes
+// an operation may be reached through. With the enums private these names are
+// the public contract, so a rename or an omission has to fail rather than pass
+// every fixture that happens not to cover it
+const std::vector<std::string> KNOWN_TYPES{"openapi",
+                                           "path-item",
+                                           "parameter",
+                                           "request-body",
+                                           "response",
+                                           "example",
+                                           "header",
+                                           "link",
+                                           "callback",
+                                           "security-scheme",
+                                           "info",
+                                           "contact",
+                                           "license",
+                                           "server",
+                                           "server-variable",
+                                           "components",
+                                           "paths",
+                                           "operation",
+                                           "external-documentation",
+                                           "media-type",
+                                           "encoding",
+                                           "responses",
+                                           "tag",
+                                           "reference",
+                                           "schema",
+                                           "oauth-flows",
+                                           "oauth-flow",
+                                           "security-requirement"};
+const std::vector<std::string> KNOWN_OPERATION_TYPES{"path", "webhook",
+                                                     "callback"};
 // NOLINTEND(cert-err58-cpp,bugprone-throwing-static-initialization)
 
 auto make_resolver(const sourcemeta::core::JSON &test)
@@ -126,6 +160,7 @@ auto check_frame_invariants(const sourcemeta::core::JSON &frame,
                             const sourcemeta::core::JSON &test) -> void {
   const auto &locations{frame.at("locations")};
   const auto *dangling{test.try_at("dangling")};
+  std::vector<sourcemeta::core::JSON> unresolved;
 
   // The entry document is an Object like any other, so the base names it
   EXPECT_TRUE(locations.defines(frame.at("base").to_string()));
@@ -161,9 +196,11 @@ auto check_frame_invariants(const sourcemeta::core::JSON &frame,
       EXPECT_TRUE(locations.defines(parent.to_string()));
     }
 
+    const auto type{entry.second.at("type").to_string()};
+    EXPECT_TRUE(std::ranges::find(KNOWN_TYPES, type) != KNOWN_TYPES.cend());
+
     // The dialect in force is recorded where a JSON Schema implementation
     // needs it, which is the root of a document and each Schema Object
-    const auto type{entry.second.at("type").to_string()};
     EXPECT_EQ(entry.second.defines("dialect"),
               type == "openapi" || type == "schema");
 
@@ -181,10 +218,22 @@ auto check_frame_invariants(const sourcemeta::core::JSON &frame,
     // Where a reference lands is a key into this same map, unless the fixture
     // says the walk was never in a position to read it
     const auto &destination{entry.second.at("destination")};
-    if (dangling == nullptr ||
-        std::ranges::find(dangling->as_array(), destination) ==
-            dangling->as_array().cend()) {
-      EXPECT_TRUE(locations.defines(destination.to_string()));
+    if (locations.defines(destination.to_string())) {
+      continue;
+    }
+
+    unresolved.push_back(destination);
+    EXPECT_TRUE(dangling != nullptr &&
+                std::ranges::find(dangling->as_array(), destination) !=
+                    dangling->as_array().cend());
+  }
+
+  // An exemption for a destination that now resolves, or that nothing points
+  // at any more, quietly stops meaning anything, so every one a fixture
+  // declares has to still be earned
+  if (dangling != nullptr) {
+    for (const auto &entry : dangling->as_array()) {
+      EXPECT_TRUE(std::ranges::find(unresolved, entry) != unresolved.cend());
     }
   }
 
@@ -197,6 +246,23 @@ auto check_frame_invariants(const sourcemeta::core::JSON &frame,
     EXPECT_TRUE(
         std::ranges::find(KNOWN_METHODS, operation.at("method").to_string()) !=
         KNOWN_METHODS.cend());
+    EXPECT_TRUE(std::ranges::find(KNOWN_OPERATION_TYPES,
+                                  operation.at("type").to_string()) !=
+                KNOWN_OPERATION_TYPES.cend());
+
+    // An Operation Object only ever sits directly inside a Path Item Object
+    const auto &container{locations.at(origin).at("parent")};
+    EXPECT_TRUE(container.is_string());
+    if (container.is_string()) {
+      EXPECT_EQ(locations.at(container.to_string()).at("type").to_string(),
+                "path-item");
+    }
+
+    // The position that exposes an operation is a Path Item too, and it is the
+    // one that gives it a URL rather than the one that defines it
+    const auto &endpoint{operation.at("endpoint").to_string()};
+    EXPECT_TRUE(locations.defines(endpoint));
+    EXPECT_EQ(locations.at(endpoint).at("type").to_string(), "path-item");
 
     for (const auto &server : operation.at("servers").as_array()) {
       EXPECT_TRUE(locations.defines(server.to_string()));

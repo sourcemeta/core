@@ -135,6 +135,7 @@
         "path": "/foo",
         "method": "get",
         "origin": "https://example.com/other.json#/components/pathItems/Foo/get",
+        "endpoint": "https://example.com/openapi.json#/paths/~1foo",
         "tags": [],
         "servers": [],
         "security": [

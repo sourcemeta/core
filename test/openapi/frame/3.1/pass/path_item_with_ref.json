@@ -84,6 +84,7 @@
         "path": "/pets",
         "method": "get",
         "origin": "#/components/pathItems/Pets/get",
+        "endpoint": "#/paths/~1pets",
         "tags": [],
         "servers": [],
         "security": [],

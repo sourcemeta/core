@@ -66,6 +66,7 @@
         "path": "/a b/c",
         "method": "get",
         "origin": "https://example.com/openapi.json#/paths/~1a%20b~1c/get",
+        "endpoint": "https://example.com/openapi.json#/paths/~1a%20b~1c",
         "tags": [],
         "servers": [],
         "security": [],

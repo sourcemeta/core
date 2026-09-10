@@ -220,6 +220,10 @@ struct OpenAPIOperation {
   JSON::StringView method;
   /// Where the Operation Object sits
   JSON::String origin;
+  /// Where the Path Item Object that exposes it sits, which is the position
+  /// that gives it a URL rather than the one that defines it. The two differ
+  /// whenever a reference stands between them
+  JSON::String endpoint;
   /// Where the Server Objects in force sit, empty when nothing declares any,
   /// in which case Section 4.8.1 puts a single Server Object with a `url` of
   /// `/` in their place

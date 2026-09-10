@@ -102,6 +102,7 @@
         "path": "/a/{x}{y}",
         "method": "get",
         "origin": "https://example.com/openapi.json#/paths/~1a~1%7Bx%7D%7By%7D/get",
+        "endpoint": "https://example.com/openapi.json#/paths/~1a~1%7Bx%7D%7By%7D",
         "tags": [],
         "servers": [],
         "security": [],

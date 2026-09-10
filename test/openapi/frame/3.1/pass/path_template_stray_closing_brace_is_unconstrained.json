@@ -66,6 +66,7 @@
         "path": "/pets/petId}",
         "method": "get",
         "origin": "https://example.com/openapi.json#/paths/~1pets~1petId%7D/get",
+        "endpoint": "https://example.com/openapi.json#/paths/~1pets~1petId%7D",
         "tags": [],
         "servers": [],
         "security": [],

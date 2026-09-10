@@ -114,6 +114,7 @@
         "path": "/pets",
         "method": "get",
         "origin": "https://example.com/openapi.json#/paths/~1pets/get",
+        "endpoint": "https://example.com/openapi.json#/paths/~1pets",
         "tags": [],
         "servers": [],
         "security": [

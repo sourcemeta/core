@@ -123,6 +123,7 @@
         "path": "/pets",
         "method": "get",
         "origin": "https://example.com/common.json#/components/pathItems/Pets/get",
+        "endpoint": "https://example.com/openapi.json#/paths/~1pets",
         "tags": [],
         "servers": [],
         "security": [],

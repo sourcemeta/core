@@ -356,6 +356,7 @@ auto project(const sourcemeta::core::OpenAPIWalk &walk)
            .path = path,
            .method = method,
            .origin = origin,
+           .endpoint = endpoint,
            .servers = servers_of(operation->second.servers,
                                  entry->second.servers, walk.servers),
            // Section 4.8.10: "This definition overrides any declared top-level
@@ -538,6 +539,7 @@ auto OpenAPIFrame::to_json() const -> JSON {
     entry.assign_assume_new("path", JSON{operation.path});
     entry.assign_assume_new("method", JSON{operation.method});
     entry.assign_assume_new("origin", JSON{operation.origin});
+    entry.assign_assume_new("endpoint", JSON{operation.endpoint});
 
     auto tags{JSON::make_array()};
     for (const auto &tag : operation.tags) {

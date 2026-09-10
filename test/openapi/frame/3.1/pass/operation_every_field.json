@@ -267,6 +267,7 @@
         "path": "/pets",
         "method": "get",
         "origin": "#/paths/~1pets/get",
+        "endpoint": "#/paths/~1pets",
         "tags": [
           "#/tags/0"
         ],
@@ -285,6 +286,7 @@
         "path": "{$request.body#/url}",
         "method": "post",
         "origin": "#/paths/~1pets/get/callbacks/onData/%7B$request.body%23~1url%7D/post",
+        "endpoint": "#/paths/~1pets/get/callbacks/onData/%7B$request.body%23~1url%7D",
         "tags": [],
         "servers": [],
         "security": [],
