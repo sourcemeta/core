@@ -234,6 +234,32 @@ inline auto openapi_follow_reference(const JSON::StringView reference,
                        "what the reference expects"};
   }
 
+  // A document is read once, but a second reference into it names a fragment
+  // of its own, and that fragment has been checked by nobody. Section 3 has
+  // the whole document parsed rather than the fragment, which already
+  // happened, so what is left is the question an internal reference asks
+  if (names_a_fragment &&
+      walk.visited.contains(
+          {identifier.value(), OpenAPIObjectKind::Document})) {
+    const auto known{walk.documents_by_uri.find(identifier.value())};
+    if (known != walk.documents_by_uri.cend()) {
+      auto base{identifier.value()};
+      const auto *document{known->second};
+      auto dialect{walk.dialect};
+      bool entry{false};
+      std::swap(walk.base, base);
+      std::swap(walk.document, document);
+      std::swap(walk.entry, entry);
+      openapi_follow_internal_reference(target.value(), true, expected, walk);
+      std::swap(walk.base, base);
+      std::swap(walk.document, document);
+      std::swap(walk.entry, entry);
+      std::swap(walk.dialect, dialect);
+    }
+
+    return;
+  }
+
   if (walk.visited.contains(
           {identifier.value(), OpenAPIObjectKind::Document}) ||
       walk.visited.contains({identifier.value(), expected})) {
@@ -252,6 +278,7 @@ inline auto openapi_follow_reference(const JSON::StringView reference,
   // would otherwise be the last thing to happen to
   const auto &contents{
       walk.documents.emplace_back(std::move(resolved)).value()};
+  walk.documents_by_uri.insert_or_assign(identifier.value(), &contents);
 
   // Section 3 lists five ways to tell what a referenced document is. A root
   // `openapi` field settles it whatever the reference expected, and otherwise

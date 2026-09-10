@@ -264,6 +264,10 @@ struct OpenAPIWalk {
   /// must not be the last thing that happens to it. This is a deque rather
   /// than a vector because the walk points into these while it reads them
   std::deque<OpenAPIResolverResult> documents;
+  /// Every one of those by the URI it was asked for, so that a second
+  /// reference into a document already read can still have its own fragment
+  /// checked without the resolver being asked again
+  std::map<JSON::String, const JSON *> documents_by_uri;
   // The document the checks are reading, which a reference that stays inside
   // it resolves its fragment against
   const JSON *document{nullptr};

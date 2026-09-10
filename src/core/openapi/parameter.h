@@ -263,7 +263,9 @@ inline auto openapi_check_parameters(const JSON &value, const Pointer &base,
 
   std::vector<JSON::String> result;
   result.reserve(value.size());
-  std::set<std::pair<JSON::StringView, JSON::StringView>> seen;
+  // These own their strings, as an identity read back through a reference
+  // borrows from a map the walk keeps writing to
+  std::set<std::pair<JSON::String, JSON::String>> seen;
   std::size_t index{0};
   for (const auto &parameter : value.as_array()) {
     const auto location{openapi_child(base, index)};
@@ -272,13 +274,16 @@ inline auto openapi_check_parameters(const JSON &value, const Pointer &base,
                               walk);
       const auto *identity{openapi_parameter_identity(
           walk, openapi_location_uri(walk.base, location))};
-      if (identity != nullptr &&
-          !seen.insert({identity->first, identity->second}).second) {
+      if (identity != nullptr && !seen.insert(*identity).second) {
         throw OpenAPIError{location, duplicate_message};
       }
-    } else if (!seen.insert(openapi_check_parameter(parameter, location, walk))
-                    .second) {
-      throw OpenAPIError{location, duplicate_message};
+    } else {
+      const auto identity{openapi_check_parameter(parameter, location, walk)};
+      if (!seen.insert({JSON::String{identity.first},
+                        JSON::String{identity.second}})
+               .second) {
+        throw OpenAPIError{location, duplicate_message};
+      }
     }
 
     result.push_back(openapi_location_uri(walk.base, location));
