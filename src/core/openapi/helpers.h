@@ -48,15 +48,17 @@ constexpr auto openapi_field(const JSON::StringView name) noexcept
 
 // What a reference expects to find at the far end of itself, which is fixed by
 // where the reference sits rather than by anything the target says about
-// itself. OpenAPI Specification 3.1.1, Section 3 lists "Detecting a document
-// containing a referenceable Object at its root based on the expected type of
-// the reference" among the ways to tell what a referenced document is, and
-// this is that expected type
+// itself. OpenAPI Specification 3.1.1, Section 4.3.1 lists "Detecting a
+// document containing a referenceable Object at its root based on the expected
+// type of the reference" among the ways to tell what a referenced document is,
+// and this is that expected type
 enum class OpenAPIObjectKind : std::uint8_t {
   /// A whole OpenAPI Description, which is what a document declaring a root
   /// `openapi` field is read as no matter where the reference sat
   Document,
-  // The ten a reference may expect to find
+  // The eleven a reference may expect to find, the last of them only from 3.2
+  // onwards, which is where a `content` map and the Components Object both
+  // learn to hold a Reference Object in place of a Media Type Object
   PathItem,
   Parameter,
   RequestBody,
@@ -66,6 +68,7 @@ enum class OpenAPIObjectKind : std::uint8_t {
   Link,
   Callbacks,
   SecurityScheme,
+  MediaType,
   // The rest are never referenced, but every Object gets a location
   Info,
   Contact,
@@ -76,7 +79,6 @@ enum class OpenAPIObjectKind : std::uint8_t {
   Paths,
   Operation,
   ExternalDocumentation,
-  MediaType,
   Encoding,
   Responses,
   Tag,
@@ -165,7 +167,7 @@ struct OpenAPIReference {
 };
 
 /// How an Operation Object is reached from the entry document. OpenAPI
-/// Specification 3.1.1, Section 3: "only the entry document's Paths Object
+/// Specification 3.1.1, Section 4.3.3: "only the entry document's Paths Object
 /// contributes URLs to the described API", so what an operation is reached
 /// through is a property of that document rather than of the one it sits in
 enum class OpenAPIOperationKind : std::uint8_t { Path, Webhook, Callback };
@@ -191,7 +193,9 @@ openapi_operation_kind_name(const OpenAPIOperationKind kind) noexcept
 struct OpenAPIPathItemRecord {
   /// The methods it declares, in the order this specification lists them, each
   /// against the location of the Operation Object it holds
-  std::vector<std::pair<JSON::StringView, JSON::String>> operations;
+  /// The method owns its string, as 3.2 lets a Path Item name one that the
+  /// document spells out rather than one this module names itself
+  std::vector<std::pair<JSON::String, JSON::String>> operations;
   /// Where the Server Objects it declares sit
   std::vector<JSON::String> servers;
   /// Where the Parameter Objects it declares sit, in the order it writes them.
@@ -229,7 +233,7 @@ struct OpenAPIEndpoint {
 struct OpenAPIOperation {
   OpenAPIOperationKind kind;
   JSON::String path;
-  JSON::StringView method;
+  JSON::String method;
   /// Where the Operation Object sits
   JSON::String origin;
   /// Where the Path Item Object that exposes it sits, which is the position
@@ -256,11 +260,27 @@ struct OpenAPIOperation {
 struct OpenAPILocation {
   OpenAPIObjectKind type;
   Pointer pointer;
-  /// Set on the root of a document alone: the default `$schema` in force for
-  /// the Schema Objects it holds, resolved against its base. A Schema Object
-  /// that declares its own overrides it, which is a matter for whatever reads
-  /// inside one
+  /// Set on the root of a document and on every Schema Object position it
+  /// holds: the default `$schema` in force there, resolved against the base. A
+  /// Schema Object that declares its own overrides it, which is a matter for
+  /// whatever reads inside one
   JSON::String dialect;
+  /// Set on a Schema Object position alone: the base its document keys every
+  /// location by, which is what a relative reference inside that schema
+  /// resolves against until an `$id` says otherwise. RFC 3986 Section 5.1.1
+  /// makes an `$id` the higher precedence source, so this is a default in the
+  /// same way the dialect above is
+  JSON::String base;
+};
+
+/// A document the walk holds, and the base it settled on once read. The two
+/// differ when a document gives itself a URI that is not the one it was asked
+/// for, which from 3.2 onwards it may
+struct OpenAPIDocumentRecord {
+  /// The document itself, owned by whatever handed it over
+  const JSON *document;
+  /// The base every location in it is keyed by
+  JSON::String base;
 };
 
 // What every check needs to reach beyond the Object in front of it: the
@@ -279,7 +299,7 @@ struct OpenAPIWalk {
   /// Every one of those by the URI it was asked for, so that a second
   /// reference into a document already read can still have its own fragment
   /// checked without the resolver being asked again
-  std::map<JSON::String, const JSON *> documents_by_uri;
+  std::map<JSON::String, OpenAPIDocumentRecord> documents_by_uri;
   // The document the checks are reading, which a reference that stays inside
   // it resolves its fragment against
   const JSON *document{nullptr};
@@ -340,14 +360,25 @@ struct OpenAPIWalk {
   /// Where the entry document declares each Tag Object, by the name it gave
   /// it, which is the name an Operation Object's tags resolve against
   std::map<JSON::String, JSON::String> tags;
+  /// What each Tag Object that declares a parent is called and which tag it
+  /// names, keyed by where that Tag Object sits. Section 4.22 has the named
+  /// tag exist and forbids a cycle, neither of which can be settled until
+  /// every tag has been read
+  std::map<JSON::String, std::pair<JSON::String, JSON::String>> tag_parents;
   /// The operation each Link Object names, keyed by where that Link Object
-  /// sits. Section 3 has resolving one of these require "parsing all
+  /// sits. Section 4.3.3 has resolving one of these require "parsing all
   /// referenced documents prior to determining an `operationId` to be
   /// unresolvable", so nothing is decided about them until the walk is over
   std::map<JSON::String, JSON::String> operation_id_links;
   /// Whether the document being read is the entry document, which is the only
   /// one whose Paths Object describes the API
   bool entry{true};
+  /// The revision the document being read declares, which is what settles
+  /// which field table each of its Objects is held to. A document a reference
+  /// brought in declares its own, and one holding a referenceable Object
+  /// rather than a Description declares none and is read as the document that
+  /// referenced it
+  OpenAPIVersion version{OpenAPIVersion::OPENAPI_3_1};
   /// The default `$schema` in force for the document being read, which every
   /// Schema Object position in it hands on
   JSON::String dialect;
@@ -376,6 +407,17 @@ inline auto openapi_follow_reference(JSON::StringView reference,
                                      const Pointer &origin,
                                      OpenAPIObjectKind expected,
                                      OpenAPIWalk &walk) -> void;
+
+// The same two halves of that, for a position that names another one without
+// writing a `$ref` member, and so has nothing for the frame to record
+inline auto openapi_reference_target(JSON::StringView reference,
+                                     const OpenAPIWalk &walk)
+    -> std::optional<URI>;
+
+inline auto openapi_follow_target(const URI &target, const Pointer &origin,
+                                  OpenAPIObjectKind expected,
+                                  bool demands_its_own_kind, OpenAPIWalk &walk)
+    -> void;
 
 inline auto openapi_resolve_position(const OpenAPIWalk &walk,
                                      JSON::String position) -> JSON::String {
@@ -429,6 +471,21 @@ auto openapi_reject_unknown_fields(
   }
 }
 
+// A field table is a property of the revision a document declares, so an
+// Object whose table grew between revisions has one array per revision and
+// which of them applies is asked here rather than at every call site
+template <std::size_t Size, std::size_t Later>
+auto openapi_reject_unknown_fields(
+    const JSON &object, const std::array<JSON::StringView, Size> &fields,
+    const std::array<JSON::StringView, Later> &later, const Pointer &base,
+    const char *message, const OpenAPIWalk &walk) -> void {
+  if (walk.version == OpenAPIVersion::OPENAPI_3_2) {
+    openapi_reject_unknown_fields(object, later, base, message);
+  } else {
+    openapi_reject_unknown_fields(object, fields, base, message);
+  }
+}
+
 // A location is keyed the way a schema frame keys its own: the document base
 // with the pointer hung off it as a fragment, or the pointer alone when no
 // base was established, and the base by itself for the root of a document.
@@ -459,11 +516,13 @@ inline auto openapi_location_uri(const JSON::String &base,
 // which holds because an Object is always recorded before anything inside it
 inline auto openapi_record(OpenAPIWalk &walk, const Pointer &pointer,
                            const OpenAPIObjectKind kind,
-                           JSON::String dialect = {}) -> void {
-  walk.locations.insert_or_assign(
-      openapi_location_uri(walk.base, pointer),
-      OpenAPILocation{
-          .type = kind, .pointer = pointer, .dialect = std::move(dialect)});
+                           JSON::String dialect = {}, JSON::String base = {})
+    -> void {
+  walk.locations.insert_or_assign(openapi_location_uri(walk.base, pointer),
+                                  OpenAPILocation{.type = kind,
+                                                  .pointer = pointer,
+                                                  .dialect = std::move(dialect),
+                                                  .base = std::move(base)});
 }
 
 inline auto openapi_expect_object(const JSON &value, const Pointer &location,
@@ -501,7 +560,11 @@ inline auto openapi_expect_schema(const JSON &value, const Pointer &location,
     throw OpenAPIError{location, message};
   }
 
-  openapi_record(walk, location, OpenAPIObjectKind::Schema, walk.dialect);
+  // A Schema Object is a handoff rather than something this module reads, so
+  // its position carries both of the things whatever reads inside it needs:
+  // the dialect in force and the base to resolve against
+  openapi_record(walk, location, OpenAPIObjectKind::Schema, walk.dialect,
+                 walk.base);
 }
 
 inline auto openapi_check_map_of_strings(const JSON &value,

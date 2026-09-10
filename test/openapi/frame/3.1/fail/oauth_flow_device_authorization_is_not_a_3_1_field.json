@@ -1,0 +1,27 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "securitySchemes": {
+        "S": {
+          "type": "oauth2",
+          "flows": {
+            "deviceAuthorization": {
+              "deviceAuthorizationUrl": "/device",
+              "tokenUrl": "/token",
+              "scopes": {}
+            }
+          }
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "The OAuth Flows Object does not define this field",
+    "location": "/components/securitySchemes/S/flows/deviceAuthorization"
+  }
+}

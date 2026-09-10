@@ -1,0 +1,71 @@
+{
+  "document": {
+    "openapi": "3.2.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "mediaTypes": {
+        "Item": {
+          "schema": {}
+        },
+        "Alias": {
+          "$ref": "#/components/mediaTypes/Item"
+        }
+      }
+    }
+  },
+  "frame": {
+    "version": "3.2",
+    "base": "",
+    "standalone": true,
+    "info": {
+      "title": "Example",
+      "version": "1.0.0",
+      "summary": null,
+      "description": null,
+      "termsOfService": null,
+      "contact": null,
+      "license": null
+    },
+    "locations": {
+      "": {
+        "type": "openapi",
+        "pointer": "",
+        "parent": null,
+        "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17"
+      },
+      "#/components": {
+        "type": "components",
+        "pointer": "/components",
+        "parent": ""
+      },
+      "#/components/mediaTypes/Alias": {
+        "type": "reference",
+        "pointer": "/components/mediaTypes/Alias",
+        "parent": "#/components",
+        "original": "#/components/mediaTypes/Item",
+        "destination": "#/components/mediaTypes/Item"
+      },
+      "#/components/mediaTypes/Item": {
+        "type": "media-type",
+        "pointer": "/components/mediaTypes/Item",
+        "parent": "#/components"
+      },
+      "#/components/mediaTypes/Item/schema": {
+        "type": "schema",
+        "pointer": "/components/mediaTypes/Item/schema",
+        "parent": "#/components/mediaTypes/Item",
+        "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17",
+        "base": ""
+      },
+      "#/info": {
+        "type": "info",
+        "pointer": "/info",
+        "parent": ""
+      }
+    },
+    "operations": []
+  }
+}

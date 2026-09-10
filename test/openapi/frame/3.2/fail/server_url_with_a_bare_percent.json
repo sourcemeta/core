@@ -1,0 +1,19 @@
+{
+  "document": {
+    "openapi": "3.2.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "servers": [
+      {
+        "url": "https://example.com/100%"
+      }
+    ],
+    "paths": {}
+  },
+  "error": {
+    "message": "The Server Object URL must take the form of a server URL template",
+    "location": "/servers/0/url"
+  }
+}

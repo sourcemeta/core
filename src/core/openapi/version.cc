@@ -34,16 +34,17 @@ auto contains_line_terminator(const sourcemeta::core::JSON::StringView value)
 // the version string (for example `3.1`) SHALL designate the OAS feature set
 // [...] The patch version SHOULD NOT be considered by tooling, making no
 // distinction between `3.1.0` and `3.1.1` for example". The published
-// meta-schema states the same rule as `^3\.1\.\d+(-.+)?$`, so a patch
-// component is mandatory, its value carries no meaning, and a pre-release
-// suffix of at least one non line terminator character is permitted
-auto is_openapi_3_1(const sourcemeta::core::JSON::StringView version) -> bool {
-  constexpr auto PREFIX{"3.1."sv};
-  if (!version.starts_with(PREFIX)) {
+// meta-schemas state the same rule as `^3\.1\.\d+(-.+)?$` and
+// `^3\.2\.\d+(-.+)?$`, so a patch component is mandatory, its value carries
+// no meaning, and a pre-release suffix of at least one non line terminator
+// character is permitted
+auto is_openapi_minor(const sourcemeta::core::JSON::StringView version,
+                      const sourcemeta::core::JSON::StringView prefix) -> bool {
+  if (!version.starts_with(prefix)) {
     return false;
   }
 
-  const auto patch{version.substr(PREFIX.size())};
+  const auto patch{version.substr(prefix.size())};
   const auto boundary{patch.find_first_not_of("0123456789"sv)};
   if (boundary == 0) {
     return false;
@@ -72,8 +73,12 @@ auto openapi_version(const JSON &document) -> std::optional<OpenAPIVersion> {
     return std::nullopt;
   }
 
-  if (is_openapi_3_1(version->to_string())) {
+  if (is_openapi_minor(version->to_string(), "3.1."sv)) {
     return OpenAPIVersion::OPENAPI_3_1;
+  }
+
+  if (is_openapi_minor(version->to_string(), "3.2."sv)) {
+    return OpenAPIVersion::OPENAPI_3_2;
   }
 
   return std::nullopt;

@@ -1,0 +1,40 @@
+{
+  "document": {
+    "openapi": "3.2.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/a": {
+        "get": {
+          "responses": {
+            "200": {
+              "description": "ok"
+            }
+          },
+          "parameters": [
+            {
+              "name": "q",
+              "in": "querystring",
+              "content": {
+                "application/x-www-form-urlencoded": {
+                  "schema": {}
+                }
+              }
+            },
+            {
+              "name": "a",
+              "in": "query",
+              "schema": {}
+            }
+          ]
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "A querystring Parameter Object must not appear alongside a query Parameter Object",
+    "location": "/paths/~1a/get"
+  }
+}

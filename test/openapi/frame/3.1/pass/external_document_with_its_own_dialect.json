@@ -72,7 +72,8 @@
         "type": "schema",
         "pointer": "/components/schemas/Remote",
         "parent": "https://example.com/common.json#/components",
-        "dialect": "https://example.com/common-dialect"
+        "dialect": "https://example.com/common-dialect",
+        "base": "https://example.com/common.json"
       },
       "https://example.com/common.json#/info": {
         "type": "info",
@@ -101,7 +102,8 @@
         "type": "schema",
         "pointer": "/components/schemas/Local",
         "parent": "https://example.com/openapi.json#/components",
-        "dialect": "https://example.com/entry-dialect"
+        "dialect": "https://example.com/entry-dialect",
+        "base": "https://example.com/openapi.json"
       },
       "https://example.com/openapi.json#/info": {
         "type": "info",

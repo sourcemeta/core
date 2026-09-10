@@ -1,0 +1,19 @@
+{
+  "document": {
+    "openapi": "3.2.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "security": [
+      {
+        "#/info": []
+      }
+    ],
+    "paths": {}
+  },
+  "error": {
+    "message": "The Security Scheme Object must declare its type",
+    "location": "/info"
+  }
+}

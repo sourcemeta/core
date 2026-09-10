@@ -10,11 +10,21 @@
 #include <cstddef>     // std::size_t
 #include <set>         // std::set
 #include <string_view> // std::string_view
+#include <utility>     // std::pair
 
 namespace sourcemeta::core {
 
-constexpr std::array<JSON::StringView, 3> OPENAPI_TAG_FIELDS{
+constexpr auto OPENAPI_HASH_PARENT{JSON::Object::hash("parent"sv)};
+constexpr auto OPENAPI_HASH_KIND{JSON::Object::hash("kind"sv)};
+
+constexpr std::array<JSON::StringView, 3> OPENAPI_TAG_FIELDS_3_1{
     {"name"sv, "description"sv, "externalDocs"sv}};
+
+// OpenAPI Specification 3.2.1, Section 4.22 adds `summary`, `parent` naming
+// "a tag that this tag is nested under", and `kind`
+constexpr std::array<JSON::StringView, 6> OPENAPI_TAG_FIELDS_3_2{
+    {"name"sv, "description"sv, "externalDocs"sv, "summary"sv, "parent"sv,
+     "kind"sv}};
 
 // OpenAPI Specification 3.1.1, Section 4.8.22: "Adds metadata to a single tag
 // that is used by the Operation Object"
@@ -25,8 +35,9 @@ inline auto openapi_check_tag(const JSON &value, const Pointer &base,
     throw OpenAPIError{base, "The Tag Object must be an object"};
   }
 
-  openapi_reject_unknown_fields(value, OPENAPI_TAG_FIELDS, base,
-                                "The Tag Object does not define this field");
+  openapi_reject_unknown_fields(
+      value, OPENAPI_TAG_FIELDS_3_1, OPENAPI_TAG_FIELDS_3_2, base,
+      "The Tag Object does not define this field", walk);
 
   // OpenAPI Specification 3.1.1, Section 4.8.22: "name | string | REQUIRED.
   // The name of the tag"
@@ -43,6 +54,33 @@ inline auto openapi_check_tag(const JSON &value, const Pointer &base,
   if (description != nullptr) {
     openapi_expect_string(*description, base, "description"sv,
                           "The Tag Object description must be a string");
+  }
+
+  // OpenAPI Specification 3.2.1, Section 4.22: "summary | string" and
+  // "kind | string"
+  const auto *summary{value.try_at("summary", OPENAPI_HASH_SUMMARY)};
+  if (summary != nullptr) {
+    openapi_expect_string(*summary, base, "summary"sv,
+                          "The Tag Object summary must be a string");
+  }
+
+  const auto *kind{value.try_at("kind", OPENAPI_HASH_KIND)};
+  if (kind != nullptr) {
+    openapi_expect_string(*kind, base, "kind"sv,
+                          "The Tag Object kind must be a string");
+  }
+
+  // Section 4.22: "parent | string | The `name` of a tag that this tag is
+  // nested under. The named tag MUST exist in the API description, and
+  // circular references between parent and child tags MUST NOT be used".
+  // Neither of those can be settled until every tag has been read
+  const auto *parent{value.try_at("parent", OPENAPI_HASH_PARENT)};
+  if (parent != nullptr) {
+    const auto named{openapi_expect_string(
+        *parent, base, "parent"sv, "The Tag Object parent must be a string")};
+    walk.tag_parents.insert_or_assign(
+        openapi_location_uri(walk.base, base),
+        std::pair{JSON::String{result}, JSON::String{named}});
   }
 
   const auto *external_documentation{

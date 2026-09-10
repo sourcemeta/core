@@ -20,7 +20,7 @@ const std::set<std::string> KNOWN_DIVERGENCES{
     // requires that field of every `path` parameter, while the meta-schema
     // only asks for it alongside a `schema`
     "style_defaults",
-    // `/pets/{id}` under a parameter named `petId`. Section 4.3 has each
+    // `/pets/{id}` under a parameter named `petId`. Section 3.5 has each
     // template expression "correspond to a path parameter", and Section
     // 4.8.12 has such a parameter correspond to a template expression back
     // the other way, so this fails both ways round. Neither requirement can

@@ -54,7 +54,8 @@
         "type": "schema",
         "pointer": "/components/schemas/WithDollarSchema",
         "parent": "#/components",
-        "dialect": "https://spec.openapis.org/oas/3.1/dialect/WORK-IN-PROGRESS"
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/WORK-IN-PROGRESS",
+        "base": ""
       },
       "#/info": {
         "type": "info",

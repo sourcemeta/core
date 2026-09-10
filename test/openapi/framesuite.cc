@@ -22,8 +22,9 @@ namespace {
 const std::vector<std::string> KNOWN_KEYS{
     "document", "defaultBase", "resolver", "frame", "error", "dangling"};
 const std::vector<std::string> KNOWN_ERROR_KEYS{"message", "location", "base"};
-const std::vector<std::string> KNOWN_METHODS{
-    "get", "put", "post", "delete", "options", "head", "patch", "trace"};
+const std::vector<std::string> KNOWN_METHODS{"get",    "put",     "post",
+                                             "delete", "options", "head",
+                                             "patch",  "trace",   "query"};
 // The serialised names of the Objects a location may hold, and of the routes
 // an operation may be reached through. With the enums private these names are
 // the public contract, so a rename or an omission has to fail rather than pass
@@ -209,6 +210,17 @@ auto check_frame_invariants(const sourcemeta::core::JSON &frame,
     EXPECT_EQ(entry.second.defines("dialect"),
               type == "openapi" || type == "schema");
 
+    // A Schema Object position carries the base to resolve against too, and
+    // the base a document keys its locations by is the part of every one of
+    // those keys that comes before the fragment
+    EXPECT_EQ(entry.second.defines("base"), type == "schema");
+    if (type == "schema") {
+      const auto &schema_base{entry.second.at("base").to_string()};
+      EXPECT_TRUE(entry.first.starts_with(schema_base));
+      EXPECT_TRUE(entry.first.size() > schema_base.size() &&
+                  entry.first.at(schema_base.size()) == '#');
+    }
+
     // A reference is written down on the Object that makes it, which is a
     // Reference Object, a Path Item Object declaring a `$ref`, or a Link
     // Object declaring an `operationRef`
@@ -248,9 +260,17 @@ auto check_frame_invariants(const sourcemeta::core::JSON &frame,
     const auto &origin{operation.at("origin").to_string()};
     EXPECT_TRUE(locations.defines(origin));
     EXPECT_EQ(locations.at(origin).at("type").to_string(), "operation");
-    EXPECT_TRUE(
-        std::ranges::find(KNOWN_METHODS, operation.at("method").to_string()) !=
-        KNOWN_METHODS.cend());
+    // 3.2 lets a Path Item name a method of its own, so the closed set only
+    // accounts for the ones this specification defines as fields. Anything
+    // else has to have come from `additionalOperations`, which is where the
+    // method name is written rather than implied
+    const auto &method{operation.at("method").to_string()};
+    EXPECT_FALSE(method.empty());
+    if (std::ranges::find(KNOWN_METHODS, method) == KNOWN_METHODS.cend()) {
+      sourcemeta::core::JSON::String suffix{"/additionalOperations/"};
+      suffix.append(method);
+      EXPECT_TRUE(origin.ends_with(suffix));
+    }
     EXPECT_TRUE(std::ranges::find(KNOWN_OPERATION_TYPES,
                                   operation.at("type").to_string()) !=
                 KNOWN_OPERATION_TYPES.cend());

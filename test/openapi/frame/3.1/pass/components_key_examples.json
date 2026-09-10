@@ -44,31 +44,36 @@
         "type": "schema",
         "pointer": "/components/schemas/User",
         "parent": "#/components",
-        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base",
+        "base": ""
       },
       "#/components/schemas/User_1": {
         "type": "schema",
         "pointer": "/components/schemas/User_1",
         "parent": "#/components",
-        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base",
+        "base": ""
       },
       "#/components/schemas/User_Name": {
         "type": "schema",
         "pointer": "/components/schemas/User_Name",
         "parent": "#/components",
-        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base",
+        "base": ""
       },
       "#/components/schemas/my.org.User": {
         "type": "schema",
         "pointer": "/components/schemas/my.org.User",
         "parent": "#/components",
-        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base",
+        "base": ""
       },
       "#/components/schemas/user-name": {
         "type": "schema",
         "pointer": "/components/schemas/user-name",
         "parent": "#/components",
-        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base",
+        "base": ""
       },
       "#/info": {
         "type": "info",

@@ -1,0 +1,80 @@
+{
+  "document": {
+    "openapi": "3.2.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/a": {
+        "parameters": [
+          {
+            "name": "a",
+            "in": "header",
+            "content": {
+              "text/plain": {}
+            },
+            "examples": {
+              "Item": {
+                "dataValue": "a"
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "frame": {
+    "version": "3.2",
+    "base": "",
+    "standalone": true,
+    "info": {
+      "title": "Example",
+      "version": "1.0.0",
+      "summary": null,
+      "description": null,
+      "termsOfService": null,
+      "contact": null,
+      "license": null
+    },
+    "locations": {
+      "": {
+        "type": "openapi",
+        "pointer": "",
+        "parent": null,
+        "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17"
+      },
+      "#/info": {
+        "type": "info",
+        "pointer": "/info",
+        "parent": ""
+      },
+      "#/paths": {
+        "type": "paths",
+        "pointer": "/paths",
+        "parent": ""
+      },
+      "#/paths/~1a": {
+        "type": "path-item",
+        "pointer": "/paths/~1a",
+        "parent": "#/paths"
+      },
+      "#/paths/~1a/parameters/0": {
+        "type": "parameter",
+        "pointer": "/paths/~1a/parameters/0",
+        "parent": "#/paths/~1a"
+      },
+      "#/paths/~1a/parameters/0/content/text~1plain": {
+        "type": "media-type",
+        "pointer": "/paths/~1a/parameters/0/content/text~1plain",
+        "parent": "#/paths/~1a/parameters/0"
+      },
+      "#/paths/~1a/parameters/0/examples/Item": {
+        "type": "example",
+        "pointer": "/paths/~1a/parameters/0/examples/Item",
+        "parent": "#/paths/~1a/parameters/0"
+      }
+    },
+    "operations": []
+  }
+}

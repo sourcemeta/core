@@ -1,0 +1,153 @@
+{
+  "document": {
+    "openapi": "3.2.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/a": {
+        "get": {
+          "responses": {
+            "200": {
+              "description": "ok"
+            }
+          }
+        },
+        "additionalOperations": {
+          "PROPFIND": {
+            "responses": {
+              "200": {
+                "description": "ok"
+              }
+            }
+          },
+          "LINK": {
+            "responses": {
+              "200": {
+                "description": "ok"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "frame": {
+    "version": "3.2",
+    "base": "",
+    "standalone": true,
+    "info": {
+      "title": "Example",
+      "version": "1.0.0",
+      "summary": null,
+      "description": null,
+      "termsOfService": null,
+      "contact": null,
+      "license": null
+    },
+    "locations": {
+      "": {
+        "type": "openapi",
+        "pointer": "",
+        "parent": null,
+        "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17"
+      },
+      "#/info": {
+        "type": "info",
+        "pointer": "/info",
+        "parent": ""
+      },
+      "#/paths": {
+        "type": "paths",
+        "pointer": "/paths",
+        "parent": ""
+      },
+      "#/paths/~1a": {
+        "type": "path-item",
+        "pointer": "/paths/~1a",
+        "parent": "#/paths"
+      },
+      "#/paths/~1a/additionalOperations/LINK": {
+        "type": "operation",
+        "pointer": "/paths/~1a/additionalOperations/LINK",
+        "parent": "#/paths/~1a"
+      },
+      "#/paths/~1a/additionalOperations/LINK/responses": {
+        "type": "responses",
+        "pointer": "/paths/~1a/additionalOperations/LINK/responses",
+        "parent": "#/paths/~1a/additionalOperations/LINK"
+      },
+      "#/paths/~1a/additionalOperations/LINK/responses/200": {
+        "type": "response",
+        "pointer": "/paths/~1a/additionalOperations/LINK/responses/200",
+        "parent": "#/paths/~1a/additionalOperations/LINK/responses"
+      },
+      "#/paths/~1a/additionalOperations/PROPFIND": {
+        "type": "operation",
+        "pointer": "/paths/~1a/additionalOperations/PROPFIND",
+        "parent": "#/paths/~1a"
+      },
+      "#/paths/~1a/additionalOperations/PROPFIND/responses": {
+        "type": "responses",
+        "pointer": "/paths/~1a/additionalOperations/PROPFIND/responses",
+        "parent": "#/paths/~1a/additionalOperations/PROPFIND"
+      },
+      "#/paths/~1a/additionalOperations/PROPFIND/responses/200": {
+        "type": "response",
+        "pointer": "/paths/~1a/additionalOperations/PROPFIND/responses/200",
+        "parent": "#/paths/~1a/additionalOperations/PROPFIND/responses"
+      },
+      "#/paths/~1a/get": {
+        "type": "operation",
+        "pointer": "/paths/~1a/get",
+        "parent": "#/paths/~1a"
+      },
+      "#/paths/~1a/get/responses": {
+        "type": "responses",
+        "pointer": "/paths/~1a/get/responses",
+        "parent": "#/paths/~1a/get"
+      },
+      "#/paths/~1a/get/responses/200": {
+        "type": "response",
+        "pointer": "/paths/~1a/get/responses/200",
+        "parent": "#/paths/~1a/get/responses"
+      }
+    },
+    "operations": [
+      {
+        "type": "path",
+        "path": "/a",
+        "method": "get",
+        "origin": "#/paths/~1a/get",
+        "endpoint": "#/paths/~1a",
+        "tags": [],
+        "servers": [],
+        "security": [],
+        "parameters": []
+      },
+      {
+        "type": "path",
+        "path": "/a",
+        "method": "PROPFIND",
+        "origin": "#/paths/~1a/additionalOperations/PROPFIND",
+        "endpoint": "#/paths/~1a",
+        "tags": [],
+        "servers": [],
+        "security": [],
+        "parameters": []
+      },
+      {
+        "type": "path",
+        "path": "/a",
+        "method": "LINK",
+        "origin": "#/paths/~1a/additionalOperations/LINK",
+        "endpoint": "#/paths/~1a",
+        "tags": [],
+        "servers": [],
+        "security": [],
+        "parameters": []
+      }
+    ]
+  }
+}

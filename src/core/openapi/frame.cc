@@ -72,11 +72,52 @@ auto error_at(const sourcemeta::core::OpenAPIWalk &walk,
   return {document_of(location), std::move(pointer), message};
 }
 
+// OpenAPI Specification 3.2.1, Section 4.22, of a Tag Object's `parent`:
+// "The named tag MUST exist in the API description, and circular references
+// between parent and child tags MUST NOT be used". Which tags exist is not
+// known until every document has been read, and a cycle is a property of the
+// whole set rather than of any one tag
+auto check_tag_parents(const sourcemeta::core::OpenAPIWalk &walk) -> void {
+  std::map<sourcemeta::core::JSON::String, sourcemeta::core::JSON::String>
+      parents;
+  for (const auto &[location, edge] : walk.tag_parents) {
+    if (!walk.tags.contains(edge.second)) {
+      throw error_at(walk, location,
+                     "The Tag Object parent must name a tag the OpenAPI "
+                     "Description declares",
+                     "parent");
+    }
+
+    parents.insert_or_assign(edge.first, edge.second);
+  }
+
+  // Walking upward from each tag terminates at a tag with no parent unless the
+  // chain comes back round, and a chain longer than the number of edges has
+  // come back round
+  for (const auto &[location, edge] : walk.tag_parents) {
+    auto name{edge.first};
+    for (std::size_t step = 0; step <= parents.size(); step += 1) {
+      const auto next{parents.find(name)};
+      if (next == parents.cend()) {
+        break;
+      }
+
+      name = next->second;
+      if (step == parents.size()) {
+        throw error_at(walk, location,
+                       "The Tag Object parents must not form a cycle",
+                       "parent");
+      }
+    }
+  }
+}
+
 // OpenAPI Specification 3.1.1, Section 4.8.20: "The identified or reference
 // operation MUST be unique, and in the case of an `operationId`, it MUST be
-// resolved within the scope of the OpenAPI Description". Section 3 recommends
-// resolving one "considering all Operation Objects from all parsed documents",
-// which is the set the walk already keeps for the uniqueness requirement
+// resolved within the scope of the OpenAPI Description". Section 4.3.3
+// recommends resolving one "considering all Operation Objects from all parsed
+// documents", which is the set the walk already keeps for the uniqueness
+// requirement
 auto check_operation_id_links(const sourcemeta::core::OpenAPIWalk &walk)
     -> void {
   for (const auto &[location, identifier] : walk.operation_id_links) {
@@ -144,6 +185,8 @@ auto version_string(const sourcemeta::core::OpenAPIVersion version)
     // feature set"
     case sourcemeta::core::OpenAPIVersion::OPENAPI_3_1:
       return "3.1"sv;
+    case sourcemeta::core::OpenAPIVersion::OPENAPI_3_2:
+      return "3.2"sv;
   }
 
   std::unreachable();
@@ -240,11 +283,11 @@ auto parameters_of(const sourcemeta::core::OpenAPIWalk &walk,
   return result;
 }
 
-// Which Tag Object each of an operation's tags names. Section 3 lists this
-// among the connections a description makes by name rather than by pointer,
-// and it is the one that carries no requirement, since Section 4.8.1 says
-// "not all tags that are used by the Operation Object must be declared". So a
-// name nothing declares is reported rather than turned down
+// Which Tag Object each of an operation's tags names. Section 4.3.3 lists this
+// among the connections a description makes by name rather than by pointer, and
+// it is the one that carries no requirement, since Section 4.8.1 says "not all
+// tags that are used by the Operation Object must be declared". So a name
+// nothing declares is reported rather than turned down
 auto tags_of(const sourcemeta::core::OpenAPIWalk &walk,
              const std::vector<sourcemeta::core::JSON::String> &names)
     -> std::vector<std::optional<sourcemeta::core::JSON::String>> {
@@ -299,12 +342,49 @@ auto check_path_parameters(
   }
 }
 
-// Section 4.3, the other direction: "Each template expression in the path MUST
+// OpenAPI Specification 3.2.1, Section 4.12, of a parameter whose location
+// is `querystring`: it "MUST NOT appear more than once, and MUST NOT appear in
+// the same operation (or in the operation's path-item) as any `in: "query"`
+// parameters". A Path Item and an Operation are one set where an operation is
+// concerned, which is what the parameters in force are
+auto check_querystring(
+    const sourcemeta::core::OpenAPIWalk &walk,
+    const sourcemeta::core::JSON::String &origin,
+    const std::vector<sourcemeta::core::JSON::String> &parameters) -> void {
+  std::size_t querystrings{0};
+  bool query{false};
+  for (const auto &position : parameters) {
+    const auto *identity{identity_of(walk, position)};
+    if (identity == nullptr) {
+      continue;
+    }
+
+    if (identity->second == "querystring") {
+      querystrings += 1;
+    } else if (identity->second == "query") {
+      query = true;
+    }
+  }
+
+  if (querystrings > 1) {
+    throw error_at(walk, origin,
+                   "A querystring Parameter Object must not appear more than "
+                   "once among the parameters in force");
+  }
+
+  if (querystrings > 0 && query) {
+    throw error_at(walk, origin,
+                   "A querystring Parameter Object must not appear alongside a "
+                   "query Parameter Object");
+  }
+}
+
+// Section 3.5, the other direction: "Each template expression in the path MUST
 // correspond to a path parameter that is included in the Path Item itself
 // and/or in each of the Path Item's Operations". So this holds of the
-// parameters in force for one operation rather than of either level alone,
-// and Section 4.3 excuses an empty Path Item from it, which is why nothing
-// checks it until there is an operation to check
+// parameters in force for one operation rather than of either level alone, and
+// Section 3.5 excuses an empty Path Item from it, which is why nothing checks
+// it until there is an operation to check
 auto check_path_templates(
     const sourcemeta::core::OpenAPIWalk &walk,
     const sourcemeta::core::JSON::String &endpoint,
@@ -336,7 +416,7 @@ auto check_path_templates(
   }
 }
 
-// Every operation the description exposes, which Section 3 confines to what
+// Every operation the description exposes, which Section 4.3.3 confines to what
 // the entry document reaches: "only the entry document's Paths Object
 // contributes URLs to the described API". A Callback Object holds Path Item
 // Objects of its own, so what an endpoint reaches may expose further endpoints
@@ -388,6 +468,8 @@ auto project(const sourcemeta::core::OpenAPIWalk &walk)
         check_path_templates(walk, endpoint, templates, parameters);
       }
 
+      check_querystring(walk, origin, parameters);
+
       result.push_back(
           {.kind = kind,
            .path = path,
@@ -430,28 +512,31 @@ auto analyse(const sourcemeta::core::JSON &document,
              const sourcemeta::core::OpenAPIResolver &resolver,
              sourcemeta::core::JSON::String base)
     -> sourcemeta::core::OpenAPIWalk {
-  sourcemeta::core::OpenAPIWalk walk{.resolver = resolver,
-                                     .base = base,
-                                     .documents = {},
-                                     .documents_by_uri = {},
-                                     .document = &document,
-                                     .operation_ids = {},
-                                     .visited = {},
-                                     .locations = {},
-                                     .references = {},
-                                     .parameters = {},
-                                     .path_items = {},
-                                     .operation_records = {},
-                                     .callbacks = {},
-                                     .endpoints = {},
-                                     .servers = {},
-                                     .security = {},
-                                     .security_schemes = {},
-                                     .tags = {},
-                                     .operation_id_links = {},
-                                     .entry = true,
-                                     .dialect = {},
-                                     .info = {}};
+  sourcemeta::core::OpenAPIWalk walk{
+      .resolver = resolver,
+      .base = base,
+      .documents = {},
+      .documents_by_uri = {},
+      .document = &document,
+      .operation_ids = {},
+      .visited = {},
+      .locations = {},
+      .references = {},
+      .parameters = {},
+      .path_items = {},
+      .operation_records = {},
+      .callbacks = {},
+      .endpoints = {},
+      .servers = {},
+      .security = {},
+      .security_schemes = {},
+      .tags = {},
+      .tag_parents = {},
+      .operation_id_links = {},
+      .entry = true,
+      .version = sourcemeta::core::OpenAPIVersion::OPENAPI_3_1,
+      .dialect = {},
+      .info = {}};
   // The entry document is one we already hold, so a reference that comes back
   // round to it is not a document anybody needs to resolve
   if (!base.empty()) {
@@ -485,11 +570,13 @@ OpenAPIFrame::OpenAPIFrame(const JSON &document,
                            const OpenAPIResolver &resolver,
                            const std::string_view default_base)
     : internal_{std::make_unique<Internal>()} {
-  auto base{canonical_base(default_base)};
-  auto walk{analyse(document, resolver, base)};
+  auto walk{analyse(document, resolver, canonical_base(default_base))};
   this->internal_->version = openapi_version(document).value();
   this->internal_->info = walk.info;
-  this->internal_->base = std::move(base);
+  // What the caller passed in is where the entry document was retrieved from,
+  // and from 3.2 onwards the document may give itself a URI of its own, which
+  // the walk settles and everything it holds is keyed by
+  this->internal_->base = std::move(walk.base);
   // A frame stands alone when everything it references is inside it, which is
   // what a caller asks before deciding whether it has the whole description
   this->internal_->standalone = std::ranges::all_of(
@@ -497,13 +584,15 @@ OpenAPIFrame::OpenAPIFrame(const JSON &document,
         return walk.locations.contains(reference.second.destination);
       });
 
-  // Section 3 has resolving a Link Object `operationId` require "parsing all
-  // referenced documents prior to determining an `operationId` to be
+  // Section 4.3.3 has resolving a Link Object `operationId` require "parsing
+  // all referenced documents prior to determining an `operationId` to be
   // unresolvable". A description we do not hold in full is one we cannot say
   // that of, so a frame that does not stand alone says nothing here
   if (this->internal_->standalone) {
     check_operation_id_links(walk);
   }
+
+  check_tag_parents(walk);
 
   // Projecting reads the whole walk, so nothing is taken out of it until after
   this->internal_->operations = project(walk);
@@ -554,6 +643,13 @@ auto OpenAPIFrame::to_json() const -> JSON {
     // Only the root of a document and a Schema Object carry one
     if (!location.second.dialect.empty()) {
       entry.assign_assume_new("dialect", JSON{location.second.dialect});
+    }
+
+    // A Schema Object position alone carries the other half of what whatever
+    // reads inside it needs, and an empty base is as much an answer as any
+    // other, so this goes by the kind rather than by the value
+    if (location.second.type == OpenAPIObjectKind::Schema) {
+      entry.assign_assume_new("base", JSON{location.second.base});
     }
 
     // Only an Object that declares a `$ref` carries these, which is a

@@ -24,13 +24,34 @@ constexpr auto OPENAPI_HASH_ALLOW_EMPTY_VALUE{
 // where it sits, which is how the meta-schema reads it, holding the
 // serialisation fields behind a dependent schema on `schema` and
 // `allowEmptyValue` and `allowReserved` behind the location
-constexpr std::array<JSON::StringView, 6> OPENAPI_PARAMETER_CONTENT_FIELDS{
+constexpr std::array<JSON::StringView, 6> OPENAPI_PARAMETER_CONTENT_FIELDS_3_1{
     {"name"sv, "in"sv, "description"sv, "required"sv, "deprecated"sv,
      "content"sv}};
+
+// OpenAPI Specification 3.2.1, Section 4.12.2.1 moves `example` and
+// `examples` into the Parameter Object's common fields, whose table says of
+// them and of the rest: "These fields MAY be used with either `content` or
+// `schema`".
+// In 3.1 both sat in the table for use with `schema` alone, which is where the
+// published meta-schemas draw the same line, the 3.1 one holding them behind
+// `schema` and the 3.2 one alongside it
+constexpr std::array<JSON::StringView, 8> OPENAPI_PARAMETER_CONTENT_FIELDS_3_2{
+    {"name"sv, "in"sv, "description"sv, "required"sv, "deprecated"sv,
+     "content"sv, "example"sv, "examples"sv}};
 
 constexpr std::array<JSON::StringView, 10> OPENAPI_PARAMETER_SCHEMA_FIELDS{
     {"name"sv, "in"sv, "description"sv, "required"sv, "deprecated"sv,
      "schema"sv, "style"sv, "explode"sv, "example"sv, "examples"sv}};
+
+// Section 4.12, of `allowReserved`: "This field only applies to `in` and
+// `style` values that automatically percent-encode (that is: `in: path`,
+// `in: query`, and `in: cookie` with `style: form`)". 3.1 held the same field
+// to `query` alone
+constexpr std::array<JSON::StringView, 11>
+    OPENAPI_PARAMETER_RESERVED_SCHEMA_FIELDS_3_2{
+        {"name"sv, "in"sv, "description"sv, "required"sv, "deprecated"sv,
+         "schema"sv, "style"sv, "explode"sv, "example"sv, "examples"sv,
+         "allowReserved"sv}};
 
 constexpr std::array<JSON::StringView, 12>
     OPENAPI_PARAMETER_QUERY_SCHEMA_FIELDS{
@@ -39,9 +60,33 @@ constexpr std::array<JSON::StringView, 12>
          "allowEmptyValue"sv, "allowReserved"sv}};
 
 constexpr std::array<JSON::StringView, 7>
-    OPENAPI_PARAMETER_QUERY_CONTENT_FIELDS{{"name"sv, "in"sv, "description"sv,
-                                            "required"sv, "deprecated"sv,
-                                            "content"sv, "allowEmptyValue"sv}};
+    OPENAPI_PARAMETER_QUERY_CONTENT_FIELDS_3_1{
+        {"name"sv, "in"sv, "description"sv, "required"sv, "deprecated"sv,
+         "content"sv, "allowEmptyValue"sv}};
+
+constexpr std::array<JSON::StringView, 9>
+    OPENAPI_PARAMETER_QUERY_CONTENT_FIELDS_3_2{
+        {"name"sv, "in"sv, "description"sv, "required"sv, "deprecated"sv,
+         "content"sv, "allowEmptyValue"sv, "example"sv, "examples"sv}};
+
+// Section 4.12 scopes `allowReserved` to the locations that percent-encode of
+// their own accord. A query parameter has a field table of its own, so what is
+// asked here is whether one of the other two locations is such a place, and a
+// cookie parameter takes the `form` style when it declares none
+inline auto openapi_parameter_admits_reserved(const JSON::StringView location,
+                                              const JSON &value) -> bool {
+  if (location == "path"sv) {
+    return true;
+  }
+
+  if (location != "cookie"sv) {
+    return false;
+  }
+
+  const auto *style{value.try_at("style", OPENAPI_HASH_STYLE)};
+  return style == nullptr ||
+         (style->is_string() && style->to_string() == "form"sv);
+}
 
 // OpenAPI Specification 3.1.1, Section 4.8.12: "Describes a single operation
 // parameter"
@@ -70,11 +115,24 @@ inline auto openapi_check_parameter(const JSON &value, const Pointer &base,
     throw OpenAPIError{base, "The Parameter Object must declare a location"};
   }
 
-  const auto parameter_location{openapi_expect_enumeration(
-      *location_field, base, "in"sv,
-      {"query"sv, "header"sv, "path"sv, "cookie"sv},
-      "The Parameter Object location must be a string",
-      "The Parameter Object location is not one this specification defines")};
+  // OpenAPI Specification 3.2.1, Section 4.12 adds a fifth location,
+  // `querystring`, "a parameter that treats the entire URL query string as a
+  // value". An enumeration is as much a part of a revision's field table as
+  // the field names are
+  const auto parameter_location{
+      walk.version == OpenAPIVersion::OPENAPI_3_2
+          ? openapi_expect_enumeration(
+                *location_field, base, "in"sv,
+                {"query"sv, "header"sv, "path"sv, "cookie"sv, "querystring"sv},
+                "The Parameter Object location must be a string",
+                "The Parameter Object location is not one this specification "
+                "defines")
+          : openapi_expect_enumeration(
+                *location_field, base, "in"sv,
+                {"query"sv, "header"sv, "path"sv, "cookie"sv},
+                "The Parameter Object location must be a string",
+                "The Parameter Object location is not one this specification "
+                "defines")};
 
   const auto *schema{value.try_at("schema", OPENAPI_HASH_SCHEMA)};
   const auto *content{value.try_at("content", OPENAPI_HASH_CONTENT)};
@@ -89,20 +147,34 @@ inline auto openapi_check_parameter(const JSON &value, const Pointer &base,
         base, "The Parameter Object must declare a schema or a content"};
   }
 
+  // Section 4.12, of `querystring`: its value "MUST be specified using the
+  // `content` field"
+  if (parameter_location == "querystring"sv && content == nullptr) {
+    throw OpenAPIError{base,
+                       "A querystring Parameter Object must declare a content"};
+  }
+
   const auto in_query{parameter_location == "query"sv};
   if (schema == nullptr) {
     if (in_query) {
       openapi_reject_unknown_fields(
-          value, OPENAPI_PARAMETER_QUERY_CONTENT_FIELDS, base,
-          "The Parameter Object does not define this field");
+          value, OPENAPI_PARAMETER_QUERY_CONTENT_FIELDS_3_1,
+          OPENAPI_PARAMETER_QUERY_CONTENT_FIELDS_3_2, base,
+          "The Parameter Object does not define this field", walk);
     } else {
       openapi_reject_unknown_fields(
-          value, OPENAPI_PARAMETER_CONTENT_FIELDS, base,
-          "The Parameter Object does not define this field");
+          value, OPENAPI_PARAMETER_CONTENT_FIELDS_3_1,
+          OPENAPI_PARAMETER_CONTENT_FIELDS_3_2, base,
+          "The Parameter Object does not define this field", walk);
     }
   } else if (in_query) {
     openapi_reject_unknown_fields(
         value, OPENAPI_PARAMETER_QUERY_SCHEMA_FIELDS, base,
+        "The Parameter Object does not define this field");
+  } else if (walk.version == OpenAPIVersion::OPENAPI_3_2 &&
+             openapi_parameter_admits_reserved(parameter_location, value)) {
+    openapi_reject_unknown_fields(
+        value, OPENAPI_PARAMETER_RESERVED_SCHEMA_FIELDS_3_2, base,
         "The Parameter Object does not define this field");
   } else {
     openapi_reject_unknown_fields(
@@ -161,6 +233,14 @@ inline auto openapi_check_parameter(const JSON &value, const Pointer &base,
         "The Parameter Object allowEmptyValue must be a boolean");
   }
 
+  // Both forms carry this pair from 3.2 onwards, and in 3.1 the field table
+  // for a `content` form has already turned both of them down, so where this
+  // sits is what both revisions ask for
+  openapi_check_examples(
+      value, base,
+      "The Parameter Object example and examples are mutually exclusive",
+      "The Parameter Object examples must be an object", walk);
+
   if (content != nullptr) {
     const auto content_location{openapi_child(base, "content"sv)};
     openapi_check_content(*content, content_location,
@@ -203,6 +283,15 @@ inline auto openapi_check_parameter(const JSON &value, const Pointer &base,
           {"form"sv, "spaceDelimited"sv, "pipeDelimited"sv, "deepObject"sv},
           "The Parameter Object style must be a string",
           "The Parameter Object style is not one a query parameter admits");
+    } else if (walk.version == OpenAPIVersion::OPENAPI_3_2) {
+      // OpenAPI Specification 3.2.1, Section 4.12.3 adds a `cookie` style,
+      // "analogous to `form`, but following RFC6265 `Cookie` syntax rules",
+      // and the same table now states that "combinations not represented in
+      // this table are not permitted"
+      openapi_expect_enumeration(
+          *style, base, "style"sv, {"form"sv, "cookie"sv},
+          "The Parameter Object style must be a string",
+          "The Parameter Object style is not one a cookie parameter admits");
     } else {
       openapi_expect_enumeration(
           *style, base, "style"sv, {"form"sv},
@@ -224,11 +313,6 @@ inline auto openapi_check_parameter(const JSON &value, const Pointer &base,
         *allow_reserved, base, "allowReserved"sv,
         "The Parameter Object allowReserved must be a boolean");
   }
-
-  openapi_check_examples(
-      value, base,
-      "The Parameter Object example and examples are mutually exclusive",
-      "The Parameter Object examples must be an object", walk);
 
   walk.parameters.insert_or_assign(location,
                                    std::pair{JSON::String{parameter_name},
@@ -266,6 +350,11 @@ inline auto openapi_check_parameters(const JSON &value, const Pointer &base,
   // These own their strings, as an identity read back through a reference
   // borrows from a map the walk keeps writing to
   std::set<std::pair<JSON::String, JSON::String>> seen;
+  // Section 4.12, of `querystring`: it "MUST NOT appear more than once, and
+  // MUST NOT appear in the same operation (or in the operation's path-item) as
+  // any `in: "query"` parameters". This list is one of those two levels, and
+  // what the two come to between them is settled where they meet
+  std::size_t querystrings{0};
   std::size_t index{0};
   for (const auto &parameter : value.as_array()) {
     const auto location{openapi_child(base, index)};
@@ -288,6 +377,19 @@ inline auto openapi_check_parameters(const JSON &value, const Pointer &base,
 
     result.push_back(openapi_location_uri(walk.base, location));
     index += 1;
+  }
+
+  for (const auto &position : result) {
+    const auto *identity{openapi_parameter_identity(walk, position)};
+    if (identity != nullptr && identity->second == "querystring") {
+      querystrings += 1;
+    }
+  }
+
+  if (querystrings > 1) {
+    throw OpenAPIError{base,
+                       "A querystring Parameter Object must not appear more "
+                       "than once"};
   }
 
   return result;

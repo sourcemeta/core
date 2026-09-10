@@ -1,0 +1,16 @@
+{
+  "document": {
+    "openapi": "3.2.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/a/{x}/b/{x}": {}
+    }
+  },
+  "error": {
+    "message": "A path template must not repeat a template expression",
+    "location": "/paths/~1a~1{x}~1b~1{x}"
+  }
+}

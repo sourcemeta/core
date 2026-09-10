@@ -88,7 +88,8 @@
         "type": "schema",
         "pointer": "/components/responses/WithSchema/content/application~1json/schema",
         "parent": "https://example.com/common.json#/components/responses/WithSchema/content/application~1json",
-        "dialect": "https://example.com/target-dialect"
+        "dialect": "https://example.com/target-dialect",
+        "base": "https://example.com/common.json"
       },
       "https://example.com/common.json#/info": {
         "type": "info",

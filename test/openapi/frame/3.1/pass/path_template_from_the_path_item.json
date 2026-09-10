@@ -107,7 +107,8 @@
         "type": "schema",
         "pointer": "/paths/~1pets~1{petId}/parameters/0/schema",
         "parent": "https://example.com/openapi.json#/paths/~1pets~1%7BpetId%7D/parameters/0",
-        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base",
+        "base": "https://example.com/openapi.json"
       }
     },
     "operations": [

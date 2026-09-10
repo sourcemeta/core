@@ -1,0 +1,28 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "security": [
+      {
+        "#/components/securitySchemes/apiKey": []
+      }
+    ],
+    "components": {
+      "securitySchemes": {
+        "apiKey": {
+          "type": "apiKey",
+          "name": "key",
+          "in": "header"
+        }
+      }
+    },
+    "paths": {}
+  },
+  "error": {
+    "message": "The Security Requirement Object must name a declared security scheme",
+    "location": "/security/0/#~1components~1securitySchemes~1apiKey"
+  }
+}
