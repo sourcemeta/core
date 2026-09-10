@@ -28,6 +28,7 @@ add_subdirectory("${PROJECT_SOURCE_DIR}/deps/core")
 
 # Link your targets accordingly
 target_link_libraries(my_executable_or_library PUBLIC sourcemeta::core::json)
+target_link_libraries(my_executable_or_library PUBLIC sourcemeta::core::jsonschema)
 target_link_libraries(my_executable_or_library PUBLIC sourcemeta::core::jsonpointer)
 target_link_libraries(my_executable_or_library PUBLIC sourcemeta::core::jsonl)
 ```
@@ -48,6 +49,7 @@ FetchContent_MakeAvailable(core)
 
 add_executable(my_example ...)
 target_link_libraries(my_example PUBLIC sourcemeta::core::json)
+target_link_libraries(my_example PUBLIC sourcemeta::core::jsonschema)
 target_link_libraries(my_example PUBLIC sourcemeta::core::jsonpointer)
 target_link_libraries(my_example PUBLIC sourcemeta::core::jsonl)
 ```
@@ -61,10 +63,11 @@ package config file:
 find_package(Core REQUIRED)
 
 # This package also supports component-based inclusion
-find_package(Core REQUIRED COMPONENTS json jsonpointer jsonl)
+find_package(Core REQUIRED COMPONENTS json jsonschema jsonpointer jsonl)
 
 # Link your targets accordingly
 target_link_libraries(my_executable_or_library PUBLIC sourcemeta::core::json)
+target_link_libraries(my_executable_or_library PUBLIC sourcemeta::core::jsonschema)
 target_link_libraries(my_executable_or_library PUBLIC sourcemeta::core::jsonpointer)
 target_link_libraries(my_executable_or_library PUBLIC sourcemeta::core::jsonl)
 ```
