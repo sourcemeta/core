@@ -803,11 +803,114 @@ TEST(exponential_alias_expansion_is_bounded) {
     sourcemeta::core::parse_yaml(input);
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
-    EXPECT_EQ(error.line(), 7);
-    EXPECT_EQ(error.column(), 37);
+    EXPECT_EQ(error.line(), 5);
+    EXPECT_EQ(error.column(), 9);
   } catch (...) {
     FAIL();
   }
+}
+
+// The allowance is a ratio to the text that has been read rather than a fixed
+// count, so the very same aliases are turned away in a short document and
+// expanded in full in a long one
+TEST(alias_expansion_allowance_scales_with_the_input) {
+  const std::string aliases{"a: &a [ x, x, x, x, x, x, x, x, x, x ]\n"
+                            "b: &b [ *a, *a, *a, *a, *a, *a, *a, *a, *a, *a ]\n"
+                            "c: &c [ *b, *b, *b, *b, *b, *b, *b, *b, *b, *b ]\n"
+                            "d: &d [ *c, *c, *c, *c, *c, *c, *c, *c, *c, *c ]\n"
+                            "e: [ *d, *d, *d, *d, *d, *d, *d, *d, *d, *d ]\n"};
+
+  try {
+    sourcemeta::core::parse_yaml(aliases);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_EQ(error.line(), 5);
+    EXPECT_EQ(error.column(), 6);
+  } catch (...) {
+    FAIL();
+  }
+
+  const auto result{sourcemeta::core::parse_yaml(
+      "filler: " + std::string(2000, 'x') + "\n" + aliases)};
+
+  const sourcemeta::core::JSON expected_leaf = sourcemeta::core::parse_json(
+      R"JSON([ "x", "x", "x", "x", "x", "x", "x", "x", "x", "x" ])JSON");
+
+  EXPECT_EQ(result.at("e").size(), 10);
+  EXPECT_EQ(result.at("e").at(9).at(9).at(9).at(9), expected_leaf);
+}
+
+// The allowance an alias draws on is fixed by the text ahead of it, so a
+// comment sitting behind it buys nothing even though reading the token that
+// follows the alias skips over that comment first
+TEST(alias_expansion_allowance_ignores_a_comment_behind_the_alias) {
+  const std::string input{"a: &a [ x, x, x, x, x, x, x, x, x, x ]\n"
+                          "b: &b [ *a, *a, *a, *a, *a, *a, *a, *a, *a, *a ]\n"
+                          "c: &c [ *b, *b, *b, *b, *b, *b, *b, *b, *b, *b ]\n"
+                          "d: &d [ *c, *c, *c, *c, *c, *c, *c, *c, *c, *c ]\n"
+                          "e: *d #" +
+                          std::string(2000, 'x') + "\n"};
+
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_EQ(error.line(), 5);
+    EXPECT_EQ(error.column(), 4);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// Text the parser has not reached cannot pay for an expansion it takes no part
+// in, so trailing content leaves the allowance where it stood. This is what
+// keeps a short document from buying room out of the documents that follow it
+// in a stream
+TEST(alias_expansion_allowance_ignores_text_after_the_expansion) {
+  const std::string input{"a: &a [ x, x, x, x, x, x, x, x, x, x ]\n"
+                          "b: &b [ *a, *a, *a, *a, *a, *a, *a, *a, *a, *a ]\n"
+                          "c: &c [ *b, *b, *b, *b, *b, *b, *b, *b, *b, *b ]\n"
+                          "d: &d [ *c, *c, *c, *c, *c, *c, *c, *c, *c, *c ]\n"
+                          "e: [ *d, *d, *d, *d, *d, *d, *d, *d, *d, *d ]\n"
+                          "filler: " +
+                          std::string(2000, 'x') + "\n"};
+
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_EQ(error.line(), 5);
+    EXPECT_EQ(error.column(), 6);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// Reusing an anchor so that the expanded document outgrows the text describing
+// it is ordinary YAML, and stays well within the expansion allowance
+TEST(repeated_alias_expansion_beyond_the_input_length_is_accepted) {
+  const std::string input{"a: &a [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ]\n"
+                          "b: [ *a, *a, *a, *a, *a, *a, *a, *a, *a, *a ]\n"};
+
+  const auto result{sourcemeta::core::parse_yaml(input)};
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "a": [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ],
+    "b": [
+      [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ],
+      [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ],
+      [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ],
+      [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ],
+      [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ],
+      [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ],
+      [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ],
+      [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ],
+      [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ],
+      [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ]
+    ]
+  })JSON");
+
+  EXPECT_EQ(result, expected);
 }
 
 // A !!float tag whose value is outside the 64-bit integer range must not
