@@ -54,19 +54,25 @@ auto make_default_base(const sourcemeta::core::JSON &test)
   return base == nullptr ? sourcemeta::core::JSON::String{} : base->to_string();
 }
 
-// A fixture cannot name the absolute path it will be read from, so it writes
-// `[PATH]` where the directory holding it belongs and the runner fills that in.
-// That makes the runner stand in for whatever retrieved the document, which is
-// what OpenAPI 3.1 leaves to the caller
+// A fixture cannot name the location it will be read from, so it writes
+// `[PATH]` where the directory holding it belongs and the runner fills that in
+// with the URI of that directory. That makes the runner stand in for whatever
+// retrieved the document, which is what OpenAPI 3.1 leaves to the caller.
+//
+// It is a URI rather than a path because a path is not one. A Windows path
+// carries a drive letter and backslashes, neither of which a URI reference
+// admits, so a fixture spelling the scheme itself and having the runner paste a
+// path after it produces something that parses nowhere but on POSIX
 auto expand(const sourcemeta::core::JSON::String &value,
             const std::filesystem::path &directory)
     -> sourcemeta::core::JSON::String {
   constexpr auto PLACEHOLDER{"[PATH]"};
+  const auto replacement{
+      sourcemeta::core::URI::from_path(directory).recompose()};
   sourcemeta::core::JSON::String result{value};
   auto position{result.find(PLACEHOLDER)};
   while (position != sourcemeta::core::JSON::String::npos) {
-    result.replace(position, std::string_view{PLACEHOLDER}.size(),
-                   directory.string());
+    result.replace(position, std::string_view{PLACEHOLDER}.size(), replacement);
     position = result.find(PLACEHOLDER, position);
   }
 
