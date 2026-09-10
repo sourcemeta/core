@@ -239,27 +239,28 @@ public:
 private:
   // Cap how many nodes alias expansion may materialise, so that a document
   // cannot expand into a far larger one on attacker-controlled input. The
-  // allowance grows with how much of the document has been read so far, as an
-  // expansion that outgrows the text calling for it by orders of magnitude is
-  // the shape of the attack, whereas a long document that reuses anchors in
-  // earnest grows in step with its own size. Measuring what has been read
-  // rather than what was handed over keeps text that the parser never reaches,
-  // such as the documents that follow this one in a stream, from paying for an
-  // expansion it takes no part in. The floor keeps short documents workable and
-  // the ceiling keeps long ones from claiming an unbounded allowance
+  // allowance grows with the text that stands ahead of the alias drawing on
+  // it, as an expansion that outgrows the text calling for it by orders of
+  // magnitude is the shape of the attack, whereas a long document that reuses
+  // anchors in earnest grows in step with its own size. Measuring the text
+  // ahead rather than the whole of what was handed over keeps everything the
+  // parser has not reached, from a comment sitting behind the alias to the
+  // documents that follow this one in a stream, from paying for an expansion it
+  // takes no part in. The floor keeps short documents workable and the ceiling
+  // keeps long ones from claiming an unbounded allowance
   static constexpr std::size_t MAXIMUM_EXPANDED_NODES{10000000};
   static constexpr std::size_t MINIMUM_EXPANDED_NODES{10000};
   static constexpr std::size_t EXPANDED_NODES_PER_INPUT_BYTE{100};
 
-  [[nodiscard]] auto expansion_budget() const -> std::size_t {
-    const auto consumed{this->lexer_->position()};
-    if (consumed > MAXIMUM_EXPANDED_NODES / EXPANDED_NODES_PER_INPUT_BYTE)
+  [[nodiscard]] static auto expansion_budget(const std::size_t input_read)
+      -> std::size_t {
+    if (input_read > MAXIMUM_EXPANDED_NODES / EXPANDED_NODES_PER_INPUT_BYTE)
         [[unlikely]] {
       return MAXIMUM_EXPANDED_NODES;
     }
 
     return std::max(MINIMUM_EXPANDED_NODES,
-                    consumed * EXPANDED_NODES_PER_INPUT_BYTE);
+                    input_read * EXPANDED_NODES_PER_INPUT_BYTE);
   }
 
   // Cap the recursion depth of the value parser so that a deeply nested
@@ -751,6 +752,9 @@ private:
                                            property, key_line, key_column);
         break;
       case TokenType::Alias: {
+        // Reading the token that follows the alias skips over any comment
+        // between them, so how far the document had been read is settled here
+        const auto input_read{this->position()};
         auto next{this->next_token()};
         if (next.has_value() && next->type == TokenType::BlockMappingValue) {
           const std::string alias_name{current_token.value};
@@ -774,7 +778,7 @@ private:
                                  "Cannot anchor an alias node"};
           }
           result = this->resolve_alias(current_token, context, index, property,
-                                       key_line, key_column);
+                                       input_read, key_line, key_column);
           if (this->roundtrip_ != nullptr) {
             this->roundtrip_->aliases[this->pointer_stack_] =
                 std::string{current_token.value};
@@ -1634,6 +1638,7 @@ private:
 
   auto resolve_alias(const Token &token, const JSON::ParseContext context,
                      const std::size_t index, const std::string &property,
+                     const std::size_t input_read,
                      const std::uint64_t key_line = 0,
                      const std::uint64_t key_column = 0) -> JSON {
     const std::string anchor_name{token.value};
@@ -1686,7 +1691,7 @@ private:
     }
 
     this->expanded_nodes_ += anchored.node_count;
-    if (this->expanded_nodes_ > this->expansion_budget()) [[unlikely]] {
+    if (this->expanded_nodes_ > expansion_budget(input_read)) [[unlikely]] {
       throw YAMLParseError{token.line, token.column,
                            "Maximum YAML alias expansion exceeded"};
     }

@@ -840,6 +840,28 @@ TEST(alias_expansion_allowance_scales_with_the_input) {
   EXPECT_EQ(result.at("e").at(9).at(9).at(9).at(9), expected_leaf);
 }
 
+// The allowance an alias draws on is fixed by the text ahead of it, so a
+// comment sitting behind it buys nothing even though reading the token that
+// follows the alias skips over that comment first
+TEST(alias_expansion_allowance_ignores_a_comment_behind_the_alias) {
+  const std::string input{"a: &a [ x, x, x, x, x, x, x, x, x, x ]\n"
+                          "b: &b [ *a, *a, *a, *a, *a, *a, *a, *a, *a, *a ]\n"
+                          "c: &c [ *b, *b, *b, *b, *b, *b, *b, *b, *b, *b ]\n"
+                          "d: &d [ *c, *c, *c, *c, *c, *c, *c, *c, *c, *c ]\n"
+                          "e: *d #" +
+                          std::string(2000, 'x') + "\n"};
+
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_EQ(error.line(), 5);
+    EXPECT_EQ(error.column(), 4);
+  } catch (...) {
+    FAIL();
+  }
+}
+
 // Text the parser has not reached cannot pay for an expansion it takes no part
 // in, so trailing content leaves the allowance where it stood. This is what
 // keeps a short document from buying room out of the documents that follow it
