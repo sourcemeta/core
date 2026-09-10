@@ -81,6 +81,11 @@ public:
     return this->bom_length_;
   }
 
+  // The length of the document being tokenised, excluding any byte order mark
+  [[nodiscard]] auto input_size() const noexcept -> std::size_t {
+    return this->input_.size();
+  }
+
   auto next() -> std::optional<Token> {
     if (this->roundtrip_) {
       this->inline_comment_buffer_.reset();

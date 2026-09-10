@@ -803,11 +803,38 @@ TEST(exponential_alias_expansion_is_bounded) {
     sourcemeta::core::parse_yaml(input);
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
-    EXPECT_EQ(error.line(), 7);
-    EXPECT_EQ(error.column(), 37);
+    EXPECT_EQ(error.line(), 5);
+    EXPECT_EQ(error.column(), 17);
   } catch (...) {
     FAIL();
   }
+}
+
+// Reusing an anchor so that the expanded document outgrows the text describing
+// it is ordinary YAML, and stays well within the expansion allowance
+TEST(repeated_alias_expansion_beyond_the_input_length_is_accepted) {
+  const std::string input{"a: &a [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ]\n"
+                          "b: [ *a, *a, *a, *a, *a, *a, *a, *a, *a, *a ]\n"};
+
+  const auto result{sourcemeta::core::parse_yaml(input)};
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "a": [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ],
+    "b": [
+      [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ],
+      [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ],
+      [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ],
+      [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ],
+      [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ],
+      [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ],
+      [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ],
+      [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ],
+      [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ],
+      [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ]
+    ]
+  })JSON");
+
+  EXPECT_EQ(result, expected);
 }
 
 // A !!float tag whose value is outside the 64-bit integer range must not

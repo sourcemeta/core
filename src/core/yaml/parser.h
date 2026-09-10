@@ -9,6 +9,7 @@
 #include <sourcemeta/core/yaml_error.h>
 #include <sourcemeta/core/yaml_roundtrip.h>
 
+#include <algorithm>     // std::max
 #include <cassert>       // assert
 #include <cstdint>       // std::uint64_t, std::int64_t
 #include <optional>      // std::optional
@@ -42,7 +43,8 @@ class Parser {
 public:
   Parser(Lexer *lexer, const JSON::ParseCallback *callback,
          YAMLRoundTrip *roundtrip = nullptr)
-      : lexer_{lexer}, callback_{callback}, roundtrip_{roundtrip} {}
+      : lexer_{lexer}, callback_{callback}, roundtrip_{roundtrip},
+        maximum_expanded_nodes_{expansion_budget(lexer->input_size())} {}
 
   auto parse() -> JSON {
     std::optional<Token> token;
@@ -236,7 +238,27 @@ public:
   }
 
 private:
+  // Cap how many nodes alias expansion may materialise, so that a document
+  // cannot expand into a far larger one on attacker-controlled input. The
+  // allowance grows with the length of the document, as an expansion that
+  // outgrows the text describing it by orders of magnitude is the shape of the
+  // attack, whereas a long document that reuses anchors in earnest grows in
+  // step with its own size. The floor keeps short documents workable and the
+  // ceiling keeps long ones from claiming an unbounded allowance
   static constexpr std::size_t MAXIMUM_EXPANDED_NODES{10000000};
+  static constexpr std::size_t MINIMUM_EXPANDED_NODES{10000};
+  static constexpr std::size_t EXPANDED_NODES_PER_INPUT_BYTE{100};
+
+  [[nodiscard]] static auto expansion_budget(const std::size_t input_size)
+      -> std::size_t {
+    if (input_size > MAXIMUM_EXPANDED_NODES / EXPANDED_NODES_PER_INPUT_BYTE)
+        [[unlikely]] {
+      return MAXIMUM_EXPANDED_NODES;
+    }
+
+    return std::max(MINIMUM_EXPANDED_NODES,
+                    input_size * EXPANDED_NODES_PER_INPUT_BYTE);
+  }
 
   // Cap the recursion depth of the value parser so that a deeply nested
   // document cannot overflow the stack on attacker-controlled input. The bound
@@ -1662,7 +1684,7 @@ private:
     }
 
     this->expanded_nodes_ += anchored.node_count;
-    if (this->expanded_nodes_ > MAXIMUM_EXPANDED_NODES) [[unlikely]] {
+    if (this->expanded_nodes_ > this->maximum_expanded_nodes_) [[unlikely]] {
       throw YAMLParseError{token.line, token.column,
                            "Maximum YAML alias expansion exceeded"};
     }
@@ -2254,6 +2276,7 @@ private:
   bool recording_anchor_{false};
   bool indent_width_detected_{false};
   std::size_t expanded_nodes_{0};
+  std::size_t maximum_expanded_nodes_;
   std::vector<CallbackRecord> current_anchor_callbacks_;
   std::deque<Token> pending_tokens_;
   std::optional<std::size_t> pending_token_position_;
