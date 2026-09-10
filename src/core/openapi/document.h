@@ -187,10 +187,29 @@ inline auto openapi_follow_reference(const JSON::StringView reference,
       OpenAPIReference{.original = JSON::String{reference},
                        .destination = target.value().recompose()});
 
+  // Section 4.8.9, of a Path Item Object's `$ref`: "the referenced structure
+  // MUST be in the form of a Path Item Object", and Section 4.8.20, of a Link
+  // Object's `operationRef`: it "MUST point to an Operation Object". A
+  // document that declares a root `openapi` field is an OpenAPI Description
+  // and neither of those, so a reference from one of those two positions that
+  // names such a document whole has landed on the wrong thing. Section 3's
+  // detection settles how a document is read, which is a separate question
+  // from whether a reference was allowed to point at it. A Reference Object is
+  // held to no such requirement, so nothing here applies to one
+  const auto demands_its_own_kind{expected == OpenAPIObjectKind::PathItem ||
+                                  expected == OpenAPIObjectKind::Operation};
+
   // A reference that keeps the document it was written in needs no resolver,
   // however it was spelled. Both a bare fragment and the document's own URI
   // written out in full land here
   if (!identifier.has_value() || identifier.value() == walk.base) {
+    if (demands_its_own_kind && !names_a_fragment && walk.document != nullptr &&
+        openapi_is_document(*walk.document)) {
+      throw OpenAPIError{walk.base, origin,
+                         "This reference must name a document that holds only "
+                         "what the reference expects"};
+    }
+
     openapi_follow_internal_reference(target.value(), names_a_fragment,
                                       expected, walk);
     return;
@@ -207,6 +226,14 @@ inline auto openapi_follow_reference(const JSON::StringView reference,
   // resolver is asked for it, so that a reference coming back round to one we
   // hold is not put to a resolver that has never heard of it. Which of the two
   // keys it landed under is not known yet, so both are consulted
+  if (demands_its_own_kind && !names_a_fragment &&
+      walk.visited.contains(
+          {identifier.value(), OpenAPIObjectKind::Document})) {
+    throw OpenAPIError{walk.base, origin,
+                       "This reference must name a document that holds only "
+                       "what the reference expects"};
+  }
+
   if (walk.visited.contains(
           {identifier.value(), OpenAPIObjectKind::Document}) ||
       walk.visited.contains({identifier.value(), expected})) {
@@ -231,6 +258,13 @@ inline auto openapi_follow_reference(const JSON::StringView reference,
   // the expected type stands in, which Section 3 also allows
   const auto document_kind{
       openapi_is_document(contents) ? OpenAPIObjectKind::Document : expected};
+
+  if (demands_its_own_kind && !names_a_fragment &&
+      document_kind == OpenAPIObjectKind::Document) {
+    throw OpenAPIError{walk.base, origin,
+                       "This reference must name a document that holds only "
+                       "what the reference expects"};
+  }
 
   walk.visited.insert({identifier.value(), document_kind});
 

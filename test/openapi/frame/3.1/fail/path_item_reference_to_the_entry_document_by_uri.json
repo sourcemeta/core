@@ -1,0 +1,20 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/foo": {
+        "$ref": "https://example.com/openapi.json"
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "error": {
+    "message": "This reference must name a document that holds only what the reference expects",
+    "location": "/paths/~1foo/$ref",
+    "base": "https://example.com/openapi.json"
+  }
+}

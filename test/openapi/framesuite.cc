@@ -312,9 +312,12 @@ auto run_pass_test(const sourcemeta::core::JSON &test) -> void {
 
   const sourcemeta::core::OpenAPIFrame frame{test.at("document"), resolver,
                                              default_base};
+  // The invariants come first because a failed expectation aborts the test. A
+  // frame that contradicts itself is a deeper failure than one that merely
+  // differs from what a fixture recorded, so it is the one worth reporting
   const auto result{frame.to_json()};
-  EXPECT_EQ(result, test.at("frame"));
   check_frame_invariants(result, test);
+  EXPECT_EQ(result, test.at("frame"));
 }
 
 auto run_fail_test(const sourcemeta::core::JSON &test) -> void {
