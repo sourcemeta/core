@@ -91,6 +91,46 @@ auto digest_to_hex(const std::array<std::uint8_t, 32> &digest) -> std::string {
       {reinterpret_cast<const char *>(digest.data()), digest.size()});
 }
 
+// The Monte Carlo vectors chain a thousand digests together, so every link
+// takes the shortest route to raw digest bytes that its mechanism offers
+// rather than paying for a hexadecimal round trip along the way
+using MonteCarloDigestFunction = auto (*)(std::span<const std::string_view>)
+    -> std::string;
+
+auto join(const std::span<const std::string_view> parts) -> std::string {
+  std::string result;
+  for (const auto part : parts) {
+    result.append(part);
+  }
+
+  return result;
+}
+
+auto to_bytes(const std::span<const std::uint8_t> digest) -> std::string {
+  return {reinterpret_cast<const char *>(digest.data()), digest.size()};
+}
+
+auto sha1_monte_carlo_digest(const std::span<const std::string_view> parts)
+    -> std::string {
+  return sourcemeta::core::hex_to_bytes(sourcemeta::core::sha1(join(parts)))
+      .value();
+}
+
+auto sha256_monte_carlo_digest(const std::span<const std::string_view> parts)
+    -> std::string {
+  return to_bytes(sourcemeta::core::sha256_digest(parts));
+}
+
+auto sha384_monte_carlo_digest(const std::span<const std::string_view> parts)
+    -> std::string {
+  return to_bytes(sourcemeta::core::sha384_digest(join(parts)));
+}
+
+auto sha512_monte_carlo_digest(const std::span<const std::string_view> parts)
+    -> std::string {
+  return to_bytes(sourcemeta::core::sha512_digest(join(parts)));
+}
+
 auto split_in_halves(const std::string_view message)
     -> std::array<std::string_view, 2> {
   const auto half{message.size() / 2};
@@ -237,9 +277,7 @@ auto register_sha_msg_tests(const std::filesystem::path &file_path,
 
 auto register_sha_monte_tests(const std::filesystem::path &file_path,
                               const std::string &suite_name,
-                              const DigestFunction digest,
-                              const MultiPartDigestFunction multi_part_digest)
-    -> void {
+                              const MonteCarloDigestFunction digest) -> void {
   std::string seed;
   std::string current_count;
 
@@ -273,18 +311,8 @@ auto register_sha_monte_tests(const std::filesystem::path &file_path,
         auto md_1{md_0};
         auto md_2{md_0};
         for (std::uint64_t iteration{3}; iteration <= 1002; ++iteration) {
-          std::string next;
-          if (multi_part_digest == nullptr) {
-            std::string message{md_0};
-            message.append(md_1).append(md_2);
-            next = sourcemeta::core::hex_to_bytes(digest(message)).value();
-          } else {
-            const std::array<std::string_view, 3> parts{{md_0, md_1, md_2}};
-            const auto raw_digest{multi_part_digest(parts)};
-            next.assign(reinterpret_cast<const char *>(raw_digest.data()),
-                        raw_digest.size());
-          }
-
+          const std::array<std::string_view, 3> parts{{md_0, md_1, md_2}};
+          auto next{digest(parts)};
           md_0 = std::move(md_1);
           md_1 = std::move(md_2);
           md_2 = std::move(next);
@@ -301,7 +329,8 @@ auto register_sha_monte_tests(const std::filesystem::path &file_path,
 
 auto register_sha_tests(const std::filesystem::path &directory,
                         const std::string &name, const DigestFunction digest,
-                        const MultiPartDigestFunction multi_part_digest)
+                        const MultiPartDigestFunction multi_part_digest,
+                        const MonteCarloDigestFunction monte_carlo_digest)
     -> void {
   register_sha_msg_tests(directory / (name + "ShortMsg.rsp"),
                          "PyCA_Cryptography_" + name + "_ShortMsg", digest,
@@ -310,8 +339,8 @@ auto register_sha_tests(const std::filesystem::path &directory,
                          "PyCA_Cryptography_" + name + "_LongMsg", digest,
                          multi_part_digest);
   register_sha_monte_tests(directory / (name + "Monte.rsp"),
-                           "PyCA_Cryptography_" + name + "_Monte", digest,
-                           multi_part_digest);
+                           "PyCA_Cryptography_" + name + "_Monte",
+                           monte_carlo_digest);
 }
 
 auto register_hmac_tests(const std::filesystem::path &file_path,
@@ -822,17 +851,18 @@ auto main(int argc, char **argv) -> int {
 
   register_sha_tests(hashes_path / "SHA1", "SHA1",
                      static_cast<DigestFunction>(sourcemeta::core::sha1),
-                     nullptr);
+                     nullptr, sha1_monte_carlo_digest);
   register_sha_tests(
       hashes_path / "SHA2", "SHA256",
       static_cast<DigestFunction>(sourcemeta::core::sha256),
-      static_cast<MultiPartDigestFunction>(sourcemeta::core::sha256_digest));
+      static_cast<MultiPartDigestFunction>(sourcemeta::core::sha256_digest),
+      sha256_monte_carlo_digest);
   register_sha_tests(hashes_path / "SHA2", "SHA384",
                      static_cast<DigestFunction>(sourcemeta::core::sha384),
-                     nullptr);
+                     nullptr, sha384_monte_carlo_digest);
   register_sha_tests(hashes_path / "SHA2", "SHA512",
                      static_cast<DigestFunction>(sourcemeta::core::sha512),
-                     nullptr);
+                     nullptr, sha512_monte_carlo_digest);
 
   register_hmac_tests(
       suite_path / "HMAC" / "rfc-4231-sha256.txt",
