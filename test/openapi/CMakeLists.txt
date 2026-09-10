@@ -23,7 +23,7 @@ target_link_libraries(sourcemeta_core_openapi_frame_suite_unit
 sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME openapi_suite
   SOURCES oaisuite.cc)
 target_compile_definitions(sourcemeta_core_openapi_suite_unit
-  PRIVATE OPENAPI_SUITE_PATH="${PROJECT_SOURCE_DIR}/vendor/openapi-test-suite/tests/schema")
+  PRIVATE OPENAPI_SUITE_PATH="${PROJECT_SOURCE_DIR}/vendor/openapi-test-suite-3-1/tests/schema")
 target_link_libraries(sourcemeta_core_openapi_suite_unit
   PRIVATE sourcemeta::core::openapi)
 target_link_libraries(sourcemeta_core_openapi_suite_unit

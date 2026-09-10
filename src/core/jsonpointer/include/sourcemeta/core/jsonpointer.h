@@ -619,26 +619,6 @@ SOURCEMETA_CORE_JSONPOINTER_EXPORT
 auto to_uri(const Pointer &pointer, const URI &base) -> URI;
 
 /// @ingroup jsonpointer
-///
-/// Stringify the input JSON Pointer into a properly escaped URI fragment
-/// alongside a base URI, which may be the empty URI reference, in which case
-/// the fragment stands on its own. For example:
-///
-/// ```cpp
-/// #include <sourcemeta/core/uri.h>
-/// #include <sourcemeta/core/jsonpointer.h>
-///
-/// #include <assert>
-///
-/// const sourcemeta::core::Pointer pointer{"foo"};
-/// const sourcemeta::core::URI fragment{
-///   sourcemeta::core::to_uri(pointer, "")};
-/// assert(fragment.recompose() == "#/foo");
-/// ```
-SOURCEMETA_CORE_JSONPOINTER_EXPORT
-auto to_uri(const Pointer &pointer, std::string_view base) -> URI;
-
-/// @ingroup jsonpointer
 /// Stringify the input JSON Pointer into a properly escaped URI fragment.
 SOURCEMETA_CORE_JSONPOINTER_EXPORT
 auto to_uri(const WeakPointer &pointer) -> URI;

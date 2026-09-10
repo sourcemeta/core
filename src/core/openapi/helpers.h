@@ -386,7 +386,13 @@ inline auto openapi_location_uri(const JSON::String &base,
     return base;
   }
 
-  return to_uri(pointer, base).recompose();
+  // RFC 3986 Section 5.2.2 resolves a fragment-only reference by keeping every
+  // other component of the base as it stands, and a base here carries no
+  // fragment of its own, so appending is that resolution without parsing the
+  // base again for every Object recorded
+  JSON::String result{base};
+  result.append(to_uri(pointer).recompose());
+  return result;
 }
 
 // Every Object gets one of these. The nearest recorded ancestor is the parent,

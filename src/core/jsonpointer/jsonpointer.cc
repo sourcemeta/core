@@ -448,14 +448,6 @@ auto to_uri(const Pointer &pointer, const URI &base) -> URI {
   return to_uri(pointer).resolve_from(base).canonicalize();
 }
 
-auto to_uri(const Pointer &pointer, const std::string_view base) -> URI {
-  if (base.empty()) {
-    return to_uri(pointer);
-  }
-
-  return to_uri(pointer).resolve_from(URI{base}).canonicalize();
-}
-
 auto to_uri(const WeakPointer &pointer) -> URI {
   std::basic_ostringstream<JSON::Char, JSON::CharTraits,
                            std::allocator<JSON::Char>>

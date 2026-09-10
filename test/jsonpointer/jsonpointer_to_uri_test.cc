@@ -333,29 +333,16 @@ TEST(with_at_sign) {
   EXPECT_EQ(fragment.recompose(), "#/@foo/bar");
 }
 
-TEST(with_string_base) {
-  const sourcemeta::core::Pointer pointer{"foo", "bar"};
-  const sourcemeta::core::URI fragment{
-      sourcemeta::core::to_uri(pointer, "https://www.example.com")};
-  EXPECT_EQ(fragment.recompose(), "https://www.example.com#/foo/bar");
-}
-
-TEST(with_empty_string_base) {
-  const sourcemeta::core::Pointer pointer{"foo", "bar"};
-  const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer, "")};
-  EXPECT_EQ(fragment.recompose(), "#/foo/bar");
-}
-
-TEST(with_string_base_and_braces) {
+TEST(with_braces) {
   const sourcemeta::core::Pointer pointer{"/pets/{petId}"};
-  const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(
-      pointer, "https://www.example.com/openapi.json")};
+  const sourcemeta::core::URI base{"https://www.example.com/openapi.json"};
+  const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer, base)};
   EXPECT_EQ(fragment.recompose(),
             "https://www.example.com/openapi.json#/~1pets~1%7BpetId%7D");
 }
 
-TEST(with_empty_string_base_and_a_hash) {
+TEST(with_a_hash) {
   const sourcemeta::core::Pointer pointer{"{$request.body#/url}"};
-  const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer, "")};
+  const auto fragment{sourcemeta::core::to_uri(pointer)};
   EXPECT_EQ(fragment.recompose(), "#/%7B$request.body%23~1url%7D");
 }
