@@ -94,6 +94,48 @@ auto check_operation_id_links(const sourcemeta::core::OpenAPIWalk &walk)
   }
 }
 
+auto optional_string(
+    const std::optional<sourcemeta::core::JSON::StringView> &value)
+    -> sourcemeta::core::JSON {
+  return value.has_value() ? sourcemeta::core::JSON{value.value()}
+                           : sourcemeta::core::JSON{nullptr};
+}
+
+auto info_json(const sourcemeta::core::OpenAPIInfo &info)
+    -> sourcemeta::core::JSON {
+  auto result{sourcemeta::core::JSON::make_object()};
+  result.assign_assume_new("title", sourcemeta::core::JSON{info.title});
+  result.assign_assume_new("version", sourcemeta::core::JSON{info.version});
+  result.assign_assume_new("summary", optional_string(info.summary));
+  result.assign_assume_new("description", optional_string(info.description));
+  result.assign_assume_new("termsOfService",
+                           optional_string(info.terms_of_service));
+
+  if (info.contact.has_value()) {
+    auto contact{sourcemeta::core::JSON::make_object()};
+    contact.assign_assume_new("name", optional_string(info.contact->name));
+    contact.assign_assume_new("url", optional_string(info.contact->url));
+    contact.assign_assume_new("email", optional_string(info.contact->email));
+    result.assign_assume_new("contact", std::move(contact));
+  } else {
+    result.assign_assume_new("contact", sourcemeta::core::JSON{nullptr});
+  }
+
+  if (info.license.has_value()) {
+    auto license{sourcemeta::core::JSON::make_object()};
+    license.assign_assume_new("name",
+                              sourcemeta::core::JSON{info.license->name});
+    license.assign_assume_new("identifier",
+                              optional_string(info.license->identifier));
+    license.assign_assume_new("url", optional_string(info.license->url));
+    result.assign_assume_new("license", std::move(license));
+  } else {
+    result.assign_assume_new("license", sourcemeta::core::JSON{nullptr});
+  }
+
+  return result;
+}
+
 auto version_string(const sourcemeta::core::OpenAPIVersion version)
     -> sourcemeta::core::JSON::StringView {
   switch (version) {
@@ -152,30 +194,16 @@ auto canonical_base(const std::string_view input)
 // sibling field means undefined, so the definition is what the reference leads
 // to rather than anything written alongside it
 auto follow_aliases(const sourcemeta::core::OpenAPIWalk &walk,
-                    sourcemeta::core::JSON::String position)
+                    const sourcemeta::core::JSON::String &position)
     -> sourcemeta::core::JSON::String {
-  std::set<sourcemeta::core::JSON::String> seen;
-  while (seen.insert(position).second) {
-    const auto alias{walk.references.find(position)};
-    if (alias == walk.references.cend()) {
-      break;
-    }
-
-    position = alias->second.destination;
-  }
-
-  return position;
+  return sourcemeta::core::openapi_resolve_position(walk, position);
 }
 
-// What a parameter position is called and where it goes. OpenAPI Specification
-// 3.1.1, Section 4.8.9 identifies a parameter "by a combination of a name and
-// location", and a Reference Object names neither until it is followed
 auto identity_of(const sourcemeta::core::OpenAPIWalk &walk,
                  const sourcemeta::core::JSON::String &position)
     -> const std::pair<sourcemeta::core::JSON::String,
                        sourcemeta::core::JSON::String> * {
-  const auto match{walk.parameters.find(follow_aliases(walk, position))};
-  return match == walk.parameters.cend() ? nullptr : &match->second;
+  return sourcemeta::core::openapi_parameter_identity(walk, position);
 }
 
 // The parameters in force where an operation sits. Section 4.8.9 has the ones
@@ -285,7 +313,16 @@ auto check_path_templates(
   std::set<sourcemeta::core::JSON::StringView> named;
   for (const auto &position : parameters) {
     const auto *identity{identity_of(walk, position)};
-    if (identity != nullptr && identity->second == "path") {
+
+    // A reference the walk could not follow may be the very parameter a
+    // template expression is looking for, and a description we do not hold in
+    // full is one we cannot call incomplete. This is the same restraint
+    // Section 8.7.1 applies to a Link Object's operation identifier
+    if (identity == nullptr) {
+      return;
+    }
+
+    if (identity->second == "path") {
       named.insert(identity->first);
     }
   }
@@ -499,6 +536,7 @@ auto OpenAPIFrame::to_json() const -> JSON {
   result.assign_assume_new("version", JSON{version_string(this->version())});
   result.assign_assume_new("base", JSON{this->base()});
   result.assign_assume_new("standalone", JSON{this->standalone()});
+  result.assign_assume_new("info", info_json(this->info()));
 
   auto locations{JSON::make_object()};
   for (const auto &location : this->internal_->locations) {

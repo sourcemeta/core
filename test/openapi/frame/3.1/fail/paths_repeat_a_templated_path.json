@@ -11,6 +11,7 @@
     }
   },
   "error": {
-    "message": "The Paths Object keys must not repeat a templated path"
+    "message": "The Paths Object keys must not repeat a templated path",
+    "location": "/paths/~1pets~1{name}"
   }
 }

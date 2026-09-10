@@ -251,7 +251,9 @@ inline auto openapi_check_parameters_entry(const JSON &value,
 // OpenAPI Specification 3.1.1, Sections 4.8.9 and 4.8.10: "The list MUST NOT
 // include duplicated parameters. A unique parameter is defined by a
 // combination of a name and location". A Reference Object names neither until
-// it is resolved, so only the parameters written out in place are compared
+// it is followed, and following is eager, so what it leads to is compared
+// alongside the parameters written out in place. One that could not be
+// followed names nothing and is left out of the comparison
 inline auto openapi_check_parameters(const JSON &value, const Pointer &base,
                                      const char *type_message,
                                      const char *duplicate_message,
@@ -268,6 +270,12 @@ inline auto openapi_check_parameters(const JSON &value, const Pointer &base,
     if (openapi_is_reference(parameter)) {
       openapi_check_reference(parameter, location, OpenAPIObjectKind::Parameter,
                               walk);
+      const auto *identity{openapi_parameter_identity(
+          walk, openapi_location_uri(walk.base, location))};
+      if (identity != nullptr &&
+          !seen.insert({identity->first, identity->second}).second) {
+        throw OpenAPIError{location, duplicate_message};
+      }
     } else if (!seen.insert(openapi_check_parameter(parameter, location, walk))
                     .second) {
       throw OpenAPIError{location, duplicate_message};

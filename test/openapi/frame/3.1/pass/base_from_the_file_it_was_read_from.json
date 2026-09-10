@@ -11,6 +11,15 @@
     "version": "3.1",
     "base": "[PATH]/base_from_the_file_it_was_read_from.json",
     "standalone": true,
+    "info": {
+      "title": "Example",
+      "version": "1.0.0",
+      "summary": null,
+      "description": null,
+      "termsOfService": null,
+      "contact": null,
+      "license": null
+    },
     "locations": {
       "[PATH]/base_from_the_file_it_was_read_from.json": {
         "type": "openapi",

@@ -285,6 +285,17 @@ inline auto openapi_follow_reference(const JSON::StringView reference,
   std::swap(walk.document, document);
   std::swap(walk.entry, entry);
   openapi_check_object(document_kind, contents, EMPTY_POINTER, walk);
+
+  // A reference into a document that turned out to be a whole Description has
+  // had that Description read, which is what Section 3 asks for, but nothing
+  // has yet asked whether the fragment lands on the Object the reference
+  // expected. That is the same question an internal reference answers, so it
+  // is answered the same way, now that the document being read is the one the
+  // fragment belongs to
+  if (names_a_fragment && document_kind == OpenAPIObjectKind::Document) {
+    openapi_follow_internal_reference(target.value(), true, expected, walk);
+  }
+
   std::swap(walk.base, base);
   std::swap(walk.document, document);
   std::swap(walk.entry, entry);
@@ -354,8 +365,12 @@ inline auto openapi_check_document(const JSON &document, OpenAPIWalk &walk)
           "The OpenAPI Description must declare paths, components or webhooks"};
     }
 
+    // What the frame reports is what the entry document says, and an entry
+    // document whose title and version are both the empty string is a legal
+    // one, so which document this is has to be asked rather than inferred from
+    // the values already held
     const auto info{openapi_parse_info(document, walk)};
-    if (walk.info.title.empty() && walk.info.version.empty()) {
+    if (walk.entry) {
       walk.info = info;
     }
 

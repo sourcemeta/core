@@ -149,9 +149,10 @@ using OpenAPIResolver = std::function<OpenAPIResolverResult(std::string_view)>;
 class SOURCEMETA_CORE_OPENAPI_EXPORT OpenAPIFrame {
 public:
   /// Frame an OpenAPI Description from a given entry document. The entry
-  /// document and the given base must outlive the frame, as the metadata it
-  /// reports borrows from them. A document that a reference brought in does
-  /// not, as the frame keeps whatever the resolver handed it.
+  /// document must outlive the frame, as the metadata it reports borrows from
+  /// it. The given base need not, as the frame canonicalises it into a string
+  /// of its own, and neither must a document that a reference brought in, as
+  /// the frame keeps whatever the resolver handed it.
   ///
   /// The base is the retrieval URI of the entry document. OpenAPI 3.1 offers
   /// a document no way of declaring an identity of its own, so this is the

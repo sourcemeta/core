@@ -33,9 +33,6 @@ constexpr std::array<JSON::StringView, 4> OPENAPI_MEDIA_TYPE_FIELDS{
 // A Header Object only admits the serialisation fields alongside a `schema`,
 // which is how the meta-schema reads it, holding them behind a dependent
 // schema that a `content` form never reaches
-constexpr std::array<JSON::StringView, 3> OPENAPI_HEADER_FIELDS{
-    {"description"sv, "required"sv, "deprecated"sv}};
-
 constexpr std::array<JSON::StringView, 8> OPENAPI_HEADER_SCHEMA_FIELDS{
     {"description"sv, "required"sv, "deprecated"sv, "schema"sv, "style"sv,
      "explode"sv, "example"sv, "examples"sv}};

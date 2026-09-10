@@ -27,6 +27,23 @@
     "version": "3.1",
     "base": "",
     "standalone": true,
+    "info": {
+      "title": "Example Pet Store App",
+      "version": "1.0.1",
+      "summary": "A pet store manager.",
+      "description": "This is an example server for a pet store.",
+      "termsOfService": "https://example.com/terms/",
+      "contact": {
+        "name": "API Support",
+        "url": "https://www.example.com/support",
+        "email": "support@example.com"
+      },
+      "license": {
+        "name": "Apache 2.0",
+        "identifier": null,
+        "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
+      }
+    },
     "locations": {
       "": {
         "type": "openapi",

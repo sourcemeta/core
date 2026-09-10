@@ -297,14 +297,19 @@ struct OpenAPIWalk {
   /// Objects that hold more of them, all keyed by where they sit. The
   /// projection that turns these into operations runs once the walk is over,
   /// as a Path Item may be reached before the endpoint that exposes it
+  ///
   /// What every Parameter Object read is called and where it goes, keyed by
   /// where it sits. Section 4.8.9 identifies a parameter "by a combination of a
   /// name and location", which is what tells an override from an addition. It
   /// owns its strings, as the document it was read from may be gone by the
   /// time an operation is projected
   std::map<JSON::String, std::pair<JSON::String, JSON::String>> parameters;
+  /// Every Path Item Object read, keyed by where it sits
   std::map<JSON::String, OpenAPIPathItemRecord> path_items;
+  /// Every Operation Object read, keyed by where it sits
   std::map<JSON::String, OpenAPIOperationRecord> operation_records;
+  /// Every Callback Object read, keyed by where it sits, holding the
+  /// expression each of its entries is named by and the Path Item it carries
   std::map<JSON::String, std::vector<std::pair<JSON::String, JSON::String>>>
       callbacks;
   /// What the entry document exposes, in the order it writes it
@@ -335,6 +340,18 @@ struct OpenAPIWalk {
   OpenAPIInfo info;
 };
 
+// Where a position that stands in for another leads, following as far as the
+// chain goes. A Reference Object may name another one, so this is a walk
+// rather than a lookup, and a position that stands in for nothing is itself
+inline auto openapi_resolve_position(const OpenAPIWalk &walk,
+                                     JSON::String position) -> JSON::String;
+
+// What the Parameter Object at a position is called and where it goes, or
+// nothing when a reference the walk never followed stands in the way
+inline auto openapi_parameter_identity(const OpenAPIWalk &walk,
+                                       const JSON::String &position)
+    -> const std::pair<JSON::String, JSON::String> *;
+
 // Follow a reference that leaves the document being read. Defined alongside
 // the document-level checks, as those are what a referenced document goes
 // through, and declared here because a Reference Object is the thing that
@@ -343,6 +360,29 @@ inline auto openapi_follow_reference(JSON::StringView reference,
                                      const Pointer &origin,
                                      OpenAPIObjectKind expected,
                                      OpenAPIWalk &walk) -> void;
+
+inline auto openapi_resolve_position(const OpenAPIWalk &walk,
+                                     JSON::String position) -> JSON::String {
+  std::set<JSON::String> seen;
+  while (seen.insert(position).second) {
+    const auto alias{walk.references.find(position)};
+    if (alias == walk.references.cend()) {
+      break;
+    }
+
+    position = alias->second.destination;
+  }
+
+  return position;
+}
+
+inline auto openapi_parameter_identity(const OpenAPIWalk &walk,
+                                       const JSON::String &position)
+    -> const std::pair<JSON::String, JSON::String> * {
+  const auto match{
+      walk.parameters.find(openapi_resolve_position(walk, position))};
+  return match == walk.parameters.cend() ? nullptr : &match->second;
+}
 
 inline auto openapi_child(const Pointer &base, const JSON::StringView field)
     -> Pointer {

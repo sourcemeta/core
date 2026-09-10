@@ -16,6 +16,19 @@
     "version": "3.1",
     "base": "",
     "standalone": true,
+    "info": {
+      "title": "API",
+      "version": "1.0.0",
+      "summary": "My lovely API",
+      "description": null,
+      "termsOfService": null,
+      "contact": null,
+      "license": {
+        "name": "Apache",
+        "identifier": "Apache-2.0",
+        "url": null
+      }
+    },
     "locations": {
       "": {
         "type": "openapi",

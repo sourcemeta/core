@@ -64,14 +64,12 @@ inline auto openapi_check_link(const JSON &value, const Pointer &base,
   }
 
   // OpenAPI Specification 3.1.1, Section 4.8.20: "parameters | Map[string,
-  // Any | {expression}]". A runtime expression is written as a string, and
-  // this is where the meta-schema stops
+  // Any | {expression}]". Any is any JSON value, so a constant of any type is
+  // as legal as a runtime expression and only the map itself is checked
   const auto *parameters{value.try_at("parameters", OPENAPI_HASH_PARAMETERS)};
   if (parameters != nullptr) {
-    openapi_check_map_of_strings(
-        *parameters, openapi_child(base, "parameters"sv),
-        "The Link Object parameters must be an object",
-        "The Link Object parameters must hold strings");
+    openapi_expect_object(*parameters, openapi_child(base, "parameters"sv),
+                          "The Link Object parameters must be an object");
   }
 
   const auto *description{

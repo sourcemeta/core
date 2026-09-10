@@ -17,6 +17,7 @@
     }
   },
   "error": {
-    "message": "The Operation Object identifiers must be unique"
+    "message": "The Operation Object identifiers must be unique",
+    "location": "/paths/~1pets/post/operationId"
   }
 }

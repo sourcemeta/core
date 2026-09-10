@@ -6,6 +6,8 @@
 #include "helpers.h"
 #include "reference.h"
 
+#include <sourcemeta/core/text.h>
+
 #include <array>       // std::array
 #include <cstddef>     // std::size_t
 #include <string_view> // std::string_view
@@ -28,8 +30,15 @@ constexpr auto OPENAPI_HASH_REFRESH_URL{JSON::Object::hash("refreshUrl"sv)};
 
 constexpr std::array<JSON::StringView, 4> OPENAPI_SECURITY_SCHEME_APIKEY_FIELDS{
     {"type"sv, "description"sv, "name"sv, "in"sv}};
-constexpr std::array<JSON::StringView, 4> OPENAPI_SECURITY_SCHEME_HTTP_FIELDS{
-    {"type"sv, "description"sv, "scheme"sv, "bearerFormat"sv}};
+// OpenAPI Specification 3.1.1, Section 4.8.27 scopes `bearerFormat` to `http
+// ("bearer")` in its "Applies To" column, so an HTTP scheme that is not bearer
+// does not define it. The published meta-schema draws the same line, admitting
+// the field only under a `scheme` matching `^[Bb][Ee][Aa][Rr][Ee][Rr]$`
+constexpr std::array<JSON::StringView, 3> OPENAPI_SECURITY_SCHEME_HTTP_FIELDS{
+    {"type"sv, "description"sv, "scheme"sv}};
+constexpr std::array<JSON::StringView, 4>
+    OPENAPI_SECURITY_SCHEME_HTTP_BEARER_FIELDS{
+        {"type"sv, "description"sv, "scheme"sv, "bearerFormat"sv}};
 constexpr std::array<JSON::StringView, 3> OPENAPI_SECURITY_SCHEME_OAUTH2_FIELDS{
     {"type"sv, "description"sv, "flows"sv}};
 constexpr std::array<JSON::StringView, 3> OPENAPI_SECURITY_SCHEME_OIDC_FIELDS{
@@ -55,6 +64,24 @@ inline auto openapi_check_oauth_flow(const JSON &value, const Pointer &base,
   openapi_reject_unknown_fields(
       value, OPENAPI_OAUTH_FLOW_FIELDS, base,
       "The OAuth Flow Object does not define this field");
+
+  // Section 4.8.29 scopes each URL to the flows it names in its "Applies To"
+  // column, and it names exactly the flows that require it. So a flow does not
+  // define the URL it does not require, which the published meta-schema draws
+  // the same way, giving each flow its own property set
+  if (!needs_authorization_url &&
+      value.try_at("authorizationUrl", OPENAPI_HASH_AUTHORIZATION_URL) !=
+          nullptr) {
+    throw OpenAPIError{
+        openapi_child(base, "authorizationUrl"sv),
+        "This OAuth Flow Object does not define an authorization URI"};
+  }
+
+  if (!needs_token_url &&
+      value.try_at("tokenUrl", OPENAPI_HASH_TOKEN_URL) != nullptr) {
+    throw OpenAPIError{openapi_child(base, "tokenUrl"sv),
+                       "This OAuth Flow Object does not define a token URI"};
+  }
 
   const auto *authorization{
       value.try_at("authorizationUrl", OPENAPI_HASH_AUTHORIZATION_URL)};
@@ -206,11 +233,21 @@ inline auto openapi_check_security_scheme(const JSON &value,
   }
 
   if (scheme_type == "http"sv) {
-    openapi_reject_unknown_fields(
-        value, OPENAPI_SECURITY_SCHEME_HTTP_FIELDS, base,
-        "The Security Scheme Object does not define this field");
-
+    // RFC 7235 Section 2.1 makes an authentication scheme name
+    // case-insensitive, which is why the meta-schema spells bearer as a
+    // pattern rather than a constant
     const auto *scheme{value.try_at("scheme", OPENAPI_HASH_SCHEME)};
+    if (scheme != nullptr && scheme->is_string() &&
+        equals_ignore_case(scheme->to_string(), "bearer"sv)) {
+      openapi_reject_unknown_fields(
+          value, OPENAPI_SECURITY_SCHEME_HTTP_BEARER_FIELDS, base,
+          "The Security Scheme Object does not define this field");
+    } else {
+      openapi_reject_unknown_fields(
+          value, OPENAPI_SECURITY_SCHEME_HTTP_FIELDS, base,
+          "The Security Scheme Object does not define this field");
+    }
+
     if (scheme == nullptr) {
       throw OpenAPIError{
           base, "An http Security Scheme Object must declare a scheme"};

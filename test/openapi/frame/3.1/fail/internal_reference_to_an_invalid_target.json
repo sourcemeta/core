@@ -19,6 +19,7 @@
   "defaultBase": "https://example.com/openapi.json",
   "error": {
     "message": "The Response Object description must be a string",
-    "base": "https://example.com/openapi.json"
+    "base": "https://example.com/openapi.json",
+    "location": "/components/responses/Broken/description"
   }
 }

@@ -257,8 +257,9 @@ auto check_frame_invariants(const sourcemeta::core::JSON &frame,
 
     // An Operation Object only ever sits directly inside a Path Item Object
     const auto &container{locations.at(origin).at("parent")};
-    EXPECT_TRUE(container.is_string());
-    if (container.is_string()) {
+    EXPECT_TRUE(container.is_string() &&
+                locations.defines(container.to_string()));
+    if (container.is_string() && locations.defines(container.to_string())) {
       EXPECT_EQ(locations.at(container.to_string()).at("type").to_string(),
                 "path-item");
     }

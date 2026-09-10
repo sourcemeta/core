@@ -25,6 +25,19 @@
     "version": "3.1",
     "base": "",
     "standalone": true,
+    "info": {
+      "title": "My API",
+      "version": "1.0.0",
+      "summary": "Testing jsonSchemaDialect",
+      "description": null,
+      "termsOfService": null,
+      "contact": null,
+      "license": {
+        "name": "Apache 2.0",
+        "identifier": "Apache-2.0",
+        "url": null
+      }
+    },
     "locations": {
       "": {
         "type": "openapi",

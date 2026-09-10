@@ -12,6 +12,15 @@
     "version": "3.1",
     "base": "",
     "standalone": true,
+    "info": {
+      "title": "API",
+      "version": "1.0.0",
+      "summary": "My lovely API",
+      "description": null,
+      "termsOfService": null,
+      "contact": null,
+      "license": null
+    },
     "locations": {
       "": {
         "type": "openapi",

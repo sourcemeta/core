@@ -38,6 +38,15 @@
     "version": "3.1",
     "base": "https://example.com/openapi.json",
     "standalone": true,
+    "info": {
+      "title": "Example",
+      "version": "1.0.0",
+      "summary": null,
+      "description": null,
+      "termsOfService": null,
+      "contact": null,
+      "license": null
+    },
     "locations": {
       "https://example.com/openapi.json": {
         "type": "openapi",
