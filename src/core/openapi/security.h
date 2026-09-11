@@ -27,6 +27,12 @@ constexpr auto OPENAPI_HASH_AUTHORIZATION_URL{
     JSON::Object::hash("authorizationUrl"sv)};
 constexpr auto OPENAPI_HASH_TOKEN_URL{JSON::Object::hash("tokenUrl"sv)};
 constexpr auto OPENAPI_HASH_REFRESH_URL{JSON::Object::hash("refreshUrl"sv)};
+constexpr auto OPENAPI_HASH_IMPLICIT{JSON::Object::hash("implicit"sv)};
+constexpr auto OPENAPI_HASH_PASSWORD{JSON::Object::hash("password"sv)};
+constexpr auto OPENAPI_HASH_CLIENT_CREDENTIALS{
+    JSON::Object::hash("clientCredentials"sv)};
+constexpr auto OPENAPI_HASH_AUTHORIZATION_CODE{
+    JSON::Object::hash("authorizationCode"sv)};
 
 constexpr std::array<JSON::StringView, 4> OPENAPI_SECURITY_SCHEME_APIKEY_FIELDS{
     {"type"sv, "description"sv, "name"sv, "in"sv}};
@@ -141,30 +147,28 @@ inline auto openapi_check_oauth_flows(const JSON &value, const Pointer &base,
       value, OPENAPI_OAUTH_FLOWS_FIELDS, base,
       "The OAuth Flows Object does not define this field");
 
-  const auto *implicit{
-      value.try_at("implicit", JSON::Object::hash("implicit"sv))};
+  const auto *implicit{value.try_at("implicit"sv, OPENAPI_HASH_IMPLICIT)};
   if (implicit != nullptr) {
     openapi_check_oauth_flow(*implicit, openapi_child(base, "implicit"sv), true,
                              false, walk);
   }
 
-  const auto *password{
-      value.try_at("password", JSON::Object::hash("password"sv))};
+  const auto *password{value.try_at("password"sv, OPENAPI_HASH_PASSWORD)};
   if (password != nullptr) {
     openapi_check_oauth_flow(*password, openapi_child(base, "password"sv),
                              false, true, walk);
   }
 
-  const auto *client_credentials{value.try_at(
-      "clientCredentials", JSON::Object::hash("clientCredentials"sv))};
+  const auto *client_credentials{
+      value.try_at("clientCredentials"sv, OPENAPI_HASH_CLIENT_CREDENTIALS)};
   if (client_credentials != nullptr) {
     openapi_check_oauth_flow(*client_credentials,
                              openapi_child(base, "clientCredentials"sv), false,
                              true, walk);
   }
 
-  const auto *authorization_code{value.try_at(
-      "authorizationCode", JSON::Object::hash("authorizationCode"sv))};
+  const auto *authorization_code{
+      value.try_at("authorizationCode"sv, OPENAPI_HASH_AUTHORIZATION_CODE)};
   if (authorization_code != nullptr) {
     openapi_check_oauth_flow(*authorization_code,
                              openapi_child(base, "authorizationCode"sv), true,

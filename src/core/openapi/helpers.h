@@ -34,6 +34,17 @@ constexpr auto OPENAPI_HASH_IN{JSON::Object::hash("in"sv)};
 constexpr auto OPENAPI_HASH_TAGS{JSON::Object::hash("tags"sv)};
 constexpr auto OPENAPI_HASH_SERVERS{JSON::Object::hash("servers"sv)};
 
+/// A fixed field name paired with the hash of that name, so that looking one
+/// up does not have to hash it again on every Object read
+struct OpenAPIField {
+  JSON::StringView name;
+  JSON::Object::hash_type hash;
+};
+
+constexpr auto openapi_field(const JSON::StringView name) -> OpenAPIField {
+  return {.name = name, .hash = JSON::Object::hash(name)};
+}
+
 // What a reference expects to find at the far end of itself, which is fixed by
 // where the reference sits rather than by anything the target says about
 // itself. OpenAPI Specification 3.1.1, Section 3 lists "Detecting a document

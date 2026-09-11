@@ -150,18 +150,17 @@ auto sourcemeta::core::identify(const sourcemeta::core::JSON &schema,
     return default_id;
   }
 
-  const std::string keyword{sourcemeta::core::id_keyword(base_dialect)};
-
-  if (!schema.defines(keyword)) {
+  const auto keyword{sourcemeta::core::id_keyword(base_dialect)};
+  const auto *identifier{schema.try_at(keyword.name, keyword.hash)};
+  if (identifier == nullptr) {
     return default_id;
   }
 
-  const auto &identifier{schema.at(keyword)};
-  if (!identifier.is_string()) {
+  if (!identifier->is_string()) {
     std::ostringstream value;
-    sourcemeta::core::stringify(identifier, value);
+    sourcemeta::core::stringify(*identifier, value);
     throw sourcemeta::core::SchemaKeywordError(
-        keyword, value.str(), "The schema identifier is invalid");
+        keyword.name, value.str(), "The schema identifier is invalid");
   }
 
   // In older drafts, the presence of `$ref` would override any sibling
@@ -169,7 +168,7 @@ auto sourcemeta::core::identify(const sourcemeta::core::JSON &schema,
   // don't check for base dialects lower than that.
   // See
   // https://json-schema.org/draft-07/draft-handrews-json-schema-01#rfc.section.8.3
-  if (schema.defines("$ref") &&
+  if (schema.defines("$ref"sv, sourcemeta::core::JSONSCHEMA_HASH_REF) &&
       (base_dialect == SchemaBaseDialect::JSON_SCHEMA_DRAFT_7 ||
        base_dialect == SchemaBaseDialect::JSON_SCHEMA_DRAFT_7_HYPER ||
        base_dialect == SchemaBaseDialect::JSON_SCHEMA_DRAFT_6 ||
@@ -190,11 +189,11 @@ auto sourcemeta::core::identify(const sourcemeta::core::JSON &schema,
   // https://json-schema.org/draft/2019-09/draft-handrews-json-schema-02#rfc.section.8.2.2
   // See
   // https://json-schema.org/draft/2020-12/draft-bhutton-json-schema-01#section-8.2.1-5
-  if (identifier.to_string().empty() || identifier.to_string() == "#") {
+  if (identifier->to_string().empty() || identifier->to_string() == "#") {
     return default_id;
   }
 
-  return identifier.to_string();
+  return identifier->to_string();
 }
 
 auto sourcemeta::core::schema_reidentify(sourcemeta::core::JSON &schema,
@@ -217,13 +216,14 @@ auto sourcemeta::core::schema_reidentify(sourcemeta::core::JSON &schema,
     -> void {
   assert((schema.is_object() || schema.is_boolean()));
   assert(schema.is_object());
-  schema.assign(sourcemeta::core::id_keyword(base_dialect),
+  schema.assign(sourcemeta::core::id_keyword(base_dialect).name,
                 sourcemeta::core::JSON{new_identifier});
 
   // If we schema_reidentify, and the identifier is still not retrievable, then
   // we are facing the Draft 7 `$ref` sibling edge case, and we cannot
   // really continue
-  if (schema.defines("$ref") && identify(schema, base_dialect).empty()) {
+  if (schema.defines("$ref"sv, sourcemeta::core::JSONSCHEMA_HASH_REF) &&
+      identify(schema, base_dialect).empty()) {
     throw SchemaReferenceObjectResourceError(new_identifier);
   }
 }
@@ -236,26 +236,32 @@ auto sourcemeta::core::dialect(const sourcemeta::core::JSON &schema,
 
   if (allow_dialect_override && schema.is_object()) {
     const auto *override_value{
-        schema.try_at("x-sourcemeta-dialect-override-subschema")};
+        schema.try_at("x-sourcemeta-dialect-override-subschema"sv,
+                      sourcemeta::core::JSONSCHEMA_HASH_DIALECT_OVERRIDE)};
     if ((override_value != nullptr) && override_value->is_string() &&
         !override_value->to_string().empty()) {
       return override_value->to_string();
     }
   }
 
-  if (schema.is_boolean() || !schema.defines("$schema")) {
+  if (schema.is_boolean()) {
     return default_dialect;
   }
 
-  const auto &dialect_value{schema.at("$schema")};
-  if (!dialect_value.is_string()) {
+  const auto *dialect_value{
+      schema.try_at("$schema"sv, sourcemeta::core::JSONSCHEMA_HASH_SCHEMA)};
+  if (dialect_value == nullptr) {
+    return default_dialect;
+  }
+
+  if (!dialect_value->is_string()) {
     std::ostringstream value;
-    sourcemeta::core::stringify(dialect_value, value);
+    sourcemeta::core::stringify(*dialect_value, value);
     throw sourcemeta::core::SchemaKeywordError("$schema", value.str(),
                                                "The dialect value is invalid");
   }
 
-  return dialect_value.to_string();
+  return dialect_value->to_string();
 }
 
 // A meta-schema that the document embeds takes precedence over what the
@@ -306,7 +312,8 @@ auto sourcemeta::core::metaschema_try_embedded(
       throw sourcemeta::core::SchemaUnknownBaseDialectError();
     }
 
-    const auto *metaschema_dialect{current->try_at("$schema")};
+    const auto *metaschema_dialect{
+        current->try_at("$schema"sv, sourcemeta::core::JSONSCHEMA_HASH_SCHEMA)};
     if ((metaschema_dialect == nullptr) || !metaschema_dialect->is_string()) {
       throw sourcemeta::core::SchemaUnknownBaseDialectError();
     }
@@ -443,6 +450,9 @@ auto sourcemeta::core::base_dialect(
 }
 
 namespace {
+
+using namespace std::string_view_literals;
+
 auto core_vocabulary_known(
     const sourcemeta::core::SchemaBaseDialect base_dialect)
     -> sourcemeta::core::SchemaVocabularies::Known {
@@ -581,7 +591,8 @@ auto parse_vocabularies(const sourcemeta::core::JSON &schema,
     return std::nullopt;
   }
 
-  const auto *vocabulary_entry{schema.try_at("$vocabulary")};
+  const auto *vocabulary_entry{schema.try_at(
+      "$vocabulary"sv, sourcemeta::core::JSONSCHEMA_HASH_VOCABULARY)};
   if (vocabulary_entry == nullptr) {
     return std::nullopt;
   }
@@ -712,7 +723,10 @@ auto sourcemeta::core::vocabularies(const SchemaResolver &resolver,
   // At this point we are sure that the dialect is vocabulary aware and the
   // identifier keyword is indeed `$id`, so we can avoid the added
   // complexity of the generic `id` function.
-  assert(schema_dialect.defines("$id") && schema_dialect.at("$id").is_string());
+  assert(
+      schema_dialect.defines("$id"sv, sourcemeta::core::JSONSCHEMA_HASH_ID) &&
+      schema_dialect.at("$id"sv, sourcemeta::core::JSONSCHEMA_HASH_ID)
+          .is_string());
 
   /*
    * (4) Retrieve the vocabularies explicitly or implicitly declared by the

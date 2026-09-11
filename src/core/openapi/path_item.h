@@ -28,9 +28,11 @@ constexpr std::array<JSON::StringView, 13> OPENAPI_PATH_ITEM_FIELDS{
      "get"sv, "put"sv, "post"sv, "delete"sv, "options"sv, "head"sv, "patch"sv,
      "trace"sv}};
 
-constexpr std::array<JSON::StringView, 8> OPENAPI_PATH_ITEM_METHODS{
-    {"get"sv, "put"sv, "post"sv, "delete"sv, "options"sv, "head"sv, "patch"sv,
-     "trace"sv}};
+constexpr std::array<OpenAPIField, 8> OPENAPI_PATH_ITEM_METHODS{
+    {openapi_field("get"sv), openapi_field("put"sv), openapi_field("post"sv),
+     openapi_field("delete"sv), openapi_field("options"sv),
+     openapi_field("head"sv), openapi_field("patch"sv),
+     openapi_field("trace"sv)}};
 
 constexpr std::array<JSON::StringView, 12> OPENAPI_OPERATION_FIELDS{
     {"tags"sv, "summary"sv, "description"sv, "externalDocs"sv, "operationId"sv,
@@ -257,11 +259,11 @@ inline auto openapi_check_path_item(const JSON &value, const Pointer &base,
   }
 
   for (const auto &method : OPENAPI_PATH_ITEM_METHODS) {
-    const auto *operation{value.try_at(JSON::String{method})};
+    const auto *operation{value.try_at(method.name, method.hash)};
     if (operation != nullptr) {
-      const auto location{openapi_child(base, method)};
+      const auto location{openapi_child(base, method.name)};
       openapi_check_operation(*operation, location, walk);
-      record.operations.emplace_back(method,
+      record.operations.emplace_back(method.name,
                                      openapi_location_uri(walk.base, location));
     }
   }

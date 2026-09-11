@@ -30,6 +30,15 @@ static const std::string KEYWORD_DYNAMIC_REF{"$dynamicRef"};
 
 namespace {
 
+using namespace std::string_view_literals;
+
+constexpr auto HASH_LOCATIONS{
+    sourcemeta::core::JSON::Object::hash("locations"sv)};
+constexpr auto HASH_STATIC{sourcemeta::core::JSON::Object::hash("static"sv)};
+constexpr auto HASH_DYNAMIC{sourcemeta::core::JSON::Object::hash("dynamic"sv)};
+constexpr auto HASH_REFERENCES{
+    sourcemeta::core::JSON::Object::hash("references"sv)};
+
 auto is_valid_anchor_2020_12(const std::string_view name) -> bool {
   if (name.empty()) {
     return false;
@@ -86,7 +95,8 @@ auto find_anchors(const sourcemeta::core::JSON &schema,
   if (schema.is_object() &&
       vocabularies.contains(sourcemeta::core::SchemaVocabularies::Known::
                                 JSON_SCHEMA_2020_12_CORE)) {
-    const auto *dynamic_anchor{schema.try_at("$dynamicAnchor")};
+    const auto *dynamic_anchor{schema.try_at(
+        "$dynamicAnchor"sv, sourcemeta::core::JSONSCHEMA_HASH_DYNAMIC_ANCHOR)};
     if ((dynamic_anchor != nullptr) && dynamic_anchor->is_string()) {
       const std::string_view dynamic_anchor_view{dynamic_anchor->to_string()};
       if (!is_valid_anchor_2020_12(dynamic_anchor_view)) {
@@ -98,7 +108,8 @@ auto find_anchors(const sourcemeta::core::JSON &schema,
       result.emplace_back(dynamic_anchor_view, AnchorType::Dynamic);
     }
 
-    const auto *anchor_2020{schema.try_at("$anchor")};
+    const auto *anchor_2020{
+        schema.try_at("$anchor"sv, sourcemeta::core::JSONSCHEMA_HASH_ANCHOR)};
     if ((anchor_2020 != nullptr) && anchor_2020->is_string()) {
       const std::string_view anchor_view{anchor_2020->to_string()};
       if (!is_valid_anchor_2020_12(anchor_view)) {
@@ -124,7 +135,9 @@ auto find_anchors(const sourcemeta::core::JSON &schema,
   if (schema.is_object() &&
       vocabularies.contains(sourcemeta::core::SchemaVocabularies::Known::
                                 JSON_SCHEMA_2019_09_CORE)) {
-    const auto *recursive_anchor{schema.try_at("$recursiveAnchor")};
+    const auto *recursive_anchor{
+        schema.try_at("$recursiveAnchor"sv,
+                      sourcemeta::core::JSONSCHEMA_HASH_RECURSIVE_ANCHOR)};
     if (recursive_anchor != nullptr) {
       if (recursive_anchor->is_boolean()) {
         if (recursive_anchor->to_boolean()) {
@@ -139,7 +152,8 @@ auto find_anchors(const sourcemeta::core::JSON &schema,
       }
     }
 
-    const auto *anchor_2019{schema.try_at("$anchor")};
+    const auto *anchor_2019{
+        schema.try_at("$anchor"sv, sourcemeta::core::JSONSCHEMA_HASH_ANCHOR)};
     if ((anchor_2019 != nullptr) && anchor_2019->is_string()) {
       const std::string_view anchor_view{anchor_2019->to_string()};
       if (!is_valid_anchor(anchor_view)) {
@@ -168,7 +182,8 @@ auto find_anchors(const sourcemeta::core::JSON &schema,
            sourcemeta::core::SchemaVocabularies::Known::JSON_SCHEMA_DRAFT_7) ||
        vocabularies.contains(
            sourcemeta::core::SchemaVocabularies::Known::JSON_SCHEMA_DRAFT_6))) {
-    const auto *id_value{schema.try_at("$id")};
+    const auto *id_value{
+        schema.try_at("$id"sv, sourcemeta::core::JSONSCHEMA_HASH_ID)};
     if (id_value != nullptr) {
       assert(id_value->is_string());
       const std::string_view id_view{id_value->to_string()};
@@ -200,7 +215,8 @@ auto find_anchors(const sourcemeta::core::JSON &schema,
            sourcemeta::core::SchemaVocabularies::Known::JSON_SCHEMA_DRAFT_3) ||
        vocabularies.contains(sourcemeta::core::SchemaVocabularies::Known::
                                  JSON_SCHEMA_DRAFT_3_HYPER))) {
-    const auto *id_value{schema.try_at("id")};
+    const auto *id_value{
+        schema.try_at("id"sv, sourcemeta::core::JSONSCHEMA_HASH_LEGACY_ID)};
     if (id_value != nullptr) {
       assert(id_value->is_string());
       const std::string_view id_view{id_value->to_string()};
@@ -540,10 +556,11 @@ auto SchemaFrame::to_json(
   const auto destinations{
       reference_destinations(this->references_, this->locations_)};
   root.assign_assume_new("locations", sourcemeta::core::JSON::make_object());
-  root.at("locations")
-      .assign_assume_new("static", sourcemeta::core::JSON::make_object());
-  root.at("locations")
-      .assign_assume_new("dynamic", sourcemeta::core::JSON::make_object());
+  auto &locations{root.at("locations"sv, HASH_LOCATIONS)};
+  locations.assign_assume_new("static", sourcemeta::core::JSON::make_object());
+  locations.assign_assume_new("dynamic", sourcemeta::core::JSON::make_object());
+  auto &static_locations{locations.at("static"sv, HASH_STATIC)};
+  auto &dynamic_locations{locations.at("dynamic"sv, HASH_DYNAMIC)};
   for (const auto &location : this->locations_) {
     auto entry{sourcemeta::core::JSON::make_object()};
     entry.assign_assume_new(
@@ -611,14 +628,12 @@ auto SchemaFrame::to_json(
 
     switch (location.first.first) {
       case SchemaReferenceType::Static:
-        root.at("locations")
-            .at("static")
-            .assign_assume_new(location.first.second, std::move(entry));
+        static_locations.assign_assume_new(location.first.second,
+                                           std::move(entry));
         break;
       case SchemaReferenceType::Dynamic:
-        root.at("locations")
-            .at("dynamic")
-            .assign_assume_new(location.first.second, std::move(entry));
+        dynamic_locations.assign_assume_new(location.first.second,
+                                            std::move(entry));
         break;
       default:
         assert(false);
@@ -626,6 +641,7 @@ auto SchemaFrame::to_json(
   }
 
   root.assign_assume_new("references", sourcemeta::core::JSON::make_array());
+  auto &references{root.at("references"sv, HASH_REFERENCES)};
   for (const auto &reference : this->references_) {
     auto entry{sourcemeta::core::JSON::make_object()};
     entry.assign_assume_new("type",
@@ -657,7 +673,7 @@ auto SchemaFrame::to_json(
             ? sourcemeta::core::to_json(sourcemeta::core::JSON::String{
                   reference.second.fragment.value()})
             : sourcemeta::core::to_json(nullptr));
-    root.at("references").push_back(std::move(entry));
+    references.push_back(std::move(entry));
   }
 
   return root;
@@ -838,8 +854,8 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
           root_id = sourcemeta::core::URI::canonicalize(maybe_id);
         } catch (const sourcemeta::core::URIParseError &) {
           throw SchemaKeywordError(
-              sourcemeta::core::id_keyword(root_base_dialect.value()), maybe_id,
-              "The identifier is not a valid URI");
+              sourcemeta::core::id_keyword(root_base_dialect.value()).name,
+              maybe_id, "The identifier is not a valid URI");
         }
 
         this->root_ = root_id.value();
@@ -982,7 +998,9 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
             entry.id.value().starts_with('#');
 
         if ((!entry.common.subschema.get().is_object() ||
-             !entry.common.subschema.get().defines("$ref") || !ref_overrides) &&
+             !entry.common.subschema.get().defines(
+                 "$ref"sv, sourcemeta::core::JSONSCHEMA_HASH_REF) ||
+             !ref_overrides) &&
             // If we are dealing with a pre-2019-09 location independent
             // identifier, we ignore it as a traditional identifier and take
             // care of it as an anchor
@@ -1006,7 +1024,8 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
             } catch (const sourcemeta::core::URIParseError &) {
               throw sourcemeta::core::SchemaKeywordError(
                   sourcemeta::core::id_keyword(
-                      entry.common.base_dialect.value()),
+                      entry.common.base_dialect.value())
+                      .name,
                   entry.id.value(), "The identifier is not a valid URI");
             }
 
@@ -1094,7 +1113,8 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
           }
 
           metaschema.canonicalize();
-          assert(entry.common.subschema.get().defines("$schema"));
+          assert(entry.common.subschema.get().defines(
+              "$schema"sv, sourcemeta::core::JSONSCHEMA_HASH_SCHEMA));
           auto schema_pointer{common_pointer_weak};
           schema_pointer.push_back(std::cref(KEYWORD_SCHEMA));
           const auto [entry_iterator, inserted] =
@@ -1360,7 +1380,8 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
               base_uris, common_pointer_weak,
               entry.id ? std::optional<std::string_view>{*entry.id}
                        : std::nullopt)};
-      const auto *ref_value{entry.common.subschema.get().try_at("$ref")};
+      const auto *ref_value{entry.common.subschema.get().try_at(
+          "$ref"sv, sourcemeta::core::JSONSCHEMA_HASH_REF)};
       if (ref_value != nullptr) {
         if (!ref_value->is_string()) {
           std::ostringstream value;
@@ -1399,7 +1420,9 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
       const auto *recursive_ref_value{
           entry.common.vocabularies.contains(
               SchemaVocabularies::Known::JSON_SCHEMA_2019_09_CORE)
-              ? entry.common.subschema.get().try_at("$recursiveRef")
+              ? entry.common.subschema.get().try_at(
+                    "$recursiveRef"sv,
+                    sourcemeta::core::JSONSCHEMA_HASH_RECURSIVE_REF)
               : nullptr};
       if (recursive_ref_value != nullptr) {
         if (!recursive_ref_value->is_string()) {
@@ -1446,7 +1469,9 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
       const auto *dynamic_ref_value{
           entry.common.vocabularies.contains(
               SchemaVocabularies::Known::JSON_SCHEMA_2020_12_CORE)
-              ? entry.common.subschema.get().try_at("$dynamicRef")
+              ? entry.common.subschema.get().try_at(
+                    "$dynamicRef"sv,
+                    sourcemeta::core::JSONSCHEMA_HASH_DYNAMIC_REF)
               : nullptr};
       if (dynamic_ref_value != nullptr) {
         if (!dynamic_ref_value->is_string()) {
