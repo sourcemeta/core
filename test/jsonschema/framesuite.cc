@@ -20,8 +20,9 @@ namespace {
 // otherwise go unnoticed, as the runner would simply not read it
 // NOLINTBEGIN(cert-err58-cpp,bugprone-throwing-static-initialization)
 const std::vector<std::string> KNOWN_KEYS{
-    "schema", "resolver",       "defaultDialect", "defaultId",    "paths",
-    "root",   "identifierMode", "pointers",       "reachability", "standalone"};
+    "schema",      "resolver",     "defaultDialect", "defaultId",
+    "defaultBase", "paths",        "root",           "identifierMode",
+    "pointers",    "reachability", "standalone"};
 // NOLINTEND(cert-err58-cpp,bugprone-throwing-static-initialization)
 
 auto make_resolver(const sourcemeta::core::JSON &test)
@@ -43,13 +44,14 @@ auto make_resolver(const sourcemeta::core::JSON &test)
   };
 }
 
-// A frame keeps views into the default dialect, the default identifier, and
-// the paths it was given, so all three have to outlive it. The caller owns
-// this, as anything built inside `analyse` would dangle on return and only
-// misbehave later, when the frame is read back
+// A frame keeps views into the default dialect, the default identifier, the
+// default base, and the paths it was given, so all four have to outlive it.
+// The caller owns this, as anything built inside `analyse` would dangle on
+// return and only misbehave later, when the frame is read back
 struct Inputs {
   sourcemeta::core::JSON::String default_dialect;
   sourcemeta::core::JSON::String default_id;
+  sourcemeta::core::JSON::String default_base;
   std::vector<sourcemeta::core::Pointer> paths;
 };
 
@@ -63,6 +65,11 @@ auto make_inputs(const sourcemeta::core::JSON &test) -> Inputs {
   const auto *raw_id{test.try_at("defaultId")};
   if (raw_id != nullptr && !raw_id->is_null()) {
     inputs.default_id = raw_id->to_string();
+  }
+
+  const auto *raw_base{test.try_at("defaultBase")};
+  if (raw_base != nullptr && !raw_base->is_null()) {
+    inputs.default_base = raw_base->to_string();
   }
 
   if (test.defines("paths")) {
@@ -172,7 +179,8 @@ auto run_frame_test(const sourcemeta::core::JSON &test) -> void {
       inputs.default_dialect,
       inputs.default_id,
       identifier_mode,
-      paths};
+      paths,
+      inputs.default_base};
   EXPECT_EQ(root.to_json(resolver), test.at("root"));
 
   const sourcemeta::core::SchemaFrame pointers{
@@ -183,7 +191,8 @@ auto run_frame_test(const sourcemeta::core::JSON &test) -> void {
       inputs.default_dialect,
       inputs.default_id,
       identifier_mode,
-      paths};
+      paths,
+      inputs.default_base};
   EXPECT_EQ(pointers.to_json(resolver), test.at("pointers"));
 
   // References mode locates every schema, but of the remaining pointers only
@@ -200,7 +209,8 @@ auto run_frame_test(const sourcemeta::core::JSON &test) -> void {
       inputs.default_dialect,
       inputs.default_id,
       identifier_mode,
-      paths};
+      paths,
+      inputs.default_base};
   EXPECT_EQ(references.to_json(resolver), expected_references);
 
   EXPECT_EQ(references.standalone(), test.at("standalone").to_boolean());
@@ -238,7 +248,8 @@ auto run_frame_test(const sourcemeta::core::JSON &test) -> void {
       inputs.default_dialect,
       inputs.default_id,
       identifier_mode,
-      paths};
+      paths,
+      inputs.default_base};
   EXPECT_EQ(locations.to_json(resolver), expected_locations);
 }
 

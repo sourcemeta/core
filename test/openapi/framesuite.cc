@@ -194,6 +194,15 @@ auto check_frame_invariants(const sourcemeta::core::JSON &frame) -> void {
       EXPECT_TRUE(entry.first.starts_with(schema_base));
       EXPECT_TRUE(entry.first.size() > schema_base.size() &&
                   entry.first.at(schema_base.size()) == '#');
+
+      // The frame builds a key by appending the escaped pointer to the base,
+      // which is what resolving the two through a URI comes to, and the two
+      // have to keep coming to the same thing for a schema frame of the same
+      // document to be addressable by these very keys
+      EXPECT_EQ(entry.first,
+                sourcemeta::core::to_uri(sourcemeta::core::to_pointer(pointer),
+                                         sourcemeta::core::URI{schema_base})
+                    .recompose());
     }
 
     // A reference is written down on the Object that makes it, which is a

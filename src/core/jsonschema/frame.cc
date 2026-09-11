@@ -398,6 +398,49 @@ auto set_base_and_fragment(sourcemeta::core::SchemaFrame::Reference &entry)
   }
 }
 
+// A location reports its base as a view, so that view has to point at a
+// string that outlives the frame. The key of the location that owns the base
+// is the usual answer
+template <typename Locations>
+auto owned_base_view(const Locations &locations,
+                     const sourcemeta::core::JSON::String &default_base,
+                     const std::string_view base) -> std::string_view {
+  const auto match{
+      locations.find({sourcemeta::core::SchemaReferenceType::Static,
+                      sourcemeta::core::JSON::String{base}})};
+  if (match != locations.cend()) {
+    return match->first.second;
+  }
+
+  // The base that the caller stated is the one base that no location of the
+  // frame has any reason to own, so a location that inherits it points at the
+  // copy that the frame keeps
+  if (base == default_base) {
+    return default_base;
+  }
+
+  // What is left is a base that the location being stored is about to become
+  // the owner of, which storing it re-points at its own key
+  return base;
+}
+
+// RFC 3986 Section 5.1.4 takes the base of a document that declares none from
+// the context it was retrieved from, and Section 5.2 resolves an identifier
+// against whichever base is in force, so a default base makes a relative
+// identifier absolute exactly as a surrounding identifier would
+auto canonicalize_identifier(const std::string_view identifier,
+                             const std::string_view base)
+    -> sourcemeta::core::JSON::String {
+  if (base.empty()) {
+    return sourcemeta::core::URI::canonicalize(identifier);
+  }
+
+  return sourcemeta::core::URI{identifier}
+      .resolve_from(sourcemeta::core::URI{base})
+      .canonicalize()
+      .recompose();
+}
+
 [[noreturn]]
 auto throw_already_exists(const sourcemeta::core::JSON::String &uri) -> void {
   throw sourcemeta::core::SchemaFrameError(uri,
@@ -714,6 +757,10 @@ struct SchemaFrame::Cache {
   // references to. A map, as handing out those references means they have to
   // survive later insertions
   std::map<sourcemeta::core::JSON::String, sourcemeta::core::JSON> metaschemas;
+  // The base that the caller stated the document was retrieved from, owned
+  // for the same reason as the dialects below, as a location that inherits a
+  // base reports it back as a view and no location of the frame need own it
+  sourcemeta::core::JSON::String default_base;
   // SchemaVocabularies are a function of the base dialect and dialect alone,
   // and a schema only tends to make use of a handful of those. We own the
   // dialect that we key on, as the view that the location holds may point into
@@ -781,6 +828,7 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
                          const std::string_view default_id,
                          const SchemaFrame::IdentifierMode identifier_mode,
                          const SchemaFrame::Paths &paths,
+                         const std::string_view default_base,
                          const std::uint64_t max_locations)
     : mode_{mode}, cache_{std::make_unique<Cache>()} {
   // This mode reports on a single schema. Framing a wrapper that holds more
@@ -826,6 +874,17 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
                      sourcemeta::core::WeakPointer::Hasher>
       base_dialects;
 
+  // The base a document was retrieved from is in force at the top of it, so
+  // it belongs to the document root rather than to each path. Seeding it at a
+  // path would instead make that path a resource of its own, addressing what
+  // sits under it from there rather than from the top of the document, which
+  // is what an identifier does and what this deliberately does not
+  if (!default_base.empty()) {
+    this->cache_->default_base = default_base;
+    base_uris.insert(
+        {sourcemeta::core::EMPTY_WEAK_POINTER, {this->cache_->default_base}});
+  }
+
   for (const auto &path : paths) {
     // Passing paths that overlap is undefined behavior. No path should
     // start with another one, else you are doing something wrong
@@ -851,7 +910,7 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
           schema, root_base_dialect.value(), default_id)};
       if (!maybe_id.empty()) {
         try {
-          root_id = sourcemeta::core::URI::canonicalize(maybe_id);
+          root_id = canonicalize_identifier(maybe_id, default_base);
         } catch (const sourcemeta::core::URIParseError &) {
           throw SchemaKeywordError(
               sourcemeta::core::id_keyword(root_base_dialect.value()).name,
@@ -872,10 +931,10 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
     const bool has_explicit_different_id{
         identifier_mode == SchemaFrame::IdentifierMode::Additional &&
         root_id.has_value() && !default_id.empty() &&
-        root_id.value() != sourcemeta::core::URI::canonicalize(default_id)};
+        root_id.value() != canonicalize_identifier(default_id, default_base)};
     sourcemeta::core::JSON::String default_id_canonical;
     if (has_explicit_different_id) {
-      default_id_canonical = sourcemeta::core::URI::canonicalize(default_id);
+      default_id_canonical = canonicalize_identifier(default_id, default_base);
       // Borrow `this->root_` as the base for now, as the location that owns
       // that URI does not exist yet. We re-point this entry at that location
       // key once the traversal below is done
@@ -884,7 +943,11 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
             this->root_, path, path.size(), root_dialect,
             root_base_dialect.value(), std::nullopt, false, false);
 
-      base_uris.insert({path, {root_id.value(), default_id_canonical}});
+      // The names that this path goes by take over from the base that the
+      // caller stated, which the document root may hold
+      base_uris.insert_or_assign(path,
+                                 std::vector<sourcemeta::core::JSON::String>{
+                                     root_id.value(), default_id_canonical});
     }
 
     if (this->mode_ == SchemaFrame::Mode::Root) {
@@ -1185,13 +1248,8 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
               continue;
             }
 
-            const auto base_entry{this->locations_.find(
-                {SchemaReferenceType::Static, base_string})};
-
-            const std::string_view base_view{
-                base_entry != this->locations_.cend()
-                    ? std::string_view{base_entry->first.second}
-                    : std::string_view{base_string}};
+            const auto base_view{owned_base_view(
+                this->locations_, this->cache_->default_base, base_string)};
 
             if (type == AnchorType::Static || type == AnchorType::All) {
               store(this->locations_, max_locations,
@@ -1277,15 +1335,9 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
 
       std::string_view hoisted_base_view{};
       if (nearest_base_info.has_value()) {
-        const sourcemeta::core::JSON::String nearest_base_str{
-            nearest_base_info->first};
-        const auto base_entry{this->locations_.find(
-            {SchemaReferenceType::Static, nearest_base_str})};
-        if (base_entry != this->locations_.cend()) {
-          hoisted_base_view = base_entry->first.second;
-        } else {
-          hoisted_base_view = nearest_base_info->first;
-        }
+        hoisted_base_view =
+            owned_base_view(this->locations_, this->cache_->default_base,
+                            nearest_base_info->first);
       }
 
       sourcemeta::core::WeakPointer cached_base{};
@@ -1312,14 +1364,8 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
           if (nearest_base_info.has_value()) {
             base_view = hoisted_base_view;
           } else {
-            const sourcemeta::core::JSON::String current_base{base.first};
-            const auto base_entry{this->locations_.find(
-                {SchemaReferenceType::Static, current_base})};
-            if (base_entry != this->locations_.cend()) {
-              base_view = base_entry->first.second;
-            } else {
-              base_view = base.first;
-            }
+            base_view = owned_base_view(this->locations_,
+                                        this->cache_->default_base, base.first);
           }
 
           if (is_subschema) {
