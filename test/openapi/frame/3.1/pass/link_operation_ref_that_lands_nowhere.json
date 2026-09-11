@@ -17,9 +17,7 @@
   "frame": {
     "version": "3.1",
     "base": "https://example.com/openapi.json",
-    "dangling": [
-      "https://example.com/openapi.json#/paths/~1pets/get"
-    ],
+    "standalone": false,
     "info": {
       "title": "Example",
       "version": "1.0.0",
@@ -46,7 +44,8 @@
         "pointer": "/components/links/ByRef",
         "parent": "https://example.com/openapi.json#/components",
         "original": "#/paths/~1pets/get",
-        "destination": "https://example.com/openapi.json#/paths/~1pets/get"
+        "destination": "https://example.com/openapi.json#/paths/~1pets/get",
+        "dangling": true
       },
       "https://example.com/openapi.json#/info": {
         "type": "info",

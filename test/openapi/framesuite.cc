@@ -142,8 +142,7 @@ auto check_known_keys(const sourcemeta::core::JSON &test) -> void {
 // them on every fixture rather than on the handful that thought to look
 auto check_frame_invariants(const sourcemeta::core::JSON &frame) -> void {
   const auto &locations{frame.at("locations")};
-  const auto &dangling{frame.at("dangling")};
-  std::vector<sourcemeta::core::JSON> unresolved;
+  bool every_reference_lands{true};
 
   // The entry document is an Object like any other, so the base names it, and
   // what it names is the OpenAPI Object at its root
@@ -152,14 +151,6 @@ auto check_frame_invariants(const sourcemeta::core::JSON &frame) -> void {
   if (locations.defines(base)) {
     EXPECT_EQ(locations.at(base).at("type").to_string(), "openapi");
   }
-
-  // What dangles is reported in the order a sorted set hands it over, and
-  // nothing is reported twice, as two references may well land on one place
-  EXPECT_TRUE(std::ranges::is_sorted(dangling.as_array(), std::less<>{}));
-  EXPECT_EQ(std::set<sourcemeta::core::JSON>(dangling.as_array().cbegin(),
-                                             dangling.as_array().cend())
-                .size(),
-            dangling.size());
 
   for (const auto &entry : locations.as_object()) {
     // A location carries its pointer, and its key is that pointer hung off the
@@ -217,24 +208,20 @@ auto check_frame_invariants(const sourcemeta::core::JSON &frame) -> void {
 
     EXPECT_TRUE(type == "reference" || type == "path-item" || type == "link");
 
-    // Where a reference lands is a key into this same map, unless the fixture
-    // says the walk was never in a position to read it
-    const auto &destination{entry.second.at("destination")};
-    if (locations.defines(destination.to_string())) {
-      continue;
+    // Where a reference lands is a key into this same map, and a reference
+    // says of itself whether it is one of those, which is what the walk was
+    // never in a position to read
+    const auto &destination{entry.second.at("destination").to_string()};
+    const auto dangling{entry.second.at("dangling").to_boolean()};
+    EXPECT_EQ(dangling, !locations.defines(destination));
+    if (dangling) {
+      every_reference_lands = false;
     }
-
-    unresolved.push_back(destination);
-    EXPECT_TRUE(std::ranges::find(dangling.as_array(), destination) !=
-                dangling.as_array().cend());
   }
 
-  // A destination reported as dangling that a location does answer to would
-  // have the frame contradict itself, so what it reports is exactly what
-  // nothing here answers to rather than merely a superset of it
-  for (const auto &entry : dangling.as_array()) {
-    EXPECT_TRUE(std::ranges::find(unresolved, entry) != unresolved.cend());
-  }
+  // A description stands alone when nothing it references leaves it, so the
+  // two ways it says so have to agree
+  EXPECT_EQ(frame.at("standalone").to_boolean(), every_reference_lands);
 
   for (const auto &operation : frame.at("operations").as_array()) {
     // Every operation the description exposes is an Operation Object that the

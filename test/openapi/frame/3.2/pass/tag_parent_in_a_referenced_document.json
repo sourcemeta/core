@@ -17,9 +17,7 @@
   "frame": {
     "version": "3.2",
     "base": "https://example.com/openapi.json",
-    "dangling": [
-      "https://example.com/common.json#/components/responses/R"
-    ],
+    "standalone": false,
     "info": {
       "title": "Example",
       "version": "1.0.0",
@@ -46,7 +44,8 @@
         "pointer": "/components/responses/A",
         "parent": "https://example.com/openapi.json#/components",
         "original": "https://example.com/common.json#/components/responses/R",
-        "destination": "https://example.com/common.json#/components/responses/R"
+        "destination": "https://example.com/common.json#/components/responses/R",
+        "dangling": true
       },
       "https://example.com/openapi.json#/info": {
         "type": "info",

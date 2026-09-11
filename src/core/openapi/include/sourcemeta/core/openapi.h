@@ -14,7 +14,6 @@
 #include <cstdint>     // std::uint8_t
 #include <memory>      // std::unique_ptr
 #include <optional>    // std::optional, std::nullopt
-#include <set>         // std::set
 #include <string_view> // std::string_view
 
 /// @defgroup openapi OpenAPI
@@ -227,31 +226,8 @@ public:
   /// ```
   [[nodiscard]] auto base() const noexcept -> JSON::StringView;
 
-  /// Where every reference that lands on nothing the frame holds points,
-  /// which is what a description spanning more than one document has to be
-  /// made whole from. For example:
-  ///
-  /// ```cpp
-  /// #include <sourcemeta/core/json.h>
-  /// #include <sourcemeta/core/openapi.h>
-  /// #include <cassert>
-  ///
-  /// const auto document{sourcemeta::core::parse_json(R"({
-  ///   "openapi": "3.1.1",
-  ///   "info": { "title": "Example", "version": "1.0.0" },
-  ///   "components": {
-  ///     "responses": { "R": { "$ref": "https://example.com/other#/foo" } }
-  ///   }
-  /// })")};
-  ///
-  /// const sourcemeta::core::OpenAPIFrame frame{document};
-  /// assert(frame.dangling().size() == 1);
-  /// ```
-  [[nodiscard]] auto dangling() const noexcept
-      -> const std::set<JSON::String> &;
-
   /// Check whether everything this description references is inside what was
-  /// framed, which is to say that nothing dangles. For example:
+  /// framed, which is to say that no reference of it dangles. For example:
   ///
   /// ```cpp
   /// #include <sourcemeta/core/json.h>

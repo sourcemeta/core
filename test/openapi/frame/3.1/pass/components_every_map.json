@@ -108,9 +108,7 @@
   "frame": {
     "version": "3.1",
     "base": "",
-    "dangling": [
-      "#/paths/~1pets/get"
-    ],
+    "standalone": false,
     "info": {
       "title": "Example",
       "version": "1.0.0",
@@ -199,7 +197,8 @@
         "pointer": "/components/links/ByRef",
         "parent": "#/components",
         "original": "#/paths/~1pets/get",
-        "destination": "#/paths/~1pets/get"
+        "destination": "#/paths/~1pets/get",
+        "dangling": true
       },
       "#/components/parameters/Limit": {
         "type": "parameter",
@@ -260,7 +259,8 @@
         "pointer": "/components/responses/Ref",
         "parent": "#/components",
         "original": "#/components/responses/NotFound",
-        "destination": "#/components/responses/NotFound"
+        "destination": "#/components/responses/NotFound",
+        "dangling": false
       },
       "#/components/schemas/Pet": {
         "type": "schema",

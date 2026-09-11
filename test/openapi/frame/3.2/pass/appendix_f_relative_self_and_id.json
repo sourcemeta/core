@@ -20,9 +20,7 @@
   "frame": {
     "version": "3.2",
     "base": "https://staging.example.com/api/openapi",
-    "dangling": [
-      "https://staging.example.com/api/shared/foo#/components/requestBodies/Foo"
-    ],
+    "standalone": false,
     "info": {
       "title": "Example API",
       "version": "1.0",
@@ -64,7 +62,8 @@
         "pointer": "/paths/~1foo/get/requestBody",
         "parent": "https://staging.example.com/api/openapi#/paths/~1foo/get",
         "original": "shared/foo#/components/requestBodies/Foo",
-        "destination": "https://staging.example.com/api/shared/foo#/components/requestBodies/Foo"
+        "destination": "https://staging.example.com/api/shared/foo#/components/requestBodies/Foo",
+        "dangling": true
       }
     },
     "operations": [

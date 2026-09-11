@@ -20,9 +20,7 @@
   "frame": {
     "version": "3.2",
     "base": "https://example.com/api/openapi",
-    "dangling": [
-      "https://example.com/api/shared/foo#/components/requestBodies/Foo"
-    ],
+    "standalone": false,
     "info": {
       "title": "Example API",
       "version": "1.0",
@@ -64,7 +62,8 @@
         "pointer": "/paths/~1foo/get/requestBody",
         "parent": "https://example.com/api/openapi#/paths/~1foo/get",
         "original": "shared/foo#/components/requestBodies/Foo",
-        "destination": "https://example.com/api/shared/foo#/components/requestBodies/Foo"
+        "destination": "https://example.com/api/shared/foo#/components/requestBodies/Foo",
+        "dangling": true
       }
     },
     "operations": [

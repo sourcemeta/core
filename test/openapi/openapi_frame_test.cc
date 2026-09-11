@@ -356,9 +356,11 @@ TEST(standalone_with_an_external_reference) {
   const sourcemeta::core::OpenAPIFrame frame{
       document, "https://example.com/openapi.json"};
   EXPECT_FALSE(frame.standalone());
-  EXPECT_EQ(frame.dangling().size(), 1);
-  EXPECT_TRUE(frame.dangling().contains(
-      "https://example.com/common.json#/components/responses/Ok"));
+  EXPECT_EQ(frame.to_json()
+                .at("locations")
+                .at("https://example.com/openapi.json#/components/responses/R")
+                .at("dangling"),
+            sourcemeta::core::JSON{true});
 }
 
 TEST(dangling_is_empty_when_the_frame_stands_alone) {
@@ -371,10 +373,9 @@ TEST(dangling_is_empty_when_the_frame_stands_alone) {
   const sourcemeta::core::OpenAPIFrame frame{
       document, "https://example.com/openapi.json"};
   EXPECT_TRUE(frame.standalone());
-  EXPECT_TRUE(frame.dangling().empty());
 }
 
-TEST(dangling_reports_one_destination_that_two_references_share) {
+TEST(dangling_is_reported_on_each_reference_that_shares_a_destination) {
   const auto document{sourcemeta::core::parse_json(R"JSON({
     "openapi": "3.1.1",
     "info": { "title": "Example", "version": "1.0.0" },
@@ -388,12 +389,19 @@ TEST(dangling_reports_one_destination_that_two_references_share) {
 
   const sourcemeta::core::OpenAPIFrame frame{
       document, "https://example.com/openapi.json"};
-  EXPECT_EQ(frame.dangling().size(), 1);
-  EXPECT_TRUE(frame.dangling().contains(
-      "https://example.com/common.json#/components/responses/Ok"));
+  const auto result{frame.to_json()};
+  const auto &locations{result.at("locations")};
+  EXPECT_EQ(
+      locations.at("https://example.com/openapi.json#/components/responses/R")
+          .at("dangling"),
+      sourcemeta::core::JSON{true});
+  EXPECT_EQ(
+      locations.at("https://example.com/openapi.json#/components/responses/S")
+          .at("dangling"),
+      sourcemeta::core::JSON{true});
 }
 
-TEST(dangling_agrees_with_json_export) {
+TEST(standalone_agrees_with_json_export) {
   const auto document{sourcemeta::core::parse_json(R"JSON({
     "openapi": "3.1.1",
     "info": { "title": "Example", "version": "1.0.0" },
@@ -406,8 +414,5 @@ TEST(dangling_agrees_with_json_export) {
 
   const sourcemeta::core::OpenAPIFrame frame{
       document, "https://example.com/openapi.json"};
-  auto expected{sourcemeta::core::JSON::make_array()};
-  expected.push_back(sourcemeta::core::JSON{
-      "https://example.com/common.json#/components/responses/Ok"});
-  EXPECT_EQ(frame.to_json().at("dangling"), expected);
+  EXPECT_EQ(frame.to_json().at("standalone"), sourcemeta::core::JSON{false});
 }

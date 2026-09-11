@@ -19,7 +19,7 @@
   "frame": {
     "version": "3.2",
     "base": "",
-    "dangling": [],
+    "standalone": true,
     "info": {
       "title": "Example",
       "version": "1.0.0",
@@ -46,7 +46,8 @@
         "pointer": "/components/mediaTypes/Alias",
         "parent": "#/components",
         "original": "#/components/mediaTypes/Item",
-        "destination": "#/components/mediaTypes/Item"
+        "destination": "#/components/mediaTypes/Item",
+        "dangling": false
       },
       "#/components/mediaTypes/Item": {
         "type": "media-type",

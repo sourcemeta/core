@@ -40,7 +40,7 @@
   "frame": {
     "version": "3.1",
     "base": "https://example.com/openapi.json",
-    "dangling": [],
+    "standalone": true,
     "info": {
       "title": "Example",
       "version": "1.0.0",
@@ -117,14 +117,16 @@
         "pointer": "/paths/~1ant",
         "parent": "https://example.com/openapi.json#/paths",
         "original": "#/components/pathItems/Ant",
-        "destination": "https://example.com/openapi.json#/components/pathItems/Ant"
+        "destination": "https://example.com/openapi.json#/components/pathItems/Ant",
+        "dangling": false
       },
       "https://example.com/openapi.json#/paths/~1zebra": {
         "type": "path-item",
         "pointer": "/paths/~1zebra",
         "parent": "https://example.com/openapi.json#/paths",
         "original": "#/components/pathItems/Zebra",
-        "destination": "https://example.com/openapi.json#/components/pathItems/Zebra"
+        "destination": "https://example.com/openapi.json#/components/pathItems/Zebra",
+        "dangling": false
       }
     },
     "operations": [

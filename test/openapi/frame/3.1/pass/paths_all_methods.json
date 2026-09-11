@@ -95,7 +95,7 @@
   "frame": {
     "version": "3.1",
     "base": "",
-    "dangling": [],
+    "standalone": true,
     "info": {
       "title": "Example",
       "version": "1.0.0",
@@ -221,7 +221,8 @@
         "pointer": "/paths/~1pets/parameters/1",
         "parent": "#/paths/~1pets",
         "original": "#/components/parameters/Limit",
-        "destination": "#/components/parameters/Limit"
+        "destination": "#/components/parameters/Limit",
+        "dangling": false
       },
       "#/paths/~1pets/patch": {
         "type": "operation",

@@ -19,9 +19,7 @@
   "frame": {
     "version": "3.1",
     "base": "https://example.com/openapi.json",
-    "dangling": [
-      "https://example.com/common.json"
-    ],
+    "standalone": false,
     "info": {
       "title": "E",
       "version": "1",
@@ -48,7 +46,8 @@
         "pointer": "/components/responses/R",
         "parent": "https://example.com/openapi.json#/components",
         "original": "https://example.com/common.json",
-        "destination": "https://example.com/common.json"
+        "destination": "https://example.com/common.json",
+        "dangling": true
       },
       "https://example.com/openapi.json#/info": {
         "type": "info",

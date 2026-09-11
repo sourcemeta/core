@@ -23,10 +23,7 @@
   "frame": {
     "version": "3.1",
     "base": "https://example.com/openapi.json",
-    "dangling": [
-      "https://example.com/common.json#/components/parameters/Limit",
-      "https://example.com/common.json#/components/responses/Ok"
-    ],
+    "standalone": false,
     "info": {
       "title": "E",
       "version": "1",
@@ -53,14 +50,16 @@
         "pointer": "/components/parameters/Second",
         "parent": "https://example.com/openapi.json#/components",
         "original": "https://example.com/common.json#/components/parameters/Limit",
-        "destination": "https://example.com/common.json#/components/parameters/Limit"
+        "destination": "https://example.com/common.json#/components/parameters/Limit",
+        "dangling": true
       },
       "https://example.com/openapi.json#/components/responses/First": {
         "type": "reference",
         "pointer": "/components/responses/First",
         "parent": "https://example.com/openapi.json#/components",
         "original": "https://example.com/common.json#/components/responses/Ok",
-        "destination": "https://example.com/common.json#/components/responses/Ok"
+        "destination": "https://example.com/common.json#/components/responses/Ok",
+        "dangling": true
       },
       "https://example.com/openapi.json#/info": {
         "type": "info",

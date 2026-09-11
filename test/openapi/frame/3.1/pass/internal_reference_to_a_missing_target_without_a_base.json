@@ -16,9 +16,7 @@
   "frame": {
     "version": "3.1",
     "base": "",
-    "dangling": [
-      "#/components/responses/Missing"
-    ],
+    "standalone": false,
     "info": {
       "title": "Example",
       "version": "1.0.0",
@@ -45,7 +43,8 @@
         "pointer": "/components/responses/R",
         "parent": "#/components",
         "original": "#/components/responses/Missing",
-        "destination": "#/components/responses/Missing"
+        "destination": "#/components/responses/Missing",
+        "dangling": true
       },
       "#/info": {
         "type": "info",

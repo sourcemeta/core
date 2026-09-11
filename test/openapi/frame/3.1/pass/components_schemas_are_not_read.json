@@ -30,7 +30,7 @@
   "frame": {
     "version": "3.1",
     "base": "",
-    "dangling": [],
+    "standalone": true,
     "info": {
       "title": "Example",
       "version": "1.0.0",

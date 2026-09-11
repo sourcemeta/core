@@ -20,9 +20,7 @@
   "frame": {
     "version": "3.1",
     "base": "https://example.com/openapi.json",
-    "dangling": [
-      "https://example.com/common.json#/components/pathItems/Pets"
-    ],
+    "standalone": false,
     "info": {
       "title": "Example",
       "version": "1.0.0",
@@ -54,7 +52,8 @@
         "pointer": "/paths/~1pets",
         "parent": "https://example.com/openapi.json#/paths",
         "original": "https://example.com/common.json#/components/pathItems/Pets",
-        "destination": "https://example.com/common.json#/components/pathItems/Pets"
+        "destination": "https://example.com/common.json#/components/pathItems/Pets",
+        "dangling": true
       },
       "https://example.com/openapi.json#/tags/0": {
         "type": "tag",

@@ -36,7 +36,7 @@
   "frame": {
     "version": "3.1",
     "base": "https://example.com/openapi.json",
-    "dangling": [],
+    "standalone": true,
     "info": {
       "title": "Example",
       "version": "1.0.0",
@@ -105,7 +105,8 @@
         "pointer": "/paths/~1pets~1{petId}/parameters/0",
         "parent": "https://example.com/openapi.json#/paths/~1pets~1%7BpetId%7D",
         "original": "#/components/parameters/PetId",
-        "destination": "https://example.com/openapi.json#/components/parameters/PetId"
+        "destination": "https://example.com/openapi.json#/components/parameters/PetId",
+        "dangling": false
       }
     },
     "operations": [

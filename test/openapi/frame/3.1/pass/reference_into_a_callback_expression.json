@@ -41,7 +41,7 @@
   "frame": {
     "version": "3.1",
     "base": "https://example.com/openapi.json",
-    "dangling": [],
+    "standalone": true,
     "info": {
       "title": "Example",
       "version": "1.0.0",
@@ -68,7 +68,8 @@
         "pointer": "/components/responses/A",
         "parent": "https://example.com/openapi.json#/components",
         "original": "#/paths/~1pets/get/callbacks/onData/%7B$request.body%23~1url%7D/post/responses/200",
-        "destination": "https://example.com/openapi.json#/paths/~1pets/get/callbacks/onData/%7B$request.body%23~1url%7D/post/responses/200"
+        "destination": "https://example.com/openapi.json#/paths/~1pets/get/callbacks/onData/%7B$request.body%23~1url%7D/post/responses/200",
+        "dangling": false
       },
       "https://example.com/openapi.json#/info": {
         "type": "info",

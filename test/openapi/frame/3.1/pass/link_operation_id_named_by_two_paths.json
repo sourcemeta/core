@@ -37,7 +37,7 @@
   "frame": {
     "version": "3.1",
     "base": "https://example.com/openapi.json",
-    "dangling": [],
+    "standalone": true,
     "info": {
       "title": "Example",
       "version": "1.0.0",
@@ -99,14 +99,16 @@
         "pointer": "/paths/~1animals",
         "parent": "https://example.com/openapi.json#/paths",
         "original": "#/components/pathItems/Pets",
-        "destination": "https://example.com/openapi.json#/components/pathItems/Pets"
+        "destination": "https://example.com/openapi.json#/components/pathItems/Pets",
+        "dangling": false
       },
       "https://example.com/openapi.json#/paths/~1pets": {
         "type": "path-item",
         "pointer": "/paths/~1pets",
         "parent": "https://example.com/openapi.json#/paths",
         "original": "#/components/pathItems/Pets",
-        "destination": "https://example.com/openapi.json#/components/pathItems/Pets"
+        "destination": "https://example.com/openapi.json#/components/pathItems/Pets",
+        "dangling": false
       }
     },
     "operations": [

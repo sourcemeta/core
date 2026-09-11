@@ -33,9 +33,7 @@
   "frame": {
     "version": "3.1",
     "base": "https://example.com/openapi.json",
-    "dangling": [
-      "https://example.com/common.json#/components/parameters/Limit"
-    ],
+    "standalone": false,
     "info": {
       "title": "Example",
       "version": "1.0.0",
@@ -99,7 +97,8 @@
         "pointer": "/paths/~1pets/parameters/0",
         "parent": "https://example.com/openapi.json#/paths/~1pets",
         "original": "https://example.com/common.json#/components/parameters/Limit",
-        "destination": "https://example.com/common.json#/components/parameters/Limit"
+        "destination": "https://example.com/common.json#/components/parameters/Limit",
+        "dangling": true
       }
     },
     "operations": [

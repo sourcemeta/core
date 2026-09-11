@@ -43,7 +43,7 @@
   "frame": {
     "version": "3.1",
     "base": "https://example.com/openapi.json",
-    "dangling": [],
+    "standalone": true,
     "info": {
       "title": "Example",
       "version": "1.0.0",
@@ -124,7 +124,8 @@
         "pointer": "/paths/~1pets/parameters/0",
         "parent": "https://example.com/openapi.json#/paths/~1pets",
         "original": "#/components/parameters/Limit",
-        "destination": "https://example.com/openapi.json#/components/parameters/Limit"
+        "destination": "https://example.com/openapi.json#/components/parameters/Limit",
+        "dangling": false
       }
     },
     "operations": [

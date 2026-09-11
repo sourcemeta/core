@@ -20,7 +20,7 @@
   "frame": {
     "version": "3.1",
     "base": "https://example.com/openapi.json",
-    "dangling": [],
+    "standalone": true,
     "info": {
       "title": "Example",
       "version": "1.0.0",
@@ -52,7 +52,8 @@
         "pointer": "/components/responses/R",
         "parent": "https://example.com/openapi.json#/components",
         "original": "",
-        "destination": "https://example.com/openapi.json"
+        "destination": "https://example.com/openapi.json",
+        "dangling": false
       },
       "https://example.com/openapi.json#/info": {
         "type": "info",

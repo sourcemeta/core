@@ -39,7 +39,7 @@
   "frame": {
     "version": "3.2",
     "base": "",
-    "dangling": [],
+    "standalone": true,
     "info": {
       "title": "Example",
       "version": "1.0.0",
@@ -103,7 +103,8 @@
         "pointer": "/paths/~1a/post/requestBody/content/application~1json",
         "parent": "#/paths/~1a/post/requestBody",
         "original": "#/components/mediaTypes/Item",
-        "destination": "#/components/mediaTypes/Item"
+        "destination": "#/components/mediaTypes/Item",
+        "dangling": false
       },
       "#/paths/~1a/post/responses": {
         "type": "responses",
@@ -120,7 +121,8 @@
         "pointer": "/paths/~1a/post/responses/200/content/application~1json",
         "parent": "#/paths/~1a/post/responses/200",
         "original": "#/components/mediaTypes/Item",
-        "destination": "#/components/mediaTypes/Item"
+        "destination": "#/components/mediaTypes/Item",
+        "dangling": false
       }
     },
     "operations": [

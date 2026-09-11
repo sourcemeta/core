@@ -15,7 +15,7 @@
   "frame": {
     "version": "3.1",
     "base": "",
-    "dangling": [],
+    "standalone": true,
     "info": {
       "title": "API",
       "version": "1.0.0",

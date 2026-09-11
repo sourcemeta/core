@@ -163,6 +163,9 @@ struct OpenAPIReference {
   /// document it names and the fragment it carries are that string either side
   /// of its `#`, so neither is repeated here
   JSON::String destination;
+  /// Whether that destination is nowhere the frame holds, which is what makes
+  /// a description one that has to be made whole before it describes anything
+  bool dangling{false};
 };
 
 /// How an Operation Object is reached from the entry document. OpenAPI

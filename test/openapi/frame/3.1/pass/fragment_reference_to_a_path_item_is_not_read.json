@@ -15,9 +15,7 @@
   "frame": {
     "version": "3.1",
     "base": "https://example.com/openapi.json",
-    "dangling": [
-      "https://example.com/target.json#/anything"
-    ],
+    "standalone": false,
     "info": {
       "title": "Example",
       "version": "1.0.0",
@@ -49,7 +47,8 @@
         "pointer": "/paths/~1pets",
         "parent": "https://example.com/openapi.json#/paths",
         "original": "https://example.com/target.json#/anything",
-        "destination": "https://example.com/target.json#/anything"
+        "destination": "https://example.com/target.json#/anything",
+        "dangling": true
       }
     },
     "operations": []
