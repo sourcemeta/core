@@ -110,6 +110,7 @@ auto expand(const sourcemeta::core::JSON::String &value,
   constexpr auto PLACEHOLDER{"[PATH]"};
   const auto replacement{
       sourcemeta::core::URI::from_path(directory).recompose()};
+
   sourcemeta::core::JSON::String result{value};
   auto position{result.find(PLACEHOLDER)};
   while (position != sourcemeta::core::JSON::String::npos) {
@@ -118,6 +119,36 @@ auto expand(const sourcemeta::core::JSON::String &value,
   }
 
   return result;
+}
+
+// Whether a fixture spells the directory out anywhere rather than standing in
+// for it, which passes on whichever machine wrote it and nowhere else. That is
+// what recording what a run reported, without putting the placeholder back,
+// comes to
+auto mentions(const sourcemeta::core::JSON &value,
+              const sourcemeta::core::JSON::String &directory) -> bool {
+  if (value.is_string()) {
+    return value.to_string().find(directory) !=
+           sourcemeta::core::JSON::String::npos;
+  }
+
+  if (value.is_array()) {
+    return std::ranges::any_of(value.as_array(),
+                               [&directory](const auto &entry) -> bool {
+                                 return mentions(entry, directory);
+                               });
+  }
+
+  if (value.is_object()) {
+    return std::ranges::any_of(
+        value.as_object(), [&directory](const auto &entry) -> bool {
+          return entry.first.find(directory) !=
+                     sourcemeta::core::JSON::String::npos ||
+                 mentions(entry.second, directory);
+        });
+  }
+
+  return false;
 }
 
 // The placeholder stands anywhere a path may be written, including the keys a
@@ -477,16 +508,21 @@ auto register_tests(const std::filesystem::path &directory,
     std::string suite{"OpenAPIFrame_"};
     suite.append(version).append("_").append(outcome);
 
-    const auto test{expand_all(sourcemeta::core::read_json(entry.path()),
-                               entry.path().parent_path())};
-    sourcemeta::core::test_register(suite, name.str(), __FILE__, __LINE__,
-                                    [test, expect_success]() -> void {
-                                      if (expect_success) {
-                                        run_pass_test(test);
-                                      } else {
-                                        run_fail_test(test);
-                                      }
-                                    });
+    const auto original{sourcemeta::core::read_json(entry.path())};
+    const auto spelled_out{mentions(
+        original, sourcemeta::core::URI::from_path(entry.path().parent_path())
+                      .recompose())};
+    const auto test{expand_all(original, entry.path().parent_path())};
+    sourcemeta::core::test_register(
+        suite, name.str(), __FILE__, __LINE__,
+        [test, expect_success, spelled_out]() -> void {
+          EXPECT_FALSE(spelled_out);
+          if (expect_success) {
+            run_pass_test(test);
+          } else {
+            run_fail_test(test);
+          }
+        });
     count += 1;
   }
 
