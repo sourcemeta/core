@@ -11,11 +11,11 @@
     "mode": "root",
     "locations": {
       "static": {
-        "": {
+        "https://www.sourcemeta.com/test": {
           "parent": null,
           "type": "subschema",
           "root": null,
-          "base": "",
+          "base": "https://www.sourcemeta.com/test",
           "pointer": "",
           "relativePointer": "",
           "dialect": "https://json-schema.org/draft/2020-12/schema",

@@ -880,7 +880,8 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
   // sits under it from there rather than from the top of the document, which
   // is what an identifier does and what this deliberately does not
   if (!default_base.empty()) {
-    this->cache_->default_base = default_base;
+    this->cache_->default_base =
+        sourcemeta::core::URI::canonicalize(default_base);
     base_uris.insert(
         {sourcemeta::core::EMPTY_WEAK_POINTER, {this->cache_->default_base}});
   }
@@ -976,8 +977,9 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
         }
       }
 
-      const auto location_uri{
-          root_id.value_or(sourcemeta::core::JSON::String{})};
+      // A document that declares no identifier is still addressed by the base
+      // it was retrieved from, which is how every other mode addresses it
+      const auto location_uri{root_id.value_or(this->cache_->default_base)};
       store(this->locations_, max_locations, SchemaReferenceType::Static,
             root_id.has_value() ? SchemaFrame::LocationType::Resource
                                 : SchemaFrame::LocationType::Subschema,
@@ -1748,7 +1750,15 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
 
 auto SchemaFrame::root_location() const
     -> std::optional<std::reference_wrapper<const Location>> {
-  return this->traverse(this->root_);
+  const auto result{this->traverse(this->root_)};
+  if (result.has_value()) {
+    return result;
+  }
+
+  // A document that declares no identifier is addressed by the base it was
+  // retrieved from rather than by nothing at all, and where that lands
+  // depends on the mode, so look the document up by where it sits
+  return this->traverse(sourcemeta::core::EMPTY_WEAK_POINTER);
 }
 
 auto SchemaFrame::metaschema(const SchemaResolver &resolver) const
