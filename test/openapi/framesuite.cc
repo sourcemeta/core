@@ -9,7 +9,7 @@
 #include <filesystem>  // std::filesystem
 #include <functional>  // std::less
 #include <iostream>    // std::cerr
-#include <optional>    // std::nullopt
+#include <optional>    // std::nullopt, std::optional
 #include <set>         // std::set
 #include <sstream>     // std::ostringstream
 #include <string>      // std::string
@@ -121,34 +121,56 @@ auto expand(const sourcemeta::core::JSON::String &value,
   return result;
 }
 
-// Whether a fixture spells the directory out anywhere rather than standing in
-// for it, which passes on whichever machine wrote it and nowhere else. That is
-// what recording what a run reported, without putting the placeholder back,
-// comes to
-auto mentions(const sourcemeta::core::JSON &value,
-              const sourcemeta::core::JSON::String &directory) -> bool {
-  if (value.is_string()) {
-    return value.to_string().find(directory) !=
-           sourcemeta::core::JSON::String::npos;
-  }
+// Whether one string names the directory a fixture sits in. What follows the
+// name has to end the reference or begin a new segment of it, as a sibling
+// directory whose name merely starts the same way names somewhere else
+auto names(const sourcemeta::core::JSON::String &value,
+           const sourcemeta::core::JSON::String &directory) -> bool {
+  auto position{value.find(directory)};
+  while (position != sourcemeta::core::JSON::String::npos) {
+    const auto next{position + directory.size()};
+    if (next == value.size() || value.at(next) == '/') {
+      return true;
+    }
 
-  if (value.is_array()) {
-    return std::ranges::any_of(value.as_array(),
-                               [&directory](const auto &entry) -> bool {
-                                 return mentions(entry, directory);
-                               });
-  }
-
-  if (value.is_object()) {
-    return std::ranges::any_of(
-        value.as_object(), [&directory](const auto &entry) -> bool {
-          return entry.first.find(directory) !=
-                     sourcemeta::core::JSON::String::npos ||
-                 mentions(entry.second, directory);
-        });
+    position = value.find(directory, position + 1);
   }
 
   return false;
+}
+
+// Which string of a fixture spells that directory out rather than standing in
+// for it, if any does. Such a fixture passes on whichever machine wrote it and
+// nowhere else, which is what recording what a run reported, without putting
+// the placeholder back, comes to
+auto spelled_out_by(const sourcemeta::core::JSON &value,
+                    const sourcemeta::core::JSON::String &directory)
+    -> std::optional<sourcemeta::core::JSON::String> {
+  if (value.is_string()) {
+    if (names(value.to_string(), directory)) {
+      return value.to_string();
+    }
+  } else if (value.is_array()) {
+    for (const auto &entry : value.as_array()) {
+      const auto match{spelled_out_by(entry, directory)};
+      if (match.has_value()) {
+        return match;
+      }
+    }
+  } else if (value.is_object()) {
+    for (const auto &entry : value.as_object()) {
+      if (names(entry.first, directory)) {
+        return entry.first;
+      }
+
+      const auto match{spelled_out_by(entry.second, directory)};
+      if (match.has_value()) {
+        return match;
+      }
+    }
+  }
+
+  return std::nullopt;
 }
 
 // The placeholder stands anywhere a path may be written, including the keys a
@@ -509,14 +531,19 @@ auto register_tests(const std::filesystem::path &directory,
     suite.append(version).append("_").append(outcome);
 
     const auto original{sourcemeta::core::read_json(entry.path())};
-    const auto spelled_out{mentions(
+    const auto spelled_out{spelled_out_by(
         original, sourcemeta::core::URI::from_path(entry.path().parent_path())
                       .recompose())};
     const auto test{expand_all(original, entry.path().parent_path())};
     sourcemeta::core::test_register(
         suite, name.str(), __FILE__, __LINE__,
         [test, expect_success, spelled_out]() -> void {
-          EXPECT_FALSE(spelled_out);
+          if (spelled_out.has_value()) {
+            std::cerr << "Spells out the directory it sits in: "
+                      << spelled_out.value() << "\n";
+          }
+
+          EXPECT_FALSE(spelled_out.has_value());
           if (expect_success) {
             run_pass_test(test);
           } else {
