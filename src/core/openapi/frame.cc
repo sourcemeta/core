@@ -8,7 +8,6 @@
 
 #include <algorithm>   // std::ranges::all_of
 #include <cstddef>     // std::size_t
-#include <deque>       // std::deque
 #include <map>         // std::map
 #include <memory>      // std::make_unique
 #include <optional>    // std::optional
@@ -509,14 +508,10 @@ auto project(const sourcemeta::core::OpenAPIWalk &walk)
 }
 
 auto analyse(const sourcemeta::core::JSON &document,
-             const sourcemeta::core::OpenAPIResolver &resolver,
              sourcemeta::core::JSON::String base)
     -> sourcemeta::core::OpenAPIWalk {
   sourcemeta::core::OpenAPIWalk walk{
-      .resolver = resolver,
-      .base = base,
-      .documents = {},
-      .documents_by_uri = {},
+      .base = std::move(base),
       .document = &document,
       .operation_ids = {},
       .visited = {},
@@ -534,17 +529,9 @@ auto analyse(const sourcemeta::core::JSON &document,
       .tag_parents = {},
       .tag_names = {},
       .operation_id_links = {},
-      .entry = true,
       .version = sourcemeta::core::OpenAPIVersion::OPENAPI_3_1,
       .dialect = {},
       .info = {}};
-  // The entry document is one we already hold, so a reference that comes back
-  // round to it is not a document anybody needs to resolve
-  if (!base.empty()) {
-    walk.visited.insert(
-        {std::move(base), sourcemeta::core::OpenAPIObjectKind::Document});
-  }
-
   sourcemeta::core::openapi_check_document(document, walk);
   return walk;
 }
@@ -558,9 +545,6 @@ struct OpenAPIFrame::Internal {
   OpenAPIInfo info;
   // Canonicalising means this no longer borrows from what the caller passed
   JSON::String base;
-  // Held for as long as the frame is, as a resolver may hand back a document
-  // it owns and nothing else would keep it alive
-  std::deque<OpenAPIResolverResult> documents;
   bool standalone;
   std::map<JSON::String, OpenAPILocation> locations;
   std::map<JSON::String, OpenAPIReference> references;
@@ -568,10 +552,9 @@ struct OpenAPIFrame::Internal {
 };
 
 OpenAPIFrame::OpenAPIFrame(const JSON &document,
-                           const OpenAPIResolver &resolver,
                            const std::string_view default_base)
     : internal_{std::make_unique<Internal>()} {
-  auto walk{analyse(document, resolver, canonical_base(default_base))};
+  auto walk{analyse(document, canonical_base(default_base))};
   this->internal_->version = openapi_version(document).value();
   this->internal_->info = walk.info;
   // What the caller passed in is where the entry document was retrieved from,
@@ -597,7 +580,6 @@ OpenAPIFrame::OpenAPIFrame(const JSON &document,
 
   // Projecting reads the whole walk, so nothing is taken out of it until after
   this->internal_->operations = project(walk);
-  this->internal_->documents = std::move(walk.documents);
   this->internal_->locations = std::move(walk.locations);
   this->internal_->references = std::move(walk.references);
 }

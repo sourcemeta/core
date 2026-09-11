@@ -19,8 +19,8 @@ namespace {
 // Every key a fixture may declare. Anything else is a mistake that would
 // otherwise go unnoticed, as the runner would simply not read it
 // NOLINTBEGIN(cert-err58-cpp,bugprone-throwing-static-initialization)
-const std::vector<std::string> KNOWN_KEYS{
-    "document", "defaultBase", "resolver", "frame", "error", "dangling"};
+const std::vector<std::string> KNOWN_KEYS{"document", "defaultBase", "frame",
+                                          "error", "dangling"};
 const std::vector<std::string> KNOWN_ERROR_KEYS{"message", "location", "base"};
 const std::vector<std::string> KNOWN_METHODS{"get",    "put",     "post",
                                              "delete", "options", "head",
@@ -60,25 +60,6 @@ const std::vector<std::string> KNOWN_TYPES{"openapi",
 const std::vector<std::string> KNOWN_OPERATION_TYPES{"path", "webhook",
                                                      "callback"};
 // NOLINTEND(cert-err58-cpp,bugprone-throwing-static-initialization)
-
-auto make_resolver(const sourcemeta::core::JSON &test)
-    -> sourcemeta::core::OpenAPIResolver {
-  if (!test.defines("resolver")) {
-    return nullptr;
-  }
-
-  const auto &registry{test.at("resolver")};
-  return [registry](const std::string_view identifier)
-             -> sourcemeta::core::OpenAPIResolverResult {
-    const auto *match{
-        registry.try_at(sourcemeta::core::JSON::String{identifier})};
-    if (match != nullptr) {
-      return *match;
-    }
-
-    return std::nullopt;
-  };
-}
 
 // A frame keeps a view into the base it was given, so the base has to outlive
 // it. The caller owns this, as anything built inside the analysis would dangle
@@ -334,11 +315,9 @@ auto run_pass_test(const sourcemeta::core::JSON &test) -> void {
   check_known_keys(test);
   EXPECT_TRUE(test.defines("frame"));
 
-  const auto resolver{make_resolver(test)};
   const auto default_base{make_default_base(test)};
 
-  const sourcemeta::core::OpenAPIFrame frame{test.at("document"), resolver,
-                                             default_base};
+  const sourcemeta::core::OpenAPIFrame frame{test.at("document"), default_base};
   // The invariants come first because a failed expectation aborts the test. A
   // frame that contradicts itself is a deeper failure than one that merely
   // differs from what a fixture recorded, so it is the one worth reporting
@@ -356,12 +335,11 @@ auto run_fail_test(const sourcemeta::core::JSON &test) -> void {
                 KNOWN_ERROR_KEYS.cend());
   }
 
-  const auto resolver{make_resolver(test)};
   const auto default_base{make_default_base(test)};
 
   try {
     [[maybe_unused]] const sourcemeta::core::OpenAPIFrame frame{
-        test.at("document"), resolver, default_base};
+        test.at("document"), default_base};
     FAIL();
   } catch (const sourcemeta::core::OpenAPIError &error) {
     EXPECT_EQ(error.what(), test.at("error").at("message").to_string());

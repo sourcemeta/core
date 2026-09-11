@@ -14,7 +14,6 @@
     }
   },
   "defaultBase": "https://example.com/openapi.json",
-  "resolver": {},
   "frame": {
     "version": "3.1",
     "base": "https://example.com/openapi.json",

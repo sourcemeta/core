@@ -6,14 +6,12 @@
 #endif
 
 #include <sourcemeta/core/json.h>
-#include <sourcemeta/core/memory.h>
 
 // NOLINTBEGIN(misc-include-cleaner)
 #include <sourcemeta/core/openapi_error.h>
 // NOLINTEND(misc-include-cleaner)
 
 #include <cstdint>     // std::uint8_t
-#include <functional>  // std::function
 #include <memory>      // std::unique_ptr
 #include <optional>    // std::optional, std::nullopt
 #include <string_view> // std::string_view
@@ -114,18 +112,6 @@ struct OpenAPIInfo {
 };
 
 /// @ingroup openapi
-/// What a resolver hands back: either a document it owns or one that the
-/// caller keeps alive. The root of the result may be an OpenAPI Object or a
-/// Schema Object, as an OpenAPI Description may span both
-using OpenAPIResolverResult = OwnedOrReference<JSON>;
-
-/// @ingroup openapi
-/// Resolve a URI to a document that forms part of an OpenAPI Description. A
-/// resolver that never hands back a document confines framing to the entry
-/// document alone
-using OpenAPIResolver = std::function<OpenAPIResolverResult(std::string_view)>;
-
-/// @ingroup openapi
 /// A static analysis pass over an OpenAPI Description that computes the
 /// locations it exposes, the references between them, the operations it
 /// describes, and where its JSON Schemas begin. It does not look inside those
@@ -142,7 +128,7 @@ using OpenAPIResolver = std::function<OpenAPIResolverResult(std::string_view)>;
 ///   "paths": {}
 /// })")};
 ///
-/// const sourcemeta::core::OpenAPIFrame frame{document, nullptr};
+/// const sourcemeta::core::OpenAPIFrame frame{document};
 /// sourcemeta::core::prettify(frame.to_json(), std::cout);
 /// std::cout << std::endl;
 /// ```
@@ -150,23 +136,22 @@ using OpenAPIResolver = std::function<OpenAPIResolverResult(std::string_view)>;
 /// A frame is analysed once, on construction, and is immutable afterwards.
 class SOURCEMETA_CORE_OPENAPI_EXPORT OpenAPIFrame {
 public:
-  /// Frame an OpenAPI Description from a given entry document. The entry
-  /// document must outlive the frame, as the metadata it reports borrows from
-  /// it. The given base need not, as the frame canonicalises it into a string
-  /// of its own, and neither must a document that a reference brought in, as
-  /// the frame keeps whatever the resolver handed it.
+  /// Frame an OpenAPI Description from a given document. That document must
+  /// outlive the frame, as the metadata it reports borrows from it. The given
+  /// base need not, as the frame canonicalises it into a string of its own
   ///
-  /// The base is the retrieval URI of the entry document. OpenAPI 3.1 offers
-  /// a document no way of declaring an identity of its own, so under that
+  /// The base is the retrieval URI of the document. OpenAPI 3.1 offers a
+  /// document no way of declaring an identity of its own, so under that
   /// revision this is the only way to give the description one. From 3.2
   /// onwards a document may declare `$self`, which takes precedence and is
-  /// resolved against this when relative. A referenced document whose root
-  /// is a Schema Object may still override it through `$id`
+  /// resolved against this when relative
+  ///
+  /// Only the given document is read. A reference that leaves it is recorded
+  /// and left there, and a frame holding one of those does not stand alone
   ///
   /// A document that does not conform to the specification is rejected here
   /// rather than reported back
-  OpenAPIFrame(const JSON &document, const OpenAPIResolver &resolver,
-               std::string_view default_base = "");
+  OpenAPIFrame(const JSON &document, std::string_view default_base = "");
 
   ~OpenAPIFrame();
 

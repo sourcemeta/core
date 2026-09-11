@@ -56,16 +56,5 @@
   },
   "dangling": [
     "https://example.com/common.json#/components/responses/NotFound"
-  ],
-  "resolver": {
-    "https://example.com/common.json": {
-      "components": {
-        "responses": {
-          "NotFound": {
-            "nonsense": true
-          }
-        }
-      }
-    }
-  }
+  ]
 }

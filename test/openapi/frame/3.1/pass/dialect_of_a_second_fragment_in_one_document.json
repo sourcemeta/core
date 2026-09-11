@@ -19,35 +19,10 @@
     "paths": {}
   },
   "defaultBase": "https://example.com/openapi.json",
-  "resolver": {
-    "https://example.com/common.json": {
-      "openapi": "3.1.1",
-      "info": {
-        "title": "C",
-        "version": "1"
-      },
-      "jsonSchemaDialect": "https://example.com/target-dialect",
-      "components": {
-        "responses": {
-          "Plain": {
-            "description": "ok"
-          },
-          "WithSchema": {
-            "description": "ok",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          }
-        }
-      }
-    }
-  },
   "frame": {
     "version": "3.1",
     "base": "https://example.com/openapi.json",
-    "standalone": true,
+    "standalone": false,
     "info": {
       "title": "E",
       "version": "1",
@@ -58,44 +33,6 @@
       "license": null
     },
     "locations": {
-      "https://example.com/common.json": {
-        "type": "openapi",
-        "pointer": "",
-        "parent": null,
-        "dialect": "https://example.com/target-dialect"
-      },
-      "https://example.com/common.json#/components": {
-        "type": "components",
-        "pointer": "/components",
-        "parent": "https://example.com/common.json"
-      },
-      "https://example.com/common.json#/components/responses/Plain": {
-        "type": "response",
-        "pointer": "/components/responses/Plain",
-        "parent": "https://example.com/common.json#/components"
-      },
-      "https://example.com/common.json#/components/responses/WithSchema": {
-        "type": "response",
-        "pointer": "/components/responses/WithSchema",
-        "parent": "https://example.com/common.json#/components"
-      },
-      "https://example.com/common.json#/components/responses/WithSchema/content/application~1json": {
-        "type": "media-type",
-        "pointer": "/components/responses/WithSchema/content/application~1json",
-        "parent": "https://example.com/common.json#/components/responses/WithSchema"
-      },
-      "https://example.com/common.json#/components/responses/WithSchema/content/application~1json/schema": {
-        "type": "schema",
-        "pointer": "/components/responses/WithSchema/content/application~1json/schema",
-        "parent": "https://example.com/common.json#/components/responses/WithSchema/content/application~1json",
-        "dialect": "https://example.com/target-dialect",
-        "base": "https://example.com/common.json"
-      },
-      "https://example.com/common.json#/info": {
-        "type": "info",
-        "pointer": "/info",
-        "parent": "https://example.com/common.json"
-      },
       "https://example.com/openapi.json": {
         "type": "openapi",
         "pointer": "",
@@ -133,5 +70,9 @@
       }
     },
     "operations": []
-  }
+  },
+  "dangling": [
+    "https://example.com/common.json#/components/responses/Plain",
+    "https://example.com/common.json#/components/responses/WithSchema"
+  ]
 }

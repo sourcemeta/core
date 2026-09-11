@@ -9,7 +9,6 @@
 #include <array>            // std::array
 #include <cstddef>          // std::size_t
 #include <cstdint>          // std::uint8_t
-#include <deque>            // std::deque
 #include <initializer_list> // std::initializer_list
 #include <map>              // std::map
 #include <optional>         // std::optional
@@ -273,36 +272,13 @@ struct OpenAPILocation {
   JSON::String base;
 };
 
-/// A document the walk holds, and what it settled on once read. The base
-/// differs from the URI it was asked for when a document gives itself one,
-/// which from 3.2 onwards it may, and the revision is its own rather than that
-/// of whatever referenced it
-struct OpenAPIDocumentRecord {
-  /// The document itself, owned by whatever handed it over
-  const JSON *document;
-  /// The base every location in it is keyed by
-  JSON::String base;
-  /// The revision it declares, which is what its Objects are held to
-  OpenAPIVersion version;
-};
-
 // What every check needs to reach beyond the Object in front of it: the
 // document it is reading, so an error can name it, and the means to follow a
 // reference out of it. OpenAPI Specification 3.1.1, Section 4.8.10 makes
 // operation identifiers unique across the whole description rather than one
 // document, so the set that tracks them spans every document too
 struct OpenAPIWalk {
-  const OpenAPIResolver &resolver;
   JSON::String base;
-  /// Every document a reference brought in. A resolver may hand back a
-  /// document it owns rather than one the caller keeps alive, so reading one
-  /// must not be the last thing that happens to it. This is a deque rather
-  /// than a vector because the walk points into these while it reads them
-  std::deque<OpenAPIResolverResult> documents;
-  /// Every one of those by the URI it was asked for, so that a second
-  /// reference into a document already read can still have its own fragment
-  /// checked without the resolver being asked again
-  std::map<JSON::String, OpenAPIDocumentRecord> documents_by_uri;
   // The document the checks are reading, which a reference that stays inside
   // it resolves its fragment against
   const JSON *document{nullptr};
@@ -378,14 +354,8 @@ struct OpenAPIWalk {
   /// referenced documents prior to determining an `operationId` to be
   /// unresolvable", so nothing is decided about them until the walk is over
   std::map<JSON::String, JSON::String> operation_id_links;
-  /// Whether the document being read is the entry document, which is the only
-  /// one whose Paths Object describes the API
-  bool entry{true};
-  /// The revision the document being read declares, which is what settles
-  /// which field table each of its Objects is held to. A document a reference
-  /// brought in declares its own, and one holding a referenceable Object
-  /// rather than a Description declares none and is read as the document that
-  /// referenced it
+  /// The revision the document declares, which is what settles which field
+  /// table each of its Objects is held to
   OpenAPIVersion version{OpenAPIVersion::OPENAPI_3_1};
   /// The default `$schema` in force for the document being read, which every
   /// Schema Object position in it hands on

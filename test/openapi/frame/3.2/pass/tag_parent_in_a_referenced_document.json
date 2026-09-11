@@ -14,35 +14,10 @@
     }
   },
   "defaultBase": "https://example.com/openapi.json",
-  "resolver": {
-    "https://example.com/common.json": {
-      "openapi": "3.2.1",
-      "info": {
-        "title": "Shared",
-        "version": "1.0.0"
-      },
-      "components": {
-        "responses": {
-          "R": {
-            "description": "ok"
-          }
-        }
-      },
-      "tags": [
-        {
-          "name": "outer"
-        },
-        {
-          "name": "inner",
-          "parent": "outer"
-        }
-      ]
-    }
-  },
   "frame": {
     "version": "3.2",
     "base": "https://example.com/openapi.json",
-    "standalone": true,
+    "standalone": false,
     "info": {
       "title": "Example",
       "version": "1.0.0",
@@ -53,37 +28,6 @@
       "license": null
     },
     "locations": {
-      "https://example.com/common.json": {
-        "type": "openapi",
-        "pointer": "",
-        "parent": null,
-        "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17"
-      },
-      "https://example.com/common.json#/components": {
-        "type": "components",
-        "pointer": "/components",
-        "parent": "https://example.com/common.json"
-      },
-      "https://example.com/common.json#/components/responses/R": {
-        "type": "response",
-        "pointer": "/components/responses/R",
-        "parent": "https://example.com/common.json#/components"
-      },
-      "https://example.com/common.json#/info": {
-        "type": "info",
-        "pointer": "/info",
-        "parent": "https://example.com/common.json"
-      },
-      "https://example.com/common.json#/tags/0": {
-        "type": "tag",
-        "pointer": "/tags/0",
-        "parent": "https://example.com/common.json"
-      },
-      "https://example.com/common.json#/tags/1": {
-        "type": "tag",
-        "pointer": "/tags/1",
-        "parent": "https://example.com/common.json"
-      },
       "https://example.com/openapi.json": {
         "type": "openapi",
         "pointer": "",
@@ -109,5 +53,8 @@
       }
     },
     "operations": []
-  }
+  },
+  "dangling": [
+    "https://example.com/common.json#/components/responses/R"
+  ]
 }

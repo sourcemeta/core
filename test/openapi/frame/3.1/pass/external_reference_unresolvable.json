@@ -14,16 +14,6 @@
     }
   },
   "defaultBase": "https://example.com/openapi.json",
-  "resolver": {
-    "https://example.com/other.json": {
-      "openapi": "3.1.1",
-      "info": {
-        "title": "Common",
-        "version": "1.0.0"
-      },
-      "components": {}
-    }
-  },
   "frame": {
     "version": "3.1",
     "base": "https://example.com/openapi.json",

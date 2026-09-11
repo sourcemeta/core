@@ -12,11 +12,6 @@
     }
   },
   "defaultBase": "https://example.com/openapi.json",
-  "resolver": {
-    "https://example.com/target.json": {
-      "connect": {}
-    }
-  },
   "frame": {
     "version": "3.1",
     "base": "https://example.com/openapi.json",
