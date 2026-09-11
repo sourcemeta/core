@@ -121,15 +121,22 @@ auto expand(const sourcemeta::core::JSON::String &value,
   return result;
 }
 
-// Whether one string names the directory a fixture sits in. What follows the
-// name has to end the reference or begin a new segment of it, as a sibling
-// directory whose name merely starts the same way names somewhere else
+// Whether one string names the directory a fixture sits in. A sibling
+// directory whose name merely starts the same way names somewhere else, so
+// what follows has to be where the name of this one ends. RFC 3986 Section 3.3
+// says where that is:
+//
+//   The path is terminated by the first question mark ("?") or number sign
+//   ("#") character, or by the end of the URI
+//
+// and a further segment of the same path begins with a slash
 auto names(const sourcemeta::core::JSON::String &value,
            const sourcemeta::core::JSON::String &directory) -> bool {
   auto position{value.find(directory)};
   while (position != sourcemeta::core::JSON::String::npos) {
     const auto next{position + directory.size()};
-    if (next == value.size() || value.at(next) == '/') {
+    if (next == value.size() || value.at(next) == '/' ||
+        value.at(next) == '?' || value.at(next) == '#') {
       return true;
     }
 
@@ -556,6 +563,63 @@ auto register_tests(const std::filesystem::path &directory,
   return count;
 }
 
+// The check that keeps a fixture from recording what one machine reported is
+// itself a thing that can be wrong, and a fixture cannot cover it, as covering
+// it means committing a fixture that fails everywhere
+auto register_portability_tests() -> void {
+  const sourcemeta::core::JSON::String directory{"file:///home/one/pass"};
+
+  sourcemeta::core::test_register(
+      "OpenAPIFrameSuite", "names_what_sits_in_the_directory", __FILE__,
+      __LINE__, [directory]() -> void {
+        EXPECT_TRUE(names(directory + "/fixture.json", directory));
+        EXPECT_TRUE(names(directory + "/fixture.json#/info", directory));
+        EXPECT_TRUE(names(directory, directory));
+        EXPECT_TRUE(names(directory + "#/info", directory));
+        EXPECT_TRUE(names(directory + "?query=1", directory));
+      });
+
+  sourcemeta::core::test_register(
+      "OpenAPIFrameSuite", "names_nothing_that_merely_starts_the_same_way",
+      __FILE__, __LINE__, [directory]() -> void {
+        EXPECT_FALSE(names(directory + "2/fixture.json", directory));
+        EXPECT_FALSE(names(directory + "ing", directory));
+        EXPECT_FALSE(names("[PATH]/fixture.json", directory));
+        EXPECT_FALSE(names("file:///home/two/pass/fixture.json", directory));
+      });
+
+  sourcemeta::core::test_register(
+      "OpenAPIFrameSuite", "reports_which_string_spells_the_directory_out",
+      __FILE__, __LINE__, [directory]() -> void {
+        auto clean{sourcemeta::core::JSON::make_object()};
+        clean.assign("base", sourcemeta::core::JSON{"[PATH]/fixture.json"});
+        EXPECT_FALSE(spelled_out_by(clean, directory).has_value());
+
+        auto value{sourcemeta::core::JSON::make_object()};
+        value.assign("base",
+                     sourcemeta::core::JSON{directory + "/fixture.json"});
+        EXPECT_TRUE(spelled_out_by(value, directory).has_value());
+        EXPECT_EQ(spelled_out_by(value, directory).value(),
+                  directory + "/fixture.json");
+
+        auto key{sourcemeta::core::JSON::make_object()};
+        key.assign(directory + "/fixture.json#/info",
+                   sourcemeta::core::JSON{true});
+        EXPECT_TRUE(spelled_out_by(key, directory).has_value());
+        EXPECT_EQ(spelled_out_by(key, directory).value(),
+                  directory + "/fixture.json#/info");
+
+        auto nested{sourcemeta::core::JSON::make_object()};
+        auto entries{sourcemeta::core::JSON::make_array()};
+        entries.push_back(sourcemeta::core::JSON{"[PATH]/one.json"});
+        entries.push_back(sourcemeta::core::JSON{directory + "/two.json"});
+        nested.assign("locations", std::move(entries));
+        EXPECT_TRUE(spelled_out_by(nested, directory).has_value());
+        EXPECT_EQ(spelled_out_by(nested, directory).value(),
+                  directory + "/two.json");
+      });
+}
+
 } // namespace
 
 auto main(int argc, char **argv) -> int {
@@ -571,6 +635,8 @@ auto main(int argc, char **argv) -> int {
     passing += register_tests(version.path() / "pass", true);
     failing += register_tests(version.path() / "fail", false);
   }
+
+  register_portability_tests();
 
   // A fixture in the wrong place, or with the wrong extension, would otherwise
   // never run and nobody would notice
