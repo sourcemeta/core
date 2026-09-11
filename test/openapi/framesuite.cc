@@ -357,6 +357,16 @@ auto run_pass_test(const sourcemeta::core::JSON &test) -> void {
   EXPECT_EQ(result, test.at("frame"));
 }
 
+// What a Schema Object holds is JSON Schema's to make sense of, so what it
+// turns down is reported in its own terms rather than reworded here, and it
+// points within the schema rather than within the description
+auto check_schema_refusal(const sourcemeta::core::JSON &test,
+                          const std::string_view message) -> void {
+  EXPECT_EQ(message, test.at("error").at("message").to_string());
+  EXPECT_FALSE(test.at("error").defines("location"));
+  EXPECT_FALSE(test.at("error").defines("base"));
+}
+
 auto run_fail_test(const sourcemeta::core::JSON &test) -> void {
   check_known_keys(test);
   EXPECT_TRUE(test.defines("error"));
@@ -392,14 +402,19 @@ auto run_fail_test(const sourcemeta::core::JSON &test) -> void {
     const auto *base{test.at("error").try_at("base")};
     EXPECT_EQ(error.base(),
               base == nullptr ? make_default_base(test) : base->to_string());
-  } catch (const std::exception &error) {
-    // What a Schema Object holds is JSON Schema's to make sense of, so what it
-    // turns down is reported in its own terms rather than reworded here, and
-    // it points within the schema rather than within the description
+  } catch (const sourcemeta::core::SchemaResolutionError &error) {
     refused = true;
-    EXPECT_EQ(error.what(), test.at("error").at("message").to_string());
-    EXPECT_FALSE(test.at("error").defines("location"));
-    EXPECT_FALSE(test.at("error").defines("base"));
+    check_schema_refusal(test, error.what());
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    refused = true;
+    check_schema_refusal(test, error.what());
+  } catch (const std::exception &error) {
+    // Every way a description can be turned down is named above, so anything
+    // else is a refusal this runner has no account of rather than one to let
+    // through. What it was is printed on the way out, as naming it here too
+    // is the fix
+    std::cerr << "Unaccounted refusal: " << error.what() << "\n";
+    FAIL();
   }
 
   EXPECT_TRUE(refused);
