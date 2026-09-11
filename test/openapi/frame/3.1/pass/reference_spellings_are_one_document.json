@@ -17,22 +17,6 @@
     }
   },
   "defaultBase": "https://example.com/openapi.json",
-  "resolver": {
-    "https://example.com/common.json": {
-      "openapi": "3.1.1",
-      "info": {
-        "title": "Common",
-        "version": "1.0.0"
-      },
-      "components": {
-        "responses": {
-          "NotFound": {
-            "description": "ok"
-          }
-        }
-      }
-    }
-  },
   "frame": {
     "version": "3.1",
     "base": "https://example.com/openapi.json",
@@ -47,27 +31,6 @@
       "license": null
     },
     "locations": {
-      "https://example.com/common.json": {
-        "type": "openapi",
-        "pointer": "",
-        "parent": null,
-        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
-      },
-      "https://example.com/common.json#/components": {
-        "type": "components",
-        "pointer": "/components",
-        "parent": "https://example.com/common.json"
-      },
-      "https://example.com/common.json#/components/responses/NotFound": {
-        "type": "response",
-        "pointer": "/components/responses/NotFound",
-        "parent": "https://example.com/common.json#/components"
-      },
-      "https://example.com/common.json#/info": {
-        "type": "info",
-        "pointer": "/info",
-        "parent": "https://example.com/common.json"
-      },
       "https://example.com/openapi.json": {
         "type": "openapi",
         "pointer": "",
@@ -84,14 +47,16 @@
         "pointer": "/components/responses/A",
         "parent": "https://example.com/openapi.json#/components",
         "original": "https://example.com/common.json#/components/responses/NotFound",
-        "destination": "https://example.com/common.json#/components/responses/NotFound"
+        "destination": "https://example.com/common.json#/components/responses/NotFound",
+        "dangling": true
       },
       "https://example.com/openapi.json#/components/responses/B": {
         "type": "reference",
         "pointer": "/components/responses/B",
         "parent": "https://example.com/openapi.json#/components",
         "original": "HTTPS://Example.COM:443/common.json#/x",
-        "destination": "https://example.com/common.json#/x"
+        "destination": "https://example.com/common.json#/x",
+        "dangling": true
       },
       "https://example.com/openapi.json#/info": {
         "type": "info",
@@ -100,8 +65,5 @@
       }
     },
     "operations": []
-  },
-  "dangling": [
-    "https://example.com/common.json#/x"
-  ]
+  }
 }

@@ -8,7 +8,6 @@
 
 #include <algorithm>   // std::ranges::all_of
 #include <cstddef>     // std::size_t
-#include <deque>       // std::deque
 #include <map>         // std::map
 #include <memory>      // std::make_unique
 #include <optional>    // std::optional
@@ -509,14 +508,10 @@ auto project(const sourcemeta::core::OpenAPIWalk &walk)
 }
 
 auto analyse(const sourcemeta::core::JSON &document,
-             const sourcemeta::core::OpenAPIResolver &resolver,
              sourcemeta::core::JSON::String base)
     -> sourcemeta::core::OpenAPIWalk {
   sourcemeta::core::OpenAPIWalk walk{
-      .resolver = resolver,
-      .base = base,
-      .documents = {},
-      .documents_by_uri = {},
+      .base = std::move(base),
       .document = &document,
       .operation_ids = {},
       .visited = {},
@@ -534,17 +529,9 @@ auto analyse(const sourcemeta::core::JSON &document,
       .tag_parents = {},
       .tag_names = {},
       .operation_id_links = {},
-      .entry = true,
       .version = sourcemeta::core::OpenAPIVersion::OPENAPI_3_1,
       .dialect = {},
       .info = {}};
-  // The entry document is one we already hold, so a reference that comes back
-  // round to it is not a document anybody needs to resolve
-  if (!base.empty()) {
-    walk.visited.insert(
-        {std::move(base), sourcemeta::core::OpenAPIObjectKind::Document});
-  }
-
   sourcemeta::core::openapi_check_document(document, walk);
   return walk;
 }
@@ -558,9 +545,6 @@ struct OpenAPIFrame::Internal {
   OpenAPIInfo info;
   // Canonicalising means this no longer borrows from what the caller passed
   JSON::String base;
-  // Held for as long as the frame is, as a resolver may hand back a document
-  // it owns and nothing else would keep it alive
-  std::deque<OpenAPIResolverResult> documents;
   bool standalone;
   std::map<JSON::String, OpenAPILocation> locations;
   std::map<JSON::String, OpenAPIReference> references;
@@ -568,10 +552,9 @@ struct OpenAPIFrame::Internal {
 };
 
 OpenAPIFrame::OpenAPIFrame(const JSON &document,
-                           const OpenAPIResolver &resolver,
                            const std::string_view default_base)
     : internal_{std::make_unique<Internal>()} {
-  auto walk{analyse(document, resolver, canonical_base(default_base))};
+  auto walk{analyse(document, canonical_base(default_base))};
   this->internal_->version = openapi_version(document).value();
   this->internal_->info = walk.info;
   // What the caller passed in is where the entry document was retrieved from,
@@ -579,17 +562,23 @@ OpenAPIFrame::OpenAPIFrame(const JSON &document,
   // the walk settles and everything it holds is keyed by
   this->internal_->base = std::move(walk.base);
   // A frame stands alone when everything it references is inside it, which is
-  // what a caller asks before deciding whether it has the whole description
-  this->internal_->standalone = std::ranges::all_of(
-      walk.references, [&walk](const auto &reference) -> bool {
-        return walk.locations.contains(reference.second.destination);
-      });
+  // what a caller asks before deciding whether it has the whole description.
+  // Which references leave it is what making it whole comes down to, so each
+  // one says so of itself rather than only the description as a whole
+  this->internal_->standalone = true;
+  for (auto &reference : walk.references) {
+    reference.second.dangling =
+        !walk.locations.contains(reference.second.destination);
+    if (reference.second.dangling) {
+      this->internal_->standalone = false;
+    }
+  }
 
   // Section 4.3.3 has resolving a Link Object `operationId` require "parsing
   // all referenced documents prior to determining an `operationId` to be
   // unresolvable". A description we do not hold in full is one we cannot say
   // that of, so a frame that does not stand alone says nothing here
-  if (this->internal_->standalone) {
+  if (this->standalone()) {
     check_operation_id_links(walk);
   }
 
@@ -597,7 +586,6 @@ OpenAPIFrame::OpenAPIFrame(const JSON &document,
 
   // Projecting reads the whole walk, so nothing is taken out of it until after
   this->internal_->operations = project(walk);
-  this->internal_->documents = std::move(walk.documents);
   this->internal_->locations = std::move(walk.locations);
   this->internal_->references = std::move(walk.references);
 }
@@ -660,6 +648,7 @@ auto OpenAPIFrame::to_json() const -> JSON {
       entry.assign_assume_new("original", JSON{reference->second.original});
       entry.assign_assume_new("destination",
                               JSON{reference->second.destination});
+      entry.assign_assume_new("dangling", JSON{reference->second.dangling});
     }
 
     locations.assign_assume_new(location.first, std::move(entry));

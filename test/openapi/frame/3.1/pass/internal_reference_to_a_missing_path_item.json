@@ -55,12 +55,10 @@
         "pointer": "/paths/~1pets",
         "parent": "https://example.com/openapi.json#/paths",
         "original": "#/components/pathItems/Missing",
-        "destination": "https://example.com/openapi.json#/components/pathItems/Missing"
+        "destination": "https://example.com/openapi.json#/components/pathItems/Missing",
+        "dangling": true
       }
     },
     "operations": []
-  },
-  "dangling": [
-    "https://example.com/openapi.json#/components/pathItems/Missing"
-  ]
+  }
 }

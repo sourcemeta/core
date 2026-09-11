@@ -78,7 +78,8 @@
         "pointer": "/paths/~1pets~1{petId}/parameters/0",
         "parent": "https://example.com/openapi.json#/paths/~1pets~1%7BpetId%7D",
         "original": "https://example.com/common.json#/components/parameters/PetId",
-        "destination": "https://example.com/common.json#/components/parameters/PetId"
+        "destination": "https://example.com/common.json#/components/parameters/PetId",
+        "dangling": true
       }
     },
     "operations": [
@@ -96,8 +97,5 @@
         ]
       }
     ]
-  },
-  "dangling": [
-    "https://example.com/common.json#/components/parameters/PetId"
-  ]
+  }
 }

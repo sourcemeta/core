@@ -102,7 +102,8 @@
         "pointer": "/paths/~1pets/get/parameters/0",
         "parent": "https://example.com/openapi.json#/paths/~1pets/get",
         "original": "#/components/parameters/Limit",
-        "destination": "https://example.com/openapi.json#/components/parameters/Limit"
+        "destination": "https://example.com/openapi.json#/components/parameters/Limit",
+        "dangling": false
       },
       "https://example.com/openapi.json#/paths/~1pets/get/responses": {
         "type": "responses",

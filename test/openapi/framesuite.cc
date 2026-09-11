@@ -7,8 +7,10 @@
 #include <algorithm>   // std::ranges::find
 #include <cstddef>     // std::size_t
 #include <filesystem>  // std::filesystem
+#include <functional>  // std::less
 #include <iostream>    // std::cerr
 #include <optional>    // std::nullopt
+#include <set>         // std::set
 #include <sstream>     // std::ostringstream
 #include <string>      // std::string
 #include <string_view> // std::string_view
@@ -19,8 +21,8 @@ namespace {
 // Every key a fixture may declare. Anything else is a mistake that would
 // otherwise go unnoticed, as the runner would simply not read it
 // NOLINTBEGIN(cert-err58-cpp,bugprone-throwing-static-initialization)
-const std::vector<std::string> KNOWN_KEYS{
-    "document", "defaultBase", "resolver", "frame", "error", "dangling"};
+const std::vector<std::string> KNOWN_KEYS{"document", "defaultBase", "frame",
+                                          "error"};
 const std::vector<std::string> KNOWN_ERROR_KEYS{"message", "location", "base"};
 const std::vector<std::string> KNOWN_METHODS{"get",    "put",     "post",
                                              "delete", "options", "head",
@@ -60,25 +62,6 @@ const std::vector<std::string> KNOWN_TYPES{"openapi",
 const std::vector<std::string> KNOWN_OPERATION_TYPES{"path", "webhook",
                                                      "callback"};
 // NOLINTEND(cert-err58-cpp,bugprone-throwing-static-initialization)
-
-auto make_resolver(const sourcemeta::core::JSON &test)
-    -> sourcemeta::core::OpenAPIResolver {
-  if (!test.defines("resolver")) {
-    return nullptr;
-  }
-
-  const auto &registry{test.at("resolver")};
-  return [registry](const std::string_view identifier)
-             -> sourcemeta::core::OpenAPIResolverResult {
-    const auto *match{
-        registry.try_at(sourcemeta::core::JSON::String{identifier})};
-    if (match != nullptr) {
-      return *match;
-    }
-
-    return std::nullopt;
-  };
-}
 
 // A frame keeps a view into the base it was given, so the base has to outlive
 // it. The caller owns this, as anything built inside the analysis would dangle
@@ -157,11 +140,8 @@ auto check_known_keys(const sourcemeta::core::JSON &test) -> void {
 // A frame is a graph written down as text, and every edge in it is a key into
 // the same map. These hold whatever the description was, so the suite asserts
 // them on every fixture rather than on the handful that thought to look
-auto check_frame_invariants(const sourcemeta::core::JSON &frame,
-                            const sourcemeta::core::JSON &test) -> void {
+auto check_frame_invariants(const sourcemeta::core::JSON &frame) -> void {
   const auto &locations{frame.at("locations")};
-  const auto *dangling{test.try_at("dangling")};
-  std::vector<sourcemeta::core::JSON> unresolved;
 
   // The entry document is an Object like any other, so the base names it, and
   // what it names is the OpenAPI Object at its root
@@ -170,11 +150,6 @@ auto check_frame_invariants(const sourcemeta::core::JSON &frame,
   if (locations.defines(base)) {
     EXPECT_EQ(locations.at(base).at("type").to_string(), "openapi");
   }
-
-  // A frame stands alone when everything it references is inside it, which is
-  // exactly the set of destinations a fixture had to declare
-  EXPECT_EQ(frame.at("standalone").to_boolean(),
-            dangling == nullptr || dangling->empty());
 
   for (const auto &entry : locations.as_object()) {
     // A location carries its pointer, and its key is that pointer hung off the
@@ -232,27 +207,24 @@ auto check_frame_invariants(const sourcemeta::core::JSON &frame,
 
     EXPECT_TRUE(type == "reference" || type == "path-item" || type == "link");
 
-    // Where a reference lands is a key into this same map, unless the fixture
-    // says the walk was never in a position to read it
-    const auto &destination{entry.second.at("destination")};
-    if (locations.defines(destination.to_string())) {
-      continue;
-    }
-
-    unresolved.push_back(destination);
-    EXPECT_TRUE(dangling != nullptr &&
-                std::ranges::find(dangling->as_array(), destination) !=
-                    dangling->as_array().cend());
+    // Where a reference lands is a key into this same map, and a reference
+    // says of itself whether it is one of those, which is what the walk was
+    // never in a position to read
+    const auto &destination{entry.second.at("destination").to_string()};
+    EXPECT_EQ(entry.second.at("dangling").to_boolean(),
+              !locations.defines(destination));
   }
 
-  // An exemption for a destination that now resolves, or that nothing points
-  // at any more, quietly stops meaning anything, so every one a fixture
-  // declares has to still be earned
-  if (dangling != nullptr) {
-    for (const auto &entry : dangling->as_array()) {
-      EXPECT_TRUE(std::ranges::find(unresolved, entry) != unresolved.cend());
-    }
-  }
+  // A description stands alone when nothing it references leaves it, so the
+  // two ways the frame says so have to be the one fact. This asks the
+  // locations again rather than carrying an answer out of the loop above, so
+  // that a check added there can never quietly narrow what this covers
+  EXPECT_EQ(frame.at("standalone").to_boolean(),
+            std::ranges::none_of(
+                locations.as_object(), [](const auto &entry) -> bool {
+                  return entry.second.defines("dangling") &&
+                         entry.second.at("dangling").to_boolean();
+                }));
 
   for (const auto &operation : frame.at("operations").as_array()) {
     // Every operation the description exposes is an Operation Object that the
@@ -334,16 +306,14 @@ auto run_pass_test(const sourcemeta::core::JSON &test) -> void {
   check_known_keys(test);
   EXPECT_TRUE(test.defines("frame"));
 
-  const auto resolver{make_resolver(test)};
   const auto default_base{make_default_base(test)};
 
-  const sourcemeta::core::OpenAPIFrame frame{test.at("document"), resolver,
-                                             default_base};
+  const sourcemeta::core::OpenAPIFrame frame{test.at("document"), default_base};
   // The invariants come first because a failed expectation aborts the test. A
   // frame that contradicts itself is a deeper failure than one that merely
   // differs from what a fixture recorded, so it is the one worth reporting
   const auto result{frame.to_json()};
-  check_frame_invariants(result, test);
+  check_frame_invariants(result);
   EXPECT_EQ(result, test.at("frame"));
 }
 
@@ -356,12 +326,11 @@ auto run_fail_test(const sourcemeta::core::JSON &test) -> void {
                 KNOWN_ERROR_KEYS.cend());
   }
 
-  const auto resolver{make_resolver(test)};
   const auto default_base{make_default_base(test)};
 
   try {
     [[maybe_unused]] const sourcemeta::core::OpenAPIFrame frame{
-        test.at("document"), resolver, default_base};
+        test.at("document"), default_base};
     FAIL();
   } catch (const sourcemeta::core::OpenAPIError &error) {
     EXPECT_EQ(error.what(), test.at("error").at("message").to_string());

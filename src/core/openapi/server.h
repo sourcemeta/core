@@ -332,9 +332,7 @@ inline auto openapi_check_servers(const JSON &document, OpenAPIWalk &walk)
   // Section 4.3.3: "only the entry document's Paths Object contributes URLs to
   // the described API", which makes the entry document's servers the deployment
   // information that every operation falls back on
-  if (walk.entry) {
-    walk.servers = std::move(locations);
-  }
+  walk.servers = std::move(locations);
 }
 
 } // namespace sourcemeta::core

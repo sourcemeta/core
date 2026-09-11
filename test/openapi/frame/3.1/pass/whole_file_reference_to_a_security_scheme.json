@@ -14,17 +14,10 @@
     }
   },
   "defaultBase": "https://example.com/openapi.json",
-  "resolver": {
-    "https://example.com/target.json": {
-      "type": "apiKey",
-      "name": "X-Key",
-      "in": "header"
-    }
-  },
   "frame": {
     "version": "3.1",
     "base": "https://example.com/openapi.json",
-    "standalone": true,
+    "standalone": false,
     "info": {
       "title": "Example",
       "version": "1.0.0",
@@ -51,17 +44,13 @@
         "pointer": "/components/securitySchemes/S",
         "parent": "https://example.com/openapi.json#/components",
         "original": "https://example.com/target.json",
-        "destination": "https://example.com/target.json"
+        "destination": "https://example.com/target.json",
+        "dangling": true
       },
       "https://example.com/openapi.json#/info": {
         "type": "info",
         "pointer": "/info",
         "parent": "https://example.com/openapi.json"
-      },
-      "https://example.com/target.json": {
-        "type": "security-scheme",
-        "pointer": "",
-        "parent": null
       }
     },
     "operations": []

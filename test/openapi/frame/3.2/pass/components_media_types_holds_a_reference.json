@@ -46,7 +46,8 @@
         "pointer": "/components/mediaTypes/Alias",
         "parent": "#/components",
         "original": "#/components/mediaTypes/Item",
-        "destination": "#/components/mediaTypes/Item"
+        "destination": "#/components/mediaTypes/Item",
+        "dangling": false
       },
       "#/components/mediaTypes/Item": {
         "type": "media-type",

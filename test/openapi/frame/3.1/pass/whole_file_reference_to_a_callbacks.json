@@ -14,23 +14,10 @@
     }
   },
   "defaultBase": "https://example.com/openapi.json",
-  "resolver": {
-    "https://example.com/target.json": {
-      "{$request.body#/url}": {
-        "post": {
-          "responses": {
-            "200": {
-              "description": "ok"
-            }
-          }
-        }
-      }
-    }
-  },
   "frame": {
     "version": "3.1",
     "base": "https://example.com/openapi.json",
-    "standalone": true,
+    "standalone": false,
     "info": {
       "title": "Example",
       "version": "1.0.0",
@@ -57,37 +44,13 @@
         "pointer": "/components/callbacks/C",
         "parent": "https://example.com/openapi.json#/components",
         "original": "https://example.com/target.json",
-        "destination": "https://example.com/target.json"
+        "destination": "https://example.com/target.json",
+        "dangling": true
       },
       "https://example.com/openapi.json#/info": {
         "type": "info",
         "pointer": "/info",
         "parent": "https://example.com/openapi.json"
-      },
-      "https://example.com/target.json": {
-        "type": "callback",
-        "pointer": "",
-        "parent": null
-      },
-      "https://example.com/target.json#/%7B$request.body%23~1url%7D": {
-        "type": "path-item",
-        "pointer": "/{$request.body#~1url}",
-        "parent": "https://example.com/target.json"
-      },
-      "https://example.com/target.json#/%7B$request.body%23~1url%7D/post": {
-        "type": "operation",
-        "pointer": "/{$request.body#~1url}/post",
-        "parent": "https://example.com/target.json#/%7B$request.body%23~1url%7D"
-      },
-      "https://example.com/target.json#/%7B$request.body%23~1url%7D/post/responses": {
-        "type": "responses",
-        "pointer": "/{$request.body#~1url}/post/responses",
-        "parent": "https://example.com/target.json#/%7B$request.body%23~1url%7D/post"
-      },
-      "https://example.com/target.json#/%7B$request.body%23~1url%7D/post/responses/200": {
-        "type": "response",
-        "pointer": "/{$request.body#~1url}/post/responses/200",
-        "parent": "https://example.com/target.json#/%7B$request.body%23~1url%7D/post/responses"
       }
     },
     "operations": []

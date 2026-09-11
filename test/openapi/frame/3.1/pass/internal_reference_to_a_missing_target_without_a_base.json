@@ -43,7 +43,8 @@
         "pointer": "/components/responses/R",
         "parent": "#/components",
         "original": "#/components/responses/Missing",
-        "destination": "#/components/responses/Missing"
+        "destination": "#/components/responses/Missing",
+        "dangling": true
       },
       "#/info": {
         "type": "info",
@@ -52,8 +53,5 @@
       }
     },
     "operations": []
-  },
-  "dangling": [
-    "#/components/responses/Missing"
-  ]
+  }
 }

@@ -163,7 +163,8 @@
         "pointer": "/components/parameters/Examples/examples/Ref",
         "parent": "#/components/parameters/Examples",
         "original": "#/components/examples/One",
-        "destination": "#/components/examples/One"
+        "destination": "#/components/examples/One",
+        "dangling": false
       },
       "#/components/parameters/Examples/schema": {
         "type": "schema",

@@ -85,7 +85,8 @@
         "pointer": "/paths/~1pets",
         "parent": "https://example.com/openapi.json#/paths",
         "original": "#/components/pathItems/Pets",
-        "destination": "https://example.com/openapi.json#/components/pathItems/Pets"
+        "destination": "https://example.com/openapi.json#/components/pathItems/Pets",
+        "dangling": false
       }
     },
     "operations": [

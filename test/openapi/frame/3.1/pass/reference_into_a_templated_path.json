@@ -63,7 +63,8 @@
         "pointer": "/components/responses/A",
         "parent": "https://example.com/openapi.json#/components",
         "original": "#/paths/~1pets~1%7BpetId%7D/get/responses/200",
-        "destination": "https://example.com/openapi.json#/paths/~1pets~1%7BpetId%7D/get/responses/200"
+        "destination": "https://example.com/openapi.json#/paths/~1pets~1%7BpetId%7D/get/responses/200",
+        "dangling": false
       },
       "https://example.com/openapi.json#/info": {
         "type": "info",

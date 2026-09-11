@@ -69,7 +69,8 @@
         "pointer": "/paths/~1pets",
         "parent": "#/paths",
         "original": "#/components/pathItems/Pets",
-        "destination": "#/components/pathItems/Pets"
+        "destination": "#/components/pathItems/Pets",
+        "dangling": false
       },
       "#/paths/~1pets/get": {
         "type": "operation",

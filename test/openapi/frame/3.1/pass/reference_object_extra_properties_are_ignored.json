@@ -62,7 +62,8 @@
         "pointer": "/components/responses/R",
         "parent": "#/components",
         "original": "#/components/responses/Other",
-        "destination": "#/components/responses/Other"
+        "destination": "#/components/responses/Other",
+        "dangling": false
       },
       "#/info": {
         "type": "info",

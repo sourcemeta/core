@@ -113,7 +113,8 @@
         "pointer": "/paths/~1pets/get/callbacks/onData/{$request.body#~1url}",
         "parent": "https://example.com/openapi.json#/paths/~1pets/get/callbacks/onData",
         "original": "#/components/pathItems/OnData",
-        "destination": "https://example.com/openapi.json#/components/pathItems/OnData"
+        "destination": "https://example.com/openapi.json#/components/pathItems/OnData",
+        "dangling": false
       },
       "https://example.com/openapi.json#/paths/~1pets/get/responses": {
         "type": "responses",

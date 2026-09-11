@@ -55,7 +55,8 @@
         "pointer": "/components/responses/R",
         "parent": "https://example.com/openapi.json#/components",
         "original": "#/paths/~1pets/get/responses/200",
-        "destination": "https://example.com/openapi.json#/paths/~1pets/get/responses/200"
+        "destination": "https://example.com/openapi.json#/paths/~1pets/get/responses/200",
+        "dangling": false
       },
       "https://example.com/openapi.json#/info": {
         "type": "info",

@@ -211,12 +211,10 @@ inline auto openapi_check_paths(const JSON &document, OpenAPIWalk &walk)
     // Section 4.3.3: "only the entry document's Paths Object contributes URLs
     // to the described API", so a Paths Object in a document a reference
     // brought in describes nothing
-    if (walk.entry) {
-      walk.endpoints.push_back(
-          {.kind = OpenAPIOperationKind::Path,
-           .path = entry.first,
-           .path_item = openapi_location_uri(walk.base, location)});
-    }
+    walk.endpoints.push_back(
+        {.kind = OpenAPIOperationKind::Path,
+         .path = entry.first,
+         .path_item = openapi_location_uri(walk.base, location)});
   }
 }
 
@@ -238,12 +236,10 @@ inline auto openapi_check_webhooks(const JSON &document, OpenAPIWalk &walk)
   for (const auto &entry : webhooks->as_object()) {
     const auto location{openapi_child(base, entry.first)};
     openapi_check_path_item(entry.second, location, walk);
-    if (walk.entry) {
-      walk.endpoints.push_back(
-          {.kind = OpenAPIOperationKind::Webhook,
-           .path = entry.first,
-           .path_item = openapi_location_uri(walk.base, location)});
-    }
+    walk.endpoints.push_back(
+        {.kind = OpenAPIOperationKind::Webhook,
+         .path = entry.first,
+         .path_item = openapi_location_uri(walk.base, location)});
   }
 }
 

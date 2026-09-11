@@ -14,12 +14,6 @@
     }
   },
   "defaultBase": "https://example.com/openapi.json",
-  "resolver": {
-    "https://example.com/target.json": {
-      "in": "query",
-      "schema": {}
-    }
-  },
   "frame": {
     "version": "3.1",
     "base": "https://example.com/openapi.json",
@@ -50,7 +44,8 @@
         "pointer": "/components/parameters/P",
         "parent": "https://example.com/openapi.json#/components",
         "original": "https://example.com/target.json#/anything",
-        "destination": "https://example.com/target.json#/anything"
+        "destination": "https://example.com/target.json#/anything",
+        "dangling": true
       },
       "https://example.com/openapi.json#/info": {
         "type": "info",
@@ -59,8 +54,5 @@
       }
     },
     "operations": []
-  },
-  "dangling": [
-    "https://example.com/target.json#/anything"
-  ]
+  }
 }

@@ -88,14 +88,16 @@
         "pointer": "/paths/~1a",
         "parent": "https://example.com/openapi.json#/paths",
         "original": "#/components/pathItems/Shared",
-        "destination": "https://example.com/openapi.json#/components/pathItems/Shared"
+        "destination": "https://example.com/openapi.json#/components/pathItems/Shared",
+        "dangling": false
       },
       "https://example.com/openapi.json#/paths/~1b": {
         "type": "path-item",
         "pointer": "/paths/~1b",
         "parent": "https://example.com/openapi.json#/paths",
         "original": "#/components/pathItems/Shared",
-        "destination": "https://example.com/openapi.json#/components/pathItems/Shared"
+        "destination": "https://example.com/openapi.json#/components/pathItems/Shared",
+        "dangling": false
       }
     },
     "operations": [

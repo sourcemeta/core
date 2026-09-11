@@ -75,35 +75,40 @@
         "pointer": "/components/responses/Absolute",
         "parent": "#/components",
         "original": "https://example.com/common.yaml#/components/responses/NotFound",
-        "destination": "https://example.com/common.yaml#/components/responses/NotFound"
+        "destination": "https://example.com/common.yaml#/components/responses/NotFound",
+        "dangling": true
       },
       "#/components/responses/AbsolutePath": {
         "type": "reference",
         "pointer": "/components/responses/AbsolutePath",
         "parent": "#/components",
         "original": "/shared/common.yaml#/components/responses/NotFound",
-        "destination": "/shared/common.yaml#/components/responses/NotFound"
+        "destination": "/shared/common.yaml#/components/responses/NotFound",
+        "dangling": true
       },
       "#/components/responses/Empty": {
         "type": "reference",
         "pointer": "/components/responses/Empty",
         "parent": "#/components",
         "original": "",
-        "destination": ""
+        "destination": "",
+        "dangling": false
       },
       "#/components/responses/Escaped": {
         "type": "reference",
         "pointer": "/components/responses/Escaped",
         "parent": "#/components",
         "original": "#/paths/~1pets/get/responses/200",
-        "destination": "#/paths/~1pets/get/responses/200"
+        "destination": "#/paths/~1pets/get/responses/200",
+        "dangling": false
       },
       "#/components/responses/NoFragment": {
         "type": "reference",
         "pointer": "/components/responses/NoFragment",
         "parent": "#/components",
         "original": "common.yaml",
-        "destination": "common.yaml"
+        "destination": "common.yaml",
+        "dangling": true
       },
       "#/components/responses/Other": {
         "type": "response",
@@ -115,14 +120,16 @@
         "pointer": "/components/responses/RelativeDocument",
         "parent": "#/components",
         "original": "common.yaml#/components/responses/NotFound",
-        "destination": "common.yaml#/components/responses/NotFound"
+        "destination": "common.yaml#/components/responses/NotFound",
+        "dangling": true
       },
       "#/components/responses/SameDocument": {
         "type": "reference",
         "pointer": "/components/responses/SameDocument",
         "parent": "#/components",
         "original": "#/components/responses/Other",
-        "destination": "#/components/responses/Other"
+        "destination": "#/components/responses/Other",
+        "dangling": false
       },
       "#/info": {
         "type": "info",
@@ -168,11 +175,5 @@
         "parameters": []
       }
     ]
-  },
-  "dangling": [
-    "https://example.com/common.yaml#/components/responses/NotFound",
-    "/shared/common.yaml#/components/responses/NotFound",
-    "common.yaml",
-    "common.yaml#/components/responses/NotFound"
-  ]
+  }
 }

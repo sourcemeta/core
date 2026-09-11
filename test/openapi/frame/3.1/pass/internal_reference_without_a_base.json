@@ -16,7 +16,6 @@
       }
     }
   },
-  "resolver": {},
   "frame": {
     "version": "3.1",
     "base": "",
@@ -52,7 +51,8 @@
         "pointer": "/components/responses/R",
         "parent": "#/components",
         "original": "#/components/responses/NotFound",
-        "destination": "#/components/responses/NotFound"
+        "destination": "#/components/responses/NotFound",
+        "dangling": false
       },
       "#/info": {
         "type": "info",

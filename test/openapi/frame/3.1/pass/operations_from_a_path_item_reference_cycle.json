@@ -52,14 +52,16 @@
         "pointer": "/components/pathItems/A",
         "parent": "https://example.com/openapi.json#/components",
         "original": "#/components/pathItems/B",
-        "destination": "https://example.com/openapi.json#/components/pathItems/B"
+        "destination": "https://example.com/openapi.json#/components/pathItems/B",
+        "dangling": false
       },
       "https://example.com/openapi.json#/components/pathItems/B": {
         "type": "path-item",
         "pointer": "/components/pathItems/B",
         "parent": "https://example.com/openapi.json#/components",
         "original": "#/components/pathItems/A",
-        "destination": "https://example.com/openapi.json#/components/pathItems/A"
+        "destination": "https://example.com/openapi.json#/components/pathItems/A",
+        "dangling": false
       },
       "https://example.com/openapi.json#/info": {
         "type": "info",
@@ -76,7 +78,8 @@
         "pointer": "/paths/~1pets",
         "parent": "https://example.com/openapi.json#/paths",
         "original": "#/components/pathItems/A",
-        "destination": "https://example.com/openapi.json#/components/pathItems/A"
+        "destination": "https://example.com/openapi.json#/components/pathItems/A",
+        "dangling": false
       }
     },
     "operations": []

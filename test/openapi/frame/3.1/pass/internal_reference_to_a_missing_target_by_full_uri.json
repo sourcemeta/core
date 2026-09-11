@@ -17,7 +17,6 @@
     }
   },
   "defaultBase": "https://example.com/openapi.json",
-  "resolver": {},
   "frame": {
     "version": "3.1",
     "base": "https://example.com/openapi.json",
@@ -53,7 +52,8 @@
         "pointer": "/components/responses/R",
         "parent": "https://example.com/openapi.json#/components",
         "original": "https://example.com/openapi.json#/components/responses/Missing",
-        "destination": "https://example.com/openapi.json#/components/responses/Missing"
+        "destination": "https://example.com/openapi.json#/components/responses/Missing",
+        "dangling": true
       },
       "https://example.com/openapi.json#/info": {
         "type": "info",
@@ -62,8 +62,5 @@
       }
     },
     "operations": []
-  },
-  "dangling": [
-    "https://example.com/openapi.json#/components/responses/Missing"
-  ]
+  }
 }

@@ -44,7 +44,8 @@
         "pointer": "/components/responses/A",
         "parent": "https://example.com/openapi.json#/components",
         "original": "#/components/responses/A",
-        "destination": "https://example.com/openapi.json#/components/responses/A"
+        "destination": "https://example.com/openapi.json#/components/responses/A",
+        "dangling": false
       },
       "https://example.com/openapi.json#/info": {
         "type": "info",

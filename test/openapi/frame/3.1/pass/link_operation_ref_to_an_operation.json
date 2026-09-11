@@ -55,7 +55,8 @@
         "pointer": "/components/links/ByRef",
         "parent": "https://example.com/openapi.json#/components",
         "original": "#/paths/~1pets/get",
-        "destination": "https://example.com/openapi.json#/paths/~1pets/get"
+        "destination": "https://example.com/openapi.json#/paths/~1pets/get",
+        "dangling": false
       },
       "https://example.com/openapi.json#/info": {
         "type": "info",

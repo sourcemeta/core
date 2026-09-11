@@ -188,7 +188,8 @@
         "pointer": "/components/callbacks/C",
         "parent": "#/components",
         "original": "#/components/callbacks/Other",
-        "destination": "#/components/callbacks/Other"
+        "destination": "#/components/callbacks/Other",
+        "dangling": false
       },
       "#/components/callbacks/Other": {
         "type": "callback",
@@ -205,7 +206,8 @@
         "pointer": "/components/examples/E",
         "parent": "#/components",
         "original": "#/components/examples/Other",
-        "destination": "#/components/examples/Other"
+        "destination": "#/components/examples/Other",
+        "dangling": false
       },
       "#/components/examples/Other": {
         "type": "example",
@@ -217,7 +219,8 @@
         "pointer": "/components/headers/H",
         "parent": "#/components",
         "original": "#/components/headers/Other",
-        "destination": "#/components/headers/Other"
+        "destination": "#/components/headers/Other",
+        "dangling": false
       },
       "#/components/headers/Other": {
         "type": "header",
@@ -236,7 +239,8 @@
         "pointer": "/components/links/L",
         "parent": "#/components",
         "original": "#/components/links/Other",
-        "destination": "#/components/links/Other"
+        "destination": "#/components/links/Other",
+        "dangling": false
       },
       "#/components/links/Other": {
         "type": "link",
@@ -260,14 +264,16 @@
         "pointer": "/components/parameters/P",
         "parent": "#/components",
         "original": "#/components/parameters/Other",
-        "destination": "#/components/parameters/Other"
+        "destination": "#/components/parameters/Other",
+        "dangling": false
       },
       "#/components/requestBodies/B": {
         "type": "reference",
         "pointer": "/components/requestBodies/B",
         "parent": "#/components",
         "original": "#/components/requestBodies/Other",
-        "destination": "#/components/requestBodies/Other"
+        "destination": "#/components/requestBodies/Other",
+        "dangling": false
       },
       "#/components/requestBodies/Other": {
         "type": "request-body",
@@ -284,7 +290,8 @@
         "pointer": "/components/responses/R",
         "parent": "#/components",
         "original": "#/components/responses/Other",
-        "destination": "#/components/responses/Other"
+        "destination": "#/components/responses/Other",
+        "dangling": false
       },
       "#/components/securitySchemes/Other": {
         "type": "security-scheme",
@@ -296,7 +303,8 @@
         "pointer": "/components/securitySchemes/S",
         "parent": "#/components",
         "original": "#/components/securitySchemes/Other",
-        "destination": "#/components/securitySchemes/Other"
+        "destination": "#/components/securitySchemes/Other",
+        "dangling": false
       },
       "#/info": {
         "type": "info",
@@ -323,21 +331,24 @@
         "pointer": "/paths/~1pets/get/callbacks/onData",
         "parent": "#/paths/~1pets/get",
         "original": "#/components/callbacks/Other",
-        "destination": "#/components/callbacks/Other"
+        "destination": "#/components/callbacks/Other",
+        "dangling": false
       },
       "#/paths/~1pets/get/parameters/0": {
         "type": "reference",
         "pointer": "/paths/~1pets/get/parameters/0",
         "parent": "#/paths/~1pets/get",
         "original": "#/components/parameters/Other",
-        "destination": "#/components/parameters/Other"
+        "destination": "#/components/parameters/Other",
+        "dangling": false
       },
       "#/paths/~1pets/get/requestBody": {
         "type": "reference",
         "pointer": "/paths/~1pets/get/requestBody",
         "parent": "#/paths/~1pets/get",
         "original": "#/components/requestBodies/Other",
-        "destination": "#/components/requestBodies/Other"
+        "destination": "#/components/requestBodies/Other",
+        "dangling": false
       },
       "#/paths/~1pets/get/responses": {
         "type": "responses",
@@ -364,35 +375,40 @@
         "pointer": "/paths/~1pets/get/responses/200/content/multipart~1form-data/encoding/part/headers/X-Part",
         "parent": "#/paths/~1pets/get/responses/200/content/multipart~1form-data/encoding/part",
         "original": "#/components/headers/Other",
-        "destination": "#/components/headers/Other"
+        "destination": "#/components/headers/Other",
+        "dangling": false
       },
       "#/paths/~1pets/get/responses/200/headers/X-Rate": {
         "type": "reference",
         "pointer": "/paths/~1pets/get/responses/200/headers/X-Rate",
         "parent": "#/paths/~1pets/get/responses/200",
         "original": "#/components/headers/Other",
-        "destination": "#/components/headers/Other"
+        "destination": "#/components/headers/Other",
+        "dangling": false
       },
       "#/paths/~1pets/get/responses/200/links/Self": {
         "type": "reference",
         "pointer": "/paths/~1pets/get/responses/200/links/Self",
         "parent": "#/paths/~1pets/get/responses/200",
         "original": "#/components/links/Other",
-        "destination": "#/components/links/Other"
+        "destination": "#/components/links/Other",
+        "dangling": false
       },
       "#/paths/~1pets/get/responses/default": {
         "type": "reference",
         "pointer": "/paths/~1pets/get/responses/default",
         "parent": "#/paths/~1pets/get/responses",
         "original": "#/components/responses/Other",
-        "destination": "#/components/responses/Other"
+        "destination": "#/components/responses/Other",
+        "dangling": false
       },
       "#/paths/~1pets/parameters/0": {
         "type": "reference",
         "pointer": "/paths/~1pets/parameters/0",
         "parent": "#/paths/~1pets",
         "original": "#/components/parameters/Other",
-        "destination": "#/components/parameters/Other"
+        "destination": "#/components/parameters/Other",
+        "dangling": false
       },
       "#/paths/~1pets/post": {
         "type": "operation",
@@ -409,7 +425,8 @@
         "pointer": "/paths/~1pets/post/parameters/0/examples/E",
         "parent": "#/paths/~1pets/post/parameters/0",
         "original": "#/components/examples/Other",
-        "destination": "#/components/examples/Other"
+        "destination": "#/components/examples/Other",
+        "dangling": false
       },
       "#/paths/~1pets/post/parameters/0/schema": {
         "type": "schema",
@@ -438,7 +455,8 @@
         "pointer": "/paths/~1pets/post/responses/200/content/application~1json/examples/E",
         "parent": "#/paths/~1pets/post/responses/200/content/application~1json",
         "original": "#/components/examples/Other",
-        "destination": "#/components/examples/Other"
+        "destination": "#/components/examples/Other",
+        "dangling": false
       }
     },
     "operations": [

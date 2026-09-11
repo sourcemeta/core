@@ -80,7 +80,8 @@
         "pointer": "/webhooks/newPet",
         "parent": "https://example.com/openapi.json",
         "original": "#/components/pathItems/NewPet",
-        "destination": "https://example.com/openapi.json#/components/pathItems/NewPet"
+        "destination": "https://example.com/openapi.json#/components/pathItems/NewPet",
+        "dangling": false
       }
     },
     "operations": [

@@ -44,7 +44,8 @@
         "pointer": "/components/responses/R",
         "parent": "https://example.com/openapi.json#/components",
         "original": "https://example.com/common.json#/components/responses/NotFound",
-        "destination": "https://example.com/common.json#/components/responses/NotFound"
+        "destination": "https://example.com/common.json#/components/responses/NotFound",
+        "dangling": true
       },
       "https://example.com/openapi.json#/info": {
         "type": "info",
@@ -53,8 +54,5 @@
       }
     },
     "operations": []
-  },
-  "dangling": [
-    "https://example.com/common.json#/components/responses/NotFound"
-  ]
+  }
 }

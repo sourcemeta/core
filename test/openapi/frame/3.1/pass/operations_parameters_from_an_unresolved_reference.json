@@ -97,7 +97,8 @@
         "pointer": "/paths/~1pets/parameters/0",
         "parent": "https://example.com/openapi.json#/paths/~1pets",
         "original": "https://example.com/common.json#/components/parameters/Limit",
-        "destination": "https://example.com/common.json#/components/parameters/Limit"
+        "destination": "https://example.com/common.json#/components/parameters/Limit",
+        "dangling": true
       }
     },
     "operations": [
@@ -116,8 +117,5 @@
         ]
       }
     ]
-  },
-  "dangling": [
-    "https://example.com/common.json#/components/parameters/Limit"
-  ]
+  }
 }

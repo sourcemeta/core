@@ -17,47 +17,10 @@
     }
   },
   "defaultBase": "https://staging.example.com/api/openapi",
-  "resolver": {
-    "https://staging.example.com/api/shared/foo": {
-      "openapi": "3.2.1",
-      "$self": "/api/shared/foo",
-      "info": {
-        "title": "Shared components for all APIs",
-        "version": "1.0"
-      },
-      "components": {
-        "requestBodies": {
-          "Foo": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "../schemas/foo"
-                }
-              }
-            }
-          }
-        },
-        "schemas": {
-          "Foo": {
-            "$id": "/api/schemas/foo",
-            "properties": {
-              "bar": {
-                "$ref": "bar"
-              }
-            }
-          },
-          "Bar": {
-            "$id": "/api/schemas/bar",
-            "type": "string"
-          }
-        }
-      }
-    }
-  },
   "frame": {
     "version": "3.2",
     "base": "https://staging.example.com/api/openapi",
-    "standalone": true,
+    "standalone": false,
     "info": {
       "title": "Example API",
       "version": "1.0",
@@ -99,54 +62,8 @@
         "pointer": "/paths/~1foo/get/requestBody",
         "parent": "https://staging.example.com/api/openapi#/paths/~1foo/get",
         "original": "shared/foo#/components/requestBodies/Foo",
-        "destination": "https://staging.example.com/api/shared/foo#/components/requestBodies/Foo"
-      },
-      "https://staging.example.com/api/shared/foo": {
-        "type": "openapi",
-        "pointer": "",
-        "parent": null,
-        "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17"
-      },
-      "https://staging.example.com/api/shared/foo#/components": {
-        "type": "components",
-        "pointer": "/components",
-        "parent": "https://staging.example.com/api/shared/foo"
-      },
-      "https://staging.example.com/api/shared/foo#/components/requestBodies/Foo": {
-        "type": "request-body",
-        "pointer": "/components/requestBodies/Foo",
-        "parent": "https://staging.example.com/api/shared/foo#/components"
-      },
-      "https://staging.example.com/api/shared/foo#/components/requestBodies/Foo/content/application~1json": {
-        "type": "media-type",
-        "pointer": "/components/requestBodies/Foo/content/application~1json",
-        "parent": "https://staging.example.com/api/shared/foo#/components/requestBodies/Foo"
-      },
-      "https://staging.example.com/api/shared/foo#/components/requestBodies/Foo/content/application~1json/schema": {
-        "type": "schema",
-        "pointer": "/components/requestBodies/Foo/content/application~1json/schema",
-        "parent": "https://staging.example.com/api/shared/foo#/components/requestBodies/Foo/content/application~1json",
-        "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17",
-        "base": "https://staging.example.com/api/shared/foo"
-      },
-      "https://staging.example.com/api/shared/foo#/components/schemas/Bar": {
-        "type": "schema",
-        "pointer": "/components/schemas/Bar",
-        "parent": "https://staging.example.com/api/shared/foo#/components",
-        "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17",
-        "base": "https://staging.example.com/api/shared/foo"
-      },
-      "https://staging.example.com/api/shared/foo#/components/schemas/Foo": {
-        "type": "schema",
-        "pointer": "/components/schemas/Foo",
-        "parent": "https://staging.example.com/api/shared/foo#/components",
-        "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17",
-        "base": "https://staging.example.com/api/shared/foo"
-      },
-      "https://staging.example.com/api/shared/foo#/info": {
-        "type": "info",
-        "pointer": "/info",
-        "parent": "https://staging.example.com/api/shared/foo"
+        "destination": "https://staging.example.com/api/shared/foo#/components/requestBodies/Foo",
+        "dangling": true
       }
     },
     "operations": [
