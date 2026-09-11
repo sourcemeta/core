@@ -81,7 +81,7 @@ auto check_tag_parents(const sourcemeta::core::OpenAPIWalk &walk) -> void {
   std::map<sourcemeta::core::JSON::String, sourcemeta::core::JSON::String>
       parents;
   for (const auto &[location, edge] : walk.tag_parents) {
-    if (!walk.tags.contains(edge.second)) {
+    if (!walk.tag_names.contains(edge.second)) {
       throw error_at(walk, location,
                      "The Tag Object parent must name a tag the OpenAPI "
                      "Description declares",
@@ -532,6 +532,7 @@ auto analyse(const sourcemeta::core::JSON &document,
       .security_schemes = {},
       .tags = {},
       .tag_parents = {},
+      .tag_names = {},
       .operation_id_links = {},
       .entry = true,
       .version = sourcemeta::core::OpenAPIVersion::OPENAPI_3_1,

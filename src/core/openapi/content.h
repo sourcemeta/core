@@ -77,8 +77,9 @@ inline auto openapi_check_encoding(const JSON &value, const Pointer &base,
 // them: by name, by position, and one for every item
 inline auto openapi_check_nested_encoding(const JSON &value,
                                           const Pointer &base,
-                                          const char *object, OpenAPIWalk &walk)
-    -> void {
+                                          const char *object,
+                                          const char *positional,
+                                          OpenAPIWalk &walk) -> void {
   const auto *named{value.try_at("encoding", OPENAPI_HASH_ENCODING)};
 
   // Section 4.14, of `encoding`: "This field MUST NOT be present if
@@ -108,7 +109,7 @@ inline auto openapi_check_nested_encoding(const JSON &value,
       value.try_at("prefixEncoding", OPENAPI_HASH_PREFIX_ENCODING)};
   if (prefix != nullptr) {
     const auto location{openapi_child(base, "prefixEncoding"sv)};
-    openapi_expect_array(*prefix, location, object);
+    openapi_expect_array(*prefix, location, positional);
     std::size_t index{0};
     for (const auto &entry : prefix->as_array()) {
       openapi_check_encoding(entry, openapi_child(location, index), walk);
@@ -174,7 +175,8 @@ inline auto openapi_check_encoding(const JSON &value, const Pointer &base,
   }
 
   openapi_check_nested_encoding(
-      value, base, "The Encoding Object encoding must be an object", walk);
+      value, base, "The Encoding Object encoding must be an object",
+      "The Encoding Object prefix encoding must be an array", walk);
 }
 
 // OpenAPI Specification 3.1.1, Section 4.8.14: "Each Media Type Object
@@ -209,7 +211,8 @@ inline auto openapi_check_media_type(const JSON &value, const Pointer &base,
   }
 
   openapi_check_nested_encoding(
-      value, base, "The Media Type Object encoding must be an object", walk);
+      value, base, "The Media Type Object encoding must be an object",
+      "The Media Type Object prefix encoding must be an array", walk);
 }
 
 // OpenAPI Specification 3.2.1, Section 4.7 holds `mediaTypes` under the

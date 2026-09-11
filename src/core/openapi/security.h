@@ -290,10 +290,12 @@ inline auto openapi_check_security_scheme(const JSON &value,
 
   // OpenAPI Specification 3.2.1, Section 4.27: "deprecated | boolean | Any".
   // Its "Applies To" column names every type, so it is read here rather than
-  // under one of them, and each type's field table admits it in turn
+  // under one of them, and each type's field table admits it in turn. Only
+  // 3.2 defines the field, so under 3.1 the table below is what has something
+  // to say about it rather than its type
   const auto *deprecated{
       value.try_at("deprecated", OPENAPI_HASH_SCHEME_DEPRECATED)};
-  if (deprecated != nullptr) {
+  if (deprecated != nullptr && walk.version == OpenAPIVersion::OPENAPI_3_2) {
     openapi_expect_boolean(
         *deprecated, base, "deprecated"sv,
         "The Security Scheme Object deprecated must be a boolean");

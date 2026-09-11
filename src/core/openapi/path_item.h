@@ -12,6 +12,8 @@
 #include "security.h"
 #include "server.h"
 
+#include <sourcemeta/core/http.h>
+
 #include <algorithm>   // std::ranges::find
 #include <array>       // std::array
 #include <set>         // std::set
@@ -308,6 +310,16 @@ inline auto openapi_check_path_item(const JSON &value, const Pointer &base,
         *additional, location,
         "The Path Item Object additional operations must be an object");
     for (const auto &entry : additional->as_object()) {
+      // A key is "the HTTP method [...] that is to be sent in the request",
+      // and RFC 9110 Section 9.1 has a method be a token, so a key that is no
+      // token names no method that could be sent at all
+      if (!http_is_token(entry.first)) {
+        throw OpenAPIError{
+            openapi_child(location, entry.first),
+            "The Path Item Object additional operations must name an HTTP "
+            "method"};
+      }
+
       if (std::ranges::find(OPENAPI_PATH_ITEM_METHOD_NAMES, entry.first) !=
           OPENAPI_PATH_ITEM_METHOD_NAMES.cend()) {
         throw OpenAPIError{

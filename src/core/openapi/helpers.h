@@ -273,14 +273,17 @@ struct OpenAPILocation {
   JSON::String base;
 };
 
-/// A document the walk holds, and the base it settled on once read. The two
-/// differ when a document gives itself a URI that is not the one it was asked
-/// for, which from 3.2 onwards it may
+/// A document the walk holds, and what it settled on once read. The base
+/// differs from the URI it was asked for when a document gives itself one,
+/// which from 3.2 onwards it may, and the revision is its own rather than that
+/// of whatever referenced it
 struct OpenAPIDocumentRecord {
   /// The document itself, owned by whatever handed it over
   const JSON *document;
   /// The base every location in it is keyed by
   JSON::String base;
+  /// The revision it declares, which is what its Objects are held to
+  OpenAPIVersion version;
 };
 
 // What every check needs to reach beyond the Object in front of it: the
@@ -365,6 +368,11 @@ struct OpenAPIWalk {
   /// tag exist and forbids a cycle, neither of which can be settled until
   /// every tag has been read
   std::map<JSON::String, std::pair<JSON::String, JSON::String>> tag_parents;
+  /// Every name any document declares a Tag Object under. Section 4.22 has a
+  /// parent name "a tag that MUST exist in the API description", which is the
+  /// whole of it rather than the entry document alone, so this is a wider set
+  /// than the one above it
+  std::set<JSON::String> tag_names;
   /// The operation each Link Object names, keyed by where that Link Object
   /// sits. Section 4.3.3 has resolving one of these require "parsing all
   /// referenced documents prior to determining an `operationId` to be

@@ -76,7 +76,10 @@ inline auto openapi_path_templates(const JSON::StringView path)
 
 // The `pchar` a path literal is made of, which OpenAPI Specification 3.2.1,
 // Section 4.8.2 takes from RFC 3986: "unreserved / pct-encoded / sub-delims /
-// `:` / `@`", with `pct-encoded` handled where a run of them is read
+// `:` / `@`", with `pct-encoded` handled where a run of them is read. The URI
+// parser in this repository classifies the same production for its own use and
+// admits a percent sign as one of these characters, leaving the triplet to the
+// scan around it, so the two sets are deliberately not the same one
 inline auto openapi_is_path_character(const char character) -> bool {
   return is_alphanum(character) || character == '-' || character == '.' ||
          character == '_' || character == '~' || character == '!' ||

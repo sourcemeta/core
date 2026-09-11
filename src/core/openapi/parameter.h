@@ -352,8 +352,9 @@ inline auto openapi_check_parameters(const JSON &value, const Pointer &base,
   std::set<std::pair<JSON::String, JSON::String>> seen;
   // Section 4.12, of `querystring`: it "MUST NOT appear more than once, and
   // MUST NOT appear in the same operation (or in the operation's path-item) as
-  // any `in: "query"` parameters". This list is one of those two levels, and
-  // what the two come to between them is settled where they meet
+  // any `in: "query"` parameters". Both halves hold of a single list on its
+  // own, and what the two levels come to between them is settled where they
+  // meet
   std::size_t querystrings{0};
   std::size_t index{0};
   for (const auto &parameter : value.as_array()) {
@@ -379,10 +380,17 @@ inline auto openapi_check_parameters(const JSON &value, const Pointer &base,
     index += 1;
   }
 
+  bool query{false};
   for (const auto &position : result) {
     const auto *identity{openapi_parameter_identity(walk, position)};
-    if (identity != nullptr && identity->second == "querystring") {
+    if (identity == nullptr) {
+      continue;
+    }
+
+    if (identity->second == "querystring") {
       querystrings += 1;
+    } else if (identity->second == "query") {
+      query = true;
     }
   }
 
@@ -390,6 +398,16 @@ inline auto openapi_check_parameters(const JSON &value, const Pointer &base,
     throw OpenAPIError{base,
                        "A querystring Parameter Object must not appear more "
                        "than once"};
+  }
+
+  // One list is enough to settle this when it holds both, as the list is
+  // either an operation's own parameters or the ones every operation under a
+  // Path Item starts from, and a list that is neither reaches no request. What
+  // the two levels come to between them is settled where they meet, since
+  // neither list alone shows it
+  if (querystrings > 0 && query) {
+    throw OpenAPIError{base, "A querystring Parameter Object must not appear "
+                             "alongside a query Parameter Object"};
   }
 
   return result;

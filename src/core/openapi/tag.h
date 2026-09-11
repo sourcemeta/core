@@ -49,6 +49,11 @@ inline auto openapi_check_tag(const JSON &value, const Pointer &base,
   const auto result{openapi_expect_string(
       *name, base, "name"sv, "The Tag Object name must be a string")};
 
+  // A parent names a tag that "MUST exist in the API description", which
+  // spans every document rather than the entry one alone, so what a Tag
+  // Object is called is written down wherever it sits
+  walk.tag_names.emplace(result);
+
   const auto *description{
       value.try_at("description", OPENAPI_HASH_DESCRIPTION)};
   if (description != nullptr) {

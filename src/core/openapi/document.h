@@ -285,10 +285,11 @@ inline auto openapi_follow_target(const URI &target, const Pointer &origin,
           {identifier.value(), OpenAPIObjectKind::Document})) {
     const auto known{walk.documents_by_uri.find(identifier.value())};
     if (known != walk.documents_by_uri.cend()) {
-      // What that document keys its locations by is what it settled on when it
-      // was read, which is the URI it was asked for unless it gave itself
-      // another
+      // What that document keys its locations by, and which revision its
+      // Objects are held to, are what it settled on when it was read rather
+      // than what is in force where this reference was written
       auto base{known->second.base};
+      auto revision{known->second.version};
       const auto *document{known->second.document};
       bool entry{false};
 
@@ -303,10 +304,12 @@ inline auto openapi_follow_target(const URI &target, const Pointer &origin,
                                                  : root->second.dialect};
       std::swap(walk.dialect, dialect);
       std::swap(walk.base, base);
+      std::swap(walk.version, revision);
       std::swap(walk.document, document);
       std::swap(walk.entry, entry);
       openapi_follow_internal_reference(target, true, expected, walk);
       std::swap(walk.base, base);
+      std::swap(walk.version, revision);
       std::swap(walk.document, document);
       std::swap(walk.entry, entry);
       std::swap(walk.dialect, dialect);
@@ -334,8 +337,9 @@ inline auto openapi_follow_target(const URI &target, const Pointer &origin,
   const auto &contents{
       walk.documents.emplace_back(std::move(resolved)).value()};
   walk.documents_by_uri.insert_or_assign(
-      identifier.value(),
-      OpenAPIDocumentRecord{.document = &contents, .base = identifier.value()});
+      identifier.value(), OpenAPIDocumentRecord{.document = &contents,
+                                                .base = identifier.value(),
+                                                .version = walk.version});
 
   // Section 4.3.1 lists five ways to tell what a referenced document is. A root
   // `openapi` field settles it whatever the reference expected, and otherwise
@@ -391,8 +395,9 @@ inline auto openapi_follow_target(const URI &target, const Pointer &origin,
   // reference into it has to be read against, so what it answers to is
   // written down again now that it is known
   walk.documents_by_uri.insert_or_assign(
-      identifier.value(),
-      OpenAPIDocumentRecord{.document = &contents, .base = walk.base});
+      identifier.value(), OpenAPIDocumentRecord{.document = &contents,
+                                                .base = walk.base,
+                                                .version = walk.version});
 
   // A reference into a document that turned out to be a whole Description has
   // had that Description read, which is what Section 4.3.1 asks for, but
@@ -514,8 +519,9 @@ inline auto openapi_check_document(const JSON &document, OpenAPIWalk &walk)
         // and NOT RECOMMENDED
         walk.visited.insert({walk.base, OpenAPIObjectKind::Document});
         walk.documents_by_uri.insert_or_assign(
-            walk.base,
-            OpenAPIDocumentRecord{.document = &document, .base = walk.base});
+            walk.base, OpenAPIDocumentRecord{.document = &document,
+                                             .base = walk.base,
+                                             .version = walk.version});
       }
     }
 

@@ -264,12 +264,18 @@ auto check_frame_invariants(const sourcemeta::core::JSON &frame,
     // accounts for the ones this specification defines as fields. Anything
     // else has to have come from `additionalOperations`, which is where the
     // method name is written rather than implied
+    //
+    // The pointer is what this compares against rather than the key, as a key
+    // writes the pointer out as a URI fragment and a method token may hold a
+    // character that becomes a percent encoded triplet there. A token holds
+    // neither a slash nor a tilde, so it needs no escaping of its own
     const auto &method{operation.at("method").to_string()};
     EXPECT_FALSE(method.empty());
     if (std::ranges::find(KNOWN_METHODS, method) == KNOWN_METHODS.cend()) {
       sourcemeta::core::JSON::String suffix{"/additionalOperations/"};
       suffix.append(method);
-      EXPECT_TRUE(origin.ends_with(suffix));
+      EXPECT_TRUE(
+          locations.at(origin).at("pointer").to_string().ends_with(suffix));
     }
     EXPECT_TRUE(std::ranges::find(KNOWN_OPERATION_TYPES,
                                   operation.at("type").to_string()) !=
