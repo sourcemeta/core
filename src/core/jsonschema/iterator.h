@@ -157,7 +157,8 @@ walk(const std::optional<sourcemeta::core::WeakPointer> &root_parent,
     // they desire to be more strict.
 
     const auto enclosing_ref_overrides{
-        subschema.is_object() && subschema.defines("$ref") &&
+        subschema.is_object() &&
+        subschema.defines("$ref"sv, JSONSCHEMA_HASH_REF) &&
         sourcemeta::core::ref_overrides_adjacent_keywords(base_dialect)};
 
     const auto entry{resolve_dialect_at(subschema, dialect, base_dialect,
@@ -206,7 +207,7 @@ walk(const std::optional<sourcemeta::core::WeakPointer> &root_parent,
     const auto child_base_dialect{child.base_dialect};
 
     const auto has_overriding_ref{
-        subschema.defines("$ref") &&
+        subschema.defines("$ref"sv, JSONSCHEMA_HASH_REF) &&
         sourcemeta::core::ref_overrides_adjacent_keywords(
             current_base_dialect)};
     for (const auto &pair : subschema.as_object()) {

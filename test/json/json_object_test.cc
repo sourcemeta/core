@@ -1466,6 +1466,23 @@ TEST(erase_with_string_view_subview) {
   EXPECT_TRUE(document.defines("bar"));
 }
 
+TEST(erase_with_hash) {
+  sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json(R"({"foo":1,"bar":2})");
+  document.erase("foo", document.as_object().hash("foo"));
+  EXPECT_FALSE(document.defines("foo"));
+  EXPECT_TRUE(document.defines("bar"));
+}
+
+TEST(erase_with_string_view_and_hash) {
+  sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json(R"({"foo":1,"bar":2})");
+  const std::string_view foo{"foo"};
+  document.erase(foo, document.as_object().hash(foo));
+  EXPECT_FALSE(document.defines("foo"));
+  EXPECT_TRUE(document.defines("bar"));
+}
+
 TEST(assign_if_missing_with_string_view) {
   sourcemeta::core::JSON document = sourcemeta::core::JSON::make_object();
   document.assign("foo", sourcemeta::core::JSON{1});

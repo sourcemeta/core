@@ -5,16 +5,43 @@
 
 #include <sourcemeta/core/uri.h>
 
-#include <cassert>          // assert
-#include <deque>            // std::deque
-#include <initializer_list> // std::initializer_list
-#include <optional>         // std::optional
-#include <string_view>      // std::string_view
-#include <unordered_set>    // std::unordered_set
-#include <utility>          // std::pair, std::move
-#include <vector>           // std::vector
+#include <array>         // std::array
+#include <cassert>       // assert
+#include <deque>         // std::deque
+#include <optional>      // std::optional
+#include <string_view>   // std::string_view
+#include <unordered_set> // std::unordered_set
+#include <utility>       // std::pair, std::move
+#include <vector>        // std::vector
 
 namespace sourcemeta::core {
+
+using namespace std::string_view_literals;
+
+constexpr auto JSONSCHEMA_HASH_ID{JSON::Object::hash("$id"sv)};
+constexpr auto JSONSCHEMA_HASH_LEGACY_ID{JSON::Object::hash("id"sv)};
+constexpr auto JSONSCHEMA_HASH_SCHEMA{JSON::Object::hash("$schema"sv)};
+constexpr auto JSONSCHEMA_HASH_REF{JSON::Object::hash("$ref"sv)};
+constexpr auto JSONSCHEMA_HASH_RECURSIVE_REF{
+    JSON::Object::hash("$recursiveRef"sv)};
+constexpr auto JSONSCHEMA_HASH_DYNAMIC_REF{JSON::Object::hash("$dynamicRef"sv)};
+constexpr auto JSONSCHEMA_HASH_ANCHOR{JSON::Object::hash("$anchor"sv)};
+constexpr auto JSONSCHEMA_HASH_DYNAMIC_ANCHOR{
+    JSON::Object::hash("$dynamicAnchor"sv)};
+constexpr auto JSONSCHEMA_HASH_RECURSIVE_ANCHOR{
+    JSON::Object::hash("$recursiveAnchor"sv)};
+constexpr auto JSONSCHEMA_HASH_VOCABULARY{JSON::Object::hash("$vocabulary"sv)};
+constexpr auto JSONSCHEMA_HASH_DEFS{JSON::Object::hash("$defs"sv)};
+constexpr auto JSONSCHEMA_HASH_DEFINITIONS{JSON::Object::hash("definitions"sv)};
+constexpr auto JSONSCHEMA_HASH_DIALECT_OVERRIDE{
+    JSON::Object::hash("x-sourcemeta-dialect-override-subschema"sv)};
+
+/// A keyword whose name is only known once the base dialect is, paired with
+/// the hash of that name so that looking it up does not have to hash it again
+struct SchemaKeyword {
+  JSON::StringView name;
+  JSON::Object::hash_type hash;
+};
 
 auto base_dialect_uri(const SchemaBaseDialect base_dialect) -> std::string_view;
 
@@ -53,8 +80,7 @@ auto vocabulary_uri(SchemaVocabularies::Known vocabulary) -> std::string_view;
 auto vocabulary_uri(const SchemaVocabularies::URI &vocabulary)
     -> std::string_view;
 
-inline auto id_keyword(const SchemaBaseDialect base_dialect)
-    -> std::string_view {
+inline auto id_keyword(const SchemaBaseDialect base_dialect) -> SchemaKeyword {
   switch (base_dialect) {
     case SchemaBaseDialect::JSON_SCHEMA_2020_12:
     case SchemaBaseDialect::JSON_SCHEMA_2020_12_HYPER:
@@ -64,7 +90,7 @@ inline auto id_keyword(const SchemaBaseDialect base_dialect)
     case SchemaBaseDialect::JSON_SCHEMA_DRAFT_7_HYPER:
     case SchemaBaseDialect::JSON_SCHEMA_DRAFT_6:
     case SchemaBaseDialect::JSON_SCHEMA_DRAFT_6_HYPER:
-      return "$id";
+      return {.name = "$id"sv, .hash = JSONSCHEMA_HASH_ID};
     case SchemaBaseDialect::JSON_SCHEMA_DRAFT_4:
     case SchemaBaseDialect::JSON_SCHEMA_DRAFT_4_HYPER:
     case SchemaBaseDialect::JSON_SCHEMA_DRAFT_3:
@@ -72,11 +98,11 @@ inline auto id_keyword(const SchemaBaseDialect base_dialect)
     case SchemaBaseDialect::JSON_SCHEMA_DRAFT_2_HYPER:
     case SchemaBaseDialect::JSON_SCHEMA_DRAFT_1_HYPER:
     case SchemaBaseDialect::JSON_SCHEMA_DRAFT_0_HYPER:
-      return "id";
+      return {.name = "id"sv, .hash = JSONSCHEMA_HASH_LEGACY_ID};
   }
 
   assert(false);
-  return "$id";
+  return {.name = "$id"sv, .hash = JSONSCHEMA_HASH_ID};
 }
 
 inline auto definitions_keyword(const SchemaBaseDialect base_dialect)
@@ -130,11 +156,10 @@ ref_overrides_adjacent_keywords(const SchemaBaseDialect base_dialect) -> bool {
 }
 
 inline auto embedded_metaschema_identifier_matches(
-    const sourcemeta::core::JSON &candidate, const std::string_view keyword,
+    const sourcemeta::core::JSON &candidate, const SchemaKeyword keyword,
     const std::string_view identifier,
     const std::optional<sourcemeta::core::JSON::String> &canonical) -> bool {
-  const auto *value{
-      candidate.try_at(sourcemeta::core::JSON::StringView{keyword})};
+  const auto *value{candidate.try_at(keyword.name, keyword.hash)};
   if ((value == nullptr) || !value->is_string()) {
     return false;
   }
@@ -162,7 +187,10 @@ inline auto embedded_metaschema_matches(
     return false;
   }
 
-  for (const auto *const keyword : {"$id", "id"}) {
+  constexpr std::array<SchemaKeyword, 2> KEYWORDS{
+      {{.name = "$id"sv, .hash = JSONSCHEMA_HASH_ID},
+       {.name = "id"sv, .hash = JSONSCHEMA_HASH_LEGACY_ID}}};
+  for (const auto keyword : KEYWORDS) {
     if (embedded_metaschema_identifier_matches(candidate, keyword, identifier,
                                                canonical)) {
       return true;
@@ -187,8 +215,11 @@ embedded_metaschema_candidate(const sourcemeta::core::JSON &document,
     canonical = std::nullopt;
   }
 
-  for (const auto *const container : {"$defs", "definitions"}) {
-    const auto *entries{document.try_at(container)};
+  constexpr std::array<SchemaKeyword, 2> CONTAINERS{
+      {{.name = "$defs"sv, .hash = JSONSCHEMA_HASH_DEFS},
+       {.name = "definitions"sv, .hash = JSONSCHEMA_HASH_DEFINITIONS}}};
+  for (const auto container : CONTAINERS) {
+    const auto *entries{document.try_at(container.name, container.hash)};
     if ((entries == nullptr) || !entries->is_object()) {
       continue;
     }
@@ -197,12 +228,12 @@ embedded_metaschema_candidate(const sourcemeta::core::JSON &document,
         entries->try_at(sourcemeta::core::JSON::StringView{identifier})};
     if ((direct != nullptr) &&
         embedded_metaschema_matches(*direct, identifier, canonical)) {
-      return {direct, container};
+      return {direct, container.name};
     }
 
     for (const auto &entry : entries->as_object()) {
       if (embedded_metaschema_matches(entry.second, identifier, canonical)) {
-        return {&entry.second, container};
+        return {&entry.second, container.name};
       }
     }
   }
