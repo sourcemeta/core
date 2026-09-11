@@ -874,16 +874,9 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
                      sourcemeta::core::WeakPointer::Hasher>
       base_dialects;
 
-  // The base a document was retrieved from is in force at the top of it, so
-  // it belongs to the document root rather than to each path. Seeding it at a
-  // path would instead make that path a resource of its own, addressing what
-  // sits under it from there rather than from the top of the document, which
-  // is what an identifier does and what this deliberately does not
   if (!default_base.empty()) {
     this->cache_->default_base =
         sourcemeta::core::URI::canonicalize(default_base);
-    base_uris.insert(
-        {sourcemeta::core::EMPTY_WEAK_POINTER, {this->cache_->default_base}});
   }
 
   for (const auto &path : paths) {
@@ -944,11 +937,30 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
             this->root_, path, path.size(), root_dialect,
             root_base_dialect.value(), std::nullopt, false, false);
 
-      // The names that this path goes by take over from the base that the
-      // caller stated, which the document root may hold
-      base_uris.insert_or_assign(path,
-                                 std::vector<sourcemeta::core::JSON::String>{
-                                     root_id.value(), default_id_canonical});
+      base_uris.insert({path, {root_id.value(), default_id_canonical}});
+    }
+
+    // RFC 3986 Section 5.1 orders the bases that the top of a document goes
+    // by, and a reference resolves against the first of them. Whatever the
+    // document carries within it comes first, and the base it was retrieved
+    // from comes last, that being what a relative name of the document
+    // resolved against to begin with. The base belongs to the top of the
+    // document rather than to each path, as stating it at a path would
+    // instead make that path a resource, addressing what sits under it from
+    // there rather than from the top of the document, which is what an
+    // identifier does and what this deliberately does not
+    if (!this->cache_->default_base.empty()) {
+      std::vector<sourcemeta::core::JSON::String> root_bases;
+      if (root_id.has_value() && path.empty()) {
+        root_bases.push_back(root_id.value());
+        if (has_explicit_different_id) {
+          root_bases.push_back(default_id_canonical);
+        }
+      }
+
+      root_bases.push_back(this->cache_->default_base);
+      base_uris.insert_or_assign(sourcemeta::core::EMPTY_WEAK_POINTER,
+                                 std::move(root_bases));
     }
 
     if (this->mode_ == SchemaFrame::Mode::Root) {
@@ -978,8 +990,12 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
       }
 
       // A document that declares no identifier is still addressed by the base
-      // it was retrieved from, which is how every other mode addresses it
-      const auto location_uri{root_id.value_or(this->cache_->default_base)};
+      // it was retrieved from, which is how every other mode addresses it.
+      // That base addresses the top of the document, so it names the schema
+      // under analysis only where the two are the same place
+      const auto location_uri{
+          root_id.value_or(path.empty() ? this->cache_->default_base
+                                        : sourcemeta::core::JSON::String{})};
       store(this->locations_, max_locations, SchemaReferenceType::Static,
             root_id.has_value() ? SchemaFrame::LocationType::Resource
                                 : SchemaFrame::LocationType::Subschema,
@@ -1078,6 +1094,15 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
             // Otherwise we end up pushing the top-level resource twice
             if (entry_index == 0 && has_explicit_different_id &&
                 !default_id.empty() && default_id == base_string) {
+              continue;
+            }
+
+            // The identifier that the top of the document carries resolved
+            // against the base the document was retrieved from already, so
+            // registering it from that base again would register the very
+            // same resource a second time
+            if (common_pointer_weak.empty() &&
+                base_string == this->cache_->default_base) {
               continue;
             }
 

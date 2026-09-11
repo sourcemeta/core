@@ -3,6 +3,7 @@
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonpointer.h>
 #include <sourcemeta/core/jsonschema.h>
+#include <sourcemeta/core/uri.h>
 
 #include <algorithm>
 #include <filesystem>
@@ -24,6 +25,161 @@ const std::vector<std::string> KNOWN_KEYS{
     "defaultBase", "paths",        "root",           "identifierMode",
     "pointers",    "reachability", "standalone"};
 // NOLINTEND(cert-err58-cpp,bugprone-throwing-static-initialization)
+
+// Every type of location and every mode that the frame reports, so that a
+// fixture blessing an unknown one does not go unnoticed
+// NOLINTBEGIN(cert-err58-cpp,bugprone-throwing-static-initialization)
+const std::vector<std::string> KNOWN_TYPES{"resource", "anchor", "pointer",
+                                           "subschema"};
+const std::vector<std::string> KNOWN_MODES{"root", "locations", "references",
+                                           "pointers"};
+// The keywords that framing writes a reference down for. A reference is
+// recorded on the schema that makes it, with the keyword as the last token,
+// so anything else means a reference came from a place nothing defines
+const std::vector<std::string> REFERENCE_KEYWORDS{
+    "$schema", "$ref", "$dynamicRef", "$recursiveRef"};
+// NOLINTEND(cert-err58-cpp,bugprone-throwing-static-initialization)
+
+auto last_token(const sourcemeta::core::JSON::String &pointer)
+    -> sourcemeta::core::JSON::String {
+  const auto position{pointer.rfind('/')};
+  return position == sourcemeta::core::JSON::String::npos
+             ? pointer
+             : pointer.substr(position + 1);
+}
+
+auto location_keys(const sourcemeta::core::JSON &frame)
+    -> std::set<sourcemeta::core::JSON::String> {
+  std::set<sourcemeta::core::JSON::String> result;
+  for (const auto &kind : {"static", "dynamic"}) {
+    for (const auto &location : frame.at("locations").at(kind).as_object()) {
+      result.insert(location.first);
+    }
+  }
+
+  return result;
+}
+
+// What the frame has to satisfy whatever the schema, so that a fixture cannot
+// bless an expectation that contradicts the way locations and references are
+// meant to relate to each other
+auto check_frame_invariants(const sourcemeta::core::JSON &frame,
+                            const bool standalone) -> void {
+  EXPECT_TRUE(std::ranges::find(KNOWN_MODES, frame.at("mode").to_string()) !=
+              KNOWN_MODES.cend());
+
+  const auto keys{location_keys(frame)};
+  std::set<sourcemeta::core::JSON::String> pointers;
+  for (const auto &kind : {"static", "dynamic"}) {
+    for (const auto &location : frame.at("locations").at(kind).as_object()) {
+      pointers.insert(location.second.at("pointer").to_string());
+    }
+  }
+
+  for (const auto &kind : {"static", "dynamic"}) {
+    for (const auto &location : frame.at("locations").at(kind).as_object()) {
+      const auto type{location.second.at("type").to_string()};
+      EXPECT_TRUE(std::ranges::find(KNOWN_TYPES, type) != KNOWN_TYPES.cend());
+
+      // Every location reports the identifier of the schema that was framed,
+      // which is a property of the frame rather than of the location
+      EXPECT_EQ(location.second.at("root"), frame.at("locations")
+                                                .at("static")
+                                                .as_object()
+                                                .cbegin()
+                                                ->second.at("root"));
+
+      // A location is addressed by a base and the pointer that leads there
+      // from it, so the pointer it reports relative to that base is the tail
+      // of the pointer it reports from the top of the document
+      const auto &pointer{location.second.at("pointer").to_string()};
+      const auto &relative{location.second.at("relativePointer").to_string()};
+      EXPECT_TRUE(pointer.starts_with(relative) && !pointer.empty());
+
+      // The key spells that same pointer as a URI fragment, and a schema that
+      // declares no identifier has no base for it to hang off, so recovering
+      // the fragment has to lead back to a tail of the pointer. It is a tail
+      // rather than the whole of it because a location that sits under an
+      // identifier is addressed from there as well as from the document
+      const sourcemeta::core::URI uri{location.first};
+      const auto fragment{uri.fragment()};
+      if (type == "anchor") {
+        // An anchor is addressed by name rather than by where it sits, and
+        // the keyword that declares a recursive anchor names the empty one,
+        // which leaves the key with no fragment to speak of
+        if (fragment.has_value()) {
+          EXPECT_FALSE(fragment.value().starts_with('/'));
+        }
+      } else if (fragment.has_value() && !fragment.value().empty()) {
+        const auto recovered{sourcemeta::core::fragment_to_pointer(uri)};
+        EXPECT_TRUE(recovered.has_value());
+        if (recovered.has_value()) {
+          EXPECT_TRUE(pointer.ends_with(
+              sourcemeta::core::to_string(recovered.value())));
+        }
+      }
+
+      // Where a location sits within the schema is either the top of it or
+      // somewhere a location accounts for
+      const auto &parent{location.second.at("parent")};
+      if (parent.is_string()) {
+        EXPECT_TRUE(pointers.contains(parent.to_string()));
+      }
+
+      // A reference that lands on a location necessarily passes through it
+      if (location.second.at("hasReferencesTo").to_boolean()) {
+        EXPECT_TRUE(location.second.at("hasReferencesThrough").to_boolean());
+      }
+    }
+  }
+
+  bool every_reference_resolves{true};
+  for (const auto &reference : frame.at("references").as_array()) {
+    const auto &origin{reference.at("origin").to_string()};
+    EXPECT_FALSE(origin.empty());
+    EXPECT_TRUE(std::ranges::find(REFERENCE_KEYWORDS, last_token(origin)) !=
+                REFERENCE_KEYWORDS.cend());
+
+    // A reference is recorded on the schema that makes it, which is a place
+    // the frame accounts for whenever it accounts for pointers at all
+    if (frame.at("mode").to_string() == "pointers") {
+      EXPECT_TRUE(pointers.contains(
+          origin.substr(0, origin.size() - last_token(origin).size() - 1)));
+    }
+
+    // Where a reference lands is spelled out whole and broken down, and the
+    // two have to agree, a destination that is nothing but a fragment being
+    // the one with no base to report
+    const auto &destination{reference.at("destination").to_string()};
+    const auto &base{reference.at("base")};
+    const auto &fragment{reference.at("fragment")};
+    sourcemeta::core::JSON::String recomposed{
+        base.is_null() ? sourcemeta::core::JSON::String{} : base.to_string()};
+    if (fragment.is_string()) {
+      recomposed.push_back('#');
+      recomposed.append(fragment.to_string());
+    }
+
+    EXPECT_EQ(recomposed, destination);
+
+    // The dialect of a schema is not something the schema has to carry with
+    // it, so a reference to one that is not there does not make the frame any
+    // less standalone
+    if (last_token(origin) != "$schema" && !keys.contains(destination)) {
+      every_reference_resolves = false;
+    }
+  }
+
+  // Standing alone is a question about references, so the modes that resolve
+  // none of them report nothing rather than report that a schema with no
+  // reference to speak of stands alone
+  const auto mode{frame.at("mode").to_string()};
+  if (mode == "root" || mode == "locations") {
+    EXPECT_FALSE(standalone);
+  } else {
+    EXPECT_EQ(standalone, every_reference_resolves);
+  }
+}
 
 auto make_resolver(const sourcemeta::core::JSON &test)
     -> sourcemeta::core::SchemaResolver {
@@ -181,7 +337,9 @@ auto run_frame_test(const sourcemeta::core::JSON &test) -> void {
       identifier_mode,
       paths,
       inputs.default_base};
-  EXPECT_EQ(root.to_json(resolver), test.at("root"));
+  const auto root_json{root.to_json(resolver)};
+  EXPECT_EQ(root_json, test.at("root"));
+  check_frame_invariants(root_json, root.standalone());
 
   const sourcemeta::core::SchemaFrame pointers{
       sourcemeta::core::SchemaFrame::Mode::Pointers,
@@ -193,7 +351,29 @@ auto run_frame_test(const sourcemeta::core::JSON &test) -> void {
       identifier_mode,
       paths,
       inputs.default_base};
-  EXPECT_EQ(pointers.to_json(resolver), test.at("pointers"));
+  const auto pointers_json{pointers.to_json(resolver)};
+  EXPECT_EQ(pointers_json, test.at("pointers"));
+  check_frame_invariants(pointers_json, pointers.standalone());
+
+  // Wherever the mode that reports on a single schema gives it an address,
+  // that address is one the mode that locates everything reports too, as each
+  // mode is a superset of the one before it. The empty key is the way that
+  // mode says the schema it analysed goes by no name of its own, which is not
+  // an address for anything to agree with
+  //
+  // A caller-provided identifier is where the two part ways, as the mode that
+  // reports on a single schema takes it for whichever schema it was pointed
+  // at, while every other mode only ever takes it for the top of the
+  // document. So the two disagree wherever a path leads below that
+  const auto default_id_below_the_top{!inputs.default_id.empty() &&
+                                      paths.size() == 1 &&
+                                      !paths.front().empty()};
+  const auto every_pointers_key{location_keys(pointers_json)};
+  if (!default_id_below_the_top) {
+    for (const auto &key : location_keys(root_json)) {
+      EXPECT_TRUE(key.empty() || every_pointers_key.contains(key));
+    }
+  }
 
   // References mode locates every schema, but of the remaining pointers only
   // the ones that a reference actually names
@@ -211,9 +391,11 @@ auto run_frame_test(const sourcemeta::core::JSON &test) -> void {
       identifier_mode,
       paths,
       inputs.default_base};
-  EXPECT_EQ(references.to_json(resolver), expected_references);
+  const auto references_json{references.to_json(resolver)};
+  EXPECT_EQ(references_json, expected_references);
 
   EXPECT_EQ(references.standalone(), test.at("standalone").to_boolean());
+  check_frame_invariants(references_json, references.standalone());
 
   if (test.defines("reachability")) {
     for (const auto &check : test.at("reachability").as_array()) {
@@ -250,7 +432,9 @@ auto run_frame_test(const sourcemeta::core::JSON &test) -> void {
       identifier_mode,
       paths,
       inputs.default_base};
-  EXPECT_EQ(locations.to_json(resolver), expected_locations);
+  const auto locations_json{locations.to_json(resolver)};
+  EXPECT_EQ(locations_json, expected_locations);
+  check_frame_invariants(locations_json, locations.standalone());
 }
 
 auto register_tests(const std::filesystem::path &directory) -> std::size_t {
