@@ -142,7 +142,6 @@ auto check_known_keys(const sourcemeta::core::JSON &test) -> void {
 // them on every fixture rather than on the handful that thought to look
 auto check_frame_invariants(const sourcemeta::core::JSON &frame) -> void {
   const auto &locations{frame.at("locations")};
-  bool every_reference_lands{true};
 
   // The entry document is an Object like any other, so the base names it, and
   // what it names is the OpenAPI Object at its root
@@ -212,16 +211,20 @@ auto check_frame_invariants(const sourcemeta::core::JSON &frame) -> void {
     // says of itself whether it is one of those, which is what the walk was
     // never in a position to read
     const auto &destination{entry.second.at("destination").to_string()};
-    const auto dangling{entry.second.at("dangling").to_boolean()};
-    EXPECT_EQ(dangling, !locations.defines(destination));
-    if (dangling) {
-      every_reference_lands = false;
-    }
+    EXPECT_EQ(entry.second.at("dangling").to_boolean(),
+              !locations.defines(destination));
   }
 
   // A description stands alone when nothing it references leaves it, so the
-  // two ways it says so have to agree
-  EXPECT_EQ(frame.at("standalone").to_boolean(), every_reference_lands);
+  // two ways the frame says so have to be the one fact. This asks the
+  // locations again rather than carrying an answer out of the loop above, so
+  // that a check added there can never quietly narrow what this covers
+  EXPECT_EQ(frame.at("standalone").to_boolean(),
+            std::ranges::none_of(
+                locations.as_object(), [](const auto &entry) -> bool {
+                  return entry.second.defines("dangling") &&
+                         entry.second.at("dangling").to_boolean();
+                }));
 
   for (const auto &operation : frame.at("operations").as_array()) {
     // Every operation the description exposes is an Operation Object that the
