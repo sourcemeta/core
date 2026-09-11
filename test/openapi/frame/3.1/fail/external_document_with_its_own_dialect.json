@@ -19,6 +19,7 @@
   },
   "defaultBase": "https://example.com/openapi.json",
   "error": {
-    "message": "Could not resolve the metaschema of the schema"
+    "message": "Could not resolve the metaschema of the schema",
+    "identifier": "https://example.com/entry-dialect"
   }
 }

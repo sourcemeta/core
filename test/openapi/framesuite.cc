@@ -23,7 +23,8 @@ namespace {
 // NOLINTBEGIN(cert-err58-cpp,bugprone-throwing-static-initialization)
 const std::vector<std::string> KNOWN_KEYS{"document", "defaultBase", "frame",
                                           "error"};
-const std::vector<std::string> KNOWN_ERROR_KEYS{"message", "location", "base"};
+const std::vector<std::string> KNOWN_ERROR_KEYS{
+    "message", "location", "base", "identifier", "keyword", "value"};
 const std::vector<std::string> KNOWN_METHODS{"get",    "put",     "post",
                                              "delete", "options", "head",
                                              "patch",  "trace",   "query"};
@@ -390,12 +391,10 @@ auto run_fail_test(const sourcemeta::core::JSON &test) -> void {
     EXPECT_EQ(error.what(), test.at("error").at("message").to_string());
 
     // A document with more than one problem reports whichever check runs
-    // first, so a fixture that cannot pin that down states no location
-    const auto *location{test.at("error").try_at("location")};
-    if (location != nullptr) {
-      EXPECT_EQ(sourcemeta::core::to_string(error.location()),
-                location->to_string());
-    }
+    // first, and which one that is a fixture has to pin down
+    EXPECT_TRUE(test.at("error").defines("location"));
+    EXPECT_EQ(sourcemeta::core::to_string(error.location()),
+              test.at("error").at("location").to_string());
 
     // An error says which document it is in, and a fixture that names none
     // expects the one that was framed
@@ -405,9 +404,22 @@ auto run_fail_test(const sourcemeta::core::JSON &test) -> void {
   } catch (const sourcemeta::core::SchemaResolutionError &error) {
     refused = true;
     check_schema_refusal(test, error.what());
+
+    // Which meta-schema could not be produced, so that turning one down is
+    // never mistaken for turning down another
+    EXPECT_TRUE(test.at("error").defines("identifier"));
+    EXPECT_EQ(error.identifier(),
+              test.at("error").at("identifier").to_string());
   } catch (const sourcemeta::core::SchemaKeywordError &error) {
     refused = true;
     check_schema_refusal(test, error.what());
+
+    // Which keyword holds the problem and what it holds, neither of which the
+    // message says on its own
+    EXPECT_TRUE(test.at("error").defines("keyword"));
+    EXPECT_EQ(error.keyword(), test.at("error").at("keyword").to_string());
+    EXPECT_TRUE(test.at("error").defines("value"));
+    EXPECT_EQ(error.value(), test.at("error").at("value").to_string());
   } catch (const std::exception &error) {
     // Every way a description can be turned down is named above, so anything
     // else is a refusal this runner has no account of rather than one to let
