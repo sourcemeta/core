@@ -1,0 +1,85 @@
+{
+  "document": {
+    "openapi": "3.2.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/a": {
+        "query": {
+          "responses": {
+            "200": {
+              "description": "ok"
+            }
+          }
+        }
+      }
+    }
+  },
+  "frame": {
+    "version": "3.2",
+    "base": "",
+    "standalone": true,
+    "info": {
+      "title": "Example",
+      "version": "1.0.0",
+      "summary": null,
+      "description": null,
+      "termsOfService": null,
+      "contact": null,
+      "license": null
+    },
+    "locations": {
+      "": {
+        "type": "openapi",
+        "pointer": "",
+        "parent": null,
+        "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17"
+      },
+      "#/info": {
+        "type": "info",
+        "pointer": "/info",
+        "parent": ""
+      },
+      "#/paths": {
+        "type": "paths",
+        "pointer": "/paths",
+        "parent": ""
+      },
+      "#/paths/~1a": {
+        "type": "path-item",
+        "pointer": "/paths/~1a",
+        "parent": "#/paths"
+      },
+      "#/paths/~1a/query": {
+        "type": "operation",
+        "pointer": "/paths/~1a/query",
+        "parent": "#/paths/~1a"
+      },
+      "#/paths/~1a/query/responses": {
+        "type": "responses",
+        "pointer": "/paths/~1a/query/responses",
+        "parent": "#/paths/~1a/query"
+      },
+      "#/paths/~1a/query/responses/200": {
+        "type": "response",
+        "pointer": "/paths/~1a/query/responses/200",
+        "parent": "#/paths/~1a/query/responses"
+      }
+    },
+    "operations": [
+      {
+        "type": "path",
+        "path": "/a",
+        "method": "query",
+        "origin": "#/paths/~1a/query",
+        "endpoint": "#/paths/~1a",
+        "tags": [],
+        "servers": [],
+        "security": [],
+        "parameters": []
+      }
+    ]
+  }
+}

@@ -23,12 +23,27 @@ constexpr auto OPENAPI_HASH_ALLOW_RESERVED{
     JSON::Object::hash("allowReserved"sv)};
 constexpr auto OPENAPI_HASH_REQUIRED{JSON::Object::hash("required"sv)};
 constexpr auto OPENAPI_HASH_DEPRECATED{JSON::Object::hash("deprecated"sv)};
+constexpr auto OPENAPI_HASH_ITEM_SCHEMA{JSON::Object::hash("itemSchema"sv)};
+constexpr auto OPENAPI_HASH_ITEM_ENCODING{JSON::Object::hash("itemEncoding"sv)};
+constexpr auto OPENAPI_HASH_PREFIX_ENCODING{
+    JSON::Object::hash("prefixEncoding"sv)};
 
-constexpr std::array<JSON::StringView, 5> OPENAPI_ENCODING_FIELDS{
+constexpr std::array<JSON::StringView, 5> OPENAPI_ENCODING_FIELDS_3_1{
     {"contentType"sv, "headers"sv, "style"sv, "explode"sv, "allowReserved"sv}};
 
-constexpr std::array<JSON::StringView, 4> OPENAPI_MEDIA_TYPE_FIELDS{
+// OpenAPI Specification 3.2.1, Section 4.15 adds the nested encoding fields
+constexpr std::array<JSON::StringView, 8> OPENAPI_ENCODING_FIELDS_3_2{
+    {"contentType"sv, "headers"sv, "style"sv, "explode"sv, "allowReserved"sv,
+     "encoding"sv, "prefixEncoding"sv, "itemEncoding"sv}};
+
+constexpr std::array<JSON::StringView, 4> OPENAPI_MEDIA_TYPE_FIELDS_3_1{
     {"schema"sv, "example"sv, "examples"sv, "encoding"sv}};
+
+// OpenAPI Specification 3.2.1, Section 4.14 adds `itemSchema`, for a
+// sequential media type, alongside the nested encoding fields
+constexpr std::array<JSON::StringView, 7> OPENAPI_MEDIA_TYPE_FIELDS_3_2{
+    {"schema"sv, "example"sv, "examples"sv, "encoding"sv, "itemSchema"sv,
+     "prefixEncoding"sv, "itemEncoding"sv}};
 
 // A Header Object only admits the serialisation fields alongside a `schema`,
 // which is how the meta-schema reads it, holding them behind a dependent
@@ -37,8 +52,16 @@ constexpr std::array<JSON::StringView, 8> OPENAPI_HEADER_SCHEMA_FIELDS{
     {"description"sv, "required"sv, "deprecated"sv, "schema"sv, "style"sv,
      "explode"sv, "example"sv, "examples"sv}};
 
-constexpr std::array<JSON::StringView, 4> OPENAPI_HEADER_CONTENT_FIELDS{
+constexpr std::array<JSON::StringView, 4> OPENAPI_HEADER_CONTENT_FIELDS_3_1{
     {"description"sv, "required"sv, "deprecated"sv, "content"sv}};
+
+// OpenAPI Specification 3.2.1, Section 4.21.1.1 moves `example` and
+// `examples` into the Header Object's common fields, of which it says "these
+// fields MAY be used with either `content` or `schema`", the same move it
+// makes in the Parameter Object
+constexpr std::array<JSON::StringView, 6> OPENAPI_HEADER_CONTENT_FIELDS_3_2{
+    {"description"sv, "required"sv, "deprecated"sv, "content"sv, "example"sv,
+     "examples"sv}};
 
 inline auto openapi_check_header_or_reference(const JSON &value,
                                               const Pointer &base,
@@ -47,12 +70,66 @@ inline auto openapi_check_header_or_reference(const JSON &value,
 // OpenAPI Specification 3.1.1, Section 4.8.15: "A single encoding definition
 // applied to a single schema property"
 inline auto openapi_check_encoding(const JSON &value, const Pointer &base,
+                                   OpenAPIWalk &walk) -> void;
+
+// OpenAPI Specification 3.2.1, Sections 4.14 and 4.15 give a Media Type
+// Object and an Encoding Object the same three ways of encoding what is inside
+// them: by name, by position, and one for every item
+inline auto openapi_check_nested_encoding(const JSON &value,
+                                          const Pointer &base,
+                                          const char *object,
+                                          const char *positional,
+                                          OpenAPIWalk &walk) -> void {
+  const auto *named{value.try_at("encoding", OPENAPI_HASH_ENCODING)};
+
+  // Section 4.14, of `encoding`: "This field MUST NOT be present if
+  // `prefixEncoding` or `itemEncoding` are present", and each of those two
+  // says the same of `encoding` in turn. Section 4.15 defines all three by
+  // reference to that Object, and the published meta-schema holds the pair to
+  // the same rule in both places
+  if (named != nullptr &&
+      (value.try_at("prefixEncoding", OPENAPI_HASH_PREFIX_ENCODING) !=
+           nullptr ||
+       value.try_at("itemEncoding", OPENAPI_HASH_ITEM_ENCODING) != nullptr)) {
+    throw OpenAPIError{base,
+                       "Encoding by name and encoding by position are mutually "
+                       "exclusive"};
+  }
+
+  if (named != nullptr) {
+    const auto location{openapi_child(base, "encoding"sv)};
+    openapi_expect_object(*named, location, object);
+    for (const auto &entry : named->as_object()) {
+      openapi_check_encoding(entry.second, openapi_child(location, entry.first),
+                             walk);
+    }
+  }
+
+  const auto *prefix{
+      value.try_at("prefixEncoding", OPENAPI_HASH_PREFIX_ENCODING)};
+  if (prefix != nullptr) {
+    const auto location{openapi_child(base, "prefixEncoding"sv)};
+    openapi_expect_array(*prefix, location, positional);
+    std::size_t index{0};
+    for (const auto &entry : prefix->as_array()) {
+      openapi_check_encoding(entry, openapi_child(location, index), walk);
+      index += 1;
+    }
+  }
+
+  const auto *item{value.try_at("itemEncoding", OPENAPI_HASH_ITEM_ENCODING)};
+  if (item != nullptr) {
+    openapi_check_encoding(*item, openapi_child(base, "itemEncoding"sv), walk);
+  }
+}
+
+inline auto openapi_check_encoding(const JSON &value, const Pointer &base,
                                    OpenAPIWalk &walk) -> void {
   openapi_record(walk, base, OpenAPIObjectKind::Encoding);
   openapi_expect_object(value, base, "The Encoding Object must be an object");
   openapi_reject_unknown_fields(
-      value, OPENAPI_ENCODING_FIELDS, base,
-      "The Encoding Object does not define this field");
+      value, OPENAPI_ENCODING_FIELDS_3_1, OPENAPI_ENCODING_FIELDS_3_2, base,
+      "The Encoding Object does not define this field", walk);
 
   // The specification says media type definitions "SHOULD be in compliance
   // with RFC6838", which is not a requirement, so only the type is checked
@@ -96,6 +173,10 @@ inline auto openapi_check_encoding(const JSON &value, const Pointer &base,
         *allow_reserved, base, "allowReserved"sv,
         "The Encoding Object allowReserved must be a boolean");
   }
+
+  openapi_check_nested_encoding(
+      value, base, "The Encoding Object encoding must be an object",
+      "The Encoding Object prefix encoding must be an array", walk);
 }
 
 // OpenAPI Specification 3.1.1, Section 4.8.14: "Each Media Type Object
@@ -105,8 +186,8 @@ inline auto openapi_check_media_type(const JSON &value, const Pointer &base,
   openapi_record(walk, base, OpenAPIObjectKind::MediaType);
   openapi_expect_object(value, base, "The Media Type Object must be an object");
   openapi_reject_unknown_fields(
-      value, OPENAPI_MEDIA_TYPE_FIELDS, base,
-      "The Media Type Object does not define this field");
+      value, OPENAPI_MEDIA_TYPE_FIELDS_3_1, OPENAPI_MEDIA_TYPE_FIELDS_3_2, base,
+      "The Media Type Object does not define this field", walk);
 
   const auto *schema{value.try_at("schema", OPENAPI_HASH_SCHEMA)};
   if (schema != nullptr) {
@@ -120,28 +201,52 @@ inline auto openapi_check_media_type(const JSON &value, const Pointer &base,
       "The Media Type Object example and examples are mutually exclusive",
       "The Media Type Object examples must be an object", walk);
 
-  const auto *encoding{value.try_at("encoding", OPENAPI_HASH_ENCODING)};
-  if (encoding != nullptr) {
-    const auto location{openapi_child(base, "encoding"sv)};
-    openapi_expect_object(*encoding, location,
-                          "The Media Type Object encoding must be an object");
-    for (const auto &entry : encoding->as_object()) {
-      openapi_check_encoding(entry.second, openapi_child(location, entry.first),
-                             walk);
-    }
+  // Section 4.14: "itemSchema | Schema Object", for a sequential media type,
+  // which is a fifth position where framing hands off to JSON Schema
+  const auto *item_schema{value.try_at("itemSchema", OPENAPI_HASH_ITEM_SCHEMA)};
+  if (item_schema != nullptr) {
+    openapi_expect_schema(*item_schema, openapi_child(base, "itemSchema"sv),
+                          "A Schema Object must be an object or a boolean",
+                          walk);
   }
+
+  openapi_check_nested_encoding(
+      value, base, "The Media Type Object encoding must be an object",
+      "The Media Type Object prefix encoding must be an array", walk);
+}
+
+// OpenAPI Specification 3.2.1, Section 4.7 holds `mediaTypes` under the
+// Components Object as "Media Type Object | Reference Object", which is the
+// first position where a Reference Object may stand in for one
+inline auto openapi_check_media_type_or_reference(const JSON &value,
+                                                  const Pointer &base,
+                                                  OpenAPIWalk &walk) -> void {
+  if (openapi_is_reference(value)) {
+    openapi_check_reference(value, base, OpenAPIObjectKind::MediaType, walk);
+    return;
+  }
+
+  openapi_check_media_type(value, base, walk);
 }
 
 // The map that the Request Body, Response, Parameter and Header Objects all
 // key by media type. Section 4.5 says those definitions "SHOULD be in
-// compliance with RFC6838", so the keys carry no requirement to enforce
+// compliance with RFC6838", so the keys carry no requirement to enforce.
+// OpenAPI Specification 3.2.1 widens what the values may be in all four of
+// those Objects, from "Map[string, Media Type Object]" to "Map[string, Media
+// Type Object | Reference Object]", which is what its Components Object entry
+// for `mediaTypes` is there to be referenced from
 inline auto openapi_check_content(const JSON &value, const Pointer &location,
                                   const char *type_message, OpenAPIWalk &walk)
     -> void {
   openapi_expect_object(value, location, type_message);
   for (const auto &entry : value.as_object()) {
-    openapi_check_media_type(entry.second, openapi_child(location, entry.first),
-                             walk);
+    const auto entry_location{openapi_child(location, entry.first)};
+    if (walk.version == OpenAPIVersion::OPENAPI_3_2) {
+      openapi_check_media_type_or_reference(entry.second, entry_location, walk);
+    } else {
+      openapi_check_media_type(entry.second, entry_location, walk);
+    }
   }
 }
 
@@ -169,8 +274,9 @@ inline auto openapi_check_header(const JSON &value, const Pointer &base,
 
   if (schema == nullptr) {
     openapi_reject_unknown_fields(
-        value, OPENAPI_HEADER_CONTENT_FIELDS, base,
-        "The Header Object does not define this field");
+        value, OPENAPI_HEADER_CONTENT_FIELDS_3_1,
+        OPENAPI_HEADER_CONTENT_FIELDS_3_2, base,
+        "The Header Object does not define this field", walk);
   } else {
     openapi_reject_unknown_fields(
         value, OPENAPI_HEADER_SCHEMA_FIELDS, base,
@@ -195,6 +301,14 @@ inline auto openapi_check_header(const JSON &value, const Pointer &base,
     openapi_expect_boolean(*deprecated, base, "deprecated"sv,
                            "The Header Object deprecated must be a boolean");
   }
+
+  // Both forms carry this pair from 3.2 onwards, and in 3.1 the field table
+  // for a `content` form has already turned both of them down, so where this
+  // sits is what both revisions ask for
+  openapi_check_examples(
+      value, base,
+      "The Header Object example and examples are mutually exclusive",
+      "The Header Object examples must be an object", walk);
 
   if (content != nullptr) {
     const auto location{openapi_child(base, "content"sv)};
@@ -226,11 +340,6 @@ inline auto openapi_check_header(const JSON &value, const Pointer &base,
     openapi_expect_boolean(*explode, base, "explode"sv,
                            "The Header Object explode must be a boolean");
   }
-
-  openapi_check_examples(
-      value, base,
-      "The Header Object example and examples are mutually exclusive",
-      "The Header Object examples must be an object", walk);
 }
 
 inline auto openapi_check_header_or_reference(const JSON &value,

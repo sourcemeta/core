@@ -16,3 +16,6 @@ target_link_libraries(sourcemeta_core_openapi PUBLIC sourcemeta::core::memory)
 target_link_libraries(sourcemeta_core_openapi PRIVATE sourcemeta::core::uri)
 target_link_libraries(sourcemeta_core_openapi PRIVATE sourcemeta::core::email)
 target_link_libraries(sourcemeta_core_openapi PRIVATE sourcemeta::core::text)
+target_link_libraries(sourcemeta_core_openapi PRIVATE sourcemeta::core::http)
+target_link_libraries(sourcemeta_core_openapi PRIVATE
+  sourcemeta::core::unicode)

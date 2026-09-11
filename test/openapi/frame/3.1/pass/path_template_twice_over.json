@@ -83,7 +83,8 @@
         "type": "schema",
         "pointer": "/paths/~1pets~1{petId}~1photos~1{photoId}/get/parameters/0/schema",
         "parent": "https://example.com/openapi.json#/paths/~1pets~1%7BpetId%7D~1photos~1%7BphotoId%7D/get/parameters/0",
-        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base",
+        "base": "https://example.com/openapi.json"
       },
       "https://example.com/openapi.json#/paths/~1pets~1%7BpetId%7D~1photos~1%7BphotoId%7D/get/responses": {
         "type": "responses",
@@ -104,7 +105,8 @@
         "type": "schema",
         "pointer": "/paths/~1pets~1{petId}~1photos~1{photoId}/parameters/0/schema",
         "parent": "https://example.com/openapi.json#/paths/~1pets~1%7BpetId%7D~1photos~1%7BphotoId%7D/parameters/0",
-        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base",
+        "base": "https://example.com/openapi.json"
       }
     },
     "operations": [

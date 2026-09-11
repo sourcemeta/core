@@ -1,0 +1,63 @@
+{
+  "document": {
+    "openapi": "3.2.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "servers": [
+      {
+        "url": "https://例え.jp/{region}",
+        "variables": {
+          "region": {
+            "default": "eu"
+          }
+        }
+      }
+    ],
+    "paths": {}
+  },
+  "frame": {
+    "version": "3.2",
+    "base": "",
+    "standalone": true,
+    "info": {
+      "title": "Example",
+      "version": "1.0.0",
+      "summary": null,
+      "description": null,
+      "termsOfService": null,
+      "contact": null,
+      "license": null
+    },
+    "locations": {
+      "": {
+        "type": "openapi",
+        "pointer": "",
+        "parent": null,
+        "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17"
+      },
+      "#/info": {
+        "type": "info",
+        "pointer": "/info",
+        "parent": ""
+      },
+      "#/paths": {
+        "type": "paths",
+        "pointer": "/paths",
+        "parent": ""
+      },
+      "#/servers/0": {
+        "type": "server",
+        "pointer": "/servers/0",
+        "parent": ""
+      },
+      "#/servers/0/variables/region": {
+        "type": "server-variable",
+        "pointer": "/servers/0/variables/region",
+        "parent": "#/servers/0"
+      }
+    },
+    "operations": []
+  }
+}

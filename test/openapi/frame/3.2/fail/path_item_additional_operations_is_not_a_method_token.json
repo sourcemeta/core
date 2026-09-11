@@ -1,0 +1,26 @@
+{
+  "document": {
+    "openapi": "3.2.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/a": {
+        "additionalOperations": {
+          "BAD METHOD": {
+            "responses": {
+              "200": {
+                "description": "ok"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "The Path Item Object additional operations must name an HTTP method",
+    "location": "/paths/~1a/additionalOperations/BAD METHOD"
+  }
+}

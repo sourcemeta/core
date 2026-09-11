@@ -112,7 +112,8 @@
         "type": "schema",
         "pointer": "/paths/~1{entity}~1me/parameters/0/schema",
         "parent": "#/paths/~1%7Bentity%7D~1me/parameters/0",
-        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base",
+        "base": ""
       },
       "#/paths/~1books~1%7Bid%7D": {
         "type": "path-item",
@@ -133,7 +134,8 @@
         "type": "schema",
         "pointer": "/paths/~1books~1{id}/get/parameters/0/schema",
         "parent": "#/paths/~1books~1%7Bid%7D/get/parameters/0",
-        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base",
+        "base": ""
       },
       "#/paths/~1books~1%7Bid%7D/get/responses": {
         "type": "responses",

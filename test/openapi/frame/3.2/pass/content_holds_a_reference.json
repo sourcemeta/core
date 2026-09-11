@@ -1,0 +1,140 @@
+{
+  "document": {
+    "openapi": "3.2.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/a": {
+        "post": {
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "$ref": "#/components/mediaTypes/Item"
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "ok",
+              "content": {
+                "application/json": {
+                  "$ref": "#/components/mediaTypes/Item"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "mediaTypes": {
+        "Item": {
+          "schema": {}
+        }
+      }
+    }
+  },
+  "frame": {
+    "version": "3.2",
+    "base": "",
+    "standalone": true,
+    "info": {
+      "title": "Example",
+      "version": "1.0.0",
+      "summary": null,
+      "description": null,
+      "termsOfService": null,
+      "contact": null,
+      "license": null
+    },
+    "locations": {
+      "": {
+        "type": "openapi",
+        "pointer": "",
+        "parent": null,
+        "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17"
+      },
+      "#/components": {
+        "type": "components",
+        "pointer": "/components",
+        "parent": ""
+      },
+      "#/components/mediaTypes/Item": {
+        "type": "media-type",
+        "pointer": "/components/mediaTypes/Item",
+        "parent": "#/components"
+      },
+      "#/components/mediaTypes/Item/schema": {
+        "type": "schema",
+        "pointer": "/components/mediaTypes/Item/schema",
+        "parent": "#/components/mediaTypes/Item",
+        "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17",
+        "base": ""
+      },
+      "#/info": {
+        "type": "info",
+        "pointer": "/info",
+        "parent": ""
+      },
+      "#/paths": {
+        "type": "paths",
+        "pointer": "/paths",
+        "parent": ""
+      },
+      "#/paths/~1a": {
+        "type": "path-item",
+        "pointer": "/paths/~1a",
+        "parent": "#/paths"
+      },
+      "#/paths/~1a/post": {
+        "type": "operation",
+        "pointer": "/paths/~1a/post",
+        "parent": "#/paths/~1a"
+      },
+      "#/paths/~1a/post/requestBody": {
+        "type": "request-body",
+        "pointer": "/paths/~1a/post/requestBody",
+        "parent": "#/paths/~1a/post"
+      },
+      "#/paths/~1a/post/requestBody/content/application~1json": {
+        "type": "reference",
+        "pointer": "/paths/~1a/post/requestBody/content/application~1json",
+        "parent": "#/paths/~1a/post/requestBody",
+        "original": "#/components/mediaTypes/Item",
+        "destination": "#/components/mediaTypes/Item"
+      },
+      "#/paths/~1a/post/responses": {
+        "type": "responses",
+        "pointer": "/paths/~1a/post/responses",
+        "parent": "#/paths/~1a/post"
+      },
+      "#/paths/~1a/post/responses/200": {
+        "type": "response",
+        "pointer": "/paths/~1a/post/responses/200",
+        "parent": "#/paths/~1a/post/responses"
+      },
+      "#/paths/~1a/post/responses/200/content/application~1json": {
+        "type": "reference",
+        "pointer": "/paths/~1a/post/responses/200/content/application~1json",
+        "parent": "#/paths/~1a/post/responses/200",
+        "original": "#/components/mediaTypes/Item",
+        "destination": "#/components/mediaTypes/Item"
+      }
+    },
+    "operations": [
+      {
+        "type": "path",
+        "path": "/a",
+        "method": "post",
+        "origin": "#/paths/~1a/post",
+        "endpoint": "#/paths/~1a",
+        "tags": [],
+        "servers": [],
+        "security": [],
+        "parameters": []
+      }
+    ]
+  }
+}

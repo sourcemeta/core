@@ -1,0 +1,33 @@
+{
+  "document": {
+    "openapi": "3.2.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/a": {
+        "query": {
+          "responses": {
+            "200": {
+              "description": "ok"
+            }
+          }
+        },
+        "additionalOperations": {
+          "QUERY": {
+            "responses": {
+              "200": {
+                "description": "ok"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "The Path Item Object additional operations must not name a method that a field of its own defines",
+    "location": "/paths/~1a/additionalOperations/QUERY"
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "document": {
+    "openapi": "3.2.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/a": {
+        "post": {
+          "requestBody": {
+            "content": {
+              "multipart/mixed": {
+                "encoding": {
+                  "part": {}
+                },
+                "prefixEncoding": [
+                  {}
+                ]
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "ok"
+            }
+          }
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "Encoding by name and encoding by position are mutually exclusive",
+    "location": "/paths/~1a/post/requestBody/content/multipart~1mixed"
+  }
+}

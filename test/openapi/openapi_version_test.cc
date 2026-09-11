@@ -126,7 +126,28 @@ TEST(unrelated_major_minor_prefix) {
 
 TEST(earlier_minor) { EXPECT_FALSE(version_of("3.0.0").has_value()); }
 
-TEST(later_minor) { EXPECT_FALSE(version_of("3.2.0").has_value()); }
+TEST(later_minor) {
+  EXPECT_EQ(version_of("3.2.0").value(),
+            sourcemeta::core::OpenAPIVersion::OPENAPI_3_2);
+}
+
+TEST(later_minor_patch_two) {
+  EXPECT_EQ(version_of("3.2.1").value(),
+            sourcemeta::core::OpenAPIVersion::OPENAPI_3_2);
+}
+
+TEST(later_minor_prerelease) {
+  EXPECT_EQ(version_of("3.2.0-rc0").value(),
+            sourcemeta::core::OpenAPIVersion::OPENAPI_3_2);
+}
+
+TEST(later_minor_without_patch_component) {
+  EXPECT_FALSE(version_of("3.2").has_value());
+}
+
+TEST(minor_after_the_ones_we_know) {
+  EXPECT_FALSE(version_of("3.3.0").has_value());
+}
 
 TEST(later_major) { EXPECT_FALSE(version_of("4.0.0").has_value()); }
 

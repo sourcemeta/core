@@ -1,0 +1,25 @@
+{
+  "document": {
+    "openapi": "3.2.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/a": {
+        "parameters": [
+          {
+            "name": "a",
+            "in": "header",
+            "schema": {},
+            "allowReserved": true
+          }
+        ]
+      }
+    }
+  },
+  "error": {
+    "message": "The Parameter Object does not define this field",
+    "location": "/paths/~1a/parameters/0/allowReserved"
+  }
+}

@@ -1,0 +1,127 @@
+{
+  "document": {
+    "openapi": "3.2.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/a": {
+        "post": {
+          "requestBody": {
+            "content": {
+              "multipart/mixed": {
+                "itemSchema": {},
+                "prefixEncoding": [
+                  {
+                    "contentType": "application/json"
+                  }
+                ],
+                "itemEncoding": {
+                  "contentType": "text/plain"
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "ok"
+            }
+          }
+        }
+      }
+    }
+  },
+  "frame": {
+    "version": "3.2",
+    "base": "",
+    "standalone": true,
+    "info": {
+      "title": "Example",
+      "version": "1.0.0",
+      "summary": null,
+      "description": null,
+      "termsOfService": null,
+      "contact": null,
+      "license": null
+    },
+    "locations": {
+      "": {
+        "type": "openapi",
+        "pointer": "",
+        "parent": null,
+        "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17"
+      },
+      "#/info": {
+        "type": "info",
+        "pointer": "/info",
+        "parent": ""
+      },
+      "#/paths": {
+        "type": "paths",
+        "pointer": "/paths",
+        "parent": ""
+      },
+      "#/paths/~1a": {
+        "type": "path-item",
+        "pointer": "/paths/~1a",
+        "parent": "#/paths"
+      },
+      "#/paths/~1a/post": {
+        "type": "operation",
+        "pointer": "/paths/~1a/post",
+        "parent": "#/paths/~1a"
+      },
+      "#/paths/~1a/post/requestBody": {
+        "type": "request-body",
+        "pointer": "/paths/~1a/post/requestBody",
+        "parent": "#/paths/~1a/post"
+      },
+      "#/paths/~1a/post/requestBody/content/multipart~1mixed": {
+        "type": "media-type",
+        "pointer": "/paths/~1a/post/requestBody/content/multipart~1mixed",
+        "parent": "#/paths/~1a/post/requestBody"
+      },
+      "#/paths/~1a/post/requestBody/content/multipart~1mixed/itemEncoding": {
+        "type": "encoding",
+        "pointer": "/paths/~1a/post/requestBody/content/multipart~1mixed/itemEncoding",
+        "parent": "#/paths/~1a/post/requestBody/content/multipart~1mixed"
+      },
+      "#/paths/~1a/post/requestBody/content/multipart~1mixed/itemSchema": {
+        "type": "schema",
+        "pointer": "/paths/~1a/post/requestBody/content/multipart~1mixed/itemSchema",
+        "parent": "#/paths/~1a/post/requestBody/content/multipart~1mixed",
+        "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17",
+        "base": ""
+      },
+      "#/paths/~1a/post/requestBody/content/multipart~1mixed/prefixEncoding/0": {
+        "type": "encoding",
+        "pointer": "/paths/~1a/post/requestBody/content/multipart~1mixed/prefixEncoding/0",
+        "parent": "#/paths/~1a/post/requestBody/content/multipart~1mixed"
+      },
+      "#/paths/~1a/post/responses": {
+        "type": "responses",
+        "pointer": "/paths/~1a/post/responses",
+        "parent": "#/paths/~1a/post"
+      },
+      "#/paths/~1a/post/responses/200": {
+        "type": "response",
+        "pointer": "/paths/~1a/post/responses/200",
+        "parent": "#/paths/~1a/post/responses"
+      }
+    },
+    "operations": [
+      {
+        "type": "path",
+        "path": "/a",
+        "method": "post",
+        "origin": "#/paths/~1a/post",
+        "endpoint": "#/paths/~1a",
+        "tags": [],
+        "servers": [],
+        "security": [],
+        "parameters": []
+      }
+    ]
+  }
+}

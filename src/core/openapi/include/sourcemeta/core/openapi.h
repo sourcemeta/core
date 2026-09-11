@@ -36,7 +36,9 @@ namespace sourcemeta::core {
 /// The OpenAPI Description versions that this module recognises
 enum class OpenAPIVersion : std::uint8_t {
   /// The OpenAPI Specification 3.1 revision
-  OPENAPI_3_1
+  OPENAPI_3_1,
+  /// The OpenAPI Specification 3.2 revision
+  OPENAPI_3_2
 };
 
 /// @ingroup openapi
@@ -155,8 +157,10 @@ public:
   /// the frame keeps whatever the resolver handed it.
   ///
   /// The base is the retrieval URI of the entry document. OpenAPI 3.1 offers
-  /// a document no way of declaring an identity of its own, so this is the
-  /// only way to give the description one. A referenced document whose root
+  /// a document no way of declaring an identity of its own, so under that
+  /// revision this is the only way to give the description one. From 3.2
+  /// onwards a document may declare `$self`, which takes precedence and is
+  /// resolved against this when relative. A referenced document whose root
   /// is a Schema Object may still override it through `$id`
   ///
   /// A document that does not conform to the specification is rejected here
@@ -214,11 +218,11 @@ public:
   /// ```
   [[nodiscard]] auto info() const noexcept -> const OpenAPIInfo &;
 
-  /// Get the base URI that relative references in this description resolve
-  /// against, canonicalised, or the empty URI reference when the caller
-  /// established none, which leaves those references relative. OpenAPI 3.1
-  /// gives a document no way of declaring this itself, so it is the retrieval
-  /// URI the caller supplied and nothing else. For example:
+  /// Get the base URI that relative references in the entry document resolve
+  /// against, canonicalised, or the empty URI reference when nothing
+  /// established one, which leaves those references relative. It is the
+  /// `$self` the entry document declares, and the retrieval URI the caller
+  /// supplied when it declares none. For example:
   ///
   /// ```cpp
   /// #include <sourcemeta/core/json.h>

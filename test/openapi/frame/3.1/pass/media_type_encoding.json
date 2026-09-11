@@ -79,13 +79,15 @@
         "type": "schema",
         "pointer": "/components/requestBodies/Upload/content/multipart~1form-data/encoding/profile/headers/X-Rate/schema",
         "parent": "#/components/requestBodies/Upload/content/multipart~1form-data/encoding/profile/headers/X-Rate",
-        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base",
+        "base": ""
       },
       "#/components/requestBodies/Upload/content/multipart~1form-data/schema": {
         "type": "schema",
         "pointer": "/components/requestBodies/Upload/content/multipart~1form-data/schema",
         "parent": "#/components/requestBodies/Upload/content/multipart~1form-data",
-        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base",
+        "base": ""
       },
       "#/info": {
         "type": "info",

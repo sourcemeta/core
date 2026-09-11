@@ -16,8 +16,12 @@ namespace sourcemeta::core {
 constexpr auto OPENAPI_HASH_LINKS{JSON::Object::hash("links"sv)};
 constexpr auto OPENAPI_HASH_DEFAULT{JSON::Object::hash("default"sv)};
 
-constexpr std::array<JSON::StringView, 4> OPENAPI_RESPONSE_FIELDS{
+constexpr std::array<JSON::StringView, 4> OPENAPI_RESPONSE_FIELDS_3_1{
     {"description"sv, "headers"sv, "content"sv, "links"sv}};
+
+// OpenAPI Specification 3.2.1, Section 4.17 adds `summary`
+constexpr std::array<JSON::StringView, 5> OPENAPI_RESPONSE_FIELDS_3_2{
+    {"description"sv, "headers"sv, "content"sv, "links"sv, "summary"sv}};
 
 // OpenAPI Specification 3.1.1, Section 4.8.17: "Describes a single response
 // from an API operation"
@@ -26,19 +30,32 @@ inline auto openapi_check_response(const JSON &value, const Pointer &base,
   openapi_record(walk, base, OpenAPIObjectKind::Response);
   openapi_expect_object(value, base, "The Response Object must be an object");
   openapi_reject_unknown_fields(
-      value, OPENAPI_RESPONSE_FIELDS, base,
-      "The Response Object does not define this field");
+      value, OPENAPI_RESPONSE_FIELDS_3_1, OPENAPI_RESPONSE_FIELDS_3_2, base,
+      "The Response Object does not define this field", walk);
 
   // OpenAPI Specification 3.1.1, Section 4.8.17: "description | string |
-  // REQUIRED. A description of the response"
+  // REQUIRED. A description of the response". OpenAPI Specification 3.2.1,
+  // Section 4.17 drops that word from the same row, and the published
+  // meta-schemas draw the same line, the 3.1 one requiring the field and the
+  // 3.2 one requiring nothing of a Response Object. This is the one field 3.2
+  // stops requiring
   const auto *description{
       value.try_at("description", OPENAPI_HASH_DESCRIPTION)};
-  if (description == nullptr) {
+  if (description == nullptr && walk.version != OpenAPIVersion::OPENAPI_3_2) {
     throw OpenAPIError{base, "The Response Object must declare a description"};
   }
 
-  openapi_expect_string(*description, base, "description"sv,
-                        "The Response Object description must be a string");
+  if (description != nullptr) {
+    openapi_expect_string(*description, base, "description"sv,
+                          "The Response Object description must be a string");
+  }
+
+  // OpenAPI Specification 3.2.1, Section 4.17: "summary | string"
+  const auto *summary{value.try_at("summary", OPENAPI_HASH_SUMMARY)};
+  if (summary != nullptr) {
+    openapi_expect_string(*summary, base, "summary"sv,
+                          "The Response Object summary must be a string");
+  }
 
   const auto *headers{value.try_at("headers", OPENAPI_HASH_HEADERS)};
   if (headers != nullptr) {

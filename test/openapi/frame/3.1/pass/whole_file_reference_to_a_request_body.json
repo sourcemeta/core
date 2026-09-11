@@ -74,7 +74,8 @@
         "type": "schema",
         "pointer": "/content/application~1json/schema",
         "parent": "https://example.com/target.json#/content/application~1json",
-        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base",
+        "base": "https://example.com/target.json"
       }
     },
     "operations": []
