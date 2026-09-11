@@ -211,6 +211,8 @@ TEST(policy_default_argument) {
 }
 
 TEST(policy_lifecycle_and_isolation) {
+  sourcemeta::core::terminal_reset_color_policy();
+
   // Global configuration affects all streams
   sourcemeta::core::terminal_set_color_policy(
       sourcemeta::core::TerminalColorPolicy::WhenInteractive);
@@ -251,11 +253,46 @@ TEST(policy_lifecycle_and_isolation) {
   EXPECT_EQ(stderr_stream.str(), "error_stream");
 
   // Restore default policy across all streams
-  sourcemeta::core::terminal_set_color_policy(
-      sourcemeta::core::TerminalColorPolicy::WhenInteractive);
+  sourcemeta::core::terminal_reset_color_policy();
   EXPECT_EQ(sourcemeta::core::terminal_color_policy(
                 sourcemeta::core::TerminalStream::Stderr),
             sourcemeta::core::TerminalColorPolicy::WhenInteractive);
+}
+
+TEST(policy_reset_global) {
+  sourcemeta::core::terminal_set_color_policy(
+      sourcemeta::core::TerminalColorPolicy::Always);
+  EXPECT_EQ(sourcemeta::core::terminal_color_policy(
+                sourcemeta::core::TerminalStream::Stdout),
+            sourcemeta::core::TerminalColorPolicy::Always);
+  sourcemeta::core::terminal_reset_color_policy();
+  EXPECT_EQ(sourcemeta::core::terminal_color_policy(
+                sourcemeta::core::TerminalStream::Stdout),
+            sourcemeta::core::TerminalColorPolicy::WhenInteractive);
+  EXPECT_EQ(sourcemeta::core::terminal_color_policy(
+                sourcemeta::core::TerminalStream::Stderr),
+            sourcemeta::core::TerminalColorPolicy::WhenInteractive);
+  EXPECT_EQ(sourcemeta::core::terminal_color_policy(
+                sourcemeta::core::TerminalStream::Stdin),
+            sourcemeta::core::TerminalColorPolicy::WhenInteractive);
+}
+
+TEST(policy_reset_per_stream) {
+  sourcemeta::core::terminal_set_color_policy(
+      sourcemeta::core::TerminalStream::Stderr,
+      sourcemeta::core::TerminalColorPolicy::Disabled);
+  sourcemeta::core::terminal_set_color_policy(
+      sourcemeta::core::TerminalStream::Stdout,
+      sourcemeta::core::TerminalColorPolicy::Always);
+  sourcemeta::core::terminal_reset_color_policy(
+      sourcemeta::core::TerminalStream::Stderr);
+  EXPECT_EQ(sourcemeta::core::terminal_color_policy(
+                sourcemeta::core::TerminalStream::Stderr),
+            sourcemeta::core::TerminalColorPolicy::WhenInteractive);
+  EXPECT_EQ(sourcemeta::core::terminal_color_policy(
+                sourcemeta::core::TerminalStream::Stdout),
+            sourcemeta::core::TerminalColorPolicy::Always);
+  sourcemeta::core::terminal_reset_color_policy();
 }
 
 TEST(stream_detection_runs_safely) {
@@ -310,4 +347,261 @@ TEST(composition_with_formatting) {
       sourcemeta::core::terminal_paint("FAILED", bold_red, false)};
   const std::string text_disabled{"Status: " + plain + " [exit code: 1]"};
   EXPECT_EQ(text_disabled, "Status: FAILED [exit code: 1]");
+}
+
+TEST(policy_always_enables_styling) {
+  sourcemeta::core::terminal_set_color_policy(
+      sourcemeta::core::TerminalColorPolicy::Always);
+  EXPECT_EQ(sourcemeta::core::terminal_color_policy(
+                sourcemeta::core::TerminalStream::Stdout),
+            sourcemeta::core::TerminalColorPolicy::Always);
+  EXPECT_EQ(sourcemeta::core::terminal_color_policy(
+                sourcemeta::core::TerminalStream::Stderr),
+            sourcemeta::core::TerminalColorPolicy::Always);
+  EXPECT_EQ(sourcemeta::core::terminal_color_policy(
+                sourcemeta::core::TerminalStream::Stdin),
+            sourcemeta::core::TerminalColorPolicy::Always);
+
+  EXPECT_TRUE(sourcemeta::core::terminal_color_enabled(
+      sourcemeta::core::TerminalStream::Stdout));
+  EXPECT_TRUE(sourcemeta::core::terminal_color_enabled(
+      sourcemeta::core::TerminalStream::Stderr));
+  EXPECT_TRUE(sourcemeta::core::terminal_color_enabled(
+      sourcemeta::core::TerminalStream::Stdin));
+  sourcemeta::core::terminal_reset_color_policy();
+}
+
+TEST(policy_always_preserves_terminal_interactivity) {
+  sourcemeta::core::terminal_set_color_policy(
+      sourcemeta::core::TerminalColorPolicy::Always);
+  EXPECT_FALSE(sourcemeta::core::terminal_is_interactive(-1));
+
+  std::array<int, 2> pipe_descriptors{{-1, -1}};
+#if defined(_WIN32)
+  const int pipe_status{_pipe(pipe_descriptors.data(), 256, _O_BINARY)};
+#else
+  const int pipe_status{::pipe(pipe_descriptors.data())};
+#endif
+  if (pipe_status == 0) {
+    EXPECT_FALSE(
+        sourcemeta::core::terminal_is_interactive(pipe_descriptors[0]));
+    EXPECT_FALSE(
+        sourcemeta::core::terminal_is_interactive(pipe_descriptors[1]));
+#if defined(_WIN32)
+    _close(pipe_descriptors[0]);
+    _close(pipe_descriptors[1]);
+#else
+    ::close(pipe_descriptors[0]);
+    ::close(pipe_descriptors[1]);
+#endif
+  }
+  sourcemeta::core::terminal_reset_color_policy();
+}
+
+TEST(policy_disabled_suppresses_styling) {
+  sourcemeta::core::terminal_set_color_policy(
+      sourcemeta::core::TerminalColorPolicy::Disabled);
+  EXPECT_EQ(sourcemeta::core::terminal_color_policy(
+                sourcemeta::core::TerminalStream::Stdout),
+            sourcemeta::core::TerminalColorPolicy::Disabled);
+  EXPECT_EQ(sourcemeta::core::terminal_color_policy(
+                sourcemeta::core::TerminalStream::Stderr),
+            sourcemeta::core::TerminalColorPolicy::Disabled);
+  EXPECT_EQ(sourcemeta::core::terminal_color_policy(
+                sourcemeta::core::TerminalStream::Stdin),
+            sourcemeta::core::TerminalColorPolicy::Disabled);
+
+  EXPECT_FALSE(sourcemeta::core::terminal_color_enabled(
+      sourcemeta::core::TerminalStream::Stdout));
+  EXPECT_FALSE(sourcemeta::core::terminal_color_enabled(
+      sourcemeta::core::TerminalStream::Stderr));
+  EXPECT_FALSE(sourcemeta::core::terminal_color_enabled(
+      sourcemeta::core::TerminalStream::Stdin));
+  sourcemeta::core::terminal_reset_color_policy();
+}
+
+TEST(policy_when_interactive_retains_detection) {
+  sourcemeta::core::terminal_reset_color_policy();
+  EXPECT_EQ(sourcemeta::core::terminal_color_policy(
+                sourcemeta::core::TerminalStream::Stdout),
+            sourcemeta::core::TerminalColorPolicy::WhenInteractive);
+
+  EXPECT_EQ(sourcemeta::core::terminal_color_enabled(
+                sourcemeta::core::TerminalStream::Stdout),
+            sourcemeta::core::terminal_is_interactive(
+                sourcemeta::core::TerminalStream::Stdout));
+  EXPECT_EQ(sourcemeta::core::terminal_color_enabled(
+                sourcemeta::core::TerminalStream::Stderr),
+            sourcemeta::core::terminal_is_interactive(
+                sourcemeta::core::TerminalStream::Stderr));
+  EXPECT_EQ(sourcemeta::core::terminal_color_enabled(
+                sourcemeta::core::TerminalStream::Stdin),
+            sourcemeta::core::terminal_is_interactive(
+                sourcemeta::core::TerminalStream::Stdin));
+}
+
+TEST(policy_switching_takes_effect) {
+  sourcemeta::core::terminal_reset_color_policy();
+
+  sourcemeta::core::terminal_set_color_policy(
+      sourcemeta::core::TerminalStream::Stdout,
+      sourcemeta::core::TerminalColorPolicy::Always);
+  EXPECT_EQ(sourcemeta::core::terminal_color_policy(
+                sourcemeta::core::TerminalStream::Stdout),
+            sourcemeta::core::TerminalColorPolicy::Always);
+  EXPECT_TRUE(sourcemeta::core::terminal_color_enabled(
+      sourcemeta::core::TerminalStream::Stdout));
+
+  sourcemeta::core::terminal_set_color_policy(
+      sourcemeta::core::TerminalStream::Stdout,
+      sourcemeta::core::TerminalColorPolicy::Disabled);
+  EXPECT_EQ(sourcemeta::core::terminal_color_policy(
+                sourcemeta::core::TerminalStream::Stdout),
+            sourcemeta::core::TerminalColorPolicy::Disabled);
+  EXPECT_FALSE(sourcemeta::core::terminal_color_enabled(
+      sourcemeta::core::TerminalStream::Stdout));
+
+  sourcemeta::core::terminal_set_color_policy(
+      sourcemeta::core::TerminalStream::Stdout,
+      sourcemeta::core::TerminalColorPolicy::WhenInteractive);
+  EXPECT_EQ(sourcemeta::core::terminal_color_policy(
+                sourcemeta::core::TerminalStream::Stdout),
+            sourcemeta::core::TerminalColorPolicy::WhenInteractive);
+  EXPECT_EQ(sourcemeta::core::terminal_color_enabled(
+                sourcemeta::core::TerminalStream::Stdout),
+            sourcemeta::core::terminal_is_interactive(
+                sourcemeta::core::TerminalStream::Stdout));
+
+  sourcemeta::core::terminal_reset_color_policy();
+}
+
+TEST(policy_per_stream_isolation) {
+  sourcemeta::core::terminal_reset_color_policy();
+
+  sourcemeta::core::terminal_set_color_policy(
+      sourcemeta::core::TerminalStream::Stdout,
+      sourcemeta::core::TerminalColorPolicy::Always);
+  sourcemeta::core::terminal_set_color_policy(
+      sourcemeta::core::TerminalStream::Stderr,
+      sourcemeta::core::TerminalColorPolicy::Disabled);
+
+  EXPECT_EQ(sourcemeta::core::terminal_color_policy(
+                sourcemeta::core::TerminalStream::Stdout),
+            sourcemeta::core::TerminalColorPolicy::Always);
+  EXPECT_EQ(sourcemeta::core::terminal_color_policy(
+                sourcemeta::core::TerminalStream::Stderr),
+            sourcemeta::core::TerminalColorPolicy::Disabled);
+  EXPECT_EQ(sourcemeta::core::terminal_color_policy(
+                sourcemeta::core::TerminalStream::Stdin),
+            sourcemeta::core::TerminalColorPolicy::WhenInteractive);
+
+  EXPECT_TRUE(sourcemeta::core::terminal_color_enabled(
+      sourcemeta::core::TerminalStream::Stdout));
+  EXPECT_FALSE(sourcemeta::core::terminal_color_enabled(
+      sourcemeta::core::TerminalStream::Stderr));
+
+  sourcemeta::core::terminal_reset_color_policy();
+}
+
+TEST(policy_global_setter_across_streams) {
+  sourcemeta::core::terminal_reset_color_policy();
+
+  sourcemeta::core::terminal_set_color_policy(
+      sourcemeta::core::TerminalColorPolicy::Always);
+  EXPECT_EQ(sourcemeta::core::terminal_color_policy(
+                sourcemeta::core::TerminalStream::Stdout),
+            sourcemeta::core::TerminalColorPolicy::Always);
+  EXPECT_EQ(sourcemeta::core::terminal_color_policy(
+                sourcemeta::core::TerminalStream::Stderr),
+            sourcemeta::core::TerminalColorPolicy::Always);
+  EXPECT_EQ(sourcemeta::core::terminal_color_policy(
+                sourcemeta::core::TerminalStream::Stdin),
+            sourcemeta::core::TerminalColorPolicy::Always);
+
+  // Subsequent per-stream setter is not blocked by earlier global setter
+  sourcemeta::core::terminal_set_color_policy(
+      sourcemeta::core::TerminalStream::Stderr,
+      sourcemeta::core::TerminalColorPolicy::Disabled);
+  EXPECT_EQ(sourcemeta::core::terminal_color_policy(
+                sourcemeta::core::TerminalStream::Stdout),
+            sourcemeta::core::TerminalColorPolicy::Always);
+  EXPECT_EQ(sourcemeta::core::terminal_color_policy(
+                sourcemeta::core::TerminalStream::Stderr),
+            sourcemeta::core::TerminalColorPolicy::Disabled);
+
+  sourcemeta::core::terminal_reset_color_policy();
+}
+
+TEST(paint_destination_aware_always) {
+  sourcemeta::core::terminal_set_color_policy(
+      sourcemeta::core::TerminalStream::Stdout,
+      sourcemeta::core::TerminalColorPolicy::Always);
+
+  // Basic styling
+  EXPECT_EQ(sourcemeta::core::terminal_paint(
+                sourcemeta::core::TerminalStream::Stdout, "Hello",
+                sourcemeta::core::TerminalStyle::Red),
+            "\033[31mHello\033[0m");
+
+  // Representative combined style (bold + foreground color)
+  const auto bold_green{sourcemeta::core::TerminalStyle::Bold |
+                        sourcemeta::core::TerminalStyle::Green};
+  EXPECT_EQ(
+      sourcemeta::core::terminal_paint(sourcemeta::core::TerminalStream::Stdout,
+                                       "Success", bold_green),
+      "\033[1;32mSuccess\033[0m");
+
+  // Stream output overload
+  std::ostringstream stream_output;
+  sourcemeta::core::terminal_paint(stream_output,
+                                   sourcemeta::core::TerminalStream::Stdout,
+                                   "Streamed", bold_green);
+  EXPECT_EQ(stream_output.str(), "\033[1;32mStreamed\033[0m");
+
+  // Empty text produces no escape sequences
+  EXPECT_EQ(sourcemeta::core::terminal_paint(
+                sourcemeta::core::TerminalStream::Stdout, "", bold_green),
+            "");
+  std::ostringstream empty_stream;
+  sourcemeta::core::terminal_paint(
+      empty_stream, sourcemeta::core::TerminalStream::Stdout, "", bold_green);
+  EXPECT_EQ(empty_stream.str(), "");
+
+  // Style None produces plain text without escape sequences
+  EXPECT_EQ(sourcemeta::core::terminal_paint(
+                sourcemeta::core::TerminalStream::Stdout, "Plain",
+                sourcemeta::core::TerminalStyle::None),
+            "Plain");
+  std::ostringstream none_stream;
+  sourcemeta::core::terminal_paint(
+      none_stream, sourcemeta::core::TerminalStream::Stdout, "Plain",
+      sourcemeta::core::TerminalStyle::None);
+  EXPECT_EQ(none_stream.str(), "Plain");
+
+  sourcemeta::core::terminal_reset_color_policy();
+}
+
+TEST(paint_destination_aware_disabled) {
+  sourcemeta::core::terminal_set_color_policy(
+      sourcemeta::core::TerminalStream::Stdout,
+      sourcemeta::core::TerminalColorPolicy::Disabled);
+
+  EXPECT_EQ(sourcemeta::core::terminal_paint(
+                sourcemeta::core::TerminalStream::Stdout, "Hello",
+                sourcemeta::core::TerminalStyle::Red),
+            "Hello");
+
+  const auto bold_blue{sourcemeta::core::TerminalStyle::Bold |
+                       sourcemeta::core::TerminalStyle::Blue};
+  EXPECT_EQ(sourcemeta::core::terminal_paint(
+                sourcemeta::core::TerminalStream::Stdout, "Info", bold_blue),
+            "Info");
+
+  std::ostringstream stream_output;
+  sourcemeta::core::terminal_paint(stream_output,
+                                   sourcemeta::core::TerminalStream::Stdout,
+                                   "Streamed", bold_blue);
+  EXPECT_EQ(stream_output.str(), "Streamed");
+
+  sourcemeta::core::terminal_reset_color_policy();
 }

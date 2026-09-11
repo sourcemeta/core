@@ -1,0 +1,6 @@
+RUN --color always STDIN /dev/null IN . INTO result.txt EXPECTING 0
+WRITE expected.txt UNTIL END
+1> [31mstreamed[0m
+1> [1;32mpainted[0m
+END
+COMPARE result.txt AGAINST expected.txt
