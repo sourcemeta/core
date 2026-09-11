@@ -102,6 +102,15 @@ function(sourcemeta_ccache_attempt_enable)
   endif()
   if(NOT CCACHE_BIN)
     message(STATUS "Could not locate `ccache`. Compiling without a compiler cache")
+    add_custom_target(ccache_stats
+      VERBATIM
+      COMMAND "${CMAKE_COMMAND}" -E echo "Could not locate the compiler cache"
+      COMMAND "${CMAKE_COMMAND}" -E false)
+    add_custom_target(ccache_stats_zero
+      VERBATIM
+      COMMAND "${CMAKE_COMMAND}" -E echo "Could not locate the compiler cache"
+      COMMAND "${CMAKE_COMMAND}" -E false)
+    set_target_properties(ccache_stats ccache_stats_zero PROPERTIES FOLDER "Compiler cache")
     return()
   endif()
 
