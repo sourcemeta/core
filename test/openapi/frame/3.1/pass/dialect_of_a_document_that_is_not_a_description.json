@@ -19,7 +19,9 @@
   "frame": {
     "version": "3.1",
     "base": "https://example.com/openapi.json",
-    "standalone": false,
+    "dangling": [
+      "https://example.com/common.json"
+    ],
     "info": {
       "title": "E",
       "version": "1",
@@ -60,8 +62,5 @@
       }
     },
     "operations": []
-  },
-  "dangling": [
-    "https://example.com/common.json"
-  ]
+  }
 }

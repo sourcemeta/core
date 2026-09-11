@@ -20,7 +20,9 @@
   "frame": {
     "version": "3.2",
     "base": "https://example.com/api/openapi",
-    "standalone": false,
+    "dangling": [
+      "https://example.com/api/shared/foo#/components/requestBodies/Foo"
+    ],
     "info": {
       "title": "Example API",
       "version": "1.0",
@@ -78,8 +80,5 @@
         "parameters": []
       }
     ]
-  },
-  "dangling": [
-    "https://example.com/api/shared/foo#/components/requestBodies/Foo"
-  ]
+  }
 }

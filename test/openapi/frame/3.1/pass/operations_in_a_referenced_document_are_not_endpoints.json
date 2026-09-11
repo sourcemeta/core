@@ -28,7 +28,9 @@
   "frame": {
     "version": "3.1",
     "base": "https://example.com/openapi.json",
-    "standalone": false,
+    "dangling": [
+      "https://example.com/common.json#/components/responses/NotFound"
+    ],
     "info": {
       "title": "Example",
       "version": "1.0.0",
@@ -101,8 +103,5 @@
         "parameters": []
       }
     ]
-  },
-  "dangling": [
-    "https://example.com/common.json#/components/responses/NotFound"
-  ]
+  }
 }

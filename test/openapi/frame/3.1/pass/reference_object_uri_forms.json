@@ -48,7 +48,12 @@
   "frame": {
     "version": "3.1",
     "base": "",
-    "standalone": false,
+    "dangling": [
+      "/shared/common.yaml#/components/responses/NotFound",
+      "common.yaml",
+      "common.yaml#/components/responses/NotFound",
+      "https://example.com/common.yaml#/components/responses/NotFound"
+    ],
     "info": {
       "title": "Example",
       "version": "1.0.0",
@@ -168,11 +173,5 @@
         "parameters": []
       }
     ]
-  },
-  "dangling": [
-    "https://example.com/common.yaml#/components/responses/NotFound",
-    "/shared/common.yaml#/components/responses/NotFound",
-    "common.yaml",
-    "common.yaml#/components/responses/NotFound"
-  ]
+  }
 }

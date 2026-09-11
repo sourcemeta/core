@@ -7,8 +7,10 @@
 #include <algorithm>   // std::ranges::find
 #include <cstddef>     // std::size_t
 #include <filesystem>  // std::filesystem
+#include <functional>  // std::less
 #include <iostream>    // std::cerr
 #include <optional>    // std::nullopt
+#include <set>         // std::set
 #include <sstream>     // std::ostringstream
 #include <string>      // std::string
 #include <string_view> // std::string_view
@@ -20,7 +22,7 @@ namespace {
 // otherwise go unnoticed, as the runner would simply not read it
 // NOLINTBEGIN(cert-err58-cpp,bugprone-throwing-static-initialization)
 const std::vector<std::string> KNOWN_KEYS{"document", "defaultBase", "frame",
-                                          "error", "dangling"};
+                                          "error"};
 const std::vector<std::string> KNOWN_ERROR_KEYS{"message", "location", "base"};
 const std::vector<std::string> KNOWN_METHODS{"get",    "put",     "post",
                                              "delete", "options", "head",
@@ -138,10 +140,9 @@ auto check_known_keys(const sourcemeta::core::JSON &test) -> void {
 // A frame is a graph written down as text, and every edge in it is a key into
 // the same map. These hold whatever the description was, so the suite asserts
 // them on every fixture rather than on the handful that thought to look
-auto check_frame_invariants(const sourcemeta::core::JSON &frame,
-                            const sourcemeta::core::JSON &test) -> void {
+auto check_frame_invariants(const sourcemeta::core::JSON &frame) -> void {
   const auto &locations{frame.at("locations")};
-  const auto *dangling{test.try_at("dangling")};
+  const auto &dangling{frame.at("dangling")};
   std::vector<sourcemeta::core::JSON> unresolved;
 
   // The entry document is an Object like any other, so the base names it, and
@@ -152,10 +153,13 @@ auto check_frame_invariants(const sourcemeta::core::JSON &frame,
     EXPECT_EQ(locations.at(base).at("type").to_string(), "openapi");
   }
 
-  // A frame stands alone when everything it references is inside it, which is
-  // exactly the set of destinations a fixture had to declare
-  EXPECT_EQ(frame.at("standalone").to_boolean(),
-            dangling == nullptr || dangling->empty());
+  // What dangles is reported in the order a sorted set hands it over, and
+  // nothing is reported twice, as two references may well land on one place
+  EXPECT_TRUE(std::ranges::is_sorted(dangling.as_array(), std::less<>{}));
+  EXPECT_EQ(std::set<sourcemeta::core::JSON>(dangling.as_array().cbegin(),
+                                             dangling.as_array().cend())
+                .size(),
+            dangling.size());
 
   for (const auto &entry : locations.as_object()) {
     // A location carries its pointer, and its key is that pointer hung off the
@@ -221,18 +225,15 @@ auto check_frame_invariants(const sourcemeta::core::JSON &frame,
     }
 
     unresolved.push_back(destination);
-    EXPECT_TRUE(dangling != nullptr &&
-                std::ranges::find(dangling->as_array(), destination) !=
-                    dangling->as_array().cend());
+    EXPECT_TRUE(std::ranges::find(dangling.as_array(), destination) !=
+                dangling.as_array().cend());
   }
 
-  // An exemption for a destination that now resolves, or that nothing points
-  // at any more, quietly stops meaning anything, so every one a fixture
-  // declares has to still be earned
-  if (dangling != nullptr) {
-    for (const auto &entry : dangling->as_array()) {
-      EXPECT_TRUE(std::ranges::find(unresolved, entry) != unresolved.cend());
-    }
+  // A destination reported as dangling that a location does answer to would
+  // have the frame contradict itself, so what it reports is exactly what
+  // nothing here answers to rather than merely a superset of it
+  for (const auto &entry : dangling.as_array()) {
+    EXPECT_TRUE(std::ranges::find(unresolved, entry) != unresolved.cend());
   }
 
   for (const auto &operation : frame.at("operations").as_array()) {
@@ -322,7 +323,7 @@ auto run_pass_test(const sourcemeta::core::JSON &test) -> void {
   // frame that contradicts itself is a deeper failure than one that merely
   // differs from what a fixture recorded, so it is the one worth reporting
   const auto result{frame.to_json()};
-  check_frame_invariants(result, test);
+  check_frame_invariants(result);
   EXPECT_EQ(result, test.at("frame"));
 }
 

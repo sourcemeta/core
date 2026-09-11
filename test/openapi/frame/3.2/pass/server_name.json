@@ -16,7 +16,7 @@
   "frame": {
     "version": "3.2",
     "base": "",
-    "standalone": true,
+    "dangling": [],
     "info": {
       "title": "Example",
       "version": "1.0.0",

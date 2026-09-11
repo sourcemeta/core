@@ -16,7 +16,9 @@
   "frame": {
     "version": "3.1",
     "base": "",
-    "standalone": false,
+    "dangling": [
+      "#/components/responses/Missing"
+    ],
     "info": {
       "title": "Example",
       "version": "1.0.0",
@@ -52,8 +54,5 @@
       }
     },
     "operations": []
-  },
-  "dangling": [
-    "#/components/responses/Missing"
-  ]
+  }
 }

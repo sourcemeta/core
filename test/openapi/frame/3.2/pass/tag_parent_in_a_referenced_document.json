@@ -17,7 +17,9 @@
   "frame": {
     "version": "3.2",
     "base": "https://example.com/openapi.json",
-    "standalone": false,
+    "dangling": [
+      "https://example.com/common.json#/components/responses/R"
+    ],
     "info": {
       "title": "Example",
       "version": "1.0.0",
@@ -53,8 +55,5 @@
       }
     },
     "operations": []
-  },
-  "dangling": [
-    "https://example.com/common.json#/components/responses/R"
-  ]
+  }
 }

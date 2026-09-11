@@ -545,7 +545,9 @@ struct OpenAPIFrame::Internal {
   OpenAPIInfo info;
   // Canonicalising means this no longer borrows from what the caller passed
   JSON::String base;
-  bool standalone;
+  // Where every reference that lands nowhere points, which is what standing
+  // alone is the emptiness of
+  std::set<JSON::String> dangling;
   std::map<JSON::String, OpenAPILocation> locations;
   std::map<JSON::String, OpenAPIReference> references;
   std::vector<OpenAPIOperation> operations;
@@ -562,17 +564,19 @@ OpenAPIFrame::OpenAPIFrame(const JSON &document,
   // the walk settles and everything it holds is keyed by
   this->internal_->base = std::move(walk.base);
   // A frame stands alone when everything it references is inside it, which is
-  // what a caller asks before deciding whether it has the whole description
-  this->internal_->standalone = std::ranges::all_of(
-      walk.references, [&walk](const auto &reference) -> bool {
-        return walk.locations.contains(reference.second.destination);
-      });
+  // what a caller asks before deciding whether it has the whole description.
+  // What is left over is the work of making it whole
+  for (const auto &reference : walk.references) {
+    if (!walk.locations.contains(reference.second.destination)) {
+      this->internal_->dangling.insert(reference.second.destination);
+    }
+  }
 
   // Section 4.3.3 has resolving a Link Object `operationId` require "parsing
   // all referenced documents prior to determining an `operationId` to be
   // unresolvable". A description we do not hold in full is one we cannot say
   // that of, so a frame that does not stand alone says nothing here
-  if (this->internal_->standalone) {
+  if (this->standalone()) {
     check_operation_id_links(walk);
   }
 
@@ -598,8 +602,12 @@ auto OpenAPIFrame::base() const noexcept -> JSON::StringView {
   return this->internal_->base;
 }
 
+auto OpenAPIFrame::dangling() const noexcept -> const std::set<JSON::String> & {
+  return this->internal_->dangling;
+}
+
 auto OpenAPIFrame::standalone() const noexcept -> bool {
-  return this->internal_->standalone;
+  return this->internal_->dangling.empty();
 }
 
 auto OpenAPIFrame::to_json() const -> JSON {
@@ -608,7 +616,12 @@ auto OpenAPIFrame::to_json() const -> JSON {
   auto result{JSON::make_object()};
   result.assign_assume_new("version", JSON{version_string(this->version())});
   result.assign_assume_new("base", JSON{this->base()});
-  result.assign_assume_new("standalone", JSON{this->standalone()});
+  auto dangling{JSON::make_array()};
+  for (const auto &destination : this->dangling()) {
+    dangling.push_back(JSON{destination});
+  }
+
+  result.assign_assume_new("dangling", std::move(dangling));
   result.assign_assume_new("info", info_json(this->info()));
 
   auto locations{JSON::make_object()};

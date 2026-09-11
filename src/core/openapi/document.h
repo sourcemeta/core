@@ -108,12 +108,13 @@ inline auto openapi_is_document(const JSON &document) -> bool {
          document.try_at("openapi", OPENAPI_HASH_OPENAPI) != nullptr;
 }
 
-// Check a document whose root is the Object a reference expected to find
-// there, rather than a whole OpenAPI Description
-// The base pointer is where the Object sits in the document being read, which
-// is the root for a document a reference brought in, and the pointer a
-// reference names for one that stays within the document at hand. Getting that
-// right is what keeps reading the same Object twice from recording it twice
+// Check an Object that a reference expected to find where it landed, which is
+// somewhere in the document being read. The base pointer is where that Object
+// sits, which is what keeps reading the same one twice from recording it twice
+//
+// A reference that expects a whole Description can no longer land anywhere, as
+// only the document handed over is read, but the kind it would name is a kind
+// all the same and this stays exhaustive over them
 inline auto openapi_check_object(const OpenAPIObjectKind expected,
                                  const JSON &value, const Pointer &base,
                                  OpenAPIWalk &walk) -> void {

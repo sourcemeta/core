@@ -7,7 +7,7 @@
     },
     "servers": [
       {
-        "url": "https://例え.jp/{region}",
+        "url": "https://\u4f8b\u3048.jp/{region}",
         "variables": {
           "region": {
             "default": "eu"
@@ -20,7 +20,7 @@
   "frame": {
     "version": "3.2",
     "base": "",
-    "standalone": true,
+    "dangling": [],
     "info": {
       "title": "Example",
       "version": "1.0.0",

@@ -108,7 +108,9 @@
   "frame": {
     "version": "3.1",
     "base": "",
-    "standalone": false,
+    "dangling": [
+      "#/paths/~1pets/get"
+    ],
     "info": {
       "title": "Example",
       "version": "1.0.0",
@@ -279,8 +281,5 @@
       }
     },
     "operations": []
-  },
-  "dangling": [
-    "#/paths/~1pets/get"
-  ]
+  }
 }

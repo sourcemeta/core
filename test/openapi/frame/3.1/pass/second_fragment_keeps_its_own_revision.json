@@ -20,7 +20,10 @@
   "frame": {
     "version": "3.1",
     "base": "https://example.com/openapi.json",
-    "standalone": false,
+    "dangling": [
+      "https://example.com/common.json#/components/responses/First",
+      "https://example.com/common.json#/components/responses/Second"
+    ],
     "info": {
       "title": "Example",
       "version": "1.0.0",
@@ -63,9 +66,5 @@
       }
     },
     "operations": []
-  },
-  "dangling": [
-    "https://example.com/common.json#/components/responses/First",
-    "https://example.com/common.json#/components/responses/Second"
-  ]
+  }
 }

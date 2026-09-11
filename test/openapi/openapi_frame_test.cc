@@ -356,9 +356,44 @@ TEST(standalone_with_an_external_reference) {
   const sourcemeta::core::OpenAPIFrame frame{
       document, "https://example.com/openapi.json"};
   EXPECT_FALSE(frame.standalone());
+  EXPECT_EQ(frame.dangling().size(), 1);
+  EXPECT_TRUE(frame.dangling().contains(
+      "https://example.com/common.json#/components/responses/Ok"));
 }
 
-TEST(standalone_agrees_with_json_export) {
+TEST(dangling_is_empty_when_the_frame_stands_alone) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.1.1",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "paths": {}
+  })JSON")};
+
+  const sourcemeta::core::OpenAPIFrame frame{
+      document, "https://example.com/openapi.json"};
+  EXPECT_TRUE(frame.standalone());
+  EXPECT_TRUE(frame.dangling().empty());
+}
+
+TEST(dangling_reports_one_destination_that_two_references_share) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.1.1",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "components": {
+      "responses": {
+        "R": { "$ref": "https://example.com/common.json#/components/responses/Ok" },
+        "S": { "$ref": "https://example.com/common.json#/components/responses/Ok" }
+      }
+    }
+  })JSON")};
+
+  const sourcemeta::core::OpenAPIFrame frame{
+      document, "https://example.com/openapi.json"};
+  EXPECT_EQ(frame.dangling().size(), 1);
+  EXPECT_TRUE(frame.dangling().contains(
+      "https://example.com/common.json#/components/responses/Ok"));
+}
+
+TEST(dangling_agrees_with_json_export) {
   const auto document{sourcemeta::core::parse_json(R"JSON({
     "openapi": "3.1.1",
     "info": { "title": "Example", "version": "1.0.0" },
@@ -371,5 +406,8 @@ TEST(standalone_agrees_with_json_export) {
 
   const sourcemeta::core::OpenAPIFrame frame{
       document, "https://example.com/openapi.json"};
-  EXPECT_EQ(frame.to_json().at("standalone"), sourcemeta::core::JSON{false});
+  auto expected{sourcemeta::core::JSON::make_array()};
+  expected.push_back(sourcemeta::core::JSON{
+      "https://example.com/common.json#/components/responses/Ok"});
+  EXPECT_EQ(frame.to_json().at("dangling"), expected);
 }

@@ -23,7 +23,7 @@
   "frame": {
     "version": "3.1",
     "base": "https://example.com/openapi.json",
-    "standalone": true,
+    "dangling": [],
     "info": {
       "title": "Example",
       "version": "1.0.0",

@@ -20,7 +20,7 @@
   "frame": {
     "version": "3.1",
     "base": "",
-    "standalone": true,
+    "dangling": [],
     "info": {
       "title": "Example",
       "version": "1.0.0",
