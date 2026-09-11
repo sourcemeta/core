@@ -407,6 +407,70 @@ TEST(standalone_with_an_external_reference) {
             sourcemeta::core::JSON{true});
 }
 
+TEST(max_locations_bounds_what_framing_the_schemas_registers) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.1.1",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "components": {
+      "schemas": {
+        "Pet": { "properties": { "one": {}, "two": {}, "three": {} } }
+      }
+    }
+  })JSON")};
+
+  try {
+    [[maybe_unused]] const sourcemeta::core::OpenAPIFrame frame{
+        document, sourcemeta::core::schema_walker,
+        sourcemeta::core::schema_resolver, "https://example.com/openapi.json",
+        2};
+    FAIL();
+  } catch (const sourcemeta::core::SchemaFrameLimitError &error) {
+    EXPECT_STREQ(error.what(),
+                 "The schema exceeds the maximum number of frame locations");
+    EXPECT_EQ(error.limit(), 2);
+  }
+}
+
+TEST(max_locations_leaves_room_for_what_the_schemas_need) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.1.1",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "components": {
+      "schemas": {
+        "Pet": { "properties": { "one": {}, "two": {}, "three": {} } }
+      }
+    }
+  })JSON")};
+
+  const sourcemeta::core::OpenAPIFrame frame{
+      document, sourcemeta::core::schema_walker,
+      sourcemeta::core::schema_resolver, "https://example.com/openapi.json",
+      100};
+  EXPECT_EQ(frame.to_json().at("schemas").at("locations").at("static").size(),
+            4);
+}
+
+TEST(max_locations_does_not_bound_the_description_itself) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.1.1",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "paths": {
+      "/one": { "get": { "responses": { "200": { "description": "ok" } } } },
+      "/two": { "get": { "responses": { "200": { "description": "ok" } } } },
+      "/three": { "get": { "responses": { "200": { "description": "ok" } } } }
+    }
+  })JSON")};
+
+  // Nothing here is a Schema Object, so a bound of one location turns down
+  // nothing, however many places the description itself goes by
+  const sourcemeta::core::OpenAPIFrame frame{
+      document, sourcemeta::core::schema_walker,
+      sourcemeta::core::schema_resolver, "https://example.com/openapi.json", 1};
+  EXPECT_TRUE(frame.to_json().at("locations").size() > 1);
+  EXPECT_EQ(frame.to_json().at("schemas").at("locations").at("static").size(),
+            0);
+}
+
 TEST(dangling_is_empty_when_the_frame_stands_alone) {
   const auto document{sourcemeta::core::parse_json(R"JSON({
     "openapi": "3.1.1",
