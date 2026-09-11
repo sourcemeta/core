@@ -107,6 +107,26 @@ function(sourcemeta_ccache_attempt_enable)
 
   message(STATUS "Using `ccache` from ${CCACHE_BIN}")
 
+  set(CCACHE_DIRECTORY "${SOURCEMETA_CCACHE_ATTEMPT_ENABLE_DIRECTORY}")
+  if(CMAKE_SYSTEM_NAME STREQUAL "MSYS")
+    # Because `ccache` is a Windows `.exe` that does not understand the paths
+    # this platform hands out, transform the path accordingly
+    execute_process(COMMAND cygpath -w "${CCACHE_DIRECTORY}"
+      OUTPUT_VARIABLE CCACHE_DIRECTORY OUTPUT_STRIP_TRAILING_WHITESPACE)
+  endif()
+
+  add_custom_target(ccache_stats
+    VERBATIM
+    COMMAND "${CMAKE_COMMAND}" -E env "CCACHE_DIR=${CCACHE_DIRECTORY}"
+      "${CCACHE_BIN}" --show-stats
+    COMMENT "Reporting compiler cache statistics")
+  add_custom_target(ccache_stats_zero
+    VERBATIM
+    COMMAND "${CMAKE_COMMAND}" -E env "CCACHE_DIR=${CCACHE_DIRECTORY}"
+      "${CCACHE_BIN}" --zero-stats
+    COMMENT "Zeroing compiler cache statistics")
+  set_target_properties(ccache_stats ccache_stats_zero PROPERTIES FOLDER "Compiler cache")
+
   if(CMAKE_GENERATOR MATCHES "Visual Studio")
     # This generator ignores the compiler launchers, so `ccache` takes the place
     # of the compiler under a matching name and the build system is pointed at
@@ -123,14 +143,6 @@ function(sourcemeta_ccache_attempt_enable)
       "UseMultiToolTask=true"
       PARENT_SCOPE)
     return()
-  endif()
-
-  set(CCACHE_DIRECTORY "${SOURCEMETA_CCACHE_ATTEMPT_ENABLE_DIRECTORY}")
-  if(CMAKE_SYSTEM_NAME STREQUAL "MSYS")
-    # Because `ccache` is a Windows `.exe` that does not understand the paths
-    # this platform hands out, transform the path accordingly
-    execute_process(COMMAND cygpath -w "${CCACHE_DIRECTORY}"
-      OUTPUT_VARIABLE CCACHE_DIRECTORY OUTPUT_STRIP_TRAILING_WHITESPACE)
   endif()
 
   # Pinning the cache location here keeps it identical across platforms and

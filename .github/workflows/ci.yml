@@ -91,7 +91,6 @@ jobs:
       # ignores compiler launchers, so those builds read the cache location
       # from the environment rather than from the build system
       CCACHE_DIR: ${{ github.workspace }}/.ccache
-      CCACHE_BINARY: ./build/bin/ccache${{ startsWith(matrix.platform.os, 'windows') && '.exe' || '' }}
       # Runner images are re-provisioned on every run, so the default check of
       # the compiler modification time and size would miss on an unchanged
       # compiler. Hash its contents instead
@@ -165,10 +164,10 @@ jobs:
           -DBUILD_SHARED_LIBS:BOOL=ON
           -DCMAKE_COMPILE_WARNING_AS_ERROR:BOOL=ON
           ${{ matrix.platform.options }}
-      - run: ${{ env.CCACHE_BINARY }} --zero-stats
+      - run: cmake --build ./build --config Release --target ccache_stats_zero
       - run: cmake --build ./build --config Release --target clang_format_test
       - run: cmake --build ./build --config Release --parallel 4
-      - run: ${{ env.CCACHE_BINARY }} --show-stats
+      - run: cmake --build ./build --config Release --target ccache_stats
       - run: >
           cmake --install ./build --prefix ./build/dist --config Release --verbose
           --component sourcemeta_core
