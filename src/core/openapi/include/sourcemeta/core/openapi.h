@@ -130,7 +130,9 @@ struct OpenAPIInfo {
 ///   "paths": {}
 /// })")};
 ///
-/// const sourcemeta::core::OpenAPIFrame frame{document};
+/// const sourcemeta::core::OpenAPIFrame frame{
+///     document, sourcemeta::core::schema_walker,
+///     sourcemeta::core::schema_resolver};
 /// sourcemeta::core::prettify(frame.to_json(), std::cout);
 /// std::cout << std::endl;
 /// ```
@@ -189,7 +191,9 @@ public:
   ///   "paths": {}
   /// })")};
   ///
-  /// const sourcemeta::core::OpenAPIFrame frame{document, nullptr};
+  /// const sourcemeta::core::OpenAPIFrame frame{
+  ///     document, sourcemeta::core::schema_walker,
+  ///     sourcemeta::core::schema_resolver};
   /// assert(frame.version() ==
   ///        sourcemeta::core::OpenAPIVersion::OPENAPI_3_1);
   /// ```
@@ -209,7 +213,9 @@ public:
   ///   "paths": {}
   /// })")};
   ///
-  /// const sourcemeta::core::OpenAPIFrame frame{document, nullptr};
+  /// const sourcemeta::core::OpenAPIFrame frame{
+  ///     document, sourcemeta::core::schema_walker,
+  ///     sourcemeta::core::schema_resolver};
   /// assert(frame.info().title == "Example");
   /// assert(frame.info().version == "1.0.0");
   /// assert(!frame.info().license.has_value());
@@ -234,13 +240,16 @@ public:
   /// })")};
   ///
   /// const sourcemeta::core::OpenAPIFrame frame{
-  ///     document, nullptr, "https://example.com/openapi.json"};
+  ///     document, sourcemeta::core::schema_walker,
+  ///     sourcemeta::core::schema_resolver,
+  ///     "https://example.com/openapi.json"};
   /// assert(frame.base() == "https://example.com/openapi.json");
   /// ```
   [[nodiscard]] auto base() const noexcept -> JSON::StringView;
 
   /// Check whether everything this description references is inside what was
-  /// framed, which is to say that no reference of it dangles. For example:
+  /// framed, which counts what its Schema Objects reference as much as what
+  /// the shell around them does. For example:
   ///
   /// ```cpp
   /// #include <sourcemeta/core/json.h>
@@ -253,7 +262,9 @@ public:
   ///   "paths": {}
   /// })")};
   ///
-  /// const sourcemeta::core::OpenAPIFrame frame{document};
+  /// const sourcemeta::core::OpenAPIFrame frame{
+  ///     document, sourcemeta::core::schema_walker,
+  ///     sourcemeta::core::schema_resolver};
   /// assert(frame.standalone());
   /// ```
   [[nodiscard]] auto standalone() const noexcept -> bool;

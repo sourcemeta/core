@@ -13,7 +13,7 @@
     "paths": {}
   },
   "error": {
-    "message": "The Security Scheme Object must declare its type",
+    "message": "This place is read as more than one kind of Object",
     "location": "/info"
   }
 }

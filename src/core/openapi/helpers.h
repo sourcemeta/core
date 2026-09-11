@@ -47,13 +47,12 @@ constexpr auto openapi_field(const JSON::StringView name) noexcept
 
 // What a reference expects to find at the far end of itself, which is fixed by
 // where the reference sits rather than by anything the target says about
-// itself. OpenAPI Specification 3.1.1, Section 4.3.1 lists "Detecting a
-// document containing a referenceable Object at its root based on the expected
-// type of the reference" among the ways to tell what a referenced document is,
-// and this is that expected type
+// itself. OpenAPI Specification 3.1.1, Section 4.3.1 calls this "the expected
+// type of the reference", and it is what the place a reference lands on is
+// held to
 enum class OpenAPIObjectKind : std::uint8_t {
-  /// A whole OpenAPI Description, which is what a document declaring a root
-  /// `openapi` field is read as no matter where the reference sat
+  /// A whole OpenAPI Description, which is what the root of the document
+  /// framed is recorded as
   Document,
   // The eleven a reference may expect to find, the last of them only from 3.2
   // onwards, which is where a `content` map and the Components Object both
@@ -171,7 +170,8 @@ struct OpenAPIReference {
 /// How an Operation Object is reached from the entry document. OpenAPI
 /// Specification 3.1.1, Section 4.3.3: "only the entry document's Paths Object
 /// contributes URLs to the described API", so what an operation is reached
-/// through is a property of that document rather than of the one it sits in
+/// through is a property of the route to it rather than of where it is
+/// defined
 enum class OpenAPIOperationKind : std::uint8_t { Path, Webhook, Callback };
 
 inline auto
@@ -276,10 +276,11 @@ struct OpenAPILocation {
 };
 
 // What every check needs to reach beyond the Object in front of it: the
-// document it is reading, so an error can name it, and the means to follow a
-// reference out of it. OpenAPI Specification 3.1.1, Section 4.8.10 makes
-// operation identifiers unique across the whole description rather than one
-// document, so the set that tracks them spans every document too
+// document it is reading, so an error can name it, and everything the checks
+// that only run once the walk is over will want. OpenAPI Specification 3.1.1,
+// Section 4.8.10 makes operation identifiers unique "among all operations
+// described in the API", which is wider than the one document read here, so a
+// clash is only ever caught within it
 struct OpenAPIWalk {
   JSON::String base;
   // The document the checks are reading, which a reference that stays inside
@@ -288,17 +289,15 @@ struct OpenAPIWalk {
   // Kept against where each identifier was read, so that reaching one Operation
   // Object twice, which following a reference into the document being read
   // does, is told apart from two Operation Objects claiming one identifier.
-  // These own their strings, as a resolver that hands back a document it owns
-  // has that document destroyed once it has been read
   std::map<JSON::String, JSON::String> operation_ids;
-  // A description may reference the same document twice, or reference its way
-  // back to one already read. This is keyed by the type expected of a document
-  // as well as by the document itself, because the same file referenced from
-  // two positions is two different Objects, and reading it once as whichever
-  // reference happened to be walked first would let read order decide what it
-  // is. Section 3.2 of OAS 3.2 names this hazard and says the behaviour "MAY
-  // be treated as an error if detected", so checking it as each type in turn
-  // surfaces a genuine conflict rather than hiding it
+  // A reference may name a place another one already reached, or lead back
+  // round to itself, so where the walk has been is remembered. It is keyed by
+  // the kind expected as well as by the place, because one place reached as
+  // two kinds is a conflict, and reading it once as whichever reference was
+  // walked first would let the order the description is written in decide what
+  // it is. Section 3.2 of OAS 3.2 names this hazard and says the behaviour
+  // "MAY be treated as an error if detected", so reading it as each kind in
+  // turn surfaces the conflict rather than hiding it
   std::set<std::pair<JSON::String, OpenAPIObjectKind>> visited;
 
   /// Keyed the way a schema frame keys its own, by the base with the pointer
@@ -318,9 +317,7 @@ struct OpenAPIWalk {
   ///
   /// What every Parameter Object read is called and where it goes, keyed by
   /// where it sits. Section 4.8.9 identifies a parameter "by a combination of a
-  /// name and location", which is what tells an override from an addition. It
-  /// owns its strings, as the document it was read from may be gone by the
-  /// time an operation is projected
+  /// name and location", which is what tells an override from an addition
   std::map<JSON::String, std::pair<JSON::String, JSON::String>> parameters;
   /// Every Path Item Object read, keyed by where it sits
   std::map<JSON::String, OpenAPIPathItemRecord> path_items;
@@ -380,10 +377,10 @@ inline auto openapi_parameter_identity(const OpenAPIWalk &walk,
                                        const JSON::String &position)
     -> const std::pair<JSON::String, JSON::String> *;
 
-// Follow a reference that leaves the document being read. Defined alongside
-// the document-level checks, as those are what a referenced document goes
-// through, and declared here because a Reference Object is the thing that
-// triggers it
+// Record a reference and read whatever it lands on. Defined alongside the
+// document-level checks, as what it lands on has to be read as whichever
+// Object the reference position expects, and declared here because a Reference
+// Object is the thing that triggers it
 inline auto openapi_follow_reference(JSON::StringView reference,
                                      const Pointer &origin,
                                      OpenAPIObjectKind expected,
@@ -497,11 +494,31 @@ inline auto openapi_location_uri(const JSON::String &base,
 
 // Every Object gets one of these. The nearest recorded ancestor is the parent,
 // which holds because an Object is always recorded before anything inside it
+//
+// Appendix G of OAS 3.2, and Section 3.2 of 3.1, say of one place read as two
+// kinds of Object:
+//
+//   the resulting behavior is implementation defined, and MAY be treated as
+//   an error if detected. An example would be referencing an empty Schema
+//   Object under `#/components/schemas` where a Path Item Object is expected,
+//   as an empty object is valid for both types
+//
+// Detecting it is exactly what recording every Object by where it sits comes
+// to, and letting the last read win would have the order the description
+// happens to be written in decide what a place is, which is worse than saying
+// so. What a reference reaches twice as the same kind is no conflict
 inline auto openapi_record(OpenAPIWalk &walk, const Pointer &pointer,
                            const OpenAPIObjectKind kind,
                            JSON::String dialect = {}, JSON::String base = {})
     -> void {
-  walk.locations.insert_or_assign(openapi_location_uri(walk.base, pointer),
+  auto uri{openapi_location_uri(walk.base, pointer)};
+  const auto known{walk.locations.find(uri)};
+  if (known != walk.locations.cend() && known->second.type != kind) {
+    throw OpenAPIError{walk.base, pointer,
+                       "This place is read as more than one kind of Object"};
+  }
+
+  walk.locations.insert_or_assign(std::move(uri),
                                   OpenAPILocation{.type = kind,
                                                   .pointer = pointer,
                                                   .dialect = std::move(dialect),

@@ -6,7 +6,8 @@
 #include "helpers.h"
 #include "info.h"
 
-#include <algorithm>   // std::ranges::all_of
+#include <algorithm>   // std::ranges::find
+#include <cassert>     // assert
 #include <cstddef>     // std::size_t
 #include <map>         // std::map
 #include <memory>      // std::make_unique
@@ -19,7 +20,7 @@
 namespace {
 using namespace std::string_view_literals;
 
-// The document a location sits in is the key up to its fragment, which is why
+// The base a location is keyed by is the key up to its fragment, which is why
 // nothing repeats it on the entry itself. A parent is given as one of these
 // keys rather than as a bare pointer, so that following it is a lookup in the
 // same map rather than a key the reader has to rebuild
@@ -54,16 +55,18 @@ auto parent_of(const std::map<sourcemeta::core::JSON::String,
 }
 
 // Where a problem found once the walk is over belongs. A location says which
-// document it is in and where in it, and a field hangs off that when the
-// problem is with one rather than with the Object holding it
-auto error_at(const sourcemeta::core::OpenAPIWalk &walk,
+// base it is keyed by and where under it the Object sits, and a field hangs
+// off that when the problem is with one rather than with the Object holding
+// it
+auto error_at(const std::map<sourcemeta::core::JSON::String,
+                             sourcemeta::core::OpenAPILocation> &locations,
               const sourcemeta::core::JSON::String &location,
               const char *message,
               const sourcemeta::core::JSON::StringView field = {})
     -> sourcemeta::core::OpenAPIError {
-  const auto match{walk.locations.find(location)};
-  auto pointer{match == walk.locations.cend() ? sourcemeta::core::EMPTY_POINTER
-                                              : match->second.pointer};
+  const auto match{locations.find(location)};
+  auto pointer{match == locations.cend() ? sourcemeta::core::EMPTY_POINTER
+                                         : match->second.pointer};
   if (!field.empty()) {
     pointer = pointer.concat(sourcemeta::core::JSON::String{field});
   }
@@ -71,17 +74,30 @@ auto error_at(const sourcemeta::core::OpenAPIWalk &walk,
   return {document_of(location), std::move(pointer), message};
 }
 
+auto error_at(const sourcemeta::core::OpenAPIWalk &walk,
+              const sourcemeta::core::JSON::String &location,
+              const char *message,
+              const sourcemeta::core::JSON::StringView field = {})
+    -> sourcemeta::core::OpenAPIError {
+  return error_at(walk.locations, location, message, field);
+}
+
 // OpenAPI Specification 3.2.1, Section 4.22, of a Tag Object's `parent`:
 // "The named tag MUST exist in the API description, and circular references
-// between parent and child tags MUST NOT be used". Which tags exist is not
-// known until every document has been read, and a cycle is a property of the
-// whole set rather than of any one tag
-auto check_tag_parents(const sourcemeta::core::OpenAPIWalk &walk) -> void {
+// between parent and child tags MUST NOT be used". A description spans every
+// document it references, so a parent naming a tag this one does not declare
+// is only missing where nothing is missing, and a cycle is a property of the
+// tags held rather than of any one tag
+auto check_tag_parents(
+    const sourcemeta::core::OpenAPIWalk &walk,
+    const std::map<sourcemeta::core::JSON::String,
+                   sourcemeta::core::OpenAPILocation> &locations,
+    const bool whole) -> void {
   std::map<sourcemeta::core::JSON::String, sourcemeta::core::JSON::String>
       parents;
   for (const auto &[location, edge] : walk.tag_parents) {
-    if (!walk.tag_names.contains(edge.second)) {
-      throw error_at(walk, location,
+    if (whole && !walk.tag_names.contains(edge.second)) {
+      throw error_at(locations, location,
                      "The Tag Object parent must name a tag the OpenAPI "
                      "Description declares",
                      "parent");
@@ -103,7 +119,7 @@ auto check_tag_parents(const sourcemeta::core::OpenAPIWalk &walk) -> void {
 
       name = next->second;
       if (step == parents.size()) {
-        throw error_at(walk, location,
+        throw error_at(locations, location,
                        "The Tag Object parents must not form a cycle",
                        "parent");
       }
@@ -115,10 +131,12 @@ auto check_tag_parents(const sourcemeta::core::OpenAPIWalk &walk) -> void {
 // operation MUST be unique, and in the case of an `operationId`, it MUST be
 // resolved within the scope of the OpenAPI Description". Section 4.3.3
 // recommends resolving one "considering all Operation Objects from all parsed
-// documents", which is the set the walk already keeps for the uniqueness
-// requirement
-auto check_operation_id_links(const sourcemeta::core::OpenAPIWalk &walk)
-    -> void {
+// documents", and only one document is ever parsed, which is why nothing is
+// decided here unless the frame stands alone
+auto check_operation_id_links(
+    const sourcemeta::core::OpenAPIWalk &walk,
+    const std::map<sourcemeta::core::JSON::String,
+                   sourcemeta::core::OpenAPILocation> &locations) -> void {
   for (const auto &[location, identifier] : walk.operation_id_links) {
     // Section 4.8.20 goes on to say that an operation reached through a Path
     // Item referenced more than once "cannot be resolved unambiguously", and
@@ -126,7 +144,7 @@ auto check_operation_id_links(const sourcemeta::core::OpenAPIWalk &walk)
     // implementation-defined and MAY result in an error". So naming nothing at
     // all is the violation, and naming something twice over is not
     if (!walk.operation_ids.contains(identifier)) {
-      throw error_at(walk, location,
+      throw error_at(locations, location,
                      "The Link Object operation identifier must name an "
                      "operation the OpenAPI Description declares",
                      "operationId");
@@ -583,16 +601,6 @@ OpenAPIFrame::OpenAPIFrame(const JSON &document, const SchemaWalker &walker,
     }
   }
 
-  // Section 4.3.3 has resolving a Link Object `operationId` require "parsing
-  // all referenced documents prior to determining an `operationId` to be
-  // unresolvable". A description we do not hold in full is one we cannot say
-  // that of, so a frame that does not stand alone says nothing here
-  if (every_reference_lands) {
-    check_operation_id_links(walk);
-  }
-
-  check_tag_parents(walk);
-
   // Projecting reads the whole walk, so nothing is taken out of it until after
   this->internal_->operations = project(walk);
   this->internal_->locations = std::move(walk.locations);
@@ -606,11 +614,36 @@ OpenAPIFrame::OpenAPIFrame(const JSON &document, const SchemaWalker &walker,
   // pass needs to be told
   const auto root{this->internal_->locations.find(this->internal_->base)};
   assert(root != this->internal_->locations.cend());
+
+  // What sits inside a Schema Object is JSON Schema's to make sense of, so a
+  // reference that names a place in there has the description read one of its
+  // own Objects out of a schema. Appendix G of OAS 3.2, and Section 3.2 of
+  // 3.1, leave what to do about a place read as two kinds of thing to the
+  // implementation and allow saying so, which is what this does. Framing the
+  // schemas could not proceed regardless, as it is given each of these
+  // positions to frame and they must not sit within one another
+  //
+  // Locations are keyed by the base with the pointer hung off it, so a place
+  // within another has that other one's key as a prefix and follows it here
+  std::vector<WeakPointer> enclosing;
   for (const auto &location : this->internal_->locations) {
-    if (location.second.type == OpenAPIObjectKind::Schema) {
-      this->internal_->schema_paths.push_back(
-          to_weak_pointer(location.second.pointer));
+    if (location.second.type != OpenAPIObjectKind::Schema) {
+      continue;
     }
+
+    auto pointer{to_weak_pointer(location.second.pointer)};
+    while (!enclosing.empty() && !pointer.starts_with(enclosing.back())) {
+      enclosing.pop_back();
+    }
+
+    if (!enclosing.empty()) {
+      throw OpenAPIError{
+          this->internal_->base, location.second.pointer,
+          "A Schema Object must not sit within another Schema Object"};
+    }
+
+    enclosing.push_back(pointer);
+    this->internal_->schema_paths.push_back(std::move(pointer));
   }
 
   this->internal_->schema_resolver = resolver;
@@ -625,6 +658,20 @@ OpenAPIFrame::OpenAPIFrame(const JSON &document, const SchemaWalker &walker,
   // same
   this->internal_->standalone =
       every_reference_lands && this->internal_->schemas->standalone();
+
+  // Section 4.3.3 has resolving a Link Object `operationId` require "parsing
+  // all referenced documents prior to determining an `operationId` to be
+  // unresolvable". A description we do not hold in full is one we cannot say
+  // that of, so these wait until the whole of it is settled, which counts what
+  // the Schema Objects reach for as much as what the shell around them does
+  if (this->internal_->standalone) {
+    check_operation_id_links(walk, this->internal_->locations);
+  }
+
+  // A tag the description declares elsewhere is one this cannot say is
+  // missing, for the same reason as the identifiers above
+  check_tag_parents(walk, this->internal_->locations,
+                    this->internal_->standalone);
 }
 
 OpenAPIFrame::~OpenAPIFrame() = default;
