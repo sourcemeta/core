@@ -12,6 +12,8 @@ endif()
 target_link_libraries(sourcemeta_core_openapi PUBLIC sourcemeta::core::json)
 target_link_libraries(sourcemeta_core_openapi PUBLIC
   sourcemeta::core::jsonpointer)
+target_link_libraries(sourcemeta_core_openapi PUBLIC
+  sourcemeta::core::jsonschema)
 target_link_libraries(sourcemeta_core_openapi PRIVATE sourcemeta::core::uri)
 target_link_libraries(sourcemeta_core_openapi PRIVATE sourcemeta::core::email)
 target_link_libraries(sourcemeta_core_openapi PRIVATE sourcemeta::core::text)

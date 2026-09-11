@@ -23,6 +23,39 @@
     "version": "3.2",
     "base": "",
     "standalone": true,
+    "schemas": {
+      "mode": "references",
+      "locations": {
+        "static": {
+          "#/paths/~1a/parameters/0/schema": {
+            "parent": null,
+            "type": "subschema",
+            "root": null,
+            "base": "",
+            "pointer": "/paths/~1a/parameters/0/schema",
+            "relativePointer": "/paths/~1a/parameters/0/schema",
+            "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17",
+            "baseDialect": "https://json-schema.org/draft/2020-12/schema",
+            "propertyName": false,
+            "orphan": false,
+            "hasReferencesTo": false,
+            "hasReferencesThrough": false,
+            "vocabularies": {
+              "https://json-schema.org/draft/2020-12/vocab/core": true,
+              "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+              "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
+              "https://json-schema.org/draft/2020-12/vocab/validation": true,
+              "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
+              "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
+              "https://json-schema.org/draft/2020-12/vocab/content": true,
+              "https://spec.openapis.org/oas/3.2/vocab/base": false
+            }
+          }
+        },
+        "dynamic": {}
+      },
+      "references": []
+    },
     "info": {
       "title": "Example",
       "version": "1.0.0",

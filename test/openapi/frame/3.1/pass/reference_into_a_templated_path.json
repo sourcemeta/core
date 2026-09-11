@@ -37,6 +37,39 @@
     "version": "3.1",
     "base": "https://example.com/openapi.json",
     "standalone": true,
+    "schemas": {
+      "mode": "references",
+      "locations": {
+        "static": {
+          "https://example.com/openapi.json#/paths/~1pets~1%7BpetId%7D/parameters/0/schema": {
+            "parent": null,
+            "type": "subschema",
+            "root": null,
+            "base": "https://example.com/openapi.json",
+            "pointer": "/paths/~1pets~1{petId}/parameters/0/schema",
+            "relativePointer": "/paths/~1pets~1{petId}/parameters/0/schema",
+            "dialect": "https://spec.openapis.org/oas/3.1/dialect/base",
+            "baseDialect": "https://json-schema.org/draft/2020-12/schema",
+            "propertyName": false,
+            "orphan": false,
+            "hasReferencesTo": false,
+            "hasReferencesThrough": false,
+            "vocabularies": {
+              "https://json-schema.org/draft/2020-12/vocab/core": true,
+              "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+              "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
+              "https://json-schema.org/draft/2020-12/vocab/validation": true,
+              "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
+              "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
+              "https://json-schema.org/draft/2020-12/vocab/content": true,
+              "https://spec.openapis.org/oas/3.1/vocab/base": false
+            }
+          }
+        },
+        "dynamic": {}
+      },
+      "references": []
+    },
     "info": {
       "title": "Example",
       "version": "1.0.0",

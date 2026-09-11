@@ -487,7 +487,9 @@ inline auto openapi_location_uri(const JSON::String &base,
   // RFC 3986 Section 5.2.2 resolves a fragment-only reference by keeping every
   // other component of the base as it stands, and a base here carries no
   // fragment of its own, so appending is that resolution without parsing the
-  // base again for every Object recorded
+  // base again for every Object recorded. The suite asserts that this agrees
+  // with resolving the two through a URI, wherever a location reports the
+  // base it was built from
   JSON::String result{base};
   result.append(to_uri(pointer).recompose());
   return result;

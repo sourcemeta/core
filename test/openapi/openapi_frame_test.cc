@@ -12,7 +12,9 @@ TEST(version_patch_zero) {
     "paths": {}
   })JSON")};
 
-  const sourcemeta::core::OpenAPIFrame frame{document};
+  const sourcemeta::core::OpenAPIFrame frame{document,
+                                             sourcemeta::core::schema_walker,
+                                             sourcemeta::core::schema_resolver};
   EXPECT_EQ(frame.version(), sourcemeta::core::OpenAPIVersion::OPENAPI_3_1);
 }
 
@@ -23,7 +25,9 @@ TEST(version_patch_one) {
     "paths": {}
   })JSON")};
 
-  const sourcemeta::core::OpenAPIFrame frame{document};
+  const sourcemeta::core::OpenAPIFrame frame{document,
+                                             sourcemeta::core::schema_walker,
+                                             sourcemeta::core::schema_resolver};
   EXPECT_EQ(frame.version(), sourcemeta::core::OpenAPIVersion::OPENAPI_3_1);
 }
 
@@ -34,7 +38,9 @@ TEST(version_patch_two) {
     "paths": {}
   })JSON")};
 
-  const sourcemeta::core::OpenAPIFrame frame{document};
+  const sourcemeta::core::OpenAPIFrame frame{document,
+                                             sourcemeta::core::schema_walker,
+                                             sourcemeta::core::schema_resolver};
   EXPECT_EQ(frame.version(), sourcemeta::core::OpenAPIVersion::OPENAPI_3_1);
 }
 
@@ -45,7 +51,9 @@ TEST(version_pre_release) {
     "paths": {}
   })JSON")};
 
-  const sourcemeta::core::OpenAPIFrame frame{document};
+  const sourcemeta::core::OpenAPIFrame frame{document,
+                                             sourcemeta::core::schema_walker,
+                                             sourcemeta::core::schema_resolver};
   EXPECT_EQ(frame.version(), sourcemeta::core::OpenAPIVersion::OPENAPI_3_1);
 }
 
@@ -56,7 +64,9 @@ TEST(version_with_components_and_no_paths) {
     "components": {}
   })JSON")};
 
-  const sourcemeta::core::OpenAPIFrame frame{document};
+  const sourcemeta::core::OpenAPIFrame frame{document,
+                                             sourcemeta::core::schema_walker,
+                                             sourcemeta::core::schema_resolver};
   EXPECT_EQ(frame.version(), sourcemeta::core::OpenAPIVersion::OPENAPI_3_1);
 }
 
@@ -67,7 +77,9 @@ TEST(version_with_webhooks_and_no_paths) {
     "webhooks": {}
   })JSON")};
 
-  const sourcemeta::core::OpenAPIFrame frame{document};
+  const sourcemeta::core::OpenAPIFrame frame{document,
+                                             sourcemeta::core::schema_walker,
+                                             sourcemeta::core::schema_resolver};
   EXPECT_EQ(frame.version(), sourcemeta::core::OpenAPIVersion::OPENAPI_3_1);
 }
 
@@ -78,7 +90,9 @@ TEST(version_agrees_with_json_export) {
     "paths": {}
   })JSON")};
 
-  const sourcemeta::core::OpenAPIFrame frame{document};
+  const sourcemeta::core::OpenAPIFrame frame{document,
+                                             sourcemeta::core::schema_walker,
+                                             sourcemeta::core::schema_resolver};
   EXPECT_EQ(frame.version(), sourcemeta::core::OpenAPIVersion::OPENAPI_3_1);
   EXPECT_EQ(frame.to_json().at("version"), sourcemeta::core::JSON{"3.1"});
 }
@@ -90,7 +104,9 @@ TEST(info_required_fields_only) {
     "paths": {}
   })JSON")};
 
-  const sourcemeta::core::OpenAPIFrame frame{document};
+  const sourcemeta::core::OpenAPIFrame frame{document,
+                                             sourcemeta::core::schema_walker,
+                                             sourcemeta::core::schema_resolver};
   EXPECT_EQ(frame.info().title, "Example");
   EXPECT_EQ(frame.info().version, "1.0.0");
   EXPECT_FALSE(frame.info().summary.has_value());
@@ -122,7 +138,9 @@ TEST(info_every_field) {
     "paths": {}
   })JSON")};
 
-  const sourcemeta::core::OpenAPIFrame frame{document};
+  const sourcemeta::core::OpenAPIFrame frame{document,
+                                             sourcemeta::core::schema_walker,
+                                             sourcemeta::core::schema_resolver};
   EXPECT_EQ(frame.info().title, "Example Pet Store App");
   EXPECT_EQ(frame.info().version, "1.0.1");
   EXPECT_EQ(frame.info().summary.value(), "A pet store manager.");
@@ -147,7 +165,9 @@ TEST(info_empty_string_values_are_kept) {
     "paths": {}
   })JSON")};
 
-  const sourcemeta::core::OpenAPIFrame frame{document};
+  const sourcemeta::core::OpenAPIFrame frame{document,
+                                             sourcemeta::core::schema_walker,
+                                             sourcemeta::core::schema_resolver};
   EXPECT_EQ(frame.info().title, "");
   EXPECT_EQ(frame.info().version, "");
   EXPECT_TRUE(frame.info().summary.has_value());
@@ -165,7 +185,9 @@ TEST(info_relative_terms_of_service) {
     "paths": {}
   })JSON")};
 
-  const sourcemeta::core::OpenAPIFrame frame{document};
+  const sourcemeta::core::OpenAPIFrame frame{document,
+                                             sourcemeta::core::schema_walker,
+                                             sourcemeta::core::schema_resolver};
   EXPECT_EQ(frame.info().terms_of_service.value(), "/terms");
 }
 
@@ -176,7 +198,9 @@ TEST(info_empty_contact) {
     "paths": {}
   })JSON")};
 
-  const sourcemeta::core::OpenAPIFrame frame{document};
+  const sourcemeta::core::OpenAPIFrame frame{document,
+                                             sourcemeta::core::schema_walker,
+                                             sourcemeta::core::schema_resolver};
   EXPECT_TRUE(frame.info().contact.has_value());
   EXPECT_FALSE(frame.info().contact.value().name.has_value());
   EXPECT_FALSE(frame.info().contact.value().url.has_value());
@@ -194,7 +218,9 @@ TEST(info_license_with_spdx_identifier) {
     "paths": {}
   })JSON")};
 
-  const sourcemeta::core::OpenAPIFrame frame{document};
+  const sourcemeta::core::OpenAPIFrame frame{document,
+                                             sourcemeta::core::schema_walker,
+                                             sourcemeta::core::schema_resolver};
   EXPECT_EQ(frame.info().license.value().name, "Apache 2.0");
   EXPECT_EQ(frame.info().license.value().identifier.value(), "Apache-2.0");
   EXPECT_FALSE(frame.info().license.value().url.has_value());
@@ -211,7 +237,9 @@ TEST(info_license_identifier_is_not_validated) {
     "paths": {}
   })JSON")};
 
-  const sourcemeta::core::OpenAPIFrame frame{document};
+  const sourcemeta::core::OpenAPIFrame frame{document,
+                                             sourcemeta::core::schema_walker,
+                                             sourcemeta::core::schema_resolver};
   EXPECT_EQ(frame.info().license.value().identifier.value(),
             "not an SPDX expression");
 }
@@ -232,7 +260,9 @@ TEST(info_extensions_are_accepted) {
     "paths": {}
   })JSON")};
 
-  const sourcemeta::core::OpenAPIFrame frame{document};
+  const sourcemeta::core::OpenAPIFrame frame{document,
+                                             sourcemeta::core::schema_walker,
+                                             sourcemeta::core::schema_resolver};
   EXPECT_EQ(frame.info().title, "Example");
   EXPECT_EQ(frame.info().contact.value().name.value(), "Support");
   EXPECT_EQ(frame.info().license.value().name, "MIT");
@@ -245,7 +275,9 @@ TEST(base_is_absent_by_default) {
     "paths": {}
   })JSON")};
 
-  const sourcemeta::core::OpenAPIFrame frame{document};
+  const sourcemeta::core::OpenAPIFrame frame{document,
+                                             sourcemeta::core::schema_walker,
+                                             sourcemeta::core::schema_resolver};
   EXPECT_TRUE(frame.base().empty());
 }
 
@@ -257,7 +289,8 @@ TEST(base_is_what_the_caller_established) {
   })JSON")};
 
   const sourcemeta::core::OpenAPIFrame frame{
-      document, "https://example.com/openapi.json"};
+      document, sourcemeta::core::schema_walker,
+      sourcemeta::core::schema_resolver, "https://example.com/openapi.json"};
   EXPECT_EQ(frame.base(), "https://example.com/openapi.json");
 }
 
@@ -269,7 +302,9 @@ TEST(base_is_canonicalised) {
   })JSON")};
 
   const sourcemeta::core::OpenAPIFrame frame{
-      document, "HTTPS://Example.COM:443/a/../openapi.json"};
+      document, sourcemeta::core::schema_walker,
+      sourcemeta::core::schema_resolver,
+      "HTTPS://Example.COM:443/a/../openapi.json"};
   EXPECT_EQ(frame.base(), "https://example.com/openapi.json");
 }
 
@@ -283,7 +318,8 @@ TEST(base_does_not_borrow_from_the_caller) {
   // Canonicalising means the frame owns what it reports, so a base that goes
   // away afterwards cannot dangle
   const sourcemeta::core::OpenAPIFrame frame{
-      document,
+      document, sourcemeta::core::schema_walker,
+      sourcemeta::core::schema_resolver,
       sourcemeta::core::JSON::String{"https://example.com/openapi.json"}};
   EXPECT_EQ(frame.base(), "https://example.com/openapi.json");
 }
@@ -296,7 +332,8 @@ TEST(base_agrees_with_json_export) {
   })JSON")};
 
   const sourcemeta::core::OpenAPIFrame frame{
-      document, "https://example.com/openapi.json"};
+      document, sourcemeta::core::schema_walker,
+      sourcemeta::core::schema_resolver, "https://example.com/openapi.json"};
   EXPECT_EQ(frame.to_json().at("base"),
             sourcemeta::core::JSON{"https://example.com/openapi.json"});
 }
@@ -308,7 +345,9 @@ TEST(base_absent_is_the_empty_uri_reference_in_json_export) {
     "paths": {}
   })JSON")};
 
-  const sourcemeta::core::OpenAPIFrame frame{document};
+  const sourcemeta::core::OpenAPIFrame frame{document,
+                                             sourcemeta::core::schema_walker,
+                                             sourcemeta::core::schema_resolver};
   EXPECT_EQ(frame.to_json().at("base"), sourcemeta::core::JSON{""});
 }
 
@@ -322,7 +361,9 @@ TEST(standalone_without_references) {
     "paths": {}
   })JSON")};
 
-  const sourcemeta::core::OpenAPIFrame frame{document};
+  const sourcemeta::core::OpenAPIFrame frame{document,
+                                             sourcemeta::core::schema_walker,
+                                             sourcemeta::core::schema_resolver};
   EXPECT_TRUE(frame.standalone());
 }
 
@@ -338,7 +379,9 @@ TEST(standalone_with_an_internal_reference) {
     }
   })JSON")};
 
-  const sourcemeta::core::OpenAPIFrame frame{document};
+  const sourcemeta::core::OpenAPIFrame frame{document,
+                                             sourcemeta::core::schema_walker,
+                                             sourcemeta::core::schema_resolver};
   EXPECT_TRUE(frame.standalone());
 }
 
@@ -354,7 +397,8 @@ TEST(standalone_with_an_external_reference) {
   })JSON")};
 
   const sourcemeta::core::OpenAPIFrame frame{
-      document, "https://example.com/openapi.json"};
+      document, sourcemeta::core::schema_walker,
+      sourcemeta::core::schema_resolver, "https://example.com/openapi.json"};
   EXPECT_FALSE(frame.standalone());
   EXPECT_EQ(frame.to_json()
                 .at("locations")
@@ -371,7 +415,8 @@ TEST(dangling_is_empty_when_the_frame_stands_alone) {
   })JSON")};
 
   const sourcemeta::core::OpenAPIFrame frame{
-      document, "https://example.com/openapi.json"};
+      document, sourcemeta::core::schema_walker,
+      sourcemeta::core::schema_resolver, "https://example.com/openapi.json"};
   EXPECT_TRUE(frame.standalone());
 }
 
@@ -388,7 +433,8 @@ TEST(dangling_is_reported_on_each_reference_that_shares_a_destination) {
   })JSON")};
 
   const sourcemeta::core::OpenAPIFrame frame{
-      document, "https://example.com/openapi.json"};
+      document, sourcemeta::core::schema_walker,
+      sourcemeta::core::schema_resolver, "https://example.com/openapi.json"};
   const auto result{frame.to_json()};
   const auto &locations{result.at("locations")};
   EXPECT_EQ(
@@ -413,6 +459,7 @@ TEST(standalone_agrees_with_json_export) {
   })JSON")};
 
   const sourcemeta::core::OpenAPIFrame frame{
-      document, "https://example.com/openapi.json"};
+      document, sourcemeta::core::schema_walker,
+      sourcemeta::core::schema_resolver, "https://example.com/openapi.json"};
   EXPECT_EQ(frame.to_json().at("standalone"), sourcemeta::core::JSON{false});
 }

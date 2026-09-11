@@ -7,6 +7,66 @@
 #include <optional>
 #include <string_view>
 
+TEST(default_base_with_fragment) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema"
+  })JSON");
+
+  try {
+    [[maybe_unused]] const sourcemeta::core::SchemaFrame frame{
+        sourcemeta::core::SchemaFrame::Mode::References,
+        document,
+        sourcemeta::core::schema_walker,
+        sourcemeta::core::schema_resolver,
+        "",
+        "",
+        sourcemeta::core::SchemaFrame::IdentifierMode::Additional,
+        {sourcemeta::core::EMPTY_WEAK_POINTER},
+        "https://www.sourcemeta.com/test#fragment"};
+    FAIL();
+  } catch (const sourcemeta::core::SchemaFrameError &error) {
+    EXPECT_STREQ(error.what(),
+                 "The base must not contain a non-empty fragment");
+    EXPECT_EQ(error.identifier(), "https://www.sourcemeta.com/test#fragment");
+  }
+}
+
+TEST(default_base_with_colliding_anchors_across_paths) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "common": {
+      "foo": { "$anchor": "same" },
+      "bar": { "$anchor": "same" }
+    }
+  })JSON");
+
+  // A frame keeps views into the paths it was given, so these have to outlive
+  // it rather than be built inside the call
+  const auto first{sourcemeta::core::to_pointer("/common/foo")};
+  const auto second{sourcemeta::core::to_pointer("/common/bar")};
+  const sourcemeta::core::SchemaFrame::Paths paths{
+      sourcemeta::core::to_weak_pointer(first),
+      sourcemeta::core::to_weak_pointer(second)};
+
+  try {
+    [[maybe_unused]] const sourcemeta::core::SchemaFrame frame{
+        sourcemeta::core::SchemaFrame::Mode::References,
+        document,
+        sourcemeta::core::schema_walker,
+        sourcemeta::core::schema_resolver,
+        "https://json-schema.org/draft/2020-12/schema",
+        "",
+        sourcemeta::core::SchemaFrame::IdentifierMode::Additional,
+        paths,
+        "https://www.sourcemeta.com/test"};
+    FAIL();
+  } catch (const sourcemeta::core::SchemaAnchorCollisionError &error) {
+    EXPECT_STREQ(error.what(), "Schema anchor already exists");
+    EXPECT_EQ(error.identifier(), "https://www.sourcemeta.com/test#same");
+    EXPECT_EQ(sourcemeta::core::to_string(error.location()), "/common/bar");
+    EXPECT_EQ(sourcemeta::core::to_string(error.other()), "/common/foo");
+  }
+}
+
 TEST(draft0_id_override) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "id": "https://www.sourcemeta.com/schema",

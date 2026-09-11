@@ -810,6 +810,67 @@ TEST(accessors_has_dynamic_references_without_any) {
   EXPECT_FALSE(frame.has_dynamic_references());
 }
 
+TEST(accessors_root_location_anonymous_with_default_base) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "items": { "type": "string" }
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References,
+      document,
+      sourcemeta::core::schema_walker,
+      sourcemeta::core::schema_resolver,
+      "",
+      "",
+      sourcemeta::core::SchemaFrame::IdentifierMode::Additional,
+      {sourcemeta::core::EMPTY_WEAK_POINTER},
+      "https://example.com/document"};
+
+  EXPECT_TRUE(frame.root().empty());
+
+  const auto result{frame.root_location()};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(sourcemeta::core::to_string(result.value().get().pointer), "");
+  EXPECT_EQ(result.value().get().type,
+            sourcemeta::core::SchemaFrame::LocationType::Subschema);
+  EXPECT_EQ(result.value().get().base, "https://example.com/document");
+
+  const auto by_uri{
+      frame.location(sourcemeta::core::SchemaReferenceType::Static,
+                     "https://example.com/document")};
+  EXPECT_TRUE(by_uri.has_value());
+  EXPECT_EQ(sourcemeta::core::to_string(by_uri.value().get().pointer), "");
+}
+
+TEST(accessors_root_location_with_identifier_and_default_base) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "other",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "items": { "type": "string" }
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References,
+      document,
+      sourcemeta::core::schema_walker,
+      sourcemeta::core::schema_resolver,
+      "",
+      "",
+      sourcemeta::core::SchemaFrame::IdentifierMode::Additional,
+      {sourcemeta::core::EMPTY_WEAK_POINTER},
+      "https://example.com/document"};
+
+  EXPECT_EQ(frame.root(), "https://example.com/other");
+
+  const auto result{frame.root_location()};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(sourcemeta::core::to_string(result.value().get().pointer), "");
+  EXPECT_EQ(result.value().get().type,
+            sourcemeta::core::SchemaFrame::LocationType::Resource);
+  EXPECT_EQ(result.value().get().base, "https://example.com/other");
+}
+
 TEST(accessors_location_by_uri) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$id": "https://example.com/schema",

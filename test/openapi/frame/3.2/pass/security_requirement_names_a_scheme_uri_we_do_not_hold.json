@@ -16,6 +16,14 @@
     "version": "3.2",
     "base": "",
     "standalone": true,
+    "schemas": {
+      "mode": "references",
+      "locations": {
+        "static": {},
+        "dynamic": {}
+      },
+      "references": []
+    },
     "info": {
       "title": "Example",
       "version": "1.0.0",
