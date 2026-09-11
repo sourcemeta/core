@@ -41,7 +41,8 @@ struct OpenAPIField {
   JSON::Object::hash_type hash;
 };
 
-constexpr auto openapi_field(const JSON::StringView name) -> OpenAPIField {
+constexpr auto openapi_field(const JSON::StringView name) noexcept
+    -> OpenAPIField {
   return {.name = name, .hash = JSON::Object::hash(name)};
 }
 

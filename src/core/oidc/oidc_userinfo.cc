@@ -21,7 +21,7 @@ struct Claim {
   sourcemeta::core::JSON::Object::hash_type hash;
 };
 
-constexpr auto to_claim(const sourcemeta::core::JSON::StringView name)
+constexpr auto to_claim(const sourcemeta::core::JSON::StringView name) noexcept
     -> Claim {
   return {.name = name, .hash = sourcemeta::core::JSON::Object::hash(name)};
 }
@@ -75,13 +75,13 @@ auto merge_verified_pair(sourcemeta::core::JSON &result,
       result.assign(assertion.name,
                     userinfo.at(assertion.name, assertion.hash));
     } else {
-      result.erase(assertion.name);
+      result.erase(assertion.name, assertion.hash);
     }
 
     return;
   }
 
-  result.erase(assertion.name);
+  result.erase(assertion.name, assertion.hash);
 }
 
 } // namespace
