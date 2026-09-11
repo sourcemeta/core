@@ -21,6 +21,14 @@
     "version": "3.2",
     "base": "https://example.com/api/openapi",
     "standalone": false,
+    "schemas": {
+      "mode": "references",
+      "locations": {
+        "static": {},
+        "dynamic": {}
+      },
+      "references": []
+    },
     "info": {
       "title": "Example API",
       "version": "1.0",

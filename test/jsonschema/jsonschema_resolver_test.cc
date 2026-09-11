@@ -423,6 +423,27 @@ TEST(openapi_3_2) {
   EXPECT_SCHEMA("https://spec.openapis.org/oas/3.2/meta/2025-09-17");
 }
 
+TEST(openapi_3_1_dialect_work_in_progress) {
+  const auto result{sourcemeta::core::schema_resolver(
+      "https://spec.openapis.org/oas/3.1/dialect/WORK-IN-PROGRESS")};
+  EXPECT_TRUE(result.has_value());
+  // A placeholder is how a schema spells itself before it is published, so
+  // what answers to it names itself by where it ended up rather than by the
+  // name it was asked for
+  EXPECT_EQ(
+      result.value().at("$id"),
+      sourcemeta::core::JSON{"https://spec.openapis.org/oas/3.1/dialect/base"});
+}
+
+TEST(openapi_3_2_dialect_work_in_progress) {
+  const auto result{sourcemeta::core::schema_resolver(
+      "https://spec.openapis.org/oas/3.2/dialect/WORK-IN-PROGRESS")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value().at("$id"),
+            sourcemeta::core::JSON{
+                "https://spec.openapis.org/oas/3.2/dialect/2025-09-17"});
+}
+
 TEST(idempotency) {
   EXPECT_SCHEMA("https://json-schema.org/draft/2020-12/schema");
   EXPECT_SCHEMA("https://json-schema.org/draft/2020-12/schema");

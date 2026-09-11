@@ -7,11 +7,19 @@
     },
     "components": {
       "schemas": {
-        "User": {},
-        "User_1": {},
-        "User_Name": {},
-        "user-name": {},
-        "my.org.User": {}
+        "Anything": true,
+        "Nothing": false,
+        "Deeply": {
+          "properties": {
+            "nested": {
+              "type": 42
+            }
+          },
+          "items": [
+            true,
+            false
+          ]
+        }
       }
     }
   },
@@ -23,13 +31,13 @@
       "mode": "references",
       "locations": {
         "static": {
-          "#/components/schemas/User": {
+          "#/components/schemas/Anything": {
             "parent": null,
             "type": "subschema",
             "root": null,
             "base": "",
-            "pointer": "/components/schemas/User",
-            "relativePointer": "/components/schemas/User",
+            "pointer": "/components/schemas/Anything",
+            "relativePointer": "/components/schemas/Anything",
             "dialect": "https://spec.openapis.org/oas/3.1/dialect/base",
             "baseDialect": "https://json-schema.org/draft/2020-12/schema",
             "propertyName": false,
@@ -47,13 +55,13 @@
               "https://spec.openapis.org/oas/3.1/vocab/base": false
             }
           },
-          "#/components/schemas/User_1": {
+          "#/components/schemas/Deeply": {
             "parent": null,
             "type": "subschema",
             "root": null,
             "base": "",
-            "pointer": "/components/schemas/User_1",
-            "relativePointer": "/components/schemas/User_1",
+            "pointer": "/components/schemas/Deeply",
+            "relativePointer": "/components/schemas/Deeply",
             "dialect": "https://spec.openapis.org/oas/3.1/dialect/base",
             "baseDialect": "https://json-schema.org/draft/2020-12/schema",
             "propertyName": false,
@@ -71,13 +79,13 @@
               "https://spec.openapis.org/oas/3.1/vocab/base": false
             }
           },
-          "#/components/schemas/User_Name": {
-            "parent": null,
+          "#/components/schemas/Deeply/properties/nested": {
+            "parent": "/components/schemas/Deeply",
             "type": "subschema",
             "root": null,
             "base": "",
-            "pointer": "/components/schemas/User_Name",
-            "relativePointer": "/components/schemas/User_Name",
+            "pointer": "/components/schemas/Deeply/properties/nested",
+            "relativePointer": "/components/schemas/Deeply/properties/nested",
             "dialect": "https://spec.openapis.org/oas/3.1/dialect/base",
             "baseDialect": "https://json-schema.org/draft/2020-12/schema",
             "propertyName": false,
@@ -95,37 +103,13 @@
               "https://spec.openapis.org/oas/3.1/vocab/base": false
             }
           },
-          "#/components/schemas/my.org.User": {
+          "#/components/schemas/Nothing": {
             "parent": null,
             "type": "subschema",
             "root": null,
             "base": "",
-            "pointer": "/components/schemas/my.org.User",
-            "relativePointer": "/components/schemas/my.org.User",
-            "dialect": "https://spec.openapis.org/oas/3.1/dialect/base",
-            "baseDialect": "https://json-schema.org/draft/2020-12/schema",
-            "propertyName": false,
-            "orphan": false,
-            "hasReferencesTo": false,
-            "hasReferencesThrough": false,
-            "vocabularies": {
-              "https://json-schema.org/draft/2020-12/vocab/core": true,
-              "https://json-schema.org/draft/2020-12/vocab/applicator": true,
-              "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
-              "https://json-schema.org/draft/2020-12/vocab/validation": true,
-              "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
-              "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
-              "https://json-schema.org/draft/2020-12/vocab/content": true,
-              "https://spec.openapis.org/oas/3.1/vocab/base": false
-            }
-          },
-          "#/components/schemas/user-name": {
-            "parent": null,
-            "type": "subschema",
-            "root": null,
-            "base": "",
-            "pointer": "/components/schemas/user-name",
-            "relativePointer": "/components/schemas/user-name",
+            "pointer": "/components/schemas/Nothing",
+            "relativePointer": "/components/schemas/Nothing",
             "dialect": "https://spec.openapis.org/oas/3.1/dialect/base",
             "baseDialect": "https://json-schema.org/draft/2020-12/schema",
             "propertyName": false,
@@ -169,37 +153,23 @@
         "pointer": "/components",
         "parent": ""
       },
-      "#/components/schemas/User": {
+      "#/components/schemas/Anything": {
         "type": "schema",
-        "pointer": "/components/schemas/User",
+        "pointer": "/components/schemas/Anything",
         "parent": "#/components",
         "dialect": "https://spec.openapis.org/oas/3.1/dialect/base",
         "base": ""
       },
-      "#/components/schemas/User_1": {
+      "#/components/schemas/Deeply": {
         "type": "schema",
-        "pointer": "/components/schemas/User_1",
+        "pointer": "/components/schemas/Deeply",
         "parent": "#/components",
         "dialect": "https://spec.openapis.org/oas/3.1/dialect/base",
         "base": ""
       },
-      "#/components/schemas/User_Name": {
+      "#/components/schemas/Nothing": {
         "type": "schema",
-        "pointer": "/components/schemas/User_Name",
-        "parent": "#/components",
-        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base",
-        "base": ""
-      },
-      "#/components/schemas/my.org.User": {
-        "type": "schema",
-        "pointer": "/components/schemas/my.org.User",
-        "parent": "#/components",
-        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base",
-        "base": ""
-      },
-      "#/components/schemas/user-name": {
-        "type": "schema",
-        "pointer": "/components/schemas/user-name",
+        "pointer": "/components/schemas/Nothing",
         "parent": "#/components",
         "dialect": "https://spec.openapis.org/oas/3.1/dialect/base",
         "base": ""

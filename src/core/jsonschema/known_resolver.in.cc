@@ -401,8 +401,21 @@ static auto parse_identifier(const std::string_view identifier) -> KnownSchema {
     return KnownSchema::JSON_REF_DRAFT0;
   }
 
+  // An OpenAPI schema spells its own identifier with a WORK-IN-PROGRESS
+  // placeholder until it is published, which the OpenAPI Initiative's
+  // publishing script rewrites to the date it went out under:
+  //
+  //   # replace the WORK-IN-PROGRESS placeholders
+  //   sedCmds+=("s/${base}\/WORK-IN-PROGRESS/${base}\/${maxDate}/g")
+  //
+  // So the placeholder names whichever iteration is newest, which is what
+  // answers to it here. It is served nowhere, yet a description may still
+  // name it, as the specification's own test suite does
+
   // OpenAPI v3.2
-  if (identifier == "https://spec.openapis.org/oas/3.2/dialect/2025-09-17") {
+  if (identifier == "https://spec.openapis.org/oas/3.2/dialect/2025-09-17" ||
+      identifier ==
+          "https://spec.openapis.org/oas/3.2/dialect/WORK-IN-PROGRESS") {
     return KnownSchema::OAS_3_2_DIALECT_2025_09_17;
   }
 
@@ -410,8 +423,12 @@ static auto parse_identifier(const std::string_view identifier) -> KnownSchema {
     return KnownSchema::OAS_3_2_META_2025_09_17;
   }
 
-  // OpenAPI v3.1
-  if (identifier == "https://spec.openapis.org/oas/3.1/dialect/base") {
+  // OpenAPI v3.1, where every iteration of the dialect declares the same
+  // vocabularies and the specification names the undated one, so that is what
+  // the placeholder resolves to rather than the newest date we hold
+  if (identifier == "https://spec.openapis.org/oas/3.1/dialect/base" ||
+      identifier ==
+          "https://spec.openapis.org/oas/3.1/dialect/WORK-IN-PROGRESS") {
     return KnownSchema::OAS_3_1_DIALECT_BASE;
   }
 

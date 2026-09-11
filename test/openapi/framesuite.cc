@@ -137,6 +137,27 @@ auto check_known_keys(const sourcemeta::core::JSON &test) -> void {
   EXPECT_TRUE(test.defines("document"));
 }
 
+// Whether everything the Schema Objects reference is among the places framing
+// them found, which is what standing alone comes to on that side. The dialect
+// a schema names is the exception, as a schema is under no obligation to
+// carry the meta-schema it is written against
+auto schemas_stand_alone(const sourcemeta::core::JSON &schemas) -> bool {
+  const auto &locations{schemas.at("locations")};
+  for (const auto &reference : schemas.at("references").as_array()) {
+    if (reference.at("origin").to_string().ends_with("/$schema")) {
+      continue;
+    }
+
+    const auto &destination{reference.at("destination").to_string()};
+    if (!locations.at("static").defines(destination) &&
+        !locations.at("dynamic").defines(destination)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 // A frame is a graph written down as text, and every edge in it is a key into
 // the same map. These hold whatever the description was, so the suite asserts
 // them on every fixture rather than on the handful that thought to look
@@ -203,6 +224,14 @@ auto check_frame_invariants(const sourcemeta::core::JSON &frame) -> void {
                 sourcemeta::core::to_uri(sourcemeta::core::to_pointer(pointer),
                                          sourcemeta::core::URI{schema_base})
                     .recompose());
+
+      // Which is what lets one name the other. Where a Schema Object begins is
+      // where framing it begins, and both sides address that place the same
+      // way, so every position this reports is a place the schema frame holds
+      EXPECT_TRUE(frame.at("schemas")
+                      .at("locations")
+                      .at("static")
+                      .defines(entry.first));
     }
 
     // A reference is written down on the Object that makes it, which is a
@@ -224,16 +253,18 @@ auto check_frame_invariants(const sourcemeta::core::JSON &frame) -> void {
               !locations.defines(destination));
   }
 
-  // A description stands alone when nothing it references leaves it, so the
-  // two ways the frame says so have to be the one fact. This asks the
-  // locations again rather than carrying an answer out of the loop above, so
-  // that a check added there can never quietly narrow what this covers
+  // A description stands alone when nothing it references leaves it, which
+  // counts what its Schema Objects reference as much as what the shell around
+  // them does. This asks the locations again rather than carrying an answer
+  // out of the loop above, so that a check added there can never quietly
+  // narrow what this covers
   EXPECT_EQ(frame.at("standalone").to_boolean(),
-            std::ranges::none_of(
-                locations.as_object(), [](const auto &entry) -> bool {
-                  return entry.second.defines("dangling") &&
-                         entry.second.at("dangling").to_boolean();
-                }));
+            schemas_stand_alone(frame.at("schemas")) &&
+                std::ranges::none_of(
+                    locations.as_object(), [](const auto &entry) -> bool {
+                      return entry.second.defines("dangling") &&
+                             entry.second.at("dangling").to_boolean();
+                    }));
 
   for (const auto &operation : frame.at("operations").as_array()) {
     // Every operation the description exposes is an Operation Object that the
@@ -337,11 +368,15 @@ auto run_fail_test(const sourcemeta::core::JSON &test) -> void {
 
   const auto default_base{make_default_base(test)};
 
+  // Whether anything was turned down is settled outside the handlers, as the
+  // way this runner reports a failed expectation is an exception of its own
+  // and a handler broad enough to hold a Schema Object error would swallow it
+  bool refused{false};
   try {
     [[maybe_unused]] const sourcemeta::core::OpenAPIFrame frame{
         test.at("document"), default_base};
-    FAIL();
   } catch (const sourcemeta::core::OpenAPIError &error) {
+    refused = true;
     EXPECT_EQ(error.what(), test.at("error").at("message").to_string());
 
     // A document with more than one problem reports whichever check runs
@@ -352,12 +387,22 @@ auto run_fail_test(const sourcemeta::core::JSON &test) -> void {
                 location->to_string());
     }
 
-    // A description may span documents, so an error says which one it is in.
-    // A fixture that names none expects the entry document
+    // An error says which document it is in, and a fixture that names none
+    // expects the one that was framed
     const auto *base{test.at("error").try_at("base")};
     EXPECT_EQ(error.base(),
               base == nullptr ? make_default_base(test) : base->to_string());
+  } catch (const std::exception &error) {
+    // What a Schema Object holds is JSON Schema's to make sense of, so what it
+    // turns down is reported in its own terms rather than reworded here, and
+    // it points within the schema rather than within the description
+    refused = true;
+    EXPECT_EQ(error.what(), test.at("error").at("message").to_string());
+    EXPECT_FALSE(test.at("error").defines("location"));
+    EXPECT_FALSE(test.at("error").defines("base"));
   }
+
+  EXPECT_TRUE(refused);
 }
 
 auto register_tests(const std::filesystem::path &directory,

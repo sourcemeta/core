@@ -1,0 +1,24 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "jsonSchemaDialect": "https://example.com/entry-dialect",
+    "components": {
+      "schemas": {
+        "Local": {}
+      },
+      "responses": {
+        "R": {
+          "$ref": "https://example.com/common.json#/components/responses/NotFound"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "error": {
+    "message": "Could not resolve the metaschema of the schema"
+  }
+}

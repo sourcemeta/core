@@ -6,12 +6,14 @@
 #endif
 
 #include <sourcemeta/core/json.h>
+#include <sourcemeta/core/jsonschema.h>
 
 // NOLINTBEGIN(misc-include-cleaner)
 #include <sourcemeta/core/openapi_error.h>
 // NOLINTEND(misc-include-cleaner)
 
-#include <cstdint>     // std::uint8_t
+#include <cstdint>     // std::uint8_t, std::uint64_t
+#include <limits>      // std::numeric_limits
 #include <memory>      // std::unique_ptr
 #include <optional>    // std::optional, std::nullopt
 #include <string_view> // std::string_view
@@ -151,7 +153,10 @@ public:
   ///
   /// A document that does not conform to the specification is rejected here
   /// rather than reported back
-  OpenAPIFrame(const JSON &document, std::string_view default_base = "");
+  OpenAPIFrame(
+      const JSON &document, std::string_view default_base = "",
+      const SchemaResolver &resolver = schema_resolver,
+      std::uint64_t max_locations = std::numeric_limits<std::uint64_t>::max());
 
   ~OpenAPIFrame();
 

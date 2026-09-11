@@ -549,10 +549,19 @@ struct OpenAPIFrame::Internal {
   std::map<JSON::String, OpenAPILocation> locations;
   std::map<JSON::String, OpenAPIReference> references;
   std::vector<OpenAPIOperation> operations;
+  // Reading inside a Schema Object is the business of whatever understands
+  // JSON Schema, so this is that pass over every Schema Object position at
+  // once. It is declared last so that it is destroyed first, as it holds
+  // views into the locations above and into the document itself
+  SchemaResolver schema_resolver;
+  SchemaFrame::Paths schema_paths;
+  std::unique_ptr<SchemaFrame> schemas;
 };
 
 OpenAPIFrame::OpenAPIFrame(const JSON &document,
-                           const std::string_view default_base)
+                           const std::string_view default_base,
+                           const SchemaResolver &resolver,
+                           const std::uint64_t max_locations)
     : internal_{std::make_unique<Internal>()} {
   auto walk{analyse(document, canonical_base(default_base))};
   this->internal_->version = openapi_version(document).value();
@@ -565,12 +574,12 @@ OpenAPIFrame::OpenAPIFrame(const JSON &document,
   // what a caller asks before deciding whether it has the whole description.
   // Which references leave it is what making it whole comes down to, so each
   // one says so of itself rather than only the description as a whole
-  this->internal_->standalone = true;
+  bool every_reference_lands{true};
   for (auto &reference : walk.references) {
     reference.second.dangling =
         !walk.locations.contains(reference.second.destination);
     if (reference.second.dangling) {
-      this->internal_->standalone = false;
+      every_reference_lands = false;
     }
   }
 
@@ -578,7 +587,7 @@ OpenAPIFrame::OpenAPIFrame(const JSON &document,
   // all referenced documents prior to determining an `operationId` to be
   // unresolvable". A description we do not hold in full is one we cannot say
   // that of, so a frame that does not stand alone says nothing here
-  if (this->standalone()) {
+  if (every_reference_lands) {
     check_operation_id_links(walk);
   }
 
@@ -588,6 +597,34 @@ OpenAPIFrame::OpenAPIFrame(const JSON &document,
   this->internal_->operations = project(walk);
   this->internal_->locations = std::move(walk.locations);
   this->internal_->references = std::move(walk.references);
+
+  // Every Schema Object position of the document at once, rather than one
+  // pass each, so that a schema referring to another resolves against a frame
+  // that holds both. Section 4.8.24.1 scopes `jsonSchemaDialect` to "all
+  // Schema Objects contained within an OAS document", and a document has one
+  // base, so what those positions have in common is the whole of what this
+  // pass needs to be told
+  const auto root{this->internal_->locations.find(this->internal_->base)};
+  assert(root != this->internal_->locations.cend());
+  for (const auto &location : this->internal_->locations) {
+    if (location.second.type == OpenAPIObjectKind::Schema) {
+      this->internal_->schema_paths.push_back(
+          to_weak_pointer(location.second.pointer));
+    }
+  }
+
+  this->internal_->schema_resolver = resolver;
+  this->internal_->schemas = std::make_unique<SchemaFrame>(
+      SchemaFrame::Mode::References, document, schema_walker, resolver,
+      root->second.dialect, "", SchemaFrame::IdentifierMode::Additional,
+      this->internal_->schema_paths, this->internal_->base, max_locations);
+
+  // What a Schema Object references is as much a part of the description as
+  // what the shell around it does, so a description whose schemas reach for
+  // something nobody holds is one that is missing a part of itself just the
+  // same
+  this->internal_->standalone =
+      every_reference_lands && this->internal_->schemas->standalone();
 }
 
 OpenAPIFrame::~OpenAPIFrame() = default;
@@ -615,6 +652,8 @@ auto OpenAPIFrame::to_json() const -> JSON {
   result.assign_assume_new("version", JSON{version_string(this->version())});
   result.assign_assume_new("base", JSON{this->base()});
   result.assign_assume_new("standalone", JSON{this->standalone()});
+  result.assign_assume_new("schemas", this->internal_->schemas->to_json(
+                                          this->internal_->schema_resolver));
   result.assign_assume_new("info", info_json(this->info()));
 
   auto locations{JSON::make_object()};

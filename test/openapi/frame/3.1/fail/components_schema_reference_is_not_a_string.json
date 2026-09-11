@@ -1,0 +1,20 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "schemas": {
+        "Nonsense": {
+          "type": "not-a-type",
+          "$ref": 42
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "Invalid reference value"
+  }
+}
