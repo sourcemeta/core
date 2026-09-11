@@ -38,6 +38,15 @@ const std::set<std::string> KNOWN_DIVERGENCES{
     // against the operation identifiers scattered through a document, so the
     // meta-schema takes it
     "path_item_servers_parameters"};
+
+// A description names the dialect its Schema Objects are written against, and
+// Section 4.8.24.1 asks only that the name "be in the form of a URI". These
+// name one that was never published, as an OpenAPI schema spells its own
+// identifier with a WORK-IN-PROGRESS placeholder until the day it goes out
+// under a date. Such a description is valid and framing the shell of it holds
+// up, yet the schemas within it are written in a dialect nobody can produce,
+// which is the one thing this runner cannot ask for
+const std::set<std::string> UNPUBLISHED_DIALECTS{"json_schema_dialect"};
 // NOLINTEND(cert-err58-cpp,bugprone-throwing-static-initialization)
 
 auto run_pass_case(const sourcemeta::core::JSON &document) -> void {
@@ -71,7 +80,8 @@ auto register_tests(const std::filesystem::path &directory,
       name << (character == '-' ? '_' : character);
     }
 
-    if (KNOWN_DIVERGENCES.contains(name.str())) {
+    if (KNOWN_DIVERGENCES.contains(name.str()) ||
+        UNPUBLISHED_DIALECTS.contains(name.str())) {
       continue;
     }
 
