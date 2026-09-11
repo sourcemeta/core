@@ -875,6 +875,18 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
       base_dialects;
 
   if (!default_base.empty()) {
+    // RFC 3986 Section 5.1 defines a base URI as one that carries no
+    // fragment, and Section 5.2.2 never consults one, so a base that states a
+    // fragment states something that could not mean anything
+    //
+    //   the base URI ... a fragment component is not part of it
+    const sourcemeta::core::URI base{default_base};
+    const auto fragment{base.fragment()};
+    if (fragment.has_value() && !fragment.value().empty()) {
+      throw SchemaFrameError(default_base,
+                             "The base must not contain a non-empty fragment");
+    }
+
     this->cache_->default_base =
         sourcemeta::core::URI::canonicalize(default_base);
   }

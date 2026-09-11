@@ -94,7 +94,7 @@ auto check_frame_invariants(const sourcemeta::core::JSON &frame,
       // of the pointer it reports from the top of the document
       const auto &pointer{location.second.at("pointer").to_string()};
       const auto &relative{location.second.at("relativePointer").to_string()};
-      EXPECT_TRUE(pointer.starts_with(relative) && !pointer.empty());
+      EXPECT_TRUE(pointer.ends_with(relative));
 
       // The key spells that same pointer as a URI fragment, and a schema that
       // declares no identifier has no base for it to hang off, so recovering
