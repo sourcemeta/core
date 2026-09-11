@@ -50,13 +50,17 @@ const std::set<std::string> UNPUBLISHED_DIALECTS{"json_schema_dialect"};
 // NOLINTEND(cert-err58-cpp,bugprone-throwing-static-initialization)
 
 auto run_pass_case(const sourcemeta::core::JSON &document) -> void {
-  const sourcemeta::core::OpenAPIFrame frame{document};
+  const sourcemeta::core::OpenAPIFrame frame{document,
+                                             sourcemeta::core::schema_walker,
+                                             sourcemeta::core::schema_resolver};
   EXPECT_EQ(frame.version(), sourcemeta::core::OpenAPIVersion::OPENAPI_3_1);
 }
 
 auto run_fail_case(const sourcemeta::core::JSON &document) -> void {
   try {
-    [[maybe_unused]] const sourcemeta::core::OpenAPIFrame frame{document};
+    [[maybe_unused]] const sourcemeta::core::OpenAPIFrame frame{
+        document, sourcemeta::core::schema_walker,
+        sourcemeta::core::schema_resolver};
     FAIL();
   } catch (const sourcemeta::core::OpenAPIError &error) {
     // Which rule turns the document down is the business of the unit tests.

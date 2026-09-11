@@ -558,9 +558,9 @@ struct OpenAPIFrame::Internal {
   std::unique_ptr<SchemaFrame> schemas;
 };
 
-OpenAPIFrame::OpenAPIFrame(const JSON &document,
-                           const std::string_view default_base,
+OpenAPIFrame::OpenAPIFrame(const JSON &document, const SchemaWalker &walker,
                            const SchemaResolver &resolver,
+                           const std::string_view default_base,
                            const std::uint64_t max_locations)
     : internal_{std::make_unique<Internal>()} {
   auto walk{analyse(document, canonical_base(default_base))};
@@ -615,7 +615,7 @@ OpenAPIFrame::OpenAPIFrame(const JSON &document,
 
   this->internal_->schema_resolver = resolver;
   this->internal_->schemas = std::make_unique<SchemaFrame>(
-      SchemaFrame::Mode::References, document, schema_walker, resolver,
+      SchemaFrame::Mode::References, document, walker, resolver,
       root->second.dialect, "", SchemaFrame::IdentifierMode::Additional,
       this->internal_->schema_paths, this->internal_->base, max_locations);
 

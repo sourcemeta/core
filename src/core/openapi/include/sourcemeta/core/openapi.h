@@ -151,11 +151,19 @@ public:
   /// Only the given document is read. A reference that leaves it is recorded
   /// and left there, and a frame holding one of those does not stand alone
   ///
+  /// The walker and the resolver are what reading inside a Schema Object
+  /// takes, as a Schema Object is JSON Schema's to make sense of rather than
+  /// this specification's. Neither is defaulted, as which dialects a
+  /// description may be written against is the caller's to state: pass
+  /// sourcemeta::core::schema_walker and
+  /// sourcemeta::core::schema_resolver for the dialects that are published,
+  /// and a resolver of your own for one that is not
+  ///
   /// A document that does not conform to the specification is rejected here
   /// rather than reported back
   OpenAPIFrame(
-      const JSON &document, std::string_view default_base = "",
-      const SchemaResolver &resolver = schema_resolver,
+      const JSON &document, const SchemaWalker &walker,
+      const SchemaResolver &resolver, std::string_view default_base = "",
       std::uint64_t max_locations = std::numeric_limits<std::uint64_t>::max());
 
   ~OpenAPIFrame();
