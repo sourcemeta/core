@@ -20,3 +20,5 @@ target_link_libraries(sourcemeta_core_openapi PRIVATE sourcemeta::core::text)
 target_link_libraries(sourcemeta_core_openapi PRIVATE sourcemeta::core::http)
 target_link_libraries(sourcemeta_core_openapi PRIVATE
   sourcemeta::core::unicode)
+target_link_libraries(sourcemeta_core_openapi PRIVATE
+  sourcemeta::core::uritemplate)
