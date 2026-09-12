@@ -10,7 +10,7 @@
 #include <ostream>     // std::ostream
 #include <string>      // std::string
 #include <string_view> // std::string_view
-#include <utility>     // std::to_underlying
+#include <utility>     // std::to_underlying, std::unreachable
 
 namespace {
 
@@ -55,8 +55,16 @@ auto terminal_color_policy(TerminalStream stream) noexcept
 }
 
 auto terminal_color_enabled(TerminalStream stream) noexcept -> bool {
-  return terminal_color_policy(stream) != TerminalColorPolicy::Disabled &&
-         terminal_is_interactive(stream);
+  switch (terminal_color_policy(stream)) {
+    case TerminalColorPolicy::WhenInteractive:
+      return terminal_is_interactive(stream);
+    case TerminalColorPolicy::Always:
+      return true;
+    case TerminalColorPolicy::Disabled:
+      return false;
+    default:
+      std::unreachable();
+  }
 }
 
 auto terminal_sgr_reset() noexcept -> std::string_view {

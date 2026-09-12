@@ -76,7 +76,10 @@ enum class TerminalColorPolicy : std::uint8_t {
   /// https://pubs.opengroup.org/onlinepubs/9699919799/functions/isatty.html
   WhenInteractive,
   /// Styling is unconditionally suppressed.
-  Disabled
+  Disabled,
+  /// Styling is unconditionally enabled regardless of destination
+  /// interactivity.
+  Always
 };
 
 /// @ingroup terminal
@@ -340,7 +343,8 @@ auto terminal_set_color_policy(TerminalStream stream,
 ///
 /// const auto policy{sourcemeta::core::terminal_color_policy()};
 /// assert(policy == sourcemeta::core::TerminalColorPolicy::WhenInteractive ||
-///        policy == sourcemeta::core::TerminalColorPolicy::Disabled);
+///        policy == sourcemeta::core::TerminalColorPolicy::Disabled ||
+///        policy == sourcemeta::core::TerminalColorPolicy::Always);
 /// ```
 SOURCEMETA_CORE_TERMINAL_EXPORT
 auto terminal_color_policy(
