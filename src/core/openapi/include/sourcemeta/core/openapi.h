@@ -269,6 +269,33 @@ public:
   /// ```
   [[nodiscard]] auto standalone() const noexcept -> bool;
 
+  /// Get the frame of every Schema Object the description holds, which a
+  /// `schema` location names its part of by key. For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/json.h>
+  /// #include <sourcemeta/core/openapi.h>
+  /// #include <cassert>
+  ///
+  /// const auto document{sourcemeta::core::parse_json(R"({
+  ///   "openapi": "3.1.1",
+  ///   "info": { "title": "Example", "version": "1.0.0" },
+  ///   "components": { "schemas": { "Pet": { "type": "object" } } }
+  /// })")};
+  ///
+  /// const sourcemeta::core::OpenAPIFrame frame{
+  ///     document, sourcemeta::core::schema_walker,
+  ///     sourcemeta::core::schema_resolver,
+  ///     "https://example.com/openapi.json"};
+  ///
+  /// assert(frame.schemas()
+  ///            .location(sourcemeta::core::SchemaReferenceType::Static,
+  ///                      "https://example.com/openapi.json"
+  ///                      "#/components/schemas/Pet")
+  ///            .has_value());
+  /// ```
+  [[nodiscard]] auto schemas() const noexcept -> const SchemaFrame &;
+
   /// Export the frame as JSON. This is the complete state of the frame, and
   /// for now its only window
   [[nodiscard]] auto to_json() const -> JSON;

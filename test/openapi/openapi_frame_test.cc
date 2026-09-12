@@ -513,6 +513,89 @@ TEST(max_locations_does_not_bound_the_description_itself) {
       "https://example.com/openapi.json#/paths/~1three/get/responses/200"));
 }
 
+TEST(schemas_frames_every_schema_object_position) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.1.1",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "components": {
+      "schemas": {
+        "Pet": { "$ref": "#/components/schemas/Order" },
+        "Order": { "type": "object" }
+      }
+    }
+  })JSON")};
+
+  const sourcemeta::core::OpenAPIFrame frame{
+      document, sourcemeta::core::schema_walker,
+      sourcemeta::core::schema_resolver, "https://example.com/openapi.json"};
+
+  EXPECT_EQ(frame.schemas().mode(),
+            sourcemeta::core::SchemaFrame::Mode::References);
+  EXPECT_TRUE(frame.schemas().standalone());
+  EXPECT_EQ(frame.schemas().location_count(), 2);
+  EXPECT_EQ(frame.schemas().reference_count(), 1);
+
+  // Every `schema` location of the description names its part of that frame by
+  // the very key it is recorded under
+  const auto pet{frame.schemas().location(
+      sourcemeta::core::SchemaReferenceType::Static,
+      "https://example.com/openapi.json#/components/schemas/Pet")};
+  EXPECT_TRUE(pet.has_value());
+  EXPECT_EQ(sourcemeta::core::to_string(pet.value().get().pointer),
+            "/components/schemas/Pet");
+  EXPECT_EQ(pet.value().get().dialect,
+            "https://spec.openapis.org/oas/3.1/dialect/base");
+
+  const auto order{frame.schemas().location(
+      sourcemeta::core::SchemaReferenceType::Static,
+      "https://example.com/openapi.json#/components/schemas/Order")};
+  EXPECT_TRUE(order.has_value());
+  EXPECT_EQ(sourcemeta::core::to_string(order.value().get().pointer),
+            "/components/schemas/Order");
+}
+
+TEST(schemas_holds_nothing_when_the_description_declares_no_schema) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.1.1",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "paths": {}
+  })JSON")};
+
+  const sourcemeta::core::OpenAPIFrame frame{
+      document, sourcemeta::core::schema_walker,
+      sourcemeta::core::schema_resolver, "https://example.com/openapi.json"};
+
+  EXPECT_EQ(frame.schemas().location_count(), 0);
+  EXPECT_EQ(frame.schemas().reference_count(), 0);
+  EXPECT_TRUE(frame.schemas().standalone());
+  EXPECT_TRUE(frame.schemas().root().empty());
+}
+
+TEST(schemas_does_not_stand_alone_when_a_schema_reaches_out) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.1.1",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "components": {
+      "schemas": { "Pet": { "$ref": "https://elsewhere.test/absent" } }
+    }
+  })JSON")};
+
+  const sourcemeta::core::OpenAPIFrame frame{
+      document, sourcemeta::core::schema_walker,
+      sourcemeta::core::schema_resolver, "https://example.com/openapi.json"};
+
+  // Nothing of the shell dangles, so the description falls short on what its
+  // Schema Objects reach for alone
+  EXPECT_FALSE(frame.schemas().standalone());
+  EXPECT_FALSE(frame.standalone());
+  const auto result{frame.to_json()};
+  EXPECT_EQ(result.at("standalone"), sourcemeta::core::JSON{false});
+  EXPECT_TRUE(result.at("locations")
+                  .at("https://example.com/openapi.json#/components/schemas/"
+                      "Pet")
+                  .defines("dialect"));
+}
+
 TEST(dangling_is_empty_when_the_frame_stands_alone) {
   const auto document{sourcemeta::core::parse_json(R"JSON({
     "openapi": "3.1.1",
