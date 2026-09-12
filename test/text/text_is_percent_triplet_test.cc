@@ -1,6 +1,9 @@
 #include <sourcemeta/core/test.h>
 #include <sourcemeta/core/text.h>
 
+#include <cstddef> // std::size_t
+#include <limits>  // std::numeric_limits
+
 TEST(at_the_start) {
   EXPECT_TRUE(sourcemeta::core::is_percent_triplet("%20", 0));
 }
@@ -50,3 +53,8 @@ TEST(position_past_the_end) {
 }
 
 TEST(empty_input) { EXPECT_FALSE(sourcemeta::core::is_percent_triplet("", 0)); }
+
+TEST(the_largest_position_the_type_can_hold) {
+  EXPECT_FALSE(sourcemeta::core::is_percent_triplet(
+      "%20", std::numeric_limits<std::size_t>::max()));
+}

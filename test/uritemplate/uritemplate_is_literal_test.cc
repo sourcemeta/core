@@ -46,12 +46,12 @@ TEST(control_characters_are_not_literals) {
 }
 
 TEST(a_character_the_other_productions_admit) {
-  EXPECT_TRUE(sourcemeta::core::URITemplate::is_literal(U'é'));
-  EXPECT_TRUE(sourcemeta::core::URITemplate::is_literal(U'中'));
+  EXPECT_TRUE(sourcemeta::core::URITemplate::is_literal(U'\U000000E9'));
+  EXPECT_TRUE(sourcemeta::core::URITemplate::is_literal(U'\U00004E2D'));
 }
 
 TEST(a_private_use_character) {
-  EXPECT_TRUE(sourcemeta::core::URITemplate::is_literal(U''));
+  EXPECT_TRUE(sourcemeta::core::URITemplate::is_literal(U'\U0000E000'));
 }
 
 TEST(the_boundaries_of_the_first_of_those_productions) {

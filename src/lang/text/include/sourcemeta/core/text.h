@@ -800,8 +800,9 @@ inline auto is_hex_digit(const char character) noexcept -> bool {
 /// ```
 inline auto is_percent_triplet(const std::string_view input,
                                const std::size_t position) noexcept -> bool {
-  return position + 2 < input.size() && input[position] == '%' &&
-         is_hex_digit(input[position + 1]) && is_hex_digit(input[position + 2]);
+  return input.size() >= 3 && position < input.size() - 2 &&
+         input[position] == '%' && is_hex_digit(input[position + 1]) &&
+         is_hex_digit(input[position + 2]);
 }
 
 /// @ingroup text

@@ -1,7 +1,7 @@
 #include <sourcemeta/core/http.h>
 #include <sourcemeta/core/test.h>
 
-TEST(the_lowest_and_highest_registered_classes) {
+TEST(the_lowest_and_highest_codes_the_form_admits) {
   EXPECT_TRUE(sourcemeta::core::http_is_status_code("100"));
   EXPECT_TRUE(sourcemeta::core::http_is_status_code("599"));
 }
