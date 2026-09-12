@@ -222,9 +222,9 @@ inline auto openapi_reference_target(const JSON::StringView reference,
       target.resolve_from(URI{walk.base});
     }
 
-    // Canonicalising here is what makes two spellings of one document one
-    // document, both to the resolver that is asked for it and to the set that
-    // remembers it was already read
+    // Canonicalising here is what makes two spellings of one place one place,
+    // both to the set that remembers where the walk has been and to a caller
+    // comparing a destination against a location
     target.canonicalize();
     return target;
   } catch (const URIParseError &) {
@@ -268,8 +268,9 @@ inline auto openapi_follow_reference(const JSON::StringView reference,
                                      OpenAPIWalk &walk) -> void {
   const auto target{openapi_reference_target(reference, walk)};
   if (!target.has_value()) {
-    // A reference that does not parse was already turned down where it was
-    // read, so reaching here means it cannot name another document either
+    // The value was already held to the form of a URI reference where it was
+    // read, so what fails here is resolving it against the base, which leaves
+    // nothing to record and nothing to land on
     return;
   }
 
@@ -353,6 +354,23 @@ inline auto openapi_check_document(const JSON &document, OpenAPIWalk &walk)
           *self, EMPTY_POINTER, "$self"sv,
           "The OpenAPI Description self identifier must be a string",
           "The OpenAPI Description self identifier must be a URI reference")};
+
+      // The specification's own published schema for this revision spells the
+      // field `{"format": "uri-reference", "pattern": "^[^#]*$"}` and says
+      // why in a comment of its own:
+      //
+      //   MUST NOT contain a fragment
+      //
+      // which RFC 3986 Section 5.1 agrees with, a base URI carrying none. The
+      // pattern turns down the character rather than a fragment component, so
+      // an empty one is refused here too
+      if (reference.find('#') != JSON::StringView::npos) {
+        throw OpenAPIError{
+            walk.base, openapi_child(EMPTY_POINTER, "$self"sv),
+            "The OpenAPI Description self identifier must not contain a "
+            "fragment"};
+      }
+
       auto established{openapi_document_base(reference, walk)};
       if (established.has_value()) {
         walk.base = std::move(established.value());
@@ -450,8 +468,8 @@ inline auto openapi_check_document(const JSON &document, OpenAPIWalk &walk)
       walk.security = std::move(locations);
     }
   } catch (const OpenAPIError &error) {
-    // Every check reports where in its own document the problem is, and this
-    // is the only place that knows which document that was
+    // Every check reports where in the document the problem is, and this is
+    // the only place that knows the base to name it by
     if (!error.base().empty() || walk.base.empty()) {
       throw;
     }

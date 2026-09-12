@@ -24,7 +24,7 @@ namespace {
 const std::vector<std::string> KNOWN_KEYS{"document", "defaultBase",
                                           "schemaResolver", "frame", "error"};
 const std::vector<std::string> KNOWN_ERROR_KEYS{
-    "message", "location", "base", "identifier", "keyword", "value"};
+    "message", "location", "base", "identifier", "keyword", "value", "other"};
 const std::vector<std::string> KNOWN_METHODS{"get",    "put",     "post",
                                              "delete", "options", "head",
                                              "patch",  "trace",   "query"};
@@ -505,6 +505,29 @@ auto run_fail_test(const sourcemeta::core::JSON &test) -> void {
     EXPECT_EQ(error.keyword(), test.at("error").at("keyword").to_string());
     EXPECT_TRUE(test.at("error").defines("value"));
     EXPECT_EQ(error.value(), test.at("error").at("value").to_string());
+  } catch (const sourcemeta::core::SchemaAnchorCollisionError &error) {
+    refused = true;
+    check_schema_refusal(test, error.what());
+
+    // Which anchor two schemas both answer to, and both of the places that
+    // claim it, as either one alone says nothing about the collision
+    EXPECT_TRUE(test.at("error").defines("identifier"));
+    EXPECT_EQ(error.identifier(),
+              test.at("error").at("identifier").to_string());
+    EXPECT_TRUE(test.at("error").defines("value"));
+    EXPECT_EQ(sourcemeta::core::to_string(error.location()),
+              test.at("error").at("value").to_string());
+    EXPECT_TRUE(test.at("error").defines("other"));
+    EXPECT_EQ(sourcemeta::core::to_string(error.other()),
+              test.at("error").at("other").to_string());
+  } catch (const sourcemeta::core::SchemaFrameError &error) {
+    refused = true;
+    check_schema_refusal(test, error.what());
+
+    // Which name two schemas both go by
+    EXPECT_TRUE(test.at("error").defines("identifier"));
+    EXPECT_EQ(error.identifier(),
+              test.at("error").at("identifier").to_string());
   } catch (const std::exception &error) {
     // Every way a description can be turned down is named above, so anything
     // else is a refusal this runner has no account of rather than one to let

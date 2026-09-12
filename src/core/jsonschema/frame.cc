@@ -11,6 +11,7 @@
 #include <map>           // std::map
 #include <memory>        // std::make_unique, std::unique_ptr
 #include <optional>      // std::optional
+#include <set>           // std::set
 #include <sstream>       // std::ostringstream
 #include <tuple>         // std::tuple
 #include <unordered_map> // std::unordered_map
@@ -401,8 +402,8 @@ auto set_base_and_fragment(sourcemeta::core::SchemaFrame::Reference &entry)
 // A location reports its base as a view, so that view has to point at a
 // string that outlives the frame. The key of the location that owns the base
 // is the usual answer
-template <typename Locations>
-auto owned_base_view(const Locations &locations,
+template <typename Locations, typename Owned>
+auto owned_base_view(const Locations &locations, Owned &owned,
                      const sourcemeta::core::JSON::String &default_base,
                      const std::string_view base) -> std::string_view {
   const auto match{
@@ -419,9 +420,11 @@ auto owned_base_view(const Locations &locations,
     return default_base;
   }
 
-  // What is left is a base that the location being stored is about to become
-  // the owner of, which storing it re-points at its own key
-  return base;
+  // What is left is a base that nothing holds yet. Storing the location that
+  // is about to own it re-points this at its own key, but a second location
+  // under the same base is stored without that happening, so the frame takes
+  // a copy of its own rather than leave a view into what analysing it used
+  return *(owned.insert(sourcemeta::core::JSON::String{base}).first);
 }
 
 // RFC 3986 Section 5.1.4 takes the base of a document that declares none from
@@ -761,6 +764,9 @@ struct SchemaFrame::Cache {
   // for the same reason as the dialects below, as a location that inherits a
   // base reports it back as a view and no location of the frame need own it
   sourcemeta::core::JSON::String default_base;
+  // Every other base that no location of the frame owns, for the same reason.
+  // A set, as what it hands out references to must survive later insertions
+  std::set<sourcemeta::core::JSON::String> bases;
   // SchemaVocabularies are a function of the base dialect and dialect alone,
   // and a schema only tends to make use of a handful of those. We own the
   // dialect that we key on, as the view that the location holds may point into
@@ -1103,9 +1109,12 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
               entry.id ? std::optional<std::string_view>{*entry.id}
                        : std::nullopt)};
           for (const auto &base_string : bases.first) {
-            // Otherwise we end up pushing the top-level resource twice
+            // Otherwise we end up pushing the top-level resource twice. The
+            // name the caller gave is compared as it was resolved rather than
+            // as it was written, which is what the schema is known by
             if (entry_index == 0 && has_explicit_different_id &&
-                !default_id.empty() && default_id == base_string) {
+                !default_id_canonical.empty() &&
+                default_id_canonical == base_string) {
               continue;
             }
 
@@ -1287,8 +1296,9 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
               continue;
             }
 
-            const auto base_view{owned_base_view(
-                this->locations_, this->cache_->default_base, base_string)};
+            const auto base_view{
+                owned_base_view(this->locations_, this->cache_->bases,
+                                this->cache_->default_base, base_string)};
 
             if (type == AnchorType::Static || type == AnchorType::All) {
               store(this->locations_, max_locations,
@@ -1374,9 +1384,9 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
 
       std::string_view hoisted_base_view{};
       if (nearest_base_info.has_value()) {
-        hoisted_base_view =
-            owned_base_view(this->locations_, this->cache_->default_base,
-                            nearest_base_info->first);
+        hoisted_base_view = owned_base_view(
+            this->locations_, this->cache_->bases, this->cache_->default_base,
+            nearest_base_info->first);
       }
 
       sourcemeta::core::WeakPointer cached_base{};
@@ -1403,7 +1413,7 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
           if (nearest_base_info.has_value()) {
             base_view = hoisted_base_view;
           } else {
-            base_view = owned_base_view(this->locations_,
+            base_view = owned_base_view(this->locations_, this->cache_->bases,
                                         this->cache_->default_base, base.first);
           }
 

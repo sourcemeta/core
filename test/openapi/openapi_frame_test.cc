@@ -407,6 +407,112 @@ TEST(standalone_with_an_external_reference) {
             sourcemeta::core::JSON{true});
 }
 
+TEST(max_locations_at_what_framing_the_schemas_needs) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.1.1",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "components": {
+      "schemas": {
+        "Pet": { "properties": { "one": {}, "two": {}, "three": {} } }
+      }
+    }
+  })JSON")};
+
+  // The schema and each of its three subschemas, which is every place framing
+  // it registers and so the least a bound may be without turning it down
+  const sourcemeta::core::OpenAPIFrame frame{
+      document, sourcemeta::core::schema_walker,
+      sourcemeta::core::schema_resolver, "https://example.com/openapi.json", 4};
+  const auto result{frame.to_json()};
+  const auto &schemas{result.at("schemas").at("locations").at("static")};
+  EXPECT_EQ(schemas.size(), 4);
+  EXPECT_TRUE(schemas.defines(
+      "https://example.com/openapi.json#/components/schemas/Pet"));
+  EXPECT_TRUE(schemas.defines(
+      "https://example.com/openapi.json#/components/schemas/Pet/properties/"
+      "one"));
+  EXPECT_TRUE(schemas.defines(
+      "https://example.com/openapi.json#/components/schemas/Pet/properties/"
+      "two"));
+  EXPECT_TRUE(schemas.defines(
+      "https://example.com/openapi.json#/components/schemas/Pet/properties/"
+      "three"));
+}
+
+TEST(max_locations_one_below_what_framing_the_schemas_needs) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.1.1",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "components": {
+      "schemas": {
+        "Pet": { "properties": { "one": {}, "two": {}, "three": {} } }
+      }
+    }
+  })JSON")};
+
+  try {
+    [[maybe_unused]] const sourcemeta::core::OpenAPIFrame frame{
+        document, sourcemeta::core::schema_walker,
+        sourcemeta::core::schema_resolver, "https://example.com/openapi.json",
+        3};
+    FAIL();
+  } catch (const sourcemeta::core::SchemaFrameLimitError &error) {
+    EXPECT_STREQ(error.what(),
+                 "The schema exceeds the maximum number of frame locations");
+    EXPECT_EQ(error.limit(), 3);
+  }
+}
+
+TEST(max_locations_does_not_bound_the_description_itself) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.1.1",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "paths": {
+      "/one": { "get": { "responses": { "200": { "description": "ok" } } } },
+      "/two": { "get": { "responses": { "200": { "description": "ok" } } } },
+      "/three": { "get": { "responses": { "200": { "description": "ok" } } } }
+    }
+  })JSON")};
+
+  // Nothing here is a Schema Object, so a bound of one location turns down
+  // nothing, however many places the description itself goes by
+  const sourcemeta::core::OpenAPIFrame frame{
+      document, sourcemeta::core::schema_walker,
+      sourcemeta::core::schema_resolver, "https://example.com/openapi.json", 1};
+  const auto result{frame.to_json()};
+  EXPECT_TRUE(result.at("schemas").at("locations").at("static").empty());
+
+  const auto &locations{result.at("locations")};
+  EXPECT_EQ(locations.size(), 15);
+  EXPECT_TRUE(locations.defines("https://example.com/openapi.json"));
+  EXPECT_TRUE(locations.defines("https://example.com/openapi.json#/info"));
+  EXPECT_TRUE(locations.defines("https://example.com/openapi.json#/paths"));
+  EXPECT_TRUE(
+      locations.defines("https://example.com/openapi.json#/paths/~1one"));
+  EXPECT_TRUE(
+      locations.defines("https://example.com/openapi.json#/paths/~1one/get"));
+  EXPECT_TRUE(locations.defines(
+      "https://example.com/openapi.json#/paths/~1one/get/responses"));
+  EXPECT_TRUE(locations.defines(
+      "https://example.com/openapi.json#/paths/~1one/get/responses/200"));
+  EXPECT_TRUE(
+      locations.defines("https://example.com/openapi.json#/paths/~1two"));
+  EXPECT_TRUE(
+      locations.defines("https://example.com/openapi.json#/paths/~1two/get"));
+  EXPECT_TRUE(locations.defines(
+      "https://example.com/openapi.json#/paths/~1two/get/responses"));
+  EXPECT_TRUE(locations.defines(
+      "https://example.com/openapi.json#/paths/~1two/get/responses/200"));
+  EXPECT_TRUE(
+      locations.defines("https://example.com/openapi.json#/paths/~1three"));
+  EXPECT_TRUE(
+      locations.defines("https://example.com/openapi.json#/paths/~1three/get"));
+  EXPECT_TRUE(locations.defines(
+      "https://example.com/openapi.json#/paths/~1three/get/responses"));
+  EXPECT_TRUE(locations.defines(
+      "https://example.com/openapi.json#/paths/~1three/get/responses/200"));
+}
+
 TEST(dangling_is_empty_when_the_frame_stands_alone) {
   const auto document{sourcemeta::core::parse_json(R"JSON({
     "openapi": "3.1.1",

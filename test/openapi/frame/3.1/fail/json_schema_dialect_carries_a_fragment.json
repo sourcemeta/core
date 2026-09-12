@@ -1,0 +1,12 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "jsonSchemaDialect": "https://example.com/dialect#/frag",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "components": { "schemas": { "Pet": { "type": "string" } } }
+  },
+  "error": {
+    "message": "Could not resolve the metaschema of the schema",
+    "identifier": "https://example.com/dialect#/frag"
+  }
+}
