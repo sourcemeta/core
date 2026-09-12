@@ -692,6 +692,10 @@ auto OpenAPIFrame::standalone() const noexcept -> bool {
   return this->internal_->standalone;
 }
 
+auto OpenAPIFrame::schemas() const noexcept -> const SchemaFrame & {
+  return *(this->internal_->schemas);
+}
+
 auto OpenAPIFrame::to_json() const -> JSON {
   // Read through the accessors rather than the internal state, so that what
   // this reports and what a caller can observe cannot drift apart
