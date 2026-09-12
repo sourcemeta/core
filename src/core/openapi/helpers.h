@@ -24,6 +24,7 @@ using namespace std::string_view_literals;
 // OpenAPI Specification 3.1.1, Section 4.9: "The field name MUST begin with
 // `x-`, for example, `x-internal-id`"
 constexpr auto OPENAPI_EXTENSION_PREFIX{"x-"sv};
+constexpr auto OPENAPI_HASH_DEPRECATED{JSON::Object::hash("deprecated"sv)};
 
 constexpr auto OPENAPI_HASH_DESCRIPTION{JSON::Object::hash("description"sv)};
 constexpr auto OPENAPI_HASH_SUMMARY{JSON::Object::hash("summary"sv)};
@@ -594,6 +595,34 @@ inline auto openapi_check_array_of_strings(const JSON &value,
   }
 }
 
+// The expressions a template declares between curly braces. OpenAPI
+// Specification 3.1.1, Section 3.5: "Path templating refers to the usage of
+// template expressions, delimited by curly braces (`{}`), to mark a section of
+// a URL path as replaceable using path parameters", and Section 4.8.5 names
+// server variables the same way. Nothing there says what an unbalanced brace
+// means, so a run that never closes is no expression
+inline auto openapi_brace_expressions(const JSON::StringView value)
+    -> std::vector<JSON::StringView> {
+  std::vector<JSON::StringView> result;
+  std::size_t cursor{0};
+  while (cursor < value.size()) {
+    const auto open{value.find('{', cursor)};
+    if (open == JSON::StringView::npos) {
+      break;
+    }
+
+    const auto close{value.find('}', open)};
+    if (close == JSON::StringView::npos) {
+      break;
+    }
+
+    result.push_back(value.substr(open + 1, close - open - 1));
+    cursor = close + 1;
+  }
+
+  return result;
+}
+
 inline auto openapi_expect_string(const JSON &value, const Pointer &base,
                                   const JSON::StringView field,
                                   const char *message) -> JSON::StringView {
@@ -602,6 +631,34 @@ inline auto openapi_expect_string(const JSON &value, const Pointer &base,
   }
 
   return value.to_string();
+}
+
+// A field an Object may leave out, which is checked only where it is written.
+// The overwhelming majority of what this specification asks of a field is that
+// it holds a string, so that shape is worth reading as one line
+inline auto openapi_check_optional_string(const JSON &value,
+                                          const Pointer &base,
+                                          const JSON::StringView field,
+                                          const JSON::Object::hash_type hash,
+                                          const char *message) -> void {
+  const auto *member{value.try_at(field, hash)};
+  if (member != nullptr) {
+    openapi_expect_string(*member, base, field, message);
+  }
+}
+
+// A field an Object must declare, handed back already found, so that what
+// follows reads what is there rather than what might be
+inline auto openapi_require(const JSON &value, const JSON::StringView field,
+                            const JSON::Object::hash_type hash,
+                            const Pointer &base, const char *message)
+    -> const JSON & {
+  const auto *member{value.try_at(field, hash)};
+  if (member == nullptr) {
+    throw OpenAPIError{base, message};
+  }
+
+  return *member;
 }
 
 // OpenAPI Specification 3.1.1, Section 4.6: "Unless specified otherwise, all

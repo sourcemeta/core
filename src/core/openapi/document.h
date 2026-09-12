@@ -314,13 +314,11 @@ inline auto openapi_check_document(const JSON &document, OpenAPIWalk &walk)
     }
 
     // Section 4.8.1: "openapi | string | REQUIRED"
-    const auto *version{document.try_at("openapi", OPENAPI_HASH_OPENAPI)};
-    if (version == nullptr) {
-      throw OpenAPIError{EMPTY_POINTER,
-                         "The OpenAPI Description must declare its version"};
-    }
+    const auto &version{openapi_require(
+        document, "openapi"sv, OPENAPI_HASH_OPENAPI, EMPTY_POINTER,
+        "The OpenAPI Description must declare its version")};
 
-    if (!version->is_string()) {
+    if (!version.is_string()) {
       throw OpenAPIError{Pointer{"openapi"},
                          "The OpenAPI version must be a string"};
     }

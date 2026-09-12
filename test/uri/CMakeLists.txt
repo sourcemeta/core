@@ -14,6 +14,7 @@ sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME uri
     uri_is_scheme_test.cc
     uri_is_absolute_path_reference_test.cc
     uri_is_gen_delim_test.cc
+    uri_is_pchar_test.cc
     uri_query_test.cc
     uri_is_absolute_test.cc
     uri_is_relative_test.cc

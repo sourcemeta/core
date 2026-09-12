@@ -1,5 +1,6 @@
 #include <sourcemeta/core/openapi.h>
 
+#include <sourcemeta/core/text.h>
 #include <sourcemeta/core/uri.h>
 
 #include "document.h"
@@ -26,10 +27,7 @@ using namespace std::string_view_literals;
 // same map rather than a key the reader has to rebuild
 auto document_of(const sourcemeta::core::JSON::String &uri)
     -> sourcemeta::core::JSON::String {
-  const auto fragment{uri.find('#')};
-  return fragment == sourcemeta::core::JSON::String::npos
-             ? uri
-             : uri.substr(0, fragment);
+  return sourcemeta::core::JSON::String{sourcemeta::core::take_until(uri, '#')};
 }
 
 auto parent_of(const std::map<sourcemeta::core::JSON::String,
@@ -152,28 +150,25 @@ auto check_operation_id_links(
   }
 }
 
-auto optional_string(
-    const std::optional<sourcemeta::core::JSON::StringView> &value)
-    -> sourcemeta::core::JSON {
-  return value.has_value() ? sourcemeta::core::JSON{value.value()}
-                           : sourcemeta::core::JSON{nullptr};
-}
-
 auto info_json(const sourcemeta::core::OpenAPIInfo &info)
     -> sourcemeta::core::JSON {
   auto result{sourcemeta::core::JSON::make_object()};
   result.assign_assume_new("title", sourcemeta::core::JSON{info.title});
   result.assign_assume_new("version", sourcemeta::core::JSON{info.version});
-  result.assign_assume_new("summary", optional_string(info.summary));
-  result.assign_assume_new("description", optional_string(info.description));
+  result.assign_assume_new("summary", sourcemeta::core::to_json(info.summary));
+  result.assign_assume_new("description",
+                           sourcemeta::core::to_json(info.description));
   result.assign_assume_new("termsOfService",
-                           optional_string(info.terms_of_service));
+                           sourcemeta::core::to_json(info.terms_of_service));
 
   if (info.contact.has_value()) {
     auto contact{sourcemeta::core::JSON::make_object()};
-    contact.assign_assume_new("name", optional_string(info.contact->name));
-    contact.assign_assume_new("url", optional_string(info.contact->url));
-    contact.assign_assume_new("email", optional_string(info.contact->email));
+    contact.assign_assume_new("name",
+                              sourcemeta::core::to_json(info.contact->name));
+    contact.assign_assume_new("url",
+                              sourcemeta::core::to_json(info.contact->url));
+    contact.assign_assume_new("email",
+                              sourcemeta::core::to_json(info.contact->email));
     result.assign_assume_new("contact", std::move(contact));
   } else {
     result.assign_assume_new("contact", sourcemeta::core::JSON{nullptr});
@@ -183,9 +178,10 @@ auto info_json(const sourcemeta::core::OpenAPIInfo &info)
     auto license{sourcemeta::core::JSON::make_object()};
     license.assign_assume_new("name",
                               sourcemeta::core::JSON{info.license->name});
-    license.assign_assume_new("identifier",
-                              optional_string(info.license->identifier));
-    license.assign_assume_new("url", optional_string(info.license->url));
+    license.assign_assume_new(
+        "identifier", sourcemeta::core::to_json(info.license->identifier));
+    license.assign_assume_new("url",
+                              sourcemeta::core::to_json(info.license->url));
     result.assign_assume_new("license", std::move(license));
   } else {
     result.assign_assume_new("license", sourcemeta::core::JSON{nullptr});
@@ -466,7 +462,7 @@ auto project(const sourcemeta::core::OpenAPIWalk &walk)
     // only what the Paths Object exposes has any templating to correspond to
     const auto templated{kind == sourcemeta::core::OpenAPIOperationKind::Path};
     const auto templates{
-        templated ? sourcemeta::core::openapi_path_templates(path)
+        templated ? sourcemeta::core::openapi_brace_expressions(path)
                   : std::vector<sourcemeta::core::JSON::StringView>{}};
     if (templated) {
       check_path_parameters(walk, templates, entry->second.parameters);
@@ -582,7 +578,7 @@ OpenAPIFrame::OpenAPIFrame(const JSON &document, const SchemaWalker &walker,
                            const std::uint64_t max_locations)
     : internal_{std::make_unique<Internal>()} {
   auto walk{analyse(document, canonical_base(default_base))};
-  this->internal_->version = openapi_version(document).value();
+  this->internal_->version = walk.version;
   this->internal_->info = walk.info;
   // What the caller passed in is where the entry document was retrieved from,
   // and from 3.2 onwards the document may give itself a URI of its own, which
@@ -756,33 +752,16 @@ auto OpenAPIFrame::to_json() const -> JSON {
     entry.assign_assume_new("origin", JSON{operation.origin});
     entry.assign_assume_new("endpoint", JSON{operation.endpoint});
 
-    auto tags{JSON::make_array()};
-    for (const auto &tag : operation.tags) {
-      tags.push_back(tag.has_value() ? JSON{tag.value()} : JSON{nullptr});
-    }
+    entry.assign_assume_new("tags", sourcemeta::core::to_json(operation.tags));
 
-    entry.assign_assume_new("tags", std::move(tags));
+    entry.assign_assume_new("servers",
+                            sourcemeta::core::to_json(operation.servers));
 
-    auto servers{JSON::make_array()};
-    for (const auto &server : operation.servers) {
-      servers.push_back(JSON{server});
-    }
+    entry.assign_assume_new("security",
+                            sourcemeta::core::to_json(operation.security));
 
-    entry.assign_assume_new("servers", std::move(servers));
-
-    auto security{JSON::make_array()};
-    for (const auto &requirement : operation.security) {
-      security.push_back(JSON{requirement});
-    }
-
-    entry.assign_assume_new("security", std::move(security));
-
-    auto parameters{JSON::make_array()};
-    for (const auto &parameter : operation.parameters) {
-      parameters.push_back(JSON{parameter});
-    }
-
-    entry.assign_assume_new("parameters", std::move(parameters));
+    entry.assign_assume_new("parameters",
+                            sourcemeta::core::to_json(operation.parameters));
     operations.push_back(std::move(entry));
   }
 
