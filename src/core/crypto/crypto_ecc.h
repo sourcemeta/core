@@ -508,11 +508,15 @@ inline auto point_affine_x(const JacobianPoint &point,
 
 inline auto point_conditional_select(const bool condition,
                                      const JacobianPoint &when_true,
-                                     const JacobianPoint &when_false) noexcept
+                                     const JacobianPoint &when_false,
+                                     const std::size_t words) noexcept
     -> JacobianPoint {
-  return {.x = bignum_conditional_select(condition, when_true.x, when_false.x),
-          .y = bignum_conditional_select(condition, when_true.y, when_false.y),
-          .z = bignum_conditional_select(condition, when_true.z, when_false.z)};
+  return {.x = bignum_conditional_select(condition, when_true.x, when_false.x,
+                                         words),
+          .y = bignum_conditional_select(condition, when_true.y, when_false.y,
+                                         words),
+          .z = bignum_conditional_select(condition, when_true.z, when_false.z,
+                                         words)};
 }
 
 // Complete projective point addition for the prime-order NIST curves, whose
@@ -586,7 +590,7 @@ inline auto point_scalar_multiply_constant_time(
     const auto sum{
         point_complete_add(result, point, curve.coefficient_b, field)};
     result = point_conditional_select(bignum_get_bit_fixed(scalar, index - 1),
-                                      sum, result);
+                                      sum, result, field.words);
   }
 
   return result;

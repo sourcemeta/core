@@ -98,13 +98,19 @@ inline auto edwards_point_scalar_multiply(const Bignum &scalar,
   return result;
 }
 
-inline auto edwards_point_conditional_select(
-    const bool condition, const EdwardsPoint &when_true,
-    const EdwardsPoint &when_false) noexcept -> EdwardsPoint {
-  return {.x = bignum_conditional_select(condition, when_true.x, when_false.x),
-          .y = bignum_conditional_select(condition, when_true.y, when_false.y),
-          .z = bignum_conditional_select(condition, when_true.z, when_false.z),
-          .t = bignum_conditional_select(condition, when_true.t, when_false.t)};
+inline auto edwards_point_conditional_select(const bool condition,
+                                             const EdwardsPoint &when_true,
+                                             const EdwardsPoint &when_false,
+                                             const std::size_t words) noexcept
+    -> EdwardsPoint {
+  return {.x = bignum_conditional_select(condition, when_true.x, when_false.x,
+                                         words),
+          .y = bignum_conditional_select(condition, when_true.y, when_false.y,
+                                         words),
+          .z = bignum_conditional_select(condition, when_true.z, when_false.z,
+                                         words),
+          .t = bignum_conditional_select(condition, when_true.t, when_false.t,
+                                         words)};
 }
 
 // The same complete addition as above evaluated over the constant-time field
@@ -152,7 +158,7 @@ inline auto edwards_point_scalar_multiply_constant_time(
     const auto sum{
         edwards_point_add_constant_time(result, point, parameters, field)};
     result = edwards_point_conditional_select(
-        bignum_get_bit_fixed(scalar, index - 1), sum, result);
+        bignum_get_bit_fixed(scalar, index - 1), sum, result, field.words);
   }
 
   return result;
