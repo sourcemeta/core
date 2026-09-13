@@ -38,6 +38,10 @@ struct EdwardsParameters {
   CurveBignum order;
   CurveBignum coefficient_a;
   CurveBignum coefficient_d;
+  // Whether the coefficient a is -1, as on the twisted Ed25519 curve, rather
+  // than 1, as on Ed448, which lets the point formulas negate or keep a value
+  // instead of multiplying it by the coefficient
+  bool coefficient_a_is_minus_one{false};
   // A square root of -1 modulo the Ed25519 prime, which recovers the second
   // candidate root when decoding a point, and left zero for Ed448
   CurveBignum square_root_of_minus_one;
@@ -59,11 +63,15 @@ inline auto bignum_from_bytes_little_endian(const std::string_view input)
 
 // Ed25519 field reduction in constant time, for the signing ladder. The prime
 // is 2^255 - 19, so 2^256 is congruent to 38 modulo it, and the high half of a
-// product folds onto the low half scaled by 38. Two more folds absorb the carry
-// out of the top word, which the second can raise only to one and the third
-// clears, and the result, below 2^256, needs at most two masked subtractions
-inline auto field_reduce_25519_ct(const CurveBignum &value,
-                                  const CurveBarrettContext &context) noexcept
+// product folds onto the low half scaled by 38. A second fold absorbs the carry
+// out of the top word, leaving at most one, and a third folds that carry, worth
+// 38, and bit 255, worth 19, back in, leaving a value below 2^255 + 57. Such a
+// value is at least the prime exactly when adding 19 to it reaches bit 255, and
+// that sum without bit 255 is then the reduced value, so a single masked
+// selection finishes the reduction
+inline auto field_reduce_25519_ct(
+    const CurveBignum &value,
+    [[maybe_unused]] const CurveBarrettContext &context) noexcept
     -> CurveBignum {
   const auto *value_data{value.words.data()};
   CurveBignum folded;
@@ -77,23 +85,40 @@ inline auto field_reduce_25519_ct(const CurveBignum &value,
     carry = static_cast<std::uint64_t>(total >> 64U);
   }
 
-  for (std::size_t fold = 0; fold < 2; ++fold) {
-    BignumDoubleWord addend{static_cast<BignumDoubleWord>(carry) * 38U};
-    for (std::size_t index = 0; index < 4; ++index) {
-      const auto total{static_cast<BignumDoubleWord>(folded_data[index]) +
-                       addend};
-      folded_data[index] = static_cast<std::uint64_t>(total);
-      addend = total >> 64U;
-    }
-
-    carry = static_cast<std::uint64_t>(addend);
+  BignumDoubleWord addend{static_cast<BignumDoubleWord>(carry) * 38U};
+  for (std::size_t index = 0; index < 4; ++index) {
+    const auto total{static_cast<BignumDoubleWord>(folded_data[index]) +
+                     addend};
+    folded_data[index] = static_cast<std::uint64_t>(total);
+    addend = total >> 64U;
   }
 
+  const auto excess{(folded_data[3] >> 63U) +
+                    (static_cast<std::uint64_t>(addend) << 1U)};
+  folded_data[3] &= 0x7fffffffffffffffULL;
+  addend = static_cast<BignumDoubleWord>(excess) * 19U;
+  for (std::size_t index = 0; index < 4; ++index) {
+    const auto total{static_cast<BignumDoubleWord>(folded_data[index]) +
+                     addend};
+    folded_data[index] = static_cast<std::uint64_t>(total);
+    addend = total >> 64U;
+  }
+
+  CurveBignum reduced;
+  auto *reduced_data{reduced.words.data()};
+  addend = 19U;
+  for (std::size_t index = 0; index < 4; ++index) {
+    const auto total{static_cast<BignumDoubleWord>(folded_data[index]) +
+                     addend};
+    reduced_data[index] = static_cast<std::uint64_t>(total);
+    addend = total >> 64U;
+  }
+
+  const auto at_least_prime{(reduced_data[3] >> 63U) != 0};
+  reduced_data[3] &= 0x7fffffffffffffffULL;
   folded.size = 4;
-  auto reduced{bignum_conditional_subtract(folded, context.modulus, 4)};
-  reduced = bignum_conditional_subtract(reduced, context.modulus, 4);
   reduced.size = 4;
-  return reduced;
+  return bignum_conditional_select(at_least_prime, reduced, folded, 4);
 }
 
 inline auto edwards_point_conditional_select(const bool condition,
@@ -133,12 +158,46 @@ inline auto edwards_point_add_constant_time(
       field_add_ct(a, b, field), field)};
   const auto f{field_subtract_ct(d, c, field)};
   const auto g{field_add_ct(d, c, field)};
-  const auto h{field_subtract_ct(
-      b, field_mod_multiply_ct(parameters.coefficient_a, a, field), field)};
+  // H = B - a * A, where a is -1 or 1
+  const auto h{parameters.coefficient_a_is_minus_one
+                   ? field_add_ct(b, a, field)
+                   : field_subtract_ct(b, a, field)};
   return EdwardsPoint{.x = field_mod_multiply_ct(e, f, field),
                       .y = field_mod_multiply_ct(g, h, field),
                       .z = field_mod_multiply_ct(f, g, field),
                       .t = field_mod_multiply_ct(e, h, field)};
+}
+
+// Dedicated doubling in extended coordinates (Hisil, Wong, Carter, and Dawson
+// 2008, Section 3.3), the formula RFC 8032 Section 5.1.4 recommends for
+// Ed25519, written for a coefficient a of -1 or 1. It reads neither d nor the T
+// coordinate of the input and, like the unified addition, holds for every point
+// of these curves, the identity included. The T coordinate of the result is
+// only computed when requested, as a doubling that feeds another doubling never
+// reads it
+inline auto edwards_point_double_constant_time(
+    const EdwardsPoint &point, const EdwardsParameters &parameters,
+    const CurveBarrettContext &field, const bool extended) noexcept
+    -> EdwardsPoint {
+  const auto a{field_square_ct(point.x, field)};
+  const auto b{field_square_ct(point.y, field)};
+  const auto z_squared{field_square_ct(point.z, field)};
+  const auto c{field_add_ct(z_squared, z_squared, field)};
+  // D = a * A, where a is -1 or 1
+  const auto d{parameters.coefficient_a_is_minus_one
+                   ? field_subtract_ct(CurveBignum{}, a, field)
+                   : a};
+  const auto e{field_subtract_ct(
+      field_square_ct(field_add_ct(point.x, point.y, field), field),
+      field_add_ct(a, b, field), field)};
+  const auto g{field_add_ct(d, b, field)};
+  const auto f{field_subtract_ct(g, c, field)};
+  const auto h{field_subtract_ct(d, b, field)};
+  return EdwardsPoint{.x = field_mod_multiply_ct(e, f, field),
+                      .y = field_mod_multiply_ct(g, h, field),
+                      .z = field_mod_multiply_ct(f, g, field),
+                      .t = extended ? field_mod_multiply_ct(e, h, field)
+                                    : CurveBignum{}};
 }
 
 // For the signing path, where the scalar is secret: a fixed four-bit window
@@ -167,8 +226,8 @@ inline auto edwards_point_scalar_multiply_constant_time(
   const auto windows{(bignum_bit_length(parameters.prime) + 3) / 4};
   for (std::size_t window = windows; window > 0; --window) {
     for (std::size_t step = 0; step < 4; ++step) {
-      result =
-          edwards_point_add_constant_time(result, result, parameters, field);
+      result = edwards_point_double_constant_time(result, parameters, field,
+                                                  step == 3);
     }
 
     std::size_t digit{0};
@@ -222,9 +281,10 @@ inline auto edwards_point_double_scalar_multiply(
   const auto second_bits{bignum_bit_length(second_scalar)};
   const auto bits{first_bits > second_bits ? first_bits : second_bits};
   for (std::size_t index = bits; index > 0; --index) {
-    result = edwards_point_add_constant_time(result, result, parameters, field);
     const auto first_bit{bignum_get_bit(first_scalar, index - 1)};
     const auto second_bit{bignum_get_bit(second_scalar, index - 1)};
+    result = edwards_point_double_constant_time(result, parameters, field,
+                                                first_bit || second_bit);
     if (first_bit && second_bit) {
       result =
           edwards_point_add_constant_time(result, combined, parameters, field);
@@ -381,6 +441,7 @@ inline auto edwards25519_parameters() -> EdwardsParameters {
   parameters.coefficient_a = parameters.prime;
   bignum_subtract_in_place(parameters.coefficient_a,
                            bignum_from_u64<CURVE_BIGNUM_CAPACITY>(1));
+  parameters.coefficient_a_is_minus_one = true;
 
   // d = -121665 / 121666 (mod p)
   auto negated_numerator{parameters.prime};
@@ -668,6 +729,7 @@ inline auto edwards448_parameters() -> EdwardsParameters {
 
   // The curve coefficient a is 1, and d is -39081 (mod p)
   parameters.coefficient_a = bignum_from_u64<CURVE_BIGNUM_CAPACITY>(1);
+  parameters.coefficient_a_is_minus_one = false;
   parameters.coefficient_d = parameters.prime;
   bignum_subtract_in_place(parameters.coefficient_d,
                            bignum_from_u64<CURVE_BIGNUM_CAPACITY>(39081));

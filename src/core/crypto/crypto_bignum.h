@@ -304,34 +304,27 @@ inline auto bignum_reduce(BasicBignum<Capacity> &value,
 
     // Multiply the divisor by the estimate and subtract from the running value
     const auto quotient_word{static_cast<std::uint64_t>(estimate)};
-    BignumDoubleWord carry{0};
+    std::uint64_t carry{0};
     std::uint64_t borrow{0};
     for (std::size_t index = 0; index < divisor_words; ++index) {
       const auto product{
           (static_cast<BignumDoubleWord>(quotient_word) * divisor_data[index]) +
           carry};
-      carry = product >> 64U;
-      const auto subtrahend{static_cast<std::uint64_t>(product)};
-      const auto current{dividend_data[offset + index]};
-      const auto without_subtrahend{current - subtrahend};
-      auto next_borrow{current < subtrahend ? 1U : 0U};
-      const auto result_word{without_subtrahend - borrow};
-      if (without_subtrahend < borrow) {
-        next_borrow += 1U;
-      }
-
-      dividend_data[offset + index] = result_word;
-      borrow = next_borrow;
+      carry = static_cast<std::uint64_t>(product >> 64U);
+      const auto difference{
+          static_cast<BignumDoubleWord>(dividend_data[offset + index]) -
+          static_cast<std::uint64_t>(product) - borrow};
+      dividend_data[offset + index] = static_cast<std::uint64_t>(difference);
+      borrow = static_cast<std::uint64_t>(difference >> 64U) & 1U;
     }
 
-    const auto current{dividend_data[offset + divisor_words]};
-    const auto subtrahend{static_cast<std::uint64_t>(carry)};
-    const auto without_subtrahend{current - subtrahend};
-    auto next_borrow{current < subtrahend ? 1U : 0U};
-    dividend_data[offset + divisor_words] = without_subtrahend - borrow;
-    if (without_subtrahend < borrow) {
-      next_borrow += 1U;
-    }
+    const auto top_difference{
+        static_cast<BignumDoubleWord>(dividend_data[offset + divisor_words]) -
+        carry - borrow};
+    dividend_data[offset + divisor_words] =
+        static_cast<std::uint64_t>(top_difference);
+    const auto next_borrow{static_cast<std::uint64_t>(top_difference >> 64U) &
+                           1U};
 
     // The estimate was at most one too large, so add the divisor back when the
     // subtraction borrowed past the top
@@ -369,16 +362,14 @@ inline auto bignum_multiply(const BasicBignum<Capacity> &left,
   const auto *right_data{right.words.data()};
   auto *result_data{result.words.data()};
   for (std::size_t left_index = 0; left_index < left.size; ++left_index) {
+    const auto left_word{left_data[left_index]};
+    const auto columns{std::min(right.size, Capacity - left_index)};
     std::uint64_t carry{0};
-    for (std::size_t right_index = 0; right_index < right.size; ++right_index) {
+    for (std::size_t right_index = 0; right_index < columns; ++right_index) {
       const auto destination{left_index + right_index};
-      if (destination >= Capacity) {
-        break;
-      }
-
-      const auto product{(static_cast<BignumDoubleWord>(left_data[left_index]) *
-                          right_data[right_index]) +
-                         result_data[destination] + carry};
+      const auto product{
+          (static_cast<BignumDoubleWord>(left_word) * right_data[right_index]) +
+          result_data[destination] + carry};
       result_data[destination] = static_cast<std::uint64_t>(product);
       carry = static_cast<std::uint64_t>(product >> 64U);
     }
@@ -407,7 +398,8 @@ inline auto bignum_mod_exp(const BasicBignum<Capacity> &base,
 
   const auto exponent_bits{bignum_bit_length(exponent)};
   for (std::size_t index = exponent_bits; index > 0; --index) {
-    result = bignum_multiply(result, result);
+    result = bignum_square_fixed(result, result.size);
+    bignum_normalize(result);
     bignum_reduce(result, modulus);
     if (bignum_get_bit(exponent, index - 1)) {
       result = bignum_multiply(result, reduced_base);
@@ -618,18 +610,35 @@ inline auto bignum_subtract_fixed(const BasicBignum<Capacity> &left,
   auto *out_data{out.words.data()};
   std::uint64_t borrow{0};
   for (std::size_t index = 0; index < words; ++index) {
-    const auto left_word{left_data[index]};
-    const auto right_word{right_data[index]};
-    const auto without_right{left_word - right_word};
-    const std::uint64_t borrow_from_right{left_word < right_word ? 1U : 0U};
-    const auto result_word{without_right - borrow};
-    const std::uint64_t borrow_from_previous{without_right < borrow ? 1U : 0U};
-    out_data[index] = result_word;
-    borrow = borrow_from_right | borrow_from_previous;
+    // A borrow out of the word wraps the double word, setting its high half
+    const auto total{static_cast<BignumDoubleWord>(left_data[index]) -
+                     right_data[index] - borrow};
+    out_data[index] = static_cast<std::uint64_t>(total);
+    borrow = static_cast<std::uint64_t>(total >> 64U) & 1U;
   }
 
   out.size = words;
   return borrow;
+}
+
+// Add the modulus, masked to all ones or to zero, over the given number of
+// words, discarding the carry out. It is the branch-free correction step of
+// the constant-time modular arithmetic, undoing a trial subtraction of the
+// modulus that borrowed
+template <std::size_t Capacity>
+inline auto bignum_add_masked(BasicBignum<Capacity> &value,
+                              const BasicBignum<Capacity> &modulus,
+                              const std::uint64_t mask,
+                              const std::size_t words) noexcept -> void {
+  auto *value_data{value.words.data()};
+  const auto *modulus_data{modulus.words.data()};
+  std::uint64_t carry{0};
+  for (std::size_t index = 0; index < words; ++index) {
+    const auto total{static_cast<BignumDoubleWord>(value_data[index]) +
+                     (modulus_data[index] & mask) + carry};
+    value_data[index] = static_cast<std::uint64_t>(total);
+    carry = static_cast<std::uint64_t>(total >> 64U);
+  }
 }
 
 // Multiply visiting exactly the given word counts, so timing does not reveal
@@ -645,13 +654,14 @@ inline auto bignum_multiply_fixed(const BasicBignum<Capacity> &left,
   const auto *right_data{right.words.data()};
   auto *result_data{result.words.data()};
   for (std::size_t left_index = 0; left_index < left_words; ++left_index) {
+    const auto left_word{left_data[left_index]};
     std::uint64_t carry{0};
     for (std::size_t right_index = 0; right_index < right_words;
          ++right_index) {
       const auto destination{left_index + right_index};
-      const auto product{(static_cast<BignumDoubleWord>(left_data[left_index]) *
-                          right_data[right_index]) +
-                         result_data[destination] + carry};
+      const auto product{
+          (static_cast<BignumDoubleWord>(left_word) * right_data[right_index]) +
+          result_data[destination] + carry};
       result_data[destination] = static_cast<std::uint64_t>(product);
       carry = static_cast<std::uint64_t>(product >> 64U);
     }
@@ -709,13 +719,13 @@ inline auto bignum_square_fixed(const BasicBignum<Capacity> &value,
   const auto *value_data{value.words.data()};
   auto *result_data{result.words.data()};
   for (std::size_t left_index = 0; left_index < words; ++left_index) {
+    const auto left_word{value_data[left_index]};
     std::uint64_t carry{0};
     for (std::size_t right_index = left_index + 1; right_index < words;
          ++right_index) {
       const auto destination{left_index + right_index};
       const auto product{
-          (static_cast<BignumDoubleWord>(value_data[left_index]) *
-           value_data[right_index]) +
+          (static_cast<BignumDoubleWord>(left_word) * value_data[right_index]) +
           result_data[destination] + carry};
       result_data[destination] = static_cast<std::uint64_t>(product);
       carry = static_cast<std::uint64_t>(product >> 64U);
@@ -828,6 +838,11 @@ template <std::size_t Capacity> struct BasicBarrettContext {
   // a special form of the modulus allows, taken instead of the Barrett one when
   // set
   Reduction reduce{nullptr};
+  // The constants of a context that reduces through Montgomery multiplication:
+  // the negated inverse of the modulus modulo 2^64, left zero by a context that
+  // does not, and R^2 modulo the modulus for moving values into Montgomery form
+  std::uint64_t montgomery_factor{0};
+  BasicBignum<Capacity> montgomery_square;
 };
 
 using BarrettContext = BasicBarrettContext<BIGNUM_CAPACITY>;
@@ -925,6 +940,89 @@ barrett_reduce(const BasicBignum<Capacity> &value,
   return remainder;
 }
 
+// Montgomery reduction in constant time, the separated operand scanning form
+// (Koc, Acar, and Kaliski 1996). It divides a value below the modulus times
+// R = 2^(64 * words) by R modulo the modulus, clearing one low word per step
+// with a multiple of the modulus chosen from that word alone, so every step
+// visits the same words whatever the operands hold, and the quotient, below
+// twice the modulus, needs a single subtraction of the modulus, undone through
+// a masked addition when it borrows past the overflow word
+template <std::size_t Capacity>
+inline auto
+montgomery_reduce_ct(const BasicBignum<Capacity> &value,
+                     const BasicBarrettContext<Capacity> &context) noexcept
+    -> BasicBignum<Capacity> {
+  const auto width{context.words};
+  auto accumulator{value};
+  auto *accumulator_data{accumulator.words.data()};
+  const auto *modulus_data{context.modulus.words.data()};
+  std::uint64_t overflow{0};
+  for (std::size_t index = 0; index < width; ++index) {
+    const std::uint64_t multiplier{accumulator_data[index] *
+                                   context.montgomery_factor};
+    std::uint64_t carry{0};
+    for (std::size_t word = 0; word < width; ++word) {
+      const auto total{
+          (static_cast<BignumDoubleWord>(multiplier) * modulus_data[word]) +
+          accumulator_data[index + word] + carry};
+      accumulator_data[index + word] = static_cast<std::uint64_t>(total);
+      carry = static_cast<std::uint64_t>(total >> 64U);
+    }
+
+    const auto total{
+        static_cast<BignumDoubleWord>(accumulator_data[index + width]) + carry +
+        overflow};
+    accumulator_data[index + width] = static_cast<std::uint64_t>(total);
+    overflow = static_cast<std::uint64_t>(total >> 64U);
+  }
+
+  BasicBignum<Capacity> result;
+  auto *result_data{result.words.data()};
+  std::uint64_t borrow{0};
+  for (std::size_t index = 0; index < width; ++index) {
+    const auto total{
+        static_cast<BignumDoubleWord>(accumulator_data[index + width]) -
+        modulus_data[index] - borrow};
+    result_data[index] = static_cast<std::uint64_t>(total);
+    borrow = static_cast<std::uint64_t>(total >> 64U) & 1U;
+  }
+
+  bignum_add_masked(
+      result, context.modulus,
+      std::uint64_t{0} - static_cast<std::uint64_t>(borrow > overflow), width);
+  result.size = width;
+  return result;
+}
+
+// A context reducing through Montgomery multiplication, built from a Barrett
+// one. The negated inverse of the modulus modulo 2^64 comes from Newton
+// iteration, which doubles the correct low bits at every step from the three
+// that an odd word already has, and R^2 modulo the modulus comes from the
+// Barrett quotient as 2^(128 * words) minus the quotient times the modulus.
+// Both run in constant time, as the modulus may be a secret prime factor. The
+// modulus must be odd
+template <std::size_t Capacity>
+inline auto
+montgomery_context(const BasicBarrettContext<Capacity> &barrett) noexcept
+    -> BasicBarrettContext<Capacity> {
+  auto context{barrett};
+  const auto width{context.words};
+  const auto lowest{context.modulus.words[0]};
+  std::uint64_t inverse{lowest};
+  for (std::size_t step = 0; step < 5; ++step) {
+    inverse *= 2U - (lowest * inverse);
+  }
+
+  context.montgomery_factor = std::uint64_t{0} - inverse;
+  const auto product{bignum_multiply_low_fixed(context.factor, context.modulus,
+                                               width + 1, width, 2 * width)};
+  const BasicBignum<Capacity> zero;
+  bignum_subtract_fixed(zero, product, 2 * width, context.montgomery_square);
+  context.montgomery_square.size = width;
+  context.reduce = &montgomery_reduce_ct<Capacity>;
+  return context;
+}
+
 template <std::size_t Capacity>
 inline auto
 field_mod_multiply_ct(const BasicBignum<Capacity> &left,
@@ -947,6 +1045,34 @@ field_square_ct(const BasicBignum<Capacity> &value,
                                    : context.reduce(square, context);
 }
 
+// Move a reduced value into the representation of a context, its Montgomery
+// form x * R modulo the modulus when the context reduces through Montgomery
+// multiplication, and the value itself otherwise
+template <std::size_t Capacity>
+inline auto
+field_to_montgomery_ct(const BasicBignum<Capacity> &value,
+                       const BasicBarrettContext<Capacity> &context) noexcept
+    -> BasicBignum<Capacity> {
+  if (context.montgomery_factor == 0) {
+    return value;
+  }
+
+  return field_mod_multiply_ct(value, context.montgomery_square, context);
+}
+
+// Move a value back out of the representation of a context
+template <std::size_t Capacity>
+inline auto
+field_from_montgomery_ct(const BasicBignum<Capacity> &value,
+                         const BasicBarrettContext<Capacity> &context) noexcept
+    -> BasicBignum<Capacity> {
+  if (context.montgomery_factor == 0) {
+    return value;
+  }
+
+  return montgomery_reduce_ct(value, context);
+}
+
 template <std::size_t Capacity>
 inline auto field_add_ct(const BasicBignum<Capacity> &left,
                          const BasicBignum<Capacity> &right,
@@ -955,21 +1081,29 @@ inline auto field_add_ct(const BasicBignum<Capacity> &left,
   const auto width{context.words};
   const auto *left_data{left.words.data()};
   const auto *right_data{right.words.data()};
-  BasicBignum<Capacity> sum;
-  auto *sum_data{sum.words.data()};
+  const auto *modulus_data{context.modulus.words.data()};
+  BasicBignum<Capacity> result;
+  auto *result_data{result.words.data()};
+  // The modulus comes off the sum as the sum forms, and goes back on when that
+  // subtraction borrowed past the carry out of the sum
   std::uint64_t carry{0};
+  std::uint64_t borrow{0};
   for (std::size_t index = 0; index < width; ++index) {
     const auto total{static_cast<BignumDoubleWord>(left_data[index]) +
                      right_data[index] + carry};
-    sum_data[index] = static_cast<std::uint64_t>(total);
     carry = static_cast<std::uint64_t>(total >> 64U);
+    const auto difference{
+        static_cast<BignumDoubleWord>(static_cast<std::uint64_t>(total)) -
+        modulus_data[index] - borrow};
+    result_data[index] = static_cast<std::uint64_t>(difference);
+    borrow = static_cast<std::uint64_t>(difference >> 64U) & 1U;
   }
 
-  sum_data[width] = carry;
-  sum.size = width + 1;
-  auto reduced{bignum_conditional_subtract(sum, context.modulus, width + 1)};
-  reduced.size = width;
-  return reduced;
+  bignum_add_masked(
+      result, context.modulus,
+      std::uint64_t{0} - static_cast<std::uint64_t>(borrow > carry), width);
+  result.size = width;
+  return result;
 }
 
 template <std::size_t Capacity>
@@ -981,23 +1115,9 @@ field_subtract_ct(const BasicBignum<Capacity> &left,
   const auto width{context.words};
   BasicBignum<Capacity> difference;
   const auto borrow{bignum_subtract_fixed(left, right, width, difference)};
-  const auto *difference_data{difference.words.data()};
-  const auto *modulus_data{context.modulus.words.data()};
-  BasicBignum<Capacity> wrapped;
-  auto *wrapped_data{wrapped.words.data()};
-  std::uint64_t carry{0};
-  for (std::size_t index = 0; index < width; ++index) {
-    const auto total{static_cast<BignumDoubleWord>(difference_data[index]) +
-                     modulus_data[index] + carry};
-    wrapped_data[index] = static_cast<std::uint64_t>(total);
-    carry = static_cast<std::uint64_t>(total >> 64U);
-  }
-
-  wrapped.size = width;
-  auto result{
-      bignum_conditional_select(borrow != 0, wrapped, difference, width)};
-  result.size = width;
-  return result;
+  bignum_add_masked(difference, context.modulus, std::uint64_t{0} - borrow,
+                    width);
+  return difference;
 }
 
 // Whether two field elements, both reduced below the modulus, are equal,
@@ -1020,27 +1140,30 @@ field_equal_ct(const BasicBignum<Capacity> &left,
 // Raise a value to a public exponent over the field in fixed four-bit windows.
 // The exponent is public, so its windows index the table of powers directly and
 // skip the multiplication of a zero window, while the field multiplications
-// underneath do not depend on the value being raised
+// underneath do not depend on the value being raised. A context without a
+// special reduction runs the powering in Montgomery form, whose reduction is
+// cheaper than the Barrett one, so its modulus must be odd
 template <std::size_t Capacity>
 inline auto
 field_power_ct(const BasicBignum<Capacity> &value,
                const BasicBignum<Capacity> &exponent,
                const BasicBarrettContext<Capacity> &context) noexcept
     -> BasicBignum<Capacity> {
+  const auto field{context.reduce == nullptr ? montgomery_context(context)
+                                             : context};
   std::array<BasicBignum<Capacity>, 16> powers{};
-  powers[0].words[0] = 1;
+  powers[0] = field_to_montgomery_ct(bignum_from_u64<Capacity>(1), field);
   powers[0].size = context.words;
-  powers[1] = barrett_reduce(value, context);
+  powers[1] = field_to_montgomery_ct(barrett_reduce(value, context), field);
   for (std::size_t index = 2; index < powers.size(); ++index) {
-    powers[index] =
-        field_mod_multiply_ct(powers[index - 1], powers[1], context);
+    powers[index] = field_mod_multiply_ct(powers[index - 1], powers[1], field);
   }
 
   auto result{powers[0]};
   const auto windows{(bignum_bit_length(exponent) + 3) / 4};
   for (std::size_t window = windows; window > 0; --window) {
     for (std::size_t step = 0; step < 4; ++step) {
-      result = field_square_ct(result, context);
+      result = field_square_ct(result, field);
     }
 
     std::size_t digit{0};
@@ -1051,11 +1174,11 @@ field_power_ct(const BasicBignum<Capacity> &value,
     }
 
     if (digit != 0) {
-      result = field_mod_multiply_ct(result, powers[digit], context);
+      result = field_mod_multiply_ct(result, powers[digit], field);
     }
   }
 
-  return result;
+  return field_from_montgomery_ct(result, field);
 }
 
 // Fermat inverse over the field in constant time. The exponent is the public
@@ -1076,28 +1199,34 @@ field_inverse_ct(const BasicBignum<Capacity> &value,
 // constant time. The exponent is secret, so it is consumed in fixed four-bit
 // windows over a count fixed by the public modulus, and every window multiplies
 // by a power of the base taken from a precomputed table through a masked scan
-// over all of its entries rather than an index. The modulus need not be prime
+// over all of its entries rather than an index. The exponentiation runs in
+// Montgomery form, whose reduction is cheaper than the Barrett one, and the
+// Montgomery constants are wiped on return, as the modulus may be a secret
+// prime factor. The modulus need not be prime, but must be odd
 template <std::size_t Capacity>
 inline auto
 bignum_mod_exp_ct(const BasicBignum<Capacity> &base,
                   const BasicBignum<Capacity> &exponent,
                   const BasicBarrettContext<Capacity> &context) noexcept
     -> BasicBignum<Capacity> {
+  auto montgomery{montgomery_context(context)};
+  const SecureBignumScope montgomery_modulus_scope{montgomery.modulus};
+  const SecureBignumScope montgomery_factor_scope{montgomery.factor};
+  const SecureBignumScope montgomery_square_scope{montgomery.montgomery_square};
   const auto width{context.words};
   std::array<BasicBignum<Capacity>, 16> powers{};
-  powers[0].words[0] = 1;
-  powers[0].size = width;
-  powers[1] = barrett_reduce(base, context);
+  powers[0] = field_to_montgomery_ct(bignum_from_u64<Capacity>(1), montgomery);
+  powers[1] = field_to_montgomery_ct(barrett_reduce(base, context), montgomery);
   for (std::size_t index = 2; index < powers.size(); ++index) {
     powers[index] =
-        field_mod_multiply_ct(powers[index - 1], powers[1], context);
+        field_mod_multiply_ct(powers[index - 1], powers[1], montgomery);
   }
 
   const auto windows{(bignum_bit_length(context.modulus) + 3) / 4};
   auto result{powers[0]};
   for (std::size_t window = windows; window > 0; --window) {
     for (std::size_t step = 0; step < 4; ++step) {
-      result = field_square_ct(result, context);
+      result = field_square_ct(result, montgomery);
     }
 
     std::size_t digit{0};
@@ -1113,10 +1242,10 @@ bignum_mod_exp_ct(const BasicBignum<Capacity> &base,
                                            selected, width);
     }
 
-    result = field_mod_multiply_ct(result, selected, context);
+    result = field_mod_multiply_ct(result, selected, montgomery);
   }
 
-  return result;
+  return field_from_montgomery_ct(result, montgomery);
 }
 
 template <std::size_t Capacity>
