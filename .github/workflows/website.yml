@@ -29,7 +29,7 @@ jobs:
       CACHE_KEY: ccache-v2-website-coverage
     steps:
       - name: Install dependencies
-        run: dnf install --assumeyes doxygen cmake gcc-c++ graphviz git clang llvm libstdc++-static diffutils util-linux
+        run: dnf install --assumeyes doxygen cmake gcc-c++ graphviz git clang llvm libstdc++-static diffutils util-linux python3
       - uses: actions/checkout@v7
       # The primary key never matches, as it carries the run identifier, so a
       # restore always walks the fallbacks in order. A previous run of this same
