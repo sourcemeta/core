@@ -118,6 +118,12 @@ add_clitest_run_test(run_carriage_return_script 0)
 add_clitest_run_test(run_expecting_a_variable 0)
 add_clitest_run_test(run_cores 0)
 
+# The reason the operating system gives for a failure is part of what gets
+# reported, and Windows words it differently
+if(NOT WIN32)
+  add_clitest_run_test(error_copy_missing_file 1)
+endif()
+
 # Bindings injected on the command line are ordinary ones, and reach the
 # program that a script starts like any other
 add_test(NAME core.clitest.injected_environment COMMAND ${SOURCEMETA_CORE_TEST_RUNNER}
