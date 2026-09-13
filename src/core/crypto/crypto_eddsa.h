@@ -96,55 +96,6 @@ inline auto field_reduce_25519_ct(const CurveBignum &value,
   return reduced;
 }
 
-// The complete unified Edwards addition formulas in extended coordinates
-// (Hisil, Wong, Carter, and Dawson 2008), which hold for any two points,
-// including equal points and the identity, since the curve coefficient is a
-// square and d is a non-square modulo p
-inline auto edwards_point_add(const EdwardsPoint &left,
-                              const EdwardsPoint &right,
-                              const EdwardsParameters &parameters)
-    -> EdwardsPoint {
-  const auto &prime{parameters.prime};
-  const auto a{bignum_mod_multiply(left.x, right.x, prime)};
-  const auto b{bignum_mod_multiply(left.y, right.y, prime)};
-  const auto c{bignum_mod_multiply(
-      bignum_mod_multiply(parameters.coefficient_d, left.t, prime), right.t,
-      prime)};
-  const auto d{bignum_mod_multiply(left.z, right.z, prime)};
-  const auto e{bignum_mod_subtract(
-      bignum_mod_multiply(bignum_mod_add(left.x, left.y, prime),
-                          bignum_mod_add(right.x, right.y, prime), prime),
-      bignum_mod_add(a, b, prime), prime)};
-  const auto f{bignum_mod_subtract(d, c, prime)};
-  const auto g{bignum_mod_add(d, c, prime)};
-  const auto h{bignum_mod_subtract(
-      b, bignum_mod_multiply(parameters.coefficient_a, a, prime), prime)};
-  return EdwardsPoint{.x = bignum_mod_multiply(e, f, prime),
-                      .y = bignum_mod_multiply(g, h, prime),
-                      .z = bignum_mod_multiply(f, g, prime),
-                      .t = bignum_mod_multiply(e, h, prime)};
-}
-
-inline auto edwards_point_scalar_multiply(const CurveBignum &scalar,
-                                          const EdwardsPoint &point,
-                                          const EdwardsParameters &parameters)
-    -> EdwardsPoint {
-  // The identity element is (0 : 1 : 1 : 0)
-  EdwardsPoint result{.x = CurveBignum{},
-                      .y = bignum_from_u64<CURVE_BIGNUM_CAPACITY>(1),
-                      .z = bignum_from_u64<CURVE_BIGNUM_CAPACITY>(1),
-                      .t = CurveBignum{}};
-  const auto bits{bignum_bit_length(scalar)};
-  for (std::size_t index = bits; index > 0; --index) {
-    result = edwards_point_add(result, result, parameters);
-    if (bignum_get_bit(scalar, index - 1)) {
-      result = edwards_point_add(result, point, parameters);
-    }
-  }
-
-  return result;
-}
-
 inline auto edwards_point_conditional_select(const bool condition,
                                              const EdwardsPoint &when_true,
                                              const EdwardsPoint &when_false,
@@ -160,9 +111,12 @@ inline auto edwards_point_conditional_select(const bool condition,
                                          words)};
 }
 
-// The same complete addition as above evaluated over the constant-time field
-// arithmetic, for the signing path where the operands derive from the secret
-// scalar
+// The complete unified Edwards addition formulas in extended coordinates
+// (Hisil, Wong, Carter, and Dawson 2008), which hold for any two points,
+// including equal points and the identity, since the curve coefficient is a
+// square and d is a non-square modulo p. They run over the constant-time field
+// arithmetic, which signing needs for its secret operands and verification
+// reuses on its public ones
 inline auto edwards_point_add_constant_time(
     const EdwardsPoint &left, const EdwardsPoint &right,
     const EdwardsParameters &parameters,
@@ -237,15 +191,65 @@ inline auto edwards_point_scalar_multiply_constant_time(
   return result;
 }
 
-// Whether two points are equal, compared without leaving projective space by
-// cross-multiplying through the Z factors
-inline auto edwards_point_equal(const EdwardsPoint &left,
-                                const EdwardsPoint &right,
-                                const CurveBignum &prime) -> bool {
-  return bignum_compare(bignum_mod_multiply(left.x, right.z, prime),
-                        bignum_mod_multiply(right.x, left.z, prime)) == 0 &&
-         bignum_compare(bignum_mod_multiply(left.y, right.z, prime),
-                        bignum_mod_multiply(right.y, left.z, prime)) == 0;
+// The negation of a point in extended coordinates, (-X : Y : Z : -T)
+inline auto edwards_point_negate(const EdwardsPoint &point,
+                                 const CurveBarrettContext &field) noexcept
+    -> EdwardsPoint {
+  return {.x = field_subtract_ct(CurveBignum{}, point.x, field),
+          .y = point.y,
+          .z = point.z,
+          .t = field_subtract_ct(CurveBignum{}, point.t, field)};
+}
+
+// Compute [first_scalar] first_point + [second_scalar] second_point with
+// Shamir's trick, a single double-and-add over the longer scalar that adds the
+// precomputed sum whenever both scalars have a set bit. Only verification uses
+// it, where both scalars and both points are public, so the bits may steer the
+// additions
+inline auto edwards_point_double_scalar_multiply(
+    const CurveBignum &first_scalar, const EdwardsPoint &first_point,
+    const CurveBignum &second_scalar, const EdwardsPoint &second_point,
+    const EdwardsParameters &parameters) -> EdwardsPoint {
+  const auto &field{parameters.field};
+  const auto combined{edwards_point_add_constant_time(first_point, second_point,
+                                                      parameters, field)};
+  // The identity element is (0 : 1 : 1 : 0)
+  EdwardsPoint result{.x = CurveBignum{},
+                      .y = bignum_from_u64<CURVE_BIGNUM_CAPACITY>(1),
+                      .z = bignum_from_u64<CURVE_BIGNUM_CAPACITY>(1),
+                      .t = CurveBignum{}};
+  const auto first_bits{bignum_bit_length(first_scalar)};
+  const auto second_bits{bignum_bit_length(second_scalar)};
+  const auto bits{first_bits > second_bits ? first_bits : second_bits};
+  for (std::size_t index = bits; index > 0; --index) {
+    result = edwards_point_add_constant_time(result, result, parameters, field);
+    const auto first_bit{bignum_get_bit(first_scalar, index - 1)};
+    const auto second_bit{bignum_get_bit(second_scalar, index - 1)};
+    if (first_bit && second_bit) {
+      result =
+          edwards_point_add_constant_time(result, combined, parameters, field);
+    } else if (first_bit) {
+      result = edwards_point_add_constant_time(result, first_point, parameters,
+                                               field);
+    } else if (second_bit) {
+      result = edwards_point_add_constant_time(result, second_point, parameters,
+                                               field);
+    }
+  }
+
+  return result;
+}
+
+// Whether a projective point equals an affine one, whose Z coordinate is one,
+// compared without leaving projective space as X = x * Z and Y = y * Z
+inline auto edwards_point_matches_affine(const EdwardsPoint &point,
+                                         const EdwardsPoint &affine,
+                                         const CurveBarrettContext &field)
+    -> bool {
+  return field_equal_ct(
+             point.x, field_mod_multiply_ct(affine.x, point.z, field), field) &&
+         field_equal_ct(point.y,
+                        field_mod_multiply_ct(affine.y, point.z, field), field);
 }
 
 // Encode a point into the little-endian y coordinate with the low bit of x in
@@ -282,12 +286,10 @@ inline auto edwards_public_key_point(const CurveBignum &scalar,
 }
 
 // Recover an Ed25519 point from its 32-byte encoding (RFC 8032 Section 5.1.3),
-// returning no value when the encoding does not name a point on the curve
-inline auto
-edwards25519_decode_point(const std::string_view encoding,
-                          const CurveBignum &prime,
-                          const CurveBignum &coefficient_d,
-                          const CurveBignum &square_root_of_minus_one)
+// returning no value when the encoding does not name a point on the curve. The
+// recovery runs over the field arithmetic context of the parameters
+inline auto edwards25519_decode_point(const std::string_view encoding,
+                                      const EdwardsParameters &parameters)
     -> std::optional<EdwardsPoint> {
   if (encoding.size() != 32) {
     return std::nullopt;
@@ -302,53 +304,55 @@ edwards25519_decode_point(const std::string_view encoding,
   const auto y{bignum_from_bytes_little_endian(bytes)};
 
   // A y coordinate at or beyond the field prime is not a canonical encoding
+  const auto &prime{parameters.prime};
   if (bignum_compare(y, prime) >= 0) {
     return std::nullopt;
   }
 
+  const auto &field{parameters.field};
   const auto one{bignum_from_u64<CURVE_BIGNUM_CAPACITY>(1)};
-  const auto y_squared{bignum_mod_multiply(y, y, prime)};
+  const auto y_squared{field_square_ct(y, field)};
 
   // Solve x^2 = (y^2 - 1) / (d * y^2 + 1) (mod p)
-  const auto numerator{bignum_mod_subtract(y_squared, one, prime)};
-  const auto denominator{bignum_mod_add(
-      bignum_mod_multiply(coefficient_d, y_squared, prime), one, prime)};
+  const auto numerator{field_subtract_ct(y_squared, one, field)};
+  const auto denominator{field_add_ct(
+      field_mod_multiply_ct(parameters.coefficient_d, y_squared, field), one,
+      field)};
 
   // The candidate root is x = numerator * denominator^3 *
   // (numerator * denominator^7)^((p - 5) / 8) (mod p), a single powering that
   // folds in the inversion of the denominator
-  const auto denominator_squared{
-      bignum_mod_multiply(denominator, denominator, prime)};
+  const auto denominator_squared{field_square_ct(denominator, field)};
   const auto denominator_cubed{
-      bignum_mod_multiply(denominator_squared, denominator, prime)};
-  const auto denominator_seventh{bignum_mod_multiply(
-      bignum_mod_multiply(denominator_cubed, denominator_cubed, prime),
-      denominator, prime)};
+      field_mod_multiply_ct(denominator_squared, denominator, field)};
+  const auto denominator_seventh{field_mod_multiply_ct(
+      field_square_ct(denominator_cubed, field), denominator, field)};
   auto exponent{prime};
   bignum_subtract_in_place(exponent, bignum_from_u64<CURVE_BIGNUM_CAPACITY>(5));
   exponent = bignum_shift_right(exponent, 3);
-  const auto root{
-      bignum_mod_exp(bignum_mod_multiply(numerator, denominator_seventh, prime),
-                     exponent, prime)};
-  auto candidate{bignum_mod_multiply(
-      bignum_mod_multiply(numerator, denominator_cubed, prime), root, prime)};
+  const auto root{field_power_ct(
+      field_mod_multiply_ct(numerator, denominator_seventh, field), exponent,
+      field)};
+  auto candidate{field_mod_multiply_ct(
+      field_mod_multiply_ct(numerator, denominator_cubed, field), root, field)};
 
   // The candidate is correct when denominator * x^2 equals the numerator, off
   // by sqrt(-1) when it equals its negation, and otherwise no root exists
-  const auto check{bignum_mod_multiply(
-      denominator, bignum_mod_multiply(candidate, candidate, prime), prime)};
-  if (bignum_compare(check, numerator) != 0) {
-    const auto negated_numerator{
-        bignum_mod_subtract(CurveBignum{}, numerator, prime)};
-    if (bignum_compare(check, negated_numerator) != 0) {
+  const auto check{field_mod_multiply_ct(
+      denominator, field_square_ct(candidate, field), field)};
+  if (!field_equal_ct(check, numerator, field)) {
+    if (!field_equal_ct(
+            check, field_subtract_ct(CurveBignum{}, numerator, field), field)) {
       return std::nullopt;
     }
 
-    candidate = bignum_mod_multiply(candidate, square_root_of_minus_one, prime);
+    candidate = field_mod_multiply_ct(
+        candidate, parameters.square_root_of_minus_one, field);
   }
 
   // Reject the non-canonical zero root with a set sign bit, then select the
   // root whose low bit matches the encoded sign
+  bignum_normalize(candidate);
   if (bignum_is_zero(candidate) && sign_bit == 1) {
     return std::nullopt;
   }
@@ -362,7 +366,7 @@ edwards25519_decode_point(const std::string_view encoding,
   return EdwardsPoint{.x = candidate,
                       .y = y,
                       .z = one,
-                      .t = bignum_mod_multiply(candidate, y, prime)};
+                      .t = field_mod_multiply_ct(candidate, y, field)};
 }
 
 // The Edwards25519 domain parameters (RFC 8032 Section 5.1)
@@ -393,23 +397,20 @@ inline auto edwards25519_parameters() -> EdwardsParameters {
   bignum_subtract_in_place(root_exponent,
                            bignum_from_u64<CURVE_BIGNUM_CAPACITY>(1));
   root_exponent = bignum_shift_right(root_exponent, 2);
-  const auto square_root_of_minus_one{
+  parameters.square_root_of_minus_one =
       bignum_mod_exp(bignum_from_u64<CURVE_BIGNUM_CAPACITY>(2), root_exponent,
-                     parameters.prime)};
+                     parameters.prime);
+  parameters.field = barrett_context(parameters.prime);
+  parameters.field.reduce = &field_reduce_25519_ct;
+  parameters.order_field = barrett_context(parameters.order);
 
   // The base point is recovered from its canonical encoding, y = 4/5 with a
   // clear sign bit (RFC 8032 Section 5.1)
   std::string base_encoding;
   base_encoding.push_back('\x58');
   base_encoding.append(31, '\x66');
-  parameters.base = edwards25519_decode_point(base_encoding, parameters.prime,
-                                              parameters.coefficient_d,
-                                              square_root_of_minus_one)
-                        .value();
-  parameters.square_root_of_minus_one = square_root_of_minus_one;
-  parameters.field = barrett_context(parameters.prime);
-  parameters.field.reduce = &field_reduce_25519_ct;
-  parameters.order_field = barrett_context(parameters.order);
+  parameters.base =
+      edwards25519_decode_point(base_encoding, parameters).value();
   return parameters;
 }
 
@@ -431,9 +432,7 @@ inline auto edwards25519_verify(const std::string_view public_key,
   }
 
   const auto &parameters{edwards25519()};
-  const auto public_point{edwards25519_decode_point(
-      public_key, parameters.prime, parameters.coefficient_d,
-      parameters.square_root_of_minus_one)};
+  const auto public_point{edwards25519_decode_point(public_key, parameters)};
   if (!public_point.has_value()) {
     return false;
   }
@@ -441,9 +440,7 @@ inline auto edwards25519_verify(const std::string_view public_key,
   // The signature is the encoded point R followed by the little-endian scalar
   // S, which must lie below the group order
   const auto encoded_r{signature.substr(0, 32)};
-  const auto point_r{edwards25519_decode_point(
-      encoded_r, parameters.prime, parameters.coefficient_d,
-      parameters.square_root_of_minus_one)};
+  const auto point_r{edwards25519_decode_point(encoded_r, parameters)};
   if (!point_r.has_value()) {
     return false;
   }
@@ -464,14 +461,14 @@ inline auto edwards25519_verify(const std::string_view public_key,
       reinterpret_cast<const char *>(digest.data()), digest.size()})};
   bignum_reduce(scalar_k, parameters.order);
 
-  // The signature holds when [S]B = R + [k]A
-  const auto left{
-      edwards_point_scalar_multiply(scalar_s, parameters.base, parameters)};
-  const auto right{edwards_point_add(
-      point_r.value(),
-      edwards_point_scalar_multiply(scalar_k, public_point.value(), parameters),
+  // The signature holds when [S]B = R + [k]A, checked as [S]B + [k](-A) = R so
+  // that both scalar multiplications share a single pass
+  const auto combination{edwards_point_double_scalar_multiply(
+      scalar_s, parameters.base, scalar_k,
+      edwards_point_negate(public_point.value(), parameters.field),
       parameters)};
-  return edwards_point_equal(left, right, parameters.prime);
+  return edwards_point_matches_affine(combination, point_r.value(),
+                                      parameters.field);
 }
 
 // Prune the 32-byte secret scalar in place (RFC 8032 Section 5.1.5): "The
@@ -581,10 +578,10 @@ inline auto edwards25519_sign(const std::string_view secret,
 }
 
 // Recover an Ed448 point from its 57-byte encoding (RFC 8032 Section 5.2.3),
-// returning no value when the encoding does not name a point on the curve
+// returning no value when the encoding does not name a point on the curve. The
+// recovery runs over the field arithmetic context of the parameters
 inline auto edwards448_decode_point(const std::string_view encoding,
-                                    const CurveBignum &prime,
-                                    const CurveBignum &coefficient_d)
+                                    const EdwardsParameters &parameters)
     -> std::optional<EdwardsPoint> {
   if (encoding.size() != 57) {
     return std::nullopt;
@@ -599,50 +596,52 @@ inline auto edwards448_decode_point(const std::string_view encoding,
   const auto y{bignum_from_bytes_little_endian(bytes)};
 
   // A y coordinate at or beyond the field prime is not a canonical encoding
+  const auto &prime{parameters.prime};
   if (bignum_compare(y, prime) >= 0) {
     return std::nullopt;
   }
 
+  const auto &field{parameters.field};
   const auto one{bignum_from_u64<CURVE_BIGNUM_CAPACITY>(1)};
-  const auto y_squared{bignum_mod_multiply(y, y, prime)};
+  const auto y_squared{field_square_ct(y, field)};
 
   // Solve x^2 = (y^2 - 1) / (d * y^2 - 1) (mod p)
-  const auto numerator{bignum_mod_subtract(y_squared, one, prime)};
-  const auto denominator{bignum_mod_subtract(
-      bignum_mod_multiply(coefficient_d, y_squared, prime), one, prime)};
+  const auto numerator{field_subtract_ct(y_squared, one, field)};
+  const auto denominator{field_subtract_ct(
+      field_mod_multiply_ct(parameters.coefficient_d, y_squared, field), one,
+      field)};
 
   // The candidate root is x = numerator^3 * denominator *
   // (numerator^5 * denominator^3)^((p - 3) / 4) (mod p), the field having
   // p congruent to 3 modulo 4
-  const auto numerator_squared{
-      bignum_mod_multiply(numerator, numerator, prime)};
+  const auto numerator_squared{field_square_ct(numerator, field)};
   const auto numerator_cubed{
-      bignum_mod_multiply(numerator_squared, numerator, prime)};
+      field_mod_multiply_ct(numerator_squared, numerator, field)};
   const auto numerator_fifth{
-      bignum_mod_multiply(numerator_squared, numerator_cubed, prime)};
-  const auto denominator_squared{
-      bignum_mod_multiply(denominator, denominator, prime)};
+      field_mod_multiply_ct(numerator_squared, numerator_cubed, field)};
+  const auto denominator_squared{field_square_ct(denominator, field)};
   const auto denominator_cubed{
-      bignum_mod_multiply(denominator_squared, denominator, prime)};
+      field_mod_multiply_ct(denominator_squared, denominator, field)};
   auto exponent{prime};
   bignum_subtract_in_place(exponent, bignum_from_u64<CURVE_BIGNUM_CAPACITY>(3));
   exponent = bignum_shift_right(exponent, 2);
-  const auto root{bignum_mod_exp(
-      bignum_mod_multiply(numerator_fifth, denominator_cubed, prime), exponent,
-      prime)};
-  auto candidate{bignum_mod_multiply(
-      bignum_mod_multiply(numerator_cubed, denominator, prime), root, prime)};
+  const auto root{field_power_ct(
+      field_mod_multiply_ct(numerator_fifth, denominator_cubed, field),
+      exponent, field)};
+  auto candidate{field_mod_multiply_ct(
+      field_mod_multiply_ct(numerator_cubed, denominator, field), root, field)};
 
   // The candidate is correct when denominator * x^2 equals the numerator, and
   // otherwise no root exists, as the field admits a single square root
-  const auto check{bignum_mod_multiply(
-      denominator, bignum_mod_multiply(candidate, candidate, prime), prime)};
-  if (bignum_compare(check, numerator) != 0) {
+  const auto check{field_mod_multiply_ct(
+      denominator, field_square_ct(candidate, field), field)};
+  if (!field_equal_ct(check, numerator, field)) {
     return std::nullopt;
   }
 
   // Reject the non-canonical zero root with a set sign bit, then select the
   // root whose low bit matches the encoded sign
+  bignum_normalize(candidate);
   if (bignum_is_zero(candidate) && sign_bit == 1) {
     return std::nullopt;
   }
@@ -656,7 +655,7 @@ inline auto edwards448_decode_point(const std::string_view encoding,
   return EdwardsPoint{.x = candidate,
                       .y = y,
                       .z = one,
-                      .t = bignum_mod_multiply(candidate, y, prime)};
+                      .t = field_mod_multiply_ct(candidate, y, field)};
 }
 
 // The Edwards448 domain parameters (RFC 8032 Section 5.2)
@@ -678,11 +677,9 @@ inline auto edwards448_parameters() -> EdwardsParameters {
   // clang-format off
   const auto base_encoding{bignum_to_bytes(bignum_from_hex<CURVE_BIGNUM_CAPACITY>("14fa30f25b790898adc8d74e2c13bdfdc4397ce61cffd33ad7c2a0051e9c78874098a36c7373ea4b62c7c9563720768824bcb66e71463f6900"), 57)};
   // clang-format on
-  parameters.base = edwards448_decode_point(base_encoding, parameters.prime,
-                                            parameters.coefficient_d)
-                        .value();
   parameters.field = barrett_context(parameters.prime);
   parameters.order_field = barrett_context(parameters.order);
+  parameters.base = edwards448_decode_point(base_encoding, parameters).value();
   return parameters;
 }
 
@@ -704,8 +701,7 @@ inline auto edwards448_verify(const std::string_view public_key,
   }
 
   const auto &parameters{edwards448()};
-  const auto public_point{edwards448_decode_point(public_key, parameters.prime,
-                                                  parameters.coefficient_d)};
+  const auto public_point{edwards448_decode_point(public_key, parameters)};
   if (!public_point.has_value()) {
     return false;
   }
@@ -713,8 +709,7 @@ inline auto edwards448_verify(const std::string_view public_key,
   // The signature is the encoded point R followed by the little-endian scalar
   // S, which must lie below the group order
   const auto encoded_r{signature.substr(0, 57)};
-  const auto point_r{edwards448_decode_point(encoded_r, parameters.prime,
-                                             parameters.coefficient_d)};
+  const auto point_r{edwards448_decode_point(encoded_r, parameters)};
   if (!point_r.has_value()) {
     return false;
   }
@@ -737,14 +732,14 @@ inline auto edwards448_verify(const std::string_view public_key,
   auto scalar_k{bignum_from_bytes_little_endian(digest)};
   bignum_reduce(scalar_k, parameters.order);
 
-  // The signature holds when [S]B = R + [k]A
-  const auto left{
-      edwards_point_scalar_multiply(scalar_s, parameters.base, parameters)};
-  const auto right{edwards_point_add(
-      point_r.value(),
-      edwards_point_scalar_multiply(scalar_k, public_point.value(), parameters),
+  // The signature holds when [S]B = R + [k]A, checked as [S]B + [k](-A) = R so
+  // that both scalar multiplications share a single pass
+  const auto combination{edwards_point_double_scalar_multiply(
+      scalar_s, parameters.base, scalar_k,
+      edwards_point_negate(public_point.value(), parameters.field),
       parameters)};
-  return edwards_point_equal(left, right, parameters.prime);
+  return edwards_point_matches_affine(combination, point_r.value(),
+                                      parameters.field);
 }
 
 // Prune the 57-byte secret scalar in place (RFC 8032 Section 5.2.5): "The two

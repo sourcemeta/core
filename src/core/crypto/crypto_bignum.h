@@ -1000,6 +1000,64 @@ field_subtract_ct(const BasicBignum<Capacity> &left,
   return result;
 }
 
+// Whether two field elements, both reduced below the modulus, are equal,
+// comparing every word of the public width without an early exit
+template <std::size_t Capacity>
+inline auto
+field_equal_ct(const BasicBignum<Capacity> &left,
+               const BasicBignum<Capacity> &right,
+               const BasicBarrettContext<Capacity> &context) noexcept -> bool {
+  const auto *left_data{left.words.data()};
+  const auto *right_data{right.words.data()};
+  std::uint64_t difference{0};
+  for (std::size_t index = 0; index < context.words; ++index) {
+    difference |= left_data[index] ^ right_data[index];
+  }
+
+  return difference == 0;
+}
+
+// Raise a value to a public exponent over the field in fixed four-bit windows.
+// The exponent is public, so its windows index the table of powers directly and
+// skip the multiplication of a zero window, while the field multiplications
+// underneath do not depend on the value being raised
+template <std::size_t Capacity>
+inline auto
+field_power_ct(const BasicBignum<Capacity> &value,
+               const BasicBignum<Capacity> &exponent,
+               const BasicBarrettContext<Capacity> &context) noexcept
+    -> BasicBignum<Capacity> {
+  std::array<BasicBignum<Capacity>, 16> powers{};
+  powers[0].words[0] = 1;
+  powers[0].size = context.words;
+  powers[1] = barrett_reduce(value, context);
+  for (std::size_t index = 2; index < powers.size(); ++index) {
+    powers[index] =
+        field_mod_multiply_ct(powers[index - 1], powers[1], context);
+  }
+
+  auto result{powers[0]};
+  const auto windows{(bignum_bit_length(exponent) + 3) / 4};
+  for (std::size_t window = windows; window > 0; --window) {
+    for (std::size_t step = 0; step < 4; ++step) {
+      result = field_square_ct(result, context);
+    }
+
+    std::size_t digit{0};
+    for (std::size_t bit = 0; bit < 4; ++bit) {
+      digit |= static_cast<std::size_t>(
+                   bignum_get_bit(exponent, ((window - 1) * 4) + bit))
+               << bit;
+    }
+
+    if (digit != 0) {
+      result = field_mod_multiply_ct(result, powers[digit], context);
+    }
+  }
+
+  return result;
+}
+
 // Fermat inverse over the field in constant time. The exponent is the public
 // modulus minus two, so its bit pattern reveals nothing secret, and the field
 // multiplications underneath do not depend on the value being inverted. The
@@ -1011,19 +1069,7 @@ field_inverse_ct(const BasicBignum<Capacity> &value,
     -> BasicBignum<Capacity> {
   auto exponent{context.modulus};
   bignum_subtract_in_place(exponent, bignum_from_u64<Capacity>(2));
-  BasicBignum<Capacity> result;
-  result.words[0] = 1;
-  result.size = context.words;
-  const auto base{barrett_reduce(value, context)};
-  const auto exponent_bits{bignum_bit_length(exponent)};
-  for (std::size_t index = exponent_bits; index > 0; --index) {
-    result = field_square_ct(result, context);
-    if (bignum_get_bit(exponent, index - 1)) {
-      result = field_mod_multiply_ct(result, base, context);
-    }
-  }
-
-  return result;
+  return field_power_ct(value, exponent, context);
 }
 
 // Modular exponentiation for a secret exponent (the RSA private key), in
