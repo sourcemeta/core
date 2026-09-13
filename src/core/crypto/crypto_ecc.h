@@ -583,24 +583,87 @@ inline auto point_complete_add(const JacobianPoint &left,
   return {.x = x3, .y = y3, .z = z3};
 }
 
-// For the signing path, where the scalar is the secret nonce: a fixed-length
-// double-and-add-always ladder over the complete formula with a masked
-// selection, so neither the per-bit branch nor the field arithmetic underneath
-// depends on the scalar. The input point and the result are projective
+// NIST P-521 field reduction in constant time, for the signing ladder. The
+// prime is 2^521 - 1, so the bits of a product above position 521 fold back
+// onto the low 521 bits with one fixed-width addition, and the sum, at most
+// twice the prime, needs at most two masked subtractions
+inline auto field_reduce_p521_ct(const CurveBignum &value,
+                                 const CurveBarrettContext &context) noexcept
+    -> CurveBignum {
+  const auto *value_data{value.words.data()};
+  CurveBignum sum;
+  auto *sum_data{sum.words.data()};
+  std::uint64_t carry{0};
+  for (std::size_t index = 0; index < 9; ++index) {
+    const auto low{index < 8 ? value_data[index] : value_data[8] & 0x1ffULL};
+    const auto high{(value_data[index + 8] >> 9U) |
+                    (value_data[index + 9] << 55U)};
+    const auto total{static_cast<BignumDoubleWord>(low) + high + carry};
+    sum_data[index] = static_cast<std::uint64_t>(total);
+    carry = static_cast<std::uint64_t>(total >> 64U);
+  }
+
+  sum.size = 9;
+  auto reduced{bignum_conditional_subtract(sum, context.modulus, 9)};
+  reduced = bignum_conditional_subtract(reduced, context.modulus, 9);
+  reduced.size = 9;
+  return reduced;
+}
+
+// The constant-time field arithmetic context of a curve, taking the Mersenne
+// reduction for P-521 over the generic Barrett one
+inline auto curve_field_context(const EllipticCurveParameters &curve)
+    -> CurveBarrettContext {
+  auto field{barrett_context(curve.prime)};
+  if (curve.reduction == NISTPrime::P521) {
+    field.reduce = &field_reduce_p521_ct;
+  }
+
+  return field;
+}
+
+// For the signing path, where the scalar is the secret nonce: a fixed four-bit
+// window ladder over the complete formula. The window count is fixed by the
+// public order length, every window doubles four times and adds one table entry
+// taken through a masked scan over the whole table, and the complete formula
+// absorbs the identity entry of a zero window, so neither the control flow nor
+// the field arithmetic underneath depends on the scalar. The input point and
+// the result are projective
 inline auto point_scalar_multiply_constant_time(
     const CurveBignum &scalar, const JacobianPoint &point,
     const EllipticCurveParameters &curve) -> JacobianPoint {
-  const auto field{barrett_context(curve.prime)};
-  JacobianPoint result{.x = CurveBignum{},
-                       .y = bignum_from_u64<CURVE_BIGNUM_CAPACITY>(1),
-                       .z = CurveBignum{}};
-  const auto scalar_bits{bignum_bit_length(curve.order)};
-  for (std::size_t index = scalar_bits; index > 0; --index) {
-    result = point_complete_add(result, result, curve.coefficient_b, field);
-    const auto sum{
-        point_complete_add(result, point, curve.coefficient_b, field)};
-    result = point_conditional_select(bignum_get_bit_fixed(scalar, index - 1),
-                                      sum, result, field.words);
+  const auto field{curve_field_context(curve)};
+  std::array<JacobianPoint, 16> multiples{};
+  multiples[0] = JacobianPoint{.x = CurveBignum{},
+                               .y = bignum_from_u64<CURVE_BIGNUM_CAPACITY>(1),
+                               .z = CurveBignum{}};
+  multiples[1] = point;
+  for (std::size_t index = 2; index < multiples.size(); ++index) {
+    multiples[index] = point_complete_add(multiples[index - 1], point,
+                                          curve.coefficient_b, field);
+  }
+
+  auto result{multiples[0]};
+  const auto windows{(bignum_bit_length(curve.order) + 3) / 4};
+  for (std::size_t window = windows; window > 0; --window) {
+    for (std::size_t step = 0; step < 4; ++step) {
+      result = point_complete_add(result, result, curve.coefficient_b, field);
+    }
+
+    std::size_t digit{0};
+    for (std::size_t bit = 0; bit < 4; ++bit) {
+      digit |= static_cast<std::size_t>(
+                   bignum_get_bit_fixed(scalar, ((window - 1) * 4) + bit))
+               << bit;
+    }
+
+    JacobianPoint selected{};
+    for (std::size_t index = 0; index < multiples.size(); ++index) {
+      selected = point_conditional_select(digit == index, multiples[index],
+                                          selected, field.words);
+    }
+
+    result = point_complete_add(result, selected, curve.coefficient_b, field);
   }
 
   return result;
@@ -609,7 +672,7 @@ inline auto point_scalar_multiply_constant_time(
 inline auto point_affine_x_constant_time(const JacobianPoint &point,
                                          const EllipticCurveParameters &curve)
     -> CurveBignum {
-  const auto field{barrett_context(curve.prime)};
+  const auto field{curve_field_context(curve)};
   const auto z_inverse{field_inverse_ct(point.z, field)};
   auto result{field_mod_multiply_ct(point.x, z_inverse, field)};
   bignum_normalize(result);

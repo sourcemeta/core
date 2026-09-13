@@ -818,9 +818,16 @@ inline auto bignum_divide(const BasicBignum<Capacity> &numerator,
 // Precomputed constants for Barrett reduction modulo a fixed modulus. The plain
 // setup below reads a public modulus, so it need not be constant time
 template <std::size_t Capacity> struct BasicBarrettContext {
+  using Reduction = auto (*)(const BasicBignum<Capacity> &,
+                             const BasicBarrettContext &) noexcept
+      -> BasicBignum<Capacity>;
   BasicBignum<Capacity> modulus;
   std::size_t words;
   BasicBignum<Capacity> factor;
+  // A constant-time reduction of a product below the square of the modulus that
+  // a special form of the modulus allows, taken instead of the Barrett one when
+  // set
+  Reduction reduce{nullptr};
 };
 
 using BarrettContext = BasicBarrettContext<BIGNUM_CAPACITY>;
@@ -924,9 +931,10 @@ field_mod_multiply_ct(const BasicBignum<Capacity> &left,
                       const BasicBignum<Capacity> &right,
                       const BasicBarrettContext<Capacity> &context) noexcept
     -> BasicBignum<Capacity> {
-  return barrett_reduce(
-      bignum_multiply_fixed(left, right, context.words, context.words),
-      context);
+  const auto product{
+      bignum_multiply_fixed(left, right, context.words, context.words)};
+  return context.reduce == nullptr ? barrett_reduce(product, context)
+                                   : context.reduce(product, context);
 }
 
 template <std::size_t Capacity>
@@ -934,7 +942,9 @@ inline auto
 field_square_ct(const BasicBignum<Capacity> &value,
                 const BasicBarrettContext<Capacity> &context) noexcept
     -> BasicBignum<Capacity> {
-  return barrett_reduce(bignum_square_fixed(value, context.words), context);
+  const auto square{bignum_square_fixed(value, context.words)};
+  return context.reduce == nullptr ? barrett_reduce(square, context)
+                                   : context.reduce(square, context);
 }
 
 template <std::size_t Capacity>

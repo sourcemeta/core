@@ -365,7 +365,7 @@ auto ec_public_from_scalar(const EllipticCurve curve,
   // path rather than the Jacobian point_to_affine
   const auto product{point_scalar_multiply_constant_time(
       scalar_number, generator, parameters)};
-  const auto field{barrett_context(parameters.prime)};
+  const auto field{curve_field_context(parameters)};
   const auto z_inverse{field_inverse_ct(product.z, field)};
   auto coordinate_x{field_mod_multiply_ct(product.x, z_inverse, field)};
   auto coordinate_y{field_mod_multiply_ct(product.y, z_inverse, field)};

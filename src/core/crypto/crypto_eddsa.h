@@ -15,6 +15,7 @@
 #include "crypto_helpers.h"
 #include "crypto_shake256.h"
 
+#include <array>       // std::array
 #include <cstddef>     // std::size_t
 #include <cstdint>     // std::uint8_t
 #include <optional>    // std::optional, std::nullopt
@@ -37,7 +38,14 @@ struct EdwardsParameters {
   CurveBignum order;
   CurveBignum coefficient_a;
   CurveBignum coefficient_d;
+  // A square root of -1 modulo the Ed25519 prime, which recovers the second
+  // candidate root when decoding a point, and left zero for Ed448
+  CurveBignum square_root_of_minus_one;
   EdwardsPoint base;
+  // The constant-time field and group order arithmetic contexts, built with the
+  // parameters so that every ladder and signature does not rebuild them
+  CurveBarrettContext field;
+  CurveBarrettContext order_field;
 };
 
 // Interpret the bytes as a little-endian unsigned integer, the encoding EdDSA
@@ -47,6 +55,45 @@ inline auto bignum_from_bytes_little_endian(const std::string_view input)
     -> CurveBignum {
   const std::string reversed{input.rbegin(), input.rend()};
   return bignum_from_bytes<CURVE_BIGNUM_CAPACITY>(reversed);
+}
+
+// Ed25519 field reduction in constant time, for the signing ladder. The prime
+// is 2^255 - 19, so 2^256 is congruent to 38 modulo it, and the high half of a
+// product folds onto the low half scaled by 38. Two more folds absorb the carry
+// out of the top word, which the second can raise only to one and the third
+// clears, and the result, below 2^256, needs at most two masked subtractions
+inline auto field_reduce_25519_ct(const CurveBignum &value,
+                                  const CurveBarrettContext &context) noexcept
+    -> CurveBignum {
+  const auto *value_data{value.words.data()};
+  CurveBignum folded;
+  auto *folded_data{folded.words.data()};
+  std::uint64_t carry{0};
+  for (std::size_t index = 0; index < 4; ++index) {
+    const auto total{
+        static_cast<BignumDoubleWord>(value_data[index]) +
+        (static_cast<BignumDoubleWord>(value_data[index + 4]) * 38U) + carry};
+    folded_data[index] = static_cast<std::uint64_t>(total);
+    carry = static_cast<std::uint64_t>(total >> 64U);
+  }
+
+  for (std::size_t fold = 0; fold < 2; ++fold) {
+    BignumDoubleWord addend{static_cast<BignumDoubleWord>(carry) * 38U};
+    for (std::size_t index = 0; index < 4; ++index) {
+      const auto total{static_cast<BignumDoubleWord>(folded_data[index]) +
+                       addend};
+      folded_data[index] = static_cast<std::uint64_t>(total);
+      addend = total >> 64U;
+    }
+
+    carry = static_cast<std::uint64_t>(addend);
+  }
+
+  folded.size = 4;
+  auto reduced{bignum_conditional_subtract(folded, context.modulus, 4)};
+  reduced = bignum_conditional_subtract(reduced, context.modulus, 4);
+  reduced.size = 4;
+  return reduced;
 }
 
 // The complete unified Edwards addition formulas in extended coordinates
@@ -140,25 +187,51 @@ inline auto edwards_point_add_constant_time(
                       .t = field_mod_multiply_ct(e, h, field)};
 }
 
-// For the signing path, where the scalar is secret: a fixed-length
-// double-and-add-always ladder with a masked selection over the complete
-// Edwards formulas evaluated in constant time, so neither the per-bit branch
-// nor the field arithmetic underneath depends on the scalar
+// For the signing path, where the scalar is secret: a fixed four-bit window
+// ladder over the complete Edwards formulas evaluated in constant time. The
+// window count is fixed by the public field size, every window doubles four
+// times and adds one table entry taken through a masked scan over the whole
+// table, and the complete formulas absorb the identity entry of a zero window,
+// so neither the control flow nor the field arithmetic depends on the scalar
 inline auto edwards_point_scalar_multiply_constant_time(
     const CurveBignum &scalar, const EdwardsPoint &point,
     const EdwardsParameters &parameters) -> EdwardsPoint {
-  const auto field{barrett_context(parameters.prime)};
-  EdwardsPoint result{.x = CurveBignum{},
-                      .y = bignum_from_u64<CURVE_BIGNUM_CAPACITY>(1),
-                      .z = bignum_from_u64<CURVE_BIGNUM_CAPACITY>(1),
-                      .t = CurveBignum{}};
-  const auto scalar_bits{bignum_bit_length(parameters.prime)};
-  for (std::size_t index = scalar_bits; index > 0; --index) {
-    result = edwards_point_add_constant_time(result, result, parameters, field);
-    const auto sum{
-        edwards_point_add_constant_time(result, point, parameters, field)};
-    result = edwards_point_conditional_select(
-        bignum_get_bit_fixed(scalar, index - 1), sum, result, field.words);
+  const auto &field{parameters.field};
+  std::array<EdwardsPoint, 16> multiples{};
+  // The identity element is (0 : 1 : 1 : 0)
+  multiples[0] = EdwardsPoint{.x = CurveBignum{},
+                              .y = bignum_from_u64<CURVE_BIGNUM_CAPACITY>(1),
+                              .z = bignum_from_u64<CURVE_BIGNUM_CAPACITY>(1),
+                              .t = CurveBignum{}};
+  multiples[1] = point;
+  for (std::size_t index = 2; index < multiples.size(); ++index) {
+    multiples[index] = edwards_point_add_constant_time(
+        multiples[index - 1], point, parameters, field);
+  }
+
+  auto result{multiples[0]};
+  const auto windows{(bignum_bit_length(parameters.prime) + 3) / 4};
+  for (std::size_t window = windows; window > 0; --window) {
+    for (std::size_t step = 0; step < 4; ++step) {
+      result =
+          edwards_point_add_constant_time(result, result, parameters, field);
+    }
+
+    std::size_t digit{0};
+    for (std::size_t bit = 0; bit < 4; ++bit) {
+      digit |= static_cast<std::size_t>(
+                   bignum_get_bit_fixed(scalar, ((window - 1) * 4) + bit))
+               << bit;
+    }
+
+    EdwardsPoint selected{};
+    for (std::size_t index = 0; index < multiples.size(); ++index) {
+      selected = edwards_point_conditional_select(
+          digit == index, multiples[index], selected, field.words);
+    }
+
+    result =
+        edwards_point_add_constant_time(result, selected, parameters, field);
   }
 
   return result;
@@ -178,11 +251,11 @@ inline auto edwards_point_equal(const EdwardsPoint &left,
 // Encode a point into the little-endian y coordinate with the low bit of x in
 // the final bit (RFC 8032 Section 5.1.2), the inverse of the point decoding
 inline auto edwards_point_encode(const EdwardsPoint &point,
-                                 const CurveBignum &prime,
+                                 const EdwardsParameters &parameters,
                                  const std::size_t length) -> std::string {
   // Only the signing path encodes points, and its projective z derives from the
   // secret scalar, so the coordinate recovery is taken in constant time
-  const auto field{barrett_context(prime)};
+  const auto &field{parameters.field};
   const auto z_inverse{field_inverse_ct(point.z, field)};
   const auto x{field_mod_multiply_ct(point.x, z_inverse, field)};
   const auto y{field_mod_multiply_ct(point.y, z_inverse, field)};
@@ -205,7 +278,7 @@ inline auto edwards_public_key_point(const CurveBignum &scalar,
                                      const std::size_t length) -> std::string {
   return edwards_point_encode(edwards_point_scalar_multiply_constant_time(
                                   scalar, parameters.base, parameters),
-                              parameters.prime, length);
+                              parameters, length);
 }
 
 // Recover an Ed25519 point from its 32-byte encoding (RFC 8032 Section 5.1.3),
@@ -293,7 +366,7 @@ edwards25519_decode_point(const std::string_view encoding,
 }
 
 // The Edwards25519 domain parameters (RFC 8032 Section 5.1)
-inline auto edwards25519() -> EdwardsParameters {
+inline auto edwards25519_parameters() -> EdwardsParameters {
   EdwardsParameters parameters;
   parameters.prime = bignum_from_hex<CURVE_BIGNUM_CAPACITY>(
       "7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed");
@@ -333,7 +406,19 @@ inline auto edwards25519() -> EdwardsParameters {
                                               parameters.coefficient_d,
                                               square_root_of_minus_one)
                         .value();
+  parameters.square_root_of_minus_one = square_root_of_minus_one;
+  parameters.field = barrett_context(parameters.prime);
+  parameters.field.reduce = &field_reduce_25519_ct;
+  parameters.order_field = barrett_context(parameters.order);
   return parameters;
+}
+
+// The Edwards25519 domain parameters derived once and shared, as every signing
+// and verification would otherwise repeat the modular inverse and the
+// exponentiations the derivation spends
+inline auto edwards25519() -> const EdwardsParameters & {
+  static const EdwardsParameters PARAMETERS{edwards25519_parameters()};
+  return PARAMETERS;
 }
 
 // Verify an Ed25519 signature over a message (RFC 8032 Section 5.1.7), given
@@ -345,18 +430,10 @@ inline auto edwards25519_verify(const std::string_view public_key,
     return false;
   }
 
-  const auto parameters{edwards25519()};
-  auto square_root_exponent{parameters.prime};
-  bignum_subtract_in_place(square_root_exponent,
-                           bignum_from_u64<CURVE_BIGNUM_CAPACITY>(1));
-  square_root_exponent = bignum_shift_right(square_root_exponent, 2);
-  const auto square_root_of_minus_one{
-      bignum_mod_exp(bignum_from_u64<CURVE_BIGNUM_CAPACITY>(2),
-                     square_root_exponent, parameters.prime)};
-
+  const auto &parameters{edwards25519()};
   const auto public_point{edwards25519_decode_point(
       public_key, parameters.prime, parameters.coefficient_d,
-      square_root_of_minus_one)};
+      parameters.square_root_of_minus_one)};
   if (!public_point.has_value()) {
     return false;
   }
@@ -364,9 +441,9 @@ inline auto edwards25519_verify(const std::string_view public_key,
   // The signature is the encoded point R followed by the little-endian scalar
   // S, which must lie below the group order
   const auto encoded_r{signature.substr(0, 32)};
-  const auto point_r{edwards25519_decode_point(encoded_r, parameters.prime,
-                                               parameters.coefficient_d,
-                                               square_root_of_minus_one)};
+  const auto point_r{edwards25519_decode_point(
+      encoded_r, parameters.prime, parameters.coefficient_d,
+      parameters.square_root_of_minus_one)};
   if (!point_r.has_value()) {
     return false;
   }
@@ -417,7 +494,7 @@ inline auto edwards25519_public_key(const std::string_view secret)
     return std::nullopt;
   }
 
-  const auto parameters{edwards25519()};
+  const auto &parameters{edwards25519()};
   auto hashed{sha512_digest(secret)};
   const SecureBufferScope hashed_scope{hashed.data(), hashed.size()};
   const std::string_view digest{reinterpret_cast<const char *>(hashed.data()),
@@ -437,7 +514,7 @@ inline auto edwards25519_sign(const std::string_view secret,
     return std::nullopt;
   }
 
-  const auto parameters{edwards25519()};
+  const auto &parameters{edwards25519()};
   // The key derivation hash carries both the secret scalar and the nonce
   // prefix, so it and everything derived from it below is wiped before
   // returning
@@ -471,7 +548,7 @@ inline auto edwards25519_sign(const std::string_view secret,
   const auto encoded_r{
       edwards_point_encode(edwards_point_scalar_multiply_constant_time(
                                scalar_r, parameters.base, parameters),
-                           parameters.prime, 32)};
+                           parameters, 32)};
 
   // k = SHA-512(R || A || M) reduced, then S = (r + k * a) mod L. The k * a
   // product carries the secret scalar, so it is wiped; r, k, and the resulting
@@ -488,7 +565,7 @@ inline auto edwards25519_sign(const std::string_view secret,
   // nonce, so both run over the constant-time field arithmetic modulo the
   // order; k is public and r, k, and the resulting S are the public signature
   // material
-  const auto order_field{barrett_context(parameters.order)};
+  const auto &order_field{parameters.order_field};
   auto scalar_a_reduced{barrett_reduce(scalar_a, order_field)};
   const SecureBignumScope scalar_a_reduced_scope{scalar_a_reduced};
   auto challenge_product{
@@ -583,7 +660,7 @@ inline auto edwards448_decode_point(const std::string_view encoding,
 }
 
 // The Edwards448 domain parameters (RFC 8032 Section 5.2)
-inline auto edwards448() -> EdwardsParameters {
+inline auto edwards448_parameters() -> EdwardsParameters {
   EdwardsParameters parameters;
   // clang-format off
   parameters.prime = bignum_from_hex<CURVE_BIGNUM_CAPACITY>("fffffffffffffffffffffffffffffffffffffffffffffffffffffffeffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
@@ -604,7 +681,17 @@ inline auto edwards448() -> EdwardsParameters {
   parameters.base = edwards448_decode_point(base_encoding, parameters.prime,
                                             parameters.coefficient_d)
                         .value();
+  parameters.field = barrett_context(parameters.prime);
+  parameters.order_field = barrett_context(parameters.order);
   return parameters;
+}
+
+// The Edwards448 domain parameters derived once and shared, as every signing
+// and verification would otherwise repeat the exponentiation that decoding the
+// base point spends
+inline auto edwards448() -> const EdwardsParameters & {
+  static const EdwardsParameters PARAMETERS{edwards448_parameters()};
+  return PARAMETERS;
 }
 
 // Verify an Ed448 signature over a message (RFC 8032 Section 5.2.7), given the
@@ -616,7 +703,7 @@ inline auto edwards448_verify(const std::string_view public_key,
     return false;
   }
 
-  const auto parameters{edwards448()};
+  const auto &parameters{edwards448()};
   const auto public_point{edwards448_decode_point(public_key, parameters.prime,
                                                   parameters.coefficient_d)};
   if (!public_point.has_value()) {
@@ -681,7 +768,7 @@ inline auto edwards448_public_key(const std::string_view secret)
     return std::nullopt;
   }
 
-  const auto parameters{edwards448()};
+  const auto &parameters{edwards448()};
   auto digest{shake256(secret, 114)};
   const SecureStringScope digest_scope{digest};
   std::string scalar_bytes{digest.substr(0, 57)};
@@ -699,7 +786,7 @@ inline auto edwards448_sign(const std::string_view secret,
     return std::nullopt;
   }
 
-  const auto parameters{edwards448()};
+  const auto &parameters{edwards448()};
   // The key derivation hash carries both the secret scalar and the nonce
   // prefix, so it and everything derived from it below is wiped before
   // returning
@@ -734,7 +821,7 @@ inline auto edwards448_sign(const std::string_view secret,
   const auto encoded_r{
       edwards_point_encode(edwards_point_scalar_multiply_constant_time(
                                scalar_r, parameters.base, parameters),
-                           parameters.prime, 57)};
+                           parameters, 57)};
 
   // k = SHAKE256(dom4 || R || A || M) reduced, then S = (r + k * a) mod L. The
   // k * a product carries the secret scalar, so it is wiped; r, k, and the
@@ -750,7 +837,7 @@ inline auto edwards448_sign(const std::string_view secret,
   // nonce, so both run over the constant-time field arithmetic modulo the
   // order; k is public and r, k, and the resulting S are the public signature
   // material
-  const auto order_field{barrett_context(parameters.order)};
+  const auto &order_field{parameters.order_field};
   auto scalar_a_reduced{barrett_reduce(scalar_a, order_field)};
   const SecureBignumScope scalar_a_reduced_scope{scalar_a_reduced};
   auto challenge_product{
