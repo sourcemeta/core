@@ -68,6 +68,17 @@ CTEST_PARALLEL_LEVEL="${CTEST_PARALLEL_LEVEL:-$JOBS}"
 export CMAKE_BUILD_PARALLEL_LEVEL
 export CTEST_PARALLEL_LEVEL
 
+# Counters are kept in the profile of each program as they change, rather than
+# written out once it exits, so that a program that dies on a fatal signal, like
+# the ones exercising the crash handler, still reports what it ran. The profile
+# file name asks for it, which is all that Apple platforms need, while elsewhere
+# the compiler has to arrange for it too
+PROFILE_FLAGS="-fprofile-instr-generate -fcoverage-mapping"
+if [ "$(uname)" != "Darwin" ]
+then
+  PROFILE_FLAGS="$PROFILE_FLAGS -fprofile-continuous"
+fi
+
 # Instrumentation is injected through the standard CMake flag variables so that
 # the project build system does not need to know about coverage at all. Static
 # linking keeps every library under measurement inside the test binaries. The
@@ -79,8 +90,8 @@ cmake -S "$SOURCE_DIRECTORY" -B "$BUILD_DIRECTORY" \
   -DSOURCEMETA_CORE_TESTS:BOOL=ON \
   -DSOURCEMETA_CORE_DOCS:BOOL=ON \
   -DBUILD_SHARED_LIBS:BOOL=OFF \
-  -DCMAKE_C_FLAGS:STRING="-fprofile-instr-generate -fcoverage-mapping" \
-  -DCMAKE_CXX_FLAGS:STRING="-fprofile-instr-generate -fcoverage-mapping" \
+  -DCMAKE_C_FLAGS:STRING="$PROFILE_FLAGS" \
+  -DCMAKE_CXX_FLAGS:STRING="$PROFILE_FLAGS" \
   -DCMAKE_EXE_LINKER_FLAGS:STRING="-fprofile-instr-generate" \
   -DCMAKE_SHARED_LINKER_FLAGS:STRING="-fprofile-instr-generate"
 
@@ -93,7 +104,7 @@ mkdir -p "$PROFILE_DIRECTORY"
 # The packaging tests drive a separate build of a consuming project, which
 # carries no instrumentation and contributes no coverage, and which expects an
 # installation that this script has no reason to produce
-LLVM_PROFILE_FILE="$PROFILE_DIRECTORY/%p.profraw" \
+LLVM_PROFILE_FILE="$PROFILE_DIRECTORY/%c%p.profraw" \
   ctest --test-dir "$BUILD_DIRECTORY" --build-config Debug \
     --output-on-failure --exclude-regex find_package
 
