@@ -846,3 +846,10 @@ TEST(make_round_trips_the_claims_parameter_capability) {
   EXPECT_TRUE(metadata.has_value());
   EXPECT_TRUE(metadata.value().supports_claims_parameter());
 }
+
+TEST(from_exposes_the_document) {
+  const auto metadata{sourcemeta::core::OIDCProviderMetadata::from(
+      sourcemeta::core::JSON{VALID_PROVIDER_DOCUMENT}, "https://example.com")};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata.value().data(), VALID_PROVIDER_DOCUMENT);
+}

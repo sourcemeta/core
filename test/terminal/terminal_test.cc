@@ -311,3 +311,20 @@ TEST(composition_with_formatting) {
   const std::string text_disabled{"Status: " + plain + " [exit code: 1]"};
   EXPECT_EQ(text_disabled, "Status: FAILED [exit code: 1]");
 }
+
+TEST(style_bitwise_not_and_xor_at_runtime) {
+  auto none{sourcemeta::core::TerminalStyle::None};
+  auto bold{sourcemeta::core::TerminalStyle::Bold};
+  auto bold_cyan{sourcemeta::core::TerminalStyle::Bold |
+                 sourcemeta::core::TerminalStyle::Cyan};
+
+  EXPECT_EQ(~(~none), sourcemeta::core::TerminalStyle::None);
+  EXPECT_EQ(~(~bold), sourcemeta::core::TerminalStyle::Bold);
+  EXPECT_EQ(~(~bold_cyan), sourcemeta::core::TerminalStyle::Bold |
+                               sourcemeta::core::TerminalStyle::Cyan);
+
+  EXPECT_EQ(none ^ none, sourcemeta::core::TerminalStyle::None);
+  EXPECT_EQ(bold ^ bold, sourcemeta::core::TerminalStyle::None);
+  EXPECT_EQ(bold_cyan ^ bold, sourcemeta::core::TerminalStyle::Cyan);
+  EXPECT_EQ(bold ^ none, sourcemeta::core::TerminalStyle::Bold);
+}

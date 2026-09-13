@@ -5,6 +5,7 @@
 #include <optional>    // std::optional
 #include <string>      // std::string
 #include <string_view> // std::string_view
+#include <utility>     // std::move
 
 // The message signed throughout, along with keys and known-answer signatures
 // generated with OpenSSL over that message using each scheme
@@ -917,4 +918,27 @@ TEST(make_private_key_rejects_a_negative_modulus) {
 TEST(make_private_key_rejects_trailing_bytes_after_the_private_key) {
   EXPECT_FALSE(
       sourcemeta::core::make_private_key(TRAILING_BYTES_KEY).has_value());
+}
+
+TEST(private_key_move_assignment_takes_the_other_key) {
+  auto key{sourcemeta::core::make_private_key(RSA_PRIVATE_KEY).value()};
+  auto other{sourcemeta::core::make_edwards_private_key(
+                 sourcemeta::core::EdwardsCurve::Ed25519,
+                 sourcemeta::core::hex_to_bytes(ED25519_SEED_HEX).value())
+                 .value()};
+  key = std::move(other);
+  EXPECT_TRUE(key.type() == sourcemeta::core::PrivateKey::Type::Edwards);
+}
+
+TEST(public_key_move_assignment_takes_the_other_key) {
+  const auto rsa{sourcemeta::core::make_private_key(RSA_PRIVATE_KEY)};
+  EXPECT_TRUE(rsa.has_value());
+  const auto edwards{sourcemeta::core::make_edwards_private_key(
+      sourcemeta::core::EdwardsCurve::Ed25519,
+      sourcemeta::core::hex_to_bytes(ED25519_SEED_HEX).value())};
+  EXPECT_TRUE(edwards.has_value());
+  auto key{sourcemeta::core::derive_public_key(rsa.value()).value()};
+  auto other{sourcemeta::core::derive_public_key(edwards.value()).value()};
+  key = std::move(other);
+  EXPECT_TRUE(key.type() == sourcemeta::core::PublicKey::Type::Edwards);
 }

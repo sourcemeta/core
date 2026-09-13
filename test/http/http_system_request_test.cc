@@ -3,6 +3,7 @@
 #include <sourcemeta/core/test.h>
 #include <sourcemeta/core/time.h>
 
+#include <chrono>      // std::chrono::milliseconds
 #include <string>      // std::string
 #include <string_view> // std::string_view
 #include <utility>     // std::pair
@@ -439,4 +440,28 @@ TEST(sign_aws_sigv4_wiping_storage_header_signs_identically) {
 
   EXPECT_EQ(plain.header("Authorization").value(),
             wiping.header("Authorization").value());
+}
+
+TEST(setters_return_the_request) {
+  sourcemeta::core::HTTPSystemRequest request{"https://example.com"};
+  EXPECT_TRUE(&request.method(sourcemeta::core::HTTPMethod::POST) == &request);
+  EXPECT_TRUE(&request.follow_redirects(false) == &request);
+  EXPECT_TRUE(&request.maximum_redirects(5) == &request);
+  EXPECT_TRUE(&request.timeout(std::chrono::milliseconds{1000}) == &request);
+  EXPECT_TRUE(&request.connect_timeout(std::chrono::milliseconds{500}) ==
+              &request);
+  EXPECT_TRUE(&request.maximum_response_size(1024) == &request);
+  EXPECT_TRUE(request.headers().empty());
+}
+
+TEST(backend_error_exposes_the_search) {
+  const sourcemeta::core::HTTPSystemBackendError error{
+      "Could not find the system cURL library",
+      "SOURCEMETA_CORE_CURL_SO",
+      {"libcurl.so.4", "libcurl.so"}};
+  EXPECT_STREQ(error.what(), "Could not find the system cURL library");
+  EXPECT_EQ(error.variable(), "SOURCEMETA_CORE_CURL_SO");
+  EXPECT_EQ(error.paths().size(), 2);
+  EXPECT_EQ(error.paths().at(0), "libcurl.so.4");
+  EXPECT_EQ(error.paths().at(1), "libcurl.so");
 }

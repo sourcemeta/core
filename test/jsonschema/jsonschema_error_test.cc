@@ -41,3 +41,43 @@ TEST(resolution_error_throw) {
   EXPECT_EQ(std::string{exception.what()}, "My error");
   EXPECT_EQ(exception.identifier(), "https://sourcemeta.com/test");
 }
+
+TEST(reference_error_throw) {
+  static_assert(
+      std::is_base_of_v<std::exception, sourcemeta::core::SchemaReferenceError>,
+      "Must subclass std::exception");
+  try {
+    throw sourcemeta::core::SchemaReferenceError(
+        "https://sourcemeta.com/test",
+        sourcemeta::core::Pointer{"properties", "foo", "$ref"}, "My error");
+  } catch (const sourcemeta::core::SchemaReferenceError &error) {
+    EXPECT_STREQ(error.what(), "My error");
+    EXPECT_EQ(error.identifier(), "https://sourcemeta.com/test");
+    EXPECT_EQ(sourcemeta::core::to_string(error.location()),
+              "/properties/foo/$ref");
+  }
+}
+
+TEST(unknown_dialect_error_throw) {
+  static_assert(std::is_base_of_v<std::exception,
+                                  sourcemeta::core::SchemaUnknownDialectError>,
+                "Must subclass std::exception");
+  try {
+    throw sourcemeta::core::SchemaUnknownDialectError();
+  } catch (const sourcemeta::core::SchemaUnknownDialectError &error) {
+    EXPECT_STREQ(error.what(), "Could not determine the dialect of the schema");
+  }
+}
+
+TEST(reference_object_resource_error_throw) {
+  static_assert(
+      std::is_base_of_v<std::exception,
+                        sourcemeta::core::SchemaReferenceObjectResourceError>,
+      "Must subclass std::exception");
+  try {
+    throw sourcemeta::core::SchemaReferenceObjectResourceError(
+        "https://sourcemeta.com/test");
+  } catch (const sourcemeta::core::SchemaReferenceObjectResourceError &error) {
+    EXPECT_EQ(error.identifier(), "https://sourcemeta.com/test");
+  }
+}

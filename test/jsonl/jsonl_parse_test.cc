@@ -307,3 +307,14 @@ TEST(example_2) {
   EXPECT_TRUE(result.at(1).at("wins").at(1).is_array());
   EXPECT_TRUE(result.at(3).at("wins").at(0).is_array());
 }
+
+TEST(iterator_member_access) {
+  std::istringstream stream{"{\"foo\":1}\n{\"foo\":2}"};
+  sourcemeta::core::JSONL parser{stream};
+  auto iterator{parser.begin()};
+  EXPECT_TRUE(iterator->is_object());
+  EXPECT_EQ(iterator->at("foo").to_integer(), 1);
+  ++iterator;
+  EXPECT_TRUE(iterator->is_object());
+  EXPECT_EQ(iterator->at("foo").to_integer(), 2);
+}

@@ -485,3 +485,21 @@ TEST(jwk_from_octets_matches_parsed_oct_key) {
       sourcemeta::core::JWK::from_octets("0123456789abcdef0123456789abcdef")};
   EXPECT_EQ(key.secret(), parsed.value().secret());
 }
+
+TEST(move_assignment_takes_the_other_key) {
+  auto key{sourcemeta::core::JWK::from(
+               sourcemeta::core::parse_json(
+                   R"({ "kty": "RSA", "n": ")" JOSE_TEST_RSA_MODULUS
+                   R"(", "e": "AQAB", "kid": "key-1" })"))
+               .value()};
+  auto other{sourcemeta::core::JWK::from(sourcemeta::core::parse_json(R"({
+                 "kty": "EC", "crv": "P-256",
+                 "x": "MKBCTNIcKUSDii11ySs3526iDZ8AiTo7Tu6KPAqv7D4",
+                 "y": "4Etl6SRW2YiLUrN5vfvVHuhp7x8PxltmWWlbbM4IFyM",
+                 "kid": "key-2" })"))
+                 .value()};
+  key = std::move(other);
+  EXPECT_EQ(key.type(), sourcemeta::core::JWK::Type::EllipticCurve);
+  EXPECT_TRUE(key.key_id().has_value());
+  EXPECT_EQ(key.key_id().value(), "key-2");
+}

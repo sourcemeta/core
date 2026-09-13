@@ -100,3 +100,28 @@ TEST(introspection_response_reads_a_dpop_token_type) {
   const sourcemeta::core::OAuthIntrospectionResponse response{document};
   EXPECT_EQ(response.token_type().value(), "DPoP");
 }
+
+TEST(introspection_response_reads_the_identifier_and_not_before) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "active": true, "jti": "e9a1f0c2", "nbf": 1419350238
+  })JSON")};
+  const sourcemeta::core::OAuthIntrospectionResponse response{document};
+  EXPECT_EQ(response.jti().value(), "e9a1f0c2");
+  EXPECT_EQ(response.not_before().value(), std::chrono::seconds{1419350238});
+}
+
+TEST(introspection_response_absent_identifier_and_not_before_are_empty) {
+  const auto document{
+      sourcemeta::core::parse_json(R"JSON({ "active": true })JSON")};
+  const sourcemeta::core::OAuthIntrospectionResponse response{document};
+  EXPECT_FALSE(response.jti().has_value());
+  EXPECT_FALSE(response.not_before().has_value());
+}
+
+TEST(introspection_response_exposes_the_document) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "active": true, "aud": "https://protected.example.net/resource"
+  })JSON")};
+  const sourcemeta::core::OAuthIntrospectionResponse response{document};
+  EXPECT_EQ(response.data(), document);
+}

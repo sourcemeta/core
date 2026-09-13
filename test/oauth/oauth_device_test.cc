@@ -261,3 +261,12 @@ TEST(device_authorization_response_defaults_a_negative_interval) {
   const sourcemeta::core::OAuthDeviceAuthorizationResponse response{document};
   EXPECT_EQ(response.interval(), std::chrono::seconds{5});
 }
+
+TEST(device_authorization_response_exposes_the_document) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "device_code": "GmRh", "user_code": "WDJB-MJHT",
+    "verification_uri": "https://example.com/device", "expires_in": 1800
+  })JSON")};
+  const sourcemeta::core::OAuthDeviceAuthorizationResponse response{document};
+  EXPECT_EQ(response.data(), document);
+}

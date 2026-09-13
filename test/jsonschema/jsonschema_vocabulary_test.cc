@@ -829,3 +829,50 @@ TEST(core_must_be_declared) {
     EXPECT_STREQ(error.what(), "The core vocabulary must always be present");
   }
 }
+
+TEST(contains_custom_vocabulary_by_uri) {
+  sourcemeta::core::SchemaVocabularies vocabularies;
+  vocabularies.insert("https://example.com/required-vocab", true);
+  vocabularies.insert("https://example.com/optional-vocab", false);
+  const sourcemeta::core::JSON::String required{
+      "https://example.com/required-vocab"};
+  const sourcemeta::core::JSON::String optional{
+      "https://example.com/optional-vocab"};
+  const sourcemeta::core::JSON::String missing{
+      "https://example.com/missing-vocab"};
+  EXPECT_TRUE(vocabularies.contains(required));
+  EXPECT_TRUE(vocabularies.contains(optional));
+  EXPECT_FALSE(vocabularies.contains(missing));
+}
+
+TEST(get_custom_vocabulary_by_uri) {
+  sourcemeta::core::SchemaVocabularies vocabularies;
+  vocabularies.insert("https://example.com/required-vocab", true);
+  vocabularies.insert("https://example.com/optional-vocab", false);
+  const sourcemeta::core::JSON::String required{
+      "https://example.com/required-vocab"};
+  const sourcemeta::core::JSON::String optional{
+      "https://example.com/optional-vocab"};
+  const sourcemeta::core::JSON::String missing{
+      "https://example.com/missing-vocab"};
+  EXPECT_TRUE(vocabularies.get(required).has_value());
+  EXPECT_TRUE(vocabularies.get(required).value());
+  EXPECT_TRUE(vocabularies.get(optional).has_value());
+  EXPECT_FALSE(vocabularies.get(optional).value());
+  EXPECT_FALSE(vocabularies.get(missing).has_value());
+}
+
+TEST(base_dialect_to_string) {
+  EXPECT_EQ(std::format(
+                "{}", sourcemeta::core::SchemaBaseDialect::JSON_SCHEMA_2020_12),
+            "https://json-schema.org/draft/2020-12/schema");
+  EXPECT_EQ(std::format(
+                "{}", sourcemeta::core::SchemaBaseDialect::JSON_SCHEMA_DRAFT_4),
+            "http://json-schema.org/draft-04/schema#");
+}
+
+TEST(base_dialect_stream) {
+  std::ostringstream stream;
+  stream << sourcemeta::core::SchemaBaseDialect::JSON_SCHEMA_DRAFT_7;
+  EXPECT_EQ(stream.str(), "http://json-schema.org/draft-07/schema#");
+}

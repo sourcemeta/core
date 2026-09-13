@@ -4,6 +4,7 @@
 #include <algorithm>    // std::remove
 #include <filesystem>   // std::filesystem
 #include <fstream>      // std::ofstream
+#include <iostream>     // std::cin
 #include <sstream>      // std::istringstream
 #include <string>       // std::string
 #include <system_error> // std::error_code
@@ -133,3 +134,12 @@ TEST_F(IOReadFileToStringTest, fifo) {
   EXPECT_EQ(contents, "piped payload\nsecond line\n");
 }
 #endif
+
+TEST(read_stdin_drains_the_standard_input) {
+  std::istringstream stream{"line one\nline two"};
+  auto *const original{std::cin.rdbuf(stream.rdbuf())};
+  const auto result{sourcemeta::core::read_stdin()};
+  std::cin.rdbuf(original);
+  std::cin.clear();
+  EXPECT_EQ(result, "line one\nline two");
+}

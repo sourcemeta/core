@@ -597,3 +597,28 @@ TEST(out_of_range_message) {
   const sourcemeta::core::NumericOutOfRangeError error;
   EXPECT_STREQ(error.what(), "Numeric value is out of range");
 }
+
+TEST(is_within_at_runtime) {
+  int lower{0};
+  int upper{10};
+  int below{-1};
+  int above{11};
+
+  EXPECT_TRUE(
+      sourcemeta::core::is_within(lower, std::int64_t{0}, std::int64_t{10}));
+  EXPECT_TRUE(
+      sourcemeta::core::is_within(upper, std::int64_t{0}, std::int64_t{10}));
+  EXPECT_FALSE(
+      sourcemeta::core::is_within(below, std::int64_t{0}, std::int64_t{10}));
+  EXPECT_FALSE(
+      sourcemeta::core::is_within(above, std::int64_t{0}, std::int64_t{10}));
+
+  EXPECT_TRUE(
+      sourcemeta::core::is_within(lower, std::uint64_t{0}, std::uint64_t{10}));
+  EXPECT_TRUE(
+      sourcemeta::core::is_within(upper, std::uint64_t{0}, std::uint64_t{10}));
+  EXPECT_FALSE(
+      sourcemeta::core::is_within(below, std::uint64_t{0}, std::uint64_t{10}));
+  EXPECT_FALSE(
+      sourcemeta::core::is_within(above, std::uint64_t{0}, std::uint64_t{10}));
+}
