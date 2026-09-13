@@ -86,6 +86,8 @@ GZIP_Decompress_Stream_Default_Level_ISO_Language_Set_3_Locations(
     result.resize(contents.size());
     decompressed.read(result.data(),
                       static_cast<std::streamsize>(contents.size()));
+    // Reaching the end of the stream validates the member trailer
+    benchmark::DoNotOptimize(decompressed.peek());
     benchmark::DoNotOptimize(result);
   }
 }
