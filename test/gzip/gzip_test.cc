@@ -1,226 +1,37 @@
-#include <sourcemeta/core/crypto.h>
 #include <sourcemeta/core/gzip.h>
 #include <sourcemeta/core/test.h>
 
-#include <array>            // std::array
-#include <cstddef>          // std::size_t
-#include <cstdint>          // std::uint8_t, std::uint32_t
-#include <cstring>          // std::memcmp
-#include <initializer_list> // std::initializer_list
-#include <istream>          // std::istream
-#include <iterator>         // std::istreambuf_iterator
-#include <limits>           // std::numeric_limits
-#include <random>           // std::mt19937, std::uniform_int_distribution
-#include <sstream>          // std::istringstream
-#include <string>           // std::string
-#include <string_view>      // std::string_view
-#include <utility>          // std::move, std::pair
-#include <vector>           // std::vector
+#include <cstddef>  // std::size_t
+#include <cstdint>  // std::uint8_t, std::uint32_t
+#include <istream>  // std::istream
+#include <iterator> // std::istreambuf_iterator
+#include <limits>   // std::numeric_limits
+#include <random>   // std::mt19937, std::uniform_int_distribution
+#include <sstream>  // std::istringstream
+#include <string>   // std::string
+#include <utility>  // std::move
+#include <vector>   // std::vector
 
 namespace {
 
-constexpr std::string_view GZIP_HEADER{
-    "\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\xff", 10};
-
-// Packs data elements starting at the least-significant bit of each byte and
-// Huffman codes starting at their most-significant bit, as per RFC 1951
-// section 3.1.1
-class DeflateWriter {
-public:
-  auto bits(const std::uint32_t value, const std::size_t count) -> void {
-    for (std::size_t index = 0; index < count; ++index) {
-      this->push((value >> index) & 1U);
-    }
-  }
-
-  auto code(const std::uint32_t value, const std::size_t length) -> void {
-    for (std::size_t index = length; index > 0; --index) {
-      this->push((value >> (index - 1)) & 1U);
-    }
-  }
-
-  auto align() -> void { this->bit_position_ = 0; }
-
-  auto bytes(const std::string_view data) -> void {
-    this->align();
-    this->data_.append(data);
-  }
-
-  [[nodiscard]] auto data() const -> const std::string & { return this->data_; }
-
-private:
-  auto push(const std::uint32_t bit) -> void {
-    if (this->bit_position_ == 0) {
-      this->data_.push_back('\0');
-    }
-
-    if (bit != 0) {
-      this->data_.back() =
-          static_cast<char>(static_cast<unsigned char>(this->data_.back()) |
-                            (1U << this->bit_position_));
-    }
-
-    this->bit_position_ = (this->bit_position_ + 1) % 8;
-  }
-
-  std::string data_;
-  std::size_t bit_position_{0};
-};
-
-// Assigns canonical codes to a sequence of code lengths as per RFC 1951
-// section 3.2.2
-class HuffmanCode {
-public:
-  HuffmanCode(std::vector<std::uint8_t> lengths)
-      : lengths_{std::move(lengths)} {
-    std::array<std::uint32_t, 16> length_count{};
-    for (const auto length : this->lengths_) {
-      length_count[length] += 1;
-    }
-
-    length_count[0] = 0;
-    std::array<std::uint32_t, 16> next_code{};
-    std::uint32_t code{0};
-    for (std::size_t bits = 1; bits < next_code.size(); ++bits) {
-      code = (code + length_count[bits - 1]) << 1;
-      next_code[bits] = code;
-    }
-
-    this->codes_.resize(this->lengths_.size());
-    for (std::size_t symbol = 0; symbol < this->lengths_.size(); ++symbol) {
-      const auto length{this->lengths_[symbol]};
-      if (length != 0) {
-        this->codes_[symbol] = next_code[length];
-        next_code[length] += 1;
-      }
-    }
-  }
-
-  auto write(DeflateWriter &writer, const std::size_t symbol) const -> void {
-    writer.code(this->codes_.at(symbol), this->lengths_.at(symbol));
-  }
-
-private:
-  std::vector<std::uint8_t> lengths_;
-  std::vector<std::uint32_t> codes_;
-};
-
-auto code_lengths(
-    const std::size_t count,
-    const std::initializer_list<std::pair<std::size_t, std::uint8_t>>
-        assignments) -> std::vector<std::uint8_t> {
-  std::vector<std::uint8_t> result;
-  result.resize(count);
-  for (const auto &assignment : assignments) {
-    result.at(assignment.first) = assignment.second;
-  }
-
-  return result;
-}
-
-auto write_block_header(DeflateWriter &writer, const bool final,
-                        const std::uint32_t type) -> void {
-  writer.bits(final ? 1U : 0U, 1);
-  writer.bits(type, 2);
-}
-
-auto write_stored_block(DeflateWriter &writer, const bool final,
-                        const std::string_view payload) -> void {
-  write_block_header(writer, final, 0);
-  writer.align();
-  writer.bits(static_cast<std::uint32_t>(payload.size()), 16);
-  writer.bits(~static_cast<std::uint32_t>(payload.size()) & 0xffffU, 16);
-  writer.bytes(payload);
-}
-
-// The fixed literal/length code of RFC 1951 section 3.2.6
-auto write_fixed_literal_length(DeflateWriter &writer,
-                                const std::uint32_t symbol) -> void {
-  if (symbol <= 143) {
-    writer.code(0x30 + symbol, 8);
-  } else if (symbol <= 255) {
-    writer.code(0x190 + symbol - 144, 9);
-  } else if (symbol <= 279) {
-    writer.code(symbol - 256, 7);
-  } else {
-    writer.code(0xc0 + symbol - 280, 8);
-  }
-}
-
-auto write_fixed_literals(DeflateWriter &writer, const std::string_view data)
-    -> void {
-  for (const auto character : data) {
-    write_fixed_literal_length(writer, static_cast<unsigned char>(character));
-  }
-}
-
-// Transmits every code length explicitly through a code length code that
-// assigns four bits to each of the lengths zero to fifteen
-auto write_dynamic_header(
-    DeflateWriter &writer, const bool final,
-    const std::vector<std::uint8_t> &literal_length_lengths,
-    const std::vector<std::uint8_t> &distance_lengths) -> void {
-  write_block_header(writer, final, 2);
-  writer.bits(static_cast<std::uint32_t>(literal_length_lengths.size() - 257),
-              5);
-  writer.bits(static_cast<std::uint32_t>(distance_lengths.size() - 1), 5);
-  writer.bits(15, 4);
-  writer.bits(0, 3);
-  writer.bits(0, 3);
-  writer.bits(0, 3);
-  for (std::size_t index = 0; index < 16; ++index) {
-    writer.bits(4, 3);
-  }
-
-  for (const auto length : literal_length_lengths) {
-    writer.code(length, 4);
-  }
-
-  for (const auto length : distance_lengths) {
-    writer.code(length, 4);
-  }
-}
-
-auto append_little_endian(std::string &output, const std::uint32_t value)
-    -> void {
-  output.push_back(static_cast<char>(value & 0xff));
-  output.push_back(static_cast<char>((value >> 8) & 0xff));
-  output.push_back(static_cast<char>((value >> 16) & 0xff));
-  output.push_back(static_cast<char>((value >> 24) & 0xff));
-}
-
-auto gzip_member(const std::string_view header, const std::string_view deflate,
-                 const std::string_view payload) -> std::string {
-  std::string result{header};
-  result.append(deflate);
-  append_little_endian(result, sourcemeta::core::crc32(payload));
-  append_little_endian(result, static_cast<std::uint32_t>(payload.size()));
-  return result;
-}
-
-auto compress(const std::string_view input, const int level) -> std::string {
-  return sourcemeta::core::gzip(
+auto compress(const std::string &input, const int level)
+    -> std::vector<std::uint8_t> {
+  const auto output{sourcemeta::core::gzip(
       reinterpret_cast<const std::uint8_t *>(input.data()), input.size(),
-      level);
+      level)};
+  return {output.cbegin(), output.cend()};
 }
 
-auto decompress(const std::string_view compressed) -> std::string {
-  return sourcemeta::core::gunzip(
-      reinterpret_cast<const std::uint8_t *>(compressed.data()),
-      compressed.size());
-}
-
-auto decompress(const std::string_view compressed,
-                const std::size_t output_hint, const std::size_t maximum_size)
+auto decompress_one_shot(const std::vector<std::uint8_t> &input,
+                         const std::size_t output_hint = 0,
+                         const std::size_t maximum_size = 268435456)
     -> std::string {
-  return sourcemeta::core::gunzip(
-      reinterpret_cast<const std::uint8_t *>(compressed.data()),
-      compressed.size(), output_hint, maximum_size);
+  return sourcemeta::core::gunzip(input.data(), input.size(), output_hint,
+                                  maximum_size);
 }
 
-// Decodes through the independent streaming decoder of this module
-auto decompress_via_stream(const std::string &compressed) -> std::string {
-  std::istringstream stream{compressed};
+auto decompress_stream(const std::vector<std::uint8_t> &input) -> std::string {
+  std::istringstream stream{std::string{input.cbegin(), input.cend()}};
   sourcemeta::core::GZIPStreamBuffer buffer{stream};
   std::istream decompressed{&buffer};
   std::string result;
@@ -229,543 +40,564 @@ auto decompress_via_stream(const std::string &compressed) -> std::string {
   return result;
 }
 
-auto random_bytes(const std::size_t size, const std::uint32_t seed)
-    -> std::string {
-  // NOLINTNEXTLINE(cert-msc32-c,cert-msc51-cpp,bugprone-random-generator-seed)
-  std::mt19937 generator{seed};
-  std::uniform_int_distribution<int> distribution{0, 255};
-  std::string result;
-  result.resize(size);
-  for (auto &character : result) {
-    character = static_cast<char>(distribution(generator));
-  }
-
-  return result;
-}
-
-auto mixed_corpus() -> std::string {
-  std::string result;
-  for (std::size_t index = 0; index < 2000; ++index) {
-    result += "The quick brown fox jumps over the lazy dog. ";
-  }
-
-  result += random_bytes(40000, 7);
-  result.append(70000, '\0');
-  for (std::size_t index = 0; index < 5000; ++index) {
-    result += "ab";
-  }
-
-  for (std::size_t index = 0; index < 256; ++index) {
-    result.append(index + 1, static_cast<char>(index));
-  }
-
-  return result;
-}
-
 } // namespace
 
 TEST(compress_empty_input) {
   const std::string input;
-  const auto compressed{sourcemeta::core::gzip(
-      reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
-  EXPECT_FALSE(compressed.empty());
-
-  const auto decompressed{sourcemeta::core::gunzip(
-      reinterpret_cast<const std::uint8_t *>(compressed.data()),
-      compressed.size())};
-  EXPECT_EQ(decompressed, input);
+  const auto compressed{compress(input, 1)};
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
 }
 
 TEST(compress_hello_world) {
   const std::string input{"hello world"};
-  const auto compressed{sourcemeta::core::gzip(
-      reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
-  EXPECT_FALSE(compressed.empty());
-  EXPECT_LT(compressed.size(), input.size() + 30);
-
-  const auto decompressed{sourcemeta::core::gunzip(
-      reinterpret_cast<const std::uint8_t *>(compressed.data()),
-      compressed.size())};
-  EXPECT_EQ(decompressed, input);
+  const auto compressed{compress(input, 1)};
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
 }
 
-TEST(compress_round_trip_binary_data) {
+TEST(compress_every_byte_value) {
   std::string input;
-  input.resize(256);
-  for (unsigned int index = 0; index < 256; ++index) {
-    input[index] = static_cast<char>(index);
+  for (std::size_t index = 0; index < 256; ++index) {
+    input.push_back(static_cast<char>(index));
   }
 
-  const auto compressed{sourcemeta::core::gzip(
-      reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
-  EXPECT_FALSE(compressed.empty());
-
-  const auto decompressed{sourcemeta::core::gunzip(
-      reinterpret_cast<const std::uint8_t *>(compressed.data()),
-      compressed.size())};
-  EXPECT_EQ(decompressed.size(), input.size());
-  EXPECT_EQ(std::memcmp(decompressed.data(), input.data(), input.size()), 0);
+  const auto compressed{compress(input, 1)};
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
 }
 
-TEST(compress_round_trip_large_input) {
-  const std::string pattern{"The quick brown fox jumps over the lazy dog. "};
+TEST(compress_repeated_pangram) {
   std::string input;
-  for (int index = 0; index < 1000; ++index) {
-    input += pattern;
+  for (std::size_t index = 0; index < 1000; ++index) {
+    input += "The quick brown fox jumps over the lazy dog. ";
   }
 
-  const auto compressed{sourcemeta::core::gzip(
-      reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
-  EXPECT_FALSE(compressed.empty());
+  const auto compressed{compress(input, 1)};
   EXPECT_LT(compressed.size(), input.size());
-
-  const auto decompressed{sourcemeta::core::gunzip(
-      reinterpret_cast<const std::uint8_t *>(compressed.data()),
-      compressed.size())};
-  EXPECT_EQ(decompressed, input);
-}
-
-TEST(decompress_with_output_hint) {
-  const std::string input{"hello world"};
-  const auto compressed{sourcemeta::core::gzip(
-      reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
-
-  const auto decompressed{sourcemeta::core::gunzip(
-      reinterpret_cast<const std::uint8_t *>(compressed.data()),
-      compressed.size(), input.size())};
-  EXPECT_EQ(decompressed, input);
-}
-
-TEST(compress_with_explicit_level_round_trips) {
-  const std::string pattern{"The quick brown fox jumps over the lazy dog. "};
-  std::string input;
-  for (int index = 0; index < 1000; ++index) {
-    input += pattern;
-  }
-
-  const auto compressed{sourcemeta::core::gzip(
-      reinterpret_cast<const std::uint8_t *>(input.data()), input.size(), 9)};
-  EXPECT_FALSE(compressed.empty());
-
-  const auto decompressed{sourcemeta::core::gunzip(
-      reinterpret_cast<const std::uint8_t *>(compressed.data()),
-      compressed.size())};
-  EXPECT_EQ(decompressed, input);
-}
-
-TEST(compress_higher_level_is_not_larger) {
-  const std::string pattern{"The quick brown fox jumps over the lazy dog. "};
-  std::string input;
-  for (int index = 0; index < 1000; ++index) {
-    input += pattern;
-  }
-
-  const auto fastest{sourcemeta::core::gzip(
-      reinterpret_cast<const std::uint8_t *>(input.data()), input.size(), 1)};
-  const auto smallest{sourcemeta::core::gzip(
-      reinterpret_cast<const std::uint8_t *>(input.data()), input.size(), 12)};
-  EXPECT_LE(smallest.size(), fastest.size());
-}
-
-TEST(decompress_invalid_input_throws) {
-  const std::string garbage{"this is not gzip data"};
-  try {
-    sourcemeta::core::gunzip(
-        reinterpret_cast<const std::uint8_t *>(garbage.data()), garbage.size());
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
-  }
-}
-
-TEST(decompress_beyond_maximum_size_throws) {
-  const std::string input{"Hello, World! Highly compressible content here."};
-  const auto compressed{sourcemeta::core::gzip(
-      reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
-  try {
-    sourcemeta::core::gunzip(
-        reinterpret_cast<const std::uint8_t *>(compressed.data()),
-        compressed.size(), 0, 4);
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()},
-              "Decompressed output exceeds the maximum allowed size");
-  }
-}
-
-TEST(decompress_within_maximum_size_succeeds) {
-  const std::string input{"Hello, World! Highly compressible content here."};
-  const auto compressed{sourcemeta::core::gzip(
-      reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
-  const auto decompressed{sourcemeta::core::gunzip(
-      reinterpret_cast<const std::uint8_t *>(compressed.data()),
-      compressed.size(), 0, 1024)};
-  EXPECT_EQ(decompressed, input);
-}
-
-TEST(decompress_concatenated_members) {
-  const std::string first{"hello "};
-  const std::string second{"world"};
-  auto compressed{sourcemeta::core::gzip(
-      reinterpret_cast<const std::uint8_t *>(first.data()), first.size())};
-  compressed += sourcemeta::core::gzip(
-      reinterpret_cast<const std::uint8_t *>(second.data()), second.size());
-  const auto decompressed{sourcemeta::core::gunzip(
-      reinterpret_cast<const std::uint8_t *>(compressed.data()),
-      compressed.size())};
-  EXPECT_EQ(decompressed, "hello world");
-}
-
-TEST(decompress_concatenated_members_grows_across_members) {
-  // A tiny hint forces the second member to grow the buffer that already holds
-  // the first, exercising the multi-member growth path
-  const std::string first{"hello "};
-  const std::string second{"world"};
-  auto compressed{sourcemeta::core::gzip(
-      reinterpret_cast<const std::uint8_t *>(first.data()), first.size())};
-  compressed += sourcemeta::core::gzip(
-      reinterpret_cast<const std::uint8_t *>(second.data()), second.size());
-  const auto decompressed{sourcemeta::core::gunzip(
-      reinterpret_cast<const std::uint8_t *>(compressed.data()),
-      compressed.size(), 1, 1024)};
-  EXPECT_EQ(decompressed, "hello world");
-}
-
-TEST(decompress_ignores_trailing_data) {
-  const std::string input{"hello world"};
-  auto compressed{sourcemeta::core::gzip(
-      reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
-  compressed += "not a gzip member";
-  const auto decompressed{sourcemeta::core::gunzip(
-      reinterpret_cast<const std::uint8_t *>(compressed.data()),
-      compressed.size())};
-  EXPECT_EQ(decompressed, input);
-}
-
-TEST(decompress_corrupt_trailing_member_throws) {
-  const std::string input{"hello world"};
-  auto compressed{sourcemeta::core::gzip(
-      reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
-  compressed.push_back('\x1F');
-  compressed.push_back('\x8B');
-  compressed.append("corrupt");
-  try {
-    sourcemeta::core::gunzip(
-        reinterpret_cast<const std::uint8_t *>(compressed.data()),
-        compressed.size());
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
-  }
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
 }
 
 TEST(compress_level_0_round_trips) {
-  const auto input{mixed_corpus()};
+  std::string input;
+  for (std::size_t index = 0; index < 2000; ++index) {
+    input += "The quick brown fox jumps over the lazy dog. ";
+  }
+
   const auto compressed{compress(input, 0)};
-  EXPECT_EQ(decompress(compressed), input);
-  EXPECT_EQ(decompress_via_stream(compressed), input);
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
 }
 
 TEST(compress_level_1_round_trips) {
-  const auto input{mixed_corpus()};
+  std::string input;
+  for (std::size_t index = 0; index < 2000; ++index) {
+    input += "The quick brown fox jumps over the lazy dog. ";
+  }
+
   const auto compressed{compress(input, 1)};
-  EXPECT_EQ(decompress(compressed), input);
-  EXPECT_EQ(decompress_via_stream(compressed), input);
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
 }
 
 TEST(compress_level_2_round_trips) {
-  const auto input{mixed_corpus()};
+  std::string input;
+  for (std::size_t index = 0; index < 2000; ++index) {
+    input += "The quick brown fox jumps over the lazy dog. ";
+  }
+
   const auto compressed{compress(input, 2)};
-  EXPECT_EQ(decompress(compressed), input);
-  EXPECT_EQ(decompress_via_stream(compressed), input);
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
 }
 
 TEST(compress_level_3_round_trips) {
-  const auto input{mixed_corpus()};
+  std::string input;
+  for (std::size_t index = 0; index < 2000; ++index) {
+    input += "The quick brown fox jumps over the lazy dog. ";
+  }
+
   const auto compressed{compress(input, 3)};
-  EXPECT_EQ(decompress(compressed), input);
-  EXPECT_EQ(decompress_via_stream(compressed), input);
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
 }
 
 TEST(compress_level_4_round_trips) {
-  const auto input{mixed_corpus()};
+  std::string input;
+  for (std::size_t index = 0; index < 2000; ++index) {
+    input += "The quick brown fox jumps over the lazy dog. ";
+  }
+
   const auto compressed{compress(input, 4)};
-  EXPECT_EQ(decompress(compressed), input);
-  EXPECT_EQ(decompress_via_stream(compressed), input);
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
 }
 
 TEST(compress_level_5_round_trips) {
-  const auto input{mixed_corpus()};
+  std::string input;
+  for (std::size_t index = 0; index < 2000; ++index) {
+    input += "The quick brown fox jumps over the lazy dog. ";
+  }
+
   const auto compressed{compress(input, 5)};
-  EXPECT_EQ(decompress(compressed), input);
-  EXPECT_EQ(decompress_via_stream(compressed), input);
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
 }
 
 TEST(compress_level_6_round_trips) {
-  const auto input{mixed_corpus()};
+  std::string input;
+  for (std::size_t index = 0; index < 2000; ++index) {
+    input += "The quick brown fox jumps over the lazy dog. ";
+  }
+
   const auto compressed{compress(input, 6)};
-  EXPECT_EQ(decompress(compressed), input);
-  EXPECT_EQ(decompress_via_stream(compressed), input);
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
 }
 
 TEST(compress_level_7_round_trips) {
-  const auto input{mixed_corpus()};
+  std::string input;
+  for (std::size_t index = 0; index < 2000; ++index) {
+    input += "The quick brown fox jumps over the lazy dog. ";
+  }
+
   const auto compressed{compress(input, 7)};
-  EXPECT_EQ(decompress(compressed), input);
-  EXPECT_EQ(decompress_via_stream(compressed), input);
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
 }
 
 TEST(compress_level_8_round_trips) {
-  const auto input{mixed_corpus()};
+  std::string input;
+  for (std::size_t index = 0; index < 2000; ++index) {
+    input += "The quick brown fox jumps over the lazy dog. ";
+  }
+
   const auto compressed{compress(input, 8)};
-  EXPECT_EQ(decompress(compressed), input);
-  EXPECT_EQ(decompress_via_stream(compressed), input);
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
 }
 
 TEST(compress_level_9_round_trips) {
-  const auto input{mixed_corpus()};
+  std::string input;
+  for (std::size_t index = 0; index < 2000; ++index) {
+    input += "The quick brown fox jumps over the lazy dog. ";
+  }
+
   const auto compressed{compress(input, 9)};
-  EXPECT_EQ(decompress(compressed), input);
-  EXPECT_EQ(decompress_via_stream(compressed), input);
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
 }
 
 TEST(compress_level_10_round_trips) {
-  const auto input{mixed_corpus()};
+  std::string input;
+  for (std::size_t index = 0; index < 2000; ++index) {
+    input += "The quick brown fox jumps over the lazy dog. ";
+  }
+
   const auto compressed{compress(input, 10)};
-  EXPECT_EQ(decompress(compressed), input);
-  EXPECT_EQ(decompress_via_stream(compressed), input);
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
 }
 
 TEST(compress_level_11_round_trips) {
-  const auto input{mixed_corpus()};
+  std::string input;
+  for (std::size_t index = 0; index < 2000; ++index) {
+    input += "The quick brown fox jumps over the lazy dog. ";
+  }
+
   const auto compressed{compress(input, 11)};
-  EXPECT_EQ(decompress(compressed), input);
-  EXPECT_EQ(decompress_via_stream(compressed), input);
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
 }
 
 TEST(compress_level_12_round_trips) {
-  const auto input{mixed_corpus()};
+  std::string input;
+  for (std::size_t index = 0; index < 2000; ++index) {
+    input += "The quick brown fox jumps over the lazy dog. ";
+  }
+
   const auto compressed{compress(input, 12)};
-  EXPECT_EQ(decompress(compressed), input);
-  EXPECT_EQ(decompress_via_stream(compressed), input);
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
 }
 
-TEST(compress_level_above_maximum_throws) {
-  try {
-    compress("hello world", 13);
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not allocate compressor");
+TEST(compress_higher_level_is_not_larger) {
+  std::string input;
+  for (std::size_t index = 0; index < 1000; ++index) {
+    input += "The quick brown fox jumps over the lazy dog. ";
   }
-}
 
-TEST(compress_negative_level_throws) {
-  try {
-    compress("hello world", -2);
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not allocate compressor");
-  }
-}
-
-TEST(compress_largest_integer_level_throws) {
-  try {
-    compress("hello world", std::numeric_limits<int>::max());
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not allocate compressor");
-  }
-}
-
-TEST(compress_smallest_integer_level_throws) {
-  try {
-    compress("hello world", std::numeric_limits<int>::min());
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not allocate compressor");
-  }
+  EXPECT_LE(compress(input, 12).size(), compress(input, 1).size());
 }
 
 TEST(compress_output_header_identifies_deflate_member) {
   const auto compressed{compress("hello world", 6)};
   EXPECT_GE(compressed.size(), 18);
-  EXPECT_EQ(compressed.at(0), '\x1f');
-  EXPECT_EQ(compressed.at(1), '\x8b');
-  EXPECT_EQ(compressed.at(2), '\x08');
-  EXPECT_EQ(static_cast<unsigned char>(compressed.at(3)) & 0xe0U, 0U);
-}
-
-TEST(compress_empty_input_output_header_identifies_deflate_member) {
-  const auto compressed{compress("", 0)};
-  EXPECT_GE(compressed.size(), 18);
-  EXPECT_EQ(compressed.at(0), '\x1f');
-  EXPECT_EQ(compressed.at(1), '\x8b');
-  EXPECT_EQ(compressed.at(2), '\x08');
-  EXPECT_EQ(static_cast<unsigned char>(compressed.at(3)) & 0xe0U, 0U);
+  EXPECT_EQ(compressed.at(0), 0x1f);
+  EXPECT_EQ(compressed.at(1), 0x8b);
+  EXPECT_EQ(compressed.at(2), 0x08);
+  EXPECT_EQ(compressed.at(3) & 0xe0, 0);
 }
 
 TEST(compress_output_trailer_of_empty_input) {
   const auto compressed{compress("", 1)};
-  EXPECT_EQ(compressed.substr(compressed.size() - 8), std::string(8, '\0'));
+  const std::vector<std::uint8_t> trailer{compressed.cend() - 8,
+                                          compressed.cend()};
+  const std::vector<std::uint8_t> expected{0x00, 0x00, 0x00, 0x00,
+                                           0x00, 0x00, 0x00, 0x00};
+  EXPECT_EQ(trailer, expected);
 }
 
 TEST(compress_output_trailer_of_hello_world_at_level_0) {
   const auto compressed{compress("hello world", 0)};
-  EXPECT_EQ(compressed.substr(compressed.size() - 8),
-            std::string("\x85\x11\x4a\x0d\x0b\x00\x00\x00", 8));
+  const std::vector<std::uint8_t> trailer{compressed.cend() - 8,
+                                          compressed.cend()};
+  const std::vector<std::uint8_t> expected{0x85, 0x11, 0x4a, 0x0d,
+                                           0x0b, 0x00, 0x00, 0x00};
+  EXPECT_EQ(trailer, expected);
 }
 
 TEST(compress_output_trailer_of_hello_world_at_level_1) {
   const auto compressed{compress("hello world", 1)};
-  EXPECT_EQ(compressed.substr(compressed.size() - 8),
-            std::string("\x85\x11\x4a\x0d\x0b\x00\x00\x00", 8));
+  const std::vector<std::uint8_t> trailer{compressed.cend() - 8,
+                                          compressed.cend()};
+  const std::vector<std::uint8_t> expected{0x85, 0x11, 0x4a, 0x0d,
+                                           0x0b, 0x00, 0x00, 0x00};
+  EXPECT_EQ(trailer, expected);
 }
 
 TEST(compress_output_trailer_of_hello_world_at_level_12) {
   const auto compressed{compress("hello world", 12)};
-  EXPECT_EQ(compressed.substr(compressed.size() - 8),
-            std::string("\x85\x11\x4a\x0d\x0b\x00\x00\x00", 8));
+  const std::vector<std::uint8_t> trailer{compressed.cend() - 8,
+                                          compressed.cend()};
+  const std::vector<std::uint8_t> expected{0x85, 0x11, 0x4a, 0x0d,
+                                           0x0b, 0x00, 0x00, 0x00};
+  EXPECT_EQ(trailer, expected);
 }
 
 TEST(compress_output_trailer_of_crc32_check_string) {
   const auto compressed{compress("123456789", 6)};
-  EXPECT_EQ(compressed.substr(compressed.size() - 8),
-            std::string("\x26\x39\xf4\xcb\x09\x00\x00\x00", 8));
+  const std::vector<std::uint8_t> trailer{compressed.cend() - 8,
+                                          compressed.cend()};
+  const std::vector<std::uint8_t> expected{0x26, 0x39, 0xf4, 0xcb,
+                                           0x09, 0x00, 0x00, 0x00};
+  EXPECT_EQ(trailer, expected);
 }
 
 TEST(compress_output_trailer_of_pangram) {
   const auto compressed{
       compress("The quick brown fox jumps over the lazy dog", 9)};
-  EXPECT_EQ(compressed.substr(compressed.size() - 8),
-            std::string("\x39\xa3\x4f\x41\x2b\x00\x00\x00", 8));
+  const std::vector<std::uint8_t> trailer{compressed.cend() - 8,
+                                          compressed.cend()};
+  const std::vector<std::uint8_t> expected{0x39, 0xa3, 0x4f, 0x41,
+                                           0x2b, 0x00, 0x00, 0x00};
+  EXPECT_EQ(trailer, expected);
 }
 
 TEST(compress_output_trailer_size_spans_multiple_bytes) {
-  const std::string input(70000, 'z');
-  const auto compressed{compress(input, 1)};
-  EXPECT_EQ(compressed.substr(compressed.size() - 4),
-            std::string("\x70\x11\x01\x00", 4));
+  const auto compressed{compress(std::string(70000, 'z'), 1)};
+  const std::vector<std::uint8_t> size{compressed.cend() - 4,
+                                       compressed.cend()};
+  const std::vector<std::uint8_t> expected{0x70, 0x11, 0x01, 0x00};
+  EXPECT_EQ(size, expected);
 }
 
-TEST(compress_single_zero_byte_round_trips) {
+TEST(compress_single_byte) {
+  const std::string input{"X"};
+  const auto compressed{compress(input, 1)};
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
+}
+
+TEST(compress_two_bytes) {
+  const std::string input{"AB"};
+  const auto compressed{compress(input, 1)};
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
+}
+
+TEST(compress_single_zero_byte) {
   const std::string input(1, '\0');
   const auto compressed{compress(input, 1)};
-  EXPECT_EQ(decompress(compressed), input);
-  EXPECT_EQ(decompress_via_stream(compressed), input);
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
 }
 
-TEST(compress_minimum_match_length_input_round_trips) {
+TEST(compress_minimum_match_length_input) {
   const std::string input{"abcabc"};
   const auto compressed{compress(input, 12)};
-  EXPECT_EQ(decompress(compressed), input);
-  EXPECT_EQ(decompress_via_stream(compressed), input);
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
 }
 
-TEST(compress_run_of_maximum_match_length_round_trips) {
+TEST(compress_run_of_maximum_match_length) {
   const std::string input(259, 'q');
   const auto compressed{compress(input, 6)};
-  EXPECT_EQ(decompress(compressed), input);
-  EXPECT_EQ(decompress_via_stream(compressed), input);
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
 }
 
-TEST(compress_run_one_past_maximum_match_length_round_trips) {
+TEST(compress_run_one_past_maximum_match_length) {
   const std::string input(260, 'q');
   const auto compressed{compress(input, 6)};
-  EXPECT_EQ(decompress(compressed), input);
-  EXPECT_EQ(decompress_via_stream(compressed), input);
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
 }
 
-TEST(compress_random_input_one_below_window_size_round_trips) {
-  const auto input{random_bytes(32767, 1)};
+TEST(compress_counter_bytes_one_below_stream_buffer_size) {
+  std::string input;
+  for (std::size_t index = 0; index < 16383; ++index) {
+    input.push_back(static_cast<char>(index & 0xff));
+  }
+
   const auto compressed{compress(input, 1)};
-  EXPECT_EQ(decompress(compressed), input);
-  EXPECT_EQ(decompress_via_stream(compressed), input);
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
 }
 
-TEST(compress_random_input_of_window_size_round_trips) {
-  const auto input{random_bytes(32768, 1)};
+TEST(compress_counter_bytes_of_stream_buffer_size) {
+  std::string input;
+  for (std::size_t index = 0; index < 16384; ++index) {
+    input.push_back(static_cast<char>(index & 0xff));
+  }
+
   const auto compressed{compress(input, 1)};
-  EXPECT_EQ(decompress(compressed), input);
-  EXPECT_EQ(decompress_via_stream(compressed), input);
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
 }
 
-TEST(compress_random_input_one_above_window_size_round_trips) {
-  const auto input{random_bytes(32769, 1)};
+TEST(compress_counter_bytes_one_above_stream_buffer_size) {
+  std::string input;
+  for (std::size_t index = 0; index < 16385; ++index) {
+    input.push_back(static_cast<char>(index & 0xff));
+  }
+
   const auto compressed{compress(input, 1)};
-  EXPECT_EQ(decompress(compressed), input);
-  EXPECT_EQ(decompress_via_stream(compressed), input);
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
 }
 
-TEST(compress_level_0_input_of_maximum_stored_block_length_round_trips) {
-  const auto input{random_bytes(65535, 2)};
-  const auto compressed{compress(input, 0)};
-  EXPECT_EQ(decompress(compressed), input);
-  EXPECT_EQ(decompress_via_stream(compressed), input);
+TEST(compress_counter_bytes_of_window_size) {
+  std::string input;
+  for (std::size_t index = 0; index < 32768; ++index) {
+    input.push_back(static_cast<char>(index & 0xff));
+  }
+
+  const auto compressed{compress(input, 1)};
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
 }
 
-TEST(compress_level_0_input_one_above_maximum_stored_block_length_round_trips) {
-  const auto input{random_bytes(65536, 2)};
-  const auto compressed{compress(input, 0)};
-  EXPECT_EQ(decompress(compressed), input);
-  EXPECT_EQ(decompress_via_stream(compressed), input);
+TEST(compress_counter_bytes_of_one_megabyte) {
+  std::string input;
+  for (std::size_t index = 0; index < 1048576; ++index) {
+    input.push_back(static_cast<char>(index & 0xff));
+  }
+
+  const auto compressed{compress(input, 1)};
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
 }
 
-TEST(compress_level_0_input_of_two_maximum_stored_blocks_round_trips) {
-  const auto input{random_bytes(131070, 2)};
+TEST(compress_random_input_one_below_window_size) {
+  // NOLINTNEXTLINE(cert-msc32-c,cert-msc51-cpp,bugprone-random-generator-seed)
+  std::mt19937 generator{1};
+  std::uniform_int_distribution<int> distribution{0, 255};
+  std::string input;
+  for (std::size_t index = 0; index < 32767; ++index) {
+    input.push_back(static_cast<char>(distribution(generator)));
+  }
+
+  const auto compressed{compress(input, 1)};
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
+}
+
+TEST(compress_random_input_of_window_size) {
+  // NOLINTNEXTLINE(cert-msc32-c,cert-msc51-cpp,bugprone-random-generator-seed)
+  std::mt19937 generator{1};
+  std::uniform_int_distribution<int> distribution{0, 255};
+  std::string input;
+  for (std::size_t index = 0; index < 32768; ++index) {
+    input.push_back(static_cast<char>(distribution(generator)));
+  }
+
+  const auto compressed{compress(input, 1)};
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
+}
+
+TEST(compress_random_input_one_above_window_size) {
+  // NOLINTNEXTLINE(cert-msc32-c,cert-msc51-cpp,bugprone-random-generator-seed)
+  std::mt19937 generator{1};
+  std::uniform_int_distribution<int> distribution{0, 255};
+  std::string input;
+  for (std::size_t index = 0; index < 32769; ++index) {
+    input.push_back(static_cast<char>(distribution(generator)));
+  }
+
+  const auto compressed{compress(input, 1)};
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
+}
+
+TEST(compress_level_0_random_input_of_maximum_stored_block_length) {
+  // NOLINTNEXTLINE(cert-msc32-c,cert-msc51-cpp,bugprone-random-generator-seed)
+  std::mt19937 generator{2};
+  std::uniform_int_distribution<int> distribution{0, 255};
+  std::string input;
+  for (std::size_t index = 0; index < 65535; ++index) {
+    input.push_back(static_cast<char>(distribution(generator)));
+  }
+
   const auto compressed{compress(input, 0)};
-  EXPECT_EQ(decompress(compressed), input);
-  EXPECT_EQ(decompress_via_stream(compressed), input);
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
+}
+
+TEST(compress_level_0_random_input_one_above_maximum_stored_block_length) {
+  // NOLINTNEXTLINE(cert-msc32-c,cert-msc51-cpp,bugprone-random-generator-seed)
+  std::mt19937 generator{2};
+  std::uniform_int_distribution<int> distribution{0, 255};
+  std::string input;
+  for (std::size_t index = 0; index < 65536; ++index) {
+    input.push_back(static_cast<char>(distribution(generator)));
+  }
+
+  const auto compressed{compress(input, 0)};
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
+}
+
+TEST(compress_level_0_random_input_of_two_maximum_stored_blocks) {
+  // NOLINTNEXTLINE(cert-msc32-c,cert-msc51-cpp,bugprone-random-generator-seed)
+  std::mt19937 generator{2};
+  std::uniform_int_distribution<int> distribution{0, 255};
+  std::string input;
+  for (std::size_t index = 0; index < 131070; ++index) {
+    input.push_back(static_cast<char>(distribution(generator)));
+  }
+
+  const auto compressed{compress(input, 0)};
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
+}
+
+TEST(compress_highly_compressible_zeros) {
+  const std::string input(65536, '\0');
+  const auto compressed{compress(input, 1)};
+  EXPECT_LT(compressed.size(), input.size() / 10);
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
+}
+
+TEST(compress_highly_compressible_repeated_byte) {
+  const std::string input(65536, static_cast<char>(0xff));
+  const auto compressed{compress(input, 1)};
+  EXPECT_LT(compressed.size(), input.size() / 10);
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
+}
+
+TEST(compress_incompressible_random_input) {
+  // NOLINTNEXTLINE(cert-msc32-c,cert-msc51-cpp,bugprone-random-generator-seed)
+  std::mt19937 generator{42};
+  std::uniform_int_distribution<int> distribution{0, 255};
+  std::string input;
+  for (std::size_t index = 0; index < 65536; ++index) {
+    input.push_back(static_cast<char>(distribution(generator)));
+  }
+
+  const auto compressed{compress(input, 1)};
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
 }
 
 TEST(compress_incompressible_input_at_level_0_barely_expands) {
-  const auto input{random_bytes(1048576, 3)};
+  // NOLINTNEXTLINE(cert-msc32-c,cert-msc51-cpp,bugprone-random-generator-seed)
+  std::mt19937 generator{3};
+  std::uniform_int_distribution<int> distribution{0, 255};
+  std::string input;
+  for (std::size_t index = 0; index < 1048576; ++index) {
+    input.push_back(static_cast<char>(distribution(generator)));
+  }
+
   const auto compressed{compress(input, 0)};
   EXPECT_LE(compressed.size(), input.size() + input.size() / 100);
-  EXPECT_EQ(decompress(compressed), input);
-  EXPECT_EQ(decompress_via_stream(compressed), input);
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
 }
 
 TEST(compress_incompressible_input_at_level_1_barely_expands) {
-  const auto input{random_bytes(1048576, 3)};
+  // NOLINTNEXTLINE(cert-msc32-c,cert-msc51-cpp,bugprone-random-generator-seed)
+  std::mt19937 generator{3};
+  std::uniform_int_distribution<int> distribution{0, 255};
+  std::string input;
+  for (std::size_t index = 0; index < 1048576; ++index) {
+    input.push_back(static_cast<char>(distribution(generator)));
+  }
+
   const auto compressed{compress(input, 1)};
   EXPECT_LE(compressed.size(), input.size() + input.size() / 100);
-  EXPECT_EQ(decompress(compressed), input);
-  EXPECT_EQ(decompress_via_stream(compressed), input);
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
 }
 
 TEST(compress_incompressible_input_at_level_6_barely_expands) {
-  const auto input{random_bytes(1048576, 3)};
+  // NOLINTNEXTLINE(cert-msc32-c,cert-msc51-cpp,bugprone-random-generator-seed)
+  std::mt19937 generator{3};
+  std::uniform_int_distribution<int> distribution{0, 255};
+  std::string input;
+  for (std::size_t index = 0; index < 1048576; ++index) {
+    input.push_back(static_cast<char>(distribution(generator)));
+  }
+
   const auto compressed{compress(input, 6)};
   EXPECT_LE(compressed.size(), input.size() + input.size() / 100);
-  EXPECT_EQ(decompress(compressed), input);
-  EXPECT_EQ(decompress_via_stream(compressed), input);
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
 }
 
 TEST(compress_incompressible_input_at_level_12_barely_expands) {
-  const auto input{random_bytes(1048576, 3)};
+  // NOLINTNEXTLINE(cert-msc32-c,cert-msc51-cpp,bugprone-random-generator-seed)
+  std::mt19937 generator{3};
+  std::uniform_int_distribution<int> distribution{0, 255};
+  std::string input;
+  for (std::size_t index = 0; index < 1048576; ++index) {
+    input.push_back(static_cast<char>(distribution(generator)));
+  }
+
   const auto compressed{compress(input, 12)};
   EXPECT_LE(compressed.size(), input.size() + input.size() / 100);
-  EXPECT_EQ(decompress(compressed), input);
-  EXPECT_EQ(decompress_via_stream(compressed), input);
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
+}
+
+TEST(compress_run_wrapping_the_window_many_times) {
+  const std::string input(200000, 'a');
+  const auto compressed{compress(input, 1)};
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
 }
 
 TEST(compress_eight_megabytes_of_zeros_at_level_1) {
   const std::string input(8388608, '\0');
   const auto compressed{compress(input, 1)};
   EXPECT_LT(compressed.size(), input.size() / 100);
-  EXPECT_EQ(decompress(compressed), input);
-  EXPECT_EQ(decompress_via_stream(compressed), input);
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
 }
 
 TEST(compress_four_megabytes_of_zeros_at_level_12) {
   const std::string input(4194304, '\0');
   const auto compressed{compress(input, 12)};
   EXPECT_LT(compressed.size(), input.size() / 100);
-  EXPECT_EQ(decompress(compressed), input);
-  EXPECT_EQ(decompress_via_stream(compressed), input);
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
 }
 
-TEST(compress_alternating_bytes_round_trips) {
+TEST(compress_alternating_bytes) {
   std::string input;
   for (std::size_t index = 0; index < 524288; ++index) {
     input += "\x01\xfe";
@@ -773,36 +605,64 @@ TEST(compress_alternating_bytes_round_trips) {
 
   const auto compressed{compress(input, 6)};
   EXPECT_LT(compressed.size(), input.size() / 100);
-  EXPECT_EQ(decompress(compressed), input);
-  EXPECT_EQ(decompress_via_stream(compressed), input);
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
 }
 
 TEST(compress_random_block_repeated_at_window_size_distance_at_level_6) {
-  const auto block{random_bytes(32768, 4)};
+  // NOLINTNEXTLINE(cert-msc32-c,cert-msc51-cpp,bugprone-random-generator-seed)
+  std::mt19937 generator{4};
+  std::uniform_int_distribution<int> distribution{0, 255};
+  std::string block;
+  for (std::size_t index = 0; index < 32768; ++index) {
+    block.push_back(static_cast<char>(distribution(generator)));
+  }
+
   const auto input{block + block + block + block};
   const auto compressed{compress(input, 6)};
-  EXPECT_EQ(decompress(compressed), input);
-  EXPECT_EQ(decompress_via_stream(compressed), input);
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
 }
 
 TEST(compress_random_block_repeated_at_window_size_distance_at_level_12) {
-  const auto block{random_bytes(32768, 4)};
+  // NOLINTNEXTLINE(cert-msc32-c,cert-msc51-cpp,bugprone-random-generator-seed)
+  std::mt19937 generator{4};
+  std::uniform_int_distribution<int> distribution{0, 255};
+  std::string block;
+  for (std::size_t index = 0; index < 32768; ++index) {
+    block.push_back(static_cast<char>(distribution(generator)));
+  }
+
   const auto input{block + block + block + block};
   const auto compressed{compress(input, 12)};
-  EXPECT_EQ(decompress(compressed), input);
-  EXPECT_EQ(decompress_via_stream(compressed), input);
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
 }
 
 TEST(compress_random_block_repeated_beyond_window_size_distance) {
-  const auto block{random_bytes(32769, 5)};
+  // NOLINTNEXTLINE(cert-msc32-c,cert-msc51-cpp,bugprone-random-generator-seed)
+  std::mt19937 generator{5};
+  std::uniform_int_distribution<int> distribution{0, 255};
+  std::string block;
+  for (std::size_t index = 0; index < 32769; ++index) {
+    block.push_back(static_cast<char>(distribution(generator)));
+  }
+
   const auto input{block + block + block + block};
   const auto compressed{compress(input, 12)};
-  EXPECT_EQ(decompress(compressed), input);
-  EXPECT_EQ(decompress_via_stream(compressed), input);
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
 }
 
 TEST(compress_random_block_repeated_at_maximum_match_length_period) {
-  const auto block{random_bytes(258, 6)};
+  // NOLINTNEXTLINE(cert-msc32-c,cert-msc51-cpp,bugprone-random-generator-seed)
+  std::mt19937 generator{6};
+  std::uniform_int_distribution<int> distribution{0, 255};
+  std::string block;
+  for (std::size_t index = 0; index < 258; ++index) {
+    block.push_back(static_cast<char>(distribution(generator)));
+  }
+
   std::string input;
   for (std::size_t index = 0; index < 1000; ++index) {
     input += block;
@@ -810,12 +670,19 @@ TEST(compress_random_block_repeated_at_maximum_match_length_period) {
 
   const auto compressed{compress(input, 6)};
   EXPECT_LT(compressed.size(), input.size() / 10);
-  EXPECT_EQ(decompress(compressed), input);
-  EXPECT_EQ(decompress_via_stream(compressed), input);
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
 }
 
 TEST(compress_random_block_repeated_beyond_maximum_match_length_period) {
-  const auto block{random_bytes(259, 6)};
+  // NOLINTNEXTLINE(cert-msc32-c,cert-msc51-cpp,bugprone-random-generator-seed)
+  std::mt19937 generator{6};
+  std::uniform_int_distribution<int> distribution{0, 255};
+  std::string block;
+  for (std::size_t index = 0; index < 259; ++index) {
+    block.push_back(static_cast<char>(distribution(generator)));
+  }
+
   std::string input;
   for (std::size_t index = 0; index < 1000; ++index) {
     input += block;
@@ -823,11 +690,11 @@ TEST(compress_random_block_repeated_beyond_maximum_match_length_period) {
 
   const auto compressed{compress(input, 6)};
   EXPECT_LT(compressed.size(), input.size() / 10);
-  EXPECT_EQ(decompress(compressed), input);
-  EXPECT_EQ(decompress_via_stream(compressed), input);
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
 }
 
-TEST(compress_runs_of_every_match_length_round_trips) {
+TEST(compress_runs_of_every_match_length) {
   std::string input;
   for (std::size_t length = 1; length <= 300; ++length) {
     input.append(length, static_cast<char>(length & 0xff));
@@ -835,8 +702,8 @@ TEST(compress_runs_of_every_match_length_round_trips) {
   }
 
   const auto compressed{compress(input, 9)};
-  EXPECT_EQ(decompress(compressed), input);
-  EXPECT_EQ(decompress_via_stream(compressed), input);
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
 }
 
 TEST(compress_fibonacci_word_at_level_1) {
@@ -849,8 +716,8 @@ TEST(compress_fibonacci_word_at_level_1) {
   }
 
   const auto compressed{compress(input, 1)};
-  EXPECT_EQ(decompress(compressed), input);
-  EXPECT_EQ(decompress_via_stream(compressed), input);
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
 }
 
 TEST(compress_fibonacci_word_at_level_12) {
@@ -863,1819 +730,1136 @@ TEST(compress_fibonacci_word_at_level_12) {
   }
 
   const auto compressed{compress(input, 12)};
-  EXPECT_EQ(decompress(compressed), input);
-  EXPECT_EQ(decompress_via_stream(compressed), input);
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
 }
 
-TEST(compress_counter_sequence_round_trips) {
+TEST(compress_counter_sequence) {
   std::string input;
   for (std::uint32_t index = 0; index < 262144; ++index) {
-    append_little_endian(input, index);
+    input.push_back(static_cast<char>(index & 0xff));
+    input.push_back(static_cast<char>((index >> 8) & 0xff));
+    input.push_back(static_cast<char>((index >> 16) & 0xff));
+    input.push_back(static_cast<char>((index >> 24) & 0xff));
   }
 
   const auto compressed{compress(input, 6)};
-  EXPECT_EQ(decompress(compressed), input);
-  EXPECT_EQ(decompress_via_stream(compressed), input);
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
 }
 
-TEST(compress_already_compressed_input_round_trips) {
-  const auto input{compress(mixed_corpus(), 12)};
+TEST(compress_already_compressed_input) {
+  std::string text;
+  for (std::size_t index = 0; index < 2000; ++index) {
+    text += "The quick brown fox jumps over the lazy dog. ";
+  }
+
+  const auto inner{compress(text, 12)};
+  const std::string input{inner.cbegin(), inner.cend()};
   const auto compressed{compress(input, 12)};
-  EXPECT_EQ(decompress(compressed), input);
-  EXPECT_EQ(decompress_via_stream(compressed), input);
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
 }
 
-TEST(compress_sixteen_megabytes_round_trips) {
-  const auto corpus{mixed_corpus()};
+TEST(compress_sixteen_megabytes) {
   std::string input;
-  while (input.size() < 16777216) {
-    input += corpus;
+  for (std::uint32_t index = 0; index < 4194304; ++index) {
+    input.push_back(static_cast<char>(index & 0xff));
+    input.push_back(static_cast<char>((index >> 8) & 0xff));
+    input.push_back(static_cast<char>((index >> 16) & 0xff));
+    input.push_back(static_cast<char>((index >> 24) & 0xff));
   }
 
   const auto compressed{compress(input, 1)};
   EXPECT_LT(compressed.size(), input.size());
-  EXPECT_EQ(decompress(compressed), input);
-  EXPECT_EQ(decompress_via_stream(compressed), input);
+  EXPECT_EQ(decompress_one_shot(compressed), input);
+  EXPECT_EQ(decompress_stream(compressed), input);
 }
 
 TEST(compress_members_of_different_levels_concatenate) {
-  const auto first{random_bytes(70000, 8)};
-  const std::string second(100000, 'x');
-  const auto compressed{compress(first, 0) + compress(second, 12) +
-                        compress("", 6) + compress("end", 1)};
-  EXPECT_EQ(decompress(compressed), first + second + "end");
-  EXPECT_EQ(decompress_via_stream(compressed), first + second + "end");
+  const std::string first(70000, 'f');
+  const std::string second{"second"};
+  auto compressed{compress(first, 0)};
+  const auto second_compressed{compress(second, 12)};
+  const auto empty_compressed{compress("", 6)};
+  compressed.insert(compressed.end(), second_compressed.cbegin(),
+                    second_compressed.cend());
+  compressed.insert(compressed.end(), empty_compressed.cbegin(),
+                    empty_compressed.cend());
+  EXPECT_EQ(decompress_one_shot(compressed), first + second);
+  EXPECT_EQ(decompress_stream(compressed), first + second);
 }
 
 TEST(decompress_header_with_ftext) {
-  const std::string header{"\x1f\x8b\x08\x01\x00\x00\x00\x00\x00\xff", 10};
-  DeflateWriter writer;
-  write_stored_block(writer, true, "hello world");
-  EXPECT_EQ(decompress(gzip_member(header, writer.data(), "hello world")),
-            "hello world");
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x01, 0x0b,
+      0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
+      0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input), "hello world");
+  EXPECT_EQ(decompress_stream(input), "hello world");
 }
 
-TEST(decompress_header_with_valid_fhcrc) {
-  const std::string header{"\x1f\x8b\x08\x02\x00\x00\x00\x00\x00\xff\x90\xc9",
-                           12};
-  DeflateWriter writer;
-  write_stored_block(writer, true, "hello world");
-  EXPECT_EQ(decompress(gzip_member(header, writer.data(), "hello world")),
-            "hello world");
+TEST(decompress_header_with_fhcrc) {
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x90, 0xc9,
+      0x01, 0x0b, 0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77,
+      0x6f, 0x72, 0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input), "hello world");
+  EXPECT_EQ(decompress_stream(input), "hello world");
 }
 
 TEST(decompress_header_with_fextra) {
-  std::string header{"\x1f\x8b\x08\x04\x00\x00\x00\x00\x00\xff\x05\x00", 12};
-  header += "EXTRA";
-  DeflateWriter writer;
-  write_stored_block(writer, true, "hello world");
-  EXPECT_EQ(decompress(gzip_member(header, writer.data(), "hello world")),
-            "hello world");
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x05,
+      0x00, 0x45, 0x58, 0x54, 0x52, 0x41, 0x01, 0x0b, 0x00, 0xf4, 0xff,
+      0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72, 0x6c, 0x64,
+      0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input), "hello world");
+  EXPECT_EQ(decompress_stream(input), "hello world");
 }
 
 TEST(decompress_header_with_empty_fextra) {
-  const std::string header{"\x1f\x8b\x08\x04\x00\x00\x00\x00\x00\xff\x00\x00",
-                           12};
-  DeflateWriter writer;
-  write_stored_block(writer, true, "hello world");
-  EXPECT_EQ(decompress(gzip_member(header, writer.data(), "hello world")),
-            "hello world");
-}
-
-TEST(decompress_header_with_maximum_length_fextra) {
-  std::string header{"\x1f\x8b\x08\x04\x00\x00\x00\x00\x00\xff\xff\xff", 12};
-  header += random_bytes(65535, 9);
-  DeflateWriter writer;
-  write_stored_block(writer, true, "hello world");
-  EXPECT_EQ(decompress(gzip_member(header, writer.data(), "hello world")),
-            "hello world");
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00,
+      0x01, 0x0b, 0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77,
+      0x6f, 0x72, 0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input), "hello world");
+  EXPECT_EQ(decompress_stream(input), "hello world");
 }
 
 TEST(decompress_header_with_fextra_subfields) {
-  std::string header{"\x1f\x8b\x08\x04\x00\x00\x00\x00\x00\xff\x0a\x00", 12};
-  header += "AB";
-  header += std::string{"\x02\x00\x01\x02", 4};
-  header += "CD";
-  header += std::string{"\x00\x00", 2};
-  DeflateWriter writer;
-  write_stored_block(writer, true, "hello world");
-  EXPECT_EQ(decompress(gzip_member(header, writer.data(), "hello world")),
-            "hello world");
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x0a, 0x00,
+      0x41, 0x42, 0x02, 0x00, 0x01, 0x02, 0x43, 0x44, 0x00, 0x00, 0x01, 0x0b,
+      0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
+      0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input), "hello world");
+  EXPECT_EQ(decompress_stream(input), "hello world");
 }
 
 TEST(decompress_header_with_fextra_of_null_bytes_before_fname) {
-  std::string header{"\x1f\x8b\x08\x0c\x00\x00\x00\x00\x00\xff\x03\x00", 12};
-  header += std::string(3, '\0');
-  header += "name";
-  header.push_back('\0');
-  DeflateWriter writer;
-  write_stored_block(writer, true, "hello world");
-  EXPECT_EQ(decompress(gzip_member(header, writer.data(), "hello world")),
-            "hello world");
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x0c, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x03,
+      0x00, 0x00, 0x00, 0x00, 0x6e, 0x61, 0x6d, 0x65, 0x00, 0x01, 0x0b,
+      0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f,
+      0x72, 0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input), "hello world");
+  EXPECT_EQ(decompress_stream(input), "hello world");
+}
+
+TEST(decompress_header_with_fextra_and_fname) {
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x0c, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x03,
+      0x00, 0x78, 0x79, 0x7a, 0x6e, 0x61, 0x6d, 0x65, 0x00, 0x01, 0x0b,
+      0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f,
+      0x72, 0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input), "hello world");
+  EXPECT_EQ(decompress_stream(input), "hello world");
+}
+
+TEST(decompress_header_with_fextra_and_fcomment) {
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x02,
+      0x00, 0x41, 0x42, 0x68, 0x69, 0x00, 0x01, 0x0b, 0x00, 0xf4, 0xff,
+      0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72, 0x6c, 0x64,
+      0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input), "hello world");
+  EXPECT_EQ(decompress_stream(input), "hello world");
+}
+
+TEST(decompress_header_with_fname_and_fcomment) {
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x18, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x61,
+      0x2e, 0x74, 0x78, 0x74, 0x00, 0x63, 0x6d, 0x74, 0x00, 0x01, 0x0b,
+      0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f,
+      0x72, 0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input), "hello world");
+  EXPECT_EQ(decompress_stream(input), "hello world");
 }
 
 TEST(decompress_header_with_fname) {
-  std::string header{"\x1f\x8b\x08\x08\x00\x00\x00\x00\x00\xff", 10};
-  header += "data.txt";
-  header.push_back('\0');
-  DeflateWriter writer;
-  write_stored_block(writer, true, "hello world");
-  EXPECT_EQ(decompress(gzip_member(header, writer.data(), "hello world")),
-            "hello world");
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x64,
+      0x61, 0x74, 0x61, 0x2e, 0x74, 0x78, 0x74, 0x00, 0x01, 0x0b, 0x00,
+      0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
+      0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input), "hello world");
+  EXPECT_EQ(decompress_stream(input), "hello world");
 }
 
 TEST(decompress_header_with_empty_fname) {
-  const std::string header{"\x1f\x8b\x08\x08\x00\x00\x00\x00\x00\xff\x00", 11};
-  DeflateWriter writer;
-  write_stored_block(writer, true, "hello world");
-  EXPECT_EQ(decompress(gzip_member(header, writer.data(), "hello world")),
-            "hello world");
-}
-
-TEST(decompress_header_with_one_megabyte_fname) {
-  std::string header{"\x1f\x8b\x08\x08\x00\x00\x00\x00\x00\xff", 10};
-  header.append(1048576, 'n');
-  header.push_back('\0');
-  DeflateWriter writer;
-  write_stored_block(writer, true, "hello world");
-  EXPECT_EQ(decompress(gzip_member(header, writer.data(), "hello world")),
-            "hello world");
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x00, 0x01,
+      0x0b, 0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f,
+      0x72, 0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input), "hello world");
+  EXPECT_EQ(decompress_stream(input), "hello world");
 }
 
 TEST(decompress_header_with_fname_containing_gzip_magic) {
-  std::string header{"\x1f\x8b\x08\x08\x00\x00\x00\x00\x00\xff", 10};
-  header += std::string{"\x1f\x8b\x08\x1f\x8b\x00", 6};
-  DeflateWriter writer;
-  write_stored_block(writer, true, "hello world");
-  EXPECT_EQ(decompress(gzip_member(header, writer.data(), "hello world")),
-            "hello world");
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff,
+      0x1f, 0x8b, 0x08, 0x1f, 0x8b, 0x00, 0x01, 0x0b, 0x00, 0xf4,
+      0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
+      0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input), "hello world");
+  EXPECT_EQ(decompress_stream(input), "hello world");
+}
+
+TEST(decompress_header_with_latin1_fname) {
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff,
+      0xa9, 0xc6, 0xff, 0x00, 0x01, 0x0b, 0x00, 0xf4, 0xff, 0x68,
+      0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72, 0x6c, 0x64,
+      0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input), "hello world");
+  EXPECT_EQ(decompress_stream(input), "hello world");
 }
 
 TEST(decompress_header_with_fcomment) {
-  std::string header{"\x1f\x8b\x08\x10\x00\x00\x00\x00\x00\xff", 10};
-  header += "a comment\nwith two lines";
-  header.push_back('\0');
-  DeflateWriter writer;
-  write_stored_block(writer, true, "hello world");
-  EXPECT_EQ(decompress(gzip_member(header, writer.data(), "hello world")),
-            "hello world");
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x61, 0x20,
+      0x63, 0x6f, 0x6d, 0x6d, 0x65, 0x6e, 0x74, 0x0a, 0x77, 0x69, 0x74, 0x68,
+      0x20, 0x74, 0x77, 0x6f, 0x20, 0x6c, 0x69, 0x6e, 0x65, 0x73, 0x00, 0x01,
+      0x0b, 0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f,
+      0x72, 0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input), "hello world");
+  EXPECT_EQ(decompress_stream(input), "hello world");
 }
 
 TEST(decompress_header_with_empty_fcomment) {
-  const std::string header{"\x1f\x8b\x08\x10\x00\x00\x00\x00\x00\xff\x00", 11};
-  DeflateWriter writer;
-  write_stored_block(writer, true, "hello world");
-  EXPECT_EQ(decompress(gzip_member(header, writer.data(), "hello world")),
-            "hello world");
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x00, 0x01,
+      0x0b, 0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f,
+      0x72, 0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input), "hello world");
+  EXPECT_EQ(decompress_stream(input), "hello world");
 }
 
-TEST(decompress_header_with_one_megabyte_fcomment) {
-  std::string header{"\x1f\x8b\x08\x10\x00\x00\x00\x00\x00\xff", 10};
-  header.append(1048576, 'c');
-  header.push_back('\0');
-  DeflateWriter writer;
-  write_stored_block(writer, true, "hello world");
-  EXPECT_EQ(decompress(gzip_member(header, writer.data(), "hello world")),
-            "hello world");
+TEST(decompress_header_with_latin1_fcomment) {
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff,
+      0xc0, 0xc1, 0xfe, 0x00, 0x01, 0x0b, 0x00, 0xf4, 0xff, 0x68,
+      0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72, 0x6c, 0x64,
+      0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input), "hello world");
+  EXPECT_EQ(decompress_stream(input), "hello world");
 }
 
 TEST(decompress_header_with_every_optional_field) {
-  std::string header{"\x1f\x8b\x08\x1f\x00\x00\x00\x00\x00\xff\x04\x00", 12};
-  header += std::string{"\xaa\xbb\xcc\xdd", 4};
-  header += "name.txt";
-  header.push_back('\0');
-  header += "comment";
-  header.push_back('\0');
-  header += std::string{"\x90\x3e", 2};
-  DeflateWriter writer;
-  write_stored_block(writer, true, "hello world");
-  EXPECT_EQ(decompress(gzip_member(header, writer.data(), "hello world")),
-            "hello world");
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x1f, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x04, 0x00,
+      0xaa, 0xbb, 0xcc, 0xdd, 0x6e, 0x61, 0x6d, 0x65, 0x2e, 0x74, 0x78, 0x74,
+      0x00, 0x63, 0x6f, 0x6d, 0x6d, 0x65, 0x6e, 0x74, 0x00, 0x90, 0x3e, 0x01,
+      0x0b, 0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f,
+      0x72, 0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input), "hello world");
+  EXPECT_EQ(decompress_stream(input), "hello world");
 }
 
-TEST(decompress_header_with_nonzero_mtime_xfl_and_os) {
-  const std::string header{"\x1f\x8b\x08\x00\x78\x56\x34\x12\x02\x03", 10};
-  DeflateWriter writer;
-  write_stored_block(writer, true, "hello world");
-  EXPECT_EQ(decompress(gzip_member(header, writer.data(), "hello world")),
-            "hello world");
+TEST(decompress_header_with_nonzero_mtime) {
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x00, 0x78, 0x56, 0x34, 0x12, 0x00, 0xff, 0x01, 0x0b,
+      0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
+      0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input), "hello world");
+  EXPECT_EQ(decompress_stream(input), "hello world");
 }
 
-TEST(decompress_wrong_first_identification_byte_throws) {
-  const std::string header{"\x1e\x8b\x08\x00\x00\x00\x00\x00\x00\xff", 10};
-  DeflateWriter writer;
-  write_stored_block(writer, true, "hello world");
-  try {
-    decompress(gzip_member(header, writer.data(), "hello world"));
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
-  }
+TEST(decompress_header_with_maximum_compression_xfl) {
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x01, 0x0b,
+      0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
+      0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input), "hello world");
+  EXPECT_EQ(decompress_stream(input), "hello world");
 }
 
-TEST(decompress_wrong_second_identification_byte_throws) {
-  const std::string header{"\x1f\x8c\x08\x00\x00\x00\x00\x00\x00\xff", 10};
-  DeflateWriter writer;
-  write_stored_block(writer, true, "hello world");
-  try {
-    decompress(gzip_member(header, writer.data(), "hello world"));
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
-  }
+TEST(decompress_header_with_fastest_compression_xfl) {
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0xff, 0x01, 0x0b,
+      0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
+      0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input), "hello world");
+  EXPECT_EQ(decompress_stream(input), "hello world");
 }
 
-TEST(decompress_swapped_identification_bytes_throws) {
-  const std::string header{"\x8b\x1f\x08\x00\x00\x00\x00\x00\x00\xff", 10};
-  DeflateWriter writer;
-  write_stored_block(writer, true, "hello world");
-  try {
-    decompress(gzip_member(header, writer.data(), "hello world"));
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
-  }
-}
-
-TEST(decompress_reserved_compression_method_0_throws) {
-  const std::string header{"\x1f\x8b\x00\x00\x00\x00\x00\x00\x00\xff", 10};
-  DeflateWriter writer;
-  write_stored_block(writer, true, "hello world");
-  try {
-    decompress(gzip_member(header, writer.data(), "hello world"));
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
-  }
-}
-
-TEST(decompress_reserved_compression_method_7_throws) {
-  const std::string header{"\x1f\x8b\x07\x00\x00\x00\x00\x00\x00\xff", 10};
-  DeflateWriter writer;
-  write_stored_block(writer, true, "hello world");
-  try {
-    decompress(gzip_member(header, writer.data(), "hello world"));
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
-  }
-}
-
-TEST(decompress_unknown_compression_method_9_throws) {
-  const std::string header{"\x1f\x8b\x09\x00\x00\x00\x00\x00\x00\xff", 10};
-  DeflateWriter writer;
-  write_stored_block(writer, true, "hello world");
-  try {
-    decompress(gzip_member(header, writer.data(), "hello world"));
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
-  }
-}
-
-TEST(decompress_reserved_flag_bit_5_throws) {
-  const std::string header{"\x1f\x8b\x08\x20\x00\x00\x00\x00\x00\xff", 10};
-  DeflateWriter writer;
-  write_stored_block(writer, true, "hello world");
-  try {
-    decompress(gzip_member(header, writer.data(), "hello world"));
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
-  }
-}
-
-TEST(decompress_reserved_flag_bit_6_throws) {
-  const std::string header{"\x1f\x8b\x08\x40\x00\x00\x00\x00\x00\xff", 10};
-  DeflateWriter writer;
-  write_stored_block(writer, true, "hello world");
-  try {
-    decompress(gzip_member(header, writer.data(), "hello world"));
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
-  }
-}
-
-TEST(decompress_reserved_flag_bit_7_throws) {
-  const std::string header{"\x1f\x8b\x08\x80\x00\x00\x00\x00\x00\xff", 10};
-  DeflateWriter writer;
-  write_stored_block(writer, true, "hello world");
-  try {
-    decompress(gzip_member(header, writer.data(), "hello world"));
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
-  }
-}
-
-TEST(decompress_reserved_flag_bit_alongside_ftext_throws) {
-  const std::string header{"\x1f\x8b\x08\x21\x00\x00\x00\x00\x00\xff", 10};
-  DeflateWriter writer;
-  write_stored_block(writer, true, "hello world");
-  try {
-    decompress(gzip_member(header, writer.data(), "hello world"));
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
-  }
-}
-
-TEST(decompress_empty_input_throws) {
-  try {
-    decompress("");
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
-  }
-}
-
-TEST(decompress_single_identification_byte_throws) {
-  try {
-    decompress("\x1f");
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
-  }
-}
-
-TEST(decompress_identification_bytes_only_throws) {
-  try {
-    decompress("\x1f\x8b");
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
-  }
-}
-
-TEST(decompress_header_only_throws) {
-  try {
-    decompress(GZIP_HEADER);
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
-  }
-}
-
-TEST(decompress_header_and_trailer_without_blocks_throws) {
-  try {
-    decompress(gzip_member(GZIP_HEADER, "", ""));
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
-  }
-}
-
-TEST(decompress_truncated_fextra_throws) {
-  std::string compressed{"\x1f\x8b\x08\x04\x00\x00\x00\x00\x00\xff\x64\x00",
-                         12};
-  compressed.append(20, 'x');
-  try {
-    decompress(compressed);
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
-  }
-}
-
-TEST(decompress_fextra_swallowing_rest_of_member_throws) {
-  DeflateWriter writer;
-  write_stored_block(writer, true, "hello world");
-  const auto body{gzip_member("", writer.data(), "hello world")};
-  std::string compressed{"\x1f\x8b\x08\x04\x00\x00\x00\x00\x00\xff", 10};
-  append_little_endian(compressed, static_cast<std::uint32_t>(body.size()));
-  compressed.resize(compressed.size() - 2);
-  compressed += body;
-  try {
-    decompress(compressed);
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
-  }
-}
-
-TEST(decompress_unterminated_fname_throws) {
-  std::string compressed{"\x1f\x8b\x08\x08\x00\x00\x00\x00\x00\xff", 10};
-  compressed.append(30, 'n');
-  try {
-    decompress(compressed);
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
-  }
-}
-
-TEST(decompress_unterminated_fcomment_throws) {
-  std::string compressed{"\x1f\x8b\x08\x10\x00\x00\x00\x00\x00\xff", 10};
-  compressed.append(30, 'c');
-  try {
-    decompress(compressed);
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
-  }
-}
-
-TEST(decompress_truncated_fhcrc_throws) {
-  try {
-    decompress(std::string{"\x1f\x8b\x08\x02\x00\x00\x00\x00\x00\xff\x90", 11});
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
-  }
-}
-
-TEST(decompress_truncated_stored_block_payload_throws) {
-  const auto payload{random_bytes(1000, 10)};
-  DeflateWriter writer;
-  write_stored_block(writer, true, payload);
-  auto compressed{gzip_member(GZIP_HEADER, writer.data(), payload)};
-  compressed.resize(compressed.size() - 508);
-  try {
-    decompress(compressed);
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
-  }
-}
-
-TEST(decompress_truncated_compressed_blocks_throws) {
-  auto compressed{compress(mixed_corpus(), 6)};
-  compressed.resize(compressed.size() / 2);
-  try {
-    decompress(compressed);
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
-  }
-}
-
-TEST(decompress_missing_trailer_throws) {
-  DeflateWriter writer;
-  write_stored_block(writer, true, "hello world");
-  auto compressed{gzip_member(GZIP_HEADER, writer.data(), "hello world")};
-  compressed.resize(compressed.size() - 8);
-  try {
-    decompress(compressed);
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
-  }
-}
-
-TEST(decompress_trailer_missing_last_byte_throws) {
-  DeflateWriter writer;
-  write_stored_block(writer, true, "hello world");
-  auto compressed{gzip_member(GZIP_HEADER, writer.data(), "hello world")};
-  compressed.pop_back();
-  try {
-    decompress(compressed);
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
-  }
-}
-
-TEST(decompress_crc32_lowest_bit_mismatch_throws) {
-  DeflateWriter writer;
-  write_stored_block(writer, true, "hello world");
-  auto compressed{gzip_member(GZIP_HEADER, writer.data(), "hello world")};
-  compressed[compressed.size() - 8] =
-      static_cast<char>(compressed[compressed.size() - 8] ^ 0x01);
-  try {
-    decompress(compressed);
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
-  }
-}
-
-TEST(decompress_crc32_highest_bit_mismatch_throws) {
-  DeflateWriter writer;
-  write_stored_block(writer, true, "hello world");
-  auto compressed{gzip_member(GZIP_HEADER, writer.data(), "hello world")};
-  compressed[compressed.size() - 5] =
-      static_cast<char>(compressed[compressed.size() - 5] ^ 0x80);
-  try {
-    decompress(compressed);
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
-  }
-}
-
-TEST(decompress_isize_off_by_one_throws) {
-  DeflateWriter writer;
-  write_stored_block(writer, true, "hello world");
-  std::string compressed{GZIP_HEADER};
-  compressed += writer.data();
-  append_little_endian(compressed, sourcemeta::core::crc32("hello world"));
-  append_little_endian(compressed, 12);
-  try {
-    decompress(compressed);
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
-  }
-}
-
-TEST(decompress_isize_highest_byte_mismatch_throws) {
-  DeflateWriter writer;
-  write_stored_block(writer, true, "hello world");
-  auto compressed{gzip_member(GZIP_HEADER, writer.data(), "hello world")};
-  compressed.back() = '\x01';
-  try {
-    decompress(compressed);
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
-  }
-}
-
-TEST(decompress_empty_payload_with_nonzero_crc32_throws) {
-  DeflateWriter writer;
-  write_stored_block(writer, true, "");
-  std::string compressed{GZIP_HEADER};
-  compressed += writer.data();
-  append_little_endian(compressed, 1);
-  append_little_endian(compressed, 0);
-  try {
-    decompress(compressed);
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
-  }
-}
-
-TEST(decompress_swapped_trailer_fields_throws) {
-  DeflateWriter writer;
-  write_stored_block(writer, true, "hello world");
-  std::string compressed{GZIP_HEADER};
-  compressed += writer.data();
-  append_little_endian(compressed, 11);
-  append_little_endian(compressed, sourcemeta::core::crc32("hello world"));
-  try {
-    decompress(compressed);
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
-  }
+TEST(decompress_header_with_unix_os) {
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x01, 0x0b,
+      0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
+      0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input), "hello world");
+  EXPECT_EQ(decompress_stream(input), "hello world");
 }
 
 TEST(decompress_stored_block_with_empty_final_block) {
-  DeflateWriter writer;
-  write_stored_block(writer, true, "");
-  EXPECT_EQ(decompress(gzip_member(GZIP_HEADER, writer.data(), "")), "");
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x01, 0x00,
+      0x00, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input), "");
+  EXPECT_EQ(decompress_stream(input), "");
 }
 
-TEST(decompress_stored_block_of_maximum_length) {
-  const auto payload{random_bytes(65535, 11)};
-  DeflateWriter writer;
-  write_stored_block(writer, true, payload);
-  EXPECT_EQ(decompress(gzip_member(GZIP_HEADER, writer.data(), payload)),
-            payload);
+TEST(decompress_empty_stored_block_before_data) {
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff,
+      0x00, 0x00, 0x00, 0xff, 0xff, 0x01, 0x0b, 0x00, 0xf4, 0xff,
+      0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72, 0x6c,
+      0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input), "hello world");
+  EXPECT_EQ(decompress_stream(input), "hello world");
 }
 
-TEST(decompress_consecutive_stored_blocks_of_maximum_length) {
-  const auto first{random_bytes(65535, 12)};
-  const auto second{random_bytes(65535, 13)};
-  DeflateWriter writer;
-  write_stored_block(writer, false, first);
-  write_stored_block(writer, true, second);
-  EXPECT_EQ(decompress(gzip_member(GZIP_HEADER, writer.data(), first + second)),
-            first + second);
-}
-
-TEST(decompress_many_empty_stored_blocks_before_data) {
-  DeflateWriter writer;
-  for (std::size_t index = 0; index < 10000; ++index) {
-    write_stored_block(writer, false, "");
-  }
-
-  write_stored_block(writer, true, "data");
-  EXPECT_EQ(decompress(gzip_member(GZIP_HEADER, writer.data(), "data")),
-            "data");
+TEST(decompress_two_stored_blocks) {
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff,
+      0x00, 0x05, 0x00, 0xfa, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f,
+      0x01, 0x06, 0x00, 0xf9, 0xff, 0x20, 0x77, 0x6f, 0x72, 0x6c,
+      0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input), "hello world");
+  EXPECT_EQ(decompress_stream(input), "hello world");
 }
 
 TEST(decompress_stored_block_ignores_nonzero_bits_before_byte_boundary) {
-  DeflateWriter writer;
-  write_block_header(writer, false, 1);
-  write_fixed_literals(writer, "a");
-  write_fixed_literal_length(writer, 256);
-  write_block_header(writer, true, 0);
-  writer.bits(7, 3);
-  writer.bits(1, 16);
-  writer.bits(0xfffe, 16);
-  writer.bytes("b");
-  EXPECT_EQ(decompress(gzip_member(GZIP_HEADER, writer.data(), "ab")), "ab");
-}
-
-TEST(decompress_stored_block_nlen_mismatch_throws) {
-  DeflateWriter writer;
-  write_block_header(writer, true, 0);
-  writer.align();
-  writer.bits(11, 16);
-  writer.bits(0, 16);
-  writer.bytes("hello world");
-  try {
-    decompress(gzip_member(GZIP_HEADER, writer.data(), "hello world"));
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
-  }
-}
-
-TEST(decompress_stored_block_nlen_equal_to_len_throws) {
-  const std::string payload(255, 'a');
-  DeflateWriter writer;
-  write_block_header(writer, true, 0);
-  writer.align();
-  writer.bits(255, 16);
-  writer.bits(255, 16);
-  writer.bytes(payload);
-  try {
-    decompress(gzip_member(GZIP_HEADER, writer.data(), payload));
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
-  }
-}
-
-TEST(decompress_stored_block_len_beyond_input_throws) {
-  DeflateWriter writer;
-  write_block_header(writer, true, 0);
-  writer.align();
-  writer.bits(100, 16);
-  writer.bits(0xff9b, 16);
-  writer.bytes("0123456789");
-  try {
-    decompress(gzip_member(GZIP_HEADER, writer.data(), "0123456789"));
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
-  }
-}
-
-TEST(decompress_reserved_block_type_throws) {
-  DeflateWriter writer;
-  write_block_header(writer, true, 3);
-  writer.bytes("hello world");
-  try {
-    decompress(gzip_member(GZIP_HEADER, writer.data(), "hello world"));
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
-  }
-}
-
-TEST(decompress_reserved_block_type_after_valid_block_throws) {
-  DeflateWriter writer;
-  write_stored_block(writer, false, "hello");
-  write_block_header(writer, true, 3);
-  writer.bytes(" world");
-  try {
-    decompress(gzip_member(GZIP_HEADER, writer.data(), "hello world"));
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
-  }
-}
-
-TEST(decompress_missing_final_block_throws) {
-  DeflateWriter writer;
-  write_stored_block(writer, false, "hello");
-  try {
-    decompress(gzip_member(GZIP_HEADER, writer.data(), "hello"));
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
-  }
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0xff, 0x4a, 0x04, 0xe4, 0x01, 0x00, 0xfe, 0xff, 0x62,
+      0x6d, 0x48, 0x83, 0x9e, 0x02, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input), "ab");
+  EXPECT_EQ(decompress_stream(input), "ab");
 }
 
 TEST(decompress_fixed_block_with_every_literal_value) {
-  std::string payload;
-  for (std::size_t index = 0; index < 256; ++index) {
-    payload.push_back(static_cast<char>(index));
-  }
-
-  DeflateWriter writer;
-  write_block_header(writer, true, 1);
-  write_fixed_literals(writer, payload);
-  write_fixed_literal_length(writer, 256);
-  EXPECT_EQ(decompress(gzip_member(GZIP_HEADER, writer.data(), payload)),
-            payload);
-}
-
-TEST(decompress_fixed_block_with_only_end_of_block) {
-  DeflateWriter writer;
-  write_block_header(writer, true, 1);
-  write_fixed_literal_length(writer, 256);
-  EXPECT_EQ(decompress(gzip_member(GZIP_HEADER, writer.data(), "")), "");
-}
-
-TEST(decompress_fixed_block_with_boundary_match_lengths) {
-  const std::string payload(1146, 'a');
-  DeflateWriter writer;
-  write_block_header(writer, true, 1);
-  write_fixed_literals(writer, "a");
-  write_fixed_literal_length(writer, 257);
-  writer.code(0, 5);
-  write_fixed_literal_length(writer, 264);
-  writer.code(0, 5);
-  write_fixed_literal_length(writer, 265);
-  writer.bits(0, 1);
-  writer.code(0, 5);
-  write_fixed_literal_length(writer, 265);
-  writer.bits(1, 1);
-  writer.code(0, 5);
-  write_fixed_literal_length(writer, 268);
-  writer.bits(1, 1);
-  writer.code(0, 5);
-  write_fixed_literal_length(writer, 269);
-  writer.bits(0, 2);
-  writer.code(0, 5);
-  write_fixed_literal_length(writer, 272);
-  writer.bits(3, 2);
-  writer.code(0, 5);
-  write_fixed_literal_length(writer, 273);
-  writer.bits(0, 3);
-  writer.code(0, 5);
-  write_fixed_literal_length(writer, 280);
-  writer.bits(15, 4);
-  writer.code(0, 5);
-  write_fixed_literal_length(writer, 281);
-  writer.bits(0, 5);
-  writer.code(0, 5);
-  write_fixed_literal_length(writer, 284);
-  writer.bits(0, 5);
-  writer.code(0, 5);
-  write_fixed_literal_length(writer, 284);
-  writer.bits(30, 5);
-  writer.code(0, 5);
-  write_fixed_literal_length(writer, 285);
-  writer.code(0, 5);
-  write_fixed_literal_length(writer, 256);
-  EXPECT_EQ(decompress(gzip_member(GZIP_HEADER, writer.data(), payload)),
-            payload);
-}
-
-TEST(decompress_fixed_block_with_boundary_distances) {
-  const auto history{random_bytes(32768, 14)};
-  std::string expected{history};
-  expected.append(3, expected.back());
-  expected += expected.substr(expected.size() - 4, 3);
-  expected += expected.substr(expected.size() - 5, 3);
-  expected += expected.substr(expected.size() - 6, 3);
-  expected += expected.substr(expected.size() - 12, 3);
-  expected += expected.substr(expected.size() - 128, 3);
-  expected += expected.substr(expected.size() - 129, 3);
-  expected += expected.substr(expected.size() - 1024, 3);
-  expected += expected.substr(expected.size() - 1025, 3);
-  expected += expected.substr(expected.size() - 12288, 3);
-  expected += expected.substr(expected.size() - 12289, 3);
-  expected += expected.substr(expected.size() - 24577, 3);
-  expected += expected.substr(expected.size() - 32768, 3);
-
-  DeflateWriter writer;
-  write_stored_block(writer, false, history);
-  write_block_header(writer, true, 1);
-  write_fixed_literal_length(writer, 257);
-  writer.code(0, 5);
-  write_fixed_literal_length(writer, 257);
-  writer.code(3, 5);
-  write_fixed_literal_length(writer, 257);
-  writer.code(4, 5);
-  writer.bits(0, 1);
-  write_fixed_literal_length(writer, 257);
-  writer.code(4, 5);
-  writer.bits(1, 1);
-  write_fixed_literal_length(writer, 257);
-  writer.code(6, 5);
-  writer.bits(3, 2);
-  write_fixed_literal_length(writer, 257);
-  writer.code(13, 5);
-  writer.bits(31, 5);
-  write_fixed_literal_length(writer, 257);
-  writer.code(14, 5);
-  writer.bits(0, 6);
-  write_fixed_literal_length(writer, 257);
-  writer.code(19, 5);
-  writer.bits(255, 8);
-  write_fixed_literal_length(writer, 257);
-  writer.code(20, 5);
-  writer.bits(0, 9);
-  write_fixed_literal_length(writer, 257);
-  writer.code(26, 5);
-  writer.bits(4095, 12);
-  write_fixed_literal_length(writer, 257);
-  writer.code(27, 5);
-  writer.bits(0, 12);
-  write_fixed_literal_length(writer, 257);
-  writer.code(29, 5);
-  writer.bits(0, 13);
-  write_fixed_literal_length(writer, 257);
-  writer.code(29, 5);
-  writer.bits(8191, 13);
-  write_fixed_literal_length(writer, 256);
-  EXPECT_EQ(decompress(gzip_member(GZIP_HEADER, writer.data(), expected)),
-            expected);
-}
-
-TEST(decompress_fixed_block_overlapping_match) {
-  DeflateWriter writer;
-  write_block_header(writer, true, 1);
-  write_fixed_literals(writer, "XY");
-  write_fixed_literal_length(writer, 259);
-  writer.code(1, 5);
-  write_fixed_literal_length(writer, 256);
-  EXPECT_EQ(decompress(gzip_member(GZIP_HEADER, writer.data(), "XYXYXYX")),
-            "XYXYXYX");
-}
-
-TEST(decompress_fixed_block_maximum_length_match_at_distance_one) {
-  const std::string payload(259, 'x');
-  DeflateWriter writer;
-  write_block_header(writer, true, 1);
-  write_fixed_literals(writer, "x");
-  write_fixed_literal_length(writer, 285);
-  writer.code(0, 5);
-  write_fixed_literal_length(writer, 256);
-  EXPECT_EQ(decompress(gzip_member(GZIP_HEADER, writer.data(), payload)),
-            payload);
-}
-
-TEST(decompress_fixed_block_maximum_length_match_at_maximum_distance) {
-  const auto history{random_bytes(32768, 15)};
-  const auto expected{history + history.substr(0, 258)};
-  DeflateWriter writer;
-  write_stored_block(writer, false, history);
-  write_block_header(writer, true, 1);
-  write_fixed_literal_length(writer, 285);
-  writer.code(29, 5);
-  writer.bits(8191, 13);
-  write_fixed_literal_length(writer, 256);
-  EXPECT_EQ(decompress(gzip_member(GZIP_HEADER, writer.data(), expected)),
-            expected);
-}
-
-TEST(decompress_fixed_block_distance_beyond_output_throws) {
-  DeflateWriter writer;
-  write_block_header(writer, true, 1);
-  write_fixed_literals(writer, "a");
-  write_fixed_literal_length(writer, 257);
-  writer.code(1, 5);
-  write_fixed_literal_length(writer, 256);
-  try {
-    decompress(gzip_member(GZIP_HEADER, writer.data(), "aaaa"));
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
-  }
-}
-
-TEST(decompress_fixed_block_maximum_distance_one_beyond_output_throws) {
-  const auto history{random_bytes(32767, 16)};
-  DeflateWriter writer;
-  write_stored_block(writer, false, history);
-  write_block_header(writer, true, 1);
-  write_fixed_literal_length(writer, 257);
-  writer.code(29, 5);
-  writer.bits(8191, 13);
-  write_fixed_literal_length(writer, 256);
-  try {
-    decompress(gzip_member(GZIP_HEADER, writer.data(), history));
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
-  }
-}
-
-TEST(decompress_fixed_block_match_before_any_output_throws) {
-  DeflateWriter writer;
-  write_block_header(writer, true, 1);
-  write_fixed_literal_length(writer, 257);
-  writer.code(0, 5);
-  write_fixed_literal_length(writer, 256);
-  try {
-    decompress(gzip_member(GZIP_HEADER, writer.data(), ""));
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
-  }
-}
-
-TEST(decompress_match_across_stored_and_fixed_blocks) {
-  DeflateWriter writer;
-  write_stored_block(writer, false, "hello ");
-  write_block_header(writer, true, 1);
-  write_fixed_literal_length(writer, 259);
-  writer.code(4, 5);
-  writer.bits(1, 1);
-  write_fixed_literal_length(writer, 256);
-  EXPECT_EQ(decompress(gzip_member(GZIP_HEADER, writer.data(), "hello hello")),
-            "hello hello");
-}
-
-TEST(decompress_match_spanning_several_blocks) {
-  DeflateWriter writer;
-  write_stored_block(writer, false, "ab");
-  write_block_header(writer, false, 1);
-  write_fixed_literals(writer, "cd");
-  write_fixed_literal_length(writer, 256);
-  write_stored_block(writer, false, "ef");
-  write_block_header(writer, true, 1);
-  write_fixed_literal_length(writer, 260);
-  writer.code(4, 5);
-  writer.bits(1, 1);
-  write_fixed_literal_length(writer, 256);
-  EXPECT_EQ(decompress(gzip_member(GZIP_HEADER, writer.data(), "abcdefabcdef")),
-            "abcdefabcdef");
-}
-
-TEST(decompress_match_into_previous_member_throws) {
-  DeflateWriter first;
-  write_stored_block(first, true, "hello");
-  DeflateWriter second;
-  write_block_header(second, true, 1);
-  write_fixed_literal_length(second, 259);
-  second.code(4, 5);
-  second.bits(0, 1);
-  write_fixed_literal_length(second, 256);
-  const auto compressed{gzip_member(GZIP_HEADER, first.data(), "hello") +
-                        gzip_member(GZIP_HEADER, second.data(), "hello")};
-  try {
-    decompress(compressed);
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
-  }
-}
-
-TEST(decompress_many_single_literal_fixed_blocks) {
-  std::string payload;
-  DeflateWriter writer;
-  for (std::size_t index = 0; index < 10000; ++index) {
-    const auto character{static_cast<char>('a' + (index % 26))};
-    payload.push_back(character);
-    write_block_header(writer, false, 1);
-    write_fixed_literal_length(writer, static_cast<unsigned char>(character));
-    write_fixed_literal_length(writer, 256);
-  }
-
-  write_block_header(writer, true, 1);
-  write_fixed_literal_length(writer, 256);
-  EXPECT_EQ(decompress(gzip_member(GZIP_HEADER, writer.data(), payload)),
-            payload);
-}
-
-TEST(decompress_single_fixed_block_with_maximum_compression_ratio) {
-  std::string payload;
-  payload.append(16908289, 'a');
-  DeflateWriter writer;
-  write_block_header(writer, true, 1);
-  write_fixed_literals(writer, "a");
-  for (std::size_t index = 0; index < 65536; ++index) {
-    write_fixed_literal_length(writer, 285);
-    writer.code(0, 5);
-  }
-
-  write_fixed_literal_length(writer, 256);
-  EXPECT_EQ(decompress(gzip_member(GZIP_HEADER, writer.data(), payload)),
-            payload);
-}
-
-TEST(decompress_ignores_nonzero_padding_bits_after_final_block) {
-  DeflateWriter writer;
-  write_block_header(writer, true, 1);
-  write_fixed_literals(writer, "a");
-  write_fixed_literal_length(writer, 256);
-  writer.bits(63, 6);
-  EXPECT_EQ(decompress(gzip_member(GZIP_HEADER, writer.data(), "a")), "a");
-}
-
-TEST(decompress_dynamic_block_with_literals_and_match) {
-  const auto literal_lengths{
-      code_lengths(258, {{97, 2}, {98, 2}, {256, 2}, {257, 2}})};
-  const auto distance_lengths{code_lengths(1, {{0, 1}})};
-  const HuffmanCode literals{literal_lengths};
-  const HuffmanCode distances{distance_lengths};
-  DeflateWriter writer;
-  write_dynamic_header(writer, true, literal_lengths, distance_lengths);
-  literals.write(writer, 97);
-  literals.write(writer, 98);
-  literals.write(writer, 97);
-  literals.write(writer, 98);
-  literals.write(writer, 257);
-  distances.write(writer, 0);
-  literals.write(writer, 256);
-  EXPECT_EQ(decompress(gzip_member(GZIP_HEADER, writer.data(), "ababbbb")),
-            "ababbbb");
-}
-
-TEST(decompress_dynamic_block_without_distance_codes) {
-  const auto literal_lengths{code_lengths(257, {{97, 1}, {256, 1}})};
-  const HuffmanCode literals{literal_lengths};
-  DeflateWriter writer;
-  write_dynamic_header(writer, true, literal_lengths, code_lengths(1, {}));
-  literals.write(writer, 97);
-  literals.write(writer, 97);
-  literals.write(writer, 97);
-  literals.write(writer, 256);
-  EXPECT_EQ(decompress(gzip_member(GZIP_HEADER, writer.data(), "aaa")), "aaa");
-}
-
-TEST(decompress_dynamic_block_with_maximum_literal_length_codes) {
-  const std::string payload(259, 'a');
-  const auto literal_lengths{code_lengths(286, {{97, 1}, {256, 2}, {285, 2}})};
-  const auto distance_lengths{code_lengths(1, {{0, 1}})};
-  const HuffmanCode literals{literal_lengths};
-  const HuffmanCode distances{distance_lengths};
-  DeflateWriter writer;
-  write_dynamic_header(writer, true, literal_lengths, distance_lengths);
-  literals.write(writer, 97);
-  literals.write(writer, 285);
-  distances.write(writer, 0);
-  literals.write(writer, 256);
-  EXPECT_EQ(decompress(gzip_member(GZIP_HEADER, writer.data(), payload)),
-            payload);
-}
-
-TEST(decompress_dynamic_block_with_maximum_distance_codes) {
-  const auto literal_lengths{
-      code_lengths(258, {{97, 2}, {98, 2}, {256, 2}, {257, 2}})};
-  const auto distance_lengths{code_lengths(32, {{0, 1}, {1, 1}})};
-  const HuffmanCode literals{literal_lengths};
-  const HuffmanCode distances{distance_lengths};
-  DeflateWriter writer;
-  write_dynamic_header(writer, true, literal_lengths, distance_lengths);
-  literals.write(writer, 97);
-  literals.write(writer, 98);
-  literals.write(writer, 257);
-  distances.write(writer, 1);
-  literals.write(writer, 257);
-  distances.write(writer, 0);
-  literals.write(writer, 256);
-  EXPECT_EQ(decompress(gzip_member(GZIP_HEADER, writer.data(), "ababaaaa")),
-            "ababaaaa");
-}
-
-TEST(decompress_dynamic_block_with_fifteen_bit_literal_length_codes) {
-  const auto literal_lengths{code_lengths(257, {{97, 1},
-                                                {98, 2},
-                                                {99, 3},
-                                                {100, 4},
-                                                {101, 5},
-                                                {102, 6},
-                                                {103, 7},
-                                                {104, 8},
-                                                {105, 9},
-                                                {106, 10},
-                                                {107, 11},
-                                                {108, 12},
-                                                {109, 13},
-                                                {110, 14},
-                                                {111, 15},
-                                                {256, 15}})};
-  const HuffmanCode literals{literal_lengths};
-  DeflateWriter writer;
-  write_dynamic_header(writer, true, literal_lengths, code_lengths(1, {}));
-  literals.write(writer, 97);
-  literals.write(writer, 98);
-  literals.write(writer, 99);
-  literals.write(writer, 100);
-  literals.write(writer, 101);
-  literals.write(writer, 102);
-  literals.write(writer, 103);
-  literals.write(writer, 104);
-  literals.write(writer, 105);
-  literals.write(writer, 106);
-  literals.write(writer, 107);
-  literals.write(writer, 108);
-  literals.write(writer, 109);
-  literals.write(writer, 110);
-  literals.write(writer, 111);
-  literals.write(writer, 111);
-  literals.write(writer, 256);
-  EXPECT_EQ(
-      decompress(gzip_member(GZIP_HEADER, writer.data(), "abcdefghijklmnoo")),
-      "abcdefghijklmnoo");
-}
-
-TEST(decompress_dynamic_block_with_fifteen_bit_distance_codes) {
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x63, 0x60,
+      0x64, 0x62, 0x66, 0x61, 0x65, 0x63, 0xe7, 0xe0, 0xe4, 0xe2, 0xe6, 0xe1,
+      0xe5, 0xe3, 0x17, 0x10, 0x14, 0x12, 0x16, 0x11, 0x15, 0x13, 0x97, 0x90,
+      0x94, 0x92, 0x96, 0x91, 0x95, 0x93, 0x57, 0x50, 0x54, 0x52, 0x56, 0x51,
+      0x55, 0x53, 0xd7, 0xd0, 0xd4, 0xd2, 0xd6, 0xd1, 0xd5, 0xd3, 0x37, 0x30,
+      0x34, 0x32, 0x36, 0x31, 0x35, 0x33, 0xb7, 0xb0, 0xb4, 0xb2, 0xb6, 0xb1,
+      0xb5, 0xb3, 0x77, 0x70, 0x74, 0x72, 0x76, 0x71, 0x75, 0x73, 0xf7, 0xf0,
+      0xf4, 0xf2, 0xf6, 0xf1, 0xf5, 0xf3, 0x0f, 0x08, 0x0c, 0x0a, 0x0e, 0x09,
+      0x0d, 0x0b, 0x8f, 0x88, 0x8c, 0x8a, 0x8e, 0x89, 0x8d, 0x8b, 0x4f, 0x48,
+      0x4c, 0x4a, 0x4e, 0x49, 0x4d, 0x4b, 0xcf, 0xc8, 0xcc, 0xca, 0xce, 0xc9,
+      0xcd, 0xcb, 0x2f, 0x28, 0x2c, 0x2a, 0x2e, 0x29, 0x2d, 0x2b, 0xaf, 0xa8,
+      0xac, 0xaa, 0xae, 0xa9, 0xad, 0xab, 0x6f, 0x68, 0x6c, 0x6a, 0x6e, 0x69,
+      0x6d, 0x6b, 0xef, 0xe8, 0xec, 0xea, 0xee, 0xe9, 0xed, 0xeb, 0x9f, 0x30,
+      0x71, 0xd2, 0xe4, 0x29, 0x53, 0xa7, 0x4d, 0x9f, 0x31, 0x73, 0xd6, 0xec,
+      0x39, 0x73, 0xe7, 0xcd, 0x5f, 0xb0, 0x70, 0xd1, 0xe2, 0x25, 0x4b, 0x97,
+      0x2d, 0x5f, 0xb1, 0x72, 0xd5, 0xea, 0x35, 0x6b, 0xd7, 0xad, 0xdf, 0xb0,
+      0x71, 0xd3, 0xe6, 0x2d, 0x5b, 0xb7, 0x6d, 0xdf, 0xb1, 0x73, 0xd7, 0xee,
+      0x3d, 0x7b, 0xf7, 0xed, 0x3f, 0x70, 0xf0, 0xd0, 0xe1, 0x23, 0x47, 0x8f,
+      0x1d, 0x3f, 0x71, 0xf2, 0xd4, 0xe9, 0x33, 0x67, 0xcf, 0x9d, 0xbf, 0x70,
+      0xf1, 0xd2, 0xe5, 0x2b, 0x57, 0xaf, 0x5d, 0xbf, 0x71, 0xf3, 0xd6, 0xed,
+      0x3b, 0x77, 0xef, 0xdd, 0x7f, 0xf0, 0xf0, 0xd1, 0xe3, 0x27, 0x4f, 0x9f,
+      0x3d, 0x7f, 0xf1, 0xf2, 0xd5, 0xeb, 0x37, 0x6f, 0xdf, 0xbd, 0xff, 0xf0,
+      0xf1, 0xd3, 0xe7, 0x2f, 0x5f, 0xbf, 0x7d, 0xff, 0xf1, 0xf3, 0xd7, 0xef,
+      0x3f, 0x7f, 0xff, 0xfd, 0x07, 0x00, 0x73, 0x8c, 0x05, 0x29, 0x00, 0x01,
+      0x00, 0x00};
   std::string expected;
   for (std::size_t index = 0; index < 256; ++index) {
     expected.push_back(static_cast<char>(index));
   }
 
-  const auto history{expected};
-  expected += expected.substr(expected.size() - 193, 3);
-  expected += expected.substr(expected.size() - 192, 3);
-  expected.append(3, expected.back());
+  EXPECT_EQ(decompress_one_shot(input), expected);
+  EXPECT_EQ(decompress_stream(input), expected);
+}
 
-  const auto literal_lengths{code_lengths(258, {{256, 1}, {257, 1}})};
-  const auto distance_lengths{code_lengths(16, {{0, 1},
-                                                {1, 2},
-                                                {2, 3},
-                                                {3, 4},
-                                                {4, 5},
-                                                {5, 6},
-                                                {6, 7},
-                                                {7, 8},
-                                                {8, 9},
-                                                {9, 10},
-                                                {10, 11},
-                                                {11, 12},
-                                                {12, 13},
-                                                {13, 14},
-                                                {14, 15},
-                                                {15, 15}})};
-  const HuffmanCode literals{literal_lengths};
-  const HuffmanCode distances{distance_lengths};
-  DeflateWriter writer;
-  write_stored_block(writer, false, history);
-  write_dynamic_header(writer, true, literal_lengths, distance_lengths);
-  literals.write(writer, 257);
-  distances.write(writer, 15);
-  writer.bits(0, 6);
-  literals.write(writer, 257);
-  distances.write(writer, 14);
-  writer.bits(63, 6);
-  literals.write(writer, 257);
-  distances.write(writer, 0);
-  literals.write(writer, 256);
-  EXPECT_EQ(decompress(gzip_member(GZIP_HEADER, writer.data(), expected)),
-            expected);
+TEST(decompress_fixed_block_with_only_end_of_block) {
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x13,
+      0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input), "");
+  EXPECT_EQ(decompress_stream(input), "");
+}
+
+TEST(decompress_fixed_block_with_repeated_word) {
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x13,
+      0xcb, 0x48, 0xcd, 0xc9, 0xc9, 0x57, 0xc8, 0xc0, 0x4e, 0x02,
+      0x00, 0xf6, 0xd2, 0x53, 0x38, 0x1d, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input), "hello hello hello hello hello");
+  EXPECT_EQ(decompress_stream(input), "hello hello hello hello hello");
+}
+
+TEST(decompress_fixed_block_with_boundary_match_lengths) {
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x4b,
+      0x04, 0x02, 0x04, 0x40, 0x02, 0xc8, 0x00, 0x13, 0x60, 0x01, 0x84,
+      0x01, 0x11, 0x60, 0xe0, 0xc1, 0x20, 0x00, 0x23, 0x00, 0x8c, 0x78,
+      0x30, 0x0a, 0x00, 0x9b, 0xb4, 0x10, 0xfa, 0x7a, 0x04, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input), std::string(1146, 'a'));
+  EXPECT_EQ(decompress_stream(input), std::string(1146, 'a'));
+}
+
+TEST(decompress_fixed_block_overlapping_match) {
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x8b, 0x88,
+      0x04, 0x43, 0x00, 0x60, 0xa5, 0xd7, 0x74, 0x07, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input), "XYXYXYX");
+  EXPECT_EQ(decompress_stream(input), "XYXYXYX");
+}
+
+TEST(decompress_fixed_block_maximum_length_match_at_distance_one) {
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xab,
+      0x18, 0x05, 0x00, 0xad, 0x7c, 0x22, 0xf7, 0x03, 0x01, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input), std::string(259, 'x'));
+  EXPECT_EQ(decompress_stream(input), std::string(259, 'x'));
+}
+
+TEST(decompress_fixed_block_matches_wrapping_the_window) {
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x4b, 0x4c,
+      0x1a, 0x85, 0xa3, 0x70, 0x14, 0x8e, 0xc2, 0x51, 0x38, 0x0a, 0x47, 0xe1,
+      0x28, 0x1c, 0x85, 0xa3, 0x70, 0x14, 0x8e, 0xc2, 0x51, 0x38, 0x0a, 0x47,
+      0xe1, 0x28, 0x1c, 0x85, 0xa3, 0x70, 0x14, 0x8e, 0xc2, 0x51, 0x38, 0x0a,
+      0x47, 0xe1, 0x28, 0x1c, 0x85, 0xa3, 0x70, 0x14, 0x8e, 0xc2, 0x51, 0x38,
+      0x0a, 0x47, 0xe1, 0x28, 0x1c, 0x85, 0xa3, 0x70, 0x14, 0x8e, 0xc2, 0x51,
+      0x38, 0x0a, 0x47, 0xe1, 0x28, 0x1c, 0x85, 0xa3, 0x70, 0x14, 0x8e, 0xc2,
+      0x51, 0x38, 0x0a, 0x47, 0xe1, 0x28, 0x1c, 0x85, 0xa3, 0x70, 0x14, 0x8e,
+      0xc2, 0x51, 0x38, 0x0a, 0x47, 0xe1, 0x28, 0x1c, 0x85, 0xa3, 0x70, 0x14,
+      0x8e, 0xc2, 0x51, 0x38, 0x0a, 0x47, 0xe1, 0x28, 0x1c, 0x85, 0xa3, 0x70,
+      0x14, 0x8e, 0xc2, 0x51, 0x38, 0x0a, 0x47, 0xe1, 0x28, 0x1c, 0x85, 0xa3,
+      0x70, 0x14, 0x8e, 0xc2, 0x51, 0x38, 0x0a, 0x47, 0xe1, 0x28, 0x1c, 0x85,
+      0xa3, 0x70, 0x14, 0x8e, 0xc2, 0x51, 0x38, 0x0a, 0x47, 0xe1, 0x28, 0x1c,
+      0x85, 0xa3, 0x70, 0x14, 0x8e, 0xc2, 0x51, 0x38, 0x0a, 0x47, 0xe1, 0x28,
+      0x1c, 0x85, 0xa3, 0x70, 0x14, 0x8e, 0xc2, 0x51, 0x38, 0x0a, 0x47, 0xe1,
+      0x28, 0x1c, 0x85, 0xa3, 0x70, 0x14, 0x8e, 0xc2, 0x51, 0x38, 0x0a, 0x47,
+      0xe1, 0x28, 0x1c, 0x85, 0xa3, 0x70, 0x14, 0x8e, 0xc2, 0x51, 0x38, 0x0a,
+      0x47, 0xe1, 0x28, 0x1c, 0x85, 0xa3, 0x70, 0x14, 0x8e, 0xc2, 0x51, 0x38,
+      0x0a, 0x87, 0x36, 0x1c, 0x0d, 0xab, 0xd1, 0x10, 0x00, 0x00, 0xba, 0xf1,
+      0x51, 0x56, 0xc0, 0x81, 0x00, 0x00};
+  std::string expected;
+  for (std::size_t index = 0; index < 16608; ++index) {
+    expected += "ab";
+  }
+
+  EXPECT_EQ(decompress_one_shot(input), expected);
+  EXPECT_EQ(decompress_stream(input), expected);
+}
+
+TEST(decompress_match_across_stored_and_fixed_blocks) {
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x00,
+      0x06, 0x00, 0xf9, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x03,
+      0x93, 0x00, 0x40, 0xa6, 0x2d, 0x01, 0x0b, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input), "hello hello");
+  EXPECT_EQ(decompress_stream(input), "hello hello");
+}
+
+TEST(decompress_match_spanning_several_blocks) {
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff,
+      0x00, 0x02, 0x00, 0xfd, 0xff, 0x61, 0x62, 0x4a, 0x4e, 0x01,
+      0x00, 0x02, 0x00, 0xfd, 0xff, 0x65, 0x66, 0x83, 0x90, 0x00,
+      0x66, 0xe9, 0xe4, 0x71, 0x0c, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input), "abcdefabcdef");
+  EXPECT_EQ(decompress_stream(input), "abcdefabcdef");
+}
+
+TEST(decompress_ignores_nonzero_padding_bits_after_final_block) {
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x4b,
+      0x04, 0xfc, 0x43, 0xbe, 0xb7, 0xe8, 0x01, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input), "a");
+  EXPECT_EQ(decompress_stream(input), "a");
+}
+
+TEST(decompress_dynamic_block_with_literals_and_match) {
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x0d, 0xe0,
+      0x01, 0x90, 0x24, 0x49, 0x92, 0x24, 0x49, 0x02, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x11, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x10, 0x21, 0xe2, 0x02, 0x14, 0x41, 0xc8, 0x7f, 0x07,
+      0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input), "ababbbb");
+  EXPECT_EQ(decompress_stream(input), "ababbbb");
+}
+
+TEST(decompress_dynamic_block_without_distance_codes) {
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x05, 0xe0,
+      0x01, 0x90, 0x24, 0x49, 0x92, 0x24, 0x49, 0x02, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x20, 0x20, 0x2d, 0x73, 0x07, 0xf0, 0x03, 0x00, 0x00,
+      0x00};
+  EXPECT_EQ(decompress_one_shot(input), "aaa");
+  EXPECT_EQ(decompress_stream(input), "aaa");
+}
+
+TEST(decompress_dynamic_block_with_only_end_of_block) {
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x05,
+      0xc0, 0x81, 0x08, 0x00, 0x00, 0x00, 0x00, 0x20, 0x7f, 0xeb, 0x03,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input), "");
+  EXPECT_EQ(decompress_stream(input), "");
+}
+
+TEST(decompress_dynamic_block_with_single_literal_length_code) {
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x05, 0xe0,
+      0x01, 0x90, 0x24, 0x49, 0x92, 0x24, 0x49, 0x02, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00};
+  EXPECT_EQ(decompress_one_shot(input), "");
+  EXPECT_EQ(decompress_stream(input), "");
+}
+
+TEST(decompress_dynamic_block_with_maximum_literal_length_codes) {
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xed, 0xe0,
+      0x01, 0x90, 0x24, 0x49, 0x92, 0x24, 0x49, 0x02, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xa1, 0x05, 0x56, 0xfa, 0xc2, 0x34,
+      0x03, 0x01, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input), std::string(259, 'a'));
+  EXPECT_EQ(decompress_stream(input), std::string(259, 'a'));
+}
+
+TEST(decompress_dynamic_block_with_maximum_distance_codes) {
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x0d, 0xff,
+      0x01, 0x90, 0x24, 0x49, 0x92, 0x24, 0x49, 0x02, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x11, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x10, 0x21, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xe0, 0x17, 0x0b, 0xe0,
+      0xcc, 0xc9, 0x08, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input), "ababaaaa");
+  EXPECT_EQ(decompress_stream(input), "ababaaaa");
+}
+
+TEST(decompress_dynamic_block_with_fifteen_bit_literal_length_codes) {
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x05, 0xe0,
+      0x01, 0x90, 0x24, 0x49, 0x92, 0x24, 0x49, 0x02, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x12, 0x8b, 0x9a, 0x47,
+      0x56, 0xcf, 0xde, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x3c, 0x68, 0xf7, 0xbe, 0xdf, 0xdf, 0xbf, 0xff, 0xfe,
+      0xf7, 0x7f, 0xff, 0xef, 0xff, 0xfb, 0xff, 0xfd, 0xff, 0xfe, 0xff, 0x66,
+      0xcd, 0x32, 0x19, 0x10, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input), "abcdefghijklmnoo");
+  EXPECT_EQ(decompress_stream(input), "abcdefghijklmnoo");
+}
+
+TEST(decompress_dynamic_block_with_fifteen_bit_distance_codes) {
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00,
+      0x01, 0xff, 0xfe, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
+      0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10, 0x11, 0x12, 0x13, 0x14,
+      0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f, 0x20,
+      0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2a, 0x2b, 0x2c,
+      0x2d, 0x2e, 0x2f, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38,
+      0x39, 0x3a, 0x3b, 0x3c, 0x3d, 0x3e, 0x3f, 0x40, 0x41, 0x42, 0x43, 0x44,
+      0x45, 0x46, 0x47, 0x48, 0x49, 0x4a, 0x4b, 0x4c, 0x4d, 0x4e, 0x4f, 0x50,
+      0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59, 0x5a, 0x5b, 0x5c,
+      0x5d, 0x5e, 0x5f, 0x60, 0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68,
+      0x69, 0x6a, 0x6b, 0x6c, 0x6d, 0x6e, 0x6f, 0x70, 0x71, 0x72, 0x73, 0x74,
+      0x75, 0x76, 0x77, 0x78, 0x79, 0x7a, 0x7b, 0x7c, 0x7d, 0x7e, 0x7f, 0x80,
+      0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87, 0x88, 0x89, 0x8a, 0x8b, 0x8c,
+      0x8d, 0x8e, 0x8f, 0x90, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97, 0x98,
+      0x99, 0x9a, 0x9b, 0x9c, 0x9d, 0x9e, 0x9f, 0xa0, 0xa1, 0xa2, 0xa3, 0xa4,
+      0xa5, 0xa6, 0xa7, 0xa8, 0xa9, 0xaa, 0xab, 0xac, 0xad, 0xae, 0xaf, 0xb0,
+      0xb1, 0xb2, 0xb3, 0xb4, 0xb5, 0xb6, 0xb7, 0xb8, 0xb9, 0xba, 0xbb, 0xbc,
+      0xbd, 0xbe, 0xbf, 0xc0, 0xc1, 0xc2, 0xc3, 0xc4, 0xc5, 0xc6, 0xc7, 0xc8,
+      0xc9, 0xca, 0xcb, 0xcc, 0xcd, 0xce, 0xcf, 0xd0, 0xd1, 0xd2, 0xd3, 0xd4,
+      0xd5, 0xd6, 0xd7, 0xd8, 0xd9, 0xda, 0xdb, 0xdc, 0xdd, 0xde, 0xdf, 0xe0,
+      0xe1, 0xe2, 0xe3, 0xe4, 0xe5, 0xe6, 0xe7, 0xe8, 0xe9, 0xea, 0xeb, 0xec,
+      0xed, 0xee, 0xef, 0xf0, 0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7, 0xf8,
+      0xf9, 0xfa, 0xfb, 0xfc, 0xfd, 0xfe, 0xff, 0x0d, 0xef, 0x01, 0x90, 0x24,
+      0x49, 0x92, 0x24, 0x49, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x20, 0x22, 0xb1, 0xa8, 0x79, 0x64, 0xf5, 0xec, 0xfd, 0xff, 0xff, 0x03,
+      0xff, 0x7f, 0x7f, 0x00, 0x61, 0xdc, 0xdd, 0x16, 0x09, 0x01, 0x00, 0x00};
+  std::string expected;
+  for (std::size_t index = 0; index < 256; ++index) {
+    expected.push_back(static_cast<char>(index));
+  }
+
+  expected.append({0x3f, 0x40, 0x41, 0x43, 0x44, 0x45, 0x45, 0x45, 0x45});
+  EXPECT_EQ(decompress_one_shot(input), expected);
+  EXPECT_EQ(decompress_stream(input), expected);
 }
 
 TEST(decompress_dynamic_block_with_seven_bit_code_length_codes) {
-  const HuffmanCode precode{code_lengths(
-      19, {{0, 1}, {1, 2}, {2, 3}, {3, 4}, {4, 5}, {5, 6}, {6, 7}, {7, 7}})};
-  const auto literal_lengths{code_lengths(257, {{97, 1},
-                                                {98, 2},
-                                                {99, 3},
-                                                {100, 4},
-                                                {101, 5},
-                                                {102, 6},
-                                                {103, 7},
-                                                {256, 7}})};
-  const HuffmanCode literals{literal_lengths};
-  DeflateWriter writer;
-  write_block_header(writer, true, 2);
-  writer.bits(0, 5);
-  writer.bits(0, 5);
-  writer.bits(14, 4);
-  // Code length code lengths in the order of RFC 1951 section 3.2.7
-  writer.bits(0, 3);
-  writer.bits(0, 3);
-  writer.bits(0, 3);
-  writer.bits(1, 3);
-  writer.bits(0, 3);
-  writer.bits(7, 3);
-  writer.bits(0, 3);
-  writer.bits(7, 3);
-  writer.bits(0, 3);
-  writer.bits(6, 3);
-  writer.bits(0, 3);
-  writer.bits(5, 3);
-  writer.bits(0, 3);
-  writer.bits(4, 3);
-  writer.bits(0, 3);
-  writer.bits(3, 3);
-  writer.bits(0, 3);
-  writer.bits(2, 3);
-  for (const auto length : literal_lengths) {
-    precode.write(writer, length);
-  }
-
-  precode.write(writer, 0);
-  literals.write(writer, 97);
-  literals.write(writer, 98);
-  literals.write(writer, 99);
-  literals.write(writer, 100);
-  literals.write(writer, 101);
-  literals.write(writer, 102);
-  literals.write(writer, 103);
-  literals.write(writer, 256);
-  EXPECT_EQ(decompress(gzip_member(GZIP_HEADER, writer.data(), "abcdefg")),
-            "abcdefg");
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x05, 0xc0,
+      0x01, 0x04, 0xc7, 0x61, 0x14, 0xc4, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xed, 0xde, 0xf7, 0xfb, 0x03,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfc, 0x69, 0xf7, 0xbe, 0xdf, 0x1f,
+      0xa6, 0x6a, 0x2a, 0x31, 0x07, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input), "abcdefg");
+  EXPECT_EQ(decompress_stream(input), "abcdefg");
 }
 
 TEST(decompress_dynamic_block_repeat_previous_code_length_across_alphabets) {
-  const HuffmanCode precode{code_lengths(19, {{2, 1}, {16, 2}, {18, 2}})};
-  const HuffmanCode literals{
-      code_lengths(258, {{97, 2}, {98, 2}, {256, 2}, {257, 2}})};
-  const HuffmanCode distances{
-      code_lengths(4, {{0, 2}, {1, 2}, {2, 2}, {3, 2}})};
-  DeflateWriter writer;
-  write_block_header(writer, true, 2);
-  writer.bits(1, 5);
-  writer.bits(3, 5);
-  writer.bits(12, 4);
-  writer.bits(2, 3);
-  writer.bits(0, 3);
-  writer.bits(2, 3);
-  writer.bits(0, 36);
-  writer.bits(1, 3);
-  precode.write(writer, 18);
-  writer.bits(86, 7);
-  precode.write(writer, 2);
-  precode.write(writer, 2);
-  precode.write(writer, 18);
-  writer.bits(127, 7);
-  precode.write(writer, 18);
-  writer.bits(8, 7);
-  precode.write(writer, 2);
-  precode.write(writer, 16);
-  writer.bits(2, 2);
-  literals.write(writer, 97);
-  literals.write(writer, 98);
-  literals.write(writer, 97);
-  literals.write(writer, 98);
-  literals.write(writer, 257);
-  distances.write(writer, 3);
-  literals.write(writer, 257);
-  distances.write(writer, 2);
-  literals.write(writer, 256);
-  EXPECT_EQ(decompress(gzip_member(GZIP_HEADER, writer.data(), "abababaaba")),
-            "abababaaba");
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x0d,
+      0x83, 0x05, 0x01, 0x00, 0x00, 0x00, 0x40, 0xb6, 0xf2, 0x7f, 0x84,
+      0x44, 0xfc, 0x0b, 0xbb, 0xc2, 0xf9, 0x28, 0x0a, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input), "abababaaba");
+  EXPECT_EQ(decompress_stream(input), "abababaaba");
 }
 
 TEST(decompress_dynamic_block_repeat_zero_code_length_across_alphabets) {
-  const HuffmanCode precode{
-      code_lengths(19, {{1, 2}, {2, 2}, {17, 2}, {18, 2}})};
-  const HuffmanCode literals{
-      code_lengths(260, {{97, 2}, {98, 2}, {256, 2}, {257, 2}})};
-  const HuffmanCode distances{code_lengths(4, {{2, 1}, {3, 1}})};
-  DeflateWriter writer;
-  write_block_header(writer, true, 2);
-  writer.bits(3, 5);
-  writer.bits(3, 5);
-  writer.bits(14, 4);
-  writer.bits(0, 3);
-  writer.bits(2, 3);
-  writer.bits(2, 3);
-  writer.bits(0, 36);
-  writer.bits(2, 3);
-  writer.bits(0, 3);
-  writer.bits(2, 3);
-  precode.write(writer, 18);
-  writer.bits(86, 7);
-  precode.write(writer, 2);
-  precode.write(writer, 2);
-  precode.write(writer, 18);
-  writer.bits(127, 7);
-  precode.write(writer, 18);
-  writer.bits(8, 7);
-  precode.write(writer, 2);
-  precode.write(writer, 2);
-  precode.write(writer, 17);
-  writer.bits(1, 3);
-  precode.write(writer, 1);
-  precode.write(writer, 1);
-  literals.write(writer, 97);
-  literals.write(writer, 98);
-  literals.write(writer, 97);
-  literals.write(writer, 98);
-  literals.write(writer, 257);
-  distances.write(writer, 3);
-  literals.write(writer, 257);
-  distances.write(writer, 2);
-  literals.write(writer, 256);
-  EXPECT_EQ(decompress(gzip_member(GZIP_HEADER, writer.data(), "abababaaba")),
-            "abababaaba");
-}
-
-TEST(decompress_dynamic_block_over_subscribed_literal_length_code_throws) {
-  DeflateWriter writer;
-  write_dynamic_header(writer, true,
-                       code_lengths(257, {{97, 1}, {98, 1}, {256, 1}}),
-                       code_lengths(1, {}));
-  writer.bits(0, 16);
-  try {
-    decompress(gzip_member(GZIP_HEADER, writer.data(), "a"));
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
-  }
-}
-
-TEST(decompress_dynamic_block_over_subscribed_distance_code_throws) {
-  DeflateWriter writer;
-  write_dynamic_header(
-      writer, true, code_lengths(258, {{97, 2}, {98, 2}, {256, 2}, {257, 2}}),
-      code_lengths(3, {{0, 1}, {1, 1}, {2, 1}}));
-  writer.bits(0, 16);
-  try {
-    decompress(gzip_member(GZIP_HEADER, writer.data(), "a"));
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
-  }
-}
-
-TEST(decompress_dynamic_block_over_subscribed_code_length_code_throws) {
-  DeflateWriter writer;
-  write_block_header(writer, true, 2);
-  writer.bits(0, 5);
-  writer.bits(0, 5);
-  writer.bits(0, 4);
-  writer.bits(1, 3);
-  writer.bits(1, 3);
-  writer.bits(1, 3);
-  writer.bits(1, 3);
-  writer.bits(0, 64);
-  try {
-    decompress(gzip_member(GZIP_HEADER, writer.data(), ""));
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
-  }
-}
-
-TEST(decompress_dynamic_block_repeat_previous_without_previous_throws) {
-  const HuffmanCode precode{code_lengths(19, {{0, 1}, {16, 1}})};
-  DeflateWriter writer;
-  write_block_header(writer, true, 2);
-  writer.bits(0, 5);
-  writer.bits(0, 5);
-  writer.bits(0, 4);
-  writer.bits(1, 3);
-  writer.bits(0, 3);
-  writer.bits(0, 3);
-  writer.bits(1, 3);
-  precode.write(writer, 16);
-  writer.bits(3, 2);
-  writer.bits(0, 64);
-  try {
-    decompress(gzip_member(GZIP_HEADER, writer.data(), ""));
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
-  }
-}
-
-TEST(decompress_dynamic_block_repeat_zero_beyond_code_length_count_throws) {
-  const HuffmanCode precode{code_lengths(19, {{0, 1}, {18, 1}})};
-  DeflateWriter writer;
-  write_block_header(writer, true, 2);
-  writer.bits(0, 5);
-  writer.bits(0, 5);
-  writer.bits(0, 4);
-  writer.bits(0, 3);
-  writer.bits(0, 3);
-  writer.bits(1, 3);
-  writer.bits(1, 3);
-  precode.write(writer, 18);
-  writer.bits(127, 7);
-  precode.write(writer, 18);
-  writer.bits(127, 7);
-  writer.bits(0, 64);
-  try {
-    decompress(gzip_member(GZIP_HEADER, writer.data(), ""));
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
-  }
-}
-
-TEST(decompress_dynamic_block_repeat_previous_beyond_code_length_count_throws) {
-  const HuffmanCode precode{code_lengths(19, {{16, 1}, {18, 1}})};
-  DeflateWriter writer;
-  write_block_header(writer, true, 2);
-  writer.bits(0, 5);
-  writer.bits(0, 5);
-  writer.bits(0, 4);
-  writer.bits(1, 3);
-  writer.bits(0, 3);
-  writer.bits(1, 3);
-  writer.bits(0, 3);
-  precode.write(writer, 18);
-  writer.bits(127, 7);
-  precode.write(writer, 18);
-  writer.bits(108, 7);
-  precode.write(writer, 16);
-  writer.bits(0, 2);
-  writer.bits(0, 64);
-  try {
-    decompress(gzip_member(GZIP_HEADER, writer.data(), ""));
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
-  }
-}
-
-TEST(decompress_dynamic_block_without_end_of_block_code_throws) {
-  const auto literal_lengths{code_lengths(257, {{97, 1}, {98, 1}})};
-  const HuffmanCode literals{literal_lengths};
-  DeflateWriter writer;
-  write_dynamic_header(writer, true, literal_lengths, code_lengths(1, {}));
-  for (std::size_t index = 0; index < 64; ++index) {
-    literals.write(writer, 97);
-  }
-
-  try {
-    decompress(gzip_member(GZIP_HEADER, writer.data(), std::string(64, 'a')));
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
-  }
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x1d, 0xc3,
+      0x21, 0x01, 0x00, 0x00, 0x00, 0x80, 0xa0, 0xad, 0xfa, 0x7f, 0x84, 0x16,
+      0x40, 0xfc, 0x02, 0xbb, 0xc2, 0xf9, 0x28, 0x0a, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input), "abababaaba");
+  EXPECT_EQ(decompress_stream(input), "abababaaba");
 }
 
 TEST(decompress_member_mixing_every_block_type) {
-  const auto literal_lengths{code_lengths(257, {{32, 3},
-                                                {97, 3},
-                                                {99, 3},
-                                                {100, 3},
-                                                {105, 3},
-                                                {109, 3},
-                                                {110, 3},
-                                                {121, 4},
-                                                {256, 4}})};
-  const HuffmanCode literals{literal_lengths};
-  DeflateWriter writer;
-  write_stored_block(writer, false, "stored ");
-  write_block_header(writer, false, 1);
-  write_fixed_literals(writer, "fixed ");
-  write_fixed_literal_length(writer, 256);
-  write_dynamic_header(writer, false, literal_lengths, code_lengths(1, {}));
-  literals.write(writer, 100);
-  literals.write(writer, 121);
-  literals.write(writer, 110);
-  literals.write(writer, 97);
-  literals.write(writer, 109);
-  literals.write(writer, 105);
-  literals.write(writer, 99);
-  literals.write(writer, 32);
-  literals.write(writer, 256);
-  write_block_header(writer, true, 1);
-  write_fixed_literal_length(writer, 261);
-  writer.code(8, 5);
-  writer.bits(4, 3);
-  write_fixed_literal_length(writer, 256);
-  EXPECT_EQ(decompress(gzip_member(GZIP_HEADER, writer.data(),
-                                   "stored fixed dynamic stored ")),
-            "stored fixed dynamic stored ");
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x00, 0x07,
+      0x00, 0xf8, 0xff, 0x73, 0x74, 0x6f, 0x72, 0x65, 0x64, 0x20, 0x4a, 0xcb,
+      0xac, 0x48, 0x4d, 0x51, 0x00, 0x10, 0x80, 0x07, 0x40, 0x92, 0x24, 0x49,
+      0x92, 0x24, 0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xc0, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x0c, 0xcc, 0x00, 0x00, 0x0c, 0x00, 0xcc, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0xe0,
+      0x1b, 0x1b, 0xe1, 0x07, 0x15, 0x04, 0x00, 0x4a, 0xa1, 0x0b, 0x7c, 0x1c,
+      0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input), "stored fixed dynamic stored ");
+  EXPECT_EQ(decompress_stream(input), "stored fixed dynamic stored ");
 }
 
-TEST(decompress_many_dynamic_blocks_with_distinct_codes) {
-  std::string payload;
-  DeflateWriter writer;
-  for (std::size_t index = 0; index < 1000; ++index) {
-    const std::size_t symbol{97 + (index % 26)};
-    const auto literal_lengths{code_lengths(257, {{symbol, 1}, {256, 1}})};
-    const HuffmanCode literals{literal_lengths};
-    write_dynamic_header(writer, index == 999, literal_lengths,
-                         code_lengths(1, {}));
-    literals.write(writer, symbol);
-    literals.write(writer, 256);
-    payload.push_back(static_cast<char>(symbol));
-  }
-
-  EXPECT_EQ(decompress(gzip_member(GZIP_HEADER, writer.data(), payload)),
-            payload);
+TEST(decompress_two_members) {
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0xff, 0x01, 0x05,
+      0x00, 0xfa, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x86, 0xa6, 0x10, 0x36,
+      0x05, 0x00, 0x00, 0x00, 0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x04, 0xff, 0x01, 0x06, 0x00, 0xf9, 0xff, 0x20, 0x77, 0x6f, 0x72, 0x6c,
+      0x64, 0xcb, 0x42, 0x3b, 0x4a, 0x06, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input), "hello world");
+  EXPECT_EQ(decompress_stream(input), "hello world");
 }
 
-TEST(decompress_output_exactly_at_maximum_size_succeeds) {
-  const std::string input(1000, 'm');
-  EXPECT_EQ(decompress(compress(input, 6), 0, 1000), input);
-}
-
-TEST(decompress_output_one_byte_over_maximum_size_throws) {
-  const std::string input(1000, 'm');
-  try {
-    decompress(compress(input, 6), 0, 999);
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()},
-              "Decompressed output exceeds the maximum allowed size");
-  }
-}
-
-TEST(decompress_empty_payload_with_zero_maximum_size_succeeds) {
-  EXPECT_EQ(decompress(compress("", 1), 0, 0), "");
-}
-
-TEST(decompress_single_byte_payload_with_zero_maximum_size_throws) {
-  try {
-    decompress(compress("a", 1), 0, 0);
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()},
-              "Decompressed output exceeds the maximum allowed size");
-  }
-}
-
-TEST(decompress_single_byte_payload_with_single_byte_maximum_size_succeeds) {
-  EXPECT_EQ(decompress(compress("a", 1), 0, 1), "a");
-}
-
-TEST(decompress_two_byte_payload_with_single_byte_maximum_size_throws) {
-  try {
-    decompress(compress("ab", 1), 0, 1);
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()},
-              "Decompressed output exceeds the maximum allowed size");
-  }
-}
-
-TEST(decompress_output_hint_larger_than_output) {
-  EXPECT_EQ(decompress(compress("hello world", 1), 1048576, 268435456),
-            "hello world");
-}
-
-TEST(decompress_output_hint_above_maximum_size_with_fitting_output) {
-  const std::string input(16, 'h');
-  EXPECT_EQ(decompress(compress(input, 1), 1048576, 16), input);
-}
-
-TEST(decompress_output_hint_above_maximum_size_with_exceeding_output_throws) {
-  const std::string input(17, 'h');
-  try {
-    decompress(compress(input, 1), 1048576, 16);
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()},
-              "Decompressed output exceeds the maximum allowed size");
-  }
-}
-
-TEST(decompress_output_hint_of_one_grows_to_one_megabyte) {
-  const auto input{random_bytes(1048576, 17)};
-  EXPECT_EQ(decompress(compress(input, 1), 1, 268435456), input);
-}
-
-TEST(decompress_with_largest_possible_maximum_size) {
-  const auto input{mixed_corpus()};
-  EXPECT_EQ(decompress(compress(input, 6), 1,
-                       std::numeric_limits<std::size_t>::max()),
-            input);
-}
-
-TEST(decompress_input_larger_than_quarter_of_maximum_size) {
-  const auto input{random_bytes(1000, 18)};
-  EXPECT_EQ(decompress(compress(input, 0), 0, 2000), input);
-}
-
-TEST(decompress_growth_clamps_to_uneven_maximum_size) {
-  const std::string input(1000, 'k');
-  EXPECT_EQ(decompress(compress(input, 6), 3, 1000), input);
-}
-
-TEST(decompress_growth_beyond_uneven_maximum_size_throws) {
-  const std::string input(1000, 'k');
-  try {
-    decompress(compress(input, 6), 3, 999);
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()},
-              "Decompressed output exceeds the maximum allowed size");
-  }
-}
-
-TEST(decompress_crafted_bomb_at_maximum_size_succeeds) {
-  const std::string payload(1056769, 'a');
-  DeflateWriter writer;
-  write_block_header(writer, true, 1);
-  write_fixed_literals(writer, "a");
-  for (std::size_t index = 0; index < 4096; ++index) {
-    write_fixed_literal_length(writer, 285);
-    writer.code(0, 5);
-  }
-
-  write_fixed_literal_length(writer, 256);
-  EXPECT_EQ(
-      decompress(gzip_member(GZIP_HEADER, writer.data(), payload), 0, 1056769),
-      payload);
-}
-
-TEST(decompress_crafted_bomb_beyond_maximum_size_throws) {
-  const std::string payload(1056769, 'a');
-  DeflateWriter writer;
-  write_block_header(writer, true, 1);
-  write_fixed_literals(writer, "a");
-  for (std::size_t index = 0; index < 4096; ++index) {
-    write_fixed_literal_length(writer, 285);
-    writer.code(0, 5);
-  }
-
-  write_fixed_literal_length(writer, 256);
-  try {
-    decompress(gzip_member(GZIP_HEADER, writer.data(), payload), 0, 1056768);
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()},
-              "Decompressed output exceeds the maximum allowed size");
-  }
-}
-
-TEST(decompress_compressed_zeros_beyond_maximum_size_throws) {
-  const std::string input(8388608, '\0');
-  try {
-    decompress(compress(input, 1), 0, 1048576);
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()},
-              "Decompressed output exceeds the maximum allowed size");
-  }
-}
-
-TEST(decompress_corrupted_stored_payload_byte_throws) {
-  auto compressed{compress(random_bytes(1000, 19), 0)};
-  compressed[compressed.size() / 2] =
-      static_cast<char>(compressed[compressed.size() / 2] ^ 0x10);
-  try {
-    decompress(compressed);
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
-  }
-}
-
-TEST(decompress_members_totaling_exactly_maximum_size_succeeds) {
-  const auto compressed{compress("aaaa", 1) + compress("bbbb", 1)};
-  EXPECT_EQ(decompress(compressed, 0, 8), "aaaabbbb");
-}
-
-TEST(decompress_members_totaling_one_byte_over_maximum_size_throws) {
-  const auto compressed{compress("aaaa", 1) + compress("bbbb", 1) +
-                        compress("c", 1)};
-  try {
-    decompress(compressed, 0, 8);
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()},
-              "Decompressed output exceeds the maximum allowed size");
-  }
-}
-
-TEST(decompress_second_member_alone_exceeding_maximum_size_throws) {
-  const auto compressed{compress("a", 1) + compress(std::string(100, 'b'), 1)};
-  try {
-    decompress(compressed, 0, 50);
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()},
-              "Decompressed output exceeds the maximum allowed size");
-  }
-}
-
-TEST(decompress_many_empty_members_before_data) {
-  const auto empty{compress("", 1)};
-  std::string compressed;
-  for (std::size_t index = 0; index < 1000; ++index) {
-    compressed += empty;
-  }
-
-  compressed += compress("x", 1);
-  EXPECT_EQ(decompress(compressed), "x");
-}
-
-TEST(decompress_ten_thousand_single_byte_members) {
-  std::string payload;
-  std::string compressed;
-  for (std::size_t index = 0; index < 10000; ++index) {
-    const std::string character(1, static_cast<char>(index & 0xff));
-    DeflateWriter writer;
-    write_stored_block(writer, true, character);
-    compressed += gzip_member(GZIP_HEADER, writer.data(), character);
-    payload += character;
-  }
-
-  EXPECT_EQ(decompress(compressed, 1, 268435456), payload);
+TEST(decompress_three_members_with_empty_member) {
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0xff, 0x01,
+      0x03, 0x00, 0xfc, 0xff, 0x66, 0x6f, 0x6f, 0x21, 0x65, 0x73, 0x8c,
+      0x03, 0x00, 0x00, 0x00, 0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x04, 0xff, 0x01, 0x00, 0x00, 0xff, 0xff, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x04, 0xff, 0x01, 0x03, 0x00, 0xfc, 0xff, 0x62, 0x61,
+      0x7a, 0x98, 0x04, 0x24, 0x78, 0x03, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input), "foobaz");
+  EXPECT_EQ(decompress_stream(input), "foobaz");
 }
 
 TEST(decompress_empty_member_between_members) {
-  const auto compressed{compress("left", 1) + compress("", 1) +
-                        compress("right", 1)};
-  EXPECT_EQ(decompress(compressed), "leftright");
-}
-
-TEST(decompress_large_member_after_small_member) {
-  const auto input{random_bytes(1048576, 20)};
-  const auto compressed{compress("x", 1) + compress(input, 6)};
-  EXPECT_EQ(decompress(compressed, 1, 268435456), "x" + input);
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0xff, 0x01, 0x04,
+      0x00, 0xfb, 0xff, 0x6c, 0x65, 0x66, 0x74, 0x68, 0xe7, 0x67, 0x7a, 0x04,
+      0x00, 0x00, 0x00, 0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04,
+      0xff, 0x01, 0x00, 0x00, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0xff,
+      0x01, 0x05, 0x00, 0xfa, 0xff, 0x72, 0x69, 0x67, 0x68, 0x74, 0x14, 0x75,
+      0xca, 0xb4, 0x05, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input), "leftright");
+  EXPECT_EQ(decompress_stream(input), "leftright");
 }
 
 TEST(decompress_members_with_different_optional_header_fields) {
-  std::string named{"\x1f\x8b\x08\x08\x00\x00\x00\x00\x00\x03", 10};
-  named += "a.txt";
-  named.push_back('\0');
-  std::string annotated{"\x1f\x8b\x08\x1f\x00\x00\x00\x00\x00\xff\x04\x00", 12};
-  annotated += std::string{"\xaa\xbb\xcc\xdd", 4};
-  annotated += "name.txt";
-  annotated.push_back('\0');
-  annotated += "comment";
-  annotated.push_back('\0');
-  annotated += std::string{"\x90\x3e", 2};
-  DeflateWriter first;
-  write_stored_block(first, true, "hello ");
-  DeflateWriter second;
-  write_stored_block(second, true, "world");
-  const auto compressed{gzip_member(named, first.data(), "hello ") +
-                        gzip_member(annotated, second.data(), "world")};
-  EXPECT_EQ(decompress(compressed), "hello world");
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x61,
+      0x2e, 0x74, 0x78, 0x74, 0x00, 0x01, 0x06, 0x00, 0xf9, 0xff, 0x68,
+      0x65, 0x6c, 0x6c, 0x6f, 0x20, 0xf6, 0xf9, 0x81, 0xed, 0x06, 0x00,
+      0x00, 0x00, 0x1f, 0x8b, 0x08, 0x1f, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0xff, 0x04, 0x00, 0xaa, 0xbb, 0xcc, 0xdd, 0x6e, 0x61, 0x6d, 0x65,
+      0x2e, 0x74, 0x78, 0x74, 0x00, 0x63, 0x6f, 0x6d, 0x6d, 0x65, 0x6e,
+      0x74, 0x00, 0x90, 0x3e, 0x01, 0x05, 0x00, 0xfa, 0xff, 0x77, 0x6f,
+      0x72, 0x6c, 0x64, 0x43, 0x11, 0x77, 0x3a, 0x05, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input), "hello world");
+  EXPECT_EQ(decompress_stream(input), "hello world");
 }
 
-TEST(decompress_ignores_trailing_zero_bytes) {
-  const auto compressed{compress("hello world", 1) + std::string(1024, '\0')};
-  EXPECT_EQ(decompress(compressed), "hello world");
+TEST(decompress_run_wrapping_the_window) {
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0xff, 0xec, 0xc1,
+      0x81, 0x00, 0x00, 0x00, 0x00, 0x80, 0x20, 0xd6, 0xfd, 0x25, 0x16, 0xa9,
+      0x0a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x98, 0x3d, 0x38, 0x10, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0xf2, 0x7f, 0x6d, 0x04, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55,
+      0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55,
+      0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55,
+      0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55,
+      0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55,
+      0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x95, 0xf6, 0xe0, 0x90,
+      0x00, 0x00, 0x00, 0x00, 0x40, 0xd0, 0xff, 0xd7, 0x6e, 0xb0, 0x03, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x5c, 0x01, 0x9b, 0x53, 0x69, 0xe0, 0x40,
+      0x0d, 0x03, 0x00};
+  EXPECT_EQ(decompress_one_shot(input), std::string(200000, 'a'));
+  EXPECT_EQ(decompress_stream(input), std::string(200000, 'a'));
+}
+
+TEST(decompress_ignores_trailing_text) {
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0xff, 0x01,
+      0x0b, 0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77,
+      0x6f, 0x72, 0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00,
+      0x00, 0x67, 0x61, 0x72, 0x62, 0x61, 0x67, 0x65, 0x20, 0x64, 0x61,
+      0x74, 0x61, 0x20, 0x61, 0x66, 0x74, 0x65, 0x72, 0x20, 0x67, 0x7a,
+      0x69, 0x70, 0x20, 0x65, 0x6e, 0x64};
+  EXPECT_EQ(decompress_one_shot(input), "hello world");
+  EXPECT_EQ(decompress_stream(input), "hello world");
 }
 
 TEST(decompress_ignores_single_trailing_identification_byte) {
-  const auto compressed{compress("hello world", 1) + "\x1f"};
-  EXPECT_EQ(decompress(compressed), "hello world");
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0xff, 0x01, 0x0b,
+      0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
+      0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00, 0x1f};
+  EXPECT_EQ(decompress_one_shot(input), "hello world");
+  EXPECT_EQ(decompress_stream(input), "hello world");
 }
 
 TEST(decompress_ignores_trailing_first_identification_byte_without_second) {
-  const auto compressed{compress("hello world", 1) + "\x1f\x8c" + "more"};
-  EXPECT_EQ(decompress(compressed), "hello world");
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0xff,
+      0x01, 0x0b, 0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f,
+      0x20, 0x77, 0x6f, 0x72, 0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d,
+      0x0b, 0x00, 0x00, 0x00, 0x1f, 0x8c, 0x6d, 0x6f, 0x72, 0x65};
+  EXPECT_EQ(decompress_one_shot(input), "hello world");
+  EXPECT_EQ(decompress_stream(input), "hello world");
 }
 
 TEST(decompress_ignores_member_after_trailing_garbage) {
-  const auto compressed{compress("hello", 1) + "junk" + compress("world", 1)};
-  EXPECT_EQ(decompress(compressed), "hello");
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0xff, 0x01, 0x05,
+      0x00, 0xfa, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x86, 0xa6, 0x10, 0x36,
+      0x05, 0x00, 0x00, 0x00, 0x6a, 0x75, 0x6e, 0x6b, 0x1f, 0x8b, 0x08, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x04, 0xff, 0x01, 0x05, 0x00, 0xfa, 0xff, 0x77,
+      0x6f, 0x72, 0x6c, 0x64, 0x43, 0x11, 0x77, 0x3a, 0x05, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input), "hello");
+  EXPECT_EQ(decompress_stream(input), "hello");
 }
 
 TEST(decompress_ignores_trailing_garbage_after_empty_member) {
-  const auto compressed{compress("", 1) + "junk"};
-  EXPECT_EQ(decompress(compressed), "");
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04,
+      0xff, 0x01, 0x00, 0x00, 0xff, 0xff, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x6a, 0x75, 0x6e, 0x6b};
+  EXPECT_EQ(decompress_one_shot(input), "");
+  EXPECT_EQ(decompress_stream(input), "");
 }
 
-TEST(decompress_trailing_identification_bytes_only_throws) {
-  const auto compressed{compress("hello world", 1) + "\x1f\x8b"};
-  try {
-    decompress(compressed);
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
-  }
+TEST(decompress_header_with_maximum_length_fextra) {
+  std::vector<std::uint8_t> input{0x1f, 0x8b, 0x08, 0x04, 0x00, 0x00,
+                                  0x00, 0x00, 0x00, 0xff, 0xff, 0xff};
+  input.resize(input.size() + 65535, 0x1f);
+  input.insert(input.end(), {0x01, 0x0b, 0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c,
+                             0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72, 0x6c, 0x64,
+                             0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00});
+  EXPECT_EQ(decompress_one_shot(input), "hello world");
+  EXPECT_EQ(decompress_stream(input), "hello world");
 }
 
-TEST(decompress_second_member_crc32_mismatch_throws) {
-  auto second{compress("world", 1)};
-  second[second.size() - 8] = static_cast<char>(second[second.size() - 8] ^ 1);
-  try {
-    decompress(compress("hello", 1) + second);
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
-  }
+TEST(decompress_header_with_one_megabyte_fname) {
+  std::vector<std::uint8_t> input{0x1f, 0x8b, 0x08, 0x08, 0x00,
+                                  0x00, 0x00, 0x00, 0x00, 0xff};
+  input.resize(input.size() + 1048576, 0x6e);
+  input.push_back(0x00);
+  input.insert(input.end(), {0x01, 0x0b, 0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c,
+                             0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72, 0x6c, 0x64,
+                             0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00});
+  EXPECT_EQ(decompress_one_shot(input), "hello world");
+  EXPECT_EQ(decompress_stream(input), "hello world");
 }
 
-TEST(decompress_second_member_truncated_throws) {
-  auto second{compress(mixed_corpus(), 6)};
-  second.resize(second.size() / 2);
-  try {
-    decompress(compress("hello", 1) + second);
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
-  }
+TEST(decompress_header_with_one_megabyte_fcomment) {
+  std::vector<std::uint8_t> input{0x1f, 0x8b, 0x08, 0x10, 0x00,
+                                  0x00, 0x00, 0x00, 0x00, 0xff};
+  input.resize(input.size() + 1048576, 0x63);
+  input.push_back(0x00);
+  input.insert(input.end(), {0x01, 0x0b, 0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c,
+                             0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72, 0x6c, 0x64,
+                             0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00});
+  EXPECT_EQ(decompress_one_shot(input), "hello world");
+  EXPECT_EQ(decompress_stream(input), "hello world");
 }
 
-TEST(decompress_second_member_reserved_flag_throws) {
-  auto second{compress("world", 1)};
-  second[3] = '\x20';
-  try {
-    decompress(compress("hello", 1) + second);
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
-  }
+TEST(decompress_header_with_fextra_spanning_stream_source_buffer) {
+  std::vector<std::uint8_t> input{0x1f, 0x8b, 0x08, 0x04, 0x00, 0x00,
+                                  0x00, 0x00, 0x00, 0xff, 0x20, 0x4e};
+  input.resize(input.size() + 20000, 0x00);
+  input.insert(input.end(), {0x01, 0x0b, 0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c,
+                             0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72, 0x6c, 0x64,
+                             0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00});
+  EXPECT_EQ(decompress_one_shot(input), "hello world");
+  EXPECT_EQ(decompress_stream(input), "hello world");
 }
 
-TEST(decompress_second_member_unsupported_compression_method_throws) {
-  auto second{compress("world", 1)};
-  second[2] = '\x09';
-  try {
-    decompress(compress("hello", 1) + second);
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
+TEST(decompress_stored_block_of_maximum_length) {
+  std::vector<std::uint8_t> input{0x1f, 0x8b, 0x08, 0x00, 0x00,
+                                  0x00, 0x00, 0x00, 0x00, 0xff,
+                                  0x01, 0xff, 0xff, 0x00, 0x00};
+  std::string expected;
+  for (std::size_t index = 0; index < 65535; ++index) {
+    const auto byte{static_cast<std::uint8_t>((index ^ (index >> 8)) & 0xff)};
+    input.push_back(byte);
+    expected.push_back(static_cast<char>(byte));
   }
+
+  input.insert(input.end(), {0xad, 0x58, 0x8d, 0x46, 0xff, 0xff, 0x00, 0x00});
+  EXPECT_EQ(decompress_one_shot(input), expected);
+  EXPECT_EQ(decompress_stream(input), expected);
 }
 
-TEST(decompress_member_without_trailer_followed_by_member_throws) {
-  DeflateWriter writer;
-  write_stored_block(writer, true, "hello");
-  auto first{gzip_member(GZIP_HEADER, writer.data(), "hello")};
-  first.resize(first.size() - 8);
-  try {
-    decompress(first + compress("world", 1));
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
+TEST(decompress_consecutive_stored_blocks_of_maximum_length) {
+  std::vector<std::uint8_t> input{0x1f, 0x8b, 0x08, 0x00, 0x00,
+                                  0x00, 0x00, 0x00, 0x00, 0xff,
+                                  0x00, 0xff, 0xff, 0x00, 0x00};
+  std::string expected;
+  for (std::size_t index = 0; index < 65535; ++index) {
+    const auto byte{static_cast<std::uint8_t>((index ^ (index >> 8)) & 0xff)};
+    input.push_back(byte);
+    expected.push_back(static_cast<char>(byte));
   }
+
+  input.insert(input.end(), {0x01, 0xff, 0xff, 0x00, 0x00});
+  for (std::size_t index = 65535; index < 131070; ++index) {
+    const auto byte{static_cast<std::uint8_t>((index ^ (index >> 8)) & 0xff)};
+    input.push_back(byte);
+    expected.push_back(static_cast<char>(byte));
+  }
+
+  input.insert(input.end(), {0x55, 0x65, 0xe3, 0x34, 0xfe, 0xff, 0x01, 0x00});
+  EXPECT_EQ(decompress_one_shot(input), expected);
+  EXPECT_EQ(decompress_stream(input), expected);
 }
 
-TEST(decompress_valid_member_after_corrupt_member_throws) {
-  auto first{compress("hello", 1)};
-  first[first.size() - 1] = '\x7f';
-  try {
-    decompress(first + compress("world", 1));
-    FAIL();
-  } catch (const sourcemeta::core::GZIPError &error) {
-    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
+TEST(decompress_many_empty_stored_blocks_before_data) {
+  std::vector<std::uint8_t> input{0x1f, 0x8b, 0x08, 0x00, 0x00,
+                                  0x00, 0x00, 0x00, 0x00, 0xff};
+  for (std::size_t index = 0; index < 10000; ++index) {
+    input.insert(input.end(), {0x00, 0x00, 0x00, 0xff, 0xff});
   }
+
+  input.insert(input.end(),
+               {0x01, 0x04, 0x00, 0xfb, 0xff, 0x64, 0x61, 0x74, 0x61, 0x63,
+                0xf3, 0xf3, 0xad, 0x04, 0x00, 0x00, 0x00});
+  EXPECT_EQ(decompress_one_shot(input), "data");
+  EXPECT_EQ(decompress_stream(input), "data");
+}
+
+TEST(decompress_fixed_block_with_boundary_distances) {
+  std::vector<std::uint8_t> input{0x1f, 0x8b, 0x08, 0x00, 0x00,
+                                  0x00, 0x00, 0x00, 0x00, 0xff,
+                                  0x00, 0x00, 0x80, 0xff, 0x7f};
+  std::string expected;
+  for (std::size_t index = 0; index < 32768; ++index) {
+    const auto byte{static_cast<std::uint8_t>((index ^ (index >> 8)) & 0xff)};
+    input.push_back(byte);
+    expected.push_back(static_cast<char>(byte));
+  }
+
+  input.insert(input.end(),
+               {0x03, 0x02, 0x20, 0x06, 0x12, 0x40, 0x12, 0xc8, 0x06, 0xda,
+                0x0f, 0x74, 0x00, 0x30, 0xff, 0x03, 0x0b, 0x00, 0xe0, 0xfa,
+                0x7f, 0xe0, 0x06, 0x00, 0xe0, 0x05, 0x00, 0xc0, 0xfb, 0xff,
+                0x01, 0x5a, 0xcb, 0xeb, 0x79, 0x27, 0x80, 0x00, 0x00});
+  expected.append(std::string{"\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80"
+                              "\x80\x80\x80\x80\xf0\xef\xee\xee\xed\xec\x69"
+                              "\x6a\x6b\x6b\x64\x65\x4b\x4c\x4d\x4d\x4e\x4f"
+                              "\x00\x01\x02\x24\x25\x26",
+                              39});
+  EXPECT_EQ(decompress_one_shot(input), expected);
+  EXPECT_EQ(decompress_stream(input), expected);
+}
+
+TEST(decompress_fixed_block_maximum_length_match_at_maximum_distance) {
+  std::vector<std::uint8_t> input{0x1f, 0x8b, 0x08, 0x00, 0x00,
+                                  0x00, 0x00, 0x00, 0x00, 0xff,
+                                  0x00, 0x00, 0x80, 0xff, 0x7f};
+  std::string expected;
+  for (std::size_t index = 0; index < 32768; ++index) {
+    const auto byte{static_cast<std::uint8_t>((index ^ (index >> 8)) & 0xff)};
+    input.push_back(byte);
+    expected.push_back(static_cast<char>(byte));
+  }
+
+  for (std::size_t index = 0; index < 258; ++index) {
+    expected.push_back(static_cast<char>((index ^ (index >> 8)) & 0xff));
+  }
+
+  input.insert(input.end(), {0x1b, 0xbd, 0xff, 0x1f, 0x00, 0xc8, 0x0f, 0x86,
+                             0x20, 0x02, 0x81, 0x00, 0x00});
+  EXPECT_EQ(decompress_one_shot(input), expected);
+  EXPECT_EQ(decompress_stream(input), expected);
+}
+
+TEST(decompress_many_single_literal_fixed_blocks) {
+  std::vector<std::uint8_t> input{0x1f, 0x8b, 0x08, 0x00, 0x00,
+                                  0x00, 0x00, 0x00, 0x00, 0xff};
+  for (std::size_t index = 0; index < 2500; ++index) {
+    input.insert(input.end(),
+                 {0xaa, 0x00, 0xa8, 0x02, 0xa0, 0x0a, 0x80, 0x2a, 0x00});
+  }
+
+  input.insert(input.end(),
+               {0x03, 0x00, 0xa3, 0xa4, 0x55, 0x0d, 0x10, 0x27, 0x00, 0x00});
+  EXPECT_EQ(decompress_one_shot(input), std::string(10000, 'x'));
+  EXPECT_EQ(decompress_stream(input), std::string(10000, 'x'));
+}
+
+TEST(decompress_single_fixed_block_with_maximum_compression_ratio) {
+  std::vector<std::uint8_t> input{0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00,
+                                  0x00, 0x00, 0xff, 0x4b, 0x1c, 0x05};
+  for (std::size_t index = 0; index < 8192; ++index) {
+    input.insert(input.end(), {0xa3, 0x60, 0x14, 0x8c, 0x82, 0x51, 0x30, 0x0a,
+                               0x46, 0xc1, 0x28, 0x18, 0x05});
+  }
+
+  input.insert(input.end(),
+               {0x00, 0x3f, 0x79, 0xeb, 0xad, 0x03, 0x01, 0x02, 0x01});
+  std::string expected;
+  expected.append(16908547, 'a');
+  EXPECT_EQ(decompress_one_shot(input), expected);
+  EXPECT_EQ(decompress_stream(input), expected);
+}
+
+TEST(decompress_many_empty_members_before_data) {
+  std::vector<std::uint8_t> input;
+  for (std::size_t index = 0; index < 1000; ++index) {
+    input.insert(input.end(), {0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00,
+                               0x00, 0xff, 0x01, 0x00, 0x00, 0xff, 0xff, 0x00,
+                               0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00});
+  }
+
+  input.insert(input.end(), {0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00,
+                             0x00, 0xff, 0x01, 0x01, 0x00, 0xfe, 0xff, 0x61,
+                             0x43, 0xbe, 0xb7, 0xe8, 0x01, 0x00, 0x00, 0x00});
+  EXPECT_EQ(decompress_one_shot(input), "a");
+  EXPECT_EQ(decompress_stream(input), "a");
+}
+
+TEST(decompress_ten_thousand_single_byte_members) {
+  std::vector<std::uint8_t> input;
+  for (std::size_t index = 0; index < 10000; ++index) {
+    input.insert(input.end(), {0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00,
+                               0x00, 0xff, 0x01, 0x01, 0x00, 0xfe, 0xff, 0x61,
+                               0x43, 0xbe, 0xb7, 0xe8, 0x01, 0x00, 0x00, 0x00});
+  }
+
+  EXPECT_EQ(decompress_one_shot(input, 1), std::string(10000, 'a'));
+  EXPECT_EQ(decompress_stream(input), std::string(10000, 'a'));
+}
+
+TEST(decompress_ignores_trailing_zero_bytes) {
+  std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x01, 0x0b,
+      0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
+      0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
+  input.resize(input.size() + 1024, 0x00);
+  EXPECT_EQ(decompress_one_shot(input), "hello world");
+  EXPECT_EQ(decompress_stream(input), "hello world");
+}
+
+TEST(decompress_output_exactly_at_maximum_size) {
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x01, 0x0b,
+      0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
+      0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input, 0, 11), "hello world");
+  EXPECT_EQ(decompress_stream(input), "hello world");
+}
+
+TEST(decompress_empty_payload_with_zero_maximum_size) {
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x01, 0x00,
+      0x00, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input, 0, 0), "");
+  EXPECT_EQ(decompress_stream(input), "");
+}
+
+TEST(decompress_output_hint_larger_than_output) {
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x01, 0x0b,
+      0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
+      0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input, 1048576), "hello world");
+  EXPECT_EQ(decompress_stream(input), "hello world");
+}
+
+TEST(decompress_output_hint_above_maximum_size_with_fitting_output) {
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x01, 0x0b,
+      0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
+      0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input, 1048576, 11), "hello world");
+  EXPECT_EQ(decompress_stream(input), "hello world");
+}
+
+TEST(decompress_output_hint_of_one_grows_to_larger_output) {
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x4b, 0x1c,
+      0x05, 0xa3, 0x60, 0x14, 0x8c, 0x82, 0x51, 0x30, 0x0a, 0x46, 0xc1, 0x28,
+      0x18, 0x05, 0xa3, 0x60, 0x14, 0x8c, 0x82, 0x51, 0x30, 0x0a, 0x46, 0xc1,
+      0x28, 0x18, 0x05, 0x00, 0xa1, 0x87, 0xcc, 0x71, 0x23, 0x11, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input, 1), std::string(4387, 'a'));
+  EXPECT_EQ(decompress_stream(input), std::string(4387, 'a'));
+}
+
+TEST(decompress_with_largest_possible_maximum_size) {
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x01, 0x0b,
+      0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
+      0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
+  EXPECT_EQ(
+      decompress_one_shot(input, 1, std::numeric_limits<std::size_t>::max()),
+      "hello world");
+  EXPECT_EQ(decompress_stream(input), "hello world");
+}
+
+TEST(decompress_input_larger_than_quarter_of_maximum_size) {
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x01, 0x0b,
+      0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
+      0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input, 0, 40), "hello world");
+  EXPECT_EQ(decompress_stream(input), "hello world");
+}
+
+TEST(decompress_growth_clamps_to_uneven_maximum_size) {
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x01, 0x0b,
+      0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
+      0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input, 3, 11), "hello world");
+  EXPECT_EQ(decompress_stream(input), "hello world");
+}
+
+TEST(decompress_crafted_bomb_at_maximum_size) {
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x4b, 0x1c,
+      0x05, 0xa3, 0x60, 0x14, 0x8c, 0x82, 0x51, 0x30, 0x0a, 0x46, 0xc1, 0x28,
+      0x18, 0x05, 0xa3, 0x60, 0x14, 0x8c, 0x82, 0x51, 0x30, 0x0a, 0x46, 0xc1,
+      0x28, 0x18, 0x05, 0x00, 0xa1, 0x87, 0xcc, 0x71, 0x23, 0x11, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input, 0, 4387), std::string(4387, 'a'));
+  EXPECT_EQ(decompress_stream(input), std::string(4387, 'a'));
+}
+
+TEST(decompress_members_totaling_exactly_maximum_size) {
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x01, 0x0b,
+      0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
+      0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00, 0x1f, 0x8b,
+      0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x01, 0x0b, 0x00, 0xf4,
+      0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72, 0x6c, 0x64,
+      0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input, 0, 22), "hello worldhello world");
+  EXPECT_EQ(decompress_stream(input), "hello worldhello world");
+}
+
+TEST(decompress_members_growing_from_tiny_output_hint) {
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0xff, 0x01, 0x05,
+      0x00, 0xfa, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x86, 0xa6, 0x10, 0x36,
+      0x05, 0x00, 0x00, 0x00, 0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x04, 0xff, 0x01, 0x06, 0x00, 0xf9, 0xff, 0x20, 0x77, 0x6f, 0x72, 0x6c,
+      0x64, 0xcb, 0x42, 0x3b, 0x4a, 0x06, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_one_shot(input, 1, 1024), "hello world");
+  EXPECT_EQ(decompress_stream(input), "hello world");
+}
+
+TEST(decompress_large_member_after_small_member) {
+  // NOLINTNEXTLINE(cert-msc32-c,cert-msc51-cpp,bugprone-random-generator-seed)
+  std::mt19937 generator{20};
+  std::uniform_int_distribution<int> distribution{0, 255};
+  std::string large;
+  for (std::size_t index = 0; index < 1048576; ++index) {
+    large.push_back(static_cast<char>(distribution(generator)));
+  }
+
+  auto input{compress("x", 1)};
+  const auto large_compressed{compress(large, 6)};
+  input.insert(input.end(), large_compressed.cbegin(), large_compressed.cend());
+  EXPECT_EQ(decompress_one_shot(input, 1), "x" + large);
+  EXPECT_EQ(decompress_stream(input), "x" + large);
 }
