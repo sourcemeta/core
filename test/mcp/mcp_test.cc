@@ -5,7 +5,6 @@
 
 #include <sourcemeta/core/test.h>
 
-#include <array>    // std::array
 #include <cstddef>  // std::size_t
 #include <cstdint>  // std::int64_t
 #include <limits>   // std::numeric_limits
@@ -1217,13 +1216,14 @@ TEST(is_request_method_of_a_parsed_message) {
       message.at("method").to_string()));
 }
 
-TEST(supports_jsonrpc_batching_across_every_version) {
-  const std::array<sourcemeta::core::MCPProtocolVersion, 3> versions{
-      {sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
-       sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
-       sourcemeta::core::MCPProtocolVersion::V_2025_11_25}};
-  for (const auto version : versions) {
-    EXPECT_EQ(sourcemeta::core::mcp_supports_jsonrpc_batching(version),
-              version == sourcemeta::core::MCPProtocolVersion::V_2025_03_26);
-  }
+TEST(supports_jsonrpc_batching_at_runtime) {
+  auto version_2025_03_26{sourcemeta::core::MCPProtocolVersion::V_2025_03_26};
+  auto version_2025_06_18{sourcemeta::core::MCPProtocolVersion::V_2025_06_18};
+  auto version_2025_11_25{sourcemeta::core::MCPProtocolVersion::V_2025_11_25};
+  EXPECT_TRUE(
+      sourcemeta::core::mcp_supports_jsonrpc_batching(version_2025_03_26));
+  EXPECT_FALSE(
+      sourcemeta::core::mcp_supports_jsonrpc_batching(version_2025_06_18));
+  EXPECT_FALSE(
+      sourcemeta::core::mcp_supports_jsonrpc_batching(version_2025_11_25));
 }

@@ -160,6 +160,18 @@
                    expected_pointer, expected_uri, expected_base,              \
                    expected_fragment, expected_original)
 
+static auto metaschema_test_resolver(std::string_view identifier)
+    -> sourcemeta::core::SchemaResolverResult {
+  if (identifier == "https://example.com/meta") {
+    return sourcemeta::core::parse_json(R"JSON({
+      "$id": "https://example.com/meta",
+      "$schema": "https://json-schema.org/draft/2020-12/schema"
+    })JSON");
+  }
+
+  return sourcemeta::core::schema_resolver(identifier);
+}
+
 TEST(to_json_mode_references_with_tracking) {
   sourcemeta::core::PointerPositionTracker tracker;
   sourcemeta::core::JSON document{nullptr};
@@ -1853,18 +1865,6 @@ TEST(accessors_uri_and_traverse_relative_to_a_location) {
   EXPECT_EQ(destination.type,
             sourcemeta::core::SchemaFrame::LocationType::Subschema);
   EXPECT_EQ(sourcemeta::core::to_string(destination.pointer), "/$defs/foo");
-}
-
-static auto metaschema_test_resolver(std::string_view identifier)
-    -> sourcemeta::core::SchemaResolverResult {
-  if (identifier == "https://example.com/meta") {
-    return sourcemeta::core::parse_json(R"JSON({
-      "$id": "https://example.com/meta",
-      "$schema": "https://json-schema.org/draft/2020-12/schema"
-    })JSON");
-  }
-
-  return sourcemeta::core::schema_resolver(identifier);
 }
 
 TEST(accessors_metaschema_from_resolver) {

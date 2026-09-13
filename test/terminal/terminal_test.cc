@@ -312,18 +312,19 @@ TEST(composition_with_formatting) {
   EXPECT_EQ(text_disabled, "Status: FAILED [exit code: 1]");
 }
 
-TEST(style_bitwise_not_and_xor_on_every_style) {
-  const std::array<sourcemeta::core::TerminalStyle, 7> styles{
-      {sourcemeta::core::TerminalStyle::None,
-       sourcemeta::core::TerminalStyle::Bold,
-       sourcemeta::core::TerminalStyle::Red,
-       sourcemeta::core::TerminalStyle::Green,
-       sourcemeta::core::TerminalStyle::Yellow,
-       sourcemeta::core::TerminalStyle::Blue,
-       sourcemeta::core::TerminalStyle::Cyan}};
-  for (const auto style : styles) {
-    EXPECT_EQ(~(~style), style);
-    EXPECT_EQ(style ^ style, sourcemeta::core::TerminalStyle::None);
-    EXPECT_EQ(style ^ sourcemeta::core::TerminalStyle::None, style);
-  }
+TEST(style_bitwise_not_and_xor_at_runtime) {
+  auto none{sourcemeta::core::TerminalStyle::None};
+  auto bold{sourcemeta::core::TerminalStyle::Bold};
+  auto bold_cyan{sourcemeta::core::TerminalStyle::Bold |
+                 sourcemeta::core::TerminalStyle::Cyan};
+
+  EXPECT_EQ(~(~none), sourcemeta::core::TerminalStyle::None);
+  EXPECT_EQ(~(~bold), sourcemeta::core::TerminalStyle::Bold);
+  EXPECT_EQ(~(~bold_cyan), sourcemeta::core::TerminalStyle::Bold |
+                               sourcemeta::core::TerminalStyle::Cyan);
+
+  EXPECT_EQ(none ^ none, sourcemeta::core::TerminalStyle::None);
+  EXPECT_EQ(bold ^ bold, sourcemeta::core::TerminalStyle::None);
+  EXPECT_EQ(bold_cyan ^ bold, sourcemeta::core::TerminalStyle::Cyan);
+  EXPECT_EQ(bold ^ none, sourcemeta::core::TerminalStyle::Bold);
 }

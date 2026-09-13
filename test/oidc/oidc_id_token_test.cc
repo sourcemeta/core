@@ -30,6 +30,13 @@ static auto oct_key_set() -> sourcemeta::core::JWKS {
   return sourcemeta::core::JWKS::from(std::move(document)).value();
 }
 
+static auto oct_key_set_document() -> std::string {
+  std::string result{R"JSON({ "keys": [ )JSON"};
+  result.append(OCT_JWK);
+  result.append(" ] }");
+  return result;
+}
+
 static auto sign_id_token(const sourcemeta::core::JSON &payload)
     -> std::string {
   return sourcemeta::core::jwt_sign(
@@ -895,13 +902,6 @@ TEST(validate_treats_an_overflowing_auth_time_as_absent) {
       token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
       "client-id", REFERENCE_NOW, options)};
   EXPECT_FALSE(identity.has_value());
-}
-
-static auto oct_key_set_document() -> std::string {
-  std::string result{R"JSON({ "keys": [ )JSON"};
-  result.append(OCT_JWK);
-  result.append(" ] }");
-  return result;
 }
 
 TEST(validate_through_a_provider_accepts_a_valid_token) {
