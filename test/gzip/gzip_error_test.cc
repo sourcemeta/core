@@ -392,7 +392,10 @@ TEST(truncated_stored_block_payload) {
   std::vector<std::uint8_t> input{0x1f, 0x8b, 0x08, 0x00, 0x00,
                                   0x00, 0x00, 0x00, 0x00, 0xff,
                                   0x01, 0xe8, 0x03, 0x17, 0xfc};
-  input.resize(input.size() + 497, 0x61);
+  for (std::size_t index = 0; index < 497; ++index) {
+    input.push_back(0x61);
+  }
+
   // TODO: Report the same error message from both mechanisms
   EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
   EXPECT_EQ(decompress_stream_error(input), "Unexpected end of source stream");
