@@ -26,17 +26,17 @@ namespace sourcemeta::core {
 // A point in extended Edwards coordinates (X : Y : Z : T), where the affine
 // point is (X / Z, Y / Z) and T = X * Y / Z (RFC 8032 Section 5.1.4)
 struct EdwardsPoint {
-  Bignum x;
-  Bignum y;
-  Bignum z;
-  Bignum t;
+  CurveBignum x;
+  CurveBignum y;
+  CurveBignum z;
+  CurveBignum t;
 };
 
 struct EdwardsParameters {
-  Bignum prime;
-  Bignum order;
-  Bignum coefficient_a;
-  Bignum coefficient_d;
+  CurveBignum prime;
+  CurveBignum order;
+  CurveBignum coefficient_a;
+  CurveBignum coefficient_d;
   EdwardsPoint base;
 };
 
@@ -44,9 +44,9 @@ struct EdwardsParameters {
 // uses throughout (RFC 8032 Section 5.1.2), by reversing into the big-endian
 // conversion
 inline auto bignum_from_bytes_little_endian(const std::string_view input)
-    -> Bignum {
+    -> CurveBignum {
   const std::string reversed{input.rbegin(), input.rend()};
-  return bignum_from_bytes(reversed);
+  return bignum_from_bytes<CURVE_BIGNUM_CAPACITY>(reversed);
 }
 
 // The complete unified Edwards addition formulas in extended coordinates
@@ -78,15 +78,15 @@ inline auto edwards_point_add(const EdwardsPoint &left,
                       .t = bignum_mod_multiply(e, h, prime)};
 }
 
-inline auto edwards_point_scalar_multiply(const Bignum &scalar,
+inline auto edwards_point_scalar_multiply(const CurveBignum &scalar,
                                           const EdwardsPoint &point,
                                           const EdwardsParameters &parameters)
     -> EdwardsPoint {
   // The identity element is (0 : 1 : 1 : 0)
-  EdwardsPoint result{.x = Bignum{},
-                      .y = bignum_from_u64(1),
-                      .z = bignum_from_u64(1),
-                      .t = Bignum{}};
+  EdwardsPoint result{.x = CurveBignum{},
+                      .y = bignum_from_u64<CURVE_BIGNUM_CAPACITY>(1),
+                      .z = bignum_from_u64<CURVE_BIGNUM_CAPACITY>(1),
+                      .t = CurveBignum{}};
   const auto bits{bignum_bit_length(scalar)};
   for (std::size_t index = bits; index > 0; --index) {
     result = edwards_point_add(result, result, parameters);
@@ -98,13 +98,19 @@ inline auto edwards_point_scalar_multiply(const Bignum &scalar,
   return result;
 }
 
-inline auto edwards_point_conditional_select(
-    const bool condition, const EdwardsPoint &when_true,
-    const EdwardsPoint &when_false) noexcept -> EdwardsPoint {
-  return {.x = bignum_conditional_select(condition, when_true.x, when_false.x),
-          .y = bignum_conditional_select(condition, when_true.y, when_false.y),
-          .z = bignum_conditional_select(condition, when_true.z, when_false.z),
-          .t = bignum_conditional_select(condition, when_true.t, when_false.t)};
+inline auto edwards_point_conditional_select(const bool condition,
+                                             const EdwardsPoint &when_true,
+                                             const EdwardsPoint &when_false,
+                                             const std::size_t words) noexcept
+    -> EdwardsPoint {
+  return {.x = bignum_conditional_select(condition, when_true.x, when_false.x,
+                                         words),
+          .y = bignum_conditional_select(condition, when_true.y, when_false.y,
+                                         words),
+          .z = bignum_conditional_select(condition, when_true.z, when_false.z,
+                                         words),
+          .t = bignum_conditional_select(condition, when_true.t, when_false.t,
+                                         words)};
 }
 
 // The same complete addition as above evaluated over the constant-time field
@@ -112,8 +118,8 @@ inline auto edwards_point_conditional_select(
 // scalar
 inline auto edwards_point_add_constant_time(
     const EdwardsPoint &left, const EdwardsPoint &right,
-    const EdwardsParameters &parameters, const BarrettContext &field) noexcept
-    -> EdwardsPoint {
+    const EdwardsParameters &parameters,
+    const CurveBarrettContext &field) noexcept -> EdwardsPoint {
   const auto a{field_mod_multiply_ct(left.x, right.x, field)};
   const auto b{field_mod_multiply_ct(left.y, right.y, field)};
   const auto c{field_mod_multiply_ct(
@@ -139,20 +145,20 @@ inline auto edwards_point_add_constant_time(
 // Edwards formulas evaluated in constant time, so neither the per-bit branch
 // nor the field arithmetic underneath depends on the scalar
 inline auto edwards_point_scalar_multiply_constant_time(
-    const Bignum &scalar, const EdwardsPoint &point,
+    const CurveBignum &scalar, const EdwardsPoint &point,
     const EdwardsParameters &parameters) -> EdwardsPoint {
   const auto field{barrett_context(parameters.prime)};
-  EdwardsPoint result{.x = Bignum{},
-                      .y = bignum_from_u64(1),
-                      .z = bignum_from_u64(1),
-                      .t = Bignum{}};
+  EdwardsPoint result{.x = CurveBignum{},
+                      .y = bignum_from_u64<CURVE_BIGNUM_CAPACITY>(1),
+                      .z = bignum_from_u64<CURVE_BIGNUM_CAPACITY>(1),
+                      .t = CurveBignum{}};
   const auto scalar_bits{bignum_bit_length(parameters.prime)};
   for (std::size_t index = scalar_bits; index > 0; --index) {
     result = edwards_point_add_constant_time(result, result, parameters, field);
     const auto sum{
         edwards_point_add_constant_time(result, point, parameters, field)};
     result = edwards_point_conditional_select(
-        bignum_get_bit_fixed(scalar, index - 1), sum, result);
+        bignum_get_bit_fixed(scalar, index - 1), sum, result, field.words);
   }
 
   return result;
@@ -161,8 +167,8 @@ inline auto edwards_point_scalar_multiply_constant_time(
 // Whether two points are equal, compared without leaving projective space by
 // cross-multiplying through the Z factors
 inline auto edwards_point_equal(const EdwardsPoint &left,
-                                const EdwardsPoint &right, const Bignum &prime)
-    -> bool {
+                                const EdwardsPoint &right,
+                                const CurveBignum &prime) -> bool {
   return bignum_compare(bignum_mod_multiply(left.x, right.z, prime),
                         bignum_mod_multiply(right.x, left.z, prime)) == 0 &&
          bignum_compare(bignum_mod_multiply(left.y, right.z, prime),
@@ -171,7 +177,8 @@ inline auto edwards_point_equal(const EdwardsPoint &left,
 
 // Encode a point into the little-endian y coordinate with the low bit of x in
 // the final bit (RFC 8032 Section 5.1.2), the inverse of the point decoding
-inline auto edwards_point_encode(const EdwardsPoint &point, const Bignum &prime,
+inline auto edwards_point_encode(const EdwardsPoint &point,
+                                 const CurveBignum &prime,
                                  const std::size_t length) -> std::string {
   // Only the signing path encodes points, and its projective z derives from the
   // secret scalar, so the coordinate recovery is taken in constant time
@@ -193,7 +200,7 @@ inline auto edwards_point_encode(const EdwardsPoint &point, const Bignum &prime,
 // scalar (RFC 8032 Sections 5.1.5 and 5.2.5). The multiplication is
 // constant-time because the scalar is secret, though the resulting point is
 // public
-inline auto edwards_public_key_point(const Bignum &scalar,
+inline auto edwards_public_key_point(const CurveBignum &scalar,
                                      const EdwardsParameters &parameters,
                                      const std::size_t length) -> std::string {
   return edwards_point_encode(edwards_point_scalar_multiply_constant_time(
@@ -203,10 +210,11 @@ inline auto edwards_public_key_point(const Bignum &scalar,
 
 // Recover an Ed25519 point from its 32-byte encoding (RFC 8032 Section 5.1.3),
 // returning no value when the encoding does not name a point on the curve
-inline auto edwards25519_decode_point(const std::string_view encoding,
-                                      const Bignum &prime,
-                                      const Bignum &coefficient_d,
-                                      const Bignum &square_root_of_minus_one)
+inline auto
+edwards25519_decode_point(const std::string_view encoding,
+                          const CurveBignum &prime,
+                          const CurveBignum &coefficient_d,
+                          const CurveBignum &square_root_of_minus_one)
     -> std::optional<EdwardsPoint> {
   if (encoding.size() != 32) {
     return std::nullopt;
@@ -225,7 +233,7 @@ inline auto edwards25519_decode_point(const std::string_view encoding,
     return std::nullopt;
   }
 
-  const auto one{bignum_from_u64(1)};
+  const auto one{bignum_from_u64<CURVE_BIGNUM_CAPACITY>(1)};
   const auto y_squared{bignum_mod_multiply(y, y, prime)};
 
   // Solve x^2 = (y^2 - 1) / (d * y^2 + 1) (mod p)
@@ -244,7 +252,7 @@ inline auto edwards25519_decode_point(const std::string_view encoding,
       bignum_mod_multiply(denominator_cubed, denominator_cubed, prime),
       denominator, prime)};
   auto exponent{prime};
-  bignum_subtract_in_place(exponent, bignum_from_u64(5));
+  bignum_subtract_in_place(exponent, bignum_from_u64<CURVE_BIGNUM_CAPACITY>(5));
   exponent = bignum_shift_right(exponent, 3);
   const auto root{
       bignum_mod_exp(bignum_mod_multiply(numerator, denominator_seventh, prime),
@@ -258,7 +266,7 @@ inline auto edwards25519_decode_point(const std::string_view encoding,
       denominator, bignum_mod_multiply(candidate, candidate, prime), prime)};
   if (bignum_compare(check, numerator) != 0) {
     const auto negated_numerator{
-        bignum_mod_subtract(Bignum{}, numerator, prime)};
+        bignum_mod_subtract(CurveBignum{}, numerator, prime)};
     if (bignum_compare(check, negated_numerator) != 0) {
       return std::nullopt;
     }
@@ -287,29 +295,34 @@ inline auto edwards25519_decode_point(const std::string_view encoding,
 // The Edwards25519 domain parameters (RFC 8032 Section 5.1)
 inline auto edwards25519() -> EdwardsParameters {
   EdwardsParameters parameters;
-  parameters.prime = bignum_from_hex(
+  parameters.prime = bignum_from_hex<CURVE_BIGNUM_CAPACITY>(
       "7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed");
-  parameters.order = bignum_from_hex(
+  parameters.order = bignum_from_hex<CURVE_BIGNUM_CAPACITY>(
       "1000000000000000000000000000000014def9dea2f79cd65812631a5cf5d3ed");
 
   // The curve coefficient a is -1 (mod p)
   parameters.coefficient_a = parameters.prime;
-  bignum_subtract_in_place(parameters.coefficient_a, bignum_from_u64(1));
+  bignum_subtract_in_place(parameters.coefficient_a,
+                           bignum_from_u64<CURVE_BIGNUM_CAPACITY>(1));
 
   // d = -121665 / 121666 (mod p)
   auto negated_numerator{parameters.prime};
-  bignum_subtract_in_place(negated_numerator, bignum_from_u64(121665));
+  bignum_subtract_in_place(negated_numerator,
+                           bignum_from_u64<CURVE_BIGNUM_CAPACITY>(121665));
   parameters.coefficient_d = bignum_mod_multiply(
       negated_numerator,
-      bignum_mod_inverse(bignum_from_u64(121666), parameters.prime),
+      bignum_mod_inverse(bignum_from_u64<CURVE_BIGNUM_CAPACITY>(121666),
+                         parameters.prime),
       parameters.prime);
 
   // sqrt(-1) = 2^((p - 1) / 4) (mod p), used to recover the second root
   auto root_exponent{parameters.prime};
-  bignum_subtract_in_place(root_exponent, bignum_from_u64(1));
+  bignum_subtract_in_place(root_exponent,
+                           bignum_from_u64<CURVE_BIGNUM_CAPACITY>(1));
   root_exponent = bignum_shift_right(root_exponent, 2);
   const auto square_root_of_minus_one{
-      bignum_mod_exp(bignum_from_u64(2), root_exponent, parameters.prime)};
+      bignum_mod_exp(bignum_from_u64<CURVE_BIGNUM_CAPACITY>(2), root_exponent,
+                     parameters.prime)};
 
   // The base point is recovered from its canonical encoding, y = 4/5 with a
   // clear sign bit (RFC 8032 Section 5.1)
@@ -334,10 +347,12 @@ inline auto edwards25519_verify(const std::string_view public_key,
 
   const auto parameters{edwards25519()};
   auto square_root_exponent{parameters.prime};
-  bignum_subtract_in_place(square_root_exponent, bignum_from_u64(1));
+  bignum_subtract_in_place(square_root_exponent,
+                           bignum_from_u64<CURVE_BIGNUM_CAPACITY>(1));
   square_root_exponent = bignum_shift_right(square_root_exponent, 2);
-  const auto square_root_of_minus_one{bignum_mod_exp(
-      bignum_from_u64(2), square_root_exponent, parameters.prime)};
+  const auto square_root_of_minus_one{
+      bignum_mod_exp(bignum_from_u64<CURVE_BIGNUM_CAPACITY>(2),
+                     square_root_exponent, parameters.prime)};
 
   const auto public_point{edwards25519_decode_point(
       public_key, parameters.prime, parameters.coefficient_d,
@@ -491,8 +506,8 @@ inline auto edwards25519_sign(const std::string_view secret,
 // Recover an Ed448 point from its 57-byte encoding (RFC 8032 Section 5.2.3),
 // returning no value when the encoding does not name a point on the curve
 inline auto edwards448_decode_point(const std::string_view encoding,
-                                    const Bignum &prime,
-                                    const Bignum &coefficient_d)
+                                    const CurveBignum &prime,
+                                    const CurveBignum &coefficient_d)
     -> std::optional<EdwardsPoint> {
   if (encoding.size() != 57) {
     return std::nullopt;
@@ -511,7 +526,7 @@ inline auto edwards448_decode_point(const std::string_view encoding,
     return std::nullopt;
   }
 
-  const auto one{bignum_from_u64(1)};
+  const auto one{bignum_from_u64<CURVE_BIGNUM_CAPACITY>(1)};
   const auto y_squared{bignum_mod_multiply(y, y, prime)};
 
   // Solve x^2 = (y^2 - 1) / (d * y^2 - 1) (mod p)
@@ -533,7 +548,7 @@ inline auto edwards448_decode_point(const std::string_view encoding,
   const auto denominator_cubed{
       bignum_mod_multiply(denominator_squared, denominator, prime)};
   auto exponent{prime};
-  bignum_subtract_in_place(exponent, bignum_from_u64(3));
+  bignum_subtract_in_place(exponent, bignum_from_u64<CURVE_BIGNUM_CAPACITY>(3));
   exponent = bignum_shift_right(exponent, 2);
   const auto root{bignum_mod_exp(
       bignum_mod_multiply(numerator_fifth, denominator_cubed, prime), exponent,
@@ -571,19 +586,20 @@ inline auto edwards448_decode_point(const std::string_view encoding,
 inline auto edwards448() -> EdwardsParameters {
   EdwardsParameters parameters;
   // clang-format off
-  parameters.prime = bignum_from_hex("fffffffffffffffffffffffffffffffffffffffffffffffffffffffeffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
-  parameters.order = bignum_from_hex("3fffffffffffffffffffffffffffffffffffffffffffffffffffffff7cca23e9c44edb49aed63690216cc2728dc58f552378c292ab5844f3");
+  parameters.prime = bignum_from_hex<CURVE_BIGNUM_CAPACITY>("fffffffffffffffffffffffffffffffffffffffffffffffffffffffeffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+  parameters.order = bignum_from_hex<CURVE_BIGNUM_CAPACITY>("3fffffffffffffffffffffffffffffffffffffffffffffffffffffff7cca23e9c44edb49aed63690216cc2728dc58f552378c292ab5844f3");
   // clang-format on
 
   // The curve coefficient a is 1, and d is -39081 (mod p)
-  parameters.coefficient_a = bignum_from_u64(1);
+  parameters.coefficient_a = bignum_from_u64<CURVE_BIGNUM_CAPACITY>(1);
   parameters.coefficient_d = parameters.prime;
-  bignum_subtract_in_place(parameters.coefficient_d, bignum_from_u64(39081));
+  bignum_subtract_in_place(parameters.coefficient_d,
+                           bignum_from_u64<CURVE_BIGNUM_CAPACITY>(39081));
 
   // The base point is recovered from its canonical 57-octet encoding (RFC 8032
   // Section 5.2)
   // clang-format off
-  const auto base_encoding{bignum_to_bytes(bignum_from_hex("14fa30f25b790898adc8d74e2c13bdfdc4397ce61cffd33ad7c2a0051e9c78874098a36c7373ea4b62c7c9563720768824bcb66e71463f6900"), 57)};
+  const auto base_encoding{bignum_to_bytes(bignum_from_hex<CURVE_BIGNUM_CAPACITY>("14fa30f25b790898adc8d74e2c13bdfdc4397ce61cffd33ad7c2a0051e9c78874098a36c7373ea4b62c7c9563720768824bcb66e71463f6900"), 57)};
   // clang-format on
   parameters.base = edwards448_decode_point(base_encoding, parameters.prime,
                                             parameters.coefficient_d)

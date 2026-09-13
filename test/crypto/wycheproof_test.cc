@@ -9,6 +9,7 @@
 #include <cstdint>     // std::uint8_t
 #include <filesystem>  // std::filesystem::path
 #include <functional>  // std::function
+#include <memory>      // std::make_shared, std::shared_ptr
 #include <optional>    // std::optional, std::nullopt
 #include <span>        // std::span
 #include <string>      // std::string
@@ -782,29 +783,35 @@ auto to_ecdh_curve(const std::string_view name) -> std::optional<EcdhCurve> {
   return std::nullopt;
 }
 
-// A valid vector must derive exactly the given shared secret. An invalid vector
-// carries a peer point off the curve or otherwise malformed, so no shared
-// secret can be produced
-auto check_ecdh(const EcdhCurve &info, const std::string_view peer_point,
-                const std::string_view shared, const bool expected) -> void {
+// Every vector of a curve derives against the same primary key, so the key is
+// built and checked against its known public point once per curve rather than
+// once per vector
+auto make_ecdh_private_key(const EcdhCurve &info)
+    -> std::shared_ptr<const sourcemeta::core::PrivateKey> {
   const auto scalar{sourcemeta::core::hex_to_bytes(info.private_scalar)};
   const auto coordinate_x{sourcemeta::core::hex_to_bytes(info.coordinate_x)};
   const auto coordinate_y{sourcemeta::core::hex_to_bytes(info.coordinate_y)};
-  EXPECT_TRUE(scalar.has_value());
-  EXPECT_TRUE(coordinate_x.has_value());
-  EXPECT_TRUE(coordinate_y.has_value());
   if (!scalar.has_value() || !coordinate_x.has_value() ||
       !coordinate_y.has_value()) {
-    return;
+    return nullptr;
   }
 
-  const auto private_key{sourcemeta::core::make_ec_private_key(
+  auto private_key{sourcemeta::core::make_ec_private_key(
       info.curve, scalar.value(), coordinate_x.value(), coordinate_y.value())};
-  EXPECT_TRUE(private_key.has_value());
   if (!private_key.has_value()) {
-    return;
+    return nullptr;
   }
 
+  return std::make_shared<const sourcemeta::core::PrivateKey>(
+      std::move(private_key.value()));
+}
+
+// A valid vector must derive exactly the given shared secret. An invalid vector
+// carries a peer point off the curve or otherwise malformed, so no shared
+// secret can be produced
+auto check_ecdh(const sourcemeta::core::PrivateKey &private_key,
+                const EcdhCurve &info, const std::string_view peer_point,
+                const std::string_view shared, const bool expected) -> void {
   // The peer point is the uncompressed X9.63 encoding, splitting into its two
   // coordinates after the leading tag byte
   std::optional<sourcemeta::core::PublicKey> public_key;
@@ -822,7 +829,7 @@ auto check_ecdh(const EcdhCurve &info, const std::string_view peer_point,
     }
 
     const auto secret{
-        sourcemeta::core::ecdh_derive(private_key.value(), public_key.value())};
+        sourcemeta::core::ecdh_derive(private_key, public_key.value())};
     EXPECT_TRUE(secret.has_value());
     if (!secret.has_value()) {
       return;
@@ -831,10 +838,10 @@ auto check_ecdh(const EcdhCurve &info, const std::string_view peer_point,
     EXPECT_EQ(secret.value(),
               sourcemeta::core::pad_left(shared, info.field_bytes, '\x00'));
   } else {
-    const auto secret{public_key.has_value()
-                          ? sourcemeta::core::ecdh_derive(private_key.value(),
-                                                          public_key.value())
-                          : std::nullopt};
+    const auto secret{
+        public_key.has_value()
+            ? sourcemeta::core::ecdh_derive(private_key, public_key.value())
+            : std::nullopt};
     EXPECT_FALSE(secret.has_value());
   }
 }
@@ -849,6 +856,7 @@ auto register_ecdh_tests(const std::filesystem::path &path,
       continue;
     }
 
+    const auto private_key{make_ecdh_private_key(info.value())};
     for (const auto &test : group.at("tests").as_array()) {
       const std::string result{test.at("result").to_string()};
       // The suite provides only the scalar of each private key, so a valid
@@ -883,8 +891,15 @@ auto register_ecdh_tests(const std::filesystem::path &path,
 
       register_case(suite_name,
                     stem + "_tc" + std::to_string(test.at("tcId").to_integer()),
-                    [info = info.value(), peer = peer.value(), shared,
-                     expected]() { check_ecdh(info, peer, shared, expected); });
+                    [private_key, info = info.value(), peer = peer.value(),
+                     shared, expected]() {
+                      EXPECT_TRUE(private_key != nullptr);
+                      if (private_key == nullptr) {
+                        return;
+                      }
+
+                      check_ecdh(*private_key, info, peer, shared, expected);
+                    });
     }
   }
 }
