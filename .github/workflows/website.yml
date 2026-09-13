@@ -29,7 +29,7 @@ jobs:
       CACHE_KEY: ccache-v2-website-coverage
     steps:
       - name: Install dependencies
-        run: dnf install --assumeyes doxygen cmake gcc-c++ graphviz git clang llvm libstdc++-static diffutils util-linux
+        run: dnf install --assumeyes doxygen cmake gcc-c++ graphviz git clang llvm libstdc++-static diffutils util-linux python3
       - uses: actions/checkout@v7
       # The primary key never matches, as it carries the run identifier, so a
       # restore always walks the fallbacks in order. A previous run of this same
@@ -49,6 +49,10 @@ jobs:
       # Container jobs run as root, and a superuser is not constrained by the
       # permission bits that part of the suite asserts on
       - name: Build the website
+        # Every function that the published report measures has to be called by
+        # the test suite, so that a change cannot quietly lower it
+        env:
+          REQUIRE_FULL_FUNCTION_COVERAGE: "1"
         run: |
           useradd --create-home builder
           chown -R builder .
