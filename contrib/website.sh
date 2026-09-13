@@ -163,10 +163,29 @@ do
 done < "$OBJECT_LIST"
 
 # Merge the traces line by line, keeping the highest count observed for every
-# line and branch, then emit a merged LCOV trace plus a per file summary
+# line, branch, and function, then emit a merged LCOV trace plus a per file
+# summary. A function is identified by where it is defined, so that every
+# instantiation of a template counts towards the same one
 MERGE_PROGRAM="$WORK_DIRECTORY/merge.awk"
 cat > "$MERGE_PROGRAM" <<'AWK'
 /^SF:/ { source = substr($0, 4); files[source] = 1; next }
+/^FN:/ {
+  split(substr($0, 4), record, ",")
+  function_lines[source SUBSEP substr($0, 5 + length(record[1]))] = record[1]
+  key = source SUBSEP record[1]
+  if (!(key in functions)) {
+    functions[key] = 0
+  }
+  next
+}
+/^FNDA:/ {
+  split(substr($0, 6), record, ",")
+  key = source SUBSEP function_lines[source SUBSEP substr($0, 7 + length(record[1]))]
+  if (record[1] + 0 > functions[key] + 0) {
+    functions[key] = record[1] + 0
+  }
+  next
+}
 /^DA:/ {
   split(substr($0, 4), record, ",")
   key = source SUBSEP record[1]
@@ -238,11 +257,41 @@ END {
     total_covered, total_lines
   printf "%8.2f%% %6d/%-6d TOTAL branches\n", branch_percentage,
     total_branches_covered, total_branches
+  total_functions = 0
+  total_functions_covered = 0
+  printf "" > uncovered
+  for (key in functions) {
+    total_functions += 1
+    if (functions[key] > 0) {
+      total_functions_covered += 1
+    } else {
+      split(key, parts, SUBSEP)
+      printf "%s:%s\n", parts[1], parts[2] > uncovered
+    }
+  }
+  close(uncovered)
+  function_percentage = total_functions > 0 \
+    ? (total_functions_covered * 100.0) / total_functions : 100
+  printf "%8.2f%% %6d/%-6d TOTAL functions\n", function_percentage,
+    total_functions_covered, total_functions
 }
 AWK
 
-awk -v "merged=$WORK_DIRECTORY/coverage.lcov" -f "$MERGE_PROGRAM" \
+UNCOVERED_FUNCTIONS="$WORK_DIRECTORY/uncovered.txt"
+awk -v "merged=$WORK_DIRECTORY/coverage.lcov" \
+  -v "uncovered=$UNCOVERED_FUNCTIONS" -f "$MERGE_PROGRAM" \
   "$LCOV_DIRECTORY"/*.lcov > "$WORK_DIRECTORY/summary.txt"
+
+# Optionally require every function under measurement to be reached by the
+# suite, judged over the merged traces for the reason given above. Only the
+# platform that the report is published from is held to it, as a report
+# produced elsewhere measures a different set of code
+if [ -n "${REQUIRE_FULL_FUNCTION_COVERAGE:-}" ] && [ -s "$UNCOVERED_FUNCTIONS" ]
+then
+  echo "The test suite never calls the functions defined at:" >&2
+  sort -t : -k 1,1 -k 2,2n "$UNCOVERED_FUNCTIONS" >&2
+  exit 1
+fi
 
 # The browsable report keeps the combined view. Its annotated sources can still
 # under count the header inline cases described above, so the summary file
@@ -262,25 +311,6 @@ done < "$OBJECT_LIST"
   -format=html "-output-dir=$WORK_DIRECTORY/html" \
   "-ignore-filename-regex=$EXCLUDE" \
   -show-branches=count
-
-# Optionally require every function under measurement to be reached by the
-# suite, judged over the same view as the published report. Only the platform
-# that the report is published from is held to it, as a report produced
-# elsewhere measures a different set of code
-if [ -n "${REQUIRE_FULL_FUNCTION_COVERAGE:-}" ]
-then
-  "$LLVM_COV" report "$MAIN_OBJECT" "$@" \
-    "-instr-profile=$PROFILE_DATA" \
-    "-ignore-filename-regex=$EXCLUDE" > "$WORK_DIRECTORY/report.txt"
-  MISSED_FUNCTIONS="$(awk '$1 == "TOTAL" { print $6 }' "$WORK_DIRECTORY/report.txt")"
-  if [ "$MISSED_FUNCTIONS" != "0" ]
-  then
-    echo "The test suite never calls $MISSED_FUNCTIONS function(s) in:" >&2
-    awk '$1 != "TOTAL" && $6 ~ /^[0-9]+$/ && $6 != "0" { print "  " $1 " (" $6 ")" }' \
-      "$WORK_DIRECTORY/report.txt" >&2
-    exit 1
-  fi
-fi
 
 # Whatever the report generator emitted is taken as is rather than named entry
 # by entry, and only the entries about to be written are cleared, so that the
