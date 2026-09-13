@@ -12,36 +12,30 @@
 
 namespace sourcemeta::core {
 
-// The count must be between 1 and 31, as the complementary shift is
-// undefined otherwise
-inline constexpr auto sha256_rotate_right(std::uint32_t value,
-                                          std::uint64_t count) noexcept
-    -> std::uint32_t {
-  return (value >> count) | (value << (32u - count));
-}
-
-// FIPS 180-4 Section 4.1.2 logical functions
+// FIPS 180-4 Section 4.1.2 logical functions. Each right rotation is written
+// out as a shift pair rather than through a helper, so that an unoptimized
+// build does not pay a function call per rotation
 inline constexpr auto sha256_big_sigma_0(std::uint32_t value) noexcept
     -> std::uint32_t {
-  return sha256_rotate_right(value, 2u) ^ sha256_rotate_right(value, 13u) ^
-         sha256_rotate_right(value, 22u);
+  return ((value >> 2u) | (value << 30u)) ^ ((value >> 13u) | (value << 19u)) ^
+         ((value >> 22u) | (value << 10u));
 }
 
 inline constexpr auto sha256_big_sigma_1(std::uint32_t value) noexcept
     -> std::uint32_t {
-  return sha256_rotate_right(value, 6u) ^ sha256_rotate_right(value, 11u) ^
-         sha256_rotate_right(value, 25u);
+  return ((value >> 6u) | (value << 26u)) ^ ((value >> 11u) | (value << 21u)) ^
+         ((value >> 25u) | (value << 7u));
 }
 
 inline constexpr auto sha256_small_sigma_0(std::uint32_t value) noexcept
     -> std::uint32_t {
-  return sha256_rotate_right(value, 7u) ^ sha256_rotate_right(value, 18u) ^
+  return ((value >> 7u) | (value << 25u)) ^ ((value >> 18u) | (value << 14u)) ^
          (value >> 3u);
 }
 
 inline constexpr auto sha256_small_sigma_1(std::uint32_t value) noexcept
     -> std::uint32_t {
-  return sha256_rotate_right(value, 17u) ^ sha256_rotate_right(value, 19u) ^
+  return ((value >> 17u) | (value << 15u)) ^ ((value >> 19u) | (value << 13u)) ^
          (value >> 10u);
 }
 

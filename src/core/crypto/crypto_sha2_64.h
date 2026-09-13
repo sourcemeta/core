@@ -12,36 +12,30 @@
 
 namespace sourcemeta::core {
 
-// The count must be between 1 and 63, as the complementary shift is
-// undefined otherwise
-inline constexpr auto sha2_64_rotate_right(std::uint64_t value,
-                                           std::uint64_t count) noexcept
-    -> std::uint64_t {
-  return (value >> count) | (value << (64u - count));
-}
-
-// FIPS 180-4 Section 4.1.3 logical functions
+// FIPS 180-4 Section 4.1.3 logical functions. Each right rotation is written
+// out as a shift pair rather than through a helper, so that an unoptimized
+// build does not pay a function call per rotation
 inline constexpr auto sha2_64_big_sigma_0(std::uint64_t value) noexcept
     -> std::uint64_t {
-  return sha2_64_rotate_right(value, 28u) ^ sha2_64_rotate_right(value, 34u) ^
-         sha2_64_rotate_right(value, 39u);
+  return ((value >> 28u) | (value << 36u)) ^ ((value >> 34u) | (value << 30u)) ^
+         ((value >> 39u) | (value << 25u));
 }
 
 inline constexpr auto sha2_64_big_sigma_1(std::uint64_t value) noexcept
     -> std::uint64_t {
-  return sha2_64_rotate_right(value, 14u) ^ sha2_64_rotate_right(value, 18u) ^
-         sha2_64_rotate_right(value, 41u);
+  return ((value >> 14u) | (value << 50u)) ^ ((value >> 18u) | (value << 46u)) ^
+         ((value >> 41u) | (value << 23u));
 }
 
 inline constexpr auto sha2_64_small_sigma_0(std::uint64_t value) noexcept
     -> std::uint64_t {
-  return sha2_64_rotate_right(value, 1u) ^ sha2_64_rotate_right(value, 8u) ^
+  return ((value >> 1u) | (value << 63u)) ^ ((value >> 8u) | (value << 56u)) ^
          (value >> 7u);
 }
 
 inline constexpr auto sha2_64_small_sigma_1(std::uint64_t value) noexcept
     -> std::uint64_t {
-  return sha2_64_rotate_right(value, 19u) ^ sha2_64_rotate_right(value, 61u) ^
+  return ((value >> 19u) | (value << 45u)) ^ ((value >> 61u) | (value << 3u)) ^
          (value >> 6u);
 }
 

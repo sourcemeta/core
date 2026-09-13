@@ -63,12 +63,12 @@ inline auto bignum_from_bytes_little_endian(const std::string_view input)
 
 // Ed25519 field reduction in constant time, for the signing ladder. The prime
 // is 2^255 - 19, so 2^256 is congruent to 38 modulo it, and the high half of a
-// product folds onto the low half scaled by 38. A second fold absorbs the carry
-// out of the top word, leaving at most one, and a third folds that carry, worth
-// 38, and bit 255, worth 19, back in, leaving a value below 2^255 + 57. Such a
-// value is at least the prime exactly when adding 19 to it reaches bit 255, and
-// that sum without bit 255 is then the reduced value, so a single masked
-// selection finishes the reduction
+// product folds onto the low half scaled by 38, carrying at most 38 out of the
+// top word. A second fold takes that carry, worth 38 each, and bit 255, worth
+// 19, back in at once, leaving a value below 2^255 + 1463. Such a value is at
+// least the prime exactly when adding 19 to it reaches bit 255, and that sum
+// without bit 255 is then the reduced value, so a single masked selection
+// finishes the reduction
 inline auto field_reduce_25519_ct(
     const CurveBignum &value,
     [[maybe_unused]] const CurveBarrettContext &context) noexcept
@@ -85,23 +85,13 @@ inline auto field_reduce_25519_ct(
     carry = static_cast<std::uint64_t>(total >> 64U);
   }
 
-  BignumDoubleWord addend{static_cast<BignumDoubleWord>(carry) * 38U};
-  for (std::size_t index = 0; index < 4; ++index) {
-    const auto total{static_cast<BignumDoubleWord>(folded_data[index]) +
-                     addend};
-    folded_data[index] = static_cast<std::uint64_t>(total);
-    addend = total >> 64U;
-  }
-
-  const auto excess{(folded_data[3] >> 63U) +
-                    (static_cast<std::uint64_t>(addend) << 1U)};
+  std::uint64_t addend{((folded_data[3] >> 63U) + (carry << 1U)) * 19U};
   folded_data[3] &= 0x7fffffffffffffffULL;
-  addend = static_cast<BignumDoubleWord>(excess) * 19U;
   for (std::size_t index = 0; index < 4; ++index) {
     const auto total{static_cast<BignumDoubleWord>(folded_data[index]) +
                      addend};
     folded_data[index] = static_cast<std::uint64_t>(total);
-    addend = total >> 64U;
+    addend = static_cast<std::uint64_t>(total >> 64U);
   }
 
   CurveBignum reduced;
@@ -111,14 +101,18 @@ inline auto field_reduce_25519_ct(
     const auto total{static_cast<BignumDoubleWord>(folded_data[index]) +
                      addend};
     reduced_data[index] = static_cast<std::uint64_t>(total);
-    addend = total >> 64U;
+    addend = static_cast<std::uint64_t>(total >> 64U);
   }
 
-  const auto at_least_prime{(reduced_data[3] >> 63U) != 0};
+  const std::uint64_t mask{std::uint64_t{0} - (reduced_data[3] >> 63U)};
   reduced_data[3] &= 0x7fffffffffffffffULL;
+  for (std::size_t index = 0; index < 4; ++index) {
+    folded_data[index] =
+        (reduced_data[index] & mask) | (folded_data[index] & ~mask);
+  }
+
   folded.size = 4;
-  reduced.size = 4;
-  return bignum_conditional_select(at_least_prime, reduced, folded, 4);
+  return folded;
 }
 
 inline auto edwards_point_conditional_select(const bool condition,

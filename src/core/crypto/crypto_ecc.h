@@ -635,29 +635,55 @@ inline auto point_complete_double(const JacobianPoint &point,
 
 // NIST P-521 field reduction in constant time, for the signing ladder. The
 // prime is 2^521 - 1, so the bits of a product above position 521 fold back
-// onto the low 521 bits with one fixed-width addition, and the sum, at most
-// twice the prime, needs at most two masked subtractions
-inline auto field_reduce_p521_ct(const CurveBignum &value,
-                                 const CurveBarrettContext &context) noexcept
+// onto the low 521 bits with one fixed-width addition, and folding the bit 521
+// of that sum once more leaves a value no greater than 2^521. Such a value is
+// at least the prime exactly when adding one to it reaches bit 521, and that
+// sum without bit 521 is then the reduced value, so a single masked selection
+// finishes the reduction
+inline auto field_reduce_p521_ct(
+    const CurveBignum &value,
+    [[maybe_unused]] const CurveBarrettContext &context) noexcept
     -> CurveBignum {
   const auto *value_data{value.words.data()};
   CurveBignum sum;
   auto *sum_data{sum.words.data()};
   std::uint64_t carry{0};
-  for (std::size_t index = 0; index < 9; ++index) {
-    const auto low{index < 8 ? value_data[index] : value_data[8] & 0x1ffULL};
+  for (std::size_t index = 0; index < 8; ++index) {
     const auto high{(value_data[index + 8] >> 9U) |
                     (value_data[index + 9] << 55U)};
-    const auto total{static_cast<BignumDoubleWord>(low) + high + carry};
+    const auto total{static_cast<BignumDoubleWord>(value_data[index]) + high +
+                     carry};
     sum_data[index] = static_cast<std::uint64_t>(total);
     carry = static_cast<std::uint64_t>(total >> 64U);
   }
 
+  // The top word keeps only the nine bits below position 521, and the product
+  // bits folded onto it stay below 2^9, so its sum cannot overflow
+  sum_data[8] = (value_data[8] & 0x1ffULL) +
+                ((value_data[16] >> 9U) | (value_data[17] << 55U)) + carry;
+
+  std::uint64_t addend{sum_data[8] >> 9U};
+  sum_data[8] &= 0x1ffULL;
+  for (std::size_t index = 0; index < 9; ++index) {
+    const auto total{static_cast<BignumDoubleWord>(sum_data[index]) + addend};
+    sum_data[index] = static_cast<std::uint64_t>(total);
+    addend = static_cast<std::uint64_t>(total >> 64U);
+  }
+
+  CurveBignum reduced;
+  auto *reduced_data{reduced.words.data()};
+  addend = 1;
+  for (std::size_t index = 0; index < 9; ++index) {
+    const auto total{static_cast<BignumDoubleWord>(sum_data[index]) + addend};
+    reduced_data[index] = static_cast<std::uint64_t>(total);
+    addend = static_cast<std::uint64_t>(total >> 64U);
+  }
+
+  const auto at_least_prime{(reduced_data[8] >> 9U) != 0};
+  reduced_data[8] &= 0x1ffULL;
   sum.size = 9;
-  auto reduced{bignum_conditional_subtract(sum, context.modulus, 9)};
-  reduced = bignum_conditional_subtract(reduced, context.modulus, 9);
   reduced.size = 9;
-  return reduced;
+  return bignum_conditional_select(at_least_prime, reduced, sum, 9);
 }
 
 // The constant-time field arithmetic context of a curve, taking the Mersenne
