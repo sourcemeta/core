@@ -195,8 +195,8 @@ auto hmac(const SignatureHashFunction hash, const std::string_view key,
 // RFC 6979 Section 2.3.2 bits2int, which is also the FIPS 186-4 Section 6.4
 // truncation of a bit string to the leftmost order-length bits
 auto bits2int(const std::string_view bits, const std::size_t order_bits)
-    -> Bignum {
-  auto value{bignum_from_bytes(bits)};
+    -> CurveBignum {
+  auto value{bignum_from_bytes<CURVE_BIGNUM_CAPACITY>(bits)};
   const auto bit_length{bits.size() * 8};
   if (bit_length > order_bits) {
     value = bignum_shift_right(value, bit_length - order_bits);
@@ -207,7 +207,7 @@ auto bits2int(const std::string_view bits, const std::size_t order_bits)
 
 // RFC 6979 Section 2.3.4 bits2octets, reducing the truncated hash modulo the
 // order and encoding it to the fixed octet width
-auto bits2octets(const std::string_view bits, const Bignum &order,
+auto bits2octets(const std::string_view bits, const CurveBignum &order,
                  const std::size_t order_bits, const std::size_t order_bytes)
     -> std::string {
   auto value{bits2int(bits, order_bits)};
@@ -225,9 +225,9 @@ auto sign_rsa(const PrivateKey::Internal &key,
 
 // The signature for one nonce candidate (FIPS 186-4 Section 6.4.1), returning
 // no value when the candidate must be rejected and a fresh one drawn
-auto ecdsa_signature_for_nonce(const Bignum &nonce,
-                               const Bignum &digest_integer,
-                               const Bignum &private_scalar,
+auto ecdsa_signature_for_nonce(const CurveBignum &nonce,
+                               const CurveBignum &digest_integer,
+                               const CurveBignum &private_scalar,
                                const JacobianPoint &generator,
                                const EllipticCurveParameters &parameters,
                                const std::size_t field_bytes)
@@ -288,11 +288,11 @@ auto sign_ecdsa(const EllipticCurve curve, const SignatureHashFunction hash,
   const auto order_bytes{(order_bits + 7) / 8};
   const auto digest{digest_message(hash, message)};
   const auto digest_integer{bits2int(digest, order_bits)};
-  auto private_scalar{bignum_from_bytes(scalar)};
+  auto private_scalar{bignum_from_bytes<CURVE_BIGNUM_CAPACITY>(scalar)};
   const SecureBignumScope private_scalar_scope{private_scalar};
   const JacobianPoint generator{.x = parameters.generator_x,
                                 .y = parameters.generator_y,
-                                .z = bignum_from_u64(1)};
+                                .z = bignum_from_u64<CURVE_BIGNUM_CAPACITY>(1)};
 
   auto private_octets{bignum_to_bytes(private_scalar, order_bytes)};
   const SecureStringScope private_octets_scope{private_octets};
@@ -356,8 +356,8 @@ auto ec_public_from_scalar(const EllipticCurve curve,
   const auto parameters{to_curve_parameters(curve)};
   const JacobianPoint generator{.x = parameters.generator_x,
                                 .y = parameters.generator_y,
-                                .z = bignum_from_u64(1)};
-  auto scalar_number{bignum_from_bytes(scalar)};
+                                .z = bignum_from_u64<CURVE_BIGNUM_CAPACITY>(1)};
+  auto scalar_number{bignum_from_bytes<CURVE_BIGNUM_CAPACITY>(scalar)};
   const SecureBignumScope scalar_scope{scalar_number};
   // The complete-formula ladder returns a projective point, whose affine
   // coordinates are X / Z and Y / Z, not the Jacobian X / Z^2 and Y / Z^3, so
@@ -695,7 +695,7 @@ auto generate_ec_private_key(const EllipticCurve curve)
   // retry rate low even for P-521, whose order fills only 521 of its 528 bits
   std::string scalar(width, '\x00');
   const SecureStringScope scalar_scope{scalar};
-  Bignum scalar_number;
+  CurveBignum scalar_number;
   const SecureBignumScope scalar_number_scope{scalar_number};
   do {
     try {
@@ -708,7 +708,7 @@ auto generate_ec_private_key(const EllipticCurve curve)
     scalar[0] =
         static_cast<char>(static_cast<std::uint8_t>(scalar[0]) &
                           static_cast<std::uint8_t>(0xffu >> excess_bits));
-    scalar_number = bignum_from_bytes(scalar);
+    scalar_number = bignum_from_bytes<CURVE_BIGNUM_CAPACITY>(scalar);
   } while (bignum_is_zero(scalar_number) ||
            bignum_compare(scalar_number, parameters.order) >= 0);
 

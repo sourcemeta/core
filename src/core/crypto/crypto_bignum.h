@@ -2,7 +2,7 @@
 #define SOURCEMETA_CORE_CRYPTO_BIGNUM_H_
 
 // Fixed-capacity unsigned big integer arithmetic for the reference signature
-// backend. Capacity fits 4096-bit RSA operands and their double-width products.
+// backend, with one capacity sized for RSA and a smaller one for the curves.
 // The verification paths consume only public inputs and stay variable time; the
 // signing paths use the constant-time layer below (fixed-width multiply,
 // Barrett reduction, masked select and inverse) on their secret operands. The
@@ -25,18 +25,29 @@ namespace sourcemeta::core {
 
 using BignumDoubleWord = uint128_t;
 
-struct Bignum {
-  // Enough words for an 8192-bit product plus shifting headroom
-  static constexpr std::size_t CAPACITY{130};
-  std::array<std::uint64_t, CAPACITY> words{};
+template <std::size_t Capacity> struct BasicBignum {
+  static constexpr std::size_t CAPACITY{Capacity};
+  std::array<std::uint64_t, Capacity> words{};
   std::size_t size{0};
 };
+
+// Enough words for an 8192-bit product plus shifting headroom
+inline constexpr std::size_t BIGNUM_CAPACITY{130};
+using Bignum = BasicBignum<BIGNUM_CAPACITY>;
+
+// Enough words for the double-width products of the largest curve field, P-521
+// at nine words, for the Barrett estimates built on them, and for the 114-octet
+// Ed448 digest, so the curve routines do not zero and copy the RSA capacity on
+// every temporary
+inline constexpr std::size_t CURVE_BIGNUM_CAPACITY{32};
+using CurveBignum = BasicBignum<CURVE_BIGNUM_CAPACITY>;
 
 // Overwrite the whole word buffer of a big integer that held secret material,
 // including the words past the current size that intermediate operations wrote,
 // so it does not linger in freed memory. The volatile access stops the compiler
 // from eliding the write as a dead store
-inline auto secure_zero(Bignum &value) noexcept -> void {
+template <std::size_t Capacity>
+inline auto secure_zero(BasicBignum<Capacity> &value) noexcept -> void {
   auto *pointer{reinterpret_cast<volatile unsigned char *>(value.words.data())};
   for (std::size_t index{0}; index < sizeof(value.words); index += 1) {
     pointer[index] = 0;
@@ -48,30 +59,34 @@ inline auto secure_zero(Bignum &value) noexcept -> void {
 // Overwrite the referenced big integer when leaving the current scope, so a
 // secret value a local holds is wiped across every return path without
 // threading a manual call through each one
-struct SecureBignumScope {
-  explicit SecureBignumScope(Bignum &value) noexcept : target{value} {}
+template <std::size_t Capacity> struct SecureBignumScope {
+  explicit SecureBignumScope(BasicBignum<Capacity> &value) noexcept
+      : target{value} {}
   SecureBignumScope(const SecureBignumScope &) = delete;
   auto operator=(const SecureBignumScope &) -> SecureBignumScope & = delete;
   SecureBignumScope(SecureBignumScope &&) = delete;
   auto operator=(SecureBignumScope &&) -> SecureBignumScope & = delete;
   ~SecureBignumScope() { secure_zero(this->target); }
-  Bignum &target;
+  BasicBignum<Capacity> &target;
 };
 
-inline auto bignum_normalize(Bignum &value) noexcept -> void {
+template <std::size_t Capacity>
+inline auto bignum_normalize(BasicBignum<Capacity> &value) noexcept -> void {
   const auto *value_data{value.words.data()};
   while (value.size > 0 && value_data[value.size - 1] == 0) {
     value.size -= 1;
   }
 }
 
-inline auto bignum_from_bytes(const std::string_view input) noexcept -> Bignum {
-  Bignum result;
+template <std::size_t Capacity = BIGNUM_CAPACITY>
+inline auto bignum_from_bytes(const std::string_view input) noexcept
+    -> BasicBignum<Capacity> {
+  BasicBignum<Capacity> result;
   std::size_t bytes_consumed{0};
   for (std::size_t index = input.size(); index > 0; --index) {
     const auto byte{static_cast<std::uint8_t>(input[index - 1])};
     const auto word_index{bytes_consumed / 8};
-    if (word_index >= Bignum::CAPACITY) {
+    if (word_index >= Capacity) {
       break;
     }
 
@@ -85,8 +100,10 @@ inline auto bignum_from_bytes(const std::string_view input) noexcept -> Bignum {
   return result;
 }
 
-inline auto bignum_from_u64(const std::uint64_t value) noexcept -> Bignum {
-  Bignum result;
+template <std::size_t Capacity = BIGNUM_CAPACITY>
+inline auto bignum_from_u64(const std::uint64_t value) noexcept
+    -> BasicBignum<Capacity> {
+  BasicBignum<Capacity> result;
   if (value > 0) {
     result.words[0] = value;
     result.size = 1;
@@ -95,22 +112,27 @@ inline auto bignum_from_u64(const std::uint64_t value) noexcept -> Bignum {
   return result;
 }
 
-inline auto bignum_from_hex(const std::string_view hex) -> Bignum {
+template <std::size_t Capacity = BIGNUM_CAPACITY>
+inline auto bignum_from_hex(const std::string_view hex)
+    -> BasicBignum<Capacity> {
   // An odd length is decoded as if a zero nibble had been prepended
   const auto bytes{hex_to_bytes(hex, true)};
   if (!bytes.has_value()) {
-    return Bignum{};
+    return BasicBignum<Capacity>{};
   }
 
-  return bignum_from_bytes(bytes.value());
+  return bignum_from_bytes<Capacity>(bytes.value());
 }
 
-inline auto bignum_is_zero(const Bignum &value) noexcept -> bool {
+template <std::size_t Capacity>
+inline auto bignum_is_zero(const BasicBignum<Capacity> &value) noexcept
+    -> bool {
   return value.size == 0;
 }
 
-inline auto bignum_compare(const Bignum &left, const Bignum &right) noexcept
-    -> int {
+template <std::size_t Capacity>
+inline auto bignum_compare(const BasicBignum<Capacity> &left,
+                           const BasicBignum<Capacity> &right) noexcept -> int {
   if (left.size != right.size) {
     return left.size < right.size ? -1 : 1;
   }
@@ -126,7 +148,9 @@ inline auto bignum_compare(const Bignum &left, const Bignum &right) noexcept
   return 0;
 }
 
-inline auto bignum_bit_length(const Bignum &value) noexcept -> std::size_t {
+template <std::size_t Capacity>
+inline auto bignum_bit_length(const BasicBignum<Capacity> &value) noexcept
+    -> std::size_t {
   if (value.size == 0) {
     return 0;
   }
@@ -135,8 +159,9 @@ inline auto bignum_bit_length(const Bignum &value) noexcept -> std::size_t {
          static_cast<std::size_t>(std::bit_width(value.words[value.size - 1]));
 }
 
-inline auto bignum_get_bit(const Bignum &value, const std::size_t bit) noexcept
-    -> bool {
+template <std::size_t Capacity>
+inline auto bignum_get_bit(const BasicBignum<Capacity> &value,
+                           const std::size_t bit) noexcept -> bool {
   const auto word{bit / 64};
   if (word >= value.size) {
     return false;
@@ -148,32 +173,34 @@ inline auto bignum_get_bit(const Bignum &value, const std::size_t bit) noexcept
 // The same read without the size-dependent early return, so the signing ladders
 // do not reveal the secret scalar's length through the branch. The bit index is
 // bounded by the public curve size, so the guard is on public data
-inline auto bignum_get_bit_fixed(const Bignum &value,
+template <std::size_t Capacity>
+inline auto bignum_get_bit_fixed(const BasicBignum<Capacity> &value,
                                  const std::size_t bit) noexcept -> bool {
   const auto word{bit / 64};
-  return word < Bignum::CAPACITY &&
-         ((value.words[word] >> (bit % 64)) & 1U) != 0;
+  return word < Capacity && ((value.words[word] >> (bit % 64)) & 1U) != 0;
 }
 
 // Assumes the result fits in the capacity
-inline auto bignum_shift_left(const Bignum &value,
-                              const std::size_t bits) noexcept -> Bignum {
-  Bignum result;
+template <std::size_t Capacity>
+inline auto bignum_shift_left(const BasicBignum<Capacity> &value,
+                              const std::size_t bits) noexcept
+    -> BasicBignum<Capacity> {
+  BasicBignum<Capacity> result;
   const auto word_shift{bits / 64};
   const auto bit_shift{bits % 64};
   result.size = value.size + word_shift + 1;
-  result.size = std::min(result.size, Bignum::CAPACITY);
+  result.size = std::min(result.size, Capacity);
 
   const auto *value_data{value.words.data()};
   auto *result_data{result.words.data()};
   for (std::size_t index = 0; index < value.size; ++index) {
     const auto destination{index + word_shift};
-    if (destination >= Bignum::CAPACITY) {
+    if (destination >= Capacity) {
       break;
     }
 
     result_data[destination] |= value_data[index] << bit_shift;
-    if (bit_shift > 0 && destination + 1 < Bignum::CAPACITY) {
+    if (bit_shift > 0 && destination + 1 < Capacity) {
       result_data[destination + 1] |= value_data[index] >> (64U - bit_shift);
     }
   }
@@ -183,8 +210,10 @@ inline auto bignum_shift_left(const Bignum &value,
 }
 
 // Assumes the left operand is greater than or equal to the right one
-inline auto bignum_subtract_in_place(Bignum &left, const Bignum &right) noexcept
-    -> void {
+template <std::size_t Capacity>
+inline auto
+bignum_subtract_in_place(BasicBignum<Capacity> &left,
+                         const BasicBignum<Capacity> &right) noexcept -> void {
   auto *left_data{left.words.data()};
   const auto *right_data{right.words.data()};
   std::uint64_t borrow{0};
@@ -200,14 +229,18 @@ inline auto bignum_subtract_in_place(Bignum &left, const Bignum &right) noexcept
   bignum_normalize(left);
 }
 
-inline auto bignum_shift_right(const Bignum &value,
-                               const std::size_t bits) noexcept -> Bignum;
+template <std::size_t Capacity>
+inline auto bignum_shift_right(const BasicBignum<Capacity> &value,
+                               const std::size_t bits) noexcept
+    -> BasicBignum<Capacity>;
 
 // Reduce a value modulo the modulus with Knuth's Algorithm D (TAOCP Volume 2,
 // Section 4.3.1), the schoolbook long division that estimates one quotient
 // word per step rather than one bit, so the cost is quadratic in the number of
 // words rather than the number of bits
-inline auto bignum_reduce(Bignum &value, const Bignum &modulus) noexcept
+template <std::size_t Capacity>
+inline auto bignum_reduce(BasicBignum<Capacity> &value,
+                          const BasicBignum<Capacity> &modulus) noexcept
     -> void {
   if (bignum_compare(value, modulus) < 0) {
     return;
@@ -231,7 +264,7 @@ inline auto bignum_reduce(Bignum &value, const Bignum &modulus) noexcept
       remainder %= divisor;
     }
 
-    value = bignum_from_u64(static_cast<std::uint64_t>(remainder));
+    value = bignum_from_u64<Capacity>(static_cast<std::uint64_t>(remainder));
     return;
   }
 
@@ -324,11 +357,13 @@ inline auto bignum_reduce(Bignum &value, const Bignum &modulus) noexcept
 }
 
 // Assumes both operands fit in half the capacity
-inline auto bignum_multiply(const Bignum &left, const Bignum &right) noexcept
-    -> Bignum {
-  Bignum result;
+template <std::size_t Capacity>
+inline auto bignum_multiply(const BasicBignum<Capacity> &left,
+                            const BasicBignum<Capacity> &right) noexcept
+    -> BasicBignum<Capacity> {
+  BasicBignum<Capacity> result;
   result.size = left.size + right.size;
-  result.size = std::min(result.size, Bignum::CAPACITY);
+  result.size = std::min(result.size, Capacity);
 
   const auto *left_data{left.words.data()};
   const auto *right_data{right.words.data()};
@@ -337,7 +372,7 @@ inline auto bignum_multiply(const Bignum &left, const Bignum &right) noexcept
     std::uint64_t carry{0};
     for (std::size_t right_index = 0; right_index < right.size; ++right_index) {
       const auto destination{left_index + right_index};
-      if (destination >= Bignum::CAPACITY) {
+      if (destination >= Capacity) {
         break;
       }
 
@@ -349,7 +384,7 @@ inline auto bignum_multiply(const Bignum &left, const Bignum &right) noexcept
     }
 
     const auto carry_destination{left_index + right.size};
-    if (carry_destination < Bignum::CAPACITY) {
+    if (carry_destination < Capacity) {
       result_data[carry_destination] += carry;
     }
   }
@@ -358,9 +393,12 @@ inline auto bignum_multiply(const Bignum &left, const Bignum &right) noexcept
   return result;
 }
 
-inline auto bignum_mod_exp(const Bignum &base, const Bignum &exponent,
-                           const Bignum &modulus) noexcept -> Bignum {
-  Bignum result;
+template <std::size_t Capacity>
+inline auto bignum_mod_exp(const BasicBignum<Capacity> &base,
+                           const BasicBignum<Capacity> &exponent,
+                           const BasicBignum<Capacity> &modulus) noexcept
+    -> BasicBignum<Capacity> {
+  BasicBignum<Capacity> result;
   result.words[0] = 1;
   result.size = 1;
 
@@ -380,9 +418,11 @@ inline auto bignum_mod_exp(const Bignum &base, const Bignum &exponent,
   return result;
 }
 
-inline auto bignum_add(const Bignum &left, const Bignum &right) noexcept
-    -> Bignum {
-  Bignum result;
+template <std::size_t Capacity>
+inline auto bignum_add(const BasicBignum<Capacity> &left,
+                       const BasicBignum<Capacity> &right) noexcept
+    -> BasicBignum<Capacity> {
+  BasicBignum<Capacity> result;
   const auto larger{left.size > right.size ? left.size : right.size};
   std::uint64_t carry{0};
   const auto *left_data{left.words.data()};
@@ -397,7 +437,7 @@ inline auto bignum_add(const Bignum &left, const Bignum &right) noexcept
   }
 
   result.size = larger;
-  if (carry > 0 && larger < Bignum::CAPACITY) {
+  if (carry > 0 && larger < Capacity) {
     result_data[larger] = carry;
     result.size = larger + 1;
   }
@@ -406,9 +446,11 @@ inline auto bignum_add(const Bignum &left, const Bignum &right) noexcept
   return result;
 }
 
-inline auto bignum_shift_right(const Bignum &value,
-                               const std::size_t bits) noexcept -> Bignum {
-  Bignum result;
+template <std::size_t Capacity>
+inline auto bignum_shift_right(const BasicBignum<Capacity> &value,
+                               const std::size_t bits) noexcept
+    -> BasicBignum<Capacity> {
+  BasicBignum<Capacity> result;
   const auto word_shift{bits / 64};
   const auto bit_shift{bits % 64};
   if (word_shift >= value.size) {
@@ -434,8 +476,11 @@ inline auto bignum_shift_right(const Bignum &value,
 // All modular helpers below assume their operands are already reduced to
 // less than the modulus, as the elliptic curve routines guarantee
 
-inline auto bignum_mod_add(const Bignum &left, const Bignum &right,
-                           const Bignum &modulus) noexcept -> Bignum {
+template <std::size_t Capacity>
+inline auto bignum_mod_add(const BasicBignum<Capacity> &left,
+                           const BasicBignum<Capacity> &right,
+                           const BasicBignum<Capacity> &modulus) noexcept
+    -> BasicBignum<Capacity> {
   auto result{bignum_add(left, right)};
   if (bignum_compare(result, modulus) >= 0) {
     bignum_subtract_in_place(result, modulus);
@@ -444,8 +489,11 @@ inline auto bignum_mod_add(const Bignum &left, const Bignum &right,
   return result;
 }
 
-inline auto bignum_mod_subtract(const Bignum &left, const Bignum &right,
-                                const Bignum &modulus) noexcept -> Bignum {
+template <std::size_t Capacity>
+inline auto bignum_mod_subtract(const BasicBignum<Capacity> &left,
+                                const BasicBignum<Capacity> &right,
+                                const BasicBignum<Capacity> &modulus) noexcept
+    -> BasicBignum<Capacity> {
   if (bignum_compare(left, right) >= 0) {
     auto result{left};
     bignum_subtract_in_place(result, right);
@@ -457,8 +505,11 @@ inline auto bignum_mod_subtract(const Bignum &left, const Bignum &right,
   return result;
 }
 
-inline auto bignum_mod_multiply(const Bignum &left, const Bignum &right,
-                                const Bignum &modulus) noexcept -> Bignum {
+template <std::size_t Capacity>
+inline auto bignum_mod_multiply(const BasicBignum<Capacity> &left,
+                                const BasicBignum<Capacity> &right,
+                                const BasicBignum<Capacity> &modulus) noexcept
+    -> BasicBignum<Capacity> {
   auto result{bignum_multiply(left, right)};
   bignum_reduce(result, modulus);
   return result;
@@ -466,8 +517,10 @@ inline auto bignum_mod_multiply(const Bignum &left, const Bignum &right,
 
 // Halve a value modulo an odd modulus: an even value shifts down, an odd one
 // becomes even by adding the modulus first, so the result stays an integer
-inline auto bignum_mod_halve(const Bignum &value,
-                             const Bignum &modulus) noexcept -> Bignum {
+template <std::size_t Capacity>
+inline auto bignum_mod_halve(const BasicBignum<Capacity> &value,
+                             const BasicBignum<Capacity> &modulus) noexcept
+    -> BasicBignum<Capacity> {
   if ((value.words[0] & 1U) == 0) {
     return bignum_shift_right(value, 1);
   }
@@ -480,14 +533,16 @@ inline auto bignum_mod_halve(const Bignum &value,
 // a Fermat inverse over a prime modulus would spend. The modulus must be odd.
 // Returns zero when the value has no inverse, which is when it shares a factor
 // with the modulus or reduces to zero
-inline auto bignum_mod_inverse(const Bignum &value,
-                               const Bignum &modulus) noexcept -> Bignum {
-  const auto one{bignum_from_u64(1)};
+template <std::size_t Capacity>
+inline auto bignum_mod_inverse(const BasicBignum<Capacity> &value,
+                               const BasicBignum<Capacity> &modulus) noexcept
+    -> BasicBignum<Capacity> {
+  const auto one{bignum_from_u64<Capacity>(1)};
   auto first{value};
   bignum_reduce(first, modulus);
   auto second{modulus};
   auto first_coefficient{one};
-  Bignum second_coefficient;
+  BasicBignum<Capacity> second_coefficient;
 
   while (bignum_compare(first, one) != 0 && bignum_compare(second, one) != 0) {
     // A side reaching zero means the greatest common divisor exceeds one, so no
@@ -525,14 +580,15 @@ inline auto bignum_mod_inverse(const Bignum &value,
 // A branch-free select, so a secret condition does not steer control flow. It
 // blends the given number of words, a count fixed by the public operand width,
 // so neither the condition nor the running size steers the loop
+template <std::size_t Capacity>
 inline auto bignum_conditional_select(const bool condition,
-                                      const Bignum &when_true,
-                                      const Bignum &when_false,
+                                      const BasicBignum<Capacity> &when_true,
+                                      const BasicBignum<Capacity> &when_false,
                                       const std::size_t words) noexcept
-    -> Bignum {
+    -> BasicBignum<Capacity> {
   const std::uint64_t mask{std::uint64_t{0} -
                            static_cast<std::uint64_t>(condition)};
-  Bignum result;
+  BasicBignum<Capacity> result;
   const auto *true_data{when_true.words.data()};
   const auto *false_data{when_false.words.data()};
   auto *result_data{result.words.data()};
@@ -551,8 +607,11 @@ inline auto bignum_conditional_select(const bool condition,
 // borrow. It always visits every word, so its timing does not depend on where
 // the operands' significant words fall the way the size-driven routines above
 // do
-inline auto bignum_subtract_fixed(const Bignum &left, const Bignum &right,
-                                  const std::size_t words, Bignum &out) noexcept
+template <std::size_t Capacity>
+inline auto bignum_subtract_fixed(const BasicBignum<Capacity> &left,
+                                  const BasicBignum<Capacity> &right,
+                                  const std::size_t words,
+                                  BasicBignum<Capacity> &out) noexcept
     -> std::uint64_t {
   const auto *left_data{left.words.data()};
   const auto *right_data{right.words.data()};
@@ -575,11 +634,13 @@ inline auto bignum_subtract_fixed(const Bignum &left, const Bignum &right,
 
 // Multiply visiting exactly the given word counts, so timing does not reveal
 // where either operand's significant words fall
-inline auto bignum_multiply_fixed(const Bignum &left, const Bignum &right,
+template <std::size_t Capacity>
+inline auto bignum_multiply_fixed(const BasicBignum<Capacity> &left,
+                                  const BasicBignum<Capacity> &right,
                                   const std::size_t left_words,
                                   const std::size_t right_words) noexcept
-    -> Bignum {
-  Bignum result;
+    -> BasicBignum<Capacity> {
+  BasicBignum<Capacity> result;
   const auto *left_data{left.words.data()};
   const auto *right_data{right.words.data()};
   auto *result_data{result.words.data()};
@@ -604,12 +665,14 @@ inline auto bignum_multiply_fixed(const Bignum &left, const Bignum &right,
 
 // The same product truncated to its given number of low words, visiting only
 // the columns below that width, for a reduction that discards the high words
-inline auto bignum_multiply_low_fixed(const Bignum &left, const Bignum &right,
+template <std::size_t Capacity>
+inline auto bignum_multiply_low_fixed(const BasicBignum<Capacity> &left,
+                                      const BasicBignum<Capacity> &right,
                                       const std::size_t left_words,
                                       const std::size_t right_words,
                                       const std::size_t width) noexcept
-    -> Bignum {
-  Bignum result;
+    -> BasicBignum<Capacity> {
+  BasicBignum<Capacity> result;
   const auto *left_data{left.words.data()};
   const auto *right_data{right.words.data()};
   auto *result_data{result.words.data()};
@@ -638,9 +701,11 @@ inline auto bignum_multiply_low_fixed(const Bignum &left, const Bignum &right,
 // The square of a value over the given number of words, a count fixed by the
 // public width. Each cross product appears twice in a square, so it is computed
 // once and doubled before the diagonal squares are added
-inline auto bignum_square_fixed(const Bignum &value,
-                                const std::size_t words) noexcept -> Bignum {
-  Bignum result;
+template <std::size_t Capacity>
+inline auto bignum_square_fixed(const BasicBignum<Capacity> &value,
+                                const std::size_t words) noexcept
+    -> BasicBignum<Capacity> {
+  BasicBignum<Capacity> result;
   const auto *value_data{value.words.data()};
   auto *result_data{result.words.data()};
   for (std::size_t left_index = 0; left_index < words; ++left_index) {
@@ -689,12 +754,15 @@ inline auto bignum_square_fixed(const Bignum &value,
 // keeps them, for the word-aligned truncations the Barrett reduction needs. The
 // shift keeps the given number of words above the dropped ones, a count fixed
 // by the public modulus width rather than by the operand size
-inline auto bignum_drop_low_words(const Bignum &value, const std::size_t words,
-                                  const std::size_t width) noexcept -> Bignum {
-  Bignum result;
+template <std::size_t Capacity>
+inline auto bignum_drop_low_words(const BasicBignum<Capacity> &value,
+                                  const std::size_t words,
+                                  const std::size_t width) noexcept
+    -> BasicBignum<Capacity> {
+  BasicBignum<Capacity> result;
   const auto *value_data{value.words.data()};
   auto *result_data{result.words.data()};
-  for (std::size_t index = 0; index < width && index + words < Bignum::CAPACITY;
+  for (std::size_t index = 0; index < width && index + words < Capacity;
        ++index) {
     result_data[index] = value_data[index + words];
   }
@@ -703,9 +771,11 @@ inline auto bignum_drop_low_words(const Bignum &value, const std::size_t words,
   return result;
 }
 
-inline auto bignum_keep_low_words(const Bignum &value,
-                                  const std::size_t words) noexcept -> Bignum {
-  Bignum result;
+template <std::size_t Capacity>
+inline auto bignum_keep_low_words(const BasicBignum<Capacity> &value,
+                                  const std::size_t words) noexcept
+    -> BasicBignum<Capacity> {
+  BasicBignum<Capacity> result;
   const auto *value_data{value.words.data()};
   auto *result_data{result.words.data()};
   for (std::size_t index = 0; index < words; ++index) {
@@ -718,10 +788,12 @@ inline auto bignum_keep_low_words(const Bignum &value,
 
 // Quotient of a division, for building a public reduction constant only, so a
 // plain bit-by-bit long division is enough
-inline auto bignum_divide(const Bignum &numerator,
-                          const Bignum &denominator) noexcept -> Bignum {
-  Bignum quotient;
-  Bignum remainder;
+template <std::size_t Capacity>
+inline auto bignum_divide(const BasicBignum<Capacity> &numerator,
+                          const BasicBignum<Capacity> &denominator) noexcept
+    -> BasicBignum<Capacity> {
+  BasicBignum<Capacity> quotient;
+  BasicBignum<Capacity> remainder;
   const auto bits{bignum_bit_length(numerator)};
   for (std::size_t index = bits; index > 0; --index) {
     remainder = bignum_shift_left(remainder, 1);
@@ -745,17 +817,23 @@ inline auto bignum_divide(const Bignum &numerator,
 
 // Precomputed constants for Barrett reduction modulo a fixed modulus. The plain
 // setup below reads a public modulus, so it need not be constant time
-struct BarrettContext {
-  Bignum modulus;
+template <std::size_t Capacity> struct BasicBarrettContext {
+  BasicBignum<Capacity> modulus;
   std::size_t words;
-  Bignum factor;
+  BasicBignum<Capacity> factor;
 };
 
-inline auto barrett_context(const Bignum &modulus) noexcept -> BarrettContext {
-  BarrettContext context;
+using BarrettContext = BasicBarrettContext<BIGNUM_CAPACITY>;
+using CurveBarrettContext = BasicBarrettContext<CURVE_BIGNUM_CAPACITY>;
+
+template <std::size_t Capacity>
+inline auto barrett_context(const BasicBignum<Capacity> &modulus) noexcept
+    -> BasicBarrettContext<Capacity> {
+  BasicBarrettContext<Capacity> context;
   context.modulus = modulus;
   context.words = modulus.size;
-  const auto power{bignum_shift_left(bignum_from_u64(1), 128 * context.words)};
+  const auto power{
+      bignum_shift_left(bignum_from_u64<Capacity>(1), 128 * context.words)};
   context.factor = bignum_divide(power, modulus);
   return context;
 }
@@ -764,16 +842,17 @@ inline auto barrett_context(const Bignum &modulus) noexcept -> BarrettContext {
 // key, built in constant time. The quotient comes from binary long division
 // over the public bit length of the power, where a fixed-width subtraction and
 // a masked select stand in for each comparison
-inline auto barrett_context_ct(const Bignum &modulus) noexcept
-    -> BarrettContext {
-  BarrettContext context;
+template <std::size_t Capacity>
+inline auto barrett_context_ct(const BasicBignum<Capacity> &modulus) noexcept
+    -> BasicBarrettContext<Capacity> {
+  BasicBarrettContext<Capacity> context;
   context.modulus = modulus;
   context.words = modulus.size;
   const auto width{context.words + 1};
   const auto power_bits{(128 * context.words) + 1};
-  Bignum remainder;
+  BasicBignum<Capacity> remainder;
   remainder.size = width;
-  Bignum quotient;
+  BasicBignum<Capacity> quotient;
   for (std::size_t index = power_bits; index > 0; --index) {
     // The power is a single set bit above zeros, so only its top bit carries in
     std::uint64_t carry{index == power_bits ? 1U : 0U};
@@ -784,7 +863,7 @@ inline auto barrett_context_ct(const Bignum &modulus) noexcept
       carry = current >> 63U;
     }
 
-    Bignum trial;
+    BasicBignum<Capacity> trial;
     const auto borrow{bignum_subtract_fixed(remainder, modulus, width, trial)};
     remainder = bignum_conditional_select(borrow == 0, trial, remainder, width);
     quotient.words[(index - 1) / 64] |= static_cast<std::uint64_t>(borrow == 0)
@@ -800,11 +879,12 @@ inline auto barrett_context_ct(const Bignum &modulus) noexcept
 
 // If the value is at least the modulus over the given width, subtract it. The
 // choice is a masked select rather than a branch
-inline auto bignum_conditional_subtract(const Bignum &value,
-                                        const Bignum &modulus,
+template <std::size_t Capacity>
+inline auto bignum_conditional_subtract(const BasicBignum<Capacity> &value,
+                                        const BasicBignum<Capacity> &modulus,
                                         const std::size_t words) noexcept
-    -> Bignum {
-  Bignum reduced;
+    -> BasicBignum<Capacity> {
+  BasicBignum<Capacity> reduced;
   const auto borrow{bignum_subtract_fixed(value, modulus, words, reduced)};
   return bignum_conditional_select(borrow == 0, reduced, value, words);
 }
@@ -813,8 +893,11 @@ inline auto bignum_conditional_subtract(const Bignum &value,
 // constant time (Handbook of Applied Cryptography Algorithm 14.42). The
 // estimate is at most two too small, so three masked subtractions always finish
 // the reduction
-inline auto barrett_reduce(const Bignum &value,
-                           const BarrettContext &context) noexcept -> Bignum {
+template <std::size_t Capacity>
+inline auto
+barrett_reduce(const BasicBignum<Capacity> &value,
+               const BasicBarrettContext<Capacity> &context) noexcept
+    -> BasicBignum<Capacity> {
   const auto width{context.words};
   const auto high{bignum_drop_low_words(value, width - 1, width + 1)};
   const auto estimate{
@@ -823,7 +906,7 @@ inline auto barrett_reduce(const Bignum &value,
   const auto value_low{bignum_keep_low_words(value, width + 1)};
   const auto product_low{bignum_multiply_low_fixed(
       quotient, context.modulus, width + 1, width, width + 1)};
-  Bignum remainder;
+  BasicBignum<Capacity> remainder;
   bignum_subtract_fixed(value_low, product_low, width + 1, remainder);
   remainder =
       bignum_conditional_subtract(remainder, context.modulus, width + 1);
@@ -835,25 +918,34 @@ inline auto barrett_reduce(const Bignum &value,
   return remainder;
 }
 
-inline auto field_mod_multiply_ct(const Bignum &left, const Bignum &right,
-                                  const BarrettContext &context) noexcept
-    -> Bignum {
+template <std::size_t Capacity>
+inline auto
+field_mod_multiply_ct(const BasicBignum<Capacity> &left,
+                      const BasicBignum<Capacity> &right,
+                      const BasicBarrettContext<Capacity> &context) noexcept
+    -> BasicBignum<Capacity> {
   return barrett_reduce(
       bignum_multiply_fixed(left, right, context.words, context.words),
       context);
 }
 
-inline auto field_square_ct(const Bignum &value,
-                            const BarrettContext &context) noexcept -> Bignum {
+template <std::size_t Capacity>
+inline auto
+field_square_ct(const BasicBignum<Capacity> &value,
+                const BasicBarrettContext<Capacity> &context) noexcept
+    -> BasicBignum<Capacity> {
   return barrett_reduce(bignum_square_fixed(value, context.words), context);
 }
 
-inline auto field_add_ct(const Bignum &left, const Bignum &right,
-                         const BarrettContext &context) noexcept -> Bignum {
+template <std::size_t Capacity>
+inline auto field_add_ct(const BasicBignum<Capacity> &left,
+                         const BasicBignum<Capacity> &right,
+                         const BasicBarrettContext<Capacity> &context) noexcept
+    -> BasicBignum<Capacity> {
   const auto width{context.words};
   const auto *left_data{left.words.data()};
   const auto *right_data{right.words.data()};
-  Bignum sum;
+  BasicBignum<Capacity> sum;
   auto *sum_data{sum.words.data()};
   std::uint64_t carry{0};
   for (std::size_t index = 0; index < width; ++index) {
@@ -870,15 +962,18 @@ inline auto field_add_ct(const Bignum &left, const Bignum &right,
   return reduced;
 }
 
-inline auto field_subtract_ct(const Bignum &left, const Bignum &right,
-                              const BarrettContext &context) noexcept
-    -> Bignum {
+template <std::size_t Capacity>
+inline auto
+field_subtract_ct(const BasicBignum<Capacity> &left,
+                  const BasicBignum<Capacity> &right,
+                  const BasicBarrettContext<Capacity> &context) noexcept
+    -> BasicBignum<Capacity> {
   const auto width{context.words};
-  Bignum difference;
+  BasicBignum<Capacity> difference;
   const auto borrow{bignum_subtract_fixed(left, right, width, difference)};
   const auto *difference_data{difference.words.data()};
   const auto *modulus_data{context.modulus.words.data()};
-  Bignum wrapped;
+  BasicBignum<Capacity> wrapped;
   auto *wrapped_data{wrapped.words.data()};
   std::uint64_t carry{0};
   for (std::size_t index = 0; index < width; ++index) {
@@ -899,11 +994,14 @@ inline auto field_subtract_ct(const Bignum &left, const Bignum &right,
 // modulus minus two, so its bit pattern reveals nothing secret, and the field
 // multiplications underneath do not depend on the value being inverted. The
 // modulus must be prime
-inline auto field_inverse_ct(const Bignum &value,
-                             const BarrettContext &context) noexcept -> Bignum {
+template <std::size_t Capacity>
+inline auto
+field_inverse_ct(const BasicBignum<Capacity> &value,
+                 const BasicBarrettContext<Capacity> &context) noexcept
+    -> BasicBignum<Capacity> {
   auto exponent{context.modulus};
-  bignum_subtract_in_place(exponent, bignum_from_u64(2));
-  Bignum result;
+  bignum_subtract_in_place(exponent, bignum_from_u64<Capacity>(2));
+  BasicBignum<Capacity> result;
   result.words[0] = 1;
   result.size = context.words;
   const auto base{barrett_reduce(value, context)};
@@ -923,11 +1021,14 @@ inline auto field_inverse_ct(const Bignum &value,
 // windows over a count fixed by the public modulus, and every window multiplies
 // by a power of the base taken from a precomputed table through a masked scan
 // over all of its entries rather than an index. The modulus need not be prime
-inline auto bignum_mod_exp_ct(const Bignum &base, const Bignum &exponent,
-                              const BarrettContext &context) noexcept
-    -> Bignum {
+template <std::size_t Capacity>
+inline auto
+bignum_mod_exp_ct(const BasicBignum<Capacity> &base,
+                  const BasicBignum<Capacity> &exponent,
+                  const BasicBarrettContext<Capacity> &context) noexcept
+    -> BasicBignum<Capacity> {
   const auto width{context.words};
-  std::array<Bignum, 16> powers{};
+  std::array<BasicBignum<Capacity>, 16> powers{};
   powers[0].words[0] = 1;
   powers[0].size = width;
   powers[1] = barrett_reduce(base, context);
@@ -950,7 +1051,7 @@ inline auto bignum_mod_exp_ct(const Bignum &base, const Bignum &exponent,
                << bit;
     }
 
-    Bignum selected;
+    BasicBignum<Capacity> selected;
     for (std::size_t index = 0; index < powers.size(); ++index) {
       selected = bignum_conditional_select(digit == index, powers[index],
                                            selected, width);
@@ -962,8 +1063,9 @@ inline auto bignum_mod_exp_ct(const Bignum &base, const Bignum &exponent,
   return result;
 }
 
-inline auto bignum_to_bytes(const Bignum &value, const std::size_t length)
-    -> std::string {
+template <std::size_t Capacity>
+inline auto bignum_to_bytes(const BasicBignum<Capacity> &value,
+                            const std::size_t length) -> std::string {
   std::string result(length, '\x00');
   for (std::size_t index = 0; index < length; ++index) {
     const auto word_index{index / 8};
