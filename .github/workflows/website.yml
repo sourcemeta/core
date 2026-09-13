@@ -49,6 +49,10 @@ jobs:
       # Container jobs run as root, and a superuser is not constrained by the
       # permission bits that part of the suite asserts on
       - name: Build the website
+        # Every function that the published report measures has to be called by
+        # the test suite, so that a change cannot quietly lower it
+        env:
+          REQUIRE_FULL_FUNCTION_COVERAGE: "1"
         run: |
           useradd --create-home builder
           chown -R builder .

@@ -69,10 +69,9 @@ export CMAKE_BUILD_PARALLEL_LEVEL
 export CTEST_PARALLEL_LEVEL
 
 # Counters are kept in the profile of each program as they change, rather than
-# written out once it exits, so that a program that dies on a fatal signal, like
-# the ones exercising the crash handler, still reports what it ran. The profile
-# file name asks for it, which is all that Apple platforms need, while elsewhere
-# the compiler has to arrange for it too
+# written out once it exits, so that a program that dies on a fatal signal still
+# reports what it ran. The profile file name asks for it, which is all that
+# Apple platforms need, while elsewhere the compiler has to arrange for it too
 PROFILE_FLAGS="-fprofile-instr-generate -fcoverage-mapping"
 if [ "$(uname)" != "Darwin" ]
 then
@@ -263,6 +262,25 @@ done < "$OBJECT_LIST"
   -format=html "-output-dir=$WORK_DIRECTORY/html" \
   "-ignore-filename-regex=$EXCLUDE" \
   -show-branches=count
+
+# Optionally require every function under measurement to be reached by the
+# suite, judged over the same view as the published report. Only the platform
+# that the report is published from is held to it, as a report produced
+# elsewhere measures a different set of code
+if [ -n "${REQUIRE_FULL_FUNCTION_COVERAGE:-}" ]
+then
+  "$LLVM_COV" report "$MAIN_OBJECT" "$@" \
+    "-instr-profile=$PROFILE_DATA" \
+    "-ignore-filename-regex=$EXCLUDE" > "$WORK_DIRECTORY/report.txt"
+  MISSED_FUNCTIONS="$(awk '$1 == "TOTAL" { print $6 }' "$WORK_DIRECTORY/report.txt")"
+  if [ "$MISSED_FUNCTIONS" != "0" ]
+  then
+    echo "The test suite never calls $MISSED_FUNCTIONS function(s) in:" >&2
+    awk '$1 != "TOTAL" && $6 ~ /^[0-9]+$/ && $6 != "0" { print "  " $1 " (" $6 ")" }' \
+      "$WORK_DIRECTORY/report.txt" >&2
+    exit 1
+  fi
+fi
 
 # Whatever the report generator emitted is taken as is rather than named entry
 # by entry, and only the entries about to be written are cleared, so that the
