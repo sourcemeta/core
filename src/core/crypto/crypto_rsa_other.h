@@ -109,14 +109,7 @@ inline auto rsa_private_result_matches(const Bignum &candidate,
     }
   }
 
-  std::uint64_t difference{0};
-  const auto *power_data{power.words.data()};
-  const auto *input_data{input.words.data()};
-  for (std::size_t index = 0; index < width; ++index) {
-    difference |= power_data[index] ^ input_data[index];
-  }
-
-  return difference == 0;
+  return field_equal_ct(power, input, context);
 }
 
 // RSASP1 and RSADP (RFC 8017 Sections 5.2.1 and 5.1.2) over an input already
