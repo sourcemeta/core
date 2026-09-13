@@ -7,3 +7,5 @@ target_link_libraries(sourcemeta_core_gzip_unit
   PRIVATE sourcemeta::core::gzip)
 target_link_libraries(sourcemeta_core_gzip_unit
   PRIVATE sourcemeta::core::io)
+target_link_libraries(sourcemeta_core_gzip_unit
+  PRIVATE sourcemeta::core::crypto)
