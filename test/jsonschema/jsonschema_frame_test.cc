@@ -1600,3 +1600,345 @@ TEST(accessors_any_reference_into) {
          const sourcemeta::core::WeakPointer &,
          const sourcemeta::core::SchemaFrame::Reference &) { return true; }));
 }
+
+TEST(accessors_has_references_to) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://example.com/schema",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$defs": {
+      "foo": { "type": "string" },
+      "bar": { "$dynamicAnchor": "dynamic-anchor", "type": "number" },
+      "baz": { "type": "boolean" }
+    },
+    "properties": {
+      "one": { "$ref": "#/$defs/foo" },
+      "two": { "$dynamicRef": "#dynamic-anchor" }
+    }
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+
+  const sourcemeta::core::Pointer foo{"$defs", "foo"};
+  const sourcemeta::core::Pointer bar{"$defs", "bar"};
+  const sourcemeta::core::Pointer baz{"$defs", "baz"};
+  EXPECT_TRUE(frame.has_references_to(sourcemeta::core::to_weak_pointer(foo)));
+  EXPECT_TRUE(frame.has_references_to(sourcemeta::core::to_weak_pointer(bar)));
+  EXPECT_FALSE(frame.has_references_to(sourcemeta::core::to_weak_pointer(baz)));
+}
+
+TEST(accessors_has_references_through) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://example.com/schema",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$defs": {
+      "foo": { "type": "string" },
+      "bar": { "$dynamicAnchor": "dynamic-anchor", "type": "number" },
+      "baz": { "type": "boolean" }
+    },
+    "properties": {
+      "one": { "$ref": "#/$defs/foo" },
+      "two": { "$dynamicRef": "#dynamic-anchor" }
+    }
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+
+  const sourcemeta::core::Pointer definitions{"$defs"};
+  const sourcemeta::core::Pointer properties{"properties"};
+  EXPECT_TRUE(frame.has_references_through(
+      sourcemeta::core::to_weak_pointer(definitions)));
+  EXPECT_FALSE(frame.has_references_through(
+      sourcemeta::core::to_weak_pointer(properties)));
+}
+
+TEST(accessors_has_references_through_with_tail) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://example.com/schema",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$defs": {
+      "foo": { "type": "string" },
+      "bar": { "$dynamicAnchor": "dynamic-anchor", "type": "number" },
+      "baz": { "type": "boolean" }
+    },
+    "properties": {
+      "one": { "$ref": "#/$defs/foo" },
+      "two": { "$dynamicRef": "#dynamic-anchor" }
+    }
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+
+  const sourcemeta::core::Pointer definitions{"$defs"};
+  const sourcemeta::core::Pointer properties{"properties"};
+  const sourcemeta::core::Pointer foo_extra{"$defs", "foo", "extra"};
+  const sourcemeta::core::JSON::String extra{"extra"};
+  const sourcemeta::core::JSON::String other{"other"};
+  const sourcemeta::core::WeakPointer::Token extra_token{std::cref(extra)};
+  const sourcemeta::core::WeakPointer::Token other_token{std::cref(other)};
+  EXPECT_TRUE(frame.has_references_through(
+      sourcemeta::core::to_weak_pointer(foo_extra), extra_token));
+  EXPECT_FALSE(frame.has_references_through(
+      sourcemeta::core::to_weak_pointer(foo_extra), other_token));
+  EXPECT_TRUE(frame.has_references_through(
+      sourcemeta::core::to_weak_pointer(definitions), other_token));
+  EXPECT_FALSE(frame.has_references_through(
+      sourcemeta::core::to_weak_pointer(properties), other_token));
+}
+
+TEST(accessors_traverse_pointer_with_type) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://example.com/schema",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$defs": {
+      "bar": { "$dynamicAnchor": "dynamic-anchor", "type": "number" }
+    }
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+
+  const sourcemeta::core::Pointer bar{"$defs", "bar"};
+  const sourcemeta::core::Pointer missing{"$defs", "missing"};
+
+  const auto anchor{
+      frame.traverse(sourcemeta::core::to_weak_pointer(bar),
+                     sourcemeta::core::SchemaFrame::LocationType::Anchor)};
+  EXPECT_TRUE(anchor.has_value());
+  EXPECT_EQ(anchor.value().get().type,
+            sourcemeta::core::SchemaFrame::LocationType::Anchor);
+  EXPECT_EQ(sourcemeta::core::to_string(anchor.value().get().pointer),
+            "/$defs/bar");
+
+  const auto subschema{
+      frame.traverse(sourcemeta::core::to_weak_pointer(bar),
+                     sourcemeta::core::SchemaFrame::LocationType::Subschema)};
+  EXPECT_TRUE(subschema.has_value());
+  EXPECT_EQ(subschema.value().get().type,
+            sourcemeta::core::SchemaFrame::LocationType::Subschema);
+  EXPECT_EQ(sourcemeta::core::to_string(subschema.value().get().pointer),
+            "/$defs/bar");
+
+  EXPECT_FALSE(
+      frame
+          .traverse(sourcemeta::core::to_weak_pointer(bar),
+                    sourcemeta::core::SchemaFrame::LocationType::Resource)
+          .has_value());
+  EXPECT_FALSE(
+      frame
+          .traverse(sourcemeta::core::to_weak_pointer(missing),
+                    sourcemeta::core::SchemaFrame::LocationType::Subschema)
+          .has_value());
+}
+
+TEST(accessors_uri_for_pointer) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://example.com/schema",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$defs": {
+      "foo": { "type": "string" },
+      "bar": { "$dynamicAnchor": "dynamic-anchor", "type": "number" }
+    }
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+
+  const sourcemeta::core::Pointer foo{"$defs", "foo"};
+  const sourcemeta::core::Pointer bar{"$defs", "bar"};
+  const sourcemeta::core::Pointer missing{"$defs", "missing"};
+
+  const auto root{frame.uri(sourcemeta::core::EMPTY_WEAK_POINTER)};
+  EXPECT_TRUE(root.has_value());
+  EXPECT_EQ(root.value().get(), "https://example.com/schema");
+
+  const auto foo_uri{frame.uri(sourcemeta::core::to_weak_pointer(foo))};
+  EXPECT_TRUE(foo_uri.has_value());
+  EXPECT_EQ(foo_uri.value().get(), "https://example.com/schema#/$defs/foo");
+
+  const auto bar_uri{frame.uri(sourcemeta::core::to_weak_pointer(bar))};
+  EXPECT_TRUE(bar_uri.has_value());
+  EXPECT_EQ(bar_uri.value().get(), "https://example.com/schema#dynamic-anchor");
+
+  EXPECT_FALSE(
+      frame.uri(sourcemeta::core::to_weak_pointer(missing)).has_value());
+}
+
+TEST(accessors_dereference_static) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://example.com/schema",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$defs": {
+      "foo": { "type": "string" }
+    },
+    "properties": {
+      "one": { "$ref": "#/$defs/foo" }
+    }
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+
+  const sourcemeta::core::Pointer one{"properties", "one"};
+  const sourcemeta::core::Pointer reference{"$ref"};
+
+  const auto &location{
+      frame.traverse(sourcemeta::core::to_weak_pointer(one)).value().get()};
+  const auto result{frame.dereference(
+      location, sourcemeta::core::to_weak_pointer(reference))};
+  EXPECT_EQ(result.first, sourcemeta::core::SchemaReferenceType::Static);
+  EXPECT_TRUE(result.second.has_value());
+  EXPECT_EQ(sourcemeta::core::to_string(result.second.value().get().pointer),
+            "/$defs/foo");
+
+  const auto no_reference{frame.dereference(location)};
+  EXPECT_EQ(no_reference.first, sourcemeta::core::SchemaReferenceType::Static);
+  EXPECT_FALSE(no_reference.second.has_value());
+}
+
+TEST(accessors_dereference_dynamic) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$recursiveAnchor": true,
+    "additionalItems": {
+      "$recursiveRef": "#"
+    }
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+
+  const sourcemeta::core::Pointer additional_items{"additionalItems"};
+  const sourcemeta::core::Pointer reference{"$recursiveRef"};
+
+  const auto &location{
+      frame.traverse(sourcemeta::core::to_weak_pointer(additional_items))
+          .value()
+          .get()};
+  const auto result{frame.dereference(
+      location, sourcemeta::core::to_weak_pointer(reference))};
+  EXPECT_EQ(result.first, sourcemeta::core::SchemaReferenceType::Dynamic);
+  EXPECT_FALSE(result.second.has_value());
+}
+
+TEST(accessors_uri_and_traverse_relative_to_a_location) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://example.com/schema",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$defs": {
+      "foo": { "type": "string" }
+    }
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+
+  const auto &root{frame.traverse("https://example.com/schema").value().get()};
+  const sourcemeta::core::Pointer relative{"$defs", "foo"};
+  EXPECT_EQ(frame.uri(root, sourcemeta::core::to_weak_pointer(relative)),
+            "https://example.com/schema#/$defs/foo");
+
+  const auto &destination{
+      frame.traverse(root, sourcemeta::core::to_weak_pointer(relative))};
+  EXPECT_EQ(destination.type,
+            sourcemeta::core::SchemaFrame::LocationType::Subschema);
+  EXPECT_EQ(sourcemeta::core::to_string(destination.pointer), "/$defs/foo");
+}
+
+static auto metaschema_test_resolver(std::string_view identifier)
+    -> sourcemeta::core::SchemaResolverResult {
+  if (identifier == "https://example.com/meta") {
+    return sourcemeta::core::parse_json(R"JSON({
+      "$id": "https://example.com/meta",
+      "$schema": "https://json-schema.org/draft/2020-12/schema"
+    })JSON");
+  }
+
+  return sourcemeta::core::schema_resolver(identifier);
+}
+
+TEST(accessors_metaschema_from_resolver) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://example.com/schema",
+    "$schema": "https://example.com/meta",
+    "type": "string"
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References, document,
+      sourcemeta::core::schema_walker, metaschema_test_resolver};
+
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://example.com/meta",
+    "$schema": "https://json-schema.org/draft/2020-12/schema"
+  })JSON")};
+
+  EXPECT_EQ(frame.metaschema(metaschema_test_resolver), expected);
+}
+
+TEST(accessors_metaschema_embedded) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://example.com/meta",
+    "$id": "https://example.com/schema",
+    "type": "string",
+    "$defs": {
+      "https://example.com/meta": {
+        "$id": "https://example.com/meta",
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$vocabulary": {
+          "https://json-schema.org/draft/2020-12/vocab/core": true,
+          "https://json-schema.org/draft/2020-12/vocab/validation": true
+        },
+        "type": "object"
+      }
+    }
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://example.com/meta",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$vocabulary": {
+      "https://json-schema.org/draft/2020-12/vocab/core": true,
+      "https://json-schema.org/draft/2020-12/vocab/validation": true
+    },
+    "type": "object"
+  })JSON")};
+
+  EXPECT_EQ(frame.metaschema(sourcemeta::core::schema_resolver), expected);
+}
+
+TEST(accessors_metaschema_unresolvable) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://example.com/schema",
+    "$schema": "https://example.com/meta",
+    "type": "string"
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References, document,
+      sourcemeta::core::schema_walker, metaschema_test_resolver};
+
+  try {
+    [[maybe_unused]] const auto &metaschema{
+        frame.metaschema(sourcemeta::core::schema_resolver)};
+    FAIL();
+  } catch (const sourcemeta::core::SchemaResolutionError &error) {
+    EXPECT_EQ(error.identifier(), "https://example.com/meta");
+    EXPECT_STREQ(error.what(),
+                 "Could not resolve the metaschema of the schema");
+  }
+}

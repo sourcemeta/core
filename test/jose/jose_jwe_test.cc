@@ -151,3 +151,23 @@ TEST(from_keeps_an_unknown_encryption_unresolved) {
   EXPECT_TRUE(object.has_value());
   EXPECT_FALSE(object.value().encryption().has_value());
 }
+
+TEST(constructor_parses_a_valid_object) {
+  const sourcemeta::core::JWE object{
+      compact_from_header(R"({"alg":"dir","enc":"A128GCM"})")};
+  EXPECT_TRUE(object.algorithm().has_value());
+  EXPECT_EQ(object.algorithm().value(), sourcemeta::core::JWEAlgorithm::DIR);
+  EXPECT_TRUE(object.encryption().has_value());
+  EXPECT_EQ(object.encryption().value(),
+            sourcemeta::core::JWEEncryption::A128GCM);
+}
+
+TEST(constructor_throws_on_invalid_input) {
+  try {
+    const sourcemeta::core::JWE object{"not.a.compact.object"};
+    FAIL();
+  } catch (const sourcemeta::core::JWEParseError &error) {
+    EXPECT_STREQ(error.what(),
+                 "The input is not a valid JSON Web Encryption object");
+  }
+}

@@ -1,6 +1,7 @@
 #include <sourcemeta/core/numeric.h>
 #include <sourcemeta/core/test.h>
 
+#include <array>   // std::array
 #include <cmath>   // std::nextafter
 #include <cstdint> // std::int64_t, std::uint64_t, std::uint8_t
 #include <limits>  // std::numeric_limits
@@ -596,4 +597,22 @@ TEST(real_equal_float_nan_not_equal_to_itself) {
 TEST(out_of_range_message) {
   const sourcemeta::core::NumericOutOfRangeError error;
   EXPECT_STREQ(error.what(), "Numeric value is out of range");
+}
+
+TEST(is_within_values_only_known_at_runtime) {
+  const std::array<int, 2> inside{{0, 10}};
+  for (const auto value : inside) {
+    EXPECT_TRUE(
+        sourcemeta::core::is_within(value, std::int64_t{0}, std::int64_t{10}));
+    EXPECT_TRUE(sourcemeta::core::is_within(value, std::uint64_t{0},
+                                            std::uint64_t{10}));
+  }
+
+  const std::array<int, 2> outside{{-1, 11}};
+  for (const auto value : outside) {
+    EXPECT_FALSE(
+        sourcemeta::core::is_within(value, std::int64_t{0}, std::int64_t{10}));
+    EXPECT_FALSE(sourcemeta::core::is_within(value, std::uint64_t{0},
+                                             std::uint64_t{10}));
+  }
 }

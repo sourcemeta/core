@@ -322,3 +322,12 @@ TEST(par_dpop_binding_ignores_an_empty_proof) {
                   .value()
                   .empty());
 }
+
+TEST(par_response_exposes_the_document) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "request_uri": "urn:ietf:params:oauth:request_uri:6esc",
+    "expires_in": 60
+  })JSON")};
+  const sourcemeta::core::OAuthPARResponse response{document};
+  EXPECT_EQ(response.data(), document);
+}

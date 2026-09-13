@@ -537,3 +537,25 @@ TEST(require_auth_time_false_accessor) {
   EXPECT_TRUE(metadata.has_value());
   EXPECT_FALSE(metadata.value().require_auth_time());
 }
+
+TEST(from_reads_the_initiate_login_uri) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "redirect_uris": [ "https://client.example/cb" ],
+    "initiate_login_uri": "https://client.example/login"
+  })JSON")};
+  const auto metadata{
+      sourcemeta::core::OIDCClientMetadata::from(std::move(document))};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_TRUE(metadata.value().initiate_login_uri().has_value());
+  EXPECT_EQ(metadata.value().initiate_login_uri().value(),
+            "https://client.example/login");
+}
+
+TEST(from_reports_no_initiate_login_uri_when_absent) {
+  auto document{sourcemeta::core::parse_json(
+      R"JSON({ "redirect_uris": [ "https://client.example/cb" ] })JSON")};
+  const auto metadata{
+      sourcemeta::core::OIDCClientMetadata::from(std::move(document))};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_FALSE(metadata.value().initiate_login_uri().has_value());
+}

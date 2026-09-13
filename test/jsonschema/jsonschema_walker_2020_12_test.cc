@@ -1898,3 +1898,22 @@ TEST(hyperschema_submissionSchema_without_vocabulary) {
   EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
+
+TEST(walker_result_holds_its_members) {
+  const std::array<std::string_view, 1> dependencies{{"properties"}};
+  const sourcemeta::core::SchemaWalkerResult result{
+      sourcemeta::core::SchemaKeywordType::Annotation,
+      sourcemeta::core::SchemaVocabularies::Known::
+          JSON_SCHEMA_2020_12_APPLICATOR,
+      dependencies,
+      {},
+      sourcemeta::core::JSON::TypeSet{}};
+  EXPECT_EQ(result.type, sourcemeta::core::SchemaKeywordType::Annotation);
+  EXPECT_TRUE(result.vocabulary.has_value());
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
+                          JSON_SCHEMA_2020_12_APPLICATOR);
+  EXPECT_EQ(result.dependencies.size(), 1);
+  EXPECT_EQ(result.dependencies.front(), "properties");
+  EXPECT_TRUE(result.order_dependencies.empty());
+  EXPECT_TRUE(result.instances.none());
+}

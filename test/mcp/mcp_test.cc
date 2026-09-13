@@ -5,6 +5,7 @@
 
 #include <sourcemeta/core/test.h>
 
+#include <array>    // std::array
 #include <cstddef>  // std::size_t
 #include <cstdint>  // std::int64_t
 #include <limits>   // std::numeric_limits
@@ -1206,4 +1207,23 @@ TEST(tool_call_arguments_null_value) {
     "params": { "name": "foo", "arguments": null }
   })JSON")};
   EXPECT_EQ(sourcemeta::core::mcp_tool_call_arguments(envelope), nullptr);
+}
+
+TEST(is_request_method_of_a_parsed_message) {
+  const auto message{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0", "id": 1, "method": "tools/call"
+  })JSON")};
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      message.at("method").to_string()));
+}
+
+TEST(supports_jsonrpc_batching_across_every_version) {
+  const std::array<sourcemeta::core::MCPProtocolVersion, 3> versions{
+      {sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+       sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+       sourcemeta::core::MCPProtocolVersion::V_2025_11_25}};
+  for (const auto version : versions) {
+    EXPECT_EQ(sourcemeta::core::mcp_supports_jsonrpc_batching(version),
+              version == sourcemeta::core::MCPProtocolVersion::V_2025_03_26);
+  }
 }

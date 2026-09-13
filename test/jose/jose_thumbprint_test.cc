@@ -265,3 +265,20 @@ TEST(pem_ec_private_key_thumbprint_matches_its_public_jwk) {
   EXPECT_TRUE(public_key.has_value());
   EXPECT_EQ(public_key.value().thumbprint(), thumbprint);
 }
+
+// The RFC 8037 Appendix A.1 key pair, with its private key as PKCS#8
+TEST(pem_edwards_private_key_public_jwk) {
+  const std::string pem{
+      "-----BEGIN PRIVATE KEY-----\n"
+      "MC4CAQAwBQYDK2VwBCIEIJ1hsZ3v/VpguoRK9JLsLMREScVpezJpGXA7rAMcrn9g\n"
+      "-----END PRIVATE KEY-----\n"};
+  const auto key{sourcemeta::core::JWKPrivate::from_pem(pem)};
+  EXPECT_TRUE(key.has_value());
+  const auto serialized{key.value().public_jwk()};
+  EXPECT_TRUE(serialized.has_value());
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "kty": "OKP", "crv": "Ed25519",
+    "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+  })JSON")};
+  EXPECT_EQ(serialized.value(), expected);
+}

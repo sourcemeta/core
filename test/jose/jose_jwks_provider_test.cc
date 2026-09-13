@@ -847,3 +847,24 @@ TEST(verify_access_token_still_checks_the_subject) {
                                                 "acme", "client", "someone")};
   EXPECT_TRUE(error.has_value());
 }
+
+TEST(options_constructor_denies_an_unreachable_issuer) {
+  std::size_t calls{0};
+  const auto fetcher{
+      [&calls](const std::string_view)
+          -> std::optional<sourcemeta::core::JWKSProvider::FetchResult> {
+        calls += 1;
+        return std::nullopt;
+      }};
+  sourcemeta::core::JWKSProvider provider{
+      "https://issuer.test/jwks", fetcher,
+      sourcemeta::core::JWKSProvider::Options{}};
+  const auto token{sourcemeta::core::JWT::from(SIGNED_TOKEN)};
+  EXPECT_TRUE(token.has_value());
+
+  const auto error{provider.verify(token.value(), ALLOWED_RS256, "acme",
+                                   "client", std::nullopt, std::nullopt)};
+  EXPECT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(), sourcemeta::core::JWTVerificationError::UnknownKey);
+  EXPECT_EQ(calls, std::size_t{1});
+}

@@ -108,3 +108,19 @@ TEST(pcre2_inequality_of_distinct_compilations) {
   EXPECT_TRUE(second.has_value());
   EXPECT_NE(first.value(), second.value());
 }
+
+TEST(non_empty_shortcuts_are_equal) {
+  const auto left{sourcemeta::core::to_regex(".")};
+  const auto right{sourcemeta::core::to_regex(".")};
+  EXPECT_TRUE(left.has_value());
+  EXPECT_TRUE(right.has_value());
+  EXPECT_TRUE(left.value() == right.value());
+}
+
+TEST(noop_shortcuts_are_equal) {
+  const auto left{sourcemeta::core::to_regex(".*")};
+  const auto right{sourcemeta::core::to_regex(".*")};
+  EXPECT_TRUE(left.has_value());
+  EXPECT_TRUE(right.has_value());
+  EXPECT_TRUE(left.value() == right.value());
+}

@@ -1803,3 +1803,22 @@ TEST(long_key_collision_emplace_updates_existing) {
   EXPECT_EQ(document.at(first_key).to_integer(), 1);
   EXPECT_EQ(document.at(second_key).to_integer(), 7);
 }
+
+TEST(json_try_at_start_hit) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json(R"({"foo":1,"bar":2})");
+  const auto &object{document.as_object()};
+  sourcemeta::core::JSON::Object::size_type start{0};
+
+  const sourcemeta::core::JSON::String foo{"foo"};
+  const auto *result_foo{document.try_at(foo, object.hash(foo), start)};
+  EXPECT_TRUE(result_foo);
+  EXPECT_EQ(result_foo->to_integer(), 1);
+  EXPECT_EQ(start, 1);
+
+  const sourcemeta::core::JSON::StringView bar{"bar"};
+  const auto *result_bar{document.try_at(bar, object.hash(bar), start)};
+  EXPECT_TRUE(result_bar);
+  EXPECT_EQ(result_bar->to_integer(), 2);
+  EXPECT_EQ(start, 2);
+}
