@@ -5,15 +5,16 @@
 // backend. Capacity fits 4096-bit RSA operands and their double-width products.
 // The verification paths consume only public inputs and stay variable time; the
 // signing paths use the constant-time layer below (fixed-width multiply,
-// Barrett reduction, masked select and inverse) on their secret operands. Only
-// the Barrett context precompute stays variable time, and it touches the public
-// modulus alone
+// Barrett reduction, masked select and inverse) on their secret operands. The
+// Barrett context precompute stays variable time for a public modulus, and has
+// a constant-time form for the secret prime factors of an RSA key
 
 #include <sourcemeta/core/numeric.h>
 #include <sourcemeta/core/text.h>
 
 #include <algorithm>   // std::max, std::min
 #include <array>       // std::array
+#include <bit>         // std::bit_width
 #include <cstddef>     // std::size_t
 #include <cstdint>     // std::uint8_t, std::uint64_t
 #include <optional>    // std::optional
@@ -130,14 +131,8 @@ inline auto bignum_bit_length(const Bignum &value) noexcept -> std::size_t {
     return 0;
   }
 
-  auto top_word{value.words[value.size - 1]};
-  std::size_t top_bits{0};
-  while (top_word > 0) {
-    top_word >>= 1U;
-    top_bits += 1;
-  }
-
-  return ((value.size - 1) * 64) + top_bits;
+  return ((value.size - 1) * 64) +
+         static_cast<std::size_t>(std::bit_width(value.words[value.size - 1]));
 }
 
 inline auto bignum_get_bit(const Bignum &value, const std::size_t bit) noexcept
@@ -263,7 +258,7 @@ inline auto bignum_reduce(Bignum &value, const Bignum &modulus) noexcept
          << 64U) |
         dividend_data[offset + divisor_words - 1]};
     auto estimate{numerator / top};
-    auto estimate_remainder{numerator % top};
+    auto estimate_remainder{numerator - (estimate * top)};
     while (estimate >= base ||
            estimate * next > (estimate_remainder << 64U) +
                                  dividend_data[offset + divisor_words - 2]) {
@@ -607,6 +602,89 @@ inline auto bignum_multiply_fixed(const Bignum &left, const Bignum &right,
   return result;
 }
 
+// The same product truncated to its given number of low words, visiting only
+// the columns below that width, for a reduction that discards the high words
+inline auto bignum_multiply_low_fixed(const Bignum &left, const Bignum &right,
+                                      const std::size_t left_words,
+                                      const std::size_t right_words,
+                                      const std::size_t width) noexcept
+    -> Bignum {
+  Bignum result;
+  const auto *left_data{left.words.data()};
+  const auto *right_data{right.words.data()};
+  auto *result_data{result.words.data()};
+  const auto rows{std::min(left_words, width)};
+  for (std::size_t left_index = 0; left_index < rows; ++left_index) {
+    std::uint64_t carry{0};
+    const auto columns{std::min(right_words, width - left_index)};
+    for (std::size_t right_index = 0; right_index < columns; ++right_index) {
+      const auto destination{left_index + right_index};
+      const auto product{(static_cast<BignumDoubleWord>(left_data[left_index]) *
+                          right_data[right_index]) +
+                         result_data[destination] + carry};
+      result_data[destination] = static_cast<std::uint64_t>(product);
+      carry = static_cast<std::uint64_t>(product >> 64U);
+    }
+
+    if (left_index + columns < width) {
+      result_data[left_index + columns] = carry;
+    }
+  }
+
+  result.size = width;
+  return result;
+}
+
+// The square of a value over the given number of words, a count fixed by the
+// public width. Each cross product appears twice in a square, so it is computed
+// once and doubled before the diagonal squares are added
+inline auto bignum_square_fixed(const Bignum &value,
+                                const std::size_t words) noexcept -> Bignum {
+  Bignum result;
+  const auto *value_data{value.words.data()};
+  auto *result_data{result.words.data()};
+  for (std::size_t left_index = 0; left_index < words; ++left_index) {
+    std::uint64_t carry{0};
+    for (std::size_t right_index = left_index + 1; right_index < words;
+         ++right_index) {
+      const auto destination{left_index + right_index};
+      const auto product{
+          (static_cast<BignumDoubleWord>(value_data[left_index]) *
+           value_data[right_index]) +
+          result_data[destination] + carry};
+      result_data[destination] = static_cast<std::uint64_t>(product);
+      carry = static_cast<std::uint64_t>(product >> 64U);
+    }
+
+    result_data[left_index + words] = carry;
+  }
+
+  std::uint64_t shifted_out{0};
+  for (std::size_t index = 0; index < 2 * words; ++index) {
+    const auto word{result_data[index]};
+    result_data[index] = (word << 1U) | shifted_out;
+    shifted_out = word >> 63U;
+  }
+
+  std::uint64_t carry{0};
+  for (std::size_t index = 0; index < words; ++index) {
+    const auto square{static_cast<BignumDoubleWord>(value_data[index]) *
+                      value_data[index]};
+    const auto low{static_cast<BignumDoubleWord>(result_data[2 * index]) +
+                   static_cast<std::uint64_t>(square) + carry};
+    result_data[2 * index] = static_cast<std::uint64_t>(low);
+    const auto high{
+        static_cast<BignumDoubleWord>(result_data[(2 * index) + 1]) +
+        static_cast<std::uint64_t>(square >> 64U) +
+        static_cast<std::uint64_t>(low >> 64U)};
+    result_data[(2 * index) + 1] = static_cast<std::uint64_t>(high);
+    carry = static_cast<std::uint64_t>(high >> 64U);
+  }
+
+  result.size = 2 * words;
+  return result;
+}
+
 // A word-granular right shift dropping the low words, and its counterpart that
 // keeps them, for the word-aligned truncations the Barrett reduction needs. The
 // shift keeps the given number of words above the dropped ones, a count fixed
@@ -665,8 +743,8 @@ inline auto bignum_divide(const Bignum &numerator,
   return quotient;
 }
 
-// Precomputed constants for Barrett reduction modulo a fixed modulus. Built
-// from the public modulus alone, so the setup itself need not be constant time
+// Precomputed constants for Barrett reduction modulo a fixed modulus. The plain
+// setup below reads a public modulus, so it need not be constant time
 struct BarrettContext {
   Bignum modulus;
   std::size_t words;
@@ -679,6 +757,44 @@ inline auto barrett_context(const Bignum &modulus) noexcept -> BarrettContext {
   context.words = modulus.size;
   const auto power{bignum_shift_left(bignum_from_u64(1), 128 * context.words)};
   context.factor = bignum_divide(power, modulus);
+  return context;
+}
+
+// The same constants for a secret modulus, such as a prime factor of an RSA
+// key, built in constant time. The quotient comes from binary long division
+// over the public bit length of the power, where a fixed-width subtraction and
+// a masked select stand in for each comparison
+inline auto barrett_context_ct(const Bignum &modulus) noexcept
+    -> BarrettContext {
+  BarrettContext context;
+  context.modulus = modulus;
+  context.words = modulus.size;
+  const auto width{context.words + 1};
+  const auto power_bits{(128 * context.words) + 1};
+  Bignum remainder;
+  remainder.size = width;
+  Bignum quotient;
+  for (std::size_t index = power_bits; index > 0; --index) {
+    // The power is a single set bit above zeros, so only its top bit carries in
+    std::uint64_t carry{index == power_bits ? 1U : 0U};
+    auto *remainder_data{remainder.words.data()};
+    for (std::size_t word = 0; word < width; ++word) {
+      const auto current{remainder_data[word]};
+      remainder_data[word] = (current << 1U) | carry;
+      carry = current >> 63U;
+    }
+
+    Bignum trial;
+    const auto borrow{bignum_subtract_fixed(remainder, modulus, width, trial)};
+    remainder = bignum_conditional_select(borrow == 0, trial, remainder, width);
+    quotient.words[(index - 1) / 64] |= static_cast<std::uint64_t>(borrow == 0)
+                                        << ((index - 1) % 64);
+  }
+
+  secure_zero(remainder);
+  quotient.size = width;
+  context.factor = quotient;
+  secure_zero(quotient);
   return context;
 }
 
@@ -705,9 +821,8 @@ inline auto barrett_reduce(const Bignum &value,
       bignum_multiply_fixed(high, context.factor, width + 1, width + 1)};
   const auto quotient{bignum_drop_low_words(estimate, width + 1, width + 1)};
   const auto value_low{bignum_keep_low_words(value, width + 1)};
-  const auto product{
-      bignum_multiply_fixed(quotient, context.modulus, width + 1, width)};
-  const auto product_low{bignum_keep_low_words(product, width + 1)};
+  const auto product_low{bignum_multiply_low_fixed(
+      quotient, context.modulus, width + 1, width, width + 1)};
   Bignum remainder;
   bignum_subtract_fixed(value_low, product_low, width + 1, remainder);
   remainder =
@@ -726,6 +841,11 @@ inline auto field_mod_multiply_ct(const Bignum &left, const Bignum &right,
   return barrett_reduce(
       bignum_multiply_fixed(left, right, context.words, context.words),
       context);
+}
+
+inline auto field_square_ct(const Bignum &value,
+                            const BarrettContext &context) noexcept -> Bignum {
+  return barrett_reduce(bignum_square_fixed(value, context.words), context);
 }
 
 inline auto field_add_ct(const Bignum &left, const Bignum &right,
@@ -789,7 +909,7 @@ inline auto field_inverse_ct(const Bignum &value,
   const auto base{barrett_reduce(value, context)};
   const auto exponent_bits{bignum_bit_length(exponent)};
   for (std::size_t index = exponent_bits; index > 0; --index) {
-    result = field_mod_multiply_ct(result, result, context);
+    result = field_square_ct(result, context);
     if (bignum_get_bit(exponent, index - 1)) {
       result = field_mod_multiply_ct(result, base, context);
     }
@@ -799,24 +919,44 @@ inline auto field_inverse_ct(const Bignum &value,
 }
 
 // Modular exponentiation for a secret exponent (the RSA private key), in
-// constant time. Unlike the inverse above, the exponent is secret, so the
-// ladder runs a fixed number of steps fixed by the public modulus and blends
-// the per-bit multiply with a masked select rather than a branch. The modulus
-// need not be prime
+// constant time. The exponent is secret, so it is consumed in fixed four-bit
+// windows over a count fixed by the public modulus, and every window multiplies
+// by a power of the base taken from a precomputed table through a masked scan
+// over all of its entries rather than an index. The modulus need not be prime
 inline auto bignum_mod_exp_ct(const Bignum &base, const Bignum &exponent,
                               const BarrettContext &context) noexcept
     -> Bignum {
-  Bignum result;
-  result.words[0] = 1;
-  result.size = context.words;
-  const auto reduced_base{barrett_reduce(base, context)};
-  const auto exponent_bits{bignum_bit_length(context.modulus)};
-  for (std::size_t index = exponent_bits; index > 0; --index) {
-    result = field_mod_multiply_ct(result, result, context);
-    const auto product{field_mod_multiply_ct(result, reduced_base, context)};
-    result =
-        bignum_conditional_select(bignum_get_bit_fixed(exponent, index - 1),
-                                  product, result, context.words);
+  const auto width{context.words};
+  std::array<Bignum, 16> powers{};
+  powers[0].words[0] = 1;
+  powers[0].size = width;
+  powers[1] = barrett_reduce(base, context);
+  for (std::size_t index = 2; index < powers.size(); ++index) {
+    powers[index] =
+        field_mod_multiply_ct(powers[index - 1], powers[1], context);
+  }
+
+  const auto windows{(bignum_bit_length(context.modulus) + 3) / 4};
+  auto result{powers[0]};
+  for (std::size_t window = windows; window > 0; --window) {
+    for (std::size_t step = 0; step < 4; ++step) {
+      result = field_square_ct(result, context);
+    }
+
+    std::size_t digit{0};
+    for (std::size_t bit = 0; bit < 4; ++bit) {
+      digit |= static_cast<std::size_t>(
+                   bignum_get_bit_fixed(exponent, ((window - 1) * 4) + bit))
+               << bit;
+    }
+
+    Bignum selected;
+    for (std::size_t index = 0; index < powers.size(); ++index) {
+      selected = bignum_conditional_select(digit == index, powers[index],
+                                           selected, width);
+    }
+
+    result = field_mod_multiply_ct(result, selected, context);
   }
 
   return result;

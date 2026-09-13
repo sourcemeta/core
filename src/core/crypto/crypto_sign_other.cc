@@ -9,6 +9,7 @@
 #include "crypto_other.h"
 #include "crypto_pkcs8.h"
 #include "crypto_random.h"
+#include "crypto_rsa_other.h"
 
 #include <array>       // std::array
 #include <cassert>     // assert
@@ -214,18 +215,12 @@ auto bits2octets(const std::string_view bits, const Bignum &order,
   return bignum_to_bytes(value, order_bytes);
 }
 
-auto sign_rsa(const std::string_view modulus,
-              const std::string_view private_exponent,
+auto sign_rsa(const PrivateKey::Internal &key,
               const std::string_view encoded_message) -> std::string {
-  // The exponent is the secret private key, so the exponentiation runs in
-  // constant time; the exponent copy it consumes is wiped before returning
-  const auto context{barrett_context(bignum_from_bytes(modulus))};
-  auto exponent{bignum_from_bytes(private_exponent)};
-  const SecureBignumScope exponent_scope{exponent};
   auto representative{
-      bignum_mod_exp_ct(bignum_from_bytes(encoded_message), exponent, context)};
+      rsa_private_operation(key, bignum_from_bytes(encoded_message))};
   bignum_normalize(representative);
-  return bignum_to_bytes(representative, modulus.size());
+  return bignum_to_bytes(representative, key.modulus.size());
 }
 
 // The signature for one nonce candidate (FIPS 186-4 Section 6.4.1), returning
@@ -380,6 +375,51 @@ auto ec_public_from_scalar(const EllipticCurve curve,
           bignum_to_bytes(coordinate_y, parameters.field_bytes)};
 }
 
+// The CRT components of a two-prime RSAPrivateKey (RFC 8017 Appendix A.1.2),
+// viewing the canonical magnitudes that follow the private exponent
+struct RSACRTComponents {
+  std::string_view prime1;
+  std::string_view prime2;
+  std::string_view exponent1;
+  std::string_view exponent2;
+  std::string_view coefficient;
+};
+
+// Read the CRT components that follow the private exponent, returning no value
+// for the multi-prime form (version one), whose private operation needs the
+// further primes, or for components that are not canonical non-negative DER
+// INTEGERs within the key size limit
+auto read_rsa_crt_components(const std::string_view version,
+                             std::string_view rest)
+    -> std::optional<RSACRTComponents> {
+  if (version.size() != 1 || version.front() != '\x00') {
+    return std::nullopt;
+  }
+
+  std::array<std::string_view, 5> components;
+  for (auto &component : components) {
+    const auto element{der_read(rest)};
+    if (!element.has_value() || element->tag != 0x02) {
+      return std::nullopt;
+    }
+
+    const auto magnitude{der_unsigned_integer(element->content)};
+    if (!magnitude.has_value() || magnitude->empty() ||
+        magnitude->size() > MAXIMUM_KEY_BYTES) {
+      return std::nullopt;
+    }
+
+    component = magnitude.value();
+    rest = element->rest;
+  }
+
+  return RSACRTComponents{.prime1 = components[0],
+                          .prime2 = components[1],
+                          .exponent1 = components[2],
+                          .exponent2 = components[3],
+                          .coefficient = components[4]};
+}
+
 } // namespace
 
 PrivateKey::PrivateKey(Internal *internal) noexcept : internal_{internal} {}
@@ -387,6 +427,11 @@ PrivateKey::PrivateKey(Internal *internal) noexcept : internal_{internal} {}
 PrivateKey::~PrivateKey() {
   if (internal_ != nullptr) {
     secure_zero(internal_->private_exponent);
+    secure_zero(internal_->prime1);
+    secure_zero(internal_->prime2);
+    secure_zero(internal_->exponent1);
+    secure_zero(internal_->exponent2);
+    secure_zero(internal_->coefficient);
     secure_zero(internal_->scalar);
     secure_zero(internal_->edwards_seed);
     delete internal_;
@@ -402,6 +447,11 @@ auto PrivateKey::operator=(PrivateKey &&other) noexcept -> PrivateKey & {
   if (this != &other) {
     if (internal_ != nullptr) {
       secure_zero(internal_->private_exponent);
+      secure_zero(internal_->prime1);
+      secure_zero(internal_->prime2);
+      secure_zero(internal_->exponent1);
+      secure_zero(internal_->exponent2);
+      secure_zero(internal_->coefficient);
       secure_zero(internal_->scalar);
       secure_zero(internal_->edwards_seed);
       delete internal_;
@@ -480,11 +530,24 @@ auto make_private_key(const std::string_view pem) -> std::optional<PrivateKey> {
         return std::nullopt;
       }
 
+      // RFC 8017 Appendix A.1.2: the two-prime form carries the CRT components
+      // after the private exponent, which the private operation uses to take
+      // the cheaper path of RFC 8017 Section 5.1.2 step 2.b
+      const auto crt{
+          read_rsa_crt_components(version->content, private_exponent->rest)};
       return PrivateKey{new PrivateKey::Internal{
           .kind = PrivateKey::Type::RSA,
           .modulus = std::string{modulus_value.value()},
           .public_exponent = std::string{public_exponent_value.value()},
           .private_exponent = std::string{private_exponent_value.value()},
+          .prime1 = crt.has_value() ? std::string{crt->prime1} : std::string{},
+          .prime2 = crt.has_value() ? std::string{crt->prime2} : std::string{},
+          .exponent1 =
+              crt.has_value() ? std::string{crt->exponent1} : std::string{},
+          .exponent2 =
+              crt.has_value() ? std::string{crt->exponent2} : std::string{},
+          .coefficient =
+              crt.has_value() ? std::string{crt->coefficient} : std::string{},
           .scalar = {},
           .elliptic_curve = {},
           .edwards_seed = {},
@@ -531,6 +594,11 @@ auto make_private_key(const std::string_view pem) -> std::optional<PrivateKey> {
                                    .modulus = {},
                                    .public_exponent = {},
                                    .private_exponent = {},
+                                   .prime1 = {},
+                                   .prime2 = {},
+                                   .exponent1 = {},
+                                   .exponent2 = {},
+                                   .coefficient = {},
                                    .scalar = padded_scalar,
                                    .elliptic_curve = parsed->curve,
                                    .edwards_seed = {},
@@ -551,6 +619,11 @@ auto make_private_key(const std::string_view pem) -> std::optional<PrivateKey> {
                                    .modulus = {},
                                    .public_exponent = {},
                                    .private_exponent = {},
+                                   .prime1 = {},
+                                   .prime2 = {},
+                                   .exponent1 = {},
+                                   .exponent2 = {},
+                                   .coefficient = {},
                                    .scalar = {},
                                    .elliptic_curve = {},
                                    .edwards_seed = std::string{seed->content},
@@ -598,6 +671,11 @@ auto make_ec_private_key(const EllipticCurve curve,
                                .modulus = {},
                                .public_exponent = {},
                                .private_exponent = {},
+                               .prime1 = {},
+                               .prime2 = {},
+                               .exponent1 = {},
+                               .exponent2 = {},
+                               .coefficient = {},
                                .scalar = std::string{padded_scalar},
                                .elliptic_curve = curve,
                                .edwards_seed = {},
@@ -640,6 +718,11 @@ auto generate_ec_private_key(const EllipticCurve curve)
                                .modulus = {},
                                .public_exponent = {},
                                .private_exponent = {},
+                               .prime1 = {},
+                               .prime2 = {},
+                               .exponent1 = {},
+                               .exponent2 = {},
+                               .coefficient = {},
                                .scalar = scalar,
                                .elliptic_curve = curve,
                                .edwards_seed = {},
@@ -659,6 +742,11 @@ auto make_edwards_private_key(const EdwardsCurve curve,
                                              .modulus = {},
                                              .public_exponent = {},
                                              .private_exponent = {},
+                                             .prime1 = {},
+                                             .prime2 = {},
+                                             .exponent1 = {},
+                                             .exponent2 = {},
+                                             .coefficient = {},
                                              .scalar = {},
                                              .elliptic_curve = {},
                                              .edwards_seed = std::string{seed},
@@ -687,8 +775,7 @@ auto rsassa_pkcs1_v15_sign(const PrivateKey &key,
     return std::nullopt;
   }
 
-  return sign_rsa(internal->modulus, internal->private_exponent,
-                  encoded.value());
+  return sign_rsa(*internal, encoded.value());
 }
 
 auto rsassa_pss_sign(const PrivateKey &key, const SignatureHashFunction hash,
@@ -706,8 +793,7 @@ auto rsassa_pss_sign(const PrivateKey &key, const SignatureHashFunction hash,
     return std::nullopt;
   }
 
-  return sign_rsa(internal->modulus, internal->private_exponent,
-                  encoded.value());
+  return sign_rsa(*internal, encoded.value());
 }
 
 auto ecdsa_sign(const PrivateKey &key, const SignatureHashFunction hash,

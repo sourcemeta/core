@@ -137,8 +137,10 @@ template <std::size_t Count>
 inline auto field_accumulate(std::array<std::uint64_t, Count + 1> &columns,
                              const std::array<std::uint64_t, Count> &limbs,
                              const std::uint64_t multiplier) noexcept -> void {
+  auto *columns_data{columns.data()};
+  const auto *limbs_data{limbs.data()};
   for (std::size_t index = 0; index < Count; ++index) {
-    columns[Count - 1 - index] += multiplier * limbs[index];
+    columns_data[Count - 1 - index] += multiplier * limbs_data[index];
   }
 }
 
@@ -148,9 +150,11 @@ inline auto field_from_columns(std::array<std::uint64_t, Count + 1> &columns)
     -> Bignum {
   std::uint64_t carry{0};
   Bignum result;
+  const auto *columns_data{columns.data()};
+  auto *result_data{result.words.data()};
   for (std::size_t index = 0; index <= Count; ++index) {
-    const auto current{columns[index] + carry};
-    result.words[index / 2] |= (current & 0xffffffffULL) << (32 * (index % 2));
+    const auto current{columns_data[index] + carry};
+    result_data[index / 2] |= (current & 0xffffffffULL) << (32 * (index % 2));
     carry = current >> 32;
   }
 
