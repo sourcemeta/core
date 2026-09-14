@@ -1,0 +1,19 @@
+{
+  "document": {
+    "openapi": "3.2.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "security": [
+      {
+        "not a scheme": []
+      }
+    ],
+    "paths": {}
+  },
+  "error": {
+    "message": "The Security Requirement Object must name a declared security scheme or the URI of one",
+    "location": "/security/0/not a scheme"
+  }
+}

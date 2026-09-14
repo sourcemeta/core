@@ -35,6 +35,7 @@ TEST(limit_equal_to_location_count_succeeds) {
       "",
       sourcemeta::core::SchemaFrame::IdentifierMode::Additional,
       {sourcemeta::core::EMPTY_WEAK_POINTER},
+      "",
       3};
   EXPECT_EQ(frame.location_count(), 3);
 }
@@ -50,6 +51,7 @@ TEST(limit_one_below_location_count_throws) {
         "",
         sourcemeta::core::SchemaFrame::IdentifierMode::Additional,
         {sourcemeta::core::EMPTY_WEAK_POINTER},
+        "",
         2};
     FAIL();
   } catch (const sourcemeta::core::SchemaFrameLimitError &error) {
@@ -70,6 +72,7 @@ TEST(limit_of_zero_throws) {
         "",
         sourcemeta::core::SchemaFrame::IdentifierMode::Additional,
         {sourcemeta::core::EMPTY_WEAK_POINTER},
+        "",
         0};
     FAIL();
   } catch (const sourcemeta::core::SchemaFrameLimitError &error) {
@@ -96,6 +99,7 @@ TEST(pointers_mode_consumes_more_than_references_mode) {
       "",
       sourcemeta::core::SchemaFrame::IdentifierMode::Additional,
       {sourcemeta::core::EMPTY_WEAK_POINTER},
+      "",
       3};
   EXPECT_EQ(references.location_count(), 3);
 
@@ -109,6 +113,7 @@ TEST(pointers_mode_consumes_more_than_references_mode) {
         "",
         sourcemeta::core::SchemaFrame::IdentifierMode::Additional,
         {sourcemeta::core::EMPTY_WEAK_POINTER},
+        "",
         3};
     FAIL();
   } catch (const sourcemeta::core::SchemaFrameLimitError &error) {
@@ -137,6 +142,7 @@ TEST(collision_wins_when_the_same_insertion_also_exceeds_the_limit) {
         "",
         sourcemeta::core::SchemaFrame::IdentifierMode::Additional,
         {sourcemeta::core::EMPTY_WEAK_POINTER},
+        "",
         1};
     FAIL();
   } catch (const sourcemeta::core::SchemaFrameError &error) {
@@ -157,6 +163,7 @@ TEST(limit_wins_when_it_runs_out_before_the_collision) {
         "",
         sourcemeta::core::SchemaFrame::IdentifierMode::Additional,
         {sourcemeta::core::EMPTY_WEAK_POINTER},
+        "",
         0};
     FAIL();
   } catch (const sourcemeta::core::SchemaFrameLimitError &error) {

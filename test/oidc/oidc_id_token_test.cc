@@ -6,6 +6,7 @@
 #include <array>       // std::array
 #include <chrono>      // std::chrono
 #include <cstdint>     // std::int64_t
+#include <optional>    // std::optional, std::nullopt
 #include <string>      // std::string
 #include <string_view> // std::string_view
 #include <utility>     // std::move
@@ -27,6 +28,13 @@ static auto oct_key_set() -> sourcemeta::core::JWKS {
   auto document{sourcemeta::core::JSON::make_object()};
   document.assign("keys", std::move(keys));
   return sourcemeta::core::JWKS::from(std::move(document)).value();
+}
+
+static auto oct_key_set_document() -> std::string {
+  std::string result{R"JSON({ "keys": [ )JSON"};
+  result.append(OCT_JWK);
+  result.append(" ] }");
+  return result;
 }
 
 static auto sign_id_token(const sourcemeta::core::JSON &payload)
@@ -893,5 +901,55 @@ TEST(validate_treats_an_overflowing_auth_time_as_absent) {
   const auto identity{sourcemeta::core::oidc_validate_id_token(
       token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
       "client-id", REFERENCE_NOW, options)};
+  EXPECT_FALSE(identity.has_value());
+}
+
+TEST(validate_through_a_provider_accepts_a_valid_token) {
+  const auto compact{sign_id_token(R"JSON({
+    "iss": "https://issuer.example",
+    "sub": "user-1",
+    "aud": "client-id",
+    "iat": 1699996400,
+    "exp": 2000000000
+  })JSON")};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  sourcemeta::core::JWKSProvider provider{
+      "https://issuer.example/jwks",
+      [](const std::string_view)
+          -> std::optional<sourcemeta::core::JWKSProvider::FetchResult> {
+        return sourcemeta::core::JWKSProvider::FetchResult{
+            .body = oct_key_set_document(), .max_age = std::nullopt};
+      },
+      sourcemeta::core::JWKSProvider::Options{}, [] { return REFERENCE_NOW; }};
+  const auto identity{sourcemeta::core::oidc_validate_id_token(
+      provider, token.value(), ALLOWED_HS256, "https://issuer.example",
+      "client-id")};
+  EXPECT_TRUE(identity.has_value());
+  EXPECT_EQ(identity.value().subject, "user-1");
+  EXPECT_EQ(identity.value().issuer, "https://issuer.example");
+}
+
+TEST(validate_through_a_provider_rejects_a_wrong_issuer) {
+  const auto compact{sign_id_token(R"JSON({
+    "iss": "https://issuer.example",
+    "sub": "user-1",
+    "aud": "client-id",
+    "iat": 1699996400,
+    "exp": 2000000000
+  })JSON")};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  sourcemeta::core::JWKSProvider provider{
+      "https://issuer.example/jwks",
+      [](const std::string_view)
+          -> std::optional<sourcemeta::core::JWKSProvider::FetchResult> {
+        return sourcemeta::core::JWKSProvider::FetchResult{
+            .body = oct_key_set_document(), .max_age = std::nullopt};
+      },
+      sourcemeta::core::JWKSProvider::Options{}, [] { return REFERENCE_NOW; }};
+  const auto identity{sourcemeta::core::oidc_validate_id_token(
+      provider, token.value(), ALLOWED_HS256, "https://attacker.example",
+      "client-id")};
   EXPECT_FALSE(identity.has_value());
 }

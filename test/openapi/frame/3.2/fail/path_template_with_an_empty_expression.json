@@ -1,0 +1,16 @@
+{
+  "document": {
+    "openapi": "3.2.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/a/{}": {}
+    }
+  },
+  "error": {
+    "message": "The Paths Object keys must take the form of a path template",
+    "location": "/paths/~1a~1{}"
+  }
+}

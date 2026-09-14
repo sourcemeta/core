@@ -12,20 +12,18 @@
     }
   },
   "defaultBase": "https://example.com/openapi.json",
-  "resolver": {
-    "https://example.com/other.json": {
-      "openapi": "3.1.1",
-      "info": {
-        "title": "Common",
-        "version": "1.0.0"
-      },
-      "components": {}
-    }
-  },
   "frame": {
     "version": "3.1",
     "base": "https://example.com/openapi.json",
     "standalone": false,
+    "schemas": {
+      "mode": "references",
+      "locations": {
+        "static": {},
+        "dynamic": {}
+      },
+      "references": []
+    },
     "info": {
       "title": "Example",
       "version": "1.0.0",
@@ -57,12 +55,10 @@
         "pointer": "/paths/~1pets",
         "parent": "https://example.com/openapi.json#/paths",
         "original": "https://example.com/common.json#/components/pathItems/Pets",
-        "destination": "https://example.com/common.json#/components/pathItems/Pets"
+        "destination": "https://example.com/common.json#/components/pathItems/Pets",
+        "dangling": true
       }
     },
     "operations": []
-  },
-  "dangling": [
-    "https://example.com/common.json#/components/pathItems/Pets"
-  ]
+  }
 }

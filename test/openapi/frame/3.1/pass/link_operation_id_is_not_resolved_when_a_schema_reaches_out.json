@@ -1,0 +1,109 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "schemas": {
+        "Pet": {
+          "$ref": "https://example.com/missing.json"
+        }
+      },
+      "links": {
+        "L": {
+          "operationId": "listPets"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "frame": {
+    "version": "3.1",
+    "base": "https://example.com/openapi.json",
+    "standalone": false,
+    "schemas": {
+      "mode": "references",
+      "locations": {
+        "static": {
+          "https://example.com/openapi.json#/components/schemas/Pet": {
+            "parent": null,
+            "type": "subschema",
+            "root": null,
+            "base": "https://example.com/openapi.json",
+            "pointer": "/components/schemas/Pet",
+            "relativePointer": "/components/schemas/Pet",
+            "dialect": "https://spec.openapis.org/oas/3.1/dialect/base",
+            "baseDialect": "https://json-schema.org/draft/2020-12/schema",
+            "propertyName": false,
+            "orphan": false,
+            "hasReferencesTo": false,
+            "hasReferencesThrough": false,
+            "vocabularies": {
+              "https://json-schema.org/draft/2020-12/vocab/core": true,
+              "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+              "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
+              "https://json-schema.org/draft/2020-12/vocab/validation": true,
+              "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
+              "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
+              "https://json-schema.org/draft/2020-12/vocab/content": true,
+              "https://spec.openapis.org/oas/3.1/vocab/base": false
+            }
+          }
+        },
+        "dynamic": {}
+      },
+      "references": [
+        {
+          "type": "static",
+          "origin": "/components/schemas/Pet/$ref",
+          "original": "https://example.com/missing.json",
+          "destination": "https://example.com/missing.json",
+          "base": "https://example.com/missing.json",
+          "fragment": null
+        }
+      ]
+    },
+    "info": {
+      "title": "Example",
+      "version": "1.0.0",
+      "summary": null,
+      "description": null,
+      "termsOfService": null,
+      "contact": null,
+      "license": null
+    },
+    "locations": {
+      "https://example.com/openapi.json": {
+        "type": "openapi",
+        "pointer": "",
+        "parent": null,
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+      },
+      "https://example.com/openapi.json#/components": {
+        "type": "components",
+        "pointer": "/components",
+        "parent": "https://example.com/openapi.json"
+      },
+      "https://example.com/openapi.json#/components/links/L": {
+        "type": "link",
+        "pointer": "/components/links/L",
+        "parent": "https://example.com/openapi.json#/components"
+      },
+      "https://example.com/openapi.json#/components/schemas/Pet": {
+        "type": "schema",
+        "pointer": "/components/schemas/Pet",
+        "parent": "https://example.com/openapi.json#/components",
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base",
+        "base": "https://example.com/openapi.json"
+      },
+      "https://example.com/openapi.json#/info": {
+        "type": "info",
+        "pointer": "/info",
+        "parent": "https://example.com/openapi.json"
+      }
+    },
+    "operations": []
+  }
+}

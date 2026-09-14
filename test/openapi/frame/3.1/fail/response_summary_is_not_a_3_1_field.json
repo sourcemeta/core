@@ -1,0 +1,25 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/a": {
+        "get": {
+          "responses": {
+            "200": {
+              "description": "ok",
+              "summary": "s"
+            }
+          }
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "The Response Object does not define this field",
+    "location": "/paths/~1a/get/responses/200/summary"
+  }
+}

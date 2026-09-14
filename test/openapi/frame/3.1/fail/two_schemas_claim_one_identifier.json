@@ -1,0 +1,16 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "components": {
+      "schemas": {
+        "One": { "$id": "https://example.com/same" },
+        "Two": { "$id": "https://example.com/same" }
+      }
+    }
+  },
+  "error": {
+    "message": "Schema identifier already exists",
+    "identifier": "https://example.com/same"
+  }
+}

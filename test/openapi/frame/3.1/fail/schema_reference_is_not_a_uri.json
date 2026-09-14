@@ -1,0 +1,12 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "components": { "schemas": { "Pet": { "$ref": "http://[invalid" } } }
+  },
+  "error": {
+    "message": "The reference is not a valid URI",
+    "keyword": "$ref",
+    "value": "http://[invalid"
+  }
+}

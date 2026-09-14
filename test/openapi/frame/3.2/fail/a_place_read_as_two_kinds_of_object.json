@@ -1,0 +1,21 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "components": {
+      "schemas": { "Foo": {} },
+      "responses": {
+        "R": {
+          "description": "ok",
+          "content": {
+            "application/json": { "$ref": "#/components/schemas/Foo" }
+          }
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "This place is read as more than one kind of Object",
+    "location": "/components/schemas/Foo"
+  }
+}

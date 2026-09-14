@@ -68,6 +68,16 @@ CTEST_PARALLEL_LEVEL="${CTEST_PARALLEL_LEVEL:-$JOBS}"
 export CMAKE_BUILD_PARALLEL_LEVEL
 export CTEST_PARALLEL_LEVEL
 
+# Counters are kept in the profile of each program as they change, rather than
+# written out once it exits, so that a program that dies on a fatal signal still
+# reports what it ran. The profile file name asks for it, which is all that
+# Apple platforms need, while elsewhere the compiler has to arrange for it too
+PROFILE_FLAGS="-fprofile-instr-generate -fcoverage-mapping"
+if [ "$(uname)" != "Darwin" ]
+then
+  PROFILE_FLAGS="$PROFILE_FLAGS -fprofile-continuous"
+fi
+
 # Instrumentation is injected through the standard CMake flag variables so that
 # the project build system does not need to know about coverage at all. Static
 # linking keeps every library under measurement inside the test binaries. The
@@ -79,8 +89,8 @@ cmake -S "$SOURCE_DIRECTORY" -B "$BUILD_DIRECTORY" \
   -DSOURCEMETA_CORE_TESTS:BOOL=ON \
   -DSOURCEMETA_CORE_DOCS:BOOL=ON \
   -DBUILD_SHARED_LIBS:BOOL=OFF \
-  -DCMAKE_C_FLAGS:STRING="-fprofile-instr-generate -fcoverage-mapping" \
-  -DCMAKE_CXX_FLAGS:STRING="-fprofile-instr-generate -fcoverage-mapping" \
+  -DCMAKE_C_FLAGS:STRING="$PROFILE_FLAGS" \
+  -DCMAKE_CXX_FLAGS:STRING="$PROFILE_FLAGS" \
   -DCMAKE_EXE_LINKER_FLAGS:STRING="-fprofile-instr-generate" \
   -DCMAKE_SHARED_LINKER_FLAGS:STRING="-fprofile-instr-generate"
 
@@ -93,7 +103,7 @@ mkdir -p "$PROFILE_DIRECTORY"
 # The packaging tests drive a separate build of a consuming project, which
 # carries no instrumentation and contributes no coverage, and which expects an
 # installation that this script has no reason to produce
-LLVM_PROFILE_FILE="$PROFILE_DIRECTORY/%p.profraw" \
+LLVM_PROFILE_FILE="$PROFILE_DIRECTORY/%c%p.profraw" \
   ctest --test-dir "$BUILD_DIRECTORY" --build-config Debug \
     --output-on-failure --exclude-regex find_package
 
@@ -233,6 +243,62 @@ AWK
 
 awk -v "merged=$WORK_DIRECTORY/coverage.lcov" -f "$MERGE_PROGRAM" \
   "$LCOV_DIRECTORY"/*.lcov > "$WORK_DIRECTORY/summary.txt"
+
+# Functions are merged apart from the traces, as a trace only records the line
+# that a function starts on, which cannot tell apart two functions starting on
+# the same line. The JSON export records the column as well, which is how the
+# report itself counts every instantiation of a template as a single function,
+# and the highest count across the binaries is kept for the same reason as above
+FUNCTIONS_PROGRAM="$WORK_DIRECTORY/functions.py"
+cat > "$FUNCTIONS_PROGRAM" <<'PYTHON'
+import json
+import re
+import subprocess
+import sys
+
+llvm_cov, profile_data, exclude, object_list, uncovered = sys.argv[1:]
+excluded = re.compile(exclude)
+
+counts = {}
+with open(object_list, encoding="utf-8") as objects:
+    for binary in objects.read().splitlines():
+        export = subprocess.run(
+            [llvm_cov, "export", binary, f"-instr-profile={profile_data}",
+             "-format=text", "-skip-expansions",
+             f"-ignore-filename-regex={exclude}"],
+            check=True, stdout=subprocess.PIPE)
+        for data in json.loads(export.stdout)["data"]:
+            for function in data["functions"]:
+                filename = function["filenames"][0]
+                if excluded.search(filename):
+                    continue
+                start = function["regions"][0]
+                key = (filename, start[0], start[1])
+                counts[key] = max(counts.get(key, 0), function["count"])
+
+missed = sorted(key for key, count in counts.items() if count == 0)
+with open(uncovered, "w", encoding="utf-8") as output:
+    for filename, line, column in missed:
+        output.write(f"{filename}:{line}:{column}\n")
+
+covered = len(counts) - len(missed)
+percentage = covered * 100 / len(counts) if counts else 100
+print(f"{percentage:8.2f}% {covered:6d}/{len(counts):<6d} TOTAL functions")
+PYTHON
+
+UNCOVERED_FUNCTIONS="$WORK_DIRECTORY/uncovered.txt"
+python3 "$FUNCTIONS_PROGRAM" "$LLVM_COV" "$PROFILE_DATA" "$EXCLUDE" \
+  "$OBJECT_LIST" "$UNCOVERED_FUNCTIONS" >> "$WORK_DIRECTORY/summary.txt"
+
+# Optionally require every function under measurement to be reached by the
+# suite. Only the platform that the report is published from is held to it, as
+# a report produced elsewhere measures a different set of code
+if [ -n "${REQUIRE_FULL_FUNCTION_COVERAGE:-}" ] && [ -s "$UNCOVERED_FUNCTIONS" ]
+then
+  echo "The test suite never calls the functions starting at:" >&2
+  cat "$UNCOVERED_FUNCTIONS" >&2
+  exit 1
+fi
 
 # The browsable report keeps the combined view. Its annotated sources can still
 # under count the header inline cases described above, so the summary file

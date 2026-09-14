@@ -12,6 +12,9 @@
 #include "security.h"
 #include "server.h"
 
+#include <sourcemeta/core/http.h>
+
+#include <algorithm>   // std::ranges::find
 #include <array>       // std::array
 #include <set>         // std::set
 #include <string_view> // std::string_view
@@ -23,14 +26,42 @@ namespace sourcemeta::core {
 constexpr auto OPENAPI_HASH_RESPONSES{JSON::Object::hash("responses"sv)};
 constexpr auto OPENAPI_HASH_CALLBACKS{JSON::Object::hash("callbacks"sv)};
 
-constexpr std::array<JSON::StringView, 13> OPENAPI_PATH_ITEM_FIELDS{
+constexpr std::array<JSON::StringView, 13> OPENAPI_PATH_ITEM_FIELDS_3_1{
     {"$ref"sv, "summary"sv, "description"sv, "servers"sv, "parameters"sv,
      "get"sv, "put"sv, "post"sv, "delete"sv, "options"sv, "head"sv, "patch"sv,
      "trace"sv}};
 
-constexpr std::array<JSON::StringView, 8> OPENAPI_PATH_ITEM_METHODS{
-    {"get"sv, "put"sv, "post"sv, "delete"sv, "options"sv, "head"sv, "patch"sv,
-     "trace"sv}};
+// OpenAPI Specification 3.2.1, Section 4.9 adds `query`, "a definition of a
+// QUERY operation, as defined in RFC10008", and `additionalOperations`, "a map
+// of additional operations on this path"
+constexpr std::array<JSON::StringView, 15> OPENAPI_PATH_ITEM_FIELDS_3_2{
+    {"$ref"sv, "summary"sv, "description"sv, "servers"sv, "parameters"sv,
+     "get"sv, "put"sv, "post"sv, "delete"sv, "options"sv, "head"sv, "patch"sv,
+     "trace"sv, "query"sv, "additionalOperations"sv}};
+
+// The eight of 3.1 plus the `query` of 3.2, which names the QUERY method of
+// RFC 10008. Looping over all nine under either revision is safe because the
+// field table above has already turned down a `query` in a 3.1 document
+constexpr std::array<OpenAPIField, 9> OPENAPI_PATH_ITEM_METHODS{
+    {{.name = "get"sv, .hash = JSON::Object::hash("get"sv)},
+     {.name = "put"sv, .hash = JSON::Object::hash("put"sv)},
+     {.name = "post"sv, .hash = JSON::Object::hash("post"sv)},
+     {.name = "delete"sv, .hash = JSON::Object::hash("delete"sv)},
+     {.name = "options"sv, .hash = JSON::Object::hash("options"sv)},
+     {.name = "head"sv, .hash = JSON::Object::hash("head"sv)},
+     {.name = "patch"sv, .hash = JSON::Object::hash("patch"sv)},
+     {.name = "trace"sv, .hash = JSON::Object::hash("trace"sv)},
+     {.name = "query"sv, .hash = JSON::Object::hash("query"sv)}}};
+
+// The methods those nine fields define, which the same section spells in
+// uppercase in each of their descriptions, and which an `additionalOperations`
+// key is therefore held against as written
+constexpr std::array<JSON::StringView, 9> OPENAPI_PATH_ITEM_METHOD_NAMES{
+    {"GET"sv, "PUT"sv, "POST"sv, "DELETE"sv, "OPTIONS"sv, "HEAD"sv, "PATCH"sv,
+     "TRACE"sv, "QUERY"sv}};
+
+constexpr auto OPENAPI_HASH_ADDITIONAL_OPERATIONS{
+    JSON::Object::hash("additionalOperations"sv)};
 
 constexpr std::array<JSON::StringView, 12> OPENAPI_OPERATION_FIELDS{
     {"tags"sv, "summary"sv, "description"sv, "externalDocs"sv, "operationId"sv,
@@ -68,12 +99,8 @@ inline auto openapi_check_callbacks(const JSON &value, const Pointer &base,
 inline auto openapi_check_callbacks_or_reference(const JSON &value,
                                                  const Pointer &base,
                                                  OpenAPIWalk &walk) -> void {
-  if (openapi_is_reference(value)) {
-    openapi_check_reference(value, base, OpenAPIObjectKind::Callbacks, walk);
-    return;
-  }
-
-  openapi_check_callbacks(value, base, walk);
+  openapi_check_or_reference<OpenAPIObjectKind::Callbacks,
+                             openapi_check_callbacks>(value, base, walk);
 }
 
 // OpenAPI Specification 3.1.1, Section 4.8.10: "Describes a single API
@@ -100,18 +127,13 @@ inline auto openapi_check_operation(const JSON &value, const Pointer &base,
     }
   }
 
-  const auto *summary{value.try_at("summary", OPENAPI_HASH_SUMMARY)};
-  if (summary != nullptr) {
-    openapi_expect_string(*summary, base, "summary"sv,
-                          "The Operation Object summary must be a string");
-  }
+  openapi_check_optional_string(
+      value, base, "summary"sv, OPENAPI_HASH_SUMMARY,
+      "The Operation Object summary must be a string");
 
-  const auto *description{
-      value.try_at("description", OPENAPI_HASH_DESCRIPTION)};
-  if (description != nullptr) {
-    openapi_expect_string(*description, base, "description"sv,
-                          "The Operation Object description must be a string");
-  }
+  openapi_check_optional_string(
+      value, base, "description"sv, OPENAPI_HASH_DESCRIPTION,
+      "The Operation Object description must be a string");
 
   const auto *external_documentation{
       value.try_at("externalDocs", OPENAPI_HASH_EXTERNAL_DOCS)};
@@ -207,8 +229,8 @@ inline auto openapi_check_path_item(const JSON &value, const Pointer &base,
   openapi_record(walk, base, OpenAPIObjectKind::PathItem);
   openapi_expect_object(value, base, "The Path Item Object must be an object");
   openapi_reject_unknown_fields(
-      value, OPENAPI_PATH_ITEM_FIELDS, base,
-      "The Path Item Object does not define this field");
+      value, OPENAPI_PATH_ITEM_FIELDS_3_1, OPENAPI_PATH_ITEM_FIELDS_3_2, base,
+      "The Path Item Object does not define this field", walk);
 
   // OpenAPI Specification 3.1.1, Section 4.8.9: "$ref | string | Allows for a
   // referenced definition of this path item. The value MUST be in the form of
@@ -225,18 +247,13 @@ inline auto openapi_check_path_item(const JSON &value, const Pointer &base,
                              OpenAPIObjectKind::PathItem, walk);
   }
 
-  const auto *summary{value.try_at("summary", OPENAPI_HASH_SUMMARY)};
-  if (summary != nullptr) {
-    openapi_expect_string(*summary, base, "summary"sv,
-                          "The Path Item Object summary must be a string");
-  }
+  openapi_check_optional_string(
+      value, base, "summary"sv, OPENAPI_HASH_SUMMARY,
+      "The Path Item Object summary must be a string");
 
-  const auto *description{
-      value.try_at("description", OPENAPI_HASH_DESCRIPTION)};
-  if (description != nullptr) {
-    openapi_expect_string(*description, base, "description"sv,
-                          "The Path Item Object description must be a string");
-  }
+  openapi_check_optional_string(
+      value, base, "description"sv, OPENAPI_HASH_DESCRIPTION,
+      "The Path Item Object description must be a string");
 
   OpenAPIPathItemRecord record;
 
@@ -257,12 +274,55 @@ inline auto openapi_check_path_item(const JSON &value, const Pointer &base,
   }
 
   for (const auto &method : OPENAPI_PATH_ITEM_METHODS) {
-    const auto *operation{value.try_at(JSON::String{method})};
+    const auto *operation{value.try_at(method.name, method.hash)};
     if (operation != nullptr) {
-      const auto location{openapi_child(base, method)};
+      const auto location{openapi_child(base, method.name)};
       openapi_check_operation(*operation, location, walk);
-      record.operations.emplace_back(method,
+      record.operations.emplace_back(JSON::String{method.name},
                                      openapi_location_uri(walk.base, location));
+    }
+  }
+
+  // OpenAPI Specification 3.2.1, Section 4.9: "The map key is the HTTP
+  // method with the same capitalization that is to be sent in the request.
+  // This map MUST NOT contain any entry for the methods that can be defined by
+  // other fixed fields with Operation Object values (e.g. no `POST` entry, as
+  // the `post` field is used for this method)". Which methods those are the
+  // same section names one field at a time, `get` being "a definition of a GET
+  // operation" and so on, and RFC 9110 Section 9.1: "The method token is
+  // case-sensitive". So a key matches one of those methods or names another
+  // method entirely, and comparing without case would turn down a key this
+  // specification admits
+  const auto *additional{
+      value.try_at("additionalOperations", OPENAPI_HASH_ADDITIONAL_OPERATIONS)};
+  if (additional != nullptr) {
+    const auto location{openapi_child(base, "additionalOperations"sv)};
+    openapi_expect_object(
+        *additional, location,
+        "The Path Item Object additional operations must be an object");
+    for (const auto &entry : additional->as_object()) {
+      // A key is "the HTTP method [...] that is to be sent in the request",
+      // and RFC 9110 Section 9.1 has a method be a token, so a key that is no
+      // token names no method that could be sent at all
+      if (!http_is_token(entry.first)) {
+        throw OpenAPIError{
+            openapi_child(location, entry.first),
+            "The Path Item Object additional operations must name an HTTP "
+            "method"};
+      }
+
+      if (std::ranges::find(OPENAPI_PATH_ITEM_METHOD_NAMES, entry.first) !=
+          OPENAPI_PATH_ITEM_METHOD_NAMES.cend()) {
+        throw OpenAPIError{
+            openapi_child(location, entry.first),
+            "The Path Item Object additional operations must not name a "
+            "method that a field of its own defines"};
+      }
+
+      const auto operation{openapi_child(location, entry.first)};
+      openapi_check_operation(entry.second, operation, walk);
+      record.operations.emplace_back(
+          entry.first, openapi_location_uri(walk.base, operation));
     }
   }
 

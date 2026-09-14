@@ -1,0 +1,20 @@
+{
+  "document": {
+    "openapi": "3.2.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "tags": [
+      {
+        "name": "a",
+        "kind": 1
+      }
+    ]
+  },
+  "error": {
+    "message": "The Tag Object kind must be a string",
+    "location": "/tags/0/kind"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "document": {
+    "openapi": "3.2.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "tags": [
+      {
+        "name": "leaf",
+        "parent": "missing"
+      }
+    ]
+  },
+  "error": {
+    "message": "The Tag Object parent must name a tag the OpenAPI Description declares",
+    "location": "/tags/0/parent"
+  }
+}

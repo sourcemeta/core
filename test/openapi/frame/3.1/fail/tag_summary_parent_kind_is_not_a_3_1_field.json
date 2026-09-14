@@ -1,0 +1,25 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "tags": [
+      {
+        "name": "root"
+      },
+      {
+        "name": "leaf",
+        "summary": "s",
+        "parent": "root",
+        "kind": "nav"
+      }
+    ]
+  },
+  "error": {
+    "message": "The Tag Object does not define this field",
+    "location": "/tags/1/summary"
+  }
+}

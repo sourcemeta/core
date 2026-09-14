@@ -1207,3 +1207,23 @@ TEST(tool_call_arguments_null_value) {
   })JSON")};
   EXPECT_EQ(sourcemeta::core::mcp_tool_call_arguments(envelope), nullptr);
 }
+
+TEST(is_request_method_of_a_parsed_message) {
+  const auto message{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0", "id": 1, "method": "tools/call"
+  })JSON")};
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      message.at("method").to_string()));
+}
+
+TEST(supports_jsonrpc_batching_at_runtime) {
+  auto version_2025_03_26{sourcemeta::core::MCPProtocolVersion::V_2025_03_26};
+  auto version_2025_06_18{sourcemeta::core::MCPProtocolVersion::V_2025_06_18};
+  auto version_2025_11_25{sourcemeta::core::MCPProtocolVersion::V_2025_11_25};
+  EXPECT_TRUE(
+      sourcemeta::core::mcp_supports_jsonrpc_batching(version_2025_03_26));
+  EXPECT_FALSE(
+      sourcemeta::core::mcp_supports_jsonrpc_batching(version_2025_06_18));
+  EXPECT_FALSE(
+      sourcemeta::core::mcp_supports_jsonrpc_batching(version_2025_11_25));
+}

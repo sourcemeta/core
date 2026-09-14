@@ -1,0 +1,24 @@
+{
+  "document": {
+    "openapi": "3.2.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "servers": [
+      {
+        "url": "https://{region}.example.com/{region}",
+        "variables": {
+          "region": {
+            "default": "eu"
+          }
+        }
+      }
+    ],
+    "paths": {}
+  },
+  "error": {
+    "message": "A server URL template must not repeat a variable",
+    "location": "/servers/0/url"
+  }
+}

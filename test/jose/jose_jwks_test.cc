@@ -273,3 +273,35 @@ TEST(owns_keys_after_source_destroyed) {
   EXPECT_TRUE(key->key_id().has_value());
   EXPECT_EQ(key->key_id().value(), "scoped");
 }
+
+TEST(constructor_accepts_rvalue) {
+  auto document{sourcemeta::core::parse_json(
+      R"({ "keys": [ { "kty": "RSA", "n": ")" JOSE_TEST_RSA_MODULUS
+      R"(", "e": "AQAB",
+                       "alg": "RS256", "kid": "rsa-1" } ] })")};
+  const sourcemeta::core::JWKS keys{std::move(document)};
+  EXPECT_EQ(keys.size(), 1);
+
+  const auto *key{keys.find("rsa-1")};
+  EXPECT_NE(key, nullptr);
+  EXPECT_EQ(key->type(), sourcemeta::core::JWK::Type::RSA);
+}
+
+TEST(move_assignment_takes_the_other_keys) {
+  auto keys{
+      sourcemeta::core::JWKS::from(
+          sourcemeta::core::parse_json(
+              R"({ "keys": [ { "kty": "RSA", "n": ")" JOSE_TEST_RSA_MODULUS
+              R"(", "e": "AQAB", "kid": "rsa-1" } ] })"))
+          .value()};
+  auto other{sourcemeta::core::JWKS::from(sourcemeta::core::parse_json(R"({
+                 "keys": [ { "kty": "EC", "crv": "P-256",
+                   "x": "MKBCTNIcKUSDii11ySs3526iDZ8AiTo7Tu6KPAqv7D4",
+                   "y": "4Etl6SRW2YiLUrN5vfvVHuhp7x8PxltmWWlbbM4IFyM",
+                   "kid": "ec-1" } ] })"))
+                 .value()};
+  keys = std::move(other);
+  EXPECT_EQ(keys.size(), 1);
+  EXPECT_EQ(keys.find("rsa-1"), nullptr);
+  EXPECT_NE(keys.find("ec-1"), nullptr);
+}

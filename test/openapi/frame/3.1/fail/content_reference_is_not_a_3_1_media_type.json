@@ -1,0 +1,36 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/a": {
+        "post": {
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "$ref": "#/components/schemas/Item"
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "ok"
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "schemas": {
+        "Item": true
+      }
+    }
+  },
+  "error": {
+    "message": "The Media Type Object does not define this field",
+    "location": "/paths/~1a/post/requestBody/content/application~1json/$ref"
+  }
+}

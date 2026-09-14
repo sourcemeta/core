@@ -1,14 +1,15 @@
 #include <sourcemeta/core/openapi.h>
 
+#include <sourcemeta/core/text.h>
 #include <sourcemeta/core/uri.h>
 
 #include "document.h"
 #include "helpers.h"
 #include "info.h"
 
-#include <algorithm>   // std::ranges::all_of
+#include <algorithm>   // std::ranges::find
+#include <cassert>     // assert
 #include <cstddef>     // std::size_t
-#include <deque>       // std::deque
 #include <map>         // std::map
 #include <memory>      // std::make_unique
 #include <optional>    // std::optional
@@ -20,16 +21,13 @@
 namespace {
 using namespace std::string_view_literals;
 
-// The document a location sits in is the key up to its fragment, which is why
+// The base a location is keyed by is the key up to its fragment, which is why
 // nothing repeats it on the entry itself. A parent is given as one of these
 // keys rather than as a bare pointer, so that following it is a lookup in the
 // same map rather than a key the reader has to rebuild
 auto document_of(const sourcemeta::core::JSON::String &uri)
     -> sourcemeta::core::JSON::String {
-  const auto fragment{uri.find('#')};
-  return fragment == sourcemeta::core::JSON::String::npos
-             ? uri
-             : uri.substr(0, fragment);
+  return sourcemeta::core::JSON::String{sourcemeta::core::take_until(uri, '#')};
 }
 
 auto parent_of(const std::map<sourcemeta::core::JSON::String,
@@ -55,16 +53,18 @@ auto parent_of(const std::map<sourcemeta::core::JSON::String,
 }
 
 // Where a problem found once the walk is over belongs. A location says which
-// document it is in and where in it, and a field hangs off that when the
-// problem is with one rather than with the Object holding it
-auto error_at(const sourcemeta::core::OpenAPIWalk &walk,
+// base it is keyed by and where under it the Object sits, and a field hangs
+// off that when the problem is with one rather than with the Object holding
+// it
+auto error_at(const std::map<sourcemeta::core::JSON::String,
+                             sourcemeta::core::OpenAPILocation> &locations,
               const sourcemeta::core::JSON::String &location,
               const char *message,
               const sourcemeta::core::JSON::StringView field = {})
     -> sourcemeta::core::OpenAPIError {
-  const auto match{walk.locations.find(location)};
-  auto pointer{match == walk.locations.cend() ? sourcemeta::core::EMPTY_POINTER
-                                              : match->second.pointer};
+  const auto match{locations.find(location)};
+  auto pointer{match == locations.cend() ? sourcemeta::core::EMPTY_POINTER
+                                         : match->second.pointer};
   if (!field.empty()) {
     pointer = pointer.concat(sourcemeta::core::JSON::String{field});
   }
@@ -72,13 +72,69 @@ auto error_at(const sourcemeta::core::OpenAPIWalk &walk,
   return {document_of(location), std::move(pointer), message};
 }
 
+auto error_at(const sourcemeta::core::OpenAPIWalk &walk,
+              const sourcemeta::core::JSON::String &location,
+              const char *message,
+              const sourcemeta::core::JSON::StringView field = {})
+    -> sourcemeta::core::OpenAPIError {
+  return error_at(walk.locations, location, message, field);
+}
+
+// OpenAPI Specification 3.2.1, Section 4.22, of a Tag Object's `parent`:
+// "The named tag MUST exist in the API description, and circular references
+// between parent and child tags MUST NOT be used". A description spans every
+// document it references, so a parent naming a tag this one does not declare
+// is only missing where nothing is missing, and a cycle is a property of the
+// tags held rather than of any one tag
+auto check_tag_parents(
+    const sourcemeta::core::OpenAPIWalk &walk,
+    const std::map<sourcemeta::core::JSON::String,
+                   sourcemeta::core::OpenAPILocation> &locations,
+    const bool whole) -> void {
+  std::map<sourcemeta::core::JSON::String, sourcemeta::core::JSON::String>
+      parents;
+  for (const auto &[location, edge] : walk.tag_parents) {
+    if (whole && !walk.tag_names.contains(edge.second)) {
+      throw error_at(locations, location,
+                     "The Tag Object parent must name a tag the OpenAPI "
+                     "Description declares",
+                     "parent");
+    }
+
+    parents.insert_or_assign(edge.first, edge.second);
+  }
+
+  // Walking upward from each tag terminates at a tag with no parent unless the
+  // chain comes back round, and a chain longer than the number of edges has
+  // come back round
+  for (const auto &[location, edge] : walk.tag_parents) {
+    auto name{edge.first};
+    for (std::size_t step = 0; step <= parents.size(); step += 1) {
+      const auto next{parents.find(name)};
+      if (next == parents.cend()) {
+        break;
+      }
+
+      name = next->second;
+      if (step == parents.size()) {
+        throw error_at(locations, location,
+                       "The Tag Object parents must not form a cycle",
+                       "parent");
+      }
+    }
+  }
+}
+
 // OpenAPI Specification 3.1.1, Section 4.8.20: "The identified or reference
 // operation MUST be unique, and in the case of an `operationId`, it MUST be
-// resolved within the scope of the OpenAPI Description". Section 3 recommends
-// resolving one "considering all Operation Objects from all parsed documents",
-// which is the set the walk already keeps for the uniqueness requirement
-auto check_operation_id_links(const sourcemeta::core::OpenAPIWalk &walk)
-    -> void {
+// resolved within the scope of the OpenAPI Description". Section 4.3.3
+// recommends resolving one "considering all Operation Objects from all parsed
+// documents", and only one document is ever parsed, which is why nothing is
+// decided here unless the frame stands alone
+auto check_operation_id_links(
+    const sourcemeta::core::OpenAPIWalk &walk,
+    const std::map<sourcemeta::core::JSON::String,
+                   sourcemeta::core::OpenAPILocation> &locations) -> void {
   for (const auto &[location, identifier] : walk.operation_id_links) {
     // Section 4.8.20 goes on to say that an operation reached through a Path
     // Item referenced more than once "cannot be resolved unambiguously", and
@@ -86,7 +142,7 @@ auto check_operation_id_links(const sourcemeta::core::OpenAPIWalk &walk)
     // implementation-defined and MAY result in an error". So naming nothing at
     // all is the violation, and naming something twice over is not
     if (!walk.operation_ids.contains(identifier)) {
-      throw error_at(walk, location,
+      throw error_at(locations, location,
                      "The Link Object operation identifier must name an "
                      "operation the OpenAPI Description declares",
                      "operationId");
@@ -94,28 +150,25 @@ auto check_operation_id_links(const sourcemeta::core::OpenAPIWalk &walk)
   }
 }
 
-auto optional_string(
-    const std::optional<sourcemeta::core::JSON::StringView> &value)
-    -> sourcemeta::core::JSON {
-  return value.has_value() ? sourcemeta::core::JSON{value.value()}
-                           : sourcemeta::core::JSON{nullptr};
-}
-
 auto info_json(const sourcemeta::core::OpenAPIInfo &info)
     -> sourcemeta::core::JSON {
   auto result{sourcemeta::core::JSON::make_object()};
   result.assign_assume_new("title", sourcemeta::core::JSON{info.title});
   result.assign_assume_new("version", sourcemeta::core::JSON{info.version});
-  result.assign_assume_new("summary", optional_string(info.summary));
-  result.assign_assume_new("description", optional_string(info.description));
+  result.assign_assume_new("summary", sourcemeta::core::to_json(info.summary));
+  result.assign_assume_new("description",
+                           sourcemeta::core::to_json(info.description));
   result.assign_assume_new("termsOfService",
-                           optional_string(info.terms_of_service));
+                           sourcemeta::core::to_json(info.terms_of_service));
 
   if (info.contact.has_value()) {
     auto contact{sourcemeta::core::JSON::make_object()};
-    contact.assign_assume_new("name", optional_string(info.contact->name));
-    contact.assign_assume_new("url", optional_string(info.contact->url));
-    contact.assign_assume_new("email", optional_string(info.contact->email));
+    contact.assign_assume_new("name",
+                              sourcemeta::core::to_json(info.contact->name));
+    contact.assign_assume_new("url",
+                              sourcemeta::core::to_json(info.contact->url));
+    contact.assign_assume_new("email",
+                              sourcemeta::core::to_json(info.contact->email));
     result.assign_assume_new("contact", std::move(contact));
   } else {
     result.assign_assume_new("contact", sourcemeta::core::JSON{nullptr});
@@ -125,9 +178,10 @@ auto info_json(const sourcemeta::core::OpenAPIInfo &info)
     auto license{sourcemeta::core::JSON::make_object()};
     license.assign_assume_new("name",
                               sourcemeta::core::JSON{info.license->name});
-    license.assign_assume_new("identifier",
-                              optional_string(info.license->identifier));
-    license.assign_assume_new("url", optional_string(info.license->url));
+    license.assign_assume_new(
+        "identifier", sourcemeta::core::to_json(info.license->identifier));
+    license.assign_assume_new("url",
+                              sourcemeta::core::to_json(info.license->url));
     result.assign_assume_new("license", std::move(license));
   } else {
     result.assign_assume_new("license", sourcemeta::core::JSON{nullptr});
@@ -144,6 +198,8 @@ auto version_string(const sourcemeta::core::OpenAPIVersion version)
     // feature set"
     case sourcemeta::core::OpenAPIVersion::OPENAPI_3_1:
       return "3.1"sv;
+    case sourcemeta::core::OpenAPIVersion::OPENAPI_3_2:
+      return "3.2"sv;
   }
 
   std::unreachable();
@@ -240,11 +296,11 @@ auto parameters_of(const sourcemeta::core::OpenAPIWalk &walk,
   return result;
 }
 
-// Which Tag Object each of an operation's tags names. Section 3 lists this
-// among the connections a description makes by name rather than by pointer,
-// and it is the one that carries no requirement, since Section 4.8.1 says
-// "not all tags that are used by the Operation Object must be declared". So a
-// name nothing declares is reported rather than turned down
+// Which Tag Object each of an operation's tags names. Section 4.3.3 lists this
+// among the connections a description makes by name rather than by pointer, and
+// it is the one that carries no requirement, since Section 4.8.1 says "not all
+// tags that are used by the Operation Object must be declared". So a name
+// nothing declares is reported rather than turned down
 auto tags_of(const sourcemeta::core::OpenAPIWalk &walk,
              const std::vector<sourcemeta::core::JSON::String> &names)
     -> std::vector<std::optional<sourcemeta::core::JSON::String>> {
@@ -299,12 +355,49 @@ auto check_path_parameters(
   }
 }
 
-// Section 4.3, the other direction: "Each template expression in the path MUST
+// OpenAPI Specification 3.2.1, Section 4.12, of a parameter whose location
+// is `querystring`: it "MUST NOT appear more than once, and MUST NOT appear in
+// the same operation (or in the operation's path-item) as any `in: "query"`
+// parameters". A Path Item and an Operation are one set where an operation is
+// concerned, which is what the parameters in force are
+auto check_querystring(
+    const sourcemeta::core::OpenAPIWalk &walk,
+    const sourcemeta::core::JSON::String &origin,
+    const std::vector<sourcemeta::core::JSON::String> &parameters) -> void {
+  std::size_t querystrings{0};
+  bool query{false};
+  for (const auto &position : parameters) {
+    const auto *identity{identity_of(walk, position)};
+    if (identity == nullptr) {
+      continue;
+    }
+
+    if (identity->second == "querystring") {
+      querystrings += 1;
+    } else if (identity->second == "query") {
+      query = true;
+    }
+  }
+
+  if (querystrings > 1) {
+    throw error_at(walk, origin,
+                   "A querystring Parameter Object must not appear more than "
+                   "once among the parameters in force");
+  }
+
+  if (querystrings > 0 && query) {
+    throw error_at(walk, origin,
+                   "A querystring Parameter Object must not appear alongside a "
+                   "query Parameter Object");
+  }
+}
+
+// Section 3.5, the other direction: "Each template expression in the path MUST
 // correspond to a path parameter that is included in the Path Item itself
 // and/or in each of the Path Item's Operations". So this holds of the
-// parameters in force for one operation rather than of either level alone,
-// and Section 4.3 excuses an empty Path Item from it, which is why nothing
-// checks it until there is an operation to check
+// parameters in force for one operation rather than of either level alone, and
+// Section 3.5 excuses an empty Path Item from it, which is why nothing checks
+// it until there is an operation to check
 auto check_path_templates(
     const sourcemeta::core::OpenAPIWalk &walk,
     const sourcemeta::core::JSON::String &endpoint,
@@ -336,7 +429,7 @@ auto check_path_templates(
   }
 }
 
-// Every operation the description exposes, which Section 3 confines to what
+// Every operation the description exposes, which Section 4.3.3 confines to what
 // the entry document reaches: "only the entry document's Paths Object
 // contributes URLs to the described API". A Callback Object holds Path Item
 // Objects of its own, so what an endpoint reaches may expose further endpoints
@@ -369,7 +462,7 @@ auto project(const sourcemeta::core::OpenAPIWalk &walk)
     // only what the Paths Object exposes has any templating to correspond to
     const auto templated{kind == sourcemeta::core::OpenAPIOperationKind::Path};
     const auto templates{
-        templated ? sourcemeta::core::openapi_path_templates(path)
+        templated ? sourcemeta::core::openapi_brace_expressions(path)
                   : std::vector<sourcemeta::core::JSON::StringView>{}};
     if (templated) {
       check_path_parameters(walk, templates, entry->second.parameters);
@@ -387,6 +480,8 @@ auto project(const sourcemeta::core::OpenAPIWalk &walk)
         check_path_parameters(walk, templates, parameters);
         check_path_templates(walk, endpoint, templates, parameters);
       }
+
+      check_querystring(walk, origin, parameters);
 
       result.push_back(
           {.kind = kind,
@@ -427,38 +522,30 @@ auto project(const sourcemeta::core::OpenAPIWalk &walk)
 }
 
 auto analyse(const sourcemeta::core::JSON &document,
-             const sourcemeta::core::OpenAPIResolver &resolver,
              sourcemeta::core::JSON::String base)
     -> sourcemeta::core::OpenAPIWalk {
-  sourcemeta::core::OpenAPIWalk walk{.resolver = resolver,
-                                     .base = base,
-                                     .documents = {},
-                                     .documents_by_uri = {},
-                                     .document = &document,
-                                     .operation_ids = {},
-                                     .visited = {},
-                                     .locations = {},
-                                     .references = {},
-                                     .parameters = {},
-                                     .path_items = {},
-                                     .operation_records = {},
-                                     .callbacks = {},
-                                     .endpoints = {},
-                                     .servers = {},
-                                     .security = {},
-                                     .security_schemes = {},
-                                     .tags = {},
-                                     .operation_id_links = {},
-                                     .entry = true,
-                                     .dialect = {},
-                                     .info = {}};
-  // The entry document is one we already hold, so a reference that comes back
-  // round to it is not a document anybody needs to resolve
-  if (!base.empty()) {
-    walk.visited.insert(
-        {std::move(base), sourcemeta::core::OpenAPIObjectKind::Document});
-  }
-
+  sourcemeta::core::OpenAPIWalk walk{
+      .base = std::move(base),
+      .document = &document,
+      .operation_ids = {},
+      .visited = {},
+      .locations = {},
+      .references = {},
+      .parameters = {},
+      .path_items = {},
+      .operation_records = {},
+      .callbacks = {},
+      .endpoints = {},
+      .servers = {},
+      .security = {},
+      .security_schemes = {},
+      .tags = {},
+      .tag_parents = {},
+      .tag_names = {},
+      .operation_id_links = {},
+      .version = sourcemeta::core::OpenAPIVersion::OPENAPI_3_1,
+      .dialect = {},
+      .info = {}};
   sourcemeta::core::openapi_check_document(document, walk);
   return walk;
 }
@@ -472,44 +559,115 @@ struct OpenAPIFrame::Internal {
   OpenAPIInfo info;
   // Canonicalising means this no longer borrows from what the caller passed
   JSON::String base;
-  // Held for as long as the frame is, as a resolver may hand back a document
-  // it owns and nothing else would keep it alive
-  std::deque<OpenAPIResolverResult> documents;
   bool standalone;
   std::map<JSON::String, OpenAPILocation> locations;
   std::map<JSON::String, OpenAPIReference> references;
   std::vector<OpenAPIOperation> operations;
+  // Reading inside a Schema Object is the business of whatever understands
+  // JSON Schema, so this is that pass over every Schema Object position at
+  // once. It is declared last so that it is destroyed first, as it holds
+  // views into the locations above and into the document itself
+  SchemaResolver schema_resolver;
+  SchemaFrame::Paths schema_paths;
+  std::unique_ptr<SchemaFrame> schemas;
 };
 
-OpenAPIFrame::OpenAPIFrame(const JSON &document,
-                           const OpenAPIResolver &resolver,
-                           const std::string_view default_base)
+OpenAPIFrame::OpenAPIFrame(const JSON &document, const SchemaWalker &walker,
+                           const SchemaResolver &resolver,
+                           const std::string_view default_base,
+                           const std::uint64_t max_locations)
     : internal_{std::make_unique<Internal>()} {
-  auto base{canonical_base(default_base)};
-  auto walk{analyse(document, resolver, base)};
-  this->internal_->version = openapi_version(document).value();
+  auto walk{analyse(document, canonical_base(default_base))};
+  this->internal_->version = walk.version;
   this->internal_->info = walk.info;
-  this->internal_->base = std::move(base);
+  // What the caller passed in is where the entry document was retrieved from,
+  // and from 3.2 onwards the document may give itself a URI of its own, which
+  // the walk settles and everything it holds is keyed by
+  this->internal_->base = std::move(walk.base);
   // A frame stands alone when everything it references is inside it, which is
-  // what a caller asks before deciding whether it has the whole description
-  this->internal_->standalone = std::ranges::all_of(
-      walk.references, [&walk](const auto &reference) -> bool {
-        return walk.locations.contains(reference.second.destination);
-      });
-
-  // Section 3 has resolving a Link Object `operationId` require "parsing all
-  // referenced documents prior to determining an `operationId` to be
-  // unresolvable". A description we do not hold in full is one we cannot say
-  // that of, so a frame that does not stand alone says nothing here
-  if (this->internal_->standalone) {
-    check_operation_id_links(walk);
+  // what a caller asks before deciding whether it has the whole description.
+  // Which references leave it is what making it whole comes down to, so each
+  // one says so of itself rather than only the description as a whole
+  bool every_reference_lands{true};
+  for (auto &reference : walk.references) {
+    reference.second.dangling =
+        !walk.locations.contains(reference.second.destination);
+    if (reference.second.dangling) {
+      every_reference_lands = false;
+    }
   }
 
   // Projecting reads the whole walk, so nothing is taken out of it until after
   this->internal_->operations = project(walk);
-  this->internal_->documents = std::move(walk.documents);
   this->internal_->locations = std::move(walk.locations);
   this->internal_->references = std::move(walk.references);
+
+  // Every Schema Object position of the document at once, rather than one
+  // pass each, so that a schema referring to another resolves against a frame
+  // that holds both. Section 4.8.24.1 scopes `jsonSchemaDialect` to "all
+  // Schema Objects contained within an OAS document", and a document has one
+  // base, so what those positions have in common is the whole of what this
+  // pass needs to be told
+  const auto root{this->internal_->locations.find(this->internal_->base)};
+  assert(root != this->internal_->locations.cend());
+
+  // What sits inside a Schema Object is JSON Schema's to make sense of, so a
+  // reference that names a place in there has the description read one of its
+  // own Objects out of a schema. Appendix G of OAS 3.2, and Section 3.2 of
+  // 3.1, leave what to do about a place read as two kinds of thing to the
+  // implementation and allow saying so, which is what this does. Framing the
+  // schemas could not proceed regardless, as it is given each of these
+  // positions to frame and they must not sit within one another
+  //
+  // Locations are keyed by the base with the pointer hung off it, so a place
+  // within another has that other one's key as a prefix and follows it here
+  std::vector<WeakPointer> enclosing;
+  for (const auto &location : this->internal_->locations) {
+    if (location.second.type != OpenAPIObjectKind::Schema) {
+      continue;
+    }
+
+    auto pointer{to_weak_pointer(location.second.pointer)};
+    while (!enclosing.empty() && !pointer.starts_with(enclosing.back())) {
+      enclosing.pop_back();
+    }
+
+    if (!enclosing.empty()) {
+      throw OpenAPIError{
+          this->internal_->base, location.second.pointer,
+          "A Schema Object must not sit within another Schema Object"};
+    }
+
+    enclosing.push_back(pointer);
+    this->internal_->schema_paths.push_back(std::move(pointer));
+  }
+
+  this->internal_->schema_resolver = resolver;
+  this->internal_->schemas = std::make_unique<SchemaFrame>(
+      SchemaFrame::Mode::References, document, walker, resolver,
+      root->second.dialect, "", SchemaFrame::IdentifierMode::Additional,
+      this->internal_->schema_paths, this->internal_->base, max_locations);
+
+  // What a Schema Object references is as much a part of the description as
+  // what the shell around it does, so a description whose schemas reach for
+  // something nobody holds is one that is missing a part of itself just the
+  // same
+  this->internal_->standalone =
+      every_reference_lands && this->internal_->schemas->standalone();
+
+  // Section 4.3.3 has resolving a Link Object `operationId` require "parsing
+  // all referenced documents prior to determining an `operationId` to be
+  // unresolvable". A description we do not hold in full is one we cannot say
+  // that of, so these wait until the whole of it is settled, which counts what
+  // the Schema Objects reach for as much as what the shell around them does
+  if (this->internal_->standalone) {
+    check_operation_id_links(walk, this->internal_->locations);
+  }
+
+  // A tag the description declares elsewhere is one this cannot say is
+  // missing, for the same reason as the identifiers above
+  check_tag_parents(walk, this->internal_->locations,
+                    this->internal_->standalone);
 }
 
 OpenAPIFrame::~OpenAPIFrame() = default;
@@ -530,6 +688,10 @@ auto OpenAPIFrame::standalone() const noexcept -> bool {
   return this->internal_->standalone;
 }
 
+auto OpenAPIFrame::schemas() const noexcept -> const SchemaFrame & {
+  return *(this->internal_->schemas);
+}
+
 auto OpenAPIFrame::to_json() const -> JSON {
   // Read through the accessors rather than the internal state, so that what
   // this reports and what a caller can observe cannot drift apart
@@ -537,6 +699,8 @@ auto OpenAPIFrame::to_json() const -> JSON {
   result.assign_assume_new("version", JSON{version_string(this->version())});
   result.assign_assume_new("base", JSON{this->base()});
   result.assign_assume_new("standalone", JSON{this->standalone()});
+  result.assign_assume_new("schemas", this->internal_->schemas->to_json(
+                                          this->internal_->schema_resolver));
   result.assign_assume_new("info", info_json(this->info()));
 
   auto locations{JSON::make_object()};
@@ -556,6 +720,13 @@ auto OpenAPIFrame::to_json() const -> JSON {
       entry.assign_assume_new("dialect", JSON{location.second.dialect});
     }
 
+    // A Schema Object position alone carries the other half of what whatever
+    // reads inside it needs, and an empty base is as much an answer as any
+    // other, so this goes by the kind rather than by the value
+    if (location.second.type == OpenAPIObjectKind::Schema) {
+      entry.assign_assume_new("base", JSON{location.second.base});
+    }
+
     // Only an Object that declares a `$ref` carries these, which is a
     // Reference Object or a Path Item Object standing in for another
     const auto reference{this->internal_->references.find(location.first)};
@@ -563,6 +734,7 @@ auto OpenAPIFrame::to_json() const -> JSON {
       entry.assign_assume_new("original", JSON{reference->second.original});
       entry.assign_assume_new("destination",
                               JSON{reference->second.destination});
+      entry.assign_assume_new("dangling", JSON{reference->second.dangling});
     }
 
     locations.assign_assume_new(location.first, std::move(entry));
@@ -580,33 +752,16 @@ auto OpenAPIFrame::to_json() const -> JSON {
     entry.assign_assume_new("origin", JSON{operation.origin});
     entry.assign_assume_new("endpoint", JSON{operation.endpoint});
 
-    auto tags{JSON::make_array()};
-    for (const auto &tag : operation.tags) {
-      tags.push_back(tag.has_value() ? JSON{tag.value()} : JSON{nullptr});
-    }
+    entry.assign_assume_new("tags", sourcemeta::core::to_json(operation.tags));
 
-    entry.assign_assume_new("tags", std::move(tags));
+    entry.assign_assume_new("servers",
+                            sourcemeta::core::to_json(operation.servers));
 
-    auto servers{JSON::make_array()};
-    for (const auto &server : operation.servers) {
-      servers.push_back(JSON{server});
-    }
+    entry.assign_assume_new("security",
+                            sourcemeta::core::to_json(operation.security));
 
-    entry.assign_assume_new("servers", std::move(servers));
-
-    auto security{JSON::make_array()};
-    for (const auto &requirement : operation.security) {
-      security.push_back(JSON{requirement});
-    }
-
-    entry.assign_assume_new("security", std::move(security));
-
-    auto parameters{JSON::make_array()};
-    for (const auto &parameter : operation.parameters) {
-      parameters.push_back(JSON{parameter});
-    }
-
-    entry.assign_assume_new("parameters", std::move(parameters));
+    entry.assign_assume_new("parameters",
+                            sourcemeta::core::to_json(operation.parameters));
     operations.push_back(std::move(entry));
   }
 

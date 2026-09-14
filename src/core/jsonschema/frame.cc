@@ -11,6 +11,7 @@
 #include <map>           // std::map
 #include <memory>        // std::make_unique, std::unique_ptr
 #include <optional>      // std::optional
+#include <set>           // std::set
 #include <sstream>       // std::ostringstream
 #include <tuple>         // std::tuple
 #include <unordered_map> // std::unordered_map
@@ -29,6 +30,15 @@ static const std::string KEYWORD_DYNAMIC_REF{"$dynamicRef"};
 // NOLINTEND(cert-err58-cpp,bugprone-throwing-static-initialization)
 
 namespace {
+
+using namespace std::string_view_literals;
+
+constexpr auto HASH_LOCATIONS{
+    sourcemeta::core::JSON::Object::hash("locations"sv)};
+constexpr auto HASH_STATIC{sourcemeta::core::JSON::Object::hash("static"sv)};
+constexpr auto HASH_DYNAMIC{sourcemeta::core::JSON::Object::hash("dynamic"sv)};
+constexpr auto HASH_REFERENCES{
+    sourcemeta::core::JSON::Object::hash("references"sv)};
 
 auto is_valid_anchor_2020_12(const std::string_view name) -> bool {
   if (name.empty()) {
@@ -86,7 +96,8 @@ auto find_anchors(const sourcemeta::core::JSON &schema,
   if (schema.is_object() &&
       vocabularies.contains(sourcemeta::core::SchemaVocabularies::Known::
                                 JSON_SCHEMA_2020_12_CORE)) {
-    const auto *dynamic_anchor{schema.try_at("$dynamicAnchor")};
+    const auto *dynamic_anchor{schema.try_at(
+        "$dynamicAnchor"sv, sourcemeta::core::JSONSCHEMA_HASH_DYNAMIC_ANCHOR)};
     if ((dynamic_anchor != nullptr) && dynamic_anchor->is_string()) {
       const std::string_view dynamic_anchor_view{dynamic_anchor->to_string()};
       if (!is_valid_anchor_2020_12(dynamic_anchor_view)) {
@@ -98,7 +109,8 @@ auto find_anchors(const sourcemeta::core::JSON &schema,
       result.emplace_back(dynamic_anchor_view, AnchorType::Dynamic);
     }
 
-    const auto *anchor_2020{schema.try_at("$anchor")};
+    const auto *anchor_2020{
+        schema.try_at("$anchor"sv, sourcemeta::core::JSONSCHEMA_HASH_ANCHOR)};
     if ((anchor_2020 != nullptr) && anchor_2020->is_string()) {
       const std::string_view anchor_view{anchor_2020->to_string()};
       if (!is_valid_anchor_2020_12(anchor_view)) {
@@ -124,7 +136,9 @@ auto find_anchors(const sourcemeta::core::JSON &schema,
   if (schema.is_object() &&
       vocabularies.contains(sourcemeta::core::SchemaVocabularies::Known::
                                 JSON_SCHEMA_2019_09_CORE)) {
-    const auto *recursive_anchor{schema.try_at("$recursiveAnchor")};
+    const auto *recursive_anchor{
+        schema.try_at("$recursiveAnchor"sv,
+                      sourcemeta::core::JSONSCHEMA_HASH_RECURSIVE_ANCHOR)};
     if (recursive_anchor != nullptr) {
       if (recursive_anchor->is_boolean()) {
         if (recursive_anchor->to_boolean()) {
@@ -139,7 +153,8 @@ auto find_anchors(const sourcemeta::core::JSON &schema,
       }
     }
 
-    const auto *anchor_2019{schema.try_at("$anchor")};
+    const auto *anchor_2019{
+        schema.try_at("$anchor"sv, sourcemeta::core::JSONSCHEMA_HASH_ANCHOR)};
     if ((anchor_2019 != nullptr) && anchor_2019->is_string()) {
       const std::string_view anchor_view{anchor_2019->to_string()};
       if (!is_valid_anchor(anchor_view)) {
@@ -168,7 +183,8 @@ auto find_anchors(const sourcemeta::core::JSON &schema,
            sourcemeta::core::SchemaVocabularies::Known::JSON_SCHEMA_DRAFT_7) ||
        vocabularies.contains(
            sourcemeta::core::SchemaVocabularies::Known::JSON_SCHEMA_DRAFT_6))) {
-    const auto *id_value{schema.try_at("$id")};
+    const auto *id_value{
+        schema.try_at("$id"sv, sourcemeta::core::JSONSCHEMA_HASH_ID)};
     if (id_value != nullptr) {
       assert(id_value->is_string());
       const std::string_view id_view{id_value->to_string()};
@@ -200,7 +216,8 @@ auto find_anchors(const sourcemeta::core::JSON &schema,
            sourcemeta::core::SchemaVocabularies::Known::JSON_SCHEMA_DRAFT_3) ||
        vocabularies.contains(sourcemeta::core::SchemaVocabularies::Known::
                                  JSON_SCHEMA_DRAFT_3_HYPER))) {
-    const auto *id_value{schema.try_at("id")};
+    const auto *id_value{
+        schema.try_at("id"sv, sourcemeta::core::JSONSCHEMA_HASH_LEGACY_ID)};
     if (id_value != nullptr) {
       assert(id_value->is_string());
       const std::string_view id_view{id_value->to_string()};
@@ -382,6 +399,51 @@ auto set_base_and_fragment(sourcemeta::core::SchemaFrame::Reference &entry)
   }
 }
 
+// A location reports its base as a view, so that view has to point at a
+// string that outlives the frame. The key of the location that owns the base
+// is the usual answer
+template <typename Locations, typename Owned>
+auto owned_base_view(const Locations &locations, Owned &owned,
+                     const sourcemeta::core::JSON::String &default_base,
+                     const std::string_view base) -> std::string_view {
+  const auto match{
+      locations.find({sourcemeta::core::SchemaReferenceType::Static,
+                      sourcemeta::core::JSON::String{base}})};
+  if (match != locations.cend()) {
+    return match->first.second;
+  }
+
+  // The base that the caller stated is the one base that no location of the
+  // frame has any reason to own, so a location that inherits it points at the
+  // copy that the frame keeps
+  if (base == default_base) {
+    return default_base;
+  }
+
+  // What is left is a base that nothing holds yet. Storing the location that
+  // is about to own it re-points this at its own key, but a second location
+  // under the same base is stored without that happening, so the frame takes
+  // a copy of its own rather than leave a view into what analysing it used
+  return *(owned.insert(sourcemeta::core::JSON::String{base}).first);
+}
+
+// RFC 3986 Section 5.1.4 takes the base of a document that declares none from
+// the context it was retrieved from, and Section 5.2 resolves an identifier
+// against whichever base is in force, so a default base makes a relative
+// identifier absolute exactly as a surrounding identifier would
+auto canonicalize_identifier(const std::string_view identifier,
+                             const std::string_view base)
+    -> sourcemeta::core::JSON::String {
+  if (base.empty()) {
+    return sourcemeta::core::URI::canonicalize(identifier);
+  }
+
+  return sourcemeta::core::URI{identifier}
+      .resolve_from(sourcemeta::core::URI{base})
+      .canonicalize()
+      .recompose();
+}
+
 [[noreturn]]
 auto throw_already_exists(const sourcemeta::core::JSON::String &uri) -> void {
   throw sourcemeta::core::SchemaFrameError(uri,
@@ -540,10 +602,11 @@ auto SchemaFrame::to_json(
   const auto destinations{
       reference_destinations(this->references_, this->locations_)};
   root.assign_assume_new("locations", sourcemeta::core::JSON::make_object());
-  root.at("locations")
-      .assign_assume_new("static", sourcemeta::core::JSON::make_object());
-  root.at("locations")
-      .assign_assume_new("dynamic", sourcemeta::core::JSON::make_object());
+  auto &locations{root.at("locations"sv, HASH_LOCATIONS)};
+  locations.assign_assume_new("static", sourcemeta::core::JSON::make_object());
+  locations.assign_assume_new("dynamic", sourcemeta::core::JSON::make_object());
+  auto &static_locations{locations.at("static"sv, HASH_STATIC)};
+  auto &dynamic_locations{locations.at("dynamic"sv, HASH_DYNAMIC)};
   for (const auto &location : this->locations_) {
     auto entry{sourcemeta::core::JSON::make_object()};
     entry.assign_assume_new(
@@ -611,14 +674,12 @@ auto SchemaFrame::to_json(
 
     switch (location.first.first) {
       case SchemaReferenceType::Static:
-        root.at("locations")
-            .at("static")
-            .assign_assume_new(location.first.second, std::move(entry));
+        static_locations.assign_assume_new(location.first.second,
+                                           std::move(entry));
         break;
       case SchemaReferenceType::Dynamic:
-        root.at("locations")
-            .at("dynamic")
-            .assign_assume_new(location.first.second, std::move(entry));
+        dynamic_locations.assign_assume_new(location.first.second,
+                                            std::move(entry));
         break;
       default:
         assert(false);
@@ -626,6 +687,7 @@ auto SchemaFrame::to_json(
   }
 
   root.assign_assume_new("references", sourcemeta::core::JSON::make_array());
+  auto &references{root.at("references"sv, HASH_REFERENCES)};
   for (const auto &reference : this->references_) {
     auto entry{sourcemeta::core::JSON::make_object()};
     entry.assign_assume_new("type",
@@ -657,7 +719,7 @@ auto SchemaFrame::to_json(
             ? sourcemeta::core::to_json(sourcemeta::core::JSON::String{
                   reference.second.fragment.value()})
             : sourcemeta::core::to_json(nullptr));
-    root.at("references").push_back(std::move(entry));
+    references.push_back(std::move(entry));
   }
 
   return root;
@@ -698,6 +760,13 @@ struct SchemaFrame::Cache {
   // references to. A map, as handing out those references means they have to
   // survive later insertions
   std::map<sourcemeta::core::JSON::String, sourcemeta::core::JSON> metaschemas;
+  // The base that the caller stated the document was retrieved from, owned
+  // for the same reason as the dialects below, as a location that inherits a
+  // base reports it back as a view and no location of the frame need own it
+  sourcemeta::core::JSON::String default_base;
+  // Every other base that no location of the frame owns, for the same reason.
+  // A set, as what it hands out references to must survive later insertions
+  std::set<sourcemeta::core::JSON::String> bases;
   // SchemaVocabularies are a function of the base dialect and dialect alone,
   // and a schema only tends to make use of a handful of those. We own the
   // dialect that we key on, as the view that the location holds may point into
@@ -765,6 +834,7 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
                          const std::string_view default_id,
                          const SchemaFrame::IdentifierMode identifier_mode,
                          const SchemaFrame::Paths &paths,
+                         const std::string_view default_base,
                          const std::uint64_t max_locations)
     : mode_{mode}, cache_{std::make_unique<Cache>()} {
   // This mode reports on a single schema. Framing a wrapper that holds more
@@ -810,6 +880,23 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
                      sourcemeta::core::WeakPointer::Hasher>
       base_dialects;
 
+  if (!default_base.empty()) {
+    // RFC 3986 Section 5.1 defines a base URI as one that carries no
+    // fragment, and Section 5.2.2 never consults one, so a base that states a
+    // fragment states something that could not mean anything
+    //
+    //   the base URI ... a fragment component is not part of it
+    const sourcemeta::core::URI base{default_base};
+    const auto fragment{base.fragment()};
+    if (fragment.has_value() && !fragment.value().empty()) {
+      throw SchemaFrameError(default_base,
+                             "The base must not contain a non-empty fragment");
+    }
+
+    this->cache_->default_base =
+        sourcemeta::core::URI::canonicalize(default_base);
+  }
+
   for (const auto &path : paths) {
     // Passing paths that overlap is undefined behavior. No path should
     // start with another one, else you are doing something wrong
@@ -835,11 +922,11 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
           schema, root_base_dialect.value(), default_id)};
       if (!maybe_id.empty()) {
         try {
-          root_id = sourcemeta::core::URI::canonicalize(maybe_id);
+          root_id = canonicalize_identifier(maybe_id, default_base);
         } catch (const sourcemeta::core::URIParseError &) {
           throw SchemaKeywordError(
-              sourcemeta::core::id_keyword(root_base_dialect.value()), maybe_id,
-              "The identifier is not a valid URI");
+              sourcemeta::core::id_keyword(root_base_dialect.value()).name,
+              maybe_id, "The identifier is not a valid URI");
         }
 
         this->root_ = root_id.value();
@@ -856,10 +943,10 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
     const bool has_explicit_different_id{
         identifier_mode == SchemaFrame::IdentifierMode::Additional &&
         root_id.has_value() && !default_id.empty() &&
-        root_id.value() != sourcemeta::core::URI::canonicalize(default_id)};
+        root_id.value() != canonicalize_identifier(default_id, default_base)};
     sourcemeta::core::JSON::String default_id_canonical;
     if (has_explicit_different_id) {
-      default_id_canonical = sourcemeta::core::URI::canonicalize(default_id);
+      default_id_canonical = canonicalize_identifier(default_id, default_base);
       // Borrow `this->root_` as the base for now, as the location that owns
       // that URI does not exist yet. We re-point this entry at that location
       // key once the traversal below is done
@@ -869,6 +956,29 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
             root_base_dialect.value(), std::nullopt, false, false);
 
       base_uris.insert({path, {root_id.value(), default_id_canonical}});
+    }
+
+    // RFC 3986 Section 5.1 orders the bases that the top of a document goes
+    // by, and a reference resolves against the first of them. Whatever the
+    // document carries within it comes first, and the base it was retrieved
+    // from comes last, that being what a relative name of the document
+    // resolved against to begin with. The base belongs to the top of the
+    // document rather than to each path, as stating it at a path would
+    // instead make that path a resource, addressing what sits under it from
+    // there rather than from the top of the document, which is what an
+    // identifier does and what this deliberately does not
+    if (!this->cache_->default_base.empty()) {
+      std::vector<sourcemeta::core::JSON::String> root_bases;
+      if (root_id.has_value() && path.empty()) {
+        root_bases.push_back(root_id.value());
+        if (has_explicit_different_id) {
+          root_bases.push_back(default_id_canonical);
+        }
+      }
+
+      root_bases.push_back(this->cache_->default_base);
+      base_uris.insert_or_assign(sourcemeta::core::EMPTY_WEAK_POINTER,
+                                 std::move(root_bases));
     }
 
     if (this->mode_ == SchemaFrame::Mode::Root) {
@@ -897,8 +1007,13 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
         }
       }
 
+      // A document that declares no identifier is still addressed by the base
+      // it was retrieved from, which is how every other mode addresses it.
+      // That base addresses the top of the document, so it names the schema
+      // under analysis only where the two are the same place
       const auto location_uri{
-          root_id.value_or(sourcemeta::core::JSON::String{})};
+          root_id.value_or(path.empty() ? this->cache_->default_base
+                                        : sourcemeta::core::JSON::String{})};
       store(this->locations_, max_locations, SchemaReferenceType::Static,
             root_id.has_value() ? SchemaFrame::LocationType::Resource
                                 : SchemaFrame::LocationType::Subschema,
@@ -982,7 +1097,9 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
             entry.id.value().starts_with('#');
 
         if ((!entry.common.subschema.get().is_object() ||
-             !entry.common.subschema.get().defines("$ref") || !ref_overrides) &&
+             !entry.common.subschema.get().defines(
+                 "$ref"sv, sourcemeta::core::JSONSCHEMA_HASH_REF) ||
+             !ref_overrides) &&
             // If we are dealing with a pre-2019-09 location independent
             // identifier, we ignore it as a traditional identifier and take
             // care of it as an anchor
@@ -992,9 +1109,21 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
               entry.id ? std::optional<std::string_view>{*entry.id}
                        : std::nullopt)};
           for (const auto &base_string : bases.first) {
-            // Otherwise we end up pushing the top-level resource twice
+            // Otherwise we end up pushing the top-level resource twice. The
+            // name the caller gave is compared as it was resolved rather than
+            // as it was written, which is what the schema is known by
             if (entry_index == 0 && has_explicit_different_id &&
-                !default_id.empty() && default_id == base_string) {
+                !default_id_canonical.empty() &&
+                default_id_canonical == base_string) {
+              continue;
+            }
+
+            // The identifier that the top of the document carries resolved
+            // against the base the document was retrieved from already, so
+            // registering it from that base again would register the very
+            // same resource a second time
+            if (common_pointer_weak.empty() &&
+                base_string == this->cache_->default_base) {
               continue;
             }
 
@@ -1006,7 +1135,8 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
             } catch (const sourcemeta::core::URIParseError &) {
               throw sourcemeta::core::SchemaKeywordError(
                   sourcemeta::core::id_keyword(
-                      entry.common.base_dialect.value()),
+                      entry.common.base_dialect.value())
+                      .name,
                   entry.id.value(), "The identifier is not a valid URI");
             }
 
@@ -1094,7 +1224,8 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
           }
 
           metaschema.canonicalize();
-          assert(entry.common.subschema.get().defines("$schema"));
+          assert(entry.common.subschema.get().defines(
+              "$schema"sv, sourcemeta::core::JSONSCHEMA_HASH_SCHEMA));
           auto schema_pointer{common_pointer_weak};
           schema_pointer.push_back(std::cref(KEYWORD_SCHEMA));
           const auto [entry_iterator, inserted] =
@@ -1165,13 +1296,9 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
               continue;
             }
 
-            const auto base_entry{this->locations_.find(
-                {SchemaReferenceType::Static, base_string})};
-
-            const std::string_view base_view{
-                base_entry != this->locations_.cend()
-                    ? std::string_view{base_entry->first.second}
-                    : std::string_view{base_string}};
+            const auto base_view{
+                owned_base_view(this->locations_, this->cache_->bases,
+                                this->cache_->default_base, base_string)};
 
             if (type == AnchorType::Static || type == AnchorType::All) {
               store(this->locations_, max_locations,
@@ -1257,15 +1384,9 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
 
       std::string_view hoisted_base_view{};
       if (nearest_base_info.has_value()) {
-        const sourcemeta::core::JSON::String nearest_base_str{
-            nearest_base_info->first};
-        const auto base_entry{this->locations_.find(
-            {SchemaReferenceType::Static, nearest_base_str})};
-        if (base_entry != this->locations_.cend()) {
-          hoisted_base_view = base_entry->first.second;
-        } else {
-          hoisted_base_view = nearest_base_info->first;
-        }
+        hoisted_base_view = owned_base_view(
+            this->locations_, this->cache_->bases, this->cache_->default_base,
+            nearest_base_info->first);
       }
 
       sourcemeta::core::WeakPointer cached_base{};
@@ -1292,14 +1413,8 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
           if (nearest_base_info.has_value()) {
             base_view = hoisted_base_view;
           } else {
-            const sourcemeta::core::JSON::String current_base{base.first};
-            const auto base_entry{this->locations_.find(
-                {SchemaReferenceType::Static, current_base})};
-            if (base_entry != this->locations_.cend()) {
-              base_view = base_entry->first.second;
-            } else {
-              base_view = base.first;
-            }
+            base_view = owned_base_view(this->locations_, this->cache_->bases,
+                                        this->cache_->default_base, base.first);
           }
 
           if (is_subschema) {
@@ -1360,7 +1475,8 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
               base_uris, common_pointer_weak,
               entry.id ? std::optional<std::string_view>{*entry.id}
                        : std::nullopt)};
-      const auto *ref_value{entry.common.subschema.get().try_at("$ref")};
+      const auto *ref_value{entry.common.subschema.get().try_at(
+          "$ref"sv, sourcemeta::core::JSONSCHEMA_HASH_REF)};
       if (ref_value != nullptr) {
         if (!ref_value->is_string()) {
           std::ostringstream value;
@@ -1399,7 +1515,9 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
       const auto *recursive_ref_value{
           entry.common.vocabularies.contains(
               SchemaVocabularies::Known::JSON_SCHEMA_2019_09_CORE)
-              ? entry.common.subschema.get().try_at("$recursiveRef")
+              ? entry.common.subschema.get().try_at(
+                    "$recursiveRef"sv,
+                    sourcemeta::core::JSONSCHEMA_HASH_RECURSIVE_REF)
               : nullptr};
       if (recursive_ref_value != nullptr) {
         if (!recursive_ref_value->is_string()) {
@@ -1446,7 +1564,9 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
       const auto *dynamic_ref_value{
           entry.common.vocabularies.contains(
               SchemaVocabularies::Known::JSON_SCHEMA_2020_12_CORE)
-              ? entry.common.subschema.get().try_at("$dynamicRef")
+              ? entry.common.subschema.get().try_at(
+                    "$dynamicRef"sv,
+                    sourcemeta::core::JSONSCHEMA_HASH_DYNAMIC_REF)
               : nullptr};
       if (dynamic_ref_value != nullptr) {
         if (!dynamic_ref_value->is_string()) {
@@ -1677,7 +1797,15 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
 
 auto SchemaFrame::root_location() const
     -> std::optional<std::reference_wrapper<const Location>> {
-  return this->traverse(this->root_);
+  const auto result{this->traverse(this->root_)};
+  if (result.has_value()) {
+    return result;
+  }
+
+  // A document that declares no identifier is addressed by the base it was
+  // retrieved from rather than by nothing at all, and where that lands
+  // depends on the mode, so look the document up by where it sits
+  return this->traverse(sourcemeta::core::EMPTY_WEAK_POINTER);
 }
 
 auto SchemaFrame::metaschema(const SchemaResolver &resolver) const

@@ -1,0 +1,12 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "jsonSchemaDialect": "some/dialect",
+    "components": { "schemas": { "Pet": { "type": "object" } } }
+  },
+  "error": {
+    "message": "Relative meta-schema URIs are not valid according to the JSON Schema specification",
+    "identifier": "some/dialect"
+  }
+}

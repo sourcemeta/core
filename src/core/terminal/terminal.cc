@@ -138,9 +138,11 @@ auto terminal_paint(TerminalStream stream, std::string_view text,
   assert(terminal_style_is_valid(style));
 
   const bool enabled{terminal_color_enabled(stream)};
+#if defined(_WIN32)
   if (enabled && style != TerminalStyle::None && !text.empty()) {
     internal::enable_virtual_terminal_stream(stream);
   }
+#endif
   return terminal_paint(text, style, enabled);
 }
 
@@ -169,9 +171,11 @@ auto terminal_paint(std::ostream &output, TerminalStream stream,
   assert(terminal_style_is_valid(style));
 
   const bool enabled{terminal_color_enabled(stream)};
+#if defined(_WIN32)
   if (enabled && style != TerminalStyle::None && !text.empty()) {
     internal::enable_virtual_terminal_stream(stream);
   }
+#endif
   return terminal_paint(output, text, style, enabled);
 }
 

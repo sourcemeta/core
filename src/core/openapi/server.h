@@ -5,9 +5,14 @@
 
 #include "helpers.h"
 
+#include <sourcemeta/core/text.h>
+#include <sourcemeta/core/unicode.h>
+#include <sourcemeta/core/uritemplate.h>
+
 #include <algorithm>   // std::ranges::any_of
 #include <array>       // std::array
 #include <cstddef>     // std::size_t
+#include <set>         // std::set
 #include <string_view> // std::string_view
 #include <utility>     // std::move
 #include <vector>      // std::vector
@@ -18,8 +23,12 @@ constexpr auto OPENAPI_HASH_SERVER_VARIABLES{JSON::Object::hash("variables"sv)};
 constexpr auto OPENAPI_HASH_SERVER_ENUM{JSON::Object::hash("enum"sv)};
 constexpr auto OPENAPI_HASH_SERVER_DEFAULT{JSON::Object::hash("default"sv)};
 
-constexpr std::array<JSON::StringView, 3> OPENAPI_SERVER_FIELDS{
+constexpr std::array<JSON::StringView, 3> OPENAPI_SERVER_FIELDS_3_1{
     {"url"sv, "description"sv, "variables"sv}};
+
+// OpenAPI Specification 3.2.1, Section 4.5 adds `name`
+constexpr std::array<JSON::StringView, 4> OPENAPI_SERVER_FIELDS_3_2{
+    {"url"sv, "description"sv, "variables"sv, "name"sv}};
 
 constexpr std::array<JSON::StringView, 3> OPENAPI_SERVER_VARIABLE_FIELDS{
     {"enum"sv, "default"sv, "description"sv}};
@@ -70,23 +79,17 @@ inline auto openapi_check_server_variable(const JSON &value,
 
   // OpenAPI Specification 3.1.1, Section 4.8.6: "default | string | REQUIRED.
   // The default value to use for substitution"
-  const auto *fallback{value.try_at("default", OPENAPI_HASH_SERVER_DEFAULT)};
-  if (fallback == nullptr) {
-    throw OpenAPIError{base,
-                       "The Server Variable Object must declare a default"};
-  }
+  const auto &fallback{
+      openapi_require(value, "default"sv, OPENAPI_HASH_SERVER_DEFAULT, base,
+                      "The Server Variable Object must declare a default")};
 
   const auto default_value{openapi_expect_string(
-      *fallback, base, "default"sv,
+      fallback, base, "default"sv,
       "The Server Variable Object default must be a string")};
 
-  const auto *description{
-      value.try_at("description", OPENAPI_HASH_DESCRIPTION)};
-  if (description != nullptr) {
-    openapi_expect_string(
-        *description, base, "description"sv,
-        "The Server Variable Object description must be a string");
-  }
+  openapi_check_optional_string(
+      value, base, "description"sv, OPENAPI_HASH_DESCRIPTION,
+      "The Server Variable Object description must be a string");
 
   // OpenAPI Specification 3.1.1, Section 4.8.6: "If the `enum` is defined, the
   // value MUST exist in the enum's values". The published meta-schema does not
@@ -103,6 +106,53 @@ inline auto openapi_check_server_variable(const JSON &value,
   }
 }
 
+// OpenAPI Specification 3.2.1, Section 4.6 states the grammar 3.1 left
+// unwritten:
+//
+//     server-url-template  = 1*( literals / server-variable )
+//     server-variable      = "{" server-variable-name "}"
+//     server-variable-name = 1*( %x00-7A / %x7C / %x7E-10FFFF )
+//
+// A variable name admits "every Unicode character except { and }", which of
+// the bytes of one holds only of a brace, so it is read byte by byte while a
+// literal is read a character at a time
+inline auto openapi_is_server_url_template(const JSON::StringView address)
+    -> bool {
+  if (address.empty()) {
+    return false;
+  }
+
+  std::size_t cursor{0};
+  while (cursor < address.size()) {
+    if (address[cursor] == '{') {
+      const auto close{address.find('}', cursor + 1)};
+      if (close == JSON::StringView::npos || close == cursor + 1 ||
+          address.substr(cursor + 1, close - cursor - 1).find('{') !=
+              JSON::StringView::npos) {
+        return false;
+      }
+
+      cursor = close + 1;
+    } else if (address[cursor] == '%') {
+      if (!is_percent_triplet(address, cursor)) {
+        return false;
+      }
+
+      cursor += 3;
+    } else {
+      const auto character{utf8_decode(address, cursor)};
+      if (!character.has_value() ||
+          !URITemplate::is_literal(character.value().first)) {
+        return false;
+      }
+
+      cursor += character.value().second;
+    }
+  }
+
+  return true;
+}
+
 // OpenAPI Specification 3.1.1, Section 4.8.5: "An object representing a Server"
 inline auto openapi_check_server(const JSON &value, const Pointer &base,
                                  OpenAPIWalk &walk) -> void {
@@ -111,20 +161,19 @@ inline auto openapi_check_server(const JSON &value, const Pointer &base,
     throw OpenAPIError{base, "The Server Object must be an object"};
   }
 
-  openapi_reject_unknown_fields(value, OPENAPI_SERVER_FIELDS, base,
-                                "The Server Object does not define this field");
+  openapi_reject_unknown_fields(
+      value, OPENAPI_SERVER_FIELDS_3_1, OPENAPI_SERVER_FIELDS_3_2, base,
+      "The Server Object does not define this field", walk);
 
   // OpenAPI Specification 3.1.1, Section 4.8.5: "url | string | REQUIRED. A
   // URL to the target host. This URL supports Server Variables and MAY be
   // relative". Beyond its type there is little to check, as it is a template
   // rather than a URL once a variable is named in braces
-  const auto *url{value.try_at("url", OPENAPI_HASH_URL)};
-  if (url == nullptr) {
-    throw OpenAPIError{base, "The Server Object must declare a URL"};
-  }
+  const auto &url{openapi_require(value, "url"sv, OPENAPI_HASH_URL, base,
+                                  "The Server Object must declare a URL")};
 
   const auto address{openapi_expect_string(
-      *url, base, "url"sv, "The Server Object URL must be a string")};
+      url, base, "url"sv, "The Server Object URL must be a string")};
 
   // OpenAPI Specification 3.1.2, Section 4.8.5 adds to that row: "Query and
   // fragment MUST NOT be part of this URL". A query begins at the first `?`
@@ -138,12 +187,34 @@ inline auto openapi_check_server(const JSON &value, const Pointer &base,
         "The Server Object URL must carry no query and no fragment"};
   }
 
-  const auto *description{
-      value.try_at("description", OPENAPI_HASH_DESCRIPTION)};
-  if (description != nullptr) {
-    openapi_expect_string(*description, base, "description"sv,
-                          "The Server Object description must be a string");
+  // 3.1 says nothing more about the shape of the template, while Section 4.6
+  // of 3.2 writes out a grammar for it and forbids repeating a variable:
+  // "Each server variable MUST NOT appear more than once in the URL template".
+  // Both are new in 3.2, so a URL 3.1 accepts is still accepted when a
+  // document declares 3.1
+  if (walk.version == OpenAPIVersion::OPENAPI_3_2) {
+    if (!openapi_is_server_url_template(address)) {
+      throw OpenAPIError{openapi_child(base, "url"sv),
+                         "The Server Object URL must take the form of a "
+                         "server URL template"};
+    }
+
+    std::set<JSON::StringView> names;
+    for (const auto &variable : openapi_brace_expressions(address)) {
+      if (!names.insert(variable).second) {
+        throw OpenAPIError{openapi_child(base, "url"sv),
+                           "A server URL template must not repeat a variable"};
+      }
+    }
   }
+
+  openapi_check_optional_string(
+      value, base, "description"sv, OPENAPI_HASH_DESCRIPTION,
+      "The Server Object description must be a string");
+
+  // OpenAPI Specification 3.2.1, Section 4.5: "name | string"
+  openapi_check_optional_string(value, base, "name"sv, OPENAPI_HASH_NAME,
+                                "The Server Object name must be a string");
 
   // OpenAPI Specification 3.1.1, Section 4.8.5: "variables | Map[string,
   // Server Variable Object] | A map between a variable name and its value"
@@ -198,12 +269,10 @@ inline auto openapi_check_servers(const JSON &document, OpenAPIWalk &walk)
       *servers, Pointer{"servers"},
       "The OpenAPI Description servers must be an array", walk)};
 
-  // Section 3: "only the entry document's Paths Object contributes URLs to the
-  // described API", which makes the entry document's servers the deployment
+  // Section 4.3.3: "only the entry document's Paths Object contributes URLs to
+  // the described API", which makes the entry document's servers the deployment
   // information that every operation falls back on
-  if (walk.entry) {
-    walk.servers = std::move(locations);
-  }
+  walk.servers = std::move(locations);
 }
 
 } // namespace sourcemeta::core

@@ -52,3 +52,5 @@ vendor/aws-sig-v4-test-suite.mask
 vendor/jsonpath-compliance-test-suite
 vendor/jsonpath-compliance-test-suite.mask
 vendor/iana-oauth
+vendor/openapi-test-suite-3-1
+vendor/openapi-test-suite-3-1.mask

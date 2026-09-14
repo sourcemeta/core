@@ -28,6 +28,14 @@
     "version": "3.1",
     "base": "",
     "standalone": true,
+    "schemas": {
+      "mode": "references",
+      "locations": {
+        "static": {},
+        "dynamic": {}
+      },
+      "references": []
+    },
     "info": {
       "title": "Example",
       "version": "1.0.0",
@@ -69,7 +77,8 @@
         "pointer": "/paths/~1pets",
         "parent": "#/paths",
         "original": "#/components/pathItems/Pets",
-        "destination": "#/components/pathItems/Pets"
+        "destination": "#/components/pathItems/Pets",
+        "dangling": false
       },
       "#/paths/~1pets/get": {
         "type": "operation",

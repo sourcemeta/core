@@ -765,3 +765,9 @@ TEST(is_array_of_strings_non_array) {
   const sourcemeta::core::JSON document{"a"};
   EXPECT_FALSE(document.is_array_of_strings());
 }
+
+TEST(const_back) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json("[ 1, 2, 3 ]");
+  EXPECT_EQ(document.back().to_integer(), 3);
+}

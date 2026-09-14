@@ -1,0 +1,20 @@
+{
+  "document": {
+    "openapi": "3.2.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "tags": [
+      {
+        "name": "a",
+        "parent": "a"
+      }
+    ]
+  },
+  "error": {
+    "message": "The Tag Object parents must not form a cycle",
+    "location": "/tags/0/parent"
+  }
+}

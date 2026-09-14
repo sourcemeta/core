@@ -1,0 +1,44 @@
+{
+  "document": {
+    "openapi": "3.2.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/a": {
+        "get": {
+          "responses": {
+            "200": {
+              "description": "ok"
+            }
+          },
+          "parameters": [
+            {
+              "name": "q",
+              "in": "querystring",
+              "content": {
+                "application/x-www-form-urlencoded": {
+                  "schema": {}
+                }
+              }
+            },
+            {
+              "name": "r",
+              "in": "querystring",
+              "content": {
+                "application/x-www-form-urlencoded": {
+                  "schema": {}
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "A querystring Parameter Object must not appear more than once",
+    "location": "/paths/~1a/get/parameters"
+  }
+}

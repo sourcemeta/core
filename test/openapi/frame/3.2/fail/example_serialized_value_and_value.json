@@ -1,0 +1,21 @@
+{
+  "document": {
+    "openapi": "3.2.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "examples": {
+        "Item": {
+          "serializedValue": "a",
+          "value": "a"
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "The Example Object serialized value and value are mutually exclusive",
+    "location": "/components/examples/Item"
+  }
+}

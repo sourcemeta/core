@@ -2,6 +2,7 @@ sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME uritemplate
   SOURCES
     uritemplate_helpers.h
     uritemplate_test.cc
+    uritemplate_is_literal_test.cc
     uritemplate_parse_test.cc
     uritemplate_parse_error_test.cc
     uritemplate_expand_uri_test.cc

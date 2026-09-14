@@ -20,7 +20,7 @@ const std::set<std::string> KNOWN_DIVERGENCES{
     // requires that field of every `path` parameter, while the meta-schema
     // only asks for it alongside a `schema`
     "style_defaults",
-    // `/pets/{id}` under a parameter named `petId`. Section 4.3 has each
+    // `/pets/{id}` under a parameter named `petId`. Section 3.5 has each
     // template expression "correspond to a path parameter", and Section
     // 4.8.12 has such a parameter correspond to a template expression back
     // the other way, so this fails both ways round. Neither requirement can
@@ -38,17 +38,29 @@ const std::set<std::string> KNOWN_DIVERGENCES{
     // against the operation identifiers scattered through a document, so the
     // meta-schema takes it
     "path_item_servers_parameters"};
+
+// A description names the dialect its Schema Objects are written against, and
+// Section 4.8.24.1 asks only that the name "be in the form of a URI". These
+// name one that was never published, as an OpenAPI schema spells its own
+// identifier with a WORK-IN-PROGRESS placeholder until the day it goes out
+// under a date. Such a description is valid and framing the shell of it holds
+// up, yet the schemas within it are written in a dialect nobody can produce,
+// which is the one thing this runner cannot ask for
+const std::set<std::string> UNPUBLISHED_DIALECTS{"json_schema_dialect"};
 // NOLINTEND(cert-err58-cpp,bugprone-throwing-static-initialization)
 
 auto run_pass_case(const sourcemeta::core::JSON &document) -> void {
-  const sourcemeta::core::OpenAPIFrame frame{document, nullptr};
+  const sourcemeta::core::OpenAPIFrame frame{document,
+                                             sourcemeta::core::schema_walker,
+                                             sourcemeta::core::schema_resolver};
   EXPECT_EQ(frame.version(), sourcemeta::core::OpenAPIVersion::OPENAPI_3_1);
 }
 
 auto run_fail_case(const sourcemeta::core::JSON &document) -> void {
   try {
-    [[maybe_unused]] const sourcemeta::core::OpenAPIFrame frame{document,
-                                                                nullptr};
+    [[maybe_unused]] const sourcemeta::core::OpenAPIFrame frame{
+        document, sourcemeta::core::schema_walker,
+        sourcemeta::core::schema_resolver};
     FAIL();
   } catch (const sourcemeta::core::OpenAPIError &error) {
     // Which rule turns the document down is the business of the unit tests.
@@ -72,7 +84,8 @@ auto register_tests(const std::filesystem::path &directory,
       name << (character == '-' ? '_' : character);
     }
 
-    if (KNOWN_DIVERGENCES.contains(name.str())) {
+    if (KNOWN_DIVERGENCES.contains(name.str()) ||
+        UNPUBLISHED_DIALECTS.contains(name.str())) {
       continue;
     }
 

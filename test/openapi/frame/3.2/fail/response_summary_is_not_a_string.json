@@ -1,0 +1,25 @@
+{
+  "document": {
+    "openapi": "3.2.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/a": {
+        "get": {
+          "responses": {
+            "200": {
+              "description": "ok",
+              "summary": 1
+            }
+          }
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "The Response Object summary must be a string",
+    "location": "/paths/~1a/get/responses/200/summary"
+  }
+}

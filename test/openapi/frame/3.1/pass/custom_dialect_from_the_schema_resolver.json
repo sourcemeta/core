@@ -1,0 +1,104 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "jsonSchemaDialect": "https://example.com/entry-dialect",
+    "components": {
+      "schemas": {
+        "Pet": {
+          "type": "object"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "schemaResolver": {
+    "https://example.com/entry-dialect": {
+      "$id": "https://example.com/entry-dialect",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$vocabulary": {
+        "https://json-schema.org/draft/2020-12/vocab/core": true,
+        "https://json-schema.org/draft/2020-12/vocab/validation": true
+      },
+      "$dynamicAnchor": "meta",
+      "allOf": [
+        {
+          "$ref": "https://json-schema.org/draft/2020-12/meta/core"
+        },
+        {
+          "$ref": "https://json-schema.org/draft/2020-12/meta/validation"
+        }
+      ]
+    }
+  },
+  "frame": {
+    "version": "3.1",
+    "base": "https://example.com/openapi.json",
+    "standalone": true,
+    "schemas": {
+      "mode": "references",
+      "locations": {
+        "static": {
+          "https://example.com/openapi.json#/components/schemas/Pet": {
+            "parent": null,
+            "type": "subschema",
+            "root": null,
+            "base": "https://example.com/openapi.json",
+            "pointer": "/components/schemas/Pet",
+            "relativePointer": "/components/schemas/Pet",
+            "dialect": "https://example.com/entry-dialect",
+            "baseDialect": "https://json-schema.org/draft/2020-12/schema",
+            "propertyName": false,
+            "orphan": false,
+            "hasReferencesTo": false,
+            "hasReferencesThrough": false,
+            "vocabularies": {
+              "https://json-schema.org/draft/2020-12/vocab/core": true,
+              "https://json-schema.org/draft/2020-12/vocab/validation": true
+            }
+          }
+        },
+        "dynamic": {}
+      },
+      "references": []
+    },
+    "info": {
+      "title": "Example",
+      "version": "1.0.0",
+      "summary": null,
+      "description": null,
+      "termsOfService": null,
+      "contact": null,
+      "license": null
+    },
+    "locations": {
+      "https://example.com/openapi.json": {
+        "type": "openapi",
+        "pointer": "",
+        "parent": null,
+        "dialect": "https://example.com/entry-dialect"
+      },
+      "https://example.com/openapi.json#/components": {
+        "type": "components",
+        "pointer": "/components",
+        "parent": "https://example.com/openapi.json"
+      },
+      "https://example.com/openapi.json#/components/schemas/Pet": {
+        "type": "schema",
+        "pointer": "/components/schemas/Pet",
+        "parent": "https://example.com/openapi.json#/components",
+        "dialect": "https://example.com/entry-dialect",
+        "base": "https://example.com/openapi.json"
+      },
+      "https://example.com/openapi.json#/info": {
+        "type": "info",
+        "pointer": "/info",
+        "parent": "https://example.com/openapi.json"
+      }
+    },
+    "operations": []
+  }
+}

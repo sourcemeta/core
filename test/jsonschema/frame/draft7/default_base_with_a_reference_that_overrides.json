@@ -1,0 +1,234 @@
+{
+  "schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$ref": "#/definitions/x",
+    "definitions": {
+      "x": {}
+    }
+  },
+  "defaultId": "https://example.com/named",
+  "defaultBase": "https://example.com/base",
+  "root": {
+    "mode": "root",
+    "locations": {
+      "static": {
+        "https://example.com/named": {
+          "parent": null,
+          "type": "resource",
+          "root": "https://example.com/named",
+          "base": "https://example.com/named",
+          "pointer": "",
+          "relativePointer": "",
+          "dialect": "http://json-schema.org/draft-07/schema#",
+          "baseDialect": "http://json-schema.org/draft-07/schema#",
+          "propertyName": false,
+          "orphan": false,
+          "hasReferencesTo": false,
+          "hasReferencesThrough": false,
+          "vocabularies": {
+            "http://json-schema.org/draft-07/schema#": true
+          }
+        }
+      },
+      "dynamic": {}
+    },
+    "references": []
+  },
+  "pointers": {
+    "mode": "pointers",
+    "locations": {
+      "static": {
+        "https://example.com/base": {
+          "parent": null,
+          "type": "subschema",
+          "root": "https://example.com/named",
+          "base": "https://example.com/named",
+          "pointer": "",
+          "relativePointer": "",
+          "dialect": "http://json-schema.org/draft-07/schema#",
+          "baseDialect": "http://json-schema.org/draft-07/schema#",
+          "propertyName": false,
+          "orphan": false,
+          "hasReferencesTo": false,
+          "hasReferencesThrough": true,
+          "vocabularies": {
+            "http://json-schema.org/draft-07/schema#": true
+          }
+        },
+        "https://example.com/base#/$ref": {
+          "parent": "",
+          "type": "pointer",
+          "root": "https://example.com/named",
+          "base": "https://example.com/named",
+          "pointer": "/$ref",
+          "relativePointer": "/$ref",
+          "dialect": "http://json-schema.org/draft-07/schema#",
+          "baseDialect": "http://json-schema.org/draft-07/schema#",
+          "propertyName": false,
+          "orphan": false,
+          "hasReferencesTo": false,
+          "hasReferencesThrough": false,
+          "vocabularies": {
+            "http://json-schema.org/draft-07/schema#": true
+          }
+        },
+        "https://example.com/base#/$schema": {
+          "parent": "",
+          "type": "pointer",
+          "root": "https://example.com/named",
+          "base": "https://example.com/named",
+          "pointer": "/$schema",
+          "relativePointer": "/$schema",
+          "dialect": "http://json-schema.org/draft-07/schema#",
+          "baseDialect": "http://json-schema.org/draft-07/schema#",
+          "propertyName": false,
+          "orphan": false,
+          "hasReferencesTo": false,
+          "hasReferencesThrough": false,
+          "vocabularies": {
+            "http://json-schema.org/draft-07/schema#": true
+          }
+        },
+        "https://example.com/base#/definitions": {
+          "parent": "",
+          "type": "pointer",
+          "root": "https://example.com/named",
+          "base": "https://example.com/named",
+          "pointer": "/definitions",
+          "relativePointer": "/definitions",
+          "dialect": "http://json-schema.org/draft-07/schema#",
+          "baseDialect": "http://json-schema.org/draft-07/schema#",
+          "propertyName": false,
+          "orphan": false,
+          "hasReferencesTo": false,
+          "hasReferencesThrough": true,
+          "vocabularies": {
+            "http://json-schema.org/draft-07/schema#": true
+          }
+        },
+        "https://example.com/base#/definitions/x": {
+          "parent": "",
+          "type": "pointer",
+          "root": "https://example.com/named",
+          "base": "https://example.com/named",
+          "pointer": "/definitions/x",
+          "relativePointer": "/definitions/x",
+          "dialect": "http://json-schema.org/draft-07/schema#",
+          "baseDialect": "http://json-schema.org/draft-07/schema#",
+          "propertyName": false,
+          "orphan": false,
+          "hasReferencesTo": true,
+          "hasReferencesThrough": true,
+          "vocabularies": {
+            "http://json-schema.org/draft-07/schema#": true
+          }
+        },
+        "https://example.com/named": {
+          "parent": null,
+          "type": "subschema",
+          "root": "https://example.com/named",
+          "base": "https://example.com/named",
+          "pointer": "",
+          "relativePointer": "",
+          "dialect": "http://json-schema.org/draft-07/schema#",
+          "baseDialect": "http://json-schema.org/draft-07/schema#",
+          "propertyName": false,
+          "orphan": false,
+          "hasReferencesTo": false,
+          "hasReferencesThrough": true,
+          "vocabularies": {
+            "http://json-schema.org/draft-07/schema#": true
+          }
+        },
+        "https://example.com/named#/$ref": {
+          "parent": "",
+          "type": "pointer",
+          "root": "https://example.com/named",
+          "base": "https://example.com/named",
+          "pointer": "/$ref",
+          "relativePointer": "/$ref",
+          "dialect": "http://json-schema.org/draft-07/schema#",
+          "baseDialect": "http://json-schema.org/draft-07/schema#",
+          "propertyName": false,
+          "orphan": false,
+          "hasReferencesTo": false,
+          "hasReferencesThrough": false,
+          "vocabularies": {
+            "http://json-schema.org/draft-07/schema#": true
+          }
+        },
+        "https://example.com/named#/$schema": {
+          "parent": "",
+          "type": "pointer",
+          "root": "https://example.com/named",
+          "base": "https://example.com/named",
+          "pointer": "/$schema",
+          "relativePointer": "/$schema",
+          "dialect": "http://json-schema.org/draft-07/schema#",
+          "baseDialect": "http://json-schema.org/draft-07/schema#",
+          "propertyName": false,
+          "orphan": false,
+          "hasReferencesTo": false,
+          "hasReferencesThrough": false,
+          "vocabularies": {
+            "http://json-schema.org/draft-07/schema#": true
+          }
+        },
+        "https://example.com/named#/definitions": {
+          "parent": "",
+          "type": "pointer",
+          "root": "https://example.com/named",
+          "base": "https://example.com/named",
+          "pointer": "/definitions",
+          "relativePointer": "/definitions",
+          "dialect": "http://json-schema.org/draft-07/schema#",
+          "baseDialect": "http://json-schema.org/draft-07/schema#",
+          "propertyName": false,
+          "orphan": false,
+          "hasReferencesTo": false,
+          "hasReferencesThrough": true,
+          "vocabularies": {
+            "http://json-schema.org/draft-07/schema#": true
+          }
+        },
+        "https://example.com/named#/definitions/x": {
+          "parent": "",
+          "type": "pointer",
+          "root": "https://example.com/named",
+          "base": "https://example.com/named",
+          "pointer": "/definitions/x",
+          "relativePointer": "/definitions/x",
+          "dialect": "http://json-schema.org/draft-07/schema#",
+          "baseDialect": "http://json-schema.org/draft-07/schema#",
+          "propertyName": false,
+          "orphan": false,
+          "hasReferencesTo": true,
+          "hasReferencesThrough": true,
+          "vocabularies": {
+            "http://json-schema.org/draft-07/schema#": true
+          }
+        }
+      },
+      "dynamic": {}
+    },
+    "references": [
+      {
+        "type": "static",
+        "origin": "/$ref",
+        "original": "#/definitions/x",
+        "destination": "https://example.com/named#/definitions/x",
+        "base": "https://example.com/named",
+        "fragment": "/definitions/x"
+      },
+      {
+        "type": "static",
+        "origin": "/$schema",
+        "original": "http://json-schema.org/draft-07/schema#",
+        "destination": "http://json-schema.org/draft-07/schema",
+        "base": "http://json-schema.org/draft-07/schema",
+        "fragment": null
+      }
+    ]
+  },
+  "standalone": true
+}

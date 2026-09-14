@@ -233,3 +233,55 @@ TEST(hkdf_widths_do_not_agree) {
   EXPECT_NE(sha256.value(), sha384.value());
   EXPECT_NE(sha384.value(), sha512.value());
 }
+
+// RFC 5869 §2: the derivation is the expansion of the extracted key
+TEST(hkdf_sha384_expand_of_the_extracted_key) {
+  const auto prk{sourcemeta::core::hkdf_sha384_extract(bytes(CASE_1_SALT),
+                                                       bytes(CASE_1_IKM))};
+  const auto okm{sourcemeta::core::hkdf_sha384_expand(
+      {reinterpret_cast<const char *>(prk.data()), prk.size()},
+      bytes(CASE_1_INFO), 42)};
+  EXPECT_TRUE(okm.has_value());
+  const auto derived{sourcemeta::core::hkdf_sha384(
+      bytes(CASE_1_IKM), bytes(CASE_1_SALT), bytes(CASE_1_INFO), 42)};
+  EXPECT_TRUE(derived.has_value());
+  EXPECT_EQ(okm.value(), derived.value());
+}
+
+TEST(hkdf_sha384_expand_output_length_past_the_maximum) {
+  const std::string key(48, '\x0b');
+  EXPECT_FALSE(
+      sourcemeta::core::hkdf_sha384_expand(key, "", MAXIMUM_SHA384_OUTPUT + 1)
+          .has_value());
+}
+
+TEST(hkdf_sha384_expand_rejects_a_short_pseudorandom_key) {
+  const std::string key(47, '\x0b');
+  EXPECT_FALSE(sourcemeta::core::hkdf_sha384_expand(key, "", 42).has_value());
+}
+
+// RFC 5869 §2: the derivation is the expansion of the extracted key
+TEST(hkdf_sha512_expand_of_the_extracted_key) {
+  const auto prk{sourcemeta::core::hkdf_sha512_extract(bytes(CASE_1_SALT),
+                                                       bytes(CASE_1_IKM))};
+  const auto okm{sourcemeta::core::hkdf_sha512_expand(
+      {reinterpret_cast<const char *>(prk.data()), prk.size()},
+      bytes(CASE_1_INFO), 42)};
+  EXPECT_TRUE(okm.has_value());
+  const auto derived{sourcemeta::core::hkdf_sha512(
+      bytes(CASE_1_IKM), bytes(CASE_1_SALT), bytes(CASE_1_INFO), 42)};
+  EXPECT_TRUE(derived.has_value());
+  EXPECT_EQ(okm.value(), derived.value());
+}
+
+TEST(hkdf_sha512_expand_output_length_past_the_maximum) {
+  const std::string key(64, '\x0b');
+  EXPECT_FALSE(
+      sourcemeta::core::hkdf_sha512_expand(key, "", MAXIMUM_SHA512_OUTPUT + 1)
+          .has_value());
+}
+
+TEST(hkdf_sha512_expand_rejects_a_short_pseudorandom_key) {
+  const std::string key(63, '\x0b');
+  EXPECT_FALSE(sourcemeta::core::hkdf_sha512_expand(key, "", 42).has_value());
+}

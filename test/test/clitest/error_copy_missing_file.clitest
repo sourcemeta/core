@@ -1,0 +1,2 @@
+COPY missing.txt TO copied.txt
+COMPARE copied.txt AGAINST missing.txt

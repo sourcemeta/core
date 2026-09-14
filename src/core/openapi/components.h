@@ -23,16 +23,23 @@ constexpr auto OPENAPI_HASH_COMPONENTS{JSON::Object::hash("components"sv)};
 constexpr auto OPENAPI_HASH_SECURITY_SCHEMES{
     JSON::Object::hash("securitySchemes"sv)};
 
-constexpr std::array<JSON::StringView, 10> OPENAPI_COMPONENTS_FIELDS{
+constexpr std::array<JSON::StringView, 10> OPENAPI_COMPONENTS_FIELDS_3_1{
     {"schemas"sv, "responses"sv, "parameters"sv, "examples"sv,
      "requestBodies"sv, "headers"sv, "securitySchemes"sv, "links"sv,
      "callbacks"sv, "pathItems"sv}};
 
-// The names the entry document declares as security schemes, read before the
-// walk goes anywhere so that the order documents are read in cannot decide
-// what a Security Requirement Object may name. This runs before the Components
-// Object has been checked, so it takes what is there and leaves being strict
-// about the shape to that check
+// OpenAPI Specification 3.2.1, Section 4.7 adds `mediaTypes`
+constexpr std::array<JSON::StringView, 11> OPENAPI_COMPONENTS_FIELDS_3_2{
+    {"schemas"sv, "responses"sv, "parameters"sv, "examples"sv,
+     "requestBodies"sv, "headers"sv, "securitySchemes"sv, "links"sv,
+     "callbacks"sv, "pathItems"sv, "mediaTypes"sv}};
+
+// The names the document declares as security schemes, read before the walk
+// goes anywhere because the Components Object may hold a Path Item Object
+// whose operations declare a requirement, and the order that Object writes its
+// own members must not decide what a requirement may name. This runs before
+// the Components Object has been checked, so it takes what is there and leaves
+// being strict about the shape to that check
 inline auto openapi_collect_security_schemes(const JSON &document,
                                              OpenAPIWalk &walk) -> void {
   const auto *components{
@@ -95,8 +102,8 @@ inline auto openapi_check_components(const JSON &document, OpenAPIWalk &walk)
   }
 
   openapi_reject_unknown_fields(
-      *components, OPENAPI_COMPONENTS_FIELDS, base,
-      "The Components Object does not define this field");
+      *components, OPENAPI_COMPONENTS_FIELDS_3_1, OPENAPI_COMPONENTS_FIELDS_3_2,
+      base, "The Components Object does not define this field", walk);
 
   for (const auto &entry : components->as_object()) {
     if (entry.first.starts_with(OPENAPI_EXTENSION_PREFIX)) {
@@ -169,6 +176,9 @@ inline auto openapi_check_components(const JSON &document, OpenAPIWalk &walk)
       } else if (entry.first == "callbacks"sv) {
         openapi_check_callbacks_or_reference(component.second, entry_location,
                                              walk);
+      } else if (entry.first == "mediaTypes"sv) {
+        openapi_check_media_type_or_reference(component.second, entry_location,
+                                              walk);
       } else {
         openapi_check_path_item(component.second, entry_location, walk);
       }

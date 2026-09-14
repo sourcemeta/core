@@ -29,6 +29,14 @@
     "version": "3.1",
     "base": "https://example.com/openapi.json",
     "standalone": true,
+    "schemas": {
+      "mode": "references",
+      "locations": {
+        "static": {},
+        "dynamic": {}
+      },
+      "references": []
+    },
     "info": {
       "title": "Example",
       "version": "1.0.0",
@@ -80,7 +88,8 @@
         "pointer": "/webhooks/newPet",
         "parent": "https://example.com/openapi.json",
         "original": "#/components/pathItems/NewPet",
-        "destination": "https://example.com/openapi.json#/components/pathItems/NewPet"
+        "destination": "https://example.com/openapi.json#/components/pathItems/NewPet",
+        "dangling": false
       }
     },
     "operations": [

@@ -8,6 +8,7 @@ sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME http
           http_serialize_cache_control_test.cc
           http_accept_includes_all_test.cc http_content_type_matches_test.cc
           http_method_test.cc http_status_from_code_test.cc
+          http_is_status_code_test.cc
           http_is_status_line_test.cc http_accumulate_header_line_test.cc
           http_parse_headers_test.cc http_serialize_headers_test.cc
           http_header_find_test.cc http_error_test.cc

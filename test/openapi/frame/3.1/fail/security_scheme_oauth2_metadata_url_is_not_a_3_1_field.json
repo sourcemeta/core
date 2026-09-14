@@ -1,0 +1,22 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "securitySchemes": {
+        "S": {
+          "type": "oauth2",
+          "oauth2MetadataUrl": "/meta",
+          "flows": {}
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "The Security Scheme Object does not define this field",
+    "location": "/components/securitySchemes/S/oauth2MetadataUrl"
+  }
+}
