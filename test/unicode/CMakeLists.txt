@@ -20,6 +20,7 @@ sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME unicode
     unicode_joining_type_test.cc
     unicode_bidi_class_test.cc
     unicode_script_test.cc
+    unicode_general_category_test.cc
     unicode_is_combining_mark_test.cc
     unicode_is_id_continue_test.cc
     unicode_is_id_start_test.cc
@@ -28,6 +29,7 @@ sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME unicode
     unicode_canonical_composition_test.cc
     unicode_nfc_test.cc
     unicode_is_nfc_test.cc
+    unicode_case_fold_test.cc
     unicode_is_ucschar_test.cc
     unicode_is_iprivate_test.cc)
 
