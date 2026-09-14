@@ -21,45 +21,53 @@ inline constexpr std::uint32_t DEFLATE_END_OF_BLOCK{256};
 
 // The index of the length symbol, counting from symbol 257, for every match
 // length as per RFC 1951 section 3.2.5
-constexpr auto deflate_length_slots() -> std::array<std::uint8_t, 259> {
-  std::array<std::uint8_t, 259> result{};
-  for (std::size_t index = 0; index < INFLATE_LENGTH_BASE.size(); ++index) {
-    const std::size_t end{
-        index + 1 < INFLATE_LENGTH_BASE.size()
-            ? static_cast<std::size_t>(INFLATE_LENGTH_BASE[index + 1])
-            : std::size_t{259}};
-    for (std::size_t length = INFLATE_LENGTH_BASE[index]; length < end;
-         ++length) {
-      result[length] = static_cast<std::uint8_t>(index);
-    }
-  }
-
-  return result;
-}
+inline constexpr std::array<std::uint8_t, 259> DEFLATE_LENGTH_SLOTS{
+    {0,  0,  0,  0,  1,  2,  3,  4,  5,  6,  7,  8,  8,  9,  9,  10, 10, 11, 11,
+     12, 12, 12, 12, 13, 13, 13, 13, 14, 14, 14, 14, 15, 15, 15, 15, 16, 16, 16,
+     16, 16, 16, 16, 16, 17, 17, 17, 17, 17, 17, 17, 17, 18, 18, 18, 18, 18, 18,
+     18, 18, 19, 19, 19, 19, 19, 19, 19, 19, 20, 20, 20, 20, 20, 20, 20, 20, 20,
+     20, 20, 20, 20, 20, 20, 20, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21,
+     21, 21, 21, 21, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22,
+     22, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 24, 24,
+     24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24,
+     24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 25, 25, 25, 25, 25, 25, 25, 25,
+     25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25,
+     25, 25, 25, 25, 25, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26,
+     26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 27,
+     27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27,
+     27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 28}};
 
 // The distance symbol for every distance up to 256 in the first half, and for
 // every larger distance indexed by its value minus one divided by 128 in the
 // second half, as every symbol past 256 spans whole multiples of 128
-constexpr auto deflate_distance_slots() -> std::array<std::uint8_t, 512> {
-  std::array<std::uint8_t, 512> result{};
-  for (std::size_t index = 0; index < INFLATE_DISTANCE_BASE.size(); ++index) {
-    const std::size_t base{INFLATE_DISTANCE_BASE[index]};
-    const std::size_t end{
-        base + (std::size_t{1} << INFLATE_DISTANCE_EXTRA_BITS[index])};
-    for (std::size_t distance = base; distance < end; ++distance) {
-      if (distance <= 256) {
-        result[distance - 1] = static_cast<std::uint8_t>(index);
-      } else {
-        result[256 + ((distance - 1) >> 7)] = static_cast<std::uint8_t>(index);
-      }
-    }
-  }
-
-  return result;
-}
-
-inline constexpr auto DEFLATE_LENGTH_SLOTS{deflate_length_slots()};
-inline constexpr auto DEFLATE_DISTANCE_SLOTS{deflate_distance_slots()};
+inline constexpr std::array<std::uint8_t, 512> DEFLATE_DISTANCE_SLOTS{
+    {0,  1,  2,  3,  4,  4,  5,  5,  6,  6,  6,  6,  7,  7,  7,  7,  8,  8,  8,
+     8,  8,  8,  8,  8,  9,  9,  9,  9,  9,  9,  9,  9,  10, 10, 10, 10, 10, 10,
+     10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 11, 11, 11, 11, 11, 11, 11, 11, 11,
+     11, 11, 11, 11, 11, 11, 11, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12,
+     12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12,
+     12, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13,
+     13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 14, 14, 14, 14, 14,
+     14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14,
+     14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14,
+     14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14,
+     14, 14, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15,
+     15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15,
+     15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15,
+     15, 15, 15, 15, 15, 15, 15, 15, 15, 0,  0,  16, 17, 18, 18, 19, 19, 20, 20,
+     20, 20, 21, 21, 21, 21, 22, 22, 22, 22, 22, 22, 22, 22, 23, 23, 23, 23, 23,
+     23, 23, 23, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24,
+     25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 26, 26, 26,
+     26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26,
+     26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 27, 27, 27, 27, 27, 27, 27, 27, 27,
+     27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27,
+     27, 27, 27, 27, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28,
+     28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28,
+     28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28,
+     28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 29, 29, 29, 29, 29, 29, 29, 29,
+     29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29,
+     29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29,
+     29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29}};
 
 inline auto deflate_distance_slot(const std::size_t distance) -> std::size_t {
   return distance <= 256 ? DEFLATE_DISTANCE_SLOTS[distance - 1]
