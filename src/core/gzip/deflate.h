@@ -13,7 +13,6 @@
 
 namespace sourcemeta::core {
 
-inline constexpr std::size_t DEFLATE_MINIMUM_MATCH_LENGTH{3};
 inline constexpr std::size_t DEFLATE_MAXIMUM_MATCH_LENGTH{258};
 inline constexpr std::size_t DEFLATE_WINDOW_SIZE{32768};
 inline constexpr std::size_t DEFLATE_MAXIMUM_STORED_LENGTH{65535};
