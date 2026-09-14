@@ -26,6 +26,49 @@ TEST(compress_output_header_identifies_deflate_member) {
   EXPECT_EQ(compressed.at(3) & 0xe0, 0);
 }
 
+TEST(compress_output_header_has_no_flags) {
+  const auto compressed{compress("hello world", 6)};
+  EXPECT_EQ(compressed.at(3), 0x00);
+}
+
+TEST(compress_output_header_has_no_modification_time) {
+  const auto compressed{compress("hello world", 6)};
+  const std::vector<std::uint8_t> modification_time{compressed.cbegin() + 4,
+                                                    compressed.cbegin() + 8};
+  const std::vector<std::uint8_t> expected{0x00, 0x00, 0x00, 0x00};
+  EXPECT_EQ(modification_time, expected);
+}
+
+TEST(compress_output_header_at_level_0_marks_fastest_algorithm) {
+  const auto compressed{compress("hello world", 0)};
+  EXPECT_EQ(compressed.at(8), 0x04);
+}
+
+TEST(compress_output_header_at_level_1_marks_fastest_algorithm) {
+  const auto compressed{compress("hello world", 1)};
+  EXPECT_EQ(compressed.at(8), 0x04);
+}
+
+TEST(compress_output_header_at_level_6_marks_neither_fastest_nor_maximum) {
+  const auto compressed{compress("hello world", 6)};
+  EXPECT_EQ(compressed.at(8), 0x00);
+}
+
+TEST(compress_output_header_at_level_9_marks_maximum_compression) {
+  const auto compressed{compress("hello world", 9)};
+  EXPECT_EQ(compressed.at(8), 0x02);
+}
+
+TEST(compress_output_header_at_level_12_marks_maximum_compression) {
+  const auto compressed{compress("hello world", 12)};
+  EXPECT_EQ(compressed.at(8), 0x02);
+}
+
+TEST(compress_output_header_marks_unknown_operating_system) {
+  const auto compressed{compress("hello world", 6)};
+  EXPECT_EQ(compressed.at(9), 0xff);
+}
+
 TEST(compress_output_trailer_of_empty_input) {
   const auto compressed{compress("", 1)};
   const std::vector<std::uint8_t> trailer{compressed.cend() - 8,
