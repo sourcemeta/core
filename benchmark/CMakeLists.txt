@@ -36,6 +36,10 @@ if(SOURCEMETA_CORE_HTML)
   list(APPEND BENCHMARK_SOURCES html.cc)
 endif()
 
+if(SOURCEMETA_CORE_MARKDOWN)
+  list(APPEND BENCHMARK_SOURCES markdown.cc)
+endif()
+
 if(SOURCEMETA_CORE_GZIP)
   list(APPEND BENCHMARK_SOURCES gzip.cc)
 endif()
@@ -100,6 +104,11 @@ if(BENCHMARK_SOURCES)
   if(SOURCEMETA_CORE_HTML)
     target_link_libraries(sourcemeta_core_benchmark
       PRIVATE sourcemeta::core::html)
+  endif()
+
+  if(SOURCEMETA_CORE_MARKDOWN)
+    target_link_libraries(sourcemeta_core_benchmark
+      PRIVATE sourcemeta::core::markdown)
   endif()
 
   if(SOURCEMETA_CORE_GZIP)
