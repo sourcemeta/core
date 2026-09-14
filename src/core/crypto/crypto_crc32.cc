@@ -1,7 +1,8 @@
 #include <sourcemeta/core/crypto_crc32.h>
 
 #include <array>   // std::array
-#include <cstdint> // std::uint8_t, std::uint32_t, std::uint64_t, std::uintptr_t
+#include <cstddef> // std::size_t
+#include <cstdint> // std::uint8_t, std::uint32_t, std::uint64_t
 #include <cstring> // std::memcpy
 
 // Only enable the hardware CRC32 path when the target ISA explicitly promises
@@ -11,6 +12,31 @@
 // effect
 #if defined(__aarch64__) && defined(__ARM_FEATURE_CRC32)
 #define SOURCEMETA_CORE_CRYPTO_CRC32_ARM 1
+// Carry-less multiplication is part of the cryptographic extension
+#if defined(__ARM_FEATURE_CRYPTO) || defined(__ARM_FEATURE_AES)
+#define SOURCEMETA_CORE_CRYPTO_CRC32_PMULL 1
+#endif
+#endif
+
+// Every x86 processor with AVX2 also has carry-less multiplication, which
+// MSVC exposes without a dedicated flag
+#if (defined(__x86_64__) || defined(_M_X64)) &&                                \
+    (defined(__PCLMUL__) ||                                                    \
+     (defined(_MSC_VER) && !defined(__clang__) && defined(__AVX2__)))
+#define SOURCEMETA_CORE_CRYPTO_CRC32_CLMUL 1
+#endif
+
+#if defined(SOURCEMETA_CORE_CRYPTO_CRC32_PMULL) ||                             \
+    defined(SOURCEMETA_CORE_CRYPTO_CRC32_CLMUL)
+#define SOURCEMETA_CORE_CRYPTO_CRC32_FOLD 1
+#endif
+
+#ifdef SOURCEMETA_CORE_CRYPTO_CRC32_PMULL
+#include <arm_neon.h> // uint8x16_t, poly64x2_t, vmull_p64, vmull_high_p64
+#endif
+
+#ifdef SOURCEMETA_CORE_CRYPTO_CRC32_CLMUL
+#include <immintrin.h> // __m128i, _mm_clmulepi64_si128, _mm_xor_si128
 #endif
 
 // The CRC32 operations are reached through compiler builtins rather than the
@@ -38,6 +64,73 @@ auto crc32_hardware_byte(const std::uint32_t checksum,
   return __builtin_aarch64_crc32b(checksum, value);
 #endif
 }
+
+#ifndef SOURCEMETA_CORE_CRYPTO_CRC32_PMULL
+// Chunks are checksummed as independent dependency chains that the processor
+// can run in parallel, and the checksums are combined afterwards
+constexpr std::size_t CRC32_CHUNK_SIZE{1024};
+
+constexpr auto crc32_byte_table() -> std::array<std::uint32_t, 256> {
+  std::array<std::uint32_t, 256> table{};
+  for (std::uint32_t byte = 0; byte < 256; ++byte) {
+    std::uint32_t value{byte};
+    for (unsigned int bit = 0; bit < 8; ++bit) {
+      value = (value & 1U) != 0 ? (value >> 1U) ^ 0xEDB88320U : value >> 1U;
+    }
+
+    table[byte] = value;
+  }
+
+  return table;
+}
+
+// Advancing the checksum register over a run of zero bytes is linear in the
+// register, so it decomposes into one lookup per register byte
+constexpr auto crc32_shift_tables(const std::size_t zero_bytes)
+    -> std::array<std::array<std::uint32_t, 256>, 4> {
+  const auto table{crc32_byte_table()};
+  std::array<std::uint32_t, 32> basis{};
+  for (unsigned int bit = 0; bit < 32; ++bit) {
+    std::uint32_t value{1U << bit};
+    for (std::size_t index = 0; index < zero_bytes; ++index) {
+      value = table[value & 0xffU] ^ (value >> 8U);
+    }
+
+    basis[bit] = value;
+  }
+
+  std::array<std::array<std::uint32_t, 256>, 4> result{};
+  for (std::size_t position = 0; position < 4; ++position) {
+    for (std::uint32_t byte = 0; byte < 256; ++byte) {
+      std::uint32_t value{0};
+      for (unsigned int bit = 0; bit < 8; ++bit) {
+        if (((byte >> bit) & 1U) != 0) {
+          value ^= basis[(position * 8) + bit];
+        }
+      }
+
+      result[position][byte] = value;
+    }
+  }
+
+  return result;
+}
+
+constexpr auto CRC32_CHUNK_SHIFT{crc32_shift_tables(CRC32_CHUNK_SIZE)};
+
+auto crc32_shift_chunk(const std::uint32_t checksum) noexcept -> std::uint32_t {
+  return CRC32_CHUNK_SHIFT[0][checksum & 0xffU] ^
+         CRC32_CHUNK_SHIFT[1][(checksum >> 8U) & 0xffU] ^
+         CRC32_CHUNK_SHIFT[2][(checksum >> 16U) & 0xffU] ^
+         CRC32_CHUNK_SHIFT[3][checksum >> 24U];
+}
+
+auto crc32_hardware_load(const std::uint8_t *data) noexcept -> std::uint64_t {
+  std::uint64_t chunk{0};
+  std::memcpy(&chunk, data, sizeof(chunk));
+  return chunk;
+}
+#endif
 
 } // namespace
 #endif
@@ -466,37 +559,9 @@ constexpr std::array<std::array<std::uint32_t, 256>, 8> CRC32_TABLES{
        0x6EAB0882u, 0xA201081Cu, 0xA8C40105u, 0x646E019Bu, 0xEAE10678u,
        0x264B06E6u}}}};
 
-} // namespace
-#endif
-
-namespace sourcemeta::core {
-
-auto crc32(const std::string_view input) -> std::uint32_t {
-  return crc32_update(0U, input);
-}
-
-auto crc32_update(const std::uint32_t previous, const std::string_view input)
-    -> std::uint32_t {
-  auto checksum{previous ^ 0xFFFFFFFFU};
-  const auto *data{reinterpret_cast<const std::uint8_t *>(input.data())};
-  auto remaining{input.size()};
-
-#ifdef SOURCEMETA_CORE_CRYPTO_CRC32_ARM
-  // ARMv8 hardware CRC32 instruction (~8 bytes per cycle)
-  while (remaining >= 8) {
-    std::uint64_t chunk{0};
-    std::memcpy(&chunk, data, sizeof(chunk));
-    checksum = crc32_hardware_word(checksum, chunk);
-    data += 8;
-    remaining -= 8;
-  }
-  while (remaining > 0) {
-    checksum = crc32_hardware_byte(checksum, *data++);
-    --remaining;
-  }
-  return checksum ^ 0xFFFFFFFFU;
-#else
-  // Slice-by-8 software fallback: consume 8 bytes per iteration
+auto crc32_software(std::uint32_t checksum, const std::uint8_t *data,
+                    std::size_t remaining) noexcept -> std::uint32_t {
+  // Slice-by-8: consume 8 bytes per iteration
   while (remaining >= 8) {
     const std::uint32_t one{(static_cast<std::uint32_t>(data[0])) |
                             (static_cast<std::uint32_t>(data[1]) << 8u) |
@@ -524,7 +589,274 @@ auto crc32_update(const std::uint32_t previous, const std::string_view input)
     --remaining;
   }
 
-  return checksum ^ 0xFFFFFFFFu;
+  return checksum;
+}
+
+} // namespace
+#endif
+
+#ifdef SOURCEMETA_CORE_CRYPTO_CRC32_FOLD
+namespace {
+
+#ifdef SOURCEMETA_CORE_CRYPTO_CRC32_PMULL
+using Crc32Vector = uint8x16_t;
+using Crc32Multipliers = poly64x2_t;
+
+auto crc32_vector_load(const std::uint8_t *data) noexcept -> Crc32Vector {
+  return vld1q_u8(data);
+}
+
+auto crc32_vector_xor(const Crc32Vector left, const Crc32Vector right) noexcept
+    -> Crc32Vector {
+  return veorq_u8(left, right);
+}
+
+auto crc32_vector_from_checksum(const std::uint32_t checksum) noexcept
+    -> Crc32Vector {
+  return vreinterpretq_u8_u32(vsetq_lane_u32(checksum, vdupq_n_u32(0), 0));
+}
+
+auto crc32_load_multipliers(
+    const std::array<std::uint64_t, 2> &multipliers) noexcept
+    -> Crc32Multipliers {
+  return vreinterpretq_p64_u64(vld1q_u64(multipliers.data()));
+}
+
+auto crc32_fold_vector(const Crc32Vector source, const Crc32Vector destination,
+                       const Crc32Multipliers multipliers) noexcept
+    -> Crc32Vector {
+  const Crc32Vector low{vreinterpretq_u8_p128(
+      vmull_p64(vgetq_lane_p64(vreinterpretq_p64_u8(source), 0),
+                vgetq_lane_p64(multipliers, 0)))};
+  const Crc32Vector high{vreinterpretq_u8_p128(
+      vmull_high_p64(vreinterpretq_p64_u8(source), multipliers))};
+  return veorq_u8(veorq_u8(low, high), destination);
+}
+
+// The folded vector is congruent to the data it replaces, so checksumming it
+// as data from an empty register yields the checksum of that data
+auto crc32_reduce(const Crc32Vector folded) noexcept -> std::uint32_t {
+  const uint64x2_t words{vreinterpretq_u64_u8(folded)};
+  return crc32_hardware_word(crc32_hardware_word(0, vgetq_lane_u64(words, 0)),
+                             vgetq_lane_u64(words, 1));
+}
+#else
+using Crc32Vector = __m128i;
+using Crc32Multipliers = __m128i;
+
+auto crc32_vector_load(const std::uint8_t *data) noexcept -> Crc32Vector {
+  return _mm_loadu_si128(reinterpret_cast<const __m128i *>(data));
+}
+
+auto crc32_vector_xor(const Crc32Vector left, const Crc32Vector right) noexcept
+    -> Crc32Vector {
+  return _mm_xor_si128(left, right);
+}
+
+auto crc32_vector_from_checksum(const std::uint32_t checksum) noexcept
+    -> Crc32Vector {
+  return _mm_cvtsi32_si128(static_cast<int>(checksum));
+}
+
+auto crc32_load_multipliers(
+    const std::array<std::uint64_t, 2> &multipliers) noexcept
+    -> Crc32Multipliers {
+  return _mm_loadu_si128(reinterpret_cast<const __m128i *>(multipliers.data()));
+}
+
+auto crc32_fold_vector(const Crc32Vector source, const Crc32Vector destination,
+                       const Crc32Multipliers multipliers) noexcept
+    -> Crc32Vector {
+  const Crc32Vector low{_mm_clmulepi64_si128(source, multipliers, 0x00)};
+  const Crc32Vector high{_mm_clmulepi64_si128(source, multipliers, 0x11)};
+  return _mm_xor_si128(_mm_xor_si128(low, high), destination);
+}
+
+// The folded vector is congruent to the data it replaces, so checksumming it
+// as data from an empty register yields the checksum of that data
+auto crc32_reduce(const Crc32Vector folded) noexcept -> std::uint32_t {
+  std::array<std::uint8_t, 16> bytes{};
+  _mm_storeu_si128(reinterpret_cast<__m128i *>(bytes.data()), folded);
+  return crc32_software(0, bytes.data(), bytes.size());
+}
+#endif
+
+// Moving a 128-bit vector forward by a number of 128-bit vectors multiplies
+// each of its halves by the remainder of a power of x modulo the CRC-32
+// polynomial, bit reflected like the checksum register. The powers are the
+// distance in bits plus 31 and minus 33, accounting for the width of each half
+// and for the product of two reflected values being one bit short
+constexpr std::array<std::uint64_t, 2> CRC32_FOLD_TWELVE{
+    {0x596C8D81U, 0xF5E48C85U}};
+constexpr std::array<std::uint64_t, 2> CRC32_FOLD_SIX{
+    {0xDF068DC2U, 0x57C54819U}};
+constexpr std::array<std::uint64_t, 2> CRC32_FOLD_FOUR{
+    {0x8F352D95U, 0x1D9513D7U}};
+constexpr std::array<std::uint64_t, 2> CRC32_FOLD_THREE{
+    {0x3DB1ECDCU, 0xAF449247U}};
+constexpr std::array<std::uint64_t, 2> CRC32_FOLD_TWO{
+    {0xF1DA05AAU, 0x81256527U}};
+constexpr std::array<std::uint64_t, 2> CRC32_FOLD_ONE{
+    {0xAE689191U, 0xCCAA009EU}};
+constexpr std::size_t CRC32_FOLD_MINIMUM{64};
+constexpr std::size_t CRC32_FOLD_WIDE_MINIMUM{576};
+
+// Folds whole 128-bit vectors of the input into a single vector congruent to
+// them modulo the CRC-32 polynomial, which is then reduced to a checksum.
+// Every lane is an independent dependency chain, so the multiplications of
+// all lanes run in parallel
+auto crc32_fold(const std::uint32_t checksum, const std::uint8_t *&data,
+                std::size_t &remaining) noexcept -> std::uint32_t {
+  // GCC drops the attributes of the x86 vector type when it is a template
+  // argument, so the lanes live in a plain array
+  // NOLINTNEXTLINE(modernize-avoid-c-arrays)
+  Crc32Vector lanes[12]{};
+  const Crc32Vector initial{crc32_vector_from_checksum(checksum)};
+  if (remaining >= CRC32_FOLD_WIDE_MINIMUM) {
+    const auto twelve{crc32_load_multipliers(CRC32_FOLD_TWELVE)};
+    const auto six{crc32_load_multipliers(CRC32_FOLD_SIX)};
+    const auto three{crc32_load_multipliers(CRC32_FOLD_THREE)};
+    for (std::size_t lane = 0; lane < 12; ++lane) {
+      lanes[lane] = crc32_vector_load(data + (16 * lane));
+    }
+
+    lanes[0] = crc32_vector_xor(lanes[0], initial);
+    data += 192;
+    remaining -= 192;
+    while (remaining >= 192) {
+      for (std::size_t lane = 0; lane < 12; ++lane) {
+        lanes[lane] = crc32_fold_vector(
+            lanes[lane], crc32_vector_load(data + (16 * lane)), twelve);
+      }
+
+      data += 192;
+      remaining -= 192;
+    }
+
+    for (std::size_t lane = 0; lane < 6; ++lane) {
+      lanes[lane] = crc32_fold_vector(lanes[lane], lanes[lane + 6], six);
+    }
+
+    if (remaining >= 96) {
+      for (std::size_t lane = 0; lane < 6; ++lane) {
+        lanes[lane] = crc32_fold_vector(
+            lanes[lane], crc32_vector_load(data + (16 * lane)), six);
+      }
+
+      data += 96;
+      remaining -= 96;
+    }
+
+    for (std::size_t lane = 0; lane < 3; ++lane) {
+      lanes[lane] = crc32_fold_vector(lanes[lane], lanes[lane + 3], three);
+    }
+
+    if (remaining >= 48) {
+      for (std::size_t lane = 0; lane < 3; ++lane) {
+        lanes[lane] = crc32_fold_vector(
+            lanes[lane], crc32_vector_load(data + (16 * lane)), three);
+      }
+
+      data += 48;
+      remaining -= 48;
+    }
+
+    const auto one{crc32_load_multipliers(CRC32_FOLD_ONE)};
+    lanes[0] = crc32_fold_vector(lanes[0], lanes[1], one);
+    lanes[0] = crc32_fold_vector(lanes[0], lanes[2], one);
+  } else {
+    const auto four{crc32_load_multipliers(CRC32_FOLD_FOUR)};
+    const auto two{crc32_load_multipliers(CRC32_FOLD_TWO)};
+    for (std::size_t lane = 0; lane < 4; ++lane) {
+      lanes[lane] = crc32_vector_load(data + (16 * lane));
+    }
+
+    lanes[0] = crc32_vector_xor(lanes[0], initial);
+    data += 64;
+    remaining -= 64;
+    while (remaining >= 64) {
+      for (std::size_t lane = 0; lane < 4; ++lane) {
+        lanes[lane] = crc32_fold_vector(
+            lanes[lane], crc32_vector_load(data + (16 * lane)), four);
+      }
+
+      data += 64;
+      remaining -= 64;
+    }
+
+    lanes[0] = crc32_fold_vector(lanes[0], lanes[2], two);
+    lanes[1] = crc32_fold_vector(lanes[1], lanes[3], two);
+    if (remaining >= 32) {
+      lanes[0] = crc32_fold_vector(lanes[0], crc32_vector_load(data), two);
+      lanes[1] = crc32_fold_vector(lanes[1], crc32_vector_load(data + 16), two);
+      data += 32;
+      remaining -= 32;
+    }
+
+    lanes[0] = crc32_fold_vector(lanes[0], lanes[1],
+                                 crc32_load_multipliers(CRC32_FOLD_ONE));
+  }
+
+  return crc32_reduce(lanes[0]);
+}
+
+} // namespace
+#endif
+
+namespace sourcemeta::core {
+
+auto crc32(const std::string_view input) -> std::uint32_t {
+  return crc32_update(0U, input);
+}
+
+auto crc32_update(const std::uint32_t previous, const std::string_view input)
+    -> std::uint32_t {
+  auto checksum{previous ^ 0xFFFFFFFFU};
+  const auto *data{reinterpret_cast<const std::uint8_t *>(input.data())};
+  auto remaining{input.size()};
+
+#ifdef SOURCEMETA_CORE_CRYPTO_CRC32_FOLD
+  // Carry-less multiplication folds a whole vector of input at a time
+  if (remaining >= CRC32_FOLD_MINIMUM) {
+    checksum = crc32_fold(checksum, data, remaining);
+  }
+#endif
+
+#ifdef SOURCEMETA_CORE_CRYPTO_CRC32_ARM
+#ifndef SOURCEMETA_CORE_CRYPTO_CRC32_PMULL
+  // ARMv8 hardware CRC32 instruction (~8 bytes per cycle)
+  while (remaining >= 3 * CRC32_CHUNK_SIZE) {
+    std::uint32_t first{checksum};
+    std::uint32_t second{0};
+    std::uint32_t third{0};
+    for (std::size_t offset = 0; offset < CRC32_CHUNK_SIZE; offset += 8) {
+      first = crc32_hardware_word(first, crc32_hardware_load(data + offset));
+      second = crc32_hardware_word(
+          second, crc32_hardware_load(data + CRC32_CHUNK_SIZE + offset));
+      third = crc32_hardware_word(
+          third, crc32_hardware_load(data + (2 * CRC32_CHUNK_SIZE) + offset));
+    }
+
+    checksum = crc32_shift_chunk(crc32_shift_chunk(first) ^ second) ^ third;
+    data += 3 * CRC32_CHUNK_SIZE;
+    remaining -= 3 * CRC32_CHUNK_SIZE;
+  }
+#endif
+
+  while (remaining >= 8) {
+    std::uint64_t chunk{0};
+    std::memcpy(&chunk, data, sizeof(chunk));
+    checksum = crc32_hardware_word(checksum, chunk);
+    data += 8;
+    remaining -= 8;
+  }
+  while (remaining > 0) {
+    checksum = crc32_hardware_byte(checksum, *data++);
+    --remaining;
+  }
+  return checksum ^ 0xFFFFFFFFU;
+#else
+  return crc32_software(checksum, data, remaining) ^ 0xFFFFFFFFU;
 #endif
 }
 
