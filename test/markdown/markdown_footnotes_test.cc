@@ -239,3 +239,52 @@ TEST(footnote_label_with_space_is_not_footnote) {
       "body[^two words]\n\n[^two words]: text")};
   EXPECT_EQ(result, "<p>body<a href=\"text\">^two words</a></p>\n");
 }
+
+TEST(footnote_definition_nested_inside_another_definition) {
+  const auto result{sourcemeta::core::markdown_to_html(
+      "[^a]\n\n[^a]: outer\n    [^b]: inner\n\n[^b]")};
+  EXPECT_EQ(result,
+            "<p><sup class=\"footnote-ref\"><a href=\"#fn-a\" id=\"fnref-a\" "
+            "data-footnote-ref>1</a></sup></p>\n"
+            "<p><sup class=\"footnote-ref\"><a href=\"#fn-b\" id=\"fnref-b\" "
+            "data-footnote-ref>2</a></sup></p>\n"
+            "<section class=\"footnotes\" data-footnotes>\n<ol>\n"
+            "<li id=\"fn-a\">\n"
+            "<p>outer <a href=\"#fnref-a\" class=\"footnote-backref\" "
+            "data-footnote-backref data-footnote-backref-idx=\"1\" "
+            "aria-label=\"Back to reference 1\">\xe2\x86\xa9</a></p>\n"
+            "</li>\n"
+            "<li id=\"fn-b\">\n"
+            "<p>inner <a href=\"#fnref-b\" class=\"footnote-backref\" "
+            "data-footnote-backref data-footnote-backref-idx=\"2\" "
+            "aria-label=\"Back to reference 2\">\xe2\x86\xa9</a></p>\n"
+            "</li>\n</ol>\n</section>\n");
+}
+
+TEST(footnote_nested_definition_referenced_without_its_parent) {
+  const auto result{sourcemeta::core::markdown_to_html(
+      "[^b]\n\n[^a]: outer\n    [^b]: inner")};
+  EXPECT_EQ(result,
+            "<p><sup class=\"footnote-ref\"><a href=\"#fn-b\" id=\"fnref-b\" "
+            "data-footnote-ref>1</a></sup></p>\n"
+            "<section class=\"footnotes\" data-footnotes>\n<ol>\n"
+            "<li id=\"fn-b\">\n"
+            "<p>inner <a href=\"#fnref-b\" class=\"footnote-backref\" "
+            "data-footnote-backref data-footnote-backref-idx=\"1\" "
+            "aria-label=\"Back to reference 1\">\xe2\x86\xa9</a></p>\n"
+            "</li>\n</ol>\n</section>\n");
+}
+
+TEST(footnote_nested_definition_with_the_same_label_takes_precedence) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("[^x]\n\n[^x]: one\n    [^x]: two")};
+  EXPECT_EQ(result,
+            "<p><sup class=\"footnote-ref\"><a href=\"#fn-x\" id=\"fnref-x\" "
+            "data-footnote-ref>1</a></sup></p>\n"
+            "<section class=\"footnotes\" data-footnotes>\n<ol>\n"
+            "<li id=\"fn-x\">\n"
+            "<p>two <a href=\"#fnref-x\" class=\"footnote-backref\" "
+            "data-footnote-backref data-footnote-backref-idx=\"1\" "
+            "aria-label=\"Back to reference 1\">\xe2\x86\xa9</a></p>\n"
+            "</li>\n</ol>\n</section>\n");
+}

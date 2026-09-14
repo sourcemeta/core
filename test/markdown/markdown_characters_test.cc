@@ -182,23 +182,24 @@ TEST(invalid_utf8_consecutive_continuation_bytes) {
 TEST(invalid_utf8_overlong_encoded_slash) {
   const auto result{sourcemeta::core::markdown_to_html("path\xC0\xAF"
                                                        "etc")};
-  EXPECT_EQ(result, "<p>path\xef\xbf\xbd"
+  EXPECT_EQ(result, "<p>path\xef\xbf\xbd\xef\xbf\xbd"
                     "etc</p>\n");
 }
 
 TEST(invalid_utf8_overlong_encoded_nul) {
   const auto result{sourcemeta::core::markdown_to_html("x\xE0\x80\x80y")};
-  EXPECT_EQ(result, "<p>x\xef\xbf\xbdy</p>\n");
+  EXPECT_EQ(result, "<p>x\xef\xbf\xbd\xef\xbf\xbd\xef\xbf\xbdy</p>\n");
 }
 
 TEST(invalid_utf8_encoded_surrogate) {
   const auto result{sourcemeta::core::markdown_to_html("x\xED\xA0\x80y")};
-  EXPECT_EQ(result, "<p>x\xef\xbf\xbdy</p>\n");
+  EXPECT_EQ(result, "<p>x\xef\xbf\xbd\xef\xbf\xbd\xef\xbf\xbdy</p>\n");
 }
 
 TEST(invalid_utf8_code_point_above_unicode_range) {
   const auto result{sourcemeta::core::markdown_to_html("x\xF4\x90\x80\x80y")};
-  EXPECT_EQ(result, "<p>x\xef\xbf\xbdy</p>\n");
+  EXPECT_EQ(result,
+            "<p>x\xef\xbf\xbd\xef\xbf\xbd\xef\xbf\xbd\xef\xbf\xbdy</p>\n");
 }
 
 TEST(invalid_utf8_five_byte_sequence) {
