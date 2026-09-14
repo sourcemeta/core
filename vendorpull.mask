@@ -39,7 +39,6 @@ vendor/wycheproof
 vendor/wycheproof.mask
 vendor/jose-cookbook
 vendor/jose-cookbook.mask
-vendor/cmark-gfm.mask
 vendor/openapi.mask
 vendor/whatwg-html-build.mask
 vendor/unicodetools.mask
