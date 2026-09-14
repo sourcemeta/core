@@ -211,6 +211,8 @@ TEST(policy_default_argument) {
 }
 
 TEST(policy_lifecycle_and_isolation) {
+  sourcemeta::core::terminal_reset_color_policy();
+
   // Global configuration affects all streams
   sourcemeta::core::terminal_set_color_policy(
       sourcemeta::core::TerminalColorPolicy::WhenInteractive);
@@ -251,11 +253,46 @@ TEST(policy_lifecycle_and_isolation) {
   EXPECT_EQ(stderr_stream.str(), "error_stream");
 
   // Restore default policy across all streams
-  sourcemeta::core::terminal_set_color_policy(
-      sourcemeta::core::TerminalColorPolicy::WhenInteractive);
+  sourcemeta::core::terminal_reset_color_policy();
   EXPECT_EQ(sourcemeta::core::terminal_color_policy(
                 sourcemeta::core::TerminalStream::Stderr),
             sourcemeta::core::TerminalColorPolicy::WhenInteractive);
+}
+
+TEST(policy_reset_global) {
+  sourcemeta::core::terminal_set_color_policy(
+      sourcemeta::core::TerminalColorPolicy::Always);
+  EXPECT_EQ(sourcemeta::core::terminal_color_policy(
+                sourcemeta::core::TerminalStream::Stdout),
+            sourcemeta::core::TerminalColorPolicy::Always);
+  sourcemeta::core::terminal_reset_color_policy();
+  EXPECT_EQ(sourcemeta::core::terminal_color_policy(
+                sourcemeta::core::TerminalStream::Stdout),
+            sourcemeta::core::TerminalColorPolicy::WhenInteractive);
+  EXPECT_EQ(sourcemeta::core::terminal_color_policy(
+                sourcemeta::core::TerminalStream::Stderr),
+            sourcemeta::core::TerminalColorPolicy::WhenInteractive);
+  EXPECT_EQ(sourcemeta::core::terminal_color_policy(
+                sourcemeta::core::TerminalStream::Stdin),
+            sourcemeta::core::TerminalColorPolicy::WhenInteractive);
+}
+
+TEST(policy_reset_per_stream) {
+  sourcemeta::core::terminal_set_color_policy(
+      sourcemeta::core::TerminalStream::Stderr,
+      sourcemeta::core::TerminalColorPolicy::Disabled);
+  sourcemeta::core::terminal_set_color_policy(
+      sourcemeta::core::TerminalStream::Stdout,
+      sourcemeta::core::TerminalColorPolicy::Always);
+  sourcemeta::core::terminal_reset_color_policy(
+      sourcemeta::core::TerminalStream::Stderr);
+  EXPECT_EQ(sourcemeta::core::terminal_color_policy(
+                sourcemeta::core::TerminalStream::Stderr),
+            sourcemeta::core::TerminalColorPolicy::WhenInteractive);
+  EXPECT_EQ(sourcemeta::core::terminal_color_policy(
+                sourcemeta::core::TerminalStream::Stdout),
+            sourcemeta::core::TerminalColorPolicy::Always);
+  sourcemeta::core::terminal_reset_color_policy();
 }
 
 TEST(stream_detection_runs_safely) {
