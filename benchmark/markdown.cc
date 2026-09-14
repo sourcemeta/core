@@ -101,7 +101,8 @@ static void Markdown_To_HTML_Pathological(benchmark::State &state) {
 }
 
 // Many short inputs, like the descriptions that schema documentation renders,
-// where the cost of every call matters more than the cost of every byte
+// where the cost of every call matters more than the cost of every byte, so
+// every iteration converts the next input of the corpus
 // NOLINTNEXTLINE(readability-identifier-naming)
 static void Markdown_To_HTML_Short_Descriptions(benchmark::State &state) {
   std::vector<std::string> inputs;
@@ -121,10 +122,13 @@ static void Markdown_To_HTML_Short_Descriptions(benchmark::State &state) {
         std::string{"- First option\n- Second option "}.append(number));
   }
 
+  std::size_t position{0};
   for (auto iteration : state) {
-    for (const auto &input : inputs) {
-      auto result{sourcemeta::core::markdown_to_html(input)};
-      benchmark::DoNotOptimize(result);
+    auto result{sourcemeta::core::markdown_to_html(inputs[position])};
+    benchmark::DoNotOptimize(result);
+    position += 1;
+    if (position == inputs.size()) {
+      position = 0;
     }
   }
 }
