@@ -178,7 +178,7 @@ TEST(inline_html_invalid_attribute_name) {
 TEST(inline_html_invalid_attribute_values) {
   const auto result{
       sourcemeta::core::markdown_to_html("<span a=\"b> <span a='b>", false)};
-  EXPECT_EQ(result, "<p>&lt;span a=&quot;b&gt; &lt;span a='b&gt;</p>\n");
+  EXPECT_EQ(result, "<p>&lt;span a=&quot;b&gt; &lt;span a=&#39;b&gt;</p>\n");
 }
 
 TEST(inline_html_invalid_whitespace) {
@@ -200,17 +200,41 @@ TEST(inline_html_closing_tag_with_attributes_is_literal) {
   EXPECT_EQ(result, "<p>&lt;/span class=&quot;x&quot;&gt;</p>\n");
 }
 
-TEST(inline_html_comment_with_double_hyphen) {
+TEST(inline_html_comment_text_cannot_contain_two_hyphens) {
   const auto result{
       sourcemeta::core::markdown_to_html("x <!-- a -- b -->", false)};
-  EXPECT_EQ(result, "<p>x <!-- a -- b --></p>\n");
+  EXPECT_EQ(result, "<p>x &lt;!-- a -- b --&gt;</p>\n");
 }
 
-TEST(inline_html_comment_edge_forms) {
+TEST(inline_html_comment_text_cannot_start_with_greater_than) {
   const auto result{sourcemeta::core::markdown_to_html(
       "x <!--> y -->\n\nx <!---> y -->", false)};
-  EXPECT_EQ(result, "<p>x <!--> y --&gt;</p>\n"
-                    "<p>x <!---> y --&gt;</p>\n");
+  EXPECT_EQ(result, "<p>x &lt;!--&gt; y --&gt;</p>\n"
+                    "<p>x &lt;!---&gt; y --&gt;</p>\n");
+}
+
+TEST(inline_html_comment_text_cannot_end_with_hyphen) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("foo <!-- foo--->", false)};
+  EXPECT_EQ(result, "<p>foo &lt;!-- foo---&gt;</p>\n");
+}
+
+TEST(inline_html_comment_spanning_lines) {
+  const auto result{sourcemeta::core::markdown_to_html(
+      "foo <!-- this is a\ncomment - with hyphen -->", false)};
+  EXPECT_EQ(result, "<p>foo <!-- this is a\n"
+                    "comment - with hyphen --></p>\n");
+}
+
+TEST(inline_html_empty_comment) {
+  const auto result{sourcemeta::core::markdown_to_html("x <!----> y", false)};
+  EXPECT_EQ(result, "<p>x <!----> y</p>\n");
+}
+
+TEST(inline_html_cdata_after_text_that_is_not_a_comment) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("x <!-- a -- b <![CDATA[c]]>", false)};
+  EXPECT_EQ(result, "<p>x &lt;!-- a -- b <![CDATA[c]]></p>\n");
 }
 
 TEST(inline_html_processing_instruction) {
@@ -342,4 +366,20 @@ TEST(unsafe_mode_nul_character_inside_inline_html) {
   const auto result{
       sourcemeta::core::markdown_to_html("x <span title=\"a\0z\">"sv, false)};
   EXPECT_EQ(result, "<p>x <span title=\"a\xef\xbf\xbdz\"></p>\n");
+}
+
+TEST(tagfilter_tag_name_ends_at_solidus_and_form_feed) {
+  const auto result{sourcemeta::core::markdown_to_html(
+      "<div>\n<script/x>a</script> <style\f>b</style>\n</div>", false)};
+  EXPECT_EQ(result, "<div>\n"
+                    "&lt;script/x>a&lt;/script> &lt;style\f>b&lt;/style>\n"
+                    "</div>\n");
+}
+
+TEST(tagfilter_vertical_tab_does_not_end_tag_name) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("<div>\n<xmp\v>a\n</div>", false)};
+  EXPECT_EQ(result, "<div>\n"
+                    "<xmp\v>a\n"
+                    "</div>\n");
 }

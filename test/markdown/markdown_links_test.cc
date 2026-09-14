@@ -121,7 +121,8 @@ TEST(link_reference_definition_title_without_separating_space) {
 TEST(link_reference_definition_backslash_escapes) {
   const auto result{sourcemeta::core::markdown_to_html(
       "[docs]: /a\\b\\#c 'it\\'s'\n\n[docs]")};
-  EXPECT_EQ(result, "<p><a href=\"/a%5Cb#c\" title=\"it's\">docs</a></p>\n");
+  EXPECT_EQ(result,
+            "<p><a href=\"/a%5Cb#c\" title=\"it&#39;s\">docs</a></p>\n");
 }
 
 TEST(link_reference_definition_after_its_use) {
@@ -158,14 +159,14 @@ TEST(link_reference_definition_alone_renders_nothing) {
 TEST(link_reference_definition_with_trailing_text_is_paragraph) {
   const auto result{
       sourcemeta::core::markdown_to_html("[docs]: /manual 'Manual' trailing")};
-  EXPECT_EQ(result, "<p>[docs]: /manual 'Manual' trailing</p>\n");
+  EXPECT_EQ(result, "<p>[docs]: /manual &#39;Manual&#39; trailing</p>\n");
 }
 
 TEST(link_reference_definition_title_with_trailing_text_on_next_line) {
   const auto result{sourcemeta::core::markdown_to_html(
       "[docs]: /manual\n'Manual' trailing\n\n[docs]")};
-  EXPECT_EQ(result, "<p>'Manual' trailing</p>\n"
-                    "<p><a href=\"/manual\" title=\"Manual\">docs</a></p>\n");
+  EXPECT_EQ(result, "<p>&#39;Manual&#39; trailing</p>\n"
+                    "<p><a href=\"/manual\">docs</a></p>\n");
 }
 
 TEST(link_reference_definition_indented_four_spaces_is_code) {
@@ -343,7 +344,7 @@ TEST(link_destination_percent_encoding_and_entities) {
 
 TEST(link_destination_that_looks_like_title) {
   const auto result{sourcemeta::core::markdown_to_html("[docs]('Title')")};
-  EXPECT_EQ(result, "<p><a href=\"&#x27;Title&#x27;\">docs</a></p>\n");
+  EXPECT_EQ(result, "<p><a href=\"&#39;Title&#39;\">docs</a></p>\n");
 }
 
 TEST(link_title_quote_styles) {
@@ -358,24 +359,24 @@ TEST(link_title_escaped_quotes_and_entities) {
   const auto result{
       sourcemeta::core::markdown_to_html("[docs](/x 'it\\'s &amp; more')")};
   EXPECT_EQ(result,
-            "<p><a href=\"/x\" title=\"it's &amp; more\">docs</a></p>\n");
+            "<p><a href=\"/x\" title=\"it&#39;s &amp; more\">docs</a></p>\n");
 }
 
 TEST(link_title_separated_by_non_breaking_space) {
   const auto result{
       sourcemeta::core::markdown_to_html("[docs](/x\xC2\xA0'title')")};
-  EXPECT_EQ(result, "<p><a href=\"/x%C2%A0&#x27;title&#x27;\">docs</a></p>\n");
+  EXPECT_EQ(result, "<p><a href=\"/x%C2%A0&#39;title&#39;\">docs</a></p>\n");
 }
 
 TEST(link_title_with_unescaped_inner_quote_is_not_link) {
   const auto result{sourcemeta::core::markdown_to_html("[docs](/x 'a'b')")};
-  EXPECT_EQ(result, "<p>[docs](/x 'a'b')</p>\n");
+  EXPECT_EQ(result, "<p>[docs](/x &#39;a&#39;b&#39;)</p>\n");
 }
 
 TEST(link_title_parentheses_with_quotes_inside) {
   const auto result{sourcemeta::core::markdown_to_html(
       "[docs](/x (with 'single' and \"double\"))")};
-  EXPECT_EQ(result, "<p><a href=\"/x\" title=\"with 'single' and "
+  EXPECT_EQ(result, "<p><a href=\"/x\" title=\"with &#39;single&#39; and "
                     "&quot;double&quot;\">docs</a></p>\n");
 }
 
@@ -586,4 +587,44 @@ TEST(inline_link_invalid_falls_back_to_reference) {
   const auto result{
       sourcemeta::core::markdown_to_html("[manual](a b)\n\n[manual]: /manual")};
   EXPECT_EQ(result, "<p><a href=\"/manual\">manual</a>(a b)</p>\n");
+}
+
+TEST(link_destination_angle_brackets_backslash_before_line_ending) {
+  const auto result{sourcemeta::core::markdown_to_html("[x](<a\\\nb>)")};
+  EXPECT_EQ(result, "<p>[x](&lt;a<br />\n"
+                    "b&gt;)</p>\n");
+}
+
+TEST(link_destination_angle_brackets_with_carriage_return_is_not_link) {
+  const auto result{sourcemeta::core::markdown_to_html("[x](</a\rb>)")};
+  EXPECT_EQ(result, "<p>[x](&lt;/a\n"
+                    "b&gt;)</p>\n");
+}
+
+TEST(link_title_escaped_backslash_before_closing_quote) {
+  const auto result{sourcemeta::core::markdown_to_html(R"MD([x](/y "a\\"))MD")};
+  EXPECT_EQ(result, "<p><a href=\"/y\" title=\"a\\\">x</a></p>\n");
+}
+
+TEST(link_title_escaped_backslash_does_not_escape_the_quote) {
+  const auto result{
+      sourcemeta::core::markdown_to_html(R"MD([x](/y "a\\"b"))MD")};
+  EXPECT_EQ(result, "<p>[x](/y &quot;a\\&quot;b&quot;)</p>\n");
+}
+
+TEST(link_title_escaped_backslash_before_opening_parenthesis) {
+  const auto result{sourcemeta::core::markdown_to_html("[x](/y (a\\\\(b))")};
+  EXPECT_EQ(result, "<p>[x](/y (a\\(b))</p>\n");
+}
+
+TEST(link_reference_definition_before_title_followed_by_text) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("[foo]: /url\n\"title\" ok")};
+  EXPECT_EQ(result, "<p>&quot;title&quot; ok</p>\n");
+}
+
+TEST(link_inside_link_text_with_later_bracket_is_not_allowed) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("[a [b](/c) [d] e](/u)")};
+  EXPECT_EQ(result, "<p>[a <a href=\"/c\">b</a> [d] e](/u)</p>\n");
 }

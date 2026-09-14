@@ -18,6 +18,8 @@ sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME markdown
     markdown_paragraphs_test.cc
     markdown_pathological_test.cc
     markdown_safety_test.cc
+    markdown_spec_blocks_test.cc
+    markdown_spec_inlines_test.cc
     markdown_strikethrough_test.cc
     markdown_tables_test.cc
     markdown_task_lists_test.cc

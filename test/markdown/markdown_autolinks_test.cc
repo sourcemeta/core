@@ -93,9 +93,7 @@ TEST(autolink_uri_scheme_too_short_is_not_autolink) {
 TEST(autolink_uri_with_space_is_not_autolink) {
   const auto result{
       sourcemeta::core::markdown_to_html("<https://sourcemeta.com/a b>")};
-  EXPECT_EQ(result, "<p>&lt;<a "
-                    "href=\"https://sourcemeta.com/a\">https://sourcemeta.com/"
-                    "a</a> b&gt;</p>\n");
+  EXPECT_EQ(result, "<p>&lt;https://sourcemeta.com/a b&gt;</p>\n");
 }
 
 TEST(autolink_uri_backslash_is_literal) {
@@ -126,20 +124,14 @@ TEST(autolink_email_with_dots_plus_and_hyphen) {
 TEST(autolink_email_with_backslash_is_not_autolink) {
   const auto result{
       sourcemeta::core::markdown_to_html("<team\\@sourcemeta.com>")};
-  EXPECT_EQ(
-      result,
-      "<p>&lt;<a "
-      "href=\"mailto:team@sourcemeta.com\">team@sourcemeta.com</a>&gt;</p>\n");
+  EXPECT_EQ(result, "<p>&lt;team@sourcemeta.com&gt;</p>\n");
 }
 
 TEST(autolink_blank_or_trailing_space_angle_brackets) {
   const auto result{
       sourcemeta::core::markdown_to_html("< >\n\n<https://sourcemeta.com >")};
-  EXPECT_EQ(
-      result,
-      "<p>&lt; &gt;</p>\n"
-      "<p>&lt;<a href=\"https://sourcemeta.com\">https://sourcemeta.com</a> "
-      "&gt;</p>\n");
+  EXPECT_EQ(result, "<p>&lt; &gt;</p>\n"
+                    "<p>&lt;https://sourcemeta.com &gt;</p>\n");
 }
 
 TEST(autolink_without_scheme_is_not_autolink) {
@@ -278,19 +270,17 @@ TEST(extended_autolink_not_after_word_character) {
 
 TEST(extended_autolink_inside_emphasis) {
   const auto result{
-      sourcemeta::core::markdown_to_html("_https://sourcemeta.com_")};
+      sourcemeta::core::markdown_to_html("*https://sourcemeta.com*")};
   EXPECT_EQ(
       result,
       "<p><em><a "
       "href=\"https://sourcemeta.com\">https://sourcemeta.com</a></em></p>\n");
 }
 
-TEST(extended_autolink_ftp_scheme) {
+TEST(extended_autolink_ftp_scheme_is_not_autolink) {
   const auto result{
       sourcemeta::core::markdown_to_html("ftp://files.sourcemeta.com/archive")};
-  EXPECT_EQ(result, "<p><a "
-                    "href=\"ftp://files.sourcemeta.com/archive\">ftp://"
-                    "files.sourcemeta.com/archive</a></p>\n");
+  EXPECT_EQ(result, "<p>ftp://files.sourcemeta.com/archive</p>\n");
 }
 
 TEST(extended_autolink_inside_link_text) {
@@ -303,4 +293,229 @@ TEST(extended_autolink_inside_code_span) {
   const auto result{
       sourcemeta::core::markdown_to_html("`https://sourcemeta.com`")};
   EXPECT_EQ(result, "<p><code>https://sourcemeta.com</code></p>\n");
+}
+
+TEST(extended_autolink_email_after_invalid_candidate) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("a@b.c_@d\n\nmailto:a@b_@c.d")};
+  EXPECT_EQ(result, "<p>a@b.c_@d</p>\n"
+                    "<p>mailto:a@b_@c.d</p>\n");
+}
+
+TEST(extended_autolink_after_underscore_emphasis_delimiter) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("_https://sourcemeta.com_")};
+  EXPECT_EQ(result, "<p><em>https://sourcemeta.com</em></p>\n");
+}
+
+TEST(extended_autolink_trailing_periods) {
+  const auto result{sourcemeta::core::markdown_to_html(
+      "Visit www.commonmark.org.\n\nVisit www.commonmark.org/a.b.")};
+  EXPECT_EQ(result, "<p>Visit <a "
+                    "href=\"http://www.commonmark.org\">www.commonmark.org</"
+                    "a>.</p>\n"
+                    "<p>Visit <a "
+                    "href=\"http://www.commonmark.org/a.b\">www.commonmark.org/"
+                    "a.b</a>.</p>\n");
+}
+
+TEST(extended_autolink_trailing_parentheses) {
+  const auto result{sourcemeta::core::markdown_to_html(
+      "www.google.com/search?q=Markup+(business)\n\n"
+      "www.google.com/search?q=Markup+(business)))\n\n"
+      "(www.google.com/search?q=Markup+(business))\n\n"
+      "(www.google.com/search?q=Markup+(business)")};
+  EXPECT_EQ(result,
+            "<p><a href=\"http://www.google.com/search?q=Markup+(business)\">"
+            "www.google.com/search?q=Markup+(business)</a></p>\n"
+            "<p><a href=\"http://www.google.com/search?q=Markup+(business)\">"
+            "www.google.com/search?q=Markup+(business)</a>))</p>\n"
+            "<p>(<a href=\"http://www.google.com/search?q=Markup+(business)\">"
+            "www.google.com/search?q=Markup+(business)</a>)</p>\n"
+            "<p>(<a href=\"http://www.google.com/search?q=Markup+(business)\">"
+            "www.google.com/search?q=Markup+(business)</a></p>\n");
+}
+
+TEST(extended_autolink_interior_parentheses) {
+  const auto result{sourcemeta::core::markdown_to_html(
+      "www.google.com/search?q=(business))+ok")};
+  EXPECT_EQ(result,
+            "<p><a href=\"http://www.google.com/search?q=(business))+ok\">"
+            "www.google.com/search?q=(business))+ok</a></p>\n");
+}
+
+TEST(extended_autolink_entity_reference_lookalike) {
+  const auto result{sourcemeta::core::markdown_to_html(
+      "www.google.com/search?q=commonmark&hl=en\n\n"
+      "www.google.com/search?q=commonmark&hl;")};
+  EXPECT_EQ(
+      result,
+      "<p><a href=\"http://www.google.com/search?q=commonmark&amp;hl=en\">"
+      "www.google.com/search?q=commonmark&amp;hl=en</a></p>\n"
+      "<p><a href=\"http://www.google.com/search?q=commonmark\">"
+      "www.google.com/search?q=commonmark</a>&amp;hl;</p>\n");
+}
+
+TEST(extended_autolink_entity_reference_lookalike_with_digits) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("www.sourcemeta.com/a&b2;")};
+  EXPECT_EQ(result, "<p><a href=\"http://www.sourcemeta.com/a\">"
+                    "www.sourcemeta.com/a</a>&amp;b2;</p>\n");
+}
+
+TEST(extended_autolink_trailing_semicolon_is_kept) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("www.sourcemeta.com/a;")};
+  EXPECT_EQ(result, "<p><a href=\"http://www.sourcemeta.com/a;\">"
+                    "www.sourcemeta.com/a;</a></p>\n");
+}
+
+TEST(extended_autolink_trailing_quote_is_kept) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("www.sourcemeta.com/a'")};
+  EXPECT_EQ(result, "<p><a href=\"http://www.sourcemeta.com/a&#39;\">"
+                    "www.sourcemeta.com/a&#39;</a></p>\n");
+}
+
+TEST(extended_autolink_less_than_ends_link) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("www.commonmark.org/he<lp")};
+  EXPECT_EQ(result, "<p><a href=\"http://www.commonmark.org/he\">"
+                    "www.commonmark.org/he</a>&lt;lp</p>\n");
+}
+
+TEST(extended_url_autolinks) {
+  const auto result{sourcemeta::core::markdown_to_html(
+      "http://commonmark.org\n\n"
+      "(Visit https://encrypted.google.com/search?q=Markup+(business))")};
+  EXPECT_EQ(
+      result,
+      "<p><a href=\"http://commonmark.org\">http://commonmark.org</a>"
+      "</p>\n"
+      "<p>(Visit <a "
+      "href=\"https://encrypted.google.com/search?q=Markup+(business)\">"
+      "https://encrypted.google.com/search?q=Markup+(business)</a>)</p>\n");
+}
+
+TEST(extended_url_autolink_without_period_is_not_autolink) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("http://localhost:8080/x")};
+  EXPECT_EQ(result, "<p>http://localhost:8080/x</p>\n");
+}
+
+TEST(extended_url_autolink_after_other_character_is_not_autolink) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("x.https://sourcemeta.com")};
+  EXPECT_EQ(result, "<p>x.https://sourcemeta.com</p>\n");
+}
+
+TEST(extended_autolink_underscore_in_final_segments_of_long_domain) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("www.a.b.c.d.e.f.g.h.i.j.k.l_m")};
+  EXPECT_EQ(result, "<p>www.a.b.c.d.e.f.g.h.i.j.k.l_m</p>\n");
+}
+
+TEST(extended_autolink_email_with_plus_before_at_sign_only) {
+  const auto result{sourcemeta::core::markdown_to_html(
+      "hello@mail+xyz.example isn't valid, but hello+xyz@mail.example is.")};
+  EXPECT_EQ(result, "<p>hello@mail+xyz.example isn&#39;t valid, but <a "
+                    "href=\"mailto:hello+xyz@mail.example\">"
+                    "hello+xyz@mail.example</a> is.</p>\n");
+}
+
+TEST(extended_autolink_email_ending_characters) {
+  const auto result{sourcemeta::core::markdown_to_html(
+      "a.b-c_d@a.b\n\na.b-c_d@a.b.\n\na.b-c_d@a.b-\n\na.b-c_d@a.b_")};
+  EXPECT_EQ(result, "<p><a href=\"mailto:a.b-c_d@a.b\">a.b-c_d@a.b</a></p>\n"
+                    "<p><a href=\"mailto:a.b-c_d@a.b\">a.b-c_d@a.b</a>.</p>\n"
+                    "<p>a.b-c_d@a.b-</p>\n"
+                    "<p>a.b-c_d@a.b_</p>\n");
+}
+
+TEST(extended_autolink_email_ending_in_digit) {
+  const auto result{sourcemeta::core::markdown_to_html("a@b.c1")};
+  EXPECT_EQ(result, "<p><a href=\"mailto:a@b.c1\">a@b.c1</a></p>\n");
+}
+
+TEST(extended_autolink_email_followed_by_at_sign) {
+  const auto result{sourcemeta::core::markdown_to_html("a@b.c@d.e")};
+  EXPECT_EQ(result, "<p><a href=\"mailto:a@b.c\">a@b.c</a>@d.e</p>\n");
+}
+
+TEST(extended_autolink_email_after_other_character_is_not_autolink) {
+  const auto result{sourcemeta::core::markdown_to_html(
+      "x:team@sourcemeta.com\n\n`x`team@sourcemeta.com")};
+  EXPECT_EQ(result, "<p>x:team@sourcemeta.com</p>\n"
+                    "<p><code>x</code>team@sourcemeta.com</p>\n");
+}
+
+TEST(extended_autolink_email_after_parenthesis_and_emphasis) {
+  const auto result{sourcemeta::core::markdown_to_html(
+      "(team@sourcemeta.com) *x*team@sourcemeta.com")};
+  EXPECT_EQ(result, "<p>(<a href=\"mailto:team@sourcemeta.com\">"
+                    "team@sourcemeta.com</a>) <em>x</em><a "
+                    "href=\"mailto:team@sourcemeta.com\">"
+                    "team@sourcemeta.com</a></p>\n");
+}
+
+TEST(extended_autolink_protocols) {
+  const auto result{sourcemeta::core::markdown_to_html(
+      "mailto:foo@bar.baz\n\nmailto:a.b-c_d@a.b\n\nmailto:a.b-c_d@a.b.\n\n"
+      "mailto:a.b-c_d@a.b/\n\nmailto:a.b-c_d@a.b-\n\nmailto:a.b-c_d@a.b_\n\n"
+      "xmpp:foo@bar.baz\n\nxmpp:foo@bar.baz.")};
+  EXPECT_EQ(result,
+            "<p><a href=\"mailto:foo@bar.baz\">mailto:foo@bar.baz</a></p>\n"
+            "<p><a href=\"mailto:a.b-c_d@a.b\">mailto:a.b-c_d@a.b</a></p>\n"
+            "<p><a href=\"mailto:a.b-c_d@a.b\">mailto:a.b-c_d@a.b</a>.</p>\n"
+            "<p><a href=\"mailto:a.b-c_d@a.b\">mailto:a.b-c_d@a.b</a>/</p>\n"
+            "<p>mailto:a.b-c_d@a.b-</p>\n"
+            "<p>mailto:a.b-c_d@a.b_</p>\n"
+            "<p><a href=\"xmpp:foo@bar.baz\">xmpp:foo@bar.baz</a></p>\n"
+            "<p><a href=\"xmpp:foo@bar.baz\">xmpp:foo@bar.baz</a>.</p>\n");
+}
+
+TEST(extended_autolink_xmpp_resources) {
+  const auto result{sourcemeta::core::markdown_to_html(
+      "xmpp:foo@bar.baz/txt\n\nxmpp:foo@bar.baz/txt@bin\n\n"
+      "xmpp:foo@bar.baz/txt@bin.com")};
+  EXPECT_EQ(result,
+            "<p><a href=\"xmpp:foo@bar.baz/txt\">xmpp:foo@bar.baz/txt</a></p>\n"
+            "<p><a href=\"xmpp:foo@bar.baz/txt@bin\">xmpp:foo@bar.baz/txt@bin"
+            "</a></p>\n"
+            "<p><a href=\"xmpp:foo@bar.baz/txt@bin.com\">"
+            "xmpp:foo@bar.baz/txt@bin.com</a></p>\n");
+}
+
+TEST(extended_autolink_xmpp_resource_ends_at_slash) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("xmpp:foo@bar.baz/txt/bin")};
+  EXPECT_EQ(result,
+            "<p><a href=\"xmpp:foo@bar.baz/txt\">xmpp:foo@bar.baz/txt</a>/bin"
+            "</p>\n");
+}
+
+TEST(extended_autolink_www_without_domain_is_not_autolink) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("Visit www. or www..com")};
+  EXPECT_EQ(result, "<p>Visit www. or www..com</p>\n");
+}
+
+TEST(extended_autolinks_after_form_feed_and_line_tabulation) {
+  const auto result{sourcemeta::core::markdown_to_html(
+      "a\fwww.commonmark.org a\vfoo@bar.baz")};
+  EXPECT_EQ(
+      result,
+      "<p>a\f<a href=\"http://www.commonmark.org\">www.commonmark.org</a> "
+      "a\v<a href=\"mailto:foo@bar.baz\">foo@bar.baz</a></p>\n");
+}
+
+TEST(extended_url_autolink_domain_starting_with_underscore) {
+  const auto result{sourcemeta::core::markdown_to_html("http://_a.b")};
+  EXPECT_EQ(result, "<p>http://_a.b</p>\n");
+}
+
+TEST(extended_autolink_inside_brackets_that_are_not_a_link) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("[see www.sourcemeta.com]")};
+  EXPECT_EQ(result, "<p>[see www.sourcemeta.com]</p>\n");
 }

@@ -166,9 +166,15 @@ TEST(code_span_with_eighty_backticks) {
 }
 
 TEST(code_span_with_eighty_one_backticks) {
-  const auto input{std::string(81, '`') + "x" + std::string(81, '`')};
-  const auto result{sourcemeta::core::markdown_to_html(input)};
-  EXPECT_EQ(result, "<p>" + input + "</p>\n");
+  const auto result{sourcemeta::core::markdown_to_html(
+      std::string(81, '`') + "x" + std::string(81, '`'))};
+  EXPECT_EQ(result, "<p><code>x</code></p>\n");
+}
+
+TEST(code_span_with_one_thousand_backticks) {
+  const auto result{sourcemeta::core::markdown_to_html(
+      std::string(1000, '`') + "x" + std::string(1000, '`'))};
+  EXPECT_EQ(result, "<p><code>x</code></p>\n");
 }
 
 TEST(alternating_blockquote_and_list_nesting_on_one_line) {
@@ -180,12 +186,35 @@ TEST(alternating_blockquote_and_list_nesting_on_one_line) {
                         repeat("</li>\n</ul>\n</blockquote>\n", 29));
 }
 
-TEST(alternating_blockquote_and_list_nesting_on_one_line_beyond_depth_limit) {
+TEST(alternating_blockquote_and_list_nesting_on_one_line_of_fifty_levels) {
   const auto result{
       sourcemeta::core::markdown_to_html(repeat("> - ", 50) + "deep")};
   EXPECT_EQ(result, repeat("<blockquote>\n<ul>\n<li>\n", 49) +
-                        "<blockquote>\n<p>- deep</p>\n</blockquote>\n" +
+                        "<blockquote>\n<ul>\n<li>deep</li>\n</ul>\n"
+                        "</blockquote>\n" +
                         repeat("</li>\n</ul>\n</blockquote>\n", 49));
+}
+
+TEST(blank_lines_after_deeply_nested_list_items) {
+  const auto result{sourcemeta::core::markdown_to_html(
+      repeat("- ", 20000) + "x\n" + repeat("\n \n", 10000))};
+  EXPECT_EQ(result, repeat("<ul>\n<li>\n", 19999) +
+                        "<ul>\n<li>x</li>\n</ul>\n" +
+                        repeat("</li>\n</ul>\n", 19999));
+}
+
+TEST(footnote_references_inside_deeply_nested_block_quotes) {
+  const auto result{sourcemeta::core::markdown_to_html(repeat("> ", 20000) +
+                                                       repeat("x[^a]", 20000))};
+  EXPECT_EQ(result, repeat("<blockquote>\n", 20000) + "<p>" +
+                        repeat("x[^a]", 20000) + "</p>\n" +
+                        repeat("</blockquote>\n", 20000));
+}
+
+TEST(www_autolinks_after_underscores_in_one_long_domain) {
+  const auto input{repeat("x_www.", 10000)};
+  const auto result{sourcemeta::core::markdown_to_html(input)};
+  EXPECT_EQ(result, "<p>" + input + "</p>\n");
 }
 
 TEST(staircase_list_of_one_hundred_fifty_levels) {
@@ -216,15 +245,22 @@ TEST(table_with_many_columns) {
                         "</tr>\n</tbody>\n</table>\n");
 }
 
-TEST(link_reference_label_of_one_thousand_characters) {
-  const std::string label(1000, 'y');
+TEST(link_reference_label_of_nine_hundred_ninety_nine_characters) {
+  const std::string label(999, 'y');
   const auto result{sourcemeta::core::markdown_to_html(
       "[" + label + "]: /x\n\n[" + label + "]")};
   EXPECT_EQ(result, "<p><a href=\"/x\">" + label + "</a></p>\n");
 }
 
-TEST(link_reference_label_of_one_thousand_one_characters) {
-  const std::string label(1001, 'y');
+TEST(link_reference_label_of_nine_hundred_ninety_nine_two_byte_characters) {
+  const auto label{repeat("\xC3\xA9", 999)};
+  const auto result{sourcemeta::core::markdown_to_html(
+      "[" + label + "]: /x\n\n[" + label + "]")};
+  EXPECT_EQ(result, "<p><a href=\"/x\">" + label + "</a></p>\n");
+}
+
+TEST(link_reference_label_of_one_thousand_characters_is_not_a_label) {
+  const std::string label(1000, 'y');
   const auto result{sourcemeta::core::markdown_to_html(
       "[" + label + "]: /x\n\n[" + label + "]")};
   EXPECT_EQ(result, "<p>[" + label + "]: /x</p>\n<p>[" + label + "]</p>\n");
@@ -241,4 +277,49 @@ TEST(two_thousand_reference_definitions_and_uses) {
       sourcemeta::core::markdown_to_html(numbered_reference_definitions(2000) +
                                          "\n" + numbered_reference_uses(2000))};
   EXPECT_EQ(result, "<p>" + numbered_reference_anchors(2000) + "</p>\n");
+}
+
+TEST(reference_expansion_past_its_bound_throws) {
+  const std::string destination(100000, 'y');
+  try {
+    sourcemeta::core::markdown_to_html("[r]: /" + destination + "\n\n" +
+                                       repeat("[r] ", 20));
+    FAIL();
+  } catch (const sourcemeta::core::MarkdownError &error) {
+    EXPECT_STREQ(error.what(),
+                 "The link references expand past the size bound");
+  }
+
+  EXPECT_EQ(sourcemeta::core::markdown_to_html("[r]: /y\n\n[r]"),
+            "<p><a href=\"/y\">r</a></p>\n");
+}
+
+TEST(table_inserting_empty_cells_past_its_bound_throws) {
+  try {
+    sourcemeta::core::markdown_to_html("|" + repeat(" h |", 1025) + "\n|" +
+                                       repeat("-|", 1025) + "\n" +
+                                       repeat("x\n", 513));
+    FAIL();
+  } catch (const sourcemeta::core::MarkdownError &error) {
+    EXPECT_STREQ(error.what(),
+                 "The table inserts more empty cells than its bound");
+  }
+
+  EXPECT_EQ(sourcemeta::core::markdown_to_html("| a |\n|---|\n| b |"),
+            "<table>\n<thead>\n<tr>\n<th>a</th>\n</tr>\n</thead>\n<tbody>\n"
+            "<tr>\n<td>b</td>\n</tr>\n</tbody>\n</table>\n");
+}
+
+TEST(references_inside_unreferenced_footnote_definition_do_not_count) {
+  const auto result{sourcemeta::core::markdown_to_html(
+      "[^x]: " + repeat("[a] ", 20000) + "\n\n[a]: /" + std::string(100, 'y'))};
+  EXPECT_EQ(result, "");
+}
+
+TEST(many_references_to_a_long_destination_within_the_bound) {
+  const std::string destination(200, 'y');
+  const auto anchor{"<a href=\"/" + destination + "\">a</a>"};
+  const auto result{sourcemeta::core::markdown_to_html(
+      repeat("[a] ", 500) + "\n\n[a]: /" + destination)};
+  EXPECT_EQ(result, "<p>" + repeat(anchor + " ", 499) + anchor + "</p>\n");
 }
