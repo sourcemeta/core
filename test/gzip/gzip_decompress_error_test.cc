@@ -5,17 +5,11 @@
 #include <cstdint>  // std::uint8_t
 #include <istream>  // std::istream
 #include <iterator> // std::istreambuf_iterator
-#include <limits>   // std::numeric_limits
 #include <sstream>  // std::istringstream
 #include <string>   // std::string
 #include <vector>   // std::vector
 
 namespace {
-
-auto decompress_one_shot(const std::vector<std::uint8_t> &input)
-    -> std::string {
-  return sourcemeta::core::gunzip(input.data(), input.size());
-}
 
 auto decompress_stream(const std::vector<std::uint8_t> &input) -> std::string {
   std::istringstream stream{std::string{input.cbegin(), input.cend()}};
@@ -52,66 +46,33 @@ auto decompress_stream_error(const std::vector<std::uint8_t> &input)
   FAIL();
 }
 
-auto compress_error(const int level) -> std::string {
-  const std::string input{"hello world"};
-  try {
-    sourcemeta::core::gzip(reinterpret_cast<const std::uint8_t *>(input.data()),
-                           input.size(), level);
-  } catch (const sourcemeta::core::GZIPError &error) {
-    return error.what();
-  }
-
-  FAIL();
-}
-
 } // namespace
 
-TEST(compress_level_above_maximum) {
-  EXPECT_EQ(compress_error(13), "Could not allocate compressor");
-}
-
-TEST(compress_negative_level) {
-  EXPECT_EQ(compress_error(-2), "Could not allocate compressor");
-}
-
-TEST(compress_largest_integer_level) {
-  EXPECT_EQ(compress_error(std::numeric_limits<int>::max()),
-            "Could not allocate compressor");
-}
-
-TEST(compress_smallest_integer_level) {
-  EXPECT_EQ(compress_error(std::numeric_limits<int>::min()),
-            "Could not allocate compressor");
-}
+// Both decompression mechanisms must fail with the same message for every input
+#define EXPECT_GZIP_DECOMPRESS_ERROR(input, expected_message)                  \
+  EXPECT_EQ(decompress_one_shot_error(input), expected_message);               \
+  EXPECT_EQ(decompress_stream_error(input), expected_message)
 
 TEST(invalid_input) {
   const std::vector<std::uint8_t> input{
       0x74, 0x68, 0x69, 0x73, 0x20, 0x69, 0x73, 0x20, 0x6e, 0x6f, 0x74,
       0x20, 0x67, 0x7a, 0x69, 0x70, 0x20, 0x64, 0x61, 0x74, 0x61};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input), "Invalid gzip magic bytes");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Invalid gzip magic bytes");
 }
 
 TEST(empty_input) {
   const std::vector<std::uint8_t> input;
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input), "Empty source stream");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Empty source stream");
 }
 
 TEST(single_identification_byte) {
   const std::vector<std::uint8_t> input{0x1f};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input), "Unexpected end of source stream");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Unexpected end of source stream");
 }
 
 TEST(identification_bytes_only) {
   const std::vector<std::uint8_t> input{0x1f, 0x8b};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input), "Unexpected end of source stream");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Unexpected end of source stream");
 }
 
 TEST(wrong_first_identification_byte) {
@@ -119,9 +80,7 @@ TEST(wrong_first_identification_byte) {
       0x1e, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x01, 0x0b,
       0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
       0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input), "Invalid gzip magic bytes");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Invalid gzip magic bytes");
 }
 
 TEST(wrong_second_identification_byte) {
@@ -129,9 +88,7 @@ TEST(wrong_second_identification_byte) {
       0x1f, 0x8c, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x01, 0x0b,
       0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
       0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input), "Invalid gzip magic bytes");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Invalid gzip magic bytes");
 }
 
 TEST(swapped_identification_bytes) {
@@ -139,9 +96,7 @@ TEST(swapped_identification_bytes) {
       0x8b, 0x1f, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x01, 0x0b,
       0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
       0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input), "Invalid gzip magic bytes");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Invalid gzip magic bytes");
 }
 
 TEST(reserved_compression_method_0) {
@@ -149,10 +104,7 @@ TEST(reserved_compression_method_0) {
       0x1f, 0x8b, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x01, 0x0b,
       0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
       0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input),
-            "Unsupported gzip compression method");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Unsupported gzip compression method");
 }
 
 TEST(reserved_compression_method_7) {
@@ -160,10 +112,7 @@ TEST(reserved_compression_method_7) {
       0x1f, 0x8b, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x01, 0x0b,
       0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
       0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input),
-            "Unsupported gzip compression method");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Unsupported gzip compression method");
 }
 
 TEST(unknown_compression_method_9) {
@@ -171,10 +120,7 @@ TEST(unknown_compression_method_9) {
       0x1f, 0x8b, 0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x01, 0x0b,
       0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
       0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input),
-            "Unsupported gzip compression method");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Unsupported gzip compression method");
 }
 
 TEST(reserved_flag_bit_5) {
@@ -182,10 +128,7 @@ TEST(reserved_flag_bit_5) {
       0x1f, 0x8b, 0x08, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x01, 0x0b,
       0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
       0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input),
-            "Reserved gzip FLG bits must be zero");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Reserved gzip FLG bits must be zero");
 }
 
 TEST(reserved_flag_bit_6) {
@@ -193,10 +136,7 @@ TEST(reserved_flag_bit_6) {
       0x1f, 0x8b, 0x08, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x01, 0x0b,
       0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
       0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input),
-            "Reserved gzip FLG bits must be zero");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Reserved gzip FLG bits must be zero");
 }
 
 TEST(reserved_flag_bit_7) {
@@ -204,10 +144,7 @@ TEST(reserved_flag_bit_7) {
       0x1f, 0x8b, 0x08, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x01, 0x0b,
       0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
       0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input),
-            "Reserved gzip FLG bits must be zero");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Reserved gzip FLG bits must be zero");
 }
 
 TEST(reserved_flag_bit_alongside_ftext) {
@@ -215,27 +152,20 @@ TEST(reserved_flag_bit_alongside_ftext) {
       0x1f, 0x8b, 0x08, 0x21, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x01, 0x0b,
       0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
       0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input),
-            "Reserved gzip FLG bits must be zero");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Reserved gzip FLG bits must be zero");
 }
 
 TEST(header_only) {
   const std::vector<std::uint8_t> input{0x1f, 0x8b, 0x08, 0x00, 0x00,
                                         0x00, 0x00, 0x00, 0x00, 0xff};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input), "Unexpected end of source stream");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Unexpected end of source stream");
 }
 
 TEST(header_and_trailer_without_blocks) {
   const std::vector<std::uint8_t> input{0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00,
                                         0x00, 0x00, 0x00, 0xff, 0x00, 0x00,
                                         0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input), "Stored block LEN/NLEN mismatch");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Stored block LEN/NLEN mismatch");
 }
 
 TEST(truncated_fextra) {
@@ -243,9 +173,7 @@ TEST(truncated_fextra) {
       0x1f, 0x8b, 0x08, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x64,
       0x00, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78,
       0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input), "Unexpected end of source stream");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Unexpected end of source stream");
 }
 
 TEST(fextra_swallowing_rest_of_member) {
@@ -253,9 +181,7 @@ TEST(fextra_swallowing_rest_of_member) {
       0x1f, 0x8b, 0x08, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x18, 0x00,
       0x01, 0x0b, 0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77,
       0x6f, 0x72, 0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input), "Unexpected end of source stream");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Unexpected end of source stream");
 }
 
 TEST(unterminated_fname) {
@@ -264,9 +190,7 @@ TEST(unterminated_fname) {
       0x6e, 0x6e, 0x6e, 0x6e, 0x6e, 0x6e, 0x6e, 0x6e, 0x6e, 0x6e,
       0x6e, 0x6e, 0x6e, 0x6e, 0x6e, 0x6e, 0x6e, 0x6e, 0x6e, 0x6e,
       0x6e, 0x6e, 0x6e, 0x6e, 0x6e, 0x6e, 0x6e, 0x6e, 0x6e, 0x6e};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input), "Unexpected end of source stream");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Unexpected end of source stream");
 }
 
 TEST(unterminated_fcomment) {
@@ -275,17 +199,13 @@ TEST(unterminated_fcomment) {
       0x63, 0x63, 0x63, 0x63, 0x63, 0x63, 0x63, 0x63, 0x63, 0x63,
       0x63, 0x63, 0x63, 0x63, 0x63, 0x63, 0x63, 0x63, 0x63, 0x63,
       0x63, 0x63, 0x63, 0x63, 0x63, 0x63, 0x63, 0x63, 0x63, 0x63};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input), "Unexpected end of source stream");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Unexpected end of source stream");
 }
 
 TEST(truncated_fhcrc) {
   const std::vector<std::uint8_t> input{0x1f, 0x8b, 0x08, 0x02, 0x00, 0x00,
                                         0x00, 0x00, 0x00, 0xff, 0x90};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input), "Unexpected end of source stream");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Unexpected end of source stream");
 }
 
 TEST(fhcrc_mismatch) {
@@ -293,10 +213,7 @@ TEST(fhcrc_mismatch) {
       0x1f, 0x8b, 0x08, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x91, 0xc9,
       0x01, 0x0b, 0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77,
       0x6f, 0x72, 0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  // TODO: The one-shot mechanism skips the header checksum while the stream
-  // mechanism verifies it, and RFC 1952 section 2.3.1.2 permits either
-  EXPECT_EQ(decompress_one_shot(input), "hello world");
-  EXPECT_EQ(decompress_stream_error(input), "FHCRC mismatch");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "FHCRC mismatch");
 }
 
 TEST(missing_trailer) {
@@ -304,9 +221,7 @@ TEST(missing_trailer) {
       0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
       0xff, 0x01, 0x0b, 0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c,
       0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72, 0x6c, 0x64};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input), "Unexpected end of source stream");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Unexpected end of source stream");
 }
 
 TEST(trailer_missing_last_byte) {
@@ -314,9 +229,7 @@ TEST(trailer_missing_last_byte) {
       0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x01,
       0x0b, 0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77,
       0x6f, 0x72, 0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input), "Unexpected end of source stream");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Unexpected end of source stream");
 }
 
 TEST(crc32_lowest_bit_mismatch) {
@@ -324,9 +237,7 @@ TEST(crc32_lowest_bit_mismatch) {
       0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x01, 0x0b,
       0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
       0x6c, 0x64, 0x84, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input), "Gzip member CRC32 mismatch");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Gzip member CRC32 mismatch");
 }
 
 TEST(crc32_highest_bit_mismatch) {
@@ -334,9 +245,7 @@ TEST(crc32_highest_bit_mismatch) {
       0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x01, 0x0b,
       0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
       0x6c, 0x64, 0x85, 0x11, 0x4a, 0x8d, 0x0b, 0x00, 0x00, 0x00};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input), "Gzip member CRC32 mismatch");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Gzip member CRC32 mismatch");
 }
 
 TEST(isize_off_by_one) {
@@ -344,9 +253,7 @@ TEST(isize_off_by_one) {
       0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x01, 0x0b,
       0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
       0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0c, 0x00, 0x00, 0x00};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input), "Gzip member ISIZE mismatch");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Gzip member ISIZE mismatch");
 }
 
 TEST(isize_highest_byte_mismatch) {
@@ -354,18 +261,14 @@ TEST(isize_highest_byte_mismatch) {
       0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x01, 0x0b,
       0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
       0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x01};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input), "Gzip member ISIZE mismatch");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Gzip member ISIZE mismatch");
 }
 
 TEST(empty_payload_with_nonzero_crc32) {
   const std::vector<std::uint8_t> input{
       0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x01, 0x00,
       0x00, 0xff, 0xff, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input), "Gzip member CRC32 mismatch");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Gzip member CRC32 mismatch");
 }
 
 TEST(swapped_trailer_fields) {
@@ -373,9 +276,7 @@ TEST(swapped_trailer_fields) {
       0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x01, 0x0b,
       0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
       0x6c, 0x64, 0x0b, 0x00, 0x00, 0x00, 0x85, 0x11, 0x4a, 0x0d};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input), "Gzip member CRC32 mismatch");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Gzip member CRC32 mismatch");
 }
 
 TEST(truncated_compressed_blocks) {
@@ -383,9 +284,17 @@ TEST(truncated_compressed_blocks) {
       0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0xff, 0x01,
       0x29, 0x00, 0xd6, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77,
       0x6f, 0x72, 0x6c, 0x64, 0x2c, 0x20, 0x74, 0x68, 0x69, 0x73};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input), "Unexpected end of source stream");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Unexpected end of source stream");
+}
+
+TEST(truncated_fixed_block_at_stream_source_buffer_boundary) {
+  std::vector<std::uint8_t> input{0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00,
+                                  0x00, 0x00, 0x00, 0xff, 0x63};
+  for (std::size_t index = 0; index < 65525; ++index) {
+    input.push_back(0x60);
+  }
+
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Unexpected end of source stream");
 }
 
 TEST(truncated_stored_block_payload) {
@@ -396,9 +305,7 @@ TEST(truncated_stored_block_payload) {
     input.push_back(0x61);
   }
 
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input), "Unexpected end of source stream");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Unexpected end of source stream");
 }
 
 TEST(stored_block_nlen_mismatch) {
@@ -406,9 +313,7 @@ TEST(stored_block_nlen_mismatch) {
       0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x01, 0x0b,
       0x00, 0x00, 0x00, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
       0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input), "Stored block LEN/NLEN mismatch");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Stored block LEN/NLEN mismatch");
 }
 
 TEST(stored_block_nlen_equal_to_len) {
@@ -437,9 +342,7 @@ TEST(stored_block_nlen_equal_to_len) {
       0x61, 0x61, 0x61, 0x61, 0x61, 0x61, 0x61, 0x61, 0x61, 0x61, 0x61, 0x61,
       0x61, 0x61, 0x61, 0x61, 0x61, 0x61, 0x3d, 0x0b, 0xc4, 0xa2, 0xff, 0x00,
       0x00, 0x00};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input), "Stored block LEN/NLEN mismatch");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Stored block LEN/NLEN mismatch");
 }
 
 TEST(stored_block_len_beyond_input) {
@@ -447,9 +350,7 @@ TEST(stored_block_len_beyond_input) {
       0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x01,
       0x64, 0x00, 0x9b, 0xff, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36,
       0x37, 0x38, 0x39, 0xc6, 0xc7, 0x84, 0xa6, 0x0a, 0x00, 0x00, 0x00};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input), "Unexpected end of source stream");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Unexpected end of source stream");
 }
 
 TEST(reserved_block_type) {
@@ -457,9 +358,7 @@ TEST(reserved_block_type) {
       0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff,
       0x07, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
       0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input), "Reserved deflate block type");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Reserved deflate block type");
 }
 
 TEST(reserved_block_type_after_valid_block) {
@@ -467,9 +366,7 @@ TEST(reserved_block_type_after_valid_block) {
       0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x00, 0x05,
       0x00, 0xfa, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x07, 0x20, 0x77, 0x6f,
       0x72, 0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input), "Reserved deflate block type");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Reserved deflate block type");
 }
 
 TEST(missing_final_block) {
@@ -477,29 +374,23 @@ TEST(missing_final_block) {
       0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff,
       0x00, 0x05, 0x00, 0xfa, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f,
       0x86, 0xa6, 0x10, 0x36, 0x05, 0x00, 0x00, 0x00};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input), "Reserved deflate block type");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Reserved deflate block type");
 }
 
 TEST(fixed_block_match_before_any_output) {
   const std::vector<std::uint8_t> input{
       0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x03,
       0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input),
-            "Backref distance exceeds bytes available");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input,
+                               "Backref distance exceeds bytes available");
 }
 
 TEST(fixed_block_distance_beyond_output) {
   const std::vector<std::uint8_t> input{
       0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x4b,
       0x04, 0x42, 0x00, 0x45, 0xe5, 0x98, 0xad, 0x04, 0x00, 0x00, 0x00};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input),
-            "Backref distance exceeds bytes available");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input,
+                               "Backref distance exceeds bytes available");
 }
 
 TEST(fixed_block_maximum_distance_one_beyond_output) {
@@ -512,10 +403,8 @@ TEST(fixed_block_maximum_distance_one_beyond_output) {
 
   input.insert(input.end(), {0x03, 0xde, 0xff, 0x0f, 0x00, 0x12, 0x5c, 0x3a,
                              0x51, 0xff, 0x7f, 0x00, 0x00});
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input),
-            "Backref distance exceeds bytes available");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input,
+                               "Backref distance exceeds bytes available");
 }
 
 TEST(match_into_previous_member) {
@@ -525,103 +414,73 @@ TEST(match_into_previous_member) {
       0x86, 0xa6, 0x10, 0x36, 0x05, 0x00, 0x00, 0x00, 0x1f, 0x8b,
       0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x03, 0x13,
       0x00, 0x86, 0xa6, 0x10, 0x36, 0x05, 0x00, 0x00, 0x00};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input),
-            "Backref distance exceeds bytes available");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input,
+                               "Backref distance exceeds bytes available");
 }
 
 TEST(fixed_block_unassigned_distance_code) {
   const std::vector<std::uint8_t> input{
       0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x4b, 0x04,
       0x3e, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input), "Invalid Huffman code");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Invalid distance code");
 }
 
 TEST(fixed_block_invalid_literal_length_symbol) {
   const std::vector<std::uint8_t> input{
       0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x1b,
       0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input), "Invalid literal/length code");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Invalid literal/length code");
 }
 
 TEST(fixed_block_literal_length_symbol_286) {
   const std::vector<std::uint8_t> input{
       0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x4b,
       0x1c, 0x03, 0x00, 0x56, 0xfa, 0xc2, 0x34, 0x03, 0x01, 0x00, 0x00};
-  // TODO: The one-shot mechanism decodes literal/length symbols 286 and 287
-  // as a match of length 258, but RFC 1951 section 3.2.6 states that they
-  // never occur in compressed data
-  EXPECT_EQ(decompress_one_shot(input), std::string(259, 'a'));
-  EXPECT_EQ(decompress_stream_error(input), "Invalid literal/length code");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Invalid literal/length code");
 }
 
 TEST(fixed_block_literal_length_symbol_287) {
   const std::vector<std::uint8_t> input{
       0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x4b,
       0x1c, 0x07, 0x00, 0x56, 0xfa, 0xc2, 0x34, 0x03, 0x01, 0x00, 0x00};
-  // TODO: The one-shot mechanism decodes literal/length symbols 286 and 287
-  // as a match of length 258, but RFC 1951 section 3.2.6 states that they
-  // never occur in compressed data
-  EXPECT_EQ(decompress_one_shot(input), std::string(259, 'a'));
-  EXPECT_EQ(decompress_stream_error(input), "Invalid literal/length code");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Invalid literal/length code");
 }
 
 TEST(fixed_block_distance_code_30) {
   std::vector<std::uint8_t> input{0x1f, 0x8b, 0x08, 0x00, 0x00,
                                   0x00, 0x00, 0x00, 0x00, 0xff,
                                   0x00, 0x00, 0x80, 0xff, 0x7f};
-  std::string expected;
   for (std::size_t index = 0; index < 32768; ++index) {
     const auto byte{static_cast<std::uint8_t>((index ^ (index >> 8)) & 0xff)};
     input.push_back(byte);
-    expected.push_back(static_cast<char>(byte));
   }
 
   input.insert(input.end(), {0x03, 0x3e, 0x00, 0x00, 0x00, 0x65, 0xd8, 0xb7,
                              0x34, 0x03, 0x80, 0x00, 0x00});
-  expected += "\xe0\x20\x21";
-  // TODO: The one-shot mechanism decodes distance codes 30 and 31 as
-  // distances beyond 24576, but RFC 1951 section 3.2.6 states that they never
-  // occur in compressed data
-  EXPECT_EQ(decompress_one_shot(input), expected);
-  EXPECT_EQ(decompress_stream_error(input), "Invalid Huffman code");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Invalid distance code");
 }
 
 TEST(fixed_block_distance_code_31) {
   std::vector<std::uint8_t> input{0x1f, 0x8b, 0x08, 0x00, 0x00,
                                   0x00, 0x00, 0x00, 0x00, 0xff,
                                   0x00, 0x00, 0x80, 0xff, 0x7f};
-  std::string expected;
   for (std::size_t index = 0; index < 32768; ++index) {
     const auto byte{static_cast<std::uint8_t>((index ^ (index >> 8)) & 0xff)};
     input.push_back(byte);
-    expected.push_back(static_cast<char>(byte));
   }
 
   input.insert(input.end(), {0x03, 0x7e, 0x00, 0x00, 0x00, 0x65, 0xd8, 0xb7,
                              0x34, 0x03, 0x80, 0x00, 0x00});
-  expected += "\xe0\x20\x21";
-  // TODO: The one-shot mechanism decodes distance codes 30 and 31 as
-  // distances beyond 24576, but RFC 1951 section 3.2.6 states that they never
-  // occur in compressed data
-  EXPECT_EQ(decompress_one_shot(input), expected);
-  EXPECT_EQ(decompress_stream_error(input), "Invalid Huffman code");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Invalid distance code");
 }
 
 TEST(dynamic_block_distance_code_30) {
   std::vector<std::uint8_t> input{0x1f, 0x8b, 0x08, 0x00, 0x00,
                                   0x00, 0x00, 0x00, 0x00, 0xff,
                                   0x00, 0x00, 0x80, 0xff, 0x7f};
-  std::string expected;
   for (std::size_t index = 0; index < 32768; ++index) {
     const auto byte{static_cast<std::uint8_t>((index ^ (index >> 8)) & 0xff)};
     input.push_back(byte);
-    expected.push_back(static_cast<char>(byte));
   }
 
   input.insert(
@@ -640,12 +499,7 @@ TEST(dynamic_block_distance_code_30) {
        0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x22, 0x00, 0x00, 0x00, 0x00, 0x00,
        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xe0, 0x00, 0x00,
        0x65, 0xd8, 0xb7, 0x34, 0x03, 0x80, 0x00, 0x00});
-  expected += "\xe0\x20\x21";
-  // TODO: The one-shot mechanism decodes distance codes 30 and 31 as
-  // distances beyond 24576, but RFC 1951 section 3.2.5 only defines distance
-  // codes up to 29
-  EXPECT_EQ(decompress_one_shot(input), expected);
-  EXPECT_EQ(decompress_stream_error(input), "Invalid distance code");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Invalid distance code");
 }
 
 TEST(dynamic_block_287_literal_length_codes) {
@@ -665,10 +519,7 @@ TEST(dynamic_block_287_literal_length_codes) {
       0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x08, 0x43, 0xbe, 0xb7, 0xe8,
       0x01, 0x00, 0x00, 0x00};
-  // TODO: The one-shot mechanism accepts more literal/length codes than the
-  // maximum of 286 in RFC 1951 section 3.2.7
-  EXPECT_EQ(decompress_one_shot(input), "a");
-  EXPECT_EQ(decompress_stream_error(input), "Too many literal/length codes");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Too many literal/length codes");
 }
 
 TEST(dynamic_block_288_literal_length_codes) {
@@ -688,10 +539,7 @@ TEST(dynamic_block_288_literal_length_codes) {
       0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x43, 0xbe, 0xb7, 0xe8,
       0x01, 0x00, 0x00, 0x00};
-  // TODO: The one-shot mechanism accepts more literal/length codes than the
-  // maximum of 286 in RFC 1951 section 3.2.7
-  EXPECT_EQ(decompress_one_shot(input), "a");
-  EXPECT_EQ(decompress_stream_error(input), "Too many literal/length codes");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Too many literal/length codes");
 }
 
 TEST(dynamic_block_unused_code_of_single_distance_code) {
@@ -710,10 +558,7 @@ TEST(dynamic_block_unused_code_of_single_distance_code) {
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
       0x00, 0x00, 0x00, 0x10, 0x21, 0x3e, 0x77, 0x80, 0x7b, 0x4c, 0x05, 0x00,
       0x00, 0x00};
-  // TODO: The one-shot mechanism decodes the unused code of a single code
-  // alphabet from RFC 1951 section 3.2.7 as the used code
-  EXPECT_EQ(decompress_one_shot(input), "abbbb");
-  EXPECT_EQ(decompress_stream_error(input), "Invalid Huffman code");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Invalid Huffman code");
 }
 
 TEST(dynamic_block_unused_code_of_single_literal_length_code) {
@@ -732,10 +577,7 @@ TEST(dynamic_block_unused_code_of_single_literal_length_code) {
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
       0x00, 0x00, 0x00, 0x20, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
       0x00};
-  // TODO: The one-shot mechanism decodes the unused code of a single code
-  // alphabet from RFC 1951 section 3.2.7 as the used code
-  EXPECT_EQ(decompress_one_shot(input), "");
-  EXPECT_EQ(decompress_stream_error(input), "Invalid Huffman code");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Invalid Huffman code");
 }
 
 TEST(dynamic_block_incomplete_literal_length_code) {
@@ -754,9 +596,7 @@ TEST(dynamic_block_incomplete_literal_length_code) {
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
       0x00, 0x00, 0x00, 0x10, 0x20, 0x43, 0xbe, 0xb7, 0xe8, 0x01, 0x00, 0x00,
       0x00};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input), "Incomplete Huffman code");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Incomplete Huffman code");
 }
 
 TEST(dynamic_block_incomplete_distance_code) {
@@ -775,9 +615,7 @@ TEST(dynamic_block_incomplete_distance_code) {
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
       0x00, 0x00, 0x00, 0x10, 0x11, 0x31, 0x01, 0x45, 0xe5, 0x98, 0xad, 0x04,
       0x00, 0x00, 0x00};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input), "Incomplete Huffman code");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Incomplete Huffman code");
 }
 
 TEST(dynamic_block_incomplete_code_length_code) {
@@ -790,9 +628,7 @@ TEST(dynamic_block_incomplete_code_length_code) {
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x11,
       0x43, 0xbe, 0xb7, 0xe8, 0x01, 0x00, 0x00, 0x00};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input), "Incomplete Huffman code");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Incomplete Huffman code");
 }
 
 TEST(dynamic_block_over_subscribed_literal_length_code) {
@@ -811,9 +647,7 @@ TEST(dynamic_block_over_subscribed_literal_length_code) {
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
       0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0x43, 0xbe, 0xb7, 0xe8, 0x01,
       0x00, 0x00, 0x00};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input), "Over-subscribed Huffman code");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Over-subscribed Huffman code");
 }
 
 TEST(dynamic_block_over_subscribed_distance_code) {
@@ -832,9 +666,7 @@ TEST(dynamic_block_over_subscribed_distance_code) {
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
       0x00, 0x00, 0x00, 0x10, 0x21, 0x22, 0x00, 0x00, 0x43, 0xbe, 0xb7, 0xe8,
       0x01, 0x00, 0x00, 0x00};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input), "Over-subscribed Huffman code");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Over-subscribed Huffman code");
 }
 
 TEST(dynamic_block_over_subscribed_code_length_code) {
@@ -842,9 +674,7 @@ TEST(dynamic_block_over_subscribed_code_length_code) {
       0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff,
       0x05, 0x00, 0x92, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input), "Over-subscribed Huffman code");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Over-subscribed Huffman code");
 }
 
 TEST(dynamic_block_repeat_previous_without_previous) {
@@ -852,10 +682,8 @@ TEST(dynamic_block_repeat_previous_without_previous) {
       0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff,
       0x05, 0x00, 0x02, 0xe4, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input),
-            "Repeat-previous code length with no previous");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input,
+                               "Repeat-previous code length with no previous");
 }
 
 TEST(dynamic_block_repeat_zero_beyond_code_length_count) {
@@ -863,9 +691,7 @@ TEST(dynamic_block_repeat_zero_beyond_code_length_count) {
       0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x05,
       0x00, 0x80, 0xe4, 0xff, 0x1f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input), "Code length count overflow");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Code length count overflow");
 }
 
 TEST(dynamic_block_repeat_previous_beyond_code_length_count) {
@@ -873,9 +699,7 @@ TEST(dynamic_block_repeat_previous_beyond_code_length_count) {
       0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x05,
       0x00, 0x82, 0xe0, 0x3f, 0x1b, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input), "Code length count overflow");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Code length count overflow");
 }
 
 TEST(dynamic_block_code_length_overshoot) {
@@ -883,9 +707,7 @@ TEST(dynamic_block_code_length_overshoot) {
       0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
       0x03, 0x05, 0x00, 0x80, 0xe4, 0xff, 0x1f, 0x00, 0x00,
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input), "Code length count overflow");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Code length count overflow");
 }
 
 TEST(dynamic_block_code_length_cap_overflow) {
@@ -893,9 +715,7 @@ TEST(dynamic_block_code_length_cap_overflow) {
       0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
       0x03, 0xed, 0x1f, 0x80, 0xe4, 0xff, 0xff, 0x1f, 0x00,
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input), "Code length count overflow");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Code length count overflow");
 }
 
 TEST(dynamic_block_repeat_previous_cap_overflow) {
@@ -903,9 +723,7 @@ TEST(dynamic_block_repeat_previous_cap_overflow) {
       0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03,
       0xed, 0x1f, 0x84, 0x28, 0x7f, 0xff, 0xff, 0xff, 0xff, 0x79,
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input), "Code length count overflow");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Code length count overflow");
 }
 
 TEST(dynamic_block_repeat_zero_cap_overflow) {
@@ -913,9 +731,7 @@ TEST(dynamic_block_repeat_zero_cap_overflow) {
       0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03,
       0xed, 0x1f, 0x20, 0xe5, 0xff, 0xff, 0xde, 0x7b, 0xef, 0x00,
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input), "Code length count overflow");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Code length count overflow");
 }
 
 TEST(dynamic_block_without_end_of_block_code) {
@@ -934,9 +750,7 @@ TEST(dynamic_block_without_end_of_block_code) {
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
       0x00, 0x55, 0x65, 0xb4, 0x89, 0x40, 0x00, 0x00, 0x00};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input), "Unexpected end of source stream");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Unexpected end of source stream");
 }
 
 TEST(second_member_crc32_mismatch) {
@@ -946,9 +760,7 @@ TEST(second_member_crc32_mismatch) {
       0x05, 0x00, 0x00, 0x00, 0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00,
       0x04, 0xff, 0x01, 0x05, 0x00, 0xfa, 0xff, 0x77, 0x6f, 0x72, 0x6c, 0x64,
       0x42, 0x11, 0x77, 0x3a, 0x05, 0x00, 0x00, 0x00};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input), "Gzip member CRC32 mismatch");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Gzip member CRC32 mismatch");
 }
 
 TEST(second_member_truncated) {
@@ -958,9 +770,7 @@ TEST(second_member_truncated) {
       0x6f, 0x72, 0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00,
       0x00, 0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff,
       0x01, 0x0b, 0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input), "Unexpected end of source stream");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Unexpected end of source stream");
 }
 
 TEST(second_member_reserved_block_type) {
@@ -971,9 +781,7 @@ TEST(second_member_reserved_block_type) {
       0x00, 0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff,
       0x07, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72, 0x6c,
       0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input), "Reserved deflate block type");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Reserved deflate block type");
 }
 
 TEST(member_without_trailer_followed_by_member) {
@@ -982,9 +790,7 @@ TEST(member_without_trailer_followed_by_member) {
       0x00, 0xfa, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x1f, 0x8b, 0x08, 0x00,
       0x00, 0x00, 0x00, 0x00, 0x04, 0xff, 0x01, 0x05, 0x00, 0xfa, 0xff, 0x77,
       0x6f, 0x72, 0x6c, 0x64, 0x43, 0x11, 0x77, 0x3a, 0x05, 0x00, 0x00, 0x00};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input), "Gzip member CRC32 mismatch");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Gzip member CRC32 mismatch");
 }
 
 TEST(valid_member_after_corrupt_member) {
@@ -994,9 +800,7 @@ TEST(valid_member_after_corrupt_member) {
       0x05, 0x00, 0x00, 0x7f, 0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00,
       0x04, 0xff, 0x01, 0x05, 0x00, 0xfa, 0xff, 0x77, 0x6f, 0x72, 0x6c, 0x64,
       0x43, 0x11, 0x77, 0x3a, 0x05, 0x00, 0x00, 0x00};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input), "Gzip member ISIZE mismatch");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Gzip member ISIZE mismatch");
 }
 
 TEST(trailing_header_without_blocks) {
@@ -1005,9 +809,7 @@ TEST(trailing_header_without_blocks) {
       0x0b, 0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77,
       0x6f, 0x72, 0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00,
       0x00, 0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff};
-  // TODO: Report the same error message from both mechanisms
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream_error(input), "Unexpected end of source stream");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Unexpected end of source stream");
 }
 
 TEST(trailing_identification_bytes_only) {
@@ -1015,11 +817,7 @@ TEST(trailing_identification_bytes_only) {
       0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x01, 0x0b,
       0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
       0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00, 0x1f, 0x8b};
-  // TODO: The one-shot mechanism treats trailing data that starts with the
-  // gzip identification bytes as a corrupt member, while the stream mechanism
-  // ignores it as trailing garbage
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream(input), "hello world");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Unexpected end of source stream");
 }
 
 TEST(trailing_identification_bytes_with_invalid_compression_method) {
@@ -1028,11 +826,7 @@ TEST(trailing_identification_bytes_with_invalid_compression_method) {
       0x0b, 0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77,
       0x6f, 0x72, 0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00,
       0x00, 0x1f, 0x8b, 0x63, 0x6f, 0x72, 0x72, 0x75, 0x70, 0x74};
-  // TODO: The one-shot mechanism treats trailing data that starts with the
-  // gzip identification bytes as a corrupt member, while the stream mechanism
-  // ignores it as trailing garbage
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream(input), "hello world");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Unsupported gzip compression method");
 }
 
 TEST(trailing_identification_bytes_with_truncated_fname) {
@@ -1041,11 +835,7 @@ TEST(trailing_identification_bytes_with_truncated_fname) {
       0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
       0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00, 0x1f, 0x8b,
       0x08, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x61, 0x62, 0x63};
-  // TODO: The one-shot mechanism treats trailing data that starts with the
-  // gzip identification bytes as a corrupt member, while the stream mechanism
-  // ignores it as trailing garbage
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream(input), "hello world");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Unexpected end of source stream");
 }
 
 TEST(second_member_reserved_flag_bit) {
@@ -1056,11 +846,7 @@ TEST(second_member_reserved_flag_bit) {
       0x08, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x01, 0x0b, 0x00, 0xf4,
       0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72, 0x6c, 0x64,
       0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  // TODO: The one-shot mechanism treats trailing data that starts with the
-  // gzip identification bytes as a corrupt member, while the stream mechanism
-  // ignores it as trailing garbage
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream(input), "hello world");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Reserved gzip FLG bits must be zero");
 }
 
 TEST(second_member_unsupported_compression_method) {
@@ -1071,11 +857,7 @@ TEST(second_member_unsupported_compression_method) {
       0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x01, 0x0b, 0x00, 0xf4,
       0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72, 0x6c, 0x64,
       0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  // TODO: The one-shot mechanism treats trailing data that starts with the
-  // gzip identification bytes as a corrupt member, while the stream mechanism
-  // ignores it as trailing garbage
-  EXPECT_EQ(decompress_one_shot_error(input), "Could not decompress input");
-  EXPECT_EQ(decompress_stream(input), "hello world");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Unsupported gzip compression method");
 }
 
 TEST(second_member_fhcrc_mismatch) {
@@ -1086,78 +868,5 @@ TEST(second_member_fhcrc_mismatch) {
       0x08, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x91, 0xc9, 0x01, 0x0b,
       0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
       0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  // TODO: The one-shot mechanism skips the header checksum of a later member
-  // and decodes it, while the stream mechanism ignores that member as
-  // trailing garbage
-  EXPECT_EQ(decompress_one_shot(input), "hello worldhello world");
-  EXPECT_EQ(decompress_stream(input), "hello world");
-}
-
-TEST(maximum_size_exceeded_by_one_byte) {
-  const std::vector<std::uint8_t> input{
-      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x01, 0x0b,
-      0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
-      0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot_error(input, 0, 10),
-            "Decompressed output exceeds the maximum allowed size");
-}
-
-TEST(zero_maximum_size_with_non_empty_payload) {
-  const std::vector<std::uint8_t> input{
-      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x01, 0x0b,
-      0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
-      0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot_error(input, 0, 0),
-            "Decompressed output exceeds the maximum allowed size");
-}
-
-TEST(output_hint_above_maximum_size_with_exceeding_output) {
-  const std::vector<std::uint8_t> input{
-      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x01, 0x0b,
-      0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
-      0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot_error(input, 1048576, 10),
-            "Decompressed output exceeds the maximum allowed size");
-}
-
-TEST(growth_beyond_uneven_maximum_size) {
-  const std::vector<std::uint8_t> input{
-      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x01, 0x0b,
-      0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
-      0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot_error(input, 3, 10),
-            "Decompressed output exceeds the maximum allowed size");
-}
-
-TEST(crafted_bomb_beyond_maximum_size) {
-  const std::vector<std::uint8_t> input{
-      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x4b, 0x1c,
-      0x05, 0xa3, 0x60, 0x14, 0x8c, 0x82, 0x51, 0x30, 0x0a, 0x46, 0xc1, 0x28,
-      0x18, 0x05, 0xa3, 0x60, 0x14, 0x8c, 0x82, 0x51, 0x30, 0x0a, 0x46, 0xc1,
-      0x28, 0x18, 0x05, 0x00, 0xa1, 0x87, 0xcc, 0x71, 0x23, 0x11, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot_error(input, 0, 4386),
-            "Decompressed output exceeds the maximum allowed size");
-}
-
-TEST(members_totaling_one_byte_over_maximum_size) {
-  const std::vector<std::uint8_t> input{
-      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x01, 0x0b,
-      0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
-      0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00, 0x1f, 0x8b,
-      0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x01, 0x0b, 0x00, 0xf4,
-      0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72, 0x6c, 0x64,
-      0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot_error(input, 0, 21),
-            "Decompressed output exceeds the maximum allowed size");
-}
-
-TEST(second_member_alone_exceeding_maximum_size) {
-  const std::vector<std::uint8_t> input{
-      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x01, 0x00,
-      0x00, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1f,
-      0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x01, 0x0b, 0x00,
-      0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72, 0x6c,
-      0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot_error(input, 0, 5),
-            "Decompressed output exceeds the maximum allowed size");
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "FHCRC mismatch");
 }

@@ -2,25 +2,14 @@
 #include <sourcemeta/core/test.h>
 
 #include <cstddef>  // std::size_t
-#include <cstdint>  // std::uint8_t, std::uint32_t
+#include <cstdint>  // std::uint8_t
 #include <istream>  // std::istream
 #include <iterator> // std::istreambuf_iterator
-#include <limits>   // std::numeric_limits
-#include <random>   // std::mt19937, std::uniform_int_distribution
 #include <sstream>  // std::istringstream
 #include <string>   // std::string
-#include <utility>  // std::move
 #include <vector>   // std::vector
 
 namespace {
-
-auto compress(const std::string &input, const int level)
-    -> std::vector<std::uint8_t> {
-  const auto output{sourcemeta::core::gzip(
-      reinterpret_cast<const std::uint8_t *>(input.data()), input.size(),
-      level)};
-  return {output.cbegin(), output.cend()};
-}
 
 auto decompress_one_shot(const std::vector<std::uint8_t> &input,
                          const std::size_t output_hint = 0,
@@ -42,761 +31,17 @@ auto decompress_stream(const std::vector<std::uint8_t> &input) -> std::string {
 
 } // namespace
 
-TEST(compress_empty_input) {
-  const std::string input;
-  const auto compressed{compress(input, 1)};
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_hello_world) {
-  const std::string input{"hello world"};
-  const auto compressed{compress(input, 1)};
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_every_byte_value) {
-  std::string input;
-  for (std::size_t index = 0; index < 256; ++index) {
-    input.push_back(static_cast<char>(index));
-  }
-
-  const auto compressed{compress(input, 1)};
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_repeated_pangram) {
-  std::string input;
-  for (std::size_t index = 0; index < 1000; ++index) {
-    input += "The quick brown fox jumps over the lazy dog. ";
-  }
-
-  const auto compressed{compress(input, 1)};
-  EXPECT_LT(compressed.size(), input.size());
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_level_0_round_trips) {
-  std::string input;
-  for (std::size_t index = 0; index < 2000; ++index) {
-    input += "The quick brown fox jumps over the lazy dog. ";
-  }
-
-  const auto compressed{compress(input, 0)};
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_level_1_round_trips) {
-  std::string input;
-  for (std::size_t index = 0; index < 2000; ++index) {
-    input += "The quick brown fox jumps over the lazy dog. ";
-  }
-
-  const auto compressed{compress(input, 1)};
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_level_2_round_trips) {
-  std::string input;
-  for (std::size_t index = 0; index < 2000; ++index) {
-    input += "The quick brown fox jumps over the lazy dog. ";
-  }
-
-  const auto compressed{compress(input, 2)};
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_level_3_round_trips) {
-  std::string input;
-  for (std::size_t index = 0; index < 2000; ++index) {
-    input += "The quick brown fox jumps over the lazy dog. ";
-  }
-
-  const auto compressed{compress(input, 3)};
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_level_4_round_trips) {
-  std::string input;
-  for (std::size_t index = 0; index < 2000; ++index) {
-    input += "The quick brown fox jumps over the lazy dog. ";
-  }
-
-  const auto compressed{compress(input, 4)};
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_level_5_round_trips) {
-  std::string input;
-  for (std::size_t index = 0; index < 2000; ++index) {
-    input += "The quick brown fox jumps over the lazy dog. ";
-  }
-
-  const auto compressed{compress(input, 5)};
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_level_6_round_trips) {
-  std::string input;
-  for (std::size_t index = 0; index < 2000; ++index) {
-    input += "The quick brown fox jumps over the lazy dog. ";
-  }
-
-  const auto compressed{compress(input, 6)};
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_level_7_round_trips) {
-  std::string input;
-  for (std::size_t index = 0; index < 2000; ++index) {
-    input += "The quick brown fox jumps over the lazy dog. ";
-  }
-
-  const auto compressed{compress(input, 7)};
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_level_8_round_trips) {
-  std::string input;
-  for (std::size_t index = 0; index < 2000; ++index) {
-    input += "The quick brown fox jumps over the lazy dog. ";
-  }
-
-  const auto compressed{compress(input, 8)};
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_level_9_round_trips) {
-  std::string input;
-  for (std::size_t index = 0; index < 2000; ++index) {
-    input += "The quick brown fox jumps over the lazy dog. ";
-  }
-
-  const auto compressed{compress(input, 9)};
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_level_10_round_trips) {
-  std::string input;
-  for (std::size_t index = 0; index < 2000; ++index) {
-    input += "The quick brown fox jumps over the lazy dog. ";
-  }
-
-  const auto compressed{compress(input, 10)};
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_level_11_round_trips) {
-  std::string input;
-  for (std::size_t index = 0; index < 2000; ++index) {
-    input += "The quick brown fox jumps over the lazy dog. ";
-  }
-
-  const auto compressed{compress(input, 11)};
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_level_12_round_trips) {
-  std::string input;
-  for (std::size_t index = 0; index < 2000; ++index) {
-    input += "The quick brown fox jumps over the lazy dog. ";
-  }
-
-  const auto compressed{compress(input, 12)};
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_higher_level_is_not_larger) {
-  std::string input;
-  for (std::size_t index = 0; index < 1000; ++index) {
-    input += "The quick brown fox jumps over the lazy dog. ";
-  }
-
-  EXPECT_LE(compress(input, 12).size(), compress(input, 1).size());
-}
-
-TEST(compress_output_header_identifies_deflate_member) {
-  const auto compressed{compress("hello world", 6)};
-  EXPECT_GE(compressed.size(), 18);
-  EXPECT_EQ(compressed.at(0), 0x1f);
-  EXPECT_EQ(compressed.at(1), 0x8b);
-  EXPECT_EQ(compressed.at(2), 0x08);
-  EXPECT_EQ(compressed.at(3) & 0xe0, 0);
-}
-
-TEST(compress_output_trailer_of_empty_input) {
-  const auto compressed{compress("", 1)};
-  const std::vector<std::uint8_t> trailer{compressed.cend() - 8,
-                                          compressed.cend()};
-  const std::vector<std::uint8_t> expected{0x00, 0x00, 0x00, 0x00,
-                                           0x00, 0x00, 0x00, 0x00};
-  EXPECT_EQ(trailer, expected);
-}
-
-TEST(compress_output_trailer_of_hello_world_at_level_0) {
-  const auto compressed{compress("hello world", 0)};
-  const std::vector<std::uint8_t> trailer{compressed.cend() - 8,
-                                          compressed.cend()};
-  const std::vector<std::uint8_t> expected{0x85, 0x11, 0x4a, 0x0d,
-                                           0x0b, 0x00, 0x00, 0x00};
-  EXPECT_EQ(trailer, expected);
-}
-
-TEST(compress_output_trailer_of_hello_world_at_level_1) {
-  const auto compressed{compress("hello world", 1)};
-  const std::vector<std::uint8_t> trailer{compressed.cend() - 8,
-                                          compressed.cend()};
-  const std::vector<std::uint8_t> expected{0x85, 0x11, 0x4a, 0x0d,
-                                           0x0b, 0x00, 0x00, 0x00};
-  EXPECT_EQ(trailer, expected);
-}
-
-TEST(compress_output_trailer_of_hello_world_at_level_12) {
-  const auto compressed{compress("hello world", 12)};
-  const std::vector<std::uint8_t> trailer{compressed.cend() - 8,
-                                          compressed.cend()};
-  const std::vector<std::uint8_t> expected{0x85, 0x11, 0x4a, 0x0d,
-                                           0x0b, 0x00, 0x00, 0x00};
-  EXPECT_EQ(trailer, expected);
-}
-
-TEST(compress_output_trailer_of_crc32_check_string) {
-  const auto compressed{compress("123456789", 6)};
-  const std::vector<std::uint8_t> trailer{compressed.cend() - 8,
-                                          compressed.cend()};
-  const std::vector<std::uint8_t> expected{0x26, 0x39, 0xf4, 0xcb,
-                                           0x09, 0x00, 0x00, 0x00};
-  EXPECT_EQ(trailer, expected);
-}
-
-TEST(compress_output_trailer_of_pangram) {
-  const auto compressed{
-      compress("The quick brown fox jumps over the lazy dog", 9)};
-  const std::vector<std::uint8_t> trailer{compressed.cend() - 8,
-                                          compressed.cend()};
-  const std::vector<std::uint8_t> expected{0x39, 0xa3, 0x4f, 0x41,
-                                           0x2b, 0x00, 0x00, 0x00};
-  EXPECT_EQ(trailer, expected);
-}
-
-TEST(compress_output_trailer_size_spans_multiple_bytes) {
-  const auto compressed{compress(std::string(70000, 'z'), 1)};
-  const std::vector<std::uint8_t> size{compressed.cend() - 4,
-                                       compressed.cend()};
-  const std::vector<std::uint8_t> expected{0x70, 0x11, 0x01, 0x00};
-  EXPECT_EQ(size, expected);
-}
-
-TEST(compress_single_byte) {
-  const std::string input{"X"};
-  const auto compressed{compress(input, 1)};
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_two_bytes) {
-  const std::string input{"AB"};
-  const auto compressed{compress(input, 1)};
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_single_zero_byte) {
-  const std::string input(1, '\0');
-  const auto compressed{compress(input, 1)};
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_minimum_match_length_input) {
-  const std::string input{"abcabc"};
-  const auto compressed{compress(input, 12)};
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_run_of_maximum_match_length) {
-  const std::string input(259, 'q');
-  const auto compressed{compress(input, 6)};
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_run_one_past_maximum_match_length) {
-  const std::string input(260, 'q');
-  const auto compressed{compress(input, 6)};
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_counter_bytes_one_below_stream_buffer_size) {
-  std::string input;
-  for (std::size_t index = 0; index < 16383; ++index) {
-    input.push_back(static_cast<char>(index & 0xff));
-  }
-
-  const auto compressed{compress(input, 1)};
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_counter_bytes_of_stream_buffer_size) {
-  std::string input;
-  for (std::size_t index = 0; index < 16384; ++index) {
-    input.push_back(static_cast<char>(index & 0xff));
-  }
-
-  const auto compressed{compress(input, 1)};
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_counter_bytes_one_above_stream_buffer_size) {
-  std::string input;
-  for (std::size_t index = 0; index < 16385; ++index) {
-    input.push_back(static_cast<char>(index & 0xff));
-  }
-
-  const auto compressed{compress(input, 1)};
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_counter_bytes_of_window_size) {
-  std::string input;
-  for (std::size_t index = 0; index < 32768; ++index) {
-    input.push_back(static_cast<char>(index & 0xff));
-  }
-
-  const auto compressed{compress(input, 1)};
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_counter_bytes_of_one_megabyte) {
-  std::string input;
-  for (std::size_t index = 0; index < 1048576; ++index) {
-    input.push_back(static_cast<char>(index & 0xff));
-  }
-
-  const auto compressed{compress(input, 1)};
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_random_input_one_below_window_size) {
-  // NOLINTNEXTLINE(cert-msc32-c,cert-msc51-cpp,bugprone-random-generator-seed)
-  std::mt19937 generator{1};
-  std::uniform_int_distribution<int> distribution{0, 255};
-  std::string input;
-  for (std::size_t index = 0; index < 32767; ++index) {
-    input.push_back(static_cast<char>(distribution(generator)));
-  }
-
-  const auto compressed{compress(input, 1)};
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_random_input_of_window_size) {
-  // NOLINTNEXTLINE(cert-msc32-c,cert-msc51-cpp,bugprone-random-generator-seed)
-  std::mt19937 generator{1};
-  std::uniform_int_distribution<int> distribution{0, 255};
-  std::string input;
-  for (std::size_t index = 0; index < 32768; ++index) {
-    input.push_back(static_cast<char>(distribution(generator)));
-  }
-
-  const auto compressed{compress(input, 1)};
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_random_input_one_above_window_size) {
-  // NOLINTNEXTLINE(cert-msc32-c,cert-msc51-cpp,bugprone-random-generator-seed)
-  std::mt19937 generator{1};
-  std::uniform_int_distribution<int> distribution{0, 255};
-  std::string input;
-  for (std::size_t index = 0; index < 32769; ++index) {
-    input.push_back(static_cast<char>(distribution(generator)));
-  }
-
-  const auto compressed{compress(input, 1)};
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_level_0_random_input_of_maximum_stored_block_length) {
-  // NOLINTNEXTLINE(cert-msc32-c,cert-msc51-cpp,bugprone-random-generator-seed)
-  std::mt19937 generator{2};
-  std::uniform_int_distribution<int> distribution{0, 255};
-  std::string input;
-  for (std::size_t index = 0; index < 65535; ++index) {
-    input.push_back(static_cast<char>(distribution(generator)));
-  }
-
-  const auto compressed{compress(input, 0)};
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_level_0_random_input_one_above_maximum_stored_block_length) {
-  // NOLINTNEXTLINE(cert-msc32-c,cert-msc51-cpp,bugprone-random-generator-seed)
-  std::mt19937 generator{2};
-  std::uniform_int_distribution<int> distribution{0, 255};
-  std::string input;
-  for (std::size_t index = 0; index < 65536; ++index) {
-    input.push_back(static_cast<char>(distribution(generator)));
-  }
-
-  const auto compressed{compress(input, 0)};
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_level_0_random_input_of_two_maximum_stored_blocks) {
-  // NOLINTNEXTLINE(cert-msc32-c,cert-msc51-cpp,bugprone-random-generator-seed)
-  std::mt19937 generator{2};
-  std::uniform_int_distribution<int> distribution{0, 255};
-  std::string input;
-  for (std::size_t index = 0; index < 131070; ++index) {
-    input.push_back(static_cast<char>(distribution(generator)));
-  }
-
-  const auto compressed{compress(input, 0)};
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_highly_compressible_zeros) {
-  const std::string input(65536, '\0');
-  const auto compressed{compress(input, 1)};
-  EXPECT_LT(compressed.size(), input.size() / 10);
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_highly_compressible_repeated_byte) {
-  const std::string input(65536, static_cast<char>(0xff));
-  const auto compressed{compress(input, 1)};
-  EXPECT_LT(compressed.size(), input.size() / 10);
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_incompressible_random_input) {
-  // NOLINTNEXTLINE(cert-msc32-c,cert-msc51-cpp,bugprone-random-generator-seed)
-  std::mt19937 generator{42};
-  std::uniform_int_distribution<int> distribution{0, 255};
-  std::string input;
-  for (std::size_t index = 0; index < 65536; ++index) {
-    input.push_back(static_cast<char>(distribution(generator)));
-  }
-
-  const auto compressed{compress(input, 1)};
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_incompressible_input_at_level_0_barely_expands) {
-  // NOLINTNEXTLINE(cert-msc32-c,cert-msc51-cpp,bugprone-random-generator-seed)
-  std::mt19937 generator{3};
-  std::uniform_int_distribution<int> distribution{0, 255};
-  std::string input;
-  for (std::size_t index = 0; index < 1048576; ++index) {
-    input.push_back(static_cast<char>(distribution(generator)));
-  }
-
-  const auto compressed{compress(input, 0)};
-  EXPECT_LE(compressed.size(), input.size() + input.size() / 100);
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_incompressible_input_at_level_1_barely_expands) {
-  // NOLINTNEXTLINE(cert-msc32-c,cert-msc51-cpp,bugprone-random-generator-seed)
-  std::mt19937 generator{3};
-  std::uniform_int_distribution<int> distribution{0, 255};
-  std::string input;
-  for (std::size_t index = 0; index < 1048576; ++index) {
-    input.push_back(static_cast<char>(distribution(generator)));
-  }
-
-  const auto compressed{compress(input, 1)};
-  EXPECT_LE(compressed.size(), input.size() + input.size() / 100);
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_incompressible_input_at_level_6_barely_expands) {
-  // NOLINTNEXTLINE(cert-msc32-c,cert-msc51-cpp,bugprone-random-generator-seed)
-  std::mt19937 generator{3};
-  std::uniform_int_distribution<int> distribution{0, 255};
-  std::string input;
-  for (std::size_t index = 0; index < 1048576; ++index) {
-    input.push_back(static_cast<char>(distribution(generator)));
-  }
-
-  const auto compressed{compress(input, 6)};
-  EXPECT_LE(compressed.size(), input.size() + input.size() / 100);
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_incompressible_input_at_level_12_barely_expands) {
-  // NOLINTNEXTLINE(cert-msc32-c,cert-msc51-cpp,bugprone-random-generator-seed)
-  std::mt19937 generator{3};
-  std::uniform_int_distribution<int> distribution{0, 255};
-  std::string input;
-  for (std::size_t index = 0; index < 1048576; ++index) {
-    input.push_back(static_cast<char>(distribution(generator)));
-  }
-
-  const auto compressed{compress(input, 12)};
-  EXPECT_LE(compressed.size(), input.size() + input.size() / 100);
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_run_wrapping_the_window_many_times) {
-  const std::string input(200000, 'a');
-  const auto compressed{compress(input, 1)};
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_eight_megabytes_of_zeros_at_level_1) {
-  const std::string input(8388608, '\0');
-  const auto compressed{compress(input, 1)};
-  EXPECT_LT(compressed.size(), input.size() / 100);
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_four_megabytes_of_zeros_at_level_12) {
-  const std::string input(4194304, '\0');
-  const auto compressed{compress(input, 12)};
-  EXPECT_LT(compressed.size(), input.size() / 100);
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_alternating_bytes) {
-  std::string input;
-  for (std::size_t index = 0; index < 524288; ++index) {
-    input += "\x01\xfe";
-  }
-
-  const auto compressed{compress(input, 6)};
-  EXPECT_LT(compressed.size(), input.size() / 100);
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_random_block_repeated_at_window_size_distance_at_level_6) {
-  // NOLINTNEXTLINE(cert-msc32-c,cert-msc51-cpp,bugprone-random-generator-seed)
-  std::mt19937 generator{4};
-  std::uniform_int_distribution<int> distribution{0, 255};
-  std::string block;
-  for (std::size_t index = 0; index < 32768; ++index) {
-    block.push_back(static_cast<char>(distribution(generator)));
-  }
-
-  const auto input{block + block + block + block};
-  const auto compressed{compress(input, 6)};
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_random_block_repeated_at_window_size_distance_at_level_12) {
-  // NOLINTNEXTLINE(cert-msc32-c,cert-msc51-cpp,bugprone-random-generator-seed)
-  std::mt19937 generator{4};
-  std::uniform_int_distribution<int> distribution{0, 255};
-  std::string block;
-  for (std::size_t index = 0; index < 32768; ++index) {
-    block.push_back(static_cast<char>(distribution(generator)));
-  }
-
-  const auto input{block + block + block + block};
-  const auto compressed{compress(input, 12)};
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_random_block_repeated_beyond_window_size_distance) {
-  // NOLINTNEXTLINE(cert-msc32-c,cert-msc51-cpp,bugprone-random-generator-seed)
-  std::mt19937 generator{5};
-  std::uniform_int_distribution<int> distribution{0, 255};
-  std::string block;
-  for (std::size_t index = 0; index < 32769; ++index) {
-    block.push_back(static_cast<char>(distribution(generator)));
-  }
-
-  const auto input{block + block + block + block};
-  const auto compressed{compress(input, 12)};
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_random_block_repeated_at_maximum_match_length_period) {
-  // NOLINTNEXTLINE(cert-msc32-c,cert-msc51-cpp,bugprone-random-generator-seed)
-  std::mt19937 generator{6};
-  std::uniform_int_distribution<int> distribution{0, 255};
-  std::string block;
-  for (std::size_t index = 0; index < 258; ++index) {
-    block.push_back(static_cast<char>(distribution(generator)));
-  }
-
-  std::string input;
-  for (std::size_t index = 0; index < 1000; ++index) {
-    input += block;
-  }
-
-  const auto compressed{compress(input, 6)};
-  EXPECT_LT(compressed.size(), input.size() / 10);
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_random_block_repeated_beyond_maximum_match_length_period) {
-  // NOLINTNEXTLINE(cert-msc32-c,cert-msc51-cpp,bugprone-random-generator-seed)
-  std::mt19937 generator{6};
-  std::uniform_int_distribution<int> distribution{0, 255};
-  std::string block;
-  for (std::size_t index = 0; index < 259; ++index) {
-    block.push_back(static_cast<char>(distribution(generator)));
-  }
-
-  std::string input;
-  for (std::size_t index = 0; index < 1000; ++index) {
-    input += block;
-  }
-
-  const auto compressed{compress(input, 6)};
-  EXPECT_LT(compressed.size(), input.size() / 10);
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_runs_of_every_match_length) {
-  std::string input;
-  for (std::size_t length = 1; length <= 300; ++length) {
-    input.append(length, static_cast<char>(length & 0xff));
-    input.append(length, static_cast<char>(~length & 0xff));
-  }
-
-  const auto compressed{compress(input, 9)};
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_fibonacci_word_at_level_1) {
-  std::string previous{"b"};
-  std::string input{"a"};
-  while (input.size() < 1048576) {
-    auto next{input + previous};
-    previous = std::move(input);
-    input = std::move(next);
-  }
-
-  const auto compressed{compress(input, 1)};
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_fibonacci_word_at_level_12) {
-  std::string previous{"b"};
-  std::string input{"a"};
-  while (input.size() < 1048576) {
-    auto next{input + previous};
-    previous = std::move(input);
-    input = std::move(next);
-  }
-
-  const auto compressed{compress(input, 12)};
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_counter_sequence) {
-  std::string input;
-  for (std::uint32_t index = 0; index < 262144; ++index) {
-    input.push_back(static_cast<char>(index & 0xff));
-    input.push_back(static_cast<char>((index >> 8) & 0xff));
-    input.push_back(static_cast<char>((index >> 16) & 0xff));
-    input.push_back(static_cast<char>((index >> 24) & 0xff));
-  }
-
-  const auto compressed{compress(input, 6)};
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_already_compressed_input) {
-  std::string text;
-  for (std::size_t index = 0; index < 2000; ++index) {
-    text += "The quick brown fox jumps over the lazy dog. ";
-  }
-
-  const auto inner{compress(text, 12)};
-  const std::string input{inner.cbegin(), inner.cend()};
-  const auto compressed{compress(input, 12)};
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_sixteen_megabytes) {
-  std::string input;
-  for (std::uint32_t index = 0; index < 4194304; ++index) {
-    input.push_back(static_cast<char>(index & 0xff));
-    input.push_back(static_cast<char>((index >> 8) & 0xff));
-    input.push_back(static_cast<char>((index >> 16) & 0xff));
-    input.push_back(static_cast<char>((index >> 24) & 0xff));
-  }
-
-  const auto compressed{compress(input, 1)};
-  EXPECT_LT(compressed.size(), input.size());
-  EXPECT_EQ(decompress_one_shot(compressed), input);
-  EXPECT_EQ(decompress_stream(compressed), input);
-}
-
-TEST(compress_members_of_different_levels_concatenate) {
-  const std::string first(70000, 'f');
-  const std::string second{"second"};
-  auto compressed{compress(first, 0)};
-  const auto second_compressed{compress(second, 12)};
-  const auto empty_compressed{compress("", 6)};
-  compressed.insert(compressed.end(), second_compressed.cbegin(),
-                    second_compressed.cend());
-  compressed.insert(compressed.end(), empty_compressed.cbegin(),
-                    empty_compressed.cend());
-  EXPECT_EQ(decompress_one_shot(compressed), first + second);
-  EXPECT_EQ(decompress_stream(compressed), first + second);
-}
+// Both decompression mechanisms must produce the same output for every input
+#define EXPECT_GZIP_DECOMPRESS(input, expected)                                \
+  EXPECT_EQ(decompress_one_shot(input), expected);                             \
+  EXPECT_EQ(decompress_stream(input), expected)
 
 TEST(decompress_header_with_ftext) {
   const std::vector<std::uint8_t> input{
       0x1f, 0x8b, 0x08, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x01, 0x0b,
       0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
       0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input), "hello world");
-  EXPECT_EQ(decompress_stream(input), "hello world");
+  EXPECT_GZIP_DECOMPRESS(input, "hello world");
 }
 
 TEST(decompress_header_with_fhcrc) {
@@ -804,8 +49,7 @@ TEST(decompress_header_with_fhcrc) {
       0x1f, 0x8b, 0x08, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x90, 0xc9,
       0x01, 0x0b, 0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77,
       0x6f, 0x72, 0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input), "hello world");
-  EXPECT_EQ(decompress_stream(input), "hello world");
+  EXPECT_GZIP_DECOMPRESS(input, "hello world");
 }
 
 TEST(decompress_header_with_fextra) {
@@ -814,8 +58,7 @@ TEST(decompress_header_with_fextra) {
       0x00, 0x45, 0x58, 0x54, 0x52, 0x41, 0x01, 0x0b, 0x00, 0xf4, 0xff,
       0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72, 0x6c, 0x64,
       0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input), "hello world");
-  EXPECT_EQ(decompress_stream(input), "hello world");
+  EXPECT_GZIP_DECOMPRESS(input, "hello world");
 }
 
 TEST(decompress_header_with_empty_fextra) {
@@ -823,8 +66,7 @@ TEST(decompress_header_with_empty_fextra) {
       0x1f, 0x8b, 0x08, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00,
       0x01, 0x0b, 0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77,
       0x6f, 0x72, 0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input), "hello world");
-  EXPECT_EQ(decompress_stream(input), "hello world");
+  EXPECT_GZIP_DECOMPRESS(input, "hello world");
 }
 
 TEST(decompress_header_with_fextra_subfields) {
@@ -833,8 +75,7 @@ TEST(decompress_header_with_fextra_subfields) {
       0x41, 0x42, 0x02, 0x00, 0x01, 0x02, 0x43, 0x44, 0x00, 0x00, 0x01, 0x0b,
       0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
       0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input), "hello world");
-  EXPECT_EQ(decompress_stream(input), "hello world");
+  EXPECT_GZIP_DECOMPRESS(input, "hello world");
 }
 
 TEST(decompress_header_with_fextra_of_null_bytes_before_fname) {
@@ -843,8 +84,7 @@ TEST(decompress_header_with_fextra_of_null_bytes_before_fname) {
       0x00, 0x00, 0x00, 0x00, 0x6e, 0x61, 0x6d, 0x65, 0x00, 0x01, 0x0b,
       0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f,
       0x72, 0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input), "hello world");
-  EXPECT_EQ(decompress_stream(input), "hello world");
+  EXPECT_GZIP_DECOMPRESS(input, "hello world");
 }
 
 TEST(decompress_header_with_fextra_and_fname) {
@@ -853,8 +93,7 @@ TEST(decompress_header_with_fextra_and_fname) {
       0x00, 0x78, 0x79, 0x7a, 0x6e, 0x61, 0x6d, 0x65, 0x00, 0x01, 0x0b,
       0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f,
       0x72, 0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input), "hello world");
-  EXPECT_EQ(decompress_stream(input), "hello world");
+  EXPECT_GZIP_DECOMPRESS(input, "hello world");
 }
 
 TEST(decompress_header_with_fextra_and_fcomment) {
@@ -863,8 +102,7 @@ TEST(decompress_header_with_fextra_and_fcomment) {
       0x00, 0x41, 0x42, 0x68, 0x69, 0x00, 0x01, 0x0b, 0x00, 0xf4, 0xff,
       0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72, 0x6c, 0x64,
       0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input), "hello world");
-  EXPECT_EQ(decompress_stream(input), "hello world");
+  EXPECT_GZIP_DECOMPRESS(input, "hello world");
 }
 
 TEST(decompress_header_with_fname_and_fcomment) {
@@ -873,8 +111,7 @@ TEST(decompress_header_with_fname_and_fcomment) {
       0x2e, 0x74, 0x78, 0x74, 0x00, 0x63, 0x6d, 0x74, 0x00, 0x01, 0x0b,
       0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f,
       0x72, 0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input), "hello world");
-  EXPECT_EQ(decompress_stream(input), "hello world");
+  EXPECT_GZIP_DECOMPRESS(input, "hello world");
 }
 
 TEST(decompress_header_with_fname) {
@@ -883,8 +120,7 @@ TEST(decompress_header_with_fname) {
       0x61, 0x74, 0x61, 0x2e, 0x74, 0x78, 0x74, 0x00, 0x01, 0x0b, 0x00,
       0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
       0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input), "hello world");
-  EXPECT_EQ(decompress_stream(input), "hello world");
+  EXPECT_GZIP_DECOMPRESS(input, "hello world");
 }
 
 TEST(decompress_header_with_empty_fname) {
@@ -892,8 +128,7 @@ TEST(decompress_header_with_empty_fname) {
       0x1f, 0x8b, 0x08, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x00, 0x01,
       0x0b, 0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f,
       0x72, 0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input), "hello world");
-  EXPECT_EQ(decompress_stream(input), "hello world");
+  EXPECT_GZIP_DECOMPRESS(input, "hello world");
 }
 
 TEST(decompress_header_with_fname_containing_gzip_magic) {
@@ -902,8 +137,7 @@ TEST(decompress_header_with_fname_containing_gzip_magic) {
       0x1f, 0x8b, 0x08, 0x1f, 0x8b, 0x00, 0x01, 0x0b, 0x00, 0xf4,
       0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
       0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input), "hello world");
-  EXPECT_EQ(decompress_stream(input), "hello world");
+  EXPECT_GZIP_DECOMPRESS(input, "hello world");
 }
 
 TEST(decompress_header_with_latin1_fname) {
@@ -912,8 +146,7 @@ TEST(decompress_header_with_latin1_fname) {
       0xa9, 0xc6, 0xff, 0x00, 0x01, 0x0b, 0x00, 0xf4, 0xff, 0x68,
       0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72, 0x6c, 0x64,
       0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input), "hello world");
-  EXPECT_EQ(decompress_stream(input), "hello world");
+  EXPECT_GZIP_DECOMPRESS(input, "hello world");
 }
 
 TEST(decompress_header_with_fcomment) {
@@ -923,8 +156,7 @@ TEST(decompress_header_with_fcomment) {
       0x20, 0x74, 0x77, 0x6f, 0x20, 0x6c, 0x69, 0x6e, 0x65, 0x73, 0x00, 0x01,
       0x0b, 0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f,
       0x72, 0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input), "hello world");
-  EXPECT_EQ(decompress_stream(input), "hello world");
+  EXPECT_GZIP_DECOMPRESS(input, "hello world");
 }
 
 TEST(decompress_header_with_empty_fcomment) {
@@ -932,8 +164,7 @@ TEST(decompress_header_with_empty_fcomment) {
       0x1f, 0x8b, 0x08, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x00, 0x01,
       0x0b, 0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f,
       0x72, 0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input), "hello world");
-  EXPECT_EQ(decompress_stream(input), "hello world");
+  EXPECT_GZIP_DECOMPRESS(input, "hello world");
 }
 
 TEST(decompress_header_with_latin1_fcomment) {
@@ -942,8 +173,7 @@ TEST(decompress_header_with_latin1_fcomment) {
       0xc0, 0xc1, 0xfe, 0x00, 0x01, 0x0b, 0x00, 0xf4, 0xff, 0x68,
       0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72, 0x6c, 0x64,
       0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input), "hello world");
-  EXPECT_EQ(decompress_stream(input), "hello world");
+  EXPECT_GZIP_DECOMPRESS(input, "hello world");
 }
 
 TEST(decompress_header_with_every_optional_field) {
@@ -953,8 +183,7 @@ TEST(decompress_header_with_every_optional_field) {
       0x00, 0x63, 0x6f, 0x6d, 0x6d, 0x65, 0x6e, 0x74, 0x00, 0x90, 0x3e, 0x01,
       0x0b, 0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f,
       0x72, 0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input), "hello world");
-  EXPECT_EQ(decompress_stream(input), "hello world");
+  EXPECT_GZIP_DECOMPRESS(input, "hello world");
 }
 
 TEST(decompress_header_with_nonzero_mtime) {
@@ -962,8 +191,7 @@ TEST(decompress_header_with_nonzero_mtime) {
       0x1f, 0x8b, 0x08, 0x00, 0x78, 0x56, 0x34, 0x12, 0x00, 0xff, 0x01, 0x0b,
       0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
       0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input), "hello world");
-  EXPECT_EQ(decompress_stream(input), "hello world");
+  EXPECT_GZIP_DECOMPRESS(input, "hello world");
 }
 
 TEST(decompress_header_with_maximum_compression_xfl) {
@@ -971,8 +199,7 @@ TEST(decompress_header_with_maximum_compression_xfl) {
       0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x01, 0x0b,
       0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
       0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input), "hello world");
-  EXPECT_EQ(decompress_stream(input), "hello world");
+  EXPECT_GZIP_DECOMPRESS(input, "hello world");
 }
 
 TEST(decompress_header_with_fastest_compression_xfl) {
@@ -980,8 +207,7 @@ TEST(decompress_header_with_fastest_compression_xfl) {
       0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0xff, 0x01, 0x0b,
       0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
       0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input), "hello world");
-  EXPECT_EQ(decompress_stream(input), "hello world");
+  EXPECT_GZIP_DECOMPRESS(input, "hello world");
 }
 
 TEST(decompress_header_with_unix_os) {
@@ -989,16 +215,14 @@ TEST(decompress_header_with_unix_os) {
       0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x01, 0x0b,
       0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
       0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input), "hello world");
-  EXPECT_EQ(decompress_stream(input), "hello world");
+  EXPECT_GZIP_DECOMPRESS(input, "hello world");
 }
 
 TEST(decompress_stored_block_with_empty_final_block) {
   const std::vector<std::uint8_t> input{
       0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x01, 0x00,
       0x00, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input), "");
-  EXPECT_EQ(decompress_stream(input), "");
+  EXPECT_GZIP_DECOMPRESS(input, "");
 }
 
 TEST(decompress_empty_stored_block_before_data) {
@@ -1007,8 +231,7 @@ TEST(decompress_empty_stored_block_before_data) {
       0x00, 0x00, 0x00, 0xff, 0xff, 0x01, 0x0b, 0x00, 0xf4, 0xff,
       0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72, 0x6c,
       0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input), "hello world");
-  EXPECT_EQ(decompress_stream(input), "hello world");
+  EXPECT_GZIP_DECOMPRESS(input, "hello world");
 }
 
 TEST(decompress_two_stored_blocks) {
@@ -1017,8 +240,7 @@ TEST(decompress_two_stored_blocks) {
       0x00, 0x05, 0x00, 0xfa, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f,
       0x01, 0x06, 0x00, 0xf9, 0xff, 0x20, 0x77, 0x6f, 0x72, 0x6c,
       0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input), "hello world");
-  EXPECT_EQ(decompress_stream(input), "hello world");
+  EXPECT_GZIP_DECOMPRESS(input, "hello world");
 }
 
 TEST(decompress_stored_block_ignores_nonzero_bits_before_byte_boundary) {
@@ -1026,8 +248,7 @@ TEST(decompress_stored_block_ignores_nonzero_bits_before_byte_boundary) {
       0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
       0xff, 0x4a, 0x04, 0xe4, 0x01, 0x00, 0xfe, 0xff, 0x62,
       0x6d, 0x48, 0x83, 0x9e, 0x02, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input), "ab");
-  EXPECT_EQ(decompress_stream(input), "ab");
+  EXPECT_GZIP_DECOMPRESS(input, "ab");
 }
 
 TEST(decompress_fixed_block_with_every_literal_value) {
@@ -1062,16 +283,14 @@ TEST(decompress_fixed_block_with_every_literal_value) {
     expected.push_back(static_cast<char>(index));
   }
 
-  EXPECT_EQ(decompress_one_shot(input), expected);
-  EXPECT_EQ(decompress_stream(input), expected);
+  EXPECT_GZIP_DECOMPRESS(input, expected);
 }
 
 TEST(decompress_fixed_block_with_only_end_of_block) {
   const std::vector<std::uint8_t> input{
       0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x13,
       0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input), "");
-  EXPECT_EQ(decompress_stream(input), "");
+  EXPECT_GZIP_DECOMPRESS(input, "");
 }
 
 TEST(decompress_fixed_block_with_repeated_word) {
@@ -1079,8 +298,7 @@ TEST(decompress_fixed_block_with_repeated_word) {
       0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x13,
       0xcb, 0x48, 0xcd, 0xc9, 0xc9, 0x57, 0xc8, 0xc0, 0x4e, 0x02,
       0x00, 0xf6, 0xd2, 0x53, 0x38, 0x1d, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input), "hello hello hello hello hello");
-  EXPECT_EQ(decompress_stream(input), "hello hello hello hello hello");
+  EXPECT_GZIP_DECOMPRESS(input, "hello hello hello hello hello");
 }
 
 TEST(decompress_fixed_block_with_boundary_match_lengths) {
@@ -1089,24 +307,21 @@ TEST(decompress_fixed_block_with_boundary_match_lengths) {
       0x04, 0x02, 0x04, 0x40, 0x02, 0xc8, 0x00, 0x13, 0x60, 0x01, 0x84,
       0x01, 0x11, 0x60, 0xe0, 0xc1, 0x20, 0x00, 0x23, 0x00, 0x8c, 0x78,
       0x30, 0x0a, 0x00, 0x9b, 0xb4, 0x10, 0xfa, 0x7a, 0x04, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input), std::string(1146, 'a'));
-  EXPECT_EQ(decompress_stream(input), std::string(1146, 'a'));
+  EXPECT_GZIP_DECOMPRESS(input, std::string(1146, 'a'));
 }
 
 TEST(decompress_fixed_block_overlapping_match) {
   const std::vector<std::uint8_t> input{
       0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x8b, 0x88,
       0x04, 0x43, 0x00, 0x60, 0xa5, 0xd7, 0x74, 0x07, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input), "XYXYXYX");
-  EXPECT_EQ(decompress_stream(input), "XYXYXYX");
+  EXPECT_GZIP_DECOMPRESS(input, "XYXYXYX");
 }
 
 TEST(decompress_fixed_block_maximum_length_match_at_distance_one) {
   const std::vector<std::uint8_t> input{
       0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xab,
       0x18, 0x05, 0x00, 0xad, 0x7c, 0x22, 0xf7, 0x03, 0x01, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input), std::string(259, 'x'));
-  EXPECT_EQ(decompress_stream(input), std::string(259, 'x'));
+  EXPECT_GZIP_DECOMPRESS(input, std::string(259, 'x'));
 }
 
 TEST(decompress_fixed_block_matches_wrapping_the_window) {
@@ -1136,8 +351,7 @@ TEST(decompress_fixed_block_matches_wrapping_the_window) {
     expected += "ab";
   }
 
-  EXPECT_EQ(decompress_one_shot(input), expected);
-  EXPECT_EQ(decompress_stream(input), expected);
+  EXPECT_GZIP_DECOMPRESS(input, expected);
 }
 
 TEST(decompress_match_across_stored_and_fixed_blocks) {
@@ -1145,8 +359,7 @@ TEST(decompress_match_across_stored_and_fixed_blocks) {
       0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x00,
       0x06, 0x00, 0xf9, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x03,
       0x93, 0x00, 0x40, 0xa6, 0x2d, 0x01, 0x0b, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input), "hello hello");
-  EXPECT_EQ(decompress_stream(input), "hello hello");
+  EXPECT_GZIP_DECOMPRESS(input, "hello hello");
 }
 
 TEST(decompress_match_spanning_several_blocks) {
@@ -1155,16 +368,14 @@ TEST(decompress_match_spanning_several_blocks) {
       0x00, 0x02, 0x00, 0xfd, 0xff, 0x61, 0x62, 0x4a, 0x4e, 0x01,
       0x00, 0x02, 0x00, 0xfd, 0xff, 0x65, 0x66, 0x83, 0x90, 0x00,
       0x66, 0xe9, 0xe4, 0x71, 0x0c, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input), "abcdefabcdef");
-  EXPECT_EQ(decompress_stream(input), "abcdefabcdef");
+  EXPECT_GZIP_DECOMPRESS(input, "abcdefabcdef");
 }
 
 TEST(decompress_ignores_nonzero_padding_bits_after_final_block) {
   const std::vector<std::uint8_t> input{
       0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x4b,
       0x04, 0xfc, 0x43, 0xbe, 0xb7, 0xe8, 0x01, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input), "a");
-  EXPECT_EQ(decompress_stream(input), "a");
+  EXPECT_GZIP_DECOMPRESS(input, "a");
 }
 
 TEST(decompress_dynamic_block_with_literals_and_match) {
@@ -1183,8 +394,7 @@ TEST(decompress_dynamic_block_with_literals_and_match) {
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
       0x00, 0x00, 0x00, 0x10, 0x21, 0xe2, 0x02, 0x14, 0x41, 0xc8, 0x7f, 0x07,
       0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input), "ababbbb");
-  EXPECT_EQ(decompress_stream(input), "ababbbb");
+  EXPECT_GZIP_DECOMPRESS(input, "ababbbb");
 }
 
 TEST(decompress_dynamic_block_without_distance_codes) {
@@ -1203,8 +413,7 @@ TEST(decompress_dynamic_block_without_distance_codes) {
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
       0x00, 0x00, 0x00, 0x20, 0x20, 0x2d, 0x73, 0x07, 0xf0, 0x03, 0x00, 0x00,
       0x00};
-  EXPECT_EQ(decompress_one_shot(input), "aaa");
-  EXPECT_EQ(decompress_stream(input), "aaa");
+  EXPECT_GZIP_DECOMPRESS(input, "aaa");
 }
 
 TEST(decompress_dynamic_block_with_only_end_of_block) {
@@ -1212,8 +421,7 @@ TEST(decompress_dynamic_block_with_only_end_of_block) {
       0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x05,
       0xc0, 0x81, 0x08, 0x00, 0x00, 0x00, 0x00, 0x20, 0x7f, 0xeb, 0x03,
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input), "");
-  EXPECT_EQ(decompress_stream(input), "");
+  EXPECT_GZIP_DECOMPRESS(input, "");
 }
 
 TEST(decompress_dynamic_block_with_single_literal_length_code) {
@@ -1232,8 +440,7 @@ TEST(decompress_dynamic_block_with_single_literal_length_code) {
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
       0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
       0x00};
-  EXPECT_EQ(decompress_one_shot(input), "");
-  EXPECT_EQ(decompress_stream(input), "");
+  EXPECT_GZIP_DECOMPRESS(input, "");
 }
 
 TEST(decompress_dynamic_block_with_maximum_literal_length_codes) {
@@ -1253,8 +460,7 @@ TEST(decompress_dynamic_block_with_maximum_literal_length_codes) {
       0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xa1, 0x05, 0x56, 0xfa, 0xc2, 0x34,
       0x03, 0x01, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input), std::string(259, 'a'));
-  EXPECT_EQ(decompress_stream(input), std::string(259, 'a'));
+  EXPECT_GZIP_DECOMPRESS(input, std::string(259, 'a'));
 }
 
 TEST(decompress_dynamic_block_with_maximum_distance_codes) {
@@ -1274,8 +480,7 @@ TEST(decompress_dynamic_block_with_maximum_distance_codes) {
       0x00, 0x00, 0x00, 0x10, 0x21, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xe0, 0x17, 0x0b, 0xe0,
       0xcc, 0xc9, 0x08, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input), "ababaaaa");
-  EXPECT_EQ(decompress_stream(input), "ababaaaa");
+  EXPECT_GZIP_DECOMPRESS(input, "ababaaaa");
 }
 
 TEST(decompress_dynamic_block_with_fifteen_bit_literal_length_codes) {
@@ -1295,8 +500,7 @@ TEST(decompress_dynamic_block_with_fifteen_bit_literal_length_codes) {
       0x00, 0x00, 0x00, 0x3c, 0x68, 0xf7, 0xbe, 0xdf, 0xdf, 0xbf, 0xff, 0xfe,
       0xf7, 0x7f, 0xff, 0xef, 0xff, 0xfb, 0xff, 0xfd, 0xff, 0xfe, 0xff, 0x66,
       0xcd, 0x32, 0x19, 0x10, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input), "abcdefghijklmnoo");
-  EXPECT_EQ(decompress_stream(input), "abcdefghijklmnoo");
+  EXPECT_GZIP_DECOMPRESS(input, "abcdefghijklmnoo");
 }
 
 TEST(decompress_dynamic_block_with_fifteen_bit_distance_codes) {
@@ -1343,8 +547,7 @@ TEST(decompress_dynamic_block_with_fifteen_bit_distance_codes) {
   }
 
   expected.append({0x3f, 0x40, 0x41, 0x43, 0x44, 0x45, 0x45, 0x45, 0x45});
-  EXPECT_EQ(decompress_one_shot(input), expected);
-  EXPECT_EQ(decompress_stream(input), expected);
+  EXPECT_GZIP_DECOMPRESS(input, expected);
 }
 
 TEST(decompress_dynamic_block_with_seven_bit_code_length_codes) {
@@ -1355,8 +558,7 @@ TEST(decompress_dynamic_block_with_seven_bit_code_length_codes) {
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfc, 0x69, 0xf7, 0xbe, 0xdf, 0x1f,
       0xa6, 0x6a, 0x2a, 0x31, 0x07, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input), "abcdefg");
-  EXPECT_EQ(decompress_stream(input), "abcdefg");
+  EXPECT_GZIP_DECOMPRESS(input, "abcdefg");
 }
 
 TEST(decompress_dynamic_block_repeat_previous_code_length_across_alphabets) {
@@ -1364,8 +566,7 @@ TEST(decompress_dynamic_block_repeat_previous_code_length_across_alphabets) {
       0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x0d,
       0x83, 0x05, 0x01, 0x00, 0x00, 0x00, 0x40, 0xb6, 0xf2, 0x7f, 0x84,
       0x44, 0xfc, 0x0b, 0xbb, 0xc2, 0xf9, 0x28, 0x0a, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input), "abababaaba");
-  EXPECT_EQ(decompress_stream(input), "abababaaba");
+  EXPECT_GZIP_DECOMPRESS(input, "abababaaba");
 }
 
 TEST(decompress_dynamic_block_repeat_zero_code_length_across_alphabets) {
@@ -1373,8 +574,7 @@ TEST(decompress_dynamic_block_repeat_zero_code_length_across_alphabets) {
       0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x1d, 0xc3,
       0x21, 0x01, 0x00, 0x00, 0x00, 0x80, 0xa0, 0xad, 0xfa, 0x7f, 0x84, 0x16,
       0x40, 0xfc, 0x02, 0xbb, 0xc2, 0xf9, 0x28, 0x0a, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input), "abababaaba");
-  EXPECT_EQ(decompress_stream(input), "abababaaba");
+  EXPECT_GZIP_DECOMPRESS(input, "abababaaba");
 }
 
 TEST(decompress_member_mixing_every_block_type) {
@@ -1395,8 +595,7 @@ TEST(decompress_member_mixing_every_block_type) {
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0xe0,
       0x1b, 0x1b, 0xe1, 0x07, 0x15, 0x04, 0x00, 0x4a, 0xa1, 0x0b, 0x7c, 0x1c,
       0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input), "stored fixed dynamic stored ");
-  EXPECT_EQ(decompress_stream(input), "stored fixed dynamic stored ");
+  EXPECT_GZIP_DECOMPRESS(input, "stored fixed dynamic stored ");
 }
 
 TEST(decompress_two_members) {
@@ -1406,8 +605,7 @@ TEST(decompress_two_members) {
       0x05, 0x00, 0x00, 0x00, 0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00,
       0x04, 0xff, 0x01, 0x06, 0x00, 0xf9, 0xff, 0x20, 0x77, 0x6f, 0x72, 0x6c,
       0x64, 0xcb, 0x42, 0x3b, 0x4a, 0x06, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input), "hello world");
-  EXPECT_EQ(decompress_stream(input), "hello world");
+  EXPECT_GZIP_DECOMPRESS(input, "hello world");
 }
 
 TEST(decompress_three_members_with_empty_member) {
@@ -1419,8 +617,7 @@ TEST(decompress_three_members_with_empty_member) {
       0x00, 0x00, 0x00, 0x00, 0x00, 0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00,
       0x00, 0x00, 0x04, 0xff, 0x01, 0x03, 0x00, 0xfc, 0xff, 0x62, 0x61,
       0x7a, 0x98, 0x04, 0x24, 0x78, 0x03, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input), "foobaz");
-  EXPECT_EQ(decompress_stream(input), "foobaz");
+  EXPECT_GZIP_DECOMPRESS(input, "foobaz");
 }
 
 TEST(decompress_empty_member_between_members) {
@@ -1432,8 +629,7 @@ TEST(decompress_empty_member_between_members) {
       0x00, 0x00, 0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0xff,
       0x01, 0x05, 0x00, 0xfa, 0xff, 0x72, 0x69, 0x67, 0x68, 0x74, 0x14, 0x75,
       0xca, 0xb4, 0x05, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input), "leftright");
-  EXPECT_EQ(decompress_stream(input), "leftright");
+  EXPECT_GZIP_DECOMPRESS(input, "leftright");
 }
 
 TEST(decompress_members_with_different_optional_header_fields) {
@@ -1446,8 +642,7 @@ TEST(decompress_members_with_different_optional_header_fields) {
       0x2e, 0x74, 0x78, 0x74, 0x00, 0x63, 0x6f, 0x6d, 0x6d, 0x65, 0x6e,
       0x74, 0x00, 0x90, 0x3e, 0x01, 0x05, 0x00, 0xfa, 0xff, 0x77, 0x6f,
       0x72, 0x6c, 0x64, 0x43, 0x11, 0x77, 0x3a, 0x05, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input), "hello world");
-  EXPECT_EQ(decompress_stream(input), "hello world");
+  EXPECT_GZIP_DECOMPRESS(input, "hello world");
 }
 
 TEST(decompress_run_wrapping_the_window) {
@@ -1474,8 +669,7 @@ TEST(decompress_run_wrapping_the_window) {
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
       0x00, 0x00, 0x00, 0x00, 0x00, 0x5c, 0x01, 0x9b, 0x53, 0x69, 0xe0, 0x40,
       0x0d, 0x03, 0x00};
-  EXPECT_EQ(decompress_one_shot(input), std::string(200000, 'a'));
-  EXPECT_EQ(decompress_stream(input), std::string(200000, 'a'));
+  EXPECT_GZIP_DECOMPRESS(input, std::string(200000, 'a'));
 }
 
 TEST(decompress_ignores_trailing_text) {
@@ -1486,8 +680,7 @@ TEST(decompress_ignores_trailing_text) {
       0x00, 0x67, 0x61, 0x72, 0x62, 0x61, 0x67, 0x65, 0x20, 0x64, 0x61,
       0x74, 0x61, 0x20, 0x61, 0x66, 0x74, 0x65, 0x72, 0x20, 0x67, 0x7a,
       0x69, 0x70, 0x20, 0x65, 0x6e, 0x64};
-  EXPECT_EQ(decompress_one_shot(input), "hello world");
-  EXPECT_EQ(decompress_stream(input), "hello world");
+  EXPECT_GZIP_DECOMPRESS(input, "hello world");
 }
 
 TEST(decompress_ignores_single_trailing_identification_byte) {
@@ -1495,8 +688,7 @@ TEST(decompress_ignores_single_trailing_identification_byte) {
       0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0xff, 0x01, 0x0b,
       0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
       0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00, 0x1f};
-  EXPECT_EQ(decompress_one_shot(input), "hello world");
-  EXPECT_EQ(decompress_stream(input), "hello world");
+  EXPECT_GZIP_DECOMPRESS(input, "hello world");
 }
 
 TEST(decompress_ignores_trailing_first_identification_byte_without_second) {
@@ -1505,8 +697,7 @@ TEST(decompress_ignores_trailing_first_identification_byte_without_second) {
       0x01, 0x0b, 0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f,
       0x20, 0x77, 0x6f, 0x72, 0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d,
       0x0b, 0x00, 0x00, 0x00, 0x1f, 0x8c, 0x6d, 0x6f, 0x72, 0x65};
-  EXPECT_EQ(decompress_one_shot(input), "hello world");
-  EXPECT_EQ(decompress_stream(input), "hello world");
+  EXPECT_GZIP_DECOMPRESS(input, "hello world");
 }
 
 TEST(decompress_ignores_member_after_trailing_garbage) {
@@ -1516,8 +707,7 @@ TEST(decompress_ignores_member_after_trailing_garbage) {
       0x05, 0x00, 0x00, 0x00, 0x6a, 0x75, 0x6e, 0x6b, 0x1f, 0x8b, 0x08, 0x00,
       0x00, 0x00, 0x00, 0x00, 0x04, 0xff, 0x01, 0x05, 0x00, 0xfa, 0xff, 0x77,
       0x6f, 0x72, 0x6c, 0x64, 0x43, 0x11, 0x77, 0x3a, 0x05, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input), "hello");
-  EXPECT_EQ(decompress_stream(input), "hello");
+  EXPECT_GZIP_DECOMPRESS(input, "hello");
 }
 
 TEST(decompress_ignores_trailing_garbage_after_empty_member) {
@@ -1525,8 +715,7 @@ TEST(decompress_ignores_trailing_garbage_after_empty_member) {
       0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04,
       0xff, 0x01, 0x00, 0x00, 0xff, 0xff, 0x00, 0x00, 0x00,
       0x00, 0x00, 0x00, 0x00, 0x00, 0x6a, 0x75, 0x6e, 0x6b};
-  EXPECT_EQ(decompress_one_shot(input), "");
-  EXPECT_EQ(decompress_stream(input), "");
+  EXPECT_GZIP_DECOMPRESS(input, "");
 }
 
 TEST(decompress_header_with_maximum_length_fextra) {
@@ -1536,8 +725,7 @@ TEST(decompress_header_with_maximum_length_fextra) {
   input.insert(input.end(), {0x01, 0x0b, 0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c,
                              0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72, 0x6c, 0x64,
                              0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00});
-  EXPECT_EQ(decompress_one_shot(input), "hello world");
-  EXPECT_EQ(decompress_stream(input), "hello world");
+  EXPECT_GZIP_DECOMPRESS(input, "hello world");
 }
 
 TEST(decompress_header_with_one_megabyte_fname) {
@@ -1548,8 +736,7 @@ TEST(decompress_header_with_one_megabyte_fname) {
   input.insert(input.end(), {0x01, 0x0b, 0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c,
                              0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72, 0x6c, 0x64,
                              0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00});
-  EXPECT_EQ(decompress_one_shot(input), "hello world");
-  EXPECT_EQ(decompress_stream(input), "hello world");
+  EXPECT_GZIP_DECOMPRESS(input, "hello world");
 }
 
 TEST(decompress_header_with_one_megabyte_fcomment) {
@@ -1560,8 +747,7 @@ TEST(decompress_header_with_one_megabyte_fcomment) {
   input.insert(input.end(), {0x01, 0x0b, 0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c,
                              0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72, 0x6c, 0x64,
                              0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00});
-  EXPECT_EQ(decompress_one_shot(input), "hello world");
-  EXPECT_EQ(decompress_stream(input), "hello world");
+  EXPECT_GZIP_DECOMPRESS(input, "hello world");
 }
 
 TEST(decompress_header_with_fextra_spanning_stream_source_buffer) {
@@ -1571,8 +757,40 @@ TEST(decompress_header_with_fextra_spanning_stream_source_buffer) {
   input.insert(input.end(), {0x01, 0x0b, 0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c,
                              0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72, 0x6c, 0x64,
                              0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00});
-  EXPECT_EQ(decompress_one_shot(input), "hello world");
-  EXPECT_EQ(decompress_stream(input), "hello world");
+  EXPECT_GZIP_DECOMPRESS(input, "hello world");
+}
+
+TEST(decompress_trailer_spanning_stream_source_buffer) {
+  std::vector<std::uint8_t> input{0x1f, 0x8b, 0x08, 0x00, 0x00,
+                                  0x00, 0x00, 0x00, 0x00, 0xff,
+                                  0x01, 0xed, 0xff, 0x12, 0x00};
+  input.insert(input.end(), 65517, 0x00);
+  input.insert(input.end(), {0x1b, 0x35, 0x0a, 0xab, 0xed, 0xff, 0x00, 0x00});
+  EXPECT_GZIP_DECOMPRESS(input, std::string(65517, '\0'));
+}
+
+TEST(
+    decompress_second_member_identification_bytes_spanning_stream_source_buffer) {
+  std::vector<std::uint8_t> input{0x1f, 0x8b, 0x08, 0x00, 0x00,
+                                  0x00, 0x00, 0x00, 0x00, 0xff,
+                                  0x01, 0xe8, 0xff, 0x17, 0x00};
+  input.insert(input.end(), 65512, 0x00);
+  input.insert(input.end(),
+               {0x13, 0x4e, 0x7c, 0xe2, 0xe8, 0xff, 0x00, 0x00, 0x1f,
+                0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff,
+                0x01, 0x0b, 0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c,
+                0x6f, 0x20, 0x77, 0x6f, 0x72, 0x6c, 0x64, 0x85, 0x11,
+                0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00});
+  EXPECT_GZIP_DECOMPRESS(input, std::string(65512, '\0') + "hello world");
+}
+
+TEST(decompress_fixed_block_spanning_stream_source_buffer) {
+  std::vector<std::uint8_t> input{0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00,
+                                  0x00, 0x00, 0x00, 0xff, 0x63};
+  input.insert(input.end(), 69999, 0x60);
+  input.insert(input.end(),
+               {0x00, 0x00, 0xdc, 0xc8, 0xa9, 0xa6, 0x70, 0x11, 0x01, 0x00});
+  EXPECT_GZIP_DECOMPRESS(input, std::string(70000, '\0'));
 }
 
 TEST(decompress_stored_block_of_maximum_length) {
@@ -1587,8 +805,7 @@ TEST(decompress_stored_block_of_maximum_length) {
   }
 
   input.insert(input.end(), {0xad, 0x58, 0x8d, 0x46, 0xff, 0xff, 0x00, 0x00});
-  EXPECT_EQ(decompress_one_shot(input), expected);
-  EXPECT_EQ(decompress_stream(input), expected);
+  EXPECT_GZIP_DECOMPRESS(input, expected);
 }
 
 TEST(decompress_consecutive_stored_blocks_of_maximum_length) {
@@ -1610,8 +827,7 @@ TEST(decompress_consecutive_stored_blocks_of_maximum_length) {
   }
 
   input.insert(input.end(), {0x55, 0x65, 0xe3, 0x34, 0xfe, 0xff, 0x01, 0x00});
-  EXPECT_EQ(decompress_one_shot(input), expected);
-  EXPECT_EQ(decompress_stream(input), expected);
+  EXPECT_GZIP_DECOMPRESS(input, expected);
 }
 
 TEST(decompress_many_empty_stored_blocks_before_data) {
@@ -1624,8 +840,7 @@ TEST(decompress_many_empty_stored_blocks_before_data) {
   input.insert(input.end(),
                {0x01, 0x04, 0x00, 0xfb, 0xff, 0x64, 0x61, 0x74, 0x61, 0x63,
                 0xf3, 0xf3, 0xad, 0x04, 0x00, 0x00, 0x00});
-  EXPECT_EQ(decompress_one_shot(input), "data");
-  EXPECT_EQ(decompress_stream(input), "data");
+  EXPECT_GZIP_DECOMPRESS(input, "data");
 }
 
 TEST(decompress_fixed_block_with_boundary_distances) {
@@ -1649,8 +864,7 @@ TEST(decompress_fixed_block_with_boundary_distances) {
                               "\x6a\x6b\x6b\x64\x65\x4b\x4c\x4d\x4d\x4e\x4f"
                               "\x00\x01\x02\x24\x25\x26",
                               39});
-  EXPECT_EQ(decompress_one_shot(input), expected);
-  EXPECT_EQ(decompress_stream(input), expected);
+  EXPECT_GZIP_DECOMPRESS(input, expected);
 }
 
 TEST(decompress_fixed_block_maximum_length_match_at_maximum_distance) {
@@ -1670,8 +884,7 @@ TEST(decompress_fixed_block_maximum_length_match_at_maximum_distance) {
 
   input.insert(input.end(), {0x1b, 0xbd, 0xff, 0x1f, 0x00, 0xc8, 0x0f, 0x86,
                              0x20, 0x02, 0x81, 0x00, 0x00});
-  EXPECT_EQ(decompress_one_shot(input), expected);
-  EXPECT_EQ(decompress_stream(input), expected);
+  EXPECT_GZIP_DECOMPRESS(input, expected);
 }
 
 TEST(decompress_many_single_literal_fixed_blocks) {
@@ -1684,8 +897,7 @@ TEST(decompress_many_single_literal_fixed_blocks) {
 
   input.insert(input.end(),
                {0x03, 0x00, 0xa3, 0xa4, 0x55, 0x0d, 0x10, 0x27, 0x00, 0x00});
-  EXPECT_EQ(decompress_one_shot(input), std::string(10000, 'x'));
-  EXPECT_EQ(decompress_stream(input), std::string(10000, 'x'));
+  EXPECT_GZIP_DECOMPRESS(input, std::string(10000, 'x'));
 }
 
 TEST(decompress_single_fixed_block_with_maximum_compression_ratio) {
@@ -1700,8 +912,7 @@ TEST(decompress_single_fixed_block_with_maximum_compression_ratio) {
                {0x00, 0x3f, 0x79, 0xeb, 0xad, 0x03, 0x01, 0x02, 0x01});
   std::string expected;
   expected.append(16908547, 'a');
-  EXPECT_EQ(decompress_one_shot(input), expected);
-  EXPECT_EQ(decompress_stream(input), expected);
+  EXPECT_GZIP_DECOMPRESS(input, expected);
 }
 
 TEST(decompress_many_empty_members_before_data) {
@@ -1715,20 +926,7 @@ TEST(decompress_many_empty_members_before_data) {
   input.insert(input.end(), {0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00,
                              0x00, 0xff, 0x01, 0x01, 0x00, 0xfe, 0xff, 0x61,
                              0x43, 0xbe, 0xb7, 0xe8, 0x01, 0x00, 0x00, 0x00});
-  EXPECT_EQ(decompress_one_shot(input), "a");
-  EXPECT_EQ(decompress_stream(input), "a");
-}
-
-TEST(decompress_ten_thousand_single_byte_members) {
-  std::vector<std::uint8_t> input;
-  for (std::size_t index = 0; index < 10000; ++index) {
-    input.insert(input.end(), {0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00,
-                               0x00, 0xff, 0x01, 0x01, 0x00, 0xfe, 0xff, 0x61,
-                               0x43, 0xbe, 0xb7, 0xe8, 0x01, 0x00, 0x00, 0x00});
-  }
-
-  EXPECT_EQ(decompress_one_shot(input, 1), std::string(10000, 'a'));
-  EXPECT_EQ(decompress_stream(input), std::string(10000, 'a'));
+  EXPECT_GZIP_DECOMPRESS(input, "a");
 }
 
 TEST(decompress_ignores_trailing_zero_bytes) {
@@ -1737,129 +935,5 @@ TEST(decompress_ignores_trailing_zero_bytes) {
       0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
       0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
   input.insert(input.end(), 1024, 0x00);
-  EXPECT_EQ(decompress_one_shot(input), "hello world");
-  EXPECT_EQ(decompress_stream(input), "hello world");
-}
-
-TEST(decompress_output_exactly_at_maximum_size) {
-  const std::vector<std::uint8_t> input{
-      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x01, 0x0b,
-      0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
-      0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input, 0, 11), "hello world");
-  EXPECT_EQ(decompress_stream(input), "hello world");
-}
-
-TEST(decompress_empty_payload_with_zero_maximum_size) {
-  const std::vector<std::uint8_t> input{
-      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x01, 0x00,
-      0x00, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input, 0, 0), "");
-  EXPECT_EQ(decompress_stream(input), "");
-}
-
-TEST(decompress_output_hint_larger_than_output) {
-  const std::vector<std::uint8_t> input{
-      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x01, 0x0b,
-      0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
-      0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input, 1048576), "hello world");
-  EXPECT_EQ(decompress_stream(input), "hello world");
-}
-
-TEST(decompress_output_hint_above_maximum_size_with_fitting_output) {
-  const std::vector<std::uint8_t> input{
-      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x01, 0x0b,
-      0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
-      0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input, 1048576, 11), "hello world");
-  EXPECT_EQ(decompress_stream(input), "hello world");
-}
-
-TEST(decompress_output_hint_of_one_grows_to_larger_output) {
-  const std::vector<std::uint8_t> input{
-      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x4b, 0x1c,
-      0x05, 0xa3, 0x60, 0x14, 0x8c, 0x82, 0x51, 0x30, 0x0a, 0x46, 0xc1, 0x28,
-      0x18, 0x05, 0xa3, 0x60, 0x14, 0x8c, 0x82, 0x51, 0x30, 0x0a, 0x46, 0xc1,
-      0x28, 0x18, 0x05, 0x00, 0xa1, 0x87, 0xcc, 0x71, 0x23, 0x11, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input, 1), std::string(4387, 'a'));
-  EXPECT_EQ(decompress_stream(input), std::string(4387, 'a'));
-}
-
-TEST(decompress_with_largest_possible_maximum_size) {
-  const std::vector<std::uint8_t> input{
-      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x01, 0x0b,
-      0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
-      0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  EXPECT_EQ(
-      decompress_one_shot(input, 1, std::numeric_limits<std::size_t>::max()),
-      "hello world");
-  EXPECT_EQ(decompress_stream(input), "hello world");
-}
-
-TEST(decompress_input_larger_than_quarter_of_maximum_size) {
-  const std::vector<std::uint8_t> input{
-      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x01, 0x0b,
-      0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
-      0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input, 0, 40), "hello world");
-  EXPECT_EQ(decompress_stream(input), "hello world");
-}
-
-TEST(decompress_growth_clamps_to_uneven_maximum_size) {
-  const std::vector<std::uint8_t> input{
-      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x01, 0x0b,
-      0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
-      0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input, 3, 11), "hello world");
-  EXPECT_EQ(decompress_stream(input), "hello world");
-}
-
-TEST(decompress_crafted_bomb_at_maximum_size) {
-  const std::vector<std::uint8_t> input{
-      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x4b, 0x1c,
-      0x05, 0xa3, 0x60, 0x14, 0x8c, 0x82, 0x51, 0x30, 0x0a, 0x46, 0xc1, 0x28,
-      0x18, 0x05, 0xa3, 0x60, 0x14, 0x8c, 0x82, 0x51, 0x30, 0x0a, 0x46, 0xc1,
-      0x28, 0x18, 0x05, 0x00, 0xa1, 0x87, 0xcc, 0x71, 0x23, 0x11, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input, 0, 4387), std::string(4387, 'a'));
-  EXPECT_EQ(decompress_stream(input), std::string(4387, 'a'));
-}
-
-TEST(decompress_members_totaling_exactly_maximum_size) {
-  const std::vector<std::uint8_t> input{
-      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x01, 0x0b,
-      0x00, 0xf4, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72,
-      0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00, 0x1f, 0x8b,
-      0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x01, 0x0b, 0x00, 0xf4,
-      0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72, 0x6c, 0x64,
-      0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input, 0, 22), "hello worldhello world");
-  EXPECT_EQ(decompress_stream(input), "hello worldhello world");
-}
-
-TEST(decompress_members_growing_from_tiny_output_hint) {
-  const std::vector<std::uint8_t> input{
-      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0xff, 0x01, 0x05,
-      0x00, 0xfa, 0xff, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x86, 0xa6, 0x10, 0x36,
-      0x05, 0x00, 0x00, 0x00, 0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x04, 0xff, 0x01, 0x06, 0x00, 0xf9, 0xff, 0x20, 0x77, 0x6f, 0x72, 0x6c,
-      0x64, 0xcb, 0x42, 0x3b, 0x4a, 0x06, 0x00, 0x00, 0x00};
-  EXPECT_EQ(decompress_one_shot(input, 1, 1024), "hello world");
-  EXPECT_EQ(decompress_stream(input), "hello world");
-}
-
-TEST(decompress_large_member_after_small_member) {
-  // NOLINTNEXTLINE(cert-msc32-c,cert-msc51-cpp,bugprone-random-generator-seed)
-  std::mt19937 generator{20};
-  std::uniform_int_distribution<int> distribution{0, 255};
-  std::string large;
-  for (std::size_t index = 0; index < 1048576; ++index) {
-    large.push_back(static_cast<char>(distribution(generator)));
-  }
-
-  auto input{compress("x", 1)};
-  const auto large_compressed{compress(large, 6)};
-  input.insert(input.end(), large_compressed.cbegin(), large_compressed.cend());
-  EXPECT_EQ(decompress_one_shot(input, 1), "x" + large);
-  EXPECT_EQ(decompress_stream(input), "x" + large);
+  EXPECT_GZIP_DECOMPRESS(input, "hello world");
 }
