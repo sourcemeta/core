@@ -4,6 +4,7 @@
 
 #include <cstddef> // std::size_t
 #include <string>  // std::string, std::to_string
+#include <vector>  // std::vector
 
 static auto repeat(const std::string &pattern, const std::size_t count)
     -> std::string {
@@ -99,5 +100,35 @@ static void Markdown_To_HTML_Pathological(benchmark::State &state) {
   }
 }
 
+// Many short inputs, like the descriptions that schema documentation renders,
+// where the cost of every call matters more than the cost of every byte
+// NOLINTNEXTLINE(readability-identifier-naming)
+static void Markdown_To_HTML_Short_Descriptions(benchmark::State &state) {
+  std::vector<std::string> inputs;
+  inputs.reserve(1000);
+  for (std::size_t index = 0; index < 250; ++index) {
+    const auto number{std::to_string(index)};
+    inputs.push_back(
+        std::string{"The identifier of resource "}.append(number).append("."));
+    inputs.push_back(std::string{"A `string` that must match the *pattern* "}
+                         .append(number)
+                         .append("."));
+    inputs.push_back(
+        std::string{"See [the documentation](https://sourcemeta.com/"}
+            .append(number)
+            .append(") for **details**."));
+    inputs.push_back(
+        std::string{"- First option\n- Second option "}.append(number));
+  }
+
+  for (auto iteration : state) {
+    for (const auto &input : inputs) {
+      auto result{sourcemeta::core::markdown_to_html(input)};
+      benchmark::DoNotOptimize(result);
+    }
+  }
+}
+
 BENCHMARK(Markdown_To_HTML_Realistic_Document);
 BENCHMARK(Markdown_To_HTML_Pathological);
+BENCHMARK(Markdown_To_HTML_Short_Descriptions);
