@@ -2,6 +2,10 @@
 
 #include <sourcemeta/core/test.h>
 
+#include <string_view> // std::string_view
+
+using namespace std::literals::string_view_literals;
+
 TEST(html_block_script_with_blank_lines) {
   const auto result{sourcemeta::core::markdown_to_html(
       "<script type=\"module\">\n\nconst x = 1;\n\n</script>\nafter", false)};
@@ -320,4 +324,22 @@ TEST(unsafe_mode_keeps_dangerous_link) {
   const auto result{sourcemeta::core::markdown_to_html(
       "[click](javascript:alert(1))", false)};
   EXPECT_EQ(result, "<p><a href=\"javascript:alert(1)\">click</a></p>\n");
+}
+
+TEST(unsafe_mode_invalid_utf8_inside_html_block) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("<div>\xFF</div>", false)};
+  EXPECT_EQ(result, "<div>\xef\xbf\xbd</div>\n");
+}
+
+TEST(unsafe_mode_invalid_utf8_inside_inline_html_attribute) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("x <span title=\"\xC3\">", false)};
+  EXPECT_EQ(result, "<p>x <span title=\"\xef\xbf\xbd\"></p>\n");
+}
+
+TEST(unsafe_mode_nul_character_inside_inline_html) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("x <span title=\"a\0z\">"sv, false)};
+  EXPECT_EQ(result, "<p>x <span title=\"a\xef\xbf\xbdz\"></p>\n");
 }

@@ -2,6 +2,73 @@
 
 #include <sourcemeta/core/test.h>
 
+TEST(safe_mode_renders_plain_content) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("Hello **world**", true)};
+  EXPECT_EQ(result, "<p>Hello <strong>world</strong></p>\n");
+}
+
+TEST(safe_mode_omits_raw_html) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("<div onclick=\"x\">hi</div>", true)};
+  EXPECT_EQ(result, "<!-- raw HTML omitted -->\n");
+}
+
+TEST(default_omits_raw_html) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("<div onclick=\"x\">hi</div>")};
+  EXPECT_EQ(result, "<!-- raw HTML omitted -->\n");
+}
+
+TEST(default_strips_dangerous_link) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("[click](javascript:alert(1))")};
+  EXPECT_EQ(result, "<p><a href=\"\">click</a></p>\n");
+}
+
+TEST(inline_html_is_sanitized) {
+  const auto result{sourcemeta::core::markdown_to_html("Hello <em>world</em>")};
+  EXPECT_EQ(
+      result,
+      "<p>Hello <!-- raw HTML omitted -->world<!-- raw HTML omitted --></p>\n");
+}
+
+TEST(raw_html_block_is_sanitized) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("<div class=\"foo\">bar</div>")};
+  EXPECT_EQ(result, "<!-- raw HTML omitted -->\n");
+}
+
+TEST(script_tag_is_sanitized) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("<script>alert('xss')</script>")};
+  EXPECT_EQ(result, "<!-- raw HTML omitted -->\n");
+}
+
+TEST(iframe_is_sanitized) {
+  const auto result{sourcemeta::core::markdown_to_html(
+      "<iframe src=\"https://evil.com\"></iframe>")};
+  EXPECT_EQ(result, "<!-- raw HTML omitted -->\n");
+}
+
+TEST(javascript_link_is_sanitized) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("[click](javascript:alert('xss'))")};
+  EXPECT_EQ(result, "<p><a href=\"\">click</a></p>\n");
+}
+
+TEST(vbscript_link_is_sanitized) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("[click](vbscript:MsgBox)")};
+  EXPECT_EQ(result, "<p><a href=\"\">click</a></p>\n");
+}
+
+TEST(data_uri_link_is_sanitized) {
+  const auto result{sourcemeta::core::markdown_to_html(
+      "[click](data:text/html,<h1>hi</h1>)")};
+  EXPECT_EQ(result, "<p><a href=\"\">click</a></p>\n");
+}
+
 TEST(safe_mode_strips_mixed_case_javascript_scheme) {
   const auto result{
       sourcemeta::core::markdown_to_html("[click](JaVaScRiPt:void(0))")};

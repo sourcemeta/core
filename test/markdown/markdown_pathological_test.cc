@@ -6,8 +6,6 @@
 #include <string>      // std::string, std::to_string
 #include <string_view> // std::string_view
 
-using namespace std::literals::string_view_literals;
-
 static auto repeat(const std::string_view pattern, const std::size_t count)
     -> std::string {
   std::string result;
@@ -216,11 +214,6 @@ TEST(table_with_many_columns) {
                         "</tr>\n</thead>\n<tbody>\n<tr>\n" +
                         repeat("<td>c</td>\n", 1000) +
                         "</tr>\n</tbody>\n</table>\n");
-}
-
-TEST(nul_characters_are_replaced) {
-  const auto result{sourcemeta::core::markdown_to_html("one\0two\0"sv)};
-  EXPECT_EQ(result, "<p>one\xef\xbf\xbdtwo\xef\xbf\xbd</p>\n");
 }
 
 TEST(link_reference_label_of_one_thousand_characters) {
