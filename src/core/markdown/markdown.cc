@@ -1,75 +1,61 @@
 #include <sourcemeta/core/markdown.h>
+#include <sourcemeta/core/text.h>
 #include <sourcemeta/core/unicode.h>
 
-#include <cmark-gfm-core-extensions.h> // cmark_gfm_core_extensions_ensure_registered
-#include <cmark-gfm-extension_api.h> // cmark_find_syntax_extension, cmark_parser_attach_syntax_extension, cmark_parser_get_syntax_extensions
-#include <cmark-gfm.h> // cmark_parser_new, cmark_parser_feed, cmark_parser_finish, cmark_parser_free, cmark_render_html, cmark_node_free
+#include "blocks.h"
+#include "characters.h"
+#include "document.h"
+#include "inlines.h"
+#include "postprocess.h"
+#include "render.h"
 
-#include <array>       // std::array
-#include <cstddef>     // std::size_t
-#include <cstdlib>     // std::free
-#include <mutex>       // std::mutex, std::scoped_lock
 #include <string>      // std::string
 #include <string_view> // std::string_view
+
+namespace {
+
+// The state of every thread is kept across calls, so that rendering many
+// small inputs does not allocate the same buffers over and over
+struct MarkdownConverter {
+  sourcemeta::core::markdown::Document document;
+  sourcemeta::core::markdown::BlockParser blocks{document};
+  sourcemeta::core::markdown::InlineParser inlines{document};
+  sourcemeta::core::markdown::PostProcessor postprocessor{document};
+  sourcemeta::core::markdown::HTMLRenderer renderer{document};
+  std::string repaired;
+};
+
+auto replace_invalid_characters(const std::string_view input,
+                                std::string &output) -> void {
+  output = sourcemeta::core::to_valid_utf8(input);
+  if (output.find('\0') != std::string::npos) {
+    output = sourcemeta::core::replace(output, std::string_view{"\0", 1},
+                                       "\xEF\xBF\xBD");
+  }
+}
+
+} // namespace
 
 namespace sourcemeta::core {
 
 auto markdown_to_html(const std::string_view input, const bool safe)
     -> std::string {
-  [[maybe_unused]] static const bool CMARK_INITIALIZED{
-      (cmark_gfm_core_extensions_ensure_registered(), true)};
-
-  // Byte sequences that are not UTF-8 become one replacement character per
-  // maximal subpart, as the Unicode Standard recommends, rather than the one
-  // replacement character per sequence that the parser would produce
-  std::size_t valid_length{0};
-  while (valid_length < input.size()) {
-    const auto length{utf8_codepoint_length(input, valid_length)};
-    if (length == 0) {
-      break;
-    }
-
-    valid_length += length;
+  thread_local MarkdownConverter converter;
+  converter.document.clear();
+  auto source{input};
+  // GFM section 2.3 requires replacing the NUL character, and byte sequences
+  // that are not well-formed UTF-8 are replaced too
+  if (input.find('\0') != std::string_view::npos ||
+      !sourcemeta::core::is_valid_utf8(input)) {
+    replace_invalid_characters(input, converter.repaired);
+    source = converter.repaired;
   }
 
-  const auto is_valid{valid_length == input.size()};
-  const auto repaired{is_valid ? std::string{} : to_valid_utf8(input)};
-  const std::string_view source{is_valid ? input : std::string_view{repaired}};
-
-  // cmark-gfm toggles process-global special-character tables when syntax
-  // extensions are attached and detached, so parser construction through
-  // teardown cannot run concurrently
-  static std::mutex cmark_mutex;
-  const std::scoped_lock lock{cmark_mutex};
-
-  static constexpr auto BASE_OPTIONS{
-      CMARK_OPT_VALIDATE_UTF8 | CMARK_OPT_FOOTNOTES |
-      CMARK_OPT_STRIKETHROUGH_DOUBLE_TILDE | CMARK_OPT_GITHUB_PRE_LANG};
-  // This cmark-gfm suppresses raw HTML and unsafe links by default, so raw
-  // output requires explicitly opting out through CMARK_OPT_UNSAFE
-  const int options{safe ? BASE_OPTIONS : (BASE_OPTIONS | CMARK_OPT_UNSAFE)};
-
-  auto *parser{cmark_parser_new(options)};
-
-  static constexpr std::array<const char *, 5> EXTENSION_NAMES{
-      {"table", "autolink", "strikethrough", "tagfilter", "tasklist"}};
-  for (const auto *name : EXTENSION_NAMES) {
-    auto *extension{cmark_find_syntax_extension(name)};
-    if (extension != nullptr) {
-      cmark_parser_attach_syntax_extension(parser, extension);
-    }
-  }
-
-  cmark_parser_feed(parser, source.data(), source.size());
-  auto *document{cmark_parser_finish(parser)};
-  auto *result{cmark_render_html(document, options,
-                                 cmark_parser_get_syntax_extensions(parser))};
-
-  std::string output{result};
-  std::free(result);
-  cmark_node_free(document);
-  cmark_parser_free(parser);
-  return output;
+  converter.blocks.parse(source, input.size());
+  converter.postprocessor.parse_inlines(converter.inlines);
+  converter.postprocessor.process_footnotes();
+  return converter.renderer.render(!safe,
+                                   source.size() + (source.size() / 2) + 64);
 }
 
 } // namespace sourcemeta::core

@@ -288,3 +288,20 @@ TEST(footnote_nested_definition_with_the_same_label_takes_precedence) {
             "aria-label=\"Back to reference 1\">\xe2\x86\xa9</a></p>\n"
             "</li>\n</ol>\n</section>\n");
 }
+
+TEST(footnote_label_with_number_sign) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("body[^a#b]\n\n[^a#b]: text")};
+  EXPECT_EQ(result,
+            "<p>body<sup class=\"footnote-ref\"><a href=\"#fn-a%23b\" "
+            "id=\"fnref-a%23b\" data-footnote-ref>1</a></sup></p>\n"
+            "<section class=\"footnotes\" data-footnotes>\n"
+            "<ol>\n"
+            "<li id=\"fn-a%23b\">\n"
+            "<p>text <a href=\"#fnref-a%23b\" class=\"footnote-backref\" "
+            "data-footnote-backref data-footnote-backref-idx=\"1\" "
+            "aria-label=\"Back to reference 1\">\xe2\x86\xa9</a></p>\n"
+            "</li>\n"
+            "</ol>\n"
+            "</section>\n");
+}

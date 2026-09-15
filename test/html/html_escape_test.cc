@@ -565,3 +565,51 @@ TEST(with_reserve) {
   sourcemeta::core::html_escape_append(buffer, "<script>alert('xss')</script>");
   EXPECT_EQ(buffer.str(), "&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;");
 }
+
+TEST(append_long_input_without_special_characters) {
+  std::string output;
+  sourcemeta::core::html_escape_append(output, "abcdefghijklmnopqrstuvwxyz");
+  EXPECT_EQ(output, "abcdefghijklmnopqrstuvwxyz");
+}
+
+TEST(append_long_input_with_special_character_after_several_words) {
+  std::string output;
+  sourcemeta::core::html_escape_append(output, "abcdefghijklmnopqrstuvw&xyz");
+  EXPECT_EQ(output, "abcdefghijklmnopqrstuvw&amp;xyz");
+}
+
+TEST(append_long_input_with_special_characters_at_word_edges) {
+  std::string output;
+  sourcemeta::core::html_escape_append(output, "<bcdefg>'ijklmno\"");
+  EXPECT_EQ(output, "&lt;bcdefg&gt;&#39;ijklmno&quot;");
+}
+
+TEST(append_no_break_space_across_word_boundary) {
+  std::string output;
+  sourcemeta::core::html_escape_append(output, "abcdefg\xC2\xA0hijklmnop");
+  EXPECT_EQ(output, "abcdefg&nbsp;hijklmnop");
+}
+
+TEST(append_other_two_byte_sequence_in_long_input) {
+  std::string output;
+  sourcemeta::core::html_escape_append(output, "abcdefg\xC2\xA9hijklmnop");
+  EXPECT_EQ(output, "abcdefg\xC2\xA9hijklmnop");
+}
+
+TEST(append_trailing_lead_byte_of_no_break_space) {
+  std::string output;
+  sourcemeta::core::html_escape_append(output, "abcdefghijklmnop\xC2");
+  EXPECT_EQ(output, "abcdefghijklmnop\xC2");
+}
+
+TEST(buffer_long_input_with_special_characters) {
+  sourcemeta::core::HTMLBuffer buffer;
+  sourcemeta::core::html_escape_append(buffer, "abcdefghijklmnop<qrstuvwx>yz");
+  EXPECT_EQ(buffer.str(), "abcdefghijklmnop&lt;qrstuvwx&gt;yz");
+}
+
+TEST(buffer_no_break_space_across_word_boundary) {
+  sourcemeta::core::HTMLBuffer buffer;
+  sourcemeta::core::html_escape_append(buffer, "abcdefg\xC2\xA0hijklmnop");
+  EXPECT_EQ(buffer.str(), "abcdefg&nbsp;hijklmnop");
+}

@@ -37,6 +37,7 @@ sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME uri
     uri_has_same_authority_test.cc
     uri_canonicalize_test.cc
     uri_escape_test.cc
+    uri_escape_reference_test.cc
     uri_unescape_test.cc
     uri_unescape_form_test.cc
     uri_escape_form_test.cc
