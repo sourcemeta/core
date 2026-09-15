@@ -296,6 +296,11 @@ private:
     this->append(NodeType::Text, contents);
   }
 
+  // Extended autolinks do not start inside brackets that may turn into link
+  // text. GFM section 6.6 says that autolinks "bind more tightly than the
+  // brackets in link text", but the path of an extended autolink of GFM
+  // section 6.9 takes "zero or more non-space non-< characters", so it would
+  // take the rest of a link such as [www.example.com](/x) along with it
   [[nodiscard]] auto
   may_start_www_autolink(const std::size_t index) const noexcept -> bool {
     if (!this->brackets_.empty()) {

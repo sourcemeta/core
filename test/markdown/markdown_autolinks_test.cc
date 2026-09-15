@@ -513,3 +513,9 @@ TEST(extended_url_autolink_domain_starting_with_underscore) {
   const auto result{sourcemeta::core::markdown_to_html("http://_a.b")};
   EXPECT_EQ(result, "<p>http://_a.b</p>\n");
 }
+
+TEST(extended_autolink_inside_brackets_that_are_not_a_link) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("[see www.sourcemeta.com]")};
+  EXPECT_EQ(result, "<p>[see www.sourcemeta.com]</p>\n");
+}
