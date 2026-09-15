@@ -53,6 +53,8 @@ constexpr std::uint16_t FLAG_FENCED{1U << 7U};
 constexpr std::uint16_t FLAG_SETEXT{1U << 8U};
 constexpr std::uint16_t FLAG_TIGHT{1U << 9U};
 constexpr std::uint16_t FLAG_REFERENCED{1U << 10U};
+constexpr std::uint16_t FLAG_ATTACHED{1U << 11U};
+constexpr std::uint16_t FLAG_DETACHED{1U << 12U};
 
 // A block or inline element, whose generic fields mean different things for
 // different types of nodes, such as the fence of a code block or the numbering

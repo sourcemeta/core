@@ -54,7 +54,7 @@ inline auto is_unicode_punctuation(const char32_t codepoint) noexcept -> bool {
          category == sourcemeta::core::GeneralCategory::OtherPunctuation;
 }
 
-// Decode the character reference that follows an ampersand as GFM section 2.5
+// Decode the character reference that follows an ampersand as GFM section 6.2
 // describes, appending its characters and returning the number of bytes it
 // takes after the ampersand, or zero if the input does not start with one
 inline auto decode_character_reference(std::string &output,
@@ -65,6 +65,11 @@ inline auto decode_character_reference(std::string &output,
     char32_t codepoint{0};
     std::size_t index{0};
     std::size_t digits{0};
+    // GFM section 6.2: "Decimal numeric character references consist of &# +
+    // a string of 1-7 arabic digits" followed by a semicolon, and "Hexadecimal
+    // numeric character references consist of &# + either X or x + a string
+    // of 1-6 hexadecimal digits" followed by a semicolon
+    std::size_t maximum_digits{0};
     if (sourcemeta::core::is_digit(input[1])) {
       for (index = 1; index < size && sourcemeta::core::is_digit(input[index]);
            ++index) {
@@ -74,6 +79,7 @@ inline auto decode_character_reference(std::string &output,
       }
 
       digits = index - 1;
+      maximum_digits = 7;
     } else if (input[1] == 'x' || input[1] == 'X') {
       for (index = 2; index < size; ++index) {
         const auto value{sourcemeta::core::hex_digit_value(input[index])};
@@ -86,9 +92,11 @@ inline auto decode_character_reference(std::string &output,
       }
 
       digits = index - 2;
+      maximum_digits = 6;
     }
 
-    if (digits >= 1 && digits <= 8 && index < size && input[index] == ';') {
+    if (digits >= 1 && digits <= maximum_digits && index < size &&
+        input[index] == ';') {
       if (codepoint == 0 || !sourcemeta::core::is_valid_codepoint(codepoint)) {
         codepoint = 0xFFFD;
       }

@@ -2,6 +2,7 @@
 #define SOURCEMETA_CORE_MARKDOWN_POSTPROCESS_H_
 
 #include <sourcemeta/core/text.h>
+#include <sourcemeta/core/unicode.h>
 
 #include "characters.h"
 #include "document.h"
@@ -9,6 +10,7 @@
 #include "references.h"
 
 #include <algorithm>     // std::sort
+#include <array>         // std::array
 #include <cstddef>       // std::size_t
 #include <cstdint>       // std::uint32_t
 #include <cstring>       // std::memchr
@@ -46,14 +48,11 @@ inline auto next_skipping_descendants(const Document &document,
   return NO_NODE;
 }
 
-// Whether a node is still part of the document
-inline auto is_attached(const Document &document, std::uint32_t index) noexcept
-    -> bool {
-  while (index != ROOT_NODE && index != NO_NODE) {
-    index = document.nodes[index].parent;
-  }
-
-  return index == ROOT_NODE;
+// A character of the part of an email address before the at sign, which GFM
+// section 6.9 makes of characters "which are alphanumeric, or ., -, _, or +"
+inline auto is_email_local_character(const char character) noexcept -> bool {
+  return sourcemeta::core::is_alphanum(character) || character == '.' ||
+         character == '-' || character == '_' || character == '+';
 }
 
 // The passes that run on the block structure once it is complete
@@ -116,7 +115,7 @@ public:
 
     std::uint32_t last_index{0};
     for (const auto reference : references) {
-      if (is_attached(this->document_, reference)) {
+      if (this->is_attached(reference)) {
         this->resolve_reference(reference, last_index);
       }
     }
@@ -235,7 +234,8 @@ private:
     auto &nodes{this->document_.nodes};
     const auto label{nodes[index].literal};
     auto definition{NO_NODE};
-    if (!label.empty() && label.size() <= MAXIMUM_LINK_LABEL_LENGTH) {
+    if (sourcemeta::core::utf8_codepoint_within(label, 1,
+                                                MAXIMUM_LINK_LABEL_LENGTH)) {
       normalize_label(this->label_buffer_, label);
       const auto match{
           this->definitions_.find(std::string_view{this->label_buffer_})};
@@ -313,145 +313,199 @@ private:
         buffered ? this->document_.strings.store(this->buffer_) : literal;
   }
 
-  static auto
-  matches_protocol(const std::string_view data, const std::size_t separator,
-                   const std::size_t rewind, const std::size_t max_rewind,
-                   const std::string_view protocol) noexcept -> bool {
-    const auto length{protocol.size()};
-    if (length > max_rewind - rewind ||
-        data.substr(separator - rewind - length, length) != protocol) {
-      return false;
+  // Whether a node is still part of the document, remembering the answer for
+  // every ancestor on the way, so that the references of a deeply nested block
+  // do not walk the same ancestors over and over
+  auto is_attached(const std::uint32_t index) -> bool {
+    auto &nodes{this->document_.nodes};
+    this->ancestors_.clear();
+    auto current{index};
+    while (current != ROOT_NODE && current != NO_NODE &&
+           !has_flag(nodes[current], FLAG_ATTACHED) &&
+           !has_flag(nodes[current], FLAG_DETACHED)) {
+      this->ancestors_.push_back(current);
+      current = nodes[current].parent;
     }
 
-    return length == max_rewind - rewind ||
-           !sourcemeta::core::is_alphanum(
-               data[separator - rewind - length - 1]);
+    const auto attached{
+        current == ROOT_NODE ||
+        (current != NO_NODE && has_flag(nodes[current], FLAG_ATTACHED))};
+    for (const auto ancestor : this->ancestors_) {
+      set_flag(nodes[ancestor], attached ? FLAG_ATTACHED : FLAG_DETACHED, true);
+    }
+
+    return attached;
   }
 
+  // Whether an extended autolink may start at the beginning of a text node,
+  // where GFM section 6.9 says that such autolinks "can only come at the
+  // beginning of a line, after whitespace, or any of the delimiting characters
+  // *, _, ~, and (", which are also the characters around emphasis, strong
+  // emphasis, and strikethrough
+  [[nodiscard]] auto may_start_autolink_at(std::uint32_t text) const noexcept
+      -> bool {
+    const auto &nodes{this->document_.nodes};
+    while (true) {
+      const auto previous{nodes[text].previous};
+      if (previous == NO_NODE) {
+        return nodes[nodes[text].parent].type != NodeType::Image;
+      }
+
+      const auto &node{nodes[previous]};
+      switch (node.type) {
+        case NodeType::Text:
+          if (!node.literal.empty()) {
+            return may_precede_extended_autolink(node.literal.back());
+          }
+
+          text = previous;
+          break;
+        case NodeType::SoftBreak:
+        case NodeType::LineBreak:
+        case NodeType::Emphasis:
+        case NodeType::Strong:
+        case NodeType::Strikethrough:
+          return true;
+        case NodeType::Document:
+        case NodeType::BlockQuote:
+        case NodeType::List:
+        case NodeType::Item:
+        case NodeType::CodeBlock:
+        case NodeType::HTMLBlock:
+        case NodeType::Paragraph:
+        case NodeType::Heading:
+        case NodeType::ThematicBreak:
+        case NodeType::FootnoteDefinition:
+        case NodeType::Table:
+        case NodeType::TableRow:
+        case NodeType::TableCell:
+        case NodeType::Code:
+        case NodeType::HTMLInline:
+        case NodeType::Link:
+        case NodeType::Image:
+        case NodeType::FootnoteReference:
+          return false;
+      }
+    }
+  }
+
+  // Turn the email addresses of GFM section 6.9 in a text node into links,
+  // along with the mailto and xmpp protocols that may come before them
   auto link_emails_in_text(std::uint32_t text) -> void {
     auto &nodes{this->document_.nodes};
     const auto data{nodes[text].literal};
-    std::size_t start{0};
-    std::size_t offset{0};
-    std::size_t remaining{data.size()};
-    while (offset < remaining) {
+    const auto first_text{text};
+    // The position of the data at which the current text node starts
+    std::size_t consumed{0};
+    std::size_t search{0};
+    while (search < data.size()) {
       const auto *const found{static_cast<const char *>(
-          std::memchr(data.data() + start + offset, '@', remaining - offset))};
+          std::memchr(data.data() + search, '@', data.size() - search))};
       if (found == nullptr) {
         break;
       }
 
-      auto max_rewind{
-          static_cast<std::size_t>(found - (data.data() + start + offset))};
-      bool auto_mailto{true};
-      bool is_xmpp{false};
+      const auto separator{static_cast<std::size_t>(found - data.data())};
+      search = separator + 1;
+      auto link_start{separator};
+      while (link_start > consumed &&
+             is_email_local_character(data[link_start - 1])) {
+        --link_start;
+      }
+
+      if (link_start == separator) {
+        continue;
+      }
+
+      // GFM section 6.9: "One or more characters which are alphanumeric, or -
+      // or _, separated by periods (.). There must be at least one period. The
+      // last character must not be one of - or _", where "only . may occur at
+      // the end of the email address, in which case it will not be considered
+      // part of the address"
+      auto end{separator + 1};
       std::size_t periods{0};
-      std::size_t rewind{0};
-      std::size_t link_end{0};
-      bool retry{true};
-      bool skip{false};
-      while (retry) {
-        retry = false;
-        const auto separator{start + offset + max_rewind};
-        for (rewind = 0; rewind < max_rewind; ++rewind) {
-          const auto character{data[separator - rewind - 1]};
-          if (sourcemeta::core::is_alphanum(character) || character == '.' ||
-              character == '+' || character == '-' || character == '_') {
-            continue;
-          }
-
-          if (character == ':' && matches_protocol(data, separator, rewind,
-                                                   max_rewind, "mailto:")) {
-            auto_mailto = false;
-            continue;
-          }
-
-          if (character == ':' &&
-              matches_protocol(data, separator, rewind, max_rewind, "xmpp:")) {
-            auto_mailto = false;
-            is_xmpp = true;
-            continue;
-          }
-
+      while (end < data.size()) {
+        if (is_domain_character(data[end])) {
+          ++end;
+        } else if (data[end] == '.' && end > separator + 1 &&
+                   end + 1 < data.size() &&
+                   is_domain_character(data[end + 1])) {
+          ++periods;
+          ++end;
+        } else {
           break;
         }
+      }
 
-        if (rewind == 0) {
-          offset += max_rewind + 1;
-          skip = true;
+      if (periods == 0 || data[end - 1] == '-' || data[end - 1] == '_') {
+        continue;
+      }
+
+      // GFM section 6.9: "An extended protocol autolink will be recognised
+      // when a protocol is recognised within any text node", where the valid
+      // protocols are mailto and xmpp
+      bool has_protocol{false};
+      bool xmpp{false};
+      for (const auto protocol :
+           std::array<std::string_view, 2>{{"mailto:", "xmpp:"}}) {
+        if (link_start - consumed >= protocol.size() &&
+            sourcemeta::core::starts_with_ignore_case(
+                data.substr(link_start - protocol.size(), protocol.size()),
+                protocol)) {
+          link_start -= protocol.size();
+          has_protocol = true;
+          xmpp = protocol == "xmpp:";
           break;
         }
+      }
 
-        const auto limit{remaining - offset - max_rewind};
-        for (link_end = 1; link_end < limit; ++link_end) {
-          const auto character{data[separator + link_end]};
-          if (sourcemeta::core::is_alphanum(character)) {
-            continue;
-          }
+      // GFM section 6.9: xmpp "offers an optional / followed by a resource.
+      // The resource can contain all alphanumeric characters, as well as @ and
+      // .", while "Further / characters are not considered part of the domain"
+      if (xmpp && end + 1 < data.size() && data[end] == '/') {
+        auto resource_end{end + 1};
+        while (resource_end < data.size() &&
+               (sourcemeta::core::is_alphanum(data[resource_end]) ||
+                data[resource_end] == '@' || data[resource_end] == '.')) {
+          ++resource_end;
+        }
 
-          // GFM section 6.9 recognises every email address on its own,
-          // including "There must be at least one period", so a new candidate
-          // does not inherit the state of the previous one
-          if (character == '@') {
-            offset += max_rewind + 1;
-            max_rewind = link_end - 1;
-            periods = 0;
-            auto_mailto = true;
-            is_xmpp = false;
-            retry = true;
-            break;
-          }
+        while (resource_end > end + 1 && data[resource_end - 1] == '.') {
+          --resource_end;
+        }
 
-          if (character == '.' && link_end < limit - 1 &&
-              sourcemeta::core::is_alphanum(data[separator + link_end + 1])) {
-            ++periods;
-          } else if (character != '-' && character != '_' &&
-                     !(character == '/' && is_xmpp)) {
-            break;
-          }
+        if (resource_end > end + 1) {
+          end = resource_end;
         }
       }
 
-      if (skip) {
+      if (link_start == consumed
+              ? consumed > 0 || !this->may_start_autolink_at(first_text)
+              : !may_precede_extended_autolink(data[link_start - 1])) {
         continue;
       }
 
-      const auto separator{start + offset + max_rewind};
-      if (link_end < 2 || periods == 0 ||
-          (!sourcemeta::core::is_alpha(data[separator + link_end - 1]) &&
-           data[separator + link_end - 1] != '.')) {
-        offset += max_rewind + link_end;
-        continue;
-      }
-
-      link_end = trim_autolink_end(data.substr(separator), link_end);
-      if (link_end == 0) {
-        offset += max_rewind + 1;
-        continue;
-      }
-
-      const auto email{data.substr(separator - rewind, link_end + rewind)};
-      this->buffer_.clear();
-      if (auto_mailto) {
-        this->buffer_.append("mailto:");
-      }
-
-      this->buffer_.append(email);
+      const auto address{data.substr(link_start, end - link_start)};
       const auto link{this->document_.create(NodeType::Link)};
-      nodes[link].literal = this->document_.strings.store(this->buffer_);
+      if (has_protocol) {
+        nodes[link].literal = address;
+      } else {
+        this->buffer_.assign("mailto:");
+        this->buffer_.append(address);
+        nodes[link].literal = this->document_.strings.store(this->buffer_);
+      }
+
       const auto link_text{this->document_.create(NodeType::Text)};
-      nodes[link_text].literal = email;
+      nodes[link_text].literal = address;
       this->document_.append_child(link, link_text);
       this->document_.insert_after(text, link);
       const auto after{this->document_.create(NodeType::Text)};
-      nodes[after].literal = data.substr(
-          separator + link_end, remaining - offset - max_rewind - link_end);
+      nodes[after].literal = data.substr(end);
       this->document_.insert_after(link, after);
-      nodes[text].literal = data.substr(start, offset + max_rewind - rewind);
+      nodes[text].literal = data.substr(consumed, link_start - consumed);
       text = after;
-      start += offset + max_rewind + link_end;
-      remaining -= offset + max_rewind + link_end;
-      offset = 0;
+      consumed = end;
+      search = end;
     }
   }
 
@@ -460,6 +514,7 @@ private:
   std::vector<std::uint32_t> definition_nodes_;
   std::vector<std::uint32_t> ordered_;
   std::vector<std::uint32_t> deferred_;
+  std::vector<std::uint32_t> ancestors_;
   std::string label_buffer_;
   std::string buffer_;
 };

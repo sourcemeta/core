@@ -1,6 +1,7 @@
 #ifndef SOURCEMETA_CORE_MARKDOWN_BLOCKS_H_
 #define SOURCEMETA_CORE_MARKDOWN_BLOCKS_H_
 
+#include <sourcemeta/core/markdown_error.h>
 #include <sourcemeta/core/text.h>
 
 #include "characters.h"
@@ -20,15 +21,14 @@ namespace sourcemeta::core::markdown {
 
 constexpr std::ptrdiff_t TAB_STOP{4};
 constexpr std::ptrdiff_t CODE_INDENT{4};
-// Containers opening on a single line can nest deeply enough to make parsing
-// quadratic, so a line stops opening them at this depth
-constexpr std::size_t MAXIMUM_CONTAINER_DEPTH{100};
-// A table stops accepting rows once the cells that short rows leave empty
-// exceed this count, so a small input cannot produce a huge table
+// GFM section 4.10: "If there are a number of cells fewer than the number of
+// cells in the header row, empty cells are inserted", which lets a small input
+// turn into a huge table, so the conversion throws once a table inserts more
+// empty cells than this
 constexpr std::int64_t MAXIMUM_AUTOCOMPLETED_CELLS{0x80000};
-constexpr std::size_t MAXIMUM_TABLE_COLUMNS{65535};
 // The destinations and titles that references expand to can take up to the
-// size of the input or this many bytes, whichever is larger
+// size of the input or this many bytes, whichever is larger, before the
+// conversion throws
 constexpr std::size_t MINIMUM_REFERENCE_SIZE_LIMIT{100000};
 
 struct TableCellSpan {
@@ -89,10 +89,6 @@ inline auto parse_table_row(const std::string_view string,
     const auto cell_length{scan_table_cell(string, offset)};
     const auto pipe_length{scan_table_cell_end(string, offset + cell_length)};
     if (cell_length > 0 || pipe_length > 0) {
-      if (cells.size() == MAXIMUM_TABLE_COLUMNS) {
-        return false;
-      }
-
       cells.push_back({.offset = offset, .length = cell_length});
     }
 
@@ -125,6 +121,10 @@ public:
       -> void {
     this->current_ = ROOT_NODE;
     this->line_number_ = 0;
+    this->blank_line_matched_everything_ = false;
+    this->skip_blank_continuations_ = false;
+    this->open_footnote_definitions_ = 0;
+    this->last_blank_container_ = NO_NODE;
     const auto size{input.size()};
     const auto has_carriage_return{input.find('\r') != std::string_view::npos};
     std::size_t position{0};
@@ -197,6 +197,20 @@ private:
     }
 
     ++this->line_number_;
+    const auto starting_tip{this->current_};
+    const auto starting_nodes{this->document_.nodes.size()};
+    const auto starting_offset{static_cast<std::size_t>(this->offset_)};
+    // An open footnote definition only continues on an unindented blank line
+    // when the line is empty, and an item without blocks does not continue on
+    // a blank line at all
+    this->skip_blank_continuations_ =
+        this->blank_line_matched_everything_ &&
+        is_blank_until_line_end(line.substr(starting_offset)) &&
+        (this->open_footnote_definitions_ == 0 || this->peek(0) == '\n' ||
+         (this->peek(0) == '\r' && this->peek(1) == '\n')) &&
+        !(this->node(starting_tip).type == NodeType::Item &&
+          this->node(starting_tip).first_child == NO_NODE);
+    this->blank_line_matched_everything_ = false;
     bool all_matched{true};
     const auto last_matched{this->check_open_blocks(all_matched)};
     if (last_matched == NO_NODE) {
@@ -206,6 +220,11 @@ private:
     auto container{last_matched};
     this->open_new_blocks(container, all_matched);
     this->add_text_to_container(container, last_matched);
+    this->blank_line_matched_everything_ =
+        all_matched && last_matched == starting_tip &&
+        this->current_ == starting_tip &&
+        this->document_.nodes.size() == starting_nodes && this->blank_ &&
+        is_blank_until_line_end(line.substr(starting_offset));
   }
 
   auto find_first_nonspace() -> void {
@@ -340,6 +359,10 @@ private:
     const auto child{this->document_.create(type)};
     this->node(child).flags = FLAG_OPEN;
     this->document_.append_child(parent, child);
+    if (type == NodeType::FootnoteDefinition) {
+      ++this->open_footnote_definitions_;
+    }
+
     return child;
   }
 
@@ -502,6 +525,10 @@ private:
     const auto parent{this->node(index).parent};
     set_flag(this->node(index), FLAG_OPEN, false);
     const auto type{this->node(index).type};
+    if (type == NodeType::FootnoteDefinition) {
+      --this->open_footnote_definitions_;
+    }
+
     if (type == NodeType::Paragraph) {
       if (!this->resolve_reference_definitions(index)) {
         this->document_.unlink(index);
@@ -653,6 +680,15 @@ private:
     while (this->last_child_is_open(container)) {
       container = this->node(container).last_child;
       this->find_first_nonspace();
+      // Once a blank line has no indentation left, every remaining open block
+      // continues without consuming anything if the previous line was blank,
+      // matched every open block, and changed nothing, which spares walking
+      // through deeply nested blocks for every blank line
+      if (this->skip_blank_continuations_ && this->blank_ &&
+          this->indent_ == 0) {
+        return this->current_;
+      }
+
       if (!this->continues_container(container, should_continue)) {
         all_matched = false;
         break;
@@ -874,14 +910,6 @@ private:
     }
 
     const auto table_index{this->node(table).data};
-    {
-      const auto &data{this->document_.tables[table_index]};
-      if ((static_cast<std::int64_t>(data.columns) * data.rows) -
-              data.nonempty_cells >
-          MAXIMUM_AUTOCOMPLETED_CELLS) {
-        return NO_NODE;
-      }
-    }
 
     const auto row{this->add_child(table, NodeType::TableRow)};
     const auto nonspace{static_cast<std::size_t>(this->first_nonspace_)};
@@ -908,6 +936,12 @@ private:
     auto &data{this->document_.tables[table_index]};
     data.rows += 1;
     data.nonempty_cells += static_cast<std::int64_t>(index);
+    if ((static_cast<std::int64_t>(data.columns) * data.rows) -
+            data.nonempty_cells >
+        MAXIMUM_AUTOCOMPLETED_CELLS) {
+      throw sourcemeta::core::MarkdownError{
+          "The table inserts more empty cells than its bound"};
+    }
     for (; index < columns; ++index) {
       const auto cell{this->add_child(row, NodeType::TableCell)};
       this->node(cell).data = static_cast<std::uint32_t>(index);
@@ -949,8 +983,7 @@ private:
   }
 
   auto open_block(std::uint32_t &container, const NodeType container_type,
-                  const bool all_matched, const bool maybe_lazy,
-                  const std::size_t depth) -> bool {
+                  const bool all_matched, const bool maybe_lazy) -> bool {
     const auto indented{this->indent_ >= CODE_INDENT};
     const auto nonspace{static_cast<std::size_t>(this->first_nonspace_)};
     const auto character{this->peek(this->first_nonspace_)};
@@ -1044,7 +1077,7 @@ private:
       return true;
     }
 
-    if (!indented && character == '[' && depth < MAXIMUM_CONTAINER_DEPTH) {
+    if (!indented && character == '[') {
       const auto matched{scan_footnote_definition(this->line_, nonspace)};
       if (matched > 0) {
         auto label{this->line_.substr(nonspace + 2, matched - 2)};
@@ -1071,7 +1104,7 @@ private:
     if ((character == '*' || character == '-' || character == '+' ||
          sourcemeta::core::is_digit(character)) &&
         (!indented || container_type == NodeType::List) &&
-        this->indent_ < CODE_INDENT && depth < MAXIMUM_CONTAINER_DEPTH) {
+        this->indent_ < CODE_INDENT) {
       ListData data{};
       const auto matched{this->parse_list_marker(
           this->first_nonspace_, container_type == NodeType::Paragraph, data)};
@@ -1153,13 +1186,11 @@ private:
       -> void {
     bool maybe_lazy{this->node(this->current_).type == NodeType::Paragraph};
     auto container_type{this->node(container).type};
-    std::size_t depth{0};
     while (container_type != NodeType::CodeBlock &&
            container_type != NodeType::HTMLBlock) {
-      ++depth;
       this->find_first_nonspace();
-      if (!this->open_block(container, container_type, all_matched, maybe_lazy,
-                            depth)) {
+      if (!this->open_block(container, container_type, all_matched,
+                            maybe_lazy)) {
         break;
       }
 
@@ -1213,11 +1244,19 @@ private:
           this->node(container).first_child == NO_NODE &&
           this->document_.lists[this->node(container).data].start_line ==
               this->line_number_)};
-    set_flag(this->node(container), FLAG_LAST_LINE_BLANK, last_line_blank);
-    for (auto ancestor{this->node(container).parent}; ancestor != NO_NODE;
-         ancestor = this->node(ancestor).parent) {
-      set_flag(this->node(ancestor), FLAG_LAST_LINE_BLANK, false);
+    // The ancestors of the container do not end with a blank line. The only
+    // open block that can is the container of the previous line, which is the
+    // deepest open block when this line starts, so it is an ancestor exactly
+    // when this line matched it and opened blocks under it
+    const auto previous_blank{this->last_blank_container_};
+    if (previous_blank != NO_NODE && previous_blank == last_matched &&
+        previous_blank != container &&
+        has_flag(this->node(previous_blank), FLAG_OPEN)) {
+      set_flag(this->node(previous_blank), FLAG_LAST_LINE_BLANK, false);
     }
+
+    set_flag(this->node(container), FLAG_LAST_LINE_BLANK, last_line_blank);
+    this->last_blank_container_ = last_line_blank ? container : NO_NODE;
 
     if (this->current_ != last_matched && container == last_matched &&
         !this->blank_ &&
@@ -1283,6 +1322,10 @@ private:
   std::ptrdiff_t indent_{0};
   bool blank_{false};
   bool partially_consumed_tab_{false};
+  bool blank_line_matched_everything_{false};
+  bool skip_blank_continuations_{false};
+  std::size_t open_footnote_definitions_{0};
+  std::uint32_t last_blank_container_{NO_NODE};
 };
 
 } // namespace sourcemeta::core::markdown

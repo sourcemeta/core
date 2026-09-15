@@ -983,58 +983,18 @@ public:
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0  // 0xF0
     }};
 
-    // RFC 3986 Section 3.2: "The authority component is preceded by a double
-    // slash ("//") and is terminated by the next slash ("/"), question mark
-    // ("?"), or number sign ("#") character, or by the end of the URI"
-    auto authority_start{std::string_view::npos};
-    const auto delimiter{input.find_first_of(":/?#")};
-    if (delimiter != std::string_view::npos && input[delimiter] == ':' &&
-        URI::is_scheme(input.substr(0, delimiter)) &&
-        input.substr(delimiter + 1, 2) == "//") {
-      authority_start = delimiter + 3;
-    } else if (input.starts_with("//")) {
-      authority_start = 2;
-    }
-
-    // RFC 3986 Section 3.2.2: "A host identified by an Internet Protocol
-    // literal address, version 6 [RFC3513] or later, is distinguished by
-    // enclosing the IP literal within square brackets ("[" and "]"). This is
-    // the only place where square bracket characters are allowed in the URI
-    // syntax"
-    auto literal_start{std::string_view::npos};
-    auto literal_end{std::string_view::npos};
-    if (authority_start != std::string_view::npos) {
-      auto authority_end{input.find_first_of("/?#", authority_start)};
-      if (authority_end == std::string_view::npos) {
-        authority_end = input.size();
-      }
-
-      // RFC 3986 Section 3.2: authority = [ userinfo "@" ] host [ ":" port ],
-      // where neither the host nor the port can contain an at sign
-      const auto userinfo_end{
-          input.substr(authority_start, authority_end - authority_start)
-              .rfind('@')};
-      const auto host{userinfo_end == std::string_view::npos
-                          ? authority_start
-                          : authority_start + userinfo_end + 1};
-      if (host < authority_end && input[host] == '[') {
-        const auto closing{input.find(']', host)};
-        if (closing < authority_end &&
-            (closing + 1 == authority_end || input[closing + 1] == ':')) {
-          literal_start = host;
-          literal_end = closing;
-        }
-      }
-    }
-
     bool in_fragment{false};
+    // The square brackets are rare, so the IP literal is only located once
+    // one of them shows up
+    bool literal_located{false};
+    std::pair<std::size_t, std::size_t> literal{std::string_view::npos,
+                                                std::string_view::npos};
     std::size_t run_start{0};
     for (std::size_t position = 0; position < input.size(); position += 1) {
       const auto byte{static_cast<unsigned char>(input[position])};
       // RFC 3986 Section 2.1: pct-encoded = "%" HEXDIG HEXDIG
       if (PASS_THROUGH[byte] != 0 ||
-          (byte == '%' && is_percent_triplet(input, position)) ||
-          position == literal_start || position == literal_end) {
+          (byte == '%' && is_percent_triplet(input, position))) {
         continue;
       }
 
@@ -1045,6 +1005,17 @@ public:
       if (byte == '#' && !in_fragment) {
         in_fragment = true;
         continue;
+      }
+
+      if (byte == '[' || byte == ']') [[unlikely]] {
+        if (!literal_located) {
+          literal = ip_literal_brackets(input);
+          literal_located = true;
+        }
+
+        if (position == literal.first || position == literal.second) {
+          continue;
+        }
       }
 
       // The characters that pass through are appended in runs
@@ -1465,6 +1436,11 @@ public:
 
 private:
   auto parse(std::string_view input) -> void;
+
+  // The positions of the square brackets around the IP literal host of a URI
+  // reference, if it has one
+  [[nodiscard]] static auto ip_literal_brackets(std::string_view input) noexcept
+      -> std::pair<std::size_t, std::size_t>;
 
   // WHATWG URL Section 5.1: "Replace any 0x2B (+) in name and value with 0x20
   // (SP)" and then percent-decode, which Section 1.3 defines to append a "%"

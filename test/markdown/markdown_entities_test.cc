@@ -36,8 +36,8 @@ TEST(entity_invalid_references_are_literal) {
   const auto result{sourcemeta::core::markdown_to_html(
       "&euro &y; &#z; &#xz;\n&#12345678;\n&#x1234567;\n&NotARealEntity;")};
   EXPECT_EQ(result, "<p>&amp;euro &amp;y; &amp;#z; &amp;#xz;\n"
-                    "\xef\xbf\xbd\n"
-                    "\xef\xbf\xbd\n"
+                    "&amp;#12345678;\n"
+                    "&amp;#x1234567;\n"
                     "&amp;NotARealEntity;</p>\n");
 }
 
@@ -111,4 +111,19 @@ TEST(entity_quotes_do_not_delimit_link_title) {
   const auto result{
       sourcemeta::core::markdown_to_html("[docs](/manual &#34;Title&#34;)")};
   EXPECT_EQ(result, "<p>[docs](/manual &quot;Title&quot;)</p>\n");
+}
+
+TEST(entity_nonentities) {
+  const auto result{sourcemeta::core::markdown_to_html(
+      "&nbsp &x; &#; &#x;\n&#87654321;\n&#abcdef0;\n&ThisIsNotDefined; &hi?;")};
+  EXPECT_EQ(result, "<p>&amp;nbsp &amp;x; &amp;#; &amp;#x;\n"
+                    "&amp;#87654321;\n"
+                    "&amp;#abcdef0;\n"
+                    "&amp;ThisIsNotDefined; &amp;hi?;</p>\n");
+}
+
+TEST(entity_seven_decimal_digits_and_six_hexadecimal_digits) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("&#0000065; &#x000041;")};
+  EXPECT_EQ(result, "<p>A A</p>\n");
 }

@@ -21,10 +21,6 @@
 
 namespace sourcemeta::core::markdown {
 
-// Code spans with longer backtick strings are never closed, which bounds the
-// memory of the cache of closing backtick strings
-constexpr std::size_t MAXIMUM_BACKTICKS{80};
-constexpr std::size_t MAXIMUM_STRIKETHROUGH_DELIMITERS{100};
 constexpr std::uint32_t NO_DELIMITER{0xFFFFFFFF};
 
 constexpr std::uint8_t SKIP_HTML_CDATA{1U << 0U};
@@ -73,55 +69,23 @@ struct Bracket {
   bool bracket_after{false};
 };
 
-// Whether the input starts with a character that can be part of a domain name
-inline auto is_valid_host_character(const std::string_view input) noexcept
-    -> bool {
-  const auto decoded{sourcemeta::core::utf8_decode(input, 0)};
-  return decoded.has_value() && !is_unicode_whitespace(decoded->first) &&
-         !is_unicode_punctuation(decoded->first);
+// A character of a segment of a valid domain of GFM section 6.9, which
+// "consists of segments of alphanumeric characters, underscores (_) and hyphens
+// (-) separated by periods (.)", where alphanumeric characters are ASCII as
+// the whitespace characters of GFM section 2.1 are, which the specification
+// only extends to Unicode when it says so
+inline auto is_domain_character(const char character) noexcept -> bool {
+  return sourcemeta::core::is_alphanum(character) || character == '_' ||
+         character == '-';
 }
 
-// The length of the domain that starts the input as GFM section 6.9 describes,
-// or zero if there is no valid domain
-inline auto scan_autolink_domain(const std::string_view data,
-                                 const bool allow_short) noexcept
-    -> std::size_t {
-  const auto size{data.size()};
-  std::size_t index{1};
-  std::size_t periods{0};
-  std::size_t underscores_before_last_period{0};
-  std::size_t underscores_after_last_period{0};
-  for (; index + 1 < size; ++index) {
-    if (data[index] == '\\' && index + 2 < size) {
-      ++index;
-    }
-
-    const auto character{data[index]};
-    if (character == '_') {
-      ++underscores_after_last_period;
-    } else if (character == '.') {
-      underscores_before_last_period = underscores_after_last_period;
-      underscores_after_last_period = 0;
-      ++periods;
-    } else if (!is_valid_host_character(data.substr(index)) &&
-               character != '-') {
-      break;
-    }
-  }
-
-  // Underscores in the last two segments make an invalid host name, except in
-  // very long domains, which would otherwise take quadratic time to reject
-  if ((underscores_before_last_period > 0 ||
-       underscores_after_last_period > 0) &&
-      periods <= 10) {
-    return 0;
-  }
-
-  if (allow_short) {
-    return index;
-  }
-
-  return periods > 0 ? index : 0;
+// GFM section 6.9: "All such recognized autolinks can only come at the
+// beginning of a line, after whitespace, or any of the delimiting characters
+// *, _, ~, and ("
+inline auto may_precede_extended_autolink(const char character) noexcept
+    -> bool {
+  return is_space(character) || character == '*' || character == '_' ||
+         character == '~' || character == '(';
 }
 
 // The end of an extended autolink once its trailing punctuation, unbalanced
@@ -154,6 +118,8 @@ inline auto trim_autolink_end(const std::string_view data,
         --closing;
         --link_end;
         break;
+      // GFM section 6.9: "Trailing punctuation (specifically, ?, !, ., ,, :,
+      // *, _, and ~) will not be considered part of the autolink"
       case '?':
       case '!':
       case '.':
@@ -162,8 +128,6 @@ inline auto trim_autolink_end(const std::string_view data,
       case '*':
       case '_':
       case '~':
-      case '\'':
-      case '"':
         --link_end;
         break;
       case ';': {
@@ -172,19 +136,21 @@ inline auto trim_autolink_end(const std::string_view data,
           break;
         }
 
+        // GFM section 6.9 only excludes a semicolon from an autolink along
+        // with an entity reference lookalike, which is "& followed by one or
+        // more alphanumeric characters"
         auto entity_start{link_end - 2};
         while (entity_start > 0 &&
-               sourcemeta::core::is_alpha(data[entity_start])) {
+               sourcemeta::core::is_alphanum(data[entity_start])) {
           --entity_start;
         }
 
         if (entity_start < link_end - 2 && data[entity_start] == '&') {
           link_end = entity_start;
-        } else {
-          --link_end;
+          break;
         }
 
-        break;
+        return link_end;
       }
 
       default:
@@ -193,6 +159,22 @@ inline auto trim_autolink_end(const std::string_view data,
   }
 
   return link_end;
+}
+
+// Whether the lengths of the delimiter runs of an opener and a closer of the
+// same character let them match. GFM section 6.5 wraps strikethrough text in
+// "a matching pair of one or two tildes", while GFM section 6.4 says that "If
+// one of the delimiters can both open and close emphasis, then the sum of the
+// lengths of the delimiter runs containing the opening and closing delimiters
+// must not be a multiple of 3 unless both lengths are multiples of 3"
+inline auto delimiter_lengths_match(const Delimiter &opener,
+                                    const Delimiter &closer) noexcept -> bool {
+  if (closer.character == '~') {
+    return opener.length == closer.length;
+  }
+
+  return !(closer.can_open || opener.can_close) || closer.length % 3 == 0 ||
+         (opener.length + closer.length) % 3 != 0;
 }
 
 // The inlines of GFM section 6 and of the strikethrough and autolink
@@ -210,12 +192,10 @@ public:
     this->last_delimiter_ = NO_DELIMITER;
     this->delimiters_.clear();
     this->brackets_.clear();
-    if (this->backticks_dirty_) {
-      this->backticks_.fill(0);
-      this->backticks_dirty_ = false;
-    }
-
+    this->backticks_.clear();
     this->scanned_for_backticks_ = false;
+    this->rejected_domain_start_ = 0;
+    this->rejected_domain_limit_ = 0;
     this->no_link_openers_ = true;
     this->flags_ = 0;
     while (this->position_ < this->input_.size()) {
@@ -322,12 +302,8 @@ private:
       return false;
     }
 
-    if (index > 0) {
-      const auto previous{this->input_[index - 1]};
-      if (previous != '*' && previous != '_' && previous != '~' &&
-          previous != '(' && !is_space(previous)) {
-        return false;
-      }
+    if (index > 0 && !may_precede_extended_autolink(this->input_[index - 1])) {
+      return false;
     }
 
     return this->input_.substr(index, 4) == "www.";
@@ -381,8 +357,12 @@ private:
 
   auto scan_to_closing_backticks(const std::size_t opening_length)
       -> std::size_t {
-    if (opening_length > MAXIMUM_BACKTICKS ||
-        (this->scanned_for_backticks_ &&
+    // GFM section 6.3 puts no bound on the length of a backtick string. Once
+    // the rest of the input was scanned, the last position of every backtick
+    // string length is known, so an opening backtick string without a closing
+    // one of the same length after it is rejected without scanning again
+    if (this->scanned_for_backticks_ &&
+        (opening_length >= this->backticks_.size() ||
          this->backticks_[opening_length] <= this->position_)) {
       return 0;
     }
@@ -403,10 +383,11 @@ private:
         ++count;
       }
 
-      if (count <= MAXIMUM_BACKTICKS) {
-        this->backticks_[count] = this->position_ - count;
-        this->backticks_dirty_ = true;
+      if (count >= this->backticks_.size()) {
+        this->backticks_.resize(count + 1, 0);
       }
+
+      this->backticks_[count] = this->position_ - count;
 
       if (count == opening_length) {
         return this->position_;
@@ -638,45 +619,28 @@ private:
     this->append(NodeType::Text, this->input_.substr(this->position_ - 1, 1));
   }
 
-  // The characters around a delimiter run, where a tilde, being a
-  // strikethrough delimiter, reads as a line ending
+  // The characters around a delimiter run of GFM section 6.4, where "the
+  // beginning and the end of the line count as Unicode whitespace"
   [[nodiscard]] auto character_before_delimiters() const noexcept -> char32_t {
     if (this->position_ == 0) {
       return U'\n';
     }
 
     auto index{this->position_ - 1};
-    while (index > 0 && (sourcemeta::core::is_utf8_continuation(
-                             static_cast<unsigned char>(this->input_[index])) ||
-                         this->input_[index] == '~')) {
+    while (index > 0 && sourcemeta::core::is_utf8_continuation(
+                            static_cast<unsigned char>(this->input_[index]))) {
       --index;
     }
 
     const auto preceding{sourcemeta::core::utf8_decode(
         this->input_.substr(index, this->position_ - index), 0)};
-    if (!preceding.has_value() || preceding->first == U'~') {
-      return U'\n';
-    }
-
-    return preceding->first;
+    return preceding.has_value() ? preceding->first : U'\n';
   }
 
   [[nodiscard]] auto character_after_delimiters() const noexcept -> char32_t {
-    if (this->position_ >= this->input_.size()) {
-      return U'\n';
-    }
-
-    auto index{this->position_};
-    while (index < this->input_.size() && this->input_[index] == '~') {
-      ++index;
-    }
-
-    const auto following{sourcemeta::core::utf8_decode(this->input_, index)};
-    if (!following.has_value() || following->first == U'~') {
-      return U'\n';
-    }
-
-    return following->first;
+    const auto following{
+        sourcemeta::core::utf8_decode(this->input_, this->position_)};
+    return following.has_value() ? following->first : U'\n';
   }
 
   auto handle_delimiter(const char character) -> void {
@@ -712,50 +676,31 @@ private:
     }
   }
 
+  // GFM section 6.5: "Strikethrough text is any text wrapped in a matching pair
+  // of one or two tildes (~)", and "Three or more tildes do not create a
+  // strikethrough"
   auto handle_tilde() -> void {
-    char32_t before{U'\n'};
-    if (this->position_ > 0) {
-      auto index{this->position_ - 1};
-      while (index > 0 &&
-             sourcemeta::core::is_utf8_continuation(
-                 static_cast<unsigned char>(this->input_[index]))) {
-        --index;
-      }
-
-      const auto preceding{sourcemeta::core::utf8_decode(
-          this->input_.substr(index, this->position_ - index), 0)};
-      if (preceding.has_value()) {
-        before = preceding->first;
-      }
-    }
-
+    const auto before{this->character_before_delimiters()};
     const auto start{this->position_};
-    while (this->peek() == '~' &&
-           this->position_ - start < MAXIMUM_STRIKETHROUGH_DELIMITERS) {
+    while (this->peek() == '~') {
       ++this->position_;
     }
 
     const auto count{this->position_ - start};
-    char32_t after{U'\n'};
-    const auto following{
-        sourcemeta::core::utf8_decode(this->input_, this->position_)};
-    if (following.has_value()) {
-      after = following->first;
-    }
-
+    const auto after{this->character_after_delimiters()};
     const auto space_before{is_unicode_whitespace(before)};
     const auto space_after{is_unicode_whitespace(after)};
     const auto punctuation_before{is_unicode_punctuation(before)};
     const auto punctuation_after{is_unicode_punctuation(after)};
     const auto left_flanking{
         !space_after &&
-        !(punctuation_after && !space_before && !punctuation_before)};
+        (!punctuation_after || space_before || punctuation_before)};
     const auto right_flanking{
         !space_before &&
-        !(punctuation_before && !space_after && !punctuation_after)};
+        (!punctuation_before || space_after || punctuation_after)};
     const auto text{
         this->append(NodeType::Text, this->input_.substr(start, count))};
-    if ((left_flanking || right_flanking) && count == 2) {
+    if ((left_flanking || right_flanking) && count <= 2) {
       this->push_delimiter('~', left_flanking, right_flanking, text);
     }
   }
@@ -890,13 +835,10 @@ private:
     const auto result{this->delimiters_[closer].next};
     const auto opener_text{this->delimiters_[opener].text};
     const auto closer_text{this->delimiters_[closer].text};
-    if (this->node(opener_text).literal.size() ==
-        this->node(closer_text).literal.size()) {
-      this->node(opener_text).type = NodeType::Strikethrough;
-      this->node(opener_text).literal = {};
-      this->wrap_between(opener_text, closer_text, opener_text);
-      this->document_.unlink(closer_text);
-    }
+    this->node(opener_text).type = NodeType::Strikethrough;
+    this->node(opener_text).literal = {};
+    this->wrap_between(opener_text, closer_text, opener_text);
+    this->document_.unlink(closer_text);
 
     auto current{closer};
     while (current != NO_DELIMITER && current != opener) {
@@ -941,9 +883,7 @@ private:
         const auto &opener_delimiter{this->delimiters_[opener]};
         if (opener_delimiter.can_open &&
             opener_delimiter.character == closer_delimiter.character &&
-            (!(closer_delimiter.can_open || opener_delimiter.can_close) ||
-             closer_delimiter.length % 3 == 0 ||
-             (opener_delimiter.length + closer_delimiter.length) % 3 != 0)) {
+            delimiter_lengths_match(opener_delimiter, closer_delimiter)) {
           opener_found = true;
           break;
         }
@@ -1108,17 +1048,75 @@ private:
     this->append(NodeType::Text, this->input_.substr(this->position_ - 1, 1));
   }
 
-  static auto is_safe_autolink(const std::string_view link) noexcept -> bool {
+  // GFM section 6.9: "An extended url autolink will be recognised when one of
+  // the schemes http://, or https://, followed by a valid domain", where RFC
+  // 3986 Section 3.1 says that "schemes are case-insensitive"
+  static auto
+  starts_with_extended_url_scheme(const std::string_view link) noexcept
+      -> bool {
     for (const auto scheme :
-         std::array<std::string_view, 3>{{"http://", "https://", "ftp://"}}) {
+         std::array<std::string_view, 2>{{"http://", "https://"}}) {
       if (link.size() > scheme.size() &&
           sourcemeta::core::starts_with_ignore_case(link, scheme) &&
-          is_valid_host_character(link.substr(scheme.size()))) {
+          is_domain_character(link[scheme.size()])) {
         return true;
       }
     }
 
     return false;
+  }
+
+  // The length of the valid domain of GFM section 6.9 at a position of the
+  // input whose first character the caller already checked, or zero if there
+  // is none. "There must be at least one period, and no underscores may be
+  // present in the last two segments of the domain"
+  auto scan_autolink_domain(const std::size_t start) -> std::size_t {
+    // A later start within a domain that was rejected for its underscores has
+    // the same last two segments until the second to last period, so it is
+    // rejected without scanning the same characters again
+    if (start > this->rejected_domain_start_ &&
+        start < this->rejected_domain_limit_) {
+      return 0;
+    }
+
+    const auto data{this->input_.substr(start)};
+    std::size_t index{1};
+    std::size_t periods{0};
+    std::size_t last_period{0};
+    std::size_t second_to_last_period{0};
+    std::size_t underscores_before_last_period{0};
+    std::size_t underscores_after_last_period{0};
+    for (; index < data.size(); ++index) {
+      const auto character{data[index]};
+      if (character == '.') {
+        // The segments that periods separate have at least one character
+        if (index + 1 >= data.size() || !is_domain_character(data[index + 1])) {
+          break;
+        }
+
+        underscores_before_last_period = underscores_after_last_period;
+        underscores_after_last_period = 0;
+        second_to_last_period = last_period;
+        last_period = index;
+        ++periods;
+      } else if (character == '_') {
+        ++underscores_after_last_period;
+      } else if (!is_domain_character(character)) {
+        break;
+      }
+    }
+
+    if (underscores_before_last_period > 0 ||
+        underscores_after_last_period > 0) {
+      if (periods >= 2) {
+        this->rejected_domain_start_ = start;
+        this->rejected_domain_limit_ = start + second_to_last_period;
+      }
+
+      return 0;
+    }
+
+    return periods > 0 ? index : 0;
   }
 
   auto match_www_autolink() -> bool {
@@ -1127,7 +1125,7 @@ private:
     }
 
     const auto data{this->input_.substr(this->position_)};
-    auto link_end{scan_autolink_domain(data, false)};
+    auto link_end{this->scan_autolink_domain(this->position_)};
     if (link_end == 0) {
       return false;
     }
@@ -1181,11 +1179,14 @@ private:
       ++rewind;
     }
 
-    if (!is_safe_autolink(this->input_.substr(this->position_ - rewind))) {
+    const auto start{this->position_ - rewind};
+    if ((start > 0 &&
+         !may_precede_extended_autolink(this->input_[start - 1])) ||
+        !starts_with_extended_url_scheme(this->input_.substr(start))) {
       return false;
     }
 
-    const auto domain_length{scan_autolink_domain(data.substr(3), true)};
+    const auto domain_length{this->scan_autolink_domain(this->position_ + 3)};
     if (domain_length == 0) {
       return false;
     }
@@ -1201,7 +1202,6 @@ private:
       return false;
     }
 
-    const auto start{this->position_ - rewind};
     this->position_ += link_end;
     this->remove_trailing_text(rewind);
     const auto url{this->input_.substr(start, link_end + rewind)};
@@ -1218,9 +1218,10 @@ private:
   std::uint32_t last_delimiter_{NO_DELIMITER};
   std::vector<Delimiter> delimiters_;
   std::vector<Bracket> brackets_;
-  std::array<std::size_t, MAXIMUM_BACKTICKS + 1> backticks_{};
+  std::vector<std::size_t> backticks_;
   bool scanned_for_backticks_{false};
-  bool backticks_dirty_{false};
+  std::size_t rejected_domain_start_{0};
+  std::size_t rejected_domain_limit_{0};
   bool no_link_openers_{true};
   std::uint8_t flags_{0};
   std::string buffer_;

@@ -166,7 +166,7 @@ TEST(link_reference_definition_title_with_trailing_text_on_next_line) {
   const auto result{sourcemeta::core::markdown_to_html(
       "[docs]: /manual\n'Manual' trailing\n\n[docs]")};
   EXPECT_EQ(result, "<p>&#39;Manual&#39; trailing</p>\n"
-                    "<p><a href=\"/manual\" title=\"Manual\">docs</a></p>\n");
+                    "<p><a href=\"/manual\">docs</a></p>\n");
 }
 
 TEST(link_reference_definition_indented_four_spaces_is_code) {
@@ -615,4 +615,10 @@ TEST(link_title_escaped_backslash_does_not_escape_the_quote) {
 TEST(link_title_escaped_backslash_before_opening_parenthesis) {
   const auto result{sourcemeta::core::markdown_to_html("[x](/y (a\\\\(b))")};
   EXPECT_EQ(result, "<p>[x](/y (a\\(b))</p>\n");
+}
+
+TEST(link_reference_definition_before_title_followed_by_text) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("[foo]: /url\n\"title\" ok")};
+  EXPECT_EQ(result, "<p>&quot;title&quot; ok</p>\n");
 }

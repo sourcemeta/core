@@ -310,3 +310,8 @@ TEST(emphasis_does_not_span_link_text_brackets) {
   const auto result{sourcemeta::core::markdown_to_html("_a [b_ c]")};
   EXPECT_EQ(result, "<p><em>a [b</em> c]</p>\n");
 }
+
+TEST(emphasis_underscore_closer_before_tilde) {
+  const auto result{sourcemeta::core::markdown_to_html("_a_~b")};
+  EXPECT_EQ(result, "<p><em>a</em>~b</p>\n");
+}

@@ -44,9 +44,9 @@ TEST(strikethrough_bold_italic_combined) {
   EXPECT_EQ(result, "<p><del><em><strong>all three</strong></em></del></p>\n");
 }
 
-TEST(single_tilde_is_not_strikethrough) {
+TEST(single_tilde_strikethrough) {
   const auto result{sourcemeta::core::markdown_to_html("~not deleted~")};
-  EXPECT_EQ(result, "<p>~not deleted~</p>\n");
+  EXPECT_EQ(result, "<p><del>not deleted</del></p>\n");
 }
 
 TEST(strikethrough_spanning_lines) {
@@ -83,4 +83,34 @@ TEST(strikethrough_escaped_closing) {
 TEST(strikethrough_inside_link_text) {
   const auto result{sourcemeta::core::markdown_to_html("[~~old~~ new](/x)")};
   EXPECT_EQ(result, "<p><a href=\"/x\"><del>old</del> new</a></p>\n");
+}
+
+TEST(strikethrough_with_one_or_two_tildes) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("~~Hi~~ Hello, ~there~ world!")};
+  EXPECT_EQ(result, "<p><del>Hi</del> Hello, <del>there</del> world!</p>\n");
+}
+
+TEST(strikethrough_stops_at_the_end_of_a_paragraph) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("This ~~has a\n\nnew paragraph~~.")};
+  EXPECT_EQ(result, "<p>This ~~has a</p>\n"
+                    "<p>new paragraph~~.</p>\n");
+}
+
+TEST(strikethrough_with_three_tildes_does_not_strike) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("This will ~~~not~~~ strike.")};
+  EXPECT_EQ(result, "<p>This will ~~~not~~~ strike.</p>\n");
+}
+
+TEST(strikethrough_pairs_need_the_same_number_of_tildes) {
+  const auto result{sourcemeta::core::markdown_to_html("~one~~\n\n~~two~")};
+  EXPECT_EQ(result, "<p>~one~~</p>\n"
+                    "<p>~~two~</p>\n");
+}
+
+TEST(strikethrough_with_single_tilde_inside_double_tildes) {
+  const auto result{sourcemeta::core::markdown_to_html("~~a~b~~")};
+  EXPECT_EQ(result, "<p><del>a~b</del></p>\n");
 }

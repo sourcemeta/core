@@ -1,6 +1,9 @@
 #ifndef SOURCEMETA_CORE_MARKDOWN_REFERENCES_H_
 #define SOURCEMETA_CORE_MARKDOWN_REFERENCES_H_
 
+#include <sourcemeta/core/markdown_error.h>
+#include <sourcemeta/core/unicode.h>
+
 #include "characters.h"
 #include "document.h"
 #include "scanners.h"
@@ -11,7 +14,15 @@
 
 namespace sourcemeta::core::markdown {
 
-constexpr std::size_t MAXIMUM_LINK_LABEL_LENGTH{1000};
+// GFM section 6.6: "A link label can have at most 999 characters inside the
+// square brackets", where GFM section 2.1 says that "A character is a Unicode
+// code point"
+constexpr std::size_t MAXIMUM_LINK_LABEL_LENGTH{999};
+
+// GFM section 6.6: "Implementations may impose limits on parentheses nesting to
+// avoid performance issues, but at least three levels of nesting should be
+// supported"
+constexpr std::size_t MAXIMUM_DESTINATION_PARENTHESES{32};
 
 // A link label of GFM section 4.7, moving the position past it on success
 inline auto scan_link_label(const std::string_view input, std::size_t &position,
@@ -30,7 +41,11 @@ inline auto scan_link_label(const std::string_view input, std::size_t &position,
     }
 
     ++cursor;
-    ++length;
+    if (!sourcemeta::core::is_utf8_continuation(
+            static_cast<unsigned char>(character))) {
+      ++length;
+    }
+
     if (character == '\\' &&
         sourcemeta::core::is_punctuation(character_at(input, cursor))) {
       ++cursor;
@@ -100,7 +115,7 @@ inline auto scan_link_destination(const std::string_view input,
     } else if (character == '(') {
       ++parentheses;
       ++index;
-      if (parentheses > 32) {
+      if (parentheses > MAXIMUM_DESTINATION_PARENTHESES) {
         return -1;
       }
     } else if (character == ')') {
@@ -263,6 +278,10 @@ parse_reference_definition(Document &document, const std::string_view input,
     if (!skip_line_end(input, position)) {
       return 0;
     }
+
+    // GFM section 4.7, example 179: a title followed by other text on its line
+    // leaves "a link reference definition, but it has no title"
+    title = {};
   }
 
   normalize_label(label_buffer, label);
@@ -278,12 +297,13 @@ parse_reference_definition(Document &document, const std::string_view input,
   return position;
 }
 
-// Find the definition of a link label, which also counts towards the limit on
-// the total size of the destinations and titles that references expand to
+// Find the definition of a link label, which also counts towards the bound on
+// the total size of the destinations and titles that references expand to,
+// throwing once they exceed it
 inline auto find_reference(Document &document, const std::string_view label,
                            std::string &buffer) -> const Reference * {
-  if (label.empty() || label.size() > MAXIMUM_LINK_LABEL_LENGTH ||
-      document.references.empty()) {
+  if (document.references.empty() || !sourcemeta::core::utf8_codepoint_within(
+                                         label, 1, MAXIMUM_LINK_LABEL_LENGTH)) {
     return nullptr;
   }
 
@@ -299,7 +319,8 @@ inline auto find_reference(Document &document, const std::string_view label,
 
   const auto size{match->second.url.size() + match->second.title.size()};
   if (size > document.reference_size_limit - document.reference_size_used) {
-    return nullptr;
+    throw sourcemeta::core::MarkdownError{
+        "The link references expand past the size bound"};
   }
 
   document.reference_size_used += size;
