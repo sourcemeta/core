@@ -89,3 +89,57 @@ TEST(appends_to_existing_output) {
   sourcemeta::core::URI::escape_reference("a b", output);
   EXPECT_EQ(output, "href=a%20b");
 }
+
+TEST(ip_literal_host_brackets_pass_through) {
+  std::string output;
+  sourcemeta::core::URI::escape_reference("http://[::1]:8080/a", output);
+  EXPECT_EQ(output, "http://[::1]:8080/a");
+}
+
+TEST(ip_literal_host_after_userinfo_passes_through) {
+  std::string output;
+  sourcemeta::core::URI::escape_reference("https://user:pass@[v1.fe]/", output);
+  EXPECT_EQ(output, "https://user:pass@[v1.fe]/");
+}
+
+TEST(ip_literal_host_after_last_at_sign_passes_through) {
+  std::string output;
+  sourcemeta::core::URI::escape_reference("http://a@b@[::1]", output);
+  EXPECT_EQ(output, "http://a@b@[::1]");
+}
+
+TEST(ip_literal_host_of_network_path_reference_passes_through) {
+  std::string output;
+  sourcemeta::core::URI::escape_reference("//[2001:db8::7]?q", output);
+  EXPECT_EQ(output, "//[2001:db8::7]?q");
+}
+
+TEST(square_brackets_outside_the_host_are_encoded) {
+  std::string output;
+  sourcemeta::core::URI::escape_reference("http://[::1]/[a]?[b]#[c]", output);
+  EXPECT_EQ(output, "http://[::1]/%5Ba%5D?%5Bb%5D#%5Bc%5D");
+}
+
+TEST(square_brackets_without_authority_are_encoded) {
+  std::string output;
+  sourcemeta::core::URI::escape_reference("urn:[::1]", output);
+  EXPECT_EQ(output, "urn:%5B::1%5D");
+}
+
+TEST(unterminated_ip_literal_is_encoded) {
+  std::string output;
+  sourcemeta::core::URI::escape_reference("http://[::1/a]", output);
+  EXPECT_EQ(output, "http://%5B::1/a%5D");
+}
+
+TEST(ip_literal_followed_by_other_characters_is_encoded) {
+  std::string output;
+  sourcemeta::core::URI::escape_reference("http://[::1]x/", output);
+  EXPECT_EQ(output, "http://%5B::1%5Dx/");
+}
+
+TEST(number_sign_after_the_fragment_is_encoded) {
+  std::string output;
+  sourcemeta::core::URI::escape_reference("/a#b#c#d", output);
+  EXPECT_EQ(output, "/a#b%23c%23d");
+}

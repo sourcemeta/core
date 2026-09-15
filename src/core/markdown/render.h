@@ -23,7 +23,12 @@ constexpr std::array<std::string_view, 9> FILTERED_TAG_NAMES{
     {"title", "textarea", "style", "xmp", "iframe", "noembed", "noframes",
      "script", "plaintext"}};
 
-// Whether raw HTML starts with a tag that the tag filter disallows
+// Whether raw HTML starts with a tag that the tag filter disallows. The tag
+// name state of the HTML Standard tokenizer ends a tag name at "U+0009
+// CHARACTER TABULATION (tab) U+000A LINE FEED (LF) U+000C FORM FEED (FF)
+// U+0020 SPACE", at "U+002F SOLIDUS (/)", and at "U+003E GREATER-THAN SIGN
+// (>)", where a carriage return reaches the tokenizer as a line feed once the
+// input stream normalizes newlines
 inline auto is_filtered_tag(const std::string_view tag) noexcept -> bool {
   if (tag.size() < 3 || tag[0] != '<') {
     return false;
@@ -42,11 +47,17 @@ inline auto is_filtered_tag(const std::string_view tag) noexcept -> bool {
       continue;
     }
 
-    const auto character{tag[index]};
-    if (is_space(character) || character == '>' ||
-        (character == '/' && tag.size() >= index + 2 &&
-         tag[index + 1] == '>')) {
-      return true;
+    switch (tag[index]) {
+      case '\t':
+      case '\n':
+      case '\f':
+      case '\r':
+      case ' ':
+      case '/':
+      case '>':
+        return true;
+      default:
+        break;
     }
   }
 
@@ -110,11 +121,18 @@ private:
     return this->value_.view();
   }
 
+  // The fragment that links to a footnote element, including the number sign
+  // that introduces it. The label is part of the fragment, where RFC 3986
+  // Section 3.5 leaves no room for another number sign
   auto footnote_fragment(const std::string_view prefix,
                          const std::string_view label) -> std::string_view {
+    this->fragment_.clear();
+    this->fragment_.append('#');
+    this->fragment_.append(prefix);
+    this->fragment_.append(label);
     this->value_.clear();
-    this->value_.append(prefix);
-    sourcemeta::core::URI::escape_reference(label, this->value_);
+    sourcemeta::core::URI::escape_reference(this->fragment_.view(),
+                                            this->value_);
     return this->value_.view();
   }
 
@@ -150,8 +168,8 @@ private:
 
     this->written_footnote_index_ = this->footnote_index_;
     auto &writer{this->writer_};
-    writer.a().attribute(
-        "href", this->footnote_fragment("#fnref-", definition.literal));
+    writer.a().attribute("href",
+                         this->footnote_fragment("fnref-", definition.literal));
     writer.attribute("class", "footnote-backref")
         .attribute("data-footnote-backref");
     sourcemeta::core::DigitsBuffer written_digits;
@@ -167,7 +185,7 @@ private:
       sourcemeta::core::DigitsBuffer repeat_digits;
       const auto repeat{sourcemeta::core::digits_view(index, repeat_digits)};
       writer.raw(" ");
-      this->footnote_fragment("#fnref-", definition.literal);
+      this->footnote_fragment("fnref-", definition.literal);
       this->value_.append('-');
       this->value_.append(repeat);
       writer.a().attribute("href", this->value_.view());
@@ -401,13 +419,13 @@ private:
         }
 
         break;
+      // GFM section 6.4, example 473: "****foo****" renders as
+      // "<p><strong><strong>foo</strong></strong></p>"
       case NodeType::Strong:
-        if (nodes[node.parent].type != NodeType::Strong) {
-          if (entering) {
-            writer.strong();
-          } else {
-            writer.close();
-          }
+        if (entering) {
+          writer.strong();
+        } else {
+          writer.close();
         }
 
         break;
@@ -459,7 +477,8 @@ private:
 
           ++this->footnote_index_;
           writer.li()
-              .attribute("id", this->footnote_fragment("fn-", node.literal))
+              .attribute("id",
+                         this->footnote_fragment("fn-", node.literal).substr(1))
               .raw("\n");
           break;
         }
@@ -478,7 +497,7 @@ private:
         const auto &definition{nodes[node.data]};
         writer.sup().attribute("class", "footnote-ref");
         writer.a().attribute(
-            "href", this->footnote_fragment("#fn-", definition.literal));
+            "href", this->footnote_fragment("fn-", definition.literal));
         this->footnote_fragment("fnref-", definition.literal);
         if (node.extra > 1) {
           sourcemeta::core::DigitsBuffer extra_digits;
@@ -487,7 +506,7 @@ private:
               sourcemeta::core::digits_view(node.extra, extra_digits));
         }
 
-        writer.attribute("id", this->value_.view())
+        writer.attribute("id", this->value_.view().substr(1))
             .attribute("data-footnote-ref");
         writer.text(node.literal).close().close();
         break;
@@ -563,6 +582,7 @@ private:
   const Document &document_;
   sourcemeta::core::HTMLWriter writer_;
   sourcemeta::core::HTMLBuffer value_;
+  sourcemeta::core::HTMLBuffer fragment_;
   bool unsafe_{false};
   std::uint32_t footnote_index_{0};
   std::uint32_t written_footnote_index_{0};

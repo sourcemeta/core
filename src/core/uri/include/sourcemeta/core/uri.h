@@ -938,14 +938,16 @@ public:
     }
   }
 
-  /// Percent-encode the octets of a string that cannot appear in a URI
-  /// reference, appending the result to a string like output sink. Unlike
-  /// `escape`, the unreserved characters, the sub-delimiters, the colon, the
-  /// at sign, the slash, the question mark, the number sign, and every valid
-  /// percent-encoded triplet pass through, so the delimiters of a URI
-  /// reference survive and an already encoded string is not encoded twice.
-  /// The square brackets are encoded, as RFC 3986 only allows them around an
-  /// IP literal host. The output must not alias the input. For example:
+  /// Percent-encode the octets of a string that cannot appear where they are
+  /// in a URI reference, appending the result to a string like output sink.
+  /// Unlike `escape`, the unreserved characters, the sub-delimiters, the colon,
+  /// the at sign, the slash, the question mark, and every valid percent-encoded
+  /// triplet pass through, so the delimiters of a URI reference survive and an
+  /// already encoded string is not encoded twice. Following RFC 3986, the
+  /// number sign only passes through once, as it introduces the fragment, and
+  /// the square brackets only pass through around the host of an authority,
+  /// the only place for an IP literal. The output must not alias the input.
+  /// For example:
   ///
   /// ```cpp
   /// #include <sourcemeta/core/uri.h>
@@ -953,18 +955,19 @@ public:
   /// #include <string>
   ///
   /// std::string output;
-  /// sourcemeta::core::URI::escape_reference("/a b?c=d#e%20f", output);
-  /// assert(output == "/a%20b?c=d#e%20f");
+  /// sourcemeta::core::URI::escape_reference("http://[::1]/a b?c#d#e", output);
+  /// assert(output == "http://[::1]/a%20b?c#d%23e");
   /// ```
   template <typename Output>
   static auto escape_reference(const std::string_view input, Output &output)
       -> void {
     // RFC 3986 Section 2.2 and Section 2.3: the unreserved characters, the
-    // sub-delims, and the gen-delims other than the square brackets
+    // sub-delims, and the gen-delims other than the square brackets and the
+    // number sign
     static constexpr std::array<std::uint8_t, 256> PASS_THROUGH{{
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0x00
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0x10
-        0, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 0x20
+        0, 1, 0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 0x20
         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, // 0x30
         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 0x40
         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, // 0x50
@@ -980,12 +983,67 @@ public:
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0  // 0xF0
     }};
 
+    // RFC 3986 Section 3.2: "The authority component is preceded by a double
+    // slash ("//") and is terminated by the next slash ("/"), question mark
+    // ("?"), or number sign ("#") character, or by the end of the URI"
+    auto authority_start{std::string_view::npos};
+    const auto delimiter{input.find_first_of(":/?#")};
+    if (delimiter != std::string_view::npos && input[delimiter] == ':' &&
+        URI::is_scheme(input.substr(0, delimiter)) &&
+        input.substr(delimiter + 1, 2) == "//") {
+      authority_start = delimiter + 3;
+    } else if (input.starts_with("//")) {
+      authority_start = 2;
+    }
+
+    // RFC 3986 Section 3.2.2: "A host identified by an Internet Protocol
+    // literal address, version 6 [RFC3513] or later, is distinguished by
+    // enclosing the IP literal within square brackets ("[" and "]"). This is
+    // the only place where square bracket characters are allowed in the URI
+    // syntax"
+    auto literal_start{std::string_view::npos};
+    auto literal_end{std::string_view::npos};
+    if (authority_start != std::string_view::npos) {
+      auto authority_end{input.find_first_of("/?#", authority_start)};
+      if (authority_end == std::string_view::npos) {
+        authority_end = input.size();
+      }
+
+      // RFC 3986 Section 3.2: authority = [ userinfo "@" ] host [ ":" port ],
+      // where neither the host nor the port can contain an at sign
+      const auto userinfo_end{
+          input.substr(authority_start, authority_end - authority_start)
+              .rfind('@')};
+      const auto host{userinfo_end == std::string_view::npos
+                          ? authority_start
+                          : authority_start + userinfo_end + 1};
+      if (host < authority_end && input[host] == '[') {
+        const auto closing{input.find(']', host)};
+        if (closing < authority_end &&
+            (closing + 1 == authority_end || input[closing + 1] == ':')) {
+          literal_start = host;
+          literal_end = closing;
+        }
+      }
+    }
+
+    bool in_fragment{false};
     std::size_t run_start{0};
     for (std::size_t position = 0; position < input.size(); position += 1) {
       const auto byte{static_cast<unsigned char>(input[position])};
       // RFC 3986 Section 2.1: pct-encoded = "%" HEXDIG HEXDIG
       if (PASS_THROUGH[byte] != 0 ||
-          (byte == '%' && is_percent_triplet(input, position))) {
+          (byte == '%' && is_percent_triplet(input, position)) ||
+          position == literal_start || position == literal_end) {
+        continue;
+      }
+
+      // RFC 3986 Section 3.5: "A fragment identifier component is indicated
+      // by the presence of a number sign ("#") character and terminated by
+      // the end of the URI", where fragment = *( pchar / "/" / "?" ) leaves no
+      // room for another number sign
+      if (byte == '#' && !in_fragment) {
+        in_fragment = true;
         continue;
       }
 

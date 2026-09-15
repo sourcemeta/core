@@ -30,7 +30,6 @@ constexpr std::uint32_t NO_DELIMITER{0xFFFFFFFF};
 constexpr std::uint8_t SKIP_HTML_CDATA{1U << 0U};
 constexpr std::uint8_t SKIP_HTML_DECLARATION{1U << 1U};
 constexpr std::uint8_t SKIP_HTML_PROCESSING_INSTRUCTION{1U << 2U};
-constexpr std::uint8_t SKIP_HTML_COMMENT{1U << 3U};
 
 // The bytes that may start an inline other than plain text, which are the
 // line endings, the backslash, the backtick, the ampersand, the angle bracket,
@@ -418,8 +417,10 @@ private:
     return 0;
   }
 
-  // The content of a code span, where line endings become spaces and a single
-  // leading and trailing space go away unless the content is only spaces
+  // The content of a code span of GFM section 6.3: "First, line endings are
+  // converted to spaces. If the resulting string both begins and ends with a
+  // space character, but does not consist entirely of space characters, a
+  // single space character is removed from the front and back"
   auto normalize_code(const std::string_view raw) -> std::string_view {
     if (raw.find_first_of("\r\n") == std::string_view::npos) {
       if (raw.size() >= 2 && raw.front() == ' ' && raw.back() == ' ' &&
@@ -448,10 +449,9 @@ private:
       } else {
         buffer[write] = character;
         ++write;
-      }
-
-      if (buffer[read] != ' ') {
-        contains_nonspace = true;
+        if (character != ' ') {
+          contains_nonspace = true;
+        }
       }
     }
 
@@ -549,25 +549,11 @@ private:
     }
 
     const auto character{this->input_[position]};
-    if (character == '!' && (this->flags_ & SKIP_HTML_COMMENT) == 0) {
+    if (character == '!') {
       const auto next{this->input_[position + 1]};
       if (next == '-' && character_at(this->input_, position + 2) == '-') {
-        if (character_at(this->input_, position + 3) == '>') {
-          return 4;
-        }
-
-        if (character_at(this->input_, position + 3) == '-' &&
-            character_at(this->input_, position + 4) == '>') {
-          return 5;
-        }
-
         const auto length{scan_html_comment(this->input_, position + 1)};
-        if (length > 0) {
-          return length + 1;
-        }
-
-        this->flags_ |= SKIP_HTML_COMMENT;
-        return 0;
+        return length > 0 ? length + 1 : 0;
       }
 
       if (next == '[') {

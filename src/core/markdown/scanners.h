@@ -235,7 +235,9 @@ inline auto scan_html_tag(const std::string_view input,
   return position + 1 - offset;
 }
 
-// An HTML comment, at the two dashes that follow the exclamation mark
+// An HTML comment of GFM section 6.10, at the two dashes that follow the
+// exclamation mark: "An HTML comment consists of <!-- + text + -->, where text
+// does not start with > or ->, does not end with -, and does not contain --"
 inline auto scan_html_comment(const std::string_view input,
                               const std::size_t offset) noexcept
     -> std::size_t {
@@ -244,23 +246,22 @@ inline auto scan_html_comment(const std::string_view input,
     return 0;
   }
 
-  std::size_t dashes{0};
-  for (auto position{offset + 2}; position < input.size(); ++position) {
-    const auto character{input[position]};
-    if (dashes == 2) {
-      if (character == '>') {
-        return position + 1 - offset;
-      }
-
-      dashes = 0;
-    } else if (character == '-') {
-      ++dashes;
-    } else {
-      dashes = 0;
-    }
+  const auto text{offset + 2};
+  if (character_at(input, text) == '>' ||
+      (character_at(input, text) == '-' &&
+       character_at(input, text + 1) == '>')) {
+    return 0;
   }
 
-  return 0;
+  // As the text can neither contain two dashes nor end with one, the first two
+  // dashes after the opening have to be the start of the closing
+  const auto closing{input.find("--", text)};
+  if (closing == std::string_view::npos ||
+      character_at(input, closing + 2) != '>') {
+    return 0;
+  }
+
+  return closing + 3 - offset;
 }
 
 // The content of a processing instruction, right after its question mark,
@@ -494,9 +495,13 @@ inline auto scan_html_block_end(const std::string_view input,
   }
 }
 
-// A link title of GFM section 6.3, where every closing character preceded by
-// a backslash may either close the title or belong to it, and the longest
-// alternative wins
+// A link title of GFM section 6.3, which "consists of either a sequence of zero
+// or more characters between straight double-quote characters ("), including a
+// " character only if it is backslash-escaped, or a sequence of zero or more
+// characters between straight single-quote characters ('), including a '
+// character only if it is backslash-escaped, or a sequence of zero or more
+// characters between matching parentheses ((...)), including a ( or )
+// character only if it is backslash-escaped"
 inline auto scan_link_title(const std::string_view input,
                             const std::size_t offset) noexcept -> std::size_t {
   const auto opening{character_at(input, offset)};
@@ -505,22 +510,26 @@ inline auto scan_link_title(const std::string_view input,
   }
 
   const auto closing{opening == '(' ? ')' : opening};
-  std::size_t accepted{0};
   for (auto position{offset + 1}; position < input.size(); ++position) {
     const auto character{input[position]};
-    const auto escaped{position > offset + 1 && input[position - 1] == '\\'};
-    if (character == closing) {
-      if (!escaped) {
-        return position + 1 - offset;
-      }
+    // GFM section 2.4: "Any ASCII punctuation character may be
+    // backslash-escaped"
+    if (character == '\\' && position + 1 < input.size() &&
+        sourcemeta::core::is_punctuation(input[position + 1])) {
+      ++position;
+      continue;
+    }
 
-      accepted = position + 1 - offset;
-    } else if (opening == '(' && character == '(' && !escaped) {
-      return accepted;
+    if (character == closing) {
+      return position + 1 - offset;
+    }
+
+    if (opening == '(' && character == '(') {
+      return 0;
     }
   }
 
-  return accepted;
+  return 0;
 }
 
 // The start of an ATX heading of GFM section 4.2, including the whitespace
@@ -644,14 +653,22 @@ inline auto scan_close_code_fence(const std::string_view input,
   return character == '\n' || character == '\r' ? length : 0;
 }
 
+// The image media types whose data URLs safe mode keeps
+constexpr std::array<std::string_view, 4> SAFE_DATA_URL_PREFIXES{
+    {"data:image/png", "data:image/gif", "data:image/jpeg", "data:image/webp"}};
+
 // Whether a link destination starts with a scheme that can run code or read
-// local files, where only a few image data URIs are safe
+// local files, where only a few image data URLs are safe. RFC 2397 Section 3
+// writes a data URL as `dataurl := "data:" [ mediatype ] [ ";base64" ] ","
+// data` with `mediatype := [ type "/" subtype ] *( ";" parameter )`, so the
+// subtype of an allowed image ends at a semicolon or a comma
 inline auto is_dangerous_url(const std::string_view url) noexcept -> bool {
-  if (sourcemeta::core::starts_with_ignore_case(url, "data:image/png") ||
-      sourcemeta::core::starts_with_ignore_case(url, "data:image/gif") ||
-      sourcemeta::core::starts_with_ignore_case(url, "data:image/jpeg") ||
-      sourcemeta::core::starts_with_ignore_case(url, "data:image/webp")) {
-    return false;
+  for (const auto prefix : SAFE_DATA_URL_PREFIXES) {
+    if (sourcemeta::core::starts_with_ignore_case(url, prefix) &&
+        url.size() > prefix.size() &&
+        (url[prefix.size()] == ';' || url[prefix.size()] == ',')) {
+      return false;
+    }
   }
 
   return sourcemeta::core::starts_with_ignore_case(url, "javascript:") ||
@@ -816,62 +833,23 @@ inline auto scan_table_cell_end(const std::string_view input,
   return position - offset;
 }
 
-inline auto scan_task_list_box(const std::string_view input,
-                               std::size_t position) noexcept -> bool {
-  const auto spaces_start{position};
-  while (position < input.size() && is_line_space(input[position])) {
-    ++position;
-  }
-
-  if (position == spaces_start || character_at(input, position) != '[') {
-    return false;
-  }
-
-  const auto state{character_at(input, position + 1)};
-  if ((state != ' ' && state != 'x' && state != 'X') ||
+// A task list item marker of GFM section 5.3 at the start of the content of a
+// list item, which "consists of an optional number of spaces, a left bracket
+// ([), either a whitespace character or the letter x in either lowercase or
+// uppercase, and then a right bracket (])", where the list item already took
+// the spaces, and which needs "at least one whitespace character before any
+// other content". A line ending cannot come between the brackets, so the
+// whitespace there is one of the other whitespace characters of GFM section 2.1
+inline auto scan_task_list_marker(const std::string_view input,
+                                  const std::size_t position) noexcept -> bool {
+  if (character_at(input, position) != '[' ||
       character_at(input, position + 2) != ']') {
     return false;
   }
 
-  return is_line_space(character_at(input, position + 3));
-}
-
-// A list item whose content starts with a task list item marker of GFM
-// section 5.3, as a whole line
-inline auto scan_task_list_item(const std::string_view input) noexcept -> bool {
-  std::size_t position{0};
-  while (position < input.size() && is_line_space(input[position])) {
-    ++position;
-  }
-
-  const auto marker{character_at(input, position)};
-  if (marker == '-' || marker == '+' || marker == '*') {
-    return scan_task_list_box(input, position + 1);
-  }
-
-  if (!sourcemeta::core::is_digit(marker)) {
-    return false;
-  }
-
-  auto digits_end{position};
-  while (digits_end < input.size() &&
-         sourcemeta::core::is_digit(input[digits_end])) {
-    ++digits_end;
-  }
-
-  // The marker is a run of digits followed by any single character, which may
-  // also be the last digit of the run
-  if (digits_end - position >= 2 && scan_task_list_box(input, digits_end)) {
-    return true;
-  }
-
-  const auto character{character_at(input, digits_end)};
-  if (character == '\n' || digits_end >= input.size()) {
-    return false;
-  }
-
-  const auto length{sourcemeta::core::utf8_codepoint_length(input, digits_end)};
-  return length > 0 && scan_task_list_box(input, digits_end + length);
+  const auto state{character_at(input, position + 1)};
+  return (is_line_space(state) || state == 'x' || state == 'X') &&
+         is_line_space(character_at(input, position + 3));
 }
 
 } // namespace sourcemeta::core::markdown

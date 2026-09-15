@@ -18,7 +18,7 @@
 #include <ostream>     // std::ostream
 #include <string>      // std::string
 #include <string_view> // std::string_view
-#include <type_traits> // std::remove_cv_t
+#include <type_traits> // std::is_nothrow_copy_constructible_v, std::is_nothrow_invocable_v, std::remove_cv_t
 #include <utility>     // std::pair
 #include <vector>      // std::vector
 
@@ -489,7 +489,8 @@ strip_right(const std::string_view input, Predicate predicate) noexcept(
 template <typename Predicate>
   requires std::predicate<Predicate &, char>
 constexpr auto trim(const std::string_view input, Predicate predicate) noexcept(
-    std::is_nothrow_invocable_v<Predicate &, char>) -> std::string_view {
+    std::is_nothrow_invocable_v<Predicate &, char> &&
+    std::is_nothrow_copy_constructible_v<Predicate>) -> std::string_view {
   return strip_right(strip_left(input, predicate), predicate);
 }
 

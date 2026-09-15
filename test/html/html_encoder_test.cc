@@ -558,11 +558,14 @@ TEST(take_leaves_writer_empty) {
   EXPECT_EQ(document.str(), "<p>World</p>");
 }
 
-TEST(take_flushes_open_tag) {
+TEST(take_discards_open_elements) {
   sourcemeta::core::HTMLWriter document;
-  document.hr();
+  document.div();
+  const auto result{document.take()};
+  document.p("World");
 
-  EXPECT_EQ(document.take(), "<hr />");
+  EXPECT_EQ(result, "<div>");
+  EXPECT_EQ(document.str(), "<p>World</p>");
 }
 
 TEST(attribute_value_escaping_after_several_words) {

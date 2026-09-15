@@ -917,17 +917,23 @@ private:
     return row;
   }
 
+  // A list item whose first block is a paragraph that starts with a task list
+  // item marker of GFM section 5.3, which the item can only get while it has
+  // no block yet
   auto open_task_list_item(const std::uint32_t item) -> void {
     if (this->node(item).type != NodeType::Item ||
-        !scan_task_list_item(this->line_)) {
+        this->node(item).first_child != NO_NODE ||
+        !scan_task_list_marker(
+            this->line_, static_cast<std::size_t>(this->first_nonspace_))) {
       return;
     }
 
     set_flag(this->node(item), FLAG_TASK, true);
-    this->advance_offset(3, false);
-    set_flag(this->node(item), FLAG_CHECKED,
-             this->line_.find("[x]") != std::string_view::npos ||
-                 this->line_.find("[X]") != std::string_view::npos);
+    // GFM section 5.3: "If the character between the brackets is a whitespace
+    // character, the checkbox is unchecked. Otherwise, the checkbox is checked"
+    const auto state{this->peek(this->first_nonspace_ + 1)};
+    set_flag(this->node(item), FLAG_CHECKED, state == 'x' || state == 'X');
+    this->advance_offset(this->first_nonspace_ + 3 - this->offset_, false);
   }
 
   auto register_footnote_definition(const std::uint32_t definition) -> void {

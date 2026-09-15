@@ -304,3 +304,10 @@ TEST(extended_autolink_inside_code_span) {
       sourcemeta::core::markdown_to_html("`https://sourcemeta.com`")};
   EXPECT_EQ(result, "<p><code>https://sourcemeta.com</code></p>\n");
 }
+
+TEST(extended_autolink_email_after_invalid_candidate) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("a@b.c_@d\n\nmailto:a@b_@c.d")};
+  EXPECT_EQ(result, "<p>a@b.c_@d</p>\n"
+                    "<p>mailto:a@<a href=\"mailto:b_@c.d\">b_@c.d</a></p>\n");
+}

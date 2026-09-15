@@ -216,3 +216,15 @@ TEST(safe_mode_omits_raw_html_taking_precedence_over_link) {
       sourcemeta::core::markdown_to_html("[x <span data=\"](/y)\">")};
   EXPECT_EQ(result, "<p>[x <!-- raw HTML omitted --></p>\n");
 }
+
+TEST(safe_mode_strips_data_image_with_longer_subtype) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("![x](data:image/pngx;base64,AAAA)")};
+  EXPECT_EQ(result, "<p><img src=\"\" alt=\"x\" /></p>\n");
+}
+
+TEST(safe_mode_keeps_data_image_png_without_parameters) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("![x](data:image/png,AAAA)")};
+  EXPECT_EQ(result, "<p><img src=\"data:image/png,AAAA\" alt=\"x\" /></p>\n");
+}

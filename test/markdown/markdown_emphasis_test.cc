@@ -174,7 +174,7 @@ TEST(strong_emphasis_intraword_with_asterisks) {
 
 TEST(strong_emphasis_nested_asterisks) {
   const auto result{sourcemeta::core::markdown_to_html("**x, **y**, z**")};
-  EXPECT_EQ(result, "<p><strong>x, y, z</strong></p>\n");
+  EXPECT_EQ(result, "<p><strong>x, <strong>y</strong>, z</strong></p>\n");
 }
 
 TEST(strong_emphasis_underscore_after_punctuation) {
@@ -209,7 +209,7 @@ TEST(emphasis_rule_of_three_intraword) {
 
 TEST(emphasis_rule_of_three_long_runs) {
   const auto result{sourcemeta::core::markdown_to_html("a****b*******c")};
-  EXPECT_EQ(result, "<p>a<strong>b</strong>***c</p>\n");
+  EXPECT_EQ(result, "<p>a<strong><strong>b</strong></strong>***c</p>\n");
 }
 
 TEST(emphasis_containing_link) {
@@ -233,17 +233,17 @@ TEST(emphasis_spanning_lines) {
 
 TEST(strong_emphasis_nested_inside_itself) {
   const auto result{sourcemeta::core::markdown_to_html("**x **y** z**")};
-  EXPECT_EQ(result, "<p><strong>x y z</strong></p>\n");
+  EXPECT_EQ(result, "<p><strong>x <strong>y</strong> z</strong></p>\n");
 }
 
 TEST(strong_emphasis_quadruple_delimiters) {
   const auto result{sourcemeta::core::markdown_to_html("****x****")};
-  EXPECT_EQ(result, "<p><strong>x</strong></p>\n");
+  EXPECT_EQ(result, "<p><strong><strong>x</strong></strong></p>\n");
 }
 
 TEST(strong_emphasis_quintuple_delimiters) {
   const auto result{sourcemeta::core::markdown_to_html("*****x*****")};
-  EXPECT_EQ(result, "<p><em><strong>x</strong></em></p>\n");
+  EXPECT_EQ(result, "<p><em><strong><strong>x</strong></strong></em></p>\n");
 }
 
 TEST(emphasis_with_escaped_delimiters) {

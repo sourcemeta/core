@@ -95,3 +95,8 @@ TEST(code_span_takes_precedence_over_autolink) {
       sourcemeta::core::markdown_to_html("`<https://sourcemeta.com/`x>`")};
   EXPECT_EQ(result, "<p><code>&lt;https://sourcemeta.com/</code>x&gt;`</p>\n");
 }
+
+TEST(code_span_of_a_space_and_a_crlf_is_kept) {
+  const auto result{sourcemeta::core::markdown_to_html("` \r\n`")};
+  EXPECT_EQ(result, "<p><code>  </code></p>\n");
+}

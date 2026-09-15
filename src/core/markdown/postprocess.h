@@ -389,9 +389,15 @@ private:
             continue;
           }
 
+          // GFM section 6.9 recognises every email address on its own,
+          // including "There must be at least one period", so a new candidate
+          // does not inherit the state of the previous one
           if (character == '@') {
             offset += max_rewind + 1;
             max_rewind = link_end - 1;
+            periods = 0;
+            auto_mailto = true;
+            is_xmpp = false;
             retry = true;
             break;
           }

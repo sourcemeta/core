@@ -69,9 +69,14 @@ inline auto scan_link_destination(const std::string_view input,
         break;
       }
 
-      if (character == '\\') {
+      // GFM section 6.3: a link destination can be "a sequence of zero or
+      // more characters between an opening < and a closing > that contains
+      // no line breaks or unescaped < or > characters", where GFM section 2.4
+      // only lets "Any ASCII punctuation character" be backslash-escaped
+      if (character == '\\' && index + 1 < size &&
+          sourcemeta::core::is_punctuation(input[index + 1])) {
         index += 2;
-      } else if (character == '\n' || character == '<') {
+      } else if (character == '\n' || character == '\r' || character == '<') {
         return -1;
       } else {
         ++index;

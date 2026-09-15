@@ -588,3 +588,31 @@ TEST(inline_link_invalid_falls_back_to_reference) {
       sourcemeta::core::markdown_to_html("[manual](a b)\n\n[manual]: /manual")};
   EXPECT_EQ(result, "<p><a href=\"/manual\">manual</a>(a b)</p>\n");
 }
+
+TEST(link_destination_angle_brackets_backslash_before_line_ending) {
+  const auto result{sourcemeta::core::markdown_to_html("[x](<a\\\nb>)")};
+  EXPECT_EQ(result, "<p>[x](&lt;a<br />\n"
+                    "b&gt;)</p>\n");
+}
+
+TEST(link_destination_angle_brackets_with_carriage_return_is_not_link) {
+  const auto result{sourcemeta::core::markdown_to_html("[x](</a\rb>)")};
+  EXPECT_EQ(result, "<p>[x](&lt;/a\n"
+                    "b&gt;)</p>\n");
+}
+
+TEST(link_title_escaped_backslash_before_closing_quote) {
+  const auto result{sourcemeta::core::markdown_to_html(R"MD([x](/y "a\\"))MD")};
+  EXPECT_EQ(result, "<p><a href=\"/y\" title=\"a\\\">x</a></p>\n");
+}
+
+TEST(link_title_escaped_backslash_does_not_escape_the_quote) {
+  const auto result{
+      sourcemeta::core::markdown_to_html(R"MD([x](/y "a\\"b"))MD")};
+  EXPECT_EQ(result, "<p>[x](/y &quot;a\\&quot;b&quot;)</p>\n");
+}
+
+TEST(link_title_escaped_backslash_before_opening_parenthesis) {
+  const auto result{sourcemeta::core::markdown_to_html("[x](/y (a\\\\(b))")};
+  EXPECT_EQ(result, "<p>[x](/y (a\\(b))</p>\n");
+}

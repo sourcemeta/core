@@ -3,6 +3,17 @@
 
 #include <string_view> // std::string_view
 
+namespace {
+
+// A predicate that never throws when called but may throw when copied
+struct CopyMayThrow {
+  CopyMayThrow() = default;
+  CopyMayThrow(const CopyMayThrow &) noexcept(false) = default;
+  auto operator()(const char) const noexcept -> bool { return false; }
+};
+
+} // namespace
+
 TEST(no_whitespace_returns_input_unchanged) {
   EXPECT_EQ(sourcemeta::core::trim("hello"), "hello");
 }
@@ -97,4 +108,9 @@ TEST(predicate_no_match_returns_input_unchanged) {
   EXPECT_EQ(sourcemeta::core::trim(
                 "hello", [](const char character) { return character == '-'; }),
             "hello");
+}
+
+TEST(predicate_with_a_copy_that_may_throw_is_not_noexcept) {
+  EXPECT_FALSE(
+      noexcept(sourcemeta::core::trim(std::string_view{"x"}, CopyMayThrow{})));
 }
