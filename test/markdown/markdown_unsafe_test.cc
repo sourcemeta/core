@@ -178,7 +178,7 @@ TEST(inline_html_invalid_attribute_name) {
 TEST(inline_html_invalid_attribute_values) {
   const auto result{
       sourcemeta::core::markdown_to_html("<span a=\"b> <span a='b>", false)};
-  EXPECT_EQ(result, "<p>&lt;span a=&quot;b&gt; &lt;span a='b&gt;</p>\n");
+  EXPECT_EQ(result, "<p>&lt;span a=&quot;b&gt; &lt;span a=&#39;b&gt;</p>\n");
 }
 
 TEST(inline_html_invalid_whitespace) {

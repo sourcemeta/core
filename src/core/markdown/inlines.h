@@ -204,8 +204,8 @@ public:
 
   auto parse(const std::uint32_t parent) -> void {
     this->parent_ = parent;
-    this->input_ =
-        trim_right(this->document_.content_of(this->document_.nodes[parent]));
+    this->input_ = sourcemeta::core::strip_right(
+        this->document_.content_of(this->document_.nodes[parent]), is_space);
     this->position_ = 0;
     this->column_offset_ = 0;
     this->last_delimiter_ = NO_DELIMITER;
@@ -311,7 +311,7 @@ private:
     auto contents{this->input_.substr(this->position_, end - this->position_)};
     this->position_ = end;
     if (end < this->input_.size() && is_line_end(this->input_[end])) {
-      contents = trim_right(contents);
+      contents = sourcemeta::core::strip_right(contents, is_space);
     }
 
     this->append(NodeType::Text, contents);
@@ -488,7 +488,7 @@ private:
   auto handle_backslash() -> void {
     ++this->position_;
     const auto next{this->peek()};
-    if (is_punctuation(next)) {
+    if (sourcemeta::core::is_punctuation(next)) {
       ++this->position_;
       this->append(NodeType::Text, this->input_.substr(this->position_ - 1, 1));
       return;
@@ -519,7 +519,7 @@ private:
 
   auto make_autolink(const std::string_view contents, const bool is_email)
       -> void {
-    const auto trimmed{trim(contents)};
+    const auto trimmed{sourcemeta::core::trim(contents, is_space)};
     const auto link{this->append(NodeType::Link, {})};
     if (!trimmed.empty()) {
       this->buffer_.clear();

@@ -66,27 +66,13 @@ inline auto is_blank_until_line_end(const std::string_view content) noexcept
 }
 
 // The position of the next line feed, or the size of the input if there is
-// none, looking at eight bytes at a time as lines tend to be short
+// none
 inline auto find_line_feed(const std::string_view input,
-                           std::size_t position) noexcept -> std::size_t {
-  const auto size{input.size()};
-  while (position + 8 <= size) {
-    std::uint64_t word{0};
-    std::memcpy(&word, input.data() + position, 8);
-    const auto difference{word ^ 0x0A0A0A0A0A0A0A0AULL};
-    if (((difference - 0x0101010101010101ULL) & ~difference &
-         0x8080808080808080ULL) != 0) {
-      break;
-    }
-
-    position += 8;
-  }
-
-  while (position < size && input[position] != '\n') {
-    ++position;
-  }
-
-  return position;
+                           const std::size_t position) noexcept -> std::size_t {
+  const auto *const found{static_cast<const char *>(
+      std::memchr(input.data() + position, '\n', input.size() - position))};
+  return found == nullptr ? input.size()
+                          : static_cast<std::size_t>(found - input.data());
 }
 
 // A row of the GFM table extension, where a string of several lines resolves
@@ -495,7 +481,8 @@ private:
       this->value_buffer_.assign(info);
     }
 
-    this->label_buffer_.assign(trim(this->value_buffer_));
+    this->label_buffer_.assign(
+        sourcemeta::core::trim(this->value_buffer_, is_space));
     remove_backslash_escapes(this->label_buffer_);
     target.title = this->document_.strings.store(this->label_buffer_);
     if (character_at(content, position) == '\r') {
@@ -787,7 +774,7 @@ private:
 
   auto append_table_cell_content(const std::uint32_t cell,
                                  const std::string_view raw) -> void {
-    const auto text{trim(raw)};
+    const auto text{sourcemeta::core::trim(raw, is_space)};
     auto &content{this->document_.content};
     auto &target{this->node(cell)};
     target.content_offset = static_cast<std::uint32_t>(content.size());
@@ -847,8 +834,8 @@ private:
          .nonempty_cells =
              static_cast<std::int64_t>(this->header_cells_.size())});
     for (const auto &cell : this->cells_) {
-      const auto marker{
-          trim(this->line_.substr(nonspace + cell.offset, cell.length))};
+      const auto marker{sourcemeta::core::trim(
+          this->line_.substr(nonspace + cell.offset, cell.length), is_space)};
       const auto left{!marker.empty() && marker.front() == ':'};
       const auto right{!marker.empty() && marker.back() == ':'};
       std::uint8_t alignment{0};

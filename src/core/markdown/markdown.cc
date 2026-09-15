@@ -9,9 +9,6 @@
 #include "postprocess.h"
 #include "render.h"
 
-#include <cstddef>     // std::size_t
-#include <cstdint>     // std::uint64_t
-#include <cstring>     // std::memcpy
 #include <string>      // std::string
 #include <string_view> // std::string_view
 
@@ -27,44 +24,6 @@ struct MarkdownConverter {
   sourcemeta::core::markdown::HTMLRenderer renderer{document};
   std::string repaired;
 };
-
-// Whether the input has NUL characters or byte sequences that are not UTF-8,
-// which GFM section 2.3 requires replacing
-auto needs_replacement(const std::string_view input) noexcept -> bool {
-  constexpr std::uint64_t ONES{0x0101010101010101ULL};
-  constexpr std::uint64_t HIGH_BITS{0x8080808080808080ULL};
-  const auto size{input.size()};
-  std::size_t index{0};
-  while (index < size) {
-    if (index + 8 <= size) {
-      std::uint64_t word{0};
-      std::memcpy(&word, input.data() + index, 8);
-      if ((word & HIGH_BITS) == 0 && ((word - ONES) & ~word & HIGH_BITS) == 0) {
-        index += 8;
-        continue;
-      }
-    }
-
-    const auto byte{static_cast<unsigned char>(input[index])};
-    if (byte == 0) {
-      return true;
-    }
-
-    if (byte < 0x80) {
-      ++index;
-      continue;
-    }
-
-    const auto length{sourcemeta::core::utf8_codepoint_length(input, index)};
-    if (length == 0) {
-      return true;
-    }
-
-    index += length;
-  }
-
-  return false;
-}
 
 auto replace_invalid_characters(const std::string_view input,
                                 std::string &output) -> void {
@@ -84,7 +43,10 @@ auto markdown_to_html(const std::string_view input, const bool safe)
   thread_local MarkdownConverter converter;
   converter.document.clear();
   auto source{input};
-  if (needs_replacement(input)) {
+  // GFM section 2.3 requires replacing the NUL character, and byte sequences
+  // that are not well-formed UTF-8 are replaced too
+  if (input.find('\0') != std::string_view::npos ||
+      !sourcemeta::core::is_valid_utf8(input)) {
     replace_invalid_characters(input, converter.repaired);
     source = converter.repaired;
   }
@@ -92,10 +54,8 @@ auto markdown_to_html(const std::string_view input, const bool safe)
   converter.blocks.parse(source, input.size());
   converter.postprocessor.parse_inlines(converter.inlines);
   converter.postprocessor.process_footnotes();
-  std::string output;
-  converter.renderer.render(output, !safe,
-                            source.size() + (source.size() / 2) + 64);
-  return output;
+  return converter.renderer.render(!safe,
+                                   source.size() + (source.size() / 2) + 64);
 }
 
 } // namespace sourcemeta::core

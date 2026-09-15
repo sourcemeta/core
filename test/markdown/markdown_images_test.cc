@@ -81,5 +81,5 @@ TEST(image_title_with_escaped_quote) {
   const auto result{
       sourcemeta::core::markdown_to_html("![logo](/l.png 'it\\'s')")};
   EXPECT_EQ(result,
-            "<p><img src=\"/l.png\" alt=\"logo\" title=\"it's\" /></p>\n");
+            "<p><img src=\"/l.png\" alt=\"logo\" title=\"it&#39;s\" /></p>\n");
 }

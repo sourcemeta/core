@@ -19,14 +19,6 @@ inline auto is_space(const char character) noexcept -> bool {
          character == '\r';
 }
 
-// The ASCII punctuation characters of GFM section 2.1
-inline auto is_punctuation(const char character) noexcept -> bool {
-  return (character >= '!' && character <= '/') ||
-         (character >= ':' && character <= '@') ||
-         (character >= '[' && character <= '`') ||
-         (character >= '{' && character <= '~');
-}
-
 inline auto is_space_or_tab(const char character) noexcept -> bool {
   return character == ' ' || character == '\t';
 }
@@ -49,7 +41,7 @@ inline auto is_unicode_whitespace(const char32_t codepoint) noexcept -> bool {
 // The punctuation of GFM section 2.1
 inline auto is_unicode_punctuation(const char32_t codepoint) noexcept -> bool {
   if (codepoint < 0x80) {
-    return is_punctuation(static_cast<char>(codepoint));
+    return sourcemeta::core::is_punctuation(static_cast<char>(codepoint));
   }
 
   const auto category{sourcemeta::core::general_category(codepoint)};
@@ -60,29 +52,6 @@ inline auto is_unicode_punctuation(const char32_t codepoint) noexcept -> bool {
          category == sourcemeta::core::GeneralCategory::InitialPunctuation ||
          category == sourcemeta::core::GeneralCategory::FinalPunctuation ||
          category == sourcemeta::core::GeneralCategory::OtherPunctuation;
-}
-
-inline auto trim_left(std::string_view input) noexcept -> std::string_view {
-  std::size_t index{0};
-  while (index < input.size() && is_space(input[index])) {
-    ++index;
-  }
-
-  input.remove_prefix(index);
-  return input;
-}
-
-inline auto trim_right(std::string_view input) noexcept -> std::string_view {
-  std::size_t size{input.size()};
-  while (size > 0 && is_space(input[size - 1])) {
-    --size;
-  }
-
-  return input.substr(0, size);
-}
-
-inline auto trim(const std::string_view input) noexcept -> std::string_view {
-  return trim_right(trim_left(input));
 }
 
 // Decode the character reference that follows an ampersand as GFM section 2.5
@@ -188,7 +157,7 @@ inline auto remove_backslash_escapes(std::string &buffer) -> void {
   std::size_t write{0};
   for (std::size_t read{0}; read < size; ++read) {
     if (buffer[read] == '\\' && read + 1 < size &&
-        is_punctuation(buffer[read + 1])) {
+        sourcemeta::core::is_punctuation(buffer[read + 1])) {
       ++read;
     }
 

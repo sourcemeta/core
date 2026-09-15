@@ -6,6 +6,8 @@ if(SOURCEMETA_CORE_INSTALL)
 endif()
 
 target_link_libraries(sourcemeta_core_markdown PRIVATE
+  sourcemeta::core::email
   sourcemeta::core::html
   sourcemeta::core::text
-  sourcemeta::core::unicode)
+  sourcemeta::core::unicode
+  sourcemeta::core::uri)

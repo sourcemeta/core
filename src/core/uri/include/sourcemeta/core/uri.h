@@ -11,9 +11,10 @@
 #include <sourcemeta/core/uri_error.h>
 // NOLINTEND(misc-include-cleaner)
 
+#include <array>       // std::array
 #include <concepts>    // std::convertible_to, std::same_as
 #include <cstddef>     // std::size_t, std::ptrdiff_t
-#include <cstdint>     // std::uint32_t
+#include <cstdint>     // std::uint8_t, std::uint32_t
 #include <filesystem>  // std::filesystem
 #include <istream>     // std::istream
 #include <iterator>    // std::forward_iterator_tag
@@ -935,6 +936,72 @@ public:
             static_cast<char>(low < 10 ? '0' + low : 'A' + low - 10));
       }
     }
+  }
+
+  /// Percent-encode the octets of a string that cannot appear in a URI
+  /// reference, appending the result to a string like output sink. Unlike
+  /// `escape`, the unreserved characters, the sub-delimiters, the colon, the
+  /// at sign, the slash, the question mark, the number sign, and every valid
+  /// percent-encoded triplet pass through, so the delimiters of a URI
+  /// reference survive and an already encoded string is not encoded twice.
+  /// The square brackets are encoded, as RFC 3986 only allows them around an
+  /// IP literal host. The output must not alias the input. For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/uri.h>
+  /// #include <cassert>
+  /// #include <string>
+  ///
+  /// std::string output;
+  /// sourcemeta::core::URI::escape_reference("/a b?c=d#e%20f", output);
+  /// assert(output == "/a%20b?c=d#e%20f");
+  /// ```
+  template <typename Output>
+  static auto escape_reference(const std::string_view input, Output &output)
+      -> void {
+    // RFC 3986 Section 2.2 and Section 2.3: the unreserved characters, the
+    // sub-delims, and the gen-delims other than the square brackets
+    static constexpr std::array<std::uint8_t, 256> PASS_THROUGH{{
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0x00
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0x10
+        0, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 0x20
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, // 0x30
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 0x40
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, // 0x50
+        0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 0x60
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, // 0x70
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0x80
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0x90
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0xA0
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0xB0
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0xC0
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0xD0
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0xE0
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0  // 0xF0
+    }};
+
+    std::size_t run_start{0};
+    for (std::size_t position = 0; position < input.size(); position += 1) {
+      const auto byte{static_cast<unsigned char>(input[position])};
+      // RFC 3986 Section 2.1: pct-encoded = "%" HEXDIG HEXDIG
+      if (PASS_THROUGH[byte] != 0 ||
+          (byte == '%' && is_percent_triplet(input, position))) {
+        continue;
+      }
+
+      // The characters that pass through are appended in runs
+      output.append(input.substr(run_start, position - run_start));
+      // RFC 3986 Section 2.1: percent-encode with uppercase hexadecimal
+      const auto high{static_cast<unsigned char>((byte >> 4U) & 0x0FU)};
+      const auto low{static_cast<unsigned char>(byte & 0x0FU)};
+      const std::array<char, 3> encoded{
+          {'%', static_cast<char>(high < 10 ? '0' + high : 'A' + high - 10),
+           static_cast<char>(low < 10 ? '0' + low : 'A' + low - 10)}};
+      output.append(std::string_view{encoded.data(), encoded.size()});
+      run_start = position + 1;
+    }
+
+    output.append(input.substr(run_start));
   }
 
   /// Append a percent-encoded name and value pair to a query, form body, or

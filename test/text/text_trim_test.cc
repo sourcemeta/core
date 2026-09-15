@@ -64,3 +64,37 @@ TEST(null_byte_is_not_whitespace) {
   const std::string_view input{"\0hello\0", 7};
   EXPECT_EQ(sourcemeta::core::trim(input), input);
 }
+
+TEST(predicate_both_ends) {
+  EXPECT_EQ(
+      sourcemeta::core::trim(
+          "--hello--", [](const char character) { return character == '-'; }),
+      "hello");
+}
+
+TEST(predicate_keeps_characters_it_rejects) {
+  EXPECT_EQ(sourcemeta::core::trim("\v hello \t",
+                                   [](const char character) {
+                                     return character == ' ' ||
+                                            character == '\t';
+                                   }),
+            "\v hello");
+}
+
+TEST(predicate_all_matching_returns_empty) {
+  EXPECT_EQ(sourcemeta::core::trim(
+                "---", [](const char character) { return character == '-'; }),
+            "");
+}
+
+TEST(predicate_empty_input_returns_empty) {
+  EXPECT_EQ(sourcemeta::core::trim(
+                "", [](const char character) { return character == '-'; }),
+            "");
+}
+
+TEST(predicate_no_match_returns_input_unchanged) {
+  EXPECT_EQ(sourcemeta::core::trim(
+                "hello", [](const char character) { return character == '-'; }),
+            "hello");
+}

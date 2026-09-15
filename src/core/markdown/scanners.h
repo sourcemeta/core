@@ -1,6 +1,7 @@
 #ifndef SOURCEMETA_CORE_MARKDOWN_SCANNERS_H_
 #define SOURCEMETA_CORE_MARKDOWN_SCANNERS_H_
 
+#include <sourcemeta/core/email.h>
 #include <sourcemeta/core/text.h>
 #include <sourcemeta/core/unicode.h>
 
@@ -87,80 +88,28 @@ inline auto scan_autolink_uri(const std::string_view input,
   return position + 1 - offset;
 }
 
-inline auto is_email_local_character(const char character) noexcept -> bool {
-  if (sourcemeta::core::is_alphanum(character)) {
-    return true;
-  }
-
-  switch (character) {
-    case '.':
-    case '!':
-    case '#':
-    case '$':
-    case '%':
-    case '&':
-    case '\'':
-    case '*':
-    case '+':
-    case '/':
-    case '=':
-    case '?':
-    case '^':
-    case '_':
-    case '`':
-    case '{':
-    case '|':
-    case '}':
-    case '~':
-    case '-':
-      return true;
-    default:
-      return false;
-  }
-}
-
-// An email address of GFM section 6.9, right after the opening angle bracket
+// An email address of GFM section 6.9, right after the opening angle bracket,
+// which is a valid email address of the HTML Standard up to the closing angle
+// bracket
 inline auto scan_autolink_email(const std::string_view input,
-                                const std::size_t offset) noexcept
-    -> std::size_t {
+                                const std::size_t offset) -> std::size_t {
   auto position{offset};
-  while (position < input.size() && is_email_local_character(input[position])) {
+  while (position < input.size()) {
+    const auto character{static_cast<unsigned char>(input[position])};
+    if (character <= 0x20 || character == '<' || character == '>') {
+      break;
+    }
+
     ++position;
   }
 
-  if (position == offset || character_at(input, position) != '@') {
+  if (character_at(input, position) != '>' ||
+      !sourcemeta::core::is_html_email(
+          input.substr(offset, position - offset))) {
     return 0;
   }
 
-  ++position;
-  while (true) {
-    if (!sourcemeta::core::is_alphanum(character_at(input, position))) {
-      return 0;
-    }
-
-    const auto label_start{position};
-    ++position;
-    while (position < input.size() &&
-           (sourcemeta::core::is_alphanum(input[position]) ||
-            input[position] == '-')) {
-      ++position;
-    }
-
-    if (position - label_start > 63 || input[position - 1] == '-') {
-      return 0;
-    }
-
-    const auto character{character_at(input, position)};
-    if (character == '>') {
-      return position + 1 - offset;
-    }
-
-    if (character != '.') {
-      return 0;
-    }
-
-    ++position;
-  }
+  return position + 1 - offset;
 }
 
 inline auto scan_tag_name(const std::string_view input,

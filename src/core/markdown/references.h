@@ -31,7 +31,8 @@ inline auto scan_link_label(const std::string_view input, std::size_t &position,
 
     ++cursor;
     ++length;
-    if (character == '\\' && is_punctuation(character_at(input, cursor))) {
+    if (character == '\\' &&
+        sourcemeta::core::is_punctuation(character_at(input, cursor))) {
       ++cursor;
       ++length;
     }
@@ -45,7 +46,8 @@ inline auto scan_link_label(const std::string_view input, std::size_t &position,
     return false;
   }
 
-  label = trim(input.substr(start + 1, cursor - start - 1));
+  label = sourcemeta::core::trim(input.substr(start + 1, cursor - start - 1),
+                                 is_space);
   position = cursor + 1;
   return true;
 }
@@ -88,7 +90,7 @@ inline auto scan_link_destination(const std::string_view input,
   while (index < size) {
     const auto character{input[index]};
     if (character == '\\' && index + 1 < size &&
-        is_punctuation(input[index + 1])) {
+        sourcemeta::core::is_punctuation(input[index + 1])) {
       index += 2;
     } else if (character == '(') {
       ++parentheses;
@@ -128,7 +130,7 @@ inline auto scan_link_destination(const std::string_view input,
 inline auto clean_url(Document &document, const std::string_view url,
                       std::string &buffer, const bool stable)
     -> std::string_view {
-  const auto trimmed{trim(url)};
+  const auto trimmed{sourcemeta::core::trim(url, is_space)};
   if (trimmed.empty()) {
     return {};
   }

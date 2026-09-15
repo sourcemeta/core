@@ -78,7 +78,7 @@ TEST(emphasis_opening_between_letter_and_punctuation) {
 TEST(emphasis_opening_followed_by_non_breaking_space) {
   const auto result{sourcemeta::core::markdown_to_html("_\xC2\xA0"
                                                        "x\xC2\xA0_")};
-  EXPECT_EQ(result, "<p>_\xc2\xa0x\xc2\xa0_</p>\n");
+  EXPECT_EQ(result, "<p>_&nbsp;x&nbsp;_</p>\n");
 }
 
 TEST(emphasis_intraword_with_asterisks) {

@@ -42,7 +42,7 @@ TEST(code_span_space_on_one_side_is_kept) {
 TEST(code_span_non_breaking_space_is_kept) {
   const auto result{sourcemeta::core::markdown_to_html("`\xC2\xA0"
                                                        "x`")};
-  EXPECT_EQ(result, "<p><code>\xc2\xa0x</code></p>\n");
+  EXPECT_EQ(result, "<p><code>&nbsp;x</code></p>\n");
 }
 
 TEST(code_span_of_only_spaces_is_kept) {

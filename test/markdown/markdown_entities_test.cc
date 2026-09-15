@@ -16,7 +16,7 @@ TEST(entity_named_references) {
   const auto result{sourcemeta::core::markdown_to_html(
       "&lt; &gt; &quot; &apos; &euro; &hellip;\n&rightarrow; "
       "&NotNestedLessLess; &bigstar;")};
-  EXPECT_EQ(result, "<p>&lt; &gt; &quot; ' \xe2\x82\xac \xe2\x80\xa6\n"
+  EXPECT_EQ(result, "<p>&lt; &gt; &quot; &#39; \xe2\x82\xac \xe2\x80\xa6\n"
                     "\xe2\x86\x92 \xe2\xaa\xa1\xcc\xb8 \xe2\x98\x85</p>\n");
 }
 
