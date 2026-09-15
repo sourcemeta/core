@@ -37,3 +37,4 @@ iana-oauth/client-metadata.csv https://www.iana.org/assignments/oauth-parameters
 iana-oauth/uri.csv https://www.iana.org/assignments/oauth-parameters/uri.csv dca1a780e342845d2f3b0fe2391f12faf27217f0234933c1a399e27b55dcadec
 iana-oauth/token-introspection-response.csv https://www.iana.org/assignments/oauth-parameters/token-introspection-response.csv d1a3e84f98853b72f51ed59e99d796bf20c415a8aca13e04373c0a25bbb9b1f4
 iana-oauth/endpoint.csv https://www.iana.org/assignments/oauth-parameters/endpoint.csv 1b5d125a9cfa06ac62286e322449cf369647069a6336483f372fbd1d84ad5aca
+whatwg-html-build https://github.com/whatwg/html-build 283a3531a61106d07d9a7d9fb3e6f3b9bfd33d70
