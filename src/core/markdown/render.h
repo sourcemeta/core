@@ -1,6 +1,8 @@
 #ifndef SOURCEMETA_CORE_MARKDOWN_RENDER_H_
 #define SOURCEMETA_CORE_MARKDOWN_RENDER_H_
 
+#include <sourcemeta/core/text.h>
+
 #include "characters.h"
 #include "document.h"
 #include "postprocess.h"
@@ -8,7 +10,6 @@
 
 #include <algorithm> // std::max
 #include <array>     // std::array
-#include <charconv>  // std::to_chars
 #include <cstddef>   // std::size_t
 #include <cstdint>   // std::int64_t, std::uint8_t, std::uint32_t, std::uint64_t
 #include <cstring>   // std::memcpy
@@ -115,10 +116,8 @@ public:
   }
 
   auto append_number(const std::int64_t number) -> void {
-    this->reserve(NUMBER_CAPACITY);
-    this->cursor_ =
-        std::to_chars(this->cursor_, this->cursor_ + NUMBER_CAPACITY, number)
-            .ptr;
+    sourcemeta::core::DigitsBuffer digits;
+    this->append(sourcemeta::core::digits_view(number, digits));
   }
 
   auto write(const std::string_view value) noexcept -> void {
@@ -135,7 +134,6 @@ public:
 
 private:
   static constexpr std::size_t MINIMUM_CAPACITY{256};
-  static constexpr std::size_t NUMBER_CAPACITY{24};
 
   [[nodiscard]] auto capacity() const noexcept -> std::size_t {
     return static_cast<std::size_t>(this->end_ - this->begin_);
@@ -255,7 +253,7 @@ inline auto is_filtered_tag(const std::string_view tag) noexcept -> bool {
     std::size_t index{tag[1] == '/' ? 2U : 1U};
     std::size_t name_index{0};
     while (index < tag.size() && name_index < name.size() &&
-           to_lower_ascii(tag[index]) == name[name_index]) {
+           sourcemeta::core::to_lowercase(tag[index]) == name[name_index]) {
       ++index;
       ++name_index;
     }

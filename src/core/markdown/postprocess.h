@@ -1,14 +1,14 @@
 #ifndef SOURCEMETA_CORE_MARKDOWN_POSTPROCESS_H_
 #define SOURCEMETA_CORE_MARKDOWN_POSTPROCESS_H_
 
+#include <sourcemeta/core/text.h>
+
 #include "characters.h"
 #include "document.h"
 #include "inlines.h"
 #include "references.h"
 
 #include <algorithm>     // std::sort
-#include <array>         // std::array
-#include <charconv>      // std::to_chars
 #include <cstddef>       // std::size_t
 #include <cstdint>       // std::uint32_t
 #include <cstring>       // std::memchr
@@ -263,11 +263,9 @@ private:
     ++nodes[definition].data;
     nodes[index].data = definition;
     nodes[index].extra = nodes[definition].data;
-    std::array<char, 16> digits{};
-    const auto result{std::to_chars(
-        digits.data(), digits.data() + digits.size(), nodes[definition].extra)};
-    nodes[index].literal = this->document_.strings.store(std::string_view{
-        digits.data(), static_cast<std::size_t>(result.ptr - digits.data())});
+    sourcemeta::core::DigitsBuffer digits;
+    nodes[index].literal = this->document_.strings.store(
+        sourcemeta::core::digits_view(nodes[definition].extra, digits));
   }
 
   [[nodiscard]] auto is_in_content(const std::string_view value) const noexcept
@@ -326,7 +324,8 @@ private:
     }
 
     return length == max_rewind - rewind ||
-           !is_alphanumeric(data[separator - rewind - length - 1]);
+           !sourcemeta::core::is_alphanum(
+               data[separator - rewind - length - 1]);
   }
 
   auto link_emails_in_text(std::uint32_t text) -> void {
@@ -356,7 +355,7 @@ private:
         const auto separator{start + offset + max_rewind};
         for (rewind = 0; rewind < max_rewind; ++rewind) {
           const auto character{data[separator - rewind - 1]};
-          if (is_alphanumeric(character) || character == '.' ||
+          if (sourcemeta::core::is_alphanum(character) || character == '.' ||
               character == '+' || character == '-' || character == '_') {
             continue;
           }
@@ -386,7 +385,7 @@ private:
         const auto limit{remaining - offset - max_rewind};
         for (link_end = 1; link_end < limit; ++link_end) {
           const auto character{data[separator + link_end]};
-          if (is_alphanumeric(character)) {
+          if (sourcemeta::core::is_alphanum(character)) {
             continue;
           }
 
@@ -398,7 +397,7 @@ private:
           }
 
           if (character == '.' && link_end < limit - 1 &&
-              is_alphanumeric(data[separator + link_end + 1])) {
+              sourcemeta::core::is_alphanum(data[separator + link_end + 1])) {
             ++periods;
           } else if (character != '-' && character != '_' &&
                      !(character == '/' && is_xmpp)) {
@@ -413,7 +412,7 @@ private:
 
       const auto separator{start + offset + max_rewind};
       if (link_end < 2 || periods == 0 ||
-          (!is_letter(data[separator + link_end - 1]) &&
+          (!sourcemeta::core::is_alpha(data[separator + link_end - 1]) &&
            data[separator + link_end - 1] != '.')) {
         offset += max_rewind + link_end;
         continue;

@@ -1,11 +1,15 @@
 #ifndef SOURCEMETA_CORE_MARKDOWN_SCANNERS_H_
 #define SOURCEMETA_CORE_MARKDOWN_SCANNERS_H_
 
+#include <sourcemeta/core/text.h>
+#include <sourcemeta/core/unicode.h>
+
 #include "characters.h"
 
 #include <algorithm>   // std::binary_search
 #include <array>       // std::array
 #include <cstddef>     // std::size_t
+#include <cstdint>     // std::uint8_t
 #include <string_view> // std::string_view
 
 // Every scanner matches at the given offset of the input, never looks past
@@ -30,29 +34,6 @@ inline auto is_line_space(const char character) noexcept -> bool {
          character == '\f';
 }
 
-inline auto to_lower_ascii(const char character) noexcept -> char {
-  return character >= 'A' && character <= 'Z'
-             ? static_cast<char>(character + ('a' - 'A'))
-             : character;
-}
-
-inline auto starts_with_ignoring_case(const std::string_view input,
-                                      const std::size_t offset,
-                                      const std::string_view prefix) noexcept
-    -> bool {
-  if (offset > input.size() || input.size() - offset < prefix.size()) {
-    return false;
-  }
-
-  for (std::size_t index{0}; index < prefix.size(); ++index) {
-    if (to_lower_ascii(input[offset + index]) != prefix[index]) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
 inline auto scan_spacechars(const std::string_view input,
                             const std::size_t offset) noexcept -> std::size_t {
   auto position{offset};
@@ -68,7 +49,7 @@ inline auto scan_autolink_uri(const std::string_view input,
                               const std::size_t offset) noexcept
     -> std::size_t {
   auto position{offset};
-  if (!is_letter(character_at(input, position))) {
+  if (!sourcemeta::core::is_alpha(character_at(input, position))) {
     return 0;
   }
 
@@ -76,8 +57,8 @@ inline auto scan_autolink_uri(const std::string_view input,
   std::size_t scheme_length{0};
   while (scheme_length < 31) {
     const auto character{character_at(input, position)};
-    if (!is_alphanumeric(character) && character != '.' && character != '+' &&
-        character != '-') {
+    if (!sourcemeta::core::is_alphanum(character) && character != '.' &&
+        character != '+' && character != '-') {
       break;
     }
 
@@ -107,7 +88,7 @@ inline auto scan_autolink_uri(const std::string_view input,
 }
 
 inline auto is_email_local_character(const char character) noexcept -> bool {
-  if (is_alphanumeric(character)) {
+  if (sourcemeta::core::is_alphanum(character)) {
     return true;
   }
 
@@ -153,14 +134,15 @@ inline auto scan_autolink_email(const std::string_view input,
 
   ++position;
   while (true) {
-    if (!is_alphanumeric(character_at(input, position))) {
+    if (!sourcemeta::core::is_alphanum(character_at(input, position))) {
       return 0;
     }
 
     const auto label_start{position};
     ++position;
     while (position < input.size() &&
-           (is_alphanumeric(input[position]) || input[position] == '-')) {
+           (sourcemeta::core::is_alphanum(input[position]) ||
+            input[position] == '-')) {
       ++position;
     }
 
@@ -183,13 +165,14 @@ inline auto scan_autolink_email(const std::string_view input,
 
 inline auto scan_tag_name(const std::string_view input,
                           const std::size_t offset) noexcept -> std::size_t {
-  if (!is_letter(character_at(input, offset))) {
+  if (!sourcemeta::core::is_alpha(character_at(input, offset))) {
     return 0;
   }
 
   auto position{offset + 1};
   while (position < input.size() &&
-         (is_alphanumeric(input[position]) || input[position] == '-')) {
+         (sourcemeta::core::is_alphanum(input[position]) ||
+          input[position] == '-')) {
     ++position;
   }
 
@@ -197,12 +180,13 @@ inline auto scan_tag_name(const std::string_view input,
 }
 
 inline auto is_attribute_name_start(const char character) noexcept -> bool {
-  return is_letter(character) || character == '_' || character == ':';
+  return sourcemeta::core::is_alpha(character) || character == '_' ||
+         character == ':';
 }
 
 inline auto is_attribute_name_character(const char character) noexcept -> bool {
-  return is_alphanumeric(character) || character == '_' || character == ':' ||
-         character == '.' || character == '-';
+  return sourcemeta::core::is_alphanum(character) || character == '_' ||
+         character == ':' || character == '.' || character == '-';
 }
 
 // The value of an attribute, at the equals sign or the whitespace before it
@@ -429,12 +413,12 @@ inline auto lowercase_tag_name(const std::string_view input,
     -> std::string_view {
   std::size_t length{0};
   while (offset + length < input.size() &&
-         is_alphanumeric(input[offset + length])) {
+         sourcemeta::core::is_alphanum(input[offset + length])) {
     if (length == buffer.size()) {
       return {};
     }
 
-    buffer[length] = to_lower_ascii(input[offset + length]);
+    buffer[length] = sourcemeta::core::to_lowercase(input[offset + length]);
     ++length;
   }
 
@@ -457,8 +441,8 @@ inline auto scan_html_block_start(const std::string_view input,
       return 2;
     }
 
-    if (after == '[' &&
-        starts_with_ignoring_case(input, offset + 3, "cdata[")) {
+    if (after == '[' && sourcemeta::core::starts_with_ignore_case(
+                            input.substr(offset + 3), "cdata[")) {
       return 5;
     }
 
@@ -714,17 +698,17 @@ inline auto scan_close_code_fence(const std::string_view input,
 // Whether a link destination starts with a scheme that can run code or read
 // local files, where only a few image data URIs are safe
 inline auto is_dangerous_url(const std::string_view url) noexcept -> bool {
-  if (starts_with_ignoring_case(url, 0, "data:image/png") ||
-      starts_with_ignoring_case(url, 0, "data:image/gif") ||
-      starts_with_ignoring_case(url, 0, "data:image/jpeg") ||
-      starts_with_ignoring_case(url, 0, "data:image/webp")) {
+  if (sourcemeta::core::starts_with_ignore_case(url, "data:image/png") ||
+      sourcemeta::core::starts_with_ignore_case(url, "data:image/gif") ||
+      sourcemeta::core::starts_with_ignore_case(url, "data:image/jpeg") ||
+      sourcemeta::core::starts_with_ignore_case(url, "data:image/webp")) {
     return false;
   }
 
-  return starts_with_ignoring_case(url, 0, "javascript:") ||
-         starts_with_ignoring_case(url, 0, "vbscript:") ||
-         starts_with_ignoring_case(url, 0, "file:") ||
-         starts_with_ignoring_case(url, 0, "data:");
+  return sourcemeta::core::starts_with_ignore_case(url, "javascript:") ||
+         sourcemeta::core::starts_with_ignore_case(url, "vbscript:") ||
+         sourcemeta::core::starts_with_ignore_case(url, "file:") ||
+         sourcemeta::core::starts_with_ignore_case(url, "data:");
 }
 
 // The start of a footnote definition, including the whitespace after its
@@ -916,12 +900,13 @@ inline auto scan_task_list_item(const std::string_view input) noexcept -> bool {
     return scan_task_list_box(input, position + 1);
   }
 
-  if (!is_digit(marker)) {
+  if (!sourcemeta::core::is_digit(marker)) {
     return false;
   }
 
   auto digits_end{position};
-  while (digits_end < input.size() && is_digit(input[digits_end])) {
+  while (digits_end < input.size() &&
+         sourcemeta::core::is_digit(input[digits_end])) {
     ++digits_end;
   }
 
@@ -936,8 +921,7 @@ inline auto scan_task_list_item(const std::string_view input) noexcept -> bool {
     return false;
   }
 
-  char32_t codepoint{0};
-  const auto length{decode_utf8(input.substr(digits_end), codepoint)};
+  const auto length{sourcemeta::core::utf8_codepoint_length(input, digits_end)};
   return length > 0 && scan_task_list_box(input, digits_end + length);
 }
 

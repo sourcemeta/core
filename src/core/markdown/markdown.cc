@@ -1,4 +1,5 @@
 #include <sourcemeta/core/markdown.h>
+#include <sourcemeta/core/text.h>
 #include <sourcemeta/core/unicode.h>
 
 #include "blocks.h"
@@ -54,9 +55,7 @@ auto needs_replacement(const std::string_view input) noexcept -> bool {
       continue;
     }
 
-    char32_t codepoint{0};
-    const auto length{sourcemeta::core::markdown::decode_utf8(
-        input.substr(index), codepoint)};
+    const auto length{sourcemeta::core::utf8_codepoint_length(input, index)};
     if (length == 0) {
       return true;
     }
@@ -70,21 +69,10 @@ auto needs_replacement(const std::string_view input) noexcept -> bool {
 auto replace_invalid_characters(const std::string_view input,
                                 std::string &output) -> void {
   output = sourcemeta::core::to_valid_utf8(input);
-  if (output.find('\0') == std::string::npos) {
-    return;
+  if (output.find('\0') != std::string::npos) {
+    output = sourcemeta::core::replace(output, std::string_view{"\0", 1},
+                                       "\xEF\xBF\xBD");
   }
-
-  std::string replaced;
-  replaced.reserve(output.size() + 16);
-  for (const auto character : output) {
-    if (character == '\0') {
-      replaced.append("\xEF\xBF\xBD");
-    } else {
-      replaced.push_back(character);
-    }
-  }
-
-  output.swap(replaced);
 }
 
 } // namespace

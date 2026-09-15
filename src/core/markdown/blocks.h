@@ -1,6 +1,8 @@
 #ifndef SOURCEMETA_CORE_MARKDOWN_BLOCKS_H_
 #define SOURCEMETA_CORE_MARKDOWN_BLOCKS_H_
 
+#include <sourcemeta/core/text.h>
+
 #include "characters.h"
 #include "document.h"
 #include "references.h"
@@ -736,7 +738,7 @@ private:
       return cursor - position;
     }
 
-    if (!is_digit(marker)) {
+    if (!sourcemeta::core::is_digit(marker)) {
       return 0;
     }
 
@@ -746,7 +748,7 @@ private:
       start = (10 * start) + (this->peek(cursor) - '0');
       ++cursor;
       ++digits;
-      if (digits >= 9 || !is_digit(this->peek(cursor))) {
+      if (digits >= 9 || !sourcemeta::core::is_digit(this->peek(cursor))) {
         break;
       }
     }
@@ -1074,7 +1076,7 @@ private:
     }
 
     if ((character == '*' || character == '-' || character == '+' ||
-         is_digit(character)) &&
+         sourcemeta::core::is_digit(character)) &&
         (!indented || container_type == NodeType::List) &&
         this->indent_ < CODE_INDENT && depth < MAXIMUM_CONTAINER_DEPTH) {
       ListData data{};

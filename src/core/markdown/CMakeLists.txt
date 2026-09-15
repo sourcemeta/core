@@ -7,4 +7,5 @@ endif()
 
 target_link_libraries(sourcemeta_core_markdown PRIVATE
   sourcemeta::core::html
+  sourcemeta::core::text
   sourcemeta::core::unicode)

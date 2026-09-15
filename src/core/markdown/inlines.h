@@ -1,6 +1,9 @@
 #ifndef SOURCEMETA_CORE_MARKDOWN_INLINES_H_
 #define SOURCEMETA_CORE_MARKDOWN_INLINES_H_
 
+#include <sourcemeta/core/text.h>
+#include <sourcemeta/core/unicode.h>
+
 #include "characters.h"
 #include "document.h"
 #include "references.h"
@@ -74,13 +77,9 @@ struct Bracket {
 // Whether the input starts with a character that can be part of a domain name
 inline auto is_valid_host_character(const std::string_view input) noexcept
     -> bool {
-  char32_t codepoint{0};
-  if (decode_utf8(input, codepoint) == 0) {
-    return false;
-  }
-
-  return !is_unicode_whitespace(codepoint) &&
-         !is_unicode_punctuation(codepoint);
+  const auto decoded{sourcemeta::core::utf8_decode(input, 0)};
+  return decoded.has_value() && !is_unicode_whitespace(decoded->first) &&
+         !is_unicode_punctuation(decoded->first);
 }
 
 // The length of the domain that starts the input as GFM section 6.9 describes,
@@ -175,7 +174,8 @@ inline auto trim_autolink_end(const std::string_view data,
         }
 
         auto entity_start{link_end - 2};
-        while (entity_start > 0 && is_letter(data[entity_start])) {
+        while (entity_start > 0 &&
+               sourcemeta::core::is_alpha(data[entity_start])) {
           --entity_start;
         }
 
@@ -660,20 +660,19 @@ private:
     }
 
     auto index{this->position_ - 1};
-    while (index > 0 &&
-           ((static_cast<unsigned char>(this->input_[index]) >> 6U) == 2U ||
-            this->input_[index] == '~')) {
+    while (index > 0 && (sourcemeta::core::is_utf8_continuation(
+                             static_cast<unsigned char>(this->input_[index])) ||
+                         this->input_[index] == '~')) {
       --index;
     }
 
-    char32_t codepoint{0};
-    if (decode_utf8(this->input_.substr(index, this->position_ - index),
-                    codepoint) == 0 ||
-        codepoint == U'~') {
+    const auto preceding{sourcemeta::core::utf8_decode(
+        this->input_.substr(index, this->position_ - index), 0)};
+    if (!preceding.has_value() || preceding->first == U'~') {
       return U'\n';
     }
 
-    return codepoint;
+    return preceding->first;
   }
 
   [[nodiscard]] auto character_after_delimiters() const noexcept -> char32_t {
@@ -686,13 +685,12 @@ private:
       ++index;
     }
 
-    char32_t codepoint{0};
-    if (decode_utf8(this->input_.substr(index), codepoint) == 0 ||
-        codepoint == U'~') {
+    const auto following{sourcemeta::core::utf8_decode(this->input_, index)};
+    if (!following.has_value() || following->first == U'~') {
       return U'\n';
     }
 
-    return codepoint;
+    return following->first;
   }
 
   auto handle_delimiter(const char character) -> void {
@@ -733,13 +731,15 @@ private:
     if (this->position_ > 0) {
       auto index{this->position_ - 1};
       while (index > 0 &&
-             (static_cast<unsigned char>(this->input_[index]) >> 6U) == 2U) {
+             sourcemeta::core::is_utf8_continuation(
+                 static_cast<unsigned char>(this->input_[index]))) {
         --index;
       }
 
-      if (decode_utf8(this->input_.substr(index, this->position_ - index),
-                      before) == 0) {
-        before = U'\n';
+      const auto preceding{sourcemeta::core::utf8_decode(
+          this->input_.substr(index, this->position_ - index), 0)};
+      if (preceding.has_value()) {
+        before = preceding->first;
       }
     }
 
@@ -751,8 +751,10 @@ private:
 
     const auto count{this->position_ - start};
     char32_t after{U'\n'};
-    if (decode_utf8(this->input_.substr(this->position_), after) == 0) {
-      after = U'\n';
+    const auto following{
+        sourcemeta::core::utf8_decode(this->input_, this->position_)};
+    if (following.has_value()) {
+      after = following->first;
     }
 
     const auto space_before{is_unicode_whitespace(before)};
@@ -1124,7 +1126,7 @@ private:
     for (const auto scheme :
          std::array<std::string_view, 3>{{"http://", "https://", "ftp://"}}) {
       if (link.size() > scheme.size() &&
-          starts_with_ignoring_case(link, 0, scheme) &&
+          sourcemeta::core::starts_with_ignore_case(link, scheme) &&
           is_valid_host_character(link.substr(scheme.size()))) {
         return true;
       }
@@ -1188,7 +1190,8 @@ private:
     const auto data{this->input_.substr(this->position_)};
     std::size_t rewind{0};
     while (rewind < this->position_ &&
-           is_letter(this->input_[this->position_ - rewind - 1])) {
+           sourcemeta::core::is_alpha(
+               this->input_[this->position_ - rewind - 1])) {
       ++rewind;
     }
 
