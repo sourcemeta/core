@@ -67,17 +67,23 @@ public:
       -> HTMLWriter & {
     assert(this->tag_open_);
     this->reopen_tag();
-    // The space before the name, and the equals sign and the quotation mark
-    // after it
-    this->buffer_.reserve_additional(name.size() + 3);
+    // The space before the name, the equals sign and the quotation marks
+    // around the value, and the end of the tag
+    this->buffer_.reserve_additional(name.size() + value.size() + 6);
     this->buffer_.append_unchecked(" ");
     this->buffer_.append_unchecked(name);
     this->buffer_.append_unchecked("=\"");
-    html_escape_append(this->buffer_, value);
+    const auto prefix{html_escape_clean_prefix(value)};
+    this->buffer_.append_unchecked(value.substr(0, prefix));
+    if (prefix < value.size()) [[unlikely]] {
+      html_escape_append_to(this->buffer_, value.substr(prefix));
+      this->buffer_.reserve_additional(4);
+    }
+
     if (this->tag_open_is_void_) {
-      this->buffer_.append("\" />");
+      this->buffer_.append_unchecked("\" />");
     } else {
-      this->buffer_.append("\">");
+      this->buffer_.append_unchecked("\">");
     }
     return *this;
   }

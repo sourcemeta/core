@@ -564,3 +564,27 @@ TEST(take_flushes_open_tag) {
 
   EXPECT_EQ(document.take(), "<hr />");
 }
+
+TEST(attribute_value_escaping_after_several_words) {
+  sourcemeta::core::HTMLWriter document;
+  document.a().attribute("title", "abcdefghijklmnop&qrstuvwx\"yz");
+  document.close();
+
+  EXPECT_EQ(document.str(),
+            "<a title=\"abcdefghijklmnop&amp;qrstuvwx&quot;yz\"></a>");
+}
+
+TEST(attribute_value_with_two_byte_sequences) {
+  sourcemeta::core::HTMLWriter document;
+  document.a().attribute("title", "caf\xC3\xA9 \xC2\xA9 \xC2\xA0");
+  document.close();
+
+  EXPECT_EQ(document.str(), "<a title=\"caf\xC3\xA9 \xC2\xA9 &nbsp;\"></a>");
+}
+
+TEST(attribute_value_escaping_on_void_element) {
+  sourcemeta::core::HTMLWriter document;
+  document.img().attribute("alt", "a < b").attribute("src", "x.png");
+
+  EXPECT_EQ(document.str(), "<img alt=\"a &lt; b\" src=\"x.png\" />");
+}

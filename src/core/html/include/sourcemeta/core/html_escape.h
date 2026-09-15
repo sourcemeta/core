@@ -118,6 +118,33 @@ constexpr auto html_escape_replacement(const std::string_view input,
   }
 }
 
+// The number of leading bytes of the input that escaping leaves as they are,
+// looking at eight bytes at a time, where the first byte of a two-byte UTF-8
+// sequence that is not the no-break space also ends the prefix
+SOURCEMETA_FORCEINLINE inline auto
+html_escape_clean_prefix(const std::string_view input) noexcept -> std::size_t {
+  const auto size{input.size()};
+  std::size_t position{0};
+  while (position + 8 <= size) {
+    std::uint64_t word{0};
+    std::memcpy(&word, input.data() + position, 8);
+    if (html_escape_may_replace(word)) {
+      break;
+    }
+
+    position += 8;
+  }
+
+  while (
+      position < size &&
+      HTML_ESCAPE_SPECIAL_BYTES[static_cast<unsigned char>(input[position])] ==
+          0) {
+    position += 1;
+  }
+
+  return position;
+}
+
 // Append the input in runs, looking at eight bytes at a time for anything to
 // replace, as most text has nothing to escape, and going byte by byte only
 // through the words that may have something
@@ -171,7 +198,11 @@ inline auto html_escape_append_to(Output &output, const std::string_view input)
 SOURCEMETA_FORCEINLINE inline auto html_escape_append(std::string &output,
                                                       std::string_view input)
     -> void {
-  html_escape_append_to(output, input);
+  const auto prefix{html_escape_clean_prefix(input)};
+  output.append(input.substr(0, prefix));
+  if (prefix < input.size()) {
+    html_escape_append_to(output, input.substr(prefix));
+  }
 }
 
 /// @ingroup html
@@ -180,7 +211,11 @@ SOURCEMETA_FORCEINLINE inline auto html_escape_append(std::string &output,
 SOURCEMETA_FORCEINLINE inline auto html_escape_append(HTMLBuffer &output,
                                                       std::string_view input)
     -> void {
-  html_escape_append_to(output, input);
+  const auto prefix{html_escape_clean_prefix(input)};
+  output.append(input.substr(0, prefix));
+  if (prefix < input.size()) {
+    html_escape_append_to(output, input.substr(prefix));
+  }
 }
 
 } // namespace sourcemeta::core
