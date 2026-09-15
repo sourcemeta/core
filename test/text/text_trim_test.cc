@@ -5,10 +5,12 @@
 
 namespace {
 
-// A predicate that never throws when called but may throw when copied
+// A predicate that never throws when called but may throw when copied. Its
+// copy constructor is only declared, as the noexcept operator does not call
+// it, and GCC treats a defaulted one as not throwing whatever it declares
 struct CopyMayThrow {
   CopyMayThrow() = default;
-  CopyMayThrow(const CopyMayThrow &) noexcept(false) = default;
+  CopyMayThrow(const CopyMayThrow &);
   auto operator()(const char) const noexcept -> bool { return false; }
 };
 

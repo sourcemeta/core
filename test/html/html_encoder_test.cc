@@ -599,3 +599,10 @@ TEST(clear_discards_output_and_open_elements) {
   document.p("World");
   EXPECT_EQ(document.str(), "<p>World</p>");
 }
+
+TEST(attribute_on_void_element_at_exact_capacity) {
+  sourcemeta::core::HTMLWriter document;
+  document.reserve(14);
+  document.img().attribute("alt", "x");
+  EXPECT_EQ(document.str(), "<img alt=\"x\" />");
+}

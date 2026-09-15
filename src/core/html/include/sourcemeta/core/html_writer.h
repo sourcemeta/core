@@ -68,8 +68,9 @@ public:
     assert(this->tag_open_);
     this->reopen_tag();
     // The space before the name, the equals sign and the quotation marks
-    // around the value, and the end of the tag
-    this->buffer_.reserve_additional(name.size() + value.size() + 6);
+    // around the value, and the end of the tag, which takes four bytes for a
+    // void element
+    this->buffer_.reserve_additional(name.size() + value.size() + 7);
     this->buffer_.append_unchecked(" ");
     this->buffer_.append_unchecked(name);
     this->buffer_.append_unchecked("=\"");
