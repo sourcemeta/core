@@ -791,3 +791,32 @@ TEST(list_tight_sublist_inside_loose_list) {
                     "</li>\n"
                     "</ul>\n");
 }
+
+TEST(list_items_separated_by_blank_line_after_thematic_break_are_loose) {
+  const auto result{sourcemeta::core::markdown_to_html("- ***\n\n- b\n")};
+  EXPECT_EQ(result, "<ul>\n"
+                    "<li>\n"
+                    "<hr />\n"
+                    "</li>\n"
+                    "<li>\n"
+                    "<p>b</p>\n"
+                    "</li>\n"
+                    "</ul>\n");
+}
+
+TEST(list_item_with_table_header_stays_tight) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("- | a |\n  | --- |\n- b\n")};
+  EXPECT_EQ(result, "<ul>\n"
+                    "<li>\n"
+                    "<table>\n"
+                    "<thead>\n"
+                    "<tr>\n"
+                    "<th>a</th>\n"
+                    "</tr>\n"
+                    "</thead>\n"
+                    "</table>\n"
+                    "</li>\n"
+                    "<li>b</li>\n"
+                    "</ul>\n");
+}

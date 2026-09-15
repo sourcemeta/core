@@ -153,6 +153,23 @@ public:
     return this->buffer_.take();
   }
 
+  /// Discard the output and every open element. For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/html.h>
+  /// #include <cassert>
+  ///
+  /// sourcemeta::core::HTMLWriter document;
+  /// document.div().p("Hello");
+  /// document.clear();
+  /// assert(document.str().empty());
+  /// ```
+  SOURCEMETA_FORCEINLINE auto clear() -> void {
+    this->tag_open_ = false;
+    this->tag_stack_.clear();
+    this->buffer_.clear();
+  }
+
   /// Write HTML-escaped text content. The single-argument element shorthand
   /// routes through this and therefore also escapes. The HTML serialization
   /// emits the content of a raw-text element literally, so escaping its content

@@ -2,6 +2,7 @@
 #define SOURCEMETA_CORE_MARKDOWN_RENDER_H_
 
 #include <sourcemeta/core/html.h>
+#include <sourcemeta/core/markdown_error.h>
 #include <sourcemeta/core/text.h>
 #include <sourcemeta/core/uri.h>
 
@@ -69,7 +70,10 @@ public:
   explicit HTMLRenderer(const Document &document) : document_{document} {}
 
   auto render(const bool unsafe, const std::size_t capacity) -> std::string {
+    // A conversion that threw while rendering leaves its partial output behind
+    this->writer_.clear();
     this->writer_.reserve(capacity);
+    this->reference_size_ = 0;
     this->unsafe_ = unsafe;
     this->footnote_index_ = 0;
     this->written_footnote_index_ = 0;
@@ -242,10 +246,24 @@ private:
     }
   }
 
+  // The destinations and titles that rendered link references expand to, which
+  // the specification lets grow quadratically with the input
+  auto count_reference_expansion(const Node &node) -> void {
+    if (!has_flag(node, FLAG_REFERENCE_LINK)) {
+      return;
+    }
+
+    this->reference_size_ += node.literal.size() + node.title.size();
+    if (this->reference_size_ > this->document_.reference_size_limit) {
+      throw sourcemeta::core::MarkdownError{
+          "The link references expand past the size bound"};
+    }
+  }
+
   auto render_code_block(const Node &node) -> void {
     auto &writer{this->writer_};
     writer.ensure_line_feed();
-    writer.pre();
+    writer.pre().code();
     const auto info{node.title};
     if (!info.empty()) {
       std::size_t first_tag{0};
@@ -253,13 +271,22 @@ private:
         ++first_tag;
       }
 
-      writer.attribute("lang", info.substr(0, first_tag));
+      // GFM section 4.5: "The first word of the info string is typically used
+      // to specify the language of the code sample, and rendered in the class
+      // attribute of the code tag", which is how the HTML Standard marks the
+      // language of computer code too, "by adding a class prefixed with
+      // "language-" to the element", as its lang attribute is for the
+      // language of the text
+      this->value_.clear();
+      this->value_.append("language-");
+      this->value_.append(info.substr(0, first_tag));
+      writer.attribute("class", this->value_.view());
     }
 
-    writer.code(node.literal.data() != nullptr
+    writer.text(node.literal.data() != nullptr
                     ? node.literal
                     : this->document_.content_of(node));
-    writer.close().raw("\n");
+    writer.close().close().raw("\n");
   }
 
   auto render_table_cell(const Node &node, const bool entering) -> void {
@@ -451,6 +478,7 @@ private:
           break;
         }
 
+        this->count_reference_expansion(node);
         writer.a().attribute("href", this->destination(node.literal));
         if (!node.title.empty()) {
           writer.attribute("title", node.title);
@@ -458,6 +486,7 @@ private:
 
         break;
       case NodeType::Image:
+        this->count_reference_expansion(node);
         writer.img().attribute("src", this->destination(node.literal));
         writer.attribute("alt", this->alternative_text(index));
         if (!node.title.empty()) {
@@ -583,6 +612,7 @@ private:
   sourcemeta::core::HTMLWriter writer_;
   sourcemeta::core::HTMLBuffer value_;
   sourcemeta::core::HTMLBuffer fragment_;
+  std::size_t reference_size_{0};
   bool unsafe_{false};
   std::uint32_t footnote_index_{0};
   std::uint32_t written_footnote_index_{0};

@@ -243,8 +243,8 @@ TEST(invalid_utf8_in_fenced_code) {
 TEST(invalid_utf8_in_fenced_code_info_string) {
   const auto result{sourcemeta::core::markdown_to_html("```l\xFF"
                                                        "ang\ncode\n```")};
-  EXPECT_EQ(result, "<pre lang=\"l\xef\xbf\xbd"
-                    "ang\"><code>code\n"
+  EXPECT_EQ(result, "<pre><code class=\"language-l\xef\xbf\xbd"
+                    "ang\">code\n"
                     "</code></pre>\n");
 }
 

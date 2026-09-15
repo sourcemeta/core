@@ -15,7 +15,8 @@ TEST(fenced_code_block_tildes) {
 TEST(fenced_code_block_with_language) {
   const auto result{
       sourcemeta::core::markdown_to_html("```cpp\nint x = 0;\n```")};
-  EXPECT_EQ(result, "<pre lang=\"cpp\"><code>int x = 0;\n</code></pre>\n");
+  EXPECT_EQ(result,
+            "<pre><code class=\"language-cpp\">int x = 0;\n</code></pre>\n");
 }
 
 TEST(fenced_code_block_html_escaped) {
@@ -40,7 +41,8 @@ TEST(fenced_code_block_with_empty_lines) {
 TEST(github_pre_lang_format) {
   const auto result{
       sourcemeta::core::markdown_to_html("```python\nprint()\n```")};
-  EXPECT_EQ(result, "<pre lang=\"python\"><code>print()\n</code></pre>\n");
+  EXPECT_EQ(result,
+            "<pre><code class=\"language-python\">print()\n</code></pre>\n");
 }
 
 TEST(indented_code_chunks_separated_by_blank_lines) {
@@ -241,13 +243,13 @@ TEST(fenced_code_interrupts_paragraph) {
 TEST(fenced_code_info_string_first_word_is_language) {
   const auto result{sourcemeta::core::markdown_to_html(
       "~~~ python extra words here\nprint(1)\n~~~")};
-  EXPECT_EQ(result, "<pre lang=\"python\"><code>print(1)\n"
+  EXPECT_EQ(result, "<pre><code class=\"language-python\">print(1)\n"
                     "</code></pre>\n");
 }
 
 TEST(fenced_code_info_string_of_symbols) {
   const auto result{sourcemeta::core::markdown_to_html("```#!\n```")};
-  EXPECT_EQ(result, "<pre lang=\"#!\"><code></code></pre>\n");
+  EXPECT_EQ(result, "<pre><code class=\"language-#!\"></code></pre>\n");
 }
 
 TEST(fenced_code_backtick_fence_info_cannot_contain_backticks) {
@@ -259,7 +261,7 @@ TEST(fenced_code_backtick_fence_info_cannot_contain_backticks) {
 TEST(fenced_code_tilde_fence_info_can_contain_backticks) {
   const auto result{
       sourcemeta::core::markdown_to_html("~~~ `js` ~~~\ncode\n~~~")};
-  EXPECT_EQ(result, "<pre lang=\"`js`\"><code>code\n"
+  EXPECT_EQ(result, "<pre><code class=\"language-`js`\">code\n"
                     "</code></pre>\n");
 }
 
@@ -273,12 +275,12 @@ TEST(fenced_code_closing_fence_cannot_have_info) {
 TEST(fenced_code_info_string_entities_decoded) {
   const auto result{
       sourcemeta::core::markdown_to_html("```c&#43;&#43;\ncode\n```")};
-  EXPECT_EQ(result, "<pre lang=\"c++\"><code>code\n"
+  EXPECT_EQ(result, "<pre><code class=\"language-c++\">code\n"
                     "</code></pre>\n");
 }
 
 TEST(fenced_code_info_string_backslash_escapes) {
   const auto result{sourcemeta::core::markdown_to_html("```c\\#\ncode\n```")};
-  EXPECT_EQ(result, "<pre lang=\"c#\"><code>code\n"
+  EXPECT_EQ(result, "<pre><code class=\"language-c#\">code\n"
                     "</code></pre>\n");
 }

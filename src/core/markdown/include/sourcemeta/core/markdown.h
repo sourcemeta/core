@@ -33,8 +33,9 @@ namespace sourcemeta::core {
 /// links pass through unchanged, which must only be done for trusted input.
 /// The specification lets link references and short table rows expand to an
 /// output far larger than the input, so the conversion throws `MarkdownError`
-/// once link references expand past the larger of the input size and 100,000
-/// bytes, or once a table inserts more than 524,288 empty cells. For example:
+/// once the rendered link references expand past the larger of 16 times the
+/// input size and 1,048,576 bytes, or once a table inserts more than 524,288
+/// empty cells. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/markdown.h>

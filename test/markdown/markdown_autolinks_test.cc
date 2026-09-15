@@ -499,3 +499,17 @@ TEST(extended_autolink_www_without_domain_is_not_autolink) {
       sourcemeta::core::markdown_to_html("Visit www. or www..com")};
   EXPECT_EQ(result, "<p>Visit www. or www..com</p>\n");
 }
+
+TEST(extended_autolinks_after_form_feed_and_line_tabulation) {
+  const auto result{sourcemeta::core::markdown_to_html(
+      "a\fwww.commonmark.org a\vfoo@bar.baz")};
+  EXPECT_EQ(
+      result,
+      "<p>a\f<a href=\"http://www.commonmark.org\">www.commonmark.org</a> "
+      "a\v<a href=\"mailto:foo@bar.baz\">foo@bar.baz</a></p>\n");
+}
+
+TEST(extended_url_autolink_domain_starting_with_underscore) {
+  const auto result{sourcemeta::core::markdown_to_html("http://_a.b")};
+  EXPECT_EQ(result, "<p>http://_a.b</p>\n");
+}

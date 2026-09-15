@@ -1,7 +1,6 @@
 #ifndef SOURCEMETA_CORE_MARKDOWN_REFERENCES_H_
 #define SOURCEMETA_CORE_MARKDOWN_REFERENCES_H_
 
-#include <sourcemeta/core/markdown_error.h>
 #include <sourcemeta/core/unicode.h>
 
 #include "characters.h"
@@ -297,11 +296,10 @@ parse_reference_definition(Document &document, const std::string_view input,
   return position;
 }
 
-// Find the definition of a link label, which also counts towards the bound on
-// the total size of the destinations and titles that references expand to,
-// throwing once they exceed it
-inline auto find_reference(Document &document, const std::string_view label,
-                           std::string &buffer) -> const Reference * {
+// Find the definition of a link label
+inline auto find_reference(const Document &document,
+                           const std::string_view label, std::string &buffer)
+    -> const Reference * {
   if (document.references.empty() || !sourcemeta::core::utf8_codepoint_within(
                                          label, 1, MAXIMUM_LINK_LABEL_LENGTH)) {
     return nullptr;
@@ -313,18 +311,7 @@ inline auto find_reference(Document &document, const std::string_view label,
   }
 
   const auto match{document.references.find(std::string_view{buffer})};
-  if (match == document.references.end()) {
-    return nullptr;
-  }
-
-  const auto size{match->second.url.size() + match->second.title.size()};
-  if (size > document.reference_size_limit - document.reference_size_used) {
-    throw sourcemeta::core::MarkdownError{
-        "The link references expand past the size bound"};
-  }
-
-  document.reference_size_used += size;
-  return &match->second;
+  return match == document.references.end() ? nullptr : &match->second;
 }
 
 } // namespace sourcemeta::core::markdown

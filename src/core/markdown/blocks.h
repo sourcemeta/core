@@ -26,10 +26,11 @@ constexpr std::ptrdiff_t CODE_INDENT{4};
 // turn into a huge table, so the conversion throws once a table inserts more
 // empty cells than this
 constexpr std::int64_t MAXIMUM_AUTOCOMPLETED_CELLS{0x80000};
-// The destinations and titles that references expand to can take up to the
-// size of the input or this many bytes, whichever is larger, before the
-// conversion throws
-constexpr std::size_t MINIMUM_REFERENCE_SIZE_LIMIT{100000};
+// The destinations and titles that rendered link references expand to can take
+// up to this many times the size of the input or the minimum below, whichever
+// is larger, before the conversion throws
+constexpr std::size_t REFERENCE_SIZE_FACTOR{16};
+constexpr std::size_t MINIMUM_REFERENCE_SIZE_LIMIT{1048576};
 
 struct TableCellSpan {
   std::size_t offset;
@@ -162,8 +163,8 @@ public:
     }
 
     this->finalize(ROOT_NODE);
-    this->document_.reference_size_limit =
-        std::max(total_size, MINIMUM_REFERENCE_SIZE_LIMIT);
+    this->document_.reference_size_limit = std::max(
+        total_size * REFERENCE_SIZE_FACTOR, MINIMUM_REFERENCE_SIZE_LIMIT);
   }
 
 private:
@@ -649,13 +650,15 @@ private:
         return this->parse_footnote_definition_prefix();
       case NodeType::Table:
         return this->table_row_matches();
+      // GFM section 4.1 makes a thematic break out of a single line, so it does
+      // not continue, and a blank line after it reaches the blocks around it
       case NodeType::Heading:
+      case NodeType::ThematicBreak:
       case NodeType::TableRow:
       case NodeType::TableCell:
         return false;
       case NodeType::Document:
       case NodeType::List:
-      case NodeType::ThematicBreak:
       case NodeType::Text:
       case NodeType::SoftBreak:
       case NodeType::LineBreak:
@@ -1234,10 +1237,15 @@ private:
     }
 
     const auto container_type{this->node(container).type};
+    // A table only contains the lines of its rows, as GFM section 4.10 says
+    // that "The table is broken at the first empty line", so it never ends with
+    // a blank line, even when its delimiter row consumed the rest of its line
     const auto last_line_blank{
         this->blank_ && container_type != NodeType::BlockQuote &&
         container_type != NodeType::Heading &&
         container_type != NodeType::ThematicBreak &&
+        container_type != NodeType::Table &&
+        container_type != NodeType::TableRow &&
         !(container_type == NodeType::CodeBlock &&
           has_flag(this->node(container), FLAG_FENCED)) &&
         !(container_type == NodeType::Item &&

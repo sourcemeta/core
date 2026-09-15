@@ -100,3 +100,8 @@ TEST(code_span_of_a_space_and_a_crlf_is_kept) {
   const auto result{sourcemeta::core::markdown_to_html("` \r\n`")};
   EXPECT_EQ(result, "<p><code>  </code></p>\n");
 }
+
+TEST(code_span_after_rejected_and_matched_backtick_strings) {
+  const auto result{sourcemeta::core::markdown_to_html("```a ``b`c`` `d`")};
+  EXPECT_EQ(result, "<p>```a <code>b`c</code> <code>d</code></p>\n");
+}

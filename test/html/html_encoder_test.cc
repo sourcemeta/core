@@ -591,3 +591,11 @@ TEST(attribute_value_escaping_on_void_element) {
 
   EXPECT_EQ(document.str(), "<img alt=\"a &lt; b\" src=\"x.png\" />");
 }
+
+TEST(clear_discards_output_and_open_elements) {
+  sourcemeta::core::HTMLWriter document;
+  document.div().p("Hello");
+  document.clear();
+  document.p("World");
+  EXPECT_EQ(document.str(), "<p>World</p>");
+}

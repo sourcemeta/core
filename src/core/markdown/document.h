@@ -55,6 +55,7 @@ constexpr std::uint16_t FLAG_TIGHT{1U << 9U};
 constexpr std::uint16_t FLAG_REFERENCED{1U << 10U};
 constexpr std::uint16_t FLAG_ATTACHED{1U << 11U};
 constexpr std::uint16_t FLAG_DETACHED{1U << 12U};
+constexpr std::uint16_t FLAG_REFERENCE_LINK{1U << 13U};
 
 // A block or inline element, whose generic fields mean different things for
 // different types of nodes, such as the fence of a code block or the numbering
@@ -166,7 +167,6 @@ struct Document {
     this->alignments.clear();
     this->references.clear();
     this->reference_size_limit = 0;
-    this->reference_size_used = 0;
     this->footnote_definition_nodes.clear();
     this->footnote_reference_nodes.clear();
     this->nested_footnote_definitions = false;
@@ -268,7 +268,6 @@ struct Document {
   std::vector<std::uint8_t> alignments;
   std::unordered_map<std::string_view, Reference> references;
   std::size_t reference_size_limit{0};
-  std::size_t reference_size_used{0};
   std::vector<std::uint32_t> footnote_definition_nodes;
   std::vector<std::uint32_t> footnote_reference_nodes;
   bool nested_footnote_definitions{false};

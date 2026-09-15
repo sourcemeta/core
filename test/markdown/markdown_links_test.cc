@@ -622,3 +622,9 @@ TEST(link_reference_definition_before_title_followed_by_text) {
       sourcemeta::core::markdown_to_html("[foo]: /url\n\"title\" ok")};
   EXPECT_EQ(result, "<p>&quot;title&quot; ok</p>\n");
 }
+
+TEST(link_inside_link_text_with_later_bracket_is_not_allowed) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("[a [b](/c) [d] e](/u)")};
+  EXPECT_EQ(result, "<p>[a <a href=\"/c\">b</a> [d] e](/u)</p>\n");
+}

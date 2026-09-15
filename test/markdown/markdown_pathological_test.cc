@@ -280,10 +280,10 @@ TEST(two_thousand_reference_definitions_and_uses) {
 }
 
 TEST(reference_expansion_past_its_bound_throws) {
-  const std::string destination(50000, 'y');
+  const std::string destination(100000, 'y');
   try {
-    sourcemeta::core::markdown_to_html("[r]: /" + destination +
-                                       "\n\n[r] [r] [r]");
+    sourcemeta::core::markdown_to_html("[r]: /" + destination + "\n\n" +
+                                       repeat("[r] ", 20));
     FAIL();
   } catch (const sourcemeta::core::MarkdownError &error) {
     EXPECT_STREQ(error.what(),
@@ -308,4 +308,18 @@ TEST(table_inserting_empty_cells_past_its_bound_throws) {
   EXPECT_EQ(sourcemeta::core::markdown_to_html("| a |\n|---|\n| b |"),
             "<table>\n<thead>\n<tr>\n<th>a</th>\n</tr>\n</thead>\n<tbody>\n"
             "<tr>\n<td>b</td>\n</tr>\n</tbody>\n</table>\n");
+}
+
+TEST(references_inside_unreferenced_footnote_definition_do_not_count) {
+  const auto result{sourcemeta::core::markdown_to_html(
+      "[^x]: " + repeat("[a] ", 20000) + "\n\n[a]: /" + std::string(100, 'y'))};
+  EXPECT_EQ(result, "");
+}
+
+TEST(many_references_to_a_long_destination_within_the_bound) {
+  const std::string destination(200, 'y');
+  const auto anchor{"<a href=\"/" + destination + "\">a</a>"};
+  const auto result{sourcemeta::core::markdown_to_html(
+      repeat("[a] ", 500) + "\n\n[a]: /" + destination)};
+  EXPECT_EQ(result, "<p>" + repeat(anchor + " ", 499) + anchor + "</p>\n");
 }

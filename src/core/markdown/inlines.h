@@ -84,8 +84,8 @@ inline auto is_domain_character(const char character) noexcept -> bool {
 // *, _, ~, and ("
 inline auto may_precede_extended_autolink(const char character) noexcept
     -> bool {
-  return is_space(character) || character == '*' || character == '_' ||
-         character == '~' || character == '(';
+  return is_whitespace_character(character) || character == '*' ||
+         character == '_' || character == '~' || character == '(';
 }
 
 // The end of an extended autolink once its trailing punctuation, unbalanced
@@ -196,7 +196,7 @@ public:
     this->scanned_for_backticks_ = false;
     this->rejected_domain_start_ = 0;
     this->rejected_domain_limit_ = 0;
-    this->no_link_openers_ = true;
+    this->last_link_opener_position_ = 0;
     this->flags_ = 0;
     while (this->position_ < this->input_.size()) {
       this->parse_inline();
@@ -387,7 +387,10 @@ private:
         this->backticks_.resize(count + 1, 0);
       }
 
-      this->backticks_[count] = this->position_ - count;
+      // A scan that starts after a complete one must not replace the last
+      // position of a backtick string length with an earlier one
+      this->backticks_[count] =
+          std::max(this->backticks_[count], this->position_ - count);
 
       if (count == opening_length) {
         return this->position_;
@@ -763,9 +766,6 @@ private:
              (image ? position - 1 : position) + this->column_offset_,
          .image = image,
          .bracket_after = false});
-    if (!image) {
-      this->no_link_openers_ = false;
-    }
   }
 
   static auto delimiter_index(const char character) noexcept -> std::size_t {
@@ -922,7 +922,10 @@ private:
     }
 
     const auto opener{this->brackets_.back()};
-    if (!opener.image && this->no_link_openers_) {
+    // GFM section 6.6: "Links may not contain other links, at any level of
+    // nesting", so a bracket that opens before the latest link cannot close
+    // another one
+    if (!opener.image && opener.position < this->last_link_opener_position_) {
       this->brackets_.pop_back();
       this->append(NodeType::Text, this->input_.substr(this->position_ - 1, 1));
       return;
@@ -931,6 +934,7 @@ private:
     std::string_view url;
     std::string_view title;
     bool matched{false};
+    bool from_reference{false};
     if (this->peek() == '(') {
       const auto spaces{scan_spacechars(this->input_, this->position_ + 1)};
       std::string_view destination;
@@ -976,6 +980,7 @@ private:
         url = reference->url;
         title = reference->title;
         matched = true;
+        from_reference = true;
       }
     }
 
@@ -988,13 +993,15 @@ private:
                                                         : NodeType::Link)};
     this->node(link).literal = url;
     this->node(link).title = title;
+    set_flag(this->node(link), FLAG_REFERENCE_LINK, from_reference);
     this->document_.insert_before(opener.text, link);
     this->wrap_between(opener.text, NO_NODE, link);
     this->document_.unlink(opener.text);
     this->process_emphasis(opener.position);
     this->brackets_.pop_back();
     if (!opener.image) {
-      this->no_link_openers_ = true;
+      this->last_link_opener_position_ =
+          std::max(this->last_link_opener_position_, opener.position);
     }
   }
 
@@ -1067,9 +1074,8 @@ private:
   }
 
   // The length of the valid domain of GFM section 6.9 at a position of the
-  // input whose first character the caller already checked, or zero if there
-  // is none. "There must be at least one period, and no underscores may be
-  // present in the last two segments of the domain"
+  // input, or zero if there is none. "There must be at least one period, and
+  // no underscores may be present in the last two segments of the domain"
   auto scan_autolink_domain(const std::size_t start) -> std::size_t {
     // A later start within a domain that was rejected for its underscores has
     // the same last two segments until the second to last period, so it is
@@ -1080,7 +1086,7 @@ private:
     }
 
     const auto data{this->input_.substr(start)};
-    std::size_t index{1};
+    std::size_t index{0};
     std::size_t periods{0};
     std::size_t last_period{0};
     std::size_t second_to_last_period{0};
@@ -1222,10 +1228,10 @@ private:
   bool scanned_for_backticks_{false};
   std::size_t rejected_domain_start_{0};
   std::size_t rejected_domain_limit_{0};
-  bool no_link_openers_{true};
   std::uint8_t flags_{0};
   std::string buffer_;
   std::string label_buffer_;
+  std::size_t last_link_opener_position_{0};
 };
 
 } // namespace sourcemeta::core::markdown

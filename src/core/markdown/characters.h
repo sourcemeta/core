@@ -19,6 +19,14 @@ inline auto is_space(const char character) noexcept -> bool {
          character == '\r';
 }
 
+// GFM section 2.1: "A whitespace character is a space (U+0020), tab (U+0009),
+// newline (U+000A), line tabulation (U+000B), form feed (U+000C), or carriage
+// return (U+000D)"
+inline auto is_whitespace_character(const char character) noexcept -> bool {
+  return character == ' ' || character == '\t' || character == '\n' ||
+         character == '\v' || character == '\f' || character == '\r';
+}
+
 inline auto is_space_or_tab(const char character) noexcept -> bool {
   return character == ' ' || character == '\t';
 }
