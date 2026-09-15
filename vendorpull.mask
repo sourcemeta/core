@@ -41,6 +41,7 @@ vendor/jose-cookbook
 vendor/jose-cookbook.mask
 vendor/cmark-gfm.mask
 vendor/openapi.mask
+vendor/whatwg-html-build.mask
 vendor/unicodetools.mask
 vendor/unicodetools/unicodetools/data/ucd/dev/NormalizationTest.txt
 vendor/unicodetools/unicodetools/data/idna/dev/IdnaTestV2.txt
