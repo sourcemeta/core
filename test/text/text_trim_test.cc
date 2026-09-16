@@ -14,6 +14,17 @@ struct CopyMayThrow {
   auto operator()(const char) const noexcept -> bool { return false; }
 };
 
+// A predicate that never throws when called but whose result throws when it
+// turns into a boolean, which a condition does
+struct ResultMayThrow {
+  struct Result {
+    // NOLINTNEXTLINE(google-explicit-constructor,hicpp-explicit-conversions)
+    operator bool() const noexcept(false) { return false; }
+  };
+
+  auto operator()(const char) const noexcept -> Result { return {}; }
+};
+
 } // namespace
 
 TEST(no_whitespace_returns_input_unchanged) {
@@ -113,6 +124,11 @@ TEST(predicate_no_match_returns_input_unchanged) {
 }
 
 TEST(predicate_with_a_copy_that_may_throw_is_not_noexcept) {
-  EXPECT_FALSE(
-      noexcept(sourcemeta::core::trim(std::string_view{"x"}, CopyMayThrow{})));
+  const std::string_view input{"x"};
+  EXPECT_FALSE(noexcept(sourcemeta::core::trim(input, CopyMayThrow{})));
+}
+
+TEST(predicate_with_a_result_that_may_throw_is_not_noexcept) {
+  const std::string_view input{"x"};
+  EXPECT_FALSE(noexcept(sourcemeta::core::trim(input, ResultMayThrow{})));
 }

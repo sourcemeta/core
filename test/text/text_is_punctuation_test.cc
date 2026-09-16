@@ -1,6 +1,8 @@
 #include <sourcemeta/core/test.h>
 #include <sourcemeta/core/text.h>
 
+#include <string> // std::string
+
 TEST(range_boundaries) {
   EXPECT_TRUE(sourcemeta::core::is_punctuation('!'));
   EXPECT_TRUE(sourcemeta::core::is_punctuation('/'));
@@ -41,4 +43,10 @@ TEST(non_ascii_bytes) {
   EXPECT_FALSE(sourcemeta::core::is_punctuation(static_cast<char>(0xA1)));
   EXPECT_FALSE(
       sourcemeta::core::is_punctuation(static_cast<unsigned char>(0xA1)));
+}
+
+TEST(characters_of_a_string) {
+  const std::string text{"a!"};
+  EXPECT_FALSE(sourcemeta::core::is_punctuation(text.front()));
+  EXPECT_TRUE(sourcemeta::core::is_punctuation(text.back()));
 }
