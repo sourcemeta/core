@@ -28,7 +28,7 @@ TEST(backslash_escapes_every_ascii_punctuation) {
       "a\\~b\\}c\\|d\\{e\\`f\\_g\\^h\\]i\\\\j\\[k\\@l\\?m\\>n\\=o\\<p\\;q\\:"
       "r\\/s\\.t\\-u\\,v\\+w\\*x\\)y\\(z\\'1\\&2\\%3\\$4\\#5\\\"6\\!")};
   EXPECT_EQ(result, "<p>a~b}c|d{e`f_g^h]i\\j[k@l?m&gt;n=o&lt;p;q:r/"
-                    "s.t-u,v+w*x)y(z'1&amp;2%3$4#5&quot;6!</p>\n");
+                    "s.t-u,v+w*x)y(z&#39;1&amp;2%3$4#5&quot;6!</p>\n");
 }
 
 TEST(backslash_before_other_characters_is_literal) {

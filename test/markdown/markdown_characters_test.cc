@@ -243,8 +243,8 @@ TEST(invalid_utf8_in_fenced_code) {
 TEST(invalid_utf8_in_fenced_code_info_string) {
   const auto result{sourcemeta::core::markdown_to_html("```l\xFF"
                                                        "ang\ncode\n```")};
-  EXPECT_EQ(result, "<pre lang=\"l\xef\xbf\xbd"
-                    "ang\"><code>code\n"
+  EXPECT_EQ(result, "<pre><code class=\"language-l\xef\xbf\xbd"
+                    "ang\">code\n"
                     "</code></pre>\n");
 }
 
@@ -430,7 +430,7 @@ TEST(crlf_after_trailing_spaces_is_hard_break) {
 
 TEST(non_breaking_space_after_list_marker_is_not_list) {
   const auto result{sourcemeta::core::markdown_to_html("*\xC2\xA0item")};
-  EXPECT_EQ(result, "<p>*\xc2\xa0item</p>\n");
+  EXPECT_EQ(result, "<p>*&nbsp;item</p>\n");
 }
 
 TEST(em_spaces_do_not_indent_code) {
@@ -479,7 +479,7 @@ TEST(non_ascii_link_destination_is_percent_encoded) {
 
 TEST(quotes_in_text_are_escaped) {
   const auto result{sourcemeta::core::markdown_to_html("say \"hi\" and 'bye'")};
-  EXPECT_EQ(result, "<p>say &quot;hi&quot; and 'bye'</p>\n");
+  EXPECT_EQ(result, "<p>say &quot;hi&quot; and &#39;bye&#39;</p>\n");
 }
 
 TEST(nul_characters_are_replaced) {

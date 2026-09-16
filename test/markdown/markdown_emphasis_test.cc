@@ -78,7 +78,7 @@ TEST(emphasis_opening_between_letter_and_punctuation) {
 TEST(emphasis_opening_followed_by_non_breaking_space) {
   const auto result{sourcemeta::core::markdown_to_html("_\xC2\xA0"
                                                        "x\xC2\xA0_")};
-  EXPECT_EQ(result, "<p>_\xc2\xa0x\xc2\xa0_</p>\n");
+  EXPECT_EQ(result, "<p>_&nbsp;x&nbsp;_</p>\n");
 }
 
 TEST(emphasis_intraword_with_asterisks) {
@@ -174,7 +174,7 @@ TEST(strong_emphasis_intraword_with_asterisks) {
 
 TEST(strong_emphasis_nested_asterisks) {
   const auto result{sourcemeta::core::markdown_to_html("**x, **y**, z**")};
-  EXPECT_EQ(result, "<p><strong>x, y, z</strong></p>\n");
+  EXPECT_EQ(result, "<p><strong>x, <strong>y</strong>, z</strong></p>\n");
 }
 
 TEST(strong_emphasis_underscore_after_punctuation) {
@@ -209,7 +209,7 @@ TEST(emphasis_rule_of_three_intraword) {
 
 TEST(emphasis_rule_of_three_long_runs) {
   const auto result{sourcemeta::core::markdown_to_html("a****b*******c")};
-  EXPECT_EQ(result, "<p>a<strong>b</strong>***c</p>\n");
+  EXPECT_EQ(result, "<p>a<strong><strong>b</strong></strong>***c</p>\n");
 }
 
 TEST(emphasis_containing_link) {
@@ -233,17 +233,17 @@ TEST(emphasis_spanning_lines) {
 
 TEST(strong_emphasis_nested_inside_itself) {
   const auto result{sourcemeta::core::markdown_to_html("**x **y** z**")};
-  EXPECT_EQ(result, "<p><strong>x y z</strong></p>\n");
+  EXPECT_EQ(result, "<p><strong>x <strong>y</strong> z</strong></p>\n");
 }
 
 TEST(strong_emphasis_quadruple_delimiters) {
   const auto result{sourcemeta::core::markdown_to_html("****x****")};
-  EXPECT_EQ(result, "<p><strong>x</strong></p>\n");
+  EXPECT_EQ(result, "<p><strong><strong>x</strong></strong></p>\n");
 }
 
 TEST(strong_emphasis_quintuple_delimiters) {
   const auto result{sourcemeta::core::markdown_to_html("*****x*****")};
-  EXPECT_EQ(result, "<p><em><strong>x</strong></em></p>\n");
+  EXPECT_EQ(result, "<p><em><strong><strong>x</strong></strong></em></p>\n");
 }
 
 TEST(emphasis_with_escaped_delimiters) {
@@ -309,4 +309,9 @@ TEST(emphasis_does_not_span_autolink) {
 TEST(emphasis_does_not_span_link_text_brackets) {
   const auto result{sourcemeta::core::markdown_to_html("_a [b_ c]")};
   EXPECT_EQ(result, "<p><em>a [b</em> c]</p>\n");
+}
+
+TEST(emphasis_underscore_closer_before_tilde) {
+  const auto result{sourcemeta::core::markdown_to_html("_a_~b")};
+  EXPECT_EQ(result, "<p><em>a</em>~b</p>\n");
 }

@@ -129,3 +129,47 @@ TEST(task_list_in_loose_list) {
             "</li>\n"
             "</ul>\n");
 }
+
+TEST(task_list_checked_state_comes_from_the_marker) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("- [ ] investigate [x]")};
+  EXPECT_EQ(result, "<ul>\n"
+                    "<li><input type=\"checkbox\" disabled=\"\" /> "
+                    "investigate [x]</li>\n"
+                    "</ul>\n");
+}
+
+TEST(task_list_tab_between_brackets_is_unchecked) {
+  const auto result{sourcemeta::core::markdown_to_html("- [\t] tab")};
+  EXPECT_EQ(result, "<ul>\n"
+                    "<li><input type=\"checkbox\" disabled=\"\" /> tab</li>\n"
+                    "</ul>\n");
+}
+
+TEST(task_list_inside_blockquote) {
+  const auto result{sourcemeta::core::markdown_to_html("> - [x] quoted")};
+  EXPECT_EQ(result, "<blockquote>\n"
+                    "<ul>\n"
+                    "<li><input type=\"checkbox\" checked=\"\" disabled=\"\" "
+                    "/> quoted</li>\n"
+                    "</ul>\n"
+                    "</blockquote>\n");
+}
+
+TEST(task_list_marker_after_blank_item_start) {
+  const auto result{sourcemeta::core::markdown_to_html("-\n  [x] later")};
+  EXPECT_EQ(result, "<ul>\n"
+                    "<li><input type=\"checkbox\" checked=\"\" disabled=\"\" "
+                    "/> later</li>\n"
+                    "</ul>\n");
+}
+
+TEST(task_list_marker_in_second_paragraph) {
+  const auto result{sourcemeta::core::markdown_to_html("- a\n\n  [x] b")};
+  EXPECT_EQ(result, "<ul>\n"
+                    "<li>\n"
+                    "<p>a</p>\n"
+                    "<p>[x] b</p>\n"
+                    "</li>\n"
+                    "</ul>\n");
+}
