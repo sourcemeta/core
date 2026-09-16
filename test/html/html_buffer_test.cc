@@ -91,6 +91,13 @@ TEST(write_to_stream) {
   EXPECT_EQ(output.str(), "abc");
 }
 
+TEST(write_empty_to_stream) {
+  sourcemeta::core::HTMLBuffer buffer;
+  std::ostringstream output;
+  buffer.write(output);
+  EXPECT_EQ(output.str(), "");
+}
+
 TEST(write_to_stream_after_str) {
   sourcemeta::core::HTMLBuffer buffer;
   buffer.append("abc");

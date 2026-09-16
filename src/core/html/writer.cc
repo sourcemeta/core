@@ -17,17 +17,20 @@ auto HTMLBuffer::grow(const std::size_t needed) -> void {
 
 auto HTMLBuffer::reallocate(const std::size_t capacity) -> void {
   const auto used{this->size()};
-  // Every byte past the accumulated contents is written before it is read, so
-  // there is no point in zero filling the new capacity
-  this->buffer_.resize_and_overwrite(
-      capacity, [](const char *, const std::size_t size) { return size; });
+  // The spare capacity is part of the contents of the underlying string, which
+  // the C++ standard forbids from holding indeterminate values, so growing
+  // without initializing the new space is not an option
+  this->buffer_.resize(capacity);
   this->begin_ = this->buffer_.data();
   this->cursor_ = this->begin_ + used;
   this->end_ = this->begin_ + capacity;
 }
 
 auto HTMLBuffer::write(std::ostream &stream) -> void {
-  stream.write(this->begin_, static_cast<std::streamsize>(this->size()));
+  const auto used{this->size()};
+  if (used > 0) {
+    stream.write(this->begin_, static_cast<std::streamsize>(used));
+  }
 }
 
 auto HTMLWriter::write(std::ostream &stream) -> void {
