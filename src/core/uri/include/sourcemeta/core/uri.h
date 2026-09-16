@@ -945,8 +945,9 @@ public:
   /// triplet pass through, so the delimiters of a URI reference survive and an
   /// already encoded string is not encoded twice. Following RFC 3986, the
   /// number sign only passes through once, as it introduces the fragment, and
-  /// the square brackets only pass through around the host of an authority,
-  /// the only place for an IP literal. The output must not alias the input.
+  /// the square brackets only pass through around the IP literal host of an
+  /// authority, the only place they may appear. The output must not alias the
+  /// input.
   /// For example:
   ///
   /// ```cpp

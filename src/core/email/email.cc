@@ -181,18 +181,11 @@ auto is_html_email(const std::string_view value) -> bool {
   auto domain{value.substr(separator + 1)};
   while (true) {
     // HTML Standard valid email address: label = let-dig [ [ ldh-str ]
-    // let-dig ], limited to a length of 63 characters by RFC 1034 §3.5
+    // let-dig ], which is the label of a host name, limited to a length of 63
+    // characters by RFC 1034 §3.5
     const auto dot{domain.find('.')};
-    const auto label{domain.substr(0, dot)};
-    if (label.empty() || label.size() > 63 || !is_alphanum(label.front()) ||
-        !is_alphanum(label.back())) {
+    if (!is_hostname_label(domain.substr(0, dot))) {
       return false;
-    }
-
-    for (const auto character : label) {
-      if (character != '-' && !is_alphanum(character)) {
-        return false;
-      }
     }
 
     if (dot == std::string_view::npos) {
