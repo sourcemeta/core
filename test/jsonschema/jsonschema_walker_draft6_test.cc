@@ -783,9 +783,8 @@ TEST(hyperschema_readOnly_without_hyperschema) {
   using namespace sourcemeta::core;
   using namespace sourcemeta::core;
   const auto &result{schema_walker("readOnly", VOCABULARIES_DRAFT6)};
-  EXPECT_EQ(result.type, SchemaKeywordType::Comment);
-  EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_SCHEMA_DRAFT_6);
+  EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
+  EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(std::ranges::equal(result.dependencies,
                                  std::to_array<std::string_view>({"$ref"})));
   EXPECT_TRUE(result.order_dependencies.empty());
@@ -820,6 +819,106 @@ TEST(hyperschema_submissionSchema_without_hyperschema) {
   using namespace sourcemeta::core;
   using namespace sourcemeta::core;
   const auto &result{schema_walker("submissionSchema", VOCABULARIES_DRAFT6)};
+  EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
+  EXPECT_FALSE(result.vocabulary.has_value());
+  EXPECT_TRUE(std::ranges::equal(result.dependencies,
+                                 std::to_array<std::string_view>({"$ref"})));
+  EXPECT_TRUE(result.order_dependencies.empty());
+  EXPECT_TRUE(result.instances.none());
+}
+
+TEST(draft7_comment) {
+  using namespace sourcemeta::core;
+  using namespace sourcemeta::core;
+  const auto &result{schema_walker("$comment", VOCABULARIES_DRAFT6)};
+  EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
+  EXPECT_FALSE(result.vocabulary.has_value());
+  EXPECT_TRUE(std::ranges::equal(result.dependencies,
+                                 std::to_array<std::string_view>({"$ref"})));
+  EXPECT_TRUE(result.order_dependencies.empty());
+  EXPECT_TRUE(result.instances.none());
+}
+
+TEST(draft7_contentEncoding) {
+  using namespace sourcemeta::core;
+  using namespace sourcemeta::core;
+  const auto &result{schema_walker("contentEncoding", VOCABULARIES_DRAFT6)};
+  EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
+  EXPECT_FALSE(result.vocabulary.has_value());
+  EXPECT_TRUE(std::ranges::equal(result.dependencies,
+                                 std::to_array<std::string_view>({"$ref"})));
+  EXPECT_TRUE(result.order_dependencies.empty());
+  EXPECT_TRUE(result.instances.none());
+}
+
+TEST(draft7_contentMediaType) {
+  using namespace sourcemeta::core;
+  using namespace sourcemeta::core;
+  const auto &result{schema_walker("contentMediaType", VOCABULARIES_DRAFT6)};
+  EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
+  EXPECT_FALSE(result.vocabulary.has_value());
+  EXPECT_TRUE(std::ranges::equal(result.dependencies,
+                                 std::to_array<std::string_view>({"$ref"})));
+  EXPECT_TRUE(result.order_dependencies.empty());
+  EXPECT_TRUE(result.instances.none());
+}
+
+TEST(draft7_writeOnly) {
+  using namespace sourcemeta::core;
+  using namespace sourcemeta::core;
+  const auto &result{schema_walker("writeOnly", VOCABULARIES_DRAFT6)};
+  EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
+  EXPECT_FALSE(result.vocabulary.has_value());
+  EXPECT_TRUE(std::ranges::equal(result.dependencies,
+                                 std::to_array<std::string_view>({"$ref"})));
+  EXPECT_TRUE(result.order_dependencies.empty());
+  EXPECT_TRUE(result.instances.none());
+}
+
+TEST(draft7_comment_with_hyperschema) {
+  using namespace sourcemeta::core;
+  using namespace sourcemeta::core;
+  const auto &result{
+      schema_walker("$comment", VOCABULARIES_DRAFT6_HYPERSCHEMA)};
+  EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
+  EXPECT_FALSE(result.vocabulary.has_value());
+  EXPECT_TRUE(std::ranges::equal(result.dependencies,
+                                 std::to_array<std::string_view>({"$ref"})));
+  EXPECT_TRUE(result.order_dependencies.empty());
+  EXPECT_TRUE(result.instances.none());
+}
+
+TEST(draft7_contentEncoding_with_hyperschema) {
+  using namespace sourcemeta::core;
+  using namespace sourcemeta::core;
+  const auto &result{
+      schema_walker("contentEncoding", VOCABULARIES_DRAFT6_HYPERSCHEMA)};
+  EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
+  EXPECT_FALSE(result.vocabulary.has_value());
+  EXPECT_TRUE(std::ranges::equal(result.dependencies,
+                                 std::to_array<std::string_view>({"$ref"})));
+  EXPECT_TRUE(result.order_dependencies.empty());
+  EXPECT_TRUE(result.instances.none());
+}
+
+TEST(draft7_contentMediaType_with_hyperschema) {
+  using namespace sourcemeta::core;
+  using namespace sourcemeta::core;
+  const auto &result{
+      schema_walker("contentMediaType", VOCABULARIES_DRAFT6_HYPERSCHEMA)};
+  EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
+  EXPECT_FALSE(result.vocabulary.has_value());
+  EXPECT_TRUE(std::ranges::equal(result.dependencies,
+                                 std::to_array<std::string_view>({"$ref"})));
+  EXPECT_TRUE(result.order_dependencies.empty());
+  EXPECT_TRUE(result.instances.none());
+}
+
+TEST(draft7_writeOnly_with_hyperschema) {
+  using namespace sourcemeta::core;
+  using namespace sourcemeta::core;
+  const auto &result{
+      schema_walker("writeOnly", VOCABULARIES_DRAFT6_HYPERSCHEMA)};
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(std::ranges::equal(result.dependencies,
