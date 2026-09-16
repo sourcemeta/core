@@ -30,3 +30,38 @@ TEST(strips_carriage_return) {
 TEST(strips_trailing_spaces) {
   EXPECT_EQ(sourcemeta::core::strip_right("value   ", ' '), "value");
 }
+
+TEST(predicate_trailing_characters) {
+  EXPECT_EQ(
+      sourcemeta::core::strip_right(
+          "123000", [](const char character) { return character == '0'; }),
+      "123");
+}
+
+TEST(predicate_only_trailing_stripped) {
+  EXPECT_EQ(
+      sourcemeta::core::strip_right(
+          "0a0b00", [](const char character) { return character == '0'; }),
+      "0a0b");
+}
+
+TEST(predicate_matching_a_range) {
+  EXPECT_EQ(sourcemeta::core::strip_right("abc123",
+                                          [](const char character) {
+                                            return character >= '0' &&
+                                                   character <= '9';
+                                          }),
+            "abc");
+}
+
+TEST(predicate_all_characters_stripped) {
+  EXPECT_EQ(sourcemeta::core::strip_right(
+                "0000", [](const char character) { return character == '0'; }),
+            "");
+}
+
+TEST(predicate_empty_input) {
+  EXPECT_EQ(sourcemeta::core::strip_right(
+                "", [](const char character) { return character == '0'; }),
+            "");
+}

@@ -2,6 +2,7 @@ sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME text
   SOURCES text_to_title_case_test.cc text_to_lowercase_test.cc
           text_is_lowercase_test.cc
           text_is_alpha_test.cc text_is_digit_test.cc text_is_alphanum_test.cc
+          text_is_punctuation_test.cc
           text_truncate_test.cc text_remove_suffix_ignore_case_test.cc
           text_equals_ignore_case_test.cc
           text_starts_with_ignore_case_test.cc
