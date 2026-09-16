@@ -80,58 +80,31 @@ html_escape_append(Output &output, const std::string_view input) -> void {
   constexpr std::uint64_t LOW_BITS{0x0101010101010101ULL};
   constexpr std::uint64_t HIGH_BITS{0x8080808080808080ULL};
 
-  // Flag the bytes of a word that equal the given byte. A subtraction borrow
-  // can also flag the byte right after a genuine match, which is harmless when
-  // only asking whether there is a match at all
-  const auto match_byte{
-      [](const std::uint64_t word, const unsigned char byte) noexcept {
-        const auto difference{word ^ (LOW_BITS * byte)};
-        return (difference - LOW_BITS) & ~difference & HIGH_BITS;
-      }};
-
-  // Whether a word may have a byte to replace. Setting the lowest bit of every
-  // byte makes the ampersand match the apostrophe, and setting the second
-  // lowest bit makes the less-than sign match the greater-than sign, so four
-  // comparisons cover the six bytes
-  const auto may_replace{[&match_byte](const std::uint64_t word) noexcept {
-    return (match_byte(word | LOW_BITS, '\'') |
-            match_byte(word | (LOW_BITS * 2U), '>') | match_byte(word, '"') |
-            match_byte(word, 0xC2)) != 0;
-  }};
-
   const auto size{input.size()};
+  // Whatever stays as it is goes out in runs, so that text with nothing to
+  // escape takes a single append
+  std::size_t run_start{0};
   std::size_t position{0};
-  // Most text has nothing to escape, so the leading bytes that stay as they
-  // are get copied in one go, looking at eight bytes at a time
-  while (size - position >= 8) {
-    std::uint64_t word{0};
-    std::memcpy(&word, input.data() + position, 8);
-    if (may_replace(word)) {
-      break;
-    }
-
-    position += 8;
-  }
-
-  while (position < size &&
-         SPECIAL_BYTES[static_cast<unsigned char>(input[position])] == 0) {
-    position += 1;
-  }
-
-  output.append(input.substr(0, position));
-  if (position == size) {
-    return;
-  }
-
-  // What is left is appended in runs, going byte by byte only through the
-  // words that may have something to replace
-  std::size_t run_start{position};
   while (position < size) {
     auto end{size};
     if (size - position >= 8) {
       std::uint64_t word{0};
       std::memcpy(&word, input.data() + position, 8);
-      if (!may_replace(word)) {
+      // A byte of a word equals another when subtracting from their difference
+      // borrows, which also flags the byte right after a genuine match, and
+      // that is harmless when only asking whether the word has a match at all.
+      // Setting the lowest bit of every byte makes the ampersand match the
+      // apostrophe, and setting the second lowest bit makes the less-than sign
+      // match the greater-than sign, so four comparisons cover the six bytes
+      const auto quotations{word ^ (LOW_BITS * '"')};
+      const auto apostrophes{(word | LOW_BITS) ^ (LOW_BITS * '\'')};
+      const auto angles{(word | (LOW_BITS * 2U)) ^ (LOW_BITS * '>')};
+      const auto leads{word ^ (LOW_BITS * 0xC2)};
+      const auto matches{((quotations - LOW_BITS) & ~quotations) |
+                         ((apostrophes - LOW_BITS) & ~apostrophes) |
+                         ((angles - LOW_BITS) & ~angles) |
+                         ((leads - LOW_BITS) & ~leads)};
+      if ((matches & HIGH_BITS) == 0) {
         position += 8;
         continue;
       }
