@@ -17,9 +17,10 @@ auto HTMLBuffer::grow(const std::size_t needed) -> void {
 
 auto HTMLBuffer::reallocate(const std::size_t capacity) -> void {
   const auto used{this->size()};
-  // The spare capacity is part of the contents of the underlying string, which
-  // the C++ standard forbids from holding indeterminate values, so growing
-  // without initializing the new space is not an option
+  // Appends write straight into the spare capacity, so that space has to count
+  // as part of the contents of the underlying string, and the C++ standard has
+  // no way of handing out contents that are left uninitialized. Growth doubles,
+  // so the fill amortizes to a single pass over the buffer
   this->buffer_.resize(capacity);
   this->begin_ = this->buffer_.data();
   this->cursor_ = this->begin_ + used;
