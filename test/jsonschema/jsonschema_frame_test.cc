@@ -883,6 +883,136 @@ TEST(accessors_root_location_with_identifier_and_default_base) {
   EXPECT_EQ(result.value().get().base, "https://example.com/other");
 }
 
+TEST(accessors_root_location_with_fragment_only_identifier) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "#tag",
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "type": "string"
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Root, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+
+  EXPECT_TRUE(frame.root().empty());
+
+  const auto result{frame.root_location()};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(sourcemeta::core::to_string(result.value().get().pointer), "");
+  EXPECT_EQ(result.value().get().type,
+            sourcemeta::core::SchemaFrame::LocationType::Subschema);
+  EXPECT_TRUE(result.value().get().base.empty());
+}
+
+TEST(accessors_root_location_with_fragment_only_identifier_and_default_base) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "#tag",
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "type": "string"
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References,
+      document,
+      sourcemeta::core::schema_walker,
+      sourcemeta::core::schema_resolver,
+      "",
+      "",
+      sourcemeta::core::SchemaFrame::IdentifierMode::Additional,
+      {sourcemeta::core::EMPTY_WEAK_POINTER},
+      "https://example.com/document"};
+
+  EXPECT_TRUE(frame.root().empty());
+
+  const auto result{frame.root_location()};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(sourcemeta::core::to_string(result.value().get().pointer), "");
+  EXPECT_EQ(result.value().get().type,
+            sourcemeta::core::SchemaFrame::LocationType::Subschema);
+  EXPECT_EQ(result.value().get().base, "https://example.com/document");
+
+  const auto anchor{
+      frame.location(sourcemeta::core::SchemaReferenceType::Static,
+                     "https://example.com/document#tag")};
+  EXPECT_TRUE(anchor.has_value());
+  EXPECT_EQ(anchor.value().get().type,
+            sourcemeta::core::SchemaFrame::LocationType::Anchor);
+  EXPECT_EQ(sourcemeta::core::to_string(anchor.value().get().pointer), "");
+}
+
+TEST(accessors_root_location_with_fragment_only_identifier_and_default_id) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "#tag",
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "type": "string"
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References,
+      document,
+      sourcemeta::core::schema_walker,
+      sourcemeta::core::schema_resolver,
+      "",
+      "https://example.com/name",
+      sourcemeta::core::SchemaFrame::IdentifierMode::Additional,
+      {sourcemeta::core::EMPTY_WEAK_POINTER},
+      ""};
+
+  EXPECT_EQ(frame.root(), "https://example.com/name");
+
+  const auto result{frame.root_location()};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(sourcemeta::core::to_string(result.value().get().pointer), "");
+  EXPECT_EQ(result.value().get().type,
+            sourcemeta::core::SchemaFrame::LocationType::Resource);
+  EXPECT_EQ(result.value().get().base, "https://example.com/name");
+
+  const auto anchor{
+      frame.location(sourcemeta::core::SchemaReferenceType::Static,
+                     "https://example.com/name#tag")};
+  EXPECT_TRUE(anchor.has_value());
+  EXPECT_EQ(anchor.value().get().type,
+            sourcemeta::core::SchemaFrame::LocationType::Anchor);
+  EXPECT_EQ(sourcemeta::core::to_string(anchor.value().get().pointer), "");
+}
+
+TEST(
+    accessors_root_location_with_fragment_only_identifier_and_fallback_default_id) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "#tag",
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "type": "string"
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References,
+      document,
+      sourcemeta::core::schema_walker,
+      sourcemeta::core::schema_resolver,
+      "",
+      "https://example.com/name",
+      sourcemeta::core::SchemaFrame::IdentifierMode::Fallback,
+      {sourcemeta::core::EMPTY_WEAK_POINTER},
+      ""};
+
+  EXPECT_EQ(frame.root(), "https://example.com/name");
+
+  const auto result{frame.root_location()};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(sourcemeta::core::to_string(result.value().get().pointer), "");
+  EXPECT_EQ(result.value().get().type,
+            sourcemeta::core::SchemaFrame::LocationType::Resource);
+  EXPECT_EQ(result.value().get().base, "https://example.com/name");
+
+  const auto anchor{
+      frame.location(sourcemeta::core::SchemaReferenceType::Static,
+                     "https://example.com/name#tag")};
+  EXPECT_TRUE(anchor.has_value());
+  EXPECT_EQ(anchor.value().get().type,
+            sourcemeta::core::SchemaFrame::LocationType::Anchor);
+  EXPECT_EQ(sourcemeta::core::to_string(anchor.value().get().pointer), "");
+}
+
 TEST(accessors_location_by_uri) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$id": "https://example.com/schema",

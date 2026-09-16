@@ -469,6 +469,26 @@ TEST(draft4_nested_id_absolute_with_non_empty_fragment) {
   }
 }
 
+TEST(draft3_root_id_fragment_invalid_whitespace_root_mode) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "id": "#foo bar",
+    "$schema": "http://json-schema.org/draft-03/schema#"
+  })JSON");
+
+  try {
+    [[maybe_unused]] const sourcemeta::core::SchemaFrame frame{
+        sourcemeta::core::SchemaFrame::Mode::Root, document,
+        sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_STREQ(error.what(), "The identifier is not a valid URI");
+    EXPECT_EQ(error.keyword(), "id");
+    EXPECT_EQ(error.value(), "#foo bar");
+  } catch (...) {
+    FAIL();
+  }
+}
+
 TEST(draft4_nested_id_relative_with_non_empty_fragment) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-04/schema#",
@@ -489,6 +509,46 @@ TEST(draft4_nested_id_relative_with_non_empty_fragment) {
                  "Identifiers may only carry a fragment when they consist of "
                  "nothing else");
     EXPECT_EQ(error.identifier(), "nested#foo");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(draft4_root_id_fragment_invalid_whitespace) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "id": "#foo bar",
+    "$schema": "http://json-schema.org/draft-04/schema#"
+  })JSON");
+
+  try {
+    [[maybe_unused]] const sourcemeta::core::SchemaFrame frame{
+        sourcemeta::core::SchemaFrame::Mode::References, document,
+        sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_STREQ(error.what(), "The identifier is not a valid URI");
+    EXPECT_EQ(error.keyword(), "id");
+    EXPECT_EQ(error.value(), "#foo bar");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(draft4_root_id_fragment_invalid_whitespace_root_mode) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "id": "#foo bar",
+    "$schema": "http://json-schema.org/draft-04/schema#"
+  })JSON");
+
+  try {
+    [[maybe_unused]] const sourcemeta::core::SchemaFrame frame{
+        sourcemeta::core::SchemaFrame::Mode::Root, document,
+        sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_STREQ(error.what(), "The identifier is not a valid URI");
+    EXPECT_EQ(error.keyword(), "id");
+    EXPECT_EQ(error.value(), "#foo bar");
   } catch (...) {
     FAIL();
   }
@@ -696,6 +756,86 @@ TEST(draft6_nested_id_relative_with_non_empty_fragment) {
                  "Identifiers may only carry a fragment when they consist of "
                  "nothing else");
     EXPECT_EQ(error.identifier(), "nested#foo");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(draft6_root_id_fragment_invalid_leading_digit) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "#1foo",
+    "$schema": "http://json-schema.org/draft-06/schema#"
+  })JSON");
+
+  try {
+    [[maybe_unused]] const sourcemeta::core::SchemaFrame frame{
+        sourcemeta::core::SchemaFrame::Mode::References, document,
+        sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_STREQ(error.what(), "Invalid anchor value");
+    EXPECT_EQ(error.keyword(), "$id");
+    EXPECT_EQ(error.value(), "#1foo");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(draft6_root_id_fragment_invalid_leading_digit_root_mode) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "#1foo",
+    "$schema": "http://json-schema.org/draft-06/schema#"
+  })JSON");
+
+  try {
+    [[maybe_unused]] const sourcemeta::core::SchemaFrame frame{
+        sourcemeta::core::SchemaFrame::Mode::Root, document,
+        sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_STREQ(error.what(), "Invalid anchor value");
+    EXPECT_EQ(error.keyword(), "$id");
+    EXPECT_EQ(error.value(), "#1foo");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(draft6_root_id_json_pointer_fragment) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "#/definitions/foo",
+    "$schema": "http://json-schema.org/draft-06/schema#"
+  })JSON");
+
+  try {
+    [[maybe_unused]] const sourcemeta::core::SchemaFrame frame{
+        sourcemeta::core::SchemaFrame::Mode::References, document,
+        sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_STREQ(error.what(), "Invalid anchor value");
+    EXPECT_EQ(error.keyword(), "$id");
+    EXPECT_EQ(error.value(), "#/definitions/foo");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(draft6_root_id_json_pointer_fragment_root_mode) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "#/definitions/foo",
+    "$schema": "http://json-schema.org/draft-06/schema#"
+  })JSON");
+
+  try {
+    [[maybe_unused]] const sourcemeta::core::SchemaFrame frame{
+        sourcemeta::core::SchemaFrame::Mode::Root, document,
+        sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_STREQ(error.what(), "Invalid anchor value");
+    EXPECT_EQ(error.keyword(), "$id");
+    EXPECT_EQ(error.value(), "#/definitions/foo");
   } catch (...) {
     FAIL();
   }
@@ -2477,5 +2617,25 @@ TEST(root_mode_identifier_with_non_empty_fragment) {
     EXPECT_STREQ(error.what(),
                  "Identifiers must not contain non-empty fragments");
     EXPECT_EQ(error.identifier(), "https://example.com#foo");
+  }
+}
+
+TEST(draft7_root_id_fragment_invalid_leading_digit_root_mode) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "#1foo",
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  })JSON");
+
+  try {
+    [[maybe_unused]] const sourcemeta::core::SchemaFrame frame{
+        sourcemeta::core::SchemaFrame::Mode::Root, document,
+        sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_STREQ(error.what(), "Invalid anchor value");
+    EXPECT_EQ(error.keyword(), "$id");
+    EXPECT_EQ(error.value(), "#1foo");
+  } catch (...) {
+    FAIL();
   }
 }
