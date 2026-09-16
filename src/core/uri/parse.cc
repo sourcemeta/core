@@ -155,6 +155,43 @@ auto parse_port(const std::string_view input,
   }
 }
 
+// RFC 3986 Section 3.2.2: IP-literal = "[" ( IPv6address / IPvFuture ) "]",
+// with IPvFuture = "v" 1*HEXDIG "." 1*( unreserved / sub-delims / ":" )
+auto is_ip_literal(const std::string_view content) -> bool {
+  if (content.empty()) {
+    return false;
+  }
+
+  if (content.front() != 'v' && content.front() != 'V') {
+    return sourcemeta::core::is_ipv6(content);
+  }
+
+  std::string_view::size_type position{1};
+  while (position < content.size() && hex_digit_value(content[position]) >= 0) {
+    position += 1;
+  }
+
+  if (position == 1 || position >= content.size() ||
+      content[position] != URI_DOT) {
+    return false;
+  }
+
+  position += 1;
+  if (position >= content.size()) {
+    return false;
+  }
+
+  for (; position < content.size(); position += 1) {
+    const auto character{content[position]};
+    if (!uri_is_unreserved(character) && !uri_is_sub_delim(character) &&
+        character != URI_COLON) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 template <bool CheckOnly>
 auto parse_ipv6(const std::string_view input,
                 std::string_view::size_type &position)
@@ -700,6 +737,11 @@ auto URI::ip_literal_brackets(const std::string_view input) noexcept
   const auto closing{input.find(']', host)};
   if (closing >= authority_end ||
       (closing + 1 != authority_end && input[closing + 1] != ':')) {
+    return none;
+  }
+
+  // Brackets around anything else cannot appear in a URI reference
+  if (!is_ip_literal(input.substr(host + 1, closing - host - 1))) {
     return none;
   }
 

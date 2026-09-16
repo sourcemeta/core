@@ -143,3 +143,27 @@ TEST(number_sign_after_the_fragment_is_encoded) {
   sourcemeta::core::URI::escape_reference("/a#b#c#d", output);
   EXPECT_EQ(output, "/a#b%23c%23d");
 }
+
+TEST(brackets_around_text_that_is_not_an_ip_literal_are_encoded) {
+  std::string output;
+  sourcemeta::core::URI::escape_reference("http://[not-an-ip]/x", output);
+  EXPECT_EQ(output, "http://%5Bnot-an-ip%5D/x");
+}
+
+TEST(empty_brackets_are_encoded) {
+  std::string output;
+  sourcemeta::core::URI::escape_reference("http://[]/x", output);
+  EXPECT_EQ(output, "http://%5B%5D/x");
+}
+
+TEST(ip_future_literal_host_passes_through) {
+  std::string output;
+  sourcemeta::core::URI::escape_reference("http://[v7.host:1]/x", output);
+  EXPECT_EQ(output, "http://[v7.host:1]/x");
+}
+
+TEST(brackets_around_an_incomplete_ip_future_literal_are_encoded) {
+  std::string output;
+  sourcemeta::core::URI::escape_reference("http://[v.host]/x", output);
+  EXPECT_EQ(output, "http://%5Bv.host%5D/x");
+}
