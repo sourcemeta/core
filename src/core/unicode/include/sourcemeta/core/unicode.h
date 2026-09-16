@@ -307,7 +307,9 @@ inline auto is_valid_utf8(const std::string_view input) noexcept -> bool {
   const auto size{input.size()};
   std::size_t position{0};
   while (position < size) {
-    if (position + 8 <= size) {
+    // Comparing what is left rather than the position past the word keeps the
+    // sum of a position and a word from wrapping around
+    if (size - position >= 8) {
       std::uint64_t word{0};
       std::memcpy(&word, input.data() + position, 8);
       if ((word & HIGH_BITS) == 0) {
