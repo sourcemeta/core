@@ -169,8 +169,7 @@ static void Pointer_Walker_Schema_ISO_Language(benchmark::State &state) {
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)
-static void Pointer_Maybe_Tracked_Deeply_Nested(benchmark::State &state) {
-  const auto enable_tracker{static_cast<bool>(state.range(0))};
+static void Pointer_Untracked_Deeply_Nested(benchmark::State &state) {
   const std::filesystem::path path{std::filesystem::path{CURRENT_DIRECTORY} /
                                    "files" / "deeply_nested.json"};
   std::ifstream file{path};
@@ -179,18 +178,28 @@ static void Pointer_Maybe_Tracked_Deeply_Nested(benchmark::State &state) {
   const auto content{buffer.str()};
 
   for (auto iteration : state) {
-    if (enable_tracker) {
-      sourcemeta::core::PointerPositionTracker tracker;
-      sourcemeta::core::JSON result{nullptr};
-      sourcemeta::core::parse_json(content, result, std::ref(tracker));
-      assert(result.is_object());
-      benchmark::DoNotOptimize(result);
-      benchmark::DoNotOptimize(tracker);
-    } else {
-      auto result{sourcemeta::core::parse_json(content)};
-      assert(result.is_object());
-      benchmark::DoNotOptimize(result);
-    }
+    auto result{sourcemeta::core::parse_json(content)};
+    assert(result.is_object());
+    benchmark::DoNotOptimize(result);
+  }
+}
+
+// NOLINTNEXTLINE(readability-identifier-naming)
+static void Pointer_Tracked_Deeply_Nested(benchmark::State &state) {
+  const std::filesystem::path path{std::filesystem::path{CURRENT_DIRECTORY} /
+                                   "files" / "deeply_nested.json"};
+  std::ifstream file{path};
+  std::ostringstream buffer;
+  buffer << file.rdbuf();
+  const auto content{buffer.str()};
+
+  for (auto iteration : state) {
+    sourcemeta::core::PointerPositionTracker tracker;
+    sourcemeta::core::JSON result{nullptr};
+    sourcemeta::core::parse_json(content, result, std::ref(tracker));
+    assert(result.is_object());
+    benchmark::DoNotOptimize(result);
+    benchmark::DoNotOptimize(tracker);
   }
 }
 
@@ -255,7 +264,8 @@ BENCHMARK(Pointer_Object_Traverse);
 BENCHMARK(Pointer_Object_Try_Traverse);
 BENCHMARK(Pointer_Push_Back_Pointer_To_Weak_Pointer);
 BENCHMARK(Pointer_Walker_Schema_ISO_Language);
-BENCHMARK(Pointer_Maybe_Tracked_Deeply_Nested)->Arg(0)->Arg(1);
+BENCHMARK(Pointer_Untracked_Deeply_Nested);
+BENCHMARK(Pointer_Tracked_Deeply_Nested);
 BENCHMARK(Pointer_Position_Tracker_Get_Deeply_Nested);
 BENCHMARK(Schema_Tracker_ISO_Language);
 BENCHMARK(Schema_Tracker_ISO_Language_To_JSON);
