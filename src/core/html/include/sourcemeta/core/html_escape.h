@@ -54,8 +54,8 @@ auto html_escape(std::string &text) -> void;
 /// ```
 template <typename Output>
   requires std::same_as<Output, std::string> || std::same_as<Output, HTMLBuffer>
-SOURCEMETA_FORCEINLINE inline auto
-html_escape_append(Output &output, const std::string_view input) -> void {
+inline auto html_escape_append(Output &output, const std::string_view input)
+    -> void {
   // The bytes that escaping may replace, which are the quotation mark, the
   // ampersand, the apostrophe, the angle brackets, and the first byte of the
   // UTF-8 encoding of the no-break space
