@@ -485,3 +485,131 @@ TEST(attribute_chaining) {
 
   EXPECT_EQ(document.str(), "<a href=\"/test\" class=\"link\">Click</a>");
 }
+
+TEST(valueless_attribute) {
+  sourcemeta::core::HTMLWriter document;
+  document.section()
+      .attribute("class", "footnotes")
+      .attribute("data-footnotes");
+  document.close();
+
+  EXPECT_EQ(document.str(),
+            "<section class=\"footnotes\" data-footnotes></section>");
+}
+
+TEST(valueless_attribute_on_void_element) {
+  sourcemeta::core::HTMLWriter document;
+  document.input().attribute("type", "checkbox").attribute("disabled");
+
+  EXPECT_EQ(document.str(), "<input type=\"checkbox\" disabled />");
+}
+
+TEST(ensure_line_feed_on_empty_document) {
+  sourcemeta::core::HTMLWriter document;
+  document.ensure_line_feed();
+
+  EXPECT_EQ(document.str(), "");
+}
+
+TEST(ensure_line_feed_after_content) {
+  sourcemeta::core::HTMLWriter document;
+  document.p("Hello");
+  document.ensure_line_feed();
+  document.p("World");
+
+  EXPECT_EQ(document.str(), "<p>Hello</p>\n<p>World</p>");
+}
+
+TEST(ensure_line_feed_after_line_feed) {
+  sourcemeta::core::HTMLWriter document;
+  document.p("Hello");
+  document.raw("\n");
+  document.ensure_line_feed();
+
+  EXPECT_EQ(document.str(), "<p>Hello</p>\n");
+}
+
+TEST(ensure_line_feed_flushes_open_tag) {
+  sourcemeta::core::HTMLWriter document;
+  document.ul();
+  document.ensure_line_feed();
+  document.li("Item");
+  document.close();
+
+  EXPECT_EQ(document.str(), "<ul>\n<li>Item</li></ul>");
+}
+
+TEST(write_after_str) {
+  sourcemeta::core::HTMLWriter document;
+  document.p("Hello");
+  EXPECT_EQ(document.str(), "<p>Hello</p>");
+  document.p("World");
+
+  EXPECT_EQ(document.str(), "<p>Hello</p><p>World</p>");
+}
+
+TEST(take_leaves_writer_empty) {
+  sourcemeta::core::HTMLWriter document;
+  document.p("Hello");
+  const auto result{document.take()};
+  document.p("World");
+
+  EXPECT_EQ(result, "<p>Hello</p>");
+  EXPECT_EQ(document.str(), "<p>World</p>");
+}
+
+TEST(take_discards_open_elements) {
+  sourcemeta::core::HTMLWriter document;
+  document.div();
+  const auto result{document.take()};
+  document.p("World");
+
+  EXPECT_EQ(result, "<div>");
+  EXPECT_EQ(document.str(), "<p>World</p>");
+}
+
+TEST(attribute_value_escaping_after_several_words) {
+  sourcemeta::core::HTMLWriter document;
+  document.a().attribute("title", "abcdefghijklmnop&qrstuvwx\"yz");
+  document.close();
+
+  EXPECT_EQ(document.str(),
+            "<a title=\"abcdefghijklmnop&amp;qrstuvwx&quot;yz\"></a>");
+}
+
+TEST(attribute_value_with_two_byte_sequences) {
+  sourcemeta::core::HTMLWriter document;
+  document.a().attribute("title", "caf\xC3\xA9 \xC2\xA9 \xC2\xA0");
+  document.close();
+
+  EXPECT_EQ(document.str(), "<a title=\"caf\xC3\xA9 \xC2\xA9 &nbsp;\"></a>");
+}
+
+TEST(attribute_value_escaping_on_void_element) {
+  sourcemeta::core::HTMLWriter document;
+  document.img().attribute("alt", "a < b").attribute("src", "x.png");
+
+  EXPECT_EQ(document.str(), "<img alt=\"a &lt; b\" src=\"x.png\" />");
+}
+
+TEST(clear_discards_output_and_open_elements) {
+  sourcemeta::core::HTMLWriter document;
+  document.div().p("Hello");
+  document.clear();
+  document.p("World");
+  EXPECT_EQ(document.str(), "<p>World</p>");
+}
+
+TEST(attribute_on_void_element_one_byte_past_capacity) {
+  sourcemeta::core::HTMLWriter document;
+  document.reserve(14);
+  document.img().attribute("alt", "x");
+  EXPECT_EQ(document.str(), "<img alt=\"x\" />");
+}
+
+TEST(attribute_on_void_element_at_exact_capacity) {
+  sourcemeta::core::HTMLWriter document;
+  document.reserve(15);
+  document.img().attribute("alt", "x");
+  EXPECT_EQ(document.str(), "<img alt=\"x\" />");
+}
