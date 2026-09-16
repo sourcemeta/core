@@ -158,11 +158,7 @@ inline auto clean_url(Document &document, const std::string_view url,
   }
 
   buffer.clear();
-  if (!decode_character_references(buffer, url)) {
-    buffer.assign(url);
-  }
-
-  remove_backslash_escapes(buffer);
+  decode_escapes_and_references(buffer, url);
   return document.strings.store(buffer);
 }
 
@@ -189,11 +185,7 @@ inline auto clean_title(Document &document, const std::string_view title,
   }
 
   buffer.clear();
-  if (!decode_character_references(buffer, inner)) {
-    buffer.assign(inner);
-  }
-
-  remove_backslash_escapes(buffer);
+  decode_escapes_and_references(buffer, inner);
   return document.strings.store(buffer);
 }
 

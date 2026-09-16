@@ -324,6 +324,11 @@ TEST(link_destination_unbalanced_parentheses_is_not_link) {
   EXPECT_EQ(result, "<p>[docs](a(b(c)d)</p>\n");
 }
 
+TEST(link_destination_escaped_ampersand_is_not_an_entity) {
+  const auto result{sourcemeta::core::markdown_to_html("[docs](/x\\&amp;y)")};
+  EXPECT_EQ(result, "<p><a href=\"/x&amp;amp;y\">docs</a></p>\n");
+}
+
 TEST(link_destination_escaped_unbalanced_parentheses) {
   const auto result{sourcemeta::core::markdown_to_html("[docs](a\\(b\\(c)")};
   EXPECT_EQ(result, "<p><a href=\"a(b(c\">docs</a></p>\n");
@@ -376,6 +381,12 @@ TEST(link_title_escaped_quotes_and_entities) {
       sourcemeta::core::markdown_to_html("[docs](/x 'it\\'s &amp; more')")};
   EXPECT_EQ(result,
             "<p><a href=\"/x\" title=\"it&#39;s &amp; more\">docs</a></p>\n");
+}
+
+TEST(link_title_escaped_ampersand_is_not_an_entity) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("[docs](/x 'a\\&amp;b')")};
+  EXPECT_EQ(result, "<p><a href=\"/x\" title=\"a&amp;amp;b\">docs</a></p>\n");
 }
 
 TEST(link_title_separated_by_non_breaking_space) {

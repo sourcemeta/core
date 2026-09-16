@@ -252,6 +252,12 @@ TEST(fenced_code_info_string_of_symbols) {
   EXPECT_EQ(result, "<pre><code class=\"language-#!\"></code></pre>\n");
 }
 
+TEST(fenced_code_info_string_escaped_ampersand_is_not_an_entity) {
+  const auto result{sourcemeta::core::markdown_to_html("```a\\&amp;b\n```")};
+  EXPECT_EQ(result,
+            "<pre><code class=\"language-a&amp;amp;b\"></code></pre>\n");
+}
+
 TEST(fenced_code_backtick_fence_info_cannot_contain_backticks) {
   const auto result{sourcemeta::core::markdown_to_html("```js`\ncode")};
   EXPECT_EQ(result, "<p>```js`\n"

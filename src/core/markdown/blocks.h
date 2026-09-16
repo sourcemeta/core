@@ -500,15 +500,10 @@ private:
     }
 
     this->value_buffer_.clear();
-    const auto info{content.substr(0, position)};
-    if (!decode_character_references(this->value_buffer_, info)) {
-      this->value_buffer_.assign(info);
-    }
-
-    this->label_buffer_.assign(
+    decode_escapes_and_references(this->value_buffer_,
+                                  content.substr(0, position));
+    target.title = this->document_.strings.store(
         sourcemeta::core::trim(this->value_buffer_, is_space));
-    remove_backslash_escapes(this->label_buffer_);
-    target.title = this->document_.strings.store(this->label_buffer_);
     if (character_at(content, position) == '\r') {
       ++position;
     }

@@ -174,21 +174,43 @@ inline auto decode_character_references(std::string &output,
   return true;
 }
 
-// Remove the backslash of every backslash escape as GFM section 2.4 describes
-inline auto remove_backslash_escapes(std::string &buffer) -> void {
-  const auto size{buffer.size()};
-  std::size_t write{0};
-  for (std::size_t read{0}; read < size; ++read) {
-    if (buffer[read] == '\\' && read + 1 < size &&
-        sourcemeta::core::is_punctuation(buffer[read + 1])) {
-      ++read;
+// Resolve the backslash escapes of GFM section 2.4 and the character
+// references of GFM section 6.5 in one pass from left to right, so that an
+// escaped ampersand stays literal rather than opening a character reference,
+// as GFM section 2.4 example 310 requires
+inline auto decode_escapes_and_references(std::string &output,
+                                          const std::string_view input)
+    -> void {
+  const auto size{input.size()};
+  std::size_t index{0};
+  auto next{input.find_first_of("&\\")};
+  while (next != std::string_view::npos) {
+    output.append(input.substr(index, next - index));
+    index = next;
+    if (input[index] == '\\') {
+      if (index + 1 < size &&
+          sourcemeta::core::is_punctuation(input[index + 1])) {
+        output.push_back(input[index + 1]);
+        index += 2;
+      } else {
+        output.push_back('\\');
+        index += 1;
+      }
+    } else {
+      const auto consumed{
+          decode_character_reference(output, input.substr(index + 1))};
+      if (consumed == 0) {
+        output.push_back('&');
+        index += 1;
+      } else {
+        index += consumed + 1;
+      }
     }
 
-    buffer[write] = buffer[read];
-    ++write;
+    next = input.find_first_of("&\\", index);
   }
 
-  buffer.resize(write);
+  output.append(input.substr(index));
 }
 
 // Normalise a link label as GFM section 4.7 describes, folding its case,
