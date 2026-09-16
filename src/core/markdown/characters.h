@@ -27,6 +27,13 @@ inline auto is_whitespace_character(const char character) noexcept -> bool {
          character == '\v' || character == '\f' || character == '\r';
 }
 
+// GFM section 6.6: a link destination that is not enclosed in angle brackets
+// "does not include ASCII space or control characters"
+inline auto is_space_or_control(const char character) noexcept -> bool {
+  const auto byte{static_cast<unsigned char>(character)};
+  return byte <= 0x20 || byte == 0x7F;
+}
+
 inline auto is_space_or_tab(const char character) noexcept -> bool {
   return character == ' ' || character == '\t';
 }
@@ -194,7 +201,7 @@ inline auto normalize_label(std::string &output, const std::string_view label)
   while (index < label.size()) {
     const auto byte{static_cast<unsigned char>(label[index])};
     if (byte < 0x80) {
-      if (is_space(label[index])) {
+      if (is_whitespace_character(label[index])) {
         pending_space = !output.empty();
         ++index;
         continue;

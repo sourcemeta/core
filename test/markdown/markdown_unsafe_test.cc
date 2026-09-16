@@ -242,6 +242,11 @@ TEST(inline_html_processing_instruction) {
   EXPECT_EQ(result, "<p>x <?go run ?></p>\n");
 }
 
+TEST(inline_html_processing_instruction_with_consecutive_question_marks) {
+  const auto result{sourcemeta::core::markdown_to_html("x <?go ?\?>", false)};
+  EXPECT_EQ(result, "<p>x <?go ?\?></p>\n");
+}
+
 TEST(inline_html_declaration) {
   const auto result{
       sourcemeta::core::markdown_to_html("x <!DOCTYPE svg>", false)};

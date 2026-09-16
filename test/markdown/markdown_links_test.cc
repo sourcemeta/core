@@ -231,6 +231,12 @@ TEST(link_reference_definition_label_whitespace_normalized) {
   EXPECT_EQ(result, "<p><a href=\"/manual\">The long label</a></p>\n");
 }
 
+TEST(link_reference_definition_label_line_tabulation_normalized) {
+  const auto result{sourcemeta::core::markdown_to_html(
+      "[the\flong\vlabel]: /manual\n\n[The long label]")};
+  EXPECT_EQ(result, "<p><a href=\"/manual\">The long label</a></p>\n");
+}
+
 TEST(link_reference_definition_empty_label_is_invalid) {
   const auto result{
       sourcemeta::core::markdown_to_html("[]: /manual\n\n[] text")};
@@ -260,9 +266,19 @@ TEST(link_destination_angle_brackets_with_spaces) {
   EXPECT_EQ(result, "<p><a href=\"a%20b%20c\">docs</a></p>\n");
 }
 
+TEST(link_destination_angle_brackets_with_surrounding_spaces) {
+  const auto result{sourcemeta::core::markdown_to_html("[docs](< a >)")};
+  EXPECT_EQ(result, "<p><a href=\"%20a%20\">docs</a></p>\n");
+}
+
 TEST(link_destination_with_space_is_not_link) {
   const auto result{sourcemeta::core::markdown_to_html("[docs](/a b)")};
   EXPECT_EQ(result, "<p>[docs](/a b)</p>\n");
+}
+
+TEST(link_destination_with_control_character_is_not_link) {
+  const auto result{sourcemeta::core::markdown_to_html("[docs](/a\x01y)")};
+  EXPECT_EQ(result, "<p>[docs](/a\x01y)</p>\n");
 }
 
 TEST(link_destination_with_newline_is_not_link) {

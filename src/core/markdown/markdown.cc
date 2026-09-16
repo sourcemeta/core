@@ -9,10 +9,21 @@
 #include "postprocess.h"
 #include "render.h"
 
+#include <cstddef>     // std::size_t
+#include <cstdint>     // std::uint32_t
+#include <limits>      // std::numeric_limits
+#include <optional>    // std::optional
 #include <string>      // std::string
 #include <string_view> // std::string_view
 
 namespace {
+
+// An input past this size gives up the state of its thread once it is done,
+// so that an unusually large conversion does not hold on to the memory it
+// needed for the rest of the life of the thread. Inputs this large are far
+// past what documentation is made of, so paying for their buffers again is
+// better than keeping them around
+constexpr std::size_t MAXIMUM_RETAINED_INPUT{0x800000};
 
 // The state of every thread is kept across calls, so that rendering many
 // small inputs does not allocate the same buffers over and over
@@ -23,6 +34,17 @@ struct MarkdownConverter {
   sourcemeta::core::markdown::PostProcessor postprocessor{document};
   sourcemeta::core::markdown::HTMLRenderer renderer{document};
   std::string repaired;
+};
+
+// Give up the state of the thread even when the conversion throws
+struct ConverterRelease {
+  std::optional<MarkdownConverter> &converter;
+  bool oversized;
+  ~ConverterRelease() {
+    if (this->oversized) {
+      this->converter.reset();
+    }
+  }
 };
 
 auto replace_invalid_characters(const std::string_view input,
@@ -40,7 +62,14 @@ namespace sourcemeta::core {
 
 auto markdown_to_html(const std::string_view input, const bool safe)
     -> std::string {
-  thread_local MarkdownConverter converter;
+  thread_local std::optional<MarkdownConverter> state;
+  if (!state.has_value()) {
+    state.emplace();
+  }
+
+  const ConverterRelease release{
+      .converter = state, .oversized = input.size() > MAXIMUM_RETAINED_INPUT};
+  auto &converter{state.value()};
   converter.document.clear();
   auto source{input};
   // GFM section 2.3 requires replacing the NUL character, and byte sequences
@@ -49,6 +78,11 @@ auto markdown_to_html(const std::string_view input, const bool safe)
       !sourcemeta::core::is_valid_utf8(input)) {
     replace_invalid_characters(input, converter.repaired);
     source = converter.repaired;
+  }
+
+  // The parser addresses the input through 32-bit offsets
+  if (source.size() > std::numeric_limits<std::uint32_t>::max()) {
+    throw MarkdownError{"The input is larger than the supported size bound"};
   }
 
   converter.blocks.parse(source, input.size());

@@ -273,7 +273,7 @@ inline auto scan_html_processing_instruction(const std::string_view input,
   while (position < input.size()) {
     if (input[position] == '?') {
       if (position + 1 < input.size() && input[position + 1] != '>') {
-        position += 2;
+        ++position;
         continue;
       }
 

@@ -124,7 +124,7 @@ inline auto scan_link_destination(const std::string_view input,
 
       --parentheses;
       ++index;
-    } else if (is_space(character)) {
+    } else if (is_space_or_control(character)) {
       if (index == offset) {
         return -1;
       }
@@ -149,18 +149,17 @@ inline auto scan_link_destination(const std::string_view input,
 inline auto clean_url(Document &document, const std::string_view url,
                       std::string &buffer, const bool stable)
     -> std::string_view {
-  const auto trimmed{sourcemeta::core::trim(url, is_space)};
-  if (trimmed.empty()) {
+  if (url.empty()) {
     return {};
   }
 
-  if (stable && trimmed.find_first_of("&\\") == std::string_view::npos) {
-    return trimmed;
+  if (stable && url.find_first_of("&\\") == std::string_view::npos) {
+    return url;
   }
 
   buffer.clear();
-  if (!decode_character_references(buffer, trimmed)) {
-    buffer.assign(trimmed);
+  if (!decode_character_references(buffer, url)) {
+    buffer.assign(url);
   }
 
   remove_backslash_escapes(buffer);
