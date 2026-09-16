@@ -921,15 +921,31 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
       const auto maybe_id{sourcemeta::core::identify(
           schema, root_base_dialect.value(), default_id)};
       if (!maybe_id.empty()) {
+        sourcemeta::core::JSON::String canonical_id;
         try {
-          root_id = canonicalize_identifier(maybe_id, default_base);
+          canonical_id = canonicalize_identifier(maybe_id, default_base);
         } catch (const sourcemeta::core::URIParseError &) {
           throw SchemaKeywordError(
               sourcemeta::core::id_keyword(root_base_dialect.value()).name,
               maybe_id, "The identifier is not a valid URI");
         }
 
-        this->root_ = root_id.value();
+        // Before 2019-09 an identifier that consists of nothing but a fragment
+        // names the schema it sits on rather than declaring a resource of its
+        // own, so the schema goes by no identifier and we take care of it as
+        // an anchor further down, just like we do for every other subschema
+        //
+        //   To specify such a subschema identifier, the "$id" keyword is set
+        //   to a URI reference with a plain name fragment (not a JSON Pointer
+        //   fragment).
+        //
+        // See
+        // https://json-schema.org/draft-07/draft-handrews-json-schema-01#rfc.section.8.2.3
+        if (!supports_id_anchors(root_base_dialect.value()) ||
+            !maybe_id.starts_with('#')) {
+          root_id = std::move(canonical_id);
+          this->root_ = root_id.value();
+        }
       }
     }
 
