@@ -108,11 +108,14 @@ static void Schema_Frame_KrakenD_Reachable(benchmark::State &state) {
       sourcemeta::core::read_json(std::filesystem::path{CURRENT_DIRECTORY} /
                                   "files" / "2019_09_krakend.json")};
 
-  const sourcemeta::core::SchemaFrame frame{
-      sourcemeta::core::SchemaFrame::Mode::References, schema,
-      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
-
+  // Reachability is memoised on the frame, so every iteration has to start
+  // from a frame that has not answered a query yet. Framing is therefore part
+  // of what this measures, and the framing benchmark above accounts for it
   for (auto iteration : state) {
+    const sourcemeta::core::SchemaFrame frame{
+        sourcemeta::core::SchemaFrame::Mode::References, schema,
+        sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+
     frame.for_each_location(
         [&frame](const sourcemeta::core::SchemaReferenceType,
                  const std::string_view,
