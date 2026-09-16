@@ -2564,3 +2564,47 @@ TEST(xn_uppercase_leading_nonspacing_mark) {
   EXPECT_FALSE(sourcemeta::core::is_hostname("XN--HELLO-ZED"));
   EXPECT_FALSE(sourcemeta::core::is_idn_hostname("XN--HELLO-ZED"));
 }
+
+TEST(label_letters) {
+  EXPECT_TRUE(sourcemeta::core::is_hostname_label("example"));
+}
+
+TEST(label_starting_with_a_digit) {
+  EXPECT_TRUE(sourcemeta::core::is_hostname_label("1host"));
+}
+
+TEST(label_of_one_character) {
+  EXPECT_TRUE(sourcemeta::core::is_hostname_label("a"));
+}
+
+TEST(label_with_inner_hyphens) {
+  EXPECT_TRUE(sourcemeta::core::is_hostname_label("a--b"));
+}
+
+TEST(label_starting_with_a_hyphen) {
+  EXPECT_FALSE(sourcemeta::core::is_hostname_label("-bad"));
+}
+
+TEST(label_ending_with_a_hyphen) {
+  EXPECT_FALSE(sourcemeta::core::is_hostname_label("bad-"));
+}
+
+TEST(label_that_is_empty) {
+  EXPECT_FALSE(sourcemeta::core::is_hostname_label(""));
+}
+
+TEST(label_with_a_period) {
+  EXPECT_FALSE(sourcemeta::core::is_hostname_label("a.b"));
+}
+
+TEST(label_with_an_underscore) {
+  EXPECT_FALSE(sourcemeta::core::is_hostname_label("a_b"));
+}
+
+TEST(label_of_sixty_three_characters) {
+  EXPECT_TRUE(sourcemeta::core::is_hostname_label(std::string(63, 'a')));
+}
+
+TEST(label_of_sixty_four_characters) {
+  EXPECT_FALSE(sourcemeta::core::is_hostname_label(std::string(64, 'a')));
+}
