@@ -11,6 +11,13 @@
 #include <filesystem>  // std::filesystem
 #include <string_view> // std::string_view
 
+// Keeps the sizes below from reaching the measured code as compile-time
+// constants, as a folded benchmark reports a fake result rather than failing
+static auto opaque(std::size_t value) -> std::size_t {
+  benchmark::DoNotOptimize(value);
+  return value;
+}
+
 // NOLINTNEXTLINE(readability-identifier-naming)
 static void JSON_Array_Of_Objects_Unique(benchmark::State &state) {
   // From Unreal Engine `uproject` files
@@ -554,8 +561,8 @@ static void JSON_Equality_Helm_Chart_Lock(benchmark::State &state) {
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)
-static void JSON_String_Equal(benchmark::State &state) {
-  const auto length{static_cast<std::size_t>(state.range(0))};
+static void JSON_String_Equal_10(benchmark::State &state) {
+  const auto length{opaque(10)};
   sourcemeta::core::JSON::String string_left(length, 'x');
   sourcemeta::core::JSON::String string_right(length, 'x');
   const sourcemeta::core::JSON left{std::move(string_left)};
@@ -568,8 +575,23 @@ static void JSON_String_Equal(benchmark::State &state) {
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)
-static void JSON_String_Equal_Small_By_Perfect_Hash(benchmark::State &state) {
-  const auto length{static_cast<std::size_t>(state.range(0))};
+static void JSON_String_Equal_100(benchmark::State &state) {
+  const auto length{opaque(100)};
+  sourcemeta::core::JSON::String string_left(length, 'x');
+  sourcemeta::core::JSON::String string_right(length, 'x');
+  const sourcemeta::core::JSON left{std::move(string_left)};
+  const sourcemeta::core::JSON right{std::move(string_right)};
+  for (auto iteration : state) {
+    bool result = left == right;
+    assert(result);
+    benchmark::DoNotOptimize(result);
+  }
+}
+
+static void
+// NOLINTNEXTLINE(readability-identifier-naming)
+JSON_String_Equal_Small_By_Perfect_Hash_10(benchmark::State &state) {
+  const auto length{opaque(10)};
   sourcemeta::core::JSON::String left(length, 'x');
   sourcemeta::core::JSON::String right(length, 'x');
   const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
@@ -587,8 +609,8 @@ static void JSON_String_Equal_Small_By_Perfect_Hash(benchmark::State &state) {
 
 static void
 // NOLINTNEXTLINE(readability-identifier-naming)
-JSON_String_Equal_Small_By_Runtime_Perfect_Hash(benchmark::State &state) {
-  const auto length{static_cast<std::size_t>(state.range(0))};
+JSON_String_Equal_Small_By_Runtime_Perfect_Hash_10(benchmark::State &state) {
+  const auto length{opaque(10)};
   sourcemeta::core::JSON::String left(length, 'x');
   sourcemeta::core::JSON::String right(length, 'x');
   const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
@@ -605,8 +627,8 @@ JSON_String_Equal_Small_By_Runtime_Perfect_Hash(benchmark::State &state) {
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)
-static void JSON_String_Fast_Hash(benchmark::State &state) {
-  const auto length{static_cast<std::size_t>(state.range(0))};
+static void JSON_String_Fast_Hash_10(benchmark::State &state) {
+  const auto length{opaque(10)};
   sourcemeta::core::JSON::String value(length, 'x');
   const sourcemeta::core::JSON document{std::move(value)};
   for (auto iteration : state) {
@@ -615,8 +637,29 @@ static void JSON_String_Fast_Hash(benchmark::State &state) {
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)
-static void JSON_String_Key_Hash(benchmark::State &state) {
-  const auto length{static_cast<std::size_t>(state.range(0))};
+static void JSON_String_Fast_Hash_100(benchmark::State &state) {
+  const auto length{opaque(100)};
+  sourcemeta::core::JSON::String value(length, 'x');
+  const sourcemeta::core::JSON document{std::move(value)};
+  for (auto iteration : state) {
+    benchmark::DoNotOptimize(document.fast_hash());
+  }
+}
+
+// NOLINTNEXTLINE(readability-identifier-naming)
+static void JSON_String_Key_Hash_10(benchmark::State &state) {
+  const auto length{opaque(10)};
+  sourcemeta::core::JSON::String value(length, 'x');
+  const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
+      hasher;
+  for (auto iteration : state) {
+    benchmark::DoNotOptimize(hasher(value));
+  }
+}
+
+// NOLINTNEXTLINE(readability-identifier-naming)
+static void JSON_String_Key_Hash_100(benchmark::State &state) {
+  const auto length{opaque(100)};
   sourcemeta::core::JSON::String value(length, 'x');
   const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
       hasher;
@@ -707,8 +750,65 @@ static void JSON_Number_To_Double(benchmark::State &state) {
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)
-static void JSON_Object_At_Last_Key(benchmark::State &state) {
-  const auto property_count{static_cast<std::size_t>(state.range(0))};
+static void JSON_Object_At_Last_Key_8(benchmark::State &state) {
+  const auto property_count{opaque(8)};
+  auto document{sourcemeta::core::JSON::make_object()};
+  sourcemeta::core::JSON::String last_key;
+  for (std::size_t index = 0; index < property_count; index++) {
+    last_key = "key" + std::to_string(index + 1000);
+    document.assign(last_key, sourcemeta::core::JSON{1});
+  }
+
+  const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
+      hasher;
+  const auto key_hash{hasher(last_key)};
+  for (auto iteration : state) {
+    auto &value{document.at(last_key, key_hash)};
+    benchmark::DoNotOptimize(value);
+  }
+}
+
+// NOLINTNEXTLINE(readability-identifier-naming)
+static void JSON_Object_At_Last_Key_32(benchmark::State &state) {
+  const auto property_count{opaque(32)};
+  auto document{sourcemeta::core::JSON::make_object()};
+  sourcemeta::core::JSON::String last_key;
+  for (std::size_t index = 0; index < property_count; index++) {
+    last_key = "key" + std::to_string(index + 1000);
+    document.assign(last_key, sourcemeta::core::JSON{1});
+  }
+
+  const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
+      hasher;
+  const auto key_hash{hasher(last_key)};
+  for (auto iteration : state) {
+    auto &value{document.at(last_key, key_hash)};
+    benchmark::DoNotOptimize(value);
+  }
+}
+
+// NOLINTNEXTLINE(readability-identifier-naming)
+static void JSON_Object_At_Last_Key_128(benchmark::State &state) {
+  const auto property_count{opaque(128)};
+  auto document{sourcemeta::core::JSON::make_object()};
+  sourcemeta::core::JSON::String last_key;
+  for (std::size_t index = 0; index < property_count; index++) {
+    last_key = "key" + std::to_string(index + 1000);
+    document.assign(last_key, sourcemeta::core::JSON{1});
+  }
+
+  const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
+      hasher;
+  const auto key_hash{hasher(last_key)};
+  for (auto iteration : state) {
+    auto &value{document.at(last_key, key_hash)};
+    benchmark::DoNotOptimize(value);
+  }
+}
+
+// NOLINTNEXTLINE(readability-identifier-naming)
+static void JSON_Object_At_Last_Key_512(benchmark::State &state) {
+  const auto property_count{opaque(512)};
   auto document{sourcemeta::core::JSON::make_object()};
   sourcemeta::core::JSON::String last_key;
   for (std::size_t index = 0; index < property_count; index++) {
@@ -767,15 +867,21 @@ BENCHMARK(JSON_Parse_Nested_Containers);
 BENCHMARK(JSON_From_String_Copy);
 BENCHMARK(JSON_From_String_Temporary);
 BENCHMARK(JSON_Number_To_Double);
-BENCHMARK(JSON_Object_At_Last_Key)->Arg(8)->Arg(32)->Arg(128)->Arg(512);
+BENCHMARK(JSON_Object_At_Last_Key_8);
+BENCHMARK(JSON_Object_At_Last_Key_32);
+BENCHMARK(JSON_Object_At_Last_Key_128);
+BENCHMARK(JSON_Object_At_Last_Key_512);
 BENCHMARK(JSON_Fast_Hash_Helm_Chart_Lock);
 BENCHMARK(JSON_Equality_Helm_Chart_Lock);
 BENCHMARK(JSON_Divisible_By_Decimal);
-BENCHMARK(JSON_String_Equal)->Args({10})->Args({100});
-BENCHMARK(JSON_String_Equal_Small_By_Perfect_Hash)->Args({10});
-BENCHMARK(JSON_String_Equal_Small_By_Runtime_Perfect_Hash)->Args({10});
-BENCHMARK(JSON_String_Fast_Hash)->Args({10})->Args({100});
-BENCHMARK(JSON_String_Key_Hash)->Args({10})->Args({100});
+BENCHMARK(JSON_String_Equal_10);
+BENCHMARK(JSON_String_Equal_100);
+BENCHMARK(JSON_String_Equal_Small_By_Perfect_Hash_10);
+BENCHMARK(JSON_String_Equal_Small_By_Runtime_Perfect_Hash_10);
+BENCHMARK(JSON_String_Fast_Hash_10);
+BENCHMARK(JSON_String_Fast_Hash_100);
+BENCHMARK(JSON_String_Key_Hash_10);
+BENCHMARK(JSON_String_Key_Hash_100);
 BENCHMARK(JSON_Object_Defines_Miss_Same_Length);
 BENCHMARK(JSON_Object_Defines_Miss_Too_Small);
 BENCHMARK(JSON_Object_Defines_Miss_Too_Large);

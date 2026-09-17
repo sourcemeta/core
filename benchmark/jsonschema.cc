@@ -3,7 +3,6 @@
 #include <cassert>    // assert
 #include <filesystem> // std::filesystem
 #include <functional> // std::ref
-#include <optional>   // std::optional
 
 #include <sourcemeta/core/jsonschema.h>
 
@@ -109,18 +108,15 @@ static void Schema_Frame_KrakenD_Reachable(benchmark::State &state) {
       sourcemeta::core::read_json(std::filesystem::path{CURRENT_DIRECTORY} /
                                   "files" / "2019_09_krakend.json")};
 
-  // Kept out of the timed region so that neither building nor discarding the
-  // frame counts towards the reachability measurement
-  std::optional<sourcemeta::core::SchemaFrame> frame;
-
+  // Reachability is memoised on the frame, so every iteration has to start
+  // from a frame that has not answered a query yet. Framing is therefore part
+  // of what this measures, and the framing benchmark above accounts for it
   for (auto iteration : state) {
-    state.PauseTiming();
-    frame.emplace(sourcemeta::core::SchemaFrame::Mode::References, schema,
-                  sourcemeta::core::schema_walker,
-                  sourcemeta::core::schema_resolver);
-    state.ResumeTiming();
+    const sourcemeta::core::SchemaFrame frame{
+        sourcemeta::core::SchemaFrame::Mode::References, schema,
+        sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
 
-    frame->for_each_location(
+    frame.for_each_location(
         [&frame](const sourcemeta::core::SchemaReferenceType,
                  const std::string_view,
                  const sourcemeta::core::SchemaFrame::Location &entry) -> void {
@@ -129,11 +125,11 @@ static void Schema_Frame_KrakenD_Reachable(benchmark::State &state) {
             return;
           }
 
-          frame->for_each_subschema(
+          frame.for_each_subschema(
               [&frame,
                &entry](const sourcemeta::core::SchemaFrame::Location &subentry)
                   -> void {
-                auto result{frame->is_reachable(
+                auto result{frame.is_reachable(
                     subentry, entry, sourcemeta::core::schema_walker,
                     sourcemeta::core::schema_resolver)};
                 benchmark::DoNotOptimize(result);
