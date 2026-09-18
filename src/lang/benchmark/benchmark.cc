@@ -315,7 +315,9 @@ auto BenchmarkState::finish() -> void {
   this->finished_ = true;
 }
 
+#if !defined(__clang__) && !defined(__GNUC__)
 auto benchmark_use_char_pointer(const volatile char *) -> void {}
+#endif
 
 auto benchmark_register(std::string_view name, std::string_view file, int line,
                         std::function<void(BenchmarkState &)> body) -> int {

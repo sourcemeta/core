@@ -129,12 +129,19 @@ private:
   std::optional<std::chrono::nanoseconds> cpu_elapsed_{std::nullopt};
 };
 
+// Only a platform without inline assembly needs an opaque sink to make a value
+// escape, so it is not declared anywhere else. Defining it unconditionally
+// would leave a function that no build using assembly can ever reach
+#if !defined(__clang__) && !defined(__GNUC__)
+
 /// @ingroup benchmark
 ///
 /// Consume a pointer without looking at it. Only the platforms that offer no
 /// inline assembly rely on this.
 SOURCEMETA_CORE_BENCHMARK_EXPORT
 auto benchmark_use_char_pointer(const volatile char *pointer) -> void;
+
+#endif
 
 // Inline assembly is the only portable way to tell a compiler that a value has
 // escaped, and an empty instruction sequence is what makes the barrier free.
