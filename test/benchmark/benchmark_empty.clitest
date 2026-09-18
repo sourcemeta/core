@@ -1,5 +1,5 @@
 RUN STDIN /dev/null IN . INTO result.txt EXPECTING 1
 WRITE expected.txt UNTIL EXPECTED
-2> error: no benchmarks were registered
+2> error: No benchmarks were registered
 EXPECTED
 COMPARE result.txt AGAINST expected.txt
