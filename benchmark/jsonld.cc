@@ -1,4 +1,4 @@
-#include <benchmark/benchmark.h>
+#include <sourcemeta/core/benchmark.h>
 
 #include <cassert>    // assert
 #include <cstddef>    // std::size_t
@@ -349,18 +349,16 @@ static auto populate_annotation_list(
   }
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void JSONLD_Catalog_Annotation_List_Populate(benchmark::State &state) {
+BENCHMARK(JSONLD_Catalog_Annotation_List_Populate) {
   for (auto iteration : state) {
     sourcemeta::core::JSONLDWeakAnnotationList annotations;
     populate_annotation_list(annotations);
     assert(annotations.size() == TOTAL_ANNOTATION_COUNT);
-    benchmark::DoNotOptimize(annotations);
+    sourcemeta::core::benchmark_do_not_optimize(annotations);
   }
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void JSONLD_Catalog_Materialize(benchmark::State &state) {
+BENCHMARK(JSONLD_Catalog_Materialize) {
   const auto instance{make_catalog()};
   sourcemeta::core::JSONLDWeakAnnotationList annotations;
   populate_annotation_list(annotations);
@@ -370,9 +368,6 @@ static void JSONLD_Catalog_Materialize(benchmark::State &state) {
     auto result{sourcemeta::core::jsonld_materialize(instance, annotations)};
     assert(result.is_array());
     assert(!result.empty());
-    benchmark::DoNotOptimize(result);
+    sourcemeta::core::benchmark_do_not_optimize(result);
   }
 }
-
-BENCHMARK(JSONLD_Catalog_Annotation_List_Populate);
-BENCHMARK(JSONLD_Catalog_Materialize);

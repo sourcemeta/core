@@ -1,4 +1,4 @@
-#include <benchmark/benchmark.h>
+#include <sourcemeta/core/benchmark.h>
 
 #include <sourcemeta/core/crypto.h>
 #include <sourcemeta/core/jose.h>
@@ -30,8 +30,7 @@ constexpr std::string_view ES512_JWK{
     R"JSON({ "kty": "EC", "crv": "P-521", "x": "ASTBdxhoeBK4-OqrpidcXbsz_Gsd-TRgqkZGD9ROv7r_kBHW1_is2HDctAOVBWC3ywSUS5MZJIl17xJuYCyZA-Rg", "y": "AOQCwwmrhHkVTm9BgloMWDc7T3hw5yQM5Z-YhVumpCYyFIGuyrziD5iqsH8uQvsNXGqnMKhOJ26X8ADhvP20RIAW" })JSON"};
 } // namespace
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void JOSE_VerifySignature_RS256(benchmark::State &state) {
+BENCHMARK(JOSE_VerifySignature_RS256) {
   const auto token{sourcemeta::core::JWT::from(RS256_TOKEN)};
   const auto key{
       sourcemeta::core::JWK::from(sourcemeta::core::parse_json(RS256_JWK))};
@@ -44,12 +43,11 @@ static void JOSE_VerifySignature_RS256(benchmark::State &state) {
         *public_key, sourcemeta::core::SignatureHashFunction::SHA256,
         token.value().signing_input(), token.value().signature())};
     assert(result);
-    benchmark::DoNotOptimize(result);
+    sourcemeta::core::benchmark_do_not_optimize(result);
   }
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void JOSE_VerifySignature_ES512(benchmark::State &state) {
+BENCHMARK(JOSE_VerifySignature_ES512) {
   const auto token{sourcemeta::core::JWT::from(ES512_TOKEN)};
   const auto key{
       sourcemeta::core::JWK::from(sourcemeta::core::parse_json(ES512_JWK))};
@@ -62,9 +60,6 @@ static void JOSE_VerifySignature_ES512(benchmark::State &state) {
         *public_key, sourcemeta::core::SignatureHashFunction::SHA512,
         token.value().signing_input(), token.value().signature())};
     assert(result);
-    benchmark::DoNotOptimize(result);
+    sourcemeta::core::benchmark_do_not_optimize(result);
   }
 }
-
-BENCHMARK(JOSE_VerifySignature_RS256);
-BENCHMARK(JOSE_VerifySignature_ES512);

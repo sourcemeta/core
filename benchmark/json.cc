@@ -1,4 +1,4 @@
-#include <benchmark/benchmark.h>
+#include <sourcemeta/core/benchmark.h>
 
 #include <algorithm> // std::ranges
 #include <cassert>   // assert
@@ -14,12 +14,11 @@
 // Keeps the sizes below from reaching the measured code as compile-time
 // constants, as a folded benchmark reports a fake result rather than failing
 static auto opaque(std::size_t value) -> std::size_t {
-  benchmark::DoNotOptimize(value);
+  sourcemeta::core::benchmark_do_not_optimize(value);
   return value;
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void JSON_Array_Of_Objects_Unique(benchmark::State &state) {
+BENCHMARK(JSON_Array_Of_Objects_Unique) {
   // From Unreal Engine `uproject` files
   const auto document{sourcemeta::core::parse_json(R"JSON([
     { "Enabled": true, "Name": "DDTools" },
@@ -46,12 +45,11 @@ static void JSON_Array_Of_Objects_Unique(benchmark::State &state) {
   for (auto iteration : state) {
     auto result{document.unique()};
     assert(result);
-    benchmark::DoNotOptimize(result);
+    sourcemeta::core::benchmark_do_not_optimize(result);
   }
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void JSON_Parse_1(benchmark::State &state) {
+BENCHMARK(JSON_Parse_1) {
   const auto *const document{R"JSON({
     "metadata": {
         "description": "Comprehensive JSON grammar stress test",
@@ -104,12 +102,11 @@ static void JSON_Parse_1(benchmark::State &state) {
   for (auto iteration : state) {
     auto result{sourcemeta::core::parse_json(document)};
     assert(result.is_object());
-    benchmark::DoNotOptimize(result);
+    sourcemeta::core::benchmark_do_not_optimize(result);
   }
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void JSON_Parse_Real(benchmark::State &state) {
+BENCHMARK(JSON_Parse_Real) {
   const auto *const document{R"JSON([
     1.0,
     2.0,
@@ -219,12 +216,11 @@ static void JSON_Parse_Real(benchmark::State &state) {
   for (auto iteration : state) {
     auto result{sourcemeta::core::parse_json(document)};
     assert(result.is_array());
-    benchmark::DoNotOptimize(result);
+    sourcemeta::core::benchmark_do_not_optimize(result);
   }
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void JSON_Parse_Decimal(benchmark::State &state) {
+BENCHMARK(JSON_Parse_Decimal) {
   const auto *const document{R"JSON([
     123456789012345678901234567890,
     987654321098765432109876543210,
@@ -335,132 +331,121 @@ static void JSON_Parse_Decimal(benchmark::State &state) {
   for (auto iteration : state) {
     auto result{sourcemeta::core::parse_json(document)};
     assert(result.is_array());
-    benchmark::DoNotOptimize(result);
+    sourcemeta::core::benchmark_do_not_optimize(result);
   }
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void JSON_Parse_Schema_ISO_Language(benchmark::State &state) {
+BENCHMARK(JSON_Parse_Schema_ISO_Language) {
   const auto schema{sourcemeta::core::read_file_to_string(
       std::filesystem::path{CURRENT_DIRECTORY} / "files" /
       "2020_12_iso_language_2023_set_3.json")};
   for (auto iteration : state) {
     auto result{sourcemeta::core::parse_json(schema)};
     assert(result.is_object());
-    benchmark::DoNotOptimize(result);
+    sourcemeta::core::benchmark_do_not_optimize(result);
   }
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void JSON_Parse_Integer(benchmark::State &state) {
+BENCHMARK(JSON_Parse_Integer) {
   const auto document{sourcemeta::core::read_file_to_string(
       std::filesystem::path{CURRENT_DIRECTORY} / "files" /
       "integer_array.json")};
   for (auto iteration : state) {
     auto result{sourcemeta::core::parse_json(document)};
     assert(result.is_array());
-    benchmark::DoNotOptimize(result);
+    sourcemeta::core::benchmark_do_not_optimize(result);
   }
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void JSON_Parse_String_NonSSO_Plain(benchmark::State &state) {
+BENCHMARK(JSON_Parse_String_NonSSO_Plain) {
   const auto document{sourcemeta::core::read_file_to_string(
       std::filesystem::path{CURRENT_DIRECTORY} / "files" /
       "string_array_plain.json")};
   for (auto iteration : state) {
     auto result{sourcemeta::core::parse_json(document)};
     assert(result.is_array());
-    benchmark::DoNotOptimize(result);
+    sourcemeta::core::benchmark_do_not_optimize(result);
   }
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void JSON_Parse_String_SSO_Plain(benchmark::State &state) {
+BENCHMARK(JSON_Parse_String_SSO_Plain) {
   const auto document{sourcemeta::core::read_file_to_string(
       std::filesystem::path{CURRENT_DIRECTORY} / "files" /
       "string_array_short.json")};
   for (auto iteration : state) {
     auto result{sourcemeta::core::parse_json(document)};
     assert(result.is_array());
-    benchmark::DoNotOptimize(result);
+    sourcemeta::core::benchmark_do_not_optimize(result);
   }
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void JSON_Parse_String_Escape_Heavy(benchmark::State &state) {
+BENCHMARK(JSON_Parse_String_Escape_Heavy) {
   const auto document{sourcemeta::core::read_file_to_string(
       std::filesystem::path{CURRENT_DIRECTORY} / "files" /
       "string_array_escaped.json")};
   for (auto iteration : state) {
     auto result{sourcemeta::core::parse_json(document)};
     assert(result.is_array());
-    benchmark::DoNotOptimize(result);
+    sourcemeta::core::benchmark_do_not_optimize(result);
   }
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void JSON_Parse_Object_Short_Keys(benchmark::State &state) {
+BENCHMARK(JSON_Parse_Object_Short_Keys) {
   const auto document{sourcemeta::core::read_file_to_string(
       std::filesystem::path{CURRENT_DIRECTORY} / "files" /
       "object_short_keys.json")};
   for (auto iteration : state) {
     auto result{sourcemeta::core::parse_json(document)};
     assert(result.is_object());
-    benchmark::DoNotOptimize(result);
+    sourcemeta::core::benchmark_do_not_optimize(result);
   }
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void JSON_Parse_Object_Scalar_Properties(benchmark::State &state) {
+BENCHMARK(JSON_Parse_Object_Scalar_Properties) {
   const auto document{sourcemeta::core::read_file_to_string(
       std::filesystem::path{CURRENT_DIRECTORY} / "files" /
       "object_scalar_properties.json")};
   for (auto iteration : state) {
     auto result{sourcemeta::core::parse_json(document)};
     assert(result.is_object());
-    benchmark::DoNotOptimize(result);
+    sourcemeta::core::benchmark_do_not_optimize(result);
   }
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void JSON_Parse_Object_Array_Properties(benchmark::State &state) {
+BENCHMARK(JSON_Parse_Object_Array_Properties) {
   const auto document{sourcemeta::core::read_file_to_string(
       std::filesystem::path{CURRENT_DIRECTORY} / "files" /
       "object_array_properties.json")};
   for (auto iteration : state) {
     auto result{sourcemeta::core::parse_json(document)};
     assert(result.is_object());
-    benchmark::DoNotOptimize(result);
+    sourcemeta::core::benchmark_do_not_optimize(result);
   }
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void JSON_Parse_Object_Object_Properties(benchmark::State &state) {
+BENCHMARK(JSON_Parse_Object_Object_Properties) {
   const auto document{sourcemeta::core::read_file_to_string(
       std::filesystem::path{CURRENT_DIRECTORY} / "files" /
       "object_object_properties.json")};
   for (auto iteration : state) {
     auto result{sourcemeta::core::parse_json(document)};
     assert(result.is_object());
-    benchmark::DoNotOptimize(result);
+    sourcemeta::core::benchmark_do_not_optimize(result);
   }
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void JSON_Parse_Nested_Containers(benchmark::State &state) {
+BENCHMARK(JSON_Parse_Nested_Containers) {
   const auto document{sourcemeta::core::read_file_to_string(
       std::filesystem::path{CURRENT_DIRECTORY} / "files" /
       "nested_containers.json")};
   for (auto iteration : state) {
     auto result{sourcemeta::core::parse_json(document)};
     assert(result.is_array());
-    benchmark::DoNotOptimize(result);
+    sourcemeta::core::benchmark_do_not_optimize(result);
   }
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void JSON_Fast_Hash_Helm_Chart_Lock(benchmark::State &state) {
+BENCHMARK(JSON_Fast_Hash_Helm_Chart_Lock) {
   // From `helm-chart-lock`
   const auto document{sourcemeta::core::parse_json(R"JSON({
     "digest": "sha256:157d6244f0fac36b70be1aecfed8811037504d4e3a1060f50688e93531174040",
@@ -491,12 +476,11 @@ static void JSON_Fast_Hash_Helm_Chart_Lock(benchmark::State &state) {
 
   for (auto iteration : state) {
     auto result{document.fast_hash()};
-    benchmark::DoNotOptimize(result);
+    sourcemeta::core::benchmark_do_not_optimize(result);
   }
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void JSON_Equality_Helm_Chart_Lock(benchmark::State &state) {
+BENCHMARK(JSON_Equality_Helm_Chart_Lock) {
   // From `helm-chart-lock`
 
   const auto document_1{sourcemeta::core::parse_json(R"JSON({
@@ -556,12 +540,11 @@ static void JSON_Equality_Helm_Chart_Lock(benchmark::State &state) {
   for (auto iteration : state) {
     auto result{document_1 == document_2};
     assert(result);
-    benchmark::DoNotOptimize(result);
+    sourcemeta::core::benchmark_do_not_optimize(result);
   }
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void JSON_String_Equal_10(benchmark::State &state) {
+BENCHMARK(JSON_String_Equal_10) {
   const auto length{opaque(10)};
   sourcemeta::core::JSON::String string_left(length, 'x');
   sourcemeta::core::JSON::String string_right(length, 'x');
@@ -570,12 +553,11 @@ static void JSON_String_Equal_10(benchmark::State &state) {
   for (auto iteration : state) {
     bool result = left == right;
     assert(result);
-    benchmark::DoNotOptimize(result);
+    sourcemeta::core::benchmark_do_not_optimize(result);
   }
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void JSON_String_Equal_100(benchmark::State &state) {
+BENCHMARK(JSON_String_Equal_100) {
   const auto length{opaque(100)};
   sourcemeta::core::JSON::String string_left(length, 'x');
   sourcemeta::core::JSON::String string_right(length, 'x');
@@ -584,13 +566,11 @@ static void JSON_String_Equal_100(benchmark::State &state) {
   for (auto iteration : state) {
     bool result = left == right;
     assert(result);
-    benchmark::DoNotOptimize(result);
+    sourcemeta::core::benchmark_do_not_optimize(result);
   }
 }
 
-static void
-// NOLINTNEXTLINE(readability-identifier-naming)
-JSON_String_Equal_Small_By_Perfect_Hash_10(benchmark::State &state) {
+BENCHMARK(JSON_String_Equal_Small_By_Perfect_Hash_10) {
   const auto length{opaque(10)};
   sourcemeta::core::JSON::String left(length, 'x');
   sourcemeta::core::JSON::String right(length, 'x');
@@ -603,13 +583,11 @@ JSON_String_Equal_Small_By_Perfect_Hash_10(benchmark::State &state) {
   for (auto iteration : state) {
     bool result = hash_left == hash_right;
     assert(result);
-    benchmark::DoNotOptimize(result);
+    sourcemeta::core::benchmark_do_not_optimize(result);
   }
 }
 
-static void
-// NOLINTNEXTLINE(readability-identifier-naming)
-JSON_String_Equal_Small_By_Runtime_Perfect_Hash_10(benchmark::State &state) {
+BENCHMARK(JSON_String_Equal_Small_By_Runtime_Perfect_Hash_10) {
   const auto length{opaque(10)};
   sourcemeta::core::JSON::String left(length, 'x');
   sourcemeta::core::JSON::String right(length, 'x');
@@ -622,54 +600,49 @@ JSON_String_Equal_Small_By_Runtime_Perfect_Hash_10(benchmark::State &state) {
     assert(hasher.is_perfect(hash_right));
     bool result = hash_left == hash_right;
     assert(result);
-    benchmark::DoNotOptimize(result);
+    sourcemeta::core::benchmark_do_not_optimize(result);
   }
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void JSON_String_Fast_Hash_10(benchmark::State &state) {
+BENCHMARK(JSON_String_Fast_Hash_10) {
   const auto length{opaque(10)};
   sourcemeta::core::JSON::String value(length, 'x');
   const sourcemeta::core::JSON document{std::move(value)};
   for (auto iteration : state) {
-    benchmark::DoNotOptimize(document.fast_hash());
+    sourcemeta::core::benchmark_do_not_optimize(document.fast_hash());
   }
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void JSON_String_Fast_Hash_100(benchmark::State &state) {
+BENCHMARK(JSON_String_Fast_Hash_100) {
   const auto length{opaque(100)};
   sourcemeta::core::JSON::String value(length, 'x');
   const sourcemeta::core::JSON document{std::move(value)};
   for (auto iteration : state) {
-    benchmark::DoNotOptimize(document.fast_hash());
+    sourcemeta::core::benchmark_do_not_optimize(document.fast_hash());
   }
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void JSON_String_Key_Hash_10(benchmark::State &state) {
+BENCHMARK(JSON_String_Key_Hash_10) {
   const auto length{opaque(10)};
   sourcemeta::core::JSON::String value(length, 'x');
   const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
       hasher;
   for (auto iteration : state) {
-    benchmark::DoNotOptimize(hasher(value));
+    sourcemeta::core::benchmark_do_not_optimize(hasher(value));
   }
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void JSON_String_Key_Hash_100(benchmark::State &state) {
+BENCHMARK(JSON_String_Key_Hash_100) {
   const auto length{opaque(100)};
   sourcemeta::core::JSON::String value(length, 'x');
   const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
       hasher;
   for (auto iteration : state) {
-    benchmark::DoNotOptimize(hasher(value));
+    sourcemeta::core::benchmark_do_not_optimize(hasher(value));
   }
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void JSON_Object_Defines_Miss_Same_Length(benchmark::State &state) {
+BENCHMARK(JSON_Object_Defines_Miss_Same_Length) {
   auto document{sourcemeta::core::JSON::make_object()};
   document.assign("abcdefg", sourcemeta::core::JSON{1});
   document.assign("abcdefgh", sourcemeta::core::JSON{2});
@@ -682,12 +655,11 @@ static void JSON_Object_Defines_Miss_Same_Length(benchmark::State &state) {
   for (auto iteration : state) {
     auto result = object.defines(key, key_hash);
     assert(!result);
-    benchmark::DoNotOptimize(result);
+    sourcemeta::core::benchmark_do_not_optimize(result);
   }
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void JSON_Object_Defines_Miss_Too_Small(benchmark::State &state) {
+BENCHMARK(JSON_Object_Defines_Miss_Too_Small) {
   auto document{sourcemeta::core::JSON::make_object()};
   document.assign("abcdefg", sourcemeta::core::JSON{1});
   document.assign("abcdefgh", sourcemeta::core::JSON{2});
@@ -700,12 +672,11 @@ static void JSON_Object_Defines_Miss_Too_Small(benchmark::State &state) {
   for (auto iteration : state) {
     auto result = object.defines(key, key_hash);
     assert(!result);
-    benchmark::DoNotOptimize(result);
+    sourcemeta::core::benchmark_do_not_optimize(result);
   }
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void JSON_Object_Defines_Miss_Too_Large(benchmark::State &state) {
+BENCHMARK(JSON_Object_Defines_Miss_Too_Large) {
   auto document{sourcemeta::core::JSON::make_object()};
   document.assign("abcdefg", sourcemeta::core::JSON{1});
   document.assign("abcdefgh", sourcemeta::core::JSON{2});
@@ -718,39 +689,35 @@ static void JSON_Object_Defines_Miss_Too_Large(benchmark::State &state) {
   for (auto iteration : state) {
     auto result = object.defines(key, key_hash);
     assert(!result);
-    benchmark::DoNotOptimize(result);
+    sourcemeta::core::benchmark_do_not_optimize(result);
   }
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void JSON_From_String_Copy(benchmark::State &state) {
+BENCHMARK(JSON_From_String_Copy) {
   const sourcemeta::core::JSON::String value(48, 'x');
   for (auto iteration : state) {
     sourcemeta::core::JSON document{value};
-    benchmark::DoNotOptimize(document);
+    sourcemeta::core::benchmark_do_not_optimize(document);
   }
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void JSON_From_String_Temporary(benchmark::State &state) {
+BENCHMARK(JSON_From_String_Temporary) {
   for (auto iteration : state) {
     sourcemeta::core::JSON document{sourcemeta::core::JSON::String(48, 'x')};
-    benchmark::DoNotOptimize(document);
+    sourcemeta::core::benchmark_do_not_optimize(document);
   }
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void JSON_Number_To_Double(benchmark::State &state) {
+BENCHMARK(JSON_Number_To_Double) {
   const std::string_view input{"-273.150123"};
   for (auto iteration : state) {
     auto result{sourcemeta::core::to_double(input)};
     assert(result.has_value());
-    benchmark::DoNotOptimize(result);
+    sourcemeta::core::benchmark_do_not_optimize(result);
   }
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void JSON_Object_At_Last_Key_8(benchmark::State &state) {
+BENCHMARK(JSON_Object_At_Last_Key_8) {
   const auto property_count{opaque(8)};
   auto document{sourcemeta::core::JSON::make_object()};
   sourcemeta::core::JSON::String last_key;
@@ -764,12 +731,11 @@ static void JSON_Object_At_Last_Key_8(benchmark::State &state) {
   const auto key_hash{hasher(last_key)};
   for (auto iteration : state) {
     auto &value{document.at(last_key, key_hash)};
-    benchmark::DoNotOptimize(value);
+    sourcemeta::core::benchmark_do_not_optimize(value);
   }
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void JSON_Object_At_Last_Key_32(benchmark::State &state) {
+BENCHMARK(JSON_Object_At_Last_Key_32) {
   const auto property_count{opaque(32)};
   auto document{sourcemeta::core::JSON::make_object()};
   sourcemeta::core::JSON::String last_key;
@@ -783,12 +749,11 @@ static void JSON_Object_At_Last_Key_32(benchmark::State &state) {
   const auto key_hash{hasher(last_key)};
   for (auto iteration : state) {
     auto &value{document.at(last_key, key_hash)};
-    benchmark::DoNotOptimize(value);
+    sourcemeta::core::benchmark_do_not_optimize(value);
   }
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void JSON_Object_At_Last_Key_128(benchmark::State &state) {
+BENCHMARK(JSON_Object_At_Last_Key_128) {
   const auto property_count{opaque(128)};
   auto document{sourcemeta::core::JSON::make_object()};
   sourcemeta::core::JSON::String last_key;
@@ -802,12 +767,11 @@ static void JSON_Object_At_Last_Key_128(benchmark::State &state) {
   const auto key_hash{hasher(last_key)};
   for (auto iteration : state) {
     auto &value{document.at(last_key, key_hash)};
-    benchmark::DoNotOptimize(value);
+    sourcemeta::core::benchmark_do_not_optimize(value);
   }
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void JSON_Object_At_Last_Key_512(benchmark::State &state) {
+BENCHMARK(JSON_Object_At_Last_Key_512) {
   const auto property_count{opaque(512)};
   auto document{sourcemeta::core::JSON::make_object()};
   sourcemeta::core::JSON::String last_key;
@@ -821,12 +785,11 @@ static void JSON_Object_At_Last_Key_512(benchmark::State &state) {
   const auto key_hash{hasher(last_key)};
   for (auto iteration : state) {
     auto &value{document.at(last_key, key_hash)};
-    benchmark::DoNotOptimize(value);
+    sourcemeta::core::benchmark_do_not_optimize(value);
   }
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void JSON_Divisible_By_Decimal(benchmark::State &state) {
+BENCHMARK(JSON_Divisible_By_Decimal) {
   const auto value_1{
       sourcemeta::core::parse_json("123456789012345678901234567890")};
   const auto value_2{sourcemeta::core::parse_json("100.00")};
@@ -839,49 +802,21 @@ static void JSON_Divisible_By_Decimal(benchmark::State &state) {
   const auto divisor_4{sourcemeta::core::parse_json("1e100")};
 
   for (auto iteration : state) {
-    benchmark::DoNotOptimize(value_1.divisible_by(divisor_1));
-    benchmark::DoNotOptimize(value_2.divisible_by(divisor_2));
-    benchmark::DoNotOptimize(value_3.divisible_by(divisor_3));
-    benchmark::DoNotOptimize(value_4.divisible_by(divisor_4));
-    benchmark::DoNotOptimize(value_1.divisible_by(divisor_3));
-    benchmark::DoNotOptimize(value_2.divisible_by(divisor_1));
-    benchmark::DoNotOptimize(value_3.divisible_by(divisor_2));
-    benchmark::DoNotOptimize(value_4.divisible_by(divisor_1));
+    sourcemeta::core::benchmark_do_not_optimize(
+        value_1.divisible_by(divisor_1));
+    sourcemeta::core::benchmark_do_not_optimize(
+        value_2.divisible_by(divisor_2));
+    sourcemeta::core::benchmark_do_not_optimize(
+        value_3.divisible_by(divisor_3));
+    sourcemeta::core::benchmark_do_not_optimize(
+        value_4.divisible_by(divisor_4));
+    sourcemeta::core::benchmark_do_not_optimize(
+        value_1.divisible_by(divisor_3));
+    sourcemeta::core::benchmark_do_not_optimize(
+        value_2.divisible_by(divisor_1));
+    sourcemeta::core::benchmark_do_not_optimize(
+        value_3.divisible_by(divisor_2));
+    sourcemeta::core::benchmark_do_not_optimize(
+        value_4.divisible_by(divisor_1));
   }
 }
-
-BENCHMARK(JSON_Array_Of_Objects_Unique);
-BENCHMARK(JSON_Parse_1);
-BENCHMARK(JSON_Parse_Real);
-BENCHMARK(JSON_Parse_Decimal);
-BENCHMARK(JSON_Parse_Schema_ISO_Language);
-BENCHMARK(JSON_Parse_Integer);
-BENCHMARK(JSON_Parse_String_NonSSO_Plain);
-BENCHMARK(JSON_Parse_String_SSO_Plain);
-BENCHMARK(JSON_Parse_String_Escape_Heavy);
-BENCHMARK(JSON_Parse_Object_Short_Keys);
-BENCHMARK(JSON_Parse_Object_Scalar_Properties);
-BENCHMARK(JSON_Parse_Object_Array_Properties);
-BENCHMARK(JSON_Parse_Object_Object_Properties);
-BENCHMARK(JSON_Parse_Nested_Containers);
-BENCHMARK(JSON_From_String_Copy);
-BENCHMARK(JSON_From_String_Temporary);
-BENCHMARK(JSON_Number_To_Double);
-BENCHMARK(JSON_Object_At_Last_Key_8);
-BENCHMARK(JSON_Object_At_Last_Key_32);
-BENCHMARK(JSON_Object_At_Last_Key_128);
-BENCHMARK(JSON_Object_At_Last_Key_512);
-BENCHMARK(JSON_Fast_Hash_Helm_Chart_Lock);
-BENCHMARK(JSON_Equality_Helm_Chart_Lock);
-BENCHMARK(JSON_Divisible_By_Decimal);
-BENCHMARK(JSON_String_Equal_10);
-BENCHMARK(JSON_String_Equal_100);
-BENCHMARK(JSON_String_Equal_Small_By_Perfect_Hash_10);
-BENCHMARK(JSON_String_Equal_Small_By_Runtime_Perfect_Hash_10);
-BENCHMARK(JSON_String_Fast_Hash_10);
-BENCHMARK(JSON_String_Fast_Hash_100);
-BENCHMARK(JSON_String_Key_Hash_10);
-BENCHMARK(JSON_String_Key_Hash_100);
-BENCHMARK(JSON_Object_Defines_Miss_Same_Length);
-BENCHMARK(JSON_Object_Defines_Miss_Too_Small);
-BENCHMARK(JSON_Object_Defines_Miss_Too_Large);

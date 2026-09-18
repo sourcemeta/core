@@ -1,4 +1,4 @@
-#include <benchmark/benchmark.h>
+#include <sourcemeta/core/benchmark.h>
 
 #include <cassert> // assert
 #include <cstddef> // std::size_t
@@ -6,8 +6,7 @@
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonpath.h>
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void JSONPath_Descendant_Filter_Nested(benchmark::State &state) {
+BENCHMARK(JSONPath_Descendant_Filter_Nested) {
   const auto document{sourcemeta::core::parse_json(R"JSON({
     "store": {
       "departments": [
@@ -63,8 +62,6 @@ static void JSONPath_Descendant_Filter_Nested(benchmark::State &state) {
     path.evaluate(document,
                   [&count](const auto &, const auto &) { count += 1; });
     assert(count == 6);
-    benchmark::DoNotOptimize(count);
+    sourcemeta::core::benchmark_do_not_optimize(count);
   }
 }
-
-BENCHMARK(JSONPath_Descendant_Filter_Nested);

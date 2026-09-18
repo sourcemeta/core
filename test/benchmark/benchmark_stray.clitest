@@ -1,0 +1,7 @@
+RUN -t 0.01 STDIN /dev/null IN . INTO result.txt EXPECTING 1
+REPLACE MATCHING "Running on [0-9]+ processors" WITH "Running on N processors" IN result.txt
+WRITE expected.txt UNTIL EXPECTED
+1> Running on N processors
+2> error: benchmark did not iterate over its state: never_iterates
+EXPECTED
+COMPARE result.txt AGAINST expected.txt

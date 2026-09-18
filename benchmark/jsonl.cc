@@ -1,4 +1,4 @@
-#include <benchmark/benchmark.h>
+#include <sourcemeta/core/benchmark.h>
 
 #include <sourcemeta/core/jsonl.h>
 
@@ -8,8 +8,7 @@
 #include <fstream>    // std::ifstream
 #include <ios>        // std::ios
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void JSONL_Parse_Large(benchmark::State &state) {
+BENCHMARK(JSONL_Parse_Large) {
   const std::filesystem::path filepath{std::string{CURRENT_DIRECTORY} +
                                        "/files/large.jsonl"};
 
@@ -22,12 +21,11 @@ static void JSONL_Parse_Large(benchmark::State &state) {
     }
 
     assert(count == 10000);
-    benchmark::DoNotOptimize(count);
+    sourcemeta::core::benchmark_do_not_optimize(count);
   }
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void JSONL_Parse_Large_GZIP(benchmark::State &state) {
+BENCHMARK(JSONL_Parse_Large_GZIP) {
   const std::filesystem::path filepath{std::string{CURRENT_DIRECTORY} +
                                        "/files/large.jsonl.gz"};
 
@@ -41,9 +39,6 @@ static void JSONL_Parse_Large_GZIP(benchmark::State &state) {
     }
 
     assert(count == 10000);
-    benchmark::DoNotOptimize(count);
+    sourcemeta::core::benchmark_do_not_optimize(count);
   }
 }
-
-BENCHMARK(JSONL_Parse_Large);
-BENCHMARK(JSONL_Parse_Large_GZIP);

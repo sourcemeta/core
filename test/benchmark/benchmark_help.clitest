@@ -1,0 +1,13 @@
+RUN --help STDIN /dev/null IN . INTO result.txt EXPECTING 0
+WRITE expected.txt UNTIL EXPECTED
+1> Usage: sourcemeta_core_benchmark_success [options]
+1>
+1> Run the registered benchmarks.
+1>
+1> Options:
+1>   -f, --filter <text>  Only run benchmarks whose name contains <text>
+1>   -o, --output <path>  Also write the results as JSON to <path>
+1>   -t, --time <seconds> Measure each benchmark for at least <seconds>
+1>   -h, --help           Show this message
+EXPECTED
+COMPARE result.txt AGAINST expected.txt

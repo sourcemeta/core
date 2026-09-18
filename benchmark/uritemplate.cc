@@ -1,4 +1,4 @@
-#include <benchmark/benchmark.h>
+#include <sourcemeta/core/benchmark.h>
 
 #include <sourcemeta/core/uritemplate.h>
 
@@ -131,8 +131,7 @@ static auto operation_id_table()
   return INSTANCE;
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void URITemplateRouter_Create(benchmark::State &state) {
+BENCHMARK(URITemplateRouter_Create) {
   const auto &operation_ids{operation_id_table()};
   for (auto iteration : state) {
     sourcemeta::core::URITemplateRouter router;
@@ -142,12 +141,11 @@ static void URITemplateRouter_Create(benchmark::State &state) {
                      index + 1));
     }
 
-    benchmark::DoNotOptimize(router);
+    sourcemeta::core::benchmark_do_not_optimize(router);
   }
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void URITemplateRouter_Match(benchmark::State &state) {
+BENCHMARK(URITemplateRouter_Match) {
   const auto &operation_ids{operation_id_table()};
   sourcemeta::core::URITemplateRouter router;
   for (std::size_t index = 0; index < ROUTE_COUNT; ++index) {
@@ -162,12 +160,11 @@ static void URITemplateRouter_Match(benchmark::State &state) {
         "comments/42/reactions/1",
         [](auto, auto, auto) {});
     assert(result.first == ROUTE_COUNT - 1);
-    benchmark::DoNotOptimize(result);
+    sourcemeta::core::benchmark_do_not_optimize(result);
   }
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void URITemplateRouterView_Restore(benchmark::State &state) {
+BENCHMARK(URITemplateRouterView_Restore) {
   const auto &operation_ids{operation_id_table()};
   const auto path{std::filesystem::temp_directory_path() /
                   "uritemplate_benchmark.bin"};
@@ -185,14 +182,13 @@ static void URITemplateRouterView_Restore(benchmark::State &state) {
 
   for (auto iteration : state) {
     sourcemeta::core::URITemplateRouterView view{path};
-    benchmark::DoNotOptimize(view);
+    sourcemeta::core::benchmark_do_not_optimize(view);
   }
 
   std::filesystem::remove(path);
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void URITemplateRouterView_Match(benchmark::State &state) {
+BENCHMARK(URITemplateRouterView_Match) {
   const auto &operation_ids{operation_id_table()};
   const auto path{std::filesystem::temp_directory_path() /
                   "uritemplate_benchmark.bin"};
@@ -218,15 +214,14 @@ static void URITemplateRouterView_Match(benchmark::State &state) {
           "comments/42/reactions/1",
           [](auto, auto, auto) {});
       assert(result.first == ROUTE_COUNT - 1);
-      benchmark::DoNotOptimize(result);
+      sourcemeta::core::benchmark_do_not_optimize(result);
     }
   }
 
   std::filesystem::remove(path);
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void URITemplateRouterView_Arguments(benchmark::State &state) {
+BENCHMARK(URITemplateRouterView_Arguments) {
   const auto path{std::filesystem::temp_directory_path() /
                   "uritemplate_benchmark_arguments.bin"};
 
@@ -361,21 +356,20 @@ static void URITemplateRouterView_Arguments(benchmark::State &state) {
     for (auto iteration : state) {
       auto result = view.match("/api/v1/many", [](auto, auto, auto) {});
       assert(result.first == 3);
-      benchmark::DoNotOptimize(result);
+      sourcemeta::core::benchmark_do_not_optimize(result);
 
       std::size_t argument_count = 0;
       view.arguments(
           3, [&argument_count](auto, const auto &) { ++argument_count; });
       assert(argument_count == 100);
-      benchmark::DoNotOptimize(argument_count);
+      sourcemeta::core::benchmark_do_not_optimize(argument_count);
     }
   }
 
   std::filesystem::remove(path);
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void URITemplateRouter_Match_BasePath(benchmark::State &state) {
+BENCHMARK(URITemplateRouter_Match_BasePath) {
   const auto &operation_ids{operation_id_table()};
   sourcemeta::core::URITemplateRouter router{"/v1/catalog"};
   for (std::size_t index = 0; index < ROUTE_COUNT; ++index) {
@@ -390,12 +384,11 @@ static void URITemplateRouter_Match_BasePath(benchmark::State &state) {
         "issues/999/comments/42/reactions/1",
         [](auto, auto, auto) {});
     assert(result.first == ROUTE_COUNT - 1);
-    benchmark::DoNotOptimize(result);
+    sourcemeta::core::benchmark_do_not_optimize(result);
   }
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void URITemplateRouterView_Match_BasePath(benchmark::State &state) {
+BENCHMARK(URITemplateRouterView_Match_BasePath) {
   const auto &operation_ids{operation_id_table()};
   const auto path{std::filesystem::temp_directory_path() /
                   "uritemplate_benchmark_basepath.bin"};
@@ -419,17 +412,9 @@ static void URITemplateRouterView_Match_BasePath(benchmark::State &state) {
           "issues/999/comments/42/reactions/1",
           [](auto, auto, auto) {});
       assert(result.first == ROUTE_COUNT - 1);
-      benchmark::DoNotOptimize(result);
+      sourcemeta::core::benchmark_do_not_optimize(result);
     }
   }
 
   std::filesystem::remove(path);
 }
-
-BENCHMARK(URITemplateRouter_Create);
-BENCHMARK(URITemplateRouter_Match);
-BENCHMARK(URITemplateRouter_Match_BasePath);
-BENCHMARK(URITemplateRouterView_Restore);
-BENCHMARK(URITemplateRouterView_Match);
-BENCHMARK(URITemplateRouterView_Match_BasePath);
-BENCHMARK(URITemplateRouterView_Arguments);

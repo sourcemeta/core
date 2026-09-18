@@ -183,8 +183,7 @@ jobs:
           # See https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html
           UBSAN_OPTIONS: print_stacktrace=1
 
-      - run: cmake --build ./build --config Release --verbose --target benchmark_all
-        if: matrix.platform.benchmark
+      # A single run prints the human readable report and writes the JSON file
       - run: cmake --build ./build --config Release --verbose --target benchmark_json
         if: matrix.platform.benchmark
 

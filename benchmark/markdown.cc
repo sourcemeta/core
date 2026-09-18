@@ -1,4 +1,4 @@
-#include <benchmark/benchmark.h>
+#include <sourcemeta/core/benchmark.h>
 
 #include <sourcemeta/core/markdown.h>
 
@@ -37,8 +37,7 @@ static auto staircase_list(const std::size_t depth) -> std::string {
   return result;
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void Markdown_To_HTML_Realistic_Document(benchmark::State &state) {
+BENCHMARK(Markdown_To_HTML_Realistic_Document) {
   std::string input;
   for (std::size_t index = 0; index < 500; ++index) {
     const auto number{std::to_string(index)};
@@ -74,14 +73,13 @@ static void Markdown_To_HTML_Realistic_Document(benchmark::State &state) {
 
   for (auto iteration : state) {
     auto result{sourcemeta::core::markdown_to_html(input)};
-    benchmark::DoNotOptimize(result);
+    sourcemeta::core::benchmark_do_not_optimize(result);
   }
 }
 
 // Inputs that make naive delimiter, bracket, and container handling
 // quadratic or worse, which a linear parser renders almost instantly
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void Markdown_To_HTML_Pathological(benchmark::State &state) {
+BENCHMARK(Markdown_To_HTML_Pathological) {
   const std::string input{
       repeat("_x **y ", 5000) + "z" + repeat(" y** x_", 5000) + "\n\n" +
       repeat("x_. ", 10000) + "\n\n" + repeat("__y ", 10000) + "\n\n" +
@@ -96,15 +94,14 @@ static void Markdown_To_HTML_Pathological(benchmark::State &state) {
 
   for (auto iteration : state) {
     auto result{sourcemeta::core::markdown_to_html(input)};
-    benchmark::DoNotOptimize(result);
+    sourcemeta::core::benchmark_do_not_optimize(result);
   }
 }
 
 // Many short inputs, like the descriptions that schema documentation renders,
 // where the cost of every call matters more than the cost of every byte, so
 // every iteration converts the next input of the corpus
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void Markdown_To_HTML_Short_Descriptions(benchmark::State &state) {
+BENCHMARK(Markdown_To_HTML_Short_Descriptions) {
   std::vector<std::string> inputs;
   inputs.reserve(1000);
   for (std::size_t index = 0; index < 250; ++index) {
@@ -125,14 +122,10 @@ static void Markdown_To_HTML_Short_Descriptions(benchmark::State &state) {
   std::size_t position{0};
   for (auto iteration : state) {
     auto result{sourcemeta::core::markdown_to_html(inputs[position])};
-    benchmark::DoNotOptimize(result);
+    sourcemeta::core::benchmark_do_not_optimize(result);
     position += 1;
     if (position == inputs.size()) {
       position = 0;
     }
   }
 }
-
-BENCHMARK(Markdown_To_HTML_Realistic_Document);
-BENCHMARK(Markdown_To_HTML_Pathological);
-BENCHMARK(Markdown_To_HTML_Short_Descriptions);

@@ -1,4 +1,4 @@
-#include <benchmark/benchmark.h>
+#include <sourcemeta/core/benchmark.h>
 
 #include <cassert>    // assert
 #include <filesystem> // std::filesystem
@@ -11,8 +11,7 @@
 
 // Google Benchmark reports these names as the benchmark labels, so they
 // have to stay comparable against previously recorded runs
-// NOLINTBEGIN(readability-identifier-naming)
-static void Schema_Frame_WoT_References(benchmark::State &state) {
+BENCHMARK(Schema_Frame_WoT_References) {
   const auto schema{
       sourcemeta::core::read_json(std::filesystem::path{CURRENT_DIRECTORY} /
                                   "files" / "draft7_w3c_wot_td_v1_1.json")};
@@ -21,11 +20,11 @@ static void Schema_Frame_WoT_References(benchmark::State &state) {
     sourcemeta::core::SchemaFrame frame{
         sourcemeta::core::SchemaFrame::Mode::References, schema,
         sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
-    benchmark::DoNotOptimize(frame);
+    sourcemeta::core::benchmark_do_not_optimize(frame);
   }
 }
 
-static void Schema_Frame_OMC_References(benchmark::State &state) {
+BENCHMARK(Schema_Frame_OMC_References) {
   const auto schema{
       sourcemeta::core::read_json(std::filesystem::path{CURRENT_DIRECTORY} /
                                   "files" / "2019_09_omc_json_v2.json")};
@@ -34,11 +33,11 @@ static void Schema_Frame_OMC_References(benchmark::State &state) {
     sourcemeta::core::SchemaFrame frame{
         sourcemeta::core::SchemaFrame::Mode::References, schema,
         sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
-    benchmark::DoNotOptimize(frame);
+    sourcemeta::core::benchmark_do_not_optimize(frame);
   }
 }
 
-static void Schema_Frame_OMC_Pointers(benchmark::State &state) {
+BENCHMARK(Schema_Frame_OMC_Pointers) {
   const auto schema{
       sourcemeta::core::read_json(std::filesystem::path{CURRENT_DIRECTORY} /
                                   "files" / "2019_09_omc_json_v2.json")};
@@ -47,11 +46,11 @@ static void Schema_Frame_OMC_Pointers(benchmark::State &state) {
     sourcemeta::core::SchemaFrame frame{
         sourcemeta::core::SchemaFrame::Mode::Pointers, schema,
         sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
-    benchmark::DoNotOptimize(frame);
+    sourcemeta::core::benchmark_do_not_optimize(frame);
   }
 }
 
-static void Schema_Frame_OMC_Locations(benchmark::State &state) {
+BENCHMARK(Schema_Frame_OMC_Locations) {
   const auto schema{
       sourcemeta::core::read_json(std::filesystem::path{CURRENT_DIRECTORY} /
                                   "files" / "2019_09_omc_json_v2.json")};
@@ -60,11 +59,11 @@ static void Schema_Frame_OMC_Locations(benchmark::State &state) {
     sourcemeta::core::SchemaFrame frame{
         sourcemeta::core::SchemaFrame::Mode::Locations, schema,
         sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
-    benchmark::DoNotOptimize(frame);
+    sourcemeta::core::benchmark_do_not_optimize(frame);
   }
 }
 
-static void Schema_Frame_ISO_Language_Locations(benchmark::State &state) {
+BENCHMARK(Schema_Frame_ISO_Language_Locations) {
   const auto schema{sourcemeta::core::read_json(
       std::filesystem::path{CURRENT_DIRECTORY} / "files" /
       "2020_12_iso_language_2023_set_3.json")};
@@ -73,11 +72,11 @@ static void Schema_Frame_ISO_Language_Locations(benchmark::State &state) {
     sourcemeta::core::SchemaFrame frame{
         sourcemeta::core::SchemaFrame::Mode::Locations, schema,
         sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
-    benchmark::DoNotOptimize(frame);
+    sourcemeta::core::benchmark_do_not_optimize(frame);
   }
 }
 
-static void Schema_Frame_ISO_Language_Root(benchmark::State &state) {
+BENCHMARK(Schema_Frame_ISO_Language_Root) {
   const auto schema{sourcemeta::core::read_json(
       std::filesystem::path{CURRENT_DIRECTORY} / "files" /
       "2020_12_iso_language_2023_set_3.json")};
@@ -86,11 +85,11 @@ static void Schema_Frame_ISO_Language_Root(benchmark::State &state) {
     sourcemeta::core::SchemaFrame frame{
         sourcemeta::core::SchemaFrame::Mode::Root, schema,
         sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
-    benchmark::DoNotOptimize(frame);
+    sourcemeta::core::benchmark_do_not_optimize(frame);
   }
 }
 
-static void Schema_Frame_KrakenD_References(benchmark::State &state) {
+BENCHMARK(Schema_Frame_KrakenD_References) {
   const auto schema{
       sourcemeta::core::read_json(std::filesystem::path{CURRENT_DIRECTORY} /
                                   "files" / "2019_09_krakend.json")};
@@ -99,11 +98,11 @@ static void Schema_Frame_KrakenD_References(benchmark::State &state) {
     sourcemeta::core::SchemaFrame frame{
         sourcemeta::core::SchemaFrame::Mode::References, schema,
         sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
-    benchmark::DoNotOptimize(frame);
+    sourcemeta::core::benchmark_do_not_optimize(frame);
   }
 }
 
-static void Schema_Frame_KrakenD_Reachable(benchmark::State &state) {
+BENCHMARK(Schema_Frame_KrakenD_Reachable) {
   const auto schema{
       sourcemeta::core::read_json(std::filesystem::path{CURRENT_DIRECTORY} /
                                   "files" / "2019_09_krakend.json")};
@@ -132,14 +131,13 @@ static void Schema_Frame_KrakenD_Reachable(benchmark::State &state) {
                 auto result{frame.is_reachable(
                     subentry, entry, sourcemeta::core::schema_walker,
                     sourcemeta::core::schema_resolver)};
-                benchmark::DoNotOptimize(result);
+                sourcemeta::core::benchmark_do_not_optimize(result);
               });
         });
   }
 }
 
-static void
-Schema_Frame_ISO_Language_Locations_To_JSON(benchmark::State &state) {
+BENCHMARK(Schema_Frame_ISO_Language_Locations_To_JSON) {
   sourcemeta::core::PointerPositionTracker tracker;
   sourcemeta::core::JSON schema{nullptr};
   sourcemeta::core::read_json(std::filesystem::path{CURRENT_DIRECTORY} /
@@ -154,11 +152,11 @@ Schema_Frame_ISO_Language_Locations_To_JSON(benchmark::State &state) {
   for (auto iteration : state) {
     auto result{frame.to_json(sourcemeta::core::schema_resolver, tracker)};
     assert(result.is_object());
-    benchmark::DoNotOptimize(result);
+    sourcemeta::core::benchmark_do_not_optimize(result);
   }
 }
 
-static void Schema_Frame_Many_Resources_References(benchmark::State &state) {
+BENCHMARK(Schema_Frame_Many_Resources_References) {
   const auto schema{
       sourcemeta::core::read_json(std::filesystem::path{CURRENT_DIRECTORY} /
                                   "files" / "2020_12_many_resources.json")};
@@ -167,11 +165,11 @@ static void Schema_Frame_Many_Resources_References(benchmark::State &state) {
     sourcemeta::core::SchemaFrame frame{
         sourcemeta::core::SchemaFrame::Mode::References, schema,
         sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
-    benchmark::DoNotOptimize(frame);
+    sourcemeta::core::benchmark_do_not_optimize(frame);
   }
 }
 
-static void Schema_Frame_Deeply_Nested_References(benchmark::State &state) {
+BENCHMARK(Schema_Frame_Deeply_Nested_References) {
   const auto schema{
       sourcemeta::core::read_json(std::filesystem::path{CURRENT_DIRECTORY} /
                                   "files" / "2020_12_deeply_nested.json")};
@@ -180,19 +178,6 @@ static void Schema_Frame_Deeply_Nested_References(benchmark::State &state) {
     sourcemeta::core::SchemaFrame frame{
         sourcemeta::core::SchemaFrame::Mode::References, schema,
         sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
-    benchmark::DoNotOptimize(frame);
+    sourcemeta::core::benchmark_do_not_optimize(frame);
   }
 }
-
-BENCHMARK(Schema_Frame_WoT_References);
-BENCHMARK(Schema_Frame_OMC_References);
-BENCHMARK(Schema_Frame_OMC_Pointers);
-BENCHMARK(Schema_Frame_OMC_Locations);
-BENCHMARK(Schema_Frame_ISO_Language_Locations);
-BENCHMARK(Schema_Frame_ISO_Language_Root);
-BENCHMARK(Schema_Frame_KrakenD_References);
-BENCHMARK(Schema_Frame_KrakenD_Reachable);
-BENCHMARK(Schema_Frame_ISO_Language_Locations_To_JSON);
-BENCHMARK(Schema_Frame_Many_Resources_References);
-BENCHMARK(Schema_Frame_Deeply_Nested_References);
-// NOLINTEND(readability-identifier-naming)
