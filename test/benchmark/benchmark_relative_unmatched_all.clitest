@@ -1,0 +1,26 @@
+// A relative report whose baseline matched nothing still says it is
+// proportional, so it cannot be mistaken for a set of durations
+WRITE base.json UNTIL BASELINE
+{
+  "benchmarks": [
+    { "name": "nothing_matches_this", "real_time": 2.0, "cpu_time": 2.0, "time_unit": "ns" }
+  ]
+}
+BASELINE
+RUN --relative-to base.json --output report.json STDIN /dev/null IN . INTO first.txt EXPECTING 0
+REPLACE MATCHING "Running on [0-9]+ processors" WITH "Running on N processors" IN first.txt
+DROP LINES MATCHING "^1>   " IN first.txt
+WRITE expected_first.txt UNTIL EXPECTED
+1> Running on N processors
+1> Reporting relative to base.json
+1> addition
+1> multiplication
+1> subtraction
+EXPECTED
+COMPARE first.txt AGAINST expected_first.txt
+RUN --relative-to report.json STDIN /dev/null IN . INTO result.txt EXPECTING 1
+WRITE expected.txt UNTIL EXPECTED
+2> error: The baseline holds proportional results rather than durations
+2>   at file path report.json
+EXPECTED
+COMPARE result.txt AGAINST expected.txt

@@ -69,6 +69,8 @@ constexpr auto BENCHMARK_HASH_BENCHMARKS{
     sourcemeta::core::JSON::Object::hash("benchmarks"sv)};
 constexpr auto BENCHMARK_HASH_UNMATCHED{
     sourcemeta::core::JSON::Object::hash("unmatched"sv)};
+constexpr auto BENCHMARK_HASH_RELATIVE_TO{
+    sourcemeta::core::JSON::Object::hash("relative_to"sv)};
 
 struct RegisteredBenchmark {
   std::string name;
@@ -201,6 +203,13 @@ auto read_baseline(const std::filesystem::path &path, std::string_view &reason)
     return std::nullopt;
   }
 
+  const auto *const context{document.try_at("context", BENCHMARK_HASH_CONTEXT)};
+  if (context != nullptr && context->is_object() &&
+      context->try_at("relative_to", BENCHMARK_HASH_RELATIVE_TO) != nullptr) {
+    reason = "The baseline holds proportional results rather than durations";
+    return std::nullopt;
+  }
+
   const auto *const entries{
       document.try_at("benchmarks", BENCHMARK_HASH_BENCHMARKS_LOOKUP)};
   if (entries == nullptr || !entries->is_array()) {
@@ -241,6 +250,13 @@ auto read_baseline(const std::filesystem::path &path, std::string_view &reason)
                       .cpu_time = (cpu != nullptr && cpu->is_number())
                                       ? std::optional<double>{cpu->as_real()}
                                       : std::nullopt});
+  }
+
+  // Comparing against nothing is not a comparison, and silently reporting
+  // every benchmark as new hides that the baseline was unusable
+  if (result.empty()) {
+    reason = "The baseline holds no benchmarks";
+    return std::nullopt;
   }
 
   return result;
@@ -379,8 +395,10 @@ auto to_entry(const Measurement &measurement, const std::size_t index,
 // A proportional report keeps one meaning per field, so anything the baseline
 // never carried goes to its own array rather than putting a duration where
 // every other entry holds a ratio
-auto to_json(const std::vector<Measurement> &measurements, const bool relative)
+auto to_json(const std::vector<Measurement> &measurements,
+             const std::optional<std::string_view> baseline)
     -> sourcemeta::core::JSON {
+  const auto relative{baseline.has_value()};
   auto context{sourcemeta::core::JSON::make_object()};
   const auto cores{std::thread::hardware_concurrency()};
   if (cores > 0) {
@@ -389,14 +407,23 @@ auto to_json(const std::vector<Measurement> &measurements, const bool relative)
         BENCHMARK_HASH_NUM_CPUS);
   }
 
+  if (relative) {
+    context.assign_assume_new(
+        "relative_to", sourcemeta::core::JSON{std::string{baseline.value()}},
+        BENCHMARK_HASH_RELATIVE_TO);
+  }
+
   auto entries{sourcemeta::core::JSON::make_array()};
   auto unmatched{sourcemeta::core::JSON::make_array()};
+  std::size_t index{0};
   for (const auto &measurement : measurements) {
     if (relative && !measurement.ratio.has_value()) {
-      unmatched.push_back(to_entry(measurement, unmatched.size(), false));
+      unmatched.push_back(to_entry(measurement, index, false));
     } else {
-      entries.push_back(to_entry(measurement, entries.size(), relative));
+      entries.push_back(to_entry(measurement, index, relative));
     }
+
+    index += 1;
   }
 
   auto document{sourcemeta::core::JSON::make_object()};
@@ -560,7 +587,11 @@ auto benchmark_run(int argc, char **argv) -> int {
 
   if (options.contains("output") && !options.at("output").empty()) {
     const std::filesystem::path destination{options.at("output").front()};
-    const auto document{to_json(measurements, relative)};
+    const auto document{to_json(
+        measurements,
+        relative
+            ? std::optional<std::string_view>{options.at("relative-to").front()}
+            : std::nullopt)};
 
     try {
       write_file(destination, [&document](std::ostream &stream) {

@@ -21,7 +21,6 @@ REPLACE MATCHING '"real_time": [0-9.e+-]+' WITH '"real_time": 0' IN out.json
 REPLACE MATCHING '"cpu_time": [0-9.e+-]+' WITH '"cpu_time": 0' IN out.json
 REPLACE MATCHING '"iterations": [0-9]+' WITH '"iterations": 0' IN out.json
 REPLACE MATCHING '"num_cpus": [0-9]+' WITH '"num_cpus": 0' IN out.json
-DROP LINES CONTAINING "family_index" IN out.json
 DROP LINES CONTAINING "per_family_instance_index" IN out.json
 DROP LINES CONTAINING "repetition" IN out.json
 DROP LINES CONTAINING "run_name" IN out.json
@@ -30,11 +29,13 @@ DROP LINES CONTAINING "threads" IN out.json
 WRITE expected.json UNTIL EXPECTED
 {
   "context": {
-    "num_cpus": 0
+    "num_cpus": 0,
+    "relative_to": "base.json"
   },
   "benchmarks": [
     {
       "name": "addition",
+      "family_index": 0,
       "iterations": 0,
       "real_time": 0,
       "cpu_time": 0,
@@ -44,6 +45,7 @@ WRITE expected.json UNTIL EXPECTED
   "unmatched": [
     {
       "name": "multiplication",
+      "family_index": 1,
       "iterations": 0,
       "real_time": 0,
       "cpu_time": 0,
@@ -51,6 +53,7 @@ WRITE expected.json UNTIL EXPECTED
     },
     {
       "name": "subtraction",
+      "family_index": 2,
       "iterations": 0,
       "real_time": 0,
       "cpu_time": 0,
