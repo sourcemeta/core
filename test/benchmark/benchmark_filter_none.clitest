@@ -1,4 +1,4 @@
-RUN -t 0.01 --filter nothingmatchesthis STDIN /dev/null IN . INTO result.txt EXPECTING 0
+RUN --filter nothingmatchesthis STDIN /dev/null IN . INTO result.txt EXPECTING 0
 REPLACE MATCHING "Running on [0-9]+ processors" WITH "Running on N processors" IN result.txt
 WRITE expected.txt UNTIL EXPECTED
 1> Running on N processors

@@ -1,6 +1,5 @@
 #include <sourcemeta/core/benchmark.h>
 #include <sourcemeta/core/json.h>
-#include <sourcemeta/core/numeric.h>
 #include <sourcemeta/core/options.h>
 #include <sourcemeta/core/process.h>
 
@@ -82,7 +81,7 @@ auto registry() -> std::vector<RegisteredBenchmark> & {
 // How long a single benchmark is given before its result is taken as
 // representative. Matches the convention the previous framework established, so
 // that recorded numbers stay comparable across the change
-constexpr double DEFAULT_MINIMUM_SECONDS{0.5};
+constexpr std::chrono::nanoseconds MINIMUM_RUN_TIME{500'000'000};
 
 // A run that cannot reach the target time within this many iterations is
 // reported as it stands rather than grown further
@@ -100,9 +99,8 @@ constexpr double BLIND_GROWTH{10.0};
 constexpr double BLIND_THRESHOLD{0.1};
 
 auto next_iterations(const std::uint64_t current,
-                     const std::chrono::nanoseconds elapsed,
-                     const std::chrono::nanoseconds minimum) -> std::uint64_t {
-  const auto target{static_cast<double>(minimum.count())};
+                     const std::chrono::nanoseconds elapsed) -> std::uint64_t {
+  const auto target{static_cast<double>(MINIMUM_RUN_TIME.count())};
   const auto measured{std::max(static_cast<double>(elapsed.count()), 1.0)};
   const auto multiplier{(measured / target) > BLIND_THRESHOLD
                             ? (target * OVERSHOOT / measured)
@@ -113,8 +111,7 @@ auto next_iterations(const std::uint64_t current,
   return std::min(static_cast<std::uint64_t>(grown), MAXIMUM_ITERATIONS);
 }
 
-auto measure(const RegisteredBenchmark &benchmark,
-             const std::chrono::nanoseconds minimum)
+auto measure(const RegisteredBenchmark &benchmark)
     -> std::optional<Measurement> {
   auto iterations{INITIAL_ITERATIONS};
   std::optional<double> cold{std::nullopt};
@@ -133,7 +130,7 @@ auto measure(const RegisteredBenchmark &benchmark,
              static_cast<double>(iterations);
     }
 
-    if (elapsed >= minimum || iterations >= MAXIMUM_ITERATIONS) {
+    if (elapsed >= MINIMUM_RUN_TIME || iterations >= MAXIMUM_ITERATIONS) {
       const auto count{static_cast<double>(iterations)};
       std::optional<double> cpu{std::nullopt};
       if (state.cpu_time().has_value()) {
@@ -148,7 +145,7 @@ auto measure(const RegisteredBenchmark &benchmark,
                          .cold_time = cold.value()};
     }
 
-    iterations = next_iterations(iterations, elapsed, minimum);
+    iterations = next_iterations(iterations, elapsed);
   }
 }
 
@@ -161,8 +158,6 @@ auto print_usage(const std::string_view program) -> void {
                "<text>\n"
             << "  -o, --output <path>  Also write the results as JSON to "
                "<path>\n"
-            << "  -t, --time <seconds> Measure each benchmark for at least "
-               "<seconds>\n"
             << "  -h, --help           Show this message\n";
 }
 
@@ -357,7 +352,6 @@ auto benchmark_run(int argc, char **argv) -> int {
   Options options;
   options.option("filter", {"f"});
   options.option("output", {"o"});
-  options.option("time", {"t"});
   options.flag("help", {"h"});
 
   try {
@@ -371,21 +365,6 @@ auto benchmark_run(int argc, char **argv) -> int {
     print_usage(argv[0]);
     return EXIT_SUCCESS;
   }
-
-  auto minimum_seconds{DEFAULT_MINIMUM_SECONDS};
-  if (options.contains("time") && !options.at("time").empty()) {
-    const auto parsed{to_double(options.at("time").front())};
-    if (!parsed.has_value() || parsed.value() <= 0.0) {
-      std::cerr << "error: the minimum time must be a positive number of "
-                   "seconds\n";
-      return EXIT_FAILURE;
-    }
-
-    minimum_seconds = parsed.value();
-  }
-
-  const std::chrono::nanoseconds minimum{
-      static_cast<std::int64_t>(minimum_seconds * 1'000'000'000.0)};
 
   std::string_view needle;
   if (options.contains("filter") && !options.at("filter").empty()) {
@@ -412,7 +391,7 @@ auto benchmark_run(int argc, char **argv) -> int {
   std::vector<Measurement> measurements;
   measurements.reserve(selected.size());
   for (const auto *entry : selected) {
-    const auto measurement{measure(*entry, minimum)};
+    const auto measurement{measure(*entry)};
     if (!measurement.has_value()) {
       std::cerr << "error: benchmark did not iterate over its state: "
                 << entry->name << "\n";

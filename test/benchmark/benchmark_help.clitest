@@ -7,7 +7,6 @@ WRITE expected.txt UNTIL EXPECTED
 1> Options:
 1>   -f, --filter <text>  Only run benchmarks whose name contains <text>
 1>   -o, --output <path>  Also write the results as JSON to <path>
-1>   -t, --time <seconds> Measure each benchmark for at least <seconds>
 1>   -h, --help           Show this message
 EXPECTED
 COMPARE result.txt AGAINST expected.txt
