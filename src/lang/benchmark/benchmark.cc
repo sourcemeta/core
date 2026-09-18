@@ -61,6 +61,8 @@ constexpr auto BENCHMARK_HASH_REAL_TIME_LOOKUP{
     sourcemeta::core::JSON::Object::hash("real_time"sv)};
 constexpr auto BENCHMARK_HASH_CPU_TIME_LOOKUP{
     sourcemeta::core::JSON::Object::hash("cpu_time"sv)};
+constexpr auto BENCHMARK_HASH_TIME_UNIT_LOOKUP{
+    sourcemeta::core::JSON::Object::hash("time_unit"sv)};
 constexpr auto BENCHMARK_HASH_CONTEXT{
     sourcemeta::core::JSON::Object::hash("context"sv)};
 constexpr auto BENCHMARK_HASH_BENCHMARKS{
@@ -189,16 +191,18 @@ auto measure(const RegisteredBenchmark &benchmark)
   }
 }
 
-auto read_baseline(const std::filesystem::path &path)
+auto read_baseline(const std::filesystem::path &path, std::string_view &reason)
     -> std::optional<Baseline> {
   const auto document{sourcemeta::core::read_json(path)};
   if (!document.is_object()) {
+    reason = "it does not hold an array of benchmarks";
     return std::nullopt;
   }
 
   const auto *const entries{
       document.try_at("benchmarks", BENCHMARK_HASH_BENCHMARKS_LOOKUP)};
   if (entries == nullptr || !entries->is_array()) {
+    reason = "it does not hold an array of benchmarks";
     return std::nullopt;
   }
 
@@ -215,6 +219,16 @@ auto read_baseline(const std::filesystem::path &path)
     if (name == nullptr || !name->is_string() || real == nullptr ||
         !real->is_number()) {
       continue;
+    }
+
+    // A report that is itself proportional carries ratios where a duration
+    // belongs, and dividing by one of those compounds the two comparisons into
+    // a number that means nothing
+    const auto *const unit{
+        entry.try_at("time_unit", BENCHMARK_HASH_TIME_UNIT_LOOKUP)};
+    if (unit != nullptr && unit->is_string() && unit->to_string() != "ns") {
+      reason = "it holds proportional results rather than durations";
+      return std::nullopt;
     }
 
     const auto *const cpu{
@@ -461,11 +475,11 @@ auto benchmark_run(int argc, char **argv) -> int {
   if (relative) {
     const std::filesystem::path source{options.at("relative-to").front()};
     try {
-      const auto parsed{read_baseline(source)};
+      std::string_view reason;
+      const auto parsed{read_baseline(source, reason)};
       if (!parsed.has_value()) {
-        std::cerr << "error: the baseline does not hold an array of "
-                     "benchmarks: "
-                  << source.string() << "\n";
+        std::cerr << "error: cannot use " << source.string()
+                  << " as a baseline, " << reason << "\n";
         return EXIT_FAILURE;
       }
 
