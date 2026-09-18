@@ -67,6 +67,8 @@ constexpr auto BENCHMARK_HASH_CONTEXT{
     sourcemeta::core::JSON::Object::hash("context"sv)};
 constexpr auto BENCHMARK_HASH_BENCHMARKS{
     sourcemeta::core::JSON::Object::hash("benchmarks"sv)};
+constexpr auto BENCHMARK_HASH_UNMATCHED{
+    sourcemeta::core::JSON::Object::hash("unmatched"sv)};
 
 struct RegisteredBenchmark {
   std::string name;
@@ -321,7 +323,63 @@ auto print_measurement(const Measurement &measurement, const bool relative)
             << ", iterations: " << measurement.iterations << "\n";
 }
 
-auto to_json(const std::vector<Measurement> &measurements)
+auto to_entry(const Measurement &measurement, const std::size_t index,
+              const bool proportional) -> sourcemeta::core::JSON {
+  auto entry{sourcemeta::core::JSON::make_object()};
+  entry.assign_assume_new("name", sourcemeta::core::JSON{measurement.name},
+                          BENCHMARK_HASH_NAME);
+  entry.assign_assume_new(
+      "family_index", sourcemeta::core::JSON{static_cast<std::int64_t>(index)},
+      BENCHMARK_HASH_FAMILY_INDEX);
+  entry.assign_assume_new("per_family_instance_index",
+                          sourcemeta::core::JSON{0},
+                          BENCHMARK_HASH_PER_FAMILY_INSTANCE_INDEX);
+  entry.assign_assume_new("run_name", sourcemeta::core::JSON{measurement.name},
+                          BENCHMARK_HASH_RUN_NAME);
+  entry.assign_assume_new("run_type", sourcemeta::core::JSON{"iteration"},
+                          BENCHMARK_HASH_RUN_TYPE);
+  entry.assign_assume_new("repetitions", sourcemeta::core::JSON{1},
+                          BENCHMARK_HASH_REPETITIONS);
+  entry.assign_assume_new("repetition_index", sourcemeta::core::JSON{0},
+                          BENCHMARK_HASH_REPETITION_INDEX);
+  entry.assign_assume_new("threads", sourcemeta::core::JSON{1},
+                          BENCHMARK_HASH_THREADS);
+  entry.assign_assume_new(
+      "iterations",
+      sourcemeta::core::JSON{static_cast<std::int64_t>(measurement.iterations)},
+      BENCHMARK_HASH_ITERATIONS);
+
+  if (proportional) {
+    entry.assign_assume_new("real_time",
+                            sourcemeta::core::JSON{measurement.ratio.value()},
+                            BENCHMARK_HASH_REAL_TIME);
+    entry.assign_assume_new(
+        "cpu_time",
+        sourcemeta::core::JSON{
+            measurement.cpu_ratio.value_or(measurement.ratio.value())},
+        BENCHMARK_HASH_CPU_TIME);
+    entry.assign_assume_new("time_unit", sourcemeta::core::JSON{"x"},
+                            BENCHMARK_HASH_TIME_UNIT);
+  } else {
+    entry.assign_assume_new("real_time",
+                            sourcemeta::core::JSON{measurement.real_time},
+                            BENCHMARK_HASH_REAL_TIME);
+    entry.assign_assume_new(
+        "cpu_time",
+        sourcemeta::core::JSON{
+            measurement.cpu_time.value_or(measurement.real_time)},
+        BENCHMARK_HASH_CPU_TIME);
+    entry.assign_assume_new("time_unit", sourcemeta::core::JSON{"ns"},
+                            BENCHMARK_HASH_TIME_UNIT);
+  }
+
+  return entry;
+}
+
+// A proportional report keeps one meaning per field, so anything the baseline
+// never carried goes to its own array rather than putting a duration where
+// every other entry holds a ratio
+auto to_json(const std::vector<Measurement> &measurements, const bool relative)
     -> sourcemeta::core::JSON {
   auto context{sourcemeta::core::JSON::make_object()};
   const auto cores{std::thread::hardware_concurrency()};
@@ -332,58 +390,13 @@ auto to_json(const std::vector<Measurement> &measurements)
   }
 
   auto entries{sourcemeta::core::JSON::make_array()};
-  std::size_t index{0};
+  auto unmatched{sourcemeta::core::JSON::make_array()};
   for (const auto &measurement : measurements) {
-    auto entry{sourcemeta::core::JSON::make_object()};
-    entry.assign_assume_new("name", sourcemeta::core::JSON{measurement.name},
-                            BENCHMARK_HASH_NAME);
-    entry.assign_assume_new(
-        "family_index",
-        sourcemeta::core::JSON{static_cast<std::int64_t>(index)},
-        BENCHMARK_HASH_FAMILY_INDEX);
-    entry.assign_assume_new("per_family_instance_index",
-                            sourcemeta::core::JSON{0},
-                            BENCHMARK_HASH_PER_FAMILY_INSTANCE_INDEX);
-    entry.assign_assume_new("run_name",
-                            sourcemeta::core::JSON{measurement.name},
-                            BENCHMARK_HASH_RUN_NAME);
-    entry.assign_assume_new("run_type", sourcemeta::core::JSON{"iteration"},
-                            BENCHMARK_HASH_RUN_TYPE);
-    entry.assign_assume_new("repetitions", sourcemeta::core::JSON{1},
-                            BENCHMARK_HASH_REPETITIONS);
-    entry.assign_assume_new("repetition_index", sourcemeta::core::JSON{0},
-                            BENCHMARK_HASH_REPETITION_INDEX);
-    entry.assign_assume_new("threads", sourcemeta::core::JSON{1},
-                            BENCHMARK_HASH_THREADS);
-    entry.assign_assume_new("iterations",
-                            sourcemeta::core::JSON{static_cast<std::int64_t>(
-                                measurement.iterations)},
-                            BENCHMARK_HASH_ITERATIONS);
-    if (measurement.ratio.has_value()) {
-      entry.assign_assume_new("real_time",
-                              sourcemeta::core::JSON{measurement.ratio.value()},
-                              BENCHMARK_HASH_REAL_TIME);
-      entry.assign_assume_new(
-          "cpu_time",
-          sourcemeta::core::JSON{
-              measurement.cpu_ratio.value_or(measurement.ratio.value())},
-          BENCHMARK_HASH_CPU_TIME);
-      entry.assign_assume_new("time_unit", sourcemeta::core::JSON{"x"},
-                              BENCHMARK_HASH_TIME_UNIT);
+    if (relative && !measurement.ratio.has_value()) {
+      unmatched.push_back(to_entry(measurement, unmatched.size(), false));
     } else {
-      entry.assign_assume_new("real_time",
-                              sourcemeta::core::JSON{measurement.real_time},
-                              BENCHMARK_HASH_REAL_TIME);
-      entry.assign_assume_new(
-          "cpu_time",
-          sourcemeta::core::JSON{
-              measurement.cpu_time.value_or(measurement.real_time)},
-          BENCHMARK_HASH_CPU_TIME);
-      entry.assign_assume_new("time_unit", sourcemeta::core::JSON{"ns"},
-                              BENCHMARK_HASH_TIME_UNIT);
+      entries.push_back(to_entry(measurement, entries.size(), relative));
     }
-    entries.push_back(std::move(entry));
-    index += 1;
   }
 
   auto document{sourcemeta::core::JSON::make_object()};
@@ -391,6 +404,11 @@ auto to_json(const std::vector<Measurement> &measurements)
                              BENCHMARK_HASH_CONTEXT);
   document.assign_assume_new("benchmarks", std::move(entries),
                              BENCHMARK_HASH_BENCHMARKS);
+  if (relative) {
+    document.assign_assume_new("unmatched", std::move(unmatched),
+                               BENCHMARK_HASH_UNMATCHED);
+  }
+
   return document;
 }
 
@@ -542,7 +560,7 @@ auto benchmark_run(int argc, char **argv) -> int {
 
   if (options.contains("output") && !options.at("output").empty()) {
     const std::filesystem::path destination{options.at("output").front()};
-    const auto document{to_json(measurements)};
+    const auto document{to_json(measurements, relative)};
 
     try {
       write_file(destination, [&document](std::ostream &stream) {

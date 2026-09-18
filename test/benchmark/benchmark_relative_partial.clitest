@@ -39,7 +39,9 @@ WRITE expected.json UNTIL EXPECTED
       "real_time": 0,
       "cpu_time": 0,
       "time_unit": "x"
-    },
+    }
+  ],
+  "unmatched": [
     {
       "name": "multiplication",
       "iterations": 0,
