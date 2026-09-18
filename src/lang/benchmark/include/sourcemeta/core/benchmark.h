@@ -172,7 +172,8 @@ auto benchmark_use_char_pointer(const volatile char *pointer) -> void;
 /// }
 /// ```
 template <typename Type>
-SOURCEMETA_FORCEINLINE auto benchmark_do_not_optimize(Type &value) -> void {
+SOURCEMETA_FORCEINLINE inline auto benchmark_do_not_optimize(Type &value)
+    -> void {
 #if defined(__clang__)
   asm volatile("" : "+r,m"(value) : : "memory");
 #elif defined(__GNUC__)
@@ -206,7 +207,7 @@ SOURCEMETA_FORCEINLINE auto benchmark_do_not_optimize(Type &value) -> void {
 /// }
 /// ```
 template <typename Type>
-SOURCEMETA_FORCEINLINE auto benchmark_do_not_optimize(const Type &value)
+SOURCEMETA_FORCEINLINE inline auto benchmark_do_not_optimize(const Type &value)
     -> void {
 #if defined(__clang__)
   asm volatile("" : : "r,m"(value) : "memory");
