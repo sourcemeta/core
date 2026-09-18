@@ -2,6 +2,8 @@ RUN STDIN /dev/null IN . INTO result.txt EXPECTING 1
 REPLACE MATCHING "Running on [0-9]+ processors" WITH "Running on N processors" IN result.txt
 WRITE expected.txt UNTIL EXPECTED
 1> Running on N processors
-2> error: benchmark did not iterate over its state: never_iterates (benchmark_stray.cc:3)
+2> error: The benchmark did not iterate over its state
+2>   at benchmark never_iterates
+2>   at source location benchmark_stray.cc:3
 EXPECTED
 COMPARE result.txt AGAINST expected.txt

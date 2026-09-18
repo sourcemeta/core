@@ -195,14 +195,14 @@ auto read_baseline(const std::filesystem::path &path, std::string_view &reason)
     -> std::optional<Baseline> {
   const auto document{sourcemeta::core::read_json(path)};
   if (!document.is_object()) {
-    reason = "it does not hold an array of benchmarks";
+    reason = "The baseline does not hold an array of benchmarks";
     return std::nullopt;
   }
 
   const auto *const entries{
       document.try_at("benchmarks", BENCHMARK_HASH_BENCHMARKS_LOOKUP)};
   if (entries == nullptr || !entries->is_array()) {
-    reason = "it does not hold an array of benchmarks";
+    reason = "The baseline does not hold an array of benchmarks";
     return std::nullopt;
   }
 
@@ -227,7 +227,7 @@ auto read_baseline(const std::filesystem::path &path, std::string_view &reason)
     const auto *const unit{
         entry.try_at("time_unit", BENCHMARK_HASH_TIME_UNIT_LOOKUP)};
     if (unit != nullptr && unit->is_string() && unit->to_string() != "ns") {
-      reason = "it holds proportional results rather than durations";
+      reason = "The baseline holds proportional results rather than durations";
       return std::nullopt;
     }
 
@@ -478,15 +478,15 @@ auto benchmark_run(int argc, char **argv) -> int {
       std::string_view reason;
       const auto parsed{read_baseline(source, reason)};
       if (!parsed.has_value()) {
-        std::cerr << "error: cannot use " << source.string()
-                  << " as a baseline, " << reason << "\n";
+        std::cerr << "error: " << reason << "\n"
+                  << "  at file path " << source.string() << "\n";
         return EXIT_FAILURE;
       }
 
       baseline = parsed.value();
     } catch (const std::exception &error) {
-      std::cerr << "error: could not read the baseline " << source.string()
-                << ": " << error.what() << "\n";
+      std::cerr << "error: " << error.what() << "\n"
+                << "  at file path " << source.string() << "\n";
       return EXIT_FAILURE;
     }
   }
@@ -507,7 +507,7 @@ auto benchmark_run(int argc, char **argv) -> int {
   // must not pass as a successful run. A filter that matches nothing is instead
   // an ordinary thing to ask for interactively
   if (selected.empty() && needle.empty()) {
-    std::cerr << "error: no benchmarks were registered\n";
+    std::cerr << "error: No benchmarks were registered\n";
     return EXIT_FAILURE;
   }
 
@@ -524,9 +524,10 @@ auto benchmark_run(int argc, char **argv) -> int {
   for (const auto *entry : selected) {
     const auto measurement{measure(*entry)};
     if (!measurement.has_value()) {
-      std::cerr << "error: benchmark did not iterate over its state: "
-                << entry->name << " (" << base_name(entry->file) << ":"
-                << entry->line << ")\n";
+      std::cerr << "error: The benchmark did not iterate over its state\n"
+                << "  at benchmark " << entry->name << "\n"
+                << "  at source location " << base_name(entry->file) << ":"
+                << entry->line << "\n";
       return EXIT_FAILURE;
     }
 
@@ -549,8 +550,8 @@ auto benchmark_run(int argc, char **argv) -> int {
         stream << "\n";
       });
     } catch (const std::exception &error) {
-      std::cerr << "error: could not write to " << destination.string() << ": "
-                << error.what() << "\n";
+      std::cerr << "error: " << error.what() << "\n"
+                << "  at file path " << destination.string() << "\n";
       return EXIT_FAILURE;
     }
   }

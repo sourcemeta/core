@@ -3,6 +3,7 @@ WRITE base.json UNTIL BASELINE
 BASELINE
 RUN --relative-to base.json STDIN /dev/null IN . INTO result.txt EXPECTING 1
 WRITE expected.txt UNTIL EXPECTED
-2> error: cannot use base.json as a baseline, it does not hold an array of benchmarks
+2> error: The baseline does not hold an array of benchmarks
+2>   at file path base.json
 EXPECTED
 COMPARE result.txt AGAINST expected.txt
