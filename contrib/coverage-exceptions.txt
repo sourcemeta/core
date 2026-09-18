@@ -1,0 +1,14 @@
+# Functions this suite exercises but cannot measure.
+#
+# Each line is a source file suffix, a space, and the function name as the
+# coverage tool reports it. Anything listed here is left out of the count
+# entirely, so an entry has to carry a reason.
+
+# These two run only inside a program that is dying on a fatal signal, and a
+# process killed by a signal never writes its profile. Keeping counters up to
+# date as they change would capture them, but the option that arranges it is
+# one the compiler cache refuses, which costs every compilation in this build.
+# Both are covered by the end to end tests under test/stacktrace, which assert
+# on the report these produce
+src/lang/stacktrace/stacktrace_posix.h stacktrace.cc:_ZN12_GLOBAL__N_116extract_crash_pcEPv
+src/lang/stacktrace/stacktrace_posix.h sourcemeta_core_stacktrace_crash_handler

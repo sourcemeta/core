@@ -68,15 +68,14 @@ CTEST_PARALLEL_LEVEL="${CTEST_PARALLEL_LEVEL:-$JOBS}"
 export CMAKE_BUILD_PARALLEL_LEVEL
 export CTEST_PARALLEL_LEVEL
 
-# Counters are kept in the profile of each program as they change, rather than
-# written out once it exits, so that a program that dies on a fatal signal still
-# reports what it ran. The profile file name asks for it, which is all that
-# Apple platforms need, while elsewhere the compiler has to arrange for it too
+# Counters are written out when each program exits. Keeping them up to date as
+# they change instead, so that a program dying on a fatal signal still reports
+# what it ran, costs the compiler cache entirely, as the option that arranges it
+# is one the cache does not recognise, and it refuses every compilation carrying
+# it. Asking for it through the profile file name alone is not an alternative,
+# as a program built without the option then fails to honour the request and
+# says so on its error stream, which the tests that compare output then read
 PROFILE_FLAGS="-fprofile-instr-generate -fcoverage-mapping"
-if [ "$(uname)" != "Darwin" ]
-then
-  PROFILE_FLAGS="$PROFILE_FLAGS -fprofile-continuous"
-fi
 
 # Instrumentation is injected through the standard CMake flag variables so that
 # the project build system does not need to know about coverage at all. Static
@@ -103,7 +102,7 @@ mkdir -p "$PROFILE_DIRECTORY"
 # The packaging tests drive a separate build of a consuming project, which
 # carries no instrumentation and contributes no coverage, and which expects an
 # installation that this script has no reason to produce
-LLVM_PROFILE_FILE="$PROFILE_DIRECTORY/%c%p.profraw" \
+LLVM_PROFILE_FILE="$PROFILE_DIRECTORY/%p.profraw" \
   ctest --test-dir "$BUILD_DIRECTORY" --build-config Debug \
     --output-on-failure --exclude-regex find_package
 
@@ -256,10 +255,23 @@ import re
 import subprocess
 import sys
 
-llvm_cov, profile_data, exclude, object_list, uncovered = sys.argv[1:]
+llvm_cov, profile_data, exclude, object_list, uncovered, exceptions = \
+    sys.argv[1:]
 excluded = re.compile(exclude)
 
+# Functions the suite does exercise but cannot measure, each paired with the
+# file it lives in, so that an entry cannot silently start excusing a function
+# of the same name elsewhere
+permitted = set()
+with open(exceptions, encoding="utf-8") as listing:
+    for entry in listing:
+        text = entry.split("#", 1)[0].strip()
+        if text:
+            suffix, _, name = text.partition(" ")
+            permitted.add((suffix, name.strip()))
+
 counts = {}
+names = {}
 with open(object_list, encoding="utf-8") as objects:
     for binary in objects.read().splitlines():
         export = subprocess.run(
@@ -275,11 +287,21 @@ with open(object_list, encoding="utf-8") as objects:
                 start = function["regions"][0]
                 key = (filename, start[0], start[1])
                 counts[key] = max(counts.get(key, 0), function["count"])
+                names.setdefault(key, set()).add(function["name"])
 
-missed = sorted(key for key, count in counts.items() if count == 0)
+def excused(key):
+    filename = key[0]
+    return any(filename.endswith(suffix) and name in names[key]
+               for suffix, name in permitted)
+
+
+missed = sorted(key for key, count in counts.items()
+                if count == 0 and not excused(key))
 with open(uncovered, "w", encoding="utf-8") as output:
-    for filename, line, column in missed:
-        output.write(f"{filename}:{line}:{column}\n")
+    for key in missed:
+        filename, line, column = key
+        for name in sorted(names[key]):
+            output.write(f"{filename}:{line}:{column} {name}\n")
 
 covered = len(counts) - len(missed)
 percentage = covered * 100 / len(counts) if counts else 100
@@ -288,7 +310,9 @@ PYTHON
 
 UNCOVERED_FUNCTIONS="$WORK_DIRECTORY/uncovered.txt"
 python3 "$FUNCTIONS_PROGRAM" "$LLVM_COV" "$PROFILE_DATA" "$EXCLUDE" \
-  "$OBJECT_LIST" "$UNCOVERED_FUNCTIONS" >> "$WORK_DIRECTORY/summary.txt"
+  "$OBJECT_LIST" "$UNCOVERED_FUNCTIONS" \
+  "$SOURCE_DIRECTORY/contrib/coverage-exceptions.txt" \
+  >> "$WORK_DIRECTORY/summary.txt"
 
 # Optionally require every function under measurement to be reached by the
 # suite. Only the platform that the report is published from is held to it, as
