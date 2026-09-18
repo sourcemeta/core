@@ -5,6 +5,8 @@
 #include <sourcemeta/core/benchmark_export.h>
 #endif
 
+#include <sourcemeta/core/preprocessor.h>
+
 #include <chrono>      // std::chrono::nanoseconds, std::chrono::steady_clock
 #include <cstdint>     // std::uint64_t
 #include <functional>  // std::function
@@ -24,15 +26,6 @@
 /// ```cpp
 /// #include <sourcemeta/core/benchmark.h>
 /// ```
-
-// A measurement whose body the compiler inlined away is not a measurement, so
-// the barriers below must never be left as ordinary calls
-#if defined(_MSC_VER)
-#define SOURCEMETA_CORE_BENCHMARK_ALWAYS_INLINE __forceinline
-#else
-#define SOURCEMETA_CORE_BENCHMARK_ALWAYS_INLINE                                \
-  inline __attribute__((always_inline))
-#endif
 
 namespace sourcemeta::core {
 
@@ -72,25 +65,28 @@ public:
         : remaining_{parent->iterations_}, parent_{parent} {}
 
     /// Yield the current iteration.
-    SOURCEMETA_CORE_BENCHMARK_ALWAYS_INLINE auto operator*() const -> Value {
-      return {};
-    }
+    SOURCEMETA_FORCEINLINE auto operator*() const -> Value { return {}; }
 
     /// Advance to the next iteration.
-    SOURCEMETA_CORE_BENCHMARK_ALWAYS_INLINE auto operator++() -> Iterator & {
+    SOURCEMETA_FORCEINLINE auto operator++() -> Iterator & {
       this->remaining_ -= 1;
       return *this;
     }
 
     /// Report whether the run has iterations left, stopping the clock when it
     /// does not.
-    SOURCEMETA_CORE_BENCHMARK_ALWAYS_INLINE auto
-    operator!=(const Iterator &) const -> bool {
-      if (this->remaining_ != 0) [[likely]] {
+    SOURCEMETA_FORCEINLINE auto operator!=(const Iterator &other) const
+        -> bool {
+      if (this->remaining_ != other.remaining_) [[likely]] {
         return true;
       }
 
-      this->parent_->finish();
+      // The sentinel carries no run to stop, and a comparison repeated after
+      // the loop has already ended must not restate the elapsed time
+      if (this->parent_ != nullptr) {
+        this->parent_->finish();
+      }
+
       return false;
     }
 
@@ -100,13 +96,11 @@ public:
   };
 
   /// The position the loop starts from.
-  SOURCEMETA_CORE_BENCHMARK_ALWAYS_INLINE auto begin() -> Iterator {
-    return Iterator{this};
-  }
+  SOURCEMETA_FORCEINLINE auto begin() -> Iterator { return Iterator{this}; }
 
   /// The sentinel the loop stops at. Obtaining it starts the clock, so that as
   /// little as possible of the caller's setup falls inside the measurement.
-  SOURCEMETA_CORE_BENCHMARK_ALWAYS_INLINE auto end() -> Iterator {
+  SOURCEMETA_FORCEINLINE auto end() -> Iterator {
     this->start();
     return {};
   }
@@ -178,8 +172,7 @@ auto benchmark_use_char_pointer(const volatile char *pointer) -> void;
 /// }
 /// ```
 template <typename Type>
-SOURCEMETA_CORE_BENCHMARK_ALWAYS_INLINE auto
-benchmark_do_not_optimize(Type &value) -> void {
+SOURCEMETA_FORCEINLINE auto benchmark_do_not_optimize(Type &value) -> void {
 #if defined(__clang__)
   asm volatile("" : "+r,m"(value) : : "memory");
 #elif defined(__GNUC__)
@@ -213,8 +206,8 @@ benchmark_do_not_optimize(Type &value) -> void {
 /// }
 /// ```
 template <typename Type>
-SOURCEMETA_CORE_BENCHMARK_ALWAYS_INLINE auto
-benchmark_do_not_optimize(const Type &value) -> void {
+SOURCEMETA_FORCEINLINE auto benchmark_do_not_optimize(const Type &value)
+    -> void {
 #if defined(__clang__)
   asm volatile("" : : "r,m"(value) : "memory");
 #elif defined(__GNUC__)

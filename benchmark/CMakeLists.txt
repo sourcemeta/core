@@ -127,22 +127,15 @@ if(BENCHMARK_SOURCES)
       PRIVATE sourcemeta::core::crypto sourcemeta::core::io)
   endif()
 
-  add_custom_target(benchmark_all
-    COMMAND sourcemeta_core_benchmarks
-    DEPENDS sourcemeta_core_benchmarks
-    COMMENT "Running benchmark...")
   # A single run prints the human readable report and writes the JSON file, so
   # that recording results for later comparison costs nothing extra
-  add_custom_target(benchmark_json
+  add_custom_target(benchmark
     COMMAND sourcemeta_core_benchmarks
       --output "${PROJECT_BINARY_DIR}/benchmark.json"
     DEPENDS sourcemeta_core_benchmarks
     COMMENT "Running benchmark...")
 else()
-  add_custom_target(benchmark_all VERBATIM
-    COMMAND "${CMAKE_COMMAND}" -E echo "Nothing to benchmark"
-    COMMAND "${CMAKE_COMMAND}" -E false)
-  add_custom_target(benchmark_json VERBATIM
+  add_custom_target(benchmark VERBATIM
     COMMAND "${CMAKE_COMMAND}" -E echo "Nothing to benchmark"
     COMMAND "${CMAKE_COMMAND}" -E false)
 endif()

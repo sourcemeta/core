@@ -184,7 +184,7 @@ jobs:
           UBSAN_OPTIONS: print_stacktrace=1
 
       # A single run prints the human readable report and writes the JSON file
-      - run: cmake --build ./build --config Release --verbose --target benchmark_json
+      - run: cmake --build ./build --config Release --verbose --target benchmark
         if: matrix.platform.benchmark
 
       - uses: benchmark-action/github-action-benchmark@v1

@@ -1,22 +1,28 @@
 #include <sourcemeta/core/benchmark.h>
 
+#include <cstdint> // std::uint64_t
+#include <limits>  // std::numeric_limits
+
 BENCHMARK(addition) {
+  std::uint64_t accumulator{0};
   for (auto iteration : state) {
-    auto result{1 + 1};
-    sourcemeta::core::benchmark_do_not_optimize(result);
+    accumulator += 1;
+    sourcemeta::core::benchmark_do_not_optimize(accumulator);
   }
 }
 
 BENCHMARK(multiplication) {
+  std::uint64_t accumulator{1};
   for (auto iteration : state) {
-    auto result{2 * 3};
-    sourcemeta::core::benchmark_do_not_optimize(result);
+    accumulator *= 3;
+    sourcemeta::core::benchmark_do_not_optimize(accumulator);
   }
 }
 
 BENCHMARK(subtraction) {
-  const auto left{9};
+  std::uint64_t accumulator{std::numeric_limits<std::uint64_t>::max()};
   for (auto iteration : state) {
-    sourcemeta::core::benchmark_do_not_optimize(left - 1);
+    accumulator -= 1;
+    sourcemeta::core::benchmark_do_not_optimize(accumulator);
   }
 }

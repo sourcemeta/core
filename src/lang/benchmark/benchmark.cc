@@ -1,4 +1,5 @@
 #include <sourcemeta/core/benchmark.h>
+#include <sourcemeta/core/io.h>
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/options.h>
 #include <sourcemeta/core/process.h>
@@ -9,11 +10,12 @@
 #include <cstddef>     // std::size_t
 #include <cstdint>     // std::uint64_t
 #include <cstdlib>     // EXIT_SUCCESS, EXIT_FAILURE
+#include <exception>   // std::exception
 #include <filesystem>  // std::filesystem::path
-#include <fstream>     // std::ofstream
 #include <functional>  // std::function
 #include <iomanip>     // std::setprecision, std::fixed
 #include <iostream>    // std::cout, std::cerr
+#include <ostream>     // std::ostream
 #include <sstream>     // std::ostringstream
 #include <string>      // std::string
 #include <string_view> // std::string_view
@@ -72,6 +74,10 @@ struct Measurement {
   // of a cache, a lazy initialisation, or an allocator that settles
   double cold_time;
 };
+
+auto base_name(const std::string_view path) -> std::string {
+  return std::filesystem::path{path}.filename().string();
+}
 
 auto registry() -> std::vector<RegisteredBenchmark> & {
   static std::vector<RegisteredBenchmark> benchmarks;
@@ -295,6 +301,10 @@ auto BenchmarkState::start() -> void {
 }
 
 auto BenchmarkState::finish() -> void {
+  if (this->finished_) {
+    return;
+  }
+
   const auto real_end{std::chrono::steady_clock::now()};
   const auto cpu_end{process_usage().cpu_time};
   this->real_elapsed_ = real_end - this->real_start_;
@@ -362,7 +372,8 @@ auto benchmark_run(int argc, char **argv) -> int {
     const auto measurement{measure(*entry)};
     if (!measurement.has_value()) {
       std::cerr << "error: benchmark did not iterate over its state: "
-                << entry->name << "\n";
+                << entry->name << " (" << base_name(entry->file) << ":"
+                << entry->line << ")\n";
       return EXIT_FAILURE;
     }
 
@@ -372,14 +383,18 @@ auto benchmark_run(int argc, char **argv) -> int {
 
   if (options.contains("output") && !options.at("output").empty()) {
     const std::filesystem::path destination{options.at("output").front()};
-    std::ofstream stream{destination};
-    if (!stream) {
-      std::cerr << "error: could not write to " << destination.string() << "\n";
+    const auto document{to_json(measurements)};
+
+    try {
+      write_file(destination, [&document](std::ostream &stream) {
+        prettify(document, stream);
+        stream << "\n";
+      });
+    } catch (const std::exception &error) {
+      std::cerr << "error: could not write to " << destination.string() << ": "
+                << error.what() << "\n";
       return EXIT_FAILURE;
     }
-
-    prettify(to_json(measurements), stream);
-    stream << "\n";
   }
 
   return EXIT_SUCCESS;
