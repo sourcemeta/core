@@ -1,0 +1,8 @@
+WRITE base.json UNTIL BASELINE
+{ "benchmarks": "not an array" }
+BASELINE
+RUN --relative-to base.json STDIN /dev/null IN . INTO result.txt EXPECTING 1
+WRITE expected.txt UNTIL EXPECTED
+2> error: the baseline does not hold an array of benchmarks: base.json
+EXPECTED
+COMPARE result.txt AGAINST expected.txt

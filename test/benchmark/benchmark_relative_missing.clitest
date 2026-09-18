@@ -1,0 +1,6 @@
+RUN --relative-to nowhere.json STDIN /dev/null IN . INTO result.txt EXPECTING 1
+REPLACE MATCHING "nowhere.json: [^\n]*" WITH "nowhere.json: <reason>" IN result.txt
+WRITE expected.txt UNTIL EXPECTED
+2> error: could not read the baseline nowhere.json: <reason>
+EXPECTED
+COMPARE result.txt AGAINST expected.txt

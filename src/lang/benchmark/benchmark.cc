@@ -12,9 +12,10 @@
 #include <cstdlib>     // EXIT_SUCCESS, EXIT_FAILURE
 #include <exception>   // std::exception
 #include <filesystem>  // std::filesystem::path
-#include <functional>  // std::function
+#include <functional>  // std::less
 #include <iomanip>     // std::setprecision, std::fixed
 #include <iostream>    // std::cout, std::cerr
+#include <map>         // std::map
 #include <ostream>     // std::ostream
 #include <sstream>     // std::ostringstream
 #include <string>      // std::string
@@ -52,6 +53,14 @@ constexpr auto BENCHMARK_HASH_CPU_TIME{
     sourcemeta::core::JSON::Object::hash("cpu_time"sv)};
 constexpr auto BENCHMARK_HASH_TIME_UNIT{
     sourcemeta::core::JSON::Object::hash("time_unit"sv)};
+constexpr auto BENCHMARK_HASH_BENCHMARKS_LOOKUP{
+    sourcemeta::core::JSON::Object::hash("benchmarks"sv)};
+constexpr auto BENCHMARK_HASH_NAME_LOOKUP{
+    sourcemeta::core::JSON::Object::hash("name"sv)};
+constexpr auto BENCHMARK_HASH_REAL_TIME_LOOKUP{
+    sourcemeta::core::JSON::Object::hash("real_time"sv)};
+constexpr auto BENCHMARK_HASH_CPU_TIME_LOOKUP{
+    sourcemeta::core::JSON::Object::hash("cpu_time"sv)};
 constexpr auto BENCHMARK_HASH_CONTEXT{
     sourcemeta::core::JSON::Object::hash("context"sv)};
 constexpr auto BENCHMARK_HASH_BENCHMARKS{
@@ -64,6 +73,13 @@ struct RegisteredBenchmark {
   std::function<void(sourcemeta::core::BenchmarkState &)> body;
 };
 
+struct BaselineEntry {
+  double real_time;
+  std::optional<double> cpu_time;
+};
+
+using Baseline = std::map<std::string, BaselineEntry, std::less<>>;
+
 struct Measurement {
   std::string name;
   std::uint64_t iterations;
@@ -73,6 +89,10 @@ struct Measurement {
   // had a chance to warm up. A wide gap against the reported time is the sign
   // of a cache, a lazy initialisation, or an allocator that settles
   double cold_time;
+  // How this run compares against the same benchmark in a baseline, where one
+  // was given and carried a matching name. Above one is slower
+  std::optional<double> ratio{std::nullopt};
+  std::optional<double> cpu_ratio{std::nullopt};
 };
 
 auto base_name(const std::string_view path) -> std::string {
@@ -117,6 +137,20 @@ auto next_iterations(const std::uint64_t current,
   return std::min(static_cast<std::uint64_t>(grown), MAXIMUM_ITERATIONS);
 }
 
+auto relate(Measurement &measurement, const Baseline &baseline) -> void {
+  const auto match{baseline.find(measurement.name)};
+  if (match == baseline.cend() || match->second.real_time <= 0.0) {
+    return;
+  }
+
+  measurement.ratio = measurement.real_time / match->second.real_time;
+  if (measurement.cpu_time.has_value() && match->second.cpu_time.has_value() &&
+      match->second.cpu_time.value() > 0.0) {
+    measurement.cpu_ratio =
+        measurement.cpu_time.value() / match->second.cpu_time.value();
+  }
+}
+
 auto measure(const RegisteredBenchmark &benchmark)
     -> std::optional<Measurement> {
   auto iterations{INITIAL_ITERATIONS};
@@ -155,16 +189,59 @@ auto measure(const RegisteredBenchmark &benchmark)
   }
 }
 
+auto read_baseline(const std::filesystem::path &path)
+    -> std::optional<Baseline> {
+  const auto document{sourcemeta::core::read_json(path)};
+  if (!document.is_object()) {
+    return std::nullopt;
+  }
+
+  const auto *const entries{
+      document.try_at("benchmarks", BENCHMARK_HASH_BENCHMARKS_LOOKUP)};
+  if (entries == nullptr || !entries->is_array()) {
+    return std::nullopt;
+  }
+
+  Baseline result;
+
+  for (const auto &entry : entries->as_array()) {
+    if (!entry.is_object()) {
+      continue;
+    }
+
+    const auto *const name{entry.try_at("name", BENCHMARK_HASH_NAME_LOOKUP)};
+    const auto *const real{
+        entry.try_at("real_time", BENCHMARK_HASH_REAL_TIME_LOOKUP)};
+    if (name == nullptr || !name->is_string() || real == nullptr ||
+        !real->is_number()) {
+      continue;
+    }
+
+    const auto *const cpu{
+        entry.try_at("cpu_time", BENCHMARK_HASH_CPU_TIME_LOOKUP)};
+    result.emplace(
+        name->to_string(),
+        BaselineEntry{.real_time = real->as_real(),
+                      .cpu_time = (cpu != nullptr && cpu->is_number())
+                                      ? std::optional<double>{cpu->as_real()}
+                                      : std::nullopt});
+  }
+
+  return result;
+}
+
 auto print_usage(const std::string_view program) -> void {
   std::cout << "Usage: " << std::filesystem::path{program}.stem().string()
             << " [options]\n\n"
             << "Run the registered benchmarks.\n\n"
             << "Options:\n"
-            << "  -f, --filter <text>  Only run benchmarks whose name contains "
-               "<text>\n"
-            << "  -o, --output <path>  Also write the results as JSON to "
+            << "  -f, --filter <text>       Only run benchmarks whose name "
+               "contains <text>\n"
+            << "  -o, --output <path>       Also write the results as JSON to "
                "<path>\n"
-            << "  -h, --help           Show this message\n";
+            << "  -r, --relative-to <path>  Report each result as a proportion "
+               "of <path>\n"
+            << "  -h, --help                Show this message\n";
 }
 
 auto print_environment() -> void {
@@ -201,11 +278,29 @@ auto format_duration(const double nanoseconds) -> std::string {
   return stream.str();
 }
 
-auto print_measurement(const Measurement &measurement) -> void {
+auto format_ratio(const double ratio) -> std::string {
+  std::ostringstream stream;
+  stream << std::fixed << std::setprecision(2) << ratio << "x";
+  return stream.str();
+}
+
+auto print_measurement(const Measurement &measurement, const bool relative)
+    -> void {
   std::cout << measurement.name << "\n"
             << "  time: " << format_duration(measurement.real_time);
+  if (relative) {
+    std::cout << " ("
+              << (measurement.ratio.has_value()
+                      ? format_ratio(measurement.ratio.value())
+                      : std::string{"new"})
+              << ")";
+  }
+
   if (measurement.cpu_time.has_value()) {
     std::cout << ", cpu: " << format_duration(measurement.cpu_time.value());
+    if (relative && measurement.cpu_ratio.has_value()) {
+      std::cout << " (" << format_ratio(measurement.cpu_ratio.value()) << ")";
+    }
   }
 
   std::cout << ", first: " << format_duration(measurement.cold_time)
@@ -250,16 +345,29 @@ auto to_json(const std::vector<Measurement> &measurements)
                             sourcemeta::core::JSON{static_cast<std::int64_t>(
                                 measurement.iterations)},
                             BENCHMARK_HASH_ITERATIONS);
-    entry.assign_assume_new("real_time",
-                            sourcemeta::core::JSON{measurement.real_time},
-                            BENCHMARK_HASH_REAL_TIME);
-    entry.assign_assume_new(
-        "cpu_time",
-        sourcemeta::core::JSON{
-            measurement.cpu_time.value_or(measurement.real_time)},
-        BENCHMARK_HASH_CPU_TIME);
-    entry.assign_assume_new("time_unit", sourcemeta::core::JSON{"ns"},
-                            BENCHMARK_HASH_TIME_UNIT);
+    if (measurement.ratio.has_value()) {
+      entry.assign_assume_new("real_time",
+                              sourcemeta::core::JSON{measurement.ratio.value()},
+                              BENCHMARK_HASH_REAL_TIME);
+      entry.assign_assume_new(
+          "cpu_time",
+          sourcemeta::core::JSON{
+              measurement.cpu_ratio.value_or(measurement.ratio.value())},
+          BENCHMARK_HASH_CPU_TIME);
+      entry.assign_assume_new("time_unit", sourcemeta::core::JSON{"x"},
+                              BENCHMARK_HASH_TIME_UNIT);
+    } else {
+      entry.assign_assume_new("real_time",
+                              sourcemeta::core::JSON{measurement.real_time},
+                              BENCHMARK_HASH_REAL_TIME);
+      entry.assign_assume_new(
+          "cpu_time",
+          sourcemeta::core::JSON{
+              measurement.cpu_time.value_or(measurement.real_time)},
+          BENCHMARK_HASH_CPU_TIME);
+      entry.assign_assume_new("time_unit", sourcemeta::core::JSON{"ns"},
+                              BENCHMARK_HASH_TIME_UNIT);
+    }
     entries.push_back(std::move(entry));
     index += 1;
   }
@@ -332,6 +440,7 @@ auto benchmark_run(int argc, char **argv) -> int {
   Options options;
   options.option("filter", {"f"});
   options.option("output", {"o"});
+  options.option("relative-to", {"r"});
   options.flag("help", {"h"});
 
   try {
@@ -344,6 +453,28 @@ auto benchmark_run(int argc, char **argv) -> int {
   if (options.contains("help")) {
     print_usage(argv[0]);
     return EXIT_SUCCESS;
+  }
+
+  Baseline baseline;
+  const auto relative{options.contains("relative-to") &&
+                      !options.at("relative-to").empty()};
+  if (relative) {
+    const std::filesystem::path source{options.at("relative-to").front()};
+    try {
+      const auto parsed{read_baseline(source)};
+      if (!parsed.has_value()) {
+        std::cerr << "error: the baseline does not hold an array of "
+                     "benchmarks: "
+                  << source.string() << "\n";
+        return EXIT_FAILURE;
+      }
+
+      baseline = parsed.value();
+    } catch (const std::exception &error) {
+      std::cerr << "error: could not read the baseline " << source.string()
+                << ": " << error.what() << "\n";
+      return EXIT_FAILURE;
+    }
   }
 
   std::string_view needle;
@@ -367,6 +498,12 @@ auto benchmark_run(int argc, char **argv) -> int {
   }
 
   print_environment();
+  if (relative) {
+    std::cout
+        << "Reporting relative to "
+        << std::filesystem::path{options.at("relative-to").front()}.string()
+        << "\n";
+  }
 
   std::vector<Measurement> measurements;
   measurements.reserve(selected.size());
@@ -379,8 +516,13 @@ auto benchmark_run(int argc, char **argv) -> int {
       return EXIT_FAILURE;
     }
 
-    print_measurement(measurement.value());
-    measurements.push_back(measurement.value());
+    auto result{measurement.value()};
+    if (relative) {
+      relate(result, baseline);
+    }
+
+    print_measurement(result, relative);
+    measurements.push_back(std::move(result));
   }
 
   if (options.contains("output") && !options.at("output").empty()) {
