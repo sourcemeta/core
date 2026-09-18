@@ -92,7 +92,10 @@ function(sourcemeta_clang_tidy_attempt_enable)
   endif()
 
   # TODO: Support other platforms too, like Linux
-  if(APPLE AND SOURCEMETA_COMPILER_LLVM)
+  #
+  # A shared build compiles the same sources as a static one, differing only in
+  # linkage, so analysing both finds the same things twice at full price
+  if(APPLE AND SOURCEMETA_COMPILER_LLVM AND NOT BUILD_SHARED_LIBS)
     message(STATUS "Enabling ClangTidy alongside compilation for target ${SOURCEMETA_TARGET_CLANG_TIDY_ATTEMPT_ENABLE_TARGET}")
   else()
     return()
