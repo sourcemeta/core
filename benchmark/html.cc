@@ -1,4 +1,4 @@
-#include <benchmark/benchmark.h>
+#include <sourcemeta/core/benchmark.h>
 
 #include <sourcemeta/core/html.h>
 
@@ -62,27 +62,22 @@ static void write_table(sourcemeta::core::HTMLWriter &document) {
   document.close();
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void HTML_Build_Table_100000(benchmark::State &state) {
+BENCHMARK(HTML_Build_Table_100000) {
   for (auto iteration : state) {
     sourcemeta::core::HTMLWriter document;
     document.reserve(std::size_t{100000} * 300);
     write_table(document);
     auto result{std::string(document.str())};
-    benchmark::DoNotOptimize(result);
+    sourcemeta::core::benchmark_do_not_optimize(result);
   }
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void HTML_Render_Table_100000(benchmark::State &state) {
+BENCHMARK(HTML_Render_Table_100000) {
   sourcemeta::core::HTMLWriter document;
   document.reserve(std::size_t{100000} * 300);
   write_table(document);
   for (auto iteration : state) {
     auto result{std::string(document.str())};
-    benchmark::DoNotOptimize(result);
+    sourcemeta::core::benchmark_do_not_optimize(result);
   }
 }
-
-BENCHMARK(HTML_Build_Table_100000);
-BENCHMARK(HTML_Render_Table_100000);

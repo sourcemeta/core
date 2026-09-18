@@ -1,0 +1,13 @@
+RUN STDIN /dev/null IN . INTO result.txt EXPECTING 0
+REPLACE MATCHING "Running on [0-9]+ processors" WITH "Running on N processors" IN result.txt
+REPLACE MATCHING "time: [0-9]+\.[0-9]+ [a-z]+(?:, cpu: [0-9]+\.[0-9]+ [a-z]+)?, first: [0-9]+\.[0-9]+ [a-z]+, iterations: [0-9]+" WITH "<measurement>" IN result.txt
+WRITE expected.txt UNTIL EXPECTED
+1> Running on N processors
+1> addition
+1>   <measurement>
+1> multiplication
+1>   <measurement>
+1> subtraction
+1>   <measurement>
+EXPECTED
+COMPARE result.txt AGAINST expected.txt

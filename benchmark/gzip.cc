@@ -1,4 +1,4 @@
-#include <benchmark/benchmark.h>
+#include <sourcemeta/core/benchmark.h>
 
 #include <sourcemeta/core/gzip.h>
 #include <sourcemeta/core/io.h>
@@ -10,9 +10,7 @@
 #include <sstream>    // std::istringstream
 #include <string>     // std::string
 
-static void
-// NOLINTNEXTLINE(readability-identifier-naming)
-GZIP_Compress_ISO_Language_Set_3_Locations(benchmark::State &state) {
+BENCHMARK(GZIP_Compress_ISO_Language_Set_3_Locations) {
   const sourcemeta::core::FileView view{
       std::filesystem::path{CURRENT_DIRECTORY} / "files" /
       "iso_language_2023_set_3_locations.json.gz"};
@@ -23,13 +21,11 @@ GZIP_Compress_ISO_Language_Set_3_Locations(benchmark::State &state) {
     auto result{sourcemeta::core::gzip(
         reinterpret_cast<const std::uint8_t *>(contents.data()),
         contents.size())};
-    benchmark::DoNotOptimize(result);
+    sourcemeta::core::benchmark_do_not_optimize(result);
   }
 }
 
-static void
-// NOLINTNEXTLINE(readability-identifier-naming)
-GZIP_Decompress_ISO_Language_Set_3_Locations(benchmark::State &state) {
+BENCHMARK(GZIP_Decompress_ISO_Language_Set_3_Locations) {
   const sourcemeta::core::FileView view{
       std::filesystem::path{CURRENT_DIRECTORY} / "files" /
       "iso_language_2023_set_3_locations.json.gz"};
@@ -39,14 +35,11 @@ GZIP_Decompress_ISO_Language_Set_3_Locations(benchmark::State &state) {
   for (auto iteration : state) {
     auto result{sourcemeta::core::gunzip(view.as<std::uint8_t>(), view.size(),
                                          output_hint)};
-    benchmark::DoNotOptimize(result);
+    sourcemeta::core::benchmark_do_not_optimize(result);
   }
 }
 
-static void
-// NOLINTNEXTLINE(readability-identifier-naming)
-GZIP_Decompress_Default_Level_ISO_Language_Set_3_Locations(
-    benchmark::State &state) {
+BENCHMARK(GZIP_Decompress_Default_Level_ISO_Language_Set_3_Locations) {
   const sourcemeta::core::FileView view{
       std::filesystem::path{CURRENT_DIRECTORY} / "files" /
       "iso_language_2023_set_3_locations.json.gz"};
@@ -60,14 +53,11 @@ GZIP_Decompress_Default_Level_ISO_Language_Set_3_Locations(
     auto result{sourcemeta::core::gunzip(
         reinterpret_cast<const std::uint8_t *>(compressed.data()),
         compressed.size(), contents.size())};
-    benchmark::DoNotOptimize(result);
+    sourcemeta::core::benchmark_do_not_optimize(result);
   }
 }
 
-static void
-// NOLINTNEXTLINE(readability-identifier-naming)
-GZIP_Decompress_Stream_Default_Level_ISO_Language_Set_3_Locations(
-    benchmark::State &state) {
+BENCHMARK(GZIP_Decompress_Stream_Default_Level_ISO_Language_Set_3_Locations) {
   const sourcemeta::core::FileView view{
       std::filesystem::path{CURRENT_DIRECTORY} / "files" /
       "iso_language_2023_set_3_locations.json.gz"};
@@ -87,13 +77,12 @@ GZIP_Decompress_Stream_Default_Level_ISO_Language_Set_3_Locations(
     decompressed.read(result.data(),
                       static_cast<std::streamsize>(contents.size()));
     // Reaching the end of the stream validates the member trailer
-    benchmark::DoNotOptimize(decompressed.peek());
-    benchmark::DoNotOptimize(result);
+    sourcemeta::core::benchmark_do_not_optimize(decompressed.peek());
+    sourcemeta::core::benchmark_do_not_optimize(result);
   }
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void GZIP_Compress_ISO_Language_Set_3_Schema(benchmark::State &state) {
+BENCHMARK(GZIP_Compress_ISO_Language_Set_3_Schema) {
   const sourcemeta::core::FileView view{
       std::filesystem::path{CURRENT_DIRECTORY} / "files" /
       "iso_language_2023_set_3_schema.json.gz"};
@@ -104,12 +93,11 @@ static void GZIP_Compress_ISO_Language_Set_3_Schema(benchmark::State &state) {
     auto result{sourcemeta::core::gzip(
         reinterpret_cast<const std::uint8_t *>(contents.data()),
         contents.size())};
-    benchmark::DoNotOptimize(result);
+    sourcemeta::core::benchmark_do_not_optimize(result);
   }
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void GZIP_Decompress_ISO_Language_Set_3_Schema(benchmark::State &state) {
+BENCHMARK(GZIP_Decompress_ISO_Language_Set_3_Schema) {
   const sourcemeta::core::FileView view{
       std::filesystem::path{CURRENT_DIRECTORY} / "files" /
       "iso_language_2023_set_3_schema.json.gz"};
@@ -119,13 +107,6 @@ static void GZIP_Decompress_ISO_Language_Set_3_Schema(benchmark::State &state) {
   for (auto iteration : state) {
     auto result{sourcemeta::core::gunzip(view.as<std::uint8_t>(), view.size(),
                                          output_hint)};
-    benchmark::DoNotOptimize(result);
+    sourcemeta::core::benchmark_do_not_optimize(result);
   }
 }
-
-BENCHMARK(GZIP_Compress_ISO_Language_Set_3_Locations);
-BENCHMARK(GZIP_Decompress_ISO_Language_Set_3_Locations);
-BENCHMARK(GZIP_Decompress_Default_Level_ISO_Language_Set_3_Locations);
-BENCHMARK(GZIP_Decompress_Stream_Default_Level_ISO_Language_Set_3_Locations);
-BENCHMARK(GZIP_Compress_ISO_Language_Set_3_Schema);
-BENCHMARK(GZIP_Decompress_ISO_Language_Set_3_Schema);

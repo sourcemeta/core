@@ -1,4 +1,4 @@
-#include <benchmark/benchmark.h>
+#include <sourcemeta/core/benchmark.h>
 
 #include <cassert>    // assert
 #include <filesystem> // std::filesystem
@@ -9,8 +9,7 @@
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonpointer.h>
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void Pointer_Object_Traverse(benchmark::State &state) {
+BENCHMARK(Pointer_Object_Traverse) {
   const auto document{sourcemeta::core::parse_json(R"JSON({
     "one": {
       "two": {
@@ -41,12 +40,11 @@ static void Pointer_Object_Traverse(benchmark::State &state) {
     auto result{sourcemeta::core::get(document, pointer)};
     assert(result.is_boolean());
     assert(result.to_boolean());
-    benchmark::DoNotOptimize(result);
+    sourcemeta::core::benchmark_do_not_optimize(result);
   }
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void Pointer_Object_Try_Traverse(benchmark::State &state) {
+BENCHMARK(Pointer_Object_Try_Traverse) {
   const auto document{sourcemeta::core::parse_json(R"JSON({
     "one": {
       "two": {
@@ -78,12 +76,11 @@ static void Pointer_Object_Try_Traverse(benchmark::State &state) {
     assert(result);
     assert(result->is_boolean());
     assert(result->to_boolean());
-    benchmark::DoNotOptimize(result);
+    sourcemeta::core::benchmark_do_not_optimize(result);
   }
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void Pointer_Push_Back_Pointer_To_Weak_Pointer(benchmark::State &state) {
+BENCHMARK(Pointer_Push_Back_Pointer_To_Weak_Pointer) {
   const sourcemeta::core::Pointer pointer{"QG5",
                                           "hzh4HOy0CDatvDds",
                                           "A2Fmfu3",
@@ -150,12 +147,11 @@ static void Pointer_Push_Back_Pointer_To_Weak_Pointer(benchmark::State &state) {
     sourcemeta::core::WeakPointer destination;
     destination.push_back(pointer);
     assert(destination.size() == pointer.size());
-    benchmark::DoNotOptimize(destination);
+    sourcemeta::core::benchmark_do_not_optimize(destination);
   }
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void Pointer_Walker_Schema_ISO_Language(benchmark::State &state) {
+BENCHMARK(Pointer_Walker_Schema_ISO_Language) {
   const auto schema{sourcemeta::core::read_json(
       std::filesystem::path{CURRENT_DIRECTORY} / "files" /
       "2020_12_iso_language_2023_set_3.json")};
@@ -164,12 +160,11 @@ static void Pointer_Walker_Schema_ISO_Language(benchmark::State &state) {
     sourcemeta::core::PointerWalker walker{schema};
     auto pointer_count =
         static_cast<std::size_t>(std::distance(walker.cbegin(), walker.cend()));
-    benchmark::DoNotOptimize(pointer_count);
+    sourcemeta::core::benchmark_do_not_optimize(pointer_count);
   }
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void Pointer_Untracked_Deeply_Nested(benchmark::State &state) {
+BENCHMARK(Pointer_Untracked_Deeply_Nested) {
   const std::filesystem::path path{std::filesystem::path{CURRENT_DIRECTORY} /
                                    "files" / "deeply_nested.json"};
   std::ifstream file{path};
@@ -180,12 +175,11 @@ static void Pointer_Untracked_Deeply_Nested(benchmark::State &state) {
   for (auto iteration : state) {
     auto result{sourcemeta::core::parse_json(content)};
     assert(result.is_object());
-    benchmark::DoNotOptimize(result);
+    sourcemeta::core::benchmark_do_not_optimize(result);
   }
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void Pointer_Tracked_Deeply_Nested(benchmark::State &state) {
+BENCHMARK(Pointer_Tracked_Deeply_Nested) {
   const std::filesystem::path path{std::filesystem::path{CURRENT_DIRECTORY} /
                                    "files" / "deeply_nested.json"};
   std::ifstream file{path};
@@ -198,14 +192,12 @@ static void Pointer_Tracked_Deeply_Nested(benchmark::State &state) {
     sourcemeta::core::JSON result{nullptr};
     sourcemeta::core::parse_json(content, result, std::ref(tracker));
     assert(result.is_object());
-    benchmark::DoNotOptimize(result);
-    benchmark::DoNotOptimize(tracker);
+    sourcemeta::core::benchmark_do_not_optimize(result);
+    sourcemeta::core::benchmark_do_not_optimize(tracker);
   }
 }
 
-static void
-// NOLINTNEXTLINE(readability-identifier-naming)
-Pointer_Position_Tracker_Get_Deeply_Nested(benchmark::State &state) {
+BENCHMARK(Pointer_Position_Tracker_Get_Deeply_Nested) {
   const std::filesystem::path path{std::filesystem::path{CURRENT_DIRECTORY} /
                                    "files" / "deeply_nested.json"};
   std::ifstream file{path};
@@ -226,12 +218,11 @@ Pointer_Position_Tracker_Get_Deeply_Nested(benchmark::State &state) {
   for (auto iteration : state) {
     auto position{tracker.get(pointer)};
     assert(position.has_value());
-    benchmark::DoNotOptimize(position);
+    sourcemeta::core::benchmark_do_not_optimize(position);
   }
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void Schema_Tracker_ISO_Language(benchmark::State &state) {
+BENCHMARK(Schema_Tracker_ISO_Language) {
   for (auto iteration : state) {
     sourcemeta::core::PointerPositionTracker tracker;
     sourcemeta::core::JSON schema{nullptr};
@@ -240,12 +231,11 @@ static void Schema_Tracker_ISO_Language(benchmark::State &state) {
                                     "2020_12_iso_language_2023_set_3.json",
                                 schema, std::ref(tracker));
     assert(schema.is_object());
-    benchmark::DoNotOptimize(schema);
+    sourcemeta::core::benchmark_do_not_optimize(schema);
   }
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-static void Schema_Tracker_ISO_Language_To_JSON(benchmark::State &state) {
+BENCHMARK(Schema_Tracker_ISO_Language_To_JSON) {
   sourcemeta::core::PointerPositionTracker tracker;
   sourcemeta::core::JSON schema{nullptr};
   sourcemeta::core::read_json(std::filesystem::path{CURRENT_DIRECTORY} /
@@ -256,16 +246,6 @@ static void Schema_Tracker_ISO_Language_To_JSON(benchmark::State &state) {
   for (auto iteration : state) {
     auto result{sourcemeta::core::to_json(tracker)};
     assert(result.is_object());
-    benchmark::DoNotOptimize(result);
+    sourcemeta::core::benchmark_do_not_optimize(result);
   }
 }
-
-BENCHMARK(Pointer_Object_Traverse);
-BENCHMARK(Pointer_Object_Try_Traverse);
-BENCHMARK(Pointer_Push_Back_Pointer_To_Weak_Pointer);
-BENCHMARK(Pointer_Walker_Schema_ISO_Language);
-BENCHMARK(Pointer_Untracked_Deeply_Nested);
-BENCHMARK(Pointer_Tracked_Deeply_Nested);
-BENCHMARK(Pointer_Position_Tracker_Get_Deeply_Nested);
-BENCHMARK(Schema_Tracker_ISO_Language);
-BENCHMARK(Schema_Tracker_ISO_Language_To_JSON);
