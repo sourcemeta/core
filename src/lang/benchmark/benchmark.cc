@@ -273,38 +273,6 @@ namespace sourcemeta::core {
 BenchmarkState::BenchmarkState(const std::uint64_t iterations)
     : iterations_{iterations} {}
 
-BenchmarkState::Iterator::Iterator() : remaining_{0}, parent_{nullptr} {}
-
-BenchmarkState::Iterator::Iterator(BenchmarkState *const parent)
-    : remaining_{parent->iterations_}, parent_{parent} {}
-
-auto BenchmarkState::Iterator::operator*() const -> BenchmarkState::Value {
-  return {};
-}
-
-auto BenchmarkState::Iterator::operator++() -> BenchmarkState::Iterator & {
-  this->remaining_ -= 1;
-  return *this;
-}
-
-auto BenchmarkState::Iterator::operator!=(const Iterator &) const -> bool {
-  if (this->remaining_ != 0) {
-    return true;
-  }
-
-  this->parent_->finish();
-  return false;
-}
-
-auto BenchmarkState::begin() -> BenchmarkState::Iterator {
-  return Iterator{this};
-}
-
-auto BenchmarkState::end() -> BenchmarkState::Iterator {
-  this->start();
-  return {};
-}
-
 auto BenchmarkState::iterations() const -> std::uint64_t {
   return this->iterations_;
 }

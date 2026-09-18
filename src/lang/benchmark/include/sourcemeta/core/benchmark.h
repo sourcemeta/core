@@ -58,21 +58,41 @@ public:
   /// only to repeat its body a known number of times.
   struct [[maybe_unused]] Value {};
 
-  /// Walks the remaining iterations of a run.
+  /// Walks the remaining iterations of a run. Every member is defined here on
+  /// purpose, i.e. the loop must cost a decrement and a compare, not a call
+  /// into another translation unit, and a nested class of an exported class is
+  /// not itself exported on Windows.
   class Iterator {
   public:
     /// Construct the sentinel that the loop compares against.
-    Iterator();
+    Iterator() : remaining_{0}, parent_{nullptr} {}
+
     /// Construct the position that walks the given run.
-    explicit Iterator(BenchmarkState *const parent);
+    explicit Iterator(BenchmarkState *const parent)
+        : remaining_{parent->iterations_}, parent_{parent} {}
 
     /// Yield the current iteration.
-    auto operator*() const -> Value;
+    SOURCEMETA_CORE_BENCHMARK_ALWAYS_INLINE auto operator*() const -> Value {
+      return {};
+    }
+
     /// Advance to the next iteration.
-    auto operator++() -> Iterator &;
+    SOURCEMETA_CORE_BENCHMARK_ALWAYS_INLINE auto operator++() -> Iterator & {
+      this->remaining_ -= 1;
+      return *this;
+    }
+
     /// Report whether the run has iterations left, stopping the clock when it
     /// does not.
-    auto operator!=(const Iterator &other) const -> bool;
+    SOURCEMETA_CORE_BENCHMARK_ALWAYS_INLINE auto
+    operator!=(const Iterator &) const -> bool {
+      if (this->remaining_ != 0) [[likely]] {
+        return true;
+      }
+
+      this->parent_->finish();
+      return false;
+    }
 
   private:
     std::uint64_t remaining_;
@@ -80,10 +100,16 @@ public:
   };
 
   /// The position the loop starts from.
-  auto begin() -> Iterator;
+  SOURCEMETA_CORE_BENCHMARK_ALWAYS_INLINE auto begin() -> Iterator {
+    return Iterator{this};
+  }
+
   /// The sentinel the loop stops at. Obtaining it starts the clock, so that as
   /// little as possible of the caller's setup falls inside the measurement.
-  auto end() -> Iterator;
+  SOURCEMETA_CORE_BENCHMARK_ALWAYS_INLINE auto end() -> Iterator {
+    this->start();
+    return {};
+  }
 
   /// How many iterations this run was asked to perform.
   [[nodiscard]] auto iterations() const -> std::uint64_t;
@@ -97,7 +123,6 @@ public:
       -> std::optional<std::chrono::nanoseconds>;
 
 private:
-  friend class Iterator;
   auto start() -> void;
   auto finish() -> void;
 
