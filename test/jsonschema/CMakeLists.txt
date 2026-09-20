@@ -13,6 +13,7 @@ sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME jsonschema
     jsonschema_walker_draft0_test.cc
     jsonschema_walker_openapi_test.cc
     jsonschema_error_test.cc
+    jsonschema_format_test.cc
     jsonschema_resolver_test.cc
     jsonschema_frame_test.cc
     jsonschema_frame_error_test.cc
