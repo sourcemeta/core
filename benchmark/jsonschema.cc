@@ -181,3 +181,18 @@ BENCHMARK(Schema_Frame_Deeply_Nested_References) {
     sourcemeta::core::benchmark_do_not_optimize(frame);
   }
 }
+
+BENCHMARK(Schema_Format_ISO_Language) {
+  const auto document{sourcemeta::core::read_json(
+      std::filesystem::path{CURRENT_DIRECTORY} / "files" /
+      "2020_12_iso_language_2023_set_3.json")};
+
+  for (auto iteration : state) {
+    auto schema{document};
+    const sourcemeta::core::SchemaFrame frame{
+        sourcemeta::core::SchemaFrame::Mode::Locations, schema,
+        sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+    sourcemeta::core::schema_format(schema, frame);
+    sourcemeta::core::benchmark_do_not_optimize(schema);
+  }
+}
