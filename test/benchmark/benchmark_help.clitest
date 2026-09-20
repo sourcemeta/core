@@ -5,9 +5,8 @@ WRITE expected.txt UNTIL EXPECTED
 1> Run the registered benchmarks.
 1>
 1> Options:
-1>   -f, --filter <text>       Only run benchmarks whose name contains <text>
-1>   -o, --output <path>       Also write the results as JSON to <path>
-1>   -r, --relative-to <path>  Report each result as a proportion of <path>
-1>   -h, --help                Show this message
+1>   -f, --filter <text>  Only run benchmarks whose name contains <text>
+1>   -o, --output <path>  Also write the results as JSON to <path>
+1>   -h, --help           Show this message
 EXPECTED
 COMPARE result.txt AGAINST expected.txt

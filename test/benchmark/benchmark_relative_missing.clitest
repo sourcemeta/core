@@ -1,6 +1,0 @@
-RUN --relative-to nowhere.json STDIN /dev/null IN . INTO result.txt EXPECTING 1
-WRITE expected.txt UNTIL EXPECTED
-2> error: File not found
-2>   at file path nowhere.json
-EXPECTED
-COMPARE result.txt AGAINST expected.txt
