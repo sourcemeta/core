@@ -7,7 +7,7 @@
 #include <filesystem>  // std::filesystem
 #include <string_view> // std::string_view
 
-BENCHMARK(CRYPTO_CRC32_Large_JSONL) {
+BENCHMARK(Crypto_CRC32_Large_JSONL) {
   const sourcemeta::core::FileView view{
       std::filesystem::path{CURRENT_DIRECTORY} / "files" / "large.jsonl"};
   const std::string_view contents{
