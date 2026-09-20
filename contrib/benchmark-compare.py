@@ -3,6 +3,7 @@
 # Turns two benchmark result files into a Markdown report, and optionally
 # posts it as a pull request comment
 
+import http.client
 import json
 import os
 import sys
@@ -177,12 +178,19 @@ def publish(pull_request, label, body):
             call(f"{api}/repos/{repository}/issues/comments/{comment}",
                  token, "PATCH", {"body": body})
     except urllib.error.HTTPError as failure:
+        # Reading the body of a failed response goes back over the socket and
+        # can fail in turn, and what a handler raises is not caught by that
+        # handler's siblings, so the report would be lost along with it
+        try:
+            detail = failure.read().decode("utf-8", "replace")
+        except (OSError, http.client.HTTPException):
+            detail = "<unavailable>"
+
         print("error: The benchmark comment could not be posted",
               file=sys.stderr)
         print(f"  at pull request {pull_request}", file=sys.stderr)
         print(f"  at status {failure.code}", file=sys.stderr)
-        print(f"  at response {failure.read().decode('utf-8', 'replace')}",
-              file=sys.stderr)
+        print(f"  at response {detail}", file=sys.stderr)
         return 1
     except (urllib.error.URLError, TimeoutError) as failure:
         print("error: The benchmark comment could not be posted",
