@@ -371,7 +371,7 @@ auto benchmark_run(int argc, char **argv) -> int {
   std::vector<Measurement> measurements;
   measurements.reserve(selected.size());
   for (const auto *entry : selected) {
-    const auto measurement{measure(*entry)};
+    auto measurement{measure(*entry)};
     if (!measurement.has_value()) {
       std::cerr << "error: The benchmark did not iterate over its state\n"
                 << "  at benchmark " << entry->name << "\n"
@@ -381,7 +381,7 @@ auto benchmark_run(int argc, char **argv) -> int {
     }
 
     print_measurement(measurement.value());
-    measurements.push_back(measurement.value());
+    measurements.push_back(std::move(measurement).value());
   }
 
   if (options.contains("output") && !options.at("output").empty()) {
