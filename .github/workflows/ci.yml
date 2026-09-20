@@ -95,6 +95,12 @@ jobs:
       # the compiler modification time and size would miss on an unchanged
       # compiler. Hash its contents instead
       CCACHE_COMPILERCHECK: content
+      # Nothing in the cache should depend on where the build happens to sit.
+      # Rewriting absolute paths so that they are relative to the workspace,
+      # and keeping the working directory out of the hash, is what lets an
+      # entry written from one build directory serve another
+      CCACHE_BASEDIR: ${{ github.workspace }}
+      CCACHE_NOHASHDIR: "1"
       CCACHE_MAXSIZE: 500M
       # Bump the version segment to invalidate every compiler cache by hand.
       # The job index disambiguates matrix entries that otherwise share an
