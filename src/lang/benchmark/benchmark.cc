@@ -84,10 +84,17 @@ auto registry() -> std::vector<RegisteredBenchmark> & {
   return benchmarks;
 }
 
-// How long a single benchmark is given before its result is taken as
-// representative. Matches the convention the previous framework established, so
-// that recorded numbers stay comparable across the change
-constexpr std::chrono::nanoseconds MINIMUM_RUN_TIME{500'000'000};
+// How long one measurement is given before the amount of work it covers is
+// taken as enough to time reliably
+constexpr std::chrono::nanoseconds MINIMUM_RUN_TIME{170'000'000};
+
+// How many times that work is then measured. A single window can be lost to
+// whatever else the machine decided to do while it was open, and no number of
+// iterations inside one window makes up for that. Measuring the same work
+// several times over does, and the fastest of those is the one least
+// disturbed, as interference only ever makes code slower. Together these cost
+// about what a single longer measurement used to
+constexpr std::size_t REPETITIONS{3};
 
 // A run that cannot reach the target time within this many iterations is
 // reported as it stands rather than grown further
@@ -121,6 +128,10 @@ auto measure(const RegisteredBenchmark &benchmark)
     -> std::optional<Measurement> {
   auto iterations{INITIAL_ITERATIONS};
   std::optional<double> cold{std::nullopt};
+  std::optional<double> real{std::nullopt};
+  std::optional<double> cpu{std::nullopt};
+  std::size_t repetitions{0};
+  auto settled{false};
 
   while (true) {
     sourcemeta::core::BenchmarkState state{iterations};
@@ -136,22 +147,36 @@ auto measure(const RegisteredBenchmark &benchmark)
              static_cast<double>(iterations);
     }
 
-    if (elapsed >= MINIMUM_RUN_TIME || iterations >= MAXIMUM_ITERATIONS) {
-      const auto count{static_cast<double>(iterations)};
-      std::optional<double> cpu{std::nullopt};
-      if (state.cpu_time().has_value()) {
-        cpu = static_cast<double>(state.cpu_time().value().count()) / count;
+    // Growing stops for good once the work is large enough to time, as a
+    // later repetition that comes in faster is the point of repeating rather
+    // than a sign that there is too little work to measure
+    if (!settled) {
+      settled = elapsed >= MINIMUM_RUN_TIME || iterations >= MAXIMUM_ITERATIONS;
+      if (!settled) {
+        iterations = next_iterations(iterations, elapsed);
+        continue;
       }
+    }
 
+    const auto count{static_cast<double>(iterations)};
+    const auto candidate{static_cast<double>(elapsed.count()) / count};
+    if (!real.has_value() || candidate < real.value()) {
+      real = candidate;
+      cpu = state.cpu_time().has_value()
+                ? std::optional<double>{static_cast<double>(
+                                            state.cpu_time().value().count()) /
+                                        count}
+                : std::nullopt;
+    }
+
+    repetitions += 1;
+    if (repetitions >= REPETITIONS) {
       return Measurement{.name = benchmark.name,
                          .iterations = iterations,
-                         .real_time =
-                             static_cast<double>(elapsed.count()) / count,
+                         .real_time = real.value(),
                          .cpu_time = cpu,
                          .cold_time = cold.value()};
     }
-
-    iterations = next_iterations(iterations, elapsed);
   }
 }
 
