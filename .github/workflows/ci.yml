@@ -81,6 +81,11 @@ jobs:
         shell: ${{ matrix.platform.shell }}
 
     runs-on: ${{ matrix.platform.os }}
+    # Reading the repository is all the build needs. The benchmark report is
+    # the one thing that writes anywhere, and it writes to the conversation
+    permissions:
+      contents: read
+      pull-requests: write
     env:
       CC: ${{ matrix.platform.cc }}
       CXX: ${{ matrix.platform.cxx }}
@@ -183,24 +188,50 @@ jobs:
           # See https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html
           UBSAN_OPTIONS: print_stacktrace=1
 
-      # A single run prints the human readable report and writes the JSON file
-      - run: cmake --build ./build --config Release --verbose --target benchmark
-        if: matrix.platform.benchmark
-
-      - uses: benchmark-action/github-action-benchmark@v1
-        # Avoid posting messages on forks until we figure out how to make it work
-        # See https://github.com/benchmark-action/github-action-benchmark/issues/279
-        if: matrix.platform.benchmark && github.event.pull_request.head.repo.fork == false
+      # The two names an interpreter goes by are not both on the path
+      # everywhere this runs, and on one of them the name resolves to a stub
+      # that sends you to an app store, so the path is asked for outright
+      - uses: actions/setup-python@v7
+        id: python
+        if: matrix.platform.benchmark && github.event_name == 'pull_request'
         with:
-          name: Benchmark (${{ matrix.platform.benchmark }})
-          tool: googlecpp
-          output-file-path: build/benchmark.json
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          auto-push: ${{ github.event_name != 'pull_request' }}
-          benchmark-data-dir-path: benchmark/${{ matrix.platform.benchmark }}
-          alert-threshold: '5%'
-          comment-always: true
-          fail-on-alert: false
+          python-version: '3.13'
+
+      # The base revision gets a directory of its own, so that each side keeps
+      # the libraries it was built against and a shared build stays honest. It
+      # configures with the same arguments as this branch bar the analysis,
+      # which changes the build rule rather than the compiler arguments and is
+      # by far the slowest part, so the compiler cache carries all but the
+      # handful of files that actually differ
+      - name: Benchmark (Before + After)
+        if: matrix.platform.benchmark && github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          git fetch --no-tags --depth 1 origin "$GITHUB_BASE_REF"
+          echo "BENCHMARK_BASELINE_REVISION=$(git rev-parse --short FETCH_HEAD)" >> "$GITHUB_ENV"
+          git checkout --force --detach FETCH_HEAD
+          cmake -S . -B ./build-base ${{ env.CONFIGURE_BASE_FLAGS }} \
+            -DSOURCEMETA_CORE_CLANG_TIDY:BOOL=OFF ${{ matrix.platform.options }}
+          cmake --build ./build-base --config Release --parallel 4 --verbose --target benchmark
+          git checkout --force --detach "$GITHUB_SHA"
+          cmake --build ./build --config Release --verbose --target benchmark
+
+      # A fork only gets a read only token, so it reports to the run summary
+      # and stops there. The number a pull request carries is never zero,
+      # which is what lets this pick between the two
+      # See https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows
+      - name: Benchmark Report GitHub Comment
+        if: matrix.platform.benchmark && github.event_name == 'pull_request'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PULL_REQUEST: ${{ !github.event.pull_request.head.repo.fork && github.event.pull_request.number || '' }}
+        run: >
+          ${{ steps.python.outputs.python-path }}
+          ./contrib/benchmark-compare.py
+          "${{ matrix.platform.benchmark }}"
+          ./build-base/benchmark.json
+          ./build/benchmark.json
+          "${{ env.PULL_REQUEST }}"
 
       # Saving on a cancelled run is pointless, as the cache would only hold
       # whatever the build got through before the interruption
