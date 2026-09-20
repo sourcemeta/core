@@ -26,36 +26,30 @@
 namespace {
 using namespace std::string_view_literals;
 
-constexpr auto BENCHMARK_HASH_NUM_CPUS{
-    sourcemeta::core::JSON::Object::hash("num_cpus"sv)};
-constexpr auto BENCHMARK_HASH_NAME{
-    sourcemeta::core::JSON::Object::hash("name"sv)};
-constexpr auto BENCHMARK_HASH_FAMILY_INDEX{
-    sourcemeta::core::JSON::Object::hash("family_index"sv)};
-constexpr auto BENCHMARK_HASH_PER_FAMILY_INSTANCE_INDEX{
-    sourcemeta::core::JSON::Object::hash("per_family_instance_index"sv)};
-constexpr auto BENCHMARK_HASH_RUN_NAME{
-    sourcemeta::core::JSON::Object::hash("run_name"sv)};
-constexpr auto BENCHMARK_HASH_RUN_TYPE{
-    sourcemeta::core::JSON::Object::hash("run_type"sv)};
-constexpr auto BENCHMARK_HASH_REPETITIONS{
-    sourcemeta::core::JSON::Object::hash("repetitions"sv)};
-constexpr auto BENCHMARK_HASH_AGGREGATE_NAME{
-    sourcemeta::core::JSON::Object::hash("aggregate_name"sv)};
-constexpr auto BENCHMARK_HASH_THREADS{
-    sourcemeta::core::JSON::Object::hash("threads"sv)};
-constexpr auto BENCHMARK_HASH_ITERATIONS{
-    sourcemeta::core::JSON::Object::hash("iterations"sv)};
-constexpr auto BENCHMARK_HASH_REAL_TIME{
-    sourcemeta::core::JSON::Object::hash("real_time"sv)};
-constexpr auto BENCHMARK_HASH_CPU_TIME{
-    sourcemeta::core::JSON::Object::hash("cpu_time"sv)};
-constexpr auto BENCHMARK_HASH_TIME_UNIT{
-    sourcemeta::core::JSON::Object::hash("time_unit"sv)};
+constexpr auto BENCHMARK_HASH_VERSION{
+    sourcemeta::core::JSON::Object::hash("version"sv)};
 constexpr auto BENCHMARK_HASH_CONTEXT{
     sourcemeta::core::JSON::Object::hash("context"sv)};
+constexpr auto BENCHMARK_HASH_CORES{
+    sourcemeta::core::JSON::Object::hash("cores"sv)};
 constexpr auto BENCHMARK_HASH_BENCHMARKS{
     sourcemeta::core::JSON::Object::hash("benchmarks"sv)};
+constexpr auto BENCHMARK_HASH_NAME{
+    sourcemeta::core::JSON::Object::hash("name"sv)};
+constexpr auto BENCHMARK_HASH_ITERATIONS{
+    sourcemeta::core::JSON::Object::hash("iterations"sv)};
+constexpr auto BENCHMARK_HASH_REPETITIONS{
+    sourcemeta::core::JSON::Object::hash("repetitions"sv)};
+constexpr auto BENCHMARK_HASH_REAL_TIME{
+    sourcemeta::core::JSON::Object::hash("realTime"sv)};
+constexpr auto BENCHMARK_HASH_CPU_TIME{
+    sourcemeta::core::JSON::Object::hash("cpuTime"sv)};
+constexpr auto BENCHMARK_HASH_COLD_TIME{
+    sourcemeta::core::JSON::Object::hash("coldTime"sv)};
+
+// What the shape of this document is, so that a reader given one written by
+// some other version has something to refuse on rather than a surprise
+constexpr std::int64_t FORMAT_VERSION{1};
 
 struct RegisteredBenchmark {
   std::string name;
@@ -237,65 +231,54 @@ auto print_measurement(const Measurement &measurement) -> void {
             << ", iterations: " << measurement.iterations << "\n";
 }
 
+// Every duration is nanoseconds for one iteration, and the real one is the
+// fastest of the repetitions rather than an average over them
 auto to_json(const std::vector<Measurement> &measurements)
     -> sourcemeta::core::JSON {
   auto context{sourcemeta::core::JSON::make_object()};
   const auto cores{std::thread::hardware_concurrency()};
   if (cores > 0) {
     context.assign_assume_new(
-        "num_cpus", sourcemeta::core::JSON{static_cast<std::int64_t>(cores)},
-        BENCHMARK_HASH_NUM_CPUS);
+        "cores", sourcemeta::core::JSON{static_cast<std::int64_t>(cores)},
+        BENCHMARK_HASH_CORES);
   }
 
   auto entries{sourcemeta::core::JSON::make_array()};
-  std::size_t index{0};
   for (const auto &measurement : measurements) {
     auto entry{sourcemeta::core::JSON::make_object()};
     entry.assign_assume_new("name", sourcemeta::core::JSON{measurement.name},
                             BENCHMARK_HASH_NAME);
-    entry.assign_assume_new(
-        "family_index",
-        sourcemeta::core::JSON{static_cast<std::int64_t>(index)},
-        BENCHMARK_HASH_FAMILY_INDEX);
-    entry.assign_assume_new("per_family_instance_index",
-                            sourcemeta::core::JSON{0},
-                            BENCHMARK_HASH_PER_FAMILY_INSTANCE_INDEX);
-    entry.assign_assume_new("run_name",
-                            sourcemeta::core::JSON{measurement.name},
-                            BENCHMARK_HASH_RUN_NAME);
-    // What is reported is the fastest of several measurements rather than any
-    // single one of them, which is what an aggregate says. A reader that took
-    // this for one measurement among a numbered series would be entitled to
-    // look for the others, so no index is offered
-    entry.assign_assume_new("run_type", sourcemeta::core::JSON{"aggregate"},
-                            BENCHMARK_HASH_RUN_TYPE);
-    entry.assign_assume_new(
-        "repetitions",
-        sourcemeta::core::JSON{static_cast<std::int64_t>(REPETITIONS)},
-        BENCHMARK_HASH_REPETITIONS);
-    entry.assign_assume_new("aggregate_name", sourcemeta::core::JSON{"min"},
-                            BENCHMARK_HASH_AGGREGATE_NAME);
-    entry.assign_assume_new("threads", sourcemeta::core::JSON{1},
-                            BENCHMARK_HASH_THREADS);
     entry.assign_assume_new("iterations",
                             sourcemeta::core::JSON{static_cast<std::int64_t>(
                                 measurement.iterations)},
                             BENCHMARK_HASH_ITERATIONS);
-    entry.assign_assume_new("real_time",
+    entry.assign_assume_new(
+        "repetitions",
+        sourcemeta::core::JSON{static_cast<std::int64_t>(REPETITIONS)},
+        BENCHMARK_HASH_REPETITIONS);
+    entry.assign_assume_new("realTime",
                             sourcemeta::core::JSON{measurement.real_time},
                             BENCHMARK_HASH_REAL_TIME);
+
+    // A platform that cannot account for processor time says so, rather than
+    // standing the elapsed time in for it, which would read as a benchmark
+    // that spent every moment of it computing
     entry.assign_assume_new(
-        "cpu_time",
-        sourcemeta::core::JSON{
-            measurement.cpu_time.value_or(measurement.real_time)},
+        "cpuTime",
+        measurement.cpu_time.has_value()
+            ? sourcemeta::core::JSON{measurement.cpu_time.value()}
+            : sourcemeta::core::JSON{nullptr},
         BENCHMARK_HASH_CPU_TIME);
-    entry.assign_assume_new("time_unit", sourcemeta::core::JSON{"ns"},
-                            BENCHMARK_HASH_TIME_UNIT);
+
+    entry.assign_assume_new("coldTime",
+                            sourcemeta::core::JSON{measurement.cold_time},
+                            BENCHMARK_HASH_COLD_TIME);
     entries.push_back(std::move(entry));
-    index += 1;
   }
 
   auto document{sourcemeta::core::JSON::make_object()};
+  document.assign_assume_new("version", sourcemeta::core::JSON{FORMAT_VERSION},
+                             BENCHMARK_HASH_VERSION);
   document.assign_assume_new("context", std::move(context),
                              BENCHMARK_HASH_CONTEXT);
   document.assign_assume_new("benchmarks", std::move(entries),

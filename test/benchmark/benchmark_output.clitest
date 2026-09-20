@@ -7,29 +7,25 @@ WRITE expected.txt UNTIL EXPECTED
 1>   <measurement>
 EXPECTED
 COMPARE result.txt AGAINST expected.txt
-REPLACE MATCHING '"num_cpus": [0-9]+' WITH '"num_cpus": 0' IN out.json
+REPLACE MATCHING '"cores": [0-9]+' WITH '"cores": 0' IN out.json
 REPLACE MATCHING '"iterations": [0-9]+' WITH '"iterations": 0' IN out.json
-REPLACE MATCHING '"real_time": [0-9.e+-]+' WITH '"real_time": 0' IN out.json
-REPLACE MATCHING '"cpu_time": [0-9.e+-]+' WITH '"cpu_time": 0' IN out.json
+REPLACE MATCHING '"realTime": [0-9.e+-]+' WITH '"realTime": 0' IN out.json
+REPLACE MATCHING '"cpuTime": [^,}]+' WITH '"cpuTime": 0' IN out.json
+REPLACE MATCHING '"coldTime": [0-9.e+-]+' WITH '"coldTime": 0' IN out.json
 WRITE expected.json UNTIL EXPECTED
 {
+  "version": 1,
   "context": {
-    "num_cpus": 0
+    "cores": 0
   },
   "benchmarks": [
     {
       "name": "addition",
-      "family_index": 0,
-      "per_family_instance_index": 0,
-      "run_name": "addition",
-      "run_type": "aggregate",
-      "repetitions": 3,
-      "aggregate_name": "min",
-      "threads": 1,
       "iterations": 0,
-      "real_time": 0,
-      "cpu_time": 0,
-      "time_unit": "ns"
+      "repetitions": 3,
+      "realTime": 0,
+      "cpuTime": 0,
+      "coldTime": 0
     }
   ]
 }

@@ -17,6 +17,9 @@ REMOVED_LIMIT = 10
 
 UNITS = ((1_000_000_000, "s"), (1_000_000, "ms"), (1_000, "us"), (1, "ns"))
 
+# What shape of result file this knows how to read
+FORMAT_VERSION = 1
+
 PAGE_SIZE = 100
 
 # Left to itself a request that never answers waits forever, which reads as a
@@ -33,7 +36,8 @@ def duration(nanoseconds):
 
 def read_results(path):
     with open(path, encoding="utf-8") as handle:
-        return json.load(handle).get("benchmarks", [])
+        document = json.load(handle)
+    return document.get("version"), document.get("benchmarks", [])
 
 
 def status_of(delta):
@@ -52,8 +56,8 @@ def compare(previous, current):
         before = previous.get(entry["name"])
         delta = None
         if before is not None and before > 0:
-            delta = (entry["real_time"] - before) / before * 100
-        rows.append({"name": entry["name"], "current": entry["real_time"],
+            delta = (entry["realTime"] - before) / before * 100
+        rows.append({"name": entry["name"], "current": entry["realTime"],
                      "previous": before, "delta": delta,
                      "status": status_of(delta)})
     return rows
@@ -211,15 +215,25 @@ def main(arguments):
     label, baseline_path, current_path = arguments[:3]
     pull_request = arguments[3] if len(arguments) == 4 else ""
 
+    loaded = []
     for path in (baseline_path, current_path):
         if not os.path.isfile(path):
             print("error: No such benchmark result file", file=sys.stderr)
             print(f"  at file path {path}", file=sys.stderr)
             return 1
 
-    previous = {entry["name"]: entry["real_time"]
-                for entry in read_results(baseline_path)}
-    current = read_results(current_path)
+        version, entries = read_results(path)
+        if version != FORMAT_VERSION:
+            print("error: Unsupported benchmark result format",
+                  file=sys.stderr)
+            print(f"  at file path {path}", file=sys.stderr)
+            print(f"  at version {version}", file=sys.stderr)
+            return 1
+
+        loaded.append(entries)
+
+    previous = {entry["name"]: entry["realTime"] for entry in loaded[0]}
+    current = loaded[1]
     rows = compare(previous, current)
     removed = sorted(set(previous) - {row["name"] for row in rows})
 
