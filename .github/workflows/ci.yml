@@ -100,6 +100,19 @@ jobs:
       # The job index disambiguates matrix entries that otherwise share an
       # operating system, a compiler, and a linkage
       CACHE_KEY: ccache-v2-${{ matrix.platform.os }}-${{ matrix.platform.cc || 'msvc' }}-${{ matrix.platform.type }}-${{ strategy.job-index }}
+
+      # What every configure in this job passes. The compiler cache hashes the
+      # arguments it is handed, so a single one that differs between two
+      # configures of the same job misses on every translation unit. Spelling
+      # them once here is what keeps them from drifting apart
+      CONFIGURE_BASE_FLAGS: >-
+        -DCMAKE_BUILD_TYPE:STRING=Release
+        -DSOURCEMETA_CORE_TESTS:BOOL=ON
+        -DSOURCEMETA_CORE_TESTS_CI:BOOL=ON
+        -DSOURCEMETA_CORE_BENCHMARK:BOOL=ON
+        -DSOURCEMETA_CORE_DOCS:BOOL=OFF
+        -DCMAKE_COMPILE_WARNING_AS_ERROR:BOOL=ON
+        -DBUILD_SHARED_LIBS:BOOL=${{ matrix.platform.type == 'shared' && 'ON' || 'OFF' }}
     steps:
       - uses: actions/checkout@v7
       - name: Setup MSYS2 (Windows)
@@ -140,29 +153,10 @@ jobs:
             ${{ env.CACHE_KEY }}-main-
 
       - run: cmake --version
-      - name: Configure (static)
-        if: matrix.platform.type == 'static'
+      - name: Configure
         run: >
           cmake -S . -B ./build
-          -DCMAKE_BUILD_TYPE:STRING=Release
-          -DSOURCEMETA_CORE_TESTS:BOOL=ON
-          -DSOURCEMETA_CORE_TESTS_CI:BOOL=ON
-          -DSOURCEMETA_CORE_BENCHMARK:BOOL=ON
-          -DSOURCEMETA_CORE_DOCS:BOOL=OFF
-          -DBUILD_SHARED_LIBS:BOOL=OFF
-          -DCMAKE_COMPILE_WARNING_AS_ERROR:BOOL=ON
-          ${{ matrix.platform.options }}
-      - name: Configure (shared)
-        if: matrix.platform.type == 'shared'
-        run: >
-          cmake -S . -B ./build
-          -DCMAKE_BUILD_TYPE:STRING=Release
-          -DSOURCEMETA_CORE_TESTS:BOOL=ON
-          -DSOURCEMETA_CORE_TESTS_CI:BOOL=ON
-          -DSOURCEMETA_CORE_BENCHMARK:BOOL=ON
-          -DSOURCEMETA_CORE_DOCS:BOOL=OFF
-          -DBUILD_SHARED_LIBS:BOOL=ON
-          -DCMAKE_COMPILE_WARNING_AS_ERROR:BOOL=ON
+          ${{ env.CONFIGURE_BASE_FLAGS }}
           ${{ matrix.platform.options }}
       - run: cmake --build ./build --config Release --target ccache_stats_zero
       - run: cmake --build ./build --config Release --target clang_format_test
