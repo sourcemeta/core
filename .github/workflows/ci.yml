@@ -206,10 +206,18 @@ jobs:
       - name: Benchmark (Before + After)
         if: matrix.platform.benchmark && github.event_name == 'pull_request'
         shell: bash
+        env:
+          # The name of the base branch resolves to whatever its tip happens to
+          # be by the time this runs, which for a job that waited in a queue, or
+          # one re-run later on, is not what this branch was merged with.
+          # Anything that landed in between would be measured and reported as
+          # though this branch had caused it. The commit the event carries does
+          # not move
+          BENCHMARK_BASE: ${{ github.event.pull_request.base.sha }}
         run: |
-          git fetch --no-tags --depth 1 origin "$GITHUB_BASE_REF"
-          echo "BENCHMARK_BASELINE_REVISION=$(git rev-parse --short FETCH_HEAD)" >> "$GITHUB_ENV"
-          git checkout --force --detach FETCH_HEAD
+          git fetch --no-tags --depth 1 origin "$BENCHMARK_BASE"
+          echo "BENCHMARK_BASELINE_REVISION=$(git rev-parse --short "$BENCHMARK_BASE")" >> "$GITHUB_ENV"
+          git checkout --force --detach "$BENCHMARK_BASE"
           cmake -S . -B ./build-base ${{ env.CONFIGURE_BASE_FLAGS }} \
             -DSOURCEMETA_CORE_CLANG_TIDY:BOOL=OFF ${{ matrix.platform.options }}
           cmake --build ./build-base --config Release --parallel 4 --verbose --target benchmark

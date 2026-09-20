@@ -18,6 +18,10 @@ UNITS = ((1_000_000_000, "s"), (1_000_000, "ms"), (1_000, "us"), (1, "ns"))
 
 PAGE_SIZE = 100
 
+# Left to itself a request that never answers waits forever, which reads as a
+# hung job rather than a failed one
+TIMEOUT = 30
+
 
 def duration(nanoseconds):
     for factor, suffix in UNITS:
@@ -132,7 +136,7 @@ def call(url, token, method="GET", payload=None):
     message.add_header("X-GitHub-Api-Version", "2022-11-28")
     if data is not None:
         message.add_header("Content-Type", "application/json")
-    with urllib.request.urlopen(message) as response:
+    with urllib.request.urlopen(message, timeout=TIMEOUT) as response:
         return json.load(response)
 
 
@@ -179,6 +183,12 @@ def publish(pull_request, label, body):
         print(f"  at status {failure.code}", file=sys.stderr)
         print(f"  at response {failure.read().decode('utf-8', 'replace')}",
               file=sys.stderr)
+        return 1
+    except (urllib.error.URLError, TimeoutError) as failure:
+        print("error: The benchmark comment could not be posted",
+              file=sys.stderr)
+        print(f"  at pull request {pull_request}", file=sys.stderr)
+        print(f"  at reason {failure}", file=sys.stderr)
         return 1
 
     return 0
