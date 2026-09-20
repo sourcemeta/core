@@ -40,8 +40,8 @@ constexpr auto BENCHMARK_HASH_RUN_TYPE{
     sourcemeta::core::JSON::Object::hash("run_type"sv)};
 constexpr auto BENCHMARK_HASH_REPETITIONS{
     sourcemeta::core::JSON::Object::hash("repetitions"sv)};
-constexpr auto BENCHMARK_HASH_REPETITION_INDEX{
-    sourcemeta::core::JSON::Object::hash("repetition_index"sv)};
+constexpr auto BENCHMARK_HASH_AGGREGATE_NAME{
+    sourcemeta::core::JSON::Object::hash("aggregate_name"sv)};
 constexpr auto BENCHMARK_HASH_THREADS{
     sourcemeta::core::JSON::Object::hash("threads"sv)};
 constexpr auto BENCHMARK_HASH_ITERATIONS{
@@ -263,12 +263,18 @@ auto to_json(const std::vector<Measurement> &measurements)
     entry.assign_assume_new("run_name",
                             sourcemeta::core::JSON{measurement.name},
                             BENCHMARK_HASH_RUN_NAME);
-    entry.assign_assume_new("run_type", sourcemeta::core::JSON{"iteration"},
+    // What is reported is the fastest of several measurements rather than any
+    // single one of them, which is what an aggregate says. A reader that took
+    // this for one measurement among a numbered series would be entitled to
+    // look for the others, so no index is offered
+    entry.assign_assume_new("run_type", sourcemeta::core::JSON{"aggregate"},
                             BENCHMARK_HASH_RUN_TYPE);
-    entry.assign_assume_new("repetitions", sourcemeta::core::JSON{1},
-                            BENCHMARK_HASH_REPETITIONS);
-    entry.assign_assume_new("repetition_index", sourcemeta::core::JSON{0},
-                            BENCHMARK_HASH_REPETITION_INDEX);
+    entry.assign_assume_new(
+        "repetitions",
+        sourcemeta::core::JSON{static_cast<std::int64_t>(REPETITIONS)},
+        BENCHMARK_HASH_REPETITIONS);
+    entry.assign_assume_new("aggregate_name", sourcemeta::core::JSON{"min"},
+                            BENCHMARK_HASH_AGGREGATE_NAME);
     entry.assign_assume_new("threads", sourcemeta::core::JSON{1},
                             BENCHMARK_HASH_THREADS);
     entry.assign_assume_new("iterations",
