@@ -28,10 +28,10 @@
 /// It offers the building blocks that any operation on a schema needs,
 /// independently of what that operation is: identification, dialect and
 /// vocabulary detection, resolution of remote schemas, keyword classification
-/// across dialects, and framing a schema into the locations and references it
-/// declares. Evaluation is only one of the consumers of these utilities,
-/// alongside bundling, linting, transformation, code generation, and
-/// documentation tooling.
+/// across dialects, framing a schema into the locations and references it
+/// declares, and bundling a schema into a self-contained document. Evaluation
+/// is only one of the consumers of these utilities, alongside linting,
+/// transformation, code generation, and documentation tooling.
 ///
 /// This functionality is included as follows:
 ///
