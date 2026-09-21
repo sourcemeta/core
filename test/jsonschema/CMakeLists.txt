@@ -51,3 +51,14 @@ target_compile_definitions(sourcemeta_core_jsonschema_frame_suite_unit
 target_link_libraries(sourcemeta_core_jsonschema_frame_suite_unit PRIVATE sourcemeta::core::json)
 target_link_libraries(sourcemeta_core_jsonschema_frame_suite_unit PRIVATE sourcemeta::core::jsonpointer)
 target_link_libraries(sourcemeta_core_jsonschema_frame_suite_unit PRIVATE sourcemeta::core::jsonschema)
+
+# Complete bundling tests, expressed as JSON fixtures
+sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME jsonschema_bundle_suite
+  SOURCES bundlesuite.cc)
+target_compile_definitions(sourcemeta_core_jsonschema_bundle_suite_unit
+  PRIVATE BUNDLE_SUITE_PATH="${PROJECT_SOURCE_DIR}/test/jsonschema/bundle")
+target_link_libraries(sourcemeta_core_jsonschema_bundle_suite_unit PRIVATE sourcemeta::core::json)
+target_link_libraries(sourcemeta_core_jsonschema_bundle_suite_unit PRIVATE sourcemeta::core::jsonpointer)
+target_link_libraries(sourcemeta_core_jsonschema_bundle_suite_unit PRIVATE sourcemeta::core::jsonschema)
+
+set_tests_properties(core.jsonschema_bundle_suite PROPERTIES TIMEOUT 60)
