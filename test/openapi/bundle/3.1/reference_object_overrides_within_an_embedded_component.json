@@ -1,0 +1,88 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "404": {
+              "$ref": "shared.json#/components/responses/Alias"
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/shared.json": {
+      "openapi": "3.1.1",
+      "info": {
+        "title": "Example",
+        "version": "1.0.0"
+      },
+      "components": {
+        "responses": {
+          "Alias": {
+            "$ref": "#/components/responses/Real",
+            "summary": "Kept",
+            "description": "Also kept"
+          },
+          "Real": {
+            "description": "Real"
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "404": {
+              "$ref": "#/components/responses/Alias"
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "responses": {
+        "Alias": {
+          "$ref": "#/components/responses/Real",
+          "summary": "Kept",
+          "description": "Also kept"
+        },
+        "Real": {
+          "description": "Real"
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/shared.json#/components/responses/Alias",
+      "at": "/components/responses/Alias"
+    },
+    {
+      "from": "https://example.com/shared.json#/components/responses/Real",
+      "at": "/components/responses/Real"
+    }
+  ],
+  "reads": {
+    "https://example.com/shared.json": 1
+  },
+  "schemaReads": {},
+  "relocatable": true
+}

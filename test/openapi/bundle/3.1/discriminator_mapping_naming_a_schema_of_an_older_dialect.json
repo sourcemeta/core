@@ -1,0 +1,66 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "schemas": {
+        "Pet": {
+          "$schema": "https://spec.openapis.org/oas/3.1/dialect/base",
+          "discriminator": {
+            "propertyName": "t",
+            "mapping": {
+              "dog": "https://example.com/schemas/dog"
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {},
+  "schemaResolver": {
+    "https://example.com/schemas/dog": {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "type": "object"
+    }
+  },
+  "result": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "schemas": {
+        "Pet": {
+          "$schema": "https://spec.openapis.org/oas/3.1/dialect/base",
+          "discriminator": {
+            "propertyName": "t",
+            "mapping": {
+              "dog": "https://example.com/schemas/dog"
+            }
+          }
+        },
+        "dog": {
+          "$schema": "http://json-schema.org/draft-04/schema#",
+          "type": "object",
+          "id": "https://example.com/schemas/dog"
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/schemas/dog",
+      "at": "/components/schemas/dog"
+    }
+  ],
+  "reads": {},
+  "schemaReads": {
+    "https://example.com/schemas/dog": 1
+  },
+  "relocatable": true
+}

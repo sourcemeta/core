@@ -1,0 +1,54 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "$ref": "shared/api.json#/components/pathItems/Pets"
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/shared/api.json": {
+      "openapi": "3.1.1",
+      "info": {
+        "title": "Shared",
+        "version": "1.0.0"
+      },
+      "components": {
+        "pathItems": {
+          "Pets": {
+            "get": {
+              "responses": {
+                "200": {
+                  "description": "OK"
+                }
+              }
+            },
+            "servers": [
+              {
+                "url": "{basePath}/pets",
+                "variables": {
+                  "basePath": {
+                    "default": "v2"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "error": {
+    "type": "OpenAPIError",
+    "message": "A Server Object URL template that leaves what it is relative to for its variables to decide cannot be read from another document",
+    "location": "/components/pathItems/Pets/servers/0/url",
+    "base": "https://example.com/shared/api.json"
+  }
+}

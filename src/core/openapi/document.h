@@ -271,7 +271,10 @@ inline auto openapi_follow_reference(const JSON::StringView reference,
   walk.references.insert_or_assign(
       openapi_location_uri(walk.base, origin.initial()),
       OpenAPIReference{.original = JSON::String{reference},
-                       .destination = target.value().recompose()});
+                       .destination = target.value().recompose(),
+                       .dangling = false,
+                       .expected = expected,
+                       .origin = origin});
 
   // OpenAPI Specification 3.2.1, Section 4.1.2: "all documents in an OAD MUST
   // have either an OpenAPI Object or a Schema Object at the root". A Schema
@@ -281,7 +284,16 @@ inline auto openapi_follow_reference(const JSON::StringView reference,
   // so a reference that names such a document whole has landed on the wrong
   // thing whatever kind it expected. Section 4.8.9 and Section 4.8.20 say as
   // much of the two positions they speak of, and the rest follows from what a
-  // document may hold rather than from what those two sections single out
+  // document may hold rather than from what those two sections single out.
+  //
+  // No revision of 3.1 says that much, so this holds one of its documents to
+  // a rule its own text does not carry. What it does carry is a choice:
+  // Section 4.3.1 of 3.1.1 reads "Implementations MAY support complete-document
+  // parsing in any of the following ways", one of which is "Detecting a
+  // document containing a referenceable Object at its root based on the
+  // expected type of the reference". Reading a whole document as the Object a
+  // reference wants is what that permits and what this declines, which leaves
+  // one rule for both revisions rather than a 3.1 that takes what 3.2 forbids
   openapi_follow_target(target.value(), origin, expected, walk);
 }
 
@@ -377,8 +389,16 @@ inline auto openapi_check_document(const JSON &document, OpenAPIWalk &walk)
     // Object", and Section 4.3.3 recommends the entry document for the same
     // reason it does for security schemes, so both sets of names come from
     // there and both come before anything else is read
-    openapi_collect_security_schemes(document, walk);
-    openapi_collect_tags(document, walk);
+    //
+    // A document the description reaches takes those names from the entry
+    // document and none of its own. Adding its own would let it name a scheme
+    // that the description it becomes part of does not declare, which is a
+    // requirement that reads fine here and cannot be met once the Object
+    // holding it sits in the document that does describe the API
+    if (!walk.referenced) {
+      openapi_collect_security_schemes(document, walk);
+      openapi_collect_tags(document, walk);
+    }
 
     // Section 3.1: an OpenAPI Description "MUST contain at least one paths
     // field, components field, or webhooks field"
@@ -464,10 +484,17 @@ inline auto openapi_check_document(const JSON &document, OpenAPIWalk &walk)
 // of the given document keyed by the given base. A 3.2 document may name
 // itself, so what the walk ends up keyed by is what it reports rather than
 // what it was handed
+// Section 4.3.3: "For resolving component and tag name connections from a
+// referenced (non-entry) document, it is RECOMMENDED that tools resolve from
+// the entry document, rather than the current document. This allows Security
+// Scheme Objects and Tag Objects to be defined next to the API's deployment
+// information [...] and treated as an interface for referenced documents to
+// access". A document read on its own has no entry document to resolve from,
+// so what one names is settled by whoever reads it as part of a description
 inline auto openapi_analyse(const JSON &document, JSON::String base,
                             const std::uint64_t max_locations =
-                                std::numeric_limits<std::uint64_t>::max())
-    -> OpenAPIWalk {
+                                std::numeric_limits<std::uint64_t>::max(),
+                            const OpenAPIWalk *entry = nullptr) -> OpenAPIWalk {
   OpenAPIWalk walk{.base = std::move(base),
                    .document = &document,
                    .operation_ids = {},
@@ -491,6 +518,15 @@ inline auto openapi_analyse(const JSON &document, JSON::String base,
                    .info = {},
                    .remaining = max_locations,
                    .limit = max_locations};
+  // The names of the entry document are in scope before this document's own
+  // are read, as what it declares itself adds to them rather than replaces
+  // them
+  if (entry != nullptr) {
+    walk.referenced = true;
+    walk.security_schemes = entry->security_schemes;
+    walk.tag_names = entry->tag_names;
+  }
+
   openapi_check_document(document, walk);
   return walk;
 }

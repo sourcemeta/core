@@ -1,0 +1,114 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "404": {
+              "$ref": "shared/api.json#/components/responses/NotFound"
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/shared/api.json": {
+      "openapi": "3.1.1",
+      "info": {
+        "title": "Shared",
+        "version": "1.0.0"
+      },
+      "components": {
+        "responses": {
+          "NotFound": {
+            "description": "Not found",
+            "headers": {
+              "X-Rate-Limit": {
+                "$ref": "headers.json#/components/headers/RateLimit"
+              }
+            }
+          }
+        }
+      }
+    },
+    "https://example.com/shared/headers.json": {
+      "openapi": "3.1.1",
+      "info": {
+        "title": "Headers",
+        "version": "1.0.0"
+      },
+      "components": {
+        "headers": {
+          "RateLimit": {
+            "description": "Requests left",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "404": {
+              "$ref": "#/components/responses/NotFound"
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "responses": {
+        "NotFound": {
+          "description": "Not found",
+          "headers": {
+            "X-Rate-Limit": {
+              "$ref": "#/components/headers/RateLimit"
+            }
+          }
+        }
+      },
+      "headers": {
+        "RateLimit": {
+          "description": "Requests left",
+          "schema": {
+            "type": "integer"
+          }
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/shared/api.json#/components/responses/NotFound",
+      "at": "/components/responses/NotFound"
+    },
+    {
+      "from": "https://example.com/shared/headers.json#/components/headers/RateLimit",
+      "at": "/components/headers/RateLimit"
+    }
+  ],
+  "reads": {
+    "https://example.com/shared/api.json": 1,
+    "https://example.com/shared/headers.json": 1
+  },
+  "schemaReads": {},
+  "relocatable": true
+}

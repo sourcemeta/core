@@ -1,0 +1,127 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "200": {
+              "description": "OK",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "https://example.com/schemas/a"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "schemaResolver": {
+    "https://example.com/schemas/a": {
+      "$id": "https://example.com/schemas/a",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "properties": {
+        "next": {
+          "$ref": "https://example.com/schemas/b"
+        }
+      }
+    },
+    "https://example.com/schemas/b": {
+      "$id": "https://example.com/schemas/b",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "properties": {
+        "next": {
+          "$ref": "https://example.com/schemas/c"
+        }
+      }
+    },
+    "https://example.com/schemas/c": {
+      "$id": "https://example.com/schemas/c",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "string"
+    }
+  },
+  "openapiResolver": {},
+  "result": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "200": {
+              "description": "OK",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "https://example.com/schemas/a"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "schemas": {
+        "c": {
+          "$id": "https://example.com/schemas/c",
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "string"
+        },
+        "b": {
+          "$id": "https://example.com/schemas/b",
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "properties": {
+            "next": {
+              "$ref": "https://example.com/schemas/c"
+            }
+          }
+        },
+        "a": {
+          "$id": "https://example.com/schemas/a",
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "properties": {
+            "next": {
+              "$ref": "https://example.com/schemas/b"
+            }
+          }
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/schemas/c",
+      "at": "/components/schemas/c"
+    },
+    {
+      "from": "https://example.com/schemas/b",
+      "at": "/components/schemas/b"
+    },
+    {
+      "from": "https://example.com/schemas/a",
+      "at": "/components/schemas/a"
+    }
+  ],
+  "reads": {},
+  "schemaReads": {
+    "https://example.com/schemas/a": 1,
+    "https://example.com/schemas/b": 1,
+    "https://example.com/schemas/c": 1
+  },
+  "relocatable": true
+}

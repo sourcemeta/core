@@ -18,6 +18,16 @@ target_link_libraries(sourcemeta_core_openapi_frame_suite_unit
 target_link_libraries(sourcemeta_core_openapi_frame_suite_unit
   PRIVATE sourcemeta::core::json)
 
+# Complete bundle tests, expressed as JSON fixtures
+sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME openapi_bundle_suite
+  SOURCES bundlesuite.cc)
+target_compile_definitions(sourcemeta_core_openapi_bundle_suite_unit
+  PRIVATE BUNDLE_SUITE_PATH="${PROJECT_SOURCE_DIR}/test/openapi/bundle")
+target_link_libraries(sourcemeta_core_openapi_bundle_suite_unit
+  PRIVATE sourcemeta::core::openapi)
+target_link_libraries(sourcemeta_core_openapi_bundle_suite_unit
+  PRIVATE sourcemeta::core::json)
+
 # The OpenAPI Initiative's own meta-schema fixtures
 # See https://github.com/OAI/OpenAPI-Specification/tree/v3.1-dev/tests/schema
 sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME openapi_suite
