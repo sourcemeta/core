@@ -418,11 +418,13 @@ TEST(max_locations_at_what_framing_the_schemas_needs) {
     }
   })JSON")};
 
-  // The schema and each of its three subschemas, which is every place framing
-  // it registers and so the least a bound may be without turning it down
+  // The root, the Info Object, the Components Object and the Schema Object
+  // position, then the schema and each of its three subschemas, which between
+  // them is every place framing registers and so the least a bound may be
+  // without turning the description down
   const sourcemeta::core::OpenAPIFrame frame{
       document, sourcemeta::core::schema_walker,
-      sourcemeta::core::schema_resolver, "https://example.com/openapi.json", 4};
+      sourcemeta::core::schema_resolver, "https://example.com/openapi.json", 8};
   const auto result{frame.to_json()};
   const auto &schemas{result.at("schemas").at("locations").at("static")};
   EXPECT_EQ(schemas.size(), 4);
@@ -454,16 +456,19 @@ TEST(max_locations_one_below_what_framing_the_schemas_needs) {
     [[maybe_unused]] const sourcemeta::core::OpenAPIFrame frame{
         document, sourcemeta::core::schema_walker,
         sourcemeta::core::schema_resolver, "https://example.com/openapi.json",
-        3};
+        7};
     FAIL();
-  } catch (const sourcemeta::core::SchemaFrameLimitError &error) {
+  } catch (const sourcemeta::core::OpenAPIFrameLimitError &error) {
+    // What the caller allowed, rather than whatever was left of it once the
+    // shell of the description had been paid for
     EXPECT_STREQ(error.what(),
-                 "The schema exceeds the maximum number of frame locations");
-    EXPECT_EQ(error.limit(), 3);
+                 "The OpenAPI Description exceeds the maximum number of "
+                 "locations that framing may register");
+    EXPECT_EQ(error.limit(), 7);
   }
 }
 
-TEST(max_locations_does_not_bound_the_description_itself) {
+TEST(max_locations_bounds_the_description_itself) {
   const auto document{sourcemeta::core::parse_json(R"JSON({
     "openapi": "3.1.1",
     "info": { "title": "Example", "version": "1.0.0" },
@@ -474,43 +479,37 @@ TEST(max_locations_does_not_bound_the_description_itself) {
     }
   })JSON")};
 
-  // Nothing here is a Schema Object, so a bound of one location turns down
-  // nothing, however many places the description itself goes by
+  // Nothing here is a Schema Object, and the places the description itself
+  // goes by are what a bound is spent on just the same
+  try {
+    [[maybe_unused]] const sourcemeta::core::OpenAPIFrame frame{
+        document, sourcemeta::core::schema_walker,
+        sourcemeta::core::schema_resolver, "https://example.com/openapi.json",
+        1};
+    FAIL();
+  } catch (const sourcemeta::core::OpenAPIFrameLimitError &error) {
+    EXPECT_STREQ(error.what(),
+                 "The OpenAPI Description exceeds the maximum number of "
+                 "locations that framing may register");
+    EXPECT_EQ(error.limit(), 1);
+  }
+}
+
+TEST(max_locations_that_the_description_fits_within) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.1.1",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "paths": {
+      "/one": { "get": { "responses": { "200": { "description": "ok" } } } }
+    }
+  })JSON")};
+
+  // The root, the Info Object, the Paths Object, the Path Item Object, the
+  // Operation Object, the Responses Object and the Response Object
   const sourcemeta::core::OpenAPIFrame frame{
       document, sourcemeta::core::schema_walker,
-      sourcemeta::core::schema_resolver, "https://example.com/openapi.json", 1};
-  const auto result{frame.to_json()};
-  EXPECT_TRUE(result.at("schemas").at("locations").at("static").empty());
-
-  const auto &locations{result.at("locations")};
-  EXPECT_EQ(locations.size(), 15);
-  EXPECT_TRUE(locations.defines("https://example.com/openapi.json"));
-  EXPECT_TRUE(locations.defines("https://example.com/openapi.json#/info"));
-  EXPECT_TRUE(locations.defines("https://example.com/openapi.json#/paths"));
-  EXPECT_TRUE(
-      locations.defines("https://example.com/openapi.json#/paths/~1one"));
-  EXPECT_TRUE(
-      locations.defines("https://example.com/openapi.json#/paths/~1one/get"));
-  EXPECT_TRUE(locations.defines(
-      "https://example.com/openapi.json#/paths/~1one/get/responses"));
-  EXPECT_TRUE(locations.defines(
-      "https://example.com/openapi.json#/paths/~1one/get/responses/200"));
-  EXPECT_TRUE(
-      locations.defines("https://example.com/openapi.json#/paths/~1two"));
-  EXPECT_TRUE(
-      locations.defines("https://example.com/openapi.json#/paths/~1two/get"));
-  EXPECT_TRUE(locations.defines(
-      "https://example.com/openapi.json#/paths/~1two/get/responses"));
-  EXPECT_TRUE(locations.defines(
-      "https://example.com/openapi.json#/paths/~1two/get/responses/200"));
-  EXPECT_TRUE(
-      locations.defines("https://example.com/openapi.json#/paths/~1three"));
-  EXPECT_TRUE(
-      locations.defines("https://example.com/openapi.json#/paths/~1three/get"));
-  EXPECT_TRUE(locations.defines(
-      "https://example.com/openapi.json#/paths/~1three/get/responses"));
-  EXPECT_TRUE(locations.defines(
-      "https://example.com/openapi.json#/paths/~1three/get/responses/200"));
+      sourcemeta::core::schema_resolver, "https://example.com/openapi.json", 7};
+  EXPECT_EQ(frame.to_json().at("locations").size(), 7);
 }
 
 TEST(schemas_frames_every_schema_object_position) {

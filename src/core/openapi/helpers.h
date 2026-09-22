@@ -3,13 +3,15 @@
 
 #include <sourcemeta/core/openapi.h>
 
+#include <sourcemeta/core/text.h>
 #include <sourcemeta/core/uri.h>
 
 #include <algorithm>        // std::ranges::find
 #include <array>            // std::array
 #include <cstddef>          // std::size_t
-#include <cstdint>          // std::uint8_t
+#include <cstdint>          // std::uint8_t, std::uint64_t
 #include <initializer_list> // std::initializer_list
+#include <limits>           // std::numeric_limits
 #include <map>              // std::map
 #include <optional>         // std::optional
 #include <set>              // std::set
@@ -359,6 +361,11 @@ struct OpenAPIWalk {
   /// What the entry document says about the API, kept so that reading it once
   /// serves both the walk and the caller
   OpenAPIInfo info;
+  /// What recording a location may still spend, and what the caller allowed in
+  /// the first place, which is what running out reports rather than whatever
+  /// was left of it by then
+  std::uint64_t remaining{std::numeric_limits<std::uint64_t>::max()};
+  std::uint64_t limit{std::numeric_limits<std::uint64_t>::max()};
 };
 
 // Where a position that stands in for another leads, following as far as the
@@ -508,6 +515,51 @@ inline auto openapi_resolve_uri(const JSON::StringView reference,
   }
 }
 
+// The document a location key names, which is that key up to its fragment,
+// which is why nothing repeats it on the entry a key leads to
+inline auto openapi_document_uri(const JSON::String &uri) -> JSON::String {
+  return JSON::String{take_until(uri, '#')};
+}
+
+// OpenAPI Specification 3.1.1, Section 4.6 determines a document's base URI
+// "in accordance with RFC3986 Section 5.1.2 - 5.1.4", a range that starts at
+// 5.1.2 and so leaves out 5.1.1, "Base URI Embedded in Content". A 3.1
+// document therefore has no way of declaring its own base, and what remains is
+// 5.1.3, "Base URI from the Retrieval URI", which only the caller can supply.
+// Section 4.6 says as much: implementations "SHOULD allow users to provide
+// documents with their intended retrieval URIs"
+inline auto openapi_canonical_base(const std::string_view input)
+    -> JSON::String {
+  if (input.empty()) {
+    return {};
+  }
+
+  std::optional<URI> base;
+  try {
+    base.emplace(input);
+  } catch (const URIParseError &) {
+    base.reset();
+  }
+
+  // RFC 3986 Section 5.2.1: "only the scheme component is required to be
+  // present in a base URI". Anything without one cannot resolve a reference
+  // RFC 3986 Section 5.2.2 resolves a reference against a base's scheme,
+  // authority, path and query, and never against its fragment, so a fragment
+  // is no part of what a base is. Keeping one would also put two of them in
+  // every location this frame reports
+  if (base.has_value() && base.value().scheme().has_value()) {
+    base.value().canonicalize();
+    const auto result{base.value().recompose_without_fragment()};
+    if (result.has_value()) {
+      return result.value();
+    }
+  }
+
+  throw OpenAPIError{EMPTY_POINTER,
+                     "The OpenAPI Description base must be a URI with a "
+                     "scheme"};
+}
+
 // Every Object gets one of these. The nearest recorded ancestor is the parent,
 // which holds because an Object is always recorded before anything inside it
 //
@@ -530,6 +582,16 @@ inline auto openapi_record(OpenAPIWalk &walk, const Pointer &pointer,
     -> void {
   auto uri{openapi_location_uri(walk.base, pointer)};
   const auto known{walk.locations.find(uri)};
+  // Reading one place twice records it once, so what an allowance is spent on
+  // is the places a description holds rather than the times it is read
+  if (known == walk.locations.cend()) {
+    if (walk.remaining == 0) {
+      throw OpenAPIFrameLimitError{walk.limit};
+    }
+
+    walk.remaining -= 1;
+  }
+
   if (known != walk.locations.cend() && known->second.type != kind) {
     throw OpenAPIError{walk.base, pointer,
                        "This place is read as more than one kind of Object"};
