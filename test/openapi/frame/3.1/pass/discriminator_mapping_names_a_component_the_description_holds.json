@@ -1,6 +1,6 @@
 {
   "document": {
-    "openapi": "3.2.0",
+    "openapi": "3.1.1",
     "info": {
       "title": "Example",
       "version": "1.0.0"
@@ -15,7 +15,9 @@
           ],
           "discriminator": {
             "propertyName": "petType",
-            "defaultMapping": "Missing"
+            "mapping": {
+              "cat": "Cat"
+            }
           }
         },
         "Cat": {
@@ -26,7 +28,7 @@
   },
   "defaultBase": "https://example.com/openapi.json",
   "frame": {
-    "version": "3.2",
+    "version": "3.1",
     "base": "https://example.com/openapi.json",
     "standalone": true,
     "schemas": {
@@ -40,7 +42,7 @@
             "base": "https://example.com/openapi.json",
             "pointer": "/components/schemas/Cat",
             "relativePointer": "/components/schemas/Cat",
-            "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17",
+            "dialect": "https://spec.openapis.org/oas/3.1/dialect/base",
             "baseDialect": "https://json-schema.org/draft/2020-12/schema",
             "propertyName": false,
             "orphan": false,
@@ -54,7 +56,7 @@
               "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
               "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
               "https://json-schema.org/draft/2020-12/vocab/content": true,
-              "https://spec.openapis.org/oas/3.2/vocab/base": false
+              "https://spec.openapis.org/oas/3.1/vocab/base": false
             }
           },
           "https://example.com/openapi.json#/components/schemas/Pet": {
@@ -64,7 +66,7 @@
             "base": "https://example.com/openapi.json",
             "pointer": "/components/schemas/Pet",
             "relativePointer": "/components/schemas/Pet",
-            "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17",
+            "dialect": "https://spec.openapis.org/oas/3.1/dialect/base",
             "baseDialect": "https://json-schema.org/draft/2020-12/schema",
             "propertyName": false,
             "orphan": false,
@@ -78,7 +80,7 @@
               "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
               "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
               "https://json-schema.org/draft/2020-12/vocab/content": true,
-              "https://spec.openapis.org/oas/3.2/vocab/base": false
+              "https://spec.openapis.org/oas/3.1/vocab/base": false
             }
           },
           "https://example.com/openapi.json#/components/schemas/Pet/oneOf/0": {
@@ -88,7 +90,7 @@
             "base": "https://example.com/openapi.json",
             "pointer": "/components/schemas/Pet/oneOf/0",
             "relativePointer": "/components/schemas/Pet/oneOf/0",
-            "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17",
+            "dialect": "https://spec.openapis.org/oas/3.1/dialect/base",
             "baseDialect": "https://json-schema.org/draft/2020-12/schema",
             "propertyName": false,
             "orphan": false,
@@ -102,7 +104,7 @@
               "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
               "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
               "https://json-schema.org/draft/2020-12/vocab/content": true,
-              "https://spec.openapis.org/oas/3.2/vocab/base": false
+              "https://spec.openapis.org/oas/3.1/vocab/base": false
             }
           }
         },
@@ -133,7 +135,7 @@
         "type": "openapi",
         "pointer": "",
         "parent": null,
-        "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17"
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
       },
       "https://example.com/openapi.json#/components": {
         "type": "components",
@@ -144,14 +146,14 @@
         "type": "schema",
         "pointer": "/components/schemas/Cat",
         "parent": "https://example.com/openapi.json#/components",
-        "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17",
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base",
         "base": "https://example.com/openapi.json"
       },
       "https://example.com/openapi.json#/components/schemas/Pet": {
         "type": "schema",
         "pointer": "/components/schemas/Pet",
         "parent": "https://example.com/openapi.json#/components",
-        "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17",
+        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base",
         "base": "https://example.com/openapi.json"
       },
       "https://example.com/openapi.json#/info": {
@@ -160,6 +162,14 @@
         "parent": "https://example.com/openapi.json"
       }
     },
-    "operations": []
+    "operations": [],
+    "discriminators": [
+      {
+        "pointer": "/components/schemas/Pet/discriminator/mapping/cat",
+        "destination": "https://example.com/openapi.json#/components/schemas/Cat",
+        "scope": "https://example.com/openapi.json",
+        "dangling": false
+      }
+    ]
   }
 }

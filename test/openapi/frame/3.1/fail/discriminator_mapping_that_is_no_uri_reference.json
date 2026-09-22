@@ -1,0 +1,35 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "schemas": {
+        "Pet": {
+          "oneOf": [
+            {
+              "$ref": "#/components/schemas/Cat"
+            }
+          ],
+          "discriminator": {
+            "propertyName": "petType",
+            "mapping": {
+              "cat": "not a uri"
+            }
+          }
+        },
+        "Cat": {
+          "type": "object"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "error": {
+    "message": "A Discriminator Object mapping must name a schema by the name of a component or by a URI reference",
+    "location": "/components/schemas/Pet/discriminator/mapping/cat",
+    "base": "https://example.com/openapi.json"
+  }
+}

@@ -16,9 +16,10 @@
           "discriminator": {
             "propertyName": "petType",
             "mapping": {
-              "cat": "Cat"
-            },
-            "defaultMapping": "./Missing"
+              "404": "#/components/schemas/Cat",
+              "a/b": "#/components/schemas/Cat",
+              "a~b": "#/components/schemas/Cat"
+            }
           }
         },
         "Cat": {
@@ -166,7 +167,19 @@
     "operations": [],
     "discriminators": [
       {
-        "pointer": "/components/schemas/Pet/discriminator/mapping/cat",
+        "pointer": "/components/schemas/Pet/discriminator/mapping/404",
+        "destination": "https://example.com/openapi.json#/components/schemas/Cat",
+        "scope": "https://example.com/openapi.json",
+        "dangling": false
+      },
+      {
+        "pointer": "/components/schemas/Pet/discriminator/mapping/a~1b",
+        "destination": "https://example.com/openapi.json#/components/schemas/Cat",
+        "scope": "https://example.com/openapi.json",
+        "dangling": false
+      },
+      {
+        "pointer": "/components/schemas/Pet/discriminator/mapping/a~0b",
         "destination": "https://example.com/openapi.json#/components/schemas/Cat",
         "scope": "https://example.com/openapi.json",
         "dangling": false

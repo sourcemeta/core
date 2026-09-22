@@ -658,8 +658,9 @@ OpenAPIFrame::OpenAPIFrame(const JSON &document, const SchemaWalker &walker,
   // description makes. It is the one of them that a schema frame does not
   // read, as the keyword it sits under belongs to the dialect this
   // specification publishes rather than to JSON Schema
-  this->internal_->discriminators = openapi_discriminators(
-      document, *(this->internal_->schemas), walker, resolver);
+  this->internal_->discriminators =
+      openapi_discriminators(document, *(this->internal_->schemas),
+                             this->internal_->base, walker, resolver);
   const auto every_mapping_lands{
       std::ranges::all_of(this->internal_->discriminators,
                           [this](const auto &discriminator) -> bool {

@@ -241,6 +241,27 @@ auto schemas_stand_alone(const sourcemeta::core::JSON &schemas) -> bool {
   return true;
 }
 
+// Whether a token names the given member of an Object. RFC 6901 Section 3
+// makes every reference token a string, and one of digits reads back as an
+// array index, which is no member name
+auto is_member(const sourcemeta::core::Pointer::Token &token,
+               const sourcemeta::core::JSON::StringView member) -> bool {
+  return token.is_property() && token.to_property() == member;
+}
+
+// Whether a pointer leads to one of the two members of a Discriminator Object
+// that may name a schema
+auto is_discriminator_member(const sourcemeta::core::Pointer &pointer) -> bool {
+  if (pointer.size() >= 3 &&
+      is_member(pointer.at(pointer.size() - 2), "mapping") &&
+      is_member(pointer.at(pointer.size() - 3), "discriminator")) {
+    return true;
+  }
+
+  return pointer.size() >= 2 && is_member(pointer.back(), "defaultMapping") &&
+         is_member(pointer.at(pointer.size() - 2), "discriminator");
+}
+
 // Whether the schemas of a description hold what a mapping names. Framing a
 // document records places of it that are no schema of their own as well, so
 // landing on one of those is landing on nothing a mapping was after
@@ -382,11 +403,9 @@ auto check_frame_invariants(const sourcemeta::core::JSON &frame) -> void {
       EXPECT_EQ(entry.at("dangling").to_boolean(),
                 !names_a_schema(schemas, entry.at("destination").to_string()));
 
-      // Where it sits is the member of a Discriminator Object that names it,
-      // which is one of the two that may
-      const auto &pointer{entry.at("pointer").to_string()};
-      EXPECT_TRUE(pointer.ends_with("/discriminator/defaultMapping") ||
-                  pointer.find("/discriminator/mapping/") != std::string::npos);
+      // Where it sits is the member of a Discriminator Object that names it
+      EXPECT_TRUE(is_discriminator_member(
+          sourcemeta::core::to_pointer(entry.at("pointer").to_string())));
     }
   }
 

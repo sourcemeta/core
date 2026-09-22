@@ -16,7 +16,7 @@
           "discriminator": {
             "propertyName": "petType",
             "mapping": {
-              "cat": 42
+              "cat": "Missing"
             }
           }
         },
@@ -30,7 +30,7 @@
   "frame": {
     "version": "3.1",
     "base": "https://example.com/openapi.json",
-    "standalone": true,
+    "standalone": false,
     "schemas": {
       "mode": "references",
       "locations": {
@@ -162,6 +162,14 @@
         "parent": "https://example.com/openapi.json"
       }
     },
-    "operations": []
+    "operations": [],
+    "discriminators": [
+      {
+        "pointer": "/components/schemas/Pet/discriminator/mapping/cat",
+        "destination": "https://example.com/openapi.json#/components/schemas/Missing",
+        "scope": "https://example.com/openapi.json",
+        "dangling": true
+      }
+    ]
   }
 }
