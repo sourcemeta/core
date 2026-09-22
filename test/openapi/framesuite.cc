@@ -352,15 +352,26 @@ auto check_frame_invariants(const sourcemeta::core::JSON &frame) -> void {
   if (frame.defines("discriminators")) {
     const auto &schemas{frame.at("schemas").at("locations")};
     for (const auto &entry : frame.at("discriminators").as_array()) {
+      const auto &destination{entry.at("destination").to_string()};
+      const auto *landed{schemas.at("static").try_at(destination)};
+      if (landed == nullptr) {
+        landed = schemas.at("dynamic").try_at(destination);
+      }
+
       // Where one leads is a place the schemas hold or nowhere at all, and it
       // says of itself which of the two it is
-      const auto &destination{entry.at("destination").to_string()};
-      EXPECT_EQ(entry.at("dangling").to_boolean(),
-                !schemas.at("static").defines(destination) &&
-                    !schemas.at("dynamic").defines(destination));
+      EXPECT_EQ(entry.at("dangling").to_boolean(), landed == nullptr);
 
-      // And where it sits is somewhere within a Schema Object rather than at
-      // the root of the description
+      // And what it leads to is a schema, rather than a place of the document
+      // that is no schema of its own
+      if (landed != nullptr) {
+        const auto type{landed->at("type").to_string()};
+        EXPECT_TRUE(type == "resource" || type == "anchor" ||
+                    type == "subschema");
+      }
+
+      // Where it sits is somewhere within a Schema Object rather than at the
+      // root of the description
       EXPECT_FALSE(entry.at("pointer").to_string().empty());
     }
   }
