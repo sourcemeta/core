@@ -36,26 +36,6 @@ struct OpenAPIDiscriminator {
   JSON::String scope;
 };
 
-// Resolve a URI reference against a base and canonicalise what it comes to,
-// which is what makes two spellings of one place one place. A base of nothing
-// leaves the reference exactly as it stands, as there is nothing to resolve it
-// against
-inline auto openapi_resolve_reference(const JSON::StringView reference,
-                                      const JSON::String &base)
-    -> std::optional<JSON::String> {
-  try {
-    URI target{JSON::String{reference}};
-    if (!base.empty()) {
-      target.resolve_from(URI{base});
-    }
-
-    target.canonicalize();
-    return target.recompose();
-  } catch (const URIParseError &) {
-    return std::nullopt;
-  }
-}
-
 // OpenAPI Specification 3.1.1, Section 4.8.25: a `mapping` entry "maps a
 // specific property value to either a different schema component name, or to a
 // schema identified by a URI". Only the latter is a reference, as Section
@@ -115,13 +95,13 @@ inline auto openapi_record_discriminator(
                        "the name of a component or by a URI reference"};
   }
 
-  auto destination{openapi_resolve_reference(value.to_string(), scope)};
+  const auto destination{openapi_resolve_uri(value.to_string(), scope)};
   if (!destination.has_value()) {
     return;
   }
 
   result.push_back({.origin = std::move(origin),
-                    .destination = std::move(destination.value()),
+                    .destination = destination.value().recompose(),
                     .scope = scope});
 }
 

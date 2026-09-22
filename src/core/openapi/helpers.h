@@ -488,6 +488,27 @@ inline auto openapi_location_uri(const JSON::String &base,
   return result;
 }
 
+// Resolve a URI reference against a base and canonicalise what it comes to,
+// which is what makes two spellings of one place one place, both to the set
+// that remembers where a walk has been and to a caller comparing a destination
+// against a location. Without a base there is nothing to resolve against,
+// though what comes back is canonicalised either way
+inline auto openapi_resolve_uri(const JSON::StringView reference,
+                                const JSON::String &base)
+    -> std::optional<URI> {
+  try {
+    URI target{JSON::String{reference}};
+    if (!base.empty()) {
+      target.resolve_from(URI{base});
+    }
+
+    target.canonicalize();
+    return target;
+  } catch (const URIParseError &) {
+    return std::nullopt;
+  }
+}
+
 // Every Object gets one of these. The nearest recorded ancestor is the parent,
 // which holds because an Object is always recorded before anything inside it
 //

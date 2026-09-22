@@ -217,20 +217,7 @@ inline auto openapi_follow_internal_reference(const URI &target,
 inline auto openapi_reference_target(const JSON::StringView reference,
                                      const OpenAPIWalk &walk)
     -> std::optional<URI> {
-  try {
-    URI target{JSON::String{reference}};
-    if (!walk.base.empty()) {
-      target.resolve_from(URI{walk.base});
-    }
-
-    // Canonicalising here is what makes two spellings of one place one place,
-    // both to the set that remembers where the walk has been and to a caller
-    // comparing a destination against a location
-    target.canonicalize();
-    return target;
-  } catch (const URIParseError &) {
-    return std::nullopt;
-  }
+  return openapi_resolve_uri(reference, walk.base);
 }
 
 // Reading whatever a reference landed on, which is the same work wherever the
