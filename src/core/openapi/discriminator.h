@@ -6,6 +6,7 @@
 #include "components.h"
 #include "helpers.h"
 
+#include <set>         // std::set
 #include <string_view> // std::string_view
 #include <utility>     // std::move
 #include <vector>      // std::vector
@@ -79,7 +80,11 @@ inline auto openapi_discriminators(const JSON &document,
                                    const OpenAPIVersion version)
     -> std::vector<OpenAPIDiscriminator> {
   std::vector<OpenAPIDiscriminator> result;
-  schemas.for_each_subschema([&document, &result,
+  // A schema that declares an identifier of its own is registered under every
+  // base it can be reached by, and what it holds is the one thing whichever
+  // way it is reached
+  std::set<JSON::String> seen;
+  schemas.for_each_subschema([&document, &result, &seen,
                               version](const auto &location) -> void {
     const auto *schema{try_get(document, location.pointer)};
     if (schema == nullptr || !schema->is_object()) {
@@ -92,8 +97,12 @@ inline auto openapi_discriminators(const JSON &document,
       return;
     }
 
-    const JSON::String scope{location.base};
     auto base{to_pointer(location.pointer)};
+    if (!seen.insert(to_string(base)).second) {
+      return;
+    }
+
+    const JSON::String scope{location.base};
     base.push_back(JSON::String{"discriminator"});
 
     const auto *mapping{discriminator->try_at("mapping", OPENAPI_HASH_MAPPING)};

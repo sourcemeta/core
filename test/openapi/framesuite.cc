@@ -241,6 +241,16 @@ auto schemas_stand_alone(const sourcemeta::core::JSON &schemas) -> bool {
   return true;
 }
 
+// Whether every schema that a Discriminator Object names by URI is one the
+// description holds, which is what standing alone comes to on that side
+auto mappings_stand_alone(const sourcemeta::core::JSON &frame) -> bool {
+  return !frame.defines("discriminators") ||
+         std::ranges::none_of(frame.at("discriminators").as_array(),
+                              [](const auto &entry) -> bool {
+                                return entry.at("dangling").to_boolean();
+                              });
+}
+
 // A frame is a graph written down as text, and every edge in it is a key into
 // the same map. These hold whatever the description was, so the suite asserts
 // them on every fixture rather than on the handful that thought to look
@@ -336,6 +346,25 @@ auto check_frame_invariants(const sourcemeta::core::JSON &frame) -> void {
               !locations.defines(destination));
   }
 
+  // What a Discriminator Object names by URI is a reference of the description
+  // too, and a description that names none reports nothing rather than an
+  // empty list
+  if (frame.defines("discriminators")) {
+    const auto &schemas{frame.at("schemas").at("locations")};
+    for (const auto &entry : frame.at("discriminators").as_array()) {
+      // Where one leads is a place the schemas hold or nowhere at all, and it
+      // says of itself which of the two it is
+      const auto &destination{entry.at("destination").to_string()};
+      EXPECT_EQ(entry.at("dangling").to_boolean(),
+                !schemas.at("static").defines(destination) &&
+                    !schemas.at("dynamic").defines(destination));
+
+      // And where it sits is somewhere within a Schema Object rather than at
+      // the root of the description
+      EXPECT_FALSE(entry.at("pointer").to_string().empty());
+    }
+  }
+
   // A description stands alone when nothing it references leaves it, which
   // counts what its Schema Objects reference as much as what the shell around
   // them does. This asks the locations again rather than carrying an answer
@@ -343,6 +372,7 @@ auto check_frame_invariants(const sourcemeta::core::JSON &frame) -> void {
   // narrow what this covers
   EXPECT_EQ(frame.at("standalone").to_boolean(),
             schemas_stand_alone(frame.at("schemas")) &&
+                mappings_stand_alone(frame) &&
                 std::ranges::none_of(
                     locations.as_object(), [](const auto &entry) -> bool {
                       return entry.second.defines("dangling") &&
