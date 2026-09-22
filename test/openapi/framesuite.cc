@@ -6,9 +6,11 @@
 
 #include <algorithm>   // std::ranges::find
 #include <cstddef>     // std::size_t
+#include <cstdint>     // std::uint64_t
 #include <filesystem>  // std::filesystem
 #include <functional>  // std::less
 #include <iostream>    // std::cerr
+#include <limits>      // std::numeric_limits
 #include <optional>    // std::nullopt, std::optional
 #include <set>         // std::set
 #include <sstream>     // std::ostringstream
@@ -21,10 +23,12 @@ namespace {
 // Every key a fixture may declare. Anything else is a mistake that would
 // otherwise go unnoticed, as the runner would simply not read it
 // NOLINTBEGIN(cert-err58-cpp,bugprone-throwing-static-initialization)
-const std::vector<std::string> KNOWN_KEYS{"document", "defaultBase",
-                                          "schemaResolver", "frame", "error"};
+const std::vector<std::string> KNOWN_KEYS{"document",       "defaultBase",
+                                          "schemaResolver", "frame",
+                                          "maxLocations",   "error"};
 const std::vector<std::string> KNOWN_ERROR_KEYS{
-    "message", "location", "base", "identifier", "keyword", "value", "other"};
+    "message", "location", "base",  "identifier",
+    "keyword", "value",    "other", "limit"};
 const std::vector<std::string> KNOWN_METHODS{"get",    "put",     "post",
                                              "delete", "options", "head",
                                              "patch",  "trace",   "query"};
@@ -93,6 +97,14 @@ auto make_default_base(const sourcemeta::core::JSON &test)
     -> sourcemeta::core::JSON::String {
   const auto *base{test.try_at("defaultBase")};
   return base == nullptr ? sourcemeta::core::JSON::String{} : base->to_string();
+}
+
+// What framing is allowed to register, which a fixture only writes down when
+// it is there to say what the bound comes to
+auto make_max_locations(const sourcemeta::core::JSON &test) -> std::uint64_t {
+  const auto *limit{test.try_at("maxLocations")};
+  return limit == nullptr ? std::numeric_limits<std::uint64_t>::max()
+                          : static_cast<std::uint64_t>(limit->to_integer());
 }
 
 // A fixture cannot name the location it will be read from, so it writes
@@ -507,7 +519,7 @@ auto run_pass_test(const sourcemeta::core::JSON &test) -> void {
 
   const sourcemeta::core::OpenAPIFrame frame{
       test.at("document"), sourcemeta::core::schema_walker,
-      make_schema_resolver(test), default_base};
+      make_schema_resolver(test), default_base, make_max_locations(test)};
   // The invariants come first because a failed expectation aborts the test. A
   // frame that contradicts itself is a deeper failure than one that merely
   // differs from what a fixture recorded, so it is the one worth reporting
@@ -544,7 +556,16 @@ auto run_fail_test(const sourcemeta::core::JSON &test) -> void {
   try {
     [[maybe_unused]] const sourcemeta::core::OpenAPIFrame frame{
         test.at("document"), sourcemeta::core::schema_walker,
-        make_schema_resolver(test), default_base};
+        make_schema_resolver(test), default_base, make_max_locations(test)};
+  } catch (const sourcemeta::core::OpenAPIFrameLimitError &error) {
+    refused = true;
+    EXPECT_EQ(error.what(), test.at("error").at("message").to_string());
+
+    // What the caller allowed, rather than whatever was left of it wherever
+    // framing happened to run out
+    EXPECT_TRUE(test.at("error").defines("limit"));
+    EXPECT_EQ(error.limit(), static_cast<std::uint64_t>(
+                                 test.at("error").at("limit").to_integer()));
   } catch (const sourcemeta::core::OpenAPIError &error) {
     refused = true;
     EXPECT_EQ(error.what(), test.at("error").at("message").to_string());
