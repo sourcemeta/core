@@ -79,7 +79,8 @@ inline auto openapi_check_document(const JSON &document, OpenAPIWalk &walk)
 // What a document's `$self` establishes as its base, or nothing when it
 // establishes none. OpenAPI Specification 3.2.1, Section 4.1: the field
 // "provides the self-assigned URI of this document, which also serves as its
-// base URI in accordance with RFC3986 Section 5.1.1", and Section 4.7.1.1: "If
+// base URI in accordance with RFC3986 Section 5.1.1", and Section 4.1.2.2.1:
+// "If
 // `$self` is a relative URI reference, it is resolved against the next
 // possible base URI source before being used". That next source is whatever
 // base is in force here, which is the retrieval URI for the entry document and
@@ -216,20 +217,7 @@ inline auto openapi_follow_internal_reference(const URI &target,
 inline auto openapi_reference_target(const JSON::StringView reference,
                                      const OpenAPIWalk &walk)
     -> std::optional<URI> {
-  try {
-    URI target{JSON::String{reference}};
-    if (!walk.base.empty()) {
-      target.resolve_from(URI{walk.base});
-    }
-
-    // Canonicalising here is what makes two spellings of one place one place,
-    // both to the set that remembers where the walk has been and to a caller
-    // comparing a destination against a location
-    target.canonicalize();
-    return target;
-  } catch (const URIParseError &) {
-    return std::nullopt;
-  }
+  return openapi_resolve_uri(reference, walk.base);
 }
 
 // Reading whatever a reference landed on, which is the same work wherever the
@@ -373,7 +361,7 @@ inline auto openapi_check_document(const JSON &document, OpenAPIWalk &walk)
       if (established.has_value()) {
         walk.base = std::move(established.value());
 
-        // Section 4.7.1: "To ensure interoperability, references MUST use the
+        // Section 4.1.1: "To ensure interoperability, references MUST use the
         // target document's `$self` URI if the `$self` field is present". So
         // this is the URI the document answers to, and one that names it by
         // where it was retrieved from instead names another document, which

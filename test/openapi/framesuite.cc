@@ -241,6 +241,62 @@ auto schemas_stand_alone(const sourcemeta::core::JSON &schemas) -> bool {
   return true;
 }
 
+// Whether a token names the given member of an Object. RFC 6901 Section 3
+// makes every reference token a string, and one of digits reads back as an
+// array index, which is no member name
+auto is_member(const sourcemeta::core::Pointer::Token &token,
+               const sourcemeta::core::JSON::StringView member) -> bool {
+  return token.is_property() && token.to_property() == member;
+}
+
+// Whether a pointer leads to one of the two members of a Discriminator Object
+// that may name a schema
+auto is_discriminator_member(const sourcemeta::core::Pointer &pointer) -> bool {
+  if (pointer.size() >= 3 &&
+      is_member(pointer.at(pointer.size() - 2), "mapping") &&
+      is_member(pointer.at(pointer.size() - 3), "discriminator")) {
+    return true;
+  }
+
+  return pointer.size() >= 2 && is_member(pointer.back(), "defaultMapping") &&
+         is_member(pointer.at(pointer.size() - 2), "discriminator");
+}
+
+// Whether the schemas of a description hold what a mapping names. Framing a
+// document records places of it that are no schema of their own as well, so
+// landing on one of those is landing on nothing a mapping was after
+auto names_a_schema(const sourcemeta::core::JSON &schemas,
+                    const sourcemeta::core::JSON::String &destination) -> bool {
+  const auto *landed{schemas.at("static").try_at(destination)};
+  if (landed == nullptr) {
+    landed = schemas.at("dynamic").try_at(destination);
+  }
+
+  if (landed == nullptr) {
+    return false;
+  }
+
+  const auto type{landed->at("type").to_string()};
+  return type == "resource" || type == "anchor" || type == "subschema";
+}
+
+// Whether every schema that a Discriminator Object names by URI is one the
+// description holds, which is what standing alone comes to on that side. This
+// works the answer out again rather than taking the one the frame reported, so
+// that a frame reporting it wrongly cannot agree with itself
+auto mappings_stand_alone(const sourcemeta::core::JSON &frame) -> bool {
+  if (!frame.defines("discriminators")) {
+    return true;
+  }
+
+  const auto &schemas{frame.at("schemas").at("locations")};
+  return std::ranges::all_of(
+      frame.at("discriminators").as_array(),
+      [&schemas](const auto &entry) -> bool {
+        return names_a_schema(schemas, entry.at("destination").to_string());
+      });
+}
+
 // A frame is a graph written down as text, and every edge in it is a key into
 // the same map. These hold whatever the description was, so the suite asserts
 // them on every fixture rather than on the handful that thought to look
@@ -336,6 +392,23 @@ auto check_frame_invariants(const sourcemeta::core::JSON &frame) -> void {
               !locations.defines(destination));
   }
 
+  // What a Discriminator Object names by URI is a reference of the description
+  // too, and a description that names none reports nothing rather than an
+  // empty list
+  if (frame.defines("discriminators")) {
+    const auto &schemas{frame.at("schemas").at("locations")};
+    for (const auto &entry : frame.at("discriminators").as_array()) {
+      // Where one leads is a schema the description holds or nowhere at all,
+      // and it says of itself which of the two it is
+      EXPECT_EQ(entry.at("dangling").to_boolean(),
+                !names_a_schema(schemas, entry.at("destination").to_string()));
+
+      // Where it sits is the member of a Discriminator Object that names it
+      EXPECT_TRUE(is_discriminator_member(
+          sourcemeta::core::to_pointer(entry.at("pointer").to_string())));
+    }
+  }
+
   // A description stands alone when nothing it references leaves it, which
   // counts what its Schema Objects reference as much as what the shell around
   // them does. This asks the locations again rather than carrying an answer
@@ -343,6 +416,7 @@ auto check_frame_invariants(const sourcemeta::core::JSON &frame) -> void {
   // narrow what this covers
   EXPECT_EQ(frame.at("standalone").to_boolean(),
             schemas_stand_alone(frame.at("schemas")) &&
+                mappings_stand_alone(frame) &&
                 std::ranges::none_of(
                     locations.as_object(), [](const auto &entry) -> bool {
                       return entry.second.defines("dangling") &&

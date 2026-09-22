@@ -1,0 +1,33 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "schemas": {
+        "Pet": {
+          "oneOf": [
+            {
+              "$ref": "#/components/schemas/Cat"
+            }
+          ],
+          "discriminator": {
+            "propertyName": "petType",
+            "defaultMapping": 42
+          }
+        },
+        "Cat": {
+          "type": "object"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "error": {
+    "message": "A Discriminator Object mapping must name a schema with a string",
+    "location": "/components/schemas/Pet/discriminator/defaultMapping",
+    "base": "https://example.com/openapi.json"
+  }
+}
