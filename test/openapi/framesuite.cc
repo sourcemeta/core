@@ -99,12 +99,22 @@ auto make_default_base(const sourcemeta::core::JSON &test)
   return base == nullptr ? sourcemeta::core::JSON::String{} : base->to_string();
 }
 
+// How many locations a fixture is talking about, which it has to say as a
+// whole count for the runner to read it as one. Anything else reads back as a
+// number so large that it stands for no bound at all, which would leave a
+// fixture written to pin down what a bound does passing without one
+auto make_location_count(const sourcemeta::core::JSON &value) -> std::uint64_t {
+  EXPECT_TRUE(value.is_integer());
+  EXPECT_GE(value.to_integer(), 0);
+  return static_cast<std::uint64_t>(value.to_integer());
+}
+
 // What framing is allowed to register, which a fixture only writes down when
 // it is there to say what the bound comes to
 auto make_max_locations(const sourcemeta::core::JSON &test) -> std::uint64_t {
   const auto *limit{test.try_at("maxLocations")};
   return limit == nullptr ? std::numeric_limits<std::uint64_t>::max()
-                          : static_cast<std::uint64_t>(limit->to_integer());
+                          : make_location_count(*limit);
 }
 
 // A fixture cannot name the location it will be read from, so it writes
@@ -564,8 +574,7 @@ auto run_fail_test(const sourcemeta::core::JSON &test) -> void {
     // What the caller allowed, rather than whatever was left of it wherever
     // framing happened to run out
     EXPECT_TRUE(test.at("error").defines("limit"));
-    EXPECT_EQ(error.limit(), static_cast<std::uint64_t>(
-                                 test.at("error").at("limit").to_integer()));
+    EXPECT_EQ(error.limit(), make_location_count(test.at("error").at("limit")));
   } catch (const sourcemeta::core::OpenAPIError &error) {
     refused = true;
     EXPECT_EQ(error.what(), test.at("error").at("message").to_string());
