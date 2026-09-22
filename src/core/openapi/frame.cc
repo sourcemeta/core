@@ -3,6 +3,7 @@
 #include <sourcemeta/core/text.h>
 #include <sourcemeta/core/uri.h>
 
+#include "discriminator.h"
 #include "document.h"
 #include "helpers.h"
 #include "info.h"
@@ -563,6 +564,9 @@ struct OpenAPIFrame::Internal {
   std::map<JSON::String, OpenAPILocation> locations;
   std::map<JSON::String, OpenAPIReference> references;
   std::vector<OpenAPIOperation> operations;
+  // What a Discriminator Object names by URI, which is a reference the schemas
+  // hold rather than one the shell around them does
+  std::vector<OpenAPIDiscriminator> discriminators;
   // Reading inside a Schema Object is the business of whatever understands
   // JSON Schema, so this is that pass over every Schema Object position at
   // once. It is declared last so that it is destroyed first, as it holds
@@ -648,12 +652,25 @@ OpenAPIFrame::OpenAPIFrame(const JSON &document, const SchemaWalker &walker,
       root->second.dialect, "", SchemaFrame::IdentifierMode::Additional,
       this->internal_->schema_paths, this->internal_->base, max_locations);
 
+  // Section 4.3.1 lists the URI form of a Discriminator Object `mapping`
+  // among the fields that connect the documents of a description, and it is
+  // the one a schema frame does not read, as the keyword it sits under is the
+  // OpenAPI dialect's rather than JSON Schema's
+  this->internal_->discriminators = openapi_discriminators(
+      document, *(this->internal_->schemas), this->internal_->version);
+  const auto every_mapping_lands{std::ranges::all_of(
+      this->internal_->discriminators,
+      [this](const auto &discriminator) -> bool {
+        return this->internal_->schemas->traverse(discriminator.destination)
+            .has_value();
+      })};
+
   // What a Schema Object references is as much a part of the description as
   // what the shell around it does, so a description whose schemas reach for
   // something nobody holds is one that is missing a part of itself just the
   // same
-  this->internal_->standalone =
-      every_reference_lands && this->internal_->schemas->standalone();
+  this->internal_->standalone = every_reference_lands && every_mapping_lands &&
+                                this->internal_->schemas->standalone();
 
   // Section 4.3.3 has resolving a Link Object `operationId` require "parsing
   // all referenced documents prior to determining an `operationId` to be
@@ -766,6 +783,25 @@ auto OpenAPIFrame::to_json() const -> JSON {
   }
 
   result.assign_assume_new("operations", std::move(operations));
+
+  // Only a description whose schemas name one carries these, so a description
+  // that names none reports nothing rather than an empty list
+  if (!this->internal_->discriminators.empty()) {
+    auto discriminators{JSON::make_array()};
+    for (const auto &discriminator : this->internal_->discriminators) {
+      auto entry{JSON::make_object()};
+      entry.assign_assume_new("pointer", JSON{to_string(discriminator.origin)});
+      entry.assign_assume_new("destination", JSON{discriminator.destination});
+      entry.assign_assume_new(
+          "dangling",
+          JSON{!this->internal_->schemas->traverse(discriminator.destination)
+                    .has_value()});
+      discriminators.push_back(std::move(entry));
+    }
+
+    result.assign_assume_new("discriminators", std::move(discriminators));
+  }
+
   return result;
 }
 
