@@ -23,6 +23,8 @@
 #include "tag.h"
 
 #include <array>       // std::array
+#include <cstdint>     // std::uint64_t
+#include <limits>      // std::numeric_limits
 #include <optional>    // std::optional
 #include <string_view> // std::string_view
 #include <utility>     // std::move, std::swap, std::unreachable
@@ -456,6 +458,41 @@ inline auto openapi_check_document(const JSON &document, OpenAPIWalk &walk)
 
     throw OpenAPIError{walk.base, error.location(), error.what()};
   }
+}
+
+// Everything the checks need in order to start from nothing, which is a walk
+// of the given document keyed by the given base. A 3.2 document may name
+// itself, so what the walk ends up keyed by is what it reports rather than
+// what it was handed
+inline auto openapi_analyse(const JSON &document, JSON::String base,
+                            const std::uint64_t max_locations =
+                                std::numeric_limits<std::uint64_t>::max())
+    -> OpenAPIWalk {
+  OpenAPIWalk walk{.base = std::move(base),
+                   .document = &document,
+                   .operation_ids = {},
+                   .visited = {},
+                   .locations = {},
+                   .references = {},
+                   .parameters = {},
+                   .path_items = {},
+                   .operation_records = {},
+                   .callbacks = {},
+                   .endpoints = {},
+                   .servers = {},
+                   .security = {},
+                   .security_schemes = {},
+                   .tags = {},
+                   .tag_parents = {},
+                   .tag_names = {},
+                   .operation_id_links = {},
+                   .version = OpenAPIVersion::OPENAPI_3_1,
+                   .dialect = {},
+                   .info = {},
+                   .remaining = max_locations,
+                   .limit = max_locations};
+  openapi_check_document(document, walk);
+  return walk;
 }
 
 } // namespace sourcemeta::core

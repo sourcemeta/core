@@ -1,0 +1,44 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/one": {
+        "get": {
+          "responses": {
+            "200": {
+              "description": "ok"
+            }
+          }
+        }
+      },
+      "/two": {
+        "get": {
+          "responses": {
+            "200": {
+              "description": "ok"
+            }
+          }
+        }
+      },
+      "/three": {
+        "get": {
+          "responses": {
+            "200": {
+              "description": "ok"
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "maxLocations": 1,
+  "error": {
+    "message": "The OpenAPI Description exceeds the maximum number of locations that framing may register",
+    "limit": 1
+  }
+}
