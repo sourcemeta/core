@@ -389,8 +389,7 @@ inline auto openapi_reference_target(JSON::StringView reference,
     -> std::optional<URI>;
 
 inline auto openapi_follow_target(const URI &target, const Pointer &origin,
-                                  OpenAPIObjectKind expected,
-                                  bool demands_its_own_kind, OpenAPIWalk &walk)
+                                  OpenAPIObjectKind expected, OpenAPIWalk &walk)
     -> void;
 
 inline auto openapi_resolve_position(const OpenAPIWalk &walk,

@@ -1,0 +1,25 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "responses": {
+        "NotFound": {
+          "description": "Not found"
+        },
+        "R": {
+          "$ref": ""
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "error": {
+    "message": "This reference must name a document that holds only what the reference expects",
+    "location": "/components/responses/R/$ref",
+    "base": "https://example.com/openapi.json"
+  }
+}

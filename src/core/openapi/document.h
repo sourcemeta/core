@@ -226,7 +226,6 @@ inline auto openapi_reference_target(const JSON::StringView reference,
 // is not a reference the frame writes down
 inline auto openapi_follow_target(const URI &target, const Pointer &origin,
                                   const OpenAPIObjectKind expected,
-                                  const bool demands_its_own_kind,
                                   OpenAPIWalk &walk) -> void {
   const auto identifier{target.recompose_without_fragment()};
   const auto names_a_fragment{target.fragment().has_value()};
@@ -240,7 +239,7 @@ inline auto openapi_follow_target(const URI &target, const Pointer &origin,
     return;
   }
 
-  if (demands_its_own_kind && !names_a_fragment && walk.document != nullptr &&
+  if (!names_a_fragment && walk.document != nullptr &&
       openapi_is_document(*walk.document)) {
     throw OpenAPIError{walk.base, origin,
                        "This reference must name a document that holds only "
@@ -272,21 +271,16 @@ inline auto openapi_follow_reference(const JSON::StringView reference,
       OpenAPIReference{.original = JSON::String{reference},
                        .destination = target.value().recompose()});
 
-  // Section 4.8.9, of a Path Item Object's `$ref`: "the referenced structure
-  // MUST be in the form of a Path Item Object", and Section 4.8.20, of a Link
-  // Object's `operationRef`: it "MUST point to an Operation Object". A
-  // document that declares a root `openapi` field is an OpenAPI Description
-  // and neither of those, so a reference from one of those two positions that
-  // names such a document whole has landed on the wrong thing. Section 4.3.1's
-  // detection settles how a document is read, which is a separate question
-  // from whether a reference was allowed to point at it. Section 4.8.23 holds
-  // a Reference Object to nothing but the form of a URI, and those two
-  // positions are the only ones a `$ref` reaches either kind from, so what
-  // the demand really follows is the position rather than the kind
-  openapi_follow_target(target.value(), origin, expected,
-                        expected == OpenAPIObjectKind::PathItem ||
-                            expected == OpenAPIObjectKind::Operation,
-                        walk);
+  // OpenAPI Specification 3.2.1, Section 4.1.2: "all documents in an OAD MUST
+  // have either an OpenAPI Object or a Schema Object at the root". A Schema
+  // Object is what a Schema Object reference names, which never reaches here,
+  // so every document that a reference of the shell may name holds an OpenAPI
+  // Object. That is not one of the kinds any position here expects to find,
+  // so a reference that names such a document whole has landed on the wrong
+  // thing whatever kind it expected. Section 4.8.9 and Section 4.8.20 say as
+  // much of the two positions they speak of, and the rest follows from what a
+  // document may hold rather than from what those two sections single out
+  openapi_follow_target(target.value(), origin, expected, walk);
 }
 
 // OpenAPI Specification 3.1.1, Section 4.8.1: "This is the root object of the

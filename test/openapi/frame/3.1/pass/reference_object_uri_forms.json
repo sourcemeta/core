@@ -22,9 +22,6 @@
         "NoFragment": {
           "$ref": "common.yaml"
         },
-        "Empty": {
-          "$ref": ""
-        },
         "Escaped": {
           "$ref": "#/paths/~1pets/get/responses/200"
         },
@@ -93,14 +90,6 @@
         "original": "/shared/common.yaml#/components/responses/NotFound",
         "destination": "/shared/common.yaml#/components/responses/NotFound",
         "dangling": true
-      },
-      "#/components/responses/Empty": {
-        "type": "reference",
-        "pointer": "/components/responses/Empty",
-        "parent": "#/components",
-        "original": "",
-        "destination": "",
-        "dangling": false
       },
       "#/components/responses/Escaped": {
         "type": "reference",
