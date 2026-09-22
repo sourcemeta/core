@@ -6,6 +6,7 @@
 #include "components.h"
 #include "helpers.h"
 
+#include <optional>    // std::optional, std::nullopt
 #include <set>         // std::set
 #include <string_view> // std::string_view
 #include <utility>     // std::move
@@ -20,8 +21,8 @@ constexpr auto OPENAPI_HASH_DEFAULT_MAPPING{
     JSON::Object::hash("defaultMapping"sv)};
 
 /// Where a Discriminator Object names a schema by URI. OpenAPI Specification
-/// 3.1.1, Section 4.3.1 lists the URI form of a `mapping` among the fields
-/// that connect the documents of a description, which makes one of these a
+/// 3.1.1, Section 4.3 lists the URI form of a `mapping` among the fields that
+/// connect the documents of a description, which makes one of these a
 /// reference like any other
 struct OpenAPIDiscriminator {
   /// Where the mapping value sits, as a pointer from the root of the document
@@ -32,6 +33,26 @@ struct OpenAPIDiscriminator {
   /// identifier an enclosing schema declares
   JSON::String scope;
 };
+
+// Resolve a URI reference against a base and canonicalise what it comes to,
+// which is what makes two spellings of one place one place. A base of nothing
+// leaves the reference exactly as it stands, as there is nothing to resolve it
+// against
+inline auto openapi_resolve_reference(const JSON::StringView reference,
+                                      const JSON::String &base)
+    -> std::optional<JSON::String> {
+  try {
+    URI target{JSON::String{reference}};
+    if (!base.empty()) {
+      target.resolve_from(URI{base});
+    }
+
+    target.canonicalize();
+    return target.recompose();
+  } catch (const URIParseError &) {
+    return std::nullopt;
+  }
+}
 
 // OpenAPI Specification 3.1.1, Section 4.8.25: a `mapping` entry "maps a
 // specific property value to either a different schema component name, or to a
@@ -45,8 +66,17 @@ struct OpenAPIDiscriminator {
 //   ambiguous value (e.g. `"foo"`) is treated as a relative URI reference by
 //   all implementations, authors MUST prefix it with the `"."` path segment
 //
+// OpenAPI Specification 3.2.1, Section 4.25.3 says the same of the default a
+// Discriminator Object may declare beside the map, which is what holds the two
+// of them to the one rule: "The behavior of a `mapping` value or
+// `defaultMapping` value that is both a valid schema name and a valid relative
+// URI reference is implementation-defined"
+//
 // A schema name is what the Components Object takes as a key, and the path
-// segment an author writes to force the other reading is no such key
+// segment an author writes to force the other reading is no such key. Whether
+// a value holds up as one is asked of the value alone rather than of what the
+// description declares, as Section 4.8.25 calls `"foo"` ambiguous without
+// regard to whether a component goes by that name
 inline auto openapi_is_discriminator_reference(const JSON &value) -> bool {
   return value.is_string() && !openapi_is_component_key(value.to_string());
 }
@@ -72,20 +102,21 @@ openapi_record_discriminator(std::vector<OpenAPIDiscriminator> &result,
 }
 
 // Every schema that a Discriminator Object of the document names by URI.
-// Section 4.3 has a relative reference of a Schema Object resolve against
+// Section 4.6 has a relative reference of a Schema Object resolve against
 // "the nearest parent `$id`", which is the base that framing the schemas
 // settles for wherever the Discriminator Object sits
 inline auto openapi_discriminators(const JSON &document,
                                    const SchemaFrame &schemas,
-                                   const OpenAPIVersion version)
+                                   const SchemaWalker &walker,
+                                   const SchemaResolver &resolver)
     -> std::vector<OpenAPIDiscriminator> {
   std::vector<OpenAPIDiscriminator> result;
   // A schema that declares an identifier of its own is registered under every
   // base it can be reached by, and what it holds is the one thing whichever
   // way it is reached
   std::set<JSON::String> seen;
-  schemas.for_each_subschema([&document, &result, &seen,
-                              version](const auto &location) -> void {
+  schemas.for_each_subschema([&document, &schemas, &result, &seen, &walker,
+                              &resolver](const auto &location) -> void {
     const auto *schema{try_get(document, location.pointer)};
     if (schema == nullptr || !schema->is_object()) {
       return;
@@ -97,42 +128,71 @@ inline auto openapi_discriminators(const JSON &document,
       return;
     }
 
-    auto base{to_pointer(location.pointer)};
-    if (!seen.insert(to_string(base)).second) {
+    auto origin{to_pointer(location.pointer)};
+    if (!seen.insert(to_string(origin)).second) {
+      return;
+    }
+
+    // Section 4.8.24.2 lists `discriminator` among the keywords that the
+    // dialect this specification publishes is made of, and Section 4.8.24.5
+    // has a Schema Object read under whichever dialect it declares. So a
+    // schema written against one that leaves the keyword out holds no
+    // Discriminator Object at all, however the member happens to be spelled,
+    // and what a keyword amounts to where it sits is the walker's to say
+    const auto &vocabularies{schemas.vocabularies(location, resolver)};
+    if (walker("discriminator", vocabularies).type ==
+        SchemaKeywordType::Unknown) {
       return;
     }
 
     const JSON::String scope{location.base};
-    base.push_back(JSON::String{"discriminator"});
+    origin.push_back(JSON::String{"discriminator"});
 
     const auto *mapping{discriminator->try_at("mapping", OPENAPI_HASH_MAPPING)};
     if (mapping != nullptr && mapping->is_object()) {
-      const auto entries{base.concat(JSON::String{"mapping"})};
+      const auto mapped{origin.concat(JSON::String{"mapping"})};
       for (const auto &entry : mapping->as_object()) {
-        openapi_record_discriminator(result, entries.concat(entry.first),
+        openapi_record_discriminator(result, mapped.concat(entry.first),
                                      entry.second, scope);
       }
     }
 
-    // OpenAPI Specification 3.2.1, Section 4.26 gives a Discriminator Object a
+    // OpenAPI Specification 3.2.1, Section 4.25 gives a Discriminator Object a
     // default of its own, which is "the schema name or URI reference to a
-    // schema" just as every entry of the map beside it is. Only that revision
-    // defines the field, and the dialect of the one before it turns down
-    // anything it does not name
-    if (version != OpenAPIVersion::OPENAPI_3_2) {
+    // schema" just as every entry of the map beside it is. Only the dialect of
+    // that revision defines the field, which is what settles whether there is
+    // one to read rather than what the document says of itself.
+    //
+    // Section 4.25.1 goes on to require one wherever the discriminating
+    // property is optional, which is a demand on what the schema holding it
+    // says of its own properties. Reading that far into a Schema Object is
+    // the business of whatever understands JSON Schema, so it is left there
+    if (!vocabularies.contains(SchemaVocabularies::Known::OPENAPI_3_2_BASE)) {
       return;
     }
 
     const auto *fallback{
         discriminator->try_at("defaultMapping", OPENAPI_HASH_DEFAULT_MAPPING)};
     if (fallback != nullptr) {
-      openapi_record_discriminator(result,
-                                   base.concat(JSON::String{"defaultMapping"}),
-                                   *fallback, scope);
+      openapi_record_discriminator(
+          result, origin.concat(JSON::String{"defaultMapping"}), *fallback,
+          scope);
     }
   });
 
   return result;
+}
+
+// Whether the schemas of the document hold what a mapping names. Section
+// 4.8.25 has one name "a schema identified by a URI", and framing a document
+// records the places of it that are no schema of their own as well, so landing
+// on one of those is landing on nothing this was after
+inline auto
+openapi_discriminator_lands(const SchemaFrame &schemas,
+                            const OpenAPIDiscriminator &discriminator) -> bool {
+  const auto location{schemas.traverse(discriminator.destination)};
+  return location.has_value() &&
+         location.value().get().type != SchemaFrame::LocationType::Pointer;
 }
 
 } // namespace sourcemeta::core

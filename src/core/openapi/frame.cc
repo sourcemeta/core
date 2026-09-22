@@ -8,7 +8,7 @@
 #include "helpers.h"
 #include "info.h"
 
-#include <algorithm>   // std::ranges::find
+#include <algorithm>   // std::ranges::all_of, std::ranges::find
 #include <cassert>     // assert
 #include <cstddef>     // std::size_t
 #include <map>         // std::map
@@ -608,7 +608,7 @@ OpenAPIFrame::OpenAPIFrame(const JSON &document, const SchemaWalker &walker,
 
   // Every Schema Object position of the document at once, rather than one
   // pass each, so that a schema referring to another resolves against a frame
-  // that holds both. Section 4.8.24.1 scopes `jsonSchemaDialect` to "all
+  // that holds both. Section 4.8.24.5 scopes `jsonSchemaDialect` to "all
   // Schema Objects contained within an OAS document", and a document has one
   // base, so what those positions have in common is the whole of what this
   // pass needs to be told
@@ -617,8 +617,8 @@ OpenAPIFrame::OpenAPIFrame(const JSON &document, const SchemaWalker &walker,
 
   // What sits inside a Schema Object is JSON Schema's to make sense of, so a
   // reference that names a place in there has the description read one of its
-  // own Objects out of a schema. Appendix G of OAS 3.2, and Section 3.2 of
-  // 3.1, leave what to do about a place read as two kinds of thing to the
+  // own Objects out of a schema. Appendix G of OAS 3.2, and Section 4.3.2
+  // of 3.1, leave what to do about a place read as two kinds of thing to the
   // implementation and allow saying so, which is what this does. Framing the
   // schemas could not proceed regardless, as it is given each of these
   // positions to frame and they must not sit within one another
@@ -652,18 +652,20 @@ OpenAPIFrame::OpenAPIFrame(const JSON &document, const SchemaWalker &walker,
       root->second.dialect, "", SchemaFrame::IdentifierMode::Additional,
       this->internal_->schema_paths, this->internal_->base, max_locations);
 
-  // Section 4.3.1 lists the URI form of a Discriminator Object `mapping`
-  // among the fields that connect the documents of a description, and it is
-  // the one a schema frame does not read, as the keyword it sits under is the
-  // OpenAPI dialect's rather than JSON Schema's
+  // OpenAPI Specification 3.1.1, Section 4.3 lists the URI form of a
+  // Discriminator Object `mapping` among the fields that connect the documents
+  // of a description, and Appendix G of 3.2 keeps it among the connections a
+  // description makes. It is the one of them that a schema frame does not
+  // read, as the keyword it sits under belongs to the dialect this
+  // specification publishes rather than to JSON Schema
   this->internal_->discriminators = openapi_discriminators(
-      document, *(this->internal_->schemas), this->internal_->version);
-  const auto every_mapping_lands{std::ranges::all_of(
-      this->internal_->discriminators,
-      [this](const auto &discriminator) -> bool {
-        return this->internal_->schemas->traverse(discriminator.destination)
-            .has_value();
-      })};
+      document, *(this->internal_->schemas), walker, resolver);
+  const auto every_mapping_lands{
+      std::ranges::all_of(this->internal_->discriminators,
+                          [this](const auto &discriminator) -> bool {
+                            return openapi_discriminator_lands(
+                                *(this->internal_->schemas), discriminator);
+                          })};
 
   // What a Schema Object references is as much a part of the description as
   // what the shell around it does, so a description whose schemas reach for
@@ -792,10 +794,10 @@ auto OpenAPIFrame::to_json() const -> JSON {
       auto entry{JSON::make_object()};
       entry.assign_assume_new("pointer", JSON{to_string(discriminator.origin)});
       entry.assign_assume_new("destination", JSON{discriminator.destination});
-      entry.assign_assume_new(
-          "dangling",
-          JSON{!this->internal_->schemas->traverse(discriminator.destination)
-                    .has_value()});
+      entry.assign_assume_new("scope", JSON{discriminator.scope});
+      entry.assign_assume_new("dangling",
+                              JSON{!openapi_discriminator_lands(
+                                  *(this->internal_->schemas), discriminator)});
       discriminators.push_back(std::move(entry));
     }
 

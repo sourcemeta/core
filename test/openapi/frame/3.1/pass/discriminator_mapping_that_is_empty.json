@@ -16,7 +16,7 @@
           "discriminator": {
             "propertyName": "petType",
             "mapping": {
-              "cat": "./Missing"
+              "cat": ""
             }
           }
         },
@@ -166,7 +166,7 @@
     "discriminators": [
       {
         "pointer": "/components/schemas/Pet/discriminator/mapping/cat",
-        "destination": "https://example.com/Missing",
+        "destination": "https://example.com/openapi.json",
         "scope": "https://example.com/openapi.json",
         "dangling": true
       }

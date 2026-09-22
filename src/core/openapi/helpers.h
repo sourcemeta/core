@@ -291,7 +291,7 @@ struct OpenAPIWalk {
   // the kind expected as well as by the place, because one place reached as
   // two kinds is a conflict, and reading it once as whichever reference was
   // walked first would let the order the description is written in decide what
-  // it is. Section 3.2 of OAS 3.2 names this hazard and says the behaviour
+  // it is. Appendix G of OAS 3.2 names this hazard and says the behaviour
   // "MAY be treated as an error if detected", so reading it as each kind in
   // turn surfaces the conflict rather than hiding it
   std::set<std::pair<JSON::String, OpenAPIObjectKind>> visited;
@@ -488,30 +488,11 @@ inline auto openapi_location_uri(const JSON::String &base,
   return result;
 }
 
-// Resolve a URI reference against a base and canonicalise what it comes to,
-// which is what makes two spellings of one place one place. A base of nothing
-// leaves the reference exactly as it stands, as there is nothing to resolve it
-// against
-inline auto openapi_resolve_reference(const JSON::StringView reference,
-                                      const JSON::String &base)
-    -> std::optional<JSON::String> {
-  try {
-    URI target{JSON::String{reference}};
-    if (!base.empty()) {
-      target.resolve_from(URI{base});
-    }
-
-    target.canonicalize();
-    return target.recompose();
-  } catch (const URIParseError &) {
-    return std::nullopt;
-  }
-}
-
 // Every Object gets one of these. The nearest recorded ancestor is the parent,
 // which holds because an Object is always recorded before anything inside it
 //
-// Appendix G of OAS 3.2, and Section 3.2 of 3.1, say of one place read as two
+// Appendix G of OAS 3.2, and Section 4.3.2 of 3.1, say of one place read as
+// two
 // kinds of Object:
 //
 //   the resulting behavior is implementation defined, and MAY be treated as

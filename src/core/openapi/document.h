@@ -79,7 +79,8 @@ inline auto openapi_check_document(const JSON &document, OpenAPIWalk &walk)
 // What a document's `$self` establishes as its base, or nothing when it
 // establishes none. OpenAPI Specification 3.2.1, Section 4.1: the field
 // "provides the self-assigned URI of this document, which also serves as its
-// base URI in accordance with RFC3986 Section 5.1.1", and Section 4.7.1.1: "If
+// base URI in accordance with RFC3986 Section 5.1.1", and Section 4.1.2.2.1:
+// "If
 // `$self` is a relative URI reference, it is resolved against the next
 // possible base URI source before being used". That next source is whatever
 // base is in force here, which is the retrieval URI for the entry document and
@@ -373,7 +374,7 @@ inline auto openapi_check_document(const JSON &document, OpenAPIWalk &walk)
       if (established.has_value()) {
         walk.base = std::move(established.value());
 
-        // Section 4.7.1: "To ensure interoperability, references MUST use the
+        // Section 4.1.1: "To ensure interoperability, references MUST use the
         // target document's `$self` URI if the `$self` field is present". So
         // this is the URI the document answers to, and one that names it by
         // where it was retrieved from instead names another document, which

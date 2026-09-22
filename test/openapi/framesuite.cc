@@ -241,14 +241,39 @@ auto schemas_stand_alone(const sourcemeta::core::JSON &schemas) -> bool {
   return true;
 }
 
+// Whether the schemas of a description hold what a mapping names. Framing a
+// document records places of it that are no schema of their own as well, so
+// landing on one of those is landing on nothing a mapping was after
+auto names_a_schema(const sourcemeta::core::JSON &schemas,
+                    const sourcemeta::core::JSON::String &destination) -> bool {
+  const auto *landed{schemas.at("static").try_at(destination)};
+  if (landed == nullptr) {
+    landed = schemas.at("dynamic").try_at(destination);
+  }
+
+  if (landed == nullptr) {
+    return false;
+  }
+
+  const auto type{landed->at("type").to_string()};
+  return type == "resource" || type == "anchor" || type == "subschema";
+}
+
 // Whether every schema that a Discriminator Object names by URI is one the
-// description holds, which is what standing alone comes to on that side
+// description holds, which is what standing alone comes to on that side. This
+// works the answer out again rather than taking the one the frame reported, so
+// that a frame reporting it wrongly cannot agree with itself
 auto mappings_stand_alone(const sourcemeta::core::JSON &frame) -> bool {
-  return !frame.defines("discriminators") ||
-         std::ranges::none_of(frame.at("discriminators").as_array(),
-                              [](const auto &entry) -> bool {
-                                return entry.at("dangling").to_boolean();
-                              });
+  if (!frame.defines("discriminators")) {
+    return true;
+  }
+
+  const auto &schemas{frame.at("schemas").at("locations")};
+  return std::ranges::all_of(
+      frame.at("discriminators").as_array(),
+      [&schemas](const auto &entry) -> bool {
+        return names_a_schema(schemas, entry.at("destination").to_string());
+      });
 }
 
 // A frame is a graph written down as text, and every edge in it is a key into
@@ -352,27 +377,16 @@ auto check_frame_invariants(const sourcemeta::core::JSON &frame) -> void {
   if (frame.defines("discriminators")) {
     const auto &schemas{frame.at("schemas").at("locations")};
     for (const auto &entry : frame.at("discriminators").as_array()) {
-      const auto &destination{entry.at("destination").to_string()};
-      const auto *landed{schemas.at("static").try_at(destination)};
-      if (landed == nullptr) {
-        landed = schemas.at("dynamic").try_at(destination);
-      }
+      // Where one leads is a schema the description holds or nowhere at all,
+      // and it says of itself which of the two it is
+      EXPECT_EQ(entry.at("dangling").to_boolean(),
+                !names_a_schema(schemas, entry.at("destination").to_string()));
 
-      // Where one leads is a place the schemas hold or nowhere at all, and it
-      // says of itself which of the two it is
-      EXPECT_EQ(entry.at("dangling").to_boolean(), landed == nullptr);
-
-      // And what it leads to is a schema, rather than a place of the document
-      // that is no schema of its own
-      if (landed != nullptr) {
-        const auto type{landed->at("type").to_string()};
-        EXPECT_TRUE(type == "resource" || type == "anchor" ||
-                    type == "subschema");
-      }
-
-      // Where it sits is somewhere within a Schema Object rather than at the
-      // root of the description
-      EXPECT_FALSE(entry.at("pointer").to_string().empty());
+      // Where it sits is the member of a Discriminator Object that names it,
+      // which is one of the two that may
+      const auto &pointer{entry.at("pointer").to_string()};
+      EXPECT_TRUE(pointer.ends_with("/discriminator/defaultMapping") ||
+                  pointer.find("/discriminator/mapping/") != std::string::npos);
     }
   }
 

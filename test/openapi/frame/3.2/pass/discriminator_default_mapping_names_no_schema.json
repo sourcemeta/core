@@ -165,6 +165,7 @@
       {
         "pointer": "/components/schemas/Pet/discriminator/defaultMapping",
         "destination": "https://example.com/openapi.json#/components/schemas/Missing",
+        "scope": "https://example.com/openapi.json",
         "dangling": true
       }
     ]
