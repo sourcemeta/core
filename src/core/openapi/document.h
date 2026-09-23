@@ -524,6 +524,10 @@ inline auto openapi_analyse(const JSON &document, JSON::String base,
   if (entry != nullptr) {
     walk.referenced = true;
     walk.security_schemes = entry->security_schemes;
+    // Both of what a tag name settles come from there too, as the names a
+    // parent may claim and the Tag Objects an operation resolves to are two
+    // readings of one set rather than two sets
+    walk.tags = entry->tags;
     walk.tag_names = entry->tag_names;
   }
 

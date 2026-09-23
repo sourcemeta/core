@@ -863,14 +863,15 @@ auto adopt_operations(JSON &document, const OpenAPIWalk &walk,
 // nothing there follows it. It goes under the member Section 4.8.7 reserves
 // for schemas, keeping the identifier it answers to, so the mapping goes on
 // naming what it always named
-auto adopt_mappings(JSON &document, const std::set<JSON::String> &deferred,
-                    std::set<JSON::String> &adopted,
-                    const SchemaResolver &schema_resolver,
-                    const JSON::StringView dialect,
-                    const OpenAPIBundleOptions &options) -> bool {
+auto adopt_mappings(
+    JSON &document,
+    const std::map<JSON::String, std::vector<OpenAPIPending>> &deferred,
+    std::set<JSON::String> &adopted, const JSON::String &base,
+    const SchemaResolver &schema_resolver, const JSON::StringView dialect,
+    const OpenAPIBundleOptions &options) -> bool {
   bool changed{false};
-  for (const auto &destination : deferred) {
-    const auto identifier{openapi_document_uri(destination)};
+  for (const auto &entry : deferred) {
+    const auto identifier{openapi_document_uri(entry.first)};
     // One schema answers for a mapping once. Bringing it in again would not
     // make a mapping that still does not land any likelier to, and settling is
     // what tells bundling it has nothing left to do
@@ -884,23 +885,28 @@ auto adopt_mappings(JSON &document, const std::set<JSON::String> &deferred,
     }
 
     auto schema{std::move(resolved).to_owned()};
-    if (!schema.is_object()) {
-      continue;
+    // Section 4.8.24: "The empty schema [...] MAY be represented by the
+    // boolean value `true` and a schema which allows no instance to validate
+    // MAY be represented by the boolean value `false`". Neither carries a
+    // keyword, so neither can be made to answer to the identifier it was found
+    // under, and what names it has to name where it lands instead
+    const auto identifies{schema.is_object()};
+    if (identifies) {
+      // Section 4.8.24 has a standalone document that says nothing of the
+      // dialect it is written against read under the one this specification
+      // publishes, and an identifier of its own is what keeps a mapping naming
+      // it once it sits somewhere else
+      if (!schema.defines("$schema")) {
+        schema.assign("$schema", JSON{dialect});
+      }
+
+      // Which keyword carries that identity is what the dialect says rather
+      // than what 2020-12 happens to call it, so this is left to whatever
+      // knows the dialect a schema declares
+      schema_reidentify(schema, identifier, schema_resolver,
+                        JSON::String{dialect});
     }
 
-    // Section 4.8.24 has a standalone document that says nothing of the
-    // dialect it is written against read under the one this specification
-    // publishes, and an identifier of its own is what keeps a mapping naming
-    // it once it sits somewhere else
-    if (!schema.defines("$schema")) {
-      schema.assign("$schema", JSON{dialect});
-    }
-
-    // Which keyword carries that identity is what the dialect says rather than
-    // what 2020-12 happens to call it, so this is left to whatever knows the
-    // dialect a schema declares
-    schema_reidentify(schema, identifier, schema_resolver,
-                      JSON::String{dialect});
     adopted.insert(identifier);
 
     const auto *schemas{openapi_component_container_of(document, "schemas"sv)};
@@ -910,6 +916,19 @@ auto adopt_mappings(JSON &document, const std::set<JSON::String> &deferred,
     const auto landed{embed(document, "schemas"sv, name, std::move(schema))};
     if (options.callback) {
       options.callback(identifier, landed);
+    }
+
+    // One that says nothing of itself is only findable by where it went, so
+    // every mapping that named it is written out to name that instead. Which
+    // root that is counted from is what the mapping resolved against, as
+    // Section 4.6 has one inside a Schema Object that declares an identifier
+    // count from there rather than from the document
+    if (!identifies) {
+      for (const auto &pending : entry.second) {
+        set(document, pending.origin,
+            JSON{pending.scope == base ? to_uri(landed).recompose()
+                                       : openapi_location_uri(base, landed)});
+      }
     }
 
     changed = true;
@@ -938,7 +957,7 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
   std::set<JSON::String> unavailable;
   // And of those, the schemas that a Discriminator Object mapping is what
   // names, which nothing but this brings in, along with the ones it already did
-  std::set<JSON::String> deferred;
+  std::map<JSON::String, std::vector<OpenAPIPending>> deferred;
   std::set<JSON::String> adopted;
 
   while (true) {
@@ -966,7 +985,7 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
       if (!target.has_value()) {
         if (names_a_schema) {
           if (reference.mapping) {
-            deferred.insert(reference.destination);
+            deferred[reference.destination].push_back(reference);
           }
 
           continue;
@@ -988,7 +1007,6 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
                                     OpenAPIObjectKind::Operation};
       const auto origin{promote(names_an_operation ? target.value().initial()
                                                    : target.value())};
-      const auto key{openapi_location_uri(identifier, origin)};
       const auto container{
           container_of(origin, names_an_operation ? OpenAPIObjectKind::PathItem
                                                   : reference.expected)};
@@ -1006,7 +1024,7 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
           if (names_a_schema) {
             unavailable.insert(identifier);
             if (reference.mapping) {
-              deferred.insert(reference.destination);
+              deferred[reference.destination].push_back(reference);
             }
 
             continue;
@@ -1030,7 +1048,7 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
           if (names_a_schema) {
             unavailable.insert(identifier);
             if (reference.mapping) {
-              deferred.insert(reference.destination);
+              deferred[reference.destination].push_back(reference);
             }
 
             continue;
@@ -1052,11 +1070,18 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
 
       const auto &remote_document{documents.at(identifier)};
       const auto &remote{walks.at(identifier)};
+      // Where a document was retrieved from is how a resolver is asked for it,
+      // and what it answers to is its own to say. OpenAPI Specification 3.2.1,
+      // Section 4.1.1 lets a document declare the latter and requires the two
+      // to be told apart: "references MUST use the target document's `$self`
+      // URI if the `$self` field is present". So every place of it is named by
+      // the base its own analysis settled on rather than by where it was found
+      const auto key{openapi_location_uri(remote.base, origin)};
       // What a reference names is held to the kind the position it sits in
       // expects, however many references reach the Object that holds it. A
       // second one that named nothing would otherwise be written out as a
       // place the result does not hold
-      if (!lands(remote, identifier, target.value(), reference.expected)) {
+      if (!lands(remote, remote.base, target.value(), reference.expected)) {
         throw OpenAPIReferenceError{
             base, reference.origin, reference.destination,
             "This reference must name an Object of the kind that the "
@@ -1118,7 +1143,7 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
 
       // And so is what a mapping names, which is settled after the references
       // are, as bringing one schema in may be what lets the next be read
-      if (adopt_mappings(document, deferred, adopted, schema_resolver,
+      if (adopt_mappings(document, deferred, adopted, base, schema_resolver,
                          openapi_dialect(walk.version), options)) {
         deferred.clear();
         continue;
