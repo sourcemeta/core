@@ -1,0 +1,62 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "security": [
+      {
+        "Local": [
+          "read"
+        ],
+        "#/components/securitySchemes/Local": [
+          "write"
+        ]
+      }
+    ],
+    "components": {
+      "securitySchemes": {
+        "Local": {
+          "type": "apiKey",
+          "name": "key",
+          "in": "header"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {},
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "security": [
+      {
+        "Local": [
+          "read"
+        ],
+        "#/components/securitySchemes/Local": [
+          "write"
+        ]
+      }
+    ],
+    "components": {
+      "securitySchemes": {
+        "Local": {
+          "type": "apiKey",
+          "name": "key",
+          "in": "header"
+        }
+      }
+    }
+  },
+  "inserted": [],
+  "reads": {},
+  "schemaReads": {},
+  "standalone": true,
+  "relocatable": true
+}

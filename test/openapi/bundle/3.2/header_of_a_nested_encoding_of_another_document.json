@@ -1,0 +1,119 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/a": {
+        "post": {
+          "requestBody": {
+            "content": {
+              "multipart/mixed": {
+                "itemSchema": {},
+                "itemEncoding": {
+                  "contentType": "multipart/form-data",
+                  "encoding": {
+                    "part": {
+                      "contentType": "text/plain",
+                      "headers": {
+                        "H": {
+                          "$ref": "shared.json#/components/headers/Trace"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "ok"
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/shared.json": {
+      "openapi": "3.2.0",
+      "info": {
+        "title": "Example",
+        "version": "1.0.0"
+      },
+      "components": {
+        "headers": {
+          "Trace": {
+            "schema": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/a": {
+        "post": {
+          "requestBody": {
+            "content": {
+              "multipart/mixed": {
+                "itemSchema": {},
+                "itemEncoding": {
+                  "contentType": "multipart/form-data",
+                  "encoding": {
+                    "part": {
+                      "contentType": "text/plain",
+                      "headers": {
+                        "H": {
+                          "$ref": "#/components/headers/Trace"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "ok"
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "headers": {
+        "Trace": {
+          "schema": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/shared.json#/components/headers/Trace",
+      "at": "/components/headers/Trace"
+    }
+  ],
+  "reads": {
+    "https://example.com/shared.json": 1
+  },
+  "schemaReads": {},
+  "standalone": true,
+  "relocatable": true
+}

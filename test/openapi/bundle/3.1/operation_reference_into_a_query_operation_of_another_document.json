@@ -1,0 +1,44 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "links": {
+        "L": {
+          "operationRef": "other.json#/paths/~1foo/query"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/other.json": {
+      "openapi": "3.1.1",
+      "info": {
+        "title": "Example",
+        "version": "1.0.0"
+      },
+      "paths": {
+        "/foo": {
+          "query": {
+            "responses": {
+              "200": {
+                "description": "OK"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "error": {
+    "type": "OpenAPIError",
+    "message": "The Path Item Object does not define this field",
+    "location": "/paths/~1foo/query",
+    "base": "https://example.com/other.json"
+  }
+}

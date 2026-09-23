@@ -1,0 +1,42 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "securitySchemes": {
+        "S": {
+          "$ref": "other.json#/components/securitySchemes/Remote"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/other.json": {
+      "openapi": "3.1.1",
+      "info": {
+        "title": "Example",
+        "version": "1.0.0"
+      },
+      "components": {
+        "securitySchemes": {
+          "Remote": {
+            "type": "oauth2",
+            "oauth2MetadataUrl": "well-known/metadata",
+            "flows": {}
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "error": {
+    "type": "OpenAPIError",
+    "message": "The Security Scheme Object does not define this field",
+    "location": "/components/securitySchemes/Remote/oauth2MetadataUrl",
+    "base": "https://example.com/other.json"
+  }
+}

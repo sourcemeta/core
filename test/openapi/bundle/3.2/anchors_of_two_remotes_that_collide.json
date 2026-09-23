@@ -1,0 +1,76 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "404": {
+              "$ref": "a.json#/components/responses/R"
+            },
+            "500": {
+              "$ref": "b.json#/components/responses/R"
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/a.json": {
+      "openapi": "3.2.0",
+      "info": {
+        "title": "A",
+        "version": "1.0.0"
+      },
+      "components": {
+        "responses": {
+          "R": {
+            "description": "A",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$anchor": "err"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "https://example.com/b.json": {
+      "openapi": "3.2.0",
+      "info": {
+        "title": "B",
+        "version": "1.0.0"
+      },
+      "components": {
+        "responses": {
+          "R": {
+            "description": "B",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$anchor": "err"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "error": {
+    "type": "SchemaAnchorCollisionError",
+    "message": "Schema anchor already exists",
+    "identifier": "https://example.com/openapi.json#err",
+    "location": "/components/responses/R_/content/application~1json/schema",
+    "other": "/components/responses/R/content/application~1json/schema"
+  }
+}

@@ -1,0 +1,91 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "200": {
+              "description": "OK",
+              "headers": {
+                "X-Rate-Limit": {
+                  "$ref": "shared.json#/components/headers/RateLimit"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/shared.json": {
+      "openapi": "3.2.0",
+      "info": {
+        "title": "Shared",
+        "version": "1.0.0"
+      },
+      "components": {
+        "headers": {
+          "RateLimit": {
+            "description": "Requests left",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "200": {
+              "description": "OK",
+              "headers": {
+                "X-Rate-Limit": {
+                  "$ref": "#/components/headers/RateLimit"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "headers": {
+        "RateLimit": {
+          "description": "Requests left",
+          "schema": {
+            "type": "integer"
+          }
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/shared.json#/components/headers/RateLimit",
+      "at": "/components/headers/RateLimit"
+    }
+  ],
+  "reads": {
+    "https://example.com/shared.json": 1
+  },
+  "schemaReads": {},
+  "standalone": true,
+  "relocatable": true
+}

@@ -23,11 +23,14 @@
 #include "tag.h"
 
 #include <array>       // std::array
+#include <cstddef>     // std::size_t
 #include <cstdint>     // std::uint64_t
 #include <limits>      // std::numeric_limits
+#include <map>         // std::map
 #include <optional>    // std::optional
 #include <string_view> // std::string_view
 #include <utility>     // std::move, std::swap, std::unreachable
+#include <vector>      // std::vector
 
 namespace sourcemeta::core {
 
@@ -89,7 +92,11 @@ inline auto openapi_check_document(const JSON &document, OpenAPIWalk &walk)
 // the URI a reference named for any other. RFC 3986 Section 5.2.1 has only the
 // scheme required of a base, so a relative `$self` with nothing absolute to
 // resolve against establishes nothing, and Section 5.2.2 never resolves
-// against a fragment, so one written here is no part of the base either
+// against a fragment, so one written here is dropped rather than read. The
+// specification's own published schema turns such a `$self` down outright,
+// which Section 4 makes it no place to: "If the JSON Schema differs from this
+// section, then this section MUST be considered authoritative", and the
+// section it differs from asks only for a URI reference
 inline auto openapi_document_base(const JSON::StringView self,
                                   const OpenAPIWalk &walk)
     -> std::optional<JSON::String> {
@@ -349,22 +356,23 @@ inline auto openapi_check_document(const JSON &document, OpenAPIWalk &walk)
           "The OpenAPI Description self identifier must be a string",
           "The OpenAPI Description self identifier must be a URI reference")};
 
-      // The specification's own published schema for this revision spells the
-      // field `{"format": "uri-reference", "pattern": "^[^#]*$"}` and says
-      // why in a comment of its own:
+      // A fragment written here is admitted, which the specification's own
+      // published schema for this revision is stricter than. That schema
+      // spells the field `{"format": "uri-reference", "pattern": "^[^#]*$"}`
+      // and gives its reason in a comment of its own:
       //
       //   MUST NOT contain a fragment
       //
-      // which RFC 3986 Section 5.1 agrees with, a base URI carrying none. The
-      // pattern turns down the character rather than a fragment component, so
-      // an empty one is refused here too
-      if (reference.find('#') != JSON::StringView::npos) {
-        throw OpenAPIError{
-            walk.base, openapi_child(EMPTY_POINTER, "$self"sv),
-            "The OpenAPI Description self identifier must not contain a "
-            "fragment"};
-      }
-
+      // but Section 4 settles which of the two answers for this: "This text is
+      // the only normative description of the format. A JSON Schema is hosted
+      // on spec.openapis.org for informational purposes. If the JSON Schema
+      // differs from this section, then this section MUST be considered
+      // authoritative". The text asks only for a URI reference, and RFC 3986
+      // Section 4.1 admits a fragment in one, so the pattern is a rule the
+      // normative prose does not carry and is not enforced here. Nothing is
+      // lost by taking it, as Section 5.2.2 never resolves a reference against
+      // a fragment, which is why what a fragment names is dropped rather than
+      // read
       auto established{openapi_document_base(reference, walk)};
       if (established.has_value()) {
         walk.base = std::move(established.value());
@@ -480,6 +488,108 @@ inline auto openapi_check_document(const JSON &document, OpenAPIWalk &walk)
   }
 }
 
+// OpenAPI Specification 3.2.1, Section 4.22, of a Tag Object's `parent`: "The
+// named tag MUST exist in the API description, and circular references between
+// parent and child tags MUST NOT be used". A description spans every document
+// it references, so a parent naming a tag this one does not declare is only
+// missing where nothing is missing, and a cycle is a property of the tags held
+// rather than of any one tag
+inline auto openapi_check_tag_parents(
+    const OpenAPIWalk &walk,
+    const std::map<JSON::String, OpenAPILocation> &locations, const bool whole)
+    -> void {
+  std::map<JSON::String, JSON::String> parents;
+  for (const auto &[location, edge] : walk.tag_parents) {
+    if (whole && !walk.tag_names.contains(edge.second)) {
+      throw openapi_error_at(locations, location,
+                             "The Tag Object parent must name a tag the "
+                             "OpenAPI Description declares",
+                             "parent"sv);
+    }
+
+    parents.insert_or_assign(edge.first, edge.second);
+  }
+
+  // Walking upward from each tag terminates at a tag with no parent unless the
+  // chain comes back round, and a chain longer than the number of edges has
+  // come back round
+  for (const auto &[location, edge] : walk.tag_parents) {
+    auto name{edge.first};
+    for (std::size_t step = 0; step <= parents.size(); step += 1) {
+      const auto next{parents.find(name)};
+      if (next == parents.cend()) {
+        break;
+      }
+
+      name = next->second;
+      if (step == parents.size()) {
+        throw openapi_error_at(locations, location,
+                               "The Tag Object parents must not form a cycle",
+                               "parent"sv);
+      }
+    }
+  }
+}
+
+// OpenAPI Specification 3.1.1, Section 4.8.20: "The identified or reference
+// operation MUST be unique, and in the case of an `operationId`, it MUST be
+// resolved within the scope of the OpenAPI Description". Section 4.3.3
+// recommends resolving one "considering all Operation Objects from all parsed
+// documents", so nothing is decided here until every document of the
+// description is held at once
+inline auto openapi_check_operation_id_links(
+    const OpenAPIWalk &walk,
+    const std::map<JSON::String, OpenAPILocation> &locations) -> void {
+  for (const auto &[location, identifier] : walk.operation_id_links) {
+    // Section 4.8.20 goes on to say that an operation reached through a Path
+    // Item referenced more than once "cannot be resolved unambiguously", and
+    // that "in such ambiguous cases, the resulting behavior is
+    // implementation-defined and MAY result in an error". So naming nothing at
+    // all is the violation, and naming something twice over is not
+    if (!walk.operation_ids.contains(identifier)) {
+      throw openapi_error_at(locations, location,
+                             "The Link Object operation identifier must name "
+                             "an operation the OpenAPI Description declares",
+                             "operationId"sv);
+    }
+  }
+}
+
+// OpenAPI Specification 3.1.1, Section 4.8.24 hands a Schema Object over to
+// whatever reads JSON Schema, whole and on its own. One sitting within another
+// is a place that implementation would be handed twice over, once by itself
+// and once as part of something larger, which is not a reading it has any
+// account of. Which places those are is settled by the walk as a whole, so
+// this cannot be decided while one is still being read
+inline auto openapi_check_schema_positions(const OpenAPIWalk &walk) -> void {
+  std::vector<WeakPointer> enclosing;
+  for (const auto &location : walk.locations) {
+    if (location.second.type != OpenAPIObjectKind::Schema) {
+      continue;
+    }
+
+    auto pointer{to_weak_pointer(location.second.pointer)};
+    while (!enclosing.empty() && !pointer.starts_with(enclosing.back())) {
+      enclosing.pop_back();
+    }
+
+    if (!enclosing.empty()) {
+      throw OpenAPIError{
+          walk.base, location.second.pointer,
+          "A Schema Object must not sit within another Schema Object"};
+    }
+
+    enclosing.push_back(std::move(pointer));
+  }
+}
+
+// Every operation the description exposes, worked out from a walk that has
+// settled. OpenAPI Specification 3.1.1, Section 4.8.9 has a templated path
+// correspond to the path parameters the Path Item Object and its operations
+// declare, and which parameters those are is only settled once every Path Item
+// the description reaches is at hand, so this is where that is decided
+auto openapi_project(const OpenAPIWalk &walk) -> std::vector<OpenAPIOperation>;
+
 // Everything the checks need in order to start from nothing, which is a walk
 // of the given document keyed by the given base. A 3.2 document may name
 // itself, so what the walk ends up keyed by is what it reports rather than
@@ -495,7 +605,8 @@ inline auto openapi_analyse(const JSON &document, JSON::String base,
                             const std::uint64_t max_locations =
                                 std::numeric_limits<std::uint64_t>::max(),
                             const OpenAPIWalk *entry = nullptr) -> OpenAPIWalk {
-  OpenAPIWalk walk{.base = std::move(base),
+  OpenAPIWalk walk{.base = base,
+                   .retrieval = std::move(base),
                    .document = &document,
                    .operation_ids = {},
                    .visited = {},
@@ -533,6 +644,7 @@ inline auto openapi_analyse(const JSON &document, JSON::String base,
   }
 
   openapi_check_document(document, walk);
+  openapi_check_schema_positions(walk);
   return walk;
 }
 

@@ -437,7 +437,8 @@ inline auto openapi_check_security_scheme_name(const JSON::StringView name,
   // one document from reading as whole. Every other way of naming another
   // Object is written down where the Object that makes it sits, which one of
   // these cannot be, as a single Security Requirement Object may name several
-  walk.security_references.push_back(
+  walk.security_references.insert_or_assign(
+      openapi_location_uri(walk.base, origin),
       OpenAPIReference{.original = JSON::String{name},
                        .destination = target.value().recompose(),
                        .dangling = false,

@@ -1,0 +1,64 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "$self": "https://cdn.example.com/v1/openapi.json",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "responses": {
+        "R": {
+          "$ref": "other.json#/components/responses/NotFound"
+        }
+      }
+    }
+  },
+  "openapiResolver": {
+    "https://cdn.example.com/v1/other.json": {
+      "openapi": "3.2.0",
+      "info": {
+        "title": "Example",
+        "version": "1.0.0"
+      },
+      "components": {
+        "responses": {
+          "NotFound": {
+            "description": "Nope"
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.2.0",
+    "$self": "https://cdn.example.com/v1/openapi.json",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "responses": {
+        "R": {
+          "$ref": "#/components/responses/NotFound"
+        },
+        "NotFound": {
+          "description": "Nope"
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://cdn.example.com/v1/other.json#/components/responses/NotFound",
+      "at": "/components/responses/NotFound"
+    }
+  ],
+  "reads": {
+    "https://cdn.example.com/v1/other.json": 1
+  },
+  "schemaReads": {},
+  "standalone": true,
+  "relocatable": true
+}

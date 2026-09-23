@@ -1,0 +1,112 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "200": {
+              "$ref": "shared/api.json#/components/responses/Ok"
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/shared/api.json": {
+      "openapi": "3.2.0",
+      "info": {
+        "title": "Example",
+        "version": "1.0.0"
+      },
+      "components": {
+        "responses": {
+          "Ok": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "$dynamicRef": "tree#node"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {
+    "https://example.com/shared/tree": {
+      "$id": "https://example.com/shared/tree",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$dynamicAnchor": "node",
+      "type": "object"
+    }
+  },
+  "result": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "200": {
+              "$ref": "#/components/responses/Ok"
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "responses": {
+        "Ok": {
+          "description": "OK",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "$dynamicRef": "https://example.com/shared/tree#node"
+              }
+            }
+          }
+        }
+      },
+      "schemas": {
+        "tree": {
+          "$id": "https://example.com/shared/tree",
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$dynamicAnchor": "node",
+          "type": "object"
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/shared/api.json#/components/responses/Ok",
+      "at": "/components/responses/Ok"
+    },
+    {
+      "from": "https://example.com/shared/tree",
+      "at": "/components/schemas/tree"
+    }
+  ],
+  "reads": {
+    "https://example.com/shared/api.json": 1
+  },
+  "schemaReads": {
+    "https://example.com/shared/tree": 1
+  },
+  "standalone": true,
+  "relocatable": true
+}

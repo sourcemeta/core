@@ -1,0 +1,99 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "operationId": "getPets",
+          "responses": {
+            "404": {
+              "$ref": "b.json#/components/responses/NotFound"
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "links": {
+        "Retry": {
+          "operationId": "getPets"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/b.json": {
+      "openapi": "3.2.0",
+      "info": {
+        "title": "B",
+        "version": "1.0.0"
+      },
+      "components": {
+        "responses": {
+          "NotFound": {
+            "description": "Not found",
+            "links": {
+              "retry": {
+                "$ref": "openapi.json#/components/links/Retry"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "operationId": "getPets",
+          "responses": {
+            "404": {
+              "$ref": "#/components/responses/NotFound"
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "links": {
+        "Retry": {
+          "operationId": "getPets"
+        }
+      },
+      "responses": {
+        "NotFound": {
+          "description": "Not found",
+          "links": {
+            "retry": {
+              "$ref": "#/components/links/Retry"
+            }
+          }
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/b.json#/components/responses/NotFound",
+      "at": "/components/responses/NotFound"
+    }
+  ],
+  "reads": {
+    "https://example.com/b.json": 1
+  },
+  "schemaReads": {},
+  "standalone": true,
+  "relocatable": true
+}

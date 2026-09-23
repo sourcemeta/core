@@ -1,0 +1,129 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "tags": [
+      {
+        "name": "inner",
+        "parent": "middle"
+      }
+    ],
+    "components": {
+      "responses": {
+        "A": {
+          "$ref": "one.json#/components/responses/NotFound"
+        },
+        "B": {
+          "$ref": "two.json#/components/responses/Gone"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/one.json": {
+      "openapi": "3.2.0",
+      "info": {
+        "title": "Example",
+        "version": "1.0.0"
+      },
+      "tags": [
+        {
+          "name": "middle",
+          "parent": "outer"
+        }
+      ],
+      "components": {
+        "responses": {
+          "NotFound": {
+            "description": "Nope"
+          }
+        }
+      }
+    },
+    "https://example.com/two.json": {
+      "openapi": "3.2.0",
+      "info": {
+        "title": "Example",
+        "version": "1.0.0"
+      },
+      "tags": [
+        {
+          "name": "outer"
+        }
+      ],
+      "components": {
+        "responses": {
+          "Gone": {
+            "description": "Gone"
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "tags": [
+      {
+        "name": "inner",
+        "parent": "middle"
+      },
+      {
+        "name": "middle",
+        "parent": "outer"
+      },
+      {
+        "name": "outer"
+      }
+    ],
+    "components": {
+      "responses": {
+        "A": {
+          "$ref": "#/components/responses/NotFound"
+        },
+        "B": {
+          "$ref": "#/components/responses/Gone"
+        },
+        "NotFound": {
+          "description": "Nope"
+        },
+        "Gone": {
+          "description": "Gone"
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/one.json#/components/responses/NotFound",
+      "at": "/components/responses/NotFound"
+    },
+    {
+      "from": "https://example.com/two.json#/components/responses/Gone",
+      "at": "/components/responses/Gone"
+    },
+    {
+      "from": "https://example.com/one.json#/tags/0",
+      "at": "/tags/1"
+    },
+    {
+      "from": "https://example.com/two.json#/tags/0",
+      "at": "/tags/2"
+    }
+  ],
+  "reads": {
+    "https://example.com/one.json": 1,
+    "https://example.com/two.json": 1
+  },
+  "schemaReads": {},
+  "standalone": true,
+  "relocatable": true
+}

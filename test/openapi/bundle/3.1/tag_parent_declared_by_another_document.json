@@ -1,0 +1,50 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "tags": [
+      {
+        "name": "inner",
+        "parent": "outer"
+      }
+    ],
+    "components": {
+      "responses": {
+        "R": {
+          "$ref": "other.json#/components/responses/NotFound"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/other.json": {
+      "openapi": "3.1.1",
+      "info": {
+        "title": "Example",
+        "version": "1.0.0"
+      },
+      "tags": [
+        {
+          "name": "outer"
+        }
+      ],
+      "components": {
+        "responses": {
+          "NotFound": {
+            "description": "Nope"
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "error": {
+    "type": "OpenAPIError",
+    "message": "The Tag Object does not define this field",
+    "location": "/tags/0/parent"
+  }
+}

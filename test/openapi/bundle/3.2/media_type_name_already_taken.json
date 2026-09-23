@@ -1,0 +1,91 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "mediaTypes": {
+        "M": {
+          "schema": {
+            "type": "integer"
+          }
+        }
+      },
+      "responses": {
+        "R": {
+          "description": "OK",
+          "content": {
+            "application/json": {
+              "$ref": "other.json#/components/mediaTypes/M"
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/other.json": {
+      "openapi": "3.2.0",
+      "info": {
+        "title": "Example",
+        "version": "1.0.0"
+      },
+      "components": {
+        "mediaTypes": {
+          "M": {
+            "schema": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "mediaTypes": {
+        "M": {
+          "schema": {
+            "type": "integer"
+          }
+        },
+        "M_": {
+          "schema": {
+            "type": "string"
+          }
+        }
+      },
+      "responses": {
+        "R": {
+          "description": "OK",
+          "content": {
+            "application/json": {
+              "$ref": "#/components/mediaTypes/M_"
+            }
+          }
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/other.json#/components/mediaTypes/M",
+      "at": "/components/mediaTypes/M_"
+    }
+  ],
+  "reads": {
+    "https://example.com/other.json": 1
+  },
+  "schemaReads": {},
+  "standalone": true,
+  "relocatable": true
+}

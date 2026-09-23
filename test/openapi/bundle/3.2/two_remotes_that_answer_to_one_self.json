@@ -1,0 +1,86 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "responses": {
+        "A": {
+          "$ref": "https://one.example.com/common.json#/components/responses/NotFound"
+        },
+        "B": {
+          "$ref": "https://two.example.com/common.json#/components/responses/NotFound"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://one.example.com/common.json": {
+      "openapi": "3.2.0",
+      "$self": "https://example.com/common.json",
+      "info": {
+        "title": "Example",
+        "version": "1.0.0"
+      },
+      "components": {
+        "responses": {
+          "NotFound": {
+            "description": "The one reached first"
+          }
+        }
+      }
+    },
+    "https://two.example.com/common.json": {
+      "openapi": "3.2.0",
+      "$self": "https://example.com/common.json",
+      "info": {
+        "title": "Example",
+        "version": "1.0.0"
+      },
+      "components": {
+        "responses": {
+          "NotFound": {
+            "description": "The one reached second"
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "responses": {
+        "A": {
+          "$ref": "#/components/responses/NotFound"
+        },
+        "B": {
+          "$ref": "#/components/responses/NotFound"
+        },
+        "NotFound": {
+          "description": "The one reached first"
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/common.json#/components/responses/NotFound",
+      "at": "/components/responses/NotFound"
+    }
+  ],
+  "reads": {
+    "https://one.example.com/common.json": 1,
+    "https://two.example.com/common.json": 1
+  },
+  "schemaReads": {},
+  "standalone": true,
+  "relocatable": true
+}

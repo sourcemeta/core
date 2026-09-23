@@ -1,0 +1,97 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "404": {
+              "$ref": "b.json#/components/responses/One"
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/b.json": {
+      "openapi": "3.2.0",
+      "info": {
+        "title": "B",
+        "version": "1.0.0"
+      },
+      "components": {
+        "responses": {
+          "One": {
+            "$ref": "c.json#/components/responses/Two"
+          }
+        }
+      }
+    },
+    "https://example.com/c.json": {
+      "openapi": "3.2.0",
+      "info": {
+        "title": "C",
+        "version": "1.0.0"
+      },
+      "components": {
+        "responses": {
+          "Two": {
+            "$ref": "b.json#/components/responses/One"
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "404": {
+              "$ref": "#/components/responses/One"
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "responses": {
+        "One": {
+          "$ref": "#/components/responses/Two"
+        },
+        "Two": {
+          "$ref": "#/components/responses/One"
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/b.json#/components/responses/One",
+      "at": "/components/responses/One"
+    },
+    {
+      "from": "https://example.com/c.json#/components/responses/Two",
+      "at": "/components/responses/Two"
+    }
+  ],
+  "reads": {
+    "https://example.com/b.json": 1,
+    "https://example.com/c.json": 1
+  },
+  "schemaReads": {},
+  "standalone": true,
+  "relocatable": true
+}

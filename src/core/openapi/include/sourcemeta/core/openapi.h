@@ -366,7 +366,9 @@ struct OpenAPIBundleOptions {
   using Namer = std::function<JSON::String(JSON::StringView, JSON::StringView)>;
 
   /// The URI the document was retrieved from, which every relative reference
-  /// it makes resolves against
+  /// it makes resolves against. A document that names itself takes that name
+  /// as its base instead, leaving this as the one a relative such name
+  /// resolves against
   std::string_view default_base{};
   /// The maximum number of locations that analysis may register. How many
   /// documents bundling ends up reading follows from what the resolvers hand

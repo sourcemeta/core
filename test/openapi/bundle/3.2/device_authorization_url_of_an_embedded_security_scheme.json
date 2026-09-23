@@ -1,0 +1,77 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "securitySchemes": {
+        "S": {
+          "$ref": "other.json#/components/securitySchemes/Remote"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/other.json": {
+      "openapi": "3.2.0",
+      "info": {
+        "title": "Example",
+        "version": "1.0.0"
+      },
+      "components": {
+        "securitySchemes": {
+          "Remote": {
+            "type": "oauth2",
+            "flows": {
+              "deviceAuthorization": {
+                "deviceAuthorizationUrl": "oauth/device",
+                "tokenUrl": "oauth/token",
+                "scopes": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "securitySchemes": {
+        "S": {
+          "$ref": "#/components/securitySchemes/Remote"
+        },
+        "Remote": {
+          "type": "oauth2",
+          "flows": {
+            "deviceAuthorization": {
+              "deviceAuthorizationUrl": "oauth/device",
+              "tokenUrl": "oauth/token",
+              "scopes": {}
+            }
+          }
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/other.json#/components/securitySchemes/Remote",
+      "at": "/components/securitySchemes/Remote"
+    }
+  ],
+  "reads": {
+    "https://example.com/other.json": 1
+  },
+  "schemaReads": {},
+  "standalone": true,
+  "relocatable": true
+}

@@ -24,8 +24,8 @@ namespace {
 const std::vector<std::string> KNOWN_KEYS{
     "document",     "defaultBase", "openapiResolver", "schemaResolver",
     "maxLocations", "namer",       "result",          "inserted",
-    "named",        "reads",       "schemaReads",     "relocatable",
-    "error"};
+    "named",        "reads",       "schemaReads",     "standalone",
+    "relocatable",  "error"};
 
 // Every key an entry of what bundling reported embedding may declare
 const std::vector<std::string> KNOWN_INSERTION_KEYS{"from", "at"};
@@ -194,6 +194,7 @@ auto check_shape(const sourcemeta::core::JSON &test) -> void {
   EXPECT_EQ(test.defines("inserted"), test.defines("result"));
   EXPECT_EQ(test.defines("reads"), test.defines("result"));
   EXPECT_EQ(test.defines("schemaReads"), test.defines("result"));
+  EXPECT_EQ(test.defines("standalone"), test.defines("result"));
   EXPECT_EQ(test.defines("relocatable"), test.defines("result"));
   // A fixture that picks the names itself says which ones the hook was handed.
   // Picking them is something a fixture does to get a particular answer out of
@@ -305,12 +306,18 @@ auto run_pass_test(const sourcemeta::core::JSON &test) -> void {
                                    schema_resolver, resolver, without);
   EXPECT_EQ(mutated, expected);
 
-  // Bundling is what makes a description whole, so what it produces is a
-  // description that holds everything it reaches for, and one that framing
-  // reads back rather than turns down
+  // Bundling is what makes a description whole, so what it produces holds
+  // every place it went and fetched, and framing reads it back rather than
+  // turning it down.
+  //
+  // What it does not make whole is a reference that names the document making
+  // it and lands nowhere, which there is nothing to go and fetch for. Section
+  // 4.8.23 holds a `$ref` to the form of a URI and says nothing about it
+  // having to resolve, so such a reference is left exactly as it was written
+  // and what comes back stands alone no more than what went in did
   const sourcemeta::core::OpenAPIFrame frame{
       result, sourcemeta::core::schema_walker, schema_resolver, base};
-  EXPECT_TRUE(frame.standalone());
+  EXPECT_EQ(frame.standalone(), test.at("standalone").to_boolean());
 
   // And one that goes on holding it wherever it is kept. Section 4.6 settles a
   // relative reference against a base that "is usually the retrieval URI of

@@ -1,0 +1,46 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "security": [
+      {
+        "https://example.com/other.json": []
+      }
+    ],
+    "components": {
+      "responses": {
+        "R": {
+          "description": "OK"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/other.json": {
+      "openapi": "3.2.0",
+      "info": {
+        "title": "Example",
+        "version": "1.0.0"
+      },
+      "components": {
+        "securitySchemes": {
+          "Remote": {
+            "type": "http",
+            "scheme": "bearer"
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "error": {
+    "type": "OpenAPIReferenceError",
+    "message": "This reference must name a place within the document it points at",
+    "identifier": "https://example.com/other.json",
+    "location": "/security/0/https:~1~1example.com~1other.json"
+  }
+}
