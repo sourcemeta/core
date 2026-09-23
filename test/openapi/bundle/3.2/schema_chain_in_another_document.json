@@ -1,0 +1,106 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "200": {
+              "description": "OK",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "https://example.com/schemas/pet"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {},
+  "schemaResolver": {
+    "https://example.com/schemas/pet": {
+      "$id": "https://example.com/schemas/pet",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "owner": {
+          "$ref": "https://example.com/schemas/owner"
+        }
+      }
+    },
+    "https://example.com/schemas/owner": {
+      "$id": "https://example.com/schemas/owner",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "string"
+    }
+  },
+  "result": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "200": {
+              "description": "OK",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "https://example.com/schemas/pet"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "schemas": {
+        "pet": {
+          "$id": "https://example.com/schemas/pet",
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "owner": {
+              "$ref": "https://example.com/schemas/owner"
+            }
+          }
+        },
+        "owner": {
+          "$id": "https://example.com/schemas/owner",
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "string"
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/schemas/owner",
+      "at": "/components/schemas/owner"
+    },
+    {
+      "from": "https://example.com/schemas/pet",
+      "at": "/components/schemas/pet"
+    }
+  ],
+  "reads": {},
+  "schemaReads": {
+    "https://example.com/schemas/pet": 1,
+    "https://example.com/schemas/owner": 1
+  },
+  "relocatable": true
+}

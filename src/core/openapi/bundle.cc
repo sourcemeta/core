@@ -38,6 +38,12 @@ struct OpenAPIPending {
   // there has any account of, so the two part company wherever the shell
   // cannot reach what is named
   bool mapping{false};
+  // Whether a Security Requirement Object is what names it. OpenAPI
+  // Specification 3.2.1, Section 4.30 lets one name a Security Scheme Object
+  // "by URI", and that URI is the member the scopes sit under rather than a
+  // value of its own, so making it whole renames a member rather than writing
+  // to one. Nothing else this brings in is spelled that way
+  bool requirement{false};
   // What the reference resolves against, which for everything but a Schema
   // Object is the base of the document that makes it. OpenAPI Specification
   // 3.1.1, Section 4.3 has a relative reference inside a Schema Object use
@@ -63,6 +69,27 @@ auto pending(const sourcemeta::core::OpenAPIWalk &walk)
     result.push_back({.origin = entry.second.origin,
                       .destination = entry.second.destination,
                       .expected = entry.second.expected,
+                      .scope = walk.base});
+  }
+
+  // And so does what a Security Requirement Object names by URI, which OpenAPI
+  // Specification 3.2.1, Section 4.30 admits alongside the name of a component:
+  // "The name used for each property MUST either correspond to a security
+  // scheme declared in the Security Schemes under the Components Object, or be
+  // the URI of a Security Scheme Object". The frame keeps these apart from the
+  // references above only because a single one of those Objects may name
+  // several schemes, which is more than one entry keyed by where it sits
+  for (const auto &entry : walk.security_references) {
+    if (walk.locations.contains(entry.second.destination) ||
+        sourcemeta::core::openapi_document_uri(entry.second.destination) ==
+            walk.base) {
+      continue;
+    }
+
+    result.push_back({.origin = entry.second.origin,
+                      .destination = entry.second.destination,
+                      .expected = entry.second.expected,
+                      .requirement = true,
                       .scope = walk.base});
   }
 
@@ -92,6 +119,30 @@ auto promote(const sourcemeta::core::Pointer &target)
   }
 
   return target.slice(0, COMPONENT_DEPTH);
+}
+
+// Where the Path Item Object holding an Operation Object sits. OpenAPI
+// Specification 3.1.1, Section 4.8.9 puts an Operation Object directly under
+// the Path Item Object that holds it, and 3.2.1, Section 4.9 adds
+// `additionalOperations`, "a map of additional operations keyed by HTTP
+// method", which puts a map of its own between the two. So which place holds
+// it is what the walk recorded rather than a fixed number of steps up
+auto path_item_of(const sourcemeta::core::OpenAPIWalk &remote,
+                  const sourcemeta::core::Pointer &operation)
+    -> sourcemeta::core::Pointer {
+  auto prefix{operation};
+  while (!prefix.empty()) {
+    prefix = prefix.initial();
+    const auto location{remote.locations.find(
+        sourcemeta::core::openapi_location_uri(remote.base, prefix))};
+    if (location != remote.locations.cend() &&
+        location->second.type ==
+            sourcemeta::core::OpenAPIObjectKind::PathItem) {
+      return prefix;
+    }
+  }
+
+  return operation.initial();
 }
 
 // Which Components Object member an embedded Object goes under. A component
@@ -696,29 +747,13 @@ namespace sourcemeta::core {
 
 namespace {
 
-// Lift one Object out of the document that declares it and into the entry
-// document, writing back everything it carries that would otherwise go on
-// resolving against a base that is no longer its own. Where it lands is what
-// every reference that reaches it is then written to name
-auto adopt(sourcemeta::core::JSON &document,
-           const sourcemeta::core::JSON &remote_document,
-           const sourcemeta::core::OpenAPIWalk &remote,
-           const sourcemeta::core::Pointer &origin,
-           const sourcemeta::core::JSON::StringView container,
-           const sourcemeta::core::JSON::String &key,
-           const sourcemeta::core::JSON::String &base,
-           const sourcemeta::core::JSON::String &dialect,
-           const sourcemeta::core::SchemaWalker &walker,
-           const sourcemeta::core::SchemaResolver &schema_resolver,
-           const sourcemeta::core::OpenAPIBundleOptions &options,
-           std::uint64_t &remaining) -> sourcemeta::core::Pointer {
-  auto value{*try_get(remote_document, origin)};
-
-  // Nothing below the root of a document may declare a base of its own,
-  // so an embedded Object goes on reading its own references against
-  // whichever document it ends up in. Writing back what each of them
-  // resolved to where it came from is what keeps them naming the same
-  // places once that Object sits somewhere else
+// Nothing below the root of a document may declare a base of its own, so an
+// Object taken out of one goes on reading whatever it carries against
+// whichever document it ends up in. Writing back what each of those resolved
+// to where it came from is what keeps them naming the same places once that
+// Object sits somewhere else
+auto absolutize(JSON &value, const OpenAPIWalk &remote, const Pointer &origin,
+                const JSON::String &base) -> void {
   for (const auto &entry : remote.references) {
     if (entry.second.origin.starts_with(origin)) {
       set(value, (entry.second.origin).resolve_from(origin),
@@ -726,9 +761,26 @@ auto adopt(sourcemeta::core::JSON &document,
     }
   }
 
-  // And so is every other URI it carries, which the frame does not
-  // record as a reference because nothing about the description hangs
-  // off where it leads
+  // OpenAPI Specification 3.2.1, Section 4.30 has a Security Requirement
+  // Object name a Security Scheme Object by the URI of one, which is the one
+  // connection of a description spelled as the member that holds the scopes
+  // rather than as a value, so this renames rather than writes
+  for (const auto &entry : remote.security_references) {
+    if (!entry.second.origin.starts_with(origin)) {
+      continue;
+    }
+
+    auto rewritten{rebase(entry.second.destination, base)};
+    if (rewritten == entry.second.original) {
+      continue;
+    }
+
+    get(value, (entry.second.origin).resolve_from(origin).initial())
+        .rename(entry.second.original, std::move(rewritten));
+  }
+
+  // And so is every other URI it carries, which the frame does not record as a
+  // reference because nothing about the description hangs off where it leads
   for (const auto &entry : remote.locations) {
     if (!entry.second.pointer.starts_with(origin)) {
       continue;
@@ -736,11 +788,11 @@ auto adopt(sourcemeta::core::JSON &document,
 
     const auto relative{(entry.second.pointer).resolve_from(origin)};
 
-    // Section 4.8.5 makes a Server Object URL a template rather than a
-    // URI reference, and Section 4.3 has a relative one name a place
-    // "relative to the location where the document containing the
-    // Server Object is being served", so it resolves as a template
-    // against the document it was written in
+    // Section 4.8.5 makes a Server Object URL a template rather than a URI
+    // reference, and Section 4.3 has a relative one name a place "relative to
+    // the location where the document containing the Server Object is being
+    // served", so it resolves as a template against the document it was
+    // written in
     if (entry.second.type == OpenAPIObjectKind::Server) {
       const auto held{relative.concat(JSON::String{"url"})};
       const auto *written{try_get(value, held)};
@@ -775,6 +827,26 @@ auto adopt(sourcemeta::core::JSON &document,
       }
     }
   }
+}
+
+// Lift one Object out of the document that declares it and into the entry
+// document, writing back everything it carries that would otherwise go on
+// resolving against a base that is no longer its own. Where it lands is what
+// every reference that reaches it is then written to name
+auto adopt(sourcemeta::core::JSON &document,
+           const sourcemeta::core::JSON &remote_document,
+           const sourcemeta::core::OpenAPIWalk &remote,
+           const sourcemeta::core::Pointer &origin,
+           const sourcemeta::core::JSON::StringView container,
+           const sourcemeta::core::JSON::String &key,
+           const sourcemeta::core::JSON::String &base,
+           const sourcemeta::core::JSON::String &dialect,
+           const sourcemeta::core::SchemaWalker &walker,
+           const sourcemeta::core::SchemaResolver &schema_resolver,
+           const sourcemeta::core::OpenAPIBundleOptions &options,
+           std::uint64_t &remaining) -> sourcemeta::core::Pointer {
+  auto value{*try_get(remote_document, origin)};
+  absolutize(value, remote, origin, base);
 
   // Where this is headed is settled before anything it carries is written
   // back, as a reference of its own that names a place within it by a pointer
@@ -832,10 +904,10 @@ auto adopt_operations(JSON &document, const OpenAPIWalk &walk,
         continue;
       }
 
-      // Section 4.8.9 only ever puts an Operation Object directly inside a
-      // Path Item Object, which is the Object the Components Object has a
-      // home for
-      const auto origin{promote(operation->second.pointer.initial())};
+      // A Path Item Object is what holds an Operation Object, and the Object
+      // the Components Object has a home for
+      const auto origin{
+          promote(path_item_of(other.second, operation->second.pointer))};
       const auto key{openapi_location_uri(other.first, origin)};
       if (bundled.contains(key)) {
         break;
@@ -846,6 +918,78 @@ auto adopt_operations(JSON &document, const OpenAPIWalk &walk,
           adopt(document, documents.at(other.first), other.second, origin,
                 container_of(origin, OpenAPIObjectKind::PathItem), key, base,
                 walk.dialect, walker, schema_resolver, options, remaining));
+      changed = true;
+      break;
+    }
+  }
+
+  return changed;
+}
+
+// Where a document declares the Tag Object of a given name, which the walk
+// records as a place of its own rather than by the name it goes under
+auto tag_of(const JSON &document, const OpenAPIWalk &walk,
+            const JSON::String &name) -> std::optional<Pointer> {
+  for (const auto &entry : walk.locations) {
+    if (entry.second.type != OpenAPIObjectKind::Tag) {
+      continue;
+    }
+
+    const auto *value{try_get(document, entry.second.pointer)};
+    if (value == nullptr || !value->is_object()) {
+      continue;
+    }
+
+    const auto *declared{value->try_at("name")};
+    if (declared != nullptr && declared->is_string() &&
+        declared->to_string() == name) {
+      return entry.second.pointer;
+    }
+  }
+
+  return std::nullopt;
+}
+
+// OpenAPI Specification 3.2.1, Section 4.22, of a Tag Object's `parent`: "The
+// `name` of a tag that this tag is nested under. The named tag MUST exist in
+// the API description". A description is every document it spans rather than
+// the entry one alone, so that tag may be one another document declares, and
+// Section 4.1 only ever puts a Tag Object at the root of a document. Bundling
+// moves what the Components Object holds and leaves every root where it is, so
+// a name that the description satisfied has to travel along to go on being
+// satisfied by what bundling produces. Every document that holds one is one
+// bundling has read, just as for a Link Object `operationId`, as a name is not
+// something there is anywhere to go and fetch
+auto adopt_tags(JSON &document, const OpenAPIWalk &walk,
+                const std::map<JSON::String, JSON> &documents,
+                const std::map<JSON::String, OpenAPIWalk> &walks,
+                const JSON::String &base, const OpenAPIBundleOptions &options)
+    -> bool {
+  bool changed{false};
+  for (const auto &entry : walk.tag_parents) {
+    if (walk.tag_names.contains(entry.second.second)) {
+      continue;
+    }
+
+    for (const auto &other : walks) {
+      const auto &remote_document{documents.at(other.first)};
+      const auto declared{
+          tag_of(remote_document, other.second, entry.second.second)};
+      if (!declared.has_value()) {
+        continue;
+      }
+
+      auto value{*try_get(remote_document, declared.value())};
+      absolutize(value, other.second, declared.value(), base);
+      document.assign_if_missing("tags", JSON::make_array());
+      auto &tags{document.at("tags")};
+      if (options.callback) {
+        options.callback(
+            openapi_location_uri(other.second.base, declared.value()),
+            Pointer{JSON::String{"tags"}, tags.size()});
+      }
+
+      tags.push_back(std::move(value));
       changed = true;
       break;
     }
@@ -942,7 +1086,12 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
                      const OpenAPIResolver &resolver,
                      const OpenAPIBundleOptions &options,
                      std::uint64_t &remaining) -> void {
-  const auto base{openapi_canonical_base(options.default_base)};
+  // Where the document was retrieved from, which is only what it answers to
+  // until it says otherwise. OpenAPI Specification 3.2.1, Section 4.1 lets one
+  // name itself with `$self`, "which also serves as its base URI", so what
+  // every place of this document is named by is what its own analysis settled
+  // on rather than what the caller handed over
+  const auto retrieval{openapi_canonical_base(options.default_base)};
   // Where each component that bundling embedded ended up, keyed by the place
   // it came from. A description that reaches for one place twice embeds it
   // once, which is also what keeps a cycle of documents from going round
@@ -961,7 +1110,8 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
   std::set<JSON::String> adopted;
 
   while (true) {
-    const auto walk{openapi_analyse(document, base, remaining)};
+    const auto walk{openapi_analyse(document, retrieval, remaining)};
+    const auto &base{walk.base};
     charge(remaining, walk.locations.size());
     auto unresolved{pending(walk)};
     // A Schema Object may name one that another document of the description
@@ -998,21 +1148,6 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
       }
 
       const auto identifier{openapi_document_uri(reference.destination)};
-
-      // An Operation Object is the one kind the Components Object has no home
-      // for, and Section 4.8.9 only ever puts one directly inside a Path Item
-      // Object, so what gets embedded is that Path Item and the reference goes
-      // on reaching its operation through it
-      const auto names_an_operation{reference.expected ==
-                                    OpenAPIObjectKind::Operation};
-      const auto origin{promote(names_an_operation ? target.value().initial()
-                                                   : target.value())};
-      const auto container{
-          container_of(origin, names_an_operation ? OpenAPIObjectKind::PathItem
-                                                  : reference.expected)};
-      // Every kind that a reference position expects has a home of its own
-      // once an Operation Object is reached through the Path Item holding it
-      assert(!container.empty());
 
       if (names_a_schema && unavailable.contains(identifier)) {
         continue;
@@ -1070,13 +1205,6 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
 
       const auto &remote_document{documents.at(identifier)};
       const auto &remote{walks.at(identifier)};
-      // Where a document was retrieved from is how a resolver is asked for it,
-      // and what it answers to is its own to say. OpenAPI Specification 3.2.1,
-      // Section 4.1.1 lets a document declare the latter and requires the two
-      // to be told apart: "references MUST use the target document's `$self`
-      // URI if the `$self` field is present". So every place of it is named by
-      // the base its own analysis settled on rather than by where it was found
-      const auto key{openapi_location_uri(remote.base, origin)};
       // What a reference names is held to the kind the position it sits in
       // expects, however many references reach the Object that holds it. A
       // second one that named nothing would otherwise be written out as a
@@ -1088,6 +1216,29 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
             "position it sits in expects"};
       }
 
+      // An Operation Object is the one kind the Components Object has no home
+      // for, so what gets embedded is the Path Item Object holding it and the
+      // reference goes on reaching its operation through that
+      const auto names_an_operation{reference.expected ==
+                                    OpenAPIObjectKind::Operation};
+      const auto origin{promote(names_an_operation
+                                    ? path_item_of(remote, target.value())
+                                    : target.value())};
+      const auto container{
+          container_of(origin, names_an_operation ? OpenAPIObjectKind::PathItem
+                                                  : reference.expected)};
+      // Every kind that a reference position expects has a home of its own
+      // once an Operation Object is reached through the Path Item holding it
+      assert(!container.empty());
+
+      // Where a document was retrieved from is how a resolver is asked for it,
+      // and what it answers to is its own to say. OpenAPI Specification 3.2.1,
+      // Section 4.1.1 lets a document declare the latter and requires the two
+      // to be told apart: "references MUST use the target document's `$self`
+      // URI if the `$self` field is present". So every place of it is named by
+      // the base its own analysis settled on rather than by where it was found
+      const auto key{openapi_location_uri(remote.base, origin)};
+
       if (!bundled.contains(key)) {
         bundled.emplace(key, adopt(document, remote_document, remote, origin,
                                    container, key, base, walk.dialect, walker,
@@ -1098,6 +1249,21 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
       // in, rather than as the URI that document answers to, so that bundling
       // leaves behind an output that keeps working wherever it is moved to
       const auto landed{target.value().rebase(origin, bundled.at(key))};
+
+      // What a Security Requirement Object names is the member the scopes sit
+      // under, so what makes it whole is renaming that member to whatever the
+      // scheme is called once it sits here, which carries the scopes across
+      // untouched. Section 4.30 then reads the result as a component name
+      // rather than as a URI: "Property names that are identical to a
+      // component name under the Components Object MUST be treated as a
+      // component name", and the name was taken free of that Object for it
+      if (reference.requirement) {
+        get(document, reference.origin.initial())
+            .rename(reference.origin.back().to_property(),
+                    JSON::String{landed.back().to_property()});
+        changed = true;
+        continue;
+      }
 
       // A reference that resolves against the document it sits in is written
       // as a fragment of it, which is what keeps what bundling produces
@@ -1141,6 +1307,12 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
         continue;
       }
 
+      // And so is the tag a Tag Object is nested under, which is a name the
+      // description settles rather than a reference to go and follow
+      if (adopt_tags(document, walk, documents, walks, base, options)) {
+        continue;
+      }
+
       // And so is what a mapping names, which is settled after the references
       // are, as bringing one schema in may be what lets the next be read
       if (adopt_mappings(document, deferred, adopted, base, schema_resolver,
@@ -1148,6 +1320,17 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
         deferred.clear();
         continue;
       }
+
+      // What is left is one document that holds every OpenAPI document the
+      // description spanned, as the only ones bundling leaves out are the ones
+      // a Schema Object may name, which hold no Tag Object and no Operation
+      // Object to name. So the names that Section 4.3.3 has resolve across the
+      // whole of a description are ones there is now an answer for, and
+      // leaving a description that has none to be turned down by whoever
+      // frames it next would be to hand back a bundle that does not describe
+      // anything
+      openapi_check_operation_id_links(walk, walk.locations);
+      openapi_check_tag_parents(walk, walk.locations, true);
 
       bundle_schemas(document, walk, walker, schema_resolver, base, remaining,
                      options);

@@ -1,0 +1,101 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "responses": {
+        "R": {
+          "$ref": "https://example.com/other.json#/components/responses/NotFound"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/other.json": {
+      "openapi": "3.2.0",
+      "$self": "https://cdn.example.com/v1/common.json",
+      "info": {
+        "title": "Example",
+        "version": "1.0.0"
+      },
+      "components": {
+        "responses": {
+          "NotFound": {
+            "description": "Nope",
+            "headers": {
+              "H": {
+                "$ref": "headers.json#/components/headers/Rate"
+              }
+            }
+          }
+        }
+      }
+    },
+    "https://cdn.example.com/v1/headers.json": {
+      "openapi": "3.2.0",
+      "info": {
+        "title": "Example",
+        "version": "1.0.0"
+      },
+      "components": {
+        "headers": {
+          "Rate": {
+            "schema": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "responses": {
+        "R": {
+          "$ref": "#/components/responses/NotFound"
+        },
+        "NotFound": {
+          "description": "Nope",
+          "headers": {
+            "H": {
+              "$ref": "#/components/headers/Rate"
+            }
+          }
+        }
+      },
+      "headers": {
+        "Rate": {
+          "schema": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://cdn.example.com/v1/common.json#/components/responses/NotFound",
+      "at": "/components/responses/NotFound"
+    },
+    {
+      "from": "https://cdn.example.com/v1/headers.json#/components/headers/Rate",
+      "at": "/components/headers/Rate"
+    }
+  ],
+  "reads": {
+    "https://example.com/other.json": 1,
+    "https://cdn.example.com/v1/headers.json": 1
+  },
+  "schemaReads": {},
+  "relocatable": true
+}

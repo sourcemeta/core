@@ -1,0 +1,88 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "schemas": {
+        "Pet": {
+          "oneOf": [
+            {
+              "$ref": "https://example.com/schemas/cat"
+            }
+          ],
+          "discriminator": {
+            "propertyName": "petType",
+            "mapping": {
+              "dog": "https://example.com/schemas/dog"
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {},
+  "schemaResolver": {
+    "https://example.com/schemas/cat": {
+      "$id": "https://example.com/schemas/cat",
+      "type": "object"
+    },
+    "https://example.com/schemas/dog": {
+      "$id": "https://example.com/schemas/dog",
+      "type": "object"
+    }
+  },
+  "result": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "schemas": {
+        "Pet": {
+          "oneOf": [
+            {
+              "$ref": "https://example.com/schemas/cat"
+            }
+          ],
+          "discriminator": {
+            "propertyName": "petType",
+            "mapping": {
+              "dog": "https://example.com/schemas/dog"
+            }
+          }
+        },
+        "dog": {
+          "$id": "https://example.com/schemas/dog",
+          "type": "object",
+          "$schema": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17"
+        },
+        "cat": {
+          "$id": "https://example.com/schemas/cat",
+          "type": "object",
+          "$schema": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17"
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/schemas/dog",
+      "at": "/components/schemas/dog"
+    },
+    {
+      "from": "https://example.com/schemas/cat",
+      "at": "/components/schemas/cat"
+    }
+  ],
+  "reads": {},
+  "schemaReads": {
+    "https://example.com/schemas/dog": 1,
+    "https://example.com/schemas/cat": 1
+  },
+  "relocatable": true
+}

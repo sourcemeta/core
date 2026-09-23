@@ -1,0 +1,106 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "parameters": [
+            {
+              "$ref": "shared.json#/components/parameters/Limit"
+            }
+          ],
+          "responses": {
+            "404": {
+              "$ref": "shared.json#/components/responses/NotFound"
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/shared.json": {
+      "openapi": "3.2.0",
+      "info": {
+        "title": "Shared",
+        "version": "1.0.0"
+      },
+      "components": {
+        "parameters": {
+          "Limit": {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        },
+        "responses": {
+          "NotFound": {
+            "description": "Not found"
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "parameters": [
+            {
+              "$ref": "#/components/parameters/Limit"
+            }
+          ],
+          "responses": {
+            "404": {
+              "$ref": "#/components/responses/NotFound"
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "parameters": {
+        "Limit": {
+          "name": "limit",
+          "in": "query",
+          "schema": {
+            "type": "integer"
+          }
+        }
+      },
+      "responses": {
+        "NotFound": {
+          "description": "Not found"
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/shared.json#/components/parameters/Limit",
+      "at": "/components/parameters/Limit"
+    },
+    {
+      "from": "https://example.com/shared.json#/components/responses/NotFound",
+      "at": "/components/responses/NotFound"
+    }
+  ],
+  "reads": {
+    "https://example.com/shared.json": 1
+  },
+  "schemaReads": {},
+  "relocatable": true
+}

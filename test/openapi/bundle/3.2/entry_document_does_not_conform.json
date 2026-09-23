@@ -1,0 +1,17 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {},
+  "schemaResolver": {},
+  "error": {
+    "type": "OpenAPIError",
+    "message": "The OpenAPI Description must declare paths, components or webhooks",
+    "location": ""
+  }
+}

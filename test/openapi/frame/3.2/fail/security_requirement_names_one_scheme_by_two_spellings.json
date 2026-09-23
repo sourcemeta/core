@@ -1,0 +1,21 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "components": {
+      "securitySchemes": { "Remote": { "type": "http", "scheme": "bearer" } }
+    },
+    "security": [
+      {
+        "#/components/securitySchemes/Remote": [ "read" ],
+        "openapi.json#/components/securitySchemes/Remote": [ "write" ]
+      }
+    ]
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "error": {
+    "message": "The Security Requirement Object must not name one security scheme twice",
+    "location": "/security/0/openapi.json#~1components~1securitySchemes~1Remote",
+    "base": "https://example.com/openapi.json"
+  }
+}

@@ -1,0 +1,162 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/a": {
+        "get": {
+          "responses": {
+            "404": {
+              "$ref": "a.json#/components/responses/A"
+            }
+          }
+        }
+      },
+      "/b": {
+        "get": {
+          "responses": {
+            "404": {
+              "$ref": "b.json#/components/responses/B"
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/a.json": {
+      "openapi": "3.2.0",
+      "info": {
+        "title": "Example",
+        "version": "1.0.0"
+      },
+      "components": {
+        "responses": {
+          "A": {
+            "description": "A",
+            "headers": {
+              "X": {
+                "$ref": "c.json#/components/headers/Shared"
+              }
+            }
+          }
+        }
+      }
+    },
+    "https://example.com/b.json": {
+      "openapi": "3.2.0",
+      "info": {
+        "title": "Example",
+        "version": "1.0.0"
+      },
+      "components": {
+        "responses": {
+          "B": {
+            "description": "B",
+            "headers": {
+              "X": {
+                "$ref": "c.json#/components/headers/Shared"
+              }
+            }
+          }
+        }
+      }
+    },
+    "https://example.com/c.json": {
+      "openapi": "3.2.0",
+      "info": {
+        "title": "Example",
+        "version": "1.0.0"
+      },
+      "components": {
+        "headers": {
+          "Shared": {
+            "schema": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/a": {
+        "get": {
+          "responses": {
+            "404": {
+              "$ref": "#/components/responses/A"
+            }
+          }
+        }
+      },
+      "/b": {
+        "get": {
+          "responses": {
+            "404": {
+              "$ref": "#/components/responses/B"
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "responses": {
+        "A": {
+          "description": "A",
+          "headers": {
+            "X": {
+              "$ref": "#/components/headers/Shared"
+            }
+          }
+        },
+        "B": {
+          "description": "B",
+          "headers": {
+            "X": {
+              "$ref": "#/components/headers/Shared"
+            }
+          }
+        }
+      },
+      "headers": {
+        "Shared": {
+          "schema": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/a.json#/components/responses/A",
+      "at": "/components/responses/A"
+    },
+    {
+      "from": "https://example.com/b.json#/components/responses/B",
+      "at": "/components/responses/B"
+    },
+    {
+      "from": "https://example.com/c.json#/components/headers/Shared",
+      "at": "/components/headers/Shared"
+    }
+  ],
+  "reads": {
+    "https://example.com/a.json": 1,
+    "https://example.com/b.json": 1,
+    "https://example.com/c.json": 1
+  },
+  "schemaReads": {},
+  "relocatable": true
+}

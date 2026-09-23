@@ -383,10 +383,13 @@ struct OpenAPIWalk {
   std::set<JSON::String> security_schemes;
   /// Where a Security Requirement Object names a Security Scheme Object by the
   /// URI of one rather than by the name of a component, and what each of those
-  /// names leads to. OpenAPI Specification 3.2.1 admits both spellings, and a
-  /// single one of those Objects may name several schemes, so this is a list
-  /// of its own rather than a reference keyed by the Object that makes it
-  std::vector<OpenAPIReference> security_references;
+  /// names leads to. OpenAPI Specification 3.2.1 admits both spellings. This
+  /// is kept apart from the references above because a single one of those
+  /// Objects may name several schemes, which is more than one entry keyed by
+  /// the Object that makes it, so each is keyed by the member that spells it
+  /// instead. Reading one Object twice, which following a reference into the
+  /// document being read does, must still record it once
+  std::map<JSON::String, OpenAPIReference> security_references;
   /// Whether an entry document is what the names above came from, which is
   /// what makes this a document the description reaches rather than the one
   /// that describes the API
@@ -576,6 +579,23 @@ inline auto openapi_resolve_uri(const JSON::StringView reference,
 // which is why nothing repeats it on the entry a key leads to
 inline auto openapi_document_uri(const JSON::String &uri) -> JSON::String {
   return JSON::String{take_until(uri, '#')};
+}
+
+// Where a problem found once the walk is over belongs. A location says which
+// base it is keyed by and where under it the Object sits, and a field hangs
+// off that when the problem is with one rather than with the Object holding it
+inline auto
+openapi_error_at(const std::map<JSON::String, OpenAPILocation> &locations,
+                 const JSON::String &location, const char *message,
+                 const JSON::StringView field = {}) -> OpenAPIError {
+  const auto match{locations.find(location)};
+  auto pointer{match == locations.cend() ? EMPTY_POINTER
+                                         : match->second.pointer};
+  if (!field.empty()) {
+    pointer = pointer.concat(JSON::String{field});
+  }
+
+  return {openapi_document_uri(location), std::move(pointer), message};
 }
 
 // OpenAPI Specification 3.1.1, Section 4.6 determines a document's base URI

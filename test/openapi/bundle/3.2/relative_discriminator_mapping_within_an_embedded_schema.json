@@ -1,0 +1,127 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "200": {
+              "$ref": "shared/api.json#/components/responses/Pet"
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/shared/api.json": {
+      "openapi": "3.2.0",
+      "info": {
+        "title": "Shared",
+        "version": "1.0.0"
+      },
+      "components": {
+        "responses": {
+          "Pet": {
+            "description": "A pet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "schemas/cat"
+                    }
+                  ],
+                  "discriminator": {
+                    "propertyName": "petType",
+                    "mapping": {
+                      "cat": "./schemas/cat"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {
+    "https://example.com/shared/schemas/cat": {
+      "$id": "https://example.com/shared/schemas/cat",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object"
+    }
+  },
+  "result": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "200": {
+              "$ref": "#/components/responses/Pet"
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "responses": {
+        "Pet": {
+          "description": "A pet",
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "$ref": "https://example.com/shared/schemas/cat"
+                  }
+                ],
+                "discriminator": {
+                  "propertyName": "petType",
+                  "mapping": {
+                    "cat": "https://example.com/shared/schemas/cat"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "schemas": {
+        "cat": {
+          "$id": "https://example.com/shared/schemas/cat",
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object"
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/shared/api.json#/components/responses/Pet",
+      "at": "/components/responses/Pet"
+    },
+    {
+      "from": "https://example.com/shared/schemas/cat",
+      "at": "/components/schemas/cat"
+    }
+  ],
+  "reads": {
+    "https://example.com/shared/api.json": 1
+  },
+  "schemaReads": {
+    "https://example.com/shared/schemas/cat": 1
+  },
+  "relocatable": true
+}

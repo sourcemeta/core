@@ -1,0 +1,107 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "404": {
+              "$ref": "shared/api.json#/components/responses/NotFound"
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/shared/api.json": {
+      "openapi": "3.2.0",
+      "info": {
+        "title": "Shared",
+        "version": "1.0.0"
+      },
+      "components": {
+        "responses": {
+          "NotFound": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "schemas/error"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {
+    "https://example.com/shared/schemas/error": {
+      "$id": "https://example.com/shared/schemas/error",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object"
+    }
+  },
+  "result": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "404": {
+              "$ref": "#/components/responses/NotFound"
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "responses": {
+        "NotFound": {
+          "description": "Not found",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "https://example.com/shared/schemas/error"
+              }
+            }
+          }
+        }
+      },
+      "schemas": {
+        "error": {
+          "$id": "https://example.com/shared/schemas/error",
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object"
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/shared/api.json#/components/responses/NotFound",
+      "at": "/components/responses/NotFound"
+    },
+    {
+      "from": "https://example.com/shared/schemas/error",
+      "at": "/components/schemas/error"
+    }
+  ],
+  "reads": {
+    "https://example.com/shared/api.json": 1
+  },
+  "schemaReads": {
+    "https://example.com/shared/schemas/error": 1
+  },
+  "relocatable": true
+}

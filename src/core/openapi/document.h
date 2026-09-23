@@ -23,8 +23,10 @@
 #include "tag.h"
 
 #include <array>       // std::array
+#include <cstddef>     // std::size_t
 #include <cstdint>     // std::uint64_t
 #include <limits>      // std::numeric_limits
+#include <map>         // std::map
 #include <optional>    // std::optional
 #include <string_view> // std::string_view
 #include <utility>     // std::move, std::swap, std::unreachable
@@ -477,6 +479,73 @@ inline auto openapi_check_document(const JSON &document, OpenAPIWalk &walk)
     }
 
     throw OpenAPIError{walk.base, error.location(), error.what()};
+  }
+}
+
+// OpenAPI Specification 3.2.1, Section 4.22, of a Tag Object's `parent`: "The
+// named tag MUST exist in the API description, and circular references between
+// parent and child tags MUST NOT be used". A description spans every document
+// it references, so a parent naming a tag this one does not declare is only
+// missing where nothing is missing, and a cycle is a property of the tags held
+// rather than of any one tag
+inline auto openapi_check_tag_parents(
+    const OpenAPIWalk &walk,
+    const std::map<JSON::String, OpenAPILocation> &locations, const bool whole)
+    -> void {
+  std::map<JSON::String, JSON::String> parents;
+  for (const auto &[location, edge] : walk.tag_parents) {
+    if (whole && !walk.tag_names.contains(edge.second)) {
+      throw openapi_error_at(locations, location,
+                             "The Tag Object parent must name a tag the "
+                             "OpenAPI Description declares",
+                             "parent"sv);
+    }
+
+    parents.insert_or_assign(edge.first, edge.second);
+  }
+
+  // Walking upward from each tag terminates at a tag with no parent unless the
+  // chain comes back round, and a chain longer than the number of edges has
+  // come back round
+  for (const auto &[location, edge] : walk.tag_parents) {
+    auto name{edge.first};
+    for (std::size_t step = 0; step <= parents.size(); step += 1) {
+      const auto next{parents.find(name)};
+      if (next == parents.cend()) {
+        break;
+      }
+
+      name = next->second;
+      if (step == parents.size()) {
+        throw openapi_error_at(locations, location,
+                               "The Tag Object parents must not form a cycle",
+                               "parent"sv);
+      }
+    }
+  }
+}
+
+// OpenAPI Specification 3.1.1, Section 4.8.20: "The identified or reference
+// operation MUST be unique, and in the case of an `operationId`, it MUST be
+// resolved within the scope of the OpenAPI Description". Section 4.3.3
+// recommends resolving one "considering all Operation Objects from all parsed
+// documents", so nothing is decided here until every document of the
+// description is held at once
+inline auto openapi_check_operation_id_links(
+    const OpenAPIWalk &walk,
+    const std::map<JSON::String, OpenAPILocation> &locations) -> void {
+  for (const auto &[location, identifier] : walk.operation_id_links) {
+    // Section 4.8.20 goes on to say that an operation reached through a Path
+    // Item referenced more than once "cannot be resolved unambiguously", and
+    // that "in such ambiguous cases, the resulting behavior is
+    // implementation-defined and MAY result in an error". So naming nothing at
+    // all is the violation, and naming something twice over is not
+    if (!walk.operation_ids.contains(identifier)) {
+      throw openapi_error_at(locations, location,
+                             "The Link Object operation identifier must name "
+                             "an operation the OpenAPI Description declares",
+                             "operationId"sv);
+    }
   }
 }
 

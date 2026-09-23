@@ -1,0 +1,89 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "servers": [
+      {
+        "url": "https://entry.example.com/v1"
+      }
+    ],
+    "paths": {
+      "/pets": {
+        "$ref": "shared.json#/components/pathItems/Pets"
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/shared.json": {
+      "openapi": "3.2.0",
+      "info": {
+        "title": "Example",
+        "version": "1.0.0"
+      },
+      "servers": [
+        {
+          "url": "https://shared.example.com/v2"
+        }
+      ],
+      "components": {
+        "pathItems": {
+          "Pets": {
+            "get": {
+              "responses": {
+                "200": {
+                  "description": "OK"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "servers": [
+      {
+        "url": "https://entry.example.com/v1"
+      }
+    ],
+    "paths": {
+      "/pets": {
+        "$ref": "#/components/pathItems/Pets"
+      }
+    },
+    "components": {
+      "pathItems": {
+        "Pets": {
+          "get": {
+            "responses": {
+              "200": {
+                "description": "OK"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/shared.json#/components/pathItems/Pets",
+      "at": "/components/pathItems/Pets"
+    }
+  ],
+  "reads": {
+    "https://example.com/shared.json": 1
+  },
+  "schemaReads": {},
+  "relocatable": true
+}

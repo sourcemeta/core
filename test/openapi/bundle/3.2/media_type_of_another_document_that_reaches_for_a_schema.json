@@ -1,0 +1,92 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "responses": {
+        "R": {
+          "description": "OK",
+          "content": {
+            "application/json": {
+              "$ref": "other.json#/components/mediaTypes/M"
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/other.json": {
+      "openapi": "3.2.0",
+      "info": {
+        "title": "Example",
+        "version": "1.0.0"
+      },
+      "components": {
+        "mediaTypes": {
+          "M": {
+            "schema": {
+              "$ref": "#/components/schemas/Pet"
+            }
+          }
+        },
+        "schemas": {
+          "Pet": {
+            "type": "object"
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "responses": {
+        "R": {
+          "description": "OK",
+          "content": {
+            "application/json": {
+              "$ref": "#/components/mediaTypes/M"
+            }
+          }
+        }
+      },
+      "mediaTypes": {
+        "M": {
+          "schema": {
+            "$ref": "#/components/schemas/Pet"
+          }
+        }
+      },
+      "schemas": {
+        "Pet": {
+          "type": "object"
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/other.json#/components/mediaTypes/M",
+      "at": "/components/mediaTypes/M"
+    },
+    {
+      "from": "https://example.com/other.json#/components/schemas/Pet",
+      "at": "/components/schemas/Pet"
+    }
+  ],
+  "reads": {
+    "https://example.com/other.json": 1
+  },
+  "schemaReads": {},
+  "relocatable": true
+}

@@ -1,0 +1,80 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "links": {
+        "L": {
+          "operationRef": "other.json#/components/pathItems/Foo/additionalOperations/PURGE"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/other.json": {
+      "openapi": "3.2.0",
+      "info": {
+        "title": "Example",
+        "version": "1.0.0"
+      },
+      "components": {
+        "pathItems": {
+          "Foo": {
+            "additionalOperations": {
+              "PURGE": {
+                "responses": {
+                  "200": {
+                    "description": "OK"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "links": {
+        "L": {
+          "operationRef": "#/components/pathItems/Foo/additionalOperations/PURGE"
+        }
+      },
+      "pathItems": {
+        "Foo": {
+          "additionalOperations": {
+            "PURGE": {
+              "responses": {
+                "200": {
+                  "description": "OK"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/other.json#/components/pathItems/Foo",
+      "at": "/components/pathItems/Foo"
+    }
+  ],
+  "reads": {
+    "https://example.com/other.json": 1
+  },
+  "schemaReads": {},
+  "relocatable": true
+}
