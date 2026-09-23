@@ -1,5 +1,8 @@
 {
-  "schema": { "$schema": "https://example.com/meta/1.json", "type": "string" },
+  "schema": {
+    "$schema": "https://example.com/meta/1.json",
+    "type": "string"
+  },
   "resolver": {
     "https://example.com/meta/1.json": {
       "$schema": "https://example.com/meta/2.json",
@@ -44,8 +47,14 @@
   },
   "inserted": {
     "nonOfficialMetaschemas": [
-      "/$defs/https:~1~1example.com~1meta~12.json",
-      "/$defs/https:~1~1example.com~1meta~11.json"
+      {
+        "from": "https://example.com/meta/2.json",
+        "at": "/$defs/https:~1~1example.com~1meta~12.json"
+      },
+      {
+        "from": "https://example.com/meta/1.json",
+        "at": "/$defs/https:~1~1example.com~1meta~11.json"
+      }
     ],
     "references": []
   }

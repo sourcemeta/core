@@ -3,14 +3,21 @@
     "$id": "https://example.com",
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "properties": {
-      "foo": { "$ref": "https://example.com/baz-anchor#/$defs/baz" }
+      "foo": {
+        "$ref": "https://example.com/baz-anchor#/$defs/baz"
+      }
     }
   },
   "resolver": {
     "https://example.com/baz-anchor": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "$id": "https://example.com/baz-anchor",
-      "$defs": { "baz": { "$anchor": "baz", "type": "string" } }
+      "$defs": {
+        "baz": {
+          "$anchor": "baz",
+          "type": "string"
+        }
+      }
     }
   },
   "result": {
@@ -18,13 +25,20 @@
       "$id": "https://example.com",
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "properties": {
-        "foo": { "$ref": "https://example.com/baz-anchor#/$defs/baz" }
+        "foo": {
+          "$ref": "https://example.com/baz-anchor#/$defs/baz"
+        }
       },
       "$defs": {
         "https://example.com/baz-anchor": {
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$id": "https://example.com/baz-anchor",
-          "$defs": { "baz": { "$anchor": "baz", "type": "string" } }
+          "$defs": {
+            "baz": {
+              "$anchor": "baz",
+              "type": "string"
+            }
+          }
         }
       }
     },
@@ -32,19 +46,36 @@
       "$id": "https://example.com",
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "properties": {
-        "foo": { "$ref": "https://example.com/baz-anchor#/$defs/baz" }
+        "foo": {
+          "$ref": "https://example.com/baz-anchor#/$defs/baz"
+        }
       },
       "$defs": {
         "https://example.com/baz-anchor": {
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$id": "https://example.com/baz-anchor",
-          "$defs": { "baz": { "$anchor": "baz", "type": "string" } }
+          "$defs": {
+            "baz": {
+              "$anchor": "baz",
+              "type": "string"
+            }
+          }
         }
       }
     }
   },
   "inserted": {
-    "nonOfficialMetaschemas": [ "/$defs/https:~1~1example.com~1baz-anchor" ],
-    "references": [ "/$defs/https:~1~1example.com~1baz-anchor" ]
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://example.com/baz-anchor",
+        "at": "/$defs/https:~1~1example.com~1baz-anchor"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://example.com/baz-anchor",
+        "at": "/$defs/https:~1~1example.com~1baz-anchor"
+      }
+    ]
   }
 }

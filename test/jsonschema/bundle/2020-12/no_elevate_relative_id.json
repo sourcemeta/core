@@ -10,7 +10,10 @@
       "$id": "https://example.com/host-with-relative-nested",
       "$ref": "relative-nested",
       "$defs": {
-        "relative-nested": { "$id": "relative-nested", "type": "string" }
+        "relative-nested": {
+          "$id": "relative-nested",
+          "type": "string"
+        }
       }
     }
   },
@@ -25,7 +28,10 @@
           "$id": "https://example.com/host-with-relative-nested",
           "$ref": "relative-nested",
           "$defs": {
-            "relative-nested": { "$id": "relative-nested", "type": "string" }
+            "relative-nested": {
+              "$id": "relative-nested",
+              "type": "string"
+            }
           }
         }
       }
@@ -40,7 +46,10 @@
           "$id": "https://example.com/host-with-relative-nested",
           "$ref": "relative-nested",
           "$defs": {
-            "relative-nested": { "$id": "relative-nested", "type": "string" }
+            "relative-nested": {
+              "$id": "relative-nested",
+              "type": "string"
+            }
           }
         }
       }
@@ -48,8 +57,16 @@
   },
   "inserted": {
     "nonOfficialMetaschemas": [
-      "/$defs/https:~1~1example.com~1host-with-relative-nested"
+      {
+        "from": "https://example.com/host-with-relative-nested",
+        "at": "/$defs/https:~1~1example.com~1host-with-relative-nested"
+      }
     ],
-    "references": [ "/$defs/https:~1~1example.com~1host-with-relative-nested" ]
+    "references": [
+      {
+        "from": "https://example.com/host-with-relative-nested",
+        "at": "/$defs/https:~1~1example.com~1host-with-relative-nested"
+      }
+    ]
   }
 }

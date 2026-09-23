@@ -2,13 +2,24 @@
   "schema": {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "$id": "https://example.com/draft7-dedup-entry",
-    "allOf": [ { "$ref": "draft7-dedup-a" }, { "$ref": "draft7-dedup-b" } ]
+    "allOf": [
+      {
+        "$ref": "draft7-dedup-a"
+      },
+      {
+        "$ref": "draft7-dedup-b"
+      }
+    ]
   },
   "resolver": {
     "https://example.com/draft7-dedup-a": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "$id": "https://example.com/draft7-dedup-a",
-      "allOf": [ { "$ref": "draft7-dedup-common" } ],
+      "allOf": [
+        {
+          "$ref": "draft7-dedup-common"
+        }
+      ],
       "definitions": {
         "https://example.com/draft7-dedup-common": {
           "$schema": "http://json-schema.org/draft-07/schema#",
@@ -20,7 +31,11 @@
     "https://example.com/draft7-dedup-b": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "$id": "https://example.com/draft7-dedup-b",
-      "allOf": [ { "$ref": "draft7-dedup-common" } ],
+      "allOf": [
+        {
+          "$ref": "draft7-dedup-common"
+        }
+      ],
       "definitions": {
         "https://example.com/draft7-dedup-common": {
           "$schema": "http://json-schema.org/draft-07/schema#",
@@ -34,17 +49,32 @@
     "nonOfficialMetaschemas": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "$id": "https://example.com/draft7-dedup-entry",
-      "allOf": [ { "$ref": "draft7-dedup-a" }, { "$ref": "draft7-dedup-b" } ],
+      "allOf": [
+        {
+          "$ref": "draft7-dedup-a"
+        },
+        {
+          "$ref": "draft7-dedup-b"
+        }
+      ],
       "definitions": {
         "https://example.com/draft7-dedup-a": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "$id": "https://example.com/draft7-dedup-a",
-          "allOf": [ { "$ref": "draft7-dedup-common" } ]
+          "allOf": [
+            {
+              "$ref": "draft7-dedup-common"
+            }
+          ]
         },
         "https://example.com/draft7-dedup-b": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "$id": "https://example.com/draft7-dedup-b",
-          "allOf": [ { "$ref": "draft7-dedup-common" } ]
+          "allOf": [
+            {
+              "$ref": "draft7-dedup-common"
+            }
+          ]
         },
         "https://example.com/draft7-dedup-common": {
           "$schema": "http://json-schema.org/draft-07/schema#",
@@ -56,17 +86,32 @@
     "references": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "$id": "https://example.com/draft7-dedup-entry",
-      "allOf": [ { "$ref": "draft7-dedup-a" }, { "$ref": "draft7-dedup-b" } ],
+      "allOf": [
+        {
+          "$ref": "draft7-dedup-a"
+        },
+        {
+          "$ref": "draft7-dedup-b"
+        }
+      ],
       "definitions": {
         "https://example.com/draft7-dedup-a": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "$id": "https://example.com/draft7-dedup-a",
-          "allOf": [ { "$ref": "draft7-dedup-common" } ]
+          "allOf": [
+            {
+              "$ref": "draft7-dedup-common"
+            }
+          ]
         },
         "https://example.com/draft7-dedup-b": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "$id": "https://example.com/draft7-dedup-b",
-          "allOf": [ { "$ref": "draft7-dedup-common" } ]
+          "allOf": [
+            {
+              "$ref": "draft7-dedup-common"
+            }
+          ]
         },
         "https://example.com/draft7-dedup-common": {
           "$schema": "http://json-schema.org/draft-07/schema#",
@@ -78,14 +123,32 @@
   },
   "inserted": {
     "nonOfficialMetaschemas": [
-      "/definitions/https:~1~1example.com~1draft7-dedup-common",
-      "/definitions/https:~1~1example.com~1draft7-dedup-a",
-      "/definitions/https:~1~1example.com~1draft7-dedup-b"
+      {
+        "from": "https://example.com/draft7-dedup-common",
+        "at": "/definitions/https:~1~1example.com~1draft7-dedup-common"
+      },
+      {
+        "from": "https://example.com/draft7-dedup-a",
+        "at": "/definitions/https:~1~1example.com~1draft7-dedup-a"
+      },
+      {
+        "from": "https://example.com/draft7-dedup-b",
+        "at": "/definitions/https:~1~1example.com~1draft7-dedup-b"
+      }
     ],
     "references": [
-      "/definitions/https:~1~1example.com~1draft7-dedup-common",
-      "/definitions/https:~1~1example.com~1draft7-dedup-a",
-      "/definitions/https:~1~1example.com~1draft7-dedup-b"
+      {
+        "from": "https://example.com/draft7-dedup-common",
+        "at": "/definitions/https:~1~1example.com~1draft7-dedup-common"
+      },
+      {
+        "from": "https://example.com/draft7-dedup-a",
+        "at": "/definitions/https:~1~1example.com~1draft7-dedup-a"
+      },
+      {
+        "from": "https://example.com/draft7-dedup-b",
+        "at": "/definitions/https:~1~1example.com~1draft7-dedup-b"
+      }
     ]
   }
 }

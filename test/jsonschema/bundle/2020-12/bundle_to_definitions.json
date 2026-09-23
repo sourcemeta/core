@@ -7,7 +7,11 @@
     "https://www.sourcemeta.com/recursive": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "$id": "https://www.sourcemeta.com/recursive",
-      "properties": { "foo": { "$ref": "#" } }
+      "properties": {
+        "foo": {
+          "$ref": "#"
+        }
+      }
     }
   },
   "container": "/definitions",
@@ -19,7 +23,11 @@
         "https://www.sourcemeta.com/recursive": {
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$id": "https://www.sourcemeta.com/recursive",
-          "properties": { "foo": { "$ref": "#" } }
+          "properties": {
+            "foo": {
+              "$ref": "#"
+            }
+          }
         }
       }
     },
@@ -30,15 +38,27 @@
         "https://www.sourcemeta.com/recursive": {
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$id": "https://www.sourcemeta.com/recursive",
-          "properties": { "foo": { "$ref": "#" } }
+          "properties": {
+            "foo": {
+              "$ref": "#"
+            }
+          }
         }
       }
     }
   },
   "inserted": {
     "nonOfficialMetaschemas": [
-      "/definitions/https:~1~1www.sourcemeta.com~1recursive"
+      {
+        "from": "https://www.sourcemeta.com/recursive",
+        "at": "/definitions/https:~1~1www.sourcemeta.com~1recursive"
+      }
     ],
-    "references": [ "/definitions/https:~1~1www.sourcemeta.com~1recursive" ]
+    "references": [
+      {
+        "from": "https://www.sourcemeta.com/recursive",
+        "at": "/definitions/https:~1~1www.sourcemeta.com~1recursive"
+      }
+    ]
   }
 }

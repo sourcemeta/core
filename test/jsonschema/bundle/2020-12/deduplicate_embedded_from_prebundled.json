@@ -2,7 +2,14 @@
   "schema": {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "https://example.com/dedup-entry",
-    "allOf": [ { "$ref": "dedup-a" }, { "$ref": "dedup-b" } ]
+    "allOf": [
+      {
+        "$ref": "dedup-a"
+      },
+      {
+        "$ref": "dedup-b"
+      }
+    ]
   },
   "resolver": {
     "https://example.com/dedup-a": {
@@ -34,7 +41,14 @@
     "nonOfficialMetaschemas": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "$id": "https://example.com/dedup-entry",
-      "allOf": [ { "$ref": "dedup-a" }, { "$ref": "dedup-b" } ],
+      "allOf": [
+        {
+          "$ref": "dedup-a"
+        },
+        {
+          "$ref": "dedup-b"
+        }
+      ],
       "$defs": {
         "https://example.com/dedup-a": {
           "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -56,7 +70,14 @@
     "references": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "$id": "https://example.com/dedup-entry",
-      "allOf": [ { "$ref": "dedup-a" }, { "$ref": "dedup-b" } ],
+      "allOf": [
+        {
+          "$ref": "dedup-a"
+        },
+        {
+          "$ref": "dedup-b"
+        }
+      ],
       "$defs": {
         "https://example.com/dedup-a": {
           "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -78,14 +99,32 @@
   },
   "inserted": {
     "nonOfficialMetaschemas": [
-      "/$defs/https:~1~1example.com~1dedup-common",
-      "/$defs/https:~1~1example.com~1dedup-a",
-      "/$defs/https:~1~1example.com~1dedup-b"
+      {
+        "from": "https://example.com/dedup-common",
+        "at": "/$defs/https:~1~1example.com~1dedup-common"
+      },
+      {
+        "from": "https://example.com/dedup-a",
+        "at": "/$defs/https:~1~1example.com~1dedup-a"
+      },
+      {
+        "from": "https://example.com/dedup-b",
+        "at": "/$defs/https:~1~1example.com~1dedup-b"
+      }
     ],
     "references": [
-      "/$defs/https:~1~1example.com~1dedup-common",
-      "/$defs/https:~1~1example.com~1dedup-a",
-      "/$defs/https:~1~1example.com~1dedup-b"
+      {
+        "from": "https://example.com/dedup-common",
+        "at": "/$defs/https:~1~1example.com~1dedup-common"
+      },
+      {
+        "from": "https://example.com/dedup-a",
+        "at": "/$defs/https:~1~1example.com~1dedup-a"
+      },
+      {
+        "from": "https://example.com/dedup-b",
+        "at": "/$defs/https:~1~1example.com~1dedup-b"
+      }
     ]
   }
 }

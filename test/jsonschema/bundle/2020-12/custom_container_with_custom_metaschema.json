@@ -7,7 +7,11 @@
     "https://www.sourcemeta.com/recursive": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "$id": "https://www.sourcemeta.com/recursive",
-      "properties": { "foo": { "$ref": "#" } }
+      "properties": {
+        "foo": {
+          "$ref": "#"
+        }
+      }
     },
     "https://example.com/meta/1.json": {
       "$schema": "https://example.com/meta/2.json",
@@ -33,7 +37,11 @@
         "https://www.sourcemeta.com/recursive": {
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$id": "https://www.sourcemeta.com/recursive",
-          "properties": { "foo": { "$ref": "#" } }
+          "properties": {
+            "foo": {
+              "$ref": "#"
+            }
+          }
         },
         "https://example.com/meta/2.json": {
           "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -58,17 +66,35 @@
         "https://www.sourcemeta.com/recursive": {
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$id": "https://www.sourcemeta.com/recursive",
-          "properties": { "foo": { "$ref": "#" } }
+          "properties": {
+            "foo": {
+              "$ref": "#"
+            }
+          }
         }
       }
     }
   },
   "inserted": {
     "nonOfficialMetaschemas": [
-      "/definitions/https:~1~1www.sourcemeta.com~1recursive",
-      "/definitions/https:~1~1example.com~1meta~12.json",
-      "/definitions/https:~1~1example.com~1meta~11.json"
+      {
+        "from": "https://www.sourcemeta.com/recursive",
+        "at": "/definitions/https:~1~1www.sourcemeta.com~1recursive"
+      },
+      {
+        "from": "https://example.com/meta/2.json",
+        "at": "/definitions/https:~1~1example.com~1meta~12.json"
+      },
+      {
+        "from": "https://example.com/meta/1.json",
+        "at": "/definitions/https:~1~1example.com~1meta~11.json"
+      }
     ],
-    "references": [ "/definitions/https:~1~1www.sourcemeta.com~1recursive" ]
+    "references": [
+      {
+        "from": "https://www.sourcemeta.com/recursive",
+        "at": "/definitions/https:~1~1www.sourcemeta.com~1recursive"
+      }
+    ]
   }
 }

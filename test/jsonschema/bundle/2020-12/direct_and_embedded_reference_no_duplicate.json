@@ -3,8 +3,12 @@
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "https://example.com/direct-and-embedded-entry",
     "allOf": [
-      { "$ref": "prebundled-with-shared" },
-      { "$ref": "shared-direct" }
+      {
+        "$ref": "prebundled-with-shared"
+      },
+      {
+        "$ref": "shared-direct"
+      }
     ]
   },
   "resolver": {
@@ -31,8 +35,12 @@
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "$id": "https://example.com/direct-and-embedded-entry",
       "allOf": [
-        { "$ref": "prebundled-with-shared" },
-        { "$ref": "shared-direct" }
+        {
+          "$ref": "prebundled-with-shared"
+        },
+        {
+          "$ref": "shared-direct"
+        }
       ],
       "$defs": {
         "https://example.com/prebundled-with-shared": {
@@ -51,8 +59,12 @@
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "$id": "https://example.com/direct-and-embedded-entry",
       "allOf": [
-        { "$ref": "prebundled-with-shared" },
-        { "$ref": "shared-direct" }
+        {
+          "$ref": "prebundled-with-shared"
+        },
+        {
+          "$ref": "shared-direct"
+        }
       ],
       "$defs": {
         "https://example.com/prebundled-with-shared": {
@@ -70,12 +82,24 @@
   },
   "inserted": {
     "nonOfficialMetaschemas": [
-      "/$defs/https:~1~1example.com~1prebundled-with-shared",
-      "/$defs/https:~1~1example.com~1shared-direct"
+      {
+        "from": "https://example.com/prebundled-with-shared",
+        "at": "/$defs/https:~1~1example.com~1prebundled-with-shared"
+      },
+      {
+        "from": "https://example.com/shared-direct",
+        "at": "/$defs/https:~1~1example.com~1shared-direct"
+      }
     ],
     "references": [
-      "/$defs/https:~1~1example.com~1prebundled-with-shared",
-      "/$defs/https:~1~1example.com~1shared-direct"
+      {
+        "from": "https://example.com/prebundled-with-shared",
+        "at": "/$defs/https:~1~1example.com~1prebundled-with-shared"
+      },
+      {
+        "from": "https://example.com/shared-direct",
+        "at": "/$defs/https:~1~1example.com~1shared-direct"
+      }
     ]
   }
 }

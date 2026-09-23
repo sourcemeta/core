@@ -3,8 +3,12 @@
     "$id": "https://www.example.com",
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "properties": {
-      "foo": { "$ref": "https://www.sourcemeta.com/test-3" },
-      "bar": { "$ref": "https://www.sourcemeta.com/test-1" }
+      "foo": {
+        "$ref": "https://www.sourcemeta.com/test-3"
+      },
+      "bar": {
+        "$ref": "https://www.sourcemeta.com/test-1"
+      }
     }
   },
   "resolver": {
@@ -16,7 +20,11 @@
     "https://www.sourcemeta.com/test-3": {
       "$schema": "http://json-schema.org/draft-06/schema#",
       "$id": "https://www.sourcemeta.com/test-3",
-      "allOf": [ { "$ref": "test-4" } ]
+      "allOf": [
+        {
+          "$ref": "test-4"
+        }
+      ]
     },
     "https://www.sourcemeta.com/test-4": {
       "$schema": "http://json-schema.org/draft-04/schema#",
@@ -29,8 +37,12 @@
       "$id": "https://www.example.com",
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "properties": {
-        "foo": { "$ref": "https://www.sourcemeta.com/test-3" },
-        "bar": { "$ref": "https://www.sourcemeta.com/test-1" }
+        "foo": {
+          "$ref": "https://www.sourcemeta.com/test-3"
+        },
+        "bar": {
+          "$ref": "https://www.sourcemeta.com/test-1"
+        }
       },
       "$defs": {
         "https://www.sourcemeta.com/test-4": {
@@ -41,7 +53,11 @@
         "https://www.sourcemeta.com/test-3": {
           "$schema": "http://json-schema.org/draft-06/schema#",
           "$id": "https://www.sourcemeta.com/test-3",
-          "allOf": [ { "$ref": "test-4" } ]
+          "allOf": [
+            {
+              "$ref": "test-4"
+            }
+          ]
         },
         "https://www.sourcemeta.com/test-1": {
           "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -54,8 +70,12 @@
       "$id": "https://www.example.com",
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "properties": {
-        "foo": { "$ref": "https://www.sourcemeta.com/test-3" },
-        "bar": { "$ref": "https://www.sourcemeta.com/test-1" }
+        "foo": {
+          "$ref": "https://www.sourcemeta.com/test-3"
+        },
+        "bar": {
+          "$ref": "https://www.sourcemeta.com/test-1"
+        }
       },
       "$defs": {
         "https://www.sourcemeta.com/test-4": {
@@ -66,7 +86,11 @@
         "https://www.sourcemeta.com/test-3": {
           "$schema": "http://json-schema.org/draft-06/schema#",
           "$id": "https://www.sourcemeta.com/test-3",
-          "allOf": [ { "$ref": "test-4" } ]
+          "allOf": [
+            {
+              "$ref": "test-4"
+            }
+          ]
         },
         "https://www.sourcemeta.com/test-1": {
           "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -78,14 +102,32 @@
   },
   "inserted": {
     "nonOfficialMetaschemas": [
-      "/$defs/https:~1~1www.sourcemeta.com~1test-1",
-      "/$defs/https:~1~1www.sourcemeta.com~1test-4",
-      "/$defs/https:~1~1www.sourcemeta.com~1test-3"
+      {
+        "from": "https://www.sourcemeta.com/test-1",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1test-1"
+      },
+      {
+        "from": "https://www.sourcemeta.com/test-4",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1test-4"
+      },
+      {
+        "from": "https://www.sourcemeta.com/test-3",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1test-3"
+      }
     ],
     "references": [
-      "/$defs/https:~1~1www.sourcemeta.com~1test-1",
-      "/$defs/https:~1~1www.sourcemeta.com~1test-4",
-      "/$defs/https:~1~1www.sourcemeta.com~1test-3"
+      {
+        "from": "https://www.sourcemeta.com/test-1",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1test-1"
+      },
+      {
+        "from": "https://www.sourcemeta.com/test-4",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1test-4"
+      },
+      {
+        "from": "https://www.sourcemeta.com/test-3",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1test-3"
+      }
     ]
   }
 }

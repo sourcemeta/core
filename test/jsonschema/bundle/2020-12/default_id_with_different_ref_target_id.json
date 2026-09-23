@@ -58,12 +58,24 @@
   },
   "inserted": {
     "nonOfficialMetaschemas": [
-      "/$defs/https:~1~1example.com~1schemas~1child",
-      "/$defs/https:~1~1example.com~1schemas~1parent"
+      {
+        "from": "https://example.com/schemas/child",
+        "at": "/$defs/https:~1~1example.com~1schemas~1child"
+      },
+      {
+        "from": "https://example.com/schemas/parent",
+        "at": "/$defs/https:~1~1example.com~1schemas~1parent"
+      }
     ],
     "references": [
-      "/$defs/https:~1~1example.com~1schemas~1child",
-      "/$defs/https:~1~1example.com~1schemas~1parent"
+      {
+        "from": "https://example.com/schemas/child",
+        "at": "/$defs/https:~1~1example.com~1schemas~1child"
+      },
+      {
+        "from": "https://example.com/schemas/parent",
+        "at": "/$defs/https:~1~1example.com~1schemas~1parent"
+      }
     ]
   }
 }

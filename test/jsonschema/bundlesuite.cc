@@ -15,6 +15,7 @@
 #include <sstream>     // std::ostringstream
 #include <string>      // std::string
 #include <string_view> // std::string_view
+#include <utility>     // std::pair
 #include <vector>      // std::vector
 
 namespace {
@@ -165,17 +166,23 @@ auto make_options(const Inputs &inputs, const Mode &mode,
   return options;
 }
 
+// Where each embedded schema came from and where it went, which bundling
+// reports as it goes rather than leaving to be read back off the result
+using Insertions = std::vector<
+    std::pair<sourcemeta::core::JSON::String, sourcemeta::core::Pointer>>;
+
 auto bundle_schema(const sourcemeta::core::JSON &schema,
                    const sourcemeta::core::SchemaResolver &resolver,
                    const Inputs &inputs, const Mode &mode,
-                   const std::uint64_t max_locations,
-                   std::vector<sourcemeta::core::Pointer> &insertions)
+                   const std::uint64_t max_locations, Insertions &insertions)
     -> sourcemeta::core::JSON {
   auto document{schema};
   auto options{make_options(inputs, mode, max_locations)};
   options.callback =
-      [&insertions](const sourcemeta::core::WeakPointer &location) -> void {
-    insertions.push_back(sourcemeta::core::to_pointer(location));
+      [&insertions](const std::string_view identifier,
+                    const sourcemeta::core::WeakPointer &location) -> void {
+    insertions.emplace_back(sourcemeta::core::JSON::String{identifier},
+                            sourcemeta::core::to_pointer(location));
   };
   sourcemeta::core::schema_bundle(document, sourcemeta::core::schema_walker,
                                   resolver, inputs.default_dialect,
@@ -183,19 +190,25 @@ auto bundle_schema(const sourcemeta::core::JSON &schema,
   return document;
 }
 
-auto to_json(const std::vector<sourcemeta::core::Pointer> &insertions)
-    -> sourcemeta::core::JSON {
+// What bundling embedded, as the identifier each schema answers to beside
+// where it landed. A schema that declares one of its own answers to that
+// rather than to whichever URI it was resolved by, and bundling picks a key
+// that is free rather than one that matches, so neither half is recoverable
+// from the other
+auto to_json(const Insertions &insertions) -> sourcemeta::core::JSON {
   auto result{sourcemeta::core::JSON::make_array()};
-  for (const auto &location : insertions) {
-    result.push_back(
-        sourcemeta::core::JSON{sourcemeta::core::to_string(location)});
+  for (const auto &insertion : insertions) {
+    auto entry{sourcemeta::core::JSON::make_object()};
+    entry.assign("from", sourcemeta::core::JSON{insertion.first});
+    entry.assign("at", sourcemeta::core::JSON{
+                           sourcemeta::core::to_string(insertion.second)});
+    result.push_back(std::move(entry));
   }
 
   return result;
 }
 
-auto expect_insertions(const std::string_view mode,
-                       const std::vector<sourcemeta::core::Pointer> &actual,
+auto expect_insertions(const std::string_view mode, const Insertions &actual,
                        const sourcemeta::core::JSON &expected) -> void {
   auto actual_entry{sourcemeta::core::JSON::make_object()};
   actual_entry.assign("mode", sourcemeta::core::JSON{mode});
@@ -217,8 +230,7 @@ auto expect_insertions(const std::string_view mode,
 // the dialect traverses, and one it does not traverse never settles no matter
 // what this returns. Handing back fewer paths can only make the next pass
 // embed more and fail louder, never pass when it should not
-auto with_insertions(const Inputs &inputs,
-                     const std::vector<sourcemeta::core::Pointer> &insertions)
+auto with_insertions(const Inputs &inputs, const Insertions &insertions)
     -> Inputs {
   Inputs result;
   result.default_dialect = inputs.default_dialect;
@@ -234,8 +246,9 @@ auto with_insertions(const Inputs &inputs,
   result.path_storage.insert(result.path_storage.cend(),
                              inputs.path_storage.cbegin(),
                              inputs.path_storage.cend());
-  result.path_storage.insert(result.path_storage.cend(), insertions.cbegin(),
-                             insertions.cend());
+  for (const auto &insertion : insertions) {
+    result.path_storage.push_back(insertion.second);
+  }
   result.paths.reserve(result.path_storage.size());
   for (const auto &path : result.path_storage) {
     result.paths.push_back(sourcemeta::core::to_weak_pointer(path));
@@ -300,6 +313,16 @@ auto check_shape(const sourcemeta::core::JSON &test) -> void {
     EXPECT_EQ(insertions.defines(name), results.defines(name));
     if (insertions.defines(name)) {
       EXPECT_TRUE(insertions.at(name).is_array());
+      // Both halves are written down because neither is recoverable from the
+      // other: a schema answers to the identifier it declares rather than to
+      // whichever URI it was resolved by, and bundling files it under a key
+      // that is free rather than one that matches
+      for (const auto &insertion : insertions.at(name).as_array()) {
+        EXPECT_TRUE(insertion.is_object());
+        EXPECT_EQ(insertion.size(), 2);
+        EXPECT_TRUE(insertion.defines("from"));
+        EXPECT_TRUE(insertion.defines("at"));
+      }
     }
   }
 }
@@ -313,7 +336,7 @@ auto check_error(const sourcemeta::core::JSON &schema,
 
   if (type == "SchemaError") {
     try {
-      std::vector<sourcemeta::core::Pointer> insertions;
+      Insertions insertions;
       [[maybe_unused]] const auto document{bundle_schema(
           schema, resolver, inputs, mode, inputs.max_locations, insertions)};
       FAIL();
@@ -322,7 +345,7 @@ auto check_error(const sourcemeta::core::JSON &schema,
     }
   } else if (type == "SchemaResolutionError") {
     try {
-      std::vector<sourcemeta::core::Pointer> insertions;
+      Insertions insertions;
       [[maybe_unused]] const auto document{bundle_schema(
           schema, resolver, inputs, mode, inputs.max_locations, insertions)};
       FAIL();
@@ -332,7 +355,7 @@ auto check_error(const sourcemeta::core::JSON &schema,
     }
   } else if (type == "SchemaReferenceError") {
     try {
-      std::vector<sourcemeta::core::Pointer> insertions;
+      Insertions insertions;
       [[maybe_unused]] const auto document{bundle_schema(
           schema, resolver, inputs, mode, inputs.max_locations, insertions)};
       FAIL();
@@ -344,7 +367,7 @@ auto check_error(const sourcemeta::core::JSON &schema,
     }
   } else if (type == "SchemaReferenceObjectResourceError") {
     try {
-      std::vector<sourcemeta::core::Pointer> insertions;
+      Insertions insertions;
       [[maybe_unused]] const auto document{bundle_schema(
           schema, resolver, inputs, mode, inputs.max_locations, insertions)};
       FAIL();
@@ -355,7 +378,7 @@ auto check_error(const sourcemeta::core::JSON &schema,
     }
   } else if (type == "SchemaUnknownBaseDialectError") {
     try {
-      std::vector<sourcemeta::core::Pointer> insertions;
+      Insertions insertions;
       [[maybe_unused]] const auto document{bundle_schema(
           schema, resolver, inputs, mode, inputs.max_locations, insertions)};
       FAIL();
@@ -364,7 +387,7 @@ auto check_error(const sourcemeta::core::JSON &schema,
     }
   } else {
     try {
-      std::vector<sourcemeta::core::Pointer> insertions;
+      Insertions insertions;
       [[maybe_unused]] const auto document{bundle_schema(
           schema, resolver, inputs, mode, inputs.max_locations, insertions)};
       FAIL();
@@ -392,7 +415,7 @@ auto run_bundle_test(const sourcemeta::core::JSON &test) -> void {
     }
 
     const auto &expected{results.at(name)};
-    std::vector<sourcemeta::core::Pointer> insertions;
+    Insertions insertions;
     const auto document{bundle_schema(test.at("schema"), resolver, inputs, mode,
                                       inputs.max_locations, insertions)};
     expect_equal(mode.name, document, expected);
@@ -411,7 +434,7 @@ auto run_bundle_test(const sourcemeta::core::JSON &test) -> void {
     // The limit is a budget rather than semantics, and the output is larger
     // than the input it came from, so this pass spends whatever it needs
     const auto settled{with_insertions(inputs, insertions)};
-    std::vector<sourcemeta::core::Pointer> repeated;
+    Insertions repeated;
     expect_equal(mode.name,
                  bundle_schema(document, resolver, settled, mode,
                                std::numeric_limits<std::uint64_t>::max(),

@@ -52,12 +52,24 @@
   },
   "inserted": {
     "nonOfficialMetaschemas": [
-      "/$defs/https:~1~1example.com~1nested~1string.json",
-      "/$defs/https:~1~1example.com~1nested~1ref-string.json"
+      {
+        "from": "https://example.com/nested/string.json",
+        "at": "/$defs/https:~1~1example.com~1nested~1string.json"
+      },
+      {
+        "from": "https://example.com/nested/ref-string.json",
+        "at": "/$defs/https:~1~1example.com~1nested~1ref-string.json"
+      }
     ],
     "references": [
-      "/$defs/https:~1~1example.com~1nested~1string.json",
-      "/$defs/https:~1~1example.com~1nested~1ref-string.json"
+      {
+        "from": "https://example.com/nested/string.json",
+        "at": "/$defs/https:~1~1example.com~1nested~1string.json"
+      },
+      {
+        "from": "https://example.com/nested/ref-string.json",
+        "at": "/$defs/https:~1~1example.com~1nested~1ref-string.json"
+      }
     ]
   }
 }

@@ -1,8 +1,12 @@
 {
   "schema": {
-    "wrapper": { "$ref": "#/common/test" },
+    "wrapper": {
+      "$ref": "#/common/test"
+    },
     "common": {
-      "test": { "$ref": "#/common/with-id" },
+      "test": {
+        "$ref": "#/common/with-id"
+      },
       "with-id": {
         "$id": "https://www.sourcemeta.com/schema",
         "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -19,7 +23,11 @@
     "https://www.sourcemeta.com/test-3": {
       "$schema": "http://json-schema.org/draft-06/schema#",
       "$id": "https://www.sourcemeta.com/test-3",
-      "allOf": [ { "$ref": "test-4" } ]
+      "allOf": [
+        {
+          "$ref": "test-4"
+        }
+      ]
     },
     "https://www.sourcemeta.com/test-4": {
       "$schema": "http://json-schema.org/draft-04/schema#",
@@ -29,12 +37,20 @@
   },
   "defaultDialect": "https://json-schema.org/draft/2020-12/schema",
   "container": "/components",
-  "paths": [ "/wrapper", "/common/test", "/common/with-id" ],
+  "paths": [
+    "/wrapper",
+    "/common/test",
+    "/common/with-id"
+  ],
   "result": {
     "nonOfficialMetaschemas": {
-      "wrapper": { "$ref": "#/common/test" },
+      "wrapper": {
+        "$ref": "#/common/test"
+      },
       "common": {
-        "test": { "$ref": "#/common/with-id" },
+        "test": {
+          "$ref": "#/common/with-id"
+        },
         "with-id": {
           "$id": "https://www.sourcemeta.com/schema",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -50,7 +66,11 @@
         "https://www.sourcemeta.com/test-3": {
           "$schema": "http://json-schema.org/draft-06/schema#",
           "$id": "https://www.sourcemeta.com/test-3",
-          "allOf": [ { "$ref": "test-4" } ]
+          "allOf": [
+            {
+              "$ref": "test-4"
+            }
+          ]
         },
         "https://www.sourcemeta.com/test-2": {
           "$schema": "https://json-schema.org/draft/2019-09/schema",
@@ -60,9 +80,13 @@
       }
     },
     "references": {
-      "wrapper": { "$ref": "#/common/test" },
+      "wrapper": {
+        "$ref": "#/common/test"
+      },
       "common": {
-        "test": { "$ref": "#/common/with-id" },
+        "test": {
+          "$ref": "#/common/with-id"
+        },
         "with-id": {
           "$id": "https://www.sourcemeta.com/schema",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -78,7 +102,11 @@
         "https://www.sourcemeta.com/test-3": {
           "$schema": "http://json-schema.org/draft-06/schema#",
           "$id": "https://www.sourcemeta.com/test-3",
-          "allOf": [ { "$ref": "test-4" } ]
+          "allOf": [
+            {
+              "$ref": "test-4"
+            }
+          ]
         },
         "https://www.sourcemeta.com/test-2": {
           "$schema": "https://json-schema.org/draft/2019-09/schema",
@@ -90,14 +118,32 @@
   },
   "inserted": {
     "nonOfficialMetaschemas": [
-      "/components/https:~1~1www.sourcemeta.com~1test-4",
-      "/components/https:~1~1www.sourcemeta.com~1test-3",
-      "/components/https:~1~1www.sourcemeta.com~1test-2"
+      {
+        "from": "https://www.sourcemeta.com/test-4",
+        "at": "/components/https:~1~1www.sourcemeta.com~1test-4"
+      },
+      {
+        "from": "https://www.sourcemeta.com/test-3",
+        "at": "/components/https:~1~1www.sourcemeta.com~1test-3"
+      },
+      {
+        "from": "https://www.sourcemeta.com/test-2",
+        "at": "/components/https:~1~1www.sourcemeta.com~1test-2"
+      }
     ],
     "references": [
-      "/components/https:~1~1www.sourcemeta.com~1test-4",
-      "/components/https:~1~1www.sourcemeta.com~1test-3",
-      "/components/https:~1~1www.sourcemeta.com~1test-2"
+      {
+        "from": "https://www.sourcemeta.com/test-4",
+        "at": "/components/https:~1~1www.sourcemeta.com~1test-4"
+      },
+      {
+        "from": "https://www.sourcemeta.com/test-3",
+        "at": "/components/https:~1~1www.sourcemeta.com~1test-3"
+      },
+      {
+        "from": "https://www.sourcemeta.com/test-2",
+        "at": "/components/https:~1~1www.sourcemeta.com~1test-2"
+      }
     ]
   }
 }
