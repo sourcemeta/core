@@ -30,6 +30,7 @@
 #include <optional>    // std::optional
 #include <string_view> // std::string_view
 #include <utility>     // std::move, std::swap, std::unreachable
+#include <vector>      // std::vector
 
 namespace sourcemeta::core {
 
@@ -549,6 +550,41 @@ inline auto openapi_check_operation_id_links(
   }
 }
 
+// OpenAPI Specification 3.1.1, Section 4.8.24 hands a Schema Object over to
+// whatever reads JSON Schema, whole and on its own. One sitting within another
+// is a place that implementation would be handed twice over, once by itself
+// and once as part of something larger, which is not a reading it has any
+// account of. Which places those are is settled by the walk as a whole, so
+// this cannot be decided while one is still being read
+inline auto openapi_check_schema_positions(const OpenAPIWalk &walk) -> void {
+  std::vector<WeakPointer> enclosing;
+  for (const auto &location : walk.locations) {
+    if (location.second.type != OpenAPIObjectKind::Schema) {
+      continue;
+    }
+
+    auto pointer{to_weak_pointer(location.second.pointer)};
+    while (!enclosing.empty() && !pointer.starts_with(enclosing.back())) {
+      enclosing.pop_back();
+    }
+
+    if (!enclosing.empty()) {
+      throw OpenAPIError{
+          walk.base, location.second.pointer,
+          "A Schema Object must not sit within another Schema Object"};
+    }
+
+    enclosing.push_back(std::move(pointer));
+  }
+}
+
+// Every operation the description exposes, worked out from a walk that has
+// settled. OpenAPI Specification 3.1.1, Section 4.8.9 has a templated path
+// correspond to the path parameters the Path Item Object and its operations
+// declare, and which parameters those are is only settled once every Path Item
+// the description reaches is at hand, so this is where that is decided
+auto openapi_project(const OpenAPIWalk &walk) -> std::vector<OpenAPIOperation>;
+
 // Everything the checks need in order to start from nothing, which is a walk
 // of the given document keyed by the given base. A 3.2 document may name
 // itself, so what the walk ends up keyed by is what it reports rather than
@@ -602,6 +638,7 @@ inline auto openapi_analyse(const JSON &document, JSON::String base,
   }
 
   openapi_check_document(document, walk);
+  openapi_check_schema_positions(walk);
   return walk;
 }
 

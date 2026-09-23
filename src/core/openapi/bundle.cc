@@ -1331,6 +1331,12 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
       // anything
       openapi_check_operation_id_links(walk, walk.locations);
       openapi_check_tag_parents(walk, walk.locations, true);
+      // And so are the path parameters a templated path corresponds to, which
+      // the projection is what settles. What it works out is of no use here,
+      // as bundling moves what a description holds rather than reporting what
+      // it exposes, but a description that cannot be projected is one this
+      // would otherwise hand back for the next reader to turn down
+      [[maybe_unused]] const auto operations{openapi_project(walk)};
 
       bundle_schemas(document, walk, walker, schema_resolver, base, remaining,
                      options);

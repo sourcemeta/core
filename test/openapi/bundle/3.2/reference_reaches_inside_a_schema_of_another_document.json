@@ -1,0 +1,53 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "parameters": {
+        "Q": {
+          "$ref": "other.json#/components/parameters/P"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/other.json": {
+      "openapi": "3.2.0",
+      "info": {
+        "title": "Example",
+        "version": "1.0.0"
+      },
+      "components": {
+        "schemas": {
+          "Foo": {
+            "properties": {
+              "bar": {
+                "name": "x",
+                "in": "query",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "parameters": {
+          "P": {
+            "$ref": "#/components/schemas/Foo/properties/bar"
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "error": {
+    "type": "OpenAPIError",
+    "message": "A Schema Object must not sit within another Schema Object",
+    "location": "/components/schemas/Foo/properties/bar/schema",
+    "base": "https://example.com/other.json"
+  }
+}

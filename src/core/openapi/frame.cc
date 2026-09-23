@@ -293,15 +293,18 @@ auto check_path_templates(
   }
 }
 
+} // namespace
+
+namespace sourcemeta::core {
+
 // Every operation the description exposes, which Section 4.3.3 confines to what
 // the entry document reaches: "only the entry document's Paths Object
 // contributes URLs to the described API". A Callback Object holds Path Item
 // Objects of its own, so what an endpoint reaches may expose further endpoints
-auto project(const sourcemeta::core::OpenAPIWalk &walk)
-    -> std::vector<sourcemeta::core::OpenAPIOperation> {
-  std::vector<sourcemeta::core::OpenAPIOperation> result;
-  std::vector<sourcemeta::core::OpenAPIEndpoint> pending{walk.endpoints};
-  std::set<sourcemeta::core::JSON::String> seen;
+auto openapi_project(const OpenAPIWalk &walk) -> std::vector<OpenAPIOperation> {
+  std::vector<OpenAPIOperation> result;
+  std::vector<OpenAPIEndpoint> pending{walk.endpoints};
+  std::set<JSON::String> seen;
   for (std::size_t index = 0; index < pending.size(); index += 1) {
     const auto kind{pending[index].kind};
     const auto path{pending[index].path};
@@ -310,8 +313,7 @@ auto project(const sourcemeta::core::OpenAPIWalk &walk)
 
     // A Path Item that leads back to one already exposed the same way exposes
     // nothing further, which is what stops a cycle of them
-    sourcemeta::core::JSON::String key{
-        sourcemeta::core::openapi_operation_kind_name(kind)};
+    JSON::String key{openapi_operation_kind_name(kind)};
     key.append("#").append(path).append("#").append(position);
     if (!seen.insert(std::move(key)).second) {
       continue;
@@ -324,10 +326,9 @@ auto project(const sourcemeta::core::OpenAPIWalk &walk)
 
     // A webhook name and a callback expression are not templated paths, so
     // only what the Paths Object exposes has any templating to correspond to
-    const auto templated{kind == sourcemeta::core::OpenAPIOperationKind::Path};
-    const auto templates{
-        templated ? sourcemeta::core::openapi_brace_expressions(path)
-                  : std::vector<sourcemeta::core::JSON::StringView>{}};
+    const auto templated{kind == OpenAPIOperationKind::Path};
+    const auto templates{templated ? openapi_brace_expressions(path)
+                                   : std::vector<JSON::StringView>{}};
     if (templated) {
       check_path_parameters(walk, templates, entry->second.parameters);
     }
@@ -359,10 +360,10 @@ auto project(const sourcemeta::core::OpenAPIWalk &walk)
            // security. To remove a top-level security declaration, an empty
            // array can be used", which is why declaring none and declaring an
            // empty array are not the same thing here
-           .security = operation->second.security.has_value()
-                           ? operation->second.security.value()
-                           : walk.security.value_or(
-                                 std::vector<sourcemeta::core::JSON::String>{}),
+           .security =
+               operation->second.security.has_value()
+                   ? operation->second.security.value()
+                   : walk.security.value_or(std::vector<JSON::String>{}),
            .parameters = std::move(parameters),
            .tags = tags_of(walk, operation->second.tags)});
 
@@ -373,10 +374,9 @@ auto project(const sourcemeta::core::OpenAPIWalk &walk)
         }
 
         for (const auto &[expression, path_item] : entries->second) {
-          pending.push_back(
-              {.kind = sourcemeta::core::OpenAPIOperationKind::Callback,
-               .path = expression,
-               .path_item = path_item});
+          pending.push_back({.kind = OpenAPIOperationKind::Callback,
+                             .path = expression,
+                             .path_item = path_item});
         }
       }
     }
@@ -384,10 +384,6 @@ auto project(const sourcemeta::core::OpenAPIWalk &walk)
 
   return result;
 }
-
-} // namespace
-
-namespace sourcemeta::core {
 
 struct OpenAPIFrame::Internal {
   OpenAPIVersion version;
@@ -451,7 +447,7 @@ OpenAPIFrame::OpenAPIFrame(const JSON &document, const SchemaWalker &walker,
   }
 
   // Projecting reads the whole walk, so nothing is taken out of it until after
-  this->internal_->operations = project(walk);
+  this->internal_->operations = openapi_project(walk);
   const auto walk_locations{walk.locations.size()};
   this->internal_->locations = std::move(walk.locations);
   this->internal_->references = std::move(walk.references);
@@ -476,25 +472,11 @@ OpenAPIFrame::OpenAPIFrame(const JSON &document, const SchemaWalker &walker,
   //
   // Locations are keyed by the base with the pointer hung off it, so a place
   // within another has that other one's key as a prefix and follows it here
-  std::vector<WeakPointer> enclosing;
   for (const auto &location : this->internal_->locations) {
-    if (location.second.type != OpenAPIObjectKind::Schema) {
-      continue;
+    if (location.second.type == OpenAPIObjectKind::Schema) {
+      this->internal_->schema_paths.push_back(
+          to_weak_pointer(location.second.pointer));
     }
-
-    auto pointer{to_weak_pointer(location.second.pointer)};
-    while (!enclosing.empty() && !pointer.starts_with(enclosing.back())) {
-      enclosing.pop_back();
-    }
-
-    if (!enclosing.empty()) {
-      throw OpenAPIError{
-          this->internal_->base, location.second.pointer,
-          "A Schema Object must not sit within another Schema Object"};
-    }
-
-    enclosing.push_back(pointer);
-    this->internal_->schema_paths.push_back(std::move(pointer));
   }
 
   this->internal_->schema_resolver = resolver;
