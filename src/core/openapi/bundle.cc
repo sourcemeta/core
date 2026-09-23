@@ -11,7 +11,7 @@
 #include <optional> // std::optional
 #include <set>      // std::set
 #include <string>   // std::to_string
-#include <utility>  // std::move, std::pair
+#include <utility>  // std::move
 #include <vector>   // std::vector
 
 namespace {
@@ -94,41 +94,6 @@ auto pending(const sourcemeta::core::OpenAPIWalk &walk)
   }
 
   return result;
-}
-
-// OpenAPI Specification 3.2.1, Section 4.30 keys a Security Requirement
-// Object by the scheme each of its entries requires, and has every one of them
-// met: "A Security Requirement Object MAY refer to multiple security schemes
-// in which case all schemes MUST be satisfied". Two of its names may lead to
-// one scheme, which that section says nothing against and which reading such
-// an Object is no trouble for. Bundling is what has to write one back out
-// under the single name that scheme ends up going by, and that name is a key
-// that holds one list of scopes rather than two
-auto check_requirement_aliases(const sourcemeta::core::JSON &document,
-                               const sourcemeta::core::OpenAPIWalk &walk)
-    -> void {
-  std::map<
-      std::pair<sourcemeta::core::JSON::String, sourcemeta::core::JSON::String>,
-      sourcemeta::core::Pointer>
-      required;
-  for (const auto &entry : walk.security_references) {
-    const auto held{sourcemeta::core::openapi_location_uri(
-        walk.base, entry.second.origin.initial())};
-    const auto match{required.emplace(std::pair{held, entry.second.destination},
-                                      entry.second.origin)};
-    // Naming one scheme twice over with the one list of scopes is naming it
-    // once, which the name it ends up going by carries as it stands
-    if (match.second ||
-        sourcemeta::core::get(document, match.first->second) ==
-            sourcemeta::core::get(document, entry.second.origin)) {
-      continue;
-    }
-
-    throw sourcemeta::core::OpenAPIError{
-        walk.base, entry.second.origin,
-        "A Security Requirement Object that names one security scheme twice "
-        "over cannot keep a list of scopes for each of them"};
-  }
 }
 
 // Where the Object that bundling embeds begins. A target that sits within a
@@ -810,8 +775,21 @@ auto absolutize(JSON &value, const OpenAPIWalk &remote, const Pointer &origin,
       continue;
     }
 
-    get(value, (entry.second.origin).resolve_from(origin).initial())
-        .rename(entry.second.original, std::move(rewritten));
+    auto &requirement{
+        get(value, (entry.second.origin).resolve_from(origin).initial())};
+    // Section 4.30 says nothing against two names of one Object leading to one
+    // scheme, and reading such an Object is no trouble. Writing one back out
+    // is what cannot keep both, as the single name they come to is a key that
+    // holds one list of scopes rather than two
+    const auto *taken{requirement.try_at(rewritten)};
+    if (taken != nullptr && *taken != requirement.at(entry.second.original)) {
+      throw OpenAPIError{remote.base, entry.second.origin,
+                         "A Security Requirement Object that names one "
+                         "security scheme twice over cannot keep a list of "
+                         "scopes for each of them"};
+    }
+
+    requirement.rename(entry.second.original, std::move(rewritten));
   }
 
   // And so is every other URI it carries, which the frame does not record as a
@@ -1147,7 +1125,6 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
   while (true) {
     const auto walk{openapi_analyse(document, retrieval, remaining)};
     const auto &base{walk.base};
-    check_requirement_aliases(document, walk);
     charge(remaining, walk.locations.size());
     auto unresolved{pending(walk)};
     // A Schema Object may name one that another document of the description
@@ -1235,7 +1212,6 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
         const auto &held{
             documents.emplace(identifier, std::move(candidate)).first->second};
         auto analysis{openapi_analyse(held, identifier, remaining, &walk)};
-        check_requirement_aliases(held, analysis);
         charge(remaining, analysis.locations.size());
         walks.emplace(identifier, std::move(analysis));
       }
@@ -1295,9 +1271,18 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
       // component name under the Components Object MUST be treated as a
       // component name", and the name was taken free of that Object for it
       if (reference.requirement) {
-        get(document, reference.origin.initial())
-            .rename(reference.origin.back().to_property(),
-                    JSON::String{landed.back().to_property()});
+        auto &requirement{get(document, reference.origin.initial())};
+        const auto &spelled{reference.origin.back().to_property()};
+        JSON::String name{landed.back().to_property()};
+        const auto *taken{requirement.try_at(name)};
+        if (taken != nullptr && *taken != requirement.at(spelled)) {
+          throw OpenAPIError{base, reference.origin,
+                             "A Security Requirement Object that names one "
+                             "security scheme twice over cannot keep a list of "
+                             "scopes for each of them"};
+        }
+
+        requirement.rename(spelled, std::move(name));
         changed = true;
         continue;
       }
