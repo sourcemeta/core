@@ -1,0 +1,30 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "security": [
+      {
+        "https://example.com/other.json#/components/securitySchemes/Main": []
+      }
+    ],
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "200": {
+              "description": "OK"
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "error": {
+    "message": "The Security Requirement Object must name a declared security scheme",
+    "location": "/security/0/https:~1~1example.com~1other.json#~1components~1securitySchemes~1Main"
+  }
+}

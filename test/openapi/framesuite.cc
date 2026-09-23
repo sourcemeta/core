@@ -319,6 +319,22 @@ auto mappings_stand_alone(const sourcemeta::core::JSON &frame) -> bool {
       });
 }
 
+// And so does a Security Requirement Object that names a scheme by the URI of
+// one, which 3.2 admits beside the name of a component. That name is an edge
+// out of the document like any other, so what it lands on says as much about
+// whether the description is whole
+auto security_references_stand_alone(const sourcemeta::core::JSON &frame)
+    -> bool {
+  if (!frame.defines("securityReferences")) {
+    return true;
+  }
+
+  return std::ranges::none_of(frame.at("securityReferences").as_array(),
+                              [](const auto &entry) -> bool {
+                                return entry.at("dangling").to_boolean();
+                              });
+}
+
 // A frame is a graph written down as text, and every edge in it is a key into
 // the same map. These hold whatever the description was, so the suite asserts
 // them on every fixture rather than on the handful that thought to look
@@ -439,6 +455,7 @@ auto check_frame_invariants(const sourcemeta::core::JSON &frame) -> void {
   EXPECT_EQ(frame.at("standalone").to_boolean(),
             schemas_stand_alone(frame.at("schemas")) &&
                 mappings_stand_alone(frame) &&
+                security_references_stand_alone(frame) &&
                 std::ranges::none_of(
                     locations.as_object(), [](const auto &entry) -> bool {
                       return entry.second.defines("dangling") &&

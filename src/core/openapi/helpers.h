@@ -381,6 +381,12 @@ struct OpenAPIWalk {
   /// The names the entry document declares as security schemes, which is what
   /// a Security Requirement Object anywhere in the description may name
   std::set<JSON::String> security_schemes;
+  /// Where a Security Requirement Object names a Security Scheme Object by the
+  /// URI of one rather than by the name of a component, and what each of those
+  /// names leads to. OpenAPI Specification 3.2.1 admits both spellings, and a
+  /// single one of those Objects may name several schemes, so this is a list
+  /// of its own rather than a reference keyed by the Object that makes it
+  std::vector<OpenAPIReference> security_references;
   /// Whether an entry document is what the names above came from, which is
   /// what makes this a document the description reaches rather than the one
   /// that describes the API

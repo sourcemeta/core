@@ -15,7 +15,7 @@
   "frame": {
     "version": "3.2",
     "base": "",
-    "standalone": true,
+    "standalone": false,
     "schemas": {
       "mode": "references",
       "locations": {
@@ -56,6 +56,14 @@
         "parent": ""
       }
     },
-    "operations": []
+    "operations": [],
+    "securityReferences": [
+      {
+        "pointer": "/security/0/.~1schemes#~1apiKey",
+        "original": "./schemes#/apiKey",
+        "destination": "schemes#/apiKey",
+        "dangling": true
+      }
+    ]
   }
 }
