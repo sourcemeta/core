@@ -117,9 +117,24 @@ inline auto openapi_check_server_variable(const JSON &value,
 //
 // A variable name admits "every Unicode character except { and }", which of
 // the bytes of one holds only of a brace, so it is read byte by byte while a
-// literal is read a character at a time
-// TODO: Upstream this to src/core/uritemplate once that module grows a
-// representation of the templates that are not RFC 6570
+// literal is read a character at a time.
+//
+// That grammar is this specification's own rather than RFC 6570's, and the two
+// disagree. RFC 6570 Section 2.3 admits only ALPHA, DIGIT and an underscore,
+// plus a percent-encoded triplet into a variable name, so a name holding a
+// hyphen is a server variable here and no expression at all there. RFC 6570
+// Section 2.2 further reads a leading `+` as an operator, where this grammar
+// reads it as the first character of the name, so one template means two things
+// depending on which of the two is doing the reading.
+//
+// RFC 6570 does govern this specification, but elsewhere. Appendix C of 3.1.1
+// scopes it to serialising a value: "Serialization is defined in terms of
+// RFC6570 URI Templates in three scenarios", being a Parameter Object and a
+// Header Object that declare a schema, and an Encoding Object for a form. What
+// a Server Object URL or a templated path is made of is not one of those, so
+// reading either through an RFC 6570 implementation would reject names this
+// grammar admits. Hence a reader of its own, kept here rather than beside one
+// that answers for a specification this does not follow
 
 // What a server URL template means is the URL that substituting its variables
 // produces, resolved against the base of the document that declares it. So a
