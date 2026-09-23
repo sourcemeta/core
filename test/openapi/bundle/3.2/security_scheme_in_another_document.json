@@ -62,5 +62,6 @@
     "https://example.com/shared.json": 1
   },
   "schemaReads": {},
+  "standalone": true,
   "relocatable": true
 }

@@ -123,5 +123,6 @@
   "schemaReads": {
     "https://example.com/shared/schemas/cat": 1
   },
+  "standalone": true,
   "relocatable": true
 }

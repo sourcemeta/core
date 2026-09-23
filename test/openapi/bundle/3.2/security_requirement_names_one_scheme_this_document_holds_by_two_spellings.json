@@ -57,5 +57,6 @@
   "inserted": [],
   "reads": {},
   "schemaReads": {},
+  "standalone": true,
   "relocatable": false
 }

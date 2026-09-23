@@ -55,5 +55,6 @@
   "schemaReads": {
     "https://example.com/schemas/any": 1
   },
+  "standalone": true,
   "relocatable": true
 }

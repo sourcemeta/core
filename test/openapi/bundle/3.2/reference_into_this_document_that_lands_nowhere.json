@@ -5,17 +5,10 @@
       "title": "Example",
       "version": "1.0.0"
     },
-    "security": [
-      {
-        "#/components/securitySchemes/Local": []
-      }
-    ],
     "components": {
-      "securitySchemes": {
-        "Local": {
-          "type": "apiKey",
-          "name": "key",
-          "in": "header"
+      "responses": {
+        "R": {
+          "$ref": "#/components/responses/Missing"
         }
       }
     }
@@ -29,17 +22,10 @@
       "title": "Example",
       "version": "1.0.0"
     },
-    "security": [
-      {
-        "#/components/securitySchemes/Local": []
-      }
-    ],
     "components": {
-      "securitySchemes": {
-        "Local": {
-          "type": "apiKey",
-          "name": "key",
-          "in": "header"
+      "responses": {
+        "R": {
+          "$ref": "#/components/responses/Missing"
         }
       }
     }
@@ -47,6 +33,6 @@
   "inserted": [],
   "reads": {},
   "schemaReads": {},
-  "standalone": true,
-  "relocatable": true
+  "standalone": false,
+  "relocatable": false
 }

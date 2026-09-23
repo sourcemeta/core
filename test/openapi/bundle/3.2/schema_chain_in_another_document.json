@@ -102,5 +102,6 @@
     "https://example.com/schemas/pet": 1,
     "https://example.com/schemas/owner": 1
   },
+  "standalone": true,
   "relocatable": true
 }

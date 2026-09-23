@@ -60,5 +60,6 @@
     "https://example.com/v2/other.json": 1
   },
   "schemaReads": {},
+  "standalone": true,
   "relocatable": true
 }

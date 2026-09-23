@@ -82,5 +82,6 @@
     "https://example.com/other.json": 1
   },
   "schemaReads": {},
+  "standalone": true,
   "relocatable": true
 }

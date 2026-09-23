@@ -87,5 +87,6 @@
   "schemaReads": {
     "https://example.com/schemas/pet": 1
   },
+  "standalone": true,
   "relocatable": true
 }

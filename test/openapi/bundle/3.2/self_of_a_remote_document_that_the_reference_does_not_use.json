@@ -97,5 +97,6 @@
     "https://cdn.example.com/v1/headers.json": 1
   },
   "schemaReads": {},
+  "standalone": true,
   "relocatable": true
 }

@@ -108,5 +108,6 @@
     "https://example.com/b.json": 1
   },
   "schemaReads": {},
+  "standalone": true,
   "relocatable": true
 }

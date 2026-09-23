@@ -60,5 +60,6 @@
     "https://cdn.example.com/v1/other.json": 1
   },
   "schemaReads": {},
+  "standalone": true,
   "relocatable": true
 }

@@ -104,5 +104,6 @@
     "https://example.com/third.json": 1
   },
   "schemaReads": {},
+  "standalone": true,
   "relocatable": true
 }
