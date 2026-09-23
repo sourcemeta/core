@@ -174,7 +174,8 @@ auto bundle_schema(const sourcemeta::core::JSON &schema,
   auto document{schema};
   auto options{make_options(inputs, mode, max_locations)};
   options.callback =
-      [&insertions](const sourcemeta::core::WeakPointer &location) -> void {
+      [&insertions](const std::string_view,
+                    const sourcemeta::core::WeakPointer &location) -> void {
     insertions.push_back(sourcemeta::core::to_pointer(location));
   };
   sourcemeta::core::schema_bundle(document, sourcemeta::core::schema_walker,
