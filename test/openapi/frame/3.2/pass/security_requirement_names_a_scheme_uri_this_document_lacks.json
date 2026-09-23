@@ -1,0 +1,132 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "security": [
+      {
+        "#/components/securitySchemes/nope": []
+      }
+    ],
+    "components": {
+      "securitySchemes": {
+        "Main": {
+          "type": "http",
+          "scheme": "bearer"
+        }
+      }
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "200": {
+              "description": "OK"
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "frame": {
+    "version": "3.2",
+    "base": "https://example.com/openapi.json",
+    "standalone": false,
+    "schemas": {
+      "mode": "references",
+      "locations": {
+        "static": {},
+        "dynamic": {}
+      },
+      "references": []
+    },
+    "info": {
+      "title": "Example",
+      "version": "1.0.0",
+      "summary": null,
+      "description": null,
+      "termsOfService": null,
+      "contact": null,
+      "license": null
+    },
+    "locations": {
+      "https://example.com/openapi.json": {
+        "type": "openapi",
+        "pointer": "",
+        "parent": null,
+        "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17"
+      },
+      "https://example.com/openapi.json#/components": {
+        "type": "components",
+        "pointer": "/components",
+        "parent": "https://example.com/openapi.json"
+      },
+      "https://example.com/openapi.json#/components/securitySchemes/Main": {
+        "type": "security-scheme",
+        "pointer": "/components/securitySchemes/Main",
+        "parent": "https://example.com/openapi.json#/components"
+      },
+      "https://example.com/openapi.json#/info": {
+        "type": "info",
+        "pointer": "/info",
+        "parent": "https://example.com/openapi.json"
+      },
+      "https://example.com/openapi.json#/paths": {
+        "type": "paths",
+        "pointer": "/paths",
+        "parent": "https://example.com/openapi.json"
+      },
+      "https://example.com/openapi.json#/paths/~1pets": {
+        "type": "path-item",
+        "pointer": "/paths/~1pets",
+        "parent": "https://example.com/openapi.json#/paths"
+      },
+      "https://example.com/openapi.json#/paths/~1pets/get": {
+        "type": "operation",
+        "pointer": "/paths/~1pets/get",
+        "parent": "https://example.com/openapi.json#/paths/~1pets"
+      },
+      "https://example.com/openapi.json#/paths/~1pets/get/responses": {
+        "type": "responses",
+        "pointer": "/paths/~1pets/get/responses",
+        "parent": "https://example.com/openapi.json#/paths/~1pets/get"
+      },
+      "https://example.com/openapi.json#/paths/~1pets/get/responses/200": {
+        "type": "response",
+        "pointer": "/paths/~1pets/get/responses/200",
+        "parent": "https://example.com/openapi.json#/paths/~1pets/get/responses"
+      },
+      "https://example.com/openapi.json#/security/0": {
+        "type": "security-requirement",
+        "pointer": "/security/0",
+        "parent": "https://example.com/openapi.json"
+      }
+    },
+    "operations": [
+      {
+        "type": "path",
+        "path": "/pets",
+        "method": "get",
+        "origin": "https://example.com/openapi.json#/paths/~1pets/get",
+        "endpoint": "https://example.com/openapi.json#/paths/~1pets",
+        "tags": [],
+        "servers": [],
+        "security": [
+          "https://example.com/openapi.json#/security/0"
+        ],
+        "parameters": []
+      }
+    ],
+    "securityReferences": [
+      {
+        "pointer": "/security/0/#~1components~1securitySchemes~1nope",
+        "original": "#/components/securitySchemes/nope",
+        "destination": "https://example.com/openapi.json#/components/securitySchemes/nope",
+        "dangling": true
+      }
+    ]
+  }
+}

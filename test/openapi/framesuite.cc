@@ -284,6 +284,15 @@ auto is_discriminator_member(const sourcemeta::core::Pointer &pointer) -> bool {
          is_member(pointer.at(pointer.size() - 2), "discriminator");
 }
 
+// Section 4.30 of 3.2 keys a Security Requirement Object by the name of what
+// it requires, so a name that is the URI of a scheme sits two tokens past the
+// list that holds the Object making it
+auto is_security_requirement_member(const sourcemeta::core::Pointer &pointer)
+    -> bool {
+  return pointer.size() >= 3 &&
+         is_member(pointer.at(pointer.size() - 3), "security");
+}
+
 // Whether the schemas of a description hold what a mapping names. Framing a
 // document records places of it that are no schema of their own as well, so
 // landing on one of those is landing on nothing a mapping was after
@@ -317,6 +326,24 @@ auto mappings_stand_alone(const sourcemeta::core::JSON &frame) -> bool {
       [&schemas](const auto &entry) -> bool {
         return names_a_schema(schemas, entry.at("destination").to_string());
       });
+}
+
+// And so does a Security Requirement Object that names a scheme by the URI of
+// one, which 3.2 admits beside the name of a component. That name is an edge
+// out of the document like any other, so what it lands on says as much about
+// whether the description is whole
+auto security_references_stand_alone(const sourcemeta::core::JSON &frame)
+    -> bool {
+  if (!frame.defines("securityReferences")) {
+    return true;
+  }
+
+  const auto &locations{frame.at("locations")};
+  return std::ranges::all_of(frame.at("securityReferences").as_array(),
+                             [&locations](const auto &entry) -> bool {
+                               return locations.defines(
+                                   entry.at("destination").to_string());
+                             });
 }
 
 // A frame is a graph written down as text, and every edge in it is a key into
@@ -431,6 +458,22 @@ auto check_frame_invariants(const sourcemeta::core::JSON &frame) -> void {
     }
   }
 
+  // And so is what a Security Requirement Object names by the URI of a scheme,
+  // which 3.2 admits beside the name of a component
+  if (frame.defines("securityReferences")) {
+    for (const auto &entry : frame.at("securityReferences").as_array()) {
+      // Where one leads is a place the description holds or nowhere at all,
+      // and it says of itself which of the two it is
+      EXPECT_EQ(entry.at("dangling").to_boolean(),
+                !locations.defines(entry.at("destination").to_string()));
+
+      // Where it sits is the member of a Security Requirement Object that
+      // names it, which is the one thing the pointer to it has to show
+      EXPECT_TRUE(is_security_requirement_member(
+          sourcemeta::core::to_pointer(entry.at("pointer").to_string())));
+    }
+  }
+
   // A description stands alone when nothing it references leaves it, which
   // counts what its Schema Objects reference as much as what the shell around
   // them does. This asks the locations again rather than carrying an answer
@@ -439,6 +482,7 @@ auto check_frame_invariants(const sourcemeta::core::JSON &frame) -> void {
   EXPECT_EQ(frame.at("standalone").to_boolean(),
             schemas_stand_alone(frame.at("schemas")) &&
                 mappings_stand_alone(frame) &&
+                security_references_stand_alone(frame) &&
                 std::ranges::none_of(
                     locations.as_object(), [](const auto &entry) -> bool {
                       return entry.second.defines("dangling") &&

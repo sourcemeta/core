@@ -491,6 +491,7 @@ struct OpenAPIFrame::Internal {
   // What a Discriminator Object names by URI, which is a reference the schemas
   // hold rather than one the shell around them does
   std::vector<OpenAPIDiscriminator> discriminators;
+  std::vector<OpenAPIReference> security_references;
   // Reading inside a Schema Object is the business of whatever understands
   // JSON Schema, so this is that pass over every Schema Object position at
   // once. It is declared last so that it is destroyed first, as it holds
@@ -527,11 +528,23 @@ OpenAPIFrame::OpenAPIFrame(const JSON &document, const SchemaWalker &walker,
     }
   }
 
+  // And so does a Security Requirement Object that names a scheme by the URI
+  // of one, which 3.2 admits alongside the name of a component. Naming one
+  // that this document does not hold leaves the description no more whole than
+  // any other reference out of it would
+  for (auto &reference : walk.security_references) {
+    reference.dangling = !walk.locations.contains(reference.destination);
+    if (reference.dangling) {
+      every_reference_lands = false;
+    }
+  }
+
   // Projecting reads the whole walk, so nothing is taken out of it until after
   this->internal_->operations = project(walk);
   const auto walk_locations{walk.locations.size()};
   this->internal_->locations = std::move(walk.locations);
   this->internal_->references = std::move(walk.references);
+  this->internal_->security_references = std::move(walk.security_references);
 
   // Every Schema Object position of the document at once, rather than one
   // pass each, so that a schema referring to another resolves against a frame
@@ -742,6 +755,20 @@ auto OpenAPIFrame::to_json() const -> JSON {
     }
 
     result.assign_assume_new("discriminators", std::move(discriminators));
+  }
+
+  if (!this->internal_->security_references.empty()) {
+    auto references{JSON::make_array()};
+    for (const auto &reference : this->internal_->security_references) {
+      auto entry{JSON::make_object()};
+      entry.assign_assume_new("pointer", JSON{to_string(reference.origin)});
+      entry.assign_assume_new("original", JSON{reference.original});
+      entry.assign_assume_new("destination", JSON{reference.destination});
+      entry.assign_assume_new("dangling", JSON{reference.dangling});
+      references.push_back(std::move(entry));
+    }
+
+    result.assign_assume_new("securityReferences", std::move(references));
   }
 
   return result;

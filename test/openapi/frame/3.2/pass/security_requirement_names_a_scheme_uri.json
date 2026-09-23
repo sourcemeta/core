@@ -75,6 +75,14 @@
         "parent": ""
       }
     },
-    "operations": []
+    "operations": [],
+    "securityReferences": [
+      {
+        "pointer": "/security/0/#~1components~1securitySchemes~1apiKey",
+        "original": "#/components/securitySchemes/apiKey",
+        "destination": "#/components/securitySchemes/apiKey",
+        "dangling": false
+      }
+    ]
   }
 }
