@@ -237,15 +237,38 @@ auto absolutize_schemas(sourcemeta::core::JSON &value,
       continue;
     }
 
-    const auto target{frame.traverse(discriminator.destination)};
-    if (target.has_value() && target.value().get().pointer.starts_with(
-                                  sourcemeta::core::to_weak_pointer(origin))) {
-      continue;
-    }
-
     const auto held{(discriminator.origin).resolve_from(origin)};
     const auto *written{sourcemeta::core::try_get(value, held)};
     if (written == nullptr || !written->is_string()) {
+      continue;
+    }
+
+    const auto target{frame.traverse(discriminator.destination)};
+    if (target.has_value() && target.value().get().pointer.starts_with(
+                                  sourcemeta::core::to_weak_pointer(origin))) {
+      // What names a place within what moves moves along with it, so long as
+      // it names it by something that travels. A name does. RFC 6901 reads a
+      // pointer from the root of a document, so one that leads into what moves
+      // leads there by a route that moving is exactly what changes, and it is
+      // written out as the route to wherever this is headed instead. This is
+      // the same distinction a reference of the schema is held to, and a
+      // mapping is held to it for the same reason
+      // The URI is held rather than made and read in one breath, as what
+      // reads its fragment hands back a view into it
+      const sourcemeta::core::URI destination{discriminator.destination};
+      const auto fragment{destination.fragment()};
+      if (sourcemeta::core::openapi_document_uri(discriminator.destination) !=
+              remote.base ||
+          !fragment.has_value() || !fragment.value().starts_with('/')) {
+        continue;
+      }
+
+      const auto tail{sourcemeta::core::to_pointer(target.value().get().pointer)
+                          .resolve_from(origin)};
+      sourcemeta::core::set(
+          value, held,
+          sourcemeta::core::JSON{
+              sourcemeta::core::to_uri(landing.concat(tail)).recompose()});
       continue;
     }
 
@@ -524,7 +547,7 @@ auto bundle_schemas(sourcemeta::core::JSON &document,
                     const sourcemeta::core::JSON::String &base,
                     const std::uint64_t remaining,
                     const sourcemeta::core::OpenAPIBundleOptions &options)
-    -> void {
+    -> bool {
   const auto &callback{options.callback};
   const auto &namer{options.namer};
   sourcemeta::core::SchemaFrame::Paths paths;
@@ -535,7 +558,7 @@ auto bundle_schemas(sourcemeta::core::JSON &document,
   }
 
   if (paths.empty()) {
-    return;
+    return false;
   }
 
   sourcemeta::core::Pointer container;
@@ -576,9 +599,27 @@ auto bundle_schemas(sourcemeta::core::JSON &document,
   const sourcemeta::core::JSON::String standalone{
       sourcemeta::core::openapi_dialect(walk.version)};
   const auto standalone_resolver{
-      [&resolver, &standalone](const std::string_view identifier)
+      [&resolver, &standalone, &base](const std::string_view identifier)
           -> sourcemeta::core::SchemaResolverResult {
         auto result{resolver(identifier)};
+        // Section 4.1.2 has every document of a description hold "either an
+        // OpenAPI Object or a Schema Object at the root", and what answers
+        // here answers as the second. One that is the first instead would be
+        // read as a schema, which Appendix G leaves undefined and lets this
+        // turn down: "If the same JSON/YAML object is parsed multiple times
+        // and the respective contexts require it to be parsed as different
+        // Object types, the resulting behavior is implementation defined, and
+        // MAY be treated as an error if detected". Turning it down is also
+        // what keeps a document of another revision from arriving this way
+        if (result.has_value() &&
+            sourcemeta::core::openapi_is_document(result.value())) {
+          throw sourcemeta::core::OpenAPIReferenceError{
+              base, sourcemeta::core::EMPTY_POINTER,
+              sourcemeta::core::JSON::String{identifier},
+              "This reference must name a schema rather than a document that "
+              "holds an OpenAPI Description"};
+        }
+
         if (!result.has_value() || !result.value().is_object() ||
             result.value().defines("$schema")) {
           return result;
@@ -592,19 +633,35 @@ auto bundle_schemas(sourcemeta::core::JSON &document,
   sourcemeta::core::schema_bundle(document, walker, standalone_resolver,
                                   walk.dialect, "", schemas_options);
   if (landed.empty()) {
-    return;
+    return false;
   }
 
   auto &schemas{sourcemeta::core::get(document, container)};
   for (const auto &entry : landed) {
     const auto &identifier{entry.first};
     const auto &key{entry.second.back().to_property()};
+    // JSON Schema Section 9.3.1 has every resource that travels this way say
+    // who it is: "Each embedded JSON Schema Resource MUST identify itself
+    // with a URI using the `$id` keyword". Section 4.8.24 lets a Schema
+    // Object be a boolean, which carries no keyword at all and so can say
+    // nothing, leaving whatever named it by that URI naming nothing once it
+    // sits here. Which name it goes under is no help either, as Section 4.8.7
+    // admits nothing into a component key that a URI needs
+    if (schemas.at(key).is_boolean()) {
+      throw sourcemeta::core::OpenAPIReferenceError{
+          base, container.concat(key), identifier,
+          "This reference must name a schema that can carry an identifier of "
+          "its own"};
+    }
+
     const auto name{schema_name(schemas, identifier, namer)};
     schemas.rename(key, sourcemeta::core::JSON::String{name});
     if (callback) {
       callback(identifier, container.concat(name));
     }
   }
+
+  return true;
 }
 
 // What the Schema Objects of a description reach for and it does not hold.
@@ -723,6 +780,63 @@ auto lands(const sourcemeta::core::OpenAPIWalk &remote,
   }
 }
 
+// The same place, spelled the way the document that holds it spells it. RFC
+// 6901 Section 3 makes every reference token a string and leaves which of an
+// array and an object it addresses to whatever it is evaluated against, so a
+// pointer read out of a URI fragment takes a name made of digits for a place
+// in an array. A pointer the walk built knows better, having been there. The
+// two then spell one place two ways and compare as two, which every reference
+// into a response keyed by a status code would otherwise fall foul of
+auto retype(const sourcemeta::core::JSON &document,
+            const sourcemeta::core::Pointer &pointer)
+    -> sourcemeta::core::Pointer {
+  sourcemeta::core::Pointer result;
+  const auto *current{&document};
+  for (const auto &token : pointer) {
+    if (current != nullptr && current->is_array() && token.is_index()) {
+      result.push_back(token.to_index());
+      current = token.to_index() < current->size()
+                    ? &current->at(token.to_index())
+                    : nullptr;
+      continue;
+    }
+
+    auto name{token.is_property() ? token.to_property()
+                                  : sourcemeta::core::JSON::String{
+                                        std::to_string(token.to_index())}};
+    current = current != nullptr && current->is_object() ? current->try_at(name)
+                                                         : nullptr;
+    result.push_back(std::move(name));
+  }
+
+  return result;
+}
+
+// Where the Schema Object holding a place named within one sits. A reference
+// may name a subschema, which whatever reads JSON Schema reaches through the
+// Schema Object holding it rather than a place this specification types. That
+// Schema Object carries the base every relative reference under it resolves
+// against, so it is what has to travel
+auto schema_of(const sourcemeta::core::OpenAPIWalk &remote,
+               const sourcemeta::core::Pointer &target)
+    -> sourcemeta::core::Pointer {
+  auto prefix{target};
+  while (true) {
+    const auto location{remote.locations.find(
+        sourcemeta::core::openapi_location_uri(remote.base, prefix))};
+    if (location != remote.locations.cend() &&
+        location->second.type == sourcemeta::core::OpenAPIObjectKind::Schema) {
+      return prefix;
+    }
+
+    if (prefix.empty()) {
+      return target;
+    }
+
+    prefix = prefix.initial();
+  }
+}
+
 // Which Object of the remote document a reference names, as a pointer. OpenAPI
 // Specification 3.1.1, Section 4.6: "If the representation of the referenced
 // document is JSON or YAML, then the fragment identifier SHOULD be interpreted
@@ -765,6 +879,13 @@ auto absolutize(JSON &value, const OpenAPIWalk &remote, const Pointer &origin,
   // Object name a Security Scheme Object by the URI of one, which is the one
   // connection of a description spelled as the member that holds the scopes
   // rather than as a value, so this renames rather than writes
+  // Every name of one Security Requirement Object is written back at once.
+  // Taken one at a time, each rename would read an Object some of whose
+  // members had already moved, and making room at a name means giving up
+  // whatever sits there, so a member could take the place of one still
+  // waiting its turn and carry its scopes off with it
+  std::map<JSON::String, Pointer> holders;
+  std::map<JSON::String, std::map<JSON::String, JSON::String>> renames;
   for (const auto &entry : remote.security_references) {
     if (!entry.second.origin.starts_with(origin)) {
       continue;
@@ -775,21 +896,36 @@ auto absolutize(JSON &value, const OpenAPIWalk &remote, const Pointer &origin,
       continue;
     }
 
-    auto &requirement{
-        get(value, (entry.second.origin).resolve_from(origin).initial())};
-    // Section 4.30 says nothing against two names of one Object leading to one
-    // scheme, and reading such an Object is no trouble. Writing one back out
-    // is what cannot keep both, as the single name they come to is a key that
-    // holds one list of scopes rather than two
-    const auto *taken{requirement.try_at(rewritten)};
-    if (taken != nullptr && *taken != requirement.at(entry.second.original)) {
-      throw OpenAPIError{remote.base, entry.second.origin,
-                         "A Security Requirement Object that names one "
-                         "security scheme twice over cannot keep a list of "
-                         "scopes for each of them"};
+    const auto held{entry.second.origin.initial()};
+    const auto key{openapi_location_uri(remote.base, held)};
+    holders.insert_or_assign(key, held);
+    renames[key].insert_or_assign(entry.second.original, std::move(rewritten));
+  }
+
+  for (const auto &group : renames) {
+    const auto &held{holders.at(group.first)};
+    auto &requirement{get(value, held.resolve_from(origin))};
+    auto rebuilt{JSON::make_object()};
+    for (const auto &member : requirement.as_object()) {
+      const auto renamed{group.second.find(member.first)};
+      const auto &name{renamed == group.second.cend() ? member.first
+                                                      : renamed->second};
+      // Section 4.30 says nothing against two names of one Object leading to
+      // one scheme, and reading such an Object is no trouble. Writing one back
+      // out is what cannot keep both, as the single name they come to is a key
+      // that holds one list of scopes rather than two
+      const auto *taken{rebuilt.try_at(name)};
+      if (taken != nullptr && *taken != member.second) {
+        throw OpenAPIError{remote.base, held.concat(JSON::String{member.first}),
+                           "A Security Requirement Object that names one "
+                           "security scheme twice over cannot keep a list of "
+                           "scopes for each of them"};
+      }
+
+      rebuilt.assign(name, member.second);
     }
 
-    requirement.rename(entry.second.original, std::move(rewritten));
+    requirement.into(std::move(rebuilt));
   }
 
   // And so is every other URI it carries, which the frame does not record as a
@@ -925,7 +1061,11 @@ auto adopt_operations(JSON &document, const OpenAPIWalk &walk,
       // the Components Object has a home for
       const auto origin{
           promote(path_item_of(other.second, operation->second.pointer))};
-      const auto key{openapi_location_uri(other.first, origin)};
+      // Keyed by what the document answers to rather than by where it was
+      // found, which is what every other place that fills this map uses.
+      // Section 4.1.1 has a reference name the former, so keying by the
+      // latter would embed one Path Item twice over
+      const auto key{openapi_location_uri(other.second.base, origin)};
       if (bundled.contains(key)) {
         break;
       }
@@ -1034,16 +1174,33 @@ auto adopt_tags(JSON &document, const OpenAPIWalk &walk,
 auto adopt_mappings(
     JSON &document,
     const std::map<JSON::String, std::vector<OpenAPIPending>> &deferred,
-    std::set<JSON::String> &adopted, const JSON::String &base,
+    std::map<JSON::String, Pointer> &adopted, const JSON::String &base,
     const SchemaResolver &schema_resolver, const JSON::StringView dialect,
     const OpenAPIBundleOptions &options) -> bool {
   bool changed{false};
   for (const auto &entry : deferred) {
     const auto identifier{openapi_document_uri(entry.first)};
-    // One schema answers for a mapping once. Bringing it in again would not
-    // make a mapping that still does not land any likelier to, and settling is
-    // what tells bundling it has nothing left to do
-    if (adopted.contains(identifier)) {
+    // One schema answers for a mapping once, and bringing it in again would
+    // not make a mapping that still does not land any likelier to. That it
+    // still does not means what the schema says of itself is not what the
+    // mapping asked for, which naming where it went is what is left for.
+    //
+    // Which root that is counted from is what the mapping resolved against,
+    // as Section 4.6 has one inside a Schema Object that declares an
+    // identifier count from there rather than from the document
+    const auto previous{adopted.find(identifier)};
+    if (previous != adopted.cend()) {
+      for (const auto &pending : entry.second) {
+        JSON named{pending.scope == base
+                       ? to_uri(previous->second).recompose()
+                       : openapi_location_uri(base, previous->second)};
+        const auto *written{try_get(document, pending.origin)};
+        if (written != nullptr && *written != named) {
+          set(document, pending.origin, std::move(named));
+          changed = true;
+        }
+      }
+
       continue;
     }
 
@@ -1052,51 +1209,38 @@ auto adopt_mappings(
       continue;
     }
 
+    // Section 4.1.2 has a document of a description hold either an OpenAPI
+    // Object or a Schema Object at its root, and a mapping names the second
+    // of those. Reading the first as one is what Appendix G leaves undefined
+    if (openapi_is_document(resolved.value())) {
+      throw OpenAPIReferenceError{
+          base, entry.second.front().origin, identifier,
+          "This mapping must name a schema rather than a document that holds "
+          "an OpenAPI Description"};
+    }
+
     auto schema{std::move(resolved).to_owned()};
     // Section 4.8.24: "The empty schema [...] MAY be represented by the
     // boolean value `true` and a schema which allows no instance to validate
     // MAY be represented by the boolean value `false`". Neither carries a
     // keyword, so neither can be made to answer to the identifier it was found
     // under, and what names it has to name where it lands instead
-    const auto identifies{schema.is_object()};
-    if (identifies) {
-      // Section 4.8.24 has a standalone document that says nothing of the
-      // dialect it is written against read under the one this specification
-      // publishes, and an identifier of its own is what keeps a mapping naming
-      // it once it sits somewhere else
-      if (!schema.defines("$schema")) {
-        schema.assign("$schema", JSON{dialect});
-      }
-
-      // Which keyword carries that identity is what the dialect says rather
-      // than what 2020-12 happens to call it, so this is left to whatever
-      // knows the dialect a schema declares
-      schema_reidentify(schema, identifier, schema_resolver,
-                        JSON::String{dialect});
+    // Section 4.8.24 has a standalone document that says nothing of the
+    // dialect it is written against read under the one this specification
+    // publishes. Section 4.8.24 also lets one be a boolean, which carries no
+    // keyword to say so with
+    if (schema.is_object() && !schema.defines("$schema")) {
+      schema.assign("$schema", JSON{dialect});
     }
-
-    adopted.insert(identifier);
 
     const auto *schemas{openapi_component_container_of(document, "schemas"sv)};
     const auto name{
         schema_name(schemas == nullptr ? JSON::make_object() : *schemas,
                     identifier, options.namer)};
     const auto landed{embed(document, "schemas"sv, name, std::move(schema))};
+    adopted.emplace(identifier, landed);
     if (options.callback) {
       options.callback(identifier, landed);
-    }
-
-    // One that says nothing of itself is only findable by where it went, so
-    // every mapping that named it is written out to name that instead. Which
-    // root that is counted from is what the mapping resolved against, as
-    // Section 4.6 has one inside a Schema Object that declares an identifier
-    // count from there rather than from the document
-    if (!identifies) {
-      for (const auto &pending : entry.second) {
-        set(document, pending.origin,
-            JSON{pending.scope == base ? to_uri(landed).recompose()
-                                       : openapi_location_uri(base, landed)});
-      }
     }
 
     changed = true;
@@ -1131,7 +1275,7 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
   // And of those, the schemas that a Discriminator Object mapping is what
   // names, which nothing but this brings in, along with the ones it already did
   std::map<JSON::String, std::vector<OpenAPIPending>> deferred;
-  std::set<JSON::String> adopted;
+  std::map<JSON::String, Pointer> adopted;
   // The names the description gave before bundling moved anything. Section
   // 4.1.2.3 resolves the names a referenced document uses from the entry
   // document, and bundling embedding a Security Scheme Object puts a name
@@ -1140,6 +1284,7 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
   // sits, that an operation requires a credential its own document never named
   OpenAPIWalk names;
   bool named{false};
+  bool schemas_bundled{false};
 
   while (true) {
     const auto walk{openapi_analyse(document, retrieval, remaining)};
@@ -1235,7 +1380,7 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
 
         // Bundling ends in one document, and Section 4.1 has that document
         // declare one revision, so everything it holds has to be what that
-        // revision can express. Section 1.1 leaves no room to assume an older
+        // revision can express. Section 2.1 leaves no room to assume an older
         // one always can: "Occasionally, non-backwards compatible changes may
         // be made in `minor` versions of the OAS where impact is believed to
         // be low relative to the benefit provided". Neither direction is safe
@@ -1243,7 +1388,8 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
         // spelling and holds what 3.1 already spells to rules 3.1 never had,
         // so a description that spans revisions is turned down rather than
         // merged. What the patch component says is no part of this, as
-        // Section 1.1 makes a revision the `major`.`minor` pair alone
+        // Section 2.1 makes a revision the `major`.`minor` pair alone, which
+        // 3.1.1 says the same of under Section 4.1
         const auto revision{openapi_version(candidate)};
         if (revision.has_value() && revision.value() != walk.version) {
           throw OpenAPIReferenceError{
@@ -1263,11 +1409,14 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
 
       const auto &remote_document{documents.at(identifier)};
       const auto &remote{walks.at(identifier)};
+      // Spelled as the document that holds it spells it, before anything
+      // compares it against what the walk of that document recorded
+      const auto spelled{retype(remote_document, target.value())};
       // What a reference names is held to the kind the position it sits in
       // expects, however many references reach the Object that holds it. A
       // second one that named nothing would otherwise be written out as a
       // place the result does not hold
-      if (!lands(remote, remote.base, target.value(), reference.expected)) {
+      if (!lands(remote, remote.base, spelled, reference.expected)) {
         throw OpenAPIReferenceError{
             base, reference.origin, reference.destination,
             "This reference must name an Object of the kind that the "
@@ -1280,8 +1429,9 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
       const auto names_an_operation{reference.expected ==
                                     OpenAPIObjectKind::Operation};
       const auto origin{promote(names_an_operation
-                                    ? path_item_of(remote, target.value())
-                                    : target.value())};
+                                    ? path_item_of(remote, spelled)
+                                : names_a_schema ? schema_of(remote, spelled)
+                                                 : spelled)};
       const auto container{
           container_of(origin, names_an_operation ? OpenAPIObjectKind::PathItem
                                                   : reference.expected)};
@@ -1306,7 +1456,7 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
       // The reference is rewritten as a fragment of the document it now sits
       // in, rather than as the URI that document answers to, so that bundling
       // leaves behind an output that keeps working wherever it is moved to
-      const auto landed{target.value().rebase(origin, bundled.at(key))};
+      const auto landed{spelled.rebase(origin, bundled.at(key))};
 
       // What a Security Requirement Object names is the member the scopes sit
       // under, so what makes it whole is renaming that member to whatever the
@@ -1317,17 +1467,17 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
       // component name", and the name was taken free of that Object for it
       if (reference.requirement) {
         auto &requirement{get(document, reference.origin.initial())};
-        const auto &spelled{reference.origin.back().to_property()};
+        const auto &member{reference.origin.back().to_property()};
         JSON::String name{landed.back().to_property()};
         const auto *taken{requirement.try_at(name)};
-        if (taken != nullptr && *taken != requirement.at(spelled)) {
+        if (taken != nullptr && *taken != requirement.at(member)) {
           throw OpenAPIError{base, reference.origin,
                              "A Security Requirement Object that names one "
                              "security scheme twice over cannot keep a list of "
                              "scopes for each of them"};
         }
 
-        requirement.rename(spelled, std::move(name));
+        requirement.rename(member, std::move(name));
         changed = true;
         continue;
       }
@@ -1405,8 +1555,24 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
       // would otherwise hand back for the next reader to turn down
       [[maybe_unused]] const auto operations{openapi_project(walk)};
 
-      bundle_schemas(document, walk, walker, schema_resolver, base, remaining,
-                     options);
+      // What sits inside a Schema Object is JSON Schema's to bring in, and a
+      // schema that lands may hold a Discriminator Object naming another,
+      // which nothing has read yet. So this goes round once more rather than
+      // being the last thing that happens.
+      //
+      // Once is all it takes, and all it may take. What a schema reaches for
+      // by reference came in alongside it, so only what a mapping names is
+      // left, and Section 4.8.24 lets a Schema Object be a boolean, which
+      // carries no keyword and so cannot be made to answer to the identifier
+      // it was found under. Asking for one of those a second time would land
+      // a second copy beside the first, and again after that
+      if (!schemas_bundled &&
+          bundle_schemas(document, walk, walker, schema_resolver, base,
+                         remaining, options)) {
+        schemas_bundled = true;
+        continue;
+      }
+
       return;
     }
   }

@@ -12,8 +12,16 @@
 
 namespace {
 
-// These fixtures test the meta-schema, not the specification text. Where the
-// two differ the text is normative and stricter, and so are we
+// These fixtures test the meta-schema, not the specification text. Section 4
+// settles which answers for the format: "This text is the only normative
+// description of the format. A JSON Schema is hosted on spec.openapis.org for
+// informational purposes. If the JSON Schema differs from this section, then
+// this section MUST be considered authoritative". So wherever the two differ
+// we follow the text, and every fixture that costs us is named below with the
+// reason it costs us.
+//
+// What the text asks and no keyword can express, so the meta-schema takes the
+// document and we turn it down
 // NOLINTBEGIN(cert-err58-cpp,bugprone-throwing-static-initialization)
 const std::set<std::string> KNOWN_DIVERGENCES{
     // A `path` parameter with a `content` and no `required`. Section 4.8.12
@@ -37,7 +45,37 @@ const std::set<std::string> KNOWN_DIVERGENCES{
     // scope of the OpenAPI Description", and no keyword can compare a value
     // against the operation identifiers scattered through a document, so the
     // meta-schema takes it
-    "path_item_servers_parameters"};
+    "path_item_servers_parameters",
+    // A Media Type Object carrying a `description`, which the Media Type
+    // Object field table of Section 4.14 does not define in either 3.2.0 or
+    // 3.2.1, while both published schemas of this revision admit it and this
+    // very fixture relies on it. The text is what we follow, so we turn the
+    // field down. Unlike the others here the meta-schema is not laxer by
+    // oversight but ahead of the text, so this entry is the one to revisit
+    // when a revision that defines the field goes out
+    "media_type_examples"};
+
+// What the meta-schema asks and the text does not, which is the other way
+// round from the set above. Section 4 leaves the text authoritative either
+// way, so a rule that only the schema carries is one we do not enforce
+const std::set<std::string> META_SCHEMA_ONLY{
+    // A header parameter named `Bad[Header]`, and a `headers` map keyed
+    // `Bad=Header`. The published schema holds both to
+    // `^[a-zA-Z0-9!#$%&'*+.^_`|~-]+$`,
+    // which is the `token` production of RFC 9110 Section 5.6.2, while
+    // neither the Parameter Object `name` row of Section 4.12 nor the Header
+    // Object of Section 4.21 says anything of the form such a name may take
+    "parameter_object_header_name", "header_object_name"};
+
+// And what the text asks of a Schema Object rather than of the shell around
+// it. This module locates Schema Objects and hands them off, so a rule about
+// what one holds is for whatever reads inside one to enforce
+const std::set<std::string> SCHEMA_OBJECT_INTERIOR{
+    // Section 4.29 says of the XML Object `attribute` and of `wrapped` alike:
+    // "If `nodeType` is present, this field MUST NOT be present". Both are
+    // keywords of the dialect this specification publishes, which is where
+    // that rule is written down and where it is checked
+    "xml_attr_exclusion", "xml_wrapped_exclusion"};
 
 // A description names the dialect its Schema Objects are written against, and
 // Section 4.8.24.1 asks only that the name "be in the form of a URI". These
@@ -49,11 +87,12 @@ const std::set<std::string> KNOWN_DIVERGENCES{
 const std::set<std::string> UNPUBLISHED_DIALECTS{"json_schema_dialect"};
 // NOLINTEND(cert-err58-cpp,bugprone-throwing-static-initialization)
 
-auto run_pass_case(const sourcemeta::core::JSON &document) -> void {
+auto run_pass_case(const sourcemeta::core::JSON &document,
+                   const sourcemeta::core::OpenAPIVersion version) -> void {
   const sourcemeta::core::OpenAPIFrame frame{document,
                                              sourcemeta::core::schema_walker,
                                              sourcemeta::core::schema_resolver};
-  EXPECT_EQ(frame.version(), sourcemeta::core::OpenAPIVersion::OPENAPI_3_1);
+  EXPECT_EQ(frame.version(), version);
 }
 
 auto run_fail_case(const sourcemeta::core::JSON &document) -> void {
@@ -69,7 +108,12 @@ auto run_fail_case(const sourcemeta::core::JSON &document) -> void {
   }
 }
 
+// Each revision publishes a corpus of its own, and the two share most of
+// their fixture names, so which revision a case belongs to is part of what it
+// is called
 auto register_tests(const std::filesystem::path &directory,
+                    const std::string &revision,
+                    const sourcemeta::core::OpenAPIVersion version,
                     const bool expect_success) -> std::size_t {
   std::size_t count{0};
   for (const std::filesystem::directory_entry &entry :
@@ -85,20 +129,25 @@ auto register_tests(const std::filesystem::path &directory,
     }
 
     if (KNOWN_DIVERGENCES.contains(name.str()) ||
-        UNPUBLISHED_DIALECTS.contains(name.str())) {
+        UNPUBLISHED_DIALECTS.contains(name.str()) ||
+        META_SCHEMA_ONLY.contains(name.str()) ||
+        SCHEMA_OBJECT_INTERIOR.contains(name.str())) {
       continue;
     }
 
+    std::string group{"OpenAPISuite_"};
+    group.append(revision).append("_").append(suite);
+
     const auto document{sourcemeta::core::read_yaml(entry.path())};
-    sourcemeta::core::test_register("OpenAPISuite_" + suite, name.str(),
-                                    __FILE__, __LINE__,
-                                    [document, expect_success]() -> void {
-                                      if (expect_success) {
-                                        run_pass_case(document);
-                                      } else {
-                                        run_fail_case(document);
-                                      }
-                                    });
+    sourcemeta::core::test_register(
+        group, name.str(), __FILE__, __LINE__,
+        [document, expect_success, version]() -> void {
+          if (expect_success) {
+            run_pass_case(document, version);
+          } else {
+            run_fail_case(document);
+          }
+        });
     count += 1;
   }
 
@@ -108,14 +157,23 @@ auto register_tests(const std::filesystem::path &directory,
 } // namespace
 
 auto main(int argc, char **argv) -> int {
-  const std::filesystem::path base{OPENAPI_SUITE_PATH};
-  const auto passing{register_tests(base / "pass", true)};
-  const auto failing{register_tests(base / "fail", false)};
-  // A fixture in the wrong place, or with the wrong extension, would otherwise
-  // never run and nobody would notice
-  if (passing == 0 || failing == 0) {
-    std::cerr << "No OpenAPI suite fixtures found at " << OPENAPI_SUITE_PATH
-              << "\n";
+  const std::filesystem::path first{OPENAPI_SUITE_PATH_3_1};
+  const std::filesystem::path second{OPENAPI_SUITE_PATH_3_2};
+  const auto registered{
+      register_tests(first / "pass", "3_1",
+                     sourcemeta::core::OpenAPIVersion::OPENAPI_3_1, true) *
+      register_tests(first / "fail", "3_1",
+                     sourcemeta::core::OpenAPIVersion::OPENAPI_3_1, false) *
+      register_tests(second / "pass", "3_2",
+                     sourcemeta::core::OpenAPIVersion::OPENAPI_3_2, true) *
+      register_tests(second / "fail", "3_2",
+                     sourcemeta::core::OpenAPIVersion::OPENAPI_3_2, false)};
+  // A corpus in the wrong place, or with the wrong extension, would otherwise
+  // never run and nobody would notice. Every one of the four has to have found
+  // something, which a product of their counts is zero unless they all did
+  if (registered == 0) {
+    std::cerr << "No OpenAPI suite fixtures found at " << OPENAPI_SUITE_PATH_3_1
+              << " and " << OPENAPI_SUITE_PATH_3_2 << "\n";
     return 1;
   }
 

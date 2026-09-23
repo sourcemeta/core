@@ -1,0 +1,70 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "schemas": {
+        "Use": {
+          "$schema": "https://spec.openapis.org/oas/3.1/dialect/base",
+          "$ref": "https://example.com/schemas/pets#Cat"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {},
+  "schemaResolver": {
+    "https://example.com/schemas/pets": {
+      "$id": "https://example.com/schemas/pets",
+      "$schema": "https://spec.openapis.org/oas/3.1/dialect/base",
+      "$defs": {
+        "Cat": {
+          "$anchor": "Cat",
+          "type": "object"
+        }
+      }
+    }
+  },
+  "result": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "schemas": {
+        "Use": {
+          "$schema": "https://spec.openapis.org/oas/3.1/dialect/base",
+          "$ref": "https://example.com/schemas/pets#Cat"
+        },
+        "pets": {
+          "$id": "https://example.com/schemas/pets",
+          "$schema": "https://spec.openapis.org/oas/3.1/dialect/base",
+          "$defs": {
+            "Cat": {
+              "$anchor": "Cat",
+              "type": "object"
+            }
+          }
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/schemas/pets",
+      "at": "/components/schemas/pets"
+    }
+  ],
+  "reads": {},
+  "schemaReads": {
+    "https://example.com/schemas/pets": 1
+  },
+  "standalone": true,
+  "relocatable": true
+}

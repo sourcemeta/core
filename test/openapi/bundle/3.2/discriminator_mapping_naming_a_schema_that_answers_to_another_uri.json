@@ -1,0 +1,93 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "schemas": {
+        "Pet": {
+          "$schema": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17",
+          "discriminator": {
+            "propertyName": "t",
+            "mapping": {
+              "a": "https://example.com/schemas/alias"
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {},
+  "schemaResolver": {
+    "https://example.com/schemas/alias": {
+      "$id": "https://example.com/deep/real",
+      "properties": {
+        "kid": {
+          "$ref": "kid"
+        }
+      }
+    },
+    "https://example.com/deep/kid": {
+      "$id": "https://example.com/deep/kid",
+      "type": "string"
+    },
+    "https://example.com/schemas/kid": {
+      "$id": "https://example.com/schemas/kid",
+      "type": "integer"
+    }
+  },
+  "result": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "schemas": {
+        "Pet": {
+          "$schema": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17",
+          "discriminator": {
+            "propertyName": "t",
+            "mapping": {
+              "a": "#/components/schemas/alias"
+            }
+          }
+        },
+        "alias": {
+          "$id": "https://example.com/deep/real",
+          "properties": {
+            "kid": {
+              "$ref": "kid"
+            }
+          },
+          "$schema": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17"
+        },
+        "kid": {
+          "$id": "https://example.com/deep/kid",
+          "type": "string",
+          "$schema": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17"
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/schemas/alias",
+      "at": "/components/schemas/alias"
+    },
+    {
+      "from": "https://example.com/deep/kid",
+      "at": "/components/schemas/kid"
+    }
+  ],
+  "reads": {},
+  "schemaReads": {
+    "https://example.com/schemas/alias": 1,
+    "https://example.com/deep/kid": 1
+  },
+  "standalone": true,
+  "relocatable": true
+}

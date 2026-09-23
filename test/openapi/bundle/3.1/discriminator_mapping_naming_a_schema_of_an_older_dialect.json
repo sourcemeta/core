@@ -40,14 +40,13 @@
           "discriminator": {
             "propertyName": "t",
             "mapping": {
-              "dog": "https://example.com/schemas/dog"
+              "dog": "#/components/schemas/dog"
             }
           }
         },
         "dog": {
           "$schema": "http://json-schema.org/draft-04/schema#",
-          "type": "object",
-          "id": "https://example.com/schemas/dog"
+          "type": "object"
         }
       }
     }
