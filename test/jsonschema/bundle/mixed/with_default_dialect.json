@@ -1,6 +1,10 @@
 {
   "schema": {
-    "properties": { "foo": { "$ref": "https://www.sourcemeta.com/test-1" } }
+    "properties": {
+      "foo": {
+        "$ref": "https://www.sourcemeta.com/test-1"
+      }
+    }
   },
   "resolver": {
     "https://www.sourcemeta.com/test-1": {
@@ -12,7 +16,11 @@
   "defaultDialect": "https://json-schema.org/draft/2020-12/schema",
   "result": {
     "nonOfficialMetaschemas": {
-      "properties": { "foo": { "$ref": "https://www.sourcemeta.com/test-1" } },
+      "properties": {
+        "foo": {
+          "$ref": "https://www.sourcemeta.com/test-1"
+        }
+      },
       "$defs": {
         "https://www.sourcemeta.com/test-1": {
           "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -22,7 +30,11 @@
       }
     },
     "references": {
-      "properties": { "foo": { "$ref": "https://www.sourcemeta.com/test-1" } },
+      "properties": {
+        "foo": {
+          "$ref": "https://www.sourcemeta.com/test-1"
+        }
+      },
       "$defs": {
         "https://www.sourcemeta.com/test-1": {
           "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -33,7 +45,17 @@
     }
   },
   "inserted": {
-    "nonOfficialMetaschemas": [ "/$defs/https:~1~1www.sourcemeta.com~1test-1" ],
-    "references": [ "/$defs/https:~1~1www.sourcemeta.com~1test-1" ]
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://www.sourcemeta.com/test-1",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1test-1"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://www.sourcemeta.com/test-1",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1test-1"
+      }
+    ]
   }
 }

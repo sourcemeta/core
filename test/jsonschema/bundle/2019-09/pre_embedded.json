@@ -2,7 +2,11 @@
   "schema": {
     "$id": "https://example.com",
     "$schema": "https://json-schema.org/draft/2019-09/schema",
-    "properties": { "test": { "$ref": "https://www.sourcemeta.com/test-2" } },
+    "properties": {
+      "test": {
+        "$ref": "https://www.sourcemeta.com/test-2"
+      }
+    },
     "$defs": {
       "already-embedded": {
         "$schema": "https://json-schema.org/draft/2019-09/schema",
@@ -27,7 +31,11 @@
     "nonOfficialMetaschemas": {
       "$id": "https://example.com",
       "$schema": "https://json-schema.org/draft/2019-09/schema",
-      "properties": { "test": { "$ref": "https://www.sourcemeta.com/test-2" } },
+      "properties": {
+        "test": {
+          "$ref": "https://www.sourcemeta.com/test-2"
+        }
+      },
       "$defs": {
         "already-embedded": {
           "$schema": "https://json-schema.org/draft/2019-09/schema",
@@ -49,7 +57,11 @@
     "references": {
       "$id": "https://example.com",
       "$schema": "https://json-schema.org/draft/2019-09/schema",
-      "properties": { "test": { "$ref": "https://www.sourcemeta.com/test-2" } },
+      "properties": {
+        "test": {
+          "$ref": "https://www.sourcemeta.com/test-2"
+        }
+      },
       "$defs": {
         "already-embedded": {
           "$schema": "https://json-schema.org/draft/2019-09/schema",
@@ -71,12 +83,24 @@
   },
   "inserted": {
     "nonOfficialMetaschemas": [
-      "/$defs/https:~1~1www.sourcemeta.com~1test-3",
-      "/$defs/https:~1~1www.sourcemeta.com~1test-2"
+      {
+        "from": "https://www.sourcemeta.com/test-3",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1test-3"
+      },
+      {
+        "from": "https://www.sourcemeta.com/test-2",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1test-2"
+      }
     ],
     "references": [
-      "/$defs/https:~1~1www.sourcemeta.com~1test-3",
-      "/$defs/https:~1~1www.sourcemeta.com~1test-2"
+      {
+        "from": "https://www.sourcemeta.com/test-3",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1test-3"
+      },
+      {
+        "from": "https://www.sourcemeta.com/test-2",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1test-2"
+      }
     ]
   }
 }

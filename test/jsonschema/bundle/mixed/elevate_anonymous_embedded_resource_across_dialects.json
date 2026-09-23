@@ -7,7 +7,11 @@
     "https://www.sourcemeta.com/anonymous-embedded": {
       "$schema": "http://json-schema.org/draft-04/schema#",
       "id": "https://www.sourcemeta.com/anonymous-embedded",
-      "allOf": [ { "$ref": "shared" } ],
+      "allOf": [
+        {
+          "$ref": "shared"
+        }
+      ],
       "definitions": {
         "https://www.sourcemeta.com/shared": {
           "id": "https://www.sourcemeta.com/shared",
@@ -29,7 +33,11 @@
         "https://www.sourcemeta.com/anonymous-embedded": {
           "$schema": "http://json-schema.org/draft-04/schema#",
           "id": "https://www.sourcemeta.com/anonymous-embedded",
-          "allOf": [ { "$ref": "shared" } ]
+          "allOf": [
+            {
+              "$ref": "shared"
+            }
+          ]
         }
       }
     },
@@ -45,19 +53,35 @@
         "https://www.sourcemeta.com/anonymous-embedded": {
           "$schema": "http://json-schema.org/draft-04/schema#",
           "id": "https://www.sourcemeta.com/anonymous-embedded",
-          "allOf": [ { "$ref": "shared" } ]
+          "allOf": [
+            {
+              "$ref": "shared"
+            }
+          ]
         }
       }
     }
   },
   "inserted": {
     "nonOfficialMetaschemas": [
-      "/$defs/https:~1~1www.sourcemeta.com~1shared",
-      "/$defs/https:~1~1www.sourcemeta.com~1anonymous-embedded"
+      {
+        "from": "https://www.sourcemeta.com/shared",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1shared"
+      },
+      {
+        "from": "https://www.sourcemeta.com/anonymous-embedded",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1anonymous-embedded"
+      }
     ],
     "references": [
-      "/$defs/https:~1~1www.sourcemeta.com~1shared",
-      "/$defs/https:~1~1www.sourcemeta.com~1anonymous-embedded"
+      {
+        "from": "https://www.sourcemeta.com/shared",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1shared"
+      },
+      {
+        "from": "https://www.sourcemeta.com/anonymous-embedded",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1anonymous-embedded"
+      }
     ]
   }
 }

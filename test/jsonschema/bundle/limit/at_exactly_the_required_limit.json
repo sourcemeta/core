@@ -67,14 +67,32 @@
   },
   "inserted": {
     "nonOfficialMetaschemas": [
-      "/$defs/https:~1~1www.sourcemeta.com~1chain-3",
-      "/$defs/https:~1~1www.sourcemeta.com~1chain-2",
-      "/$defs/https:~1~1www.sourcemeta.com~1chain-1"
+      {
+        "from": "https://www.sourcemeta.com/chain-3",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1chain-3"
+      },
+      {
+        "from": "https://www.sourcemeta.com/chain-2",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1chain-2"
+      },
+      {
+        "from": "https://www.sourcemeta.com/chain-1",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1chain-1"
+      }
     ],
     "references": [
-      "/$defs/https:~1~1www.sourcemeta.com~1chain-3",
-      "/$defs/https:~1~1www.sourcemeta.com~1chain-2",
-      "/$defs/https:~1~1www.sourcemeta.com~1chain-1"
+      {
+        "from": "https://www.sourcemeta.com/chain-3",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1chain-3"
+      },
+      {
+        "from": "https://www.sourcemeta.com/chain-2",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1chain-2"
+      },
+      {
+        "from": "https://www.sourcemeta.com/chain-1",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1chain-1"
+      }
     ]
   }
 }

@@ -162,10 +162,12 @@ auto schema_format(sourcemeta::core::JSON &schema, const SchemaFrame &frame)
 /// Everything bundling takes beyond the schema and how to read it
 struct SchemaBundleOptions {
   /// A callback to report which schema got embedded and where, as the
-  /// identifier it was resolved by and a pointer from the root of the schema
-  /// being bundled. The two are given separately because bundling picks a key
-  /// that is free rather than one that matches, so the last token of that
-  /// pointer is not always the identifier
+  /// identifier that schema answers to and a pointer from the root of the
+  /// schema being bundled. A schema that declares one of its own answers to
+  /// that rather than to whichever URI it was resolved by, which are not
+  /// always the same. The two are given separately because bundling picks a
+  /// key that is free rather than one that matches, so the last token of that
+  /// pointer is not always the identifier either
   using Callback = std::function<void(std::string_view,
                                       const sourcemeta::core::WeakPointer &)>;
 

@@ -2,7 +2,11 @@
   "schema": {
     "id": "https://example.com",
     "$schema": "http://json-schema.org/draft-03/schema#",
-    "properties": { "test": { "$ref": "https://www.sourcemeta.com/test-1" } }
+    "properties": {
+      "test": {
+        "$ref": "https://www.sourcemeta.com/test-1"
+      }
+    }
   },
   "resolver": {
     "https://www.sourcemeta.com/test-1": {
@@ -15,7 +19,11 @@
     "nonOfficialMetaschemas": {
       "id": "https://example.com",
       "$schema": "http://json-schema.org/draft-03/schema#",
-      "properties": { "test": { "$ref": "https://www.sourcemeta.com/test-1" } },
+      "properties": {
+        "test": {
+          "$ref": "https://www.sourcemeta.com/test-1"
+        }
+      },
       "definitions": {
         "https://www.sourcemeta.com/test-1": {
           "$schema": "http://json-schema.org/draft-03/schema#",
@@ -27,7 +35,11 @@
     "references": {
       "id": "https://example.com",
       "$schema": "http://json-schema.org/draft-03/schema#",
-      "properties": { "test": { "$ref": "https://www.sourcemeta.com/test-1" } },
+      "properties": {
+        "test": {
+          "$ref": "https://www.sourcemeta.com/test-1"
+        }
+      },
       "definitions": {
         "https://www.sourcemeta.com/test-1": {
           "$schema": "http://json-schema.org/draft-03/schema#",
@@ -39,8 +51,16 @@
   },
   "inserted": {
     "nonOfficialMetaschemas": [
-      "/definitions/https:~1~1www.sourcemeta.com~1test-1"
+      {
+        "from": "https://www.sourcemeta.com/test-1",
+        "at": "/definitions/https:~1~1www.sourcemeta.com~1test-1"
+      }
     ],
-    "references": [ "/definitions/https:~1~1www.sourcemeta.com~1test-1" ]
+    "references": [
+      {
+        "from": "https://www.sourcemeta.com/test-1",
+        "at": "/definitions/https:~1~1www.sourcemeta.com~1test-1"
+      }
+    ]
   }
 }

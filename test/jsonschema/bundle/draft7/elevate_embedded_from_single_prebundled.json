@@ -2,13 +2,21 @@
   "schema": {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "$id": "https://example.com/draft7-elevate-entry",
-    "allOf": [ { "$ref": "draft7-elevate-single" } ]
+    "allOf": [
+      {
+        "$ref": "draft7-elevate-single"
+      }
+    ]
   },
   "resolver": {
     "https://example.com/draft7-elevate-single": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "$id": "https://example.com/draft7-elevate-single",
-      "allOf": [ { "$ref": "draft7-elevate-nested" } ],
+      "allOf": [
+        {
+          "$ref": "draft7-elevate-nested"
+        }
+      ],
       "definitions": {
         "https://example.com/draft7-elevate-nested": {
           "$schema": "http://json-schema.org/draft-07/schema#",
@@ -22,12 +30,20 @@
     "nonOfficialMetaschemas": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "$id": "https://example.com/draft7-elevate-entry",
-      "allOf": [ { "$ref": "draft7-elevate-single" } ],
+      "allOf": [
+        {
+          "$ref": "draft7-elevate-single"
+        }
+      ],
       "definitions": {
         "https://example.com/draft7-elevate-single": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "$id": "https://example.com/draft7-elevate-single",
-          "allOf": [ { "$ref": "draft7-elevate-nested" } ]
+          "allOf": [
+            {
+              "$ref": "draft7-elevate-nested"
+            }
+          ]
         },
         "https://example.com/draft7-elevate-nested": {
           "$schema": "http://json-schema.org/draft-07/schema#",
@@ -39,12 +55,20 @@
     "references": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "$id": "https://example.com/draft7-elevate-entry",
-      "allOf": [ { "$ref": "draft7-elevate-single" } ],
+      "allOf": [
+        {
+          "$ref": "draft7-elevate-single"
+        }
+      ],
       "definitions": {
         "https://example.com/draft7-elevate-single": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "$id": "https://example.com/draft7-elevate-single",
-          "allOf": [ { "$ref": "draft7-elevate-nested" } ]
+          "allOf": [
+            {
+              "$ref": "draft7-elevate-nested"
+            }
+          ]
         },
         "https://example.com/draft7-elevate-nested": {
           "$schema": "http://json-schema.org/draft-07/schema#",
@@ -56,12 +80,24 @@
   },
   "inserted": {
     "nonOfficialMetaschemas": [
-      "/definitions/https:~1~1example.com~1draft7-elevate-nested",
-      "/definitions/https:~1~1example.com~1draft7-elevate-single"
+      {
+        "from": "https://example.com/draft7-elevate-nested",
+        "at": "/definitions/https:~1~1example.com~1draft7-elevate-nested"
+      },
+      {
+        "from": "https://example.com/draft7-elevate-single",
+        "at": "/definitions/https:~1~1example.com~1draft7-elevate-single"
+      }
     ],
     "references": [
-      "/definitions/https:~1~1example.com~1draft7-elevate-nested",
-      "/definitions/https:~1~1example.com~1draft7-elevate-single"
+      {
+        "from": "https://example.com/draft7-elevate-nested",
+        "at": "/definitions/https:~1~1example.com~1draft7-elevate-nested"
+      },
+      {
+        "from": "https://example.com/draft7-elevate-single",
+        "at": "/definitions/https:~1~1example.com~1draft7-elevate-single"
+      }
     ]
   }
 }

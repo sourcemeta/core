@@ -36,7 +36,17 @@
     }
   },
   "inserted": {
-    "nonOfficialMetaschemas": [ "/$defs/https:~1~1www.sourcemeta.com~1chain-3" ],
-    "references": [ "/$defs/https:~1~1www.sourcemeta.com~1chain-3" ]
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://www.sourcemeta.com/chain-3",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1chain-3"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://www.sourcemeta.com/chain-3",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1chain-3"
+      }
+    ]
   }
 }

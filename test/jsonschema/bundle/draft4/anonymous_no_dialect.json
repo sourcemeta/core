@@ -1,10 +1,24 @@
 {
-  "schema": { "allOf": [ { "$ref": "https://www.sourcemeta.com/anonymous" } ] },
-  "resolver": { "https://www.sourcemeta.com/anonymous": { "type": "integer" } },
+  "schema": {
+    "allOf": [
+      {
+        "$ref": "https://www.sourcemeta.com/anonymous"
+      }
+    ]
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/anonymous": {
+      "type": "integer"
+    }
+  },
   "defaultDialect": "http://json-schema.org/draft-04/schema#",
   "result": {
     "nonOfficialMetaschemas": {
-      "allOf": [ { "$ref": "https://www.sourcemeta.com/anonymous" } ],
+      "allOf": [
+        {
+          "$ref": "https://www.sourcemeta.com/anonymous"
+        }
+      ],
       "definitions": {
         "https://www.sourcemeta.com/anonymous": {
           "$schema": "http://json-schema.org/draft-04/schema#",
@@ -14,7 +28,11 @@
       }
     },
     "references": {
-      "allOf": [ { "$ref": "https://www.sourcemeta.com/anonymous" } ],
+      "allOf": [
+        {
+          "$ref": "https://www.sourcemeta.com/anonymous"
+        }
+      ],
       "definitions": {
         "https://www.sourcemeta.com/anonymous": {
           "$schema": "http://json-schema.org/draft-04/schema#",
@@ -26,8 +44,16 @@
   },
   "inserted": {
     "nonOfficialMetaschemas": [
-      "/definitions/https:~1~1www.sourcemeta.com~1anonymous"
+      {
+        "from": "https://www.sourcemeta.com/anonymous",
+        "at": "/definitions/https:~1~1www.sourcemeta.com~1anonymous"
+      }
     ],
-    "references": [ "/definitions/https:~1~1www.sourcemeta.com~1anonymous" ]
+    "references": [
+      {
+        "from": "https://www.sourcemeta.com/anonymous",
+        "at": "/definitions/https:~1~1www.sourcemeta.com~1anonymous"
+      }
+    ]
   }
 }

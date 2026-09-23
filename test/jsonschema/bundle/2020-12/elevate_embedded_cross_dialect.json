@@ -56,12 +56,24 @@
   },
   "inserted": {
     "nonOfficialMetaschemas": [
-      "/$defs/https:~1~1example.com~1cross-dialect-nested",
-      "/$defs/https:~1~1example.com~1cross-dialect-host"
+      {
+        "from": "https://example.com/cross-dialect-nested",
+        "at": "/$defs/https:~1~1example.com~1cross-dialect-nested"
+      },
+      {
+        "from": "https://example.com/cross-dialect-host",
+        "at": "/$defs/https:~1~1example.com~1cross-dialect-host"
+      }
     ],
     "references": [
-      "/$defs/https:~1~1example.com~1cross-dialect-nested",
-      "/$defs/https:~1~1example.com~1cross-dialect-host"
+      {
+        "from": "https://example.com/cross-dialect-nested",
+        "at": "/$defs/https:~1~1example.com~1cross-dialect-nested"
+      },
+      {
+        "from": "https://example.com/cross-dialect-host",
+        "at": "/$defs/https:~1~1example.com~1cross-dialect-host"
+      }
     ]
   }
 }

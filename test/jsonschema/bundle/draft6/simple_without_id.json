@@ -2,10 +2,16 @@
   "schema": {
     "$schema": "http://json-schema.org/draft-06/schema#",
     "properties": {
-      "foo": { "$ref": "https://www.sourcemeta.com/test-1" },
+      "foo": {
+        "$ref": "https://www.sourcemeta.com/test-1"
+      },
       "bar": {
         "$id": "https://www.sourcemeta.com",
-        "allOf": [ { "$ref": "test-2" } ]
+        "allOf": [
+          {
+            "$ref": "test-2"
+          }
+        ]
       }
     }
   },
@@ -18,22 +24,36 @@
     "https://www.sourcemeta.com/test-2": {
       "$schema": "http://json-schema.org/draft-06/schema#",
       "$id": "https://www.sourcemeta.com/test-2",
-      "allOf": [ { "$ref": "test-3" } ]
+      "allOf": [
+        {
+          "$ref": "test-3"
+        }
+      ]
     },
     "https://www.sourcemeta.com/test-3": {
       "$schema": "http://json-schema.org/draft-06/schema#",
       "$id": "https://www.sourcemeta.com/test-3",
-      "allOf": [ { "$ref": "test-1" } ]
+      "allOf": [
+        {
+          "$ref": "test-1"
+        }
+      ]
     }
   },
   "result": {
     "nonOfficialMetaschemas": {
       "$schema": "http://json-schema.org/draft-06/schema#",
       "properties": {
-        "foo": { "$ref": "https://www.sourcemeta.com/test-1" },
+        "foo": {
+          "$ref": "https://www.sourcemeta.com/test-1"
+        },
         "bar": {
           "$id": "https://www.sourcemeta.com",
-          "allOf": [ { "$ref": "test-2" } ]
+          "allOf": [
+            {
+              "$ref": "test-2"
+            }
+          ]
         }
       },
       "definitions": {
@@ -45,22 +65,36 @@
         "https://www.sourcemeta.com/test-2": {
           "$schema": "http://json-schema.org/draft-06/schema#",
           "$id": "https://www.sourcemeta.com/test-2",
-          "allOf": [ { "$ref": "test-3" } ]
+          "allOf": [
+            {
+              "$ref": "test-3"
+            }
+          ]
         },
         "https://www.sourcemeta.com/test-3": {
           "$schema": "http://json-schema.org/draft-06/schema#",
           "$id": "https://www.sourcemeta.com/test-3",
-          "allOf": [ { "$ref": "test-1" } ]
+          "allOf": [
+            {
+              "$ref": "test-1"
+            }
+          ]
         }
       }
     },
     "references": {
       "$schema": "http://json-schema.org/draft-06/schema#",
       "properties": {
-        "foo": { "$ref": "https://www.sourcemeta.com/test-1" },
+        "foo": {
+          "$ref": "https://www.sourcemeta.com/test-1"
+        },
         "bar": {
           "$id": "https://www.sourcemeta.com",
-          "allOf": [ { "$ref": "test-2" } ]
+          "allOf": [
+            {
+              "$ref": "test-2"
+            }
+          ]
         }
       },
       "definitions": {
@@ -72,26 +106,52 @@
         "https://www.sourcemeta.com/test-2": {
           "$schema": "http://json-schema.org/draft-06/schema#",
           "$id": "https://www.sourcemeta.com/test-2",
-          "allOf": [ { "$ref": "test-3" } ]
+          "allOf": [
+            {
+              "$ref": "test-3"
+            }
+          ]
         },
         "https://www.sourcemeta.com/test-3": {
           "$schema": "http://json-schema.org/draft-06/schema#",
           "$id": "https://www.sourcemeta.com/test-3",
-          "allOf": [ { "$ref": "test-1" } ]
+          "allOf": [
+            {
+              "$ref": "test-1"
+            }
+          ]
         }
       }
     }
   },
   "inserted": {
     "nonOfficialMetaschemas": [
-      "/definitions/https:~1~1www.sourcemeta.com~1test-3",
-      "/definitions/https:~1~1www.sourcemeta.com~1test-2",
-      "/definitions/https:~1~1www.sourcemeta.com~1test-1"
+      {
+        "from": "https://www.sourcemeta.com/test-3",
+        "at": "/definitions/https:~1~1www.sourcemeta.com~1test-3"
+      },
+      {
+        "from": "https://www.sourcemeta.com/test-2",
+        "at": "/definitions/https:~1~1www.sourcemeta.com~1test-2"
+      },
+      {
+        "from": "https://www.sourcemeta.com/test-1",
+        "at": "/definitions/https:~1~1www.sourcemeta.com~1test-1"
+      }
     ],
     "references": [
-      "/definitions/https:~1~1www.sourcemeta.com~1test-3",
-      "/definitions/https:~1~1www.sourcemeta.com~1test-2",
-      "/definitions/https:~1~1www.sourcemeta.com~1test-1"
+      {
+        "from": "https://www.sourcemeta.com/test-3",
+        "at": "/definitions/https:~1~1www.sourcemeta.com~1test-3"
+      },
+      {
+        "from": "https://www.sourcemeta.com/test-2",
+        "at": "/definitions/https:~1~1www.sourcemeta.com~1test-2"
+      },
+      {
+        "from": "https://www.sourcemeta.com/test-1",
+        "at": "/definitions/https:~1~1www.sourcemeta.com~1test-1"
+      }
     ]
   }
 }
