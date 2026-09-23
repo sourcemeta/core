@@ -49,6 +49,7 @@
     "type": "OpenAPIReferenceError",
     "message": "This reference must name a document of the same OpenAPI Specification revision",
     "identifier": "https://example.com/other.json",
-    "location": "/components/responses/Middle/$ref"
+    "location": "/components/responses/Middle/$ref",
+    "base": "https://example.com/openapi.json"
   }
 }
