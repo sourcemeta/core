@@ -1,0 +1,35 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "404": {
+              "$ref": "shared.json#/0"
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/shared.json": [
+      {
+        "description": "Not found"
+      }
+    ]
+  },
+  "schemaResolver": {},
+  "error": {
+    "type": "OpenAPIReferenceError",
+    "message": "This reference must name a document that holds an OpenAPI Description",
+    "location": "/paths/~1pets/get/responses/404/$ref",
+    "identifier": "https://example.com/shared.json"
+  }
+}

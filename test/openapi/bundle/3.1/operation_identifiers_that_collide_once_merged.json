@@ -1,0 +1,54 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "operationId": "list",
+          "responses": {
+            "200": {
+              "description": "OK"
+            }
+          }
+        }
+      },
+      "/owners": {
+        "$ref": "shared.json#/components/pathItems/Owners"
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/shared.json": {
+      "openapi": "3.1.1",
+      "info": {
+        "title": "Shared",
+        "version": "1.0.0"
+      },
+      "components": {
+        "pathItems": {
+          "Owners": {
+            "get": {
+              "operationId": "list",
+              "responses": {
+                "200": {
+                  "description": "OK"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "error": {
+    "type": "OpenAPIError",
+    "message": "The Operation Object identifiers must be unique",
+    "location": "/paths/~1pets/get/operationId"
+  }
+}

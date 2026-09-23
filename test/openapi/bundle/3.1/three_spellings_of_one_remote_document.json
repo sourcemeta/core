@@ -1,0 +1,86 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "404": {
+              "$ref": "shared.json#/components/responses/NotFound"
+            },
+            "500": {
+              "$ref": "HTTPS://EXAMPLE.COM:443/shared.json#/components/responses/NotFound"
+            },
+            "503": {
+              "$ref": "a/../shared.json#/components/responses/NotFound"
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/shared.json": {
+      "openapi": "3.1.1",
+      "info": {
+        "title": "Example",
+        "version": "1.0.0"
+      },
+      "components": {
+        "responses": {
+          "NotFound": {
+            "description": "Not found"
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "404": {
+              "$ref": "#/components/responses/NotFound"
+            },
+            "500": {
+              "$ref": "#/components/responses/NotFound"
+            },
+            "503": {
+              "$ref": "#/components/responses/NotFound"
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "responses": {
+        "NotFound": {
+          "description": "Not found"
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/shared.json#/components/responses/NotFound",
+      "at": "/components/responses/NotFound"
+    }
+  ],
+  "reads": {
+    "https://example.com/shared.json": 1
+  },
+  "schemaReads": {},
+  "relocatable": true
+}

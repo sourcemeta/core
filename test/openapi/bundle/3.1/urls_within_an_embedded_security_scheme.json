@@ -1,0 +1,100 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "securitySchemes": {
+        "Main": {
+          "$ref": "shared/api.json#/components/securitySchemes/OAuth"
+        },
+        "Identity": {
+          "$ref": "shared/api.json#/components/securitySchemes/Identity"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/shared/api.json": {
+      "openapi": "3.1.1",
+      "info": {
+        "title": "Shared",
+        "version": "1.0.0"
+      },
+      "components": {
+        "securitySchemes": {
+          "OAuth": {
+            "type": "oauth2",
+            "flows": {
+              "authorizationCode": {
+                "authorizationUrl": "oauth/authorize",
+                "tokenUrl": "oauth/token",
+                "refreshUrl": "oauth/refresh",
+                "scopes": {
+                  "read": "Read everything"
+                }
+              }
+            }
+          },
+          "Identity": {
+            "type": "openIdConnect",
+            "openIdConnectUrl": "oidc/.well-known/openid-configuration"
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "securitySchemes": {
+        "Main": {
+          "$ref": "#/components/securitySchemes/OAuth"
+        },
+        "Identity": {
+          "$ref": "#/components/securitySchemes/Identity_"
+        },
+        "OAuth": {
+          "type": "oauth2",
+          "flows": {
+            "authorizationCode": {
+              "authorizationUrl": "oauth/authorize",
+              "tokenUrl": "oauth/token",
+              "refreshUrl": "oauth/refresh",
+              "scopes": {
+                "read": "Read everything"
+              }
+            }
+          }
+        },
+        "Identity_": {
+          "type": "openIdConnect",
+          "openIdConnectUrl": "oidc/.well-known/openid-configuration"
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/shared/api.json#/components/securitySchemes/Identity",
+      "at": "/components/securitySchemes/Identity_"
+    },
+    {
+      "from": "https://example.com/shared/api.json#/components/securitySchemes/OAuth",
+      "at": "/components/securitySchemes/OAuth"
+    }
+  ],
+  "reads": {
+    "https://example.com/shared/api.json": 1
+  },
+  "schemaReads": {},
+  "relocatable": true
+}

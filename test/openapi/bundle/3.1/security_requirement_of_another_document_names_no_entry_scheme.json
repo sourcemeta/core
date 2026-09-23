@@ -1,0 +1,55 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/foo": {
+        "$ref": "other.json#/components/pathItems/Foo"
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/other.json": {
+      "openapi": "3.1.1",
+      "info": {
+        "title": "Example",
+        "version": "1.0.0"
+      },
+      "components": {
+        "securitySchemes": {
+          "RemoteOnly": {
+            "type": "http",
+            "scheme": "bearer"
+          }
+        },
+        "pathItems": {
+          "Foo": {
+            "get": {
+              "security": [
+                {
+                  "RemoteOnly": []
+                }
+              ],
+              "responses": {
+                "200": {
+                  "description": "OK"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "error": {
+    "type": "OpenAPIError",
+    "message": "The Security Requirement Object must name a declared security scheme",
+    "location": "/components/pathItems/Foo/get/security/0/RemoteOnly",
+    "base": "https://example.com/other.json"
+  }
+}

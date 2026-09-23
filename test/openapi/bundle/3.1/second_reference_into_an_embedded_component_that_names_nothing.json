@@ -1,0 +1,47 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "404": {
+              "$ref": "shared.json#/components/responses/NotFound"
+            },
+            "500": {
+              "$ref": "shared.json#/components/responses/NotFound/headers/Missing"
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/shared.json": {
+      "openapi": "3.1.1",
+      "info": {
+        "title": "Example",
+        "version": "1.0.0"
+      },
+      "components": {
+        "responses": {
+          "NotFound": {
+            "description": "Not found"
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "error": {
+    "type": "OpenAPIReferenceError",
+    "message": "This reference must name an Object of the kind that the position it sits in expects",
+    "location": "/paths/~1pets/get/responses/500/$ref",
+    "identifier": "https://example.com/shared.json#/components/responses/NotFound/headers/Missing"
+  }
+}

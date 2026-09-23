@@ -1,0 +1,126 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "post": {
+          "requestBody": {
+            "content": {
+              "multipart/form-data": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "profile": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "encoding": {
+                  "profile": {
+                    "headers": {
+                      "X-Rate-Limit": {
+                        "$ref": "shared.json#/components/headers/RateLimit"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "OK"
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/shared.json": {
+      "openapi": "3.1.1",
+      "info": {
+        "title": "Shared",
+        "version": "1.0.0"
+      },
+      "components": {
+        "headers": {
+          "RateLimit": {
+            "description": "Requests left",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "post": {
+          "requestBody": {
+            "content": {
+              "multipart/form-data": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "profile": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "encoding": {
+                  "profile": {
+                    "headers": {
+                      "X-Rate-Limit": {
+                        "$ref": "#/components/headers/RateLimit"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "OK"
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "headers": {
+        "RateLimit": {
+          "description": "Requests left",
+          "schema": {
+            "type": "integer"
+          }
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/shared.json#/components/headers/RateLimit",
+      "at": "/components/headers/RateLimit"
+    }
+  ],
+  "reads": {
+    "https://example.com/shared.json": 1
+  },
+  "schemaReads": {},
+  "relocatable": true
+}

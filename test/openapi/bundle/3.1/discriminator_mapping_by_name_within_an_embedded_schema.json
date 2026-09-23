@@ -1,0 +1,122 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "200": {
+              "$ref": "shared.json#/components/responses/Pet"
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/shared.json": {
+      "openapi": "3.1.1",
+      "info": {
+        "title": "Shared",
+        "version": "1.0.0"
+      },
+      "components": {
+        "responses": {
+          "Pet": {
+            "description": "A pet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/Cat"
+                    }
+                  ],
+                  "discriminator": {
+                    "propertyName": "petType",
+                    "mapping": {
+                      "cat": "Cat"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "schemas": {
+          "Cat": {
+            "type": "object"
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "200": {
+              "$ref": "#/components/responses/Pet"
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "responses": {
+        "Pet": {
+          "description": "A pet",
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/Cat"
+                  }
+                ],
+                "discriminator": {
+                  "propertyName": "petType",
+                  "mapping": {
+                    "cat": "Cat"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "schemas": {
+        "Cat": {
+          "type": "object"
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/shared.json#/components/responses/Pet",
+      "at": "/components/responses/Pet"
+    },
+    {
+      "from": "https://example.com/shared.json#/components/schemas/Cat",
+      "at": "/components/schemas/Cat"
+    }
+  ],
+  "reads": {
+    "https://example.com/shared.json": 1
+  },
+  "schemaReads": {},
+  "relocatable": true
+}

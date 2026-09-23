@@ -1,0 +1,44 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "404": {
+              "$ref": "shared.json#/components/responses/NotFound"
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/shared.json": {
+      "openapi": "3.1.1",
+      "info": {
+        "title": "Shared",
+        "version": "1.0.0"
+      },
+      "components": {
+        "responses": {
+          "NotFound": {
+            "description": "Not found"
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "maxLocations": 19,
+  "error": {
+    "type": "OpenAPIBundleLimitError",
+    "message": "The OpenAPI Description exceeds the maximum number of locations that bundling may analyse",
+    "limit": 19
+  }
+}

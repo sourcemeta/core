@@ -1,0 +1,110 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/a": {
+        "$ref": "a.json#/paths/~1a~1b"
+      },
+      "/b": {
+        "$ref": "b.json#/paths/~1ab"
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/a.json": {
+      "openapi": "3.1.1",
+      "info": {
+        "title": "Example",
+        "version": "1.0.0"
+      },
+      "paths": {
+        "/a/b": {
+          "get": {
+            "responses": {
+              "200": {
+                "description": "A"
+              }
+            }
+          }
+        }
+      }
+    },
+    "https://example.com/b.json": {
+      "openapi": "3.1.1",
+      "info": {
+        "title": "Example",
+        "version": "1.0.0"
+      },
+      "paths": {
+        "/ab": {
+          "get": {
+            "responses": {
+              "200": {
+                "description": "B"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/a": {
+        "$ref": "#/components/pathItems/ab"
+      },
+      "/b": {
+        "$ref": "#/components/pathItems/ab_"
+      }
+    },
+    "components": {
+      "pathItems": {
+        "ab": {
+          "get": {
+            "responses": {
+              "200": {
+                "description": "A"
+              }
+            }
+          }
+        },
+        "ab_": {
+          "get": {
+            "responses": {
+              "200": {
+                "description": "B"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/a.json#/paths/~1a~1b",
+      "at": "/components/pathItems/ab"
+    },
+    {
+      "from": "https://example.com/b.json#/paths/~1ab",
+      "at": "/components/pathItems/ab_"
+    }
+  ],
+  "reads": {
+    "https://example.com/a.json": 1,
+    "https://example.com/b.json": 1
+  },
+  "schemaReads": {},
+  "relocatable": true
+}

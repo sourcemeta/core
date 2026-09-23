@@ -1,0 +1,108 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "$ref": "shared/api.json#/paths/~1pets"
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/shared/api.json": {
+      "openapi": "3.1.1",
+      "info": {
+        "title": "Example",
+        "version": "1.0.0"
+      },
+      "paths": {
+        "/pets": {
+          "servers": [
+            {
+              "url": "/{basePath}/v2",
+              "variables": {
+                "basePath": {
+                  "default": "api"
+                }
+              }
+            },
+            {
+              "url": "//{region}.example.com/v2",
+              "variables": {
+                "region": {
+                  "default": "eu"
+                }
+              }
+            }
+          ],
+          "get": {
+            "responses": {
+              "200": {
+                "description": "OK"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "$ref": "#/components/pathItems/pets"
+      }
+    },
+    "components": {
+      "pathItems": {
+        "pets": {
+          "servers": [
+            {
+              "url": "https://example.com/{basePath}/v2",
+              "variables": {
+                "basePath": {
+                  "default": "api"
+                }
+              }
+            },
+            {
+              "url": "https://{region}.example.com/v2",
+              "variables": {
+                "region": {
+                  "default": "eu"
+                }
+              }
+            }
+          ],
+          "get": {
+            "responses": {
+              "200": {
+                "description": "OK"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/shared/api.json#/paths/~1pets",
+      "at": "/components/pathItems/pets"
+    }
+  ],
+  "reads": {
+    "https://example.com/shared/api.json": 1
+  },
+  "schemaReads": {},
+  "relocatable": true
+}

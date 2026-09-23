@@ -1,0 +1,94 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "200": {
+              "description": "OK",
+              "content": {
+                "application/json": {
+                  "examples": {
+                    "pet": {
+                      "$ref": "shared/api.json#/components/examples/Pet"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/shared/api.json": {
+      "openapi": "3.1.1",
+      "info": {
+        "title": "Shared",
+        "version": "1.0.0"
+      },
+      "components": {
+        "examples": {
+          "Pet": {
+            "summary": "A pet",
+            "externalValue": "pet.json"
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "200": {
+              "description": "OK",
+              "content": {
+                "application/json": {
+                  "examples": {
+                    "pet": {
+                      "$ref": "#/components/examples/Pet"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "examples": {
+        "Pet": {
+          "summary": "A pet",
+          "externalValue": "https://example.com/shared/pet.json"
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/shared/api.json#/components/examples/Pet",
+      "at": "/components/examples/Pet"
+    }
+  ],
+  "reads": {
+    "https://example.com/shared/api.json": 1
+  },
+  "schemaReads": {},
+  "relocatable": true
+}

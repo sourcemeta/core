@@ -1,0 +1,94 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "$ref": "shared/api.json#/components/pathItems/Pets"
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/shared/api.json": {
+      "openapi": "3.1.1",
+      "info": {
+        "title": "Shared",
+        "version": "1.0.0"
+      },
+      "components": {
+        "pathItems": {
+          "Pets": {
+            "get": {
+              "responses": {
+                "200": {
+                  "description": "OK"
+                }
+              }
+            },
+            "servers": [
+              {
+                "url": "https://{region}.example.com/v2",
+                "variables": {
+                  "region": {
+                    "default": "eu"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "$ref": "#/components/pathItems/Pets"
+      }
+    },
+    "components": {
+      "pathItems": {
+        "Pets": {
+          "get": {
+            "responses": {
+              "200": {
+                "description": "OK"
+              }
+            }
+          },
+          "servers": [
+            {
+              "url": "https://{region}.example.com/v2",
+              "variables": {
+                "region": {
+                  "default": "eu"
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/shared/api.json#/components/pathItems/Pets",
+      "at": "/components/pathItems/Pets"
+    }
+  ],
+  "reads": {
+    "https://example.com/shared/api.json": 1
+  },
+  "schemaReads": {},
+  "relocatable": true
+}
