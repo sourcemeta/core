@@ -21,7 +21,7 @@
 #include <string_view> // std::string_view
 
 /// @defgroup openapi OpenAPI
-/// @brief A growing implementation of the OpenAPI Specification 3.1.
+/// @brief A growing implementation of the OpenAPI Specification.
 ///
 /// This module reports where an OpenAPI Description declares its JSON Schemas
 /// and leaves what is inside them to a JSON Schema implementation.
