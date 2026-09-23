@@ -284,6 +284,15 @@ auto is_discriminator_member(const sourcemeta::core::Pointer &pointer) -> bool {
          is_member(pointer.at(pointer.size() - 2), "discriminator");
 }
 
+// Section 4.30 of 3.2 keys a Security Requirement Object by the name of what
+// it requires, so a name that is the URI of a scheme sits two tokens past the
+// list that holds the Object making it
+auto is_security_requirement_member(const sourcemeta::core::Pointer &pointer)
+    -> bool {
+  return pointer.size() >= 3 &&
+         is_member(pointer.at(pointer.size() - 3), "security");
+}
+
 // Whether the schemas of a description hold what a mapping names. Framing a
 // document records places of it that are no schema of their own as well, so
 // landing on one of those is landing on nothing a mapping was after
@@ -329,10 +338,12 @@ auto security_references_stand_alone(const sourcemeta::core::JSON &frame)
     return true;
   }
 
-  return std::ranges::none_of(frame.at("securityReferences").as_array(),
-                              [](const auto &entry) -> bool {
-                                return entry.at("dangling").to_boolean();
-                              });
+  const auto &locations{frame.at("locations")};
+  return std::ranges::all_of(frame.at("securityReferences").as_array(),
+                             [&locations](const auto &entry) -> bool {
+                               return locations.defines(
+                                   entry.at("destination").to_string());
+                             });
 }
 
 // A frame is a graph written down as text, and every edge in it is a key into
@@ -443,6 +454,22 @@ auto check_frame_invariants(const sourcemeta::core::JSON &frame) -> void {
 
       // Where it sits is the member of a Discriminator Object that names it
       EXPECT_TRUE(is_discriminator_member(
+          sourcemeta::core::to_pointer(entry.at("pointer").to_string())));
+    }
+  }
+
+  // And so is what a Security Requirement Object names by the URI of a scheme,
+  // which 3.2 admits beside the name of a component
+  if (frame.defines("securityReferences")) {
+    for (const auto &entry : frame.at("securityReferences").as_array()) {
+      // Where one leads is a place the description holds or nowhere at all,
+      // and it says of itself which of the two it is
+      EXPECT_EQ(entry.at("dangling").to_boolean(),
+                !locations.defines(entry.at("destination").to_string()));
+
+      // Where it sits is the member of a Security Requirement Object that
+      // names it, which is the one thing the pointer to it has to show
+      EXPECT_TRUE(is_security_requirement_member(
           sourcemeta::core::to_pointer(entry.at("pointer").to_string())));
     }
   }
