@@ -21,7 +21,7 @@
 #include <string_view> // std::string_view
 
 /// @defgroup openapi OpenAPI
-/// @brief A growing implementation of the OpenAPI Specification 3.1.
+/// @brief A growing implementation of the OpenAPI Specification.
 ///
 /// This module reports where an OpenAPI Description declares its JSON Schemas
 /// and leaves what is inside them to a JSON Schema implementation.
@@ -395,8 +395,12 @@ struct OpenAPIBundleOptions {
 /// Bundle an OpenAPI Description by embedding everything it references from
 /// another document into its own Components Object. The walker and the
 /// resolver are what reading inside a Schema Object takes, and the OpenAPI
-/// resolver is how the rest of the description is reached. This overload
-/// mutates the input document. For example:
+/// resolver is how the rest of the description is reached. No document the
+/// description spans may declare a revision of the OpenAPI Specification other
+/// than the one the entry document declares, as what this produces is one
+/// document that declares one, and a revision neither holds every field of
+/// another nor reads what they share by the same rules. This overload mutates
+/// the input document. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/json.h>
@@ -445,8 +449,10 @@ auto openapi_bundle(JSON &document, const SchemaWalker &walker,
 
 /// @ingroup openapi
 /// Bundle an OpenAPI Description by embedding everything it references from
-/// another document into its own Components Object. This overload returns a
-/// new document, without mutating the input. For example:
+/// another document into its own Components Object. No document the description
+/// spans may declare a revision of the OpenAPI Specification other than the one
+/// the entry document declares. This overload returns a new document, without
+/// mutating the input. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/json.h>

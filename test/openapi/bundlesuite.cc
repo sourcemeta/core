@@ -157,13 +157,16 @@ auto make_default_base(const sourcemeta::core::JSON &test)
   return base == nullptr ? sourcemeta::core::JSON::String{} : base->to_string();
 }
 
-// What a description made of documents of differing revisions comes to is not
-// something this suite covers, so a fixture holds one revision throughout. A
-// document that declares no revision this module recognises is left to
-// whichever fixture is there to assert the refusal
-auto check_same_version(const sourcemeta::core::JSON &test) -> void {
+// Each revision has a corpus of its own, and a fixture filed under one holds
+// that revision throughout, whether or not a reference reaches every document
+// it registers. What a description made of documents of differing revisions
+// comes to is what the corpus beside them is for, so those are left to say it
+// for themselves. A document that declares no revision this module recognises,
+// or none at all, is left to whichever fixture is there to account for it
+auto check_revisions_agree(const sourcemeta::core::JSON &test,
+                           const std::string &corpus) -> void {
   const auto version{sourcemeta::core::openapi_version(test.at("document"))};
-  if (!version.has_value()) {
+  if (!version.has_value() || corpus == "mixed") {
     return;
   }
 
@@ -178,7 +181,8 @@ auto check_same_version(const sourcemeta::core::JSON &test) -> void {
 // Every key a fixture declares has to be one the runner reads, a fixture says
 // either what bundling produces or how it refuses and never both, and an error
 // carries the fields that the class it names actually has
-auto check_shape(const sourcemeta::core::JSON &test) -> void {
+auto check_shape(const sourcemeta::core::JSON &test, const std::string &corpus)
+    -> void {
   for (const auto &entry : test.as_object()) {
     EXPECT_TRUE(std::ranges::find(KNOWN_KEYS, entry.first) !=
                 KNOWN_KEYS.cend());
@@ -254,7 +258,7 @@ auto check_shape(const sourcemeta::core::JSON &test) -> void {
     EXPECT_EQ(error.defines("other"), type == "SchemaAnchorCollisionError");
   }
 
-  check_same_version(test);
+  check_revisions_agree(test, corpus);
 }
 
 auto run_pass_test(const sourcemeta::core::JSON &test) -> void {
@@ -479,8 +483,8 @@ auto register_tests(const std::filesystem::path &directory) -> std::size_t {
 
     const auto test{sourcemeta::core::read_json(entry.path())};
     sourcemeta::core::test_register(suite, name.str(), __FILE__, __LINE__,
-                                    [test]() -> void {
-                                      check_shape(test);
+                                    [test, version]() -> void {
+                                      check_shape(test, version);
                                       if (test.defines("error")) {
                                         run_fail_test(test);
                                       } else {
