@@ -600,7 +600,8 @@ inline auto openapi_analyse(const JSON &document, JSON::String base,
                             const std::uint64_t max_locations =
                                 std::numeric_limits<std::uint64_t>::max(),
                             const OpenAPIWalk *entry = nullptr) -> OpenAPIWalk {
-  OpenAPIWalk walk{.base = std::move(base),
+  OpenAPIWalk walk{.base = base,
+                   .retrieval = std::move(base),
                    .document = &document,
                    .operation_ids = {},
                    .visited = {},

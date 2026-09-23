@@ -328,6 +328,16 @@ struct OpenAPILocation {
 // clash is only ever caught within it
 struct OpenAPIWalk {
   JSON::String base;
+  // Where the document was retrieved from, which `$self` may take the place of
+  // as the base every URI it holds resolves against. OpenAPI Specification
+  // 3.2.1, Section 4.5.2 keeps the addresses of the API itself out of that:
+  // "Because the API is a distinct entity from the OpenAPI document, RFC3986's
+  // base URI rules for the OpenAPI document do not apply", and Section 4.5.2.1
+  // says which base does apply instead: "For API URLs the `$self` field, which
+  // identifies the OpenAPI document, is ignored and the retrieval URI is used
+  // instead". So this is kept apart from the base above rather than replaced
+  // by it
+  JSON::String retrieval;
   // The document the checks are reading, which a reference that stays inside
   // it resolves its fragment against
   const JSON *document{nullptr};

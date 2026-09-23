@@ -1,0 +1,86 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/foo": {
+        "$ref": "https://device1.example.com/openapi.json#/components/pathItems/Foo"
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://device1.example.com/openapi.json": {
+      "openapi": "3.2.0",
+      "$self": "https://apidescriptions.example.com/foo",
+      "info": {
+        "title": "Example",
+        "version": "1.0.0"
+      },
+      "components": {
+        "pathItems": {
+          "Foo": {
+            "servers": [
+              {
+                "url": "./test"
+              }
+            ],
+            "get": {
+              "responses": {
+                "200": {
+                  "description": "OK"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/foo": {
+        "$ref": "#/components/pathItems/Foo"
+      }
+    },
+    "components": {
+      "pathItems": {
+        "Foo": {
+          "servers": [
+            {
+              "url": "https://device1.example.com/test"
+            }
+          ],
+          "get": {
+            "responses": {
+              "200": {
+                "description": "OK"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://apidescriptions.example.com/foo#/components/pathItems/Foo",
+      "at": "/components/pathItems/Foo"
+    }
+  ],
+  "reads": {
+    "https://device1.example.com/openapi.json": 1
+  },
+  "schemaReads": {},
+  "standalone": true,
+  "relocatable": true
+}

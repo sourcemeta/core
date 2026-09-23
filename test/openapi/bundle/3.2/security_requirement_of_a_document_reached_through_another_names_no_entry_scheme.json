@@ -1,0 +1,90 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "security": [
+      {
+        "a.json#/components/securitySchemes/RemoteOnly": []
+      }
+    ],
+    "paths": {
+      "/foo": {
+        "$ref": "c.json#/components/pathItems/Bar"
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/a.json": {
+      "openapi": "3.2.0",
+      "info": {
+        "title": "Example",
+        "version": "1.0.0"
+      },
+      "components": {
+        "securitySchemes": {
+          "RemoteOnly": {
+            "type": "apiKey",
+            "name": "X-A-Key",
+            "in": "header"
+          }
+        }
+      }
+    },
+    "https://example.com/c.json": {
+      "openapi": "3.2.0",
+      "info": {
+        "title": "Example",
+        "version": "1.0.0"
+      },
+      "components": {
+        "pathItems": {
+          "Bar": {
+            "$ref": "b.json#/components/pathItems/Foo"
+          }
+        }
+      }
+    },
+    "https://example.com/b.json": {
+      "openapi": "3.2.0",
+      "info": {
+        "title": "Example",
+        "version": "1.0.0"
+      },
+      "components": {
+        "securitySchemes": {
+          "RemoteOnly": {
+            "type": "http",
+            "scheme": "bearer"
+          }
+        },
+        "pathItems": {
+          "Foo": {
+            "get": {
+              "security": [
+                {
+                  "RemoteOnly": []
+                }
+              ],
+              "responses": {
+                "200": {
+                  "description": "OK"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "error": {
+    "type": "OpenAPIReferenceError",
+    "message": "This reference must name a place within the document it points at",
+    "identifier": "https://example.com/RemoteOnly",
+    "location": "/components/pathItems/Foo/get/security/0/https:~1~1example.com~1RemoteOnly"
+  }
+}

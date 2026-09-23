@@ -810,8 +810,12 @@ auto absolutize(JSON &value, const OpenAPIWalk &remote, const Pointer &origin,
       const auto held{relative.concat(JSON::String{"url"})};
       const auto *written{try_get(value, held)};
       if (written != nullptr && written->is_string()) {
+        // Section 4.5.2.1 works this very case through: a document retrieved
+        // from one place and naming itself another resolves what it says of
+        // the API against where it was found rather than against the name it
+        // gave itself
         auto address{
-            openapi_resolve_server_url(written->to_string(), remote.base)};
+            openapi_resolve_server_url(written->to_string(), remote.retrieval)};
         if (!address.has_value()) {
           throw OpenAPIError{
               remote.base, entry.second.pointer.concat(JSON::String{"url"}),
@@ -979,8 +983,14 @@ auto adopt_tags(JSON &document, const OpenAPIWalk &walk,
                 const JSON::String &base, const OpenAPIBundleOptions &options)
     -> bool {
   bool changed{false};
+  // What this pass has already brought in. The names the walk holds are the
+  // ones it read before any of them travelled, and Section 4.1 has "Each tag
+  // name in the list MUST be unique", so two tags nested under one that only
+  // another document declares bring it along once between them
+  std::set<JSON::String> adopted;
   for (const auto &entry : walk.tag_parents) {
-    if (walk.tag_names.contains(entry.second.second)) {
+    if (walk.tag_names.contains(entry.second.second) ||
+        adopted.contains(entry.second.second)) {
       continue;
     }
 
@@ -1003,6 +1013,7 @@ auto adopt_tags(JSON &document, const OpenAPIWalk &walk,
       }
 
       tags.push_back(std::move(value));
+      adopted.insert(entry.second.second);
       changed = true;
       break;
     }
@@ -1121,10 +1132,25 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
   // names, which nothing but this brings in, along with the ones it already did
   std::map<JSON::String, std::vector<OpenAPIPending>> deferred;
   std::set<JSON::String> adopted;
+  // The names the description gave before bundling moved anything. Section
+  // 4.1.2.3 resolves the names a referenced document uses from the entry
+  // document, and bundling embedding a Security Scheme Object puts a name
+  // there that the description never had. Letting that answer for a document
+  // read afterwards would decide, by nothing but how many references away it
+  // sits, that an operation requires a credential its own document never named
+  OpenAPIWalk names;
+  bool named{false};
 
   while (true) {
     const auto walk{openapi_analyse(document, retrieval, remaining)};
     const auto &base{walk.base};
+    if (!named) {
+      names.security_schemes = walk.security_schemes;
+      names.tags = walk.tags;
+      names.tag_names = walk.tag_names;
+      named = true;
+    }
+
     charge(remaining, walk.locations.size());
     auto unresolved{pending(walk)};
     // A Schema Object may name one that another document of the description
@@ -1211,7 +1237,7 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
         // takes its place before anything walks it
         const auto &held{
             documents.emplace(identifier, std::move(candidate)).first->second};
-        auto analysis{openapi_analyse(held, identifier, remaining, &walk)};
+        auto analysis{openapi_analyse(held, identifier, remaining, &names)};
         charge(remaining, analysis.locations.size());
         walks.emplace(identifier, std::move(analysis));
       }
