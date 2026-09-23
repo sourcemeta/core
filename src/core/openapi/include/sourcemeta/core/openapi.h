@@ -395,8 +395,11 @@ struct OpenAPIBundleOptions {
 /// Bundle an OpenAPI Description by embedding everything it references from
 /// another document into its own Components Object. The walker and the
 /// resolver are what reading inside a Schema Object takes, and the OpenAPI
-/// resolver is how the rest of the description is reached. This overload
-/// mutates the input document. For example:
+/// resolver is how the rest of the description is reached. Every document the
+/// description spans must declare the same revision of the OpenAPI
+/// Specification, as what this produces is one document that declares one, and
+/// a revision neither holds every field of the other nor reads what they share
+/// by the same rules. This overload mutates the input document. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/json.h>
@@ -445,8 +448,10 @@ auto openapi_bundle(JSON &document, const SchemaWalker &walker,
 
 /// @ingroup openapi
 /// Bundle an OpenAPI Description by embedding everything it references from
-/// another document into its own Components Object. This overload returns a
-/// new document, without mutating the input. For example:
+/// another document into its own Components Object. Every document the
+/// description spans must declare the same revision of the OpenAPI
+/// Specification. This overload returns a new document, without mutating the
+/// input. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/json.h>

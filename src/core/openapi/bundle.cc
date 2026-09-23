@@ -1233,6 +1233,25 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
                                       "that holds an OpenAPI Description"};
         }
 
+        // Bundling ends in one document, and Section 4.1 has that document
+        // declare one revision, so everything it holds has to be what that
+        // revision can express. Section 1.1 leaves no room to assume an older
+        // one always can: "Occasionally, non-backwards compatible changes may
+        // be made in `minor` versions of the OAS where impact is believed to
+        // be low relative to the benefit provided". Neither direction is safe
+        // to take on faith, as 3.2 both adds fields that 3.1 has no way of
+        // spelling and holds what 3.1 already spells to rules 3.1 never had,
+        // so a description that spans revisions is turned down rather than
+        // merged. What the patch component says is no part of this, as
+        // Section 1.1 makes a revision the `major`.`minor` pair alone
+        const auto revision{openapi_version(candidate)};
+        if (revision.has_value() && revision.value() != walk.version) {
+          throw OpenAPIReferenceError{
+              base, reference.origin, identifier,
+              "This reference must name a document of the same OpenAPI "
+              "Specification revision"};
+        }
+
         // The walk keeps a view into the document it read, so the document
         // takes its place before anything walks it
         const auto &held{

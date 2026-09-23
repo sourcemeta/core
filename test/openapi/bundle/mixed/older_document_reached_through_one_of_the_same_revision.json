@@ -1,0 +1,54 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "responses": {
+        "R": {
+          "$ref": "mid.json#/components/responses/Middle"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/mid.json": {
+      "openapi": "3.2.0",
+      "info": {
+        "title": "Example",
+        "version": "1.0.0"
+      },
+      "components": {
+        "responses": {
+          "Middle": {
+            "$ref": "other.json#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "https://example.com/other.json": {
+      "openapi": "3.1.1",
+      "info": {
+        "title": "Example",
+        "version": "1.0.0"
+      },
+      "components": {
+        "responses": {
+          "NotFound": {
+            "description": "Nope"
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "error": {
+    "type": "OpenAPIReferenceError",
+    "message": "This reference must name a document of the same OpenAPI Specification revision",
+    "identifier": "https://example.com/other.json",
+    "location": "/components/responses/Middle/$ref"
+  }
+}

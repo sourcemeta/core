@@ -157,11 +157,12 @@ auto make_default_base(const sourcemeta::core::JSON &test)
   return base == nullptr ? sourcemeta::core::JSON::String{} : base->to_string();
 }
 
-// What a description made of documents of differing revisions comes to is not
-// something this suite covers, so a fixture holds one revision throughout. A
-// document that declares no revision this module recognises is left to
-// whichever fixture is there to assert the refusal
-auto check_same_version(const sourcemeta::core::JSON &test) -> void {
+// What a description made of documents of differing revisions comes to is a
+// refusal, so a fixture that mixes them says how it is turned down rather than
+// what it produces. A document that declares no revision this module
+// recognises is left to whichever fixture is there to assert that refusal
+// instead
+auto check_revisions_agree(const sourcemeta::core::JSON &test) -> void {
   const auto version{sourcemeta::core::openapi_version(test.at("document"))};
   if (!version.has_value()) {
     return;
@@ -169,8 +170,8 @@ auto check_same_version(const sourcemeta::core::JSON &test) -> void {
 
   for (const auto &entry : test.at("openapiResolver").as_object()) {
     const auto other{sourcemeta::core::openapi_version(entry.second)};
-    if (other.has_value()) {
-      EXPECT_EQ(other.value(), version.value());
+    if (other.has_value() && other.value() != version.value()) {
+      EXPECT_TRUE(test.defines("error"));
     }
   }
 }
@@ -254,7 +255,7 @@ auto check_shape(const sourcemeta::core::JSON &test) -> void {
     EXPECT_EQ(error.defines("other"), type == "SchemaAnchorCollisionError");
   }
 
-  check_same_version(test);
+  check_revisions_agree(test);
 }
 
 auto run_pass_test(const sourcemeta::core::JSON &test) -> void {
