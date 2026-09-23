@@ -92,7 +92,11 @@ inline auto openapi_check_document(const JSON &document, OpenAPIWalk &walk)
 // the URI a reference named for any other. RFC 3986 Section 5.2.1 has only the
 // scheme required of a base, so a relative `$self` with nothing absolute to
 // resolve against establishes nothing, and Section 5.2.2 never resolves
-// against a fragment, so one written here is no part of the base either
+// against a fragment, so one written here is dropped rather than read. The
+// specification's own published schema turns such a `$self` down outright,
+// which Section 4 makes it no place to: "If the JSON Schema differs from this
+// section, then this section MUST be considered authoritative", and the
+// section it differs from asks only for a URI reference
 inline auto openapi_document_base(const JSON::StringView self,
                                   const OpenAPIWalk &walk)
     -> std::optional<JSON::String> {
@@ -352,22 +356,23 @@ inline auto openapi_check_document(const JSON &document, OpenAPIWalk &walk)
           "The OpenAPI Description self identifier must be a string",
           "The OpenAPI Description self identifier must be a URI reference")};
 
-      // The specification's own published schema for this revision spells the
-      // field `{"format": "uri-reference", "pattern": "^[^#]*$"}` and says
-      // why in a comment of its own:
+      // A fragment written here is admitted, which the specification's own
+      // published schema for this revision is stricter than. That schema
+      // spells the field `{"format": "uri-reference", "pattern": "^[^#]*$"}`
+      // and gives its reason in a comment of its own:
       //
       //   MUST NOT contain a fragment
       //
-      // which RFC 3986 Section 5.1 agrees with, a base URI carrying none. The
-      // pattern turns down the character rather than a fragment component, so
-      // an empty one is refused here too
-      if (reference.find('#') != JSON::StringView::npos) {
-        throw OpenAPIError{
-            walk.base, openapi_child(EMPTY_POINTER, "$self"sv),
-            "The OpenAPI Description self identifier must not contain a "
-            "fragment"};
-      }
-
+      // but Section 4 settles which of the two answers for this: "This text is
+      // the only normative description of the format. A JSON Schema is hosted
+      // on spec.openapis.org for informational purposes. If the JSON Schema
+      // differs from this section, then this section MUST be considered
+      // authoritative". The text asks only for a URI reference, and RFC 3986
+      // Section 4.1 admits a fragment in one, so the pattern is a rule the
+      // normative prose does not carry and is not enforced here. Nothing is
+      // lost by taking it, as Section 5.2.2 never resolves a reference against
+      // a fragment, which is why what a fragment names is dropped rather than
+      // read
       auto established{openapi_document_base(reference, walk)};
       if (established.has_value()) {
         walk.base = std::move(established.value());

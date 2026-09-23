@@ -32,10 +32,33 @@
     }
   },
   "schemaResolver": {},
-  "error": {
-    "type": "OpenAPIError",
-    "message": "The OpenAPI Description self identifier must not contain a fragment",
-    "location": "/$self",
-    "base": "https://example.com/other.json"
-  }
+  "result": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "responses": {
+        "R": {
+          "$ref": "#/components/responses/NotFound"
+        },
+        "NotFound": {
+          "description": "Nope"
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/other.json#/components/responses/NotFound",
+      "at": "/components/responses/NotFound"
+    }
+  ],
+  "reads": {
+    "https://example.com/other.json": 1
+  },
+  "schemaReads": {},
+  "standalone": true,
+  "relocatable": true
 }
