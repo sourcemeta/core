@@ -10,9 +10,7 @@
 
 #include <array>       // std::array
 #include <cstddef>     // std::size_t
-#include <set>         // std::set
 #include <string_view> // std::string_view
-#include <utility>     // std::move
 #include <vector>      // std::vector
 
 namespace sourcemeta::core {
@@ -420,7 +418,6 @@ inline auto openapi_check_security_scheme_or_reference(const JSON &value,
 // nothing is not an error, for the reason Section 4.8.23 gives of a `$ref`
 inline auto openapi_check_security_scheme_name(const JSON::StringView name,
                                                const Pointer &origin,
-                                               std::set<JSON::String> &named,
                                                OpenAPIWalk &walk) -> void {
   if (walk.version != OpenAPIVersion::OPENAPI_3_2) {
     throw OpenAPIError{
@@ -440,20 +437,10 @@ inline auto openapi_check_security_scheme_name(const JSON::StringView name,
   // one document from reading as whole. Every other way of naming another
   // Object is written down where the Object that makes it sits, which one of
   // these cannot be, as a single Security Requirement Object may name several
-  // Section 4.30 keys a Security Requirement Object by the scheme each of its
-  // entries requires, so two names of one Object that lead to one scheme are
-  // one key written twice. Nothing reading that Object can tell them apart,
-  // and the scopes one of them carries cannot survive the other
-  auto destination{target.value().recompose()};
-  if (!named.insert(destination).second) {
-    throw OpenAPIError{origin, "The Security Requirement Object must not name "
-                               "one security scheme twice"};
-  }
-
   walk.security_references.insert_or_assign(
       openapi_location_uri(walk.base, origin),
       OpenAPIReference{.original = JSON::String{name},
-                       .destination = std::move(destination),
+                       .destination = target.value().recompose(),
                        .dangling = false,
                        .expected = OpenAPIObjectKind::SecurityScheme,
                        .origin = origin});
@@ -470,9 +457,6 @@ inline auto openapi_check_security_requirement(const JSON &value,
   openapi_record(walk, base, OpenAPIObjectKind::SecurityRequirement);
   openapi_expect_object(value, base,
                         "The Security Requirement Object must be an object");
-  // What each of its names leads to, which is what tells one written twice
-  // from one written once
-  std::set<JSON::String> named;
   for (const auto &entry : value.as_object()) {
     // Section 4.8.30: "Each name MUST correspond to a security scheme which is
     // declared in the Security Schemes under the Components Object". This
@@ -480,7 +464,7 @@ inline auto openapi_check_security_requirement(const JSON &value,
     // scheme name and is held to the same requirement
     if (!walk.security_schemes.contains(entry.first)) {
       openapi_check_security_scheme_name(
-          entry.first, openapi_child(base, entry.first), named, walk);
+          entry.first, openapi_child(base, entry.first), walk);
     }
 
     openapi_check_array_of_strings(

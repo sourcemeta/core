@@ -53,7 +53,7 @@
   "schemaResolver": {},
   "error": {
     "type": "OpenAPIError",
-    "message": "The Security Requirement Object must not name one security scheme twice",
+    "message": "A Security Requirement Object that names one security scheme twice over cannot keep a list of scopes for each of them",
     "location": "/components/pathItems/Foo/get/security/0/other.json#~1components~1securitySchemes~1Remote",
     "base": "https://example.com/other.json"
   }

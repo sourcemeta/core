@@ -11,7 +11,7 @@
 #include <optional> // std::optional
 #include <set>      // std::set
 #include <string>   // std::to_string
-#include <utility>  // std::move
+#include <utility>  // std::move, std::pair
 #include <vector>   // std::vector
 
 namespace {
@@ -94,6 +94,41 @@ auto pending(const sourcemeta::core::OpenAPIWalk &walk)
   }
 
   return result;
+}
+
+// OpenAPI Specification 3.2.1, Section 4.30 keys a Security Requirement
+// Object by the scheme each of its entries requires, and has every one of them
+// met: "A Security Requirement Object MAY refer to multiple security schemes
+// in which case all schemes MUST be satisfied". Two of its names may lead to
+// one scheme, which that section says nothing against and which reading such
+// an Object is no trouble for. Bundling is what has to write one back out
+// under the single name that scheme ends up going by, and that name is a key
+// that holds one list of scopes rather than two
+auto check_requirement_aliases(const sourcemeta::core::JSON &document,
+                               const sourcemeta::core::OpenAPIWalk &walk)
+    -> void {
+  std::map<
+      std::pair<sourcemeta::core::JSON::String, sourcemeta::core::JSON::String>,
+      sourcemeta::core::Pointer>
+      required;
+  for (const auto &entry : walk.security_references) {
+    const auto held{sourcemeta::core::openapi_location_uri(
+        walk.base, entry.second.origin.initial())};
+    const auto match{required.emplace(std::pair{held, entry.second.destination},
+                                      entry.second.origin)};
+    // Naming one scheme twice over with the one list of scopes is naming it
+    // once, which the name it ends up going by carries as it stands
+    if (match.second ||
+        sourcemeta::core::get(document, match.first->second) ==
+            sourcemeta::core::get(document, entry.second.origin)) {
+      continue;
+    }
+
+    throw sourcemeta::core::OpenAPIError{
+        walk.base, entry.second.origin,
+        "A Security Requirement Object that names one security scheme twice "
+        "over cannot keep a list of scopes for each of them"};
+  }
 }
 
 // Where the Object that bundling embeds begins. A target that sits within a
@@ -1112,6 +1147,7 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
   while (true) {
     const auto walk{openapi_analyse(document, retrieval, remaining)};
     const auto &base{walk.base};
+    check_requirement_aliases(document, walk);
     charge(remaining, walk.locations.size());
     auto unresolved{pending(walk)};
     // A Schema Object may name one that another document of the description
@@ -1199,6 +1235,7 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
         const auto &held{
             documents.emplace(identifier, std::move(candidate)).first->second};
         auto analysis{openapi_analyse(held, identifier, remaining, &walk)};
+        check_requirement_aliases(held, analysis);
         charge(remaining, analysis.locations.size());
         walks.emplace(identifier, std::move(analysis));
       }

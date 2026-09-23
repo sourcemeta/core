@@ -28,7 +28,7 @@
       "components": {
         "responses": {
           "NotFound": {
-            "description": "Nope"
+            "description": "The one reached first"
           }
         }
       }
@@ -43,7 +43,7 @@
       "components": {
         "responses": {
           "NotFound": {
-            "description": "Nope"
+            "description": "The one reached second"
           }
         }
       }
@@ -65,7 +65,7 @@
           "$ref": "#/components/responses/NotFound"
         },
         "NotFound": {
-          "description": "Nope"
+          "description": "The one reached first"
         }
       }
     }
