@@ -116,6 +116,13 @@ auto register_tests(const std::filesystem::path &directory,
                     const sourcemeta::core::OpenAPIVersion version,
                     const bool expect_success) -> std::size_t {
   std::size_t count{0};
+  // A corpus that is not there at all, which is what a vendored dependency
+  // nobody pulled comes to, would otherwise take the whole binary down before
+  // the count below has a chance to say which one is missing
+  if (!std::filesystem::exists(directory)) {
+    return 0;
+  }
+
   for (const std::filesystem::directory_entry &entry :
        std::filesystem::directory_iterator{directory}) {
     if (!entry.is_regular_file() || entry.path().extension() != ".yaml") {

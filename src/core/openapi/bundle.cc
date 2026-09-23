@@ -637,29 +637,57 @@ auto bundle_schemas(sourcemeta::core::JSON &document,
   }
 
   auto &schemas{sourcemeta::core::get(document, container)};
+  // JSON Schema Section 9.3.1 has every resource that travels this way say
+  // who it is: "Each embedded JSON Schema Resource MUST identify itself with
+  // a URI using the `$id` keyword". Section 4.8.24 lets a Schema Object be a
+  // boolean, which carries no keyword at all and so can say nothing, leaving
+  // whatever named it by the URI it was found under naming nothing once it
+  // sits here. Where it went is what such a reference is written out to name
+  // instead, which is what a Discriminator Object mapping to one comes to
+  std::map<sourcemeta::core::JSON::String, sourcemeta::core::Pointer> silent;
   for (const auto &entry : landed) {
     const auto &identifier{entry.first};
     const auto &key{entry.second.back().to_property()};
-    // JSON Schema Section 9.3.1 has every resource that travels this way say
-    // who it is: "Each embedded JSON Schema Resource MUST identify itself
-    // with a URI using the `$id` keyword". Section 4.8.24 lets a Schema
-    // Object be a boolean, which carries no keyword at all and so can say
-    // nothing, leaving whatever named it by that URI naming nothing once it
-    // sits here. Which name it goes under is no help either, as Section 4.8.7
-    // admits nothing into a component key that a URI needs
-    if (schemas.at(key).is_boolean()) {
-      throw sourcemeta::core::OpenAPIReferenceError{
-          base, container.concat(key), identifier,
-          "This reference must name a schema that can carry an identifier of "
-          "its own"};
-    }
-
+    const auto anonymous{schemas.at(key).is_boolean()};
     const auto name{schema_name(schemas, identifier, namer)};
     schemas.rename(key, sourcemeta::core::JSON::String{name});
+    const auto where{container.concat(name)};
+    if (anonymous) {
+      silent.emplace(identifier, where);
+    }
+
     if (callback) {
-      callback(identifier, container.concat(name));
+      callback(identifier, where);
     }
   }
+
+  if (silent.empty()) {
+    return true;
+  }
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References,
+      document,
+      walker,
+      resolver,
+      walk.dialect,
+      "",
+      sourcemeta::core::SchemaFrame::IdentifierMode::Additional,
+      paths,
+      base,
+      remaining};
+  frame.for_each_reference([&document, &silent](const auto, const auto &pointer,
+                                                const auto &reference) -> void {
+    const auto match{silent.find(reference.destination)};
+    if (match == silent.cend()) {
+      return;
+    }
+
+    sourcemeta::core::set(
+        document, sourcemeta::core::to_pointer(pointer),
+        sourcemeta::core::JSON{
+            sourcemeta::core::to_uri(match->second).recompose()});
+  });
 
   return true;
 }
@@ -1178,6 +1206,11 @@ auto adopt_mappings(
     const SchemaResolver &schema_resolver, const JSON::StringView dialect,
     const OpenAPIBundleOptions &options) -> bool {
   bool changed{false};
+  // What this pass brought in. Whether a mapping that named it still lands is
+  // for the pass after to say, as a mapping may name a place within a schema
+  // rather than the whole of it, and such a place is only there to be found
+  // once the schema holding it is
+  std::set<JSON::String> fresh;
   for (const auto &entry : deferred) {
     const auto identifier{openapi_document_uri(entry.first)};
     // One schema answers for a mapping once, and bringing it in again would
@@ -1190,6 +1223,10 @@ auto adopt_mappings(
     // identifier count from there rather than from the document
     const auto previous{adopted.find(identifier)};
     if (previous != adopted.cend()) {
+      if (fresh.contains(identifier)) {
+        continue;
+      }
+
       for (const auto &pending : entry.second) {
         JSON named{pending.scope == base
                        ? to_uri(previous->second).recompose()
@@ -1239,6 +1276,7 @@ auto adopt_mappings(
                     identifier, options.namer)};
     const auto landed{embed(document, "schemas"sv, name, std::move(schema))};
     adopted.emplace(identifier, landed);
+    fresh.insert(identifier);
     if (options.callback) {
       options.callback(identifier, landed);
     }
@@ -1284,7 +1322,6 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
   // sits, that an operation requires a credential its own document never named
   OpenAPIWalk names;
   bool named{false};
-  bool schemas_bundled{false};
 
   while (true) {
     const auto walk{openapi_analyse(document, retrieval, remaining)};
@@ -1560,16 +1597,12 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
       // which nothing has read yet. So this goes round once more rather than
       // being the last thing that happens.
       //
-      // Once is all it takes, and all it may take. What a schema reaches for
-      // by reference came in alongside it, so only what a mapping names is
-      // left, and Section 4.8.24 lets a Schema Object be a boolean, which
-      // carries no keyword and so cannot be made to answer to the identifier
-      // it was found under. Asking for one of those a second time would land
-      // a second copy beside the first, and again after that
-      if (!schemas_bundled &&
-          bundle_schemas(document, walk, walker, schema_resolver, base,
+      // Going round again is safe as well as needed. Every schema that lands
+      // says who it is, and the one kind that cannot, a boolean, has whatever
+      // named it written out to name where it went, so a second pass finds
+      // nothing left outside to ask for rather than landing a second copy
+      if (bundle_schemas(document, walk, walker, schema_resolver, base,
                          remaining, options)) {
-        schemas_bundled = true;
         continue;
       }
 

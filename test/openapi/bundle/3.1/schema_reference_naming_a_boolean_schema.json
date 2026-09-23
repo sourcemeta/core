@@ -19,10 +19,32 @@
   "schemaResolver": {
     "https://example.com/schemas/any": true
   },
-  "error": {
-    "type": "OpenAPIReferenceError",
-    "message": "This reference must name a schema that can carry an identifier of its own",
-    "identifier": "https://example.com/schemas/any",
-    "location": "/components/schemas/https:~1~1example.com~1schemas~1any"
-  }
+  "result": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "schemas": {
+        "Foo": {
+          "$ref": "#/components/schemas/any"
+        },
+        "any": true
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/schemas/any",
+      "at": "/components/schemas/any"
+    }
+  ],
+  "reads": {},
+  "schemaReads": {
+    "https://example.com/schemas/any": 1
+  },
+  "standalone": true,
+  "relocatable": true
 }
