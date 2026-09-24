@@ -1402,6 +1402,63 @@ TEST(alias_mapping_value_on_the_same_line) {
   EXPECT_EQ(result.at("next"), sourcemeta::core::JSON{2});
 }
 
+TEST(anchored_key_after_an_empty_mapping_value) {
+  const std::string input{"a:\n  b:\n&x c: 1\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at("a").at("b"), sourcemeta::core::JSON{nullptr});
+  EXPECT_EQ(result.at("c"), sourcemeta::core::JSON{1});
+}
+
+TEST(tagged_key_after_an_empty_mapping_value) {
+  const std::string input{"a:\n  b:\n!!str c: 1\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at("a").at("b"), sourcemeta::core::JSON{nullptr});
+  EXPECT_EQ(result.at("c"), sourcemeta::core::JSON{1});
+}
+
+TEST(anchored_key_after_an_empty_subsequent_mapping_value) {
+  const std::string input{"a:\n  first: 1\n  b:\n&x c: 2\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at("a").at("b"), sourcemeta::core::JSON{nullptr});
+  EXPECT_EQ(result.at("c"), sourcemeta::core::JSON{2});
+}
+
+TEST(anchored_sibling_key_after_an_empty_mapping_value) {
+  const std::string input{"a:\n  b:\n  &x c: 1\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_EQ(result.at("a").size(), 2);
+  EXPECT_EQ(result.at("a").at("b"), sourcemeta::core::JSON{nullptr});
+  EXPECT_EQ(result.at("a").at("c"), sourcemeta::core::JSON{1});
+}
+
+TEST(anchored_key_after_a_mapping_value) {
+  const std::string input{"a:\n  b: v\n&x c: 1\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at("a").at("b"), sourcemeta::core::JSON{"v"});
+  EXPECT_EQ(result.at("c"), sourcemeta::core::JSON{1});
+}
+
+TEST(anchored_key_after_an_empty_alias_mapping_value) {
+  const std::string input{
+      "anchor: &a name\nmap:\n  first: 1\n  *a :\n&x next: 2\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result.size(), 3);
+  EXPECT_EQ(result.at("map").at("name"), sourcemeta::core::JSON{nullptr});
+  EXPECT_EQ(result.at("next"), sourcemeta::core::JSON{2});
+}
+
+TEST(unindented_sequence_still_starts_a_mapping_value) {
+  const std::string input{"a:\n- 1\n- 2\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result.at("a").size(), 2);
+  EXPECT_EQ(result.at("a").at(0), sourcemeta::core::JSON{1});
+}
+
 TEST(literal_block_scalar_trailing_more_indented_line) {
   const std::string input{"foo: |\n  x\n   "};
   const auto result{sourcemeta::core::parse_yaml(input)};
