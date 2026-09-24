@@ -936,3 +936,270 @@ TEST(lao_versus_tzu_with_one_line_of_context) {
             "+Deeper and more profound,\n"
             "+The door of all subtleties!\n");
 }
+
+TEST(line_writer_all_semantic_types) {
+  const auto result{sourcemeta::core::diff(
+      "same\nold", "same\nnew", sourcemeta::core::Diff::Mode::Line,
+      sourcemeta::core::Diff::Algorithm::Myers)};
+
+  std::ostringstream stream;
+  sourcemeta::core::stringify(
+      result, stream, sourcemeta::core::Diff::Format::Unified,
+      {.line_writer = [](std::ostream &output,
+                         const sourcemeta::core::Diff::FormatOptions::LineType
+                             type,
+                         const std::string_view prefix,
+                         const std::string_view content) {
+        const char *tag{"unknown"};
+        switch (type) {
+          case sourcemeta::core::Diff::FormatOptions::LineType::HeaderOriginal:
+            tag = "header-original";
+            break;
+          case sourcemeta::core::Diff::FormatOptions::LineType::HeaderModified:
+            tag = "header-modified";
+            break;
+          case sourcemeta::core::Diff::FormatOptions::LineType::Hunk:
+            tag = "hunk";
+            break;
+          case sourcemeta::core::Diff::FormatOptions::LineType::Context:
+            tag = "context";
+            break;
+          case sourcemeta::core::Diff::FormatOptions::LineType::Delete:
+            tag = "delete";
+            break;
+          case sourcemeta::core::Diff::FormatOptions::LineType::Insert:
+            tag = "insert";
+            break;
+          case sourcemeta::core::Diff::FormatOptions::LineType::NoNewline:
+            tag = "no-newline";
+            break;
+        }
+        output << "[" << tag << "]";
+        output.write(prefix.data(),
+                     static_cast<std::streamsize>(prefix.size()));
+        output.write(content.data(),
+                     static_cast<std::streamsize>(content.size()));
+        output << "[/" << tag << "]";
+      }});
+
+  EXPECT_EQ(stream.str(),
+            "[header-original]--- a[/header-original]\n"
+            "[header-modified]+++ b[/header-modified]\n"
+            "[hunk]@@ -1,2 +1,2 @@[/hunk]\n"
+            "[context] same[/context]\n"
+            "[delete]-old[/delete]\n"
+            "[no-newline]\\ No newline at end of file[/no-newline]\n"
+            "[insert]+new[/insert]\n"
+            "[no-newline]\\ No newline at end of file[/no-newline]\n");
+}
+
+TEST(line_writer_custom_labels) {
+  const auto result{
+      sourcemeta::core::diff("a\n", "b\n", sourcemeta::core::Diff::Mode::Line,
+                             sourcemeta::core::Diff::Algorithm::Myers)};
+
+  std::string orig_label;
+  std::string mod_label;
+  std::ostringstream stream;
+  sourcemeta::core::stringify(
+      result, stream, sourcemeta::core::Diff::Format::Unified,
+      {.original_label = "current",
+       .modified_label = "expected",
+       .line_writer = [&](std::ostream &output,
+                          const sourcemeta::core::Diff::FormatOptions::LineType
+                              type,
+                          const std::string_view prefix,
+                          const std::string_view content) {
+         if (type ==
+             sourcemeta::core::Diff::FormatOptions::LineType::HeaderOriginal) {
+           orig_label = content;
+         } else if (type == sourcemeta::core::Diff::FormatOptions::LineType::
+                                HeaderModified) {
+           mod_label = content;
+         }
+         output.write(prefix.data(),
+                      static_cast<std::streamsize>(prefix.size()));
+         output.write(content.data(),
+                      static_cast<std::streamsize>(content.size()));
+       }});
+
+  EXPECT_EQ(orig_label, "current");
+  EXPECT_EQ(mod_label, "expected");
+  EXPECT_EQ(stream.str(), "--- current\n"
+                          "+++ expected\n"
+                          "@@ -1 +1 @@\n"
+                          "-a\n"
+                          "+b\n");
+}
+
+TEST(line_writer_identical_documents) {
+  const auto result{sourcemeta::core::diff(
+      "same\ncontent\n", "same\ncontent\n", sourcemeta::core::Diff::Mode::Line,
+      sourcemeta::core::Diff::Algorithm::Myers)};
+
+  std::size_t call_count{0};
+  std::ostringstream stream;
+  sourcemeta::core::stringify(
+      result, stream, sourcemeta::core::Diff::Format::Unified,
+      {.line_writer =
+           [&call_count](std::ostream &output,
+                         const sourcemeta::core::Diff::FormatOptions::LineType,
+                         const std::string_view prefix,
+                         const std::string_view content) {
+             call_count += 1;
+             output.write(prefix.data(),
+                          static_cast<std::streamsize>(prefix.size()));
+             output.write(content.data(),
+                          static_cast<std::streamsize>(content.size()));
+           }});
+
+  EXPECT_EQ(call_count, 0);
+  EXPECT_EQ(stream.str(), "");
+}
+
+TEST(line_writer_multiple_hunks) {
+  const auto result{
+      sourcemeta::core::diff(LAO, TZU, sourcemeta::core::Diff::Mode::Line,
+                             sourcemeta::core::Diff::Algorithm::Myers)};
+
+  std::vector<std::string> hunk_contents;
+  std::ostringstream stream;
+  sourcemeta::core::stringify(
+      result, stream, sourcemeta::core::Diff::Format::Unified,
+      {.context = 0,
+       .line_writer =
+           [&hunk_contents](
+               std::ostream &output,
+               const sourcemeta::core::Diff::FormatOptions::LineType type,
+               const std::string_view prefix, const std::string_view content) {
+             if (type ==
+                 sourcemeta::core::Diff::FormatOptions::LineType::Hunk) {
+               hunk_contents.emplace_back(content);
+             }
+             output.write(prefix.data(),
+                          static_cast<std::streamsize>(prefix.size()));
+             output.write(content.data(),
+                          static_cast<std::streamsize>(content.size()));
+           }});
+
+  EXPECT_EQ(hunk_contents.size(), 3);
+  EXPECT_EQ(hunk_contents.at(0), "-1,2 +0,0 @@");
+  EXPECT_EQ(hunk_contents.at(1), "-4 +2,2 @@");
+  EXPECT_EQ(hunk_contents.at(2), "-11,0 +11,3 @@");
+}
+
+TEST(line_writer_no_newline_ordering) {
+  const auto result{sourcemeta::core::diff(
+      "first\nsecond", "first\nthird", sourcemeta::core::Diff::Mode::Line,
+      sourcemeta::core::Diff::Algorithm::Myers)};
+
+  std::vector<sourcemeta::core::Diff::FormatOptions::LineType> sequence;
+  std::ostringstream stream;
+  sourcemeta::core::stringify(
+      result, stream, sourcemeta::core::Diff::Format::Unified,
+      {.line_writer =
+           [&sequence](
+               std::ostream &output,
+               const sourcemeta::core::Diff::FormatOptions::LineType type,
+               const std::string_view prefix, const std::string_view content) {
+             sequence.push_back(type);
+             output.write(prefix.data(),
+                          static_cast<std::streamsize>(prefix.size()));
+             output.write(content.data(),
+                          static_cast<std::streamsize>(content.size()));
+           }});
+
+  EXPECT_EQ(sequence,
+            (std::vector<sourcemeta::core::Diff::FormatOptions::LineType>{
+                sourcemeta::core::Diff::FormatOptions::LineType::HeaderOriginal,
+                sourcemeta::core::Diff::FormatOptions::LineType::HeaderModified,
+                sourcemeta::core::Diff::FormatOptions::LineType::Hunk,
+                sourcemeta::core::Diff::FormatOptions::LineType::Context,
+                sourcemeta::core::Diff::FormatOptions::LineType::Delete,
+                sourcemeta::core::Diff::FormatOptions::LineType::NoNewline,
+                sourcemeta::core::Diff::FormatOptions::LineType::Insert,
+                sourcemeta::core::Diff::FormatOptions::LineType::NoNewline}));
+}
+
+TEST(line_writer_hunk_bypasses_stream_formatting) {
+  std::string original;
+  for (std::size_t i = 1; i <= 1500; ++i) {
+    original += "line " + std::to_string(i) + "\n";
+  }
+  std::string modified = original;
+  modified.insert(modified.find("line 1500\n"), "inserted line\n");
+
+  const auto result{sourcemeta::core::diff(
+      original, modified, sourcemeta::core::Diff::Mode::Line,
+      sourcemeta::core::Diff::Algorithm::Myers)};
+
+  std::string hunk_captured;
+  std::ostringstream stream;
+  stream.width(10);
+  stream.fill('*');
+
+  sourcemeta::core::stringify(
+      result, stream, sourcemeta::core::Diff::Format::Unified,
+      {.context = 1,
+       .line_writer =
+           [&hunk_captured](
+               std::ostream &output,
+               const sourcemeta::core::Diff::FormatOptions::LineType type,
+               const std::string_view prefix, const std::string_view content) {
+             if (type ==
+                 sourcemeta::core::Diff::FormatOptions::LineType::Hunk) {
+               hunk_captured = std::string(prefix) + std::string(content);
+             }
+             output.write(prefix.data(),
+                          static_cast<std::streamsize>(prefix.size()));
+             output.write(content.data(),
+                          static_cast<std::streamsize>(content.size()));
+           }});
+
+  EXPECT_EQ(hunk_captured, "@@ -1499,2 +1499,3 @@");
+  EXPECT_EQ(hunk_captured.find('*'), std::string::npos);
+}
+
+TEST(line_writer_embedded_null_length_safe) {
+  const std::string_view orig{"before\0after\n", 13};
+  const std::string_view mod{"before\0changed\n", 15};
+
+  const auto result{
+      sourcemeta::core::diff(orig, mod, sourcemeta::core::Diff::Mode::Line,
+                             sourcemeta::core::Diff::Algorithm::Myers)};
+
+  std::size_t del_content_len{0};
+  std::size_t ins_content_len{0};
+  std::ostringstream stream;
+
+  sourcemeta::core::stringify(
+      result, stream, sourcemeta::core::Diff::Format::Unified,
+      {.line_writer = [&](std::ostream &output,
+                          const sourcemeta::core::Diff::FormatOptions::LineType
+                              type,
+                          const std::string_view prefix,
+                          const std::string_view content) {
+        if (type == sourcemeta::core::Diff::FormatOptions::LineType::Delete) {
+          del_content_len = content.size();
+        } else if (type ==
+                   sourcemeta::core::Diff::FormatOptions::LineType::Insert) {
+          ins_content_len = content.size();
+        }
+        output.write(prefix.data(),
+                     static_cast<std::streamsize>(prefix.size()));
+        output.write(content.data(),
+                     static_cast<std::streamsize>(content.size()));
+      }});
+
+  EXPECT_EQ(del_content_len, 12);
+  EXPECT_EQ(ins_content_len, 14);
+  std::string expected{"--- a\n"
+                       "+++ b\n"
+                       "@@ -1 +1 @@\n"
+                       "-before"};
+  expected.push_back('\0');
+  expected += "after\n+before";
+  expected.push_back('\0');
+  expected += "changed\n";
+  EXPECT_EQ(stream.str(), expected);
+}
