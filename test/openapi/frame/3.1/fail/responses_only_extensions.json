@@ -16,7 +16,7 @@
     }
   },
   "error": {
-    "message": "The Responses Object must declare a default or a status code",
+    "message": "The Responses Object must declare a status code or a default",
     "location": "/paths/~1pets/get/responses"
   }
 }

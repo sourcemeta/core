@@ -27,7 +27,7 @@ const std::set<std::string> KNOWN_DIVERGENCES{
     // A `path` parameter with a `content` and no `required`. Section 4.8.12
     // requires that field of every `path` parameter, while the meta-schema
     // only asks for it alongside a `schema`
-    "style_defaults",
+    "3_1:style_defaults",
     // `/pets/{id}` under a parameter named `petId`. Section 3.5 has each
     // template expression "correspond to a path parameter", and Section
     // 4.8.12 has such a parameter correspond to a template expression back
@@ -71,14 +71,14 @@ const std::set<std::string> META_SCHEMA_ONLY{
 // it. This module locates Schema Objects and hands them off, so a rule about
 // what one holds is for whatever reads inside one to enforce
 const std::set<std::string> SCHEMA_OBJECT_INTERIOR{
-    // Section 4.29 says of the XML Object `attribute` and of `wrapped` alike:
+    // Section 4.26 says of the XML Object `attribute` and of `wrapped` alike:
     // "If `nodeType` is present, this field MUST NOT be present". Both are
     // keywords of the dialect this specification publishes, which is where
     // that rule is written down and where it is checked
     "3_2:xml_attr_exclusion", "3_2:xml_wrapped_exclusion"};
 
 // A description names the dialect its Schema Objects are written against, and
-// Section 4.8.24.1 asks only that the name "be in the form of a URI". These
+// Section 4.8.1.1 asks only that the name "be in the form of a URI". These
 // name one that was never published, as an OpenAPI schema spells its own
 // identifier with a WORK-IN-PROGRESS placeholder until the day it goes out
 // under a date. Such a description is valid and framing the shell of it holds

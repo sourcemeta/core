@@ -22,10 +22,11 @@ namespace {
 // otherwise go unnoticed, as the runner would simply not read it
 // NOLINTBEGIN(cert-err58-cpp,bugprone-throwing-static-initialization)
 const std::vector<std::string> KNOWN_KEYS{
-    "document",     "defaultBase", "openapiResolver", "schemaResolver",
-    "maxLocations", "namer",       "result",          "inserted",
-    "named",        "reads",       "schemaReads",     "standalone",
-    "relocatable",  "error"};
+    "document",       "defaultBase",  "openapiResolver",
+    "schemaResolver", "maxLocations", "namer",
+    "result",         "inserted",     "named",
+    "reads",          "schemaReads",  "standalone",
+    "relocatable",    "operations",   "error"};
 
 // Every key an entry of what bundling reported embedding may declare
 const std::vector<std::string> KNOWN_INSERTION_KEYS{"from", "at"};
@@ -37,10 +38,13 @@ const std::vector<std::string> KNOWN_NAMING_KEYS{"from", "container"};
 // Every exception that bundling throws, named after the class itself so that a
 // fixture states which one it means rather than leaving the runner to guess
 // from the fields that happen to be there
-const std::vector<std::string> KNOWN_ERROR_TYPES{
-    "OpenAPIError",          "OpenAPIResolutionError",
-    "OpenAPIReferenceError", "OpenAPIBundleLimitError",
-    "SchemaResolutionError", "SchemaAnchorCollisionError"};
+const std::vector<std::string> KNOWN_ERROR_TYPES{"OpenAPIError",
+                                                 "OpenAPIResolutionError",
+                                                 "OpenAPIReferenceError",
+                                                 "OpenAPIBundleLimitError",
+                                                 "SchemaResolutionError",
+                                                 "SchemaAnchorCollisionError",
+                                                 "SchemaError"};
 
 const std::vector<std::string> KNOWN_ERROR_KEYS{
     "type", "message", "location", "base", "identifier", "limit", "other"};
@@ -240,13 +244,14 @@ auto check_shape(const sourcemeta::core::JSON &test, const std::string &corpus)
     EXPECT_TRUE(std::ranges::find(KNOWN_ERROR_TYPES, type) !=
                 KNOWN_ERROR_TYPES.cend());
     EXPECT_TRUE(error.defines("message"));
-    // Only a refusal that names a place in the description carries one, and
-    // running out of an allowance is a property of the whole of it
-    // Running out of an allowance is a property of the whole description, and
-    // what a Schema Object reaches for is a place a JSON Schema implementation
-    // names by its identifier rather than by where it sits
+    // Only a refusal that names a place in the description carries one.
+    // Running out of an allowance is a property of the whole description, what
+    // a Schema Object reaches for is a place a JSON Schema implementation
+    // names by its identifier rather than by where it sits, and two schemas
+    // answering to one identifier name no single place either
     EXPECT_EQ(error.defines("location"), type != "OpenAPIBundleLimitError" &&
-                                             type != "SchemaResolutionError");
+                                             type != "SchemaResolutionError" &&
+                                             type != "SchemaError");
     EXPECT_EQ(error.defines("identifier"),
               type == "OpenAPIResolutionError" ||
                   type == "OpenAPIReferenceError" ||
@@ -322,6 +327,18 @@ auto run_pass_test(const sourcemeta::core::JSON &test) -> void {
   const sourcemeta::core::OpenAPIFrame frame{
       result, sourcemeta::core::schema_walker, schema_resolver, base};
   EXPECT_EQ(frame.standalone(), test.at("standalone").to_boolean());
+
+  // What a description exposes is what it is for, and everything else here
+  // asks after the shape of the result rather than after that. Two Objects
+  // that bundling moves can leave every reference resolving and still leave an
+  // operation with other parameters in force, other servers to reach it at,
+  // another credential to present, or a tag it never carried. Section 4.1.2.3
+  // is what makes the last of those reachable without the reference touching
+  // the operation at all, as a name there resolves from the entry document and
+  // bundling is what fills it
+  if (test.defines("operations")) {
+    EXPECT_EQ(frame.to_json().at("operations"), test.at("operations"));
+  }
 
   // And one that goes on holding it wherever it is kept. Section 4.6 settles a
   // relative reference against a base that "is usually the retrieval URI of
@@ -419,6 +436,18 @@ auto run_fail_test(const sourcemeta::core::JSON &test) -> void {
       // Schema implementation can produce, which only the identifier says
       EXPECT_EQ(error.what(), expected.at("message").to_string());
       EXPECT_EQ(error.identifier(), expected.at("identifier").to_string());
+    }
+  } else if (type == "SchemaError") {
+    try {
+      [[maybe_unused]] const auto result{sourcemeta::core::openapi_bundle(
+          test.at("document"), sourcemeta::core::schema_walker, schema_resolver,
+          resolver, options)};
+      FAIL();
+    } catch (const sourcemeta::core::SchemaError &error) {
+      // Two schemas answering to one identifier, which carries nothing beyond
+      // what it says, as neither copy is more the owner of the name than the
+      // other
+      EXPECT_EQ(error.what(), expected.at("message").to_string());
     }
   } else if (type == "SchemaAnchorCollisionError") {
     try {

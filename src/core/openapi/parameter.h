@@ -69,6 +69,26 @@ constexpr std::array<JSON::StringView, 9>
         {"name"sv, "in"sv, "description"sv, "required"sv, "deprecated"sv,
          "content"sv, "allowEmptyValue"sv, "example"sv, "examples"sv}};
 
+// Section 4.12.2.1 holds `allowEmptyValue` among the fields that "MAY be used
+// with either `content` or `schema`" and restricts it in its own Description
+// cell alone: "This field is valid only for `query` parameters". So a
+// parameter elsewhere writing it writes a field this Object defines rather
+// than one it does not, which is a different thing to be turned down for
+constexpr std::array<JSON::StringView, 1>
+    OPENAPI_PARAMETER_INAPPLICABLE_COMMON_FIELDS{{"allowEmptyValue"sv}};
+
+// Section 4.12.2.2 holds `allowReserved` among the fields for use with
+// `schema` and restricts it the same way: "This field only applies to `in`
+// and `style` values that automatically percent-encode". 3.1 restricts the
+// same field to `query` alone. A `content` form reaches neither field table,
+// so this stands for the `schema` form where both fields are written down
+constexpr std::array<JSON::StringView, 2>
+    OPENAPI_PARAMETER_INAPPLICABLE_SCHEMA_FIELDS{
+        {"allowEmptyValue"sv, "allowReserved"sv}};
+
+constexpr auto OPENAPI_PARAMETER_INAPPLICABLE_MESSAGE{
+    "The Parameter Object does not admit this field as declared"};
+
 // Section 4.12 scopes `allowReserved` to the locations that percent-encode of
 // their own accord. A query parameter has a field table of its own, so what is
 // asked here is whether one of the other two locations is such a place, and a
@@ -162,7 +182,9 @@ inline auto openapi_check_parameter(const JSON &value, const Pointer &base,
       openapi_reject_unknown_fields(
           value, OPENAPI_PARAMETER_CONTENT_FIELDS_3_1,
           OPENAPI_PARAMETER_CONTENT_FIELDS_3_2, base,
-          "The Parameter Object does not define this field", walk);
+          "The Parameter Object does not define this field", walk,
+          OPENAPI_PARAMETER_INAPPLICABLE_COMMON_FIELDS,
+          OPENAPI_PARAMETER_INAPPLICABLE_MESSAGE);
     }
   } else if (in_query) {
     openapi_reject_unknown_fields(
@@ -172,11 +194,15 @@ inline auto openapi_check_parameter(const JSON &value, const Pointer &base,
              openapi_parameter_admits_reserved(parameter_location, value)) {
     openapi_reject_unknown_fields(
         value, OPENAPI_PARAMETER_RESERVED_SCHEMA_FIELDS_3_2, base,
-        "The Parameter Object does not define this field");
+        "The Parameter Object does not define this field",
+        OPENAPI_PARAMETER_INAPPLICABLE_COMMON_FIELDS,
+        OPENAPI_PARAMETER_INAPPLICABLE_MESSAGE);
   } else {
     openapi_reject_unknown_fields(
         value, OPENAPI_PARAMETER_SCHEMA_FIELDS, base,
-        "The Parameter Object does not define this field");
+        "The Parameter Object does not define this field",
+        OPENAPI_PARAMETER_INAPPLICABLE_SCHEMA_FIELDS,
+        OPENAPI_PARAMETER_INAPPLICABLE_MESSAGE);
   }
 
   openapi_check_optional_string(
@@ -208,12 +234,20 @@ inline auto openapi_check_parameter(const JSON &value, const Pointer &base,
                          "A path Parameter Object must be required"};
     }
 
-    // OpenAPI Specification 3.1.1, Section 4.8.12: "If `in` is `"path"`, the
-    // `name` field MUST correspond to a template expression occurring within
-    // the path field in the Paths Object", and a template expression is
-    // delimited by braces, so its name can hold neither
-    if (parameter_name.find('{') != JSON::StringView::npos ||
-        parameter_name.find('}') != JSON::StringView::npos) {
+    // OpenAPI Specification 3.2.1, Section 4.12.2.1 has such a name "correspond
+    // to a single template expression occurring within the path field in the
+    // Paths Object", and Section 4.8.2 writes out what one may hold:
+    // "template-expression-param-name = 1*( %x00-7A / %x7C / %x7E-10FFFF ) ;
+    // every Unicode character except { and }". No revision of 3.1 carries that
+    // grammar, and all 3.1.1 Section 3.5 says of the shape is "template
+    // expressions, delimited by curly braces", which leaves a brace within a
+    // name to whatever reads the path. Holding a 3.1 document to this would
+    // also leave it nothing to declare, as the expression of `/a/{x{y}` reads
+    // as `x{y` there and the correspondence below would then ask for the very
+    // name this turns down
+    if (walk.version == OpenAPIVersion::OPENAPI_3_2 &&
+        (parameter_name.find('{') != JSON::StringView::npos ||
+         parameter_name.find('}') != JSON::StringView::npos)) {
       throw OpenAPIError{openapi_child(base, "name"sv),
                          "A path Parameter Object name must not hold braces"};
     }
@@ -257,11 +291,22 @@ inline auto openapi_check_parameter(const JSON &value, const Pointer &base,
   openapi_expect_schema(*schema, openapi_child(base, "schema"sv),
                         "A Schema Object must be an object or a boolean", walk);
 
-  // OpenAPI Specification 3.1.1, Section 4.8.12 lists the styles each location
-  // admits, and the meta-schema enumerates them per location
+  // OpenAPI Specification 3.2.1, Section 4.12.3 lists the styles each location
+  // admits and closes the table: "Combinations not represented in this table
+  // are not permitted". No revision of 3.1 carries that sentence, and Section
+  // 4.1 makes a revision the `major`.`minor` pair, so what 3.2 added is no rule
+  // over a document that declares 3.1. Such a document is held to writing a
+  // style this specification defines, and to nothing further
   const auto *style{value.try_at("style", OPENAPI_HASH_STYLE)};
   if (style != nullptr) {
-    if (parameter_location == "path"sv) {
+    if (walk.version != OpenAPIVersion::OPENAPI_3_2) {
+      openapi_expect_enumeration(
+          *style, base, "style"sv,
+          {"matrix"sv, "label"sv, "simple"sv, "form"sv, "spaceDelimited"sv,
+           "pipeDelimited"sv, "deepObject"sv},
+          "The Parameter Object style must be a string",
+          "The Parameter Object style is not one this specification defines");
+    } else if (parameter_location == "path"sv) {
       openapi_expect_enumeration(
           *style, base, "style"sv, {"matrix"sv, "label"sv, "simple"sv},
           "The Parameter Object style must be a string",
@@ -277,18 +322,11 @@ inline auto openapi_check_parameter(const JSON &value, const Pointer &base,
           {"form"sv, "spaceDelimited"sv, "pipeDelimited"sv, "deepObject"sv},
           "The Parameter Object style must be a string",
           "The Parameter Object style is not one a query parameter admits");
-    } else if (walk.version == OpenAPIVersion::OPENAPI_3_2) {
-      // OpenAPI Specification 3.2.1, Section 4.12.3 adds a `cookie` style,
-      // "analogous to `form`, but following RFC6265 `Cookie` syntax rules",
-      // and the same table now states that "combinations not represented in
-      // this table are not permitted"
+    } else {
+      // Section 4.12.3 adds a `cookie` style, "analogous to `form`, but
+      // following RFC6265 `Cookie` syntax rules"
       openapi_expect_enumeration(
           *style, base, "style"sv, {"form"sv, "cookie"sv},
-          "The Parameter Object style must be a string",
-          "The Parameter Object style is not one a cookie parameter admits");
-    } else {
-      openapi_expect_enumeration(
-          *style, base, "style"sv, {"form"sv},
           "The Parameter Object style must be a string",
           "The Parameter Object style is not one a cookie parameter admits");
     }

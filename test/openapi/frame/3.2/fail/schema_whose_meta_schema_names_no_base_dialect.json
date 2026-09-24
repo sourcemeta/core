@@ -1,0 +1,39 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/a": {
+        "get": {
+          "parameters": [
+            {
+              "name": "x",
+              "in": "query",
+              "schema": {
+                "$schema": "https://example.com/meta2",
+                "type": "string"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "ok"
+            }
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {
+    "https://example.com/meta2": {
+      "$id": "https://example.com/meta2",
+      "type": "object"
+    }
+  },
+  "error": {
+    "message": "Could not determine the base dialect of the schema"
+  }
+}

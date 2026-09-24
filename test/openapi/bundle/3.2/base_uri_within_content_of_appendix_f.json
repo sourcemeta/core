@@ -128,5 +128,18 @@
   },
   "schemaReads": {},
   "standalone": true,
-  "relocatable": true
+  "relocatable": true,
+  "operations": [
+    {
+      "type": "path",
+      "path": "/foo",
+      "method": "post",
+      "origin": "https://example.com/api/openapi#/paths/~1foo/post",
+      "endpoint": "https://example.com/api/openapi#/paths/~1foo",
+      "tags": [],
+      "servers": [],
+      "security": [],
+      "parameters": []
+    }
+  ]
 }

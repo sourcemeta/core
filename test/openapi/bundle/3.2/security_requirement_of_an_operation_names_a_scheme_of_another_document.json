@@ -83,5 +83,20 @@
   },
   "schemaReads": {},
   "standalone": true,
-  "relocatable": true
+  "relocatable": true,
+  "operations": [
+    {
+      "type": "path",
+      "path": "/foo",
+      "method": "get",
+      "origin": "https://example.com/openapi.json#/paths/~1foo/get",
+      "endpoint": "https://example.com/openapi.json#/paths/~1foo",
+      "tags": [],
+      "servers": [],
+      "security": [
+        "https://example.com/openapi.json#/paths/~1foo/get/security/0"
+      ],
+      "parameters": []
+    }
+  ]
 }

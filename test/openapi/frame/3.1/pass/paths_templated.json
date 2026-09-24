@@ -18,6 +18,9 @@
       "/{entity}/me": {
         "get": {
           "responses": {
+            "200": {
+              "description": "ok"
+            },
             "default": {
               "description": "ok"
             }
@@ -154,6 +157,11 @@
         "type": "responses",
         "pointer": "/paths/~1{entity}~1me/get/responses",
         "parent": "#/paths/~1%7Bentity%7D~1me/get"
+      },
+      "#/paths/~1%7Bentity%7D~1me/get/responses/200": {
+        "type": "response",
+        "pointer": "/paths/~1{entity}~1me/get/responses/200",
+        "parent": "#/paths/~1%7Bentity%7D~1me/get/responses"
       },
       "#/paths/~1%7Bentity%7D~1me/get/responses/default": {
         "type": "response",

@@ -1,0 +1,208 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets/{petId}": {
+        "$ref": "#/components/pathItems/A"
+      }
+    },
+    "components": {
+      "pathItems": {
+        "A": {
+          "$ref": "#/components/pathItems/B",
+          "parameters": [
+            {
+              "name": "petId",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "post": {
+            "responses": {
+              "200": {
+                "description": "from the middle"
+              }
+            }
+          }
+        },
+        "B": {
+          "get": {
+            "responses": {
+              "200": {
+                "description": "from the end"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "frame": {
+    "version": "3.2",
+    "base": "",
+    "standalone": true,
+    "schemas": {
+      "mode": "references",
+      "locations": {
+        "static": {
+          "#/components/pathItems/A/parameters/0/schema": {
+            "parent": null,
+            "type": "subschema",
+            "root": null,
+            "base": "",
+            "pointer": "/components/pathItems/A/parameters/0/schema",
+            "relativePointer": "/components/pathItems/A/parameters/0/schema",
+            "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17",
+            "baseDialect": "https://json-schema.org/draft/2020-12/schema",
+            "propertyName": false,
+            "orphan": false,
+            "hasReferencesTo": false,
+            "hasReferencesThrough": false,
+            "vocabularies": {
+              "https://json-schema.org/draft/2020-12/vocab/core": true,
+              "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+              "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
+              "https://json-schema.org/draft/2020-12/vocab/validation": true,
+              "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
+              "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
+              "https://json-schema.org/draft/2020-12/vocab/content": true,
+              "https://spec.openapis.org/oas/3.2/vocab/base": false
+            }
+          }
+        },
+        "dynamic": {}
+      },
+      "references": []
+    },
+    "info": {
+      "title": "Example",
+      "version": "1.0.0",
+      "summary": null,
+      "description": null,
+      "termsOfService": null,
+      "contact": null,
+      "license": null
+    },
+    "locations": {
+      "": {
+        "type": "openapi",
+        "pointer": "",
+        "parent": null,
+        "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17"
+      },
+      "#/components": {
+        "type": "components",
+        "pointer": "/components",
+        "parent": ""
+      },
+      "#/components/pathItems/A": {
+        "type": "path-item",
+        "pointer": "/components/pathItems/A",
+        "parent": "#/components",
+        "original": "#/components/pathItems/B",
+        "destination": "#/components/pathItems/B",
+        "dangling": false
+      },
+      "#/components/pathItems/A/parameters/0": {
+        "type": "parameter",
+        "pointer": "/components/pathItems/A/parameters/0",
+        "parent": "#/components/pathItems/A"
+      },
+      "#/components/pathItems/A/parameters/0/schema": {
+        "type": "schema",
+        "pointer": "/components/pathItems/A/parameters/0/schema",
+        "parent": "#/components/pathItems/A/parameters/0",
+        "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17",
+        "base": ""
+      },
+      "#/components/pathItems/A/post": {
+        "type": "operation",
+        "pointer": "/components/pathItems/A/post",
+        "parent": "#/components/pathItems/A"
+      },
+      "#/components/pathItems/A/post/responses": {
+        "type": "responses",
+        "pointer": "/components/pathItems/A/post/responses",
+        "parent": "#/components/pathItems/A/post"
+      },
+      "#/components/pathItems/A/post/responses/200": {
+        "type": "response",
+        "pointer": "/components/pathItems/A/post/responses/200",
+        "parent": "#/components/pathItems/A/post/responses"
+      },
+      "#/components/pathItems/B": {
+        "type": "path-item",
+        "pointer": "/components/pathItems/B",
+        "parent": "#/components"
+      },
+      "#/components/pathItems/B/get": {
+        "type": "operation",
+        "pointer": "/components/pathItems/B/get",
+        "parent": "#/components/pathItems/B"
+      },
+      "#/components/pathItems/B/get/responses": {
+        "type": "responses",
+        "pointer": "/components/pathItems/B/get/responses",
+        "parent": "#/components/pathItems/B/get"
+      },
+      "#/components/pathItems/B/get/responses/200": {
+        "type": "response",
+        "pointer": "/components/pathItems/B/get/responses/200",
+        "parent": "#/components/pathItems/B/get/responses"
+      },
+      "#/info": {
+        "type": "info",
+        "pointer": "/info",
+        "parent": ""
+      },
+      "#/paths": {
+        "type": "paths",
+        "pointer": "/paths",
+        "parent": ""
+      },
+      "#/paths/~1pets~1%7BpetId%7D": {
+        "type": "path-item",
+        "pointer": "/paths/~1pets~1{petId}",
+        "parent": "#/paths",
+        "original": "#/components/pathItems/A",
+        "destination": "#/components/pathItems/A",
+        "dangling": false
+      }
+    },
+    "operations": [
+      {
+        "type": "path",
+        "path": "/pets/{petId}",
+        "method": "get",
+        "origin": "#/components/pathItems/B/get",
+        "endpoint": "#/paths/~1pets~1%7BpetId%7D",
+        "tags": [],
+        "servers": [],
+        "security": [],
+        "parameters": [
+          "#/components/pathItems/A/parameters/0"
+        ]
+      },
+      {
+        "type": "path",
+        "path": "/pets/{petId}",
+        "method": "post",
+        "origin": "#/components/pathItems/A/post",
+        "endpoint": "#/paths/~1pets~1%7BpetId%7D",
+        "tags": [],
+        "servers": [],
+        "security": [],
+        "parameters": [
+          "#/components/pathItems/A/parameters/0"
+        ]
+      }
+    ]
+  }
+}

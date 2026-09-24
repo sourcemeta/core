@@ -153,6 +153,7 @@
         "method": "post",
         "origin": "https://example.com/openapi.json#/components/callbacks/OnData/%7B$request.body%23~1url%7D/post",
         "endpoint": "https://example.com/openapi.json#/components/callbacks/OnData/%7B$request.body%23~1url%7D",
+        "parent": "https://example.com/openapi.json#/paths/~1pets/get",
         "tags": [],
         "servers": [],
         "security": [],

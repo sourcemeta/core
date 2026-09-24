@@ -96,6 +96,18 @@
         "parent": "#/paths/~1pets/get/responses"
       }
     },
-    "operations": []
+    "operations": [
+      {
+        "type": "path",
+        "path": "/pets",
+        "method": "get",
+        "origin": "#/paths/~1pets/get",
+        "endpoint": "#/paths/~1pets",
+        "tags": [],
+        "servers": [],
+        "security": [],
+        "parameters": []
+      }
+    ]
   }
 }

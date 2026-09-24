@@ -105,5 +105,21 @@
   },
   "schemaReads": {},
   "standalone": true,
-  "relocatable": true
+  "relocatable": true,
+  "operations": [
+    {
+      "type": "path",
+      "path": "/pets",
+      "method": "get",
+      "origin": "https://example.com/openapi.json#/components/pathItems/pets/get",
+      "endpoint": "https://example.com/openapi.json#/paths/~1pets",
+      "tags": [],
+      "servers": [
+        "https://example.com/openapi.json#/components/pathItems/pets/servers/0",
+        "https://example.com/openapi.json#/components/pathItems/pets/servers/1"
+      ],
+      "security": [],
+      "parameters": []
+    }
+  ]
 }

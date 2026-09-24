@@ -89,5 +89,29 @@
   },
   "schemaReads": {},
   "standalone": true,
-  "relocatable": true
+  "relocatable": true,
+  "operations": [
+    {
+      "type": "path",
+      "path": "/pets",
+      "method": "get",
+      "origin": "https://example.com/openapi.json#/paths/~1pets/get",
+      "endpoint": "https://example.com/openapi.json#/paths/~1pets",
+      "tags": [],
+      "servers": [],
+      "security": [],
+      "parameters": []
+    },
+    {
+      "type": "path",
+      "path": "/owners",
+      "method": "get",
+      "origin": "https://example.com/openapi.json#/paths/~1owners/get",
+      "endpoint": "https://example.com/openapi.json#/paths/~1owners",
+      "tags": [],
+      "servers": [],
+      "security": [],
+      "parameters": []
+    }
+  ]
 }

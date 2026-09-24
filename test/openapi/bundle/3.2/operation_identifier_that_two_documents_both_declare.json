@@ -1,0 +1,163 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/local": {
+        "get": {
+          "responses": {
+            "200": {
+              "description": "ok",
+              "links": {
+                "next": {
+                  "operationId": "list"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "responses": {
+        "A": {
+          "$ref": "https://example.com/alpha.json#/components/responses/Ralpha"
+        },
+        "B": {
+          "$ref": "https://example.com/beta.json#/components/responses/Rbeta"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/alpha.json": {
+      "openapi": "3.2.0",
+      "info": {
+        "title": "alpha",
+        "version": "1.0.0"
+      },
+      "components": {
+        "responses": {
+          "Ralpha": {
+            "description": "alpha"
+          }
+        },
+        "pathItems": {
+          "Alpha": {
+            "get": {
+              "operationId": "list",
+              "responses": {
+                "200": {
+                  "description": "from alpha"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "https://example.com/beta.json": {
+      "openapi": "3.2.0",
+      "info": {
+        "title": "beta",
+        "version": "1.0.0"
+      },
+      "components": {
+        "responses": {
+          "Rbeta": {
+            "description": "beta"
+          }
+        },
+        "pathItems": {
+          "Beta": {
+            "get": {
+              "operationId": "list",
+              "responses": {
+                "200": {
+                  "description": "from beta"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/local": {
+        "get": {
+          "responses": {
+            "200": {
+              "description": "ok",
+              "links": {
+                "next": {
+                  "operationId": "list"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "responses": {
+        "A": {
+          "$ref": "#/components/responses/Ralpha"
+        },
+        "B": {
+          "$ref": "#/components/responses/Rbeta"
+        },
+        "Ralpha": {
+          "description": "alpha"
+        },
+        "Rbeta": {
+          "description": "beta"
+        }
+      },
+      "pathItems": {
+        "Alpha": {
+          "get": {
+            "operationId": "list",
+            "responses": {
+              "200": {
+                "description": "from alpha"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/alpha.json#/components/responses/Ralpha",
+      "at": "/components/responses/Ralpha"
+    },
+    {
+      "from": "https://example.com/beta.json#/components/responses/Rbeta",
+      "at": "/components/responses/Rbeta"
+    },
+    {
+      "from": "https://example.com/alpha.json#/components/pathItems/Alpha",
+      "at": "/components/pathItems/Alpha"
+    }
+  ],
+  "reads": {
+    "https://example.com/alpha.json": 1,
+    "https://example.com/beta.json": 1
+  },
+  "schemaReads": {},
+  "standalone": true,
+  "relocatable": true
+}

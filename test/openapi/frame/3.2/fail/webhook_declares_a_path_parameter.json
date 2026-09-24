@@ -1,0 +1,34 @@
+{
+  "document": {
+    "openapi": "3.2.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "webhooks": {
+      "onEvent": {
+        "post": {
+          "parameters": [
+            {
+              "name": "petId",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "ok"
+            }
+          }
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "A path Parameter Object must name a template expression of a path that exposes it",
+    "location": "/webhooks/onEvent/post/parameters/0"
+  }
+}

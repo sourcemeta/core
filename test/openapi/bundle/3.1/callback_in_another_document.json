@@ -97,5 +97,30 @@
   },
   "schemaReads": {},
   "standalone": true,
-  "relocatable": true
+  "relocatable": true,
+  "operations": [
+    {
+      "type": "path",
+      "path": "/pets",
+      "method": "get",
+      "origin": "https://example.com/openapi.json#/paths/~1pets/get",
+      "endpoint": "https://example.com/openapi.json#/paths/~1pets",
+      "tags": [],
+      "servers": [],
+      "security": [],
+      "parameters": []
+    },
+    {
+      "type": "callback",
+      "path": "{$request.body#/url}",
+      "method": "post",
+      "origin": "https://example.com/openapi.json#/components/callbacks/OnEvent/%7B$request.body%23~1url%7D/post",
+      "endpoint": "https://example.com/openapi.json#/components/callbacks/OnEvent/%7B$request.body%23~1url%7D",
+      "parent": "https://example.com/openapi.json#/paths/~1pets/get",
+      "tags": [],
+      "servers": [],
+      "security": [],
+      "parameters": []
+    }
+  ]
 }

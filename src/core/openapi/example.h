@@ -110,8 +110,8 @@ inline auto openapi_check_example_or_reference(const JSON &value,
 }
 
 // The Parameter, Media Type and Header Objects all carry this pair, and all
-// three state that "The `example` field is mutually exclusive of the
-// `examples` field"
+// three state that "The `example` and `examples` fields are mutually
+// exclusive"
 inline auto openapi_check_examples(const JSON &value, const Pointer &base,
                                    const char *exclusive_message,
                                    const char *type_message, OpenAPIWalk &walk)

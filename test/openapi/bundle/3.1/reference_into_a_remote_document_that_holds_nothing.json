@@ -29,9 +29,10 @@
   },
   "schemaResolver": {},
   "error": {
-    "type": "OpenAPIError",
-    "message": "The OpenAPI Description must declare paths, components or webhooks",
-    "location": "",
-    "base": "https://example.com/shared.json"
+    "type": "OpenAPIReferenceError",
+    "message": "This reference must name an Object of the kind that the position it sits in expects",
+    "identifier": "https://example.com/shared.json#/components/responses/NotFound",
+    "location": "/paths/~1pets/get/responses/404/$ref",
+    "base": "https://example.com/openapi.json"
   }
 }

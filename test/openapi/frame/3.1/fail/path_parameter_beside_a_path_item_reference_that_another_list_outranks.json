@@ -1,0 +1,56 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets/{petId}": {
+        "$ref": "#/components/pathItems/Pets"
+      }
+    },
+    "webhooks": {
+      "onPet": {
+        "$ref": "#/components/pathItems/Pets",
+        "parameters": [
+          {
+            "name": "unexposed",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "components": {
+      "pathItems": {
+        "Pets": {
+          "parameters": [
+            {
+              "name": "petId",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "get": {
+            "responses": {
+              "200": {
+                "description": "ok"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "A path Parameter Object must name a template expression of a path that exposes it",
+    "location": "/webhooks/onPet/parameters/0"
+  }
+}

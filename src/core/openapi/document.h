@@ -44,7 +44,15 @@ constexpr auto OPENAPI_DIALECT_3_1{
 // URI instead: it "is identified by the URI of the form
 // `https://spec.openapis.org/oas/3.2/dialect/YYYY-MM-DD` [...] see the list of
 // current schemas for the specific URI". One date is published for 3.2, and it
-// is the one this repository already resolves
+// is the one this repository already resolves.
+//
+// A document that declares 3.2.0 gets this one as well, although that patch
+// reads "identified by the URI
+// `https://spec.openapis.org/oas/3.1/dialect/base`" and so names the dialect of
+// the revision before it. Section 2.1 makes a revision the `major`.`minor` pair
+// alone, so what a later patch of one says is what the whole of it says, and
+// the earlier wording is a mistake that patch corrects rather than a rule of
+// its own
 constexpr auto OPENAPI_DIALECT_3_2{
     "https://spec.openapis.org/oas/3.2/dialect/2025-09-17"sv};
 
@@ -408,9 +416,19 @@ inline auto openapi_check_document(const JSON &document, OpenAPIWalk &walk)
       openapi_collect_tags(document, walk);
     }
 
-    // Section 3.1: an OpenAPI Description "MUST contain at least one paths
-    // field, components field, or webhooks field"
-    if (document.try_at("paths", OPENAPI_HASH_PATHS) == nullptr &&
+    // OpenAPI Specification 3.2.1, Section 4.1 binds every document that holds
+    // an OpenAPI Object: "In addition to the required fields, at least one of
+    // the `components`, `paths`, or `webhooks` fields MUST be present".
+    //
+    // 3.1.1, Section 3.1 binds the description instead, and names what it is
+    // made of while doing so: "An OpenAPI Description (OAD) [...] is composed
+    // of an entry document [...] and any/all of its referenced documents [...]
+    // and MUST contain at least one `paths` field, `components` field, or
+    // `webhooks` field". 3.1.0 asked it of a document and 3.1.1 moved the
+    // subject, so a document of that revision that another one reaches is free
+    // to hold none of the three as long as the description holds one
+    if ((!walk.referenced || walk.version == OpenAPIVersion::OPENAPI_3_2) &&
+        document.try_at("paths", OPENAPI_HASH_PATHS) == nullptr &&
         document.try_at("components", OPENAPI_HASH_COMPONENTS) == nullptr &&
         document.try_at("webhooks", OPENAPI_HASH_WEBHOOKS) == nullptr) {
       throw OpenAPIError{

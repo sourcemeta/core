@@ -90,9 +90,8 @@ auto make_schema_resolver(const sourcemeta::core::JSON &test)
   };
 }
 
-// A frame keeps a view into the base it was given, so the base has to outlive
-// it. The caller owns this, as anything built inside the analysis would dangle
-// on return and only misbehave later, when the frame is read back
+// The base a fixture declares, which the frame canonicalises into a string of
+// its own rather than borrowing
 auto make_default_base(const sourcemeta::core::JSON &test)
     -> sourcemeta::core::JSON::String {
   const auto *base{test.try_at("defaultBase")};
@@ -531,6 +530,16 @@ auto check_frame_invariants(const sourcemeta::core::JSON &frame) -> void {
     EXPECT_TRUE(locations.defines(endpoint));
     EXPECT_EQ(locations.at(endpoint).at("type").to_string(), "path-item");
 
+    // A Callback Object hangs off an Operation Object, so an operation it
+    // exposes names that Object and no other kind of operation names one
+    EXPECT_EQ(operation.defines("parent"),
+              operation.at("type").to_string() == "callback");
+    if (operation.defines("parent")) {
+      const auto &parent{operation.at("parent").to_string()};
+      EXPECT_TRUE(locations.defines(parent));
+      EXPECT_EQ(locations.at(parent).at("type").to_string(), "operation");
+    }
+
     for (const auto &server : operation.at("servers").as_array()) {
       EXPECT_TRUE(locations.defines(server.to_string()));
       EXPECT_EQ(locations.at(server.to_string()).at("type").to_string(),
@@ -676,6 +685,14 @@ auto run_fail_test(const sourcemeta::core::JSON &test) -> void {
     EXPECT_TRUE(test.at("error").defines("identifier"));
     EXPECT_EQ(error.identifier(),
               test.at("error").at("identifier").to_string());
+  } catch (const sourcemeta::core::SchemaUnknownBaseDialectError &error) {
+    refused = true;
+    check_schema_refusal(test, error.what());
+  } catch (const sourcemeta::core::SchemaUnknownDialectError &error) {
+    // Neither of these two carries anything beyond what it says, so unlike
+    // every other refusal above there is no second half to hold it to
+    refused = true;
+    check_schema_refusal(test, error.what());
   } catch (const std::exception &error) {
     // Every way a description can be turned down is named above, so anything
     // else is a refusal this runner has no account of rather than one to let

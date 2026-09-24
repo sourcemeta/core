@@ -243,6 +243,15 @@ auto absolutize_schemas(sourcemeta::core::JSON &value,
       continue;
     }
 
+    // Section 4.3.3 resolves a name against the Components Object of the entry
+    // document wherever the Discriminator Object naming it sits, so moving the
+    // schema leaves it naming exactly what it named. That holds whether or not
+    // the name also happens to lead into what moves, so it is settled before
+    // any route is, or a name would be written out as the route it took
+    if (sourcemeta::core::openapi_is_component_key(written->to_string())) {
+      continue;
+    }
+
     const auto target{frame.traverse(discriminator.destination)};
     if (target.has_value() && target.value().get().pointer.starts_with(
                                   sourcemeta::core::to_weak_pointer(origin))) {
@@ -270,13 +279,6 @@ auto absolutize_schemas(sourcemeta::core::JSON &value,
           value, held,
           sourcemeta::core::JSON{
               sourcemeta::core::to_uri(landing.concat(tail)).recompose()});
-      continue;
-    }
-
-    // Section 4.3.3 resolves a name against the Components Object of the entry
-    // document wherever the Discriminator Object naming it sits, so moving the
-    // schema leaves it naming exactly what it named
-    if (sourcemeta::core::openapi_is_component_key(written->to_string())) {
       continue;
     }
 
@@ -1366,7 +1368,8 @@ auto adopt_tags(JSON &document, const OpenAPIWalk &walk,
 auto adopt_mappings(
     JSON &document,
     const std::map<JSON::String, std::vector<OpenAPIPending>> &deferred,
-    std::map<JSON::String, Pointer> &adopted, const JSON::String &base,
+    std::map<JSON::String, Pointer> &adopted,
+    std::map<JSON::String, Pointer> &identities, const JSON::String &base,
     const SchemaWalker &walker, const SchemaResolver &schema_resolver,
     const JSON::StringView dialect, const OpenAPIBundleOptions &options,
     std::uint64_t &remaining) -> bool {
@@ -1475,8 +1478,12 @@ auto adopt_mappings(
     // reach one schema. Landing it a second time would leave the description
     // holding one identifier in two places, which is what whoever frames the
     // result turns down
-    const auto same{adopted.find(identity)};
-    if (same != adopted.cend()) {
+    // What a schema declares is its own, and what it was fetched by is the
+    // description's. Reading one against the other would take a mapping whose
+    // URI happens to spell what another schema calls itself for a second
+    // mention of that schema, so the two are kept apart
+    const auto same{identities.find(identity)};
+    if (same != identities.cend()) {
       adopted.emplace(identifier, same->second);
       continue;
     }
@@ -1496,7 +1503,7 @@ auto adopt_mappings(
                     identifier, options.namer)};
     const auto landed{embed(document, "schemas"sv, name, std::move(schema))};
     adopted.emplace(identifier, landed);
-    adopted.emplace(identity, landed);
+    identities.emplace(identity, landed);
     fresh.insert(identifier);
     if (options.callback) {
       options.callback(identifier, landed);
@@ -1536,20 +1543,16 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
   // these names a place rather than a document, so nothing that goes looking
   // for documents would ever find it
   std::map<JSON::String, std::pair<JSON::String, Pointer>> identifiers;
-  // What each document read so far calls itself, against where it was found.
-  // OpenAPI Specification 3.2.1, Section 4.1.1 has a document name itself and
-  // holds every reference to that name: "Implementations MUST support
-  // identifying the targets of API description URIs using the URI defined by
-  // this field when it is present", and of the URI it was retrieved by the
-  // same section says only that an implementation "MAY choose to support
-  // referencing by other URIs such as the retrieval URI even when `$self` is
-  // present". So a document answers to the name it gives itself as well as to
-  // wherever it was found
-  std::map<JSON::String, JSON::String> answers_to;
   // And of those, the schemas that a Discriminator Object mapping is what
   // names, which nothing but this brings in, along with the ones it already did
   std::map<JSON::String, std::vector<OpenAPIPending>> deferred;
   std::map<JSON::String, Pointer> adopted;
+  // And where each of them ended up, against the identifier it declares for
+  // itself rather than the URI it was reached by. JSON Schema 2020-12 Section
+  // 8.2.1 has the first be "its canonical [RFC6596] URI" and says nothing of
+  // what is served at the second, so one schema reached by two URIs is told
+  // from two schemas that happen to spell each other's names
+  std::map<JSON::String, Pointer> identities;
   // The names the description gave before bundling moved anything. Section
   // 4.1.2.3 resolves the names a referenced document uses from the entry
   // document, and bundling embedding a Security Scheme Object puts a name
@@ -1635,10 +1638,8 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
                                     "the document it points at"};
       }
 
-      const auto answer{answers_to.find(holder)};
       const auto identifier{declared.has_value() ? declared.value().first
-                            : answer != answers_to.cend() ? answer->second
-                                                          : holder};
+                                                 : holder};
 
       if (names_a_schema && !declared.has_value() &&
           unavailable.contains(identifier)) {
@@ -1686,18 +1687,26 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
                                       "that holds an OpenAPI Description"};
         }
 
-        // Bundling ends in one document, and Section 4.1 has that document
-        // declare one revision, so everything it holds has to be what that
-        // revision can express. Section 2.1 leaves no room to assume an older
-        // one always can: "Occasionally, non-backwards compatible changes may
-        // be made in `minor` versions of the OAS where impact is believed to
-        // be low relative to the benefit provided". Neither direction is safe
-        // to take on faith, as 3.2 both adds fields that 3.1 has no way of
-        // spelling and holds what 3.1 already spells to rules 3.1 never had,
-        // so a description that spans revisions is turned down rather than
-        // merged. What the patch component says is no part of this, as
-        // Section 2.1 makes a revision the `major`.`minor` pair alone, which
-        // 3.1.1 says the same of under Section 4.1
+        // Nothing in the specification asks for this. It says what a
+        // description may span and says nothing of the revisions the documents
+        // it spans declare, so turning one of these down is a choice this
+        // makes rather than a rule it follows.
+        //
+        // What makes the choice is where bundling ends. Section 4.1 has one
+        // document declare one revision, so everything the result holds has to
+        // be what that one revision can express, and there is no revision to
+        // pick that can express both. A 3.2 document holds fields that 3.1 has
+        // no way of spelling, and Section 2.1 leaves no room to assume the
+        // other direction is safe either: "Occasionally, non-backwards
+        // compatible changes may be made in `minor` versions of the OAS where
+        // impact is believed to be low relative to the benefit provided". So
+        // the choice is between turning such a description down and handing
+        // back a document that says it is one revision while holding what
+        // another one means.
+        //
+        // What the patch component says is no part of this, as Section 2.1
+        // makes a revision the `major`.`minor` pair alone, which 3.1.1 says
+        // the same of under Section 4.1
         const auto revision{openapi_version(candidate)};
         if (revision.has_value() && revision.value() != walk.version) {
           throw OpenAPIReferenceError{
@@ -1714,10 +1723,6 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
         charge(remaining, analysis.locations.size());
         const auto &recorded{
             walks.emplace(identifier, std::move(analysis)).first->second};
-        if (recorded.base != identifier) {
-          answers_to.emplace(recorded.base, identifier);
-        }
-
         index_schemas(held, recorded, identifier, walker, schema_resolver,
                       identifiers, remaining);
       }
@@ -1879,7 +1884,7 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
 
       // And so is what a mapping names, which is settled after the references
       // are, as bringing one schema in may be what lets the next be read
-      if (adopt_mappings(document, deferred, adopted, base, walker,
+      if (adopt_mappings(document, deferred, adopted, identities, base, walker,
                          schema_resolver, openapi_dialect(walk.version),
                          options, remaining)) {
         deferred.clear();

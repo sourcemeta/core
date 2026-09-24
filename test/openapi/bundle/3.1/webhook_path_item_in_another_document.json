@@ -71,5 +71,18 @@
   },
   "schemaReads": {},
   "standalone": true,
-  "relocatable": true
+  "relocatable": true,
+  "operations": [
+    {
+      "type": "webhook",
+      "path": "newPet",
+      "method": "post",
+      "origin": "https://example.com/openapi.json#/components/pathItems/NewPet/post",
+      "endpoint": "https://example.com/openapi.json#/webhooks/newPet",
+      "tags": [],
+      "servers": [],
+      "security": [],
+      "parameters": []
+    }
+  ]
 }
