@@ -38,6 +38,25 @@ const std::vector<std::string> KNOWN_NAMING_KEYS{"from", "container"};
 // Every exception that bundling throws, named after the class itself so that a
 // fixture states which one it means rather than leaving the runner to guess
 // from the fields that happen to be there
+// Whether a position an operation names is one the frame holds, and holds as
+// the kind of Object that position is supposed to carry. A parameter may be
+// either the Object itself or a Reference Object standing in for one, which is
+// the only place two kinds are admitted
+auto check_names_a_location(const sourcemeta::core::JSON &locations,
+                            const sourcemeta::core::JSON &position,
+                            const std::string_view expected,
+                            const std::string_view alternative = "") -> void {
+  EXPECT_TRUE(position.is_string());
+  EXPECT_TRUE(locations.defines(position.to_string()));
+  if (!locations.defines(position.to_string())) {
+    return;
+  }
+
+  const auto &type{locations.at(position.to_string()).at("type").to_string()};
+  EXPECT_TRUE(type == expected ||
+              (!alternative.empty() && type == alternative));
+}
+
 const std::vector<std::string> KNOWN_ERROR_TYPES{"OpenAPIError",
                                                  "OpenAPIResolutionError",
                                                  "OpenAPIReferenceError",
@@ -336,8 +355,48 @@ auto run_pass_test(const sourcemeta::core::JSON &test) -> void {
   // is what makes the last of those reachable without the reference touching
   // the operation at all, as a name there resolves from the entry document and
   // bundling is what fills it
+  const auto exported{frame.to_json()};
   if (test.defines("operations")) {
-    EXPECT_EQ(frame.to_json().at("operations"), test.at("operations"));
+    EXPECT_EQ(exported.at("operations"), test.at("operations"));
+  }
+
+  // Whether a fixture writes the operations down or not, what the output says
+  // it exposes has to be borne out by the output itself. Bundling moves Objects
+  // between documents and rewrites what points at them, so an operation naming
+  // a place the result does not hold, or holds as something else, is a bundle
+  // that describes an API its own document does not
+  const auto &exported_locations{exported.at("locations")};
+  for (const auto &operation : exported.at("operations").as_array()) {
+    check_names_a_location(exported_locations, operation.at("origin"),
+                           "operation");
+    check_names_a_location(exported_locations, operation.at("endpoint"),
+                           "path-item");
+    if (operation.defines("parent")) {
+      check_names_a_location(exported_locations, operation.at("parent"),
+                             "operation");
+    }
+
+    for (const auto &server : operation.at("servers").as_array()) {
+      check_names_a_location(exported_locations, server, "server");
+    }
+
+    for (const auto &requirement : operation.at("security").as_array()) {
+      check_names_a_location(exported_locations, requirement,
+                             "security-requirement");
+    }
+
+    // A tag naming no Tag Object is what the specification permits, so only a
+    // name that does claim one is held to claiming a Tag Object
+    for (const auto &tag : operation.at("tags").as_array()) {
+      if (!tag.is_null()) {
+        check_names_a_location(exported_locations, tag, "tag");
+      }
+    }
+
+    for (const auto &parameter : operation.at("parameters").as_array()) {
+      check_names_a_location(exported_locations, parameter, "parameter",
+                             "reference");
+    }
   }
 
   // And one that goes on holding it wherever it is kept. Section 4.6 settles a

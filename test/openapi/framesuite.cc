@@ -488,7 +488,20 @@ auto check_frame_invariants(const sourcemeta::core::JSON &frame) -> void {
                              entry.second.at("dangling").to_boolean();
                     }));
 
+  // Every operation is one place reached one way, and the projection dedups on
+  // exactly that, so two records agreeing on all of it would be one operation
+  // described twice over
+  std::set<sourcemeta::core::JSON::String> exposures;
   for (const auto &operation : frame.at("operations").as_array()) {
+    sourcemeta::core::JSON::String exposure{operation.at("type").to_string()};
+    exposure.append("#").append(operation.at("path").to_string());
+    exposure.append("#").append(operation.at("method").to_string());
+    if (operation.defines("parent")) {
+      exposure.append("#").append(operation.at("parent").to_string());
+    }
+
+    EXPECT_TRUE(exposures.insert(std::move(exposure)).second);
+
     // Every operation the description exposes is an Operation Object that the
     // walk read, and what is in force where it sits was read too
     const auto &origin{operation.at("origin").to_string()};
@@ -529,6 +542,28 @@ auto check_frame_invariants(const sourcemeta::core::JSON &frame) -> void {
     const auto &endpoint{operation.at("endpoint").to_string()};
     EXPECT_TRUE(locations.defines(endpoint));
     EXPECT_EQ(locations.at(endpoint).at("type").to_string(), "path-item");
+
+    // And the name it is exposed under is the one the document files it under,
+    // rather than anything the projection makes up
+    const auto &exposed_at{locations.at(endpoint).at("pointer").to_string()};
+    const auto &kind{operation.at("type").to_string()};
+    sourcemeta::core::Pointer written_at;
+    if (kind == "path") {
+      written_at.push_back(sourcemeta::core::JSON::String{"paths"});
+    } else if (kind == "webhook") {
+      written_at.push_back(sourcemeta::core::JSON::String{"webhooks"});
+    }
+
+    written_at.push_back(operation.at("path").to_string());
+    if (kind == "callback") {
+      // A callback expression names a Path Item under the Callback Object that
+      // the parent operation holds, so only the last step of the route is the
+      // expression itself
+      EXPECT_TRUE(
+          exposed_at.ends_with(sourcemeta::core::to_string(written_at)));
+    } else {
+      EXPECT_EQ(exposed_at, sourcemeta::core::to_string(written_at));
+    }
 
     // A Callback Object hangs off an Operation Object, so an operation it
     // exposes names that Object and no other kind of operation names one
