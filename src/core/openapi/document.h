@@ -96,8 +96,9 @@ inline auto openapi_check_document(const JSON &document, OpenAPIWalk &walk)
 // Section 4.1.2.2.1: "If `$self` is a relative URI reference, it is resolved
 // against the next possible base URI source ([RFC3986] Section 5.1.2
 // [...] 5.1.4) before being used for the resolution of other relative URI
-// references". That source is base is in force here, which is the retrieval URI
-// for the entry document and the URI a reference named for any other. RFC 3986
+// references". That source is whatever base is in force here, which is the
+// retrieval URI for the entry document and the URI a reference named for any
+// other. RFC 3986
 // Section 5.2.1 has only the scheme required of a base, so a relative `$self`
 // with nothing absolute to resolve against establishes nothing, and
 // Section 5.2.2 never resolves against a fragment, so one written here is

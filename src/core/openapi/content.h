@@ -212,8 +212,7 @@ inline auto openapi_check_media_type(const JSON &value, const Pointer &base,
       "The Media Type Object examples must be an object", walk);
 
   // 3.2.1 Section 4.14: "itemSchema | Schema Object", for a sequential media
-  // type,
-  // which is a fifth position where framing hands off to JSON Schema
+  // type, which is a fifth position where framing hands off to JSON Schema
   const auto *item_schema{value.try_at("itemSchema", OPENAPI_HASH_ITEM_SCHEMA)};
   if (item_schema != nullptr) {
     openapi_expect_schema(*item_schema, openapi_child(base, "itemSchema"sv),
