@@ -1,7 +1,5 @@
 if(NOT SLJIT_FOUND)
-  # This code generator ships inside the regular expression library that
-  # brought it in, but it stands on its own and other libraries may take it
-  set(SLJIT_DIR "${PROJECT_SOURCE_DIR}/vendor/pcre2/deps/sljit")
+  set(SLJIT_DIR "${PROJECT_SOURCE_DIR}/vendor/sljit")
   set(SLJIT_SOURCE_DIR "${SLJIT_DIR}/sljit_src")
 
   # This library ships one source that includes every backend and allocator

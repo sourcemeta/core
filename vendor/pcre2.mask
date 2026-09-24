@@ -47,16 +47,7 @@ doc
 cmake
 maint
 patches
-deps/sljit/.github
-deps/sljit/docs/
-deps/sljit/test_src/
-deps/sljit/regex_src/
-deps/sljit/.gitignore
-deps/sljit/API_CHANGES
-deps/sljit/CMakeLists.txt
-deps/sljit/GNUmakefile
-deps/sljit/INTERNAL_CHANGES
-deps/sljit/README.md
+deps/sljit
 src/config.h.generic
 src/config.h.in
 src/libpcre2-16.sym.in

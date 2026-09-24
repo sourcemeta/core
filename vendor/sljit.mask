@@ -1,0 +1,8 @@
+docs/
+test_src/
+regex_src/
+API_CHANGES
+CMakeLists.txt
+GNUmakefile
+INTERNAL_CHANGES
+README.md

@@ -29,6 +29,7 @@ vendor/jsontestsuite.mask
 vendor/referencing-suite.mask
 vendor/yaml.mask
 vendor/pcre2.mask
+vendor/sljit.mask
 vendor/yaml-test-suite
 vendor/yaml-test-suite.mask
 vendor/uritemplate-test
