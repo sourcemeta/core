@@ -255,8 +255,9 @@ inline auto openapi_resolve_server_url(const JSON::StringView address,
   const auto scheme{literals.find(':')};
   const auto separator{literals.find('/')};
 
-  // Section 5.2.2 resolves a reference that declares a scheme to itself, so
-  // whatever a variable stands for past that point cannot change the result
+  // RFC 3986 Section 5.2.2 resolves a reference that declares a scheme to
+  // itself, so whatever a variable stands for past that point cannot change the
+  // result
   if (scheme != JSON::StringView::npos &&
       (separator == JSON::StringView::npos || scheme < separator)) {
     return JSON::String{address};
@@ -280,9 +281,9 @@ inline auto openapi_resolve_server_url(const JSON::StringView address,
     return JSON::String{address};
   }
 
-  // Section 5.2.4 removes dot segments from the path that merging produces,
-  // which is an operation on whole segments. Splitting at a segment boundary
-  // is what keeps it from reaching into what a variable stands for
+  // RFC 3986 Section 5.2.4 removes dot segments from the path that merging
+  // produces, which is an operation on whole segments. Splitting at a segment
+  // boundary is what keeps it from reaching into what a variable stands for
   const auto boundary{literals.find_last_of('/') + 1};
   const auto resolved{openapi_resolve_uri(address.substr(0, boundary), base)};
   if (!resolved.has_value()) {
@@ -381,7 +382,7 @@ inline auto openapi_check_server(const JSON &value, const Pointer &base,
   // The grammar is introduced as a definition rather than as a requirement, so
   // what licenses turning a URL down for its shape is 3.2.1 Section 4.12.4,
   // "All API URLs MUST successfully parse and percent-decode using [RFC3986]
-  // rules", together with Section 4 making the text "the only normative
+  // rules", together with 3.2.1 Section 4 making the text "the only normative
   // description of the format". The grammar is the whole of what either
   // revision says a server URL template is, and nothing beyond its shape is
   // read from it.

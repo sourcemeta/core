@@ -159,7 +159,7 @@ openapi_discriminators(const JSON &document, const SchemaFrame &schemas,
     // 4.25 says as much, so a Discriminator Object the dialect does define
     // carries one or it is no such Object. The dialect 3.2 publishes leaves it
     // out of its own list of required fields where the one 3.1 publishes keeps
-    // it, and Section 4 leaves the text authoritative where the two differ
+    // it, and Section 4.8 leaves the text authoritative where the two differ
     const auto *property_name{
         discriminator->try_at("propertyName", OPENAPI_HASH_PROPERTY_NAME)};
     if (property_name == nullptr) {
@@ -189,7 +189,7 @@ openapi_discriminators(const JSON &document, const SchemaFrame &schemas,
     // that revision defines the field, which is what settles whether there is
     // one to read rather than what the document says of itself.
     //
-    // Section 4.25.1 goes on to require one wherever the discriminating
+    // 3.2.1 Section 4.25.1 goes on to require one wherever the discriminating
     // property is optional, which is a demand on what the schema holding it
     // says of its own properties. Reading that far into a Schema Object is
     // the business of whatever understands JSON Schema, so it is left there

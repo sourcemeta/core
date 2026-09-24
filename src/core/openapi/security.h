@@ -233,8 +233,8 @@ inline auto openapi_check_oauth_flows(const JSON &value, const Pointer &base,
                              true, false, walk);
   }
 
-  // Section 4.28 adds the device authorization flow, whose required URLs are
-  // its own and the token URL
+  // 3.2.1 Section 4.28 adds the device authorization flow, whose required URLs
+  // are its own and the token URL
   const auto *device{
       value.try_at("deviceAuthorization"sv, OPENAPI_HASH_DEVICE_AUTHORIZATION)};
   if (device != nullptr) {
@@ -355,7 +355,7 @@ inline auto openapi_check_security_scheme(const JSON &value,
         OPENAPI_SECURITY_SCHEME_OAUTH2_FIELDS_3_2, base,
         "The Security Scheme Object does not define this field", walk);
 
-    // Section 4.27: "oauth2MetadataUrl | string | oauth2"
+    // 3.2.1 Section 4.27: "oauth2MetadataUrl | string | oauth2"
     const auto *metadata{
         value.try_at("oauth2MetadataUrl", OPENAPI_HASH_OAUTH2_METADATA_URL)};
     if (metadata != nullptr) {

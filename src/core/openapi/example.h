@@ -56,8 +56,8 @@ inline auto openapi_check_example(const JSON &value, const Pointer &base,
         base, "The Example Object data value and value are mutually exclusive"};
   }
 
-  // Section 4.19: "serializedValue | string | An example of the serialized
-  // form of the value [...] If this field is present, `value`, and
+  // 3.2.1 Section 4.19: "serializedValue | string | An example of the
+  // serialized form of the value [...] If this field is present, `value`, and
   // `externalValue` MUST be absent". The `externalValue` field states the
   // other half of that pair the same way
   const auto *serialized{

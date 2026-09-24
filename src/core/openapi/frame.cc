@@ -536,6 +536,11 @@ auto openapi_project(const OpenAPIWalk &walk) -> std::vector<OpenAPIOperation> {
     const auto exposed{expressions.first.find(position)};
     const auto &templates{
         exposed == expressions.first.cend() ? own_templates : exposed->second};
+    // A path answers for its own braces whatever else went unread, but the set
+    // gathered from every path exposing one Path Item Object is short by
+    // whatever a path this does not hold would have added to it, so only the
+    // first of those two is worth reading against on its own
+    const auto own_only{templated && exposed == expressions.first.cend()};
     const auto *const message{
         "A path Parameter Object must name a template expression of a path "
         "that exposes it"};
@@ -549,7 +554,7 @@ auto openapi_project(const OpenAPIWalk &walk) -> std::vector<OpenAPIOperation> {
     // other kind of endpoint is held to the expressions of the paths reaching
     // the Path Item Object the chain ends at, and a chain that ends somewhere
     // this does not hold is one whose end an unread document still decides
-    if ((templated || expressions.second) && settled) {
+    if ((own_only || expressions.second) && settled) {
       for (const auto *record : chain) {
         check_path_parameters(walk, templates, record->parameters, message);
         // An Operation Object that a method of the same name nearer the end of
@@ -578,7 +583,7 @@ auto openapi_project(const OpenAPIWalk &walk) -> std::vector<OpenAPIOperation> {
       // drawn from those same lists, so this holds nothing new. It abstains
       // on the same terms all the same, as the expressions it would be read
       // against are the ones an unread document settles
-      if ((templated || expressions.second) && settled) {
+      if ((own_only || expressions.second) && settled) {
         check_path_parameters(walk, templates, parameters, message);
       }
       // This one turns on an expression having no parameter anywhere, and a

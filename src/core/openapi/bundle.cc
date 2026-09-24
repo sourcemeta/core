@@ -678,8 +678,8 @@ auto bundle_schemas(sourcemeta::core::JSON &document,
       [&resolver, &standalone, &base](const std::string_view identifier)
           -> sourcemeta::core::SchemaResolverResult {
         auto result{resolver(identifier)};
-        // Section 4.1.2 has every document of a description hold "either an
-        // OpenAPI Object or a Schema Object at the root", and what answers
+        // 3.2.1 Section 4.1.2 has every document of a description hold "either
+        // an OpenAPI Object or a Schema Object at the root", and what answers
         // here answers as the second. One that is the first instead would be
         // read as a schema, which Appendix G leaves undefined and lets this
         // turn down: "If the same JSON/YAML object is parsed multiple times
@@ -932,9 +932,9 @@ auto schema_of(const sourcemeta::core::OpenAPIWalk &remote,
 // the OpenAPI Object's `$self` field and the Schema Object's `$id`, `$anchor`,
 // and `$dynamicAnchor` keywords". Neither is a document of its
 // own, which is why nothing that goes looking for documents finds them, and
-// Section 4.1.2 leaves none of them to be given up on while the document that
-// declares one has been read: "Implementations MUST NOT treat a reference as
-// unresolvable before completely parsing all documents provided to the
+// 3.2.1 Section 4.1.2 leaves none of them to be given up on while the document
+// that declares one has been read: "Implementations MUST NOT treat a reference
+// as unresolvable before completely parsing all documents provided to the
 // implementation as possible parts of the OAD"
 auto index_schemas(const sourcemeta::core::JSON &remote_document,
                    const sourcemeta::core::OpenAPIWalk &remote,
@@ -972,7 +972,7 @@ auto index_schemas(const sourcemeta::core::JSON &remote_document,
   // What a document itself answers to is already how it is reached, and taking
   // that for a place within it would embed a part of it where the whole was
   // named. A document answers to the URI it was retrieved by as well as to the
-  // one it names itself with, and Section 4.1.1 keeps the two apart, so a
+  // one it names itself with, and 3.2.1 Section 4.1.1 keeps the two apart, so a
   // Schema Object claiming either of them is a Schema Object claiming a whole
   // document
   frame.for_each_resource([&identifier, &remote, &result](
@@ -1105,10 +1105,10 @@ auto absolutize(JSON &value, const OpenAPIWalk &remote, const Pointer &origin,
       const auto renamed{group.second.find(member.first)};
       const auto &name{renamed == group.second.cend() ? member.first
                                                       : renamed->second};
-      // Section 4.30 says nothing against two names of one Object leading to
-      // one scheme, and reading such an Object is no trouble. Writing one back
-      // out is what cannot keep both, as the single name they come to is a key
-      // that holds one list of scopes rather than two
+      // 3.2.1 Section 4.30 says nothing against two names of one Object leading
+      // to one scheme, and reading such an Object is no trouble. Writing one
+      // back out is what cannot keep both, as the single name they come to is a
+      // key that holds one list of scopes rather than two
       const auto *taken{rebuilt.try_at(name)};
       if (taken != nullptr && *taken != member.second) {
         throw OpenAPIError{remote.base, held.concat(JSON::String{member.first}),
@@ -1133,7 +1133,7 @@ auto absolutize(JSON &value, const OpenAPIWalk &remote, const Pointer &origin,
     const auto relative{(entry.second.pointer).resolve_from(origin)};
 
     // Section 4.8.5 makes a Server Object URL a template rather than a URI
-    // reference, and Section 4.3 has a relative one name a place "relative to
+    // reference, and Section 4.8.5 has a relative one name a place "relative to
     // the location where the document containing the Server Object is being
     // served", so it resolves as a template against the document it was
     // written in
@@ -1141,10 +1141,10 @@ auto absolutize(JSON &value, const OpenAPIWalk &remote, const Pointer &origin,
       const auto held{relative.concat(JSON::String{"url"})};
       const auto *written{try_get(value, held)};
       if (written != nullptr && written->is_string()) {
-        // Section 4.5.2.1 works this very case through: a document retrieved
-        // from one place and naming itself another resolves what it says of
-        // the API against where it was found rather than against the name it
-        // gave itself
+        // 3.2.1 Section 4.5.2.1 works this very case through: a document
+        // retrieved from one place and naming itself another resolves what it
+        // says of the API against where it was found rather than against the
+        // name it gave itself
         auto address{openapi_resolve_server_url(
             written->to_string(), remote.retrieval,
             try_get(value, relative.concat(JSON::String{"variables"})))};
@@ -1259,7 +1259,7 @@ auto adopt_operations(JSON &document, const OpenAPIWalk &walk,
           promote(path_item_of(other.second, operation->second.pointer))};
       // Keyed by what the document answers to rather than by where it was
       // found, which is what every other place that fills this map uses.
-      // Section 4.1.1 has a reference name the former, so keying by the
+      // 3.2.1 Section 4.1.1 has a reference name the former, so keying by the
       // latter would embed one Path Item twice over
       const auto key{openapi_location_uri(other.second.base, origin)};
       if (bundled.contains(key)) {
@@ -1307,12 +1307,12 @@ auto tag_of(const JSON &document, const OpenAPIWalk &walk,
 // `name` of a tag that this tag is nested under. The named tag MUST exist in
 // the API description". A description is every document it spans rather than
 // the entry one alone, so that tag may be one another document declares, and
-// Section 4.1 only ever puts a Tag Object at the root of a document. Bundling
-// moves what the Components Object holds and leaves every root where it is, so
-// a name that the description satisfied has to travel along to go on being
-// satisfied by what bundling produces. Every document that holds one is one
-// bundling has read, just as for a Link Object `operationId`, as a name is not
-// something there is anywhere to go and fetch
+// 3.2.1 Section 4.1 only ever puts a Tag Object at the root of a document.
+// Bundling moves what the Components Object holds and leaves every root where
+// it is, so a name that the description satisfied has to travel along to go on
+// being satisfied by what bundling produces. Every document that holds one is
+// one bundling has read, just as for a Link Object `operationId`, as a name is
+// not something there is anywhere to go and fetch
 auto adopt_tags(JSON &document, const OpenAPIWalk &walk,
                 const std::map<JSON::String, JSON> &documents,
                 const std::map<JSON::String, OpenAPIWalk> &walks,
@@ -1320,9 +1320,9 @@ auto adopt_tags(JSON &document, const OpenAPIWalk &walk,
     -> bool {
   bool changed{false};
   // What this pass has already brought in. The names the walk holds are the
-  // ones it read before any of them travelled, and Section 4.1 has "Each tag
-  // name in the list MUST be unique", so two tags nested under one that only
-  // another document declares bring it along once between them
+  // ones it read before any of them travelled, and 3.2.1 Section 4.1 has "Each
+  // tag name in the list MUST be unique", so two tags nested under one that
+  // only another document declares bring it along once between them
   std::set<JSON::String> adopted;
   for (const auto &entry : walk.tag_parents) {
     if (walk.tag_names.contains(entry.second.second) ||
@@ -1416,9 +1416,10 @@ auto adopt_mappings(
       continue;
     }
 
-    // Section 4.1.2 has a document of a description hold either an OpenAPI
-    // Object or a Schema Object at its root, and a mapping names the second
-    // of those. Reading the first as one is what Appendix G leaves undefined
+    // 3.2.1 Section 4.1.2 has a document of a description hold either an
+    // OpenAPI Object or a Schema Object at its root, and a mapping names the
+    // second of those. Reading the first as one is what Appendix G leaves
+    // undefined
     if (openapi_is_document(resolved.value())) {
       throw OpenAPIReferenceError{
           base, entry.second.front().origin, identifier,
@@ -1446,8 +1447,8 @@ auto adopt_mappings(
     // what lets a mapping that named a place within it go on naming that place.
     //
     // What it declares is a URI reference rather than a URI though, and
-    // Section 4.1.2.2 resolves one of those: "The most common base URI source
-    // that is used in the event of a missing or relative `$self` (in the
+    // 3.2.1 Section 4.1.2.2 resolves one of those: "The most common base URI
+    // source that is used in the event of a missing or relative `$self` (in the
     // OpenAPI Object) and (for Schema Object) `$id` is the retrieval URI". So
     // the URI it was fetched by is what a relative one is read against, which
     // is what makes the identifier that comes back one the description can use
@@ -1601,8 +1602,8 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
       // into it rather than one to go looking for a document of that name.
       //
       // Whatever the description can reach as a document answers ahead of
-      // that, as Section 4.1.1 has a reference name a document by the URI that
-      // document answers to, and a Schema Object is free to declare an
+      // that, as 3.2.1 Section 4.1.1 has a reference name a document by the URI
+      // that document answers to, and a Schema Object is free to declare an
       // identifier that collides with one. So this is asked where a fragment
       // names no place to begin with, and otherwise only once the document has
       // turned out not to be one
@@ -1616,8 +1617,8 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
                              : pointed};
       // A fragment shaped like anything else names an identifier or an anchor
       // rather than a place, and which document declares one is only settled
-      // by framing the documents the description spans. Section 4.1.2 leaves
-      // none of those to be given up on before that has happened, so a
+      // by framing the documents the description spans. 3.2.1 Section 4.1.2
+      // leaves none of those to be given up on before that has happened, so a
       // reference of this shape goes on to have its document read rather than
       // being left here
       const URI destination{reference.destination};
@@ -1698,17 +1699,17 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
         // document declare one revision, so everything the result holds has to
         // be what that one revision can express, and there is no revision to
         // pick that can express both. A 3.2 document holds fields that 3.1 has
-        // no way of spelling, and Section 2.1 leaves no room to assume the
-        // other direction is safe either: "Occasionally, non-backwards
+        // no way of spelling, and 3.2.1 Section 2.1 leaves no room to assume
+        // the other direction is safe either: "Occasionally, non-backwards
         // compatible changes may be made in `minor` versions of the OAS where
         // impact is believed to be low relative to the benefit provided". So
         // the choice is between turning such a description down and handing
         // back a document that says it is one revision while holding what
         // another one means.
         //
-        // What the patch component says is no part of this, as Section 2.1
-        // makes a revision the `major`.`minor` pair alone, which 3.1.1 says
-        // the same of under Section 4.1
+        // What the patch component says is no part of this, as 3.2.1
+        // Section 2.1 makes a revision the `major`.`minor` pair alone,
+        // which 3.1.1 says the same of under Section 4.1
         const auto revision{openapi_version(candidate)};
         if (revision.has_value() && revision.value() != walk.version) {
           throw OpenAPIReferenceError{
@@ -1731,11 +1732,11 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
 
       // A fragment shaped like anything but a pointer names an identifier or
       // an anchor rather than a place, which only framing the document that
-      // declares it settles. Section 4.1.2 leaves none of those to be given up
-      // on before that document has been read, so this is asked again now
-      // that it has been. A fragment that is a pointer already named a place
-      // of the document just read, and nothing another document declares for
-      // itself is to take that place from it
+      // declares it settles. 3.2.1 Section 4.1.2 leaves none of those to be
+      // given up on before that document has been read, so this is asked again
+      // now that it has been. A fragment that is a pointer already named a
+      // place of the document just read, and nothing another document declares
+      // for itself is to take that place from it
       if (names_a_schema && !declared.has_value() && !pointed.has_value()) {
         declared = declared_target(identifiers, reference.destination);
       }
@@ -1815,7 +1816,7 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
       // What a Security Requirement Object names is the member the scopes sit
       // under, so what makes it whole is renaming that member to whatever the
       // scheme is called once it sits here, which carries the scopes across
-      // untouched. Section 4.30 then reads the result as a component name
+      // untouched. 3.2.1 Section 4.30 then reads the result as a component name
       // rather than as a URI: "Property names that are identical to a
       // component name under the Components Object MUST be treated as a
       // component name", and the name was taken free of that Object for it

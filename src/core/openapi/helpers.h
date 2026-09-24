@@ -344,11 +344,11 @@ struct OpenAPIWalk {
   // as the base every URI it holds resolves against. OpenAPI Specification
   // 3.2.1, Section 4.5.2 keeps the addresses of the API itself out of that:
   // "Because the API is a distinct entity from the OpenAPI document, RFC3986's
-  // base URI rules for the OpenAPI document do not apply", and Section 4.5.2.1
-  // says which base does apply instead: "For API URLs the `$self` field, which
-  // identifies the OpenAPI document, is ignored and the retrieval URI is used
-  // instead". So this is kept apart from the base above rather than replaced
-  // by it
+  // base URI rules for the OpenAPI document do not apply", and 3.2.1
+  // Section 4.5.2.1 says which base does apply instead: "For API URLs the
+  // `$self` field, which identifies the OpenAPI document, is ignored and the
+  // retrieval URI is used instead". So this is kept apart from the base above
+  // rather than replaced by it
   JSON::String retrieval;
   // The document the checks are reading, which a reference that stays inside
   // it resolves its fragment against
@@ -420,8 +420,8 @@ struct OpenAPIWalk {
   /// it, which is the name an Operation Object's tags resolve against
   std::map<JSON::String, JSON::String> tags;
   /// What each Tag Object that declares a parent is called and which tag it
-  /// names, keyed by where that Tag Object sits. Section 4.22 has the named
-  /// tag exist and forbids a cycle, neither of which can be settled until
+  /// names, keyed by where that Tag Object sits. 3.2.1 Section 4.22 has the
+  /// named tag exist and forbids a cycle, neither of which can be settled until
   /// every tag has been read
   std::map<JSON::String, std::pair<JSON::String, JSON::String>> tag_parents;
   /// Every name any document declares a Tag Object under. 3.2.1 Section 4.22

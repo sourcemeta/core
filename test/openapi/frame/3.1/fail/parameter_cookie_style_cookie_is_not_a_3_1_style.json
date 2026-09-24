@@ -19,7 +19,7 @@
     }
   },
   "error": {
-    "message": "The Parameter Object style is not one this specification defines",
+    "message": "The Parameter Object style is not one a cookie parameter admits",
     "location": "/paths/~1a/parameters/0/style"
   }
 }
