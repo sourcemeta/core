@@ -1326,6 +1326,187 @@ TEST(carriage_return_only_document_markers) {
   EXPECT_EQ(second.at("b"), sourcemeta::core::JSON{2});
 }
 
+// YAML 1.2.2 Section 8.2.2: a key whose value is empty is followed by the next
+// key of whichever mapping that key's indentation belongs to, so a less
+// indented key that follows closes the mapping rather than becoming the value
+TEST(empty_mapping_value_before_a_less_indented_key) {
+  const std::string input{"a:\n  b:\nc: 1\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at("a").at("b"), sourcemeta::core::JSON{nullptr});
+  EXPECT_EQ(result.at("c"), sourcemeta::core::JSON{1});
+}
+
+TEST(empty_mapping_values_before_a_less_indented_key) {
+  const std::string input{"a:\n  b:\n  d:\nc: 1\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at("a").size(), 2);
+  EXPECT_EQ(result.at("a").at("b"), sourcemeta::core::JSON{nullptr});
+  EXPECT_EQ(result.at("a").at("d"), sourcemeta::core::JSON{nullptr});
+  EXPECT_EQ(result.at("c"), sourcemeta::core::JSON{1});
+}
+
+TEST(empty_mapping_value_two_levels_before_a_less_indented_key) {
+  const std::string input{"a:\n  b:\n    c:\nd: 1\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at("a").at("b").at("c"), sourcemeta::core::JSON{nullptr});
+  EXPECT_EQ(result.at("d"), sourcemeta::core::JSON{1});
+}
+
+TEST(empty_mapping_value_before_a_more_indented_key) {
+  const std::string input{"a:\n  b:\n      c: 1\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_EQ(result.at("a").at("b").at("c"), sourcemeta::core::JSON{1});
+}
+
+TEST(empty_mapping_values_across_a_workflow_shape) {
+  const std::string input{"on:\n  push:\n  pull_request:\njobs:\n  x: 1\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at("on").at("push"), sourcemeta::core::JSON{nullptr});
+  EXPECT_EQ(result.at("on").at("pull_request"),
+            sourcemeta::core::JSON{nullptr});
+  EXPECT_EQ(result.at("jobs").at("x"), sourcemeta::core::JSON{1});
+}
+
+TEST(empty_alias_mapping_value_before_a_less_indented_key) {
+  const std::string input{
+      "anchor: &a name\nmap:\n  first: 1\n  *a :\nnext: 2\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result.size(), 3);
+  EXPECT_EQ(result.at("map").size(), 2);
+  EXPECT_EQ(result.at("map").at("first"), sourcemeta::core::JSON{1});
+  EXPECT_EQ(result.at("map").at("name"), sourcemeta::core::JSON{nullptr});
+  EXPECT_EQ(result.at("next"), sourcemeta::core::JSON{2});
+}
+
+TEST(alias_mapping_value_on_a_more_indented_line) {
+  const std::string input{
+      "anchor: &a name\nmap:\n  first: 1\n  *a :\n    deep: 1\nnext: 2\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result.size(), 3);
+  EXPECT_EQ(result.at("map").at("name").at("deep"), sourcemeta::core::JSON{1});
+  EXPECT_EQ(result.at("next"), sourcemeta::core::JSON{2});
+}
+
+TEST(alias_mapping_value_on_the_same_line) {
+  const std::string input{
+      "anchor: &a name\nmap:\n  first: 1\n  *a : v\nnext: 2\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result.size(), 3);
+  EXPECT_EQ(result.at("map").at("name"), sourcemeta::core::JSON{"v"});
+  EXPECT_EQ(result.at("next"), sourcemeta::core::JSON{2});
+}
+
+TEST(anchored_key_after_an_empty_mapping_value) {
+  const std::string input{"a:\n  b:\n&x c: 1\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at("a").at("b"), sourcemeta::core::JSON{nullptr});
+  EXPECT_EQ(result.at("c"), sourcemeta::core::JSON{1});
+}
+
+TEST(tagged_key_after_an_empty_mapping_value) {
+  const std::string input{"a:\n  b:\n!!str c: 1\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at("a").at("b"), sourcemeta::core::JSON{nullptr});
+  EXPECT_EQ(result.at("c"), sourcemeta::core::JSON{1});
+}
+
+TEST(anchored_key_after_an_empty_subsequent_mapping_value) {
+  const std::string input{"a:\n  first: 1\n  b:\n&x c: 2\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at("a").at("b"), sourcemeta::core::JSON{nullptr});
+  EXPECT_EQ(result.at("c"), sourcemeta::core::JSON{2});
+}
+
+TEST(anchored_sibling_key_after_an_empty_mapping_value) {
+  const std::string input{"a:\n  b:\n  &x c: 1\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_EQ(result.at("a").size(), 2);
+  EXPECT_EQ(result.at("a").at("b"), sourcemeta::core::JSON{nullptr});
+  EXPECT_EQ(result.at("a").at("c"), sourcemeta::core::JSON{1});
+}
+
+TEST(anchored_key_after_a_mapping_value) {
+  const std::string input{"a:\n  b: v\n&x c: 1\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at("a").at("b"), sourcemeta::core::JSON{"v"});
+  EXPECT_EQ(result.at("c"), sourcemeta::core::JSON{1});
+}
+
+TEST(anchored_key_after_an_empty_alias_mapping_value) {
+  const std::string input{
+      "anchor: &a name\nmap:\n  first: 1\n  *a :\n&x next: 2\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result.size(), 3);
+  EXPECT_EQ(result.at("map").at("name"), sourcemeta::core::JSON{nullptr});
+  EXPECT_EQ(result.at("next"), sourcemeta::core::JSON{2});
+}
+
+TEST(unindented_sequence_still_starts_a_mapping_value) {
+  const std::string input{"a:\n- 1\n- 2\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result.at("a").size(), 2);
+  EXPECT_EQ(result.at("a").at(0), sourcemeta::core::JSON{1});
+}
+
+// YAML 1.2.2 Section 8.2.2: a node property that decorates a block collection
+// is indented past the mapping the collection belongs to, unlike the block
+// sequence itself, which may sit at the mapping's own indentation
+TEST(anchored_indentless_sequence_at_the_mapping_indentation_is_rejected) {
+  const std::string input{"a:\n  b:\n  &x\n  - 1\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_EQ(error.line(), 3);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(tagged_indentless_sequence_at_the_mapping_indentation_is_rejected) {
+  const std::string input{"a:\n  b:\n  !!seq\n  - 1\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_EQ(error.line(), 3);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(anchored_sequence_indented_past_the_mapping) {
+  const std::string input{"a:\n  b:\n    &x\n    - 1\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result.at("a").at("b").size(), 1);
+  EXPECT_EQ(result.at("a").at("b").at(0), sourcemeta::core::JSON{1});
+}
+
+TEST(anchored_indentless_sequence_on_the_key_line) {
+  const std::string input{"a:\n  b: &x\n  - 1\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result.at("a").at("b").size(), 1);
+  EXPECT_EQ(result.at("a").at("b").at(0), sourcemeta::core::JSON{1});
+}
+
+TEST(tagged_indentless_sequence_on_the_key_line) {
+  const std::string input{"a:\n  b: !!seq\n  - 1\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result.at("a").at("b").size(), 1);
+  EXPECT_EQ(result.at("a").at("b").at(0), sourcemeta::core::JSON{1});
+}
+
 TEST(literal_block_scalar_trailing_more_indented_line) {
   const std::string input{"foo: |\n  x\n   "};
   const auto result{sourcemeta::core::parse_yaml(input)};

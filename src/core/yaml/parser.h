@@ -1813,6 +1813,37 @@ private:
     return anchored.value;
   }
 
+  // A node that stands on a later line than the key it belongs to has to be
+  // indented past the mapping for that mapping to own it. A block sequence is
+  // the one exception, as it may sit at the very indentation of its key.
+  // See https://yaml.org/spec/1.2.2/#821-block-sequences
+  [[nodiscard]] auto starts_mapping_value(const Token &token,
+                                          const std::uint64_t key_line,
+                                          const std::uint64_t base_column) const
+      -> bool {
+    if (token.line == key_line) {
+      return true;
+    }
+
+    return token.type == TokenType::BlockSequenceEntry
+               ? token.column >= base_column
+               : token.column > base_column;
+  }
+
+  // A node property that decorates a block node rather than a key of the
+  // mapping it sits in has to be indented past that mapping, so one that opens
+  // a block sequence from the mapping's own indentation has nowhere to belong.
+  // See https://yaml.org/spec/1.2.2/#822-block-mappings
+  auto reject_misplaced_property(const Token &property,
+                                 const std::optional<Token> &node) const
+      -> void {
+    if (node.has_value() && node->type == TokenType::BlockSequenceEntry)
+        [[unlikely]] {
+      throw YAMLParseError{property.line, property.column,
+                           "Node property at wrong indentation level"};
+    }
+  }
+
   auto next_token() -> std::optional<Token> {
     std::optional<Token> result;
     if (!this->pending_tokens_.empty()) {
@@ -1868,7 +1899,7 @@ private:
         next->type == TokenType::StreamEnd ||
         next->type == TokenType::DocumentEnd) {
       if (next.has_value() && next->type == TokenType::Scalar &&
-          (next->line == key_line || next->column != base_column)) {
+          this->starts_mapping_value(next.value(), key_line, base_column)) {
         this->record_inline_comment_for_key(key, next->line != key_line);
         auto value{this->parse_value(next.value(), JSON::ParseContext::Property,
                                      0, key, key_line, key_column)};
@@ -1893,18 +1924,22 @@ private:
                next->type == TokenType::BlockSequenceEntry ||
                next->type == TokenType::Anchor ||
                next->type == TokenType::Tag || next->type == TokenType::Alias) {
-      if (next->type == TokenType::BlockSequenceEntry && next->line == key_line)
-          [[unlikely]] {
-        throw YAMLParseError{
-            next->line, next->column,
-            "Block sequence entry on same line as mapping key"};
+      if (!this->starts_mapping_value(next.value(), key_line, base_column)) {
+        result.assign(key, JSON{nullptr});
+      } else {
+        if (next->type == TokenType::BlockSequenceEntry &&
+            next->line == key_line) [[unlikely]] {
+          throw YAMLParseError{
+              next->line, next->column,
+              "Block sequence entry on same line as mapping key"};
+        }
+        this->record_inline_comment_for_key(key, next->line != key_line);
+        auto value{this->parse_value(next.value(), JSON::ParseContext::Property,
+                                     0, key, key_line, key_column)};
+        result.assign(key, std::move(value));
+        next = this->next_token();
+        this->record_inline_comment_for_key(key);
       }
-      this->record_inline_comment_for_key(key, next->line != key_line);
-      auto value{this->parse_value(next.value(), JSON::ParseContext::Property,
-                                   0, key, key_line, key_column)};
-      result.assign(key, std::move(value));
-      next = this->next_token();
-      this->record_inline_comment_for_key(key);
     } else {
       result.assign(key, JSON{nullptr});
     }
@@ -2015,16 +2050,27 @@ private:
       auto effective_column{next->column};
       std::optional<std::string> subsequent_key_tag;
 
+      // A node property introduces the key it decorates, so a mapping that
+      // does not reach that key must leave the property alone as well
+      if ((next->type == TokenType::Anchor || next->type == TokenType::Tag) &&
+          effective_column != base_column) {
+        break;
+      }
+
       if (next->type == TokenType::Anchor) {
+        const auto property_token{next.value()};
         next = this->next_token();
+        this->reject_misplaced_property(property_token, next);
         if (!next.has_value() || next->type != TokenType::Scalar) {
           continue;
         }
       }
 
       if (next->type == TokenType::Tag) {
+        const auto property_token{next.value()};
         subsequent_key_tag = this->resolve_tag(next->value);
         next = this->next_token();
+        this->reject_misplaced_property(property_token, next);
         if (!next.has_value() || next->type != TokenType::Scalar) {
           continue;
         }
@@ -2062,7 +2108,8 @@ private:
         next = this->next_token();
 
         if (!next.has_value() || next->type == TokenType::Scalar) {
-          if (next.has_value()) {
+          if (next.has_value() &&
+              this->starts_mapping_value(next.value(), key_line, base_column)) {
             auto value{this->parse_value(next.value(),
                                          JSON::ParseContext::Property, 0, key,
                                          key_line, key_column)};
@@ -2076,12 +2123,15 @@ private:
                    next->type == TokenType::DocumentStart) {
           result.assign(key, JSON{nullptr});
           break;
-        } else {
+        } else if (this->starts_mapping_value(next.value(), key_line,
+                                              base_column)) {
           auto value{this->parse_value(next.value(),
                                        JSON::ParseContext::Property, 0, key,
                                        key_line, key_column)};
           result.assign(key, std::move(value));
           next = this->next_token();
+        } else {
+          result.assign(key, JSON{nullptr});
         }
         continue;
       }
@@ -2120,7 +2170,7 @@ private:
 
       if (!next.has_value() || next->type == TokenType::Scalar) {
         if (next.has_value() &&
-            (next->line == key_line || next->column != base_column)) {
+            this->starts_mapping_value(next.value(), key_line, base_column)) {
           this->record_inline_comment_for_key(key, next->line != key_line);
           auto after{this->next_token()};
           if (after.has_value()) {
@@ -2142,12 +2192,15 @@ private:
                  next->type == TokenType::DocumentStart) {
         result.assign(key, JSON{nullptr});
         break;
-      } else {
+      } else if (this->starts_mapping_value(next.value(), key_line,
+                                            base_column)) {
         this->record_inline_comment_for_key(key, next->line != key_line);
         auto value{this->parse_value(next.value(), JSON::ParseContext::Property,
                                      0, key, key_line, key_column)};
         result.assign(key, std::move(value));
         next = this->next_token();
+      } else {
+        result.assign(key, JSON{nullptr});
       }
     }
 
