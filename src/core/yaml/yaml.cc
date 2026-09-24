@@ -208,10 +208,36 @@ auto parse_yaml(std::basic_istream<JSON::Char, JSON::CharTraits> &stream,
   record_encoding(input, lexer, parser, roundtrip);
 }
 
+auto read_yaml(const std::filesystem::path &path, YAMLRoundTrip &roundtrip)
+    -> JSON {
+  JSON result{nullptr};
+  read_yaml(path, roundtrip, result, nullptr);
+  return result;
+}
+
+auto read_yaml(const std::filesystem::path &path, YAMLRoundTrip &roundtrip,
+               JSON &output, const JSON::ParseCallback &callback) -> void {
+  roundtrip = {};
+  const auto input{read_file_to_string(path)};
+
+  try {
+    yaml::Lexer lexer{input, true};
+    yaml::Parser parser{&lexer, &callback, &roundtrip};
+    output = parser.parse();
+
+    parser.validate_end_of_stream();
+
+    record_encoding(input, lexer, parser, roundtrip);
+  } catch (const YAMLParseError &error) {
+    // For producing better error messages
+    throw YAMLFileParseError(path, error);
+  }
+}
+
 auto stringify_yaml(const JSON &document,
-                    std::basic_ostream<JSON::Char, JSON::CharTraits> &stream)
-    -> void {
-  yaml::stringify_yaml<JSON::Allocator>(document, stream);
+                    std::basic_ostream<JSON::Char, JSON::CharTraits> &stream,
+                    const std::size_t indentation) -> void {
+  yaml::stringify_yaml<JSON::Allocator>(document, stream, nullptr, indentation);
 }
 
 auto stringify_yaml(const JSON &document,

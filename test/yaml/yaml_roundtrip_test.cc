@@ -2,7 +2,9 @@
 #include <sourcemeta/core/test.h>
 #include <sourcemeta/core/yaml.h>
 
-#include <sstream> // std::ostringstream
+#include <cstdint>    // std::uint64_t
+#include <filesystem> // std::filesystem
+#include <sstream>    // std::ostringstream
 
 static auto stringify(const sourcemeta::core::JSON &document,
                       const sourcemeta::core::YAMLRoundTrip &metadata)
@@ -35,6 +37,106 @@ static auto roundtrip_stream(const std::string &input) -> std::string {
   }
 
   return output.str();
+}
+
+TEST(read_file_with_roundtrip) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  const auto document{sourcemeta::core::read_yaml(
+      std::filesystem::path{STUBS_PATH} / "test_1.yaml", metadata)};
+  EXPECT_TRUE(document.is_object());
+  EXPECT_EQ(document.at("foo"), sourcemeta::core::JSON{"bar"});
+  EXPECT_EQ(stringify(document, metadata), "foo: bar\nbaz: 2\n");
+}
+
+TEST(read_file_with_roundtrip_and_callback) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  sourcemeta::core::JSON document{nullptr};
+  std::size_t events{0};
+  sourcemeta::core::read_yaml(
+      std::filesystem::path{STUBS_PATH} / "test_1.yaml", metadata, document,
+      [&events](const sourcemeta::core::JSON::ParsePhase,
+                const sourcemeta::core::JSON::Type, const std::uint64_t,
+                const std::uint64_t, const sourcemeta::core::JSON::ParseContext,
+                const std::size_t,
+                const sourcemeta::core::JSON::String &) { events += 1; });
+  EXPECT_EQ(document.at("baz"), sourcemeta::core::JSON{2});
+  EXPECT_EQ(events, 6);
+  EXPECT_EQ(stringify(document, metadata), "foo: bar\nbaz: 2\n");
+}
+
+TEST(read_file_with_roundtrip_rejects_trailing_documents) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  try {
+    sourcemeta::core::read_yaml(std::filesystem::path{STUBS_PATH} /
+                                    "multi_document_objects.yaml",
+                                metadata);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLFileParseError &error) {
+    EXPECT_EQ(error.path(), std::filesystem::path{STUBS_PATH} /
+                                "multi_document_objects.yaml");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(read_file_with_roundtrip_carries_the_path_on_failure) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  try {
+    sourcemeta::core::read_yaml(
+        std::filesystem::path{STUBS_PATH} / "invalid.yaml", metadata);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLFileParseError &error) {
+    EXPECT_EQ(error.path(), std::filesystem::path{STUBS_PATH} / "invalid.yaml");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(stringify_with_an_explicit_indentation) {
+  const auto document{
+      sourcemeta::core::parse_yaml("foo:\n  bar:\n    baz: 1\n")};
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream, 4);
+  EXPECT_EQ(stream.str(), "foo:\n    bar:\n        baz: 1\n");
+}
+
+TEST(stringify_with_the_default_indentation) {
+  const auto document{
+      sourcemeta::core::parse_yaml("foo:\n  bar:\n    baz: 1\n")};
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream);
+  EXPECT_EQ(stream.str(), "foo:\n  bar:\n    baz: 1\n");
+}
+
+TEST(reordering_past_an_anchor_drops_the_unused_anchor) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  auto document{
+      sourcemeta::core::parse_yaml("defs:\n  name: &name\n    type: string\n"
+                                   "props:\n  first: *name\n",
+                                   metadata)};
+  document.reorder(
+      [](const auto &left, const auto &right) { return left > right; });
+  EXPECT_EQ(stringify(document, metadata),
+            "props:\n  first:\n    type: string\n"
+            "defs:\n  name:\n    type: string\n");
+}
+
+TEST(reordering_that_leaves_an_anchor_first_keeps_the_alias) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  auto document{
+      sourcemeta::core::parse_yaml("defs:\n  name: &name\n    type: string\n"
+                                   "props:\n  first: *name\n",
+                                   metadata)};
+  document.reorder(
+      [](const auto &left, const auto &right) { return left < right; });
+  EXPECT_EQ(stringify(document, metadata),
+            "defs:\n  name: &name\n    type: string\n"
+            "props:\n  first: *name\n");
+}
+
+TEST(an_anchor_with_no_alias_at_all_is_kept) {
+  const std::string input{"defs:\n  name: &name\n    type: string\n"};
+  EXPECT_EQ(roundtrip(input), input);
 }
 
 TEST(block_mapping_simple) {
