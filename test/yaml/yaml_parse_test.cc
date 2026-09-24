@@ -1300,6 +1300,32 @@ TEST(string_tag_on_an_empty_sequence_item_before_a_sibling) {
   EXPECT_EQ(result.at(1), sourcemeta::core::JSON{"foo"});
 }
 
+TEST(string_tag_on_an_empty_mapping_value_before_a_sibling) {
+  const std::string input{"foo: !!str\nbar: baz\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.at("foo"), sourcemeta::core::JSON{""});
+  EXPECT_EQ(result.at("bar"), sourcemeta::core::JSON{"baz"});
+}
+
+// YAML 1.2.2 Section 5.4: a lone carriage return is a line break of its own
+TEST(carriage_return_only_line_breaks) {
+  const std::string input{"a: 1\rb: 2\r"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at("a"), sourcemeta::core::JSON{1});
+  EXPECT_EQ(result.at("b"), sourcemeta::core::JSON{2});
+}
+
+TEST(carriage_return_only_document_markers) {
+  std::istringstream stream{"a: 1\r---\rb: 2\r"};
+  const auto first{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(first.at("a"), sourcemeta::core::JSON{1});
+  const auto second{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(second.at("b"), sourcemeta::core::JSON{2});
+}
+
 TEST(literal_block_scalar_trailing_more_indented_line) {
   const std::string input{"foo: |\n  x\n   "};
   const auto result{sourcemeta::core::parse_yaml(input)};

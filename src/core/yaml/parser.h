@@ -94,15 +94,15 @@ public:
       if (!token.has_value() || token->type == TokenType::StreamEnd ||
           token->type == TokenType::DocumentEnd ||
           token->type == TokenType::DocumentStart) {
-        if (this->roundtrip_ != nullptr) {
-          this->roundtrip_->post_start_comments =
-              this->lexer_->take_preceding_comments();
-        }
-
         if (token.has_value() && token->type == TokenType::DocumentStart) {
           this->pending_tokens_.push_back(token.value());
           this->pending_token_position_ = pos_before_next;
           return JSON{nullptr};
+        }
+
+        if (this->roundtrip_ != nullptr) {
+          this->roundtrip_->post_start_comments =
+              this->lexer_->take_preceding_comments();
         }
 
         // A document with no node of its own still ends the way any other
@@ -687,17 +687,21 @@ private:
         if (after.has_value() && after->type == TokenType::BlockMappingValue) {
           this->pending_tokens_.push_back(current_token);
           this->pending_tokens_.push_back(after.value());
+          JSON empty_value{nullptr};
+          if (tag.has_value() && tag.value() == "tag:yaml.org,2002:str") {
+            empty_value = JSON{std::string{}};
+          }
           if (anchor_name.has_value()) {
             this->register_anchored_null(anchor_name.value(), token, context,
                                          index, property,
                                          anchor_inline_comment);
           }
-          this->record_tag(raw_tag, tag_before_anchor, JSON{nullptr});
+          this->record_tag(raw_tag, tag_before_anchor, empty_value);
           if ((this->roundtrip_ != nullptr) &&
               context != JSON::ParseContext::Root) {
             this->pointer_stack_.pop_back();
           }
-          return JSON{nullptr};
+          return empty_value;
         }
         if (after.has_value()) {
           this->pending_tokens_.push_back(after.value());

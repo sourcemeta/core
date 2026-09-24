@@ -360,6 +360,32 @@ TEST(multi_document_stream_is_written_the_same_way_twice) {
   EXPECT_EQ(roundtrip_stream(roundtrip_stream(input)), input);
 }
 
+TEST(string_tag_on_an_empty_mapping_value_before_another_key) {
+  const std::string input{"foo: !!str\nbar: baz\n"};
+  EXPECT_EQ(roundtrip(input), "foo: !!str \"\"\nbar: baz\n");
+  EXPECT_EQ(roundtrip_value(input).at("foo"), sourcemeta::core::JSON{""});
+}
+
+TEST(multi_document_stream_with_an_empty_document_and_a_comment) {
+  const std::string input{"---\n# note\n---\nfoo\n"};
+  EXPECT_EQ(roundtrip_stream(input), input);
+}
+
+TEST(multi_document_stream_with_an_empty_document_and_comments) {
+  const std::string input{"---\n# one\n# two\n---\nfoo\n"};
+  EXPECT_EQ(roundtrip_stream(input), input);
+}
+
+TEST(multi_document_stream_keeps_the_line_endings_of_each_document) {
+  const std::string input{"foo: bar\r\n---\nbaz: qux\n"};
+  EXPECT_EQ(roundtrip_stream(input), input);
+}
+
+TEST(multi_document_stream_keeps_later_carriage_return_line_endings) {
+  const std::string input{"foo: bar\n---\r\nbaz: qux\r\n"};
+  EXPECT_EQ(roundtrip_stream(input), input);
+}
+
 TEST(single_quoted_value) {
   const std::string input{R"YAML(foo: 'bar'
 )YAML"};

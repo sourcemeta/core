@@ -471,7 +471,13 @@ private:
       if (this->position_ >= this->input_.size()) {
         break;
       }
-      if (this->input_[this->position_] == '\n') {
+      // A lone carriage return is a line break of its own, while the one that
+      // opens a carriage return and line feed pair leaves the counting to the
+      // line feed. See https://yaml.org/spec/1.2.2/#54-line-break-characters
+      const auto character{this->input_[this->position_]};
+      if (character == '\n' ||
+          (character == '\r' && (this->position_ + 1 >= this->input_.size() ||
+                                 this->input_[this->position_ + 1] != '\n'))) {
         this->line_++;
         this->column_ = 1;
       } else {
