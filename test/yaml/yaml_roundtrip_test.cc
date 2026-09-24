@@ -238,6 +238,56 @@ TEST(block_scalar_with_an_indentation_indicator_under_a_key) {
             sourcemeta::core::JSON{"value\n"});
 }
 
+TEST(root_block_scalar_indicator_follows_its_new_column) {
+  const std::string input{"|1\n  foo\n"};
+  EXPECT_EQ(roundtrip(input), "|3\n    foo\n");
+  EXPECT_EQ(roundtrip_value(input), sourcemeta::core::JSON{"  foo\n"});
+}
+
+TEST(root_folded_scalar_indicator_follows_its_new_column) {
+  const std::string input{">1\n  foo\n"};
+  EXPECT_EQ(roundtrip(input), ">3\n    foo\n");
+  EXPECT_EQ(roundtrip_value(input), sourcemeta::core::JSON{"  foo\n"});
+}
+
+TEST(nested_sequence_block_scalar_indicator_follows_its_new_column) {
+  const std::string input{"a:\n  - |1\n     foo\n"};
+  EXPECT_EQ(roundtrip(input), "a:\n  - |2\n      foo\n");
+  EXPECT_EQ(roundtrip_value(input).at("a").at(0),
+            sourcemeta::core::JSON{"  foo\n"});
+}
+
+TEST(tag_on_an_empty_mapping_value_before_another_key) {
+  const std::string input{"foo: !Custom\nbar: baz\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(tag_on_an_empty_sequence_item_before_another_item) {
+  const std::string input{"- !Custom\n- foo\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(tag_on_an_implicit_null_in_a_flow_mapping) {
+  const std::string input{"a: {foo: !Custom}\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(comment_between_a_directive_and_the_document_start) {
+  const std::string input{"%YAML 1.2\n# note\n---\nfoo: bar\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(comment_before_a_directive) {
+  const std::string input{"# note\n%YAML 1.2\n---\nfoo: bar\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(comment_between_two_directives) {
+  const std::string input{
+      "%YAML 1.2\n# note\n%TAG !e! tag:example.com,2000:\n---\nfoo: bar\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
 TEST(single_quoted_value) {
   const std::string input{R"YAML(foo: 'bar'
 )YAML"};

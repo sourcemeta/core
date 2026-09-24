@@ -22,6 +22,28 @@ auto read_to_string(const std::filesystem::path &path) -> std::string {
                      std::istreambuf_iterator<char>{}};
 }
 
+// The round-trip emitter writes a single document, so a case that holds
+// several, or none at all, is out of its scope
+auto count_yaml_documents(const std::filesystem::path &path) -> std::size_t {
+  std::ifstream stream{path, std::ios::binary};
+  stream.exceptions(std::ios_base::badbit);
+  std::size_t count{0};
+
+  while (stream.peek() != EOF) {
+    try {
+      sourcemeta::core::parse_yaml(stream);
+    } catch (const sourcemeta::core::YAMLError &) {
+      return 0;
+    } catch (const sourcemeta::core::YAMLParseError &) {
+      return 0;
+    }
+
+    count++;
+  }
+
+  return count;
+}
+
 // A YAML document carries presentation that its JSON value does not, so the
 // round-trip emitter is only correct if the text it writes reads back as the
 // very same document. See https://yaml.org/spec/1.2.2/#321-representation-graph
@@ -117,14 +139,8 @@ auto register_yaml_test_case(const std::filesystem::path &test_directory,
     return;
   }
 
-  // The round-trip emitter writes a single document, so a case that holds
-  // several, or none at all, is out of its scope
   const auto yaml_path{test_directory / "in.yaml"};
-  try {
-    sourcemeta::core::read_yaml(yaml_path);
-  } catch (const sourcemeta::core::YAMLError &) {
-    return;
-  } catch (const sourcemeta::core::YAMLParseError &) {
+  if (count_yaml_documents(yaml_path) != 1) {
     return;
   }
 

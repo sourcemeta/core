@@ -119,10 +119,11 @@ public:
   std::unordered_map<Pointer, ScalarStyle, Pointer::Hasher> key_styles;
   /// The original quoted content for each mapping key
   std::unordered_map<Pointer, std::string, Pointer::Hasher> key_quoted_contents;
-  /// The directives that precede the document, as they were written. A
-  /// document that carries any of these always begins with an explicit start
-  /// marker. See https://yaml.org/spec/1.2.2/#912-document-markers
-  std::vector<std::string> directives;
+  /// The directive and comment lines that precede the document start marker,
+  /// in the order they were written. A document that carries a directive
+  /// always begins with an explicit start marker.
+  /// See https://yaml.org/spec/1.2.2/#912-document-markers
+  std::vector<std::string> document_prefix;
   /// Whether the document begins with an explicit start marker
   bool explicit_document_start{false};
   /// Whether the document ends with an explicit end marker

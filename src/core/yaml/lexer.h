@@ -74,9 +74,6 @@ public:
     this->validate_characters();
   }
 
-  // The number of leading bytes consumed by a stripped byte order mark, so a
-  // caller reading from a stream can map a consumed count back to the original
-  // input offset
   // A carriage return is a line break rather than comment content, so it never
   // belongs to the text of a comment that a carriage return ends.
   // See https://yaml.org/spec/1.2.2/#66-comments
@@ -85,6 +82,9 @@ public:
                                            : raw};
   }
 
+  // The number of leading bytes consumed by a stripped byte order mark, so a
+  // caller reading from a stream can map a consumed count back to the original
+  // input offset
   [[nodiscard]] auto bom_length() const noexcept -> std::size_t {
     return this->bom_length_;
   }
@@ -1098,59 +1098,20 @@ private:
     return codepoint_to_utf8(character);
   }
 
-  [[nodiscard]] auto calculate_parent_indentation(
-      const std::size_t indicator_position) const noexcept -> std::size_t {
-    std::size_t line_start{indicator_position};
-    while (line_start > 0 && this->input_[line_start - 1] != '\n' &&
-           this->input_[line_start - 1] != '\r') {
-      line_start--;
-    }
-
-    std::size_t leading_spaces{0};
-    std::size_t scan_position{line_start};
-    while (scan_position < this->input_.size() &&
-           this->input_[scan_position] == ' ') {
-      leading_spaces++;
-      scan_position++;
-    }
-
-    bool in_sequence_entry{false};
-    if (scan_position < this->input_.size() - 1 &&
-        this->input_[scan_position] == '-' &&
-        this->input_[scan_position + 1] == ' ') {
-      in_sequence_entry = true;
-    }
-
-    bool is_mapping_value_same_line{false};
-    for (std::size_t index = line_start; index < indicator_position; ++index) {
-      if (this->input_[index] == ':') {
-        is_mapping_value_same_line = true;
-        break;
-      }
-    }
-
-    if (in_sequence_entry && is_mapping_value_same_line) {
-      return leading_spaces + 2;
-    }
-
-    if (is_mapping_value_same_line) {
-      return leading_spaces;
-    }
-
-    return 0;
-  }
-
   auto detect_block_scalar_indent(const std::size_t explicit_indent,
-                                  const std::size_t indicator_position,
                                   const std::uint64_t start_line,
                                   const std::uint64_t start_column)
       -> std::size_t {
     std::size_t content_indent{0};
 
     if (explicit_indent > 0) {
-      const auto parent_indent{
-          this->calculate_parent_indentation(indicator_position)};
-      content_indent = parent_indent + explicit_indent;
+      // The content indentation level of a block scalar is the indentation
+      // level of the node itself plus the indicator, and the node at the
+      // document root sits one level further out than the leftmost column.
+      // See https://yaml.org/spec/1.2.2/#8111-block-indentation-indicator
+      content_indent = this->block_indent_ == SIZE_MAX
+                           ? explicit_indent - 1
+                           : this->block_indent_ + explicit_indent;
     } else {
       const auto saved_position{this->position_};
       const auto saved_line{this->line_};
@@ -1204,7 +1165,6 @@ private:
   auto scan_block_scalar(const ScalarStyle style) -> Token {
     const auto start_line{this->line_};
     const auto start_column{this->column_};
-    const auto indicator_position{this->position_};
 
     this->advance(1);
 
@@ -1268,7 +1228,7 @@ private:
     }
 
     const auto content_indent{this->detect_block_scalar_indent(
-        explicit_indent, indicator_position, start_line, start_column)};
+        explicit_indent, start_line, start_column)};
 
     std::size_t blank_line_count{0};
     bool previous_was_more_indented{false};

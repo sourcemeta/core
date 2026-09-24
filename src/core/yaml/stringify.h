@@ -674,6 +674,22 @@ inline auto write_flow_properties(OutputStream &stream, const JSON &value,
   }
 }
 
+// The same as writing the properties of a flow node, but for a node that is
+// written with no value at all, so nothing follows to be separated from
+inline auto write_flow_node_properties(OutputStream &stream, const JSON &value,
+                                       const YAMLRoundTrip *roundtrip,
+                                       AnchorValues &anchors,
+                                       const Pointer &pointer) -> void {
+  if (roundtrip == nullptr) {
+    return;
+  }
+
+  const auto match{roundtrip->styles.find(pointer)};
+  if (match != roundtrip->styles.end()) {
+    write_node_properties(stream, value, &match->second, anchors);
+  }
+}
+
 inline auto write_flow_mapping(OutputStream &stream, const JSON &value,
                                const YAMLRoundTrip *roundtrip,
                                AnchorValues &anchors, Pointer &pointer)
@@ -704,7 +720,10 @@ inline auto write_flow_mapping(OutputStream &stream, const JSON &value,
     pointer.push_back(entry.first);
     write_key_string(stream, entry.first, roundtrip, pointer);
     stream.write(": ", 2);
-    if (!is_implicit_null(entry.second, roundtrip, pointer)) {
+    if (is_implicit_null(entry.second, roundtrip, pointer)) {
+      write_flow_node_properties(stream, entry.second, roundtrip, anchors,
+                                 pointer);
+    } else {
       write_flow_properties(stream, entry.second, roundtrip, anchors, pointer);
       write_inline_value(stream, entry.second, roundtrip, anchors, pointer);
     }
@@ -1102,14 +1121,6 @@ auto stringify_yaml(const JSON &document, OutputStream &stream,
     stream.write("\xEF\xBB\xBF", 3);
   }
 
-  if (roundtrip) {
-    for (const auto &comment : roundtrip->leading_comments) {
-      stream.write(comment.data(),
-                   static_cast<std::streamsize>(comment.size()));
-      write_break(stream, roundtrip);
-    }
-  }
-
   Pointer pointer;
   AnchorValues anchors;
   const YAMLRoundTrip::NodeStyle *root_style{nullptr};
@@ -1124,18 +1135,24 @@ auto stringify_yaml(const JSON &document, OutputStream &stream,
   // which is the only line that precedes the node itself
   bool root_properties{false};
 
+  bool directed{false};
   if (roundtrip != nullptr) {
-    for (const auto &directive : roundtrip->directives) {
-      stream.write(directive.data(),
-                   static_cast<std::streamsize>(directive.size()));
+    for (const auto &line : roundtrip->document_prefix) {
+      directed = directed || line.starts_with('%');
+      stream.write(line.data(), static_cast<std::streamsize>(line.size()));
+      write_break(stream, roundtrip);
+    }
+
+    for (const auto &comment : roundtrip->leading_comments) {
+      stream.write(comment.data(),
+                   static_cast<std::streamsize>(comment.size()));
       write_break(stream, roundtrip);
     }
   }
 
   // A document that carries directives is closed off from them by an explicit
   // start marker. See https://yaml.org/spec/1.2.2/#912-document-markers
-  if (roundtrip &&
-      (roundtrip->explicit_document_start || !roundtrip->directives.empty())) {
+  if (roundtrip && (roundtrip->explicit_document_start || directed)) {
     stream.write("---", 3);
     if (has_node_properties(root_style, document)) {
       stream.put(' ');

@@ -344,7 +344,12 @@ private:
            token.type == TokenType::DirectiveTag ||
            token.type == TokenType::DirectiveReserved) {
       if (record && this->roundtrip_ != nullptr) {
-        this->roundtrip_->directives.emplace_back(token.value);
+        auto &prefix{this->roundtrip_->document_prefix};
+        for (auto &comment : this->lexer_->take_preceding_comments()) {
+          prefix.push_back(std::move(comment));
+        }
+
+        prefix.emplace_back(token.value);
       }
       if (token.type == TokenType::DirectiveYAML) {
         if (seen_yaml_directive) [[unlikely]] {
@@ -659,6 +664,7 @@ private:
                                          index, property,
                                          anchor_inline_comment);
           }
+          this->record_tag(raw_tag, tag_before_anchor, JSON{nullptr});
           if ((this->roundtrip_ != nullptr) &&
               context != JSON::ParseContext::Root) {
             this->pointer_stack_.pop_back();
@@ -670,7 +676,8 @@ private:
         }
       }
 
-      if (anchor_name.has_value() && context == JSON::ParseContext::Index &&
+      if ((anchor_name.has_value() || tag.has_value()) &&
+          context == JSON::ParseContext::Index &&
           current_token.type == TokenType::BlockSequenceEntry) {
         const auto block_indent{this->lexer_->block_indent()};
         const auto entry_indent{
@@ -679,13 +686,21 @@ private:
                 : 0UZ};
         if (block_indent != SIZE_MAX && entry_indent <= block_indent) {
           this->pending_tokens_.push_back(current_token);
-          this->register_anchored_null(anchor_name.value(), token, context,
-                                       index, property, anchor_inline_comment);
+          JSON empty_value{nullptr};
+          if (tag.has_value() && tag.value() == "tag:yaml.org,2002:str") {
+            empty_value = JSON{std::string{}};
+          }
+          if (anchor_name.has_value()) {
+            this->register_anchored_null(anchor_name.value(), token, context,
+                                         index, property,
+                                         anchor_inline_comment);
+          }
+          this->record_tag(raw_tag, tag_before_anchor, empty_value);
           if ((this->roundtrip_ != nullptr) &&
               context != JSON::ParseContext::Root) {
             this->pointer_stack_.pop_back();
           }
-          return JSON{nullptr};
+          return empty_value;
         }
       }
     }
