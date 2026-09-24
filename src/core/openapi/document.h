@@ -562,24 +562,30 @@ inline auto openapi_check_operation_id_links(
 // account of. Which places those are is settled by the walk as a whole, so
 // this cannot be decided while one is still being read
 inline auto openapi_check_schema_positions(const OpenAPIWalk &walk) -> void {
-  std::vector<WeakPointer> enclosing;
   for (const auto &location : walk.locations) {
     if (location.second.type != OpenAPIObjectKind::Schema) {
       continue;
     }
 
-    auto pointer{to_weak_pointer(location.second.pointer)};
-    while (!enclosing.empty() && !pointer.starts_with(enclosing.back())) {
-      enclosing.pop_back();
+    // Which place holds this one is what the walk recorded of each place
+    // above it rather than anything the order of them suggests. A location is
+    // held under a key that sorts as a string, and Section 4.7 admits both
+    // `-` and `.` into a component name, either of which falls below the `/`
+    // that separates a place from what sits within it. So a sibling named
+    // that way comes between an Object and its own contents, which is why
+    // this asks after every place above rather than the one just read
+    auto prefix{location.second.pointer};
+    while (!prefix.empty()) {
+      prefix.pop_back();
+      const auto enclosing{
+          walk.locations.find(openapi_location_uri(walk.base, prefix))};
+      if (enclosing != walk.locations.cend() &&
+          enclosing->second.type == OpenAPIObjectKind::Schema) {
+        throw OpenAPIError{
+            walk.base, location.second.pointer,
+            "A Schema Object must not sit within another Schema Object"};
+      }
     }
-
-    if (!enclosing.empty()) {
-      throw OpenAPIError{
-          walk.base, location.second.pointer,
-          "A Schema Object must not sit within another Schema Object"};
-    }
-
-    enclosing.push_back(std::move(pointer));
   }
 }
 

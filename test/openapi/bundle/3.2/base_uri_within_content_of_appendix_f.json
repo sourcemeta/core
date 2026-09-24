@@ -1,0 +1,132 @@
+{
+  "document": {
+    "openapi": "3.2.1",
+    "$self": "https://example.com/api/openapi",
+    "info": {
+      "title": "Example API",
+      "version": "1.0"
+    },
+    "paths": {
+      "/foo": {
+        "post": {
+          "requestBody": {
+            "$ref": "shared/foo#/components/requestBodies/Foo"
+          },
+          "responses": {
+            "200": {
+              "description": "ok"
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultBase": "file://home/someone/src/api/openapi.yaml",
+  "openapiResolver": {
+    "https://example.com/api/shared/foo": {
+      "openapi": "3.2.1",
+      "$self": "https://example.com/api/shared/foo",
+      "info": {
+        "title": "Shared components for all APIs",
+        "version": "1.0"
+      },
+      "components": {
+        "requestBodies": {
+          "Foo": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../schemas/foo"
+                }
+              }
+            }
+          }
+        },
+        "schemas": {
+          "Foo": {
+            "$id": "https://example.com/api/schemas/foo",
+            "properties": {
+              "bar": {
+                "$ref": "bar"
+              }
+            }
+          },
+          "Bar": {
+            "$id": "https://example.com/api/schemas/bar",
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.2.1",
+    "$self": "https://example.com/api/openapi",
+    "info": {
+      "title": "Example API",
+      "version": "1.0"
+    },
+    "paths": {
+      "/foo": {
+        "post": {
+          "requestBody": {
+            "$ref": "#/components/requestBodies/Foo"
+          },
+          "responses": {
+            "200": {
+              "description": "ok"
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "requestBodies": {
+        "Foo": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Foo"
+              }
+            }
+          }
+        }
+      },
+      "schemas": {
+        "Foo": {
+          "$id": "https://example.com/api/schemas/foo",
+          "properties": {
+            "bar": {
+              "$ref": "https://example.com/api/schemas/bar"
+            }
+          }
+        },
+        "Bar": {
+          "$id": "https://example.com/api/schemas/bar",
+          "type": "string"
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/api/shared/foo#/components/requestBodies/Foo",
+      "at": "/components/requestBodies/Foo"
+    },
+    {
+      "from": "https://example.com/api/shared/foo#/components/schemas/Foo",
+      "at": "/components/schemas/Foo"
+    },
+    {
+      "from": "https://example.com/api/shared/foo#/components/schemas/Bar",
+      "at": "/components/schemas/Bar"
+    }
+  ],
+  "reads": {
+    "https://example.com/api/shared/foo": 1
+  },
+  "schemaReads": {},
+  "standalone": true,
+  "relocatable": true
+}

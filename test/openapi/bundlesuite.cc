@@ -333,18 +333,15 @@ auto run_pass_test(const sourcemeta::core::JSON &test) -> void {
   // reference count from "the nearest parent `$id`" rather than from the
   // document, so a fragment there would name a place within that identifier
   // and the document has to be named in full instead
-  // Where it is kept instead is any address but the one it came from, which a
-  // fixture has no say in and this works out from the base it did give. One
-  // that was given no base was never at an address to begin with, so what it
-  // is moved to is any address at all, and RFC 2606 Section 2 reserves a name
-  // for standing in like this: "test" is "recommended for use in testing of
-  // current or new DNS related code"
-  sourcemeta::core::JSON::String elsewhere{"https://relocated.test/"};
-  if (!base.empty()) {
-    sourcemeta::core::URI destination{"relocated"};
-    destination.resolve_from(sourcemeta::core::URI{base});
-    elsewhere = destination.recompose();
-  }
+  // Where it is kept instead is an address that shares nothing with the one it
+  // came from. A neighbour of the original would keep the host and the
+  // directory alike, and one of the same name would keep even a bare filename
+  // landing, so this differs in every one of the three. A reference that leans
+  // on any of them is the one thing this is here to catch. RFC 2606 Section 2
+  // reserves a name for standing in like this: "test" is "recommended for use
+  // in testing of current or new DNS related code"
+  const sourcemeta::core::JSON::String elsewhere{
+      "https://relocated.test/moved/elsewhere.json"};
 
   const sourcemeta::core::OpenAPIFrame moved{
       result, sourcemeta::core::schema_walker, schema_resolver, elsewhere};

@@ -28,12 +28,15 @@ target_link_libraries(sourcemeta_core_openapi_bundle_suite_unit
 target_link_libraries(sourcemeta_core_openapi_bundle_suite_unit
   PRIVATE sourcemeta::core::json)
 
-# The OpenAPI Initiative's own meta-schema fixtures
+# The OpenAPI Initiative's own meta-schema fixtures, one corpus per revision
 # See https://github.com/OAI/OpenAPI-Specification/tree/v3.1-dev/tests/schema
+# and https://github.com/OAI/OpenAPI-Specification/tree/v3.2-dev/tests/schema
 sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME openapi_suite
   SOURCES oaisuite.cc)
 target_compile_definitions(sourcemeta_core_openapi_suite_unit
-  PRIVATE OPENAPI_SUITE_PATH="${PROJECT_SOURCE_DIR}/vendor/openapi-test-suite-3-1/tests/schema")
+  PRIVATE OPENAPI_SUITE_PATH_3_1="${PROJECT_SOURCE_DIR}/vendor/openapi-test-suite-3-1/tests/schema")
+target_compile_definitions(sourcemeta_core_openapi_suite_unit
+  PRIVATE OPENAPI_SUITE_PATH_3_2="${PROJECT_SOURCE_DIR}/vendor/openapi-test-suite-3-2/tests/schema")
 target_link_libraries(sourcemeta_core_openapi_suite_unit
   PRIVATE sourcemeta::core::openapi)
 target_link_libraries(sourcemeta_core_openapi_suite_unit

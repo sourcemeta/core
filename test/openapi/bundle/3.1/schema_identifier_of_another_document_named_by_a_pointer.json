@@ -1,0 +1,112 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "E",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/x": {
+        "get": {
+          "responses": {
+            "200": {
+              "$ref": "https://example.com/other.json#/components/responses/R"
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "schemas": {
+        "Pet": {
+          "$schema": "https://spec.openapis.org/oas/3.1/dialect/base",
+          "$ref": "https://example.com/ident#/$defs/Foo"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/other.json": {
+      "openapi": "3.1.1",
+      "info": {
+        "title": "Other",
+        "version": "1.0.0"
+      },
+      "components": {
+        "responses": {
+          "R": {
+            "description": "pull me in"
+          }
+        },
+        "schemas": {
+          "Ident": {
+            "$id": "https://example.com/ident",
+            "$defs": {
+              "Foo": {
+                "title": "FOO"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "E",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/x": {
+        "get": {
+          "responses": {
+            "200": {
+              "$ref": "#/components/responses/R"
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "schemas": {
+        "Pet": {
+          "$schema": "https://spec.openapis.org/oas/3.1/dialect/base",
+          "$ref": "#/components/schemas/Ident/$defs/Foo"
+        },
+        "Ident": {
+          "$id": "https://example.com/ident",
+          "$defs": {
+            "Foo": {
+              "title": "FOO"
+            }
+          }
+        }
+      },
+      "responses": {
+        "R": {
+          "description": "pull me in"
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/other.json#/components/responses/R",
+      "at": "/components/responses/R"
+    },
+    {
+      "from": "https://example.com/other.json#/components/schemas/Ident",
+      "at": "/components/schemas/Ident"
+    }
+  ],
+  "reads": {
+    "https://example.com/other.json": 1,
+    "https://example.com/ident": 1
+  },
+  "schemaReads": {},
+  "standalone": true,
+  "relocatable": true
+}

@@ -1,0 +1,125 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "securitySchemes": {
+        "Foo": {
+          "type": "http",
+          "scheme": "basic"
+        }
+      }
+    },
+    "paths": {
+      "/foo": {
+        "$ref": "api.json#/components/pathItems/P"
+      }
+    }
+  },
+  "defaultBase": "https://example.com/shared/!x.json",
+  "openapiResolver": {
+    "https://example.com/shared/api.json": {
+      "openapi": "3.2.0",
+      "info": {
+        "title": "Example",
+        "version": "1.0.0"
+      },
+      "components": {
+        "securitySchemes": {
+          "Foo": {
+            "type": "apiKey",
+            "name": "k",
+            "in": "header"
+          }
+        },
+        "pathItems": {
+          "P": {
+            "get": {
+              "security": [
+                {
+                  "!x.json#/components/securitySchemes/Foo": [
+                    "entry"
+                  ],
+                  "#/components/securitySchemes/Foo": [
+                    "remote"
+                  ]
+                }
+              ],
+              "responses": {
+                "200": {
+                  "description": "OK"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "securitySchemes": {
+        "Foo": {
+          "type": "http",
+          "scheme": "basic"
+        },
+        "Foo_": {
+          "type": "apiKey",
+          "name": "k",
+          "in": "header"
+        }
+      },
+      "pathItems": {
+        "P": {
+          "get": {
+            "security": [
+              {
+                "#/components/securitySchemes/Foo": [
+                  "entry"
+                ],
+                "Foo_": [
+                  "remote"
+                ]
+              }
+            ],
+            "responses": {
+              "200": {
+                "description": "OK"
+              }
+            }
+          }
+        }
+      }
+    },
+    "paths": {
+      "/foo": {
+        "$ref": "#/components/pathItems/P"
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/shared/api.json#/components/pathItems/P",
+      "at": "/components/pathItems/P"
+    },
+    {
+      "from": "https://example.com/shared/api.json#/components/securitySchemes/Foo",
+      "at": "/components/securitySchemes/Foo_"
+    }
+  ],
+  "reads": {
+    "https://example.com/shared/api.json": 1
+  },
+  "schemaReads": {},
+  "standalone": true,
+  "relocatable": true
+}
