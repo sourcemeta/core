@@ -1,16 +1,71 @@
+#include <sourcemeta/core/io.h>
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/test.h>
 #include <sourcemeta/core/yaml.h>
 
 #include <algorithm>  // std::min
+#include <cstddef>    // std::size_t
 #include <cstdint>    // std::uint8_t
 #include <filesystem> // std::filesystem
-#include <fstream>    // std::ifstream
+#include <istream>    // std::basic_istream
+#include <ostream>    // std::ostream
+#include <sstream>    // std::ostringstream, std::istringstream
 #include <string>     // std::string
 #include <vector>     // std::vector
 
 namespace {
 enum class YAMLTestType : std::uint8_t { Success, Error };
+
+// Reads every document a stream holds and writes each one back out with the
+// formatting it was read with, gathering the documents into an array so that
+// how many there are is compared along with what each one holds.
+//
+// A stream that trails off into comments, or into a bare document end marker,
+// holds no further document, which the parser reports the same way it reports
+// an input with no document at all. Any other failure to read a case is
+// already reported by the test that checks it against its expected value
+auto roundtrip_all(std::basic_istream<char> &stream, std::ostream &output)
+    -> sourcemeta::core::JSON {
+  auto documents{sourcemeta::core::JSON::make_array()};
+  while (stream.peek() != EOF) {
+    sourcemeta::core::YAMLRoundTrip metadata;
+    try {
+      documents.push_back(sourcemeta::core::parse_yaml(stream, metadata));
+    } catch (const sourcemeta::core::YAMLParseError &) {
+      break;
+    }
+
+    sourcemeta::core::stringify_yaml(documents.back(), output, metadata);
+  }
+
+  return documents;
+}
+
+// A YAML document carries presentation that its JSON value does not, so the
+// round-trip emitter is only correct if the text it writes reads back as the
+// very same documents. See
+// https://yaml.org/spec/1.2.2/#321-representation-graph
+auto run_yaml_roundtrip_case(const std::filesystem::path &yaml_path) -> void {
+  auto input{sourcemeta::core::read_file(yaml_path)};
+  std::ostringstream first_pass;
+  const auto documents{roundtrip_all(input, first_pass)};
+
+  std::istringstream emitted{first_pass.str()};
+  std::ostringstream second_pass;
+  const auto reread{roundtrip_all(emitted, second_pass)};
+
+  // Numbers of different types compare equal to each other, so the documents
+  // are compared as JSON text, which tells them apart and says what differs
+  std::ostringstream expected;
+  sourcemeta::core::stringify(documents, expected);
+  std::ostringstream actual;
+  sourcemeta::core::stringify(reread, actual);
+
+  EXPECT_EQ(actual.str(), expected.str());
+
+  // Writing out what was just written has nothing left to change
+  EXPECT_EQ(second_pass.str(), first_pass.str());
+}
 
 auto run_yaml_test_case(const std::filesystem::path &test_directory,
                         const YAMLTestType type) -> void {
@@ -19,10 +74,8 @@ auto run_yaml_test_case(const std::filesystem::path &test_directory,
   if (type == YAMLTestType::Success) {
     const auto json_path{test_directory / "in.json"};
 
-    std::ifstream yaml_stream{yaml_path, std::ios::binary};
-    std::ifstream json_stream{json_path, std::ios::binary};
-    yaml_stream.exceptions(std::ios_base::badbit);
-    json_stream.exceptions(std::ios_base::badbit);
+    auto yaml_stream{sourcemeta::core::read_file(yaml_path)};
+    auto json_stream{sourcemeta::core::read_file(json_path)};
 
     std::vector<sourcemeta::core::JSON> yaml_documents;
     std::vector<sourcemeta::core::JSON> json_documents;
@@ -77,6 +130,15 @@ auto register_yaml_test_case(const std::filesystem::path &test_directory,
   sourcemeta::core::test_register(test_name, [test_directory, type]() -> void {
     run_yaml_test_case(test_directory, type);
   });
+
+  if (type == YAMLTestType::Error) {
+    return;
+  }
+
+  const auto yaml_path{test_directory / "in.yaml"};
+  sourcemeta::core::test_register(
+      test_name + "/roundtrip",
+      [yaml_path]() -> void { run_yaml_roundtrip_case(yaml_path); });
 }
 } // namespace
 

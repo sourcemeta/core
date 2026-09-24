@@ -9,7 +9,7 @@
 #include <sourcemeta/core/yaml_error.h>
 #include <sourcemeta/core/yaml_roundtrip.h>
 
-#include <algorithm>     // std::max
+#include <algorithm>     // std::max, std::find_if
 #include <cassert>       // assert
 #include <cstdint>       // std::uint64_t, std::int64_t
 #include <optional>      // std::optional
@@ -46,6 +46,7 @@ public:
       : lexer_{lexer}, callback_{callback}, roundtrip_{roundtrip} {}
 
   auto parse() -> JSON {
+    bool empty_document{false};
     std::optional<Token> token;
 
     if (!this->pending_tokens_.empty()) {
@@ -72,7 +73,7 @@ public:
     if (token->type == TokenType::DirectiveYAML ||
         token->type == TokenType::DirectiveTag ||
         token->type == TokenType::DirectiveReserved) {
-      this->process_directives(token.value());
+      this->process_directives(token.value(), true);
     }
 
     if (token->type == TokenType::DocumentStart) {
@@ -82,6 +83,7 @@ public:
         this->roundtrip_->explicit_document_start = true;
       }
       this->document_start_line_ = token->line;
+      this->lexer_->skip_line_break();
       const auto pos_before_next{this->lexer_->position()};
       token = this->lexer_->next();
       if (this->roundtrip_ != nullptr) {
@@ -95,8 +97,17 @@ public:
         if (token.has_value() && token->type == TokenType::DocumentStart) {
           this->pending_tokens_.push_back(token.value());
           this->pending_token_position_ = pos_before_next;
+          return JSON{nullptr};
         }
-        return JSON{nullptr};
+
+        if (this->roundtrip_ != nullptr) {
+          this->roundtrip_->post_start_comments =
+              this->lexer_->take_preceding_comments();
+        }
+
+        // A document with no node of its own still ends the way any other
+        // does, so what follows it is read the same way
+        empty_document = true;
       }
     } else if (!token.has_value() || token->type == TokenType::StreamEnd)
         [[unlikely]] {
@@ -114,26 +125,33 @@ public:
       return JSON{nullptr};
     }
 
-    if (this->roundtrip_ != nullptr) {
-      auto comments{this->lexer_->take_preceding_comments()};
-      this->lexer_->take_inline_comment();
-      if (this->roundtrip_->explicit_document_start) {
-        this->roundtrip_->post_start_comments = std::move(comments);
-      } else {
-        this->roundtrip_->leading_comments = std::move(comments);
-      }
-    }
-
-    auto result{this->parse_value(token.value(), JSON::ParseContext::Root, 0,
-                                  EMPTY_PROPERTY)};
-
+    JSON result{nullptr};
     auto pos_before_token{this->lexer_->position()};
-    token = this->next_token();
-    if (this->roundtrip_ != nullptr) {
-      auto root_inline{this->lexer_->take_inline_comment()};
-      if (root_inline.has_value()) {
-        this->roundtrip_->styles[this->pointer_stack_].comment_inline =
-            std::move(root_inline);
+
+    if (!empty_document) {
+      if (this->roundtrip_ != nullptr) {
+        auto comments{this->lexer_->take_preceding_comments()};
+        this->lexer_->take_inline_comment();
+        if (this->roundtrip_->explicit_document_start) {
+          this->roundtrip_->post_start_comments = std::move(comments);
+        } else {
+          this->roundtrip_->leading_comments = std::move(comments);
+        }
+      }
+
+      result = this->parse_value(token.value(), JSON::ParseContext::Root, 0,
+                                 EMPTY_PROPERTY);
+
+      this->attach_leading_comments_to_first_key(result);
+
+      pos_before_token = this->lexer_->position();
+      token = this->next_token();
+      if (this->roundtrip_ != nullptr) {
+        auto root_inline{this->lexer_->take_inline_comment()};
+        if (root_inline.has_value()) {
+          this->roundtrip_->styles[this->pointer_stack_].comment_inline =
+              std::move(root_inline);
+        }
       }
     }
     while (token.has_value() && token->type == TokenType::DocumentEnd) {
@@ -143,6 +161,7 @@ public:
             this->lexer_->take_preceding_comments();
         this->roundtrip_->explicit_document_end = true;
       }
+      this->lexer_->skip_line_break();
       pos_before_token = this->lexer_->position();
       token = this->next_token();
       if (this->roundtrip_ != nullptr) {
@@ -153,7 +172,9 @@ public:
 
     if (this->roundtrip_ != nullptr) {
       auto trailing{this->lexer_->take_preceding_comments()};
-      if (!trailing.empty()) {
+      const bool ends_the_stream{!token.has_value() ||
+                                 token->type == TokenType::StreamEnd};
+      if (!trailing.empty() && ends_the_stream) {
         this->roundtrip_->trailing_comments = std::move(trailing);
       }
     }
@@ -296,11 +317,59 @@ private:
     return total;
   }
 
-  auto process_directives(Token &token) -> void {
+  // A comment block that runs straight into the first key of the document reads
+  // as belonging to that key, so it is recorded there and travels with the key
+  // if the document is later rearranged. A blank line in between instead marks
+  // the block as a header for the document as a whole
+  auto attach_leading_comments_to_first_key(const JSON &result) -> void {
+    if ((this->roundtrip_ == nullptr) || !result.is_object() ||
+        result.empty()) {
+      return;
+    }
+
+    auto &comments{this->roundtrip_->explicit_document_start
+                       ? this->roundtrip_->post_start_comments
+                       : this->roundtrip_->leading_comments};
+    const auto blank{
+        std::find_if(comments.crbegin(), comments.crend(),
+                     [](const auto &comment) { return comment.empty(); })};
+    if (blank == comments.crbegin()) {
+      return;
+    }
+
+    const auto first{blank.base()};
+    Pointer pointer{result.as_object().cbegin()->first};
+    auto &attached{this->roundtrip_->styles[pointer].comments_before};
+    attached.insert(attached.cbegin(), first, comments.cend());
+    comments.erase(first, comments.cend());
+  }
+
+  // A flow collection may be written with a space just inside its delimiters,
+  // which the first token after the opening one gives away
+  auto record_flow_padding(const Token &start_token,
+                           const std::optional<Token> &first) -> void {
+    if ((this->roundtrip_ == nullptr) || !first.has_value() ||
+        first->line != start_token.line ||
+        first->column <= start_token.column + 1) {
+      return;
+    }
+
+    this->roundtrip_->styles[this->pointer_stack_].padded_flow = true;
+  }
+
+  auto process_directives(Token &token, const bool record = false) -> void {
     bool seen_yaml_directive{false};
     while (token.type == TokenType::DirectiveYAML ||
            token.type == TokenType::DirectiveTag ||
            token.type == TokenType::DirectiveReserved) {
+      if (record && this->roundtrip_ != nullptr) {
+        auto &prefix{this->roundtrip_->document_prefix};
+        for (auto &comment : this->lexer_->take_preceding_comments()) {
+          prefix.push_back(std::move(comment));
+        }
+
+        prefix.emplace_back(token.value);
+      }
       if (token.type == TokenType::DirectiveYAML) {
         if (seen_yaml_directive) [[unlikely]] {
           throw YAMLParseError{token.line, token.column,
@@ -535,6 +604,8 @@ private:
     std::optional<std::string_view> anchor_name;
     std::uint64_t anchor_line{0};
     std::optional<std::string> tag;
+    std::optional<std::string> raw_tag;
+    bool tag_before_anchor{false};
     std::size_t anchor_count{0};
     std::optional<std::string> anchor_inline_comment;
     Token current_token{token};
@@ -563,11 +634,24 @@ private:
         anchor_count++;
       } else {
         tag = this->resolve_tag(current_token.value);
+        if (this->roundtrip_ != nullptr) {
+          raw_tag = std::string{current_token.value};
+          tag_before_anchor = anchor_count == 0;
+        }
       }
 
       auto next{this->lexer_->next()};
       if ((this->roundtrip_ != nullptr) && anchor_name.has_value()) {
         anchor_inline_comment = this->lexer_->take_inline_comment();
+      } else if ((this->roundtrip_ != nullptr) &&
+                 context == JSON::ParseContext::Root &&
+                 this->document_start_line_ > 0 &&
+                 current_token.line == this->document_start_line_ &&
+                 !this->roundtrip_->document_start_comment.has_value()) {
+        // A comment that trails the node properties of the root node still
+        // sits on the document start marker line, which is where it is written
+        this->roundtrip_->document_start_comment =
+            this->lexer_->take_inline_comment();
       }
       if (!next.has_value() || next->type == TokenType::StreamEnd ||
           next->type == TokenType::DocumentEnd ||
@@ -588,6 +672,7 @@ private:
             style.comment_inline = std::move(anchor_inline_comment);
           }
         }
+        this->record_tag(raw_tag, tag_before_anchor, empty_value);
         if ((this->roundtrip_ != nullptr) &&
             context != JSON::ParseContext::Root) {
           this->pointer_stack_.pop_back();
@@ -602,23 +687,29 @@ private:
         if (after.has_value() && after->type == TokenType::BlockMappingValue) {
           this->pending_tokens_.push_back(current_token);
           this->pending_tokens_.push_back(after.value());
+          JSON empty_value{nullptr};
+          if (tag.has_value() && tag.value() == "tag:yaml.org,2002:str") {
+            empty_value = JSON{std::string{}};
+          }
           if (anchor_name.has_value()) {
             this->register_anchored_null(anchor_name.value(), token, context,
                                          index, property,
                                          anchor_inline_comment);
           }
+          this->record_tag(raw_tag, tag_before_anchor, empty_value);
           if ((this->roundtrip_ != nullptr) &&
               context != JSON::ParseContext::Root) {
             this->pointer_stack_.pop_back();
           }
-          return JSON{nullptr};
+          return empty_value;
         }
         if (after.has_value()) {
           this->pending_tokens_.push_back(after.value());
         }
       }
 
-      if (anchor_name.has_value() && context == JSON::ParseContext::Index &&
+      if ((anchor_name.has_value() || tag.has_value()) &&
+          context == JSON::ParseContext::Index &&
           current_token.type == TokenType::BlockSequenceEntry) {
         const auto block_indent{this->lexer_->block_indent()};
         const auto entry_indent{
@@ -627,13 +718,21 @@ private:
                 : 0UZ};
         if (block_indent != SIZE_MAX && entry_indent <= block_indent) {
           this->pending_tokens_.push_back(current_token);
-          this->register_anchored_null(anchor_name.value(), token, context,
-                                       index, property, anchor_inline_comment);
+          JSON empty_value{nullptr};
+          if (tag.has_value() && tag.value() == "tag:yaml.org,2002:str") {
+            empty_value = JSON{std::string{}};
+          }
+          if (anchor_name.has_value()) {
+            this->register_anchored_null(anchor_name.value(), token, context,
+                                         index, property,
+                                         anchor_inline_comment);
+          }
+          this->record_tag(raw_tag, tag_before_anchor, empty_value);
           if ((this->roundtrip_ != nullptr) &&
               context != JSON::ParseContext::Root) {
             this->pointer_stack_.pop_back();
           }
-          return JSON{nullptr};
+          return empty_value;
         }
       }
     }
@@ -646,6 +745,7 @@ private:
         empty_value = JSON{std::string{}};
       }
       this->pending_tokens_.push_back(current_token);
+      this->record_tag(raw_tag, tag_before_anchor, empty_value);
       if ((this->roundtrip_ != nullptr) &&
           context != JSON::ParseContext::Root) {
         this->pointer_stack_.pop_back();
@@ -810,6 +910,13 @@ private:
           style.comment_inline = std::move(anchor_inline_comment);
         }
       }
+    }
+
+    this->record_tag(raw_tag, tag_before_anchor, result);
+
+    if ((this->roundtrip_ != nullptr) && result.is_array()) {
+      this->roundtrip_->styles[this->pointer_stack_].sequence_size =
+          result.size();
     }
 
     if ((this->roundtrip_ != nullptr) && context != JSON::ParseContext::Root) {
@@ -1090,6 +1197,7 @@ private:
     bool found_compact_separator{false};
 
     auto token{this->next_token()};
+    this->record_flow_padding(start_token, token);
 
     while (token.has_value() && token->type != TokenType::MappingEnd) {
       if (token->type == TokenType::FlowEntry) {
@@ -1224,6 +1332,7 @@ private:
     bool found_compact_separator{false};
 
     auto token{this->next_token()};
+    this->record_flow_padding(start_token, token);
     std::size_t element_index{0};
 
     while (token.has_value() && token->type != TokenType::SequenceEnd) {
@@ -1345,6 +1454,11 @@ private:
     const auto sequence_indent{
         base_column > 0 ? static_cast<std::size_t>(base_column - 1) : 0UZ};
     this->detect_indent_width(key_column, base_column);
+    if ((this->roundtrip_ != nullptr) &&
+        context == JSON::ParseContext::Property && key_column > 0 &&
+        base_column == key_column) {
+      this->roundtrip_->styles[this->pointer_stack_].unindented_sequence = true;
+    }
     this->lexer_->set_block_indent(sequence_indent);
     this->record_preceding_comments_for_index(0);
 
@@ -2162,6 +2276,18 @@ private:
     }
 
     this->roundtrip_->styles[this->pointer_stack_].collection = style;
+  }
+
+  auto record_tag(const std::optional<std::string> &raw_tag,
+                  const bool tag_before_anchor, const JSON &value) -> void {
+    if ((this->roundtrip_ == nullptr) || !raw_tag.has_value()) {
+      return;
+    }
+
+    auto &node_style{this->roundtrip_->styles[this->pointer_stack_]};
+    node_style.tag = raw_tag.value();
+    node_style.tag_type = value.type();
+    node_style.tag_before_anchor = tag_before_anchor;
   }
 
   auto record_scalar_style(const Token &token, const JSON &value) -> void {

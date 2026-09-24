@@ -18,6 +18,25 @@ static auto roundtrip(const std::string &input) -> std::string {
   return stringify(document, metadata);
 }
 
+static auto roundtrip_value(const std::string &input)
+    -> sourcemeta::core::JSON {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  const auto document{sourcemeta::core::parse_yaml(input, metadata)};
+  return sourcemeta::core::parse_yaml(stringify(document, metadata));
+}
+
+static auto roundtrip_stream(const std::string &input) -> std::string {
+  std::istringstream stream{input};
+  std::ostringstream output;
+  while (stream.peek() != std::char_traits<char>::eof()) {
+    sourcemeta::core::YAMLRoundTrip metadata;
+    const auto document{sourcemeta::core::parse_yaml(stream, metadata)};
+    sourcemeta::core::stringify_yaml(document, output, metadata);
+  }
+
+  return output.str();
+}
+
 TEST(block_mapping_simple) {
   const std::string input{R"YAML(foo: bar
 baz: qux
@@ -117,6 +136,254 @@ jobs:
         run: make build
 )YAML"};
   EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(block_sequence_at_the_parent_indentation) {
+  const std::string input{"foo:\n- a\n- b\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(nested_block_sequence_at_the_parent_indentation) {
+  const std::string input{"spec:\n  ports:\n  - port: 80\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(block_sequence_indentation_differing_per_key) {
+  const std::string input{"a:\n- 1\nb:\n  - 2\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(block_sequence_of_mappings_at_the_parent_indentation) {
+  const std::string input{"items:\n- name: one\n  size: 1\n- name: two\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(block_sequence_at_the_parent_indentation_with_comments) {
+  const std::string input{"foo:\n# one\n- a\n# two\n- b\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(kubernetes_like_at_the_parent_indentation) {
+  const std::string input{R"YAML(spec:
+  containers:
+  - name: app
+    ports:
+    - containerPort: 80
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(byte_order_mark) {
+  const std::string input{"\xEF\xBB\xBF"
+                          "foo: bar\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(carriage_return_line_breaks) {
+  const std::string input{"foo: bar\r\nbaz: qux\r\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(carriage_return_line_breaks_in_a_block_scalar) {
+  const std::string input{"foo: |\r\n  one\r\n  two\r\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(carriage_return_line_breaks_with_comments) {
+  const std::string input{"# lead\r\nfoo: bar # side\r\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(carriage_return_line_breaks_in_a_sequence) {
+  const std::string input{"items:\r\n  - one\r\n  - two\r\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(byte_order_mark_with_carriage_return_line_breaks) {
+  const std::string input{"\xEF\xBB\xBF"
+                          "foo: bar\r\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(sequence_of_mappings_at_a_four_space_indentation) {
+  const std::string input{R"YAML(product:
+    - sku: BL394D
+      quantity: 4
+    - sku: BL4438H
+      quantity: 1
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(nested_mapping_at_a_four_space_indentation) {
+  const std::string input{R"YAML(bill-to:
+    given: Chris
+    address:
+        city: Royal Oak
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(block_scalar_at_a_four_space_indentation) {
+  const std::string input{R"YAML(address:
+    lines: |
+        458 Walkman Dr.
+        Suite #292
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(block_scalar_at_the_document_root_followed_by_a_comment) {
+  const std::string input{"|\n  one\n  two\n# trailing\n"};
+  EXPECT_EQ(roundtrip_value(input), sourcemeta::core::JSON{"one\ntwo\n"});
+}
+
+TEST(block_scalar_with_an_indentation_indicator_in_a_sequence) {
+  const std::string input{"- |1\n  explicit\n"};
+  EXPECT_EQ(roundtrip_value(input).at(0),
+            sourcemeta::core::JSON{" explicit\n"});
+}
+
+TEST(block_scalar_with_an_indentation_indicator_under_a_key) {
+  const std::string input{"folded: >1\n value\n"};
+  EXPECT_EQ(roundtrip_value(input).at("folded"),
+            sourcemeta::core::JSON{"value\n"});
+}
+
+TEST(root_block_scalar_indicator_follows_its_new_column) {
+  const std::string input{"|1\n  foo\n"};
+  EXPECT_EQ(roundtrip(input), "|3\n    foo\n");
+  EXPECT_EQ(roundtrip_value(input), sourcemeta::core::JSON{"  foo\n"});
+}
+
+TEST(root_folded_scalar_indicator_follows_its_new_column) {
+  const std::string input{">1\n  foo\n"};
+  EXPECT_EQ(roundtrip(input), ">3\n    foo\n");
+  EXPECT_EQ(roundtrip_value(input), sourcemeta::core::JSON{"  foo\n"});
+}
+
+TEST(nested_sequence_block_scalar_indicator_follows_its_new_column) {
+  const std::string input{"a:\n  - |1\n     foo\n"};
+  EXPECT_EQ(roundtrip(input), "a:\n  - |2\n      foo\n");
+  EXPECT_EQ(roundtrip_value(input).at("a").at(0),
+            sourcemeta::core::JSON{"  foo\n"});
+}
+
+TEST(tag_on_an_empty_mapping_value_before_another_key) {
+  const std::string input{"foo: !Custom\nbar: baz\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(tag_on_an_empty_sequence_item_before_another_item) {
+  const std::string input{"- !Custom\n- foo\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(tag_on_an_implicit_null_in_a_flow_mapping) {
+  const std::string input{"a: {foo: !Custom}\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(comment_between_a_directive_and_the_document_start) {
+  const std::string input{"%YAML 1.2\n# note\n---\nfoo: bar\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(comment_before_a_directive) {
+  const std::string input{"# note\n%YAML 1.2\n---\nfoo: bar\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(comment_between_two_directives) {
+  const std::string input{
+      "%YAML 1.2\n# note\n%TAG !e! tag:example.com,2000:\n---\nfoo: bar\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(multi_document_stream) {
+  const std::string input{"foo: bar\n---\nbaz: qux\n"};
+  EXPECT_EQ(roundtrip_stream(input), input);
+}
+
+TEST(multi_document_stream_with_end_markers) {
+  const std::string input{"foo: bar\n...\n---\nbaz: qux\n"};
+  EXPECT_EQ(roundtrip_stream(input), input);
+}
+
+TEST(multi_document_stream_with_comments) {
+  const std::string input{"# one\nfoo: bar\n---\n# two\nbaz: qux\n"};
+  EXPECT_EQ(roundtrip_stream(input), input);
+}
+
+TEST(multi_document_stream_with_an_empty_document) {
+  const std::string input{"Document\n---\n# Empty\n...\n%YAML 1.2\n---\n"
+                          "matches %: 20\n"};
+  EXPECT_EQ(roundtrip_stream(input), input);
+}
+
+TEST(multi_document_stream_with_directives) {
+  const std::string input{
+      "%YAML 1.2\n---\nfoo: bar\n...\n%YAML 1.2\n---\nbaz: qux\n"};
+  EXPECT_EQ(roundtrip_stream(input), input);
+}
+
+TEST(multi_document_stream_with_scalars) {
+  const std::string input{"one\n---\ntwo\n---\nthree\n"};
+  EXPECT_EQ(roundtrip_stream(input), input);
+}
+
+TEST(multi_document_stream_preserving_styles) {
+  const std::string input{
+      "foo: |\n  block\n---\nbar: [ 1, 2 ]\n---\nbaz: !Custom value\n"};
+  EXPECT_EQ(roundtrip_stream(input), input);
+}
+
+TEST(document_start_comment_after_root_properties) {
+  const std::string input{"--- !Custom # note\nfoo: bar\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(multi_document_stream_of_empty_documents) {
+  const std::string input{"---\n---\n"};
+  EXPECT_EQ(roundtrip_stream(input), input);
+}
+
+TEST(multi_document_stream_with_a_comment_introducing_the_next_document) {
+  const std::string input{
+      "# one\nfoo\n...\n# two\n%TAG ! tag:example.com,2000:\n---\nbar\n"};
+  EXPECT_EQ(roundtrip_stream(input), input);
+}
+
+TEST(multi_document_stream_is_written_the_same_way_twice) {
+  const std::string input{
+      "# one\nfoo\n...\n# two\n%TAG ! tag:example.com,2000:\n---\nbar\n"};
+  EXPECT_EQ(roundtrip_stream(roundtrip_stream(input)), input);
+}
+
+TEST(string_tag_on_an_empty_mapping_value_before_another_key) {
+  const std::string input{"foo: !!str\nbar: baz\n"};
+  EXPECT_EQ(roundtrip(input), "foo: !!str \"\"\nbar: baz\n");
+  EXPECT_EQ(roundtrip_value(input).at("foo"), sourcemeta::core::JSON{""});
+}
+
+TEST(multi_document_stream_with_an_empty_document_and_a_comment) {
+  const std::string input{"---\n# note\n---\nfoo\n"};
+  EXPECT_EQ(roundtrip_stream(input), input);
+}
+
+TEST(multi_document_stream_with_an_empty_document_and_comments) {
+  const std::string input{"---\n# one\n# two\n---\nfoo\n"};
+  EXPECT_EQ(roundtrip_stream(input), input);
+}
+
+TEST(multi_document_stream_keeps_the_line_endings_of_each_document) {
+  const std::string input{"foo: bar\r\n---\nbaz: qux\n"};
+  EXPECT_EQ(roundtrip_stream(input), input);
+}
+
+TEST(multi_document_stream_keeps_later_carriage_return_line_endings) {
+  const std::string input{"foo: bar\n---\r\nbaz: qux\r\n"};
+  EXPECT_EQ(roundtrip_stream(input), input);
 }
 
 TEST(single_quoted_value) {
@@ -264,6 +531,31 @@ TEST(flow_sequence) {
   EXPECT_EQ(roundtrip(input), input);
 }
 
+TEST(flow_sequence_padded) {
+  const std::string input{"items: [ 1, 2, 3 ]\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(flow_mapping_padded) {
+  const std::string input{"foo: { bar: baz, qux: 1 }\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(flow_sequence_padded_nested_in_flow_mapping) {
+  const std::string input{"foo: { bar: [ 1, 2 ] }\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(flow_sequence_padded_alongside_an_unpadded_one) {
+  const std::string input{"a: [ 1 ]\nb: [2]\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(flow_sequence_padded_and_compact) {
+  const std::string input{"items: [ 1,2 ]\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
 TEST(flow_nested_in_block) {
   const std::string input{R"YAML(foo: {bar: baz}
 items: [1, 2, 3]
@@ -290,6 +582,45 @@ jobs:
       - name: Build
         run: make build
 )YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(directive_yaml_version) {
+  const std::string input{"%YAML 1.2\n---\nfoo: bar\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(directive_yaml_version_with_comment) {
+  const std::string input{"%YAML 1.2 # the version\n---\nfoo: bar\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(directive_tag_primary_handle) {
+  const std::string input{
+      "%TAG ! tag:example.com,2000:\n---\nfoo: !thing bar\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(directive_tag_secondary_handle) {
+  const std::string input{
+      "%TAG !! tag:example.com,2000:\n---\nfoo: !!thing bar\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(directive_tag_named_handle) {
+  const std::string input{
+      "%TAG !e! tag:example.com,2000:\n---\nfoo: !e!thing bar\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(directive_yaml_and_tag) {
+  const std::string input{
+      "%YAML 1.2\n%TAG !e! tag:example.com,2000:\n---\nfoo: !e!thing bar\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(directive_reserved) {
+  const std::string input{"%FOO bar baz\n---\nfoo: bar\n"};
   EXPECT_EQ(roundtrip(input), input);
 }
 
@@ -4974,6 +5305,90 @@ TEST(flow_sequence_anchor_alias) {
   EXPECT_EQ(roundtrip(input), input);
 }
 
+TEST(tag_shorthand_on_plain_scalar) {
+  const std::string input{"foo: !!str 123\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(tag_shorthand_on_sequence_item) {
+  const std::string input{"- !!str 1\n- 2\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(tag_non_specific_on_plain_scalar) {
+  const std::string input{"foo: ! 12\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(tag_primary_handle_on_plain_scalar) {
+  const std::string input{"foo: !Custom bar\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(tag_verbatim_on_plain_scalar) {
+  const std::string input{"foo: !<tag:example.com,2000:thing> bar\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(tag_on_block_mapping) {
+  const std::string input{"foo: !Custom\n  bar: 1\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(tag_on_block_sequence) {
+  const std::string input{"foo: !Custom\n  - 1\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(tag_on_flow_sequence) {
+  const std::string input{"foo: !Custom [1, 2]\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(tag_on_quoted_scalar) {
+  const std::string input{"foo: !Custom \"bar\"\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(tag_on_block_scalar) {
+  const std::string input{"foo: !Custom |\n  bar\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(tag_before_anchor) {
+  const std::string input{"foo: !Custom &x bar\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(anchor_before_tag) {
+  const std::string input{"foo: &x !Custom bar\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(tag_on_empty_value_becomes_explicit) {
+  const std::string input{"foo: !!str\n"};
+  EXPECT_EQ(roundtrip(input), "foo: !!str \"\"\n");
+}
+
+TEST(tag_at_document_root) {
+  const std::string input{"--- !Custom\nfoo: bar\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(mutated_tagged_scalar_of_the_same_type_keeps_the_tag) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  auto document{sourcemeta::core::parse_yaml("foo: !!str 123\n", metadata)};
+  document.assign("foo", sourcemeta::core::JSON{"456"});
+  EXPECT_EQ(stringify(document, metadata), "foo: !!str \"456\"\n");
+}
+
+TEST(mutated_tagged_scalar_of_another_type_drops_the_tag) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  auto document{sourcemeta::core::parse_yaml("foo: !!str 123\n", metadata)};
+  document.assign("foo", sourcemeta::core::JSON{456});
+  EXPECT_EQ(stringify(document, metadata), "foo: 456\n");
+}
+
 TEST(mutated_plain_scalar) {
   sourcemeta::core::YAMLRoundTrip metadata;
   auto document{sourcemeta::core::parse_yaml("foo: bar\n", metadata)};
@@ -5037,6 +5452,121 @@ TEST(mutated_folded_block_scalar) {
       sourcemeta::core::parse_yaml("foo: >\n  one\n  two\n", metadata)};
   document.assign("foo", sourcemeta::core::JSON{"three\n"});
   EXPECT_EQ(stringify(document, metadata), "foo: >\n  three\n");
+}
+
+TEST(empty_keep_block_scalar_keeps_its_value) {
+  EXPECT_EQ(roundtrip_value("--- |1+"), sourcemeta::core::JSON{""});
+}
+
+TEST(mutated_literal_block_scalar_without_a_trailing_break) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  auto document{sourcemeta::core::parse_yaml("foo: |\n  one\n", metadata)};
+  document.assign("foo", sourcemeta::core::JSON{"two"});
+  EXPECT_EQ(stringify(document, metadata), "foo: |-\n  two\n");
+}
+
+TEST(mutated_literal_block_scalar_with_several_trailing_breaks) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  auto document{sourcemeta::core::parse_yaml("foo: |\n  one\n", metadata)};
+  document.assign("foo", sourcemeta::core::JSON{"two\n\n"});
+  EXPECT_EQ(stringify(document, metadata), "foo: |+\n  two\n\n");
+}
+
+TEST(mutated_folded_block_scalar_into_several_lines) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  auto document{sourcemeta::core::parse_yaml("foo: >\n  one\n", metadata)};
+  document.assign("foo", sourcemeta::core::JSON{"two\nthree\n"});
+  EXPECT_EQ(stringify(document, metadata), "foo: |\n  two\n  three\n");
+}
+
+TEST(mutated_strip_block_scalar_into_a_trailing_break) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  auto document{sourcemeta::core::parse_yaml("foo: |-\n  one\n", metadata)};
+  document.assign("foo", sourcemeta::core::JSON{"two\n"});
+  EXPECT_EQ(stringify(document, metadata), "foo: |\n  two\n");
+}
+
+TEST(erasing_a_sequence_item_drops_the_item_comments) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  auto document{sourcemeta::core::parse_yaml(
+      "items:\n  # one\n  - a\n  # two\n  - b\n  # three\n  - c\n", metadata)};
+  auto &items{document.at("items")};
+  items.erase(items.as_array().cbegin());
+  EXPECT_EQ(stringify(document, metadata), "items:\n  - b\n  - c\n");
+}
+
+TEST(appending_a_sequence_item_drops_the_item_comments) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  auto document{
+      sourcemeta::core::parse_yaml("items:\n  # one\n  - a\n", metadata)};
+  document.at("items").push_back(sourcemeta::core::JSON{"b"});
+  EXPECT_EQ(stringify(document, metadata), "items:\n  - a\n  - b\n");
+}
+
+TEST(erasing_a_sequence_item_drops_the_item_anchors) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  auto document{
+      sourcemeta::core::parse_yaml("items:\n  - &x a\n  - b\n", metadata)};
+  auto &items{document.at("items")};
+  items.erase(items.as_array().cbegin());
+  EXPECT_EQ(stringify(document, metadata), "items:\n  - b\n");
+}
+
+TEST(replacing_a_sequence_item_keeps_the_item_comments) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  auto document{sourcemeta::core::parse_yaml(
+      "items:\n  # one\n  - a\n  # two\n  - b\n", metadata)};
+  document.at("items").at(1) = sourcemeta::core::JSON{"c"};
+  EXPECT_EQ(stringify(document, metadata),
+            "items:\n  # one\n  - a\n  # two\n  - c\n");
+}
+
+TEST(erasing_a_flow_sequence_item_drops_the_item_anchors) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  auto document{sourcemeta::core::parse_yaml("items: [&x a, b]\n", metadata)};
+  auto &items{document.at("items")};
+  items.erase(items.as_array().cbegin());
+  EXPECT_EQ(stringify(document, metadata), "items: [b]\n");
+}
+
+TEST(comment_above_the_first_key_travels_with_it) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  auto document{sourcemeta::core::parse_yaml(
+      "# about b\nb: 2\n# about a\na: 1\n", metadata)};
+  document.reorder(
+      [](const auto &left, const auto &right) { return left < right; });
+  EXPECT_EQ(stringify(document, metadata),
+            "# about a\na: 1\n# about b\nb: 2\n");
+}
+
+TEST(comment_separated_from_the_first_key_stays_at_the_top) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  auto document{sourcemeta::core::parse_yaml(
+      "# header\n\n# about b\nb: 2\n# about a\na: 1\n", metadata)};
+  document.reorder(
+      [](const auto &left, const auto &right) { return left < right; });
+  EXPECT_EQ(stringify(document, metadata),
+            "# header\n\n# about a\na: 1\n# about b\nb: 2\n");
+}
+
+TEST(comment_above_the_first_key_after_a_document_start_travels_with_it) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  auto document{sourcemeta::core::parse_yaml(
+      "---\n# about b\nb: 2\n# about a\na: 1\n", metadata)};
+  document.reorder(
+      [](const auto &left, const auto &right) { return left < right; });
+  EXPECT_EQ(stringify(document, metadata),
+            "---\n# about a\na: 1\n# about b\nb: 2\n");
+}
+
+TEST(comment_above_the_first_key_is_written_back_unchanged) {
+  const std::string input{"# about foo\nfoo: bar\nbaz: qux\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(comment_separated_from_the_first_key_is_written_back_unchanged) {
+  const std::string input{"# header\n\n# about foo\nfoo: bar\n"};
+  EXPECT_EQ(roundtrip(input), input);
 }
 
 TEST(mutated_scalar_preserves_sibling_content) {

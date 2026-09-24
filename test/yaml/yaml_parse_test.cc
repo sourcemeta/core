@@ -1234,6 +1234,98 @@ TEST(tab_on_blank_flow_line_is_accepted) {
 // YAML 1.2.2 Section 8.1.1.1: in a literal block scalar, the spaces of a
 // trailing line that are beyond the content indentation are content, even when
 // that line is the last one and ends the input without a line break.
+// YAML 1.2.2 Section 8.1.1.1: the content indentation level of a block scalar
+// is the indentation level of the node itself plus the indicator, and the root
+// node of a document sits one level further out than the leftmost column
+TEST(root_literal_block_scalar_with_an_indentation_indicator) {
+  const std::string input{"|1\n  foo\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"  foo\n"});
+}
+
+TEST(root_literal_block_scalar_with_a_two_indentation_indicator) {
+  const std::string input{"|2\n  foo\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result, sourcemeta::core::JSON{" foo\n"});
+}
+
+TEST(root_literal_block_scalar_with_a_three_indentation_indicator) {
+  const std::string input{"|3\n  foo\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"foo\n"});
+}
+
+TEST(root_folded_block_scalar_with_an_indentation_indicator) {
+  const std::string input{">1\n  foo\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"  foo\n"});
+}
+
+TEST(explicit_root_literal_block_scalar_with_an_indentation_indicator) {
+  const std::string input{"--- |1\n  foo\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"  foo\n"});
+}
+
+TEST(nested_sequence_block_scalar_with_an_indentation_indicator) {
+  const std::string input{"a:\n  - |1\n     foo\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result.at("a").at(0), sourcemeta::core::JSON{"  foo\n"});
+}
+
+TEST(nested_sequence_block_scalar_with_a_two_indentation_indicator) {
+  const std::string input{"a:\n  - |2\n     foo\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result.at("a").at(0), sourcemeta::core::JSON{" foo\n"});
+}
+
+// YAML 1.2.2 Section 8.2.1: a block sequence entry that is no more indented
+// than its own sequence starts a sibling entry, so a node property before it
+// decorates an empty node rather than a nested sequence
+TEST(tag_on_an_empty_sequence_item_before_a_sibling) {
+  const std::string input{"- !Custom\n- foo\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_TRUE(result.is_array());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at(0), sourcemeta::core::JSON{nullptr});
+  EXPECT_EQ(result.at(1), sourcemeta::core::JSON{"foo"});
+}
+
+TEST(string_tag_on_an_empty_sequence_item_before_a_sibling) {
+  const std::string input{"- !!str\n- foo\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_TRUE(result.is_array());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at(0), sourcemeta::core::JSON{""});
+  EXPECT_EQ(result.at(1), sourcemeta::core::JSON{"foo"});
+}
+
+TEST(string_tag_on_an_empty_mapping_value_before_a_sibling) {
+  const std::string input{"foo: !!str\nbar: baz\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.at("foo"), sourcemeta::core::JSON{""});
+  EXPECT_EQ(result.at("bar"), sourcemeta::core::JSON{"baz"});
+}
+
+// YAML 1.2.2 Section 5.4: a lone carriage return is a line break of its own
+TEST(carriage_return_only_line_breaks) {
+  const std::string input{"a: 1\rb: 2\r"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at("a"), sourcemeta::core::JSON{1});
+  EXPECT_EQ(result.at("b"), sourcemeta::core::JSON{2});
+}
+
+TEST(carriage_return_only_document_markers) {
+  std::istringstream stream{"a: 1\r---\rb: 2\r"};
+  const auto first{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(first.at("a"), sourcemeta::core::JSON{1});
+  const auto second{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(second.at("b"), sourcemeta::core::JSON{2});
+}
+
 TEST(literal_block_scalar_trailing_more_indented_line) {
   const std::string input{"foo: |\n  x\n   "};
   const auto result{sourcemeta::core::parse_yaml(input)};

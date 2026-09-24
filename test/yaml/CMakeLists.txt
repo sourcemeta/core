@@ -22,5 +22,6 @@ sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME yamltestsuite
   SOURCES yamltestsuite.cc)
 target_compile_definitions(sourcemeta_core_yamltestsuite_unit
   PRIVATE YAMLTESTSUITE_PATH="${PROJECT_SOURCE_DIR}/vendor/yaml-test-suite")
+target_link_libraries(sourcemeta_core_yamltestsuite_unit PRIVATE sourcemeta::core::io)
 target_link_libraries(sourcemeta_core_yamltestsuite_unit PRIVATE sourcemeta::core::yaml)
 target_link_libraries(sourcemeta_core_yamltestsuite_unit PRIVATE sourcemeta::core::json)
