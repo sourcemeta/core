@@ -53,7 +53,7 @@ const std::set<std::string> KNOWN_DIVERGENCES{
     // field down. Unlike the others here the meta-schema is not laxer by
     // oversight but ahead of the text, so this entry is the one to revisit
     // when a revision that defines the field goes out
-    "media_type_examples"};
+    "3_2:media_type_examples"};
 
 // What the meta-schema asks and the text does not, which is the other way
 // round from the set above. Section 4 leaves the text authoritative either
@@ -65,7 +65,7 @@ const std::set<std::string> META_SCHEMA_ONLY{
     // which is the `token` production of RFC 9110 Section 5.6.2, while
     // neither the Parameter Object `name` row of Section 4.12 nor the Header
     // Object of Section 4.21 says anything of the form such a name may take
-    "parameter_object_header_name", "header_object_name"};
+    "3_2:parameter_object_header_name", "3_2:header_object_name"};
 
 // And what the text asks of a Schema Object rather than of the shell around
 // it. This module locates Schema Objects and hands them off, so a rule about
@@ -75,7 +75,7 @@ const std::set<std::string> SCHEMA_OBJECT_INTERIOR{
     // "If `nodeType` is present, this field MUST NOT be present". Both are
     // keywords of the dialect this specification publishes, which is where
     // that rule is written down and where it is checked
-    "xml_attr_exclusion", "xml_wrapped_exclusion"};
+    "3_2:xml_attr_exclusion", "3_2:xml_wrapped_exclusion"};
 
 // A description names the dialect its Schema Objects are written against, and
 // Section 4.8.24.1 asks only that the name "be in the form of a URI". These
@@ -108,6 +108,16 @@ auto run_fail_case(const sourcemeta::core::JSON &document) -> void {
   }
 }
 
+// What the two corpora share is a set of names rather than a set of documents,
+// so a fixture of one name may hold what one revision publishes and what the
+// other does without the two saying the same thing. A name written above with
+// a revision in front of it stands for the case of that revision alone, and a
+// bare one stands for the case wherever it appears
+auto excluded(const std::set<std::string> &names, const std::string &revision,
+              const std::string &name) -> bool {
+  return names.contains(name) || names.contains(revision + ":" + name);
+}
+
 // Each revision publishes a corpus of its own, and the two share most of
 // their fixture names, so which revision a case belongs to is part of what it
 // is called
@@ -135,10 +145,10 @@ auto register_tests(const std::filesystem::path &directory,
       name << (character == '-' ? '_' : character);
     }
 
-    if (KNOWN_DIVERGENCES.contains(name.str()) ||
-        UNPUBLISHED_DIALECTS.contains(name.str()) ||
-        META_SCHEMA_ONLY.contains(name.str()) ||
-        SCHEMA_OBJECT_INTERIOR.contains(name.str())) {
+    if (excluded(KNOWN_DIVERGENCES, revision, name.str()) ||
+        excluded(UNPUBLISHED_DIALECTS, revision, name.str()) ||
+        excluded(META_SCHEMA_ONLY, revision, name.str()) ||
+        excluded(SCHEMA_OBJECT_INTERIOR, revision, name.str())) {
       continue;
     }
 

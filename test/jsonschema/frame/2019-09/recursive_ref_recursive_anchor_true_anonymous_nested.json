@@ -90,7 +90,7 @@
           "parent": "",
           "type": "subschema",
           "root": null,
-          "base": "https://example.com/",
+          "base": "https://example.com",
           "pointer": "/additionalItems",
           "relativePointer": "",
           "dialect": "https://json-schema.org/draft/2019-09/schema",
@@ -112,7 +112,7 @@
           "parent": "/additionalItems",
           "type": "pointer",
           "root": null,
-          "base": "https://example.com/",
+          "base": "https://example.com",
           "pointer": "/additionalItems/$id",
           "relativePointer": "/$id",
           "dialect": "https://json-schema.org/draft/2019-09/schema",
@@ -134,7 +134,7 @@
           "parent": "/additionalItems",
           "type": "pointer",
           "root": null,
-          "base": "https://example.com/",
+          "base": "https://example.com",
           "pointer": "/additionalItems/$recursiveAnchor",
           "relativePointer": "/$recursiveAnchor",
           "dialect": "https://json-schema.org/draft/2019-09/schema",
@@ -156,7 +156,7 @@
           "parent": "/additionalItems",
           "type": "pointer",
           "root": null,
-          "base": "https://example.com/",
+          "base": "https://example.com",
           "pointer": "/additionalItems/$recursiveRef",
           "relativePointer": "/$recursiveRef",
           "dialect": "https://json-schema.org/draft/2019-09/schema",
@@ -174,11 +174,11 @@
             "https://json-schema.org/draft/2019-09/vocab/content": true
           }
         },
-        "https://example.com/": {
+        "https://example.com": {
           "parent": "",
           "type": "resource",
           "root": null,
-          "base": "https://example.com/",
+          "base": "https://example.com",
           "pointer": "/additionalItems",
           "relativePointer": "",
           "dialect": "https://json-schema.org/draft/2019-09/schema",
@@ -196,11 +196,11 @@
             "https://json-schema.org/draft/2019-09/vocab/content": true
           }
         },
-        "https://example.com/#/$id": {
+        "https://example.com#/$id": {
           "parent": "/additionalItems",
           "type": "pointer",
           "root": null,
-          "base": "https://example.com/",
+          "base": "https://example.com",
           "pointer": "/additionalItems/$id",
           "relativePointer": "/$id",
           "dialect": "https://json-schema.org/draft/2019-09/schema",
@@ -218,11 +218,11 @@
             "https://json-schema.org/draft/2019-09/vocab/content": true
           }
         },
-        "https://example.com/#/$recursiveAnchor": {
+        "https://example.com#/$recursiveAnchor": {
           "parent": "/additionalItems",
           "type": "pointer",
           "root": null,
-          "base": "https://example.com/",
+          "base": "https://example.com",
           "pointer": "/additionalItems/$recursiveAnchor",
           "relativePointer": "/$recursiveAnchor",
           "dialect": "https://json-schema.org/draft/2019-09/schema",
@@ -240,11 +240,11 @@
             "https://json-schema.org/draft/2019-09/vocab/content": true
           }
         },
-        "https://example.com/#/$recursiveRef": {
+        "https://example.com#/$recursiveRef": {
           "parent": "/additionalItems",
           "type": "pointer",
           "root": null,
-          "base": "https://example.com/",
+          "base": "https://example.com",
           "pointer": "/additionalItems/$recursiveRef",
           "relativePointer": "/$recursiveRef",
           "dialect": "https://json-schema.org/draft/2019-09/schema",
@@ -264,11 +264,11 @@
         }
       },
       "dynamic": {
-        "https://example.com/": {
+        "https://example.com": {
           "parent": "",
           "type": "anchor",
           "root": null,
-          "base": "https://example.com/",
+          "base": "https://example.com",
           "pointer": "/additionalItems",
           "relativePointer": "",
           "dialect": "https://json-schema.org/draft/2019-09/schema",
@@ -301,8 +301,8 @@
         "type": "dynamic",
         "origin": "/additionalItems/$recursiveRef",
         "original": "#",
-        "destination": "https://example.com/",
-        "base": "https://example.com/",
+        "destination": "https://example.com",
+        "base": "https://example.com",
         "fragment": null
       }
     ]
@@ -311,7 +311,7 @@
   "reachability": [
     {
       "from": "",
-      "to": "https://example.com/",
+      "to": "https://example.com",
       "reachable": true
     },
     {
@@ -326,23 +326,23 @@
     },
     {
       "from": "",
-      "to": "https://example.com/",
+      "to": "https://example.com",
       "type": "dynamic",
       "reachable": true
     },
     {
-      "from": "https://example.com/",
+      "from": "https://example.com",
       "to": "",
       "reachable": false
     },
     {
-      "from": "https://example.com/",
-      "to": "https://example.com/",
+      "from": "https://example.com",
+      "to": "https://example.com",
       "reachable": true
     },
     {
-      "from": "https://example.com/",
-      "to": "https://example.com/",
+      "from": "https://example.com",
+      "to": "https://example.com",
       "type": "dynamic",
       "reachable": true
     }

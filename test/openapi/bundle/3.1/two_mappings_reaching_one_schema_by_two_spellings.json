@@ -1,0 +1,73 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "E",
+      "version": "1.0.0"
+    },
+    "components": {
+      "schemas": {
+        "Pet": {
+          "$schema": "https://spec.openapis.org/oas/3.1/dialect/base",
+          "discriminator": {
+            "propertyName": "t",
+            "mapping": {
+              "a": "https://example.com/fetch",
+              "b": "https://example.com/real"
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {},
+  "schemaResolver": {
+    "https://example.com/fetch": {
+      "$id": "https://example.com/real",
+      "type": "object"
+    },
+    "https://example.com/real": {
+      "$id": "https://example.com/real",
+      "type": "object"
+    }
+  },
+  "result": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "E",
+      "version": "1.0.0"
+    },
+    "components": {
+      "schemas": {
+        "Pet": {
+          "$schema": "https://spec.openapis.org/oas/3.1/dialect/base",
+          "discriminator": {
+            "propertyName": "t",
+            "mapping": {
+              "a": "#/components/schemas/fetch",
+              "b": "#/components/schemas/fetch"
+            }
+          }
+        },
+        "fetch": {
+          "$id": "https://example.com/real",
+          "type": "object",
+          "$schema": "https://spec.openapis.org/oas/3.1/dialect/base"
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/fetch",
+      "at": "/components/schemas/fetch"
+    }
+  ],
+  "reads": {},
+  "schemaReads": {
+    "https://example.com/fetch": 1
+  },
+  "standalone": true,
+  "relocatable": true
+}

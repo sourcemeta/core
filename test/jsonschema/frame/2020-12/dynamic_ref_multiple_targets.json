@@ -17,11 +17,11 @@
     "mode": "root",
     "locations": {
       "static": {
-        "https://www.example.com/": {
+        "https://www.example.com": {
           "parent": null,
           "type": "resource",
-          "root": "https://www.example.com/",
-          "base": "https://www.example.com/",
+          "root": "https://www.example.com",
+          "base": "https://www.example.com",
           "pointer": "",
           "relativePointer": "",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -49,11 +49,11 @@
     "mode": "pointers",
     "locations": {
       "static": {
-        "https://www.example.com/": {
+        "https://www.example.com": {
           "parent": null,
           "type": "resource",
-          "root": "https://www.example.com/",
-          "base": "https://www.example.com/",
+          "root": "https://www.example.com",
+          "base": "https://www.example.com",
           "pointer": "",
           "relativePointer": "",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -72,11 +72,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://www.example.com/#/$dynamicAnchor": {
+        "https://www.example.com#/$dynamicAnchor": {
           "parent": "",
           "type": "pointer",
-          "root": "https://www.example.com/",
-          "base": "https://www.example.com/",
+          "root": "https://www.example.com",
+          "base": "https://www.example.com",
           "pointer": "/$dynamicAnchor",
           "relativePointer": "/$dynamicAnchor",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -95,11 +95,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://www.example.com/#/$id": {
+        "https://www.example.com#/$id": {
           "parent": "",
           "type": "pointer",
-          "root": "https://www.example.com/",
-          "base": "https://www.example.com/",
+          "root": "https://www.example.com",
+          "base": "https://www.example.com",
           "pointer": "/$id",
           "relativePointer": "/$id",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -118,11 +118,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://www.example.com/#/$schema": {
+        "https://www.example.com#/$schema": {
           "parent": "",
           "type": "pointer",
-          "root": "https://www.example.com/",
-          "base": "https://www.example.com/",
+          "root": "https://www.example.com",
+          "base": "https://www.example.com",
           "pointer": "/$schema",
           "relativePointer": "/$schema",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -141,11 +141,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://www.example.com/#/properties": {
+        "https://www.example.com#/properties": {
           "parent": "",
           "type": "pointer",
-          "root": "https://www.example.com/",
-          "base": "https://www.example.com/",
+          "root": "https://www.example.com",
+          "base": "https://www.example.com",
           "pointer": "/properties",
           "relativePointer": "/properties",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -164,11 +164,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://www.example.com/#/properties/bar": {
+        "https://www.example.com#/properties/bar": {
           "parent": "",
           "type": "subschema",
-          "root": "https://www.example.com/",
-          "base": "https://www.example.com/",
+          "root": "https://www.example.com",
+          "base": "https://www.example.com",
           "pointer": "/properties/bar",
           "relativePointer": "/properties/bar",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -187,11 +187,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://www.example.com/#/properties/bar/$dynamicRef": {
+        "https://www.example.com#/properties/bar/$dynamicRef": {
           "parent": "/properties/bar",
           "type": "pointer",
-          "root": "https://www.example.com/",
-          "base": "https://www.example.com/",
+          "root": "https://www.example.com",
+          "base": "https://www.example.com",
           "pointer": "/properties/bar/$dynamicRef",
           "relativePointer": "/properties/bar/$dynamicRef",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -210,10 +210,10 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://www.example.com/#/properties/foo": {
+        "https://www.example.com#/properties/foo": {
           "parent": "",
           "type": "subschema",
-          "root": "https://www.example.com/",
+          "root": "https://www.example.com",
           "base": "https://www.example.com/foo",
           "pointer": "/properties/foo",
           "relativePointer": "",
@@ -233,10 +233,10 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://www.example.com/#/properties/foo/$dynamicAnchor": {
+        "https://www.example.com#/properties/foo/$dynamicAnchor": {
           "parent": "/properties/foo",
           "type": "pointer",
-          "root": "https://www.example.com/",
+          "root": "https://www.example.com",
           "base": "https://www.example.com/foo",
           "pointer": "/properties/foo/$dynamicAnchor",
           "relativePointer": "/$dynamicAnchor",
@@ -256,10 +256,10 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://www.example.com/#/properties/foo/$id": {
+        "https://www.example.com#/properties/foo/$id": {
           "parent": "/properties/foo",
           "type": "pointer",
-          "root": "https://www.example.com/",
+          "root": "https://www.example.com",
           "base": "https://www.example.com/foo",
           "pointer": "/properties/foo/$id",
           "relativePointer": "/$id",
@@ -279,11 +279,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://www.example.com/#test": {
+        "https://www.example.com#test": {
           "parent": null,
           "type": "anchor",
-          "root": "https://www.example.com/",
-          "base": "https://www.example.com/",
+          "root": "https://www.example.com",
+          "base": "https://www.example.com",
           "pointer": "",
           "relativePointer": "",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -305,7 +305,7 @@
         "https://www.example.com/foo": {
           "parent": "",
           "type": "resource",
-          "root": "https://www.example.com/",
+          "root": "https://www.example.com",
           "base": "https://www.example.com/foo",
           "pointer": "/properties/foo",
           "relativePointer": "",
@@ -328,7 +328,7 @@
         "https://www.example.com/foo#/$dynamicAnchor": {
           "parent": "/properties/foo",
           "type": "pointer",
-          "root": "https://www.example.com/",
+          "root": "https://www.example.com",
           "base": "https://www.example.com/foo",
           "pointer": "/properties/foo/$dynamicAnchor",
           "relativePointer": "/$dynamicAnchor",
@@ -351,7 +351,7 @@
         "https://www.example.com/foo#/$id": {
           "parent": "/properties/foo",
           "type": "pointer",
-          "root": "https://www.example.com/",
+          "root": "https://www.example.com",
           "base": "https://www.example.com/foo",
           "pointer": "/properties/foo/$id",
           "relativePointer": "/$id",
@@ -374,7 +374,7 @@
         "https://www.example.com/foo#test": {
           "parent": "",
           "type": "anchor",
-          "root": "https://www.example.com/",
+          "root": "https://www.example.com",
           "base": "https://www.example.com/foo",
           "pointer": "/properties/foo",
           "relativePointer": "",
@@ -396,11 +396,11 @@
         }
       },
       "dynamic": {
-        "https://www.example.com/#test": {
+        "https://www.example.com#test": {
           "parent": null,
           "type": "anchor",
-          "root": "https://www.example.com/",
-          "base": "https://www.example.com/",
+          "root": "https://www.example.com",
+          "base": "https://www.example.com",
           "pointer": "",
           "relativePointer": "",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -422,7 +422,7 @@
         "https://www.example.com/foo#test": {
           "parent": "",
           "type": "anchor",
-          "root": "https://www.example.com/",
+          "root": "https://www.example.com",
           "base": "https://www.example.com/foo",
           "pointer": "/properties/foo",
           "relativePointer": "",
@@ -457,8 +457,8 @@
         "type": "dynamic",
         "origin": "/properties/bar/$dynamicRef",
         "original": "#test",
-        "destination": "https://www.example.com/#test",
-        "base": "https://www.example.com/",
+        "destination": "https://www.example.com#test",
+        "base": "https://www.example.com",
         "fragment": "test"
       }
     ]
@@ -466,75 +466,75 @@
   "standalone": true,
   "reachability": [
     {
-      "from": "https://www.example.com/",
-      "to": "https://www.example.com/",
+      "from": "https://www.example.com",
+      "to": "https://www.example.com",
       "reachable": true
     },
     {
-      "from": "https://www.example.com/",
+      "from": "https://www.example.com",
       "to": "https://www.example.com/foo",
       "reachable": true
     },
     {
-      "from": "https://www.example.com/",
-      "to": "https://www.example.com/#/properties/foo",
+      "from": "https://www.example.com",
+      "to": "https://www.example.com#/properties/foo",
       "reachable": true
     },
     {
-      "from": "https://www.example.com/",
-      "to": "https://www.example.com/#/properties/bar",
+      "from": "https://www.example.com",
+      "to": "https://www.example.com#/properties/bar",
       "reachable": true
     },
     {
-      "from": "https://www.example.com/",
-      "to": "https://www.example.com/#test",
+      "from": "https://www.example.com",
+      "to": "https://www.example.com#test",
       "reachable": true
     },
     {
-      "from": "https://www.example.com/",
+      "from": "https://www.example.com",
       "to": "https://www.example.com/foo#test",
       "reachable": true
     },
     {
-      "from": "https://www.example.com/",
-      "to": "https://www.example.com/#test",
+      "from": "https://www.example.com",
+      "to": "https://www.example.com#test",
       "type": "dynamic",
       "reachable": true
     },
     {
-      "from": "https://www.example.com/",
+      "from": "https://www.example.com",
       "to": "https://www.example.com/foo#test",
       "type": "dynamic",
       "reachable": true
     },
     {
-      "from": "https://www.example.com/#/properties/foo",
-      "to": "https://www.example.com/",
+      "from": "https://www.example.com#/properties/foo",
+      "to": "https://www.example.com",
       "reachable": false
     },
     {
-      "from": "https://www.example.com/#/properties/foo",
-      "to": "https://www.example.com/#/properties/foo",
+      "from": "https://www.example.com#/properties/foo",
+      "to": "https://www.example.com#/properties/foo",
       "reachable": true
     },
     {
-      "from": "https://www.example.com/#/properties/foo",
-      "to": "https://www.example.com/#/properties/bar",
+      "from": "https://www.example.com#/properties/foo",
+      "to": "https://www.example.com#/properties/bar",
       "reachable": false
     },
     {
-      "from": "https://www.example.com/#/properties/bar",
-      "to": "https://www.example.com/",
+      "from": "https://www.example.com#/properties/bar",
+      "to": "https://www.example.com",
       "reachable": true
     },
     {
-      "from": "https://www.example.com/#/properties/bar",
-      "to": "https://www.example.com/#/properties/foo",
+      "from": "https://www.example.com#/properties/bar",
+      "to": "https://www.example.com#/properties/foo",
       "reachable": true
     },
     {
-      "from": "https://www.example.com/#/properties/bar",
-      "to": "https://www.example.com/#/properties/bar",
+      "from": "https://www.example.com#/properties/bar",
+      "to": "https://www.example.com#/properties/bar",
       "reachable": true
     }
   ]

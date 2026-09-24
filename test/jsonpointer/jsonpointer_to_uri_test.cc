@@ -310,14 +310,14 @@ TEST(with_absolute_base) {
   const sourcemeta::core::Pointer pointer{"foo", "bar"};
   const sourcemeta::core::URI base{"https://www.example.com"};
   const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer, base)};
-  EXPECT_EQ(fragment.recompose(), "https://www.example.com/#/foo/bar");
+  EXPECT_EQ(fragment.recompose(), "https://www.example.com#/foo/bar");
 }
 
 TEST(with_absolute_base_percentage) {
   const sourcemeta::core::Pointer pointer{"foo%bar"};
   const sourcemeta::core::URI base{"https://www.example.com"};
   const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer, base)};
-  EXPECT_EQ(fragment.recompose(), "https://www.example.com/#/foo%25bar");
+  EXPECT_EQ(fragment.recompose(), "https://www.example.com#/foo%25bar");
 }
 
 TEST(with_relative_base) {

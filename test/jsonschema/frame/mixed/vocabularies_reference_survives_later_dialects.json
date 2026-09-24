@@ -14,11 +14,11 @@
     "mode": "root",
     "locations": {
       "static": {
-        "https://example.com/": {
+        "https://example.com": {
           "parent": null,
           "type": "resource",
-          "root": "https://example.com/",
-          "base": "https://example.com/",
+          "root": "https://example.com",
+          "base": "https://example.com",
           "pointer": "",
           "relativePointer": "",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -46,11 +46,11 @@
     "mode": "pointers",
     "locations": {
       "static": {
-        "https://example.com/": {
+        "https://example.com": {
           "parent": null,
           "type": "resource",
-          "root": "https://example.com/",
-          "base": "https://example.com/",
+          "root": "https://example.com",
+          "base": "https://example.com",
           "pointer": "",
           "relativePointer": "",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -69,11 +69,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://example.com/#/$defs": {
+        "https://example.com#/$defs": {
           "parent": "",
           "type": "pointer",
-          "root": "https://example.com/",
-          "base": "https://example.com/",
+          "root": "https://example.com",
+          "base": "https://example.com",
           "pointer": "/$defs",
           "relativePointer": "/$defs",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -92,10 +92,10 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://example.com/#/$defs/older": {
+        "https://example.com#/$defs/older": {
           "parent": "",
           "type": "subschema",
-          "root": "https://example.com/",
+          "root": "https://example.com",
           "base": "https://example.com/older",
           "pointer": "/$defs/older",
           "relativePointer": "",
@@ -109,10 +109,10 @@
             "http://json-schema.org/draft-07/schema#": true
           }
         },
-        "https://example.com/#/$defs/older/$id": {
+        "https://example.com#/$defs/older/$id": {
           "parent": "/$defs/older",
           "type": "pointer",
-          "root": "https://example.com/",
+          "root": "https://example.com",
           "base": "https://example.com/older",
           "pointer": "/$defs/older/$id",
           "relativePointer": "/$id",
@@ -126,10 +126,10 @@
             "http://json-schema.org/draft-07/schema#": true
           }
         },
-        "https://example.com/#/$defs/older/$schema": {
+        "https://example.com#/$defs/older/$schema": {
           "parent": "/$defs/older",
           "type": "pointer",
-          "root": "https://example.com/",
+          "root": "https://example.com",
           "base": "https://example.com/older",
           "pointer": "/$defs/older/$schema",
           "relativePointer": "/$schema",
@@ -143,10 +143,10 @@
             "http://json-schema.org/draft-07/schema#": true
           }
         },
-        "https://example.com/#/$defs/older/type": {
+        "https://example.com#/$defs/older/type": {
           "parent": "/$defs/older",
           "type": "pointer",
-          "root": "https://example.com/",
+          "root": "https://example.com",
           "base": "https://example.com/older",
           "pointer": "/$defs/older/type",
           "relativePointer": "/type",
@@ -160,11 +160,11 @@
             "http://json-schema.org/draft-07/schema#": true
           }
         },
-        "https://example.com/#/$id": {
+        "https://example.com#/$id": {
           "parent": "",
           "type": "pointer",
-          "root": "https://example.com/",
-          "base": "https://example.com/",
+          "root": "https://example.com",
+          "base": "https://example.com",
           "pointer": "/$id",
           "relativePointer": "/$id",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -183,11 +183,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://example.com/#/$schema": {
+        "https://example.com#/$schema": {
           "parent": "",
           "type": "pointer",
-          "root": "https://example.com/",
-          "base": "https://example.com/",
+          "root": "https://example.com",
+          "base": "https://example.com",
           "pointer": "/$schema",
           "relativePointer": "/$schema",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -209,7 +209,7 @@
         "https://example.com/older": {
           "parent": "",
           "type": "resource",
-          "root": "https://example.com/",
+          "root": "https://example.com",
           "base": "https://example.com/older",
           "pointer": "/$defs/older",
           "relativePointer": "",
@@ -226,7 +226,7 @@
         "https://example.com/older#/$id": {
           "parent": "/$defs/older",
           "type": "pointer",
-          "root": "https://example.com/",
+          "root": "https://example.com",
           "base": "https://example.com/older",
           "pointer": "/$defs/older/$id",
           "relativePointer": "/$id",
@@ -243,7 +243,7 @@
         "https://example.com/older#/$schema": {
           "parent": "/$defs/older",
           "type": "pointer",
-          "root": "https://example.com/",
+          "root": "https://example.com",
           "base": "https://example.com/older",
           "pointer": "/$defs/older/$schema",
           "relativePointer": "/$schema",
@@ -260,7 +260,7 @@
         "https://example.com/older#/type": {
           "parent": "/$defs/older",
           "type": "pointer",
-          "root": "https://example.com/",
+          "root": "https://example.com",
           "base": "https://example.com/older",
           "pointer": "/$defs/older/type",
           "relativePointer": "/type",

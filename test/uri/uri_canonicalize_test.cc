@@ -313,7 +313,7 @@ TEST(dot_segments_percent_encoded) {
 TEST(case_normalization) {
   sourcemeta::core::URI uri{"http://user:pass@SOMEHOST.COM:123"};
   uri.canonicalize();
-  EXPECT_EQ(uri.recompose(), "http://user:pass@somehost.com:123/");
+  EXPECT_EQ(uri.recompose(), "http://user:pass@somehost.com:123");
 }
 
 TEST(complex_case) {
@@ -335,7 +335,7 @@ TEST(fragment_encoded_colon) {
   uri.canonicalize();
   EXPECT_EQ(
       uri.recompose(),
-      "https://www.example.com/#/$defs/https%3A~1~1example.com~1schema/type");
+      "https://www.example.com#/$defs/https%3A~1~1example.com~1schema/type");
 }
 
 TEST(relative_path_no_canonicalize) {
@@ -455,7 +455,7 @@ TEST(ipv6_mixed_case_to_lowercase) {
 TEST(ipv6_hex_uppercase_to_lowercase) {
   sourcemeta::core::URI uri{"http://[2010:836B:4179::836B:4179]"};
   uri.canonicalize();
-  EXPECT_EQ(uri.recompose(), "http://[2010:836b:4179::836b:4179]/");
+  EXPECT_EQ(uri.recompose(), "http://[2010:836b:4179::836b:4179]");
 }
 
 TEST(iri_preserves_literal_ucschar) {

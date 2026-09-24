@@ -17,7 +17,7 @@
     "mode": "root",
     "locations": {
       "static": {
-        "https://www.example.com/": {
+        "https://www.example.com": {
           "parent": null,
           "type": "resource",
           "root": "https://www.sourcemeta.com/schema",
@@ -60,7 +60,7 @@
     "mode": "pointers",
     "locations": {
       "static": {
-        "https://www.example.com/": {
+        "https://www.example.com": {
           "parent": null,
           "type": "resource",
           "root": "https://www.sourcemeta.com/schema",
@@ -77,7 +77,7 @@
             "http://json-schema.org/draft-03/schema#": true
           }
         },
-        "https://www.example.com/#/$schema": {
+        "https://www.example.com#/$schema": {
           "parent": "",
           "type": "pointer",
           "root": "https://www.sourcemeta.com/schema",
@@ -94,7 +94,7 @@
             "http://json-schema.org/draft-03/schema#": true
           }
         },
-        "https://www.example.com/#/id": {
+        "https://www.example.com#/id": {
           "parent": "",
           "type": "pointer",
           "root": "https://www.sourcemeta.com/schema",
@@ -111,7 +111,7 @@
             "http://json-schema.org/draft-03/schema#": true
           }
         },
-        "https://www.example.com/#/properties": {
+        "https://www.example.com#/properties": {
           "parent": "",
           "type": "pointer",
           "root": "https://www.sourcemeta.com/schema",
@@ -128,7 +128,7 @@
             "http://json-schema.org/draft-03/schema#": true
           }
         },
-        "https://www.example.com/#/properties/one": {
+        "https://www.example.com#/properties/one": {
           "parent": "",
           "type": "subschema",
           "root": "https://www.sourcemeta.com/schema",
@@ -145,7 +145,7 @@
             "http://json-schema.org/draft-03/schema#": true
           }
         },
-        "https://www.example.com/#/properties/one/id": {
+        "https://www.example.com#/properties/one/id": {
           "parent": "/properties/one",
           "type": "pointer",
           "root": "https://www.sourcemeta.com/schema",
@@ -162,11 +162,11 @@
             "http://json-schema.org/draft-03/schema#": true
           }
         },
-        "https://www.example.com/#/properties/two": {
+        "https://www.example.com#/properties/two": {
           "parent": "",
           "type": "subschema",
           "root": "https://www.sourcemeta.com/schema",
-          "base": "https://www.test.com/",
+          "base": "https://www.test.com",
           "pointer": "/properties/two",
           "relativePointer": "",
           "dialect": "http://json-schema.org/draft-03/schema#",
@@ -179,11 +179,11 @@
             "http://json-schema.org/draft-03/schema#": true
           }
         },
-        "https://www.example.com/#/properties/two/id": {
+        "https://www.example.com#/properties/two/id": {
           "parent": "/properties/two",
           "type": "pointer",
           "root": "https://www.sourcemeta.com/schema",
-          "base": "https://www.test.com/",
+          "base": "https://www.test.com",
           "pointer": "/properties/two/id",
           "relativePointer": "/id",
           "dialect": "http://json-schema.org/draft-03/schema#",
@@ -336,7 +336,7 @@
           "parent": "",
           "type": "subschema",
           "root": "https://www.sourcemeta.com/schema",
-          "base": "https://www.test.com/",
+          "base": "https://www.test.com",
           "pointer": "/properties/two",
           "relativePointer": "",
           "dialect": "http://json-schema.org/draft-03/schema#",
@@ -353,7 +353,7 @@
           "parent": "/properties/two",
           "type": "pointer",
           "root": "https://www.sourcemeta.com/schema",
-          "base": "https://www.test.com/",
+          "base": "https://www.test.com",
           "pointer": "/properties/two/id",
           "relativePointer": "/id",
           "dialect": "http://json-schema.org/draft-03/schema#",
@@ -400,11 +400,11 @@
             "http://json-schema.org/draft-03/schema#": true
           }
         },
-        "https://www.test.com/": {
+        "https://www.test.com": {
           "parent": "",
           "type": "resource",
           "root": "https://www.sourcemeta.com/schema",
-          "base": "https://www.test.com/",
+          "base": "https://www.test.com",
           "pointer": "/properties/two",
           "relativePointer": "",
           "dialect": "http://json-schema.org/draft-03/schema#",
@@ -417,11 +417,11 @@
             "http://json-schema.org/draft-03/schema#": true
           }
         },
-        "https://www.test.com/#/id": {
+        "https://www.test.com#/id": {
           "parent": "/properties/two",
           "type": "pointer",
           "root": "https://www.sourcemeta.com/schema",
-          "base": "https://www.test.com/",
+          "base": "https://www.test.com",
           "pointer": "/properties/two/id",
           "relativePointer": "/id",
           "dialect": "http://json-schema.org/draft-03/schema#",
@@ -462,7 +462,7 @@
     },
     {
       "from": "https://www.sourcemeta.com/schema",
-      "to": "https://www.example.com/",
+      "to": "https://www.example.com",
       "reachable": true
     },
     {
@@ -472,7 +472,7 @@
     },
     {
       "from": "https://www.sourcemeta.com/schema",
-      "to": "https://www.test.com/",
+      "to": "https://www.test.com",
       "reachable": true
     },
     {
@@ -487,12 +487,12 @@
     },
     {
       "from": "https://www.sourcemeta.com/schema",
-      "to": "https://www.example.com/#/properties/one",
+      "to": "https://www.example.com#/properties/one",
       "reachable": true
     },
     {
       "from": "https://www.sourcemeta.com/schema",
-      "to": "https://www.example.com/#/properties/two",
+      "to": "https://www.example.com#/properties/two",
       "reachable": true
     },
     {
@@ -516,13 +516,13 @@
       "reachable": true
     },
     {
-      "from": "https://www.test.com/",
+      "from": "https://www.test.com",
       "to": "https://www.sourcemeta.com/schema",
       "reachable": false
     },
     {
-      "from": "https://www.test.com/",
-      "to": "https://www.test.com/",
+      "from": "https://www.test.com",
+      "to": "https://www.test.com",
       "reachable": true
     }
   ]

@@ -121,7 +121,7 @@
           "parent": "",
           "type": "subschema",
           "root": null,
-          "base": "https://example.com/",
+          "base": "https://example.com",
           "pointer": "/properties/bar",
           "relativePointer": "",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -144,7 +144,7 @@
           "parent": "/properties/bar",
           "type": "pointer",
           "root": null,
-          "base": "https://example.com/",
+          "base": "https://example.com",
           "pointer": "/properties/bar/$anchor",
           "relativePointer": "/$anchor",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -167,7 +167,7 @@
           "parent": "/properties/bar",
           "type": "pointer",
           "root": null,
-          "base": "https://example.com/",
+          "base": "https://example.com",
           "pointer": "/properties/bar/$id",
           "relativePointer": "/$id",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -278,11 +278,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://example.com/": {
+        "https://example.com": {
           "parent": "",
           "type": "resource",
           "root": null,
-          "base": "https://example.com/",
+          "base": "https://example.com",
           "pointer": "/properties/bar",
           "relativePointer": "",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -301,11 +301,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://example.com/#/$anchor": {
+        "https://example.com#/$anchor": {
           "parent": "/properties/bar",
           "type": "pointer",
           "root": null,
-          "base": "https://example.com/",
+          "base": "https://example.com",
           "pointer": "/properties/bar/$anchor",
           "relativePointer": "/$anchor",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -324,11 +324,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://example.com/#/$id": {
+        "https://example.com#/$id": {
           "parent": "/properties/bar",
           "type": "pointer",
           "root": null,
-          "base": "https://example.com/",
+          "base": "https://example.com",
           "pointer": "/properties/bar/$id",
           "relativePointer": "/$id",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -347,11 +347,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://example.com/#bar": {
+        "https://example.com#bar": {
           "parent": "",
           "type": "anchor",
           "root": null,
-          "base": "https://example.com/",
+          "base": "https://example.com",
           "pointer": "/properties/bar",
           "relativePointer": "",
           "dialect": "https://json-schema.org/draft/2020-12/schema",

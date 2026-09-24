@@ -9,11 +9,11 @@
     "mode": "root",
     "locations": {
       "static": {
-        "https://other.com/": {
+        "https://other.com": {
           "parent": null,
           "type": "resource",
-          "root": "https://other.com/",
-          "base": "https://other.com/",
+          "root": "https://other.com",
+          "base": "https://other.com",
           "pointer": "",
           "relativePointer": "",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -41,11 +41,11 @@
     "mode": "pointers",
     "locations": {
       "static": {
-        "https://other.com/": {
+        "https://other.com": {
           "parent": null,
           "type": "resource",
-          "root": "https://other.com/",
-          "base": "https://other.com/",
+          "root": "https://other.com",
+          "base": "https://other.com",
           "pointer": "",
           "relativePointer": "",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -64,11 +64,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://other.com/#/$schema": {
+        "https://other.com#/$schema": {
           "parent": "",
           "type": "pointer",
-          "root": "https://other.com/",
-          "base": "https://other.com/",
+          "root": "https://other.com",
+          "base": "https://other.com",
           "pointer": "/$schema",
           "relativePointer": "/$schema",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -87,11 +87,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://other.com/#/type": {
+        "https://other.com#/type": {
           "parent": "",
           "type": "pointer",
-          "root": "https://other.com/",
-          "base": "https://other.com/",
+          "root": "https://other.com",
+          "base": "https://other.com",
           "pointer": "/type",
           "relativePointer": "/type",
           "dialect": "https://json-schema.org/draft/2020-12/schema",

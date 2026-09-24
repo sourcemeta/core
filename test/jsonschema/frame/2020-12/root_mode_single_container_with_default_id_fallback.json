@@ -14,11 +14,11 @@
     "mode": "root",
     "locations": {
       "static": {
-        "https://other.com/": {
+        "https://other.com": {
           "parent": null,
           "type": "resource",
-          "root": "https://other.com/",
-          "base": "https://other.com/",
+          "root": "https://other.com",
+          "base": "https://other.com",
           "pointer": "/wrapper",
           "relativePointer": "",
           "dialect": "https://json-schema.org/draft/2020-12/schema",

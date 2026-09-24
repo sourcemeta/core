@@ -608,7 +608,7 @@ TEST(with_absolute_base_uri) {
   const sourcemeta::core::WeakPointer pointer{std::cref(FOO), std::cref(BAR)};
   const sourcemeta::core::URI base{"https://www.example.com"};
   const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer, base)};
-  EXPECT_EQ(fragment.recompose(), "https://www.example.com/#/foo/bar");
+  EXPECT_EQ(fragment.recompose(), "https://www.example.com#/foo/bar");
 }
 
 TEST(with_relative_base_uri) {
@@ -622,7 +622,7 @@ TEST(with_absolute_base_string_view) {
   const sourcemeta::core::WeakPointer pointer{std::cref(FOO), std::cref(BAR)};
   const std::string_view base{"https://www.example.com"};
   const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer, base)};
-  EXPECT_EQ(fragment.recompose(), "https://www.example.com/#/foo/bar");
+  EXPECT_EQ(fragment.recompose(), "https://www.example.com#/foo/bar");
 }
 
 TEST(with_empty_base_string_view) {

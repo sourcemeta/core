@@ -12,11 +12,11 @@
     "mode": "root",
     "locations": {
       "static": {
-        "https://example.com/": {
+        "https://example.com": {
           "parent": null,
           "type": "resource",
-          "root": "https://example.com/",
-          "base": "https://example.com/",
+          "root": "https://example.com",
+          "base": "https://example.com",
           "pointer": "",
           "relativePointer": "",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -44,11 +44,11 @@
     "mode": "pointers",
     "locations": {
       "static": {
-        "https://example.com/": {
+        "https://example.com": {
           "parent": null,
           "type": "resource",
-          "root": "https://example.com/",
-          "base": "https://example.com/",
+          "root": "https://example.com",
+          "base": "https://example.com",
           "pointer": "",
           "relativePointer": "",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -67,11 +67,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://example.com/#/$id": {
+        "https://example.com#/$id": {
           "parent": "",
           "type": "pointer",
-          "root": "https://example.com/",
-          "base": "https://example.com/",
+          "root": "https://example.com",
+          "base": "https://example.com",
           "pointer": "/$id",
           "relativePointer": "/$id",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -90,11 +90,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://example.com/#/$schema": {
+        "https://example.com#/$schema": {
           "parent": "",
           "type": "pointer",
-          "root": "https://example.com/",
-          "base": "https://example.com/",
+          "root": "https://example.com",
+          "base": "https://example.com",
           "pointer": "/$schema",
           "relativePointer": "/$schema",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -113,11 +113,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://example.com/#/additionalProperties": {
+        "https://example.com#/additionalProperties": {
           "parent": "",
           "type": "subschema",
-          "root": "https://example.com/",
-          "base": "https://example.com/",
+          "root": "https://example.com",
+          "base": "https://example.com",
           "pointer": "/additionalProperties",
           "relativePointer": "/additionalProperties",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -136,11 +136,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://example.com/#/additionalProperties/type": {
+        "https://example.com#/additionalProperties/type": {
           "parent": "/additionalProperties",
           "type": "pointer",
-          "root": "https://example.com/",
-          "base": "https://example.com/",
+          "root": "https://example.com",
+          "base": "https://example.com",
           "pointer": "/additionalProperties/type",
           "relativePointer": "/additionalProperties/type",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
