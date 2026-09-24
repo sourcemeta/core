@@ -34,5 +34,6 @@
   "reads": {},
   "schemaReads": {},
   "standalone": false,
-  "relocatable": false
+  "relocatable": false,
+  "operations": []
 }

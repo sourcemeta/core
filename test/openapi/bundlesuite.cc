@@ -223,6 +223,11 @@ auto check_shape(const sourcemeta::core::JSON &test, const std::string &corpus)
   EXPECT_EQ(test.defines("schemaReads"), test.defines("result"));
   EXPECT_EQ(test.defines("standalone"), test.defines("result"));
   EXPECT_EQ(test.defines("relocatable"), test.defines("result"));
+  // What a description exposes is an observation about the result, not an
+  // extra a fixture may opt into. One that leaves it out asserts nothing about
+  // the operations of what it bundled, and a fixture that asserts nothing
+  // about them is how a projection defect survives a green suite
+  EXPECT_EQ(test.defines("operations"), test.defines("result"));
   // A fixture that picks the names itself says which ones the hook was handed.
   // Picking them is something a fixture does to get a particular answer out of
   // bundling, so a refusal has no use for it

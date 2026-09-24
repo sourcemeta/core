@@ -74,5 +74,6 @@
     "https://example.com/schemas/bag": 1
   },
   "standalone": true,
-  "relocatable": true
+  "relocatable": true,
+  "operations": []
 }

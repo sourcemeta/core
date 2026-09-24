@@ -68,5 +68,6 @@
     "https://example.com/schemas/pets": 1
   },
   "standalone": true,
-  "relocatable": true
+  "relocatable": true,
+  "operations": []
 }

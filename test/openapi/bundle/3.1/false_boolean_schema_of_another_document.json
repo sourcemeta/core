@@ -50,5 +50,6 @@
     "https://example.com/schemas/none": 1
   },
   "standalone": true,
-  "relocatable": true
+  "relocatable": true,
+  "operations": []
 }

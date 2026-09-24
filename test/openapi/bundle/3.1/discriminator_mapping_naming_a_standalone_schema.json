@@ -85,5 +85,6 @@
     "https://example.com/schemas/cat": 1
   },
   "standalone": true,
-  "relocatable": true
+  "relocatable": true,
+  "operations": []
 }
