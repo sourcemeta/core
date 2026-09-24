@@ -83,6 +83,7 @@ public:
         this->roundtrip_->explicit_document_start = true;
       }
       this->document_start_line_ = token->line;
+      this->lexer_->skip_line_break();
       const auto pos_before_next{this->lexer_->position()};
       token = this->lexer_->next();
       if (this->roundtrip_ != nullptr) {
@@ -171,7 +172,9 @@ public:
 
     if (this->roundtrip_ != nullptr) {
       auto trailing{this->lexer_->take_preceding_comments()};
-      if (!trailing.empty()) {
+      const bool ends_the_stream{!token.has_value() ||
+                                 token->type == TokenType::StreamEnd};
+      if (!trailing.empty() && ends_the_stream) {
         this->roundtrip_->trailing_comments = std::move(trailing);
       }
     }
@@ -640,6 +643,15 @@ private:
       auto next{this->lexer_->next()};
       if ((this->roundtrip_ != nullptr) && anchor_name.has_value()) {
         anchor_inline_comment = this->lexer_->take_inline_comment();
+      } else if ((this->roundtrip_ != nullptr) &&
+                 context == JSON::ParseContext::Root &&
+                 this->document_start_line_ > 0 &&
+                 current_token.line == this->document_start_line_ &&
+                 !this->roundtrip_->document_start_comment.has_value()) {
+        // A comment that trails the node properties of the root node still
+        // sits on the document start marker line, which is where it is written
+        this->roundtrip_->document_start_comment =
+            this->lexer_->take_inline_comment();
       }
       if (!next.has_value() || next->type == TokenType::StreamEnd ||
           next->type == TokenType::DocumentEnd ||

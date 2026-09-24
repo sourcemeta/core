@@ -338,6 +338,28 @@ TEST(multi_document_stream_preserving_styles) {
   EXPECT_EQ(roundtrip_stream(input), input);
 }
 
+TEST(document_start_comment_after_root_properties) {
+  const std::string input{"--- !Custom # note\nfoo: bar\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(multi_document_stream_of_empty_documents) {
+  const std::string input{"---\n---\n"};
+  EXPECT_EQ(roundtrip_stream(input), input);
+}
+
+TEST(multi_document_stream_with_a_comment_introducing_the_next_document) {
+  const std::string input{
+      "# one\nfoo\n...\n# two\n%TAG ! tag:example.com,2000:\n---\nbar\n"};
+  EXPECT_EQ(roundtrip_stream(input), input);
+}
+
+TEST(multi_document_stream_is_written_the_same_way_twice) {
+  const std::string input{
+      "# one\nfoo\n...\n# two\n%TAG ! tag:example.com,2000:\n---\nbar\n"};
+  EXPECT_EQ(roundtrip_stream(roundtrip_stream(input)), input);
+}
+
 TEST(single_quoted_value) {
   const std::string input{R"YAML(foo: 'bar'
 )YAML"};
