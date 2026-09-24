@@ -8,6 +8,7 @@
 
 #include <algorithm>   // std::min, std::max
 #include <cstddef>     // std::size_t
+#include <optional>    // std::optional
 #include <string_view> // std::string_view
 
 namespace sourcemeta::core {
@@ -248,8 +249,14 @@ auto stringify_yaml(const JSON &document,
 
 auto stringify_yaml(const JSON &document,
                     std::basic_ostream<JSON::Char, JSON::CharTraits> &stream,
-                    const YAMLRoundTrip &roundtrip) -> void {
-  yaml::stringify_yaml<JSON::Allocator>(document, stream, &roundtrip);
+                    const YAMLRoundTrip &roundtrip,
+                    const std::optional<std::size_t> indentation) -> void {
+  // Without a width of its own to go by, the document keeps the one it was
+  // written with, which is what a round-trip is for
+  yaml::stringify_yaml<JSON::Allocator>(
+      document, stream, &roundtrip,
+      indentation.has_value() ? std::max(indentation.value(), ONE_COLUMN)
+                              : roundtrip.indent_width);
 }
 
 } // namespace sourcemeta::core

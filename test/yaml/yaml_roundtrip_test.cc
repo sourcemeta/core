@@ -184,6 +184,45 @@ TEST(read_file_with_roundtrip_keeps_trailing_comments) {
   EXPECT_EQ(stringify(document, metadata), "foo: bar\n# trailing\n");
 }
 
+TEST(stringify_with_roundtrip_and_an_indentation_override) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  const auto document{
+      sourcemeta::core::parse_yaml("# lead\nfoo:\n  bar: 1\n", metadata)};
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream, metadata, 4);
+  EXPECT_EQ(stream.str(), "# lead\nfoo:\n    bar: 1\n");
+}
+
+TEST(stringify_with_roundtrip_keeps_the_document_width_by_default) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  const auto document{
+      sourcemeta::core::parse_yaml("foo:\n    bar: 1\n", metadata)};
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream, metadata);
+  EXPECT_EQ(stream.str(), "foo:\n    bar: 1\n");
+}
+
+TEST(stringify_with_roundtrip_leaves_the_metadata_alone) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  const auto document{
+      sourcemeta::core::parse_yaml("foo:\n  bar: 1\n", metadata)};
+  std::ostringstream overridden;
+  sourcemeta::core::stringify_yaml(document, overridden, metadata, 4);
+  std::ostringstream plain;
+  sourcemeta::core::stringify_yaml(document, plain, metadata);
+  EXPECT_EQ(overridden.str(), "foo:\n    bar: 1\n");
+  EXPECT_EQ(plain.str(), "foo:\n  bar: 1\n");
+}
+
+TEST(stringify_with_roundtrip_and_a_zero_indentation) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  const auto document{
+      sourcemeta::core::parse_yaml("foo:\n  bar: 1\n", metadata)};
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream, metadata, 0);
+  EXPECT_EQ(stream.str(), "foo:\n bar: 1\n");
+}
+
 TEST(block_mapping_simple) {
   const std::string input{R"YAML(foo: bar
 baz: qux

@@ -1263,8 +1263,7 @@ auto stringify_yaml(const JSON &document, OutputStream &stream,
   }
 
   if (!is_implicit_null(document, roundtrip, pointer)) {
-    const auto width{(roundtrip != nullptr) ? roundtrip->indent_width
-                                            : indentation};
+    const auto width{indentation};
     write_node(stream, document, 0, width, width + 1, false, roundtrip, anchors,
                pointer, root_properties);
   }
