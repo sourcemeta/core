@@ -4,14 +4,14 @@
 #include "document.h"
 #include "helpers.h"
 
-#include <cassert> // assert
-#include <cstddef> // std::size_t
-#include <cstdint>
+#include <cassert>  // assert
+#include <cstddef>  // std::size_t
+#include <cstdint>  // std::uint64_t
 #include <map>      // std::map
 #include <optional> // std::optional
 #include <set>      // std::set
 #include <string>   // std::to_string
-#include <utility>  // std::move
+#include <utility>  // std::move, std::make_pair, std::pair
 #include <vector>   // std::vector
 
 namespace {
@@ -253,6 +253,7 @@ auto absolutize_schemas(sourcemeta::core::JSON &value,
       // written out as the route to wherever this is headed instead. This is
       // the same distinction a reference of the schema is held to, and a
       // mapping is held to it for the same reason
+      //
       // The URI is held rather than made and read in one breath, as what
       // reads its fragment hands back a view into it
       const sourcemeta::core::URI destination{discriminator.destination};
@@ -492,7 +493,7 @@ auto vacant(const sourcemeta::core::JSON &entries,
   // instead keeps the name to a length the number of them can be written in.
   // Section 4.8.7 admits digits into a component key just as it admits the
   // underscore
-  const sourcemeta::core::JSON::String taken{candidate};
+  const auto taken{candidate};
   // Trying each number in turn would ask the Components Object about every
   // name that already took this one, and asking it is a walk of everything it
   // holds, so a description naming one place many times over would pay for it
@@ -588,11 +589,11 @@ auto schema_name(const sourcemeta::core::JSON &schemas,
 
 // A boolean carries no keyword, so it cannot say who it is, and whatever named
 // it by the URI it was found under would go on naming nothing once it sits
-// somewhere else. JSON Schema Section 4.3.2 gives each of the two an object
-// that says exactly what it says: "true: Always passes validation, as if the
-// empty schema `{}`" and "false: Always fails validation, as if the schema
-// `{ "not": {} }`". Written that way it can answer to the URI it was found
-// under, which leaves every reference that named it naming it still
+// somewhere else. JSON Schema 2020-12 Section 4.3.2 gives each of the two an
+// object that says exactly what it says: "true: Always passes validation, as
+// if the empty schema `{}`" and "false: Always fails validation, as if the
+// schema `{ "not": {} }`". Written that way it can answer to the URI it was
+// found under, which leaves every reference that named it naming it still
 auto spell_out(sourcemeta::core::JSON &schema) -> void {
   if (!schema.is_boolean()) {
     return;
@@ -708,13 +709,11 @@ auto bundle_schemas(sourcemeta::core::JSON &document,
   }
 
   auto &schemas{sourcemeta::core::get(document, container)};
-  // JSON Schema Section 9.3.1 has every resource that travels this way say
-  // who it is: "Each embedded JSON Schema Resource MUST identify itself with
-  // a URI using the `$id` keyword". Section 4.8.24 lets a Schema Object be a
-  // boolean, which carries no keyword at all and so can say nothing, leaving
-  // whatever named it by the URI it was found under naming nothing once it
-  // sits here. Where it went is what such a reference is written out to name
-  // instead, which is what a Discriminator Object mapping to one comes to
+  // JSON Schema 2020-12 Section 9.3.1 has every resource that travels this
+  // way say who it is: "Each embedded JSON Schema Resource MUST identify
+  // itself with a URI using the `$id` keyword". Section 4.8.24 lets a Schema
+  // Object be a boolean, which carries no keyword at all and so can say
+  // nothing, which writing it out as the object saying the same thing settles
   for (const auto &entry : landed) {
     const auto &identifier{entry.first};
     const auto &key{entry.second.back().to_property()};
@@ -1065,6 +1064,7 @@ auto absolutize(JSON &value, const OpenAPIWalk &remote, const Pointer &origin,
   // Object name a Security Scheme Object by the URI of one, which is the one
   // connection of a description spelled as the member that holds the scopes
   // rather than as a value, so this renames rather than writes
+  //
   // Every name of one Security Requirement Object is written back at once.
   // Taken one at a time, each rename would read an Object some of whose
   // members had already moved, and making room at a name means giving up
@@ -1426,13 +1426,13 @@ auto adopt_mappings(
           "A Schema Object must be an object or a boolean"};
     }
 
-    // What a schema answers to is its own to say. JSON Schema Section 8.2.1
-    // has an identifier a schema declares be "the canonical [RFC6596] URI" of
-    // the resource, and the base every relative reference under it resolves
-    // against, so taking the URI it happened to be fetched by over the one it
-    // declares would re-aim every one of those. Only a schema that declares
-    // none is given the one it was found under, which is what lets a mapping
-    // that named a place within it go on naming that place.
+    // What a schema answers to is its own to say. JSON Schema 2020-12
+    // Section 8.2.1 has an identifier a schema declares be "the canonical
+    // [RFC6596] URI" of the resource, and the base every relative reference
+    // under it resolves against, so taking the URI it happened to be fetched
+    // by over the one it declares would re-aim every one of those. Only a
+    // schema that declares none is given the one it was found under, which is
+    // what lets a mapping that named a place within it go on naming that place.
     //
     // What it declares is a URI reference rather than a URI though, and
     // Section 4.1.2.2 resolves one of those: "The most common base URI source
@@ -1455,18 +1455,12 @@ auto adopt_mappings(
     }
 
     charge(remaining, root.value().location_count());
-    const auto declared{root.value().root()};
+    const auto &declared{root.value().root()};
     const JSON::String identity{declared.empty() ? identifier
                                                  : JSON::String{declared}};
-    // Section 4.8.24: "The empty schema [...] MAY be represented by the
-    // boolean value `true` and a schema which allows no instance to validate
-    // MAY be represented by the boolean value `false`". Neither carries a
-    // keyword, so neither can be made to answer to the identifier it was found
-    // under, and what names it has to name where it lands instead
     // Section 4.8.24 has a standalone document that says nothing of the
     // dialect it is written against read under the one this specification
-    // publishes. Section 4.8.24 also lets one be a boolean, which carries no
-    // keyword to say so with
+    // publishes
     spell_out(schema);
     if (!schema.defines("$schema")) {
       schema.assign("$schema", JSON{dialect});

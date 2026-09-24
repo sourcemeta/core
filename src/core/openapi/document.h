@@ -576,7 +576,7 @@ inline auto openapi_check_schema_positions(const OpenAPIWalk &walk) -> void {
     // this asks after every place above rather than the one just read
     auto prefix{location.second.pointer};
     while (!prefix.empty()) {
-      prefix = prefix.initial();
+      prefix.pop_back();
       const auto enclosing{
           walk.locations.find(openapi_location_uri(walk.base, prefix))};
       if (enclosing != walk.locations.cend() &&
