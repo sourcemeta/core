@@ -38,6 +38,18 @@ const std::vector<std::string> KNOWN_NAMING_KEYS{"from", "container"};
 // Every exception that bundling throws, named after the class itself so that a
 // fixture states which one it means rather than leaving the runner to guess
 // from the fields that happen to be there
+const std::vector<std::string> KNOWN_ERROR_TYPES{"OpenAPIError",
+                                                 "OpenAPIResolutionError",
+                                                 "OpenAPIReferenceError",
+                                                 "OpenAPIBundleLimitError",
+                                                 "SchemaResolutionError",
+                                                 "SchemaAnchorCollisionError",
+                                                 "SchemaError"};
+
+const std::vector<std::string> KNOWN_ERROR_KEYS{
+    "type", "message", "location", "base", "identifier", "limit", "other"};
+// NOLINTEND(cert-err58-cpp,bugprone-throwing-static-initialization)
+
 // Whether a position an operation names is one the frame holds, and holds as
 // the kind of Object that position is supposed to carry. A parameter may be
 // either the Object itself or a Reference Object standing in for one, which is
@@ -56,18 +68,6 @@ auto check_names_a_location(const sourcemeta::core::JSON &locations,
   EXPECT_TRUE(type == expected ||
               (!alternative.empty() && type == alternative));
 }
-
-const std::vector<std::string> KNOWN_ERROR_TYPES{"OpenAPIError",
-                                                 "OpenAPIResolutionError",
-                                                 "OpenAPIReferenceError",
-                                                 "OpenAPIBundleLimitError",
-                                                 "SchemaResolutionError",
-                                                 "SchemaAnchorCollisionError",
-                                                 "SchemaError"};
-
-const std::vector<std::string> KNOWN_ERROR_KEYS{
-    "type", "message", "location", "base", "identifier", "limit", "other"};
-// NOLINTEND(cert-err58-cpp,bugprone-throwing-static-initialization)
 
 // The two resolvers answer for different halves of a description. This one
 // hands back the other documents the shell of it is split across, each of

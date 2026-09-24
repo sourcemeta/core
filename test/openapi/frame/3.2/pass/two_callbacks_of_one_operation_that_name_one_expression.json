@@ -1,0 +1,191 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "post": {
+          "callbacks": {
+            "first": {
+              "{$request.body#/url}": {
+                "post": {
+                  "responses": {
+                    "200": {
+                      "description": "a"
+                    }
+                  }
+                }
+              }
+            },
+            "second": {
+              "{$request.body#/url}": {
+                "post": {
+                  "responses": {
+                    "200": {
+                      "description": "b"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "ok"
+            }
+          }
+        }
+      }
+    }
+  },
+  "frame": {
+    "version": "3.2",
+    "base": "",
+    "standalone": true,
+    "schemas": {
+      "mode": "references",
+      "locations": {
+        "static": {},
+        "dynamic": {}
+      },
+      "references": []
+    },
+    "info": {
+      "title": "Example",
+      "version": "1.0.0",
+      "summary": null,
+      "description": null,
+      "termsOfService": null,
+      "contact": null,
+      "license": null
+    },
+    "locations": {
+      "": {
+        "type": "openapi",
+        "pointer": "",
+        "parent": null,
+        "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17"
+      },
+      "#/info": {
+        "type": "info",
+        "pointer": "/info",
+        "parent": ""
+      },
+      "#/paths": {
+        "type": "paths",
+        "pointer": "/paths",
+        "parent": ""
+      },
+      "#/paths/~1pets": {
+        "type": "path-item",
+        "pointer": "/paths/~1pets",
+        "parent": "#/paths"
+      },
+      "#/paths/~1pets/post": {
+        "type": "operation",
+        "pointer": "/paths/~1pets/post",
+        "parent": "#/paths/~1pets"
+      },
+      "#/paths/~1pets/post/callbacks/first": {
+        "type": "callback",
+        "pointer": "/paths/~1pets/post/callbacks/first",
+        "parent": "#/paths/~1pets/post"
+      },
+      "#/paths/~1pets/post/callbacks/first/%7B$request.body%23~1url%7D": {
+        "type": "path-item",
+        "pointer": "/paths/~1pets/post/callbacks/first/{$request.body#~1url}",
+        "parent": "#/paths/~1pets/post/callbacks/first"
+      },
+      "#/paths/~1pets/post/callbacks/first/%7B$request.body%23~1url%7D/post": {
+        "type": "operation",
+        "pointer": "/paths/~1pets/post/callbacks/first/{$request.body#~1url}/post",
+        "parent": "#/paths/~1pets/post/callbacks/first/%7B$request.body%23~1url%7D"
+      },
+      "#/paths/~1pets/post/callbacks/first/%7B$request.body%23~1url%7D/post/responses": {
+        "type": "responses",
+        "pointer": "/paths/~1pets/post/callbacks/first/{$request.body#~1url}/post/responses",
+        "parent": "#/paths/~1pets/post/callbacks/first/%7B$request.body%23~1url%7D/post"
+      },
+      "#/paths/~1pets/post/callbacks/first/%7B$request.body%23~1url%7D/post/responses/200": {
+        "type": "response",
+        "pointer": "/paths/~1pets/post/callbacks/first/{$request.body#~1url}/post/responses/200",
+        "parent": "#/paths/~1pets/post/callbacks/first/%7B$request.body%23~1url%7D/post/responses"
+      },
+      "#/paths/~1pets/post/callbacks/second": {
+        "type": "callback",
+        "pointer": "/paths/~1pets/post/callbacks/second",
+        "parent": "#/paths/~1pets/post"
+      },
+      "#/paths/~1pets/post/callbacks/second/%7B$request.body%23~1url%7D": {
+        "type": "path-item",
+        "pointer": "/paths/~1pets/post/callbacks/second/{$request.body#~1url}",
+        "parent": "#/paths/~1pets/post/callbacks/second"
+      },
+      "#/paths/~1pets/post/callbacks/second/%7B$request.body%23~1url%7D/post": {
+        "type": "operation",
+        "pointer": "/paths/~1pets/post/callbacks/second/{$request.body#~1url}/post",
+        "parent": "#/paths/~1pets/post/callbacks/second/%7B$request.body%23~1url%7D"
+      },
+      "#/paths/~1pets/post/callbacks/second/%7B$request.body%23~1url%7D/post/responses": {
+        "type": "responses",
+        "pointer": "/paths/~1pets/post/callbacks/second/{$request.body#~1url}/post/responses",
+        "parent": "#/paths/~1pets/post/callbacks/second/%7B$request.body%23~1url%7D/post"
+      },
+      "#/paths/~1pets/post/callbacks/second/%7B$request.body%23~1url%7D/post/responses/200": {
+        "type": "response",
+        "pointer": "/paths/~1pets/post/callbacks/second/{$request.body#~1url}/post/responses/200",
+        "parent": "#/paths/~1pets/post/callbacks/second/%7B$request.body%23~1url%7D/post/responses"
+      },
+      "#/paths/~1pets/post/responses": {
+        "type": "responses",
+        "pointer": "/paths/~1pets/post/responses",
+        "parent": "#/paths/~1pets/post"
+      },
+      "#/paths/~1pets/post/responses/200": {
+        "type": "response",
+        "pointer": "/paths/~1pets/post/responses/200",
+        "parent": "#/paths/~1pets/post/responses"
+      }
+    },
+    "operations": [
+      {
+        "type": "path",
+        "path": "/pets",
+        "method": "post",
+        "origin": "#/paths/~1pets/post",
+        "endpoint": "#/paths/~1pets",
+        "tags": [],
+        "servers": [],
+        "security": [],
+        "parameters": []
+      },
+      {
+        "type": "callback",
+        "path": "{$request.body#/url}",
+        "method": "post",
+        "origin": "#/paths/~1pets/post/callbacks/first/%7B$request.body%23~1url%7D/post",
+        "endpoint": "#/paths/~1pets/post/callbacks/first/%7B$request.body%23~1url%7D",
+        "parent": "#/paths/~1pets/post",
+        "tags": [],
+        "servers": [],
+        "security": [],
+        "parameters": []
+      },
+      {
+        "type": "callback",
+        "path": "{$request.body#/url}",
+        "method": "post",
+        "origin": "#/paths/~1pets/post/callbacks/second/%7B$request.body%23~1url%7D/post",
+        "endpoint": "#/paths/~1pets/post/callbacks/second/%7B$request.body%23~1url%7D",
+        "parent": "#/paths/~1pets/post",
+        "tags": [],
+        "servers": [],
+        "security": [],
+        "parameters": []
+      }
+    ]
+  }
+}

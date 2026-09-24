@@ -14,6 +14,7 @@
 #include <optional>    // std::optional
 #include <set>         // std::set
 #include <string_view> // std::string_view
+#include <tuple>       // std::tuple
 #include <utility>     // std::move, std::pair, std::unreachable
 #include <vector>      // std::vector
 
@@ -448,7 +449,13 @@ auto openapi_project(const OpenAPIWalk &walk) -> std::vector<OpenAPIOperation> {
   std::vector<OpenAPIOperation> result;
   std::vector<OpenAPIEndpoint> pending{walk.endpoints};
   const auto expressions{exposing_expressions(walk)};
-  std::set<JSON::String> seen;
+  // What tells one exposure from another, held as the four things it is
+  // rather than as one string spelling them out. A position carries a `#` of
+  // its own, so any character picked to join them is a character one of them
+  // may hold, and the spelling would not tell every pair of exposures apart
+  std::set<std::tuple<OpenAPIOperationKind, JSON::String, JSON::String,
+                      std::optional<JSON::String>>>
+      seen;
   for (std::size_t index = 0; index < pending.size(); index += 1) {
     const auto kind{pending[index].kind};
     const auto path{pending[index].path};
@@ -461,13 +468,7 @@ auto openapi_project(const OpenAPIWalk &walk) -> std::vector<OpenAPIOperation> {
     // hangs a Callback Object off "the parent operation", so one that two of
     // them reach is reached twice rather than once and the Object it hangs off
     // is part of what tells the two apart
-    JSON::String key{openapi_operation_kind_name(kind)};
-    key.append("#").append(path).append("#").append(position);
-    if (parent.has_value()) {
-      key.append("#").append(parent.value());
-    }
-
-    if (!seen.insert(std::move(key)).second) {
+    if (!seen.emplace(kind, path, position, parent).second) {
       continue;
     }
 
