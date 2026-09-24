@@ -25,6 +25,18 @@ static auto roundtrip_value(const std::string &input)
   return sourcemeta::core::parse_yaml(stringify(document, metadata));
 }
 
+static auto roundtrip_stream(const std::string &input) -> std::string {
+  std::istringstream stream{input};
+  std::ostringstream output;
+  while (stream.peek() != std::char_traits<char>::eof()) {
+    sourcemeta::core::YAMLRoundTrip metadata;
+    const auto document{sourcemeta::core::parse_yaml(stream, metadata)};
+    sourcemeta::core::stringify_yaml(document, output, metadata);
+  }
+
+  return output.str();
+}
+
 TEST(block_mapping_simple) {
   const std::string input{R"YAML(foo: bar
 baz: qux
@@ -286,6 +298,44 @@ TEST(comment_between_two_directives) {
   const std::string input{
       "%YAML 1.2\n# note\n%TAG !e! tag:example.com,2000:\n---\nfoo: bar\n"};
   EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(multi_document_stream) {
+  const std::string input{"foo: bar\n---\nbaz: qux\n"};
+  EXPECT_EQ(roundtrip_stream(input), input);
+}
+
+TEST(multi_document_stream_with_end_markers) {
+  const std::string input{"foo: bar\n...\n---\nbaz: qux\n"};
+  EXPECT_EQ(roundtrip_stream(input), input);
+}
+
+TEST(multi_document_stream_with_comments) {
+  const std::string input{"# one\nfoo: bar\n---\n# two\nbaz: qux\n"};
+  EXPECT_EQ(roundtrip_stream(input), input);
+}
+
+TEST(multi_document_stream_with_an_empty_document) {
+  const std::string input{"Document\n---\n# Empty\n...\n%YAML 1.2\n---\n"
+                          "matches %: 20\n"};
+  EXPECT_EQ(roundtrip_stream(input), input);
+}
+
+TEST(multi_document_stream_with_directives) {
+  const std::string input{
+      "%YAML 1.2\n---\nfoo: bar\n...\n%YAML 1.2\n---\nbaz: qux\n"};
+  EXPECT_EQ(roundtrip_stream(input), input);
+}
+
+TEST(multi_document_stream_with_scalars) {
+  const std::string input{"one\n---\ntwo\n---\nthree\n"};
+  EXPECT_EQ(roundtrip_stream(input), input);
+}
+
+TEST(multi_document_stream_preserving_styles) {
+  const std::string input{
+      "foo: |\n  block\n---\nbar: [ 1, 2 ]\n---\nbaz: !Custom value\n"};
+  EXPECT_EQ(roundtrip_stream(input), input);
 }
 
 TEST(single_quoted_value) {

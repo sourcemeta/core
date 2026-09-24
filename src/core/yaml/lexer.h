@@ -352,6 +352,26 @@ public:
     return this->position_;
   }
 
+  // The line break that closes a document suffix belongs to the document that
+  // is ending rather than to whatever follows it.
+  // See https://yaml.org/spec/1.2.2/#912-document-markers
+  auto skip_line_break() -> void {
+    if (this->position_ >= this->input_.size()) {
+      return;
+    }
+
+    const auto current{this->input_[this->position_]};
+    if (current != '\n' && current != '\r') {
+      return;
+    }
+
+    this->advance(1);
+    if (current == '\r' && this->position_ < this->input_.size() &&
+        this->input_[this->position_] == '\n') {
+      this->advance(1);
+    }
+  }
+
   auto take_inline_comment() -> std::optional<std::string> {
     auto result{std::move(this->inline_comment_buffer_)};
     this->inline_comment_buffer_.reset();

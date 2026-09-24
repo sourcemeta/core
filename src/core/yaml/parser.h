@@ -46,6 +46,7 @@ public:
       : lexer_{lexer}, callback_{callback}, roundtrip_{roundtrip} {}
 
   auto parse() -> JSON {
+    bool empty_document{false};
     std::optional<Token> token;
 
     if (!this->pending_tokens_.empty()) {
@@ -92,11 +93,20 @@ public:
       if (!token.has_value() || token->type == TokenType::StreamEnd ||
           token->type == TokenType::DocumentEnd ||
           token->type == TokenType::DocumentStart) {
+        if (this->roundtrip_ != nullptr) {
+          this->roundtrip_->post_start_comments =
+              this->lexer_->take_preceding_comments();
+        }
+
         if (token.has_value() && token->type == TokenType::DocumentStart) {
           this->pending_tokens_.push_back(token.value());
           this->pending_token_position_ = pos_before_next;
+          return JSON{nullptr};
         }
-        return JSON{nullptr};
+
+        // A document with no node of its own still ends the way any other
+        // does, so what follows it is read the same way
+        empty_document = true;
       }
     } else if (!token.has_value() || token->type == TokenType::StreamEnd)
         [[unlikely]] {
@@ -114,28 +124,33 @@ public:
       return JSON{nullptr};
     }
 
-    if (this->roundtrip_ != nullptr) {
-      auto comments{this->lexer_->take_preceding_comments()};
-      this->lexer_->take_inline_comment();
-      if (this->roundtrip_->explicit_document_start) {
-        this->roundtrip_->post_start_comments = std::move(comments);
-      } else {
-        this->roundtrip_->leading_comments = std::move(comments);
-      }
-    }
-
-    auto result{this->parse_value(token.value(), JSON::ParseContext::Root, 0,
-                                  EMPTY_PROPERTY)};
-
-    this->attach_leading_comments_to_first_key(result);
-
+    JSON result{nullptr};
     auto pos_before_token{this->lexer_->position()};
-    token = this->next_token();
-    if (this->roundtrip_ != nullptr) {
-      auto root_inline{this->lexer_->take_inline_comment()};
-      if (root_inline.has_value()) {
-        this->roundtrip_->styles[this->pointer_stack_].comment_inline =
-            std::move(root_inline);
+
+    if (!empty_document) {
+      if (this->roundtrip_ != nullptr) {
+        auto comments{this->lexer_->take_preceding_comments()};
+        this->lexer_->take_inline_comment();
+        if (this->roundtrip_->explicit_document_start) {
+          this->roundtrip_->post_start_comments = std::move(comments);
+        } else {
+          this->roundtrip_->leading_comments = std::move(comments);
+        }
+      }
+
+      result = this->parse_value(token.value(), JSON::ParseContext::Root, 0,
+                                 EMPTY_PROPERTY);
+
+      this->attach_leading_comments_to_first_key(result);
+
+      pos_before_token = this->lexer_->position();
+      token = this->next_token();
+      if (this->roundtrip_ != nullptr) {
+        auto root_inline{this->lexer_->take_inline_comment()};
+        if (root_inline.has_value()) {
+          this->roundtrip_->styles[this->pointer_stack_].comment_inline =
+              std::move(root_inline);
+        }
       }
     }
     while (token.has_value() && token->type == TokenType::DocumentEnd) {
@@ -145,6 +160,7 @@ public:
             this->lexer_->take_preceding_comments();
         this->roundtrip_->explicit_document_end = true;
       }
+      this->lexer_->skip_line_break();
       pos_before_token = this->lexer_->position();
       token = this->next_token();
       if (this->roundtrip_ != nullptr) {

@@ -7,62 +7,48 @@
 #include <cstdint>    // std::uint8_t
 #include <filesystem> // std::filesystem
 #include <fstream>    // std::ifstream
-#include <iterator>   // std::istreambuf_iterator
-#include <sstream>    // std::ostringstream
+#include <istream>    // std::basic_istream
+#include <sstream>    // std::ostringstream, std::istringstream
 #include <string>     // std::string
 #include <vector>     // std::vector
 
 namespace {
 enum class YAMLTestType : std::uint8_t { Success, Error };
 
-auto read_to_string(const std::filesystem::path &path) -> std::string {
-  std::ifstream stream{path, std::ios::binary};
-  stream.exceptions(std::ios_base::badbit);
-  return std::string{std::istreambuf_iterator<char>{stream},
-                     std::istreambuf_iterator<char>{}};
-}
-
-// The round-trip emitter writes a single document, so a case that holds
-// several, or none at all, is out of its scope
-auto count_yaml_documents(const std::filesystem::path &path) -> std::size_t {
-  std::ifstream stream{path, std::ios::binary};
-  stream.exceptions(std::ios_base::badbit);
-  std::size_t count{0};
-
+// Reads every document a stream holds, gathering them into an array so that
+// how many there are is compared along with what each one holds
+auto read_all(std::basic_istream<char> &stream) -> sourcemeta::core::JSON {
+  auto documents{sourcemeta::core::JSON::make_array()};
   while (stream.peek() != EOF) {
-    try {
-      sourcemeta::core::parse_yaml(stream);
-    } catch (const sourcemeta::core::YAMLError &) {
-      return 0;
-    } catch (const sourcemeta::core::YAMLParseError &) {
-      return 0;
-    }
-
-    count++;
+    documents.push_back(sourcemeta::core::parse_yaml(stream));
   }
 
-  return count;
+  return documents;
 }
 
 // A YAML document carries presentation that its JSON value does not, so the
 // round-trip emitter is only correct if the text it writes reads back as the
-// very same document. See https://yaml.org/spec/1.2.2/#321-representation-graph
+// very same documents. See
+// https://yaml.org/spec/1.2.2/#321-representation-graph
 auto run_yaml_roundtrip_case(const std::filesystem::path &yaml_path) -> void {
-  sourcemeta::core::YAMLRoundTrip metadata;
-  const auto document{
-      sourcemeta::core::parse_yaml(read_to_string(yaml_path), metadata)};
+  std::ifstream input{yaml_path, std::ios::binary};
+  input.exceptions(std::ios_base::badbit);
 
+  auto documents{sourcemeta::core::JSON::make_array()};
   std::ostringstream output;
-  sourcemeta::core::stringify_yaml(document, output, metadata);
+  while (input.peek() != EOF) {
+    sourcemeta::core::YAMLRoundTrip metadata;
+    documents.push_back(sourcemeta::core::parse_yaml(input, metadata));
+    sourcemeta::core::stringify_yaml(documents.back(), output, metadata);
+  }
 
-  sourcemeta::core::YAMLRoundTrip emitted_metadata;
-  const auto emitted{
-      sourcemeta::core::parse_yaml(output.str(), emitted_metadata)};
+  std::istringstream emitted_input{output.str()};
+  const auto emitted{read_all(emitted_input)};
 
   // Numbers of different types compare equal to each other, so the documents
   // are compared as JSON text, which tells them apart and says what differs
   std::ostringstream expected;
-  sourcemeta::core::stringify(document, expected);
+  sourcemeta::core::stringify(documents, expected);
   std::ostringstream actual;
   sourcemeta::core::stringify(emitted, actual);
 
@@ -139,8 +125,18 @@ auto register_yaml_test_case(const std::filesystem::path &test_directory,
     return;
   }
 
+  // A case the parser cannot read in full is already reported by the test that
+  // checks it against the expected value, so it is left out here
   const auto yaml_path{test_directory / "in.yaml"};
-  if (count_yaml_documents(yaml_path) != 1) {
+  try {
+    std::ifstream stream{yaml_path, std::ios::binary};
+    stream.exceptions(std::ios_base::badbit);
+    if (read_all(stream).empty()) {
+      return;
+    }
+  } catch (const sourcemeta::core::YAMLError &) {
+    return;
+  } catch (const sourcemeta::core::YAMLParseError &) {
     return;
   }
 

@@ -147,6 +147,28 @@ auto parse_yaml(const JSON::String &input, YAMLRoundTrip &roundtrip) -> JSON {
   return result;
 }
 
+auto parse_yaml(std::basic_istream<JSON::Char, JSON::CharTraits> &stream,
+                YAMLRoundTrip &roundtrip) -> JSON {
+  roundtrip = {};
+  const auto start_pos{stream.tellg()};
+  const auto input{read_to_string(stream)};
+
+  yaml::Lexer lexer{input, true};
+  yaml::Parser parser{&lexer, nullptr, &roundtrip};
+  auto result{parser.parse()};
+
+  // The parser position is relative to the input after any byte order mark has
+  // been stripped, so the mark is added back to resume the stream at the right
+  // character
+  resume_stream(stream, start_pos,
+                static_cast<std::streamsize>(lexer.bom_length()) +
+                    static_cast<std::streamsize>(parser.position()));
+
+  record_encoding(input, lexer, roundtrip);
+
+  return result;
+}
+
 auto parse_yaml(const JSON::String &input, YAMLRoundTrip &roundtrip,
                 JSON &output, const JSON::ParseCallback &callback) -> void {
   roundtrip = {};
