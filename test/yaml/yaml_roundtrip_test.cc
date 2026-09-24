@@ -223,6 +223,24 @@ TEST(stringify_with_roundtrip_and_a_zero_indentation) {
   EXPECT_EQ(stream.str(), "foo:\n bar: 1\n");
 }
 
+TEST(roundtrip_records_the_width_of_the_first_nesting_level) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  const auto document{
+      sourcemeta::core::parse_yaml("foo:\n    bar: 1\n", metadata)};
+  EXPECT_TRUE(document.is_object());
+  EXPECT_EQ(metadata.indent_width, 4);
+}
+
+TEST(stringify_with_roundtrip_and_a_zero_width_in_the_metadata) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  const auto document{
+      sourcemeta::core::parse_yaml("foo:\n  bar: 1\n", metadata)};
+  metadata.indent_width = 0;
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream, metadata);
+  EXPECT_EQ(stream.str(), "foo:\n bar: 1\n");
+}
+
 TEST(block_mapping_simple) {
   const std::string input{R"YAML(foo: bar
 baz: qux

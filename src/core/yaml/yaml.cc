@@ -15,8 +15,6 @@ namespace sourcemeta::core {
 
 namespace {
 
-constexpr std::size_t ONE_COLUMN{1};
-
 // The presentation the document uses for its bytes, which a round-trip has to
 // reproduce even though neither affects what the document means. Only the part
 // of the input the document was read from counts, as whatever follows it
@@ -241,10 +239,7 @@ auto read_yaml(const std::filesystem::path &path, YAMLRoundTrip &roundtrip,
 auto stringify_yaml(const JSON &document,
                     std::basic_ostream<JSON::Char, JSON::CharTraits> &stream,
                     const std::size_t indentation) -> void {
-  // A nesting width of zero would run a nested collection into the one that
-  // holds it, so the narrowest width that still nests is used instead
-  yaml::stringify_yaml<JSON::Allocator>(document, stream, nullptr,
-                                        std::max(indentation, ONE_COLUMN));
+  yaml::stringify_yaml<JSON::Allocator>(document, stream, nullptr, indentation);
 }
 
 auto stringify_yaml(const JSON &document,
@@ -255,8 +250,7 @@ auto stringify_yaml(const JSON &document,
   // written with, which is what a round-trip is for
   yaml::stringify_yaml<JSON::Allocator>(
       document, stream, &roundtrip,
-      indentation.has_value() ? std::max(indentation.value(), ONE_COLUMN)
-                              : roundtrip.indent_width);
+      indentation.value_or(roundtrip.indent_width));
 }
 
 } // namespace sourcemeta::core
