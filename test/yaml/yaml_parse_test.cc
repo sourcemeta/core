@@ -1373,6 +1373,35 @@ TEST(empty_mapping_values_across_a_workflow_shape) {
   EXPECT_EQ(result.at("jobs").at("x"), sourcemeta::core::JSON{1});
 }
 
+TEST(empty_alias_mapping_value_before_a_less_indented_key) {
+  const std::string input{
+      "anchor: &a name\nmap:\n  first: 1\n  *a :\nnext: 2\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result.size(), 3);
+  EXPECT_EQ(result.at("map").size(), 2);
+  EXPECT_EQ(result.at("map").at("first"), sourcemeta::core::JSON{1});
+  EXPECT_EQ(result.at("map").at("name"), sourcemeta::core::JSON{nullptr});
+  EXPECT_EQ(result.at("next"), sourcemeta::core::JSON{2});
+}
+
+TEST(alias_mapping_value_on_a_more_indented_line) {
+  const std::string input{
+      "anchor: &a name\nmap:\n  first: 1\n  *a :\n    deep: 1\nnext: 2\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result.size(), 3);
+  EXPECT_EQ(result.at("map").at("name").at("deep"), sourcemeta::core::JSON{1});
+  EXPECT_EQ(result.at("next"), sourcemeta::core::JSON{2});
+}
+
+TEST(alias_mapping_value_on_the_same_line) {
+  const std::string input{
+      "anchor: &a name\nmap:\n  first: 1\n  *a : v\nnext: 2\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result.size(), 3);
+  EXPECT_EQ(result.at("map").at("name"), sourcemeta::core::JSON{"v"});
+  EXPECT_EQ(result.at("next"), sourcemeta::core::JSON{2});
+}
+
 TEST(literal_block_scalar_trailing_more_indented_line) {
   const std::string input{"foo: |\n  x\n   "};
   const auto result{sourcemeta::core::parse_yaml(input)};

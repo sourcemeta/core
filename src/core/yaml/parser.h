@@ -2062,7 +2062,8 @@ private:
         next = this->next_token();
 
         if (!next.has_value() || next->type == TokenType::Scalar) {
-          if (next.has_value()) {
+          if (next.has_value() &&
+              (next->line == key_line || next->column > base_column)) {
             auto value{this->parse_value(next.value(),
                                          JSON::ParseContext::Property, 0, key,
                                          key_line, key_column)};
