@@ -22,47 +22,6 @@ auto read_to_string(const std::filesystem::path &path) -> std::string {
                      std::istreambuf_iterator<char>{}};
 }
 
-// Numbers of different types compare equal to each other, so the types have to
-// agree too before the emitted document can be said to still hold the same
-// value
-auto same_value(const sourcemeta::core::JSON &left,
-                const sourcemeta::core::JSON &right) -> bool {
-  if (left.type() != right.type()) {
-    return false;
-  }
-
-  if (left.is_array()) {
-    if (left.size() != right.size()) {
-      return false;
-    }
-
-    for (std::size_t index = 0; index < left.size(); index++) {
-      if (!same_value(left.at(index), right.at(index))) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-  if (left.is_object()) {
-    if (left.size() != right.size()) {
-      return false;
-    }
-
-    for (const auto &entry : left.as_object()) {
-      if (!right.defines(entry.first) ||
-          !same_value(entry.second, right.at(entry.first))) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-  return left == right;
-}
-
 // A YAML document carries presentation that its JSON value does not, so the
 // round-trip emitter is only correct if the text it writes reads back as the
 // very same document. See https://yaml.org/spec/1.2.2/#321-representation-graph
@@ -78,7 +37,14 @@ auto run_yaml_roundtrip_case(const std::filesystem::path &yaml_path) -> void {
   const auto emitted{
       sourcemeta::core::parse_yaml(output.str(), emitted_metadata)};
 
-  EXPECT_TRUE(same_value(emitted, document));
+  // Numbers of different types compare equal to each other, so the documents
+  // are compared as JSON text, which tells them apart and says what differs
+  std::ostringstream expected;
+  sourcemeta::core::stringify(document, expected);
+  std::ostringstream actual;
+  sourcemeta::core::stringify(emitted, actual);
+
+  EXPECT_EQ(actual.str(), expected.str());
 }
 
 auto run_yaml_test_case(const std::filesystem::path &test_directory,
