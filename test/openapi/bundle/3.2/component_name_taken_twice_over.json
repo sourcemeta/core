@@ -56,7 +56,7 @@
         "get": {
           "responses": {
             "404": {
-              "$ref": "#/components/responses/NotFound__"
+              "$ref": "#/components/responses/NotFound_2"
             }
           }
         }
@@ -70,7 +70,7 @@
         "NotFound_": {
           "description": "Two"
         },
-        "NotFound__": {
+        "NotFound_2": {
           "description": "Three"
         }
       }
@@ -79,7 +79,7 @@
   "inserted": [
     {
       "from": "https://example.com/shared.json#/components/responses/NotFound",
-      "at": "/components/responses/NotFound__"
+      "at": "/components/responses/NotFound_2"
     }
   ],
   "reads": {

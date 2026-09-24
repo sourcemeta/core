@@ -15,6 +15,10 @@
               "any": "https://example.com/schemas/any"
             }
           }
+        },
+        "Foo": {
+          "$schema": "https://spec.openapis.org/oas/3.1/dialect/base",
+          "$ref": "https://example.com/schemas/any"
         }
       }
     }
@@ -40,6 +44,10 @@
               "any": "https://example.com/schemas/any"
             }
           }
+        },
+        "Foo": {
+          "$schema": "https://spec.openapis.org/oas/3.1/dialect/base",
+          "$ref": "https://example.com/schemas/any"
         },
         "any": {
           "$schema": "https://spec.openapis.org/oas/3.1/dialect/base",

@@ -88,7 +88,7 @@
           "parent": "",
           "type": "subschema",
           "root": null,
-          "base": "https://example.com",
+          "base": "https://example.com/",
           "pointer": "/additionalProperties",
           "relativePointer": "",
           "dialect": "https://json-schema.org/draft/2019-09/schema",
@@ -110,7 +110,7 @@
           "parent": "/additionalProperties",
           "type": "pointer",
           "root": null,
-          "base": "https://example.com",
+          "base": "https://example.com/",
           "pointer": "/additionalProperties/$id",
           "relativePointer": "/$id",
           "dialect": "https://json-schema.org/draft/2019-09/schema",
@@ -128,11 +128,11 @@
             "https://json-schema.org/draft/2019-09/vocab/content": true
           }
         },
-        "https://example.com": {
+        "https://example.com/": {
           "parent": "",
           "type": "resource",
           "root": null,
-          "base": "https://example.com",
+          "base": "https://example.com/",
           "pointer": "/additionalProperties",
           "relativePointer": "",
           "dialect": "https://json-schema.org/draft/2019-09/schema",
@@ -150,11 +150,11 @@
             "https://json-schema.org/draft/2019-09/vocab/content": true
           }
         },
-        "https://example.com#/$id": {
+        "https://example.com/#/$id": {
           "parent": "/additionalProperties",
           "type": "pointer",
           "root": null,
-          "base": "https://example.com",
+          "base": "https://example.com/",
           "pointer": "/additionalProperties/$id",
           "relativePointer": "/$id",
           "dialect": "https://json-schema.org/draft/2019-09/schema",
@@ -190,7 +190,7 @@
   "reachability": [
     {
       "from": "",
-      "to": "https://example.com",
+      "to": "https://example.com/",
       "reachable": true
     },
     {
@@ -204,17 +204,17 @@
       "reachable": true
     },
     {
-      "from": "https://example.com",
+      "from": "https://example.com/",
       "to": "",
       "reachable": false
     },
     {
-      "from": "https://example.com",
-      "to": "https://example.com",
+      "from": "https://example.com/",
+      "to": "https://example.com/",
       "reachable": true
     },
     {
-      "from": "https://example.com",
+      "from": "https://example.com/",
       "to": "#/additionalProperties",
       "reachable": true
     }

@@ -36,9 +36,37 @@
     }
   },
   "schemaResolver": {},
-  "error": {
-    "type": "SchemaResolutionError",
-    "message": "Could not resolve the reference to an external schema",
-    "identifier": "https://example.com/shared/api.json"
-  }
+  "result": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "schemas": {
+        "Use": {
+          "$schema": "https://spec.openapis.org/oas/3.1/dialect/base",
+          "$ref": "#/components/schemas/Cat"
+        },
+        "Cat": {
+          "$schema": "https://spec.openapis.org/oas/3.1/dialect/base",
+          "$anchor": "Cat",
+          "type": "object"
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/shared/api.json#/components/schemas/Cat",
+      "at": "/components/schemas/Cat"
+    }
+  ],
+  "reads": {
+    "https://example.com/shared/api.json": 1
+  },
+  "schemaReads": {},
+  "standalone": true,
+  "relocatable": true
 }

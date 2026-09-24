@@ -1,0 +1,62 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "schemas": {
+        "Local": {
+          "$schema": "https://spec.openapis.org/oas/3.1/dialect/base",
+          "$ref": "https://example.com/other.json#/paths/~1x/get/parameters/0/schema/properties/y"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/other.json": {
+      "openapi": "3.1.1",
+      "info": {
+        "title": "Other",
+        "version": "1.0.0"
+      },
+      "paths": {
+        "/x": {
+          "get": {
+            "parameters": [
+              {
+                "$ref": "#/components/parameters/Q"
+              }
+            ],
+            "responses": {
+              "200": {
+                "description": "OK"
+              }
+            }
+          }
+        }
+      },
+      "components": {
+        "parameters": {
+          "Q": {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "error": {
+    "type": "OpenAPIReferenceError",
+    "message": "This reference must name an Object of the kind that the position it sits in expects",
+    "identifier": "https://example.com/other.json#/paths/~1x/get/parameters/0/schema/properties/y",
+    "location": "/components/schemas/Local/$ref",
+    "base": "https://example.com/openapi.json"
+  }
+}

@@ -1,0 +1,93 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/x": {
+        "get": {
+          "responses": {
+            "400": {
+              "$ref": "http://other.test#/components/responses/R"
+            },
+            "401": {
+              "$ref": "http://other.test/#/components/responses/R"
+            },
+            "402": {
+              "$ref": "http://other.test:/#/components/responses/R"
+            },
+            "403": {
+              "$ref": "http://other.test:80/#/components/responses/R"
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "http://other.test/": {
+      "openapi": "3.1.1",
+      "info": {
+        "title": "Other",
+        "version": "1.0.0"
+      },
+      "components": {
+        "responses": {
+          "R": {
+            "description": "shared"
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/x": {
+        "get": {
+          "responses": {
+            "400": {
+              "$ref": "#/components/responses/R"
+            },
+            "401": {
+              "$ref": "#/components/responses/R"
+            },
+            "402": {
+              "$ref": "#/components/responses/R"
+            },
+            "403": {
+              "$ref": "#/components/responses/R"
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "responses": {
+        "R": {
+          "description": "shared"
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "http://other.test/#/components/responses/R",
+      "at": "/components/responses/R"
+    }
+  ],
+  "reads": {
+    "http://other.test/": 1
+  },
+  "schemaReads": {},
+  "standalone": true,
+  "relocatable": true
+}

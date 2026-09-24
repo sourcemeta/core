@@ -438,7 +438,7 @@
           "parent": "",
           "type": "subschema",
           "root": null,
-          "base": "https://www.example.com",
+          "base": "https://www.example.com/",
           "pointer": "/properties/qux",
           "relativePointer": "",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -461,7 +461,7 @@
           "parent": "/properties/qux",
           "type": "pointer",
           "root": null,
-          "base": "https://www.example.com",
+          "base": "https://www.example.com/",
           "pointer": "/properties/qux/$dynamicRef",
           "relativePointer": "/$dynamicRef",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -484,7 +484,7 @@
           "parent": "/properties/qux",
           "type": "pointer",
           "root": null,
-          "base": "https://www.example.com",
+          "base": "https://www.example.com/",
           "pointer": "/properties/qux/$id",
           "relativePointer": "/$id",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -595,11 +595,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://www.example.com": {
+        "https://www.example.com/": {
           "parent": "",
           "type": "resource",
           "root": null,
-          "base": "https://www.example.com",
+          "base": "https://www.example.com/",
           "pointer": "/properties/qux",
           "relativePointer": "",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -618,11 +618,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://www.example.com#/$dynamicRef": {
+        "https://www.example.com/#/$dynamicRef": {
           "parent": "/properties/qux",
           "type": "pointer",
           "root": null,
-          "base": "https://www.example.com",
+          "base": "https://www.example.com/",
           "pointer": "/properties/qux/$dynamicRef",
           "relativePointer": "/$dynamicRef",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -641,11 +641,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://www.example.com#/$id": {
+        "https://www.example.com/#/$id": {
           "parent": "/properties/qux",
           "type": "pointer",
           "root": null,
-          "base": "https://www.example.com",
+          "base": "https://www.example.com/",
           "pointer": "/properties/qux/$id",
           "relativePointer": "/$id",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -728,8 +728,8 @@
         "type": "static",
         "origin": "/properties/qux/$dynamicRef",
         "original": "#",
-        "destination": "https://www.example.com",
-        "base": "https://www.example.com",
+        "destination": "https://www.example.com/",
+        "base": "https://www.example.com/",
         "fragment": null
       },
       {
@@ -754,7 +754,7 @@
   "reachability": [
     {
       "from": "",
-      "to": "https://www.example.com",
+      "to": "https://www.example.com/",
       "reachable": true
     },
     {
@@ -840,7 +840,7 @@
     },
     {
       "from": "#/properties/foo",
-      "to": "https://www.example.com",
+      "to": "https://www.example.com/",
       "reachable": true
     },
     {
@@ -875,7 +875,7 @@
     },
     {
       "from": "#/properties/bar",
-      "to": "https://www.example.com",
+      "to": "https://www.example.com/",
       "reachable": false
     },
     {
@@ -900,31 +900,31 @@
     },
     {
       "from": "#/properties/baz",
-      "to": "https://www.example.com",
+      "to": "https://www.example.com/",
       "reachable": false
     },
     {
-      "from": "https://www.example.com",
+      "from": "https://www.example.com/",
       "to": "",
       "reachable": false
     },
     {
-      "from": "https://www.example.com",
+      "from": "https://www.example.com/",
       "to": "#/properties/foo",
       "reachable": false
     },
     {
-      "from": "https://www.example.com",
+      "from": "https://www.example.com/",
       "to": "#/properties/baz",
       "reachable": false
     },
     {
-      "from": "https://www.example.com",
-      "to": "https://www.example.com",
+      "from": "https://www.example.com/",
+      "to": "https://www.example.com/",
       "reachable": true
     },
     {
-      "from": "https://www.example.com",
+      "from": "https://www.example.com/",
       "to": "#/properties/qux",
       "reachable": true
     },
@@ -1015,7 +1015,7 @@
     },
     {
       "from": "#/properties/unknown",
-      "to": "https://www.example.com",
+      "to": "https://www.example.com/",
       "reachable": false
     }
   ]

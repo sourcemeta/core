@@ -22,7 +22,7 @@
     "mode": "root",
     "locations": {
       "static": {
-        "https://www.example.com": {
+        "https://www.example.com/": {
           "parent": null,
           "type": "resource",
           "root": "https://www.sourcemeta.com/schema",
@@ -77,7 +77,7 @@
     "mode": "pointers",
     "locations": {
       "static": {
-        "https://www.example.com": {
+        "https://www.example.com/": {
           "parent": null,
           "type": "resource",
           "root": "https://www.sourcemeta.com/schema",
@@ -100,7 +100,7 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://www.example.com#/$id": {
+        "https://www.example.com/#/$id": {
           "parent": "",
           "type": "pointer",
           "root": "https://www.sourcemeta.com/schema",
@@ -123,7 +123,7 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://www.example.com#/$schema": {
+        "https://www.example.com/#/$schema": {
           "parent": "",
           "type": "pointer",
           "root": "https://www.sourcemeta.com/schema",
@@ -146,7 +146,7 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://www.example.com#/items": {
+        "https://www.example.com/#/items": {
           "parent": "",
           "type": "subschema",
           "root": "https://www.sourcemeta.com/schema",
@@ -169,7 +169,7 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://www.example.com#/items/$anchor": {
+        "https://www.example.com/#/items/$anchor": {
           "parent": "/items",
           "type": "pointer",
           "root": "https://www.sourcemeta.com/schema",
@@ -192,7 +192,7 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://www.example.com#/properties": {
+        "https://www.example.com/#/properties": {
           "parent": "",
           "type": "pointer",
           "root": "https://www.sourcemeta.com/schema",
@@ -215,7 +215,7 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://www.example.com#/properties/one": {
+        "https://www.example.com/#/properties/one": {
           "parent": "",
           "type": "subschema",
           "root": "https://www.sourcemeta.com/schema",
@@ -238,7 +238,7 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://www.example.com#/properties/one/$anchor": {
+        "https://www.example.com/#/properties/one/$anchor": {
           "parent": "/properties/one",
           "type": "pointer",
           "root": "https://www.sourcemeta.com/schema",
@@ -261,7 +261,7 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://www.example.com#/properties/one/$id": {
+        "https://www.example.com/#/properties/one/$id": {
           "parent": "/properties/one",
           "type": "pointer",
           "root": "https://www.sourcemeta.com/schema",
@@ -284,11 +284,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://www.example.com#/properties/two": {
+        "https://www.example.com/#/properties/two": {
           "parent": "",
           "type": "subschema",
           "root": "https://www.sourcemeta.com/schema",
-          "base": "https://www.test.com",
+          "base": "https://www.test.com/",
           "pointer": "/properties/two",
           "relativePointer": "",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -307,11 +307,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://www.example.com#/properties/two/$anchor": {
+        "https://www.example.com/#/properties/two/$anchor": {
           "parent": "/properties/two",
           "type": "pointer",
           "root": "https://www.sourcemeta.com/schema",
-          "base": "https://www.test.com",
+          "base": "https://www.test.com/",
           "pointer": "/properties/two/$anchor",
           "relativePointer": "/$anchor",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -330,11 +330,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://www.example.com#/properties/two/$id": {
+        "https://www.example.com/#/properties/two/$id": {
           "parent": "/properties/two",
           "type": "pointer",
           "root": "https://www.sourcemeta.com/schema",
-          "base": "https://www.test.com",
+          "base": "https://www.test.com/",
           "pointer": "/properties/two/$id",
           "relativePointer": "/$id",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -353,11 +353,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://www.example.com#foo": {
+        "https://www.example.com/#foo": {
           "parent": "",
           "type": "anchor",
           "root": "https://www.sourcemeta.com/schema",
-          "base": "https://www.example.com",
+          "base": "https://www.example.com/",
           "pointer": "/items",
           "relativePointer": "/items",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -679,7 +679,7 @@
           "parent": "",
           "type": "subschema",
           "root": "https://www.sourcemeta.com/schema",
-          "base": "https://www.test.com",
+          "base": "https://www.test.com/",
           "pointer": "/properties/two",
           "relativePointer": "",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -702,7 +702,7 @@
           "parent": "/properties/two",
           "type": "pointer",
           "root": "https://www.sourcemeta.com/schema",
-          "base": "https://www.test.com",
+          "base": "https://www.test.com/",
           "pointer": "/properties/two/$anchor",
           "relativePointer": "/$anchor",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -725,7 +725,7 @@
           "parent": "/properties/two",
           "type": "pointer",
           "root": "https://www.sourcemeta.com/schema",
-          "base": "https://www.test.com",
+          "base": "https://www.test.com/",
           "pointer": "/properties/two/$id",
           "relativePointer": "/$id",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -859,11 +859,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://www.test.com": {
+        "https://www.test.com/": {
           "parent": "",
           "type": "resource",
           "root": "https://www.sourcemeta.com/schema",
-          "base": "https://www.test.com",
+          "base": "https://www.test.com/",
           "pointer": "/properties/two",
           "relativePointer": "",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -882,11 +882,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://www.test.com#/$anchor": {
+        "https://www.test.com/#/$anchor": {
           "parent": "/properties/two",
           "type": "pointer",
           "root": "https://www.sourcemeta.com/schema",
-          "base": "https://www.test.com",
+          "base": "https://www.test.com/",
           "pointer": "/properties/two/$anchor",
           "relativePointer": "/$anchor",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -905,11 +905,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://www.test.com#/$id": {
+        "https://www.test.com/#/$id": {
           "parent": "/properties/two",
           "type": "pointer",
           "root": "https://www.sourcemeta.com/schema",
-          "base": "https://www.test.com",
+          "base": "https://www.test.com/",
           "pointer": "/properties/two/$id",
           "relativePointer": "/$id",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -928,11 +928,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://www.test.com#baz": {
+        "https://www.test.com/#baz": {
           "parent": "",
           "type": "anchor",
           "root": "https://www.sourcemeta.com/schema",
-          "base": "https://www.test.com",
+          "base": "https://www.test.com/",
           "pointer": "/properties/two",
           "relativePointer": "",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -979,7 +979,7 @@
     },
     {
       "from": "https://www.sourcemeta.com/schema",
-      "to": "https://www.example.com",
+      "to": "https://www.example.com/",
       "reachable": true
     },
     {
@@ -989,7 +989,7 @@
     },
     {
       "from": "https://www.sourcemeta.com/schema",
-      "to": "https://www.test.com",
+      "to": "https://www.test.com/",
       "reachable": true
     },
     {
@@ -999,7 +999,7 @@
     },
     {
       "from": "https://www.sourcemeta.com/schema",
-      "to": "https://www.example.com#foo",
+      "to": "https://www.example.com/#foo",
       "reachable": true
     },
     {
@@ -1014,7 +1014,7 @@
     },
     {
       "from": "https://www.sourcemeta.com/schema",
-      "to": "https://www.test.com#baz",
+      "to": "https://www.test.com/#baz",
       "reachable": true
     },
     {
@@ -1034,17 +1034,17 @@
     },
     {
       "from": "https://www.sourcemeta.com/schema",
-      "to": "https://www.example.com#/items",
+      "to": "https://www.example.com/#/items",
       "reachable": true
     },
     {
       "from": "https://www.sourcemeta.com/schema",
-      "to": "https://www.example.com#/properties/one",
+      "to": "https://www.example.com/#/properties/one",
       "reachable": true
     },
     {
       "from": "https://www.sourcemeta.com/schema",
-      "to": "https://www.example.com#/properties/two",
+      "to": "https://www.example.com/#/properties/two",
       "reachable": true
     },
     {
@@ -1069,7 +1069,7 @@
     },
     {
       "from": "https://www.sourcemeta.com/schema#/items",
-      "to": "https://www.test.com",
+      "to": "https://www.test.com/",
       "reachable": false
     },
     {
@@ -1094,32 +1094,32 @@
     },
     {
       "from": "https://www.sourcemeta.com/test",
-      "to": "https://www.test.com",
+      "to": "https://www.test.com/",
       "reachable": false
     },
     {
-      "from": "https://www.test.com",
+      "from": "https://www.test.com/",
       "to": "https://www.sourcemeta.com/schema",
       "reachable": false
     },
     {
-      "from": "https://www.test.com",
+      "from": "https://www.test.com/",
       "to": "https://www.sourcemeta.com/schema#/items",
       "reachable": false
     },
     {
-      "from": "https://www.test.com",
+      "from": "https://www.test.com/",
       "to": "https://www.sourcemeta.com/test",
       "reachable": false
     },
     {
-      "from": "https://www.test.com",
-      "to": "https://www.test.com",
+      "from": "https://www.test.com/",
+      "to": "https://www.test.com/",
       "reachable": true
     },
     {
-      "from": "https://www.test.com",
-      "to": "https://www.test.com#baz",
+      "from": "https://www.test.com/",
+      "to": "https://www.test.com/#baz",
       "reachable": true
     }
   ]

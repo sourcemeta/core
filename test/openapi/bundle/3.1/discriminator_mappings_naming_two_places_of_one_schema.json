@@ -81,7 +81,9 @@
       "at": "/components/schemas/pets"
     }
   ],
-  "reads": {},
+  "reads": {
+    "https://example.com/pets": 1
+  },
   "schemaReads": {
     "https://example.com/pets": 1
   },

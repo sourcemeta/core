@@ -7,14 +7,9 @@
     },
     "components": {
       "schemas": {
-        "Pet": {
+        "Foo": {
           "$schema": "https://spec.openapis.org/oas/3.1/dialect/base",
-          "discriminator": {
-            "propertyName": "t",
-            "mapping": {
-              "any": "https://example.com/schemas/any"
-            }
-          }
+          "$ref": "https://example.com/schemas/none"
         }
       }
     }
@@ -22,7 +17,7 @@
   "defaultBase": "https://example.com/openapi.json",
   "openapiResolver": {},
   "schemaResolver": {
-    "https://example.com/schemas/any": true
+    "https://example.com/schemas/none": false
   },
   "result": {
     "openapi": "3.1.1",
@@ -32,31 +27,27 @@
     },
     "components": {
       "schemas": {
-        "Pet": {
+        "Foo": {
           "$schema": "https://spec.openapis.org/oas/3.1/dialect/base",
-          "discriminator": {
-            "propertyName": "t",
-            "mapping": {
-              "any": "https://example.com/schemas/any"
-            }
-          }
+          "$ref": "https://example.com/schemas/none"
         },
-        "any": {
+        "none": {
           "$schema": "https://spec.openapis.org/oas/3.1/dialect/base",
-          "$id": "https://example.com/schemas/any"
+          "$id": "https://example.com/schemas/none",
+          "not": {}
         }
       }
     }
   },
   "inserted": [
     {
-      "from": "https://example.com/schemas/any",
-      "at": "/components/schemas/any"
+      "from": "https://example.com/schemas/none",
+      "at": "/components/schemas/none"
     }
   ],
   "reads": {},
   "schemaReads": {
-    "https://example.com/schemas/any": 1
+    "https://example.com/schemas/none": 1
   },
   "standalone": true,
   "relocatable": true

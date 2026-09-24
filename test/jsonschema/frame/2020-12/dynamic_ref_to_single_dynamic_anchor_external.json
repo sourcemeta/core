@@ -286,8 +286,8 @@
         "type": "static",
         "origin": "/$defs/foo/$ref",
         "original": "https://sourcemeta.com",
-        "destination": "https://sourcemeta.com",
-        "base": "https://sourcemeta.com",
+        "destination": "https://sourcemeta.com/",
+        "base": "https://sourcemeta.com/",
         "fragment": null
       },
       {

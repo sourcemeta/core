@@ -172,6 +172,16 @@ auto URI::canonicalize() -> URI & {
     }
   }
 
+  // RFC 3986 Section 6.2.3 asks as much of the path as the ports above: "In
+  // general, a URI that uses the generic syntax for authority with an empty
+  // path should be normalized to a path of "/"". So a URI naming a host and
+  // saying nothing further is the one naming that host and a root path, which
+  // is what the same section opens by listing as equivalent
+  if (this->host_.has_value() && !this->host_.value().empty() &&
+      (!this->path_.has_value() || this->path_.value().empty())) {
+    this->path_ = "/";
+  }
+
   return *this;
 }
 

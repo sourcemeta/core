@@ -101,7 +101,7 @@
           "parent": "",
           "type": "subschema",
           "root": null,
-          "base": "https://www.example.com",
+          "base": "https://www.example.com/",
           "pointer": "/$defs/https:~1~1www.example.com",
           "relativePointer": "",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -124,7 +124,7 @@
           "parent": "/$defs/https:~1~1www.example.com",
           "type": "pointer",
           "root": null,
-          "base": "https://www.example.com",
+          "base": "https://www.example.com/",
           "pointer": "/$defs/https:~1~1www.example.com/$id",
           "relativePointer": "/$id",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -281,11 +281,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://www.example.com": {
+        "https://www.example.com/": {
           "parent": "",
           "type": "resource",
           "root": null,
-          "base": "https://www.example.com",
+          "base": "https://www.example.com/",
           "pointer": "/$defs/https:~1~1www.example.com",
           "relativePointer": "",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -304,11 +304,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://www.example.com#/$id": {
+        "https://www.example.com/#/$id": {
           "parent": "/$defs/https:~1~1www.example.com",
           "type": "pointer",
           "root": null,
-          "base": "https://www.example.com",
+          "base": "https://www.example.com/",
           "pointer": "/$defs/https:~1~1www.example.com/$id",
           "relativePointer": "/$id",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -351,8 +351,8 @@
         "type": "static",
         "origin": "/properties/foo/$ref",
         "original": "https://www.example.com",
-        "destination": "https://www.example.com",
-        "base": "https://www.example.com",
+        "destination": "https://www.example.com/",
+        "base": "https://www.example.com/",
         "fragment": null
       }
     ]

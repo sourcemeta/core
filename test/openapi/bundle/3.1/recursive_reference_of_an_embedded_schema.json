@@ -1,0 +1,79 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "schemas": {
+        "Local": {
+          "$schema": "https://spec.openapis.org/oas/3.1/dialect/base",
+          "$ref": "https://example.com/other.json#/components/schemas/Tree"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/other.json": {
+      "openapi": "3.1.1",
+      "info": {
+        "title": "Other",
+        "version": "1.0.0"
+      },
+      "components": {
+        "schemas": {
+          "Tree": {
+            "$schema": "https://json-schema.org/draft/2019-09/schema",
+            "$id": "https://example.com/schemas/tree",
+            "$recursiveAnchor": true,
+            "properties": {
+              "next": {
+                "$recursiveRef": "#"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "schemas": {
+        "Local": {
+          "$schema": "https://spec.openapis.org/oas/3.1/dialect/base",
+          "$ref": "#/components/schemas/Tree"
+        },
+        "Tree": {
+          "$schema": "https://json-schema.org/draft/2019-09/schema",
+          "$id": "https://example.com/schemas/tree",
+          "$recursiveAnchor": true,
+          "properties": {
+            "next": {
+              "$recursiveRef": "#"
+            }
+          }
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/other.json#/components/schemas/Tree",
+      "at": "/components/schemas/Tree"
+    }
+  ],
+  "reads": {
+    "https://example.com/other.json": 1
+  },
+  "schemaReads": {},
+  "standalone": true,
+  "relocatable": true
+}

@@ -311,7 +311,7 @@ TEST(set_unescaped_percentage_survives_canonicalize) {
   uri.unescaped_fragment("/foo%bar");
   uri.canonicalize();
   EXPECT_EQ(uri.fragment(), "/foo%25bar");
-  EXPECT_EQ(uri.recompose(), "https://www.sourcemeta.com#/foo%25bar");
+  EXPECT_EQ(uri.recompose(), "https://www.sourcemeta.com/#/foo%25bar");
 }
 
 TEST(set_unescaped_distinct_from_encoded_space) {

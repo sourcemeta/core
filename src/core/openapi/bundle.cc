@@ -4,9 +4,9 @@
 #include "document.h"
 #include "helpers.h"
 
-#include <cassert>  // assert
-#include <cstddef>  // std::size_t
-#include <cstdint>  // std::uint64_t
+#include <cassert> // assert
+#include <cstddef> // std::size_t
+#include <cstdint>
 #include <map>      // std::map
 #include <optional> // std::optional
 #include <set>      // std::set
@@ -372,6 +372,18 @@ auto absolutize_schemas(sourcemeta::core::JSON &value,
           return;
         }
 
+        // A recursive reference names whichever resource it is evaluated
+        // within rather than a place, and JSON Schema 2019-09 Section
+        // 8.2.4.2.1 leaves it one value to say that with: "The behavior of
+        // this keyword is defined only for the value `#`". One of these frames
+        // as static wherever no anchor is in scope for it, so writing out what
+        // it resolved to is what would make it say something the keyword does
+        // not admit, which reading the result back then turns down
+        if (!pointer.empty() && pointer.back().is_property() &&
+            pointer.back().to_property() == "$recursiveRef") {
+          return;
+        }
+
         // Anything already spelled out as what it resolves to is left exactly
         // as the description wrote it
         if (reference.original == reference.destination) {
@@ -465,8 +477,50 @@ auto sanitise(const sourcemeta::core::JSON::StringView candidate)
 auto vacant(const sourcemeta::core::JSON &entries,
             sourcemeta::core::JSON::String candidate)
     -> sourcemeta::core::JSON::String {
+  if (!entries.defines(candidate)) {
+    return candidate;
+  }
+
+  candidate.append("_");
+  if (!entries.defines(candidate)) {
+    return candidate;
+  }
+
+  // Going on appending would make the name grow by one for every other name
+  // that already took it, which is a description naming one place many times
+  // paying for that many times over in the key it ends up with. Counting
+  // instead keeps the name to a length the number of them can be written in.
+  // Section 4.8.7 admits digits into a component key just as it admits the
+  // underscore
+  const sourcemeta::core::JSON::String taken{candidate};
+  // Trying each number in turn would ask the Components Object about every
+  // name that already took this one, and asking it is a walk of everything it
+  // holds, so a description that does this many times over would pay for it
+  // many times over again. Closing in on a free number asks it far fewer times
+  std::uint64_t lower{1};
+  std::uint64_t upper{2};
+  while (entries.defines(taken + std::to_string(upper))) {
+    lower = upper;
+    upper *= 2;
+  }
+
+  while (upper - lower > 1) {
+    const auto middle{lower + ((upper - lower) / 2)};
+    if (entries.defines(taken + std::to_string(middle))) {
+      lower = middle;
+    } else {
+      upper = middle;
+    }
+  }
+
+  candidate = taken + std::to_string(upper);
+  // Closing in that way lands on the first free number wherever the ones
+  // before it run on without a gap, which is how bundling leaves them. A
+  // document that already holds one of them out of order is what would leave
+  // a gap, so what this landed on is asked about rather than taken on trust
   while (entries.defines(candidate)) {
-    candidate.append("_");
+    upper += 1;
+    candidate = taken + std::to_string(upper);
   }
 
   return candidate;
@@ -532,6 +586,25 @@ auto schema_name(const sourcemeta::core::JSON &schemas,
       sanitise(namer ? sourcemeta::core::JSON::StringView{namer(identifier,
                                                                 "schemas")}
                      : identifier.substr(identifier.find_last_of('/') + 1)));
+}
+
+// A boolean carries no keyword, so it cannot say who it is, and whatever named
+// it by the URI it was found under would go on naming nothing once it sits
+// somewhere else. JSON Schema Section 4.3.2 gives each of the two an object
+// that says exactly what it says: "true: Always passes validation, as if the
+// empty schema `{}`" and "false: Always fails validation, as if the schema
+// `{ "not": {} }`". Written that way it can answer to the URI it was found
+// under, which leaves every reference that named it naming it still
+auto spell_out(sourcemeta::core::JSON &schema) -> void {
+  if (!schema.is_boolean()) {
+    return;
+  }
+
+  const auto permissive{schema.to_boolean()};
+  schema = sourcemeta::core::JSON::make_object();
+  if (!permissive) {
+    schema.assign("not", sourcemeta::core::JSON::make_object());
+  }
 }
 
 // Bundling what sits inside a Schema Object is JSON Schema's to do, and the
@@ -644,50 +717,22 @@ auto bundle_schemas(sourcemeta::core::JSON &document,
   // whatever named it by the URI it was found under naming nothing once it
   // sits here. Where it went is what such a reference is written out to name
   // instead, which is what a Discriminator Object mapping to one comes to
-  std::map<sourcemeta::core::JSON::String, sourcemeta::core::Pointer> silent;
   for (const auto &entry : landed) {
     const auto &identifier{entry.first};
     const auto &key{entry.second.back().to_property()};
-    const auto anonymous{schemas.at(key).is_boolean()};
+    auto &schema{schemas.at(key)};
+    if (schema.is_boolean()) {
+      spell_out(schema);
+      schema.assign("$schema", sourcemeta::core::JSON{standalone});
+      schema.assign("$id", sourcemeta::core::JSON{identifier});
+    }
+
     const auto name{schema_name(schemas, identifier, namer)};
     schemas.rename(key, sourcemeta::core::JSON::String{name});
-    const auto where{container.concat(name)};
-    if (anonymous) {
-      silent.emplace(identifier, where);
-    }
-
     if (callback) {
-      callback(identifier, where);
+      callback(identifier, container.concat(name));
     }
   }
-
-  if (silent.empty()) {
-    return true;
-  }
-
-  const sourcemeta::core::SchemaFrame frame{
-      sourcemeta::core::SchemaFrame::Mode::References,
-      document,
-      walker,
-      resolver,
-      walk.dialect,
-      "",
-      sourcemeta::core::SchemaFrame::IdentifierMode::Additional,
-      paths,
-      base,
-      remaining};
-  frame.for_each_reference([&document, &silent](const auto, const auto &pointer,
-                                                const auto &reference) -> void {
-    const auto match{silent.find(reference.destination)};
-    if (match == silent.cend()) {
-      return;
-    }
-
-    sourcemeta::core::set(
-        document, sourcemeta::core::to_pointer(pointer),
-        sourcemeta::core::JSON{
-            sourcemeta::core::to_uri(match->second).recompose()});
-  });
 
   return true;
 }
@@ -788,15 +833,25 @@ auto lands(const sourcemeta::core::OpenAPIWalk &remote,
            const sourcemeta::core::Pointer &target,
            const sourcemeta::core::OpenAPIObjectKind expected) -> bool {
   auto prefix{target};
+  auto exact{true};
   while (true) {
     const auto location{remote.locations.find(
         sourcemeta::core::openapi_location_uri(identifier, prefix))};
     if (location != remote.locations.cend()) {
+      if (location->second.type == expected) {
+        return true;
+      }
+
       // A Reference Object stands in for whatever the position expects, so it
-      // answers for every kind rather than for one of them
-      return location->second.type == expected ||
-             location->second.type ==
-                 sourcemeta::core::OpenAPIObjectKind::Reference;
+      // answers for every kind rather than for one of them. It answers for the
+      // place it sits at and for nowhere below it though, as Section 4.8.23
+      // leaves it holding nothing else: "This object cannot be extended with
+      // additional properties, and any properties added SHALL be ignored". So
+      // a place named within one is a place no document holds, and reading the
+      // Object it stands in for as the answer would embed something the
+      // reference never named
+      return exact && location->second.type ==
+                          sourcemeta::core::OpenAPIObjectKind::Reference;
     }
 
     if (expected != sourcemeta::core::OpenAPIObjectKind::Schema ||
@@ -805,6 +860,7 @@ auto lands(const sourcemeta::core::OpenAPIWalk &remote,
     }
 
     prefix = prefix.initial();
+    exact = false;
   }
 }
 
@@ -863,6 +919,110 @@ auto schema_of(const sourcemeta::core::OpenAPIWalk &remote,
 
     prefix = prefix.initial();
   }
+}
+
+// What the Schema Objects of another document answer to. Section 4.3.1 lists a
+// Schema Object `$id` among the fields that connect the documents of a
+// description, and Section 4.6 has an `$anchor` name a place within one, so a
+// reference of this description may name either. Neither is a document of its
+// own, which is why nothing that goes looking for documents finds them, and
+// Section 4.1.2 leaves none of them to be given up on while the document that
+// declares one has been read: "Implementations MUST NOT treat a reference as
+// unresolvable before completely parsing all documents provided to the
+// implementation as possible parts of the OAD"
+auto index_schemas(const sourcemeta::core::JSON &remote_document,
+                   const sourcemeta::core::OpenAPIWalk &remote,
+                   const sourcemeta::core::JSON::String &identifier,
+                   const sourcemeta::core::SchemaWalker &walker,
+                   const sourcemeta::core::SchemaResolver &resolver,
+                   std::map<sourcemeta::core::JSON::String,
+                            std::pair<sourcemeta::core::JSON::String,
+                                      sourcemeta::core::Pointer>> &result,
+                   std::uint64_t &remaining) -> void {
+  sourcemeta::core::SchemaFrame::Paths paths;
+  for (const auto &entry : remote.locations) {
+    if (entry.second.type == sourcemeta::core::OpenAPIObjectKind::Schema) {
+      paths.push_back(sourcemeta::core::to_weak_pointer(entry.second.pointer));
+    }
+  }
+
+  if (paths.empty()) {
+    return;
+  }
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Locations,
+      remote_document,
+      walker,
+      resolver,
+      remote.dialect,
+      "",
+      sourcemeta::core::SchemaFrame::IdentifierMode::Additional,
+      paths,
+      remote.base,
+      remaining};
+  charge(remaining, frame.location_count());
+
+  // What a document itself answers to is already how it is reached, and taking
+  // that for a place within it would embed a part of it where the whole was
+  // named. A document answers to the URI it was retrieved by as well as to the
+  // one it names itself with, and Section 4.1.1 keeps the two apart, so a
+  // Schema Object claiming either of them is a Schema Object claiming a whole
+  // document
+  frame.for_each_resource([&identifier, &remote, &result](
+                              const auto &uri, const auto &location) -> void {
+    if (uri == remote.base || uri == identifier) {
+      return;
+    }
+
+    result.emplace(sourcemeta::core::JSON::String{uri},
+                   std::make_pair(identifier, sourcemeta::core::to_pointer(
+                                                  location.pointer)));
+  });
+
+  // A dynamic anchor is settled where a schema is evaluated rather than where
+  // it sits, so only the ones that name a place outright are places to reach
+  frame.for_each_anchor(
+      sourcemeta::core::SchemaReferenceType::Static,
+      [&identifier, &result](const auto &uri, const auto &location) -> void {
+        result.emplace(sourcemeta::core::JSON::String{uri},
+                       std::make_pair(identifier, sourcemeta::core::to_pointer(
+                                                      location.pointer)));
+      });
+}
+
+// Which place of which document a reference naming a Schema Object identifier
+// leads to, whether it names the whole of one or a place within one by a
+// pointer from it
+auto declared_target(
+    const std::map<sourcemeta::core::JSON::String,
+                   std::pair<sourcemeta::core::JSON::String,
+                             sourcemeta::core::Pointer>> &identifiers,
+    const sourcemeta::core::JSON::String &destination)
+    -> std::optional<
+        std::pair<sourcemeta::core::JSON::String, sourcemeta::core::Pointer>> {
+  const auto exact{identifiers.find(destination)};
+  if (exact != identifiers.cend()) {
+    return exact->second;
+  }
+
+  const auto resource{
+      identifiers.find(sourcemeta::core::openapi_document_uri(destination))};
+  if (resource == identifiers.cend()) {
+    return std::nullopt;
+  }
+
+  // Section 4.6 reads a fragment of this shape as a JSON Pointer, and one that
+  // counts from an identifier a schema declares counts from where that schema
+  // sits rather than from the root of the document holding it
+  const auto tail{sourcemeta::core::fragment_to_pointer(
+      sourcemeta::core::URI{destination})};
+  if (!tail.has_value()) {
+    return std::nullopt;
+  }
+
+  return std::make_pair(resource->second.first,
+                        resource->second.second.concat(tail.value()));
 }
 
 // Which Object of the remote document a reference names, as a pointer. OpenAPI
@@ -1203,8 +1363,9 @@ auto adopt_mappings(
     JSON &document,
     const std::map<JSON::String, std::vector<OpenAPIPending>> &deferred,
     std::map<JSON::String, Pointer> &adopted, const JSON::String &base,
-    const SchemaResolver &schema_resolver, const JSON::StringView dialect,
-    const OpenAPIBundleOptions &options) -> bool {
+    const SchemaWalker &walker, const SchemaResolver &schema_resolver,
+    const JSON::StringView dialect, const OpenAPIBundleOptions &options,
+    std::uint64_t &remaining) -> bool {
   bool changed{false};
   // What this pass brought in. Whether a mapping that named it still lands is
   // for the pass after to say, as a mapping may name a place within a schema
@@ -1257,6 +1418,48 @@ auto adopt_mappings(
     }
 
     auto schema{std::move(resolved).to_owned()};
+    // Section 4.8.24 has a Schema Object be "either an object or a boolean",
+    // and nothing that reads one can make sense of anything else. What the
+    // entry document holds is held to this before it is read, and what a
+    // resolver hands back is no different
+    if (!schema.is_object() && !schema.is_boolean()) {
+      throw OpenAPIReferenceError{
+          base, entry.second.front().origin, identifier,
+          "A Schema Object must be an object or a boolean"};
+    }
+
+    // What a schema answers to is its own to say. JSON Schema Section 8.2.1
+    // has an identifier a schema declares be "the canonical [RFC6596] URI" of
+    // the resource, and the base every relative reference under it resolves
+    // against, so taking the URI it happened to be fetched by over the one it
+    // declares would re-aim every one of those. Only a schema that declares
+    // none is given the one it was found under, which is what lets a mapping
+    // that named a place within it go on naming that place.
+    //
+    // What it declares is a URI reference rather than a URI though, and
+    // Section 4.1.2.2 resolves one of those: "The most common base URI source
+    // that is used in the event of a missing or relative `$self` (in the
+    // OpenAPI Object) and (for Schema Object) `$id` is the retrieval URI". So
+    // the URI it was fetched by is what a relative one is read against, which
+    // is what makes the identifier that comes back one the description can use
+    std::optional<SchemaFrame> root;
+    try {
+      root.emplace(SchemaFrame::Mode::Root, schema, walker, schema_resolver,
+                   JSON::String{dialect}, identifier,
+                   SchemaFrame::IdentifierMode::Additional,
+                   SchemaFrame::Paths{EMPTY_WEAK_POINTER}, identifier,
+                   remaining);
+    } catch (const SchemaUnknownBaseDialectError &) {
+      throw OpenAPIReferenceError{
+          base, entry.second.front().origin, identifier,
+          "This mapping must name a schema rather than a document that holds "
+          "an OpenAPI Description"};
+    }
+
+    charge(remaining, root.value().location_count());
+    const auto declared{root.value().root()};
+    const JSON::String identity{declared.empty() ? identifier
+                                                 : JSON::String{declared}};
     // Section 4.8.24: "The empty schema [...] MAY be represented by the
     // boolean value `true` and a schema which allows no instance to validate
     // MAY be represented by the boolean value `false`". Neither carries a
@@ -1266,9 +1469,13 @@ auto adopt_mappings(
     // dialect it is written against read under the one this specification
     // publishes. Section 4.8.24 also lets one be a boolean, which carries no
     // keyword to say so with
-    if (schema.is_object() && !schema.defines("$schema")) {
+    spell_out(schema);
+    if (!schema.defines("$schema")) {
       schema.assign("$schema", JSON{dialect});
     }
+
+    schema_reidentify(schema, identity,
+                      root.value().root_location().value().get().base_dialect);
 
     const auto *schemas{openapi_component_container_of(document, "schemas"sv)};
     const auto name{
@@ -1310,6 +1517,11 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
   // The documents that the shell cannot reach, which only a Schema Object may
   // name and which it is left free to go on naming
   std::set<JSON::String> unavailable;
+  // What every Schema Object of a document already read answers to, beside the
+  // document holding it and where in it it sits. A reference naming one of
+  // these names a place rather than a document, so nothing that goes looking
+  // for documents would ever find it
+  std::map<JSON::String, std::pair<JSON::String, Pointer>> identifiers;
   // And of those, the schemas that a Discriminator Object mapping is what
   // names, which nothing but this brings in, along with the ones it already did
   std::map<JSON::String, std::vector<OpenAPIPending>> deferred;
@@ -1349,11 +1561,42 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
       const auto names_a_schema{reference.expected ==
                                 OpenAPIObjectKind::Schema};
 
-      // A document that holds an OpenAPI Description is never what a reference
-      // from the shell expects to find, so one naming a whole document has
-      // landed on the wrong kind of thing
-      const auto target{target_of(reference.destination)};
-      if (!target.has_value()) {
+      // Where a reference leads before the document holding it has been read,
+      // which is all a fragment shaped like a pointer ever needs
+      const auto pointed{target_of(reference.destination)};
+      // Which document it leads to, if it names one at all
+      const auto holder{openapi_document_uri(reference.destination)};
+
+      // What another document's Schema Object declares for itself is a name
+      // for a place of that document, so a reference naming one is a reference
+      // into it rather than one to go looking for a document of that name.
+      //
+      // Whatever the description can reach as a document answers ahead of
+      // that, as Section 4.1.1 has a reference name a document by the URI that
+      // document answers to, and a Schema Object is free to declare an
+      // identifier that collides with one. So this is asked where a fragment
+      // names no place to begin with, and otherwise only once the document has
+      // turned out not to be one
+      auto declared{names_a_schema && (!pointed.has_value() ||
+                                       unavailable.contains(holder))
+                        ? declared_target(identifiers, reference.destination)
+                        : std::nullopt};
+
+      const auto initial{declared.has_value()
+                             ? std::optional<Pointer>{declared.value().second}
+                             : pointed};
+      // A fragment shaped like anything else names an identifier or an anchor
+      // rather than a place, and which document declares one is only settled
+      // by framing the documents the description spans. Section 4.1.2 leaves
+      // none of those to be given up on before that has happened, so a
+      // reference of this shape goes on to have its document read rather than
+      // being left here
+      const URI destination{reference.destination};
+      const auto names_an_anchor{names_a_schema && !initial.has_value() &&
+                                 destination.fragment().has_value() &&
+                                 !destination.fragment().value().empty()};
+
+      if (!initial.has_value() && !names_an_anchor) {
         if (names_a_schema) {
           if (reference.mapping) {
             deferred[reference.destination].push_back(reference);
@@ -1368,9 +1611,11 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
                                     "the document it points at"};
       }
 
-      const auto identifier{openapi_document_uri(reference.destination)};
+      const auto identifier{declared.has_value() ? declared.value().first
+                                                 : holder};
 
-      if (names_a_schema && unavailable.contains(identifier)) {
+      if (names_a_schema && !declared.has_value() &&
+          unavailable.contains(identifier)) {
         continue;
       }
 
@@ -1441,7 +1686,42 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
             documents.emplace(identifier, std::move(candidate)).first->second};
         auto analysis{openapi_analyse(held, identifier, remaining, &names)};
         charge(remaining, analysis.locations.size());
-        walks.emplace(identifier, std::move(analysis));
+        const auto &recorded{
+            walks.emplace(identifier, std::move(analysis)).first->second};
+        index_schemas(held, recorded, identifier, walker, schema_resolver,
+                      identifiers, remaining);
+      }
+
+      // A fragment shaped like anything but a pointer names an identifier or
+      // an anchor rather than a place, which only framing the document that
+      // declares it settles. Section 4.1.2 leaves none of those to be given up
+      // on before that document has been read, so this is asked again now
+      // that it has been. A fragment that is a pointer already named a place
+      // of the document just read, and nothing another document declares for
+      // itself is to take that place from it
+      if (names_a_schema && !declared.has_value() && !pointed.has_value()) {
+        declared = declared_target(identifiers, reference.destination);
+      }
+
+      // A document that holds an OpenAPI Description is never what a reference
+      // from the shell expects to find, so one naming a whole document has
+      // landed on the wrong kind of thing
+      const auto target{declared.has_value()
+                            ? std::optional<Pointer>{declared.value().second}
+                            : target_of(reference.destination)};
+      if (!target.has_value()) {
+        if (names_a_schema) {
+          if (reference.mapping) {
+            deferred[reference.destination].push_back(reference);
+          }
+
+          continue;
+        }
+
+        throw OpenAPIReferenceError{base, reference.origin,
+                                    reference.destination,
+                                    "This reference must name a place within "
+                                    "the document it points at"};
       }
 
       const auto &remote_document{documents.at(identifier)};
@@ -1569,8 +1849,9 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
 
       // And so is what a mapping names, which is settled after the references
       // are, as bringing one schema in may be what lets the next be read
-      if (adopt_mappings(document, deferred, adopted, base, schema_resolver,
-                         openapi_dialect(walk.version), options)) {
+      if (adopt_mappings(document, deferred, adopted, base, walker,
+                         schema_resolver, openapi_dialect(walk.version),
+                         options, remaining)) {
         deferred.clear();
         continue;
       }
