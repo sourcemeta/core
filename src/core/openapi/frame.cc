@@ -385,9 +385,17 @@ auto collect_path_parameter_names(
     // A reference the walk could not follow may be the very parameter a
     // template expression is looking for, and a description we do not hold in
     // full is one we cannot call incomplete. This is the same restraint
-    // Section 8.7.1 applies to a Link Object's operation identifier
+    // Section 4.3.3 applies to a Link Object's operation identifier, and it
+    // stops in the same place: one that ends inside this very document ends
+    // where no further reading can supply a parameter, so it is passed over
+    // rather than taken as a reason to say nothing
     if (identity == nullptr) {
-      return false;
+      if (sourcemeta::core::take_until(follow_aliases(walk, position), '#') !=
+          walk.base) {
+        return false;
+      }
+
+      continue;
     }
 
     if (identity->second == "path") {
@@ -541,7 +549,7 @@ auto openapi_project(const OpenAPIWalk &walk) -> std::vector<OpenAPIOperation> {
     // other kind of endpoint is held to the expressions of the paths reaching
     // the Path Item Object the chain ends at, and a chain that ends somewhere
     // this does not hold is one whose end an unread document still decides
-    if (templated || (expressions.second && settled)) {
+    if ((templated || expressions.second) && settled) {
       for (const auto *record : chain) {
         check_path_parameters(walk, templates, record->parameters, message);
         // An Operation Object that a method of the same name nearer the end of
@@ -565,7 +573,12 @@ auto openapi_project(const OpenAPIWalk &walk) -> std::vector<OpenAPIOperation> {
 
       auto parameters{parameters_of(walk, operation->second.parameters,
                                     path_item_parameters)};
-      if (templated || expressions.second) {
+      // The two loops above already answer for every Parameter Object written
+      // at any place the chain leads through, and what is in force here is
+      // drawn from those same lists, so this holds nothing new. It abstains
+      // on the same terms all the same, as the expressions it would be read
+      // against are the ones an unread document settles
+      if ((templated || expressions.second) && settled) {
         check_path_parameters(walk, templates, parameters, message);
       }
       // This one turns on an expression having no parameter anywhere, and a
@@ -653,10 +666,6 @@ OpenAPIFrame::OpenAPIFrame(const JSON &document, const SchemaWalker &walker,
       max_locations)};
   this->internal_->version = walk.version;
   this->internal_->info = walk.info;
-  // What the caller passed in is where the entry document was retrieved from,
-  // and from 3.2 onwards the document may give itself a URI of its own, which
-  // the walk settles and everything it holds is keyed by
-  this->internal_->base = std::move(walk.base);
   // A frame stands alone when everything it references is inside it, which is
   // what a caller asks before deciding whether it has the whole description.
   // Which references leave it is what making it whole comes down to, so each
@@ -682,8 +691,13 @@ OpenAPIFrame::OpenAPIFrame(const JSON &document, const SchemaWalker &walker,
     }
   }
 
-  // Projecting reads the whole walk, so nothing is taken out of it until after
+  // Projecting reads the whole walk, the base included, so nothing is taken
+  // out of it until after
   this->internal_->operations = openapi_project(walk);
+  // What the caller passed in is where the entry document was retrieved from,
+  // and from 3.2 onwards the document may give itself a URI of its own, which
+  // the walk settles and everything it holds is keyed by
+  this->internal_->base = std::move(walk.base);
   const auto walk_locations{walk.locations.size()};
   this->internal_->locations = std::move(walk.locations);
   this->internal_->references = std::move(walk.references);

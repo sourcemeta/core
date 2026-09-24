@@ -424,10 +424,11 @@ struct OpenAPIWalk {
   /// tag exist and forbids a cycle, neither of which can be settled until
   /// every tag has been read
   std::map<JSON::String, std::pair<JSON::String, JSON::String>> tag_parents;
-  /// Every name any document declares a Tag Object under. Section 4.22 has a
-  /// parent name "a tag that MUST exist in the API description", which is the
-  /// whole of it rather than the entry document alone, so this is a wider set
-  /// than the one above it
+  /// Every name any document declares a Tag Object under. 3.2.1 Section 4.22
+  /// has a parent name "The `name` of a tag that this tag is nested under",
+  /// and of what it names, "The named tag MUST exist in the API description".
+  /// A description is the whole of what it spans rather than the entry
+  /// document alone, so this is a wider set than the one above it
   std::set<JSON::String> tag_names;
   /// The operation each Link Object names, keyed by where that Link Object
   /// sits. Section 4.3.3 has resolving one of these require "parsing all
@@ -667,8 +668,9 @@ openapi_error_at(const std::map<JSON::String, OpenAPILocation> &locations,
 // 5.1.2 and so leaves out 5.1.1, "Base URI Embedded in Content". A 3.1
 // document therefore has no way of declaring its own base, and what remains is
 // 5.1.3, "Base URI from the Retrieval URI", which only the caller can supply.
-// Section 4.6 says as much: implementations "SHOULD allow users to provide
-// documents with their intended retrieval URIs"
+// 3.2.1 Section 4.3 says as much, and 3.1 leaves it unsaid rather than saying
+// otherwise: implementations "SHOULD allow users to provide documents with
+// their intended retrieval URIs"
 inline auto openapi_canonical_base(const std::string_view input)
     -> JSON::String {
   if (input.empty()) {

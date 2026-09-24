@@ -124,9 +124,10 @@ auto promote(const sourcemeta::core::Pointer &target)
 // Where the Path Item Object holding an Operation Object sits. OpenAPI
 // Specification 3.1.1, Section 4.8.9 puts an Operation Object directly under
 // the Path Item Object that holds it, and 3.2.1, Section 4.9 adds
-// `additionalOperations`, "a map of additional operations keyed by HTTP
-// method", which puts a map of its own between the two. So which place holds
-// it is what the walk recorded rather than a fixed number of steps up
+// `additionalOperations`, "A map of additional operations on this path. The
+// map key is the HTTP method with the same capitalization that is to be sent
+// in the request", which puts a map of its own between the two. So which place
+// holds it is what the walk recorded rather than a fixed number of steps up
 auto path_item_of(const sourcemeta::core::OpenAPIWalk &remote,
                   const sourcemeta::core::Pointer &operation)
     -> sourcemeta::core::Pointer {

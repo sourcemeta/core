@@ -551,10 +551,10 @@ inline auto openapi_check_tag_parents(
 
 // OpenAPI Specification 3.1.1, Section 4.8.20: "The identified or reference
 // operation MUST be unique, and in the case of an `operationId`, it MUST be
-// resolved within the scope of the OpenAPI Description". Section 4.3.3
-// recommends resolving one "considering all Operation Objects from all parsed
-// documents", so nothing is decided here until every document of the
-// description is held at once
+// resolved within the scope of the OpenAPI Description". Section 4.3.3 goes on
+// that "This requires parsing all referenced documents prior to determining an
+// `operationId` to be unresolvable", so nothing is decided here until every
+// document of the description is held at once
 inline auto openapi_check_operation_id_links(
     const OpenAPIWalk &walk,
     const std::map<JSON::String, OpenAPILocation> &locations) -> void {

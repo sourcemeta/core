@@ -330,7 +330,21 @@ inline auto openapi_check_server(const JSON &value, const Pointer &base,
   // of 3.2 writes out a grammar for it and forbids repeating a variable:
   // "Each server variable MUST NOT appear more than once in the URL template".
   // Both are new in 3.2, so a URL 3.1 accepts is still accepted when a
-  // document declares 3.1
+  // document declares 3.1.
+  //
+  // The grammar is introduced as a definition rather than as a requirement, so
+  // what licenses turning a URL down for its shape is 3.2.1 Section 4.12.4,
+  // "All API URLs MUST successfully parse and percent-decode using [RFC3986]
+  // rules", together with Section 4 making the text "the only normative
+  // description of the format". The grammar is the whole of what either
+  // revision says a server URL template is, and nothing beyond its shape is
+  // read from it.
+  //
+  // That MUST is also 3.1.2 Section 4.8.12.4, which by Section 3 reaches every
+  // 3.1 document, so holding this to 3.2 alone leaves a 3.1 URL that no
+  // amount of parsing can rescue unreported. That is under-reporting rather
+  // than a wrong refusal, and closing it would turn down documents accepted
+  // until now, so it waits for a release that can carry it
   if (walk.version == OpenAPIVersion::OPENAPI_3_2) {
     if (!openapi_is_server_url_template(address)) {
       throw OpenAPIError{openapi_child(base, "url"sv),

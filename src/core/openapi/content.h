@@ -151,8 +151,9 @@ inline auto openapi_check_encoding(const JSON &value, const Pointer &base,
       value, OPENAPI_ENCODING_FIELDS_3_1, OPENAPI_ENCODING_FIELDS_3_2, base,
       "The Encoding Object does not define this field", walk);
 
-  // The specification says media type definitions "SHOULD be in compliance
-  // with RFC6838", which is not a requirement, so only the type is checked
+  // 3.1.1 Section 3.6 says media type definitions "SHOULD be in compliance
+  // with RFC6838", which is not a requirement, and 3.2 drops the sentence
+  // rather than strengthening it, so only the type is checked
   openapi_check_optional_string(
       value, base, "contentType"sv, OPENAPI_HASH_CONTENT_TYPE,
       "The Encoding Object content type must be a string");
