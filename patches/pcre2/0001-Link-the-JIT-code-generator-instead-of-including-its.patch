@@ -1,0 +1,73 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Juan Cruz Viotti <jviotti@sourcemeta.com>
+Date: Wed, 24 Sep 2026 12:00:00 -0300
+Subject: [PATCH] Link the JIT code generator instead of including its source
+
+This file textually included the whole of sljitLir.c, which compiled the
+code generator into this translation unit with internal linkage and routed
+its allocations through the pcre2 general context. That makes it impossible
+to treat the code generator as a dependency of its own, or to reuse it from
+anywhere else in the tree.
+
+Include the public header instead and let the build system compile and link
+the code generator separately. The configuration macros that change the
+layout of struct sljit_compiler now come from the build system, so that both
+sides of the interface agree on them, and the code generator falls back to
+its own malloc and free rather than the pcre2 general context allocator.
+
+SSIZE_OF is the one name this file needs that the code generator keeps in
+its implementation rather than its header. It takes a parameter, so the
+build system cannot carry it as a definition, and it is reproduced here.
+---
+ src/pcre2_jit_compile.c | 35 ++++++++---------------------------
+ 1 file changed, 8 insertions(+), 27 deletions(-)
+
+diff --git a/src/pcre2_jit_compile.c b/src/pcre2_jit_compile.c
+index 105a1dd35..de3f03133 100644
+--- a/src/pcre2_jit_compile.c
++++ b/src/pcre2_jit_compile.c
+@@ -49,36 +49,17 @@ POSSIBILITY OF SUCH DAMAGE.
+ 
+ #ifdef SUPPORT_JIT
+ 
+-/* All-in-one: Since we use the JIT compiler only from here,
+-we just include it. This way we don't need to touch the build
+-system files. */
++/* The JIT code generator is built as a library of its own, and the build
++system sets its configuration on both sides of the interface, so that this
++translation unit and that library agree on the layout of the structures they
++pass between them. */
+ 
+-#define SLJIT_CONFIG_AUTO 1
+-#define SLJIT_CONFIG_STATIC 1
+-#define SLJIT_VERBOSE 0
++#include "sljitLir.h"
+ 
+-#ifdef PCRE2_DEBUG
+-#define SLJIT_DEBUG 1
+-#else
+-#define SLJIT_DEBUG 0
+-#endif
++/* A convenience that the code generator keeps private to its implementation,
++reproduced here in terms of the types that its header does publish. */
+ 
+-#define SLJIT_MALLOC(size, allocator_data) pcre2_jit_malloc(size, allocator_data)
+-#define SLJIT_FREE(ptr, allocator_data) pcre2_jit_free(ptr, allocator_data)
+-
+-static void * pcre2_jit_malloc(size_t size, void *allocator_data)
+-{
+-pcre2_memctl *allocator = ((pcre2_memctl*)allocator_data);
+-return allocator->malloc(size, allocator->memory_data);
+-}
+-
+-static void pcre2_jit_free(void *ptr, void *allocator_data)
+-{
+-pcre2_memctl *allocator = ((pcre2_memctl*)allocator_data);
+-allocator->free(ptr, allocator->memory_data);
+-}
+-
+-#include "../deps/sljit/sljit_src/sljitLir.c"
++#define SSIZE_OF(type) ((sljit_s32)sizeof(sljit_ ## type))
+ 
+ #if defined SLJIT_CONFIG_UNSUPPORTED && SLJIT_CONFIG_UNSUPPORTED
+ #error Unsupported architecture
