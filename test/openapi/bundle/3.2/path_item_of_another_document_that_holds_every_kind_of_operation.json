@@ -117,5 +117,51 @@
   },
   "schemaReads": {},
   "standalone": true,
-  "relocatable": true
+  "relocatable": true,
+  "operations": [
+    {
+      "type": "path",
+      "path": "/foo",
+      "method": "get",
+      "origin": "https://example.com/openapi.json#/components/pathItems/Foo/get",
+      "endpoint": "https://example.com/openapi.json#/paths/~1foo",
+      "tags": [],
+      "servers": [],
+      "security": [],
+      "parameters": []
+    },
+    {
+      "type": "path",
+      "path": "/foo",
+      "method": "query",
+      "origin": "https://example.com/openapi.json#/components/pathItems/Foo/query",
+      "endpoint": "https://example.com/openapi.json#/paths/~1foo",
+      "tags": [],
+      "servers": [],
+      "security": [],
+      "parameters": []
+    },
+    {
+      "type": "path",
+      "path": "/foo",
+      "method": "PURGE",
+      "origin": "https://example.com/openapi.json#/components/pathItems/Foo/additionalOperations/PURGE",
+      "endpoint": "https://example.com/openapi.json#/paths/~1foo",
+      "tags": [],
+      "servers": [],
+      "security": [],
+      "parameters": []
+    },
+    {
+      "type": "path",
+      "path": "/foo",
+      "method": "LOCK",
+      "origin": "https://example.com/openapi.json#/components/pathItems/Foo/additionalOperations/LOCK",
+      "endpoint": "https://example.com/openapi.json#/paths/~1foo",
+      "tags": [],
+      "servers": [],
+      "security": [],
+      "parameters": []
+    }
+  ]
 }

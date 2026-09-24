@@ -1,0 +1,32 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "schemas": {
+        "Pet": {
+          "oneOf": [
+            {
+              "$ref": "#/components/schemas/Cat"
+            }
+          ],
+          "discriminator": {
+            "mapping": {
+              "cat": "Cat"
+            }
+          }
+        },
+        "Cat": {
+          "type": "object"
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "The Discriminator Object must declare a property name",
+    "location": "/components/schemas/Pet/discriminator"
+  }
+}

@@ -1,0 +1,166 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "tags": [
+      {
+        "name": "child",
+        "parent": "shared"
+      }
+    ],
+    "paths": {
+      "/local": {
+        "get": {
+          "tags": [
+            "shared"
+          ],
+          "responses": {
+            "200": {
+              "description": "ok"
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "responses": {
+        "A": {
+          "$ref": "https://example.com/alpha.json#/components/responses/Ralpha"
+        },
+        "B": {
+          "$ref": "https://example.com/beta.json#/components/responses/Rbeta"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/alpha.json": {
+      "openapi": "3.2.0",
+      "info": {
+        "title": "alpha",
+        "version": "1.0.0"
+      },
+      "tags": [
+        {
+          "name": "shared",
+          "description": "from alpha"
+        }
+      ],
+      "components": {
+        "responses": {
+          "Ralpha": {
+            "description": "alpha"
+          }
+        }
+      }
+    },
+    "https://example.com/beta.json": {
+      "openapi": "3.2.0",
+      "info": {
+        "title": "beta",
+        "version": "1.0.0"
+      },
+      "tags": [
+        {
+          "name": "shared",
+          "description": "from beta"
+        }
+      ],
+      "components": {
+        "responses": {
+          "Rbeta": {
+            "description": "beta"
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "tags": [
+      {
+        "name": "child",
+        "parent": "shared"
+      },
+      {
+        "name": "shared",
+        "description": "from alpha"
+      }
+    ],
+    "paths": {
+      "/local": {
+        "get": {
+          "tags": [
+            "shared"
+          ],
+          "responses": {
+            "200": {
+              "description": "ok"
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "responses": {
+        "A": {
+          "$ref": "#/components/responses/Ralpha"
+        },
+        "B": {
+          "$ref": "#/components/responses/Rbeta"
+        },
+        "Ralpha": {
+          "description": "alpha"
+        },
+        "Rbeta": {
+          "description": "beta"
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/alpha.json#/components/responses/Ralpha",
+      "at": "/components/responses/Ralpha"
+    },
+    {
+      "from": "https://example.com/beta.json#/components/responses/Rbeta",
+      "at": "/components/responses/Rbeta"
+    },
+    {
+      "from": "https://example.com/alpha.json#/tags/0",
+      "at": "/tags/1"
+    }
+  ],
+  "reads": {
+    "https://example.com/alpha.json": 1,
+    "https://example.com/beta.json": 1
+  },
+  "schemaReads": {},
+  "standalone": true,
+  "relocatable": true,
+  "operations": [
+    {
+      "type": "path",
+      "path": "/local",
+      "method": "get",
+      "origin": "https://example.com/openapi.json#/paths/~1local/get",
+      "endpoint": "https://example.com/openapi.json#/paths/~1local",
+      "tags": [
+        "https://example.com/openapi.json#/tags/1"
+      ],
+      "servers": [],
+      "security": [],
+      "parameters": []
+    }
+  ]
+}

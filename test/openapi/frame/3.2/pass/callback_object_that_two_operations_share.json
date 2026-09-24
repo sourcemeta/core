@@ -1,0 +1,228 @@
+{
+  "document": {
+    "openapi": "3.2.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/one": {
+        "post": {
+          "callbacks": {
+            "onData": {
+              "$ref": "#/components/callbacks/OnData"
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "ok"
+            }
+          }
+        }
+      },
+      "/two": {
+        "post": {
+          "callbacks": {
+            "onData": {
+              "$ref": "#/components/callbacks/OnData"
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "ok"
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "callbacks": {
+        "OnData": {
+          "{$request.body#/url}": {
+            "post": {
+              "responses": {
+                "200": {
+                  "description": "ok"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "frame": {
+    "version": "3.2",
+    "base": "",
+    "standalone": true,
+    "schemas": {
+      "mode": "references",
+      "locations": {
+        "static": {},
+        "dynamic": {}
+      },
+      "references": []
+    },
+    "info": {
+      "title": "Example",
+      "version": "1.0.0",
+      "summary": null,
+      "description": null,
+      "termsOfService": null,
+      "contact": null,
+      "license": null
+    },
+    "locations": {
+      "": {
+        "type": "openapi",
+        "pointer": "",
+        "parent": null,
+        "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17"
+      },
+      "#/components": {
+        "type": "components",
+        "pointer": "/components",
+        "parent": ""
+      },
+      "#/components/callbacks/OnData": {
+        "type": "callback",
+        "pointer": "/components/callbacks/OnData",
+        "parent": "#/components"
+      },
+      "#/components/callbacks/OnData/%7B$request.body%23~1url%7D": {
+        "type": "path-item",
+        "pointer": "/components/callbacks/OnData/{$request.body#~1url}",
+        "parent": "#/components/callbacks/OnData"
+      },
+      "#/components/callbacks/OnData/%7B$request.body%23~1url%7D/post": {
+        "type": "operation",
+        "pointer": "/components/callbacks/OnData/{$request.body#~1url}/post",
+        "parent": "#/components/callbacks/OnData/%7B$request.body%23~1url%7D"
+      },
+      "#/components/callbacks/OnData/%7B$request.body%23~1url%7D/post/responses": {
+        "type": "responses",
+        "pointer": "/components/callbacks/OnData/{$request.body#~1url}/post/responses",
+        "parent": "#/components/callbacks/OnData/%7B$request.body%23~1url%7D/post"
+      },
+      "#/components/callbacks/OnData/%7B$request.body%23~1url%7D/post/responses/200": {
+        "type": "response",
+        "pointer": "/components/callbacks/OnData/{$request.body#~1url}/post/responses/200",
+        "parent": "#/components/callbacks/OnData/%7B$request.body%23~1url%7D/post/responses"
+      },
+      "#/info": {
+        "type": "info",
+        "pointer": "/info",
+        "parent": ""
+      },
+      "#/paths": {
+        "type": "paths",
+        "pointer": "/paths",
+        "parent": ""
+      },
+      "#/paths/~1one": {
+        "type": "path-item",
+        "pointer": "/paths/~1one",
+        "parent": "#/paths"
+      },
+      "#/paths/~1one/post": {
+        "type": "operation",
+        "pointer": "/paths/~1one/post",
+        "parent": "#/paths/~1one"
+      },
+      "#/paths/~1one/post/callbacks/onData": {
+        "type": "reference",
+        "pointer": "/paths/~1one/post/callbacks/onData",
+        "parent": "#/paths/~1one/post",
+        "original": "#/components/callbacks/OnData",
+        "destination": "#/components/callbacks/OnData",
+        "dangling": false
+      },
+      "#/paths/~1one/post/responses": {
+        "type": "responses",
+        "pointer": "/paths/~1one/post/responses",
+        "parent": "#/paths/~1one/post"
+      },
+      "#/paths/~1one/post/responses/200": {
+        "type": "response",
+        "pointer": "/paths/~1one/post/responses/200",
+        "parent": "#/paths/~1one/post/responses"
+      },
+      "#/paths/~1two": {
+        "type": "path-item",
+        "pointer": "/paths/~1two",
+        "parent": "#/paths"
+      },
+      "#/paths/~1two/post": {
+        "type": "operation",
+        "pointer": "/paths/~1two/post",
+        "parent": "#/paths/~1two"
+      },
+      "#/paths/~1two/post/callbacks/onData": {
+        "type": "reference",
+        "pointer": "/paths/~1two/post/callbacks/onData",
+        "parent": "#/paths/~1two/post",
+        "original": "#/components/callbacks/OnData",
+        "destination": "#/components/callbacks/OnData",
+        "dangling": false
+      },
+      "#/paths/~1two/post/responses": {
+        "type": "responses",
+        "pointer": "/paths/~1two/post/responses",
+        "parent": "#/paths/~1two/post"
+      },
+      "#/paths/~1two/post/responses/200": {
+        "type": "response",
+        "pointer": "/paths/~1two/post/responses/200",
+        "parent": "#/paths/~1two/post/responses"
+      }
+    },
+    "operations": [
+      {
+        "type": "path",
+        "path": "/one",
+        "method": "post",
+        "origin": "#/paths/~1one/post",
+        "endpoint": "#/paths/~1one",
+        "tags": [],
+        "servers": [],
+        "security": [],
+        "parameters": []
+      },
+      {
+        "type": "path",
+        "path": "/two",
+        "method": "post",
+        "origin": "#/paths/~1two/post",
+        "endpoint": "#/paths/~1two",
+        "tags": [],
+        "servers": [],
+        "security": [],
+        "parameters": []
+      },
+      {
+        "type": "callback",
+        "path": "{$request.body#/url}",
+        "method": "post",
+        "origin": "#/components/callbacks/OnData/%7B$request.body%23~1url%7D/post",
+        "endpoint": "#/components/callbacks/OnData/%7B$request.body%23~1url%7D",
+        "parent": "#/paths/~1one/post",
+        "tags": [],
+        "servers": [],
+        "security": [],
+        "parameters": []
+      },
+      {
+        "type": "callback",
+        "path": "{$request.body#/url}",
+        "method": "post",
+        "origin": "#/components/callbacks/OnData/%7B$request.body%23~1url%7D/post",
+        "endpoint": "#/components/callbacks/OnData/%7B$request.body%23~1url%7D",
+        "parent": "#/paths/~1two/post",
+        "tags": [],
+        "servers": [],
+        "security": [],
+        "parameters": []
+      }
+    ]
+  }
+}

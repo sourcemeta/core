@@ -1,0 +1,57 @@
+{
+  "document": {
+    "openapi": "3.2.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets/{petId}": {
+        "parameters": [
+          {
+            "name": "petId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "post": {
+          "callbacks": {
+            "onData": {
+              "{$request.body#/url}": {
+                "post": {
+                  "parameters": [
+                    {
+                      "name": "petId",
+                      "in": "path",
+                      "required": true,
+                      "schema": {
+                        "type": "string"
+                      }
+                    }
+                  ],
+                  "responses": {
+                    "200": {
+                      "description": "ok"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "ok"
+            }
+          }
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "A path Parameter Object must name a template expression of a path that exposes it",
+    "location": "/paths/~1pets~1{petId}/post/callbacks/onData/{$request.body#~1url}/post/parameters/0"
+  }
+}

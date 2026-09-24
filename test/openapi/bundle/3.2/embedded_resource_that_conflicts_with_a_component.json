@@ -1,0 +1,58 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "200": {
+              "description": "ok",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "https://example.com/schemas/b"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "schemas": {
+        "Known": {
+          "$id": "https://example.com/schemas/x",
+          "type": "string"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {},
+  "schemaResolver": {
+    "https://example.com/schemas/b": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/schemas/b",
+      "properties": {
+        "k": {
+          "$ref": "https://example.com/schemas/x"
+        }
+      },
+      "$defs": {
+        "https://example.com/schemas/x": {
+          "$id": "https://example.com/schemas/x",
+          "type": "integer"
+        }
+      }
+    }
+  },
+  "error": {
+    "type": "SchemaError",
+    "message": "Conflicting embedded resources with the same identifier"
+  }
+}

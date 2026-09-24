@@ -59,5 +59,6 @@
     "https://example.com/bool": 1
   },
   "standalone": true,
-  "relocatable": true
+  "relocatable": true,
+  "operations": []
 }

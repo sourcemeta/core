@@ -38,43 +38,11 @@
     }
   },
   "schemaResolver": {},
-  "result": {
-    "openapi": "3.2.0",
-    "info": {
-      "title": "E",
-      "version": "1.0.0"
-    },
-    "components": {
-      "responses": {
-        "A": {
-          "$ref": "#/components/responses/One"
-        },
-        "B": {
-          "$ref": "#/components/responses/Two"
-        },
-        "One": {
-          "description": "one"
-        },
-        "Two": {
-          "description": "two"
-        }
-      }
-    }
-  },
-  "inserted": [
-    {
-      "from": "https://cdn.example.com/v1/common.json#/components/responses/One",
-      "at": "/components/responses/One"
-    },
-    {
-      "from": "https://cdn.example.com/v1/common.json#/components/responses/Two",
-      "at": "/components/responses/Two"
-    }
-  ],
-  "reads": {
-    "https://example.com/other.json": 1
-  },
-  "schemaReads": {},
-  "standalone": true,
-  "relocatable": true
+  "error": {
+    "type": "OpenAPIResolutionError",
+    "message": "Could not resolve the reference to an external document",
+    "identifier": "https://cdn.example.com/v1/common.json",
+    "location": "/components/responses/B/$ref",
+    "base": "https://example.com/openapi.json"
+  }
 }

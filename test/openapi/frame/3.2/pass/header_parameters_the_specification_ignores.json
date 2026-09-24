@@ -1,0 +1,316 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "parameters": [
+          {
+            "name": "Accept",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "trace",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "get": {
+          "parameters": [
+            {
+              "name": "content-TYPE",
+              "in": "header",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "name": "Authorization",
+              "in": "header",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "name": "limit",
+              "in": "query",
+              "schema": {
+                "type": "integer"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "ok"
+            }
+          }
+        }
+      }
+    }
+  },
+  "frame": {
+    "version": "3.2",
+    "base": "",
+    "standalone": true,
+    "schemas": {
+      "mode": "references",
+      "locations": {
+        "static": {
+          "#/paths/~1pets/get/parameters/0/schema": {
+            "parent": null,
+            "type": "subschema",
+            "root": null,
+            "base": "",
+            "pointer": "/paths/~1pets/get/parameters/0/schema",
+            "relativePointer": "/paths/~1pets/get/parameters/0/schema",
+            "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17",
+            "baseDialect": "https://json-schema.org/draft/2020-12/schema",
+            "propertyName": false,
+            "orphan": false,
+            "hasReferencesTo": false,
+            "hasReferencesThrough": false,
+            "vocabularies": {
+              "https://json-schema.org/draft/2020-12/vocab/core": true,
+              "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+              "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
+              "https://json-schema.org/draft/2020-12/vocab/validation": true,
+              "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
+              "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
+              "https://json-schema.org/draft/2020-12/vocab/content": true,
+              "https://spec.openapis.org/oas/3.2/vocab/base": false
+            }
+          },
+          "#/paths/~1pets/get/parameters/1/schema": {
+            "parent": null,
+            "type": "subschema",
+            "root": null,
+            "base": "",
+            "pointer": "/paths/~1pets/get/parameters/1/schema",
+            "relativePointer": "/paths/~1pets/get/parameters/1/schema",
+            "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17",
+            "baseDialect": "https://json-schema.org/draft/2020-12/schema",
+            "propertyName": false,
+            "orphan": false,
+            "hasReferencesTo": false,
+            "hasReferencesThrough": false,
+            "vocabularies": {
+              "https://json-schema.org/draft/2020-12/vocab/core": true,
+              "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+              "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
+              "https://json-schema.org/draft/2020-12/vocab/validation": true,
+              "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
+              "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
+              "https://json-schema.org/draft/2020-12/vocab/content": true,
+              "https://spec.openapis.org/oas/3.2/vocab/base": false
+            }
+          },
+          "#/paths/~1pets/get/parameters/2/schema": {
+            "parent": null,
+            "type": "subschema",
+            "root": null,
+            "base": "",
+            "pointer": "/paths/~1pets/get/parameters/2/schema",
+            "relativePointer": "/paths/~1pets/get/parameters/2/schema",
+            "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17",
+            "baseDialect": "https://json-schema.org/draft/2020-12/schema",
+            "propertyName": false,
+            "orphan": false,
+            "hasReferencesTo": false,
+            "hasReferencesThrough": false,
+            "vocabularies": {
+              "https://json-schema.org/draft/2020-12/vocab/core": true,
+              "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+              "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
+              "https://json-schema.org/draft/2020-12/vocab/validation": true,
+              "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
+              "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
+              "https://json-schema.org/draft/2020-12/vocab/content": true,
+              "https://spec.openapis.org/oas/3.2/vocab/base": false
+            }
+          },
+          "#/paths/~1pets/parameters/0/schema": {
+            "parent": null,
+            "type": "subschema",
+            "root": null,
+            "base": "",
+            "pointer": "/paths/~1pets/parameters/0/schema",
+            "relativePointer": "/paths/~1pets/parameters/0/schema",
+            "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17",
+            "baseDialect": "https://json-schema.org/draft/2020-12/schema",
+            "propertyName": false,
+            "orphan": false,
+            "hasReferencesTo": false,
+            "hasReferencesThrough": false,
+            "vocabularies": {
+              "https://json-schema.org/draft/2020-12/vocab/core": true,
+              "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+              "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
+              "https://json-schema.org/draft/2020-12/vocab/validation": true,
+              "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
+              "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
+              "https://json-schema.org/draft/2020-12/vocab/content": true,
+              "https://spec.openapis.org/oas/3.2/vocab/base": false
+            }
+          },
+          "#/paths/~1pets/parameters/1/schema": {
+            "parent": null,
+            "type": "subschema",
+            "root": null,
+            "base": "",
+            "pointer": "/paths/~1pets/parameters/1/schema",
+            "relativePointer": "/paths/~1pets/parameters/1/schema",
+            "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17",
+            "baseDialect": "https://json-schema.org/draft/2020-12/schema",
+            "propertyName": false,
+            "orphan": false,
+            "hasReferencesTo": false,
+            "hasReferencesThrough": false,
+            "vocabularies": {
+              "https://json-schema.org/draft/2020-12/vocab/core": true,
+              "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+              "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
+              "https://json-schema.org/draft/2020-12/vocab/validation": true,
+              "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
+              "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
+              "https://json-schema.org/draft/2020-12/vocab/content": true,
+              "https://spec.openapis.org/oas/3.2/vocab/base": false
+            }
+          }
+        },
+        "dynamic": {}
+      },
+      "references": []
+    },
+    "info": {
+      "title": "Example",
+      "version": "1.0.0",
+      "summary": null,
+      "description": null,
+      "termsOfService": null,
+      "contact": null,
+      "license": null
+    },
+    "locations": {
+      "": {
+        "type": "openapi",
+        "pointer": "",
+        "parent": null,
+        "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17"
+      },
+      "#/info": {
+        "type": "info",
+        "pointer": "/info",
+        "parent": ""
+      },
+      "#/paths": {
+        "type": "paths",
+        "pointer": "/paths",
+        "parent": ""
+      },
+      "#/paths/~1pets": {
+        "type": "path-item",
+        "pointer": "/paths/~1pets",
+        "parent": "#/paths"
+      },
+      "#/paths/~1pets/get": {
+        "type": "operation",
+        "pointer": "/paths/~1pets/get",
+        "parent": "#/paths/~1pets"
+      },
+      "#/paths/~1pets/get/parameters/0": {
+        "type": "parameter",
+        "pointer": "/paths/~1pets/get/parameters/0",
+        "parent": "#/paths/~1pets/get"
+      },
+      "#/paths/~1pets/get/parameters/0/schema": {
+        "type": "schema",
+        "pointer": "/paths/~1pets/get/parameters/0/schema",
+        "parent": "#/paths/~1pets/get/parameters/0",
+        "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17",
+        "base": ""
+      },
+      "#/paths/~1pets/get/parameters/1": {
+        "type": "parameter",
+        "pointer": "/paths/~1pets/get/parameters/1",
+        "parent": "#/paths/~1pets/get"
+      },
+      "#/paths/~1pets/get/parameters/1/schema": {
+        "type": "schema",
+        "pointer": "/paths/~1pets/get/parameters/1/schema",
+        "parent": "#/paths/~1pets/get/parameters/1",
+        "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17",
+        "base": ""
+      },
+      "#/paths/~1pets/get/parameters/2": {
+        "type": "parameter",
+        "pointer": "/paths/~1pets/get/parameters/2",
+        "parent": "#/paths/~1pets/get"
+      },
+      "#/paths/~1pets/get/parameters/2/schema": {
+        "type": "schema",
+        "pointer": "/paths/~1pets/get/parameters/2/schema",
+        "parent": "#/paths/~1pets/get/parameters/2",
+        "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17",
+        "base": ""
+      },
+      "#/paths/~1pets/get/responses": {
+        "type": "responses",
+        "pointer": "/paths/~1pets/get/responses",
+        "parent": "#/paths/~1pets/get"
+      },
+      "#/paths/~1pets/get/responses/200": {
+        "type": "response",
+        "pointer": "/paths/~1pets/get/responses/200",
+        "parent": "#/paths/~1pets/get/responses"
+      },
+      "#/paths/~1pets/parameters/0": {
+        "type": "parameter",
+        "pointer": "/paths/~1pets/parameters/0",
+        "parent": "#/paths/~1pets"
+      },
+      "#/paths/~1pets/parameters/0/schema": {
+        "type": "schema",
+        "pointer": "/paths/~1pets/parameters/0/schema",
+        "parent": "#/paths/~1pets/parameters/0",
+        "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17",
+        "base": ""
+      },
+      "#/paths/~1pets/parameters/1": {
+        "type": "parameter",
+        "pointer": "/paths/~1pets/parameters/1",
+        "parent": "#/paths/~1pets"
+      },
+      "#/paths/~1pets/parameters/1/schema": {
+        "type": "schema",
+        "pointer": "/paths/~1pets/parameters/1/schema",
+        "parent": "#/paths/~1pets/parameters/1",
+        "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17",
+        "base": ""
+      }
+    },
+    "operations": [
+      {
+        "type": "path",
+        "path": "/pets",
+        "method": "get",
+        "origin": "#/paths/~1pets/get",
+        "endpoint": "#/paths/~1pets",
+        "tags": [],
+        "servers": [],
+        "security": [],
+        "parameters": [
+          "#/paths/~1pets/parameters/1",
+          "#/paths/~1pets/get/parameters/2"
+        ]
+      }
+    ]
+  }
+}

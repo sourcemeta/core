@@ -1,0 +1,118 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "$ref": "https://example.com/shared.json#/components/pathItems/P"
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/shared.json": {
+      "openapi": "3.2.0",
+      "info": {
+        "title": "shared",
+        "version": "1.0.0"
+      },
+      "components": {
+        "pathItems": {
+          "P": {
+            "servers": [
+              {
+                "url": "{scheme}://api.example.com/v1",
+                "variables": {
+                  "scheme": {
+                    "default": "https",
+                    "enum": [
+                      "http",
+                      "https"
+                    ]
+                  }
+                }
+              }
+            ],
+            "get": {
+              "responses": {
+                "200": {
+                  "description": "ok"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "$ref": "#/components/pathItems/P"
+      }
+    },
+    "components": {
+      "pathItems": {
+        "P": {
+          "servers": [
+            {
+              "url": "{scheme}://api.example.com/v1",
+              "variables": {
+                "scheme": {
+                  "default": "https",
+                  "enum": [
+                    "http",
+                    "https"
+                  ]
+                }
+              }
+            }
+          ],
+          "get": {
+            "responses": {
+              "200": {
+                "description": "ok"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/shared.json#/components/pathItems/P",
+      "at": "/components/pathItems/P"
+    }
+  ],
+  "reads": {
+    "https://example.com/shared.json": 1
+  },
+  "schemaReads": {},
+  "standalone": true,
+  "relocatable": true,
+  "operations": [
+    {
+      "type": "path",
+      "path": "/pets",
+      "method": "get",
+      "origin": "https://example.com/openapi.json#/components/pathItems/P/get",
+      "endpoint": "https://example.com/openapi.json#/paths/~1pets",
+      "tags": [],
+      "servers": [
+        "https://example.com/openapi.json#/components/pathItems/P/servers/0"
+      ],
+      "security": [],
+      "parameters": []
+    }
+  ]
+}

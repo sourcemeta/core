@@ -88,5 +88,6 @@
     "https://example.com/pets": 1
   },
   "standalone": true,
-  "relocatable": true
+  "relocatable": true,
+  "operations": []
 }

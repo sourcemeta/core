@@ -16,6 +16,7 @@
 #include <sstream>     // std::ostringstream
 #include <string>      // std::string
 #include <string_view> // std::string_view
+#include <tuple>       // std::tuple
 #include <vector>      // std::vector
 
 namespace {
@@ -90,9 +91,8 @@ auto make_schema_resolver(const sourcemeta::core::JSON &test)
   };
 }
 
-// A frame keeps a view into the base it was given, so the base has to outlive
-// it. The caller owns this, as anything built inside the analysis would dangle
-// on return and only misbehave later, when the frame is read back
+// The base a fixture declares, which the frame canonicalises into a string of
+// its own rather than borrowing
 auto make_default_base(const sourcemeta::core::JSON &test)
     -> sourcemeta::core::JSON::String {
   const auto *base{test.try_at("defaultBase")};
@@ -489,7 +489,28 @@ auto check_frame_invariants(const sourcemeta::core::JSON &frame) -> void {
                              entry.second.at("dangling").to_boolean();
                     }));
 
+  // Every operation is one method of one Path Item Object reached one way, and
+  // the projection turns away a place it has already reached the same way, so
+  // two records agreeing on all of that would be one operation described twice
+  // over. The Path Item Object belongs in the key rather than only the name it
+  // is reached under, as one operation may hold two Callback Objects that name
+  // one expression and lead to Path Item Objects of their own
+  std::set<std::tuple<std::string, std::string, std::string, std::string,
+                      std::optional<std::string>>>
+      exposures;
   for (const auto &operation : frame.at("operations").as_array()) {
+    EXPECT_TRUE(
+        exposures
+            .emplace(operation.at("type").to_string(),
+                     operation.at("path").to_string(),
+                     operation.at("method").to_string(),
+                     operation.at("endpoint").to_string(),
+                     operation.defines("parent")
+                         ? std::optional<std::string>{operation.at("parent")
+                                                          .to_string()}
+                         : std::nullopt)
+            .second);
+
     // Every operation the description exposes is an Operation Object that the
     // walk read, and what is in force where it sits was read too
     const auto &origin{operation.at("origin").to_string()};
@@ -530,6 +551,38 @@ auto check_frame_invariants(const sourcemeta::core::JSON &frame) -> void {
     const auto &endpoint{operation.at("endpoint").to_string()};
     EXPECT_TRUE(locations.defines(endpoint));
     EXPECT_EQ(locations.at(endpoint).at("type").to_string(), "path-item");
+
+    // And the name it is exposed under is the one the document files it under,
+    // rather than anything the projection makes up
+    const auto &exposed_at{locations.at(endpoint).at("pointer").to_string()};
+    const auto &kind{operation.at("type").to_string()};
+    sourcemeta::core::Pointer written_at;
+    if (kind == "path") {
+      written_at.push_back(sourcemeta::core::JSON::String{"paths"});
+    } else if (kind == "webhook") {
+      written_at.push_back(sourcemeta::core::JSON::String{"webhooks"});
+    }
+
+    written_at.push_back(operation.at("path").to_string());
+    if (kind == "callback") {
+      // A callback expression names a Path Item under the Callback Object that
+      // the parent operation holds, so only the last step of the route is the
+      // expression itself
+      EXPECT_TRUE(
+          exposed_at.ends_with(sourcemeta::core::to_string(written_at)));
+    } else {
+      EXPECT_EQ(exposed_at, sourcemeta::core::to_string(written_at));
+    }
+
+    // A Callback Object hangs off an Operation Object, so an operation it
+    // exposes names that Object and no other kind of operation names one
+    EXPECT_EQ(operation.defines("parent"),
+              operation.at("type").to_string() == "callback");
+    if (operation.defines("parent")) {
+      const auto &parent{operation.at("parent").to_string()};
+      EXPECT_TRUE(locations.defines(parent));
+      EXPECT_EQ(locations.at(parent).at("type").to_string(), "operation");
+    }
 
     for (const auto &server : operation.at("servers").as_array()) {
       EXPECT_TRUE(locations.defines(server.to_string()));
@@ -676,6 +729,14 @@ auto run_fail_test(const sourcemeta::core::JSON &test) -> void {
     EXPECT_TRUE(test.at("error").defines("identifier"));
     EXPECT_EQ(error.identifier(),
               test.at("error").at("identifier").to_string());
+  } catch (const sourcemeta::core::SchemaUnknownBaseDialectError &error) {
+    refused = true;
+    check_schema_refusal(test, error.what());
+  } catch (const sourcemeta::core::SchemaUnknownDialectError &error) {
+    // Neither of these two carries anything beyond what it says, so unlike
+    // every other refusal above there is no second half to hold it to
+    refused = true;
+    check_schema_refusal(test, error.what());
   } catch (const std::exception &error) {
     // Every way a description can be turned down is named above, so anything
     // else is a refusal this runner has no account of rather than one to let

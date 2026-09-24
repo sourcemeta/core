@@ -89,5 +89,6 @@
     "https://example.com/deep/kid": 1
   },
   "standalone": true,
-  "relocatable": true
+  "relocatable": true,
+  "operations": []
 }

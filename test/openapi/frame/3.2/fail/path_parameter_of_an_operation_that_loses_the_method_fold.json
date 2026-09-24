@@ -1,0 +1,48 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "$ref": "#/components/pathItems/Pets",
+        "get": {
+          "parameters": [
+            {
+              "name": "bogus",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "ok"
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "pathItems": {
+        "Pets": {
+          "get": {
+            "responses": {
+              "200": {
+                "description": "ok"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "A path Parameter Object must name a template expression of a path that exposes it",
+    "location": "/paths/~1pets/get/parameters/0"
+  }
+}

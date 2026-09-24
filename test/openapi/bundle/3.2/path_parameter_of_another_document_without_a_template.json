@@ -47,7 +47,7 @@
   "schemaResolver": {},
   "error": {
     "type": "OpenAPIError",
-    "message": "A path Parameter Object must name a template expression of the path it is under",
+    "message": "A path Parameter Object must name a template expression of a path that exposes it",
     "location": "/components/pathItems/Pet/get/parameters/0"
   }
 }

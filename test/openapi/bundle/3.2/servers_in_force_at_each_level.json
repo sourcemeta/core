@@ -1,0 +1,118 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "servers": [
+      {
+        "url": "https://root.example.com"
+      }
+    ],
+    "paths": {
+      "/pets": {
+        "servers": [
+          {
+            "url": "https://pathitem.example.com"
+          }
+        ],
+        "get": {
+          "servers": [
+            {
+              "url": "https://operation.example.com"
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "ok"
+            }
+          }
+        },
+        "post": {
+          "responses": {
+            "200": {
+              "description": "ok"
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {},
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "servers": [
+      {
+        "url": "https://root.example.com"
+      }
+    ],
+    "paths": {
+      "/pets": {
+        "servers": [
+          {
+            "url": "https://pathitem.example.com"
+          }
+        ],
+        "get": {
+          "servers": [
+            {
+              "url": "https://operation.example.com"
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "ok"
+            }
+          }
+        },
+        "post": {
+          "responses": {
+            "200": {
+              "description": "ok"
+            }
+          }
+        }
+      }
+    }
+  },
+  "inserted": [],
+  "reads": {},
+  "schemaReads": {},
+  "standalone": true,
+  "relocatable": true,
+  "operations": [
+    {
+      "type": "path",
+      "path": "/pets",
+      "method": "get",
+      "origin": "https://example.com/openapi.json#/paths/~1pets/get",
+      "endpoint": "https://example.com/openapi.json#/paths/~1pets",
+      "tags": [],
+      "servers": [
+        "https://example.com/openapi.json#/paths/~1pets/get/servers/0"
+      ],
+      "security": [],
+      "parameters": []
+    },
+    {
+      "type": "path",
+      "path": "/pets",
+      "method": "post",
+      "origin": "https://example.com/openapi.json#/paths/~1pets/post",
+      "endpoint": "https://example.com/openapi.json#/paths/~1pets",
+      "tags": [],
+      "servers": [
+        "https://example.com/openapi.json#/paths/~1pets/servers/0"
+      ],
+      "security": [],
+      "parameters": []
+    }
+  ]
+}

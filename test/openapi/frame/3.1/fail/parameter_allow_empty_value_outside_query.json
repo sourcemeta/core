@@ -17,7 +17,7 @@
     }
   },
   "error": {
-    "message": "The Parameter Object does not define this field",
+    "message": "The Parameter Object does not admit this field as declared",
     "location": "/components/parameters/Item/allowEmptyValue"
   }
 }

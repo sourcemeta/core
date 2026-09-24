@@ -112,5 +112,6 @@
     "https://example.com/shared/kind.json": 1
   },
   "standalone": true,
-  "relocatable": true
+  "relocatable": true,
+  "operations": []
 }

@@ -93,5 +93,6 @@
   },
   "schemaReads": {},
   "standalone": true,
-  "relocatable": false
+  "relocatable": false,
+  "operations": []
 }
