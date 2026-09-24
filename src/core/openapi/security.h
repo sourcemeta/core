@@ -191,7 +191,7 @@ inline auto openapi_check_oauth_flow(const JSON &value, const Pointer &base,
   }
 
   // OpenAPI Specification 3.1.1, Section 4.8.29: "scopes | Map[string, string]
-  // | REQUIRED. The available scopes for the OAuth2 security scheme"
+  // | oauth2 | REQUIRED. The available scopes for the OAuth2 security scheme."
   const auto &scopes{
       openapi_require(value, "scopes"sv, OPENAPI_HASH_SCOPES, base,
                       "The OAuth Flow Object must declare its scopes")};

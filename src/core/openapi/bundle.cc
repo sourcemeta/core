@@ -39,9 +39,9 @@ struct OpenAPIPending {
   // cannot reach what is named
   bool mapping{false};
   // Whether a Security Requirement Object is what names it. OpenAPI
-  // Specification 3.2.1, Section 4.30 lets one name a Security Scheme Object
-  // "by URI", and that URI is the member the scopes sit under rather than a
-  // value of its own, so making it whole renames a member rather than writing
+  // Specification 3.2.1, Section 4.30 lets a name "be the URI of a Security
+  // Scheme Object", and that URI is the member the scopes sit under rather than
+  // a value of its own, so making it whole renames a member rather than writing
   // to one. Nothing else this brings in is spelled that way
   bool requirement{false};
   // What the reference resolves against, which for everything but a Schema
@@ -61,8 +61,8 @@ auto pending(const sourcemeta::core::OpenAPIWalk &walk)
   std::vector<OpenAPIPending> result;
   for (const auto &entry : walk.references) {
     if (walk.locations.contains(entry.second.destination) ||
-        sourcemeta::core::openapi_document_uri(entry.second.destination) ==
-            walk.base) {
+        sourcemeta::core::openapi_within_document(entry.second.destination,
+                                                  walk.base)) {
       continue;
     }
 
@@ -81,8 +81,8 @@ auto pending(const sourcemeta::core::OpenAPIWalk &walk)
   // several schemes, which is more than one entry keyed by where it sits
   for (const auto &entry : walk.security_references) {
     if (walk.locations.contains(entry.second.destination) ||
-        sourcemeta::core::openapi_document_uri(entry.second.destination) ==
-            walk.base) {
+        sourcemeta::core::openapi_within_document(entry.second.destination,
+                                                  walk.base)) {
       continue;
     }
 
@@ -167,7 +167,7 @@ auto container_of(const sourcemeta::core::Pointer &origin,
 auto rebase(const sourcemeta::core::JSON::String &destination,
             const sourcemeta::core::JSON::String &base)
     -> sourcemeta::core::JSON::String {
-  if (sourcemeta::core::openapi_document_uri(destination) != base) {
+  if (!sourcemeta::core::openapi_within_document(destination, base)) {
     return destination;
   }
 
@@ -268,8 +268,8 @@ auto absolutize_schemas(sourcemeta::core::JSON &value,
       // reads its fragment hands back a view into it
       const sourcemeta::core::URI destination{discriminator.destination};
       const auto fragment{destination.fragment()};
-      if (sourcemeta::core::openapi_document_uri(discriminator.destination) !=
-              remote.base ||
+      if (!sourcemeta::core::openapi_within_document(discriminator.destination,
+                                                     remote.base) ||
           !fragment.has_value() || !fragment.value().starts_with('/')) {
         continue;
       }
@@ -413,8 +413,8 @@ auto absolutize_schemas(sourcemeta::core::JSON &value,
           // resolved against an identifier a schema declares for itself counts
           // from that schema, which moves along whole, and a name is not a
           // pointer at all
-          if (sourcemeta::core::openapi_document_uri(reference.destination) !=
-                  remote.base ||
+          if (!sourcemeta::core::openapi_within_document(reference.destination,
+                                                         remote.base) ||
               !reference.fragment.has_value() ||
               !reference.fragment.value().starts_with('/')) {
             return;
@@ -666,7 +666,7 @@ auto bundle_schemas(sourcemeta::core::JSON &document,
                         sourcemeta::core::to_pointer(location));
   };
 
-  // Section 4.8.24 scopes what the OpenAPI Object sets to the Schema Objects
+  // Section 4.8.24.5 scopes what the OpenAPI Object sets to the Schema Objects
   // "contained within an OAS document", and says of the rest: "For standalone
   // JSON Schema documents that do not set `$schema` [...] the dialect SHOULD
   // be assumed to be the OAS dialect". A document a resolver hands back is one
@@ -788,8 +788,8 @@ auto schema_pending(const sourcemeta::core::JSON &document,
     }
 
     if (frame.traverse(reference.destination).has_value() ||
-        sourcemeta::core::openapi_document_uri(reference.destination) ==
-            walk.base) {
+        sourcemeta::core::openapi_within_document(reference.destination,
+                                                  walk.base)) {
       return;
     }
 
@@ -813,8 +813,8 @@ auto schema_pending(const sourcemeta::core::JSON &document,
   for (auto &discriminator : sourcemeta::core::openapi_discriminators(
            document, frame, walk.base, walker, resolver)) {
     if (sourcemeta::core::openapi_discriminator_lands(frame, discriminator) ||
-        sourcemeta::core::openapi_document_uri(discriminator.destination) ==
-            walk.base) {
+        sourcemeta::core::openapi_within_document(discriminator.destination,
+                                                  walk.base)) {
       continue;
     }
 

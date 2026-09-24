@@ -596,7 +596,8 @@ auto openapi_reject_unknown_fields(
 // base was established, and the base by itself for the root of a document.
 //
 // RFC 6901 Section 6: "A JSON Pointer can be represented in a URI fragment
-// identifier by encoding it into octets using UTF-8, while percent-encoding
+// identifier by encoding it into octets using UTF-8 [RFC3629], while
+// percent-encoding
 // those characters not allowed by the fragment rule in [RFC3986]". A path
 // template holds braces and a callback expression holds a `#`, neither of
 // which a fragment admits, so writing the pointer out as it stands would give
@@ -646,6 +647,16 @@ inline auto openapi_document_uri(const JSON::String &uri) -> JSON::String {
   return JSON::String{take_until(uri, '#')};
 }
 
+// Whether a location key names a place in a given document. A pointer into a
+// document already in hand that leads nowhere leads nowhere for good, while
+// one naming another document says only that the document has gone unread, so
+// telling the two apart is what several checks abstain on. They abstain on one
+// answer rather than each asking in its own words
+inline auto openapi_within_document(const JSON::String &uri,
+                                    const JSON::String &base) -> bool {
+  return take_until(uri, '#') == base;
+}
+
 // Where a problem found once the walk is over belongs. A location says which
 // base it is keyed by and where under it the Object sits, and a field hangs
 // off that when the problem is with one rather than with the Object holding it
@@ -668,7 +679,7 @@ openapi_error_at(const std::map<JSON::String, OpenAPILocation> &locations,
 // 5.1.2 and so leaves out 5.1.1, "Base URI Embedded in Content". A 3.1
 // document therefore has no way of declaring its own base, and what remains is
 // 5.1.3, "Base URI from the Retrieval URI", which only the caller can supply.
-// 3.2.1 Section 4.3 says as much, and 3.1 leaves it unsaid rather than saying
+// 3.2.1 Section 4.1.2.2.1 says as much, and 3.1 leaves it unsaid rather than
 // otherwise: implementations "SHOULD allow users to provide documents with
 // their intended retrieval URIs"
 inline auto openapi_canonical_base(const std::string_view input)

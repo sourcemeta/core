@@ -390,8 +390,8 @@ auto collect_path_parameter_names(
     // where no further reading can supply a parameter, so it is passed over
     // rather than taken as a reason to say nothing
     if (identity == nullptr) {
-      if (sourcemeta::core::take_until(follow_aliases(walk, position), '#') !=
-          walk.base) {
+      if (!sourcemeta::core::openapi_within_document(
+              follow_aliases(walk, position), walk.base)) {
         return false;
       }
 
@@ -491,7 +491,7 @@ auto openapi_project(const OpenAPIWalk &walk) -> std::vector<OpenAPIOperation> {
     // called unresolvable, which leaves only a chain ending in a document this
     // has not read unsettled
     const auto settled{walk.path_items.contains(position) ||
-                       take_until(position, '#') == walk.base};
+                       openapi_within_document(position, walk.base)};
 
     // The last place the chain leads through that this one holds answers
     // first, which is what the chain ends at whenever that landed, and each

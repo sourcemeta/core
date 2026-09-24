@@ -93,9 +93,9 @@ inline auto openapi_check_document(const JSON &document, OpenAPIWalk &walk)
 // establishes none. OpenAPI Specification 3.2.1, Section 4.1: the field
 // "provides the self-assigned URI of this document, which also serves as its
 // base URI in accordance with RFC3986 Section 5.1.1", and Section 4.1.2.2.1:
-// "If
-// `$self` is a relative URI reference, it is resolved against the next
-// possible base URI source before being used". That next source is whatever
+// "If `$self` is a relative URI reference, it is resolved against the next
+// possible base URI source ([RFC3986] Section 5.1.2 [...] 5.1.4) before being
+// used for the resolution of other relative URI references". That source is
 // base is in force here, which is the retrieval URI for the entry document and
 // the URI a reference named for any other. RFC 3986 Section 5.2.1 has only the
 // scheme required of a base, so a relative `$self` with nothing absolute to
@@ -458,7 +458,8 @@ inline auto openapi_check_document(const JSON &document, OpenAPIWalk &walk)
     // Section 4.8.24.1: "To allow use of a different default `$schema` value
     // for all Schema Objects contained within an OAS document, a
     // `jsonSchemaDialect` value may be set within the OpenAPI Object. If this
-    // default is not set, then the OAS dialect schema id MUST be used". What a
+    // default is not set, then the OAS dialect schema id MUST be used for
+    // these Schema Objects". What a
     // Schema Object says about itself overrides this, which is a matter for
     // whatever reads inside one
     JSON::String effective_dialect{openapi_dialect(walk.version)};

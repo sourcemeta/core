@@ -155,7 +155,9 @@ inline auto openapi_check_server_variable(const JSON &value,
 // substitution, which SHALL be sent if an alternate value is not supplied", so
 // a template always names at least one concrete URL
 inline auto openapi_substitute_server_variables(const JSON::StringView address,
-                                                const JSON &variables)
+                                                const JSON &variables,
+                                                const JSON::StringView varied,
+                                                const JSON::StringView value)
     -> std::optional<JSON::String> {
   JSON::String result;
   JSON::StringView::size_type cursor{0};
@@ -178,6 +180,13 @@ inline auto openapi_substitute_server_variables(const JSON::StringView address,
       return std::nullopt;
     }
 
+    const auto name{address.substr(opening + 1, closing - opening - 1)};
+    if (!varied.empty() && name == varied) {
+      result.append(value);
+      cursor = closing + 1;
+      continue;
+    }
+
     const auto *fallback{variable->try_at("default")};
     if (fallback == nullptr || !fallback->is_string()) {
       return std::nullopt;
@@ -188,6 +197,45 @@ inline auto openapi_substitute_server_variables(const JSON::StringView address,
   }
 
   return result;
+}
+
+// Whether a server URL template names an absolute URI whatever its variables
+// stand for. Section 4.8.6 bounds that: a `default` is "REQUIRED. The default
+// value to use for substitution, which SHALL be sent if an alternate value is
+// not supplied", and where an `enum` is present "the value MUST exist in the
+// enum's values", so between them they are the whole of what one may stand
+// for. A single value that leaves the template relative leaves what it names
+// for the document holding it to settle, which is the one thing moving it
+// changes, so the default answering alone says too little
+inline auto
+openapi_is_absolute_server_url_template(const JSON::StringView address,
+                                        const JSON &variables) -> bool {
+  const auto baseline{
+      openapi_substitute_server_variables(address, variables, {}, {})};
+  if (!baseline.has_value() || !URI::is_uri(baseline.value())) {
+    return false;
+  }
+
+  for (const auto &variable : variables.as_object()) {
+    const auto *choices{variable.second.try_at("enum")};
+    if (choices == nullptr || !choices->is_array()) {
+      continue;
+    }
+
+    for (const auto &choice : choices->as_array()) {
+      if (!choice.is_string()) {
+        return false;
+      }
+
+      const auto candidate{openapi_substitute_server_variables(
+          address, variables, variable.first, choice.to_string())};
+      if (!candidate.has_value() || !URI::is_uri(candidate.value())) {
+        return false;
+      }
+    }
+  }
+
+  return true;
 }
 
 inline auto openapi_resolve_server_url(const JSON::StringView address,
@@ -225,9 +273,7 @@ inline auto openapi_resolve_server_url(const JSON::StringView address,
       return std::nullopt;
     }
 
-    const auto substituted{
-        openapi_substitute_server_variables(address, *variables)};
-    if (!substituted.has_value() || !URI::is_uri(substituted.value())) {
+    if (!openapi_is_absolute_server_url_template(address, *variables)) {
       return std::nullopt;
     }
 
@@ -340,8 +386,8 @@ inline auto openapi_check_server(const JSON &value, const Pointer &base,
   // revision says a server URL template is, and nothing beyond its shape is
   // read from it.
   //
-  // That MUST is also 3.1.2 Section 4.8.12.4, which by Section 3 reaches every
-  // 3.1 document, so holding this to 3.2 alone leaves a 3.1 URL that no
+  // That MUST is also 3.1.2 Section 4.8.12.4, which by Section 4.1 reaches
+  // every 3.1 document, so holding this to 3.2 alone leaves a 3.1 URL that no
   // amount of parsing can rescue unreported. That is under-reporting rather
   // than a wrong refusal, and closing it would turn down documents accepted
   // until now, so it waits for a release that can carry it
