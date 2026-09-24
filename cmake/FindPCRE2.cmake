@@ -1,8 +1,4 @@
 if(NOT PCRE2_FOUND)
-  # The just-in-time compiler of this library is a code generator that this
-  # project builds and reasons about on its own
-  find_package(SLJIT REQUIRED)
-
   set(PCRE2_DIR "${PROJECT_SOURCE_DIR}/vendor/pcre2")
   set(PCRE2_SOURCE_DIR "${PCRE2_DIR}/src")
   set(PCRE2_BINARY_DIR "${PROJECT_BINARY_DIR}/pcre2")
@@ -97,6 +93,8 @@ if(NOT PCRE2_FOUND)
   add_library(pcre2 OBJECT ${PCRE2_SOURCES})
   sourcemeta_add_default_options(PRIVATE pcre2)
 
+  # The code generator that the just-in-time compiler drives is a dependency
+  # of its own, which the caller is expected to have satisfied by now
   # Public, as the translation unit that drives the code generator has to see
   # the configuration it was built with to agree on its structure layouts
   target_link_libraries(pcre2 PUBLIC SLJIT::sljit)
