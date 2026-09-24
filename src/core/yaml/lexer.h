@@ -77,6 +77,14 @@ public:
   // The number of leading bytes consumed by a stripped byte order mark, so a
   // caller reading from a stream can map a consumed count back to the original
   // input offset
+  // A carriage return is a line break rather than comment content, so it never
+  // belongs to the text of a comment that a carriage return ends.
+  // See https://yaml.org/spec/1.2.2/#66-comments
+  static auto comment_text(const std::string_view raw) -> std::string {
+    return std::string{raw.ends_with('\r') ? raw.substr(0, raw.size() - 1)
+                                           : raw};
+  }
+
   [[nodiscard]] auto bom_length() const noexcept -> std::size_t {
     return this->bom_length_;
   }
@@ -537,8 +545,8 @@ private:
           this->advance(1);
         }
         if (this->roundtrip_) {
-          std::string text{this->input_.substr(
-              comment_start, this->position_ - comment_start)};
+          std::string text{comment_text(this->input_.substr(
+              comment_start, this->position_ - comment_start))};
           if (comment_line == this->comment_reference_line_ &&
               this->comment_reference_line_ > 0 &&
               !this->inline_comment_buffer_.has_value()) {
@@ -1228,8 +1236,8 @@ private:
           this->advance(1);
         }
         if (this->roundtrip_) {
-          this->block_scalar_comment_ = std::string{this->input_.substr(
-              comment_start, this->position_ - comment_start)};
+          this->block_scalar_comment_ = comment_text(this->input_.substr(
+              comment_start, this->position_ - comment_start));
         }
       } else if (current == '\n' || current == '\r') {
         break;

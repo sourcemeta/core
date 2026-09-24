@@ -8,6 +8,19 @@
 
 namespace sourcemeta::core {
 
+namespace {
+
+// The presentation the document uses for its bytes, which a round-trip has to
+// reproduce even though neither affects what the document means
+auto record_encoding(const sourcemeta::core::JSON::String &input,
+                     const sourcemeta::core::yaml::Lexer &lexer,
+                     sourcemeta::core::YAMLRoundTrip &roundtrip) -> void {
+  roundtrip.byte_order_mark = lexer.bom_length() > 0;
+  roundtrip.carriage_returns = input.find("\r\n") != input.npos;
+}
+
+} // namespace
+
 auto parse_yaml(std::basic_istream<JSON::Char, JSON::CharTraits> &stream)
     -> JSON {
   const auto start_pos{stream.tellg()};
@@ -129,7 +142,9 @@ auto parse_yaml(const JSON::String &input, YAMLRoundTrip &roundtrip) -> JSON {
   roundtrip = {};
   yaml::Lexer lexer{input, true};
   yaml::Parser parser{&lexer, nullptr, &roundtrip};
-  return parser.parse();
+  auto result{parser.parse()};
+  record_encoding(input, lexer, roundtrip);
+  return result;
 }
 
 auto parse_yaml(const JSON::String &input, YAMLRoundTrip &roundtrip,
@@ -138,6 +153,7 @@ auto parse_yaml(const JSON::String &input, YAMLRoundTrip &roundtrip,
   yaml::Lexer lexer{input, true};
   yaml::Parser parser{&lexer, &callback, &roundtrip};
   output = parser.parse();
+  record_encoding(input, lexer, roundtrip);
 }
 
 auto stringify_yaml(const JSON &document,
