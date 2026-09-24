@@ -139,6 +139,51 @@ TEST(an_anchor_with_no_alias_at_all_is_kept) {
   EXPECT_EQ(roundtrip(input), input);
 }
 
+TEST(stringify_with_a_zero_indentation) {
+  const auto document{sourcemeta::core::parse_yaml("foo:\n  bar: 1\n")};
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream, 0);
+  EXPECT_EQ(stream.str(), "foo:\n bar: 1\n");
+}
+
+TEST(read_file_with_roundtrip_rejects_documents_after_an_end_marker) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  try {
+    sourcemeta::core::read_yaml(std::filesystem::path{STUBS_PATH} /
+                                    "end_marker_documents.yaml",
+                                metadata);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLFileParseError &error) {
+    EXPECT_EQ(error.path(),
+              std::filesystem::path{STUBS_PATH} / "end_marker_documents.yaml");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(read_file_with_roundtrip_rejects_a_later_document_after_a_directive) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  try {
+    sourcemeta::core::read_yaml(std::filesystem::path{STUBS_PATH} /
+                                    "multi_document_tag_directive.yaml",
+                                metadata);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLFileParseError &error) {
+    EXPECT_EQ(error.path(), std::filesystem::path{STUBS_PATH} /
+                                "multi_document_tag_directive.yaml");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(read_file_with_roundtrip_keeps_trailing_comments) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  const auto document{sourcemeta::core::read_yaml(
+      std::filesystem::path{STUBS_PATH} / "trailing_comment.yaml", metadata)};
+  EXPECT_EQ(document.at("foo"), sourcemeta::core::JSON{"bar"});
+  EXPECT_EQ(stringify(document, metadata), "foo: bar\n# trailing\n");
+}
+
 TEST(block_mapping_simple) {
   const std::string input{R"YAML(foo: bar
 baz: qux

@@ -6,12 +6,15 @@
 #include <sourcemeta/core/json_error.h>
 #include <sourcemeta/core/yaml.h>
 
-#include <algorithm>   // std::min
+#include <algorithm>   // std::min, std::max
+#include <cstddef>     // std::size_t
 #include <string_view> // std::string_view
 
 namespace sourcemeta::core {
 
 namespace {
+
+constexpr std::size_t ONE_COLUMN{1};
 
 // The presentation the document uses for its bytes, which a round-trip has to
 // reproduce even though neither affects what the document means. Only the part
@@ -225,7 +228,7 @@ auto read_yaml(const std::filesystem::path &path, YAMLRoundTrip &roundtrip,
     yaml::Parser parser{&lexer, &callback, &roundtrip};
     output = parser.parse();
 
-    parser.validate_end_of_stream();
+    parser.validate_single_document();
 
     record_encoding(input, lexer, parser, roundtrip);
   } catch (const YAMLParseError &error) {
@@ -237,7 +240,10 @@ auto read_yaml(const std::filesystem::path &path, YAMLRoundTrip &roundtrip,
 auto stringify_yaml(const JSON &document,
                     std::basic_ostream<JSON::Char, JSON::CharTraits> &stream,
                     const std::size_t indentation) -> void {
-  yaml::stringify_yaml<JSON::Allocator>(document, stream, nullptr, indentation);
+  // A nesting width of zero would run a nested collection into the one that
+  // holds it, so the narrowest width that still nests is used instead
+  yaml::stringify_yaml<JSON::Allocator>(document, stream, nullptr,
+                                        std::max(indentation, ONE_COLUMN));
 }
 
 auto stringify_yaml(const JSON &document,

@@ -285,7 +285,9 @@ auto stringify_yaml(const JSON &document,
 
 /// @ingroup yaml
 ///
-/// Stringify a JSON document as YAML. For example:
+/// Stringify a JSON document as YAML, laying out each level of nesting with
+/// the given number of spaces. A width of zero would run a nested collection
+/// into the one that holds it, so it is treated as one. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/json.h>
