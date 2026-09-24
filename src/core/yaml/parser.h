@@ -1830,6 +1830,20 @@ private:
                : token.column > base_column;
   }
 
+  // A node property that decorates a block node rather than a key of the
+  // mapping it sits in has to be indented past that mapping, so one that opens
+  // a block sequence from the mapping's own indentation has nowhere to belong.
+  // See https://yaml.org/spec/1.2.2/#822-block-mappings
+  auto reject_misplaced_property(const Token &property,
+                                 const std::optional<Token> &node) const
+      -> void {
+    if (node.has_value() && node->type == TokenType::BlockSequenceEntry)
+        [[unlikely]] {
+      throw YAMLParseError{property.line, property.column,
+                           "Node property at wrong indentation level"};
+    }
+  }
+
   auto next_token() -> std::optional<Token> {
     std::optional<Token> result;
     if (!this->pending_tokens_.empty()) {
@@ -2044,15 +2058,19 @@ private:
       }
 
       if (next->type == TokenType::Anchor) {
+        const auto property_token{next.value()};
         next = this->next_token();
+        this->reject_misplaced_property(property_token, next);
         if (!next.has_value() || next->type != TokenType::Scalar) {
           continue;
         }
       }
 
       if (next->type == TokenType::Tag) {
+        const auto property_token{next.value()};
         subsequent_key_tag = this->resolve_tag(next->value);
         next = this->next_token();
+        this->reject_misplaced_property(property_token, next);
         if (!next.has_value() || next->type != TokenType::Scalar) {
           continue;
         }

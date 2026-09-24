@@ -1459,6 +1459,54 @@ TEST(unindented_sequence_still_starts_a_mapping_value) {
   EXPECT_EQ(result.at("a").at(0), sourcemeta::core::JSON{1});
 }
 
+// YAML 1.2.2 Section 8.2.2: a node property that decorates a block collection
+// is indented past the mapping the collection belongs to, unlike the block
+// sequence itself, which may sit at the mapping's own indentation
+TEST(anchored_indentless_sequence_at_the_mapping_indentation_is_rejected) {
+  const std::string input{"a:\n  b:\n  &x\n  - 1\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_EQ(error.line(), 3);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(tagged_indentless_sequence_at_the_mapping_indentation_is_rejected) {
+  const std::string input{"a:\n  b:\n  !!seq\n  - 1\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_EQ(error.line(), 3);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(anchored_sequence_indented_past_the_mapping) {
+  const std::string input{"a:\n  b:\n    &x\n    - 1\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result.at("a").at("b").size(), 1);
+  EXPECT_EQ(result.at("a").at("b").at(0), sourcemeta::core::JSON{1});
+}
+
+TEST(anchored_indentless_sequence_on_the_key_line) {
+  const std::string input{"a:\n  b: &x\n  - 1\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result.at("a").at("b").size(), 1);
+  EXPECT_EQ(result.at("a").at("b").at(0), sourcemeta::core::JSON{1});
+}
+
+TEST(tagged_indentless_sequence_on_the_key_line) {
+  const std::string input{"a:\n  b: !!seq\n  - 1\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result.at("a").at("b").size(), 1);
+  EXPECT_EQ(result.at("a").at("b").at(0), sourcemeta::core::JSON{1});
+}
+
 TEST(literal_block_scalar_trailing_more_indented_line) {
   const std::string input{"foo: |\n  x\n   "};
   const auto result{sourcemeta::core::parse_yaml(input)};
