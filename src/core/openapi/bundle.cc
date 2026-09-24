@@ -1144,8 +1144,9 @@ auto absolutize(JSON &value, const OpenAPIWalk &remote, const Pointer &origin,
         // from one place and naming itself another resolves what it says of
         // the API against where it was found rather than against the name it
         // gave itself
-        auto address{
-            openapi_resolve_server_url(written->to_string(), remote.retrieval)};
+        auto address{openapi_resolve_server_url(
+            written->to_string(), remote.retrieval,
+            try_get(value, relative.concat(JSON::String{"variables"})))};
         if (!address.has_value()) {
           throw OpenAPIError{
               remote.base, entry.second.pointer.concat(JSON::String{"url"}),

@@ -149,8 +149,50 @@ inline auto openapi_check_server_variable(const JSON &value,
 // is, and a template that leaves that to a variable means no one thing that
 // resolving could preserve. That case is turned down rather than guessed at,
 // and is reported by handing back no value
+// What a Server Object URL template names once every variable stands for what
+// it is declared to. OpenAPI Specification 3.1.1, Section 4.8.6 makes a Server
+// Variable Object's `default` "REQUIRED. The default value to use for
+// substitution, which SHALL be sent if an alternate value is not supplied", so
+// a template always names at least one concrete URL
+inline auto openapi_substitute_server_variables(const JSON::StringView address,
+                                                const JSON &variables)
+    -> std::optional<JSON::String> {
+  JSON::String result;
+  JSON::StringView::size_type cursor{0};
+  while (cursor < address.size()) {
+    const auto opening{address.find('{', cursor)};
+    if (opening == JSON::StringView::npos) {
+      result.append(address.substr(cursor));
+      break;
+    }
+
+    const auto closing{address.find('}', opening)};
+    if (closing == JSON::StringView::npos) {
+      return std::nullopt;
+    }
+
+    result.append(address.substr(cursor, opening - cursor));
+    const auto *variable{
+        variables.try_at(address.substr(opening + 1, closing - opening - 1))};
+    if (variable == nullptr || !variable->is_object()) {
+      return std::nullopt;
+    }
+
+    const auto *fallback{variable->try_at("default")};
+    if (fallback == nullptr || !fallback->is_string()) {
+      return std::nullopt;
+    }
+
+    result.append(fallback->to_string());
+    cursor = closing + 1;
+  }
+
+  return result;
+}
+
 inline auto openapi_resolve_server_url(const JSON::StringView address,
-                                       const JSON::String &base)
+                                       const JSON::String &base,
+                                       const JSON *const variables)
     -> std::optional<JSON::String> {
   const auto variable{address.find('{')};
   // A template that declares no variable is a URI reference already
@@ -174,9 +216,22 @@ inline auto openapi_resolve_server_url(const JSON::StringView address,
 
   // Until a slash settles it, a variable may still stand for a colon and make
   // what comes before it a scheme, which leaves the kind of reference this is
-  // for the values of the variables to decide rather than the template
+  // for the values of the variables to decide rather than the template. They
+  // do decide it, as every one of them declares what it stands for by default,
+  // and a template that names an absolute URI that way names the same place
+  // wherever the Object holding it comes to sit
   if (separator == JSON::StringView::npos) {
-    return std::nullopt;
+    if (variables == nullptr || !variables->is_object()) {
+      return std::nullopt;
+    }
+
+    const auto substituted{
+        openapi_substitute_server_variables(address, *variables)};
+    if (!substituted.has_value() || !URI::is_uri(substituted.value())) {
+      return std::nullopt;
+    }
+
+    return JSON::String{address};
   }
 
   // Section 5.2.4 removes dot segments from the path that merging produces,
