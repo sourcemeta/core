@@ -495,8 +495,12 @@ auto vacant(const sourcemeta::core::JSON &entries,
   const sourcemeta::core::JSON::String taken{candidate};
   // Trying each number in turn would ask the Components Object about every
   // name that already took this one, and asking it is a walk of everything it
-  // holds, so a description that does this many times over would pay for it
-  // many times over again. Closing in on a free number asks it far fewer times
+  // holds, so a description naming one place many times over would pay for it
+  // many times over again. Closing in on a free number asks it far fewer
+  // times. What this settles on is a free number rather than the lowest free
+  // one, which a document already holding some of them out of order is what
+  // makes the two differ. Either is a name nothing else goes by, which is all
+  // a name bundling invents has to be
   std::uint64_t lower{1};
   std::uint64_t upper{2};
   while (entries.defines(taken + std::to_string(upper))) {
@@ -504,6 +508,8 @@ auto vacant(const sourcemeta::core::JSON &entries,
     upper *= 2;
   }
 
+  // The number above is free and the one below it is taken, and every step
+  // keeps both of those true, so the number this ends on is free
   while (upper - lower > 1) {
     const auto middle{lower + ((upper - lower) / 2)};
     if (entries.defines(taken + std::to_string(middle))) {
@@ -514,14 +520,6 @@ auto vacant(const sourcemeta::core::JSON &entries,
   }
 
   candidate = taken + std::to_string(upper);
-  // Closing in that way lands on the first free number wherever the ones
-  // before it run on without a gap, which is how bundling leaves them. A
-  // document that already holds one of them out of order is what would leave
-  // a gap, so what this landed on is asked about rather than taken on trust
-  while (entries.defines(candidate)) {
-    upper += 1;
-    candidate = taken + std::to_string(upper);
-  }
 
   return candidate;
 }

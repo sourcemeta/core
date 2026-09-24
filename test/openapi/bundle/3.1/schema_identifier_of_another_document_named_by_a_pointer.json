@@ -10,7 +10,7 @@
         "get": {
           "responses": {
             "200": {
-              "$ref": "https://example.com/a.json#/components/responses/R"
+              "$ref": "https://example.com/other.json#/components/responses/R"
             }
           }
         }
@@ -20,43 +20,33 @@
       "schemas": {
         "Pet": {
           "$schema": "https://spec.openapis.org/oas/3.1/dialect/base",
-          "$ref": "https://example.com/b.json#/components/schemas/Foo"
+          "$ref": "https://example.com/ident#/$defs/Foo"
         }
       }
     }
   },
   "defaultBase": "https://example.com/openapi.json",
   "openapiResolver": {
-    "https://example.com/a.json": {
+    "https://example.com/other.json": {
       "openapi": "3.1.1",
       "info": {
-        "title": "A",
+        "title": "Other",
         "version": "1.0.0"
       },
       "components": {
         "responses": {
           "R": {
-            "description": "from a"
+            "description": "pull me in"
           }
         },
         "schemas": {
-          "Hijack": {
-            "$id": "https://example.com/b.json",
-            "title": "I am not b.json"
-          }
-        }
-      }
-    },
-    "https://example.com/b.json": {
-      "openapi": "3.1.1",
-      "info": {
-        "title": "B",
-        "version": "1.0.0"
-      },
-      "components": {
-        "schemas": {
-          "Foo": {
-            "title": "the real b"
+          "Ident": {
+            "$id": "https://example.com/ident",
+            "$defs": {
+              "Foo": {
+                "title": "FOO"
+              }
+            }
           }
         }
       }
@@ -84,32 +74,37 @@
       "schemas": {
         "Pet": {
           "$schema": "https://spec.openapis.org/oas/3.1/dialect/base",
-          "$ref": "#/components/schemas/Foo"
+          "$ref": "#/components/schemas/Ident/$defs/Foo"
         },
-        "Foo": {
-          "title": "the real b"
+        "Ident": {
+          "$id": "https://example.com/ident",
+          "$defs": {
+            "Foo": {
+              "title": "FOO"
+            }
+          }
         }
       },
       "responses": {
         "R": {
-          "description": "from a"
+          "description": "pull me in"
         }
       }
     }
   },
   "inserted": [
     {
-      "from": "https://example.com/a.json#/components/responses/R",
+      "from": "https://example.com/other.json#/components/responses/R",
       "at": "/components/responses/R"
     },
     {
-      "from": "https://example.com/b.json#/components/schemas/Foo",
-      "at": "/components/schemas/Foo"
+      "from": "https://example.com/other.json#/components/schemas/Ident",
+      "at": "/components/schemas/Ident"
     }
   ],
   "reads": {
-    "https://example.com/a.json": 1,
-    "https://example.com/b.json": 1
+    "https://example.com/other.json": 1,
+    "https://example.com/ident": 1
   },
   "schemaReads": {},
   "standalone": true,
