@@ -1326,6 +1326,53 @@ TEST(carriage_return_only_document_markers) {
   EXPECT_EQ(second.at("b"), sourcemeta::core::JSON{2});
 }
 
+// YAML 1.2.2 Section 8.2.2: a key whose value is empty is followed by the next
+// key of whichever mapping that key's indentation belongs to, so a less
+// indented key that follows closes the mapping rather than becoming the value
+TEST(empty_mapping_value_before_a_less_indented_key) {
+  const std::string input{"a:\n  b:\nc: 1\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at("a").at("b"), sourcemeta::core::JSON{nullptr});
+  EXPECT_EQ(result.at("c"), sourcemeta::core::JSON{1});
+}
+
+TEST(empty_mapping_values_before_a_less_indented_key) {
+  const std::string input{"a:\n  b:\n  d:\nc: 1\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at("a").size(), 2);
+  EXPECT_EQ(result.at("a").at("b"), sourcemeta::core::JSON{nullptr});
+  EXPECT_EQ(result.at("a").at("d"), sourcemeta::core::JSON{nullptr});
+  EXPECT_EQ(result.at("c"), sourcemeta::core::JSON{1});
+}
+
+TEST(empty_mapping_value_two_levels_before_a_less_indented_key) {
+  const std::string input{"a:\n  b:\n    c:\nd: 1\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at("a").at("b").at("c"), sourcemeta::core::JSON{nullptr});
+  EXPECT_EQ(result.at("d"), sourcemeta::core::JSON{1});
+}
+
+TEST(empty_mapping_value_before_a_more_indented_key) {
+  const std::string input{"a:\n  b:\n      c: 1\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_EQ(result.at("a").at("b").at("c"), sourcemeta::core::JSON{1});
+}
+
+TEST(empty_mapping_values_across_a_workflow_shape) {
+  const std::string input{"on:\n  push:\n  pull_request:\njobs:\n  x: 1\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at("on").at("push"), sourcemeta::core::JSON{nullptr});
+  EXPECT_EQ(result.at("on").at("pull_request"),
+            sourcemeta::core::JSON{nullptr});
+  EXPECT_EQ(result.at("jobs").at("x"), sourcemeta::core::JSON{1});
+}
+
 TEST(literal_block_scalar_trailing_more_indented_line) {
   const std::string input{"foo: |\n  x\n   "};
   const auto result{sourcemeta::core::parse_yaml(input)};

@@ -1868,7 +1868,7 @@ private:
         next->type == TokenType::StreamEnd ||
         next->type == TokenType::DocumentEnd) {
       if (next.has_value() && next->type == TokenType::Scalar &&
-          (next->line == key_line || next->column != base_column)) {
+          (next->line == key_line || next->column > base_column)) {
         this->record_inline_comment_for_key(key, next->line != key_line);
         auto value{this->parse_value(next.value(), JSON::ParseContext::Property,
                                      0, key, key_line, key_column)};
@@ -2120,7 +2120,7 @@ private:
 
       if (!next.has_value() || next->type == TokenType::Scalar) {
         if (next.has_value() &&
-            (next->line == key_line || next->column != base_column)) {
+            (next->line == key_line || next->column > base_column)) {
           this->record_inline_comment_for_key(key, next->line != key_line);
           auto after{this->next_token()};
           if (after.has_value()) {
