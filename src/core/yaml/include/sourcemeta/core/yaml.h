@@ -208,6 +208,20 @@ auto parse_yaml(const JSON::String &input, YAMLRoundTrip &roundtrip,
 
 /// @ingroup yaml
 ///
+/// Parse a YAML document from a C++ standard input stream with round-trip
+/// metadata into an existing JSON value, invoking the given callback during
+/// parsing. The stream is left just after the document that was read, so that
+/// a stream holding several documents can be read one document at a time. The
+/// result is constructed directly into the given reference rather than
+/// returned by value to ensure that references passed through the parse
+/// callback remain valid after parsing completes.
+SOURCEMETA_CORE_YAML_EXPORT
+auto parse_yaml(std::basic_istream<JSON::Char, JSON::CharTraits> &stream,
+                YAMLRoundTrip &roundtrip, JSON &output,
+                const JSON::ParseCallback &callback) -> void;
+
+/// @ingroup yaml
+///
 /// Stringify a JSON document as YAML, using round-trip metadata collected
 /// during parsing to preserve the original formatting. The document may be
 /// modified in between, in which case the nodes that changed are written from
