@@ -17,6 +17,24 @@ if(NOT SLJIT_FOUND)
   target_compile_definitions(sljit PUBLIC SLJIT_VERBOSE=0)
   target_compile_definitions(sljit PUBLIC SLJIT_DEBUG=0)
 
+  if(SOURCEMETA_COMPILER_LLVM OR SOURCEMETA_COMPILER_GCC)
+    # Generated code accumulates into a trailing single-element array that is
+    # over-allocated and written well past its first element, so the strictest
+    # interpretation of what counts as a trailing flexible array would treat
+    # every byte this library emits as running off the end of the object
+    target_compile_options(sljit PRIVATE -fstrict-flex-arrays=0)
+  endif()
+
+  if(SOURCEMETA_COMPILER_LLVM)
+    # The immediate byte of a vector lane instruction is only read back on the
+    # paths that set it, which the compiler cannot correlate
+    target_compile_options(sljit PRIVATE -Wno-conditional-uninitialized)
+  endif()
+
+  if(SOURCEMETA_COMPILER_MSVC)
+    target_compile_options(sljit PRIVATE /wd4701)
+  endif()
+
   target_include_directories(sljit PUBLIC
     "$<BUILD_INTERFACE:${SLJIT_SOURCE_DIR}>")
 
