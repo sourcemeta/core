@@ -29,6 +29,12 @@ TEST(protocol_version_string_2025_11_25) {
             "2025-11-25");
 }
 
+TEST(protocol_version_string_2026_07_28) {
+  EXPECT_EQ(sourcemeta::core::mcp_protocol_version_string(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28),
+            "2026-07-28");
+}
+
 TEST(method_initialize) {
   EXPECT_EQ(sourcemeta::core::MCP_METHOD_INITIALIZE, "initialize");
 }
@@ -140,6 +146,13 @@ TEST(resolve_protocol_version_2025_11_25) {
   EXPECT_EQ(result.value(), sourcemeta::core::MCPProtocolVersion::V_2025_11_25);
 }
 
+TEST(resolve_protocol_version_2026_07_28) {
+  const auto result{
+      sourcemeta::core::mcp_resolve_protocol_version("2026-07-28")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), sourcemeta::core::MCPProtocolVersion::V_2026_07_28);
+}
+
 TEST(resolve_protocol_version_unknown) {
   EXPECT_FALSE(
       sourcemeta::core::mcp_resolve_protocol_version("9999-01-01").has_value());
@@ -148,6 +161,61 @@ TEST(resolve_protocol_version_unknown) {
 TEST(resolve_protocol_version_malformed) {
   EXPECT_FALSE(
       sourcemeta::core::mcp_resolve_protocol_version("not-a-date").has_value());
+}
+
+TEST(resolve_protocol_version_unrecognized_dates) {
+  EXPECT_FALSE(
+      sourcemeta::core::mcp_resolve_protocol_version("2026-07-27").has_value());
+  EXPECT_FALSE(sourcemeta::core::mcp_resolve_protocol_version("2026-07-28 ")
+                   .has_value());
+  EXPECT_FALSE(sourcemeta::core::mcp_resolve_protocol_version(" 2026-07-28")
+                   .has_value());
+  EXPECT_FALSE(
+      sourcemeta::core::mcp_resolve_protocol_version("2026-7-28").has_value());
+  EXPECT_FALSE(
+      sourcemeta::core::mcp_resolve_protocol_version("2027-01-01").has_value());
+}
+
+TEST(protocol_version_at_least) {
+  using sourcemeta::core::mcp_protocol_version_at_least;
+  using sourcemeta::core::MCPProtocolVersion;
+
+  // Every revision is at least itself
+  EXPECT_TRUE(mcp_protocol_version_at_least(MCPProtocolVersion::V_2025_03_26,
+                                            MCPProtocolVersion::V_2025_03_26));
+  EXPECT_TRUE(mcp_protocol_version_at_least(MCPProtocolVersion::V_2025_06_18,
+                                            MCPProtocolVersion::V_2025_06_18));
+  EXPECT_TRUE(mcp_protocol_version_at_least(MCPProtocolVersion::V_2025_11_25,
+                                            MCPProtocolVersion::V_2025_11_25));
+  EXPECT_TRUE(mcp_protocol_version_at_least(MCPProtocolVersion::V_2026_07_28,
+                                            MCPProtocolVersion::V_2026_07_28));
+
+  // 2026-07-28 is at least every older revision
+  EXPECT_TRUE(mcp_protocol_version_at_least(MCPProtocolVersion::V_2026_07_28,
+                                            MCPProtocolVersion::V_2025_03_26));
+  EXPECT_TRUE(mcp_protocol_version_at_least(MCPProtocolVersion::V_2026_07_28,
+                                            MCPProtocolVersion::V_2025_06_18));
+  EXPECT_TRUE(mcp_protocol_version_at_least(MCPProtocolVersion::V_2026_07_28,
+                                            MCPProtocolVersion::V_2025_11_25));
+
+  // No older revision is at least 2026-07-28
+  EXPECT_FALSE(mcp_protocol_version_at_least(MCPProtocolVersion::V_2025_03_26,
+                                             MCPProtocolVersion::V_2026_07_28));
+  EXPECT_FALSE(mcp_protocol_version_at_least(MCPProtocolVersion::V_2025_06_18,
+                                             MCPProtocolVersion::V_2026_07_28));
+  EXPECT_FALSE(mcp_protocol_version_at_least(MCPProtocolVersion::V_2025_11_25,
+                                             MCPProtocolVersion::V_2026_07_28));
+
+  // Existing versions remain chronologically ordered
+  EXPECT_TRUE(mcp_protocol_version_at_least(MCPProtocolVersion::V_2025_06_18,
+                                            MCPProtocolVersion::V_2025_03_26));
+  EXPECT_FALSE(mcp_protocol_version_at_least(MCPProtocolVersion::V_2025_03_26,
+                                             MCPProtocolVersion::V_2025_06_18));
+
+  EXPECT_TRUE(mcp_protocol_version_at_least(MCPProtocolVersion::V_2025_11_25,
+                                            MCPProtocolVersion::V_2025_06_18));
+  EXPECT_FALSE(mcp_protocol_version_at_least(MCPProtocolVersion::V_2025_06_18,
+                                             MCPProtocolVersion::V_2025_11_25));
 }
 
 TEST(supports_output_schema_2025_03_26) {
@@ -165,6 +233,11 @@ TEST(supports_output_schema_2025_11_25) {
       sourcemeta::core::MCPProtocolVersion::V_2025_11_25));
 }
 
+TEST(supports_output_schema_2026_07_28) {
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_output_schema(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28));
+}
+
 TEST(supports_structured_content_2025_03_26) {
   EXPECT_FALSE(sourcemeta::core::mcp_supports_structured_content(
       sourcemeta::core::MCPProtocolVersion::V_2025_03_26));
@@ -178,6 +251,11 @@ TEST(supports_structured_content_2025_06_18) {
 TEST(supports_structured_content_2025_11_25) {
   EXPECT_TRUE(sourcemeta::core::mcp_supports_structured_content(
       sourcemeta::core::MCPProtocolVersion::V_2025_11_25));
+}
+
+TEST(supports_structured_content_2026_07_28) {
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_structured_content(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28));
 }
 
 TEST(supports_resource_link_content_2025_03_26) {
@@ -195,6 +273,11 @@ TEST(supports_resource_link_content_2025_11_25) {
       sourcemeta::core::MCPProtocolVersion::V_2025_11_25));
 }
 
+TEST(supports_resource_link_content_2026_07_28) {
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_resource_link_content(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28));
+}
+
 TEST(supports_implementation_title_2025_03_26) {
   EXPECT_FALSE(sourcemeta::core::mcp_supports_implementation_title(
       sourcemeta::core::MCPProtocolVersion::V_2025_03_26));
@@ -208,6 +291,11 @@ TEST(supports_implementation_title_2025_06_18) {
 TEST(supports_implementation_title_2025_11_25) {
   EXPECT_TRUE(sourcemeta::core::mcp_supports_implementation_title(
       sourcemeta::core::MCPProtocolVersion::V_2025_11_25));
+}
+
+TEST(supports_implementation_title_2026_07_28) {
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_implementation_title(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28));
 }
 
 TEST(supports_implementation_description_2025_03_26) {
@@ -225,6 +313,11 @@ TEST(supports_implementation_description_2025_11_25) {
       sourcemeta::core::MCPProtocolVersion::V_2025_11_25));
 }
 
+TEST(supports_implementation_description_2026_07_28) {
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_implementation_description(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28));
+}
+
 TEST(supports_implementation_website_url_2025_03_26) {
   EXPECT_FALSE(sourcemeta::core::mcp_supports_implementation_website_url(
       sourcemeta::core::MCPProtocolVersion::V_2025_03_26));
@@ -240,6 +333,11 @@ TEST(supports_implementation_website_url_2025_11_25) {
       sourcemeta::core::MCPProtocolVersion::V_2025_11_25));
 }
 
+TEST(supports_implementation_website_url_2026_07_28) {
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_implementation_website_url(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28));
+}
+
 TEST(supports_jsonrpc_batching_2025_03_26) {
   EXPECT_TRUE(sourcemeta::core::mcp_supports_jsonrpc_batching(
       sourcemeta::core::MCPProtocolVersion::V_2025_03_26));
@@ -253,6 +351,11 @@ TEST(supports_jsonrpc_batching_2025_06_18) {
 TEST(supports_jsonrpc_batching_2025_11_25) {
   EXPECT_FALSE(sourcemeta::core::mcp_supports_jsonrpc_batching(
       sourcemeta::core::MCPProtocolVersion::V_2025_11_25));
+}
+
+TEST(supports_jsonrpc_batching_2026_07_28) {
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_jsonrpc_batching(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28));
 }
 
 TEST(make_text_block) {

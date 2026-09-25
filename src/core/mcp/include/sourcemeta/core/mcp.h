@@ -11,7 +11,7 @@
 #include <cstddef>  // std::size_t
 #include <cstdint>  // std::int64_t, std::uint8_t
 #include <optional> // std::optional, std::nullopt
-#include <utility>  // std::unreachable
+#include <utility>  // std::to_underlying, std::unreachable
 
 /// @defgroup mcp MCP
 /// @brief Helpers for building Model Context Protocol (MCP) envelopes.
@@ -33,6 +33,8 @@ enum class MCPProtocolVersion : std::uint8_t {
   V_2025_06_18,
   /// The MCP 2025-11-25 protocol revision.
   V_2025_11_25,
+  /// The MCP 2026-07-28 protocol revision.
+  V_2026_07_28,
 };
 
 /// @ingroup mcp
@@ -57,8 +59,34 @@ mcp_protocol_version_string(const MCPProtocolVersion version) noexcept
       return "2025-06-18";
     case MCPProtocolVersion::V_2025_11_25:
       return "2025-11-25";
+    case MCPProtocolVersion::V_2026_07_28:
+      return "2026-07-28";
   }
   std::unreachable();
+}
+
+/// @ingroup mcp
+/// Check whether an MCP protocol revision is at least the given minimum
+/// version.
+///
+/// Protocol revisions in @ref MCPProtocolVersion are declared chronologically,
+/// so future versions must be appended.
+///
+/// For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/mcp.h>
+/// #include <cassert>
+///
+/// assert(sourcemeta::core::mcp_protocol_version_at_least(
+///     sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+///     sourcemeta::core::MCPProtocolVersion::V_2025_11_25));
+/// ```
+constexpr auto
+mcp_protocol_version_at_least(const MCPProtocolVersion current,
+                              const MCPProtocolVersion minimum) noexcept
+    -> bool {
+  return std::to_underlying(current) >= std::to_underlying(minimum);
 }
 
 /// @ingroup mcp
@@ -150,6 +178,9 @@ mcp_resolve_protocol_version(const JSON::StringView header) noexcept
     // https://modelcontextprotocol.io/specification/2025-06-18/basic/transports#protocol-version-header
     return MCPProtocolVersion::V_2025_03_26;
   }
+  if (header == "2026-07-28") {
+    return MCPProtocolVersion::V_2026_07_28;
+  }
   if (header == "2025-11-25") {
     return MCPProtocolVersion::V_2025_11_25;
   }
@@ -166,7 +197,8 @@ mcp_resolve_protocol_version(const JSON::StringView header) noexcept
 /// Whether the given protocol version supports per-tool `outputSchema`.
 constexpr auto
 mcp_supports_output_schema(const MCPProtocolVersion version) noexcept -> bool {
-  return version != MCPProtocolVersion::V_2025_03_26;
+  return mcp_protocol_version_at_least(version,
+                                       MCPProtocolVersion::V_2025_06_18);
 }
 
 /// @ingroup mcp
@@ -175,7 +207,8 @@ mcp_supports_output_schema(const MCPProtocolVersion version) noexcept -> bool {
 constexpr auto
 mcp_supports_structured_content(const MCPProtocolVersion version) noexcept
     -> bool {
-  return version != MCPProtocolVersion::V_2025_03_26;
+  return mcp_protocol_version_at_least(version,
+                                       MCPProtocolVersion::V_2025_06_18);
 }
 
 /// @ingroup mcp
@@ -183,7 +216,8 @@ mcp_supports_structured_content(const MCPProtocolVersion version) noexcept
 constexpr auto
 mcp_supports_resource_link_content(const MCPProtocolVersion version) noexcept
     -> bool {
-  return version != MCPProtocolVersion::V_2025_03_26;
+  return mcp_protocol_version_at_least(version,
+                                       MCPProtocolVersion::V_2025_06_18);
 }
 
 /// @ingroup mcp
@@ -192,7 +226,8 @@ mcp_supports_resource_link_content(const MCPProtocolVersion version) noexcept
 constexpr auto
 mcp_supports_implementation_title(const MCPProtocolVersion version) noexcept
     -> bool {
-  return version != MCPProtocolVersion::V_2025_03_26;
+  return mcp_protocol_version_at_least(version,
+                                       MCPProtocolVersion::V_2025_06_18);
 }
 
 /// @ingroup mcp
@@ -200,7 +235,8 @@ mcp_supports_implementation_title(const MCPProtocolVersion version) noexcept
 /// implementation info object.
 constexpr auto mcp_supports_implementation_description(
     const MCPProtocolVersion version) noexcept -> bool {
-  return version == MCPProtocolVersion::V_2025_11_25;
+  return mcp_protocol_version_at_least(version,
+                                       MCPProtocolVersion::V_2025_11_25);
 }
 
 /// @ingroup mcp
@@ -208,7 +244,8 @@ constexpr auto mcp_supports_implementation_description(
 /// implementation info object.
 constexpr auto mcp_supports_implementation_website_url(
     const MCPProtocolVersion version) noexcept -> bool {
-  return version == MCPProtocolVersion::V_2025_11_25;
+  return mcp_protocol_version_at_least(version,
+                                       MCPProtocolVersion::V_2025_11_25);
 }
 
 /// @ingroup mcp
