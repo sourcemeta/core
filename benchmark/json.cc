@@ -820,3 +820,268 @@ BENCHMARK(JSON_Divisible_By_Decimal) {
         value_4.divisible_by(divisor_1));
   }
 }
+
+BENCHMARK(JSON_PropertySet_Contains_Hit_Small) {
+  sourcemeta::core::JSONPropertySet properties;
+  properties.insert("type");
+  properties.insert("items");
+  properties.insert("$ref");
+  properties.insert("required");
+  properties.insert("properties");
+  properties.insert("additionalProperties");
+
+  const sourcemeta::core::JSON::String type{"type"};
+  const sourcemeta::core::JSON::String required{"required"};
+  const sourcemeta::core::JSON::String additional{"additionalProperties"};
+  const auto type_hash{sourcemeta::core::JSON::Object::hash(type)};
+  const auto required_hash{sourcemeta::core::JSON::Object::hash(required)};
+  const auto additional_hash{sourcemeta::core::JSON::Object::hash(additional)};
+
+  for (auto iteration : state) {
+    sourcemeta::core::benchmark_do_not_optimize(
+        properties.contains(type, type_hash));
+    sourcemeta::core::benchmark_do_not_optimize(
+        properties.contains(required, required_hash));
+    sourcemeta::core::benchmark_do_not_optimize(
+        properties.contains(additional, additional_hash));
+  }
+}
+
+BENCHMARK(JSON_PropertySet_Contains_Miss_Small) {
+  sourcemeta::core::JSONPropertySet properties;
+  properties.insert("type");
+  properties.insert("items");
+  properties.insert("$ref");
+  properties.insert("required");
+  properties.insert("properties");
+  properties.insert("additionalProperties");
+
+  const sourcemeta::core::JSON::String name{"name"};
+  const sourcemeta::core::JSON::String identifier{"identifier"};
+  const sourcemeta::core::JSON::String description{"description"};
+  const auto name_hash{sourcemeta::core::JSON::Object::hash(name)};
+  const auto identifier_hash{sourcemeta::core::JSON::Object::hash(identifier)};
+  const auto description_hash{
+      sourcemeta::core::JSON::Object::hash(description)};
+
+  for (auto iteration : state) {
+    sourcemeta::core::benchmark_do_not_optimize(
+        properties.contains(name, name_hash));
+    sourcemeta::core::benchmark_do_not_optimize(
+        properties.contains(identifier, identifier_hash));
+    sourcemeta::core::benchmark_do_not_optimize(
+        properties.contains(description, description_hash));
+  }
+}
+
+BENCHMARK(JSON_PropertySet_Contains_Hit_Large) {
+  sourcemeta::core::JSONPropertySet properties;
+  properties.insert("$id");
+  properties.insert("$ref");
+  properties.insert("$schema");
+  properties.insert("$comment");
+  properties.insert("$defs");
+  properties.insert("additionalProperties");
+  properties.insert("allOf");
+  properties.insert("anyOf");
+  properties.insert("const");
+  properties.insert("contains");
+  properties.insert("default");
+  properties.insert("dependentRequired");
+  properties.insert("dependentSchemas");
+  properties.insert("description");
+  properties.insert("enum");
+  properties.insert("examples");
+  properties.insert("exclusiveMaximum");
+  properties.insert("exclusiveMinimum");
+  properties.insert("format");
+  properties.insert("if");
+  properties.insert("items");
+  properties.insert("maxItems");
+  properties.insert("maxLength");
+  properties.insert("maximum");
+  properties.insert("minItems");
+  properties.insert("minLength");
+  properties.insert("minimum");
+  properties.insert("multipleOf");
+  properties.insert("not");
+  properties.insert("oneOf");
+  properties.insert("pattern");
+  properties.insert("properties");
+
+  const sourcemeta::core::JSON::String first{"$comment"};
+  const sourcemeta::core::JSON::String middle{"format"};
+  const sourcemeta::core::JSON::String last{"properties"};
+  const auto first_hash{sourcemeta::core::JSON::Object::hash(first)};
+  const auto middle_hash{sourcemeta::core::JSON::Object::hash(middle)};
+  const auto last_hash{sourcemeta::core::JSON::Object::hash(last)};
+
+  for (auto iteration : state) {
+    sourcemeta::core::benchmark_do_not_optimize(
+        properties.contains(first, first_hash));
+    sourcemeta::core::benchmark_do_not_optimize(
+        properties.contains(middle, middle_hash));
+    sourcemeta::core::benchmark_do_not_optimize(
+        properties.contains(last, last_hash));
+  }
+}
+
+BENCHMARK(JSON_PropertySet_Contains_Miss_Large) {
+  sourcemeta::core::JSONPropertySet properties;
+  properties.insert("$id");
+  properties.insert("$ref");
+  properties.insert("$schema");
+  properties.insert("$comment");
+  properties.insert("$defs");
+  properties.insert("additionalProperties");
+  properties.insert("allOf");
+  properties.insert("anyOf");
+  properties.insert("const");
+  properties.insert("contains");
+  properties.insert("default");
+  properties.insert("dependentRequired");
+  properties.insert("dependentSchemas");
+  properties.insert("description");
+  properties.insert("enum");
+  properties.insert("examples");
+  properties.insert("exclusiveMaximum");
+  properties.insert("exclusiveMinimum");
+  properties.insert("format");
+  properties.insert("if");
+  properties.insert("items");
+  properties.insert("maxItems");
+  properties.insert("maxLength");
+  properties.insert("maximum");
+  properties.insert("minItems");
+  properties.insert("minLength");
+  properties.insert("minimum");
+  properties.insert("multipleOf");
+  properties.insert("not");
+  properties.insert("oneOf");
+  properties.insert("pattern");
+  properties.insert("properties");
+
+  const sourcemeta::core::JSON::String name{"name"};
+  const sourcemeta::core::JSON::String identifier{"identifier"};
+  const sourcemeta::core::JSON::String created{"createdAt"};
+  const auto name_hash{sourcemeta::core::JSON::Object::hash(name)};
+  const auto identifier_hash{sourcemeta::core::JSON::Object::hash(identifier)};
+  const auto created_hash{sourcemeta::core::JSON::Object::hash(created)};
+
+  for (auto iteration : state) {
+    sourcemeta::core::benchmark_do_not_optimize(
+        properties.contains(name, name_hash));
+    sourcemeta::core::benchmark_do_not_optimize(
+        properties.contains(identifier, identifier_hash));
+    sourcemeta::core::benchmark_do_not_optimize(
+        properties.contains(created, created_hash));
+  }
+}
+
+BENCHMARK(JSON_PropertySet_Contains_Long_Names) {
+  // These names are too long for the hash to be perfect, and they share the
+  // leading bytes the hash is computed from, so every lookup has to fall back
+  // to comparing the names themselves
+  sourcemeta::core::JSONPropertySet properties;
+  properties.insert("x-amazon-apigateway-integration-request-templates");
+  properties.insert("x-amazon-apigateway-integration-response-parameters");
+  properties.insert("x-amazon-apigateway-integration-passthrough-behavior");
+  properties.insert("x-amazon-apigateway-integration-connection-type");
+
+  const sourcemeta::core::JSON::String hit{
+      "x-amazon-apigateway-integration-passthrough-behavior"};
+  const sourcemeta::core::JSON::String miss{
+      "x-amazon-apigateway-integration-request-parameters"};
+  const auto hit_hash{sourcemeta::core::JSON::Object::hash(hit)};
+  const auto miss_hash{sourcemeta::core::JSON::Object::hash(miss)};
+
+  for (auto iteration : state) {
+    sourcemeta::core::benchmark_do_not_optimize(
+        properties.contains(hit, hit_hash));
+    sourcemeta::core::benchmark_do_not_optimize(
+        properties.contains(miss, miss_hash));
+  }
+}
+
+BENCHMARK(JSON_PropertySet_Contains_Computing_Hash) {
+  sourcemeta::core::JSONPropertySet properties;
+  properties.insert("type");
+  properties.insert("items");
+  properties.insert("$ref");
+  properties.insert("required");
+  properties.insert("properties");
+  properties.insert("additionalProperties");
+
+  const sourcemeta::core::JSON::String hit{"required"};
+  const sourcemeta::core::JSON::String miss{"description"};
+
+  for (auto iteration : state) {
+    sourcemeta::core::benchmark_do_not_optimize(properties.contains(hit));
+    sourcemeta::core::benchmark_do_not_optimize(properties.contains(miss));
+  }
+}
+
+BENCHMARK(JSON_PropertySet_Filter_Object_Properties) {
+  // The shape a schema evaluator takes: walk the properties of an instance and
+  // check every one of them against a set, reusing the hash the object already
+  // computed for its own entries
+  sourcemeta::core::JSONPropertySet properties;
+  properties.insert("id");
+  properties.insert("name");
+  properties.insert("email");
+  properties.insert("createdAt");
+  properties.insert("updatedAt");
+  properties.insert("role");
+  properties.insert("active");
+  properties.insert("lastLoginAt");
+
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "id": 42,
+    "name": "John Doe",
+    "email": "john@example.com",
+    "createdAt": "2024-01-01T00:00:00Z",
+    "updatedAt": "2024-06-01T00:00:00Z",
+    "role": "admin",
+    "active": true,
+    "nickname": "johnny",
+    "timezone": "Europe/Madrid",
+    "preferences": { "theme": "dark" }
+  })JSON")};
+  const auto &object{document.as_object()};
+
+  for (auto iteration : state) {
+    auto matches{static_cast<std::size_t>(0)};
+    for (const auto &entry : object) {
+      if (properties.contains(entry.first, entry.hash)) {
+        matches += 1;
+      }
+    }
+
+    assert(matches == 7);
+    sourcemeta::core::benchmark_do_not_optimize(matches);
+  }
+}
+
+BENCHMARK(JSON_PropertySet_Insert) {
+  for (auto iteration : state) {
+    sourcemeta::core::JSONPropertySet properties;
+    properties.insert("$id");
+    properties.insert("$ref");
+    properties.insert("$schema");
+    properties.insert("$comment");
+    properties.insert("$defs");
+    properties.insert("additionalProperties");
+    properties.insert("allOf");
+    properties.insert("anyOf");
+    properties.insert("const");
+    properties.insert("contains");
+    properties.insert("default");
+    properties.insert("dependentRequired");
+    properties.insert("dependentSchemas");
+    properties.insert("description");
+    properties.insert("enum");
+    properties.insert("examples");
+    assert(properties.size() == 16);
+    sourcemeta::core::benchmark_do_not_optimize(properties);
+  }
+}
