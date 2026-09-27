@@ -54,6 +54,61 @@ TEST(object_hash) {
   EXPECT_EQ(value, back.value());
 }
 
+TEST(property_set) {
+  sourcemeta::core::JSONPropertySet value;
+  value.insert("foo");
+  value.insert("bar");
+  const auto result{sourcemeta::core::to_json(value)};
+  const auto expected{
+      sourcemeta::core::parse_json(R"JSON([ "bar", "foo" ])JSON")};
+  EXPECT_EQ(result, expected);
+  const auto back{
+      sourcemeta::core::from_json<sourcemeta::core::JSONPropertySet>(result)};
+  EXPECT_TRUE(back.has_value());
+  EXPECT_EQ(back.value().size(), 2);
+  EXPECT_EQ(back.value().at(0).first, "bar");
+  EXPECT_EQ(back.value().at(1).first, "foo");
+}
+
+TEST(property_set_empty) {
+  const sourcemeta::core::JSONPropertySet value;
+  const auto result{sourcemeta::core::to_json(value)};
+  const auto expected{sourcemeta::core::parse_json(R"JSON([])JSON")};
+  EXPECT_EQ(result, expected);
+  const auto back{
+      sourcemeta::core::from_json<sourcemeta::core::JSONPropertySet>(result)};
+  EXPECT_TRUE(back.has_value());
+  EXPECT_TRUE(back.value().empty());
+}
+
+TEST(property_set_long_property_name) {
+  sourcemeta::core::JSONPropertySet value;
+  value.insert("foo");
+  // This name is too long for its hash to be perfect, so the round trip has to
+  // reproduce a hash that lookups are not allowed to take shortcuts on
+  value.insert("x-amazon-apigateway-integration-passthrough-behavior");
+  const auto result{sourcemeta::core::to_json(value)};
+  const auto expected{sourcemeta::core::parse_json(
+      R"JSON([ "foo", "x-amazon-apigateway-integration-passthrough-behavior" ])JSON")};
+  EXPECT_EQ(result, expected);
+  const auto back{
+      sourcemeta::core::from_json<sourcemeta::core::JSONPropertySet>(result)};
+  EXPECT_TRUE(back.has_value());
+  EXPECT_EQ(back.value().size(), 2);
+  EXPECT_EQ(back.value().at(1).first,
+            "x-amazon-apigateway-integration-passthrough-behavior");
+  EXPECT_EQ(back.value().at(1).second,
+            sourcemeta::core::JSON::Object::hash(
+                "x-amazon-apigateway-integration-passthrough-behavior"));
+}
+
+TEST(property_set_not_an_array) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({ "foo": 1 })JSON")};
+  const auto result{
+      sourcemeta::core::from_json<sourcemeta::core::JSONPropertySet>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
 TEST(json) {
   const sourcemeta::core::JSON value{true};
   const auto result{sourcemeta::core::to_json(value)};

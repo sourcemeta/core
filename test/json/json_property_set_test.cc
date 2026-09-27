@@ -240,16 +240,6 @@ TEST(to_json_empty) {
   EXPECT_EQ(result, expected);
 }
 
-TEST(to_json_auto) {
-  sourcemeta::core::JSONPropertySet properties;
-  properties.insert("foo");
-  properties.insert("bar");
-  const auto result{sourcemeta::core::to_json(properties)};
-  const auto expected{
-      sourcemeta::core::parse_json(R"JSON([ "bar", "foo" ])JSON")};
-  EXPECT_EQ(result, expected);
-}
-
 TEST(from_json) {
   const auto document{
       sourcemeta::core::parse_json(R"JSON([ "foo", "bar" ])JSON")};
@@ -291,32 +281,4 @@ TEST(from_json_array_with_non_string) {
   const auto document{sourcemeta::core::parse_json(R"JSON([ "foo", 1 ])JSON")};
   const auto result{sourcemeta::core::JSONPropertySet::from_json(document)};
   EXPECT_FALSE(result.has_value());
-}
-
-TEST(from_json_auto) {
-  const auto document{
-      sourcemeta::core::parse_json(R"JSON([ "foo", "bar" ])JSON")};
-  const auto result{
-      sourcemeta::core::from_json<sourcemeta::core::JSONPropertySet>(document)};
-  EXPECT_TRUE(result.has_value());
-  EXPECT_EQ(result.value().size(), 2);
-  EXPECT_EQ(result.value().at(0).first, "bar");
-  EXPECT_EQ(result.value().at(1).first, "foo");
-}
-
-TEST(roundtrip) {
-  sourcemeta::core::JSONPropertySet properties;
-  properties.insert("foo");
-  properties.insert("bar");
-  properties.insert(COLLIDING_NAME_1);
-  const auto result{
-      sourcemeta::core::from_json<sourcemeta::core::JSONPropertySet>(
-          sourcemeta::core::to_json(properties))};
-  EXPECT_TRUE(result.has_value());
-  EXPECT_EQ(result.value().size(), 3);
-  EXPECT_EQ(result.value().at(0).first, COLLIDING_NAME_1);
-  EXPECT_EQ(result.value().at(1).first, "bar");
-  EXPECT_EQ(result.value().at(2).first, "foo");
-  EXPECT_EQ(result.value().at(0).second,
-            sourcemeta::core::JSON::Object::hash(COLLIDING_NAME_1));
 }
