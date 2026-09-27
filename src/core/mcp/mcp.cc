@@ -351,41 +351,57 @@ auto mcp_validate_request_meta(const sourcemeta::core::JSON &envelope_or_params)
     return {MCPRequestMetaStatus::ClientCapabilitiesNotObject, std::nullopt};
   }
 
+  const auto *client_info_field{meta->try_at(
+      "io.modelcontextprotocol/clientInfo", MCP_HASH_META_CLIENT_INFO)};
+  if (client_info_field == nullptr) {
+    return {MCPRequestMetaStatus::MissingClientInfo, std::nullopt};
+  }
+  if (!client_info_field->is_object()) {
+    return {MCPRequestMetaStatus::ClientInfoNotObject, std::nullopt};
+  }
+
+  const auto *name_field{client_info_field->try_at("name", MCP_HASH_NAME)};
+  if (name_field == nullptr) {
+    return {MCPRequestMetaStatus::MissingClientInfoName, std::nullopt};
+  }
+  if (!name_field->is_string()) {
+    return {MCPRequestMetaStatus::ClientInfoNameNotString, std::nullopt};
+  }
+
+  const auto *version_field{
+      client_info_field->try_at("version", MCP_HASH_VERSION)};
+  if (version_field == nullptr) {
+    return {MCPRequestMetaStatus::MissingClientInfoVersion, std::nullopt};
+  }
+  if (!version_field->is_string()) {
+    return {MCPRequestMetaStatus::ClientInfoVersionNotString, std::nullopt};
+  }
+
+  const auto *title_field{client_info_field->try_at("title", MCP_HASH_TITLE)};
+  if (title_field != nullptr && !title_field->is_string()) {
+    return {MCPRequestMetaStatus::ClientInfoTitleNotString, std::nullopt};
+  }
+
+  const auto *description_field{
+      client_info_field->try_at("description", MCP_HASH_DESCRIPTION)};
+  if (description_field != nullptr && !description_field->is_string()) {
+    return {MCPRequestMetaStatus::ClientInfoDescriptionNotString, std::nullopt};
+  }
+
+  MCPClientInfo info{.name = name_field->to_string(),
+                     .version = version_field->to_string(),
+                     .title = title_field != nullptr ? title_field->to_string()
+                                                     : JSON::StringView{},
+                     .description = description_field != nullptr
+                                        ? description_field->to_string()
+                                        : JSON::StringView{}};
+
   MCPRequestMeta result_meta;
   result_meta.protocol_version = resolved.value();
   result_meta.client_capabilities = caps;
   result_meta.parsed_client_capabilities = mcp_parse_client_capabilities(*caps);
   result_meta.meta_object = meta;
-
-  const auto *client_info_field{meta->try_at(
-      "io.modelcontextprotocol/clientInfo", MCP_HASH_META_CLIENT_INFO)};
-  if (client_info_field != nullptr) {
-    if (!client_info_field->is_object()) {
-      return {MCPRequestMetaStatus::ClientInfoNotObject, std::nullopt};
-    }
-    MCPClientInfo info;
-    if (client_info_field->defines("name", MCP_HASH_NAME) &&
-        client_info_field->at("name", MCP_HASH_NAME).is_string()) {
-      info.name = client_info_field->at("name", MCP_HASH_NAME).to_string();
-    }
-    if (client_info_field->defines("version", MCP_HASH_VERSION) &&
-        client_info_field->at("version", MCP_HASH_VERSION).is_string()) {
-      info.version =
-          client_info_field->at("version", MCP_HASH_VERSION).to_string();
-    }
-    if (client_info_field->defines("title", MCP_HASH_TITLE) &&
-        client_info_field->at("title", MCP_HASH_TITLE).is_string()) {
-      info.title = client_info_field->at("title", MCP_HASH_TITLE).to_string();
-    }
-    if (client_info_field->defines("description", MCP_HASH_DESCRIPTION) &&
-        client_info_field->at("description", MCP_HASH_DESCRIPTION)
-            .is_string()) {
-      info.description =
-          client_info_field->at("description", MCP_HASH_DESCRIPTION)
-              .to_string();
-    }
-    result_meta.client_info = info;
-  }
+  result_meta.client_info = info;
 
   const auto *log_level_field{meta->try_at("io.modelcontextprotocol/logLevel",
                                            MCP_HASH_META_LOG_LEVEL)};
@@ -454,6 +470,23 @@ auto mcp_request_name_from_body(const sourcemeta::core::JSON &envelope)
     return std::nullopt;
   }
 
+  const auto method{sourcemeta::core::jsonrpc_method(envelope)};
+  if (method == MCP_METHOD_RESOURCES_READ) {
+    const auto *uri_field{params->try_at("uri", MCP_HASH_URI)};
+    if (uri_field != nullptr && uri_field->is_string()) {
+      return uri_field->to_string();
+    }
+    return std::nullopt;
+  }
+
+  if (method == MCP_METHOD_TOOLS_CALL || method == MCP_METHOD_PROMPTS_GET) {
+    const auto *name_field{params->try_at("name", MCP_HASH_NAME)};
+    if (name_field != nullptr && name_field->is_string()) {
+      return name_field->to_string();
+    }
+    return std::nullopt;
+  }
+
   const auto *name_field{params->try_at("name", MCP_HASH_NAME)};
   if (name_field != nullptr && name_field->is_string()) {
     return name_field->to_string();
@@ -466,6 +499,64 @@ auto mcp_request_name_from_body(const sourcemeta::core::JSON &envelope)
 
   return std::nullopt;
 }
+
+namespace {
+
+constexpr auto mcp_base64_decode_char(const char character) noexcept -> int {
+  if (character >= 'A' && character <= 'Z') {
+    return character - 'A';
+  }
+  if (character >= 'a' && character <= 'z') {
+    return character - 'a' + 26;
+  }
+  if (character >= '0' && character <= '9') {
+    return character - '0' + 52;
+  }
+  if (character == '+') {
+    return 62;
+  }
+  if (character == '/') {
+    return 63;
+  }
+  return -1;
+}
+
+auto mcp_decode_base64(const std::string_view encoded)
+    -> std::optional<std::string> {
+  std::string decoded;
+  decoded.reserve(encoded.size() * 3 / 4);
+  int accumulator = 0;
+  int bit_count = -8;
+  for (const char character : encoded) {
+    if (character == '=') {
+      break;
+    }
+    const int value{mcp_base64_decode_char(character)};
+    if (value < 0) {
+      return std::nullopt;
+    }
+    accumulator = (accumulator << 6) + value;
+    bit_count += 6;
+    if (bit_count >= 0) {
+      decoded.push_back(static_cast<char>((accumulator >> bit_count) & 0xFF));
+      bit_count -= 8;
+    }
+  }
+  return decoded;
+}
+
+auto mcp_decode_header_value(const JSON::StringView raw) -> std::string {
+  if (raw.starts_with("=?base64?") && raw.ends_with("?=") && raw.size() >= 11) {
+    const auto payload{raw.substr(9, raw.size() - 11)};
+    const auto decoded{mcp_decode_base64(payload)};
+    if (decoded.has_value()) {
+      return decoded.value();
+    }
+  }
+  return std::string{raw};
+}
+
+} // namespace
 
 auto mcp_make_error_unsupported_protocol_version(
     const sourcemeta::core::JSON *identifier, const JSON::StringView requested,
@@ -523,28 +614,162 @@ auto mcp_make_error_header_mismatch(const sourcemeta::core::JSON *identifier,
       identifier, MCP_CODE_HEADER_MISMATCH, "Header mismatch", std::move(data));
 }
 
+auto mcp_make_error_header_mismatch(const sourcemeta::core::JSON *identifier,
+                                    const JSON::StringView header_name,
+                                    const JSON::StringView header_value)
+    -> sourcemeta::core::JSON {
+  auto data{sourcemeta::core::JSON::make_object()};
+  data.assign_assume_new("header", sourcemeta::core::JSON{header_name},
+                         MCP_HASH_HEADER);
+  data.assign_assume_new("headerValue", sourcemeta::core::JSON{header_value},
+                         MCP_HASH_HEADER_VALUE);
+
+  return sourcemeta::core::jsonrpc_make_error(
+      identifier, MCP_CODE_HEADER_MISMATCH,
+      "Header mismatch: unexpected header provided", std::move(data));
+}
+
 auto mcp_validate_request_headers(
-    const std::optional<JSON::StringView> &header_method,
-    const std::optional<JSON::StringView> &header_name,
+    const MCPProtocolVersion version,
+    const std::optional<JSON::StringView> &protocol_version_header,
+    const std::optional<JSON::StringView> &method_header,
+    const std::optional<JSON::StringView> &name_header,
     const sourcemeta::core::JSON &envelope)
     -> std::optional<sourcemeta::core::JSON> {
-  const auto *request_id{sourcemeta::core::jsonrpc_request_id(envelope)};
+  if (!envelope.is_object()) {
+    return sourcemeta::core::jsonrpc_make_error(
+        nullptr, JSONRPC_CODE_INVALID_REQUEST, "Invalid Request");
+  }
 
-  if (header_method.has_value()) {
-    const auto body_method{mcp_request_method_from_body(envelope)};
-    if (body_method.has_value() &&
-        header_method.value() != body_method.value()) {
+  const auto *request_id{sourcemeta::core::jsonrpc_request_id(envelope)};
+  const auto body_method{mcp_request_method_from_body(envelope)};
+  if (!body_method.has_value()) {
+    return sourcemeta::core::jsonrpc_make_error(
+        request_id, JSONRPC_CODE_INVALID_REQUEST, "Invalid Request");
+  }
+
+  const auto *parameters{sourcemeta::core::jsonrpc_params(envelope)};
+  const auto is_named{mcp_is_named_request_method(body_method.value())};
+  const sourcemeta::core::JSON *name_field{nullptr};
+  if (is_named) {
+    if (parameters == nullptr || !parameters->is_object()) {
+      return sourcemeta::core::jsonrpc_make_error(
+          request_id, JSONRPC_CODE_INVALID_PARAMS, "Invalid params");
+    }
+
+    if (body_method.value() == MCP_METHOD_RESOURCES_READ) {
+      name_field = parameters->try_at("uri", MCP_HASH_URI);
+    } else {
+      name_field = parameters->try_at("name", MCP_HASH_NAME);
+    }
+
+    if (name_field == nullptr || !name_field->is_string()) {
+      return sourcemeta::core::jsonrpc_make_error(
+          request_id, JSONRPC_CODE_INVALID_PARAMS, "Invalid params");
+    }
+  }
+
+  if (version == MCPProtocolVersion::V_2026_07_28) {
+    if (!protocol_version_header.has_value()) {
+      return mcp_make_error_header_mismatch(
+          request_id, "Missing required header: MCP-Protocol-Version");
+    }
+
+    const auto resolved_protocol{
+        mcp_resolve_protocol_version(protocol_version_header.value())};
+    if (!resolved_protocol.has_value()) {
+      return mcp_make_error_unsupported_protocol_version(
+          request_id, protocol_version_header.value(),
+          mcp_supported_protocol_versions());
+    }
+
+    if (protocol_version_header.value() != "2026-07-28") {
+      return mcp_make_error_header_mismatch(
+          request_id, MCP_HEADER_PROTOCOL_VERSION,
+          protocol_version_header.value(), "2026-07-28");
+    }
+
+    std::optional<JSON::StringView> body_metadata_protocol;
+    if (parameters != nullptr && parameters->is_object()) {
+      const auto *meta{parameters->try_at("_meta", MCP_HASH_META)};
+      if (meta != nullptr && meta->is_object()) {
+        const auto *protocol_field{
+            meta->try_at("io.modelcontextprotocol/protocolVersion",
+                         MCP_HASH_META_PROTOCOL_VERSION)};
+        if (protocol_field != nullptr && protocol_field->is_string()) {
+          body_metadata_protocol = protocol_field->to_string();
+        }
+      }
+    }
+
+    if (!body_metadata_protocol.has_value() ||
+        protocol_version_header.value() != body_metadata_protocol.value()) {
+      return mcp_make_error_header_mismatch(
+          request_id, MCP_HEADER_PROTOCOL_VERSION,
+          protocol_version_header.value(), body_metadata_protocol.value_or(""));
+    }
+
+    if (!method_header.has_value()) {
+      return mcp_make_error_header_mismatch(
+          request_id, "Missing required header: Mcp-Method");
+    }
+
+    if (method_header.value() != body_method.value()) {
       return mcp_make_error_header_mismatch(request_id, MCP_HEADER_METHOD,
-                                            header_method.value(),
+                                            method_header.value(),
+                                            body_method.value());
+    }
+
+    if (is_named) {
+      if (!name_header.has_value()) {
+        return mcp_make_error_header_mismatch(
+            request_id, "Missing required header: Mcp-Name");
+      }
+
+      const auto decoded_name{mcp_decode_header_value(name_header.value())};
+      if (decoded_name != name_field->to_string()) {
+        return mcp_make_error_header_mismatch(request_id, MCP_HEADER_NAME,
+                                              name_header.value(),
+                                              name_field->to_string());
+      }
+    } else {
+      if (name_header.has_value()) {
+        return mcp_make_error_header_mismatch(request_id, MCP_HEADER_NAME,
+                                              name_header.value());
+      }
+    }
+
+    return std::nullopt;
+  }
+
+  // Legacy protocol versions
+  if (protocol_version_header.has_value()) {
+    const auto resolved_protocol{
+        mcp_resolve_protocol_version(protocol_version_header.value())};
+    if (!resolved_protocol.has_value()) {
+      return mcp_make_error_unsupported_protocol_version(
+          request_id, protocol_version_header.value(),
+          mcp_supported_protocol_versions());
+    }
+  }
+
+  if (method_header.has_value()) {
+    if (method_header.value() != body_method.value()) {
+      return mcp_make_error_header_mismatch(request_id, MCP_HEADER_METHOD,
+                                            method_header.value(),
                                             body_method.value());
     }
   }
 
-  if (header_name.has_value()) {
+  if (name_header.has_value()) {
     const auto body_name{mcp_request_name_from_body(envelope)};
-    if (body_name.has_value() && header_name.value() != body_name.value()) {
-      return mcp_make_error_header_mismatch(
-          request_id, MCP_HEADER_NAME, header_name.value(), body_name.value());
+    if (body_name.has_value()) {
+      const auto decoded_name{mcp_decode_header_value(name_header.value())};
+      if (decoded_name != body_name.value()) {
+        return mcp_make_error_header_mismatch(request_id, MCP_HEADER_NAME,
+                                              name_header.value(),
+                                              body_name.value());
+      }
     }
   }
 

@@ -140,6 +140,21 @@ constexpr JSON::StringView MCP_METHOD_NOTIFICATIONS_SUBSCRIPTIONS_ACKNOWLEDGED{
     "notifications/subscriptions/acknowledged"};
 
 /// @ingroup mcp
+/// The MCP method name for the `prompts/get` request.
+constexpr JSON::StringView MCP_METHOD_PROMPTS_GET{"prompts/get"};
+
+/// @ingroup mcp
+/// Check whether the given method name corresponds to an operation that
+/// requires a name or URI identifier (such as `tools/call`, `resources/read`,
+/// or `prompts/get`).
+constexpr auto
+mcp_is_named_request_method(const JSON::StringView method) noexcept -> bool {
+  return method == MCP_METHOD_TOOLS_CALL ||
+         method == MCP_METHOD_RESOURCES_READ ||
+         method == MCP_METHOD_PROMPTS_GET;
+}
+
+/// @ingroup mcp
 /// The legacy MCP error code returned when a requested resource cannot be
 /// found.
 constexpr std::int64_t MCP_CODE_RESOURCE_NOT_FOUND{-32002};
@@ -594,8 +609,24 @@ enum class MCPRequestMetaStatus : std::uint8_t {
   MissingClientCapabilities,
   /// `io.modelcontextprotocol/clientCapabilities` is not a JSON object.
   ClientCapabilitiesNotObject,
-  /// `io.modelcontextprotocol/clientInfo` is not a JSON object when present.
+  /// `_meta` lacks `io.modelcontextprotocol/clientInfo`.
+  MissingClientInfo,
+  /// `io.modelcontextprotocol/clientInfo` is not a JSON object.
   ClientInfoNotObject,
+  /// `io.modelcontextprotocol/clientInfo` lacks required `name` property.
+  MissingClientInfoName,
+  /// `name` property in `io.modelcontextprotocol/clientInfo` is not a string.
+  ClientInfoNameNotString,
+  /// `io.modelcontextprotocol/clientInfo` lacks required `version` property.
+  MissingClientInfoVersion,
+  /// `version` property in `io.modelcontextprotocol/clientInfo` is not a
+  /// string.
+  ClientInfoVersionNotString,
+  /// `title` property in `io.modelcontextprotocol/clientInfo` is not a string.
+  ClientInfoTitleNotString,
+  /// `description` property in `io.modelcontextprotocol/clientInfo` is not a
+  /// string.
+  ClientInfoDescriptionNotString,
 };
 
 /// @ingroup mcp
@@ -608,7 +639,7 @@ struct MCPRequestMeta {
   /// Optional parsed client capabilities.
   std::optional<MCPClientCapabilities> parsed_client_capabilities =
       std::nullopt;
-  /// Optional client implementation info.
+  /// Client implementation info.
   std::optional<MCPClientInfo> client_info = std::nullopt;
   /// Optional requested log level.
   std::optional<JSON::StringView> log_level = std::nullopt;
@@ -702,13 +733,36 @@ auto mcp_make_error_header_mismatch(const sourcemeta::core::JSON *identifier,
     -> sourcemeta::core::JSON;
 
 /// @ingroup mcp
-/// Validate transport header values against the parsed JSON-RPC request body.
-/// Returns a JSON-RPC error envelope if a mismatch is detected, or
-/// `std::nullopt` if headers match.
+/// Build a JSON-RPC error response for header mismatch (-32020) reporting an
+/// unexpected header supplied without a corresponding body value.
+SOURCEMETA_CORE_MCP_EXPORT
+auto mcp_make_error_header_mismatch(const sourcemeta::core::JSON *identifier,
+                                    const JSON::StringView header_name,
+                                    const JSON::StringView header_value)
+    -> sourcemeta::core::JSON;
+
+/// @ingroup mcp
+/// Validate Streamable HTTP transport header values against the parsed
+/// JSON-RPC request body for the specified protocol version.
+///
+/// This helper is intended exclusively for the Streamable HTTP transport.
+/// Transports that do not use HTTP headers (such as stdio) must not call this
+/// helper.
+///
+/// For MCP 2026-07-28, standard routing headers (`MCP-Protocol-Version`,
+/// `Mcp-Method`, and optionally `Mcp-Name` for named methods) are required.
+/// For legacy revisions, routing headers are optional but verified if
+/// present.
+///
+/// Returns a JSON-RPC error response envelope if a required header is missing,
+/// malformed, or mismatches the request body, or `std::nullopt` if validation
+/// succeeds.
 SOURCEMETA_CORE_MCP_EXPORT
 auto mcp_validate_request_headers(
-    const std::optional<JSON::StringView> &header_method,
-    const std::optional<JSON::StringView> &header_name,
+    const MCPProtocolVersion version,
+    const std::optional<JSON::StringView> &protocol_version_header,
+    const std::optional<JSON::StringView> &method_header,
+    const std::optional<JSON::StringView> &name_header,
     const sourcemeta::core::JSON &envelope)
     -> std::optional<sourcemeta::core::JSON>;
 
