@@ -708,6 +708,54 @@ auto check_window_invariants(const sourcemeta::core::OpenAPIFrame &frame,
   });
 }
 
+// A description that framed is one this can format, so every passing fixture is
+// a case for the formatter too. What is asserted is not a particular order,
+// which the unit tests cover, but that formatting changes nothing except order:
+// the result frames again, reports the same Objects, references and operations,
+// and formatting it a second time is a no-op
+auto check_formatting(const sourcemeta::core::JSON &document,
+                      const sourcemeta::core::SchemaResolver &resolver,
+                      const sourcemeta::core::JSON::String &default_base,
+                      const std::uint64_t max_locations) -> void {
+  auto formatted{document};
+  {
+    const sourcemeta::core::OpenAPIFrame frame{
+        formatted, sourcemeta::core::schema_walker, resolver, default_base,
+        max_locations};
+    sourcemeta::core::openapi_format(formatted, frame);
+  }
+
+  const sourcemeta::core::OpenAPIFrame before{
+      document, sourcemeta::core::schema_walker, resolver, default_base,
+      max_locations};
+  const sourcemeta::core::OpenAPIFrame after{
+      formatted, sourcemeta::core::schema_walker, resolver, default_base,
+      max_locations};
+
+  EXPECT_EQ(after.object_count(), before.object_count());
+  EXPECT_EQ(after.reference_count(), before.reference_count());
+  EXPECT_EQ(after.operations().size(), before.operations().size());
+
+  auto again{formatted};
+  {
+    const sourcemeta::core::OpenAPIFrame frame{
+        again, sourcemeta::core::schema_walker, resolver, default_base,
+        max_locations};
+    sourcemeta::core::openapi_format(again, frame);
+  }
+
+  // Compared as text rather than as values, because equality on an object is
+  // answered by looking each key up in the other rather than by walking both in
+  // order, so two objects holding the same members in a different order are
+  // equal. Order is the only thing formatting changes, so comparing the values
+  // here would assert nothing at all
+  std::ostringstream first;
+  std::ostringstream second;
+  sourcemeta::core::stringify(formatted, first);
+  sourcemeta::core::stringify(again, second);
+  EXPECT_EQ(second.str(), first.str());
+}
+
 auto run_pass_test(const sourcemeta::core::JSON &test) -> void {
   check_known_keys(test);
   EXPECT_TRUE(test.defines("frame"));
@@ -726,6 +774,8 @@ auto run_pass_test(const sourcemeta::core::JSON &test) -> void {
   check_frame_invariants(result);
   check_window_invariants(frame, result);
   EXPECT_EQ(result, test.at("frame"));
+
+  check_formatting(test.at("document"), resolver, default_base, max_locations);
 }
 
 // What a Schema Object holds is JSON Schema's to make sense of, so what it
