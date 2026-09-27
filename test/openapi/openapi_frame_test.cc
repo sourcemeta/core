@@ -5,6 +5,7 @@
 
 #include <string_view> // std::string_view
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 #include <vector>      // std::vector
 
@@ -82,6 +83,8 @@ auto discriminator_count(const sourcemeta::core::OpenAPIFrame &frame)
 
 } // namespace
 >>>>>>> b0ce1bd24 (Simpler)
+=======
+>>>>>>> 17caaa272 (Nicer)
 
 TEST(version_patch_zero) {
   const auto document{sourcemeta::core::parse_json(R"JSON({
@@ -625,6 +628,7 @@ TEST(standalone_agrees_with_json_export) {
   EXPECT_EQ(frame.to_json().at("standalone"), sourcemeta::core::JSON{false});
 }
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 
 TEST(for_each_object_reports_every_object) {
@@ -751,3 +755,5 @@ TEST(reference_count_matches_what_iteration_reports) {
   EXPECT_EQ(frame.reference_count(), references_of(frame).size());
 }
 >>>>>>> b0ce1bd24 (Simpler)
+=======
+>>>>>>> 17caaa272 (Nicer)
