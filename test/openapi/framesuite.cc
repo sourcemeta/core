@@ -744,7 +744,16 @@ auto check_formatting(const sourcemeta::core::JSON &document,
     sourcemeta::core::openapi_format(again, frame);
   }
 
-  EXPECT_EQ(again, formatted);
+  // Compared as text rather than as values, because equality on an object is
+  // answered by looking each key up in the other rather than by walking both in
+  // order, so two objects holding the same members in a different order are
+  // equal. Order is the only thing formatting changes, so comparing the values
+  // here would assert nothing at all
+  std::ostringstream first;
+  std::ostringstream second;
+  sourcemeta::core::stringify(formatted, first);
+  sourcemeta::core::stringify(again, second);
+  EXPECT_EQ(second.str(), first.str());
 }
 
 auto run_pass_test(const sourcemeta::core::JSON &test) -> void {

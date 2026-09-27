@@ -1636,3 +1636,59 @@ TEST(member_order_does_not_change_the_result) {
   })JSON")};
   EXPECT_EQ(one, other);
 }
+
+TEST(map_order_responses_groups_a_range_with_its_own_class) {
+  EXPECT_EQ(format(R"JSON({
+    "openapi": "3.1.1",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "paths": {
+      "/users": {
+        "get": {
+          "responses": {
+            "x-audience": "public",
+            "default": { "description": "Anything else" },
+            "3XX": { "description": "Redirected" },
+            "300": { "description": "Choices" },
+            "2XX": { "description": "Any success" },
+            "201": { "description": "Created" },
+            "200": { "description": "Present" }
+          }
+        }
+      }
+    }
+  })JSON"),
+            R"JSON({
+  "openapi": "3.1.1",
+  "info": {
+    "title": "Example",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/users": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Present"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "2XX": {
+            "description": "Any success"
+          },
+          "300": {
+            "description": "Choices"
+          },
+          "3XX": {
+            "description": "Redirected"
+          },
+          "default": {
+            "description": "Anything else"
+          },
+          "x-audience": "public"
+        }
+      }
+    }
+  }
+})JSON");
+}

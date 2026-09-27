@@ -429,9 +429,12 @@ auto row_of(const OpenAPIObjectKind kind) -> KindRow {
 }
 
 // Byte order on the key, which is the whole of what a map whose keys the author
-// chose needs. It puts the explicit status codes of a Responses Object before
-// its ranges, its `default` after both and its extensions last, and it puts
-// every path of a Paths Object before the extensions beside them
+// chose needs. In a Responses Object it groups each class of status code with
+// the range that generalises it, so `200` and `201` sort before `2XX` and that
+// whole group sorts before `300`, while `default` lands after every code and
+// every range because a letter follows every digit, and the extensions land
+// last. In a Paths Object it puts every path before the extensions beside them,
+// as a path begins with a slash
 auto compare_keys(const JSON::String &left, const JSON::String &right) -> bool {
   return left < right;
 }
