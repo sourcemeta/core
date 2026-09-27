@@ -172,9 +172,14 @@ constexpr auto MAPS_MEDIA_TYPE{
 
 // A table is total when it ranks every field the specification defines for the
 // Object, which is what the arrays framing holds a document to spell out. So a
-// document that framed cannot hold a field that reaches no rank
+// document that framed cannot hold a field that reaches no rank.
+//
+// These two are immediate functions rather than merely constant ones because
+// the assertions below are the only callers there will ever be. Asking the
+// compiler to hold them to that leaves no runtime symbol for anything to
+// wonder why the tests never reach
 template <std::size_t Fields, std::size_t Admitted>
-constexpr auto
+consteval auto
 ranks_every_field(const std::array<JSON::StringView, Fields> &fields,
                   const std::array<JSON::StringView, Admitted> &admitted)
     -> bool {
@@ -190,7 +195,7 @@ ranks_every_field(const std::array<JSON::StringView, Fields> &fields,
 // And it names nothing else, which is what catches a table misspelling a field
 // into a rank that nothing ever reaches
 template <std::size_t Fields, typename... Admitted>
-constexpr auto
+consteval auto
 defines_every_rank(const std::array<JSON::StringView, Fields> &fields,
                    const Admitted &...admitted) -> bool {
   for (const auto &field : fields) {
