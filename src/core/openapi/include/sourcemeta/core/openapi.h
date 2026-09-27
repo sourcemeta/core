@@ -163,6 +163,7 @@ public:
     // The eleven a reference may expect to find, the last of them only from 3.2
     // onwards, which is where a `content` map and the Components Object both
     // learn to hold a Reference Object in place of a Media Type Object
+<<<<<<< HEAD
     /// A Path Item Object, which describes the operations available on one path
     PathItem,
     /// A Parameter Object, which describes one parameter of an operation
@@ -222,6 +223,35 @@ public:
     /// An OAuth Flow Object, which describes one flow a scheme supports
     OAuthFlow,
     /// A Security Requirement Object, which names the schemes that apply
+=======
+    PathItem,
+    Parameter,
+    RequestBody,
+    Response,
+    Example,
+    Header,
+    Link,
+    Callbacks,
+    SecurityScheme,
+    MediaType,
+    // The rest are never referenced, but every Object gets a location
+    Info,
+    Contact,
+    License,
+    Server,
+    ServerVariable,
+    Components,
+    Paths,
+    Operation,
+    ExternalDocumentation,
+    Encoding,
+    Responses,
+    Tag,
+    Reference,
+    Schema,
+    OAuthFlows,
+    OAuthFlow,
+>>>>>>> b0ce1bd24 (Simpler)
     SecurityRequirement
   };
 
@@ -230,6 +260,7 @@ public:
   /// Object contributes URLs to the described API", so what an operation is
   /// reached through is a property of the route to it rather than of where it
   /// is defined
+<<<<<<< HEAD
   enum class OperationKind : std::uint8_t {
     /// Reached through the Paths Object of the entry document
     Path,
@@ -238,6 +269,9 @@ public:
     /// Reached through a Callback Object that an operation declares
     Callback
   };
+=======
+  enum class OperationKind : std::uint8_t { Path, Webhook, Callback };
+>>>>>>> b0ce1bd24 (Simpler)
 
   /// Where an Object that stands in for another leads. OpenAPI Specification
   /// 3.1.1 has a Reference Object and a Path Item Object each declare at most
@@ -265,12 +299,17 @@ public:
   /// One operation of the described API, which is what an endpoint and the Path
   /// Item it reaches come to between them
   struct Operation {
+<<<<<<< HEAD
     /// How the entry document exposes it
     OperationKind kind;
     /// The path template, the webhook name, or the runtime expression that
     /// exposes it, according to how it is reached
     JSON::String path;
     /// The method it answers to, as the field that declares it is spelled
+=======
+    OperationKind kind;
+    JSON::String path;
+>>>>>>> b0ce1bd24 (Simpler)
     JSON::String method;
     /// Where the Operation Object sits
     JSON::String origin;
@@ -606,8 +645,12 @@ public:
   ///     sourcemeta::core::schema_resolver};
   ///
   /// assert(frame.any_object([](const auto &, const auto &location) {
+<<<<<<< HEAD
   ///   return location.type ==
   ///     sourcemeta::core::OpenAPIFrame::ObjectKind::Paths;
+=======
+  ///   return location.type == sourcemeta::core::ObjectKind::Paths;
+>>>>>>> b0ce1bd24 (Simpler)
   /// }));
   /// ```
   template <std::predicate<const JSON::String &, const Location &> F>
@@ -760,7 +803,11 @@ public:
   ///     "https://example.com/openapi.json"};
   ///
   /// assert(frame.traverse("https://example.com/openapi.json#/info")->type ==
+<<<<<<< HEAD
   ///        sourcemeta::core::OpenAPIFrame::ObjectKind::Info);
+=======
+  ///        sourcemeta::core::ObjectKind::Info);
+>>>>>>> b0ce1bd24 (Simpler)
   /// ```
   [[nodiscard]] auto traverse(const JSON::StringView uri) const
       -> const Location *;

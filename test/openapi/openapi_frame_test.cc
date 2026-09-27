@@ -4,6 +4,84 @@
 #include <sourcemeta/core/test.h>
 
 #include <string_view> // std::string_view
+<<<<<<< HEAD
+=======
+#include <vector>      // std::vector
+
+namespace {
+
+auto description_with_everything() -> sourcemeta::core::JSON {
+  return sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.1.1",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "paths": {
+      "/users": {
+        "get": {
+          "operationId": "listUsers",
+          "security": [ { "apiKey": [] } ],
+          "responses": {
+            "200": { "$ref": "#/components/responses/Users" }
+          }
+        }
+      }
+    },
+    "components": {
+      "securitySchemes": {
+        "apiKey": { "type": "apiKey", "name": "X-Key", "in": "header" }
+      },
+      "responses": {
+        "Users": { "description": "Some users" }
+      }
+    }
+  })JSON");
+}
+
+auto object_kinds_of(const sourcemeta::core::OpenAPIFrame &frame)
+    -> std::vector<sourcemeta::core::OpenAPIFrame::ObjectKind> {
+  std::vector<sourcemeta::core::OpenAPIFrame::ObjectKind> result;
+  frame.for_each_object([&result](const auto &, const auto &location) -> void {
+    result.push_back(location.type);
+  });
+  return result;
+}
+
+auto references_of(const sourcemeta::core::OpenAPIFrame &frame)
+    -> std::vector<sourcemeta::core::OpenAPIFrame::Reference> {
+  std::vector<sourcemeta::core::OpenAPIFrame::Reference> result;
+  frame.for_each_reference(
+      [&result](const auto &, const auto &reference) -> void {
+        result.push_back(reference);
+      });
+  return result;
+}
+
+auto security_reference_count(const sourcemeta::core::OpenAPIFrame &frame)
+    -> std::size_t {
+  std::size_t result{0};
+  frame.for_each_security_reference(
+      [&result](const auto &, const auto &) -> void { result += 1; });
+  return result;
+}
+
+auto operations_of(const sourcemeta::core::OpenAPIFrame &frame)
+    -> std::vector<sourcemeta::core::OpenAPIFrame::Operation> {
+  std::vector<sourcemeta::core::OpenAPIFrame::Operation> result;
+  frame.for_each_operation([&result](const auto &operation) -> void {
+    result.push_back(operation);
+  });
+  return result;
+}
+
+auto discriminator_count(const sourcemeta::core::OpenAPIFrame &frame)
+    -> std::size_t {
+  std::size_t result{0};
+  frame.for_each_discriminator(
+      [&result](const auto &) -> void { result += 1; });
+  return result;
+}
+
+} // namespace
+>>>>>>> b0ce1bd24 (Simpler)
 
 TEST(version_patch_zero) {
   const auto document{sourcemeta::core::parse_json(R"JSON({
@@ -546,3 +624,130 @@ TEST(standalone_agrees_with_json_export) {
       sourcemeta::core::schema_resolver, "https://example.com/openapi.json"};
   EXPECT_EQ(frame.to_json().at("standalone"), sourcemeta::core::JSON{false});
 }
+<<<<<<< HEAD
+=======
+
+TEST(for_each_object_reports_every_object) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.1.1",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "paths": {}
+  })JSON")};
+
+  const sourcemeta::core::OpenAPIFrame frame{document,
+                                             sourcemeta::core::schema_walker,
+                                             sourcemeta::core::schema_resolver};
+  const auto kinds{object_kinds_of(frame)};
+  EXPECT_EQ(kinds.size(), 3);
+  EXPECT_EQ(kinds.at(0), sourcemeta::core::OpenAPIFrame::ObjectKind::Document);
+  EXPECT_EQ(kinds.at(1), sourcemeta::core::OpenAPIFrame::ObjectKind::Info);
+  EXPECT_EQ(kinds.at(2), sourcemeta::core::OpenAPIFrame::ObjectKind::Paths);
+}
+
+TEST(any_object_finds_a_kind_the_description_holds) {
+  const auto document{description_with_everything()};
+  const sourcemeta::core::OpenAPIFrame frame{document,
+                                             sourcemeta::core::schema_walker,
+                                             sourcemeta::core::schema_resolver};
+  EXPECT_TRUE(frame.any_object([](const auto &, const auto &location) -> bool {
+    return location.type ==
+           sourcemeta::core::OpenAPIFrame::ObjectKind::Operation;
+  }));
+}
+
+TEST(any_object_reports_nothing_for_a_kind_it_does_not) {
+  const auto document{description_with_everything()};
+  const sourcemeta::core::OpenAPIFrame frame{document,
+                                             sourcemeta::core::schema_walker,
+                                             sourcemeta::core::schema_resolver};
+  EXPECT_FALSE(frame.any_object([](const auto &, const auto &location) -> bool {
+    return location.type ==
+           sourcemeta::core::OpenAPIFrame::ObjectKind::Encoding;
+  }));
+}
+
+TEST(traverse_finds_a_reference_destination) {
+  const auto document{description_with_everything()};
+  const sourcemeta::core::OpenAPIFrame frame{document,
+                                             sourcemeta::core::schema_walker,
+                                             sourcemeta::core::schema_resolver};
+  const auto references{references_of(frame)};
+  EXPECT_EQ(references.size(), 1);
+  EXPECT_EQ(references.at(0).original, "#/components/responses/Users");
+  EXPECT_EQ(references.at(0).destination, "#/components/responses/Users");
+  EXPECT_FALSE(references.at(0).dangling);
+  EXPECT_EQ(references.at(0).expected,
+            sourcemeta::core::OpenAPIFrame::ObjectKind::Response);
+
+  const auto *target{frame.traverse(references.at(0).destination)};
+  EXPECT_TRUE(target != nullptr);
+  EXPECT_EQ(target->type, sourcemeta::core::OpenAPIFrame::ObjectKind::Response);
+}
+
+TEST(traverse_reports_nothing_for_an_unknown_uri) {
+  const auto document{description_with_everything()};
+  const sourcemeta::core::OpenAPIFrame frame{document,
+                                             sourcemeta::core::schema_walker,
+                                             sourcemeta::core::schema_resolver};
+  EXPECT_EQ(frame.traverse("#/components/responses/Nowhere"), nullptr);
+}
+
+TEST(uri_is_the_inverse_of_traverse) {
+  const auto document{description_with_everything()};
+  const sourcemeta::core::OpenAPIFrame frame{document,
+                                             sourcemeta::core::schema_walker,
+                                             sourcemeta::core::schema_resolver};
+  EXPECT_EQ(frame.uri(sourcemeta::core::Pointer{"paths"}), "#/paths");
+  const auto *target{
+      frame.traverse(frame.uri(sourcemeta::core::Pointer{"paths"}))};
+  EXPECT_TRUE(target != nullptr);
+  EXPECT_EQ(target->type, sourcemeta::core::OpenAPIFrame::ObjectKind::Paths);
+}
+
+TEST(for_each_security_reference_reports_nothing_for_a_name) {
+  const auto document{description_with_everything()};
+  const sourcemeta::core::OpenAPIFrame frame{document,
+                                             sourcemeta::core::schema_walker,
+                                             sourcemeta::core::schema_resolver};
+  EXPECT_EQ(security_reference_count(frame), 0);
+}
+
+TEST(for_each_operation_reports_the_one_operation) {
+  const auto document{description_with_everything()};
+  const sourcemeta::core::OpenAPIFrame frame{document,
+                                             sourcemeta::core::schema_walker,
+                                             sourcemeta::core::schema_resolver};
+  const auto operations{operations_of(frame)};
+  EXPECT_EQ(operations.size(), 1);
+  EXPECT_EQ(operations.at(0).kind,
+            sourcemeta::core::OpenAPIFrame::OperationKind::Path);
+  EXPECT_EQ(operations.at(0).path, "/users");
+  EXPECT_EQ(operations.at(0).method, "get");
+  EXPECT_EQ(operations.at(0).origin, "#/paths/~1users/get");
+  EXPECT_EQ(operations.at(0).endpoint, "#/paths/~1users");
+}
+
+TEST(for_each_discriminator_reports_nothing_without_one) {
+  const auto document{description_with_everything()};
+  const sourcemeta::core::OpenAPIFrame frame{document,
+                                             sourcemeta::core::schema_walker,
+                                             sourcemeta::core::schema_resolver};
+  EXPECT_EQ(discriminator_count(frame), 0);
+}
+
+TEST(object_count_matches_what_iteration_reports) {
+  const auto document{description_with_everything()};
+  const sourcemeta::core::OpenAPIFrame frame{document,
+                                             sourcemeta::core::schema_walker,
+                                             sourcemeta::core::schema_resolver};
+  EXPECT_EQ(frame.object_count(), object_kinds_of(frame).size());
+}
+
+TEST(reference_count_matches_what_iteration_reports) {
+  const auto document{description_with_everything()};
+  const sourcemeta::core::OpenAPIFrame frame{document,
+                                             sourcemeta::core::schema_walker,
+                                             sourcemeta::core::schema_resolver};
+  EXPECT_EQ(frame.reference_count(), references_of(frame).size());
+}
+>>>>>>> b0ce1bd24 (Simpler)
