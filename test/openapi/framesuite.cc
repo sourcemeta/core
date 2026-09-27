@@ -34,9 +34,9 @@ const std::vector<std::string> KNOWN_METHODS{"get",    "put",     "post",
                                              "delete", "options", "head",
                                              "patch",  "trace",   "query"};
 // The serialised names of the Objects a location may hold, and of the routes
-// an operation may be reached through. With the enums private these names are
-// the public contract, so a rename or an omission has to fail rather than pass
-// every fixture that happens not to cover it
+// an operation may be reached through. A fixture records these names rather
+// than the enumerators behind them, so a rename or an omission has to fail
+// rather than pass every fixture that happens not to cover it
 const std::vector<std::string> KNOWN_TYPES{"openapi",
                                            "path-item",
                                            "parameter",
@@ -618,20 +618,113 @@ auto check_frame_invariants(const sourcemeta::core::JSON &frame) -> void {
   }
 }
 
+// What every frame holds, whatever description it was built from. These are
+// asserted for each fixture rather than unit tested against one document, so a
+// window that stops agreeing with the rest cannot pass unnoticed
+auto check_window_invariants(const sourcemeta::core::OpenAPIFrame &frame,
+                             const sourcemeta::core::JSON &exported) -> void {
+  // The windows and the export read the same places, so they cannot disagree
+  // about how many there are
+  EXPECT_EQ(frame.object_count(), exported.at("locations").size());
+  EXPECT_EQ(frame.operations().size(), exported.at("operations").size());
+
+  // A frame holds at least the root, so something always satisfies a predicate
+  // that accepts anything and nothing ever satisfies one that accepts nothing
+  EXPECT_TRUE(frame.any_object(
+      [](const auto &, const auto &) -> bool { return true; }));
+  EXPECT_FALSE(frame.any_object(
+      [](const auto &, const auto &) -> bool { return false; }));
+
+  std::size_t objects{0};
+  frame.for_each_object(
+      [&frame, &objects](const auto &uri, const auto &location) -> void {
+        objects += 1;
+        // Every Object the frame reports is one it can be asked for again by
+        // the URI it was reported under, and what comes back is that same
+        // Object
+        const auto *found{frame.traverse(uri)};
+        EXPECT_TRUE(found != nullptr);
+        EXPECT_EQ(found->type, location.type);
+        EXPECT_EQ(found->pointer, location.pointer);
+        // And that URI is the one the frame addresses the position by, which is
+        // what makes the two directions inverses of each other
+        EXPECT_EQ(frame.uri(location.pointer), uri);
+      });
+  EXPECT_EQ(frame.object_count(), objects);
+
+  std::size_t references{0};
+  frame.for_each_reference(
+      [&frame, &references](const auto &origin, const auto &reference) -> void {
+        references += 1;
+        // A reference is recorded against the Object that makes it, and that is
+        // an Object like any other
+        EXPECT_TRUE(frame.traverse(origin) != nullptr);
+        // Which leaves dangling meaning exactly one thing: that nothing the
+        // frame holds sits where the reference points
+        EXPECT_EQ(reference.dangling,
+                  frame.traverse(reference.destination) == nullptr);
+      });
+  EXPECT_EQ(frame.reference_count(), references);
+
+  frame.for_each_security_reference([&frame](const auto &,
+                                             const auto &reference) -> void {
+    // A Security Requirement Object may name several schemes, so one of
+    // these is recorded against the member that names one rather than
+    // against the Object, which is where every other kind of reference
+    // sits. So what the frame holds is the Object enclosing it
+    const auto *origin{frame.traverse(frame.uri(reference.origin.initial()))};
+    EXPECT_TRUE(origin != nullptr);
+    EXPECT_EQ(origin->type,
+              sourcemeta::core::OpenAPIFrame::ObjectKind::SecurityRequirement);
+    EXPECT_EQ(reference.dangling,
+              frame.traverse(reference.destination) == nullptr);
+  });
+
+  // A URI no description can hold is one the frame reports nothing for, which
+  // is what makes a null result mean absence rather than failure
+  EXPECT_EQ(frame.traverse("urn:nowhere:this-frame-holds-no-such-place"),
+            nullptr);
+
+  frame.for_each_discriminator([](const auto &discriminator) -> void {
+    // A Discriminator Object mapping names a schema, and the URI it names is
+    // resolved against the nearest identifier enclosing it, so neither of those
+    // is ever nothing. Where it lands is the schemas' to say rather than this
+    // frame's, so that is not asked here
+    EXPECT_FALSE(discriminator.destination.empty());
+    EXPECT_FALSE(discriminator.scope.empty());
+  });
+
+  frame.for_each_operation([&frame](const auto &operation) -> void {
+    // An operation is reached through a Path Item Object and defined by an
+    // Operation Object, and the frame holds both of those as places of its own
+    const auto *origin{frame.traverse(operation.origin)};
+    EXPECT_TRUE(origin != nullptr);
+    EXPECT_EQ(origin->type,
+              sourcemeta::core::OpenAPIFrame::ObjectKind::Operation);
+    const auto *endpoint{frame.traverse(operation.endpoint)};
+    EXPECT_TRUE(endpoint != nullptr);
+    EXPECT_EQ(endpoint->type,
+              sourcemeta::core::OpenAPIFrame::ObjectKind::PathItem);
+  });
+}
+
 auto run_pass_test(const sourcemeta::core::JSON &test) -> void {
   check_known_keys(test);
   EXPECT_TRUE(test.defines("frame"));
 
   const auto default_base{make_default_base(test)};
+  const auto resolver{make_schema_resolver(test)};
+  const auto max_locations{make_max_locations(test)};
 
   const sourcemeta::core::OpenAPIFrame frame{
-      test.at("document"), sourcemeta::core::schema_walker,
-      make_schema_resolver(test), default_base, make_max_locations(test)};
+      test.at("document"), sourcemeta::core::schema_walker, resolver,
+      default_base, max_locations};
   // The invariants come first because a failed expectation aborts the test. A
   // frame that contradicts itself is a deeper failure than one that merely
   // differs from what a fixture recorded, so it is the one worth reporting
   const auto result{frame.to_json()};
   check_frame_invariants(result);
+  check_window_invariants(frame, result);
   EXPECT_EQ(result, test.at("frame"));
 }
 
