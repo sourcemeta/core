@@ -77,6 +77,16 @@ export CTEST_PARALLEL_LEVEL
 # says so on its error stream, which the tests that compare output then read
 PROFILE_FLAGS="-fprofile-instr-generate -fcoverage-mapping"
 
+# Assertions are compiled out, which is a measurement decision rather than an
+# instrumentation one. The branch an assertion takes when it fails is
+# unreachable for as long as the suite passes, so each of the many in this
+# project would otherwise sit in the report as a region nothing reaches, and
+# adding a precondition check to a function would lower what it scores. Nothing
+# here depends on one firing, and the release build already compiles this same
+# code with them out, so neither their conditions nor anything they name can be
+# load bearing
+ASSERTION_FLAGS="-DNDEBUG"
+
 # Instrumentation is injected through the standard CMake flag variables so that
 # the project build system does not need to know about coverage at all. Static
 # linking keeps every library under measurement inside the test binaries. The
@@ -88,8 +98,8 @@ cmake -S "$SOURCE_DIRECTORY" -B "$BUILD_DIRECTORY" \
   -DSOURCEMETA_CORE_TESTS:BOOL=ON \
   -DSOURCEMETA_CORE_DOCS:BOOL=ON \
   -DBUILD_SHARED_LIBS:BOOL=OFF \
-  -DCMAKE_C_FLAGS:STRING="$PROFILE_FLAGS" \
-  -DCMAKE_CXX_FLAGS:STRING="$PROFILE_FLAGS" \
+  -DCMAKE_C_FLAGS:STRING="$PROFILE_FLAGS $ASSERTION_FLAGS" \
+  -DCMAKE_CXX_FLAGS:STRING="$PROFILE_FLAGS $ASSERTION_FLAGS" \
   -DCMAKE_EXE_LINKER_FLAGS:STRING="-fprofile-instr-generate" \
   -DCMAKE_SHARED_LINKER_FLAGS:STRING="-fprofile-instr-generate"
 
