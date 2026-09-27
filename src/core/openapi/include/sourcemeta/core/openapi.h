@@ -867,6 +867,36 @@ using OpenAPIResolverResult = OwnedOrReference<JSON>;
 using OpenAPIResolver = std::function<OpenAPIResolverResult(std::string_view)>;
 
 /// @ingroup openapi
+///
+/// This function reorders an OpenAPI Description in place, following an
+/// opinionated OpenAPI aware order, and hands every Schema Object it holds to
+/// the JSON Schema formatter. Note that doing so invalidates the given frame,
+/// as the locations it holds point into the document. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/json.h>
+/// #include <sourcemeta/core/jsonschema.h>
+/// #include <sourcemeta/core/openapi.h>
+///
+/// #include <iostream>
+///
+/// auto document = sourcemeta::core::parse_json(R"JSON({
+///   "info": { "version": "1.0.0", "title": "Example" },
+///   "paths": {},
+///   "openapi": "3.1.1"
+/// })JSON");
+///
+/// const sourcemeta::core::OpenAPIFrame frame{
+///     document, sourcemeta::core::schema_walker,
+///     sourcemeta::core::schema_resolver};
+///
+/// sourcemeta::core::openapi_format(document, frame);
+/// sourcemeta::core::prettify(document, std::cout);
+/// ```
+SOURCEMETA_CORE_OPENAPI_EXPORT
+auto openapi_format(JSON &document, const OpenAPIFrame &frame) -> void;
+
+/// @ingroup openapi
 /// Everything bundling takes beyond the document and how to reach the rest
 struct OpenAPIBundleOptions {
   /// A callback to report what bundling embedded, as the URI of the place it

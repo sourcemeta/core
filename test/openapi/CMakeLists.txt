@@ -1,5 +1,7 @@
 sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME openapi
-  SOURCES openapi_frame_test.cc openapi_version_test.cc)
+  SOURCES openapi_frame_test.cc openapi_version_test.cc
+          openapi_format_3_1_test.cc
+          openapi_format_3_2_test.cc)
 
 target_link_libraries(sourcemeta_core_openapi_unit
   PRIVATE sourcemeta::core::openapi)
@@ -7,6 +9,8 @@ target_link_libraries(sourcemeta_core_openapi_unit
   PRIVATE sourcemeta::core::json)
 target_link_libraries(sourcemeta_core_openapi_unit
   PRIVATE sourcemeta::core::jsonpointer)
+target_link_libraries(sourcemeta_core_openapi_unit
+  PRIVATE sourcemeta::core::jsonschema)
 
 # Complete frame tests, expressed as JSON fixtures
 sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME openapi_frame_suite
