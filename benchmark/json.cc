@@ -823,8 +823,13 @@ BENCHMARK(JSON_Divisible_By_Decimal) {
 
 BENCHMARK(JSON_PropertySet_Contains) {
   // A set large enough for the cost of walking it to show up, as the lookups
-  // scan every entry that the hash does not rule out
+  // scan every entry that the hash does not rule out. The extension names at
+  // the end are longer than a hash can capture, so the lookup over them has to
+  // compare the names themselves rather than settling it on the hash alone
   sourcemeta::core::JSONPropertySet properties;
+  properties.insert("x-amazon-apigateway-integration-request-templates");
+  properties.insert("x-amazon-apigateway-integration-response-parameters");
+  properties.insert("x-amazon-apigateway-integration-passthrough-behavior");
   properties.insert("$id");
   properties.insert("$ref");
   properties.insert("$schema");
@@ -860,14 +865,19 @@ BENCHMARK(JSON_PropertySet_Contains) {
 
   const sourcemeta::core::JSON::String hit{"format"};
   const sourcemeta::core::JSON::String miss{"createdAt"};
+  const sourcemeta::core::JSON::String long_hit{
+      "x-amazon-apigateway-integration-passthrough-behavior"};
   const auto hit_hash{sourcemeta::core::JSON::Object::hash(hit)};
   const auto miss_hash{sourcemeta::core::JSON::Object::hash(miss)};
+  const auto long_hit_hash{sourcemeta::core::JSON::Object::hash(long_hit)};
 
   for (auto iteration : state) {
     sourcemeta::core::benchmark_do_not_optimize(
         properties.contains(hit, hit_hash));
     sourcemeta::core::benchmark_do_not_optimize(
         properties.contains(miss, miss_hash));
+    sourcemeta::core::benchmark_do_not_optimize(
+        properties.contains(long_hit, long_hit_hash));
   }
 }
 

@@ -5,14 +5,13 @@
 #include <sourcemeta/core/json_export.h>
 #endif
 
-#include <sourcemeta/core/json_auto.h>
+#include <sourcemeta/core/json_hash.h>
 #include <sourcemeta/core/json_value.h>
 
-#include <algorithm> // std::ranges::lower_bound
-#include <cassert>   // assert
-#include <optional>  // std::optional, std::nullopt
-#include <utility>   // std::pair, std::move
-#include <vector>    // std::vector
+#include <cassert>  // assert
+#include <optional> // std::optional
+#include <utility>  // std::pair
+#include <vector>   // std::vector
 
 namespace sourcemeta::core {
 
@@ -92,49 +91,22 @@ public:
   /// Add a property name whose hash is already known to the set, keeping the
   /// set sorted. Returns whether the name was added, so that a caller can tell
   /// a name it had not seen before from one the set already held
-  auto insert(const string_type &value, const hash_type hash) -> bool {
-    assert(HASHER(value) == hash);
-    const auto &entries{this->data_};
-    const auto position{
-        std::ranges::lower_bound(entries, value, {}, &value_type::first)};
-    if (position != entries.cend() && position->first == value) {
-      return false;
-    }
-
-    this->data_.emplace(position, value, hash);
-    return true;
-  }
+  auto insert(const string_type &value, const hash_type hash) -> bool;
 
   /// Add a property name whose hash is already known to the set, keeping the
   /// set sorted. Returns whether the name was added, so that a caller can tell
   /// a name it had not seen before from one the set already held
-  auto insert(string_type &&value, const hash_type hash) -> bool {
-    assert(HASHER(value) == hash);
-    const auto &entries{this->data_};
-    const auto position{
-        std::ranges::lower_bound(entries, value, {}, &value_type::first)};
-    if (position != entries.cend() && position->first == value) {
-      return false;
-    }
-
-    this->data_.emplace(position, std::move(value), hash);
-    return true;
-  }
+  auto insert(string_type &&value, const hash_type hash) -> bool;
 
   /// Add a property name to the set, keeping the set sorted. Returns whether
   /// the name was added, so that a caller can tell a name it had not seen
   /// before from one the set already held
-  auto insert(const string_type &value) -> bool {
-    return this->insert(value, HASHER(value));
-  }
+  auto insert(const string_type &value) -> bool;
 
   /// Add a property name to the set, keeping the set sorted. Returns whether
   /// the name was added, so that a caller can tell a name it had not seen
   /// before from one the set already held
-  auto insert(string_type &&value) -> bool {
-    const auto hash{HASHER(value)};
-    return this->insert(std::move(value), hash);
-  }
+  auto insert(string_type &&value) -> bool;
 
   /// Get a property name and its hash by index
   [[nodiscard]] auto at(const size_type index) const noexcept
@@ -174,33 +146,11 @@ public:
   }
 
   /// Serialise the set as a JSON array of property names
-  [[nodiscard]] auto to_json() const -> JSON {
-    return sourcemeta::core::to_json(
-        this->data_, [](const auto &entry) -> JSON {
-          return sourcemeta::core::to_json(entry.first);
-        });
-  }
+  [[nodiscard]] auto to_json() const -> JSON;
 
   /// Reconstruct a set from a JSON array of property names, yielding no result
   /// if the given document is not an array of strings
-  static auto from_json(const JSON &value) -> std::optional<JSONPropertySet> {
-    if (!value.is_array()) {
-      return std::nullopt;
-    }
-
-    JSONPropertySet result;
-    result.data_.reserve(value.size());
-    for (const auto &item : value.as_array()) {
-      auto subvalue{sourcemeta::core::from_json<string_type>(item)};
-      if (!subvalue.has_value()) {
-        return std::nullopt;
-      }
-
-      result.insert(std::move(subvalue).value());
-    }
-
-    return result;
-  }
+  static auto from_json(const JSON &value) -> std::optional<JSONPropertySet>;
 
 private:
   static constexpr PropertyHashJSON<string_type> HASHER{};

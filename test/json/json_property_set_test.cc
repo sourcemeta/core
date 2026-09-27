@@ -127,6 +127,17 @@ TEST(insert_move_with_precomputed_hash) {
   EXPECT_TRUE(properties.contains("foo"));
 }
 
+TEST(insert_move_with_precomputed_hash_duplicate) {
+  sourcemeta::core::JSON::String first{"foo"};
+  sourcemeta::core::JSON::String second{"foo"};
+  const auto hash{sourcemeta::core::JSON::Object::hash("foo")};
+  sourcemeta::core::JSONPropertySet properties;
+  EXPECT_TRUE(properties.insert(std::move(first), hash));
+  EXPECT_FALSE(properties.insert(std::move(second), hash));
+  EXPECT_EQ(properties.size(), 1);
+  EXPECT_EQ(properties.at(0).first, "foo");
+}
+
 TEST(insert_with_the_hash_of_an_object_entry) {
   const auto document{
       sourcemeta::core::parse_json(R"JSON({ "foo": 1, "bar": 2 })JSON")};
@@ -182,6 +193,28 @@ TEST(contains_trailing_nul_byte) {
   EXPECT_EQ(sourcemeta::core::JSON::Object::hash(padded),
             sourcemeta::core::JSON::Object::hash("foo"));
   EXPECT_FALSE(properties.contains(padded));
+}
+
+TEST(contains_stored_trailing_nul_byte) {
+  const sourcemeta::core::JSON::String padded{"foo\0", 4};
+  sourcemeta::core::JSONPropertySet properties;
+  properties.insert(padded);
+  EXPECT_EQ(properties.size(), 1);
+  EXPECT_EQ(properties.at(0).first.size(), 4);
+  EXPECT_TRUE(properties.contains(padded));
+  EXPECT_FALSE(properties.contains("foo"));
+}
+
+TEST(insert_keeps_names_that_differ_only_by_a_trailing_nul_byte) {
+  const sourcemeta::core::JSON::String padded{"foo\0", 4};
+  sourcemeta::core::JSONPropertySet properties;
+  EXPECT_TRUE(properties.insert("foo"));
+  EXPECT_TRUE(properties.insert(padded));
+  EXPECT_EQ(properties.size(), 2);
+  EXPECT_EQ(properties.at(0).first.size(), 3);
+  EXPECT_EQ(properties.at(1).first.size(), 4);
+  EXPECT_TRUE(properties.contains("foo"));
+  EXPECT_TRUE(properties.contains(padded));
 }
 
 TEST(contains_single_nul_byte_against_empty_property_name) {
