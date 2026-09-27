@@ -9,6 +9,7 @@ sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME json
     json_number_test.cc
     json_decimal_test.cc
     json_object_test.cc
+    json_property_set_test.cc
     json_parse_callback_test.cc
     json_parse_error_test.cc
     json_parse_test.cc

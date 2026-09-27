@@ -290,7 +290,7 @@ struct OpenAPIWalk {
   std::optional<std::vector<JSON::String>> security;
   /// The names the entry document declares as security schemes, which is what
   /// a Security Requirement Object anywhere in the description may name
-  std::set<JSON::String> security_schemes;
+  JSONPropertySet security_schemes;
   /// Where a Security Requirement Object names a Security Scheme Object by the
   /// URI of one rather than by the name of a component, and what each of those
   /// names leads to. OpenAPI Specification 3.2.1 admits both spellings. This

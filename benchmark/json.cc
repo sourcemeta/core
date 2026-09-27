@@ -820,3 +820,128 @@ BENCHMARK(JSON_Divisible_By_Decimal) {
         value_4.divisible_by(divisor_1));
   }
 }
+
+BENCHMARK(JSON_PropertySet_Contains) {
+  // A set large enough for the cost of walking it to show up, as the lookups
+  // scan every entry that the hash does not rule out. The extension names at
+  // the end are longer than a hash can capture, so the lookup over them has to
+  // compare the names themselves rather than settling it on the hash alone
+  sourcemeta::core::JSONPropertySet properties;
+  properties.insert("x-amazon-apigateway-integration-request-templates");
+  properties.insert("x-amazon-apigateway-integration-response-parameters");
+  properties.insert("x-amazon-apigateway-integration-passthrough-behavior");
+  properties.insert("$id");
+  properties.insert("$ref");
+  properties.insert("$schema");
+  properties.insert("$comment");
+  properties.insert("$defs");
+  properties.insert("additionalProperties");
+  properties.insert("allOf");
+  properties.insert("anyOf");
+  properties.insert("const");
+  properties.insert("contains");
+  properties.insert("default");
+  properties.insert("dependentRequired");
+  properties.insert("dependentSchemas");
+  properties.insert("description");
+  properties.insert("enum");
+  properties.insert("examples");
+  properties.insert("exclusiveMaximum");
+  properties.insert("exclusiveMinimum");
+  properties.insert("format");
+  properties.insert("if");
+  properties.insert("items");
+  properties.insert("maxItems");
+  properties.insert("maxLength");
+  properties.insert("maximum");
+  properties.insert("minItems");
+  properties.insert("minLength");
+  properties.insert("minimum");
+  properties.insert("multipleOf");
+  properties.insert("not");
+  properties.insert("oneOf");
+  properties.insert("pattern");
+  properties.insert("properties");
+
+  const sourcemeta::core::JSON::String hit{"format"};
+  const sourcemeta::core::JSON::String miss{"createdAt"};
+  const sourcemeta::core::JSON::String long_hit{
+      "x-amazon-apigateway-integration-passthrough-behavior"};
+  const auto hit_hash{sourcemeta::core::JSON::Object::hash(hit)};
+  const auto miss_hash{sourcemeta::core::JSON::Object::hash(miss)};
+  const auto long_hit_hash{sourcemeta::core::JSON::Object::hash(long_hit)};
+
+  for (auto iteration : state) {
+    sourcemeta::core::benchmark_do_not_optimize(
+        properties.contains(hit, hit_hash));
+    sourcemeta::core::benchmark_do_not_optimize(
+        properties.contains(miss, miss_hash));
+    sourcemeta::core::benchmark_do_not_optimize(
+        properties.contains(long_hit, long_hit_hash));
+  }
+}
+
+BENCHMARK(JSON_PropertySet_Filter_Object_Properties) {
+  // The shape a schema evaluator takes: walk the properties of an instance and
+  // check every one of them against a set, reusing the hash the object already
+  // computed for its own entries
+  sourcemeta::core::JSONPropertySet properties;
+  properties.insert("id");
+  properties.insert("name");
+  properties.insert("email");
+  properties.insert("createdAt");
+  properties.insert("updatedAt");
+  properties.insert("role");
+  properties.insert("active");
+  properties.insert("lastLoginAt");
+
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "id": 42,
+    "name": "John Doe",
+    "email": "john@example.com",
+    "createdAt": "2024-01-01T00:00:00Z",
+    "updatedAt": "2024-06-01T00:00:00Z",
+    "role": "admin",
+    "active": true,
+    "nickname": "johnny",
+    "timezone": "Europe/Madrid",
+    "preferences": { "theme": "dark" }
+  })JSON")};
+  const auto &object{document.as_object()};
+
+  for (auto iteration : state) {
+    auto matches{static_cast<std::size_t>(0)};
+    for (const auto &entry : object) {
+      if (properties.contains(entry.first, entry.hash)) {
+        matches += 1;
+      }
+    }
+
+    assert(matches == 7);
+    sourcemeta::core::benchmark_do_not_optimize(matches);
+  }
+}
+
+BENCHMARK(JSON_PropertySet_Insert) {
+  for (auto iteration : state) {
+    sourcemeta::core::JSONPropertySet properties;
+    properties.insert("$id");
+    properties.insert("$ref");
+    properties.insert("$schema");
+    properties.insert("$comment");
+    properties.insert("$defs");
+    properties.insert("additionalProperties");
+    properties.insert("allOf");
+    properties.insert("anyOf");
+    properties.insert("const");
+    properties.insert("contains");
+    properties.insert("default");
+    properties.insert("dependentRequired");
+    properties.insert("dependentSchemas");
+    properties.insert("description");
+    properties.insert("enum");
+    properties.insert("examples");
+    assert(properties.size() == 16);
+    sourcemeta::core::benchmark_do_not_optimize(properties);
+  }
+}
