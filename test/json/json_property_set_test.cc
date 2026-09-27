@@ -77,6 +77,74 @@ TEST(insert_move_duplicate) {
   EXPECT_EQ(properties.at(0).first, "foo");
 }
 
+TEST(insert_reports_whether_the_name_was_added) {
+  sourcemeta::core::JSONPropertySet properties;
+  EXPECT_TRUE(properties.insert("foo"));
+  EXPECT_FALSE(properties.insert("foo"));
+  EXPECT_TRUE(properties.insert("bar"));
+  EXPECT_FALSE(properties.insert("bar"));
+  EXPECT_EQ(properties.size(), 2);
+}
+
+TEST(insert_move_reports_whether_the_name_was_added) {
+  sourcemeta::core::JSON::String first{"foo"};
+  sourcemeta::core::JSON::String second{"foo"};
+  sourcemeta::core::JSONPropertySet properties;
+  EXPECT_TRUE(properties.insert(std::move(first)));
+  EXPECT_FALSE(properties.insert(std::move(second)));
+  EXPECT_EQ(properties.size(), 1);
+}
+
+TEST(insert_with_precomputed_hash) {
+  sourcemeta::core::JSONPropertySet properties;
+  const sourcemeta::core::JSON::String foo{"foo"};
+  const sourcemeta::core::JSON::String bar{"bar"};
+  EXPECT_TRUE(
+      properties.insert(foo, sourcemeta::core::JSON::Object::hash(foo)));
+  EXPECT_TRUE(
+      properties.insert(bar, sourcemeta::core::JSON::Object::hash(bar)));
+  EXPECT_FALSE(
+      properties.insert(foo, sourcemeta::core::JSON::Object::hash(foo)));
+  EXPECT_EQ(properties.size(), 2);
+  EXPECT_EQ(properties.at(0).first, "bar");
+  EXPECT_EQ(properties.at(1).first, "foo");
+  EXPECT_EQ(properties.at(0).second,
+            sourcemeta::core::JSON::Object::hash("bar"));
+  EXPECT_EQ(properties.at(1).second,
+            sourcemeta::core::JSON::Object::hash("foo"));
+  EXPECT_TRUE(properties.contains("foo"));
+  EXPECT_TRUE(properties.contains("bar"));
+}
+
+TEST(insert_move_with_precomputed_hash) {
+  sourcemeta::core::JSON::String foo{"foo"};
+  const auto foo_hash{sourcemeta::core::JSON::Object::hash(foo)};
+  sourcemeta::core::JSONPropertySet properties;
+  EXPECT_TRUE(properties.insert(std::move(foo), foo_hash));
+  EXPECT_EQ(properties.size(), 1);
+  EXPECT_EQ(properties.at(0).first, "foo");
+  EXPECT_EQ(properties.at(0).second, foo_hash);
+  EXPECT_TRUE(properties.contains("foo"));
+}
+
+TEST(insert_with_the_hash_of_an_object_entry) {
+  const auto document{
+      sourcemeta::core::parse_json(R"JSON({ "foo": 1, "bar": 2 })JSON")};
+  const auto &object{document.as_object()};
+  const auto foo{object.find("foo")};
+  const auto bar{object.find("bar")};
+  EXPECT_TRUE(foo != object.cend());
+  EXPECT_TRUE(bar != object.cend());
+
+  sourcemeta::core::JSONPropertySet properties;
+  EXPECT_TRUE(properties.insert(foo->first, foo->hash));
+  EXPECT_TRUE(properties.insert(bar->first, bar->hash));
+  EXPECT_FALSE(properties.insert(foo->first, foo->hash));
+  EXPECT_EQ(properties.size(), 2);
+  EXPECT_TRUE(properties.contains("foo"));
+  EXPECT_TRUE(properties.contains("bar"));
+}
+
 TEST(contains_miss) {
   sourcemeta::core::JSONPropertySet properties;
   properties.insert("foo");

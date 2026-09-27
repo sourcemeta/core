@@ -89,25 +89,51 @@ public:
     return this->contains(value, HASHER(value));
   }
 
-  /// Add a property name to the set, keeping the set sorted and ignoring
-  /// names that are already present
-  auto insert(const string_type &value) -> void {
+  /// Add a property name whose hash is already known to the set, keeping the
+  /// set sorted. Returns whether the name was added, so that a caller can tell
+  /// a name it had not seen before from one the set already held
+  auto insert(const string_type &value, const hash_type hash) -> bool {
+    assert(HASHER(value) == hash);
+    const auto &entries{this->data_};
     const auto position{
-        std::ranges::lower_bound(this->data_, value, {}, &value_type::first)};
-    if (position == this->data_.cend() || position->first != value) {
-      this->data_.emplace(position, value, HASHER(value));
+        std::ranges::lower_bound(entries, value, {}, &value_type::first)};
+    if (position != entries.cend() && position->first == value) {
+      return false;
     }
+
+    this->data_.emplace(position, value, hash);
+    return true;
   }
 
-  /// Add a property name to the set, keeping the set sorted and ignoring
-  /// names that are already present
-  auto insert(string_type &&value) -> void {
+  /// Add a property name whose hash is already known to the set, keeping the
+  /// set sorted. Returns whether the name was added, so that a caller can tell
+  /// a name it had not seen before from one the set already held
+  auto insert(string_type &&value, const hash_type hash) -> bool {
+    assert(HASHER(value) == hash);
+    const auto &entries{this->data_};
     const auto position{
-        std::ranges::lower_bound(this->data_, value, {}, &value_type::first)};
-    if (position == this->data_.cend() || position->first != value) {
-      const auto hash{HASHER(value)};
-      this->data_.emplace(position, std::move(value), hash);
+        std::ranges::lower_bound(entries, value, {}, &value_type::first)};
+    if (position != entries.cend() && position->first == value) {
+      return false;
     }
+
+    this->data_.emplace(position, std::move(value), hash);
+    return true;
+  }
+
+  /// Add a property name to the set, keeping the set sorted. Returns whether
+  /// the name was added, so that a caller can tell a name it had not seen
+  /// before from one the set already held
+  auto insert(const string_type &value) -> bool {
+    return this->insert(value, HASHER(value));
+  }
+
+  /// Add a property name to the set, keeping the set sorted. Returns whether
+  /// the name was added, so that a caller can tell a name it had not seen
+  /// before from one the set already held
+  auto insert(string_type &&value) -> bool {
+    const auto hash{HASHER(value)};
+    return this->insert(std::move(value), hash);
   }
 
   /// Get a property name and its hash by index
