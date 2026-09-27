@@ -606,7 +606,8 @@ public:
   ///     sourcemeta::core::schema_resolver};
   ///
   /// assert(frame.any_object([](const auto &, const auto &location) {
-  ///   return location.type == sourcemeta::core::ObjectKind::Paths;
+  ///   return location.type ==
+  ///     sourcemeta::core::OpenAPIFrame::ObjectKind::Paths;
   /// }));
   /// ```
   template <std::predicate<const JSON::String &, const Location &> F>
@@ -759,7 +760,7 @@ public:
   ///     "https://example.com/openapi.json"};
   ///
   /// assert(frame.traverse("https://example.com/openapi.json#/info")->type ==
-  ///        sourcemeta::core::ObjectKind::Info);
+  ///        sourcemeta::core::OpenAPIFrame::ObjectKind::Info);
   /// ```
   [[nodiscard]] auto traverse(const JSON::StringView uri) const
       -> const Location *;
