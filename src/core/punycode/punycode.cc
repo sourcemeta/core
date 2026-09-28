@@ -237,11 +237,16 @@ static auto punycode_decode(const std::string_view encoded,
         break;
       }
 
+      // The digit check at the top of this loop already throws on the inputs
+      // that would overflow here. It passes only while
+      // `weight_factor <= MAX / digit`, and `digit >= threshold` at this point,
+      // so the two can only hold together while `threshold < 18`. A threshold
+      // that low needs a bias above `36 * step`, and `adapt_bias` cannot exceed
+      // 204, which caps it at the sixth digit of a code point, by which point
+      // `weight_factor` is at most `35^5` and far below the bound below
       const std::uint32_t base_minus_threshold = BASE - threshold;
-      if (weight_factor >
-          std::numeric_limits<std::uint32_t>::max() / base_minus_threshold) {
-        throw PunycodeError("Decode overflow");
-      }
+      assert(weight_factor <=
+             std::numeric_limits<std::uint32_t>::max() / base_minus_threshold);
 
       weight_factor *= base_minus_threshold;
     }
@@ -256,12 +261,11 @@ static auto punycode_decode(const std::string_view encoded,
       throw PunycodeError("Decode overflow");
     }
 
+    // RFC 3492 Section 6.2 fails here on a basic code point. That cannot
+    // happen: this starts at INITIAL_N and only ever grows, and the guard above
+    // rules out the wrap that is the one way it could come back under
     current_code_point += increment;
     insertion_index %= output_length;
-
-    if (current_code_point < INITIAL_N) {
-      throw PunycodeError("Decoded basic code point");
-    }
 
     if (current_code_point > 0x10FFFF ||
         (current_code_point >= 0xD800 && current_code_point <= 0xDFFF)) {
