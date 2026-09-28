@@ -2639,3 +2639,25 @@ TEST(draft7_root_id_fragment_invalid_leading_digit_root_mode) {
     FAIL();
   }
 }
+
+TEST(identifier_that_is_not_a_valid_uri) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/schema",
+    "$defs": {
+      "inner": { "$id": "//[::44.1" }
+    }
+  })JSON");
+
+  try {
+    [[maybe_unused]] const sourcemeta::core::SchemaFrame frame{
+        sourcemeta::core::SchemaFrame::Mode::References, document,
+        sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_EQ(error.keyword(), "$id");
+    EXPECT_EQ(error.value(), "//[::44.1");
+  } catch (...) {
+    FAIL();
+  }
+}
