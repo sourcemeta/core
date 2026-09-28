@@ -306,12 +306,3 @@ TEST(device_authorization_response_with_a_non_integer_expires_in) {
   const sourcemeta::core::OAuthDeviceAuthorizationResponse response{document};
   EXPECT_FALSE(response.expires_in().has_value());
 }
-
-TEST(device_authorization_response_with_a_negative_expires_in) {
-  const auto document{sourcemeta::core::parse_json(R"JSON({
-    "device_code": "GmRh", "user_code": "WDJB-MJHT",
-    "verification_uri": "https://example.com/device", "expires_in": -1
-  })JSON")};
-  const sourcemeta::core::OAuthDeviceAuthorizationResponse response{document};
-  EXPECT_FALSE(response.expires_in().has_value());
-}

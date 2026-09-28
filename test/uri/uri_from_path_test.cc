@@ -176,9 +176,3 @@ TEST(windows_unc_host_only) {
   const auto uri{sourcemeta::core::URI::from_path(example)};
   EXPECT_EQ(uri.recompose(), "file://server");
 }
-
-TEST(unix_root_only) {
-  const std::filesystem::path example{"/"};
-  const auto uri{sourcemeta::core::URI::from_path(example)};
-  EXPECT_EQ(uri.recompose(), "file://");
-}

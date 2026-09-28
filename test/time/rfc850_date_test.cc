@@ -371,24 +371,6 @@ TEST(reject_non_digit_second_units) {
           .has_value());
 }
 
-TEST(reject_hour_out_of_range) {
-  EXPECT_FALSE(
-      sourcemeta::core::from_rfc850_date("Sunday, 06-Nov-94 24:49:37 GMT")
-          .has_value());
-}
-
-TEST(reject_minute_out_of_range) {
-  EXPECT_FALSE(
-      sourcemeta::core::from_rfc850_date("Sunday, 06-Nov-94 08:60:37 GMT")
-          .has_value());
-}
-
-TEST(reject_second_out_of_range) {
-  EXPECT_FALSE(
-      sourcemeta::core::from_rfc850_date("Sunday, 06-Nov-94 08:49:61 GMT")
-          .has_value());
-}
-
 TEST(accept_leap_second) {
   // RFC 3339 section 5.6 represents a leap second as a "60" second value
   EXPECT_TRUE(

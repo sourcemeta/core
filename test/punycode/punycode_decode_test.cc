@@ -360,3 +360,37 @@ TEST(error_encode_invalid_utf8) {
     EXPECT_STREQ(error.what(), "Invalid UTF-8 input");
   }
 }
+
+// RFC 3492 Section 6.4: the decoder must detect overflow of the integer it
+// accumulates a code point insertion into, rather than wrapping
+TEST(error_decode_overflow_from_a_run_of_maximum_digits) {
+  try {
+    sourcemeta::core::punycode_to_utf32("999999999");
+    FAIL();
+  } catch (const sourcemeta::core::PunycodeError &error) {
+    EXPECT_STREQ(error.what(), "Decode overflow");
+  }
+}
+
+TEST(error_decode_truncated_digit_run) {
+  // A digit at or above the threshold continues the current code point, so a
+  // run of them that reaches the end of the input never completes one
+  try {
+    sourcemeta::core::punycode_to_utf32("zzzzzzzzzzzzzzzzzzzz");
+    FAIL();
+  } catch (const sourcemeta::core::PunycodeError &error) {
+    EXPECT_STREQ(error.what(), "Unexpected end of input");
+  }
+}
+
+TEST(error_decode_surrogate_code_point) {
+  // A lone surrogate is not a Unicode scalar value, so an encoding that names
+  // one is rejected rather than decoded. This is the variable-length base 36
+  // form of U+D800 with no basic code points ahead of it
+  try {
+    sourcemeta::core::punycode_to_utf32("ib9b");
+    FAIL();
+  } catch (const sourcemeta::core::PunycodeError &error) {
+    EXPECT_STREQ(error.what(), "Invalid code point");
+  }
+}

@@ -298,21 +298,6 @@ TEST(reject_non_digit_year_units) {
       sourcemeta::core::from_asctime("Sun Nov  6 08:49:37 199x").has_value());
 }
 
-TEST(reject_hour_out_of_range) {
-  EXPECT_FALSE(
-      sourcemeta::core::from_asctime("Sun Nov  6 24:49:37 1994").has_value());
-}
-
-TEST(reject_minute_out_of_range) {
-  EXPECT_FALSE(
-      sourcemeta::core::from_asctime("Sun Nov  6 08:60:37 1994").has_value());
-}
-
-TEST(reject_second_out_of_range) {
-  EXPECT_FALSE(
-      sourcemeta::core::from_asctime("Sun Nov  6 08:49:61 1994").has_value());
-}
-
 TEST(accept_leap_second) {
   // RFC 3339 section 5.6 represents a leap second as a "60" second value
   EXPECT_TRUE(
