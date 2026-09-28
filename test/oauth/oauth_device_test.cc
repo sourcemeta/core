@@ -270,3 +270,48 @@ TEST(device_authorization_response_exposes_the_document) {
   const sourcemeta::core::OAuthDeviceAuthorizationResponse response{document};
   EXPECT_EQ(response.data(), document);
 }
+
+TEST(device_authorization_response_over_an_array) {
+  // Every accessor reads the members out of an object, so a payload that is not
+  // an object at all reports each of them as absent rather than throwing
+  const auto document{sourcemeta::core::parse_json(R"JSON([ 1, 2 ])JSON")};
+  const sourcemeta::core::OAuthDeviceAuthorizationResponse response{document};
+  EXPECT_FALSE(response.device_code().has_value());
+  EXPECT_FALSE(response.expires_in().has_value());
+  EXPECT_EQ(response.interval(), std::chrono::seconds{5});
+}
+
+TEST(device_authorization_response_over_a_string) {
+  const auto document{sourcemeta::core::parse_json(R"JSON("nonsense")JSON")};
+  const sourcemeta::core::OAuthDeviceAuthorizationResponse response{document};
+  EXPECT_FALSE(response.user_code().has_value());
+  EXPECT_FALSE(response.expires_in().has_value());
+}
+
+TEST(device_authorization_response_with_a_non_string_device_code) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "device_code": 42, "user_code": "WDJB-MJHT",
+    "verification_uri": "https://example.com/device", "expires_in": 1800
+  })JSON")};
+  const sourcemeta::core::OAuthDeviceAuthorizationResponse response{document};
+  EXPECT_FALSE(response.device_code().has_value());
+  EXPECT_EQ(response.user_code().value(), "WDJB-MJHT");
+}
+
+TEST(device_authorization_response_with_a_non_integer_expires_in) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "device_code": "GmRh", "user_code": "WDJB-MJHT",
+    "verification_uri": "https://example.com/device", "expires_in": "1800"
+  })JSON")};
+  const sourcemeta::core::OAuthDeviceAuthorizationResponse response{document};
+  EXPECT_FALSE(response.expires_in().has_value());
+}
+
+TEST(device_authorization_response_with_a_negative_expires_in) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "device_code": "GmRh", "user_code": "WDJB-MJHT",
+    "verification_uri": "https://example.com/device", "expires_in": -1
+  })JSON")};
+  const sourcemeta::core::OAuthDeviceAuthorizationResponse response{document};
+  EXPECT_FALSE(response.expires_in().has_value());
+}

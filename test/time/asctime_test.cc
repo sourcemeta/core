@@ -2,7 +2,6 @@
 
 #include <chrono>
 #include <ctime>
-#include <string>
 
 #include <sourcemeta/core/time.h>
 
@@ -205,4 +204,117 @@ TEST(format_year_below_1000_pads_to_four_digits) {
     EXPECT_EQ(formatted, "Fri Jan  1 00:00:00 0900");
     EXPECT_EQ(sourcemeta::core::from_asctime(formatted), point);
   }
+}
+
+TEST(reject_corrupted_day_month_separator) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_asctime("SunxNov  6 08:49:37 1994").has_value());
+}
+
+TEST(reject_corrupted_month_day_separator) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_asctime("Sun Novx 6 08:49:37 1994").has_value());
+}
+
+TEST(reject_missing_space_before_time) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_asctime("Sun Nov  6x08:49:37 1994").has_value());
+}
+
+TEST(reject_corrupted_hour_minute_separator) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_asctime("Sun Nov  6 08x49:37 1994").has_value());
+}
+
+TEST(reject_corrupted_minute_second_separator) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_asctime("Sun Nov  6 08:49x37 1994").has_value());
+}
+
+TEST(reject_missing_space_before_year) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_asctime("Sun Nov  6 08:49:37x1994").has_value());
+}
+
+TEST(reject_non_digit_day_tens) {
+  // The tens digit of the day may be a space, so anything else has to be a
+  // digit
+  EXPECT_FALSE(
+      sourcemeta::core::from_asctime("Sun Nov x6 08:49:37 1994").has_value());
+}
+
+TEST(reject_non_digit_day_units) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_asctime("Wed Nov 1x 08:49:37 1994").has_value());
+}
+
+TEST(reject_non_digit_hour_tens) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_asctime("Sun Nov  6 x8:49:37 1994").has_value());
+}
+
+TEST(reject_non_digit_hour_units) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_asctime("Sun Nov  6 0x:49:37 1994").has_value());
+}
+
+TEST(reject_non_digit_minute_tens) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_asctime("Sun Nov  6 08:x9:37 1994").has_value());
+}
+
+TEST(reject_non_digit_minute_units) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_asctime("Sun Nov  6 08:4x:37 1994").has_value());
+}
+
+TEST(reject_non_digit_second_tens) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_asctime("Sun Nov  6 08:49:x7 1994").has_value());
+}
+
+TEST(reject_non_digit_second_units) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_asctime("Sun Nov  6 08:49:3x 1994").has_value());
+}
+
+TEST(reject_non_digit_year_thousands) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_asctime("Sun Nov  6 08:49:37 x994").has_value());
+}
+
+TEST(reject_non_digit_year_hundreds) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_asctime("Sun Nov  6 08:49:37 1x94").has_value());
+}
+
+TEST(reject_non_digit_year_tens) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_asctime("Sun Nov  6 08:49:37 19x4").has_value());
+}
+
+TEST(reject_non_digit_year_units) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_asctime("Sun Nov  6 08:49:37 199x").has_value());
+}
+
+TEST(reject_hour_out_of_range) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_asctime("Sun Nov  6 24:49:37 1994").has_value());
+}
+
+TEST(reject_minute_out_of_range) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_asctime("Sun Nov  6 08:60:37 1994").has_value());
+}
+
+TEST(reject_second_out_of_range) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_asctime("Sun Nov  6 08:49:61 1994").has_value());
+}
+
+TEST(accept_leap_second) {
+  // RFC 3339 section 5.6 represents a leap second as a "60" second value
+  EXPECT_TRUE(
+      sourcemeta::core::from_asctime("Sun Nov  6 08:49:60 1994").has_value());
 }

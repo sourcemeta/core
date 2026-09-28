@@ -262,3 +262,136 @@ TEST(parse_wrong_case_month_name) {
       sourcemeta::core::from_rfc850_date("Sunday, 06-nOV-94 08:49:37 GMT")
           .has_value());
 }
+
+TEST(reject_missing_space_after_comma) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_rfc850_date("Sunday,x06-Nov-94 08:49:37 GMT")
+          .has_value());
+}
+
+TEST(reject_corrupted_day_month_separator) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_rfc850_date("Sunday, 06xNov-94 08:49:37 GMT")
+          .has_value());
+}
+
+TEST(reject_corrupted_month_year_separator) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_rfc850_date("Sunday, 06-Novx94 08:49:37 GMT")
+          .has_value());
+}
+
+TEST(reject_missing_space_before_time) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_rfc850_date("Sunday, 06-Nov-94x08:49:37 GMT")
+          .has_value());
+}
+
+TEST(reject_missing_space_before_zone) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_rfc850_date("Sunday, 06-Nov-94 08:49:37xGMT")
+          .has_value());
+}
+
+TEST(reject_corrupted_zone_first_letter) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_rfc850_date("Sunday, 06-Nov-94 08:49:37 xMT")
+          .has_value());
+}
+
+TEST(reject_corrupted_zone_second_letter) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_rfc850_date("Sunday, 06-Nov-94 08:49:37 GxT")
+          .has_value());
+}
+
+TEST(reject_corrupted_zone_third_letter) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_rfc850_date("Sunday, 06-Nov-94 08:49:37 GMx")
+          .has_value());
+}
+
+TEST(reject_non_digit_day_tens) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_rfc850_date("Sunday, x6-Nov-94 08:49:37 GMT")
+          .has_value());
+}
+
+TEST(reject_non_digit_day_units) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_rfc850_date("Sunday, 0x-Nov-94 08:49:37 GMT")
+          .has_value());
+}
+
+TEST(reject_non_digit_year_tens) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_rfc850_date("Sunday, 06-Nov-x4 08:49:37 GMT")
+          .has_value());
+}
+
+TEST(reject_non_digit_year_units) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_rfc850_date("Sunday, 06-Nov-9x 08:49:37 GMT")
+          .has_value());
+}
+
+TEST(reject_non_digit_hour_tens) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_rfc850_date("Sunday, 06-Nov-94 x8:49:37 GMT")
+          .has_value());
+}
+
+TEST(reject_non_digit_hour_units) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_rfc850_date("Sunday, 06-Nov-94 0x:49:37 GMT")
+          .has_value());
+}
+
+TEST(reject_non_digit_minute_tens) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_rfc850_date("Sunday, 06-Nov-94 08:x9:37 GMT")
+          .has_value());
+}
+
+TEST(reject_non_digit_minute_units) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_rfc850_date("Sunday, 06-Nov-94 08:4x:37 GMT")
+          .has_value());
+}
+
+TEST(reject_non_digit_second_tens) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_rfc850_date("Sunday, 06-Nov-94 08:49:x7 GMT")
+          .has_value());
+}
+
+TEST(reject_non_digit_second_units) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_rfc850_date("Sunday, 06-Nov-94 08:49:3x GMT")
+          .has_value());
+}
+
+TEST(reject_hour_out_of_range) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_rfc850_date("Sunday, 06-Nov-94 24:49:37 GMT")
+          .has_value());
+}
+
+TEST(reject_minute_out_of_range) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_rfc850_date("Sunday, 06-Nov-94 08:60:37 GMT")
+          .has_value());
+}
+
+TEST(reject_second_out_of_range) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_rfc850_date("Sunday, 06-Nov-94 08:49:61 GMT")
+          .has_value());
+}
+
+TEST(accept_leap_second) {
+  // RFC 3339 section 5.6 represents a leap second as a "60" second value
+  EXPECT_TRUE(
+      sourcemeta::core::from_rfc850_date("Sunday, 06-Nov-94 08:49:60 GMT")
+          .has_value());
+}

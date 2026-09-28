@@ -3825,3 +3825,72 @@ TEST(ecma262_bounded_quantifier_out_of_order_is_invalid) {
                    .has_value());
   EXPECT_FALSE(sourcemeta::core::is_regex_ecma("^.{5,2}$"));
 }
+
+TEST(ecma262_bounded_quantifier_with_comma) {
+  const auto regex{sourcemeta::core::to_regex(
+      "^a{2,3}$", sourcemeta::core::RegexDialect::Permissive)};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "aa"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "aaa"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "aaaa"));
+}
+
+TEST(ecma262_bounded_quantifier_open_ended) {
+  const auto regex{sourcemeta::core::to_regex(
+      "^a{2,}$", sourcemeta::core::RegexDialect::Permissive)};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "aa"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "aaaa"));
+}
+
+TEST(ecma262_named_backreference) {
+  const auto regex{
+      sourcemeta::core::to_regex(R"(^(?<letter>a)\k<letter>$)",
+                                 sourcemeta::core::RegexDialect::Permissive)};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "aa"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "ab"));
+}
+
+TEST(ecma262_named_backreference_with_empty_name) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma(R"((?<letter>a)\k<>)"));
+}
+
+TEST(ecma262_named_backreference_unterminated) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma(R"((?<letter>a)\k<letter)"));
+}
+
+TEST(ecma262_class_escape_outside_the_recognised_set) {
+  // Only the shorthand classes, the simple escapes and the numeric forms are
+  // recognised inside a class, so any other escaped letter is rejected rather
+  // than read as the literal character it names
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("[\\q]"));
+  EXPECT_FALSE(sourcemeta::core::to_regex(
+                   "^[\\q]$", sourcemeta::core::RegexDialect::Permissive)
+                   .has_value());
+}
+
+TEST(ecma262_class_null_escape) {
+  const auto regex{sourcemeta::core::to_regex(
+      "^[\\0]$", sourcemeta::core::RegexDialect::Permissive)};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), std::string(1, '\0')));
+}
+
+TEST(ecma262_class_hex_escape_with_non_hex_digits) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("[\\xZZ]"));
+}
+
+TEST(ecma262_class_brace_unicode_escape_with_non_hex_digits) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("[\\u{ZZ}]"));
+}
+
+TEST(ecma262_class_brace_unicode_escape_unterminated) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("[\\u{12"));
+}
+
+TEST(ecma262_class_brace_unicode_escape_past_the_unicode_range) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("[\\u{FFFFFFF}]"));
+}

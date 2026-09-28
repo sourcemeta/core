@@ -1145,3 +1145,13 @@ TEST(proof_thumbprint_rejects_non_object_jwk_header) {
   EXPECT_FALSE(
       sourcemeta::core::oauth_dpop_proof_thumbprint(proof).has_value());
 }
+
+TEST(replay_store_zero_capacity_falls_back_to_the_default) {
+  // A capacity of zero would reject every identifier, so it is read as a
+  // request for the default rather than taken literally
+  sourcemeta::core::OAuthDPoPReplayStore store{0};
+  EXPECT_TRUE(store.check_and_insert("id", "https://server.example.com/token",
+                                     FIXED_TIME, std::chrono::seconds{300}));
+  EXPECT_FALSE(store.check_and_insert("id", "https://server.example.com/token",
+                                      FIXED_TIME, std::chrono::seconds{300}));
+}
