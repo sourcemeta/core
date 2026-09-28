@@ -162,3 +162,17 @@ TEST(windows_relative_with_dotdot) {
         "It is not valid to construct a file:// URI out of a relative path");
   }
 }
+
+TEST(windows_unc_host_with_trailing_separator) {
+  // The host consumes the first segment, so the trailing separator is the
+  // first thing the path accumulator sees and it has nothing to append to yet
+  const std::filesystem::path example{R"(\\server\)"};
+  const auto uri{sourcemeta::core::URI::from_path(example)};
+  EXPECT_EQ(uri.recompose(), "file://server/");
+}
+
+TEST(windows_unc_host_only) {
+  const std::filesystem::path example{R"(\\server)"};
+  const auto uri{sourcemeta::core::URI::from_path(example)};
+  EXPECT_EQ(uri.recompose(), "file://server");
+}

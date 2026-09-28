@@ -22,9 +22,6 @@ auto is_localhost_host(const std::string_view host) -> bool {
 
 auto append_raw_segment(std::optional<std::string> &path,
                         const std::string_view segment) -> void {
-  if (segment.empty()) {
-    return;
-  }
   if (!path.has_value()) {
     path = std::string{segment};
     return;

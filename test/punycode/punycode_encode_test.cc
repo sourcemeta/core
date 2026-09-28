@@ -374,3 +374,29 @@ TEST(utf8_stream_api_with_non_ascii) {
   sourcemeta::core::utf8_to_punycode(input, output);
   EXPECT_EQ(output.str(), "Mnchen-3ya");
 }
+
+TEST(error_encode_overflow_from_a_wide_jump_after_many_basic_code_points) {
+  // RFC 3492 Section 6.3: the delta the encoder accumulates must not overflow.
+  // The increment is the code point jump times the number of code points
+  // handled so far, so the widest possible jump needs a few thousand basic
+  // code points ahead of it to exceed the range
+  std::u32string input(4000, U'a');
+  input.push_back(U'\x10FFFF');
+  try {
+    sourcemeta::core::utf32_to_punycode(input);
+    FAIL();
+  } catch (const sourcemeta::core::PunycodeError &error) {
+    EXPECT_STREQ(error.what(), "Encode overflow");
+  }
+}
+
+TEST(error_encode_invalid_utf8_input) {
+  std::istringstream input{"\xFF"};
+  std::ostringstream output;
+  try {
+    sourcemeta::core::utf8_to_punycode(input, output);
+    FAIL();
+  } catch (const sourcemeta::core::PunycodeError &error) {
+    EXPECT_STREQ(error.what(), "Invalid UTF-8 input");
+  }
+}
