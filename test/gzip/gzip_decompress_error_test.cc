@@ -878,3 +878,32 @@ TEST(second_member_fhcrc_mismatch) {
       0x6c, 0x64, 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
   EXPECT_GZIP_DECOMPRESS_ERROR(input, "FHCRC mismatch");
 }
+
+TEST(truncated_fextra_length) {
+  // The extra field length is itself two bytes, and here only one of them
+  // arrives, so the member ends before the field it was about to describe
+  const std::vector<std::uint8_t> input{0x1f, 0x8b, 0x08, 0x04, 0x00, 0x00,
+                                        0x00, 0x00, 0x00, 0xff, 0x64};
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Unexpected end of source stream");
+}
+
+TEST(missing_fextra_length) {
+  const std::vector<std::uint8_t> input{0x1f, 0x8b, 0x08, 0x04, 0x00,
+                                        0x00, 0x00, 0x00, 0x00, 0xff};
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Unexpected end of source stream");
+}
+
+TEST(truncated_stored_block_length) {
+  // A stored block declares its length twice over in four bytes, and here only
+  // two of them arrive, so the block ends before its own length is known
+  const std::vector<std::uint8_t> input{0x1f, 0x8b, 0x08, 0x00, 0x00,
+                                        0x00, 0x00, 0x00, 0x00, 0xff,
+                                        0x01, 0x0b, 0x00};
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Unexpected end of source stream");
+}
+
+TEST(missing_stored_block_length) {
+  const std::vector<std::uint8_t> input{0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00,
+                                        0x00, 0x00, 0x00, 0xff, 0x01};
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Unexpected end of source stream");
+}
