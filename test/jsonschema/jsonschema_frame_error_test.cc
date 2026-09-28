@@ -2655,6 +2655,7 @@ TEST(identifier_that_is_not_a_valid_uri) {
         sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
     FAIL();
   } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_STREQ(error.what(), "The identifier is not a valid URI");
     EXPECT_EQ(error.keyword(), "$id");
     EXPECT_EQ(error.value(), "//[::44.1");
   } catch (...) {
