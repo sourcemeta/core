@@ -231,7 +231,7 @@ TEST(device_authorization_response_rejects_a_zero_lifetime) {
   EXPECT_FALSE(response.expires_in().has_value());
 }
 
-TEST(device_authorization_response_rejects_an_overflowing_lifetime) {
+TEST(device_authorization_response_accepts_the_largest_representable_lifetime) {
   const auto document{sourcemeta::core::parse_json(R"JSON({
     "device_code": "GmRh", "user_code": "WDJB-MJHT",
     "verification_uri": "https://example.com/device",

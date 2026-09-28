@@ -559,3 +559,16 @@ TEST(from_reports_no_initiate_login_uri_when_absent) {
   EXPECT_TRUE(metadata.has_value());
   EXPECT_FALSE(metadata.value().initiate_login_uri().has_value());
 }
+
+TEST(accepts_the_largest_representable_default_max_age) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "redirect_uris": [ "https://client.example/cb" ],
+    "default_max_age": 9223372036854775807
+  })JSON")};
+  const auto metadata{
+      sourcemeta::core::OIDCClientMetadata::from(std::move(document))};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_TRUE(metadata.value().default_max_age().has_value());
+  EXPECT_EQ(metadata.value().default_max_age().value(),
+            std::chrono::seconds{9223372036854775807});
+}
