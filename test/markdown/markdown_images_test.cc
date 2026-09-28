@@ -83,3 +83,10 @@ TEST(image_title_with_escaped_quote) {
   EXPECT_EQ(result,
             "<p><img src=\"/l.png\" alt=\"logo\" title=\"it&#39;s\" /></p>\n");
 }
+
+TEST(image_description_spanning_a_soft_break) {
+  // The description becomes the alt attribute, which cannot hold a line break,
+  // so the break is flattened into a single space
+  const auto result{sourcemeta::core::markdown_to_html("![a\nb](/u)")};
+  EXPECT_EQ(result, "<p><img src=\"/u\" alt=\"a b\" /></p>\n");
+}
