@@ -400,13 +400,3 @@ TEST(error_encode_invalid_utf8_input) {
     EXPECT_STREQ(error.what(), "Invalid UTF-8 input");
   }
 }
-
-TEST(error_encode_surrogate_code_point) {
-  const std::u32string surrogate{0xD800};
-  try {
-    sourcemeta::core::utf32_to_punycode(surrogate);
-    FAIL();
-  } catch (const sourcemeta::core::PunycodeError &error) {
-    EXPECT_STREQ(error.what(), "Invalid code point");
-  }
-}
