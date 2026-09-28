@@ -201,7 +201,10 @@ TEST(windows_unc_root_only) {
   EXPECT_EQ(uri.recompose(), "file:///");
 }
 
-TEST(windows_unc_root_round_trips_through_to_path) {
+// Not a round trip: the URI this produces carries an empty authority, so
+// `to_path` reads it as the filesystem root rather than as the UNC form it came
+// from. The backslash spelling is not recovered
+TEST(windows_unc_root_maps_to_the_filesystem_root) {
   const std::filesystem::path example{"\\\\"};
   const auto uri{sourcemeta::core::URI::from_path(example)};
   EXPECT_EQ(uri.to_path(), std::filesystem::path{"/"});
