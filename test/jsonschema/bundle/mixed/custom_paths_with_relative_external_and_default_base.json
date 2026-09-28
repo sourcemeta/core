@@ -26,7 +26,7 @@
       "components": {
         "schemas": {
           "Pet": {
-            "$ref": "test-1"
+            "$ref": "https://www.sourcemeta.com/test-1"
           }
         }
       },
@@ -42,7 +42,7 @@
       "components": {
         "schemas": {
           "Pet": {
-            "$ref": "test-1"
+            "$ref": "https://www.sourcemeta.com/test-1"
           }
         }
       },

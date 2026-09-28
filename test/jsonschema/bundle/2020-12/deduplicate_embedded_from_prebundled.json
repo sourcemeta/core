@@ -43,22 +43,22 @@
       "$id": "https://example.com/dedup-entry",
       "allOf": [
         {
-          "$ref": "dedup-a"
+          "$ref": "https://example.com/dedup-a"
         },
         {
-          "$ref": "dedup-b"
+          "$ref": "https://example.com/dedup-b"
         }
       ],
       "$defs": {
         "https://example.com/dedup-a": {
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$id": "https://example.com/dedup-a",
-          "$ref": "dedup-common"
+          "$ref": "https://example.com/dedup-common"
         },
         "https://example.com/dedup-b": {
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$id": "https://example.com/dedup-b",
-          "$ref": "dedup-common"
+          "$ref": "https://example.com/dedup-common"
         },
         "https://example.com/dedup-common": {
           "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -72,22 +72,22 @@
       "$id": "https://example.com/dedup-entry",
       "allOf": [
         {
-          "$ref": "dedup-a"
+          "$ref": "https://example.com/dedup-a"
         },
         {
-          "$ref": "dedup-b"
+          "$ref": "https://example.com/dedup-b"
         }
       ],
       "$defs": {
         "https://example.com/dedup-a": {
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$id": "https://example.com/dedup-a",
-          "$ref": "dedup-common"
+          "$ref": "https://example.com/dedup-common"
         },
         "https://example.com/dedup-b": {
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$id": "https://example.com/dedup-b",
-          "$ref": "dedup-common"
+          "$ref": "https://example.com/dedup-common"
         },
         "https://example.com/dedup-common": {
           "$schema": "https://json-schema.org/draft/2020-12/schema",

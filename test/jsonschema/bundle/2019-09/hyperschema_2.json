@@ -432,22 +432,22 @@
           "title": "Core and Validation specifications meta-schema",
           "allOf": [
             {
-              "$ref": "meta/core"
+              "$ref": "https://json-schema.org/draft/2019-09/meta/core"
             },
             {
-              "$ref": "meta/applicator"
+              "$ref": "https://json-schema.org/draft/2019-09/meta/applicator"
             },
             {
-              "$ref": "meta/validation"
+              "$ref": "https://json-schema.org/draft/2019-09/meta/validation"
             },
             {
-              "$ref": "meta/meta-data"
+              "$ref": "https://json-schema.org/draft/2019-09/meta/meta-data"
             },
             {
-              "$ref": "meta/format"
+              "$ref": "https://json-schema.org/draft/2019-09/meta/format"
             },
             {
-              "$ref": "meta/content"
+              "$ref": "https://json-schema.org/draft/2019-09/meta/content"
             }
           ],
           "type": [
@@ -472,7 +472,7 @@
                     "$recursiveRef": "#"
                   },
                   {
-                    "$ref": "meta/validation#/$defs/stringArray"
+                    "$ref": "https://json-schema.org/draft/2019-09/meta/validation#/$defs/stringArray"
                   }
                 ]
               }
@@ -1025,22 +1025,22 @@
           "title": "Core and Validation specifications meta-schema",
           "allOf": [
             {
-              "$ref": "meta/core"
+              "$ref": "https://json-schema.org/draft/2019-09/meta/core"
             },
             {
-              "$ref": "meta/applicator"
+              "$ref": "https://json-schema.org/draft/2019-09/meta/applicator"
             },
             {
-              "$ref": "meta/validation"
+              "$ref": "https://json-schema.org/draft/2019-09/meta/validation"
             },
             {
-              "$ref": "meta/meta-data"
+              "$ref": "https://json-schema.org/draft/2019-09/meta/meta-data"
             },
             {
-              "$ref": "meta/format"
+              "$ref": "https://json-schema.org/draft/2019-09/meta/format"
             },
             {
-              "$ref": "meta/content"
+              "$ref": "https://json-schema.org/draft/2019-09/meta/content"
             }
           ],
           "type": [
@@ -1065,7 +1065,7 @@
                     "$recursiveRef": "#"
                   },
                   {
-                    "$ref": "meta/validation#/$defs/stringArray"
+                    "$ref": "https://json-schema.org/draft/2019-09/meta/validation#/$defs/stringArray"
                   }
                 ]
               }

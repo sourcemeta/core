@@ -51,10 +51,10 @@
       "$id": "https://example.com/draft7-dedup-entry",
       "allOf": [
         {
-          "$ref": "draft7-dedup-a"
+          "$ref": "https://example.com/draft7-dedup-a"
         },
         {
-          "$ref": "draft7-dedup-b"
+          "$ref": "https://example.com/draft7-dedup-b"
         }
       ],
       "definitions": {
@@ -63,7 +63,7 @@
           "$id": "https://example.com/draft7-dedup-a",
           "allOf": [
             {
-              "$ref": "draft7-dedup-common"
+              "$ref": "https://example.com/draft7-dedup-common"
             }
           ]
         },
@@ -72,7 +72,7 @@
           "$id": "https://example.com/draft7-dedup-b",
           "allOf": [
             {
-              "$ref": "draft7-dedup-common"
+              "$ref": "https://example.com/draft7-dedup-common"
             }
           ]
         },
@@ -88,10 +88,10 @@
       "$id": "https://example.com/draft7-dedup-entry",
       "allOf": [
         {
-          "$ref": "draft7-dedup-a"
+          "$ref": "https://example.com/draft7-dedup-a"
         },
         {
-          "$ref": "draft7-dedup-b"
+          "$ref": "https://example.com/draft7-dedup-b"
         }
       ],
       "definitions": {
@@ -100,7 +100,7 @@
           "$id": "https://example.com/draft7-dedup-a",
           "allOf": [
             {
-              "$ref": "draft7-dedup-common"
+              "$ref": "https://example.com/draft7-dedup-common"
             }
           ]
         },
@@ -109,7 +109,7 @@
           "$id": "https://example.com/draft7-dedup-b",
           "allOf": [
             {
-              "$ref": "draft7-dedup-common"
+              "$ref": "https://example.com/draft7-dedup-common"
             }
           ]
         },

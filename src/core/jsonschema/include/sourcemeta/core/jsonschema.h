@@ -212,7 +212,10 @@ struct SchemaBundleOptions {
 ///
 /// This function bundles a JSON Schema (starting from Draft 4) by embedding
 /// every remote reference into the top level schema resource, handling circular
-/// dependencies and more. This overload mutates the input schema.  For example:
+/// dependencies and more. A reference that names another document is restated
+/// as the absolute URI it resolves to, while one that names the document
+/// holding it keeps its spelling. This overload mutates the input schema.  For
+/// example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/json.h>
@@ -268,8 +271,10 @@ auto schema_bundle(sourcemeta::core::JSON &schema, const SchemaWalker &walker,
 ///
 /// This function bundles a JSON Schema (starting from Draft 4) by embedding
 /// every remote reference into the top level schema resource, handling circular
-/// dependencies and more. This overload returns a new schema, without mutating
-/// the input schema. For example:
+/// dependencies and more. A reference that names another document is restated
+/// as the absolute URI it resolves to, while one that names the document
+/// holding it keeps its spelling. This overload returns a new schema, without
+/// mutating the input schema. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/json.h>

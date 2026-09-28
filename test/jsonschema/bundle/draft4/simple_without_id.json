@@ -51,7 +51,7 @@
           "id": "https://www.sourcemeta.com",
           "allOf": [
             {
-              "$ref": "test-2"
+              "$ref": "https://www.sourcemeta.com/test-2"
             }
           ]
         }
@@ -67,7 +67,7 @@
           "id": "https://www.sourcemeta.com/test-2",
           "allOf": [
             {
-              "$ref": "test-3"
+              "$ref": "https://www.sourcemeta.com/test-3"
             }
           ]
         },
@@ -76,7 +76,7 @@
           "id": "https://www.sourcemeta.com/test-3",
           "allOf": [
             {
-              "$ref": "test-1"
+              "$ref": "https://www.sourcemeta.com/test-1"
             }
           ]
         }
@@ -92,7 +92,7 @@
           "id": "https://www.sourcemeta.com",
           "allOf": [
             {
-              "$ref": "test-2"
+              "$ref": "https://www.sourcemeta.com/test-2"
             }
           ]
         }
@@ -108,7 +108,7 @@
           "id": "https://www.sourcemeta.com/test-2",
           "allOf": [
             {
-              "$ref": "test-3"
+              "$ref": "https://www.sourcemeta.com/test-3"
             }
           ]
         },
@@ -117,7 +117,7 @@
           "id": "https://www.sourcemeta.com/test-3",
           "allOf": [
             {
-              "$ref": "test-1"
+              "$ref": "https://www.sourcemeta.com/test-1"
             }
           ]
         }
