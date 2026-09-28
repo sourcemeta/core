@@ -44,6 +44,55 @@ LotnyAB/PnO2eU6aOt6q6EcZ
 -----END PRIVATE KEY-----
 )"};
 
+// The RSA key above whose private key blob was replaced by a private key blob
+// too short to hold a tag and a length at all
+static constexpr std::string_view DER_TRUNCATED_ELEMENT_KEY{
+    R"(-----BEGIN PRIVATE KEY-----
+MBUCAQAwDQYJKoZIhvcNAQEBBQAEATA=
+-----END PRIVATE KEY-----)"};
+
+// The RSA key above whose private key blob was replaced by the indefinite
+// length form, which the distinguished encoding rules forbid
+static constexpr std::string_view DER_INDEFINITE_LENGTH_KEY{
+    R"(-----BEGIN PRIVATE KEY-----
+MBYCAQAwDQYJKoZIhvcNAQEBBQAEAjCA
+-----END PRIVATE KEY-----)"};
+
+// The RSA key above whose private key blob was replaced by a long form length
+// claiming more octets than a length this reader accepts
+static constexpr std::string_view DER_OVER_LONG_LENGTH_COUNT_KEY{
+    R"(-----BEGIN PRIVATE KEY-----
+MBsCAQAwDQYJKoZIhvcNAQEBBQAEBzCFAQIDBAU=
+-----END PRIVATE KEY-----)"};
+
+// The RSA key above whose private key blob was replaced by a long form length
+// whose octets run past the end of the input
+static constexpr std::string_view DER_LENGTH_COUNT_PAST_INPUT_KEY{
+    R"(-----BEGIN PRIVATE KEY-----
+MBcCAQAwDQYJKoZIhvcNAQEBBQAEAzCEAQ==
+-----END PRIVATE KEY-----)"};
+
+// The RSA key above whose private key blob was replaced by a long form length
+// starting with a zero octet, which is not minimal
+static constexpr std::string_view DER_LEADING_ZERO_LENGTH_OCTET_KEY{
+    R"(-----BEGIN PRIVATE KEY-----
+MB0CAQAwDQYJKoZIhvcNAQEBBQAECTCCAAWqu8zd7g==
+-----END PRIVATE KEY-----)"};
+
+// The RSA key above whose private key blob was replaced by a long form length
+// holding a value that the short form must carry
+static constexpr std::string_view DER_LONG_FORM_SHORT_LENGTH_KEY{
+    R"(-----BEGIN PRIVATE KEY-----
+MBcCAQAwDQYJKoZIhvcNAQEBBQAEAzCBfw==
+-----END PRIVATE KEY-----)"};
+
+// The RSA key above whose private key blob was replaced by a length longer than
+// the content that follows it
+static constexpr std::string_view DER_LENGTH_PAST_CONTENT_KEY{
+    R"(-----BEGIN PRIVATE KEY-----
+MBgCAQAwDQYJKoZIhvcNAQEBBQAEBDAFqrs=
+-----END PRIVATE KEY-----)"};
+
 // A 2048-bit key whose PKCS#8 algorithm is id-RSASSA-PSS rather than
 // rsaEncryption, so it is restricted to PSS and must refuse PKCS1v15 signing
 static constexpr std::string_view PSS_RESTRICTED_PRIVATE_KEY{
@@ -941,4 +990,43 @@ TEST(public_key_move_assignment_takes_the_other_key) {
   auto other{sourcemeta::core::derive_public_key(edwards.value()).value()};
   key = std::move(other);
   EXPECT_TRUE(key.type() == sourcemeta::core::PublicKey::Type::Edwards);
+}
+
+TEST(make_private_key_rejects_a_truncated_private_key_element) {
+  EXPECT_FALSE(sourcemeta::core::make_private_key(DER_TRUNCATED_ELEMENT_KEY)
+                   .has_value());
+}
+
+TEST(make_private_key_rejects_an_indefinite_length) {
+  EXPECT_FALSE(sourcemeta::core::make_private_key(DER_INDEFINITE_LENGTH_KEY)
+                   .has_value());
+}
+
+TEST(make_private_key_rejects_an_over_long_length_octet_count) {
+  EXPECT_FALSE(
+      sourcemeta::core::make_private_key(DER_OVER_LONG_LENGTH_COUNT_KEY)
+          .has_value());
+}
+
+TEST(make_private_key_rejects_length_octets_past_the_input) {
+  EXPECT_FALSE(
+      sourcemeta::core::make_private_key(DER_LENGTH_COUNT_PAST_INPUT_KEY)
+          .has_value());
+}
+
+TEST(make_private_key_rejects_a_leading_zero_length_octet) {
+  EXPECT_FALSE(
+      sourcemeta::core::make_private_key(DER_LEADING_ZERO_LENGTH_OCTET_KEY)
+          .has_value());
+}
+
+TEST(make_private_key_rejects_a_long_form_length_below_the_short_form_limit) {
+  EXPECT_FALSE(
+      sourcemeta::core::make_private_key(DER_LONG_FORM_SHORT_LENGTH_KEY)
+          .has_value());
+}
+
+TEST(make_private_key_rejects_a_length_past_the_content) {
+  EXPECT_FALSE(sourcemeta::core::make_private_key(DER_LENGTH_PAST_CONTENT_KEY)
+                   .has_value());
 }
