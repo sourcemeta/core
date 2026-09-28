@@ -4,6 +4,7 @@
 
 #include <array>  // std::array
 #include <chrono> // std::chrono::seconds
+#include <limits> // std::numeric_limits
 #include <string> // std::string
 
 TEST(build_device_authorization_request_emits_client_id_and_scope) {
@@ -231,15 +232,16 @@ TEST(device_authorization_response_rejects_a_zero_lifetime) {
   EXPECT_FALSE(response.expires_in().has_value());
 }
 
-TEST(device_authorization_response_rejects_an_overflowing_lifetime) {
-  const auto document{sourcemeta::core::parse_json(R"JSON({
+TEST(device_authorization_response_accepts_the_largest_representable_lifetime) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
     "device_code": "GmRh", "user_code": "WDJB-MJHT",
-    "verification_uri": "https://example.com/device",
-    "expires_in": 9223372036854775807
+    "verification_uri": "https://example.com/device"
   })JSON")};
+  document.assign("expires_in",
+                  sourcemeta::core::JSON{
+                      std::numeric_limits<std::chrono::seconds::rep>::max()});
   const sourcemeta::core::OAuthDeviceAuthorizationResponse response{document};
-  EXPECT_TRUE(response.expires_in().value() ==
-              std::chrono::seconds{9223372036854775807});
+  EXPECT_TRUE(response.expires_in().value() == std::chrono::seconds::max());
 }
 
 TEST(device_poller_does_not_expire_before_the_start) {
