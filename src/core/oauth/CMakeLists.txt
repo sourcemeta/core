@@ -2,7 +2,7 @@ sourcemeta_library(NAMESPACE sourcemeta PROJECT core NAME oauth
   PRIVATE_HEADERS error.h profile.h pkce.h bearer.h random.h authorization.h
     token.h client_authentication.h transaction.h metadata.h metadata_provider.h
     token_exchange.h revocation.h introspection.h device.h dpop.h par.h
-    assertion.h registration.h
+    assertion.h registration.h duration.h
   SOURCES oauth_error.cc oauth_pkce.cc oauth_bearer.cc oauth_syntax.h
     oauth_scope.h
     oauth_random.cc oauth_authorization.cc oauth_authorization_parse.h

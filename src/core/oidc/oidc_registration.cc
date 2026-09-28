@@ -6,7 +6,6 @@
 #include <sourcemeta/core/uri.h>
 
 #include <chrono>      // std::chrono::seconds
-#include <limits>      // std::numeric_limits
 #include <optional>    // std::optional, std::nullopt
 #include <span>        // std::span
 #include <string_view> // std::string_view
@@ -288,26 +287,8 @@ auto OIDCClientMetadata::userinfo_signed_response_alg() const
 
 auto OIDCClientMetadata::default_max_age() const
     -> std::optional<std::chrono::seconds> {
-  const auto *member{
-      this->oauth_.data().try_at("default_max_age"sv, HASH_DEFAULT_MAX_AGE)};
-  if (member == nullptr || !member->is_integer() || member->to_integer() < 0) {
-    return std::nullopt;
-  }
-
-  // A JSON integer is a signed 64 bit value, whereas a duration is only
-  // promised 35 bits, so a platform whose duration is the narrower of the two
-  // has to range check the value before narrowing it. Where the two are the
-  // same width the comparison cannot fail, and asking for it at compile time
-  // discards it rather than leaving an unreachable branch behind
-  if constexpr (std::numeric_limits<JSON::Integer>::max() >
-                std::numeric_limits<std::chrono::seconds::rep>::max()) {
-    if (member->to_integer() >
-        std::numeric_limits<std::chrono::seconds::rep>::max()) {
-      return std::nullopt;
-    }
-  }
-
-  return std::chrono::seconds{member->to_integer()};
+  return oauth_json_seconds_member(this->oauth_.data(), "default_max_age"sv,
+                                   HASH_DEFAULT_MAX_AGE);
 }
 
 auto OIDCClientMetadata::require_auth_time() const -> bool {
