@@ -56,7 +56,7 @@
         },
         "bar": {
           "$id": "https://www.sourcemeta.com",
-          "$ref": "test-2"
+          "$ref": "https://www.sourcemeta.com/test-2"
         },
         "baz": {
           "$ref": "https://example.com/foo/bar#baz"
@@ -77,12 +77,12 @@
         "https://www.sourcemeta.com/test-2": {
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$id": "https://www.sourcemeta.com/test-2",
-          "$ref": "test-3"
+          "$ref": "https://www.sourcemeta.com/test-3"
         },
         "https://www.sourcemeta.com/test-3": {
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$id": "https://www.sourcemeta.com/test-3",
-          "$ref": "test-1"
+          "$ref": "https://www.sourcemeta.com/test-1"
         },
         "https://www.sourcemeta.com/test-4": {
           "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -104,7 +104,7 @@
         },
         "bar": {
           "$id": "https://www.sourcemeta.com",
-          "$ref": "test-2"
+          "$ref": "https://www.sourcemeta.com/test-2"
         },
         "baz": {
           "$ref": "https://example.com/foo/bar#baz"
@@ -125,12 +125,12 @@
         "https://www.sourcemeta.com/test-2": {
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$id": "https://www.sourcemeta.com/test-2",
-          "$ref": "test-3"
+          "$ref": "https://www.sourcemeta.com/test-3"
         },
         "https://www.sourcemeta.com/test-3": {
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$id": "https://www.sourcemeta.com/test-3",
-          "$ref": "test-1"
+          "$ref": "https://www.sourcemeta.com/test-1"
         },
         "https://www.sourcemeta.com/test-4": {
           "$schema": "https://json-schema.org/draft/2020-12/schema",

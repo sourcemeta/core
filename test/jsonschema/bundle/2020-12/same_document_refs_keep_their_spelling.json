@@ -1,0 +1,44 @@
+{
+  "schema": {
+    "$id": "https://example.com/entry",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "allOf": [
+      { "$ref": "#" },
+      { "$ref": "#anchored" },
+      { "$ref": "#/$defs/local" },
+      { "$ref": "" }
+    ],
+    "$defs": {
+      "local": { "$anchor": "anchored", "type": "string" }
+    }
+  },
+  "result": {
+    "nonOfficialMetaschemas": {
+      "$id": "https://example.com/entry",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "allOf": [
+        { "$ref": "#" },
+        { "$ref": "#anchored" },
+        { "$ref": "#/$defs/local" },
+        { "$ref": "" }
+      ],
+      "$defs": {
+        "local": { "$anchor": "anchored", "type": "string" }
+      }
+    },
+    "references": {
+      "$id": "https://example.com/entry",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "allOf": [
+        { "$ref": "#" },
+        { "$ref": "#anchored" },
+        { "$ref": "#/$defs/local" },
+        { "$ref": "" }
+      ],
+      "$defs": {
+        "local": { "$anchor": "anchored", "type": "string" }
+      }
+    }
+  },
+  "inserted": { "nonOfficialMetaschemas": [], "references": [] }
+}

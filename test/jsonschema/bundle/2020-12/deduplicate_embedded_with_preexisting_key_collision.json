@@ -48,10 +48,10 @@
       "$id": "https://example.com/collision-entry",
       "allOf": [
         {
-          "$ref": "collision-a"
+          "$ref": "https://example.com/collision-a"
         },
         {
-          "$ref": "collision-b"
+          "$ref": "https://example.com/collision-b"
         }
       ],
       "$defs": {
@@ -61,12 +61,12 @@
         "https://example.com/collision-a": {
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$id": "https://example.com/collision-a",
-          "$ref": "collision-common"
+          "$ref": "https://example.com/collision-common"
         },
         "https://example.com/collision-b": {
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$id": "https://example.com/collision-b",
-          "$ref": "collision-common"
+          "$ref": "https://example.com/collision-common"
         },
         "https://example.com/collision-common/x": {
           "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -80,10 +80,10 @@
       "$id": "https://example.com/collision-entry",
       "allOf": [
         {
-          "$ref": "collision-a"
+          "$ref": "https://example.com/collision-a"
         },
         {
-          "$ref": "collision-b"
+          "$ref": "https://example.com/collision-b"
         }
       ],
       "$defs": {
@@ -93,12 +93,12 @@
         "https://example.com/collision-a": {
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$id": "https://example.com/collision-a",
-          "$ref": "collision-common"
+          "$ref": "https://example.com/collision-common"
         },
         "https://example.com/collision-b": {
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$id": "https://example.com/collision-b",
-          "$ref": "collision-common"
+          "$ref": "https://example.com/collision-common"
         },
         "https://example.com/collision-common/x": {
           "$schema": "https://json-schema.org/draft/2020-12/schema",

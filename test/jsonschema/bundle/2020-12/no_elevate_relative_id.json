@@ -21,12 +21,12 @@
     "nonOfficialMetaschemas": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "$id": "https://example.com/relative-entry",
-      "$ref": "host-with-relative-nested",
+      "$ref": "https://example.com/host-with-relative-nested",
       "$defs": {
         "https://example.com/host-with-relative-nested": {
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$id": "https://example.com/host-with-relative-nested",
-          "$ref": "relative-nested",
+          "$ref": "https://example.com/relative-nested",
           "$defs": {
             "relative-nested": {
               "$id": "relative-nested",
@@ -39,12 +39,12 @@
     "references": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "$id": "https://example.com/relative-entry",
-      "$ref": "host-with-relative-nested",
+      "$ref": "https://example.com/host-with-relative-nested",
       "$defs": {
         "https://example.com/host-with-relative-nested": {
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$id": "https://example.com/host-with-relative-nested",
-          "$ref": "relative-nested",
+          "$ref": "https://example.com/relative-nested",
           "$defs": {
             "relative-nested": {
               "$id": "relative-nested",

@@ -1,0 +1,29 @@
+{
+  "schema": {
+    "$id": "https://example.com/entry",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$dynamicAnchor": "node",
+    "properties": {
+      "foo": { "$dynamicRef": "#node" }
+    }
+  },
+  "result": {
+    "nonOfficialMetaschemas": {
+      "$id": "https://example.com/entry",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$dynamicAnchor": "node",
+      "properties": {
+        "foo": { "$dynamicRef": "#node" }
+      }
+    },
+    "references": {
+      "$id": "https://example.com/entry",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$dynamicAnchor": "node",
+      "properties": {
+        "foo": { "$dynamicRef": "#node" }
+      }
+    }
+  },
+  "inserted": { "nonOfficialMetaschemas": [], "references": [] }
+}

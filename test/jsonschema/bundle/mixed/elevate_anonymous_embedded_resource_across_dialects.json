@@ -35,7 +35,7 @@
           "id": "https://www.sourcemeta.com/anonymous-embedded",
           "allOf": [
             {
-              "$ref": "shared"
+              "$ref": "https://www.sourcemeta.com/shared"
             }
           ]
         }
@@ -55,7 +55,7 @@
           "id": "https://www.sourcemeta.com/anonymous-embedded",
           "allOf": [
             {
-              "$ref": "shared"
+              "$ref": "https://www.sourcemeta.com/shared"
             }
           ]
         }

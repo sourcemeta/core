@@ -1,0 +1,66 @@
+{
+  "schema": {
+    "$id": "https://example.com/entry",
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$recursiveAnchor": true,
+    "properties": {
+      "foo": { "$recursiveRef": "#" },
+      "bar": { "$ref": "target" }
+    }
+  },
+  "resolver": {
+    "https://example.com/target": {
+      "$id": "https://example.com/target",
+      "$schema": "https://json-schema.org/draft/2019-09/schema",
+      "type": "string"
+    }
+  },
+  "result": {
+    "nonOfficialMetaschemas": {
+      "$id": "https://example.com/entry",
+      "$schema": "https://json-schema.org/draft/2019-09/schema",
+      "$recursiveAnchor": true,
+      "properties": {
+        "foo": { "$recursiveRef": "#" },
+        "bar": { "$ref": "https://example.com/target" }
+      },
+      "$defs": {
+        "https://example.com/target": {
+          "$id": "https://example.com/target",
+          "$schema": "https://json-schema.org/draft/2019-09/schema",
+          "type": "string"
+        }
+      }
+    },
+    "references": {
+      "$id": "https://example.com/entry",
+      "$schema": "https://json-schema.org/draft/2019-09/schema",
+      "$recursiveAnchor": true,
+      "properties": {
+        "foo": { "$recursiveRef": "#" },
+        "bar": { "$ref": "https://example.com/target" }
+      },
+      "$defs": {
+        "https://example.com/target": {
+          "$id": "https://example.com/target",
+          "$schema": "https://json-schema.org/draft/2019-09/schema",
+          "type": "string"
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://example.com/target",
+        "at": "/$defs/https:~1~1example.com~1target"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://example.com/target",
+        "at": "/$defs/https:~1~1example.com~1target"
+      }
+    ]
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "schema": {
+    "$id": "https://example.com/entry",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "foo": { "$ref": "embedded" }
+    },
+    "$defs": {
+      "embedded": {
+        "$id": "https://example.com/embedded",
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "string"
+      }
+    }
+  },
+  "result": {
+    "nonOfficialMetaschemas": {
+      "$id": "https://example.com/entry",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "properties": {
+        "foo": { "$ref": "https://example.com/embedded" }
+      },
+      "$defs": {
+        "embedded": {
+          "$id": "https://example.com/embedded",
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "string"
+        }
+      }
+    },
+    "references": {
+      "$id": "https://example.com/entry",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "properties": {
+        "foo": { "$ref": "https://example.com/embedded" }
+      },
+      "$defs": {
+        "embedded": {
+          "$id": "https://example.com/embedded",
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "string"
+        }
+      }
+    }
+  },
+  "inserted": { "nonOfficialMetaschemas": [], "references": [] }
+}

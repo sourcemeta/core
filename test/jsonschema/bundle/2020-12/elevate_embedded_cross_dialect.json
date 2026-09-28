@@ -22,12 +22,12 @@
     "nonOfficialMetaschemas": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "$id": "https://example.com/cross-dialect-entry",
-      "$ref": "cross-dialect-host",
+      "$ref": "https://example.com/cross-dialect-host",
       "$defs": {
         "https://example.com/cross-dialect-host": {
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$id": "https://example.com/cross-dialect-host",
-          "$ref": "cross-dialect-nested"
+          "$ref": "https://example.com/cross-dialect-nested"
         },
         "https://example.com/cross-dialect-nested": {
           "$schema": "http://json-schema.org/draft-04/schema#",
@@ -39,12 +39,12 @@
     "references": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "$id": "https://example.com/cross-dialect-entry",
-      "$ref": "cross-dialect-host",
+      "$ref": "https://example.com/cross-dialect-host",
       "$defs": {
         "https://example.com/cross-dialect-host": {
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$id": "https://example.com/cross-dialect-host",
-          "$ref": "cross-dialect-nested"
+          "$ref": "https://example.com/cross-dialect-nested"
         },
         "https://example.com/cross-dialect-nested": {
           "$schema": "http://json-schema.org/draft-04/schema#",
