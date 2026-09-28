@@ -19,7 +19,7 @@
       "$id": "https://example.com/entry",
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "properties": {
-        "foo": { "$dynamicRef": "embedded#node" }
+        "foo": { "$dynamicRef": "https://example.com/embedded#node" }
       },
       "$defs": {
         "embedded": {
@@ -34,7 +34,7 @@
       "$id": "https://example.com/entry",
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "properties": {
-        "foo": { "$dynamicRef": "embedded#node" }
+        "foo": { "$dynamicRef": "https://example.com/embedded#node" }
       },
       "$defs": {
         "embedded": {

@@ -42,23 +42,16 @@ auto is_skippable_metaschema_reference(const SchemaBundleOptions::Mode mode,
 // reference names another document, so bundling restates it as the URI it
 // resolves to, which is what lets it keep naming its target once the bundled
 // document travels somewhere else
-auto spells_another_document_relatively(const WeakPointer &pointer,
-                                        const SchemaFrame::Reference &reference)
+//
+// A dynamic reference needs no exception here. JSON Schema 2020-12, section
+// 8.2.3.2 has it "resolved against the current URI base" like any other before
+// the dynamic scope is consulted, so the absolute form of that resolution is
+// what the document should spell, and framing only reports the anchor it ends
+// up at in place of that resolution when the two name the same place anyway.
+// JSON Schema 2019-09, section 8.2.4.2.1 defines the behavior of
+// `$recursiveRef` "only for the value `#`", which the rule below already spares
+auto spells_another_document_relatively(const SchemaFrame::Reference &reference)
     -> bool {
-  assert(!pointer.empty());
-  assert(pointer.back().is_property());
-  // JSON Schema 2020-12, section 8.2.3.2 has the starting point of a
-  // `$dynamicRef` replaced at runtime by "the URI (including the fragment) for
-  // the outermost schema resource in the dynamic scope [...] that defines an
-  // identically named fragment with `$dynamicAnchor`", and framing reports that
-  // runtime target rather than the static resolution, so there is nothing here
-  // that belongs in the document. JSON Schema 2019-09, section 8.2.4.2.1 says
-  // of `$recursiveRef` that "the behavior of this keyword is defined only for
-  // the value `#`", which the same-document rule below already spares
-  if (pointer.back().to_property() == "$dynamicRef") {
-    return false;
-  }
-
   if (reference.original == reference.destination) {
     return false;
   }
@@ -358,7 +351,7 @@ auto embed_references(
         ref_rewrites.emplace_back(
             to_pointer(pointer),
             rebase_reference(mapped_id, reference.fragment));
-      } else if (spells_another_document_relatively(pointer, reference)) {
+      } else if (spells_another_document_relatively(reference)) {
         ref_rewrites.emplace_back(to_pointer(pointer),
                                   JSON::String{reference.destination});
       }
@@ -457,7 +450,7 @@ auto embed_references(
       ref_rewrites.emplace_back(
           to_pointer(pointer),
           rebase_reference(effective_id, reference.fragment));
-    } else if (spells_another_document_relatively(pointer, reference)) {
+    } else if (spells_another_document_relatively(reference)) {
       ref_rewrites.emplace_back(to_pointer(pointer),
                                 JSON::String{reference.destination});
     }
@@ -478,7 +471,7 @@ auto embed_references(
           return;
         }
 
-        if (spells_another_document_relatively(pointer, reference)) {
+        if (spells_another_document_relatively(reference)) {
           ref_rewrites.emplace_back(to_pointer(pointer),
                                     JSON::String{reference.destination});
         }
