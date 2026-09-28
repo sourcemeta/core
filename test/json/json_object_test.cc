@@ -1883,9 +1883,6 @@ TEST(long_key_collision_try_at_start_string_view) {
 }
 
 TEST(try_assign_before_existing_key_overwrites) {
-  // The scan stops at whichever of the two keys comes first, so the key has to
-  // sit before the one it would be inserted ahead of for this to update in
-  // place rather than insert
   sourcemeta::core::JSON document = sourcemeta::core::JSON::make_object();
   document.assign("bar", sourcemeta::core::JSON{2});
   document.assign("foo", sourcemeta::core::JSON{1});
@@ -1991,4 +1988,53 @@ TEST(long_key_collision_erase_with_string_view_and_hash) {
   const std::string_view absent_view{absent};
   EXPECT_EQ(object.erase(absent_view, object.hash(absent_view)), 1);
   EXPECT_EQ(object.size(), 1);
+}
+
+TEST(try_assign_before_existing_key_after_the_suffix_overwrites) {
+  // The key already exists, so it is updated where it sits rather than inserted
+  // a second time ahead of the suffix
+  sourcemeta::core::JSON document = sourcemeta::core::JSON::make_object();
+  document.assign("foo", sourcemeta::core::JSON{1});
+  document.assign("bar", sourcemeta::core::JSON{2});
+  document.try_assign_before("bar", sourcemeta::core::JSON{9}, "foo");
+  EXPECT_EQ(document.size(), 2);
+  EXPECT_TRUE(document.unique_keys());
+  EXPECT_EQ(document.at("foo").to_integer(), 1);
+  EXPECT_EQ(document.at("bar").to_integer(), 9);
+  auto iterator{document.as_object().cbegin()};
+  EXPECT_EQ(iterator->first, "foo");
+  std::advance(iterator, 1);
+  EXPECT_EQ(iterator->first, "bar");
+}
+
+TEST(long_key_collision_try_assign_before_existing_key_after_the_suffix) {
+  // A perfect hash covers keys up to thirty one bytes, so two keys sharing
+  // their first thirty one bytes, length, and end bytes collide and force the
+  // linear scan path
+  const std::string prefix(31, 'x');
+  const std::string first_key{prefix + "ay"};
+  const std::string second_key{prefix + "by"};
+  sourcemeta::core::JSON document = sourcemeta::core::JSON::make_object();
+  document.assign(first_key, sourcemeta::core::JSON{1});
+  document.assign(second_key, sourcemeta::core::JSON{2});
+  document.try_assign_before(second_key, sourcemeta::core::JSON{9}, first_key);
+  EXPECT_EQ(document.size(), 2);
+  EXPECT_TRUE(document.unique_keys());
+  EXPECT_EQ(document.at(first_key).to_integer(), 1);
+  EXPECT_EQ(document.at(second_key).to_integer(), 9);
+}
+
+TEST(try_assign_before_existing_key_with_the_suffix_at_the_front) {
+  sourcemeta::core::JSON document = sourcemeta::core::JSON::make_object();
+  document.assign("foo", sourcemeta::core::JSON{1});
+  document.assign("bar", sourcemeta::core::JSON{2});
+  document.assign("baz", sourcemeta::core::JSON{3});
+  document.try_assign_before("baz", sourcemeta::core::JSON{9}, "foo");
+  EXPECT_EQ(document.size(), 3);
+  EXPECT_TRUE(document.unique_keys());
+  EXPECT_EQ(document.at("baz").to_integer(), 9);
+  auto iterator{document.as_object().cbegin()};
+  EXPECT_EQ(iterator->first, "foo");
+  std::advance(iterator, 2);
+  EXPECT_EQ(iterator->first, "baz");
 }
