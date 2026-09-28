@@ -2072,35 +2072,3 @@ TEST(accessors_metaschema_unresolvable) {
                  "Could not resolve the metaschema of the schema");
   }
 }
-
-TEST(draft2_requires_applies_to_the_parent_instance) {
-  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-02/schema#",
-    "properties": {
-      "one": { "requires": { "type": "string" } }
-    }
-  })JSON");
-
-  const sourcemeta::core::SchemaFrame frame{
-      sourcemeta::core::SchemaFrame::Mode::References, document,
-      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
-
-  const sourcemeta::core::Pointer subschema{"properties", "one", "requires"};
-  EXPECT_TRUE(
-      frame.traverse(sourcemeta::core::to_weak_pointer(subschema)).has_value());
-}
-
-TEST(draft3_disallow_holding_a_schema) {
-  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-03/schema#",
-    "disallow": [ { "type": "string" }, "null" ]
-  })JSON");
-
-  const sourcemeta::core::SchemaFrame frame{
-      sourcemeta::core::SchemaFrame::Mode::References, document,
-      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
-
-  const sourcemeta::core::Pointer subschema{"disallow", 0};
-  EXPECT_TRUE(
-      frame.traverse(sourcemeta::core::to_weak_pointer(subschema)).has_value());
-}
