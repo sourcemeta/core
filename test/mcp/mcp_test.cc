@@ -1229,11 +1229,6 @@ TEST(supports_jsonrpc_batching_at_runtime) {
       sourcemeta::core::mcp_supports_jsonrpc_batching(version_2025_11_25));
 }
 
-// The predicate above is constexpr, and a call whose argument is a literal is
-// constant folded, which leaves no runtime trace for the coverage report to
-// attribute. These repeat the cases through a string built at runtime so that
-// each comparison in the chain is actually executed
-
 TEST(is_request_method_initialize_at_runtime) {
   const std::string method{"initialize"};
   EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(method));
