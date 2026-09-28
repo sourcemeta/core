@@ -11,7 +11,7 @@ sourcemeta_library(NAMESPACE sourcemeta PROJECT core NAME oauth
     oauth_transaction.cc oauth_metadata.cc oauth_metadata_provider.cc
     oauth_ttl.h oauth_token_exchange.cc oauth_revocation.cc
     oauth_introspection.cc oauth_device.cc oauth_dpop.cc oauth_par.cc
-    oauth_assertion.cc oauth_registration.cc)
+    oauth_assertion.cc oauth_registration.cc oauth_duration.cc)
 
 target_link_libraries(sourcemeta_core_oauth
   PUBLIC sourcemeta::core::json)
