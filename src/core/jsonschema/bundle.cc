@@ -97,6 +97,48 @@ auto charge(std::uint64_t &remaining, const SchemaFrame &frame) -> void {
   remaining -= frame.location_count();
 }
 
+// A dialect that reserves no property name for declaring itself leaves an
+// embedded schema no way to say what it is, and what it inherits from wherever
+// it lands would be wrong. Marking every subschema is what carries it, since
+// the keyword that names a dialect speaks for the one subschema it sits on.
+// Only the frame knows where those subschemas are, and taking its word for it
+// is what keeps a value that merely looks like a schema from being marked
+auto mark_dialect_of_every_subschema(JSON &schema, const SchemaWalker &walker,
+                                     const SchemaResolver &resolver,
+                                     const std::string_view dialect,
+                                     std::uint64_t &remaining) -> void {
+  const SchemaFrame frame{SchemaFrame::Mode::Pointers,
+                          schema,
+                          walker,
+                          resolver,
+                          dialect,
+                          "",
+                          SchemaFrame::IdentifierMode::Additional,
+                          {EMPTY_WEAK_POINTER},
+                          "",
+                          remaining};
+  charge(remaining, frame);
+
+  std::vector<Pointer> targets;
+  frame.for_each_location(
+      [&targets](const auto, const auto &, const auto &location) -> void {
+        if (location.type == SchemaFrame::LocationType::Resource ||
+            location.type == SchemaFrame::LocationType::Subschema) {
+          targets.push_back(to_pointer(location.pointer));
+        }
+      });
+
+  for (const auto &target : targets) {
+    auto &subschema{get(schema, target)};
+    // A boolean carries no keyword whose meaning could have differed, so
+    // leaving it to inherit costs nothing
+    if (subschema.is_object()) {
+      subschema.assign(JSON::String{DIALECT_OVERRIDE_KEYWORD},
+                       JSON{JSON::String{dialect}});
+    }
+  }
+}
+
 auto embed_schema(JSON &root, const Pointer &container,
                   const std::string_view identifier, JSON &&target,
                   const SchemaBundleOptions::Callback &callback) -> void {
@@ -138,7 +180,9 @@ auto elevate_embedded_resources(
     std::unordered_map<JSON::String, JSON::String> &bundled,
     std::uint64_t &remaining, const SchemaBundleOptions::Callback &callback)
     -> void {
-  const auto keyword{definitions_keyword(remote_dialect)};
+  const auto keyword{definitions_keyword(
+      walker, vocabularies(resolver, remote_dialect,
+                           declared_dialect(remote, default_dialect)))};
   const JSON::String keyword_string{keyword};
   if (keyword.empty() || !remote.is_object() ||
       !remote.defines(keyword_string) ||
@@ -434,19 +478,40 @@ auto embed_references(
     JSON::String effective_id{remote_id.empty() ? JSON::String{identifier}
                                                 : JSON::String{remote_id}};
 
-    if (remote.is_object()) {
-      // Otherwise the embedded resource would be re-interpreted under the
-      // dialect of the schema it gets embedded into, which can differ from
-      // the default dialect that the remote was resolved with
-      if (!remote.defines("$schema")) {
-        remote.assign("$schema",
-                      JSON{declared_dialect(remote, default_dialect)});
-      }
+    // Whether the dialect of the remote has a way to name it at all, which
+    // decides between giving it a name and pointing at wherever it lands
+    const auto dialect_allows_naming{dialect_defines_identifier(
+        walker,
+        remote_root_frame->vocabularies(
+            remote_root_frame->root_location().value().get(), resolver),
+        remote_base_dialect)};
 
-      schema_reidentify(remote, effective_id, remote_base_dialect);
+    if (remote.is_object()) {
+      if (dialect_allows_naming) {
+        // Otherwise the embedded resource would be re-interpreted under the
+        // dialect of the schema it gets embedded into, which can differ from
+        // the default dialect that the remote was resolved with
+        if (!remote.defines("$schema")) {
+          remote.assign("$schema",
+                        JSON{declared_dialect(remote, default_dialect)});
+        }
+
+        schema_reidentify(remote, effective_id, remote_base_dialect);
+      } else {
+        mark_dialect_of_every_subschema(
+            remote, walker, resolver, declared_dialect(remote, default_dialect),
+            remaining);
+      }
     }
 
-    if (effective_id != identifier) {
+    if (!dialect_allows_naming) {
+      // Nothing answers to the name it was asked for any more, so the
+      // reference has to spell out where the embedding puts it
+      auto target{container};
+      target.push_back(JSON::String{effective_id});
+      ref_rewrites.emplace_back(to_pointer(pointer),
+                                JSON::String{to_uri(target).recompose()});
+    } else if (effective_id != identifier) {
       ref_rewrites.emplace_back(
           to_pointer(pointer),
           rebase_reference(effective_id, reference.fragment));
@@ -592,7 +657,9 @@ auto bundle_internal(JSON &schema, const SchemaWalker &walker,
   const auto schema_base_dialect{
       schema_root_frame->root_location().value().get().base_dialect};
 
-  const auto container_keyword{definitions_keyword(schema_base_dialect)};
+  const auto container_keyword{definitions_keyword(
+      walker, schema_root_frame->vocabularies(
+                  schema_root_frame->root_location().value().get(), resolver))};
   if (container_keyword.empty()) {
     SchemaFrame frame{SchemaFrame::Mode::References,
                       schema,
