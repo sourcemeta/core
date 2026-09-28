@@ -194,3 +194,15 @@ TEST(unix_root_round_trips_through_to_path) {
   const auto uri{sourcemeta::core::URI::from_path(example)};
   EXPECT_EQ(uri.to_path(), example);
 }
+
+TEST(windows_unc_root_only) {
+  const std::filesystem::path example{"\\\\"};
+  const auto uri{sourcemeta::core::URI::from_path(example)};
+  EXPECT_EQ(uri.recompose(), "file:///");
+}
+
+TEST(windows_unc_root_round_trips_through_to_path) {
+  const std::filesystem::path example{"\\\\"};
+  const auto uri{sourcemeta::core::URI::from_path(example)};
+  EXPECT_EQ(uri.to_path(), std::filesystem::path{"/"});
+}
