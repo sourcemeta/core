@@ -176,3 +176,36 @@ TEST(windows_unc_host_only) {
   const auto uri{sourcemeta::core::URI::from_path(example)};
   EXPECT_EQ(uri.recompose(), "file://server");
 }
+
+TEST(unix_root_only) {
+  const std::filesystem::path example{"/"};
+  const auto uri{sourcemeta::core::URI::from_path(example)};
+  EXPECT_EQ(uri.recompose(), "file:///");
+}
+
+TEST(unix_root_with_repeated_separators) {
+  const std::filesystem::path example{"///"};
+  const auto uri{sourcemeta::core::URI::from_path(example)};
+  EXPECT_EQ(uri.recompose(), "file:///");
+}
+
+TEST(unix_root_round_trips_through_to_path) {
+  const std::filesystem::path example{"/"};
+  const auto uri{sourcemeta::core::URI::from_path(example)};
+  EXPECT_EQ(uri.to_path(), example);
+}
+
+TEST(windows_unc_root_only) {
+  const std::filesystem::path example{"\\\\"};
+  const auto uri{sourcemeta::core::URI::from_path(example)};
+  EXPECT_EQ(uri.recompose(), "file:///");
+}
+
+// Not a round trip: the URI this produces carries an empty authority, so
+// `to_path` reads it as the filesystem root rather than as the UNC form it came
+// from. The backslash spelling is not recovered
+TEST(windows_unc_root_maps_to_the_filesystem_root) {
+  const std::filesystem::path example{"\\\\"};
+  const auto uri{sourcemeta::core::URI::from_path(example)};
+  EXPECT_EQ(uri.to_path(), std::filesystem::path{"/"});
+}
