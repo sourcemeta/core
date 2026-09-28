@@ -109,6 +109,15 @@ auto URI::from_path(const std::filesystem::path &path) -> URI {
   const std::filesystem::path final_path{normalized};
 
   URI result{"file://"};
+
+  // A path made of nothing but separators is the root itself, and the strip
+  // above leaves no segment for the loop to walk. RFC 8089 spells the root as
+  // an empty authority followed by "/", so it is set here rather than lost. A
+  // UNC root names a server instead, which carries no path of its own
+  if (normalized.empty() && !is_unc) {
+    result.path_ = "/";
+  }
+
   auto iterator = final_path.begin();
 
   // For UNC paths, the first segment is the hostname
