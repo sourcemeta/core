@@ -358,6 +358,22 @@ constexpr auto mcp_is_request_method(const MCPProtocolVersion version,
 }
 
 /// @ingroup mcp
+/// Whether the given string is a valid MCP request method in the latest
+/// initialization-compatible version (2025-11-25). For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/mcp.h>
+/// #include <cassert>
+///
+/// assert(sourcemeta::core::mcp_is_request_method("initialize"));
+/// assert(!sourcemeta::core::mcp_is_request_method("notifications/initialized"));
+/// ```
+constexpr auto mcp_is_request_method(const JSON::StringView method) noexcept
+    -> bool {
+  return mcp_is_request_method(MCPProtocolVersion::V_2025_11_25, method);
+}
+
+/// @ingroup mcp
 /// Classification of MCP methods by protocol era.
 enum class MCPMethodEra : std::uint8_t {
   /// The method exists only in legacy MCP revisions (e.g. `initialize`, `ping`,
