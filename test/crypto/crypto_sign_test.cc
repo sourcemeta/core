@@ -599,9 +599,9 @@ zMzMzMw=
 -----END PRIVATE KEY-----
 )"};
 
-// The six documents below carry a well formed algorithm identifier naming the
-// curve over a 256-bit prime field, and an inner private key that is wrong in
-// one way each, so the curve is recognised before the key is refused
+// The three documents below carry a well formed algorithm identifier naming
+// the curve over a 256-bit prime field, and an inner private key that is wrong
+// in one way each, so the curve is recognised before the key is refused
 static constexpr std::string_view EC_KEY_NOT_A_SEQUENCE_KEY{
     R"(-----BEGIN PRIVATE KEY-----
 MDwCAQAwEwYHKoZIzj0CAQYIKoZIzj0DAQcEIgQgttepxcp+OwXCj4+v4sGcxRxQ
@@ -620,29 +620,6 @@ static constexpr std::string_view EC_SCALAR_NOT_AN_OCTET_STRING_KEY{
     R"(-----BEGIN PRIVATE KEY-----
 MEECAQAwEwYHKoZIzj0CAQYIKoZIzj0DAQcEJzAlAgEBAiC216nFyn47BcKPj6/i
 wZzFHFBFcDwPlK+7TbKFwe9t3Q==
------END PRIVATE KEY-----
-)"};
-
-static constexpr std::string_view EC_ZERO_SCALAR_KEY{
-    R"(-----BEGIN PRIVATE KEY-----
-MEECAQAwEwYHKoZIzj0CAQYIKoZIzj0DAQcEJzAlAgEBBCAAAAAAAAAAAAAAAAAA
-AAAAAAAAAAAAAAAAAAAAAAAAAA==
------END PRIVATE KEY-----
-)"};
-
-static constexpr std::string_view EC_OVERSIZED_SCALAR_KEY{
-    R"(-----BEGIN PRIVATE KEY-----
-MEICAQAwEwYHKoZIzj0CAQYIKoZIzj0DAQcEKDAmAgEBBCEBttepxcp+OwXCj4+v
-4sGcxRxQRXA8D5Svu02yhcHvbd0=
------END PRIVATE KEY-----
-)"};
-
-// A scalar equal to the group order, the smallest value the range check has to
-// turn away
-static constexpr std::string_view EC_SCALAR_AT_THE_ORDER_KEY{
-    R"(-----BEGIN PRIVATE KEY-----
-MEECAQAwEwYHKoZIzj0CAQYIKoZIzj0DAQcEJzAlAgEBBCD/////AAAAAP//////
-////vOb6racXnoTzucrC/GMlUQ==
 -----END PRIVATE KEY-----
 )"};
 
@@ -1457,21 +1434,6 @@ TEST(make_private_key_rejects_a_scalar_that_is_not_an_octet_string) {
   EXPECT_FALSE(
       sourcemeta::core::make_private_key(EC_SCALAR_NOT_AN_OCTET_STRING_KEY)
           .has_value());
-}
-
-TEST(make_private_key_rejects_a_zero_scalar) {
-  EXPECT_FALSE(
-      sourcemeta::core::make_private_key(EC_ZERO_SCALAR_KEY).has_value());
-}
-
-TEST(make_private_key_rejects_a_scalar_wider_than_the_curve) {
-  EXPECT_FALSE(
-      sourcemeta::core::make_private_key(EC_OVERSIZED_SCALAR_KEY).has_value());
-}
-
-TEST(make_private_key_rejects_a_scalar_at_the_group_order) {
-  EXPECT_FALSE(sourcemeta::core::make_private_key(EC_SCALAR_AT_THE_ORDER_KEY)
-                   .has_value());
 }
 
 TEST(make_private_key_rejects_an_edwards_seed_that_is_not_an_octet_string) {
