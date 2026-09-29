@@ -1364,12 +1364,14 @@ auto mcp_make_tool_descriptor(
     const MCPToolAnnotations &annotations) -> sourcemeta::core::JSON {
   assert(!annotations.read_only || !annotations.destructive);
   assert(!annotations.read_only || annotations.idempotent);
+#ifndef NDEBUG
   // The MCP spec requires `type: "object"` on tool input schemas.
   const auto *type_field{input_schema.is_object()
                              ? input_schema.try_at("type", MCP_HASH_TYPE)
                              : nullptr};
   assert(type_field != nullptr && type_field->is_string() &&
          type_field->to_string() == "object");
+#endif
 
   auto entry{sourcemeta::core::JSON::make_object()};
   entry.assign_assume_new("name", sourcemeta::core::JSON{name}, MCP_HASH_NAME);
@@ -1541,6 +1543,8 @@ auto mcp_make_input_required_result(
     const sourcemeta::core::JSON &identifier,
     std::optional<sourcemeta::core::JSON> input_requests,
     std::optional<JSON::StringView> request_state) -> sourcemeta::core::JSON {
+  (void)version;
+  (void)method;
   assert(mcp_supports_mrtr(version));
   assert(mcp_is_named_request_method(method));
   assert(input_requests.has_value() || request_state.has_value());
