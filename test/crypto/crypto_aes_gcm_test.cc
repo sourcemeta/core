@@ -269,8 +269,8 @@ TEST(gf_multiply_identity) {
   sourcemeta::core::AesBlock one{};
   one[0] = 0x80;
   sourcemeta::core::AesBlock x{};
-  for (std::size_t i = 0; i < 16; ++i) {
-    x[i] = static_cast<std::uint8_t>(i * 17 + 1);
+  for (std::size_t index = 0; index < 16; ++index) {
+    x[index] = static_cast<std::uint8_t>((index * 17) + 1);
   }
   const auto result{sourcemeta::core::gf_multiply(x, one)};
   EXPECT_EQ(result, x);
@@ -279,8 +279,8 @@ TEST(gf_multiply_identity) {
 TEST(gf_multiply_zero) {
   sourcemeta::core::AesBlock zero{};
   sourcemeta::core::AesBlock x{};
-  for (std::size_t i = 0; i < 16; ++i) {
-    x[i] = static_cast<std::uint8_t>(i * 31 + 7);
+  for (std::size_t index = 0; index < 16; ++index) {
+    x[index] = static_cast<std::uint8_t>((index * 31) + 7);
   }
   EXPECT_EQ(sourcemeta::core::gf_multiply(x, zero), zero);
   EXPECT_EQ(sourcemeta::core::gf_multiply(zero, x), zero);
@@ -289,9 +289,9 @@ TEST(gf_multiply_zero) {
 TEST(gf_multiply_commutative) {
   sourcemeta::core::AesBlock a{};
   sourcemeta::core::AesBlock b{};
-  for (std::size_t i = 0; i < 16; ++i) {
-    a[i] = static_cast<std::uint8_t>(i * 13 + 3);
-    b[i] = static_cast<std::uint8_t>(i * 29 + 11);
+  for (std::size_t index = 0; index < 16; ++index) {
+    a[index] = static_cast<std::uint8_t>((index * 13) + 3);
+    b[index] = static_cast<std::uint8_t>((index * 29) + 11);
   }
   EXPECT_EQ(sourcemeta::core::gf_multiply(a, b),
             sourcemeta::core::gf_multiply(b, a));
@@ -301,11 +301,11 @@ TEST(gf_multiply_reduction_polynomial) {
   // u^127 * u = u^128 = 1 + u + u^2 + u^7 = 0xe1 at byte 0
   // In bit-string format, u^127 has bit 127 set (byte 15 = 0x01)
   // u has bit 1 set (byte 0 = 0x40)
-  sourcemeta::core::AesBlock u127{};
-  u127[15] = 0x01;
-  sourcemeta::core::AesBlock u{};
-  u[0] = 0x40;
-  const auto product{sourcemeta::core::gf_multiply(u127, u)};
+  sourcemeta::core::AesBlock elem127{};
+  elem127[15] = 0x01;
+  sourcemeta::core::AesBlock elem1{};
+  elem1[0] = 0x40;
+  const auto product{sourcemeta::core::gf_multiply(elem127, elem1)};
   sourcemeta::core::AesBlock expected{};
   expected[0] = 0xe1;
   EXPECT_EQ(product, expected);

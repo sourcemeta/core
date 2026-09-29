@@ -96,24 +96,24 @@ inline auto aes_field_multiply(const std::uint8_t left,
     case 3:
       return aes_xtime(left) ^ left;
     case 9: {
-      const auto x2{aes_xtime(left)};
-      const auto x4{aes_xtime(x2)};
-      return aes_xtime(x4) ^ left;
+      const auto xtime2{aes_xtime(left)};
+      const auto xtime4{aes_xtime(xtime2)};
+      return aes_xtime(xtime4) ^ left;
     }
     case 11: {
-      const auto x2{aes_xtime(left)};
-      const auto x4{aes_xtime(x2)};
-      return aes_xtime(x4) ^ x2 ^ left;
+      const auto xtime2{aes_xtime(left)};
+      const auto xtime4{aes_xtime(xtime2)};
+      return aes_xtime(xtime4) ^ xtime2 ^ left;
     }
     case 13: {
-      const auto x2{aes_xtime(left)};
-      const auto x4{aes_xtime(x2)};
-      return aes_xtime(x4) ^ x4 ^ left;
+      const auto xtime2{aes_xtime(left)};
+      const auto xtime4{aes_xtime(xtime2)};
+      return aes_xtime(xtime4) ^ xtime4 ^ left;
     }
     case 14: {
-      const auto x2{aes_xtime(left)};
-      const auto x4{aes_xtime(x2)};
-      return aes_xtime(x4) ^ x4 ^ x2;
+      const auto xtime2{aes_xtime(left)};
+      const auto xtime4{aes_xtime(xtime2)};
+      return aes_xtime(xtime4) ^ xtime4 ^ xtime2;
     }
     default: {
       std::uint8_t product{0};

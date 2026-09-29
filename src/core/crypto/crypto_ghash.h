@@ -43,7 +43,7 @@ inline auto store_u64_be(std::uint8_t *bytes, const std::uint64_t value)
 inline auto gf_multiply(const AesBlock &left, const AesBlock &right)
     -> AesBlock {
   // Reduction polynomial R = 11100001 || 0^120 (NIST SP 800-38D Section 6.3)
-  constexpr std::uint64_t reduction{0xe100000000000000ULL};
+  constexpr std::uint64_t REDUCTION{0xe100000000000000ULL};
 
   std::uint64_t product0{0};
   std::uint64_t product1{0};
@@ -59,7 +59,7 @@ inline auto gf_multiply(const AesBlock &left, const AesBlock &right)
 
     const auto carry_mask{0ULL - (value1 & 1u)};
     value1 = (value1 >> 1u) | (value0 << 63u);
-    value0 = (value0 >> 1u) ^ (reduction & carry_mask);
+    value0 = (value0 >> 1u) ^ (REDUCTION & carry_mask);
   }
 
   for (std::size_t bit = 0; bit < 64; ++bit) {
@@ -69,7 +69,7 @@ inline auto gf_multiply(const AesBlock &left, const AesBlock &right)
 
     const auto carry_mask{0ULL - (value1 & 1u)};
     value1 = (value1 >> 1u) | (value0 << 63u);
-    value0 = (value0 >> 1u) ^ (reduction & carry_mask);
+    value0 = (value0 >> 1u) ^ (REDUCTION & carry_mask);
   }
 
   AesBlock result{};
@@ -82,7 +82,7 @@ inline auto gf_multiply(const AesBlock &left, const AesBlock &right)
 inline auto ghash(const AesBlock &key, const std::string_view data,
                   AesBlock accumulator) -> AesBlock {
   for (std::size_t offset = 0; offset < data.size(); offset += 16) {
-    for (std::size_t index = 0; index < 16 && offset + index < data.size();
+    for (std::size_t index = 0; index < 16 && (offset + index) < data.size();
          ++index) {
       accumulator[index] ^= static_cast<std::uint8_t>(data[offset + index]);
     }
