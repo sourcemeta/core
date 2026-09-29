@@ -3326,9 +3326,9 @@ TEST(initialize_negotiation_with_2024_11_05_legacy_date) {
 }
 
 TEST(error_request_meta_generation) {
-  const auto id{sourcemeta::core::JSON{1}};
+  const auto identifier{sourcemeta::core::JSON{1}};
   const auto err{sourcemeta::core::mcp_make_error_request_meta(
-      &id, sourcemeta::core::MCPRequestMetaStatus::MissingMeta)};
+      &identifier, sourcemeta::core::MCPRequestMetaStatus::MissingMeta)};
   EXPECT_EQ(err.at("error").at("code").to_integer(),
             sourcemeta::core::JSONRPC_CODE_INVALID_PARAMS);
   EXPECT_EQ(err.at("id").to_integer(), 1);
@@ -3363,16 +3363,16 @@ TEST(error_code_to_http_status_mapping) {
 }
 
 TEST(empty_result_builder) {
-  const auto id{sourcemeta::core::JSON{100}};
+  const auto identifier{sourcemeta::core::JSON{100}};
   const auto legacy{sourcemeta::core::mcp_make_empty_result(
-      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, id)};
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, identifier)};
   EXPECT_TRUE(legacy.at("result").is_object());
   EXPECT_FALSE(legacy.at("result").defines("resultType"));
   EXPECT_FALSE(legacy.at("result").defines("_meta"));
   EXPECT_EQ(legacy.at("id").to_integer(), 100);
 
   const auto modern{sourcemeta::core::mcp_make_empty_result(
-      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, id)};
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, identifier)};
   EXPECT_TRUE(modern.at("result").is_object());
   EXPECT_EQ(modern.at("result").at("resultType").to_string(), "complete");
   EXPECT_FALSE(modern.at("result").defines("_meta"));
@@ -3381,7 +3381,7 @@ TEST(empty_result_builder) {
   const sourcemeta::core::MCPImplementation srv{.name = "srv",
                                                 .version = "1.0.0"};
   const auto modern_with_info{sourcemeta::core::mcp_make_empty_result(
-      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, id, srv)};
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, identifier, srv)};
   EXPECT_TRUE(modern_with_info.at("result").defines("_meta"));
   EXPECT_EQ(modern_with_info.at("result")
                 .at("_meta")
