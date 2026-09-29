@@ -9,6 +9,7 @@
 
 #include <cstddef>     // std::size_t
 #include <filesystem>  // std::filesystem
+#include <sstream>     // std::ostringstream
 #include <string_view> // std::string_view
 
 // Keeps the sizes below from reaching the measured code as compile-time
@@ -343,6 +344,43 @@ BENCHMARK(JSON_Parse_Schema_ISO_Language) {
     auto result{sourcemeta::core::parse_json(schema)};
     assert(result.is_object());
     sourcemeta::core::benchmark_do_not_optimize(result);
+  }
+}
+
+BENCHMARK(JSON_Parse_KrakenD) {
+  const auto document{sourcemeta::core::read_file_to_string(
+      std::filesystem::path{CURRENT_DIRECTORY} / "files" /
+      "2019_09_krakend.json")};
+  for (auto iteration : state) {
+    auto result{sourcemeta::core::parse_json(document)};
+    assert(result.is_object());
+    sourcemeta::core::benchmark_do_not_optimize(result);
+  }
+}
+
+BENCHMARK(JSON_Stringify_ISO_Language) {
+  const auto document{sourcemeta::core::read_json(
+      std::filesystem::path{CURRENT_DIRECTORY} / "files" /
+      "2020_12_iso_language_2023_set_3.json")};
+  for (auto iteration : state) {
+    std::ostringstream stream;
+    sourcemeta::core::stringify(document, stream);
+    const auto output{stream.str()};
+    assert(!output.empty());
+    sourcemeta::core::benchmark_do_not_optimize(output);
+  }
+}
+
+BENCHMARK(JSON_Prettify_KrakenD) {
+  const auto document{
+      sourcemeta::core::read_json(std::filesystem::path{CURRENT_DIRECTORY} /
+                                  "files" / "2019_09_krakend.json")};
+  for (auto iteration : state) {
+    std::ostringstream stream;
+    sourcemeta::core::prettify(document, stream);
+    const auto output{stream.str()};
+    assert(!output.empty());
+    sourcemeta::core::benchmark_do_not_optimize(output);
   }
 }
 
