@@ -85,6 +85,49 @@ LotnyAB/PnO2eU6aOt6q6EcZ
 -----END PRIVATE KEY-----
 )"};
 
+// The curves a PEM document names only through its parsed key material, so the
+// curve name on the resulting key has to be recovered rather than read
+static constexpr std::string_view P256_PRIVATE_KEY_PEM{
+    R"(-----BEGIN PRIVATE KEY-----
+MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgttepxcp+OwXCj4+v
+4sGcxRxQRXA8D5Svu02yhcHvbd2hRANCAATZMBEZJarwX3uKrc2DjzAIQ3bpzHPL
+w4LNsVr7pl+douZZM2aoVjpHNptsyTqLZeit/8evk0rPTp80CsG9+Q8U
+-----END PRIVATE KEY-----
+)"};
+
+static constexpr std::string_view P384_PRIVATE_KEY_PEM{
+    R"(-----BEGIN PRIVATE KEY-----
+MIG2AgEAMBAGByqGSM49AgEGBSuBBAAiBIGeMIGbAgEBBDAC1aRLTztUK9z9MRsG
+l9LMj1k0U/znimWvJvotWi8VNGiA0JBLr9EDseDmoNfiW1ChZANiAAScDIbkBp+8
+EzQDTmdGuiO85MKA02vBRyRbQi+XZ+1r+WDB9eExONv/n3LQEs7cYf+G1mQ2/WI9
+/QBzVO8kHQtF0UgPUpX1bE6GJDQRzfZx1tNZpK7z426wpazqZ3zRXwY=
+-----END PRIVATE KEY-----
+)"};
+
+static constexpr std::string_view P521_PRIVATE_KEY_PEM{
+    R"(-----BEGIN PRIVATE KEY-----
+MIHuAgEAMBAGByqGSM49AgEGBSuBBAAjBIHWMIHTAgEBBEIBHZw4ip91fwtmWn38
+XId+7SQu4w7u6dTn+lu/6q4Z2ce/wJO3AEyugeREjregkpCA//RgC9JJP9h+r5VX
+/tGqRf+hgYkDgYYABAFHGu0B4OvZSGpazDfebhko56qcTVQuY8T65Q7pEm0XHNEB
+6Q84+dGN0pzGCUiaQGPoROa3JGy0iAj5EK44nnchbwFE2ZJjNBb+wcXofhVvRVHi
+b/NPaklPfqnokcj0G8buWwjTAvE57aVlbDoTmrcfHbKHkXChpd7cMhTj585jD+9D
+AA==
+-----END PRIVATE KEY-----
+)"};
+
+static constexpr std::string_view ED25519_PRIVATE_KEY_PEM{
+    R"(-----BEGIN PRIVATE KEY-----
+MC4CAQAwBQYDK2VwBCIEIHQew1zl4HCJyngviN4A2BA6HNjosRas2K/ZIsAb7nhn
+-----END PRIVATE KEY-----
+)"};
+
+static constexpr std::string_view ED448_PRIVATE_KEY_PEM{
+    R"(-----BEGIN PRIVATE KEY-----
+MEcCAQAwBQYDK2VxBDsEOXAnAoFAyetCKTXh0wngHmZnA4kXPaT2bEAWwkklE7TB
+mJJj6hMlDmWnhKqMAamWCnQWwuKHmyoilQ==
+-----END PRIVATE KEY-----
+)"};
+
 TEST(jwk_private_from_pem_parses_rsa) {
   const auto key{sourcemeta::core::JWKPrivate::from_pem(RSA_PRIVATE_KEY_PEM)};
   EXPECT_TRUE(key.has_value());
@@ -309,4 +352,121 @@ TEST(jwk_private_from_json_rejects_okp_unknown_curve) {
                    sourcemeta::core::parse_json(
                        R"({"kty":"OKP","crv":"X25519","x":"x","d":"d"})"))
                    .has_value());
+}
+
+TEST(jwk_private_from_pem_recovers_the_p256_curve_name) {
+  const auto key{sourcemeta::core::JWKPrivate::from_pem(P256_PRIVATE_KEY_PEM)};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_EQ(key.value().type(),
+            sourcemeta::core::JWKPrivate::Type::EllipticCurve);
+  EXPECT_EQ(key.value().curve(), "P-256");
+}
+
+TEST(jwk_private_from_pem_recovers_the_p384_curve_name) {
+  const auto key{sourcemeta::core::JWKPrivate::from_pem(P384_PRIVATE_KEY_PEM)};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_EQ(key.value().type(),
+            sourcemeta::core::JWKPrivate::Type::EllipticCurve);
+  EXPECT_EQ(key.value().curve(), "P-384");
+}
+
+TEST(jwk_private_from_pem_recovers_the_p521_curve_name) {
+  const auto key{sourcemeta::core::JWKPrivate::from_pem(P521_PRIVATE_KEY_PEM)};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_EQ(key.value().type(),
+            sourcemeta::core::JWKPrivate::Type::EllipticCurve);
+  EXPECT_EQ(key.value().curve(), "P-521");
+}
+
+TEST(jwk_private_from_pem_recovers_the_ed25519_curve_name) {
+  const auto key{
+      sourcemeta::core::JWKPrivate::from_pem(ED25519_PRIVATE_KEY_PEM)};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_EQ(key.value().type(),
+            sourcemeta::core::JWKPrivate::Type::OctetKeyPair);
+  EXPECT_EQ(key.value().curve(), "Ed25519");
+}
+
+TEST(jwk_private_from_pem_recovers_the_ed448_curve_name) {
+  const auto key{sourcemeta::core::JWKPrivate::from_pem(ED448_PRIVATE_KEY_PEM)};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_EQ(key.value().type(),
+            sourcemeta::core::JWKPrivate::Type::OctetKeyPair);
+  EXPECT_EQ(key.value().curve(), "Ed448");
+}
+
+TEST(jwk_private_from_json_rejects_an_rsa_key_missing_a_prime_factor) {
+  auto document{sourcemeta::core::parse_json(RSA_PRIVATE_JWK)};
+  document.erase("qi");
+  EXPECT_FALSE(sourcemeta::core::JWKPrivate::from(document).has_value());
+}
+
+TEST(jwk_private_from_json_rejects_an_rsa_key_missing_its_private_exponent) {
+  auto document{sourcemeta::core::parse_json(RSA_PRIVATE_JWK)};
+  document.erase("d");
+  EXPECT_FALSE(sourcemeta::core::JWKPrivate::from(document).has_value());
+}
+
+TEST(jwk_private_from_json_rejects_a_modulus_below_the_required_size) {
+  // RFC 7518 Section 3.3 requires a modulus of at least 2048 bits, so a
+  // thousand-bit one has to be refused however well formed the rest is
+  auto document{sourcemeta::core::parse_json(RSA_PRIVATE_JWK)};
+  document.assign("n", sourcemeta::core::JSON{std::string(171, 'A')});
+  EXPECT_FALSE(sourcemeta::core::JWKPrivate::from(document).has_value());
+}
+
+TEST(jwk_private_from_json_rejects_an_elliptic_curve_key_without_a_curve) {
+  auto document{sourcemeta::core::parse_json(EC_PRIVATE_JWK)};
+  document.erase("crv");
+  EXPECT_FALSE(sourcemeta::core::JWKPrivate::from(document).has_value());
+}
+
+TEST(jwk_private_from_json_rejects_an_elliptic_curve_with_a_non_string_name) {
+  auto document{sourcemeta::core::parse_json(EC_PRIVATE_JWK)};
+  document.assign("crv", sourcemeta::core::JSON{256});
+  EXPECT_FALSE(sourcemeta::core::JWKPrivate::from(document).has_value());
+}
+
+TEST(jwk_private_from_json_rejects_an_octet_key_pair_without_a_curve) {
+  auto document{sourcemeta::core::parse_json(OKP_PRIVATE_JWK)};
+  document.erase("crv");
+  EXPECT_FALSE(sourcemeta::core::JWKPrivate::from(document).has_value());
+}
+
+TEST(jwk_private_from_json_rejects_an_octet_key_pair_with_a_non_string_name) {
+  auto document{sourcemeta::core::parse_json(OKP_PRIVATE_JWK)};
+  document.assign("crv", sourcemeta::core::JSON{25519});
+  EXPECT_FALSE(sourcemeta::core::JWKPrivate::from(document).has_value());
+}
+
+TEST(jwk_private_from_json_rejects_a_non_string_key_identifier) {
+  auto document{sourcemeta::core::parse_json(RSA_PRIVATE_JWK)};
+  document.assign("kid", sourcemeta::core::JSON{7});
+  EXPECT_FALSE(sourcemeta::core::JWKPrivate::from(document).has_value());
+}
+
+TEST(jwk_private_from_json_rejects_a_non_string_algorithm) {
+  auto document{sourcemeta::core::parse_json(RSA_PRIVATE_JWK)};
+  document.assign("alg", sourcemeta::core::JSON{256});
+  EXPECT_FALSE(sourcemeta::core::JWKPrivate::from(document).has_value());
+}
+
+TEST(jwk_private_from_json_honours_an_algorithm_that_suits_an_rsa_key) {
+  auto document{sourcemeta::core::parse_json(RSA_PRIVATE_JWK)};
+  document.assign("alg", sourcemeta::core::JSON{"RS256"});
+  const auto key{sourcemeta::core::JWKPrivate::from(document)};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_TRUE(key.value().algorithm().has_value());
+  EXPECT_EQ(key.value().algorithm().value(),
+            sourcemeta::core::JWSAlgorithm::RS256);
+}
+
+TEST(jwk_private_from_json_ignores_an_algorithm_that_suits_another_key_type) {
+  // RFC 7517 Section 4.4 makes the algorithm advisory, so one that names a
+  // different key type leaves the hint unset rather than refusing the key
+  auto document{sourcemeta::core::parse_json(RSA_PRIVATE_JWK)};
+  document.assign("alg", sourcemeta::core::JSON{"ES256"});
+  const auto key{sourcemeta::core::JWKPrivate::from(document)};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_FALSE(key.value().algorithm().has_value());
 }
