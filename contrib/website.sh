@@ -292,7 +292,7 @@ REGION_KIND = 7
 
 counts = {}
 names = {}
-regions = {}
+owned = {}
 with open(object_list, encoding="utf-8") as objects:
     for binary in objects.read().splitlines():
         export = subprocess.run(
@@ -317,7 +317,8 @@ with open(object_list, encoding="utf-8") as objects:
                         continue
                     where = (source, region[0], region[1], region[2],
                              region[3])
-                    regions[where] = max(regions.get(where, 0), region[4])
+                    mine = owned.setdefault(key, {})
+                    mine[where] = max(mine.get(where, 0), region[4])
 
 def excused(key):
     filename = key[0]
@@ -332,6 +333,20 @@ with open(uncovered, "w", encoding="utf-8") as output:
         filename, line, column = key
         for name in sorted(names[key]):
             output.write(f"{filename}:{line}:{column} {name}\n")
+
+# An excused function is left out of the region count as well, so that the two
+# metrics answer to the same exceptions rather than one of them holding a
+# function to a standard the other has already set aside. Applied once the whole
+# export has been read, since which names a function goes by is only settled
+# then, and a location an excused function shares with one that is measurable
+# stays in through the latter
+regions = {}
+for key, mine in owned.items():
+    if excused(key):
+        continue
+
+    for where, count in mine.items():
+        regions[where] = max(regions.get(where, 0), count)
 
 reached = sum(1 for count in regions.values() if count > 0)
 share = reached * 100 / len(regions) if regions else 100
@@ -368,7 +383,11 @@ then
   awk -v "minimum=$REQUIRE_MINIMUM_COVERAGE" '
 BEGIN { failed = 0 }
 $3 == "TOTAL" && ($4 == "lines" || $4 == "regions") {
-  if ($1 + 0 < minimum + 0) {
+  # Compared as the counts behind the share rather than as the share itself,
+  # which is already rounded to two places by the time it is printed and would
+  # let a total just under the floor round up into passing
+  split($2, tally, "/")
+  if (100 * tally[1] < minimum * tally[2]) {
     printf "The %s coverage is %s, below the required %s%%\n", $4, $1,
       minimum > "/dev/stderr"
     failed = 1
