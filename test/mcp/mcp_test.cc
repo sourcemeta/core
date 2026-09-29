@@ -3192,6 +3192,12 @@ TEST(tools_list_result_modern_and_legacy) {
   EXPECT_FALSE(legacy_res.defines("ttlMs"));
   EXPECT_FALSE(legacy_res.defines("cacheScope"));
   EXPECT_EQ(legacy_res.at("nextCursor").to_string(), "cursor-abc");
+
+  const auto legacy_no_policy{sourcemeta::core::mcp_make_tools_list_result(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      sourcemeta::core::JSON::make_array(), "cursor-no-policy")};
+  EXPECT_FALSE(legacy_no_policy.defines("resultType"));
+  EXPECT_EQ(legacy_no_policy.at("nextCursor").to_string(), "cursor-no-policy");
 }
 
 TEST(resources_list_result_modern_and_legacy) {
@@ -3217,6 +3223,12 @@ TEST(resources_list_result_modern_and_legacy) {
   EXPECT_FALSE(legacy_res.defines("ttlMs"));
   EXPECT_FALSE(legacy_res.defines("cacheScope"));
   EXPECT_EQ(legacy_res.at("nextCursor").to_string(), "cursor-123");
+
+  const auto legacy_no_policy{sourcemeta::core::mcp_make_resources_list_result(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      sourcemeta::core::JSON::make_array(), "cursor-no-policy")};
+  EXPECT_FALSE(legacy_no_policy.defines("resultType"));
+  EXPECT_EQ(legacy_no_policy.at("nextCursor").to_string(), "cursor-no-policy");
 }
 
 TEST(resource_templates_list_result_modern_and_legacy) {
@@ -3238,6 +3250,17 @@ TEST(resource_templates_list_result_modern_and_legacy) {
           std::move(templates), "cursor-tmpl")};
   EXPECT_FALSE(legacy_res.defines("resultType"));
   EXPECT_EQ(legacy_res.at("nextCursor").to_string(), "cursor-tmpl");
+
+  const sourcemeta::core::MCPCachePolicy tmpl_policy{
+      .ttl_ms = 45000, .scope = sourcemeta::core::MCPCacheScope::Public};
+  const auto modern_with_policy{
+      sourcemeta::core::mcp_make_resource_templates_list_result(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+          sourcemeta::core::JSON::make_array(), "cursor-tmpl-policy",
+          tmpl_policy)};
+  EXPECT_EQ(modern_with_policy.at("resultType").to_string(), "complete");
+  EXPECT_EQ(modern_with_policy.at("ttlMs").to_integer(), 45000);
+  EXPECT_EQ(modern_with_policy.at("cacheScope").to_string(), "public");
 }
 
 TEST(make_tool_descriptor_2026_07_28_arbitrary_json_schema) {
