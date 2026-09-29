@@ -1093,7 +1093,10 @@ struct MCPRequestMeta {
   /// Optional parsed client capabilities.
   std::optional<MCPClientCapabilities> parsed_client_capabilities =
       std::nullopt;
-  /// Client implementation info (optional per spec:basic/index#meta).
+  /// Client implementation info (optional per the MCP specification).
+  ///
+  /// @see
+  /// https://spec.modelcontextprotocol.io/specification/2026-07-28/basic/index/#meta
   std::optional<MCPClientInfo> client_info = std::nullopt;
   /// Optional requested log level.
   std::optional<JSON::StringView> log_level = std::nullopt;
