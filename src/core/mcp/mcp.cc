@@ -7,7 +7,8 @@
 #include <cassert>     // assert
 #include <cmath>       // std::isnan
 #include <cstddef>     // std::size_t
-#include <optional>    // std::optional
+#include <cstdint>     // std::int64_t, std::uint32_t
+#include <optional>    // std::optional, std::nullopt
 #include <sstream>     // std::ostringstream
 #include <string>      // std::string
 #include <string_view> // std::string_view_literals
@@ -33,6 +34,8 @@ constexpr auto MCP_HASH_CONTENT{
     sourcemeta::core::JSON::Object::hash("content"sv)};
 constexpr auto MCP_HASH_CONTENTS{
     sourcemeta::core::JSON::Object::hash("contents"sv)};
+constexpr auto MCP_HASH_CONTEXT{
+    sourcemeta::core::JSON::Object::hash("context"sv)};
 constexpr auto MCP_HASH_DESCRIPTION{
     sourcemeta::core::JSON::Object::hash("description"sv)};
 constexpr auto MCP_HASH_DESTRUCTIVE_HINT{
@@ -43,6 +46,7 @@ constexpr auto MCP_HASH_EXPERIMENTAL{
     sourcemeta::core::JSON::Object::hash("experimental"sv)};
 constexpr auto MCP_HASH_EXTENSIONS{
     sourcemeta::core::JSON::Object::hash("extensions"sv)};
+constexpr auto MCP_HASH_FORM{sourcemeta::core::JSON::Object::hash("form"sv)};
 constexpr auto MCP_HASH_HEADER{
     sourcemeta::core::JSON::Object::hash("header"sv)};
 constexpr auto MCP_HASH_HEADER_VALUE{
@@ -114,6 +118,8 @@ constexpr auto MCP_HASH_RESOURCE_TEMPLATES{
     sourcemeta::core::JSON::Object::hash("resourceTemplates"sv)};
 constexpr auto MCP_HASH_RESOURCES{
     sourcemeta::core::JSON::Object::hash("resources"sv)};
+constexpr auto MCP_HASH_RESULT{
+    sourcemeta::core::JSON::Object::hash("result"sv)};
 constexpr auto MCP_HASH_RESULT_TYPE{
     sourcemeta::core::JSON::Object::hash("resultType"sv)};
 constexpr auto MCP_HASH_ROOTS{sourcemeta::core::JSON::Object::hash("roots"sv)};
@@ -138,6 +144,7 @@ constexpr auto MCP_HASH_TYPE{sourcemeta::core::JSON::Object::hash("type"sv)};
 constexpr auto MCP_HASH_URI{sourcemeta::core::JSON::Object::hash("uri"sv)};
 constexpr auto MCP_HASH_URI_TEMPLATE{
     sourcemeta::core::JSON::Object::hash("uriTemplate"sv)};
+constexpr auto MCP_HASH_URL{sourcemeta::core::JSON::Object::hash("url"sv)};
 constexpr auto MCP_HASH_VERSION{
     sourcemeta::core::JSON::Object::hash("version"sv)};
 constexpr auto MCP_HASH_WEBSITE_URL{
@@ -148,41 +155,6 @@ auto serialize_capabilities(
     -> sourcemeta::core::JSON {
   auto capabilities_object{sourcemeta::core::JSON::make_object()};
 
-  if (capabilities.prompts || capabilities.prompts_list_changed) {
-    auto prompts_object{sourcemeta::core::JSON::make_object()};
-    if (capabilities.prompts_list_changed) {
-      prompts_object.assign_assume_new(
-          "listChanged", sourcemeta::core::JSON{true}, MCP_HASH_LIST_CHANGED);
-    }
-    capabilities_object.assign_assume_new("prompts", std::move(prompts_object),
-                                          MCP_HASH_PROMPTS);
-  }
-
-  if (capabilities.resources || capabilities.resources_subscribe ||
-      capabilities.resources_list_changed) {
-    auto resources_object{sourcemeta::core::JSON::make_object()};
-    if (capabilities.resources_subscribe) {
-      resources_object.assign_assume_new(
-          "subscribe", sourcemeta::core::JSON{true}, MCP_HASH_SUBSCRIBE);
-    }
-    if (capabilities.resources_list_changed) {
-      resources_object.assign_assume_new(
-          "listChanged", sourcemeta::core::JSON{true}, MCP_HASH_LIST_CHANGED);
-    }
-    capabilities_object.assign_assume_new(
-        "resources", std::move(resources_object), MCP_HASH_RESOURCES);
-  }
-
-  if (capabilities.tools || capabilities.tools_list_changed) {
-    auto tools_object{sourcemeta::core::JSON::make_object()};
-    if (capabilities.tools_list_changed) {
-      tools_object.assign_assume_new(
-          "listChanged", sourcemeta::core::JSON{true}, MCP_HASH_LIST_CHANGED);
-    }
-    capabilities_object.assign_assume_new("tools", std::move(tools_object),
-                                          MCP_HASH_TOOLS);
-  }
-
   if (capabilities.logging) {
     capabilities_object.assign_assume_new(
         "logging", sourcemeta::core::JSON::make_object(), MCP_HASH_LOGGING);
@@ -192,6 +164,41 @@ auto serialize_capabilities(
     capabilities_object.assign_assume_new("completions",
                                           sourcemeta::core::JSON::make_object(),
                                           MCP_HASH_COMPLETIONS);
+  }
+
+  if (capabilities.prompts || capabilities.prompts_list_changed) {
+    auto prompts{sourcemeta::core::JSON::make_object()};
+    if (capabilities.prompts_list_changed) {
+      prompts.assign_assume_new("listChanged", sourcemeta::core::JSON{true},
+                                MCP_HASH_LIST_CHANGED);
+    }
+    capabilities_object.assign_assume_new("prompts", std::move(prompts),
+                                          MCP_HASH_PROMPTS);
+  }
+
+  if (capabilities.resources || capabilities.resources_subscribe ||
+      capabilities.resources_list_changed) {
+    auto resources{sourcemeta::core::JSON::make_object()};
+    if (capabilities.resources_subscribe) {
+      resources.assign_assume_new("subscribe", sourcemeta::core::JSON{true},
+                                  MCP_HASH_SUBSCRIBE);
+    }
+    if (capabilities.resources_list_changed) {
+      resources.assign_assume_new("listChanged", sourcemeta::core::JSON{true},
+                                  MCP_HASH_LIST_CHANGED);
+    }
+    capabilities_object.assign_assume_new("resources", std::move(resources),
+                                          MCP_HASH_RESOURCES);
+  }
+
+  if (capabilities.tools || capabilities.tools_list_changed) {
+    auto tools{sourcemeta::core::JSON::make_object()};
+    if (capabilities.tools_list_changed) {
+      tools.assign_assume_new("listChanged", sourcemeta::core::JSON{true},
+                              MCP_HASH_LIST_CHANGED);
+    }
+    capabilities_object.assign_assume_new("tools", std::move(tools),
+                                          MCP_HASH_TOOLS);
   }
 
   if (capabilities.extensions.has_value()) {
@@ -239,12 +246,29 @@ auto mcp_parse_client_capabilities(const sourcemeta::core::JSON &capabilities)
       capabilities.try_at("sampling", MCP_HASH_SAMPLING)};
   if (sampling_field != nullptr && sampling_field->is_object()) {
     result.sampling = true;
+    const auto *context_field{
+        sampling_field->try_at("context", MCP_HASH_CONTEXT)};
+    if (context_field != nullptr && context_field->is_object()) {
+      result.sampling_context = true;
+    }
+    const auto *tools_field{sampling_field->try_at("tools", MCP_HASH_TOOLS)};
+    if (tools_field != nullptr && tools_field->is_object()) {
+      result.sampling_tools = true;
+    }
   }
 
   const auto *elicitation_field{
       capabilities.try_at("elicitation", MCP_HASH_ELICITATION)};
   if (elicitation_field != nullptr && elicitation_field->is_object()) {
     result.elicitation = true;
+    const auto *form_field{elicitation_field->try_at("form", MCP_HASH_FORM)};
+    if (form_field != nullptr && form_field->is_object()) {
+      result.elicitation_form = true;
+    }
+    const auto *url_field{elicitation_field->try_at("url", MCP_HASH_URL)};
+    if (url_field != nullptr && url_field->is_object()) {
+      result.elicitation_url = true;
+    }
   }
 
   const auto *extensions_field{
@@ -263,26 +287,47 @@ auto mcp_parse_client_capabilities(const sourcemeta::core::JSON &capabilities)
 }
 
 auto mcp_serialize_client_capabilities(
-    const MCPClientCapabilities &capabilities) -> sourcemeta::core::JSON {
+    const MCPProtocolVersion version, const MCPClientCapabilities &capabilities)
+    -> sourcemeta::core::JSON {
   auto result{sourcemeta::core::JSON::make_object()};
 
   if (capabilities.roots || capabilities.roots_list_changed) {
     auto roots_obj{sourcemeta::core::JSON::make_object()};
-    if (capabilities.roots_list_changed) {
+    if (capabilities.roots_list_changed &&
+        version != MCPProtocolVersion::V_2026_07_28) {
       roots_obj.assign_assume_new("listChanged", sourcemeta::core::JSON{true},
                                   MCP_HASH_LIST_CHANGED);
     }
     result.assign_assume_new("roots", std::move(roots_obj), MCP_HASH_ROOTS);
   }
 
-  if (capabilities.sampling) {
-    result.assign_assume_new("sampling", sourcemeta::core::JSON::make_object(),
+  if (capabilities.sampling || capabilities.sampling_context ||
+      capabilities.sampling_tools) {
+    auto sampling_obj{sourcemeta::core::JSON::make_object()};
+    if (capabilities.sampling_context) {
+      sampling_obj.assign_assume_new(
+          "context", sourcemeta::core::JSON::make_object(), MCP_HASH_CONTEXT);
+    }
+    if (capabilities.sampling_tools) {
+      sampling_obj.assign_assume_new(
+          "tools", sourcemeta::core::JSON::make_object(), MCP_HASH_TOOLS);
+    }
+    result.assign_assume_new("sampling", std::move(sampling_obj),
                              MCP_HASH_SAMPLING);
   }
 
-  if (capabilities.elicitation) {
-    result.assign_assume_new("elicitation",
-                             sourcemeta::core::JSON::make_object(),
+  if (capabilities.elicitation || capabilities.elicitation_form ||
+      capabilities.elicitation_url) {
+    auto elicitation_obj{sourcemeta::core::JSON::make_object()};
+    if (capabilities.elicitation_form) {
+      elicitation_obj.assign_assume_new(
+          "form", sourcemeta::core::JSON::make_object(), MCP_HASH_FORM);
+    }
+    if (capabilities.elicitation_url) {
+      elicitation_obj.assign_assume_new(
+          "url", sourcemeta::core::JSON::make_object(), MCP_HASH_URL);
+    }
+    result.assign_assume_new("elicitation", std::move(elicitation_obj),
                              MCP_HASH_ELICITATION);
   }
 
@@ -305,7 +350,12 @@ auto mcp_serialize_client_capabilities(
 auto mcp_validate_request_meta(const sourcemeta::core::JSON &envelope_or_params)
     -> std::pair<MCPRequestMetaStatus, std::optional<MCPRequestMeta>> {
   const sourcemeta::core::JSON *parameters = nullptr;
-  if (envelope_or_params.is_object() && envelope_or_params.defines("jsonrpc")) {
+  const auto *jsonrpc_field{
+      envelope_or_params.is_object()
+          ? envelope_or_params.try_at("jsonrpc", MCP_HASH_JSONRPC)
+          : nullptr};
+  if (jsonrpc_field != nullptr && jsonrpc_field->is_string() &&
+      jsonrpc_field->to_string() == "2.0") {
     parameters = sourcemeta::core::jsonrpc_params(envelope_or_params);
     if (parameters == nullptr) {
       return {MCPRequestMetaStatus::MissingParams, std::nullopt};
@@ -336,8 +386,12 @@ auto mcp_validate_request_meta(const sourcemeta::core::JSON &envelope_or_params)
     return {MCPRequestMetaStatus::ProtocolVersionNotString, std::nullopt};
   }
 
-  const auto resolved{
-      mcp_resolve_protocol_version(protocol_version_field->to_string())};
+  const auto protocol_str{protocol_version_field->to_string()};
+  if (protocol_str.empty()) {
+    return {MCPRequestMetaStatus::UnsupportedProtocolVersion, std::nullopt};
+  }
+
+  const auto resolved{mcp_resolve_protocol_version(protocol_str)};
   if (!resolved.has_value()) {
     return {MCPRequestMetaStatus::UnsupportedProtocolVersion, std::nullopt};
   }
@@ -351,57 +405,59 @@ auto mcp_validate_request_meta(const sourcemeta::core::JSON &envelope_or_params)
     return {MCPRequestMetaStatus::ClientCapabilitiesNotObject, std::nullopt};
   }
 
+  std::optional<MCPClientInfo> client_info;
   const auto *client_info_field{meta->try_at(
       "io.modelcontextprotocol/clientInfo", MCP_HASH_META_CLIENT_INFO)};
-  if (client_info_field == nullptr) {
-    return {MCPRequestMetaStatus::MissingClientInfo, std::nullopt};
-  }
-  if (!client_info_field->is_object()) {
-    return {MCPRequestMetaStatus::ClientInfoNotObject, std::nullopt};
-  }
+  if (client_info_field != nullptr) {
+    if (!client_info_field->is_object()) {
+      return {MCPRequestMetaStatus::ClientInfoNotObject, std::nullopt};
+    }
 
-  const auto *name_field{client_info_field->try_at("name", MCP_HASH_NAME)};
-  if (name_field == nullptr) {
-    return {MCPRequestMetaStatus::MissingClientInfoName, std::nullopt};
-  }
-  if (!name_field->is_string()) {
-    return {MCPRequestMetaStatus::ClientInfoNameNotString, std::nullopt};
-  }
+    const auto *name_field{client_info_field->try_at("name", MCP_HASH_NAME)};
+    if (name_field == nullptr) {
+      return {MCPRequestMetaStatus::MissingClientInfoName, std::nullopt};
+    }
+    if (!name_field->is_string()) {
+      return {MCPRequestMetaStatus::ClientInfoNameNotString, std::nullopt};
+    }
 
-  const auto *version_field{
-      client_info_field->try_at("version", MCP_HASH_VERSION)};
-  if (version_field == nullptr) {
-    return {MCPRequestMetaStatus::MissingClientInfoVersion, std::nullopt};
-  }
-  if (!version_field->is_string()) {
-    return {MCPRequestMetaStatus::ClientInfoVersionNotString, std::nullopt};
-  }
+    const auto *version_field{
+        client_info_field->try_at("version", MCP_HASH_VERSION)};
+    if (version_field == nullptr) {
+      return {MCPRequestMetaStatus::MissingClientInfoVersion, std::nullopt};
+    }
+    if (!version_field->is_string()) {
+      return {MCPRequestMetaStatus::ClientInfoVersionNotString, std::nullopt};
+    }
 
-  const auto *title_field{client_info_field->try_at("title", MCP_HASH_TITLE)};
-  if (title_field != nullptr && !title_field->is_string()) {
-    return {MCPRequestMetaStatus::ClientInfoTitleNotString, std::nullopt};
-  }
+    const auto *title_field{client_info_field->try_at("title", MCP_HASH_TITLE)};
+    if (title_field != nullptr && !title_field->is_string()) {
+      return {MCPRequestMetaStatus::ClientInfoTitleNotString, std::nullopt};
+    }
 
-  const auto *description_field{
-      client_info_field->try_at("description", MCP_HASH_DESCRIPTION)};
-  if (description_field != nullptr && !description_field->is_string()) {
-    return {MCPRequestMetaStatus::ClientInfoDescriptionNotString, std::nullopt};
-  }
+    const auto *description_field{
+        client_info_field->try_at("description", MCP_HASH_DESCRIPTION)};
+    if (description_field != nullptr && !description_field->is_string()) {
+      return {MCPRequestMetaStatus::ClientInfoDescriptionNotString,
+              std::nullopt};
+    }
 
-  MCPClientInfo info{.name = name_field->to_string(),
-                     .version = version_field->to_string(),
-                     .title = title_field != nullptr ? title_field->to_string()
-                                                     : JSON::StringView{},
-                     .description = description_field != nullptr
-                                        ? description_field->to_string()
-                                        : JSON::StringView{}};
+    client_info =
+        MCPClientInfo{.name = name_field->to_string(),
+                      .version = version_field->to_string(),
+                      .title = title_field != nullptr ? title_field->to_string()
+                                                      : JSON::StringView{},
+                      .description = description_field != nullptr
+                                         ? description_field->to_string()
+                                         : JSON::StringView{}};
+  }
 
   MCPRequestMeta result_meta;
   result_meta.protocol_version = resolved.value();
   result_meta.client_capabilities = caps;
   result_meta.parsed_client_capabilities = mcp_parse_client_capabilities(*caps);
   result_meta.meta_object = meta;
-  result_meta.client_info = info;
+  result_meta.client_info = client_info;
 
   const auto *log_level_field{meta->try_at("io.modelcontextprotocol/logLevel",
                                            MCP_HASH_META_LOG_LEVEL)};
@@ -500,6 +556,81 @@ auto mcp_request_name_from_body(const sourcemeta::core::JSON &envelope)
   return std::nullopt;
 }
 
+auto mcp_make_error_request_meta(const sourcemeta::core::JSON *identifier,
+                                 const MCPRequestMetaStatus status)
+    -> sourcemeta::core::JSON {
+  switch (status) {
+    case MCPRequestMetaStatus::Valid:
+      assert(status != MCPRequestMetaStatus::Valid);
+      return sourcemeta::core::jsonrpc_make_error(
+          identifier, JSONRPC_CODE_INTERNAL, "Internal error");
+    case MCPRequestMetaStatus::MissingParams:
+      return sourcemeta::core::jsonrpc_make_error(
+          identifier, JSONRPC_CODE_INVALID_PARAMS,
+          "Invalid params: missing params object");
+    case MCPRequestMetaStatus::ParamsNotObject:
+      return sourcemeta::core::jsonrpc_make_error(
+          identifier, JSONRPC_CODE_INVALID_PARAMS,
+          "Invalid params: params must be an object");
+    case MCPRequestMetaStatus::MissingMeta:
+      return sourcemeta::core::jsonrpc_make_error(
+          identifier, JSONRPC_CODE_INVALID_PARAMS,
+          "Invalid params: missing _meta object");
+    case MCPRequestMetaStatus::MetaNotObject:
+      return sourcemeta::core::jsonrpc_make_error(
+          identifier, JSONRPC_CODE_INVALID_PARAMS,
+          "Invalid params: _meta must be an object");
+    case MCPRequestMetaStatus::MissingProtocolVersion:
+      return sourcemeta::core::jsonrpc_make_error(
+          identifier, JSONRPC_CODE_INVALID_PARAMS,
+          "Invalid params: missing protocolVersion in _meta");
+    case MCPRequestMetaStatus::ProtocolVersionNotString:
+      return sourcemeta::core::jsonrpc_make_error(
+          identifier, JSONRPC_CODE_INVALID_PARAMS,
+          "Invalid params: protocolVersion must be a string");
+    case MCPRequestMetaStatus::UnsupportedProtocolVersion:
+      return mcp_make_error_unsupported_protocol_version(
+          identifier, "", mcp_supported_protocol_versions());
+    case MCPRequestMetaStatus::MissingClientCapabilities:
+      return sourcemeta::core::jsonrpc_make_error(
+          identifier, JSONRPC_CODE_INVALID_PARAMS,
+          "Invalid params: missing clientCapabilities in _meta");
+    case MCPRequestMetaStatus::ClientCapabilitiesNotObject:
+      return sourcemeta::core::jsonrpc_make_error(
+          identifier, JSONRPC_CODE_INVALID_PARAMS,
+          "Invalid params: clientCapabilities must be an object");
+    case MCPRequestMetaStatus::ClientInfoNotObject:
+      return sourcemeta::core::jsonrpc_make_error(
+          identifier, JSONRPC_CODE_INVALID_PARAMS,
+          "Invalid params: clientInfo must be an object");
+    case MCPRequestMetaStatus::MissingClientInfoName:
+      return sourcemeta::core::jsonrpc_make_error(
+          identifier, JSONRPC_CODE_INVALID_PARAMS,
+          "Invalid params: missing name in clientInfo");
+    case MCPRequestMetaStatus::ClientInfoNameNotString:
+      return sourcemeta::core::jsonrpc_make_error(
+          identifier, JSONRPC_CODE_INVALID_PARAMS,
+          "Invalid params: clientInfo name must be a string");
+    case MCPRequestMetaStatus::MissingClientInfoVersion:
+      return sourcemeta::core::jsonrpc_make_error(
+          identifier, JSONRPC_CODE_INVALID_PARAMS,
+          "Invalid params: missing version in clientInfo");
+    case MCPRequestMetaStatus::ClientInfoVersionNotString:
+      return sourcemeta::core::jsonrpc_make_error(
+          identifier, JSONRPC_CODE_INVALID_PARAMS,
+          "Invalid params: clientInfo version must be a string");
+    case MCPRequestMetaStatus::ClientInfoTitleNotString:
+      return sourcemeta::core::jsonrpc_make_error(
+          identifier, JSONRPC_CODE_INVALID_PARAMS,
+          "Invalid params: clientInfo title must be a string");
+    case MCPRequestMetaStatus::ClientInfoDescriptionNotString:
+      return sourcemeta::core::jsonrpc_make_error(
+          identifier, JSONRPC_CODE_INVALID_PARAMS,
+          "Invalid params: clientInfo description must be a string");
+  }
+  std::unreachable();
+}
+
 namespace {
 
 constexpr auto mcp_base64_decode_char(const char character) noexcept -> int {
@@ -525,7 +656,7 @@ auto mcp_decode_base64(const std::string_view encoded)
     -> std::optional<std::string> {
   std::string decoded;
   decoded.reserve(encoded.size() * 3 / 4);
-  int accumulator = 0;
+  std::uint32_t accumulator = 0;
   int bit_count = -8;
   for (const char character : encoded) {
     if (character == '=') {
@@ -535,7 +666,7 @@ auto mcp_decode_base64(const std::string_view encoded)
     if (value < 0) {
       return std::nullopt;
     }
-    accumulator = (accumulator << 6) + value;
+    accumulator = (accumulator << 6) | static_cast<std::uint32_t>(value);
     bit_count += 6;
     if (bit_count >= 0) {
       decoded.push_back(static_cast<char>((accumulator >> bit_count) & 0xFF));
@@ -545,13 +676,11 @@ auto mcp_decode_base64(const std::string_view encoded)
   return decoded;
 }
 
-auto mcp_decode_header_value(const JSON::StringView raw) -> std::string {
+auto mcp_decode_header_value(const JSON::StringView raw)
+    -> std::optional<std::string> {
   if (raw.starts_with("=?base64?") && raw.ends_with("?=") && raw.size() >= 11) {
     const auto payload{raw.substr(9, raw.size() - 11)};
-    const auto decoded{mcp_decode_base64(payload)};
-    if (decoded.has_value()) {
-      return decoded.value();
-    }
+    return mcp_decode_base64(payload);
   }
   return std::string{raw};
 }
@@ -677,16 +806,11 @@ auto mcp_validate_request_headers(
 
     const auto resolved_protocol{
         mcp_resolve_protocol_version(protocol_version_header.value())};
-    if (!resolved_protocol.has_value()) {
+    if (!resolved_protocol.has_value() ||
+        resolved_protocol.value() != version) {
       return mcp_make_error_unsupported_protocol_version(
           request_id, protocol_version_header.value(),
           mcp_supported_protocol_versions());
-    }
-
-    if (protocol_version_header.value() != "2026-07-28") {
-      return mcp_make_error_header_mismatch(
-          request_id, MCP_HEADER_PROTOCOL_VERSION,
-          protocol_version_header.value(), "2026-07-28");
     }
 
     std::optional<JSON::StringView> body_metadata_protocol;
@@ -727,7 +851,8 @@ auto mcp_validate_request_headers(
       }
 
       const auto decoded_name{mcp_decode_header_value(name_header.value())};
-      if (decoded_name != name_field->to_string()) {
+      if (!decoded_name.has_value() ||
+          decoded_name.value() != name_field->to_string()) {
         return mcp_make_error_header_mismatch(request_id, MCP_HEADER_NAME,
                                               name_header.value(),
                                               name_field->to_string());
@@ -751,6 +876,12 @@ auto mcp_validate_request_headers(
           request_id, protocol_version_header.value(),
           mcp_supported_protocol_versions());
     }
+    if (resolved_protocol.value() != version) {
+      return mcp_make_error_header_mismatch(
+          request_id, MCP_HEADER_PROTOCOL_VERSION,
+          protocol_version_header.value(),
+          mcp_protocol_version_string(version));
+    }
   }
 
   if (method_header.has_value()) {
@@ -764,8 +895,7 @@ auto mcp_validate_request_headers(
   if (name_header.has_value()) {
     const auto body_name{mcp_request_name_from_body(envelope)};
     if (body_name.has_value()) {
-      const auto decoded_name{mcp_decode_header_value(name_header.value())};
-      if (decoded_name != body_name.value()) {
+      if (name_header.value() != body_name.value()) {
         return mcp_make_error_header_mismatch(request_id, MCP_HEADER_NAME,
                                               name_header.value(),
                                               body_name.value());
@@ -785,12 +915,6 @@ auto mcp_make_error_resource_not_found(const MCPProtocolVersion version,
   }
   return sourcemeta::core::jsonrpc_make_error(
       &identifier, MCP_CODE_RESOURCE_NOT_FOUND, "Resource not found");
-}
-
-auto mcp_make_error_resource_not_found(const sourcemeta::core::JSON &identifier)
-    -> sourcemeta::core::JSON {
-  return mcp_make_error_resource_not_found(MCPProtocolVersion::V_2025_11_25,
-                                           identifier);
 }
 
 auto mcp_make_text_block(const JSON::StringView text)
@@ -839,16 +963,14 @@ auto mcp_make_resource_link(const MCPProtocolVersion version,
   return block;
 }
 
-auto mcp_decorate_result(const MCPProtocolVersion version,
-                         sourcemeta::core::JSON result,
-                         const std::optional<MCPImplementation> &server_info)
-    -> sourcemeta::core::JSON {
-  if (!mcp_requires_result_type(version)) {
-    return result;
+void mcp_decorate_result_in_place(
+    const MCPProtocolVersion version, sourcemeta::core::JSON &result,
+    const std::optional<MCPImplementation> &server_info) {
+  if (!mcp_requires_result_type(version) || !result.is_object()) {
+    return;
   }
 
-  assert(result.is_object());
-  if (!result.defines("resultType", MCP_HASH_RESULT_TYPE)) {
+  if (result.try_at("resultType", MCP_HASH_RESULT_TYPE) == nullptr) {
     result.assign_assume_new("resultType", sourcemeta::core::JSON{"complete"},
                              MCP_HASH_RESULT_TYPE);
   }
@@ -875,36 +997,54 @@ auto mcp_decorate_result(const MCPProtocolVersion version,
                              MCP_HASH_WEBSITE_URL);
     }
 
-    if (result.defines("_meta", MCP_HASH_META)) {
-      auto &meta{result.at("_meta", MCP_HASH_META)};
-      if (meta.is_object()) {
-        meta.assign("io.modelcontextprotocol/serverInfo", std::move(info));
-      }
+    if (auto *meta{result.try_at("_meta", MCP_HASH_META)};
+        meta != nullptr && meta->is_object()) {
+      meta->assign("io.modelcontextprotocol/serverInfo", std::move(info));
     } else {
-      auto meta{sourcemeta::core::JSON::make_object()};
-      meta.assign_assume_new("io.modelcontextprotocol/serverInfo",
-                             std::move(info), MCP_HASH_META_SERVER_INFO);
-      result.assign_assume_new("_meta", std::move(meta), MCP_HASH_META);
+      auto meta_obj{sourcemeta::core::JSON::make_object()};
+      meta_obj.assign_assume_new("io.modelcontextprotocol/serverInfo",
+                                 std::move(info), MCP_HASH_META_SERVER_INFO);
+      result.assign_assume_new("_meta", std::move(meta_obj), MCP_HASH_META);
     }
   }
+}
 
+auto mcp_decorate_result(const MCPProtocolVersion version,
+                         sourcemeta::core::JSON result,
+                         const std::optional<MCPImplementation> &server_info)
+    -> sourcemeta::core::JSON {
+  mcp_decorate_result_in_place(version, result, server_info);
   return result;
+}
+
+void mcp_decorate_cacheable_result_in_place(
+    const MCPProtocolVersion version, sourcemeta::core::JSON &result,
+    const std::optional<MCPCachePolicy> &cache_policy) {
+  if (!mcp_requires_cacheable_metadata(version) || !cache_policy.has_value() ||
+      !result.is_object()) {
+    return;
+  }
+
+  result.assign("ttlMs", sourcemeta::core::JSON{cache_policy->ttl_ms});
+  result.assign("cacheScope", sourcemeta::core::JSON{
+                                  mcp_cache_scope_string(cache_policy->scope)});
 }
 
 auto mcp_decorate_cacheable_result(
     const MCPProtocolVersion version, sourcemeta::core::JSON result,
     const std::optional<MCPCachePolicy> &cache_policy)
     -> sourcemeta::core::JSON {
-  if (!mcp_requires_cacheable_metadata(version) || !cache_policy.has_value()) {
-    return result;
-  }
-
-  assert(result.is_object());
-  result.assign("ttlMs", sourcemeta::core::JSON{
-                             static_cast<std::int64_t>(cache_policy->ttl_ms)});
-  result.assign("cacheScope", sourcemeta::core::JSON{
-                                  mcp_cache_scope_string(cache_policy->scope)});
+  mcp_decorate_cacheable_result_in_place(version, result, cache_policy);
   return result;
+}
+
+auto mcp_make_empty_result(const MCPProtocolVersion version,
+                           const sourcemeta::core::JSON &identifier,
+                           const std::optional<MCPImplementation> &server_info)
+    -> sourcemeta::core::JSON {
+  auto result{sourcemeta::core::JSON::make_object()};
+  return sourcemeta::core::jsonrpc_make_success(
+      identifier, mcp_decorate_result(version, std::move(result), server_info));
 }
 
 auto mcp_make_tool_success(const MCPProtocolVersion version,
@@ -977,13 +1117,6 @@ auto mcp_make_tool_error(const MCPProtocolVersion version,
                                                 std::move(envelope_result));
 }
 
-auto mcp_make_tool_error(const sourcemeta::core::JSON &identifier,
-                         const JSON::StringView message)
-    -> sourcemeta::core::JSON {
-  return mcp_make_tool_error(MCPProtocolVersion::V_2025_11_25, identifier,
-                             message);
-}
-
 auto mcp_make_resource(const JSON::StringView uri, const JSON::StringView name,
                        const JSON::StringView mime_type,
                        const JSON::StringView description,
@@ -1030,9 +1163,9 @@ auto mcp_make_resource_text_content(const JSON::StringView uri,
   return entry;
 }
 
-auto mcp_make_resources_read_result(
-    const MCPProtocolVersion version, sourcemeta::core::JSON contents,
-    const std::optional<MCPCachePolicy> &cache_policy)
+auto mcp_make_resources_read_result(const MCPProtocolVersion version,
+                                    sourcemeta::core::JSON contents,
+                                    const MCPCachePolicy &cache_policy)
     -> sourcemeta::core::JSON {
   auto result{sourcemeta::core::JSON::make_object()};
   if (version == MCPProtocolVersion::V_2026_07_28) {
@@ -1044,17 +1177,22 @@ auto mcp_make_resources_read_result(
                                        cache_policy);
 }
 
-auto mcp_make_resources_read_result(sourcemeta::core::JSON contents)
+auto mcp_make_resources_read_result(const MCPProtocolVersion version,
+                                    sourcemeta::core::JSON contents)
     -> sourcemeta::core::JSON {
-  return mcp_make_resources_read_result(MCPProtocolVersion::V_2025_11_25,
-                                        std::move(contents));
+  auto result{sourcemeta::core::JSON::make_object()};
+  if (version == MCPProtocolVersion::V_2026_07_28) {
+    result.assign_assume_new("resultType", sourcemeta::core::JSON{"complete"},
+                             MCP_HASH_RESULT_TYPE);
+  }
+  result.assign_assume_new("contents", std::move(contents), MCP_HASH_CONTENTS);
+  return result;
 }
 
 auto mcp_make_tools_list_result(
     const MCPProtocolVersion version, sourcemeta::core::JSON tools,
     const std::optional<JSON::StringView> next_cursor,
-    const std::optional<MCPCachePolicy> &cache_policy)
-    -> sourcemeta::core::JSON {
+    const MCPCachePolicy &cache_policy) -> sourcemeta::core::JSON {
   auto result{sourcemeta::core::JSON::make_object()};
   if (version == MCPProtocolVersion::V_2026_07_28) {
     result.assign_assume_new("resultType", sourcemeta::core::JSON{"complete"},
@@ -1070,11 +1208,28 @@ auto mcp_make_tools_list_result(
                                        cache_policy);
 }
 
+auto mcp_make_tools_list_result(
+    const MCPProtocolVersion version, sourcemeta::core::JSON tools,
+    const std::optional<JSON::StringView> next_cursor)
+    -> sourcemeta::core::JSON {
+  auto result{sourcemeta::core::JSON::make_object()};
+  if (version == MCPProtocolVersion::V_2026_07_28) {
+    result.assign_assume_new("resultType", sourcemeta::core::JSON{"complete"},
+                             MCP_HASH_RESULT_TYPE);
+  }
+  result.assign_assume_new("tools", std::move(tools), MCP_HASH_TOOLS);
+  if (next_cursor.has_value() && !next_cursor->empty()) {
+    result.assign_assume_new("nextCursor",
+                             sourcemeta::core::JSON{next_cursor.value()},
+                             MCP_HASH_NEXT_CURSOR);
+  }
+  return result;
+}
+
 auto mcp_make_resources_list_result(
     const MCPProtocolVersion version, sourcemeta::core::JSON resources,
     const std::optional<JSON::StringView> next_cursor,
-    const std::optional<MCPCachePolicy> &cache_policy)
-    -> sourcemeta::core::JSON {
+    const MCPCachePolicy &cache_policy) -> sourcemeta::core::JSON {
   auto result{sourcemeta::core::JSON::make_object()};
   if (version == MCPProtocolVersion::V_2026_07_28) {
     result.assign_assume_new("resultType", sourcemeta::core::JSON{"complete"},
@@ -1091,11 +1246,29 @@ auto mcp_make_resources_list_result(
                                        cache_policy);
 }
 
+auto mcp_make_resources_list_result(
+    const MCPProtocolVersion version, sourcemeta::core::JSON resources,
+    const std::optional<JSON::StringView> next_cursor)
+    -> sourcemeta::core::JSON {
+  auto result{sourcemeta::core::JSON::make_object()};
+  if (version == MCPProtocolVersion::V_2026_07_28) {
+    result.assign_assume_new("resultType", sourcemeta::core::JSON{"complete"},
+                             MCP_HASH_RESULT_TYPE);
+  }
+  result.assign_assume_new("resources", std::move(resources),
+                           MCP_HASH_RESOURCES);
+  if (next_cursor.has_value() && !next_cursor->empty()) {
+    result.assign_assume_new("nextCursor",
+                             sourcemeta::core::JSON{next_cursor.value()},
+                             MCP_HASH_NEXT_CURSOR);
+  }
+  return result;
+}
+
 auto mcp_make_resource_templates_list_result(
     const MCPProtocolVersion version, sourcemeta::core::JSON resource_templates,
     const std::optional<JSON::StringView> next_cursor,
-    const std::optional<MCPCachePolicy> &cache_policy)
-    -> sourcemeta::core::JSON {
+    const MCPCachePolicy &cache_policy) -> sourcemeta::core::JSON {
   auto result{sourcemeta::core::JSON::make_object()};
   if (version == MCPProtocolVersion::V_2026_07_28) {
     result.assign_assume_new("resultType", sourcemeta::core::JSON{"complete"},
@@ -1110,6 +1283,62 @@ auto mcp_make_resource_templates_list_result(
   }
   return mcp_decorate_cacheable_result(version, std::move(result),
                                        cache_policy);
+}
+
+auto mcp_make_resource_templates_list_result(
+    const MCPProtocolVersion version, sourcemeta::core::JSON resource_templates,
+    const std::optional<JSON::StringView> next_cursor)
+    -> sourcemeta::core::JSON {
+  auto result{sourcemeta::core::JSON::make_object()};
+  if (version == MCPProtocolVersion::V_2026_07_28) {
+    result.assign_assume_new("resultType", sourcemeta::core::JSON{"complete"},
+                             MCP_HASH_RESULT_TYPE);
+  }
+  result.assign_assume_new("resourceTemplates", std::move(resource_templates),
+                           MCP_HASH_RESOURCE_TEMPLATES);
+  if (next_cursor.has_value() && !next_cursor->empty()) {
+    result.assign_assume_new("nextCursor",
+                             sourcemeta::core::JSON{next_cursor.value()},
+                             MCP_HASH_NEXT_CURSOR);
+  }
+  return result;
+}
+
+auto mcp_make_prompts_list_result(
+    const MCPProtocolVersion version, sourcemeta::core::JSON prompts,
+    const std::optional<JSON::StringView> next_cursor,
+    const MCPCachePolicy &cache_policy) -> sourcemeta::core::JSON {
+  auto result{sourcemeta::core::JSON::make_object()};
+  if (version == MCPProtocolVersion::V_2026_07_28) {
+    result.assign_assume_new("resultType", sourcemeta::core::JSON{"complete"},
+                             MCP_HASH_RESULT_TYPE);
+  }
+  result.assign_assume_new("prompts", std::move(prompts), MCP_HASH_PROMPTS);
+  if (next_cursor.has_value() && !next_cursor->empty()) {
+    result.assign_assume_new("nextCursor",
+                             sourcemeta::core::JSON{next_cursor.value()},
+                             MCP_HASH_NEXT_CURSOR);
+  }
+  return mcp_decorate_cacheable_result(version, std::move(result),
+                                       cache_policy);
+}
+
+auto mcp_make_prompts_list_result(
+    const MCPProtocolVersion version, sourcemeta::core::JSON prompts,
+    const std::optional<JSON::StringView> next_cursor)
+    -> sourcemeta::core::JSON {
+  auto result{sourcemeta::core::JSON::make_object()};
+  if (version == MCPProtocolVersion::V_2026_07_28) {
+    result.assign_assume_new("resultType", sourcemeta::core::JSON{"complete"},
+                             MCP_HASH_RESULT_TYPE);
+  }
+  result.assign_assume_new("prompts", std::move(prompts), MCP_HASH_PROMPTS);
+  if (next_cursor.has_value() && !next_cursor->empty()) {
+    result.assign_assume_new("nextCursor",
+                             sourcemeta::core::JSON{next_cursor.value()},
+                             MCP_HASH_NEXT_CURSOR);
+  }
+  return result;
 }
 
 auto mcp_make_resource_template(const JSON::StringView uri_template,
@@ -1136,10 +1365,11 @@ auto mcp_make_tool_descriptor(
   assert(!annotations.read_only || !annotations.destructive);
   assert(!annotations.read_only || annotations.idempotent);
   // The MCP spec requires `type: "object"` on tool input schemas.
-  assert(input_schema.is_object() &&
-         input_schema.defines("type", MCP_HASH_TYPE) &&
-         input_schema.at("type", MCP_HASH_TYPE).is_string() &&
-         input_schema.at("type", MCP_HASH_TYPE).to_string() == "object");
+  const auto *type_field{input_schema.is_object()
+                             ? input_schema.try_at("type", MCP_HASH_TYPE)
+                             : nullptr};
+  assert(type_field != nullptr && type_field->is_string() &&
+         type_field->to_string() == "object");
 
   auto entry{sourcemeta::core::JSON::make_object()};
   entry.assign_assume_new("name", sourcemeta::core::JSON{name}, MCP_HASH_NAME);
@@ -1256,14 +1486,8 @@ auto mcp_make_server_discover_result(
                            MCP_HASH_RESULT_TYPE);
 
   auto versions_array{sourcemeta::core::JSON::make_array()};
-  if (supported_versions.empty()) {
-    for (const auto supported_version : mcp_supported_protocol_versions()) {
-      versions_array.push_back(sourcemeta::core::JSON{supported_version});
-    }
-  } else {
-    for (const auto supported_version : supported_versions) {
-      versions_array.push_back(sourcemeta::core::JSON{supported_version});
-    }
+  for (const auto supported_version : supported_versions) {
+    versions_array.push_back(sourcemeta::core::JSON{supported_version});
   }
   result.assign_assume_new("supportedVersions", std::move(versions_array),
                            MCP_HASH_SUPPORTED_VERSIONS);
@@ -1302,10 +1526,8 @@ auto mcp_make_server_discover_result(
                              MCP_HASH_INSTRUCTIONS);
   }
 
-  result.assign_assume_new(
-      "ttlMs",
-      sourcemeta::core::JSON{static_cast<std::int64_t>(cache_policy.ttl_ms)},
-      MCP_HASH_TTL_MS);
+  result.assign_assume_new("ttlMs", sourcemeta::core::JSON{cache_policy.ttl_ms},
+                           MCP_HASH_TTL_MS);
   result.assign_assume_new(
       "cacheScope",
       sourcemeta::core::JSON{mcp_cache_scope_string(cache_policy.scope)},
@@ -1315,9 +1537,12 @@ auto mcp_make_server_discover_result(
 }
 
 auto mcp_make_input_required_result(
+    const MCPProtocolVersion version, const JSON::StringView method,
     const sourcemeta::core::JSON &identifier,
     std::optional<sourcemeta::core::JSON> input_requests,
     std::optional<JSON::StringView> request_state) -> sourcemeta::core::JSON {
+  assert(mcp_supports_mrtr(version));
+  assert(mcp_is_named_request_method(method));
   assert(input_requests.has_value() || request_state.has_value());
 
   auto result{sourcemeta::core::JSON::make_object()};
@@ -1368,8 +1593,9 @@ auto mcp_request_state(const sourcemeta::core::JSON &envelope)
 }
 
 auto mcp_make_subscription_acknowledged_notification(
-    const JSON::StringView subscription_id,
+    const sourcemeta::core::JSON &subscription_id,
     sourcemeta::core::JSON notifications) -> sourcemeta::core::JSON {
+  assert(subscription_id.is_string() || subscription_id.is_integer());
   auto meta{sourcemeta::core::JSON::make_object()};
   meta.assign_assume_new("io.modelcontextprotocol/subscriptionId",
                          sourcemeta::core::JSON{subscription_id},
@@ -1392,12 +1618,18 @@ auto mcp_make_subscription_acknowledged_notification(
   return notification;
 }
 
+auto mcp_make_subscription_acknowledged_notification(
+    const JSON::StringView subscription_id,
+    sourcemeta::core::JSON notifications) -> sourcemeta::core::JSON {
+  return mcp_make_subscription_acknowledged_notification(
+      sourcemeta::core::JSON{subscription_id}, std::move(notifications));
+}
+
 auto mcp_make_subscription_close_result(
-    const sourcemeta::core::JSON &identifier,
-    const JSON::StringView subscription_id) -> sourcemeta::core::JSON {
+    const sourcemeta::core::JSON &identifier) -> sourcemeta::core::JSON {
   auto meta{sourcemeta::core::JSON::make_object()};
   meta.assign_assume_new("io.modelcontextprotocol/subscriptionId",
-                         sourcemeta::core::JSON{subscription_id},
+                         sourcemeta::core::JSON{identifier},
                          MCP_HASH_META_SUBSCRIPTION_ID);
 
   auto result{sourcemeta::core::JSON::make_object()};
@@ -1409,32 +1641,31 @@ auto mcp_make_subscription_close_result(
 }
 
 auto mcp_request_subscription_id(const sourcemeta::core::JSON &envelope)
-    -> std::optional<JSON::StringView> {
+    -> const sourcemeta::core::JSON * {
+  if (!envelope.is_object()) {
+    return nullptr;
+  }
   const sourcemeta::core::JSON *meta = nullptr;
-  if (envelope.is_object() && envelope.defines("params", MCP_HASH_PARAMS)) {
-    const auto &params{envelope.at("params", MCP_HASH_PARAMS)};
-    if (params.is_object() && params.defines("_meta", MCP_HASH_META)) {
-      meta = &params.at("_meta", MCP_HASH_META);
-    }
-  } else if (envelope.is_object() && envelope.defines("result")) {
-    const auto &result{envelope.at("result")};
-    if (result.is_object() && result.defines("_meta", MCP_HASH_META)) {
-      meta = &result.at("_meta", MCP_HASH_META);
-    }
-  } else if (envelope.is_object() && envelope.defines("_meta", MCP_HASH_META)) {
-    meta = &envelope.at("_meta", MCP_HASH_META);
+  if (const auto *params{envelope.try_at("params", MCP_HASH_PARAMS)};
+      params != nullptr && params->is_object()) {
+    meta = params->try_at("_meta", MCP_HASH_META);
+  } else if (const auto *result{envelope.try_at("result", MCP_HASH_RESULT)};
+             result != nullptr && result->is_object()) {
+    meta = result->try_at("_meta", MCP_HASH_META);
+  } else {
+    meta = envelope.try_at("_meta", MCP_HASH_META);
   }
 
   if (meta == nullptr || !meta->is_object()) {
-    return std::nullopt;
+    return nullptr;
   }
 
   const auto *sub_id{meta->try_at("io.modelcontextprotocol/subscriptionId",
                                   MCP_HASH_META_SUBSCRIPTION_ID)};
-  if (sub_id == nullptr || !sub_id->is_string()) {
-    return std::nullopt;
+  if (sub_id == nullptr || (!sub_id->is_string() && !sub_id->is_integer())) {
+    return nullptr;
   }
-  return sub_id->to_string();
+  return sub_id;
 }
 
 auto mcp_tool_call_arguments(const sourcemeta::core::JSON &envelope)

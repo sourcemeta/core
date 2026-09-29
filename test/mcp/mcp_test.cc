@@ -78,45 +78,55 @@ TEST(code_url_elicitation_required) {
 }
 
 TEST(is_request_method_initialize) {
-  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method("initialize"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "initialize"));
 }
 
 TEST(is_request_method_ping) {
-  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method("ping"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "ping"));
 }
 
 TEST(is_request_method_tools_list) {
-  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method("tools/list"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "tools/list"));
 }
 
 TEST(is_request_method_tools_call) {
-  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method("tools/call"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "tools/call"));
 }
 
 TEST(is_request_method_resources_list) {
-  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method("resources/list"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "resources/list"));
 }
 
 TEST(is_request_method_resources_read) {
-  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method("resources/read"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "resources/read"));
 }
 
 TEST(is_request_method_resources_templates_list) {
-  EXPECT_TRUE(
-      sourcemeta::core::mcp_is_request_method("resources/templates/list"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "resources/templates/list"));
 }
 
 TEST(is_request_method_notifications_initialized_is_not_request) {
-  EXPECT_FALSE(
-      sourcemeta::core::mcp_is_request_method("notifications/initialized"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/initialized"));
 }
 
 TEST(is_request_method_unknown) {
-  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method("foo/bar"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "foo/bar"));
 }
 
 TEST(is_request_method_empty) {
-  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(""));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, ""));
 }
 
 TEST(resolve_protocol_version_empty_defaults_to_2025_03_26) {
@@ -634,8 +644,9 @@ TEST(tool_success_with_explicit_blocks_omits_structured_on_2025_03_26) {
 
 TEST(tool_error_with_message) {
   const auto identifier{sourcemeta::core::JSON{7}};
-  const auto envelope{
-      sourcemeta::core::mcp_make_tool_error(identifier, "Schema not found")};
+  const auto envelope{sourcemeta::core::mcp_make_tool_error(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, identifier,
+      "Schema not found")};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "id": 7,
@@ -649,8 +660,9 @@ TEST(tool_error_with_message) {
 
 TEST(tool_error_with_string_id) {
   const auto identifier{sourcemeta::core::JSON{"req-1"}};
-  const auto envelope{
-      sourcemeta::core::mcp_make_tool_error(identifier, "Invalid input")};
+  const auto envelope{sourcemeta::core::mcp_make_tool_error(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, identifier,
+      "Invalid input")};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "id": "req-1",
@@ -664,6 +676,7 @@ TEST(tool_error_with_string_id) {
 
 TEST(tool_error_with_null_id) {
   const auto envelope{sourcemeta::core::mcp_make_tool_error(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
       sourcemeta::core::JSON{nullptr}, "Boom")};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
@@ -678,8 +691,8 @@ TEST(tool_error_with_null_id) {
 
 TEST(error_resource_not_found_with_integer_id) {
   const auto identifier{sourcemeta::core::JSON{3}};
-  const auto envelope{
-      sourcemeta::core::mcp_make_error_resource_not_found(identifier)};
+  const auto envelope{sourcemeta::core::mcp_make_error_resource_not_found(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, identifier)};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "id": 3,
@@ -693,8 +706,8 @@ TEST(error_resource_not_found_with_integer_id) {
 
 TEST(error_resource_not_found_with_string_id) {
   const auto identifier{sourcemeta::core::JSON{"req-7"}};
-  const auto envelope{
-      sourcemeta::core::mcp_make_error_resource_not_found(identifier)};
+  const auto envelope{sourcemeta::core::mcp_make_error_resource_not_found(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, identifier)};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "id": "req-7",
@@ -851,8 +864,8 @@ TEST(make_resources_read_result_single) {
   auto contents{sourcemeta::core::JSON::make_array()};
   contents.push_back(sourcemeta::core::mcp_make_resource_text_content(
       "file:///a", "text/plain", "Hello"));
-  const auto result{
-      sourcemeta::core::mcp_make_resources_read_result(std::move(contents))};
+  const auto result{sourcemeta::core::mcp_make_resources_read_result(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, std::move(contents))};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "contents": [
       { "uri": "file:///a", "mimeType": "text/plain", "text": "Hello" }
@@ -863,6 +876,7 @@ TEST(make_resources_read_result_single) {
 
 TEST(make_resources_read_result_empty) {
   const auto result{sourcemeta::core::mcp_make_resources_read_result(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
       sourcemeta::core::JSON::make_array())};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "contents": []
@@ -1316,6 +1330,7 @@ TEST(is_request_method_of_a_parsed_message) {
     "jsonrpc": "2.0", "id": 1, "method": "tools/call"
   })JSON")};
   EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
       message.at("method").to_string()));
 }
 
@@ -1817,13 +1832,13 @@ TEST(request_meta_validation_missing_client_info) {
   })JSON")};
   const auto [status,
               meta]{sourcemeta::core::mcp_validate_request_meta(envelope)};
-  EXPECT_EQ(status, sourcemeta::core::MCPRequestMetaStatus::MissingClientInfo);
-  EXPECT_FALSE(meta.has_value());
-  EXPECT_FALSE(sourcemeta::core::mcp_has_required_request_meta(envelope));
+  EXPECT_EQ(status, sourcemeta::core::MCPRequestMetaStatus::Valid);
+  EXPECT_TRUE(meta.has_value());
+  EXPECT_TRUE(sourcemeta::core::mcp_has_required_request_meta(envelope));
   EXPECT_FALSE(sourcemeta::core::mcp_request_client_info(envelope).has_value());
-  EXPECT_FALSE(
-      sourcemeta::core::mcp_request_protocol_version(envelope).has_value());
-  EXPECT_EQ(sourcemeta::core::mcp_request_client_capabilities(envelope),
+  EXPECT_EQ(sourcemeta::core::mcp_request_protocol_version(envelope).value(),
+            sourcemeta::core::MCPProtocolVersion::V_2026_07_28);
+  EXPECT_NE(sourcemeta::core::mcp_request_client_capabilities(envelope),
             nullptr);
 }
 
@@ -2569,10 +2584,6 @@ TEST(error_resource_not_found_version_aware) {
   EXPECT_EQ(legacy_err.at("error").at("code").to_integer(), -32002);
   EXPECT_EQ(legacy_err.at("error").at("message").to_string(),
             "Resource not found");
-
-  const auto default_err{
-      sourcemeta::core::mcp_make_error_resource_not_found(identifier)};
-  EXPECT_EQ(default_err.at("error").at("code").to_integer(), -32002);
 }
 
 TEST(decorate_result_modern_and_legacy) {
@@ -2696,8 +2707,7 @@ TEST(resources_read_result_modern_and_legacy) {
   EXPECT_EQ(modern_res.at("contents").size(), 1);
 
   const auto legacy_res{sourcemeta::core::mcp_make_resources_read_result(
-      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, std::move(contents),
-      policy)};
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, std::move(contents))};
   EXPECT_FALSE(legacy_res.defines("resultType"));
   EXPECT_FALSE(legacy_res.defines("ttlMs"));
   EXPECT_FALSE(legacy_res.defines("cacheScope"));
@@ -2726,7 +2736,9 @@ TEST(server_discover_result) {
       .ttl_ms = 3600000, .scope = sourcemeta::core::MCPCacheScope::Public};
 
   const auto envelope{sourcemeta::core::mcp_make_server_discover_result(
-      identifier, caps, server, {}, "Instructions here", cache)};
+      identifier, caps, server,
+      sourcemeta::core::mcp_supported_protocol_versions(), "Instructions here",
+      cache)};
 
   const auto &result{envelope.at("result")};
   EXPECT_EQ(result.at("resultType").to_string(), "complete");
@@ -2801,6 +2813,7 @@ TEST(mrtr_input_required_result) {
   input_requests.assign("confirm", std::move(req));
 
   const auto envelope{sourcemeta::core::mcp_make_input_required_result(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tools/call",
       identifier, std::move(input_requests), "opaque-state-token-123")};
 
   const auto &res{envelope.at("result")};
@@ -2852,19 +2865,30 @@ TEST(subscriptions_acknowledged_notification) {
                   .at("notifications")
                   .at("toolsListChanged")
                   .to_boolean());
+
+  // Also test integer subscription ID
+  auto notifs_int{sourcemeta::core::JSON::make_object()};
+  const auto envelope_int{
+      sourcemeta::core::mcp_make_subscription_acknowledged_notification(
+          sourcemeta::core::JSON{123}, std::move(notifs_int))};
+  EXPECT_EQ(envelope_int.at("params")
+                .at("_meta")
+                .at("io.modelcontextprotocol/subscriptionId")
+                .to_integer(),
+            123);
 }
 
 TEST(subscriptions_close_result) {
   const auto identifier{sourcemeta::core::JSON{60}};
-  const auto envelope{sourcemeta::core::mcp_make_subscription_close_result(
-      identifier, "sub-42")};
+  const auto envelope{
+      sourcemeta::core::mcp_make_subscription_close_result(identifier)};
 
   EXPECT_EQ(envelope.at("result").at("resultType").to_string(), "complete");
   EXPECT_EQ(envelope.at("result")
                 .at("_meta")
                 .at("io.modelcontextprotocol/subscriptionId")
-                .to_string(),
-            "sub-42");
+                .to_integer(),
+            60);
 }
 
 TEST(subscriptions_id_accessor) {
@@ -2877,8 +2901,10 @@ TEST(subscriptions_id_accessor) {
       }
     }
   })JSON")};
-  EXPECT_EQ(sourcemeta::core::mcp_request_subscription_id(notification),
-            "stream-99");
+  const auto *sub_id{
+      sourcemeta::core::mcp_request_subscription_id(notification)};
+  EXPECT_NE(sub_id, nullptr);
+  EXPECT_EQ(sub_id->to_string(), "stream-99");
 
   const auto close_res{sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
@@ -2890,8 +2916,24 @@ TEST(subscriptions_id_accessor) {
       }
     }
   })JSON")};
-  EXPECT_EQ(sourcemeta::core::mcp_request_subscription_id(close_res),
-            "stream-99");
+  const auto *close_sub_id{
+      sourcemeta::core::mcp_request_subscription_id(close_res)};
+  EXPECT_NE(close_sub_id, nullptr);
+  EXPECT_EQ(close_sub_id->to_string(), "stream-99");
+
+  // Number subscription ID
+  const auto num_envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/subscriptionId": 42
+      }
+    }
+  })JSON")};
+  const auto *num_sub_id{
+      sourcemeta::core::mcp_request_subscription_id(num_envelope)};
+  EXPECT_NE(num_sub_id, nullptr);
+  EXPECT_EQ(num_sub_id->to_integer(), 42);
 }
 
 TEST(method_era_classification) {
@@ -2978,25 +3020,50 @@ TEST(client_capabilities_parsing_and_serialization) {
   caps.roots = true;
   caps.roots_list_changed = true;
   caps.sampling = true;
+  caps.sampling_context = true;
+  caps.sampling_tools = true;
   caps.elicitation = true;
+  caps.elicitation_form = true;
+  caps.elicitation_url = true;
 
   auto ext{sourcemeta::core::JSON::make_object()};
   ext.assign("customCapability", sourcemeta::core::JSON{true});
   caps.extensions = std::move(ext);
 
-  const auto serialized{
-      sourcemeta::core::mcp_serialize_client_capabilities(caps)};
-  EXPECT_TRUE(serialized.at("roots").at("listChanged").to_boolean());
-  EXPECT_TRUE(serialized.defines("sampling"));
-  EXPECT_TRUE(serialized.defines("elicitation"));
-  EXPECT_TRUE(serialized.at("extensions").at("customCapability").to_boolean());
+  const auto serialized_legacy{
+      sourcemeta::core::mcp_serialize_client_capabilities(
+          sourcemeta::core::MCPProtocolVersion::V_2025_11_25, caps)};
+  EXPECT_TRUE(serialized_legacy.at("roots").at("listChanged").to_boolean());
+  EXPECT_TRUE(serialized_legacy.defines("sampling"));
+  EXPECT_TRUE(serialized_legacy.at("sampling").defines("context"));
+  EXPECT_TRUE(serialized_legacy.at("sampling").defines("tools"));
+  EXPECT_TRUE(serialized_legacy.defines("elicitation"));
+  EXPECT_TRUE(serialized_legacy.at("elicitation").defines("form"));
+  EXPECT_TRUE(serialized_legacy.at("elicitation").defines("url"));
+  EXPECT_TRUE(
+      serialized_legacy.at("extensions").at("customCapability").to_boolean());
+
+  const auto serialized_modern{
+      sourcemeta::core::mcp_serialize_client_capabilities(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, caps)};
+  EXPECT_FALSE(serialized_modern.at("roots").defines("listChanged"));
+  EXPECT_TRUE(serialized_modern.defines("sampling"));
+  EXPECT_TRUE(serialized_modern.at("sampling").defines("context"));
+  EXPECT_TRUE(serialized_modern.at("sampling").defines("tools"));
+  EXPECT_TRUE(serialized_modern.defines("elicitation"));
+  EXPECT_TRUE(serialized_modern.at("elicitation").defines("form"));
+  EXPECT_TRUE(serialized_modern.at("elicitation").defines("url"));
 
   const auto parsed{
-      sourcemeta::core::mcp_parse_client_capabilities(serialized)};
+      sourcemeta::core::mcp_parse_client_capabilities(serialized_legacy)};
   EXPECT_TRUE(parsed.roots);
   EXPECT_TRUE(parsed.roots_list_changed);
   EXPECT_TRUE(parsed.sampling);
+  EXPECT_TRUE(parsed.sampling_context);
+  EXPECT_TRUE(parsed.sampling_tools);
   EXPECT_TRUE(parsed.elicitation);
+  EXPECT_TRUE(parsed.elicitation_form);
+  EXPECT_TRUE(parsed.elicitation_url);
   EXPECT_TRUE(parsed.extensions.has_value());
   EXPECT_TRUE(parsed.extensions->at("customCapability").to_boolean());
 }
@@ -3232,4 +3299,165 @@ TEST(initialize_negotiation_with_2024_11_05_legacy_date) {
             "2025-11-25");
   EXPECT_FALSE(envelope.at("result").defines("resultType"));
   EXPECT_FALSE(envelope.at("result").defines("_meta"));
+}
+
+TEST(error_request_meta_generation) {
+  const auto id{sourcemeta::core::JSON{1}};
+  const auto err{sourcemeta::core::mcp_make_error_request_meta(
+      &id, sourcemeta::core::MCPRequestMetaStatus::MissingMeta)};
+  EXPECT_EQ(err.at("error").at("code").to_integer(),
+            sourcemeta::core::JSONRPC_CODE_INVALID_PARAMS);
+  EXPECT_EQ(err.at("id").to_integer(), 1);
+}
+
+TEST(error_code_to_http_status_mapping) {
+  EXPECT_EQ(sourcemeta::core::mcp_error_code_to_http_status(
+                sourcemeta::core::JSONRPC_CODE_PARSE),
+            400);
+  EXPECT_EQ(sourcemeta::core::mcp_error_code_to_http_status(
+                sourcemeta::core::JSONRPC_CODE_INVALID_REQUEST),
+            400);
+  EXPECT_EQ(sourcemeta::core::mcp_error_code_to_http_status(
+                sourcemeta::core::JSONRPC_CODE_METHOD_NOT_FOUND),
+            404);
+  EXPECT_EQ(sourcemeta::core::mcp_error_code_to_http_status(
+                sourcemeta::core::JSONRPC_CODE_INVALID_PARAMS),
+            400);
+  EXPECT_EQ(sourcemeta::core::mcp_error_code_to_http_status(
+                sourcemeta::core::JSONRPC_CODE_INTERNAL),
+            500);
+  EXPECT_EQ(sourcemeta::core::mcp_error_code_to_http_status(
+                sourcemeta::core::MCP_CODE_HEADER_MISMATCH),
+            400);
+  EXPECT_EQ(sourcemeta::core::mcp_error_code_to_http_status(
+                sourcemeta::core::MCP_CODE_MISSING_REQUIRED_CLIENT_CAPABILITY),
+            400);
+  EXPECT_EQ(sourcemeta::core::mcp_error_code_to_http_status(
+                sourcemeta::core::MCP_CODE_UNSUPPORTED_PROTOCOL_VERSION),
+            400);
+  EXPECT_EQ(sourcemeta::core::mcp_error_code_to_http_status(-99999), 500);
+}
+
+TEST(empty_result_builder) {
+  const auto id{sourcemeta::core::JSON{100}};
+  const auto legacy{sourcemeta::core::mcp_make_empty_result(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, id)};
+  EXPECT_TRUE(legacy.at("result").is_object());
+  EXPECT_FALSE(legacy.at("result").defines("resultType"));
+  EXPECT_FALSE(legacy.at("result").defines("_meta"));
+  EXPECT_EQ(legacy.at("id").to_integer(), 100);
+
+  const auto modern{sourcemeta::core::mcp_make_empty_result(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, id)};
+  EXPECT_TRUE(modern.at("result").is_object());
+  EXPECT_EQ(modern.at("result").at("resultType").to_string(), "complete");
+  EXPECT_FALSE(modern.at("result").defines("_meta"));
+  EXPECT_EQ(modern.at("id").to_integer(), 100);
+
+  const sourcemeta::core::MCPImplementation srv{.name = "srv",
+                                                .version = "1.0.0"};
+  const auto modern_with_info{sourcemeta::core::mcp_make_empty_result(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, id, srv)};
+  EXPECT_TRUE(modern_with_info.at("result").defines("_meta"));
+  EXPECT_EQ(modern_with_info.at("result")
+                .at("_meta")
+                .at("io.modelcontextprotocol/serverInfo")
+                .at("name")
+                .to_string(),
+            "srv");
+}
+
+TEST(in_place_result_decoration) {
+  auto legacy_payload{sourcemeta::core::JSON::make_object()};
+  legacy_payload.assign("key", sourcemeta::core::JSON{"value"});
+  sourcemeta::core::mcp_decorate_result_in_place(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, legacy_payload);
+  EXPECT_FALSE(legacy_payload.defines("resultType"));
+  EXPECT_FALSE(legacy_payload.defines("_meta"));
+  EXPECT_EQ(legacy_payload.at("key").to_string(), "value");
+
+  auto modern_payload{sourcemeta::core::JSON::make_object()};
+  modern_payload.assign("key", sourcemeta::core::JSON{"value"});
+  sourcemeta::core::mcp_decorate_result_in_place(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, modern_payload);
+  EXPECT_EQ(modern_payload.at("resultType").to_string(), "complete");
+  EXPECT_EQ(modern_payload.at("key").to_string(), "value");
+
+  // In-place cacheable decoration
+  auto modern_cacheable{sourcemeta::core::JSON::make_object()};
+  const sourcemeta::core::MCPCachePolicy policy{
+      .ttl_ms = 5000, .scope = sourcemeta::core::MCPCacheScope::Private};
+  sourcemeta::core::mcp_decorate_cacheable_result_in_place(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, modern_cacheable,
+      policy);
+  EXPECT_EQ(modern_cacheable.at("ttlMs").to_integer(), 5000);
+  EXPECT_EQ(modern_cacheable.at("cacheScope").to_string(), "private");
+}
+
+TEST(prompts_list_result_builder) {
+  auto prompts{sourcemeta::core::JSON::make_array()};
+  auto prompt1{sourcemeta::core::JSON::make_object()};
+  prompt1.assign("name", sourcemeta::core::JSON{"test-prompt"});
+  prompts.push_back(std::move(prompt1));
+
+  const auto legacy{sourcemeta::core::mcp_make_prompts_list_result(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, prompts,
+      "next-cursor")};
+  EXPECT_FALSE(legacy.defines("resultType"));
+  EXPECT_FALSE(legacy.defines("_meta"));
+  EXPECT_EQ(legacy.at("prompts").size(), 1);
+  EXPECT_EQ(legacy.at("nextCursor").to_string(), "next-cursor");
+
+  const sourcemeta::core::MCPCachePolicy policy{
+      .ttl_ms = 10000, .scope = sourcemeta::core::MCPCacheScope::Public};
+  const auto modern{sourcemeta::core::mcp_make_prompts_list_result(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, prompts, std::nullopt,
+      policy)};
+  EXPECT_EQ(modern.at("resultType").to_string(), "complete");
+  EXPECT_EQ(modern.at("prompts").size(), 1);
+  EXPECT_FALSE(modern.defines("nextCursor"));
+  EXPECT_EQ(modern.at("ttlMs").to_integer(), 10000);
+  EXPECT_EQ(modern.at("cacheScope").to_string(), "public");
+}
+
+TEST(request_meta_validation_empty_protocol_version) {
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/call",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "",
+        "io.modelcontextprotocol/clientCapabilities": {}
+      }
+    }
+  })JSON")};
+
+  const auto [status,
+              meta]{sourcemeta::core::mcp_validate_request_meta(envelope)};
+  EXPECT_EQ(status,
+            sourcemeta::core::MCPRequestMetaStatus::UnsupportedProtocolVersion);
+}
+
+TEST(base64_header_malformed_rejected_on_2026) {
+  const auto request{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/call",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientCapabilities": {}
+      },
+      "name": "calc"
+    }
+  })JSON")};
+
+  // Malformed base64 in Mcp-Name header on 2026-07-28
+  const auto error{sourcemeta::core::mcp_validate_request_headers(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "2026-07-28",
+      "tools/call", "base64:%%%invalid-chars&&&", request)};
+  EXPECT_TRUE(error.has_value());
+  EXPECT_EQ(error->at("error").at("code").to_integer(),
+            sourcemeta::core::MCP_CODE_HEADER_MISMATCH);
 }
