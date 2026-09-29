@@ -32,6 +32,8 @@ target_link_libraries(sourcemeta_core_crypto_unit
   PRIVATE sourcemeta::core::regex)
 target_link_libraries(sourcemeta_core_crypto_unit
   PRIVATE sourcemeta::core::text)
+target_include_directories(sourcemeta_core_crypto_unit
+  PRIVATE "${PROJECT_SOURCE_DIR}/src/core/crypto")
 
 sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME sign
   SOURCES crypto_sign_test.cc)

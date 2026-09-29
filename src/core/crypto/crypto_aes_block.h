@@ -86,17 +86,49 @@ inline auto aes_xtime(const std::uint8_t value) -> std::uint8_t {
 
 inline auto aes_field_multiply(const std::uint8_t left,
                                const std::uint8_t right) -> std::uint8_t {
-  std::uint8_t product{0};
-  std::uint8_t factor{left};
-  for (std::uint8_t bit{right}; bit != 0; bit >>= 1u) {
-    if ((bit & 1u) != 0) {
-      product ^= factor;
+  switch (right) {
+    case 0:
+      return 0;
+    case 1:
+      return left;
+    case 2:
+      return aes_xtime(left);
+    case 3:
+      return aes_xtime(left) ^ left;
+    case 9: {
+      const auto x2{aes_xtime(left)};
+      const auto x4{aes_xtime(x2)};
+      return aes_xtime(x4) ^ left;
     }
+    case 11: {
+      const auto x2{aes_xtime(left)};
+      const auto x4{aes_xtime(x2)};
+      return aes_xtime(x4) ^ x2 ^ left;
+    }
+    case 13: {
+      const auto x2{aes_xtime(left)};
+      const auto x4{aes_xtime(x2)};
+      return aes_xtime(x4) ^ x4 ^ left;
+    }
+    case 14: {
+      const auto x2{aes_xtime(left)};
+      const auto x4{aes_xtime(x2)};
+      return aes_xtime(x4) ^ x4 ^ x2;
+    }
+    default: {
+      std::uint8_t product{0};
+      std::uint8_t factor{left};
+      for (std::uint8_t bit{right}; bit != 0; bit >>= 1u) {
+        if ((bit & 1u) != 0) {
+          product ^= factor;
+        }
 
-    factor = aes_xtime(factor);
+        factor = aes_xtime(factor);
+      }
+
+      return product;
+    }
   }
-
-  return product;
 }
 
 // AES key expansion (FIPS 197 Section 5.2) over a 128, 192, or 256-bit key

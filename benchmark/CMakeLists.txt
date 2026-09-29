@@ -135,6 +135,8 @@ if(BENCHMARK_SOURCES)
   if(SOURCEMETA_CORE_CRYPTO)
     target_link_libraries(sourcemeta_core_benchmarks
       PRIVATE sourcemeta::core::crypto sourcemeta::core::io)
+    target_include_directories(sourcemeta_core_benchmarks
+      PRIVATE "${PROJECT_SOURCE_DIR}/src/core/crypto")
   endif()
 
   # A single run prints the human readable report and writes the JSON file, so
