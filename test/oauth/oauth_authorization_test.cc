@@ -1314,3 +1314,40 @@ TEST(redirect_uri_matches_rejects_an_unclosed_bracket_host) {
       "http://[::1/cb", "http://[::1:8080/cb",
       sourcemeta::core::OAuthProfile::Strict));
 }
+
+TEST(parse_request_reads_a_request_uri_reference) {
+  std::string storage;
+  sourcemeta::core::OAuthAuthorizationRequest request;
+  EXPECT_TRUE(sourcemeta::core::oauth_parse_authorization_request(
+      "client_id=s6BhdRkqt3&request_uri=urn%3Aietf%3Aparams%3Aoauth%3A"
+      "request_uri%3A6esc",
+      storage, request, [](std::string_view, std::string_view) {}));
+  EXPECT_EQ(request.client_id, "s6BhdRkqt3");
+  EXPECT_EQ(request.request_uri, "urn:ietf:params:oauth:request_uri:6esc");
+}
+
+TEST(parse_request_reads_a_dpop_key_thumbprint) {
+  std::string storage;
+  sourcemeta::core::OAuthAuthorizationRequest request;
+  EXPECT_TRUE(sourcemeta::core::oauth_parse_authorization_request(
+      "response_type=code&client_id=s6BhdRkqt3"
+      "&dpop_jkt=NzbLsXh8uDCcd-6MNwXF4W_7noWXFZAfHkxZsRGC9Xs",
+      storage, request, [](std::string_view, std::string_view) {}));
+  EXPECT_EQ(request.dpop_jkt, "NzbLsXh8uDCcd-6MNwXF4W_7noWXFZAfHkxZsRGC9Xs");
+}
+
+TEST(parse_request_rejects_a_repeated_request_uri) {
+  std::string storage;
+  sourcemeta::core::OAuthAuthorizationRequest request;
+  EXPECT_FALSE(sourcemeta::core::oauth_parse_authorization_request(
+      "client_id=s6BhdRkqt3&request_uri=urn%3Aa&request_uri=urn%3Ab", storage,
+      request, [](std::string_view, std::string_view) {}));
+}
+
+TEST(parse_request_rejects_a_repeated_dpop_key_thumbprint) {
+  std::string storage;
+  sourcemeta::core::OAuthAuthorizationRequest request;
+  EXPECT_FALSE(sourcemeta::core::oauth_parse_authorization_request(
+      "client_id=s6BhdRkqt3&dpop_jkt=one&dpop_jkt=two", storage, request,
+      [](std::string_view, std::string_view) {}));
+}

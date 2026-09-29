@@ -196,3 +196,95 @@ TEST(decrypt_rejects_ecdh_es_with_a_missing_ephemeral_key) {
       sourcemeta::core::jwe_decrypt(parsed.value(), private_key.value())
           .has_value());
 }
+
+TEST(decrypt_rejects_a_key_wrap_secret_of_the_wrong_size) {
+  const auto object{encrypt_symmetric(std::string(32, 'k'))};
+  EXPECT_TRUE(object.has_value());
+  const auto parsed{sourcemeta::core::JWE::from(object.value())};
+  EXPECT_TRUE(parsed.has_value());
+  // The wrapping algorithm names the exact key length, so a shorter secret is
+  // a different key rather than a truncated one
+  EXPECT_FALSE(sourcemeta::core::jwe_decrypt(
+                   parsed.value(), sourcemeta::core::JWKPrivate::from_octets(
+                                       std::string(16, 'k')))
+                   .has_value());
+}
+
+TEST(decrypt_rejects_a_direct_secret_of_the_wrong_size) {
+  const auto object{sourcemeta::core::jwe_encrypt(
+      header_for("dir", "A128GCM"), PLAINTEXT,
+      sourcemeta::core::JWK::from_octets(std::string(16, 'k')))};
+  EXPECT_TRUE(object.has_value());
+  const auto parsed{sourcemeta::core::JWE::from(object.value())};
+  EXPECT_TRUE(parsed.has_value());
+  EXPECT_FALSE(sourcemeta::core::jwe_decrypt(
+                   parsed.value(), sourcemeta::core::JWKPrivate::from_octets(
+                                       std::string(32, 'k')))
+                   .has_value());
+}
+
+TEST(decrypt_rejects_an_octet_secret_for_an_agreement_algorithm) {
+  const auto public_key{sourcemeta::core::JWK::from(
+      sourcemeta::core::parse_json(std::string{JWE_EC_PUBLIC_JWK}))};
+  EXPECT_TRUE(public_key.has_value());
+  const auto object{sourcemeta::core::jwe_encrypt(
+      header_for("ECDH-ES", "A128GCM"), PLAINTEXT, public_key.value())};
+  EXPECT_TRUE(object.has_value());
+  const auto parsed{sourcemeta::core::JWE::from(object.value())};
+  EXPECT_TRUE(parsed.has_value());
+  EXPECT_FALSE(sourcemeta::core::jwe_decrypt(
+                   parsed.value(), sourcemeta::core::JWKPrivate::from_octets(
+                                       std::string(32, 'k')))
+                   .has_value());
+}
+
+TEST(decrypt_rejects_an_ephemeral_key_that_is_not_an_elliptic_curve_key) {
+  const auto private_key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(std::string{JWE_EC_PRIVATE_JWK}))};
+  EXPECT_TRUE(private_key.has_value());
+  const auto public_key{sourcemeta::core::JWK::from(
+      sourcemeta::core::parse_json(std::string{JWE_EC_PUBLIC_JWK}))};
+  EXPECT_TRUE(public_key.has_value());
+  const auto object{sourcemeta::core::jwe_encrypt(
+      header_for("ECDH-ES", "A128GCM"), PLAINTEXT, public_key.value())};
+  EXPECT_TRUE(object.has_value());
+  // The ephemeral key travels in the authenticated protected header, so
+  // replacing it also breaks the tag. This asserts only that an object whose
+  // ephemeral key names a key type the agreement cannot use is refused, not
+  // which of the two checks refuses it
+  const auto dot{object.value().find('.')};
+  std::string tampered{sourcemeta::core::base64url_encode(
+      R"({"alg":"ECDH-ES","enc":"A128GCM",)"
+      R"("epk":{"kty":"oct","k":"c2VjcmV0"}})")};
+  tampered.append(object.value().substr(dot));
+  const auto parsed{sourcemeta::core::JWE::from(tampered)};
+  EXPECT_TRUE(parsed.has_value());
+  EXPECT_FALSE(
+      sourcemeta::core::jwe_decrypt(parsed.value(), private_key.value())
+          .has_value());
+}
+
+TEST(decrypt_rejects_an_ephemeral_key_on_a_different_curve) {
+  const auto private_key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(std::string{JWE_EC_PRIVATE_JWK}))};
+  EXPECT_TRUE(private_key.has_value());
+  const auto public_key{sourcemeta::core::JWK::from(
+      sourcemeta::core::parse_json(std::string{JWE_EC_PUBLIC_JWK}))};
+  EXPECT_TRUE(public_key.has_value());
+  const auto object{sourcemeta::core::jwe_encrypt(
+      header_for("ECDH-ES", "A128GCM"), PLAINTEXT, public_key.value())};
+  EXPECT_TRUE(object.has_value());
+  // As above, the replaced header breaks the tag as well, so this asserts only
+  // that an object whose ephemeral key sits on another curve is refused
+  const auto dot{object.value().find('.')};
+  std::string tampered{sourcemeta::core::base64url_encode(
+      R"({"alg":"ECDH-ES","enc":"A128GCM","epk":{"kty":"EC","crv":"P-384",)"
+      R"("x":"nAyG5AafvBM0A05nRrojvOTCgNNrwUckW0Ivl2fta_lgwfXhMTjb_59y0BLO3GH_",)"
+      R"("y":"htZkNv1iPf0Ac1TvJB0LRdFID1KV9WxOhiQ0Ec32cdbTWaSu8-NusKWs6md80V8G"}})")};
+  tampered.append(object.value().substr(dot));
+  const auto parsed{sourcemeta::core::JWE::from(tampered)};
+  EXPECT_TRUE(parsed.has_value());
+  EXPECT_FALSE(
+      sourcemeta::core::jwe_decrypt(parsed.value(), private_key.value())
+          .has_value());
+}

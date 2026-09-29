@@ -831,3 +831,89 @@ TEST(verify_client_assertion_leaves_the_lifetime_unbounded_by_default) {
                    FIXED_TIME, options)
                    .has_value());
 }
+
+TEST(verify_client_assertion_accepts_an_audience_array_of_strings) {
+  auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(EC_PRIVATE_JWK))};
+  EXPECT_TRUE(key.has_value());
+  // RFC 7519 Section 4.1.3 allows an array of strings, so one whose elements
+  // are all strings is well formed and the matching element is honoured
+  const auto payload{sourcemeta::core::parse_json(
+      R"({"iss":"s6BhdRkqt3","sub":"s6BhdRkqt3",)"
+      R"("aud":["https://other.example/token","https://server.example/token"],)"
+      R"("exp":1562262916,"iat":1562262616})")};
+  const auto assertion{sourcemeta::core::jwt_sign(
+      sourcemeta::core::parse_json(R"({"alg":"ES256"})"), payload,
+      key.value())};
+  EXPECT_TRUE(assertion.has_value());
+  const auto keys{
+      sourcemeta::core::JWKS::from(sourcemeta::core::parse_json(JWKS_JSON))};
+  EXPECT_TRUE(keys.has_value());
+  sourcemeta::core::OAuthAssertionVerifyOptions options;
+  options.allowed_algorithms = ALLOWED;
+  EXPECT_FALSE(sourcemeta::core::oauth_verify_client_assertion(
+                   assertion.value(), AUDIENCES, "s6BhdRkqt3", keys.value(),
+                   FIXED_TIME, options)
+                   .has_value());
+}
+
+TEST(verify_client_assertion_rejects_an_audience_that_is_neither_form) {
+  auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(EC_PRIVATE_JWK))};
+  EXPECT_TRUE(key.has_value());
+  // An audience that is neither a string nor an array names no recipient
+  const auto payload{sourcemeta::core::parse_json(
+      R"({"iss":"s6BhdRkqt3","sub":"s6BhdRkqt3","aud":1562262916,)"
+      R"("exp":1562262916,"iat":1562262616})")};
+  const auto assertion{sourcemeta::core::jwt_sign(
+      sourcemeta::core::parse_json(R"({"alg":"ES256"})"), payload,
+      key.value())};
+  EXPECT_TRUE(assertion.has_value());
+  const auto keys{
+      sourcemeta::core::JWKS::from(sourcemeta::core::parse_json(JWKS_JSON))};
+  EXPECT_TRUE(keys.has_value());
+  sourcemeta::core::OAuthAssertionVerifyOptions options;
+  options.allowed_algorithms = ALLOWED;
+  const auto error{sourcemeta::core::oauth_verify_client_assertion(
+      assertion.value(), AUDIENCES, "s6BhdRkqt3", keys.value(), FIXED_TIME,
+      options)};
+  EXPECT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(), sourcemeta::core::OAuthAssertionError::Audience);
+}
+
+TEST(verify_client_assertion_rejects_a_missing_subject) {
+  auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(EC_PRIVATE_JWK))};
+  EXPECT_TRUE(key.has_value());
+  // RFC 7521 Section 5.2 makes the subject the client identifier, so an
+  // assertion without one names no client
+  const auto payload{sourcemeta::core::parse_json(
+      R"({"iss":"s6BhdRkqt3","aud":"https://server.example/token",)"
+      R"("exp":1562262916,"iat":1562262616})")};
+  const auto assertion{sourcemeta::core::jwt_sign(
+      sourcemeta::core::parse_json(R"({"alg":"ES256"})"), payload,
+      key.value())};
+  EXPECT_TRUE(assertion.has_value());
+  const auto keys{
+      sourcemeta::core::JWKS::from(sourcemeta::core::parse_json(JWKS_JSON))};
+  EXPECT_TRUE(keys.has_value());
+  sourcemeta::core::OAuthAssertionVerifyOptions options;
+  options.allowed_algorithms = ALLOWED;
+  const auto error{sourcemeta::core::oauth_verify_client_assertion(
+      assertion.value(), AUDIENCES, "s6BhdRkqt3", keys.value(), FIXED_TIME,
+      options)};
+  EXPECT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(), sourcemeta::core::OAuthAssertionError::Subject);
+}
+
+TEST(verify_assertion_grant_rejects_a_malformed_assertion) {
+  const auto keys{
+      sourcemeta::core::JWKS::from(sourcemeta::core::parse_json(JWKS_JSON))};
+  EXPECT_TRUE(keys.has_value());
+  sourcemeta::core::OAuthAssertionVerifyOptions options;
+  options.allowed_algorithms = ALLOWED;
+  const auto error{sourcemeta::core::oauth_verify_assertion_grant(
+      "not.a.jwt", "s6BhdRkqt3", AUDIENCES, keys.value(), FIXED_TIME, options)};
+  EXPECT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(), sourcemeta::core::OAuthAssertionError::Malformed);
+}
