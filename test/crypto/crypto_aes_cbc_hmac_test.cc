@@ -200,3 +200,29 @@ TEST(aes_cbc_hmac_decrypt_rejects_a_non_block_ciphertext) {
                    KEY_256, IV, "", truncated, result.value().tag())
                    .has_value());
 }
+
+TEST(aes_cbc_hmac_decrypt_rejects_a_wrong_size_key) {
+  const auto result{sourcemeta::core::aes_cbc_hmac_encrypt(
+      KEY_256, IV, ASSOCIATED_DATA, "hello")};
+  EXPECT_FALSE(sourcemeta::core::aes_cbc_hmac_decrypt(
+                   std::string(20, '\x00'), IV, ASSOCIATED_DATA,
+                   result.value().ciphertext(), result.value().tag())
+                   .has_value());
+}
+
+TEST(aes_cbc_hmac_decrypt_rejects_a_wrong_size_iv) {
+  const auto result{sourcemeta::core::aes_cbc_hmac_encrypt(
+      KEY_256, IV, ASSOCIATED_DATA, "hello")};
+  EXPECT_FALSE(sourcemeta::core::aes_cbc_hmac_decrypt(
+                   KEY_256, std::string(8, '\x00'), ASSOCIATED_DATA,
+                   result.value().ciphertext(), result.value().tag())
+                   .has_value());
+}
+
+TEST(aes_cbc_hmac_decrypt_rejects_an_empty_ciphertext) {
+  const auto result{sourcemeta::core::aes_cbc_hmac_encrypt(
+      KEY_256, IV, ASSOCIATED_DATA, "hello")};
+  EXPECT_FALSE(sourcemeta::core::aes_cbc_hmac_decrypt(
+                   KEY_256, IV, ASSOCIATED_DATA, "", result.value().tag())
+                   .has_value());
+}
