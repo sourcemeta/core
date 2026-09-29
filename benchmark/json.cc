@@ -9,6 +9,7 @@
 
 #include <cstddef>     // std::size_t
 #include <filesystem>  // std::filesystem
+#include <sstream>     // std::ostringstream
 #include <string_view> // std::string_view
 
 // Keeps the sizes below from reaching the measured code as compile-time
@@ -943,5 +944,33 @@ BENCHMARK(JSON_PropertySet_Insert) {
     properties.insert("examples");
     assert(properties.size() == 16);
     sourcemeta::core::benchmark_do_not_optimize(properties);
+  }
+}
+
+BENCHMARK(JSON_Stringify_Schema_Web_Of_Things) {
+  const auto document{
+      sourcemeta::core::parse_json(sourcemeta::core::read_file_to_string(
+          std::filesystem::path{CURRENT_DIRECTORY} / "files" /
+          "draft7_w3c_wot_td_v1_1.json"))};
+  assert(document.is_object());
+  std::ostringstream stream;
+  for (auto iteration : state) {
+    stream.str("");
+    sourcemeta::core::stringify(document, stream);
+    sourcemeta::core::benchmark_do_not_optimize(stream);
+  }
+}
+
+BENCHMARK(JSON_Prettify_Schema_Web_Of_Things) {
+  const auto document{
+      sourcemeta::core::parse_json(sourcemeta::core::read_file_to_string(
+          std::filesystem::path{CURRENT_DIRECTORY} / "files" /
+          "draft7_w3c_wot_td_v1_1.json"))};
+  assert(document.is_object());
+  std::ostringstream stream;
+  for (auto iteration : state) {
+    stream.str("");
+    sourcemeta::core::prettify(document, stream);
+    sourcemeta::core::benchmark_do_not_optimize(stream);
   }
 }
