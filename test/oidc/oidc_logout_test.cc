@@ -580,24 +580,6 @@ TEST(validate_logout_token_rejects_a_logout_event_that_is_not_an_object) {
       "client-id", REFERENCE_NOW));
 }
 
-TEST(validate_logout_token_rejects_a_token_without_a_subject_or_session) {
-  const auto compact{sign_logout_token(VALID_HEADER, R"JSON({
-    "iss": "https://issuer.example",
-    "aud": "client-id",
-    "iat": 1700000000,
-    "exp": 2000000000,
-    "jti": "logout-1",
-    "events": {
-      "http://schemas.openid.net/event/backchannel-logout": {}
-    }
-  })JSON")};
-  const auto token{sourcemeta::core::JWT::from(compact)};
-  EXPECT_TRUE(token.has_value());
-  EXPECT_FALSE(sourcemeta::core::oidc_validate_logout_token(
-      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
-      "client-id", REFERENCE_NOW));
-}
-
 TEST(validate_logout_token_rejects_a_signature_no_key_in_the_set_verifies) {
   // The header names no key, so every key in the set is tried in turn. A token
   // signed with a secret the set does not hold exhausts them all

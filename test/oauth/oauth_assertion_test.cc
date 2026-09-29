@@ -874,11 +874,11 @@ TEST(verify_client_assertion_rejects_an_audience_that_is_neither_form) {
   EXPECT_TRUE(keys.has_value());
   sourcemeta::core::OAuthAssertionVerifyOptions options;
   options.allowed_algorithms = ALLOWED;
-  EXPECT_EQ(sourcemeta::core::oauth_verify_client_assertion(
-                assertion.value(), AUDIENCES, "s6BhdRkqt3", keys.value(),
-                FIXED_TIME, options)
-                .value(),
-            sourcemeta::core::OAuthAssertionError::Audience);
+  const auto error{sourcemeta::core::oauth_verify_client_assertion(
+      assertion.value(), AUDIENCES, "s6BhdRkqt3", keys.value(), FIXED_TIME,
+      options)};
+  EXPECT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(), sourcemeta::core::OAuthAssertionError::Audience);
 }
 
 TEST(verify_client_assertion_rejects_a_missing_subject) {
@@ -899,11 +899,11 @@ TEST(verify_client_assertion_rejects_a_missing_subject) {
   EXPECT_TRUE(keys.has_value());
   sourcemeta::core::OAuthAssertionVerifyOptions options;
   options.allowed_algorithms = ALLOWED;
-  EXPECT_EQ(sourcemeta::core::oauth_verify_client_assertion(
-                assertion.value(), AUDIENCES, "s6BhdRkqt3", keys.value(),
-                FIXED_TIME, options)
-                .value(),
-            sourcemeta::core::OAuthAssertionError::Subject);
+  const auto error{sourcemeta::core::oauth_verify_client_assertion(
+      assertion.value(), AUDIENCES, "s6BhdRkqt3", keys.value(), FIXED_TIME,
+      options)};
+  EXPECT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(), sourcemeta::core::OAuthAssertionError::Subject);
 }
 
 TEST(verify_assertion_grant_rejects_a_malformed_assertion) {
@@ -912,9 +912,8 @@ TEST(verify_assertion_grant_rejects_a_malformed_assertion) {
   EXPECT_TRUE(keys.has_value());
   sourcemeta::core::OAuthAssertionVerifyOptions options;
   options.allowed_algorithms = ALLOWED;
-  EXPECT_EQ(sourcemeta::core::oauth_verify_assertion_grant(
-                "not.a.jwt", "s6BhdRkqt3", AUDIENCES, keys.value(), FIXED_TIME,
-                options)
-                .value(),
-            sourcemeta::core::OAuthAssertionError::Malformed);
+  const auto error{sourcemeta::core::oauth_verify_assertion_grant(
+      "not.a.jwt", "s6BhdRkqt3", AUDIENCES, keys.value(), FIXED_TIME, options)};
+  EXPECT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(), sourcemeta::core::OAuthAssertionError::Malformed);
 }

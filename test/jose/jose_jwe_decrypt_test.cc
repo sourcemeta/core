@@ -248,9 +248,10 @@ TEST(decrypt_rejects_an_ephemeral_key_that_is_not_an_elliptic_curve_key) {
   const auto object{sourcemeta::core::jwe_encrypt(
       header_for("ECDH-ES", "A128GCM"), PLAINTEXT, public_key.value())};
   EXPECT_TRUE(object.has_value());
-  // The ephemeral key is read and validated before any shared secret is
-  // computed, so one naming a key type the agreement cannot use is refused
-  // there rather than at the authentication tag
+  // The ephemeral key travels in the authenticated protected header, so
+  // replacing it also breaks the tag. This asserts only that an object whose
+  // ephemeral key names a key type the agreement cannot use is refused, not
+  // which of the two checks refuses it
   const auto dot{object.value().find('.')};
   std::string tampered{sourcemeta::core::base64url_encode(
       R"({"alg":"ECDH-ES","enc":"A128GCM",)"
@@ -273,8 +274,8 @@ TEST(decrypt_rejects_an_ephemeral_key_on_a_different_curve) {
   const auto object{sourcemeta::core::jwe_encrypt(
       header_for("ECDH-ES", "A128GCM"), PLAINTEXT, public_key.value())};
   EXPECT_TRUE(object.has_value());
-  // An ephemeral key on another curve cannot agree with the recipient key, so
-  // the agreement itself refuses it
+  // As above, the replaced header breaks the tag as well, so this asserts only
+  // that an object whose ephemeral key sits on another curve is refused
   const auto dot{object.value().find('.')};
   std::string tampered{sourcemeta::core::base64url_encode(
       R"({"alg":"ECDH-ES","enc":"A128GCM","epk":{"kty":"EC","crv":"P-384",)"

@@ -408,8 +408,17 @@ TEST(jwk_private_from_json_rejects_an_rsa_key_missing_its_private_exponent) {
 }
 
 TEST(jwk_private_from_json_rejects_a_modulus_below_the_required_size) {
-  // RFC 7518 Section 3.3 requires a modulus of at least 2048 bits, so a
-  // thousand-bit one has to be refused however well formed the rest is
+  // RFC 7518 Section 3.3 requires a modulus of at least 2048 bits. The leading
+  // octet has to be non-zero, or the modulus is refused for being empty once
+  // its padding is stripped and the width is never measured
+  auto document{sourcemeta::core::parse_json(RSA_PRIVATE_JWK)};
+  document.assign("n", sourcemeta::core::JSON{"B" + std::string(170, 'A')});
+  EXPECT_FALSE(sourcemeta::core::JWKPrivate::from(document).has_value());
+}
+
+TEST(jwk_private_from_json_rejects_a_modulus_of_only_padding) {
+  // Every octet zero leaves nothing once the padding is stripped, which is no
+  // modulus at all rather than a small one
   auto document{sourcemeta::core::parse_json(RSA_PRIVATE_JWK)};
   document.assign("n", sourcemeta::core::JSON{std::string(171, 'A')});
   EXPECT_FALSE(sourcemeta::core::JWKPrivate::from(document).has_value());
