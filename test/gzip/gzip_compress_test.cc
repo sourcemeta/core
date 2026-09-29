@@ -1,15 +1,16 @@
 #include <sourcemeta/core/gzip.h>
 #include <sourcemeta/core/test.h>
 
-#include <cstddef>  // std::size_t
-#include <cstdint>  // std::uint8_t, std::uint32_t
-#include <istream>  // std::istream
-#include <iterator> // std::istreambuf_iterator
-#include <random>   // std::mt19937, std::uniform_int_distribution
-#include <sstream>  // std::istringstream
-#include <string>   // std::string
-#include <utility>  // std::move
-#include <vector>   // std::vector
+#include <algorithm> // std::shuffle
+#include <cstddef>   // std::size_t
+#include <cstdint>   // std::uint8_t, std::uint32_t
+#include <istream>   // std::istream
+#include <iterator>  // std::istreambuf_iterator
+#include <random>    // std::mt19937, std::uniform_int_distribution
+#include <sstream>   // std::istringstream
+#include <string>    // std::string
+#include <utility>   // std::move
+#include <vector>    // std::vector
 
 namespace {
 
@@ -496,4 +497,24 @@ TEST(compress_members_of_different_levels_concatenate) {
   compressed.insert(compressed.end(), empty_compressed.cbegin(),
                     empty_compressed.cend());
   EXPECT_GZIP_DECOMPRESS(compressed, first + second);
+}
+
+TEST(compress_a_long_tail_of_rare_symbols_round_trips) {
+  // A heavy head with a long tail of symbols appearing once gives those rare
+  // symbols codewords longer than the primary decoding table covers, so reading
+  // one back takes a second lookup in a subtable. A flat alphabet never
+  // produces a codeword that long, and a repetitive input turns into matches
+  // rather than the literals this is about
+  std::string input;
+  for (std::size_t symbol = 0; symbol < 256; ++symbol) {
+    const std::size_t count{40000 / ((symbol + 1) * (symbol + 1))};
+    input.append(count == 0 ? 1 : count, static_cast<char>(symbol));
+  }
+
+  // NOLINTNEXTLINE(cert-msc32-c,cert-msc51-cpp,bugprone-random-generator-seed)
+  std::mt19937 generator{1};
+  std::shuffle(input.begin(), input.end(), generator);
+
+  const auto compressed{compress(input, 9)};
+  EXPECT_GZIP_DECOMPRESS(compressed, input);
 }

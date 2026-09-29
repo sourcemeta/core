@@ -133,3 +133,36 @@ TEST(localhost_mixed_case) {
   const std::filesystem::path expected{"/foo/bar"};
   EXPECT_EQ(uri.to_path(), expected);
 }
+
+TEST(windows_unc_host_only) {
+  // RFC 8089: a file URI with a host and no path denotes the UNC server itself
+  const sourcemeta::core::URI uri{"file://server"};
+  const std::filesystem::path expected{R"(\\server)"};
+  EXPECT_EQ(uri.to_path(), expected);
+}
+
+TEST(windows_unc_host_with_empty_path) {
+  const sourcemeta::core::URI uri{"file://server/"};
+  const std::filesystem::path expected{R"(\\server)"};
+  EXPECT_EQ(uri.to_path(), expected);
+}
+
+TEST(unix_path_too_short_for_a_drive_letter) {
+  const sourcemeta::core::URI uri{"file:///a"};
+  const std::filesystem::path expected{"/a"};
+  EXPECT_EQ(uri.to_path(), expected);
+}
+
+TEST(unix_root_only) {
+  const sourcemeta::core::URI uri{"file:///"};
+  const std::filesystem::path expected{"/"};
+  EXPECT_EQ(uri.to_path(), expected);
+}
+
+TEST(rootless_path_is_not_a_drive_letter) {
+  // An opaque file URI carries a path that does not start with a separator, so
+  // the drive letter check has to look past the length alone
+  const sourcemeta::core::URI uri{"file:foo/bar"};
+  const std::filesystem::path expected{"foo/bar"};
+  EXPECT_EQ(uri.to_path(), expected);
+}

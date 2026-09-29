@@ -655,3 +655,9 @@ TEST(link_inside_link_text_with_later_bracket_is_not_allowed) {
       sourcemeta::core::markdown_to_html("[a [b](/c) [d] e](/u)")};
   EXPECT_EQ(result, "<p>[a <a href=\"/c\">b</a> [d] e](/u)</p>\n");
 }
+
+TEST(reference_link_label_with_a_space_before_a_non_ascii_character) {
+  const auto result{sourcemeta::core::markdown_to_html(
+      "[click][a \u00e9]\n\n[a \u00e9]: https://example.com")};
+  EXPECT_EQ(result, "<p><a href=\"https://example.com\">click</a></p>\n");
+}

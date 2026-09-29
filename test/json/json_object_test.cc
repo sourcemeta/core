@@ -1822,3 +1822,219 @@ TEST(json_try_at_start_hit) {
   EXPECT_EQ(result_bar->to_integer(), 2);
   EXPECT_EQ(start, 2);
 }
+
+TEST(long_key_collision_try_at_start) {
+  // A perfect hash covers keys up to thirty one bytes, so two keys sharing
+  // their first thirty one bytes, length, and end bytes collide and force the
+  // linear scan path
+  const std::string prefix(31, 'x');
+  const std::string first_key{prefix + "ay"};
+  const std::string second_key{prefix + "by"};
+  sourcemeta::core::JSON document = sourcemeta::core::JSON::make_object();
+  document.assign(first_key, sourcemeta::core::JSON{1});
+  document.assign(second_key, sourcemeta::core::JSON{2});
+  const auto &object{document.as_object()};
+  sourcemeta::core::JSON::Object::size_type start{0};
+
+  const auto *first{object.try_at(first_key, object.hash(first_key), start)};
+  EXPECT_TRUE(first);
+  EXPECT_EQ(first->to_integer(), 1);
+  EXPECT_EQ(start, 1);
+
+  const auto *second{object.try_at(second_key, object.hash(second_key), start)};
+  EXPECT_TRUE(second);
+  EXPECT_EQ(second->to_integer(), 2);
+  EXPECT_EQ(start, 2);
+
+  const std::string absent{prefix + "cy"};
+  EXPECT_EQ(object.try_at(absent, object.hash(absent), start), nullptr);
+}
+
+TEST(long_key_collision_try_at_start_string_view) {
+  // A perfect hash covers keys up to thirty one bytes, so two keys sharing
+  // their first thirty one bytes, length, and end bytes collide and force the
+  // linear scan path
+  const std::string prefix(31, 'x');
+  const std::string first_key{prefix + "ay"};
+  const std::string second_key{prefix + "by"};
+  sourcemeta::core::JSON document = sourcemeta::core::JSON::make_object();
+  document.assign(first_key, sourcemeta::core::JSON{1});
+  document.assign(second_key, sourcemeta::core::JSON{2});
+  const auto &object{document.as_object()};
+  sourcemeta::core::JSON::Object::size_type start{0};
+
+  const std::string_view first_view{first_key};
+  const auto *first{object.try_at(first_view, object.hash(first_view), start)};
+  EXPECT_TRUE(first);
+  EXPECT_EQ(first->to_integer(), 1);
+  EXPECT_EQ(start, 1);
+
+  const std::string_view second_view{second_key};
+  const auto *second{
+      object.try_at(second_view, object.hash(second_view), start)};
+  EXPECT_TRUE(second);
+  EXPECT_EQ(second->to_integer(), 2);
+  EXPECT_EQ(start, 2);
+
+  const std::string absent{prefix + "cy"};
+  const std::string_view absent_view{absent};
+  EXPECT_EQ(object.try_at(absent_view, object.hash(absent_view), start),
+            nullptr);
+}
+
+TEST(try_assign_before_existing_key_overwrites) {
+  sourcemeta::core::JSON document = sourcemeta::core::JSON::make_object();
+  document.assign("bar", sourcemeta::core::JSON{2});
+  document.assign("foo", sourcemeta::core::JSON{1});
+  document.try_assign_before("bar", sourcemeta::core::JSON{9}, "foo");
+  EXPECT_EQ(document.size(), 2);
+  EXPECT_EQ(document.at("bar").to_integer(), 9);
+  EXPECT_EQ(document.at("foo").to_integer(), 1);
+  auto iterator{document.as_object().cbegin()};
+  EXPECT_EQ(iterator->first, "bar");
+}
+
+TEST(long_key_collision_try_assign_before_existing_key_overwrites) {
+  // A perfect hash covers keys up to thirty one bytes, so two keys sharing
+  // their first thirty one bytes, length, and end bytes collide and force the
+  // linear scan path
+  const std::string prefix(31, 'x');
+  const std::string first_key{prefix + "ay"};
+  const std::string second_key{prefix + "by"};
+  sourcemeta::core::JSON document = sourcemeta::core::JSON::make_object();
+  document.assign(second_key, sourcemeta::core::JSON{2});
+  document.assign(first_key, sourcemeta::core::JSON{1});
+  document.try_assign_before(second_key, sourcemeta::core::JSON{9}, first_key);
+  EXPECT_EQ(document.size(), 2);
+  EXPECT_EQ(document.at(first_key).to_integer(), 1);
+  EXPECT_EQ(document.at(second_key).to_integer(), 9);
+}
+
+TEST(long_key_collision_try_assign_before_inserts) {
+  // A perfect hash covers keys up to thirty one bytes, so two keys sharing
+  // their first thirty one bytes, length, and end bytes collide and force the
+  // linear scan path
+  const std::string prefix(31, 'x');
+  const std::string first_key{prefix + "ay"};
+  const std::string second_key{prefix + "by"};
+  sourcemeta::core::JSON document = sourcemeta::core::JSON::make_object();
+  document.assign(first_key, sourcemeta::core::JSON{1});
+  document.try_assign_before(second_key, sourcemeta::core::JSON{2}, first_key);
+  EXPECT_EQ(document.size(), 2);
+  auto iterator{document.as_object().cbegin()};
+  EXPECT_EQ(iterator->first, second_key);
+  std::advance(iterator, 1);
+  EXPECT_EQ(iterator->first, first_key);
+}
+
+TEST(long_key_collision_emplace_move_updates_existing) {
+  // A perfect hash covers keys up to thirty one bytes, so two keys sharing
+  // their first thirty one bytes, length, and end bytes collide and force the
+  // linear scan path
+  const std::string prefix(31, 'x');
+  const std::string first_key{prefix + "ay"};
+  const std::string second_key{prefix + "by"};
+  sourcemeta::core::JSON::Object object;
+  object.emplace(sourcemeta::core::JSON::String{first_key},
+                 sourcemeta::core::JSON{1});
+  object.emplace(sourcemeta::core::JSON::String{second_key},
+                 sourcemeta::core::JSON{2});
+  object.emplace(sourcemeta::core::JSON::String{second_key},
+                 sourcemeta::core::JSON{9});
+  EXPECT_EQ(object.size(), 2);
+  EXPECT_EQ(object.at(first_key, object.hash(first_key)).to_integer(), 1);
+  EXPECT_EQ(object.at(second_key, object.hash(second_key)).to_integer(), 9);
+}
+
+TEST(long_key_collision_emplace_copy_updates_existing) {
+  // A perfect hash covers keys up to thirty one bytes, so two keys sharing
+  // their first thirty one bytes, length, and end bytes collide and force the
+  // linear scan path
+  const std::string prefix(31, 'x');
+  const std::string first_key{prefix + "ay"};
+  const std::string second_key{prefix + "by"};
+  const sourcemeta::core::JSON replacement{9};
+  sourcemeta::core::JSON::Object object;
+  object.emplace(sourcemeta::core::JSON::String{first_key},
+                 sourcemeta::core::JSON{1});
+  object.emplace(sourcemeta::core::JSON::String{second_key},
+                 sourcemeta::core::JSON{2});
+  object.emplace(second_key, replacement);
+  EXPECT_EQ(object.size(), 2);
+  EXPECT_EQ(object.at(first_key, object.hash(first_key)).to_integer(), 1);
+  EXPECT_EQ(object.at(second_key, object.hash(second_key)).to_integer(), 9);
+}
+
+TEST(long_key_collision_erase_with_string_view_and_hash) {
+  // A perfect hash covers keys up to thirty one bytes, so two keys sharing
+  // their first thirty one bytes, length, and end bytes collide and force the
+  // linear scan path
+  const std::string prefix(31, 'x');
+  const std::string first_key{prefix + "ay"};
+  const std::string second_key{prefix + "by"};
+  sourcemeta::core::JSON::Object object;
+  object.emplace(sourcemeta::core::JSON::String{first_key},
+                 sourcemeta::core::JSON{1});
+  object.emplace(sourcemeta::core::JSON::String{second_key},
+                 sourcemeta::core::JSON{2});
+  const std::string_view first_view{first_key};
+  EXPECT_EQ(object.erase(first_view, object.hash(first_view)), 1);
+  EXPECT_FALSE(object.defines(first_key, object.hash(first_key)));
+  EXPECT_TRUE(object.defines(second_key, object.hash(second_key)));
+
+  // Erasing a key that collides with the remaining one but is not present
+  // leaves the object alone
+  const std::string absent{prefix + "cy"};
+  const std::string_view absent_view{absent};
+  EXPECT_EQ(object.erase(absent_view, object.hash(absent_view)), 1);
+  EXPECT_EQ(object.size(), 1);
+}
+
+TEST(try_assign_before_existing_key_after_the_suffix_overwrites) {
+  // The key already exists, so it is updated where it sits rather than inserted
+  // a second time ahead of the suffix
+  sourcemeta::core::JSON document = sourcemeta::core::JSON::make_object();
+  document.assign("foo", sourcemeta::core::JSON{1});
+  document.assign("bar", sourcemeta::core::JSON{2});
+  document.try_assign_before("bar", sourcemeta::core::JSON{9}, "foo");
+  EXPECT_EQ(document.size(), 2);
+  EXPECT_TRUE(document.unique_keys());
+  EXPECT_EQ(document.at("foo").to_integer(), 1);
+  EXPECT_EQ(document.at("bar").to_integer(), 9);
+  auto iterator{document.as_object().cbegin()};
+  EXPECT_EQ(iterator->first, "foo");
+  std::advance(iterator, 1);
+  EXPECT_EQ(iterator->first, "bar");
+}
+
+TEST(long_key_collision_try_assign_before_existing_key_after_the_suffix) {
+  // A perfect hash covers keys up to thirty one bytes, so two keys sharing
+  // their first thirty one bytes, length, and end bytes collide and force the
+  // linear scan path
+  const std::string prefix(31, 'x');
+  const std::string first_key{prefix + "ay"};
+  const std::string second_key{prefix + "by"};
+  sourcemeta::core::JSON document = sourcemeta::core::JSON::make_object();
+  document.assign(first_key, sourcemeta::core::JSON{1});
+  document.assign(second_key, sourcemeta::core::JSON{2});
+  document.try_assign_before(second_key, sourcemeta::core::JSON{9}, first_key);
+  EXPECT_EQ(document.size(), 2);
+  EXPECT_TRUE(document.unique_keys());
+  EXPECT_EQ(document.at(first_key).to_integer(), 1);
+  EXPECT_EQ(document.at(second_key).to_integer(), 9);
+}
+
+TEST(try_assign_before_existing_key_with_the_suffix_at_the_front) {
+  sourcemeta::core::JSON document = sourcemeta::core::JSON::make_object();
+  document.assign("foo", sourcemeta::core::JSON{1});
+  document.assign("bar", sourcemeta::core::JSON{2});
+  document.assign("baz", sourcemeta::core::JSON{3});
+  document.try_assign_before("baz", sourcemeta::core::JSON{9}, "foo");
+  EXPECT_EQ(document.size(), 3);
+  EXPECT_TRUE(document.unique_keys());
+  EXPECT_EQ(document.at("baz").to_integer(), 9);
+  auto iterator{document.as_object().cbegin()};
+  EXPECT_EQ(iterator->first, "foo");
+  std::advance(iterator, 2);
+  EXPECT_EQ(iterator->first, "baz");
+}

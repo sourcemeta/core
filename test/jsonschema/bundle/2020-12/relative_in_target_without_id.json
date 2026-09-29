@@ -18,12 +18,12 @@
     "nonOfficialMetaschemas": {
       "$id": "https://example.com/test",
       "$schema": "https://json-schema.org/draft/2020-12/schema",
-      "$ref": "nested/ref-string.json",
+      "$ref": "https://example.com/nested/ref-string.json",
       "$defs": {
         "https://example.com/nested/ref-string.json": {
           "$id": "https://example.com/nested/ref-string.json",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$ref": "string.json"
+          "$ref": "https://example.com/nested/string.json"
         },
         "https://example.com/nested/string.json": {
           "$id": "https://example.com/nested/string.json",
@@ -35,12 +35,12 @@
     "references": {
       "$id": "https://example.com/test",
       "$schema": "https://json-schema.org/draft/2020-12/schema",
-      "$ref": "nested/ref-string.json",
+      "$ref": "https://example.com/nested/ref-string.json",
       "$defs": {
         "https://example.com/nested/ref-string.json": {
           "$id": "https://example.com/nested/ref-string.json",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$ref": "string.json"
+          "$ref": "https://example.com/nested/string.json"
         },
         "https://example.com/nested/string.json": {
           "$id": "https://example.com/nested/string.json",

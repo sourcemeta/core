@@ -22,12 +22,12 @@
     "nonOfficialMetaschemas": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "$id": "https://example.com/elevate-entry",
-      "$ref": "elevate-single",
+      "$ref": "https://example.com/elevate-single",
       "$defs": {
         "https://example.com/elevate-single": {
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$id": "https://example.com/elevate-single",
-          "$ref": "elevate-single-nested"
+          "$ref": "https://example.com/elevate-single-nested"
         },
         "https://example.com/elevate-single-nested": {
           "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -39,12 +39,12 @@
     "references": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "$id": "https://example.com/elevate-entry",
-      "$ref": "elevate-single",
+      "$ref": "https://example.com/elevate-single",
       "$defs": {
         "https://example.com/elevate-single": {
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$id": "https://example.com/elevate-single",
-          "$ref": "elevate-single-nested"
+          "$ref": "https://example.com/elevate-single-nested"
         },
         "https://example.com/elevate-single-nested": {
           "$schema": "https://json-schema.org/draft/2020-12/schema",

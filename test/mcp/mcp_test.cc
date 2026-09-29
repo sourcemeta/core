@@ -9,6 +9,7 @@
 #include <cstdint>  // std::int64_t
 #include <limits>   // std::numeric_limits
 #include <optional> // std::optional, std::nullopt
+#include <string>   // std::string
 #include <utility>  // std::move
 
 TEST(protocol_version_string_2025_03_26) {
@@ -3460,4 +3461,44 @@ TEST(base64_header_malformed_rejected_on_2026) {
   EXPECT_TRUE(error.has_value());
   EXPECT_EQ(error->at("error").at("code").to_integer(),
             sourcemeta::core::MCP_CODE_HEADER_MISMATCH);
+}
+
+TEST(is_request_method_initialize_at_runtime) {
+  const std::string method{"initialize"};
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(method));
+}
+
+TEST(is_request_method_ping_at_runtime) {
+  const std::string method{"ping"};
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(method));
+}
+
+TEST(is_request_method_tools_list_at_runtime) {
+  const std::string method{"tools/list"};
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(method));
+}
+
+TEST(is_request_method_tools_call_at_runtime) {
+  const std::string method{"tools/call"};
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(method));
+}
+
+TEST(is_request_method_resources_list_at_runtime) {
+  const std::string method{"resources/list"};
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(method));
+}
+
+TEST(is_request_method_resources_read_at_runtime) {
+  const std::string method{"resources/read"};
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(method));
+}
+
+TEST(is_request_method_resources_templates_list_at_runtime) {
+  const std::string method{"resources/templates/list"};
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(method));
+}
+
+TEST(is_request_method_unknown_at_runtime) {
+  const std::string method{"foo/bar"};
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(method));
 }

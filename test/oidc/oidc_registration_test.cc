@@ -4,6 +4,7 @@
 
 #include <array>       // std::array
 #include <chrono>      // std::chrono::seconds
+#include <limits>      // std::numeric_limits
 #include <string_view> // std::string_view
 
 TEST(from_parses_a_valid_client_document) {
@@ -558,4 +559,19 @@ TEST(from_reports_no_initiate_login_uri_when_absent) {
       sourcemeta::core::OIDCClientMetadata::from(std::move(document))};
   EXPECT_TRUE(metadata.has_value());
   EXPECT_FALSE(metadata.value().initiate_login_uri().has_value());
+}
+
+TEST(accepts_the_largest_representable_default_max_age) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "redirect_uris": [ "https://client.example/cb" ]
+  })JSON")};
+  document.assign("default_max_age",
+                  sourcemeta::core::JSON{
+                      std::numeric_limits<std::chrono::seconds::rep>::max()});
+  const auto metadata{
+      sourcemeta::core::OIDCClientMetadata::from(std::move(document))};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_TRUE(metadata.value().default_max_age().has_value());
+  EXPECT_EQ(metadata.value().default_max_age().value(),
+            std::chrono::seconds::max());
 }

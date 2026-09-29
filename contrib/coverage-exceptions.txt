@@ -3,6 +3,16 @@
 # Each line is a source file suffix, a space, and the function name as the
 # coverage tool reports it. Anything listed here is left out of the count
 # entirely, so an entry has to carry a reason.
+#
+# Adding an entry here is the last resort, and every addition is scrutinised.
+# An entry is only ever right when the function is genuinely exercised and the
+# tool genuinely cannot see it, and when nothing about the code can be changed
+# to make it visible. Reach for the code first. A function that only ever runs
+# at compile time can say so and stop being emitted, one that nothing calls can
+# be deleted, one that is unreachable through the public surface can be reached
+# through it, and one that is missing a test can be given one. Exhaust those
+# before reaching for this file, because an entry here is a measurement this
+# project no longer takes.
 
 # These two run only inside a program that is dying on a fatal signal, and a
 # process killed by a signal never writes its profile. Keeping counters up to

@@ -388,3 +388,12 @@ TEST(tagfilter_vertical_tab_does_not_end_tag_name) {
                     "<xmp\v>a\n"
                     "</div>\n");
 }
+
+TEST(tagfilter_tag_name_ended_by_a_tab) {
+  // The HTML tokenizer ends a tag name at a tab just as it does at a space, so
+  // the tag is still one of the disallowed ones and its opening angle bracket
+  // is escaped
+  const auto result{
+      sourcemeta::core::markdown_to_html("x <script\tsrc=y>", false)};
+  EXPECT_EQ(result, "<p>x &lt;script\tsrc=y></p>\n");
+}

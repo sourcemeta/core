@@ -44,6 +44,55 @@ LotnyAB/PnO2eU6aOt6q6EcZ
 -----END PRIVATE KEY-----
 )"};
 
+// The RSA key above whose private key blob was replaced by a private key blob
+// too short to hold a tag and a length at all
+static constexpr std::string_view DER_TRUNCATED_ELEMENT_KEY{
+    R"(-----BEGIN PRIVATE KEY-----
+MBUCAQAwDQYJKoZIhvcNAQEBBQAEATA=
+-----END PRIVATE KEY-----)"};
+
+// The RSA key above whose private key blob was replaced by the indefinite
+// length form, which the distinguished encoding rules forbid
+static constexpr std::string_view DER_INDEFINITE_LENGTH_KEY{
+    R"(-----BEGIN PRIVATE KEY-----
+MBYCAQAwDQYJKoZIhvcNAQEBBQAEAjCA
+-----END PRIVATE KEY-----)"};
+
+// The RSA key above whose private key blob was replaced by a long form length
+// claiming more octets than a length this reader accepts
+static constexpr std::string_view DER_OVER_LONG_LENGTH_COUNT_KEY{
+    R"(-----BEGIN PRIVATE KEY-----
+MBsCAQAwDQYJKoZIhvcNAQEBBQAEBzCFAQIDBAU=
+-----END PRIVATE KEY-----)"};
+
+// The RSA key above whose private key blob was replaced by a long form length
+// whose octets run past the end of the input
+static constexpr std::string_view DER_LENGTH_COUNT_PAST_INPUT_KEY{
+    R"(-----BEGIN PRIVATE KEY-----
+MBcCAQAwDQYJKoZIhvcNAQEBBQAEAzCEAQ==
+-----END PRIVATE KEY-----)"};
+
+// The RSA key above whose private key blob was replaced by a long form length
+// starting with a zero octet, which is not minimal
+static constexpr std::string_view DER_LEADING_ZERO_LENGTH_OCTET_KEY{
+    R"(-----BEGIN PRIVATE KEY-----
+MB0CAQAwDQYJKoZIhvcNAQEBBQAECTCCAAWqu8zd7g==
+-----END PRIVATE KEY-----)"};
+
+// The RSA key above whose private key blob was replaced by a long form length
+// holding a value that the short form must carry
+static constexpr std::string_view DER_LONG_FORM_SHORT_LENGTH_KEY{
+    R"(-----BEGIN PRIVATE KEY-----
+MBcCAQAwDQYJKoZIhvcNAQEBBQAEAzCBfw==
+-----END PRIVATE KEY-----)"};
+
+// The RSA key above whose private key blob was replaced by a length longer than
+// the content that follows it
+static constexpr std::string_view DER_LENGTH_PAST_CONTENT_KEY{
+    R"(-----BEGIN PRIVATE KEY-----
+MBgCAQAwDQYJKoZIhvcNAQEBBQAEBDAFqrs=
+-----END PRIVATE KEY-----)"};
+
 // A 2048-bit key whose PKCS#8 algorithm is id-RSASSA-PSS rather than
 // rsaEncryption, so it is restricted to PSS and must refuse PKCS1v15 signing
 static constexpr std::string_view PSS_RESTRICTED_PRIVATE_KEY{
@@ -399,6 +448,195 @@ static constexpr std::string_view ED448_SIGNATURE_HEX{
     "e959fc284b2c1fe36291845a4ce6133d7a8ca63396cd36e4568628d74c4e583f"
     "47689456454a7561d89194386ca54fc82f00"};
 
+// The Edwards and remaining curve keys again, this time as the unencrypted
+// PKCS#8 documents the algorithm identifier path has to recognise, each holding
+// the same private key as the hexadecimal constants above so a document that
+// parses can be checked against a known signature
+static constexpr std::string_view ED25519_PKCS8_KEY{
+    R"(-----BEGIN PRIVATE KEY-----
+MC4CAQAwBQYDK2VwBCIEIHQew1zl4HCJyngviN4A2BA6HNjosRas2K/ZIsAb7nhn
+-----END PRIVATE KEY-----
+)"};
+
+static constexpr std::string_view ED448_PKCS8_KEY{
+    R"(-----BEGIN PRIVATE KEY-----
+MEcCAQAwBQYDK2VxBDsEOXAnAoFAyetCKTXh0wngHmZnA4kXPaT2bEAWwkklE7TB
+mJJj6hMlDmWnhKqMAamWCnQWwuKHmyoilQ==
+-----END PRIVATE KEY-----
+)"};
+
+static constexpr std::string_view P384_PKCS8_KEY{
+    R"(-----BEGIN PRIVATE KEY-----
+MIG2AgEAMBAGByqGSM49AgEGBSuBBAAiBIGeMIGbAgEBBDAC1aRLTztUK9z9MRsG
+l9LMj1k0U/znimWvJvotWi8VNGiA0JBLr9EDseDmoNfiW1ChZANiAAScDIbkBp+8
+EzQDTmdGuiO85MKA02vBRyRbQi+XZ+1r+WDB9eExONv/n3LQEs7cYf+G1mQ2/WI9
+/QBzVO8kHQtF0UgPUpX1bE6GJDQRzfZx1tNZpK7z426wpazqZ3zRXwY=
+-----END PRIVATE KEY-----
+)"};
+
+static constexpr std::string_view P521_PKCS8_KEY{
+    R"(-----BEGIN PRIVATE KEY-----
+MIHuAgEAMBAGByqGSM49AgEGBSuBBAAjBIHWMIHTAgEBBEIBHZw4ip91fwtmWn38
+XId+7SQu4w7u6dTn+lu/6q4Z2ce/wJO3AEyugeREjregkpCA//RgC9JJP9h+r5VX
+/tGqRf+hgYkDgYYABAFHGu0B4OvZSGpazDfebhko56qcTVQuY8T65Q7pEm0XHNEB
+6Q84+dGN0pzGCUiaQGPoROa3JGy0iAj5EK44nnchbwFE2ZJjNBb+wcXofhVvRVHi
+b/NPaklPfqnokcj0G8buWwjTAvE57aVlbDoTmrcfHbKHkXChpd7cMhTj585jD+9D
+AA==
+-----END PRIVATE KEY-----
+)"};
+
+// A private key whose version is the value one past the highest the standard
+// defines, so no reader that follows it can know what the document holds
+static constexpr std::string_view PKCS8_VERSION_TOO_HIGH_KEY{
+    R"(-----BEGIN PRIVATE KEY-----
+MBYCAQIwDQYJKoZIhvcNAQEBBQAEAjAA
+-----END PRIVATE KEY-----
+)"};
+
+// The algorithm identifier written as a bare object identifier rather than the
+// sequence that has to enclose it
+static constexpr std::string_view PKCS8_ALGORITHM_NOT_A_SEQUENCE_KEY{
+    R"(-----BEGIN PRIVATE KEY-----
+MBICAQAGCSqGSIb3DQEBAQQCMAA=
+-----END PRIVATE KEY-----
+)"};
+
+// The private key written as a sequence rather than the octet string the
+// standard requires, so its bytes are not where a reader looks for them
+static constexpr std::string_view PKCS8_PRIVATE_KEY_NOT_AN_OCTET_STRING_KEY{
+    R"(-----BEGIN PRIVATE KEY-----
+MBYCAQAwDQYJKoZIhvcNAQEBBQAwAjAA
+-----END PRIVATE KEY-----
+)"};
+
+// An algorithm identifier holding only its parameters, with the object
+// identifier that names the algorithm left out
+static constexpr std::string_view PKCS8_ALGORITHM_WITHOUT_AN_IDENTIFIER_KEY{
+    R"(-----BEGIN PRIVATE KEY-----
+MAsCAQAwAgUABAIwAA==
+-----END PRIVATE KEY-----
+)"};
+
+// A well formed document naming the digital signature algorithm, which this
+// library does not implement
+static constexpr std::string_view PKCS8_UNKNOWN_ALGORITHM_KEY{
+    R"(-----BEGIN PRIVATE KEY-----
+MBICAQAwCQYHKoZIzjgEAQQCMAA=
+-----END PRIVATE KEY-----
+)"};
+
+// An elliptic curve key whose algorithm identifier omits the parameters that
+// say which curve the private key belongs to
+static constexpr std::string_view PKCS8_EC_WITHOUT_CURVE_PARAMETERS_KEY{
+    R"(-----BEGIN PRIVATE KEY-----
+MBICAQAwCQYHKoZIzj0CAQQCMAA=
+-----END PRIVATE KEY-----
+)"};
+
+// An elliptic curve key on the Koblitz curve over a 256-bit prime field, which
+// is a real curve this library does not support
+static constexpr std::string_view PKCS8_UNKNOWN_CURVE_KEY{
+    R"(-----BEGIN PRIVATE KEY-----
+MBkCAQAwEAYHKoZIzj0CAQYFK4EEAAoEAjAA
+-----END PRIVATE KEY-----
+)"};
+
+// The four documents below each drop one of the leading components the standard
+// requires of an RSA private key, in the order a reader meets them
+static constexpr std::string_view RSA_WITHOUT_A_VERSION_KEY{
+    R"(-----BEGIN PRIVATE KEY-----
+MBkCAQAwDQYJKoZIhvcNAQEBBQAEBTADBAEA
+-----END PRIVATE KEY-----
+)"};
+
+static constexpr std::string_view RSA_WITHOUT_A_MODULUS_KEY{
+    R"(-----BEGIN PRIVATE KEY-----
+MBkCAQAwDQYJKoZIhvcNAQEBBQAEBTADAgEB
+-----END PRIVATE KEY-----
+)"};
+
+static constexpr std::string_view RSA_WITHOUT_A_PUBLIC_EXPONENT_KEY{
+    R"(-----BEGIN PRIVATE KEY-----
+MIGfAgEAMA0GCSqGSIb3DQEBAQUABIGKMIGHAgEBAoGBAMzMzMzMzMzMzMzMzMzM
+zMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzM
+zMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzM
+zMzMzMzMzMzMzMzMzMzMzMzM
+-----END PRIVATE KEY-----
+)"};
+
+static constexpr std::string_view RSA_WITHOUT_A_PRIVATE_EXPONENT_KEY{
+    R"(-----BEGIN PRIVATE KEY-----
+MIGkAgEAMA0GCSqGSIb3DQEBAQUABIGPMIGMAgEBAoGBAMzMzMzMzMzMzMzMzMzM
+zMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzM
+zMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzM
+zMzMzMzMzMzMzMzMzMzMzMzMAgMBAAE=
+-----END PRIVATE KEY-----
+)"};
+
+// A 512-bit RSA key, small enough that the padded encoding of a wide digest no
+// longer fits inside the modulus, which the standards require a signer to
+// refuse rather than truncate
+static constexpr std::string_view RSA_512_PRIVATE_KEY{
+    R"(-----BEGIN PRIVATE KEY-----
+MIIBVQIBADANBgkqhkiG9w0BAQEFAASCAT8wggE7AgEAAkEA15H1VHHC4bxshQIR
+LgtCq2knTKLKnyitHVMrOfKnPdiKc9IKh/owsVwy75++iVlkyr77s6S/+otKO0LQ
+GQI1kwIDAQABAkACIM/COKlK3zhXC9EtmjDbTltz9zt23MjwvCx2Ev4xrxfwTOpm
+jKIZ5Eu8MLDVDP1zJOSnavs2RqhWkRez1Vf5AiEA/H2SortsjBRawMZEGNgd8O11
+XYrmD8ncnyxyJddVZ70CIQDakQNhrhK6KuUa69w7W9ZbrOE9ffVv/UvnHH5COVj/
+jwIhANAP1mb9FWy1VTen6fOjG8EunFlyHTUDfic4o/Ok537tAiB/6gyTlz/IiqAo
+4E60wquyXXw488W3tAM/D9LoyQ1ICwIhAN0gYVKR3E4hd75QhmaC4MscmWxCvow5
+p9j8f3ztFN/3
+-----END PRIVATE KEY-----
+)"};
+
+// A modulus written as an integer with no content octets at all, which encodes
+// no value and so cannot be read as one
+static constexpr std::string_view RSA_EMPTY_MODULUS_INTEGER_KEY{
+    R"(-----BEGIN PRIVATE KEY-----
+MGMCAQAwDQYJKoZIhvcNAQEBBQAETzBNAgEAAgACAwEAAQJBAMzMzMzMzMzMzMzM
+zMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzM
+zMzMzMw=
+-----END PRIVATE KEY-----
+)"};
+
+// The three documents below carry a well formed algorithm identifier naming
+// the curve over a 256-bit prime field, and an inner private key that is wrong
+// in one way each, so the curve is recognised before the key is refused
+static constexpr std::string_view EC_KEY_NOT_A_SEQUENCE_KEY{
+    R"(-----BEGIN PRIVATE KEY-----
+MDwCAQAwEwYHKoZIzj0CAQYIKoZIzj0DAQcEIgQgttepxcp+OwXCj4+v4sGcxRxQ
+RXA8D5Svu02yhcHvbd0=
+-----END PRIVATE KEY-----
+)"};
+
+static constexpr std::string_view EC_KEY_WITHOUT_A_VERSION_KEY{
+    R"(-----BEGIN PRIVATE KEY-----
+MD4CAQAwEwYHKoZIzj0CAQYIKoZIzj0DAQcEJDAiBCC216nFyn47BcKPj6/iwZzF
+HFBFcDwPlK+7TbKFwe9t3Q==
+-----END PRIVATE KEY-----
+)"};
+
+static constexpr std::string_view EC_SCALAR_NOT_AN_OCTET_STRING_KEY{
+    R"(-----BEGIN PRIVATE KEY-----
+MEECAQAwEwYHKoZIzj0CAQYIKoZIzj0DAQcEJzAlAgEBAiC216nFyn47BcKPj6/i
+wZzFHFBFcDwPlK+7TbKFwe9t3Q==
+-----END PRIVATE KEY-----
+)"};
+
+// An Edwards seed written as an integer rather than as the octet string that
+// has to carry it, and one an octet short of the length the curve fixes
+static constexpr std::string_view EDWARDS_SEED_NOT_AN_OCTET_STRING_KEY{
+    R"(-----BEGIN PRIVATE KEY-----
+MC4CAQAwBQYDK2VwBCICIHQew1zl4HCJyngviN4A2BA6HNjosRas2K/ZIsAb7nhn
+-----END PRIVATE KEY-----
+)"};
+
+static constexpr std::string_view EDWARDS_SHORT_SEED_KEY{
+    R"(-----BEGIN PRIVATE KEY-----
+MC0CAQAwBQYDK2VwBCEEH3Qew1zl4HCJyngviN4A2BA6HNjosRas2K/ZIsAb7ng=
+-----END PRIVATE KEY-----
+)"};
+
 namespace {
 
 // Signing over the two elliptic curve schemes uses a random nonce, so the
@@ -456,6 +694,29 @@ auto with_trailing_der_byte(const std::string_view pem) -> std::string {
   der.push_back('\x00');
   return "-----BEGIN PRIVATE KEY-----\n" +
          sourcemeta::core::base64_encode(der) + "\n-----END PRIVATE KEY-----\n";
+}
+
+// The same consistency check as above, driven from a PKCS#8 document rather
+// than from the private components, so that a curve the document names is shown
+// to reach the signing path carrying the right private key
+auto parsed_key_signature_verifies(
+    const std::string_view pem, const sourcemeta::core::EllipticCurve curve,
+    const sourcemeta::core::SignatureHashFunction hash,
+    const std::string_view coordinate_x_hex,
+    const std::string_view coordinate_y_hex) -> bool {
+  const auto key{sourcemeta::core::make_private_key(pem)};
+  if (!key.has_value()) {
+    return false;
+  }
+
+  const auto signature{
+      sourcemeta::core::ecdsa_sign(key.value(), hash, MESSAGE)};
+  const auto public_key{sourcemeta::core::make_ec_public_key(
+      curve, sourcemeta::core::hex_to_bytes(coordinate_x_hex).value(),
+      sourcemeta::core::hex_to_bytes(coordinate_y_hex).value())};
+  return signature.has_value() && public_key.has_value() &&
+         sourcemeta::core::ecdsa_verify(public_key.value(), hash, MESSAGE,
+                                        signature.value());
 }
 
 } // namespace
@@ -941,4 +1202,391 @@ TEST(public_key_move_assignment_takes_the_other_key) {
   auto other{sourcemeta::core::derive_public_key(edwards.value()).value()};
   key = std::move(other);
   EXPECT_TRUE(key.type() == sourcemeta::core::PublicKey::Type::Edwards);
+}
+
+TEST(make_private_key_rejects_a_truncated_private_key_element) {
+  EXPECT_FALSE(sourcemeta::core::make_private_key(DER_TRUNCATED_ELEMENT_KEY)
+                   .has_value());
+}
+
+TEST(make_private_key_rejects_an_indefinite_length) {
+  EXPECT_FALSE(sourcemeta::core::make_private_key(DER_INDEFINITE_LENGTH_KEY)
+                   .has_value());
+}
+
+TEST(make_private_key_rejects_an_over_long_length_octet_count) {
+  EXPECT_FALSE(
+      sourcemeta::core::make_private_key(DER_OVER_LONG_LENGTH_COUNT_KEY)
+          .has_value());
+}
+
+TEST(make_private_key_rejects_length_octets_past_the_input) {
+  EXPECT_FALSE(
+      sourcemeta::core::make_private_key(DER_LENGTH_COUNT_PAST_INPUT_KEY)
+          .has_value());
+}
+
+TEST(make_private_key_rejects_a_leading_zero_length_octet) {
+  EXPECT_FALSE(
+      sourcemeta::core::make_private_key(DER_LEADING_ZERO_LENGTH_OCTET_KEY)
+          .has_value());
+}
+
+TEST(make_private_key_rejects_a_long_form_length_below_the_short_form_limit) {
+  EXPECT_FALSE(
+      sourcemeta::core::make_private_key(DER_LONG_FORM_SHORT_LENGTH_KEY)
+          .has_value());
+}
+
+TEST(make_private_key_rejects_a_length_past_the_content) {
+  EXPECT_FALSE(sourcemeta::core::make_private_key(DER_LENGTH_PAST_CONTENT_KEY)
+                   .has_value());
+}
+
+TEST(make_private_key_parses_an_ed25519_pkcs8_key) {
+  const auto key{sourcemeta::core::make_private_key(ED25519_PKCS8_KEY)};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_TRUE(key.value().type() ==
+              sourcemeta::core::PrivateKey::Type::Edwards);
+  const auto signature{sourcemeta::core::eddsa_sign(key.value(), MESSAGE)};
+  EXPECT_TRUE(signature.has_value());
+  const auto public_key{sourcemeta::core::make_eddsa_public_key(
+      sourcemeta::core::EdwardsCurve::Ed25519,
+      sourcemeta::core::hex_to_bytes(ED25519_PUBLIC_HEX).value())};
+  EXPECT_TRUE(sourcemeta::core::eddsa_verify(public_key.value(), MESSAGE,
+                                             signature.value()));
+}
+
+TEST(make_private_key_parses_an_ed448_pkcs8_key) {
+  const auto key{sourcemeta::core::make_private_key(ED448_PKCS8_KEY)};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_TRUE(key.value().type() ==
+              sourcemeta::core::PrivateKey::Type::Edwards);
+  const auto signature{sourcemeta::core::eddsa_sign(key.value(), MESSAGE)};
+  EXPECT_TRUE(signature.has_value());
+  EXPECT_EQ(sourcemeta::core::bytes_to_hex(signature.value()),
+            ED448_SIGNATURE_HEX);
+}
+
+TEST(make_private_key_derives_the_public_key_of_an_ed25519_pkcs8_key) {
+  const auto key{sourcemeta::core::make_private_key(ED25519_PKCS8_KEY)};
+  EXPECT_TRUE(key.has_value());
+  const auto public_key{sourcemeta::core::derive_public_key(key.value())};
+  EXPECT_TRUE(public_key.has_value());
+  EXPECT_TRUE(sourcemeta::core::eddsa_verify(
+      public_key.value(), MESSAGE,
+      sourcemeta::core::eddsa_sign(key.value(), MESSAGE).value()));
+}
+
+TEST(make_private_key_parses_a_p384_pkcs8_key) {
+  const auto key{sourcemeta::core::make_private_key(P384_PKCS8_KEY)};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_TRUE(key.value().type() ==
+              sourcemeta::core::PrivateKey::Type::EllipticCurve);
+  EXPECT_TRUE(parsed_key_signature_verifies(
+      P384_PKCS8_KEY, sourcemeta::core::EllipticCurve::P384,
+      sourcemeta::core::SignatureHashFunction::SHA384, P384_QX_HEX,
+      P384_QY_HEX));
+}
+
+TEST(make_private_key_parses_a_p521_pkcs8_key) {
+  const auto key{sourcemeta::core::make_private_key(P521_PKCS8_KEY)};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_TRUE(key.value().type() ==
+              sourcemeta::core::PrivateKey::Type::EllipticCurve);
+  EXPECT_TRUE(parsed_key_signature_verifies(
+      P521_PKCS8_KEY, sourcemeta::core::EllipticCurve::P521,
+      sourcemeta::core::SignatureHashFunction::SHA512, P521_QX_HEX,
+      P521_QY_HEX));
+}
+
+TEST(make_private_key_rejects_a_pem_without_a_line_after_its_header) {
+  EXPECT_FALSE(sourcemeta::core::make_private_key("-----BEGIN PRIVATE KEY-----")
+                   .has_value());
+}
+
+TEST(make_private_key_rejects_a_pem_without_a_footer) {
+  EXPECT_FALSE(sourcemeta::core::make_private_key(
+                   "-----BEGIN PRIVATE KEY-----\nMBUCAQAwDQ==\n")
+                   .has_value());
+}
+
+TEST(make_private_key_rejects_an_unsupported_version) {
+  EXPECT_FALSE(sourcemeta::core::make_private_key(PKCS8_VERSION_TOO_HIGH_KEY)
+                   .has_value());
+}
+
+TEST(make_private_key_rejects_an_algorithm_that_is_not_a_sequence) {
+  EXPECT_FALSE(
+      sourcemeta::core::make_private_key(PKCS8_ALGORITHM_NOT_A_SEQUENCE_KEY)
+          .has_value());
+}
+
+TEST(make_private_key_rejects_a_private_key_that_is_not_an_octet_string) {
+  EXPECT_FALSE(sourcemeta::core::make_private_key(
+                   PKCS8_PRIVATE_KEY_NOT_AN_OCTET_STRING_KEY)
+                   .has_value());
+}
+
+TEST(make_private_key_rejects_an_algorithm_without_an_identifier) {
+  EXPECT_FALSE(sourcemeta::core::make_private_key(
+                   PKCS8_ALGORITHM_WITHOUT_AN_IDENTIFIER_KEY)
+                   .has_value());
+}
+
+TEST(make_private_key_rejects_an_unsupported_algorithm) {
+  EXPECT_FALSE(sourcemeta::core::make_private_key(PKCS8_UNKNOWN_ALGORITHM_KEY)
+                   .has_value());
+}
+
+TEST(make_private_key_rejects_an_elliptic_curve_key_without_parameters) {
+  EXPECT_FALSE(
+      sourcemeta::core::make_private_key(PKCS8_EC_WITHOUT_CURVE_PARAMETERS_KEY)
+          .has_value());
+}
+
+TEST(make_private_key_rejects_an_unsupported_curve) {
+  EXPECT_FALSE(
+      sourcemeta::core::make_private_key(PKCS8_UNKNOWN_CURVE_KEY).has_value());
+}
+
+TEST(make_private_key_rejects_an_rsa_key_without_a_version) {
+  EXPECT_FALSE(sourcemeta::core::make_private_key(RSA_WITHOUT_A_VERSION_KEY)
+                   .has_value());
+}
+
+TEST(make_private_key_rejects_an_rsa_key_without_a_modulus) {
+  EXPECT_FALSE(sourcemeta::core::make_private_key(RSA_WITHOUT_A_MODULUS_KEY)
+                   .has_value());
+}
+
+TEST(make_private_key_rejects_an_rsa_key_without_a_public_exponent) {
+  EXPECT_FALSE(
+      sourcemeta::core::make_private_key(RSA_WITHOUT_A_PUBLIC_EXPONENT_KEY)
+          .has_value());
+}
+
+TEST(make_private_key_rejects_an_rsa_key_without_a_private_exponent) {
+  EXPECT_FALSE(
+      sourcemeta::core::make_private_key(RSA_WITHOUT_A_PRIVATE_EXPONENT_KEY)
+          .has_value());
+}
+
+TEST(rsassa_pkcs1_v15_sign_refuses_a_digest_wider_than_the_modulus) {
+  const auto key{sourcemeta::core::make_private_key(RSA_512_PRIVATE_KEY)};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_FALSE(
+      sourcemeta::core::rsassa_pkcs1_v15_sign(
+          key.value(), sourcemeta::core::SignatureHashFunction::SHA384, MESSAGE)
+          .has_value());
+}
+
+TEST(rsassa_pkcs1_v15_sign_accepts_a_digest_the_modulus_still_holds) {
+  const auto key{sourcemeta::core::make_private_key(RSA_512_PRIVATE_KEY)};
+  EXPECT_TRUE(key.has_value());
+  const auto signature{sourcemeta::core::rsassa_pkcs1_v15_sign(
+      key.value(), sourcemeta::core::SignatureHashFunction::SHA256, MESSAGE)};
+  EXPECT_TRUE(signature.has_value());
+  const auto public_key{sourcemeta::core::derive_public_key(key.value())};
+  EXPECT_TRUE(sourcemeta::core::rsassa_pkcs1_v15_verify(
+      public_key.value(), sourcemeta::core::SignatureHashFunction::SHA256,
+      MESSAGE, signature.value()));
+}
+
+TEST(rsassa_pss_sign_refuses_a_salted_digest_wider_than_the_modulus) {
+  const auto key{sourcemeta::core::make_private_key(RSA_512_PRIVATE_KEY)};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_FALSE(
+      sourcemeta::core::rsassa_pss_sign(
+          key.value(), sourcemeta::core::SignatureHashFunction::SHA256, MESSAGE)
+          .has_value());
+}
+
+TEST(rsassa_pkcs1_v15_sign_rejects_an_elliptic_curve_key) {
+  const auto key{sourcemeta::core::make_private_key(P384_PKCS8_KEY)};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_FALSE(
+      sourcemeta::core::rsassa_pkcs1_v15_sign(
+          key.value(), sourcemeta::core::SignatureHashFunction::SHA256, MESSAGE)
+          .has_value());
+}
+
+TEST(rsassa_pss_sign_rejects_an_elliptic_curve_key) {
+  const auto key{sourcemeta::core::make_private_key(P384_PKCS8_KEY)};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_FALSE(
+      sourcemeta::core::rsassa_pss_sign(
+          key.value(), sourcemeta::core::SignatureHashFunction::SHA256, MESSAGE)
+          .has_value());
+}
+
+TEST(make_private_key_rejects_an_elliptic_curve_key_that_is_not_a_sequence) {
+  EXPECT_FALSE(sourcemeta::core::make_private_key(EC_KEY_NOT_A_SEQUENCE_KEY)
+                   .has_value());
+}
+
+TEST(make_private_key_rejects_an_elliptic_curve_key_without_a_version) {
+  EXPECT_FALSE(sourcemeta::core::make_private_key(EC_KEY_WITHOUT_A_VERSION_KEY)
+                   .has_value());
+}
+
+TEST(make_private_key_rejects_a_scalar_that_is_not_an_octet_string) {
+  EXPECT_FALSE(
+      sourcemeta::core::make_private_key(EC_SCALAR_NOT_AN_OCTET_STRING_KEY)
+          .has_value());
+}
+
+TEST(make_private_key_rejects_an_edwards_seed_that_is_not_an_octet_string) {
+  EXPECT_FALSE(
+      sourcemeta::core::make_private_key(EDWARDS_SEED_NOT_AN_OCTET_STRING_KEY)
+          .has_value());
+}
+
+TEST(make_private_key_rejects_an_edwards_seed_of_the_wrong_length) {
+  EXPECT_FALSE(
+      sourcemeta::core::make_private_key(EDWARDS_SHORT_SEED_KEY).has_value());
+}
+
+TEST(make_ec_private_key_rejects_a_public_point_that_is_not_the_scalars) {
+  // A supplied point that does not match the one the scalar produces has to be
+  // refused rather than trusted, since a deterministic backend would otherwise
+  // let a crafted point verify a signature chosen in advance
+  const auto key{sourcemeta::core::make_ec_private_key(
+      sourcemeta::core::EllipticCurve::P256,
+      sourcemeta::core::hex_to_bytes(P256_D_HEX).value(),
+      sourcemeta::core::hex_to_bytes(P256_QY_HEX).value(),
+      sourcemeta::core::hex_to_bytes(P256_QX_HEX).value())};
+  EXPECT_FALSE(key.has_value());
+}
+
+TEST(derive_public_key_rejects_a_key_that_holds_nothing) {
+  const sourcemeta::core::PrivateKey key{nullptr};
+  EXPECT_FALSE(sourcemeta::core::derive_public_key(key).has_value());
+}
+
+TEST(rsassa_pkcs1_v15_sign_rejects_a_key_that_holds_nothing) {
+  const sourcemeta::core::PrivateKey key{nullptr};
+  EXPECT_FALSE(
+      sourcemeta::core::rsassa_pkcs1_v15_sign(
+          key, sourcemeta::core::SignatureHashFunction::SHA256, MESSAGE)
+          .has_value());
+}
+
+TEST(rsassa_pss_sign_rejects_a_key_that_holds_nothing) {
+  const sourcemeta::core::PrivateKey key{nullptr};
+  EXPECT_FALSE(
+      sourcemeta::core::rsassa_pss_sign(
+          key, sourcemeta::core::SignatureHashFunction::SHA256, MESSAGE)
+          .has_value());
+}
+
+TEST(make_private_key_rejects_a_modulus_with_no_content_octets) {
+  EXPECT_FALSE(sourcemeta::core::make_private_key(RSA_EMPTY_MODULUS_INTEGER_KEY)
+                   .has_value());
+}
+
+TEST(rsassa_pkcs1_v15_sign_never_returns_a_faulted_shortcut_result) {
+  // The two primes are given the other's place, which leaves the modulus intact
+  // but makes the shortcut path produce a value that is not the signature.
+  // Returning that value would hand over the factors of the modulus, which is
+  // what a fault injected into the shortcut computation aims for, so a backend
+  // either recomputes the signature over the modulus or refuses the key. What
+  // none of them may do is answer with the faulted value
+  const auto key{sourcemeta::core::make_rsa_private_key(
+      sourcemeta::core::hex_to_bytes(MODULUS_HEX).value(),
+      sourcemeta::core::hex_to_bytes(EXPONENT_HEX).value(),
+      sourcemeta::core::hex_to_bytes(PRIVATE_EXPONENT_HEX).value(),
+      sourcemeta::core::hex_to_bytes(PRIME2_HEX).value(),
+      sourcemeta::core::hex_to_bytes(PRIME1_HEX).value(),
+      sourcemeta::core::hex_to_bytes(EXPONENT1_HEX).value(),
+      sourcemeta::core::hex_to_bytes(EXPONENT2_HEX).value(),
+      sourcemeta::core::hex_to_bytes(COEFFICIENT_HEX).value())};
+  EXPECT_TRUE(key.has_value());
+  const auto signature{sourcemeta::core::rsassa_pkcs1_v15_sign(
+      key.value(), sourcemeta::core::SignatureHashFunction::SHA256, MESSAGE)};
+  EXPECT_TRUE(!signature.has_value() ||
+              sourcemeta::core::bytes_to_hex(signature.value()) ==
+                  SIGNATURE_SHA256_HEX);
+}
+
+TEST(rsassa_pkcs1_v15_verify_refuses_a_digest_wider_than_the_modulus) {
+  const auto key{sourcemeta::core::make_private_key(RSA_512_PRIVATE_KEY)};
+  EXPECT_TRUE(key.has_value());
+  const auto public_key{sourcemeta::core::derive_public_key(key.value())};
+  EXPECT_TRUE(public_key.has_value());
+  EXPECT_FALSE(sourcemeta::core::rsassa_pkcs1_v15_verify(
+      public_key.value(), sourcemeta::core::SignatureHashFunction::SHA384,
+      MESSAGE, std::string(64, '\x00')));
+}
+
+TEST(make_ec_public_key_rejects_a_coordinate_wider_than_the_field) {
+  const auto coordinate_y{sourcemeta::core::hex_to_bytes(P256_QY_HEX).value()};
+  EXPECT_FALSE(sourcemeta::core::make_ec_public_key(
+                   sourcemeta::core::EllipticCurve::P256,
+                   "\x01" + sourcemeta::core::hex_to_bytes(P256_QX_HEX).value(),
+                   coordinate_y)
+                   .has_value());
+}
+
+TEST(eddsa_verify_rejects_a_key_that_holds_nothing) {
+  const sourcemeta::core::PublicKey key{nullptr};
+  EXPECT_FALSE(
+      sourcemeta::core::eddsa_verify(key, MESSAGE, std::string(64, '\x00')));
+}
+
+TEST(eddsa_verify_rejects_an_rsa_public_key) {
+  const auto key{sourcemeta::core::make_private_key(RSA_PRIVATE_KEY)};
+  EXPECT_TRUE(key.has_value());
+  const auto public_key{sourcemeta::core::derive_public_key(key.value())};
+  EXPECT_TRUE(public_key.has_value());
+  EXPECT_FALSE(sourcemeta::core::eddsa_verify(public_key.value(), MESSAGE,
+                                              std::string(64, '\x00')));
+}
+
+TEST(edwards_public_components_rejects_an_rsa_public_key) {
+  const auto key{sourcemeta::core::make_private_key(RSA_PRIVATE_KEY)};
+  EXPECT_TRUE(key.has_value());
+  const auto public_key{sourcemeta::core::derive_public_key(key.value())};
+  EXPECT_TRUE(public_key.has_value());
+  EXPECT_FALSE(sourcemeta::core::edwards_public_components(public_key.value())
+                   .has_value());
+}
+
+TEST(eddsa_verify_rejects_an_ed25519_key_beyond_the_field_prime) {
+  // Every octet set with the sign bit cleared names a coordinate above the
+  // field prime, which is not a canonical encoding of any point
+  const auto public_key{sourcemeta::core::make_eddsa_public_key(
+      sourcemeta::core::EdwardsCurve::Ed25519,
+      std::string(31, '\xff') + '\x7f')};
+  EXPECT_TRUE(public_key.has_value());
+  EXPECT_FALSE(sourcemeta::core::eddsa_verify(public_key.value(), MESSAGE,
+                                              std::string(64, '\x00')));
+}
+
+TEST(eddsa_verify_rejects_an_ed25519_key_with_a_signed_zero_coordinate) {
+  // The coordinate one leaves the other coordinate at zero, and a zero with the
+  // sign bit set is the non-canonical encoding RFC 8032 Section 5.1.3 refuses
+  const auto public_key{sourcemeta::core::make_eddsa_public_key(
+      sourcemeta::core::EdwardsCurve::Ed25519,
+      '\x01' + std::string(30, '\x00') + '\x80')};
+  EXPECT_TRUE(public_key.has_value());
+  EXPECT_FALSE(sourcemeta::core::eddsa_verify(public_key.value(), MESSAGE,
+                                              std::string(64, '\x00')));
+}
+
+TEST(eddsa_verify_rejects_an_ed448_key_beyond_the_field_prime) {
+  const auto public_key{sourcemeta::core::make_eddsa_public_key(
+      sourcemeta::core::EdwardsCurve::Ed448, std::string(56, '\xff') + '\x00')};
+  EXPECT_TRUE(public_key.has_value());
+  EXPECT_FALSE(sourcemeta::core::eddsa_verify(public_key.value(), MESSAGE,
+                                              std::string(114, '\x00')));
+}
+
+TEST(eddsa_verify_rejects_an_ed448_key_with_a_signed_zero_coordinate) {
+  const auto public_key{sourcemeta::core::make_eddsa_public_key(
+      sourcemeta::core::EdwardsCurve::Ed448,
+      '\x01' + std::string(55, '\x00') + '\x80')};
+  EXPECT_TRUE(public_key.has_value());
+  EXPECT_FALSE(sourcemeta::core::eddsa_verify(public_key.value(), MESSAGE,
+                                              std::string(114, '\x00')));
 }

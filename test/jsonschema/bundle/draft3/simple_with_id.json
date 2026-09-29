@@ -46,7 +46,7 @@
         "bar": {
           "id": "https://www.sourcemeta.com",
           "extends": {
-            "$ref": "test-2"
+            "$ref": "https://www.sourcemeta.com/test-2"
           }
         }
       },
@@ -60,14 +60,14 @@
           "$schema": "http://json-schema.org/draft-03/schema#",
           "id": "https://www.sourcemeta.com/test-2",
           "extends": {
-            "$ref": "test-3"
+            "$ref": "https://www.sourcemeta.com/test-3"
           }
         },
         "https://www.sourcemeta.com/test-3": {
           "$schema": "http://json-schema.org/draft-03/schema#",
           "id": "https://www.sourcemeta.com/test-3",
           "extends": {
-            "$ref": "test-1"
+            "$ref": "https://www.sourcemeta.com/test-1"
           }
         }
       }
@@ -82,7 +82,7 @@
         "bar": {
           "id": "https://www.sourcemeta.com",
           "extends": {
-            "$ref": "test-2"
+            "$ref": "https://www.sourcemeta.com/test-2"
           }
         }
       },
@@ -96,14 +96,14 @@
           "$schema": "http://json-schema.org/draft-03/schema#",
           "id": "https://www.sourcemeta.com/test-2",
           "extends": {
-            "$ref": "test-3"
+            "$ref": "https://www.sourcemeta.com/test-3"
           }
         },
         "https://www.sourcemeta.com/test-3": {
           "$schema": "http://json-schema.org/draft-03/schema#",
           "id": "https://www.sourcemeta.com/test-3",
           "extends": {
-            "$ref": "test-1"
+            "$ref": "https://www.sourcemeta.com/test-1"
           }
         }
       }

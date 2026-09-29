@@ -427,3 +427,25 @@ TEST(overflowing_numeric_pre_release_identifiers_not_less_reversed) {
   EXPECT_FALSE(sourcemeta::core::SemVer{"1.0.0-99999999999999999999999"} <
                sourcemeta::core::SemVer{"1.0.0-11111111111111111111111"});
 }
+
+TEST(not_equal_differing_in_minor_only) {
+  EXPECT_NE(sourcemeta::core::SemVer{"1.2.3"},
+            sourcemeta::core::SemVer{"1.9.3"});
+}
+
+TEST(not_equal_differing_in_patch_only) {
+  EXPECT_NE(sourcemeta::core::SemVer{"1.2.3"},
+            sourcemeta::core::SemVer{"1.2.9"});
+}
+
+TEST(not_equal_differing_in_pre_release_only) {
+  EXPECT_NE(sourcemeta::core::SemVer{"1.2.3-alpha"},
+            sourcemeta::core::SemVer{"1.2.3-beta"});
+}
+
+TEST(not_equal_differing_in_build_metadata_only) {
+  // Build metadata is ignored for precedence but two versions carrying
+  // different metadata are still distinct versions
+  EXPECT_NE(sourcemeta::core::SemVer{"1.2.3+one"},
+            sourcemeta::core::SemVer{"1.2.3+two"});
+}

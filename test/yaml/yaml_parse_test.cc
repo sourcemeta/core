@@ -2769,3 +2769,35 @@ TEST(implicit_key_anchor_on_a_plain_scalar_stays_a_string) {
       sourcemeta::core::parse_json(R"JSON({ "foo": 1, "b": "foo" })JSON")};
   EXPECT_EQ(result, expected);
 }
+
+// YAML 1.2.2 Section 7.4.2: the entries of a flow mapping are separated by a
+// comma, and the value of an entry is a single node, so a second pair cannot
+// stand in the place of the first entry's value
+TEST(flow_mapping_entries_without_a_comma) {
+  const std::string input{"{a: 1 b: 2}"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Missing comma between flow mapping entries");
+  }
+}
+
+TEST(flow_sequence_single_pair_entry_still_parses) {
+  const std::string input{"[a: 1]"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_TRUE(result.is_array());
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_TRUE(result.at(0).is_object());
+  EXPECT_EQ(result.at(0).at("a"), sourcemeta::core::JSON{1});
+}
+
+TEST(flow_sequence_single_pair_value_cannot_be_another_pair) {
+  const std::string input{"[a: b: c]"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Missing comma in flow sequence");
+  }
+}

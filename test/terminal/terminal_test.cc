@@ -75,6 +75,17 @@ TEST(sgr_reset_sequence) {
   EXPECT_EQ(sourcemeta::core::terminal_sgr_reset(), "\033[0m");
 }
 
+// Every case below hands the predicate a constant, which the compiler answers
+// without ever running it. This one keeps the value out of reach of that, so
+// that the function the library actually emits is the one under test here
+TEST(style_validity_at_runtime) {
+  auto style{sourcemeta::core::TerminalStyle::Bold};
+  style = style | sourcemeta::core::TerminalStyle::Red;
+  EXPECT_TRUE(sourcemeta::core::terminal_style_is_valid(style));
+  style = style | sourcemeta::core::TerminalStyle::Green;
+  EXPECT_FALSE(sourcemeta::core::terminal_style_is_valid(style));
+}
+
 TEST(style_validity) {
   EXPECT_TRUE(sourcemeta::core::terminal_style_is_valid(
       sourcemeta::core::TerminalStyle::None));

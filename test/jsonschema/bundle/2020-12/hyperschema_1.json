@@ -412,25 +412,25 @@
           "title": "Core and Validation specifications meta-schema",
           "allOf": [
             {
-              "$ref": "meta/core"
+              "$ref": "https://json-schema.org/draft/2020-12/meta/core"
             },
             {
-              "$ref": "meta/applicator"
+              "$ref": "https://json-schema.org/draft/2020-12/meta/applicator"
             },
             {
-              "$ref": "meta/unevaluated"
+              "$ref": "https://json-schema.org/draft/2020-12/meta/unevaluated"
             },
             {
-              "$ref": "meta/validation"
+              "$ref": "https://json-schema.org/draft/2020-12/meta/validation"
             },
             {
-              "$ref": "meta/meta-data"
+              "$ref": "https://json-schema.org/draft/2020-12/meta/meta-data"
             },
             {
-              "$ref": "meta/format-annotation"
+              "$ref": "https://json-schema.org/draft/2020-12/meta/format-annotation"
             },
             {
-              "$ref": "meta/content"
+              "$ref": "https://json-schema.org/draft/2020-12/meta/content"
             }
           ],
           "type": [
@@ -457,7 +457,7 @@
                     "$dynamicRef": "#meta"
                   },
                   {
-                    "$ref": "meta/validation#/$defs/stringArray"
+                    "$ref": "https://json-schema.org/draft/2020-12/meta/validation#/$defs/stringArray"
                   }
                 ]
               },
@@ -466,12 +466,12 @@
             },
             "$recursiveAnchor": {
               "$comment": "\"$recursiveAnchor\" has been replaced by \"$dynamicAnchor\".",
-              "$ref": "meta/core#/$defs/anchorString",
+              "$ref": "https://json-schema.org/draft/2020-12/meta/core#/$defs/anchorString",
               "deprecated": true
             },
             "$recursiveRef": {
               "$comment": "\"$recursiveRef\" has been replaced by \"$dynamicRef\".",
-              "$ref": "meta/core#/$defs/uriReferenceString",
+              "$ref": "https://json-schema.org/draft/2020-12/meta/core#/$defs/uriReferenceString",
               "deprecated": true
             }
           }
@@ -1039,25 +1039,25 @@
           "title": "Core and Validation specifications meta-schema",
           "allOf": [
             {
-              "$ref": "meta/core"
+              "$ref": "https://json-schema.org/draft/2020-12/meta/core"
             },
             {
-              "$ref": "meta/applicator"
+              "$ref": "https://json-schema.org/draft/2020-12/meta/applicator"
             },
             {
-              "$ref": "meta/unevaluated"
+              "$ref": "https://json-schema.org/draft/2020-12/meta/unevaluated"
             },
             {
-              "$ref": "meta/validation"
+              "$ref": "https://json-schema.org/draft/2020-12/meta/validation"
             },
             {
-              "$ref": "meta/meta-data"
+              "$ref": "https://json-schema.org/draft/2020-12/meta/meta-data"
             },
             {
-              "$ref": "meta/format-annotation"
+              "$ref": "https://json-schema.org/draft/2020-12/meta/format-annotation"
             },
             {
-              "$ref": "meta/content"
+              "$ref": "https://json-schema.org/draft/2020-12/meta/content"
             }
           ],
           "type": [
@@ -1084,7 +1084,7 @@
                     "$dynamicRef": "#meta"
                   },
                   {
-                    "$ref": "meta/validation#/$defs/stringArray"
+                    "$ref": "https://json-schema.org/draft/2020-12/meta/validation#/$defs/stringArray"
                   }
                 ]
               },
@@ -1093,12 +1093,12 @@
             },
             "$recursiveAnchor": {
               "$comment": "\"$recursiveAnchor\" has been replaced by \"$dynamicAnchor\".",
-              "$ref": "meta/core#/$defs/anchorString",
+              "$ref": "https://json-schema.org/draft/2020-12/meta/core#/$defs/anchorString",
               "deprecated": true
             },
             "$recursiveRef": {
               "$comment": "\"$recursiveRef\" has been replaced by \"$dynamicRef\".",
-              "$ref": "meta/core#/$defs/uriReferenceString",
+              "$ref": "https://json-schema.org/draft/2020-12/meta/core#/$defs/uriReferenceString",
               "deprecated": true
             }
           }

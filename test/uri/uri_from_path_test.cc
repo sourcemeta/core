@@ -162,3 +162,50 @@ TEST(windows_relative_with_dotdot) {
         "It is not valid to construct a file:// URI out of a relative path");
   }
 }
+
+TEST(windows_unc_host_with_trailing_separator) {
+  // The host consumes the first segment, so the trailing separator is the
+  // first thing the path accumulator sees and it has nothing to append to yet
+  const std::filesystem::path example{R"(\\server\)"};
+  const auto uri{sourcemeta::core::URI::from_path(example)};
+  EXPECT_EQ(uri.recompose(), "file://server/");
+}
+
+TEST(windows_unc_host_only) {
+  const std::filesystem::path example{R"(\\server)"};
+  const auto uri{sourcemeta::core::URI::from_path(example)};
+  EXPECT_EQ(uri.recompose(), "file://server");
+}
+
+TEST(unix_root_only) {
+  const std::filesystem::path example{"/"};
+  const auto uri{sourcemeta::core::URI::from_path(example)};
+  EXPECT_EQ(uri.recompose(), "file:///");
+}
+
+TEST(unix_root_with_repeated_separators) {
+  const std::filesystem::path example{"///"};
+  const auto uri{sourcemeta::core::URI::from_path(example)};
+  EXPECT_EQ(uri.recompose(), "file:///");
+}
+
+TEST(unix_root_round_trips_through_to_path) {
+  const std::filesystem::path example{"/"};
+  const auto uri{sourcemeta::core::URI::from_path(example)};
+  EXPECT_EQ(uri.to_path(), example);
+}
+
+TEST(windows_unc_root_only) {
+  const std::filesystem::path example{"\\\\"};
+  const auto uri{sourcemeta::core::URI::from_path(example)};
+  EXPECT_EQ(uri.recompose(), "file:///");
+}
+
+// Not a round trip: the URI this produces carries an empty authority, so
+// `to_path` reads it as the filesystem root rather than as the UNC form it came
+// from. The backslash spelling is not recovered
+TEST(windows_unc_root_maps_to_the_filesystem_root) {
+  const std::filesystem::path example{"\\\\"};
+  const auto uri{sourcemeta::core::URI::from_path(example)};
+  EXPECT_EQ(uri.to_path(), std::filesystem::path{"/"});
+}
