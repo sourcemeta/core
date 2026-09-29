@@ -244,3 +244,19 @@ TEST(aes_gcm_decrypt_rejects_a_wrong_size_tag) {
                                                  std::string(15, '\x00'))
                    .has_value());
 }
+
+TEST(aes_gcm_decrypt_rejects_a_wrong_size_key) {
+  const auto result{sourcemeta::core::aes_gcm_encrypt(KEY, IV, "", "hello")};
+  EXPECT_FALSE(sourcemeta::core::aes_gcm_decrypt(
+                   std::string(20, '\x00'), IV, "", result.value().ciphertext(),
+                   result.value().tag())
+                   .has_value());
+}
+
+TEST(aes_gcm_decrypt_rejects_a_wrong_size_iv) {
+  const auto result{sourcemeta::core::aes_gcm_encrypt(KEY, IV, "", "hello")};
+  EXPECT_FALSE(sourcemeta::core::aes_gcm_decrypt(
+                   KEY, std::string(16, '\x00'), "",
+                   result.value().ciphertext(), result.value().tag())
+                   .has_value());
+}
