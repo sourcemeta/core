@@ -1,9 +1,9 @@
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/test.h>
 
-#include <ios>     // std::streamsize
-#include <ostream> // std::ostream
-#include <sstream>
+#include <ios>       // std::streamsize
+#include <ostream>   // std::ostream
+#include <sstream>   // std::ostringstream
 #include <streambuf> // std::streambuf
 #include <string>    // std::string
 
