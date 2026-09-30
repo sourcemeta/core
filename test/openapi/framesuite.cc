@@ -698,14 +698,22 @@ auto check_window_invariants(const sourcemeta::core::OpenAPIFrame &frame,
   EXPECT_EQ(frame.traverse("urn:nowhere:this-frame-holds-no-such-place"),
             nullptr);
 
-  frame.for_each_discriminator([](const auto &discriminator) -> void {
+  std::size_t discriminators{0};
+  frame.for_each_discriminator([&exported, &discriminators](
+                                   const auto &discriminator) -> void {
     // A Discriminator Object mapping names a schema, and the URI it names is
     // resolved against the nearest identifier enclosing it, so neither of those
-    // is ever nothing. Where it lands is the schemas' to say rather than this
-    // frame's, so that is not asked here
+    // is ever nothing
     EXPECT_FALSE(discriminator.destination.empty());
     EXPECT_FALSE(discriminator.scope.empty());
+
+    // And what the window says about where it lands is what the export says,
+    // which is only asked of a description that names one at all
+    EXPECT_EQ(exported.at("discriminators").at(discriminators).at("dangling"),
+              sourcemeta::core::JSON{discriminator.dangling});
+    discriminators += 1;
   });
+  EXPECT_EQ(frame.discriminators().size(), discriminators);
 
   frame.for_each_operation([&frame](const auto &operation) -> void {
     // An operation is reached through a Path Item Object and defined by an

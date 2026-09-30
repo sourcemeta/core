@@ -98,21 +98,6 @@ auto info_json(const sourcemeta::core::OpenAPIInfo &info)
   return result;
 }
 
-auto version_string(const sourcemeta::core::OpenAPIVersion version)
-    -> sourcemeta::core::JSON::StringView {
-  switch (version) {
-    // OpenAPI Specification 3.1.1, Section 4.1: "The `major`.`minor` portion
-    // of the version string (for example `3.1`) SHALL designate the OAS
-    // feature set"
-    case sourcemeta::core::OpenAPIVersion::OPENAPI_3_1:
-      return "3.1"sv;
-    case sourcemeta::core::OpenAPIVersion::OPENAPI_3_2:
-      return "3.2"sv;
-  }
-
-  std::unreachable();
-}
-
 // A Reference Object, and a Path Item Object that declares a `$ref`, stand in
 // for what they lead to. OpenAPI Specification 3.1.1, Section 4.8.9 has `$ref`
 // "Allows for a referenced definition of this path item", and leaves undefined
@@ -851,12 +836,14 @@ OpenAPIFrame::OpenAPIFrame(const JSON &document, const SchemaWalker &walker,
   this->internal_->discriminators =
       openapi_discriminators(document, *(this->internal_->schemas),
                              this->internal_->base, walker, resolver);
-  const auto every_mapping_lands{
-      std::ranges::all_of(this->internal_->discriminators,
-                          [this](const auto &discriminator) -> bool {
-                            return openapi_discriminator_lands(
-                                *(this->internal_->schemas), discriminator);
-                          })};
+  auto every_mapping_lands{true};
+  for (auto &discriminator : this->internal_->discriminators) {
+    discriminator.dangling = !openapi_discriminator_lands(
+        *(this->internal_->schemas), discriminator);
+    if (discriminator.dangling) {
+      every_mapping_lands = false;
+    }
+  }
 
   // What a Schema Object references is as much a part of the description as
   // what the shell around it does, so a description whose schemas reach for
@@ -952,7 +939,8 @@ auto OpenAPIFrame::to_json(
   // Read through the accessors rather than the internal state, so that what
   // this reports and what a caller can observe cannot drift apart
   auto result{JSON::make_object()};
-  result.assign_assume_new("version", JSON{version_string(this->version())});
+  result.assign_assume_new("version",
+                           JSON{openapi_version_name(this->version())});
   result.assign_assume_new("base", JSON{this->base()});
   result.assign_assume_new("standalone", JSON{this->standalone()});
   result.assign_assume_new("schemas",
@@ -1048,9 +1036,7 @@ auto OpenAPIFrame::to_json(
 
       entry.assign_assume_new("destination", JSON{discriminator.destination});
       entry.assign_assume_new("scope", JSON{discriminator.scope});
-      entry.assign_assume_new("dangling",
-                              JSON{!openapi_discriminator_lands(
-                                  *(this->internal_->schemas), discriminator)});
+      entry.assign_assume_new("dangling", JSON{discriminator.dangling});
       discriminators.push_back(std::move(entry));
     }
 

@@ -72,6 +72,22 @@ SOURCEMETA_CORE_OPENAPI_EXPORT
 auto openapi_version(const JSON &document) -> std::optional<OpenAPIVersion>;
 
 /// @ingroup openapi
+/// The feature set a version designates, which OpenAPI Specification 3.1.1,
+/// Section 4.1 spells as "the `major`.`minor` portion of the version string".
+/// For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/openapi.h>
+/// #include <cassert>
+///
+/// assert(sourcemeta::core::openapi_version_name(
+///            sourcemeta::core::OpenAPIVersion::OPENAPI_3_1) == "3.1");
+/// ```
+SOURCEMETA_CORE_OPENAPI_EXPORT
+auto openapi_version_name(const OpenAPIVersion version) noexcept
+    -> JSON::StringView;
+
+/// @ingroup openapi
 /// The contact information that an OpenAPI Description declares for the API.
 /// Every value borrows from the document it was read from, so that document
 /// must outlive this
@@ -317,6 +333,10 @@ public:
     /// schema declares for the URI form, and the description itself for the
     /// name form
     JSON::String scope;
+    /// Whether that destination is no schema the frame holds, which counts a
+    /// position that the schemas record without a schema of its own as nowhere
+    /// to land
+    bool dangling{false};
   };
 
   /// Where an Object sits in a description, and what the frame knows
