@@ -636,20 +636,33 @@ auto check_window_invariants(const sourcemeta::core::OpenAPIFrame &frame,
       [](const auto &, const auto &) -> bool { return false; }));
 
   std::size_t objects{0};
-  frame.for_each_object(
-      [&frame, &objects](const auto &uri, const auto &location) -> void {
-        objects += 1;
-        // Every Object the frame reports is one it can be asked for again by
-        // the URI it was reported under, and what comes back is that same
-        // Object
-        const auto *found{frame.traverse(uri)};
-        EXPECT_TRUE(found != nullptr);
-        EXPECT_EQ(found->type, location.type);
-        EXPECT_EQ(found->pointer, location.pointer);
-        // And that URI is the one the frame addresses the position by, which is
-        // what makes the two directions inverses of each other
-        EXPECT_EQ(frame.uri(location.pointer), uri);
-      });
+  frame.for_each_object([&frame, &exported, &objects](
+                            const auto &uri, const auto &location) -> void {
+    objects += 1;
+    // Every Object the frame reports is one it can be asked for again by
+    // the URI it was reported under, and what comes back is that same
+    // Object
+    const auto *found{frame.traverse(uri)};
+    EXPECT_TRUE(found != nullptr);
+    EXPECT_EQ(found->type, location.type);
+    EXPECT_EQ(found->pointer, location.pointer);
+    // And that URI is the one the frame addresses the position by, which is
+    // what makes the two directions inverses of each other
+    EXPECT_EQ(frame.uri(location.pointer), uri);
+
+    // What holds a place is a place of its own, and the root of the
+    // document is the one place with nothing above it
+    if (location.parent.has_value()) {
+      EXPECT_TRUE(frame.traverse(location.parent.value()) != nullptr);
+    } else {
+      EXPECT_TRUE(location.pointer.empty());
+    }
+
+    EXPECT_EQ(exported.at("locations").at(uri).at("parent"),
+              location.parent.has_value()
+                  ? sourcemeta::core::JSON{location.parent.value()}
+                  : sourcemeta::core::JSON{nullptr});
+  });
   EXPECT_EQ(frame.object_count(), objects);
 
   std::size_t references{0};

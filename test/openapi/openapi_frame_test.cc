@@ -3,6 +3,7 @@
 
 #include <sourcemeta/core/test.h>
 
+#include <functional>  // std::ref
 #include <string_view> // std::string_view
 
 TEST(version_patch_zero) {
@@ -545,4 +546,393 @@ TEST(standalone_agrees_with_json_export) {
       document, sourcemeta::core::schema_walker,
       sourcemeta::core::schema_resolver, "https://example.com/openapi.json"};
   EXPECT_EQ(frame.to_json().at("standalone"), sourcemeta::core::JSON{false});
+}
+
+TEST(positions_of_every_place_the_export_names) {
+  sourcemeta::core::PointerPositionTracker tracker;
+  sourcemeta::core::JSON document{nullptr};
+  sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.2.1",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "security": [ { "#/components/securitySchemes/apiKey": [] } ],
+    "components": {
+      "securitySchemes": {
+        "apiKey": { "type": "apiKey", "name": "key", "in": "header" }
+      },
+      "schemas": {
+        "Pet": {
+          "oneOf": [ { "$ref": "#/components/schemas/Cat" } ],
+          "discriminator": {
+            "propertyName": "petType",
+            "mapping": { "cat": "Cat" }
+          }
+        },
+        "Cat": { "type": "object" }
+      }
+    },
+    "paths": {}
+  })JSON",
+                               document, std::ref(tracker));
+
+  const sourcemeta::core::OpenAPIFrame frame{
+      document, sourcemeta::core::schema_walker,
+      sourcemeta::core::schema_resolver, "https://example.com/openapi.json"};
+  const auto result{frame.to_json(tracker)};
+  const auto &locations{result.at("locations")};
+  const auto &schemas{result.at("schemas").at("locations").at("static")};
+  EXPECT_EQ(locations.at("https://example.com/openapi.json").at("position"),
+            sourcemeta::core::parse_json("[ 1, 1, 21, 3 ]"));
+  EXPECT_EQ(locations.at("https://example.com/openapi.json#/components")
+                .at("position"),
+            sourcemeta::core::parse_json("[ 5, 5, 19, 5 ]"));
+  EXPECT_EQ(
+      locations.at("https://example.com/openapi.json#/components/schemas/Cat")
+          .at("position"),
+      sourcemeta::core::parse_json("[ 17, 9, 17, 35 ]"));
+  EXPECT_EQ(
+      locations.at("https://example.com/openapi.json#/components/schemas/Pet")
+          .at("position"),
+      sourcemeta::core::parse_json("[ 10, 9, 16, 9 ]"));
+  EXPECT_EQ(locations
+                .at("https://example.com/openapi.json#/components/"
+                    "securitySchemes/apiKey")
+                .at("position"),
+            sourcemeta::core::parse_json("[ 7, 9, 7, 69 ]"));
+  EXPECT_EQ(
+      locations.at("https://example.com/openapi.json#/info").at("position"),
+      sourcemeta::core::parse_json("[ 3, 5, 3, 54 ]"));
+  EXPECT_EQ(
+      locations.at("https://example.com/openapi.json#/paths").at("position"),
+      sourcemeta::core::parse_json("[ 20, 5, 20, 15 ]"));
+  EXPECT_EQ(locations.at("https://example.com/openapi.json#/security/0")
+                .at("position"),
+            sourcemeta::core::parse_json("[ 4, 19, 4, 63 ]"));
+  EXPECT_EQ(
+      schemas.at("https://example.com/openapi.json#/components/schemas/Cat")
+          .at("position"),
+      sourcemeta::core::parse_json("[ 17, 9, 17, 35 ]"));
+  EXPECT_EQ(
+      schemas.at("https://example.com/openapi.json#/components/schemas/Pet")
+          .at("position"),
+      sourcemeta::core::parse_json("[ 10, 9, 16, 9 ]"));
+  EXPECT_EQ(schemas
+                .at("https://example.com/openapi.json#/components/schemas/Pet/"
+                    "oneOf/0")
+                .at("position"),
+            sourcemeta::core::parse_json("[ 11, 22, 11, 59 ]"));
+  EXPECT_EQ(result.at("schemas").at("references").at(0).at("position"),
+            sourcemeta::core::parse_json("[ 11, 24, 11, 57 ]"));
+  EXPECT_EQ(result.at("discriminators").at(0).at("position"),
+            sourcemeta::core::parse_json("[ 14, 26, 14, 37 ]"));
+  EXPECT_EQ(result.at("securityReferences").at(0).at("position"),
+            sourcemeta::core::parse_json("[ 4, 21, 4, 61 ]"));
+}
+
+TEST(positions_are_none_when_the_tracker_holds_nothing) {
+  const sourcemeta::core::PointerPositionTracker tracker;
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.2.1",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "security": [ { "#/components/securitySchemes/apiKey": [] } ],
+    "components": {
+      "securitySchemes": {
+        "apiKey": { "type": "apiKey", "name": "key", "in": "header" }
+      },
+      "schemas": {
+        "Pet": {
+          "oneOf": [ { "$ref": "#/components/schemas/Cat" } ],
+          "discriminator": {
+            "propertyName": "petType",
+            "mapping": { "cat": "Cat" }
+          }
+        },
+        "Cat": { "type": "object" }
+      }
+    },
+    "paths": {}
+  })JSON")};
+
+  const sourcemeta::core::OpenAPIFrame frame{
+      document, sourcemeta::core::schema_walker,
+      sourcemeta::core::schema_resolver, "https://example.com/openapi.json"};
+  const auto result{frame.to_json(tracker)};
+  const auto &locations{result.at("locations")};
+  const auto &schemas{result.at("schemas").at("locations").at("static")};
+  EXPECT_EQ(locations.at("https://example.com/openapi.json").at("position"),
+            sourcemeta::core::JSON{nullptr});
+  EXPECT_EQ(locations.at("https://example.com/openapi.json#/components")
+                .at("position"),
+            sourcemeta::core::JSON{nullptr});
+  EXPECT_EQ(
+      locations.at("https://example.com/openapi.json#/components/schemas/Cat")
+          .at("position"),
+      sourcemeta::core::JSON{nullptr});
+  EXPECT_EQ(
+      locations.at("https://example.com/openapi.json#/components/schemas/Pet")
+          .at("position"),
+      sourcemeta::core::JSON{nullptr});
+  EXPECT_EQ(locations
+                .at("https://example.com/openapi.json#/components/"
+                    "securitySchemes/apiKey")
+                .at("position"),
+            sourcemeta::core::JSON{nullptr});
+  EXPECT_EQ(
+      locations.at("https://example.com/openapi.json#/info").at("position"),
+      sourcemeta::core::JSON{nullptr});
+  EXPECT_EQ(
+      locations.at("https://example.com/openapi.json#/paths").at("position"),
+      sourcemeta::core::JSON{nullptr});
+  EXPECT_EQ(locations.at("https://example.com/openapi.json#/security/0")
+                .at("position"),
+            sourcemeta::core::JSON{nullptr});
+  EXPECT_EQ(
+      schemas.at("https://example.com/openapi.json#/components/schemas/Cat")
+          .at("position"),
+      sourcemeta::core::JSON{nullptr});
+  EXPECT_EQ(
+      schemas.at("https://example.com/openapi.json#/components/schemas/Pet")
+          .at("position"),
+      sourcemeta::core::JSON{nullptr});
+  EXPECT_EQ(schemas
+                .at("https://example.com/openapi.json#/components/schemas/Pet/"
+                    "oneOf/0")
+                .at("position"),
+            sourcemeta::core::JSON{nullptr});
+  EXPECT_EQ(result.at("schemas").at("references").at(0).at("position"),
+            sourcemeta::core::JSON{nullptr});
+  EXPECT_EQ(result.at("discriminators").at(0).at("position"),
+            sourcemeta::core::JSON{nullptr});
+  EXPECT_EQ(result.at("securityReferences").at(0).at("position"),
+            sourcemeta::core::JSON{nullptr});
+}
+
+TEST(positions_are_absent_when_no_tracker_is_given) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.2.1",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "security": [ { "#/components/securitySchemes/apiKey": [] } ],
+    "components": {
+      "securitySchemes": {
+        "apiKey": { "type": "apiKey", "name": "key", "in": "header" }
+      },
+      "schemas": {
+        "Pet": {
+          "oneOf": [ { "$ref": "#/components/schemas/Cat" } ],
+          "discriminator": {
+            "propertyName": "petType",
+            "mapping": { "cat": "Cat" }
+          }
+        },
+        "Cat": { "type": "object" }
+      }
+    },
+    "paths": {}
+  })JSON")};
+
+  const sourcemeta::core::OpenAPIFrame frame{
+      document, sourcemeta::core::schema_walker,
+      sourcemeta::core::schema_resolver, "https://example.com/openapi.json"};
+  const auto result{frame.to_json()};
+  const auto &locations{result.at("locations")};
+  const auto &schemas{result.at("schemas").at("locations").at("static")};
+  EXPECT_FALSE(
+      locations.at("https://example.com/openapi.json").defines("position"));
+  EXPECT_FALSE(locations.at("https://example.com/openapi.json#/components")
+                   .defines("position"));
+  EXPECT_FALSE(
+      locations.at("https://example.com/openapi.json#/components/schemas/Cat")
+          .defines("position"));
+  EXPECT_FALSE(
+      locations.at("https://example.com/openapi.json#/components/schemas/Pet")
+          .defines("position"));
+  EXPECT_FALSE(locations
+                   .at("https://example.com/openapi.json#/components/"
+                       "securitySchemes/apiKey")
+                   .defines("position"));
+  EXPECT_FALSE(locations.at("https://example.com/openapi.json#/info")
+                   .defines("position"));
+  EXPECT_FALSE(locations.at("https://example.com/openapi.json#/paths")
+                   .defines("position"));
+  EXPECT_FALSE(locations.at("https://example.com/openapi.json#/security/0")
+                   .defines("position"));
+  EXPECT_FALSE(
+      schemas.at("https://example.com/openapi.json#/components/schemas/Cat")
+          .defines("position"));
+  EXPECT_FALSE(
+      schemas.at("https://example.com/openapi.json#/components/schemas/Pet")
+          .defines("position"));
+  EXPECT_FALSE(schemas
+                   .at("https://example.com/openapi.json#/components/schemas/"
+                       "Pet/oneOf/0")
+                   .defines("position"));
+  EXPECT_FALSE(result.at("schemas").at("references").at(0).defines("position"));
+  EXPECT_FALSE(result.at("discriminators").at(0).defines("position"));
+  EXPECT_FALSE(result.at("securityReferences").at(0).defines("position"));
+}
+
+TEST(kind_name_of_every_object) {
+  EXPECT_EQ(sourcemeta::core::openapi_kind_name(
+                sourcemeta::core::OpenAPIFrame::ObjectKind::Document),
+            "openapi");
+  EXPECT_EQ(sourcemeta::core::openapi_kind_name(
+                sourcemeta::core::OpenAPIFrame::ObjectKind::PathItem),
+            "path-item");
+  EXPECT_EQ(sourcemeta::core::openapi_kind_name(
+                sourcemeta::core::OpenAPIFrame::ObjectKind::Parameter),
+            "parameter");
+  EXPECT_EQ(sourcemeta::core::openapi_kind_name(
+                sourcemeta::core::OpenAPIFrame::ObjectKind::RequestBody),
+            "request-body");
+  EXPECT_EQ(sourcemeta::core::openapi_kind_name(
+                sourcemeta::core::OpenAPIFrame::ObjectKind::Response),
+            "response");
+  EXPECT_EQ(sourcemeta::core::openapi_kind_name(
+                sourcemeta::core::OpenAPIFrame::ObjectKind::Example),
+            "example");
+  EXPECT_EQ(sourcemeta::core::openapi_kind_name(
+                sourcemeta::core::OpenAPIFrame::ObjectKind::Header),
+            "header");
+  EXPECT_EQ(sourcemeta::core::openapi_kind_name(
+                sourcemeta::core::OpenAPIFrame::ObjectKind::Link),
+            "link");
+  EXPECT_EQ(sourcemeta::core::openapi_kind_name(
+                sourcemeta::core::OpenAPIFrame::ObjectKind::Callbacks),
+            "callback");
+  EXPECT_EQ(sourcemeta::core::openapi_kind_name(
+                sourcemeta::core::OpenAPIFrame::ObjectKind::SecurityScheme),
+            "security-scheme");
+  EXPECT_EQ(sourcemeta::core::openapi_kind_name(
+                sourcemeta::core::OpenAPIFrame::ObjectKind::MediaType),
+            "media-type");
+  EXPECT_EQ(sourcemeta::core::openapi_kind_name(
+                sourcemeta::core::OpenAPIFrame::ObjectKind::Info),
+            "info");
+  EXPECT_EQ(sourcemeta::core::openapi_kind_name(
+                sourcemeta::core::OpenAPIFrame::ObjectKind::Contact),
+            "contact");
+  EXPECT_EQ(sourcemeta::core::openapi_kind_name(
+                sourcemeta::core::OpenAPIFrame::ObjectKind::License),
+            "license");
+  EXPECT_EQ(sourcemeta::core::openapi_kind_name(
+                sourcemeta::core::OpenAPIFrame::ObjectKind::Server),
+            "server");
+  EXPECT_EQ(sourcemeta::core::openapi_kind_name(
+                sourcemeta::core::OpenAPIFrame::ObjectKind::ServerVariable),
+            "server-variable");
+  EXPECT_EQ(sourcemeta::core::openapi_kind_name(
+                sourcemeta::core::OpenAPIFrame::ObjectKind::Components),
+            "components");
+  EXPECT_EQ(sourcemeta::core::openapi_kind_name(
+                sourcemeta::core::OpenAPIFrame::ObjectKind::Paths),
+            "paths");
+  EXPECT_EQ(sourcemeta::core::openapi_kind_name(
+                sourcemeta::core::OpenAPIFrame::ObjectKind::Operation),
+            "operation");
+  EXPECT_EQ(
+      sourcemeta::core::openapi_kind_name(
+          sourcemeta::core::OpenAPIFrame::ObjectKind::ExternalDocumentation),
+      "external-documentation");
+  EXPECT_EQ(sourcemeta::core::openapi_kind_name(
+                sourcemeta::core::OpenAPIFrame::ObjectKind::Encoding),
+            "encoding");
+  EXPECT_EQ(sourcemeta::core::openapi_kind_name(
+                sourcemeta::core::OpenAPIFrame::ObjectKind::Responses),
+            "responses");
+  EXPECT_EQ(sourcemeta::core::openapi_kind_name(
+                sourcemeta::core::OpenAPIFrame::ObjectKind::Tag),
+            "tag");
+  EXPECT_EQ(sourcemeta::core::openapi_kind_name(
+                sourcemeta::core::OpenAPIFrame::ObjectKind::Reference),
+            "reference");
+  EXPECT_EQ(sourcemeta::core::openapi_kind_name(
+                sourcemeta::core::OpenAPIFrame::ObjectKind::Schema),
+            "schema");
+  EXPECT_EQ(sourcemeta::core::openapi_kind_name(
+                sourcemeta::core::OpenAPIFrame::ObjectKind::OAuthFlows),
+            "oauth-flows");
+  EXPECT_EQ(sourcemeta::core::openapi_kind_name(
+                sourcemeta::core::OpenAPIFrame::ObjectKind::OAuthFlow),
+            "oauth-flow");
+  EXPECT_EQ(
+      sourcemeta::core::openapi_kind_name(
+          sourcemeta::core::OpenAPIFrame::ObjectKind::SecurityRequirement),
+      "security-requirement");
+}
+
+TEST(kind_name_of_every_route_to_an_operation) {
+  EXPECT_EQ(sourcemeta::core::openapi_operation_kind_name(
+                sourcemeta::core::OpenAPIFrame::OperationKind::Path),
+            "path");
+  EXPECT_EQ(sourcemeta::core::openapi_operation_kind_name(
+                sourcemeta::core::OpenAPIFrame::OperationKind::Webhook),
+            "webhook");
+  EXPECT_EQ(sourcemeta::core::openapi_operation_kind_name(
+                sourcemeta::core::OpenAPIFrame::OperationKind::Callback),
+            "callback");
+}
+
+TEST(parent_of_every_object) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0",
+      "contact": { "name": "Jane Doe" }
+    },
+    "paths": {
+      "/people": {
+        "get": { "responses": { "200": { "description": "Some people" } } }
+      }
+    }
+  })JSON")};
+
+  const sourcemeta::core::OpenAPIFrame frame{
+      document, sourcemeta::core::schema_walker,
+      sourcemeta::core::schema_resolver, "https://example.com/openapi.json"};
+  const auto &locations{frame.locations()};
+  EXPECT_FALSE(
+      locations.at("https://example.com/openapi.json").parent.has_value());
+  EXPECT_EQ(locations.at("https://example.com/openapi.json#/info").parent,
+            "https://example.com/openapi.json");
+  EXPECT_EQ(
+      locations.at("https://example.com/openapi.json#/info/contact").parent,
+      "https://example.com/openapi.json#/info");
+  EXPECT_EQ(locations.at("https://example.com/openapi.json#/paths").parent,
+            "https://example.com/openapi.json");
+  EXPECT_EQ(
+      locations.at("https://example.com/openapi.json#/paths/~1people").parent,
+      "https://example.com/openapi.json#/paths");
+  EXPECT_EQ(locations.at("https://example.com/openapi.json#/paths/~1people/get")
+                .parent,
+            "https://example.com/openapi.json#/paths/~1people");
+  EXPECT_EQ(locations
+                .at("https://example.com/openapi.json#/paths/~1people/get/"
+                    "responses")
+                .parent,
+            "https://example.com/openapi.json#/paths/~1people/get");
+  EXPECT_EQ(locations
+                .at("https://example.com/openapi.json#/paths/~1people/get/"
+                    "responses/200")
+                .parent,
+            "https://example.com/openapi.json#/paths/~1people/get/responses");
+}
+
+TEST(parent_skips_a_position_that_is_no_object_of_its_own) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.1.1",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "components": { "schemas": { "Person": { "type": "object" } } }
+  })JSON")};
+
+  const sourcemeta::core::OpenAPIFrame frame{
+      document, sourcemeta::core::schema_walker,
+      sourcemeta::core::schema_resolver, "https://example.com/openapi.json"};
+  const auto &locations{frame.locations()};
+  EXPECT_FALSE(locations.contains(
+      "https://example.com/openapi.json#/components/schemas"));
+  EXPECT_EQ(locations
+                .at("https://example.com/openapi.json#/components/schemas/"
+                    "Person")
+                .parent,
+            "https://example.com/openapi.json#/components");
 }
