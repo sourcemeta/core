@@ -763,13 +763,15 @@ TEST(openapi_3_0_rejects_dollar_schema) {
   EXPECT_TRUE(result.order_dependencies.empty());
 }
 
-TEST(openapi_3_0_rejects_dollar_ref) {
+TEST(openapi_3_0_dollar_ref) {
   using namespace sourcemeta::core;
   const auto &result{schema_walker("$ref", VOCABULARIES_OPENAPI_3_0)};
-  EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
-  EXPECT_FALSE(result.vocabulary.has_value());
+  EXPECT_EQ(result.type, SchemaKeywordType::Reference);
+  EXPECT_TRUE(result.vocabulary.has_value());
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), OPENAPI_3_0_BASE);
   EXPECT_TRUE(result.dependencies.empty());
   EXPECT_TRUE(result.order_dependencies.empty());
+  EXPECT_TRUE(result.instances.none());
 }
 
 TEST(openapi_3_0_rejects_dollar_defs) {
