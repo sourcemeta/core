@@ -936,3 +936,27 @@ TEST(parent_skips_a_position_that_is_no_object_of_its_own) {
                 .parent,
             "https://example.com/openapi.json#/components");
 }
+
+TEST(version_name_of_every_revision) {
+  EXPECT_EQ(sourcemeta::core::openapi_version_name(
+                sourcemeta::core::OpenAPIVersion::OPENAPI_3_1),
+            "3.1");
+  EXPECT_EQ(sourcemeta::core::openapi_version_name(
+                sourcemeta::core::OpenAPIVersion::OPENAPI_3_2),
+            "3.2");
+}
+
+TEST(version_name_agrees_with_json_export) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.2.1",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "paths": {}
+  })JSON")};
+
+  const sourcemeta::core::OpenAPIFrame frame{
+      document, sourcemeta::core::schema_walker,
+      sourcemeta::core::schema_resolver, "https://example.com/openapi.json"};
+  EXPECT_EQ(frame.to_json().at("version"),
+            sourcemeta::core::JSON{
+                sourcemeta::core::openapi_version_name(frame.version())});
+}
