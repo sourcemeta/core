@@ -725,7 +725,10 @@ auto sourcemeta::core::schema_resolver(const std::string_view identifier)
   "id": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
   "$schema": "http://json-schema.org/draft-04/schema#",
   "description": "The OpenAPI v3.0.x Schema Object dialect",
-  "allOf": [ { "$ref": "#/definitions/openapi/definitions/Schema" } ],
+  "anyOf": [
+    { "$ref": "#/definitions/openapi/definitions/Schema" },
+    { "$ref": "#/definitions/openapi/definitions/Reference" }
+  ],
   "definitions": {
     "openapi": @OPENAPI_OAS_3_0_SCHEMA_2024_10_18@
   }
@@ -737,7 +740,10 @@ auto sourcemeta::core::schema_resolver(const std::string_view identifier)
   "id": "tag:spec.openapis.org,2021-09-28:oas/3.0/dialect",
   "$schema": "http://json-schema.org/draft-04/schema#",
   "description": "The OpenAPI v3.0.x Schema Object dialect",
-  "allOf": [ { "$ref": "#/definitions/openapi/definitions/Schema" } ],
+  "anyOf": [
+    { "$ref": "#/definitions/openapi/definitions/Schema" },
+    { "$ref": "#/definitions/openapi/definitions/Reference" }
+  ],
   "definitions": {
     "openapi": @OPENAPI_OAS_3_0_SCHEMA_2021_09_28@
   }

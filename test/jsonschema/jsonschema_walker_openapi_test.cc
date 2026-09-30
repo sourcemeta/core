@@ -479,7 +479,7 @@ TEST(openapi_3_0_description) {
   EXPECT_TRUE(result.instances.none());
 }
 
-TEST(openapi_3_0_format) {
+TEST(openapi_3_0_format_is_not_limited_to_strings) {
   using namespace sourcemeta::core;
   const auto &result{schema_walker("format", VOCABULARIES_OPENAPI_3_0)};
   EXPECT_EQ(result.type, SchemaKeywordType::Other);
@@ -487,8 +487,7 @@ TEST(openapi_3_0_format) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), OPENAPI_3_0_BASE);
   EXPECT_TRUE(result.dependencies.empty());
   EXPECT_TRUE(result.order_dependencies.empty());
-  EXPECT_EQ(result.instances,
-            sourcemeta::core::make_set({sourcemeta::core::JSON::Type::String}));
+  EXPECT_TRUE(result.instances.none());
 }
 
 TEST(openapi_3_0_default) {
@@ -527,7 +526,7 @@ TEST(openapi_3_0_discriminator) {
 TEST(openapi_3_0_readOnly) {
   using namespace sourcemeta::core;
   const auto &result{schema_walker("readOnly", VOCABULARIES_OPENAPI_3_0)};
-  EXPECT_EQ(result.type, SchemaKeywordType::Annotation);
+  EXPECT_EQ(result.type, SchemaKeywordType::Comment);
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), OPENAPI_3_0_BASE);
   EXPECT_TRUE(result.dependencies.empty());
@@ -538,7 +537,7 @@ TEST(openapi_3_0_readOnly) {
 TEST(openapi_3_0_writeOnly) {
   using namespace sourcemeta::core;
   const auto &result{schema_walker("writeOnly", VOCABULARIES_OPENAPI_3_0)};
-  EXPECT_EQ(result.type, SchemaKeywordType::Annotation);
+  EXPECT_EQ(result.type, SchemaKeywordType::Comment);
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), OPENAPI_3_0_BASE);
   EXPECT_TRUE(result.dependencies.empty());
@@ -571,7 +570,7 @@ TEST(openapi_3_0_externalDocs) {
 TEST(openapi_3_0_deprecated) {
   using namespace sourcemeta::core;
   const auto &result{schema_walker("deprecated", VOCABULARIES_OPENAPI_3_0)};
-  EXPECT_EQ(result.type, SchemaKeywordType::Annotation);
+  EXPECT_EQ(result.type, SchemaKeywordType::Comment);
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), OPENAPI_3_0_BASE);
   EXPECT_TRUE(result.dependencies.empty());
@@ -649,55 +648,9 @@ TEST(openapi_3_0_nullable_without_vocabulary) {
   const auto &result{schema_walker("nullable", VOCABULARIES_2020_12_CORE)};
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
-}
-
-TEST(openapi_3_0_discriminator_without_vocabulary) {
-  using namespace sourcemeta::core;
-  const auto &result{schema_walker("discriminator", VOCABULARIES_2020_12_CORE)};
-  EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
-  EXPECT_FALSE(result.vocabulary.has_value());
-}
-
-TEST(openapi_3_0_readOnly_without_vocabulary) {
-  using namespace sourcemeta::core;
-  const auto &result{schema_walker("readOnly", VOCABULARIES_2020_12_CORE)};
-  EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
-  EXPECT_FALSE(result.vocabulary.has_value());
-}
-
-TEST(openapi_3_0_writeOnly_without_vocabulary) {
-  using namespace sourcemeta::core;
-  const auto &result{schema_walker("writeOnly", VOCABULARIES_2020_12_CORE)};
-  EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
-  EXPECT_FALSE(result.vocabulary.has_value());
-}
-
-TEST(openapi_3_0_example_without_vocabulary) {
-  using namespace sourcemeta::core;
-  const auto &result{schema_walker("example", VOCABULARIES_2020_12_CORE)};
-  EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
-  EXPECT_FALSE(result.vocabulary.has_value());
-}
-
-TEST(openapi_3_0_externalDocs_without_vocabulary) {
-  using namespace sourcemeta::core;
-  const auto &result{schema_walker("externalDocs", VOCABULARIES_2020_12_CORE)};
-  EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
-  EXPECT_FALSE(result.vocabulary.has_value());
-}
-
-TEST(openapi_3_0_deprecated_without_vocabulary) {
-  using namespace sourcemeta::core;
-  const auto &result{schema_walker("deprecated", VOCABULARIES_2020_12_CORE)};
-  EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
-  EXPECT_FALSE(result.vocabulary.has_value());
-}
-
-TEST(openapi_3_0_xml_without_vocabulary) {
-  using namespace sourcemeta::core;
-  const auto &result{schema_walker("xml", VOCABULARIES_2020_12_CORE)};
-  EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
-  EXPECT_FALSE(result.vocabulary.has_value());
+  EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
+  EXPECT_TRUE(result.instances.none());
 }
 
 TEST(openapi_3_0_x_definitions_without_vocabulary) {
@@ -705,6 +658,9 @@ TEST(openapi_3_0_x_definitions_without_vocabulary) {
   const auto &result{schema_walker("x-definitions", VOCABULARIES_2020_12_CORE)};
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
+  EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
+  EXPECT_TRUE(result.instances.none());
 }
 
 TEST(openapi_3_0_rejects_patternProperties) {
@@ -1024,6 +980,111 @@ TEST(openapi_3_0_rejects_dollar_dynamicRef) {
 TEST(openapi_3_0_rejects_dollar_dynamicAnchor) {
   using namespace sourcemeta::core;
   const auto &result{schema_walker("$dynamicAnchor", VOCABULARIES_OPENAPI_3_0)};
+  EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
+  EXPECT_FALSE(result.vocabulary.has_value());
+  EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
+}
+
+TEST(openapi_3_0_rejects_an_unreserved_extension_name) {
+  using namespace sourcemeta::core;
+  const auto &result{schema_walker("x-foo", VOCABULARIES_OPENAPI_3_0)};
+  EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
+  EXPECT_FALSE(result.vocabulary.has_value());
+  EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
+}
+
+TEST(openapi_3_0_rejects_an_extension_prefixed_definitions_lookalike) {
+  using namespace sourcemeta::core;
+  const auto &result{
+      schema_walker("x-definitions-extra", VOCABULARIES_OPENAPI_3_0)};
+  EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
+  EXPECT_FALSE(result.vocabulary.has_value());
+  EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
+}
+
+TEST(openapi_3_0_rejects_dependentSchemas) {
+  using namespace sourcemeta::core;
+  const auto &result{
+      schema_walker("dependentSchemas", VOCABULARIES_OPENAPI_3_0)};
+  EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
+  EXPECT_FALSE(result.vocabulary.has_value());
+  EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
+}
+
+TEST(openapi_3_0_rejects_dependentRequired) {
+  using namespace sourcemeta::core;
+  const auto &result{
+      schema_walker("dependentRequired", VOCABULARIES_OPENAPI_3_0)};
+  EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
+  EXPECT_FALSE(result.vocabulary.has_value());
+  EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
+}
+
+TEST(openapi_3_0_rejects_dollar_recursiveRef) {
+  using namespace sourcemeta::core;
+  const auto &result{schema_walker("$recursiveRef", VOCABULARIES_OPENAPI_3_0)};
+  EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
+  EXPECT_FALSE(result.vocabulary.has_value());
+  EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
+}
+
+TEST(openapi_3_0_rejects_dollar_recursiveAnchor) {
+  using namespace sourcemeta::core;
+  const auto &result{
+      schema_walker("$recursiveAnchor", VOCABULARIES_OPENAPI_3_0)};
+  EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
+  EXPECT_FALSE(result.vocabulary.has_value());
+  EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
+}
+
+TEST(openapi_3_0_rejects_maximumCanEqual) {
+  using namespace sourcemeta::core;
+  const auto &result{
+      schema_walker("maximumCanEqual", VOCABULARIES_OPENAPI_3_0)};
+  EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
+  EXPECT_FALSE(result.vocabulary.has_value());
+  EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
+}
+
+TEST(openapi_3_0_rejects_minimumCanEqual) {
+  using namespace sourcemeta::core;
+  const auto &result{
+      schema_walker("minimumCanEqual", VOCABULARIES_OPENAPI_3_0)};
+  EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
+  EXPECT_FALSE(result.vocabulary.has_value());
+  EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
+}
+
+TEST(openapi_3_0_rejects_requires) {
+  using namespace sourcemeta::core;
+  const auto &result{schema_walker("requires", VOCABULARIES_OPENAPI_3_0)};
+  EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
+  EXPECT_FALSE(result.vocabulary.has_value());
+  EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
+}
+
+TEST(openapi_3_0_rejects_optional) {
+  using namespace sourcemeta::core;
+  const auto &result{schema_walker("optional", VOCABULARIES_OPENAPI_3_0)};
+  EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
+  EXPECT_FALSE(result.vocabulary.has_value());
+  EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
+}
+
+TEST(openapi_3_0_rejects_maxDecimal) {
+  using namespace sourcemeta::core;
+  const auto &result{schema_walker("maxDecimal", VOCABULARIES_OPENAPI_3_0)};
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());

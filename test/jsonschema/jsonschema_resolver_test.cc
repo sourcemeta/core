@@ -442,8 +442,10 @@ TEST(openapi_3_0_dialect_points_to_the_schema_object) {
       "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect")};
   EXPECT_TRUE(result.has_value());
   const sourcemeta::core::JSON &document{result.value()};
-  EXPECT_EQ(document.at("allOf").at(0).at("$ref").to_string(),
+  EXPECT_EQ(document.at("anyOf").at(0).at("$ref").to_string(),
             "#/definitions/openapi/definitions/Schema");
+  EXPECT_EQ(document.at("anyOf").at(1).at("$ref").to_string(),
+            "#/definitions/openapi/definitions/Reference");
   EXPECT_EQ(document.at("definitions").at("openapi").at("id").to_string(),
             "https://spec.openapis.org/oas/3.0/schema/2024-10-18");
 }
