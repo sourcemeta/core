@@ -671,7 +671,20 @@ auto sourcemeta::core::vocabularies(const SchemaResolver &resolver,
   }
 
   /*
-   * (2) If the base dialect is pre-vocabularies, then the
+   * (2) The OpenAPI v3.0 Schema Object describes itself through a Draft 4
+   * meta-schema, so it lands on a base dialect that predates vocabularies and
+   * has no way to declare one. Its keyword set is neither a subset nor a
+   * superset of Draft 4, so it stands on its own rather than extending it
+   */
+
+  if (dialect == "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect" ||
+      dialect == "tag:spec.openapis.org,2021-09-28:oas/3.0/dialect") {
+    return SchemaVocabularies{
+        {SchemaVocabularies::Known::OPENAPI_3_0_BASE, true}};
+  }
+
+  /*
+   * (3) If the base dialect is pre-vocabularies, then the
    * base dialect itself is conceptually the only vocabulary
    */
 
@@ -680,7 +693,7 @@ auto sourcemeta::core::vocabularies(const SchemaResolver &resolver,
   }
 
   /*
-   * (3) If the dialect is vocabulary aware, then fetch such dialect
+   * (4) If the dialect is vocabulary aware, then fetch such dialect
    */
 
   const auto maybe_schema_dialect{resolver(dialect)};
@@ -698,7 +711,7 @@ auto sourcemeta::core::vocabularies(const SchemaResolver &resolver,
           .is_string());
 
   /*
-   * (4) Retrieve the vocabularies explicitly or implicitly declared by the
+   * (5) Retrieve the vocabularies explicitly or implicitly declared by the
    * dialect
    */
 
