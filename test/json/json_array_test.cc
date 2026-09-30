@@ -2,6 +2,7 @@
 #include <sourcemeta/core/test.h>
 
 #include <algorithm>
+#include <cstddef>
 #include <ranges>
 #include <set>
 #include <string>
@@ -684,6 +685,74 @@ TEST(unique_true_distinct_fractional_values) {
   const sourcemeta::core::JSON document =
       sourcemeta::core::parse_json("[ 0.25, 0.5 ]");
   EXPECT_TRUE(document.unique());
+}
+
+// An array of consecutive integers gives every item a hash of its own, which is
+// what drives the search for a repeated hash over long runs rather than
+// deciding every pair on its first comparison. Naming a position repeats the
+// first item there, so a caller can put the repetition wherever it wants one
+static auto integers_repeating_first_at(const std::size_t count,
+                                        const std::size_t position)
+    -> sourcemeta::core::JSON {
+  auto result{sourcemeta::core::JSON::make_array()};
+  for (std::size_t index = 0; index < count; index++) {
+    result.push_back(
+        sourcemeta::core::JSON{static_cast<sourcemeta::core::JSON::Integer>(
+            index == position ? 0 : index)});
+  }
+
+  return result;
+}
+
+// Lengths on either side of the run that the search reads in one go, so the
+// tail it falls back to for a partial run is exercised at every remainder
+TEST(unique_true_distinct_integers_across_run_lengths) {
+  for (std::size_t count = 0; count <= 40; count++) {
+    EXPECT_TRUE(integers_repeating_first_at(count, count).unique());
+  }
+}
+
+// A repeated item at every position of arrays of every length, so the search
+// has to report one that falls at the start of a run it reads at once, inside
+// it, at its end, and in the partial run that closes the array
+TEST(unique_false_repeated_item_at_every_position) {
+  for (std::size_t count = 2; count <= 40; count++) {
+    for (std::size_t position = 1; position < count; position++) {
+      EXPECT_FALSE(integers_repeating_first_at(count, position).unique());
+    }
+  }
+}
+
+// A repetition of an item that is itself far into the array, so the search
+// starts past several whole runs rather than at the beginning
+TEST(unique_false_repeated_item_far_from_the_start) {
+  auto document{sourcemeta::core::JSON::make_array()};
+  for (std::size_t index = 0; index < 40; index++) {
+    document.push_back(
+        sourcemeta::core::JSON{static_cast<sourcemeta::core::JSON::Integer>(
+            index == 39 ? 20 : index)});
+  }
+
+  EXPECT_FALSE(document.unique());
+}
+
+// A string hashes by its length alone, so a long array of strings of one length
+// gives every item the same hash and never reaches the wide search, deciding
+// every pair on a full comparison instead
+TEST(unique_many_strings_of_one_length) {
+  auto document{sourcemeta::core::JSON::make_array()};
+  for (std::size_t index = 0; index < 40; index++) {
+    sourcemeta::core::JSON::String value(8, 'x');
+    value[0] = static_cast<char>('A' + index);
+    document.push_back(sourcemeta::core::JSON{value});
+  }
+
+  EXPECT_TRUE(document.unique());
+
+  sourcemeta::core::JSON::String repeated(8, 'x');
+  repeated[0] = 'H';
+  document.push_back(sourcemeta::core::JSON{repeated});
+  EXPECT_FALSE(document.unique());
 }
 
 TEST(sort_object_items) {
