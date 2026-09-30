@@ -69,6 +69,10 @@
   X(JSON_SCHEMA_DRAFT_0_HYPER,                                                 \
     "http://json-schema.org/draft-00/hyper-schema#")                           \
   /* OpenAPI vocabularies */                                                   \
+  /* Every published release of the v3.0 document schema carries the same      \
+     Schema Object definition, so one vocabulary serves them all and its date  \
+     is that of the specification rather than of any one release */            \
+  X(OPENAPI_3_0_BASE, "tag:spec.openapis.org,2017:oas/3.0/vocab/base")         \
   X(OPENAPI_3_1_BASE, "https://spec.openapis.org/oas/3.1/vocab/base")          \
   X(OPENAPI_3_2_BASE, "https://spec.openapis.org/oas/3.2/vocab/base")          \
   /* Sourcemeta vocabularies */                                                \

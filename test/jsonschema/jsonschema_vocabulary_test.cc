@@ -876,3 +876,58 @@ TEST(base_dialect_stream) {
   stream << sourcemeta::core::SchemaBaseDialect::JSON_SCHEMA_DRAFT_7;
   EXPECT_EQ(stream.str(), "http://json-schema.org/draft-07/schema#");
 }
+
+TEST(openapi_3_0_dialect_2024_10_18) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+    "type": "string",
+    "nullable": true
+  })JSON");
+  const auto result{vocabularies(document, sourcemeta::core::schema_resolver)};
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_TRUE(result.contains(
+      sourcemeta::core::SchemaVocabularies::Known::OPENAPI_3_0_BASE));
+  EXPECT_FALSE(result.contains(
+      sourcemeta::core::SchemaVocabularies::Known::JSON_SCHEMA_DRAFT_4));
+}
+
+TEST(openapi_3_0_dialect_2021_09_28) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "tag:spec.openapis.org,2021-09-28:oas/3.0/dialect",
+    "type": "string",
+    "nullable": true
+  })JSON");
+  const auto result{vocabularies(document, sourcemeta::core::schema_resolver)};
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_TRUE(result.contains(
+      sourcemeta::core::SchemaVocabularies::Known::OPENAPI_3_0_BASE));
+  EXPECT_FALSE(result.contains(
+      sourcemeta::core::SchemaVocabularies::Known::JSON_SCHEMA_DRAFT_4));
+}
+
+TEST(openapi_3_0_dialect_as_default) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "type": "string",
+    "nullable": true
+  })JSON");
+  const auto result{
+      vocabularies(document, sourcemeta::core::schema_resolver,
+                   "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect")};
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_TRUE(result.contains(
+      sourcemeta::core::SchemaVocabularies::Known::OPENAPI_3_0_BASE));
+}
+
+TEST(openapi_3_0_dialect_via_subschema_override) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "x-sourcemeta-dialect-override-subschema":
+      "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+    "type": "string",
+    "nullable": true
+  })JSON");
+  const auto result{vocabularies(document, sourcemeta::core::schema_resolver)};
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_TRUE(result.contains(
+      sourcemeta::core::SchemaVocabularies::Known::OPENAPI_3_0_BASE));
+}
