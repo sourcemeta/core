@@ -50,6 +50,41 @@ BENCHMARK(JSON_Array_Of_Objects_Unique) {
   }
 }
 
+// An array whose items all hash differently, so the all-pairs scan decides
+// every pair on the hash alone and never falls back to a deep comparison
+BENCHMARK(JSON_Array_Of_Integers_Unique_256) {
+  auto document{sourcemeta::core::JSON::make_array()};
+  for (std::size_t index = 0; index < opaque(256); index++) {
+    document.push_back(sourcemeta::core::JSON{
+        static_cast<sourcemeta::core::JSON::Integer>(index)});
+  }
+
+  for (auto iteration : state) {
+    auto result{document.unique()};
+    assert(result);
+    sourcemeta::core::benchmark_do_not_optimize(result);
+  }
+}
+
+// Strings of one length all hash to the same value, so every pair reaches the
+// deep comparison that the hash is meant to avoid. This is the worst case the
+// all-pairs scan can be given, and it guards against making it slower
+BENCHMARK(JSON_Array_Of_Strings_Unique_Colliding_256) {
+  auto document{sourcemeta::core::JSON::make_array()};
+  for (std::size_t index = 0; index < opaque(256); index++) {
+    sourcemeta::core::JSON::String value(16, 'x');
+    value[0] = static_cast<char>('A' + (index / 16));
+    value[1] = static_cast<char>('A' + (index % 16));
+    document.push_back(sourcemeta::core::JSON{std::move(value)});
+  }
+
+  for (auto iteration : state) {
+    auto result{document.unique()};
+    assert(result);
+    sourcemeta::core::benchmark_do_not_optimize(result);
+  }
+}
+
 BENCHMARK(JSON_Parse_1) {
   const auto *const document{R"JSON({
     "metadata": {
