@@ -322,7 +322,7 @@ TEST(invalid_value_object) {
 
   EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
                              "Invalid value object",
-                             "/http:~1~1example.com~1p");
+                             "/http:~1~1example.com~1p/@language");
 }
 
 TEST(invalid_language_tagged_string) {
@@ -342,7 +342,7 @@ TEST(invalid_language_tagged_value) {
 
   EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
                              "Invalid language-tagged value",
-                             "/http:~1~1example.com~1p");
+                             "/http:~1~1example.com~1p/@value");
 }
 
 TEST(invalid_typed_value) {
@@ -351,7 +351,8 @@ TEST(invalid_typed_value) {
   })");
 
   EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
-                             "Invalid typed value", "/http:~1~1example.com~1p");
+                             "Invalid typed value",
+                             "/http:~1~1example.com~1p/@type");
 }
 
 TEST(invalid_value_object_value) {
@@ -361,6 +362,41 @@ TEST(invalid_value_object_value) {
 
   EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
                              "Invalid value object value",
+                             "/http:~1~1example.com~1p/@value");
+}
+
+TEST(invalid_value_object_value_keyword_alias) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "v": "@value" },
+    "http://example.com/p": { "v": { "a": 1 } }
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Invalid value object value",
+                             "/http:~1~1example.com~1p/v");
+}
+
+TEST(invalid_value_object_value_with_ignored_key) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "http://example.com/p": { "0": 1, "@value": { "a": 1 } }
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Invalid value object value",
+                             "/http:~1~1example.com~1p/@value");
+}
+
+TEST(invalid_value_object_nested_entry) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "labels": "@nest" },
+    "http://example.com/p": {
+      "@value": "x", "@type": "http://example.com/t",
+      "labels": { "@language": "en" }
+    }
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Invalid value object",
                              "/http:~1~1example.com~1p");
 }
 
@@ -371,7 +407,7 @@ TEST(invalid_set_or_list_object) {
 
   EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
                              "Invalid set or list object",
-                             "/http:~1~1example.com~1p");
+                             "/http:~1~1example.com~1p/@id");
 }
 
 TEST(invalid_index_value) {
@@ -585,7 +621,7 @@ TEST(free_floating_invalid_set_or_list_object) {
   })");
 
   EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
-                             "Invalid set or list object", "");
+                             "Invalid set or list object", "/@id");
 }
 
 TEST(import_loading_failed) {
