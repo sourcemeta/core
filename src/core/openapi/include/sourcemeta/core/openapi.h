@@ -326,6 +326,11 @@ public:
     ObjectKind type;
     /// Where in the document it sits, as a pointer from the root
     Pointer pointer;
+    /// The URI of the Object that holds this one, which is the nearest position
+    /// above it that the frame records, with no value for the root of a
+    /// document. It borrows from the key the frame keys that Object by, so the
+    /// frame must outlive it
+    std::optional<JSON::StringView> parent{std::nullopt};
     /// Set on the root of a document and on every Schema Object position it
     /// holds, empty elsewhere: the default `$schema` in force there, resolved
     /// against the base. A
@@ -799,7 +804,13 @@ public:
   /// Export the frame as JSON. This is the complete state of the frame. It asks
   /// the resolver the frame kept, so a meta-schema that has gone out of reach
   /// since throws sourcemeta::core::SchemaResolutionError here rather than at
-  /// construction. For example:
+  /// construction.
+  ///
+  /// Pass the tracker that read the document to report where every place the
+  /// export names by a pointer sits within it, which counts the places its
+  /// Schema Objects hold as much as the Objects around them. A place the
+  /// tracker holds nothing for reports a null position, and where no tracker is
+  /// given no position is reported at all. For example:
   ///
   /// ```cpp
   /// #include <sourcemeta/core/json.h>
@@ -818,7 +829,9 @@ public:
   ///
   /// assert(frame.to_json().at("version").to_string() == "3.1");
   /// ```
-  [[nodiscard]] auto to_json() const -> JSON;
+  [[nodiscard]] auto to_json(
+      const std::optional<PointerPositionTracker> &tracker = std::nullopt) const
+      -> JSON;
 
 private:
 // Exporting symbols that depends on the standard C++ library is considered
@@ -834,6 +847,37 @@ private:
 #pragma warning(pop)
 #endif
 };
+
+/// @ingroup openapi
+/// The name that a frame exports a kind of Object as, which is the name the
+/// specification gives that Object hyphenated and in lower case. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/openapi.h>
+/// #include <cassert>
+///
+/// assert(sourcemeta::core::openapi_kind_name(
+///            sourcemeta::core::OpenAPIFrame::ObjectKind::PathItem) ==
+///        "path-item");
+/// ```
+SOURCEMETA_CORE_OPENAPI_EXPORT
+auto openapi_kind_name(const OpenAPIFrame::ObjectKind kind) noexcept
+    -> JSON::StringView;
+
+/// @ingroup openapi
+/// The name that a frame exports a route to an operation as. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/openapi.h>
+/// #include <cassert>
+///
+/// assert(sourcemeta::core::openapi_operation_kind_name(
+///            sourcemeta::core::OpenAPIFrame::OperationKind::Webhook) ==
+///        "webhook");
+/// ```
+SOURCEMETA_CORE_OPENAPI_EXPORT
+auto openapi_operation_kind_name(
+    const OpenAPIFrame::OperationKind kind) noexcept -> JSON::StringView;
 
 /// @ingroup openapi
 /// What a sourcemeta::core::OpenAPIResolver hands back: either a document it
