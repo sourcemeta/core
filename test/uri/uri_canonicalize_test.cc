@@ -527,3 +527,33 @@ TEST(iri_leaves_incomplete_percent_sequence_encoded) {
   uri.canonicalize();
   EXPECT_EQ(uri.recompose(), "https://example.com/%C3x");
 }
+
+TEST(iri_decodes_percent_encoded_ascii_unreserved) {
+  // RFC 3987 Section 2.2 builds `iunreserved` on top of the URI `unreserved`
+  // set, so a percent-encoded ASCII octet from that set must be decoded
+  auto uri{sourcemeta::core::URI::from_iri("https://example.com/a%7Eb")};
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "https://example.com/a~b");
+}
+
+TEST(iri_leaves_percent_encoded_ascii_reserved) {
+  // RFC 3986 Section 2.2 gives reserved characters a meaning that is lost by
+  // decoding them, so a percent-encoded slash must stay encoded
+  auto uri{sourcemeta::core::URI::from_iri("https://example.com/a%2Fb")};
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "https://example.com/a%2Fb");
+}
+
+TEST(iri_decodes_percent_encoded_ascii_alphanumeric) {
+  auto uri{sourcemeta::core::URI::from_iri("https://example.com/%41%2D%39")};
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "https://example.com/A-9");
+}
+
+TEST(iri_leaves_percent_encoded_continuation_byte) {
+  // A continuation byte on its own is not the lead of any character, so it
+  // cannot be decoded
+  auto uri{sourcemeta::core::URI::from_iri("https://example.com/%80")};
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "https://example.com/%80");
+}

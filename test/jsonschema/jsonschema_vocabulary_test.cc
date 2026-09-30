@@ -876,3 +876,80 @@ TEST(base_dialect_stream) {
   stream << sourcemeta::core::SchemaBaseDialect::JSON_SCHEMA_DRAFT_7;
   EXPECT_EQ(stream.str(), "http://json-schema.org/draft-07/schema#");
 }
+
+TEST(throw_if_any_unsupported_known_required_supported_as_string) {
+  using Known = sourcemeta::core::SchemaVocabularies::Known;
+
+  const sourcemeta::core::SchemaVocabularies vocabularies{
+      {Known::JSON_SCHEMA_2020_12_CORE, true},
+      {Known::JSON_SCHEMA_2020_12_APPLICATOR, true}};
+
+  const std::unordered_set<sourcemeta::core::SchemaVocabularies::URI> supported{
+      sourcemeta::core::JSON::String{
+          "https://json-schema.org/draft/2020-12/vocab/core"},
+      sourcemeta::core::JSON::String{
+          "https://json-schema.org/draft/2020-12/vocab/applicator"}};
+
+  vocabularies.throw_if_any_unsupported(supported, "Unsupported vocabulary");
+}
+
+TEST(throw_if_any_unsupported_known_required_partially_supported_as_string) {
+  using Known = sourcemeta::core::SchemaVocabularies::Known;
+
+  const sourcemeta::core::SchemaVocabularies vocabularies{
+      {Known::JSON_SCHEMA_2020_12_CORE, true},
+      {Known::JSON_SCHEMA_2020_12_VALIDATION, true}};
+
+  const std::unordered_set<sourcemeta::core::SchemaVocabularies::URI> supported{
+      sourcemeta::core::JSON::String{
+          "https://json-schema.org/draft/2020-12/vocab/core"}};
+
+  try {
+    vocabularies.throw_if_any_unsupported(supported, "Unsupported vocabulary");
+    FAIL();
+  } catch (const sourcemeta::core::SchemaVocabularyError &error) {
+    EXPECT_EQ(error.uri(),
+              "https://json-schema.org/draft/2020-12/vocab/validation");
+    EXPECT_STREQ(error.what(), "Unsupported vocabulary");
+  }
+}
+
+TEST(pre_vocabulary_dialect_draft0) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-00/schema#"
+  })JSON");
+  const auto result{vocabularies(document, sourcemeta::core::schema_resolver)};
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_TRUE(result.contains(
+      sourcemeta::core::SchemaVocabularies::Known::JSON_SCHEMA_DRAFT_0));
+}
+
+TEST(pre_vocabulary_dialect_draft0_hyper) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-00/hyper-schema#"
+  })JSON");
+  const auto result{vocabularies(document, sourcemeta::core::schema_resolver)};
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_TRUE(result.contains(
+      sourcemeta::core::SchemaVocabularies::Known::JSON_SCHEMA_DRAFT_0_HYPER));
+}
+
+TEST(pre_vocabulary_dialect_draft7_hyper) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/hyper-schema#"
+  })JSON");
+  const auto result{vocabularies(document, sourcemeta::core::schema_resolver)};
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_TRUE(result.contains(
+      sourcemeta::core::SchemaVocabularies::Known::JSON_SCHEMA_DRAFT_7_HYPER));
+}
+
+TEST(pre_vocabulary_dialect_draft4_hyper) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/hyper-schema#"
+  })JSON");
+  const auto result{vocabularies(document, sourcemeta::core::schema_resolver)};
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_TRUE(result.contains(
+      sourcemeta::core::SchemaVocabularies::Known::JSON_SCHEMA_DRAFT_4_HYPER));
+}

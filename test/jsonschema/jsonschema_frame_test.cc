@@ -1833,6 +1833,117 @@ TEST(accessors_has_references_through_with_tail) {
       sourcemeta::core::to_weak_pointer(properties), other_token));
 }
 
+TEST(accessors_has_references_to_dynamic) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://example.com/schema",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$defs": {
+      "a": { "$id": "one", "$dynamicAnchor": "shared" },
+      "b": { "$id": "two", "$dynamicAnchor": "shared" },
+      "c": { "$id": "three", "$dynamicAnchor": "other" }
+    },
+    "properties": { "value": { "$dynamicRef": "#shared" } }
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+
+  const sourcemeta::core::Pointer first{"$defs", "a"};
+  const sourcemeta::core::Pointer second{"$defs", "b"};
+  const sourcemeta::core::Pointer other{"$defs", "c"};
+  const sourcemeta::core::Pointer value{"properties", "value"};
+  EXPECT_TRUE(
+      frame.has_references_to(sourcemeta::core::to_weak_pointer(first)));
+  EXPECT_TRUE(
+      frame.has_references_to(sourcemeta::core::to_weak_pointer(second)));
+  EXPECT_FALSE(
+      frame.has_references_to(sourcemeta::core::to_weak_pointer(other)));
+  EXPECT_FALSE(
+      frame.has_references_to(sourcemeta::core::to_weak_pointer(value)));
+}
+
+TEST(accessors_has_references_through_dynamic) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://example.com/schema",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$defs": {
+      "a": { "$id": "one", "$dynamicAnchor": "shared" },
+      "b": { "$id": "two", "$dynamicAnchor": "shared" }
+    },
+    "items": { "$id": "three", "$dynamicAnchor": "other" },
+    "properties": { "value": { "$dynamicRef": "#shared" } }
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+
+  const sourcemeta::core::Pointer definitions{"$defs"};
+  const sourcemeta::core::Pointer items{"items"};
+  EXPECT_TRUE(frame.has_references_through(
+      sourcemeta::core::to_weak_pointer(definitions)));
+  EXPECT_FALSE(
+      frame.has_references_through(sourcemeta::core::to_weak_pointer(items)));
+}
+
+TEST(accessors_has_references_through_with_tail_dynamic) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://example.com/schema",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$defs": {
+      "a": { "$id": "one", "$dynamicAnchor": "shared" },
+      "b": { "$id": "two", "$dynamicAnchor": "shared" }
+    },
+    "properties": { "value": { "$dynamicRef": "#shared" } }
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+
+  const sourcemeta::core::Pointer definitions{"$defs"};
+  const sourcemeta::core::Pointer properties{"properties"};
+  const sourcemeta::core::Pointer first_extra{"$defs", "a", "extra"};
+  const sourcemeta::core::JSON::String extra{"extra"};
+  const sourcemeta::core::JSON::String other{"other"};
+  const sourcemeta::core::WeakPointer::Token extra_token{std::cref(extra)};
+  const sourcemeta::core::WeakPointer::Token other_token{std::cref(other)};
+  EXPECT_TRUE(frame.has_references_through(
+      sourcemeta::core::to_weak_pointer(first_extra), extra_token));
+  EXPECT_FALSE(frame.has_references_through(
+      sourcemeta::core::to_weak_pointer(first_extra), other_token));
+  EXPECT_TRUE(frame.has_references_through(
+      sourcemeta::core::to_weak_pointer(definitions), other_token));
+  EXPECT_FALSE(frame.has_references_through(
+      sourcemeta::core::to_weak_pointer(properties), other_token));
+}
+
+TEST(accessors_has_references_to_dynamic_fragment_mismatch) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://example.com/schema",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$defs": {
+      "a": { "$id": "one", "$dynamicAnchor": "shared" },
+      "b": { "$id": "two", "$dynamicAnchor": "shared" },
+      "c": { "$id": "three", "$dynamicAnchor": "unrelated" },
+      "d": { "$id": "four", "$dynamicAnchor": "unrelated" }
+    },
+    "properties": { "value": { "$dynamicRef": "#shared" } }
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+
+  const sourcemeta::core::Pointer first{"$defs", "a"};
+  const sourcemeta::core::Pointer unrelated{"$defs", "c"};
+  EXPECT_TRUE(
+      frame.has_references_to(sourcemeta::core::to_weak_pointer(first)));
+  EXPECT_FALSE(
+      frame.has_references_to(sourcemeta::core::to_weak_pointer(unrelated)));
+}
+
 TEST(accessors_traverse_pointer_with_type) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$id": "https://example.com/schema",

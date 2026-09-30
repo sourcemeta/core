@@ -4278,6 +4278,44 @@ TEST_F(URITemplateRouterViewTest, serialized_version_matches_corrupt_fixtures) {
   EXPECT_EQ(version, 9);
 }
 
+// A version bump is not the only way the fixtures above can decay. They also
+// hardcode where each header field sits, how long the header is, and how long
+// a node record is, so a layout change that keeps the version would leave them
+// passing while reaching a different guard than the one they name
+TEST_F(URITemplateRouterViewTest, serialized_layout_matches_corrupt_fixtures) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/users", "op_1", 1);
+    router.add("/users/{id}", "op_2", 2);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path_);
+  }
+
+  std::ifstream input{this->path_, std::ios::binary};
+  const std::vector<std::uint8_t> bytes{std::istreambuf_iterator<char>{input},
+                                        std::istreambuf_iterator<char>{}};
+
+  std::array<std::uint32_t, 12> header{};
+  std::memcpy(header.data(), bytes.data(), header.size() * sizeof(header[0]));
+
+  EXPECT_EQ(header[0], 0x52544552);
+  EXPECT_EQ(header[1], 9);
+
+  // The fixtures put the node records straight after a 48 byte header and give
+  // each one 32 bytes, which is what places their string table at offset 80 for
+  // a single node. Deriving the same two numbers from a real serialization
+  // fails the moment either of them moves
+  EXPECT_GT(header[2], 0);
+  EXPECT_EQ(header[3], 48 + (header[2] * 32));
+
+  // Every remaining table starts at or after the string table, and the file is
+  // large enough to hold each of them, which is the invariant the corrupt
+  // offsets in the fixtures are built to violate
+  EXPECT_GE(header[4], header[3]);
+  EXPECT_GE(header[5], header[4]);
+  EXPECT_GE(header[11], header[5]);
+  EXPECT_LE(header[11], bytes.size());
+}
+
 TEST(corrupt_arguments_offset_before_string_table_describes_nothing) {
   const std::array<std::uint32_t, 20> data{
       {0x52544552, 9, 1, 80, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}};

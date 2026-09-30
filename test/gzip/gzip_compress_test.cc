@@ -40,6 +40,31 @@ auto decompress_stream(const std::vector<std::uint8_t> &input) -> std::string {
   return result;
 }
 
+// RFC 1951 section 3.2.7 caps a codeword at fifteen bits, but a Huffman code
+// built without that cap in mind can go deeper. Doubling the count of each
+// symbol makes every merge join two nodes that are still lighter than the next
+// symbol, so the code grows one bit per symbol and the seventeenth one lands
+// past the cap. The rest of the alphabet carries a flat filler so that the
+// input has no repeated four byte run to turn into a match, which would
+// otherwise reshape the very frequencies this depends on
+auto length_limited_code_input() -> std::string {
+  std::string input;
+  std::size_t count{1};
+  for (std::size_t symbol = 0; symbol < 17; ++symbol) {
+    input.append(count, static_cast<char>(symbol));
+    count *= 2;
+  }
+
+  for (std::size_t symbol = 17; symbol < 256; ++symbol) {
+    input.append(100, static_cast<char>(symbol));
+  }
+
+  // NOLINTNEXTLINE(cert-msc32-c,cert-msc51-cpp,bugprone-random-generator-seed)
+  std::mt19937 generator{3};
+  std::shuffle(input.begin(), input.end(), generator);
+  return input;
+}
+
 } // namespace
 
 // Both decompression mechanisms must produce the same output for every input
@@ -517,4 +542,31 @@ TEST(compress_a_long_tail_of_rare_symbols_round_trips) {
 
   const auto compressed{compress(input, 9)};
   EXPECT_GZIP_DECOMPRESS(compressed, input);
+}
+
+TEST(compress_length_limited_codes_level_1_round_trips) {
+  const auto input{length_limited_code_input()};
+  const auto compressed{compress(input, 1)};
+  EXPECT_GZIP_DECOMPRESS(compressed, input);
+  // Smaller than the input means the encoder settled on a Huffman code rather
+  // than giving up and storing the block verbatim
+  EXPECT_LT(compressed.size(), input.size());
+}
+
+TEST(compress_length_limited_codes_level_9_round_trips) {
+  const auto input{length_limited_code_input()};
+  const auto compressed{compress(input, 9)};
+  EXPECT_GZIP_DECOMPRESS(compressed, input);
+  // Smaller than the input means the encoder settled on a Huffman code rather
+  // than giving up and storing the block verbatim
+  EXPECT_LT(compressed.size(), input.size());
+}
+
+TEST(compress_length_limited_codes_level_12_round_trips) {
+  const auto input{length_limited_code_input()};
+  const auto compressed{compress(input, 12)};
+  EXPECT_GZIP_DECOMPRESS(compressed, input);
+  // Smaller than the input means the encoder settled on a Huffman code rather
+  // than giving up and storing the block verbatim
+  EXPECT_LT(compressed.size(), input.size());
 }
