@@ -871,3 +871,48 @@ TEST(reidentify_replace_base_dialect_shortcut_draft0) {
 
   EXPECT_EQ(document, expected);
 }
+
+TEST(reidentify_openapi_3_0_refuses) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "type": "string"
+  })JSON");
+  try {
+    sourcemeta::core::schema_reidentify(
+        document, "https://example.com/my-new-id",
+        sourcemeta::core::schema_resolver,
+        "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect");
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_STREQ(error.what(),
+                 "The dialect of the schema does not define this keyword");
+  }
+  EXPECT_FALSE(document.defines("id"));
+  EXPECT_FALSE(document.defines("$id"));
+}
+
+TEST(reidentify_openapi_3_0_refuses_the_other_release) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "type": "string"
+  })JSON");
+  try {
+    sourcemeta::core::schema_reidentify(
+        document, "https://example.com/my-new-id",
+        sourcemeta::core::schema_resolver,
+        "tag:spec.openapis.org,2021-09-28:oas/3.0/dialect");
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_STREQ(error.what(),
+                 "The dialect of the schema does not define this keyword");
+  }
+}
+
+TEST(reidentify_draft4_still_writes_the_legacy_keyword) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "string"
+  })JSON");
+  sourcemeta::core::schema_reidentify(document, "https://example.com/my-new-id",
+                                      sourcemeta::core::schema_resolver);
+  EXPECT_TRUE(document.defines("id"));
+  EXPECT_EQ(document.at("id").to_string(), "https://example.com/my-new-id");
+}

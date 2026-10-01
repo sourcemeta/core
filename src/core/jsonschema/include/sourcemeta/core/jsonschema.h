@@ -93,7 +93,8 @@ SOURCEMETA_CORE_JSONSCHEMA_EXPORT
 auto schema_reidentify(sourcemeta::core::JSON &schema,
                        std::string_view new_identifier,
                        const SchemaResolver &resolver,
-                       std::string_view default_dialect = "") -> void;
+                       std::string_view default_dialect = "",
+                       const SchemaWalker &walker = schema_walker) -> void;
 
 /// @ingroup jsonschema
 ///
