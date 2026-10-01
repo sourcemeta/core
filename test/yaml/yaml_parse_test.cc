@@ -8,6 +8,7 @@
 #include <iostream> // std::cerr
 #include <sstream>  // std::istringstream
 #include <string>   // std::string
+#include <utility>  // std::move
 
 TEST(deeply_nested_flow_is_rejected) {
   const std::string input{std::string(2000, '[') + std::string(2000, ']')};
@@ -2800,4 +2801,150 @@ TEST(flow_sequence_single_pair_value_cannot_be_another_pair) {
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Missing comma in flow sequence");
   }
+}
+
+TEST(carriage_return_block_mapping) {
+  const std::string input{"foo: 1\rbar: 2"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  auto expected{sourcemeta::core::JSON::make_object()};
+  expected.assign("foo", sourcemeta::core::JSON{1});
+  expected.assign("bar", sourcemeta::core::JSON{2});
+  EXPECT_EQ(result, expected);
+}
+
+TEST(carriage_return_block_sequence) {
+  const std::string input{"- 1\r- 2\r- 3"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  auto expected{sourcemeta::core::JSON::make_array()};
+  expected.push_back(sourcemeta::core::JSON{1});
+  expected.push_back(sourcemeta::core::JSON{2});
+  expected.push_back(sourcemeta::core::JSON{3});
+  EXPECT_EQ(result, expected);
+}
+
+TEST(carriage_return_nested_block_mapping) {
+  const std::string input{"foo:\r  bar: 1\r  baz: 2"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  auto inner{sourcemeta::core::JSON::make_object()};
+  inner.assign("bar", sourcemeta::core::JSON{1});
+  inner.assign("baz", sourcemeta::core::JSON{2});
+  auto expected{sourcemeta::core::JSON::make_object()};
+  expected.assign("foo", std::move(inner));
+  EXPECT_EQ(result, expected);
+}
+
+TEST(carriage_return_comment) {
+  const std::string input{"# comment\rfoo: 1"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  auto expected{sourcemeta::core::JSON::make_object()};
+  expected.assign("foo", sourcemeta::core::JSON{1});
+  EXPECT_EQ(result, expected);
+}
+
+TEST(carriage_return_literal_block_scalar) {
+  const std::string input{"foo: |\r  one\r  two"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  auto expected{sourcemeta::core::JSON::make_object()};
+  expected.assign("foo", sourcemeta::core::JSON{"one\ntwo"});
+  EXPECT_EQ(result, expected);
+}
+
+TEST(carriage_return_literal_block_scalar_clipped) {
+  const std::string input{"foo: |\r  one\r  two\r"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  auto expected{sourcemeta::core::JSON::make_object()};
+  expected.assign("foo", sourcemeta::core::JSON{"one\ntwo\n"});
+  EXPECT_EQ(result, expected);
+}
+
+TEST(carriage_return_literal_block_scalar_kept) {
+  const std::string input{"foo: |+\r  one\r  two\r\r"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  auto expected{sourcemeta::core::JSON::make_object()};
+  expected.assign("foo", sourcemeta::core::JSON{"one\ntwo\n\n"});
+  EXPECT_EQ(result, expected);
+}
+
+TEST(carriage_return_literal_block_scalar_stripped) {
+  const std::string input{"foo: |-\r  one\r  two\r"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  auto expected{sourcemeta::core::JSON::make_object()};
+  expected.assign("foo", sourcemeta::core::JSON{"one\ntwo"});
+  EXPECT_EQ(result, expected);
+}
+
+TEST(carriage_return_folded_block_scalar) {
+  const std::string input{"foo: >\r  one\r  two"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  auto expected{sourcemeta::core::JSON::make_object()};
+  expected.assign("foo", sourcemeta::core::JSON{"one two"});
+  EXPECT_EQ(result, expected);
+}
+
+TEST(carriage_return_folded_block_scalar_keeps_blank_line) {
+  const std::string input{"foo: >\r  one\r\r  two\r"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  auto expected{sourcemeta::core::JSON::make_object()};
+  expected.assign("foo", sourcemeta::core::JSON{"one\ntwo\n"});
+  EXPECT_EQ(result, expected);
+}
+
+TEST(carriage_return_flow_mapping) {
+  const std::string input{"{ foo: 1,\r  bar: 2 }"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  auto expected{sourcemeta::core::JSON::make_object()};
+  expected.assign("foo", sourcemeta::core::JSON{1});
+  expected.assign("bar", sourcemeta::core::JSON{2});
+  EXPECT_EQ(result, expected);
+}
+
+TEST(carriage_return_document_markers) {
+  const std::string input{"---\rfoo: 1\r..."};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  auto expected{sourcemeta::core::JSON::make_object()};
+  expected.assign("foo", sourcemeta::core::JSON{1});
+  EXPECT_EQ(result, expected);
+}
+
+TEST(carriage_return_line_feed_block_mapping) {
+  const std::string input{"foo: 1\r\nbar: 2"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  auto expected{sourcemeta::core::JSON::make_object()};
+  expected.assign("foo", sourcemeta::core::JSON{1});
+  expected.assign("bar", sourcemeta::core::JSON{2});
+  EXPECT_EQ(result, expected);
+}
+
+TEST(carriage_return_multiline_plain_scalar) {
+  const std::string input{"foo: one\r  two"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  auto expected{sourcemeta::core::JSON::make_object()};
+  expected.assign("foo", sourcemeta::core::JSON{"one two"});
+  EXPECT_EQ(result, expected);
+}
+
+TEST(carriage_return_comment_between_entries) {
+  const std::string input{"foo: 1\r# comment\rbar: 2"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  auto expected{sourcemeta::core::JSON::make_object()};
+  expected.assign("foo", sourcemeta::core::JSON{1});
+  expected.assign("bar", sourcemeta::core::JSON{2});
+  EXPECT_EQ(result, expected);
+}
+
+TEST(carriage_return_trailing_comment) {
+  const std::string input{"foo: 1 # comment\rbar: 2"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  auto expected{sourcemeta::core::JSON::make_object()};
+  expected.assign("foo", sourcemeta::core::JSON{1});
+  expected.assign("bar", sourcemeta::core::JSON{2});
+  EXPECT_EQ(result, expected);
+}
+
+TEST(carriage_return_block_scalar_header_comment) {
+  const std::string input{"foo: | # comment\r  one\r  two"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  auto expected{sourcemeta::core::JSON::make_object()};
+  expected.assign("foo", sourcemeta::core::JSON{"one\ntwo"});
+  EXPECT_EQ(result, expected);
 }
