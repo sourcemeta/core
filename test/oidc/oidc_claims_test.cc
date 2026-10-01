@@ -462,3 +462,34 @@ TEST(claim_to_scope_is_case_sensitive) {
   EXPECT_FALSE(sourcemeta::core::oidc_claim_to_scope("Email").has_value());
   EXPECT_FALSE(sourcemeta::core::oidc_claim_to_scope("SUB").has_value());
 }
+
+TEST(claims_parameter_from_a_non_object) {
+  // The claims parameter arrives from the request, so a value that is not an
+  // object carries no specification rather than being rejected
+  const sourcemeta::core::JSON claims{nullptr};
+  EXPECT_FALSE(sourcemeta::core::oidc_claims_parameter_is_essential(
+      claims, "userinfo", "email"));
+  EXPECT_EQ(sourcemeta::core::oidc_claims_parameter_value(claims, "userinfo",
+                                                          "email"),
+            nullptr);
+}
+
+TEST(claims_parameter_with_a_non_object_target) {
+  const auto claims{
+      sourcemeta::core::parse_json(R"JSON({ "userinfo": "email" })JSON")};
+  EXPECT_FALSE(sourcemeta::core::oidc_claims_parameter_is_essential(
+      claims, "userinfo", "email"));
+  EXPECT_EQ(sourcemeta::core::oidc_claims_parameter_value(claims, "userinfo",
+                                                          "email"),
+            nullptr);
+}
+
+TEST(claims_parameter_with_a_non_object_specification) {
+  const auto claims{sourcemeta::core::parse_json(
+      R"JSON({ "userinfo": { "email": "wanted" } })JSON")};
+  EXPECT_FALSE(sourcemeta::core::oidc_claims_parameter_is_essential(
+      claims, "userinfo", "email"));
+  EXPECT_EQ(sourcemeta::core::oidc_claims_parameter_value(claims, "userinfo",
+                                                          "email"),
+            nullptr);
+}

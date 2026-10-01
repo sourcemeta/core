@@ -321,6 +321,10 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
       continue;
     }
 
+    // JSON-LD 1.1 allows no keyword apart from `@context` in a reverse
+    // property map, which the loop skips before reaching here. This is the only
+    // place the rule needs enforcing, as the map is expanded entry by entry
+    // through here before anything reads the keys it produced
     if (is_keyword(name) && active_property.has_value() &&
         active_property.value() == KEYWORD_REVERSE) {
       throw JSONLDError("Invalid reverse property map", entry_pointer);
@@ -512,8 +516,6 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
               merge(result, JSON::StringView{forward.first},
                     into_array(JSON{forward.second}));
             }
-          } else if (is_keyword(reverse_property, reverse_entry.hash)) {
-            throw JSONLDError("Invalid reverse property map", entry_pointer);
           } else {
             const auto reverse_values{into_array(JSON{reverse_entry.second})};
             for (const auto &item : reverse_values.as_array()) {

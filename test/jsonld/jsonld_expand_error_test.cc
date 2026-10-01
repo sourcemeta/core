@@ -685,3 +685,22 @@ TEST(null_term_with_non_boolean_protected) {
                              "Invalid @protected value",
                              "/@context/term/@protected");
 }
+
+TEST(literal_keyword_inside_reverse_map) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@reverse": { "@id": "http://example.com/a" }
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Invalid reverse property map", "/@reverse/@id");
+}
+
+TEST(nested_reverse_inside_reverse_map) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@reverse": { "@reverse": { "http://example.com/p": "x" } }
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Invalid reverse property map",
+                             "/@reverse/@reverse");
+}
