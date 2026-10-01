@@ -468,6 +468,29 @@ TEST(to_int64_t_invalid_leading_plus) {
   EXPECT_FALSE(result.has_value());
 }
 
+// A view that was never given anything carries no pointer at all, which the
+// conversion has to answer for rather than reading from nowhere
+TEST(to_double_view_over_nothing) {
+  const std::string_view input{};
+  const auto result{sourcemeta::core::to_double(input)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(to_int64_t_view_over_nothing) {
+  const std::string_view input{};
+  const auto result{sourcemeta::core::to_int64_t(input)};
+  EXPECT_FALSE(result.has_value());
+}
+
+// Longer than the quick route can ever recover, so it is handed on and still
+// comes back with the value the general routine finds
+TEST(to_double_longer_than_the_quick_route) {
+  const std::string input{"1.00000000000000000000000000000000000001"};
+  const auto result{sourcemeta::core::to_double(input)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), 1.0);
+}
+
 TEST(to_int64_t_invalid_trailing_junk) {
   const std::string input{"123abc"};
   const auto result{sourcemeta::core::to_int64_t(input)};

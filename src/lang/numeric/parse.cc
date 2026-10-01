@@ -1,6 +1,7 @@
 #include <sourcemeta/core/numeric_parse.h>
 
 #include <array>        // std::array
+#include <cfenv>        // std::fegetround, FE_TONEAREST
 #include <charconv>     // std::from_chars
 #include <cstdint>      // std::uint64_t, std::int32_t
 #include <limits>       // std::numeric_limits
@@ -23,6 +24,13 @@ constexpr std::uint64_t EXACT_SIGNIFICAND_LIMIT{std::uint64_t{1} << 53};
 
 // Nineteen digits is the most that cannot carry past the accumulator
 constexpr std::int32_t MAXIMUM_ACCUMULATED_DIGITS{19};
+
+// The longest input this can possibly recover: a sign, the digits a significand
+// held exactly can carry, a decimal point among them, and an exponent inside
+// the exact range together with its own sign. Anything longer is handed on
+// without being walked, which also keeps the digit counters far away from their
+// own limits however long the input is
+constexpr std::size_t MAXIMUM_EXACT_LENGTH{25};
 
 constexpr std::array<double, EXACT_POWER_LIMIT + 1> POWERS_OF_TEN{
     {1e0,  1e1,  1e2,  1e3,  1e4,  1e5,  1e6,  1e7,  1e8,  1e9,  1e10, 1e11,
@@ -98,6 +106,10 @@ auto to_int64_t_narrow(const std::string_view input) noexcept
 // decides what it is, so this never has to agree with it on a rejection
 auto to_double_exact(const std::string_view input) noexcept
     -> std::optional<double> {
+  if (input.size() > MAXIMUM_EXACT_LENGTH) {
+    return std::nullopt;
+  }
+
   const char *cursor{input.data()};
   const char *const end{cursor + input.size()};
 
@@ -184,11 +196,23 @@ auto to_double_exact(const std::string_view input) noexcept
     return std::nullopt;
   }
 
+  // A significand held exactly becomes a double without being rounded at all,
+  // so a number that needs no scaling is recovered whatever rounding the
+  // environment asks for. Scaling it is a single rounded operation, and that
+  // one obeys the environment, while the general conversion is specified to
+  // round to nearest regardless of it. So the shortcut only stands in for the
+  // general conversion while the environment agrees with it
   auto value{static_cast<double>(significand)};
-  if (power > 0) {
-    value *= POWERS_OF_TEN[static_cast<std::size_t>(power)];
-  } else if (power < 0) {
-    value /= POWERS_OF_TEN[static_cast<std::size_t>(-power)];
+  if (power != 0) {
+    if (std::fegetround() != FE_TONEAREST) {
+      return std::nullopt;
+    }
+
+    if (power > 0) {
+      value *= POWERS_OF_TEN[static_cast<std::size_t>(power)];
+    } else {
+      value /= POWERS_OF_TEN[static_cast<std::size_t>(-power)];
+    }
   }
 
   return negative ? -value : value;

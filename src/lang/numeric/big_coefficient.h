@@ -65,7 +65,7 @@ constexpr std::uint64_t GATHERED_SCALE = 100000000ULL; // 10^8
 inline auto gather_digits(const char *digits) noexcept -> std::uint64_t {
   std::uint64_t word = 0;
   std::memcpy(&word, digits, sizeof(word));
-  word -= 0x3030303030303030ULL;
+  word -= static_cast<std::uint64_t>('0') * 0x0101010101010101ULL;
   const auto pairs = ((word * ((10ULL << 8) + 1)) >> 8) & 0x00FF00FF00FF00FFULL;
   const auto quadruples =
       ((pairs * ((100ULL << 16) + 1)) >> 16) & 0x0000FFFF0000FFFFULL;
