@@ -3,8 +3,9 @@
 
 #include <algorithm>
 #include <atomic>
-#include <barrier>
 #include <chrono>
+#include <climits>
+#include <cstdint>
 #include <mutex>
 #include <numeric>
 #include <set>
@@ -140,11 +141,13 @@ TEST(custom_stack_size) {
   EXPECT_EQ(processed, items);
 }
 
-// No platform can back a stack this large, so the first worker the loop tries
-// to start is the one that fails. Windows rejects the size before it reaches
-// the thread API, which is a different message for the same path
+// POSIX refuses a stack size below its own minimum, so one byte is a request
+// no platform can honour and the loop fails on its first worker. Windows takes
+// the size through a different API with its own bound, so it is driven there by
+// a size that cannot fit the type that API takes
 #if defined(_WIN32)
-TEST(thread_creation_failure_stack_size_too_large) {
+#if SIZE_MAX > UINT_MAX
+TEST(thread_creation_failure) {
   std::vector<std::size_t> items;
   items.reserve(20);
   for (std::size_t index = 0; index < 20; index++) {
@@ -159,15 +162,16 @@ TEST(thread_creation_failure_stack_size_too_large) {
         [&processed](const auto, const auto, const auto) {
           processed.fetch_add(1);
         },
-        4, std::size_t{1} << 46);
+        4, SIZE_MAX);
     FAIL();
   } catch (const std::runtime_error &error) {
     EXPECT_STREQ(error.what(),
                  "The requested stack size is too large for this platform");
   }
 
-  EXPECT_LE(processed.load(), items.size());
+  EXPECT_EQ(processed.load(), 0);
 }
+#endif
 #else
 TEST(thread_creation_failure) {
   std::vector<std::size_t> items;
@@ -184,18 +188,23 @@ TEST(thread_creation_failure) {
         [&processed](const auto, const auto, const auto) {
           processed.fetch_add(1);
         },
-        4, std::size_t{1} << 46);
+        4, 1);
     FAIL();
   } catch (const std::runtime_error &error) {
-    EXPECT_STREQ(error.what(), "Could not create thread");
+    EXPECT_STREQ(error.what(),
+                 "The requested stack size is not supported by this platform");
   }
 
-  // Every worker that did start is drained and joined before the failure
-  // propagates, so none of them may still be reading this frame
-  EXPECT_LE(processed.load(), items.size());
+  // The failure happens before the first worker starts, so the queue is
+  // drained and no callback runs at all
+  EXPECT_EQ(processed.load(), 0);
 }
 #endif
 
+// Every worker takes one item, throws on it, and exits, so each one that
+// started reaches the exception handler exactly once no matter how the
+// scheduler interleaves them. The second one to get there is what covers
+// keeping the first exception rather than replacing it
 TEST(work_callback_throw_from_every_worker) {
   std::vector<std::size_t> items;
   items.reserve(8);
@@ -203,16 +212,12 @@ TEST(work_callback_throw_from_every_worker) {
     items.push_back(index);
   }
 
-  // Every worker arrives before any of them throws, so more than one exception
-  // reaches the handler and the first one is the one that propagates
-  std::barrier barrier{4};
   std::atomic<std::size_t> thrown{0};
 
   try {
     sourcemeta::core::parallel_for_each(
         items.cbegin(), items.cend(),
-        [&barrier, &thrown](const auto, const auto, const auto) {
-          barrier.arrive_and_wait();
+        [&thrown](const auto, const auto, const auto) {
           thrown.fetch_add(1);
           throw std::runtime_error("worker failure");
         },

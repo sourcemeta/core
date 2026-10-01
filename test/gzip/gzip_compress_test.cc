@@ -1,16 +1,18 @@
 #include <sourcemeta/core/gzip.h>
 #include <sourcemeta/core/test.h>
 
-#include <algorithm> // std::shuffle
-#include <cstddef>   // std::size_t
-#include <cstdint>   // std::uint8_t, std::uint32_t
-#include <istream>   // std::istream
-#include <iterator>  // std::istreambuf_iterator
-#include <random>    // std::mt19937, std::uniform_int_distribution
-#include <sstream>   // std::istringstream
-#include <string>    // std::string
-#include <utility>   // std::move
-#include <vector>    // std::vector
+#include <algorithm>     // std::shuffle
+#include <cstddef>       // std::size_t
+#include <cstdint>       // std::uint8_t, std::uint32_t
+#include <cstring>       // std::memcpy
+#include <istream>       // std::istream
+#include <iterator>      // std::istreambuf_iterator
+#include <random>        // std::mt19937, std::uniform_int_distribution
+#include <sstream>       // std::istringstream
+#include <string>        // std::string
+#include <unordered_set> // std::unordered_set
+#include <utility>       // std::move
+#include <vector>        // std::vector
 
 namespace {
 
@@ -40,29 +42,52 @@ auto decompress_stream(const std::vector<std::uint8_t> &input) -> std::string {
   return result;
 }
 
-// RFC 1951 section 3.2.7 caps a codeword at fifteen bits, but a Huffman code
-// built without that cap in mind can go deeper. Doubling the count of each
-// symbol makes every merge join two nodes that are still lighter than the next
-// symbol, so the code grows one bit per symbol and the seventeenth one lands
-// past the cap. The rest of the alphabet carries a flat filler so that the
-// input has no repeated four byte run to turn into a match, which would
-// otherwise reshape the very frequencies this depends on
+// RFC 1951 section 3.2.7 caps a codeword at fifteen bits, which the encoder
+// reaches for by building a plain Huffman code first and falling back to a
+// length limited one when that code comes out deeper than the cap. Ten symbols
+// with Fibonacci counts are each lighter than any other symbol, and lighter
+// added together than any one of them, so the whole ladder merges into a chain
+// nine levels deep before the rest of the alphabet is touched. The root of that
+// chain is then still the lightest node of the forest the remaining symbols
+// form, so it sinks to the bottom of it for eight levels more, and seventeen is
+// past the cap
 auto length_limited_code_input() -> std::string {
   std::string input;
-  std::size_t count{1};
-  for (std::size_t symbol = 0; symbol < 17; ++symbol) {
-    input.append(count, static_cast<char>(symbol));
-    count *= 2;
+  std::size_t previous{1};
+  std::size_t current{1};
+  for (std::size_t symbol = 0; symbol < 10; ++symbol) {
+    input.append(current, static_cast<char>(symbol));
+    const auto next{previous + current};
+    previous = current;
+    current = next;
   }
 
-  for (std::size_t symbol = 17; symbol < 256; ++symbol) {
-    input.append(100, static_cast<char>(symbol));
+  for (std::size_t symbol = 10; symbol < 256; ++symbol) {
+    input.append(200, static_cast<char>(symbol));
   }
 
   // NOLINTNEXTLINE(cert-msc32-c,cert-msc51-cpp,bugprone-random-generator-seed)
   std::mt19937 generator{3};
   std::shuffle(input.begin(), input.end(), generator);
   return input;
+}
+
+// The counts above only reach the Huffman builder unchanged while nothing in
+// the input is replaced by a match, and the shortest match this encoder emits
+// covers four bytes
+auto repeats_a_four_byte_sequence(const std::string &input) -> bool {
+  std::unordered_set<std::uint32_t> seen;
+  seen.reserve(input.size());
+  for (std::size_t index = 0; index + sizeof(std::uint32_t) <= input.size();
+       ++index) {
+    std::uint32_t window{0};
+    std::memcpy(&window, input.data() + index, sizeof(window));
+    if (!seen.insert(window).second) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 } // namespace
@@ -542,6 +567,10 @@ TEST(compress_a_long_tail_of_rare_symbols_round_trips) {
 
   const auto compressed{compress(input, 9)};
   EXPECT_GZIP_DECOMPRESS(compressed, input);
+}
+
+TEST(compress_length_limited_codes_input_has_no_match) {
+  EXPECT_FALSE(repeats_a_four_byte_sequence(length_limited_code_input()));
 }
 
 TEST(compress_length_limited_codes_level_1_round_trips) {

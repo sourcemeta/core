@@ -2842,15 +2842,51 @@ TEST(carriage_return_comment) {
 }
 
 TEST(carriage_return_literal_block_scalar) {
-  const auto result{sourcemeta::core::parse_yaml("foo: |\r  one\r  two")};
-  const auto reference{sourcemeta::core::parse_yaml("foo: |\n  one\n  two")};
-  EXPECT_EQ(result, reference);
+  const std::string input{"foo: |\r  one\r  two"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  auto expected{sourcemeta::core::JSON::make_object()};
+  expected.assign("foo", sourcemeta::core::JSON{"one\ntwo"});
+  EXPECT_EQ(result, expected);
+}
+
+TEST(carriage_return_literal_block_scalar_clipped) {
+  const std::string input{"foo: |\r  one\r  two\r"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  auto expected{sourcemeta::core::JSON::make_object()};
+  expected.assign("foo", sourcemeta::core::JSON{"one\ntwo\n"});
+  EXPECT_EQ(result, expected);
+}
+
+TEST(carriage_return_literal_block_scalar_kept) {
+  const std::string input{"foo: |+\r  one\r  two\r\r"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  auto expected{sourcemeta::core::JSON::make_object()};
+  expected.assign("foo", sourcemeta::core::JSON{"one\ntwo\n\n"});
+  EXPECT_EQ(result, expected);
+}
+
+TEST(carriage_return_literal_block_scalar_stripped) {
+  const std::string input{"foo: |-\r  one\r  two\r"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  auto expected{sourcemeta::core::JSON::make_object()};
+  expected.assign("foo", sourcemeta::core::JSON{"one\ntwo"});
+  EXPECT_EQ(result, expected);
 }
 
 TEST(carriage_return_folded_block_scalar) {
-  const auto result{sourcemeta::core::parse_yaml("foo: >\r  one\r  two")};
-  const auto reference{sourcemeta::core::parse_yaml("foo: >\n  one\n  two")};
-  EXPECT_EQ(result, reference);
+  const std::string input{"foo: >\r  one\r  two"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  auto expected{sourcemeta::core::JSON::make_object()};
+  expected.assign("foo", sourcemeta::core::JSON{"one two"});
+  EXPECT_EQ(result, expected);
+}
+
+TEST(carriage_return_folded_block_scalar_keeps_blank_line) {
+  const std::string input{"foo: >\r  one\r\r  two\r"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  auto expected{sourcemeta::core::JSON::make_object()};
+  expected.assign("foo", sourcemeta::core::JSON{"one\ntwo\n"});
+  EXPECT_EQ(result, expected);
 }
 
 TEST(carriage_return_flow_mapping) {
@@ -2906,9 +2942,9 @@ TEST(carriage_return_trailing_comment) {
 }
 
 TEST(carriage_return_block_scalar_header_comment) {
-  const auto result{
-      sourcemeta::core::parse_yaml("foo: | # comment\r  one\r  two")};
-  const auto reference{
-      sourcemeta::core::parse_yaml("foo: | # comment\n  one\n  two")};
-  EXPECT_EQ(result, reference);
+  const std::string input{"foo: | # comment\r  one\r  two"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  auto expected{sourcemeta::core::JSON::make_object()};
+  expected.assign("foo", sourcemeta::core::JSON{"one\ntwo"});
+  EXPECT_EQ(result, expected);
 }

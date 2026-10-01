@@ -2,8 +2,8 @@ sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME markdown
   SOURCES
     markdown_autolinks_test.cc
     markdown_blockquotes_test.cc
-    markdown_characters_test.cc
     markdown_carriage_returns_test.cc
+    markdown_characters_test.cc
     markdown_code_blocks_test.cc
     markdown_code_spans_test.cc
     markdown_concurrency_test.cc

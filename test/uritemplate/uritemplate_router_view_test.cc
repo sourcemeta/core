@@ -4279,41 +4279,94 @@ TEST_F(URITemplateRouterViewTest, serialized_version_matches_corrupt_fixtures) {
 }
 
 // A version bump is not the only way the fixtures above can decay. They also
-// hardcode where each header field sits, how long the header is, and how long
-// a node record is, so a layout change that keeps the version would leave them
-// passing while reaching a different guard than the one they name
+// hardcode the length of the header, the length of a node record, and which
+// word of the header each field sits in, so a layout change that keeps the
+// version would leave them passing while reaching a different guard than the
+// one they name. Two shapes with different node counts pin the header and the
+// node record against each other, and every field is given a value nothing
+// else in the file carries, so swapping any two of them fails here
 TEST_F(URITemplateRouterViewTest, serialized_layout_matches_corrupt_fixtures) {
+  const std::string_view base_path{"/api"};
+  const std::string_view base_url{"https://example.com/api"};
+
   {
-    sourcemeta::core::URITemplateRouter router;
-    router.add("/users", "op_1", 1);
-    router.add("/users/{id}", "op_2", 2);
+    sourcemeta::core::URITemplateRouter router{base_path, base_url};
+    router.otherwise(9);
     sourcemeta::core::URITemplateRouterView::save(router, this->path_);
   }
 
-  std::ifstream input{this->path_, std::ios::binary};
-  const std::vector<std::uint8_t> bytes{std::istreambuf_iterator<char>{input},
-                                        std::istreambuf_iterator<char>{}};
+  std::ifstream empty_input{this->path_, std::ios::binary};
+  const std::vector<std::uint8_t> empty_bytes{
+      std::istreambuf_iterator<char>{empty_input},
+      std::istreambuf_iterator<char>{}};
 
-  std::array<std::uint32_t, 12> header{};
-  std::memcpy(header.data(), bytes.data(), header.size() * sizeof(header[0]));
+  std::array<std::uint32_t, 12> empty_header{};
+  std::memcpy(empty_header.data(), empty_bytes.data(),
+              empty_header.size() * sizeof(empty_header[0]));
 
-  EXPECT_EQ(header[0], 0x52544552);
-  EXPECT_EQ(header[1], 9);
+  EXPECT_EQ(empty_header[0], 0x52544552);
+  EXPECT_EQ(empty_header[1], 9);
 
-  // The fixtures put the node records straight after a 48 byte header and give
-  // each one 32 bytes, which is what places their string table at offset 80 for
-  // a single node. Deriving the same two numbers from a real serialization
-  // fails the moment either of them moves
-  EXPECT_GT(header[2], 0);
-  EXPECT_EQ(header[3], 48 + (header[2] * 32));
+  // A router with no routes is the single node shape that the fixtures
+  // carrying a node count of one are built around, so its string table has to
+  // land on the 80 they hardcode
+  EXPECT_EQ(empty_header[2], 1);
+  EXPECT_EQ(empty_header[3], 80);
 
-  // Every remaining table starts at or after the string table, and the file is
-  // large enough to hold each of them, which is the invariant the corrupt
-  // offsets in the fixtures are built to violate
-  EXPECT_GE(header[4], header[3]);
-  EXPECT_GE(header[5], header[4]);
-  EXPECT_GE(header[11], header[5]);
-  EXPECT_LE(header[11], bytes.size());
+  // The base path and the base URL are given different lengths, so reading
+  // each one back out of the string table pins both of their offsets and both
+  // of their lengths against a swap
+  const std::string stored_base_path{
+      reinterpret_cast<const char *>(empty_bytes.data()) + empty_header[3] +
+          empty_header[6],
+      empty_header[7]};
+  EXPECT_EQ(stored_base_path, base_path);
+  const std::string stored_base_url{
+      reinterpret_cast<const char *>(empty_bytes.data()) + empty_header[3] +
+          empty_header[9],
+      empty_header[10]};
+  EXPECT_EQ(stored_base_url, base_url);
+
+  EXPECT_EQ(empty_header[8], 9);
+
+  {
+    sourcemeta::core::URITemplateRouter router{base_path, base_url};
+    router.add("/users", "op_1", 1, 7);
+    router.otherwise(9);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path_);
+  }
+
+  std::ifstream routed_input{this->path_, std::ios::binary};
+  const std::vector<std::uint8_t> routed_bytes{
+      std::istreambuf_iterator<char>{routed_input},
+      std::istreambuf_iterator<char>{}};
+
+  std::array<std::uint32_t, 12> routed_header{};
+  std::memcpy(routed_header.data(), routed_bytes.data(),
+              routed_header.size() * sizeof(routed_header[0]));
+
+  // A different node count against the same two constants is what pins each of
+  // them, as a header of another length or a node record of another length
+  // cannot satisfy both shapes at once
+  EXPECT_GT(routed_header[2], empty_header[2]);
+  EXPECT_EQ(routed_header[3], 48 + (routed_header[2] * 32));
+
+  // Every table past the string table opens with its own entry count, so
+  // reading each count back pins where that table begins
+  std::uint16_t argument_count{0};
+  std::memcpy(&argument_count, routed_bytes.data() + routed_header[4],
+              sizeof(argument_count));
+  EXPECT_EQ(argument_count, 0);
+
+  std::uint16_t operation_count{0};
+  std::memcpy(&operation_count, routed_bytes.data() + routed_header[5],
+              sizeof(operation_count));
+  EXPECT_EQ(operation_count, 1);
+
+  std::uint16_t path_count{0};
+  std::memcpy(&path_count, routed_bytes.data() + routed_header[11],
+              sizeof(path_count));
+  EXPECT_EQ(path_count, 1);
 }
 
 TEST(corrupt_arguments_offset_before_string_table_describes_nothing) {

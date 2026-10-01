@@ -1833,14 +1833,20 @@ TEST(accessors_has_references_through_with_tail) {
       sourcemeta::core::to_weak_pointer(properties), other_token));
 }
 
+// A `$dynamicRef` stays dynamic only when more than one `$dynamicAnchor` of
+// the same name is in play, as a single candidate is rewritten into a static
+// reference. The root carries the anchor too, so the reference satisfies the
+// bookending requirement of JSON Schema 2020-12 Section 8.2.3.2 as well
 TEST(accessors_has_references_to_dynamic) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$id": "https://example.com/schema",
     "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$dynamicAnchor": "shared",
     "$defs": {
       "a": { "$id": "one", "$dynamicAnchor": "shared" },
       "b": { "$id": "two", "$dynamicAnchor": "shared" },
-      "c": { "$id": "three", "$dynamicAnchor": "other" }
+      "c": { "$id": "three", "$dynamicAnchor": "unrelated" },
+      "d": { "$id": "four", "$dynamicAnchor": "unrelated" }
     },
     "properties": { "value": { "$dynamicRef": "#shared" } }
   })JSON");
@@ -1849,16 +1855,21 @@ TEST(accessors_has_references_to_dynamic) {
       sourcemeta::core::SchemaFrame::Mode::References, document,
       sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
 
+  const sourcemeta::core::Pointer root;
   const sourcemeta::core::Pointer first{"$defs", "a"};
   const sourcemeta::core::Pointer second{"$defs", "b"};
-  const sourcemeta::core::Pointer other{"$defs", "c"};
+  const sourcemeta::core::Pointer third{"$defs", "c"};
+  const sourcemeta::core::Pointer fourth{"$defs", "d"};
   const sourcemeta::core::Pointer value{"properties", "value"};
+  EXPECT_TRUE(frame.has_references_to(sourcemeta::core::to_weak_pointer(root)));
   EXPECT_TRUE(
       frame.has_references_to(sourcemeta::core::to_weak_pointer(first)));
   EXPECT_TRUE(
       frame.has_references_to(sourcemeta::core::to_weak_pointer(second)));
   EXPECT_FALSE(
-      frame.has_references_to(sourcemeta::core::to_weak_pointer(other)));
+      frame.has_references_to(sourcemeta::core::to_weak_pointer(third)));
+  EXPECT_FALSE(
+      frame.has_references_to(sourcemeta::core::to_weak_pointer(fourth)));
   EXPECT_FALSE(
       frame.has_references_to(sourcemeta::core::to_weak_pointer(value)));
 }
@@ -1867,11 +1878,12 @@ TEST(accessors_has_references_through_dynamic) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$id": "https://example.com/schema",
     "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$dynamicAnchor": "shared",
     "$defs": {
       "a": { "$id": "one", "$dynamicAnchor": "shared" },
       "b": { "$id": "two", "$dynamicAnchor": "shared" }
     },
-    "items": { "$id": "three", "$dynamicAnchor": "other" },
+    "items": { "$id": "three", "$dynamicAnchor": "unrelated" },
     "properties": { "value": { "$dynamicRef": "#shared" } }
   })JSON");
 
@@ -1891,6 +1903,7 @@ TEST(accessors_has_references_through_with_tail_dynamic) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$id": "https://example.com/schema",
     "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$dynamicAnchor": "shared",
     "$defs": {
       "a": { "$id": "one", "$dynamicAnchor": "shared" },
       "b": { "$id": "two", "$dynamicAnchor": "shared" }
@@ -1917,31 +1930,6 @@ TEST(accessors_has_references_through_with_tail_dynamic) {
       sourcemeta::core::to_weak_pointer(definitions), other_token));
   EXPECT_FALSE(frame.has_references_through(
       sourcemeta::core::to_weak_pointer(properties), other_token));
-}
-
-TEST(accessors_has_references_to_dynamic_fragment_mismatch) {
-  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$id": "https://example.com/schema",
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$defs": {
-      "a": { "$id": "one", "$dynamicAnchor": "shared" },
-      "b": { "$id": "two", "$dynamicAnchor": "shared" },
-      "c": { "$id": "three", "$dynamicAnchor": "unrelated" },
-      "d": { "$id": "four", "$dynamicAnchor": "unrelated" }
-    },
-    "properties": { "value": { "$dynamicRef": "#shared" } }
-  })JSON");
-
-  const sourcemeta::core::SchemaFrame frame{
-      sourcemeta::core::SchemaFrame::Mode::References, document,
-      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
-
-  const sourcemeta::core::Pointer first{"$defs", "a"};
-  const sourcemeta::core::Pointer unrelated{"$defs", "c"};
-  EXPECT_TRUE(
-      frame.has_references_to(sourcemeta::core::to_weak_pointer(first)));
-  EXPECT_FALSE(
-      frame.has_references_to(sourcemeta::core::to_weak_pointer(unrelated)));
 }
 
 TEST(accessors_traverse_pointer_with_type) {
