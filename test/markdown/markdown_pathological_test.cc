@@ -6,6 +6,9 @@
 #include <string>      // std::string, std::to_string
 #include <string_view> // std::string_view
 
+// The bound past which the converter releases the state of its thread
+static constexpr std::size_t RETAINED_SIZE_LIMIT{0x800000};
+
 static auto repeat(const std::string_view pattern, const std::size_t count)
     -> std::string {
   std::string result;
@@ -322,4 +325,22 @@ TEST(many_references_to_a_long_destination_within_the_bound) {
   const auto result{sourcemeta::core::markdown_to_html(
       repeat("[a] ", 500) + "\n\n[a]: /" + destination)};
   EXPECT_EQ(result, "<p>" + repeat(anchor + " ", 499) + anchor + "</p>\n");
+}
+
+// An input past the size the converter keeps around gives up the buffers of
+// its thread once it is done, rather than holding them for the rest of its life
+TEST(input_past_the_retained_size) {
+  std::string input;
+  input.append(RETAINED_SIZE_LIMIT + 1, 'a');
+  const auto result{sourcemeta::core::markdown_to_html(input)};
+  EXPECT_EQ(result, "<p>" + input + "</p>\n");
+}
+
+TEST(input_past_the_retained_size_does_not_disturb_the_next_conversion) {
+  std::string large;
+  large.append(RETAINED_SIZE_LIMIT + 1, 'a');
+  const auto first{sourcemeta::core::markdown_to_html(large)};
+  EXPECT_EQ(first.size(), large.size() + 8);
+  const auto second{sourcemeta::core::markdown_to_html("hello")};
+  EXPECT_EQ(second, "<p>hello</p>\n");
 }
