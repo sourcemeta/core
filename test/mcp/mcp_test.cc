@@ -3606,14 +3606,21 @@ TEST(is_request_method_unknown_at_runtime) {
 }
 
 TEST(protocol_version_is_valid_checks) {
-  EXPECT_FALSE(sourcemeta::core::mcp_protocol_version_is_valid(""));
-  EXPECT_TRUE(sourcemeta::core::mcp_protocol_version_is_valid("2025-03-26"));
-  EXPECT_TRUE(sourcemeta::core::mcp_protocol_version_is_valid("2025-06-18"));
-  EXPECT_TRUE(sourcemeta::core::mcp_protocol_version_is_valid("2025-11-25"));
-  EXPECT_TRUE(sourcemeta::core::mcp_protocol_version_is_valid("2026-07-28"));
-  EXPECT_FALSE(sourcemeta::core::mcp_protocol_version_is_valid("2024-11-05"));
-  EXPECT_FALSE(
-      sourcemeta::core::mcp_protocol_version_is_valid("invalid-version"));
+  const std::string empty;
+  const std::string v_2025_03_26{"2025-03-26"};
+  const std::string v_2025_06_18{"2025-06-18"};
+  const std::string v_2025_11_25{"2025-11-25"};
+  const std::string v_2026_07_28{"2026-07-28"};
+  const std::string v_2024_11_05{"2024-11-05"};
+  const std::string invalid{"invalid-version"};
+
+  EXPECT_FALSE(sourcemeta::core::mcp_protocol_version_is_valid(empty));
+  EXPECT_TRUE(sourcemeta::core::mcp_protocol_version_is_valid(v_2025_03_26));
+  EXPECT_TRUE(sourcemeta::core::mcp_protocol_version_is_valid(v_2025_06_18));
+  EXPECT_TRUE(sourcemeta::core::mcp_protocol_version_is_valid(v_2025_11_25));
+  EXPECT_TRUE(sourcemeta::core::mcp_protocol_version_is_valid(v_2026_07_28));
+  EXPECT_FALSE(sourcemeta::core::mcp_protocol_version_is_valid(v_2024_11_05));
+  EXPECT_FALSE(sourcemeta::core::mcp_protocol_version_is_valid(invalid));
 }
 
 TEST(request_name_from_body_prefers_uri_for_resources_read) {
