@@ -115,13 +115,15 @@ auto mcp_serialize_client_capabilities(
                              MCP_HASH_ELICITATION);
   }
 
-  if (capabilities.extensions.has_value()) {
+  if (capabilities.extensions.has_value() &&
+      capabilities.extensions->is_object()) {
     result.assign_assume_new(
         "extensions", sourcemeta::core::JSON{capabilities.extensions.value()},
         MCP_HASH_EXTENSIONS);
   }
 
-  if (capabilities.experimental.has_value()) {
+  if (capabilities.experimental.has_value() &&
+      capabilities.experimental->is_object()) {
     result.assign_assume_new(
         "experimental",
         sourcemeta::core::JSON{capabilities.experimental.value()},

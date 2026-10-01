@@ -223,7 +223,7 @@ mcp_protocol_version_at_least(const MCPProtocolVersion current,
 /// version.
 constexpr auto
 mcp_protocol_version_is_valid(const JSON::StringView value) noexcept -> bool {
-  return mcp_resolve_protocol_version(value).has_value();
+  return !value.empty() && mcp_resolve_protocol_version(value).has_value();
 }
 
 /// @ingroup mcp

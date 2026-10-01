@@ -70,13 +70,15 @@ auto serialize_capabilities(
                                           sourcemeta::core::MCP_HASH_TOOLS);
   }
 
-  if (capabilities.extensions.has_value()) {
+  if (capabilities.extensions.has_value() &&
+      capabilities.extensions->is_object()) {
     capabilities_object.assign_assume_new(
         "extensions", sourcemeta::core::JSON{capabilities.extensions.value()},
         sourcemeta::core::MCP_HASH_EXTENSIONS);
   }
 
-  if (capabilities.experimental.has_value()) {
+  if (capabilities.experimental.has_value() &&
+      capabilities.experimental->is_object()) {
     capabilities_object.assign_assume_new(
         "experimental",
         sourcemeta::core::JSON{capabilities.experimental.value()},
@@ -177,7 +179,7 @@ void mcp_decorate_result_in_place(
       auto meta_obj{sourcemeta::core::JSON::make_object()};
       meta_obj.assign_assume_new("io.modelcontextprotocol/serverInfo",
                                  std::move(info), MCP_HASH_META_SERVER_INFO);
-      result.assign_assume_new("_meta", std::move(meta_obj), MCP_HASH_META);
+      result.assign("_meta", std::move(meta_obj));
     }
   }
 }
@@ -198,9 +200,12 @@ void mcp_decorate_cacheable_result_in_place(
     return;
   }
 
-  result.assign("ttlMs", sourcemeta::core::JSON{cache_policy->ttl_ms});
-  result.assign("cacheScope", sourcemeta::core::JSON{
-                                  mcp_cache_scope_string(cache_policy->scope)});
+  assert(cache_policy->ttl_ms >= 0);
+  if (cache_policy->ttl_ms >= 0) {
+    result.assign("ttlMs", sourcemeta::core::JSON{cache_policy->ttl_ms});
+    result.assign("cacheScope", sourcemeta::core::JSON{mcp_cache_scope_string(
+                                    cache_policy->scope)});
+  }
 }
 
 auto mcp_decorate_cacheable_result(
@@ -686,12 +691,15 @@ auto mcp_make_server_discover_result(
                              MCP_HASH_INSTRUCTIONS);
   }
 
-  result.assign_assume_new("ttlMs", sourcemeta::core::JSON{cache_policy.ttl_ms},
-                           MCP_HASH_TTL_MS);
-  result.assign_assume_new(
-      "cacheScope",
-      sourcemeta::core::JSON{mcp_cache_scope_string(cache_policy.scope)},
-      MCP_HASH_CACHE_SCOPE);
+  assert(cache_policy.ttl_ms >= 0);
+  if (cache_policy.ttl_ms >= 0) {
+    result.assign_assume_new(
+        "ttlMs", sourcemeta::core::JSON{cache_policy.ttl_ms}, MCP_HASH_TTL_MS);
+    result.assign_assume_new(
+        "cacheScope",
+        sourcemeta::core::JSON{mcp_cache_scope_string(cache_policy.scope)},
+        MCP_HASH_CACHE_SCOPE);
+  }
 
   return sourcemeta::core::jsonrpc_make_success(identifier, std::move(result));
 }

@@ -253,12 +253,12 @@ if(SOURCEMETA_CORE_JSONRPC)
   add_subdirectory(src/core/jsonrpc)
 endif()
 
-if(SOURCEMETA_CORE_MCP)
-  add_subdirectory(src/core/mcp)
-endif()
-
 if(SOURCEMETA_CORE_HTTP)
   add_subdirectory(src/core/http)
+endif()
+
+if(SOURCEMETA_CORE_MCP)
+  add_subdirectory(src/core/mcp)
 endif()
 
 if(SOURCEMETA_CORE_OPENAPI)

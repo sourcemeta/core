@@ -36,7 +36,14 @@ auto mcp_validate_request_meta(const sourcemeta::core::JSON &envelope_or_params)
   const sourcemeta::core::JSON *parameters = nullptr;
   const auto *jsonrpc_field{
       envelope_or_params.try_at("jsonrpc", MCP_HASH_JSONRPC)};
-  if (jsonrpc_field != nullptr) {
+  const auto *method_field{
+      envelope_or_params.try_at("method", MCP_HASH_METHOD)};
+  const bool is_envelope{
+      jsonrpc_field != nullptr && jsonrpc_field->is_string() &&
+      jsonrpc_field->to_string() == "2.0" && method_field != nullptr &&
+      method_field->is_string() && !envelope_or_params.defines("_meta")};
+
+  if (is_envelope) {
     parameters = envelope_or_params.try_at("params", MCP_HASH_PARAMS);
     if (parameters == nullptr) {
       return {MCPRequestMetaStatus::MissingParams, std::nullopt};
@@ -302,6 +309,15 @@ auto mcp_request_name_from_body(const sourcemeta::core::JSON &envelope)
 
   const auto *params{envelope.try_at("params", MCP_HASH_PARAMS)};
   if (params == nullptr || !params->is_object()) {
+    return std::nullopt;
+  }
+
+  const auto method{mcp_request_method_from_body(envelope)};
+  if (method.has_value() && method.value() == MCP_METHOD_RESOURCES_READ) {
+    const auto *uri_field{params->try_at("uri", MCP_HASH_URI)};
+    if (uri_field != nullptr && uri_field->is_string()) {
+      return uri_field->to_string();
+    }
     return std::nullopt;
   }
 

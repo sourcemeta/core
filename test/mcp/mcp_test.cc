@@ -3604,3 +3604,101 @@ TEST(is_request_method_unknown_at_runtime) {
   const std::string method{"foo/bar"};
   EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(method));
 }
+
+TEST(protocol_version_is_valid_checks) {
+  EXPECT_FALSE(sourcemeta::core::mcp_protocol_version_is_valid(""));
+  EXPECT_TRUE(sourcemeta::core::mcp_protocol_version_is_valid("2025-03-26"));
+  EXPECT_TRUE(sourcemeta::core::mcp_protocol_version_is_valid("2025-06-18"));
+  EXPECT_TRUE(sourcemeta::core::mcp_protocol_version_is_valid("2025-11-25"));
+  EXPECT_TRUE(sourcemeta::core::mcp_protocol_version_is_valid("2026-07-28"));
+  EXPECT_FALSE(sourcemeta::core::mcp_protocol_version_is_valid("2024-11-05"));
+  EXPECT_FALSE(
+      sourcemeta::core::mcp_protocol_version_is_valid("invalid-version"));
+}
+
+TEST(request_name_from_body_prefers_uri_for_resources_read) {
+  const auto envelope_with_both{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "resources/read",
+    "params": { "name": "ignored-name", "uri": "file:///path/to/resource" }
+  })JSON")};
+  const auto extracted_uri{
+      sourcemeta::core::mcp_request_name_from_body(envelope_with_both)};
+  EXPECT_TRUE(extracted_uri.has_value());
+  EXPECT_EQ(extracted_uri.value(), "file:///path/to/resource");
+
+  const auto envelope_uri_only{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 2,
+    "method": "resources/read",
+    "params": { "uri": "file:///path/only" }
+  })JSON")};
+  const auto extracted_uri_only{
+      sourcemeta::core::mcp_request_name_from_body(envelope_uri_only)};
+  EXPECT_TRUE(extracted_uri_only.has_value());
+  EXPECT_EQ(extracted_uri_only.value(), "file:///path/only");
+}
+
+TEST(request_meta_validation_accepts_params_with_jsonrpc_property) {
+  const auto params{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "custom-param-value",
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    }
+  })JSON")};
+  const auto [status,
+              meta]{sourcemeta::core::mcp_validate_request_meta(params)};
+  EXPECT_EQ(status, sourcemeta::core::MCPRequestMetaStatus::Valid);
+  EXPECT_TRUE(meta.has_value());
+  EXPECT_EQ(meta->protocol_version,
+            sourcemeta::core::MCPProtocolVersion::V_2026_07_28);
+}
+
+TEST(decorate_result_replaces_non_object_meta) {
+  auto result{sourcemeta::core::parse_json(R"JSON({
+    "resultType": "complete",
+    "_meta": "string-not-object"
+  })JSON")};
+  const sourcemeta::core::MCPImplementation server{.name = "srv",
+                                                   .version = "1.0.0"};
+  sourcemeta::core::mcp_decorate_result_in_place(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, result, server);
+
+  EXPECT_TRUE(result.at("_meta").is_object());
+  EXPECT_TRUE(result.at("_meta").defines("io.modelcontextprotocol/serverInfo"));
+}
+
+TEST(cache_policy_rejects_negative_ttl_ms) {
+  auto result{sourcemeta::core::JSON::make_object()};
+  const sourcemeta::core::MCPCachePolicy negative_policy{
+      .ttl_ms = -500, .scope = sourcemeta::core::MCPCacheScope::Public};
+  sourcemeta::core::mcp_decorate_cacheable_result_in_place(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, result,
+      negative_policy);
+
+  EXPECT_FALSE(result.defines("ttlMs"));
+  EXPECT_FALSE(result.defines("cacheScope"));
+}
+
+TEST(capabilities_serializer_ignores_non_object_extensions) {
+  sourcemeta::core::MCPClientCapabilities client_caps;
+  client_caps.extensions = sourcemeta::core::JSON{"not-an-object"};
+  client_caps.experimental = sourcemeta::core::JSON::make_array();
+
+  const auto serialized_client{
+      sourcemeta::core::mcp_serialize_client_capabilities(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, client_caps)};
+  EXPECT_FALSE(serialized_client.defines("extensions"));
+  EXPECT_FALSE(serialized_client.defines("experimental"));
+
+  sourcemeta::core::MCPServerCapabilities server_caps;
+  server_caps.extensions = sourcemeta::core::JSON{123};
+  server_caps.experimental = sourcemeta::core::JSON{false};
+
+  const auto serialized_server{sourcemeta::core::mcp_make_tools_list_result(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      sourcemeta::core::JSON::make_array())};
+  EXPECT_FALSE(serialized_server.defines("extensions"));
+}
