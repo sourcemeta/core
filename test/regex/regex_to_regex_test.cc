@@ -178,3 +178,32 @@ TEST(without_optimise_for_match_the_iregexp_dialect_is_unchanged) {
   EXPECT_TRUE(
       std::holds_alternative<sourcemeta::core::RegexTypePCRE2>(regex.value()));
 }
+
+TEST(the_noop_shortcut_accepts_every_spelling) {
+  EXPECT_TRUE(std::holds_alternative<sourcemeta::core::RegexTypeNoop>(
+      sourcemeta::core::to_regex("^.*$").value()));
+  EXPECT_TRUE(std::holds_alternative<sourcemeta::core::RegexTypeNoop>(
+      sourcemeta::core::to_regex("^(.*)$").value()));
+  EXPECT_TRUE(std::holds_alternative<sourcemeta::core::RegexTypeNoop>(
+      sourcemeta::core::to_regex("(.*)").value()));
+  EXPECT_TRUE(std::holds_alternative<sourcemeta::core::RegexTypeNoop>(
+      sourcemeta::core::to_regex(R"([\s\S]*)").value()));
+  EXPECT_TRUE(std::holds_alternative<sourcemeta::core::RegexTypeNoop>(
+      sourcemeta::core::to_regex(R"(^[\s\S]*$)").value()));
+}
+
+TEST(the_non_empty_shortcut_accepts_every_spelling) {
+  EXPECT_TRUE(std::holds_alternative<sourcemeta::core::RegexTypeNonEmpty>(
+      sourcemeta::core::to_regex(".+").value()));
+  EXPECT_TRUE(std::holds_alternative<sourcemeta::core::RegexTypeNonEmpty>(
+      sourcemeta::core::to_regex("^.+$").value()));
+  EXPECT_TRUE(std::holds_alternative<sourcemeta::core::RegexTypeNonEmpty>(
+      sourcemeta::core::to_regex("^(.+)$").value()));
+}
+
+TEST(a_range_shortcut_bound_past_the_size_type_is_rejected) {
+  EXPECT_FALSE(
+      sourcemeta::core::to_regex("^.{99999999999999999999,2}$").has_value());
+  EXPECT_FALSE(
+      sourcemeta::core::to_regex("^.{2,99999999999999999999}$").has_value());
+}
