@@ -461,6 +461,8 @@ static auto run_dectest_case(const DecTestCase &test_case) -> void {
     });
   } else if (operation == "reduce") {
     run_unary(test_case, [](const auto &value) { return value.reduce(); });
+  } else if (operation == "trim") {
+    run_unary(test_case, [](const auto &value) { return value.trim(); });
   } else {
     FAIL();
   }
@@ -685,14 +687,6 @@ static auto should_skip_test(const DecTestCase &test_case,
     if (context.rounding != "half_even") {
       return true;
     }
-  }
-
-  // Stripping a coefficient down to its shortest form is not the operation
-  // that stops once the exponent reaches zero, which leaves an integer written
-  // out in full rather than carried into an exponent. Only the first of the two
-  // is implemented
-  if (operation == "trim") {
-    return true;
   }
 
   // The specification gives a zero sum the sign of "0 unless either both
