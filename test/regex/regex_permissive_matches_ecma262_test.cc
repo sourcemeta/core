@@ -3942,9 +3942,9 @@ TEST(ecma262_class_intersection_of_nested_classes) {
 
 TEST(ecma262_class_intersection_with_a_hex_escape) {
   const auto regex{sourcemeta::core::to_regex(
-      R"(^[A&&[A-Z]]$)", sourcemeta::core::RegexDialect::Permissive)};
+      R"(^[\u0041&&[A-Z]]$)", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
-  EXPECT_TRUE(sourcemeta::core::is_regex_ecma(R"(^[A&&[A-Z]]$)"));
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma(R"(^[\u0041&&[A-Z]]$)"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "A"));
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "B"));
 }
