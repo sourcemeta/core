@@ -239,3 +239,32 @@ TEST(verify_rejects_a_truncated_signature) {
                    sourcemeta::core::hex_to_bytes(EXPONENT_HEX).value(),
                    MESSAGE, signature.substr(1)));
 }
+
+// RFC 8017 puts no lower bound on the modulus, and importing a key only bounds
+// it from above, so a key carrying a modulus of one or two octets is one a
+// caller can be handed. Verification cannot succeed with one, as the encoded
+// message of any hash function is wider than the modulus, but it has to reach
+// that answer rather than read past the modulus while reducing
+TEST(verify_rejects_a_two_octet_modulus) {
+  EXPECT_FALSE(verify_pkcs1(sourcemeta::core::SignatureHashFunction::SHA256,
+                            sourcemeta::core::hex_to_bytes("ffff").value(),
+                            sourcemeta::core::hex_to_bytes("03").value(),
+                            MESSAGE,
+                            sourcemeta::core::hex_to_bytes("0100").value()));
+}
+
+TEST(verify_rejects_a_one_octet_modulus) {
+  EXPECT_FALSE(verify_pkcs1(sourcemeta::core::SignatureHashFunction::SHA256,
+                            sourcemeta::core::hex_to_bytes("ff").value(),
+                            sourcemeta::core::hex_to_bytes("03").value(),
+                            MESSAGE,
+                            sourcemeta::core::hex_to_bytes("10").value()));
+}
+
+TEST(verify_rejects_an_eight_octet_modulus) {
+  EXPECT_FALSE(
+      verify_pkcs1(sourcemeta::core::SignatureHashFunction::SHA512,
+                   sourcemeta::core::hex_to_bytes("ffffffffffffffff").value(),
+                   sourcemeta::core::hex_to_bytes("03").value(), MESSAGE,
+                   sourcemeta::core::hex_to_bytes("0000000100000000").value()));
+}

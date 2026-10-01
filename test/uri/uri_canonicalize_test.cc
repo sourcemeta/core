@@ -557,3 +557,17 @@ TEST(iri_leaves_percent_encoded_continuation_byte) {
   uri.canonicalize();
   EXPECT_EQ(uri.recompose(), "https://example.com/%80");
 }
+
+TEST(iri_path_setter_decodes_percent_encoded_ascii_unreserved) {
+  auto uri{sourcemeta::core::URI::from_iri("https://example.com/")};
+  uri.path("/%41");
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "https://example.com/A");
+}
+
+TEST(path_setter_decodes_percent_encoded_ascii_unreserved) {
+  sourcemeta::core::URI uri{"https://example.com/"};
+  uri.path("/%41");
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "https://example.com/A");
+}

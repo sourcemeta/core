@@ -660,3 +660,48 @@ TEST(term_nest_non_string_is_rejected) {
     EXPECT_STREQ(error.what(), "Invalid @nest value");
   }
 }
+
+// JSON-LD 1.1 Expansion calls a reverse property inside a reverse property map
+// "properties that are reversed twice", and merges those entries forward into
+// the result rather than leaving them reversed
+TEST(reverse_term_inside_a_reverse_map_is_reversed_twice) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "rev": { "@reverse": "http://example.com/x" }
+    },
+    "@id": "http://example.com/subject",
+    "@reverse": { "rev": { "@id": "http://example.com/object" } }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "http://example.com/subject",
+      "http://example.com/x": [ { "@id": "http://example.com/object" } ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+// The only keyword a reverse property map may carry is `@context`, which is
+// read as a scoped context rather than rejected
+TEST(context_inside_a_reverse_map_is_allowed) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@id": "http://example.com/subject",
+    "@reverse": {
+      "@context": { "p": "http://example.com/p" },
+      "p": { "@id": "http://example.com/object" }
+    }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "http://example.com/subject",
+      "@reverse": {
+        "http://example.com/p": [ { "@id": "http://example.com/object" } ]
+      }
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}

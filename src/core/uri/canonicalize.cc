@@ -6,7 +6,6 @@
 #include "normalize.h"
 
 #include <array>    // std::array
-#include <cassert>  // assert
 #include <cstdint>  // std::uint8_t
 #include <optional> // std::optional
 #include <string>   // std::string
@@ -39,14 +38,13 @@ auto unescape_iunreserved_inplace(std::string &input) -> void {
     const auto length{sourcemeta::core::utf8_lead_byte_size(lead)};
 
     if (length == 1) {
-      // Every component that reaches here has already had its percent-encoded
-      // ASCII unreserved octets decoded, by the parser or by whichever setter
-      // stored it, so what is left of the ASCII range is reserved and keeps the
-      // meaning that decoding it would lose
-      assert(!uri_is_unreserved(static_cast<char>(lead)));
-      output += input[position];
-      output += input[position + 1];
-      output += input[position + 2];
+      if (uri_is_unreserved(static_cast<char>(lead))) {
+        output += static_cast<char>(lead);
+      } else {
+        output += input[position];
+        output += input[position + 1];
+        output += input[position + 2];
+      }
       position += 3;
       continue;
     }
