@@ -79,7 +79,7 @@
         "type": "openapi",
         "pointer": "",
         "parent": null,
-        "dialect": "https://example.com/entry-dialect"
+        "defaultDialect": "https://example.com/entry-dialect"
       },
       "https://example.com/openapi.json#/components": {
         "type": "components",
@@ -90,7 +90,7 @@
         "type": "schema",
         "pointer": "/components/schemas/Pet",
         "parent": "https://example.com/openapi.json#/components",
-        "dialect": "https://example.com/entry-dialect",
+        "defaultDialect": "https://example.com/entry-dialect",
         "base": "https://example.com/openapi.json"
       },
       "https://example.com/openapi.json#/info": {

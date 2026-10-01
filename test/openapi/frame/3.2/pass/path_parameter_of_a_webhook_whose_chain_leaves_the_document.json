@@ -124,7 +124,7 @@
         "type": "openapi",
         "pointer": "",
         "parent": null,
-        "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17"
+        "defaultDialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17"
       },
       "#/components": {
         "type": "components",
@@ -160,7 +160,7 @@
         "type": "schema",
         "pointer": "/components/pathItems/Shared/parameters/0/schema",
         "parent": "#/components/pathItems/Shared/parameters/0",
-        "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17",
+        "defaultDialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17",
         "base": ""
       },
       "#/info": {
@@ -198,7 +198,7 @@
         "type": "schema",
         "pointer": "/webhooks/ping/parameters/0/schema",
         "parent": "#/webhooks/ping/parameters/0",
-        "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17",
+        "defaultDialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17",
         "base": ""
       }
     },
