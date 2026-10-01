@@ -397,3 +397,39 @@ TEST(tagfilter_tag_name_ended_by_a_tab) {
       sourcemeta::core::markdown_to_html("x <script\tsrc=y>", false)};
   EXPECT_EQ(result, "<p>x &lt;script\tsrc=y></p>\n");
 }
+
+TEST(inline_html_attribute_with_an_empty_value) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("<a href=>x</a>", false)};
+  EXPECT_EQ(result, "<p>&lt;a href=&gt;x</a></p>\n");
+}
+
+TEST(inline_html_self_closing_tag) {
+  const auto result{sourcemeta::core::markdown_to_html("<br/>x", false)};
+  EXPECT_EQ(result, "<p><br/>x</p>\n");
+}
+
+TEST(inline_html_declaration_that_is_not_a_comment) {
+  const auto result{sourcemeta::core::markdown_to_html("<!-x>", false)};
+  EXPECT_EQ(result, "<p>&lt;!-x&gt;</p>\n");
+}
+
+// CommonMark 0.29 section 4.6 condition 4 opens an HTML block on `<!` followed
+// by a letter, so this is a block rather than an inline declaration
+TEST(html_block_declaration_without_a_space) {
+  const auto result{sourcemeta::core::markdown_to_html("<!A>", false)};
+  EXPECT_EQ(result, "<!A>\n");
+}
+
+TEST(inline_html_cdata_with_a_wrong_prefix) {
+  const auto result{sourcemeta::core::markdown_to_html("<![CDAT[x]]>", false)};
+  EXPECT_EQ(result, "<p>&lt;![CDAT[x]]&gt;</p>\n");
+}
+
+// Section 4.6 condition 5 ends the section at the first `]]>`, so an interior
+// pair of brackets is content rather than a terminator
+TEST(html_block_cdata_with_an_interior_double_bracket) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("<![CDATA[a]]b]]>x", false)};
+  EXPECT_EQ(result, "<![CDATA[a]]b]]>x\n");
+}

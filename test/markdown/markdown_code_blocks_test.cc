@@ -290,3 +290,26 @@ TEST(fenced_code_info_string_backslash_escapes) {
   EXPECT_EQ(result, "<pre><code class=\"language-c#\">code\n"
                     "</code></pre>\n");
 }
+
+// CommonMark 0.29 section 4.4: "Blank lines preceding or following an indented
+// code block are not included in it", so an indented chunk that is nothing but
+// a blank line opens no code block at all
+TEST(indented_chunk_of_only_blank_lines_is_not_a_code_block) {
+  const auto result{sourcemeta::core::markdown_to_html("    \n")};
+  EXPECT_EQ(result, "");
+}
+
+TEST(indented_code_block_without_a_trailing_line_ending) {
+  const auto result{sourcemeta::core::markdown_to_html("    code")};
+  EXPECT_EQ(result, "<pre><code>code\n</code></pre>\n");
+}
+
+TEST(indented_code_block_ending_with_a_carriage_return) {
+  const auto result{sourcemeta::core::markdown_to_html("    code\r")};
+  EXPECT_EQ(result, "<pre><code>code\n</code></pre>\n");
+}
+
+TEST(fenced_code_block_info_string_ended_by_a_carriage_return) {
+  const auto result{sourcemeta::core::markdown_to_html("```js\rcode\r```")};
+  EXPECT_EQ(result, "<pre><code class=\"language-js\">code\n</code></pre>\n");
+}
