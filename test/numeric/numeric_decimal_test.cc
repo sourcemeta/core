@@ -5165,3 +5165,183 @@ TEST(is_integer_unary_minus_of_real_stays_cleared) {
   EXPECT_FALSE(result.is_integer());
   EXPECT_EQ(result.to_string(), "-3.5");
 }
+
+TEST(add_two_zeros_takes_the_lower_exponent) {
+  const sourcemeta::core::Decimal left{"0"};
+  const sourcemeta::core::Decimal right{"0.00"};
+  EXPECT_EQ((left + right).to_scientific_string(), "0e-2");
+  EXPECT_EQ((right + left).to_scientific_string(), "0e-2");
+}
+
+TEST(add_a_zero_below_a_value_takes_the_lower_exponent) {
+  const sourcemeta::core::Decimal left{"0.00"};
+  const sourcemeta::core::Decimal right{"1"};
+  EXPECT_EQ((left + right).to_scientific_string(), "1.00e+0");
+  EXPECT_EQ((right + left).to_scientific_string(), "1.00e+0");
+}
+
+TEST(add_a_zero_above_a_value_keeps_the_exponent_of_the_value) {
+  const sourcemeta::core::Decimal left{"0E+50"};
+  const sourcemeta::core::Decimal right{"10000E+1"};
+  EXPECT_EQ((left + right).to_scientific_string(), "1.0000e+5");
+  EXPECT_EQ((right + left).to_scientific_string(), "1.0000e+5");
+}
+
+TEST(add_two_zeros_is_negative_only_when_both_are) {
+  const sourcemeta::core::Decimal negative{"-0.00"};
+  const sourcemeta::core::Decimal positive{"0"};
+  EXPECT_TRUE((negative + negative).is_signed());
+  EXPECT_FALSE((negative + positive).is_signed());
+  EXPECT_FALSE((positive + negative).is_signed());
+  EXPECT_FALSE((positive + positive).is_signed());
+}
+
+TEST(subtract_a_zero_below_a_value_takes_the_lower_exponent) {
+  const sourcemeta::core::Decimal left{"1"};
+  const sourcemeta::core::Decimal right{"0.0"};
+  EXPECT_EQ((left - right).to_scientific_string(), "1.0e+0");
+}
+
+TEST(remainder_takes_the_lower_exponent_when_the_divisor_does_not_fit) {
+  const sourcemeta::core::Decimal dividend{"0.5"};
+  const sourcemeta::core::Decimal divisor{"2.01"};
+  EXPECT_EQ((dividend % divisor).to_scientific_string(), "5.0e-1");
+}
+
+TEST(remainder_of_a_zero_above_the_divisor_takes_the_lower_exponent) {
+  const sourcemeta::core::Decimal dividend{"0.00E+9"};
+  const sourcemeta::core::Decimal divisor{"1"};
+  EXPECT_EQ((dividend % divisor).to_scientific_string(), "0e+0");
+}
+
+TEST(divide_exactly_climbs_to_the_ideal_exponent) {
+  const sourcemeta::core::Decimal one{"1"};
+  const sourcemeta::core::Decimal two{"2"};
+  EXPECT_EQ((one / one).to_scientific_string(), "1e+0");
+  EXPECT_EQ((one / two).to_scientific_string(), "5e-1");
+}
+
+TEST(divide_exactly_carries_the_exponents_of_both_operands) {
+  const sourcemeta::core::Decimal dividend{"1E+2"};
+  const sourcemeta::core::Decimal divisor{"1E-2"};
+  EXPECT_EQ((dividend / divisor).to_scientific_string(), "1e+4");
+}
+
+TEST(divide_a_zero_reaches_the_ideal_exponent_outright) {
+  const sourcemeta::core::Decimal zero{"0"};
+  const sourcemeta::core::Decimal one{"1"};
+  EXPECT_EQ((zero / one).to_scientific_string(), "0e+0");
+}
+
+TEST(divide_inexactly_keeps_every_digit_it_worked_out) {
+  const sourcemeta::core::Decimal one{"1"};
+  const sourcemeta::core::Decimal three{"3"};
+  EXPECT_EQ((one / three).to_scientific_string(), "3.333333333333333e-1");
+}
+
+TEST(exception_overflow_addition_across_a_vast_exponent_gap) {
+  const sourcemeta::core::Decimal left{"1"};
+  const sourcemeta::core::Decimal right{"1E-2147483647"};
+  try {
+    const auto result = left + right;
+    FAIL();
+  } catch (const sourcemeta::core::NumericOverflowError &error) {
+    EXPECT_STREQ(error.what(), "Numeric overflow");
+  }
+}
+
+TEST(exception_overflow_addition_of_a_zero_across_a_vast_exponent_gap) {
+  const sourcemeta::core::Decimal left{"1"};
+  const sourcemeta::core::Decimal right{"0E-2147483647"};
+  try {
+    const auto result = left + right;
+    FAIL();
+  } catch (const sourcemeta::core::NumericOverflowError &error) {
+    EXPECT_STREQ(error.what(), "Numeric overflow");
+  }
+}
+
+TEST(exception_overflow_addition_of_a_zero_the_other_way_around) {
+  const sourcemeta::core::Decimal left{"0E-2147483647"};
+  const sourcemeta::core::Decimal right{"1"};
+  try {
+    const auto result = left + right;
+    FAIL();
+  } catch (const sourcemeta::core::NumericOverflowError &error) {
+    EXPECT_STREQ(error.what(), "Numeric overflow");
+  }
+}
+
+TEST(exception_overflow_division_across_a_vast_exponent_gap) {
+  const sourcemeta::core::Decimal dividend{"1E2147483646"};
+  const sourcemeta::core::Decimal divisor{"1E-2147483647"};
+  try {
+    const auto result = dividend / divisor;
+    FAIL();
+  } catch (const sourcemeta::core::NumericOverflowError &error) {
+    EXPECT_STREQ(error.what(), "Numeric overflow");
+  }
+}
+
+TEST(divide_integer_by_a_far_larger_divisor_is_zero) {
+  const sourcemeta::core::Decimal dividend{"1"};
+  const sourcemeta::core::Decimal divisor{"1e999999999"};
+  const auto quotient{dividend.divide_integer(divisor)};
+  EXPECT_TRUE(quotient.is_zero());
+  EXPECT_FALSE(quotient.is_signed());
+}
+
+TEST(divide_integer_of_a_tiny_dividend_by_a_negative_divisor_is_a_signed_zero) {
+  const sourcemeta::core::Decimal dividend{"9E-999999999"};
+  const sourcemeta::core::Decimal divisor{"-9.100"};
+  const auto quotient{dividend.divide_integer(divisor)};
+  EXPECT_TRUE(quotient.is_zero());
+  EXPECT_TRUE(quotient.is_signed());
+}
+
+TEST(remainder_across_a_vast_exponent_gap_is_the_dividend) {
+  const sourcemeta::core::Decimal dividend{"9E-999999999"};
+  const sourcemeta::core::Decimal divisor{"9.100"};
+  EXPECT_EQ(dividend % divisor, dividend);
+}
+
+TEST(probe_wide_less_than) {
+  const sourcemeta::core::Decimal big{"999999999999999999E2147483646"};
+  const sourcemeta::core::Decimal small{"1E2147483646"};
+  EXPECT_FALSE(big < small);
+}
+
+TEST(probe_wide_divide_integer) {
+  const sourcemeta::core::Decimal big{"999999999999999999E2147483646"};
+  const sourcemeta::core::Decimal small{"1E2147483646"};
+  EXPECT_TRUE(!big.divide_integer(small).is_zero());
+}
+
+TEST(to_scientific_string_of_an_adjusted_exponent_past_the_exponent_range) {
+  const sourcemeta::core::Decimal value{"999E2147483646"};
+  EXPECT_EQ(value.to_scientific_string(), "9.99e+2147483648");
+  EXPECT_EQ(value.logb().to_string(), "2147483648");
+}
+
+TEST(comparison_of_adjusted_exponents_past_the_exponent_range) {
+  const sourcemeta::core::Decimal big{"999E2147483646"};
+  const sourcemeta::core::Decimal small{"1E2147483646"};
+  EXPECT_FALSE(big < small);
+  EXPECT_TRUE(small < big);
+  EXPECT_TRUE(big > small);
+  EXPECT_FALSE(small > big);
+}
+
+TEST(compare_total_of_adjusted_exponents_past_the_exponent_range) {
+  const sourcemeta::core::Decimal big{"999E2147483646"};
+  const sourcemeta::core::Decimal small{"1E2147483646"};
+  EXPECT_EQ(big.compare_total(small).to_string(), "1");
+  EXPECT_EQ(small.compare_total(big).to_string(), "-1");
+}
+
+TEST(divide_integer_of_adjusted_exponents_past_the_exponent_range) {
+  const sourcemeta::core::Decimal big{"999E2147483646"};
+  const sourcemeta::core::Decimal small{"1E2147483646"};
+  EXPECT_FALSE(big.divide_integer(small).is_zero());
+  EXPECT_TRUE(small.divide_integer(big).is_zero());
+}

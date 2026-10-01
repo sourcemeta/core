@@ -717,8 +717,11 @@ auto Decimal::to_scientific_string() const -> std::string {
 
   auto digit_string = coefficient_to_digit_string(
       this->coefficient_, this->coefficient_high_, this->flags_);
-  auto number_of_digits = static_cast<std::int32_t>(digit_string.size());
-  auto adjusted_exponent = this->exponent_ + number_of_digits - 1;
+  // The adjusted exponent of a value whose own exponent sits at the top of its
+  // range lands past that range, so it is worked out more widely
+  auto number_of_digits = static_cast<std::int64_t>(digit_string.size());
+  auto adjusted_exponent =
+      static_cast<std::int64_t>(this->exponent_) + number_of_digits - 1;
 
   if ((this->flags_ & FLAG_SIGN) != 0) {
     result += '-';
@@ -1400,10 +1403,12 @@ auto Decimal::compare_total(const Decimal &other) const -> Decimal {
           digit_count(static_cast<std::uint64_t>(this->coefficient_));
       auto right_digits =
           digit_count(static_cast<std::uint64_t>(other.coefficient_));
-      auto left_adjusted =
-          this->exponent_ + static_cast<std::int32_t>(left_digits) - 1;
-      auto right_adjusted =
-          other.exponent_ + static_cast<std::int32_t>(right_digits) - 1;
+      // An adjusted exponent can land past the range the exponent itself
+      // spans, so the two are worked out as widely as the branch above does
+      auto left_adjusted = static_cast<std::int64_t>(this->exponent_) +
+                           static_cast<std::int64_t>(left_digits) - 1;
+      auto right_adjusted = static_cast<std::int64_t>(other.exponent_) +
+                            static_cast<std::int64_t>(right_digits) - 1;
 
       if (left_adjusted != right_adjusted) {
         magnitude_compare = left_adjusted < right_adjusted ? -1 : 1;
@@ -1511,6 +1516,24 @@ auto Decimal::divide_integer(const Decimal &other) const -> Decimal {
   }
 
   if (this->is_zero()) {
+    Decimal result;
+    if (result_negative) {
+      result.flags_ = FLAG_SIGN;
+    }
+
+    return result;
+  }
+
+  // A divisor that outgrows the dividend goes into it no whole times, which
+  // the comparison settles from the exponents rather than by lining up two
+  // coefficients that the distance between them would make enormous
+  Decimal dividend_magnitude{*this};
+  dividend_magnitude.flags_ =
+      static_cast<std::uint8_t>(dividend_magnitude.flags_ & ~FLAG_SIGN);
+  Decimal divisor_magnitude{other};
+  divisor_magnitude.flags_ =
+      static_cast<std::uint8_t>(divisor_magnitude.flags_ & ~FLAG_SIGN);
+  if (dividend_magnitude < divisor_magnitude) {
     Decimal result;
     if (result_negative) {
       result.flags_ = FLAG_SIGN;
@@ -1668,10 +1691,12 @@ auto Decimal::operator<(const Decimal &other) const -> bool {
           digit_count(static_cast<std::uint64_t>(this->coefficient_));
       auto right_digits =
           digit_count(static_cast<std::uint64_t>(other.coefficient_));
-      auto left_adjusted =
-          this->exponent_ + static_cast<std::int32_t>(left_digits) - 1;
-      auto right_adjusted =
-          other.exponent_ + static_cast<std::int32_t>(right_digits) - 1;
+      // An adjusted exponent can land past the range the exponent itself
+      // spans, so the two are worked out as widely as the branch above does
+      auto left_adjusted = static_cast<std::int64_t>(this->exponent_) +
+                           static_cast<std::int64_t>(left_digits) - 1;
+      auto right_adjusted = static_cast<std::int64_t>(other.exponent_) +
+                            static_cast<std::int64_t>(right_digits) - 1;
 
       if (left_adjusted != right_adjusted) {
         magnitude_compare = left_adjusted < right_adjusted ? -1 : 1;
@@ -1770,13 +1795,15 @@ auto Decimal::operator+=(const Decimal &other) -> Decimal & {
 
   check_exponent_overflow(this->exponent_, other.exponent_);
 
-  if (other.is_zero()) {
-    // The General Decimal Arithmetic Specification states that for addition
-    // "the sign of a zero result is 0 unless either both operands were
-    // negative or the signs of the operands were different and the rounding
-    // is round-floor", so a positive zero addend clears the sign of a
-    // negative zero
-    if (this->is_zero() && (other.flags_ & FLAG_SIGN) == 0) {
+  // The General Decimal Arithmetic Specification states that for addition "the
+  // exponent of the result is the minimum of the exponents of the two
+  // operands", and that "the sign of a zero result is 0 unless either both
+  // operands were negative or the signs of the operands were different and the
+  // rounding is round-floor", so a positive zero addend clears the sign of a
+  // negative zero
+  if (this->is_zero() && other.is_zero()) {
+    this->exponent_ = std::min(this->exponent_, other.exponent_);
+    if ((other.flags_ & FLAG_SIGN) == 0) {
       this->flags_ = static_cast<std::uint8_t>(this->flags_ & ~FLAG_SIGN);
     }
 
@@ -1785,7 +1812,16 @@ auto Decimal::operator+=(const Decimal &other) -> Decimal & {
     return *this;
   }
 
-  if (this->is_zero()) {
+  // Taking over the other operand only reaches the minimum exponent when the
+  // zero does not sit below it. A zero that does carries the result down with
+  // it, which means scaling the other operand up, so those go the general way
+  if (other.is_zero() && other.exponent_ >= this->exponent_) {
+    this->flags_ =
+        static_cast<std::uint8_t>(this->flags_ & ~FLAG_INTEGER_LITERAL);
+    return *this;
+  }
+
+  if (this->is_zero() && this->exponent_ >= other.exponent_) {
     *this = other;
     this->flags_ =
         static_cast<std::uint8_t>(this->flags_ & ~FLAG_INTEGER_LITERAL);
@@ -2028,13 +2064,39 @@ auto Decimal::operator/=(const Decimal &other) -> Decimal & {
   auto scaled = dividend_big.multiply_pow10(WORKING_PRECISION);
   auto [quotient, remainder] = scaled.divide_modulo(divisor_big);
 
+  // Two exponents at opposite ends of their range are further apart than that
+  // range can hold, so the result is worked out more widely and only narrowed
+  // once it is final
+  auto result_exponent = static_cast<std::int64_t>(this->exponent_) -
+                         other.exponent_ - WORKING_PRECISION;
+
+  // The General Decimal Arithmetic Specification states that "after the
+  // division, if the result is exact then the coefficient and exponent giving
+  // the correct value and with the exponent closest to the ideal exponent is
+  // returned", the ideal being "the exponent of the dividend less the exponent
+  // of the divisor". The division above works a fixed number of digits below
+  // that ideal, so an exact quotient hands back as many of its trailing zeros
+  // as it takes to climb there, and an exact zero reaches it outright
+  if (remainder.is_zero()) {
+    if (quotient.is_zero()) {
+      result_exponent += WORKING_PRECISION;
+    } else {
+      result_exponent += quotient.strip_trailing_zeros(WORKING_PRECISION);
+    }
+  }
+
+  if (result_exponent > std::numeric_limits<std::int32_t>::max() ||
+      result_exponent < std::numeric_limits<std::int32_t>::min()) {
+    throw NumericOverflowError{};
+  }
+
   free_big_coefficient(this->coefficient_, this->flags_);
-  // The General Decimal Arithmetic Specification states that "the sign of the
-  // result of a multiplication or division will be 1 only if the operands have
-  // different signs", which holds for a zero quotient too
+  // The specification states that "the sign of the result of a multiplication
+  // or division will be 1 only if the operands have different signs", which
+  // holds for a zero quotient too
   store_big_result(this->coefficient_, this->coefficient_high_, this->flags_,
                    std::move(quotient), result_negative);
-  this->exponent_ = this->exponent_ - other.exponent_ - WORKING_PRECISION;
+  this->exponent_ = static_cast<std::int32_t>(result_exponent);
 
   round_to_precision(this->coefficient_, this->coefficient_high_,
                      this->exponent_, this->flags_);
@@ -2071,7 +2133,13 @@ auto Decimal::operator%=(const Decimal &other) -> Decimal & {
   Decimal divisor_magnitude{other};
   divisor_magnitude.flags_ =
       static_cast<std::uint8_t>(divisor_magnitude.flags_ & ~FLAG_SIGN);
-  if (dividend_magnitude < divisor_magnitude) {
+
+  // A divisor the dividend does not reach leaves the dividend as the residue,
+  // though the exponent of the result is still the lower of the two, so a
+  // divisor sitting below the dividend carries it down there and goes the
+  // general way
+  if (dividend_magnitude < divisor_magnitude &&
+      this->exponent_ <= other.exponent_) {
     this->flags_ =
         static_cast<std::uint8_t>(this->flags_ & ~FLAG_INTEGER_LITERAL);
     return *this;
