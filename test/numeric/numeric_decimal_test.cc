@@ -5304,3 +5304,44 @@ TEST(remainder_across_a_vast_exponent_gap_is_the_dividend) {
   const sourcemeta::core::Decimal divisor{"9.100"};
   EXPECT_EQ(dividend % divisor, dividend);
 }
+
+TEST(probe_wide_less_than) {
+  const sourcemeta::core::Decimal big{"999999999999999999E2147483646"};
+  const sourcemeta::core::Decimal small{"1E2147483646"};
+  EXPECT_FALSE(big < small);
+}
+
+TEST(probe_wide_divide_integer) {
+  const sourcemeta::core::Decimal big{"999999999999999999E2147483646"};
+  const sourcemeta::core::Decimal small{"1E2147483646"};
+  EXPECT_TRUE(!big.divide_integer(small).is_zero());
+}
+
+TEST(to_scientific_string_of_an_adjusted_exponent_past_the_exponent_range) {
+  const sourcemeta::core::Decimal value{"999E2147483646"};
+  EXPECT_EQ(value.to_scientific_string(), "9.99e+2147483648");
+  EXPECT_EQ(value.logb().to_string(), "2147483648");
+}
+
+TEST(comparison_of_adjusted_exponents_past_the_exponent_range) {
+  const sourcemeta::core::Decimal big{"999E2147483646"};
+  const sourcemeta::core::Decimal small{"1E2147483646"};
+  EXPECT_FALSE(big < small);
+  EXPECT_TRUE(small < big);
+  EXPECT_TRUE(big > small);
+  EXPECT_FALSE(small > big);
+}
+
+TEST(compare_total_of_adjusted_exponents_past_the_exponent_range) {
+  const sourcemeta::core::Decimal big{"999E2147483646"};
+  const sourcemeta::core::Decimal small{"1E2147483646"};
+  EXPECT_EQ(big.compare_total(small).to_string(), "1");
+  EXPECT_EQ(small.compare_total(big).to_string(), "-1");
+}
+
+TEST(divide_integer_of_adjusted_exponents_past_the_exponent_range) {
+  const sourcemeta::core::Decimal big{"999E2147483646"};
+  const sourcemeta::core::Decimal small{"1E2147483646"};
+  EXPECT_FALSE(big.divide_integer(small).is_zero());
+  EXPECT_TRUE(small.divide_integer(big).is_zero());
+}

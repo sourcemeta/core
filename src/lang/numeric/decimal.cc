@@ -717,8 +717,11 @@ auto Decimal::to_scientific_string() const -> std::string {
 
   auto digit_string = coefficient_to_digit_string(
       this->coefficient_, this->coefficient_high_, this->flags_);
-  auto number_of_digits = static_cast<std::int32_t>(digit_string.size());
-  auto adjusted_exponent = this->exponent_ + number_of_digits - 1;
+  // The adjusted exponent of a value whose own exponent sits at the top of its
+  // range lands past that range, so it is worked out more widely
+  auto number_of_digits = static_cast<std::int64_t>(digit_string.size());
+  auto adjusted_exponent =
+      static_cast<std::int64_t>(this->exponent_) + number_of_digits - 1;
 
   if ((this->flags_ & FLAG_SIGN) != 0) {
     result += '-';
@@ -1400,10 +1403,12 @@ auto Decimal::compare_total(const Decimal &other) const -> Decimal {
           digit_count(static_cast<std::uint64_t>(this->coefficient_));
       auto right_digits =
           digit_count(static_cast<std::uint64_t>(other.coefficient_));
-      auto left_adjusted =
-          this->exponent_ + static_cast<std::int32_t>(left_digits) - 1;
-      auto right_adjusted =
-          other.exponent_ + static_cast<std::int32_t>(right_digits) - 1;
+      // An adjusted exponent can land past the range the exponent itself
+      // spans, so the two are worked out as widely as the branch above does
+      auto left_adjusted = static_cast<std::int64_t>(this->exponent_) +
+                           static_cast<std::int64_t>(left_digits) - 1;
+      auto right_adjusted = static_cast<std::int64_t>(other.exponent_) +
+                            static_cast<std::int64_t>(right_digits) - 1;
 
       if (left_adjusted != right_adjusted) {
         magnitude_compare = left_adjusted < right_adjusted ? -1 : 1;
@@ -1686,10 +1691,12 @@ auto Decimal::operator<(const Decimal &other) const -> bool {
           digit_count(static_cast<std::uint64_t>(this->coefficient_));
       auto right_digits =
           digit_count(static_cast<std::uint64_t>(other.coefficient_));
-      auto left_adjusted =
-          this->exponent_ + static_cast<std::int32_t>(left_digits) - 1;
-      auto right_adjusted =
-          other.exponent_ + static_cast<std::int32_t>(right_digits) - 1;
+      // An adjusted exponent can land past the range the exponent itself
+      // spans, so the two are worked out as widely as the branch above does
+      auto left_adjusted = static_cast<std::int64_t>(this->exponent_) +
+                           static_cast<std::int64_t>(left_digits) - 1;
+      auto right_adjusted = static_cast<std::int64_t>(other.exponent_) +
+                            static_cast<std::int64_t>(right_digits) - 1;
 
       if (left_adjusted != right_adjusted) {
         magnitude_compare = left_adjusted < right_adjusted ? -1 : 1;
