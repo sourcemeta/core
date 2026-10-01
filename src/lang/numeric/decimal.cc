@@ -1519,6 +1519,24 @@ auto Decimal::divide_integer(const Decimal &other) const -> Decimal {
     return result;
   }
 
+  // A divisor that outgrows the dividend goes into it no whole times, which
+  // the comparison settles from the exponents rather than by lining up two
+  // coefficients that the distance between them would make enormous
+  Decimal dividend_magnitude{*this};
+  dividend_magnitude.flags_ =
+      static_cast<std::uint8_t>(dividend_magnitude.flags_ & ~FLAG_SIGN);
+  Decimal divisor_magnitude{other};
+  divisor_magnitude.flags_ =
+      static_cast<std::uint8_t>(divisor_magnitude.flags_ & ~FLAG_SIGN);
+  if (dividend_magnitude < divisor_magnitude) {
+    Decimal result;
+    if (result_negative) {
+      result.flags_ = FLAG_SIGN;
+    }
+
+    return result;
+  }
+
   auto dividend_big = coefficient_as_big(this->coefficient_,
                                          this->coefficient_high_, this->flags_);
   auto divisor_big = coefficient_as_big(other.coefficient_,
@@ -2039,7 +2057,11 @@ auto Decimal::operator/=(const Decimal &other) -> Decimal & {
   auto scaled = dividend_big.multiply_pow10(WORKING_PRECISION);
   auto [quotient, remainder] = scaled.divide_modulo(divisor_big);
 
-  auto result_exponent = this->exponent_ - other.exponent_ - WORKING_PRECISION;
+  // Two exponents at opposite ends of their range are further apart than that
+  // range can hold, so the result is worked out more widely and only narrowed
+  // once it is final
+  auto result_exponent = static_cast<std::int64_t>(this->exponent_) -
+                         other.exponent_ - WORKING_PRECISION;
 
   // The General Decimal Arithmetic Specification states that "after the
   // division, if the result is exact then the coefficient and exponent giving
@@ -2056,13 +2078,18 @@ auto Decimal::operator/=(const Decimal &other) -> Decimal & {
     }
   }
 
+  if (result_exponent > std::numeric_limits<std::int32_t>::max() ||
+      result_exponent < std::numeric_limits<std::int32_t>::min()) {
+    throw NumericOverflowError{};
+  }
+
   free_big_coefficient(this->coefficient_, this->flags_);
   // The specification states that "the sign of the result of a multiplication
   // or division will be 1 only if the operands have different signs", which
   // holds for a zero quotient too
   store_big_result(this->coefficient_, this->coefficient_high_, this->flags_,
                    std::move(quotient), result_negative);
-  this->exponent_ = result_exponent;
+  this->exponent_ = static_cast<std::int32_t>(result_exponent);
 
   round_to_precision(this->coefficient_, this->coefficient_high_,
                      this->exponent_, this->flags_);

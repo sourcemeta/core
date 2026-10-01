@@ -12,6 +12,7 @@
 #include <string_view> // std::string_view
 #include <utility>     // std::pair, std::move
 
+#include <sourcemeta/core/numeric_error.h>
 #include <sourcemeta/core/numeric_uint128.h>
 
 namespace {
@@ -52,6 +53,14 @@ constexpr std::array<std::uint64_t, 20> POWERS_OF_10 = {{
 
 constexpr std::uint64_t BASE = 1000000000000000000ULL; // 10^18
 constexpr std::int32_t BASE_DIGITS = 18;
+
+// Lining two exponents up costs a digit for every step between them, and
+// nothing here bounds that distance, as an exponent spans the whole of its own
+// type. Two otherwise ordinary operands can therefore call for a coefficient of
+// billions of digits. This holds any single coefficient to eight mebibytes,
+// which is far wider than any decimal format calls for, and reports whatever
+// asks for more as beyond what can be represented rather than allocating it
+constexpr std::uint32_t MAXIMUM_WORDS = 1048576;
 
 // How many digits are taken in one go, and what folding that many of them
 // scales the running value by
@@ -112,6 +121,10 @@ public:
   std::uint32_t capacity;
 
   explicit BigCoefficient(std::uint32_t requested_capacity) {
+    if (requested_capacity > MAXIMUM_WORDS) {
+      throw sourcemeta::core::NumericOverflowError{};
+    }
+
     if (requested_capacity <= INLINE_CAPACITY) {
       this->words = this->inline_words_.data();
       this->capacity = INLINE_CAPACITY;
@@ -740,12 +753,14 @@ auto BigCoefficient::align_exponents(BigCoefficient &left,
                                      BigCoefficient &right,
                                      std::int32_t left_exponent,
                                      std::int32_t right_exponent) -> void {
-  if (left_exponent > right_exponent) {
-    left = left.multiply_pow10(
-        static_cast<std::uint32_t>(left_exponent - right_exponent));
-  } else if (right_exponent > left_exponent) {
-    right = right.multiply_pow10(
-        static_cast<std::uint32_t>(right_exponent - left_exponent));
+  // Two exponents at opposite ends of their range are further apart than that
+  // range can hold, so the distance between them is measured more widely
+  const auto difference = static_cast<std::int64_t>(left_exponent) -
+                          static_cast<std::int64_t>(right_exponent);
+  if (difference > 0) {
+    left = left.multiply_pow10(static_cast<std::uint32_t>(difference));
+  } else if (difference < 0) {
+    right = right.multiply_pow10(static_cast<std::uint32_t>(-difference));
   }
 }
 

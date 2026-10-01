@@ -5238,3 +5238,69 @@ TEST(divide_inexactly_keeps_every_digit_it_worked_out) {
   const sourcemeta::core::Decimal three{"3"};
   EXPECT_EQ((one / three).to_scientific_string(), "3.333333333333333e-1");
 }
+
+TEST(exception_overflow_addition_across_a_vast_exponent_gap) {
+  const sourcemeta::core::Decimal left{"1"};
+  const sourcemeta::core::Decimal right{"1E-2147483647"};
+  try {
+    const auto result = left + right;
+    FAIL();
+  } catch (const sourcemeta::core::NumericOverflowError &error) {
+    EXPECT_STREQ(error.what(), "Numeric overflow");
+  }
+}
+
+TEST(exception_overflow_addition_of_a_zero_across_a_vast_exponent_gap) {
+  const sourcemeta::core::Decimal left{"1"};
+  const sourcemeta::core::Decimal right{"0E-2147483647"};
+  try {
+    const auto result = left + right;
+    FAIL();
+  } catch (const sourcemeta::core::NumericOverflowError &error) {
+    EXPECT_STREQ(error.what(), "Numeric overflow");
+  }
+}
+
+TEST(exception_overflow_addition_of_a_zero_the_other_way_around) {
+  const sourcemeta::core::Decimal left{"0E-2147483647"};
+  const sourcemeta::core::Decimal right{"1"};
+  try {
+    const auto result = left + right;
+    FAIL();
+  } catch (const sourcemeta::core::NumericOverflowError &error) {
+    EXPECT_STREQ(error.what(), "Numeric overflow");
+  }
+}
+
+TEST(exception_overflow_division_across_a_vast_exponent_gap) {
+  const sourcemeta::core::Decimal dividend{"1E2147483646"};
+  const sourcemeta::core::Decimal divisor{"1E-2147483647"};
+  try {
+    const auto result = dividend / divisor;
+    FAIL();
+  } catch (const sourcemeta::core::NumericOverflowError &error) {
+    EXPECT_STREQ(error.what(), "Numeric overflow");
+  }
+}
+
+TEST(divide_integer_by_a_far_larger_divisor_is_zero) {
+  const sourcemeta::core::Decimal dividend{"1"};
+  const sourcemeta::core::Decimal divisor{"1e999999999"};
+  const auto quotient{dividend.divide_integer(divisor)};
+  EXPECT_TRUE(quotient.is_zero());
+  EXPECT_FALSE(quotient.is_signed());
+}
+
+TEST(divide_integer_of_a_tiny_dividend_by_a_negative_divisor_is_a_signed_zero) {
+  const sourcemeta::core::Decimal dividend{"9E-999999999"};
+  const sourcemeta::core::Decimal divisor{"-9.100"};
+  const auto quotient{dividend.divide_integer(divisor)};
+  EXPECT_TRUE(quotient.is_zero());
+  EXPECT_TRUE(quotient.is_signed());
+}
+
+TEST(remainder_across_a_vast_exponent_gap_is_the_dividend) {
+  const sourcemeta::core::Decimal dividend{"9E-999999999"};
+  const sourcemeta::core::Decimal divisor{"9.100"};
+  EXPECT_EQ(dividend % divisor, dividend);
+}
