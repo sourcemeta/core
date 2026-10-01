@@ -250,7 +250,7 @@ inline auto bignum_reduce(BasicBignum<Capacity> &value,
 
   // A zero modulus defines no residue to reduce into, and the division below
   // reads the top two divisor words. An RSA modulus is only bounded from above
-  // on import, so a key carrying a one or two octet one reaches here
+  // on import, so a key carrying a one- or two-octet modulus reaches here
   if (divisor_words == 0) {
     return;
   }
