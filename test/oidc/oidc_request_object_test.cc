@@ -189,3 +189,11 @@ TEST(verify_rejects_an_algorithm_outside_the_allow_list) {
       "https://op.example")};
   EXPECT_FALSE(verified.has_value());
 }
+
+TEST(build_request_object_from_a_non_object) {
+  const sourcemeta::core::JSON parameters{nullptr};
+  EXPECT_FALSE(
+      sourcemeta::core::oidc_build_request_object(
+          parameters, oct_private_key(), sourcemeta::core::JWSAlgorithm::HS256)
+          .has_value());
+}

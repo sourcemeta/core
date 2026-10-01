@@ -417,3 +417,18 @@ TEST(token_response_scope_membership_is_case_sensitive) {
   EXPECT_TRUE(response.has_scope("Read"));
   EXPECT_FALSE(response.has_scope("read"));
 }
+
+TEST(token_response_from_a_non_object) {
+  // The response is read as the server sent it, so a document that is not an
+  // object reports every member as absent rather than being rejected
+  const sourcemeta::core::JSON document{nullptr};
+  const sourcemeta::core::OAuthTokenResponse response{document};
+  EXPECT_FALSE(response.access_token().has_value());
+  EXPECT_FALSE(response.token_type().has_value());
+  EXPECT_FALSE(response.is_bearer_token_type());
+  EXPECT_FALSE(response.expires_in().has_value());
+  EXPECT_FALSE(response.refresh_token().has_value());
+  EXPECT_FALSE(response.scope().has_value());
+  EXPECT_FALSE(response.has_scope("openid"));
+  EXPECT_EQ(response.data(), document);
+}

@@ -15,6 +15,7 @@
 #include <algorithm>   // std::max, std::min
 #include <array>       // std::array
 #include <bit>         // std::bit_width
+#include <cassert>     // assert
 #include <cstddef>     // std::size_t
 #include <cstdint>     // std::uint8_t, std::uint64_t
 #include <optional>    // std::optional
@@ -248,25 +249,10 @@ inline auto bignum_reduce(BasicBignum<Capacity> &value,
 
   const auto divisor_words{modulus.size};
 
-  // A zero modulus defines no residue to reduce into, and the division below
-  // reads the top two divisor words
-  if (divisor_words == 0) {
-    return;
-  }
-
-  // A single-word divisor folds the value down word by word
-  if (divisor_words == 1) {
-    const auto divisor{modulus.words[0]};
-    const auto *value_data{value.words.data()};
-    BignumDoubleWord remainder{0};
-    for (std::size_t index = value.size; index > 0; --index) {
-      remainder = (remainder << 64U) | value_data[index - 1];
-      remainder %= divisor;
-    }
-
-    value = bignum_from_u64<Capacity>(static_cast<std::uint64_t>(remainder));
-    return;
-  }
+  // Every modulus this is asked about is a curve order or an RSA modulus, and
+  // the smallest of those is four words wide, so the division below is free to
+  // read the top two divisor words
+  assert(divisor_words >= 2);
 
   // Normalize so the divisor's top word has its high bit set, which bounds the
   // error of each quotient word estimate to at most two

@@ -125,3 +125,22 @@ TEST(introspection_response_exposes_the_document) {
   const sourcemeta::core::OAuthIntrospectionResponse response{document};
   EXPECT_EQ(response.data(), document);
 }
+
+TEST(introspection_response_from_a_non_object) {
+  // RFC 7662 Section 2.2 makes `active` a required boolean, so a document that
+  // is not an object is inactive rather than trusted
+  const sourcemeta::core::JSON document{nullptr};
+  const sourcemeta::core::OAuthIntrospectionResponse response{document};
+  EXPECT_FALSE(response.active());
+  EXPECT_FALSE(response.scope().has_value());
+  EXPECT_FALSE(response.client_id().has_value());
+  EXPECT_FALSE(response.username().has_value());
+  EXPECT_FALSE(response.token_type().has_value());
+  EXPECT_FALSE(response.subject().has_value());
+  EXPECT_FALSE(response.issuer().has_value());
+  EXPECT_FALSE(response.jti().has_value());
+  EXPECT_FALSE(response.expiration().has_value());
+  EXPECT_FALSE(response.issued_at().has_value());
+  EXPECT_FALSE(response.not_before().has_value());
+  EXPECT_EQ(response.data(), document);
+}
