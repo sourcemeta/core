@@ -1,5 +1,6 @@
 #include <sourcemeta/core/mcp.h>
 
+#include <sourcemeta/core/http_status.h>
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonrpc.h>
 
@@ -1469,11 +1470,13 @@ TEST(protocol_era_predicates_supports_mrtr) {
   EXPECT_TRUE(sourcemeta::core::mcp_supports_mrtr(version_2026_07_28));
 }
 
-TEST(method_era_predicates_at_runtime) {
+TEST(method_support_predicates_at_runtime) {
   std::string method_init{sourcemeta::core::MCP_METHOD_INITIALIZE};
   std::string method_ping{sourcemeta::core::MCP_METHOD_PING};
   std::string method_init_notif{
       sourcemeta::core::MCP_METHOD_NOTIFICATIONS_INITIALIZED};
+  std::string method_logging_set_level{
+      sourcemeta::core::MCP_METHOD_LOGGING_SET_LEVEL};
   std::string method_discover{sourcemeta::core::MCP_METHOD_SERVER_DISCOVER};
   std::string method_listen{sourcemeta::core::MCP_METHOD_SUBSCRIPTIONS_LISTEN};
   std::string method_sub_ack{
@@ -1488,55 +1491,64 @@ TEST(method_era_predicates_at_runtime) {
       sourcemeta::core::MCP_METHOD_RESOURCES_TEMPLATES_LIST};
   std::string method_custom{"custom/unknownMethod"};
 
-  // Legacy-only checks
-  EXPECT_TRUE(sourcemeta::core::mcp_is_legacy_only_method(method_init));
-  EXPECT_TRUE(sourcemeta::core::mcp_is_legacy_only_method(method_ping));
-  EXPECT_TRUE(sourcemeta::core::mcp_is_legacy_only_method(method_init_notif));
-  EXPECT_FALSE(sourcemeta::core::mcp_is_legacy_only_method(method_discover));
-  EXPECT_FALSE(sourcemeta::core::mcp_is_legacy_only_method(method_listen));
-  EXPECT_FALSE(sourcemeta::core::mcp_is_legacy_only_method(method_sub_ack));
-  EXPECT_FALSE(sourcemeta::core::mcp_is_legacy_only_method(method_tools_list));
-  EXPECT_FALSE(sourcemeta::core::mcp_is_legacy_only_method(method_custom));
-
-  // Modern-only checks
-  EXPECT_TRUE(sourcemeta::core::mcp_is_modern_only_method(method_discover));
-  EXPECT_TRUE(sourcemeta::core::mcp_is_modern_only_method(method_listen));
-  EXPECT_TRUE(sourcemeta::core::mcp_is_modern_only_method(method_sub_ack));
-  EXPECT_FALSE(sourcemeta::core::mcp_is_modern_only_method(method_init));
-  EXPECT_FALSE(sourcemeta::core::mcp_is_modern_only_method(method_ping));
-  EXPECT_FALSE(sourcemeta::core::mcp_is_modern_only_method(method_tools_list));
-  EXPECT_FALSE(sourcemeta::core::mcp_is_modern_only_method(method_custom));
-
-  // Shared checks
-  EXPECT_TRUE(sourcemeta::core::mcp_is_shared_method(method_tools_list));
-  EXPECT_TRUE(sourcemeta::core::mcp_is_shared_method(method_tools_call));
-  EXPECT_TRUE(sourcemeta::core::mcp_is_shared_method(method_resources_list));
-  EXPECT_TRUE(sourcemeta::core::mcp_is_shared_method(method_resources_read));
-  EXPECT_TRUE(
-      sourcemeta::core::mcp_is_shared_method(method_resources_templates_list));
-  EXPECT_FALSE(sourcemeta::core::mcp_is_shared_method(method_init));
-  EXPECT_FALSE(sourcemeta::core::mcp_is_shared_method(method_discover));
-  EXPECT_FALSE(sourcemeta::core::mcp_is_shared_method(method_custom));
-
-  // Supports method across versions
   auto version_legacy{sourcemeta::core::MCPProtocolVersion::V_2025_11_25};
   auto version_modern{sourcemeta::core::MCPProtocolVersion::V_2026_07_28};
 
+  // Legacy-only methods (removed in 2026-07-28)
   EXPECT_TRUE(
       sourcemeta::core::mcp_supports_method(version_legacy, method_init));
   EXPECT_FALSE(
       sourcemeta::core::mcp_supports_method(version_modern, method_init));
+  EXPECT_TRUE(
+      sourcemeta::core::mcp_supports_method(version_legacy, method_ping));
+  EXPECT_FALSE(
+      sourcemeta::core::mcp_supports_method(version_modern, method_ping));
+  EXPECT_TRUE(
+      sourcemeta::core::mcp_supports_method(version_legacy, method_init_notif));
+  EXPECT_FALSE(
+      sourcemeta::core::mcp_supports_method(version_modern, method_init_notif));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(version_legacy,
+                                                    method_logging_set_level));
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(version_modern,
+                                                     method_logging_set_level));
 
+  // Modern-only methods (introduced in 2026-07-28)
   EXPECT_FALSE(
       sourcemeta::core::mcp_supports_method(version_legacy, method_discover));
   EXPECT_TRUE(
       sourcemeta::core::mcp_supports_method(version_modern, method_discover));
+  EXPECT_FALSE(
+      sourcemeta::core::mcp_supports_method(version_legacy, method_listen));
+  EXPECT_TRUE(
+      sourcemeta::core::mcp_supports_method(version_modern, method_listen));
+  EXPECT_FALSE(
+      sourcemeta::core::mcp_supports_method(version_legacy, method_sub_ack));
+  EXPECT_TRUE(
+      sourcemeta::core::mcp_supports_method(version_modern, method_sub_ack));
 
+  // Shared methods across versions
   EXPECT_TRUE(
       sourcemeta::core::mcp_supports_method(version_legacy, method_tools_list));
   EXPECT_TRUE(
       sourcemeta::core::mcp_supports_method(version_modern, method_tools_list));
+  EXPECT_TRUE(
+      sourcemeta::core::mcp_supports_method(version_legacy, method_tools_call));
+  EXPECT_TRUE(
+      sourcemeta::core::mcp_supports_method(version_modern, method_tools_call));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(version_legacy,
+                                                    method_resources_list));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(version_modern,
+                                                    method_resources_list));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(version_legacy,
+                                                    method_resources_read));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(version_modern,
+                                                    method_resources_read));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      version_legacy, method_resources_templates_list));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      version_modern, method_resources_templates_list));
 
+  // Unknown method
   EXPECT_FALSE(
       sourcemeta::core::mcp_supports_method(version_legacy, method_custom));
   EXPECT_FALSE(
@@ -2100,7 +2112,7 @@ TEST(error_unsupported_protocol_version) {
                                                                   "2025-11-25"};
   const auto envelope{
       sourcemeta::core::mcp_make_error_unsupported_protocol_version(
-          &identifier, "1900-01-01", supported)};
+          identifier, "1900-01-01", supported)};
 
   EXPECT_EQ(envelope.at("error").at("code").to_integer(), -32022);
   EXPECT_EQ(envelope.at("error").at("message").to_string(),
@@ -2121,7 +2133,8 @@ TEST(error_missing_required_capability) {
 
   const auto envelope{
       sourcemeta::core::mcp_make_error_missing_required_capability(
-          &identifier, std::move(required))};
+          identifier, std::move(required),
+          "Missing required client capability")};
 
   EXPECT_EQ(envelope.at("error").at("code").to_integer(), -32021);
   EXPECT_EQ(envelope.at("error").at("message").to_string(),
@@ -2135,7 +2148,7 @@ TEST(error_missing_required_capability) {
 TEST(error_header_mismatch) {
   const auto identifier{sourcemeta::core::JSON{12}};
   const auto envelope{sourcemeta::core::mcp_make_error_header_mismatch(
-      &identifier, "Mcp-Method header does not match body method")};
+      identifier, "Mcp-Method header does not match body method")};
 
   EXPECT_EQ(envelope.at("error").at("code").to_integer(), -32020);
   EXPECT_EQ(envelope.at("error").at("message").to_string(),
@@ -2145,7 +2158,7 @@ TEST(error_header_mismatch) {
 TEST(error_header_mismatch_unexpected) {
   const auto identifier{sourcemeta::core::JSON{14}};
   const auto envelope{sourcemeta::core::mcp_make_error_header_mismatch(
-      &identifier, "Mcp-Name", "unexpected-name")};
+      identifier, "Mcp-Name", "unexpected-name")};
 
   EXPECT_EQ(envelope.at("error").at("code").to_integer(), -32020);
   EXPECT_EQ(envelope.at("error").at("message").to_string(),
@@ -2677,19 +2690,20 @@ TEST(tool_success_modern_result_type_and_structured_content) {
 
 TEST(tool_error_modern_result_type) {
   const auto identifier{sourcemeta::core::JSON{101}};
-  const auto modern_err{sourcemeta::core::mcp_make_tool_error(
+  const auto modern_error{sourcemeta::core::mcp_make_tool_error(
       sourcemeta::core::MCPProtocolVersion::V_2026_07_28, identifier,
       "Something failed")};
-  EXPECT_EQ(modern_err.at("result").at("resultType").to_string(), "complete");
-  EXPECT_EQ(modern_err.at("result").at("isError").to_boolean(), true);
-  EXPECT_EQ(modern_err.at("result").at("content").at(0).at("text").to_string(),
-            "Something failed");
+  EXPECT_EQ(modern_error.at("result").at("resultType").to_string(), "complete");
+  EXPECT_EQ(modern_error.at("result").at("isError").to_boolean(), true);
+  EXPECT_EQ(
+      modern_error.at("result").at("content").at(0).at("text").to_string(),
+      "Something failed");
 
-  const auto legacy_err{sourcemeta::core::mcp_make_tool_error(
+  const auto legacy_error{sourcemeta::core::mcp_make_tool_error(
       sourcemeta::core::MCPProtocolVersion::V_2025_11_25, identifier,
       "Something failed")};
-  EXPECT_FALSE(legacy_err.at("result").defines("resultType"));
-  EXPECT_EQ(legacy_err.at("result").at("isError").to_boolean(), true);
+  EXPECT_FALSE(legacy_error.at("result").defines("resultType"));
+  EXPECT_EQ(legacy_error.at("result").at("isError").to_boolean(), true);
 }
 
 TEST(resources_read_result_modern_and_legacy) {
@@ -2699,28 +2713,19 @@ TEST(resources_read_result_modern_and_legacy) {
 
   const sourcemeta::core::MCPCachePolicy policy{
       .ttl_ms = 30000, .scope = sourcemeta::core::MCPCacheScope::Public};
-  const auto modern_res{sourcemeta::core::mcp_make_resources_read_result(
+  const auto modern_result{sourcemeta::core::mcp_make_resources_read_result(
       sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
       sourcemeta::core::JSON{contents}, policy)};
-  EXPECT_EQ(modern_res.at("resultType").to_string(), "complete");
-  EXPECT_EQ(modern_res.at("ttlMs").to_integer(), 30000);
-  EXPECT_EQ(modern_res.at("cacheScope").to_string(), "public");
-  EXPECT_EQ(modern_res.at("contents").size(), 1);
+  EXPECT_EQ(modern_result.at("resultType").to_string(), "complete");
+  EXPECT_EQ(modern_result.at("ttlMs").to_integer(), 30000);
+  EXPECT_EQ(modern_result.at("cacheScope").to_string(), "public");
+  EXPECT_EQ(modern_result.at("contents").size(), 1);
 
-  const auto legacy_res{sourcemeta::core::mcp_make_resources_read_result(
+  const auto legacy_result{sourcemeta::core::mcp_make_resources_read_result(
       sourcemeta::core::MCPProtocolVersion::V_2025_11_25, std::move(contents))};
-  EXPECT_FALSE(legacy_res.defines("resultType"));
-  EXPECT_FALSE(legacy_res.defines("ttlMs"));
-  EXPECT_FALSE(legacy_res.defines("cacheScope"));
-}
-
-TEST(supported_protocol_versions) {
-  const auto versions{sourcemeta::core::mcp_supported_protocol_versions()};
-  EXPECT_EQ(versions.size(), 4);
-  EXPECT_EQ(versions.at(0), "2026-07-28");
-  EXPECT_EQ(versions.at(1), "2025-11-25");
-  EXPECT_EQ(versions.at(2), "2025-06-18");
-  EXPECT_EQ(versions.at(3), "2025-03-26");
+  EXPECT_FALSE(legacy_result.defines("resultType"));
+  EXPECT_FALSE(legacy_result.defines("ttlMs"));
+  EXPECT_FALSE(legacy_result.defines("cacheScope"));
 }
 
 TEST(server_discover_result) {
@@ -2736,9 +2741,10 @@ TEST(server_discover_result) {
   const sourcemeta::core::MCPCachePolicy cache{
       .ttl_ms = 3600000, .scope = sourcemeta::core::MCPCacheScope::Public};
 
+  const std::vector<sourcemeta::core::JSON::StringView> supported_versions{
+      "2026-07-28", "2025-11-25", "2025-06-18", "2025-03-26"};
   const auto envelope{sourcemeta::core::mcp_make_server_discover_result(
-      identifier, caps, server,
-      sourcemeta::core::mcp_supported_protocol_versions(), "Instructions here",
+      identifier, caps, server, supported_versions, "Instructions here",
       cache)};
 
   const auto &result{envelope.at("result")};
@@ -2817,11 +2823,11 @@ TEST(mrtr_input_required_result) {
       sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tools/call",
       identifier, std::move(input_requests), "opaque-state-token-123")};
 
-  const auto &res{envelope.at("result")};
-  EXPECT_EQ(res.at("resultType").to_string(), "input_required");
-  EXPECT_EQ(res.at("inputRequests").at("confirm").at("message").to_string(),
+  const auto &result{envelope.at("result")};
+  EXPECT_EQ(result.at("resultType").to_string(), "input_required");
+  EXPECT_EQ(result.at("inputRequests").at("confirm").at("message").to_string(),
             "Confirm delete?");
-  EXPECT_EQ(res.at("requestState").to_string(), "opaque-state-token-123");
+  EXPECT_EQ(result.at("requestState").to_string(), "opaque-state-token-123");
 }
 
 TEST(mrtr_request_accessors) {
@@ -2907,7 +2913,7 @@ TEST(subscriptions_id_accessor) {
   EXPECT_NE(sub_id, nullptr);
   EXPECT_EQ(sub_id->to_string(), "stream-99");
 
-  const auto close_res{sourcemeta::core::parse_json(R"JSON({
+  const auto close_result{sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "id": 1,
     "result": {
@@ -2918,7 +2924,7 @@ TEST(subscriptions_id_accessor) {
     }
   })JSON")};
   const auto *close_sub_id{
-      sourcemeta::core::mcp_request_subscription_id(close_res)};
+      sourcemeta::core::mcp_request_subscription_id(close_result)};
   EXPECT_NE(close_sub_id, nullptr);
   EXPECT_EQ(close_sub_id->to_string(), "stream-99");
 
@@ -2937,83 +2943,80 @@ TEST(subscriptions_id_accessor) {
   EXPECT_EQ(num_sub_id->to_integer(), 42);
 }
 
-TEST(method_era_classification) {
-  using sourcemeta::core::MCPMethodEra;
+TEST(method_support_per_version) {
   using sourcemeta::core::MCPProtocolVersion;
 
-  // Legacy-only methods
-  EXPECT_EQ(sourcemeta::core::mcp_classify_method("initialize"),
-            MCPMethodEra::LegacyOnly);
-  EXPECT_EQ(sourcemeta::core::mcp_classify_method("ping"),
-            MCPMethodEra::LegacyOnly);
-  EXPECT_EQ(sourcemeta::core::mcp_classify_method("notifications/initialized"),
-            MCPMethodEra::LegacyOnly);
-  EXPECT_TRUE(sourcemeta::core::mcp_is_legacy_only_method("initialize"));
-  EXPECT_TRUE(sourcemeta::core::mcp_is_legacy_only_method("ping"));
-  EXPECT_TRUE(
-      sourcemeta::core::mcp_is_legacy_only_method("notifications/initialized"));
-  EXPECT_FALSE(sourcemeta::core::mcp_is_modern_only_method("initialize"));
-  EXPECT_FALSE(sourcemeta::core::mcp_is_shared_method("initialize"));
-
-  // Modern-only methods
-  EXPECT_EQ(sourcemeta::core::mcp_classify_method("server/discover"),
-            MCPMethodEra::ModernOnly);
-  EXPECT_EQ(sourcemeta::core::mcp_classify_method("subscriptions/listen"),
-            MCPMethodEra::ModernOnly);
-  EXPECT_EQ(sourcemeta::core::mcp_classify_method(
-                "notifications/subscriptions/acknowledged"),
-            MCPMethodEra::ModernOnly);
-  EXPECT_TRUE(sourcemeta::core::mcp_is_modern_only_method("server/discover"));
-  EXPECT_TRUE(
-      sourcemeta::core::mcp_is_modern_only_method("subscriptions/listen"));
-  EXPECT_FALSE(sourcemeta::core::mcp_is_legacy_only_method("server/discover"));
-  EXPECT_FALSE(sourcemeta::core::mcp_is_shared_method("server/discover"));
-
-  // Shared methods
-  EXPECT_EQ(sourcemeta::core::mcp_classify_method("tools/list"),
-            MCPMethodEra::Shared);
-  EXPECT_EQ(sourcemeta::core::mcp_classify_method("tools/call"),
-            MCPMethodEra::Shared);
-  EXPECT_EQ(sourcemeta::core::mcp_classify_method("resources/list"),
-            MCPMethodEra::Shared);
-  EXPECT_EQ(sourcemeta::core::mcp_classify_method("resources/read"),
-            MCPMethodEra::Shared);
-  EXPECT_EQ(sourcemeta::core::mcp_classify_method("resources/templates/list"),
-            MCPMethodEra::Shared);
-  EXPECT_TRUE(sourcemeta::core::mcp_is_shared_method("tools/list"));
-  EXPECT_TRUE(sourcemeta::core::mcp_is_shared_method("resources/read"));
-  EXPECT_FALSE(sourcemeta::core::mcp_is_legacy_only_method("tools/list"));
-  EXPECT_FALSE(sourcemeta::core::mcp_is_modern_only_method("tools/list"));
-
-  // Unsupported method
-  EXPECT_EQ(sourcemeta::core::mcp_classify_method("unknown/method"),
-            MCPMethodEra::Unsupported);
-  EXPECT_FALSE(sourcemeta::core::mcp_is_legacy_only_method("unknown/method"));
-  EXPECT_FALSE(sourcemeta::core::mcp_is_modern_only_method("unknown/method"));
-  EXPECT_FALSE(sourcemeta::core::mcp_is_shared_method("unknown/method"));
-
-  // Version-support checks
+  // Legacy versions support legacy methods but not 2026-07-28 methods
   EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
       MCPProtocolVersion::V_2025_11_25, "initialize"));
   EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
       MCPProtocolVersion::V_2025_11_25, "ping"));
   EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      MCPProtocolVersion::V_2025_11_25, "notifications/initialized"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      MCPProtocolVersion::V_2025_11_25, "logging/setLevel"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
       MCPProtocolVersion::V_2025_11_25, "tools/list"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      MCPProtocolVersion::V_2025_11_25, "tools/call"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      MCPProtocolVersion::V_2025_11_25, "resources/list"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      MCPProtocolVersion::V_2025_11_25, "resources/read"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      MCPProtocolVersion::V_2025_11_25, "resources/templates/list"));
   EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
       MCPProtocolVersion::V_2025_11_25, "server/discover"));
   EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
       MCPProtocolVersion::V_2025_11_25, "subscriptions/listen"));
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
+      MCPProtocolVersion::V_2025_11_25,
+      "notifications/subscriptions/acknowledged"));
 
+  // 2026-07-28 removed initialize, ping, notifications/initialized,
+  // logging/setLevel
   EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
       MCPProtocolVersion::V_2026_07_28, "initialize"));
   EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
       MCPProtocolVersion::V_2026_07_28, "ping"));
-  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
-      MCPProtocolVersion::V_2026_07_28, "tools/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
+      MCPProtocolVersion::V_2026_07_28, "notifications/initialized"));
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
+      MCPProtocolVersion::V_2026_07_28, "logging/setLevel"));
+
+  // 2026-07-28 added server/discover, subscriptions/listen,
+  // notifications/subscriptions/acknowledged
   EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
       MCPProtocolVersion::V_2026_07_28, "server/discover"));
   EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
       MCPProtocolVersion::V_2026_07_28, "subscriptions/listen"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      MCPProtocolVersion::V_2026_07_28,
+      "notifications/subscriptions/acknowledged"));
+
+  // Shared methods supported on 2026-07-28
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      MCPProtocolVersion::V_2026_07_28, "tools/list"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      MCPProtocolVersion::V_2026_07_28, "tools/call"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      MCPProtocolVersion::V_2026_07_28, "resources/list"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      MCPProtocolVersion::V_2026_07_28, "resources/read"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      MCPProtocolVersion::V_2026_07_28, "resources/templates/list"));
+
+  // Unknown method unsupported on all
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
+      MCPProtocolVersion::V_2025_11_25, "unknown/method"));
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
+      MCPProtocolVersion::V_2026_07_28, "unknown/method"));
+
+  // mcp_is_request_method checks for logging/setLevel
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      MCPProtocolVersion::V_2025_11_25, "logging/setLevel"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      MCPProtocolVersion::V_2026_07_28, "logging/setLevel"));
 }
 
 TEST(client_capabilities_parsing_and_serialization) {
@@ -3175,23 +3178,23 @@ TEST(tools_list_result_modern_and_legacy) {
       .ttl_ms = 120000, .scope = sourcemeta::core::MCPCacheScope::Public};
 
   // Modern: has resultType, nextCursor, ttlMs, cacheScope
-  const auto modern_res{sourcemeta::core::mcp_make_tools_list_result(
+  const auto modern_result{sourcemeta::core::mcp_make_tools_list_result(
       sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
       sourcemeta::core::JSON{tools}, "cursor-abc", policy)};
-  EXPECT_EQ(modern_res.at("resultType").to_string(), "complete");
-  EXPECT_EQ(modern_res.at("nextCursor").to_string(), "cursor-abc");
-  EXPECT_EQ(modern_res.at("ttlMs").to_integer(), 120000);
-  EXPECT_EQ(modern_res.at("cacheScope").to_string(), "public");
-  EXPECT_EQ(modern_res.at("tools").size(), 1);
+  EXPECT_EQ(modern_result.at("resultType").to_string(), "complete");
+  EXPECT_EQ(modern_result.at("nextCursor").to_string(), "cursor-abc");
+  EXPECT_EQ(modern_result.at("ttlMs").to_integer(), 120000);
+  EXPECT_EQ(modern_result.at("cacheScope").to_string(), "public");
+  EXPECT_EQ(modern_result.at("tools").size(), 1);
 
   // Legacy: omits resultType, ttlMs, cacheScope
-  const auto legacy_res{sourcemeta::core::mcp_make_tools_list_result(
+  const auto legacy_result{sourcemeta::core::mcp_make_tools_list_result(
       sourcemeta::core::MCPProtocolVersion::V_2025_11_25, std::move(tools),
       "cursor-abc", policy)};
-  EXPECT_FALSE(legacy_res.defines("resultType"));
-  EXPECT_FALSE(legacy_res.defines("ttlMs"));
-  EXPECT_FALSE(legacy_res.defines("cacheScope"));
-  EXPECT_EQ(legacy_res.at("nextCursor").to_string(), "cursor-abc");
+  EXPECT_FALSE(legacy_result.defines("resultType"));
+  EXPECT_FALSE(legacy_result.defines("ttlMs"));
+  EXPECT_FALSE(legacy_result.defines("cacheScope"));
+  EXPECT_EQ(legacy_result.at("nextCursor").to_string(), "cursor-abc");
 
   const auto legacy_no_policy{sourcemeta::core::mcp_make_tools_list_result(
       sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
@@ -3208,21 +3211,21 @@ TEST(resources_list_result_modern_and_legacy) {
   const sourcemeta::core::MCPCachePolicy policy{
       .ttl_ms = 60000, .scope = sourcemeta::core::MCPCacheScope::Private};
 
-  const auto modern_res{sourcemeta::core::mcp_make_resources_list_result(
+  const auto modern_result{sourcemeta::core::mcp_make_resources_list_result(
       sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
       sourcemeta::core::JSON{resources}, "cursor-123", policy)};
-  EXPECT_EQ(modern_res.at("resultType").to_string(), "complete");
-  EXPECT_EQ(modern_res.at("nextCursor").to_string(), "cursor-123");
-  EXPECT_EQ(modern_res.at("ttlMs").to_integer(), 60000);
-  EXPECT_EQ(modern_res.at("cacheScope").to_string(), "private");
+  EXPECT_EQ(modern_result.at("resultType").to_string(), "complete");
+  EXPECT_EQ(modern_result.at("nextCursor").to_string(), "cursor-123");
+  EXPECT_EQ(modern_result.at("ttlMs").to_integer(), 60000);
+  EXPECT_EQ(modern_result.at("cacheScope").to_string(), "private");
 
-  const auto legacy_res{sourcemeta::core::mcp_make_resources_list_result(
+  const auto legacy_result{sourcemeta::core::mcp_make_resources_list_result(
       sourcemeta::core::MCPProtocolVersion::V_2025_11_25, std::move(resources),
       "cursor-123", policy)};
-  EXPECT_FALSE(legacy_res.defines("resultType"));
-  EXPECT_FALSE(legacy_res.defines("ttlMs"));
-  EXPECT_FALSE(legacy_res.defines("cacheScope"));
-  EXPECT_EQ(legacy_res.at("nextCursor").to_string(), "cursor-123");
+  EXPECT_FALSE(legacy_result.defines("resultType"));
+  EXPECT_FALSE(legacy_result.defines("ttlMs"));
+  EXPECT_FALSE(legacy_result.defines("cacheScope"));
+  EXPECT_EQ(legacy_result.at("nextCursor").to_string(), "cursor-123");
 
   const auto legacy_no_policy{sourcemeta::core::mcp_make_resources_list_result(
       sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
@@ -3236,23 +3239,24 @@ TEST(resource_templates_list_result_modern_and_legacy) {
   templates.push_back(sourcemeta::core::mcp_make_resource_template(
       "file:///{path}", "Files", "File access", "text/plain"));
 
-  const auto modern_res{
+  const sourcemeta::core::MCPCachePolicy tmpl_policy{
+      .ttl_ms = 45000, .scope = sourcemeta::core::MCPCacheScope::Public};
+  const auto modern_result{
       sourcemeta::core::mcp_make_resource_templates_list_result(
           sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-          sourcemeta::core::JSON{templates}, "cursor-tmpl")};
-  EXPECT_EQ(modern_res.at("resultType").to_string(), "complete");
-  EXPECT_EQ(modern_res.at("nextCursor").to_string(), "cursor-tmpl");
-  EXPECT_FALSE(modern_res.defines("ttlMs"));
+          sourcemeta::core::JSON{templates}, "cursor-tmpl", tmpl_policy)};
+  EXPECT_EQ(modern_result.at("resultType").to_string(), "complete");
+  EXPECT_EQ(modern_result.at("nextCursor").to_string(), "cursor-tmpl");
+  EXPECT_EQ(modern_result.at("ttlMs").to_integer(), 45000);
+  EXPECT_EQ(modern_result.at("cacheScope").to_string(), "public");
 
-  const auto legacy_res{
+  const auto legacy_result{
       sourcemeta::core::mcp_make_resource_templates_list_result(
           sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
           std::move(templates), "cursor-tmpl")};
-  EXPECT_FALSE(legacy_res.defines("resultType"));
-  EXPECT_EQ(legacy_res.at("nextCursor").to_string(), "cursor-tmpl");
+  EXPECT_FALSE(legacy_result.defines("resultType"));
+  EXPECT_EQ(legacy_result.at("nextCursor").to_string(), "cursor-tmpl");
 
-  const sourcemeta::core::MCPCachePolicy tmpl_policy{
-      .ttl_ms = 45000, .scope = sourcemeta::core::MCPCacheScope::Public};
   const auto modern_with_policy{
       sourcemeta::core::mcp_make_resource_templates_list_result(
           sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
@@ -3261,6 +3265,65 @@ TEST(resource_templates_list_result_modern_and_legacy) {
   EXPECT_EQ(modern_with_policy.at("resultType").to_string(), "complete");
   EXPECT_EQ(modern_with_policy.at("ttlMs").to_integer(), 45000);
   EXPECT_EQ(modern_with_policy.at("cacheScope").to_string(), "public");
+}
+
+TEST(list_results_preserve_empty_next_cursor) {
+  const sourcemeta::core::MCPCachePolicy policy{
+      .ttl_ms = 10000, .scope = sourcemeta::core::MCPCacheScope::Public};
+
+  // Tools list
+  const auto tools_modern{sourcemeta::core::mcp_make_tools_list_result(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      sourcemeta::core::JSON::make_array(), "", policy)};
+  EXPECT_TRUE(tools_modern.defines("nextCursor"));
+  EXPECT_EQ(tools_modern.at("nextCursor").to_string(), "");
+
+  const auto tools_legacy{sourcemeta::core::mcp_make_tools_list_result(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      sourcemeta::core::JSON::make_array(), "")};
+  EXPECT_TRUE(tools_legacy.defines("nextCursor"));
+  EXPECT_EQ(tools_legacy.at("nextCursor").to_string(), "");
+
+  // Resources list
+  const auto resources_modern{sourcemeta::core::mcp_make_resources_list_result(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      sourcemeta::core::JSON::make_array(), "", policy)};
+  EXPECT_TRUE(resources_modern.defines("nextCursor"));
+  EXPECT_EQ(resources_modern.at("nextCursor").to_string(), "");
+
+  const auto resources_legacy{sourcemeta::core::mcp_make_resources_list_result(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      sourcemeta::core::JSON::make_array(), "")};
+  EXPECT_TRUE(resources_legacy.defines("nextCursor"));
+  EXPECT_EQ(resources_legacy.at("nextCursor").to_string(), "");
+
+  // Resource templates list
+  const auto tmpls_modern{
+      sourcemeta::core::mcp_make_resource_templates_list_result(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+          sourcemeta::core::JSON::make_array(), "", policy)};
+  EXPECT_TRUE(tmpls_modern.defines("nextCursor"));
+  EXPECT_EQ(tmpls_modern.at("nextCursor").to_string(), "");
+
+  const auto tmpls_legacy{
+      sourcemeta::core::mcp_make_resource_templates_list_result(
+          sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+          sourcemeta::core::JSON::make_array(), "")};
+  EXPECT_TRUE(tmpls_legacy.defines("nextCursor"));
+  EXPECT_EQ(tmpls_legacy.at("nextCursor").to_string(), "");
+
+  // Prompts list
+  const auto prompts_modern{sourcemeta::core::mcp_make_prompts_list_result(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      sourcemeta::core::JSON::make_array(), "", policy)};
+  EXPECT_TRUE(prompts_modern.defines("nextCursor"));
+  EXPECT_EQ(prompts_modern.at("nextCursor").to_string(), "");
+
+  const auto prompts_legacy{sourcemeta::core::mcp_make_prompts_list_result(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      sourcemeta::core::JSON::make_array(), "")};
+  EXPECT_TRUE(prompts_legacy.defines("nextCursor"));
+  EXPECT_EQ(prompts_legacy.at("nextCursor").to_string(), "");
 }
 
 TEST(make_tool_descriptor_2026_07_28_arbitrary_json_schema) {
@@ -3327,39 +3390,55 @@ TEST(initialize_negotiation_with_2024_11_05_legacy_date) {
 
 TEST(error_request_meta_generation) {
   const auto identifier{sourcemeta::core::JSON{1}};
-  const auto err{sourcemeta::core::mcp_make_error_request_meta(
-      &identifier, sourcemeta::core::MCPRequestMetaStatus::MissingMeta)};
-  EXPECT_EQ(err.at("error").at("code").to_integer(),
+  const auto error{sourcemeta::core::mcp_make_error_request_meta(
+      identifier, sourcemeta::core::MCPRequestMetaStatus::MissingMeta)};
+  EXPECT_EQ(error.at("error").at("code").to_integer(),
             sourcemeta::core::JSONRPC_CODE_INVALID_PARAMS);
-  EXPECT_EQ(err.at("id").to_integer(), 1);
+  EXPECT_EQ(error.at("id").to_integer(), 1);
+
+  const auto unsupported_error{sourcemeta::core::mcp_make_error_request_meta(
+      identifier,
+      sourcemeta::core::MCPRequestMetaStatus::UnsupportedProtocolVersion,
+      "2024-01-01", {"2026-07-28"})};
+  EXPECT_EQ(unsupported_error.at("error").at("code").to_integer(), -32022);
+  EXPECT_EQ(
+      unsupported_error.at("error").at("data").at("requested").to_string(),
+      "2024-01-01");
+  EXPECT_EQ(unsupported_error.at("error")
+                .at("data")
+                .at("supported")
+                .at(0)
+                .to_string(),
+            "2026-07-28");
 }
 
 TEST(error_code_to_http_status_mapping) {
   EXPECT_EQ(sourcemeta::core::mcp_error_code_to_http_status(
                 sourcemeta::core::JSONRPC_CODE_PARSE),
-            400);
+            sourcemeta::core::HTTP_STATUS_BAD_REQUEST);
   EXPECT_EQ(sourcemeta::core::mcp_error_code_to_http_status(
                 sourcemeta::core::JSONRPC_CODE_INVALID_REQUEST),
-            400);
+            sourcemeta::core::HTTP_STATUS_BAD_REQUEST);
   EXPECT_EQ(sourcemeta::core::mcp_error_code_to_http_status(
                 sourcemeta::core::JSONRPC_CODE_METHOD_NOT_FOUND),
-            404);
+            sourcemeta::core::HTTP_STATUS_NOT_FOUND);
   EXPECT_EQ(sourcemeta::core::mcp_error_code_to_http_status(
                 sourcemeta::core::JSONRPC_CODE_INVALID_PARAMS),
-            400);
+            sourcemeta::core::HTTP_STATUS_BAD_REQUEST);
   EXPECT_EQ(sourcemeta::core::mcp_error_code_to_http_status(
                 sourcemeta::core::JSONRPC_CODE_INTERNAL),
-            500);
+            sourcemeta::core::HTTP_STATUS_INTERNAL_SERVER_ERROR);
   EXPECT_EQ(sourcemeta::core::mcp_error_code_to_http_status(
                 sourcemeta::core::MCP_CODE_HEADER_MISMATCH),
-            400);
+            sourcemeta::core::HTTP_STATUS_BAD_REQUEST);
   EXPECT_EQ(sourcemeta::core::mcp_error_code_to_http_status(
                 sourcemeta::core::MCP_CODE_MISSING_REQUIRED_CLIENT_CAPABILITY),
-            400);
+            sourcemeta::core::HTTP_STATUS_BAD_REQUEST);
   EXPECT_EQ(sourcemeta::core::mcp_error_code_to_http_status(
                 sourcemeta::core::MCP_CODE_UNSUPPORTED_PROTOCOL_VERSION),
-            400);
-  EXPECT_EQ(sourcemeta::core::mcp_error_code_to_http_status(-99999), 500);
+            sourcemeta::core::HTTP_STATUS_BAD_REQUEST);
+  EXPECT_EQ(sourcemeta::core::mcp_error_code_to_http_status(-99999),
+            sourcemeta::core::HTTP_STATUS_INTERNAL_SERVER_ERROR);
 }
 
 TEST(empty_result_builder) {
