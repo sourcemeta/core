@@ -5444,3 +5444,27 @@ TEST(trim_of_a_big_coefficient_removes_the_zeros_past_the_point) {
   EXPECT_EQ(value.trim().to_scientific_string(),
             "1.2345678901234567890123e+19");
 }
+
+TEST(stripping_keeps_a_value_whose_exponent_has_no_room_left) {
+  const sourcemeta::core::Decimal big{"1000000000000000000E2147483647"};
+  EXPECT_EQ(big.trim().to_scientific_string(),
+            "1.000000000000000000e+2147483665");
+  EXPECT_EQ(big.reduce().to_scientific_string(),
+            "1.000000000000000000e+2147483665");
+
+  const sourcemeta::core::Decimal compact{"100E2147483647"};
+  EXPECT_EQ(compact.trim().to_scientific_string(), "1.00e+2147483649");
+  EXPECT_EQ(compact.reduce().to_scientific_string(), "1.00e+2147483649");
+}
+
+TEST(stripping_lifts_an_exponent_only_as_far_as_it_will_go) {
+  const sourcemeta::core::Decimal compact{"1000E2147483646"};
+  EXPECT_EQ(compact.trim().to_scientific_string(), "1.00e+2147483649");
+  EXPECT_EQ(compact.reduce().to_scientific_string(), "1.00e+2147483649");
+
+  const sourcemeta::core::Decimal big{"1000000000000000000000E2147483645"};
+  EXPECT_EQ(big.trim().to_scientific_string(),
+            "1.0000000000000000000e+2147483666");
+  EXPECT_EQ(big.reduce().to_scientific_string(),
+            "1.0000000000000000000e+2147483666");
+}
