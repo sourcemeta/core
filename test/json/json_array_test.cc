@@ -717,11 +717,6 @@ TEST(unique_true_twenty_distinct_integers) {
   EXPECT_TRUE(document.unique());
 }
 
-// The search starts at the second item and reads eight hashes at a time, so a
-// repetition has to be found wherever it falls inside that first read. These
-// walk it across every position of that read, and the one after them puts it
-// just beyond
-
 // The repetition opens the search, so it is found before any run is read
 TEST(unique_false_repeated_integer_as_the_second_item) {
   const sourcemeta::core::JSON document =
