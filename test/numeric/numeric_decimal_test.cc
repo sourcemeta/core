@@ -5305,16 +5305,20 @@ TEST(remainder_across_a_vast_exponent_gap_is_the_dividend) {
   EXPECT_EQ(dividend % divisor, dividend);
 }
 
-TEST(probe_wide_less_than) {
+TEST(comparison_of_a_wide_coefficient_at_the_top_of_the_exponent_range) {
   const sourcemeta::core::Decimal big{"999999999999999999E2147483646"};
   const sourcemeta::core::Decimal small{"1E2147483646"};
   EXPECT_FALSE(big < small);
+  EXPECT_TRUE(small < big);
+  EXPECT_TRUE(big > small);
+  EXPECT_FALSE(small > big);
 }
 
-TEST(probe_wide_divide_integer) {
+TEST(divide_integer_of_a_wide_coefficient_at_the_top_of_the_exponent_range) {
   const sourcemeta::core::Decimal big{"999999999999999999E2147483646"};
   const sourcemeta::core::Decimal small{"1E2147483646"};
-  EXPECT_TRUE(!big.divide_integer(small).is_zero());
+  EXPECT_FALSE(big.divide_integer(small).is_zero());
+  EXPECT_TRUE(small.divide_integer(big).is_zero());
 }
 
 TEST(to_scientific_string_of_an_adjusted_exponent_past_the_exponent_range) {
@@ -5344,4 +5348,99 @@ TEST(divide_integer_of_adjusted_exponents_past_the_exponent_range) {
   const sourcemeta::core::Decimal small{"1E2147483646"};
   EXPECT_FALSE(big.divide_integer(small).is_zero());
   EXPECT_TRUE(small.divide_integer(big).is_zero());
+}
+
+TEST(trim_removes_the_zeros_past_the_decimal_point) {
+  EXPECT_EQ(sourcemeta::core::Decimal{"10.0"}.trim().to_scientific_string(),
+            "1.0e+1");
+  EXPECT_EQ(sourcemeta::core::Decimal{"10.00"}.trim().to_scientific_string(),
+            "1.0e+1");
+  EXPECT_EQ(sourcemeta::core::Decimal{"1.00"}.trim().to_scientific_string(),
+            "1e+0");
+  EXPECT_EQ(sourcemeta::core::Decimal{"1.100"}.trim().to_scientific_string(),
+            "1.1e+0");
+  EXPECT_EQ(sourcemeta::core::Decimal{"120.00"}.trim().to_scientific_string(),
+            "1.20e+2");
+  EXPECT_EQ(
+      sourcemeta::core::Decimal{"1.1000E+3"}.trim().to_scientific_string(),
+      "1.100e+3");
+}
+
+TEST(trim_leaves_an_exponent_already_at_zero_alone) {
+  EXPECT_EQ(sourcemeta::core::Decimal{"1.0E+1"}.trim().to_scientific_string(),
+            "1.0e+1");
+  EXPECT_EQ(sourcemeta::core::Decimal{"1.00E+2"}.trim().to_scientific_string(),
+            "1.00e+2");
+  EXPECT_EQ(sourcemeta::core::Decimal{"120"}.trim().to_scientific_string(),
+            "1.20e+2");
+}
+
+TEST(trim_takes_every_zero_once_the_exponent_is_past_the_point) {
+  EXPECT_EQ(sourcemeta::core::Decimal{"10E+1"}.trim().to_scientific_string(),
+            "1e+2");
+  EXPECT_EQ(sourcemeta::core::Decimal{"100E+1"}.trim().to_scientific_string(),
+            "1e+3");
+  EXPECT_EQ(sourcemeta::core::Decimal{"1.00E+3"}.trim().to_scientific_string(),
+            "1e+3");
+  EXPECT_EQ(sourcemeta::core::Decimal{"1.10E+3"}.trim().to_scientific_string(),
+            "1.1e+3");
+}
+
+TEST(trim_sends_a_zero_back_to_the_point_and_keeps_its_sign) {
+  EXPECT_EQ(sourcemeta::core::Decimal{"0.00"}.trim().to_scientific_string(),
+            "0e+0");
+  EXPECT_EQ(sourcemeta::core::Decimal{"0E+5"}.trim().to_scientific_string(),
+            "0e+0");
+  EXPECT_EQ(sourcemeta::core::Decimal{"-0.00"}.trim().to_scientific_string(),
+            "-0e+0");
+  EXPECT_EQ(sourcemeta::core::Decimal{"-0E+1"}.trim().to_scientific_string(),
+            "-0e+0");
+}
+
+TEST(trim_keeps_the_sign_of_a_negative_value) {
+  EXPECT_EQ(sourcemeta::core::Decimal{"-1.00"}.trim().to_scientific_string(),
+            "-1e+0");
+  EXPECT_EQ(sourcemeta::core::Decimal{"-10.0"}.trim().to_scientific_string(),
+            "-1.0e+1");
+  EXPECT_EQ(sourcemeta::core::Decimal{"-10E+1"}.trim().to_scientific_string(),
+            "-1e+2");
+}
+
+TEST(trim_leaves_a_value_with_no_trailing_zero_alone) {
+  EXPECT_EQ(sourcemeta::core::Decimal{"1.1"}.trim().to_scientific_string(),
+            "1.1e+0");
+  EXPECT_EQ(sourcemeta::core::Decimal{"11"}.trim().to_scientific_string(),
+            "1.1e+1");
+  EXPECT_EQ(sourcemeta::core::Decimal{"0.000001"}.trim().to_scientific_string(),
+            "1e-6");
+}
+
+TEST(trim_leaves_what_is_not_finite_alone) {
+  EXPECT_TRUE(sourcemeta::core::Decimal::infinity().trim().is_infinite());
+  EXPECT_FALSE(sourcemeta::core::Decimal::infinity().trim().is_signed());
+  EXPECT_TRUE(
+      sourcemeta::core::Decimal::negative_infinity().trim().is_infinite());
+  EXPECT_TRUE(
+      sourcemeta::core::Decimal::negative_infinity().trim().is_signed());
+
+  const auto quiet{sourcemeta::core::Decimal{"NaN999"}.trim()};
+  EXPECT_TRUE(quiet.is_qnan());
+  EXPECT_EQ(quiet.nan_payload(), 999);
+
+  const auto signalling{sourcemeta::core::Decimal{"-sNaN777"}.trim()};
+  EXPECT_TRUE(signalling.is_snan());
+  EXPECT_TRUE(signalling.is_signed());
+  EXPECT_EQ(signalling.nan_payload(), 777);
+}
+
+TEST(trim_stops_at_the_point_where_reduce_carries_on) {
+  const sourcemeta::core::Decimal value{"120.00"};
+  EXPECT_EQ(value.trim().to_scientific_string(), "1.20e+2");
+  EXPECT_EQ(value.reduce().to_scientific_string(), "1.2e+2");
+}
+
+TEST(trim_of_a_big_coefficient_removes_the_zeros_past_the_point) {
+  const sourcemeta::core::Decimal value{"12345678901234567890.12300"};
+  EXPECT_EQ(value.trim().to_scientific_string(),
+            "1.2345678901234567890123e+19");
 }

@@ -21,8 +21,11 @@
 
 namespace {
 
-auto strip_trailing_zeros(std::int64_t &coefficient, std::int32_t &exponent)
-    -> void {
+// Stripping no more than a given number of digits lets a caller climb to an
+// exponent it must not pass
+auto strip_trailing_zeros(
+    std::int64_t &coefficient, std::int32_t &exponent,
+    std::int32_t maximum = std::numeric_limits<std::int32_t>::max()) -> void {
   if (coefficient == 0) {
     return;
   }
@@ -33,29 +36,35 @@ auto strip_trailing_zeros(std::int64_t &coefficient, std::int32_t &exponent)
   // coefficient without it would change the represented value
   constexpr std::int32_t MAXIMUM{std::numeric_limits<std::int32_t>::max()};
   constexpr std::int64_t POWER_OF_10_16 = 10000000000000000LL;
-  if (exponent <= MAXIMUM - 16 && coefficient % POWER_OF_10_16 == 0) {
+  if (exponent <= MAXIMUM - 16 && maximum >= 16 &&
+      coefficient % POWER_OF_10_16 == 0) {
     coefficient /= POWER_OF_10_16;
     exponent += 16;
+    maximum -= 16;
   }
 
-  if (exponent <= MAXIMUM - 8 && coefficient % 100000000 == 0) {
+  if (exponent <= MAXIMUM - 8 && maximum >= 8 && coefficient % 100000000 == 0) {
     coefficient /= 100000000;
     exponent += 8;
+    maximum -= 8;
   }
 
-  if (exponent <= MAXIMUM - 4 && coefficient % 10000 == 0) {
+  if (exponent <= MAXIMUM - 4 && maximum >= 4 && coefficient % 10000 == 0) {
     coefficient /= 10000;
     exponent += 4;
+    maximum -= 4;
   }
 
-  if (exponent <= MAXIMUM - 2 && coefficient % 100 == 0) {
+  if (exponent <= MAXIMUM - 2 && maximum >= 2 && coefficient % 100 == 0) {
     coefficient /= 100;
     exponent += 2;
+    maximum -= 2;
   }
 
-  if (exponent <= MAXIMUM - 1 && coefficient % 10 == 0) {
+  if (exponent <= MAXIMUM - 1 && maximum >= 1 && coefficient % 10 == 0) {
     coefficient /= 10;
     exponent += 1;
+    maximum -= 1;
   }
 }
 
@@ -1226,6 +1235,64 @@ auto Decimal::reduce() const -> Decimal {
   auto coefficient = this->coefficient_;
   auto exponent = this->exponent_;
   strip_trailing_zeros(coefficient, exponent);
+
+  Decimal result;
+  result.coefficient_ = coefficient;
+  result.exponent_ = exponent;
+  if ((this->flags_ & FLAG_SIGN) != 0) {
+    result.flags_ = FLAG_SIGN;
+  }
+
+  return result;
+}
+
+auto Decimal::trim() const -> Decimal {
+  if (!this->is_finite()) {
+    return *this;
+  }
+
+  // A zero carries no digit worth keeping, so it goes back to the exponent it
+  // would have been written with, taking its sign along
+  if (this->is_zero()) {
+    Decimal result;
+    if ((this->flags_ & FLAG_SIGN) != 0) {
+      result.flags_ = FLAG_SIGN;
+    }
+
+    return result;
+  }
+
+  // Trailing zeros go only as far as the decimal point, which is what holding
+  // the exponent to zero comes to. One already past zero has no point to stop
+  // at, so every trailing zero there goes
+  auto allowance{std::numeric_limits<std::int32_t>::max()};
+  if (this->exponent_ <= 0) {
+    allowance = static_cast<std::int32_t>(std::min<std::int64_t>(
+        -static_cast<std::int64_t>(this->exponent_), allowance));
+  }
+
+  if ((this->flags_ & FLAG_BIG) != 0) {
+    auto big = coefficient_as_big(this->coefficient_, this->coefficient_high_,
+                                  this->flags_);
+    auto stripped_count = big.strip_trailing_zeros(allowance);
+    auto new_exponent =
+        static_cast<std::int64_t>(this->exponent_) + stripped_count;
+    if (new_exponent > std::numeric_limits<std::int32_t>::max() ||
+        new_exponent < std::numeric_limits<std::int32_t>::min()) {
+      throw NumericOverflowError{};
+    }
+
+    Decimal result;
+    bool result_negative = (this->flags_ & FLAG_SIGN) != 0;
+    store_big_result(result.coefficient_, result.coefficient_high_,
+                     result.flags_, std::move(big), result_negative);
+    result.exponent_ = static_cast<std::int32_t>(new_exponent);
+    return result;
+  }
+
+  auto coefficient = this->coefficient_;
+  auto exponent = this->exponent_;
+  strip_trailing_zeros(coefficient, exponent, allowance);
 
   Decimal result;
   result.coefficient_ = coefficient;

@@ -207,6 +207,10 @@ public:
   /// Strip trailing zeros from the coefficient
   [[nodiscard]] auto reduce() const -> Decimal;
 
+  /// Strip trailing zeros from the coefficient, stopping once the exponent
+  /// reaches zero
+  [[nodiscard]] auto trim() const -> Decimal;
+
   /// Return the adjusted exponent (floor of base-10 logarithm)
   [[nodiscard]] auto logb() const -> Decimal;
 
