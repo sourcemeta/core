@@ -35,7 +35,7 @@
         "type": "openapi",
         "pointer": "",
         "parent": null,
-        "dialect": "https://example.com/schemas/custom.json"
+        "defaultDialect": "https://example.com/schemas/custom.json"
       },
       "https://example.com/schemas/openapi.json#/info": {
         "type": "info",

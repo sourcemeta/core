@@ -389,9 +389,11 @@ auto check_frame_invariants(const sourcemeta::core::JSON &frame) -> void {
     const auto type{entry.second.at("type").to_string()};
     EXPECT_TRUE(std::ranges::find(KNOWN_TYPES, type) != KNOWN_TYPES.cend());
 
-    // The dialect in force is recorded where a JSON Schema implementation
-    // needs it, which is the root of a document and each Schema Object
-    EXPECT_EQ(entry.second.defines("dialect"),
+    // The default dialect is recorded where a JSON Schema implementation needs
+    // it, which is the root of a document and each Schema Object. What a Schema
+    // Object is actually written against is recorded by the frame of the
+    // schemas instead, which is why this one says it is a default
+    EXPECT_EQ(entry.second.defines("defaultDialect"),
               type == "openapi" || type == "schema");
 
     // A Schema Object position carries the base to resolve against too, and

@@ -488,7 +488,7 @@ TEST(schemas_does_not_stand_alone_when_a_schema_reaches_out) {
   EXPECT_TRUE(result.at("locations")
                   .at("https://example.com/openapi.json#/components/schemas/"
                       "Pet")
-                  .defines("dialect"));
+                  .defines("defaultDialect"));
 }
 
 TEST(dangling_is_empty_when_the_frame_stands_alone) {
@@ -944,4 +944,86 @@ TEST(version_name_of_every_revision) {
   EXPECT_EQ(sourcemeta::core::openapi_version_name(
                 sourcemeta::core::OpenAPIVersion::OPENAPI_3_2),
             "3.2");
+}
+
+// The default a position inherits and what a Schema Object is actually written
+// against are different questions, and they part ways exactly when the schema
+// declares its own. Reading one for the other validates a schema against the
+// wrong meta-schema, which passes for everything the drafts agree on
+TEST(default_dialect_is_not_the_dialect_a_schema_declares) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.1.1",
+    "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "paths": {},
+    "components": {
+      "schemas": {
+        "Plain": { "type": "string" },
+        "Older": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "string"
+        }
+      }
+    }
+  })JSON")};
+
+  const sourcemeta::core::OpenAPIFrame frame{
+      document, sourcemeta::core::schema_walker,
+      sourcemeta::core::schema_resolver, "https://example.com/openapi.json"};
+
+  const std::string older{
+      "https://example.com/openapi.json#/components/schemas/Older"};
+  const auto older_location{frame.locations().find(older)};
+  EXPECT_TRUE(older_location != frame.locations().cend());
+  EXPECT_EQ(older_location->second.default_dialect,
+            "https://json-schema.org/draft/2020-12/schema");
+  const auto older_schema{frame.schemas().location(
+      sourcemeta::core::SchemaReferenceType::Static, older)};
+  EXPECT_TRUE(older_schema.has_value());
+  EXPECT_EQ(older_schema.value().get().dialect,
+            "http://json-schema.org/draft-07/schema#");
+
+  // A schema that declares nothing takes the default, so there the two agree
+  const std::string plain{
+      "https://example.com/openapi.json#/components/schemas/Plain"};
+  const auto plain_location{frame.locations().find(plain)};
+  EXPECT_TRUE(plain_location != frame.locations().cend());
+  const auto plain_schema{frame.schemas().location(
+      sourcemeta::core::SchemaReferenceType::Static, plain)};
+  EXPECT_TRUE(plain_schema.has_value());
+  EXPECT_EQ(plain_location->second.default_dialect,
+            plain_schema.value().get().dialect);
+}
+
+TEST(default_dialect_export_is_distinct_from_the_schema_frame_dialect) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.1.1",
+    "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "paths": {},
+    "components": {
+      "schemas": {
+        "Older": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "string"
+        }
+      }
+    }
+  })JSON")};
+
+  const sourcemeta::core::OpenAPIFrame frame{
+      document, sourcemeta::core::schema_walker,
+      sourcemeta::core::schema_resolver, "https://example.com/openapi.json"};
+  const auto result{frame.to_json()};
+
+  const std::string older{
+      "https://example.com/openapi.json#/components/schemas/Older"};
+  const auto &entry{result.at("locations").at(older)};
+  EXPECT_FALSE(entry.defines("dialect"));
+  EXPECT_EQ(
+      entry.at("defaultDialect"),
+      sourcemeta::core::JSON{"https://json-schema.org/draft/2020-12/schema"});
+  EXPECT_EQ(
+      result.at("schemas").at("locations").at("static").at(older).at("dialect"),
+      sourcemeta::core::JSON{"http://json-schema.org/draft-07/schema#"});
 }

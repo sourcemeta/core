@@ -45,7 +45,7 @@
         "type": "openapi",
         "pointer": "",
         "parent": null,
-        "dialect": "https://example.com/entry-dialect"
+        "defaultDialect": "https://example.com/entry-dialect"
       },
       "https://example.com/openapi.json#/components": {
         "type": "components",

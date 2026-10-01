@@ -34,7 +34,7 @@
         "type": "openapi",
         "pointer": "",
         "parent": null,
-        "dialect": "dialects/custom.json"
+        "defaultDialect": "dialects/custom.json"
       },
       "#/info": {
         "type": "info",
