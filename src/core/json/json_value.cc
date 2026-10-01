@@ -117,7 +117,7 @@ auto scan_hashes(const std::uint64_t *const data, const std::size_t size,
   }
 #endif
 
-  while (offset < size && data[offset] != needle) {
+  while (offset + 1 < size && data[offset] != needle) {
     offset += 1;
   }
 

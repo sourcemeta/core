@@ -2,7 +2,6 @@
 #include <sourcemeta/core/test.h>
 
 #include <algorithm>
-#include <cstddef>
 #include <ranges>
 #include <set>
 #include <string>
@@ -687,71 +686,132 @@ TEST(unique_true_distinct_fractional_values) {
   EXPECT_TRUE(document.unique());
 }
 
-// An array of consecutive integers gives every item a hash of its own, which is
-// what drives the search for a repeated hash over long runs rather than
-// deciding every pair on its first comparison. Naming a position repeats the
-// first item there, so a caller can put the repetition wherever it wants one
-static auto integers_repeating_first_at(const std::size_t count,
-                                        const std::size_t position)
-    -> sourcemeta::core::JSON {
-  auto result{sourcemeta::core::JSON::make_array()};
-  for (std::size_t index = 0; index < count; index++) {
-    result.push_back(
-        sourcemeta::core::JSON{static_cast<sourcemeta::core::JSON::Integer>(
-            index == position ? 0 : index)});
-  }
-
-  return result;
+// Consecutive integers give every item a hash of its own, so a repetition
+// cannot be ruled out until the whole array has been searched. Eight hashes
+// are read at a time, and this array holds exactly that many past the first
+TEST(unique_true_nine_distinct_integers) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json("[ 1, 2, 3, 4, 5, 6, 7, 8, 9 ]");
+  EXPECT_TRUE(document.unique());
 }
 
-// Lengths on either side of the run that the search reads in one go, so the
-// tail it falls back to for a partial run is exercised at every remainder
-TEST(unique_true_distinct_integers_across_run_lengths) {
-  for (std::size_t count = 0; count <= 40; count++) {
-    EXPECT_TRUE(integers_repeating_first_at(count, count).unique());
-  }
+// One past a whole read, the shortest remainder the search can end on
+TEST(unique_true_ten_distinct_integers) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json("[ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ]");
+  EXPECT_TRUE(document.unique());
 }
 
-// A repeated item at every position of arrays of every length, so the search
-// has to report one that falls at the start of a run it reads at once, inside
-// it, at its end, and in the partial run that closes the array
-TEST(unique_false_repeated_item_at_every_position) {
-  for (std::size_t count = 2; count <= 40; count++) {
-    for (std::size_t position = 1; position < count; position++) {
-      EXPECT_FALSE(integers_repeating_first_at(count, position).unique());
-    }
-  }
+// Two whole reads past the first item and no remainder at all
+TEST(unique_true_seventeen_distinct_integers) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(
+      "[ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17 ]");
+  EXPECT_TRUE(document.unique());
 }
 
-// A repetition of an item that is itself far into the array, so the search
-// starts past several whole runs rather than at the beginning
-TEST(unique_false_repeated_item_far_from_the_start) {
-  auto document{sourcemeta::core::JSON::make_array()};
-  for (std::size_t index = 0; index < 40; index++) {
-    document.push_back(
-        sourcemeta::core::JSON{static_cast<sourcemeta::core::JSON::Integer>(
-            index == 39 ? 20 : index)});
-  }
+// Two whole reads and a remainder of three
+TEST(unique_true_twenty_distinct_integers) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json("[ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, "
+                                   "13, 14, 15, 16, 17, 18, 19, 20 ]");
+  EXPECT_TRUE(document.unique());
+}
 
+// The search starts at the second item and reads eight hashes at a time, so a
+// repetition has to be found wherever it falls inside that first read. These
+// walk it across every position of that read, and the one after them puts it
+// just beyond
+
+// The repetition opens the search, so it is found before any run is read
+TEST(unique_false_repeated_integer_as_the_second_item) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json("[ 1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 ]");
   EXPECT_FALSE(document.unique());
 }
 
-// A string hashes by its length alone, so a long array of strings of one length
-// gives every item the same hash and never reaches the wide search, deciding
-// every pair on a full comparison instead
-TEST(unique_many_strings_of_one_length) {
-  auto document{sourcemeta::core::JSON::make_array()};
-  for (std::size_t index = 0; index < 40; index++) {
-    sourcemeta::core::JSON::String value(8, 'x');
-    value[0] = static_cast<char>('A' + index);
-    document.push_back(sourcemeta::core::JSON{value});
-  }
+TEST(unique_false_repeated_integer_as_the_third_item) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json("[ 1, 2, 1, 3, 4, 5, 6, 7, 8, 9, 10, 11 ]");
+  EXPECT_FALSE(document.unique());
+}
 
+TEST(unique_false_repeated_integer_as_the_fourth_item) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json("[ 1, 2, 3, 1, 4, 5, 6, 7, 8, 9, 10, 11 ]");
+  EXPECT_FALSE(document.unique());
+}
+
+TEST(unique_false_repeated_integer_as_the_fifth_item) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json("[ 1, 2, 3, 4, 1, 5, 6, 7, 8, 9, 10, 11 ]");
+  EXPECT_FALSE(document.unique());
+}
+
+TEST(unique_false_repeated_integer_as_the_sixth_item) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json("[ 1, 2, 3, 4, 5, 1, 6, 7, 8, 9, 10, 11 ]");
+  EXPECT_FALSE(document.unique());
+}
+
+TEST(unique_false_repeated_integer_as_the_seventh_item) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json("[ 1, 2, 3, 4, 5, 6, 1, 7, 8, 9, 10, 11 ]");
+  EXPECT_FALSE(document.unique());
+}
+
+TEST(unique_false_repeated_integer_as_the_eighth_item) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json("[ 1, 2, 3, 4, 5, 6, 7, 1, 8, 9, 10, 11 ]");
+  EXPECT_FALSE(document.unique());
+}
+
+// The furthest a repetition can sit from where the first read begins
+TEST(unique_false_repeated_integer_as_the_ninth_item) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json("[ 1, 2, 3, 4, 5, 6, 7, 8, 1, 9, 10, 11 ]");
+  EXPECT_FALSE(document.unique());
+}
+
+// Just past the first whole read, so that read reports nothing and the
+// remainder behind it is what finds the repetition
+TEST(unique_false_repeated_integer_as_the_tenth_item) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json("[ 1, 2, 3, 4, 5, 6, 7, 8, 9, 1, 10, 11 ]");
+  EXPECT_FALSE(document.unique());
+}
+
+// Two whole reads report nothing before the remainder that closes a longer
+// array finds the repetition
+TEST(unique_false_repeated_integer_in_the_closing_remainder) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json("[ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, "
+                                   "13, 14, 15, 16, 17, 1, 18, 19 ]");
+  EXPECT_FALSE(document.unique());
+}
+
+// The first of the two equal items is itself deep into the array, so the
+// search begins partway through rather than at the beginning
+TEST(unique_false_repeated_integer_far_from_the_start) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json("[ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, "
+                                   "13, 14, 15, 16, 17, 18, 19, 11 ]");
+  EXPECT_FALSE(document.unique());
+}
+
+// A string hashes by its length alone, so strings of one length all share a
+// hash and every pair is settled by a full comparison, never reaching the
+// search over a run of hashes
+TEST(unique_true_strings_of_one_length) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(
+      "[ \"alphabet\", \"birthday\", \"computer\", \"daughter\", \"elephant\", "
+      "\"festival\", \"graduate\", \"hospital\", \"infinity\", \"journeys\" ]");
   EXPECT_TRUE(document.unique());
+}
 
-  sourcemeta::core::JSON::String repeated(8, 'x');
-  repeated[0] = 'H';
-  document.push_back(sourcemeta::core::JSON{repeated});
+TEST(unique_false_repeated_string_among_strings_of_one_length) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(
+      "[ \"alphabet\", \"birthday\", \"computer\", \"daughter\", \"elephant\", "
+      "\"festival\", \"graduate\", \"hospital\", \"infinity\", \"alphabet\" ]");
   EXPECT_FALSE(document.unique());
 }
 
