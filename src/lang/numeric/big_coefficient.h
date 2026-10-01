@@ -7,6 +7,7 @@
 #include <cstdint>     // std::int32_t, std::int64_t, std::uint32_t,
                        // std::uint64_t, std::uintptr_t, std::uint8_t
 #include <cstring>     // std::memcpy
+#include <limits>      // std::numeric_limits
 #include <string>      // std::string, std::to_string
 #include <string_view> // std::string_view
 #include <utility>     // std::pair, std::move
@@ -222,8 +223,12 @@ public:
     return result;
   }
 
-  auto strip_trailing_zeros() -> std::int32_t {
-    if (this->is_zero()) {
+  // Stripping no more than a given number of digits lets a caller climb to an
+  // exponent it must not pass
+  auto strip_trailing_zeros(
+      const std::int32_t maximum = std::numeric_limits<std::int32_t>::max())
+      -> std::int32_t {
+    if (this->is_zero() || maximum <= 0) {
       return 0;
     }
 
@@ -234,6 +239,9 @@ public:
       zero_words++;
     }
 
+    zero_words =
+        std::min(zero_words, static_cast<std::uint32_t>(maximum / BASE_DIGITS));
+
     if (zero_words > 0 && zero_words < this->length) {
       std::copy(this->words + zero_words, this->words + this->length,
                 this->words);
@@ -241,23 +249,21 @@ public:
       total_stripped += static_cast<std::int32_t>(zero_words) * BASE_DIGITS;
     }
 
-    if (this->words[0] != 0) {
-      // Each word holds a fixed slice of the whole number, so dividing by 10
-      // must carry the remainder of every higher word into the word below
-      while (this->words[0] % 10 == 0) {
-        std::uint64_t borrow = 0;
-        for (auto index = this->length; index > 0; index--) {
-          const auto word = this->words[index - 1];
-          this->words[index - 1] = (word / 10) + (borrow * (BASE / 10));
-          borrow = word % 10;
-        }
-
-        if (this->length > 1 && this->words[this->length - 1] == 0) {
-          this->length--;
-        }
-
-        total_stripped++;
+    // Each word holds a fixed slice of the whole number, so dividing by 10 must
+    // carry the remainder of every higher word into the word below
+    while (total_stripped < maximum && this->words[0] % 10 == 0) {
+      std::uint64_t borrow = 0;
+      for (auto index = this->length; index > 0; index--) {
+        const auto word = this->words[index - 1];
+        this->words[index - 1] = (word / 10) + (borrow * (BASE / 10));
+        borrow = word % 10;
       }
+
+      if (this->length > 1 && this->words[this->length - 1] == 0) {
+        this->length--;
+      }
+
+      total_stripped++;
     }
 
     return total_stripped;
