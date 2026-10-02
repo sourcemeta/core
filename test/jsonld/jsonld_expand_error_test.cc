@@ -31,6 +31,14 @@ auto remote_resolver() -> sourcemeta::core::JSONLDResolver {
     if (identifier == "https://example.com/no-context") {
       return sourcemeta::core::parse_json(R"({ "foo": "bar" })");
     }
+    if (identifier == "https://example.com/invalid-term") {
+      return sourcemeta::core::parse_json(
+          R"({ "@context": { "a": { "@id": "http://example.com/a", "@bogus": true } } })");
+    }
+    if (identifier == "https://example.com/valid-term") {
+      return sourcemeta::core::parse_json(
+          R"({ "@context": { "a": "http://example.com/a" } })");
+    }
     return std::nullopt;
   };
 }
@@ -52,7 +60,7 @@ TEST(invalid_term_definition_empty) {
   })");
 
   EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
-                             "Invalid term definition", "/@context");
+                             "Invalid term definition", "/@context/");
 }
 
 TEST(keyword_redefinition) {
@@ -286,6 +294,15 @@ TEST(recursive_context_inclusion) {
   EXPECT_JSONLD_EXPAND_ERROR(
       sourcemeta::core::jsonld_expand(input, "", remote_resolver()),
       "Recursive context inclusion", "/@context");
+}
+
+TEST(error_inside_remote_context) {
+  const auto input = sourcemeta::core::parse_json(
+      R"({ "@context": "https://example.com/invalid-term" })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(
+      sourcemeta::core::jsonld_expand(input, "", remote_resolver()),
+      "Invalid term definition", "/@context");
 }
 
 TEST(colliding_keywords) {
@@ -565,13 +582,28 @@ TEST(invalid_container_array_combination) {
                              "/@context/a/@container");
 }
 
+TEST(invalid_container_set_with_multiple_keywords) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "a": {
+        "@id": "http://example.com/a",
+        "@container": [ "@set", "@id", "@language" ]
+      }
+    }
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Invalid container mapping",
+                             "/@context/a/@container");
+}
+
 TEST(unknown_entry_in_term_definition) {
   const auto input = sourcemeta::core::parse_json(R"({
     "@context": { "a": { "@id": "http://example.com/a", "@bogus": true } }
   })");
 
   EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
-                             "Invalid term definition", "/@context/a");
+                             "Invalid term definition", "/@context/a/@bogus");
 }
 
 TEST(type_keyword_container_id) {
@@ -615,9 +647,9 @@ TEST(protected_null_term_redefinition) {
                              "Protected term redefinition", "/@context/1/term");
 }
 
-TEST(free_floating_invalid_set_or_list_object) {
+TEST(free_floating_invalid_set_object) {
   const auto input = sourcemeta::core::parse_json(R"({
-    "@list": [ "foo" ], "@id": "http://example.com/bar"
+    "@set": [ "foo" ], "@id": "http://example.com/bar"
   })");
 
   EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
@@ -632,6 +664,29 @@ TEST(import_loading_failed) {
   EXPECT_JSONLD_EXPAND_ERROR(
       sourcemeta::core::jsonld_expand(input, "", remote_resolver()),
       "Loading remote context failed", "/@context/@import");
+}
+
+TEST(error_inside_imported_context) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "@import": "https://example.com/invalid-term" }
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(
+      sourcemeta::core::jsonld_expand(input, "", remote_resolver()),
+      "Invalid term definition", "/@context/@import");
+}
+
+TEST(error_beside_imported_context) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "@import": "https://example.com/valid-term",
+      "b": { "@id": "http://example.com/b", "@bogus": true }
+    }
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(
+      sourcemeta::core::jsonld_expand(input, "", remote_resolver()),
+      "Invalid term definition", "/@context/b/@bogus");
 }
 
 TEST(duplicate_container_keyword) {

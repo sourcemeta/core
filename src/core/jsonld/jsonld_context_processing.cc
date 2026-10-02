@@ -10,6 +10,24 @@
 
 namespace sourcemeta::core {
 
+namespace {
+
+// A context merged with an imported one (JSON-LD 1.1 API Section 5.1 step
+// 5.6.8) holds entries from two documents, and only the ones the input spells
+// out have a position in it. An error on an entry that came from the imported
+// document alone is located at the reference that loaded it instead.
+auto is_input_authored(const JSONLDError &error, const JSON &context,
+                       const WeakPointer &location) -> bool {
+  const auto &pointer{error.pointer()};
+  if (pointer.size() <= location.size()) {
+    return true;
+  }
+  const auto &token{pointer.at(location.size())};
+  return token.is_property() && context.defines(token.to_property());
+}
+
+} // namespace
+
 // Context Processing (JSON-LD 1.1 API Section 5.1)
 auto process_context(ExpansionState &state, ActiveContext &active_context,
                      const JSON &local_context, const WeakPointer &pointer,
@@ -94,6 +112,12 @@ auto process_context(ExpansionState &state, ActiveContext &active_context,
       try {
         // A loaded remote context is processed with the default propagation.
         process_context(state, active_context, *context_entry, location);
+      } catch (const JSONLDError &error) {
+        state.remote_context_chain.pop_back();
+        // The offending entries live in the remote document, whose keys have
+        // no position in the input, so the error is located at the reference
+        // that loaded it
+        throw JSONLDError(error.what(), location);
       } catch (...) {
         state.remote_context_chain.pop_back();
         throw;
@@ -182,7 +206,14 @@ auto process_context(ExpansionState &state, ActiveContext &active_context,
           merged.assign(entry.first, entry.second);
         }
       }
-      process_context(state, active_context, merged, location, propagate);
+      try {
+        process_context(state, active_context, merged, location, propagate);
+      } catch (const JSONLDError &error) {
+        if (is_input_authored(error, context, location)) {
+          throw;
+        }
+        throw JSONLDError(error.what(), location, {KEYWORD_IMPORT});
+      }
       state.context_protected = saved_protected;
       continue;
     }
