@@ -17,21 +17,7 @@ sourcemeta_library(NAMESPACE sourcemeta PROJECT core NAME crypto
 target_link_libraries(sourcemeta_core_crypto
   PRIVATE sourcemeta::core::text sourcemeta::core::numeric)
 
-if(SOURCEMETA_CORE_CRYPTO_USE_REFERENCE)
-  message(WARNING "Building the reference cryptography backend instead of a "
-    "system provided production one")
-  target_sources(sourcemeta_core_crypto PRIVATE
-    crypto_sha1_other.cc crypto_sha256_other.cc crypto_hmac_sha256_other.cc
-    crypto_hmac_sha384_other.cc crypto_hmac_sha512_other.cc
-    crypto_sha384_other.cc
-    crypto_sha512_other.cc crypto_random_other.cc crypto_verify_other.cc
-    crypto_secure_equals_generic.cc crypto_sign_other.cc
-    crypto_aes_gcm_other.cc crypto_aes_cbc_other.cc crypto_aes_kw_other.cc
-    crypto_rsa_oaep_other.cc crypto_ecdh_other.cc crypto_hkdf_other.cc
-    crypto_aes_block.h crypto_ghash.h crypto_aes_kw_loop.h crypto_sha1_other.h
-    crypto_bignum.h crypto_ecc.h crypto_eddsa.h crypto_shake256.h
-    crypto_pkcs8.h crypto_other.h crypto_rsa_other.h)
-elseif(APPLE)
+if(NOT SOURCEMETA_CORE_CRYPTO_USE_REFERENCE AND APPLE)
   enable_language(OBJCXX)
 
   # Ed25519 is verified through CryptoKit (Swift), reached from Objective-C++.
@@ -181,7 +167,9 @@ elseif(WIN32)
     PRIVATE _WIN32_WINNT=0x0A00 NTDDI_VERSION=0x0A000005)
 
   target_link_libraries(sourcemeta_core_crypto PRIVATE bcrypt)
-elseif(SOURCEMETA_CORE_CRYPTO_USE_SYSTEM_OPENSSL)
+elseif(NOT SOURCEMETA_CORE_CRYPTO_USE_REFERENCE)
+  find_package(OpenSSL 3.0 REQUIRED)
+  set(SOURCEMETA_CORE_CRYPTO_USE_SYSTEM_OPENSSL ON PARENT_SCOPE)
   target_sources(sourcemeta_core_crypto PRIVATE
     crypto_sha1_openssl.cc crypto_sha256_openssl.cc
     crypto_hmac_sha256_openssl.cc crypto_hmac_sha384_openssl.cc
@@ -195,6 +183,7 @@ elseif(SOURCEMETA_CORE_CRYPTO_USE_SYSTEM_OPENSSL)
     crypto_openssl.h crypto_pkcs8.h crypto_system.h)
   target_link_libraries(sourcemeta_core_crypto PRIVATE OpenSSL::Crypto)
 else()
+  set(SOURCEMETA_CORE_CRYPTO_USE_SYSTEM_OPENSSL OFF PARENT_SCOPE)
   message(WARNING "Building the reference cryptography backend instead of a "
     "system provided production one")
   target_sources(sourcemeta_core_crypto PRIVATE

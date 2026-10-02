@@ -80,38 +80,6 @@ elseif(SOURCEMETA_CORE_UNDEFINED_SANITIZER)
   sourcemeta_sanitizer(TYPE undefined)
 endif()
 
-# Determine whether OpenSSL is used by the crypto backend for package export
-if(SOURCEMETA_CORE_CRYPTO AND NOT SOURCEMETA_CORE_CRYPTO_USE_REFERENCE AND NOT APPLE AND NOT WIN32)
-  find_package(OpenSSL 3.0 QUIET)
-  if(OpenSSL_FOUND)
-    set(SOURCEMETA_CORE_CRYPTO_USE_SYSTEM_OPENSSL ON)
-    message(STATUS "Using system OpenSSL for the crypto backend")
-  else()
-    set(SOURCEMETA_CORE_CRYPTO_USE_SYSTEM_OPENSSL OFF)
-    message(WARNING "OpenSSL not found; building the reference crypto backend")
-  endif()
-else()
-  set(SOURCEMETA_CORE_CRYPTO_USE_SYSTEM_OPENSSL OFF)
-endif()
-
-# TODO: Turn this into a re-usable utility CMake function
-if(SOURCEMETA_CORE_INSTALL)
-  include(GNUInstallDirs)
-  include(CMakePackageConfigHelpers)
-  configure_package_config_file(
-    config.cmake.in
-    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config.cmake"
-    INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
-  write_basic_package_version_file(
-    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config-version.cmake"
-    COMPATIBILITY SameMajorVersion)
-  install(FILES
-    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config-version.cmake"
-    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config.cmake"
-    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
-    COMPONENT sourcemeta_${PROJECT_NAME}_dev)
-endif()
-
 # Every executable in this build links this one, so it comes first
 if(SOURCEMETA_CORE_LANG_ALLOCATOR)
   if((SOURCEMETA_OS_LINUX OR SOURCEMETA_OS_MACOS)
@@ -310,6 +278,24 @@ endif()
 
 if(SOURCEMETA_CORE_TERMINAL)
   add_subdirectory(src/core/terminal)
+endif()
+
+# TODO: Turn this into a re-usable utility CMake function
+if(SOURCEMETA_CORE_INSTALL)
+  include(GNUInstallDirs)
+  include(CMakePackageConfigHelpers)
+  configure_package_config_file(
+    config.cmake.in
+    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config.cmake"
+    INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
+  write_basic_package_version_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config-version.cmake"
+    COMPATIBILITY SameMajorVersion)
+  install(FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config-version.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config.cmake"
+    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
+    COMPONENT sourcemeta_${PROJECT_NAME}_dev)
 endif()
 
 if(SOURCEMETA_CORE_DOCS)
