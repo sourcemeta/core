@@ -1043,6 +1043,32 @@ TEST(minimum_exponent_round_trips_through_string) {
   EXPECT_EQ(roundtrip, value);
 }
 
+TEST(scale_by_above_int32_scale_offset_by_negative_exponent) {
+  const sourcemeta::core::Decimal value{"1e-1"};
+  const auto result{value.scale_by(sourcemeta::core::Decimal{2147483648LL})};
+  const sourcemeta::core::Decimal expected{"1e2147483647"};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.same_quantum(expected));
+}
+
+TEST(scale_by_below_int32_scale_offset_by_positive_exponent) {
+  const sourcemeta::core::Decimal value{"1e1"};
+  const auto result{value.scale_by(sourcemeta::core::Decimal{-2147483649LL})};
+  const sourcemeta::core::Decimal expected{"1e-2147483648"};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.same_quantum(expected));
+}
+
+TEST(scale_by_above_int32_scale_without_offset_overflows) {
+  const sourcemeta::core::Decimal value{"1e1"};
+  try {
+    const auto result{value.scale_by(sourcemeta::core::Decimal{2147483648LL})};
+    FAIL();
+  } catch (const sourcemeta::core::NumericOverflowError &error) {
+    EXPECT_STREQ(error.what(), "Numeric overflow");
+  }
+}
+
 TEST(scale_by_maximum_integer_scale_overflows) {
   const sourcemeta::core::Decimal value{"1e1"};
   try {
