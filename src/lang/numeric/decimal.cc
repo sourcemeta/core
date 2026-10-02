@@ -463,15 +463,18 @@ auto is_representable_as_floating_point(
   return decimal == roundtrip;
 }
 
-// An exponent that rounding pushed past what the storage holds leaves the
-// result unrepresentable
-auto narrow_exponent(const std::int64_t exponent) -> std::int32_t {
-  if (exponent > std::numeric_limits<std::int32_t>::max() ||
-      exponent < std::numeric_limits<std::int32_t>::min()) {
+// Rounding to the working precision raises the exponent by the positions it
+// drops, so what must fit is where the exponent ends up rather than the deeper
+// place the working digits put it. A result the storage cannot hold is refused
+// from the coefficient width alone, before anything is committed, which leaves
+// the operand as it was
+void check_rounded_exponent(const std::int64_t exponent,
+                            const std::uint64_t digits) {
+  const auto rounded{exponent + precision_excess(digits)};
+  if (rounded > std::numeric_limits<std::int32_t>::max() ||
+      rounded < std::numeric_limits<std::int32_t>::min()) {
     throw sourcemeta::core::NumericOverflowError{};
   }
-
-  return static_cast<std::int32_t>(exponent);
 }
 
 void check_exponent_overflow(std::int32_t left_exponent,
@@ -2051,13 +2054,15 @@ auto Decimal::operator*=(const Decimal &other) -> Decimal & {
     auto right_big = coefficient_as_big(other.coefficient_,
                                         other.coefficient_high_, other.flags_);
     auto product = left_big.multiply(right_big);
+    check_rounded_exponent(result_exponent_64, product.digit_count());
+
     free_big_coefficient(this->coefficient_, this->flags_);
     store_big_result(this->coefficient_, this->coefficient_high_, this->flags_,
                      std::move(product), result_negative);
     auto rounded_exponent{result_exponent_64};
     round_to_precision(this->coefficient_, this->coefficient_high_,
                        rounded_exponent, this->flags_);
-    this->exponent_ = narrow_exponent(rounded_exponent);
+    this->exponent_ = static_cast<std::int32_t>(rounded_exponent);
     return *this;
   }
 
@@ -2065,6 +2070,9 @@ auto Decimal::operator*=(const Decimal &other) -> Decimal & {
                  static_cast<sourcemeta::core::uint128_t>(other.coefficient_);
 
   if (product <= static_cast<sourcemeta::core::uint128_t>(COMPACT_MAX)) {
+    check_rounded_exponent(result_exponent_64,
+                           digit_count(static_cast<std::uint64_t>(product)));
+
     this->coefficient_ = static_cast<std::int64_t>(product);
     this->exponent_ = result_exponent;
     // The General Decimal Arithmetic Specification states that "the sign of
@@ -2077,6 +2085,8 @@ auto Decimal::operator*=(const Decimal &other) -> Decimal & {
     auto right_big = coefficient_as_big(other.coefficient_,
                                         other.coefficient_high_, other.flags_);
     auto result = left_big.multiply(right_big);
+    check_rounded_exponent(result_exponent_64, result.digit_count());
+
     store_big_result(this->coefficient_, this->coefficient_high_, this->flags_,
                      std::move(result), result_negative);
     this->exponent_ = result_exponent;
@@ -2085,7 +2095,7 @@ auto Decimal::operator*=(const Decimal &other) -> Decimal & {
   auto rounded_exponent{static_cast<std::int64_t>(this->exponent_)};
   round_to_precision(this->coefficient_, this->coefficient_high_,
                      rounded_exponent, this->flags_);
-  this->exponent_ = narrow_exponent(rounded_exponent);
+  this->exponent_ = static_cast<std::int32_t>(rounded_exponent);
   return *this;
 }
 
@@ -2176,16 +2186,7 @@ auto Decimal::operator/=(const Decimal &other) -> Decimal & {
     }
   }
 
-  // Rounding to the working precision raises the exponent by the positions it
-  // drops, so what must fit is where the exponent ends up, not the deeper place
-  // the guard positions put it. The reach is settled before anything is stored,
-  // leaving the operand untouched when the result cannot be held
-  const auto rounded_exponent{result_exponent +
-                              precision_excess(quotient.digit_count())};
-  if (rounded_exponent > std::numeric_limits<std::int32_t>::max() ||
-      rounded_exponent < std::numeric_limits<std::int32_t>::min()) {
-    throw NumericOverflowError{};
-  }
+  check_rounded_exponent(result_exponent, quotient.digit_count());
 
   free_big_coefficient(this->coefficient_, this->flags_);
   // The specification states that "the sign of the result of a multiplication

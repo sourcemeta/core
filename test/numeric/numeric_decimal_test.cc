@@ -993,6 +993,32 @@ TEST(multiply_rounding_past_maximum_exponent_overflows_cleanly) {
   }
 }
 
+TEST(multiply_rounding_overflow_leaves_the_operand_alone) {
+  const sourcemeta::core::Decimal original{"99999999999999999e2147483630"};
+  sourcemeta::core::Decimal left{original};
+  try {
+    left *= sourcemeta::core::Decimal{"1e17"};
+    FAIL();
+  } catch (const sourcemeta::core::NumericOverflowError &) {
+    EXPECT_EQ(left, original);
+    EXPECT_TRUE(left.same_quantum(original));
+    EXPECT_EQ(left.to_string(), original.to_string());
+  }
+}
+
+TEST(divide_rounding_overflow_leaves_the_operand_alone) {
+  const sourcemeta::core::Decimal original{"10e2147483646"};
+  sourcemeta::core::Decimal dividend{original};
+  try {
+    dividend /= sourcemeta::core::Decimal{"3e-17"};
+    FAIL();
+  } catch (const sourcemeta::core::NumericOverflowError &) {
+    EXPECT_EQ(dividend, original);
+    EXPECT_TRUE(dividend.same_quantum(original));
+    EXPECT_EQ(dividend.to_string(), original.to_string());
+  }
+}
+
 TEST(divide_rounding_past_maximum_exponent_overflows_cleanly) {
   const sourcemeta::core::Decimal dividend{"10e2147483646"};
   const sourcemeta::core::Decimal divisor{"3e-17"};
