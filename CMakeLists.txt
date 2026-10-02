@@ -82,7 +82,12 @@ endif()
 
 # Determine whether OpenSSL is used by the crypto backend for package export
 if(SOURCEMETA_CORE_CRYPTO AND NOT SOURCEMETA_CORE_CRYPTO_USE_REFERENCE AND NOT APPLE AND NOT WIN32)
-  set(SOURCEMETA_CORE_CRYPTO_USE_SYSTEM_OPENSSL ON)
+  find_package(OpenSSL 3.0 QUIET)
+  if(OpenSSL_FOUND)
+    set(SOURCEMETA_CORE_CRYPTO_USE_SYSTEM_OPENSSL ON)
+  else()
+    set(SOURCEMETA_CORE_CRYPTO_USE_SYSTEM_OPENSSL OFF)
+  endif()
 else()
   set(SOURCEMETA_CORE_CRYPTO_USE_SYSTEM_OPENSSL OFF)
 endif()
@@ -184,9 +189,6 @@ if(SOURCEMETA_CORE_TIME)
 endif()
 
 if(SOURCEMETA_CORE_CRYPTO)
-  if(SOURCEMETA_CORE_CRYPTO_USE_SYSTEM_OPENSSL)
-    find_package(OpenSSL 3.0 REQUIRED)
-  endif()
   add_subdirectory(src/core/crypto)
 endif()
 
