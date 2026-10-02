@@ -688,13 +688,42 @@ public:
 
   [[nodiscard]] auto to_uint128(std::int32_t exponent) const
       -> sourcemeta::core::uint128_t {
+    // A negative exponent on an integral value means the coefficient carries
+    // trailing zeros that the scale removes, so dividing recovers the true
+    // magnitude rather than returning a result that is too large by a power of
+    // ten. The scale comes off here, while the coefficient is still held to its
+    // full width, because a coefficient wide enough to need the scale is also
+    // wide enough to wrap as it narrows
+    if (exponent < 0 && !this->is_zero()) {
+      const auto scale_digits{-static_cast<std::int64_t>(exponent)};
+      // A scale that reaches past every digit leaves nothing of the value
+      if (static_cast<std::uint64_t>(scale_digits) >= this->digit_count()) {
+        return 0;
+      }
+
+      // Whole words come off by being skipped rather than divided away, so no
+      // divisor is built and a scale as wide as the coefficient stays within
+      // the word limit
+      const auto whole_words{static_cast<std::uint32_t>(
+          scale_digits / static_cast<std::int64_t>(BASE_DIGITS))};
+      const auto residual{static_cast<std::uint32_t>(
+          scale_digits % static_cast<std::int64_t>(BASE_DIGITS))};
+
+      sourcemeta::core::uint128_t value = 0;
+      for (auto index = this->length; index > whole_words; index--) {
+        value = (value * BASE) + this->words[index - 1];
+      }
+
+      return residual == 0 ? value : value / POWERS_OF_10[residual];
+    }
+
     sourcemeta::core::uint128_t value = 0;
     for (auto index = this->length; index > 0; index--) {
       value = (value * BASE) + this->words[index - 1];
     }
 
     // Zero admits arbitrarily extreme exponents, which would otherwise make
-    // the scaling loops below spin for billions of iterations
+    // the scaling loop below spin for billions of iterations
     if (value == 0) {
       return value;
     }
@@ -702,15 +731,6 @@ public:
     while (exponent > 0) {
       value *= 10;
       exponent--;
-    }
-
-    // A negative exponent on an integral value means the coefficient carries
-    // trailing zeros that the scale removes, so dividing recovers the true
-    // magnitude rather than returning a result that is too large by a power of
-    // ten
-    while (exponent < 0) {
-      value = value / 10;
-      exponent++;
     }
 
     return value;
@@ -854,8 +874,21 @@ auto modular_pow10(std::uint32_t exponent, std::uint64_t modulus)
 // Round-half-even (banker's rounding) to WORKING_PRECISION significant digits
 constexpr std::int32_t WORKING_PRECISION = 16;
 
+// How many positions the working precision drops from a coefficient of the
+// given width, which is what rounding to it adds to the exponent
+auto precision_excess(const std::uint64_t digits) -> std::int32_t {
+  return digits > static_cast<std::uint64_t>(WORKING_PRECISION)
+             ? static_cast<std::int32_t>(
+                   digits - static_cast<std::uint64_t>(WORKING_PRECISION))
+             : 0;
+}
+
+// An operation that cannot represent its result exactly reports that it left
+// something behind, which only decides a tie that the dropped digits alone
+// would settle by parity
 auto rounds_up_half_even(const std::string_view kept,
-                         const std::string_view dropped) -> bool {
+                         const std::string_view dropped,
+                         const bool residue = false) -> bool {
   if (dropped.empty() || dropped.front() < '5') {
     return false;
   }
@@ -870,12 +903,20 @@ auto rounds_up_half_even(const std::string_view kept,
     }
   }
 
+  if (residue) {
+    return true;
+  }
+
   return !kept.empty() && (kept.back() - '0') % 2 != 0;
 }
 
+// The exponent is carried more widely than it is stored, because dropping
+// positions raises it and the caller is the one that knows whether the raised
+// value still fits
 auto round_to_precision(std::int64_t &coefficient,
-                        std::uint64_t &coefficient_high, std::int32_t &exponent,
-                        std::uint8_t &flags) -> void {
+                        std::uint64_t &coefficient_high, std::int64_t &exponent,
+                        std::uint8_t &flags, const bool residue = false)
+    -> void {
   if ((flags & (FLAG_NAN | FLAG_SNAN | FLAG_INFINITE)) != 0) {
     return;
   }
@@ -895,7 +936,7 @@ auto round_to_precision(std::int64_t &coefficient,
     auto dropped =
         digit_string.substr(static_cast<std::size_t>(WORKING_PRECISION));
 
-    const auto round_up = rounds_up_half_even(kept, dropped);
+    const auto round_up = rounds_up_half_even(kept, dropped, residue);
 
     if ((flags & FLAG_HEAP) != 0) {
       delete load_big_pointer(coefficient);
@@ -931,7 +972,8 @@ auto round_to_precision(std::int64_t &coefficient,
   auto remainder = coefficient % divisor;
   auto half = divisor / 2;
 
-  if (remainder > half || (remainder == half && quotient % 2 != 0)) {
+  if (remainder > half ||
+      (remainder == half && (residue || quotient % 2 != 0))) {
     quotient++;
   }
 
