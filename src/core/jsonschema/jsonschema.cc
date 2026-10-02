@@ -256,7 +256,7 @@ auto sourcemeta::core::dialect(const sourcemeta::core::JSON &schema,
 
   if (allow_dialect_override && schema.is_object()) {
     const auto *override_value{
-        schema.try_at("x-sourcemeta-dialect-override-subschema"sv,
+        schema.try_at(sourcemeta::core::DIALECT_OVERRIDE_KEYWORD,
                       sourcemeta::core::JSONSCHEMA_HASH_DIALECT_OVERRIDE)};
     if ((override_value != nullptr) && override_value->is_string() &&
         !override_value->to_string().empty()) {

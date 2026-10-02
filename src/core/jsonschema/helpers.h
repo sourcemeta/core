@@ -33,8 +33,10 @@ constexpr auto JSONSCHEMA_HASH_RECURSIVE_ANCHOR{
 constexpr auto JSONSCHEMA_HASH_VOCABULARY{JSON::Object::hash("$vocabulary"sv)};
 constexpr auto JSONSCHEMA_HASH_DEFS{JSON::Object::hash("$defs"sv)};
 constexpr auto JSONSCHEMA_HASH_DEFINITIONS{JSON::Object::hash("definitions"sv)};
+constexpr auto DIALECT_OVERRIDE_KEYWORD{
+    "x-sourcemeta-dialect-override-subschema"sv};
 constexpr auto JSONSCHEMA_HASH_DIALECT_OVERRIDE{
-    JSON::Object::hash("x-sourcemeta-dialect-override-subschema"sv)};
+    JSON::Object::hash(DIALECT_OVERRIDE_KEYWORD)};
 
 /// A keyword whose name is only known once the base dialect is, paired with
 /// the hash of that name so that looking it up does not have to hash it again
@@ -113,6 +115,27 @@ inline auto dialect_defines_identifier(const SchemaWalker &walker,
     -> bool {
   return walker(id_keyword(base_dialect).name, vocabularies).type !=
          SchemaKeywordType::Unknown;
+}
+
+// Every name this implementation knows for a location reserved for schema
+// definitions, in the order a dialect that reserves more than one prefers them
+constexpr auto DEFINITIONS_KEYWORDS{
+    std::to_array<std::string_view>({"$defs", "definitions", "x-definitions"})};
+
+// Which of those names the dialect in force actually reserves. Asking its own
+// vocabularies rather than its base dialect is what keeps a dialect that drops
+// or renames the location from being handed the one its base dialect would use
+inline auto definitions_keyword(const SchemaWalker &walker,
+                                const SchemaVocabularies &vocabularies)
+    -> std::string_view {
+  for (const auto candidate : DEFINITIONS_KEYWORDS) {
+    if (walker(candidate, vocabularies).type ==
+        SchemaKeywordType::LocationMembers) {
+      return candidate;
+    }
+  }
+
+  return {};
 }
 
 inline auto definitions_keyword(const SchemaBaseDialect base_dialect)
