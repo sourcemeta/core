@@ -1363,12 +1363,19 @@ auto Decimal::scale_by(const Decimal &scale) const -> Decimal {
     throw NumericOverflowError{};
   }
 
-  auto scale_value = scale.to_int64();
-  auto new_exponent = static_cast<std::int64_t>(this->exponent_) + scale_value;
-  if (new_exponent > std::numeric_limits<std::int32_t>::max() ||
-      new_exponent < std::numeric_limits<std::int32_t>::min()) {
+  // The scale is judged against how far the current exponent leaves it to
+  // travel, rather than after being added to it, because a scale near either
+  // signed limit would overflow that sum. Both bounds stay narrow enough to
+  // work out, since the exponent and the range it must land in are the same
+  // width
+  const auto exponent{static_cast<std::int64_t>(this->exponent_)};
+  const auto scale_value{scale.to_int64()};
+  if (scale_value > std::numeric_limits<std::int32_t>::max() - exponent ||
+      scale_value < std::numeric_limits<std::int32_t>::min() - exponent) {
     throw NumericOverflowError{};
   }
+
+  const auto new_exponent{exponent + scale_value};
 
   Decimal result{*this};
   result.exponent_ = static_cast<std::int32_t>(new_exponent);
