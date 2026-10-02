@@ -430,6 +430,13 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
     }
 
     if (name == KEYWORD_LIST || name == KEYWORD_SET) {
+      // A free-floating list is removed before its items are expanded
+      // (JSON-LD 1.1 API Section 5.1.2 step 13.4.11.1)
+      if (name == KEYWORD_LIST && (!active_property.has_value() ||
+                                   active_property.value() == KEYWORD_GRAPH)) {
+        continue;
+      }
+
       auto elements{JSON::make_array()};
       const auto values{into_array(JSON{entry.second})};
       std::size_t value_index{0};
