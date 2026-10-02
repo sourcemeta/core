@@ -361,18 +361,26 @@ auto parse_decimal_string(const char *input, std::size_t length)
   }
 
   // Combine the explicit exponent with the fractional-digit adjustment in a
-  // wider type before clamping, so an extreme exponent suffix cannot underflow
-  // or overflow a narrow integer (undefined behaviour)
+  // wider type, so an extreme exponent suffix cannot underflow or overflow a
+  // narrow integer (undefined behaviour)
   std::int64_t exponent_64 = exponent_suffix_64;
   if (decimal_offset >= 0) {
     exponent_64 -= static_cast<std::int64_t>(digit_count_total) -
                    static_cast<std::int64_t>(decimal_offset);
   }
 
-  result.exponent = static_cast<std::int32_t>(std::min(
-      std::max(exponent_64, static_cast<std::int64_t>(
-                                std::numeric_limits<std::int32_t>::min())),
-      static_cast<std::int64_t>(std::numeric_limits<std::int32_t>::max())));
+  // RFC 8259 section 6 permits an implementation to limit the range it accepts.
+  // An exponent past what the storage holds is refused rather than brought
+  // within it, since that would stand for a value the input never named and no
+  // caller could tell apart from one it did
+  if (exponent_64 >
+          static_cast<std::int64_t>(std::numeric_limits<std::int32_t>::max()) ||
+      exponent_64 <
+          static_cast<std::int64_t>(std::numeric_limits<std::int32_t>::min())) {
+    throw sourcemeta::core::DecimalParseError{};
+  }
+
+  result.exponent = static_cast<std::int32_t>(exponent_64);
 
   std::uint32_t leading_zeros = 0;
   while (leading_zeros < digit_count_total - 1 &&
@@ -765,17 +773,23 @@ auto Decimal::to_string() const -> std::string {
   auto digit_string = coefficient_to_digit_string(
       this->coefficient_, this->coefficient_high_, this->flags_);
   auto number_of_digits = static_cast<std::int32_t>(digit_string.size());
-  auto integer_digit_count = number_of_digits + this->exponent_;
+  // An exponent at either end of its range is a digit count away from leaving
+  // it, so the positions are counted more widely than they are stored
+  const auto integer_digit_count{static_cast<std::int64_t>(number_of_digits) +
+                                 this->exponent_};
 
   std::int32_t decimal_place;
   if (this->exponent_ <= 0 && integer_digit_count > -6) {
-    decimal_place = integer_digit_count;
+    decimal_place = static_cast<std::int32_t>(integer_digit_count);
   } else if (this->coefficient_ == 0 && ((this->flags_ & FLAG_BIG) == 0)) {
-    decimal_place = -1 + ((((this->exponent_ + 2) % 3) + 3) % 3);
+    decimal_place =
+        -1 +
+        static_cast<std::int32_t>(
+            (((static_cast<std::int64_t>(this->exponent_) + 2) % 3) + 3) % 3);
   } else {
-    auto adjusted = integer_digit_count - 1;
-    auto remainder = ((adjusted % 3) + 3) % 3;
-    decimal_place = 1 + remainder;
+    const auto adjusted{integer_digit_count - 1};
+    const auto remainder{((adjusted % 3) + 3) % 3};
+    decimal_place = 1 + static_cast<std::int32_t>(remainder);
   }
 
   if ((this->flags_ & FLAG_SIGN) != 0) {
@@ -804,7 +818,7 @@ auto Decimal::to_string() const -> std::string {
 
   if (integer_digit_count != decimal_place) {
     result += 'e';
-    auto engineering_exponent = integer_digit_count - decimal_place;
+    const auto engineering_exponent{integer_digit_count - decimal_place};
     if (engineering_exponent >= 0) {
       result += '+';
     }
@@ -1091,16 +1105,19 @@ auto Decimal::to_integral() const -> Decimal {
 }
 
 auto Decimal::divisible_by(const Decimal &divisor) const -> bool {
+  // A value that is not a number, and a value without bound, stand in no
+  // multiple relation to anything, which the zero cases below would otherwise
+  // report for a zero operand
+  if (!this->is_finite() || !divisor.is_finite()) {
+    return false;
+  }
+
   if (divisor.is_zero()) {
     return false;
   }
 
   if (this->is_zero()) {
     return true;
-  }
-
-  if (!this->is_finite() || !divisor.is_finite()) {
-    return false;
   }
 
   if (((divisor.flags_ & FLAG_BIG) == 0) && ((this->flags_ & FLAG_HEAP) == 0)) {
@@ -2089,27 +2106,44 @@ auto Decimal::operator/=(const Decimal &other) -> Decimal & {
   auto divisor_big = coefficient_as_big(other.coefficient_,
                                         other.coefficient_high_, other.flags_);
 
-  auto scaled = dividend_big.multiply_pow10(WORKING_PRECISION);
+  // The specification lines the two coefficients up before the long division,
+  // "while the coefficient of the dividend is less than the coefficient of the
+  // divisor it is multiplied by 10", so a divisor spelled out in more digits
+  // than the dividend needs that many more positions before the quotient
+  // reaches the working precision at all. One position beyond it carries the
+  // rounding decision
+  auto guard_digits = static_cast<std::uint32_t>(WORKING_PRECISION) + 1;
+  const auto dividend_digits = dividend_big.digit_count();
+  const auto divisor_digits = divisor_big.digit_count();
+  if (divisor_digits > dividend_digits) {
+    guard_digits +=
+        static_cast<std::uint32_t>(divisor_digits - dividend_digits);
+  }
+
+  auto scaled = dividend_big.multiply_pow10(guard_digits);
   auto [quotient, remainder] = scaled.divide_modulo(divisor_big);
 
   // Two exponents at opposite ends of their range are further apart than that
   // range can hold, so the result is worked out more widely and only narrowed
   // once it is final
   auto result_exponent = static_cast<std::int64_t>(this->exponent_) -
-                         other.exponent_ - WORKING_PRECISION;
+                         other.exponent_ - guard_digits;
 
   // The General Decimal Arithmetic Specification states that "after the
   // division, if the result is exact then the coefficient and exponent giving
   // the correct value and with the exponent closest to the ideal exponent is
   // returned", the ideal being "the exponent of the dividend less the exponent
-  // of the divisor". The division above works a fixed number of digits below
-  // that ideal, so an exact quotient hands back as many of its trailing zeros
-  // as it takes to climb there, and an exact zero reaches it outright
-  if (remainder.is_zero()) {
+  // of the divisor". The division above works below that ideal by as many
+  // positions as it took to reach the working precision, so an exact quotient
+  // hands back as many of its trailing zeros as it takes to climb there, and an
+  // exact zero reaches it outright
+  const bool residue{!remainder.is_zero()};
+  if (!residue) {
     if (quotient.is_zero()) {
-      result_exponent += WORKING_PRECISION;
+      result_exponent += guard_digits;
     } else {
-      result_exponent += quotient.strip_trailing_zeros(WORKING_PRECISION);
+      result_exponent += quotient.strip_trailing_zeros(
+          static_cast<std::int32_t>(guard_digits));
     }
   }
 
@@ -2126,8 +2160,11 @@ auto Decimal::operator/=(const Decimal &other) -> Decimal & {
                    std::move(quotient), result_negative);
   this->exponent_ = static_cast<std::int32_t>(result_exponent);
 
+  // The specification rounds the quotient "taking into account the remainder
+  // from the division", so what the long division left behind decides a tie
+  // among the positions the working precision drops
   round_to_precision(this->coefficient_, this->coefficient_high_,
-                     this->exponent_, this->flags_);
+                     this->exponent_, this->flags_, residue);
   return *this;
 }
 
