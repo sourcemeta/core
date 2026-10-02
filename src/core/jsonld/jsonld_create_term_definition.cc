@@ -522,7 +522,10 @@ auto create_term_definition(ExpansionState &state,
         state.protected_override = saved_override;
         state.context_protected = saved_context_protected;
         const JSON::StringView code{error.what()};
+        // Every way the remote load can fail leaves the scoped context
+        // dropped rather than the term undefined
         if (code != "Loading remote context failed" &&
+            code != "Loading document failed" &&
             code != "Recursive context inclusion" &&
             code != "Context overflow" && code != "Invalid remote context") {
           throw JSONLDError("Invalid scoped context", term_pointer,

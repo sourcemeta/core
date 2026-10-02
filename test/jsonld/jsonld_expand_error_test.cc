@@ -867,3 +867,55 @@ TEST(reverse_map_value_object_names_the_input_key) {
   EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
                              "Invalid reverse property value", "/@reverse/p");
 }
+
+TEST(malformed_context_reference_fails_to_load) {
+  const auto input =
+      sourcemeta::core::parse_json(R"({ "@context": "relative%ZZ" })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Loading document failed", "/@context");
+}
+
+TEST(malformed_import_reference_fails_to_load) {
+  const auto input = sourcemeta::core::parse_json(
+      R"({ "@context": { "@import": "relative%ZZ" } })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Loading remote context failed",
+                             "/@context/@import");
+}
+
+TEST(scoped_relative_context_fails_when_used) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "t": { "@id": "http://e/t", "@context": "relative-ctx.jsonld" }
+    },
+    "t": { "http://e/x": 1 }
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Loading document failed", "/t");
+}
+
+TEST(scoped_unresolvable_context_fails_when_used) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "t": { "@id": "http://e/t", "@context": "https://example.com/unknown" }
+    },
+    "t": { "http://e/x": 1 }
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(
+      sourcemeta::core::jsonld_expand(input, "", remote_resolver()),
+      "Loading remote context failed", "/t");
+}
+
+TEST(reverse_map_with_ambiguous_aliases_names_the_map) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "a": "http://e/p", "b": "http://e/p" },
+    "@reverse": { "a": { "@id": "http://e/s" }, "b": { "@value": "v" } }
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Invalid reverse property value", "/@reverse");
+}

@@ -80,14 +80,22 @@ auto expand_type(ExpansionState &state, const ActiveContext &type_context,
 auto offending_entry(ExpansionState &state, ActiveContext &active_context,
                      const JSON &element, const JSON::StringView name)
     -> const JSON::String * {
+  const JSON::String *result{nullptr};
   for (const auto &entry : sorted_entries(element)) {
     const auto expanded{expand_iri(state, active_context, *entry.first, false,
                                    true, nullptr, nullptr, EMPTY_WEAK_POINTER)};
     if (expanded.has_value() && expanded.value() == name) {
-      return entry.first;
+      // Several keys may reach the same name, and what they carry is merged
+      // before it is inspected, so none of them can be held to account for it
+      if (result != nullptr) {
+        return nullptr;
+      }
+
+      result = entry.first;
     }
   }
-  return nullptr;
+
+  return result;
 }
 
 // Locate a violation at the entry that caused it, falling back to the map
