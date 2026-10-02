@@ -287,12 +287,79 @@ TEST(invalid_remote_context) {
       "Invalid remote context", "/@context");
 }
 
-TEST(recursive_context_inclusion) {
+TEST(relative_context_without_a_base_fails_to_load) {
+  const auto input = sourcemeta::core::parse_json(
+      R"({ "@context": "relative-context.jsonld" })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(
+      sourcemeta::core::jsonld_expand(input, "", remote_resolver()),
+      "Loading document failed", "/@context");
+}
+
+TEST(relative_import_without_a_base_fails_to_load) {
+  const auto input = sourcemeta::core::parse_json(
+      R"({ "@context": { "@import": "relative-context.jsonld" } })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(
+      sourcemeta::core::jsonld_expand(input, "", remote_resolver()),
+      "Loading remote context failed", "/@context/@import");
+}
+
+TEST(relative_context_resolves_against_a_base) {
+  const auto input =
+      sourcemeta::core::parse_json(R"({ "@context": "invalid-term" })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(
+      sourcemeta::core::jsonld_expand(input, "https://example.com/",
+                                      remote_resolver()),
+      "Invalid term definition", "/@context");
+}
+
+TEST(shorthand_term_definition_invalid_iri_mapping) {
+  const auto input = sourcemeta::core::parse_json(
+      R"({ "@context": { "term": "notaniri" }, "term": "v" })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Invalid IRI mapping", "/@context/term");
+}
+
+TEST(shorthand_term_definition_aliasing_context) {
+  const auto input =
+      sourcemeta::core::parse_json(R"({ "@context": { "term": "@context" } })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Invalid keyword alias", "/@context/term");
+}
+
+TEST(shorthand_term_definition_with_vocabulary_is_valid) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "@vocab": "http://example.com/", "term": "notaniri" },
+    "term": "v"
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    { "http://example.com/notaniri": [ { "@value": "v" } ] }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(context_overflow_on_repeated_remote_context) {
   const auto input = sourcemeta::core::parse_json(
       R"({ "@context": "https://example.com/recursive" })");
 
   EXPECT_JSONLD_EXPAND_ERROR(
       sourcemeta::core::jsonld_expand(input, "", remote_resolver()),
+      "Context overflow", "/@context");
+}
+
+TEST(recursive_context_inclusion_in_1_0) {
+  const auto input = sourcemeta::core::parse_json(
+      R"({ "@context": "https://example.com/recursive" })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(
+      sourcemeta::core::jsonld_expand(input, "", remote_resolver(),
+                                      sourcemeta::core::JSONLDVersion::V1_0),
       "Recursive context inclusion", "/@context");
 }
 
@@ -450,7 +517,8 @@ TEST(invalid_reverse_property_value) {
   })");
 
   EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
-                             "Invalid reverse property value", "/@reverse");
+                             "Invalid reverse property value",
+                             "/@reverse/http:~1~1example.com~1p");
 }
 
 TEST(invalid_included_value) {
@@ -758,4 +826,44 @@ TEST(nested_reverse_inside_reverse_map) {
   EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
                              "Invalid reverse property map",
                              "/@reverse/@reverse");
+}
+
+TEST(nest_array_element_error_names_the_element) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "@version": 1.1, "n": "@nest" },
+    "n": [ { "http://e/a": "x" }, { "@id": 1 } ]
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Invalid @id value", "/n/1/@id");
+}
+
+TEST(nest_object_error_names_the_entry) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "@version": 1.1, "n": "@nest" },
+    "n": { "@id": 1 }
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Invalid @id value", "/n/@id");
+}
+
+TEST(invalid_nest_value_in_array_names_the_element) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "@version": 1.1, "n": "@nest" },
+    "n": [ { "http://e/a": "x" }, "scalar" ]
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Invalid @nest value", "/n/1");
+}
+
+TEST(reverse_map_value_object_names_the_input_key) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "p": "http://e/p" },
+    "@reverse": { "p": { "@value": "v" } }
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Invalid reverse property value", "/@reverse/p");
 }

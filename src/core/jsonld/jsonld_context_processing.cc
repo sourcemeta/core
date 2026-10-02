@@ -89,9 +89,24 @@ auto process_context(ExpansionState &state, ActiveContext &active_context,
                         .resolve_from(URI::from_iri(resolution_base.value()))
                         .recompose();
       }
+      // A reference no base could make absolute names no document to load, and
+      // the resolver is only ever handed an absolute IRI (JSON-LD 1.1 API
+      // Section 5.1 step 5.2.1)
+      if (!URI::from_iri(reference).is_absolute()) {
+        throw JSONLDError("Loading document failed", location);
+      }
+
       for (const auto &loaded : state.remote_context_chain) {
         if (loaded == reference) {
-          throw JSONLDError("Recursive context inclusion", location);
+          // A scoped context can be loaded again on purpose, so JSON-LD 1.1
+          // withdrew the recursion error and treats meeting a context already
+          // in the chain as reaching the limit on how many may be loaded
+          // (JSON-LD 1.1 API Section 5.1 step 5.2.3)
+          if (state.processing_1_0) {
+            throw JSONLDError("Recursive context inclusion", location);
+          }
+
+          throw JSONLDError("Context overflow", location);
         }
       }
       if (state.resolver == nullptr || !*state.resolver) {
@@ -179,6 +194,14 @@ auto process_context(ExpansionState &state, ActiveContext &active_context,
                         .resolve_from(URI::from_iri(resolution_base.value()))
                         .recompose();
       }
+      // The resolver is only ever handed an absolute IRI, and a reference no
+      // base could make absolute can never be dereferenced (JSON-LD 1.1 API
+      // Section 5.1 step 5.6.5)
+      if (!URI::from_iri(reference).is_absolute()) {
+        throw JSONLDError("Loading remote context failed", location,
+                          {KEYWORD_IMPORT});
+      }
+
       if (state.resolver == nullptr || !*state.resolver) {
         throw JSONLDError("Loading remote context failed", location,
                           {KEYWORD_IMPORT});

@@ -122,6 +122,125 @@ TEST(undefined_term_without_context_is_dropped) {
   EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
 }
 
+TEST(type_map_null_value_contributes_nothing) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "@version": 1.1,
+      "p": { "@id": "http://example.com/p", "@container": "@type" }
+    },
+    "p": { "http://example.com/T": null }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    { "http://example.com/p": [] }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(graph_map_null_value_contributes_nothing) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "@version": 1.1,
+      "p": {
+        "@id": "http://example.com/p",
+        "@container": [ "@graph", "@index" ]
+      }
+    },
+    "p": { "idx": null }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    { "http://example.com/p": [] }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(reordered_container_does_not_redefine_a_protected_term) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": [
+      { "@version": 1.1, "@protected": true,
+        "t": { "@id": "http://example.com/t",
+               "@container": [ "@set", "@index" ] } },
+      { "@version": 1.1,
+        "t": { "@id": "http://example.com/t",
+               "@container": [ "@index", "@set" ] } }
+    ],
+    "t": { "k": "v" }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/t": [ { "@value": "v", "@index": "k" } ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(index_map_null_value_contributes_nothing) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "p": { "@id": "http://example.com/p", "@container": "@index" }
+    },
+    "p": { "idx": null }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    { "http://example.com/p": [] }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(empty_index_map_contributes_nothing) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "p": { "@id": "http://example.com/p", "@container": "@index" }
+    },
+    "p": { }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    { "http://example.com/p": [] }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(index_map_null_value_among_others_is_dropped) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "p": { "@id": "http://example.com/p", "@container": "@index" }
+    },
+    "p": { "a": null, "b": "value" }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/p": [ { "@value": "value", "@index": "b" } ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(id_map_null_value_contributes_nothing) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "p": { "@id": "http://example.com/p", "@container": "@id" }
+    },
+    "p": { "http://example.com/a": null }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    { "http://example.com/p": [] }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
 TEST(free_floating_list_is_dropped) {
   const auto input = sourcemeta::core::parse_json(R"({
     "@list": [ "foo" ], "@id": "http://example.com/bar"
