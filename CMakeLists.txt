@@ -80,6 +80,8 @@ elseif(SOURCEMETA_CORE_UNDEFINED_SANITIZER)
   sourcemeta_sanitizer(TYPE undefined)
 endif()
 
+include(GNUInstallDirs)
+
 # Every executable in this build links this one, so it comes first
 if(SOURCEMETA_CORE_LANG_ALLOCATOR)
   if((SOURCEMETA_OS_LINUX OR SOURCEMETA_OS_MACOS)
@@ -282,7 +284,6 @@ endif()
 
 # TODO: Turn this into a re-usable utility CMake function
 if(SOURCEMETA_CORE_INSTALL)
-  include(GNUInstallDirs)
   include(CMakePackageConfigHelpers)
   configure_package_config_file(
     config.cmake.in
