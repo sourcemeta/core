@@ -701,10 +701,20 @@ public:
         return 0;
       }
 
-      const auto descaled{
-          this->divide_modulo(BigCoefficient::from_uint64(1).multiply_pow10(
-              static_cast<std::uint32_t>(scale_digits)))};
-      return descaled.first.to_uint128(0);
+      // Whole words come off by being skipped rather than divided away, so no
+      // divisor is built and a scale as wide as the coefficient stays within
+      // the word limit
+      const auto whole_words{static_cast<std::uint32_t>(
+          scale_digits / static_cast<std::int64_t>(BASE_DIGITS))};
+      const auto residual{static_cast<std::uint32_t>(
+          scale_digits % static_cast<std::int64_t>(BASE_DIGITS))};
+
+      sourcemeta::core::uint128_t value = 0;
+      for (auto index = this->length; index > whole_words; index--) {
+        value = (value * BASE) + this->words[index - 1];
+      }
+
+      return residual == 0 ? value : value / POWERS_OF_10[residual];
     }
 
     sourcemeta::core::uint128_t value = 0;
@@ -864,6 +874,15 @@ auto modular_pow10(std::uint32_t exponent, std::uint64_t modulus)
 // Round-half-even (banker's rounding) to WORKING_PRECISION significant digits
 constexpr std::int32_t WORKING_PRECISION = 16;
 
+// How many positions the working precision drops from a coefficient of the
+// given width, which is what rounding to it adds to the exponent
+auto precision_excess(const std::uint64_t digits) -> std::int32_t {
+  return digits > static_cast<std::uint64_t>(WORKING_PRECISION)
+             ? static_cast<std::int32_t>(
+                   digits - static_cast<std::uint64_t>(WORKING_PRECISION))
+             : 0;
+}
+
 // An operation that cannot represent its result exactly reports that it left
 // something behind, which only decides a tie that the dropped digits alone
 // would settle by parity
@@ -891,8 +910,11 @@ auto rounds_up_half_even(const std::string_view kept,
   return !kept.empty() && (kept.back() - '0') % 2 != 0;
 }
 
+// The exponent is carried more widely than it is stored, because dropping
+// positions raises it and the caller is the one that knows whether the raised
+// value still fits
 auto round_to_precision(std::int64_t &coefficient,
-                        std::uint64_t &coefficient_high, std::int32_t &exponent,
+                        std::uint64_t &coefficient_high, std::int64_t &exponent,
                         std::uint8_t &flags, const bool residue = false)
     -> void {
   if ((flags & (FLAG_NAN | FLAG_SNAN | FLAG_INFINITE)) != 0) {

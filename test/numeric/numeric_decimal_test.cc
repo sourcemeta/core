@@ -975,6 +975,67 @@ TEST(divide_full_digit_divisor_matches_exponent_form) {
   EXPECT_EQ(full, exponential);
 }
 
+TEST(divide_near_minimum_exponent_keeps_representable_quotient) {
+  const sourcemeta::core::Decimal dividend{"1e-2147483632"};
+  const sourcemeta::core::Decimal divisor{3};
+  const auto result{dividend / divisor};
+  EXPECT_EQ(result, sourcemeta::core::Decimal{"3333333333333333e-2147483648"});
+}
+
+TEST(multiply_rounding_past_maximum_exponent_overflows_cleanly) {
+  const sourcemeta::core::Decimal left{"99999999999999999e2147483630"};
+  const sourcemeta::core::Decimal right{"1e17"};
+  try {
+    const auto result{left * right};
+    FAIL();
+  } catch (const sourcemeta::core::NumericOverflowError &error) {
+    EXPECT_STREQ(error.what(), "Numeric overflow");
+  }
+}
+
+TEST(divide_rounding_past_maximum_exponent_overflows_cleanly) {
+  const sourcemeta::core::Decimal dividend{"10e2147483646"};
+  const sourcemeta::core::Decimal divisor{"3e-17"};
+  try {
+    const auto result{dividend / divisor};
+    FAIL();
+  } catch (const sourcemeta::core::NumericOverflowError &error) {
+    EXPECT_STREQ(error.what(), "Numeric overflow");
+  }
+}
+
+TEST(divide_rounding_within_maximum_exponent_succeeds) {
+  const sourcemeta::core::Decimal dividend{"1e2147483630"};
+  const sourcemeta::core::Decimal divisor{3};
+  const auto result{dividend / divisor};
+  EXPECT_EQ(result, sourcemeta::core::Decimal{"3333333333333333e2147483614"});
+}
+
+TEST(minimum_exponent_round_trips_through_string) {
+  const sourcemeta::core::Decimal value{"1e-2147483648"};
+  const sourcemeta::core::Decimal roundtrip{value.to_string()};
+  EXPECT_EQ(roundtrip, value);
+}
+
+TEST(divide_rounds_half_even_on_tie_with_even_retained_digit) {
+  const sourcemeta::core::Decimal dividend{2469135780246913LL};
+  const sourcemeta::core::Decimal divisor{2};
+  EXPECT_EQ((dividend / divisor).to_string(), "1234567890123456");
+}
+
+TEST(divide_rounds_half_even_on_tie_with_odd_retained_digit) {
+  const sourcemeta::core::Decimal dividend{2469135780246915LL};
+  const sourcemeta::core::Decimal divisor{2};
+  EXPECT_EQ((dividend / divisor).to_string(), "1234567890123458");
+}
+
+TEST(divide_zero_by_many_digit_divisor) {
+  const sourcemeta::core::Decimal dividend{0};
+  const sourcemeta::core::Decimal divisor{std::string(2000, '9')};
+  const auto result{dividend / divisor};
+  EXPECT_TRUE(result.is_zero());
+}
+
 TEST(divide_rounds_half_even_on_inexact_quotient) {
   const sourcemeta::core::Decimal dividend{2};
   const sourcemeta::core::Decimal divisor{3};

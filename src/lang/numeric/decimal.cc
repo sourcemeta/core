@@ -369,10 +369,21 @@ auto parse_decimal_string(const char *input, std::size_t length)
                    static_cast<std::int64_t>(decimal_offset);
   }
 
+  // A trailing zero in the coefficient is worth one step of the exponent, so a
+  // spelling that sits below the range the storage holds can still name a value
+  // inside it. Those steps are taken before the range is judged, which is what
+  // lets every spelling this module emits be read back
+  while (exponent_64 < static_cast<std::int64_t>(
+                           std::numeric_limits<std::int32_t>::min()) &&
+         digit_count_total > 1 && digit_buffer[digit_count_total - 1] == '0') {
+    digit_count_total--;
+    exponent_64++;
+  }
+
   // RFC 8259 section 6 permits an implementation to limit the range it accepts.
-  // An exponent past what the storage holds is refused rather than brought
-  // within it, since that would stand for a value the input never named and no
-  // caller could tell apart from one it did
+  // An exponent still past what the storage holds is refused rather than
+  // brought within it, since that would stand for a value the input never named
+  // and no caller could tell apart from one it did
   if (exponent_64 >
           static_cast<std::int64_t>(std::numeric_limits<std::int32_t>::max()) ||
       exponent_64 <
@@ -450,6 +461,17 @@ auto is_representable_as_floating_point(
          << converted_value;
   const sourcemeta::core::Decimal roundtrip{stream.str()};
   return decimal == roundtrip;
+}
+
+// An exponent that rounding pushed past what the storage holds leaves the
+// result unrepresentable
+auto narrow_exponent(const std::int64_t exponent) -> std::int32_t {
+  if (exponent > std::numeric_limits<std::int32_t>::max() ||
+      exponent < std::numeric_limits<std::int32_t>::min()) {
+    throw sourcemeta::core::NumericOverflowError{};
+  }
+
+  return static_cast<std::int32_t>(exponent);
 }
 
 void check_exponent_overflow(std::int32_t left_exponent,
@@ -2032,9 +2054,10 @@ auto Decimal::operator*=(const Decimal &other) -> Decimal & {
     free_big_coefficient(this->coefficient_, this->flags_);
     store_big_result(this->coefficient_, this->coefficient_high_, this->flags_,
                      std::move(product), result_negative);
-    this->exponent_ = result_exponent;
+    auto rounded_exponent{result_exponent_64};
     round_to_precision(this->coefficient_, this->coefficient_high_,
-                       this->exponent_, this->flags_);
+                       rounded_exponent, this->flags_);
+    this->exponent_ = narrow_exponent(rounded_exponent);
     return *this;
   }
 
@@ -2059,8 +2082,10 @@ auto Decimal::operator*=(const Decimal &other) -> Decimal & {
     this->exponent_ = result_exponent;
   }
 
+  auto rounded_exponent{static_cast<std::int64_t>(this->exponent_)};
   round_to_precision(this->coefficient_, this->coefficient_high_,
-                     this->exponent_, this->flags_);
+                     rounded_exponent, this->flags_);
+  this->exponent_ = narrow_exponent(rounded_exponent);
   return *this;
 }
 
@@ -2120,7 +2145,11 @@ auto Decimal::operator/=(const Decimal &other) -> Decimal & {
         static_cast<std::uint32_t>(divisor_digits - dividend_digits);
   }
 
-  auto scaled = dividend_big.multiply_pow10(guard_digits);
+  // A zero dividend yields a zero quotient whatever the divisor, so it is not
+  // widened to reach a precision it can never carry
+  auto scaled = dividend_big.is_zero()
+                    ? dividend_big.clone()
+                    : dividend_big.multiply_pow10(guard_digits);
   auto [quotient, remainder] = scaled.divide_modulo(divisor_big);
 
   // Two exponents at opposite ends of their range are further apart than that
@@ -2147,8 +2176,14 @@ auto Decimal::operator/=(const Decimal &other) -> Decimal & {
     }
   }
 
-  if (result_exponent > std::numeric_limits<std::int32_t>::max() ||
-      result_exponent < std::numeric_limits<std::int32_t>::min()) {
+  // Rounding to the working precision raises the exponent by the positions it
+  // drops, so what must fit is where the exponent ends up, not the deeper place
+  // the guard positions put it. The reach is settled before anything is stored,
+  // leaving the operand untouched when the result cannot be held
+  const auto rounded_exponent{result_exponent +
+                              precision_excess(quotient.digit_count())};
+  if (rounded_exponent > std::numeric_limits<std::int32_t>::max() ||
+      rounded_exponent < std::numeric_limits<std::int32_t>::min()) {
     throw NumericOverflowError{};
   }
 
@@ -2158,13 +2193,13 @@ auto Decimal::operator/=(const Decimal &other) -> Decimal & {
   // holds for a zero quotient too
   store_big_result(this->coefficient_, this->coefficient_high_, this->flags_,
                    std::move(quotient), result_negative);
-  this->exponent_ = static_cast<std::int32_t>(result_exponent);
 
   // The specification rounds the quotient "taking into account the remainder
   // from the division", so what the long division left behind decides a tie
   // among the positions the working precision drops
   round_to_precision(this->coefficient_, this->coefficient_high_,
-                     this->exponent_, this->flags_, residue);
+                     result_exponent, this->flags_, residue);
+  this->exponent_ = static_cast<std::int32_t>(result_exponent);
   return *this;
 }
 
