@@ -12,6 +12,31 @@ namespace sourcemeta::core {
 
 namespace {
 
+// The absolute IRI a reference names, which is the only form the resolver
+// accepts. A reference that is not a URI at all, and one that no base could
+// make absolute, both name nothing to load (JSON-LD 1.1 API Section 5.1 step
+// 5.2.1)
+auto absolute_reference(const std::optional<JSON::String> &base,
+                        const JSON::String &reference)
+    -> std::optional<JSON::String> {
+  try {
+    auto resolved{reference};
+    if (base.has_value()) {
+      resolved = URI::from_iri(resolved)
+                     .resolve_from(URI::from_iri(base.value()))
+                     .recompose();
+    }
+
+    if (!URI::from_iri(resolved).is_absolute()) {
+      return std::nullopt;
+    }
+
+    return resolved;
+  } catch (const URIParseError &) {
+    return std::nullopt;
+  }
+}
+
 // A context merged with an imported one (JSON-LD 1.1 API Section 5.1 step
 // 5.6.8) holds entries from two documents, and only the ones the input spells
 // out have a position in it. An error on an entry that came from the imported
@@ -82,16 +107,25 @@ auto process_context(ExpansionState &state, ActiveContext &active_context,
     }
 
     if (context.is_string()) {
-      auto reference{context.to_string()};
-      const auto resolution_base{state.context_resolution_base()};
-      if (resolution_base.has_value()) {
-        reference = URI::from_iri(reference)
-                        .resolve_from(URI::from_iri(resolution_base.value()))
-                        .recompose();
+      const auto resolved{absolute_reference(state.context_resolution_base(),
+                                             context.to_string())};
+      if (!resolved.has_value()) {
+        throw JSONLDError("Loading document failed", location);
       }
+
+      const auto &reference{resolved.value()};
+
       for (const auto &loaded : state.remote_context_chain) {
         if (loaded == reference) {
-          throw JSONLDError("Recursive context inclusion", location);
+          // A scoped context can be loaded again on purpose, so JSON-LD 1.1
+          // withdrew the recursion error and treats meeting a context already
+          // in the chain as reaching the limit on how many may be loaded
+          // (JSON-LD 1.1 API Section 5.1 step 5.2.3)
+          if (state.processing_1_0) {
+            throw JSONLDError("Recursive context inclusion", location);
+          }
+
+          throw JSONLDError("Context overflow", location);
         }
       }
       if (state.resolver == nullptr || !*state.resolver) {
@@ -172,13 +206,16 @@ auto process_context(ExpansionState &state, ActiveContext &active_context,
       if (!import.is_string()) {
         throw JSONLDError("Invalid @import value", location, {KEYWORD_IMPORT});
       }
-      auto reference{import.to_string()};
-      const auto resolution_base{state.context_resolution_base()};
-      if (resolution_base.has_value()) {
-        reference = URI::from_iri(reference)
-                        .resolve_from(URI::from_iri(resolution_base.value()))
-                        .recompose();
+      // What cannot be dereferenced is a loading failure (JSON-LD 1.1 API
+      // Section 5.1 step 5.6.5)
+      const auto resolved{absolute_reference(state.context_resolution_base(),
+                                             import.to_string())};
+      if (!resolved.has_value()) {
+        throw JSONLDError("Loading remote context failed", location,
+                          {KEYWORD_IMPORT});
       }
+
+      const auto &reference{resolved.value()};
       if (state.resolver == nullptr || !*state.resolver) {
         throw JSONLDError("Loading remote context failed", location,
                           {KEYWORD_IMPORT});
