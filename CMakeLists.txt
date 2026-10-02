@@ -20,7 +20,6 @@ option(SOURCEMETA_CORE_UNICODE "Build the Sourcemeta Core Unicode library" ON)
 option(SOURCEMETA_CORE_PUNYCODE "Build the Sourcemeta Core Punycode library" ON)
 option(SOURCEMETA_CORE_TIME "Build the Sourcemeta Core time library" ON)
 option(SOURCEMETA_CORE_CRYPTO "Build the Sourcemeta Core Crypto library" ON)
-option(SOURCEMETA_CORE_CRYPTO_USE_SYSTEM_OPENSSL "Use system OpenSSL for the Sourcemeta Core Crypto library" OFF)
 option(SOURCEMETA_CORE_CRYPTO_USE_REFERENCE "Use reference backend for the Sourcemeta Core Crypto library" OFF)
 option(SOURCEMETA_CORE_REGEX "Build the Sourcemeta Core Regex library" ON)
 option(SOURCEMETA_CORE_IP "Build the Sourcemeta Core IP library" ON)
@@ -79,6 +78,13 @@ if(SOURCEMETA_CORE_ADDRESS_SANITIZER)
   sourcemeta_sanitizer(TYPE address)
 elseif(SOURCEMETA_CORE_UNDEFINED_SANITIZER)
   sourcemeta_sanitizer(TYPE undefined)
+endif()
+
+# Determine whether OpenSSL is used by the crypto backend for package export
+if(SOURCEMETA_CORE_CRYPTO AND NOT SOURCEMETA_CORE_CRYPTO_USE_REFERENCE AND NOT APPLE AND NOT WIN32)
+  set(SOURCEMETA_CORE_CRYPTO_USE_SYSTEM_OPENSSL ON)
+else()
+  set(SOURCEMETA_CORE_CRYPTO_USE_SYSTEM_OPENSSL OFF)
 endif()
 
 # TODO: Turn this into a re-usable utility CMake function

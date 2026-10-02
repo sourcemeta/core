@@ -35,6 +35,7 @@ jobs:
             cxx: clang++
             type: static
             shell: sh
+            options: -DSOURCEMETA_CORE_CRYPTO_USE_REFERENCE:BOOL=ON
             benchmark: linux/llvm
           - os: ubuntu-latest
             cc: gcc
