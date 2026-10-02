@@ -17,7 +17,7 @@ sourcemeta_library(NAMESPACE sourcemeta PROJECT core NAME crypto
 target_link_libraries(sourcemeta_core_crypto
   PRIVATE sourcemeta::core::text sourcemeta::core::numeric)
 
-if(SOURCEMETA_CORE_CRYPTO_TRY_USE_SYSTEM AND SOURCEMETA_CORE_CRYPTO_USE_SYSTEM_OPENSSL)
+if(NOT SOURCEMETA_CORE_CRYPTO_USE_REFERENCE AND SOURCEMETA_CORE_CRYPTO_USE_SYSTEM_OPENSSL)
   target_sources(sourcemeta_core_crypto PRIVATE
     crypto_sha1_openssl.cc crypto_sha256_openssl.cc
     crypto_hmac_sha256_openssl.cc crypto_hmac_sha384_openssl.cc
@@ -30,7 +30,7 @@ if(SOURCEMETA_CORE_CRYPTO_TRY_USE_SYSTEM AND SOURCEMETA_CORE_CRYPTO_USE_SYSTEM_O
     crypto_hkdf_openssl.cc
     crypto_openssl.h crypto_pkcs8.h crypto_system.h)
   target_link_libraries(sourcemeta_core_crypto PRIVATE OpenSSL::Crypto)
-elseif(SOURCEMETA_CORE_CRYPTO_TRY_USE_SYSTEM AND APPLE)
+elseif(NOT SOURCEMETA_CORE_CRYPTO_USE_REFERENCE AND APPLE)
   enable_language(OBJCXX)
 
   # Ed25519 is verified through CryptoKit (Swift), reached from Objective-C++.
@@ -157,7 +157,7 @@ elseif(SOURCEMETA_CORE_CRYPTO_TRY_USE_SYSTEM AND APPLE)
     "-Wl,-L${CRYPTOKIT_SDK}/usr/lib/swift"
     "-Wl,-L${CRYPTOKIT_RUNTIME_LIB}"
     "-Wl,-rpath,/usr/lib/swift")
-elseif(SOURCEMETA_CORE_CRYPTO_TRY_USE_SYSTEM AND WIN32)
+elseif(NOT SOURCEMETA_CORE_CRYPTO_USE_REFERENCE AND WIN32)
   target_sources(sourcemeta_core_crypto PRIVATE
     crypto_sha1_windows.cc crypto_sha256_windows.cc
     crypto_hmac_sha256_windows.cc crypto_hmac_sha384_windows.cc
@@ -181,8 +181,8 @@ elseif(SOURCEMETA_CORE_CRYPTO_TRY_USE_SYSTEM AND WIN32)
 
   target_link_libraries(sourcemeta_core_crypto PRIVATE bcrypt)
 else()
-  message(WARNING "Building the reference cryptography backend, instead of the "
-    "production one")
+  message(WARNING "Building the reference cryptography backend instead of a "
+    "system provided production one")
   target_sources(sourcemeta_core_crypto PRIVATE
     crypto_sha1_other.cc crypto_sha256_other.cc crypto_hmac_sha256_other.cc
     crypto_hmac_sha384_other.cc crypto_hmac_sha512_other.cc
