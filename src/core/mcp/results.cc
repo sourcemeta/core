@@ -176,10 +176,10 @@ void mcp_decorate_result_in_place(
         meta != nullptr && meta->is_object()) {
       meta->assign("io.modelcontextprotocol/serverInfo", std::move(info));
     } else {
-      auto meta_obj{sourcemeta::core::JSON::make_object()};
-      meta_obj.assign_assume_new("io.modelcontextprotocol/serverInfo",
-                                 std::move(info), MCP_HASH_META_SERVER_INFO);
-      result.assign("_meta", std::move(meta_obj));
+      auto meta_object{sourcemeta::core::JSON::make_object()};
+      meta_object.assign_assume_new("io.modelcontextprotocol/serverInfo",
+                                    std::move(info), MCP_HASH_META_SERVER_INFO);
+      result.assign("_meta", std::move(meta_object));
     }
   }
 }
@@ -200,7 +200,6 @@ void mcp_decorate_cacheable_result_in_place(
     return;
   }
 
-  assert(cache_policy->ttl_ms >= 0);
   if (cache_policy->ttl_ms >= 0) {
     result.assign("ttlMs", sourcemeta::core::JSON{cache_policy->ttl_ms});
     result.assign("cacheScope", sourcemeta::core::JSON{mcp_cache_scope_string(
@@ -691,7 +690,6 @@ auto mcp_make_server_discover_result(
                              MCP_HASH_INSTRUCTIONS);
   }
 
-  assert(cache_policy.ttl_ms >= 0);
   if (cache_policy.ttl_ms >= 0) {
     result.assign_assume_new(
         "ttlMs", sourcemeta::core::JSON{cache_policy.ttl_ms}, MCP_HASH_TTL_MS);
@@ -735,12 +733,12 @@ auto mcp_make_input_required_result(
 
 auto mcp_request_input_responses(const sourcemeta::core::JSON &envelope)
     -> const sourcemeta::core::JSON * {
-  const auto *params{sourcemeta::core::jsonrpc_params(envelope)};
-  if (params == nullptr || !params->is_object()) {
+  const auto *parameters{sourcemeta::core::jsonrpc_params(envelope)};
+  if (parameters == nullptr || !parameters->is_object()) {
     return nullptr;
   }
   const auto *input_responses_field{
-      params->try_at("inputResponses", MCP_HASH_INPUT_RESPONSES)};
+      parameters->try_at("inputResponses", MCP_HASH_INPUT_RESPONSES)};
   if (input_responses_field == nullptr || !input_responses_field->is_object()) {
     return nullptr;
   }
@@ -749,12 +747,12 @@ auto mcp_request_input_responses(const sourcemeta::core::JSON &envelope)
 
 auto mcp_request_state(const sourcemeta::core::JSON &envelope)
     -> std::optional<JSON::StringView> {
-  const auto *params{sourcemeta::core::jsonrpc_params(envelope)};
-  if (params == nullptr || !params->is_object()) {
+  const auto *parameters{sourcemeta::core::jsonrpc_params(envelope)};
+  if (parameters == nullptr || !parameters->is_object()) {
     return std::nullopt;
   }
   const auto *request_state_field{
-      params->try_at("requestState", MCP_HASH_REQUEST_STATE)};
+      parameters->try_at("requestState", MCP_HASH_REQUEST_STATE)};
   if (request_state_field == nullptr || !request_state_field->is_string()) {
     return std::nullopt;
   }
@@ -770,10 +768,10 @@ auto mcp_make_subscription_acknowledged_notification(
                          sourcemeta::core::JSON{subscription_id},
                          MCP_HASH_META_SUBSCRIPTION_ID);
 
-  auto params{sourcemeta::core::JSON::make_object()};
-  params.assign_assume_new("_meta", std::move(meta), MCP_HASH_META);
-  params.assign_assume_new("notifications", std::move(notifications),
-                           MCP_HASH_NOTIFICATIONS);
+  auto parameters{sourcemeta::core::JSON::make_object()};
+  parameters.assign_assume_new("_meta", std::move(meta), MCP_HASH_META);
+  parameters.assign_assume_new("notifications", std::move(notifications),
+                               MCP_HASH_NOTIFICATIONS);
 
   auto notification{sourcemeta::core::JSON::make_object()};
   notification.assign_assume_new("jsonrpc", sourcemeta::core::JSON{"2.0"},
@@ -783,7 +781,8 @@ auto mcp_make_subscription_acknowledged_notification(
       sourcemeta::core::JSON{
           MCP_METHOD_NOTIFICATIONS_SUBSCRIPTIONS_ACKNOWLEDGED},
       MCP_HASH_METHOD);
-  notification.assign_assume_new("params", std::move(params), MCP_HASH_PARAMS);
+  notification.assign_assume_new("params", std::move(parameters),
+                                 MCP_HASH_PARAMS);
   return notification;
 }
 
@@ -815,9 +814,9 @@ auto mcp_request_subscription_id(const sourcemeta::core::JSON &envelope)
     return nullptr;
   }
   const sourcemeta::core::JSON *meta = nullptr;
-  if (const auto *params{envelope.try_at("params", MCP_HASH_PARAMS)};
-      params != nullptr && params->is_object()) {
-    meta = params->try_at("_meta", MCP_HASH_META);
+  if (const auto *parameters{envelope.try_at("params", MCP_HASH_PARAMS)};
+      parameters != nullptr && parameters->is_object()) {
+    meta = parameters->try_at("_meta", MCP_HASH_META);
   } else if (const auto *result{envelope.try_at("result", MCP_HASH_RESULT)};
              result != nullptr && result->is_object()) {
     meta = result->try_at("_meta", MCP_HASH_META);

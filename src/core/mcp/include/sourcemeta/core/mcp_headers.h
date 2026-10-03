@@ -94,7 +94,8 @@ struct MCPRequestMeta {
 /// Validate and extract modern MCP request metadata from a request envelope or
 /// params object.
 SOURCEMETA_CORE_MCP_EXPORT
-auto mcp_validate_request_meta(const sourcemeta::core::JSON &envelope_or_params)
+auto mcp_validate_request_meta(
+    const sourcemeta::core::JSON &envelope_or_parameters)
     -> std::pair<MCPRequestMetaStatus, std::optional<MCPRequestMeta>>;
 
 /// @ingroup mcp

@@ -5,7 +5,7 @@
 #include <sourcemeta/core/mcp_export.h>
 #endif
 
-#include <sourcemeta/core/http_status.h>
+#include <sourcemeta/core/http.h>
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonrpc.h>
 #include <sourcemeta/core/mcp_protocol.h>

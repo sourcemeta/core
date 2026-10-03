@@ -1,13 +1,13 @@
+#include <sourcemeta/core/mcp_capabilities.h>
+#include <sourcemeta/core/mcp_error.h>
 #include <sourcemeta/core/mcp_headers.h>
+#include <sourcemeta/core/mcp_protocol.h>
 
 #include "helpers.h"
 
-#include <sourcemeta/core/crypto_base64.h>
+#include <sourcemeta/core/crypto.h>
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonrpc.h>
-#include <sourcemeta/core/mcp_capabilities.h>
-#include <sourcemeta/core/mcp_error.h>
-#include <sourcemeta/core/mcp_protocol.h>
 
 #include <cassert>
 #include <optional>
@@ -31,25 +31,26 @@ auto mcp_decode_header_value(const sourcemeta::core::JSON::StringView raw)
 
 namespace sourcemeta::core {
 
-auto mcp_validate_request_meta(const sourcemeta::core::JSON &envelope_or_params)
+auto mcp_validate_request_meta(
+    const sourcemeta::core::JSON &envelope_or_parameters)
     -> std::pair<MCPRequestMetaStatus, std::optional<MCPRequestMeta>> {
   const sourcemeta::core::JSON *parameters = nullptr;
   const auto *jsonrpc_field{
-      envelope_or_params.try_at("jsonrpc", MCP_HASH_JSONRPC)};
+      envelope_or_parameters.try_at("jsonrpc", MCP_HASH_JSONRPC)};
   const auto *method_field{
-      envelope_or_params.try_at("method", MCP_HASH_METHOD)};
+      envelope_or_parameters.try_at("method", MCP_HASH_METHOD)};
   const bool is_envelope{
       jsonrpc_field != nullptr && jsonrpc_field->is_string() &&
       jsonrpc_field->to_string() == "2.0" && method_field != nullptr &&
-      method_field->is_string() && !envelope_or_params.defines("_meta")};
+      method_field->is_string() && !envelope_or_parameters.defines("_meta")};
 
   if (is_envelope) {
-    parameters = envelope_or_params.try_at("params", MCP_HASH_PARAMS);
+    parameters = envelope_or_parameters.try_at("params", MCP_HASH_PARAMS);
     if (parameters == nullptr) {
       return {MCPRequestMetaStatus::MissingParams, std::nullopt};
     }
   } else {
-    parameters = &envelope_or_params;
+    parameters = &envelope_or_parameters;
   }
 
   if (!parameters->is_object()) {
@@ -84,12 +85,13 @@ auto mcp_validate_request_meta(const sourcemeta::core::JSON &envelope_or_params)
     return {MCPRequestMetaStatus::UnsupportedProtocolVersion, std::nullopt};
   }
 
-  const auto *caps{meta->try_at("io.modelcontextprotocol/clientCapabilities",
-                                MCP_HASH_META_CLIENT_CAPABILITIES)};
-  if (caps == nullptr) {
+  const auto *client_capabilities{
+      meta->try_at("io.modelcontextprotocol/clientCapabilities",
+                   MCP_HASH_META_CLIENT_CAPABILITIES)};
+  if (client_capabilities == nullptr) {
     return {MCPRequestMetaStatus::MissingClientCapabilities, std::nullopt};
   }
-  if (!caps->is_object()) {
+  if (!client_capabilities->is_object()) {
     return {MCPRequestMetaStatus::ClientCapabilitiesNotObject, std::nullopt};
   }
 
@@ -158,8 +160,9 @@ auto mcp_validate_request_meta(const sourcemeta::core::JSON &envelope_or_params)
 
   MCPRequestMeta result;
   result.protocol_version = resolved.value();
-  result.client_capabilities = caps;
-  result.parsed_client_capabilities = mcp_parse_client_capabilities(*caps);
+  result.client_capabilities = client_capabilities;
+  result.parsed_client_capabilities =
+      mcp_parse_client_capabilities(*client_capabilities);
   result.client_info = client_info;
   result.log_level = log_level;
   result.meta_object = meta;
@@ -307,26 +310,26 @@ auto mcp_request_name_from_body(const sourcemeta::core::JSON &envelope)
     return std::nullopt;
   }
 
-  const auto *params{envelope.try_at("params", MCP_HASH_PARAMS)};
-  if (params == nullptr || !params->is_object()) {
+  const auto *parameters{envelope.try_at("params", MCP_HASH_PARAMS)};
+  if (parameters == nullptr || !parameters->is_object()) {
     return std::nullopt;
   }
 
   const auto method{mcp_request_method_from_body(envelope)};
   if (method.has_value() && method.value() == MCP_METHOD_RESOURCES_READ) {
-    const auto *uri_field{params->try_at("uri", MCP_HASH_URI)};
+    const auto *uri_field{parameters->try_at("uri", MCP_HASH_URI)};
     if (uri_field != nullptr && uri_field->is_string()) {
       return uri_field->to_string();
     }
     return std::nullopt;
   }
 
-  const auto *name_field{params->try_at("name", MCP_HASH_NAME)};
+  const auto *name_field{parameters->try_at("name", MCP_HASH_NAME)};
   if (name_field != nullptr && name_field->is_string()) {
     return name_field->to_string();
   }
 
-  const auto *uri_field{params->try_at("uri", MCP_HASH_URI)};
+  const auto *uri_field{parameters->try_at("uri", MCP_HASH_URI)};
   if (uri_field != nullptr && uri_field->is_string()) {
     return uri_field->to_string();
   }
