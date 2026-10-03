@@ -42,7 +42,7 @@ jobs:
             cxx: g++
             type: static
             shell: sh
-            options: -DSOURCEMETA_CORE_CRYPTO_USE_SYSTEM_OPENSSL:BOOL=ON -DSOURCEMETA_CORE_HTTP_USE_SYSTEM_CURL:BOOL=ON
+            options: -DSOURCEMETA_CORE_HTTP_USE_SYSTEM_CURL:BOOL=ON
             apt: libcurl4-openssl-dev
             benchmark: linux/gcc
           - os: ubuntu-latest

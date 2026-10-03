@@ -1,10 +1,6 @@
 #ifndef SOURCEMETA_CORE_CRYPTO_GHASH_H_
 #define SOURCEMETA_CORE_CRYPTO_GHASH_H_
 
-// Finite field multiplication in GF(2^128) and GHASH (NIST SP 800-38D Section
-// 6.3 and 6.4) for the reference AES-GCM backend. This is not constant-time,
-// which is acceptable only because this backend is the non-production fallback.
-
 #include "crypto_aes_block.h"
 
 #include <cstddef>     // std::size_t
@@ -13,8 +9,8 @@
 
 namespace sourcemeta::core {
 
-// Load an unsigned 64-bit big-endian integer from a byte pointer
-inline auto load_u64_be(const std::uint8_t *bytes) -> std::uint64_t {
+inline auto load_big_endian_uint64(const std::uint8_t *const bytes)
+    -> std::uint64_t {
   return (static_cast<std::uint64_t>(bytes[0]) << 56u) |
          (static_cast<std::uint64_t>(bytes[1]) << 48u) |
          (static_cast<std::uint64_t>(bytes[2]) << 40u) |
@@ -25,9 +21,8 @@ inline auto load_u64_be(const std::uint8_t *bytes) -> std::uint64_t {
          (static_cast<std::uint64_t>(bytes[7]));
 }
 
-// Store an unsigned 64-bit big-endian integer into a byte pointer
-inline auto store_u64_be(std::uint8_t *bytes, const std::uint64_t value)
-    -> void {
+inline auto store_big_endian_uint64(std::uint8_t *const bytes,
+                                    const std::uint64_t value) -> void {
   bytes[0] = static_cast<std::uint8_t>((value >> 56u) & 0xffu);
   bytes[1] = static_cast<std::uint8_t>((value >> 48u) & 0xffu);
   bytes[2] = static_cast<std::uint8_t>((value >> 40u) & 0xffu);
@@ -39,7 +34,9 @@ inline auto store_u64_be(std::uint8_t *bytes, const std::uint64_t value)
 }
 
 // Multiply two blocks in GF(2^128) with the GCM reduction polynomial (NIST SP
-// 800-38D Section 6.3) using 64-bit word operations
+// 800-38D Section 6.3) over the two 64-bit halves of the block. Each bit of the
+// second operand selects the running multiple of the first through a full-width
+// mask rather than a branch
 inline auto gf_multiply(const AesBlock &left, const AesBlock &right)
     -> AesBlock {
   // Reduction polynomial R = 11100001 || 0^120 (NIST SP 800-38D Section 6.3)
@@ -47,10 +44,10 @@ inline auto gf_multiply(const AesBlock &left, const AesBlock &right)
 
   std::uint64_t product0{0};
   std::uint64_t product1{0};
-  std::uint64_t value0{load_u64_be(left.data())};
-  std::uint64_t value1{load_u64_be(left.data() + 8)};
-  const std::uint64_t right0{load_u64_be(right.data())};
-  const std::uint64_t right1{load_u64_be(right.data() + 8)};
+  std::uint64_t value0{load_big_endian_uint64(left.data())};
+  std::uint64_t value1{load_big_endian_uint64(left.data() + 8)};
+  const std::uint64_t right0{load_big_endian_uint64(right.data())};
+  const std::uint64_t right1{load_big_endian_uint64(right.data() + 8)};
 
   for (std::size_t bit = 0; bit < 64; ++bit) {
     const auto bit_mask{0ULL - ((right0 >> (63u - bit)) & 1u)};
@@ -73,8 +70,8 @@ inline auto gf_multiply(const AesBlock &left, const AesBlock &right)
   }
 
   AesBlock result{};
-  store_u64_be(result.data(), product0);
-  store_u64_be(result.data() + 8, product1);
+  store_big_endian_uint64(result.data(), product0);
+  store_big_endian_uint64(result.data() + 8, product1);
   return result;
 }
 

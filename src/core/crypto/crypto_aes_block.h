@@ -84,49 +84,28 @@ inline auto aes_xtime(const std::uint8_t value) -> std::uint8_t {
                                    (((value & 0x80u) != 0) ? 0x1bu : 0x00u));
 }
 
-inline auto aes_field_multiply(const std::uint8_t left,
-                               const std::uint8_t right) -> std::uint8_t {
-  switch (right) {
-    case 0:
-      return 0;
-    case 1:
-      return left;
-    case 2:
-      return aes_xtime(left);
-    case 3:
-      return aes_xtime(left) ^ left;
-    case 9: {
-      const auto xtime2{aes_xtime(left)};
-      const auto xtime4{aes_xtime(xtime2)};
-      return aes_xtime(xtime4) ^ left;
-    }
-    case 11: {
-      const auto xtime2{aes_xtime(left)};
-      const auto xtime4{aes_xtime(xtime2)};
-      return aes_xtime(xtime4) ^ xtime2 ^ left;
-    }
-    case 13: {
-      const auto xtime2{aes_xtime(left)};
-      const auto xtime4{aes_xtime(xtime2)};
-      return aes_xtime(xtime4) ^ xtime4 ^ left;
-    }
-    case 14: {
-      const auto xtime2{aes_xtime(left)};
-      const auto xtime4{aes_xtime(xtime2)};
-      return aes_xtime(xtime4) ^ xtime4 ^ xtime2;
-    }
-    default: {
-      std::uint8_t product{0};
-      std::uint8_t factor{left};
-      for (std::uint8_t bit{right}; bit != 0; bit >>= 1u) {
-        if ((bit & 1u) != 0) {
-          product ^= factor;
-        }
-
-        factor = aes_xtime(factor);
-      }
-
-      return product;
+// Multiply by one of the coefficients that the column transformations use
+// (FIPS 197 Sections 5.1.3 and 5.3.3), each one composed out of repeated
+// doubling rather than walking the bits of a value the caller already knows
+template <std::uint8_t Coefficient>
+inline auto aes_field_multiply(const std::uint8_t value) -> std::uint8_t {
+  const auto doubled{aes_xtime(value)};
+  if constexpr (Coefficient == 2) {
+    return doubled;
+  } else if constexpr (Coefficient == 3) {
+    return static_cast<std::uint8_t>(doubled ^ value);
+  } else {
+    const auto quadrupled{aes_xtime(doubled)};
+    const auto octupled{aes_xtime(quadrupled)};
+    if constexpr (Coefficient == 9) {
+      return static_cast<std::uint8_t>(octupled ^ value);
+    } else if constexpr (Coefficient == 11) {
+      return static_cast<std::uint8_t>(octupled ^ doubled ^ value);
+    } else if constexpr (Coefficient == 13) {
+      return static_cast<std::uint8_t>(octupled ^ quadrupled ^ value);
+    } else {
+      static_assert(Coefficient == 14);
+      return static_cast<std::uint8_t>(octupled ^ quadrupled ^ doubled);
     }
   }
 }
@@ -204,14 +183,14 @@ inline auto aes_encrypt_block(const AesKeySchedule &schedule, AesBlock state)
         const auto second{state[base + 1]};
         const auto third{state[base + 2]};
         const auto fourth{state[base + 3]};
-        state[base] = aes_field_multiply(first, 2) ^
-                      aes_field_multiply(second, 3) ^ third ^ fourth;
-        state[base + 1] = first ^ aes_field_multiply(second, 2) ^
-                          aes_field_multiply(third, 3) ^ fourth;
-        state[base + 2] = first ^ second ^ aes_field_multiply(third, 2) ^
-                          aes_field_multiply(fourth, 3);
-        state[base + 3] = aes_field_multiply(first, 3) ^ second ^ third ^
-                          aes_field_multiply(fourth, 2);
+        state[base] = aes_field_multiply<2>(first) ^
+                      aes_field_multiply<3>(second) ^ third ^ fourth;
+        state[base + 1] = first ^ aes_field_multiply<2>(second) ^
+                          aes_field_multiply<3>(third) ^ fourth;
+        state[base + 2] = first ^ second ^ aes_field_multiply<2>(third) ^
+                          aes_field_multiply<3>(fourth);
+        state[base + 3] = aes_field_multiply<3>(first) ^ second ^ third ^
+                          aes_field_multiply<2>(fourth);
       }
     }
 
@@ -254,17 +233,17 @@ inline auto aes_decrypt_block(const AesKeySchedule &schedule, AesBlock state)
         const auto third{state[base + 2]};
         const auto fourth{state[base + 3]};
         state[base] =
-            aes_field_multiply(first, 0x0e) ^ aes_field_multiply(second, 0x0b) ^
-            aes_field_multiply(third, 0x0d) ^ aes_field_multiply(fourth, 0x09);
+            aes_field_multiply<14>(first) ^ aes_field_multiply<11>(second) ^
+            aes_field_multiply<13>(third) ^ aes_field_multiply<9>(fourth);
         state[base + 1] =
-            aes_field_multiply(first, 0x09) ^ aes_field_multiply(second, 0x0e) ^
-            aes_field_multiply(third, 0x0b) ^ aes_field_multiply(fourth, 0x0d);
+            aes_field_multiply<9>(first) ^ aes_field_multiply<14>(second) ^
+            aes_field_multiply<11>(third) ^ aes_field_multiply<13>(fourth);
         state[base + 2] =
-            aes_field_multiply(first, 0x0d) ^ aes_field_multiply(second, 0x09) ^
-            aes_field_multiply(third, 0x0e) ^ aes_field_multiply(fourth, 0x0b);
+            aes_field_multiply<13>(first) ^ aes_field_multiply<9>(second) ^
+            aes_field_multiply<14>(third) ^ aes_field_multiply<11>(fourth);
         state[base + 3] =
-            aes_field_multiply(first, 0x0b) ^ aes_field_multiply(second, 0x0d) ^
-            aes_field_multiply(third, 0x09) ^ aes_field_multiply(fourth, 0x0e);
+            aes_field_multiply<11>(first) ^ aes_field_multiply<13>(second) ^
+            aes_field_multiply<9>(third) ^ aes_field_multiply<14>(fourth);
       }
     }
   }
