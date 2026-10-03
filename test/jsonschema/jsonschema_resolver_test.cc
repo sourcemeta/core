@@ -418,6 +418,13 @@ TEST(openapi_3_1) {
   EXPECT_SCHEMA("https://spec.openapis.org/oas/3.1/meta/base");
 }
 
+TEST(openapi_3_1_dated_revisions) {
+  EXPECT_SCHEMA("https://spec.openapis.org/oas/3.1/dialect/2024-11-10");
+  EXPECT_SCHEMA("https://spec.openapis.org/oas/3.1/meta/2024-11-10");
+  EXPECT_SCHEMA("https://spec.openapis.org/oas/3.1/dialect/2024-10-25");
+  EXPECT_SCHEMA("https://spec.openapis.org/oas/3.1/meta/2024-10-25");
+}
+
 TEST(openapi_3_2) {
   EXPECT_SCHEMA("https://spec.openapis.org/oas/3.2/dialect/2025-09-17");
   EXPECT_SCHEMA("https://spec.openapis.org/oas/3.2/meta/2025-09-17");
@@ -567,6 +574,42 @@ TEST(is_known_schema_openapi_3_1) {
   EXPECT_TRUE(sourcemeta::core::schema_resolver(
                   "https://spec.openapis.org/oas/3.1/meta/base")
                   .has_value());
+}
+
+TEST(is_known_schema_openapi_3_1_dated_revisions) {
+  EXPECT_TRUE(sourcemeta::core::schema_is_known(
+      "https://spec.openapis.org/oas/3.1/dialect/2024-11-10"));
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://spec.openapis.org/oas/3.1/dialect/2024-11-10")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_is_known(
+      "https://spec.openapis.org/oas/3.1/meta/2024-11-10"));
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://spec.openapis.org/oas/3.1/meta/2024-11-10")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_is_known(
+      "https://spec.openapis.org/oas/3.1/dialect/2024-10-25"));
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://spec.openapis.org/oas/3.1/dialect/2024-10-25")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_is_known(
+      "https://spec.openapis.org/oas/3.1/meta/2024-10-25"));
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://spec.openapis.org/oas/3.1/meta/2024-10-25")
+                  .has_value());
+}
+
+TEST(is_known_schema_openapi_3_1_unpublished_revision) {
+  EXPECT_FALSE(sourcemeta::core::schema_is_known(
+      "https://spec.openapis.org/oas/3.1/dialect/2024-11-11"));
+  EXPECT_FALSE(sourcemeta::core::schema_resolver(
+                   "https://spec.openapis.org/oas/3.1/dialect/2024-11-11")
+                   .has_value());
+  EXPECT_FALSE(sourcemeta::core::schema_is_known(
+      "https://spec.openapis.org/oas/3.1/meta/2024-11-11"));
+  EXPECT_FALSE(sourcemeta::core::schema_resolver(
+                   "https://spec.openapis.org/oas/3.1/meta/2024-11-11")
+                   .has_value());
 }
 
 TEST(is_known_schema_openapi_3_2) {
@@ -737,6 +780,17 @@ TEST(is_official_schema_openapi_3_1) {
       "https://spec.openapis.org/oas/3.1/dialect/base"));
   EXPECT_FALSE(sourcemeta::core::schema_is_official(
       "https://spec.openapis.org/oas/3.1/meta/base"));
+}
+
+TEST(is_official_schema_openapi_3_1_dated_revisions) {
+  EXPECT_FALSE(sourcemeta::core::schema_is_official(
+      "https://spec.openapis.org/oas/3.1/dialect/2024-11-10"));
+  EXPECT_FALSE(sourcemeta::core::schema_is_official(
+      "https://spec.openapis.org/oas/3.1/meta/2024-11-10"));
+  EXPECT_FALSE(sourcemeta::core::schema_is_official(
+      "https://spec.openapis.org/oas/3.1/dialect/2024-10-25"));
+  EXPECT_FALSE(sourcemeta::core::schema_is_official(
+      "https://spec.openapis.org/oas/3.1/meta/2024-10-25"));
 }
 
 TEST(is_official_schema_openapi_3_2) {
