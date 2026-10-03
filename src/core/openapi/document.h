@@ -30,7 +30,7 @@
 #include <optional>    // std::optional
 #include <string_view> // std::string_view
 #include <utility>     // std::move, std::swap, std::unreachable
-#include <vector>      // std::vector
+#include <vector>      // std::erase, std::vector
 
 namespace sourcemeta::core {
 
@@ -384,15 +384,36 @@ inline auto openapi_check_document(const JSON &document, OpenAPIWalk &walk)
       // read
       auto established{openapi_document_base(reference, walk)};
       if (established.has_value()) {
-        walk.base = std::move(established.value());
-
         // 3.2.1 Section 4.1.1: "To ensure interoperability, references MUST use
         // the target document's `$self` URI if the `$self` field is present".
-        // So this is the URI the document answers to, and one that names it by
-        // where it was retrieved from instead names another document, which
-        // the same paragraph calls "not interoperable" and NOT RECOMMENDED
+        // So this is the one URI a reference may name the document by, and
+        // where it was retrieved from stops naming it at all. The same
+        // paragraph leaves taking the retrieval URI as well open:
+        // "Implementations MAY choose to support referencing by other URIs
+        // such as the retrieval URI even when `$self` is present, however this
+        // behavior is not interoperable and relying on it is NOT RECOMMENDED".
+        //
+        // That permission is deliberately declined. Taking it would have a
+        // reference written against the retrieval URI resolve, which is a
+        // reference the MUST above forbids, and would have a description that
+        // leans on one come back whole. Turning the retrieval URI down is what
+        // leaves such a reference landing nowhere and the description
+        // reported as needing more than it holds
+        //
+        // What the caller named the document goes on naming it, as that is no
+        // URI the description writes down and so no reference of its own
+        walk.additional_names.clear();
+        if (!walk.default_id.empty()) {
+          walk.additional_names.push_back(walk.default_id);
+        }
+
+        walk.base = std::move(established.value());
       }
     }
+
+    // A name that comes to what the base comes to addresses every place of the
+    // description already, so it is no name of its own
+    std::erase(walk.additional_names, walk.base);
 
     // Section 4.8.30: "The name used for each property MUST correspond to a
     // security scheme declared in the Security Schemes under the Components
@@ -626,11 +647,24 @@ auto openapi_project(const OpenAPIWalk &walk) -> std::vector<OpenAPIOperation>;
 // access". A document read on its own has no entry document to resolve from,
 // so what one names is settled by whoever reads it as part of a description
 inline auto openapi_analyse(const JSON &document, JSON::String base,
+                            JSON::String default_id = {},
                             const std::uint64_t max_locations =
                                 std::numeric_limits<std::uint64_t>::max(),
                             const OpenAPIWalk *entry = nullptr) -> OpenAPIWalk {
-  OpenAPIWalk walk{.base = base,
+  // RFC 3986 Section 5.1 orders the sources a base URI comes from, and
+  // Section 5.1.2 puts what the entity holding a document says about it ahead
+  // of Section 5.1.3's retrieval URI. So a name the caller gave the
+  // description is the base, and the place it was retrieved from goes on
+  // naming it from behind that
+  std::vector<JSON::String> additional_names;
+  if (!default_id.empty() && !base.empty() && default_id != base) {
+    additional_names.push_back(base);
+  }
+
+  OpenAPIWalk walk{.base = default_id.empty() ? base : default_id,
                    .retrieval = std::move(base),
+                   .default_id = std::move(default_id),
+                   .additional_names = std::move(additional_names),
                    .document = &document,
                    .operation_ids = {},
                    .visited = {},

@@ -163,6 +163,9 @@ public:
   /// A list of paths to frame within a schema wrapper
   using Paths = std::vector<sourcemeta::core::WeakPointer>;
 
+  /// A list of bases that the top of a document goes by
+  using Bases = std::vector<std::string_view>;
+
   /// Export the frame as JSON
   [[nodiscard]] auto to_json(
       const SchemaResolver &resolver,
@@ -178,8 +181,8 @@ public:
   /// it, so the schema must outlive the frame. The same goes for
   /// `default_dialect`, as a location that has no dialect of its own reports
   /// the default back as a view into what the caller passed. In contrast,
-  /// `default_id` and `default_base` are copied, so they do not need to
-  /// outlive this call
+  /// `default_id`, `default_base` and `additional_bases` are copied, so they
+  /// do not need to outlive this call
   ///
   /// Pass `default_base` to state the base URI that the document was
   /// retrieved from, which anything that declares no identifier of its own
@@ -188,6 +191,13 @@ public:
   /// identifier, so a pointer into it keeps being addressed from the top of
   /// the document rather than from wherever a path begins, and a document
   /// that declares no identifier still reports none
+  ///
+  /// Pass `additional_bases` to state every other base that the top of the
+  /// document goes by, which is what a document retrieved from more than one
+  /// place or named by its holder comes to. Each one addresses every place of
+  /// the document in turn, after whatever the document declares and after
+  /// `default_base`, and claims an identifier no more than `default_base`
+  /// does. A base already in force is not registered twice
   ///
   /// Framing a schema that declares nested identifiers registers a location
   /// per enclosing base, so what an untrusted schema costs to analyse grows
@@ -205,7 +215,7 @@ public:
       std::string_view default_dialect = "", std::string_view default_id = "",
       IdentifierMode identifier_mode = IdentifierMode::Additional,
       const Paths &paths = {sourcemeta::core::EMPTY_WEAK_POINTER},
-      std::string_view default_base = "",
+      std::string_view default_base = "", const Bases &additional_bases = {},
       std::uint64_t max_locations = std::numeric_limits<std::uint64_t>::max());
 
   /// Get a specific reference entry by type and pointer
