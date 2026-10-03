@@ -17,18 +17,7 @@ sourcemeta_library(NAMESPACE sourcemeta PROJECT core NAME crypto
 target_link_libraries(sourcemeta_core_crypto
   PRIVATE sourcemeta::core::text sourcemeta::core::numeric)
 
-set(SOURCEMETA_CORE_CRYPTO_USE_REFERENCE_ACTUAL
-  ${SOURCEMETA_CORE_CRYPTO_USE_REFERENCE})
-
-if(NOT SOURCEMETA_CORE_CRYPTO_USE_REFERENCE_ACTUAL AND NOT APPLE AND NOT WIN32)
-  find_package(OpenSSL 3.0)
-  if(NOT OpenSSL_FOUND)
-    message(WARNING "OpenSSL 3.0 not found; falling back to reference cryptography backend")
-    set(SOURCEMETA_CORE_CRYPTO_USE_REFERENCE_ACTUAL ON)
-  endif()
-endif()
-
-if(NOT SOURCEMETA_CORE_CRYPTO_USE_REFERENCE_ACTUAL AND APPLE)
+if(SOURCEMETA_CORE_CRYPTO_BACKEND STREQUAL "apple")
   enable_language(OBJCXX)
 
   # Ed25519 is verified through CryptoKit (Swift), reached from Objective-C++.
@@ -155,7 +144,7 @@ if(NOT SOURCEMETA_CORE_CRYPTO_USE_REFERENCE_ACTUAL AND APPLE)
     "-Wl,-L${CRYPTOKIT_SDK}/usr/lib/swift"
     "-Wl,-L${CRYPTOKIT_RUNTIME_LIB}"
     "-Wl,-rpath,/usr/lib/swift")
-elseif(NOT SOURCEMETA_CORE_CRYPTO_USE_REFERENCE_ACTUAL AND WIN32)
+elseif(SOURCEMETA_CORE_CRYPTO_BACKEND STREQUAL "windows")
   target_sources(sourcemeta_core_crypto PRIVATE
     crypto_sha1_windows.cc crypto_sha256_windows.cc
     crypto_hmac_sha256_windows.cc crypto_hmac_sha384_windows.cc
@@ -178,8 +167,7 @@ elseif(NOT SOURCEMETA_CORE_CRYPTO_USE_REFERENCE_ACTUAL AND WIN32)
     PRIVATE _WIN32_WINNT=0x0A00 NTDDI_VERSION=0x0A000005)
 
   target_link_libraries(sourcemeta_core_crypto PRIVATE bcrypt)
-elseif(NOT SOURCEMETA_CORE_CRYPTO_USE_REFERENCE_ACTUAL)
-  set(SOURCEMETA_CORE_CRYPTO_USE_SYSTEM_OPENSSL ON PARENT_SCOPE)
+elseif(SOURCEMETA_CORE_CRYPTO_BACKEND STREQUAL "openssl")
   target_sources(sourcemeta_core_crypto PRIVATE
     crypto_sha1_openssl.cc crypto_sha256_openssl.cc
     crypto_hmac_sha256_openssl.cc crypto_hmac_sha384_openssl.cc
@@ -193,7 +181,6 @@ elseif(NOT SOURCEMETA_CORE_CRYPTO_USE_REFERENCE_ACTUAL)
     crypto_openssl.h crypto_pkcs8.h crypto_system.h)
   target_link_libraries(sourcemeta_core_crypto PRIVATE OpenSSL::Crypto)
 else()
-  set(SOURCEMETA_CORE_CRYPTO_USE_SYSTEM_OPENSSL OFF PARENT_SCOPE)
   message(WARNING "Building the reference cryptography backend instead of a "
     "system provided production one")
   target_sources(sourcemeta_core_crypto PRIVATE

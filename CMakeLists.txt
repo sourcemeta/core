@@ -80,17 +80,52 @@ elseif(SOURCEMETA_CORE_UNDEFINED_SANITIZER)
   sourcemeta_sanitizer(TYPE undefined)
 endif()
 
-include(GNUInstallDirs)
+# Dependencies
+
+if(SOURCEMETA_CORE_CRYPTO)
+  if(SOURCEMETA_CORE_CRYPTO_USE_REFERENCE)
+    set(SOURCEMETA_CORE_CRYPTO_BACKEND reference)
+  elseif(APPLE)
+    set(SOURCEMETA_CORE_CRYPTO_BACKEND apple)
+  elseif(WIN32)
+    set(SOURCEMETA_CORE_CRYPTO_BACKEND windows)
+  else()
+    find_package(OpenSSL 3.0 REQUIRED)
+    set(SOURCEMETA_CORE_CRYPTO_BACKEND openssl)
+  endif()
+
+  message(STATUS
+    "Using the ${SOURCEMETA_CORE_CRYPTO_BACKEND} cryptography backend")
+endif()
+
+if((SOURCEMETA_OS_LINUX OR SOURCEMETA_OS_MACOS)
+   AND NOT SOURCEMETA_CORE_ADDRESS_SANITIZER
+   AND NOT SOURCEMETA_CORE_UNDEFINED_SANITIZER
+   AND NOT SOURCEMETA_CORE_USE_SYSTEM_ALLOCATOR)
+  message(STATUS "Using the mimalloc allocator")
+  find_package(Mimalloc REQUIRED)
+endif()
+
+# TODO: Turn this into a re-usable utility CMake function
+if(SOURCEMETA_CORE_INSTALL)
+  include(GNUInstallDirs)
+  include(CMakePackageConfigHelpers)
+  configure_package_config_file(
+    config.cmake.in
+    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config.cmake"
+    INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
+  write_basic_package_version_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config-version.cmake"
+    COMPATIBILITY SameMajorVersion)
+  install(FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config-version.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config.cmake"
+    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
+    COMPONENT sourcemeta_${PROJECT_NAME}_dev)
+endif()
 
 # Every executable in this build links this one, so it comes first
 if(SOURCEMETA_CORE_LANG_ALLOCATOR)
-  if((SOURCEMETA_OS_LINUX OR SOURCEMETA_OS_MACOS)
-     AND NOT SOURCEMETA_CORE_ADDRESS_SANITIZER
-     AND NOT SOURCEMETA_CORE_UNDEFINED_SANITIZER
-     AND NOT SOURCEMETA_CORE_USE_SYSTEM_ALLOCATOR)
-    message(STATUS "Using the mimalloc allocator")
-    find_package(Mimalloc REQUIRED)
-  endif()
   add_subdirectory(src/lang/allocator)
 else()
   # A previous configuration of this same directory may have recorded a library
@@ -280,23 +315,6 @@ endif()
 
 if(SOURCEMETA_CORE_TERMINAL)
   add_subdirectory(src/core/terminal)
-endif()
-
-# TODO: Turn this into a re-usable utility CMake function
-if(SOURCEMETA_CORE_INSTALL)
-  include(CMakePackageConfigHelpers)
-  configure_package_config_file(
-    config.cmake.in
-    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config.cmake"
-    INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
-  write_basic_package_version_file(
-    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config-version.cmake"
-    COMPATIBILITY SameMajorVersion)
-  install(FILES
-    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config-version.cmake"
-    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config.cmake"
-    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
-    COMPONENT sourcemeta_${PROJECT_NAME}_dev)
 endif()
 
 if(SOURCEMETA_CORE_DOCS)
