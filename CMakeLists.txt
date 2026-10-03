@@ -81,7 +81,6 @@ elseif(SOURCEMETA_CORE_UNDEFINED_SANITIZER)
 endif()
 
 # Dependencies
-
 if(SOURCEMETA_CORE_CRYPTO)
   if(SOURCEMETA_CORE_CRYPTO_USE_REFERENCE)
     set(SOURCEMETA_CORE_CRYPTO_BACKEND reference)
@@ -93,11 +92,9 @@ if(SOURCEMETA_CORE_CRYPTO)
     find_package(OpenSSL 3.0 REQUIRED)
     set(SOURCEMETA_CORE_CRYPTO_BACKEND openssl)
   endif()
-
-  message(STATUS
+  message(STATUS 
     "Using the ${SOURCEMETA_CORE_CRYPTO_BACKEND} cryptography backend")
 endif()
-
 if(SOURCEMETA_CORE_LANG_ALLOCATOR AND 
     (SOURCEMETA_OS_LINUX OR SOURCEMETA_OS_MACOS)
    AND NOT SOURCEMETA_CORE_ADDRESS_SANITIZER
@@ -105,6 +102,10 @@ if(SOURCEMETA_CORE_LANG_ALLOCATOR AND
    AND NOT SOURCEMETA_CORE_USE_SYSTEM_ALLOCATOR)
   message(STATUS "Using the mimalloc allocator")
   find_package(Mimalloc REQUIRED)
+endif()
+if(SOURCEMETA_CORE_REGEX)
+  find_package(SLJIT REQUIRED)
+  find_package(PCRE2 REQUIRED)
 endif()
 
 # TODO: Turn this into a re-usable utility CMake function
@@ -201,8 +202,6 @@ if(SOURCEMETA_CORE_CRYPTO)
 endif()
 
 if(SOURCEMETA_CORE_REGEX)
-  find_package(SLJIT REQUIRED)
-  find_package(PCRE2 REQUIRED)
   add_subdirectory(src/core/regex)
 endif()
 
