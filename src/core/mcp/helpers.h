@@ -43,6 +43,7 @@ inline constexpr auto MCP_HASH_HEADER{
     sourcemeta::core::JSON::Object::hash("header"sv)};
 inline constexpr auto MCP_HASH_HEADER_VALUE{
     sourcemeta::core::JSON::Object::hash("headerValue"sv)};
+inline constexpr auto MCP_HASH_ID{sourcemeta::core::JSON::Object::hash("id"sv)};
 inline constexpr auto MCP_HASH_IDEMPOTENT_HINT{
     sourcemeta::core::JSON::Object::hash("idempotentHint"sv)};
 inline constexpr auto MCP_HASH_INPUT_REQUESTS{

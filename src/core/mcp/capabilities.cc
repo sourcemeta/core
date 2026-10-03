@@ -75,7 +75,8 @@ auto mcp_serialize_client_capabilities(
     -> sourcemeta::core::JSON {
   auto result{sourcemeta::core::JSON::make_object()};
 
-  if (capabilities.roots || capabilities.roots_list_changed) {
+  if (capabilities.roots || (capabilities.roots_list_changed &&
+                             version != MCPProtocolVersion::V_2026_07_28)) {
     auto roots_object{sourcemeta::core::JSON::make_object()};
     if (capabilities.roots_list_changed &&
         version != MCPProtocolVersion::V_2026_07_28) {
@@ -88,34 +89,43 @@ auto mcp_serialize_client_capabilities(
   if (capabilities.sampling || capabilities.sampling_context ||
       capabilities.sampling_tools) {
     auto sampling_object{sourcemeta::core::JSON::make_object()};
-    if (capabilities.sampling_context) {
-      sampling_object.assign_assume_new(
-          "context", sourcemeta::core::JSON::make_object(), MCP_HASH_CONTEXT);
-    }
-    if (capabilities.sampling_tools) {
-      sampling_object.assign_assume_new(
-          "tools", sourcemeta::core::JSON::make_object(), MCP_HASH_TOOLS);
+    if (mcp_protocol_version_at_least(version,
+                                      MCPProtocolVersion::V_2025_11_25)) {
+      if (capabilities.sampling_context) {
+        sampling_object.assign_assume_new(
+            "context", sourcemeta::core::JSON::make_object(), MCP_HASH_CONTEXT);
+      }
+      if (capabilities.sampling_tools) {
+        sampling_object.assign_assume_new(
+            "tools", sourcemeta::core::JSON::make_object(), MCP_HASH_TOOLS);
+      }
     }
     result.assign_assume_new("sampling", std::move(sampling_object),
                              MCP_HASH_SAMPLING);
   }
 
-  if (capabilities.elicitation || capabilities.elicitation_form ||
-      capabilities.elicitation_url) {
+  if (mcp_protocol_version_at_least(version,
+                                    MCPProtocolVersion::V_2025_06_18) &&
+      (capabilities.elicitation || capabilities.elicitation_form ||
+       capabilities.elicitation_url)) {
     auto elicitation_object{sourcemeta::core::JSON::make_object()};
-    if (capabilities.elicitation_form) {
-      elicitation_object.assign_assume_new(
-          "form", sourcemeta::core::JSON::make_object(), MCP_HASH_FORM);
-    }
-    if (capabilities.elicitation_url) {
-      elicitation_object.assign_assume_new(
-          "url", sourcemeta::core::JSON::make_object(), MCP_HASH_URL);
+    if (mcp_protocol_version_at_least(version,
+                                      MCPProtocolVersion::V_2025_11_25)) {
+      if (capabilities.elicitation_form) {
+        elicitation_object.assign_assume_new(
+            "form", sourcemeta::core::JSON::make_object(), MCP_HASH_FORM);
+      }
+      if (capabilities.elicitation_url) {
+        elicitation_object.assign_assume_new(
+            "url", sourcemeta::core::JSON::make_object(), MCP_HASH_URL);
+      }
     }
     result.assign_assume_new("elicitation", std::move(elicitation_object),
                              MCP_HASH_ELICITATION);
   }
 
-  if (capabilities.extensions.has_value() &&
+  if (version == MCPProtocolVersion::V_2026_07_28 &&
+      capabilities.extensions.has_value() &&
       capabilities.extensions->is_object()) {
     result.assign_assume_new(
         "extensions", sourcemeta::core::JSON{capabilities.extensions.value()},

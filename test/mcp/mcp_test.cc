@@ -131,10 +131,9 @@ TEST(is_request_method_empty) {
       sourcemeta::core::MCPProtocolVersion::V_2025_11_25, ""));
 }
 
-TEST(resolve_protocol_version_empty_defaults_to_2025_03_26) {
+TEST(resolve_protocol_version_empty_returns_nullopt) {
   const auto result{sourcemeta::core::mcp_resolve_protocol_version("")};
-  EXPECT_TRUE(result.has_value());
-  EXPECT_EQ(result.value(), sourcemeta::core::MCPProtocolVersion::V_2025_03_26);
+  EXPECT_FALSE(result.has_value());
 }
 
 TEST(resolve_protocol_version_2025_03_26) {
@@ -400,7 +399,7 @@ TEST(make_text_block_with_newlines) {
 TEST(make_resource_link_2025_11_25_full) {
   const auto block{sourcemeta::core::mcp_make_resource_link(
       sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "file:///foo",
-      "text/plain", "My File", "A description")};
+      "My File", "text/plain", "A description")};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "type": "resource_link",
     "uri": "file:///foo",
@@ -411,13 +410,14 @@ TEST(make_resource_link_2025_11_25_full) {
   EXPECT_EQ(block, expected);
 }
 
-TEST(make_resource_link_2025_11_25_without_name_and_description) {
+TEST(make_resource_link_2025_11_25_without_description) {
   const auto block{sourcemeta::core::mcp_make_resource_link(
       sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "file:///foo",
-      "text/plain")};
+      "My File", "text/plain")};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "type": "resource_link",
     "uri": "file:///foo",
+    "name": "My File",
     "mimeType": "text/plain"
   })JSON")};
   EXPECT_EQ(block, expected);
@@ -426,7 +426,7 @@ TEST(make_resource_link_2025_11_25_without_name_and_description) {
 TEST(make_resource_link_2025_06_18_supports_structured) {
   const auto block{sourcemeta::core::mcp_make_resource_link(
       sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "file:///foo",
-      "text/plain", "My File")};
+      "My File", "text/plain")};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "type": "resource_link",
     "uri": "file:///foo",
@@ -439,7 +439,7 @@ TEST(make_resource_link_2025_06_18_supports_structured) {
 TEST(make_resource_link_2025_03_26_falls_back_to_text_with_name) {
   const auto block{sourcemeta::core::mcp_make_resource_link(
       sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "file:///foo",
-      "text/plain", "My File", "A description")};
+      "My File", "text/plain", "A description")};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "type": "text",
     "text": "My File\nfile:///foo\nA description"
@@ -449,8 +449,8 @@ TEST(make_resource_link_2025_03_26_falls_back_to_text_with_name) {
 
 TEST(make_resource_link_2025_03_26_falls_back_to_text_without_name) {
   const auto block{sourcemeta::core::mcp_make_resource_link(
-      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "file:///foo",
-      "text/plain", {}, "A description")};
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "file:///foo", "",
+      "text/plain", "A description")};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "type": "text",
     "text": "file:///foo\nA description"
@@ -461,7 +461,7 @@ TEST(make_resource_link_2025_03_26_falls_back_to_text_without_name) {
 TEST(make_resource_link_2025_03_26_falls_back_to_text_without_description) {
   const auto block{sourcemeta::core::mcp_make_resource_link(
       sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "file:///foo",
-      "text/plain", "My File")};
+      "My File", "text/plain")};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "type": "text",
     "text": "My File\nfile:///foo"
@@ -471,7 +471,7 @@ TEST(make_resource_link_2025_03_26_falls_back_to_text_without_description) {
 
 TEST(make_resource_link_2025_03_26_falls_back_to_text_uri_only) {
   const auto block{sourcemeta::core::mcp_make_resource_link(
-      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "file:///foo",
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "file:///foo", "",
       "text/plain")};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "type": "text",
@@ -483,8 +483,8 @@ TEST(make_resource_link_2025_03_26_falls_back_to_text_uri_only) {
 TEST(make_resource_link_2025_03_26_falls_back_handles_parentheses_in_name) {
   const auto block{sourcemeta::core::mcp_make_resource_link(
       sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
-      "https://example.com/schema", "application/schema+json",
-      "RFC 5322 Email Address (Addr-Spec)", "Validates email syntax")};
+      "https://example.com/schema", "RFC 5322 Email Address (Addr-Spec)",
+      "application/schema+json", "Validates email syntax")};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "type": "text",
     "text": "RFC 5322 Email Address (Addr-Spec)\nhttps://example.com/schema\nValidates email syntax"
@@ -494,8 +494,8 @@ TEST(make_resource_link_2025_03_26_falls_back_handles_parentheses_in_name) {
 
 TEST(make_resource_link_2025_03_26_falls_back_preserves_empty_uri_position) {
   const auto block{sourcemeta::core::mcp_make_resource_link(
-      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "", "text/plain",
-      "My File", "A description")};
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "", "My File",
+      "text/plain", "A description")};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "type": "text",
     "text": "My File\n\nA description"
@@ -505,7 +505,7 @@ TEST(make_resource_link_2025_03_26_falls_back_preserves_empty_uri_position) {
 
 TEST(make_resource_link_2025_03_26_falls_back_empty_uri_with_description_only) {
   const auto block{sourcemeta::core::mcp_make_resource_link(
-      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "", "text/plain", {},
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "", "", "text/plain",
       "A description")};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "type": "text",
@@ -516,8 +516,8 @@ TEST(make_resource_link_2025_03_26_falls_back_empty_uri_with_description_only) {
 
 TEST(make_resource_link_2025_03_26_falls_back_empty_uri_with_name_only) {
   const auto block{sourcemeta::core::mcp_make_resource_link(
-      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "", "text/plain",
-      "My File")};
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "", "My File",
+      "text/plain")};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "type": "text",
     "text": "My File\n"
@@ -866,8 +866,11 @@ TEST(make_resources_read_result_single) {
   auto contents{sourcemeta::core::JSON::make_array()};
   contents.push_back(sourcemeta::core::mcp_make_resource_text_content(
       "file:///a", "text/plain", "Hello"));
+  const sourcemeta::core::MCPCachePolicy policy{
+      .ttl_ms = 30000, .scope = sourcemeta::core::MCPCacheScope::Public};
   const auto result{sourcemeta::core::mcp_make_resources_read_result(
-      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, std::move(contents))};
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, std::move(contents),
+      policy)};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "contents": [
       { "uri": "file:///a", "mimeType": "text/plain", "text": "Hello" }
@@ -877,9 +880,11 @@ TEST(make_resources_read_result_single) {
 }
 
 TEST(make_resources_read_result_empty) {
+  const sourcemeta::core::MCPCachePolicy policy{
+      .ttl_ms = 30000, .scope = sourcemeta::core::MCPCacheScope::Public};
   const auto result{sourcemeta::core::mcp_make_resources_read_result(
       sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
-      sourcemeta::core::JSON::make_array())};
+      sourcemeta::core::JSON::make_array(), policy)};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "contents": []
   })JSON")};
@@ -2730,7 +2735,8 @@ TEST(resources_read_result_modern_and_legacy) {
   EXPECT_EQ(modern_result.at("contents").size(), 1);
 
   const auto legacy_result{sourcemeta::core::mcp_make_resources_read_result(
-      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, std::move(contents))};
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, std::move(contents),
+      policy)};
   EXPECT_FALSE(legacy_result.defines("resultType"));
   EXPECT_FALSE(legacy_result.defines("ttlMs"));
   EXPECT_FALSE(legacy_result.defines("cacheScope"));
@@ -3052,8 +3058,7 @@ TEST(client_capabilities_parsing_and_serialization) {
   EXPECT_TRUE(serialized_legacy.defines("elicitation"));
   EXPECT_TRUE(serialized_legacy.at("elicitation").defines("form"));
   EXPECT_TRUE(serialized_legacy.at("elicitation").defines("url"));
-  EXPECT_TRUE(
-      serialized_legacy.at("extensions").at("customCapability").to_boolean());
+  EXPECT_FALSE(serialized_legacy.defines("extensions"));
 
   const auto serialized_modern{
       sourcemeta::core::mcp_serialize_client_capabilities(
@@ -3065,19 +3070,27 @@ TEST(client_capabilities_parsing_and_serialization) {
   EXPECT_TRUE(serialized_modern.defines("elicitation"));
   EXPECT_TRUE(serialized_modern.at("elicitation").defines("form"));
   EXPECT_TRUE(serialized_modern.at("elicitation").defines("url"));
+  EXPECT_TRUE(
+      serialized_modern.at("extensions").at("customCapability").to_boolean());
 
-  const auto parsed{
+  const auto parsed_legacy{
       sourcemeta::core::mcp_parse_client_capabilities(serialized_legacy)};
-  EXPECT_TRUE(parsed.roots);
-  EXPECT_TRUE(parsed.roots_list_changed);
-  EXPECT_TRUE(parsed.sampling);
-  EXPECT_TRUE(parsed.sampling_context);
-  EXPECT_TRUE(parsed.sampling_tools);
-  EXPECT_TRUE(parsed.elicitation);
-  EXPECT_TRUE(parsed.elicitation_form);
-  EXPECT_TRUE(parsed.elicitation_url);
-  EXPECT_TRUE(parsed.extensions.has_value());
-  EXPECT_TRUE(parsed.extensions->at("customCapability").to_boolean());
+  EXPECT_TRUE(parsed_legacy.roots);
+  EXPECT_TRUE(parsed_legacy.roots_list_changed);
+  EXPECT_TRUE(parsed_legacy.sampling);
+  EXPECT_TRUE(parsed_legacy.sampling_context);
+  EXPECT_TRUE(parsed_legacy.sampling_tools);
+  EXPECT_TRUE(parsed_legacy.elicitation);
+  EXPECT_TRUE(parsed_legacy.elicitation_form);
+  EXPECT_TRUE(parsed_legacy.elicitation_url);
+  EXPECT_FALSE(parsed_legacy.extensions.has_value());
+
+  const auto parsed_modern{
+      sourcemeta::core::mcp_parse_client_capabilities(serialized_modern)};
+  EXPECT_TRUE(parsed_modern.roots);
+  EXPECT_FALSE(parsed_modern.roots_list_changed);
+  EXPECT_TRUE(parsed_modern.extensions.has_value());
+  EXPECT_TRUE(parsed_modern.extensions->at("customCapability").to_boolean());
 }
 
 TEST(request_meta_accessors) {
@@ -3209,7 +3222,7 @@ TEST(tools_list_result_modern_and_legacy) {
 
   const auto legacy_no_policy{sourcemeta::core::mcp_make_tools_list_result(
       sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
-      sourcemeta::core::JSON::make_array(), "cursor-no-policy")};
+      sourcemeta::core::JSON::make_array(), "cursor-no-policy", policy)};
   EXPECT_FALSE(legacy_no_policy.defines("resultType"));
   EXPECT_EQ(legacy_no_policy.at("nextCursor").to_string(), "cursor-no-policy");
 }
@@ -3240,7 +3253,7 @@ TEST(resources_list_result_modern_and_legacy) {
 
   const auto legacy_no_policy{sourcemeta::core::mcp_make_resources_list_result(
       sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
-      sourcemeta::core::JSON::make_array(), "cursor-no-policy")};
+      sourcemeta::core::JSON::make_array(), "cursor-no-policy", policy)};
   EXPECT_FALSE(legacy_no_policy.defines("resultType"));
   EXPECT_EQ(legacy_no_policy.at("nextCursor").to_string(), "cursor-no-policy");
 }
@@ -3264,7 +3277,7 @@ TEST(resource_templates_list_result_modern_and_legacy) {
   const auto legacy_result{
       sourcemeta::core::mcp_make_resource_templates_list_result(
           sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
-          std::move(templates), "cursor-tmpl")};
+          std::move(templates), "cursor-tmpl", tmpl_policy)};
   EXPECT_FALSE(legacy_result.defines("resultType"));
   EXPECT_EQ(legacy_result.at("nextCursor").to_string(), "cursor-tmpl");
 
@@ -3291,7 +3304,7 @@ TEST(list_results_preserve_empty_next_cursor) {
 
   const auto tools_legacy{sourcemeta::core::mcp_make_tools_list_result(
       sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
-      sourcemeta::core::JSON::make_array(), "")};
+      sourcemeta::core::JSON::make_array(), "", policy)};
   EXPECT_TRUE(tools_legacy.defines("nextCursor"));
   EXPECT_EQ(tools_legacy.at("nextCursor").to_string(), "");
 
@@ -3304,7 +3317,7 @@ TEST(list_results_preserve_empty_next_cursor) {
 
   const auto resources_legacy{sourcemeta::core::mcp_make_resources_list_result(
       sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
-      sourcemeta::core::JSON::make_array(), "")};
+      sourcemeta::core::JSON::make_array(), "", policy)};
   EXPECT_TRUE(resources_legacy.defines("nextCursor"));
   EXPECT_EQ(resources_legacy.at("nextCursor").to_string(), "");
 
@@ -3319,7 +3332,7 @@ TEST(list_results_preserve_empty_next_cursor) {
   const auto tmpls_legacy{
       sourcemeta::core::mcp_make_resource_templates_list_result(
           sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
-          sourcemeta::core::JSON::make_array(), "")};
+          sourcemeta::core::JSON::make_array(), "", policy)};
   EXPECT_TRUE(tmpls_legacy.defines("nextCursor"));
   EXPECT_EQ(tmpls_legacy.at("nextCursor").to_string(), "");
 
@@ -3332,7 +3345,7 @@ TEST(list_results_preserve_empty_next_cursor) {
 
   const auto prompts_legacy{sourcemeta::core::mcp_make_prompts_list_result(
       sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
-      sourcemeta::core::JSON::make_array(), "")};
+      sourcemeta::core::JSON::make_array(), "", policy)};
   EXPECT_TRUE(prompts_legacy.defines("nextCursor"));
   EXPECT_EQ(prompts_legacy.at("nextCursor").to_string(), "");
 }
@@ -3514,16 +3527,17 @@ TEST(prompts_list_result_builder) {
   prompt1.assign("name", sourcemeta::core::JSON{"test-prompt"});
   prompts.push_back(std::move(prompt1));
 
+  const sourcemeta::core::MCPCachePolicy policy{
+      .ttl_ms = 10000, .scope = sourcemeta::core::MCPCacheScope::Public};
+
   const auto legacy{sourcemeta::core::mcp_make_prompts_list_result(
       sourcemeta::core::MCPProtocolVersion::V_2025_11_25, prompts,
-      "next-cursor")};
+      "next-cursor", policy)};
   EXPECT_FALSE(legacy.defines("resultType"));
   EXPECT_FALSE(legacy.defines("_meta"));
   EXPECT_EQ(legacy.at("prompts").size(), 1);
   EXPECT_EQ(legacy.at("nextCursor").to_string(), "next-cursor");
 
-  const sourcemeta::core::MCPCachePolicy policy{
-      .ttl_ms = 10000, .scope = sourcemeta::core::MCPCacheScope::Public};
   const auto modern{sourcemeta::core::mcp_make_prompts_list_result(
       sourcemeta::core::MCPProtocolVersion::V_2026_07_28, prompts, std::nullopt,
       policy)};
@@ -3578,42 +3592,50 @@ TEST(base64_header_malformed_rejected_on_2026) {
 
 TEST(is_request_method_initialize_at_runtime) {
   const std::string method{"initialize"};
-  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(method));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, method));
 }
 
 TEST(is_request_method_ping_at_runtime) {
   const std::string method{"ping"};
-  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(method));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, method));
 }
 
 TEST(is_request_method_tools_list_at_runtime) {
   const std::string method{"tools/list"};
-  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(method));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, method));
 }
 
 TEST(is_request_method_tools_call_at_runtime) {
   const std::string method{"tools/call"};
-  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(method));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, method));
 }
 
 TEST(is_request_method_resources_list_at_runtime) {
   const std::string method{"resources/list"};
-  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(method));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, method));
 }
 
 TEST(is_request_method_resources_read_at_runtime) {
   const std::string method{"resources/read"};
-  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(method));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, method));
 }
 
 TEST(is_request_method_resources_templates_list_at_runtime) {
   const std::string method{"resources/templates/list"};
-  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(method));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, method));
 }
 
 TEST(is_request_method_unknown_at_runtime) {
   const std::string method{"foo/bar"};
-  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(method));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, method));
 }
 
 TEST(protocol_version_is_valid_checks) {
@@ -3688,7 +3710,7 @@ TEST(decorate_result_replaces_non_object_meta) {
   EXPECT_TRUE(result.at("_meta").defines("io.modelcontextprotocol/serverInfo"));
 }
 
-TEST(cache_policy_rejects_negative_ttl_ms) {
+TEST(cache_policy_clamps_negative_ttl_ms_to_zero) {
   auto result{sourcemeta::core::JSON::make_object()};
   const sourcemeta::core::MCPCachePolicy negative_policy{
       .ttl_ms = -500, .scope = sourcemeta::core::MCPCacheScope::Public};
@@ -3696,8 +3718,9 @@ TEST(cache_policy_rejects_negative_ttl_ms) {
       sourcemeta::core::MCPProtocolVersion::V_2026_07_28, result,
       negative_policy);
 
-  EXPECT_FALSE(result.defines("ttlMs"));
-  EXPECT_FALSE(result.defines("cacheScope"));
+  EXPECT_TRUE(result.defines("ttlMs"));
+  EXPECT_EQ(result.at("ttlMs").to_integer(), 0);
+  EXPECT_EQ(result.at("cacheScope").to_string(), "public");
 }
 
 TEST(capabilities_serializer_ignores_non_object_extensions) {
@@ -3716,8 +3739,22 @@ TEST(capabilities_serializer_ignores_non_object_extensions) {
   server_capabilities.extensions = sourcemeta::core::JSON{123};
   server_capabilities.experimental = sourcemeta::core::JSON{false};
 
-  const auto serialized_server{sourcemeta::core::mcp_make_tools_list_result(
-      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
-      sourcemeta::core::JSON::make_array())};
-  EXPECT_FALSE(serialized_server.defines("extensions"));
+  const auto request{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "initialize",
+    "params": {
+      "protocolVersion": "2026-07-28",
+      "capabilities": {},
+      "clientInfo": { "name": "c", "version": "1" }
+    }
+  })JSON")};
+
+  const sourcemeta::core::MCPImplementation server{.name = "srv",
+                                                   .version = "1.0.0"};
+  const auto envelope{sourcemeta::core::mcp_make_initialize_result(
+      request, server_capabilities, server)};
+  EXPECT_FALSE(envelope.at("result").at("capabilities").defines("extensions"));
+  EXPECT_FALSE(
+      envelope.at("result").at("capabilities").defines("experimental"));
 }

@@ -99,6 +99,16 @@ constexpr JSON::StringView MCP_METHOD_RESOURCES_LIST{"resources/list"};
 constexpr JSON::StringView MCP_METHOD_RESOURCES_READ{"resources/read"};
 
 /// @ingroup mcp
+/// Wire string for the resource subscribe request method.
+constexpr JSON::StringView MCP_METHOD_RESOURCES_SUBSCRIBE{
+    "resources/subscribe"};
+
+/// @ingroup mcp
+/// Wire string for the resource unsubscribe request method.
+constexpr JSON::StringView MCP_METHOD_RESOURCES_UNSUBSCRIBE{
+    "resources/unsubscribe"};
+
+/// @ingroup mcp
 /// Wire string for the resource templates list request method.
 constexpr JSON::StringView MCP_METHOD_RESOURCES_TEMPLATES_LIST{
     "resources/templates/list"};
@@ -202,7 +212,7 @@ mcp_resolve_protocol_version(const JSON::StringView value) noexcept
   if (value == MCP_PROTOCOL_VERSION_2025_06_18) {
     return MCPProtocolVersion::V_2025_06_18;
   }
-  if (value.empty() || value == MCP_PROTOCOL_VERSION_2025_03_26) {
+  if (value == MCP_PROTOCOL_VERSION_2025_03_26) {
     return MCPProtocolVersion::V_2025_03_26;
   }
   return std::nullopt;
@@ -223,7 +233,7 @@ mcp_protocol_version_at_least(const MCPProtocolVersion current,
 /// version.
 constexpr auto
 mcp_protocol_version_is_valid(const JSON::StringView value) noexcept -> bool {
-  return !value.empty() && mcp_resolve_protocol_version(value).has_value();
+  return mcp_resolve_protocol_version(value).has_value();
 }
 
 /// @ingroup mcp
@@ -239,14 +249,6 @@ mcp_uses_initialization_handshake(const MCPProtocolVersion version) noexcept
 /// Whether the specified MCP protocol version supports the `ping` method.
 constexpr auto mcp_supports_ping(const MCPProtocolVersion version) noexcept
     -> bool {
-  return version != MCPProtocolVersion::V_2026_07_28;
-}
-
-/// @ingroup mcp
-/// Whether the specified MCP protocol version relies on stateful protocol
-/// sessions established during initialization.
-constexpr auto
-mcp_uses_protocol_sessions(const MCPProtocolVersion version) noexcept -> bool {
   return version != MCPProtocolVersion::V_2026_07_28;
 }
 
@@ -314,7 +316,7 @@ constexpr auto mcp_latest_initialization_version() noexcept
 constexpr auto
 mcp_supports_protocol_sessions(const MCPProtocolVersion version) noexcept
     -> bool {
-  return mcp_uses_protocol_sessions(version);
+  return version != MCPProtocolVersion::V_2026_07_28;
 }
 
 /// @ingroup mcp
@@ -405,15 +407,9 @@ constexpr auto mcp_is_request_method(const MCPProtocolVersion version,
          method == MCP_METHOD_PROMPTS_LIST ||
          method == MCP_METHOD_PROMPTS_GET ||
          method == MCP_METHOD_COMPLETION_COMPLETE ||
-         method == MCP_METHOD_LOGGING_SET_LEVEL;
-}
-
-/// @ingroup mcp
-/// Whether the given string is a valid MCP request method in the latest
-/// initialization-compatible version (2025-11-25).
-constexpr auto mcp_is_request_method(const JSON::StringView method) noexcept
-    -> bool {
-  return mcp_is_request_method(MCPProtocolVersion::V_2025_11_25, method);
+         method == MCP_METHOD_LOGGING_SET_LEVEL ||
+         method == MCP_METHOD_RESOURCES_SUBSCRIBE ||
+         method == MCP_METHOD_RESOURCES_UNSUBSCRIBE;
 }
 
 /// @ingroup mcp
@@ -464,7 +460,9 @@ constexpr auto mcp_supports_method(const MCPProtocolVersion version,
          method == MCP_METHOD_NOTIFICATIONS_TOOLS_LIST_CHANGED ||
          method == MCP_METHOD_ROOTS_LIST ||
          method == MCP_METHOD_SAMPLING_CREATE_MESSAGE ||
-         method == MCP_METHOD_ELICITATION_CREATE;
+         method == MCP_METHOD_ELICITATION_CREATE ||
+         method == MCP_METHOD_RESOURCES_SUBSCRIBE ||
+         method == MCP_METHOD_RESOURCES_UNSUBSCRIBE;
 }
 
 /// @ingroup mcp
@@ -473,7 +471,9 @@ constexpr auto
 mcp_is_named_request_method(const JSON::StringView method) noexcept -> bool {
   return method == MCP_METHOD_TOOLS_CALL ||
          method == MCP_METHOD_RESOURCES_READ ||
-         method == MCP_METHOD_PROMPTS_GET;
+         method == MCP_METHOD_PROMPTS_GET ||
+         method == MCP_METHOD_RESOURCES_SUBSCRIBE ||
+         method == MCP_METHOD_RESOURCES_UNSUBSCRIBE;
 }
 
 } // namespace sourcemeta::core

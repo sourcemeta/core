@@ -48,10 +48,17 @@ constexpr std::int64_t MCP_CODE_UNSUPPORTED_PROTOCOL_VERSION{-32022};
 /// @ref HTTP_STATUS_BAD_REQUEST for client errors (-32600, -32602, -32700,
 /// -32020, -32021, -32022), and @ref HTTP_STATUS_INTERNAL_SERVER_ERROR
 /// for internal or unmapped server errors.
-constexpr auto mcp_error_code_to_http_status(const std::int64_t code) noexcept
+constexpr auto mcp_error_code_to_http_status(const MCPProtocolVersion version,
+                                             const std::int64_t code) noexcept
     -> HTTPStatus {
-  if (code == JSONRPC_CODE_METHOD_NOT_FOUND) {
-    return HTTP_STATUS_NOT_FOUND;
+  if (version == MCPProtocolVersion::V_2026_07_28) {
+    if (code == JSONRPC_CODE_METHOD_NOT_FOUND) {
+      return HTTP_STATUS_NOT_FOUND;
+    }
+  } else {
+    if (code == JSONRPC_CODE_METHOD_NOT_FOUND) {
+      return HTTP_STATUS_BAD_REQUEST;
+    }
   }
   if (code == JSONRPC_CODE_INVALID_REQUEST ||
       code == JSONRPC_CODE_INVALID_PARAMS || code == JSONRPC_CODE_PARSE ||
@@ -61,6 +68,14 @@ constexpr auto mcp_error_code_to_http_status(const std::int64_t code) noexcept
     return HTTP_STATUS_BAD_REQUEST;
   }
   return HTTP_STATUS_INTERNAL_SERVER_ERROR;
+}
+
+/// @ingroup mcp
+/// Map an error code to HTTP status code defaulting to modern 2026-07-28
+/// version.
+constexpr auto mcp_error_code_to_http_status(const std::int64_t code) noexcept
+    -> HTTPStatus {
+  return mcp_error_code_to_http_status(MCPProtocolVersion::V_2026_07_28, code);
 }
 
 /// @ingroup mcp

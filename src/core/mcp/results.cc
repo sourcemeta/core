@@ -19,6 +19,7 @@
 namespace {
 
 auto serialize_capabilities(
+    const sourcemeta::core::MCPProtocolVersion version,
     const sourcemeta::core::MCPServerCapabilities &capabilities)
     -> sourcemeta::core::JSON {
   auto capabilities_object{sourcemeta::core::JSON::make_object()};
@@ -70,7 +71,8 @@ auto serialize_capabilities(
                                           sourcemeta::core::MCP_HASH_TOOLS);
   }
 
-  if (capabilities.extensions.has_value() &&
+  if (version == sourcemeta::core::MCPProtocolVersion::V_2026_07_28 &&
+      capabilities.extensions.has_value() &&
       capabilities.extensions->is_object()) {
     capabilities_object.assign_assume_new(
         "extensions", sourcemeta::core::JSON{capabilities.extensions.value()},
@@ -103,8 +105,8 @@ auto mcp_make_text_block(const JSON::StringView text)
 
 auto mcp_make_resource_link(const MCPProtocolVersion version,
                             const JSON::StringView uri,
-                            const JSON::StringView mime_type,
                             const JSON::StringView name,
+                            const JSON::StringView mime_type,
                             const JSON::StringView description)
     -> sourcemeta::core::JSON {
   if (!mcp_supports_resource_link_content(version)) {
@@ -125,16 +127,15 @@ auto mcp_make_resource_link(const MCPProtocolVersion version,
   block.assign_assume_new("type", sourcemeta::core::JSON{"resource_link"},
                           MCP_HASH_TYPE);
   block.assign_assume_new("uri", sourcemeta::core::JSON{uri}, MCP_HASH_URI);
-  if (!name.empty()) {
-    block.assign_assume_new("name", sourcemeta::core::JSON{name},
-                            MCP_HASH_NAME);
-  }
+  block.assign_assume_new("name", sourcemeta::core::JSON{name}, MCP_HASH_NAME);
   if (!description.empty()) {
     block.assign_assume_new("description", sourcemeta::core::JSON{description},
                             MCP_HASH_DESCRIPTION);
   }
-  block.assign_assume_new("mimeType", sourcemeta::core::JSON{mime_type},
-                          MCP_HASH_MIME_TYPE);
+  if (!mime_type.empty()) {
+    block.assign_assume_new("mimeType", sourcemeta::core::JSON{mime_type},
+                            MCP_HASH_MIME_TYPE);
+  }
   return block;
 }
 
@@ -200,11 +201,17 @@ void mcp_decorate_cacheable_result_in_place(
     return;
   }
 
-  if (cache_policy->ttl_ms >= 0) {
-    result.assign("ttlMs", sourcemeta::core::JSON{cache_policy->ttl_ms});
-    result.assign("cacheScope", sourcemeta::core::JSON{mcp_cache_scope_string(
-                                    cache_policy->scope)});
+  if (const auto *result_type{
+          result.try_at("resultType", MCP_HASH_RESULT_TYPE)};
+      result_type != nullptr && result_type->is_string() &&
+      result_type->to_string() != "complete") {
+    return;
   }
+
+  const auto clamped_ttl{std::max<std::int64_t>(0, cache_policy->ttl_ms)};
+  result.assign("ttlMs", sourcemeta::core::JSON{clamped_ttl});
+  result.assign("cacheScope", sourcemeta::core::JSON{
+                                  mcp_cache_scope_string(cache_policy->scope)});
 }
 
 auto mcp_decorate_cacheable_result(
@@ -354,15 +361,6 @@ auto mcp_make_resources_read_result(const MCPProtocolVersion version,
                                        cache_policy);
 }
 
-auto mcp_make_resources_read_result(
-    [[maybe_unused]] const MCPProtocolVersion version,
-    sourcemeta::core::JSON contents) -> sourcemeta::core::JSON {
-  assert(version != MCPProtocolVersion::V_2026_07_28);
-  auto result{sourcemeta::core::JSON::make_object()};
-  result.assign_assume_new("contents", std::move(contents), MCP_HASH_CONTENTS);
-  return result;
-}
-
 auto mcp_make_tools_list_result(
     const MCPProtocolVersion version, sourcemeta::core::JSON tools,
     const std::optional<JSON::StringView> next_cursor,
@@ -380,22 +378,6 @@ auto mcp_make_tools_list_result(
   }
   return mcp_decorate_cacheable_result(version, std::move(result),
                                        cache_policy);
-}
-
-auto mcp_make_tools_list_result(
-    [[maybe_unused]] const MCPProtocolVersion version,
-    sourcemeta::core::JSON tools,
-    const std::optional<JSON::StringView> next_cursor)
-    -> sourcemeta::core::JSON {
-  assert(version != MCPProtocolVersion::V_2026_07_28);
-  auto result{sourcemeta::core::JSON::make_object()};
-  result.assign_assume_new("tools", std::move(tools), MCP_HASH_TOOLS);
-  if (next_cursor.has_value()) {
-    result.assign_assume_new("nextCursor",
-                             sourcemeta::core::JSON{next_cursor.value()},
-                             MCP_HASH_NEXT_CURSOR);
-  }
-  return result;
 }
 
 auto mcp_make_resources_list_result(
@@ -418,23 +400,6 @@ auto mcp_make_resources_list_result(
                                        cache_policy);
 }
 
-auto mcp_make_resources_list_result(
-    [[maybe_unused]] const MCPProtocolVersion version,
-    sourcemeta::core::JSON resources,
-    const std::optional<JSON::StringView> next_cursor)
-    -> sourcemeta::core::JSON {
-  assert(version != MCPProtocolVersion::V_2026_07_28);
-  auto result{sourcemeta::core::JSON::make_object()};
-  result.assign_assume_new("resources", std::move(resources),
-                           MCP_HASH_RESOURCES);
-  if (next_cursor.has_value()) {
-    result.assign_assume_new("nextCursor",
-                             sourcemeta::core::JSON{next_cursor.value()},
-                             MCP_HASH_NEXT_CURSOR);
-  }
-  return result;
-}
-
 auto mcp_make_resource_templates_list_result(
     const MCPProtocolVersion version, sourcemeta::core::JSON resource_templates,
     const std::optional<JSON::StringView> next_cursor,
@@ -455,23 +420,6 @@ auto mcp_make_resource_templates_list_result(
                                        cache_policy);
 }
 
-auto mcp_make_resource_templates_list_result(
-    [[maybe_unused]] const MCPProtocolVersion version,
-    sourcemeta::core::JSON resource_templates,
-    const std::optional<JSON::StringView> next_cursor)
-    -> sourcemeta::core::JSON {
-  assert(version != MCPProtocolVersion::V_2026_07_28);
-  auto result{sourcemeta::core::JSON::make_object()};
-  result.assign_assume_new("resourceTemplates", std::move(resource_templates),
-                           MCP_HASH_RESOURCE_TEMPLATES);
-  if (next_cursor.has_value()) {
-    result.assign_assume_new("nextCursor",
-                             sourcemeta::core::JSON{next_cursor.value()},
-                             MCP_HASH_NEXT_CURSOR);
-  }
-  return result;
-}
-
 auto mcp_make_prompts_list_result(
     const MCPProtocolVersion version, sourcemeta::core::JSON prompts,
     const std::optional<JSON::StringView> next_cursor,
@@ -489,22 +437,6 @@ auto mcp_make_prompts_list_result(
   }
   return mcp_decorate_cacheable_result(version, std::move(result),
                                        cache_policy);
-}
-
-auto mcp_make_prompts_list_result(
-    [[maybe_unused]] const MCPProtocolVersion version,
-    sourcemeta::core::JSON prompts,
-    const std::optional<JSON::StringView> next_cursor)
-    -> sourcemeta::core::JSON {
-  assert(version != MCPProtocolVersion::V_2026_07_28);
-  auto result{sourcemeta::core::JSON::make_object()};
-  result.assign_assume_new("prompts", std::move(prompts), MCP_HASH_PROMPTS);
-  if (next_cursor.has_value()) {
-    result.assign_assume_new("nextCursor",
-                             sourcemeta::core::JSON{next_cursor.value()},
-                             MCP_HASH_NEXT_CURSOR);
-  }
-  return result;
 }
 
 auto mcp_make_resource_template(const JSON::StringView uri_template,
@@ -528,8 +460,7 @@ auto mcp_make_tool_descriptor(
     const JSON::StringView description, sourcemeta::core::JSON input_schema,
     std::optional<sourcemeta::core::JSON> output_schema,
     const MCPToolAnnotations &annotations) -> sourcemeta::core::JSON {
-  assert(!annotations.read_only || !annotations.destructive);
-  assert(!annotations.read_only || annotations.idempotent);
+
 #ifndef NDEBUG
   const auto *type_field{input_schema.is_object()
                              ? input_schema.try_at("type", MCP_HASH_TYPE)
@@ -598,7 +529,7 @@ auto mcp_make_initialize_result(const sourcemeta::core::JSON &request,
                          ? resolved.value()
                          : mcp_latest_initialization_version()};
 
-  auto capabilities_object{serialize_capabilities(capabilities)};
+  auto capabilities_object{serialize_capabilities(version, capabilities)};
 
   auto server_info{sourcemeta::core::JSON::make_object()};
   server_info.assign_assume_new("name", sourcemeta::core::JSON{server.name},
@@ -656,8 +587,10 @@ auto mcp_make_server_discover_result(
   result.assign_assume_new("supportedVersions", std::move(versions_array),
                            MCP_HASH_SUPPORTED_VERSIONS);
 
-  result.assign_assume_new("capabilities", serialize_capabilities(capabilities),
-                           MCP_HASH_CAPABILITIES);
+  result.assign_assume_new(
+      "capabilities",
+      serialize_capabilities(MCPProtocolVersion::V_2026_07_28, capabilities),
+      MCP_HASH_CAPABILITIES);
 
   auto server_info{sourcemeta::core::JSON::make_object()};
   server_info.assign_assume_new("name", sourcemeta::core::JSON{server.name},
@@ -690,14 +623,13 @@ auto mcp_make_server_discover_result(
                              MCP_HASH_INSTRUCTIONS);
   }
 
-  if (cache_policy.ttl_ms >= 0) {
-    result.assign_assume_new(
-        "ttlMs", sourcemeta::core::JSON{cache_policy.ttl_ms}, MCP_HASH_TTL_MS);
-    result.assign_assume_new(
-        "cacheScope",
-        sourcemeta::core::JSON{mcp_cache_scope_string(cache_policy.scope)},
-        MCP_HASH_CACHE_SCOPE);
-  }
+  const auto clamped_ttl{std::max<std::int64_t>(0, cache_policy.ttl_ms)};
+  result.assign_assume_new("ttlMs", sourcemeta::core::JSON{clamped_ttl},
+                           MCP_HASH_TTL_MS);
+  result.assign_assume_new(
+      "cacheScope",
+      sourcemeta::core::JSON{mcp_cache_scope_string(cache_policy.scope)},
+      MCP_HASH_CACHE_SCOPE);
 
   return sourcemeta::core::jsonrpc_make_success(identifier, std::move(result));
 }

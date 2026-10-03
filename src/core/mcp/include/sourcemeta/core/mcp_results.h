@@ -116,8 +116,8 @@ auto mcp_make_text_block(const JSON::StringView text) -> sourcemeta::core::JSON;
 SOURCEMETA_CORE_MCP_EXPORT
 auto mcp_make_resource_link(const MCPProtocolVersion version,
                             const JSON::StringView uri,
-                            const JSON::StringView mime_type,
-                            const JSON::StringView name = {},
+                            const JSON::StringView name,
+                            const JSON::StringView mime_type = {},
                             const JSON::StringView description = {})
     -> sourcemeta::core::JSON;
 
@@ -219,14 +219,6 @@ auto mcp_make_resources_read_result(const MCPProtocolVersion version,
     -> sourcemeta::core::JSON;
 
 /// @ingroup mcp
-/// Wrap a pre-built array of content entries into the MCP `resources/read`
-/// result envelope for legacy revisions where caching metadata is not emitted.
-SOURCEMETA_CORE_MCP_EXPORT
-auto mcp_make_resources_read_result(const MCPProtocolVersion version,
-                                    sourcemeta::core::JSON contents)
-    -> sourcemeta::core::JSON;
-
-/// @ingroup mcp
 /// Build a single entry for an MCP `resources/templates/list` response.
 SOURCEMETA_CORE_MCP_EXPORT
 auto mcp_make_resource_template(const JSON::StringView uri_template,
@@ -254,14 +246,6 @@ auto mcp_make_tools_list_result(
     const MCPCachePolicy &cache_policy) -> sourcemeta::core::JSON;
 
 /// @ingroup mcp
-/// Build an MCP `tools/list` result object for legacy protocol revisions.
-SOURCEMETA_CORE_MCP_EXPORT
-auto mcp_make_tools_list_result(
-    const MCPProtocolVersion version, sourcemeta::core::JSON tools,
-    const std::optional<JSON::StringView> next_cursor = std::nullopt)
-    -> sourcemeta::core::JSON;
-
-/// @ingroup mcp
 /// Build an MCP `resources/list` result object for 2026-07-28 with required
 /// cache metadata.
 SOURCEMETA_CORE_MCP_EXPORT
@@ -269,14 +253,6 @@ auto mcp_make_resources_list_result(
     const MCPProtocolVersion version, sourcemeta::core::JSON resources,
     const std::optional<JSON::StringView> next_cursor,
     const MCPCachePolicy &cache_policy) -> sourcemeta::core::JSON;
-
-/// @ingroup mcp
-/// Build an MCP `resources/list` result object for legacy protocol revisions.
-SOURCEMETA_CORE_MCP_EXPORT
-auto mcp_make_resources_list_result(
-    const MCPProtocolVersion version, sourcemeta::core::JSON resources,
-    const std::optional<JSON::StringView> next_cursor = std::nullopt)
-    -> sourcemeta::core::JSON;
 
 /// @ingroup mcp
 /// Build an MCP `resources/templates/list` result object for 2026-07-28 with
@@ -288,14 +264,6 @@ auto mcp_make_resource_templates_list_result(
     const MCPCachePolicy &cache_policy) -> sourcemeta::core::JSON;
 
 /// @ingroup mcp
-/// Build an MCP `resources/templates/list` result object for legacy revisions.
-SOURCEMETA_CORE_MCP_EXPORT
-auto mcp_make_resource_templates_list_result(
-    const MCPProtocolVersion version, sourcemeta::core::JSON resource_templates,
-    const std::optional<JSON::StringView> next_cursor = std::nullopt)
-    -> sourcemeta::core::JSON;
-
-/// @ingroup mcp
 /// Build an MCP `prompts/list` result object for 2026-07-28 with required cache
 /// metadata.
 SOURCEMETA_CORE_MCP_EXPORT
@@ -303,14 +271,6 @@ auto mcp_make_prompts_list_result(
     const MCPProtocolVersion version, sourcemeta::core::JSON prompts,
     const std::optional<JSON::StringView> next_cursor,
     const MCPCachePolicy &cache_policy) -> sourcemeta::core::JSON;
-
-/// @ingroup mcp
-/// Build an MCP `prompts/list` result object for legacy revisions.
-SOURCEMETA_CORE_MCP_EXPORT
-auto mcp_make_prompts_list_result(
-    const MCPProtocolVersion version, sourcemeta::core::JSON prompts,
-    const std::optional<JSON::StringView> next_cursor = std::nullopt)
-    -> sourcemeta::core::JSON;
 
 /// @ingroup mcp
 /// Build the JSON-RPC envelope returned in response to an MCP `initialize`

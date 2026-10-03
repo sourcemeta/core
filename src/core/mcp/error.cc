@@ -24,9 +24,13 @@ auto mcp_make_error_unsupported_protocol_version(
   data.assign_assume_new("requested", sourcemeta::core::JSON{requested},
                          MCP_HASH_REQUESTED);
 
-  return sourcemeta::core::jsonrpc_make_error(
+  auto envelope{sourcemeta::core::jsonrpc_make_error(
       &identifier, MCP_CODE_UNSUPPORTED_PROTOCOL_VERSION,
-      "Unsupported protocol version", std::move(data));
+      "Unsupported protocol version", std::move(data))};
+  if (identifier.is_null()) {
+    envelope.erase("id", MCP_HASH_ID);
+  }
+  return envelope;
 }
 
 auto mcp_make_error_missing_required_capability(
@@ -38,16 +42,24 @@ auto mcp_make_error_missing_required_capability(
                          std::move(required_capabilities),
                          MCP_HASH_REQUIRED_CAPABILITIES);
 
-  return sourcemeta::core::jsonrpc_make_error(
+  auto envelope{sourcemeta::core::jsonrpc_make_error(
       &identifier, MCP_CODE_MISSING_REQUIRED_CLIENT_CAPABILITY, message,
-      std::move(data));
+      std::move(data))};
+  if (identifier.is_null()) {
+    envelope.erase("id", MCP_HASH_ID);
+  }
+  return envelope;
 }
 
 auto mcp_make_error_header_mismatch(const sourcemeta::core::JSON &identifier,
                                     const JSON::StringView message)
     -> sourcemeta::core::JSON {
-  return sourcemeta::core::jsonrpc_make_error(
-      &identifier, MCP_CODE_HEADER_MISMATCH, message);
+  auto envelope{sourcemeta::core::jsonrpc_make_error(
+      &identifier, MCP_CODE_HEADER_MISMATCH, message)};
+  if (identifier.is_null()) {
+    envelope.erase("id", MCP_HASH_ID);
+  }
+  return envelope;
 }
 
 auto mcp_make_error_header_mismatch(const sourcemeta::core::JSON &identifier,
@@ -63,9 +75,13 @@ auto mcp_make_error_header_mismatch(const sourcemeta::core::JSON &identifier,
   data.assign_assume_new("bodyValue", sourcemeta::core::JSON{body_value},
                          MCP_HASH_BODY_VALUE);
 
-  return sourcemeta::core::jsonrpc_make_error(
+  auto envelope{sourcemeta::core::jsonrpc_make_error(
       &identifier, MCP_CODE_HEADER_MISMATCH, "Header mismatch",
-      std::move(data));
+      std::move(data))};
+  if (identifier.is_null()) {
+    envelope.erase("id", MCP_HASH_ID);
+  }
+  return envelope;
 }
 
 auto mcp_make_error_header_mismatch(const sourcemeta::core::JSON &identifier,
@@ -78,20 +94,29 @@ auto mcp_make_error_header_mismatch(const sourcemeta::core::JSON &identifier,
   data.assign_assume_new("headerValue", sourcemeta::core::JSON{header_value},
                          MCP_HASH_HEADER_VALUE);
 
-  return sourcemeta::core::jsonrpc_make_error(
+  auto envelope{sourcemeta::core::jsonrpc_make_error(
       &identifier, MCP_CODE_HEADER_MISMATCH,
-      "Header mismatch: unexpected header provided", std::move(data));
+      "Header mismatch: unexpected header provided", std::move(data))};
+  if (identifier.is_null()) {
+    envelope.erase("id", MCP_HASH_ID);
+  }
+  return envelope;
 }
 
 auto mcp_make_error_resource_not_found(const MCPProtocolVersion version,
                                        const sourcemeta::core::JSON &identifier)
     -> sourcemeta::core::JSON {
-  if (version == MCPProtocolVersion::V_2026_07_28) {
-    return sourcemeta::core::jsonrpc_make_error(
-        &identifier, JSONRPC_CODE_INVALID_PARAMS, "Resource not found");
+  auto envelope{
+      version == MCPProtocolVersion::V_2026_07_28
+          ? sourcemeta::core::jsonrpc_make_error(
+                &identifier, JSONRPC_CODE_INVALID_PARAMS, "Resource not found")
+          : sourcemeta::core::jsonrpc_make_error(&identifier,
+                                                 MCP_CODE_RESOURCE_NOT_FOUND,
+                                                 "Resource not found")};
+  if (identifier.is_null()) {
+    envelope.erase("id", MCP_HASH_ID);
   }
-  return sourcemeta::core::jsonrpc_make_error(
-      &identifier, MCP_CODE_RESOURCE_NOT_FOUND, "Resource not found");
+  return envelope;
 }
 
 } // namespace sourcemeta::core

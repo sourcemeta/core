@@ -18,13 +18,30 @@
 
 namespace {
 
-auto mcp_decode_header_value(const sourcemeta::core::JSON::StringView raw)
+auto mcp_is_valid_header_characters(
+    const sourcemeta::core::JSON::StringView raw_header) noexcept -> bool {
+  for (const char character : raw_header) {
+    const auto unsigned_character{static_cast<unsigned char>(character)};
+    if (unsigned_character != 0x09 &&
+        (unsigned_character < 0x20 || unsigned_character > 0x7E)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+auto mcp_decode_header_value(
+    const sourcemeta::core::JSON::StringView raw_header)
     -> std::optional<std::string> {
-  if (raw.starts_with("=?base64?") && raw.ends_with("?=") && raw.size() >= 11) {
-    const auto payload{raw.substr(9, raw.size() - 11)};
+  if (!mcp_is_valid_header_characters(raw_header)) {
+    return std::nullopt;
+  }
+  if (raw_header.starts_with("=?base64?") && raw_header.ends_with("?=") &&
+      raw_header.size() >= 11) {
+    const auto payload{raw_header.substr(9, raw_header.size() - 11)};
     return sourcemeta::core::base64_decode(payload);
   }
-  return std::string{raw};
+  return std::string{raw_header};
 }
 
 } // namespace
@@ -175,79 +192,85 @@ auto mcp_make_error_request_meta(const sourcemeta::core::JSON &identifier,
                                  const JSON::StringView requested,
                                  const std::vector<JSON::StringView> &supported)
     -> sourcemeta::core::JSON {
-  switch (status) {
-    case MCPRequestMetaStatus::Valid:
-      assert(status != MCPRequestMetaStatus::Valid);
-      return sourcemeta::core::jsonrpc_make_error(
-          &identifier, JSONRPC_CODE_INTERNAL, "Internal error");
-    case MCPRequestMetaStatus::MissingParams:
-      return sourcemeta::core::jsonrpc_make_error(
-          &identifier, JSONRPC_CODE_INVALID_PARAMS,
-          "Invalid params: missing params object");
-    case MCPRequestMetaStatus::ParamsNotObject:
-      return sourcemeta::core::jsonrpc_make_error(
-          &identifier, JSONRPC_CODE_INVALID_PARAMS,
-          "Invalid params: params must be an object");
-    case MCPRequestMetaStatus::MissingMeta:
-      return sourcemeta::core::jsonrpc_make_error(
-          &identifier, JSONRPC_CODE_INVALID_PARAMS,
-          "Invalid params: missing _meta object");
-    case MCPRequestMetaStatus::MetaNotObject:
-      return sourcemeta::core::jsonrpc_make_error(
-          &identifier, JSONRPC_CODE_INVALID_PARAMS,
-          "Invalid params: _meta must be an object");
-    case MCPRequestMetaStatus::MissingProtocolVersion:
-      return sourcemeta::core::jsonrpc_make_error(
-          &identifier, JSONRPC_CODE_INVALID_PARAMS,
-          "Invalid params: missing protocolVersion in _meta");
-    case MCPRequestMetaStatus::ProtocolVersionNotString:
-      return sourcemeta::core::jsonrpc_make_error(
-          &identifier, JSONRPC_CODE_INVALID_PARAMS,
-          "Invalid params: protocolVersion must be a string");
-    case MCPRequestMetaStatus::UnsupportedProtocolVersion:
-      return mcp_make_error_unsupported_protocol_version(
-          identifier, requested,
-          supported.empty()
-              ? std::vector<JSON::StringView>{MCP_PROTOCOL_VERSION_2026_07_28}
-              : supported);
-    case MCPRequestMetaStatus::MissingClientCapabilities:
-      return sourcemeta::core::jsonrpc_make_error(
-          &identifier, JSONRPC_CODE_INVALID_PARAMS,
-          "Invalid params: missing clientCapabilities in _meta");
-    case MCPRequestMetaStatus::ClientCapabilitiesNotObject:
-      return sourcemeta::core::jsonrpc_make_error(
-          &identifier, JSONRPC_CODE_INVALID_PARAMS,
-          "Invalid params: clientCapabilities must be an object");
-    case MCPRequestMetaStatus::ClientInfoNotObject:
-      return sourcemeta::core::jsonrpc_make_error(
-          &identifier, JSONRPC_CODE_INVALID_PARAMS,
-          "Invalid params: clientInfo must be an object");
-    case MCPRequestMetaStatus::MissingClientInfoName:
-      return sourcemeta::core::jsonrpc_make_error(
-          &identifier, JSONRPC_CODE_INVALID_PARAMS,
-          "Invalid params: missing name in clientInfo");
-    case MCPRequestMetaStatus::ClientInfoNameNotString:
-      return sourcemeta::core::jsonrpc_make_error(
-          &identifier, JSONRPC_CODE_INVALID_PARAMS,
-          "Invalid params: clientInfo name must be a string");
-    case MCPRequestMetaStatus::MissingClientInfoVersion:
-      return sourcemeta::core::jsonrpc_make_error(
-          &identifier, JSONRPC_CODE_INVALID_PARAMS,
-          "Invalid params: missing version in clientInfo");
-    case MCPRequestMetaStatus::ClientInfoVersionNotString:
-      return sourcemeta::core::jsonrpc_make_error(
-          &identifier, JSONRPC_CODE_INVALID_PARAMS,
-          "Invalid params: clientInfo version must be a string");
-    case MCPRequestMetaStatus::ClientInfoTitleNotString:
-      return sourcemeta::core::jsonrpc_make_error(
-          &identifier, JSONRPC_CODE_INVALID_PARAMS,
-          "Invalid params: clientInfo title must be a string");
-    case MCPRequestMetaStatus::ClientInfoDescriptionNotString:
-      return sourcemeta::core::jsonrpc_make_error(
-          &identifier, JSONRPC_CODE_INVALID_PARAMS,
-          "Invalid params: clientInfo description must be a string");
+  auto envelope = [&]() -> sourcemeta::core::JSON {
+    switch (status) {
+      case MCPRequestMetaStatus::Valid:
+        assert(status != MCPRequestMetaStatus::Valid);
+        return sourcemeta::core::jsonrpc_make_error(
+            &identifier, JSONRPC_CODE_INTERNAL, "Internal error");
+      case MCPRequestMetaStatus::MissingParams:
+        return sourcemeta::core::jsonrpc_make_error(
+            &identifier, JSONRPC_CODE_INVALID_PARAMS,
+            "Invalid params: missing params object");
+      case MCPRequestMetaStatus::ParamsNotObject:
+        return sourcemeta::core::jsonrpc_make_error(
+            &identifier, JSONRPC_CODE_INVALID_PARAMS,
+            "Invalid params: params must be an object");
+      case MCPRequestMetaStatus::MissingMeta:
+        return sourcemeta::core::jsonrpc_make_error(
+            &identifier, JSONRPC_CODE_INVALID_PARAMS,
+            "Invalid params: missing _meta object");
+      case MCPRequestMetaStatus::MetaNotObject:
+        return sourcemeta::core::jsonrpc_make_error(
+            &identifier, JSONRPC_CODE_INVALID_PARAMS,
+            "Invalid params: _meta must be an object");
+      case MCPRequestMetaStatus::MissingProtocolVersion:
+        return sourcemeta::core::jsonrpc_make_error(
+            &identifier, JSONRPC_CODE_INVALID_PARAMS,
+            "Invalid params: missing protocolVersion in _meta");
+      case MCPRequestMetaStatus::ProtocolVersionNotString:
+        return sourcemeta::core::jsonrpc_make_error(
+            &identifier, JSONRPC_CODE_INVALID_PARAMS,
+            "Invalid params: protocolVersion must be a string");
+      case MCPRequestMetaStatus::UnsupportedProtocolVersion:
+        return mcp_make_error_unsupported_protocol_version(
+            identifier, requested,
+            supported.empty()
+                ? std::vector<JSON::StringView>{MCP_PROTOCOL_VERSION_2026_07_28}
+                : supported);
+      case MCPRequestMetaStatus::MissingClientCapabilities:
+        return sourcemeta::core::jsonrpc_make_error(
+            &identifier, JSONRPC_CODE_INVALID_PARAMS,
+            "Invalid params: missing clientCapabilities in _meta");
+      case MCPRequestMetaStatus::ClientCapabilitiesNotObject:
+        return sourcemeta::core::jsonrpc_make_error(
+            &identifier, JSONRPC_CODE_INVALID_PARAMS,
+            "Invalid params: clientCapabilities must be an object");
+      case MCPRequestMetaStatus::ClientInfoNotObject:
+        return sourcemeta::core::jsonrpc_make_error(
+            &identifier, JSONRPC_CODE_INVALID_PARAMS,
+            "Invalid params: clientInfo must be an object");
+      case MCPRequestMetaStatus::MissingClientInfoName:
+        return sourcemeta::core::jsonrpc_make_error(
+            &identifier, JSONRPC_CODE_INVALID_PARAMS,
+            "Invalid params: missing name in clientInfo");
+      case MCPRequestMetaStatus::ClientInfoNameNotString:
+        return sourcemeta::core::jsonrpc_make_error(
+            &identifier, JSONRPC_CODE_INVALID_PARAMS,
+            "Invalid params: clientInfo name must be a string");
+      case MCPRequestMetaStatus::MissingClientInfoVersion:
+        return sourcemeta::core::jsonrpc_make_error(
+            &identifier, JSONRPC_CODE_INVALID_PARAMS,
+            "Invalid params: missing version in clientInfo");
+      case MCPRequestMetaStatus::ClientInfoVersionNotString:
+        return sourcemeta::core::jsonrpc_make_error(
+            &identifier, JSONRPC_CODE_INVALID_PARAMS,
+            "Invalid params: clientInfo version must be a string");
+      case MCPRequestMetaStatus::ClientInfoTitleNotString:
+        return sourcemeta::core::jsonrpc_make_error(
+            &identifier, JSONRPC_CODE_INVALID_PARAMS,
+            "Invalid params: clientInfo title must be a string");
+      case MCPRequestMetaStatus::ClientInfoDescriptionNotString:
+        return sourcemeta::core::jsonrpc_make_error(
+            &identifier, JSONRPC_CODE_INVALID_PARAMS,
+            "Invalid params: clientInfo description must be a string");
+    }
+    std::unreachable();
+  }();
+  if (identifier.is_null()) {
+    envelope.erase("id", MCP_HASH_ID);
   }
-  std::unreachable();
+  return envelope;
 }
 
 auto mcp_request_protocol_version(const sourcemeta::core::JSON &envelope)
@@ -344,19 +367,25 @@ auto mcp_validate_request_headers(
     const std::optional<JSON::StringView> &name_header,
     const sourcemeta::core::JSON &envelope)
     -> std::optional<sourcemeta::core::JSON> {
-  if (!envelope.is_object()) {
-    return sourcemeta::core::jsonrpc_make_error(
-        nullptr, JSONRPC_CODE_INVALID_REQUEST, "Invalid Request");
-  }
+  const auto *raw_identifier{sourcemeta::core::jsonrpc_request_id(envelope)};
+  auto make_error = [&](const std::int64_t code, const JSON::StringView message,
+                        std::optional<sourcemeta::core::JSON> data =
+                            std::nullopt) -> sourcemeta::core::JSON {
+    auto error_envelope{sourcemeta::core::jsonrpc_make_error(
+        raw_identifier, code, message, std::move(data))};
+    if (raw_identifier == nullptr || raw_identifier->is_null()) {
+      error_envelope.erase("id", MCP_HASH_ID);
+    }
+    return error_envelope;
+  };
 
-  const auto *raw_id{sourcemeta::core::jsonrpc_request_id(envelope)};
-  const auto default_id{sourcemeta::core::JSON{nullptr}};
-  const auto &request_id{raw_id != nullptr ? *raw_id : default_id};
+  if (!envelope.is_object()) {
+    return make_error(JSONRPC_CODE_INVALID_REQUEST, "Invalid Request");
+  }
 
   const auto body_method{mcp_request_method_from_body(envelope)};
   if (!body_method.has_value()) {
-    return sourcemeta::core::jsonrpc_make_error(
-        raw_id, JSONRPC_CODE_INVALID_REQUEST, "Invalid Request");
+    return make_error(JSONRPC_CODE_INVALID_REQUEST, "Invalid Request");
   }
 
   const auto *parameters{sourcemeta::core::jsonrpc_params(envelope)};
@@ -364,8 +393,7 @@ auto mcp_validate_request_headers(
   const sourcemeta::core::JSON *name_field{nullptr};
   if (is_named) {
     if (parameters == nullptr || !parameters->is_object()) {
-      return sourcemeta::core::jsonrpc_make_error(
-          raw_id, JSONRPC_CODE_INVALID_PARAMS, "Invalid params");
+      return make_error(JSONRPC_CODE_INVALID_PARAMS, "Invalid params");
     }
 
     if (body_method.value() == MCP_METHOD_RESOURCES_READ) {
@@ -375,24 +403,36 @@ auto mcp_validate_request_headers(
     }
 
     if (name_field == nullptr || !name_field->is_string()) {
-      return sourcemeta::core::jsonrpc_make_error(
-          raw_id, JSONRPC_CODE_INVALID_PARAMS, "Invalid params");
+      return make_error(JSONRPC_CODE_INVALID_PARAMS, "Invalid params");
     }
   }
 
   if (version == MCPProtocolVersion::V_2026_07_28) {
     if (!protocol_version_header.has_value()) {
-      return mcp_make_error_header_mismatch(
-          request_id, "Missing required header: MCP-Protocol-Version");
+      return make_error(MCP_CODE_HEADER_MISMATCH,
+                        "Missing required header: MCP-Protocol-Version");
+    }
+
+    if (!mcp_is_valid_header_characters(protocol_version_header.value())) {
+      return make_error(MCP_CODE_HEADER_MISMATCH,
+                        "Invalid characters in header: MCP-Protocol-Version");
     }
 
     const auto resolved_protocol{
         mcp_resolve_protocol_version(protocol_version_header.value())};
     if (!resolved_protocol.has_value() ||
         resolved_protocol.value() != version) {
-      return mcp_make_error_unsupported_protocol_version(
-          request_id, protocol_version_header.value(),
-          {mcp_protocol_version_string(version)});
+      auto data{sourcemeta::core::JSON::make_object()};
+      auto supported_array{sourcemeta::core::JSON::make_array()};
+      supported_array.push_back(
+          sourcemeta::core::JSON{mcp_protocol_version_string(version)});
+      data.assign_assume_new("supported", std::move(supported_array),
+                             MCP_HASH_SUPPORTED);
+      data.assign_assume_new(
+          "requested", sourcemeta::core::JSON{protocol_version_header.value()},
+          MCP_HASH_REQUESTED);
+      return make_error(MCP_CODE_UNSUPPORTED_PROTOCOL_VERSION,
+                        "Unsupported protocol version", std::move(data));
     }
 
     std::optional<JSON::StringView> body_metadata_protocol;
@@ -410,39 +450,83 @@ auto mcp_validate_request_headers(
 
     if (!body_metadata_protocol.has_value() ||
         protocol_version_header.value() != body_metadata_protocol.value()) {
-      return mcp_make_error_header_mismatch(
-          request_id, MCP_HEADER_PROTOCOL_VERSION,
-          protocol_version_header.value(), body_metadata_protocol.value_or(""));
+      auto data{sourcemeta::core::JSON::make_object()};
+      data.assign_assume_new(
+          "header", sourcemeta::core::JSON{MCP_HEADER_PROTOCOL_VERSION},
+          MCP_HASH_HEADER);
+      data.assign_assume_new(
+          "headerValue",
+          sourcemeta::core::JSON{protocol_version_header.value()},
+          MCP_HASH_HEADER_VALUE);
+      data.assign_assume_new(
+          "bodyValue",
+          sourcemeta::core::JSON{body_metadata_protocol.value_or("")},
+          MCP_HASH_BODY_VALUE);
+      return make_error(MCP_CODE_HEADER_MISMATCH, "Header mismatch",
+                        std::move(data));
     }
 
     if (!method_header.has_value()) {
-      return mcp_make_error_header_mismatch(
-          request_id, "Missing required header: Mcp-Method");
+      return make_error(MCP_CODE_HEADER_MISMATCH,
+                        "Missing required header: Mcp-Method");
+    }
+
+    if (!mcp_is_valid_header_characters(method_header.value())) {
+      return make_error(MCP_CODE_HEADER_MISMATCH,
+                        "Invalid characters in header: Mcp-Method");
     }
 
     if (method_header.value() != body_method.value()) {
-      return mcp_make_error_header_mismatch(request_id, MCP_HEADER_METHOD,
-                                            method_header.value(),
-                                            body_method.value());
+      auto data{sourcemeta::core::JSON::make_object()};
+      data.assign_assume_new(
+          "header", sourcemeta::core::JSON{MCP_HEADER_METHOD}, MCP_HASH_HEADER);
+      data.assign_assume_new("headerValue",
+                             sourcemeta::core::JSON{method_header.value()},
+                             MCP_HASH_HEADER_VALUE);
+      data.assign_assume_new("bodyValue",
+                             sourcemeta::core::JSON{body_method.value()},
+                             MCP_HASH_BODY_VALUE);
+      return make_error(MCP_CODE_HEADER_MISMATCH, "Header mismatch",
+                        std::move(data));
     }
 
     if (is_named) {
       if (!name_header.has_value()) {
-        return mcp_make_error_header_mismatch(
-            request_id, "Missing required header: Mcp-Name");
+        return make_error(MCP_CODE_HEADER_MISMATCH,
+                          "Missing required header: Mcp-Name");
+      }
+
+      if (!mcp_is_valid_header_characters(name_header.value())) {
+        return make_error(MCP_CODE_HEADER_MISMATCH,
+                          "Invalid characters in header: Mcp-Name");
       }
 
       const auto decoded_name{mcp_decode_header_value(name_header.value())};
       if (!decoded_name.has_value() ||
           decoded_name.value() != name_field->to_string()) {
-        return mcp_make_error_header_mismatch(request_id, MCP_HEADER_NAME,
-                                              name_header.value(),
-                                              name_field->to_string());
+        auto data{sourcemeta::core::JSON::make_object()};
+        data.assign_assume_new(
+            "header", sourcemeta::core::JSON{MCP_HEADER_NAME}, MCP_HASH_HEADER);
+        data.assign_assume_new("headerValue",
+                               sourcemeta::core::JSON{name_header.value()},
+                               MCP_HASH_HEADER_VALUE);
+        data.assign_assume_new("bodyValue",
+                               sourcemeta::core::JSON{name_field->to_string()},
+                               MCP_HASH_BODY_VALUE);
+        return make_error(MCP_CODE_HEADER_MISMATCH, "Header mismatch",
+                          std::move(data));
       }
     } else {
       if (name_header.has_value()) {
-        return mcp_make_error_header_mismatch(request_id, MCP_HEADER_NAME,
-                                              name_header.value());
+        auto data{sourcemeta::core::JSON::make_object()};
+        data.assign_assume_new(
+            "header", sourcemeta::core::JSON{MCP_HEADER_NAME}, MCP_HASH_HEADER);
+        data.assign_assume_new("headerValue",
+                               sourcemeta::core::JSON{name_header.value()},
+                               MCP_HASH_HEADER_VALUE);
+        return make_error(MCP_CODE_HEADER_MISMATCH,
+                          "Header mismatch: unexpected header provided",
+                          std::move(data));
       }
     }
 
@@ -451,43 +535,99 @@ auto mcp_validate_request_headers(
 
   // Legacy protocol versions
   if (protocol_version_header.has_value()) {
+    if (!mcp_is_valid_header_characters(protocol_version_header.value())) {
+      return make_error(MCP_CODE_HEADER_MISMATCH,
+                        "Invalid characters in header: MCP-Protocol-Version");
+    }
+
     const auto resolved_protocol{
         mcp_resolve_protocol_version(protocol_version_header.value())};
     if (!resolved_protocol.has_value()) {
-      return mcp_make_error_unsupported_protocol_version(
-          request_id, protocol_version_header.value(),
-          {mcp_protocol_version_string(version)});
+      auto data{sourcemeta::core::JSON::make_object()};
+      auto supported_array{sourcemeta::core::JSON::make_array()};
+      supported_array.push_back(
+          sourcemeta::core::JSON{mcp_protocol_version_string(version)});
+      data.assign_assume_new("supported", std::move(supported_array),
+                             MCP_HASH_SUPPORTED);
+      data.assign_assume_new(
+          "requested", sourcemeta::core::JSON{protocol_version_header.value()},
+          MCP_HASH_REQUESTED);
+      return make_error(MCP_CODE_UNSUPPORTED_PROTOCOL_VERSION,
+                        "Unsupported protocol version", std::move(data));
     }
     if (resolved_protocol.value() != version) {
-      return mcp_make_error_header_mismatch(
-          request_id, MCP_HEADER_PROTOCOL_VERSION,
-          protocol_version_header.value(),
-          mcp_protocol_version_string(version));
+      auto data{sourcemeta::core::JSON::make_object()};
+      data.assign_assume_new(
+          "header", sourcemeta::core::JSON{MCP_HEADER_PROTOCOL_VERSION},
+          MCP_HASH_HEADER);
+      data.assign_assume_new(
+          "headerValue",
+          sourcemeta::core::JSON{protocol_version_header.value()},
+          MCP_HASH_HEADER_VALUE);
+      data.assign_assume_new(
+          "bodyValue",
+          sourcemeta::core::JSON{mcp_protocol_version_string(version)},
+          MCP_HASH_BODY_VALUE);
+      return make_error(MCP_CODE_HEADER_MISMATCH, "Header mismatch",
+                        std::move(data));
     }
   }
 
   if (method_header.has_value()) {
+    if (!mcp_is_valid_header_characters(method_header.value())) {
+      return make_error(MCP_CODE_HEADER_MISMATCH,
+                        "Invalid characters in header: Mcp-Method");
+    }
+
     if (method_header.value() != body_method.value()) {
-      return mcp_make_error_header_mismatch(request_id, MCP_HEADER_METHOD,
-                                            method_header.value(),
-                                            body_method.value());
+      auto data{sourcemeta::core::JSON::make_object()};
+      data.assign_assume_new(
+          "header", sourcemeta::core::JSON{MCP_HEADER_METHOD}, MCP_HASH_HEADER);
+      data.assign_assume_new("headerValue",
+                             sourcemeta::core::JSON{method_header.value()},
+                             MCP_HASH_HEADER_VALUE);
+      data.assign_assume_new("bodyValue",
+                             sourcemeta::core::JSON{body_method.value()},
+                             MCP_HASH_BODY_VALUE);
+      return make_error(MCP_CODE_HEADER_MISMATCH, "Header mismatch",
+                        std::move(data));
     }
   }
 
   if (is_named) {
     if (name_header.has_value()) {
+      if (!mcp_is_valid_header_characters(name_header.value())) {
+        return make_error(MCP_CODE_HEADER_MISMATCH,
+                          "Invalid characters in header: Mcp-Name");
+      }
+
       const auto decoded_name{mcp_decode_header_value(name_header.value())};
       if (!decoded_name.has_value() ||
           decoded_name.value() != name_field->to_string()) {
-        return mcp_make_error_header_mismatch(request_id, MCP_HEADER_NAME,
-                                              name_header.value(),
-                                              name_field->to_string());
+        auto data{sourcemeta::core::JSON::make_object()};
+        data.assign_assume_new(
+            "header", sourcemeta::core::JSON{MCP_HEADER_NAME}, MCP_HASH_HEADER);
+        data.assign_assume_new("headerValue",
+                               sourcemeta::core::JSON{name_header.value()},
+                               MCP_HASH_HEADER_VALUE);
+        data.assign_assume_new("bodyValue",
+                               sourcemeta::core::JSON{name_field->to_string()},
+                               MCP_HASH_BODY_VALUE);
+        return make_error(MCP_CODE_HEADER_MISMATCH, "Header mismatch",
+                          std::move(data));
       }
     }
   } else {
     if (name_header.has_value()) {
-      return mcp_make_error_header_mismatch(request_id, MCP_HEADER_NAME,
-                                            name_header.value());
+      auto data{sourcemeta::core::JSON::make_object()};
+      data.assign_assume_new("header", sourcemeta::core::JSON{MCP_HEADER_NAME},
+                             MCP_HASH_HEADER);
+      data.assign_assume_new("headerValue",
+                             sourcemeta::core::JSON{name_header.value()},
+                             MCP_HASH_HEADER_VALUE);
+      return make_error(MCP_CODE_HEADER_MISMATCH,
+                        "Header mismatch: unexpected header provided",
+                        std::move(data));
     }
   }
 
