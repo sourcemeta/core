@@ -194,6 +194,12 @@ else()
     crypto_aes_block.h crypto_ghash.h crypto_aes_kw_loop.h crypto_sha1_other.h
     crypto_bignum.h crypto_ecc.h crypto_eddsa.h crypto_shake256.h
     crypto_pkcs8.h crypto_other.h crypto_rsa_other.h)
+
+  if(WIN32)
+    # Even here the entropy comes from the system, as no portable source is
+    # guaranteed to be a cryptographic one
+    target_link_libraries(sourcemeta_core_crypto PRIVATE bcrypt)
+  endif()
 endif()
 
 if(SOURCEMETA_CORE_INSTALL)

@@ -92,11 +92,11 @@ if(SOURCEMETA_CORE_CRYPTO)
     find_package(OpenSSL 3.0 REQUIRED)
     set(SOURCEMETA_CORE_CRYPTO_BACKEND openssl)
   endif()
-  message(STATUS 
+  message(STATUS
     "Using the ${SOURCEMETA_CORE_CRYPTO_BACKEND} cryptography backend")
 endif()
-if(SOURCEMETA_CORE_LANG_ALLOCATOR AND 
-    (SOURCEMETA_OS_LINUX OR SOURCEMETA_OS_MACOS)
+if(SOURCEMETA_CORE_LANG_ALLOCATOR
+   AND (SOURCEMETA_OS_LINUX OR SOURCEMETA_OS_MACOS)
    AND NOT SOURCEMETA_CORE_ADDRESS_SANITIZER
    AND NOT SOURCEMETA_CORE_UNDEFINED_SANITIZER
    AND NOT SOURCEMETA_CORE_USE_SYSTEM_ALLOCATOR)
@@ -106,6 +106,9 @@ endif()
 if(SOURCEMETA_CORE_REGEX)
   find_package(SLJIT REQUIRED)
   find_package(PCRE2 REQUIRED)
+endif()
+if(SOURCEMETA_CORE_LANG_PARALLEL)
+  find_package(Threads REQUIRED)
 endif()
 
 # TODO: Turn this into a re-usable utility CMake function
@@ -149,7 +152,6 @@ if(SOURCEMETA_CORE_LANG_PROCESS)
 endif()
 
 if(SOURCEMETA_CORE_LANG_PARALLEL)
-  find_package(Threads REQUIRED)
   add_subdirectory(src/lang/parallel)
 endif()
 
