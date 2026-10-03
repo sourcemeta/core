@@ -251,6 +251,32 @@ TEST(divisible_by_integer_integer_false) {
   EXPECT_FALSE(dividend.divisible_by(divisor));
 }
 
+TEST(divisible_by_integer_minimum_by_negative_one) {
+  const sourcemeta::core::JSON dividend{
+      std::numeric_limits<std::int64_t>::min()};
+  const sourcemeta::core::JSON divisor{-1};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
+TEST(divisible_by_integer_minimum_by_one) {
+  const sourcemeta::core::JSON dividend{
+      std::numeric_limits<std::int64_t>::min()};
+  const sourcemeta::core::JSON divisor{1};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
+TEST(divisible_by_real_large_dividend_rounds_to_integer) {
+  const sourcemeta::core::JSON dividend{1e20};
+  const sourcemeta::core::JSON divisor{3.0};
+  EXPECT_FALSE(dividend.divisible_by(divisor));
+}
+
+TEST(divisible_by_real_quotient_underflows_to_zero) {
+  const sourcemeta::core::JSON dividend{1e-300};
+  const sourcemeta::core::JSON divisor{1e300};
+  EXPECT_FALSE(dividend.divisible_by(divisor));
+}
+
 TEST(divisible_by_integer_real_true) {
   const sourcemeta::core::JSON dividend{6};
   const sourcemeta::core::JSON divisor{1.5};

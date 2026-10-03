@@ -3894,3 +3894,134 @@ TEST(ecma262_class_brace_unicode_escape_unterminated) {
 TEST(ecma262_class_brace_unicode_escape_past_the_unicode_range) {
   EXPECT_FALSE(sourcemeta::core::is_regex_ecma("[\\u{FFFFFFF}]"));
 }
+
+TEST(ecma262_class_intersection) {
+  const auto regex{sourcemeta::core::to_regex(
+      R"(^[\d&&[0-5]]$)", sourcemeta::core::RegexDialect::Permissive)};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma(R"(^[\d&&[0-5]]$)"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "3"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "7"));
+}
+
+TEST(ecma262_class_subtraction) {
+  const auto regex{sourcemeta::core::to_regex(
+      R"(^[[a-z]--[aeiou]]$)", sourcemeta::core::RegexDialect::Permissive)};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma(R"(^[[a-z]--[aeiou]]$)"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "b"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
+}
+
+TEST(ecma262_class_intersection_of_shorthands) {
+  const auto regex{sourcemeta::core::to_regex(
+      R"(^[\d&&\w]$)", sourcemeta::core::RegexDialect::Permissive)};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma(R"(^[\d&&\w]$)"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "4"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
+}
+
+TEST(ecma262_class_subtraction_of_shorthands) {
+  const auto regex{sourcemeta::core::to_regex(
+      R"(^[\w--\d]$)", sourcemeta::core::RegexDialect::Permissive)};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma(R"(^[\w--\d]$)"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "4"));
+}
+
+TEST(ecma262_class_intersection_of_nested_classes) {
+  const auto regex{sourcemeta::core::to_regex(
+      R"(^[[abc]&&[bcd]]$)", sourcemeta::core::RegexDialect::Permissive)};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma(R"(^[[abc]&&[bcd]]$)"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "b"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
+}
+
+TEST(ecma262_class_intersection_with_a_hex_escape) {
+  const auto regex{sourcemeta::core::to_regex(
+      R"(^[\u0041&&[A-Z]]$)", sourcemeta::core::RegexDialect::Permissive)};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma(R"(^[\u0041&&[A-Z]]$)"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "A"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "B"));
+}
+
+TEST(ecma262_class_intersection_with_a_braced_hex_escape) {
+  const auto regex{sourcemeta::core::to_regex(
+      R"(^[\u{41}&&[A-Z]]$)", sourcemeta::core::RegexDialect::Permissive)};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma(R"(^[\u{41}&&[A-Z]]$)"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "A"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "B"));
+}
+
+TEST(ecma262_class_intersection_with_a_null_escape) {
+  const auto regex{sourcemeta::core::to_regex(
+      R"(^[\0&&[\x00-\x10]]$)", sourcemeta::core::RegexDialect::Permissive)};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma(R"(^[\0&&[\x00-\x10]]$)"));
+}
+
+TEST(ecma262_class_intersection_with_a_control_escape) {
+  const auto regex{sourcemeta::core::to_regex(
+      R"(^[\cA&&[\x00-\x10]]$)", sourcemeta::core::RegexDialect::Permissive)};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma(R"(^[\cA&&[\x00-\x10]]$)"));
+}
+
+TEST(ecma262_class_intersection_with_a_simple_escape) {
+  const auto regex{sourcemeta::core::to_regex(
+      R"(^[\t&&[\x00-\x10]]$)", sourcemeta::core::RegexDialect::Permissive)};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma(R"(^[\t&&[\x00-\x10]]$)"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\t"));
+}
+
+TEST(ecma262_class_intersection_with_a_negated_shorthand) {
+  const auto regex{sourcemeta::core::to_regex(
+      R"(^[\D&&[a-z]]$)", sourcemeta::core::RegexDialect::Permissive)};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma(R"(^[\D&&[a-z]]$)"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "4"));
+}
+
+// The permissive dialect reads the class set notation of these patterns while
+// ECMA-262 rejects them, under either of the readings it is given
+TEST(ecma262_class_intersection_with_a_braced_hex_escape_past_unicode) {
+  const auto regex{sourcemeta::core::to_regex(
+      R"(^[\u{110000}&&[A-Z]]$)", sourcemeta::core::RegexDialect::Permissive)};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma(R"(^[\u{110000}&&[A-Z]]$)"));
+}
+
+TEST(ecma262_class_intersection_with_a_malformed_hex_escape) {
+  const auto regex{sourcemeta::core::to_regex(
+      R"(^[\u12G4&&[A-Z]]$)", sourcemeta::core::RegexDialect::Permissive)};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma(R"(^[\u12G4&&[A-Z]]$)"));
+}
+
+TEST(ecma262_class_intersection_with_an_unmatched_nested_bracket) {
+  const auto regex{sourcemeta::core::to_regex(
+      R"(^[[a&&[ab]]$)", sourcemeta::core::RegexDialect::Permissive)};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma(R"(^[[a&&[ab]]$)"));
+}
+
+TEST(ecma262_brace_quantifier_followed_by_a_plus) {
+  const auto regex{sourcemeta::core::to_regex(
+      R"(^a{2,3}+$)", sourcemeta::core::RegexDialect::Permissive)};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma(R"(^a{2,3}+$)"));
+}
+
+TEST(ecma262_brace_quantifier_with_only_a_minimum_followed_by_a_plus) {
+  const auto regex{sourcemeta::core::to_regex(
+      R"(^a{2}+$)", sourcemeta::core::RegexDialect::Permissive)};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma(R"(^a{2}+$)"));
+}

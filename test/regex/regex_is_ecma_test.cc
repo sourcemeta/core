@@ -1342,3 +1342,73 @@ TEST(deeply_nested_groups_one_past_the_depth_bound) {
   EXPECT_FALSE(sourcemeta::core::is_regex_ecma(std::string(256, '(') + "a" +
                                                std::string(256, ')')));
 }
+
+TEST(invalid_second_alternative_of_a_disjunction) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("a|("));
+}
+
+TEST(invalid_quantifier_without_a_comma_or_brace) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("a{1x}"));
+}
+
+TEST(invalid_group_name_escape_that_is_not_unicode) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("(?<\\x>a)"));
+}
+
+TEST(invalid_unicode_property_without_a_brace) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\px"));
+}
+
+TEST(invalid_unicode_escape_with_too_few_digits) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\u12"));
+}
+
+TEST(valid_lead_surrogate_escape_without_a_trail) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\uD800\\u0041"));
+}
+
+// A class written with set notation is only read that way once the plain
+// Unicode reading has rejected the pattern, which a string literal member does
+TEST(valid_class_intersection) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[\\q{a}&&\\q{b}]"));
+}
+
+TEST(invalid_class_intersection_with_three_ampersands) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("[\\q{a}&&&b]"));
+}
+
+TEST(invalid_class_intersection_without_a_right_operand) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("[\\q{a}&&]"));
+}
+
+TEST(invalid_class_subtraction_without_a_right_operand) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("[\\q{a}--]"));
+}
+
+TEST(valid_class_with_a_multi_character_string_literal) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[\\q{abc}]"));
+}
+
+TEST(valid_class_with_alternative_string_literals) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[\\q{abc|de}]"));
+}
+
+TEST(invalid_negated_class_of_string_literals) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("[^\\q{abc}]"));
+}
+
+TEST(invalid_unicode_property_inside_a_class) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("[\\px]"));
+}
+
+TEST(invalid_string_literal_member_inside_a_class) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("[\\q{a\\x}]"));
+}
+
+TEST(invalid_unterminated_string_literal_inside_a_class) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("[\\q{a"));
+}
+
+TEST(invalid_utf8_pattern) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\xFF\xFE"));
+}

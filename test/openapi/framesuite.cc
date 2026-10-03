@@ -389,9 +389,11 @@ auto check_frame_invariants(const sourcemeta::core::JSON &frame) -> void {
     const auto type{entry.second.at("type").to_string()};
     EXPECT_TRUE(std::ranges::find(KNOWN_TYPES, type) != KNOWN_TYPES.cend());
 
-    // The dialect in force is recorded where a JSON Schema implementation
-    // needs it, which is the root of a document and each Schema Object
-    EXPECT_EQ(entry.second.defines("dialect"),
+    // The default dialect is recorded where a JSON Schema implementation needs
+    // it, which is the root of a document and each Schema Object. What a Schema
+    // Object is actually written against is recorded by the frame of the
+    // schemas instead, which is why this one says it is a default
+    EXPECT_EQ(entry.second.defines("defaultDialect"),
               type == "openapi" || type == "schema");
 
     // A Schema Object position carries the base to resolve against too, and
@@ -636,20 +638,33 @@ auto check_window_invariants(const sourcemeta::core::OpenAPIFrame &frame,
       [](const auto &, const auto &) -> bool { return false; }));
 
   std::size_t objects{0};
-  frame.for_each_object(
-      [&frame, &objects](const auto &uri, const auto &location) -> void {
-        objects += 1;
-        // Every Object the frame reports is one it can be asked for again by
-        // the URI it was reported under, and what comes back is that same
-        // Object
-        const auto *found{frame.traverse(uri)};
-        EXPECT_TRUE(found != nullptr);
-        EXPECT_EQ(found->type, location.type);
-        EXPECT_EQ(found->pointer, location.pointer);
-        // And that URI is the one the frame addresses the position by, which is
-        // what makes the two directions inverses of each other
-        EXPECT_EQ(frame.uri(location.pointer), uri);
-      });
+  frame.for_each_object([&frame, &exported, &objects](
+                            const auto &uri, const auto &location) -> void {
+    objects += 1;
+    // Every Object the frame reports is one it can be asked for again by
+    // the URI it was reported under, and what comes back is that same
+    // Object
+    const auto *found{frame.traverse(uri)};
+    EXPECT_TRUE(found != nullptr);
+    EXPECT_EQ(found->type, location.type);
+    EXPECT_EQ(found->pointer, location.pointer);
+    // And that URI is the one the frame addresses the position by, which is
+    // what makes the two directions inverses of each other
+    EXPECT_EQ(frame.uri(location.pointer), uri);
+
+    // What holds a place is a place of its own, and the root of the
+    // document is the one place with nothing above it
+    if (location.parent.has_value()) {
+      EXPECT_TRUE(frame.traverse(location.parent.value()) != nullptr);
+    } else {
+      EXPECT_TRUE(location.pointer.empty());
+    }
+
+    EXPECT_EQ(exported.at("locations").at(uri).at("parent"),
+              location.parent.has_value()
+                  ? sourcemeta::core::JSON{location.parent.value()}
+                  : sourcemeta::core::JSON{nullptr});
+  });
   EXPECT_EQ(frame.object_count(), objects);
 
   std::size_t references{0};
@@ -685,14 +700,22 @@ auto check_window_invariants(const sourcemeta::core::OpenAPIFrame &frame,
   EXPECT_EQ(frame.traverse("urn:nowhere:this-frame-holds-no-such-place"),
             nullptr);
 
-  frame.for_each_discriminator([](const auto &discriminator) -> void {
+  std::size_t discriminators{0};
+  frame.for_each_discriminator([&exported, &discriminators](
+                                   const auto &discriminator) -> void {
     // A Discriminator Object mapping names a schema, and the URI it names is
     // resolved against the nearest identifier enclosing it, so neither of those
-    // is ever nothing. Where it lands is the schemas' to say rather than this
-    // frame's, so that is not asked here
+    // is ever nothing
     EXPECT_FALSE(discriminator.destination.empty());
     EXPECT_FALSE(discriminator.scope.empty());
+
+    // And what the window says about where it lands is what the export says,
+    // which is only asked of a description that names one at all
+    EXPECT_EQ(exported.at("discriminators").at(discriminators).at("dangling"),
+              sourcemeta::core::JSON{discriminator.dangling});
+    discriminators += 1;
   });
+  EXPECT_EQ(frame.discriminators().size(), discriminators);
 
   frame.for_each_operation([&frame](const auto &operation) -> void {
     // An operation is reached through a Path Item Object and defined by an

@@ -6,6 +6,10 @@
 #include <string>      // std::string, std::to_string
 #include <string_view> // std::string_view
 
+// Past the bound at which the converter stops holding on to the buffers of its
+// thread, so a conversion of this size takes the release path on the way out
+static constexpr std::size_t HUGE_INPUT_SIZE{9437184};
+
 static auto repeat(const std::string_view pattern, const std::size_t count)
     -> std::string {
   std::string result;
@@ -322,4 +326,25 @@ TEST(many_references_to_a_long_destination_within_the_bound) {
   const auto result{sourcemeta::core::markdown_to_html(
       repeat("[a] ", 500) + "\n\n[a]: /" + destination)};
   EXPECT_EQ(result, "<p>" + repeat(anchor + " ", 499) + anchor + "</p>\n");
+}
+
+// What the release does is invisible from here, as the rendered output is the
+// same whether or not it runs, so these only hold the conversion itself to its
+// result and the ones after it to being unaffected by it
+TEST(an_input_of_many_megabytes_converts) {
+  std::string input;
+  input.append(HUGE_INPUT_SIZE, 'a');
+  const auto result{sourcemeta::core::markdown_to_html(input)};
+  EXPECT_EQ(result, "<p>" + input + "</p>\n");
+}
+
+TEST(an_input_of_many_megabytes_does_not_disturb_the_next_conversion) {
+  std::string large;
+  large.append(HUGE_INPUT_SIZE, 'a');
+  const auto first{sourcemeta::core::markdown_to_html(large)};
+  EXPECT_EQ(first.size(), large.size() + 8);
+  const auto second{sourcemeta::core::markdown_to_html("hello")};
+  EXPECT_EQ(second, "<p>hello</p>\n");
+  const auto third{sourcemeta::core::markdown_to_html(large)};
+  EXPECT_EQ(third, first);
 }

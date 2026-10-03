@@ -38,6 +38,22 @@ VoqHMouZBlcLfRprpPpQWlay
 -----END PRIVATE KEY-----
 )"};
 
+// A 512-bit key, too small to hold the two digests and the two padding octets
+// the encoding needs, so both directions have to refuse it rather than produce
+// a value that does not fit
+static constexpr std::string_view SMALL_PRIVATE_KEY_PEM{
+    R"(-----BEGIN PRIVATE KEY-----
+MIIBVQIBADANBgkqhkiG9w0BAQEFAASCAT8wggE7AgEAAkEA15H1VHHC4bxshQIR
+LgtCq2knTKLKnyitHVMrOfKnPdiKc9IKh/owsVwy75++iVlkyr77s6S/+otKO0LQ
+GQI1kwIDAQABAkACIM/COKlK3zhXC9EtmjDbTltz9zt23MjwvCx2Ev4xrxfwTOpm
+jKIZ5Eu8MLDVDP1zJOSnavs2RqhWkRez1Vf5AiEA/H2SortsjBRawMZEGNgd8O11
+XYrmD8ncnyxyJddVZ70CIQDakQNhrhK6KuUa69w7W9ZbrOE9ffVv/UvnHH5COVj/
+jwIhANAP1mb9FWy1VTen6fOjG8EunFlyHTUDfic4o/Ok537tAiB/6gyTlz/IiqAo
+4E60wquyXXw488W3tAM/D9LoyQ1ICwIhAN0gYVKR3E4hd75QhmaC4MscmWxCvow5
+p9j8f3ztFN/3
+-----END PRIVATE KEY-----
+)"};
+
 // A 2048-bit key whose PKCS#8 algorithm is id-RSASSA-PSS rather than
 // rsaEncryption, so it is restricted to PSS and must refuse OAEP decryption
 static constexpr std::string_view PSS_RESTRICTED_PRIVATE_KEY_PEM{
@@ -274,5 +290,42 @@ TEST(rsa_oaep_decrypt_refuses_a_pss_restricted_key) {
   EXPECT_FALSE(sourcemeta::core::rsa_oaep_decrypt(
                    private_key.value(), sourcemeta::core::RSAOAEPHash::SHA256,
                    wrapped.value())
+                   .has_value());
+}
+
+TEST(rsa_oaep_encrypt_rejects_a_key_that_holds_nothing) {
+  const sourcemeta::core::PublicKey key{nullptr};
+  EXPECT_FALSE(sourcemeta::core::rsa_oaep_encrypt(
+                   key, sourcemeta::core::RSAOAEPHash::SHA256, "secret")
+                   .has_value());
+}
+
+TEST(rsa_oaep_decrypt_rejects_a_key_that_holds_nothing) {
+  const sourcemeta::core::PrivateKey key{nullptr};
+  EXPECT_FALSE(sourcemeta::core::rsa_oaep_decrypt(
+                   key, sourcemeta::core::RSAOAEPHash::SHA256, "secret")
+                   .has_value());
+}
+
+TEST(rsa_oaep_encrypt_rejects_a_modulus_too_small_for_two_digests) {
+  const auto private_key{
+      sourcemeta::core::make_private_key(SMALL_PRIVATE_KEY_PEM)};
+  EXPECT_TRUE(private_key.has_value());
+  const auto public_key{
+      sourcemeta::core::derive_public_key(private_key.value())};
+  EXPECT_TRUE(public_key.has_value());
+  EXPECT_FALSE(
+      sourcemeta::core::rsa_oaep_encrypt(
+          public_key.value(), sourcemeta::core::RSAOAEPHash::SHA256, "secret")
+          .has_value());
+}
+
+TEST(rsa_oaep_decrypt_rejects_a_modulus_too_small_for_two_digests) {
+  const auto private_key{
+      sourcemeta::core::make_private_key(SMALL_PRIVATE_KEY_PEM)};
+  EXPECT_TRUE(private_key.has_value());
+  EXPECT_FALSE(sourcemeta::core::rsa_oaep_decrypt(
+                   private_key.value(), sourcemeta::core::RSAOAEPHash::SHA256,
+                   std::string(64, '\x00'))
                    .has_value());
 }

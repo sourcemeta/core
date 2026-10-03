@@ -133,7 +133,7 @@
         "type": "openapi",
         "pointer": "",
         "parent": null,
-        "dialect": "https://json-schema.org/draft/2020-12/schema"
+        "defaultDialect": "https://json-schema.org/draft/2020-12/schema"
       },
       "https://example.com/openapi.json#/components": {
         "type": "components",
@@ -144,14 +144,14 @@
         "type": "schema",
         "pointer": "/components/schemas/Cat",
         "parent": "https://example.com/openapi.json#/components",
-        "dialect": "https://json-schema.org/draft/2020-12/schema",
+        "defaultDialect": "https://json-schema.org/draft/2020-12/schema",
         "base": "https://example.com/openapi.json"
       },
       "https://example.com/openapi.json#/components/schemas/Pet": {
         "type": "schema",
         "pointer": "/components/schemas/Pet",
         "parent": "https://example.com/openapi.json#/components",
-        "dialect": "https://json-schema.org/draft/2020-12/schema",
+        "defaultDialect": "https://json-schema.org/draft/2020-12/schema",
         "base": "https://example.com/openapi.json"
       },
       "https://example.com/openapi.json#/info": {

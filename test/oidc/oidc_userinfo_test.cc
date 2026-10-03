@@ -232,3 +232,17 @@ TEST(verify_userinfo_rejects_an_audience_for_another_client) {
       "https://issuer.example", "client-id")};
   EXPECT_FALSE(claims.has_value());
 }
+
+TEST(build_userinfo_from_non_object_additional_claims) {
+  const sourcemeta::core::JSON additional{nullptr};
+  const auto result{sourcemeta::core::oidc_build_userinfo("alice", additional)};
+  auto expected{sourcemeta::core::JSON::make_object()};
+  expected.assign("sub", sourcemeta::core::JSON{"alice"});
+  EXPECT_EQ(result, expected);
+}
+
+TEST(userinfo_matches_subject_from_a_non_object) {
+  const sourcemeta::core::JSON userinfo{nullptr};
+  EXPECT_FALSE(
+      sourcemeta::core::oidc_userinfo_matches_subject(userinfo, "alice"));
+}

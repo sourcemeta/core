@@ -683,14 +683,19 @@ auto generated_key_signs_and_verifies(
                                         signature.value());
 }
 
-// Re-wrap a PKCS#8 PEM with a single extra byte appended to its DER, producing
-// an otherwise valid document that is no longer canonical
-auto with_trailing_der_byte(const std::string_view pem) -> std::string {
+// The DER a PKCS#8 PEM carries, with the encoded body joined back together
+auto pem_body_der(const std::string_view pem) -> std::string {
   const auto body_begin{pem.find('\n')};
   const auto body_end{pem.rfind("-----END")};
   std::string body{pem.substr(body_begin + 1, body_end - body_begin - 1)};
   std::erase(body, '\n');
-  auto der{sourcemeta::core::base64_decode(body).value()};
+  return sourcemeta::core::base64_decode(body).value();
+}
+
+// Re-wrap a PKCS#8 PEM with a single extra byte appended to its DER, producing
+// an otherwise valid document that is no longer canonical
+auto with_trailing_der_byte(const std::string_view pem) -> std::string {
+  auto der{pem_body_der(pem)};
   der.push_back('\x00');
   return "-----BEGIN PRIVATE KEY-----\n" +
          sourcemeta::core::base64_encode(der) + "\n-----END PRIVATE KEY-----\n";
@@ -717,6 +722,90 @@ auto parsed_key_signature_verifies(
   return signature.has_value() && public_key.has_value() &&
          sourcemeta::core::ecdsa_verify(public_key.value(), hash, MESSAGE,
                                         signature.value());
+}
+
+// The tests below build PKCS#8 documents element by element, so that each one
+// names the single thing wrong with it rather than hiding it in a blob of
+// base64. Only the encoding rules these tests need are covered here: one tag
+// octet, a length in its shortest form, and the content
+auto der_element(const unsigned char tag, const std::string_view content)
+    -> std::string {
+  std::string element;
+  element.push_back(static_cast<char>(tag));
+  if (content.size() < 0x80) {
+    element.push_back(static_cast<char>(content.size()));
+  } else {
+    std::string length;
+    for (auto remaining{content.size()}; remaining > 0; remaining /= 0x100) {
+      length.insert(length.begin(), static_cast<char>(remaining % 0x100));
+    }
+
+    element.push_back(static_cast<char>(0x80 + length.size()));
+    element.append(length);
+  }
+
+  element.append(content);
+  return element;
+}
+
+auto pem_document(const std::string_view der) -> std::string {
+  return "-----BEGIN PRIVATE KEY-----\n" +
+         sourcemeta::core::base64_encode(der) + "\n-----END PRIVATE KEY-----\n";
+}
+
+// The same document written with carriage returns and an indented body, which
+// a reader has to look past rather than feed to the decoder
+auto pem_document_with_whitespace(const std::string_view der) -> std::string {
+  return "-----BEGIN PRIVATE KEY-----\r\n \t" +
+         sourcemeta::core::base64_encode(der) +
+         " \t\r\n-----END PRIVATE KEY-----\r\n";
+}
+
+// The algorithm identifier naming unrestricted RSA, with its absent parameters
+auto rsa_algorithm() -> std::string {
+  return der_element(0x30, der_element(0x06, "\x2a\x86\x48\x86\xf7\x0d\x01"
+                                             "\x01\x01") +
+                               std::string{"\x05\x00", 2});
+}
+
+// A private key document around an algorithm identifier and the key octets it
+// describes, at the first of the two versions the standard defines
+auto pkcs8_document(const std::string_view algorithm,
+                    const std::string_view private_key) -> std::string {
+  return pem_document(der_element(0x30, der_element(0x02, std::string{'\x00'}) +
+                                            std::string{algorithm} +
+                                            der_element(0x04, private_key)));
+}
+
+// An RSA private key whose four leading elements are given already encoded, so
+// that any one of them can be malformed while the rest stay well formed
+auto rsa_document(const std::string_view version,
+                  const std::string_view modulus,
+                  const std::string_view public_exponent,
+                  const std::string_view private_exponent) -> std::string {
+  return pkcs8_document(rsa_algorithm(),
+                        der_element(0x30, std::string{version} +
+                                              std::string{modulus} +
+                                              std::string{public_exponent} +
+                                              std::string{private_exponent}));
+}
+
+// The four elements an RSA private key document needs to get past every check,
+// so that a test can replace exactly one of them
+auto rsa_version() -> std::string {
+  return der_element(0x02, std::string{'\x00'});
+}
+
+auto rsa_modulus() -> std::string {
+  return der_element(0x02, std::string{'\x00'} + std::string(128, '\xcc'));
+}
+
+auto rsa_public_exponent() -> std::string {
+  return der_element(0x02, std::string{"\x01\x00\x01", 3});
+}
+
+auto rsa_private_exponent() -> std::string {
+  return der_element(0x02, std::string{'\x00'} + std::string(128, '\xdd'));
 }
 
 } // namespace
@@ -1589,4 +1678,157 @@ TEST(eddsa_verify_rejects_an_ed448_key_with_a_signed_zero_coordinate) {
   EXPECT_TRUE(public_key.has_value());
   EXPECT_FALSE(sourcemeta::core::eddsa_verify(public_key.value(), MESSAGE,
                                               std::string(114, '\x00')));
+}
+
+TEST(make_private_key_looks_past_carriage_returns_spaces_and_tabs) {
+  // A document written on a system that ends its lines with a carriage return,
+  // or whose body is indented, still names the same key
+  const auto padded{
+      pem_document_with_whitespace(pem_body_der(RSA_PRIVATE_KEY))};
+  const auto key{sourcemeta::core::make_private_key(padded)};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_TRUE(key.value().type() == sourcemeta::core::PrivateKey::Type::RSA);
+}
+
+TEST(make_private_key_rejects_a_document_that_is_not_a_sequence) {
+  EXPECT_FALSE(sourcemeta::core::make_private_key(
+                   pem_document(der_element(0x04, std::string{'\x00'})))
+                   .has_value());
+}
+
+TEST(make_private_key_rejects_an_empty_document) {
+  EXPECT_FALSE(
+      sourcemeta::core::make_private_key(pem_document("")).has_value());
+}
+
+TEST(make_private_key_rejects_a_document_without_a_version) {
+  EXPECT_FALSE(
+      sourcemeta::core::make_private_key(pem_document(der_element(0x30, "")))
+          .has_value());
+}
+
+TEST(make_private_key_rejects_a_version_that_is_not_an_integer) {
+  EXPECT_FALSE(
+      sourcemeta::core::make_private_key(
+          pem_document(der_element(
+              0x30, der_element(0x04, std::string{'\x00'}) + rsa_algorithm())))
+          .has_value());
+}
+
+TEST(make_private_key_rejects_a_version_wider_than_one_octet) {
+  EXPECT_FALSE(sourcemeta::core::make_private_key(
+                   pem_document(der_element(
+                       0x30, der_element(0x02, std::string{"\x00\x00", 2}) +
+                                 rsa_algorithm())))
+                   .has_value());
+}
+
+TEST(make_private_key_rejects_a_document_without_an_algorithm) {
+  EXPECT_FALSE(sourcemeta::core::make_private_key(
+                   pem_document(der_element(
+                       0x30, der_element(0x02, std::string{'\x00'}))))
+                   .has_value());
+}
+
+TEST(make_private_key_rejects_a_document_without_a_private_key) {
+  EXPECT_FALSE(
+      sourcemeta::core::make_private_key(
+          pem_document(der_element(
+              0x30, der_element(0x02, std::string{'\x00'}) + rsa_algorithm())))
+          .has_value());
+}
+
+TEST(make_private_key_rejects_an_empty_algorithm_identifier) {
+  EXPECT_FALSE(sourcemeta::core::make_private_key(
+                   pkcs8_document(der_element(0x30, ""), std::string{'\x00'}))
+                   .has_value());
+}
+
+TEST(make_private_key_rejects_a_curve_parameter_that_is_not_an_identifier) {
+  EXPECT_FALSE(
+      sourcemeta::core::make_private_key(
+          pkcs8_document(
+              der_element(0x30, der_element(0x06, "\x2a\x86\x48\xce\x3d\x02"
+                                                  "\x01") +
+                                    der_element(0x02, std::string{'\x01'})),
+              std::string{'\x00'}))
+          .has_value());
+}
+
+TEST(make_private_key_rejects_an_rsa_key_that_is_not_a_sequence) {
+  EXPECT_FALSE(sourcemeta::core::make_private_key(
+                   pkcs8_document(rsa_algorithm(),
+                                  der_element(0x04, std::string{'\x00'})))
+                   .has_value());
+}
+
+TEST(make_private_key_rejects_an_rsa_key_with_no_elements) {
+  EXPECT_FALSE(sourcemeta::core::make_private_key(
+                   pkcs8_document(rsa_algorithm(), der_element(0x30, "")))
+                   .has_value());
+}
+
+TEST(make_private_key_rejects_an_rsa_modulus_that_is_not_an_integer) {
+  EXPECT_FALSE(sourcemeta::core::make_private_key(
+                   rsa_document(rsa_version(),
+                                der_element(0x04, std::string(128, '\xcc')),
+                                rsa_public_exponent(), rsa_private_exponent()))
+                   .has_value());
+}
+
+TEST(make_private_key_rejects_an_rsa_public_exponent_that_is_not_an_integer) {
+  EXPECT_FALSE(
+      sourcemeta::core::make_private_key(
+          rsa_document(rsa_version(), rsa_modulus(),
+                       der_element(0x04, std::string{"\x01\x00\x01", 3}),
+                       rsa_private_exponent()))
+          .has_value());
+}
+
+TEST(make_private_key_rejects_an_rsa_private_exponent_that_is_not_an_integer) {
+  EXPECT_FALSE(
+      sourcemeta::core::make_private_key(
+          rsa_document(rsa_version(), rsa_modulus(), rsa_public_exponent(),
+                       der_element(0x04, std::string(128, '\xdd'))))
+          .has_value());
+}
+
+TEST(make_private_key_rejects_a_negative_rsa_private_exponent) {
+  EXPECT_FALSE(
+      sourcemeta::core::make_private_key(
+          rsa_document(rsa_version(), rsa_modulus(), rsa_public_exponent(),
+                       der_element(0x02, std::string(128, '\x80'))))
+          .has_value());
+}
+
+TEST(make_private_key_rejects_a_zero_rsa_modulus) {
+  EXPECT_FALSE(
+      sourcemeta::core::make_private_key(
+          rsa_document(rsa_version(), der_element(0x02, std::string{'\x00'}),
+                       rsa_public_exponent(), rsa_private_exponent()))
+          .has_value());
+}
+
+TEST(make_private_key_rejects_a_zero_rsa_private_exponent) {
+  EXPECT_FALSE(
+      sourcemeta::core::make_private_key(
+          rsa_document(rsa_version(), rsa_modulus(), rsa_public_exponent(),
+                       der_element(0x02, std::string{'\x00'})))
+          .has_value());
+}
+
+TEST(make_private_key_rejects_an_rsa_modulus_past_the_size_limit) {
+  EXPECT_FALSE(sourcemeta::core::make_private_key(
+                   rsa_document(rsa_version(),
+                                der_element(0x02, std::string(513, '\x01')),
+                                rsa_public_exponent(), rsa_private_exponent()))
+                   .has_value());
+}
+
+TEST(make_private_key_rejects_an_rsa_private_exponent_past_the_size_limit) {
+  EXPECT_FALSE(
+      sourcemeta::core::make_private_key(
+          rsa_document(rsa_version(), rsa_modulus(), rsa_public_exponent(),
+                       der_element(0x02, std::string(513, '\x01'))))
+          .has_value());
 }

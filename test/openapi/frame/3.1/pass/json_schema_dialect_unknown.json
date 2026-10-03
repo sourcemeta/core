@@ -34,7 +34,7 @@
         "type": "openapi",
         "pointer": "",
         "parent": null,
-        "dialect": "https://example.com/whatever"
+        "defaultDialect": "https://example.com/whatever"
       },
       "#/info": {
         "type": "info",

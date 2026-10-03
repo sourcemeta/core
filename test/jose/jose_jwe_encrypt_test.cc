@@ -322,3 +322,35 @@ TEST(encrypt_generates_a_fresh_ephemeral_key) {
   // A fresh ephemeral key changes the epk and thus the whole object
   EXPECT_NE(first.value(), second.value());
 }
+
+TEST(encrypt_rejects_a_non_string_agreement_party) {
+  const auto public_key{sourcemeta::core::JWK::from(
+      sourcemeta::core::parse_json(std::string{JWE_EC_PUBLIC_JWK}))};
+  EXPECT_TRUE(public_key.has_value());
+  // RFC 7518 Section 4.6.1.2 makes the party information a base64url string, so
+  // a value of another type is malformed rather than absent
+  auto header{header_for("ECDH-ES", "A128GCM")};
+  header.assign("apu", sourcemeta::core::JSON{7});
+  EXPECT_FALSE(
+      sourcemeta::core::jwe_encrypt(header, PLAINTEXT, public_key.value())
+          .has_value());
+}
+
+TEST(encrypt_rejects_an_agreement_party_that_is_not_base64url) {
+  const auto public_key{sourcemeta::core::JWK::from(
+      sourcemeta::core::parse_json(std::string{JWE_EC_PUBLIC_JWK}))};
+  EXPECT_TRUE(public_key.has_value());
+  auto header{header_for("ECDH-ES", "A128GCM")};
+  header.assign("apv", sourcemeta::core::JSON{"not base64url!"});
+  EXPECT_FALSE(
+      sourcemeta::core::jwe_encrypt(header, PLAINTEXT, public_key.value())
+          .has_value());
+}
+
+TEST(encrypt_rejects_an_octet_secret_for_an_agreement_algorithm) {
+  // The agreement needs a curve to work over, which an octet secret has none of
+  EXPECT_FALSE(sourcemeta::core::jwe_encrypt(
+                   header_for("ECDH-ES", "A128GCM"), PLAINTEXT,
+                   sourcemeta::core::JWK::from_octets(std::string(32, 'k')))
+                   .has_value());
+}

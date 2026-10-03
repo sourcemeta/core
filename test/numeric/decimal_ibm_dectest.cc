@@ -121,16 +121,40 @@ static auto decimal_copy_abs(const sourcemeta::core::Decimal &value)
   return value.is_signed() ? -value : value;
 }
 
-// The General Decimal Arithmetic Specification defines the arithmetic
-// operations "plus(a) and minus(a) [...] as the operations add('0', a) and
-// subtract('0', b)", and abs as "the same as using the minus operation on the
-// operand" when it is negative and "the same as using the plus operation"
+// The General Decimal Arithmetic Specification calculates "plus(a) and
+// minus(a) [...] as the operations add('0', a) and subtract('0', b)
+// respectively, where the '0' has the same exponent as the operand". Taking a
+// value away from itself stands in for that zero, as the exponent of a sum is
+// the lower of the two it was reached from. An operand that is not finite has
+// no exponent for the zero to match
+static auto decimal_zero_addend(const sourcemeta::core::Decimal &value)
+    -> sourcemeta::core::Decimal {
+  if (!value.is_finite()) {
+    return sourcemeta::core::Decimal{0};
+  }
+
+  return value - value;
+}
+
+// The specification defines abs as "the same as using the minus operation on
+// the operand" when it is negative and "the same as using the plus operation"
 // otherwise, so a NaN operand is propagated rather than having its sign
 // rewritten
 static auto decimal_abs(const sourcemeta::core::Decimal &value)
     -> sourcemeta::core::Decimal {
-  const sourcemeta::core::Decimal zero{0};
+  const auto zero{decimal_zero_addend(value)};
   return value.is_signed() ? zero - value : zero + value;
+}
+
+// Whether a row spells a value out as negative, and whether what it spells is
+// a negative zero, which is the sign the operands of a sum are what decide
+static auto spells_a_negative(const std::string &value) -> bool {
+  return make_decimal(value).is_signed();
+}
+
+static auto spells_a_negative_zero(const std::string &value) -> bool {
+  const auto parsed{make_decimal(value)};
+  return parsed.is_zero() && parsed.is_signed();
 }
 
 static auto expect_comparison_result(const sourcemeta::core::Decimal &left,
@@ -166,6 +190,14 @@ static auto expect_decimal_eq(const sourcemeta::core::Decimal &result,
     EXPECT_EQ(result.is_signed(), expected.is_signed());
   } else {
     EXPECT_EQ(result, expected);
+    // Numeric equality ignores how many trailing zeros a value carries, so it
+    // holds every zero equal to every other and one equal to one point zero
+    // zero. A row spells out the exponent it expects, and the sign of a zero,
+    // so both are read directly
+    if (expected.is_zero()) {
+      EXPECT_EQ(result.is_signed(), expected.is_signed());
+    }
+    EXPECT_EQ(result.to_scientific_string(), expected.to_scientific_string());
   }
 }
 
@@ -261,8 +293,19 @@ static auto run_conversion(const DecTestCase &test_case) -> void {
     return;
   }
 
-  expect_decimal_eq(sourcemeta::core::Decimal{input},
-                    make_decimal(test_case.expected));
+  const sourcemeta::core::Decimal result{input};
+  const auto expected{make_decimal(test_case.expected)};
+
+  // An engineering form shifts the point to leave the exponent a multiple of
+  // three, which re-expresses the quantum the operand was written with, so a
+  // row of that kind pins the value rather than the exponent it is held at
+  if (to_lower(test_case.operation) == "toeng" && result.is_finite()) {
+    EXPECT_EQ(result, expected);
+    EXPECT_EQ(result.is_signed(), expected.is_signed());
+    return;
+  }
+
+  expect_decimal_eq(result, expected);
 }
 
 static auto run_copysign(const DecTestCase &test_case) -> void {
@@ -367,11 +410,11 @@ static auto run_dectest_case(const DecTestCase &test_case) -> void {
     run_unary(test_case, [](const auto &value) { return -value; });
   } else if (operation == "minus") {
     run_unary(test_case, [](const auto &value) {
-      return sourcemeta::core::Decimal{0} - value;
+      return decimal_zero_addend(value) - value;
     });
   } else if (operation == "plus") {
     run_unary(test_case, [](const auto &value) {
-      return sourcemeta::core::Decimal{0} + value;
+      return decimal_zero_addend(value) + value;
     });
   } else if (operation == "abs") {
     run_unary(test_case, [](const auto &value) { return decimal_abs(value); });
@@ -416,8 +459,10 @@ static auto run_dectest_case(const DecTestCase &test_case) -> void {
     run_binary(test_case, [](const auto &left, const auto &right) {
       return left.scale_by(right);
     });
-  } else if (operation == "reduce" || operation == "trim") {
+  } else if (operation == "reduce") {
     run_unary(test_case, [](const auto &value) { return value.reduce(); });
+  } else if (operation == "trim") {
+    run_unary(test_case, [](const auto &value) { return value.trim(); });
   } else {
     FAIL();
   }
@@ -513,13 +558,17 @@ static auto parse_directive(const std::string &line, DecTestContext &context)
   auto key{full_line.substr(0, colon_position)};
   auto value{full_line.substr(colon_position + 1)};
 
-  while (!key.empty() && key.back() == ' ') {
+  // The corpus ships with CRLF line endings, which leaves a carriage return on
+  // the end of every value that a line ends with
+  while (!key.empty() &&
+         (key.back() == ' ' || key.back() == '\t' || key.back() == '\r')) {
     key.remove_suffix(1);
   }
-  while (!value.empty() && value.front() == ' ') {
+  while (!value.empty() && (value.front() == ' ' || value.front() == '\t')) {
     value.remove_prefix(1);
   }
-  while (!value.empty() && value.back() == ' ') {
+  while (!value.empty() && (value.back() == ' ' || value.back() == '\t' ||
+                            value.back() == '\r')) {
     value.remove_suffix(1);
   }
 
@@ -636,6 +685,24 @@ static auto should_skip_test(const DecTestCase &test_case,
   // these tests when the file's rounding directive matches ours.
   if (operation == "tointegral" || operation == "tointegralx") {
     if (context.rounding != "half_even") {
+      return true;
+    }
+  }
+
+  // The specification gives a zero sum the sign of "0 unless either both
+  // operands were negative or the signs of the operands were different and the
+  // rounding is round-floor". Both operands negative is honoured, while the
+  // round-floor clause asks for a rounding this Decimal does not offer
+  if ((operation == "add" || operation == "subtract") &&
+      context.rounding == "floor" &&
+      spells_a_negative_zero(test_case.expected)) {
+    const auto left_negative{spells_a_negative(test_case.operand1)};
+    const auto right_negative{spells_a_negative(test_case.operand2)};
+    // Taking a value away is adding its opposite, so what the rule weighs is
+    // the sign the second operand carries as it enters the sum
+    const auto addend_negative{operation == "subtract" ? !right_negative
+                                                       : right_negative};
+    if (!(left_negative && addend_negative)) {
       return true;
     }
   }

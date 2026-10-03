@@ -1,6 +1,7 @@
 #include <sourcemeta/core/numeric.h>
 #include <sourcemeta/core/test.h>
 
+#include <cmath>       // std::signbit
 #include <cstdint>     // std::int64_t, std::uint64_t
 #include <string>      // std::string
 #include <string_view> // std::string_view
@@ -219,6 +220,141 @@ TEST(to_double_long_input) {
   EXPECT_DOUBLE_EQ(result.value(), 1e-69);
 }
 
+// A tenth is not representable, so recovering it by dividing a significand has
+// to land on the same bits the compiler reaches when it converts the literal
+TEST(to_double_exact_tenth) {
+  const std::string input{"0.1"};
+  const auto result{sourcemeta::core::to_double(input)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), 0.1);
+}
+
+TEST(to_double_exact_many_fraction_digits) {
+  const std::string input{"3.14159"};
+  const auto result{sourcemeta::core::to_double(input)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), 3.14159);
+}
+
+TEST(to_double_exact_largest_power_of_ten) {
+  const std::string input{"1e22"};
+  const auto result{sourcemeta::core::to_double(input)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), 1e22);
+}
+
+TEST(to_double_exact_just_past_the_largest_power_of_ten) {
+  const std::string input{"1e23"};
+  const auto result{sourcemeta::core::to_double(input)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), 1e23);
+}
+
+TEST(to_double_exact_smallest_power_of_ten) {
+  const std::string input{"1e-22"};
+  const auto result{sourcemeta::core::to_double(input)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), 1e-22);
+}
+
+TEST(to_double_exact_just_past_the_smallest_power_of_ten) {
+  const std::string input{"1e-23"};
+  const auto result{sourcemeta::core::to_double(input)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), 1e-23);
+}
+
+TEST(to_double_exact_fraction_shifted_by_a_large_power) {
+  const std::string input{"1.5e23"};
+  const auto result{sourcemeta::core::to_double(input)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), 1.5e23);
+}
+
+TEST(to_double_exact_largest_significand_held_exactly) {
+  const std::string input{"9007199254740991"};
+  const auto result{sourcemeta::core::to_double(input)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), 9007199254740991.0);
+}
+
+TEST(to_double_exact_just_past_the_largest_significand) {
+  const std::string input{"9007199254740993"};
+  const auto result{sourcemeta::core::to_double(input)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), 9007199254740993.0);
+}
+
+TEST(to_double_exact_nineteen_digits) {
+  const std::string input{"1234567890123456789"};
+  const auto result{sourcemeta::core::to_double(input)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), 1234567890123456789.0);
+}
+
+TEST(to_double_exact_twenty_digits) {
+  const std::string input{"12345678901234567890"};
+  const auto result{sourcemeta::core::to_double(input)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), 12345678901234567890.0);
+}
+
+TEST(to_double_exact_negative_zero_keeps_its_sign) {
+  const std::string input{"-0.0"};
+  const auto result{sourcemeta::core::to_double(input)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), 0.0);
+  EXPECT_TRUE(std::signbit(result.value()));
+}
+
+TEST(to_double_exact_leading_zeros_before_a_fraction) {
+  const std::string input{"000.5"};
+  const auto result{sourcemeta::core::to_double(input)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), 0.5);
+}
+
+// A fraction that opens with its point is outside the grammar recognised for
+// the quick route, and still has to come back with a value
+TEST(to_double_fraction_without_leading_digits) {
+  const std::string input{".5"};
+  const auto result{sourcemeta::core::to_double(input)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), 0.5);
+}
+
+TEST(to_double_trailing_decimal_point) {
+  const std::string input{"1."};
+  const auto result{sourcemeta::core::to_double(input)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), 1.0);
+}
+
+TEST(to_double_negative_fraction_without_leading_digits) {
+  const std::string input{"-.5"};
+  const auto result{sourcemeta::core::to_double(input)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), -0.5);
+}
+
+TEST(to_double_exponent_without_digits) {
+  const std::string input{"1e"};
+  const auto result{sourcemeta::core::to_double(input)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(to_double_exponent_with_only_a_sign) {
+  const std::string input{"1e+"};
+  const auto result{sourcemeta::core::to_double(input)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(to_double_two_decimal_points) {
+  const std::string input{"1.2.3"};
+  const auto result{sourcemeta::core::to_double(input)};
+  EXPECT_FALSE(result.has_value());
+}
+
 TEST(to_int64_t_positive) {
   const std::string input{"123456"};
   const auto result{sourcemeta::core::to_int64_t(input)};
@@ -302,6 +438,57 @@ TEST(to_int64_t_out_of_range_way_too_large) {
   const std::string input{"99999999999999999999"};
   const auto result{sourcemeta::core::to_int64_t(input)};
   EXPECT_FALSE(result.has_value());
+}
+
+// Nineteen digits always fit the accumulator that gathers them, but not always
+// the signed range they end up in, so the bound still has to be checked
+TEST(to_int64_t_nineteen_digits_above_the_signed_range) {
+  const std::string input{"9999999999999999999"};
+  const auto result{sourcemeta::core::to_int64_t(input)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(to_int64_t_leading_zeros) {
+  const std::string input{"007"};
+  const auto result{sourcemeta::core::to_int64_t(input)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), 7);
+}
+
+TEST(to_int64_t_negative_zero) {
+  const std::string input{"-0"};
+  const auto result{sourcemeta::core::to_int64_t(input)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), 0);
+}
+
+TEST(to_int64_t_invalid_leading_plus) {
+  const std::string input{"+7"};
+  const auto result{sourcemeta::core::to_int64_t(input)};
+  EXPECT_FALSE(result.has_value());
+}
+
+// A view that was never given anything carries no pointer at all, which the
+// conversion has to answer for rather than reading from nowhere
+TEST(to_double_view_over_nothing) {
+  const std::string_view input{};
+  const auto result{sourcemeta::core::to_double(input)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(to_int64_t_view_over_nothing) {
+  const std::string_view input{};
+  const auto result{sourcemeta::core::to_int64_t(input)};
+  EXPECT_FALSE(result.has_value());
+}
+
+// Longer than the quick route can ever recover, so it is handed on and still
+// comes back with the value the general routine finds
+TEST(to_double_longer_than_the_quick_route) {
+  const std::string input{"1.00000000000000000000000000000000000001"};
+  const auto result{sourcemeta::core::to_double(input)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), 1.0);
 }
 
 TEST(to_int64_t_invalid_trailing_junk) {

@@ -686,6 +686,130 @@ TEST(unique_true_distinct_fractional_values) {
   EXPECT_TRUE(document.unique());
 }
 
+// Consecutive integers give every item a hash of its own, so a repetition
+// cannot be ruled out until the whole array has been searched. Eight hashes
+// are read at a time, and this array holds exactly that many past the first
+TEST(unique_true_nine_distinct_integers) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json("[ 1, 2, 3, 4, 5, 6, 7, 8, 9 ]");
+  EXPECT_TRUE(document.unique());
+}
+
+// One past a whole read, the shortest remainder the search can end on
+TEST(unique_true_ten_distinct_integers) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json("[ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ]");
+  EXPECT_TRUE(document.unique());
+}
+
+// Two whole reads past the first item and no remainder at all
+TEST(unique_true_seventeen_distinct_integers) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(
+      "[ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17 ]");
+  EXPECT_TRUE(document.unique());
+}
+
+// Two whole reads and a remainder of three
+TEST(unique_true_twenty_distinct_integers) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json("[ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, "
+                                   "13, 14, 15, 16, 17, 18, 19, 20 ]");
+  EXPECT_TRUE(document.unique());
+}
+
+// The repetition opens the search, so it is found before any run is read
+TEST(unique_false_repeated_integer_as_the_second_item) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json("[ 1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 ]");
+  EXPECT_FALSE(document.unique());
+}
+
+TEST(unique_false_repeated_integer_as_the_third_item) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json("[ 1, 2, 1, 3, 4, 5, 6, 7, 8, 9, 10, 11 ]");
+  EXPECT_FALSE(document.unique());
+}
+
+TEST(unique_false_repeated_integer_as_the_fourth_item) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json("[ 1, 2, 3, 1, 4, 5, 6, 7, 8, 9, 10, 11 ]");
+  EXPECT_FALSE(document.unique());
+}
+
+TEST(unique_false_repeated_integer_as_the_fifth_item) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json("[ 1, 2, 3, 4, 1, 5, 6, 7, 8, 9, 10, 11 ]");
+  EXPECT_FALSE(document.unique());
+}
+
+TEST(unique_false_repeated_integer_as_the_sixth_item) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json("[ 1, 2, 3, 4, 5, 1, 6, 7, 8, 9, 10, 11 ]");
+  EXPECT_FALSE(document.unique());
+}
+
+TEST(unique_false_repeated_integer_as_the_seventh_item) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json("[ 1, 2, 3, 4, 5, 6, 1, 7, 8, 9, 10, 11 ]");
+  EXPECT_FALSE(document.unique());
+}
+
+TEST(unique_false_repeated_integer_as_the_eighth_item) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json("[ 1, 2, 3, 4, 5, 6, 7, 1, 8, 9, 10, 11 ]");
+  EXPECT_FALSE(document.unique());
+}
+
+// The furthest a repetition can sit from where the first read begins
+TEST(unique_false_repeated_integer_as_the_ninth_item) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json("[ 1, 2, 3, 4, 5, 6, 7, 8, 1, 9, 10, 11 ]");
+  EXPECT_FALSE(document.unique());
+}
+
+// Just past the first whole read, so that read reports nothing and the
+// remainder behind it is what finds the repetition
+TEST(unique_false_repeated_integer_as_the_tenth_item) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json("[ 1, 2, 3, 4, 5, 6, 7, 8, 9, 1, 10, 11 ]");
+  EXPECT_FALSE(document.unique());
+}
+
+// Two whole reads report nothing before the remainder that closes a longer
+// array finds the repetition
+TEST(unique_false_repeated_integer_in_the_closing_remainder) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json("[ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, "
+                                   "13, 14, 15, 16, 17, 1, 18, 19 ]");
+  EXPECT_FALSE(document.unique());
+}
+
+// The first of the two equal items is itself deep into the array, so the
+// search begins partway through rather than at the beginning
+TEST(unique_false_repeated_integer_far_from_the_start) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json("[ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, "
+                                   "13, 14, 15, 16, 17, 18, 19, 11 ]");
+  EXPECT_FALSE(document.unique());
+}
+
+// A string hashes by its length alone, so strings of one length all share a
+// hash and every pair is settled by a full comparison, never reaching the
+// search over a run of hashes
+TEST(unique_true_strings_of_one_length) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(
+      "[ \"alphabet\", \"birthday\", \"computer\", \"daughter\", \"elephant\", "
+      "\"festival\", \"graduate\", \"hospital\", \"infinity\", \"journeys\" ]");
+  EXPECT_TRUE(document.unique());
+}
+
+TEST(unique_false_repeated_string_among_strings_of_one_length) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(
+      "[ \"alphabet\", \"birthday\", \"computer\", \"daughter\", \"elephant\", "
+      "\"festival\", \"graduate\", \"hospital\", \"infinity\", \"alphabet\" ]");
+  EXPECT_FALSE(document.unique());
+}
+
 TEST(sort_object_items) {
   auto document = sourcemeta::core::parse_json(R"JSON([
     { "type": "string" },

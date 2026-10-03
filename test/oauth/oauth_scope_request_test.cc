@@ -179,3 +179,10 @@ TEST(scope_request_padded_scope_claim_names_a_scope) {
   EXPECT_EQ(decide(R"JSON({ "scope": " read " })JSON", R"JSON({})JSON"),
             sourcemeta::core::OAuthScopeDecision::Accepted);
 }
+
+TEST(unconstrained_request_against_non_object_claims) {
+  // A request constraining no scope asks only that some scope be carried, and
+  // claims that are not an object carry none
+  EXPECT_EQ(decide("null", "{}"),
+            sourcemeta::core::OAuthScopeDecision::Refused);
+}

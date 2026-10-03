@@ -97,6 +97,7 @@ cmake -S "$SOURCE_DIRECTORY" -B "$BUILD_DIRECTORY" \
   -DCMAKE_COMPILE_WARNING_AS_ERROR:BOOL=ON \
   -DSOURCEMETA_CORE_TESTS:BOOL=ON \
   -DSOURCEMETA_CORE_DOCS:BOOL=ON \
+  -DSOURCEMETA_CORE_CRYPTO_USE_REFERENCE:BOOL=ON \
   -DBUILD_SHARED_LIBS:BOOL=OFF \
   -DCMAKE_C_FLAGS:STRING="$PROFILE_FLAGS $ASSERTION_FLAGS" \
   -DCMAKE_CXX_FLAGS:STRING="$PROFILE_FLAGS $ASSERTION_FLAGS" \
@@ -253,13 +254,15 @@ AWK
 awk -v "merged=$WORK_DIRECTORY/coverage.lcov" -f "$MERGE_PROGRAM" \
   "$LCOV_DIRECTORY"/*.lcov > "$WORK_DIRECTORY/summary.txt"
 
-# Functions are merged apart from the traces, as a trace only records the line
-# that a function starts on, which cannot tell apart two functions starting on
-# the same line. The JSON export records the column as well, which is how the
-# report itself counts every instantiation of a template as a single function,
-# and the highest count across the binaries is kept for the same reason as above
-FUNCTIONS_PROGRAM="$WORK_DIRECTORY/functions.py"
-cat > "$FUNCTIONS_PROGRAM" <<'PYTHON'
+# Functions and regions are merged apart from the traces, which carry neither at
+# the granularity needed. A trace only records the line a function starts on,
+# which cannot tell apart two functions starting on the same line, and it records
+# no regions at all. The JSON export gives both with their columns, which is how
+# the report itself counts every instantiation of a template as a single
+# function, and the highest count across the binaries is kept for the same reason
+# as above
+EXPORT_PROGRAM="$WORK_DIRECTORY/export.py"
+cat > "$EXPORT_PROGRAM" <<'PYTHON'
 import json
 import re
 import subprocess
@@ -280,8 +283,17 @@ with open(exceptions, encoding="utf-8") as listing:
             suffix, _, name = text.partition(" ")
             permitted.add((suffix, name.strip()))
 
+# The eighth element of a region says what it is, and only a code region counts
+# towards region coverage, which the report agrees with file by file. The sixth
+# names which of the function's files it belongs to, since a region can sit in a
+# header the function was expanded from
+CODE_REGION = 0
+REGION_FILE = 5
+REGION_KIND = 7
+
 counts = {}
 names = {}
+owned = {}
 with open(object_list, encoding="utf-8") as objects:
     for binary in objects.read().splitlines():
         export = subprocess.run(
@@ -298,6 +310,16 @@ with open(object_list, encoding="utf-8") as objects:
                 key = (filename, start[0], start[1])
                 counts[key] = max(counts.get(key, 0), function["count"])
                 names.setdefault(key, set()).add(function["name"])
+                for region in function["regions"]:
+                    if region[REGION_KIND] != CODE_REGION:
+                        continue
+                    source = function["filenames"][region[REGION_FILE]]
+                    if excluded.search(source):
+                        continue
+                    where = (source, region[0], region[1], region[2],
+                             region[3])
+                    mine = owned.setdefault(key, {})
+                    mine[where] = max(mine.get(where, 0), region[4])
 
 def excused(key):
     filename = key[0]
@@ -313,13 +335,31 @@ with open(uncovered, "w", encoding="utf-8") as output:
         for name in sorted(names[key]):
             output.write(f"{filename}:{line}:{column} {name}\n")
 
+# An excused function is left out of the region count as well, so that the two
+# metrics answer to the same exceptions rather than one of them holding a
+# function to a standard the other has already set aside. Applied once the whole
+# export has been read, since which names a function goes by is only settled
+# then, and a location an excused function shares with one that is measurable
+# stays in through the latter
+regions = {}
+for key, mine in owned.items():
+    if excused(key):
+        continue
+
+    for where, count in mine.items():
+        regions[where] = max(regions.get(where, 0), count)
+
+reached = sum(1 for count in regions.values() if count > 0)
+share = reached * 100 / len(regions) if regions else 100
+print(f"{share:8.2f}% {reached:6d}/{len(regions):<6d} TOTAL regions")
+
 covered = len(counts) - len(missed)
 percentage = covered * 100 / len(counts) if counts else 100
 print(f"{percentage:8.2f}% {covered:6d}/{len(counts):<6d} TOTAL functions")
 PYTHON
 
 UNCOVERED_FUNCTIONS="$WORK_DIRECTORY/uncovered.txt"
-python3 "$FUNCTIONS_PROGRAM" "$LLVM_COV" "$PROFILE_DATA" "$EXCLUDE" \
+python3 "$EXPORT_PROGRAM" "$LLVM_COV" "$PROFILE_DATA" "$EXCLUDE" \
   "$OBJECT_LIST" "$UNCOVERED_FUNCTIONS" \
   "$SOURCE_DIRECTORY/contrib/coverage-exceptions.txt" \
   >> "$WORK_DIRECTORY/summary.txt"
@@ -332,6 +372,39 @@ then
   echo "The test suite never calls the functions starting at:" >&2
   cat "$UNCOVERED_FUNCTIONS" >&2
   exit 1
+fi
+
+# Optionally hold the line and region shares to a floor, given as a percentage.
+# Branches are deliberately not held to one: an exhaustive switch over an
+# enumeration carries an edge out of it that nothing can take, so the branch
+# share has a ceiling below a hundred that the other two do not. Gated on the
+# same platform argument as the function requirement above
+if [ -n "${REQUIRE_MINIMUM_COVERAGE:-}" ]
+then
+  awk -v "minimum=$REQUIRE_MINIMUM_COVERAGE" '
+BEGIN { failed = 0 }
+$3 == "TOTAL" && ($4 == "lines" || $4 == "regions") {
+  # Compared as the counts behind the share rather than as the share itself,
+  # which is already rounded to two places by the time it is printed and would
+  # let a total just under the floor round up into passing
+  split($2, tally, "/")
+  if (100 * tally[1] < minimum * tally[2]) {
+    printf "The %s coverage is %s, below the required %s%%\n", $4, $1,
+      minimum > "/dev/stderr"
+    failed = 1
+  }
+  seen += 1
+}
+END {
+  if (seen != 2) {
+    printf "Expected a line and a region total, found %d\n", seen \
+      > "/dev/stderr"
+    exit 1
+  }
+
+  exit failed
+}
+' "$WORK_DIRECTORY/summary.txt"
 fi
 
 # The browsable report keeps the combined view. Its annotated sources can still

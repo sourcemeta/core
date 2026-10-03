@@ -1,7 +1,36 @@
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/test.h>
 
-#include <sstream>
+#include <ios>       // std::streamsize
+#include <ostream>   // std::ostream
+#include <sstream>   // std::ostringstream
+#include <streambuf> // std::streambuf
+#include <string>    // std::string
+
+class UnseekableStreamBuffer : public std::streambuf {
+public:
+  [[nodiscard]] auto contents() const -> const std::string & {
+    return this->buffer_;
+  }
+
+protected:
+  auto overflow(const int_type character) -> int_type override {
+    if (character != traits_type::eof()) {
+      this->buffer_.push_back(traits_type::to_char_type(character));
+    }
+
+    return character;
+  }
+
+  auto xsputn(const char *data, const std::streamsize count)
+      -> std::streamsize override {
+    this->buffer_.append(data, static_cast<std::string::size_type>(count));
+    return count;
+  }
+
+private:
+  std::string buffer_;
+};
 
 TEST(boolean_false) {
   const sourcemeta::core::JSON document{false};
@@ -694,4 +723,152 @@ TEST(decimal_large_numbers_nested_with_indentation) {
             "{\n    \"nested\": {\n        \"first\": "
             "1.11111111111111111111111111111e+29,\n        \"second\": "
             "2.22222222222222222222222222222e+29\n    }\n}");
+}
+
+TEST(object_with_long_array_on_unseekable_stream) {
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign("required", sourcemeta::core::JSON::make_array());
+  document.at("required")
+      .push_back(sourcemeta::core::JSON{"propertyNumberOneAB"});
+  document.at("required")
+      .push_back(sourcemeta::core::JSON{"propertyNumberTwoAB"});
+  document.at("required")
+      .push_back(sourcemeta::core::JSON{"propertyNumberSixAB"});
+
+  std::ostringstream seekable;
+  sourcemeta::core::prettify(document, seekable);
+
+  UnseekableStreamBuffer buffer;
+  std::ostream unseekable{&buffer};
+  sourcemeta::core::prettify(document, unseekable);
+
+  const auto *const expected = R"JSON({
+  "required": [
+    "propertyNumberOneAB",
+    "propertyNumberTwoAB",
+    "propertyNumberSixAB"
+  ]
+})JSON";
+
+  EXPECT_EQ(buffer.contents(), expected);
+  EXPECT_EQ(buffer.contents(), seekable.str());
+}
+
+TEST(object_with_short_array_on_unseekable_stream) {
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign("required", sourcemeta::core::JSON::make_array());
+  document.at("required").push_back(sourcemeta::core::JSON{"one"});
+  document.at("required").push_back(sourcemeta::core::JSON{"two"});
+
+  std::ostringstream seekable;
+  sourcemeta::core::prettify(document, seekable);
+
+  UnseekableStreamBuffer buffer;
+  std::ostream unseekable{&buffer};
+  sourcemeta::core::prettify(document, unseekable);
+
+  const auto *const expected = R"JSON({
+  "required": [ "one", "two" ]
+})JSON";
+
+  EXPECT_EQ(buffer.contents(), expected);
+  EXPECT_EQ(buffer.contents(), seekable.str());
+}
+
+TEST(array_strings_with_property_of_16_characters) {
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign("aaaaaaaaaaaaaaaa", sourcemeta::core::JSON::make_array());
+  document.at("aaaaaaaaaaaaaaaa")
+      .push_back(sourcemeta::core::JSON{"bbbbbbbbbb"});
+  document.at("aaaaaaaaaaaaaaaa")
+      .push_back(sourcemeta::core::JSON{"cccccccccc"});
+  document.at("aaaaaaaaaaaaaaaa")
+      .push_back(sourcemeta::core::JSON{"dddddddddd"});
+  document.at("aaaaaaaaaaaaaaaa")
+      .push_back(sourcemeta::core::JSON{"eeeeeeeeee"});
+
+  std::ostringstream stream;
+  sourcemeta::core::prettify(document, stream);
+
+  const auto *const expected = R"JSON({
+  "aaaaaaaaaaaaaaaa": [ "bbbbbbbbbb", "cccccccccc", "dddddddddd", "eeeeeeeeee" ]
+})JSON";
+
+  EXPECT_EQ(stream.str(), expected);
+}
+
+TEST(array_strings_with_property_of_15_characters_and_a_quote) {
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign("aaaaaaaaaaaaaaa\"", sourcemeta::core::JSON::make_array());
+  document.at("aaaaaaaaaaaaaaa\"")
+      .push_back(sourcemeta::core::JSON{"bbbbbbbbbb"});
+  document.at("aaaaaaaaaaaaaaa\"")
+      .push_back(sourcemeta::core::JSON{"cccccccccc"});
+  document.at("aaaaaaaaaaaaaaa\"")
+      .push_back(sourcemeta::core::JSON{"dddddddddd"});
+  document.at("aaaaaaaaaaaaaaa\"")
+      .push_back(sourcemeta::core::JSON{"eeeeeeeeee"});
+
+  std::ostringstream stream;
+  sourcemeta::core::prettify(document, stream);
+
+  const auto *const expected = R"JSON({
+  "aaaaaaaaaaaaaaa\"": [
+    "bbbbbbbbbb",
+    "cccccccccc",
+    "dddddddddd",
+    "eeeeeeeeee"
+  ]
+})JSON";
+
+  EXPECT_EQ(stream.str(), expected);
+}
+
+TEST(array_strings_with_property_of_14_characters_and_a_line_feed) {
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign("aaaaaaaaaaaaaa\n", sourcemeta::core::JSON::make_array());
+  document.at("aaaaaaaaaaaaaa\n")
+      .push_back(sourcemeta::core::JSON{"bbbbbbbbbb"});
+  document.at("aaaaaaaaaaaaaa\n")
+      .push_back(sourcemeta::core::JSON{"cccccccccc"});
+  document.at("aaaaaaaaaaaaaa\n")
+      .push_back(sourcemeta::core::JSON{"dddddddddd"});
+  document.at("aaaaaaaaaaaaaa\n")
+      .push_back(sourcemeta::core::JSON{"eeeeeeeeee"});
+
+  std::ostringstream stream;
+  sourcemeta::core::prettify(document, stream);
+
+  const auto *const expected = R"JSON({
+  "aaaaaaaaaaaaaa\n": [ "bbbbbbbbbb", "cccccccccc", "dddddddddd", "eeeeeeeeee" ]
+})JSON";
+
+  EXPECT_EQ(stream.str(), expected);
+}
+
+TEST(array_strings_with_property_of_14_characters_and_a_control_character) {
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign("aaaaaaaaaaaaaa\x01", sourcemeta::core::JSON::make_array());
+  document.at("aaaaaaaaaaaaaa\x01")
+      .push_back(sourcemeta::core::JSON{"bbbbbbbbbb"});
+  document.at("aaaaaaaaaaaaaa\x01")
+      .push_back(sourcemeta::core::JSON{"cccccccccc"});
+  document.at("aaaaaaaaaaaaaa\x01")
+      .push_back(sourcemeta::core::JSON{"dddddddddd"});
+  document.at("aaaaaaaaaaaaaa\x01")
+      .push_back(sourcemeta::core::JSON{"eeeeeeeeee"});
+
+  std::ostringstream stream;
+  sourcemeta::core::prettify(document, stream);
+
+  const auto *const expected = R"JSON({
+  "aaaaaaaaaaaaaa\u0001": [
+    "bbbbbbbbbb",
+    "cccccccccc",
+    "dddddddddd",
+    "eeeeeeeeee"
+  ]
+})JSON";
+
+  EXPECT_EQ(stream.str(), expected);
 }

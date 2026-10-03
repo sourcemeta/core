@@ -332,7 +332,7 @@
         "type": "openapi",
         "pointer": "",
         "parent": null,
-        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+        "defaultDialect": "https://spec.openapis.org/oas/3.1/dialect/base"
       },
       "#/components": {
         "type": "components",
@@ -358,7 +358,7 @@
         "type": "schema",
         "pointer": "/components/parameters/Content/content/application~1json/schema",
         "parent": "#/components/parameters/Content/content/application~1json",
-        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base",
+        "defaultDialect": "https://spec.openapis.org/oas/3.1/dialect/base",
         "base": ""
       },
       "#/components/parameters/Cookie": {
@@ -370,7 +370,7 @@
         "type": "schema",
         "pointer": "/components/parameters/Cookie/schema",
         "parent": "#/components/parameters/Cookie",
-        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base",
+        "defaultDialect": "https://spec.openapis.org/oas/3.1/dialect/base",
         "base": ""
       },
       "#/components/parameters/Examples": {
@@ -395,7 +395,7 @@
         "type": "schema",
         "pointer": "/components/parameters/Examples/schema",
         "parent": "#/components/parameters/Examples",
-        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base",
+        "defaultDialect": "https://spec.openapis.org/oas/3.1/dialect/base",
         "base": ""
       },
       "#/components/parameters/Header": {
@@ -407,7 +407,7 @@
         "type": "schema",
         "pointer": "/components/parameters/Header/schema",
         "parent": "#/components/parameters/Header",
-        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base",
+        "defaultDialect": "https://spec.openapis.org/oas/3.1/dialect/base",
         "base": ""
       },
       "#/components/parameters/Path": {
@@ -419,7 +419,7 @@
         "type": "schema",
         "pointer": "/components/parameters/Path/schema",
         "parent": "#/components/parameters/Path",
-        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base",
+        "defaultDialect": "https://spec.openapis.org/oas/3.1/dialect/base",
         "base": ""
       },
       "#/components/parameters/PathLabel": {
@@ -431,7 +431,7 @@
         "type": "schema",
         "pointer": "/components/parameters/PathLabel/schema",
         "parent": "#/components/parameters/PathLabel",
-        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base",
+        "defaultDialect": "https://spec.openapis.org/oas/3.1/dialect/base",
         "base": ""
       },
       "#/components/parameters/PathMatrix": {
@@ -443,7 +443,7 @@
         "type": "schema",
         "pointer": "/components/parameters/PathMatrix/schema",
         "parent": "#/components/parameters/PathMatrix",
-        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base",
+        "defaultDialect": "https://spec.openapis.org/oas/3.1/dialect/base",
         "base": ""
       },
       "#/components/parameters/Query": {
@@ -455,7 +455,7 @@
         "type": "schema",
         "pointer": "/components/parameters/Query/schema",
         "parent": "#/components/parameters/Query",
-        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base",
+        "defaultDialect": "https://spec.openapis.org/oas/3.1/dialect/base",
         "base": ""
       },
       "#/components/parameters/QueryDeep": {
@@ -467,7 +467,7 @@
         "type": "schema",
         "pointer": "/components/parameters/QueryDeep/schema",
         "parent": "#/components/parameters/QueryDeep",
-        "dialect": "https://spec.openapis.org/oas/3.1/dialect/base",
+        "defaultDialect": "https://spec.openapis.org/oas/3.1/dialect/base",
         "base": ""
       },
       "#/info": {
