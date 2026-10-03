@@ -1,5 +1,11 @@
 #include "crypto_random.h"
 
+#if defined(_WIN32)
+#include <cstddef> // std::size_t
+#include <cstdint> // std::uint8_t
+#include <random>  // std::random_device
+#include <span>    // std::span
+#else
 // glibc and the BSDs declare the entropy call in the random header while
 // musl only declares it in the standard POSIX header, so both are needed
 #include <sys/random.h> // getentropy
@@ -12,10 +18,24 @@
 #include <ios>       // std::ios::binary
 #include <span>      // std::span
 #include <stdexcept> // std::runtime_error
+#endif
 
 namespace sourcemeta::core {
 
 auto fill_random_bytes(std::span<std::uint8_t> bytes) -> void {
+#if defined(_WIN32)
+  std::random_device generator;
+  std::size_t offset{0};
+  while (offset < bytes.size()) {
+    auto value{generator()};
+    for (std::size_t index = 0; index < sizeof(value) && offset < bytes.size();
+         ++index) {
+      bytes[offset] = static_cast<std::uint8_t>(value & 0xffu);
+      ++offset;
+      value >>= 8u;
+    }
+  }
+#else
   // getentropy draws from the kernel cryptographic generator and fails closed,
   // never returning low-quality bytes, but fills at most 256 bytes per call
   constexpr std::size_t maximum_per_call{256};
@@ -52,6 +72,7 @@ auto fill_random_bytes(std::span<std::uint8_t> bytes) -> void {
 
     offset += chunk;
   }
+#endif
 }
 
 } // namespace sourcemeta::core
