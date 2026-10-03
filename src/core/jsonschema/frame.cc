@@ -460,6 +460,23 @@ auto canonicalize_identifier(const std::string_view identifier,
       .recompose();
 }
 
+// RFC 3986 Section 5.1 defines a base URI as one that carries no fragment, and
+// Section 5.2.2 never consults one, so a base that states a fragment states
+// something that could not mean anything
+//
+//   the base URI ... a fragment component is not part of it
+auto canonicalize_base(const std::string_view base)
+    -> sourcemeta::core::JSON::String {
+  const sourcemeta::core::URI uri{base};
+  const auto fragment{uri.fragment()};
+  if (fragment.has_value() && !fragment.value().empty()) {
+    throw sourcemeta::core::SchemaFrameError(
+        base, "The base must not contain a non-empty fragment");
+  }
+
+  return sourcemeta::core::URI::canonicalize(base);
+}
+
 [[noreturn]]
 auto throw_already_exists(const sourcemeta::core::JSON::String &uri) -> void {
   throw sourcemeta::core::SchemaFrameError(uri,
@@ -851,6 +868,7 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
                          const SchemaFrame::IdentifierMode identifier_mode,
                          const SchemaFrame::Paths &paths,
                          const std::string_view default_base,
+                         const SchemaFrame::Bases &additional_bases,
                          const std::uint64_t max_locations)
     : mode_{mode}, cache_{std::make_unique<Cache>()} {
   // This mode reports on a single schema. Framing a wrapper that holds more
@@ -897,20 +915,15 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
       base_dialects;
 
   if (!default_base.empty()) {
-    // RFC 3986 Section 5.1 defines a base URI as one that carries no
-    // fragment, and Section 5.2.2 never consults one, so a base that states a
-    // fragment states something that could not mean anything
-    //
-    //   the base URI ... a fragment component is not part of it
-    const sourcemeta::core::URI base{default_base};
-    const auto fragment{base.fragment()};
-    if (fragment.has_value() && !fragment.value().empty()) {
-      throw SchemaFrameError(default_base,
-                             "The base must not contain a non-empty fragment");
-    }
+    this->cache_->default_base = canonicalize_base(default_base);
+  }
 
-    this->cache_->default_base =
-        sourcemeta::core::URI::canonicalize(default_base);
+  std::vector<sourcemeta::core::JSON::String> additional_base_uris;
+  additional_base_uris.reserve(additional_bases.size());
+  for (const auto &additional_base : additional_bases) {
+    if (!additional_base.empty()) {
+      additional_base_uris.push_back(canonicalize_base(additional_base));
+    }
   }
 
   for (const auto &path : paths) {
@@ -1020,7 +1033,11 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
     // instead make that path a resource, addressing what sits under it from
     // there rather than from the top of the document, which is what an
     // identifier does and what this deliberately does not
-    if (!this->cache_->default_base.empty()) {
+    //
+    // Whatever else the caller states the document goes by comes after all of
+    // those, as a name that the document neither carries nor was retrieved
+    // from is the last thing a reference within it could be read against
+    if (!this->cache_->default_base.empty() || !additional_base_uris.empty()) {
       std::vector<sourcemeta::core::JSON::String> root_bases;
       if (root_id.has_value() && path.empty()) {
         root_bases.push_back(root_id.value());
@@ -1029,7 +1046,18 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
         }
       }
 
-      root_bases.push_back(this->cache_->default_base);
+      if (!this->cache_->default_base.empty()) {
+        root_bases.push_back(this->cache_->default_base);
+      }
+
+      for (const auto &additional_base : additional_base_uris) {
+        // A base that is already in force addresses every place of the
+        // document once, so stating it again would address each of them twice
+        if (!std::ranges::contains(root_bases, additional_base)) {
+          root_bases.push_back(additional_base);
+        }
+      }
+
       base_uris.insert_or_assign(sourcemeta::core::EMPTY_WEAK_POINTER,
                                  std::move(root_bases));
     }

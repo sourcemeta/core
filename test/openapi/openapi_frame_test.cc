@@ -1027,3 +1027,91 @@ TEST(default_dialect_export_is_distinct_from_the_schema_frame_dialect) {
       result.at("schemas").at("locations").at("static").at(older).at("dialect"),
       sourcemeta::core::JSON{"http://json-schema.org/draft-07/schema#"});
 }
+
+TEST(default_id_names_a_schema_object_alongside_what_the_description_declares) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.2.0",
+    "$self": "https://example.com/api",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "paths": {},
+    "components": {
+      "schemas": { "Person": { "type": "object" } }
+    }
+  })JSON")};
+
+  const sourcemeta::core::OpenAPIFrame frame{
+      document, sourcemeta::core::schema_walker,
+      sourcemeta::core::schema_resolver, "file:///home/someone/openapi.json",
+      "file:///home/someone/openapi.json"};
+
+  EXPECT_EQ(frame.base(), "https://example.com/api");
+  EXPECT_EQ(
+      frame.uri(sourcemeta::core::Pointer{"components", "schemas", "Person"}),
+      "https://example.com/api#/components/schemas/Person");
+
+  EXPECT_TRUE(frame.traverse("https://example.com/api"
+                             "#/components/schemas/Person") != nullptr);
+  EXPECT_TRUE(frame.traverse("file:///home/someone/openapi.json"
+                             "#/components/schemas/Person") != nullptr);
+  EXPECT_TRUE(frame.schemas()
+                  .location(sourcemeta::core::SchemaReferenceType::Static,
+                            "https://example.com/api"
+                            "#/components/schemas/Person")
+                  .has_value());
+  EXPECT_TRUE(frame.schemas()
+                  .location(sourcemeta::core::SchemaReferenceType::Static,
+                            "file:///home/someone/openapi.json"
+                            "#/components/schemas/Person")
+                  .has_value());
+}
+
+TEST(default_id_names_no_schema_object_when_it_is_not_given) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.2.0",
+    "$self": "https://example.com/api",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "paths": {},
+    "components": {
+      "schemas": { "Person": { "type": "object" } }
+    }
+  })JSON")};
+
+  const sourcemeta::core::OpenAPIFrame frame{
+      document, sourcemeta::core::schema_walker,
+      sourcemeta::core::schema_resolver, "file:///home/someone/openapi.json"};
+
+  EXPECT_TRUE(frame.traverse("https://example.com/api"
+                             "#/components/schemas/Person") != nullptr);
+  EXPECT_TRUE(frame.traverse("file:///home/someone/openapi.json"
+                             "#/components/schemas/Person") == nullptr);
+  EXPECT_FALSE(frame.schemas()
+                   .location(sourcemeta::core::SchemaReferenceType::Static,
+                             "file:///home/someone/openapi.json"
+                             "#/components/schemas/Person")
+                   .has_value());
+}
+
+TEST(default_id_lands_a_reference_that_names_the_description_by_it) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.2.0",
+    "$self": "https://example.com/api",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "components": {
+      "responses": {
+        "Ok": { "description": "ok" },
+        "Alias": { "$ref": "https://example.com/held#/components/responses/Ok" }
+      }
+    }
+  })JSON")};
+
+  const sourcemeta::core::OpenAPIFrame without{
+      document, sourcemeta::core::schema_walker,
+      sourcemeta::core::schema_resolver, "https://example.com/openapi.json"};
+  EXPECT_FALSE(without.standalone());
+
+  const sourcemeta::core::OpenAPIFrame with{
+      document, sourcemeta::core::schema_walker,
+      sourcemeta::core::schema_resolver, "https://example.com/openapi.json",
+      "https://example.com/held"};
+  EXPECT_TRUE(with.standalone());
+}

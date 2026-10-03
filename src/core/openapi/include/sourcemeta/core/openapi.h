@@ -376,7 +376,8 @@ public:
 
   /// Frame an OpenAPI Description from a given document. That document must
   /// outlive the frame, as the metadata it reports borrows from it. The given
-  /// base need not, as the frame canonicalises it into a string of its own
+  /// base and identifier need not, as the frame canonicalises each into a
+  /// string of its own
   ///
   /// The base is the retrieval URI of the document. OpenAPI 3.1 offers a
   /// document no way of declaring an identity of its own, so under that
@@ -384,6 +385,21 @@ public:
   /// onwards a document may declare `$self`, which takes precedence once it is
   /// absolute, resolving against this when relative and standing aside when
   /// neither gives it a scheme
+  ///
+  /// Pass `default_id` to state a further name the description goes by, which
+  /// every place it holds is keyed by as well, the Schema Object positions
+  /// included. OpenAPI Specification 3.2.1, Section 4.1.1 asks a reference to
+  /// name a document by its `$self` and leaves the rest to the implementation:
+  /// "Implementations MAY choose to support referencing by other URIs such as
+  /// the retrieval URI even when `$self` is present, however this behavior is
+  /// not interoperable and relying on it is NOT RECOMMENDED". So a description
+  /// answers to what it declares alone unless the caller names it twice, which
+  /// is what a document retrieved from more than one place or held under a
+  /// name of its holder's comes to. A Schema Object position reports whichever
+  /// name addresses it as the base to resolve against, both being in force
+  /// within the schemas, while which name the description settled on is
+  /// untouched, so nothing about how a URI within it resolves depends on this.
+  /// Naming what the base names already records nothing further
   ///
   /// Only the given document is read. A reference that leaves it is recorded
   /// and left there, and a frame holding one of those does not stand alone
@@ -404,8 +420,9 @@ public:
   /// register past it, which reports the allowance the caller set rather than
   /// whatever was left of it
   ///
-  /// The base must carry a scheme. One that does not is refused before the
-  /// document is read, which is why such a refusal names no place within it
+  /// The base must carry a scheme, and so must the identifier. One that does
+  /// not is refused before the document is read, which is why such a refusal
+  /// names no place within it
   ///
   /// A document that does not conform to the specification is rejected here
   /// rather than reported back, by throwing sourcemeta::core::OpenAPIError.
@@ -422,6 +439,7 @@ public:
   OpenAPIFrame(
       const JSON &document, const SchemaWalker &walker,
       const SchemaResolver &resolver, std::string_view default_base = "",
+      std::string_view default_id = "",
       std::uint64_t max_locations = std::numeric_limits<std::uint64_t>::max());
 
   ~OpenAPIFrame();

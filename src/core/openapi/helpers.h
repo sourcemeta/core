@@ -158,6 +158,10 @@ struct OpenAPIWalk {
   // retrieval URI is used instead". So this is kept apart from the base above
   // rather than replaced by it
   JSON::String retrieval;
+  // A further name the caller states the description goes by, which every
+  // place it holds is keyed by as well as by the base above. Empty when the
+  // caller states none, and emptied when it names what the base names already
+  JSON::String default_id;
   // The document the checks are reading, which a reference that stays inside
   // it resolves its fragment against
   const JSON *document{nullptr};
@@ -557,6 +561,31 @@ inline auto openapi_record(OpenAPIWalk &walk, const Pointer &pointer,
   if (known != walk.locations.cend() && known->second.type != kind) {
     throw OpenAPIError{walk.base, pointer,
                        "This place is read as more than one kind of Object"};
+  }
+
+  // Every name the description goes by addresses every place it holds, so one
+  // place is recorded once per name and costs one of the allowance for each
+  if (!walk.default_id.empty()) {
+    auto additional{openapi_location_uri(walk.default_id, pointer)};
+    if (!walk.locations.contains(additional)) {
+      if (walk.remaining == 0) {
+        throw OpenAPIFrameLimitError{walk.limit};
+      }
+
+      walk.remaining -= 1;
+    }
+
+    // A record keyed by one name describes the document as that name addresses
+    // it, so the base a Schema Object position carries is that name rather
+    // than the one the description settled on. Both are in force within the
+    // schemas, the frame of those being given every name as well
+    walk.locations.insert_or_assign(
+        std::move(additional),
+        OpenAPILocation{.type = kind,
+                        .pointer = pointer,
+                        .default_dialect = default_dialect,
+                        .base =
+                            base.empty() ? JSON::String{} : walk.default_id});
   }
 
   walk.locations.insert_or_assign(

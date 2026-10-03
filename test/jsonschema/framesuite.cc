@@ -21,9 +21,9 @@ namespace {
 // otherwise go unnoticed, as the runner would simply not read it
 // NOLINTBEGIN(cert-err58-cpp,bugprone-throwing-static-initialization)
 const std::vector<std::string> KNOWN_KEYS{
-    "schema",      "resolver",     "defaultDialect", "defaultId",
-    "defaultBase", "paths",        "root",           "identifierMode",
-    "pointers",    "reachability", "standalone"};
+    "schema",         "resolver",        "defaultDialect", "defaultId",
+    "defaultBase",    "additionalBases", "paths",          "root",
+    "identifierMode", "pointers",        "reachability",   "standalone"};
 // NOLINTEND(cert-err58-cpp,bugprone-throwing-static-initialization)
 
 // Every type of location and every mode that the frame reports, so that a
@@ -201,13 +201,14 @@ auto make_resolver(const sourcemeta::core::JSON &test)
 }
 
 // A frame keeps views into the default dialect, the default identifier, the
-// default base, and the paths it was given, so all four have to outlive it.
-// The caller owns this, as anything built inside `analyse` would dangle on
-// return and only misbehave later, when the frame is read back
+// default base, the additional bases, and the paths it was given, so all five
+// have to outlive it. The caller owns this, as anything built inside `analyse`
+// would dangle on return and only misbehave later, when the frame is read back
 struct Inputs {
   sourcemeta::core::JSON::String default_dialect;
   sourcemeta::core::JSON::String default_id;
   sourcemeta::core::JSON::String default_base;
+  std::vector<sourcemeta::core::JSON::String> additional_bases;
   std::vector<sourcemeta::core::Pointer> paths;
 };
 
@@ -226,6 +227,13 @@ auto make_inputs(const sourcemeta::core::JSON &test) -> Inputs {
   const auto *raw_base{test.try_at("defaultBase")};
   if (raw_base != nullptr && !raw_base->is_null()) {
     inputs.default_base = raw_base->to_string();
+  }
+
+  const auto *raw_additional_bases{test.try_at("additionalBases")};
+  if (raw_additional_bases != nullptr) {
+    for (const auto &additional_base : raw_additional_bases->as_array()) {
+      inputs.additional_bases.push_back(additional_base.to_string());
+    }
   }
 
   if (test.defines("paths")) {
@@ -326,6 +334,8 @@ auto run_frame_test(const sourcemeta::core::JSON &test) -> void {
   const auto inputs{make_inputs(test)};
   const auto paths{make_paths(test, inputs)};
   const auto identifier_mode{make_identifier_mode(test)};
+  const sourcemeta::core::SchemaFrame::Bases additional_bases{
+      inputs.additional_bases.cbegin(), inputs.additional_bases.cend()};
 
   const sourcemeta::core::SchemaFrame root{
       sourcemeta::core::SchemaFrame::Mode::Root,
@@ -336,7 +346,8 @@ auto run_frame_test(const sourcemeta::core::JSON &test) -> void {
       inputs.default_id,
       identifier_mode,
       paths,
-      inputs.default_base};
+      inputs.default_base,
+      additional_bases};
   const auto root_json{root.to_json(resolver)};
   EXPECT_EQ(root_json, test.at("root"));
   check_frame_invariants(root_json, root.standalone());
@@ -350,7 +361,8 @@ auto run_frame_test(const sourcemeta::core::JSON &test) -> void {
       inputs.default_id,
       identifier_mode,
       paths,
-      inputs.default_base};
+      inputs.default_base,
+      additional_bases};
   const auto pointers_json{pointers.to_json(resolver)};
   EXPECT_EQ(pointers_json, test.at("pointers"));
   check_frame_invariants(pointers_json, pointers.standalone());
@@ -390,7 +402,8 @@ auto run_frame_test(const sourcemeta::core::JSON &test) -> void {
       inputs.default_id,
       identifier_mode,
       paths,
-      inputs.default_base};
+      inputs.default_base,
+      additional_bases};
   const auto references_json{references.to_json(resolver)};
   EXPECT_EQ(references_json, expected_references);
 
@@ -431,7 +444,8 @@ auto run_frame_test(const sourcemeta::core::JSON &test) -> void {
       inputs.default_id,
       identifier_mode,
       paths,
-      inputs.default_base};
+      inputs.default_base,
+      additional_bases};
   const auto locations_json{locations.to_json(resolver)};
   EXPECT_EQ(locations_json, expected_locations);
   check_frame_invariants(locations_json, locations.standalone());

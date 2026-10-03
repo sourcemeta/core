@@ -390,8 +390,19 @@ inline auto openapi_check_document(const JSON &document, OpenAPIWalk &walk)
         // the target document's `$self` URI if the `$self` field is present".
         // So this is the URI the document answers to, and one that names it by
         // where it was retrieved from instead names another document, which
-        // the same paragraph calls "not interoperable" and NOT RECOMMENDED
+        // the same paragraph calls "not interoperable" and NOT RECOMMENDED.
+        // The same paragraph leaves room for another name regardless:
+        // "Implementations MAY choose to support referencing by other URIs
+        // such as the retrieval URI even when `$self` is present", which is
+        // what a caller takes by naming the description a second time
       }
+    }
+
+    // A name the caller gave addresses every place the description holds, and
+    // the base settled above addresses them already, so the two coming to the
+    // same thing leaves nothing further to record
+    if (walk.default_id == walk.base) {
+      walk.default_id.clear();
     }
 
     // Section 4.8.30: "The name used for each property MUST correspond to a
@@ -456,7 +467,7 @@ inline auto openapi_check_document(const JSON &document, OpenAPIWalk &walk)
           "The OpenAPI dialect must be a URI reference");
     }
 
-    // Section 4.8.24.1: "To allow use of a different default `$schema` value
+    // Section 4.8.24.5: "To allow use of a different default `$schema` value
     // for all Schema Objects contained within an OAS document, a
     // `jsonSchemaDialect` value may be set within the OpenAPI Object. If this
     // default is not set, then the OAS dialect schema id MUST be used for
@@ -626,11 +637,13 @@ auto openapi_project(const OpenAPIWalk &walk) -> std::vector<OpenAPIOperation>;
 // access". A document read on its own has no entry document to resolve from,
 // so what one names is settled by whoever reads it as part of a description
 inline auto openapi_analyse(const JSON &document, JSON::String base,
+                            JSON::String default_id = {},
                             const std::uint64_t max_locations =
                                 std::numeric_limits<std::uint64_t>::max(),
                             const OpenAPIWalk *entry = nullptr) -> OpenAPIWalk {
   OpenAPIWalk walk{.base = base,
                    .retrieval = std::move(base),
+                   .default_id = std::move(default_id),
                    .document = &document,
                    .operation_ids = {},
                    .visited = {},

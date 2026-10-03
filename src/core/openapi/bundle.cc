@@ -227,6 +227,7 @@ auto absolutize_schemas(sourcemeta::core::JSON &value,
       sourcemeta::core::SchemaFrame::IdentifierMode::Additional,
       paths,
       remote.base,
+      {},
       remaining};
   charge(remaining, frame.location_count());
 
@@ -772,6 +773,7 @@ auto schema_pending(const sourcemeta::core::JSON &document,
       sourcemeta::core::SchemaFrame::IdentifierMode::Additional,
       paths,
       walk.base,
+      {},
       remaining};
   charge(remaining, frame.location_count());
 
@@ -966,6 +968,7 @@ auto index_schemas(const sourcemeta::core::JSON &remote_document,
       sourcemeta::core::SchemaFrame::IdentifierMode::Additional,
       paths,
       remote.base,
+      {},
       remaining};
   charge(remaining, frame.location_count());
 
@@ -1458,7 +1461,7 @@ auto adopt_mappings(
                    JSON::String{dialect}, identifier,
                    SchemaFrame::IdentifierMode::Additional,
                    SchemaFrame::Paths{EMPTY_WEAK_POINTER}, identifier,
-                   remaining);
+                   SchemaFrame::Bases{}, remaining);
     } catch (const SchemaUnknownBaseDialectError &) {
       // What a schema is written against is what says how to read it, and
       // Section 4.8.24.5 leaves the dialect to whatever the schema names. One
@@ -1566,7 +1569,7 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
   bool named{false};
 
   while (true) {
-    const auto walk{openapi_analyse(document, retrieval, remaining)};
+    const auto walk{openapi_analyse(document, retrieval, {}, remaining)};
     const auto &base{walk.base};
     if (!named) {
       names.security_schemes = walk.security_schemes;
@@ -1722,7 +1725,7 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
         // takes its place before anything walks it
         const auto &held{
             documents.emplace(identifier, std::move(candidate)).first->second};
-        auto analysis{openapi_analyse(held, identifier, remaining, &names)};
+        auto analysis{openapi_analyse(held, identifier, {}, remaining, &names)};
         charge(remaining, analysis.locations.size());
         const auto &recorded{
             walks.emplace(identifier, std::move(analysis)).first->second};

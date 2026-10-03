@@ -731,11 +731,12 @@ struct OpenAPIFrame::Internal {
 OpenAPIFrame::OpenAPIFrame(const JSON &document, const SchemaWalker &walker,
                            const SchemaResolver &resolver,
                            const std::string_view default_base,
+                           const std::string_view default_id,
                            const std::uint64_t max_locations)
     : internal_{std::make_unique<Internal>()} {
   auto walk{sourcemeta::core::openapi_analyse(
       document, sourcemeta::core::openapi_canonical_base(default_base),
-      max_locations)};
+      sourcemeta::core::openapi_canonical_base(default_id), max_locations)};
   this->internal_->version = walk.version;
   this->internal_->info = walk.info;
   // A frame stands alone when everything it references is inside it, which is
@@ -770,6 +771,9 @@ OpenAPIFrame::OpenAPIFrame(const JSON &document, const SchemaWalker &walker,
   // and from 3.2 onwards the document may give itself a URI of its own, which
   // the walk settles and everything it holds is keyed by
   this->internal_->base = std::move(walk.base);
+  // Whatever further name the caller gave, which the walk emptied if it came
+  // to what the base comes to
+  const auto additional_name{std::move(walk.default_id)};
   const auto walk_locations{walk.locations.size()};
   this->internal_->locations = std::move(walk.locations);
   this->internal_->references = std::move(walk.references);
@@ -802,11 +806,25 @@ OpenAPIFrame::OpenAPIFrame(const JSON &document, const SchemaWalker &walker,
   //
   // Locations are keyed by the base with the pointer hung off it, so a place
   // within another has that other one's key as a prefix and follows it here
+  //
+  // A description that goes by more than one name records each of its places
+  // once per name, and those records are the one place. Framing the schemas is
+  // given each position once, as it is undefined to hand it the same one twice
   for (const auto &location : this->internal_->locations) {
-    if (location.second.type == OpenAPIObjectKind::Schema) {
+    if (location.second.type == OpenAPIObjectKind::Schema &&
+        openapi_within_document(location.first, this->internal_->base)) {
       this->internal_->schema_paths.push_back(
           to_weak_pointer(location.second.pointer));
     }
+  }
+
+  // The schemas a description holds are places of it as much as the Objects
+  // around them are, so they answer to every name it goes by. The base they
+  // resolve against is the one it settled on, which is what makes that name
+  // the first of them
+  SchemaFrame::Bases schema_bases;
+  if (!additional_name.empty()) {
+    schema_bases.push_back(additional_name);
   }
 
   this->internal_->schema_resolver = resolver;
@@ -820,7 +838,7 @@ OpenAPIFrame::OpenAPIFrame(const JSON &document, const SchemaWalker &walker,
         SchemaFrame::Mode::References, document, walker, resolver,
         root->second.default_dialect, "",
         SchemaFrame::IdentifierMode::Additional, this->internal_->schema_paths,
-        this->internal_->base, max_locations - walk_locations);
+        this->internal_->base, schema_bases, max_locations - walk_locations);
   } catch (const SchemaFrameLimitError &) {
     // Framing the schemas was handed what was left rather than the whole, so
     // the allowance it reports is not the one the caller set
