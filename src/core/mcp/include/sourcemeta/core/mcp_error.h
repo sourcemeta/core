@@ -11,6 +11,7 @@
 #include <sourcemeta/core/mcp_protocol.h>
 
 #include <cstdint>
+#include <optional>
 #include <vector>
 
 namespace sourcemeta::core {
@@ -44,10 +45,12 @@ constexpr std::int64_t MCP_CODE_UNSUPPORTED_PROTOCOL_VERSION{-32022};
 /// Map an MCP or JSON-RPC error code to an appropriate HTTP status code
 /// for the Streamable HTTP transport.
 ///
-/// Returns @ref HTTP_STATUS_NOT_FOUND for method not found (-32601),
-/// @ref HTTP_STATUS_BAD_REQUEST for client errors (-32600, -32602, -32700,
-/// -32020, -32021, -32022), and @ref HTTP_STATUS_INTERNAL_SERVER_ERROR
-/// for internal or unmapped server errors.
+/// For MCP 2026-07-28, returns @ref HTTP_STATUS_NOT_FOUND for method not found
+/// (-32601). For earlier protocol versions, returns @ref
+/// HTTP_STATUS_BAD_REQUEST for method not found. Returns @ref
+/// HTTP_STATUS_BAD_REQUEST for client errors
+/// (-32600, -32602, -32700, -32020, -32021, -32022), and @ref
+/// HTTP_STATUS_INTERNAL_SERVER_ERROR for internal or unmapped server errors.
 constexpr auto mcp_error_code_to_http_status(const MCPProtocolVersion version,
                                              const std::int64_t code) noexcept
     -> HTTPStatus {
@@ -82,7 +85,8 @@ constexpr auto mcp_error_code_to_http_status(const std::int64_t code) noexcept
 /// Build a JSON-RPC error response for unsupported protocol version (-32022).
 SOURCEMETA_CORE_MCP_EXPORT
 auto mcp_make_error_unsupported_protocol_version(
-    const sourcemeta::core::JSON &identifier, const JSON::StringView requested,
+    const std::optional<sourcemeta::core::JSON> &identifier,
+    const JSON::StringView requested,
     const std::vector<JSON::StringView> &supported) -> sourcemeta::core::JSON;
 
 /// @ingroup mcp
@@ -90,34 +94,33 @@ auto mcp_make_error_unsupported_protocol_version(
 /// (-32021).
 SOURCEMETA_CORE_MCP_EXPORT
 auto mcp_make_error_missing_required_capability(
-    const sourcemeta::core::JSON &identifier,
+    const std::optional<sourcemeta::core::JSON> &identifier,
     sourcemeta::core::JSON required_capabilities,
     const JSON::StringView message) -> sourcemeta::core::JSON;
 
 /// @ingroup mcp
 /// Build a JSON-RPC error response for header mismatch (-32020).
 SOURCEMETA_CORE_MCP_EXPORT
-auto mcp_make_error_header_mismatch(const sourcemeta::core::JSON &identifier,
-                                    const JSON::StringView message)
-    -> sourcemeta::core::JSON;
+auto mcp_make_error_header_mismatch(
+    const std::optional<sourcemeta::core::JSON> &identifier,
+    const JSON::StringView message) -> sourcemeta::core::JSON;
 
 /// @ingroup mcp
 /// Build a JSON-RPC error response for header mismatch (-32020) with detailed
 /// header mismatch payload.
 SOURCEMETA_CORE_MCP_EXPORT
-auto mcp_make_error_header_mismatch(const sourcemeta::core::JSON &identifier,
-                                    const JSON::StringView header_name,
-                                    const JSON::StringView header_value,
-                                    const JSON::StringView body_value)
-    -> sourcemeta::core::JSON;
+auto mcp_make_error_header_mismatch(
+    const std::optional<sourcemeta::core::JSON> &identifier,
+    const JSON::StringView header_name, const JSON::StringView header_value,
+    const JSON::StringView body_value) -> sourcemeta::core::JSON;
 
 /// @ingroup mcp
 /// Build a JSON-RPC error response for header mismatch (-32020) reporting an
 /// unexpected header supplied without a corresponding body value.
 SOURCEMETA_CORE_MCP_EXPORT
-auto mcp_make_error_header_mismatch(const sourcemeta::core::JSON &identifier,
-                                    const JSON::StringView header_name,
-                                    const JSON::StringView header_value)
+auto mcp_make_error_header_mismatch(
+    const std::optional<sourcemeta::core::JSON> &identifier,
+    const JSON::StringView header_name, const JSON::StringView header_value)
     -> sourcemeta::core::JSON;
 
 /// @ingroup mcp
@@ -125,8 +128,9 @@ auto mcp_make_error_header_mismatch(const sourcemeta::core::JSON &identifier,
 /// was not found. Emits -32002 for legacy revisions, and -32602 (Invalid
 /// Params) for 2026-07-28.
 SOURCEMETA_CORE_MCP_EXPORT
-auto mcp_make_error_resource_not_found(const MCPProtocolVersion version,
-                                       const sourcemeta::core::JSON &identifier)
+auto mcp_make_error_resource_not_found(
+    const MCPProtocolVersion version,
+    const std::optional<sourcemeta::core::JSON> &identifier)
     -> sourcemeta::core::JSON;
 
 } // namespace sourcemeta::core

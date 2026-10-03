@@ -103,8 +103,8 @@ auto mcp_validate_request_meta(
 /// @ref MCPRequestMetaStatus.
 SOURCEMETA_CORE_MCP_EXPORT
 auto mcp_make_error_request_meta(
-    const sourcemeta::core::JSON &identifier, const MCPRequestMetaStatus status,
-    const JSON::StringView requested = "",
+    const std::optional<sourcemeta::core::JSON> &identifier,
+    const MCPRequestMetaStatus status, const JSON::StringView requested = "",
     const std::vector<JSON::StringView> &supported = {})
     -> sourcemeta::core::JSON;
 

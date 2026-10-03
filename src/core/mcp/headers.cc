@@ -23,7 +23,7 @@ auto mcp_is_valid_header_characters(
   for (const char character : raw_header) {
     const auto unsigned_character{static_cast<unsigned char>(character)};
     if (unsigned_character != 0x09 &&
-        (unsigned_character < 0x20 || unsigned_character > 0x7E)) {
+        (unsigned_character < 0x20 || unsigned_character == 0x7F)) {
       return false;
     }
   }
@@ -187,40 +187,41 @@ auto mcp_validate_request_meta(
   return {MCPRequestMetaStatus::Valid, result};
 }
 
-auto mcp_make_error_request_meta(const sourcemeta::core::JSON &identifier,
-                                 const MCPRequestMetaStatus status,
-                                 const JSON::StringView requested,
-                                 const std::vector<JSON::StringView> &supported)
-    -> sourcemeta::core::JSON {
+auto mcp_make_error_request_meta(
+    const std::optional<sourcemeta::core::JSON> &identifier,
+    const MCPRequestMetaStatus status, const JSON::StringView requested,
+    const std::vector<JSON::StringView> &supported) -> sourcemeta::core::JSON {
+  const auto *const identifier_pointer{
+      identifier.has_value() ? &identifier.value() : nullptr};
   auto envelope = [&]() -> sourcemeta::core::JSON {
     switch (status) {
       case MCPRequestMetaStatus::Valid:
         assert(status != MCPRequestMetaStatus::Valid);
         return sourcemeta::core::jsonrpc_make_error(
-            &identifier, JSONRPC_CODE_INTERNAL, "Internal error");
+            identifier_pointer, JSONRPC_CODE_INTERNAL, "Internal error");
       case MCPRequestMetaStatus::MissingParams:
         return sourcemeta::core::jsonrpc_make_error(
-            &identifier, JSONRPC_CODE_INVALID_PARAMS,
+            identifier_pointer, JSONRPC_CODE_INVALID_PARAMS,
             "Invalid params: missing params object");
       case MCPRequestMetaStatus::ParamsNotObject:
         return sourcemeta::core::jsonrpc_make_error(
-            &identifier, JSONRPC_CODE_INVALID_PARAMS,
+            identifier_pointer, JSONRPC_CODE_INVALID_PARAMS,
             "Invalid params: params must be an object");
       case MCPRequestMetaStatus::MissingMeta:
         return sourcemeta::core::jsonrpc_make_error(
-            &identifier, JSONRPC_CODE_INVALID_PARAMS,
+            identifier_pointer, JSONRPC_CODE_INVALID_PARAMS,
             "Invalid params: missing _meta object");
       case MCPRequestMetaStatus::MetaNotObject:
         return sourcemeta::core::jsonrpc_make_error(
-            &identifier, JSONRPC_CODE_INVALID_PARAMS,
+            identifier_pointer, JSONRPC_CODE_INVALID_PARAMS,
             "Invalid params: _meta must be an object");
       case MCPRequestMetaStatus::MissingProtocolVersion:
         return sourcemeta::core::jsonrpc_make_error(
-            &identifier, JSONRPC_CODE_INVALID_PARAMS,
+            identifier_pointer, JSONRPC_CODE_INVALID_PARAMS,
             "Invalid params: missing protocolVersion in _meta");
       case MCPRequestMetaStatus::ProtocolVersionNotString:
         return sourcemeta::core::jsonrpc_make_error(
-            &identifier, JSONRPC_CODE_INVALID_PARAMS,
+            identifier_pointer, JSONRPC_CODE_INVALID_PARAMS,
             "Invalid params: protocolVersion must be a string");
       case MCPRequestMetaStatus::UnsupportedProtocolVersion:
         return mcp_make_error_unsupported_protocol_version(
@@ -230,44 +231,44 @@ auto mcp_make_error_request_meta(const sourcemeta::core::JSON &identifier,
                 : supported);
       case MCPRequestMetaStatus::MissingClientCapabilities:
         return sourcemeta::core::jsonrpc_make_error(
-            &identifier, JSONRPC_CODE_INVALID_PARAMS,
+            identifier_pointer, JSONRPC_CODE_INVALID_PARAMS,
             "Invalid params: missing clientCapabilities in _meta");
       case MCPRequestMetaStatus::ClientCapabilitiesNotObject:
         return sourcemeta::core::jsonrpc_make_error(
-            &identifier, JSONRPC_CODE_INVALID_PARAMS,
+            identifier_pointer, JSONRPC_CODE_INVALID_PARAMS,
             "Invalid params: clientCapabilities must be an object");
       case MCPRequestMetaStatus::ClientInfoNotObject:
         return sourcemeta::core::jsonrpc_make_error(
-            &identifier, JSONRPC_CODE_INVALID_PARAMS,
+            identifier_pointer, JSONRPC_CODE_INVALID_PARAMS,
             "Invalid params: clientInfo must be an object");
       case MCPRequestMetaStatus::MissingClientInfoName:
         return sourcemeta::core::jsonrpc_make_error(
-            &identifier, JSONRPC_CODE_INVALID_PARAMS,
+            identifier_pointer, JSONRPC_CODE_INVALID_PARAMS,
             "Invalid params: missing name in clientInfo");
       case MCPRequestMetaStatus::ClientInfoNameNotString:
         return sourcemeta::core::jsonrpc_make_error(
-            &identifier, JSONRPC_CODE_INVALID_PARAMS,
+            identifier_pointer, JSONRPC_CODE_INVALID_PARAMS,
             "Invalid params: clientInfo name must be a string");
       case MCPRequestMetaStatus::MissingClientInfoVersion:
         return sourcemeta::core::jsonrpc_make_error(
-            &identifier, JSONRPC_CODE_INVALID_PARAMS,
+            identifier_pointer, JSONRPC_CODE_INVALID_PARAMS,
             "Invalid params: missing version in clientInfo");
       case MCPRequestMetaStatus::ClientInfoVersionNotString:
         return sourcemeta::core::jsonrpc_make_error(
-            &identifier, JSONRPC_CODE_INVALID_PARAMS,
+            identifier_pointer, JSONRPC_CODE_INVALID_PARAMS,
             "Invalid params: clientInfo version must be a string");
       case MCPRequestMetaStatus::ClientInfoTitleNotString:
         return sourcemeta::core::jsonrpc_make_error(
-            &identifier, JSONRPC_CODE_INVALID_PARAMS,
+            identifier_pointer, JSONRPC_CODE_INVALID_PARAMS,
             "Invalid params: clientInfo title must be a string");
       case MCPRequestMetaStatus::ClientInfoDescriptionNotString:
         return sourcemeta::core::jsonrpc_make_error(
-            &identifier, JSONRPC_CODE_INVALID_PARAMS,
+            identifier_pointer, JSONRPC_CODE_INVALID_PARAMS,
             "Invalid params: clientInfo description must be a string");
     }
     std::unreachable();
   }();
-  if (identifier.is_null()) {
+  if (!identifier.has_value()) {
     envelope.erase("id", MCP_HASH_ID);
   }
   return envelope;
@@ -339,7 +340,10 @@ auto mcp_request_name_from_body(const sourcemeta::core::JSON &envelope)
   }
 
   const auto method{mcp_request_method_from_body(envelope)};
-  if (method.has_value() && method.value() == MCP_METHOD_RESOURCES_READ) {
+  if (method.has_value() &&
+      (method.value() == MCP_METHOD_RESOURCES_READ ||
+       method.value() == MCP_METHOD_RESOURCES_SUBSCRIBE ||
+       method.value() == MCP_METHOD_RESOURCES_UNSUBSCRIBE)) {
     const auto *uri_field{parameters->try_at("uri", MCP_HASH_URI)};
     if (uri_field != nullptr && uri_field->is_string()) {
       return uri_field->to_string();
@@ -373,7 +377,8 @@ auto mcp_validate_request_headers(
                             std::nullopt) -> sourcemeta::core::JSON {
     auto error_envelope{sourcemeta::core::jsonrpc_make_error(
         raw_identifier, code, message, std::move(data))};
-    if (raw_identifier == nullptr || raw_identifier->is_null()) {
+    if (raw_identifier == nullptr && envelope.is_object() &&
+        !envelope.defines("id", MCP_HASH_ID)) {
       error_envelope.erase("id", MCP_HASH_ID);
     }
     return error_envelope;
@@ -396,7 +401,9 @@ auto mcp_validate_request_headers(
       return make_error(JSONRPC_CODE_INVALID_PARAMS, "Invalid params");
     }
 
-    if (body_method.value() == MCP_METHOD_RESOURCES_READ) {
+    if (body_method.value() == MCP_METHOD_RESOURCES_READ ||
+        body_method.value() == MCP_METHOD_RESOURCES_SUBSCRIBE ||
+        body_method.value() == MCP_METHOD_RESOURCES_UNSUBSCRIBE) {
       name_field = parameters->try_at("uri", MCP_HASH_URI);
     } else {
       name_field = parameters->try_at("name", MCP_HASH_NAME);

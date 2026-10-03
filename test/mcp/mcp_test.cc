@@ -2175,6 +2175,35 @@ TEST(error_header_mismatch_unexpected) {
             "unexpected-name");
 }
 
+TEST(error_header_mismatch_detailed) {
+  const auto identifier{sourcemeta::core::JSON{15}};
+  const auto envelope{sourcemeta::core::mcp_make_error_header_mismatch(
+      identifier, "Mcp-Method", "tools/call", "resources/read")};
+
+  EXPECT_EQ(envelope.at("error").at("code").to_integer(), -32020);
+  EXPECT_EQ(envelope.at("error").at("message").to_string(), "Header mismatch");
+  EXPECT_EQ(envelope.at("error").at("data").at("header").to_string(),
+            "Mcp-Method");
+  EXPECT_EQ(envelope.at("error").at("data").at("headerValue").to_string(),
+            "tools/call");
+  EXPECT_EQ(envelope.at("error").at("data").at("bodyValue").to_string(),
+            "resources/read");
+}
+
+TEST(error_header_mismatch_null_and_missing_identifier) {
+  const auto null_identifier{sourcemeta::core::JSON{nullptr}};
+  const auto envelope_null_identifier{
+      sourcemeta::core::mcp_make_error_header_mismatch(
+          null_identifier, "Mcp-Method", "tools/call", "resources/read")};
+  EXPECT_TRUE(envelope_null_identifier.defines("id"));
+  EXPECT_TRUE(envelope_null_identifier.at("id").is_null());
+
+  const auto envelope_missing_identifier{
+      sourcemeta::core::mcp_make_error_header_mismatch(
+          std::nullopt, "Mcp-Method", "tools/call", "resources/read")};
+  EXPECT_FALSE(envelope_missing_identifier.defines("id"));
+}
+
 TEST(header_validation_modern_valid_server_discover) {
   const auto envelope{sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
@@ -2590,6 +2619,162 @@ TEST(header_validation_safety_cases) {
   }
 }
 
+TEST(header_validation_id_handling) {
+  // Explicit id: null in request is preserved in error response
+  const auto null_identifier_envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": null,
+    "method": "tools/call",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientCapabilities": {},
+        "io.modelcontextprotocol/clientInfo": {
+          "name": "ExampleClient",
+          "version": "1.0.0"
+        }
+      },
+      "name": "calculator"
+    }
+  })JSON")};
+
+  const auto error_null_identifier{
+      sourcemeta::core::mcp_validate_request_headers(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "2026-07-28",
+          "tools/call", "mismatched_tool", null_identifier_envelope)};
+  EXPECT_TRUE(error_null_identifier.has_value());
+  EXPECT_TRUE(error_null_identifier->defines("id"));
+  EXPECT_TRUE(error_null_identifier->at("id").is_null());
+
+  // Notification (missing id) omits id in error response
+  const auto notification_envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "method": "tools/call",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientCapabilities": {},
+        "io.modelcontextprotocol/clientInfo": {
+          "name": "ExampleClient",
+          "version": "1.0.0"
+        }
+      },
+      "name": "calculator"
+    }
+  })JSON")};
+
+  const auto error_notification{sourcemeta::core::mcp_validate_request_headers(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "2026-07-28",
+      "tools/call", "mismatched_tool", notification_envelope)};
+  EXPECT_TRUE(error_notification.has_value());
+  EXPECT_FALSE(error_notification->defines("id"));
+
+  // Invalid id type sets id: null in error response
+  const auto invalid_identifier_envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": true,
+    "method": "tools/call",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientCapabilities": {},
+        "io.modelcontextprotocol/clientInfo": {
+          "name": "ExampleClient",
+          "version": "1.0.0"
+        }
+      },
+      "name": "calculator"
+    }
+  })JSON")};
+
+  const auto error_invalid_identifier{
+      sourcemeta::core::mcp_validate_request_headers(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "2026-07-28",
+          "tools/call", "mismatched_tool", invalid_identifier_envelope)};
+  EXPECT_TRUE(error_invalid_identifier.has_value());
+  EXPECT_TRUE(error_invalid_identifier->defines("id"));
+  EXPECT_TRUE(error_invalid_identifier->at("id").is_null());
+}
+
+TEST(header_validation_resources_subscribe_unsubscribe) {
+  // Legacy resources/subscribe with params.uri
+  const auto envelope_subscribe{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "resources/subscribe",
+    "params": {
+      "uri": "memo://my-channel"
+    }
+  })JSON")};
+
+  const auto error_subscribe{sourcemeta::core::mcp_validate_request_headers(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, std::nullopt,
+      "resources/subscribe", "memo://my-channel", envelope_subscribe)};
+  EXPECT_FALSE(error_subscribe.has_value());
+
+  // Legacy resources/unsubscribe with params.uri
+  const auto envelope_unsubscribe{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 2,
+    "method": "resources/unsubscribe",
+    "params": {
+      "uri": "memo://my-channel"
+    }
+  })JSON")};
+
+  const auto error_unsubscribe{sourcemeta::core::mcp_validate_request_headers(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, std::nullopt,
+      "resources/unsubscribe", "memo://my-channel", envelope_unsubscribe)};
+  EXPECT_FALSE(error_unsubscribe.has_value());
+
+  // Mismatch in Mcp-Name for resources/subscribe produces -32020
+  const auto error_subscribe_mismatch{
+      sourcemeta::core::mcp_validate_request_headers(
+          sourcemeta::core::MCPProtocolVersion::V_2025_11_25, std::nullopt,
+          "resources/subscribe", "memo://other-channel", envelope_subscribe)};
+  EXPECT_TRUE(error_subscribe_mismatch.has_value());
+  EXPECT_EQ(error_subscribe_mismatch->at("error").at("code").to_integer(),
+            -32020);
+}
+
+TEST(header_validation_obs_text_characters) {
+  auto envelope{sourcemeta::core::JSON::make_object()};
+  envelope.assign("jsonrpc", sourcemeta::core::JSON{"2.0"});
+  envelope.assign("id", sourcemeta::core::JSON{1});
+  envelope.assign("method", sourcemeta::core::JSON{"tools/call"});
+  auto parameters{sourcemeta::core::JSON::make_object()};
+  parameters.assign("name", sourcemeta::core::JSON{"caf\xc3\xa9"});
+  envelope.assign("params", std::move(parameters));
+
+  // Raw non-ASCII bytes in Mcp-Name are RFC 9110 obs-text (0x80-0xFF)
+  const std::string name_with_observed_text{"caf\xc3\xa9"};
+  const auto error_valid_observed_text{
+      sourcemeta::core::mcp_validate_request_headers(
+          sourcemeta::core::MCPProtocolVersion::V_2025_11_25, std::nullopt,
+          "tools/call", name_with_observed_text, envelope)};
+  EXPECT_FALSE(error_valid_observed_text.has_value());
+
+  // Reject ASCII DEL 0x7F
+  const std::string name_with_delete_character{"tool\x7fname"};
+  const auto error_delete_character{
+      sourcemeta::core::mcp_validate_request_headers(
+          sourcemeta::core::MCPProtocolVersion::V_2025_11_25, std::nullopt,
+          "tools/call", name_with_delete_character, envelope)};
+  EXPECT_TRUE(error_delete_character.has_value());
+  EXPECT_EQ(error_delete_character->at("error").at("code").to_integer(),
+            -32020);
+
+  // Reject C0 control 0x01
+  const std::string name_with_control_character{"tool\x01name"};
+  const auto error_control_character{
+      sourcemeta::core::mcp_validate_request_headers(
+          sourcemeta::core::MCPProtocolVersion::V_2025_11_25, std::nullopt,
+          "tools/call", name_with_control_character, envelope)};
+  EXPECT_TRUE(error_control_character.has_value());
+  EXPECT_EQ(error_control_character->at("error").at("code").to_integer(),
+            -32020);
+}
+
 TEST(error_resource_not_found_version_aware) {
   const auto identifier{sourcemeta::core::JSON{13}};
 
@@ -2604,6 +2789,43 @@ TEST(error_resource_not_found_version_aware) {
   EXPECT_EQ(legacy_err.at("error").at("code").to_integer(), -32002);
   EXPECT_EQ(legacy_err.at("error").at("message").to_string(),
             "Resource not found");
+}
+
+TEST(error_builders_preserve_null_and_omit_missing_identifier) {
+  const auto null_identifier{sourcemeta::core::JSON{nullptr}};
+
+  const auto unsupported_null{
+      sourcemeta::core::mcp_make_error_unsupported_protocol_version(
+          null_identifier, "1900-01-01", {"2026-07-28"})};
+  EXPECT_TRUE(unsupported_null.defines("id"));
+  EXPECT_TRUE(unsupported_null.at("id").is_null());
+
+  const auto unsupported_missing{
+      sourcemeta::core::mcp_make_error_unsupported_protocol_version(
+          std::nullopt, "1900-01-01", {"2026-07-28"})};
+  EXPECT_FALSE(unsupported_missing.defines("id"));
+
+  const auto not_found_null{sourcemeta::core::mcp_make_error_resource_not_found(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, null_identifier)};
+  EXPECT_TRUE(not_found_null.defines("id"));
+  EXPECT_TRUE(not_found_null.at("id").is_null());
+
+  const auto not_found_missing{
+      sourcemeta::core::mcp_make_error_resource_not_found(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, std::nullopt)};
+  EXPECT_FALSE(not_found_missing.defines("id"));
+
+  auto required_capabilities{sourcemeta::core::JSON::make_object()};
+  const auto missing_capability_null{
+      sourcemeta::core::mcp_make_error_missing_required_capability(
+          null_identifier, required_capabilities, "Missing capability")};
+  EXPECT_TRUE(missing_capability_null.defines("id"));
+  EXPECT_TRUE(missing_capability_null.at("id").is_null());
+
+  const auto missing_capability_missing{
+      sourcemeta::core::mcp_make_error_missing_required_capability(
+          std::nullopt, required_capabilities, "Missing capability")};
+  EXPECT_FALSE(missing_capability_missing.defines("id"));
 }
 
 TEST(decorate_result_modern_and_legacy) {
@@ -3463,6 +3685,25 @@ TEST(error_code_to_http_status_mapping) {
             sourcemeta::core::HTTP_STATUS_BAD_REQUEST);
   EXPECT_EQ(sourcemeta::core::mcp_error_code_to_http_status(-99999),
             sourcemeta::core::HTTP_STATUS_INTERNAL_SERVER_ERROR);
+}
+
+TEST(error_code_to_http_status_mapping_version_aware) {
+  EXPECT_EQ(sourcemeta::core::mcp_error_code_to_http_status(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::JSONRPC_CODE_METHOD_NOT_FOUND),
+            sourcemeta::core::HTTP_STATUS_NOT_FOUND);
+  EXPECT_EQ(sourcemeta::core::mcp_error_code_to_http_status(
+                sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+                sourcemeta::core::JSONRPC_CODE_METHOD_NOT_FOUND),
+            sourcemeta::core::HTTP_STATUS_BAD_REQUEST);
+  EXPECT_EQ(sourcemeta::core::mcp_error_code_to_http_status(
+                sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+                sourcemeta::core::JSONRPC_CODE_METHOD_NOT_FOUND),
+            sourcemeta::core::HTTP_STATUS_BAD_REQUEST);
+  EXPECT_EQ(sourcemeta::core::mcp_error_code_to_http_status(
+                sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+                sourcemeta::core::JSONRPC_CODE_METHOD_NOT_FOUND),
+            sourcemeta::core::HTTP_STATUS_BAD_REQUEST);
 }
 
 TEST(empty_result_builder) {
