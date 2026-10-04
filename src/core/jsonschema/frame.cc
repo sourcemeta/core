@@ -939,7 +939,8 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
           schema, root_base_dialect.value(), std::string_view{})};
       if (!identifier_counts(schema, declared_id,
                              sourcemeta::core::dialect(schema, default_dialect),
-                             root_base_dialect.value(), resolver, walker)) {
+                             root_base_dialect.value(), effective_resolver,
+                             walker)) {
         declared_id = {};
       }
 

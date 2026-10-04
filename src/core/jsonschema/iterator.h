@@ -133,15 +133,21 @@ resolve_dialect_at(const sourcemeta::core::JSON &subschema,
       local != sourcemeta::core::dialect(subschema, inherited_dialect, false)};
   auto identifier{sourcemeta::core::identify(subschema, resolver, local, "",
                                              allow_dialect_override)};
-  const auto local_base{
-      local != inherited_dialect
-          ? sourcemeta::core::base_dialect(subschema, resolver, local,
-                                           allow_dialect_override)
-                .value_or(inherited_base)
-          : inherited_base};
-  if (!identifier_counts(subschema, identifier, local, local_base, resolver,
-                         walker)) {
-    identifier = {};
+  // Telling whether an identifier counts takes a base dialect, which costs a
+  // meta-schema to resolve, so a schema that declares none never asks. Note
+  // this is not the base dialect the function goes on to report, which is
+  // settled only once the fallback below has had its say
+  if (!identifier.empty()) {
+    const auto local_base{
+        local != inherited_dialect
+            ? sourcemeta::core::base_dialect(subschema, resolver, local,
+                                             allow_dialect_override)
+                  .value_or(inherited_base)
+            : inherited_base};
+    if (!identifier_counts(subschema, identifier, local, local_base, resolver,
+                           walker)) {
+      identifier = {};
+    }
   }
   if (identifier.empty() && local != inherited_dialect && !override_active) {
     identifier = sourcemeta::core::identify(subschema, inherited_base);
