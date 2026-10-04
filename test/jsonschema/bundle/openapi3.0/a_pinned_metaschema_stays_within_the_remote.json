@@ -44,15 +44,6 @@
         }
       },
       "x-definitions": {
-        "https://example.com/meta": {
-          "$id": "https://example.com/meta",
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$vocabulary": {
-            "https://json-schema.org/draft/2020-12/vocab/core": true,
-            "https://json-schema.org/draft/2020-12/vocab/validation": true
-          },
-          "type": "object"
-        },
         "https://www.sourcemeta.com/inner": {
           "$id": "https://www.sourcemeta.com/inner",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -64,6 +55,17 @@
           "properties": {
             "inner": {
               "$ref": "https://www.sourcemeta.com/inner"
+            }
+          },
+          "$defs": {
+            "https://example.com/meta": {
+              "$id": "https://example.com/meta",
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "$vocabulary": {
+                "https://json-schema.org/draft/2020-12/vocab/core": true,
+                "https://json-schema.org/draft/2020-12/vocab/validation": true
+              },
+              "type": "object"
             }
           }
         }
@@ -77,15 +79,6 @@
         }
       },
       "x-definitions": {
-        "https://example.com/meta": {
-          "$id": "https://example.com/meta",
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$vocabulary": {
-            "https://json-schema.org/draft/2020-12/vocab/core": true,
-            "https://json-schema.org/draft/2020-12/vocab/validation": true
-          },
-          "type": "object"
-        },
         "https://www.sourcemeta.com/inner": {
           "$id": "https://www.sourcemeta.com/inner",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -98,6 +91,17 @@
             "inner": {
               "$ref": "https://www.sourcemeta.com/inner"
             }
+          },
+          "$defs": {
+            "https://example.com/meta": {
+              "$id": "https://example.com/meta",
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "$vocabulary": {
+                "https://json-schema.org/draft/2020-12/vocab/core": true,
+                "https://json-schema.org/draft/2020-12/vocab/validation": true
+              },
+              "type": "object"
+            }
           }
         }
       }
@@ -105,10 +109,6 @@
   },
   "inserted": {
     "nonOfficialMetaschemas": [
-      {
-        "from": "https://example.com/meta",
-        "at": "/x-definitions/https:~1~1example.com~1meta"
-      },
       {
         "from": "https://www.sourcemeta.com/inner",
         "at": "/x-definitions/https:~1~1www.sourcemeta.com~1inner"
@@ -119,10 +119,6 @@
       }
     ],
     "references": [
-      {
-        "from": "https://example.com/meta",
-        "at": "/x-definitions/https:~1~1example.com~1meta"
-      },
       {
         "from": "https://www.sourcemeta.com/inner",
         "at": "/x-definitions/https:~1~1www.sourcemeta.com~1inner"

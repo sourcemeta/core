@@ -34,8 +34,6 @@ constexpr auto JSONSCHEMA_HASH_VOCABULARY{JSON::Object::hash("$vocabulary"sv)};
 constexpr auto JSONSCHEMA_HASH_DEFS{JSON::Object::hash("$defs"sv)};
 constexpr auto JSONSCHEMA_HASH_DEFINITIONS{JSON::Object::hash("definitions"sv)};
 constexpr auto EXTENSION_DEFINITIONS_KEYWORD{"x-definitions"sv};
-constexpr auto JSONSCHEMA_HASH_EXTENSION_DEFINITIONS{
-    JSON::Object::hash(EXTENSION_DEFINITIONS_KEYWORD)};
 constexpr auto DIALECT_OVERRIDE_KEYWORD{
     "x-sourcemeta-dialect-override-subschema"sv};
 constexpr auto JSONSCHEMA_HASH_DIALECT_OVERRIDE{
@@ -158,8 +156,8 @@ inline auto vocabularies_with_embedded(const sourcemeta::core::JSON &schema,
 
 // Every name this implementation knows for a location reserved for schema
 // definitions, in the order a dialect that reserves more than one prefers them
-constexpr auto DEFINITIONS_KEYWORDS{
-    std::to_array<std::string_view>({"$defs", "definitions", "x-definitions"})};
+constexpr auto DEFINITIONS_KEYWORDS{std::to_array<std::string_view>(
+    {"$defs", "definitions", EXTENSION_DEFINITIONS_KEYWORD})};
 
 // Which of those names the dialect in force actually reserves. Asking its own
 // vocabularies rather than its base dialect is what keeps a dialect that drops
@@ -287,11 +285,9 @@ embedded_metaschema_candidate(const sourcemeta::core::JSON &document,
     canonical = std::nullopt;
   }
 
-  constexpr std::array<SchemaKeyword, 3> CONTAINERS{
+  constexpr std::array<SchemaKeyword, 2> CONTAINERS{
       {{.name = "$defs"sv, .hash = JSONSCHEMA_HASH_DEFS},
-       {.name = "definitions"sv, .hash = JSONSCHEMA_HASH_DEFINITIONS},
-       {.name = EXTENSION_DEFINITIONS_KEYWORD,
-        .hash = JSONSCHEMA_HASH_EXTENSION_DEFINITIONS}}};
+       {.name = "definitions"sv, .hash = JSONSCHEMA_HASH_DEFINITIONS}}};
   for (const auto container : CONTAINERS) {
     const auto *entries{document.try_at(container.name, container.hash)};
     if ((entries == nullptr) || !entries->is_object()) {
@@ -320,27 +316,22 @@ inline auto embedded_metaschema_link_valid(const sourcemeta::core::JSON &link,
                                            const std::string_view container,
                                            const SchemaBaseDialect base_dialect)
     -> bool {
-  // A dialect that reserves none of the names a base dialect knows gets this
-  // one instead, so a link may sit there whatever the chain terminates at. The
-  // base dialects below are the rest of what any link may sit in
-  if (container != EXTENSION_DEFINITIONS_KEYWORD) {
-    // In 2019-09 and 2020-12, `definitions` is still supported
-    // for backwards compatibility
-    switch (base_dialect) {
-      case SchemaBaseDialect::JSON_SCHEMA_2020_12:
-      case SchemaBaseDialect::JSON_SCHEMA_2020_12_HYPER:
-      case SchemaBaseDialect::JSON_SCHEMA_2019_09:
-      case SchemaBaseDialect::JSON_SCHEMA_2019_09_HYPER:
-        if (container != "$defs" && container != "definitions") {
-          return false;
-        }
+  // In 2019-09 and 2020-12, `definitions` is still supported
+  // for backwards compatibility
+  switch (base_dialect) {
+    case SchemaBaseDialect::JSON_SCHEMA_2020_12:
+    case SchemaBaseDialect::JSON_SCHEMA_2020_12_HYPER:
+    case SchemaBaseDialect::JSON_SCHEMA_2019_09:
+    case SchemaBaseDialect::JSON_SCHEMA_2019_09_HYPER:
+      if (container != "$defs" && container != "definitions") {
+        return false;
+      }
 
-        break;
-      default:
-        if (container != definitions_keyword(base_dialect)) {
-          return false;
-        }
-    }
+      break;
+    default:
+      if (container != definitions_keyword(base_dialect)) {
+        return false;
+      }
   }
 
   std::optional<sourcemeta::core::JSON::String> canonical;

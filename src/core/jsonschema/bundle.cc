@@ -343,6 +343,28 @@ auto elevate_embedded_resources(
     root_container = &root_container->at(token.to_property());
   }
 
+  // A schema finds a meta-schema it pins by looking for it among the locations
+  // the specifications reserve, at the top of the document it is reading. A
+  // dialect whose own reserved location is neither of those takes its embedded
+  // resources somewhere that search does not go, so what is pinned has to stay
+  // where whatever pinned it can still find it, at the cost of a copy where
+  // two remotes pin the same one
+  const auto container_is_searched{
+      container.size() == 1 && container.back().is_property() &&
+      (container.back().to_property() == "$defs" ||
+       container.back().to_property() == "definitions")};
+  std::unordered_set<JSON::StringView> pinned;
+  if (!container_is_searched) {
+    pinned.insert(remote_dialect_uri);
+    for (const auto &entry : defs.as_object()) {
+      const auto *declared{
+          entry.second.is_object() ? entry.second.try_at("$schema") : nullptr};
+      if ((declared != nullptr) && declared->is_string()) {
+        pinned.insert(declared->to_string());
+      }
+    }
+  }
+
   std::vector<std::pair<JSON::String, bool>> to_extract;
   std::vector<JSON::String> to_remove;
   for (const auto &entry : defs.as_object()) {
@@ -384,6 +406,10 @@ auto elevate_embedded_resources(
     }
 
     const JSON::String identifier_string{identifier};
+    if (pinned.contains(JSON::StringView{identifier})) {
+      continue;
+    }
+
     const auto defines_dialect{value.defines("$schema")};
     if (bundled.contains(identifier_string)) {
       if (container_exists && root_container->is_object()) {
