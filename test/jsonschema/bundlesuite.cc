@@ -37,10 +37,11 @@ const std::vector<std::string> KNOWN_ERROR_TYPES{
     "SchemaReferenceError",
     "SchemaReferenceObjectResourceError",
     "SchemaUnknownBaseDialectError",
+    "SchemaDialectImpossibleError",
     "SchemaFrameLimitError"};
 
-const std::vector<std::string> KNOWN_ERROR_KEYS{"type", "message", "identifier",
-                                                "location", "limit"};
+const std::vector<std::string> KNOWN_ERROR_KEYS{
+    "type", "message", "identifier", "location", "keyword", "dialect", "limit"};
 // NOLINTEND(cert-err58-cpp,bugprone-throwing-static-initialization)
 
 struct Mode {
@@ -297,7 +298,12 @@ auto check_shape(const sourcemeta::core::JSON &test) -> void {
                     type == "SchemaReferenceError" ||
                     type == "SchemaReferenceObjectResourceError");
       EXPECT_EQ(entry.second.defines("location"),
-                type == "SchemaReferenceError");
+                type == "SchemaReferenceError" ||
+                    type == "SchemaDialectImpossibleError");
+      EXPECT_EQ(entry.second.defines("keyword"),
+                type == "SchemaDialectImpossibleError");
+      EXPECT_EQ(entry.second.defines("dialect"),
+                type == "SchemaDialectImpossibleError");
       EXPECT_EQ(entry.second.defines("limit"), type == "SchemaFrameLimitError");
     }
   }
@@ -375,6 +381,19 @@ auto check_error(const sourcemeta::core::JSON &schema,
         const sourcemeta::core::SchemaReferenceObjectResourceError &error) {
       EXPECT_STREQ(error.what(), message.c_str());
       EXPECT_EQ(error.identifier(), expected.at("identifier").to_string());
+    }
+  } else if (type == "SchemaDialectImpossibleError") {
+    try {
+      Insertions insertions;
+      [[maybe_unused]] const auto document{bundle_schema(
+          schema, resolver, inputs, mode, inputs.max_locations, insertions)};
+      FAIL();
+    } catch (const sourcemeta::core::SchemaDialectImpossibleError &error) {
+      EXPECT_STREQ(error.what(), message.c_str());
+      EXPECT_EQ(error.keyword(), expected.at("keyword").to_string());
+      EXPECT_EQ(error.dialect(), expected.at("dialect").to_string());
+      EXPECT_EQ(sourcemeta::core::to_string(error.location()),
+                expected.at("location").to_string());
     }
   } else if (type == "SchemaUnknownBaseDialectError") {
     try {

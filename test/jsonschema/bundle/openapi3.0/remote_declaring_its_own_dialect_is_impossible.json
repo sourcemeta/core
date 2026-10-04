@@ -1,0 +1,36 @@
+{
+  "schema": {
+    "type": "object",
+    "properties": {
+      "pet": {
+        "$ref": "https://www.sourcemeta.com/pet"
+      }
+    }
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/pet": {
+      "type": "string",
+      "nullable": true,
+      "$schema": "tag:spec.openapis.org,2021-09-28:oas/3.0/dialect"
+    }
+  },
+  "defaultDialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+  "errors": {
+    "nonOfficialMetaschemas": {
+      "type": "SchemaDialectImpossibleError",
+      "message": "The dialect that this schema declares does not define the keyword that declares it",
+      "keyword": "$schema",
+      "dialect": "tag:spec.openapis.org,2021-09-28:oas/3.0/dialect",
+      "location": ""
+    },
+    "references": {
+      "type": "SchemaDialectImpossibleError",
+      "message": "The dialect that this schema declares does not define the keyword that declares it",
+      "keyword": "$schema",
+      "dialect": "tag:spec.openapis.org,2021-09-28:oas/3.0/dialect",
+      "location": ""
+    }
+  },
+  "result": {},
+  "inserted": {}
+}

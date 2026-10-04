@@ -1,0 +1,26 @@
+{
+  "schema": {
+    "type": "object",
+    "properties": {
+      "pet": {
+        "$ref": "https://www.sourcemeta.com/pet"
+      }
+    }
+  },
+  "resolver": {},
+  "defaultDialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+  "errors": {
+    "nonOfficialMetaschemas": {
+      "type": "SchemaResolutionError",
+      "message": "Could not resolve the reference to an external schema",
+      "identifier": "https://www.sourcemeta.com/pet"
+    },
+    "references": {
+      "type": "SchemaResolutionError",
+      "message": "Could not resolve the reference to an external schema",
+      "identifier": "https://www.sourcemeta.com/pet"
+    }
+  },
+  "result": {},
+  "inserted": {}
+}

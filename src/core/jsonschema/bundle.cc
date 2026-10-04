@@ -14,6 +14,7 @@
 #include <string_view>   // std::string_view
 #include <tuple>         // std::tuple
 #include <unordered_map> // std::unordered_map
+#include <unordered_set> // std::unordered_set
 #include <utility>       // std::move, std::pair
 #include <vector>        // std::vector
 
@@ -97,6 +98,99 @@ auto charge(std::uint64_t &remaining, const SchemaFrame &frame) -> void {
   remaining -= frame.location_count();
 }
 
+// A schema of a dialect that cannot name itself answers to nothing once it is
+// embedded, so every reference to one has to spell out where it went. Neither
+// half is known where the reference is found: the embedding settles the
+// position, and elevation can move a schema again afterwards. So the walk only
+// records which identifiers went in unnamed and where each landed, and the
+// references themselves are settled against the finished document
+struct PositionalReferences {
+  // Recorded while walking, as that is where the dialect of a remote is known
+  std::unordered_set<JSON::String> unnamed;
+  // Recorded while embedding, as that is where the position is settled. Only
+  // the unnamed ones are kept, since a schema that carries its own name is
+  // reached by that name wherever it ends up
+  std::unordered_map<JSON::String, Pointer> landings;
+};
+
+// Reading the finished document is what makes this independent of how the
+// bundling got there. A reference to an unnamed schema is left unresolved by
+// construction, as the identity it named is gone, so framing hands back every
+// one of them wherever they ended up
+auto settle_positional_references(
+    JSON &schema, const SchemaWalker &walker, const SchemaResolver &resolver,
+    std::string_view default_dialect, std::string_view default_id,
+    const SchemaFrame::Paths &paths, std::string_view default_base,
+    const PositionalReferences &positional, std::uint64_t &remaining) -> void {
+  if (positional.unnamed.empty()) {
+    return;
+  }
+
+  const SchemaFrame frame{SchemaFrame::Mode::References,
+                          schema,
+                          walker,
+                          resolver,
+                          default_dialect,
+                          default_id,
+                          SchemaFrame::IdentifierMode::Additional,
+                          paths,
+                          default_base,
+                          remaining};
+  charge(remaining, frame);
+
+  const auto &root_base{frame.root_location().value().get().base};
+
+  std::vector<std::pair<Pointer, JSON::String>> rewrites;
+  frame.for_each_unresolved_reference([&](const auto &pointer,
+                                          const auto &reference) -> void {
+    const JSON::String base{reference.base};
+    const auto landing{positional.landings.find(base)};
+    if (landing == positional.landings.cend()) {
+      return;
+    }
+
+    // A pointer names a place from whichever base is in force where it is
+    // written, and only the one the document itself answers to reaches the
+    // container. A resource embedded under its own name establishes a base of
+    // its own, so a reference sitting inside one cannot say where an unnamed
+    // schema went, and neither can anything else about it
+    const auto enclosing{frame.traverse(pointer.initial())};
+    if (enclosing.has_value() && enclosing.value().get().base != root_base) {
+      throw SchemaReferenceError(
+          reference.destination, to_pointer(pointer),
+          "Could not reach a schema that this dialect embeds without an "
+          "identifier from a resource that carries one");
+    }
+
+    auto target{landing->second};
+    if (reference.fragment.has_value() && !reference.fragment.value().empty()) {
+      const auto tail{fragment_to_pointer(URI{reference.destination})};
+      if (!tail.has_value()) {
+        // An anchor names a place through the identity of the schema that
+        // declares it, and this embedding leaves none behind
+        throw SchemaReferenceError(
+            reference.destination, to_pointer(pointer),
+            "Could not address an anchor of a schema that this dialect "
+            "embeds without an identifier");
+      }
+
+      target.push_back(Pointer{tail.value()});
+    }
+
+    if (try_get(schema, target) == nullptr) {
+      throw SchemaReferenceError(reference.destination, to_pointer(pointer),
+                                 "Could not resolve schema reference");
+    }
+
+    rewrites.emplace_back(to_pointer(pointer),
+                          JSON::String{to_uri(target).recompose()});
+  });
+
+  for (const auto &[pointer, value] : rewrites) {
+    set(schema, pointer, JSON{value});
+  }
+}
+
 // A dialect that reserves no property name for declaring itself leaves an
 // embedded schema no way to say what it is, and what it inherits from wherever
 // it lands would be wrong. Marking every subschema is what carries it, since
@@ -107,7 +201,7 @@ auto mark_dialect_of_every_subschema(JSON &schema, const SchemaWalker &walker,
                                      const SchemaResolver &resolver,
                                      const std::string_view dialect,
                                      std::uint64_t &remaining) -> void {
-  const SchemaFrame frame{SchemaFrame::Mode::Pointers,
+  const SchemaFrame frame{SchemaFrame::Mode::Locations,
                           schema,
                           walker,
                           resolver,
@@ -139,9 +233,12 @@ auto mark_dialect_of_every_subschema(JSON &schema, const SchemaWalker &walker,
   }
 }
 
+// The key this assigns is the only record of where the schema landed, which a
+// reference that names a place rather than an identifier has to be told
 auto embed_schema(JSON &root, const Pointer &container,
                   const std::string_view identifier, JSON &&target,
-                  const SchemaBundleOptions::Callback &callback) -> void {
+                  const SchemaBundleOptions::Callback &callback)
+    -> JSON::String {
   auto *current{&root};
   for (const auto &token : container) {
     if (token.is_property()) {
@@ -171,6 +268,8 @@ auto embed_schema(JSON &root, const Pointer &container,
     location.push_back(std::cref(key));
     callback(identifier, location);
   }
+
+  return key;
 }
 
 auto elevate_embedded_resources(
@@ -345,8 +444,9 @@ auto embed_references(
     std::string_view default_id, const SchemaFrame::Paths &paths,
     std::string_view default_base,
     std::unordered_map<JSON::String, JSON::String> &bundled,
-    std::uint64_t &remaining, const SchemaBundleOptions::Callback &callback,
-    const std::size_t depth = 0) -> void {
+    PositionalReferences &positional, std::uint64_t &remaining,
+    const SchemaBundleOptions::Callback &callback, const std::size_t depth = 0)
+    -> void {
   // Create a fresh frame for each schema we analyze to avoid key collisions
   // between different schemas that have references at the same pointer paths
   static const SchemaFrame::Paths NESTED_PATHS{EMPTY_WEAK_POINTER};
@@ -390,6 +490,12 @@ auto embed_references(
     const JSON::String identifier{reference.base};
 
     if (bundled.contains(identifier)) {
+      // A target that went in without a name answers to nothing, so this
+      // reference is settled against the finished document rather than here
+      if (positional.unnamed.contains(identifier)) {
+        return;
+      }
+
       const auto &mapped_id{bundled.at(identifier)};
       if (mapped_id != identifier) {
         ref_rewrites.emplace_back(
@@ -486,31 +592,34 @@ auto embed_references(
             remote_root_frame->root_location().value().get(), resolver),
         remote_base_dialect)};
 
+    const auto remote_dialect_uri{declared_dialect(remote, default_dialect)};
+
     if (remote.is_object()) {
       if (dialect_allows_naming) {
         // Otherwise the embedded resource would be re-interpreted under the
         // dialect of the schema it gets embedded into, which can differ from
         // the default dialect that the remote was resolved with
         if (!remote.defines("$schema")) {
-          remote.assign("$schema",
-                        JSON{declared_dialect(remote, default_dialect)});
+          remote.assign("$schema", JSON{remote_dialect_uri});
         }
 
         schema_reidentify(remote, effective_id, remote_base_dialect);
-      } else {
-        mark_dialect_of_every_subschema(
-            remote, walker, resolver, declared_dialect(remote, default_dialect),
-            remaining);
+      } else if (remote_dialect_uri !=
+                 declared_dialect(root, default_dialect)) {
+        // Marking is what carries a dialect that no keyword of the schema can
+        // declare. Where the container already holds the remote to the dialect
+        // it was read under, inheritance says the same thing for free
+        mark_dialect_of_every_subschema(remote, walker, resolver,
+                                        remote_dialect_uri, remaining);
       }
     }
 
     if (!dialect_allows_naming) {
-      // Nothing answers to the name it was asked for any more, so the
-      // reference has to spell out where the embedding puts it
-      auto target{container};
-      target.push_back(JSON::String{effective_id});
-      ref_rewrites.emplace_back(to_pointer(pointer),
-                                JSON::String{to_uri(target).recompose()});
+      // A dialect that defines no identifier keyword leaves the remote unable
+      // to declare one, so the name it was resolved by is not the name it
+      // answers to afterwards
+      assert(effective_id == identifier);
+      positional.unnamed.insert(identifier);
     } else if (effective_id != identifier) {
       ref_rewrites.emplace_back(
           to_pointer(pointer),
@@ -536,6 +645,15 @@ auto embed_references(
           return;
         }
 
+        // A reference that resolved against the identity its own document was
+        // read under reads as settled here, and is not. The embedding leaves
+        // that identity behind, so this one is settled against the finished
+        // document alongside every other reference to a schema that went in
+        // unnamed
+        if (positional.unnamed.contains(JSON::String{reference.base})) {
+          return;
+        }
+
         if (spells_another_document_relatively(reference)) {
           ref_rewrites.emplace_back(to_pointer(pointer),
                                     JSON::String{reference.destination});
@@ -549,11 +667,15 @@ auto embed_references(
   for (auto &[remote, effective_id, remote_dialect] : deferred) {
     embed_references(root, container, remote, walker, resolver, mode,
                      default_dialect, effective_id, paths, default_base,
-                     bundled, remaining, callback, depth + 1);
+                     bundled, positional, remaining, callback, depth + 1);
     elevate_embedded_resources(remote, root, container, remote_dialect, walker,
                                resolver, default_dialect, bundled, remaining,
                                callback);
-    embed_schema(root, container, effective_id, std::move(remote), callback);
+    const auto key{embed_schema(root, container, effective_id,
+                                std::move(remote), callback)};
+    if (positional.unnamed.contains(effective_id)) {
+      positional.landings.emplace(effective_id, container.concat(key));
+    }
   }
 }
 
@@ -570,6 +692,7 @@ auto bundle_internal(JSON &schema, const SchemaWalker &walker,
   // as bundled to avoid re-embedding them. This includes the root schema itself
   // and any schemas already embedded within it
   std::unordered_map<JSON::String, JSON::String> bundled;
+  PositionalReferences positional;
   SchemaFrame initial_frame{SchemaFrame::Mode::Locations,
                             schema,
                             walker,
@@ -614,7 +737,10 @@ auto bundle_internal(JSON &schema, const SchemaWalker &walker,
 
     embed_references(schema, default_container.value(), schema, walker,
                      resolver, mode, default_dialect, default_id, paths,
-                     default_base, bundled, remaining, callback);
+                     default_base, bundled, positional, remaining, callback);
+    settle_positional_references(schema, walker, resolver, default_dialect,
+                                 default_id, paths, default_base, positional,
+                                 remaining);
     return;
   }
 
@@ -637,7 +763,14 @@ auto bundle_internal(JSON &schema, const SchemaWalker &walker,
                                "",
                                remaining};
     charge(remaining, declared_frame);
-    if (declared_frame.root().empty()) {
+    // A dialect that reserves no keyword for an identifier cannot be handed
+    // one, and the references that the base would have settled are spelled
+    // out by the bundling itself rather than left to resolve against it
+    const auto &root_location{declared_frame.root_location().value().get()};
+    if (declared_frame.root().empty() &&
+        dialect_defines_identifier(
+            walker, declared_frame.vocabularies(root_location, resolver),
+            root_location.base_dialect)) {
       schema_reidentify(schema, default_id, walker, resolver, default_dialect);
     }
   }
@@ -706,7 +839,10 @@ auto bundle_internal(JSON &schema, const SchemaWalker &walker,
 
   embed_references(schema, {JSON::String{container_keyword}}, schema, walker,
                    resolver, mode, default_dialect, default_id, paths,
-                   default_base, bundled, remaining, callback);
+                   default_base, bundled, positional, remaining, callback);
+  settle_positional_references(schema, walker, resolver, default_dialect,
+                               default_id, paths, default_base, positional,
+                               remaining);
 }
 
 } // namespace

@@ -11,7 +11,12 @@
     "https://www.sourcemeta.com/pet": {
       "type": "object",
       "properties": {
-        "name": {
+        "tag": {
+          "$ref": "https://www.sourcemeta.com/pet#/x-definitions/tag"
+        }
+      },
+      "x-definitions": {
+        "tag": {
           "type": "string",
           "nullable": true
         }
@@ -31,13 +36,16 @@
         "https://www.sourcemeta.com/pet": {
           "type": "object",
           "properties": {
-            "name": {
-              "type": "string",
-              "nullable": true,
-              "x-sourcemeta-dialect-override-subschema": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect"
+            "tag": {
+              "$ref": "#/x-definitions/https:~1~1www.sourcemeta.com~1pet/x-definitions/tag"
             }
           },
-          "x-sourcemeta-dialect-override-subschema": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect"
+          "x-definitions": {
+            "tag": {
+              "type": "string",
+              "nullable": true
+            }
+          }
         }
       }
     },
@@ -52,13 +60,16 @@
         "https://www.sourcemeta.com/pet": {
           "type": "object",
           "properties": {
-            "name": {
-              "type": "string",
-              "nullable": true,
-              "x-sourcemeta-dialect-override-subschema": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect"
+            "tag": {
+              "$ref": "#/x-definitions/https:~1~1www.sourcemeta.com~1pet/x-definitions/tag"
             }
           },
-          "x-sourcemeta-dialect-override-subschema": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect"
+          "x-definitions": {
+            "tag": {
+              "type": "string",
+              "nullable": true
+            }
+          }
         }
       }
     }
