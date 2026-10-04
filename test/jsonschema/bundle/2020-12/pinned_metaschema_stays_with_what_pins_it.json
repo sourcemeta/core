@@ -1,0 +1,134 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/host",
+    "properties": {
+      "pet": {
+        "$ref": "https://www.sourcemeta.com/pet"
+      }
+    }
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/pet": {
+      "$schema": "https://example.com/meta",
+      "$id": "https://www.sourcemeta.com/pet",
+      "properties": {
+        "inner": {
+          "$ref": "https://www.sourcemeta.com/inner"
+        }
+      },
+      "$defs": {
+        "https://example.com/meta": {
+          "$id": "https://example.com/meta",
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$vocabulary": {
+            "https://json-schema.org/draft/2020-12/vocab/core": true,
+            "https://json-schema.org/draft/2020-12/vocab/validation": true
+          },
+          "type": "object"
+        },
+        "https://www.sourcemeta.com/inner": {
+          "$id": "https://www.sourcemeta.com/inner",
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "integer"
+        }
+      }
+    }
+  },
+  "result": {
+    "nonOfficialMetaschemas": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/host",
+      "properties": {
+        "pet": {
+          "$ref": "https://www.sourcemeta.com/pet"
+        }
+      },
+      "$defs": {
+        "https://www.sourcemeta.com/inner": {
+          "$id": "https://www.sourcemeta.com/inner",
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "integer"
+        },
+        "https://www.sourcemeta.com/pet": {
+          "$schema": "https://example.com/meta",
+          "$id": "https://www.sourcemeta.com/pet",
+          "properties": {
+            "inner": {
+              "$ref": "https://www.sourcemeta.com/inner"
+            }
+          },
+          "$defs": {
+            "https://example.com/meta": {
+              "$id": "https://example.com/meta",
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "$vocabulary": {
+                "https://json-schema.org/draft/2020-12/vocab/core": true,
+                "https://json-schema.org/draft/2020-12/vocab/validation": true
+              },
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    "references": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/host",
+      "properties": {
+        "pet": {
+          "$ref": "https://www.sourcemeta.com/pet"
+        }
+      },
+      "$defs": {
+        "https://www.sourcemeta.com/inner": {
+          "$id": "https://www.sourcemeta.com/inner",
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "integer"
+        },
+        "https://www.sourcemeta.com/pet": {
+          "$schema": "https://example.com/meta",
+          "$id": "https://www.sourcemeta.com/pet",
+          "properties": {
+            "inner": {
+              "$ref": "https://www.sourcemeta.com/inner"
+            }
+          },
+          "$defs": {
+            "https://example.com/meta": {
+              "$id": "https://example.com/meta",
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "$vocabulary": {
+                "https://json-schema.org/draft/2020-12/vocab/core": true,
+                "https://json-schema.org/draft/2020-12/vocab/validation": true
+              },
+              "type": "object"
+            }
+          }
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://www.sourcemeta.com/inner",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1inner"
+      },
+      {
+        "from": "https://www.sourcemeta.com/pet",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1pet"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://www.sourcemeta.com/inner",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1inner"
+      },
+      {
+        "from": "https://www.sourcemeta.com/pet",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1pet"
+      }
+    ]
+  }
+}
