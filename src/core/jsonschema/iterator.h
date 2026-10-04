@@ -35,11 +35,44 @@ struct DialectInfo {
   bool override_active;
 };
 
+// An identifier only counts where the dialect in force gives the keyword that
+// carries it a meaning. Telling costs a vocabulary lookup, so only a schema
+// that wrote one ever pays for it
+inline auto
+identifier_counts(const sourcemeta::core::JSON &subschema,
+                  const std::string_view identifier,
+                  const std::string_view dialect,
+                  const sourcemeta::core::SchemaBaseDialect base_dialect,
+                  const sourcemeta::core::SchemaResolver &resolver,
+                  const sourcemeta::core::SchemaWalker &walker) -> bool {
+  if (identifier.empty()) {
+    return true;
+  }
+
+  // A schema may pin a meta-schema that it carries within itself, so look
+  // there before the resolver, the same way the traversal does
+  const auto vocabularies{sourcemeta::core::vocabularies(
+      [&subschema, &resolver](const std::string_view target)
+          -> sourcemeta::core::SchemaResolverResult {
+        const auto *embedded{sourcemeta::core::metaschema_try_embedded(
+            subschema, target, resolver)};
+        if (embedded) {
+          return *embedded;
+        }
+
+        return resolver(target);
+      },
+      base_dialect, dialect)};
+  return sourcemeta::core::dialect_defines_identifier(walker, vocabularies,
+                                                      base_dialect);
+}
+
 inline auto
 resolve_dialect_at(const sourcemeta::core::JSON &subschema,
                    const std::string_view inherited_dialect,
                    const sourcemeta::core::SchemaBaseDialect inherited_base,
                    const sourcemeta::core::SchemaResolver &resolver,
+                   const sourcemeta::core::SchemaWalker &walker,
                    const std::size_t level, const bool allow_dialect_override)
     -> DialectInfo {
   auto local{sourcemeta::core::dialect(subschema, inherited_dialect,
@@ -48,8 +81,22 @@ resolve_dialect_at(const sourcemeta::core::JSON &subschema,
       local != sourcemeta::core::dialect(subschema, inherited_dialect, false)};
   auto identifier{sourcemeta::core::identify(subschema, resolver, local, "",
                                              allow_dialect_override)};
+  const auto local_base{
+      local != inherited_dialect
+          ? sourcemeta::core::base_dialect(subschema, resolver, local,
+                                           allow_dialect_override)
+                .value_or(inherited_base)
+          : inherited_base};
+  if (!identifier_counts(subschema, identifier, local, local_base, resolver,
+                         walker)) {
+    identifier = {};
+  }
   if (identifier.empty() && local != inherited_dialect && !override_active) {
     identifier = sourcemeta::core::identify(subschema, inherited_base);
+    if (!identifier_counts(subschema, identifier, inherited_dialect,
+                           inherited_base, resolver, walker)) {
+      identifier = {};
+    }
     if (!identifier.empty()) {
       local = inherited_dialect;
     }
@@ -162,7 +209,7 @@ walk(const std::optional<sourcemeta::core::WeakPointer> &root_parent,
         sourcemeta::core::ref_overrides_adjacent_keywords(base_dialect)};
 
     const auto entry{resolve_dialect_at(subschema, dialect, base_dialect,
-                                        resolver, level,
+                                        resolver, walker, level,
                                         !enclosing_ref_overrides)};
     const auto current_dialect{entry.dialect};
     const auto current_base_dialect{entry.base_dialect};
@@ -201,7 +248,7 @@ walk(const std::optional<sourcemeta::core::WeakPointer> &root_parent,
 
     const auto child{entry.override_active
                          ? resolve_dialect_at(subschema, dialect, base_dialect,
-                                              resolver, level, false)
+                                              resolver, walker, level, false)
                          : entry};
     const auto child_dialect{child.dialect};
     const auto child_base_dialect{child.base_dialect};

@@ -102,6 +102,19 @@ inline auto id_keyword(const SchemaBaseDialect base_dialect) -> SchemaKeyword {
   return {.name = "$id"sv, .hash = JSONSCHEMA_HASH_ID};
 }
 
+// A base dialect names the keyword that introduces an identifier, but a
+// dialect built on top of it may leave that keyword out of its own
+// vocabularies, in which case nothing the schema writes can introduce one.
+// Every dialect the specifications define keeps the two in step, so this only
+// parts ways for a custom dialect that drops the keyword
+inline auto dialect_defines_identifier(const SchemaWalker &walker,
+                                       const SchemaVocabularies &vocabularies,
+                                       const SchemaBaseDialect base_dialect)
+    -> bool {
+  return walker(id_keyword(base_dialect).name, vocabularies).type !=
+         SchemaKeywordType::Unknown;
+}
+
 inline auto definitions_keyword(const SchemaBaseDialect base_dialect)
     -> std::string_view {
   switch (base_dialect) {
