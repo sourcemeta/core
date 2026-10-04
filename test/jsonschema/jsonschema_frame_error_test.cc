@@ -2663,7 +2663,7 @@ TEST(identifier_that_is_not_a_valid_uri) {
   }
 }
 
-TEST(openapi_3_0_refuses_a_dialect_declared_through_an_undefined_keyword) {
+TEST(openapi_3_0_refuses_a_dialect_it_cannot_declare) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
     "type": "string",
@@ -2675,12 +2675,14 @@ TEST(openapi_3_0_refuses_a_dialect_declared_through_an_undefined_keyword) {
         sourcemeta::core::SchemaFrame::Mode::References, document,
         sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
     FAIL();
-  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+  } catch (const sourcemeta::core::SchemaDialectImpossibleError &error) {
     EXPECT_EQ(error.keyword(), "$schema");
-    EXPECT_EQ(error.value(),
+    EXPECT_EQ(error.dialect(),
               "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect");
+    EXPECT_EQ(sourcemeta::core::to_string(error.location()), "");
     EXPECT_STREQ(error.what(),
-                 "The dialect of the schema does not define this keyword");
+                 "The dialect that this schema declares does not define the "
+                 "keyword that declares it");
   } catch (...) {
     FAIL();
   }
@@ -2697,12 +2699,43 @@ TEST(openapi_3_0_refuses_the_declaration_of_the_other_release_too) {
         sourcemeta::core::SchemaFrame::Mode::References, document,
         sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
     FAIL();
-  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+  } catch (const sourcemeta::core::SchemaDialectImpossibleError &error) {
     EXPECT_EQ(error.keyword(), "$schema");
-    EXPECT_EQ(error.value(),
+    EXPECT_EQ(error.dialect(),
               "tag:spec.openapis.org,2021-09-28:oas/3.0/dialect");
+    EXPECT_EQ(sourcemeta::core::to_string(error.location()), "");
     EXPECT_STREQ(error.what(),
-                 "The dialect of the schema does not define this keyword");
+                 "The dialect that this schema declares does not define the "
+                 "keyword that declares it");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(openapi_3_0_refuses_a_declaration_nested_in_a_subschema) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "pet": {
+        "$schema": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+        "type": "string"
+      }
+    }
+  })JSON");
+
+  try {
+    [[maybe_unused]] const sourcemeta::core::SchemaFrame frame{
+        sourcemeta::core::SchemaFrame::Mode::References, document,
+        sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+    FAIL();
+  } catch (const sourcemeta::core::SchemaDialectImpossibleError &error) {
+    EXPECT_EQ(error.keyword(), "$schema");
+    EXPECT_EQ(error.dialect(),
+              "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect");
+    EXPECT_EQ(sourcemeta::core::to_string(error.location()), "/properties/pet");
+    EXPECT_STREQ(error.what(),
+                 "The dialect that this schema declares does not define the "
+                 "keyword that declares it");
   } catch (...) {
     FAIL();
   }
@@ -2725,12 +2758,44 @@ TEST(openapi_3_0_refuses_a_declaration_on_a_subschema_that_opens_a_resource) {
         sourcemeta::core::SchemaFrame::Mode::References, document,
         sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
     FAIL();
-  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+  } catch (const sourcemeta::core::SchemaDialectImpossibleError &error) {
     EXPECT_EQ(error.keyword(), "$schema");
-    EXPECT_EQ(error.value(),
+    EXPECT_EQ(error.dialect(),
               "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect");
+    EXPECT_EQ(sourcemeta::core::to_string(error.location()), "/$defs/pet");
     EXPECT_STREQ(error.what(),
-                 "The dialect of the schema does not define this keyword");
+                 "The dialect that this schema declares does not define the "
+                 "keyword that declares it");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(openapi_3_0_refuses_a_declaration_inside_the_reserved_location) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "x-definitions": {
+      "pet": {
+        "$schema": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+        "type": "string"
+      }
+    }
+  })JSON");
+
+  try {
+    [[maybe_unused]] const sourcemeta::core::SchemaFrame frame{
+        sourcemeta::core::SchemaFrame::Mode::References, document,
+        sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver,
+        "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect"};
+    FAIL();
+  } catch (const sourcemeta::core::SchemaDialectImpossibleError &error) {
+    EXPECT_EQ(error.keyword(), "$schema");
+    EXPECT_EQ(error.dialect(),
+              "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect");
+    EXPECT_EQ(sourcemeta::core::to_string(error.location()),
+              "/x-definitions/pet");
+    EXPECT_STREQ(error.what(),
+                 "The dialect that this schema declares does not define the "
+                 "keyword that declares it");
   } catch (...) {
     FAIL();
   }

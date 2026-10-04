@@ -67,9 +67,31 @@ identifier_counts(const sourcemeta::core::JSON &subschema,
                                                       base_dialect);
 }
 
-// Whether the dialect a schema names is one that gives the keyword naming it a
-// meaning. Asking about the dialect it named rather than the one that ended up
-// in force is what catches a declaration that some later fallback discarded
+// A schema names the dialect it is written against through a keyword, which
+// has to be readable before the dialect is known, since the dialect is what
+// says which keywords mean anything. That bootstrap is only sound while the
+// dialect being named is one that goes on to define the keyword that named it.
+// A dialect that does not leaves a declaration asserting the conditions under
+// which it could not have been written, and no reading of it holds up:
+//
+// Take the declaration at its word and the keyword carrying it means nothing,
+// so the schema never said which dialect it was. Ignore it and the dialect is
+// whatever was inherited or supplied from outside, which silently reads the
+// schema under rules its author rejected. Where the same subschema also names
+// an identifier, ignoring goes further still and keeps a resource boundary
+// that the named dialect has no keyword to express.
+//
+// So there is nothing to choose between, and such a declaration is refused.
+// Naming the dialect from outside, which no keyword of the schema has to
+// support, remains open to the caller.
+//
+// What makes this general rather than a rule about one dialect is that the
+// question is put to the declaration itself: resolve what the schema named,
+// work out the vocabularies that accepting it would bring into force, and ask
+// those whether the naming keyword means anything. Asking about the dialect
+// named rather than the one that ended up in force also matters, because a
+// later fallback can discard the declaration, and a declaration that was
+// discarded is exactly the silent case worth refusing
 inline auto declaration_counts(const sourcemeta::core::JSON &subschema,
                                const std::string_view declared,
                                const sourcemeta::core::SchemaResolver &resolver,
@@ -271,9 +293,9 @@ walk(const std::optional<sourcemeta::core::WeakPointer> &root_parent,
       if (declared != nullptr && declared->is_string() &&
           !declaration_counts(subschema, declared->to_string(), resolver,
                               walker)) {
-        throw sourcemeta::core::SchemaKeywordError(
+        throw sourcemeta::core::SchemaDialectImpossibleError(
             "$schema", declared->to_string(),
-            "The dialect of the schema does not define this keyword");
+            sourcemeta::core::to_pointer(pointer));
       }
     }
 

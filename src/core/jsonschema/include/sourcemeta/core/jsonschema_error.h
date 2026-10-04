@@ -185,6 +185,50 @@ private:
 };
 
 /// @ingroup jsonschema
+/// A schema names the dialect it is written against through a keyword, and the
+/// dialect it names may be one that gives that very keyword no meaning. Such a
+/// declaration asserts the conditions under which it could not have been
+/// written, so no reading of the schema honours it. The caller has to name
+/// such a dialect from the outside instead
+class SOURCEMETA_CORE_JSONSCHEMA_EXPORT SchemaDialectImpossibleError
+    : public std::exception {
+public:
+  /// Create a dialect impossibility error
+  SchemaDialectImpossibleError(const std::string_view keyword,
+                               const std::string_view dialect,
+                               sourcemeta::core::Pointer schema_location)
+      : keyword_{keyword}, dialect_{dialect},
+        schema_location_{std::move(schema_location)} {}
+
+  [[nodiscard]] auto what() const noexcept -> const char * override {
+    return "The dialect that this schema declares does not define the keyword "
+           "that declares it";
+  }
+
+  /// The keyword that names the dialect
+  [[nodiscard]] auto keyword() const noexcept -> std::string_view {
+    return this->keyword_;
+  }
+
+  /// The dialect that the schema names
+  [[nodiscard]] auto dialect() const noexcept -> std::string_view {
+    return this->dialect_;
+  }
+
+  /// Where the declaration is, as a pointer from the root of the document
+  /// that the schema came from
+  [[nodiscard]] auto location() const noexcept
+      -> const sourcemeta::core::Pointer & {
+    return this->schema_location_;
+  }
+
+private:
+  std::string keyword_;
+  std::string dialect_;
+  sourcemeta::core::Pointer schema_location_;
+};
+
+/// @ingroup jsonschema
 /// An error that represents a schema keyword error
 class SOURCEMETA_CORE_JSONSCHEMA_EXPORT SchemaKeywordError
     : public std::exception {
