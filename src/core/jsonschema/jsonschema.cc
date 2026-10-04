@@ -503,6 +503,16 @@ auto pre_vocabulary_dialect_to_known(const std::string_view dialect)
   if (dialect == "http://json-schema.org/draft-00/schema#") {
     return SchemaVocabularies::Known::JSON_SCHEMA_DRAFT_0;
   }
+
+  // The OpenAPI v3.0 Schema Object describes itself through a Draft 4
+  // meta-schema, so it lands on a base dialect that predates vocabularies and
+  // has no way of declaring one. Its keyword set is neither a subset nor a
+  // superset of Draft 4, so it stands on its own rather than extending it
+  if (dialect == "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect" ||
+      dialect == "tag:spec.openapis.org,2021-09-28:oas/3.0/dialect") {
+    return SchemaVocabularies::Known::OPENAPI_3_0_BASE;
+  }
+
   return std::nullopt;
 }
 
