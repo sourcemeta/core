@@ -347,8 +347,7 @@ auto elevate_embedded_resources(
   // the specifications reserve, at the top of the document it is reading. A
   // dialect whose own reserved location is neither of those takes its embedded
   // resources somewhere that search does not go, so what is pinned has to stay
-  // where whatever pinned it can still find it, at the cost of a copy where
-  // two remotes pin the same one
+  // where whatever pinned it can still find it
   const auto container_is_searched{
       container.size() == 1 && container.back().is_property() &&
       (container.back().to_property() == "$defs" ||
@@ -407,6 +406,18 @@ auto elevate_embedded_resources(
 
     const JSON::String identifier_string{identifier};
     if (pinned.contains(JSON::StringView{identifier})) {
+      // Staying put is the only way this one goes on being found, so the
+      // document cannot also hold it elsewhere: one identity in two places is
+      // not a document anything can read
+      if (bundled.contains(identifier_string)) {
+        throw SchemaError("A meta-schema that has to stay within the schema "
+                          "that pins it cannot be embedded elsewhere too");
+      }
+
+      // What stays behind is still in the document under the identity it
+      // carries, so a reference to it from anywhere else is answered by what
+      // is already here rather than by asking the resolver for another copy
+      bundled.emplace(identifier_string, identifier_string);
       continue;
     }
 

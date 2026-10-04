@@ -1,0 +1,141 @@
+{
+  "schema": {
+    "type": "object",
+    "properties": {
+      "a": {
+        "$ref": "https://www.sourcemeta.com/pet"
+      },
+      "b": {
+        "$ref": "https://www.sourcemeta.com/other"
+      }
+    }
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/pet": {
+      "$schema": "https://example.com/meta",
+      "$id": "https://www.sourcemeta.com/pet",
+      "type": "object",
+      "$defs": {
+        "https://example.com/meta": {
+          "$id": "https://example.com/meta",
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$vocabulary": {
+            "https://json-schema.org/draft/2020-12/vocab/core": true,
+            "https://json-schema.org/draft/2020-12/vocab/validation": true
+          },
+          "type": "object"
+        }
+      }
+    },
+    "https://www.sourcemeta.com/other": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/other",
+      "properties": {
+        "m": {
+          "$ref": "https://example.com/meta"
+        }
+      }
+    }
+  },
+  "defaultDialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+  "result": {
+    "nonOfficialMetaschemas": {
+      "type": "object",
+      "properties": {
+        "a": {
+          "$ref": "https://www.sourcemeta.com/pet"
+        },
+        "b": {
+          "$ref": "https://www.sourcemeta.com/other"
+        }
+      },
+      "x-definitions": {
+        "https://www.sourcemeta.com/pet": {
+          "$schema": "https://example.com/meta",
+          "$id": "https://www.sourcemeta.com/pet",
+          "type": "object",
+          "$defs": {
+            "https://example.com/meta": {
+              "$id": "https://example.com/meta",
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "$vocabulary": {
+                "https://json-schema.org/draft/2020-12/vocab/core": true,
+                "https://json-schema.org/draft/2020-12/vocab/validation": true
+              },
+              "type": "object"
+            }
+          }
+        },
+        "https://www.sourcemeta.com/other": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://www.sourcemeta.com/other",
+          "properties": {
+            "m": {
+              "$ref": "https://example.com/meta"
+            }
+          }
+        }
+      }
+    },
+    "references": {
+      "type": "object",
+      "properties": {
+        "a": {
+          "$ref": "https://www.sourcemeta.com/pet"
+        },
+        "b": {
+          "$ref": "https://www.sourcemeta.com/other"
+        }
+      },
+      "x-definitions": {
+        "https://www.sourcemeta.com/pet": {
+          "$schema": "https://example.com/meta",
+          "$id": "https://www.sourcemeta.com/pet",
+          "type": "object",
+          "$defs": {
+            "https://example.com/meta": {
+              "$id": "https://example.com/meta",
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "$vocabulary": {
+                "https://json-schema.org/draft/2020-12/vocab/core": true,
+                "https://json-schema.org/draft/2020-12/vocab/validation": true
+              },
+              "type": "object"
+            }
+          }
+        },
+        "https://www.sourcemeta.com/other": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://www.sourcemeta.com/other",
+          "properties": {
+            "m": {
+              "$ref": "https://example.com/meta"
+            }
+          }
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://www.sourcemeta.com/pet",
+        "at": "/x-definitions/https:~1~1www.sourcemeta.com~1pet"
+      },
+      {
+        "from": "https://www.sourcemeta.com/other",
+        "at": "/x-definitions/https:~1~1www.sourcemeta.com~1other"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://www.sourcemeta.com/pet",
+        "at": "/x-definitions/https:~1~1www.sourcemeta.com~1pet"
+      },
+      {
+        "from": "https://www.sourcemeta.com/other",
+        "at": "/x-definitions/https:~1~1www.sourcemeta.com~1other"
+      }
+    ]
+  }
+}
