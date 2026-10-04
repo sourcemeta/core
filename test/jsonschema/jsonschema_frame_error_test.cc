@@ -2676,6 +2676,9 @@ TEST(openapi_3_0_refuses_a_dialect_declared_through_an_undefined_keyword) {
         sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
     FAIL();
   } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_EQ(error.keyword(), "$schema");
+    EXPECT_EQ(error.value(),
+              "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect");
     EXPECT_STREQ(error.what(),
                  "The dialect of the schema does not define this keyword");
   } catch (...) {
@@ -2695,6 +2698,9 @@ TEST(openapi_3_0_refuses_the_declaration_of_the_other_release_too) {
         sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
     FAIL();
   } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_EQ(error.keyword(), "$schema");
+    EXPECT_EQ(error.value(),
+              "tag:spec.openapis.org,2021-09-28:oas/3.0/dialect");
     EXPECT_STREQ(error.what(),
                  "The dialect of the schema does not define this keyword");
   } catch (...) {
@@ -2720,6 +2726,9 @@ TEST(openapi_3_0_refuses_a_declaration_on_a_subschema_that_opens_a_resource) {
         sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
     FAIL();
   } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_EQ(error.keyword(), "$schema");
+    EXPECT_EQ(error.value(),
+              "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect");
     EXPECT_STREQ(error.what(),
                  "The dialect of the schema does not define this keyword");
   } catch (...) {
