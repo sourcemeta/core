@@ -109,12 +109,12 @@ struct SOURCEMETA_CORE_JSONSCHEMA_EXPORT SchemaVocabularies {
     OPENAPI_3_0_BASE = 32
   };
 
+  // Membership is a bit per vocabulary, indexed by the value of the
+  // enumerator, so one that falls outside this bound reads and writes past the
+  // end of the sets below. The implementation file asserts that none does,
+  // over the same list the compiler already holds it to
   /// How many vocabularies this implementation recognises out of the box
   static constexpr std::size_t KNOWN_VOCABULARY_COUNT = 33;
-
-  static_assert(KNOWN_VOCABULARY_COUNT ==
-                    static_cast<std::size_t>(Known::OPENAPI_3_0_BASE) + 1,
-                "Every known vocabulary must fit in the membership bitsets");
 
   /// A vocabulary URI type that can be either a known vocabulary enum or a
   /// custom string URI

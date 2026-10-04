@@ -77,6 +77,22 @@
   /* Sourcemeta vocabularies */                                                \
   X(SOURCEMETA_EXTENSION_V1, "tag:sourcemeta.com,2026:extension/v1")
 
+// The switch over this list carries no default case, so the compiler holds the
+// list to every enumerator. Checking each one here therefore covers them all,
+// without naming any, so appending a vocabulary and forgetting to make room
+// for it fails to build rather than reading past the end of the sets
+// NOLINTNEXTLINE(bugprone-macro-parentheses)
+#define X_ASSERT_WITHIN_BOUND(enumerator, uri_string)                          \
+  static_assert(                                                               \
+      static_cast<std::size_t>(                                                \
+          sourcemeta::core::SchemaVocabularies::Known::enumerator) <           \
+          sourcemeta::core::SchemaVocabularies::KNOWN_VOCABULARY_COUNT,        \
+      "Every known vocabulary must fit in the membership bitsets");
+
+SOURCEMETA_VOCABULARIES_X(X_ASSERT_WITHIN_BOUND)
+
+#undef X_ASSERT_WITHIN_BOUND
+
 namespace {
 auto uri_to_known_vocabulary(const std::string_view uri)
     -> std::optional<sourcemeta::core::SchemaVocabularies::Known> {
