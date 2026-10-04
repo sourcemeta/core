@@ -5138,10 +5138,11 @@ constexpr std::array<Variant, 728> VARIANTS{{
                 {},
                 INSTANCES_ANY}},
     // Bundling has to place what it embeds somewhere a later pass reaches
-    // again, and every JSON Schema dialect reserves a location for exactly
-    // that. This one reserves none, and closes its Schema Object to every
-    // property name but its own and those carrying the extension prefix, so
-    // without claiming one such name there is nowhere to bundle into at all.
+    // again, which it can only do where the dialect reserves a location for
+    // schema definitions. This one reserves none, and closes its Schema
+    // Object to every property name but its own and those carrying the
+    // extension prefix, so without claiming one such name there is nowhere to
+    // bundle into at all.
     //
     // Claiming one is therefore a trade rather than a design we would pick
     // freely. Bundling works, and what it produces stays a legal schema of
