@@ -129,22 +129,18 @@ auto mcp_make_error_request_meta(
     -> sourcemeta::core::JSON;
 
 /// @ingroup mcp
-/// Check whether a MCP 2026-07-28 request contains all required metadata.
-SOURCEMETA_CORE_MCP_EXPORT
-auto mcp_has_required_request_meta(const sourcemeta::core::JSON &envelope)
-    -> bool;
-
-/// @ingroup mcp
 /// Extract the request method name from a JSON-RPC request body.
 SOURCEMETA_CORE_MCP_EXPORT
 auto mcp_request_method_from_body(const sourcemeta::core::JSON &envelope)
     -> std::optional<JSON::StringView>;
 
 /// @ingroup mcp
-/// Extract the target tool name or resource URI from a JSON-RPC request body.
+/// Borrow the target tool name or resource URI from a JSON-RPC request body.
+/// The returned view is valid only while the source string remains alive and
+/// unchanged.
 SOURCEMETA_CORE_MCP_EXPORT
 auto mcp_request_name_from_body(const sourcemeta::core::JSON &envelope)
-    -> std::optional<std::string>;
+    -> std::optional<JSON::StringView>;
 
 /// @ingroup mcp
 /// Validate Streamable HTTP transport header values against the parsed

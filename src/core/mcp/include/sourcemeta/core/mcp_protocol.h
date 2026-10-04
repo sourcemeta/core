@@ -470,15 +470,6 @@ constexpr auto mcp_supports_mrtr(const MCPProtocolVersion version) noexcept
 }
 
 /// @ingroup mcp
-/// The greatest compiled revision with an initialization handshake.
-/// This is not the server deployment's supported set; negotiation requires
-/// explicit supported_versions.
-constexpr auto mcp_latest_initialization_version() noexcept
-    -> MCPProtocolVersion {
-  return MCPProtocolVersion::V_2025_11_25;
-}
-
-/// @ingroup mcp
 /// Whether the specified MCP protocol version supports stateful protocol
 /// sessions.
 constexpr auto
@@ -556,17 +547,6 @@ constexpr auto mcp_is_request_method(const MCPProtocolVersion version,
     -> bool {
   switch (version) {
     case MCPProtocolVersion::V_2025_03_26:
-      return method == MCP_METHOD_COMPLETION_COMPLETE ||
-             method == MCP_METHOD_INITIALIZE ||
-             method == MCP_METHOD_LOGGING_SET_LEVEL ||
-             method == MCP_METHOD_PING || method == MCP_METHOD_PROMPTS_GET ||
-             method == MCP_METHOD_PROMPTS_LIST ||
-             method == MCP_METHOD_RESOURCES_LIST ||
-             method == MCP_METHOD_RESOURCES_READ ||
-             method == MCP_METHOD_RESOURCES_SUBSCRIBE ||
-             method == MCP_METHOD_RESOURCES_TEMPLATES_LIST ||
-             method == MCP_METHOD_RESOURCES_UNSUBSCRIBE ||
-             method == MCP_METHOD_TOOLS_CALL || method == MCP_METHOD_TOOLS_LIST;
     case MCPProtocolVersion::V_2025_06_18:
       return method == MCP_METHOD_COMPLETION_COMPLETE ||
              method == MCP_METHOD_INITIALIZE ||
@@ -644,15 +624,6 @@ mcp_is_notification_method(const MCPProtocolVersion version,
                            const JSON::StringView method) noexcept -> bool {
   switch (version) {
     case MCPProtocolVersion::V_2025_03_26:
-      return method == MCP_METHOD_NOTIFICATIONS_CANCELLED ||
-             method == MCP_METHOD_NOTIFICATIONS_INITIALIZED ||
-             method == MCP_METHOD_NOTIFICATIONS_MESSAGE ||
-             method == MCP_METHOD_NOTIFICATIONS_PROGRESS ||
-             method == MCP_METHOD_NOTIFICATIONS_PROMPTS_LIST_CHANGED ||
-             method == MCP_METHOD_NOTIFICATIONS_RESOURCES_LIST_CHANGED ||
-             method == MCP_METHOD_NOTIFICATIONS_RESOURCES_UPDATED ||
-             method == MCP_METHOD_NOTIFICATIONS_ROOTS_LIST_CHANGED ||
-             method == MCP_METHOD_NOTIFICATIONS_TOOLS_LIST_CHANGED;
     case MCPProtocolVersion::V_2025_06_18:
       return method == MCP_METHOD_NOTIFICATIONS_CANCELLED ||
              method == MCP_METHOD_NOTIFICATIONS_INITIALIZED ||
@@ -695,9 +666,7 @@ mcp_is_input_request_method(const MCPProtocolVersion version,
                             const JSON::StringView method) noexcept -> bool {
   switch (version) {
     case MCPProtocolVersion::V_2025_03_26:
-      return false;
     case MCPProtocolVersion::V_2025_06_18:
-      return false;
     case MCPProtocolVersion::V_2025_11_25:
       return false;
     case MCPProtocolVersion::V_2026_07_28:
@@ -856,10 +825,6 @@ mcp_is_client_notification_method(MCPProtocolVersion version,
                                   JSON::StringView method) noexcept -> bool {
   switch (version) {
     case MCPProtocolVersion::V_2025_03_26:
-      return method == "notifications/cancelled" ||
-             method == "notifications/initialized" ||
-             method == "notifications/progress" ||
-             method == "notifications/roots/list_changed";
     case MCPProtocolVersion::V_2025_06_18:
       return method == "notifications/cancelled" ||
              method == "notifications/initialized" ||
@@ -884,13 +849,6 @@ mcp_is_server_notification_method(MCPProtocolVersion version,
                                   JSON::StringView method) noexcept -> bool {
   switch (version) {
     case MCPProtocolVersion::V_2025_03_26:
-      return method == "notifications/cancelled" ||
-             method == "notifications/progress" ||
-             method == "notifications/resources/list_changed" ||
-             method == "notifications/resources/updated" ||
-             method == "notifications/prompts/list_changed" ||
-             method == "notifications/tools/list_changed" ||
-             method == "notifications/message";
     case MCPProtocolVersion::V_2025_06_18:
       return method == "notifications/cancelled" ||
              method == "notifications/progress" ||

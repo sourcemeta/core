@@ -59,9 +59,9 @@ struct MCPClientCapabilities {
   std::optional<sourcemeta::core::JSON> extensions = std::nullopt;
   /// Optional experimental map for client capabilities.
   std::optional<sourcemeta::core::JSON> experimental = std::nullopt;
-  /// Optional owned source capabilities for lossless parsing/serialization.
+  /// Optional owned source preserving the parsed capability settings.
   /// Keeps extension settings, unknown capabilities and 2025-11-25 task data.
-  /// Standard flags are applied over this snapshot when serializing; the
+  /// Typed flags and optional maps override this snapshot when serializing; the
   /// per-request metadata view does not allocate or populate this snapshot.
   std::optional<JSON> source = std::nullopt;
 };
@@ -93,6 +93,9 @@ struct MCPServerCapabilities {
   std::optional<sourcemeta::core::JSON> extensions = std::nullopt;
   /// Optional experimental map for capabilities.
   std::optional<sourcemeta::core::JSON> experimental = std::nullopt;
+  /// Owned source preserving unknown capabilities, settings and legacy tasks.
+  /// Typed flags and optional maps override their corresponding source fields.
+  std::optional<JSON> source = std::nullopt;
 };
 
 /// @ingroup mcp
@@ -109,6 +112,23 @@ SOURCEMETA_CORE_MCP_EXPORT
 auto mcp_serialize_client_capabilities(
     const MCPProtocolVersion version, const MCPClientCapabilities &capabilities)
     -> sourcemeta::core::JSON;
+
+/// @ingroup mcp
+/// Parse validated server capabilities, owning the snapshot and opaque
+/// settings.
+SOURCEMETA_CORE_MCP_EXPORT
+auto mcp_parse_server_capabilities(MCPProtocolVersion version,
+                                   const JSON &capabilities)
+    -> MCPServerCapabilities;
+
+/// @ingroup mcp
+/// Serialize server capabilities for an explicit revision. Typed flags override
+/// the source snapshot; opaque settings survive only in retained capabilities.
+/// Throws std::invalid_argument for malformed known fields.
+SOURCEMETA_CORE_MCP_EXPORT
+auto mcp_serialize_server_capabilities(
+    MCPProtocolVersion version, const MCPServerCapabilities &capabilities)
+    -> JSON;
 
 } // namespace sourcemeta::core
 

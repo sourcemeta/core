@@ -28,7 +28,8 @@ namespace sourcemeta::core {
 enum class MCPCacheScope : std::uint8_t {
   /// Public caching is permissible across multiple clients/users.
   Public,
-  /// Result is private and must only be cached per-client/user.
+  /// Result is private and must only be reused within the same authorization
+  /// context.
   Private,
 };
 
@@ -87,7 +88,7 @@ constexpr auto mcp_resolve_cache_scope(const JSON::StringView scope) noexcept
 /// @see
 /// https://modelcontextprotocol.io/specification/2026-07-28/server/utilities/caching#cacheable-results
 struct MCPCachePolicy {
-  /// Time-to-live in milliseconds. Must be non-negative.
+  /// Time-to-live in milliseconds. Builders clamp negative inputs to zero.
   std::int64_t ttl_ms = 0;
   /// Cache scope (public or private).
   MCPCacheScope scope = MCPCacheScope::Private;
@@ -98,7 +99,7 @@ struct MCPCachePolicy {
 struct MCPToolAnnotations {
   /// Optional human-readable title for the tool.
   JSON::StringView title = {};
-  /// `true` when the tool guarantees no side effects.
+  /// `true` as an advisory hint that the tool does not modify its environment.
   bool read_only = false;
   /// `true` when the tool may mutate or delete state.
   bool destructive = true;
@@ -109,6 +110,63 @@ struct MCPToolAnnotations {
   bool open_world = true;
 };
 
+/// @ingroup mcp
+/// Advisory resource/content annotations. String and audience views are
+/// borrowed.
+struct MCPResourceAnnotations {
+  /// Optional audience roles ("user" and/or "assistant"). Empty stays explicit.
+  std::optional<std::span<const JSON::StringView>> audience = std::nullopt;
+  /// Optional priority, clamped to [0,1] as in the existing resource builder.
+  std::optional<double> priority = std::nullopt;
+  /// Optional timestamp string; the caller supplies a valid ISO 8601 timestamp.
+  JSON::StringView last_modified = {};
+};
+
+/// @ingroup mcp
+/// Optional presentation fields shared by descriptors. All views borrow data.
+struct MCPDescriptorPresentation {
+  /// Human-readable title (2025-06-18 and later).
+  JSON::StringView title = {};
+  /// Optional icon array (2025-11-25 and later).
+  const JSON *icons = nullptr;
+};
+
+/// @ingroup mcp
+/// Serialize advisory annotations, checking audience roles and gating
+/// lastModified to 2025-06-18 and later. Empty annotations remain an object.
+SOURCEMETA_CORE_MCP_EXPORT
+auto mcp_serialize_resource_annotations(
+    MCPProtocolVersion version, const MCPResourceAnnotations &annotations)
+    -> JSON;
+
+/// @ingroup mcp
+/// Build a base64 image or audio content block for an explicit revision.
+/// Core checks the block shape, not the media bytes or MIME semantics.
+SOURCEMETA_CORE_MCP_EXPORT
+auto mcp_make_image_block(MCPProtocolVersion version, JSON::StringView data,
+                          JSON::StringView mime_type,
+                          const MCPResourceAnnotations &annotations = {})
+    -> JSON;
+/// @ingroup mcp
+/// Build a base64 audio block, with the same contracts as the image builder.
+SOURCEMETA_CORE_MCP_EXPORT
+auto mcp_make_audio_block(MCPProtocolVersion version, JSON::StringView data,
+                          JSON::StringView mime_type,
+                          const MCPResourceAnnotations &annotations = {})
+    -> JSON;
+/// @ingroup mcp
+/// Embed a checked text/blob resource-content entry in a content block.
+SOURCEMETA_CORE_MCP_EXPORT
+auto mcp_make_embedded_resource(MCPProtocolVersion version, JSON resource,
+                                const MCPResourceAnnotations &annotations = {})
+    -> JSON;
+/// @ingroup mcp
+/// Build a blob resource-content entry. The caller supplies base64-encoded
+/// data.
+SOURCEMETA_CORE_MCP_EXPORT
+auto mcp_make_resource_blob_content(JSON::StringView uri,
+                                    JSON::StringView mime_type,
+                                    JSON::StringView blob) -> JSON;
 /// @ingroup mcp
 /// Build an MCP `text` content block carrying the given text payload.
 SOURCEMETA_CORE_MCP_EXPORT
@@ -135,13 +193,6 @@ auto mcp_decorate_result(
     -> sourcemeta::core::JSON;
 
 /// @ingroup mcp
-/// Decorate an existing MCP result object in-place without copying.
-SOURCEMETA_CORE_MCP_EXPORT
-void mcp_decorate_result_in_place(
-    const MCPProtocolVersion version, sourcemeta::core::JSON &result,
-    const std::optional<MCPImplementation> &server_info = std::nullopt);
-
-/// @ingroup mcp
 /// Decorate an MCP result object with cache metadata (`ttlMs` and
 /// `cacheScope`) for 2026-07-28.
 SOURCEMETA_CORE_MCP_EXPORT
@@ -150,14 +201,6 @@ auto mcp_decorate_cacheable_result(const MCPProtocolVersion version,
                                    const MCPCachePolicy &cache_policy,
                                    const JSON::StringView method)
     -> sourcemeta::core::JSON;
-
-/// @ingroup mcp
-/// Decorate an existing MCP result object with cache metadata in-place.
-SOURCEMETA_CORE_MCP_EXPORT
-void mcp_decorate_cacheable_result_in_place(const MCPProtocolVersion version,
-                                            sourcemeta::core::JSON &result,
-                                            const MCPCachePolicy &cache_policy,
-                                            const JSON::StringView method);
 
 /// @ingroup mcp
 /// Build an empty MCP result response envelope with `resultType: "complete"`.
@@ -199,11 +242,14 @@ auto mcp_make_tool_error(const MCPProtocolVersion version,
 /// @ingroup mcp
 /// Build an MCP resource descriptor as used in `resources/list` responses.
 SOURCEMETA_CORE_MCP_EXPORT
-auto mcp_make_resource(const JSON::StringView uri, const JSON::StringView name,
+auto mcp_make_resource(const MCPProtocolVersion version,
+                       const JSON::StringView uri, const JSON::StringView name,
                        const JSON::StringView mime_type,
                        const JSON::StringView description = {},
                        const std::optional<std::size_t> size = std::nullopt,
-                       const std::optional<double> priority = std::nullopt)
+                       const std::optional<double> priority = std::nullopt,
+                       const MCPDescriptorPresentation &presentation = {},
+                       const MCPResourceAnnotations &annotations = {})
     -> sourcemeta::core::JSON;
 
 /// @ingroup mcp
@@ -226,11 +272,12 @@ auto mcp_make_resources_read_result(const MCPProtocolVersion version,
 /// @ingroup mcp
 /// Build a single entry for an MCP `resources/templates/list` response.
 SOURCEMETA_CORE_MCP_EXPORT
-auto mcp_make_resource_template(const JSON::StringView uri_template,
-                                const JSON::StringView name,
-                                const JSON::StringView description,
-                                const JSON::StringView mime_type)
-    -> sourcemeta::core::JSON;
+auto mcp_make_resource_template(
+    const MCPProtocolVersion version, const JSON::StringView uri_template,
+    const JSON::StringView name, const JSON::StringView description,
+    const JSON::StringView mime_type,
+    const MCPDescriptorPresentation &presentation = {},
+    const MCPResourceAnnotations &annotations = {}) -> sourcemeta::core::JSON;
 
 /// @ingroup mcp
 /// Build a single entry for an MCP `tools/list` response.
@@ -241,7 +288,9 @@ auto mcp_make_tool_descriptor(
     const MCPProtocolVersion version, const JSON::StringView name,
     const JSON::StringView description, sourcemeta::core::JSON input_schema,
     std::optional<sourcemeta::core::JSON> output_schema = std::nullopt,
-    const MCPToolAnnotations &annotations = {}) -> sourcemeta::core::JSON;
+    const MCPToolAnnotations &annotations = {},
+    const MCPDescriptorPresentation &presentation = {})
+    -> sourcemeta::core::JSON;
 
 /// @ingroup mcp
 /// Build an MCP `tools/list` result object for 2026-07-28 with required cache
@@ -395,11 +444,22 @@ auto mcp_intersect_subscription_filters(const MCPSubscriptionFilter &requested,
     -> MCPSubscriptionFilter;
 
 /// @ingroup mcp
-/// Read a result discriminator. Absent resultType means complete on incoming
-/// legacy results; unknown string discriminators remain available to
-/// extensions.
+/// Extract a raw result discriminator without validating support. Absent
+/// resultType means complete on incoming legacy results; unknown string
+/// discriminators remain available to extensions.
 SOURCEMETA_CORE_MCP_EXPORT
 auto mcp_result_type(const JSON &result) -> std::optional<JSON::StringView>;
+
+/// @ingroup mcp
+/// Recognize base and explicitly negotiated extension result types. The
+/// extension span is the caller's negotiated allowlist, not arbitrary input.
+/// Missing discriminators mean complete; input_required and extensions require
+/// 2026-07-28. The returned view borrows the result (or a static base name).
+SOURCEMETA_CORE_MCP_EXPORT
+auto mcp_resolve_result_type(
+    MCPProtocolVersion version, const JSON &result,
+    std::span<const JSON::StringView> supported_extension_types = {})
+    -> std::optional<JSON::StringView>;
 
 /// @ingroup mcp
 /// Check continuation field shapes, exact state echo when expected, and known
@@ -418,6 +478,8 @@ auto mcp_validate_continuation(MCPProtocolVersion version,
 /// @ingroup mcp
 /// Construct a checked notification. The direction and parameters are explicit.
 /// 2026-07-28 logging/progress require the current validated request context.
+/// Logging must meet the requested severity and cannot use a subscription ID.
+/// The caller must route it on the response stream of that same request.
 /// For 2026-07-28 server list/resource updates, subscription_id and the already
 /// acknowledged filter are mandatory. A server cancellation must name that
 /// subscription. Runtime code owns acknowledgment ordering, token activity,

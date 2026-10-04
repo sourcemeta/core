@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <new>
+#include <sstream>
 #include <streambuf>
 
 namespace {
@@ -87,32 +88,68 @@ int main() {
   auto resources{JSON::make_array()};
   for (std::size_t index = 0; index < 4096; ++index) {
     resources.push_back(
-        mcp_make_resource("https://example.com/" + std::to_string(index),
+        mcp_make_resource(sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+                          "https://example.com/" + std::to_string(index),
                           "resource-" + std::to_string(index),
                           "application/json", std::string(256, 'x')));
   }
   page.assign("resources", std::move(resources));
-  measure(page, false);
-  measure(page, true);
-  std::array<std::int64_t, 5> copy_times{};
-  std::array<std::int64_t, 5> borrowed_times{};
-  Measurement copy{};
-  Measurement borrowed{};
-  for (std::size_t index = 0; index < copy_times.size(); ++index) {
-    copy = measure(page, false);
-    borrowed = measure(page, true);
-    copy_times[index] = copy.microseconds;
-    borrowed_times[index] = borrowed.microseconds;
-  }
-  if (copy.output_bytes != borrowed.output_bytes) {
+
+  // Check the entire output outside the measured region; byte counts alone
+  // cannot establish that the streaming path emitted the correct contents.
+  std::ostringstream reference;
+  stringify(jsonrpc_make_success(JSON{0}, mcp_decorate_cacheable_result(
+                                              MCPProtocolVersion::V_2026_07_28,
+                                              page, {}, "resources/list")),
+            reference);
+  std::ostringstream streamed;
+  mcp_write_result(streamed, MCPProtocolVersion::V_2026_07_28, "resources/list",
+                   JSON{0}, page, MCPCachePolicy{});
+  if (parse_json(reference.str()) != parse_json(streamed.str())) {
     return 1;
   }
-  std::sort(copy_times.begin(), copy_times.end());
-  std::sort(borrowed_times.begin(), borrowed_times.end());
-  std::cout << "mode,resources,new_calls,new_bytes,output_bytes,median_us\n"
-            << "copy,4096," << copy.allocations << ',' << copy.allocated_bytes
-            << ',' << copy.output_bytes << ',' << copy_times[2] << '\n'
-            << "borrowed,4096," << borrowed.allocations << ','
-            << borrowed.allocated_bytes << ',' << borrowed.output_bytes << ','
-            << borrowed_times[2] << '\n';
+  // Warm both orders, then alternate the first route to limit ordering bias.
+  measure(page, false);
+  measure(page, true);
+  measure(page, true);
+  measure(page, false);
+  std::array<Measurement, 7> copies{};
+  std::array<Measurement, 7> borrowed{};
+  for (std::size_t index = 0; index < copies.size(); ++index) {
+    if (index % 2 == 0) {
+      copies[index] = measure(page, false);
+      borrowed[index] = measure(page, true);
+    } else {
+      borrowed[index] = measure(page, true);
+      copies[index] = measure(page, false);
+    }
+    if (copies[index].output_bytes != borrowed[index].output_bytes ||
+        borrowed[index].allocations >= copies[index].allocations ||
+        borrowed[index].allocated_bytes >= copies[index].allocated_bytes) {
+      return 1;
+    }
+  }
+  std::cout << "mode,sample,resources,new_calls,new_bytes,output_bytes,"
+               "microseconds\n";
+  const auto report = [](const char *mode, const auto &samples) {
+    std::array<std::size_t, 7> calls{};
+    std::array<std::size_t, 7> bytes{};
+    std::array<std::int64_t, 7> times{};
+    for (std::size_t index = 0; index < samples.size(); ++index) {
+      const auto &sample{samples[index]};
+      calls[index] = sample.allocations;
+      bytes[index] = sample.allocated_bytes;
+      times[index] = sample.microseconds;
+      std::cout << mode << ',' << index << ",4096," << sample.allocations << ','
+                << sample.allocated_bytes << ',' << sample.output_bytes << ','
+                << sample.microseconds << '\n';
+    }
+    std::sort(calls.begin(), calls.end());
+    std::sort(bytes.begin(), bytes.end());
+    std::sort(times.begin(), times.end());
+    std::cout << mode << ",median,4096," << calls[3] << ',' << bytes[3] << ','
+              << samples.front().output_bytes << ',' << times[3] << '\n';
+  };
+  report("copy", copies);
+  report("borrowed", borrowed);
 }

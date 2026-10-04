@@ -123,8 +123,6 @@ inline constexpr auto MCP_HASH_ROOTS{
     sourcemeta::core::JSON::Object::hash("roots"sv)};
 inline constexpr auto MCP_HASH_SAMPLING{
     sourcemeta::core::JSON::Object::hash("sampling"sv)};
-inline constexpr auto MCP_HASH_SCOPE{
-    sourcemeta::core::JSON::Object::hash("scope"sv)};
 inline constexpr auto MCP_HASH_SERVER_INFO{
     sourcemeta::core::JSON::Object::hash("serverInfo"sv)};
 inline constexpr auto MCP_HASH_SIZE{
@@ -133,8 +131,6 @@ inline constexpr auto MCP_HASH_STRUCTURED_CONTENT{
     sourcemeta::core::JSON::Object::hash("structuredContent"sv)};
 inline constexpr auto MCP_HASH_SUBSCRIBE{
     sourcemeta::core::JSON::Object::hash("subscribe"sv)};
-inline constexpr auto MCP_HASH_SUBSCRIPTIONS{
-    sourcemeta::core::JSON::Object::hash("subscriptions"sv)};
 inline constexpr auto MCP_HASH_SUPPORTED{
     sourcemeta::core::JSON::Object::hash("supported"sv)};
 inline constexpr auto MCP_HASH_SUPPORTED_VERSIONS{

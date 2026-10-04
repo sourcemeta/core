@@ -214,6 +214,14 @@ auto jsonrpc_make_success(const sourcemeta::core::JSON &identifier,
     -> sourcemeta::core::JSON;
 
 /// @ingroup jsonrpc
+/// Build a JSON-RPC notification with structured object or array parameters.
+/// Throws std::invalid_argument for scalar parameters. No identifier is
+/// emitted.
+SOURCEMETA_CORE_JSONRPC_EXPORT
+auto jsonrpc_make_notification(JSON::StringView method, JSON parameters)
+    -> JSON;
+
+/// @ingroup jsonrpc
 /// Construct a successful JSON-RPC 2.0 response envelope with the given
 /// identifier and an empty object result. For example:
 ///

@@ -20,15 +20,17 @@ auto mcp_make_error(const MCPProtocolVersion version, const JSON *identifier,
                          code != MCP_CODE_URL_ELICITATION_REQUIRED),
                     "Retired MCP error code");
   const auto *valid_identifier{
-      identifier && internal::valid_id(*identifier) ? identifier : nullptr};
+      (identifier != nullptr) && internal::valid_id(*identifier) ? identifier
+                                                                 : nullptr};
   const bool requires_identifier{version == MCPProtocolVersion::V_2025_03_26 ||
                                  version == MCPProtocolVersion::V_2025_06_18};
-  internal::require(valid_identifier || !requires_identifier ||
+  internal::require((valid_identifier != nullptr) || !requires_identifier ||
                         context == MCPErrorContext::Transport,
                     "This MCP revision requires a readable error identifier");
   auto result{
       jsonrpc_make_error(valid_identifier, code, message, std::move(data))};
-  if (!valid_identifier && (!requires_identifier || identifier == nullptr)) {
+  if ((valid_identifier == nullptr) &&
+      (!requires_identifier || identifier == nullptr)) {
     result.erase("id", MCP_HASH_ID);
   }
   return result;

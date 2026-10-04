@@ -5,6 +5,25 @@
 #include <sourcemeta/core/test.h>
 
 #include <cstdint> // std::int64_t
+#include <stdexcept>
+
+TEST(notification_builder) {
+  using namespace sourcemeta::core;
+  for (const auto &parameters : {JSON::make_object(), JSON::make_array()}) {
+    const auto notification{jsonrpc_make_notification("notify", parameters)};
+    EXPECT_TRUE(jsonrpc_is_notification(notification));
+    EXPECT_FALSE(notification.defines("id"));
+    EXPECT_EQ(notification.at("method"), JSON{"notify"});
+    EXPECT_EQ(notification.at("params"), parameters);
+  }
+  bool rejected = false;
+  try {
+    jsonrpc_make_notification("notify", JSON{false});
+  } catch (const std::invalid_argument &) {
+    rejected = true;
+  }
+  EXPECT_TRUE(rejected);
+}
 
 TEST(code_constants) {
   EXPECT_EQ(sourcemeta::core::JSONRPC_CODE_PARSE,

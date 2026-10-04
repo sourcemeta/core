@@ -10,7 +10,7 @@ using sourcemeta::core::JSON;
 
 auto optional_string(const JSON &value, const JSON::StringView name) -> bool {
   const auto *field{value.try_at(name)};
-  return !field || field->is_string();
+  return (field == nullptr) || field->is_string();
 }
 
 auto opt_in(const std::optional<bool> requested,
@@ -31,14 +31,14 @@ auto mcp_parse_subscription_filter(const MCPProtocolVersion version,
     return std::nullopt;
   }
   const auto *filter{parameters.try_at("notifications")};
-  if (!filter || !filter->is_object()) {
+  if ((filter == nullptr) || !filter->is_object()) {
     return std::nullopt;
   }
   MCPSubscriptionFilter result;
-  for (const auto name :
+  for (const auto *const name :
        {"toolsListChanged", "promptsListChanged", "resourcesListChanged"}) {
     const auto *value{filter->try_at(name)};
-    if (!value) {
+    if (value == nullptr) {
       continue;
     }
     if (!value->is_boolean()) {
@@ -96,9 +96,33 @@ auto mcp_result_type(const JSON &result) -> std::optional<JSON::StringView> {
     return std::nullopt;
   }
   const auto *type{result.try_at("resultType")};
-  return !type ? std::optional<JSON::StringView>{"complete"}
+  return (type == nullptr) ? std::optional<JSON::StringView>{"complete"}
          : type->is_string()
              ? std::optional<JSON::StringView>{type->to_string()}
+             : std::nullopt;
+}
+
+auto mcp_resolve_result_type(
+    const MCPProtocolVersion version, const JSON &result,
+    const std::span<const JSON::StringView> supported_extension_types)
+    -> std::optional<JSON::StringView> {
+  const auto type{mcp_result_type(result)};
+  if (!type) {
+    return std::nullopt;
+  }
+  if (*type == "complete") {
+    return type;
+  }
+  if (version != MCPProtocolVersion::V_2026_07_28) {
+    return std::nullopt;
+  }
+  if (*type == "input_required") {
+    return type;
+  }
+  return std::find(supported_extension_types.begin(),
+                   supported_extension_types.end(),
+                   *type) != supported_extension_types.end()
+             ? type
              : std::nullopt;
 }
 
@@ -122,15 +146,18 @@ auto mcp_make_notification(const MCPProtocolVersion version,
   }
   if (version == MCPProtocolVersion::V_2026_07_28 && from_server) {
     if (method == MCP_METHOD_NOTIFICATIONS_MESSAGE) {
-      internal::require(request_context &&
+      internal::require((request_context != nullptr) &&
                             request_context->protocol_version == version &&
                             request_context->log_level,
                         "Logging requires an explicit per-request opt-in");
+      internal::require(!subscription_id.has_value(),
+                        "Logging cannot be sent on a subscription stream");
     } else if (method == MCP_METHOD_NOTIFICATIONS_PROGRESS) {
       const auto *token{parameters.try_at("progressToken")};
-      internal::require(request_context &&
+      internal::require((request_context != nullptr) &&
                             request_context->protocol_version == version &&
-                            request_context->progress_token && token &&
+                            (request_context->progress_token != nullptr) &&
+                            (token != nullptr) &&
                             *token == *request_context->progress_token,
                         "Progress must echo the current request's token");
     }
@@ -144,23 +171,33 @@ auto mcp_make_notification(const MCPProtocolVersion version,
     const auto *token{parameters.try_at("progressToken")};
     const auto *progress{parameters.try_at("progress")};
     const auto *total{parameters.try_at("total")};
-    internal::require(token && internal::valid_id(*token) && progress &&
-                          progress->is_number() &&
-                          std::isfinite(progress->as_real()) &&
-                          (!total || (total->is_number() &&
-                                      std::isfinite(total->as_real()))) &&
-                          optional_string(parameters, "message"),
-                      "Invalid progress notification");
+    internal::require(
+        (token != nullptr) && internal::valid_id(*token) &&
+            (progress != nullptr) && progress->is_number() &&
+            std::isfinite(progress->as_real()) &&
+            ((total == nullptr) ||
+             (total->is_number() && std::isfinite(total->as_real()))) &&
+            optional_string(parameters, "message"),
+        "Invalid progress notification");
   } else if (method == MCP_METHOD_NOTIFICATIONS_MESSAGE) {
     const auto *level{parameters.try_at("level")};
-    internal::require(level && level->is_string() &&
+    internal::require((level != nullptr) && level->is_string() &&
                           internal::valid_log_level(level->to_string()) &&
                           parameters.defines("data") &&
                           optional_string(parameters, "logger"),
                       "Invalid logging notification");
+    if (version == MCPProtocolVersion::V_2026_07_28 && from_server) {
+      const auto threshold{mcp_resolve_log_level(*request_context->log_level)};
+      internal::require(
+          threshold.has_value() &&
+              mcp_log_level_enabled(*mcp_resolve_log_level(level->to_string()),
+                                    *threshold),
+          "Logging notification is below the request threshold");
+    }
   } else if (method == MCP_METHOD_NOTIFICATIONS_CANCELLED) {
     const auto *identifier{parameters.try_at("requestId")};
-    internal::require(identifier && internal::valid_id(*identifier) &&
+    internal::require((identifier != nullptr) &&
+                          internal::valid_id(*identifier) &&
                           optional_string(parameters, "reason"),
                       "Invalid cancellation notification");
     if (version == MCPProtocolVersion::V_2026_07_28 && from_server) {
@@ -192,7 +229,7 @@ auto mcp_make_notification(const MCPProtocolVersion version,
        method == MCP_METHOD_NOTIFICATIONS_PROMPTS_LIST_CHANGED ||
        method == MCP_METHOD_NOTIFICATIONS_RESOURCES_LIST_CHANGED ||
        method == MCP_METHOD_NOTIFICATIONS_RESOURCES_UPDATED)) {
-    internal::require(subscription_id && acknowledged,
+    internal::require(subscription_id && (acknowledged != nullptr),
                       "Updates require an acknowledged subscription");
     const bool enabled{
         method == MCP_METHOD_NOTIFICATIONS_TOOLS_LIST_CHANGED
@@ -210,18 +247,14 @@ auto mcp_make_notification(const MCPProtocolVersion version,
   }
   if (subscription_id) {
     auto *meta{parameters.try_at("_meta")};
-    if (!meta) {
+    if (meta == nullptr) {
       parameters.assign_assume_new("_meta", JSON::make_object());
       meta = parameters.try_at("_meta");
     }
     meta->assign("io.modelcontextprotocol/subscriptionId",
                  std::move(*subscription_id));
   }
-  auto result{JSON::make_object()};
-  result.assign_assume_new("jsonrpc", JSON{"2.0"});
-  result.assign_assume_new("method", JSON{method});
-  result.assign_assume_new("params", std::move(parameters));
-  return result;
+  return jsonrpc_make_notification(method, std::move(parameters));
 }
 auto mcp_validate_continuation(
     const MCPProtocolVersion version, const JSON &parameters,
@@ -234,26 +267,29 @@ auto mcp_validate_continuation(
   }
   const auto *state{parameters.try_at("requestState")};
   const auto *responses{parameters.try_at("inputResponses")};
-  if ((!state && !responses) || (state && !state->is_string()) ||
-      (expected_state && (!state || state->to_string() != *expected_state)) ||
-      (responses && !responses->is_object())) {
+  if (((state == nullptr) && (responses == nullptr)) ||
+      ((state != nullptr) && !state->is_string()) ||
+      (expected_state &&
+       ((state == nullptr) || state->to_string() != *expected_state)) ||
+      ((responses != nullptr) && !responses->is_object())) {
     return false;
   }
-  if (!responses) {
+  if (responses == nullptr) {
     return true;
   }
   for (const auto &entry : responses->as_object()) {
     const auto *prior{input_requests.try_at(entry.first)};
     // MRTR permits unrecognized response information to be ignored.
-    if (!prior) {
+    if (prior == nullptr) {
       continue;
     }
     if (!prior->is_object()) {
       return false;
     }
     const auto *method{prior->try_at("method")};
-    if (!method || !method->is_string() ||
-        !internal::valid_input_response(method->to_string(), entry.second)) {
+    if ((method == nullptr) || !method->is_string() ||
+        !internal::valid_input_response(method->to_string(), *prior,
+                                        entry.second)) {
       return false;
     }
   }

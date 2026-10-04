@@ -31,9 +31,10 @@ auto valid_resource(const JSON &value, bool contents, bool is_template) -> bool;
 auto valid_prompt(const JSON &value) -> bool;
 auto valid_input_requests(const JSON &value,
                           const MCPClientCapabilities &capabilities) -> bool;
-auto valid_input_response(JSON::StringView method, const JSON &value) -> bool;
+auto valid_input_response(JSON::StringView method, const JSON &request,
+                          const JSON &value) -> bool;
 auto valid_meta(const JSON &value) -> bool;
-auto valid_metadata_object(const JSON &value) -> bool;
+auto valid_metadata_object(const JSON &meta) -> bool;
 auto valid_log_level(JSON::StringView value) noexcept -> bool;
 
 } // namespace sourcemeta::core::internal

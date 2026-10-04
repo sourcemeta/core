@@ -73,13 +73,14 @@ auto mcp_validate_request_meta(const JSON &envelope)
   const auto *rpc{envelope.try_at("jsonrpc", MCP_HASH_JSONRPC)};
   const auto *method{envelope.try_at("method", MCP_HASH_METHOD)};
   const auto *identifier{envelope.try_at("id", MCP_HASH_ID)};
-  if (!rpc || !rpc->is_string() || rpc->to_string() != "2.0" || !method ||
-      !method->is_string() || !identifier || !internal::valid_id(*identifier) ||
-      envelope.defines("result") || envelope.defines("error")) {
+  if ((rpc == nullptr) || !rpc->is_string() || rpc->to_string() != "2.0" ||
+      (method == nullptr) || !method->is_string() || (identifier == nullptr) ||
+      !internal::valid_id(*identifier) || envelope.defines("result") ||
+      envelope.defines("error")) {
     return {MCPRequestMetaStatus::InvalidEnvelope, std::nullopt};
   }
   const auto *parameters{envelope.try_at("params", MCP_HASH_PARAMS)};
-  if (!parameters) {
+  if (parameters == nullptr) {
     return {MCPRequestMetaStatus::MissingParams, std::nullopt};
   }
   return mcp_validate_request_parameters(*parameters);
@@ -212,12 +213,16 @@ auto mcp_validate_request_parameters(const JSON &parameters_value)
     log_level = log_level_field->to_string();
   }
   const auto *progress_token{meta->try_at("progressToken")};
-  if (progress_token && !internal::valid_id(*progress_token)) {
+  if ((progress_token != nullptr) && !internal::valid_id(*progress_token)) {
     return {MCPRequestMetaStatus::InvalidProgressToken, std::nullopt};
   }
   return {MCPRequestMetaStatus::Valid,
-          MCPRequestMeta{resolved.value(), *client_capabilities, client_info,
-                         log_level, *meta, progress_token}};
+          MCPRequestMeta{.protocol_version = resolved.value(),
+                         .client_capabilities = *client_capabilities,
+                         .client_info = client_info,
+                         .log_level = log_level,
+                         .meta_object = *meta,
+                         .progress_token = progress_token}};
 }
 
 auto mcp_make_error_request_meta(
@@ -313,12 +318,6 @@ auto mcp_make_error_request_meta(
   std::unreachable();
 }
 
-auto mcp_has_required_request_meta(const sourcemeta::core::JSON &envelope)
-    -> bool {
-  const auto [status, meta]{mcp_validate_request_meta(envelope)};
-  return status == MCPRequestMetaStatus::Valid;
-}
-
 auto mcp_request_method_from_body(const sourcemeta::core::JSON &envelope)
     -> std::optional<JSON::StringView> {
   if (!envelope.is_object()) {
@@ -332,7 +331,7 @@ auto mcp_request_method_from_body(const sourcemeta::core::JSON &envelope)
 }
 
 auto mcp_request_name_from_body(const sourcemeta::core::JSON &envelope)
-    -> std::optional<std::string> {
+    -> std::optional<JSON::StringView> {
   if (!envelope.is_object()) {
     return std::nullopt;
   }
@@ -386,16 +385,24 @@ auto mcp_validate_request_headers(
                     "Supported protocol versions must be explicit");
   const auto *identifier{
       envelope.is_object() ? envelope.try_at("id", MCP_HASH_ID) : nullptr};
-  const bool valid_identifier{identifier && internal::valid_id(*identifier)};
+  const bool valid_identifier{(identifier != nullptr) &&
+                              internal::valid_id(*identifier)};
   const auto method{mcp_request_method_from_body(envelope)};
   const auto *rpc{envelope.is_object()
                       ? envelope.try_at("jsonrpc", MCP_HASH_JSONRPC)
                       : nullptr};
-  if (!rpc || !rpc->is_string() || rpc->to_string() != "2.0" || !method ||
-      envelope.defines("result") || envelope.defines("error") ||
+  if ((rpc == nullptr) || !rpc->is_string() || rpc->to_string() != "2.0" ||
+      !method || envelope.defines("result") || envelope.defines("error") ||
       (envelope.defines("id") && !valid_identifier)) {
     return transport_error(version, identifier, JSONRPC_CODE_INVALID_REQUEST,
                            "Invalid Request");
+  }
+
+  const auto *parameters{envelope.try_at("params", MCP_HASH_PARAMS)};
+  if (parameters != nullptr &&
+      (!parameters->is_object() || !internal::valid_meta(*parameters))) {
+    return transport_error(version, identifier, JSONRPC_CODE_INVALID_PARAMS,
+                           "Invalid params");
   }
 
   if (!mcp_requires_request_meta(version)) {
@@ -419,28 +426,27 @@ auto mcp_validate_request_headers(
     return std::nullopt;
   }
 
-  const auto *parameters{envelope.try_at("params", MCP_HASH_PARAMS)};
-  if (!parameters || !parameters->is_object()) {
+  if ((parameters == nullptr) || !parameters->is_object()) {
     return transport_error(version, identifier, JSONRPC_CODE_INVALID_PARAMS,
                            "Invalid params");
   }
   // Stateless metadata is required on requests, not notifications.
   std::optional<JSON::StringView> body_version;
-  if (identifier) {
+  if (identifier != nullptr) {
     const auto *meta{parameters->try_at("_meta", MCP_HASH_META)};
     const auto *field{
-        meta && meta->is_object()
+        (meta != nullptr) && meta->is_object()
             ? meta->try_at("io.modelcontextprotocol/protocolVersion",
                            MCP_HASH_META_PROTOCOL_VERSION)
             : nullptr};
-    if (!field || !field->is_string()) {
+    if ((field == nullptr) || !field->is_string()) {
       return transport_error(
           version, identifier, JSONRPC_CODE_INVALID_PARAMS,
           "Invalid params: missing or malformed protocol metadata");
     }
     body_version = field->to_string();
   }
-  if (identifier) {
+  if (identifier != nullptr) {
     const auto status{mcp_validate_request_meta(envelope).first};
     // Preserve raw version comparison precedence for an unknown revision.
     if (status != MCPRequestMetaStatus::Valid &&
@@ -453,29 +459,37 @@ auto mcp_validate_request_headers(
   if (!protocol_version_header ||
       !plain_header_value(*protocol_version_header)) {
     return mcp_make_error_header_mismatch(
-        version, identifier ? std::optional<JSON>{*identifier} : std::nullopt,
+        version,
+        (identifier != nullptr) ? std::optional<JSON>{*identifier}
+                                : std::nullopt,
         "Missing or malformed MCP-Protocol-Version");
   }
   // Mirrored values must agree before checking whether the revision is
   // supported.
   if (body_version && *body_version != *protocol_version_header) {
     return mcp_make_error_header_mismatch(
-        version, identifier ? std::optional<JSON>{*identifier} : std::nullopt,
+        version,
+        (identifier != nullptr) ? std::optional<JSON>{*identifier}
+                                : std::nullopt,
         MCP_HEADER_PROTOCOL_VERSION, *protocol_version_header, *body_version);
   }
   if (std::find(supported_versions.begin(), supported_versions.end(),
                 *protocol_version_header) == supported_versions.end()) {
     return mcp_make_error_unsupported_protocol_version(
-        version, identifier ? std::optional<JSON>{*identifier} : std::nullopt,
+        version,
+        (identifier != nullptr) ? std::optional<JSON>{*identifier}
+                                : std::nullopt,
         *protocol_version_header, supported_versions);
   }
   if (*protocol_version_header != mcp_protocol_version_string(version)) {
     return mcp_make_error_header_mismatch(
-        version, identifier ? std::optional<JSON>{*identifier} : std::nullopt,
+        version,
+        (identifier != nullptr) ? std::optional<JSON>{*identifier}
+                                : std::nullopt,
         MCP_HEADER_PROTOCOL_VERSION, *protocol_version_header,
         mcp_protocol_version_string(version));
   }
-  if (identifier) {
+  if (identifier != nullptr) {
     const auto [status, meta]{mcp_validate_request_meta(envelope)};
     if (status != MCPRequestMetaStatus::Valid) {
       return mcp_make_error_request_meta(version, *identifier, status,
@@ -484,32 +498,40 @@ auto mcp_validate_request_headers(
     }
   }
   if (!method_header || !plain_header_value(*method_header)) {
-    return mcp_make_error_header_mismatch(
-        version, identifier ? std::optional<JSON>{*identifier} : std::nullopt,
-        "Missing or malformed Mcp-Method");
+    return mcp_make_error_header_mismatch(version,
+                                          (identifier != nullptr)
+                                              ? std::optional<JSON>{*identifier}
+                                              : std::nullopt,
+                                          "Missing or malformed Mcp-Method");
   }
   if (*method_header != *method) {
     return mcp_make_error_header_mismatch(
-        version, identifier ? std::optional<JSON>{*identifier} : std::nullopt,
+        version,
+        (identifier != nullptr) ? std::optional<JSON>{*identifier}
+                                : std::nullopt,
         MCP_HEADER_METHOD, *method_header, *method);
   }
   const bool named{mcp_is_mrtr_method(*method)};
   if (named) {
     const auto *name{parameters->try_at(
         *method == MCP_METHOD_RESOURCES_READ ? "uri" : "name")};
-    if (!name || !name->is_string()) {
+    if ((name == nullptr) || !name->is_string()) {
       return transport_error(version, identifier, JSONRPC_CODE_INVALID_PARAMS,
                              "Invalid params");
     }
     if (!name_header || !header_matches(*name_header, name->to_string())) {
       return mcp_make_error_header_mismatch(
-          version, identifier ? std::optional<JSON>{*identifier} : std::nullopt,
+          version,
+          (identifier != nullptr) ? std::optional<JSON>{*identifier}
+                                  : std::nullopt,
           MCP_HEADER_NAME, name_header.value_or(""), name->to_string());
     }
   } else if (name_header) {
-    return mcp_make_error_header_mismatch(
-        version, identifier ? std::optional<JSON>{*identifier} : std::nullopt,
-        MCP_HEADER_NAME, *name_header);
+    return mcp_make_error_header_mismatch(version,
+                                          (identifier != nullptr)
+                                              ? std::optional<JSON>{*identifier}
+                                              : std::nullopt,
+                                          MCP_HEADER_NAME, *name_header);
   }
   return std::nullopt;
 }
@@ -535,7 +557,7 @@ auto mcp_validate_request_headers(
                equals_ignore_case(entry.first, MCP_HEADER_NAME)) {
       slot = &name;
     }
-    if (!slot) {
+    if (slot == nullptr) {
       continue;
     }
     if (slot->has_value()) {
@@ -544,8 +566,9 @@ auto mcp_validate_request_headers(
       return version == MCPProtocolVersion::V_2026_07_28
                  ? mcp_make_error_header_mismatch(
                        version,
-                       identifier ? std::optional<JSON>{*identifier}
-                                  : std::nullopt,
+                       (identifier != nullptr)
+                           ? std::optional<JSON>{*identifier}
+                           : std::nullopt,
                        "Duplicate routing header")
                  : transport_error(version, identifier,
                                    JSONRPC_CODE_INVALID_REQUEST,

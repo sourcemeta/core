@@ -46,8 +46,9 @@ auto annotations(const JSON &value) -> bool {
   }
   if (const auto *priority{field(*item, "priority")};
       priority != nullptr &&
-      (!priority->is_number() || priority->as_real() < 0 ||
-       priority->as_real() > 1)) {
+      (!priority->is_number() ||
+       (priority->is_real() && !std::isfinite(priority->to_real())) ||
+       *priority < JSON{0} || *priority > JSON{1})) {
     return false;
   }
   if (const auto *audience{field(*item, "audience")}; audience != nullptr) {
@@ -76,12 +77,14 @@ auto icons(const JSON &value) -> bool {
         !string_field(item, "mimeType")) {
       return false;
     }
-    if (const auto *sizes{field(item, "sizes")}; sizes && !strings(*sizes)) {
+    if (const auto *sizes{field(item, "sizes")};
+        (sizes != nullptr) && !strings(*sizes)) {
       return false;
     }
     if (const auto *theme{field(item, "theme")};
-        theme && (!theme->is_string() || (theme->to_string() != "light" &&
-                                          theme->to_string() != "dark"))) {
+        (theme != nullptr) &&
+        (!theme->is_string() ||
+         (theme->to_string() != "light" && theme->to_string() != "dark"))) {
       return false;
     }
   }
@@ -90,7 +93,8 @@ auto icons(const JSON &value) -> bool {
 
 auto object_schema(const JSON &value) -> bool {
   const auto *type{field(value, "type")};
-  return type && type->is_string() && type->to_string() == "object" &&
+  return (type != nullptr) && type->is_string() &&
+         type->to_string() == "object" &&
          optional_fields(value, {"properties"}, JSON::Type::Object) &&
          (field(value, "required") == nullptr ||
           strings(*field(value, "required")));
@@ -170,8 +174,8 @@ auto hex(const char character) noexcept -> bool {
 
 auto traceparent(const JSON::StringView value) -> bool {
   if (value.size() < 55 || value[2] != '-' || value[35] != '-' ||
-      value[52] != '-' || value.substr(0, 2) == "ff" ||
-      (value.substr(0, 2) == "00" && value.size() != 55) ||
+      value[52] != '-' || value.starts_with("ff") ||
+      (value.starts_with("00") && value.size() != 55) ||
       (value.size() > 55 && value[55] != '-')) {
     return false;
   }
@@ -214,12 +218,12 @@ auto tracestate(JSON::StringView value) -> bool {
       }
       const auto key{entry.substr(0, equal)};
       const auto content{entry.substr(equal + 1)};
-      const auto at{key.find('@')};
+      const auto at_position{key.find('@')};
       const bool valid_key{
-          at == JSON::StringView::npos
+          at_position == JSON::StringView::npos
               ? trace_key_part(key, false, 256)
-              : trace_key_part(key.substr(0, at), true, 241) &&
-                    trace_key_part(key.substr(at + 1), false, 14)};
+              : trace_key_part(key.substr(0, at_position), true, 241) &&
+                    trace_key_part(key.substr(at_position + 1), false, 14)};
       if (!valid_key || !keys.insert(key).second || content.empty() ||
           content.size() > 256 || content.back() == ' ' ||
           !std::all_of(content.begin(), content.end(),
@@ -303,7 +307,7 @@ auto baggage(JSON::StringView value) -> bool {
 
 auto enum_options(const JSON &value, const JSON::StringView keyword) -> bool {
   const auto *items{field(value, keyword)};
-  if (!items || !items->is_array()) {
+  if ((items == nullptr) || !items->is_array()) {
     return false;
   }
   for (const auto &item : items->as_array()) {
@@ -317,31 +321,34 @@ auto enum_options(const JSON &value, const JSON::StringView keyword) -> bool {
 
 auto form_schema(const JSON &schema) -> bool {
   const auto *properties{field(schema, "properties")};
-  if (!object_schema(schema) || !properties || !properties->is_object() ||
-      !string_field(schema, "$schema")) {
+  if (!object_schema(schema) || (properties == nullptr) ||
+      !properties->is_object() || !string_field(schema, "$schema")) {
     return false;
   }
   for (const auto &entry : properties->as_object()) {
     const auto &property{entry.second};
     const auto *type{field(property, "type")};
-    if (!type || !type->is_string() || !string_field(property, "title") ||
+    if ((type == nullptr) || !type->is_string() ||
+        !string_field(property, "title") ||
         !string_field(property, "description")) {
       return false;
     }
     const auto name{type->to_string()};
     const auto *default_value{field(property, "default")};
     if (name == "string") {
-      if (default_value && !default_value->is_string()) {
+      if ((default_value != nullptr) && !default_value->is_string()) {
         return false;
       }
-      if (field(property, "enum") && !strings(*field(property, "enum"))) {
+      if ((field(property, "enum") != nullptr) &&
+          !strings(*field(property, "enum"))) {
         return false;
       }
-      if (field(property, "enumNames") &&
+      if ((field(property, "enumNames") != nullptr) &&
           !strings(*field(property, "enumNames"))) {
         return false;
       }
-      if (field(property, "oneOf") && !enum_options(property, "oneOf")) {
+      if ((field(property, "oneOf") != nullptr) &&
+          !enum_options(property, "oneOf")) {
         return false;
       }
       if (!optional_fields(property, {"minLength", "maxLength"},
@@ -349,7 +356,7 @@ auto form_schema(const JSON &schema) -> bool {
         return false;
       }
       if (const auto *format{field(property, "format")};
-          format &&
+          (format != nullptr) &&
           (!format->is_string() ||
            (format->to_string() != "date" &&
             format->to_string() != "date-time" &&
@@ -357,28 +364,29 @@ auto form_schema(const JSON &schema) -> bool {
         return false;
       }
     } else if (name == "boolean") {
-      if (default_value && !default_value->is_boolean()) {
+      if ((default_value != nullptr) && !default_value->is_boolean()) {
         return false;
       }
     } else if (name == "number" || name == "integer") {
-      for (const auto key : {"default", "minimum", "maximum"}) {
+      for (const auto *const key : {"default", "minimum", "maximum"}) {
         if (const auto *value{field(property, key)};
-            value && !value->is_number()) {
+            (value != nullptr) && !value->is_number()) {
           return false;
         }
       }
     } else if (name == "array") {
       const auto *items{field(property, "items")};
-      if (!items || !items->is_object() ||
-          (default_value && !strings(*default_value)) ||
+      if ((items == nullptr) || !items->is_object() ||
+          ((default_value != nullptr) && !strings(*default_value)) ||
           !optional_fields(property, {"minItems", "maxItems"},
                            JSON::Type::Integer)) {
         return false;
       }
       const auto *item_type{field(*items, "type")};
       const auto *values{field(*items, "enum")};
-      if (!(item_type && item_type->is_string() &&
-            item_type->to_string() == "string" && values && strings(*values)) &&
+      if (!((item_type != nullptr) && item_type->is_string() &&
+            item_type->to_string() == "string" && (values != nullptr) &&
+            strings(*values)) &&
           !enum_options(*items, "anyOf")) {
         return false;
       }
@@ -391,7 +399,7 @@ auto form_schema(const JSON &schema) -> bool {
 
 auto sampling_block(const JSON &value) -> bool {
   const auto *type{field(value, "type")};
-  if (!type || !type->is_string() ||
+  if ((type == nullptr) || !type->is_string() ||
       !sourcemeta::core::internal::valid_meta(value)) {
     return false;
   }
@@ -403,11 +411,12 @@ auto sampling_block(const JSON &value) -> bool {
   if (name == "tool_use") {
     const auto *input{field(value, "input")};
     return string_field(value, "id", true) &&
-           string_field(value, "name", true) && input && input->is_object();
+           string_field(value, "name", true) && (input != nullptr) &&
+           input->is_object();
   }
   if (name == "tool_result") {
     const auto *content{field(value, "content")};
-    if (!string_field(value, "toolUseId", true) || !content ||
+    if (!string_field(value, "toolUseId", true) || (content == nullptr) ||
         !content->is_array() ||
         !optional_fields(value, {"isError"}, JSON::Type::Boolean)) {
       return false;
@@ -430,27 +439,28 @@ auto sampling_options(const JSON &params) -> bool {
     return false;
   }
   if (const auto *temperature{field(params, "temperature")};
-      temperature && !temperature->is_number()) {
+      (temperature != nullptr) && !temperature->is_number()) {
     return false;
   }
   if (const auto *stop{field(params, "stopSequences")};
-      stop && !strings(*stop)) {
+      (stop != nullptr) && !strings(*stop)) {
     return false;
   }
   if (const auto *choice{field(params, "toolChoice")}; choice) {
     const auto *mode{field(*choice, "mode")};
-    if (mode && (!mode->is_string() ||
-                 (mode->to_string() != "auto" && mode->to_string() != "none" &&
-                  mode->to_string() != "required"))) {
+    if ((mode != nullptr) &&
+        (!mode->is_string() ||
+         (mode->to_string() != "auto" && mode->to_string() != "none" &&
+          mode->to_string() != "required"))) {
       return false;
     }
   }
   if (const auto *preferences{field(params, "modelPreferences")}; preferences) {
-    for (const auto name :
+    for (const auto *const name :
          {"costPriority", "speedPriority", "intelligencePriority"}) {
       const auto *value{field(*preferences, name)};
-      if (value && (!value->is_number() || value->as_real() < 0 ||
-                    value->as_real() > 1)) {
+      if ((value != nullptr) && (!value->is_number() || value->as_real() < 0 ||
+                                 value->as_real() > 1)) {
         return false;
       }
     }
@@ -484,11 +494,7 @@ auto sampling_options(const JSON &params) -> bool {
 namespace sourcemeta::core::internal {
 
 auto valid_log_level(const JSON::StringView value) noexcept -> bool {
-  constexpr JSON::StringView levels[]{"debug",   "info",     "notice",
-                                      "warning", "error",    "critical",
-                                      "alert",   "emergency"};
-  return std::find(std::begin(levels), std::end(levels), value) !=
-         std::end(levels);
+  return mcp_resolve_log_level(value).has_value();
 }
 
 auto valid_meta(const JSON &value) -> bool {
@@ -505,7 +511,7 @@ auto valid_metadata_object(const JSON &meta) -> bool {
       return false;
     }
   }
-  for (const auto name : {"traceparent", "tracestate", "baggage"}) {
+  for (const auto *const name : {"traceparent", "tracestate", "baggage"}) {
     if (const auto *value{meta.try_at(name)}; value) {
       if (!value->is_string()) {
         return false;
@@ -553,7 +559,7 @@ auto make_implementation(const MCPProtocolVersion version,
     if (!value.website_url.empty()) {
       result.assign_assume_new("websiteUrl", JSON{value.website_url});
     }
-    if (value.icons) {
+    if (value.icons != nullptr) {
       result.assign_assume_new("icons", JSON{*value.icons});
     }
   }
@@ -591,7 +597,7 @@ auto valid_capabilities(const MCPProtocolVersion version, const JSON &value,
   }
   if (version == MCPProtocolVersion::V_2026_07_28) {
     if (const auto *extensions{field(value, "extensions")};
-        extensions && !valid_extensions(*extensions)) {
+        (extensions != nullptr) && !valid_extensions(*extensions)) {
       return false;
     }
   }
@@ -607,9 +613,9 @@ auto valid_capabilities(const MCPProtocolVersion version, const JSON &value,
                              JSON::Type::Object)) {
           return false;
         }
-        for (const auto name : {"sampling", "elicitation", "tools"}) {
+        for (const auto *const name : {"sampling", "elicitation", "tools"}) {
           if (const auto *group{field(*requests, name)};
-              group &&
+              (group != nullptr) &&
               !optional_fields(*group, {"createMessage", "create", "call"},
                                JSON::Type::Object)) {
             return false;
@@ -623,12 +629,12 @@ auto valid_capabilities(const MCPProtocolVersion version, const JSON &value,
       return false;
     }
     if (const auto *roots{field(value, "roots")};
-        roots && version != MCPProtocolVersion::V_2026_07_28 &&
+        (roots != nullptr) && version != MCPProtocolVersion::V_2026_07_28 &&
         !optional_fields(*roots, {"listChanged"}, JSON::Type::Boolean)) {
       return false;
     }
     if (const auto *sampling{field(value, "sampling")};
-        sampling &&
+        (sampling != nullptr) &&
         mcp_protocol_version_at_least(version,
                                       MCPProtocolVersion::V_2025_11_25) &&
         !optional_fields(*sampling, {"tools", "context"}, JSON::Type::Object)) {
@@ -640,7 +646,7 @@ auto valid_capabilities(const MCPProtocolVersion version, const JSON &value,
         return false;
       }
       if (const auto *elicitation{field(value, "elicitation")};
-          elicitation &&
+          (elicitation != nullptr) &&
           mcp_protocol_version_at_least(version,
                                         MCPProtocolVersion::V_2025_11_25) &&
           !optional_fields(*elicitation, {"form", "url"}, JSON::Type::Object)) {
@@ -653,15 +659,15 @@ auto valid_capabilities(const MCPProtocolVersion version, const JSON &value,
             JSON::Type::Object)) {
       return false;
     }
-    for (const auto name : {"prompts", "resources", "tools"}) {
+    for (const auto *const name : {"prompts", "resources", "tools"}) {
       if (const auto *item{field(value, name)};
-          item &&
+          (item != nullptr) &&
           !optional_fields(*item, {"listChanged"}, JSON::Type::Boolean)) {
         return false;
       }
     }
     if (const auto *resources{field(value, "resources")};
-        resources &&
+        (resources != nullptr) &&
         !optional_fields(*resources, {"subscribe"}, JSON::Type::Boolean)) {
       return false;
     }
@@ -674,23 +680,24 @@ auto valid_tool(const MCPProtocolVersion version, const JSON &value) -> bool {
     return false;
   }
   const auto *input{field(value, "inputSchema")};
-  if (!input || !object_schema(*input)) {
+  if ((input == nullptr) || !object_schema(*input)) {
     return false;
   }
   if (mcp_supports_output_schema(version)) {
     if (const auto *output{field(value, "outputSchema")};
-        output &&
+        (output != nullptr) &&
         (!output->is_object() || (version != MCPProtocolVersion::V_2026_07_28 &&
                                   !object_schema(*output)))) {
       return false;
     }
   }
   if (const auto *item{field(value, "annotations")};
-      item && (!item->is_object() || !string_field(*item, "title") ||
-               !optional_fields(*item,
-                                {"readOnlyHint", "destructiveHint",
-                                 "idempotentHint", "openWorldHint"},
-                                JSON::Type::Boolean))) {
+      (item != nullptr) &&
+      (!item->is_object() || !string_field(*item, "title") ||
+       !optional_fields(*item,
+                        {"readOnlyHint", "destructiveHint", "idempotentHint",
+                         "openWorldHint"},
+                        JSON::Type::Boolean))) {
     return false;
   }
   return true;
@@ -706,11 +713,12 @@ auto valid_resource(const JSON &value, const bool contents,
   if (contents) {
     const auto *text{field(value, "text")};
     const auto *blob{field(value, "blob")};
-    return (text && text->is_string()) || (blob && blob->is_string());
+    return ((text != nullptr) && text->is_string()) ||
+           ((blob != nullptr) && blob->is_string());
   }
   const auto *size{field(value, "size")};
   return base(value) && annotations(value) &&
-         (!size || (size->is_integer() && size->to_integer() >= 0));
+         ((size == nullptr) || (size->is_integer() && size->to_integer() >= 0));
 }
 
 auto valid_content(const MCPProtocolVersion version, const JSON &value)
@@ -719,7 +727,7 @@ auto valid_content(const MCPProtocolVersion version, const JSON &value)
     return false;
   }
   const auto *type{field(value, "type")};
-  if (!type || !type->is_string()) {
+  if ((type == nullptr) || !type->is_string()) {
     return false;
   }
   const auto name{type->to_string()};
@@ -732,7 +740,7 @@ auto valid_content(const MCPProtocolVersion version, const JSON &value)
   }
   if (name == "resource") {
     const auto *resource{field(value, "resource")};
-    return resource && valid_resource(*resource, true, false);
+    return (resource != nullptr) && valid_resource(*resource, true, false);
   }
   return name == "resource_link" &&
          mcp_supports_resource_link_content(version) &&
@@ -744,7 +752,7 @@ auto valid_prompt(const JSON &value) -> bool {
     return false;
   }
   const auto *arguments{field(value, "arguments")};
-  if (!arguments) {
+  if (arguments == nullptr) {
     return true;
   }
   if (!arguments->is_array()) {
@@ -768,26 +776,28 @@ auto valid_input_requests(const JSON &value,
     const auto &request{entry.second};
     const auto *method{field(request, "method")};
     const auto *params{field(request, "params")};
-    if (!method || !method->is_string() || request.defines("id") ||
+    if ((method == nullptr) || !method->is_string() || request.defines("id") ||
         request.defines("jsonrpc")) {
       return false;
     }
     const auto name{method->to_string()};
     if (name == MCP_METHOD_ROOTS_LIST) {
-      if (!capabilities.roots || (params && !params->is_object())) {
+      if (!capabilities.roots ||
+          ((params != nullptr) && !params->is_object())) {
         return false;
       }
     } else if (name == MCP_METHOD_ELICITATION_CREATE) {
-      if (!params || !params->is_object() ||
+      if ((params == nullptr) || !params->is_object() ||
           !string_field(*params, "message", true)) {
         return false;
       }
       const auto *mode{field(*params, "mode")};
-      if (mode && (!mode->is_string() || (mode->to_string() != "form" &&
-                                          mode->to_string() != "url"))) {
+      if ((mode != nullptr) &&
+          (!mode->is_string() ||
+           (mode->to_string() != "form" && mode->to_string() != "url"))) {
         return false;
       }
-      if (mode && mode->to_string() == "url") {
+      if ((mode != nullptr) && mode->to_string() == "url") {
         if (!capabilities.elicitation_url ||
             !string_field(*params, "url", true)) {
           return false;
@@ -796,14 +806,14 @@ auto valid_input_requests(const JSON &value,
         const auto *schema{field(*params, "requestedSchema")};
         const bool implicit_form{capabilities.elicitation &&
                                  !capabilities.elicitation_url};
-        if ((!capabilities.elicitation_form && !implicit_form) || !schema ||
-            !form_schema(*schema)) {
+        if ((!capabilities.elicitation_form && !implicit_form) ||
+            (schema == nullptr) || !form_schema(*schema)) {
           return false;
         }
       }
     } else if (name == MCP_METHOD_SAMPLING_CREATE_MESSAGE) {
-      if (!capabilities.sampling || !params || !params->is_object() ||
-          !sampling_options(*params)) {
+      if (!capabilities.sampling || (params == nullptr) ||
+          !params->is_object() || !sampling_options(*params)) {
         return false;
       }
       if (const auto *context{field(*params, "includeContext")}; context) {
@@ -818,16 +828,16 @@ auto valid_input_requests(const JSON &value,
       }
       const auto *messages{field(*params, "messages")};
       const auto *tokens{field(*params, "maxTokens")};
-      if (!messages || !messages->is_array() || !tokens ||
-          !tokens->is_integer()) {
+      if ((messages == nullptr) || !messages->is_array() ||
+          (tokens == nullptr) || !tokens->is_integral()) {
         return false;
       }
       for (const auto &message : messages->as_array()) {
         const auto *role{field(message, "role")};
         const auto *content{field(message, "content")};
-        if (!role || !role->is_string() ||
+        if ((role == nullptr) || !role->is_string() ||
             (role->to_string() != "user" && role->to_string() != "assistant") ||
-            !content) {
+            (content == nullptr)) {
           return false;
         }
         if (content->is_array()) {
@@ -840,7 +850,8 @@ auto valid_input_requests(const JSON &value,
           return false;
         }
       }
-      if ((field(*params, "tools") || field(*params, "toolChoice")) &&
+      if (((field(*params, "tools") != nullptr) ||
+           (field(*params, "toolChoice") != nullptr)) &&
           !capabilities.sampling_tools) {
         return false;
       }
@@ -851,19 +862,19 @@ auto valid_input_requests(const JSON &value,
   return true;
 }
 
-auto valid_input_response(const JSON::StringView method, const JSON &value)
-    -> bool {
+auto valid_input_response(const JSON::StringView method, const JSON &request,
+                          const JSON &value) -> bool {
   if (!value.is_object() || !valid_meta(value)) {
     return false;
   }
   if (method == MCP_METHOD_ROOTS_LIST) {
     const auto *roots{field(value, "roots")};
-    if (!roots || !roots->is_array()) {
+    if ((roots == nullptr) || !roots->is_array()) {
       return false;
     }
     for (const auto &root : roots->as_array()) {
       const auto *uri{field(root, "uri")};
-      if (!uri || !uri->is_string() ||
+      if ((uri == nullptr) || !uri->is_string() ||
           !uri->to_string().starts_with("file://") ||
           !string_field(root, "name") || !valid_meta(root)) {
         return false;
@@ -873,17 +884,25 @@ auto valid_input_response(const JSON::StringView method, const JSON &value)
   }
   if (method == MCP_METHOD_ELICITATION_CREATE) {
     const auto *action{field(value, "action")};
-    if (!action || !action->is_string() ||
+    if ((action == nullptr) || !action->is_string() ||
         (action->to_string() != "accept" && action->to_string() != "decline" &&
          action->to_string() != "cancel")) {
       return false;
     }
     if (const auto *content{field(value, "content")}; content) {
-      if (!content->is_object()) {
+      const auto *params{field(request, "params")};
+      const auto *mode{params != nullptr ? field(*params, "mode") : nullptr};
+      if (action->to_string() != "accept" ||
+          (mode != nullptr &&
+           (!mode->is_string() || mode->to_string() != "form")) ||
+          !content->is_object()) {
         return false;
       }
       for (const auto &entry : content->as_object()) {
-        if (!entry.second.is_string() && !entry.second.is_integer() &&
+        if (entry.second.is_real() && !std::isfinite(entry.second.to_real())) {
+          return false;
+        }
+        if (!entry.second.is_string() && !entry.second.is_number() &&
             !entry.second.is_boolean() && !strings(entry.second)) {
           return false;
         }
@@ -894,9 +913,9 @@ auto valid_input_response(const JSON::StringView method, const JSON &value)
   if (method == MCP_METHOD_SAMPLING_CREATE_MESSAGE) {
     const auto *role{field(value, "role")};
     const auto *content{field(value, "content")};
-    if (!role || !role->is_string() ||
+    if ((role == nullptr) || !role->is_string() ||
         (role->to_string() != "user" && role->to_string() != "assistant") ||
-        !content || !string_field(value, "model", true) ||
+        (content == nullptr) || !string_field(value, "model", true) ||
         !string_field(value, "stopReason")) {
       return false;
     }

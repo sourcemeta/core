@@ -8,9 +8,10 @@
 #include <utility>
 
 namespace {
-auto capability_settings(
-    const sourcemeta::core::MCPClientCapabilities &capabilities,
-    const sourcemeta::core::JSON::StringView name) -> sourcemeta::core::JSON {
+template <typename Capabilities>
+auto capability_settings(const Capabilities &capabilities,
+                         const sourcemeta::core::JSON::StringView name)
+    -> sourcemeta::core::JSON {
   const auto *value{capabilities.source && capabilities.source->is_object()
                         ? capabilities.source->try_at(name)
                         : nullptr};
@@ -112,17 +113,19 @@ auto mcp_serialize_client_capabilities(
   if (version != MCPProtocolVersion::V_2025_11_25) {
     result.erase("tasks");
   }
-  if (version != MCPProtocolVersion::V_2026_07_28) {
-    result.erase("extensions");
-  }
   result.erase("roots");
   result.erase("sampling");
   result.erase("elicitation");
+  result.erase("extensions");
+  result.erase("experimental");
 
   if (capabilities.roots || (capabilities.roots_list_changed &&
                              version != MCPProtocolVersion::V_2026_07_28)) {
     auto roots_object{capability_settings(capabilities, "roots")};
-    if (version == MCPProtocolVersion::V_2026_07_28) {
+    if (version == MCPProtocolVersion::V_2026_07_28 ||
+        (!capabilities.roots_list_changed &&
+         (!roots_object.defines("listChanged") ||
+          roots_object.at("listChanged") != JSON{false}))) {
       roots_object.erase("listChanged");
     }
     if (capabilities.roots_list_changed &&
@@ -138,6 +141,12 @@ auto mcp_serialize_client_capabilities(
     if (!mcp_protocol_version_at_least(version,
                                        MCPProtocolVersion::V_2025_11_25)) {
       sampling_object.erase("context");
+      sampling_object.erase("tools");
+    }
+    if (!capabilities.sampling_context) {
+      sampling_object.erase("context");
+    }
+    if (!capabilities.sampling_tools) {
       sampling_object.erase("tools");
     }
     if (mcp_protocol_version_at_least(version,
@@ -161,6 +170,16 @@ auto mcp_serialize_client_capabilities(
       (capabilities.elicitation || capabilities.elicitation_form ||
        capabilities.elicitation_url)) {
     auto elicitation_object{capability_settings(capabilities, "elicitation")};
+    if (!mcp_protocol_version_at_least(version,
+                                       MCPProtocolVersion::V_2025_11_25) ||
+        !capabilities.elicitation_form) {
+      elicitation_object.erase("form");
+    }
+    if (!mcp_protocol_version_at_least(version,
+                                       MCPProtocolVersion::V_2025_11_25) ||
+        !capabilities.elicitation_url) {
+      elicitation_object.erase("url");
+    }
     if (mcp_protocol_version_at_least(version,
                                       MCPProtocolVersion::V_2025_11_25)) {
       if (capabilities.elicitation_form) {
@@ -191,6 +210,99 @@ auto mcp_serialize_client_capabilities(
   }
 
   internal::require(internal::valid_capabilities(version, result, true),
+                    "Invalid capability map");
+  return result;
+}
+
+auto mcp_parse_server_capabilities(const MCPProtocolVersion version,
+                                   const JSON &capabilities)
+    -> MCPServerCapabilities {
+  internal::require(internal::valid_capabilities(version, capabilities, false),
+                    "Invalid server capabilities");
+  MCPServerCapabilities result;
+  result.source = capabilities;
+  result.prompts = capabilities.defines("prompts");
+  result.resources = capabilities.defines("resources");
+  result.tools = capabilities.defines("tools");
+  result.logging = capabilities.defines("logging");
+  result.completions = capabilities.defines("completions");
+  const auto flag = [&capabilities](const JSON::StringView parent,
+                                    const JSON::StringView name) {
+    const auto *settings{capabilities.try_at(parent)};
+    const auto *value{settings != nullptr ? settings->try_at(name) : nullptr};
+    return value != nullptr && value->is_boolean() && value->to_boolean();
+  };
+  result.prompts_list_changed = flag("prompts", "listChanged");
+  result.resources_list_changed = flag("resources", "listChanged");
+  result.resources_subscribe = flag("resources", "subscribe");
+  result.tools_list_changed = flag("tools", "listChanged");
+  if (version == MCPProtocolVersion::V_2026_07_28 &&
+      capabilities.defines("extensions")) {
+    result.extensions = capabilities.at("extensions");
+  }
+  if (capabilities.defines("experimental")) {
+    result.experimental = capabilities.at("experimental");
+  }
+  return result;
+}
+
+auto mcp_serialize_server_capabilities(
+    const MCPProtocolVersion version, const MCPServerCapabilities &capabilities)
+    -> JSON {
+  internal::require(!capabilities.source || capabilities.source->is_object(),
+                    "Invalid capability source");
+  auto result{capabilities.source.value_or(JSON::make_object())};
+  for (const auto *const name : {"prompts", "resources", "tools", "logging",
+                                 "completions", "extensions", "experimental"}) {
+    result.erase(name);
+  }
+  if (version != MCPProtocolVersion::V_2025_11_25) {
+    result.erase("tasks");
+  }
+  const auto emit =
+      [&result, &capabilities](const JSON::StringView name, const bool enabled,
+                               const bool changed, const bool subscribe) {
+        if (!enabled && !changed && !subscribe) {
+          return;
+        }
+        auto settings{capability_settings(capabilities, name)};
+        if (changed || !settings.defines("listChanged") ||
+            settings.at("listChanged") != JSON{false}) {
+          settings.erase("listChanged");
+        }
+        if (changed) {
+          settings.assign("listChanged", JSON{true});
+        }
+        if (name == "resources") {
+          if (subscribe || !settings.defines("subscribe") ||
+              settings.at("subscribe") != JSON{false}) {
+            settings.erase("subscribe");
+          }
+          if (subscribe) {
+            settings.assign("subscribe", JSON{true});
+          }
+        }
+        result.assign(name, std::move(settings));
+      };
+  emit("prompts", capabilities.prompts, capabilities.prompts_list_changed,
+       false);
+  emit("resources", capabilities.resources, capabilities.resources_list_changed,
+       capabilities.resources_subscribe);
+  emit("tools", capabilities.tools, capabilities.tools_list_changed, false);
+  if (capabilities.logging) {
+    result.assign("logging", capability_settings(capabilities, "logging"));
+  }
+  if (capabilities.completions) {
+    result.assign("completions",
+                  capability_settings(capabilities, "completions"));
+  }
+  if (version == MCPProtocolVersion::V_2026_07_28 && capabilities.extensions) {
+    result.assign("extensions", *capabilities.extensions);
+  }
+  if (capabilities.experimental) {
+    result.assign("experimental", *capabilities.experimental);
+  }
+  internal::require(internal::valid_capabilities(version, result, false),
                     "Invalid capability map");
   return result;
 }

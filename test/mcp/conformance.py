@@ -16,9 +16,29 @@ import tempfile
 import urllib.request
 
 import jsonschema
+from referencing import Registry, Resource
+from referencing.jsonschema import specification_with
 
 PIN = "75db1e987cbbba6d170315dc99d0dfc440754aef"
 VERSIONS = ("2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28")
+
+
+def definition_validator(schema, name):
+    """Keep the dialect and original resource identity when selecting a definition."""
+    validator = jsonschema.validators.validator_for(schema)
+    validator.check_schema(schema)
+    definitions = "$defs" if "$defs" in schema else "definitions"
+    if name not in schema[definitions]:
+        raise RuntimeError(f"Unknown official definition: {name}")
+    root = {definitions: schema[definitions], "$ref": f"#/{definitions}/{name}"}
+    for key in ("$schema", "$id", "id"):
+        if key in schema:
+            root[key] = schema[key]
+    dialect = schema.get("$schema", validator.META_SCHEMA.get("$id", validator.META_SCHEMA.get("id")))
+    resource = Resource.from_contents(schema, default_specification=specification_with(dialect))
+    identity = schema.get("$id", schema.get("id", "urn:sourcemeta:mcp:conformance"))
+    registry = Registry().with_resource(identity, resource)
+    return validator(root, registry=registry)
 
 
 def main():
@@ -50,12 +70,9 @@ def main():
         for line in corpus.read_text().splitlines():
             entry = json.loads(line)
             schema, validator = schemas[entry["version"]]
-            definitions = "$defs" if "$defs" in schema else "definitions"
             name = entry["definition"]
-            if name not in schema[definitions]:
-                raise RuntimeError(f"Unknown official definition: {entry['version']} {name}")
-            root = {definitions: schema[definitions], "$ref": f"#/{definitions}/{name}"}
-            for error in validator(root).iter_errors(entry["value"]):
+            selected = definition_validator(schema, name)
+            for error in selected.iter_errors(entry["value"]):
                 raise RuntimeError(f"{entry['version']} {name} at {list(error.path)}: {error.message}")
             count += 1
         if count < 90:

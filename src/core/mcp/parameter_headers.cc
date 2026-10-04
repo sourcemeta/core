@@ -3,6 +3,8 @@
 #include "validation.h"
 
 #include <sourcemeta/core/crypto.h>
+#include <sourcemeta/core/http.h>
+#include <sourcemeta/core/text.h>
 #include <sourcemeta/core/unicode.h>
 
 #include <algorithm>
@@ -18,22 +20,13 @@ using sourcemeta::core::MCPHeaderParameter;
 auto lower(const JSON::StringView value) -> std::string {
   std::string result{value};
   for (auto &character : result) {
-    if (character >= 'A' && character <= 'Z') {
-      character = static_cast<char>(character + ('a' - 'A'));
-    }
+    character = sourcemeta::core::to_lowercase(character);
   }
   return result;
 }
 
 auto token(const JSON::StringView value) -> bool {
-  return !value.empty() &&
-         std::all_of(value.begin(), value.end(), [](const char character) {
-           return (character >= 'a' && character <= 'z') ||
-                  (character >= 'A' && character <= 'Z') ||
-                  (character >= '0' && character <= '9') ||
-                  JSON::StringView{"!#$%&'*+-.^_`|~"}.find(character) !=
-                      JSON::StringView::npos;
-         });
+  return sourcemeta::core::http_is_token(value);
 }
 
 auto visit(const JSON &schema, const bool reachable,
@@ -45,7 +38,8 @@ auto visit(const JSON &schema, const bool reachable,
   if (const auto *annotation{schema.try_at("x-mcp-header")}; annotation) {
     const auto *type{schema.try_at("type")};
     if (!reachable || path.empty() || !annotation->is_string() ||
-        !token(annotation->to_string()) || !type || !type->is_string() ||
+        !token(annotation->to_string()) || (type == nullptr) ||
+        !type->is_string() ||
         !names.insert(lower(annotation->to_string())).second) {
       return false;
     }
@@ -53,17 +47,18 @@ auto visit(const JSON &schema, const bool reachable,
     if (name != "string" && name != "integer" && name != "boolean") {
       return false;
     }
-    result.push_back(MCPHeaderParameter{annotation->to_string(), path,
-                                        name == "string" ? JSON::Type::String
-                                        : name == "integer"
-                                            ? JSON::Type::Integer
-                                            : JSON::Type::Boolean});
+    result.push_back(
+        MCPHeaderParameter{.name = annotation->to_string(),
+                           .path = path,
+                           .type = name == "string"    ? JSON::Type::String
+                                   : name == "integer" ? JSON::Type::Integer
+                                                       : JSON::Type::Boolean});
   }
   // Walk schema locations, never instance-valued enum/default/examples fields.
-  for (const auto name : {"properties", "patternProperties", "$defs",
-                          "definitions", "dependentSchemas"}) {
+  for (const auto *const name : {"properties", "patternProperties", "$defs",
+                                 "definitions", "dependentSchemas"}) {
     const auto *children{schema.try_at(name)};
-    if (!children || !children->is_object()) {
+    if ((children == nullptr) || !children->is_object()) {
       continue;
     }
     for (const auto &child : children->as_object()) {
@@ -76,12 +71,12 @@ auto visit(const JSON &schema, const bool reachable,
       path.pop_back();
     }
   }
-  for (const auto name :
+  for (const auto *const name :
        {"items", "additionalItems", "additionalProperties", "unevaluatedItems",
         "unevaluatedProperties", "contains", "propertyNames", "not", "if",
         "then", "else", "allOf", "anyOf", "oneOf", "prefixItems"}) {
     const auto *child{schema.try_at(name)};
-    if (!child) {
+    if (child == nullptr) {
       continue;
     }
     if (child->is_array()) {
@@ -105,7 +100,7 @@ auto value_at(const JSON &arguments, const MCPHeaderParameter &parameter)
       return nullptr;
     }
     value = value->try_at(name);
-    if (!value) {
+    if (value == nullptr) {
       return nullptr;
     }
   }
@@ -128,10 +123,8 @@ void require_parameters(const std::span<const MCPHeaderParameter> parameters) {
 auto safe_parameter(const JSON &value, const MCPHeaderParameter &parameter)
     -> bool {
   if (parameter.type == JSON::Type::Integer) {
-    return value.is_number() && std::isfinite(value.as_real()) &&
-           std::trunc(value.as_real()) == value.as_real() &&
-           value.as_real() >= -9007199254740991.0 &&
-           value.as_real() <= 9007199254740991.0;
+    return value.is_integral() && value >= JSON{INT64_C(-9007199254740991)} &&
+           value <= JSON{INT64_C(9007199254740991)};
   }
   return value.type() == parameter.type;
 }
@@ -143,12 +136,11 @@ auto parameter_text(const JSON &value) -> std::string {
   if (value.is_boolean()) {
     return value.to_boolean() ? "true" : "false";
   }
-  return std::to_string(value.is_integer()
-                            ? value.to_integer()
-                            : static_cast<JSON::Integer>(value.to_real()));
+  return std::to_string(value.as_integer());
 }
 
-auto decode(const JSON::StringView value) -> std::optional<std::string> {
+auto decode(const JSON::StringView value, std::string &storage)
+    -> std::optional<JSON::StringView> {
   if ((!value.empty() && (value.front() == ' ' || value.back() == ' ')) ||
       !std::all_of(value.begin(), value.end(), [](const char character) {
         const auto byte{static_cast<unsigned char>(character)};
@@ -160,10 +152,13 @@ auto decode(const JSON::StringView value) -> std::optional<std::string> {
       value.size() >= 11) {
     auto decoded{
         sourcemeta::core::base64_decode(value.substr(9, value.size() - 11))};
-    return decoded && sourcemeta::core::is_valid_utf8(*decoded) ? decoded
-                                                                : std::nullopt;
+    if (!decoded || !sourcemeta::core::is_valid_utf8(*decoded)) {
+      return std::nullopt;
+    }
+    storage = std::move(*decoded);
+    return JSON::StringView{storage};
   }
-  return std::string{value};
+  return value;
 }
 } // namespace
 
@@ -218,10 +213,10 @@ auto mcp_validate_parameter_headers(
   }
   for (const auto &parameter : parameters) {
     const std::string name{"Mcp-Param-" + std::string{parameter.name}};
-    const auto normalized{lower(name)};
+
     std::optional<JSON::StringView> header;
     for (const auto &candidate : headers) {
-      if (lower(candidate.first) == normalized) {
+      if (equals_ignore_case(candidate.first, name)) {
         if (header) {
           return mcp_make_error_header_mismatch(version, identifier,
                                                 "Duplicate parameter header");
@@ -230,7 +225,7 @@ auto mcp_validate_parameter_headers(
       }
     }
     const auto *value{value_at(arguments, parameter)};
-    if (!value) {
+    if (value == nullptr) {
       if (header) {
         return mcp_make_error_header_mismatch(version, identifier, name,
                                               *header);
@@ -241,7 +236,9 @@ auto mcp_validate_parameter_headers(
       return mcp_make_error(version, &identifier, JSONRPC_CODE_INVALID_PARAMS,
                             "Invalid mirrored argument");
     }
-    const auto decoded{header ? decode(*header) : std::nullopt};
+    std::string decoded_storage;
+    const auto decoded{header ? decode(*header, decoded_storage)
+                              : std::nullopt};
     bool matches = false;
     if (decoded) {
       if (parameter.type == JSON::Type::Integer) {
@@ -252,7 +249,8 @@ auto mcp_validate_parameter_headers(
           matches = false;
         }
       } else {
-        matches = *decoded == parameter_text(*value);
+        matches = value->is_string() ? *decoded == value->to_string()
+                                     : *decoded == parameter_text(*value);
       }
     }
     if (!matches) {
