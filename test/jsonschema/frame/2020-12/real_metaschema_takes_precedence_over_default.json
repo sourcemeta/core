@@ -96,5 +96,6 @@
       }
     ]
   },
-  "standalone": false
+  "standalone": false,
+  "standaloneIgnoringMetaschemas": true
 }

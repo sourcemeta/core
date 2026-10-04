@@ -825,6 +825,7 @@ struct SchemaFrame::Cache {
   std::unordered_map<const Location *, const sourcemeta::core::JSON::String *>
       location_to_uri;
   bool standalone{false};
+  bool standalone_ignoring_metaschemas{false};
   bool has_dynamic_references{false};
 
   auto populate_pointer_to_location(const SchemaFrame &frame) -> void;
@@ -1795,24 +1796,41 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
     }
   }
 
-  // A schema is standalone if all references can be resolved within itself.
-  // The one thing it never has to carry is a dialect this library already
-  // comes with, as naming one asks nothing of whoever reads the document.
-  // Any other dialect has to be present just like every other destination,
-  // because a reader that does not have it cannot tell what the schema means
-  // without going to fetch it first
-  this->cache_->standalone = std::ranges::all_of(
-      this->references_, [&](const auto &reference) -> bool {
-        assert(!reference.first.second.empty());
-        assert(reference.first.second.back().is_property());
-        return (reference.first.second.back().to_property() == "$schema" &&
-                sourcemeta::core::schema_is_known(
-                    reference.second.destination)) ||
-               this->locations_.contains({SchemaReferenceType::Static,
-                                          reference.second.destination}) ||
-               this->locations_.contains({SchemaReferenceType::Dynamic,
-                                          reference.second.destination});
-      });
+  // A schema is standalone if all references can be resolved within itself,
+  // and there are two readings of that worth telling apart, both of which
+  // come out of this one pass.
+  //
+  // The first never asks the document to carry a dialect this library already
+  // comes with, as naming one of those asks nothing of whoever reads it. Any
+  // other dialect counts like every other destination, because a reader that
+  // does not have it cannot tell what the schema means without fetching it.
+  //
+  // The second sets dialects aside altogether, which is what a caller that
+  // only resolves references between schemas needs to know, as the dialect is
+  // not something it was going to resolve either way
+  this->cache_->standalone = true;
+  this->cache_->standalone_ignoring_metaschemas = true;
+  for (const auto &reference : this->references_) {
+    assert(!reference.first.second.empty());
+    assert(reference.first.second.back().is_property());
+    if (this->locations_.contains(
+            {SchemaReferenceType::Static, reference.second.destination}) ||
+        this->locations_.contains(
+            {SchemaReferenceType::Dynamic, reference.second.destination})) {
+      continue;
+    }
+
+    if (reference.first.second.back().to_property() == "$schema") {
+      this->cache_->standalone =
+          this->cache_->standalone &&
+          sourcemeta::core::schema_is_known(reference.second.destination);
+      continue;
+    }
+
+    this->cache_->standalone = false;
+    this->cache_->standalone_ignoring_metaschemas = false;
+    break;
+  }
 
   if (this->cache_->standalone) {
     // Find all dynamic anchors
@@ -1971,6 +1989,10 @@ auto SchemaFrame::has_dynamic_references() const noexcept -> bool {
 
 auto SchemaFrame::standalone() const noexcept -> bool {
   return this->cache_->standalone;
+}
+
+auto SchemaFrame::standalone_ignoring_metaschemas() const noexcept -> bool {
+  return this->cache_->standalone_ignoring_metaschemas;
 }
 
 auto SchemaFrame::root() const noexcept

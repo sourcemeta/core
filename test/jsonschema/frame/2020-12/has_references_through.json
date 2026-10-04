@@ -278,5 +278,6 @@
       }
     ]
   },
-  "standalone": true
+  "standalone": true,
+  "standaloneIgnoringMetaschemas": true
 }
