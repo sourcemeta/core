@@ -1813,7 +1813,6 @@ TEST(conformance_sampling_tool_history) {
       const auto *const text :
       {R"([{"role":"user","content":{}}])",
        R"([{"role":"assistant","content":{}}])",
-       R"([{"role":"assistant","content":{}},{"role":"assistant","content":{}}])",
        R"([{"role":"assistant","content":{}},{"role":"user","content":[{}, {"type":"text","text":"mixed"}]}])",
        R"([{"role":"assistant","content":{}},{"role":"user","content":[{}, {}]}])"}) {
     auto messages{parse_json(text)};
@@ -1836,7 +1835,15 @@ TEST(conformance_sampling_tool_history) {
   rejects([&] { build(incomplete); });
   auto duplicate{valid};
   duplicate.at(0).at("content").at(1).assign("id", JSON{"a"});
+  duplicate.at(1).assign(
+      "content",
+      parse_json(R"([{ "type":"tool_result","toolUseId":"a","content":[]}])"));
   rejects([&] { build(duplicate); });
+  // Every block is otherwise valid: only the intervening text message violates
+  // the immediate tool-result requirement.
+  const auto interrupted{parse_json(
+      R"([{"role":"assistant","content":{"type":"tool_use","id":"call","name":"tool","input":{}}},{"role":"assistant","content":{"type":"text","text":"interrupted"}},{"role":"user","content":{"type":"tool_result","toolUseId":"call","content":[]}}])")};
+  rejects([&] { build(interrupted); });
   auto orphan{JSON::make_array()};
   auto message{JSON::make_object()};
   message.assign("role", JSON{"user"});

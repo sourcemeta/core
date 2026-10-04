@@ -37,7 +37,7 @@ not assert JSON Schema `format` annotations or establish all normative prose
 requirements. The C++ negative tests complement it; this is not a certification
 of a complete MCP server implementation.
 
-On the same 151-payload corpus, a local Linux run measured definition selection
+On the earlier 151-payload corpus, a local Linux run measured definition selection
 and validation at 11.65 seconds before caching and 0.29 seconds after caching.
 Root schema checks dropped from 155 to 4, and selected-validator constructions
 from 151 to 107. These are development-runner measurements, not Core runtime
