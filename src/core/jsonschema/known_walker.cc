@@ -5137,12 +5137,24 @@ constexpr std::array<Variant, 728> VARIANTS{{
                 {},
                 {},
                 INSTANCES_ANY}},
-    // The dialect reserves no location for schema definitions, and the only
-    // property names it accepts beyond its own are those that carry the
-    // extension prefix, so we reserve one such name for what bundling
-    // embeds. A location reserving keyword that a vocabulary declares is
-    // well defined wherever the reader knows that vocabulary, unlike an
-    // undeclared one, which later JSON Schema revisions warn against
+    // Bundling has to place what it embeds somewhere a later pass reaches
+    // again, and every JSON Schema dialect reserves a location for exactly
+    // that. This one reserves none, and closes its Schema Object to every
+    // property name but its own and those carrying the extension prefix, so
+    // without claiming one such name there is nowhere to bundle into at all.
+    //
+    // Claiming one is therefore a trade rather than a design we would pick
+    // freely. Bundling works, and what it produces stays a legal schema of
+    // this dialect, at the cost of an artifact only a reader that knows this
+    // vocabulary can make sense of, where a location the specification itself
+    // reserved would have travelled anywhere.
+    //
+    // JSON Schema set the reasoning out later, in Section 9.4.2 of its
+    // 2020-12 release, which recognises a location reserving keyword that
+    // comes from a known vocabulary and warns against leaning on an
+    // undeclared one. That revision does not govern a dialect of this
+    // vintage, so it is what makes the trade deliberate rather than what
+    // permits it
     {.vocabulary = Known::OPENAPI_3_0_BASE,
      .secondary = std::nullopt,
      .result = {SchemaKeywordType::LocationMembers,
