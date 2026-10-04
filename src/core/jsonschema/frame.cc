@@ -1832,7 +1832,11 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
     break;
   }
 
-  if (this->cache_->standalone) {
+  // Whether a lone destination can stand for a dynamic reference turns on
+  // seeing every anchor the schema could reach, which is a question about the
+  // references between schemas. A dialect the document does not carry
+  // contributes no anchor of its own, so it has no say here
+  if (this->cache_->standalone_ignoring_metaschemas) {
     // Find all dynamic anchors
     // Values are pointers to full URIs in locations_
     std::unordered_map<sourcemeta::core::JSON::String,
