@@ -254,5 +254,11 @@
     ]
   },
   "standalone": true,
-  "reachability": []
+  "reachability": [
+    {
+      "from": "",
+      "to": "",
+      "reachable": true
+    }
+  ]
 }
