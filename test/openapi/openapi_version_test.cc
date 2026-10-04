@@ -4,7 +4,6 @@
 #include <sourcemeta/core/test.h>
 
 #include <optional> // std::optional
-#include <utility>  // std::move
 
 namespace {
 
@@ -13,12 +12,6 @@ auto version_of(const sourcemeta::core::JSON::String &version)
   auto document{sourcemeta::core::JSON::make_object()};
   document.assign("openapi", sourcemeta::core::JSON{version});
   return sourcemeta::core::openapi_version(document);
-}
-
-auto document_with(sourcemeta::core::JSON &&version) -> sourcemeta::core::JSON {
-  auto document{sourcemeta::core::JSON::make_object()};
-  document.assign("openapi", std::move(version));
-  return document;
 }
 
 } // namespace
@@ -223,7 +216,9 @@ TEST(version_string_of_a_version_with_no_patch_component) {
 }
 
 TEST(version_string_of_the_empty_string) {
-  const auto document{document_with(sourcemeta::core::JSON{""})};
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": ""
+  })JSON")};
   EXPECT_EQ(sourcemeta::core::openapi_version_string(document).value(), "");
   EXPECT_FALSE(sourcemeta::core::openapi_version(document).has_value());
 }
@@ -236,17 +231,23 @@ TEST(version_string_without_the_field) {
 }
 
 TEST(version_string_of_a_field_that_is_a_number) {
-  const auto document{document_with(sourcemeta::core::JSON{3})};
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": 3
+  })JSON")};
   EXPECT_FALSE(sourcemeta::core::openapi_version_string(document).has_value());
 }
 
 TEST(version_string_of_a_field_that_is_null) {
-  const auto document{document_with(sourcemeta::core::JSON{nullptr})};
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": null
+  })JSON")};
   EXPECT_FALSE(sourcemeta::core::openapi_version_string(document).has_value());
 }
 
 TEST(version_string_of_a_field_that_is_an_array) {
-  const auto document{document_with(sourcemeta::core::JSON::make_array())};
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": []
+  })JSON")};
   EXPECT_FALSE(sourcemeta::core::openapi_version_string(document).has_value());
 }
 
@@ -274,7 +275,9 @@ TEST(is_document_of_a_revision_we_do_not_recognise) {
 }
 
 TEST(is_document_of_the_empty_string) {
-  const auto document{document_with(sourcemeta::core::JSON{""})};
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": ""
+  })JSON")};
   EXPECT_TRUE(sourcemeta::core::openapi_is_document(document));
 }
 
@@ -287,12 +290,16 @@ TEST(is_document_without_the_field) {
 }
 
 TEST(is_document_of_a_field_that_is_a_number) {
-  const auto document{document_with(sourcemeta::core::JSON{3})};
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": 3
+  })JSON")};
   EXPECT_FALSE(sourcemeta::core::openapi_is_document(document));
 }
 
 TEST(is_document_of_a_field_that_is_null) {
-  const auto document{document_with(sourcemeta::core::JSON{nullptr})};
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": null
+  })JSON")};
   EXPECT_FALSE(sourcemeta::core::openapi_is_document(document));
 }
 
