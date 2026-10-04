@@ -907,7 +907,7 @@ TEST(reidentify_openapi_3_0_refuses) {
     FAIL();
   } catch (const sourcemeta::core::SchemaKeywordError &error) {
     EXPECT_STREQ(error.what(),
-                 "The dialect of the schema does not define this keyword");
+                 "The dialect of the schema does not support identification");
     EXPECT_EQ(error.keyword(), "id");
     EXPECT_EQ(error.value(), "https://example.com/my-new-id");
     EXPECT_EQ(document, expected);
@@ -929,7 +929,7 @@ TEST(reidentify_openapi_3_0_refuses_the_other_release) {
     FAIL();
   } catch (const sourcemeta::core::SchemaKeywordError &error) {
     EXPECT_STREQ(error.what(),
-                 "The dialect of the schema does not define this keyword");
+                 "The dialect of the schema does not support identification");
     EXPECT_EQ(error.keyword(), "id");
     EXPECT_EQ(error.value(), "https://example.com/my-new-id");
     EXPECT_EQ(document, expected);

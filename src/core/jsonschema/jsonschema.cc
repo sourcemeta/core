@@ -221,7 +221,7 @@ auto sourcemeta::core::schema_reidentify(sourcemeta::core::JSON &schema,
     throw sourcemeta::core::SchemaKeywordError(
         sourcemeta::core::id_keyword(resolved_base_dialect.value()).name,
         new_identifier,
-        "The dialect of the schema does not define this keyword");
+        "The dialect of the schema does not support identification");
   }
 
   schema_reidentify(schema, new_identifier, resolved_base_dialect.value());
