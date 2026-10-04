@@ -4,6 +4,7 @@
 #include <array>
 #include <cstdlib>
 #include <fstream>
+#include <limits>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -612,6 +613,28 @@ TEST(conformance_content_and_schemas) {
   rejects([] {
     mcp_make_completion_result(CURRENT, parse_json(R"(["value"] )"), 0, false);
   });
+  for (const auto version :
+       {MCPProtocolVersion::V_2025_03_26, MCPProtocolVersion::V_2025_06_18,
+        MCPProtocolVersion::V_2025_11_25, MCPProtocolVersion::V_2026_07_28}) {
+    rejects([&] {
+      mcp_make_completion_result(version, JSON::make_array(), -1, false);
+    });
+    EXPECT_EQ(mcp_make_completion_result(version, JSON::make_array(), 0, false)
+                  .at("completion")
+                  .at("total"),
+              JSON{0});
+    EXPECT_EQ(mcp_make_completion_result(version, parse_json(R"(["value"])"), 1,
+                                         false)
+                  .at("completion")
+                  .at("total"),
+              JSON{1});
+    constexpr auto MAXIMUM{std::numeric_limits<std::int64_t>::max()};
+    EXPECT_EQ(mcp_make_completion_result(version, parse_json(R"(["value"])"),
+                                         MAXIMUM, false)
+                  .at("completion")
+                  .at("total"),
+              JSON{MAXIMUM});
+  }
 }
 
 TEST(conformance_mrtr_nested_requests) {

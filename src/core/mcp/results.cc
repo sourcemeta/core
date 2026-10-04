@@ -984,9 +984,9 @@ auto mcp_make_completion_result(const MCPProtocolVersion version, JSON values,
   for (const auto &value : values.as_array()) {
     internal::require(value.is_string(), "Completion values must be strings");
   }
-  internal::require(!total || (*total >= 0 && static_cast<std::uint64_t>(
-                                                  *total) >= values.size()),
-                    "Invalid completion total");
+  internal::require(
+      !total || (*total >= 0 && std::cmp_greater_equal(*total, values.size())),
+      "Invalid completion total");
   auto completion{JSON::make_object()};
   completion.assign_assume_new("values", std::move(values));
   if (total) {
