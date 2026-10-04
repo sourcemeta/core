@@ -573,7 +573,7 @@ auto bundle_internal(JSON &schema, const SchemaWalker &walker,
                                remaining};
     charge(remaining, declared_frame);
     if (declared_frame.root().empty()) {
-      schema_reidentify(schema, default_id, resolver, default_dialect);
+      schema_reidentify(schema, default_id, walker, resolver, default_dialect);
     }
   }
 

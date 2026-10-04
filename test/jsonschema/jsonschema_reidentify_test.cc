@@ -6,9 +6,9 @@
 TEST(reidentify_boolean) {
   sourcemeta::core::JSON document{true};
   try {
-    sourcemeta::core::schema_reidentify(document,
-                                        "https://example.com/my-new-id",
-                                        sourcemeta::core::schema_resolver);
+    sourcemeta::core::schema_reidentify(
+        document, "https://example.com/my-new-id",
+        sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver);
     FAIL();
   } catch (const sourcemeta::core::SchemaUnknownBaseDialectError &error) {
     EXPECT_STREQ(error.what(),
@@ -23,6 +23,7 @@ TEST(reidentify_replace_2020_12) {
   })JSON");
 
   sourcemeta::core::schema_reidentify(document, "https://example.com/my-new-id",
+                                      sourcemeta::core::schema_walker,
                                       sourcemeta::core::schema_resolver);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -39,6 +40,7 @@ TEST(reidentify_set_2020_12) {
   })JSON");
 
   sourcemeta::core::schema_reidentify(document, "https://example.com/my-new-id",
+                                      sourcemeta::core::schema_walker,
                                       sourcemeta::core::schema_resolver);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -56,7 +58,7 @@ TEST(reidentify_replace_default_dialect_2020_12) {
 
   sourcemeta::core::schema_reidentify(
       document, "https://example.com/my-new-id",
-      sourcemeta::core::schema_resolver,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver,
       "https://json-schema.org/draft/2020-12/schema");
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -95,6 +97,7 @@ TEST(reidentify_set_with_top_level_ref_2020_12) {
   })JSON");
 
   sourcemeta::core::schema_reidentify(document, "https://example.com/my-new-id",
+                                      sourcemeta::core::schema_walker,
                                       sourcemeta::core::schema_resolver);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -113,6 +116,7 @@ TEST(reidentify_replace_2019_09) {
   })JSON");
 
   sourcemeta::core::schema_reidentify(document, "https://example.com/my-new-id",
+                                      sourcemeta::core::schema_walker,
                                       sourcemeta::core::schema_resolver);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -129,6 +133,7 @@ TEST(reidentify_set_2019_09) {
   })JSON");
 
   sourcemeta::core::schema_reidentify(document, "https://example.com/my-new-id",
+                                      sourcemeta::core::schema_walker,
                                       sourcemeta::core::schema_resolver);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -146,7 +151,7 @@ TEST(reidentify_replace_default_dialect_2019_09) {
 
   sourcemeta::core::schema_reidentify(
       document, "https://example.com/my-new-id",
-      sourcemeta::core::schema_resolver,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver,
       "https://json-schema.org/draft/2019-09/schema");
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -185,6 +190,7 @@ TEST(reidentify_set_with_top_level_ref_2019_09) {
   })JSON");
 
   sourcemeta::core::schema_reidentify(document, "https://example.com/my-new-id",
+                                      sourcemeta::core::schema_walker,
                                       sourcemeta::core::schema_resolver);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -203,6 +209,7 @@ TEST(reidentify_replace_draft7) {
   })JSON");
 
   sourcemeta::core::schema_reidentify(document, "https://example.com/my-new-id",
+                                      sourcemeta::core::schema_walker,
                                       sourcemeta::core::schema_resolver);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -219,6 +226,7 @@ TEST(reidentify_set_draft7) {
   })JSON");
 
   sourcemeta::core::schema_reidentify(document, "https://example.com/my-new-id",
+                                      sourcemeta::core::schema_walker,
                                       sourcemeta::core::schema_resolver);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -236,7 +244,7 @@ TEST(reidentify_replace_default_dialect_draft7) {
 
   sourcemeta::core::schema_reidentify(
       document, "https://example.com/my-new-id",
-      sourcemeta::core::schema_resolver,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver,
       "http://json-schema.org/draft-07/schema#");
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -275,9 +283,9 @@ TEST(reidentify_set_with_top_level_ref_draft7) {
   })JSON");
 
   try {
-    sourcemeta::core::schema_reidentify(document,
-                                        "https://example.com/my-new-id",
-                                        sourcemeta::core::schema_resolver);
+    sourcemeta::core::schema_reidentify(
+        document, "https://example.com/my-new-id",
+        sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver);
     FAIL();
   } catch (const sourcemeta::core::SchemaReferenceObjectResourceError &error) {
     EXPECT_STREQ(
@@ -297,9 +305,9 @@ TEST(reidentify_set_with_top_level_ref_and_allof_draft7) {
   })JSON");
 
   try {
-    sourcemeta::core::schema_reidentify(document,
-                                        "https://example.com/my-new-id",
-                                        sourcemeta::core::schema_resolver);
+    sourcemeta::core::schema_reidentify(
+        document, "https://example.com/my-new-id",
+        sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver);
     FAIL();
   } catch (const sourcemeta::core::SchemaReferenceObjectResourceError &error) {
     EXPECT_STREQ(
@@ -318,6 +326,7 @@ TEST(reidentify_replace_draft6) {
   })JSON");
 
   sourcemeta::core::schema_reidentify(document, "https://example.com/my-new-id",
+                                      sourcemeta::core::schema_walker,
                                       sourcemeta::core::schema_resolver);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -334,6 +343,7 @@ TEST(reidentify_set_draft6) {
   })JSON");
 
   sourcemeta::core::schema_reidentify(document, "https://example.com/my-new-id",
+                                      sourcemeta::core::schema_walker,
                                       sourcemeta::core::schema_resolver);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -351,7 +361,7 @@ TEST(reidentify_replace_default_dialect_draft6) {
 
   sourcemeta::core::schema_reidentify(
       document, "https://example.com/my-new-id",
-      sourcemeta::core::schema_resolver,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver,
       "http://json-schema.org/draft-06/schema#");
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -390,9 +400,9 @@ TEST(reidentify_set_with_top_level_ref_draft6) {
   })JSON");
 
   try {
-    sourcemeta::core::schema_reidentify(document,
-                                        "https://example.com/my-new-id",
-                                        sourcemeta::core::schema_resolver);
+    sourcemeta::core::schema_reidentify(
+        document, "https://example.com/my-new-id",
+        sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver);
     FAIL();
   } catch (const sourcemeta::core::SchemaReferenceObjectResourceError &error) {
     EXPECT_STREQ(
@@ -412,9 +422,9 @@ TEST(reidentify_set_with_top_level_ref_and_allof_draft6) {
   })JSON");
 
   try {
-    sourcemeta::core::schema_reidentify(document,
-                                        "https://example.com/my-new-id",
-                                        sourcemeta::core::schema_resolver);
+    sourcemeta::core::schema_reidentify(
+        document, "https://example.com/my-new-id",
+        sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver);
     FAIL();
   } catch (const sourcemeta::core::SchemaReferenceObjectResourceError &error) {
     EXPECT_STREQ(
@@ -433,6 +443,7 @@ TEST(reidentify_replace_draft4) {
   })JSON");
 
   sourcemeta::core::schema_reidentify(document, "https://example.com/my-new-id",
+                                      sourcemeta::core::schema_walker,
                                       sourcemeta::core::schema_resolver);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -449,6 +460,7 @@ TEST(reidentify_set_draft4) {
   })JSON");
 
   sourcemeta::core::schema_reidentify(document, "https://example.com/my-new-id",
+                                      sourcemeta::core::schema_walker,
                                       sourcemeta::core::schema_resolver);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -466,7 +478,7 @@ TEST(reidentify_replace_default_dialect_draft4) {
 
   sourcemeta::core::schema_reidentify(
       document, "https://example.com/my-new-id",
-      sourcemeta::core::schema_resolver,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver,
       "http://json-schema.org/draft-04/schema#");
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -505,9 +517,9 @@ TEST(reidentify_set_with_top_level_ref_draft4) {
   })JSON");
 
   try {
-    sourcemeta::core::schema_reidentify(document,
-                                        "https://example.com/my-new-id",
-                                        sourcemeta::core::schema_resolver);
+    sourcemeta::core::schema_reidentify(
+        document, "https://example.com/my-new-id",
+        sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver);
     FAIL();
   } catch (const sourcemeta::core::SchemaReferenceObjectResourceError &error) {
     EXPECT_STREQ(
@@ -527,9 +539,9 @@ TEST(reidentify_set_with_top_level_ref_and_allof_draft4) {
   })JSON");
 
   try {
-    sourcemeta::core::schema_reidentify(document,
-                                        "https://example.com/my-new-id",
-                                        sourcemeta::core::schema_resolver);
+    sourcemeta::core::schema_reidentify(
+        document, "https://example.com/my-new-id",
+        sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver);
     FAIL();
   } catch (const sourcemeta::core::SchemaReferenceObjectResourceError &error) {
     EXPECT_STREQ(
@@ -548,6 +560,7 @@ TEST(reidentify_replace_draft3) {
   })JSON");
 
   sourcemeta::core::schema_reidentify(document, "https://example.com/my-new-id",
+                                      sourcemeta::core::schema_walker,
                                       sourcemeta::core::schema_resolver);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -564,6 +577,7 @@ TEST(reidentify_set_draft3) {
   })JSON");
 
   sourcemeta::core::schema_reidentify(document, "https://example.com/my-new-id",
+                                      sourcemeta::core::schema_walker,
                                       sourcemeta::core::schema_resolver);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -581,7 +595,7 @@ TEST(reidentify_replace_default_dialect_draft3) {
 
   sourcemeta::core::schema_reidentify(
       document, "https://example.com/my-new-id",
-      sourcemeta::core::schema_resolver,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver,
       "http://json-schema.org/draft-03/schema#");
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -620,9 +634,9 @@ TEST(reidentify_set_with_top_level_ref_draft3) {
   })JSON");
 
   try {
-    sourcemeta::core::schema_reidentify(document,
-                                        "https://example.com/my-new-id",
-                                        sourcemeta::core::schema_resolver);
+    sourcemeta::core::schema_reidentify(
+        document, "https://example.com/my-new-id",
+        sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver);
     FAIL();
   } catch (const sourcemeta::core::SchemaReferenceObjectResourceError &error) {
     EXPECT_STREQ(
@@ -642,9 +656,9 @@ TEST(reidentify_set_with_top_level_ref_and_extends_draft3) {
   })JSON");
 
   try {
-    sourcemeta::core::schema_reidentify(document,
-                                        "https://example.com/my-new-id",
-                                        sourcemeta::core::schema_resolver);
+    sourcemeta::core::schema_reidentify(
+        document, "https://example.com/my-new-id",
+        sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver);
     FAIL();
   } catch (const sourcemeta::core::SchemaReferenceObjectResourceError &error) {
     EXPECT_STREQ(
@@ -663,6 +677,7 @@ TEST(reidentify_replace_draft2) {
   })JSON");
 
   sourcemeta::core::schema_reidentify(document, "https://example.com/my-new-id",
+                                      sourcemeta::core::schema_walker,
                                       sourcemeta::core::schema_resolver);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -679,6 +694,7 @@ TEST(reidentify_set_draft2) {
   })JSON");
 
   sourcemeta::core::schema_reidentify(document, "https://example.com/my-new-id",
+                                      sourcemeta::core::schema_walker,
                                       sourcemeta::core::schema_resolver);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -696,7 +712,7 @@ TEST(reidentify_replace_default_dialect_draft2) {
 
   sourcemeta::core::schema_reidentify(
       document, "https://example.com/my-new-id",
-      sourcemeta::core::schema_resolver,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver,
       "http://json-schema.org/draft-02/schema#");
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -735,6 +751,7 @@ TEST(reidentify_replace_draft1) {
   })JSON");
 
   sourcemeta::core::schema_reidentify(document, "https://example.com/my-new-id",
+                                      sourcemeta::core::schema_walker,
                                       sourcemeta::core::schema_resolver);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -751,6 +768,7 @@ TEST(reidentify_set_draft1) {
   })JSON");
 
   sourcemeta::core::schema_reidentify(document, "https://example.com/my-new-id",
+                                      sourcemeta::core::schema_walker,
                                       sourcemeta::core::schema_resolver);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -768,7 +786,7 @@ TEST(reidentify_replace_default_dialect_draft1) {
 
   sourcemeta::core::schema_reidentify(
       document, "https://example.com/my-new-id",
-      sourcemeta::core::schema_resolver,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver,
       "http://json-schema.org/draft-01/schema#");
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -807,6 +825,7 @@ TEST(reidentify_replace_draft0) {
   })JSON");
 
   sourcemeta::core::schema_reidentify(document, "https://example.com/my-new-id",
+                                      sourcemeta::core::schema_walker,
                                       sourcemeta::core::schema_resolver);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -823,6 +842,7 @@ TEST(reidentify_set_draft0) {
   })JSON");
 
   sourcemeta::core::schema_reidentify(document, "https://example.com/my-new-id",
+                                      sourcemeta::core::schema_walker,
                                       sourcemeta::core::schema_resolver);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -840,7 +860,7 @@ TEST(reidentify_replace_default_dialect_draft0) {
 
   sourcemeta::core::schema_reidentify(
       document, "https://example.com/my-new-id",
-      sourcemeta::core::schema_resolver,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver,
       "http://json-schema.org/draft-00/schema#");
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -867,6 +887,63 @@ TEST(reidentify_replace_base_dialect_shortcut_draft0) {
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "id": "https://example.com/my-new-id",
     "$schema": "http://json-schema.org/draft-00/schema#"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(reidentify_openapi_3_0_refuses) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "type": "string"
+  })JSON");
+  try {
+    sourcemeta::core::schema_reidentify(
+        document, "https://example.com/my-new-id",
+        sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver,
+        "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect");
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_STREQ(error.what(),
+                 "The dialect of the schema does not define this keyword");
+    EXPECT_EQ(error.keyword(), "id");
+    EXPECT_EQ(error.value(), "https://example.com/my-new-id");
+    EXPECT_FALSE(document.defines("id"));
+    EXPECT_FALSE(document.defines("$id"));
+  }
+}
+
+TEST(reidentify_openapi_3_0_refuses_the_other_release) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "type": "string"
+  })JSON");
+  try {
+    sourcemeta::core::schema_reidentify(
+        document, "https://example.com/my-new-id",
+        sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver,
+        "tag:spec.openapis.org,2021-09-28:oas/3.0/dialect");
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_STREQ(error.what(),
+                 "The dialect of the schema does not define this keyword");
+    EXPECT_EQ(error.keyword(), "id");
+    EXPECT_EQ(error.value(), "https://example.com/my-new-id");
+  }
+}
+
+TEST(reidentify_draft4_still_writes_the_legacy_keyword) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "string"
+  })JSON");
+
+  sourcemeta::core::schema_reidentify(document, "https://example.com/my-new-id",
+                                      sourcemeta::core::schema_walker,
+                                      sourcemeta::core::schema_resolver);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "id": "https://example.com/my-new-id",
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "string"
   })JSON");
 
   EXPECT_EQ(document, expected);
