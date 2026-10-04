@@ -365,9 +365,14 @@ auto mcp_request_state(MCPProtocolVersion version,
 /// preserved; an absent value is not requested. Resource URI views are
 /// borrowed.
 struct MCPSubscriptionFilter {
+  /// Opt in to notifications that the tool list changed.
   std::optional<bool> tools_list_changed = std::nullopt;
+  /// Opt in to notifications that the prompt list changed.
   std::optional<bool> prompts_list_changed = std::nullopt;
+  /// Opt in to notifications that the resource list changed.
   std::optional<bool> resources_list_changed = std::nullopt;
+  /// Borrowed resource URIs whose updates are requested. An absent list
+  /// requests no subscriptions, while an explicit empty list stays explicit.
   std::optional<std::vector<JSON::StringView>> resource_subscriptions =
       std::nullopt;
 };

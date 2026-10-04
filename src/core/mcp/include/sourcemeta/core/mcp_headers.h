@@ -39,7 +39,7 @@ enum class MCPRequestMetaStatus : std::uint8_t {
   Valid,
   /// The input is not a valid MCP request envelope.
   InvalidEnvelope,
-  /// Metadata contains an invalid key name.
+  /// Metadata contains an invalid key name or malformed tracing value.
   InvalidMetaKey,
   /// Known client capability fields have invalid shapes.
   InvalidClientCapabilities,
