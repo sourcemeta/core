@@ -32,7 +32,7 @@ directory must contain `<revision>/schema.json` for all four revisions; the
 same checksum checks apply. The corpus is created in a temporary directory
 by running the `mcp_conformance.` tests with `SOURCEMETA_MCP_CORPUS` set.
 
-The current corpus contains 151 payloads. Structural schema validation does
+The current corpus contains 154 payloads. Structural schema validation does
 not assert JSON Schema `format` annotations or establish all normative prose
 requirements. The C++ negative tests complement it; this is not a certification
 of a complete MCP server implementation.
@@ -56,9 +56,16 @@ or server performance claims. Three Python regressions check the runner.
 | Errors | Explicit version and request/transport context govern ID omission, legacy null-ID transport fallback, retired/undefined reserved codes, required modern error data and HTTP status mapping. Header mismatch data remains optional; callers choose errors appropriate to the actual failure. |
 | Capabilities | Known shapes and feature revisions are checked. An explicitly parsed capability object retains a source snapshot to preserve settings, unknown fields and legacy task data. The stateless view does not create that snapshot. |
 | Complete results | IDs, content, descriptors, schemas, metadata and discriminators are checked at runtime, including Release builds. Modern nested MetaObjects obey the key/tracing rules; business JSON is not traversed as protocol metadata. New cacheable helpers require explicit cache policy. |
-| MRTR | Only `tools/call`, `resources/read` and `prompts/get` admit `input_required`. Nested request kinds, client capabilities, optional metadata and continuation response shapes are checked. Nested server requests do not require the outer stateless client metadata. |
+| MRTR | Only `tools/call`, `resources/read` and `prompts/get` admit `input_required`. Nested request kinds, client capabilities, optional metadata and continuation response shapes are checked. Sampling tool histories require tool support, assistant tool calls and immediately following user results matching every call exactly once, without mixed result/text content. Nested server requests do not require the outer stateless client metadata. |
 | Subscriptions | Acknowledgements intersect requested and supported filters. Explicit false, missing and empty URI lists remain distinguishable. Modern update notifications require an acknowledged matching subscription. |
 | Borrowed serialization | `mcp_write_result` validates and serializes a precomputed cacheable result without copying its entry arrays. It writes compact JSON; stdio adapters append the newline. |
+
+The sampling-history regressions cover the normative
+[tool-use and result balance](https://modelcontextprotocol.io/specification/2026-07-28/client/sampling#tool-use-and-result-balance)
+and [tool-result message constraints](https://modelcontextprotocol.io/specification/2026-07-28/client/sampling#tool-result-messages).
+These prose requirements are not expressed by the generated JSON Schema.
+Revision-aware metadata checks also cover prompt arguments in both the copied
+and borrowed result paths, while metadata values and tool inputs remain opaque.
 
 Callers of the previous in-progress API need to provide explicit versions,
 supported revision spans, cache policy and subscription context as appropriate.
@@ -170,8 +177,8 @@ claim. The allocation counts demonstrate the avoided entry-array deep copy.
 ## Validation recorded for this change
 
 - Full Debug and Release builds: 176/176 CTest jobs passed in each.
-- Direct MCP binaries: 262/262 cases passed in both configurations.
-- Official schema checks: 151 payloads passed in Debug, Release and shared Release.
+- Direct MCP binaries: 264/264 cases passed in both configurations.
+- Official schema checks: 154 payloads passed in Debug, Release and shared Release.
 - Shared Release MCP test and installed static Debug/Release and shared Release
   consumers passed.
 - Project ClangFormat 20.1.6 check and `git diff --check` passed.

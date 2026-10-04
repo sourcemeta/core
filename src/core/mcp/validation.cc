@@ -433,6 +433,63 @@ auto sampling_block(const JSON &value) -> bool {
   return false;
 }
 
+auto sampling_messages(
+    const JSON &messages,
+    const sourcemeta::core::MCPClientCapabilities &capabilities) -> bool {
+  if (!messages.is_array()) {
+    return false;
+  }
+  std::set<JSON::StringView> pending;
+  for (const auto &message : messages.as_array()) {
+    const auto *role{field(message, "role")};
+    const auto *content{field(message, "content")};
+    if ((role == nullptr) || !role->is_string() ||
+        (role->to_string() != "user" && role->to_string() != "assistant") ||
+        (content == nullptr) ||
+        !sourcemeta::core::internal::valid_meta(
+            MCPProtocolVersion::V_2026_07_28, message)) {
+      return false;
+    }
+    // Tool calls must be resolved by the immediately following user message,
+    // which may contain only the corresponding tool results.
+    const bool answering{!pending.empty()};
+    std::set<JSON::StringView> next;
+    const auto block_valid = [&](const JSON &block) {
+      if (!sampling_block(block)) {
+        return false;
+      }
+      const auto type{block.at("type").to_string()};
+      if (type == "tool_result") {
+        return capabilities.sampling_tools && answering &&
+               role->to_string() == "user" &&
+               pending.erase(block.at("toolUseId").to_string()) == 1;
+      }
+      if (answering) {
+        return false;
+      }
+      if (type == "tool_use") {
+        return capabilities.sampling_tools &&
+               role->to_string() == "assistant" &&
+               next.insert(block.at("id").to_string()).second;
+      }
+      return true;
+    };
+    if (content->is_array()) {
+      if (!std::all_of(content->as_array().begin(), content->as_array().end(),
+                       block_valid)) {
+        return false;
+      }
+    } else if (!block_valid(*content)) {
+      return false;
+    }
+    if (!pending.empty()) {
+      return false;
+    }
+    pending = std::move(next);
+  }
+  return pending.empty();
+}
+
 auto sampling_options(const JSON &params) -> bool {
   if (!string_field(params, "systemPrompt") ||
       !optional_fields(params, {"metadata", "modelPreferences", "toolChoice"},
@@ -769,7 +826,7 @@ auto valid_prompt(const MCPProtocolVersion version, const JSON &value) -> bool {
     return false;
   }
   for (const auto &argument : arguments->as_array()) {
-    if (!base(argument) ||
+    if (!base(argument) || !valid_meta(version, argument) ||
         !optional_fields(argument, {"required"}, JSON::Type::Boolean)) {
       return false;
     }
@@ -844,28 +901,10 @@ auto valid_input_requests(const JSON &value,
       }
       const auto *messages{field(*params, "messages")};
       const auto *tokens{field(*params, "maxTokens")};
-      if ((messages == nullptr) || !messages->is_array() ||
-          (tokens == nullptr) || !tokens->is_integral()) {
+      if ((messages == nullptr) ||
+          !sampling_messages(*messages, capabilities) || (tokens == nullptr) ||
+          !tokens->is_integral()) {
         return false;
-      }
-      for (const auto &message : messages->as_array()) {
-        const auto *role{field(message, "role")};
-        const auto *content{field(message, "content")};
-        if ((role == nullptr) || !role->is_string() ||
-            (role->to_string() != "user" && role->to_string() != "assistant") ||
-            (content == nullptr) ||
-            !valid_meta(MCPProtocolVersion::V_2026_07_28, message)) {
-          return false;
-        }
-        if (content->is_array()) {
-          for (const auto &block : content->as_array()) {
-            if (!sampling_block(block)) {
-              return false;
-            }
-          }
-        } else if (!sampling_block(*content)) {
-          return false;
-        }
       }
       if (((field(*params, "tools") != nullptr) ||
            (field(*params, "toolChoice") != nullptr)) &&

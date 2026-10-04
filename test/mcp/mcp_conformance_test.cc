@@ -1729,10 +1729,120 @@ TEST(conformance_nested_input_metadata) {
   });
   message.at("content") = parse_json(
       R"({"type":"tool_use","id":"call","name":"tool","input":{"_meta":false},"_meta":{"org.example/value":true}})");
-  EXPECT_TRUE(mcp_make_input_required_result(CURRENT, "tools/call", JSON{1},
-                                             sampling, std::nullopt,
-                                             capabilities)
-                  .is_object());
+  message.assign("role", JSON{"assistant"});
+  capabilities.sampling_tools = true;
+  sampling.at("r")
+      .at("params")
+      .at("messages")
+      .push_back(parse_json(
+          R"({"role":"user","content":{"type":"tool_result","toolUseId":"call","content":[{"type":"text","text":"done"}]}})"));
+  const auto result{mcp_make_input_required_result(
+      CURRENT, "tools/call", JSON{1}, sampling, std::nullopt, capabilities)};
+  corpus(CURRENT, "InputRequiredResult", result.at("result"));
+}
+
+TEST(conformance_prompt_argument_metadata) {
+  for (const auto *const text :
+       {"false", "null", "[]", R"({"invalid key":true})",
+        R"({"traceparent":"bad"})"}) {
+    auto source{
+        parse_json(R"({"prompts":[{"name":"p","arguments":[{"name":"a"}]}]})")};
+    const auto meta{parse_json(text)};
+    source.at("prompts").at(0).at("arguments").at(0).assign("_meta", meta);
+    rejects([&] {
+      mcp_make_prompts_list_result(CURRENT, source.at("prompts"), std::nullopt,
+                                   {});
+    });
+    std::ostringstream stream;
+    rejects([&] {
+      mcp_write_result(stream, CURRENT, "prompts/list", JSON{1}, source,
+                       MCPCachePolicy{});
+    });
+    EXPECT_TRUE(stream.str().empty());
+    if (meta.is_object()) {
+      for (const auto version : REVISIONS) {
+        if (version == CURRENT) {
+          continue;
+        }
+        EXPECT_EQ(mcp_make_prompts_list_result(version, source.at("prompts"),
+                                               std::nullopt, {})
+                      .at("prompts"),
+                  source.at("prompts"));
+        std::ostringstream legacy;
+        mcp_write_result(legacy, version, "prompts/list", JSON{1}, source,
+                         std::nullopt);
+        EXPECT_EQ(parse_json(legacy.str()).at("result").at("prompts"),
+                  source.at("prompts"));
+      }
+    }
+  }
+  const auto source{parse_json(
+      R"({"prompts":[{"name":"p","arguments":[{"name":"a","_meta":{"org.example/value":{"_meta":false}}}]}]})")};
+  const auto result{mcp_make_prompts_list_result(CURRENT, source.at("prompts"),
+                                                 std::nullopt, {})};
+  std::ostringstream stream;
+  mcp_write_result(stream, CURRENT, "prompts/list", JSON{1}, source,
+                   MCPCachePolicy{});
+  EXPECT_EQ(parse_json(stream.str()).at("result"), result);
+  corpus(CURRENT, "ListPromptsResult", result);
+}
+
+TEST(conformance_sampling_tool_history) {
+  MCPClientCapabilities capabilities;
+  capabilities.sampling = true;
+  capabilities.sampling_tools = true;
+  const auto build = [&](const JSON &messages) {
+    auto requests{parse_json(
+        R"({"r":{"method":"sampling/createMessage","params":{"maxTokens":1}}})")};
+    requests.at("r").at("params").assign("messages", messages);
+    return mcp_make_input_required_result(CURRENT, "tools/call", JSON{1},
+                                          requests, std::nullopt, capabilities);
+  };
+  const auto call{parse_json(
+      R"({"type":"tool_use","id":"call","name":"tool","input":{"_meta":false}})")};
+  const auto answer{parse_json(
+      R"({"type":"tool_result","toolUseId":"call","content":[{"type":"text","text":"done"}]})")};
+  const auto valid{parse_json(
+      R"([{"role":"assistant","content":[{"type":"tool_use","id":"a","name":"tool","input":{}},{"type":"tool_use","id":"b","name":"tool","input":{}}]},{"role":"user","content":[{"type":"tool_result","toolUseId":"b","content":[]},{"type":"tool_result","toolUseId":"a","content":[]}]},{"role":"assistant","content":{"type":"text","text":"done"}}])")};
+  const auto result{build(valid)};
+  corpus(CURRENT, "InputRequiredResult", result.at("result"));
+  capabilities.sampling_tools = false;
+  rejects([&] { build(valid); });
+  capabilities.sampling_tools = true;
+  for (
+      const auto *const text :
+      {R"([{"role":"user","content":{}}])",
+       R"([{"role":"assistant","content":{}}])",
+       R"([{"role":"assistant","content":{}},{"role":"assistant","content":{}}])",
+       R"([{"role":"assistant","content":{}},{"role":"user","content":[{}, {"type":"text","text":"mixed"}]}])",
+       R"([{"role":"assistant","content":{}},{"role":"user","content":[{}, {}]}])"}) {
+    auto messages{parse_json(text)};
+    messages.at(0).assign("content", call);
+    if (messages.size() > 1) {
+      auto &content{messages.at(1).at("content")};
+      if (content.is_array()) {
+        content.at(0) = answer;
+        if (content.at(1).empty()) {
+          content.at(1) = answer;
+        }
+      } else {
+        content = answer;
+      }
+    }
+    rejects([&] { build(messages); });
+  }
+  auto incomplete{valid};
+  incomplete.at(1).at("content").at(1).assign("toolUseId", JSON{"unknown"});
+  rejects([&] { build(incomplete); });
+  auto duplicate{valid};
+  duplicate.at(0).at("content").at(1).assign("id", JSON{"a"});
+  rejects([&] { build(duplicate); });
+  auto orphan{JSON::make_array()};
+  auto message{JSON::make_object()};
+  message.assign("role", JSON{"user"});
+  message.assign("content", answer);
+  orphan.push_back(std::move(message));
+  rejects([&] { build(orphan); });
 }
 
 TEST(conformance_continuation_nested_metadata) {
