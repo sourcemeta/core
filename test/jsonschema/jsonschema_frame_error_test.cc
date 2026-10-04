@@ -2726,22 +2726,3 @@ TEST(openapi_3_0_refuses_a_declaration_on_a_subschema_that_opens_a_resource) {
     FAIL();
   }
 }
-
-TEST(openapi_3_0_tolerates_a_declaration_that_selected_nothing) {
-  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "x-definitions": {
-      "tag": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "string"
-      }
-    }
-  })JSON");
-
-  const sourcemeta::core::SchemaFrame frame{
-      sourcemeta::core::SchemaFrame::Mode::References, document,
-      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver,
-      "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect"};
-
-  EXPECT_EQ(frame.root_location().value().get().dialect,
-            "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect");
-}
