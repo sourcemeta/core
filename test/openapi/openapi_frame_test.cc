@@ -1222,7 +1222,8 @@ TEST(openapi_base_of_a_document_that_does_not_conform) {
   })JSON")};
 
   // What a document answers to is what it declares rather than how far reading
-  // it got, so a refusal over anything else still names the document by this
+  // it got, so a refusal over anything else still names the document by the URI
+  // it declared for itself
   EXPECT_EQ(sourcemeta::core::openapi_base(document,
                                            "https://example.com/openapi.json"),
             "https://example.com/api");
@@ -1261,4 +1262,23 @@ TEST(openapi_base_of_a_self_in_a_revision_that_rejects_the_field) {
                                 document, "https://example.com/openapi.json"));
     EXPECT_EQ(error.location(), sourcemeta::core::Pointer{"$self"});
   }
+}
+
+TEST(openapi_base_of_an_absolute_self_without_a_retrieval_uri) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.2.0",
+    "$self": "https://example.com/api",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "paths": {}
+  })JSON")};
+
+  // Establishing nothing leaves the document to name itself, which an absolute
+  // self identifier does whatever it was retrieved by
+  EXPECT_EQ(sourcemeta::core::openapi_base(document, ""),
+            "https://example.com/api");
+
+  const sourcemeta::core::OpenAPIFrame frame{document,
+                                             sourcemeta::core::schema_walker,
+                                             sourcemeta::core::schema_resolver};
+  EXPECT_EQ(frame.base(), "https://example.com/api");
 }

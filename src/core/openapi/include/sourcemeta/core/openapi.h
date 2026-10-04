@@ -160,11 +160,12 @@ auto openapi_is_document(const JSON &document) -> bool;
 /// ```
 ///
 /// A retrieval URI that establishes nothing is given as the empty URI
-/// reference, which hands back the empty URI reference in turn and leaves every
-/// relative reference the description makes relative. Anything else must carry
-/// a scheme, as RFC 3986 Section 5.2.1 requires one of a base, and one that
-/// does not is refused by throwing sourcemeta::core::OpenAPIError, as reading a
-/// description under such a base is refused too
+/// reference, which is answered by whatever the document names itself with, and
+/// by the empty URI reference when that is nothing absolute either, leaving
+/// every relative reference the description makes relative. Anything else must
+/// carry a scheme, as RFC 3986 Section 5.2.1 requires one of a base, and one
+/// that does not is refused by throwing sourcemeta::core::OpenAPIError, as
+/// reading a description under such a base is refused too
 SOURCEMETA_CORE_OPENAPI_EXPORT
 auto openapi_base(const JSON &document, const std::string_view retrieval)
     -> JSON::String;
@@ -487,9 +488,10 @@ public:
   /// whatever was left of it
   ///
   /// A base that establishes nothing is given as the empty URI reference, which
-  /// leaves every relative reference the description makes relative. Anything
-  /// else must carry a scheme, and one that does not is refused before the
-  /// document is read, which is why such a refusal names no place within it
+  /// leaves the document to name itself and leaves every relative reference it
+  /// makes relative where it names nothing absolute either. Anything else must
+  /// carry a scheme, and one that does not is refused before the document is
+  /// read, which is why such a refusal names no place within it
   ///
   /// A document that does not conform to the specification is rejected here
   /// rather than reported back, by throwing sourcemeta::core::OpenAPIError.

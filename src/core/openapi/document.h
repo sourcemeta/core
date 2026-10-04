@@ -364,7 +364,7 @@ inline auto openapi_check_document(const JSON &document, OpenAPIWalk &walk)
     // before anything else is read and before anything else is turned down.
     // Every refusal below then names the document by the URI it answers to,
     // and the public sourcemeta::core::openapi_base says what that is without
-    // reading the document at all
+    // framing it
     //
     // Only 3.2 defines the field, so the revision is what gates reading it.
     // The field table below is what turns one down in an earlier revision,
