@@ -162,10 +162,14 @@ auto check_frame_invariants(const sourcemeta::core::JSON &frame,
 
     EXPECT_EQ(recomposed, destination);
 
-    // The dialect of a schema is not something the schema has to carry with
-    // it, so a reference to one that is not there does not make the frame any
-    // less standalone
-    if (last_token(origin) != "$schema" && !keys.contains(destination)) {
+    // A dialect that this library already comes with is not something a
+    // schema has to carry, so a reference to one that is absent does not make
+    // the frame any less standalone. Every other dialect has to be present
+    // just like any other destination, as a reader that does not have it
+    // cannot tell what the schema means without fetching it first
+    if (!(last_token(origin) == "$schema" &&
+          sourcemeta::core::schema_is_known(destination)) &&
+        !keys.contains(destination)) {
       every_reference_resolves = false;
     }
   }

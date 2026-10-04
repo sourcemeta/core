@@ -104,5 +104,5 @@
       }
     ]
   },
-  "standalone": true
+  "standalone": false
 }

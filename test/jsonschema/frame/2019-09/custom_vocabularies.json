@@ -97,5 +97,5 @@
       }
     ]
   },
-  "standalone": true
+  "standalone": false
 }

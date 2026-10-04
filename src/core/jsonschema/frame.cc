@@ -1795,14 +1795,19 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
     }
   }
 
-  // A schema is standalone if all references can be resolved within itself
+  // A schema is standalone if all references can be resolved within itself.
+  // The one thing it never has to carry is a dialect this library already
+  // comes with, as naming one asks nothing of whoever reads the document.
+  // Any other dialect has to be present just like every other destination,
+  // because a reader that does not have it cannot tell what the schema means
+  // without going to fetch it first
   this->cache_->standalone = std::ranges::all_of(
       this->references_, [&](const auto &reference) -> bool {
         assert(!reference.first.second.empty());
         assert(reference.first.second.back().is_property());
-        // TODO: This check might need to be more elaborate given
-        // https://github.com/sourcemeta/core/issues/1390
-        return reference.first.second.back().to_property() == "$schema" ||
+        return (reference.first.second.back().to_property() == "$schema" &&
+                sourcemeta::core::schema_is_known(
+                    reference.second.destination)) ||
                this->locations_.contains({SchemaReferenceType::Static,
                                           reference.second.destination}) ||
                this->locations_.contains({SchemaReferenceType::Dynamic,

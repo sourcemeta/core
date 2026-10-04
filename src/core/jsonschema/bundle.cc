@@ -92,6 +92,29 @@ auto declared_dialect(const JSON &schema,
 // back rather than of the schema the caller passed in. A frame that ran past
 // what was left of the limit threw rather than returned, so what it holds is
 // always within it
+// Standing alone asks whether a document carries everything it names, which is
+// a stronger thing than asking whether bundling still has work it can do. A
+// dialect that reserves no location for schema definitions has nowhere to put
+// a meta-schema, so one that stays unresolved is as far as bundling can get
+// rather than a failure on its part, whereas a reference to a schema that is
+// merely absent is still something it was asked to resolve and could not
+auto only_metaschemas_remain_unresolved(const SchemaFrame &frame) -> bool {
+  auto result{true};
+  frame.for_each_reference(
+      [&frame, &result](const SchemaReferenceType,
+                        const sourcemeta::core::WeakPointer &origin,
+                        const SchemaFrame::Reference &reference) -> void {
+        assert(!origin.empty());
+        assert(origin.back().is_property());
+        if (origin.back().to_property() != "$schema" &&
+            !frame.traverse(reference.destination).has_value()) {
+          result = false;
+        }
+      });
+
+  return result;
+}
+
 auto charge(std::uint64_t &remaining, const SchemaFrame &frame) -> void {
   assert(frame.location_count() <= remaining);
   remaining -= frame.location_count();
@@ -605,7 +628,7 @@ auto bundle_internal(JSON &schema, const SchemaWalker &walker,
                       default_base,
                       remaining};
     charge(remaining, frame);
-    if (frame.standalone()) {
+    if (only_metaschemas_remain_unresolved(frame)) {
       return;
     }
 
