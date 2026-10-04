@@ -161,7 +161,7 @@ auto openapi_is_document(const JSON &document) -> bool;
 /// throwing sourcemeta::core::OpenAPIError, as reading a description under such
 /// a base is refused too
 SOURCEMETA_CORE_OPENAPI_EXPORT
-auto openapi_base(const JSON &document, std::string_view retrieval)
+auto openapi_base(const JSON &document, const std::string_view retrieval)
     -> JSON::String;
 
 /// @ingroup openapi
@@ -498,7 +498,7 @@ public:
   /// sourcemeta::core::SchemaUnknownBaseDialectError
   OpenAPIFrame(
       const JSON &document, const SchemaWalker &walker,
-      const SchemaResolver &resolver, std::string_view default_base = "",
+      const SchemaResolver &resolver, const std::string_view default_base = "",
       std::uint64_t max_locations = std::numeric_limits<std::uint64_t>::max());
 
   ~OpenAPIFrame();
