@@ -863,27 +863,6 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
               paths.cbegin(), paths.cend())
               .size() == paths.size()));
 
-  // A meta-schema that is embedded in the document itself takes precedence
-  // over what the resolver knows about, as the document pins the exact
-  // meta-schema it is described by
-  const SchemaResolver effective_resolver{
-      [&root, &resolver,
-       this](const std::string_view identifier) -> SchemaResolverResult {
-        const sourcemeta::core::JSON::String key{identifier};
-        const auto hit{this->cache_->probed_metaschemas.find(key)};
-        if (hit != this->cache_->probed_metaschemas.cend()) {
-          return *(hit->second);
-        }
-
-        const auto *match{
-            sourcemeta::core::metaschema_try_embedded(root, key, resolver)};
-        if (match) {
-          this->cache_->probed_metaschemas.emplace(key, match);
-          return *match;
-        }
-
-        return resolver(identifier);
-      }};
   std::vector<InternalEntry> subschema_entries;
   std::unordered_map<sourcemeta::core::WeakPointer, CacheSubschema,
                      sourcemeta::core::WeakPointer::Hasher>
@@ -921,6 +900,39 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
     }));
 
     const auto &schema{sourcemeta::core::get(root, path)};
+
+    // A meta-schema that is embedded in the schema itself takes precedence
+    // over what the resolver knows about, as the schema pins the exact
+    // meta-schema it is described by. What counts as itself is the schema
+    // being analysed rather than whatever document it was pulled out of,
+    // since naming a path is what puts everything outside it out of scope
+    //
+    // What this path has already looked up is remembered separately from what
+    // the frame as a whole knows, because another path is as much out of
+    // scope as anything else outside this one, and a meta-schema it happens
+    // to carry must not stand in for one that is missing here
+    std::unordered_map<sourcemeta::core::JSON::String,
+                       const sourcemeta::core::JSON *>
+        probed_within_path;
+    const SchemaResolver effective_resolver{
+        [&schema, &resolver, &probed_within_path,
+         this](const std::string_view identifier) -> SchemaResolverResult {
+          const sourcemeta::core::JSON::String key{identifier};
+          const auto hit{probed_within_path.find(key)};
+          if (hit != probed_within_path.cend()) {
+            return *(hit->second);
+          }
+
+          const auto *match{
+              sourcemeta::core::metaschema_try_embedded(schema, key, resolver)};
+          if (match) {
+            probed_within_path.emplace(key, match);
+            this->cache_->probed_metaschemas.emplace(key, match);
+            return *match;
+          }
+
+          return resolver(identifier);
+        }};
 
     const auto root_base_dialect{sourcemeta::core::base_dialect(
         schema, effective_resolver, default_dialect)};
