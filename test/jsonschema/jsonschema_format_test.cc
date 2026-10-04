@@ -648,3 +648,85 @@ TEST(format_deeply_nested_siblings_reordered) {
   }
 })JSON");
 }
+
+TEST(format_openapi_3_0) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "x-definitions": { "tag": { "type": "string" } },
+    "nullable": true,
+    "xml": { "name": "Pet" },
+    "example": { "name": "Fido" },
+    "properties": { "name": { "type": "string" } },
+    "discriminator": { "propertyName": "kind" },
+    "externalDocs": { "url": "https://example.com" },
+    "oneOf": [ { "type": "object" } ],
+    "type": "object",
+    "title": "Pet"
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Locations, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver,
+      "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect"};
+
+  sourcemeta::core::schema_format(document, frame);
+  std::ostringstream stream;
+  sourcemeta::core::prettify(document, stream);
+  EXPECT_EQ(stream.str(), R"JSON({
+  "title": "Pet",
+  "example": {
+    "name": "Fido"
+  },
+  "externalDocs": {
+    "url": "https://example.com"
+  },
+  "type": "object",
+  "nullable": true,
+  "oneOf": [
+    {
+      "type": "object"
+    }
+  ],
+  "discriminator": {
+    "propertyName": "kind"
+  },
+  "properties": {
+    "name": {
+      "type": "string"
+    }
+  },
+  "xml": {
+    "name": "Pet"
+  },
+  "x-definitions": {
+    "tag": {
+      "type": "string"
+    }
+  }
+})JSON");
+}
+
+TEST(format_openapi_3_0_names_an_extension_it_knows) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "x-definitions": { "tag": { "type": "string" } },
+    "x-vendor": "something",
+    "type": "object"
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Locations, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver,
+      "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect"};
+
+  sourcemeta::core::schema_format(document, frame);
+  std::ostringstream stream;
+  sourcemeta::core::prettify(document, stream);
+  EXPECT_EQ(stream.str(), R"JSON({
+  "x-vendor": "something",
+  "type": "object",
+  "x-definitions": {
+    "tag": {
+      "type": "string"
+    }
+  }
+})JSON");
+}
