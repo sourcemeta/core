@@ -2662,3 +2662,86 @@ TEST(identifier_that_is_not_a_valid_uri) {
     FAIL();
   }
 }
+
+TEST(openapi_3_0_refuses_a_dialect_declared_through_an_undefined_keyword) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+    "type": "string",
+    "nullable": true
+  })JSON");
+
+  try {
+    [[maybe_unused]] const sourcemeta::core::SchemaFrame frame{
+        sourcemeta::core::SchemaFrame::Mode::References, document,
+        sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_STREQ(error.what(),
+                 "The dialect of the schema does not define this keyword");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(openapi_3_0_refuses_the_declaration_of_the_other_release_too) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "tag:spec.openapis.org,2021-09-28:oas/3.0/dialect",
+    "type": "string"
+  })JSON");
+
+  try {
+    [[maybe_unused]] const sourcemeta::core::SchemaFrame frame{
+        sourcemeta::core::SchemaFrame::Mode::References, document,
+        sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_STREQ(error.what(),
+                 "The dialect of the schema does not define this keyword");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(openapi_3_0_refuses_a_declaration_on_a_subschema_that_opens_a_resource) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$defs": {
+      "pet": {
+        "$id": "https://example.com/pet",
+        "$schema": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+        "type": "string"
+      }
+    }
+  })JSON");
+
+  try {
+    [[maybe_unused]] const sourcemeta::core::SchemaFrame frame{
+        sourcemeta::core::SchemaFrame::Mode::References, document,
+        sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_STREQ(error.what(),
+                 "The dialect of the schema does not define this keyword");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(openapi_3_0_tolerates_a_declaration_that_selected_nothing) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "x-definitions": {
+      "tag": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "string"
+      }
+    }
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver,
+      "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect"};
+
+  EXPECT_EQ(frame.root_location().value().get().dialect,
+            "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect");
+}

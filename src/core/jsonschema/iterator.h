@@ -67,6 +67,36 @@ identifier_counts(const sourcemeta::core::JSON &subschema,
                                                       base_dialect);
 }
 
+// Whether the dialect a schema names is one that gives the keyword naming it a
+// meaning. Asking about the dialect it named rather than the one that ended up
+// in force is what catches a declaration that some later fallback discarded
+inline auto declaration_counts(const sourcemeta::core::JSON &subschema,
+                               const std::string_view declared,
+                               const sourcemeta::core::SchemaResolver &resolver,
+                               const sourcemeta::core::SchemaWalker &walker)
+    -> bool {
+  const auto resolve{[&subschema, &resolver](const std::string_view target)
+                         -> sourcemeta::core::SchemaResolverResult {
+    const auto *embedded{
+        sourcemeta::core::metaschema_try_embedded(subschema, target, resolver)};
+    if (embedded) {
+      return *embedded;
+    }
+
+    return resolver(target);
+  }};
+
+  const auto base{
+      sourcemeta::core::base_dialect(subschema, resolve, declared, false)};
+  if (!base.has_value()) {
+    return true;
+  }
+
+  return sourcemeta::core::dialect_defines(
+      walker, sourcemeta::core::vocabularies(resolve, base.value(), declared),
+      "$schema"sv);
+}
+
 inline auto
 resolve_dialect_at(const sourcemeta::core::JSON &subschema,
                    const std::string_view inherited_dialect,
@@ -230,6 +260,22 @@ walk(const std::optional<sourcemeta::core::WeakPointer> &root_parent,
           return resolver(identifier);
         },
         current_base_dialect, current_dialect)};
+
+    // A schema that names its dialect through a keyword that very dialect
+    // leaves undefined cannot be taken at its word, because honouring it would
+    // make the keyword mean something the dialect says it does not. The caller
+    // has to name such a dialect from the outside instead
+    if (subschema.is_object()) {
+      const auto *declared{
+          subschema.try_at("$schema"sv, JSONSCHEMA_HASH_SCHEMA)};
+      if (declared != nullptr && declared->is_string() &&
+          !declaration_counts(subschema, declared->to_string(), resolver,
+                              walker)) {
+        throw sourcemeta::core::SchemaKeywordError(
+            "$schema", declared->to_string(),
+            "The dialect of the schema does not define this keyword");
+      }
+    }
 
     SubschemaEntry iterator_entry{.parent = parent,
                                   .pointer = pointer,
