@@ -19,6 +19,33 @@ auto mcp_make_error(const MCPProtocolVersion version, const JSON *identifier,
                         (code != MCP_CODE_RESOURCE_NOT_FOUND &&
                          code != MCP_CODE_URL_ELICITATION_REQUIRED),
                     "Retired MCP error code");
+  if (version == MCPProtocolVersion::V_2026_07_28) {
+    internal::require(code < -32099 || code > -32020 ||
+                          code == MCP_CODE_HEADER_MISMATCH ||
+                          code == MCP_CODE_MISSING_REQUIRED_CLIENT_CAPABILITY ||
+                          code == MCP_CODE_UNSUPPORTED_PROTOCOL_VERSION,
+                      "Undefined reserved MCP error code");
+    if (code == MCP_CODE_UNSUPPORTED_PROTOCOL_VERSION) {
+      internal::require(data.has_value() && data->is_object(),
+                        "Protocol version error requires data");
+      const auto *requested{data->try_at("requested")};
+      const auto *supported{data->try_at("supported")};
+      internal::require(requested != nullptr && requested->is_string() &&
+                            supported != nullptr && supported->is_array(),
+                        "Invalid protocol version error data");
+      for (const auto &revision : supported->as_array()) {
+        internal::require(revision.is_string(),
+                          "Supported protocol versions must be strings");
+      }
+    } else if (code == MCP_CODE_MISSING_REQUIRED_CLIENT_CAPABILITY) {
+      internal::require(data.has_value() && data->is_object(),
+                        "Capability error requires data");
+      const auto *required{data->try_at("requiredCapabilities")};
+      internal::require(required != nullptr && internal::valid_capabilities(
+                                                   version, *required, true),
+                        "Invalid required client capabilities");
+    }
+  }
   const auto *valid_identifier{
       (identifier != nullptr) && internal::valid_id(*identifier) ? identifier
                                                                  : nullptr};

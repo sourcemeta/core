@@ -2617,7 +2617,7 @@ TEST(header_validation_safety_cases) {
 }
 
 TEST(header_validation_id_handling) {
-  // Explicit id: null in request is preserved in error response
+  // Explicit id: null is unreadable and omitted from the error response
   const auto null_identifier_envelope{sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "id": null,

@@ -17,8 +17,10 @@ official schemas at the following immutable upstream revision:
 The runner selects each schema's declared JSON Schema dialect and verifies its
 SHA-256 checksum against `schema-sha256.json`. Definition selection preserves
 `$schema` and the original resource identity; runner regressions cover dialect
-selection and absolute self-references. It is a development tool, not a
-new dependency of the library or the ordinary CTest suite.
+selection, absolute self-references and revision-isolated validator caching.
+The root schema and reference registry are initialized once per revision, and
+selected validators are cached within that revision. It is a development tool,
+not a new dependency of the library or the ordinary CTest suite.
 
 ```sh
 python3 -m pip install jsonschema==4.26.0
@@ -30,10 +32,16 @@ directory must contain `<revision>/schema.json` for all four revisions; the
 same checksum checks apply. The corpus is created in a temporary directory
 by running the `mcp_conformance.` tests with `SOURCEMETA_MCP_CORPUS` set.
 
-The current corpus contains 142 payloads. Structural schema validation does
+The current corpus contains 151 payloads. Structural schema validation does
 not assert JSON Schema `format` annotations or establish all normative prose
 requirements. The C++ negative tests complement it; this is not a certification
 of a complete MCP server implementation.
+
+On the same 151-payload corpus, a local Linux run measured definition selection
+and validation at 11.65 seconds before caching and 0.29 seconds after caching.
+Root schema checks dropped from 155 to 4, and selected-validator constructions
+from 151 to 107. These are development-runner measurements, not Core runtime
+or server performance claims. Three Python regressions check the runner.
 
 ## Contracts and migration
 
@@ -45,10 +53,10 @@ of a complete MCP server implementation.
 | Headers | Raw header collections use case-insensitive names, reject duplicate recognized singleton fields and check required modern mirrors. Legacy endpoints ignore later routing fields. |
 | Header encoding | Core's Base64 and Unicode utilities implement one-pass sentinel decoding and validate decoded UTF-8. Literal sentinel-looking values are encoded. |
 | Parameter mirrors | `x-mcp-header` is collected only on statically reachable properties. Primitive argument types and safe integer boundaries are checked before comparison. |
-| Errors | Explicit version and request/transport context govern ID omission, legacy null-ID transport fallback, retired codes and HTTP status mapping. |
+| Errors | Explicit version and request/transport context govern ID omission, legacy null-ID transport fallback, retired/undefined reserved codes, required modern error data and HTTP status mapping. Header mismatch data remains optional; callers choose errors appropriate to the actual failure. |
 | Capabilities | Known shapes and feature revisions are checked. An explicitly parsed capability object retains a source snapshot to preserve settings, unknown fields and legacy task data. The stateless view does not create that snapshot. |
-| Complete results | IDs, content, descriptors, schemas, metadata and discriminators are checked at runtime, including Release builds. New cacheable helpers require explicit cache policy. |
-| MRTR | Only `tools/call`, `resources/read` and `prompts/get` admit `input_required`. Nested request kinds, client capabilities and continuation response shapes are checked. |
+| Complete results | IDs, content, descriptors, schemas, metadata and discriminators are checked at runtime, including Release builds. Modern nested MetaObjects obey the key/tracing rules; business JSON is not traversed as protocol metadata. New cacheable helpers require explicit cache policy. |
+| MRTR | Only `tools/call`, `resources/read` and `prompts/get` admit `input_required`. Nested request kinds, client capabilities, optional metadata and continuation response shapes are checked. Nested server requests do not require the outer stateless client metadata. |
 | Subscriptions | Acknowledgements intersect requested and supported filters. Explicit false, missing and empty URI lists remain distinguishable. Modern update notifications require an acknowledged matching subscription. |
 | Borrowed serialization | `mcp_write_result` validates and serializes a precomputed cacheable result without copying its entry arrays. It writes compact JSON; stdio adapters append the newline. |
 
@@ -151,8 +159,8 @@ Observed on 4 October 2026, Linux x86_64, GCC 13.3, Release:
 
 | Path | `new` calls | Requested bytes | Output bytes | Median microseconds |
 | --- | ---: | ---: | ---: | ---: |
-| Copy and decorate | 16,414 | 3,813,538 | 1,476,542 | 3,317 |
-| Borrow and serialize | 3 | 784 | 1,476,542 | 2,704 |
+| Copy and decorate | 16,414 | 3,813,538 | 1,476,542 | 3,180 |
+| Borrow and serialize | 3 | 784 | 1,476,542 | 2,762 |
 
 These numbers describe this local workload only. The borrowed path additionally
 checks result entries; the generic copy/decorator baseline is not an identical
@@ -162,15 +170,17 @@ claim. The allocation counts demonstrate the avoided entry-array deep copy.
 ## Validation recorded for this change
 
 - Full Debug and Release builds: 176/176 CTest jobs passed in each.
-- Direct MCP binaries: 258/258 cases passed in both configurations.
-- Official schema checks: 142 payloads passed in Debug, Release and shared Release.
-- Shared Release MCP test and installed static Debug/Release consumers passed.
+- Direct MCP binaries: 262/262 cases passed in both configurations.
+- Official schema checks: 151 payloads passed in Debug, Release and shared Release.
+- Shared Release MCP test and installed static Debug/Release and shared Release
+  consumers passed.
 - Project ClangFormat 20.1.6 check and `git diff --check` passed.
 
 Pinned clang-tidy 22.1.7 was also run with the repository configuration over
 the modified production and unit-test translation units. CI includes an
 assertion-enabled Debug MCP run, official-schema validation and the installed
-consumer/allocation probe in the Linux GCC job.
+consumer/allocation probe in the Linux GCC job for pull requests, pushes to
+main and scheduled runs. Benchmark comparisons remain pull-request-only.
 
 This local environment has GCC, not Clang; the project's AddressSanitizer
 configuration rejects that compiler combination. ASan and the macOS/Windows

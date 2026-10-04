@@ -119,7 +119,7 @@ auto mcp_make_audio_block(const MCPProtocolVersion version,
 auto mcp_make_embedded_resource(const MCPProtocolVersion version, JSON resource,
                                 const MCPResourceAnnotations &annotations)
     -> JSON {
-  internal::require(internal::valid_resource(resource, true, false),
+  internal::require(internal::valid_resource(version, resource, true, false),
                     "Invalid embedded resource");
   auto result{JSON::make_object()};
   result.assign("type", JSON{"resource"});
@@ -388,7 +388,7 @@ auto mcp_make_resource(const MCPProtocolVersion version,
     resource.assign("annotations", std::move(annotation_object));
   }
   apply_presentation(version, resource, presentation);
-  internal::require(internal::valid_resource(resource, false, false),
+  internal::require(internal::valid_resource(version, resource, false, false),
                     "Invalid resource descriptor");
   return resource;
 }
@@ -411,7 +411,7 @@ auto mcp_make_resources_read_result(const MCPProtocolVersion version,
     -> sourcemeta::core::JSON {
   require_array(contents);
   for (const auto &entry : contents.as_array()) {
-    internal::require(internal::valid_resource(entry, true, false),
+    internal::require(internal::valid_resource(version, entry, true, false),
                       "Invalid MCP result entry");
   }
   auto result{sourcemeta::core::JSON::make_object()};
@@ -454,7 +454,7 @@ auto mcp_make_resources_list_result(
     const MCPCachePolicy &cache_policy) -> sourcemeta::core::JSON {
   require_array(resources);
   for (const auto &entry : resources.as_array()) {
-    internal::require(internal::valid_resource(entry, false, false),
+    internal::require(internal::valid_resource(version, entry, false, false),
                       "Invalid MCP result entry");
   }
   auto result{sourcemeta::core::JSON::make_object()};
@@ -479,7 +479,7 @@ auto mcp_make_resource_templates_list_result(
     const MCPCachePolicy &cache_policy) -> sourcemeta::core::JSON {
   require_array(resource_templates);
   for (const auto &entry : resource_templates.as_array()) {
-    internal::require(internal::valid_resource(entry, false, true),
+    internal::require(internal::valid_resource(version, entry, false, true),
                       "Invalid MCP result entry");
   }
   auto result{sourcemeta::core::JSON::make_object()};
@@ -504,7 +504,7 @@ auto mcp_make_prompts_list_result(
     const MCPCachePolicy &cache_policy) -> sourcemeta::core::JSON {
   require_array(prompts);
   for (const auto &entry : prompts.as_array()) {
-    internal::require(internal::valid_prompt(entry),
+    internal::require(internal::valid_prompt(version, entry),
                       "Invalid MCP result entry");
   }
   auto result{sourcemeta::core::JSON::make_object()};
@@ -544,7 +544,7 @@ auto mcp_make_resource_template(const MCPProtocolVersion version,
   if (!annotation_object.empty()) {
     entry.assign("annotations", std::move(annotation_object));
   }
-  internal::require(internal::valid_resource(entry, false, true),
+  internal::require(internal::valid_resource(version, entry, false, true),
                     "Invalid resource template");
   return entry;
 }
@@ -1072,9 +1072,9 @@ void mcp_write_result(std::ostream &stream, const MCPProtocolVersion version,
       const bool valid{
           method == MCP_METHOD_TOOLS_LIST ? internal::valid_tool(version, entry)
           : method == MCP_METHOD_PROMPTS_LIST
-              ? internal::valid_prompt(entry)
+              ? internal::valid_prompt(version, entry)
               : internal::valid_resource(
-                    entry, method == MCP_METHOD_RESOURCES_READ,
+                    version, entry, method == MCP_METHOD_RESOURCES_READ,
                     method == MCP_METHOD_RESOURCES_TEMPLATES_LIST)};
       internal::require(valid, "Invalid precomputed MCP result entry");
     }

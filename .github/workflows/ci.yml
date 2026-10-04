@@ -194,7 +194,7 @@ jobs:
       # that sends you to an app store, so the path is asked for outright
       - uses: actions/setup-python@v7
         id: python
-        if: matrix.platform.benchmark && github.event_name == 'pull_request'
+        if: matrix.platform.benchmark == 'linux/gcc' || (matrix.platform.benchmark && github.event_name == 'pull_request')
         with:
           python-version: '3.13'
 
@@ -202,7 +202,7 @@ jobs:
       # Release matrix. Official schemas and the allocation probe are development
       # checks and do not add runtime dependencies to Core.
       - name: MCP conformance, Debug contracts and installed consumer
-        if: matrix.platform.benchmark == 'linux/gcc' && github.event_name == 'pull_request'
+        if: matrix.platform.benchmark == 'linux/gcc'
         shell: bash
         run: |
           cmake -S . -B ./build-mcp-debug -DCMAKE_BUILD_TYPE=Debug \

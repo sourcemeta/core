@@ -400,7 +400,8 @@ auto form_schema(const JSON &schema) -> bool {
 auto sampling_block(const JSON &value) -> bool {
   const auto *type{field(value, "type")};
   if ((type == nullptr) || !type->is_string() ||
-      !sourcemeta::core::internal::valid_meta(value)) {
+      !sourcemeta::core::internal::valid_meta(MCPProtocolVersion::V_2026_07_28,
+                                              value)) {
     return false;
   }
   const auto name{type->to_string()};
@@ -500,6 +501,13 @@ auto valid_log_level(const JSON::StringView value) noexcept -> bool {
 auto valid_meta(const JSON &value) -> bool {
   const auto *meta{field(value, "_meta")};
   return meta == nullptr || meta->is_object();
+}
+
+auto valid_meta(const MCPProtocolVersion version, const JSON &value) -> bool {
+  const auto *meta{field(value, "_meta")};
+  return meta == nullptr || (version == MCPProtocolVersion::V_2026_07_28
+                                 ? valid_metadata_object(*meta)
+                                 : meta->is_object());
 }
 
 auto valid_metadata_object(const JSON &meta) -> bool {
@@ -676,7 +684,7 @@ auto valid_capabilities(const MCPProtocolVersion version, const JSON &value,
 }
 
 auto valid_tool(const MCPProtocolVersion version, const JSON &value) -> bool {
-  if (!base(value)) {
+  if (!base(value) || !valid_meta(version, value)) {
     return false;
   }
   const auto *input{field(value, "inputSchema")};
@@ -703,9 +711,9 @@ auto valid_tool(const MCPProtocolVersion version, const JSON &value) -> bool {
   return true;
 }
 
-auto valid_resource(const JSON &value, const bool contents,
-                    const bool is_template) -> bool {
-  if (!value.is_object() || !valid_meta(value) ||
+auto valid_resource(const MCPProtocolVersion version, const JSON &value,
+                    const bool contents, const bool is_template) -> bool {
+  if (!value.is_object() || !valid_meta(version, value) ||
       !string_field(value, is_template ? "uriTemplate" : "uri", true) ||
       !string_field(value, "mimeType")) {
     return false;
@@ -723,7 +731,8 @@ auto valid_resource(const JSON &value, const bool contents,
 
 auto valid_content(const MCPProtocolVersion version, const JSON &value)
     -> bool {
-  if (!value.is_object() || !valid_meta(value) || !annotations(value)) {
+  if (!value.is_object() || !valid_meta(version, value) ||
+      !annotations(value)) {
     return false;
   }
   const auto *type{field(value, "type")};
@@ -740,15 +749,16 @@ auto valid_content(const MCPProtocolVersion version, const JSON &value)
   }
   if (name == "resource") {
     const auto *resource{field(value, "resource")};
-    return (resource != nullptr) && valid_resource(*resource, true, false);
+    return (resource != nullptr) &&
+           valid_resource(version, *resource, true, false);
   }
   return name == "resource_link" &&
          mcp_supports_resource_link_content(version) &&
-         valid_resource(value, false, false);
+         valid_resource(version, value, false, false);
 }
 
-auto valid_prompt(const JSON &value) -> bool {
-  if (!base(value)) {
+auto valid_prompt(const MCPProtocolVersion version, const JSON &value) -> bool {
+  if (!base(value) || !valid_meta(version, value)) {
     return false;
   }
   const auto *arguments{field(value, "arguments")};
@@ -780,10 +790,16 @@ auto valid_input_requests(const JSON &value,
         request.defines("jsonrpc")) {
       return false;
     }
+    // Nested server requests do not carry the outer stateless client metadata,
+    // but any optional metadata they do provide must still be well formed.
+    if (params != nullptr &&
+        (!params->is_object() ||
+         !valid_meta(MCPProtocolVersion::V_2026_07_28, *params))) {
+      return false;
+    }
     const auto name{method->to_string()};
     if (name == MCP_METHOD_ROOTS_LIST) {
-      if (!capabilities.roots ||
-          ((params != nullptr) && !params->is_object())) {
+      if (!capabilities.roots) {
         return false;
       }
     } else if (name == MCP_METHOD_ELICITATION_CREATE) {
@@ -837,7 +853,8 @@ auto valid_input_requests(const JSON &value,
         const auto *content{field(message, "content")};
         if ((role == nullptr) || !role->is_string() ||
             (role->to_string() != "user" && role->to_string() != "assistant") ||
-            (content == nullptr)) {
+            (content == nullptr) ||
+            !valid_meta(MCPProtocolVersion::V_2026_07_28, message)) {
           return false;
         }
         if (content->is_array()) {
@@ -864,7 +881,8 @@ auto valid_input_requests(const JSON &value,
 
 auto valid_input_response(const JSON::StringView method, const JSON &request,
                           const JSON &value) -> bool {
-  if (!value.is_object() || !valid_meta(value)) {
+  if (!value.is_object() ||
+      !valid_meta(MCPProtocolVersion::V_2026_07_28, value)) {
     return false;
   }
   if (method == MCP_METHOD_ROOTS_LIST) {
@@ -876,7 +894,8 @@ auto valid_input_response(const JSON::StringView method, const JSON &request,
       const auto *uri{field(root, "uri")};
       if ((uri == nullptr) || !uri->is_string() ||
           !uri->to_string().starts_with("file://") ||
-          !string_field(root, "name") || !valid_meta(root)) {
+          !string_field(root, "name") ||
+          !valid_meta(MCPProtocolVersion::V_2026_07_28, root)) {
         return false;
       }
     }

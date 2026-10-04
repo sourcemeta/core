@@ -23,22 +23,36 @@ PIN = "75db1e987cbbba6d170315dc99d0dfc440754aef"
 VERSIONS = ("2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28")
 
 
-def definition_validator(schema, name):
-    """Keep the dialect and original resource identity when selecting a definition."""
-    validator = jsonschema.validators.validator_for(schema)
-    validator.check_schema(schema)
-    definitions = "$defs" if "$defs" in schema else "definitions"
-    if name not in schema[definitions]:
-        raise RuntimeError(f"Unknown official definition: {name}")
-    root = {definitions: schema[definitions], "$ref": f"#/{definitions}/{name}"}
-    for key in ("$schema", "$id", "id"):
-        if key in schema:
-            root[key] = schema[key]
-    dialect = schema.get("$schema", validator.META_SCHEMA.get("$id", validator.META_SCHEMA.get("id")))
-    resource = Resource.from_contents(schema, default_specification=specification_with(dialect))
-    identity = schema.get("$id", schema.get("id", "urn:sourcemeta:mcp:conformance"))
-    registry = Registry().with_resource(identity, resource)
-    return validator(root, registry=registry)
+class RevisionValidators:
+    """Check one revision's root once, then cache its definition validators."""
+
+    def __init__(self, revision, schema):
+        self.revision = revision
+        self.schema = schema
+        self.validator = jsonschema.validators.validator_for(schema)
+        self.validator.check_schema(schema)
+        self.definitions = "$defs" if "$defs" in schema else "definitions"
+        dialect = schema.get("$schema", self.validator.META_SCHEMA.get(
+            "$id", self.validator.META_SCHEMA.get("id")))
+        resource = Resource.from_contents(
+            schema, default_specification=specification_with(dialect))
+        identity = schema.get("$id", schema.get(
+            "id", f"urn:sourcemeta:mcp:conformance:{revision}"))
+        self.registry = Registry().with_resource(identity, resource)
+        self.selected = {}
+
+    def definition(self, name):
+        """Preserve the declared dialect and original resource identity."""
+        if name not in self.schema[self.definitions]:
+            raise RuntimeError(f"{self.revision}: unknown official definition: {name}")
+        if name not in self.selected:
+            root = {self.definitions: self.schema[self.definitions],
+                    "$ref": f"#/{self.definitions}/{name}"}
+            for key in ("$schema", "$id", "id"):
+                if key in self.schema:
+                    root[key] = self.schema[key]
+            self.selected[name] = self.validator(root, registry=self.registry)
+        return self.selected[name]
 
 
 def main():
@@ -58,9 +72,7 @@ def main():
         if hashlib.sha256(raw).hexdigest() != hashes[version]:
             raise RuntimeError(f"Pinned schema checksum mismatch: {version}")
         schema = json.loads(raw)
-        validator = jsonschema.validators.validator_for(schema)
-        validator.check_schema(schema)
-        schemas[version] = schema, validator
+        schemas[version] = RevisionValidators(version, schema)
     with tempfile.TemporaryDirectory(prefix="mcp-conformance-") as directory:
         corpus = Path(directory) / "corpus.jsonl"
         environment = dict(os.environ, SOURCEMETA_MCP_CORPUS=str(corpus))
@@ -69,9 +81,8 @@ def main():
         count = 0
         for line in corpus.read_text().splitlines():
             entry = json.loads(line)
-            schema, validator = schemas[entry["version"]]
             name = entry["definition"]
-            selected = definition_validator(schema, name)
+            selected = schemas[entry["version"]].definition(name)
             for error in selected.iter_errors(entry["value"]):
                 raise RuntimeError(f"{entry['version']} {name} at {list(error.path)}: {error.message}")
             count += 1

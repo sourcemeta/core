@@ -29,7 +29,10 @@ enum class MCPErrorContext : std::uint8_t {
 
 /// @ingroup mcp
 /// Construct a checked MCP error. Null, fractional and container identifiers
-/// are treated as unreadable. Never emits retired codes for 2026-07-28.
+/// are treated as unreadable. For 2026-07-28, rejects retired and undefined
+/// reserved codes and checks the required data for version/capability errors.
+/// The caller remains responsible for choosing an error that describes the
+/// actual failure; header mismatch data is optional.
 SOURCEMETA_CORE_MCP_EXPORT
 auto mcp_make_error(MCPProtocolVersion version, const JSON *identifier,
                     std::int64_t code, JSON::StringView message,
@@ -43,7 +46,8 @@ constexpr std::int64_t MCP_CODE_RESOURCE_NOT_FOUND{-32002};
 
 /// @ingroup mcp
 /// The MCP error code indicating that the client must complete a URL
-/// elicitation flow before retrying.
+/// elicitation flow before retrying. Defined in 2025-11-25 and retired in
+/// 2026-07-28.
 constexpr std::int64_t MCP_CODE_URL_ELICITATION_REQUIRED{-32042};
 
 /// @ingroup mcp
