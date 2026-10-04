@@ -14,10 +14,12 @@ namespace sourcemeta::core {
 
 /// @ingroup mcp
 /// Information about an MCP implementation (client or server).
+/// @see
+/// https://modelcontextprotocol.io/specification/2025-11-25/schema#implementation
 struct MCPImplementation {
   /// Implementation identifier name.
   JSON::StringView name;
-  /// Semver-compatible implementation version.
+  /// Implementation version (not required to be SemVer).
   JSON::StringView version;
   /// Optional human-readable title.
   JSON::StringView title = {};
@@ -25,17 +27,17 @@ struct MCPImplementation {
   JSON::StringView description = {};
   /// Optional public website URL.
   JSON::StringView website_url = {};
+  /// Optional borrowed array of icons (2025-11-25 and later).
+  const JSON *icons = nullptr;
 };
-
-/// @ingroup mcp
-/// Client implementation descriptor used in MCP request metadata.
-using MCPClientInfo = MCPImplementation;
 
 /// @ingroup mcp
 /// Capabilities advertised by an MCP client.
 ///
 /// @see
-/// https://modelcontextprotocol.io/specification/2026-07-28/basic/index/#meta
+/// https://modelcontextprotocol.io/specification/2026-07-28/basic/index#_meta
+/// @see
+/// https://modelcontextprotocol.io/specification/2026-07-28/schema#clientcapabilities
 struct MCPClientCapabilities {
   /// Whether the client advertises roots.
   bool roots = false;
@@ -57,10 +59,17 @@ struct MCPClientCapabilities {
   std::optional<sourcemeta::core::JSON> extensions = std::nullopt;
   /// Optional experimental map for client capabilities.
   std::optional<sourcemeta::core::JSON> experimental = std::nullopt;
+  /// Optional owned source capabilities for lossless parsing/serialization.
+  /// Keeps extension settings, unknown capabilities and 2025-11-25 task data.
+  /// Standard flags are applied over this snapshot when serializing; the
+  /// per-request metadata view does not allocate or populate this snapshot.
+  std::optional<JSON> source = std::nullopt;
 };
 
 /// @ingroup mcp
 /// Capabilities advertised by an MCP server.
+/// @see
+/// https://modelcontextprotocol.io/specification/2026-07-28/schema#servercapabilities
 struct MCPServerCapabilities {
   /// Whether the server advertises prompts.
   bool prompts = false;
@@ -89,7 +98,8 @@ struct MCPServerCapabilities {
 /// @ingroup mcp
 /// Parse client capabilities from a JSON object.
 SOURCEMETA_CORE_MCP_EXPORT
-auto mcp_parse_client_capabilities(const sourcemeta::core::JSON &capabilities)
+auto mcp_parse_client_capabilities(const MCPProtocolVersion version,
+                                   const sourcemeta::core::JSON &capabilities)
     -> MCPClientCapabilities;
 
 /// @ingroup mcp
