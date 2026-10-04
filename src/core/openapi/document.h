@@ -356,19 +356,23 @@ inline auto openapi_check_document(const JSON &document, OpenAPIWalk &walk)
     // of them is consulted
     walk.version = revision.value();
 
-    // The version comes before the field table on purpose, so that a document
-    // of another OpenAPI revision is told what it is rather than being
-    // reported field by field
-    openapi_reject_unknown_fields(
-        document, OPENAPI_ROOT_FIELDS_3_1, OPENAPI_ROOT_FIELDS_3_2,
-        EMPTY_POINTER, "The OpenAPI Object does not define this field", walk);
-
     // 3.2.1 Section 4.1: "$self | string | This string MUST be in the form of a
-    // URI reference as defined by RFC3986 Section 4.1". Only 3.2 defines the
-    // field, and the table above has already turned it down for anything
-    // earlier. What it establishes is the base that every location in this
-    // document is keyed by, so it is settled before anything records one
-    const auto *self{document.try_at("$self", OPENAPI_HASH_SELF)};
+    // URI reference as defined by RFC3986 Section 4.1", and the field
+    // "provides the self-assigned URI of this document, which also serves as
+    // its base URI". So the base is a property of what the document declares
+    // rather than of how far reading it got, which is why this is settled
+    // before anything else is read and before anything else is turned down.
+    // Every refusal below then names the document by the URI it answers to,
+    // and the public sourcemeta::core::openapi_base says what that is without
+    // reading the document at all
+    //
+    // Only 3.2 defines the field, so the revision is what gates reading it.
+    // The field table below is what turns one down in an earlier revision,
+    // which it goes on doing, as nothing here records a base for a document
+    // that has no business declaring one
+    const auto *self{walk.version == OpenAPIVersion::OPENAPI_3_2
+                         ? document.try_at("$self", OPENAPI_HASH_SELF)
+                         : nullptr};
     if (self != nullptr) {
       const auto reference{openapi_expect_uri_reference(
           *self, EMPTY_POINTER, "$self"sv,
@@ -403,6 +407,13 @@ inline auto openapi_check_document(const JSON &document, OpenAPIWalk &walk)
         // the same paragraph calls "not interoperable" and NOT RECOMMENDED
       }
     }
+
+    // The version comes before the field table on purpose, so that a document
+    // of another OpenAPI revision is told what it is rather than being
+    // reported field by field
+    openapi_reject_unknown_fields(
+        document, OPENAPI_ROOT_FIELDS_3_1, OPENAPI_ROOT_FIELDS_3_2,
+        EMPTY_POINTER, "The OpenAPI Object does not define this field", walk);
 
     // Section 4.8.30: "The name used for each property MUST correspond to a
     // security scheme declared in the Security Schemes under the Components

@@ -91,7 +91,8 @@ auto openapi_version_name(const OpenAPIVersion version) noexcept
 /// The version that an OpenAPI Description declares, exactly as it wrote it,
 /// returning no value for anything that declares none. A description naming a
 /// revision this module does not recognise reports one here all the same, which
-/// is what lets a caller quote it back. For example:
+/// is what lets a caller quote it back. The result borrows from the document it
+/// was read from, so that document must outlive it. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/json.h>
@@ -113,8 +114,9 @@ auto openapi_version_string(const JSON &document)
     -> std::optional<JSON::StringView>;
 
 /// @ingroup openapi
-/// Whether a value is an OpenAPI Description at all, whichever revision it
-/// declares, which is what tells one from a schema. For example:
+/// Whether a value declares itself an OpenAPI Description, whichever revision
+/// it names and whether or not it holds up as one. This is what tells a
+/// description from a schema before either is read. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/json.h>
@@ -157,9 +159,12 @@ auto openapi_is_document(const JSON &document) -> bool;
 ///        "https://example.com/api");
 /// ```
 ///
-/// The retrieval URI must carry a scheme. One that does not is refused by
-/// throwing sourcemeta::core::OpenAPIError, as reading a description under such
-/// a base is refused too
+/// A retrieval URI that establishes nothing is given as the empty URI
+/// reference, which hands back the empty URI reference in turn and leaves every
+/// relative reference the description makes relative. Anything else must carry
+/// a scheme, as RFC 3986 Section 5.2.1 requires one of a base, and one that
+/// does not is refused by throwing sourcemeta::core::OpenAPIError, as reading a
+/// description under such a base is refused too
 SOURCEMETA_CORE_OPENAPI_EXPORT
 auto openapi_base(const JSON &document, const std::string_view retrieval)
     -> JSON::String;
@@ -481,7 +486,9 @@ public:
   /// register past it, which reports the allowance the caller set rather than
   /// whatever was left of it
   ///
-  /// The base must carry a scheme. One that does not is refused before the
+  /// A base that establishes nothing is given as the empty URI reference, which
+  /// leaves every relative reference the description makes relative. Anything
+  /// else must carry a scheme, and one that does not is refused before the
   /// document is read, which is why such a refusal names no place within it
   ///
   /// A document that does not conform to the specification is rejected here

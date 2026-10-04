@@ -1203,14 +1203,62 @@ TEST(openapi_base_of_a_retrieval_uri_without_a_scheme) {
     "paths": {}
   })JSON")};
 
-  bool refused{false};
   try {
     [[maybe_unused]] const auto base{
         sourcemeta::core::openapi_base(document, "example.com/openapi.json")};
+    FAIL();
   } catch (const sourcemeta::core::OpenAPIError &error) {
-    refused = true;
     EXPECT_EQ(error.location(), sourcemeta::core::EMPTY_POINTER);
   }
+}
 
-  EXPECT_TRUE(refused);
+TEST(openapi_base_of_a_document_that_does_not_conform) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.2.0",
+    "$self": "https://example.com/api",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "paths": {},
+    "typo": true
+  })JSON")};
+
+  // What a document answers to is what it declares rather than how far reading
+  // it got, so a refusal over anything else still names the document by this
+  EXPECT_EQ(sourcemeta::core::openapi_base(document,
+                                           "https://example.com/openapi.json"),
+            "https://example.com/api");
+
+  try {
+    [[maybe_unused]] const sourcemeta::core::OpenAPIFrame frame{
+        document, sourcemeta::core::schema_walker,
+        sourcemeta::core::schema_resolver, "https://example.com/openapi.json"};
+    FAIL();
+  } catch (const sourcemeta::core::OpenAPIError &error) {
+    EXPECT_EQ(error.base(), sourcemeta::core::openapi_base(
+                                document, "https://example.com/openapi.json"));
+    EXPECT_EQ(error.location(), sourcemeta::core::Pointer{"typo"});
+  }
+}
+
+TEST(openapi_base_of_a_self_in_a_revision_that_rejects_the_field) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.1.1",
+    "$self": "https://example.com/api",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "paths": {}
+  })JSON")};
+
+  EXPECT_EQ(sourcemeta::core::openapi_base(document,
+                                           "https://example.com/openapi.json"),
+            "https://example.com/openapi.json");
+
+  try {
+    [[maybe_unused]] const sourcemeta::core::OpenAPIFrame frame{
+        document, sourcemeta::core::schema_walker,
+        sourcemeta::core::schema_resolver, "https://example.com/openapi.json"};
+    FAIL();
+  } catch (const sourcemeta::core::OpenAPIError &error) {
+    EXPECT_EQ(error.base(), sourcemeta::core::openapi_base(
+                                document, "https://example.com/openapi.json"));
+    EXPECT_EQ(error.location(), sourcemeta::core::Pointer{"$self"});
+  }
 }
