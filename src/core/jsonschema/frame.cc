@@ -935,8 +935,14 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
     std::optional<sourcemeta::core::JSON::String> root_id{std::nullopt};
     bool root_declares_anchor{false};
     if (path.empty() || this->mode_ == SchemaFrame::Mode::Root) {
-      const auto declared_id{sourcemeta::core::identify(
+      auto declared_id{sourcemeta::core::identify(
           schema, root_base_dialect.value(), std::string_view{})};
+      if (!identifier_counts(schema, declared_id,
+                             sourcemeta::core::dialect(schema, default_dialect),
+                             root_base_dialect.value(), effective_resolver,
+                             walker)) {
+        declared_id = {};
+      }
 
       // Before 2019-09 an identifier that consists of nothing but a fragment
       // names the schema it sits on rather than declaring a resource of its
@@ -1121,13 +1127,20 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
       // An identifier that only names the top of the document in place was
       // taken apart above, which leaves the name the caller gave it, if any,
       // as the one that identifies the document
-      const auto maybe_id{
-          entry.pointer.empty() && root_declares_anchor &&
-                  !default_id_for_entry.empty()
-              ? std::string_view{default_id_for_entry}
-              : sourcemeta::core::identify(entry.subschema.get(),
-                                           entry.base_dialect.value(),
-                                           default_id_for_entry)};
+      auto maybe_id{entry.pointer.empty() && root_declares_anchor &&
+                            !default_id_for_entry.empty()
+                        ? std::string_view{default_id_for_entry}
+                        : sourcemeta::core::identify(entry.subschema.get(),
+                                                     entry.base_dialect.value(),
+                                                     default_id_for_entry)};
+      // Anything other than what the caller supplied came out of the schema
+      // itself, and only counts where the dialect gives its keyword a meaning.
+      // Comparing first keeps the lookup off the path that declares nothing
+      if (maybe_id != default_id_for_entry &&
+          !sourcemeta::core::dialect_defines_identifier(
+              walker, entry.vocabularies, entry.base_dialect.value())) {
+        maybe_id = default_id_for_entry;
+      }
       std::optional<sourcemeta::core::JSON::String> identifier{
           !maybe_id.empty()
               ? std::make_optional<sourcemeta::core::JSON::String>(maybe_id)

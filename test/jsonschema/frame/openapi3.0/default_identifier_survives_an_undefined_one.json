@@ -1,0 +1,96 @@
+{
+  "schema": {
+    "id": "https://www.sourcemeta.com/written",
+    "type": "string"
+  },
+  "defaultDialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+  "defaultId": "https://www.sourcemeta.com/supplied",
+  "root": {
+    "mode": "root",
+    "locations": {
+      "static": {
+        "https://www.sourcemeta.com/supplied": {
+          "parent": null,
+          "type": "resource",
+          "root": "https://www.sourcemeta.com/supplied",
+          "base": "https://www.sourcemeta.com/supplied",
+          "pointer": "",
+          "relativePointer": "",
+          "dialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+          "baseDialect": "http://json-schema.org/draft-04/schema#",
+          "propertyName": false,
+          "orphan": false,
+          "hasReferencesTo": false,
+          "hasReferencesThrough": false,
+          "vocabularies": {
+            "tag:spec.openapis.org,2017:oas/3.0/vocab/base": true
+          }
+        }
+      },
+      "dynamic": {}
+    },
+    "references": []
+  },
+  "pointers": {
+    "mode": "pointers",
+    "locations": {
+      "static": {
+        "https://www.sourcemeta.com/supplied": {
+          "parent": null,
+          "type": "resource",
+          "root": "https://www.sourcemeta.com/supplied",
+          "base": "https://www.sourcemeta.com/supplied",
+          "pointer": "",
+          "relativePointer": "",
+          "dialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+          "baseDialect": "http://json-schema.org/draft-04/schema#",
+          "propertyName": false,
+          "orphan": false,
+          "hasReferencesTo": false,
+          "hasReferencesThrough": false,
+          "vocabularies": {
+            "tag:spec.openapis.org,2017:oas/3.0/vocab/base": true
+          }
+        },
+        "https://www.sourcemeta.com/supplied#/id": {
+          "parent": "",
+          "type": "pointer",
+          "root": "https://www.sourcemeta.com/supplied",
+          "base": "https://www.sourcemeta.com/supplied",
+          "pointer": "/id",
+          "relativePointer": "/id",
+          "dialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+          "baseDialect": "http://json-schema.org/draft-04/schema#",
+          "propertyName": false,
+          "orphan": false,
+          "hasReferencesTo": false,
+          "hasReferencesThrough": false,
+          "vocabularies": {
+            "tag:spec.openapis.org,2017:oas/3.0/vocab/base": true
+          }
+        },
+        "https://www.sourcemeta.com/supplied#/type": {
+          "parent": "",
+          "type": "pointer",
+          "root": "https://www.sourcemeta.com/supplied",
+          "base": "https://www.sourcemeta.com/supplied",
+          "pointer": "/type",
+          "relativePointer": "/type",
+          "dialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+          "baseDialect": "http://json-schema.org/draft-04/schema#",
+          "propertyName": false,
+          "orphan": false,
+          "hasReferencesTo": false,
+          "hasReferencesThrough": false,
+          "vocabularies": {
+            "tag:spec.openapis.org,2017:oas/3.0/vocab/base": true
+          }
+        }
+      },
+      "dynamic": {}
+    },
+    "references": []
+  },
+  "standalone": true,
+  "reachability": []
+}
