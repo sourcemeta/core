@@ -825,3 +825,153 @@ TEST(conformance_borrowed_writer_metadata_rejections) {
                      MCPCachePolicy{});
   });
 }
+
+// Expected membership comes from the five directional unions in the pinned
+// official schemas, rather than from the implementation's dispatch tables.
+TEST(conformance_official_method_matrix) {
+  struct Entry {
+    JSON::StringView method;
+    unsigned client_request;
+    unsigned server_request;
+    unsigned client_notification;
+    unsigned server_notification;
+    unsigned input_request;
+  };
+  const Entry entries[]{
+      {"completion/complete", 15, 0, 0, 0, 0},
+      {"elicitation/create", 0, 6, 0, 0, 8},
+      {"initialize", 7, 0, 0, 0, 0},
+      {"logging/setLevel", 7, 0, 0, 0, 0},
+      {"notifications/cancelled", 0, 0, 15, 15, 0},
+      {"notifications/elicitation/complete", 0, 0, 0, 4, 0},
+      {"notifications/initialized", 0, 0, 7, 0, 0},
+      {"notifications/message", 0, 0, 0, 15, 0},
+      {"notifications/progress", 0, 0, 7, 15, 0},
+      {"notifications/prompts/list_changed", 0, 0, 0, 15, 0},
+      {"notifications/resources/list_changed", 0, 0, 0, 15, 0},
+      {"notifications/resources/updated", 0, 0, 0, 15, 0},
+      {"notifications/roots/list_changed", 0, 0, 7, 0, 0},
+      {"notifications/subscriptions/acknowledged", 0, 0, 0, 8, 0},
+      {"notifications/tasks/status", 0, 0, 4, 4, 0},
+      {"notifications/tools/list_changed", 0, 0, 0, 15, 0},
+      {"ping", 7, 7, 0, 0, 0},
+      {"prompts/get", 15, 0, 0, 0, 0},
+      {"prompts/list", 15, 0, 0, 0, 0},
+      {"resources/list", 15, 0, 0, 0, 0},
+      {"resources/read", 15, 0, 0, 0, 0},
+      {"resources/subscribe", 7, 0, 0, 0, 0},
+      {"resources/templates/list", 15, 0, 0, 0, 0},
+      {"resources/unsubscribe", 7, 0, 0, 0, 0},
+      {"roots/list", 0, 7, 0, 0, 8},
+      {"sampling/createMessage", 0, 7, 0, 0, 8},
+      {"server/discover", 8, 0, 0, 0, 0},
+      {"subscriptions/listen", 8, 0, 0, 0, 0},
+      {"tasks/cancel", 4, 4, 0, 0, 0},
+      {"tasks/get", 4, 4, 0, 0, 0},
+      {"tasks/list", 4, 4, 0, 0, 0},
+      {"tasks/result", 4, 4, 0, 0, 0},
+      {"tools/call", 15, 0, 0, 0, 0},
+      {"tools/list", 15, 0, 0, 0, 0},
+      {"extension/unknown", 0, 0, 0, 0, 0},
+  };
+  for (std::size_t index = 0; index < std::size(revisions); ++index) {
+    const auto version{revisions[index]};
+    const auto bit{1U << index};
+    EXPECT_EQ(mcp_supports_implementation_website_url(version), index >= 2);
+    for (const auto &entry : entries) {
+      EXPECT_EQ(mcp_is_request_method(version, entry.method),
+                (entry.client_request & bit) != 0);
+      EXPECT_EQ(mcp_is_server_request_method(version, entry.method),
+                (entry.server_request & bit) != 0);
+      EXPECT_EQ(mcp_is_client_notification_method(version, entry.method),
+                (entry.client_notification & bit) != 0);
+      EXPECT_EQ(mcp_is_server_notification_method(version, entry.method),
+                (entry.server_notification & bit) != 0);
+      EXPECT_EQ(
+          mcp_is_notification_method(version, entry.method),
+          ((entry.client_notification | entry.server_notification) & bit) != 0);
+      EXPECT_EQ(mcp_is_input_request_method(version, entry.method),
+                (entry.input_request & bit) != 0);
+      EXPECT_EQ(mcp_supports_method(version, entry.method),
+                ((entry.client_request | entry.server_request |
+                  entry.client_notification | entry.server_notification |
+                  entry.input_request) &
+                 bit) != 0);
+    }
+  }
+  for (const auto method : {"tools/call", "resources/read", "prompts/get",
+                            "resources/subscribe", "resources/unsubscribe"}) {
+    EXPECT_TRUE(mcp_is_named_request_method(method));
+  }
+  for (const auto method : {"tools/list", "resources/list", "server/discover",
+                            "subscriptions/listen", "extension/unknown"}) {
+    EXPECT_FALSE(mcp_is_named_request_method(method));
+  }
+}
+
+TEST(conformance_enum_forms_and_sampling_continuations) {
+  MCPClientCapabilities capabilities;
+  capabilities.elicitation = true;
+  capabilities.elicitation_form = true;
+  const auto inputs{parse_json(
+      R"({"form":{"method":"elicitation/create","params":{"mode":"form","message":"Choose options","requestedSchema":{"type":"object","properties":{"single":{"type":"string","oneOf":[{"const":"a","title":"Alpha"},{"const":"b","title":"Beta"}]},"multiple":{"type":"array","items":{"anyOf":[{"const":"a","title":"Alpha"},{"const":"b","title":"Beta"}]}}}}}}})")};
+  EXPECT_EQ(mcp_make_input_required_result(current, "tools/call", JSON{0},
+                                           inputs, std::nullopt, capabilities)
+                .at("result")
+                .at("inputRequests"),
+            inputs);
+  auto malformed{inputs};
+  malformed.at("form")
+      .at("params")
+      .at("requestedSchema")
+      .at("properties")
+      .at("single")
+      .at("oneOf")
+      .at(0)
+      .erase("title");
+  rejects([&] {
+    mcp_make_input_required_result(current, "tools/call", JSON{0}, malformed,
+                                   std::nullopt, capabilities);
+  });
+  malformed = inputs;
+  malformed.at("form")
+      .at("params")
+      .at("requestedSchema")
+      .at("properties")
+      .at("multiple")
+      .at("items")
+      .assign("anyOf", JSON{false});
+  rejects([&] {
+    mcp_make_input_required_result(current, "tools/call", JSON{0}, malformed,
+                                   std::nullopt, capabilities);
+  });
+  malformed = inputs;
+  malformed.at("form")
+      .at("params")
+      .at("requestedSchema")
+      .at("properties")
+      .at("multiple")
+      .at("items")
+      .at("anyOf")
+      .at(1)
+      .assign("const", JSON{1});
+  rejects([&] {
+    mcp_make_input_required_result(current, "tools/call", JSON{0}, malformed,
+                                   std::nullopt, capabilities);
+  });
+
+  const auto prior{
+      parse_json(R"({"sample":{"method":"sampling/createMessage"}})")};
+  auto value{parameters()};
+  value.assign(
+      "inputResponses",
+      parse_json(
+          R"({"sample":{"role":"assistant","model":"model","content":[{"type":"text","text":"answer"},{"type":"tool_use","id":"call-1","name":"tool","input":{}}]}})"));
+  EXPECT_TRUE(mcp_validate_continuation(current, value, prior, std::nullopt));
+  value.at("inputResponses")
+      .at("sample")
+      .at("content")
+      .at(1)
+      .assign("input", JSON{false});
+  EXPECT_FALSE(mcp_validate_continuation(current, value, prior, std::nullopt));
+}

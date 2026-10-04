@@ -4,7 +4,8 @@ The MCP tests cover the Core helper API across 2025-03-26, 2025-06-18,
 2025-11-25 and 2026-07-28. `mcp_conformance_test.cc` adds regression cases
 for contracts that cannot be established by inspecting successful output
 alone: invalid IDs, capability gates, header mirrors, metadata, continuations,
-subscription opt-in and borrowed output.
+subscription opt-in and borrowed output. A directional method matrix is derived
+from the five unions in the pinned official schemas and checked across revisions.
 
 ## Official schema checks
 
@@ -108,7 +109,7 @@ claim. The allocation counts demonstrate the avoided entry-array deep copy.
 ## Validation recorded for this change
 
 - Full Debug and Release builds: 176/176 CTest jobs passed in each.
-- Direct MCP binaries: 254/254 cases passed in both configurations.
+- Direct MCP binaries: 256/256 cases passed in both configurations.
 - Official schema checks: 102 payloads passed in Debug, Release and shared Release.
 - Shared Release MCP test and installed static Debug/Release consumers passed.
 - Project ClangFormat 20.1.6 check and `git diff --check` passed.
