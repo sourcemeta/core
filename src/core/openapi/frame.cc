@@ -771,9 +771,8 @@ OpenAPIFrame::OpenAPIFrame(const JSON &document, const SchemaWalker &walker,
   // and from 3.2 onwards the document may give itself a URI of its own, which
   // the walk settles and everything it holds is keyed by
   this->internal_->base = std::move(walk.base);
-  // Every other name the description goes by, which the walk settled into the
-  // order RFC 3986 Section 5.1 puts them in
-  const auto additional_names{std::move(walk.additional_names)};
+  // The one other name the description goes by, which the walk settled
+  const auto additional_name{std::move(walk.additional_name)};
   const auto walk_locations{walk.locations.size()};
   this->internal_->locations = std::move(walk.locations);
   this->internal_->references = std::move(walk.references);
@@ -818,13 +817,6 @@ OpenAPIFrame::OpenAPIFrame(const JSON &document, const SchemaWalker &walker,
     }
   }
 
-  // The schemas a description holds are places of it as much as the Objects
-  // around them are, so they answer to every name it goes by. The base they
-  // resolve against is the one it settled on, which is what makes that name
-  // the first of them
-  const SchemaFrame::Bases schema_bases{additional_names.cbegin(),
-                                        additional_names.cend()};
-
   this->internal_->schema_resolver = resolver;
   // What the shell of a description goes by and what its schemas go by are
   // places of the one description, so they spend from the one allowance. The
@@ -836,7 +828,7 @@ OpenAPIFrame::OpenAPIFrame(const JSON &document, const SchemaWalker &walker,
         SchemaFrame::Mode::References, document, walker, resolver,
         root->second.default_dialect, "",
         SchemaFrame::IdentifierMode::Additional, this->internal_->schema_paths,
-        this->internal_->base, schema_bases, max_locations - walk_locations);
+        this->internal_->base, additional_name, max_locations - walk_locations);
   } catch (const SchemaFrameLimitError &) {
     // Framing the schemas was handed what was left rather than the whole, so
     // the allowance it reports is not the one the caller set

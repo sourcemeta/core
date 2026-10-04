@@ -8,9 +8,7 @@
   },
   "defaultId": "https://www.example.com/named",
   "defaultBase": "https://www.sourcemeta.com/test",
-  "additionalBases": [
-    "https://www.example.com/held"
-  ],
+  "additionalBase": "https://www.example.com/held",
   "root": {
     "mode": "root",
     "locations": {

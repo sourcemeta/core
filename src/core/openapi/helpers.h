@@ -166,13 +166,12 @@ struct OpenAPIWalk {
   // What the caller stated the description goes by, which is a name it claims
   // rather than a place it came from
   JSON::String default_id;
-  // Every other name the description goes by, which every place it holds is
-  // keyed by as well as by the base above. RFC 3986 Section 5.1 orders them,
-  // so a name the caller gave comes before the retrieval URI, and a name that
-  // comes to what the base comes to is no name of its own and is left out.
-  // A document that establishes a base of its own keeps only what the caller
-  // named it, which 3.2.1 Section 4.1.1 is the reason for
-  std::vector<JSON::String> additional_names;
+  // The one other name the description goes by, which every place it holds is
+  // keyed by as well as by the base above. Empty where the base is the only
+  // name there is, which a name that comes to what the base comes to leaves
+  // it. A document that establishes a base of its own goes by what the caller
+  // named it and by nothing else, which 3.2.1 Section 4.1.1 is the reason for
+  JSON::String additional_name;
   // The document the checks are reading, which a reference that stays inside
   // it resolves its fragment against
   const JSON *document{nullptr};
@@ -576,8 +575,8 @@ inline auto openapi_record(OpenAPIWalk &walk, const Pointer &pointer,
 
   // Every name the description goes by addresses every place it holds, so one
   // place is recorded once per name and costs one of the allowance for each
-  for (const auto &name : walk.additional_names) {
-    auto additional{openapi_location_uri(name, pointer)};
+  if (!walk.additional_name.empty()) {
+    auto additional{openapi_location_uri(walk.additional_name, pointer)};
     if (!walk.locations.contains(additional)) {
       if (walk.remaining == 0) {
         throw OpenAPIFrameLimitError{walk.limit};
@@ -595,7 +594,8 @@ inline auto openapi_record(OpenAPIWalk &walk, const Pointer &pointer,
         OpenAPILocation{.type = kind,
                         .pointer = pointer,
                         .default_dialect = default_dialect,
-                        .base = base.empty() ? JSON::String{} : name});
+                        .base = base.empty() ? JSON::String{}
+                                             : walk.additional_name});
   }
 
   walk.locations.insert_or_assign(

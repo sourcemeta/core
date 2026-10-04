@@ -30,7 +30,7 @@
 #include <optional>    // std::optional
 #include <string_view> // std::string_view
 #include <utility>     // std::move, std::swap, std::unreachable
-#include <vector>      // std::erase, std::vector
+#include <vector>      // std::vector
 
 namespace sourcemeta::core {
 
@@ -402,18 +402,16 @@ inline auto openapi_check_document(const JSON &document, OpenAPIWalk &walk)
         //
         // What the caller named the document goes on naming it, as that is no
         // URI the description writes down and so no reference of its own
-        walk.additional_names.clear();
-        if (!walk.default_id.empty()) {
-          walk.additional_names.push_back(walk.default_id);
-        }
-
+        walk.additional_name = walk.default_id;
         walk.base = std::move(established.value());
       }
     }
 
     // A name that comes to what the base comes to addresses every place of the
     // description already, so it is no name of its own
-    std::erase(walk.additional_names, walk.base);
+    if (walk.additional_name == walk.base) {
+      walk.additional_name.clear();
+    }
 
     // Section 4.8.30: "The name used for each property MUST correspond to a
     // security scheme declared in the Security Schemes under the Components
@@ -656,15 +654,12 @@ inline auto openapi_analyse(const JSON &document, JSON::String base,
   // of Section 5.1.3's retrieval URI. So a name the caller gave the
   // description is the base, and the place it was retrieved from goes on
   // naming it from behind that
-  std::vector<JSON::String> additional_names;
-  if (!default_id.empty() && !base.empty() && default_id != base) {
-    additional_names.push_back(base);
-  }
+  const auto named{!default_id.empty() && !base.empty() && default_id != base};
 
   OpenAPIWalk walk{.base = default_id.empty() ? base : default_id,
-                   .retrieval = std::move(base),
+                   .retrieval = base,
                    .default_id = std::move(default_id),
-                   .additional_names = std::move(additional_names),
+                   .additional_name = named ? std::move(base) : JSON::String{},
                    .document = &document,
                    .operation_ids = {},
                    .visited = {},

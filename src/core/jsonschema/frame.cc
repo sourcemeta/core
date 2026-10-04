@@ -860,16 +860,13 @@ struct SchemaFrame::Cache {
 
 SchemaFrame::~SchemaFrame() = default;
 
-SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
-                         const SchemaWalker &walker,
-                         const SchemaResolver &resolver,
-                         const std::string_view default_dialect,
-                         const std::string_view default_id,
-                         const SchemaFrame::IdentifierMode identifier_mode,
-                         const SchemaFrame::Paths &paths,
-                         const std::string_view default_base,
-                         const SchemaFrame::Bases &additional_bases,
-                         const std::uint64_t max_locations)
+SchemaFrame::SchemaFrame(
+    const Mode mode, const sourcemeta::core::JSON &root,
+    const SchemaWalker &walker, const SchemaResolver &resolver,
+    const std::string_view default_dialect, const std::string_view default_id,
+    const SchemaFrame::IdentifierMode identifier_mode,
+    const SchemaFrame::Paths &paths, const std::string_view default_base,
+    const std::string_view additional_base, const std::uint64_t max_locations)
     : mode_{mode}, cache_{std::make_unique<Cache>()} {
   // This mode reports on a single schema. Framing a wrapper that holds more
   // than one has no single schema to report on, so there is nothing to analyse
@@ -918,12 +915,9 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
     this->cache_->default_base = canonicalize_base(default_base);
   }
 
-  std::vector<sourcemeta::core::JSON::String> additional_base_uris;
-  additional_base_uris.reserve(additional_bases.size());
-  for (const auto &additional_base : additional_bases) {
-    if (!additional_base.empty()) {
-      additional_base_uris.push_back(canonicalize_base(additional_base));
-    }
+  sourcemeta::core::JSON::String additional_base_uri;
+  if (!additional_base.empty()) {
+    additional_base_uri = canonicalize_base(additional_base);
   }
 
   for (const auto &path : paths) {
@@ -1037,7 +1031,7 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
     // Whatever else the caller states the document goes by comes after all of
     // those, as a name that the document neither carries nor was retrieved
     // from is the last thing a reference within it could be read against
-    if (!this->cache_->default_base.empty() || !additional_base_uris.empty()) {
+    if (!this->cache_->default_base.empty() || !additional_base_uri.empty()) {
       std::vector<sourcemeta::core::JSON::String> root_bases;
       if (root_id.has_value() && path.empty()) {
         root_bases.push_back(root_id.value());
@@ -1050,12 +1044,11 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
         root_bases.push_back(this->cache_->default_base);
       }
 
-      for (const auto &additional_base : additional_base_uris) {
-        // A base that is already in force addresses every place of the
-        // document once, so stating it again would address each of them twice
-        if (!std::ranges::contains(root_bases, additional_base)) {
-          root_bases.push_back(additional_base);
-        }
+      // A base that is already in force addresses every place of the document
+      // once, so stating it again would address each of them twice
+      if (!additional_base_uri.empty() &&
+          !std::ranges::contains(root_bases, additional_base_uri)) {
+        root_bases.push_back(additional_base_uri);
       }
 
       base_uris.insert_or_assign(sourcemeta::core::EMPTY_WEAK_POINTER,

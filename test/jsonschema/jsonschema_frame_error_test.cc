@@ -47,7 +47,7 @@ TEST(additional_base_with_fragment) {
         sourcemeta::core::SchemaFrame::IdentifierMode::Additional,
         {sourcemeta::core::EMPTY_WEAK_POINTER},
         "https://www.sourcemeta.com/test",
-        {"https://www.example.com/held#fragment"}};
+        "https://www.example.com/held#fragment"};
     FAIL();
   } catch (const sourcemeta::core::SchemaFrameError &error) {
     EXPECT_STREQ(error.what(),

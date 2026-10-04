@@ -194,7 +194,7 @@ auto elevate_embedded_resources(
                             SchemaFrame::IdentifierMode::Additional,
                             {EMPTY_WEAK_POINTER},
                             "",
-                            {},
+                            "",
                             remaining};
     charge(remaining, entry_frame);
     const auto &identifier{entry_frame.root()};
@@ -236,7 +236,7 @@ auto elevate_embedded_resources(
                                    SchemaFrame::IdentifierMode::Additional,
                                    {EMPTY_WEAK_POINTER},
                                    "",
-                                   {},
+                                   "",
                                    remaining};
           charge(remaining, stored_frame);
           const auto &stored_id{stored_frame.root()};
@@ -309,21 +309,14 @@ auto embed_references(
   // between different schemas that have references at the same pointer paths
   static const SchemaFrame::Paths NESTED_PATHS{EMPTY_WEAK_POINTER};
   const SchemaFrame frame{
-      SchemaFrame::Mode::References,
-      subschema,
-      walker,
-      resolver,
-      default_dialect,
-      default_id,
-      SchemaFrame::IdentifierMode::Additional,
+      SchemaFrame::Mode::References, subschema, walker, resolver,
+      default_dialect, default_id, SchemaFrame::IdentifierMode::Additional,
       // We only want to frame in "wrapper" mode for the top
       // level object, which is also the only one that the
       // base the caller retrieved it from applies to, as
       // every remote carries the identity it was resolved by
       depth == 0 ? paths : NESTED_PATHS,
-      depth == 0 ? default_base : std::string_view{},
-      {},
-      remaining};
+      depth == 0 ? default_base : std::string_view{}, "", remaining};
   charge(remaining, frame);
 
   std::vector<std::tuple<JSON, JSON::String, SchemaBaseDialect>> deferred;
@@ -390,11 +383,10 @@ auto embed_references(
 
     std::optional<SchemaFrame> remote_root_frame;
     try {
-      remote_root_frame.emplace(SchemaFrame::Mode::Root, remote, walker,
-                                resolver, default_dialect, "",
-                                SchemaFrame::IdentifierMode::Additional,
-                                SchemaFrame::Paths{EMPTY_WEAK_POINTER}, "",
-                                SchemaFrame::Bases{}, remaining);
+      remote_root_frame.emplace(
+          SchemaFrame::Mode::Root, remote, walker, resolver, default_dialect,
+          "", SchemaFrame::IdentifierMode::Additional,
+          SchemaFrame::Paths{EMPTY_WEAK_POINTER}, "", "", remaining);
       charge(remaining, remote_root_frame.value());
     } catch (const SchemaUnknownBaseDialectError &) {
       throw SchemaReferenceError(identifier, to_pointer(pointer),
@@ -430,7 +422,7 @@ auto embed_references(
                                        SchemaFrame::IdentifierMode::Additional,
                                        {EMPTY_WEAK_POINTER},
                                        "",
-                                       {},
+                                       "",
                                        remaining};
         charge(remaining, remote_frame);
         exists = remote_frame.traverse(reference.destination).has_value();
@@ -525,7 +517,7 @@ auto bundle_internal(JSON &schema, const SchemaWalker &walker,
                             SchemaFrame::IdentifierMode::Additional,
                             paths,
                             default_base,
-                            {},
+                            "",
                             remaining};
   charge(remaining, initial_frame);
   initial_frame.for_each_resource_uri([&bundled](const auto &uri) -> void {
@@ -582,7 +574,7 @@ auto bundle_internal(JSON &schema, const SchemaWalker &walker,
                                SchemaFrame::IdentifierMode::Additional,
                                {EMPTY_WEAK_POINTER},
                                "",
-                               {},
+                               "",
                                remaining};
     charge(remaining, declared_frame);
     if (declared_frame.root().empty()) {
@@ -592,11 +584,10 @@ auto bundle_internal(JSON &schema, const SchemaWalker &walker,
 
   std::optional<SchemaFrame> schema_root_frame;
   try {
-    schema_root_frame.emplace(SchemaFrame::Mode::Root, schema, walker, resolver,
-                              default_dialect, default_id,
-                              SchemaFrame::IdentifierMode::Additional,
-                              SchemaFrame::Paths{EMPTY_WEAK_POINTER}, "",
-                              SchemaFrame::Bases{}, remaining);
+    schema_root_frame.emplace(
+        SchemaFrame::Mode::Root, schema, walker, resolver, default_dialect,
+        default_id, SchemaFrame::IdentifierMode::Additional,
+        SchemaFrame::Paths{EMPTY_WEAK_POINTER}, "", "", remaining);
     charge(remaining, schema_root_frame.value());
   } catch (const SchemaUnknownBaseDialectError &) {
     throw SchemaError("Could not determine how to perform bundling in this "
@@ -617,7 +608,7 @@ auto bundle_internal(JSON &schema, const SchemaWalker &walker,
                       SchemaFrame::IdentifierMode::Additional,
                       {EMPTY_WEAK_POINTER},
                       default_base,
-                      {},
+                      "",
                       remaining};
     charge(remaining, frame);
     if (frame.standalone()) {

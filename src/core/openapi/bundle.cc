@@ -227,7 +227,7 @@ auto absolutize_schemas(sourcemeta::core::JSON &value,
       sourcemeta::core::SchemaFrame::IdentifierMode::Additional,
       paths,
       remote.base,
-      {},
+      "",
       remaining};
   charge(remaining, frame.location_count());
 
@@ -773,7 +773,7 @@ auto schema_pending(const sourcemeta::core::JSON &document,
       sourcemeta::core::SchemaFrame::IdentifierMode::Additional,
       paths,
       walk.base,
-      {},
+      "",
       remaining};
   charge(remaining, frame.location_count());
 
@@ -968,7 +968,7 @@ auto index_schemas(const sourcemeta::core::JSON &remote_document,
       sourcemeta::core::SchemaFrame::IdentifierMode::Additional,
       paths,
       remote.base,
-      {},
+      "",
       remaining};
   charge(remaining, frame.location_count());
 
@@ -1460,8 +1460,8 @@ auto adopt_mappings(
       root.emplace(SchemaFrame::Mode::Root, schema, walker, schema_resolver,
                    JSON::String{dialect}, identifier,
                    SchemaFrame::IdentifierMode::Additional,
-                   SchemaFrame::Paths{EMPTY_WEAK_POINTER}, identifier,
-                   SchemaFrame::Bases{}, remaining);
+                   SchemaFrame::Paths{EMPTY_WEAK_POINTER}, identifier, "",
+                   remaining);
     } catch (const SchemaUnknownBaseDialectError &) {
       // What a schema is written against is what says how to read it, and
       // Section 4.8.24.5 leaves the dialect to whatever the schema names. One

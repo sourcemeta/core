@@ -163,9 +163,6 @@ public:
   /// A list of paths to frame within a schema wrapper
   using Paths = std::vector<sourcemeta::core::WeakPointer>;
 
-  /// A list of bases that the top of a document goes by
-  using Bases = std::vector<std::string_view>;
-
   /// Export the frame as JSON
   [[nodiscard]] auto to_json(
       const SchemaResolver &resolver,
@@ -181,7 +178,7 @@ public:
   /// it, so the schema must outlive the frame. The same goes for
   /// `default_dialect`, as a location that has no dialect of its own reports
   /// the default back as a view into what the caller passed. In contrast,
-  /// `default_id`, `default_base` and `additional_bases` are copied, so they
+  /// `default_id`, `default_base` and `additional_base` are copied, so they
   /// do not need to outlive this call
   ///
   /// Pass `default_base` to state the base URI that the document was
@@ -192,10 +189,10 @@ public:
   /// the document rather than from wherever a path begins, and a document
   /// that declares no identifier still reports none
   ///
-  /// Pass `additional_bases` to state every other base that the top of the
+  /// Pass `additional_base` to state one further base that the top of the
   /// document goes by, which is what a document retrieved from more than one
-  /// place or named by its holder comes to. Each one addresses every place of
-  /// the document in turn, after whatever the document declares and after
+  /// place or named by its holder comes to. It addresses every place of the
+  /// document as well, after whatever the document declares and after
   /// `default_base`, and claims an identifier no more than `default_base`
   /// does. A base already in force is not registered twice
   ///
@@ -215,7 +212,7 @@ public:
       std::string_view default_dialect = "", std::string_view default_id = "",
       IdentifierMode identifier_mode = IdentifierMode::Additional,
       const Paths &paths = {sourcemeta::core::EMPTY_WEAK_POINTER},
-      std::string_view default_base = "", const Bases &additional_bases = {},
+      std::string_view default_base = "", std::string_view additional_base = "",
       std::uint64_t max_locations = std::numeric_limits<std::uint64_t>::max());
 
   /// Get a specific reference entry by type and pointer

@@ -11,9 +11,7 @@
   },
   "defaultDialect": "https://json-schema.org/draft/2020-12/schema",
   "defaultBase": "https://www.sourcemeta.com/test",
-  "additionalBases": [
-    "https://www.sourcemeta.com/test"
-  ],
+  "additionalBase": "https://www.sourcemeta.com/test",
   "paths": [
     "/common/foo",
     "/common/bar"
