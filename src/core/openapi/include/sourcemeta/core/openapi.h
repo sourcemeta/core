@@ -88,6 +88,83 @@ auto openapi_version_name(const OpenAPIVersion version) noexcept
     -> JSON::StringView;
 
 /// @ingroup openapi
+/// The version that an OpenAPI Description declares, exactly as it wrote it,
+/// returning no value for anything that declares none. A description naming a
+/// revision this module does not recognise reports one here all the same, which
+/// is what lets a caller quote it back. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/json.h>
+/// #include <sourcemeta/core/openapi.h>
+/// #include <cassert>
+///
+/// const auto document{sourcemeta::core::parse_json(R"({
+///   "openapi": "3.0.4",
+///   "info": { "title": "Example", "version": "1.0.0" },
+///   "paths": {}
+/// })")};
+///
+/// assert(sourcemeta::core::openapi_version_string(document).value() ==
+///        "3.0.4");
+/// assert(!sourcemeta::core::openapi_version(document).has_value());
+/// ```
+SOURCEMETA_CORE_OPENAPI_EXPORT
+auto openapi_version_string(const JSON &document)
+    -> std::optional<JSON::StringView>;
+
+/// @ingroup openapi
+/// Whether a value is an OpenAPI Description at all, whichever revision it
+/// declares, which is what tells one from a schema. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/json.h>
+/// #include <sourcemeta/core/openapi.h>
+/// #include <cassert>
+///
+/// const auto document{sourcemeta::core::parse_json(R"({
+///   "openapi": "3.1.1",
+///   "info": { "title": "Example", "version": "1.0.0" },
+///   "paths": {}
+/// })")};
+///
+/// assert(sourcemeta::core::openapi_is_document(document));
+/// ```
+SOURCEMETA_CORE_OPENAPI_EXPORT
+auto openapi_is_document(const JSON &document) -> bool;
+
+/// @ingroup openapi
+/// The base that every place of an OpenAPI Description is addressed by, given
+/// the URI the document was retrieved from. That is the URI the document names
+/// itself with, where the revision it declares admits one and what it names can
+/// be made absolute, and the retrieval URI canonicalised otherwise. Asking this
+/// is how a caller holding one document tells a problem reported within it from
+/// one reported in a document reached from it. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/json.h>
+/// #include <sourcemeta/core/openapi.h>
+/// #include <cassert>
+///
+/// const auto document{sourcemeta::core::parse_json(R"({
+///   "openapi": "3.2.0",
+///   "$self": "https://example.com/api",
+///   "info": { "title": "Example", "version": "1.0.0" },
+///   "paths": {}
+/// })")};
+///
+/// assert(sourcemeta::core::openapi_base(
+///            document, "https://example.com/openapi.json") ==
+///        "https://example.com/api");
+/// ```
+///
+/// The retrieval URI must carry a scheme. One that does not is refused by
+/// throwing sourcemeta::core::OpenAPIError, as reading a description under such
+/// a base is refused too
+SOURCEMETA_CORE_OPENAPI_EXPORT
+auto openapi_base(const JSON &document, std::string_view retrieval)
+    -> JSON::String;
+
+/// @ingroup openapi
 /// The contact information that an OpenAPI Description declares for the API.
 /// Every value borrows from the document it was read from, so that document
 /// must outlive this

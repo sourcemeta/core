@@ -106,10 +106,14 @@ inline auto openapi_check_document(const JSON &document, OpenAPIWalk &walk)
 // a `$self` down outright, which 3.2.1 Section 4 makes it no place to: "If the
 // JSON Schema differs from this section, then this section MUST be considered
 // authoritative", and the section it differs from asks only for a URI reference
+//
+// This takes the base rather than the walk that holds it, so that the public
+// sourcemeta::core::openapi_base answers out of this very function and cannot
+// drift from what framing settles on
 inline auto openapi_document_base(const JSON::StringView self,
-                                  const OpenAPIWalk &walk)
+                                  const JSON::String &base)
     -> std::optional<JSON::String> {
-  auto target{openapi_reference_target(self, walk)};
+  auto target{openapi_resolve_uri(self, base)};
   if (!target.has_value() || !target.value().scheme().has_value()) {
     return std::nullopt;
   }
@@ -122,7 +126,13 @@ inline auto openapi_document_base(const JSON::StringView self,
 // "Detecting OpenAPI documents through the root `openapi` field". A document
 // without one may be a bare holder of referenceable Objects or a Schema Object,
 // and 3.1 gives no ground to turn either down
-inline auto openapi_is_document(const JSON &document) -> bool {
+//
+// The member is read for its presence alone rather than for its type, which is
+// what the public sourcemeta::core::openapi_is_document differs from this on.
+// Detecting generously here is what lets a document declaring the field as
+// something other than a string be read and told exactly what is wrong with
+// it, rather than turned away as no OpenAPI Description at all
+inline auto openapi_has_version_field(const JSON &document) -> bool {
   return document.is_object() &&
          document.try_at("openapi", OPENAPI_HASH_OPENAPI) != nullptr;
 }
@@ -258,7 +268,7 @@ inline auto openapi_follow_target(const URI &target, const Pointer &origin,
   }
 
   if (!names_a_fragment && walk.document != nullptr &&
-      openapi_is_document(*walk.document)) {
+      openapi_has_version_field(*walk.document)) {
     throw OpenAPIError{walk.base, origin,
                        "This reference must name a document that holds only "
                        "what the reference expects"};
@@ -382,7 +392,7 @@ inline auto openapi_check_document(const JSON &document, OpenAPIWalk &walk)
       // lost by taking it, as Section 5.2.2 never resolves a reference against
       // a fragment, which is why what a fragment names is dropped rather than
       // read
-      auto established{openapi_document_base(reference, walk)};
+      auto established{openapi_document_base(reference, walk.base)};
       if (established.has_value()) {
         walk.base = std::move(established.value());
 

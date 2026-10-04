@@ -688,7 +688,7 @@ auto bundle_schemas(sourcemeta::core::JSON &document,
         // MAY be treated as an error if detected". Turning it down is also
         // what keeps a document of another revision from arriving this way
         if (result.has_value() &&
-            sourcemeta::core::openapi_is_document(result.value())) {
+            sourcemeta::core::openapi_has_version_field(result.value())) {
           throw sourcemeta::core::OpenAPIReferenceError{
               base, sourcemeta::core::EMPTY_POINTER,
               sourcemeta::core::JSON::String{identifier},
@@ -1420,7 +1420,7 @@ auto adopt_mappings(
     // OpenAPI Object or a Schema Object at its root, and a mapping names the
     // second of those. Reading the first as one is what Appendix G leaves
     // undefined
-    if (openapi_is_document(resolved.value())) {
+    if (openapi_has_version_field(resolved.value())) {
       throw OpenAPIReferenceError{
           base, entry.second.front().origin, identifier,
           "This mapping must name a schema rather than a document that holds "
@@ -1675,7 +1675,7 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
         // this. No revision of 3.1 carries that sentence, and what it carries
         // instead is the choice Section 4.3.1 leaves open, so declining to
         // read a document of some other shape is one rule for both revisions
-        if (!openapi_is_document(candidate)) {
+        if (!openapi_has_version_field(candidate)) {
           if (names_a_schema) {
             unavailable.insert(identifier);
             if (reference.mapping) {

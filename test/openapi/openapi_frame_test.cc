@@ -1027,3 +1027,190 @@ TEST(default_dialect_export_is_distinct_from_the_schema_frame_dialect) {
       result.at("schemas").at("locations").at("static").at(older).at("dialect"),
       sourcemeta::core::JSON{"http://json-schema.org/draft-07/schema#"});
 }
+
+TEST(openapi_base_without_a_self) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.1.1",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "paths": {}
+  })JSON")};
+
+  EXPECT_EQ(sourcemeta::core::openapi_base(document,
+                                           "https://example.com/openapi.json"),
+            "https://example.com/openapi.json");
+
+  const sourcemeta::core::OpenAPIFrame frame{
+      document, sourcemeta::core::schema_walker,
+      sourcemeta::core::schema_resolver, "https://example.com/openapi.json"};
+  EXPECT_EQ(frame.base(), sourcemeta::core::openapi_base(
+                              document, "https://example.com/openapi.json"));
+}
+
+TEST(openapi_base_canonicalises_the_retrieval_uri) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.1.1",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "paths": {}
+  })JSON")};
+
+  EXPECT_EQ(sourcemeta::core::openapi_base(
+                document, "HTTPS://Example.COM:443/./foo/../openapi.json"),
+            "https://example.com/openapi.json");
+
+  const sourcemeta::core::OpenAPIFrame frame{
+      document, sourcemeta::core::schema_walker,
+      sourcemeta::core::schema_resolver,
+      "HTTPS://Example.COM:443/./foo/../openapi.json"};
+  EXPECT_EQ(frame.base(), "https://example.com/openapi.json");
+}
+
+TEST(openapi_base_without_a_retrieval_uri) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.1.1",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "paths": {}
+  })JSON")};
+
+  EXPECT_EQ(sourcemeta::core::openapi_base(document, ""), "");
+
+  const sourcemeta::core::OpenAPIFrame frame{document,
+                                             sourcemeta::core::schema_walker,
+                                             sourcemeta::core::schema_resolver};
+  EXPECT_EQ(frame.base(), sourcemeta::core::openapi_base(document, ""));
+}
+
+TEST(openapi_base_of_an_absolute_self) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.2.0",
+    "$self": "https://example.com/api",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "paths": {}
+  })JSON")};
+
+  EXPECT_EQ(sourcemeta::core::openapi_base(document,
+                                           "https://example.com/openapi.json"),
+            "https://example.com/api");
+
+  const sourcemeta::core::OpenAPIFrame frame{
+      document, sourcemeta::core::schema_walker,
+      sourcemeta::core::schema_resolver, "https://example.com/openapi.json"};
+  EXPECT_EQ(frame.base(), "https://example.com/api");
+}
+
+TEST(openapi_base_of_a_relative_self) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.2.0",
+    "$self": "common/api.json",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "paths": {}
+  })JSON")};
+
+  EXPECT_EQ(sourcemeta::core::openapi_base(
+                document, "https://example.com/v1/openapi.json"),
+            "https://example.com/v1/common/api.json");
+
+  const sourcemeta::core::OpenAPIFrame frame{
+      document, sourcemeta::core::schema_walker,
+      sourcemeta::core::schema_resolver, "https://example.com/v1/openapi.json"};
+  EXPECT_EQ(frame.base(), "https://example.com/v1/common/api.json");
+}
+
+TEST(openapi_base_of_a_self_that_carries_a_fragment) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.2.0",
+    "$self": "https://example.com/api#/info",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "paths": {}
+  })JSON")};
+
+  EXPECT_EQ(sourcemeta::core::openapi_base(document,
+                                           "https://example.com/openapi.json"),
+            "https://example.com/api");
+
+  const sourcemeta::core::OpenAPIFrame frame{
+      document, sourcemeta::core::schema_walker,
+      sourcemeta::core::schema_resolver, "https://example.com/openapi.json"};
+  EXPECT_EQ(frame.base(), "https://example.com/api");
+}
+
+TEST(openapi_base_of_a_relative_self_with_nothing_to_resolve_against) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.2.0",
+    "$self": "common/api.json",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "paths": {}
+  })JSON")};
+
+  EXPECT_EQ(sourcemeta::core::openapi_base(document, ""), "");
+
+  const sourcemeta::core::OpenAPIFrame frame{document,
+                                             sourcemeta::core::schema_walker,
+                                             sourcemeta::core::schema_resolver};
+  EXPECT_EQ(frame.base(), "");
+}
+
+TEST(openapi_base_of_a_self_that_is_not_a_string) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.2.0",
+    "$self": 42,
+    "info": { "title": "Example", "version": "1.0.0" },
+    "paths": {}
+  })JSON")};
+
+  EXPECT_EQ(sourcemeta::core::openapi_base(document,
+                                           "https://example.com/openapi.json"),
+            "https://example.com/openapi.json");
+}
+
+TEST(openapi_base_of_a_self_under_a_revision_that_does_not_define_it) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.1.1",
+    "$self": "https://example.com/api",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "paths": {}
+  })JSON")};
+
+  EXPECT_EQ(sourcemeta::core::openapi_base(document,
+                                           "https://example.com/openapi.json"),
+            "https://example.com/openapi.json");
+}
+
+TEST(openapi_base_of_a_revision_we_do_not_recognise) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.0.4",
+    "$self": "https://example.com/api",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "paths": {}
+  })JSON")};
+
+  EXPECT_EQ(sourcemeta::core::openapi_base(document,
+                                           "https://example.com/openapi.json"),
+            "https://example.com/openapi.json");
+}
+
+TEST(openapi_base_of_a_value_that_is_not_an_object) {
+  const auto document{sourcemeta::core::parse_json("\"3.2.0\"")};
+
+  EXPECT_EQ(sourcemeta::core::openapi_base(document,
+                                           "https://example.com/openapi.json"),
+            "https://example.com/openapi.json");
+}
+
+TEST(openapi_base_of_a_retrieval_uri_without_a_scheme) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.1.1",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "paths": {}
+  })JSON")};
+
+  bool refused{false};
+  try {
+    [[maybe_unused]] const auto base{
+        sourcemeta::core::openapi_base(document, "example.com/openapi.json")};
+  } catch (const sourcemeta::core::OpenAPIError &error) {
+    refused = true;
+    EXPECT_EQ(error.location(), sourcemeta::core::EMPTY_POINTER);
+  }
+
+  EXPECT_TRUE(refused);
+}
