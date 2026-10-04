@@ -3023,11 +3023,11 @@ TEST(server_discover_result) {
   const sourcemeta::core::MCPCachePolicy cache{
       .ttl_ms = 3600000, .scope = sourcemeta::core::MCPCacheScope::Public};
 
-  const std::vector<sourcemeta::core::JSON::StringView> supported_versions{
+  const std::vector<sourcemeta::core::JSON::StringView> discovery_versions{
       "2026-07-28", "2025-11-25", "2025-06-18", "2025-03-26"};
   const auto envelope{sourcemeta::core::mcp_make_server_discover_result(
       sourcemeta::core::MCPProtocolVersion::V_2026_07_28, identifier,
-      capabilities, server, supported_versions, "Instructions here", cache)};
+      capabilities, server, discovery_versions, "Instructions here", cache)};
 
   const auto &result{envelope.at("result")};
   EXPECT_EQ(result.at("resultType").to_string(), "complete");

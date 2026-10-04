@@ -6,6 +6,7 @@
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
+#include <string>
 #include <vector>
 
 namespace {
@@ -42,8 +43,21 @@ auto request(const JSON::StringView method = "tools/list") -> JSON {
 void corpus(const MCPProtocolVersion version, const JSON::StringView definition,
             const JSON &value) {
   EXPECT_TRUE(value.is_object());
-  const auto *path{std::getenv("SOURCEMETA_MCP_CORPUS")};
-  if (!path) {
+  std::string path;
+#if defined(_MSC_VER)
+  char *environment_value{nullptr};
+  std::size_t size{0};
+  if (::_dupenv_s(&environment_value, &size, "SOURCEMETA_MCP_CORPUS") == 0 &&
+      environment_value) {
+    path = environment_value;
+  }
+  std::free(environment_value);
+#else
+  if (const auto *environment_value{std::getenv("SOURCEMETA_MCP_CORPUS")}) {
+    path = environment_value;
+  }
+#endif
+  if (path.empty()) {
     return;
   }
   std::ofstream stream{path, std::ios::app};
@@ -99,7 +113,7 @@ TEST(conformance_errors_and_transport_context) {
 }
 
 TEST(conformance_initialization_supported_subset) {
-  constexpr JSON::StringView only[]{"2025-03-26"};
+  const JSON::StringView only[]{"2025-03-26"};
   const auto init{parse_json(
       R"({"jsonrpc":"2.0","id":0,"method":"initialize","params":{"protocolVersion":"unknown","capabilities":{},"clientInfo":{"name":"client","version":"1"}}})")};
   const auto result{
@@ -114,7 +128,7 @@ TEST(conformance_initialization_supported_subset) {
   invalid.assign("id", JSON{});
   rejects(
       [&] { mcp_make_initialize_result(invalid, {}, {"server", "1"}, only); });
-  constexpr JSON::StringView modern_only[]{"2026-07-28"};
+  const JSON::StringView modern_only[]{"2026-07-28"};
   rejects([&] {
     mcp_make_initialize_result(init, {}, {"server", "1"}, modern_only);
   });
