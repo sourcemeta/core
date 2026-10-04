@@ -906,18 +906,27 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
     // meta-schema it is described by. What counts as itself is the schema
     // being analysed rather than whatever document it was pulled out of,
     // since naming a path is what puts everything outside it out of scope
+    //
+    // What this path has already looked up is remembered separately from what
+    // the frame as a whole knows, because another path is as much out of
+    // scope as anything else outside this one, and a meta-schema it happens
+    // to carry must not stand in for one that is missing here
+    std::unordered_map<sourcemeta::core::JSON::String,
+                       const sourcemeta::core::JSON *>
+        probed_within_path;
     const SchemaResolver effective_resolver{
-        [&schema, &resolver,
+        [&schema, &resolver, &probed_within_path,
          this](const std::string_view identifier) -> SchemaResolverResult {
           const sourcemeta::core::JSON::String key{identifier};
-          const auto hit{this->cache_->probed_metaschemas.find(key)};
-          if (hit != this->cache_->probed_metaschemas.cend()) {
+          const auto hit{probed_within_path.find(key)};
+          if (hit != probed_within_path.cend()) {
             return *(hit->second);
           }
 
           const auto *match{
               sourcemeta::core::metaschema_try_embedded(schema, key, resolver)};
           if (match) {
+            probed_within_path.emplace(key, match);
             this->cache_->probed_metaschemas.emplace(key, match);
             return *match;
           }

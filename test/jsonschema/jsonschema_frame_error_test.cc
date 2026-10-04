@@ -2838,3 +2838,43 @@ TEST(a_metaschema_outside_the_selected_schema_is_out_of_scope) {
     FAIL();
   }
 }
+
+TEST(a_metaschema_carried_by_another_selected_path_is_out_of_scope) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "a": {
+      "$id": "https://example.com/a",
+      "$schema": "https://example.com/meta",
+      "$defs": {
+        "https://example.com/meta": {
+          "$id": "https://example.com/meta",
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$vocabulary": {
+            "https://json-schema.org/draft/2020-12/vocab/core": true
+          }
+        }
+      }
+    },
+    "b": {
+      "$id": "https://example.com/b",
+      "$schema": "https://example.com/meta"
+    }
+  })JSON");
+
+  try {
+    [[maybe_unused]] const sourcemeta::core::SchemaFrame frame{
+        sourcemeta::core::SchemaFrame::Mode::References,
+        document,
+        sourcemeta::core::schema_walker,
+        sourcemeta::core::schema_resolver,
+        "https://json-schema.org/draft/2020-12/schema",
+        "",
+        sourcemeta::core::SchemaFrame::IdentifierMode::Additional,
+        {sourcemeta::core::to_weak_pointer(sourcemeta::core::Pointer{"a"}),
+         sourcemeta::core::to_weak_pointer(sourcemeta::core::Pointer{"b"})}};
+    FAIL();
+  } catch (const sourcemeta::core::SchemaResolutionError &error) {
+    EXPECT_EQ(error.identifier(), "https://example.com/meta");
+  } catch (...) {
+    FAIL();
+  }
+}
