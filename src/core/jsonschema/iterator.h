@@ -85,16 +85,8 @@ inline auto declaration_counts(const sourcemeta::core::JSON &subschema,
                                const sourcemeta::core::SchemaResolver &resolver,
                                const sourcemeta::core::SchemaWalker &walker)
     -> bool {
-  const auto resolve{[&subschema, &resolver](const std::string_view target)
-                         -> sourcemeta::core::SchemaResolverResult {
-    const auto *embedded{
-        sourcemeta::core::metaschema_try_embedded(subschema, target, resolver)};
-    if (embedded) {
-      return *embedded;
-    }
-
-    return resolver(target);
-  }};
+  const auto resolve{
+      sourcemeta::core::resolver_with_embedded(subschema, resolver)};
 
   const auto base{
       sourcemeta::core::base_dialect(subschema, resolve, declared, false)};
@@ -264,18 +256,8 @@ walk(const std::optional<sourcemeta::core::WeakPointer> &root_parent,
     // meta-schema inside its own `$defs`/`definitions`. Probe for it here, the
     // same way we do at the document root, so that nested self-contained
     // meta-schemas resolve to their embedded definition before the resolver
-    const auto vocabularies{sourcemeta::core::vocabularies(
-        [&subschema,
-         &resolver](const std::string_view identifier) -> SchemaResolverResult {
-          const auto *embedded{sourcemeta::core::metaschema_try_embedded(
-              subschema, identifier, resolver)};
-          if (embedded) {
-            return *embedded;
-          }
-
-          return resolver(identifier);
-        },
-        current_base_dialect, current_dialect)};
+    const auto vocabularies{sourcemeta::core::vocabularies_with_embedded(
+        subschema, resolver, current_base_dialect, current_dialect)};
 
     // A schema that names its dialect through a keyword that very dialect
     // leaves undefined cannot be taken at its word, because honouring it would
