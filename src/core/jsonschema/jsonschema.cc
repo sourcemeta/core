@@ -198,6 +198,7 @@ auto sourcemeta::core::identify(const sourcemeta::core::JSON &schema,
 
 auto sourcemeta::core::schema_reidentify(sourcemeta::core::JSON &schema,
                                          std::string_view new_identifier,
+                                         const SchemaWalker &walker,
                                          const SchemaResolver &resolver,
                                          std::string_view default_dialect)
     -> void {
@@ -205,6 +206,22 @@ auto sourcemeta::core::schema_reidentify(sourcemeta::core::JSON &schema,
       sourcemeta::core::base_dialect(schema, resolver, default_dialect)};
   if (!resolved_base_dialect.has_value()) {
     throw sourcemeta::core::SchemaUnknownBaseDialectError();
+  }
+
+  // Writing the keyword anyway would leave an identifier that every reader of
+  // this dialect goes on to ignore, which is worse than refusing outright
+  const auto effective_dialect{
+      sourcemeta::core::dialect(schema, default_dialect)};
+  if (!sourcemeta::core::dialect_defines_identifier(
+          walker,
+          sourcemeta::core::vocabularies_with_embedded(
+              schema, resolver, resolved_base_dialect.value(),
+              effective_dialect),
+          resolved_base_dialect.value())) {
+    throw sourcemeta::core::SchemaKeywordError(
+        sourcemeta::core::id_keyword(resolved_base_dialect.value()).name,
+        new_identifier,
+        "The dialect of the schema does not support identification");
   }
 
   schema_reidentify(schema, new_identifier, resolved_base_dialect.value());
