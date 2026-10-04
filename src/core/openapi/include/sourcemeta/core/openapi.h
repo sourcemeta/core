@@ -267,7 +267,12 @@ public:
     /// side of its `#`, so neither is repeated here
     JSON::String destination;
     /// Whether that destination is nowhere the frame holds, which is what makes
-    /// a description one that has to be made whole before it describes anything
+    /// a description one that has to be made whole before it describes
+    /// anything. A reference that names this very document by where it was
+    /// retrieved from rather than by the `$self` it declares lands nowhere,
+    /// which OpenAPI Specification 3.2.1, Section 4.1.1 asks of it: "references
+    /// MUST use the target document's `$self` URI if the `$self` field is
+    /// present"
     bool dangling{false};
     /// What the position that spells it expects to find at the far end, which
     /// OpenAPI Specification 3.1.1, Section 4.3.1 fixes by where the reference
@@ -376,7 +381,8 @@ public:
 
   /// Frame an OpenAPI Description from a given document. That document must
   /// outlive the frame, as the metadata it reports borrows from it. The given
-  /// base need not, as the frame canonicalises it into a string of its own
+  /// base and identifier need not, as the frame canonicalises each into a
+  /// string of its own
   ///
   /// The base is the retrieval URI of the document. OpenAPI 3.1 offers a
   /// document no way of declaring an identity of its own, so under that
@@ -384,6 +390,32 @@ public:
   /// onwards a document may declare `$self`, which takes precedence once it is
   /// absolute, resolving against this when relative and standing aside when
   /// neither gives it a scheme
+  ///
+  /// Pass `default_id` to name the description, which is what a document held
+  /// under a name of its holder's rather than of its own comes to. Every place
+  /// it holds is keyed by that name as well, the Schema Object positions
+  /// included, and a Schema Object position reports whichever name addresses
+  /// it as the base to resolve against, every name being in force within the
+  /// schemas. RFC 3986 Section 5.1.2 puts what the entity holding a document
+  /// says about it ahead of Section 5.1.3's retrieval URI, so where the
+  /// document declares no `$self` this is the base rather than another name
+  /// for it, and a relative URI within it resolves against this. A `$self`
+  /// comes ahead of it where there is one. Naming what the base names already
+  /// records nothing further
+  ///
+  /// Once a `$self` establishes a base, the URI the document was retrieved
+  /// from names nothing. OpenAPI Specification 3.2.1, Section 4.1.1:
+  /// "references MUST use the target document's `$self` URI if the `$self`
+  /// field is present", and support for anything else is a permission this
+  /// declines rather than takes: "Implementations MAY choose to support
+  /// referencing by other URIs such as the retrieval URI even when `$self` is
+  /// present, however this behavior is not interoperable and relying on it is
+  /// NOT RECOMMENDED". So a reference written against the retrieval URI of a
+  /// document that declares `$self` lands nowhere and leaves the description
+  /// one that does not stand alone, which is the complaint that reference has
+  /// coming. Pass the retrieval URI as `default_id` to address the places it
+  /// holds by it regardless, which is a reader naming the document rather
+  /// than the description relying on a URI it may not use
   ///
   /// Only the given document is read. A reference that leaves it is recorded
   /// and left there, and a frame holding one of those does not stand alone
@@ -404,8 +436,9 @@ public:
   /// register past it, which reports the allowance the caller set rather than
   /// whatever was left of it
   ///
-  /// The base must carry a scheme. One that does not is refused before the
-  /// document is read, which is why such a refusal names no place within it
+  /// The base must carry a scheme, and so must the identifier. One that does
+  /// not is refused before the document is read, which is why such a refusal
+  /// names no place within it
   ///
   /// A document that does not conform to the specification is rejected here
   /// rather than reported back, by throwing sourcemeta::core::OpenAPIError.
@@ -422,6 +455,7 @@ public:
   OpenAPIFrame(
       const JSON &document, const SchemaWalker &walker,
       const SchemaResolver &resolver, std::string_view default_base = "",
+      std::string_view default_id = "",
       std::uint64_t max_locations = std::numeric_limits<std::uint64_t>::max());
 
   ~OpenAPIFrame();

@@ -157,7 +157,21 @@ struct OpenAPIWalk {
   // `$self` field, which identifies the OpenAPI document, is ignored and the
   // retrieval URI is used instead". So this is kept apart from the base above
   // rather than replaced by it
+  //
+  // Resolving an API URL is all it is kept for. Once `$self` establishes a
+  // base, 3.2.1 Section 4.1.1 has a reference name the document by that and
+  // nothing else, so this stops being a name of the document and no place it
+  // holds is keyed by it
   JSON::String retrieval;
+  // What the caller stated the description goes by, which is a name it claims
+  // rather than a place it came from
+  JSON::String default_id;
+  // The one other name the description goes by, which every place it holds is
+  // keyed by as well as by the base above. Empty where the base is the only
+  // name there is, which a name that comes to what the base comes to leaves
+  // it. A document that establishes a base of its own goes by what the caller
+  // named it and by nothing else, which 3.2.1 Section 4.1.1 is the reason for
+  JSON::String additional_name;
   // The document the checks are reading, which a reference that stays inside
   // it resolves its fragment against
   const JSON *document{nullptr};
@@ -557,6 +571,31 @@ inline auto openapi_record(OpenAPIWalk &walk, const Pointer &pointer,
   if (known != walk.locations.cend() && known->second.type != kind) {
     throw OpenAPIError{walk.base, pointer,
                        "This place is read as more than one kind of Object"};
+  }
+
+  // Every name the description goes by addresses every place it holds, so one
+  // place is recorded once per name and costs one of the allowance for each
+  if (!walk.additional_name.empty()) {
+    auto additional{openapi_location_uri(walk.additional_name, pointer)};
+    if (!walk.locations.contains(additional)) {
+      if (walk.remaining == 0) {
+        throw OpenAPIFrameLimitError{walk.limit};
+      }
+
+      walk.remaining -= 1;
+    }
+
+    // A record keyed by one name describes the document as that name addresses
+    // it, so the base a Schema Object position carries is that name rather
+    // than the one the description settled on. Every name is in force within
+    // the schemas, the frame of those being given each of them as well
+    walk.locations.insert_or_assign(
+        std::move(additional),
+        OpenAPILocation{.type = kind,
+                        .pointer = pointer,
+                        .default_dialect = default_dialect,
+                        .base = base.empty() ? JSON::String{}
+                                             : walk.additional_name});
   }
 
   walk.locations.insert_or_assign(

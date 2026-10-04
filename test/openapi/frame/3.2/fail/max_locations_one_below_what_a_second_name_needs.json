@@ -1,0 +1,17 @@
+{
+  "document": {
+    "openapi": "3.2.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "$self": "https://example.com/openapi"
+  },
+  "defaultId": "https://example.com/held",
+  "maxLocations": 5,
+  "error": {
+    "message": "The OpenAPI Description exceeds the maximum number of locations that framing may register",
+    "limit": 5
+  }
+}

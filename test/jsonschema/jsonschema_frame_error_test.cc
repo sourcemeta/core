@@ -31,6 +31,31 @@ TEST(default_base_with_fragment) {
   }
 }
 
+TEST(additional_base_with_fragment) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema"
+  })JSON");
+
+  try {
+    [[maybe_unused]] const sourcemeta::core::SchemaFrame frame{
+        sourcemeta::core::SchemaFrame::Mode::References,
+        document,
+        sourcemeta::core::schema_walker,
+        sourcemeta::core::schema_resolver,
+        "",
+        "",
+        sourcemeta::core::SchemaFrame::IdentifierMode::Additional,
+        {sourcemeta::core::EMPTY_WEAK_POINTER},
+        "https://www.sourcemeta.com/test",
+        "https://www.example.com/held#fragment"};
+    FAIL();
+  } catch (const sourcemeta::core::SchemaFrameError &error) {
+    EXPECT_STREQ(error.what(),
+                 "The base must not contain a non-empty fragment");
+    EXPECT_EQ(error.identifier(), "https://www.example.com/held#fragment");
+  }
+}
+
 TEST(default_base_with_colliding_anchors_across_paths) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "common": {
