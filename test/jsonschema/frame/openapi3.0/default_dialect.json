@@ -184,5 +184,16 @@
     "references": []
   },
   "standalone": true,
-  "reachability": []
+  "reachability": [
+    {
+      "from": "",
+      "to": "",
+      "reachable": true
+    },
+    {
+      "from": "",
+      "to": "#/properties/name",
+      "reachable": true
+    }
+  ]
 }

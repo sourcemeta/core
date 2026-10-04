@@ -480,5 +480,11 @@
     ]
   },
   "standalone": true,
-  "reachability": []
+  "reachability": [
+    {
+      "from": "",
+      "to": "https://example.com/tag",
+      "reachable": true
+    }
+  ]
 }

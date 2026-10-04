@@ -408,5 +408,16 @@
     ]
   },
   "standalone": true,
-  "reachability": []
+  "reachability": [
+    {
+      "from": "",
+      "to": "",
+      "reachable": true
+    },
+    {
+      "from": "",
+      "to": "#/$defs/pet",
+      "reachable": true
+    }
+  ]
 }
