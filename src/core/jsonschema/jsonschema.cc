@@ -214,8 +214,9 @@ auto sourcemeta::core::schema_reidentify(sourcemeta::core::JSON &schema,
       sourcemeta::core::dialect(schema, default_dialect)};
   if (!sourcemeta::core::dialect_defines_identifier(
           walker,
-          sourcemeta::core::vocabularies(
-              resolver, resolved_base_dialect.value(), effective_dialect),
+          sourcemeta::core::vocabularies_with_embedded(
+              schema, resolver, resolved_base_dialect.value(),
+              effective_dialect),
           resolved_base_dialect.value())) {
     throw sourcemeta::core::SchemaKeywordError(
         sourcemeta::core::id_keyword(resolved_base_dialect.value()).name,

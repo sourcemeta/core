@@ -49,20 +49,8 @@ identifier_counts(const sourcemeta::core::JSON &subschema,
     return true;
   }
 
-  // A schema may pin a meta-schema that it carries within itself, so look
-  // there before the resolver, the same way the traversal does
-  const auto vocabularies{sourcemeta::core::vocabularies(
-      [&subschema, &resolver](const std::string_view target)
-          -> sourcemeta::core::SchemaResolverResult {
-        const auto *embedded{sourcemeta::core::metaschema_try_embedded(
-            subschema, target, resolver)};
-        if (embedded) {
-          return *embedded;
-        }
-
-        return resolver(target);
-      },
-      base_dialect, dialect)};
+  const auto vocabularies{sourcemeta::core::vocabularies_with_embedded(
+      subschema, resolver, base_dialect, dialect)};
   return sourcemeta::core::dialect_defines_identifier(walker, vocabularies,
                                                       base_dialect);
 }

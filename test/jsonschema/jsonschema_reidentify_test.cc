@@ -896,6 +896,9 @@ TEST(reidentify_openapi_3_0_refuses) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "type": "string"
   })JSON");
+
+  const auto expected{document};
+
   try {
     sourcemeta::core::schema_reidentify(
         document, "https://example.com/my-new-id",
@@ -907,8 +910,7 @@ TEST(reidentify_openapi_3_0_refuses) {
                  "The dialect of the schema does not define this keyword");
     EXPECT_EQ(error.keyword(), "id");
     EXPECT_EQ(error.value(), "https://example.com/my-new-id");
-    EXPECT_FALSE(document.defines("id"));
-    EXPECT_FALSE(document.defines("$id"));
+    EXPECT_EQ(document, expected);
   }
 }
 
@@ -916,6 +918,9 @@ TEST(reidentify_openapi_3_0_refuses_the_other_release) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "type": "string"
   })JSON");
+
+  const auto expected{document};
+
   try {
     sourcemeta::core::schema_reidentify(
         document, "https://example.com/my-new-id",
@@ -927,6 +932,7 @@ TEST(reidentify_openapi_3_0_refuses_the_other_release) {
                  "The dialect of the schema does not define this keyword");
     EXPECT_EQ(error.keyword(), "id");
     EXPECT_EQ(error.value(), "https://example.com/my-new-id");
+    EXPECT_EQ(document, expected);
   }
 }
 
@@ -944,6 +950,46 @@ TEST(reidentify_draft4_still_writes_the_legacy_keyword) {
     "id": "https://example.com/my-new-id",
     "$schema": "http://json-schema.org/draft-04/schema#",
     "type": "string"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(reidentify_replace_embedded_metaschema) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://example.com/meta",
+    "$id": "https://example.com/my-schema",
+    "$defs": {
+      "https://example.com/meta": {
+        "$id": "https://example.com/meta",
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$vocabulary": {
+          "https://json-schema.org/draft/2020-12/vocab/core": true,
+          "https://json-schema.org/draft/2020-12/vocab/validation": true
+        },
+        "type": "object"
+      }
+    }
+  })JSON");
+
+  sourcemeta::core::schema_reidentify(document, "https://example.com/my-new-id",
+                                      sourcemeta::core::schema_walker,
+                                      sourcemeta::core::schema_resolver);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://example.com/meta",
+    "$id": "https://example.com/my-new-id",
+    "$defs": {
+      "https://example.com/meta": {
+        "$id": "https://example.com/meta",
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$vocabulary": {
+          "https://json-schema.org/draft/2020-12/vocab/core": true,
+          "https://json-schema.org/draft/2020-12/vocab/validation": true
+        },
+        "type": "object"
+      }
+    }
   })JSON");
 
   EXPECT_EQ(document, expected);

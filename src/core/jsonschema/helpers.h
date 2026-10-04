@@ -123,6 +123,28 @@ inline auto dialect_defines_identifier(const SchemaWalker &walker,
   return dialect_defines(walker, vocabularies, id_keyword(base_dialect).name);
 }
 
+// A schema may pin a meta-schema that it carries within itself, so looking
+// there before the resolver is what keeps a document that describes itself
+// from being read against whatever else answers to that name
+inline auto vocabularies_with_embedded(const sourcemeta::core::JSON &schema,
+                                       const SchemaResolver &resolver,
+                                       const SchemaBaseDialect base_dialect,
+                                       const std::string_view dialect)
+    -> SchemaVocabularies {
+  return sourcemeta::core::vocabularies(
+      [&schema,
+       &resolver](const std::string_view target) -> SchemaResolverResult {
+        const auto *embedded{sourcemeta::core::metaschema_try_embedded(
+            schema, target, resolver)};
+        if (embedded != nullptr) {
+          return *embedded;
+        }
+
+        return resolver(target);
+      },
+      base_dialect, dialect);
+}
+
 inline auto definitions_keyword(const SchemaBaseDialect base_dialect)
     -> std::string_view {
   switch (base_dialect) {
