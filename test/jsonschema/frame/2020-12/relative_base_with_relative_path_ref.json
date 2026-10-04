@@ -155,6 +155,7 @@
     ]
   },
   "standalone": false,
+  "standaloneIgnoringMetaschemas": false,
   "reachability": [
     {
       "from": "foo/bar/baz",

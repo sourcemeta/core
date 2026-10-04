@@ -605,7 +605,13 @@ auto bundle_internal(JSON &schema, const SchemaWalker &walker,
                       default_base,
                       remaining};
     charge(remaining, frame);
-    if (frame.standalone()) {
+    // This dialect reserves no location for schema definitions, so there is
+    // nowhere to put a meta-schema even where the document names one it does
+    // not carry. Leaving that as it stands is as far as bundling can get
+    // rather than a failure on its part, whatever the mode asked for, whereas
+    // a reference to a schema that is merely absent is still something it was
+    // asked to resolve and could not
+    if (frame.standalone_ignoring_metaschemas()) {
       return;
     }
 

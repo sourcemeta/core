@@ -162,5 +162,6 @@
       }
     ]
   },
-  "standalone": false
+  "standalone": false,
+  "standaloneIgnoringMetaschemas": false
 }

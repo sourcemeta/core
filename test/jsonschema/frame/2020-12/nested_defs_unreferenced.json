@@ -271,6 +271,7 @@
     ]
   },
   "standalone": true,
+  "standaloneIgnoringMetaschemas": true,
   "reachability": [
     {
       "from": "https://www.sourcemeta.com/schema",

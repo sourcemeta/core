@@ -345,6 +345,7 @@
     ]
   },
   "standalone": false,
+  "standaloneIgnoringMetaschemas": false,
   "reachability": [
     {
       "from": "https://example.com/root",
