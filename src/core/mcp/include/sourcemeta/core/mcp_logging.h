@@ -15,13 +15,21 @@ namespace sourcemeta::core {
 /// @see
 /// https://modelcontextprotocol.io/specification/2026-07-28/server/utilities/logging
 enum class MCPLogLevel : std::uint8_t {
+  /// Detailed information useful for debugging.
   Debug,
+  /// General informational messages.
   Info,
+  /// Normal but significant conditions.
   Notice,
+  /// Conditions that may require attention.
   Warning,
+  /// Error conditions.
   Error,
+  /// Critical conditions.
   Critical,
+  /// Conditions requiring immediate action.
   Alert,
+  /// Conditions indicating that the system is unusable.
   Emergency
 };
 
