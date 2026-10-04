@@ -343,20 +343,6 @@ auto elevate_embedded_resources(
     root_container = &root_container->at(token.to_property());
   }
 
-  // A schema finds a meta-schema it pins by looking within itself, so one that
-  // travels out of here stops being found and leaves whatever pinned it
-  // unreadable. Lifting it would save a copy where two remotes pin the same
-  // one, and cost the only thing that makes either of them mean anything
-  std::unordered_set<JSON::StringView> pinned;
-  pinned.insert(remote_dialect_uri);
-  for (const auto &entry : defs.as_object()) {
-    const auto *declared{
-        entry.second.is_object() ? entry.second.try_at("$schema") : nullptr};
-    if ((declared != nullptr) && declared->is_string()) {
-      pinned.insert(declared->to_string());
-    }
-  }
-
   std::vector<std::pair<JSON::String, bool>> to_extract;
   std::vector<JSON::String> to_remove;
   for (const auto &entry : defs.as_object()) {
@@ -398,10 +384,6 @@ auto elevate_embedded_resources(
     }
 
     const JSON::String identifier_string{identifier};
-    if (pinned.contains(JSON::StringView{identifier})) {
-      continue;
-    }
-
     const auto defines_dialect{value.defines("$schema")};
     if (bundled.contains(identifier_string)) {
       if (container_exists && root_container->is_object()) {

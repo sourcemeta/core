@@ -33,6 +33,9 @@ constexpr auto JSONSCHEMA_HASH_RECURSIVE_ANCHOR{
 constexpr auto JSONSCHEMA_HASH_VOCABULARY{JSON::Object::hash("$vocabulary"sv)};
 constexpr auto JSONSCHEMA_HASH_DEFS{JSON::Object::hash("$defs"sv)};
 constexpr auto JSONSCHEMA_HASH_DEFINITIONS{JSON::Object::hash("definitions"sv)};
+constexpr auto EXTENSION_DEFINITIONS_KEYWORD{"x-definitions"sv};
+constexpr auto JSONSCHEMA_HASH_EXTENSION_DEFINITIONS{
+    JSON::Object::hash(EXTENSION_DEFINITIONS_KEYWORD)};
 constexpr auto DIALECT_OVERRIDE_KEYWORD{
     "x-sourcemeta-dialect-override-subschema"sv};
 constexpr auto JSONSCHEMA_HASH_DIALECT_OVERRIDE{
@@ -284,9 +287,11 @@ embedded_metaschema_candidate(const sourcemeta::core::JSON &document,
     canonical = std::nullopt;
   }
 
-  constexpr std::array<SchemaKeyword, 2> CONTAINERS{
+  constexpr std::array<SchemaKeyword, 3> CONTAINERS{
       {{.name = "$defs"sv, .hash = JSONSCHEMA_HASH_DEFS},
-       {.name = "definitions"sv, .hash = JSONSCHEMA_HASH_DEFINITIONS}}};
+       {.name = "definitions"sv, .hash = JSONSCHEMA_HASH_DEFINITIONS},
+       {.name = EXTENSION_DEFINITIONS_KEYWORD,
+        .hash = JSONSCHEMA_HASH_EXTENSION_DEFINITIONS}}};
   for (const auto container : CONTAINERS) {
     const auto *entries{document.try_at(container.name, container.hash)};
     if ((entries == nullptr) || !entries->is_object()) {
@@ -315,22 +320,27 @@ inline auto embedded_metaschema_link_valid(const sourcemeta::core::JSON &link,
                                            const std::string_view container,
                                            const SchemaBaseDialect base_dialect)
     -> bool {
-  // In 2019-09 and 2020-12, `definitions` is still supported
-  // for backwards compatibility
-  switch (base_dialect) {
-    case SchemaBaseDialect::JSON_SCHEMA_2020_12:
-    case SchemaBaseDialect::JSON_SCHEMA_2020_12_HYPER:
-    case SchemaBaseDialect::JSON_SCHEMA_2019_09:
-    case SchemaBaseDialect::JSON_SCHEMA_2019_09_HYPER:
-      if (container != "$defs" && container != "definitions") {
-        return false;
-      }
+  // A dialect that reserves none of the names a base dialect knows gets this
+  // one instead, so a link may sit there whatever the chain terminates at. The
+  // base dialects below are the rest of what any link may sit in
+  if (container != EXTENSION_DEFINITIONS_KEYWORD) {
+    // In 2019-09 and 2020-12, `definitions` is still supported
+    // for backwards compatibility
+    switch (base_dialect) {
+      case SchemaBaseDialect::JSON_SCHEMA_2020_12:
+      case SchemaBaseDialect::JSON_SCHEMA_2020_12_HYPER:
+      case SchemaBaseDialect::JSON_SCHEMA_2019_09:
+      case SchemaBaseDialect::JSON_SCHEMA_2019_09_HYPER:
+        if (container != "$defs" && container != "definitions") {
+          return false;
+        }
 
-      break;
-    default:
-      if (container != definitions_keyword(base_dialect)) {
-        return false;
-      }
+        break;
+      default:
+        if (container != definitions_keyword(base_dialect)) {
+          return false;
+        }
+    }
   }
 
   std::optional<sourcemeta::core::JSON::String> canonical;
