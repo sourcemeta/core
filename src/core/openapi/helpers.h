@@ -643,10 +643,24 @@ inline auto openapi_expect_boolean(const JSON &value, const Pointer &base,
 // dialect in force, which is everything a JSON Schema implementation needs to
 // take it from here
 inline auto openapi_expect_schema(const JSON &value, const Pointer &location,
-                                  const char *message, OpenAPIWalk &walk)
-    -> void {
-  if (!value.is_object() && !value.is_boolean()) {
-    throw OpenAPIError{location, message};
+                                  OpenAPIWalk &walk) -> void {
+  // OpenAPI Specification 3.1.1, Section 4.8.24: "The empty schema (which
+  // allows any instance to validate) MAY be represented by the boolean value
+  // `true` and a schema which allows no instance to validate MAY be
+  // represented by the boolean value `false`".
+  //
+  // No release of 3.0 says anything of the kind. What it says instead is that
+  // a Schema Object "is an extended subset of JSON Schema Specification Draft
+  // Wright-00", and Section 4.4 of that draft reads "A JSON schema MUST be an
+  // object", so the boolean form is one the later revision brings and the
+  // earlier one has no room for
+  if (walk.version >= OpenAPIVersion::OPENAPI_3_1) {
+    if (!value.is_object() && !value.is_boolean()) {
+      throw OpenAPIError{location,
+                         "A Schema Object must be an object or a boolean"};
+    }
+  } else if (!value.is_object()) {
+    throw OpenAPIError{location, "A Schema Object must be an object"};
   }
 
   // A Schema Object is a handoff rather than something this module reads, so

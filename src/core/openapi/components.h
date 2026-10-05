@@ -252,9 +252,7 @@ inline auto openapi_check_components(const JSON &document, OpenAPIWalk &walk)
 
       const auto entry_location{openapi_child(location, component.first)};
       if (holds_schemas) {
-        openapi_expect_schema(component.second, entry_location,
-                              "A Schema Object must be an object or a boolean",
-                              walk);
+        openapi_expect_schema(component.second, entry_location, walk);
         continue;
       }
 

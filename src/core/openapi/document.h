@@ -61,12 +61,13 @@ constexpr auto OPENAPI_DIALECT_3_2{
 // releases of the document schema that carries it. Both releases describe the
 // same keywords and draw on the same vocabulary.
 //
-// OpenAPI Specification 3.0.4, Schema Object, says of the keywords it takes
-// from JSON Schema that "the OpenAPI Specification [...] adjusts" them, and
-// tables thirty-five of its own without `$schema` among them, which the
-// document meta-schema then closes. So a Schema Object of this revision can
-// never name a dialect of its own, and this fallback is the only way one is
-// ever in force
+// OpenAPI Specification 3.0.4, Schema Object, lists twenty-seven keywords it
+// takes from JSON Schema, tables eight of its own, and closes the set:
+// "Additional keywords defined by the JSON Schema specification that are not
+// mentioned here are strictly unsupported". The releases before it say the
+// same of "Additional properties". A keyword naming a dialect is in neither
+// list, so a Schema Object of this revision has nothing to name one with, and
+// this fallback is the only way one is ever in force
 constexpr auto OPENAPI_DIALECT_3_0{
     "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect"sv};
 

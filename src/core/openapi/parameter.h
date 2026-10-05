@@ -289,8 +289,7 @@ inline auto openapi_check_parameter(const JSON &value, const Pointer &base,
     return {parameter_name, parameter_location};
   }
 
-  openapi_expect_schema(*schema, openapi_child(base, "schema"sv),
-                        "A Schema Object must be an object or a boolean", walk);
+  openapi_expect_schema(*schema, openapi_child(base, "schema"sv), walk);
 
   // Section 4.8.12.3 gives the styles an `in` column, and both revisions fill
   // it with the same four locations. 3.2.1 Section 4.12.3 goes on to close the

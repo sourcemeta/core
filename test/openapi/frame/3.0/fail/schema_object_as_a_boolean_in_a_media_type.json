@@ -1,0 +1,31 @@
+{
+  "document": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "post": {
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": true
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "ok"
+            }
+          }
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "A Schema Object must be an object",
+    "location": "/paths/~1pets/post/requestBody/content/application~1json/schema"
+  }
+}

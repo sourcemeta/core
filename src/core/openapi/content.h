@@ -201,9 +201,7 @@ inline auto openapi_check_media_type(const JSON &value, const Pointer &base,
 
   const auto *schema{value.try_at("schema", OPENAPI_HASH_SCHEMA)};
   if (schema != nullptr) {
-    openapi_expect_schema(*schema, openapi_child(base, "schema"sv),
-                          "A Schema Object must be an object or a boolean",
-                          walk);
+    openapi_expect_schema(*schema, openapi_child(base, "schema"sv), walk);
   }
 
   openapi_check_examples(
@@ -216,7 +214,6 @@ inline auto openapi_check_media_type(const JSON &value, const Pointer &base,
   const auto *item_schema{value.try_at("itemSchema", OPENAPI_HASH_ITEM_SCHEMA)};
   if (item_schema != nullptr) {
     openapi_expect_schema(*item_schema, openapi_child(base, "itemSchema"sv),
-                          "A Schema Object must be an object or a boolean",
                           walk);
   }
 
@@ -331,8 +328,7 @@ inline auto openapi_check_header(const JSON &value, const Pointer &base,
     return;
   }
 
-  openapi_expect_schema(*schema, openapi_child(base, "schema"sv),
-                        "A Schema Object must be an object or a boolean", walk);
+  openapi_expect_schema(*schema, openapi_child(base, "schema"sv), walk);
 
   // OpenAPI Specification 3.1.1, Section 4.8.21 fixes the only style a Header
   // Object may name

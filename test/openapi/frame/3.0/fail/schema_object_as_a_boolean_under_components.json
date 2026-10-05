@@ -1,0 +1,19 @@
+{
+  "document": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "schemas": {
+        "Anything": true
+      }
+    }
+  },
+  "error": {
+    "message": "A Schema Object must be an object",
+    "location": "/components/schemas/Anything"
+  }
+}
