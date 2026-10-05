@@ -1,0 +1,33 @@
+{
+  "document": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "securitySchemes": {
+        "Alias": {
+          "$ref": "#/components/securitySchemes/Key"
+        },
+        "Key": {
+          "type": "apiKey",
+          "name": "api_key",
+          "in": "header"
+        }
+      }
+    },
+    "security": [
+      {
+        "Alias": [
+          "read"
+        ]
+      }
+    ]
+  },
+  "error": {
+    "message": "The Security Requirement Object entry must be empty for a security scheme of this type",
+    "location": "/security/0/Alias"
+  }
+}

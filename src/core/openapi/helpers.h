@@ -402,7 +402,7 @@ auto openapi_reject_fields_of_a_later_revision(
 // that a name misspelled in one of them is a build failure rather than a field
 // silently admitted everywhere
 template <std::size_t Size, std::size_t Table>
-constexpr auto
+consteval auto
 openapi_every_field_is_tabled(const std::array<JSON::StringView, Size> &fields,
                               const std::array<JSON::StringView, Table> &table)
     -> bool {

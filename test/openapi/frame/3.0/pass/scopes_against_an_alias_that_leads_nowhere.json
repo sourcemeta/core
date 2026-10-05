@@ -8,20 +8,26 @@
     "paths": {},
     "components": {
       "securitySchemes": {
-        "Key": {
-          "$ref": "#/components/securitySchemes/Real"
+        "Round": {
+          "$ref": "#/components/securitySchemes/About"
         },
-        "Real": {
-          "type": "apiKey",
-          "name": "api_key",
-          "in": "header"
+        "About": {
+          "$ref": "#/components/securitySchemes/Round"
+        },
+        "Missing": {
+          "$ref": "#/components/securitySchemes/Absent"
         }
       }
     },
     "security": [
       {
-        "Key": [
-          "anything"
+        "Round": [
+          "read"
+        ]
+      },
+      {
+        "Missing": [
+          "read"
         ]
       }
     ]
@@ -30,7 +36,7 @@
   "frame": {
     "version": "3.0",
     "base": "https://example.com/openapi.json",
-    "standalone": true,
+    "standalone": false,
     "schemas": {
       "mode": "references",
       "locations": {
@@ -60,18 +66,29 @@
         "pointer": "/components",
         "parent": "https://example.com/openapi.json"
       },
-      "https://example.com/openapi.json#/components/securitySchemes/Key": {
+      "https://example.com/openapi.json#/components/securitySchemes/About": {
         "type": "reference",
-        "pointer": "/components/securitySchemes/Key",
+        "pointer": "/components/securitySchemes/About",
         "parent": "https://example.com/openapi.json#/components",
-        "original": "#/components/securitySchemes/Real",
-        "destination": "https://example.com/openapi.json#/components/securitySchemes/Real",
+        "original": "#/components/securitySchemes/Round",
+        "destination": "https://example.com/openapi.json#/components/securitySchemes/Round",
         "dangling": false
       },
-      "https://example.com/openapi.json#/components/securitySchemes/Real": {
-        "type": "security-scheme",
-        "pointer": "/components/securitySchemes/Real",
-        "parent": "https://example.com/openapi.json#/components"
+      "https://example.com/openapi.json#/components/securitySchemes/Missing": {
+        "type": "reference",
+        "pointer": "/components/securitySchemes/Missing",
+        "parent": "https://example.com/openapi.json#/components",
+        "original": "#/components/securitySchemes/Absent",
+        "destination": "https://example.com/openapi.json#/components/securitySchemes/Absent",
+        "dangling": true
+      },
+      "https://example.com/openapi.json#/components/securitySchemes/Round": {
+        "type": "reference",
+        "pointer": "/components/securitySchemes/Round",
+        "parent": "https://example.com/openapi.json#/components",
+        "original": "#/components/securitySchemes/About",
+        "destination": "https://example.com/openapi.json#/components/securitySchemes/About",
+        "dangling": false
       },
       "https://example.com/openapi.json#/info": {
         "type": "info",
@@ -86,6 +103,11 @@
       "https://example.com/openapi.json#/security/0": {
         "type": "security-requirement",
         "pointer": "/security/0",
+        "parent": "https://example.com/openapi.json"
+      },
+      "https://example.com/openapi.json#/security/1": {
+        "type": "security-requirement",
+        "pointer": "/security/1",
         "parent": "https://example.com/openapi.json"
       }
     },

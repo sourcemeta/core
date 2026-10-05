@@ -1,0 +1,84 @@
+{
+  "document": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "securitySchemes": {
+        "Remote": {
+          "$ref": "shared.json#/components/securitySchemes/Key"
+        }
+      }
+    },
+    "security": [
+      {
+        "Remote": [
+          "read"
+        ]
+      }
+    ]
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "frame": {
+    "version": "3.0",
+    "base": "https://example.com/openapi.json",
+    "standalone": false,
+    "schemas": {
+      "mode": "references",
+      "locations": {
+        "static": {},
+        "dynamic": {}
+      },
+      "references": []
+    },
+    "info": {
+      "title": "Example",
+      "version": "1.0.0",
+      "summary": null,
+      "description": null,
+      "termsOfService": null,
+      "contact": null,
+      "license": null
+    },
+    "locations": {
+      "https://example.com/openapi.json": {
+        "type": "openapi",
+        "pointer": "",
+        "parent": null,
+        "defaultDialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect"
+      },
+      "https://example.com/openapi.json#/components": {
+        "type": "components",
+        "pointer": "/components",
+        "parent": "https://example.com/openapi.json"
+      },
+      "https://example.com/openapi.json#/components/securitySchemes/Remote": {
+        "type": "reference",
+        "pointer": "/components/securitySchemes/Remote",
+        "parent": "https://example.com/openapi.json#/components",
+        "original": "shared.json#/components/securitySchemes/Key",
+        "destination": "https://example.com/shared.json#/components/securitySchemes/Key",
+        "dangling": true
+      },
+      "https://example.com/openapi.json#/info": {
+        "type": "info",
+        "pointer": "/info",
+        "parent": "https://example.com/openapi.json"
+      },
+      "https://example.com/openapi.json#/paths": {
+        "type": "paths",
+        "pointer": "/paths",
+        "parent": "https://example.com/openapi.json"
+      },
+      "https://example.com/openapi.json#/security/0": {
+        "type": "security-requirement",
+        "pointer": "/security/0",
+        "parent": "https://example.com/openapi.json"
+      }
+    },
+    "operations": []
+  }
+}
