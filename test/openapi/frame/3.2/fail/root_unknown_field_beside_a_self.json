@@ -1,0 +1,18 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "$self": "https://example.com/api",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "swagger": "2.0"
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "error": {
+    "message": "The OpenAPI Object does not define this field",
+    "location": "/swagger",
+    "base": "https://example.com/api"
+  }
+}

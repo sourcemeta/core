@@ -493,6 +493,37 @@ auto openapi_kind_name(const OpenAPIObjectKind kind) noexcept
   std::unreachable();
 }
 
+// What framing a document under a given retrieval URI would key every place of
+// it by. It is defined here, beside the frame it answers for, because the two
+// agreeing is the whole of what it is for
+auto openapi_base(const JSON &document, const std::string_view retrieval)
+    -> JSON::String {
+  auto base{openapi_canonical_base(retrieval)};
+
+  // Only 3.2 defines `$self`, and a document of any earlier revision has the
+  // field turned down by its own field table, so nothing before that revision
+  // establishes a base of its own. A document declaring a revision this module
+  // does not recognise never reaches the field either, as framing turns it down
+  // over the revision first
+  if (openapi_version(document) != OpenAPIVersion::OPENAPI_3_2) {
+    return base;
+  }
+
+  // Framing holds this to being a URI reference and throws when it is not,
+  // reporting the base it had settled on by then, which is the one established
+  // here. So a `$self` that framing refuses is one this hands back the
+  // retrieval URI for rather than one it has to refuse in turn
+  const auto *self{document.try_at("$self", OPENAPI_HASH_SELF)};
+  if (self == nullptr || !self->is_string() ||
+      !URI::is_uri_reference(self->to_string())) {
+    return base;
+  }
+
+  auto established{openapi_document_base(self->to_string(), base)};
+  return established.has_value() ? std::move(established.value())
+                                 : std::move(base);
+}
+
 auto openapi_operation_kind_name(const OpenAPIOperationKind kind) noexcept
     -> JSON::StringView {
   switch (kind) {

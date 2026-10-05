@@ -106,10 +106,14 @@ inline auto openapi_check_document(const JSON &document, OpenAPIWalk &walk)
 // a `$self` down outright, which 3.2.1 Section 4 makes it no place to: "If the
 // JSON Schema differs from this section, then this section MUST be considered
 // authoritative", and the section it differs from asks only for a URI reference
+//
+// This takes the base rather than the walk that holds it, so that the public
+// sourcemeta::core::openapi_base answers out of this very function and cannot
+// drift from what framing settles on
 inline auto openapi_document_base(const JSON::StringView self,
-                                  const OpenAPIWalk &walk)
+                                  const JSON::String &base)
     -> std::optional<JSON::String> {
-  auto target{openapi_reference_target(self, walk)};
+  auto target{openapi_resolve_uri(self, base)};
   if (!target.has_value() || !target.value().scheme().has_value()) {
     return std::nullopt;
   }
@@ -122,7 +126,13 @@ inline auto openapi_document_base(const JSON::StringView self,
 // "Detecting OpenAPI documents through the root `openapi` field". A document
 // without one may be a bare holder of referenceable Objects or a Schema Object,
 // and 3.1 gives no ground to turn either down
-inline auto openapi_is_document(const JSON &document) -> bool {
+//
+// The member is read for its presence alone rather than for its type, which is
+// what the public sourcemeta::core::openapi_is_document differs from this on.
+// Detecting generously here is what lets a document declaring the field as
+// something other than a string be read and told exactly what is wrong with
+// it, rather than turned away as no OpenAPI Description at all
+inline auto openapi_has_version_field(const JSON &document) -> bool {
   return document.is_object() &&
          document.try_at("openapi", OPENAPI_HASH_OPENAPI) != nullptr;
 }
@@ -258,7 +268,7 @@ inline auto openapi_follow_target(const URI &target, const Pointer &origin,
   }
 
   if (!names_a_fragment && walk.document != nullptr &&
-      openapi_is_document(*walk.document)) {
+      openapi_has_version_field(*walk.document)) {
     throw OpenAPIError{walk.base, origin,
                        "This reference must name a document that holds only "
                        "what the reference expects"};
@@ -346,19 +356,23 @@ inline auto openapi_check_document(const JSON &document, OpenAPIWalk &walk)
     // of them is consulted
     walk.version = revision.value();
 
-    // The version comes before the field table on purpose, so that a document
-    // of another OpenAPI revision is told what it is rather than being
-    // reported field by field
-    openapi_reject_unknown_fields(
-        document, OPENAPI_ROOT_FIELDS_3_1, OPENAPI_ROOT_FIELDS_3_2,
-        EMPTY_POINTER, "The OpenAPI Object does not define this field", walk);
-
     // 3.2.1 Section 4.1: "$self | string | This string MUST be in the form of a
-    // URI reference as defined by RFC3986 Section 4.1". Only 3.2 defines the
-    // field, and the table above has already turned it down for anything
-    // earlier. What it establishes is the base that every location in this
-    // document is keyed by, so it is settled before anything records one
-    const auto *self{document.try_at("$self", OPENAPI_HASH_SELF)};
+    // URI reference as defined by RFC3986 Section 4.1", and the field
+    // "provides the self-assigned URI of this document, which also serves as
+    // its base URI". So the base is a property of what the document declares
+    // rather than of how far reading it got, which is why this is settled
+    // before anything else is read and before anything else is turned down.
+    // Every refusal below then names the document by the URI it answers to,
+    // and the public sourcemeta::core::openapi_base says what that is without
+    // framing it
+    //
+    // Only 3.2 defines the field, so the revision is what gates reading it.
+    // The field table below is what turns one down in an earlier revision,
+    // which it goes on doing, as nothing here records a base for a document
+    // that has no business declaring one
+    const auto *self{walk.version == OpenAPIVersion::OPENAPI_3_2
+                         ? document.try_at("$self", OPENAPI_HASH_SELF)
+                         : nullptr};
     if (self != nullptr) {
       const auto reference{openapi_expect_uri_reference(
           *self, EMPTY_POINTER, "$self"sv,
@@ -382,7 +396,7 @@ inline auto openapi_check_document(const JSON &document, OpenAPIWalk &walk)
       // lost by taking it, as Section 5.2.2 never resolves a reference against
       // a fragment, which is why what a fragment names is dropped rather than
       // read
-      auto established{openapi_document_base(reference, walk)};
+      auto established{openapi_document_base(reference, walk.base)};
       if (established.has_value()) {
         walk.base = std::move(established.value());
 
@@ -393,6 +407,13 @@ inline auto openapi_check_document(const JSON &document, OpenAPIWalk &walk)
         // the same paragraph calls "not interoperable" and NOT RECOMMENDED
       }
     }
+
+    // The version comes before the field table on purpose, so that a document
+    // of another OpenAPI revision is told what it is rather than being
+    // reported field by field
+    openapi_reject_unknown_fields(
+        document, OPENAPI_ROOT_FIELDS_3_1, OPENAPI_ROOT_FIELDS_3_2,
+        EMPTY_POINTER, "The OpenAPI Object does not define this field", walk);
 
     // Section 4.8.30: "The name used for each property MUST correspond to a
     // security scheme declared in the Security Schemes under the Components

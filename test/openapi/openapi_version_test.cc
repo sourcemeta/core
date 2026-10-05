@@ -173,3 +173,142 @@ TEST(document_is_not_an_object) {
   const auto document{sourcemeta::core::parse_json("\"3.1.1\"")};
   EXPECT_FALSE(sourcemeta::core::openapi_version(document).has_value());
 }
+
+TEST(version_string_of_a_revision_we_recognise) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.1.1"
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::openapi_version_string(document).value(),
+            "3.1.1");
+}
+
+TEST(version_string_keeps_the_patch_component) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.2.12"
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::openapi_version_string(document).value(),
+            "3.2.12");
+}
+
+TEST(version_string_keeps_the_pre_release_suffix) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.1.0-rc.1"
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::openapi_version_string(document).value(),
+            "3.1.0-rc.1");
+}
+
+TEST(version_string_of_a_revision_we_do_not_recognise) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.0.4"
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::openapi_version_string(document).value(),
+            "3.0.4");
+  EXPECT_FALSE(sourcemeta::core::openapi_version(document).has_value());
+}
+
+TEST(version_string_of_a_version_with_no_patch_component) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.1"
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::openapi_version_string(document).value(), "3.1");
+  EXPECT_FALSE(sourcemeta::core::openapi_version(document).has_value());
+}
+
+TEST(version_string_of_the_empty_string) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": ""
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::openapi_version_string(document).value(), "");
+  EXPECT_FALSE(sourcemeta::core::openapi_version(document).has_value());
+}
+
+TEST(version_string_without_the_field) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "info": { "title": "Example", "version": "1.0.0" }
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::openapi_version_string(document).has_value());
+}
+
+TEST(version_string_of_a_field_that_is_a_number) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": 3
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::openapi_version_string(document).has_value());
+}
+
+TEST(version_string_of_a_field_that_is_null) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": null
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::openapi_version_string(document).has_value());
+}
+
+TEST(version_string_of_a_field_that_is_an_array) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": []
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::openapi_version_string(document).has_value());
+}
+
+TEST(version_string_of_a_value_that_is_not_an_object) {
+  const auto document{sourcemeta::core::parse_json("\"3.1.1\"")};
+  EXPECT_FALSE(sourcemeta::core::openapi_version_string(document).has_value());
+}
+
+TEST(is_document_of_a_revision_we_recognise) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.1.1",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "paths": {}
+  })JSON")};
+  EXPECT_TRUE(sourcemeta::core::openapi_is_document(document));
+}
+
+TEST(is_document_of_a_revision_we_do_not_recognise) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.0.4",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "paths": {}
+  })JSON")};
+  EXPECT_TRUE(sourcemeta::core::openapi_is_document(document));
+}
+
+TEST(is_document_of_the_empty_string) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": ""
+  })JSON")};
+  EXPECT_TRUE(sourcemeta::core::openapi_is_document(document));
+}
+
+TEST(is_document_without_the_field) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "string"
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::openapi_is_document(document));
+}
+
+TEST(is_document_of_a_field_that_is_a_number) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": 3
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::openapi_is_document(document));
+}
+
+TEST(is_document_of_a_field_that_is_null) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": null
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::openapi_is_document(document));
+}
+
+TEST(is_document_of_a_value_that_is_not_an_object) {
+  const auto document{sourcemeta::core::parse_json("\"3.1.1\"")};
+  EXPECT_FALSE(sourcemeta::core::openapi_is_document(document));
+}
+
+TEST(is_document_of_a_boolean_schema) {
+  const auto document{sourcemeta::core::parse_json("true")};
+  EXPECT_FALSE(sourcemeta::core::openapi_is_document(document));
+}
