@@ -259,6 +259,32 @@ private:
 };
 
 /// @ingroup jsonschema
+/// An error that represents a place bundling was told to put schemas into but
+/// cannot
+class SOURCEMETA_CORE_JSONSCHEMA_EXPORT SchemaContainerError
+    : public std::exception {
+public:
+  /// Create a container error
+  SchemaContainerError(sourcemeta::core::Pointer location, const char *message)
+      : location_{std::move(location)}, message_{message} {}
+
+  [[nodiscard]] auto what() const noexcept -> const char * override {
+    return this->message_;
+  }
+
+  /// Where the container is, as a pointer from the root of the document that
+  /// was being bundled
+  [[nodiscard]] auto location() const noexcept
+      -> const sourcemeta::core::Pointer & {
+    return this->location_;
+  }
+
+private:
+  sourcemeta::core::Pointer location_;
+  const char *message_;
+};
+
+/// @ingroup jsonschema
 /// An error that represents a schema frame error
 class SOURCEMETA_CORE_JSONSCHEMA_EXPORT SchemaFrameError
     : public std::exception {

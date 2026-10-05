@@ -37,6 +37,7 @@ const std::vector<std::string> KNOWN_ERROR_TYPES{
     "SchemaReferenceError",
     "SchemaReferenceObjectResourceError",
     "SchemaUnknownBaseDialectError",
+    "SchemaContainerError",
     "SchemaDialectImpossibleError",
     "SchemaFrameLimitError"};
 
@@ -310,6 +311,7 @@ auto check_shape(const sourcemeta::core::JSON &test) -> void {
                     type == "SchemaReferenceObjectResourceError");
       EXPECT_EQ(entry.second.defines("location"),
                 type == "SchemaReferenceError" ||
+                    type == "SchemaContainerError" ||
                     type == "SchemaDialectImpossibleError");
       EXPECT_EQ(entry.second.defines("keyword"),
                 type == "SchemaDialectImpossibleError");
@@ -392,6 +394,17 @@ auto check_error(const sourcemeta::core::JSON &schema,
         const sourcemeta::core::SchemaReferenceObjectResourceError &error) {
       EXPECT_STREQ(error.what(), message.c_str());
       EXPECT_EQ(error.identifier(), expected.at("identifier").to_string());
+    }
+  } else if (type == "SchemaContainerError") {
+    try {
+      Insertions insertions;
+      [[maybe_unused]] const auto document{bundle_schema(
+          schema, resolver, inputs, mode, inputs.max_locations, insertions)};
+      FAIL();
+    } catch (const sourcemeta::core::SchemaContainerError &error) {
+      EXPECT_STREQ(error.what(), message.c_str());
+      EXPECT_EQ(sourcemeta::core::to_string(error.location()),
+                expected.at("location").to_string());
     }
   } else if (type == "SchemaDialectImpossibleError") {
     try {

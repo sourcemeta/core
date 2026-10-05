@@ -20,13 +20,13 @@
   "errors": {
     "nonOfficialMetaschemas": {
       "type": "SchemaReferenceError",
-      "message": "Could not address an anchor of a schema that this dialect embeds without an identifier",
+      "message": "Could not resolve schema reference",
       "identifier": "https://www.sourcemeta.com/pet#foo",
       "location": "/properties/b/$ref"
     },
     "references": {
       "type": "SchemaReferenceError",
-      "message": "Could not address an anchor of a schema that this dialect embeds without an identifier",
+      "message": "Could not resolve schema reference",
       "identifier": "https://www.sourcemeta.com/pet#foo",
       "location": "/properties/b/$ref"
     }

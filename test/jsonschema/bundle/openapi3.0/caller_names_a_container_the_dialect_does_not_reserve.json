@@ -17,12 +17,14 @@
   "container": "/definitions",
   "errors": {
     "nonOfficialMetaschemas": {
-      "type": "SchemaError",
-      "message": "Could not bundle to a container that the dialect does not reserve for schema definitions"
+      "type": "SchemaContainerError",
+      "message": "Could not bundle to a container that the dialect does not reserve for schema definitions",
+      "location": "/definitions"
     },
     "references": {
-      "type": "SchemaError",
-      "message": "Could not bundle to a container that the dialect does not reserve for schema definitions"
+      "type": "SchemaContainerError",
+      "message": "Could not bundle to a container that the dialect does not reserve for schema definitions",
+      "location": "/definitions"
     }
   },
   "result": {},

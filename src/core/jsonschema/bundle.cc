@@ -219,8 +219,9 @@ auto embed_schema(JSON &root, const Pointer &container,
   }
 
   if (!current->is_object()) {
-    throw SchemaError("Could not bundle to a container path that is not an "
-                      "object");
+    throw SchemaContainerError(container,
+                               "Could not bundle to a container that is not "
+                               "an object");
   }
 
   std::string key{identifier};
@@ -306,12 +307,11 @@ auto settle_positional_references(
     if (reference.fragment.has_value() && !reference.fragment.value().empty()) {
       tail = fragment_to_pointer(URI{reference.destination});
       if (!tail.has_value()) {
-        // An anchor names a place through the identity of the schema that
-        // declares it, and this embedding leaves none behind
-        throw SchemaReferenceError(
-            reference.destination, to_pointer(pointer),
-            "Could not address an anchor of a schema that this dialect "
-            "embeds without an identifier");
+        // Whatever the fragment names, it is not a place of the schema, and a
+        // dialect that reserves no keyword for a name reserves none for an
+        // anchor either, so there is nothing for it to have named
+        throw SchemaReferenceError(reference.destination, to_pointer(pointer),
+                                   "Could not resolve schema reference");
       }
     }
 
@@ -732,8 +732,25 @@ auto embed_references(
                                  "Schema");
     }
 
-    const auto remote_base_dialect{
-        remote_root_frame->root_location().value().get().base_dialect};
+    const auto &remote_root{remote_root_frame->root_location().value().get()};
+
+    // A schema that names a dialect which gives the keyword that named it no
+    // meaning cannot be taken at its word, and framing refuses it wherever it
+    // meets one. Saying so here is what names the document it came from and
+    // the reference that went looking for it, which a refusal from whichever
+    // frame happens to reach it first cannot do
+    if (remote.is_object() &&
+        remote.defines("$schema"sv, JSONSCHEMA_HASH_SCHEMA) &&
+        !dialect_defines(walker,
+                         remote_root_frame->vocabularies(remote_root, resolver),
+                         "$schema"sv)) {
+      throw SchemaReferenceError(identifier, to_pointer(pointer),
+                                 "The referenced schema declares a dialect "
+                                 "that does not define the keyword that "
+                                 "declares it");
+    }
+
+    const auto remote_base_dialect{remote_root.base_dialect};
     auto remote_id = remote_root_frame->root();
 
     // Whether what the reference names within the remote carries a name of its
@@ -963,8 +980,10 @@ auto bundle_internal(JSON &schema, const SchemaWalker &walker,
           walker(default_container.value().back().to_property(),
                  initial_frame.vocabularies(parent.value().get(), resolver))
                   .type != SchemaKeywordType::LocationMembers) {
-        throw SchemaError("Could not bundle to a container that the dialect "
-                          "does not reserve for schema definitions");
+        throw SchemaContainerError(
+            default_container.value(),
+            "Could not bundle to a container that the dialect does not "
+            "reserve for schema definitions");
       }
     }
 
