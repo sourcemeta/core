@@ -733,6 +733,10 @@ auto embed_references(
     }
 
     const auto &remote_root{remote_root_frame->root_location().value().get()};
+    // Both of the questions below are of the same vocabularies, and working
+    // them out can cost a meta-schema to resolve, so it happens once
+    const auto &remote_vocabularies{
+        remote_root_frame->vocabularies(remote_root, resolver)};
 
     // A schema that names a dialect which gives the keyword that named it no
     // meaning cannot be taken at its word, and framing refuses it wherever it
@@ -741,9 +745,7 @@ auto embed_references(
     // frame happens to reach it first cannot do
     if (remote.is_object() &&
         remote.defines("$schema"sv, JSONSCHEMA_HASH_SCHEMA) &&
-        !dialect_defines(walker,
-                         remote_root_frame->vocabularies(remote_root, resolver),
-                         "$schema"sv)) {
+        !dialect_defines(walker, remote_vocabularies, "$schema"sv)) {
       throw SchemaReferenceError(identifier, to_pointer(pointer),
                                  "The referenced schema declares a dialect "
                                  "that does not define the keyword that "
@@ -765,8 +767,10 @@ auto embed_references(
       // answer for that on its own without paying to frame it
       const auto fragment_pointer{
           fragment_to_pointer(URI{reference.destination})};
-      bool exists{fragment_pointer.has_value() &&
-                  try_get(remote, fragment_pointer.value()) != nullptr};
+      const auto *named_value{fragment_pointer.has_value()
+                                  ? try_get(remote, fragment_pointer.value())
+                                  : nullptr};
+      bool exists{named_value != nullptr};
 
       // An anchor is not a place of the document, and the drafts that spell
       // identifiers as `id` let one look just like a pointer, so a miss above
@@ -795,8 +799,13 @@ auto embed_references(
       // Where what it named carries a name of its own, that name is what
       // reaches it from anywhere, and goes on doing so wherever the bundling
       // puts it. Saying where it sits instead would only hold while it sat
-      // there, which is not something a reference into a remote can rely on
-      if (fragment_pointer.has_value()) {
+      // there, which is not something a reference into a remote can rely on.
+      // Nothing that declares no identifier can be answering to one, and
+      // ruling that out costs a property lookup where asking the frame costs
+      // a walk of the whole remote
+      if (named_value != nullptr && named_value->is_object() &&
+          (named_value->defines("$id"sv, JSONSCHEMA_HASH_ID) ||
+           named_value->defines("id"sv, JSONSCHEMA_HASH_LEGACY_ID))) {
         const SchemaFrame located{SchemaFrame::Mode::Locations,
                                   remote,
                                   walker,
@@ -828,10 +837,7 @@ auto embed_references(
     // Whether the dialect of the remote has a way to name it at all, which
     // decides between giving it a name and pointing at wherever it lands
     const auto dialect_allows_naming{dialect_defines_identifier(
-        walker,
-        remote_root_frame->vocabularies(
-            remote_root_frame->root_location().value().get(), resolver),
-        remote_base_dialect)};
+        walker, remote_vocabularies, remote_base_dialect)};
 
     const auto remote_dialect_uri{declared_dialect(remote, default_dialect)};
 
