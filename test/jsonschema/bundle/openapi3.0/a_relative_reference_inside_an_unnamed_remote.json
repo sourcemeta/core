@@ -1,0 +1,93 @@
+{
+  "schema": {
+    "type": "object",
+    "properties": {
+      "pet": {
+        "$ref": "https://remote.example/pet"
+      }
+    }
+  },
+  "resolver": {
+    "https://remote.example/pet": {
+      "type": "object",
+      "properties": {
+        "tag": {
+          "$ref": "tag"
+        }
+      }
+    },
+    "https://remote.example/tag": {
+      "type": "string",
+      "nullable": true
+    }
+  },
+  "defaultDialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+  "result": {
+    "nonOfficialMetaschemas": {
+      "type": "object",
+      "properties": {
+        "pet": {
+          "$ref": "#/x-definitions/https:~1~1remote.example~1pet"
+        }
+      },
+      "x-definitions": {
+        "https://remote.example/tag": {
+          "type": "string",
+          "nullable": true
+        },
+        "https://remote.example/pet": {
+          "type": "object",
+          "properties": {
+            "tag": {
+              "$ref": "#/x-definitions/https:~1~1remote.example~1tag"
+            }
+          }
+        }
+      }
+    },
+    "references": {
+      "type": "object",
+      "properties": {
+        "pet": {
+          "$ref": "#/x-definitions/https:~1~1remote.example~1pet"
+        }
+      },
+      "x-definitions": {
+        "https://remote.example/tag": {
+          "type": "string",
+          "nullable": true
+        },
+        "https://remote.example/pet": {
+          "type": "object",
+          "properties": {
+            "tag": {
+              "$ref": "#/x-definitions/https:~1~1remote.example~1tag"
+            }
+          }
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://remote.example/tag",
+        "at": "/x-definitions/https:~1~1remote.example~1tag"
+      },
+      {
+        "from": "https://remote.example/pet",
+        "at": "/x-definitions/https:~1~1remote.example~1pet"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://remote.example/tag",
+        "at": "/x-definitions/https:~1~1remote.example~1tag"
+      },
+      {
+        "from": "https://remote.example/pet",
+        "at": "/x-definitions/https:~1~1remote.example~1pet"
+      }
+    ]
+  }
+}

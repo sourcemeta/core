@@ -1,0 +1,85 @@
+{
+  "schema": {
+    "type": "object",
+    "properties": {
+      "pet": {
+        "$ref": "https://www.sourcemeta.com/pet"
+      },
+      "other": {
+        "$ref": "https://www.sourcemeta.com/pet"
+      }
+    }
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/pet": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "nullable": true
+        }
+      }
+    }
+  },
+  "defaultDialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+  "result": {
+    "nonOfficialMetaschemas": {
+      "type": "object",
+      "properties": {
+        "pet": {
+          "$ref": "#/x-definitions/https:~1~1www.sourcemeta.com~1pet"
+        },
+        "other": {
+          "$ref": "#/x-definitions/https:~1~1www.sourcemeta.com~1pet"
+        }
+      },
+      "x-definitions": {
+        "https://www.sourcemeta.com/pet": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "nullable": true
+            }
+          }
+        }
+      }
+    },
+    "references": {
+      "type": "object",
+      "properties": {
+        "pet": {
+          "$ref": "#/x-definitions/https:~1~1www.sourcemeta.com~1pet"
+        },
+        "other": {
+          "$ref": "#/x-definitions/https:~1~1www.sourcemeta.com~1pet"
+        }
+      },
+      "x-definitions": {
+        "https://www.sourcemeta.com/pet": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "nullable": true
+            }
+          }
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://www.sourcemeta.com/pet",
+        "at": "/x-definitions/https:~1~1www.sourcemeta.com~1pet"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://www.sourcemeta.com/pet",
+        "at": "/x-definitions/https:~1~1www.sourcemeta.com~1pet"
+      }
+    ]
+  }
+}

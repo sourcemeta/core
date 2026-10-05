@@ -1,0 +1,33 @@
+{
+  "schema": {
+    "type": "object",
+    "properties": {
+      "pet": {
+        "$ref": "https://www.sourcemeta.com/pet"
+      }
+    }
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/pet": [
+      1,
+      2
+    ]
+  },
+  "defaultDialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+  "errors": {
+    "nonOfficialMetaschemas": {
+      "type": "SchemaReferenceError",
+      "message": "The JSON document is not a valid JSON Schema",
+      "identifier": "https://www.sourcemeta.com/pet",
+      "location": "/properties/pet/$ref"
+    },
+    "references": {
+      "type": "SchemaReferenceError",
+      "message": "The JSON document is not a valid JSON Schema",
+      "identifier": "https://www.sourcemeta.com/pet",
+      "location": "/properties/pet/$ref"
+    }
+  },
+  "result": {},
+  "inserted": {}
+}

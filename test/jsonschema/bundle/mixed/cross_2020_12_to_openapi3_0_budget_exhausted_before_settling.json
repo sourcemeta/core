@@ -1,0 +1,41 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/host",
+    "properties": {
+      "pet": {
+        "$ref": "https://www.sourcemeta.com/pet"
+      }
+    }
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/pet": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "nullable": true
+        },
+        "tag": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "defaultDialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+  "maxLocations": 16,
+  "errors": {
+    "nonOfficialMetaschemas": {
+      "type": "SchemaFrameLimitError",
+      "message": "The schema exceeds the maximum number of frame locations",
+      "limit": 16
+    },
+    "references": {
+      "type": "SchemaFrameLimitError",
+      "message": "The schema exceeds the maximum number of frame locations",
+      "limit": 16
+    }
+  },
+  "result": {},
+  "inserted": {}
+}

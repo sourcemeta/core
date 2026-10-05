@@ -1,32 +1,32 @@
 {
   "schema": {
-    "$schema": "http://json-schema.org/draft-07/schema#",
-    "$ref": "https://www.sourcemeta.com/recursive"
-  },
-  "resolver": {
-    "https://www.sourcemeta.com/recursive": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "$id": "https://www.sourcemeta.com/recursive",
-      "properties": {
-        "foo": {
-          "$ref": "#"
-        }
+    "type": "object",
+    "properties": {
+      "pet": {
+        "$ref": "https://www.sourcemeta.com/pet"
       }
     }
   },
-  "container": "/$defs",
-  "result": {},
+  "resolver": {
+    "https://www.sourcemeta.com/pet": {
+      "type": "string",
+      "nullable": true
+    }
+  },
+  "defaultDialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+  "container": "/definitions",
   "errors": {
     "nonOfficialMetaschemas": {
       "type": "SchemaContainerError",
       "message": "Could not bundle to a container that the dialect does not reserve for schema definitions",
-      "location": "/$defs"
+      "location": "/definitions"
     },
     "references": {
       "type": "SchemaContainerError",
       "message": "Could not bundle to a container that the dialect does not reserve for schema definitions",
-      "location": "/$defs"
+      "location": "/definitions"
     }
   },
+  "result": {},
   "inserted": {}
 }

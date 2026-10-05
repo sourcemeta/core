@@ -7,19 +7,25 @@
     "https://www.sourcemeta.com/recursive": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "$id": "https://www.sourcemeta.com/recursive",
-      "properties": { "foo": { "$ref": "#" } }
+      "properties": {
+        "foo": {
+          "$ref": "#"
+        }
+      }
     }
   },
   "container": "/x-definitions/foo/bar",
   "result": {},
   "errors": {
     "nonOfficialMetaschemas": {
-      "type": "SchemaError",
-      "message": "Could not bundle to a container that the dialect does not reserve for schema definitions"
+      "type": "SchemaContainerError",
+      "message": "Could not bundle to a container that the dialect does not reserve for schema definitions",
+      "location": "/x-definitions/foo/bar"
     },
     "references": {
-      "type": "SchemaError",
-      "message": "Could not bundle to a container that the dialect does not reserve for schema definitions"
+      "type": "SchemaContainerError",
+      "message": "Could not bundle to a container that the dialect does not reserve for schema definitions",
+      "location": "/x-definitions/foo/bar"
     }
   },
   "inserted": {}

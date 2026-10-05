@@ -1,0 +1,77 @@
+{
+  "schema": {
+    "schema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/host",
+      "properties": {
+        "pet": {
+          "$ref": "https://remote.example/pet"
+        }
+      },
+      "$defs": {}
+    }
+  },
+  "resolver": {
+    "https://remote.example/pet": {
+      "type": "object",
+      "nullable": true
+    }
+  },
+  "defaultDialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+  "paths": [
+    "/schema"
+  ],
+  "container": "/schema/$defs",
+  "result": {
+    "nonOfficialMetaschemas": {
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "https://example.com/host",
+        "properties": {
+          "pet": {
+            "$ref": "#/$defs/https:~1~1remote.example~1pet"
+          }
+        },
+        "$defs": {
+          "https://remote.example/pet": {
+            "type": "object",
+            "nullable": true,
+            "x-sourcemeta-dialect-override-subschema": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect"
+          }
+        }
+      }
+    },
+    "references": {
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "https://example.com/host",
+        "properties": {
+          "pet": {
+            "$ref": "#/$defs/https:~1~1remote.example~1pet"
+          }
+        },
+        "$defs": {
+          "https://remote.example/pet": {
+            "type": "object",
+            "nullable": true,
+            "x-sourcemeta-dialect-override-subschema": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect"
+          }
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://remote.example/pet",
+        "at": "/schema/$defs/https:~1~1remote.example~1pet"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://remote.example/pet",
+        "at": "/schema/$defs/https:~1~1remote.example~1pet"
+      }
+    ]
+  }
+}

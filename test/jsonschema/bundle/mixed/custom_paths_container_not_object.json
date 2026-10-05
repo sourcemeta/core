@@ -1,7 +1,11 @@
 {
   "schema": {
     "components": {
-      "schemas": { "Pet": { "$ref": "https://www.sourcemeta.com/test-1" } }
+      "schemas": {
+        "Pet": {
+          "$ref": "https://www.sourcemeta.com/test-1"
+        }
+      }
     },
     "x-bundled": []
   },
@@ -14,16 +18,20 @@
   },
   "defaultDialect": "https://json-schema.org/draft/2020-12/schema",
   "container": "/x-bundled",
-  "paths": [ "/components/schemas/Pet" ],
+  "paths": [
+    "/components/schemas/Pet"
+  ],
   "result": {},
   "errors": {
     "nonOfficialMetaschemas": {
-      "type": "SchemaError",
-      "message": "Could not bundle to a container path that is not an object"
+      "type": "SchemaContainerError",
+      "message": "Could not bundle to a container that is not an object",
+      "location": "/x-bundled"
     },
     "references": {
-      "type": "SchemaError",
-      "message": "Could not bundle to a container path that is not an object"
+      "type": "SchemaContainerError",
+      "message": "Could not bundle to a container that is not an object",
+      "location": "/x-bundled"
     }
   },
   "inserted": {}
