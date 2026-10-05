@@ -34,7 +34,10 @@ namespace {
 // The order in which the fields of each Object are meant to appear, where the
 // position of an entry is the rank of the field it names. Each table unions
 // what 3.1 and 3.2 define, and what every variant of an Object defines, so
-// nothing here branches on the revision a document declares.
+// nothing here branches on the revision a document declares. The revision
+// before those two asks for no entry of its own, as what it admits is what 3.1
+// admits less the fields 3.1 brings, and the assertions below hold every table
+// here to the whole of 3.1 already.
 //
 // An entry of `x-` stands for every Specification Extension rather than for a
 // field of that name, and it sits where it does because such a member is almost
