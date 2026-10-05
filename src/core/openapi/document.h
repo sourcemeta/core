@@ -56,10 +56,27 @@ constexpr auto OPENAPI_DIALECT_3_1{
 constexpr auto OPENAPI_DIALECT_3_2{
     "https://spec.openapis.org/oas/3.2/dialect/2025-09-17"sv};
 
+// The OpenAPI Initiative published no dialect for the 3.0 Schema Object, so
+// this is the identifier this repository mints for the later of the two
+// releases of the document schema that carries it. Both releases describe the
+// same keywords and draw on the same vocabulary.
+//
+// OpenAPI Specification 3.0.4, Schema Object, lists twenty-seven keywords it
+// takes from JSON Schema, tables eight of its own, and closes the set:
+// "Additional keywords defined by the JSON Schema specification that are not
+// mentioned here are strictly unsupported". The releases before it say the
+// same of "Additional properties". A keyword naming a dialect is in neither
+// list, so a Schema Object of this revision has nothing to name one with, and
+// this fallback is the only way one is ever in force
+constexpr auto OPENAPI_DIALECT_3_0{
+    "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect"sv};
+
 // The revision a document declares settles which dialect its Schema Objects
 // fall back on, as each revision publishes one of its own
 inline auto openapi_dialect(const OpenAPIVersion version) -> JSON::StringView {
   switch (version) {
+    case OpenAPIVersion::OPENAPI_3_0:
+      return OPENAPI_DIALECT_3_0;
     case OpenAPIVersion::OPENAPI_3_1:
       return OPENAPI_DIALECT_3_1;
     case OpenAPIVersion::OPENAPI_3_2:
@@ -85,6 +102,17 @@ constexpr std::array<JSON::StringView, 11> OPENAPI_ROOT_FIELDS_3_2{
      "$self"sv}};
 
 constexpr auto OPENAPI_HASH_SELF{JSON::Object::hash("$self"sv)};
+
+// OpenAPI Specification 3.1.1, Section 4.1 adds `webhooks` and
+// `jsonSchemaDialect`, neither of which any release of 3.0 tables. 3.0 numbers
+// no sections, so what it says is cited by the heading that says it: its
+// OpenAPI Object gives eight fields and neither of these is among them, and
+// its Specification Extensions allow only a field whose "field name MUST begin
+// with `x-`, for example, `x-internal-id`"
+constexpr std::array<JSON::StringView, 2> OPENAPI_ROOT_FIELDS_FROM_3_1{
+    {"jsonSchemaDialect"sv, "webhooks"sv}};
+static_assert(openapi_every_field_is_tabled(OPENAPI_ROOT_FIELDS_FROM_3_1,
+                                            OPENAPI_ROOT_FIELDS_3_1));
 
 inline auto openapi_check_document(const JSON &document, OpenAPIWalk &walk)
     -> void;
@@ -370,7 +398,7 @@ inline auto openapi_check_document(const JSON &document, OpenAPIWalk &walk)
     // The field table below is what turns one down in an earlier revision,
     // which it goes on doing, as nothing here records a base for a document
     // that has no business declaring one
-    const auto *self{walk.version == OpenAPIVersion::OPENAPI_3_2
+    const auto *self{walk.version >= OpenAPIVersion::OPENAPI_3_2
                          ? document.try_at("$self", OPENAPI_HASH_SELF)
                          : nullptr};
     if (self != nullptr) {
@@ -415,6 +443,10 @@ inline auto openapi_check_document(const JSON &document, OpenAPIWalk &walk)
         document, OPENAPI_ROOT_FIELDS_3_1, OPENAPI_ROOT_FIELDS_3_2,
         EMPTY_POINTER, "The OpenAPI Object does not define this field", walk);
 
+    openapi_reject_fields_of_a_later_revision(
+        document, OPENAPI_ROOT_FIELDS_FROM_3_1, OpenAPIVersion::OPENAPI_3_1,
+        EMPTY_POINTER, "The OpenAPI Object does not define this field", walk);
+
     // Section 4.8.30: "The name used for each property MUST correspond to a
     // security scheme declared in the Security Schemes under the Components
     // Object". Section 4.3.3 leaves which document's Components Object that is
@@ -438,6 +470,18 @@ inline auto openapi_check_document(const JSON &document, OpenAPIWalk &walk)
       openapi_collect_tags(document, walk);
     }
 
+    // OpenAPI Specification 3.0.4, OpenAPI Object: "paths | Paths Object |
+    // **REQUIRED**. The available paths and operations for the API". Every
+    // release of 3.0 marks it so, which is why the choice of three that the
+    // revisions after it offer is not one this revision offers. It is asked of
+    // the Object rather than of the description, so a document that another
+    // one reaches is held to it alike
+    if (walk.version < OpenAPIVersion::OPENAPI_3_1 &&
+        document.try_at("paths", OPENAPI_HASH_PATHS) == nullptr) {
+      throw OpenAPIError{EMPTY_POINTER,
+                         "The OpenAPI Object must declare paths"};
+    }
+
     // OpenAPI Specification 3.2.1, Section 4.1 binds every document that holds
     // an OpenAPI Object: "In addition to the required fields, at least one of
     // the `components`, `paths`, or `webhooks` fields MUST be present".
@@ -449,7 +493,7 @@ inline auto openapi_check_document(const JSON &document, OpenAPIWalk &walk)
     // `webhooks` field". 3.1.0 asked it of a document and 3.1.1 moved the
     // subject, so a document of that revision that another one reaches is free
     // to hold none of the three as long as the description holds one
-    if ((!walk.referenced || walk.version == OpenAPIVersion::OPENAPI_3_2) &&
+    if ((!walk.referenced || walk.version >= OpenAPIVersion::OPENAPI_3_2) &&
         document.try_at("paths", OPENAPI_HASH_PATHS) == nullptr &&
         document.try_at("components", OPENAPI_HASH_COMPONENTS) == nullptr &&
         document.try_at("webhooks", OPENAPI_HASH_WEBHOOKS) == nullptr) {
@@ -665,6 +709,7 @@ inline auto openapi_analyse(const JSON &document, JSON::String base,
                    .servers = {},
                    .security = {},
                    .security_schemes = {},
+                   .security_schemes_without_scopes = {},
                    .security_references = {},
                    .tags = {},
                    .tag_parents = {},
@@ -681,6 +726,8 @@ inline auto openapi_analyse(const JSON &document, JSON::String base,
   if (entry != nullptr) {
     walk.referenced = true;
     walk.security_schemes = entry->security_schemes;
+    walk.security_schemes_without_scopes =
+        entry->security_schemes_without_scopes;
     // Both of what a tag name settles come from there too, as the names a
     // parent may claim and the Tag Objects an operation resolves to are two
     // readings of one set rather than two sets

@@ -1,0 +1,35 @@
+{
+  "document": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "securitySchemes": {
+        "First": {
+          "$ref": "#/components/securitySchemes/Second"
+        },
+        "Second": {
+          "$ref": "#/components/securitySchemes/Third"
+        },
+        "Third": {
+          "type": "http",
+          "scheme": "basic"
+        }
+      }
+    },
+    "security": [
+      {
+        "First": [
+          "admin"
+        ]
+      }
+    ]
+  },
+  "error": {
+    "message": "The Security Requirement Object entry must be empty for a security scheme of this type",
+    "location": "/security/0/First"
+  }
+}

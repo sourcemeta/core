@@ -39,8 +39,13 @@
 namespace sourcemeta::core {
 
 /// @ingroup openapi
-/// The OpenAPI Description versions that this module recognises
+/// The OpenAPI Description versions that this module recognises. The
+/// enumerators run in the order the revisions were published, so that
+/// comparing them says what the specification says when it gives the revision
+/// a field arrived in
 enum class OpenAPIVersion : std::uint8_t {
+  /// The OpenAPI Specification 3.0 revision
+  OPENAPI_3_0,
   /// The OpenAPI Specification 3.1 revision
   OPENAPI_3_1,
   /// The OpenAPI Specification 3.2 revision

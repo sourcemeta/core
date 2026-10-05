@@ -124,7 +124,59 @@ TEST(unrelated_major_minor_prefix) {
   EXPECT_FALSE(version_of("13.1.0").has_value());
 }
 
-TEST(earlier_minor) { EXPECT_FALSE(version_of("3.0.0").has_value()); }
+// Every release of 3.0 names the same fields and marks the same ones
+// REQUIRED, so Section 4.1's "the `major`.`minor` portion of the version
+// string [...] SHALL designate the OAS feature set" holds across all five
+TEST(earliest_minor_every_patch_release) {
+  for (const auto *const version :
+       {"3.0.0", "3.0.1", "3.0.2", "3.0.3", "3.0.4"}) {
+    EXPECT_EQ(version_of(version).value(),
+              sourcemeta::core::OpenAPIVersion::OPENAPI_3_0);
+  }
+}
+
+// A patch this module has never seen designates the same feature set, the
+// patch component carrying no meaning of its own
+TEST(earliest_minor_patch_beyond_the_released_ones) {
+  EXPECT_EQ(version_of("3.0.9").value(),
+            sourcemeta::core::OpenAPIVersion::OPENAPI_3_0);
+  EXPECT_EQ(version_of("3.0.14").value(),
+            sourcemeta::core::OpenAPIVersion::OPENAPI_3_0);
+}
+
+TEST(earliest_minor_with_a_pre_release_suffix) {
+  EXPECT_EQ(version_of("3.0.0-rc1").value(),
+            sourcemeta::core::OpenAPIVersion::OPENAPI_3_0);
+}
+
+// The minor is read as the digits between the dots, so a leading zero makes a
+// different minor rather than the same one written another way
+TEST(earliest_minor_written_with_a_leading_zero) {
+  EXPECT_FALSE(version_of("3.00.0").has_value());
+}
+
+TEST(earliest_minor_with_no_patch_component) {
+  EXPECT_FALSE(version_of("3.0").has_value());
+}
+
+TEST(name_of_the_earliest_minor) {
+  EXPECT_EQ(sourcemeta::core::openapi_version_name(
+                sourcemeta::core::OpenAPIVersion::OPENAPI_3_0),
+            "3.0");
+}
+
+// The enumerators run in the order the revisions were published, which is what
+// lets a guard say "from this revision onwards"
+TEST(revisions_compare_in_the_order_they_were_published) {
+  EXPECT_TRUE(sourcemeta::core::OpenAPIVersion::OPENAPI_3_0 <
+              sourcemeta::core::OpenAPIVersion::OPENAPI_3_1);
+  EXPECT_TRUE(sourcemeta::core::OpenAPIVersion::OPENAPI_3_1 <
+              sourcemeta::core::OpenAPIVersion::OPENAPI_3_2);
+}
+
+TEST(before_the_earliest_minor) {
+  EXPECT_FALSE(version_of("2.0.0").has_value());
+}
 
 TEST(later_minor) {
   EXPECT_EQ(version_of("3.2.0").value(),
@@ -200,10 +252,10 @@ TEST(version_string_keeps_the_pre_release_suffix) {
 
 TEST(version_string_of_a_revision_we_do_not_recognise) {
   const auto document{sourcemeta::core::parse_json(R"JSON({
-    "openapi": "3.0.4"
+    "openapi": "3.3.0"
   })JSON")};
   EXPECT_EQ(sourcemeta::core::openapi_version_string(document).value(),
-            "3.0.4");
+            "3.3.0");
   EXPECT_FALSE(sourcemeta::core::openapi_version(document).has_value());
 }
 

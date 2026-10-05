@@ -1,0 +1,18 @@
+{
+  "document": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0",
+      "license": {
+        "name": "MIT",
+        "identifier": "MIT"
+      }
+    },
+    "paths": {}
+  },
+  "error": {
+    "message": "The License Object does not define this field",
+    "location": "/info/license/identifier"
+  }
+}

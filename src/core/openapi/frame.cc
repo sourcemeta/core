@@ -395,6 +395,17 @@ auto collect_path_parameter_names(
   return true;
 }
 
+// Of the 3.0 releases only the last two carry this requirement, 3.0.3 being
+// where "Each template expression in the path MUST correspond to a path
+// parameter that is included in the Path Item itself and/or in each of the
+// Path Item's Operations" arrives. It is held to every 3.0 description all the
+// same, because every release says of itself that "The patch version SHOULD
+// NOT be considered by tooling" and the last one says a patch release
+// "address[es] errors in, or provide[s] clarifications to, this document, not
+// the feature set". A requirement a later patch of the same revision spells
+// out is therefore what that revision always asked for, and reading it as
+// arriving mid-revision would make the feature set turn on a component the
+// specification asks tooling to disregard
 auto check_path_templates(
     const sourcemeta::core::OpenAPIWalk &walk,
     const sourcemeta::core::JSON::String &endpoint,
@@ -505,7 +516,8 @@ auto openapi_base(const JSON &document, const std::string_view retrieval)
   // establishes a base of its own. A document declaring a revision this module
   // does not recognise never reaches the field either, as framing turns it down
   // over the revision first
-  if (openapi_version(document) != OpenAPIVersion::OPENAPI_3_2) {
+  const auto version{openapi_version(document)};
+  if (!version.has_value() || version.value() < OpenAPIVersion::OPENAPI_3_2) {
     return base;
   }
 
