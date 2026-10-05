@@ -494,13 +494,22 @@ auto container_entry_holding(
   return std::nullopt;
 }
 
+// What the document was handed holding, and which of its places anything
+// names by pointer. Both are facts about the document the caller gave rather
+// than about any one remote, and together they decide whether a copy of a
+// schema can be let go of
+struct Inherited {
+  std::unordered_set<JSON::String> identities;
+  std::unordered_set<JSON::String> named_places;
+};
+
 auto elevate_embedded_resources(
     JSON &remote, JSON &root, const Pointer &container,
     const SchemaBaseDialect remote_dialect, const SchemaWalker &walker,
     const SchemaResolver &resolver, std::string_view default_dialect,
     std::unordered_map<JSON::String, JSON::String> &bundled,
-    std::uint64_t &remaining, const SchemaBundleOptions::Callback &callback)
-    -> void {
+    const Inherited &inherited, std::uint64_t &remaining,
+    const SchemaBundleOptions::Callback &callback) -> void {
   const auto keyword{definitions_keyword(
       walker,
       vocabularies_with_embedded(remote, resolver, remote_dialect,
@@ -591,17 +600,31 @@ auto elevate_embedded_resources(
       // every reference naming it is answered by that one either way
       if (bundled.contains(identifier_string)) {
         std::optional<JSON::String> held;
-        if (container_exists && root_container->is_object()) {
+        // Only a copy the document was handed can be let go of. One this run
+        // put there has already been reported to whoever asked to be told
+        // where things went, and they are owed a document that still holds it
+        if (inherited.identities.contains(identifier_string) &&
+            container_exists && root_container->is_object()) {
           held = container_entry_holding(*root_container, identifier_string,
                                          value, value.defines("$schema"),
                                          remote_dialect_uri, walker, resolver,
                                          remaining);
         }
 
+        // Nor can one be let go of while something names the place it sits in.
+        // A name of its own survives the letting go and a place does not
+        if (held.has_value()) {
+          auto place{container};
+          place.push_back(held.value());
+          if (inherited.named_places.contains(to_string(place))) {
+            held = std::nullopt;
+          }
+        }
+
         if (!held.has_value()) {
           throw SchemaError("A meta-schema that has to stay within the schema "
-                            "that pins it is held elsewhere in a place this "
-                            "cannot reach");
+                            "that pins it is held elsewhere too, and that "
+                            "copy cannot be let go of");
         }
 
         root_container->erase(held.value());
@@ -659,9 +682,10 @@ auto embed_references(
     std::string_view default_id, const SchemaFrame::Paths &paths,
     std::string_view default_base,
     std::unordered_map<JSON::String, JSON::String> &bundled,
-    PositionalReferences &positional, std::string_view container_dialect,
-    std::uint64_t &remaining, const SchemaBundleOptions::Callback &callback,
-    const std::size_t depth = 0) -> void {
+    PositionalReferences &positional, Inherited &inherited,
+    std::string_view container_dialect, std::uint64_t &remaining,
+    const SchemaBundleOptions::Callback &callback, const std::size_t depth = 0)
+    -> void {
   // Create a fresh frame for each schema we analyze to avoid key collisions
   // between different schemas that have references at the same pointer paths
   static const SchemaFrame::Paths NESTED_PATHS{EMPTY_WEAK_POINTER};
@@ -678,6 +702,20 @@ auto embed_references(
 
   std::vector<std::tuple<JSON, JSON::String, SchemaBaseDialect>> deferred;
   std::vector<std::pair<Pointer, JSON::String>> ref_rewrites;
+
+  // Which places of the document anything names by pointer, which decides
+  // later on whether a copy of a schema sitting in one of them can be let go
+  // of. The frame this walk already has is what knows, and only the document
+  // the caller handed over has places that its own references can name
+  if (depth == 0) {
+    frame.for_each_reference(
+        [&inherited](const auto, const auto &, const auto &reference) -> void {
+          const auto named{fragment_to_pointer(URI{reference.destination})};
+          if (named.has_value()) {
+            inherited.named_places.insert(to_string(named.value()));
+          }
+        });
+  }
 
   frame.for_each_unresolved_reference([&](const auto &pointer,
                                           const auto &reference) -> void {
@@ -951,11 +989,11 @@ auto embed_references(
   for (auto &[remote, effective_id, remote_dialect] : deferred) {
     embed_references(root, container, remote, walker, resolver, mode,
                      default_dialect, effective_id, paths, default_base,
-                     bundled, positional, container_dialect, remaining,
-                     callback, depth + 1);
+                     bundled, positional, inherited, container_dialect,
+                     remaining, callback, depth + 1);
     elevate_embedded_resources(remote, root, container, remote_dialect, walker,
-                               resolver, default_dialect, bundled, remaining,
-                               callback);
+                               resolver, default_dialect, bundled, inherited,
+                               remaining, callback);
     const auto key{embed_schema(root, container, effective_id,
                                 std::move(remote), callback)};
     if (positional.unnamed.contains(effective_id)) {
@@ -978,6 +1016,7 @@ auto bundle_internal(JSON &schema, const SchemaWalker &walker,
   // and any schemas already embedded within it
   std::unordered_map<JSON::String, JSON::String> bundled;
   PositionalReferences positional;
+  Inherited inherited;
   SchemaFrame initial_frame{SchemaFrame::Mode::Locations,
                             schema,
                             walker,
@@ -989,9 +1028,11 @@ auto bundle_internal(JSON &schema, const SchemaWalker &walker,
                             default_base,
                             remaining};
   charge(remaining, initial_frame);
-  initial_frame.for_each_resource_uri([&bundled](const auto &uri) -> void {
-    bundled.emplace(JSON::String{uri}, JSON::String{uri});
-  });
+  initial_frame.for_each_resource_uri(
+      [&bundled, &inherited](const auto &uri) -> void {
+        bundled.emplace(JSON::String{uri}, JSON::String{uri});
+        inherited.identities.emplace(uri);
+      });
   if (default_container.has_value()) {
     // This is undefined behavior
     assert(!default_container.value().empty());
@@ -1024,12 +1065,13 @@ auto bundle_internal(JSON &schema, const SchemaWalker &walker,
 
     const auto container_parent{initial_frame.traverse(
         to_weak_pointer(default_container.value().initial()))};
-    embed_references(
-        schema, default_container.value(), schema, walker, resolver, mode,
-        default_dialect, default_id, paths, default_base, bundled, positional,
-        container_parent.has_value() ? container_parent.value().get().dialect
-                                     : default_dialect,
-        remaining, callback);
+    embed_references(schema, default_container.value(), schema, walker,
+                     resolver, mode, default_dialect, default_id, paths,
+                     default_base, bundled, positional, inherited,
+                     container_parent.has_value()
+                         ? container_parent.value().get().dialect
+                         : default_dialect,
+                     remaining, callback);
     settle_positional_references(schema, walker, resolver, default_dialect,
                                  default_id, paths, default_base, positional,
                                  remaining, callback);
@@ -1131,7 +1173,7 @@ auto bundle_internal(JSON &schema, const SchemaWalker &walker,
 
   embed_references(schema, {JSON::String{container_keyword}}, schema, walker,
                    resolver, mode, default_dialect, default_id, paths,
-                   default_base, bundled, positional,
+                   default_base, bundled, positional, inherited,
                    schema_root_frame->root_location().value().get().dialect,
                    remaining, callback);
   settle_positional_references(schema, walker, resolver, default_dialect,
