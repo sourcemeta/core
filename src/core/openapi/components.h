@@ -47,10 +47,15 @@ static_assert(openapi_every_field_is_tabled(OPENAPI_COMPONENTS_FIELDS_FROM_3_1,
 // type of the scheme a requirement names rather than about the reference that
 // names it, so an alias of a scheme is held to what it leads to. A reference
 // out of this document leads somewhere framing has not been, and so does one
-// that lands on nothing, and neither says what it ends at
-inline auto openapi_resolved_security_scheme(const JSON &document,
-                                             const JSON &scheme,
-                                             std::size_t remaining)
+// that lands on nothing, and neither says what it ends at.
+//
+// Which of the two a reference is cannot be read off its spelling. A fragment,
+// a relative reference and an absolute one may all name this very document,
+// and what settles it is where the reference resolves against the base in
+// force rather than how much of that base it chose to write out
+inline auto
+openapi_resolved_security_scheme(const JSON &document, const JSON::String &base,
+                                 const JSON &scheme, std::size_t remaining)
     -> const JSON * {
   const auto *current{&scheme};
   while (openapi_is_reference(*current)) {
@@ -66,8 +71,9 @@ inline auto openapi_resolved_security_scheme(const JSON &document,
       return nullptr;
     }
 
-    const auto target{openapi_resolve_uri(reference->to_string(), {})};
-    if (!target.has_value() || !target.value().is_fragment_only()) {
+    const auto target{openapi_resolve_uri(reference->to_string(), base)};
+    if (!target.has_value() ||
+        !openapi_within_document(target.value().recompose(), base)) {
       return nullptr;
     }
 
@@ -118,8 +124,8 @@ inline auto openapi_collect_security_schemes(const JSON &document,
       continue;
     }
 
-    const auto *scheme{openapi_resolved_security_scheme(document, entry.second,
-                                                        schemes->size())};
+    const auto *scheme{openapi_resolved_security_scheme(
+        document, walk.base, entry.second, schemes->size())};
     if (scheme == nullptr || !scheme->is_object()) {
       continue;
     }
