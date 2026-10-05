@@ -1,5 +1,6 @@
 #include <sourcemeta/core/jsonschema.h>
 
+#include "hasher.h"
 #include "helpers.h"
 #include "iterator.h"
 
@@ -866,14 +867,14 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
 
   std::vector<InternalEntry> subschema_entries;
   std::unordered_map<sourcemeta::core::WeakPointer, CacheSubschema,
-                     sourcemeta::core::WeakPointer::Hasher>
+                     PositionHasher>
       subschemas;
   std::unordered_map<sourcemeta::core::WeakPointer,
                      std::vector<sourcemeta::core::JSON::String>,
-                     sourcemeta::core::WeakPointer::Hasher>
+                     PositionHasher>
       base_uris;
   std::unordered_map<sourcemeta::core::WeakPointer, DialectAtPointer,
-                     sourcemeta::core::WeakPointer::Hasher>
+                     PositionHasher>
       base_dialects;
 
   if (!default_base.empty()) {
