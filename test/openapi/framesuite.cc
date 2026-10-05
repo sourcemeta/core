@@ -24,9 +24,15 @@ namespace {
 // Every key a fixture may declare. Anything else is a mistake that would
 // otherwise go unnoticed, as the runner would simply not read it
 // NOLINTBEGIN(cert-err58-cpp,bugprone-throwing-static-initialization)
-const std::vector<std::string> KNOWN_KEYS{"document",       "defaultBase",
-                                          "schemaResolver", "frame",
-                                          "maxLocations",   "error"};
+const std::vector<std::string> KNOWN_KEYS{
+    "document", "defaultBase",  "schemaResolver", "frame",
+    "mode",     "maxLocations", "error"};
+
+// Which rung of framing a refusal belongs to. Almost every check runs while the
+// description is being read, so both rungs make it, and a fixture says so by
+// saying nothing. The few that need the description read as a whole API are the
+// ones that name the rung they need
+const std::vector<std::string> KNOWN_MODES{"schemas", "everything"};
 const std::vector<std::string> KNOWN_ERROR_KEYS{
     "message", "location", "base",  "identifier",
     "keyword", "value",    "other", "limit"};
@@ -743,16 +749,28 @@ auto check_formatting(const sourcemeta::core::JSON &document,
   auto formatted{document};
   {
     const sourcemeta::core::OpenAPIFrame frame{
-        formatted, sourcemeta::core::schema_walker, resolver, default_base,
+        sourcemeta::core::OpenAPIFrame::Mode::Everything,
+        formatted,
+        sourcemeta::core::schema_walker,
+        resolver,
+        default_base,
         max_locations};
     sourcemeta::core::openapi_format(formatted, frame);
   }
 
   const sourcemeta::core::OpenAPIFrame before{
-      document, sourcemeta::core::schema_walker, resolver, default_base,
+      sourcemeta::core::OpenAPIFrame::Mode::Everything,
+      document,
+      sourcemeta::core::schema_walker,
+      resolver,
+      default_base,
       max_locations};
   const sourcemeta::core::OpenAPIFrame after{
-      formatted, sourcemeta::core::schema_walker, resolver, default_base,
+      sourcemeta::core::OpenAPIFrame::Mode::Everything,
+      formatted,
+      sourcemeta::core::schema_walker,
+      resolver,
+      default_base,
       max_locations};
 
   EXPECT_EQ(after.object_count(), before.object_count());
@@ -762,7 +780,11 @@ auto check_formatting(const sourcemeta::core::JSON &document,
   auto again{formatted};
   {
     const sourcemeta::core::OpenAPIFrame frame{
-        again, sourcemeta::core::schema_walker, resolver, default_base,
+        sourcemeta::core::OpenAPIFrame::Mode::Everything,
+        again,
+        sourcemeta::core::schema_walker,
+        resolver,
+        default_base,
         max_locations};
     sourcemeta::core::openapi_format(again, frame);
   }
@@ -779,17 +801,99 @@ auto check_formatting(const sourcemeta::core::JSON &document,
   EXPECT_EQ(second.str(), first.str());
 }
 
+// Reading a description to frame the Schema Objects it holds takes reading the
+// whole of it, so the cheap rung walks and checks exactly what the full one
+// does. What it keeps is less. These assert that the part it keeps is the same
+// part, against every fixture rather than against one document, since the whole
+// claim of that rung is that the schemas come out identical
+auto check_cheap_rung_agrees(const sourcemeta::core::JSON &test,
+                             const sourcemeta::core::SchemaResolver &resolver,
+                             const std::string &default_base,
+                             const std::uint64_t max_locations,
+                             const sourcemeta::core::OpenAPIFrame &everything)
+    -> void {
+  const sourcemeta::core::OpenAPIFrame schemas{
+      sourcemeta::core::OpenAPIFrame::Mode::Schemas,
+      test.at("document"),
+      sourcemeta::core::schema_walker,
+      resolver,
+      default_base,
+      max_locations};
+
+  EXPECT_EQ(schemas.mode(), sourcemeta::core::OpenAPIFrame::Mode::Schemas);
+  EXPECT_EQ(everything.mode(),
+            sourcemeta::core::OpenAPIFrame::Mode::Everything);
+
+  // What the document says of itself comes out of the walk, which both rungs
+  // run in full
+  EXPECT_EQ(schemas.version(), everything.version());
+  EXPECT_EQ(schemas.base(), everything.base());
+  EXPECT_EQ(schemas.info().title, everything.info().title);
+  EXPECT_EQ(schemas.info().version, everything.info().version);
+
+  // The one that matters. Framing the schemas is what the cheap rung is for,
+  // so the frame of them has to be the very same frame
+  EXPECT_EQ(schemas.schemas().to_json(resolver),
+            everything.schemas().to_json(resolver));
+
+  // What it keeps of the description is the Schema Object positions and the
+  // root that settles the dialect they are read under, and nothing else
+  std::size_t expected{0};
+  for (const auto &location : everything.locations()) {
+    if (!location.second.pointer.empty() &&
+        location.second.type !=
+            sourcemeta::core::OpenAPIFrame::ObjectKind::Schema) {
+      continue;
+    }
+
+    expected += 1;
+    const auto *held{schemas.traverse(location.first)};
+    EXPECT_TRUE(held != nullptr);
+    if (held == nullptr) {
+      continue;
+    }
+
+    EXPECT_EQ(held->type, location.second.type);
+    EXPECT_EQ(held->pointer, location.second.pointer);
+    EXPECT_EQ(held->default_dialect, location.second.default_dialect);
+    EXPECT_EQ(held->base, location.second.base);
+
+    // Every field but this one. What holds a place is read out of the places a
+    // frame kept, so the cheap rung would answer the root for every Schema
+    // Object where the full one answers whichever Object encloses it. It
+    // settles none rather than settling a different one
+    EXPECT_FALSE(held->parent.has_value());
+  }
+
+  EXPECT_EQ(schemas.object_count(), expected);
+
+  // And what it does not settle at all, rather than settling emptily by
+  // accident
+  EXPECT_TRUE(schemas.references().empty());
+  EXPECT_TRUE(schemas.security_references().empty());
+  EXPECT_TRUE(schemas.operations().empty());
+  EXPECT_TRUE(schemas.discriminators().empty());
+}
+
 auto run_pass_test(const sourcemeta::core::JSON &test) -> void {
   check_known_keys(test);
   EXPECT_TRUE(test.defines("frame"));
+
+  // Which rung a refusal belongs to is a thing only a refusal has, so naming
+  // one here would go unread rather than being honoured
+  EXPECT_FALSE(test.defines("mode"));
 
   const auto default_base{make_default_base(test)};
   const auto resolver{make_schema_resolver(test)};
   const auto max_locations{make_max_locations(test)};
 
   const sourcemeta::core::OpenAPIFrame frame{
-      test.at("document"), sourcemeta::core::schema_walker, resolver,
-      default_base, max_locations};
+      sourcemeta::core::OpenAPIFrame::Mode::Everything,
+      test.at("document"),
+      sourcemeta::core::schema_walker,
+      resolver,
+      default_base,
+      max_locations};
   // The invariants come first because a failed expectation aborts the test. A
   // frame that contradicts itself is a deeper failure than one that merely
   // differs from what a fixture recorded, so it is the one worth reporting
@@ -798,6 +902,7 @@ auto run_pass_test(const sourcemeta::core::JSON &test) -> void {
   check_window_invariants(frame, result);
   EXPECT_EQ(result, test.at("frame"));
 
+  check_cheap_rung_agrees(test, resolver, default_base, max_locations, frame);
   check_formatting(test.at("document"), resolver, default_base, max_locations);
 }
 
@@ -811,15 +916,11 @@ auto check_schema_refusal(const sourcemeta::core::JSON &test,
   EXPECT_FALSE(test.at("error").defines("base"));
 }
 
-auto run_fail_test(const sourcemeta::core::JSON &test) -> void {
-  check_known_keys(test);
-  EXPECT_TRUE(test.defines("error"));
-  EXPECT_TRUE(test.at("error").defines("message"));
-  for (const auto &entry : test.at("error").as_object()) {
-    EXPECT_TRUE(std::ranges::find(KNOWN_ERROR_KEYS, entry.first) !=
-                KNOWN_ERROR_KEYS.cend());
-  }
-
+// Whether framing a fixture under a given rung turns it down, holding whatever
+// it turned down on to what the fixture recorded. Taking the rung as an
+// argument is what lets the same refusal be asked of both
+auto refuses_under(const sourcemeta::core::JSON &test,
+                   const sourcemeta::core::OpenAPIFrame::Mode mode) -> bool {
   const auto default_base{make_default_base(test)};
 
   // Whether anything was turned down is settled outside the handlers, as the
@@ -828,8 +929,12 @@ auto run_fail_test(const sourcemeta::core::JSON &test) -> void {
   bool refused{false};
   try {
     [[maybe_unused]] const sourcemeta::core::OpenAPIFrame frame{
-        test.at("document"), sourcemeta::core::schema_walker,
-        make_schema_resolver(test), default_base, make_max_locations(test)};
+        mode,
+        test.at("document"),
+        sourcemeta::core::schema_walker,
+        make_schema_resolver(test),
+        default_base,
+        make_max_locations(test)};
   } catch (const sourcemeta::core::OpenAPIFrameLimitError &error) {
     refused = true;
     EXPECT_EQ(error.what(), test.at("error").at("message").to_string());
@@ -912,7 +1017,39 @@ auto run_fail_test(const sourcemeta::core::JSON &test) -> void {
     FAIL();
   }
 
-  EXPECT_TRUE(refused);
+  return refused;
+}
+
+auto run_fail_test(const sourcemeta::core::JSON &test) -> void {
+  check_known_keys(test);
+  EXPECT_TRUE(test.defines("error"));
+  EXPECT_TRUE(test.at("error").defines("message"));
+  for (const auto &entry : test.at("error").as_object()) {
+    EXPECT_TRUE(std::ranges::find(KNOWN_ERROR_KEYS, entry.first) !=
+                KNOWN_ERROR_KEYS.cend());
+  }
+
+  // Reading the description is where almost every check lives, and both rungs
+  // read it in full, so a fixture says which rung its refusal needs only when
+  // that is not the cheap one. The few that name the full rung are the written
+  // record of how much weaker the cheap one is as a validator
+  const auto *declared{test.try_at("mode")};
+  if (declared != nullptr) {
+    EXPECT_TRUE(declared->is_string());
+    EXPECT_TRUE(std::ranges::find(KNOWN_MODES, declared->to_string()) !=
+                KNOWN_MODES.cend());
+  }
+
+  const auto cheaply{declared == nullptr || declared->to_string() == "schemas"};
+
+  EXPECT_TRUE(
+      refuses_under(test, sourcemeta::core::OpenAPIFrame::Mode::Everything));
+
+  // Asked of the cheap rung in both directions. One that stops refusing what
+  // it used to, and one that starts refusing what only reading the whole
+  // description can catch, are each a drift worth hearing about
+  EXPECT_EQ(refuses_under(test, sourcemeta::core::OpenAPIFrame::Mode::Schemas),
+            cheaply);
 }
 
 auto register_tests(const std::filesystem::path &directory,

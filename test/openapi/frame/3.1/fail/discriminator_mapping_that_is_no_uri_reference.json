@@ -27,6 +27,7 @@
     }
   },
   "defaultBase": "https://example.com/openapi.json",
+  "mode": "everything",
   "error": {
     "message": "A Discriminator Object mapping must name a schema by the name of a component or by a URI reference",
     "location": "/components/schemas/Pet/discriminator/mapping/cat",

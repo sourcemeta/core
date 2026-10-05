@@ -25,6 +25,7 @@
     }
   },
   "defaultBase": "https://example.com/openapi.json",
+  "mode": "everything",
   "error": {
     "message": "The Link Object operation identifier must name an operation the OpenAPI Description declares",
     "location": "/components/links/L/operationId",

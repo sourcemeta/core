@@ -349,7 +349,8 @@ auto run_pass_test(const sourcemeta::core::JSON &test) -> void {
   // having to resolve, so such a reference is left exactly as it was written
   // and what comes back stands alone no more than what went in did
   const sourcemeta::core::OpenAPIFrame frame{
-      result, sourcemeta::core::schema_walker, schema_resolver, base};
+      sourcemeta::core::OpenAPIFrame::Mode::Everything, result,
+      sourcemeta::core::schema_walker, schema_resolver, base};
   EXPECT_EQ(frame.standalone(), test.at("standalone").to_boolean());
 
   // What a description exposes is what it is for, and everything else here
@@ -425,7 +426,8 @@ auto run_pass_test(const sourcemeta::core::JSON &test) -> void {
       "https://relocated.test/moved/elsewhere.json"};
 
   const sourcemeta::core::OpenAPIFrame moved{
-      result, sourcemeta::core::schema_walker, schema_resolver, elsewhere};
+      sourcemeta::core::OpenAPIFrame::Mode::Everything, result,
+      sourcemeta::core::schema_walker, schema_resolver, elsewhere};
   EXPECT_EQ(moved.standalone(), test.at("relocatable").to_boolean());
 
   // Bundling that keeps finding work to do on its own output never settles

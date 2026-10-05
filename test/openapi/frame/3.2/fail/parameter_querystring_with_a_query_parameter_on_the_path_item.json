@@ -35,6 +35,7 @@
       }
     }
   },
+  "mode": "everything",
   "error": {
     "message": "A querystring Parameter Object must not appear alongside a query Parameter Object",
     "location": "/paths/~1a/get"

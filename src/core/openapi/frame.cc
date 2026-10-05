@@ -738,6 +738,7 @@ auto openapi_project(const OpenAPIWalk &walk) -> std::vector<OpenAPIOperation> {
 }
 
 struct OpenAPIFrame::Internal {
+  OpenAPIFrame::Mode mode;
   OpenAPIVersion version;
   OpenAPIInfo info;
   // Canonicalising means this no longer borrows from what the caller passed
@@ -759,11 +760,14 @@ struct OpenAPIFrame::Internal {
   std::unique_ptr<SchemaFrame> schemas;
 };
 
-OpenAPIFrame::OpenAPIFrame(const JSON &document, const SchemaWalker &walker,
+OpenAPIFrame::OpenAPIFrame(const Mode mode, const JSON &document,
+                           const SchemaWalker &walker,
                            const SchemaResolver &resolver,
                            const std::string_view default_base,
                            const std::uint64_t max_locations)
     : internal_{std::make_unique<Internal>()} {
+  this->internal_->mode = mode;
+  const auto everything{mode == Mode::Everything};
   auto walk{sourcemeta::core::openapi_analyse(
       document, sourcemeta::core::openapi_canonical_base(default_base),
       max_locations)};
@@ -774,44 +778,68 @@ OpenAPIFrame::OpenAPIFrame(const JSON &document, const SchemaWalker &walker,
   // Which references leave it is what making it whole comes down to, so each
   // one says so of itself rather than only the description as a whole
   bool every_reference_lands{true};
-  for (auto &reference : walk.references) {
-    reference.second.dangling =
-        !walk.locations.contains(reference.second.destination);
-    if (reference.second.dangling) {
-      every_reference_lands = false;
+  if (everything) {
+    for (auto &reference : walk.references) {
+      reference.second.dangling =
+          !walk.locations.contains(reference.second.destination);
+      if (reference.second.dangling) {
+        every_reference_lands = false;
+      }
     }
+
+    // And so does a Security Requirement Object that names a scheme by the URI
+    // of one, which 3.2 admits alongside the name of a component. Naming one
+    // that this document does not hold leaves the description no more whole
+    // than any other reference out of it would
+    for (auto &reference : walk.security_references) {
+      reference.second.dangling =
+          !walk.locations.contains(reference.second.destination);
+      if (reference.second.dangling) {
+        every_reference_lands = false;
+      }
+    }
+
+    // Projecting reads the whole walk, the base included, so nothing is taken
+    // out of it until after
+    this->internal_->operations = openapi_project(walk);
   }
 
-  // And so does a Security Requirement Object that names a scheme by the URI
-  // of one, which 3.2 admits alongside the name of a component. Naming one
-  // that this document does not hold leaves the description no more whole than
-  // any other reference out of it would
-  for (auto &reference : walk.security_references) {
-    reference.second.dangling =
-        !walk.locations.contains(reference.second.destination);
-    if (reference.second.dangling) {
-      every_reference_lands = false;
-    }
-  }
-
-  // Projecting reads the whole walk, the base included, so nothing is taken
-  // out of it until after
-  this->internal_->operations = openapi_project(walk);
   // What the caller passed in is where the entry document was retrieved from,
   // and from 3.2 onwards the document may give itself a URI of its own, which
   // the walk settles and everything it holds is keyed by
   this->internal_->base = std::move(walk.base);
   const auto walk_locations{walk.locations.size()};
   this->internal_->locations = std::move(walk.locations);
-  this->internal_->references = std::move(walk.references);
-  this->internal_->security_references = std::move(walk.security_references);
+  if (everything) {
+    this->internal_->references = std::move(walk.references);
+    this->internal_->security_references = std::move(walk.security_references);
+  } else {
+    // Where a description holds a Schema Object is only known by reading the
+    // whole of it, so the walk above went everywhere either way. What it keeps
+    // is the difference: those positions, and the root that settles the
+    // dialect they are read under. Nothing else was ever more than a report,
+    // and a reference recorded against an Object no longer held would name a
+    // place this cannot be asked for
+    std::erase_if(this->internal_->locations, [](const auto &location) {
+      return !location.second.pointer.empty() &&
+             location.second.type != OpenAPIObjectKind::Schema;
+    });
+  }
 
   // What holds a place is a property of the whole set of places rather than of
   // any one of them, so it is settled once the walk has recorded every place
   // there is
-  for (auto &location : this->internal_->locations) {
-    location.second.parent =
-        parent_of(this->internal_->locations, location.first, location.second);
+  //
+  // What holds a place is read out of the places the frame kept rather than
+  // out of the document, so the cheap mode would answer the root for every
+  // Schema Object, where the full one answers whichever Object encloses it.
+  // That is a different answer rather than a cheaper one, so the cheap mode
+  // settles no parent at all
+  if (everything) {
+    for (auto &location : this->internal_->locations) {
+      location.second.parent = parent_of(this->internal_->locations,
+                                         location.first, location.second);
+    }
   }
 
   // Every Schema Object position of the document at once, rather than one
@@ -864,6 +892,10 @@ OpenAPIFrame::OpenAPIFrame(const JSON &document, const SchemaWalker &walker,
   // description makes. It is the one of them that a schema frame does not
   // read, as the keyword it sits under belongs to the dialect this
   // specification publishes rather than to JSON Schema
+  if (!everything) {
+    return;
+  }
+
   this->internal_->discriminators =
       openapi_discriminators(document, *(this->internal_->schemas),
                              this->internal_->base, walker, resolver);
@@ -913,7 +945,12 @@ auto OpenAPIFrame::base() const noexcept -> JSON::StringView {
   return this->internal_->base;
 }
 
+auto OpenAPIFrame::mode() const noexcept -> Mode {
+  return this->internal_->mode;
+}
+
 auto OpenAPIFrame::standalone() const noexcept -> bool {
+  assert(this->internal_->mode == Mode::Everything);
   return this->internal_->standalone;
 }
 
@@ -969,6 +1006,9 @@ auto OpenAPIFrame::to_json(
     const std::optional<PointerPositionTracker> &tracker) const -> JSON {
   // Read through the accessors rather than the internal state, so that what
   // this reports and what a caller can observe cannot drift apart
+  // Exporting the whole of a frame takes a frame that holds the whole of a
+  // description, which is what every field below reads out of
+  assert(this->internal_->mode == Mode::Everything);
   auto result{JSON::make_object()};
   result.assign_assume_new("version",
                            JSON{openapi_version_name(this->version())});

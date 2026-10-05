@@ -237,11 +237,15 @@ struct OpenAPIInfo {
 /// })")};
 ///
 /// const sourcemeta::core::OpenAPIFrame frame{
+///     sourcemeta::core::OpenAPIFrame::Mode::Everything,
 ///     document, sourcemeta::core::schema_walker,
 ///     sourcemeta::core::schema_resolver};
 /// sourcemeta::core::prettify(frame.to_json(), std::cout);
 /// std::cout << std::endl;
 /// ```
+///
+/// Exporting one as JSON reports everything it holds, so that takes a frame
+/// built to hold everything.
 ///
 /// A frame is analysed once, on construction, and what it reports never
 /// changes afterwards. Reading one is not thread safe even so, as it answers
@@ -249,6 +253,25 @@ struct OpenAPIInfo {
 /// is built where it is read.
 class SOURCEMETA_CORE_OPENAPI_EXPORT OpenAPIFrame {
 public:
+  /// How much of a description to read. Framing the Schema Objects a
+  /// description holds takes reading the whole of it, as where a Schema Object
+  /// sits is the only thing that says it is one, so both of these walk every
+  /// Object and hold it to the specification. What they differ on is how much
+  /// of what they walked past they keep, and how much of what a description
+  /// means as a whole API they go on to settle.
+  ///
+  /// Prefer sourcemeta::core::OpenAPIFrame::Mode::Schemas wherever the schemas
+  /// are the point, as projecting the operations and reading what the
+  /// Discriminator Objects name is a cost nothing else pays for
+  enum class Mode : std::uint8_t {
+    /// Report the Schema Objects the description holds, framed, along with the
+    /// root of the document that holds them
+    Schemas,
+    /// Report every Object the description holds, the operations it exposes,
+    /// the schemas its Discriminator Objects name, and whether it stands alone
+    Everything
+  };
+
   /// What kind of Object an OpenAPI Description holds at a given position. For
   /// a position a reference names, this is what it expects to find at the far
   /// end of itself, which is fixed by where the reference sits rather than by
@@ -506,7 +529,7 @@ public:
   /// sourcemeta::core::SchemaUnknownDialectError or
   /// sourcemeta::core::SchemaUnknownBaseDialectError
   OpenAPIFrame(
-      const JSON &document, const SchemaWalker &walker,
+      Mode mode, const JSON &document, const SchemaWalker &walker,
       const SchemaResolver &resolver, const std::string_view default_base = "",
       std::uint64_t max_locations = std::numeric_limits<std::uint64_t>::max());
 
@@ -517,6 +540,29 @@ public:
   auto operator=(const OpenAPIFrame &) -> OpenAPIFrame & = delete;
   OpenAPIFrame(OpenAPIFrame &&) = delete;
   auto operator=(OpenAPIFrame &&) -> OpenAPIFrame & = delete;
+
+  /// Get how much of the description this frame was built to read. For
+  /// example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/json.h>
+  /// #include <sourcemeta/core/openapi.h>
+  /// #include <cassert>
+  ///
+  /// const auto document{sourcemeta::core::parse_json(R"({
+  ///   "openapi": "3.1.1",
+  ///   "info": { "title": "Example", "version": "1.0.0" },
+  ///   "paths": {}
+  /// })")};
+  ///
+  /// const sourcemeta::core::OpenAPIFrame frame{
+  ///     sourcemeta::core::OpenAPIFrame::Mode::Schemas, document,
+  ///     sourcemeta::core::schema_walker,
+  ///     sourcemeta::core::schema_resolver};
+  /// assert(frame.mode() ==
+  ///        sourcemeta::core::OpenAPIFrame::Mode::Schemas);
+  /// ```
+  [[nodiscard]] auto mode() const noexcept -> Mode;
 
   /// Get the version of the OpenAPI Specification that the entry document
   /// declares. The patch component of that declaration carries no meaning, so
@@ -534,6 +580,7 @@ public:
   /// })")};
   ///
   /// const sourcemeta::core::OpenAPIFrame frame{
+  ///     sourcemeta::core::OpenAPIFrame::Mode::Everything,
   ///     document, sourcemeta::core::schema_walker,
   ///     sourcemeta::core::schema_resolver};
   /// assert(frame.version() ==
@@ -556,6 +603,7 @@ public:
   /// })")};
   ///
   /// const sourcemeta::core::OpenAPIFrame frame{
+  ///     sourcemeta::core::OpenAPIFrame::Mode::Everything,
   ///     document, sourcemeta::core::schema_walker,
   ///     sourcemeta::core::schema_resolver};
   /// assert(frame.info().title == "Example");
@@ -583,6 +631,7 @@ public:
   /// })")};
   ///
   /// const sourcemeta::core::OpenAPIFrame frame{
+  ///     sourcemeta::core::OpenAPIFrame::Mode::Everything,
   ///     document, sourcemeta::core::schema_walker,
   ///     sourcemeta::core::schema_resolver,
   ///     "https://example.com/openapi.json"};
@@ -594,7 +643,10 @@ public:
   /// framed, which counts what its Schema Objects reference as much as what
   /// the shell around them does. The dialect a Schema Object names is not one
   /// of those, as a schema is under no obligation to carry the meta-schema it
-  /// is written against. For example:
+  /// is written against.
+  ///
+  /// Only a frame built to report everything can answer this, as what a
+  /// Discriminator Object names counts towards it. For example:
   ///
   /// ```cpp
   /// #include <sourcemeta/core/json.h>
@@ -608,7 +660,8 @@ public:
   /// })")};
   ///
   /// const sourcemeta::core::OpenAPIFrame frame{
-  ///     document, sourcemeta::core::schema_walker,
+  ///     sourcemeta::core::OpenAPIFrame::Mode::Everything, document,
+  ///     sourcemeta::core::schema_walker,
   ///     sourcemeta::core::schema_resolver};
   /// assert(frame.standalone());
   /// ```
@@ -629,6 +682,7 @@ public:
   /// })")};
   ///
   /// const sourcemeta::core::OpenAPIFrame frame{
+  ///     sourcemeta::core::OpenAPIFrame::Mode::Schemas,
   ///     document, sourcemeta::core::schema_walker,
   ///     sourcemeta::core::schema_resolver,
   ///     "https://example.com/openapi.json"};
@@ -641,27 +695,33 @@ public:
   /// ```
   [[nodiscard]] auto schemas() const noexcept -> const SchemaFrame &;
 
-  /// Every Object the description holds, keyed by the URI addressing each one
+  /// Every Object the description holds, keyed by the URI addressing each one.
+  /// A frame built to report the Schema Objects alone holds those and the root
+  /// of the document that holds them, and settles no parent for either
   [[nodiscard]] auto locations() const noexcept -> const Locations &;
 
   /// Every reference the description makes, keyed by the URI of the Object that
   /// makes it rather than by its `$ref` member, so that where a reference comes
-  /// from is a location like any other
+  /// from is a location like any other. Empty on a frame built to report the
+  /// Schema Objects alone, which holds no Object for one to come from
   [[nodiscard]] auto references() const noexcept -> const References &;
 
   /// Every scheme a Security Requirement Object names by the URI of one, which
   /// OpenAPI Specification 3.2.1 admits alongside the name of a component.
   /// These are kept apart from the references above because a single such
   /// Object may name several, while every other way of naming an Object is
-  /// written down where the Object that makes it sits
+  /// written down where the Object that makes it sits. Empty on a frame built
+  /// to report the Schema Objects alone
   [[nodiscard]] auto security_references() const noexcept -> const References &;
 
-  /// Every operation the described API exposes
+  /// Every operation the described API exposes. Empty on a frame built to
+  /// report the Schema Objects alone, which projects none
   [[nodiscard]] auto operations() const noexcept
       -> const std::vector<Operation> &;
 
   /// Every URI a Discriminator Object names, which is a reference the schemas
-  /// hold rather than one the shell around them does
+  /// hold rather than one the shell around them does. Empty on a frame built to
+  /// report the Schema Objects alone, which reads for none
   [[nodiscard]] auto discriminators() const noexcept
       -> const std::vector<Discriminator> &;
 
@@ -680,6 +740,7 @@ public:
   /// })")};
   ///
   /// const sourcemeta::core::OpenAPIFrame frame{
+  ///     sourcemeta::core::OpenAPIFrame::Mode::Everything,
   ///     document, sourcemeta::core::schema_walker,
   ///     sourcemeta::core::schema_resolver};
   ///
@@ -712,6 +773,7 @@ public:
   /// })")};
   ///
   /// const sourcemeta::core::OpenAPIFrame frame{
+  ///     sourcemeta::core::OpenAPIFrame::Mode::Everything,
   ///     document, sourcemeta::core::schema_walker,
   ///     sourcemeta::core::schema_resolver};
   ///
@@ -747,6 +809,7 @@ public:
   /// })")};
   ///
   /// const sourcemeta::core::OpenAPIFrame frame{
+  ///     sourcemeta::core::OpenAPIFrame::Mode::Everything,
   ///     document, sourcemeta::core::schema_walker,
   ///     sourcemeta::core::schema_resolver};
   ///
@@ -776,6 +839,7 @@ public:
   /// })")};
   ///
   /// const sourcemeta::core::OpenAPIFrame frame{
+  ///     sourcemeta::core::OpenAPIFrame::Mode::Everything,
   ///     document, sourcemeta::core::schema_walker,
   ///     sourcemeta::core::schema_resolver};
   ///
@@ -806,6 +870,7 @@ public:
   /// })")};
   ///
   /// const sourcemeta::core::OpenAPIFrame frame{
+  ///     sourcemeta::core::OpenAPIFrame::Mode::Everything,
   ///     document, sourcemeta::core::schema_walker,
   ///     sourcemeta::core::schema_resolver};
   ///
@@ -834,6 +899,7 @@ public:
   /// })")};
   ///
   /// const sourcemeta::core::OpenAPIFrame frame{
+  ///     sourcemeta::core::OpenAPIFrame::Mode::Everything,
   ///     document, sourcemeta::core::schema_walker,
   ///     sourcemeta::core::schema_resolver};
   ///
@@ -865,6 +931,7 @@ public:
   /// })")};
   ///
   /// const sourcemeta::core::OpenAPIFrame frame{
+  ///     sourcemeta::core::OpenAPIFrame::Mode::Everything,
   ///     document, sourcemeta::core::schema_walker,
   ///     sourcemeta::core::schema_resolver,
   ///     "https://example.com/openapi.json"};
@@ -890,6 +957,7 @@ public:
   /// })")};
   ///
   /// const sourcemeta::core::OpenAPIFrame frame{
+  ///     sourcemeta::core::OpenAPIFrame::Mode::Everything,
   ///     document, sourcemeta::core::schema_walker,
   ///     sourcemeta::core::schema_resolver,
   ///     "https://example.com/openapi.json"};
@@ -929,6 +997,7 @@ public:
   /// })")};
   ///
   /// const sourcemeta::core::OpenAPIFrame frame{
+  ///     sourcemeta::core::OpenAPIFrame::Mode::Everything,
   ///     document, sourcemeta::core::schema_walker,
   ///     sourcemeta::core::schema_resolver};
   ///
@@ -1020,7 +1089,13 @@ using OpenAPIResolver = std::function<OpenAPIResolverResult(std::string_view)>;
 /// This function reorders an OpenAPI Description in place, following an
 /// opinionated OpenAPI aware order, and hands every Schema Object it holds to
 /// the JSON Schema formatter. Note that doing so invalidates the given frame,
-/// as the locations it holds point into the document. For example:
+/// as the locations it holds point into the document.
+///
+/// Every Object is ordered by the kind of Object it is, so the frame must be
+/// one built to report them all, which is
+/// sourcemeta::core::OpenAPIFrame::Mode::Everything. One built to report the
+/// Schema Objects alone would leave the whole shell of the description in
+/// whichever order it was written. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/json.h>
@@ -1036,7 +1111,8 @@ using OpenAPIResolver = std::function<OpenAPIResolverResult(std::string_view)>;
 /// })JSON");
 ///
 /// const sourcemeta::core::OpenAPIFrame frame{
-///     document, sourcemeta::core::schema_walker,
+///     sourcemeta::core::OpenAPIFrame::Mode::Everything, document,
+///     sourcemeta::core::schema_walker,
 ///     sourcemeta::core::schema_resolver};
 ///
 /// sourcemeta::core::openapi_format(document, frame);

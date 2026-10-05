@@ -13,9 +13,9 @@ TEST(version_patch_zero) {
     "paths": {}
   })JSON")};
 
-  const sourcemeta::core::OpenAPIFrame frame{document,
-                                             sourcemeta::core::schema_walker,
-                                             sourcemeta::core::schema_resolver};
+  const sourcemeta::core::OpenAPIFrame frame{
+      sourcemeta::core::OpenAPIFrame::Mode::Everything, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
   EXPECT_EQ(frame.version(), sourcemeta::core::OpenAPIVersion::OPENAPI_3_1);
 }
 
@@ -26,9 +26,9 @@ TEST(version_patch_one) {
     "paths": {}
   })JSON")};
 
-  const sourcemeta::core::OpenAPIFrame frame{document,
-                                             sourcemeta::core::schema_walker,
-                                             sourcemeta::core::schema_resolver};
+  const sourcemeta::core::OpenAPIFrame frame{
+      sourcemeta::core::OpenAPIFrame::Mode::Everything, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
   EXPECT_EQ(frame.version(), sourcemeta::core::OpenAPIVersion::OPENAPI_3_1);
 }
 
@@ -39,9 +39,9 @@ TEST(version_patch_two) {
     "paths": {}
   })JSON")};
 
-  const sourcemeta::core::OpenAPIFrame frame{document,
-                                             sourcemeta::core::schema_walker,
-                                             sourcemeta::core::schema_resolver};
+  const sourcemeta::core::OpenAPIFrame frame{
+      sourcemeta::core::OpenAPIFrame::Mode::Everything, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
   EXPECT_EQ(frame.version(), sourcemeta::core::OpenAPIVersion::OPENAPI_3_1);
 }
 
@@ -52,9 +52,9 @@ TEST(version_pre_release) {
     "paths": {}
   })JSON")};
 
-  const sourcemeta::core::OpenAPIFrame frame{document,
-                                             sourcemeta::core::schema_walker,
-                                             sourcemeta::core::schema_resolver};
+  const sourcemeta::core::OpenAPIFrame frame{
+      sourcemeta::core::OpenAPIFrame::Mode::Everything, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
   EXPECT_EQ(frame.version(), sourcemeta::core::OpenAPIVersion::OPENAPI_3_1);
 }
 
@@ -65,9 +65,9 @@ TEST(version_with_components_and_no_paths) {
     "components": {}
   })JSON")};
 
-  const sourcemeta::core::OpenAPIFrame frame{document,
-                                             sourcemeta::core::schema_walker,
-                                             sourcemeta::core::schema_resolver};
+  const sourcemeta::core::OpenAPIFrame frame{
+      sourcemeta::core::OpenAPIFrame::Mode::Everything, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
   EXPECT_EQ(frame.version(), sourcemeta::core::OpenAPIVersion::OPENAPI_3_1);
 }
 
@@ -78,9 +78,9 @@ TEST(version_with_webhooks_and_no_paths) {
     "webhooks": {}
   })JSON")};
 
-  const sourcemeta::core::OpenAPIFrame frame{document,
-                                             sourcemeta::core::schema_walker,
-                                             sourcemeta::core::schema_resolver};
+  const sourcemeta::core::OpenAPIFrame frame{
+      sourcemeta::core::OpenAPIFrame::Mode::Everything, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
   EXPECT_EQ(frame.version(), sourcemeta::core::OpenAPIVersion::OPENAPI_3_1);
 }
 
@@ -91,9 +91,9 @@ TEST(version_agrees_with_json_export) {
     "paths": {}
   })JSON")};
 
-  const sourcemeta::core::OpenAPIFrame frame{document,
-                                             sourcemeta::core::schema_walker,
-                                             sourcemeta::core::schema_resolver};
+  const sourcemeta::core::OpenAPIFrame frame{
+      sourcemeta::core::OpenAPIFrame::Mode::Everything, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
   EXPECT_EQ(frame.version(), sourcemeta::core::OpenAPIVersion::OPENAPI_3_1);
   EXPECT_EQ(frame.to_json().at("version"), sourcemeta::core::JSON{"3.1"});
 }
@@ -105,9 +105,9 @@ TEST(info_required_fields_only) {
     "paths": {}
   })JSON")};
 
-  const sourcemeta::core::OpenAPIFrame frame{document,
-                                             sourcemeta::core::schema_walker,
-                                             sourcemeta::core::schema_resolver};
+  const sourcemeta::core::OpenAPIFrame frame{
+      sourcemeta::core::OpenAPIFrame::Mode::Everything, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
   EXPECT_EQ(frame.info().title, "Example");
   EXPECT_EQ(frame.info().version, "1.0.0");
   EXPECT_FALSE(frame.info().summary.has_value());
@@ -139,9 +139,9 @@ TEST(info_every_field) {
     "paths": {}
   })JSON")};
 
-  const sourcemeta::core::OpenAPIFrame frame{document,
-                                             sourcemeta::core::schema_walker,
-                                             sourcemeta::core::schema_resolver};
+  const sourcemeta::core::OpenAPIFrame frame{
+      sourcemeta::core::OpenAPIFrame::Mode::Everything, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
   EXPECT_EQ(frame.info().title, "Example Pet Store App");
   EXPECT_EQ(frame.info().version, "1.0.1");
   EXPECT_EQ(frame.info().summary.value(), "A pet store manager.");
@@ -166,9 +166,9 @@ TEST(info_empty_string_values_are_kept) {
     "paths": {}
   })JSON")};
 
-  const sourcemeta::core::OpenAPIFrame frame{document,
-                                             sourcemeta::core::schema_walker,
-                                             sourcemeta::core::schema_resolver};
+  const sourcemeta::core::OpenAPIFrame frame{
+      sourcemeta::core::OpenAPIFrame::Mode::Everything, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
   EXPECT_EQ(frame.info().title, "");
   EXPECT_EQ(frame.info().version, "");
   EXPECT_TRUE(frame.info().summary.has_value());
@@ -186,9 +186,9 @@ TEST(info_relative_terms_of_service) {
     "paths": {}
   })JSON")};
 
-  const sourcemeta::core::OpenAPIFrame frame{document,
-                                             sourcemeta::core::schema_walker,
-                                             sourcemeta::core::schema_resolver};
+  const sourcemeta::core::OpenAPIFrame frame{
+      sourcemeta::core::OpenAPIFrame::Mode::Everything, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
   EXPECT_EQ(frame.info().terms_of_service.value(), "/terms");
 }
 
@@ -199,9 +199,9 @@ TEST(info_empty_contact) {
     "paths": {}
   })JSON")};
 
-  const sourcemeta::core::OpenAPIFrame frame{document,
-                                             sourcemeta::core::schema_walker,
-                                             sourcemeta::core::schema_resolver};
+  const sourcemeta::core::OpenAPIFrame frame{
+      sourcemeta::core::OpenAPIFrame::Mode::Everything, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
   EXPECT_TRUE(frame.info().contact.has_value());
   EXPECT_FALSE(frame.info().contact.value().name.has_value());
   EXPECT_FALSE(frame.info().contact.value().url.has_value());
@@ -219,9 +219,9 @@ TEST(info_license_with_spdx_identifier) {
     "paths": {}
   })JSON")};
 
-  const sourcemeta::core::OpenAPIFrame frame{document,
-                                             sourcemeta::core::schema_walker,
-                                             sourcemeta::core::schema_resolver};
+  const sourcemeta::core::OpenAPIFrame frame{
+      sourcemeta::core::OpenAPIFrame::Mode::Everything, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
   EXPECT_EQ(frame.info().license.value().name, "Apache 2.0");
   EXPECT_EQ(frame.info().license.value().identifier.value(), "Apache-2.0");
   EXPECT_FALSE(frame.info().license.value().url.has_value());
@@ -238,9 +238,9 @@ TEST(info_license_identifier_is_not_validated) {
     "paths": {}
   })JSON")};
 
-  const sourcemeta::core::OpenAPIFrame frame{document,
-                                             sourcemeta::core::schema_walker,
-                                             sourcemeta::core::schema_resolver};
+  const sourcemeta::core::OpenAPIFrame frame{
+      sourcemeta::core::OpenAPIFrame::Mode::Everything, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
   EXPECT_EQ(frame.info().license.value().identifier.value(),
             "not an SPDX expression");
 }
@@ -261,9 +261,9 @@ TEST(info_extensions_are_accepted) {
     "paths": {}
   })JSON")};
 
-  const sourcemeta::core::OpenAPIFrame frame{document,
-                                             sourcemeta::core::schema_walker,
-                                             sourcemeta::core::schema_resolver};
+  const sourcemeta::core::OpenAPIFrame frame{
+      sourcemeta::core::OpenAPIFrame::Mode::Everything, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
   EXPECT_EQ(frame.info().title, "Example");
   EXPECT_EQ(frame.info().contact.value().name.value(), "Support");
   EXPECT_EQ(frame.info().license.value().name, "MIT");
@@ -276,9 +276,9 @@ TEST(base_is_absent_by_default) {
     "paths": {}
   })JSON")};
 
-  const sourcemeta::core::OpenAPIFrame frame{document,
-                                             sourcemeta::core::schema_walker,
-                                             sourcemeta::core::schema_resolver};
+  const sourcemeta::core::OpenAPIFrame frame{
+      sourcemeta::core::OpenAPIFrame::Mode::Everything, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
   EXPECT_TRUE(frame.base().empty());
 }
 
@@ -290,8 +290,9 @@ TEST(base_is_what_the_caller_established) {
   })JSON")};
 
   const sourcemeta::core::OpenAPIFrame frame{
-      document, sourcemeta::core::schema_walker,
-      sourcemeta::core::schema_resolver, "https://example.com/openapi.json"};
+      sourcemeta::core::OpenAPIFrame::Mode::Everything, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver,
+      "https://example.com/openapi.json"};
   EXPECT_EQ(frame.base(), "https://example.com/openapi.json");
 }
 
@@ -303,8 +304,8 @@ TEST(base_is_canonicalised) {
   })JSON")};
 
   const sourcemeta::core::OpenAPIFrame frame{
-      document, sourcemeta::core::schema_walker,
-      sourcemeta::core::schema_resolver,
+      sourcemeta::core::OpenAPIFrame::Mode::Everything, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver,
       "HTTPS://Example.COM:443/a/../openapi.json"};
   EXPECT_EQ(frame.base(), "https://example.com/openapi.json");
 }
@@ -319,8 +320,8 @@ TEST(base_does_not_borrow_from_the_caller) {
   // Canonicalising means the frame owns what it reports, so a base that goes
   // away afterwards cannot dangle
   const sourcemeta::core::OpenAPIFrame frame{
-      document, sourcemeta::core::schema_walker,
-      sourcemeta::core::schema_resolver,
+      sourcemeta::core::OpenAPIFrame::Mode::Everything, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver,
       sourcemeta::core::JSON::String{"https://example.com/openapi.json"}};
   EXPECT_EQ(frame.base(), "https://example.com/openapi.json");
 }
@@ -333,8 +334,9 @@ TEST(base_agrees_with_json_export) {
   })JSON")};
 
   const sourcemeta::core::OpenAPIFrame frame{
-      document, sourcemeta::core::schema_walker,
-      sourcemeta::core::schema_resolver, "https://example.com/openapi.json"};
+      sourcemeta::core::OpenAPIFrame::Mode::Everything, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver,
+      "https://example.com/openapi.json"};
   EXPECT_EQ(frame.to_json().at("base"),
             sourcemeta::core::JSON{"https://example.com/openapi.json"});
 }
@@ -346,9 +348,9 @@ TEST(base_absent_is_the_empty_uri_reference_in_json_export) {
     "paths": {}
   })JSON")};
 
-  const sourcemeta::core::OpenAPIFrame frame{document,
-                                             sourcemeta::core::schema_walker,
-                                             sourcemeta::core::schema_resolver};
+  const sourcemeta::core::OpenAPIFrame frame{
+      sourcemeta::core::OpenAPIFrame::Mode::Everything, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
   EXPECT_EQ(frame.to_json().at("base"), sourcemeta::core::JSON{""});
 }
 
@@ -362,9 +364,9 @@ TEST(standalone_without_references) {
     "paths": {}
   })JSON")};
 
-  const sourcemeta::core::OpenAPIFrame frame{document,
-                                             sourcemeta::core::schema_walker,
-                                             sourcemeta::core::schema_resolver};
+  const sourcemeta::core::OpenAPIFrame frame{
+      sourcemeta::core::OpenAPIFrame::Mode::Everything, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
   EXPECT_TRUE(frame.standalone());
 }
 
@@ -380,9 +382,9 @@ TEST(standalone_with_an_internal_reference) {
     }
   })JSON")};
 
-  const sourcemeta::core::OpenAPIFrame frame{document,
-                                             sourcemeta::core::schema_walker,
-                                             sourcemeta::core::schema_resolver};
+  const sourcemeta::core::OpenAPIFrame frame{
+      sourcemeta::core::OpenAPIFrame::Mode::Everything, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
   EXPECT_TRUE(frame.standalone());
 }
 
@@ -398,8 +400,9 @@ TEST(standalone_with_an_external_reference) {
   })JSON")};
 
   const sourcemeta::core::OpenAPIFrame frame{
-      document, sourcemeta::core::schema_walker,
-      sourcemeta::core::schema_resolver, "https://example.com/openapi.json"};
+      sourcemeta::core::OpenAPIFrame::Mode::Everything, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver,
+      "https://example.com/openapi.json"};
   EXPECT_FALSE(frame.standalone());
   EXPECT_EQ(frame.to_json()
                 .at("locations")
@@ -421,8 +424,9 @@ TEST(schemas_frames_every_schema_object_position) {
   })JSON")};
 
   const sourcemeta::core::OpenAPIFrame frame{
-      document, sourcemeta::core::schema_walker,
-      sourcemeta::core::schema_resolver, "https://example.com/openapi.json"};
+      sourcemeta::core::OpenAPIFrame::Mode::Everything, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver,
+      "https://example.com/openapi.json"};
 
   EXPECT_EQ(frame.schemas().mode(),
             sourcemeta::core::SchemaFrame::Mode::References);
@@ -457,8 +461,9 @@ TEST(schemas_holds_nothing_when_the_description_declares_no_schema) {
   })JSON")};
 
   const sourcemeta::core::OpenAPIFrame frame{
-      document, sourcemeta::core::schema_walker,
-      sourcemeta::core::schema_resolver, "https://example.com/openapi.json"};
+      sourcemeta::core::OpenAPIFrame::Mode::Everything, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver,
+      "https://example.com/openapi.json"};
 
   EXPECT_EQ(frame.schemas().location_count(), 0);
   EXPECT_EQ(frame.schemas().reference_count(), 0);
@@ -476,8 +481,9 @@ TEST(schemas_does_not_stand_alone_when_a_schema_reaches_out) {
   })JSON")};
 
   const sourcemeta::core::OpenAPIFrame frame{
-      document, sourcemeta::core::schema_walker,
-      sourcemeta::core::schema_resolver, "https://example.com/openapi.json"};
+      sourcemeta::core::OpenAPIFrame::Mode::Everything, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver,
+      "https://example.com/openapi.json"};
 
   // Nothing of the shell dangles, so the description falls short on what its
   // Schema Objects reach for alone
@@ -499,8 +505,9 @@ TEST(dangling_is_empty_when_the_frame_stands_alone) {
   })JSON")};
 
   const sourcemeta::core::OpenAPIFrame frame{
-      document, sourcemeta::core::schema_walker,
-      sourcemeta::core::schema_resolver, "https://example.com/openapi.json"};
+      sourcemeta::core::OpenAPIFrame::Mode::Everything, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver,
+      "https://example.com/openapi.json"};
   EXPECT_TRUE(frame.standalone());
 }
 
@@ -517,8 +524,9 @@ TEST(dangling_is_reported_on_each_reference_that_shares_a_destination) {
   })JSON")};
 
   const sourcemeta::core::OpenAPIFrame frame{
-      document, sourcemeta::core::schema_walker,
-      sourcemeta::core::schema_resolver, "https://example.com/openapi.json"};
+      sourcemeta::core::OpenAPIFrame::Mode::Everything, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver,
+      "https://example.com/openapi.json"};
   const auto result{frame.to_json()};
   const auto &locations{result.at("locations")};
   EXPECT_EQ(
@@ -543,8 +551,9 @@ TEST(standalone_agrees_with_json_export) {
   })JSON")};
 
   const sourcemeta::core::OpenAPIFrame frame{
-      document, sourcemeta::core::schema_walker,
-      sourcemeta::core::schema_resolver, "https://example.com/openapi.json"};
+      sourcemeta::core::OpenAPIFrame::Mode::Everything, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver,
+      "https://example.com/openapi.json"};
   EXPECT_EQ(frame.to_json().at("standalone"), sourcemeta::core::JSON{false});
 }
 
@@ -575,8 +584,9 @@ TEST(positions_of_every_place_the_export_names) {
                                document, std::ref(tracker));
 
   const sourcemeta::core::OpenAPIFrame frame{
-      document, sourcemeta::core::schema_walker,
-      sourcemeta::core::schema_resolver, "https://example.com/openapi.json"};
+      sourcemeta::core::OpenAPIFrame::Mode::Everything, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver,
+      "https://example.com/openapi.json"};
   const auto result{frame.to_json(tracker)};
   const auto &locations{result.at("locations")};
   const auto &schemas{result.at("schemas").at("locations").at("static")};
@@ -653,8 +663,9 @@ TEST(positions_are_none_when_the_tracker_holds_nothing) {
   })JSON")};
 
   const sourcemeta::core::OpenAPIFrame frame{
-      document, sourcemeta::core::schema_walker,
-      sourcemeta::core::schema_resolver, "https://example.com/openapi.json"};
+      sourcemeta::core::OpenAPIFrame::Mode::Everything, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver,
+      "https://example.com/openapi.json"};
   const auto result{frame.to_json(tracker)};
   const auto &locations{result.at("locations")};
   const auto &schemas{result.at("schemas").at("locations").at("static")};
@@ -730,8 +741,9 @@ TEST(positions_are_absent_when_no_tracker_is_given) {
   })JSON")};
 
   const sourcemeta::core::OpenAPIFrame frame{
-      document, sourcemeta::core::schema_walker,
-      sourcemeta::core::schema_resolver, "https://example.com/openapi.json"};
+      sourcemeta::core::OpenAPIFrame::Mode::Everything, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver,
+      "https://example.com/openapi.json"};
   const auto result{frame.to_json()};
   const auto &locations{result.at("locations")};
   const auto &schemas{result.at("schemas").at("locations").at("static")};
@@ -887,8 +899,9 @@ TEST(parent_of_every_object) {
   })JSON")};
 
   const sourcemeta::core::OpenAPIFrame frame{
-      document, sourcemeta::core::schema_walker,
-      sourcemeta::core::schema_resolver, "https://example.com/openapi.json"};
+      sourcemeta::core::OpenAPIFrame::Mode::Everything, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver,
+      "https://example.com/openapi.json"};
   const auto &locations{frame.locations()};
   EXPECT_FALSE(
       locations.at("https://example.com/openapi.json").parent.has_value());
@@ -925,8 +938,9 @@ TEST(parent_skips_a_position_that_is_no_object_of_its_own) {
   })JSON")};
 
   const sourcemeta::core::OpenAPIFrame frame{
-      document, sourcemeta::core::schema_walker,
-      sourcemeta::core::schema_resolver, "https://example.com/openapi.json"};
+      sourcemeta::core::OpenAPIFrame::Mode::Everything, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver,
+      "https://example.com/openapi.json"};
   const auto &locations{frame.locations()};
   EXPECT_FALSE(locations.contains(
       "https://example.com/openapi.json#/components/schemas"));
@@ -968,8 +982,9 @@ TEST(default_dialect_is_not_the_dialect_a_schema_declares) {
   })JSON")};
 
   const sourcemeta::core::OpenAPIFrame frame{
-      document, sourcemeta::core::schema_walker,
-      sourcemeta::core::schema_resolver, "https://example.com/openapi.json"};
+      sourcemeta::core::OpenAPIFrame::Mode::Everything, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver,
+      "https://example.com/openapi.json"};
 
   const std::string older{
       "https://example.com/openapi.json#/components/schemas/Older"};
@@ -1012,8 +1027,9 @@ TEST(default_dialect_export_is_distinct_from_the_schema_frame_dialect) {
   })JSON")};
 
   const sourcemeta::core::OpenAPIFrame frame{
-      document, sourcemeta::core::schema_walker,
-      sourcemeta::core::schema_resolver, "https://example.com/openapi.json"};
+      sourcemeta::core::OpenAPIFrame::Mode::Everything, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver,
+      "https://example.com/openapi.json"};
   const auto result{frame.to_json()};
 
   const std::string older{
@@ -1040,8 +1056,9 @@ TEST(openapi_base_without_a_self) {
             "https://example.com/openapi.json");
 
   const sourcemeta::core::OpenAPIFrame frame{
-      document, sourcemeta::core::schema_walker,
-      sourcemeta::core::schema_resolver, "https://example.com/openapi.json"};
+      sourcemeta::core::OpenAPIFrame::Mode::Everything, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver,
+      "https://example.com/openapi.json"};
   EXPECT_EQ(frame.base(), sourcemeta::core::openapi_base(
                               document, "https://example.com/openapi.json"));
 }
@@ -1058,8 +1075,8 @@ TEST(openapi_base_canonicalises_the_retrieval_uri) {
             "https://example.com/openapi.json");
 
   const sourcemeta::core::OpenAPIFrame frame{
-      document, sourcemeta::core::schema_walker,
-      sourcemeta::core::schema_resolver,
+      sourcemeta::core::OpenAPIFrame::Mode::Everything, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver,
       "HTTPS://Example.COM:443/./foo/../openapi.json"};
   EXPECT_EQ(frame.base(), "https://example.com/openapi.json");
 }
@@ -1073,9 +1090,9 @@ TEST(openapi_base_without_a_retrieval_uri) {
 
   EXPECT_EQ(sourcemeta::core::openapi_base(document, ""), "");
 
-  const sourcemeta::core::OpenAPIFrame frame{document,
-                                             sourcemeta::core::schema_walker,
-                                             sourcemeta::core::schema_resolver};
+  const sourcemeta::core::OpenAPIFrame frame{
+      sourcemeta::core::OpenAPIFrame::Mode::Everything, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
   EXPECT_EQ(frame.base(), sourcemeta::core::openapi_base(document, ""));
 }
 
@@ -1092,8 +1109,9 @@ TEST(openapi_base_of_an_absolute_self) {
             "https://example.com/api");
 
   const sourcemeta::core::OpenAPIFrame frame{
-      document, sourcemeta::core::schema_walker,
-      sourcemeta::core::schema_resolver, "https://example.com/openapi.json"};
+      sourcemeta::core::OpenAPIFrame::Mode::Everything, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver,
+      "https://example.com/openapi.json"};
   EXPECT_EQ(frame.base(), "https://example.com/api");
 }
 
@@ -1110,8 +1128,9 @@ TEST(openapi_base_of_a_relative_self) {
             "https://example.com/v1/common/api.json");
 
   const sourcemeta::core::OpenAPIFrame frame{
-      document, sourcemeta::core::schema_walker,
-      sourcemeta::core::schema_resolver, "https://example.com/v1/openapi.json"};
+      sourcemeta::core::OpenAPIFrame::Mode::Everything, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver,
+      "https://example.com/v1/openapi.json"};
   EXPECT_EQ(frame.base(), "https://example.com/v1/common/api.json");
 }
 
@@ -1128,8 +1147,9 @@ TEST(openapi_base_of_a_self_that_carries_a_fragment) {
             "https://example.com/api");
 
   const sourcemeta::core::OpenAPIFrame frame{
-      document, sourcemeta::core::schema_walker,
-      sourcemeta::core::schema_resolver, "https://example.com/openapi.json"};
+      sourcemeta::core::OpenAPIFrame::Mode::Everything, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver,
+      "https://example.com/openapi.json"};
   EXPECT_EQ(frame.base(), "https://example.com/api");
 }
 
@@ -1143,9 +1163,9 @@ TEST(openapi_base_of_a_relative_self_with_nothing_to_resolve_against) {
 
   EXPECT_EQ(sourcemeta::core::openapi_base(document, ""), "");
 
-  const sourcemeta::core::OpenAPIFrame frame{document,
-                                             sourcemeta::core::schema_walker,
-                                             sourcemeta::core::schema_resolver};
+  const sourcemeta::core::OpenAPIFrame frame{
+      sourcemeta::core::OpenAPIFrame::Mode::Everything, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
   EXPECT_EQ(frame.base(), "");
 }
 
@@ -1230,8 +1250,9 @@ TEST(openapi_base_of_a_document_that_does_not_conform) {
 
   try {
     [[maybe_unused]] const sourcemeta::core::OpenAPIFrame frame{
-        document, sourcemeta::core::schema_walker,
-        sourcemeta::core::schema_resolver, "https://example.com/openapi.json"};
+        sourcemeta::core::OpenAPIFrame::Mode::Everything, document,
+        sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver,
+        "https://example.com/openapi.json"};
     FAIL();
   } catch (const sourcemeta::core::OpenAPIError &error) {
     EXPECT_EQ(error.base(), sourcemeta::core::openapi_base(
@@ -1254,8 +1275,9 @@ TEST(openapi_base_of_a_self_in_a_revision_that_rejects_the_field) {
 
   try {
     [[maybe_unused]] const sourcemeta::core::OpenAPIFrame frame{
-        document, sourcemeta::core::schema_walker,
-        sourcemeta::core::schema_resolver, "https://example.com/openapi.json"};
+        sourcemeta::core::OpenAPIFrame::Mode::Everything, document,
+        sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver,
+        "https://example.com/openapi.json"};
     FAIL();
   } catch (const sourcemeta::core::OpenAPIError &error) {
     EXPECT_EQ(error.base(), sourcemeta::core::openapi_base(
@@ -1277,8 +1299,8 @@ TEST(openapi_base_of_an_absolute_self_without_a_retrieval_uri) {
   EXPECT_EQ(sourcemeta::core::openapi_base(document, ""),
             "https://example.com/api");
 
-  const sourcemeta::core::OpenAPIFrame frame{document,
-                                             sourcemeta::core::schema_walker,
-                                             sourcemeta::core::schema_resolver};
+  const sourcemeta::core::OpenAPIFrame frame{
+      sourcemeta::core::OpenAPIFrame::Mode::Everything, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
   EXPECT_EQ(frame.base(), "https://example.com/api");
 }

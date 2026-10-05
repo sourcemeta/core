@@ -18,6 +18,7 @@
       }
     }
   },
+  "mode": "everything",
   "error": {
     "message": "A templated path must declare a path parameter for each of its template expressions",
     "location": "/paths/~1pets~1{petId}"

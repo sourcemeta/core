@@ -508,6 +508,9 @@ auto format_object(JSON &document, const OpenAPIFrame::Location &location)
 
 auto openapi_format(JSON &document, const OpenAPIFrame &frame) -> void {
   assert(document.is_object());
+  // Every Object is ordered by its kind, so a frame that reports the Schema
+  // Objects alone would leave the whole shell in whichever order it was written
+  assert(frame.mode() == OpenAPIFrame::Mode::Everything);
 
   // OpenAPI Specification 3.1.1, Section 4.3 leaves a Schema Object to JSON
   // Schema, so ordering one is that implementation's to do. It goes first

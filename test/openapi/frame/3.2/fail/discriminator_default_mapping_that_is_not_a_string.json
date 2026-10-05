@@ -25,6 +25,7 @@
     }
   },
   "defaultBase": "https://example.com/openapi.json",
+  "mode": "everything",
   "error": {
     "message": "A Discriminator Object mapping must name a schema with a string",
     "location": "/components/schemas/Pet/discriminator/defaultMapping",

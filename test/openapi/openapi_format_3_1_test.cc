@@ -14,9 +14,9 @@ auto format(const sourcemeta::core::JSON::String &input)
   // The frame borrows from the document and formatting reorders it, so the
   // frame is spent once the call below returns. Destroying it afterwards is
   // safe because that never reads what it borrowed
-  const sourcemeta::core::OpenAPIFrame frame{document,
-                                             sourcemeta::core::schema_walker,
-                                             sourcemeta::core::schema_resolver};
+  const sourcemeta::core::OpenAPIFrame frame{
+      sourcemeta::core::OpenAPIFrame::Mode::Everything, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
   sourcemeta::core::openapi_format(document, frame);
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);

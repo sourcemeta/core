@@ -17,6 +17,7 @@
       }
     ]
   },
+  "mode": "everything",
   "error": {
     "message": "The Tag Object parents must not form a cycle",
     "location": "/tags/0/parent"

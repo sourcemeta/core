@@ -23,6 +23,7 @@
       }
     }
   },
+  "mode": "everything",
   "error": {
     "message": "The Discriminator Object property name must be a string",
     "location": "/components/schemas/Pet/discriminator/propertyName"

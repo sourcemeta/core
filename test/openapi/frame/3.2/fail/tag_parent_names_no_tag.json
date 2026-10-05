@@ -13,6 +13,7 @@
       }
     ]
   },
+  "mode": "everything",
   "error": {
     "message": "The Tag Object parent must name a tag the OpenAPI Description declares",
     "location": "/tags/0/parent"
