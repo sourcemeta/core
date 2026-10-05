@@ -61,11 +61,11 @@ inline auto openapi_check_server_variable(const JSON &value,
     }
 
     // 3.0 asks for the same thing without requiring it. Its first three
-    // releases say nothing of emptiness at all, and 3.0.4 says "The array
-    // SHOULD NOT be empty", which was published the same day as the 3.1.1
-    // wording above. The two lines were maintained together and chose
-    // different strengths, so an empty array is conforming under 3.0 and
-    // turning one down there would refuse a document the revision admits
+    // releases say nothing of emptiness at all, and the last two say "The
+    // array SHOULD NOT be empty", the later of which was published the same
+    // day as the 3.1.1 wording above. The two lines were maintained together
+    // and chose different strengths, so an empty array is conforming under 3.0
+    // and turning one down there would refuse a document the revision admits
     if (walk.version >= OpenAPIVersion::OPENAPI_3_1 && enumeration->empty()) {
       throw OpenAPIError{
           openapi_child(base, "enum"sv),
@@ -105,9 +105,9 @@ inline auto openapi_check_server_variable(const JSON &value,
   // enumeration says so in a comment, so the prose is what this follows.
   //
   // 3.0 holds the two fields to no such relation. Its first three releases
-  // state none, and 3.0.4 says "If the `enum` is defined, the value SHOULD
-  // exist in the enum's values", so a default outside the enumeration is
-  // conforming there
+  // state none, and the last two say "If the `enum` is defined, the value
+  // SHOULD exist in the enum's values", so a default outside the enumeration
+  // is conforming there
   if (walk.version >= OpenAPIVersion::OPENAPI_3_1 && enumeration != nullptr &&
       !std::ranges::any_of(enumeration->as_array(),
                            [default_value](const JSON &option) -> bool {

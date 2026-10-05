@@ -268,8 +268,8 @@ inline auto openapi_check_security_scheme(const JSON &value,
       openapi_require(value, "type"sv, OPENAPI_HASH_TYPE, base,
                       "The Security Scheme Object must declare its type")};
 
-  // OpenAPI Specification 3.0.4, Security Scheme Object: "type | string |
-  // **REQUIRED**. The type of the security scheme. Valid values are
+  // OpenAPI Specification 3.0.4, Security Scheme Object: "type | `string` |
+  // Any | **REQUIRED**. The type of the security scheme. Valid values are
   // `"apiKey"`, `"http"`, `"oauth2"`, `"openIdConnect"`". 3.1.1 Section 4.8.27
   // adds `mutualTLS` to that list, which no release of 3.0 names anywhere, so
   // the values a document is held to are the ones its own revision gives
