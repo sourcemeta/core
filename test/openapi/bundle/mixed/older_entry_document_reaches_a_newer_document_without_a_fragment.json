@@ -1,19 +1,14 @@
 {
   "document": {
-    "openapi": "3.2.0",
+    "openapi": "3.1.1",
     "info": {
       "title": "Example",
       "version": "1.0.0"
     },
-    "security": [
-      {
-        "https://example.com/other.json": []
-      }
-    ],
     "components": {
       "responses": {
         "R": {
-          "description": "OK"
+          "$ref": "other.json"
         }
       }
     }
@@ -27,10 +22,9 @@
         "version": "1.0.0"
       },
       "components": {
-        "securitySchemes": {
-          "Remote": {
-            "type": "http",
-            "scheme": "bearer"
+        "responses": {
+          "NotFound": {
+            "description": "Nope"
           }
         }
       }
@@ -39,8 +33,8 @@
   "schemaResolver": {},
   "error": {
     "type": "OpenAPIReferenceError",
-    "message": "This security requirement must name a Security Scheme Object within the document it points at",
+    "message": "This reference must name a document of the same OpenAPI Specification revision",
     "identifier": "https://example.com/other.json",
-    "location": "/security/0/https:~1~1example.com~1other.json"
+    "location": "/components/responses/R/$ref"
   }
 }

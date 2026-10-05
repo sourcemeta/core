@@ -20,7 +20,8 @@
   "defaultBase": "https://example.com/openapi.json",
   "openapiResolver": {
     "https://example.com/shared.json": {
-      "description": "Not found"
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "string"
     }
   },
   "schemaResolver": {},

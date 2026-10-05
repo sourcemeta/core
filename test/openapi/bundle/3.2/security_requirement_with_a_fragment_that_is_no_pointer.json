@@ -7,7 +7,7 @@
     },
     "security": [
       {
-        "https://example.com/other.json": []
+        "https://example.com/other.json#Remote": []
       }
     ],
     "components": {
@@ -40,7 +40,7 @@
   "error": {
     "type": "OpenAPIReferenceError",
     "message": "This security requirement must name a Security Scheme Object within the document it points at",
-    "identifier": "https://example.com/other.json",
-    "location": "/security/0/https:~1~1example.com~1other.json"
+    "identifier": "https://example.com/other.json#Remote",
+    "location": "/security/0/https:~1~1example.com~1other.json#Remote"
   }
 }
