@@ -1,0 +1,71 @@
+{
+  "document": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "schemas": {
+        "Pet": {
+          "$ref": "pet.json#Cat"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {},
+  "schemaResolver": {
+    "https://example.com/pet.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/pet.json",
+      "$defs": {
+        "Cat": {
+          "$anchor": "Cat",
+          "title": "CAT"
+        }
+      }
+    }
+  },
+  "result": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "schemas": {
+        "Pet": {
+          "$ref": "https://example.com/pet.json#Cat"
+        },
+        "pet.json": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://example.com/pet.json",
+          "$defs": {
+            "Cat": {
+              "$anchor": "Cat",
+              "title": "CAT"
+            }
+          }
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/pet.json",
+      "at": "/components/schemas/pet.json"
+    }
+  ],
+  "reads": {
+    "https://example.com/pet.json": 1
+  },
+  "schemaReads": {
+    "https://example.com/pet.json": 1
+  },
+  "standalone": true,
+  "relocatable": true,
+  "operations": []
+}

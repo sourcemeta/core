@@ -1,0 +1,76 @@
+{
+  "document": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "schemas": {
+        "Modern": {
+          "$ref": "modern.json"
+        },
+        "Plain": {
+          "$ref": "plain.json"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {},
+  "schemaResolver": {
+    "https://example.com/modern.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/modern.json",
+      "type": "object"
+    },
+    "https://example.com/plain.json": {
+      "type": "string"
+    }
+  },
+  "result": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "schemas": {
+        "Modern": {
+          "$ref": "https://example.com/modern.json"
+        },
+        "Plain": {
+          "$ref": "#/components/schemas/plain.json"
+        },
+        "modern.json": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://example.com/modern.json",
+          "type": "object"
+        },
+        "plain.json": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/modern.json",
+      "at": "/components/schemas/modern.json"
+    },
+    {
+      "from": "https://example.com/plain.json",
+      "at": "/components/schemas/plain.json"
+    }
+  ],
+  "reads": {},
+  "schemaReads": {
+    "https://example.com/modern.json": 1,
+    "https://example.com/plain.json": 1
+  },
+  "standalone": true,
+  "relocatable": true,
+  "operations": []
+}

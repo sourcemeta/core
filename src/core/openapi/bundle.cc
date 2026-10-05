@@ -161,6 +161,13 @@ auto container_of(const sourcemeta::core::Pointer &origin,
   return sourcemeta::core::openapi_component_container(expected);
 }
 
+// Which Path Item Objects have already been written into a given position,
+// keyed by that position. Inlining puts no entry in the map that keeps bundling
+// from embedding one place twice, because what it writes is a copy rather than
+// a component, so this is what a chain that leads back on itself is told by
+using OpenAPIInlined = std::map<sourcemeta::core::JSON::String,
+                                std::set<sourcemeta::core::JSON::String>>;
+
 // A reference that leads back to the document being bundled into names a place
 // that document already holds, so it is written as a fragment of it rather
 // than as the URI that document answers to
@@ -616,12 +623,120 @@ auto spell_out(sourcemeta::core::JSON &schema) -> void {
 // identifiers that bundling names an embedded schema by do not hold up to, so
 // each of them is renamed once it has landed. Nothing resolves through those
 // keys, so renaming reaches nothing else
+// Write every reference that names an embedded schema by where it sits again,
+// now that the name it sits under is settled. Which members of a Schema Object
+// are references is the dialect's to say rather than something a walk of the
+// document could tell, which is why this frames rather than looking for a
+// member called `$ref`: a `default` or an `example` may spell one and mean
+// nothing by it
+auto repoint_schemas(
+    sourcemeta::core::JSON &document, const sourcemeta::core::OpenAPIWalk &walk,
+    const std::vector<std::pair<sourcemeta::core::JSON::String,
+                                sourcemeta::core::JSON::String>> &renamed,
+    const sourcemeta::core::SchemaWalker &walker,
+    const sourcemeta::core::SchemaResolver &resolver, std::uint64_t &remaining)
+    -> void {
+  if (renamed.empty()) {
+    return;
+  }
+
+  sourcemeta::core::Pointer container;
+  container.push_back(sourcemeta::core::JSON::String{"components"});
+  container.push_back(sourcemeta::core::JSON::String{"schemas"});
+
+  // Every Schema Object the description held before any of this, and every one
+  // that landed during it. The walk is the one taken before schema bundling
+  // ran, so it knows the first and none of the second
+  sourcemeta::core::SchemaFrame::Paths paths;
+  for (const auto &entry : walk.locations) {
+    if (entry.second.type == sourcemeta::core::OpenAPIObjectKind::Schema) {
+      paths.push_back(sourcemeta::core::to_weak_pointer(entry.second.pointer));
+    }
+  }
+
+  // A weak pointer borrows every token it holds, so where each schema landed is
+  // held for as long as the frame is rather than built into the call that takes
+  // a view of it. Every one of them is built before the first view is taken, so
+  // that growing this reaches none of them
+  std::vector<sourcemeta::core::Pointer> landings;
+  landings.reserve(renamed.size());
+  for (const auto &entry : renamed) {
+    landings.push_back(
+        container.concat(sourcemeta::core::Pointer{entry.second}));
+  }
+
+  for (const auto &landing : landings) {
+    paths.push_back(sourcemeta::core::to_weak_pointer(landing));
+  }
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References,
+      document,
+      walker,
+      resolver,
+      walk.dialect,
+      "",
+      sourcemeta::core::SchemaFrame::IdentifierMode::Additional,
+      paths,
+      walk.base,
+      remaining};
+  charge(remaining, frame.location_count());
+
+  std::vector<
+      std::pair<sourcemeta::core::Pointer, sourcemeta::core::JSON::String>>
+      writes;
+  frame.for_each_reference([&walk, &container, &renamed,
+                            &writes](const auto type, const auto &pointer,
+                                     const auto &reference) -> void {
+    // What settles a dynamic reference is where the schema is evaluated rather
+    // than where it sits, and the one thing a pointer at a key cannot be is
+    // settled later
+    if (type != sourcemeta::core::SchemaReferenceType::Static ||
+        !sourcemeta::core::openapi_within_document(reference.destination,
+                                                   walk.base)) {
+      return;
+    }
+
+    // Section 4.6 reads a fragment of this shape as a JSON Pointer, and the
+    // rest of this file reads one the same way
+    const auto held{sourcemeta::core::fragment_to_pointer(
+        sourcemeta::core::URI{reference.destination})};
+    if (!held.has_value() || held.value().size() < 3 ||
+        !held.value().starts_with(container) ||
+        !held.value().at(2).is_property()) {
+      return;
+    }
+
+    for (const auto &entry : renamed) {
+      if (held.value().at(2).to_property() != entry.first) {
+        continue;
+      }
+
+      // Whatever the reference named within that schema is named within it
+      // still, so only the key it was reached by moves
+      const auto rewritten{
+          container.concat(sourcemeta::core::Pointer{entry.second})
+              .concat(held.value().slice(3))};
+      writes.emplace_back(sourcemeta::core::to_pointer(pointer),
+                          sourcemeta::core::to_uri(rewritten).recompose());
+      return;
+    }
+  });
+
+  // Collected before any of them is applied, as writing invalidates what the
+  // frame holds views into
+  for (auto &write : writes) {
+    sourcemeta::core::set(document, write.first,
+                          sourcemeta::core::JSON{std::move(write.second)});
+  }
+}
+
 auto bundle_schemas(sourcemeta::core::JSON &document,
                     const sourcemeta::core::OpenAPIWalk &walk,
                     const sourcemeta::core::SchemaWalker &walker,
                     const sourcemeta::core::SchemaResolver &resolver,
                     const sourcemeta::core::JSON::String &base,
-                    const std::uint64_t remaining,
+                    std::uint64_t &remaining,
                     const sourcemeta::core::OpenAPIBundleOptions &options)
     -> bool {
   const auto &callback{options.callback};
@@ -674,37 +789,53 @@ auto bundle_schemas(sourcemeta::core::JSON &document,
   // this description happens to have settled on
   const sourcemeta::core::JSON::String standalone{
       sourcemeta::core::openapi_dialect(walk.version)};
-  const auto standalone_resolver{
-      [&resolver, &standalone, &base](const std::string_view identifier)
-          -> sourcemeta::core::SchemaResolverResult {
-        auto result{resolver(identifier)};
-        // 3.2.1 Section 4.1.2 has every document of a description hold "either
-        // an OpenAPI Object or a Schema Object at the root", and what answers
-        // here answers as the second. One that is the first instead would be
-        // read as a schema, which Appendix G leaves undefined and lets this
-        // turn down: "If the same JSON/YAML object is parsed multiple times
-        // and the respective contexts require it to be parsed as different
-        // Object types, the resulting behavior is implementation defined, and
-        // MAY be treated as an error if detected". Turning it down is also
-        // what keeps a document of another revision from arriving this way
-        if (result.has_value() &&
-            sourcemeta::core::openapi_has_version_field(result.value())) {
-          throw sourcemeta::core::OpenAPIReferenceError{
-              base, sourcemeta::core::EMPTY_POINTER,
-              sourcemeta::core::JSON::String{identifier},
-              "This reference must name a schema rather than a document that "
-              "holds an OpenAPI Description"};
-        }
+  // Whether that dialect is one a schema may name for itself, which is the
+  // revision's to say rather than any document's, since what is written below
+  // is the dialect the revision publishes rather than whatever this
+  // description settled on
+  const auto nameable{
+      sourcemeta::core::openapi_schema_object_is_self_describing(walk.version)};
+  const auto standalone_resolver{[&resolver, &standalone, &base,
+                                  nameable](const std::string_view identifier)
+                                     -> sourcemeta::core::SchemaResolverResult {
+    auto result{resolver(identifier)};
+    // 3.2.1 Section 4.1.2 has every document of a description hold "either
+    // an OpenAPI Object or a Schema Object at the root", and what answers
+    // here answers as the second. One that is the first instead would be
+    // read as a schema, which Appendix G leaves undefined and lets this
+    // turn down: "If the same JSON/YAML object is parsed multiple times
+    // and the respective contexts require it to be parsed as different
+    // Object types, the resulting behavior is implementation defined, and
+    // MAY be treated as an error if detected". Turning it down is also
+    // what keeps a document of another revision from arriving this way
+    if (result.has_value() &&
+        sourcemeta::core::openapi_has_version_field(result.value())) {
+      throw sourcemeta::core::OpenAPIReferenceError{
+          base, sourcemeta::core::EMPTY_POINTER,
+          sourcemeta::core::JSON::String{identifier},
+          "This reference must name a schema rather than a document that "
+          "holds an OpenAPI Description"};
+    }
 
-        if (!result.has_value() || !result.value().is_object() ||
-            result.value().defines("$schema")) {
-          return result;
-        }
+    if (!result.has_value() || !result.value().is_object() ||
+        result.value().defines("$schema")) {
+      return result;
+    }
 
-        auto owned{std::move(result).to_owned()};
-        owned.assign("$schema", sourcemeta::core::JSON{standalone});
-        return owned;
-      }};
+    // Saying so is only possible where the dialect gives the keyword that
+    // says it a meaning. Where it does not, what reads this schema is told
+    // from outside, which is the default dialect that bundling hands down,
+    // and that default is this very dialect. So there is nothing left for
+    // the declaration to add and writing it would leave one that reading
+    // the result back refuses
+    if (!nameable) {
+      return result;
+    }
+
+    auto owned{std::move(result).to_owned()};
+    owned.assign("$schema", sourcemeta::core::JSON{standalone});
+    return owned;
+  }};
 
   sourcemeta::core::schema_bundle(document, walker, standalone_resolver,
                                   walk.dialect, "", schemas_options);
@@ -721,21 +852,42 @@ auto bundle_schemas(sourcemeta::core::JSON &document,
   // unless the schema carries that URI. Section 4.8.24 lets a Schema Object be
   // a boolean, which carries no keyword at all and so can say nothing, which
   // writing it out as the object saying the same thing settles
+  // What each key became, for the sake of whatever was written to point at the
+  // old one
+  std::vector<
+      std::pair<sourcemeta::core::JSON::String, sourcemeta::core::JSON::String>>
+      renamed;
   for (const auto &entry : landed) {
     const auto &identifier{entry.first};
     const auto &key{entry.second.back().to_property()};
     auto &schema{schemas.at(key)};
     if (schema.is_boolean()) {
       spell_out(schema);
-      schema.assign("$schema", sourcemeta::core::JSON{standalone});
-      schema.assign("$id", sourcemeta::core::JSON{identifier});
+      // A schema that can neither name its dialect nor name itself answers to
+      // where it sits, and what pointed at it was written as a pointer for
+      // that reason, so there is nothing here for it to be told to answer to
+      // instead
+      if (nameable) {
+        schema.assign("$schema", sourcemeta::core::JSON{standalone});
+        schema.assign("$id", sourcemeta::core::JSON{identifier});
+      }
     }
 
     const auto name{schema_name(schemas, identifier, namer)};
+    renamed.emplace_back(key, name);
     schemas.rename(key, sourcemeta::core::JSON::String{name});
     if (callback) {
       callback(identifier, container.concat(name));
     }
+  }
+
+  // A schema that cannot say what it answers to is reached by where it sits, so
+  // what schema bundling wrote to reach it is a pointer at the key it landed
+  // under, and that key is what renaming changes. Section 4.8.7 is why it has
+  // to be renamed at all, the keys schema bundling picks being the identifiers
+  // it embedded under and no component key admitting what a URI spells
+  if (!nameable) {
+    repoint_schemas(document, walk, renamed, walker, resolver, remaining);
   }
 
   return true;
@@ -1219,6 +1371,39 @@ auto adopt(sourcemeta::core::JSON &document,
   return landed;
 }
 
+// Write a Path Item Object of another document into the Path Item Object that
+// referenced it. OpenAPI Specification 3.0.4, Path Item Object, of `$ref`:
+// "Allows for an external definition of this path item. The referenced
+// structure MUST be in the format of a Path Item Object. In case a Path Item
+// Object field appears both in the defined object and the referenced object,
+// the behavior is undefined". So which of the two wins is ours to pick, and
+// keeping what the referencing Object spells is the only pick that discards
+// nothing its author wrote. The revisions from 3.1 onwards have a home for the
+// Object instead and never come here
+auto inline_path_item(JSON &document, const JSON &remote_document,
+                      const OpenAPIWalk &remote, const Pointer &origin,
+                      const Pointer &host, const JSON::String &key,
+                      const JSON::String &base, const JSON::String &dialect,
+                      const SchemaWalker &walker,
+                      const SchemaResolver &schema_resolver,
+                      const OpenAPIBundleOptions &options,
+                      std::uint64_t &remaining) -> void {
+  auto value{*try_get(remote_document, origin)};
+  absolutize(value, remote, origin, base);
+  absolutize_schemas(value, remote_document, remote, origin, host, dialect,
+                     walker, schema_resolver, remaining);
+
+  auto &target{get(document, host)};
+  target.erase("$ref");
+  for (const auto &member : value.as_object()) {
+    target.assign_if_missing(member.first, member.second);
+  }
+
+  if (options.callback) {
+    options.callback(key, host);
+  }
+}
+
 // OpenAPI Specification 3.1.1, Section 4.3.3: "It is RECOMMENDED to consider
 // all Operation Objects from all parsed documents when resolving any Link
 // Object `operationId`. This requires parsing all referenced documents prior
@@ -1236,6 +1421,14 @@ auto adopt_operations(JSON &document, const OpenAPIWalk &walk,
                       const SchemaResolver &schema_resolver,
                       const OpenAPIBundleOptions &options,
                       std::uint64_t &remaining) -> bool {
+  // The Object this brings in is a Path Item Object, and a revision with
+  // nowhere to hold one has nowhere to bring it. What is left is a name the
+  // description no longer answers for, which the check at the end of bundling
+  // is what reports
+  if (!openapi_components_hold_path_items(walk.version)) {
+    return false;
+  }
+
   bool changed{false};
   for (const auto &entry : walk.operation_id_links) {
     if (walk.operation_ids.contains(entry.second)) {
@@ -1452,13 +1645,16 @@ auto adopt_mappings(
     // OpenAPI Object) and (for Schema Object) `$id` is the retrieval URI". So
     // the URI it was fetched by is what a relative one is read against, which
     // is what makes the identifier that comes back one the description can use
+    //
+    // A frame keeps a view of the dialect it was handed rather than a copy, so
+    // what is handed over has to outlive it
+    const JSON::String fallback{dialect};
     std::optional<SchemaFrame> root;
     try {
-      root.emplace(SchemaFrame::Mode::Root, schema, walker, schema_resolver,
-                   JSON::String{dialect}, identifier,
-                   SchemaFrame::IdentifierMode::Additional,
-                   SchemaFrame::Paths{EMPTY_WEAK_POINTER}, identifier,
-                   remaining);
+      root.emplace(
+          SchemaFrame::Mode::Root, schema, walker, schema_resolver, fallback,
+          identifier, SchemaFrame::IdentifierMode::Additional,
+          SchemaFrame::Paths{EMPTY_WEAK_POINTER}, identifier, remaining);
     } catch (const SchemaUnknownBaseDialectError &) {
       // What a schema is written against is what says how to read it, and
       // Section 4.8.24.5 leaves the dialect to whatever the schema names. One
@@ -1490,15 +1686,36 @@ auto adopt_mappings(
       adopted.emplace(identifier, same->second);
       continue;
     }
+    // Both of what follows are questions about the dialect this schema is read
+    // under, which is whatever it names for itself and the default handed down
+    // otherwise, so neither is the revision's to answer. Asking the frame
+    // costs the vocabularies once
+    const auto &root_location{root.value().root_location().value().get()};
+    const auto &root_vocabularies{
+        root.value().vocabularies(root_location, schema_resolver)};
+    const auto names_its_dialect{walker("$schema", root_vocabularies).type !=
+                                 SchemaKeywordType::Unknown};
+    const auto names_itself{
+        walker(schema_identifier_keyword(root_location.base_dialect),
+               root_vocabularies)
+            .type != SchemaKeywordType::Unknown};
+
     // Section 4.8.24.5: "For standalone JSON Schema documents that do not set
-    // `$schema` [...] the dialect SHOULD be assumed to be the OAS dialect"
+    // `$schema` [...] the dialect SHOULD be assumed to be the OAS dialect". A
+    // dialect that gives the keyword no meaning leaves nothing to assume it
+    // with, and what reads this schema is told from outside instead
     spell_out(schema);
-    if (!schema.defines("$schema")) {
+    if (names_its_dialect && !schema.defines("$schema")) {
       schema.assign("$schema", JSON{dialect});
     }
 
-    schema_reidentify(schema, identity,
-                      root.value().root_location().value().get().base_dialect);
+    // Which keyword carries an identity is the dialect's to say, and one that
+    // names none leaves a schema answering to where it sits. What named it is
+    // then written as the route to there, which the pass after this is what
+    // does
+    if (names_itself) {
+      schema_reidentify(schema, identity, root_location.base_dialect);
+    }
 
     const auto *schemas{openapi_component_container_of(document, "schemas"sv)};
     const auto name{
@@ -1533,6 +1750,9 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
   // it came from. A description that reaches for one place twice embeds it
   // once, which is also what keeps a cycle of documents from going round
   std::map<JSON::String, Pointer> bundled;
+  // What has already been written into each Path Item Object that referenced
+  // one. Only a revision with no home for the Object fills this
+  OpenAPIInlined inlined;
   // A document that more than one reference reaches is read once. What it
   // holds cannot change between one reference and the next, and reading it
   // again would charge the allowance twice for the same thing
@@ -1806,12 +2026,6 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
                                     ? path_item_of(remote, spelled)
                                 : names_a_schema ? schema_of(remote, spelled)
                                                  : spelled)};
-      const auto container{
-          container_of(origin, names_an_operation ? OpenAPIObjectKind::PathItem
-                                                  : reference.expected)};
-      // Every kind that a reference position expects has a home of its own
-      // once an Operation Object is reached through the Path Item holding it
-      assert(!container.empty());
 
       // Where a document was retrieved from is how a resolver is asked for it,
       // and what it answers to is its own to say. OpenAPI Specification 3.2.1,
@@ -1820,6 +2034,49 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
       // URI if the `$self` field is present". So every place of it is named by
       // the base its own analysis settled on rather than by where it was found
       const auto key{openapi_location_uri(remote.base, origin)};
+
+      // Before 3.1 the Components Object holds no Path Item Object, so one of
+      // those has nowhere to be moved to and is written into the Object that
+      // referenced it instead. Section 4.3.3 keeps the Paths Object of the
+      // entry document the only thing that "contributes URLs to the described
+      // API", so putting it there is no alternative: that would describe an
+      // endpoint the description never exposed
+      if (reference.expected == OpenAPIObjectKind::PathItem &&
+          !openapi_components_hold_path_items(walk.version)) {
+        const auto host{reference.origin.initial()};
+        // Keyed the way every other map in this file keys a place, by what the
+        // document answers for it rather than by the pointer on its own
+        const auto within{openapi_location_uri(base, host)};
+        if (!inlined[within].insert(key).second) {
+          throw OpenAPIError{
+              base, reference.origin,
+              "The Path Item Object references must not form a cycle"};
+        }
+
+        inline_path_item(document, remote_document, remote, origin, host, key,
+                         base, walk.dialect, walker, schema_resolver, options,
+                         remaining);
+        changed = true;
+        continue;
+      }
+
+      // And an Operation Object of another document is reached through a Path
+      // Item Object that there is likewise nowhere to put, which leaves
+      // nothing to reach it through
+      if (names_an_operation &&
+          !openapi_components_hold_path_items(walk.version)) {
+        throw OpenAPIReferenceError{
+            base, reference.origin, reference.destination,
+            "This revision has nowhere to hold the Path Item Object that "
+            "holds the operation this reference names"};
+      }
+
+      const auto container{
+          container_of(origin, names_an_operation ? OpenAPIObjectKind::PathItem
+                                                  : reference.expected)};
+      // Every kind that a reference position expects has a home of its own
+      // once an Operation Object is reached through the Path Item holding it
+      assert(!container.empty());
 
       if (!bundled.contains(key)) {
         bundled.emplace(key, adopt(document, remote_document, remote, origin,

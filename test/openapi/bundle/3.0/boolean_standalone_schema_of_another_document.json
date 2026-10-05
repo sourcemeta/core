@@ -1,0 +1,53 @@
+{
+  "document": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "schemas": {
+        "Pet": {
+          "$ref": "pet.json"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {},
+  "schemaResolver": {
+    "https://example.com/pet.json": false
+  },
+  "result": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "schemas": {
+        "Pet": {
+          "$ref": "#/components/schemas/pet.json"
+        },
+        "pet.json": {
+          "not": {}
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/pet.json",
+      "at": "/components/schemas/pet.json"
+    }
+  ],
+  "reads": {},
+  "schemaReads": {
+    "https://example.com/pet.json": 1
+  },
+  "standalone": true,
+  "relocatable": true,
+  "operations": []
+}

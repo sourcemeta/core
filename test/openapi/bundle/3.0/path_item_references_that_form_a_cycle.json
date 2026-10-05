@@ -1,0 +1,32 @@
+{
+  "document": {
+    "openapi": "3.0.4",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "paths": {
+      "/pets": { "$ref": "first.json#/paths/~1pets" }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/first.json": {
+      "openapi": "3.0.4",
+      "info": { "title": "First", "version": "1.0.0" },
+      "paths": {
+        "/pets": { "$ref": "second.json#/paths/~1pets" }
+      }
+    },
+    "https://example.com/second.json": {
+      "openapi": "3.0.4",
+      "info": { "title": "Second", "version": "1.0.0" },
+      "paths": {
+        "/pets": { "$ref": "first.json#/paths/~1pets" }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "error": {
+    "type": "OpenAPIError",
+    "message": "The Path Item Object references must not form a cycle",
+    "location": "/paths/~1pets/$ref"
+  }
+}

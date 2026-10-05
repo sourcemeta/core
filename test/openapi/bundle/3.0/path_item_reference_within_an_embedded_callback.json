@@ -1,0 +1,144 @@
+{
+  "document": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "200": {
+              "description": "ok"
+            }
+          },
+          "callbacks": {
+            "onEvent": {
+              "$ref": "first.json#/components/callbacks/OnEvent"
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/first.json": {
+      "openapi": "3.0.4",
+      "info": {
+        "title": "First",
+        "version": "1.0.0"
+      },
+      "paths": {},
+      "components": {
+        "callbacks": {
+          "OnEvent": {
+            "{$request.body#/url}": {
+              "$ref": "second.json#/paths/~1hook"
+            }
+          }
+        }
+      }
+    },
+    "https://example.com/second.json": {
+      "openapi": "3.0.4",
+      "info": {
+        "title": "Second",
+        "version": "1.0.0"
+      },
+      "paths": {
+        "/hook": {
+          "post": {
+            "responses": {
+              "200": {
+                "description": "ok"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "200": {
+              "description": "ok"
+            }
+          },
+          "callbacks": {
+            "onEvent": {
+              "$ref": "#/components/callbacks/OnEvent"
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "callbacks": {
+        "OnEvent": {
+          "{$request.body#/url}": {
+            "post": {
+              "responses": {
+                "200": {
+                  "description": "ok"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/first.json#/components/callbacks/OnEvent",
+      "at": "/components/callbacks/OnEvent"
+    },
+    {
+      "from": "https://example.com/second.json#/paths/~1hook",
+      "at": "/components/callbacks/OnEvent/{$request.body#~1url}"
+    }
+  ],
+  "reads": {
+    "https://example.com/first.json": 1,
+    "https://example.com/second.json": 1
+  },
+  "schemaReads": {},
+  "standalone": true,
+  "relocatable": true,
+  "operations": [
+    {
+      "type": "path",
+      "path": "/pets",
+      "method": "get",
+      "origin": "https://example.com/openapi.json#/paths/~1pets/get",
+      "endpoint": "https://example.com/openapi.json#/paths/~1pets",
+      "tags": [],
+      "servers": [],
+      "security": [],
+      "parameters": []
+    },
+    {
+      "type": "callback",
+      "path": "{$request.body#/url}",
+      "method": "post",
+      "origin": "https://example.com/openapi.json#/components/callbacks/OnEvent/%7B$request.body%23~1url%7D/post",
+      "endpoint": "https://example.com/openapi.json#/components/callbacks/OnEvent/%7B$request.body%23~1url%7D",
+      "parent": "https://example.com/openapi.json#/paths/~1pets/get",
+      "tags": [],
+      "servers": [],
+      "security": [],
+      "parameters": []
+    }
+  ]
+}

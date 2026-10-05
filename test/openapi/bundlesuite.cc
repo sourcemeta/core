@@ -44,10 +44,13 @@ const std::vector<std::string> KNOWN_ERROR_TYPES{"OpenAPIError",
                                                  "OpenAPIBundleLimitError",
                                                  "SchemaResolutionError",
                                                  "SchemaAnchorCollisionError",
+                                                 "SchemaReferenceError",
+                                                 "SchemaDialectImpossibleError",
                                                  "SchemaError"};
 
 const std::vector<std::string> KNOWN_ERROR_KEYS{
-    "type", "message", "location", "base", "identifier", "limit", "other"};
+    "type",  "message", "location", "base",   "identifier",
+    "limit", "other",   "keyword",  "dialect"};
 // NOLINTEND(cert-err58-cpp,bugprone-throwing-static-initialization)
 
 // Whether a position an operation names is one the frame holds, and holds as
@@ -276,15 +279,20 @@ auto check_shape(const sourcemeta::core::JSON &test, const std::string &corpus)
     EXPECT_EQ(error.defines("location"), type != "OpenAPIBundleLimitError" &&
                                              type != "SchemaResolutionError" &&
                                              type != "SchemaError");
-    EXPECT_EQ(error.defines("identifier"),
-              type == "OpenAPIResolutionError" ||
-                  type == "OpenAPIReferenceError" ||
-                  type == "SchemaResolutionError" ||
-                  type == "SchemaAnchorCollisionError");
+    EXPECT_EQ(
+        error.defines("identifier"),
+        type == "OpenAPIResolutionError" || type == "OpenAPIReferenceError" ||
+            type == "SchemaResolutionError" || type == "SchemaReferenceError" ||
+            type == "SchemaAnchorCollisionError");
     EXPECT_EQ(error.defines("limit"), type == "OpenAPIBundleLimitError");
     // Both of the places that claim the anchor, as either one alone says
     // nothing about the collision
     EXPECT_EQ(error.defines("other"), type == "SchemaAnchorCollisionError");
+    // Which keyword named the dialect, and which dialect it named, as a
+    // refusal that reports only the place leaves a reader to work out which of
+    // the two is at fault
+    EXPECT_EQ(error.defines("keyword"), type == "SchemaDialectImpossibleError");
+    EXPECT_EQ(error.defines("dialect"), type == "SchemaDialectImpossibleError");
   }
 
   check_revisions_agree(test, corpus);
@@ -540,6 +548,35 @@ auto run_fail_test(const sourcemeta::core::JSON &test) -> void {
       // What the caller allowed, rather than whatever was left of it wherever
       // bundling happened to run out
       EXPECT_EQ(error.limit(), make_location_count(expected.at("limit")));
+    }
+  } else if (type == "SchemaReferenceError") {
+    try {
+      [[maybe_unused]] const auto result{sourcemeta::core::openapi_bundle(
+          test.at("document"), sourcemeta::core::schema_walker, schema_resolver,
+          resolver, options)};
+      FAIL();
+    } catch (const sourcemeta::core::SchemaReferenceError &error) {
+      // What a Schema Object reached for and could not be read, which names
+      // the document it came from rather than the document that went looking
+      EXPECT_EQ(error.what(), expected.at("message").to_string());
+      EXPECT_EQ(error.identifier(), expected.at("identifier").to_string());
+      EXPECT_EQ(sourcemeta::core::to_string(error.location()),
+                expected.at("location").to_string());
+    }
+  } else if (type == "SchemaDialectImpossibleError") {
+    try {
+      [[maybe_unused]] const auto result{sourcemeta::core::openapi_bundle(
+          test.at("document"), sourcemeta::core::schema_walker, schema_resolver,
+          resolver, options)};
+      FAIL();
+    } catch (const sourcemeta::core::SchemaDialectImpossibleError &error) {
+      // A declaration that asserts the conditions under which it could not
+      // have been written, so both halves of it are read back
+      EXPECT_EQ(error.what(), expected.at("message").to_string());
+      EXPECT_EQ(error.keyword(), expected.at("keyword").to_string());
+      EXPECT_EQ(error.dialect(), expected.at("dialect").to_string());
+      EXPECT_EQ(sourcemeta::core::to_string(error.location()),
+                expected.at("location").to_string());
     }
   } else {
     try {

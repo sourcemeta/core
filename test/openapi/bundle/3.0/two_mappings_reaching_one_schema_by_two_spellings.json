@@ -1,0 +1,77 @@
+{
+  "document": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "E",
+      "version": "1.0.0"
+    },
+    "components": {
+      "schemas": {
+        "Pet": {
+          "discriminator": {
+            "propertyName": "t",
+            "mapping": {
+              "a": "https://example.com/fetch",
+              "b": "https://example.com/real"
+            }
+          }
+        }
+      }
+    },
+    "paths": {}
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {},
+  "schemaResolver": {
+    "https://example.com/fetch": {
+      "$id": "https://example.com/real",
+      "type": "object",
+      "$schema": "https://json-schema.org/draft/2020-12/schema"
+    },
+    "https://example.com/real": {
+      "$id": "https://example.com/real",
+      "type": "object",
+      "$schema": "https://json-schema.org/draft/2020-12/schema"
+    }
+  },
+  "result": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "E",
+      "version": "1.0.0"
+    },
+    "components": {
+      "schemas": {
+        "Pet": {
+          "discriminator": {
+            "propertyName": "t",
+            "mapping": {
+              "a": "#/components/schemas/fetch",
+              "b": "https://example.com/real"
+            }
+          }
+        },
+        "fetch": {
+          "$id": "https://example.com/real",
+          "type": "object",
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
+        }
+      }
+    },
+    "paths": {}
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/fetch",
+      "at": "/components/schemas/fetch"
+    }
+  ],
+  "reads": {},
+  "schemaReads": {
+    "https://example.com/fetch": 1,
+    "https://example.com/real": 1
+  },
+  "standalone": true,
+  "relocatable": true,
+  "operations": []
+}

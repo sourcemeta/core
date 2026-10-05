@@ -41,14 +41,7 @@ inline auto openapi_check_reference(const JSON &value, const Pointer &base,
   // Object exactly what 3.1 does: "This object cannot be extended with
   // additional properties, and any properties added SHALL be ignored". So
   // under 3.0 these are properties added rather than fields, and reading them
-  // at all would turn down a document the specification asks us to accept.
-  //
-  // THE META-SCHEMA CONTRADICTS THE SPECIFICATION HERE. The v3.0 document
-  // meta-schema that the Initiative publishes closes this Object with
-  // `additionalProperties: false`, which refuses the very properties the prose
-  // says to ignore. The specification text governs and the meta-schema does
-  // not, so a document this accepts is one that meta-schema turns down, and
-  // that is the specification's own disagreement rather than ours to settle
+  // at all would turn down a document the specification asks us to accept
   if (walk.version >= OpenAPIVersion::OPENAPI_3_1) {
     openapi_check_optional_string(
         value, base, "summary"sv, OPENAPI_HASH_SUMMARY,

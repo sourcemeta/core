@@ -1,0 +1,59 @@
+{
+  "document": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "schemas": {
+        "Pet": {
+          "$ref": "deep/pet.json"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {},
+  "schemaResolver": {
+    "https://example.com/deep/pet.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "pet.json",
+      "type": "object"
+    }
+  },
+  "result": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "schemas": {
+        "Pet": {
+          "$ref": "https://example.com/pet.json"
+        },
+        "pet.json_": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "pet.json",
+          "type": "object"
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "pet.json",
+      "at": "/components/schemas/pet.json_"
+    }
+  ],
+  "reads": {},
+  "schemaReads": {
+    "https://example.com/deep/pet.json": 1
+  },
+  "standalone": true,
+  "relocatable": false,
+  "operations": []
+}

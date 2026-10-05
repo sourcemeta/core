@@ -1,0 +1,96 @@
+{
+  "document": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "$ref": "first.json#/paths/~1pets"
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/first.json": {
+      "openapi": "3.0.4",
+      "info": {
+        "title": "First",
+        "version": "1.0.0"
+      },
+      "paths": {
+        "/pets": {
+          "$ref": "second.json#/paths/~1pets"
+        }
+      }
+    },
+    "https://example.com/second.json": {
+      "openapi": "3.0.4",
+      "info": {
+        "title": "Second",
+        "version": "1.0.0"
+      },
+      "paths": {
+        "/pets": {
+          "get": {
+            "responses": {
+              "200": {
+                "description": "Some pets"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "200": {
+              "description": "Some pets"
+            }
+          }
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/first.json#/paths/~1pets",
+      "at": "/paths/~1pets"
+    },
+    {
+      "from": "https://example.com/second.json#/paths/~1pets",
+      "at": "/paths/~1pets"
+    }
+  ],
+  "reads": {
+    "https://example.com/first.json": 1,
+    "https://example.com/second.json": 1
+  },
+  "schemaReads": {},
+  "standalone": true,
+  "relocatable": true,
+  "operations": [
+    {
+      "type": "path",
+      "path": "/pets",
+      "method": "get",
+      "origin": "https://example.com/openapi.json#/paths/~1pets/get",
+      "endpoint": "https://example.com/openapi.json#/paths/~1pets",
+      "tags": [],
+      "servers": [],
+      "security": [],
+      "parameters": []
+    }
+  ]
+}

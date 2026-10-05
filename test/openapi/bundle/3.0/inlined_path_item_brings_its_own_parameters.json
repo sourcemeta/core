@@ -1,0 +1,101 @@
+{
+  "document": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets/{petId}": {
+        "$ref": "shared.json#/paths/~1pets~1%7BpetId%7D"
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/shared.json": {
+      "openapi": "3.0.4",
+      "info": {
+        "title": "Shared",
+        "version": "1.0.0"
+      },
+      "paths": {
+        "/pets/{petId}": {
+          "parameters": [
+            {
+              "name": "petId",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "get": {
+            "responses": {
+              "200": {
+                "description": "One pet"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets/{petId}": {
+        "parameters": [
+          {
+            "name": "petId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "get": {
+          "responses": {
+            "200": {
+              "description": "One pet"
+            }
+          }
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/shared.json#/paths/~1pets~1%7BpetId%7D",
+      "at": "/paths/~1pets~1{petId}"
+    }
+  ],
+  "reads": {
+    "https://example.com/shared.json": 1
+  },
+  "schemaReads": {},
+  "standalone": true,
+  "relocatable": true,
+  "operations": [
+    {
+      "type": "path",
+      "path": "/pets/{petId}",
+      "method": "get",
+      "origin": "https://example.com/openapi.json#/paths/~1pets~1%7BpetId%7D/get",
+      "endpoint": "https://example.com/openapi.json#/paths/~1pets~1%7BpetId%7D",
+      "tags": [],
+      "servers": [],
+      "security": [],
+      "parameters": [
+        "https://example.com/openapi.json#/paths/~1pets~1%7BpetId%7D/parameters/0"
+      ]
+    }
+  ]
+}
