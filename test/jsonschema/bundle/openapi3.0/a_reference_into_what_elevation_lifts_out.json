@@ -20,20 +20,64 @@
     }
   },
   "defaultDialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
-  "errors": {
+  "result": {
     "nonOfficialMetaschemas": {
-      "type": "SchemaReferenceError",
-      "message": "Could not resolve schema reference",
-      "identifier": "https://example.com/pet#/x-definitions/https:~1~1example.com~1inner",
-      "location": "/properties/inner/$ref"
+      "type": "object",
+      "properties": {
+        "inner": {
+          "$ref": "https://example.com/inner"
+        }
+      },
+      "x-definitions": {
+        "https://example.com/inner": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://example.com/inner",
+          "type": "integer"
+        },
+        "https://example.com/pet": {
+          "type": "object"
+        }
+      }
     },
     "references": {
-      "type": "SchemaReferenceError",
-      "message": "Could not resolve schema reference",
-      "identifier": "https://example.com/pet#/x-definitions/https:~1~1example.com~1inner",
-      "location": "/properties/inner/$ref"
+      "type": "object",
+      "properties": {
+        "inner": {
+          "$ref": "https://example.com/inner"
+        }
+      },
+      "x-definitions": {
+        "https://example.com/inner": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://example.com/inner",
+          "type": "integer"
+        },
+        "https://example.com/pet": {
+          "type": "object"
+        }
+      }
     }
   },
-  "result": {},
-  "inserted": {}
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://example.com/inner",
+        "at": "/x-definitions/https:~1~1example.com~1inner"
+      },
+      {
+        "from": "https://example.com/pet",
+        "at": "/x-definitions/https:~1~1example.com~1pet"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://example.com/inner",
+        "at": "/x-definitions/https:~1~1example.com~1inner"
+      },
+      {
+        "from": "https://example.com/pet",
+        "at": "/x-definitions/https:~1~1example.com~1pet"
+      }
+    ]
+  }
 }
