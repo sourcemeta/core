@@ -3,8 +3,7 @@
 
 #include <sourcemeta/core/jsonpointer.h>
 
-#include <cstddef>    // std::size_t
-#include <functional> // std::reference_wrapper
+#include <cstddef> // std::size_t
 
 namespace sourcemeta::core {
 
@@ -37,8 +36,6 @@ namespace sourcemeta::core {
 // of what framing is handed that makes the default a poor fit, and the default
 // serves every other caller well
 struct PositionHasher {
-  using is_transparent = void;
-
   [[nodiscard]] static auto token_of(const WeakPointer &position,
                                      const std::size_t index) noexcept
       -> std::size_t {
@@ -82,12 +79,6 @@ struct PositionHasher {
     }
 
     return result;
-  }
-
-  [[nodiscard]] auto operator()(
-      const std::reference_wrapper<const WeakPointer> &position) const noexcept
-      -> std::size_t {
-    return (*this)(position.get());
   }
 };
 
