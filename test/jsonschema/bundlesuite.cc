@@ -250,8 +250,10 @@ auto with_insertions(const Inputs &inputs, const Insertions &insertions)
   for (const auto &insertion : insertions) {
     // Framing takes paths that do not sit inside one another, and where a
     // container is itself within a framed schema its entries are already
-    // covered by the path that covers it
-    if (std::ranges::none_of(inputs.path_storage,
+    // covered by the path that covers it. What has been gathered so far is
+    // what each one is held against, so the invariant holds over the whole set
+    // rather than over the ones the fixture started with
+    if (std::ranges::none_of(result.path_storage,
                              [&insertion](const auto &path) -> bool {
                                return insertion.second.starts_with(path) ||
                                       path.starts_with(insertion.second);
