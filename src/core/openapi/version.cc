@@ -70,6 +70,8 @@ auto openapi_version_name(const OpenAPIVersion version) noexcept
     // OpenAPI Specification 3.1.1, Section 4.1: "The `major`.`minor` portion
     // of the version string (for example `3.1`) SHALL designate the OAS
     // feature set"
+    case OpenAPIVersion::OPENAPI_3_0:
+      return "3.0"sv;
     case OpenAPIVersion::OPENAPI_3_1:
       return "3.1"sv;
     case OpenAPIVersion::OPENAPI_3_2:
@@ -106,6 +108,10 @@ auto openapi_version(const JSON &document) -> std::optional<OpenAPIVersion> {
   const auto declared{openapi_version_string(document)};
   if (!declared.has_value()) {
     return std::nullopt;
+  }
+
+  if (is_openapi_minor(declared.value(), "3.0."sv)) {
+    return OpenAPIVersion::OPENAPI_3_0;
   }
 
   if (is_openapi_minor(declared.value(), "3.1."sv)) {

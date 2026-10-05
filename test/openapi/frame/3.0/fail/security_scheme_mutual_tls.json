@@ -1,0 +1,21 @@
+{
+  "document": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "securitySchemes": {
+        "Mutual": {
+          "type": "mutualTLS"
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "The Security Scheme Object type is not one this specification defines",
+    "location": "/components/securitySchemes/Mutual/type"
+  }
+}

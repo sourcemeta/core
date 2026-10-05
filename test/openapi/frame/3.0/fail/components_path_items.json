@@ -1,0 +1,17 @@
+{
+  "document": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "pathItems": {}
+    }
+  },
+  "error": {
+    "message": "The Components Object does not define this field",
+    "location": "/components/pathItems"
+  }
+}

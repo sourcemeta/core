@@ -249,7 +249,7 @@ inline auto openapi_check_content(const JSON &value, const Pointer &location,
   openapi_expect_object(value, location, type_message);
   for (const auto &entry : value.as_object()) {
     const auto entry_location{openapi_child(location, entry.first)};
-    if (walk.version == OpenAPIVersion::OPENAPI_3_2) {
+    if (walk.version >= OpenAPIVersion::OPENAPI_3_2) {
       openapi_check_media_type_or_reference(entry.second, entry_location, walk);
     } else {
       openapi_check_media_type(entry.second, entry_location, walk);

@@ -1,0 +1,30 @@
+{
+  "document": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "securitySchemes": {
+        "Key": {
+          "type": "apiKey",
+          "name": "api_key",
+          "in": "header"
+        }
+      }
+    },
+    "security": [
+      {
+        "Key": [
+          "read"
+        ]
+      }
+    ]
+  },
+  "error": {
+    "message": "The Security Requirement Object entry must be empty for a security scheme of this type",
+    "location": "/security/0/Key"
+  }
+}

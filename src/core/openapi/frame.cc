@@ -505,7 +505,8 @@ auto openapi_base(const JSON &document, const std::string_view retrieval)
   // establishes a base of its own. A document declaring a revision this module
   // does not recognise never reaches the field either, as framing turns it down
   // over the revision first
-  if (openapi_version(document) != OpenAPIVersion::OPENAPI_3_2) {
+  const auto version{openapi_version(document)};
+  if (!version.has_value() || version.value() < OpenAPIVersion::OPENAPI_3_2) {
     return base;
   }
 

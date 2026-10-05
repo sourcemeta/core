@@ -34,6 +34,14 @@ constexpr std::array<JSON::StringView, 11> OPENAPI_COMPONENTS_FIELDS_3_2{
      "requestBodies"sv, "headers"sv, "securitySchemes"sv, "links"sv,
      "callbacks"sv, "pathItems"sv, "mediaTypes"sv}};
 
+// OpenAPI Specification 3.1.1, Section 4.8.7 adds `pathItems`. 3.0.4,
+// Components Object, tables nine containers without it, there being no Path
+// Item Object to hold until 3.1 lets `webhooks` and a reference reach one
+constexpr std::array<JSON::StringView, 1> OPENAPI_COMPONENTS_FIELDS_FROM_3_1{
+    {"pathItems"sv}};
+static_assert(openapi_every_field_is_tabled(OPENAPI_COMPONENTS_FIELDS_FROM_3_1,
+                                            OPENAPI_COMPONENTS_FIELDS_3_1));
+
 // The names the document declares as security schemes, read before the walk
 // goes anywhere because the Components Object may hold a Path Item Object
 // whose operations declare a requirement, and the order that Object writes its
@@ -56,6 +64,18 @@ inline auto openapi_collect_security_schemes(const JSON &document,
 
   for (const auto &entry : schemes->as_object()) {
     walk.security_schemes.insert(entry.first, entry.hash);
+
+    // Which types admit a scope name is a question 3.0 answers below, and
+    // answering it needs the type, which only a scheme written out here has
+    if (!entry.second.is_object()) {
+      continue;
+    }
+
+    const auto *type{entry.second.try_at("type", OPENAPI_HASH_TYPE)};
+    if (type != nullptr && type->is_string() && type->to_string() != "oauth2" &&
+        type->to_string() != "openIdConnect") {
+      walk.security_schemes_without_scopes.insert(entry.first, entry.hash);
+    }
   }
 }
 
@@ -139,6 +159,11 @@ inline auto openapi_check_components(const JSON &document, OpenAPIWalk &walk)
   openapi_reject_unknown_fields(
       *components, OPENAPI_COMPONENTS_FIELDS_3_1, OPENAPI_COMPONENTS_FIELDS_3_2,
       base, "The Components Object does not define this field", walk);
+
+  openapi_reject_fields_of_a_later_revision(
+      *components, OPENAPI_COMPONENTS_FIELDS_FROM_3_1,
+      OpenAPIVersion::OPENAPI_3_1, base,
+      "The Components Object does not define this field", walk);
 
   for (const auto &entry : components->as_object()) {
     if (entry.first.starts_with(OPENAPI_EXTENSION_PREFIX)) {

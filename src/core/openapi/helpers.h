@@ -211,6 +211,11 @@ struct OpenAPIWalk {
   /// The names the entry document declares as security schemes, which is what
   /// a Security Requirement Object anywhere in the description may name
   JSONPropertySet security_schemes;
+  /// Of those, the ones whose declared type is neither `oauth2` nor
+  /// `openIdConnect`, which 3.0 allows no scope names against. A scheme
+  /// written as a Reference Object says nothing here, its type being somewhere
+  /// this has not been yet, and a rule cannot be applied to what is not known
+  JSONPropertySet security_schemes_without_scopes;
   /// Where a Security Requirement Object names a Security Scheme Object by the
   /// URI of one rather than by the name of a component, and what each of those
   /// names leads to. OpenAPI Specification 3.2.1 admits both spellings. This
@@ -368,6 +373,48 @@ auto openapi_reject_unknown_fields(
   }
 }
 
+// A field that a revision introduces is one the revisions before it do not
+// define, and their own field tables are closed to anything but an extension,
+// which OpenAPI Specification 3.0.4, Specification Extensions, holds to a
+// "field name [that] MUST begin with `x-`". So such a field is turned down
+// under the earlier revision. Naming the arrivals beside the table that holds
+// them says what the specification says when it gives the revision a field
+// arrived in, and costs one array of the few names rather than a second table
+// of all of them
+template <std::size_t Size>
+auto openapi_reject_fields_of_a_later_revision(
+    const JSON &object, const std::array<JSON::StringView, Size> &arrivals,
+    const OpenAPIVersion arrival, const Pointer &base, const char *message,
+    const OpenAPIWalk &walk) -> void {
+  if (walk.version >= arrival) {
+    return;
+  }
+
+  for (const auto &entry : object.as_object()) {
+    if (std::ranges::find(arrivals, entry.first) != arrivals.cend()) {
+      throw OpenAPIError{openapi_child(base, entry.first), message};
+    }
+  }
+}
+
+// Whether every name an arrivals array holds is one the table it was taken
+// from holds too, which is what the assertions beside those arrays check so
+// that a name misspelled in one of them is a build failure rather than a field
+// silently admitted everywhere
+template <std::size_t Size, std::size_t Table>
+constexpr auto
+openapi_every_field_is_tabled(const std::array<JSON::StringView, Size> &fields,
+                              const std::array<JSON::StringView, Table> &table)
+    -> bool {
+  for (const auto field : fields) {
+    if (std::ranges::find(table, field) == table.cend()) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 // A field table is a property of the revision a document declares, so an
 // Object whose table grew between revisions has one array per revision and
 // which of them applies is asked here rather than at every call site
@@ -376,7 +423,7 @@ auto openapi_reject_unknown_fields(
     const JSON &object, const std::array<JSON::StringView, Size> &fields,
     const std::array<JSON::StringView, Later> &later, const Pointer &base,
     const char *message, const OpenAPIWalk &walk) -> void {
-  if (walk.version == OpenAPIVersion::OPENAPI_3_2) {
+  if (walk.version >= OpenAPIVersion::OPENAPI_3_2) {
     openapi_reject_unknown_fields(object, later, base, message);
   } else {
     openapi_reject_unknown_fields(object, fields, base, message);
@@ -390,7 +437,7 @@ auto openapi_reject_unknown_fields(
     const char *message, const OpenAPIWalk &walk,
     const std::array<JSON::StringView, Restricted> &restricted,
     const char *restricted_message) -> void {
-  if (walk.version == OpenAPIVersion::OPENAPI_3_2) {
+  if (walk.version >= OpenAPIVersion::OPENAPI_3_2) {
     openapi_reject_unknown_fields(object, later, base, message, restricted,
                                   restricted_message);
   } else {

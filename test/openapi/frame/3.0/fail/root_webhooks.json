@@ -5,10 +5,11 @@
       "title": "Example",
       "version": "1.0.0"
     },
-    "paths": {}
+    "paths": {},
+    "webhooks": {}
   },
   "error": {
-    "message": "Unsupported OpenAPI Specification version",
-    "location": "/openapi"
+    "message": "The OpenAPI Object does not define this field",
+    "location": "/webhooks"
   }
 }

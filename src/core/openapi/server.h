@@ -392,7 +392,7 @@ inline auto openapi_check_server(const JSON &value, const Pointer &base,
   // amount of parsing can rescue unreported. That is under-reporting rather
   // than a wrong refusal, and closing it would turn down documents accepted
   // until now, so it waits for a release that can carry it
-  if (walk.version == OpenAPIVersion::OPENAPI_3_2) {
+  if (walk.version >= OpenAPIVersion::OPENAPI_3_2) {
     if (!openapi_is_server_url_template(address)) {
       throw OpenAPIError{openapi_child(base, "url"sv),
                          "The Server Object URL must take the form of a "
