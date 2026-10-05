@@ -1,31 +1,39 @@
 #include "validation.h"
+#include "helpers.h"
+
+#include <sourcemeta/core/http.h>
+#include <sourcemeta/core/text.h>
 
 #include <algorithm>
 #include <array>
-#include <cctype>
 #include <cmath>
 #include <initializer_list>
 #include <set>
+#include <utility>
 
 namespace {
 using sourcemeta::core::JSON;
 using sourcemeta::core::MCPProtocolVersion;
 
-auto field(const JSON &value, const JSON::StringView name) -> const JSON * {
-  return value.is_object() ? value.try_at(name) : nullptr;
+auto field(const JSON &value, const JSON::StringView name,
+           const JSON::Object::hash_type hash) -> const JSON * {
+  return value.is_object() ? value.try_at(name, hash) : nullptr;
 }
 
 auto string_field(const JSON &value, const JSON::StringView name,
+                  const JSON::Object::hash_type hash,
                   const bool required = false) -> bool {
-  const auto *item{field(value, name)};
+  const auto *item{field(value, name, hash)};
   return item == nullptr ? !required : item->is_string();
 }
 
 auto optional_fields(const JSON &value,
-                     const std::initializer_list<JSON::StringView> names,
+                     const std::initializer_list<
+                         std::pair<JSON::StringView, JSON::Object::hash_type>>
+                         names,
                      const JSON::Type type) -> bool {
   return std::all_of(names.begin(), names.end(), [&](const auto name) {
-    const auto *item{field(value, name)};
+    const auto *item{field(value, name.first, name.second)};
     return item == nullptr || item->type() == type;
   });
 }
@@ -37,21 +45,27 @@ auto strings(const JSON &value) -> bool {
 }
 
 auto annotations(const JSON &value) -> bool {
-  const auto *item{field(value, "annotations")};
+  const auto *item{
+      field(value, "annotations", sourcemeta::core::MCP_HASH_ANNOTATIONS)};
   if (item == nullptr) {
     return true;
   }
-  if (!item->is_object() || !string_field(*item, "lastModified")) {
+  if (!item->is_object() ||
+      !string_field(*item, "lastModified",
+                    sourcemeta::core::MCP_HASH_LAST_MODIFIED)) {
     return false;
   }
-  if (const auto *priority{field(*item, "priority")};
+  if (const auto *priority{
+          field(*item, "priority", sourcemeta::core::MCP_HASH_PRIORITY)};
       priority != nullptr &&
       (!priority->is_number() ||
        (priority->is_real() && !std::isfinite(priority->to_real())) ||
        *priority < JSON{0} || *priority > JSON{1})) {
     return false;
   }
-  if (const auto *audience{field(*item, "audience")}; audience != nullptr) {
+  if (const auto *audience{
+          field(*item, "audience", sourcemeta::core::MCP_HASH_AUDIENCE)};
+      audience != nullptr) {
     if (!strings(*audience)) {
       return false;
     }
@@ -65,7 +79,7 @@ auto annotations(const JSON &value) -> bool {
 }
 
 auto icons(const JSON &value) -> bool {
-  const auto *items{field(value, "icons")};
+  const auto *items{field(value, "icons", sourcemeta::core::MCP_HASH_ICONS)};
   if (items == nullptr) {
     return true;
   }
@@ -73,15 +87,18 @@ auto icons(const JSON &value) -> bool {
     return false;
   }
   for (const auto &item : items->as_array()) {
-    if (!item.is_object() || !string_field(item, "src", true) ||
-        !string_field(item, "mimeType")) {
+    if (!item.is_object() ||
+        !string_field(item, "src", sourcemeta::core::MCP_HASH_SRC, true) ||
+        !string_field(item, "mimeType", sourcemeta::core::MCP_HASH_MIME_TYPE)) {
       return false;
     }
-    if (const auto *sizes{field(item, "sizes")};
+    if (const auto *sizes{
+            field(item, "sizes", sourcemeta::core::MCP_HASH_SIZES)};
         (sizes != nullptr) && !strings(*sizes)) {
       return false;
     }
-    if (const auto *theme{field(item, "theme")};
+    if (const auto *theme{
+            field(item, "theme", sourcemeta::core::MCP_HASH_THEME)};
         (theme != nullptr) &&
         (!theme->is_string() ||
          (theme->to_string() != "light" && theme->to_string() != "dark"))) {
@@ -92,24 +109,18 @@ auto icons(const JSON &value) -> bool {
 }
 
 auto object_schema(const JSON &value) -> bool {
-  const auto *type{field(value, "type")};
+  const auto *type{field(value, "type", sourcemeta::core::MCP_HASH_TYPE)};
   return (type != nullptr) && type->is_string() &&
-         type->to_string() == "object" &&
-         optional_fields(value, {"properties"}, JSON::Type::Object) &&
-         (field(value, "required") == nullptr ||
-          strings(*field(value, "required")));
+         type->to_string() == "object";
 }
 
 auto base(const JSON &value) -> bool {
-  return value.is_object() && string_field(value, "name", true) &&
-         string_field(value, "title") && string_field(value, "description") &&
+  return value.is_object() &&
+         string_field(value, "name", sourcemeta::core::MCP_HASH_NAME, true) &&
+         string_field(value, "title", sourcemeta::core::MCP_HASH_TITLE) &&
+         string_field(value, "description",
+                      sourcemeta::core::MCP_HASH_DESCRIPTION) &&
          sourcemeta::core::internal::valid_meta(value) && icons(value);
-}
-
-auto alphanumeric(const char character) noexcept -> bool {
-  return (character >= 'a' && character <= 'z') ||
-         (character >= 'A' && character <= 'Z') ||
-         (character >= '0' && character <= '9');
 }
 
 auto metadata_key(const JSON::StringView key, const bool prefix_required)
@@ -129,47 +140,31 @@ auto metadata_key(const JSON::StringView key, const bool prefix_required)
     char previous = '.';
     for (const char character : prefix) {
       if (character == '.') {
-        if (start || !alphanumeric(previous)) {
+        if (start || !sourcemeta::core::is_alphanum(previous)) {
           return false;
         }
         start = true;
       } else {
-        const bool letter{(character >= 'a' && character <= 'z') ||
-                          (character >= 'A' && character <= 'Z')};
-        if ((start && !letter) ||
-            (!alphanumeric(character) && character != '-')) {
+        if ((start && !sourcemeta::core::is_alpha(character)) ||
+            (!sourcemeta::core::is_alphanum(character) && character != '-')) {
           return false;
         }
         start = false;
       }
       previous = character;
     }
-    if (start || !alphanumeric(previous)) {
+    if (start || !sourcemeta::core::is_alphanum(previous)) {
       return false;
     }
     name = key.substr(slash + 1);
   }
   return name.empty() ||
-         (alphanumeric(name.front()) && alphanumeric(name.back()) &&
+         (sourcemeta::core::is_alphanum(name.front()) &&
+          sourcemeta::core::is_alphanum(name.back()) &&
           std::all_of(name.begin(), name.end(), [](const char character) {
-            return alphanumeric(character) || character == '_' ||
-                   character == '-' || character == '.';
+            return sourcemeta::core::is_alphanum(character) ||
+                   character == '_' || character == '-' || character == '.';
           }));
-}
-
-auto trim(JSON::StringView value) -> JSON::StringView {
-  while (!value.empty() && (value.front() == ' ' || value.front() == '\t')) {
-    value.remove_prefix(1);
-  }
-  while (!value.empty() && (value.back() == ' ' || value.back() == '\t')) {
-    value.remove_suffix(1);
-  }
-  return value;
-}
-
-auto hex(const char character) noexcept -> bool {
-  return (character >= '0' && character <= '9') ||
-         (character >= 'a' && character <= 'f');
 }
 
 auto traceparent(const JSON::StringView value) -> bool {
@@ -180,7 +175,9 @@ auto traceparent(const JSON::StringView value) -> bool {
     return false;
   }
   for (std::size_t index = 0; index < 55; ++index) {
-    if (index != 2 && index != 35 && index != 52 && !hex(value[index])) {
+    if (index != 2 && index != 35 && index != 52 &&
+        (!sourcemeta::core::is_hex_digit(value[index]) ||
+         sourcemeta::core::to_lowercase(value[index]) != value[index])) {
       return false;
     }
   }
@@ -192,12 +189,12 @@ auto trace_key_part(const JSON::StringView value, const bool tenant,
                     const std::size_t maximum) -> bool {
   if (value.empty() || value.size() > maximum ||
       !((value.front() >= 'a' && value.front() <= 'z') ||
-        (tenant && value.front() >= '0' && value.front() <= '9'))) {
+        (tenant && sourcemeta::core::is_digit(value.front())))) {
     return false;
   }
   return std::all_of(value.begin(), value.end(), [](const char character) {
     return (character >= 'a' && character <= 'z') ||
-           (character >= '0' && character <= '9') || character == '_' ||
+           sourcemeta::core::is_digit(character) || character == '_' ||
            character == '-' || character == '*' || character == '/';
   });
 }
@@ -210,7 +207,8 @@ auto tracestate(JSON::StringView value) -> bool {
       return false;
     }
     const auto comma{value.find(',')};
-    const auto entry{trim(value.substr(0, comma))};
+    const auto entry{sourcemeta::core::trim(value.substr(0, comma),
+                                            sourcemeta::core::http_is_ows)};
     if (!entry.empty()) {
       const auto equal{entry.find('=')};
       if (equal == JSON::StringView::npos) {
@@ -241,15 +239,6 @@ auto tracestate(JSON::StringView value) -> bool {
   }
 }
 
-auto baggage_token(const JSON::StringView value) -> bool {
-  return !value.empty() &&
-         std::all_of(value.begin(), value.end(), [](const char character) {
-           return alphanumeric(character) ||
-                  JSON::StringView{"!#$%&'*+-.^_`|~"}.find(character) !=
-                      JSON::StringView::npos;
-         });
-}
-
 auto baggage_value(const JSON::StringView value) -> bool {
   for (std::size_t index = 0; index < value.size(); ++index) {
     const auto character{value[index]};
@@ -258,14 +247,8 @@ auto baggage_value(const JSON::StringView value) -> bool {
       return false;
     }
     if (character == '%') {
-      if (index + 2 >= value.size()) {
+      if (!sourcemeta::core::is_percent_triplet(value, index)) {
         return false;
-      }
-      for (std::size_t offset = 1; offset <= 2; ++offset) {
-        const auto digit{value[index + offset]};
-        if (!hex(digit) && !(digit >= 'A' && digit <= 'F')) {
-          return false;
-        }
       }
       index += 2;
     }
@@ -280,16 +263,20 @@ auto baggage(JSON::StringView value) -> bool {
       return false;
     }
     const auto comma{value.find(',')};
-    auto member{trim(value.substr(0, comma))};
+    auto member{sourcemeta::core::trim(value.substr(0, comma),
+                                       sourcemeta::core::http_is_ows)};
     bool first = true;
     while (true) {
       const auto semicolon{member.find(';')};
-      const auto property{trim(member.substr(0, semicolon))};
+      const auto property{sourcemeta::core::trim(
+          member.substr(0, semicolon), sourcemeta::core::http_is_ows)};
       const auto equal{property.find('=')};
       if ((first && equal == JSON::StringView::npos) ||
-          !baggage_token(trim(property.substr(0, equal))) ||
+          !sourcemeta::core::http_is_token(sourcemeta::core::trim(
+              property.substr(0, equal), sourcemeta::core::http_is_ows)) ||
           (equal != JSON::StringView::npos &&
-           !baggage_value(trim(property.substr(equal + 1))))) {
+           !baggage_value(sourcemeta::core::trim(
+               property.substr(equal + 1), sourcemeta::core::http_is_ows)))) {
         return false;
       }
       first = false;
@@ -305,100 +292,8 @@ auto baggage(JSON::StringView value) -> bool {
   }
 }
 
-auto enum_options(const JSON &value, const JSON::StringView keyword) -> bool {
-  const auto *items{field(value, keyword)};
-  if ((items == nullptr) || !items->is_array()) {
-    return false;
-  }
-  for (const auto &item : items->as_array()) {
-    if (!item.is_object() || !string_field(item, "const", true) ||
-        !string_field(item, "title", true)) {
-      return false;
-    }
-  }
-  return true;
-}
-
-auto form_schema(const JSON &schema) -> bool {
-  const auto *properties{field(schema, "properties")};
-  if (!object_schema(schema) || (properties == nullptr) ||
-      !properties->is_object() || !string_field(schema, "$schema")) {
-    return false;
-  }
-  for (const auto &entry : properties->as_object()) {
-    const auto &property{entry.second};
-    const auto *type{field(property, "type")};
-    if ((type == nullptr) || !type->is_string() ||
-        !string_field(property, "title") ||
-        !string_field(property, "description")) {
-      return false;
-    }
-    const auto name{type->to_string()};
-    const auto *default_value{field(property, "default")};
-    if (name == "string") {
-      if ((default_value != nullptr) && !default_value->is_string()) {
-        return false;
-      }
-      if ((field(property, "enum") != nullptr) &&
-          !strings(*field(property, "enum"))) {
-        return false;
-      }
-      if ((field(property, "enumNames") != nullptr) &&
-          !strings(*field(property, "enumNames"))) {
-        return false;
-      }
-      if ((field(property, "oneOf") != nullptr) &&
-          !enum_options(property, "oneOf")) {
-        return false;
-      }
-      if (!optional_fields(property, {"minLength", "maxLength"},
-                           JSON::Type::Integer)) {
-        return false;
-      }
-      if (const auto *format{field(property, "format")};
-          (format != nullptr) &&
-          (!format->is_string() ||
-           (format->to_string() != "date" &&
-            format->to_string() != "date-time" &&
-            format->to_string() != "email" && format->to_string() != "uri"))) {
-        return false;
-      }
-    } else if (name == "boolean") {
-      if ((default_value != nullptr) && !default_value->is_boolean()) {
-        return false;
-      }
-    } else if (name == "number" || name == "integer") {
-      for (const auto *const key : {"default", "minimum", "maximum"}) {
-        if (const auto *value{field(property, key)};
-            (value != nullptr) && !value->is_number()) {
-          return false;
-        }
-      }
-    } else if (name == "array") {
-      const auto *items{field(property, "items")};
-      if ((items == nullptr) || !items->is_object() ||
-          ((default_value != nullptr) && !strings(*default_value)) ||
-          !optional_fields(property, {"minItems", "maxItems"},
-                           JSON::Type::Integer)) {
-        return false;
-      }
-      const auto *item_type{field(*items, "type")};
-      const auto *values{field(*items, "enum")};
-      if (!((item_type != nullptr) && item_type->is_string() &&
-            item_type->to_string() == "string" && (values != nullptr) &&
-            strings(*values)) &&
-          !enum_options(*items, "anyOf")) {
-        return false;
-      }
-    } else {
-      return false;
-    }
-  }
-  return true;
-}
-
 auto sampling_block(const JSON &value) -> bool {
-  const auto *type{field(value, "type")};
+  const auto *type{field(value, "type", sourcemeta::core::MCP_HASH_TYPE)};
   if ((type == nullptr) || !type->is_string() ||
       !sourcemeta::core::internal::valid_meta(MCPProtocolVersion::V_2026_07_28,
                                               value)) {
@@ -410,16 +305,20 @@ auto sampling_block(const JSON &value) -> bool {
         MCPProtocolVersion::V_2026_07_28, value);
   }
   if (name == "tool_use") {
-    const auto *input{field(value, "input")};
-    return string_field(value, "id", true) &&
-           string_field(value, "name", true) && (input != nullptr) &&
-           input->is_object();
+    const auto *input{field(value, "input", sourcemeta::core::MCP_HASH_INPUT)};
+    return string_field(value, "id", sourcemeta::core::MCP_HASH_ID, true) &&
+           string_field(value, "name", sourcemeta::core::MCP_HASH_NAME, true) &&
+           (input != nullptr) && input->is_object();
   }
   if (name == "tool_result") {
-    const auto *content{field(value, "content")};
-    if (!string_field(value, "toolUseId", true) || (content == nullptr) ||
-        !content->is_array() ||
-        !optional_fields(value, {"isError"}, JSON::Type::Boolean)) {
+    const auto *content{
+        field(value, "content", sourcemeta::core::MCP_HASH_CONTENT)};
+    if (!string_field(value, "toolUseId",
+                      sourcemeta::core::MCP_HASH_TOOL_USE_ID, true) ||
+        (content == nullptr) || !content->is_array() ||
+        !optional_fields(value,
+                         {{"isError", sourcemeta::core::MCP_HASH_IS_ERROR}},
+                         JSON::Type::Boolean)) {
       return false;
     }
     for (const auto &block : content->as_array()) {
@@ -433,6 +332,33 @@ auto sampling_block(const JSON &value) -> bool {
   return false;
 }
 
+auto sampling_message_block(const JSON &block, const bool tools,
+                            const JSON::StringView role, const bool answering,
+                            std::set<JSON::StringView> &pending,
+                            std::set<JSON::StringView> &next) -> bool {
+  if (!sampling_block(block)) {
+    return false;
+  }
+  const auto type{
+      block.at("type", sourcemeta::core::MCP_HASH_TYPE).to_string()};
+  if (type == "tool_result") {
+    return tools && answering && role == "user" &&
+           pending.erase(
+               block.at("toolUseId", sourcemeta::core::MCP_HASH_TOOL_USE_ID)
+                   .to_string()) == 1;
+  }
+  if (answering) {
+    return false;
+  }
+  if (type == "tool_use") {
+    return tools && role == "assistant" &&
+           next.insert(
+                   block.at("id", sourcemeta::core::MCP_HASH_ID).to_string())
+               .second;
+  }
+  return true;
+}
+
 auto sampling_messages(
     const JSON &messages,
     const sourcemeta::core::MCPClientCapabilities &capabilities) -> bool {
@@ -441,8 +367,9 @@ auto sampling_messages(
   }
   std::set<JSON::StringView> pending;
   for (const auto &message : messages.as_array()) {
-    const auto *role{field(message, "role")};
-    const auto *content{field(message, "content")};
+    const auto *role{field(message, "role", sourcemeta::core::MCP_HASH_ROLE)};
+    const auto *content{
+        field(message, "content", sourcemeta::core::MCP_HASH_CONTENT)};
     if ((role == nullptr) || !role->is_string() ||
         (role->to_string() != "user" && role->to_string() != "assistant") ||
         (content == nullptr) ||
@@ -454,32 +381,17 @@ auto sampling_messages(
     // which may contain only the corresponding tool results.
     const bool answering{!pending.empty()};
     std::set<JSON::StringView> next;
-    const auto block_valid = [&](const JSON &block) {
-      if (!sampling_block(block)) {
-        return false;
-      }
-      const auto type{block.at("type").to_string()};
-      if (type == "tool_result") {
-        return capabilities.sampling_tools && answering &&
-               role->to_string() == "user" &&
-               pending.erase(block.at("toolUseId").to_string()) == 1;
-      }
-      if (answering) {
-        return false;
-      }
-      if (type == "tool_use") {
-        return capabilities.sampling_tools &&
-               role->to_string() == "assistant" &&
-               next.insert(block.at("id").to_string()).second;
-      }
-      return true;
-    };
     if (content->is_array()) {
-      if (!std::all_of(content->as_array().begin(), content->as_array().end(),
-                       block_valid)) {
-        return false;
+      for (const auto &block : content->as_array()) {
+        if (!sampling_message_block(block, capabilities.sampling_tools,
+                                    role->to_string(), answering, pending,
+                                    next)) {
+          return false;
+        }
       }
-    } else if (!block_valid(*content)) {
+    } else if (!sampling_message_block(*content, capabilities.sampling_tools,
+                                       role->to_string(), answering, pending,
+                                       next)) {
       return false;
     }
     if (!pending.empty()) {
@@ -491,21 +403,30 @@ auto sampling_messages(
 }
 
 auto sampling_options(const JSON &params) -> bool {
-  if (!string_field(params, "systemPrompt") ||
-      !optional_fields(params, {"metadata", "modelPreferences", "toolChoice"},
-                       JSON::Type::Object)) {
+  if (!string_field(params, "systemPrompt",
+                    sourcemeta::core::MCP_HASH_SYSTEM_PROMPT) ||
+      !optional_fields(
+          params,
+          {{"metadata", sourcemeta::core::MCP_HASH_METADATA},
+           {"modelPreferences", sourcemeta::core::MCP_HASH_MODEL_PREFERENCES},
+           {"toolChoice", sourcemeta::core::MCP_HASH_TOOL_CHOICE}},
+          JSON::Type::Object)) {
     return false;
   }
-  if (const auto *temperature{field(params, "temperature")};
+  if (const auto *temperature{
+          field(params, "temperature", sourcemeta::core::MCP_HASH_TEMPERATURE)};
       (temperature != nullptr) && !temperature->is_number()) {
     return false;
   }
-  if (const auto *stop{field(params, "stopSequences")};
+  if (const auto *stop{field(params, "stopSequences",
+                             sourcemeta::core::MCP_HASH_STOP_SEQUENCES)};
       (stop != nullptr) && !strings(*stop)) {
     return false;
   }
-  if (const auto *choice{field(params, "toolChoice")}; choice) {
-    const auto *mode{field(*choice, "mode")};
+  if (const auto *choice{
+          field(params, "toolChoice", sourcemeta::core::MCP_HASH_TOOL_CHOICE)};
+      choice) {
+    const auto *mode{field(*choice, "mode", sourcemeta::core::MCP_HASH_MODE)};
     if ((mode != nullptr) &&
         (!mode->is_string() ||
          (mode->to_string() != "auto" && mode->to_string() != "none" &&
@@ -513,27 +434,40 @@ auto sampling_options(const JSON &params) -> bool {
       return false;
     }
   }
-  if (const auto *preferences{field(params, "modelPreferences")}; preferences) {
-    for (const auto *const name :
-         {"costPriority", "speedPriority", "intelligencePriority"}) {
-      const auto *value{field(*preferences, name)};
+  if (const auto *preferences{
+          field(params, "modelPreferences",
+                sourcemeta::core::MCP_HASH_MODEL_PREFERENCES)};
+      preferences) {
+    for (const auto &[name, hash] :
+         {std::pair{JSON::StringView{"costPriority"},
+                    sourcemeta::core::MCP_HASH_COST_PRIORITY},
+          std::pair{JSON::StringView{"speedPriority"},
+                    sourcemeta::core::MCP_HASH_SPEED_PRIORITY},
+          std::pair{JSON::StringView{"intelligencePriority"},
+                    sourcemeta::core::MCP_HASH_INTELLIGENCE_PRIORITY}}) {
+      const auto *value{field(*preferences, name, hash)};
       if ((value != nullptr) && (!value->is_number() || value->as_real() < 0 ||
                                  value->as_real() > 1)) {
         return false;
       }
     }
-    if (const auto *hints{field(*preferences, "hints")}; hints) {
+    if (const auto *hints{
+            field(*preferences, "hints", sourcemeta::core::MCP_HASH_HINTS)};
+        hints) {
       if (!hints->is_array()) {
         return false;
       }
       for (const auto &hint : hints->as_array()) {
-        if (!hint.is_object() || !string_field(hint, "name")) {
+        if (!hint.is_object() ||
+            !string_field(hint, "name", sourcemeta::core::MCP_HASH_NAME)) {
           return false;
         }
       }
     }
   }
-  if (const auto *tools{field(params, "tools")}; tools) {
+  if (const auto *tools{
+          field(params, "tools", sourcemeta::core::MCP_HASH_TOOLS)};
+      tools) {
     if (!tools->is_array()) {
       return false;
     }
@@ -556,12 +490,12 @@ auto valid_log_level(const JSON::StringView value) noexcept -> bool {
 }
 
 auto valid_meta(const JSON &value) -> bool {
-  const auto *meta{field(value, "_meta")};
+  const auto *meta{field(value, "_meta", sourcemeta::core::MCP_HASH_META)};
   return meta == nullptr || meta->is_object();
 }
 
 auto valid_meta(const MCPProtocolVersion version, const JSON &value) -> bool {
-  const auto *meta{field(value, "_meta")};
+  const auto *meta{field(value, "_meta", sourcemeta::core::MCP_HASH_META)};
   return meta == nullptr || (version == MCPProtocolVersion::V_2026_07_28
                                  ? valid_metadata_object(*meta)
                                  : meta->is_object());
@@ -576,8 +510,14 @@ auto valid_metadata_object(const JSON &meta) -> bool {
       return false;
     }
   }
-  for (const auto *const name : {"traceparent", "tracestate", "baggage"}) {
-    if (const auto *value{meta.try_at(name)}; value) {
+  for (const auto &[name, hash] :
+       {std::pair{JSON::StringView{"traceparent"},
+                  sourcemeta::core::MCP_HASH_TRACEPARENT},
+        std::pair{JSON::StringView{"tracestate"},
+                  sourcemeta::core::MCP_HASH_TRACESTATE},
+        std::pair{JSON::StringView{"baggage"},
+                  sourcemeta::core::MCP_HASH_BAGGAGE}}) {
+    if (const auto *value{meta.try_at(name, hash)}; value) {
       if (!value->is_string()) {
         return false;
       }
@@ -596,36 +536,47 @@ auto valid_metadata_object(const JSON &meta) -> bool {
 
 auto valid_implementation(const MCPProtocolVersion version, const JSON &value)
     -> bool {
-  if (!value.is_object() || !string_field(value, "name", true) ||
-      !string_field(value, "version", true)) {
+  if (!value.is_object() ||
+      !string_field(value, "name", sourcemeta::core::MCP_HASH_NAME, true) ||
+      !string_field(value, "version", sourcemeta::core::MCP_HASH_VERSION,
+                    true)) {
     return false;
   }
   if (mcp_supports_implementation_title(version) &&
-      !string_field(value, "title")) {
+      !string_field(value, "title", sourcemeta::core::MCP_HASH_TITLE)) {
     return false;
   }
   return !mcp_supports_implementation_description(version) ||
-         (string_field(value, "description") &&
-          string_field(value, "websiteUrl") && icons(value));
+         (string_field(value, "description",
+                       sourcemeta::core::MCP_HASH_DESCRIPTION) &&
+          string_field(value, "websiteUrl",
+                       sourcemeta::core::MCP_HASH_WEBSITE_URL) &&
+          icons(value));
 }
 
 auto make_implementation(const MCPProtocolVersion version,
                          const MCPImplementation &value) -> JSON {
   auto result{JSON::make_object()};
-  result.assign_assume_new("name", JSON{value.name});
-  result.assign_assume_new("version", JSON{value.version});
+  result.assign_assume_new("name", JSON{value.name},
+                           sourcemeta::core::MCP_HASH_NAME);
+  result.assign_assume_new("version", JSON{value.version},
+                           sourcemeta::core::MCP_HASH_VERSION);
   if (mcp_supports_implementation_title(version) && !value.title.empty()) {
-    result.assign_assume_new("title", JSON{value.title});
+    result.assign_assume_new("title", JSON{value.title},
+                             sourcemeta::core::MCP_HASH_TITLE);
   }
   if (mcp_supports_implementation_description(version)) {
     if (!value.description.empty()) {
-      result.assign_assume_new("description", JSON{value.description});
+      result.assign_assume_new("description", JSON{value.description},
+                               sourcemeta::core::MCP_HASH_DESCRIPTION);
     }
     if (!value.website_url.empty()) {
-      result.assign_assume_new("websiteUrl", JSON{value.website_url});
+      result.assign_assume_new("websiteUrl", JSON{value.website_url},
+                               sourcemeta::core::MCP_HASH_WEBSITE_URL);
     }
     if (value.icons != nullptr) {
-      result.assign_assume_new("icons", JSON{*value.icons});
+      result.assign_assume_new("icons", JSON{*value.icons},
+                               sourcemeta::core::MCP_HASH_ICONS);
     }
   }
   require(valid_implementation(version, result),
@@ -650,7 +601,9 @@ auto valid_capabilities(const MCPProtocolVersion version, const JSON &value,
   if (!value.is_object()) {
     return false;
   }
-  if (const auto *experimental{field(value, "experimental")}; experimental) {
+  if (const auto *experimental{field(value, "experimental",
+                                     sourcemeta::core::MCP_HASH_EXPERIMENTAL)};
+      experimental) {
     if (!experimental->is_object()) {
       return false;
     }
@@ -661,28 +614,50 @@ auto valid_capabilities(const MCPProtocolVersion version, const JSON &value,
     }
   }
   if (version == MCPProtocolVersion::V_2026_07_28) {
-    if (const auto *extensions{field(value, "extensions")};
+    if (const auto *extensions{
+            field(value, "extensions", sourcemeta::core::MCP_HASH_EXTENSIONS)};
         (extensions != nullptr) && !valid_extensions(*extensions)) {
       return false;
     }
   }
   if (version == MCPProtocolVersion::V_2025_11_25) {
-    if (const auto *tasks{field(value, "tasks")}; tasks) {
+    if (const auto *tasks{
+            field(value, "tasks", sourcemeta::core::MCP_HASH_TASKS)};
+        tasks) {
       if (!tasks->is_object() ||
-          !optional_fields(*tasks, {"list", "cancel", "requests"},
+          !optional_fields(*tasks,
+                           {{"list", sourcemeta::core::MCP_HASH_LIST},
+                            {"cancel", sourcemeta::core::MCP_HASH_CANCEL},
+                            {"requests", sourcemeta::core::MCP_HASH_REQUESTS}},
                            JSON::Type::Object)) {
         return false;
       }
-      if (const auto *requests{field(*tasks, "requests")}; requests) {
-        if (!optional_fields(*requests, {"sampling", "elicitation", "tools"},
-                             JSON::Type::Object)) {
+      if (const auto *requests{
+              field(*tasks, "requests", sourcemeta::core::MCP_HASH_REQUESTS)};
+          requests) {
+        if (!optional_fields(
+                *requests,
+                {{"sampling", sourcemeta::core::MCP_HASH_SAMPLING},
+                 {"elicitation", sourcemeta::core::MCP_HASH_ELICITATION},
+                 {"tools", sourcemeta::core::MCP_HASH_TOOLS}},
+                JSON::Type::Object)) {
           return false;
         }
-        for (const auto *const name : {"sampling", "elicitation", "tools"}) {
-          if (const auto *group{field(*requests, name)};
+        for (const auto &[name, hash] :
+             {std::pair{JSON::StringView{"sampling"},
+                        sourcemeta::core::MCP_HASH_SAMPLING},
+              std::pair{JSON::StringView{"elicitation"},
+                        sourcemeta::core::MCP_HASH_ELICITATION},
+              std::pair{JSON::StringView{"tools"},
+                        sourcemeta::core::MCP_HASH_TOOLS}}) {
+          if (const auto *group{field(*requests, name, hash)};
               (group != nullptr) &&
-              !optional_fields(*group, {"createMessage", "create", "call"},
-                               JSON::Type::Object)) {
+              !optional_fields(
+                  *group,
+                  {{"createMessage", sourcemeta::core::MCP_HASH_CREATE_MESSAGE},
+                   {"create", sourcemeta::core::MCP_HASH_CREATE},
+                   {"call", sourcemeta::core::MCP_HASH_CALL}},
+                  JSON::Type::Object)) {
             return false;
           }
         }
@@ -690,50 +665,82 @@ auto valid_capabilities(const MCPProtocolVersion version, const JSON &value,
     }
   }
   if (client) {
-    if (!optional_fields(value, {"roots", "sampling"}, JSON::Type::Object)) {
+    if (!optional_fields(value,
+                         {{"roots", sourcemeta::core::MCP_HASH_ROOTS},
+                          {"sampling", sourcemeta::core::MCP_HASH_SAMPLING}},
+                         JSON::Type::Object)) {
       return false;
     }
-    if (const auto *roots{field(value, "roots")};
+    if (const auto *roots{
+            field(value, "roots", sourcemeta::core::MCP_HASH_ROOTS)};
         (roots != nullptr) && version != MCPProtocolVersion::V_2026_07_28 &&
-        !optional_fields(*roots, {"listChanged"}, JSON::Type::Boolean)) {
+        !optional_fields(
+            *roots, {{"listChanged", sourcemeta::core::MCP_HASH_LIST_CHANGED}},
+            JSON::Type::Boolean)) {
       return false;
     }
-    if (const auto *sampling{field(value, "sampling")};
+    if (const auto *sampling{
+            field(value, "sampling", sourcemeta::core::MCP_HASH_SAMPLING)};
         (sampling != nullptr) &&
         mcp_protocol_version_at_least(version,
                                       MCPProtocolVersion::V_2025_11_25) &&
-        !optional_fields(*sampling, {"tools", "context"}, JSON::Type::Object)) {
+        !optional_fields(*sampling,
+                         {{"tools", sourcemeta::core::MCP_HASH_TOOLS},
+                          {"context", sourcemeta::core::MCP_HASH_CONTEXT}},
+                         JSON::Type::Object)) {
       return false;
     }
     if (mcp_protocol_version_at_least(version,
                                       MCPProtocolVersion::V_2025_06_18)) {
-      if (!optional_fields(value, {"elicitation"}, JSON::Type::Object)) {
+      if (!optional_fields(
+              value, {{"elicitation", sourcemeta::core::MCP_HASH_ELICITATION}},
+              JSON::Type::Object)) {
         return false;
       }
-      if (const auto *elicitation{field(value, "elicitation")};
+      if (const auto *elicitation{field(
+              value, "elicitation", sourcemeta::core::MCP_HASH_ELICITATION)};
           (elicitation != nullptr) &&
           mcp_protocol_version_at_least(version,
                                         MCPProtocolVersion::V_2025_11_25) &&
-          !optional_fields(*elicitation, {"form", "url"}, JSON::Type::Object)) {
+          !optional_fields(*elicitation,
+                           {{"form", sourcemeta::core::MCP_HASH_FORM},
+                            {"url", sourcemeta::core::MCP_HASH_URL}},
+                           JSON::Type::Object)) {
         return false;
       }
     }
   } else {
     if (!optional_fields(
-            value, {"logging", "completions", "prompts", "resources", "tools"},
+            value,
+            {{"logging", sourcemeta::core::MCP_HASH_LOGGING},
+             {"completions", sourcemeta::core::MCP_HASH_COMPLETIONS},
+             {"prompts", sourcemeta::core::MCP_HASH_PROMPTS},
+             {"resources", sourcemeta::core::MCP_HASH_RESOURCES},
+             {"tools", sourcemeta::core::MCP_HASH_TOOLS}},
             JSON::Type::Object)) {
       return false;
     }
-    for (const auto *const name : {"prompts", "resources", "tools"}) {
-      if (const auto *item{field(value, name)};
+    for (const auto &[name, hash] :
+         {std::pair{JSON::StringView{"prompts"},
+                    sourcemeta::core::MCP_HASH_PROMPTS},
+          std::pair{JSON::StringView{"resources"},
+                    sourcemeta::core::MCP_HASH_RESOURCES},
+          std::pair{JSON::StringView{"tools"},
+                    sourcemeta::core::MCP_HASH_TOOLS}}) {
+      if (const auto *item{field(value, name, hash)};
           (item != nullptr) &&
-          !optional_fields(*item, {"listChanged"}, JSON::Type::Boolean)) {
+          !optional_fields(
+              *item, {{"listChanged", sourcemeta::core::MCP_HASH_LIST_CHANGED}},
+              JSON::Type::Boolean)) {
         return false;
       }
     }
-    if (const auto *resources{field(value, "resources")};
+    if (const auto *resources{
+            field(value, "resources", sourcemeta::core::MCP_HASH_RESOURCES)};
         (resources != nullptr) &&
-        !optional_fields(*resources, {"subscribe"}, JSON::Type::Boolean)) {
+        !optional_fields(*resources,
+                         {{"subscribe", sourcemeta::core::MCP_HASH_SUBSCRIBE}},
+                         JSON::Type::Boolean)) {
       return false;
     }
   }
@@ -744,25 +751,32 @@ auto valid_tool(const MCPProtocolVersion version, const JSON &value) -> bool {
   if (!base(value) || !valid_meta(version, value)) {
     return false;
   }
-  const auto *input{field(value, "inputSchema")};
+  const auto *input{
+      field(value, "inputSchema", sourcemeta::core::MCP_HASH_INPUT_SCHEMA)};
   if ((input == nullptr) || !object_schema(*input)) {
     return false;
   }
   if (mcp_supports_output_schema(version)) {
-    if (const auto *output{field(value, "outputSchema")};
+    if (const auto *output{field(value, "outputSchema",
+                                 sourcemeta::core::MCP_HASH_OUTPUT_SCHEMA)};
         (output != nullptr) &&
         (!output->is_object() || (version != MCPProtocolVersion::V_2026_07_28 &&
                                   !object_schema(*output)))) {
       return false;
     }
   }
-  if (const auto *item{field(value, "annotations")};
+  if (const auto *item{
+          field(value, "annotations", sourcemeta::core::MCP_HASH_ANNOTATIONS)};
       (item != nullptr) &&
-      (!item->is_object() || !string_field(*item, "title") ||
-       !optional_fields(*item,
-                        {"readOnlyHint", "destructiveHint", "idempotentHint",
-                         "openWorldHint"},
-                        JSON::Type::Boolean))) {
+      (!item->is_object() ||
+       !string_field(*item, "title", sourcemeta::core::MCP_HASH_TITLE) ||
+       !optional_fields(
+           *item,
+           {{"readOnlyHint", sourcemeta::core::MCP_HASH_READ_ONLY_HINT},
+            {"destructiveHint", sourcemeta::core::MCP_HASH_DESTRUCTIVE_HINT},
+            {"idempotentHint", sourcemeta::core::MCP_HASH_IDEMPOTENT_HINT},
+            {"openWorldHint", sourcemeta::core::MCP_HASH_OPEN_WORLD_HINT}},
+           JSON::Type::Boolean))) {
     return false;
   }
   return true;
@@ -771,17 +785,20 @@ auto valid_tool(const MCPProtocolVersion version, const JSON &value) -> bool {
 auto valid_resource(const MCPProtocolVersion version, const JSON &value,
                     const bool contents, const bool is_template) -> bool {
   if (!value.is_object() || !valid_meta(version, value) ||
-      !string_field(value, is_template ? "uriTemplate" : "uri", true) ||
-      !string_field(value, "mimeType")) {
+      !string_field(value, is_template ? "uriTemplate" : "uri",
+                    is_template ? sourcemeta::core::MCP_HASH_URI_TEMPLATE
+                                : sourcemeta::core::MCP_HASH_URI,
+                    true) ||
+      !string_field(value, "mimeType", sourcemeta::core::MCP_HASH_MIME_TYPE)) {
     return false;
   }
   if (contents) {
-    const auto *text{field(value, "text")};
-    const auto *blob{field(value, "blob")};
+    const auto *text{field(value, "text", sourcemeta::core::MCP_HASH_TEXT)};
+    const auto *blob{field(value, "blob", sourcemeta::core::MCP_HASH_BLOB)};
     return ((text != nullptr) && text->is_string()) ||
            ((blob != nullptr) && blob->is_string());
   }
-  const auto *size{field(value, "size")};
+  const auto *size{field(value, "size", sourcemeta::core::MCP_HASH_SIZE)};
   return base(value) && annotations(value) &&
          ((size == nullptr) || (size->is_integer() && size->to_integer() >= 0));
 }
@@ -792,20 +809,22 @@ auto valid_content(const MCPProtocolVersion version, const JSON &value)
       !annotations(value)) {
     return false;
   }
-  const auto *type{field(value, "type")};
+  const auto *type{field(value, "type", sourcemeta::core::MCP_HASH_TYPE)};
   if ((type == nullptr) || !type->is_string()) {
     return false;
   }
   const auto name{type->to_string()};
   if (name == "text") {
-    return string_field(value, "text", true);
+    return string_field(value, "text", sourcemeta::core::MCP_HASH_TEXT, true);
   }
   if (name == "image" || name == "audio") {
-    return string_field(value, "data", true) &&
-           string_field(value, "mimeType", true);
+    return string_field(value, "data", sourcemeta::core::MCP_HASH_DATA, true) &&
+           string_field(value, "mimeType", sourcemeta::core::MCP_HASH_MIME_TYPE,
+                        true);
   }
   if (name == "resource") {
-    const auto *resource{field(value, "resource")};
+    const auto *resource{
+        field(value, "resource", sourcemeta::core::MCP_HASH_RESOURCE)};
     return (resource != nullptr) &&
            valid_resource(version, *resource, true, false);
   }
@@ -818,7 +837,8 @@ auto valid_prompt(const MCPProtocolVersion version, const JSON &value) -> bool {
   if (!base(value) || !valid_meta(version, value)) {
     return false;
   }
-  const auto *arguments{field(value, "arguments")};
+  const auto *arguments{
+      field(value, "arguments", sourcemeta::core::MCP_HASH_ARGUMENTS)};
   if (arguments == nullptr) {
     return true;
   }
@@ -827,7 +847,9 @@ auto valid_prompt(const MCPProtocolVersion version, const JSON &value) -> bool {
   }
   for (const auto &argument : arguments->as_array()) {
     if (!base(argument) || !valid_meta(version, argument) ||
-        !optional_fields(argument, {"required"}, JSON::Type::Boolean)) {
+        !optional_fields(argument,
+                         {{"required", sourcemeta::core::MCP_HASH_REQUIRED}},
+                         JSON::Type::Boolean)) {
       return false;
     }
   }
@@ -841,10 +863,13 @@ auto valid_input_requests(const JSON &value,
   }
   for (const auto &entry : value.as_object()) {
     const auto &request{entry.second};
-    const auto *method{field(request, "method")};
-    const auto *params{field(request, "params")};
-    if ((method == nullptr) || !method->is_string() || request.defines("id") ||
-        request.defines("jsonrpc")) {
+    const auto *method{
+        field(request, "method", sourcemeta::core::MCP_HASH_METHOD)};
+    const auto *params{
+        field(request, "params", sourcemeta::core::MCP_HASH_PARAMS)};
+    if ((method == nullptr) || !method->is_string() ||
+        request.defines("id", sourcemeta::core::MCP_HASH_ID) ||
+        request.defines("jsonrpc", sourcemeta::core::MCP_HASH_JSONRPC)) {
       return false;
     }
     // Nested server requests do not carry the outer stateless client metadata,
@@ -861,10 +886,11 @@ auto valid_input_requests(const JSON &value,
       }
     } else if (name == MCP_METHOD_ELICITATION_CREATE) {
       if ((params == nullptr) || !params->is_object() ||
-          !string_field(*params, "message", true)) {
+          !string_field(*params, "message", sourcemeta::core::MCP_HASH_MESSAGE,
+                        true)) {
         return false;
       }
-      const auto *mode{field(*params, "mode")};
+      const auto *mode{field(*params, "mode", sourcemeta::core::MCP_HASH_MODE)};
       if ((mode != nullptr) &&
           (!mode->is_string() ||
            (mode->to_string() != "form" && mode->to_string() != "url"))) {
@@ -872,15 +898,17 @@ auto valid_input_requests(const JSON &value,
       }
       if ((mode != nullptr) && mode->to_string() == "url") {
         if (!capabilities.elicitation_url ||
-            !string_field(*params, "url", true)) {
+            !string_field(*params, "url", sourcemeta::core::MCP_HASH_URL,
+                          true)) {
           return false;
         }
       } else {
-        const auto *schema{field(*params, "requestedSchema")};
+        const auto *schema{field(*params, "requestedSchema",
+                                 sourcemeta::core::MCP_HASH_REQUESTED_SCHEMA)};
         const bool implicit_form{capabilities.elicitation &&
                                  !capabilities.elicitation_url};
         if ((!capabilities.elicitation_form && !implicit_form) ||
-            (schema == nullptr) || !form_schema(*schema)) {
+            (schema == nullptr) || !object_schema(*schema)) {
           return false;
         }
       }
@@ -889,7 +917,10 @@ auto valid_input_requests(const JSON &value,
           !params->is_object() || !sampling_options(*params)) {
         return false;
       }
-      if (const auto *context{field(*params, "includeContext")}; context) {
+      if (const auto *context{
+              field(*params, "includeContext",
+                    sourcemeta::core::MCP_HASH_INCLUDE_CONTEXT)};
+          context) {
         if (!context->is_string() ||
             (context->to_string() != "none" &&
              context->to_string() != "thisServer" &&
@@ -899,15 +930,19 @@ auto valid_input_requests(const JSON &value,
           return false;
         }
       }
-      const auto *messages{field(*params, "messages")};
-      const auto *tokens{field(*params, "maxTokens")};
+      const auto *messages{
+          field(*params, "messages", sourcemeta::core::MCP_HASH_MESSAGES)};
+      const auto *tokens{
+          field(*params, "maxTokens", sourcemeta::core::MCP_HASH_MAX_TOKENS)};
       if ((messages == nullptr) ||
           !sampling_messages(*messages, capabilities) || (tokens == nullptr) ||
           !tokens->is_integral()) {
         return false;
       }
-      if (((field(*params, "tools") != nullptr) ||
-           (field(*params, "toolChoice") != nullptr)) &&
+      if (((field(*params, "tools", sourcemeta::core::MCP_HASH_TOOLS) !=
+            nullptr) ||
+           (field(*params, "toolChoice",
+                  sourcemeta::core::MCP_HASH_TOOL_CHOICE) != nullptr)) &&
           !capabilities.sampling_tools) {
         return false;
       }
@@ -925,15 +960,15 @@ auto valid_input_response(const JSON::StringView method, const JSON &request,
     return false;
   }
   if (method == MCP_METHOD_ROOTS_LIST) {
-    const auto *roots{field(value, "roots")};
+    const auto *roots{field(value, "roots", sourcemeta::core::MCP_HASH_ROOTS)};
     if ((roots == nullptr) || !roots->is_array()) {
       return false;
     }
     for (const auto &root : roots->as_array()) {
-      const auto *uri{field(root, "uri")};
+      const auto *uri{field(root, "uri", sourcemeta::core::MCP_HASH_URI)};
       if ((uri == nullptr) || !uri->is_string() ||
           !uri->to_string().starts_with("file://") ||
-          !string_field(root, "name") ||
+          !string_field(root, "name", sourcemeta::core::MCP_HASH_NAME) ||
           !valid_meta(MCPProtocolVersion::V_2026_07_28, root)) {
         return false;
       }
@@ -941,15 +976,22 @@ auto valid_input_response(const JSON::StringView method, const JSON &request,
     return true;
   }
   if (method == MCP_METHOD_ELICITATION_CREATE) {
-    const auto *action{field(value, "action")};
+    const auto *action{
+        field(value, "action", sourcemeta::core::MCP_HASH_ACTION)};
     if ((action == nullptr) || !action->is_string() ||
         (action->to_string() != "accept" && action->to_string() != "decline" &&
          action->to_string() != "cancel")) {
       return false;
     }
-    if (const auto *content{field(value, "content")}; content) {
-      const auto *params{field(request, "params")};
-      const auto *mode{params != nullptr ? field(*params, "mode") : nullptr};
+    if (const auto *content{
+            field(value, "content", sourcemeta::core::MCP_HASH_CONTENT)};
+        content) {
+      const auto *params{
+          field(request, "params", sourcemeta::core::MCP_HASH_PARAMS)};
+      const auto *mode{
+          params != nullptr
+              ? field(*params, "mode", sourcemeta::core::MCP_HASH_MODE)
+              : nullptr};
       if (action->to_string() != "accept" ||
           (mode != nullptr &&
            (!mode->is_string() || mode->to_string() != "form")) ||
@@ -969,12 +1011,15 @@ auto valid_input_response(const JSON::StringView method, const JSON &request,
     return true;
   }
   if (method == MCP_METHOD_SAMPLING_CREATE_MESSAGE) {
-    const auto *role{field(value, "role")};
-    const auto *content{field(value, "content")};
+    const auto *role{field(value, "role", sourcemeta::core::MCP_HASH_ROLE)};
+    const auto *content{
+        field(value, "content", sourcemeta::core::MCP_HASH_CONTENT)};
     if ((role == nullptr) || !role->is_string() ||
         (role->to_string() != "user" && role->to_string() != "assistant") ||
-        (content == nullptr) || !string_field(value, "model", true) ||
-        !string_field(value, "stopReason")) {
+        (content == nullptr) ||
+        !string_field(value, "model", sourcemeta::core::MCP_HASH_MODEL, true) ||
+        !string_field(value, "stopReason",
+                      sourcemeta::core::MCP_HASH_STOP_REASON)) {
       return false;
     }
     if (!content->is_array()) {

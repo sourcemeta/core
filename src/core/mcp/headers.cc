@@ -72,11 +72,12 @@ auto mcp_validate_request_meta(const JSON &envelope)
   }
   const auto *rpc{envelope.try_at("jsonrpc", MCP_HASH_JSONRPC)};
   const auto *method{envelope.try_at("method", MCP_HASH_METHOD)};
-  const auto *identifier{envelope.try_at("id", MCP_HASH_ID)};
+  const auto *identifier{jsonrpc_request_id(envelope)};
   if ((rpc == nullptr) || !rpc->is_string() || rpc->to_string() != "2.0" ||
       (method == nullptr) || !method->is_string() || (identifier == nullptr) ||
-      !internal::valid_id(*identifier) || envelope.defines("result") ||
-      envelope.defines("error")) {
+      !internal::valid_id(*identifier) ||
+      envelope.defines("result", sourcemeta::core::MCP_HASH_RESULT) ||
+      envelope.defines("error", sourcemeta::core::MCP_HASH_ERROR)) {
     return {MCPRequestMetaStatus::InvalidEnvelope, std::nullopt};
   }
   const auto *parameters{envelope.try_at("params", MCP_HASH_PARAMS)};
@@ -198,7 +199,8 @@ auto mcp_validate_request_parameters(const JSON &parameters_value)
       return {MCPRequestMetaStatus::InvalidClientInfo, std::nullopt};
     }
 
-    info.icons = client_info_field->try_at("icons");
+    info.icons =
+        client_info_field->try_at("icons", sourcemeta::core::MCP_HASH_ICONS);
     client_info = info;
   }
 
@@ -212,7 +214,8 @@ auto mcp_validate_request_parameters(const JSON &parameters_value)
     }
     log_level = log_level_field->to_string();
   }
-  const auto *progress_token{meta->try_at("progressToken")};
+  const auto *progress_token{
+      meta->try_at("progressToken", sourcemeta::core::MCP_HASH_PROGRESS_TOKEN)};
   if ((progress_token != nullptr) && !internal::valid_id(*progress_token)) {
     return {MCPRequestMetaStatus::InvalidProgressToken, std::nullopt};
   }
@@ -318,34 +321,21 @@ auto mcp_make_error_request_meta(
   std::unreachable();
 }
 
-auto mcp_request_method_from_body(const sourcemeta::core::JSON &envelope)
-    -> std::optional<JSON::StringView> {
-  if (!envelope.is_object()) {
-    return std::nullopt;
-  }
-  const auto *method_field{envelope.try_at("method", MCP_HASH_METHOD)};
-  if (method_field != nullptr && method_field->is_string()) {
-    return method_field->to_string();
-  }
-  return std::nullopt;
-}
-
 auto mcp_request_name_from_body(const sourcemeta::core::JSON &envelope)
     -> std::optional<JSON::StringView> {
   if (!envelope.is_object()) {
     return std::nullopt;
   }
 
-  const auto *parameters{envelope.try_at("params", MCP_HASH_PARAMS)};
+  const auto *parameters{jsonrpc_params(envelope)};
   if (parameters == nullptr || !parameters->is_object()) {
     return std::nullopt;
   }
 
-  const auto method{mcp_request_method_from_body(envelope)};
-  if (method.has_value() &&
-      (method.value() == MCP_METHOD_RESOURCES_READ ||
-       method.value() == MCP_METHOD_RESOURCES_SUBSCRIBE ||
-       method.value() == MCP_METHOD_RESOURCES_UNSUBSCRIBE)) {
+  const auto method{jsonrpc_method(envelope)};
+  if (!method.empty() && (method == MCP_METHOD_RESOURCES_READ ||
+                          method == MCP_METHOD_RESOURCES_SUBSCRIBE ||
+                          method == MCP_METHOD_RESOURCES_UNSUBSCRIBE)) {
     const auto *uri_field{parameters->try_at("uri", MCP_HASH_URI)};
     if (uri_field != nullptr && uri_field->is_string()) {
       return uri_field->to_string();
@@ -383,17 +373,26 @@ auto mcp_validate_request_headers(
     -> std::optional<JSON> {
   internal::require(!supported_versions.empty(),
                     "Supported protocol versions must be explicit");
-  const auto *identifier{
-      envelope.is_object() ? envelope.try_at("id", MCP_HASH_ID) : nullptr};
+  const auto *identifier{jsonrpc_request_id(envelope)};
+  if (identifier == nullptr && envelope.is_object()) {
+    // Keep an invalid ID distinct from a notification when reporting errors.
+    identifier = envelope.try_at("id", MCP_HASH_ID);
+  }
   const bool valid_identifier{(identifier != nullptr) &&
                               internal::valid_id(*identifier)};
-  const auto method{mcp_request_method_from_body(envelope)};
+  const auto method{jsonrpc_method(envelope)};
+  const auto *method_field{envelope.is_object()
+                               ? envelope.try_at("method", MCP_HASH_METHOD)
+                               : nullptr};
   const auto *rpc{envelope.is_object()
                       ? envelope.try_at("jsonrpc", MCP_HASH_JSONRPC)
                       : nullptr};
   if ((rpc == nullptr) || !rpc->is_string() || rpc->to_string() != "2.0" ||
-      !method || envelope.defines("result") || envelope.defines("error") ||
-      (envelope.defines("id") && !valid_identifier)) {
+      (method_field == nullptr) || !method_field->is_string() ||
+      envelope.defines("result", sourcemeta::core::MCP_HASH_RESULT) ||
+      envelope.defines("error", sourcemeta::core::MCP_HASH_ERROR) ||
+      (envelope.defines("id", sourcemeta::core::MCP_HASH_ID) &&
+       !valid_identifier)) {
     return transport_error(version, identifier, JSONRPC_CODE_INVALID_REQUEST,
                            "Invalid Request");
   }
@@ -504,17 +503,18 @@ auto mcp_validate_request_headers(
                                               : std::nullopt,
                                           "Missing or malformed Mcp-Method");
   }
-  if (*method_header != *method) {
+  if (*method_header != method) {
     return mcp_make_error_header_mismatch(
         version,
         (identifier != nullptr) ? std::optional<JSON>{*identifier}
                                 : std::nullopt,
-        MCP_HEADER_METHOD, *method_header, *method);
+        MCP_HEADER_METHOD, *method_header, method);
   }
-  const bool named{mcp_is_mrtr_method(*method)};
+  const bool named{mcp_is_mrtr_method(method)};
   if (named) {
     const auto *name{parameters->try_at(
-        *method == MCP_METHOD_RESOURCES_READ ? "uri" : "name")};
+        method == MCP_METHOD_RESOURCES_READ ? "uri" : "name",
+        method == MCP_METHOD_RESOURCES_READ ? MCP_HASH_URI : MCP_HASH_NAME)};
     if ((name == nullptr) || !name->is_string()) {
       return transport_error(version, identifier, JSONRPC_CODE_INVALID_PARAMS,
                              "Invalid params");
@@ -561,8 +561,10 @@ auto mcp_validate_request_headers(
       continue;
     }
     if (slot->has_value()) {
-      const auto *identifier{envelope.is_object() ? envelope.try_at("id")
-                                                  : nullptr};
+      const auto *identifier{
+          envelope.is_object()
+              ? envelope.try_at("id", sourcemeta::core::MCP_HASH_ID)
+              : nullptr};
       return version == MCPProtocolVersion::V_2026_07_28
                  ? mcp_make_error_header_mismatch(
                        version,

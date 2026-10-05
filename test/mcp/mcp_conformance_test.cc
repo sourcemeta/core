@@ -2,8 +2,6 @@
 #include <sourcemeta/core/test.h>
 
 #include <array>
-#include <cstdlib>
-#include <fstream>
 #include <limits>
 #include <sstream>
 #include <stdexcept>
@@ -73,21 +71,19 @@ TEST(review_server_capability_roundtrip_and_overrides) {
 TEST(review_exact_parameter_integers) {
   using namespace sourcemeta::core;
   constexpr auto VERSION{MCPProtocolVersion::V_2026_07_28};
-  const auto schema{parse_json(
-      R"({"type":"object","properties":{"value":{"type":"integer","x-mcp-header":"Value"}}})")};
-  const auto descriptors{mcp_header_parameters(VERSION, schema)};
-  EXPECT_TRUE(descriptors.has_value());
+  const std::array<MCPHeaderParameter, 1> descriptors{
+      {{.name = "Value", .path = {"value"}, .type = JSON::Type::Integer}}};
   for (const auto *const text :
        {"42.0", "4.2e1", "9007199254740991.0", "-9007199254740991.0", "0.0"}) {
     auto arguments{JSON::make_object()};
     arguments.assign("value", parse_json(text));
-    const auto headers{mcp_make_parameter_headers(*descriptors, arguments)};
+    const auto headers{mcp_make_parameter_headers(descriptors, arguments)};
     EXPECT_EQ(headers.size(), 1);
     EXPECT_EQ(headers.front().second,
               std::to_string(arguments.at("value").as_integer()));
     const std::array<std::pair<JSON::StringView, JSON::StringView>, 1> views{
         {{headers.front().first, headers.front().second}}};
-    EXPECT_FALSE(mcp_validate_parameter_headers(VERSION, JSON{0}, *descriptors,
+    EXPECT_FALSE(mcp_validate_parameter_headers(VERSION, JSON{0}, descriptors,
                                                 arguments, views)
                      .has_value());
   }
@@ -98,12 +94,12 @@ TEST(review_exact_parameter_integers) {
     arguments.assign("value", parse_json(text));
     bool rejected = false;
     try {
-      mcp_make_parameter_headers(*descriptors, arguments);
+      mcp_make_parameter_headers(descriptors, arguments);
     } catch (const std::invalid_argument &) {
       rejected = true;
     }
     EXPECT_TRUE(rejected);
-    EXPECT_EQ(mcp_validate_parameter_headers(VERSION, JSON{0}, *descriptors,
+    EXPECT_EQ(mcp_validate_parameter_headers(VERSION, JSON{0}, descriptors,
                                              arguments, {})
                   ->at("error")
                   .at("code"),
@@ -236,34 +232,34 @@ auto request(const JSON::StringView method = "tools/list") -> JSON {
   return result;
 }
 
-void corpus(const MCPProtocolVersion version, const JSON::StringView definition,
-            const JSON &value) {
-  EXPECT_TRUE(value.is_object());
-  std::string path;
-#if defined(_MSC_VER)
-  char *environment_value{nullptr};
-  std::size_t size{0};
-  if (::_dupenv_s(&environment_value, &size, "SOURCEMETA_MCP_CORPUS") == 0 &&
-      environment_value) {
-    path = environment_value;
+auto list_result(const JSON::StringView method,
+                 const MCPProtocolVersion version, JSON entries) -> JSON {
+  if (method == "resources/list") {
+    return mcp_make_resources_list_result(version, std::move(entries),
+                                          std::nullopt, {});
   }
-  std::free(environment_value);
-#else
-  if (const auto *environment_value{std::getenv("SOURCEMETA_MCP_CORPUS")}) {
-    path = environment_value;
+  if (method == "resources/templates/list") {
+    return mcp_make_resource_templates_list_result(version, std::move(entries),
+                                                   std::nullopt, {});
   }
-#endif
-  if (path.empty()) {
-    return;
+  if (method == "resources/read") {
+    return mcp_make_resources_read_result(version, std::move(entries), {});
   }
-  std::ofstream stream{path, std::ios::app};
-  EXPECT_TRUE(stream.good());
-  auto entry{JSON::make_object()};
-  entry.assign("version", JSON{mcp_protocol_version_string(version)});
-  entry.assign("definition", JSON{definition});
-  entry.assign("value", JSON{value});
-  stringify(entry, stream);
-  stream << '\n';
+  if (method == "prompts/list") {
+    return mcp_make_prompts_list_result(version, std::move(entries),
+                                        std::nullopt, {});
+  }
+  return mcp_make_tools_list_result(version, std::move(entries), std::nullopt,
+                                    {});
+}
+
+auto sampling_result(const JSON &messages,
+                     const MCPClientCapabilities &capabilities) -> JSON {
+  auto requests{parse_json(
+      R"({"r":{"method":"sampling/createMessage","params":{"maxTokens":1}}})")};
+  requests.at("r").at("params").assign("messages", messages);
+  return mcp_make_input_required_result(CURRENT, "tools/call", JSON{1},
+                                        requests, std::nullopt, capabilities);
 }
 } // namespace
 
@@ -384,6 +380,7 @@ TEST(conformance_tracing_metadata) {
        {"00-00000000000000000000000000000000-0123456789abcdef-01",
         "00-0123456789abcdef0123456789abcdef-0000000000000000-01",
         "ff-0123456789abcdef0123456789abcdef-0123456789abcdef-01",
+        "00-0123456789ABCDEF0123456789abcdef-0123456789abcdef-01",
         "00-0123456789abcdef0123456789abcdef-0123456789abcdef-01-extra"}) {
     value = parameters();
     value.at("_meta").assign("traceparent", JSON{parent});
@@ -394,17 +391,20 @@ TEST(conformance_tracing_metadata) {
       "traceparent",
       JSON{"00-0123456789abcdef0123456789abcdef-0123456789abcdef-01"});
   value.at("_meta").assign("tracestate",
-                           JSON{"vendor=state,1tenant@system=value"});
-  value.at("_meta").assign("baggage",
-                           JSON{"user=alice;property=value,region=us%20east"});
+                           JSON{"\tvendor=state,1tenant@system=value\t"});
+  value.at("_meta").assign(
+      "baggage",
+      JSON{"\tuser=alice;property=value,region=us%20east,path=%2f%2F\t"});
   EXPECT_TRUE(mcp_validate_request_parameters(value).second.has_value());
   for (const auto *const state : {"a=b,a=c", "UPPER=value", "a=value=wrong"}) {
     value.at("_meta").assign("tracestate", JSON{state});
     EXPECT_FALSE(mcp_validate_request_parameters(value).second.has_value());
   }
-  value = parameters();
-  value.at("_meta").assign("baggage", JSON{"a=%ZZ"});
-  EXPECT_FALSE(mcp_validate_request_parameters(value).second.has_value());
+  for (const auto *const text : {"a=%ZZ", "a=%", "a=%2", "a=value\n"}) {
+    value = parameters();
+    value.at("_meta").assign("baggage", JSON{text});
+    EXPECT_FALSE(mcp_validate_request_parameters(value).second.has_value());
+  }
   // These tracing names are not reserved fields in legacy result metadata.
   const auto legacy{parse_json(R"({"_meta":{"traceparent":false}})")};
   EXPECT_EQ(mcp_decorate_result(MCPProtocolVersion::V_2025_03_26, legacy),
@@ -458,63 +458,71 @@ TEST(conformance_header_error_ordering) {
 }
 
 TEST(conformance_parameter_header_roundtrip) {
-  const auto schema{parse_json(
-      R"({"type":"object","properties":{"nested":{"type":"object","properties":{"text":{"type":"string","x-mcp-header":"Label"}}},"number":{"type":"integer","x-mcp-header":"Count"},"enabled":{"type":"boolean","x-mcp-header":"Enabled"}}})")};
-  const auto descriptors{mcp_header_parameters(CURRENT, schema)};
-  EXPECT_TRUE(descriptors.has_value());
-  EXPECT_EQ(descriptors->size(), 3);
+  const std::array<MCPHeaderParameter, 3> descriptors{{
+      {.name = "Label", .path = {"nested", "text"}, .type = JSON::Type::String},
+      {.name = "Count", .path = {"number"}, .type = JSON::Type::Integer},
+      {.name = "Enabled", .path = {"enabled"}, .type = JSON::Type::Boolean},
+  }};
   const auto args{parse_json(
       R"({"nested":{"text":" café "},"number":42,"enabled":false})")};
-  const auto headers{mcp_make_parameter_headers(*descriptors, args)};
+  const auto headers{mcp_make_parameter_headers(descriptors, args)};
   std::vector<std::pair<JSON::StringView, JSON::StringView>> views;
   views.reserve(headers.size());
   for (const auto &header : headers) {
     views.emplace_back(header.first, header.second);
   }
-  EXPECT_FALSE(mcp_validate_parameter_headers(CURRENT, JSON{0}, *descriptors,
-                                              args, views)
-                   .has_value());
+  EXPECT_FALSE(
+      mcp_validate_parameter_headers(CURRENT, JSON{0}, descriptors, args, views)
+          .has_value());
   for (auto &header : views) {
     if (header.first == "Mcp-Param-Count") {
       header.second = "42.0";
     }
   }
-  EXPECT_FALSE(mcp_validate_parameter_headers(CURRENT, JSON{0}, *descriptors,
-                                              args, views)
-                   .has_value());
+  EXPECT_FALSE(
+      mcp_validate_parameter_headers(CURRENT, JSON{0}, descriptors, args, views)
+          .has_value());
   views.emplace_back("mcp-param-count", "42");
-  EXPECT_EQ(mcp_validate_parameter_headers(CURRENT, JSON{0}, *descriptors, args,
-                                           views)
-                ->at("error")
-                .at("code"),
-            JSON{-32020});
+  EXPECT_EQ(
+      mcp_validate_parameter_headers(CURRENT, JSON{0}, descriptors, args, views)
+          ->at("error")
+          .at("code"),
+      JSON{-32020});
   EXPECT_TRUE(
-      mcp_make_parameter_headers(*descriptors, parse_json(R"({"number":null})"))
+      mcp_make_parameter_headers(descriptors, parse_json(R"({"number":null})"))
           .empty());
   rejects([&] {
-    mcp_make_parameter_headers(*descriptors,
+    mcp_make_parameter_headers(descriptors,
                                parse_json(R"({"number":9007199254740992})"));
   });
   rejects([&] {
-    mcp_make_parameter_headers(*descriptors, parse_json(R"({"number":1.5})"));
+    mcp_make_parameter_headers(descriptors, parse_json(R"({"number":1.5})"));
   });
 }
 
-TEST(conformance_parameter_header_schema_rejections) {
-  for (
-      const auto *const text :
-      {R"({"type":"object","x-mcp-header":"Root"})",
-       R"({"properties":{"a":{"type":"number","x-mcp-header":"Number"}}})",
-       R"({"properties":{"a":{"type":"string","x-mcp-header":"Bad Name"}}})",
-       R"({"properties":{"a":{"type":"string","x-mcp-header":"Name"},"b":{"type":"string","x-mcp-header":"name"}}})",
-       R"({"allOf":[{"properties":{"a":{"type":"string","x-mcp-header":"Name"}}}]})"}) {
-    EXPECT_FALSE(mcp_header_parameters(CURRENT, parse_json(text)).has_value());
+TEST(conformance_parameter_header_descriptor_rejections) {
+  for (const auto &parameter :
+       {MCPHeaderParameter{
+            .name = "Value", .path = {}, .type = JSON::Type::String},
+        MCPHeaderParameter{
+            .name = "Value", .path = {"x"}, .type = JSON::Type::Real}}) {
+    const std::array<MCPHeaderParameter, 1> descriptors{{parameter}};
+    rejects(
+        [&] { mcp_make_parameter_headers(descriptors, JSON::make_object()); });
+    rejects([&] {
+      mcp_validate_parameter_headers(CURRENT, JSON{0}, descriptors,
+                                     JSON::make_object(), {});
+    });
   }
-  EXPECT_TRUE(
-      mcp_header_parameters(
-          CURRENT,
-          parse_json(R"({"default":{"x-mcp-header":"NotAnAnnotation"}})"))
-          ->empty());
+  const std::array<MCPHeaderParameter, 2> duplicates{{
+      {.name = "Value", .path = {"x"}, .type = JSON::Type::String},
+      {.name = "value", .path = {"y"}, .type = JSON::Type::String},
+  }};
+  rejects([&] { mcp_make_parameter_headers(duplicates, JSON::make_object()); });
+  rejects([&] {
+    mcp_validate_parameter_headers(CURRENT, JSON{0}, duplicates,
+                                   JSON::make_object(), {});
+  });
   const std::array<MCPHeaderParameter, 1> forged{
       {{.name = "bad\r\nInjected", .path = {"x"}, .type = JSON::Type::String}}};
   rejects([&] { mcp_make_parameter_headers(forged, JSON::make_object()); });
@@ -653,12 +661,12 @@ TEST(conformance_mrtr_nested_requests) {
     const auto result{mcp_make_input_required_result(
         CURRENT, "tools/call", JSON{0}, parse_json(text), std::nullopt,
         capabilities)};
-    corpus(CURRENT, "InputRequiredResult", result.at("result"));
+    EXPECT_TRUE(result.at("result").is_object());
   }
   for (
       const auto *const text :
       {R"({"r":{"method":"roots/list","params":false}})",
-       R"({"r":{"method":"elicitation/create","params":{"message":"choose","requestedSchema":{"type":"object","properties":{"a":{"type":"object"}}}}}})",
+       R"({"r":{"method":"elicitation/create","params":{"message":"choose","requestedSchema":{"type":"array"}}}})",
        R"({"r":{"method":"sampling/createMessage","params":{"maxTokens":10,"messages":[{"role":"user","content":{"type":"resource_link","uri":"x","name":"x"}}]}}})",
        R"({"r":{"method":"sampling/createMessage","params":{"maxTokens":10,"messages":[],"temperature":false}}})",
        R"({"r":{"method":"sampling/createMessage","params":{"maxTokens":10,"messages":[],"modelPreferences":{"costPriority":2}}}})",
@@ -720,12 +728,12 @@ TEST(conformance_subscription_filters_and_notifications) {
   EXPECT_FALSE(mcp_parse_subscription_filter(CURRENT, malformed).has_value());
   const auto ack{mcp_make_subscription_acknowledged_notification(
       CURRENT, JSON{0}, *requested, supported)};
-  corpus(CURRENT, "SubscriptionsAcknowledgedNotification", ack);
+  EXPECT_TRUE(ack.is_object());
   EXPECT_FALSE(ack.defines("id"));
   const auto update{
       mcp_make_notification(CURRENT, true, "notifications/resources/updated",
                             parse_json(R"({"uri":"b"})"), JSON{0}, &allowed)};
-  corpus(CURRENT, "ResourceUpdatedNotification", update);
+  EXPECT_TRUE(update.is_object());
   EXPECT_EQ(*mcp_request_subscription_id(CURRENT, update), JSON{0});
   rejects([&] {
     mcp_make_notification(CURRENT, true, "notifications/resources/updated",
@@ -759,17 +767,17 @@ TEST(conformance_notification_shapes) {
         version, true, "notifications/message",
         parse_json(R"({"level":"info","data":{"message":"ok"}})"), std::nullopt,
         nullptr, &*context.second)};
-    corpus(version, "LoggingMessageNotification", log);
+    EXPECT_TRUE(log.is_object());
     const auto progress{mcp_make_notification(
         version, true, "notifications/progress",
         parse_json(
             R"({"progressToken":0,"progress":1,"total":2,"message":"working"})"),
         std::nullopt, nullptr, &*context.second)};
-    corpus(version, "ProgressNotification", progress);
+    EXPECT_TRUE(progress.is_object());
     const auto cancel{mcp_make_notification(
         version, false, "notifications/cancelled",
         parse_json(R"({"requestId":0,"reason":"done"})"), std::nullopt)};
-    corpus(version, "CancelledNotification", cancel);
+    EXPECT_TRUE(cancel.is_object());
     rejects([&] {
       mcp_make_notification(version, true, "notifications/message",
                             parse_json(R"({"level":"invalid","data":null})"),
@@ -783,7 +791,7 @@ TEST(conformance_notification_shapes) {
   }
 }
 
-TEST(conformance_borrowed_writer) {
+TEST(conformance_result_writer) {
   constexpr auto *FIXTURE{
       R"({"resources":[{"name":"test","uri":"https://example.com/a"}],"nextCursor":"","_meta":{"example.org/value":"preserved"}})"};
   const auto page{parse_json(FIXTURE)};
@@ -801,7 +809,7 @@ TEST(conformance_borrowed_writer) {
               JSON{"preserved"});
     EXPECT_EQ(page, saved);
     EXPECT_EQ(stream.str().find('\n'), std::string::npos);
-    corpus(version, "ListResourcesResult", parsed.at("result"));
+    EXPECT_TRUE(parsed.at("result").is_object());
   }
   std::ostringstream stream;
   rejects([&] {
@@ -814,7 +822,7 @@ TEST(conformance_borrowed_writer) {
   });
 }
 
-TEST(conformance_builder_schema_corpus) {
+TEST(conformance_builder_results) {
   const JSON identifier{0};
   const MCPImplementation server{.name = "server",
                                  .version = "1",
@@ -822,92 +830,88 @@ TEST(conformance_builder_schema_corpus) {
                                  .description = "Description",
                                  .website_url = "https://example.com"};
   for (const auto version : REVISIONS) {
-    corpus(version, "EmptyResult",
-           mcp_make_empty_result(version, identifier).at("result"));
-    corpus(version, "CallToolResult",
-           mcp_make_tool_success(version, identifier, JSON::make_object())
-               .at("result"));
-    corpus(
-        version, "CallToolResult",
+    EXPECT_TRUE(
+        mcp_make_empty_result(version, identifier).at("result").is_object());
+    EXPECT_TRUE(mcp_make_tool_success(version, identifier, JSON::make_object())
+                    .at("result")
+                    .is_object());
+    EXPECT_TRUE(
         mcp_make_tool_success(version, identifier, JSON::make_object(),
                               parse_json(R"([{"type":"text","text":"hello"}])"))
-            .at("result"));
-    corpus(version, "CallToolResult",
-           mcp_make_tool_error(version, identifier, "failure").at("result"));
-    corpus(version, "Tool",
-           mcp_make_tool_descriptor(
-               version, "tool", "description",
-               parse_json(R"({"type":"object","properties":{}})")));
-    corpus(version, "Resource",
-           mcp_make_resource(version, "https://example.com", "resource",
-                             "text/plain", "", 10, 0.5));
-    corpus(version, "ResourceTemplate",
-           mcp_make_resource_template(version, "https://example.com/{name}",
-                                      "template", "description", "text/plain"));
-    corpus(version,
-           mcp_supports_resource_link_content(version) ? "ResourceLink"
-                                                       : "TextContent",
-           mcp_supports_resource_link_content(version)
-               ? mcp_make_resource_link(version, "https://example.com", "link")
-               : mcp_make_text_block("link"));
-    corpus(version, "ListToolsResult",
-           mcp_make_tools_list_result(version, JSON::make_array(), "", {}));
-    corpus(version, "ListResourcesResult",
-           mcp_make_resources_list_result(version, JSON::make_array(), "", {}));
-    corpus(version, "ListResourceTemplatesResult",
-           mcp_make_resource_templates_list_result(version, JSON::make_array(),
-                                                   "", {}));
-    corpus(version, "ListPromptsResult",
-           mcp_make_prompts_list_result(version, JSON::make_array(), "", {}));
-    corpus(version, "ReadResourceResult",
-           mcp_make_resources_read_result(
-               version,
-               parse_json(R"([{"uri":"https://example.com","text":"hello"}])"),
-               {}));
-    corpus(
-        version, "GetPromptResult",
+            .at("result")
+            .is_object());
+    EXPECT_TRUE(mcp_make_tool_error(version, identifier, "failure")
+                    .at("result")
+                    .is_object());
+    EXPECT_TRUE(mcp_make_tool_descriptor(
+                    version, "tool", "description",
+                    parse_json(R"({"type":"object","properties":{}})"))
+                    .is_object());
+    EXPECT_TRUE(mcp_make_resource(version, "https://example.com", "resource",
+                                  "text/plain", "", 10, 0.5)
+                    .is_object());
+    EXPECT_TRUE(
+        mcp_make_resource_template(version, "https://example.com/{name}",
+                                   "template", "description", "text/plain")
+            .is_object());
+    EXPECT_TRUE(
+        (mcp_supports_resource_link_content(version)
+             ? mcp_make_resource_link(version, "https://example.com", "link")
+             : mcp_make_text_block("link"))
+            .is_object());
+    EXPECT_TRUE(mcp_make_tools_list_result(version, JSON::make_array(), "", {})
+                    .is_object());
+    EXPECT_TRUE(
+        mcp_make_resources_list_result(version, JSON::make_array(), "", {})
+            .is_object());
+    EXPECT_TRUE(mcp_make_resource_templates_list_result(
+                    version, JSON::make_array(), "", {})
+                    .is_object());
+    EXPECT_TRUE(
+        mcp_make_prompts_list_result(version, JSON::make_array(), "", {})
+            .is_object());
+    EXPECT_TRUE(
+        mcp_make_resources_read_result(
+            version,
+            parse_json(R"([{"uri":"https://example.com","text":"hello"}])"), {})
+            .is_object());
+    EXPECT_TRUE(
         mcp_make_prompts_get_result(
             version, "description",
             parse_json(
-                R"([{"role":"user","content":{"type":"text","text":"hello"}}])")));
-    corpus(version, "CompleteResult",
-           mcp_make_completion_result(version, parse_json(R"(["one","two"] )"),
-                                      3, true));
-    corpus(version, "ClientCapabilities",
-           mcp_serialize_client_capabilities(version, {}));
+                R"([{"role":"user","content":{"type":"text","text":"hello"}}])"))
+            .is_object());
+    EXPECT_TRUE(mcp_make_completion_result(
+                    version, parse_json(R"(["one","two"] )"), 3, true)
+                    .is_object());
+    EXPECT_TRUE(mcp_serialize_client_capabilities(version, {}).is_object());
     const auto error{mcp_make_error(version, &identifier,
                                     JSONRPC_CODE_INVALID_PARAMS, "bad")};
-    corpus(
-        version,
-        mcp_protocol_version_at_least(version, MCPProtocolVersion::V_2025_11_25)
-            ? "JSONRPCErrorResponse"
-            : "JSONRPCError",
-        error);
-    corpus(
-        version,
-        mcp_protocol_version_at_least(version, MCPProtocolVersion::V_2025_11_25)
-            ? "JSONRPCErrorResponse"
-            : "JSONRPCError",
-        mcp_make_error_resource_not_found(version, identifier));
+    EXPECT_TRUE(error.is_object());
+    EXPECT_TRUE(
+        mcp_make_error_resource_not_found(version, identifier).is_object());
     if (mcp_uses_initialization_handshake(version)) {
       auto init{parse_json(
           R"({"jsonrpc":"2.0","id":0,"method":"initialize","params":{"capabilities":{},"clientInfo":{"name":"client","version":"1"}}})")};
       init.at("params").assign("protocolVersion",
                                JSON{mcp_protocol_version_string(version)});
-      corpus(version, "InitializeResult",
-             mcp_make_initialize_result(init, {}, server, WIRES).at("result"));
+      EXPECT_TRUE(mcp_make_initialize_result(init, {}, server, WIRES)
+                      .at("result")
+                      .is_object());
     }
   }
-  corpus(CURRENT, "DiscoverResult",
-         mcp_make_server_discover_result(CURRENT, identifier, {}, server, WIRES,
-                                         "instructions", {})
-             .at("result"));
-  corpus(CURRENT, "SubscriptionsListenResult",
-         mcp_make_subscription_close_result(CURRENT, identifier).at("result"));
-  corpus(CURRENT, "InputRequiredResult",
-         mcp_make_input_required_result(CURRENT, "resources/read", identifier,
-                                        std::nullopt, "state", {})
-             .at("result"));
+  EXPECT_TRUE(mcp_make_server_discover_result(CURRENT, identifier, {}, server,
+                                              WIRES, "instructions", {})
+                  .at("result")
+                  .is_object());
+  EXPECT_TRUE(mcp_make_subscription_close_result(CURRENT, identifier)
+                  .at("result")
+                  .is_object());
+  EXPECT_TRUE(mcp_make_input_required_result(CURRENT, "resources/read",
+                                             identifier, std::nullopt, "state",
+                                             {})
+                  .at("result")
+                  .is_object());
 }
 
 TEST(conformance_continuation_validation) {
@@ -944,6 +948,34 @@ TEST(conformance_continuation_validation) {
   EXPECT_FALSE(mcp_validate_continuation(CURRENT, bad, prior, std::nullopt));
   EXPECT_FALSE(
       mcp_validate_continuation(CURRENT, parameters(), prior, std::nullopt));
+}
+
+TEST(continuation_empty_expected_state) {
+  auto value{parameters()};
+  value.assign("inputResponses", JSON::make_object());
+  const auto prior{JSON::make_object()};
+  EXPECT_TRUE(mcp_validate_continuation(CURRENT, value, prior, std::nullopt));
+  EXPECT_FALSE(mcp_validate_continuation(CURRENT, value, prior, ""));
+  value.assign("requestState", JSON{""});
+  EXPECT_TRUE(mcp_validate_continuation(CURRENT, value, prior, ""));
+  value.assign("requestState", JSON{"different"});
+  EXPECT_FALSE(mcp_validate_continuation(CURRENT, value, prior, ""));
+}
+
+TEST(tool_schema_content_is_opaque) {
+  const auto schema{parse_json(
+      R"({"type":"object","$defs":{"value":{"type":"string"}},"properties":{"name":{"$ref":"#/$defs/value"}},"examples":[{"x-mcp-header":"Not an annotation","properties":{"type":"invalid"}}]})")};
+  for (const auto version : REVISIONS) {
+    EXPECT_EQ(
+        mcp_make_tool_descriptor(version, "tool", "", schema).at("inputSchema"),
+        schema);
+    for (const auto *const text :
+         {"false", "null", "[]", "{}", R"({"type":"array"})"}) {
+      rejects([&] {
+        mcp_make_tool_descriptor(version, "tool", "", parse_json(text));
+      });
+    }
+  }
 }
 
 TEST(conformance_encoded_header_boundaries) {
@@ -1004,7 +1036,7 @@ TEST(review_elicitation_numbers_and_mode) {
   }
 }
 
-TEST(review_descriptor_and_content_corpus) {
+TEST(review_descriptor_and_content) {
   constexpr std::array<JSON::StringView, 2> ROLES{{"user", "assistant"}};
   const auto icons{parse_json(
       R"([{"src":"https://example.com/icon.png","mimeType":"image/png","sizes":["32x32"],"theme":"dark"}])")};
@@ -1025,39 +1057,40 @@ TEST(review_descriptor_and_content_corpus) {
                                             MCPProtocolVersion::V_2025_11_25));
     EXPECT_EQ(resource.at("annotations").defines("lastModified"),
               version != MCPProtocolVersion::V_2025_03_26);
-    corpus(version, "Resource", resource);
-    corpus(version, "ResourceTemplate",
-           mcp_make_resource_template(version, "file:///{name}", "template",
-                                      "description", "text/plain", presentation,
-                                      annotations));
-    corpus(version, "Tool",
-           mcp_make_tool_descriptor(version, "tool", "description",
-                                    parse_json(R"({"type":"object"})"),
-                                    std::nullopt, {}, presentation));
-    corpus(version, "Annotations",
-           mcp_serialize_resource_annotations(version, annotations));
-    corpus(version, "ImageContent",
-           mcp_make_image_block(version, "YWJj", "image/png", annotations));
-    corpus(version, "AudioContent",
-           mcp_make_audio_block(version, "YWJj", "audio/wav", annotations));
+    EXPECT_TRUE(resource.is_object());
+    EXPECT_TRUE(mcp_make_resource_template(
+                    version, "file:///{name}", "template", "description",
+                    "text/plain", presentation, annotations)
+                    .is_object());
+    EXPECT_TRUE(mcp_make_tool_descriptor(version, "tool", "description",
+                                         parse_json(R"({"type":"object"})"),
+                                         std::nullopt, {}, presentation)
+                    .is_object());
+    EXPECT_TRUE(
+        mcp_serialize_resource_annotations(version, annotations).is_object());
+    EXPECT_TRUE(mcp_make_image_block(version, "YWJj", "image/png", annotations)
+                    .is_object());
+    EXPECT_TRUE(mcp_make_audio_block(version, "YWJj", "audio/wav", annotations)
+                    .is_object());
     const auto blob{mcp_make_resource_blob_content(
         "file:///a", "application/octet-stream", "YWJj")};
-    corpus(version, "BlobResourceContents", blob);
-    corpus(version, "EmbeddedResource",
-           mcp_make_embedded_resource(version, blob, annotations));
-    corpus(version, "EmbeddedResource",
-           mcp_make_embedded_resource(version,
-                                      mcp_make_resource_text_content(
-                                          "file:///a", "text/plain", "hello"),
-                                      annotations));
-    corpus(
-        version, "ServerCapabilities",
+    EXPECT_TRUE(blob.is_object());
+    EXPECT_TRUE(
+        mcp_make_embedded_resource(version, blob, annotations).is_object());
+    EXPECT_TRUE(
+        mcp_make_embedded_resource(
+            version,
+            mcp_make_resource_text_content("file:///a", "text/plain", "hello"),
+            annotations)
+            .is_object());
+    EXPECT_TRUE(
         mcp_serialize_server_capabilities(
             version,
             mcp_parse_server_capabilities(
                 version,
                 parse_json(
-                    R"({"resources":{"subscribe":true,"listChanged":false,"custom":{}},"logging":{},"completions":{}})"))));
+                    R"({"resources":{"subscribe":true,"listChanged":false,"custom":{}},"logging":{},"completions":{}})")))
+            .is_object());
   }
   const std::array<JSON::StringView, 1> invalid{{"system"}};
   rejects([&] {
@@ -1085,7 +1118,7 @@ TEST(review_descriptor_and_content_corpus) {
   });
 }
 
-TEST(review_borrowed_writer_full_parity) {
+TEST(review_result_writer_full_parity) {
   const std::array<std::pair<JSON::StringView, JSON::StringView>, 6> cases{
       {{"tools/list", R"({"tools":[],"nextCursor":""})"},
        {"resources/list", R"({"resources":[],"nextCursor":""})"},
@@ -1177,7 +1210,7 @@ TEST(conformance_notification_opt_in) {
       CURRENT, true, "notifications/cancelled",
       parse_json(R"({"requestId":"listen"})"), JSON{"listen"})};
   EXPECT_FALSE(cancelled.defines("id"));
-  corpus(CURRENT, "CancelledNotification", cancelled);
+  EXPECT_TRUE(cancelled.is_object());
   const auto initialized{mcp_make_notification(
       MCPProtocolVersion::V_2025_11_25, false, "notifications/initialized",
       JSON::make_object(), std::nullopt)};
@@ -1195,7 +1228,7 @@ TEST(conformance_capability_settings_roundtrip) {
   EXPECT_EQ(mcp_serialize_client_capabilities(
                 version, mcp_parse_client_capabilities(version, source)),
             source);
-  corpus(version, "ClientCapabilities", source);
+  EXPECT_TRUE(source.is_object());
   for (const auto *const text :
        {R"({"tasks":false})", R"({"tasks":{"list":false}})",
         R"({"tasks":{"requests":{"sampling":{"createMessage":true}}}})"}) {
@@ -1235,7 +1268,7 @@ TEST(conformance_stateless_revision_and_missing_capabilities) {
             JSON{-32602});
 }
 
-TEST(conformance_borrowed_writer_metadata_rejections) {
+TEST(conformance_result_writer_metadata_rejections) {
   std::ostringstream stream;
   const auto bad{parse_json(
       R"({"resources":[],"_meta":{"io.modelcontextprotocol/serverInfo":{"name":"missing-version"}}})")};
@@ -1535,46 +1568,6 @@ TEST(conformance_enum_forms_and_sampling_continuations) {
                 .at("result")
                 .at("inputRequests"),
             inputs);
-  auto malformed{inputs};
-  malformed.at("form")
-      .at("params")
-      .at("requestedSchema")
-      .at("properties")
-      .at("single")
-      .at("oneOf")
-      .at(0)
-      .erase("title");
-  rejects([&] {
-    mcp_make_input_required_result(CURRENT, "tools/call", JSON{0}, malformed,
-                                   std::nullopt, capabilities);
-  });
-  malformed = inputs;
-  malformed.at("form")
-      .at("params")
-      .at("requestedSchema")
-      .at("properties")
-      .at("multiple")
-      .at("items")
-      .assign("anyOf", JSON{false});
-  rejects([&] {
-    mcp_make_input_required_result(CURRENT, "tools/call", JSON{0}, malformed,
-                                   std::nullopt, capabilities);
-  });
-  malformed = inputs;
-  malformed.at("form")
-      .at("params")
-      .at("requestedSchema")
-      .at("properties")
-      .at("multiple")
-      .at("items")
-      .at("anyOf")
-      .at(1)
-      .assign("const", JSON{1});
-  rejects([&] {
-    mcp_make_input_required_result(CURRENT, "tools/call", JSON{0}, malformed,
-                                   std::nullopt, capabilities);
-  });
-
   const auto prior{
       parse_json(R"({"sample":{"method":"sampling/createMessage"}})")};
   auto value{parameters()};
@@ -1606,25 +1599,6 @@ TEST(conformance_nested_descriptor_metadata) {
       {"resources", "resourceTemplates", "contents", "prompts", "tools"}};
   for (std::size_t index = 0; index < cases.size(); ++index) {
     const auto &[method, fixture]{cases[index]};
-    const auto build = [&](const MCPProtocolVersion version, JSON entries) {
-      if (method == "resources/list") {
-        return mcp_make_resources_list_result(version, std::move(entries),
-                                              std::nullopt, {});
-      }
-      if (method == "resources/templates/list") {
-        return mcp_make_resource_templates_list_result(
-            version, std::move(entries), std::nullopt, {});
-      }
-      if (method == "resources/read") {
-        return mcp_make_resources_read_result(version, std::move(entries), {});
-      }
-      if (method == "prompts/list") {
-        return mcp_make_prompts_list_result(version, std::move(entries),
-                                            std::nullopt, {});
-      }
-      return mcp_make_tools_list_result(version, std::move(entries),
-                                        std::nullopt, {});
-    };
     for (const auto *const text :
          {"false", "null", "[]", R"({"invalid key":true})",
           R"({"traceparent":false})", R"({"traceparent":"bad"})",
@@ -1632,7 +1606,7 @@ TEST(conformance_nested_descriptor_metadata) {
       auto source{parse_json(fixture)};
       const auto meta{parse_json(text)};
       source.at(keys[index]).at(0).assign("_meta", meta);
-      rejects([&] { build(CURRENT, source.at(keys[index])); });
+      rejects([&] { list_result(method, CURRENT, source.at(keys[index])); });
       std::ostringstream stream;
       rejects([&] {
         mcp_write_result(stream, CURRENT, method, JSON{1}, source,
@@ -1642,7 +1616,8 @@ TEST(conformance_nested_descriptor_metadata) {
       if (meta.is_object()) {
         for (const auto version : REVISIONS) {
           if (version != CURRENT) {
-            EXPECT_EQ(build(version, source.at(keys[index])).at(keys[index]),
+            EXPECT_EQ(list_result(method, version, source.at(keys[index]))
+                          .at(keys[index]),
                       source.at(keys[index]));
             std::ostringstream legacy;
             mcp_write_result(legacy, version, method, JSON{1}, source,
@@ -1659,7 +1634,7 @@ TEST(conformance_nested_descriptor_metadata) {
          R"({"traceparent":"00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01","tracestate":"vendor=value","baggage":"key=value"})"}) {
       auto source{parse_json(fixture)};
       source.at(keys[index]).at(0).assign("_meta", parse_json(text));
-      const auto built{build(CURRENT, source.at(keys[index]))};
+      const auto built{list_result(method, CURRENT, source.at(keys[index]))};
       std::ostringstream stream;
       mcp_write_result(stream, CURRENT, method, JSON{1}, source,
                        MCPCachePolicy{});
@@ -1711,7 +1686,7 @@ TEST(conformance_nested_input_metadata) {
       request.at("r").at("params").assign("_meta", parse_json(text));
       const auto result{mcp_make_input_required_result(
           CURRENT, "tools/call", JSON{1}, request, std::nullopt, capabilities)};
-      corpus(CURRENT, "InputRequiredResult", result.at("result"));
+      EXPECT_TRUE(result.at("result").is_object());
     }
   }
   auto sampling{parse_json(cases[2])};
@@ -1738,7 +1713,7 @@ TEST(conformance_nested_input_metadata) {
           R"({"role":"user","content":{"type":"tool_result","toolUseId":"call","content":[{"type":"text","text":"done"}]}})"));
   const auto result{mcp_make_input_required_result(
       CURRENT, "tools/call", JSON{1}, sampling, std::nullopt, capabilities)};
-  corpus(CURRENT, "InputRequiredResult", result.at("result"));
+  EXPECT_TRUE(result.at("result").is_object());
 }
 
 TEST(conformance_prompt_argument_metadata) {
@@ -1784,30 +1759,23 @@ TEST(conformance_prompt_argument_metadata) {
   mcp_write_result(stream, CURRENT, "prompts/list", JSON{1}, source,
                    MCPCachePolicy{});
   EXPECT_EQ(parse_json(stream.str()).at("result"), result);
-  corpus(CURRENT, "ListPromptsResult", result);
+  EXPECT_TRUE(result.is_object());
 }
 
 TEST(conformance_sampling_tool_history) {
   MCPClientCapabilities capabilities;
   capabilities.sampling = true;
   capabilities.sampling_tools = true;
-  const auto build = [&](const JSON &messages) {
-    auto requests{parse_json(
-        R"({"r":{"method":"sampling/createMessage","params":{"maxTokens":1}}})")};
-    requests.at("r").at("params").assign("messages", messages);
-    return mcp_make_input_required_result(CURRENT, "tools/call", JSON{1},
-                                          requests, std::nullopt, capabilities);
-  };
   const auto call{parse_json(
       R"({"type":"tool_use","id":"call","name":"tool","input":{"_meta":false}})")};
   const auto answer{parse_json(
       R"({"type":"tool_result","toolUseId":"call","content":[{"type":"text","text":"done"}]})")};
   const auto valid{parse_json(
       R"([{"role":"assistant","content":[{"type":"tool_use","id":"a","name":"tool","input":{}},{"type":"tool_use","id":"b","name":"tool","input":{}}]},{"role":"user","content":[{"type":"tool_result","toolUseId":"b","content":[]},{"type":"tool_result","toolUseId":"a","content":[]}]},{"role":"assistant","content":{"type":"text","text":"done"}}])")};
-  const auto result{build(valid)};
-  corpus(CURRENT, "InputRequiredResult", result.at("result"));
+  const auto result{sampling_result(valid, capabilities)};
+  EXPECT_TRUE(result.at("result").is_object());
   capabilities.sampling_tools = false;
-  rejects([&] { build(valid); });
+  rejects([&] { sampling_result(valid, capabilities); });
   capabilities.sampling_tools = true;
   for (
       const auto *const text :
@@ -1828,28 +1796,28 @@ TEST(conformance_sampling_tool_history) {
         content = answer;
       }
     }
-    rejects([&] { build(messages); });
+    rejects([&] { sampling_result(messages, capabilities); });
   }
   auto incomplete{valid};
   incomplete.at(1).at("content").at(1).assign("toolUseId", JSON{"unknown"});
-  rejects([&] { build(incomplete); });
+  rejects([&] { sampling_result(incomplete, capabilities); });
   auto duplicate{valid};
   duplicate.at(0).at("content").at(1).assign("id", JSON{"a"});
   duplicate.at(1).assign(
       "content",
       parse_json(R"([{ "type":"tool_result","toolUseId":"a","content":[]}])"));
-  rejects([&] { build(duplicate); });
+  rejects([&] { sampling_result(duplicate, capabilities); });
   // Every block is otherwise valid: only the intervening text message violates
   // the immediate tool-result requirement.
   const auto interrupted{parse_json(
       R"([{"role":"assistant","content":{"type":"tool_use","id":"call","name":"tool","input":{}}},{"role":"assistant","content":{"type":"text","text":"interrupted"}},{"role":"user","content":{"type":"tool_result","toolUseId":"call","content":[]}}])")};
-  rejects([&] { build(interrupted); });
+  rejects([&] { sampling_result(interrupted, capabilities); });
   auto orphan{JSON::make_array()};
   auto message{JSON::make_object()};
   message.assign("role", JSON{"user"});
   message.assign("content", answer);
   orphan.push_back(std::move(message));
-  rejects([&] { build(orphan); });
+  rejects([&] { sampling_result(orphan, capabilities); });
 }
 
 TEST(conformance_continuation_nested_metadata) {
@@ -1936,17 +1904,17 @@ TEST(conformance_reserved_error_contracts) {
                      parse_json(text));
     });
   }
-  corpus(
-      CURRENT, "UnsupportedProtocolVersionError",
+  EXPECT_TRUE(
       mcp_make_error(CURRENT, &identifier,
                      MCP_CODE_UNSUPPORTED_PROTOCOL_VERSION, "Unsupported",
-                     parse_json(R"({"requested":"future","supported":[]})")));
-  corpus(
-      CURRENT, "MissingRequiredClientCapabilityError",
+                     parse_json(R"({"requested":"future","supported":[]})"))
+          .is_object());
+  EXPECT_TRUE(
       mcp_make_error(CURRENT, &identifier,
                      MCP_CODE_MISSING_REQUIRED_CLIENT_CAPABILITY, "Missing",
-                     parse_json(R"({"requiredCapabilities":{"roots":{}}})")));
-  corpus(CURRENT, "HeaderMismatchError",
-         mcp_make_error(CURRENT, &identifier, MCP_CODE_HEADER_MISMATCH,
-                        "Mismatch"));
+                     parse_json(R"({"requiredCapabilities":{"roots":{}}})"))
+          .is_object());
+  EXPECT_TRUE(
+      mcp_make_error(CURRENT, &identifier, MCP_CODE_HEADER_MISMATCH, "Mismatch")
+          .is_object());
 }

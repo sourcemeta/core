@@ -1,15 +1,18 @@
 #include <sourcemeta/core/mcp.h>
 
+#include "helpers.h"
 #include "validation.h"
 
 #include <algorithm>
 #include <cmath>
+#include <utility>
 
 namespace {
 using sourcemeta::core::JSON;
 
-auto optional_string(const JSON &value, const JSON::StringView name) -> bool {
-  const auto *field{value.try_at(name)};
+auto optional_string(const JSON &value, const JSON::StringView name,
+                     const JSON::Object::hash_type hash) -> bool {
+  const auto *field{value.try_at(name, hash)};
   return (field == nullptr) || field->is_string();
 }
 
@@ -30,14 +33,20 @@ auto mcp_parse_subscription_filter(const MCPProtocolVersion version,
           MCPRequestMetaStatus::Valid) {
     return std::nullopt;
   }
-  const auto *filter{parameters.try_at("notifications")};
+  const auto *filter{parameters.try_at(
+      "notifications", sourcemeta::core::MCP_HASH_NOTIFICATIONS)};
   if ((filter == nullptr) || !filter->is_object()) {
     return std::nullopt;
   }
   MCPSubscriptionFilter result;
-  for (const auto *const name :
-       {"toolsListChanged", "promptsListChanged", "resourcesListChanged"}) {
-    const auto *value{filter->try_at(name)};
+  for (const auto &[name, hash] :
+       {std::pair{JSON::StringView{"toolsListChanged"},
+                  sourcemeta::core::MCP_HASH_TOOLS_LIST_CHANGED},
+        std::pair{JSON::StringView{"promptsListChanged"},
+                  sourcemeta::core::MCP_HASH_PROMPTS_LIST_CHANGED},
+        std::pair{JSON::StringView{"resourcesListChanged"},
+                  sourcemeta::core::MCP_HASH_RESOURCES_LIST_CHANGED}}) {
+    const auto *value{filter->try_at(name, hash)};
     if (value == nullptr) {
       continue;
     }
@@ -52,7 +61,10 @@ auto mcp_parse_subscription_filter(const MCPProtocolVersion version,
       result.resources_list_changed = value->to_boolean();
     }
   }
-  if (const auto *uris{filter->try_at("resourceSubscriptions")}; uris) {
+  if (const auto *uris{
+          filter->try_at("resourceSubscriptions",
+                         sourcemeta::core::MCP_HASH_RESOURCE_SUBSCRIPTIONS)};
+      uris) {
     if (!uris->is_array()) {
       return std::nullopt;
     }
@@ -95,7 +107,8 @@ auto mcp_result_type(const JSON &result) -> std::optional<JSON::StringView> {
   if (!result.is_object()) {
     return std::nullopt;
   }
-  const auto *type{result.try_at("resultType")};
+  const auto *type{
+      result.try_at("resultType", sourcemeta::core::MCP_HASH_RESULT_TYPE)};
   return (type == nullptr) ? std::optional<JSON::StringView>{"complete"}
          : type->is_string()
              ? std::optional<JSON::StringView>{type->to_string()}
@@ -139,7 +152,9 @@ auto mcp_make_notification(const MCPProtocolVersion version,
   internal::require(parameters.is_object() && internal::valid_meta(parameters),
                     "Invalid notification parameters");
   if (version == MCPProtocolVersion::V_2026_07_28) {
-    if (const auto *meta{parameters.try_at("_meta")}; meta) {
+    if (const auto *meta{
+            parameters.try_at("_meta", sourcemeta::core::MCP_HASH_META)};
+        meta) {
       internal::require(internal::valid_metadata_object(*meta),
                         "Invalid notification metadata");
     }
@@ -153,7 +168,8 @@ auto mcp_make_notification(const MCPProtocolVersion version,
       internal::require(!subscription_id.has_value(),
                         "Logging cannot be sent on a subscription stream");
     } else if (method == MCP_METHOD_NOTIFICATIONS_PROGRESS) {
-      const auto *token{parameters.try_at("progressToken")};
+      const auto *token{parameters.try_at(
+          "progressToken", sourcemeta::core::MCP_HASH_PROGRESS_TOKEN)};
       internal::require((request_context != nullptr) &&
                             request_context->protocol_version == version &&
                             (request_context->progress_token != nullptr) &&
@@ -168,24 +184,31 @@ auto mcp_make_notification(const MCPProtocolVersion version,
                       "Invalid subscription notification context");
   }
   if (method == MCP_METHOD_NOTIFICATIONS_PROGRESS) {
-    const auto *token{parameters.try_at("progressToken")};
-    const auto *progress{parameters.try_at("progress")};
-    const auto *total{parameters.try_at("total")};
+    const auto *token{parameters.try_at(
+        "progressToken", sourcemeta::core::MCP_HASH_PROGRESS_TOKEN)};
+    const auto *progress{
+        parameters.try_at("progress", sourcemeta::core::MCP_HASH_PROGRESS)};
+    const auto *total{
+        parameters.try_at("total", sourcemeta::core::MCP_HASH_TOTAL)};
     internal::require(
         (token != nullptr) && internal::valid_id(*token) &&
             (progress != nullptr) && progress->is_number() &&
             std::isfinite(progress->as_real()) &&
             ((total == nullptr) ||
              (total->is_number() && std::isfinite(total->as_real()))) &&
-            optional_string(parameters, "message"),
+            optional_string(parameters, "message",
+                            sourcemeta::core::MCP_HASH_MESSAGE),
         "Invalid progress notification");
   } else if (method == MCP_METHOD_NOTIFICATIONS_MESSAGE) {
-    const auto *level{parameters.try_at("level")};
-    internal::require((level != nullptr) && level->is_string() &&
-                          internal::valid_log_level(level->to_string()) &&
-                          parameters.defines("data") &&
-                          optional_string(parameters, "logger"),
-                      "Invalid logging notification");
+    const auto *level{
+        parameters.try_at("level", sourcemeta::core::MCP_HASH_LEVEL)};
+    internal::require(
+        (level != nullptr) && level->is_string() &&
+            internal::valid_log_level(level->to_string()) &&
+            parameters.defines("data", sourcemeta::core::MCP_HASH_DATA) &&
+            optional_string(parameters, "logger",
+                            sourcemeta::core::MCP_HASH_LOGGER),
+        "Invalid logging notification");
     if (version == MCPProtocolVersion::V_2026_07_28 && from_server) {
       const auto threshold{mcp_resolve_log_level(*request_context->log_level)};
       internal::require(
@@ -195,10 +218,12 @@ auto mcp_make_notification(const MCPProtocolVersion version,
           "Logging notification is below the request threshold");
     }
   } else if (method == MCP_METHOD_NOTIFICATIONS_CANCELLED) {
-    const auto *identifier{parameters.try_at("requestId")};
+    const auto *identifier{
+        parameters.try_at("requestId", sourcemeta::core::MCP_HASH_REQUEST_ID)};
     internal::require((identifier != nullptr) &&
                           internal::valid_id(*identifier) &&
-                          optional_string(parameters, "reason"),
+                          optional_string(parameters, "reason",
+                                          sourcemeta::core::MCP_HASH_REASON),
                       "Invalid cancellation notification");
     if (version == MCPProtocolVersion::V_2026_07_28 && from_server) {
       internal::require(
@@ -206,13 +231,18 @@ auto mcp_make_notification(const MCPProtocolVersion version,
           "Servers may only cancel the originating listen request");
     }
   } else if (method == MCP_METHOD_NOTIFICATIONS_RESOURCES_UPDATED) {
-    internal::require(parameters.defines("uri") &&
-                          parameters.at("uri").is_string(),
-                      "Resource update requires a URI");
+    internal::require(
+        parameters.defines("uri", sourcemeta::core::MCP_HASH_URI) &&
+            parameters.at("uri", sourcemeta::core::MCP_HASH_URI).is_string(),
+        "Resource update requires a URI");
   } else if (method == MCP_METHOD_NOTIFICATIONS_ELICITATION_COMPLETE) {
-    internal::require(parameters.defines("elicitationId") &&
-                          parameters.at("elicitationId").is_string(),
-                      "Elicitation completion requires an ID");
+    internal::require(
+        parameters.defines("elicitationId",
+                           sourcemeta::core::MCP_HASH_ELICITATION_ID) &&
+            parameters
+                .at("elicitationId", sourcemeta::core::MCP_HASH_ELICITATION_ID)
+                .is_string(),
+        "Elicitation completion requires an ID");
   } else {
     // Task status and acknowledgment have specialized payloads and must use
     // their owning extension or the acknowledgment builder.
@@ -241,15 +271,17 @@ auto mcp_make_notification(const MCPProtocolVersion version,
             : acknowledged->resource_subscriptions &&
                   std::find(acknowledged->resource_subscriptions->begin(),
                             acknowledged->resource_subscriptions->end(),
-                            parameters.at("uri").to_string()) !=
+                            parameters.at("uri", sourcemeta::core::MCP_HASH_URI)
+                                .to_string()) !=
                       acknowledged->resource_subscriptions->end()};
     internal::require(enabled, "Notification was not acknowledged");
   }
   if (subscription_id) {
-    auto *meta{parameters.try_at("_meta")};
+    auto *meta{parameters.try_at("_meta", sourcemeta::core::MCP_HASH_META)};
     if (meta == nullptr) {
-      parameters.assign_assume_new("_meta", JSON::make_object());
-      meta = parameters.try_at("_meta");
+      parameters.assign_assume_new("_meta", JSON::make_object(),
+                                   sourcemeta::core::MCP_HASH_META);
+      meta = parameters.try_at("_meta", sourcemeta::core::MCP_HASH_META);
     }
     meta->assign("io.modelcontextprotocol/subscriptionId",
                  std::move(*subscription_id));
@@ -265,8 +297,10 @@ auto mcp_validate_continuation(
           MCPRequestMetaStatus::Valid) {
     return false;
   }
-  const auto *state{parameters.try_at("requestState")};
-  const auto *responses{parameters.try_at("inputResponses")};
+  const auto *state{parameters.try_at(
+      "requestState", sourcemeta::core::MCP_HASH_REQUEST_STATE)};
+  const auto *responses{parameters.try_at(
+      "inputResponses", sourcemeta::core::MCP_HASH_INPUT_RESPONSES)};
   if (((state == nullptr) && (responses == nullptr)) ||
       ((state != nullptr) && !state->is_string()) ||
       (expected_state &&
@@ -286,7 +320,8 @@ auto mcp_validate_continuation(
     if (!prior->is_object()) {
       return false;
     }
-    const auto *method{prior->try_at("method")};
+    const auto *method{
+        prior->try_at("method", sourcemeta::core::MCP_HASH_METHOD)};
     if ((method == nullptr) || !method->is_string() ||
         !internal::valid_input_response(method->to_string(), *prior,
                                         entry.second)) {

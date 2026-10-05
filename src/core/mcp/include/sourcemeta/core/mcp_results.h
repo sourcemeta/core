@@ -118,7 +118,7 @@ struct MCPResourceAnnotations {
   std::optional<std::span<const JSON::StringView>> audience = std::nullopt;
   /// Optional priority, clamped to [0,1] as in the existing resource builder.
   std::optional<double> priority = std::nullopt;
-  /// Optional timestamp string; the caller supplies a valid ISO 8601 timestamp.
+  /// Optional timestamp string. The caller supplies a valid ISO 8601 timestamp.
   JSON::StringView last_modified = {};
 };
 
@@ -281,6 +281,8 @@ auto mcp_make_resource_template(
 
 /// @ingroup mcp
 /// Build a single entry for an MCP `tools/list` response.
+/// Schemas must declare `type: object` at the root. The caller validates the
+/// remaining schema content.
 /// @see
 /// https://modelcontextprotocol.io/specification/2026-07-28/schema#tool
 SOURCEMETA_CORE_MCP_EXPORT
@@ -337,18 +339,17 @@ auto mcp_make_prompts_get_result(MCPProtocolVersion version,
 
 /// @ingroup mcp
 /// Build a completion result. Values must be strings and contain at most 100
-/// entries; a supplied total cannot be smaller than the returned entry count.
+/// entries. A supplied total cannot be smaller than the returned entry count.
 SOURCEMETA_CORE_MCP_EXPORT
 auto mcp_make_completion_result(MCPProtocolVersion version, JSON values,
                                 std::optional<std::int64_t> total,
                                 std::optional<bool> has_more) -> JSON;
 
 /// @ingroup mcp
-/// Write a complete MCP response while borrowing its precomputed result.
-/// Applicable to the six cacheable operations. Large entry arrays are never
-/// copied. Existing metadata and the source result remain unchanged.
-/// A cache policy is mandatory for 2026-07-28; omit it for legacy responses.
-/// This writes JSON only; stdio callers must append a newline themselves.
+/// Serialize a complete MCP response for one of the six cacheable operations.
+/// The result is copied before decoration. The source remains unchanged.
+/// A cache policy is mandatory for 2026-07-28. Omit it for legacy responses.
+/// This writes JSON only. Stdio callers must append a newline themselves.
 SOURCEMETA_CORE_MCP_EXPORT
 void mcp_write_result(
     std::ostream &stream, MCPProtocolVersion version, JSON::StringView method,
@@ -411,7 +412,7 @@ auto mcp_request_state(MCPProtocolVersion version,
 
 /// @ingroup mcp
 /// Opt-in filters for a 2026-07-28 subscription. Explicit false values are
-/// preserved; an absent value is not requested. Resource URI views are
+/// preserved. An absent value is not requested. Resource URI views are
 /// borrowed.
 struct MCPSubscriptionFilter {
   /// Opt in to notifications that the tool list changed.
@@ -445,7 +446,7 @@ auto mcp_intersect_subscription_filters(const MCPSubscriptionFilter &requested,
 
 /// @ingroup mcp
 /// Extract a raw result discriminator without validating support. Absent
-/// resultType means complete on incoming legacy results; unknown string
+/// resultType means complete on incoming legacy results. Unknown string
 /// discriminators remain available to extensions.
 SOURCEMETA_CORE_MCP_EXPORT
 auto mcp_result_type(const JSON &result) -> std::optional<JSON::StringView>;
@@ -453,7 +454,7 @@ auto mcp_result_type(const JSON &result) -> std::optional<JSON::StringView>;
 /// @ingroup mcp
 /// Recognize base and explicitly negotiated extension result types. The
 /// extension span is the caller's negotiated allowlist, not arbitrary input.
-/// Missing discriminators mean complete; input_required and extensions require
+/// Missing discriminators mean complete. Input_required and extensions require
 /// 2026-07-28. The returned view borrows the result (or a static base name).
 SOURCEMETA_CORE_MCP_EXPORT
 auto mcp_resolve_result_type(
@@ -466,6 +467,8 @@ auto mcp_resolve_result_type(
 /// response kinds against the prior input requests. Unknown response keys are
 /// ignored. Core does not validate the user's form values against arbitrary
 /// JSON Schema, protect state integrity, or enforce new request IDs/history.
+/// An absent expected_state skips matching. An empty string requires an empty
+/// state token.
 /// @see
 /// https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/mrtr#client-requirements-basic-workflow
 SOURCEMETA_CORE_MCP_EXPORT

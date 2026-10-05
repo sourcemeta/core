@@ -8,7 +8,6 @@
 #include <sourcemeta/core/unicode.h>
 
 #include <algorithm>
-#include <cmath>
 #include <set>
 #include <string>
 #include <vector>
@@ -16,81 +15,6 @@
 namespace {
 using sourcemeta::core::JSON;
 using sourcemeta::core::MCPHeaderParameter;
-
-auto lower(const JSON::StringView value) -> std::string {
-  std::string result{value};
-  for (auto &character : result) {
-    character = sourcemeta::core::to_lowercase(character);
-  }
-  return result;
-}
-
-auto token(const JSON::StringView value) -> bool {
-  return sourcemeta::core::http_is_token(value);
-}
-
-auto visit(const JSON &schema, const bool reachable,
-           std::vector<JSON::StringView> &path, std::set<std::string> &names,
-           std::vector<MCPHeaderParameter> &result) -> bool {
-  if (!schema.is_object()) {
-    return true;
-  }
-  if (const auto *annotation{schema.try_at("x-mcp-header")}; annotation) {
-    const auto *type{schema.try_at("type")};
-    if (!reachable || path.empty() || !annotation->is_string() ||
-        !token(annotation->to_string()) || (type == nullptr) ||
-        !type->is_string() ||
-        !names.insert(lower(annotation->to_string())).second) {
-      return false;
-    }
-    const auto name{type->to_string()};
-    if (name != "string" && name != "integer" && name != "boolean") {
-      return false;
-    }
-    result.push_back(
-        MCPHeaderParameter{.name = annotation->to_string(),
-                           .path = path,
-                           .type = name == "string"    ? JSON::Type::String
-                                   : name == "integer" ? JSON::Type::Integer
-                                                       : JSON::Type::Boolean});
-  }
-  // Walk schema locations, never instance-valued enum/default/examples fields.
-  for (const auto *const name : {"properties", "patternProperties", "$defs",
-                                 "definitions", "dependentSchemas"}) {
-    const auto *children{schema.try_at(name)};
-    if ((children == nullptr) || !children->is_object()) {
-      continue;
-    }
-    for (const auto &child : children->as_object()) {
-      path.push_back(child.first);
-      if (!visit(child.second,
-                 reachable && JSON::StringView{name} == "properties", path,
-                 names, result)) {
-        return false;
-      }
-      path.pop_back();
-    }
-  }
-  for (const auto *const name :
-       {"items", "additionalItems", "additionalProperties", "unevaluatedItems",
-        "unevaluatedProperties", "contains", "propertyNames", "not", "if",
-        "then", "else", "allOf", "anyOf", "oneOf", "prefixItems"}) {
-    const auto *child{schema.try_at(name)};
-    if (child == nullptr) {
-      continue;
-    }
-    if (child->is_array()) {
-      for (const auto &item : child->as_array()) {
-        if (!visit(item, false, path, names, result)) {
-          return false;
-        }
-      }
-    } else if (!visit(*child, false, path, names, result)) {
-      return false;
-    }
-  }
-  return true;
-}
 
 auto value_at(const JSON &arguments, const MCPHeaderParameter &parameter)
     -> const JSON * {
@@ -110,12 +34,15 @@ auto value_at(const JSON &arguments, const MCPHeaderParameter &parameter)
 void require_parameters(const std::span<const MCPHeaderParameter> parameters) {
   std::set<std::string> names;
   for (const auto &parameter : parameters) {
+    std::string name{parameter.name};
+    sourcemeta::core::to_lowercase(name);
     sourcemeta::core::internal::require(
-        token(parameter.name) && !parameter.path.empty() &&
+        sourcemeta::core::http_is_token(parameter.name) &&
+            !parameter.path.empty() &&
             (parameter.type == JSON::Type::String ||
              parameter.type == JSON::Type::Integer ||
              parameter.type == JSON::Type::Boolean) &&
-            names.insert(lower(parameter.name)).second,
+            names.insert(std::move(name)).second,
         "Invalid or duplicate parameter header descriptor");
   }
 }
@@ -163,22 +90,6 @@ auto decode(const JSON::StringView value, std::string &storage)
 } // namespace
 
 namespace sourcemeta::core {
-auto mcp_header_parameters(const MCPProtocolVersion version, const JSON &schema)
-    -> std::optional<std::vector<MCPHeaderParameter>> {
-  internal::require(version == MCPProtocolVersion::V_2026_07_28,
-                    "Parameter headers require MCP 2026-07-28");
-  if (!schema.is_object()) {
-    return std::nullopt;
-  }
-  std::vector<MCPHeaderParameter> result;
-  std::vector<JSON::StringView> path;
-  std::set<std::string> names;
-  if (!visit(schema, true, path, names, result)) {
-    return std::nullopt;
-  }
-  return result;
-}
-
 auto mcp_make_parameter_headers(
     const std::span<const MCPHeaderParameter> parameters, const JSON &arguments)
     -> std::vector<std::pair<std::string, std::string>> {

@@ -19,7 +19,7 @@ namespace sourcemeta::core {
 /// @ingroup mcp
 /// Context for errors with no readable MCP request identifier.
 enum class MCPErrorContext : std::uint8_t {
-  /// A normal request response; older schemas require a readable identifier.
+  /// A normal request response. Older schemas require a readable identifier.
   Request,
   /// An HTTP transport rejection. Notifications use an id-less response;
   /// unreadable legacy requests use JSON-RPC's null-ID transport fallback,
@@ -32,7 +32,7 @@ enum class MCPErrorContext : std::uint8_t {
 /// are treated as unreadable. For 2026-07-28, rejects retired and undefined
 /// reserved codes and checks the required data for version/capability errors.
 /// The caller remains responsible for choosing an error that describes the
-/// actual failure; header mismatch data is optional.
+/// actual failure. Header mismatch data is optional.
 SOURCEMETA_CORE_MCP_EXPORT
 auto mcp_make_error(MCPProtocolVersion version, const JSON *identifier,
                     std::int64_t code, JSON::StringView message,

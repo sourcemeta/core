@@ -187,10 +187,13 @@ void decorate_result(
   if (!mcp_requires_result_type(version)) {
     return;
   }
-  if (const auto *meta{result.try_at("_meta")}; meta) {
+  if (const auto *meta{result.try_at("_meta", sourcemeta::core::MCP_HASH_META)};
+      meta) {
     internal::require(internal::valid_metadata_object(*meta),
                       "Invalid MCP 2026-07-28 metadata");
-    if (const auto *info{meta->try_at("io.modelcontextprotocol/serverInfo")};
+    if (const auto *info{
+            meta->try_at("io.modelcontextprotocol/serverInfo",
+                         sourcemeta::core::MCP_HASH_META_SERVER_INFO)};
         info) {
       internal::require(internal::valid_implementation(version, *info),
                         "Invalid server information");
@@ -612,8 +615,7 @@ auto mcp_make_initialize_result(
   }
   internal::require(chosen.has_value(),
                     "No initialization-compatible version is supported");
-  const auto *identifier{request.is_object() ? request.try_at("id", MCP_HASH_ID)
-                                             : nullptr};
+  const auto *identifier{jsonrpc_request_id(request)};
   const auto *parameters{jsonrpc_params(request)};
   if ((identifier == nullptr) || !internal::valid_id(*identifier) ||
       !jsonrpc_is_request(request) ||
@@ -624,8 +626,10 @@ auto mcp_make_initialize_result(
   }
   const auto *protocol_version_field{
       parameters->try_at("protocolVersion", MCP_HASH_PROTOCOL_VERSION)};
-  const auto *client_info{parameters->try_at("clientInfo")};
-  const auto *client_capabilities{parameters->try_at("capabilities")};
+  const auto *client_info{
+      parameters->try_at("clientInfo", sourcemeta::core::MCP_HASH_CLIENT_INFO)};
+  const auto *client_capabilities{parameters->try_at(
+      "capabilities", sourcemeta::core::MCP_HASH_CAPABILITIES)};
   if ((protocol_version_field == nullptr) ||
       !protocol_version_field->is_string() || (client_info == nullptr) ||
       (client_capabilities == nullptr)) {
@@ -766,8 +770,7 @@ auto mcp_make_input_required_result(
 auto mcp_request_input_responses(const MCPProtocolVersion version,
                                  const sourcemeta::core::JSON &envelope)
     -> const sourcemeta::core::JSON * {
-  const auto *request_id{envelope.is_object() ? envelope.try_at("id")
-                                              : nullptr};
+  const auto *request_id{jsonrpc_request_id(envelope)};
   if ((request_id == nullptr) || !internal::valid_id(*request_id)) {
     return nullptr;
   }
@@ -791,8 +794,7 @@ auto mcp_request_input_responses(const MCPProtocolVersion version,
 auto mcp_request_state(const MCPProtocolVersion version,
                        const sourcemeta::core::JSON &envelope)
     -> std::optional<JSON::StringView> {
-  const auto *request_id{envelope.is_object() ? envelope.try_at("id")
-                                              : nullptr};
+  const auto *request_id{jsonrpc_request_id(envelope)};
   if ((request_id == nullptr) || !internal::valid_id(*request_id)) {
     return std::nullopt;
   }
@@ -827,22 +829,26 @@ auto mcp_make_subscription_acknowledged_notification(
   auto filter{JSON::make_object()};
   if (notifications.tools_list_changed) {
     filter.assign_assume_new("toolsListChanged",
-                             JSON{*notifications.tools_list_changed});
+                             JSON{*notifications.tools_list_changed},
+                             sourcemeta::core::MCP_HASH_TOOLS_LIST_CHANGED);
   }
   if (notifications.prompts_list_changed) {
     filter.assign_assume_new("promptsListChanged",
-                             JSON{*notifications.prompts_list_changed});
+                             JSON{*notifications.prompts_list_changed},
+                             sourcemeta::core::MCP_HASH_PROMPTS_LIST_CHANGED);
   }
   if (notifications.resources_list_changed) {
     filter.assign_assume_new("resourcesListChanged",
-                             JSON{*notifications.resources_list_changed});
+                             JSON{*notifications.resources_list_changed},
+                             sourcemeta::core::MCP_HASH_RESOURCES_LIST_CHANGED);
   }
   if (notifications.resource_subscriptions) {
     auto resources{JSON::make_array()};
     for (const auto uri : *notifications.resource_subscriptions) {
       resources.push_back(JSON{uri});
     }
-    filter.assign_assume_new("resourceSubscriptions", std::move(resources));
+    filter.assign_assume_new("resourceSubscriptions", std::move(resources),
+                             sourcemeta::core::MCP_HASH_RESOURCE_SUBSCRIPTIONS);
   }
   auto meta{sourcemeta::core::JSON::make_object()};
   meta.assign_assume_new("io.modelcontextprotocol/subscriptionId",
@@ -929,8 +935,7 @@ auto mcp_request_subscription_id(const MCPProtocolVersion version,
 
 auto mcp_tool_call_arguments(const sourcemeta::core::JSON &envelope)
     -> const sourcemeta::core::JSON * {
-  const auto *request_id{envelope.is_object() ? envelope.try_at("id")
-                                              : nullptr};
+  const auto *request_id{jsonrpc_request_id(envelope)};
   if ((request_id == nullptr) || !internal::valid_id(*request_id)) {
     return nullptr;
   }
@@ -958,8 +963,9 @@ auto mcp_make_prompts_get_result(const MCPProtocolVersion version,
   require_array(messages);
   for (const auto &message : messages.as_array()) {
     internal::require(message.is_object(), "Prompt messages must be objects");
-    const auto *role{message.try_at("role")};
-    const auto *content{message.try_at("content")};
+    const auto *role{message.try_at("role", sourcemeta::core::MCP_HASH_ROLE)};
+    const auto *content{
+        message.try_at("content", sourcemeta::core::MCP_HASH_CONTENT)};
     internal::require(
         (role != nullptr) && role->is_string() &&
             (role->to_string() == "user" || role->to_string() == "assistant") &&
@@ -968,9 +974,11 @@ auto mcp_make_prompts_get_result(const MCPProtocolVersion version,
   }
   auto result{JSON::make_object()};
   if (!description.empty()) {
-    result.assign_assume_new("description", JSON{description});
+    result.assign_assume_new("description", JSON{description},
+                             sourcemeta::core::MCP_HASH_DESCRIPTION);
   }
-  result.assign_assume_new("messages", std::move(messages));
+  result.assign_assume_new("messages", std::move(messages),
+                           sourcemeta::core::MCP_HASH_MESSAGES);
   decorate_result(version, result);
   return result;
 }
@@ -988,15 +996,19 @@ auto mcp_make_completion_result(const MCPProtocolVersion version, JSON values,
       !total || (*total >= 0 && std::cmp_greater_equal(*total, values.size())),
       "Invalid completion total");
   auto completion{JSON::make_object()};
-  completion.assign_assume_new("values", std::move(values));
+  completion.assign_assume_new("values", std::move(values),
+                               sourcemeta::core::MCP_HASH_VALUES);
   if (total) {
-    completion.assign_assume_new("total", JSON{*total});
+    completion.assign_assume_new("total", JSON{*total},
+                                 sourcemeta::core::MCP_HASH_TOTAL);
   }
   if (has_more) {
-    completion.assign_assume_new("hasMore", JSON{*has_more});
+    completion.assign_assume_new("hasMore", JSON{*has_more},
+                                 sourcemeta::core::MCP_HASH_HAS_MORE);
   }
   auto result{JSON::make_object()};
-  result.assign_assume_new("completion", std::move(completion));
+  result.assign_assume_new("completion", std::move(completion),
+                           sourcemeta::core::MCP_HASH_COMPLETION);
   decorate_result(version, result);
   return result;
 }
@@ -1013,17 +1025,22 @@ void mcp_write_result(std::ostream &stream, const MCPProtocolVersion version,
   internal::require(result.is_object() && internal::valid_meta(result),
                     "Invalid MCP result object");
   if (version == MCPProtocolVersion::V_2026_07_28) {
-    if (const auto *meta{result.try_at("_meta")}; meta) {
+    if (const auto *meta{
+            result.try_at("_meta", sourcemeta::core::MCP_HASH_META)};
+        meta) {
       internal::require(internal::valid_metadata_object(*meta),
                         "Invalid precomputed metadata");
-      if (const auto *info{meta->try_at("io.modelcontextprotocol/serverInfo")};
+      if (const auto *info{
+              meta->try_at("io.modelcontextprotocol/serverInfo",
+                           sourcemeta::core::MCP_HASH_META_SERVER_INFO)};
           info) {
         internal::require(internal::valid_implementation(version, *info),
                           "Invalid precomputed server information");
       }
     }
   }
-  const auto *type{result.try_at("resultType")};
+  const auto *type{
+      result.try_at("resultType", sourcemeta::core::MCP_HASH_RESULT_TYPE)};
   internal::require((type == nullptr) ||
                         (type->is_string() && type->to_string() == "complete"),
                     "Writer requires a complete result");
@@ -1033,26 +1050,32 @@ void mcp_write_result(std::ostream &stream, const MCPProtocolVersion version,
   }
   const JSON *entries = nullptr;
   if (method == MCP_METHOD_TOOLS_LIST) {
-    entries = result.try_at("tools");
+    entries = result.try_at("tools", sourcemeta::core::MCP_HASH_TOOLS);
   } else if (method == MCP_METHOD_RESOURCES_LIST) {
-    entries = result.try_at("resources");
+    entries = result.try_at("resources", sourcemeta::core::MCP_HASH_RESOURCES);
   } else if (method == MCP_METHOD_RESOURCES_TEMPLATES_LIST) {
-    entries = result.try_at("resourceTemplates");
+    entries = result.try_at("resourceTemplates",
+                            sourcemeta::core::MCP_HASH_RESOURCE_TEMPLATES);
   } else if (method == MCP_METHOD_PROMPTS_LIST) {
-    entries = result.try_at("prompts");
+    entries = result.try_at("prompts", sourcemeta::core::MCP_HASH_PROMPTS);
   } else if (method == MCP_METHOD_RESOURCES_READ) {
-    entries = result.try_at("contents");
+    entries = result.try_at("contents", sourcemeta::core::MCP_HASH_CONTENTS);
   } else {
-    const auto *versions{result.try_at("supportedVersions")};
-    const auto *capabilities{result.try_at("capabilities")};
+    const auto *versions{result.try_at(
+        "supportedVersions", sourcemeta::core::MCP_HASH_SUPPORTED_VERSIONS)};
+    const auto *capabilities{
+        result.try_at("capabilities", sourcemeta::core::MCP_HASH_CAPABILITIES)};
     internal::require(
         (versions != nullptr) && versions->is_array() && !versions->empty() &&
             (capabilities != nullptr) &&
             internal::valid_capabilities(version, *capabilities, false),
         "Invalid discovery result");
-    internal::require(!result.defines("instructions") ||
-                          result.at("instructions").is_string(),
-                      "Invalid discovery instructions");
+    internal::require(
+        !result.defines("instructions",
+                        sourcemeta::core::MCP_HASH_INSTRUCTIONS) ||
+            result.at("instructions", sourcemeta::core::MCP_HASH_INSTRUCTIONS)
+                .is_string(),
+        "Invalid discovery instructions");
     bool serving_revision = false;
     for (const auto &wire : versions->as_array()) {
       internal::require(
@@ -1082,51 +1105,16 @@ void mcp_write_result(std::ostream &stream, const MCPProtocolVersion version,
     internal::require(method == MCP_METHOD_SERVER_DISCOVER,
                       "Missing precomputed result entries");
   }
-  if (const auto *cursor{result.try_at("nextCursor")}; cursor) {
+  if (const auto *cursor{
+          result.try_at("nextCursor", sourcemeta::core::MCP_HASH_NEXT_CURSOR)};
+      cursor) {
     internal::require(cursor->is_string(), "Invalid result cursor");
   }
-  // Build only the small metadata object; borrow the potentially large pages.
-  auto metadata{JSON::make_object()};
-  if (version == MCPProtocolVersion::V_2026_07_28) {
-    decorate_result(version, metadata, server_info);
-    decorate_cacheable_result(version, metadata, *cache_policy, method);
-    if (const auto *existing{result.try_at("_meta")}; existing) {
-      auto merged{*existing};
-      if (const auto *extra{metadata.try_at("_meta")}; extra) {
-        for (const auto &entry : extra->as_object()) {
-          merged.assign(entry.first, JSON{entry.second});
-        }
-      }
-      metadata.assign("_meta", std::move(merged));
-    }
+  auto payload{result};
+  decorate_result(version, payload, server_info);
+  if (cache_policy) {
+    decorate_cacheable_result(version, payload, *cache_policy, method);
   }
-  stream << R"({"jsonrpc":"2.0","id":)";
-  stringify(identifier, stream);
-  stream << ",\"result\":{";
-  bool first = true;
-  for (const auto &entry : result.as_object()) {
-    if (version == MCPProtocolVersion::V_2026_07_28 &&
-        (entry.first == "resultType" || entry.first == "ttlMs" ||
-         entry.first == "cacheScope" || entry.first == "_meta")) {
-      continue;
-    }
-    if (!first) {
-      stream.put(',');
-    }
-    first = false;
-    stringify(JSON{entry.first}, stream);
-    stream.put(':');
-    stringify(entry.second, stream);
-  }
-  for (const auto &entry : metadata.as_object()) {
-    if (!first) {
-      stream.put(',');
-    }
-    first = false;
-    stringify(JSON{entry.first}, stream);
-    stream.put(':');
-    stringify(entry.second, stream);
-  }
-  stream << "}}";
+  stringify(jsonrpc_make_success(identifier, std::move(payload)), stream);
 }
 } // namespace sourcemeta::core

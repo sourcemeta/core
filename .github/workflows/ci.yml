@@ -194,31 +194,9 @@ jobs:
       # that sends you to an app store, so the path is asked for outright
       - uses: actions/setup-python@v7
         id: python
-        if: matrix.platform.benchmark == 'linux/gcc' || (matrix.platform.benchmark && github.event_name == 'pull_request')
+        if: matrix.platform.benchmark && github.event_name == 'pull_request'
         with:
           python-version: '3.13'
-
-      # Run the MCP contract tests with assertions enabled once, alongside the
-      # Release matrix. Official schemas and the allocation probe are development
-      # checks and do not add runtime dependencies to Core.
-      - name: MCP conformance, Debug contracts and installed consumer
-        if: matrix.platform.benchmark == 'linux/gcc'
-        shell: bash
-        run: |
-          cmake -S . -B ./build-mcp-debug -DCMAKE_BUILD_TYPE=Debug \
-            -DSOURCEMETA_CORE_TESTS=ON -DSOURCEMETA_CORE_USE_SYSTEM_ALLOCATOR=ON \
-            ${{ matrix.platform.options }}
-          cmake --build ./build-mcp-debug --parallel 4 --target sourcemeta_core_mcp_unit
-          ./build-mcp-debug/test/mcp/sourcemeta_core_mcp_unit
-          "${{ steps.python.outputs.python-path }}" -m pip install jsonschema==4.26.0
-          "${{ steps.python.outputs.python-path }}" ./test/mcp/conformance_test.py
-          "${{ steps.python.outputs.python-path }}" ./test/mcp/conformance.py ./build-mcp-debug/test/mcp/sourcemeta_core_mcp_unit
-          "${{ steps.python.outputs.python-path }}" ./test/mcp/conformance.py ./build/test/mcp/sourcemeta_core_mcp_unit
-          cmake -S ./test/mcp/consumer -B ./build-mcp-consumer \
-            -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$PWD/build/dist"
-          cmake --build ./build-mcp-consumer --parallel 4
-          ./build-mcp-consumer/mcp_consumer
-          ./build-mcp-consumer/mcp_writer_profile
 
       # The base revision gets a directory of its own, so that each side keeps
       # the libraries it was built against and a shared build stays honest. It

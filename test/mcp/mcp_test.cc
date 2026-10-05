@@ -1619,6 +1619,10 @@ TEST(request_meta_validation_valid_minimum) {
   EXPECT_EQ(client_info->name, "ExampleClient");
   EXPECT_EQ(client_info->version, "1.0.0");
   EXPECT_FALSE(meta->log_level.has_value());
+  auto empty_method{envelope};
+  empty_method.assign("method", sourcemeta::core::JSON{""});
+  EXPECT_EQ(sourcemeta::core::mcp_validate_request_meta(empty_method).first,
+            sourcemeta::core::MCPRequestMetaStatus::Valid);
 }
 
 TEST(request_meta_validation_valid_with_client_info_and_log_level) {
@@ -2059,19 +2063,6 @@ TEST(request_meta_validation_client_info_description_not_string) {
           .has_value());
 }
 
-TEST(body_extraction_method) {
-  const auto request{sourcemeta::core::parse_json(R"JSON({
-    "jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {}
-  })JSON")};
-  EXPECT_EQ(sourcemeta::core::mcp_request_method_from_body(request),
-            "tools/call");
-
-  const auto invalid{
-      sourcemeta::core::parse_json(R"JSON({ "foo": "bar" })JSON")};
-  EXPECT_EQ(sourcemeta::core::mcp_request_method_from_body(invalid),
-            std::nullopt);
-}
-
 TEST(body_extraction_name) {
   const auto tool_call{sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0", "id": 1, "method": "tools/call",
@@ -2497,6 +2488,14 @@ TEST(header_validation_legacy_regressions) {
         legacy_version, std::nullopt, std::nullopt, std::nullopt, envelope,
         SUPPORTED_VERSIONS)};
     EXPECT_FALSE(no_headers.has_value());
+
+    // An empty method is a string. Dispatch handles unsupported method names.
+    auto empty_method{envelope};
+    empty_method.assign("method", sourcemeta::core::JSON{""});
+    EXPECT_FALSE(sourcemeta::core::mcp_validate_request_headers(
+                     legacy_version, std::nullopt, std::nullopt, std::nullopt,
+                     empty_method, SUPPORTED_VERSIONS)
+                     .has_value());
 
     // If matching headers are supplied, validation passes
     const auto matching{sourcemeta::core::mcp_validate_request_headers(

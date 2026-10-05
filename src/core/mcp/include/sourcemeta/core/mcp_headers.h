@@ -92,13 +92,13 @@ enum class MCPRequestMetaStatus : std::uint8_t {
 struct MCPRequestMeta {
   /// The declared protocol revision.
   MCPProtocolVersion protocol_version;
-  /// Borrowed capabilities; the source request must outlive this view.
+  /// Borrowed capabilities. The source request must outlive this view.
   const JSON &client_capabilities;
   /// Optional borrowed implementation description.
   std::optional<MCPImplementation> client_info;
   /// Optional requested log level.
   std::optional<JSON::StringView> log_level;
-  /// Borrowed metadata; never null after successful validation.
+  /// Borrowed metadata. Never null after successful validation.
   const JSON &meta_object;
   /// Optional borrowed progress token.
   const JSON *progress_token = nullptr;
@@ -129,12 +129,6 @@ auto mcp_make_error_request_meta(
     -> sourcemeta::core::JSON;
 
 /// @ingroup mcp
-/// Extract the request method name from a JSON-RPC request body.
-SOURCEMETA_CORE_MCP_EXPORT
-auto mcp_request_method_from_body(const sourcemeta::core::JSON &envelope)
-    -> std::optional<JSON::StringView>;
-
-/// @ingroup mcp
 /// Borrow the target tool name or resource URI from a JSON-RPC request body.
 /// The returned view is valid only while the source string remains alive and
 /// unchanged.
@@ -162,8 +156,8 @@ SOURCEMETA_CORE_MCP_EXPORT
 auto mcp_encode_header_value(JSON::StringView value) -> std::string;
 
 /// @ingroup mcp
-/// Validate a borrowed HTTP header collection. Names are case insensitive;
-/// duplicate recognized singleton fields are rejected. Unknown fields stay
+/// Validate a borrowed HTTP header collection. Names are case insensitive.
+/// Duplicate recognized singleton fields are rejected. Unknown fields stay
 /// opaque. HTTP framing, Origin and session validation belong to the adapter.
 SOURCEMETA_CORE_MCP_EXPORT
 auto mcp_validate_request_headers(
@@ -173,8 +167,8 @@ auto mcp_validate_request_headers(
     -> std::optional<JSON>;
 
 /// @ingroup mcp
-/// A statically reachable x-mcp-header annotation. String views borrow the
-/// input schema; keep that schema alive while using the descriptors.
+/// A caller-provided parameter header descriptor. String views borrow the
+/// name and property path supplied by the caller.
 struct MCPHeaderParameter {
   /// The suffix of Mcp-Param-{name}.
   JSON::StringView name;
@@ -183,13 +177,6 @@ struct MCPHeaderParameter {
   /// One of String, Integer or Boolean.
   JSON::Type type;
 };
-
-/// @ingroup mcp
-/// Extract checked 2026-07-28 HTTP parameter annotations, or nullopt if the
-/// schema has an invalid annotation, type, location or duplicate field name.
-SOURCEMETA_CORE_MCP_EXPORT
-auto mcp_header_parameters(MCPProtocolVersion version, const JSON &input_schema)
-    -> std::optional<std::vector<MCPHeaderParameter>>;
 
 /// @ingroup mcp
 /// Produce mirrored parameter headers. Missing/null values are omitted.
@@ -202,7 +189,7 @@ auto mcp_make_parameter_headers(std::span<const MCPHeaderParameter> parameters,
 /// @ingroup mcp
 /// Compare annotated parameters with raw HTTP headers case-insensitively.
 /// Validates required mirrors, encoding, duplicates and numeric equivalence.
-/// Protocol version must be 2026-07-28. Schema extraction should precede this.
+/// Protocol version must be 2026-07-28. The caller supplies the descriptors.
 SOURCEMETA_CORE_MCP_EXPORT
 auto mcp_validate_parameter_headers(
     MCPProtocolVersion version, const JSON &identifier,

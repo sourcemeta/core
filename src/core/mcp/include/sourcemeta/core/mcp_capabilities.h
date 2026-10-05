@@ -61,7 +61,7 @@ struct MCPClientCapabilities {
   std::optional<sourcemeta::core::JSON> experimental = std::nullopt;
   /// Optional owned source preserving the parsed capability settings.
   /// Keeps extension settings, unknown capabilities and 2025-11-25 task data.
-  /// Typed flags and optional maps override this snapshot when serializing; the
+  /// Typed flags and optional maps override this snapshot when serializing. The
   /// per-request metadata view does not allocate or populate this snapshot.
   std::optional<JSON> source = std::nullopt;
 };
@@ -123,7 +123,7 @@ auto mcp_parse_server_capabilities(MCPProtocolVersion version,
 
 /// @ingroup mcp
 /// Serialize server capabilities for an explicit revision. Typed flags override
-/// the source snapshot; opaque settings survive only in retained capabilities.
+/// the source snapshot. Opaque settings survive only in retained capabilities.
 /// Throws std::invalid_argument for malformed known fields.
 SOURCEMETA_CORE_MCP_EXPORT
 auto mcp_serialize_server_capabilities(
