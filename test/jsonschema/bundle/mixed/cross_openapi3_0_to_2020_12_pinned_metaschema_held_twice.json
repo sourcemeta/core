@@ -1,0 +1,108 @@
+{
+  "schema": {
+    "type": "object",
+    "properties": {
+      "pet": {
+        "$ref": "https://www.sourcemeta.com/pet"
+      }
+    },
+    "x-definitions": {
+      "https://example.com/meta": {
+        "$id": "https://example.com/meta",
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$vocabulary": {
+          "https://json-schema.org/draft/2020-12/vocab/core": true,
+          "https://json-schema.org/draft/2020-12/vocab/validation": true
+        },
+        "type": "object"
+      }
+    }
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/pet": {
+      "$schema": "https://example.com/meta",
+      "$id": "https://www.sourcemeta.com/pet",
+      "type": "object",
+      "$defs": {
+        "https://example.com/meta": {
+          "$id": "https://example.com/meta",
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$vocabulary": {
+            "https://json-schema.org/draft/2020-12/vocab/core": true,
+            "https://json-schema.org/draft/2020-12/vocab/validation": true
+          },
+          "type": "object"
+        }
+      }
+    }
+  },
+  "defaultDialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+  "result": {
+    "nonOfficialMetaschemas": {
+      "type": "object",
+      "properties": {
+        "pet": {
+          "$ref": "https://www.sourcemeta.com/pet"
+        }
+      },
+      "x-definitions": {
+        "https://www.sourcemeta.com/pet": {
+          "$schema": "https://example.com/meta",
+          "$id": "https://www.sourcemeta.com/pet",
+          "type": "object",
+          "$defs": {
+            "https://example.com/meta": {
+              "$id": "https://example.com/meta",
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "$vocabulary": {
+                "https://json-schema.org/draft/2020-12/vocab/core": true,
+                "https://json-schema.org/draft/2020-12/vocab/validation": true
+              },
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    "references": {
+      "type": "object",
+      "properties": {
+        "pet": {
+          "$ref": "https://www.sourcemeta.com/pet"
+        }
+      },
+      "x-definitions": {
+        "https://www.sourcemeta.com/pet": {
+          "$schema": "https://example.com/meta",
+          "$id": "https://www.sourcemeta.com/pet",
+          "type": "object",
+          "$defs": {
+            "https://example.com/meta": {
+              "$id": "https://example.com/meta",
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "$vocabulary": {
+                "https://json-schema.org/draft/2020-12/vocab/core": true,
+                "https://json-schema.org/draft/2020-12/vocab/validation": true
+              },
+              "type": "object"
+            }
+          }
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://www.sourcemeta.com/pet",
+        "at": "/x-definitions/https:~1~1www.sourcemeta.com~1pet"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://www.sourcemeta.com/pet",
+        "at": "/x-definitions/https:~1~1www.sourcemeta.com~1pet"
+      }
+    ]
+  }
+}

@@ -1,0 +1,103 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/host",
+    "properties": {
+      "pet": {
+        "$ref": "https://example.com/pet"
+      }
+    }
+  },
+  "resolver": {
+    "https://example.com/pet": {
+      "$schema": "https://example.com/meta",
+      "$id": "https://example.com/pet",
+      "type": "object",
+      "$defs": {
+        "https://example.com/meta": {
+          "$id": "https://example.com/meta",
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$vocabulary": {
+            "https://json-schema.org/draft/2020-12/vocab/core": true,
+            "https://json-schema.org/draft/2020-12/vocab/validation": true
+          },
+          "type": "object"
+        }
+      }
+    }
+  },
+  "result": {
+    "nonOfficialMetaschemas": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/host",
+      "properties": {
+        "pet": {
+          "$ref": "https://example.com/pet"
+        }
+      },
+      "$defs": {
+        "https://example.com/meta": {
+          "$id": "https://example.com/meta",
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$vocabulary": {
+            "https://json-schema.org/draft/2020-12/vocab/core": true,
+            "https://json-schema.org/draft/2020-12/vocab/validation": true
+          },
+          "type": "object"
+        },
+        "https://example.com/pet": {
+          "$schema": "https://example.com/meta",
+          "$id": "https://example.com/pet",
+          "type": "object"
+        }
+      }
+    },
+    "references": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/host",
+      "properties": {
+        "pet": {
+          "$ref": "https://example.com/pet"
+        }
+      },
+      "$defs": {
+        "https://example.com/meta": {
+          "$id": "https://example.com/meta",
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$vocabulary": {
+            "https://json-schema.org/draft/2020-12/vocab/core": true,
+            "https://json-schema.org/draft/2020-12/vocab/validation": true
+          },
+          "type": "object"
+        },
+        "https://example.com/pet": {
+          "$schema": "https://example.com/meta",
+          "$id": "https://example.com/pet",
+          "type": "object"
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://example.com/meta",
+        "at": "/$defs/https:~1~1example.com~1meta"
+      },
+      {
+        "from": "https://example.com/pet",
+        "at": "/$defs/https:~1~1example.com~1pet"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://example.com/meta",
+        "at": "/$defs/https:~1~1example.com~1meta"
+      },
+      {
+        "from": "https://example.com/pet",
+        "at": "/$defs/https:~1~1example.com~1pet"
+      }
+    ]
+  }
+}

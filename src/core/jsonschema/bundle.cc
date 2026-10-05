@@ -427,6 +427,73 @@ auto settle_positional_references(
   }
 }
 
+// Which entry of the root container already holds the given identity, if any.
+// What an entry is called is no guide to what it identifies, since a caller
+// may hold one under a name of its own choosing, so the declared identifier is
+// what rules an entry in or out. An entry that holds the identity but not the
+// same schema is a conflict rather than a duplicate, and says so
+auto container_entry_holding(
+    const JSON &container, const JSON::String &identifier,
+    const JSON &candidate, const bool candidate_defines_dialect,
+    const std::string_view dialect, const SchemaWalker &walker,
+    const SchemaResolver &resolver, std::uint64_t &remaining)
+    -> std::optional<JSON::String> {
+  for (const auto &entry : container.as_object()) {
+    // Rule out what cannot match, and what framing would reject, before
+    // paying for a frame
+    if (!entry.second.is_object()) {
+      continue;
+    }
+
+    const auto *declared{entry.second.try_at("$id")};
+    if (declared == nullptr) {
+      declared = entry.second.try_at("id");
+    }
+
+    if (declared == nullptr || !declared->is_string() ||
+        declared->to_string() != identifier ||
+        !URI{declared->to_string()}.is_absolute()) {
+      continue;
+    }
+
+    SchemaFrame stored{SchemaFrame::Mode::Root,
+                       entry.second,
+                       walker,
+                       resolver,
+                       dialect,
+                       "",
+                       SchemaFrame::IdentifierMode::Additional,
+                       {EMPTY_WEAK_POINTER},
+                       "",
+                       remaining};
+    charge(remaining, stored);
+    if (stored.root() != identifier) {
+      continue;
+    }
+
+    if (candidate_defines_dialect) {
+      if (entry.second != candidate) {
+        throw SchemaError("Conflicting embedded resources with the same "
+                          "identifier");
+      }
+    } else {
+      // The stored copy of the resource got its dialect stamped on
+      // extraction, so compare against a candidate that is stamped in the
+      // same way
+      auto stamped{candidate};
+      stamped.assign("$schema", JSON{declared_dialect(candidate, dialect)});
+      if (entry.second != stamped) {
+        throw SchemaError("Conflicting embedded resources with the same "
+                          "identifier");
+      }
+    }
+
+    return entry.first;
+  }
+
+  return std::nullopt;
+}
+
 auto elevate_embedded_resources(
     JSON &remote, JSON &root, const Pointer &container,
     const SchemaBaseDialect remote_dialect, const SchemaWalker &walker,
@@ -449,7 +516,7 @@ auto elevate_embedded_resources(
   const auto remote_dialect_uri{declared_dialect(remote, default_dialect)};
 
   // Navigate to the root container once, as it doesn't change per entry
-  const JSON *root_container{&root};
+  JSON *root_container{&root};
   bool container_exists{true};
   for (const auto &token : container) {
     if (!token.is_property() || !root_container->is_object() ||
@@ -519,10 +586,25 @@ auto elevate_embedded_resources(
     if (pinned.contains(canonical_uri(identifier))) {
       // Staying put is the only way this one goes on being found, so the
       // document cannot also hold it elsewhere: one identity in two places is
-      // not a document anything can read
+      // not a document anything can read. Where the other place holds the
+      // same schema, the one that can still be found is the one to keep, and
+      // every reference naming it is answered by that one either way
       if (bundled.contains(identifier_string)) {
-        throw SchemaError("A meta-schema that has to stay within the schema "
-                          "that pins it cannot be embedded elsewhere too");
+        std::optional<JSON::String> held;
+        if (container_exists && root_container->is_object()) {
+          held = container_entry_holding(*root_container, identifier_string,
+                                         value, value.defines("$schema"),
+                                         remote_dialect_uri, walker, resolver,
+                                         remaining);
+        }
+
+        if (!held.has_value()) {
+          throw SchemaError("A meta-schema that has to stay within the schema "
+                            "that pins it is held elsewhere in a place this "
+                            "cannot reach");
+        }
+
+        root_container->erase(held.value());
       }
 
       // What stays behind is still in the document under the identity it
@@ -535,62 +617,9 @@ auto elevate_embedded_resources(
     const auto defines_dialect{value.defines("$schema")};
     if (bundled.contains(identifier_string)) {
       if (container_exists && root_container->is_object()) {
-        for (const auto &root_entry : root_container->as_object()) {
-          // Same reasoning as above: rule out what cannot match, and what
-          // framing would reject, before paying for a frame. What a container
-          // calls an entry is no guide to what that entry identifies, since a
-          // caller may hold one under a name of its own choosing, so the
-          // declared identifier below is what rules an entry in or out
-          if (!root_entry.second.is_object()) {
-            continue;
-          }
-          const auto *stored_declared_id{root_entry.second.try_at("$id")};
-          if (stored_declared_id == nullptr) {
-            stored_declared_id = root_entry.second.try_at("id");
-          }
-          if (stored_declared_id == nullptr ||
-              !stored_declared_id->is_string() ||
-              stored_declared_id->to_string() != identifier_string ||
-              !URI{stored_declared_id->to_string()}.is_absolute()) {
-            continue;
-          }
-
-          SchemaFrame stored_frame{SchemaFrame::Mode::Root,
-                                   root_entry.second,
-                                   walker,
-                                   resolver,
-                                   remote_dialect_uri,
-                                   "",
-                                   SchemaFrame::IdentifierMode::Additional,
-                                   {EMPTY_WEAK_POINTER},
-                                   "",
-                                   remaining};
-          charge(remaining, stored_frame);
-          const auto &stored_id{stored_frame.root()};
-          if (stored_id != identifier_string) {
-            continue;
-          }
-
-          if (defines_dialect) {
-            if (root_entry.second != value) {
-              throw SchemaError(
-                  "Conflicting embedded resources with the same identifier");
-            }
-          } else {
-            // The stored copy of the resource got its dialect stamped on
-            // extraction, so compare against a candidate that is stamped in
-            // the same way
-            auto candidate{value};
-            candidate.assign("$schema",
-                             JSON{declared_dialect(value, remote_dialect_uri)});
-            if (root_entry.second != candidate) {
-              throw SchemaError(
-                  "Conflicting embedded resources with the same identifier");
-            }
-          }
-
-          break;
-        }
+        container_entry_holding(*root_container, identifier_string, value,
+                                defines_dialect, remote_dialect_uri, walker,
+                                resolver, remaining);
       }
 
       to_remove.emplace_back(key);
