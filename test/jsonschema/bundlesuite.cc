@@ -248,7 +248,16 @@ auto with_insertions(const Inputs &inputs, const Insertions &insertions)
                              inputs.path_storage.cbegin(),
                              inputs.path_storage.cend());
   for (const auto &insertion : insertions) {
-    result.path_storage.push_back(insertion.second);
+    // Framing takes paths that do not sit inside one another, and where a
+    // container is itself within a framed schema its entries are already
+    // covered by the path that covers it
+    if (std::ranges::none_of(inputs.path_storage,
+                             [&insertion](const auto &path) -> bool {
+                               return insertion.second.starts_with(path) ||
+                                      path.starts_with(insertion.second);
+                             })) {
+      result.path_storage.push_back(insertion.second);
+    }
   }
   result.paths.reserve(result.path_storage.size());
   for (const auto &path : result.path_storage) {

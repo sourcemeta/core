@@ -1,0 +1,44 @@
+{
+  "schema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string"
+      },
+      "alias": {
+        "$ref": "https://example.com/host#/properties/name"
+      }
+    }
+  },
+  "resolver": {},
+  "defaultDialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+  "defaultId": "https://example.com/host",
+  "result": {
+    "nonOfficialMetaschemas": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "alias": {
+          "$ref": "https://example.com/host#/properties/name"
+        }
+      }
+    },
+    "references": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "alias": {
+          "$ref": "https://example.com/host#/properties/name"
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [],
+    "references": []
+  }
+}

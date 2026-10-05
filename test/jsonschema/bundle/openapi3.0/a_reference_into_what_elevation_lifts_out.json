@@ -1,0 +1,39 @@
+{
+  "schema": {
+    "type": "object",
+    "properties": {
+      "inner": {
+        "$ref": "https://example.com/pet#/x-definitions/https:~1~1example.com~1inner"
+      }
+    }
+  },
+  "resolver": {
+    "https://example.com/pet": {
+      "type": "object",
+      "x-definitions": {
+        "https://example.com/inner": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://example.com/inner",
+          "type": "integer"
+        }
+      }
+    }
+  },
+  "defaultDialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+  "errors": {
+    "nonOfficialMetaschemas": {
+      "type": "SchemaReferenceError",
+      "message": "Could not resolve schema reference",
+      "identifier": "https://example.com/pet#/x-definitions/https:~1~1example.com~1inner",
+      "location": "/properties/inner/$ref"
+    },
+    "references": {
+      "type": "SchemaReferenceError",
+      "message": "Could not resolve schema reference",
+      "identifier": "https://example.com/pet#/x-definitions/https:~1~1example.com~1inner",
+      "location": "/properties/inner/$ref"
+    }
+  },
+  "result": {},
+  "inserted": {}
+}
