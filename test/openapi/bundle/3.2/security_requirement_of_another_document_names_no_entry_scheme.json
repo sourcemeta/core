@@ -48,7 +48,7 @@
   "schemaResolver": {},
   "error": {
     "type": "OpenAPIReferenceError",
-    "message": "This reference must name a place within the document it points at",
+    "message": "This security requirement must name a Security Scheme Object within the document it points at",
     "identifier": "https://example.com/RemoteOnly",
     "location": "/components/pathItems/Foo/get/security/0/https:~1~1example.com~1RemoteOnly",
     "base": "https://example.com/openapi.json"

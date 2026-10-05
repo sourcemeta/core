@@ -1635,10 +1635,25 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
           continue;
         }
 
-        throw OpenAPIReferenceError{base, reference.origin,
-                                    reference.destination,
-                                    "This reference must name a place within "
-                                    "the document it points at"};
+        // OpenAPI Specification 3.2.1, Section 4.30 admits "the URI of a
+        // Security Scheme Object" as a name, and Section 4.1.2 puts "either an
+        // OpenAPI Object or a Schema Object at the root" of every document a
+        // description spans, so a name reaching for a whole document reaches
+        // no scheme whatever that document turns out to hold. Settling that
+        // from the name alone is what keeps a name nobody wrote as a document
+        // from being reported as a document that could not be fetched
+        if (reference.requirement) {
+          throw OpenAPIReferenceError{
+              base, reference.origin, reference.destination,
+              "This security requirement must name a Security Scheme Object "
+              "within the document it points at"};
+        }
+
+        // Everything else goes on to have its document read, so that a
+        // reference landing on something that is no OpenAPI Description at all
+        // hears that rather than hearing about the place it did not name.
+        // Naming no place is the lesser of the two complaints, as a document
+        // of the wrong shape holds no place worth naming either
       }
 
       const auto identifier{declared.has_value() ? declared.value().first
@@ -1743,7 +1758,11 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
 
       // A document that holds an OpenAPI Description is never what a reference
       // from the shell expects to find, so one naming a whole document has
-      // landed on the wrong kind of thing
+      // landed on the wrong kind of thing. This is where such a reference is
+      // turned down, once that document has been read and has turned out to
+      // hold a description of the revision this one spans. A fragment shaped
+      // like anything but a pointer names no place of it either, and reaches
+      // here the same way
       const auto target{declared.has_value()
                             ? std::optional<Pointer>{declared.value().second}
                             : target_of(reference.destination)};

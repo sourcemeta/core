@@ -1,6 +1,6 @@
 {
   "document": {
-    "openapi": "3.1.1",
+    "openapi": "3.2.0",
     "info": {
       "title": "Example",
       "version": "1.0.0"
@@ -10,7 +10,7 @@
         "get": {
           "responses": {
             "404": {
-              "$ref": "shared.json"
+              "$ref": "shared.json#NotFound"
             }
           }
         }
@@ -20,14 +20,25 @@
   "defaultBase": "https://example.com/openapi.json",
   "openapiResolver": {
     "https://example.com/shared.json": {
-      "description": "Not found"
+      "openapi": "3.2.0",
+      "info": {
+        "title": "Shared",
+        "version": "1.0.0"
+      },
+      "components": {
+        "responses": {
+          "NotFound": {
+            "description": "Not found"
+          }
+        }
+      }
     }
   },
   "schemaResolver": {},
   "error": {
     "type": "OpenAPIReferenceError",
-    "message": "This reference must name a document that holds an OpenAPI Description",
+    "message": "This reference must name a place within the document it points at",
     "location": "/paths/~1pets/get/responses/404/$ref",
-    "identifier": "https://example.com/shared.json"
+    "identifier": "https://example.com/shared.json#NotFound"
   }
 }

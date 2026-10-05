@@ -1,6 +1,6 @@
 {
   "document": {
-    "openapi": "3.1.1",
+    "openapi": "3.2.0",
     "info": {
       "title": "Example",
       "version": "1.0.0"
@@ -18,15 +18,11 @@
     }
   },
   "defaultBase": "https://example.com/openapi.json",
-  "openapiResolver": {
-    "https://example.com/shared.json": {
-      "description": "Not found"
-    }
-  },
+  "openapiResolver": {},
   "schemaResolver": {},
   "error": {
-    "type": "OpenAPIReferenceError",
-    "message": "This reference must name a document that holds an OpenAPI Description",
+    "type": "OpenAPIResolutionError",
+    "message": "Could not resolve the reference to an external document",
     "location": "/paths/~1pets/get/responses/404/$ref",
     "identifier": "https://example.com/shared.json"
   }
