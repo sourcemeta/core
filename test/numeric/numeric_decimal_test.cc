@@ -6032,3 +6032,86 @@ TEST(to_integral_of_a_sum_that_fills_the_compact_range) {
   EXPECT_TRUE(result.is_zero());
   EXPECT_EQ(result.to_string(), "0");
 }
+
+TEST(dividing_rounds_a_quotient_back_into_the_lowest_exponent) {
+  const sourcemeta::core::Decimal dividend{"1e-2147483632"};
+  const sourcemeta::core::Decimal divisor{3};
+  const sourcemeta::core::Decimal expected{"3333333333333333e-2147483648"};
+  const auto result{dividend / divisor};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.same_quantum(expected));
+}
+
+TEST(dividing_rounds_half_even_at_the_lowest_exponent) {
+  const sourcemeta::core::Decimal dividend{"12345678901234567e-2147483648"};
+  const sourcemeta::core::Decimal divisor{2};
+  const sourcemeta::core::Decimal expected{"6172839450617284e-2147483648"};
+  const auto result{dividend / divisor};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.same_quantum(expected));
+}
+
+TEST(dividing_a_zero_at_the_lowest_exponent_keeps_its_quantum) {
+  const sourcemeta::core::Decimal dividend{"0e-2147483648"};
+  const sourcemeta::core::Decimal divisor{1};
+  const sourcemeta::core::Decimal expected{"0e-2147483648"};
+  const auto result{dividend / divisor};
+  EXPECT_TRUE(result.is_zero());
+  EXPECT_FALSE(result.is_signed());
+  EXPECT_TRUE(result.same_quantum(expected));
+}
+
+TEST(dividing_a_negative_zero_at_the_lowest_exponent_keeps_its_sign) {
+  const sourcemeta::core::Decimal dividend{"-0e-2147483648"};
+  const sourcemeta::core::Decimal divisor{1};
+  const sourcemeta::core::Decimal expected{"-0e-2147483648"};
+  const auto result{dividend / divisor};
+  EXPECT_TRUE(result.is_zero());
+  EXPECT_TRUE(result.is_signed());
+  EXPECT_TRUE(result.same_quantum(expected));
+}
+
+TEST(to_integral_of_a_long_negative_fraction_keeps_its_sign) {
+  const sourcemeta::core::Decimal value{
+      "-0.0000000000000000000000000000000000000001"};
+  const auto result{value.to_integral()};
+  EXPECT_TRUE(result.is_zero());
+  EXPECT_TRUE(result.is_signed());
+  EXPECT_EQ(result.to_string(), "-0");
+}
+
+TEST(a_zero_with_a_large_exponent_fits_every_integer_type) {
+  const sourcemeta::core::Decimal value{"0e40"};
+  EXPECT_TRUE(value.is_integral());
+  EXPECT_TRUE(value.is_int32());
+  EXPECT_TRUE(value.is_int64());
+  EXPECT_EQ(value.to_int32(), 0);
+  EXPECT_EQ(value.to_int64(), 0);
+}
+
+TEST(parsing_rejects_an_exponent_past_int64) {
+  try {
+    const sourcemeta::core::Decimal value{"1e10000000000000000000"};
+    FAIL();
+  } catch (const sourcemeta::core::DecimalParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid decimal string format");
+  }
+}
+
+TEST(parsing_rejects_repeated_exponent_signs) {
+  try {
+    const sourcemeta::core::Decimal value{"1e--0"};
+    FAIL();
+  } catch (const sourcemeta::core::DecimalParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid decimal string format");
+  }
+}
+
+TEST(divide_integer_of_a_scaled_zero_by_one_has_a_zero_exponent) {
+  const sourcemeta::core::Decimal dividend{"0.00E+9"};
+  const sourcemeta::core::Decimal divisor{1};
+  const auto result{dividend.divide_integer(divisor)};
+  EXPECT_TRUE(result.is_zero());
+  EXPECT_TRUE(result.same_quantum(sourcemeta::core::Decimal{0}));
+  EXPECT_EQ(result.to_string(), "0");
+}
