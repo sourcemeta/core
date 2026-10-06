@@ -1083,8 +1083,10 @@ auto expand(ExpansionState &state, ActiveContext &active_context,
     auto result{JSON::make_array()};
     std::size_t item_index{0};
     for (const auto &item : element.as_array()) {
+      // Each item stands where the array did, so a value taken from a
+      // container map stays one (JSON-LD 1.1 API Section 5.1.2 step 5.2.1)
       auto expanded{expand(state, active_context, active_property, item,
-                           pointer.concat(item_index))};
+                           pointer.concat(item_index), from_map)};
       if (expanded.is_array()) {
         for (auto &nested : expanded.as_array()) {
           result.push_back(nested);

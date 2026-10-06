@@ -1161,3 +1161,32 @@ TEST(type_map_string_value_uses_a_scoped_vocabulary_term) {
 
   EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
 }
+
+TEST(index_map_array_value_keeps_the_type_scoped_context) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "@version": 1.1,
+      "T": {
+        "@id": "https://example.com/T",
+        "@context": { "a": "https://example.com/type-a" }
+      },
+      "p": { "@id": "https://example.com/p", "@container": "@index" }
+    },
+    "@type": "T",
+    "p": { "i": [ { "a": "v" } ] }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@type": [ "https://example.com/T" ],
+      "https://example.com/p": [
+        {
+          "https://example.com/type-a": [ { "@value": "v" } ],
+          "@index": "i"
+        }
+      ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
