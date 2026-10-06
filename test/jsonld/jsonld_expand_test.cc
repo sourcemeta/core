@@ -609,13 +609,13 @@ TEST(base_in_remote_context_is_ignored) {
       expected);
 }
 
-TEST(language_map_direction_uses_property_scoped_context) {
+TEST(language_map_direction_uses_the_term_definition) {
   const auto input = sourcemeta::core::parse_json(R"({
     "@context": {
       "p": {
         "@id": "http://example.com/p",
         "@container": "@language",
-        "@context": { "@direction": "rtl" }
+        "@direction": "rtl"
       }
     },
     "p": { "en": "hello" }
@@ -932,6 +932,145 @@ TEST(context_inside_a_reverse_map_is_allowed) {
       "@reverse": {
         "http://example.com/p": [ { "@id": "http://example.com/object" } ]
       }
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(self_referential_scoped_context_is_valid) {
+  const sourcemeta::core::JSONLDResolver resolver =
+      [](const sourcemeta::core::JSON::StringView identifier)
+      -> std::optional<sourcemeta::core::JSON> {
+    if (identifier == "https://example.com/self-scoped") {
+      return sourcemeta::core::parse_json(R"({
+        "@context": {
+          "p": {
+            "@id": "http://example.com/p",
+            "@context": "https://example.com/self-scoped"
+          }
+        }
+      })");
+    }
+
+    return std::nullopt;
+  };
+
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": "https://example.com/self-scoped",
+    "p": { "http://example.com/q": "v" }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/p": [
+        { "http://example.com/q": [ { "@value": "v" } ] }
+      ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input, "", resolver), expected);
+}
+
+TEST(null_id_term_drops_the_property) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "a": { "@id": null } },
+    "a": "x",
+    "https://example.com/p": "v"
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    { "https://example.com/p": [ { "@value": "v" } ] }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(scoped_context_is_invisible_to_language_map_keys) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "p": {
+        "@id": "http://example.com/p",
+        "@container": "@language",
+        "@context": { "none": "@none", "@direction": "rtl" }
+      }
+    },
+    "p": { "en": "y" }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    { "http://example.com/p": [ { "@value": "y", "@language": "en" } ] }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(null_type_scoped_context_restores_the_outer_context) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "@vocab": "https://example.com/",
+      "T": { "@id": "https://example.com/T", "@context": null }
+    },
+    "@type": "T",
+    "q": "drop",
+    "https://example.com/child": { "p": "keep" }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@type": [ "https://example.com/T" ],
+      "https://example.com/child": [
+        { "https://example.com/p": [ { "@value": "keep" } ] }
+      ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(nonpropagating_scoped_context_with_a_local_override) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "p": {
+        "@id": "http://example.com/p",
+        "@context": { "a": "http://example.com/scoped-a", "@propagate": false }
+      }
+    },
+    "p": { "@context": { "a": "http://example.com/local-a" }, "a": "v" }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/p": [
+        { "http://example.com/local-a": [ { "@value": "v" } ] }
+      ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(nonpropagating_scoped_context_over_array_values) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "@vocab": "http://example.com/",
+      "p": {
+        "@id": "http://example.com/p",
+        "@context": { "q": "http://example.com/scoped-q", "@propagate": false }
+      }
+    },
+    "p": [ { "q": { "q": "deep" } } ]
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/p": [
+        {
+          "http://example.com/scoped-q": [
+            { "http://example.com/q": [ { "@value": "deep" } ] }
+          ]
+        }
+      ]
     }
   ])");
 

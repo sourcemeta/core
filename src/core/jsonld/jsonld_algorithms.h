@@ -88,6 +88,11 @@ struct ExpansionState {
 
   // Used to load remote contexts. The chain detects recursive inclusion.
   const JSONLDResolver *resolver{nullptr};
+  // Whether a reference already in the chain is an error. A scoped context is
+  // validated against the contexts that are loading it, where meeting one of
+  // them again is the recursion the validation must not follow (JSON-LD 1.1
+  // API Section 5.1 step 5.2.2)
+  bool validate_scoped_context{true};
   std::vector<JSON::String> remote_context_chain;
   std::optional<JSON::String> document_base;
   // When a scoped context is processed after the fact, remote references in it
