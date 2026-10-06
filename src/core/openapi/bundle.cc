@@ -1943,12 +1943,35 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
         auto candidate{std::move(resolved).to_owned()};
         // OpenAPI Specification 3.2.1, Section 4.1.2: "all documents in an
         // OAD MUST have either an OpenAPI Object or a Schema Object at the
-        // root, and MUST be parsed as complete documents". A Schema Object
-        // at the root is what a Schema Object reference may name, and that
-        // document is one a JSON Schema implementation reads rather than
-        // this. No revision of 3.1 carries that sentence, and what it carries
-        // instead is the choice Section 4.3.1 leaves open, so declining to
-        // read a document of some other shape is one rule for both revisions
+        // root, and MUST be parsed as complete documents". A Schema Object at
+        // the root is what a Schema Object reference may name, and that
+        // document is one a JSON Schema implementation reads rather than this.
+        //
+        // Only 3.2 carries that sentence. No release of 3.1 or of 3.0 does,
+        // and 3.0 reads the other way: its Reference Object offers
+        // `definitions.json#/Pet` as a worked example, and its Structural
+        // Interoperability section admits a reference target "with the Object
+        // type matching the reference source's context". So holding an earlier
+        // revision to it narrows what that revision allows, and is a choice
+        // this makes rather than a rule it follows.
+        //
+        // What makes the choice is that nothing else tells a document of a
+        // description from any other JSON document. Section 4.1 marks
+        // `openapi` "REQUIRED", and it is the only member a document carries
+        // that says what the document is: every Object this specification
+        // defines is an ordinary JSON object, and most of them are open to a
+        // member nobody expected, so there is no shape to recognise either. A
+        // reader handed a document without that field has nothing to decide
+        // by, and reading one as whichever kind a reference happened to expect
+        // is what Appendix G leaves undefined: "If the same JSON/YAML object
+        // is parsed multiple times and the respective contexts require it to
+        // be parsed as different Object types, the resulting behavior is
+        // implementation defined, and MAY be treated as an error if detected".
+        //
+        // So the rule the latest revision writes down is the one every
+        // revision is held to here. It costs a description that splits itself
+        // into bare Objects, which the earlier revisions permit, and it buys
+        // whatever reads what this produces a document that says what it is
         if (!openapi_has_version_field(candidate)) {
           if (names_a_schema) {
             unavailable.insert(identifier);
