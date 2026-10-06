@@ -147,10 +147,13 @@ auto expand_value(ExpansionState &state, ActiveContext &active_context,
                   const std::optional<JSON::String> &active_property,
                   const JSON &value) -> JSON;
 
-// Expansion (JSON-LD 1.1 API Section 5.1.2)
+// Expansion (JSON-LD 1.1 API Section 5.1.2). A value taken from a container
+// map does not begin a new scope, so the context a scope would be left for
+// stays in force across it
 auto expand(ExpansionState &state, ActiveContext &active_context,
             const std::optional<JSON::String> &active_property,
-            const JSON &element, const WeakPointer &pointer) -> JSON;
+            const JSON &element, const WeakPointer &pointer,
+            const bool from_map = false) -> JSON;
 
 // Inverse Context Creation (JSON-LD 1.1 API Section 4.3.1). The inverse context
 // is represented as a JSON map of IRI to container to type/language to term.

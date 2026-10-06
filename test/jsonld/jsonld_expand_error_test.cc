@@ -1234,3 +1234,24 @@ TEST(reverse_map_error_uses_the_local_context_of_the_map) {
   EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
                              "Invalid reverse property value", "/@reverse/a");
 }
+
+TEST(reverse_map_error_under_a_protected_type_scope) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "@version": 1.1,
+      "T": {
+        "@id": "https://example.com/T",
+        "@context": { "@protected": true, "a": "https://example.com/a" }
+      }
+    },
+    "@type": "T",
+    "@reverse": {
+      "@context": null,
+      "https://example.com/p": { "@value": "v" }
+    }
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Invalid reverse property value",
+                             "/@reverse/https:~1~1example.com~1p");
+}

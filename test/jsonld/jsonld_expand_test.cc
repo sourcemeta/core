@@ -1076,3 +1076,88 @@ TEST(nonpropagating_scoped_context_over_array_values) {
 
   EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
 }
+
+TEST(type_map_string_value_uses_the_property_scoped_context) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "@version": 1.1,
+      "@vocab": "http://example.org/ns/",
+      "@base": "http://example.org/base/",
+      "foo": {
+        "@container": "@type",
+        "@context": { "@base": "http://scoped.example/" }
+      }
+    },
+    "foo": { "bar": "baz" }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.org/ns/foo": [
+        {
+          "@id": "http://scoped.example/baz",
+          "@type": [ "http://example.org/ns/bar" ]
+        }
+      ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(index_map_value_keeps_the_type_scoped_context) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "@version": 1.1,
+      "T": {
+        "@id": "https://example.com/T",
+        "@context": { "a": "https://example.com/type-a" }
+      },
+      "p": { "@id": "https://example.com/p", "@container": "@index" }
+    },
+    "@type": "T",
+    "p": { "i": { "a": "v" } }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@type": [ "https://example.com/T" ],
+      "https://example.com/p": [
+        {
+          "https://example.com/type-a": [ { "@value": "v" } ],
+          "@index": "i"
+        }
+      ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(type_map_string_value_uses_a_scoped_vocabulary_term) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "@version": 1.1,
+      "@vocab": "https://example.com/",
+      "p": {
+        "@container": "@type",
+        "@type": "@vocab",
+        "@context": { "x": "https://example.com/scoped" }
+      }
+    },
+    "p": { "https://example.com/T": "x" }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "https://example.com/p": [
+        {
+          "@id": "https://example.com/scoped",
+          "@type": [ "https://example.com/T" ]
+        }
+      ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}

@@ -573,14 +573,6 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
       }
       auto reversed{expand(state, active_context, JSON::String{KEYWORD_REVERSE},
                            entry.second, entry_pointer)};
-      // The map carries its own context into how its keys expand, so what it
-      // says wrong is located against that same context
-      ActiveContext reverse_context{active_context};
-      if (entry.second.defines(KEYWORD_CONTEXT, KEYWORD_CONTEXT_HASH)) {
-        process_context(state, reverse_context,
-                        entry.second.at(KEYWORD_CONTEXT, KEYWORD_CONTEXT_HASH),
-                        entry_pointer.concat(keyword_context()));
-      }
       if (reversed.is_object()) {
         const auto *existing_reverse{
             result.try_at(KEYWORD_REVERSE, KEYWORD_REVERSE_HASH)};
@@ -599,6 +591,24 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
               if (item.is_object() &&
                   (item.defines(KEYWORD_VALUE, KEYWORD_VALUE_HASH) ||
                    item.defines(KEYWORD_LIST, KEYWORD_LIST_HASH))) {
+                // The map carries its own context into how its keys expand, so
+                // what it says wrong is located against that same context,
+                // which is only worth putting together to report it. Reading
+                // it again outside the expansion that already took it may not
+                // go through, and a location is not worth an error of its own
+                ActiveContext reverse_context{active_context};
+                if (entry.second.defines(KEYWORD_CONTEXT,
+                                         KEYWORD_CONTEXT_HASH)) {
+                  try {
+                    process_context(
+                        state, reverse_context,
+                        entry.second.at(KEYWORD_CONTEXT, KEYWORD_CONTEXT_HASH),
+                        entry_pointer.concat(keyword_context()));
+                  } catch (const JSONLDError &) {
+                    reverse_context = active_context;
+                  }
+                }
+
                 throw JSONLDError("Invalid reverse property value",
                                   offending_pointer(state, reverse_context,
                                                     entry.second, entry_pointer,
@@ -663,7 +673,7 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
                             expanded_key.value() == KEYWORD_NONE};
         auto graph_items{
             into_array(expand(state, active_context, property, *graph_value,
-                              entry_pointer.concat(index)))};
+                              entry_pointer.concat(index), true))};
         for (auto &item : graph_items.as_array()) {
           // Nothing is carried over for a null, as in an array (JSON-LD 1.1
           // API Section 5.1.2 step 5.2.3)
@@ -762,7 +772,7 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
         const JSON::String &index{*index_key};
         auto index_items{
             into_array(expand(state, active_context, property, *index_value,
-                              entry_pointer.concat(index)))};
+                              entry_pointer.concat(index), true))};
         for (auto &item : index_items.as_array()) {
           // An entry of a map expands the way it would as a member of an
           // array, where nothing is carried over for a null (JSON-LD 1.1 API
@@ -837,7 +847,20 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
             entry_context.previous = nullptr;
           }
         }
-        // String values in a type map are node references.
+        // String values in a type map are node references. The recursion the
+        // other values take would expand them under the property's own
+        // context, so the shortcut carries it too (JSON-LD 1.1 API Section
+        // 5.1.2 steps 13.8.3.6 and 4.2)
+        ActiveContext reference_scope;
+        ActiveContext *reference_context{&entry_context};
+        if (!by_id && definition->context.has_value()) {
+          reference_scope = entry_context;
+          reference_scope.previous = nullptr;
+          apply_scoped_context(state, reference_scope, *definition,
+                               entry_pointer);
+          reference_context = &reference_scope;
+        }
+
         auto entries{JSON::make_array()};
         const bool value_array{map_value->is_array()};
         auto raw_values{into_array(JSON{*map_value})};
@@ -856,16 +879,16 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
                                        definition->type_mapping.value() ==
                                            KEYWORD_VOCAB};
             const auto &raw_string{raw.to_string()};
-            const auto referenced{expand_iri(state, active_context, raw_string,
-                                             true, reference_vocab, nullptr,
-                                             nullptr, EMPTY_WEAK_POINTER)};
+            const auto referenced{expand_iri(
+                state, *reference_context, raw_string, true, reference_vocab,
+                nullptr, nullptr, EMPTY_WEAK_POINTER)};
             reference.assign_assume_new(JSON::String{KEYWORD_ID},
                                         JSON{referenced.value_or(raw_string)},
                                         KEYWORD_ID_HASH);
             entries.push_back(std::move(reference));
           } else {
-            auto expanded_items{into_array(
-                expand(state, entry_context, property, raw, raw_pointer))};
+            auto expanded_items{into_array(expand(
+                state, entry_context, property, raw, raw_pointer, true))};
             for (auto &expanded : expanded_items.as_array()) {
               // Nothing is carried over for a null, as in an array
               // (JSON-LD 1.1 API Section 5.1.2 step 5.2.3)
@@ -1009,7 +1032,8 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
 // Expansion (JSON-LD 1.1 API Section 5.1.2)
 auto expand(ExpansionState &state, ActiveContext &active_context,
             const std::optional<JSON::String> &active_property,
-            const JSON &element, const WeakPointer &pointer) -> JSON {
+            const JSON &element, const WeakPointer &pointer,
+            const bool from_map) -> JSON {
   const NestingDepthScope scope{state.depth};
   if (state.depth > ExpansionState::MAXIMUM_DEPTH) {
     throw JSONLDError("Maximum nesting depth exceeded", pointer);
@@ -1090,10 +1114,12 @@ auto expand(ExpansionState &state, ActiveContext &active_context,
   }
 
   // Revert a non-propagating (type-scoped) context when descending into a node
-  // object that is neither a value object nor an @id-only reference.
+  // object that is neither a value object nor an @id-only reference. A value
+  // the enclosing entry took from a container map is not such a descent
+  // (JSON-LD 1.1 API Section 5.1.2 step 7).
   ActiveContext reverted;
   ActiveContext *current{&active_context};
-  if (active_context.previous) {
+  if (active_context.previous && !from_map) {
     bool value_or_id{false};
     const bool single{element.object_size() == 1};
     for (const auto &entry : element.as_object()) {
