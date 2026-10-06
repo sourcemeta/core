@@ -1,6 +1,7 @@
 #include "jsonld_algorithms.h"
 #include "jsonld_keywords.h"
 
+#include <sourcemeta/core/numeric.h>
 #include <sourcemeta/core/uri.h>
 
 #include <memory>   // std::make_shared
@@ -35,6 +36,49 @@ auto absolute_reference(const std::optional<JSON::String> &base,
   } catch (const URIParseError &) {
     return std::nullopt;
   }
+}
+
+// The base IRI a value sets, resolved against the current one when there is
+// one. A string the parser rejects, and a relative reference with no base to
+// resolve it against, both name no base (JSON-LD 1.1 API Section 5.1 steps
+// 5.7.3 to 5.7.5)
+auto resolved_base(const std::optional<JSON::String> &base,
+                   const JSON::String &value) -> std::optional<JSON::String> {
+  try {
+    if (base.has_value()) {
+      return URI::from_iri(value)
+          .resolve_from(URI::from_iri(base.value()))
+          .recompose();
+    }
+
+    if (URI::from_iri(value).is_absolute()) {
+      return value;
+    }
+  } catch (const URIParseError &) {
+    return std::nullopt;
+  }
+
+  return std::nullopt;
+}
+
+// The version number, which the JSON library holds as a real or as an exact
+// decimal depending on how the input spells it, and which both representations
+// may name (JSON-LD 1.1 API Section 5.1 step 5.5.1). Trailing zeros come off
+// first, so that every spelling of the value lands on the same exponent, and
+// an exponent that does not match then settles the comparison without the
+// digits of either side having to be aligned
+auto is_version_1_1(const JSON &version) -> bool {
+  static const Decimal VERSION_1_1{"1.1"};
+  if (version.is_real()) {
+    return version.to_real() == 1.1;
+  }
+
+  if (!version.is_decimal()) {
+    return false;
+  }
+
+  const auto reduced{version.to_decimal().reduce()};
+  return reduced.same_quantum(VERSION_1_1) && reduced == VERSION_1_1;
 }
 
 // A context merged with an imported one (JSON-LD 1.1 API Section 5.1 step
@@ -128,6 +172,10 @@ auto process_context(ExpansionState &state, ActiveContext &active_context,
           throw JSONLDError("Context overflow", location);
         }
       }
+      if (state.remote_context_chain.size() >=
+          ExpansionState::MAXIMUM_REMOTE_CONTEXTS) {
+        throw JSONLDError("Context overflow", location);
+      }
       if (state.resolver == nullptr || !*state.resolver) {
         throw JSONLDError("Loading remote context failed", location);
       }
@@ -166,8 +214,7 @@ auto process_context(ExpansionState &state, ActiveContext &active_context,
 
     if (const auto *version{
             context.try_at(KEYWORD_VERSION, KEYWORD_VERSION_HASH)};
-        version != nullptr &&
-        (!version->is_real() || version->to_real() != 1.1)) {
+        version != nullptr && !is_version_1_1(*version)) {
       throw JSONLDError("Invalid @version value", location, {KEYWORD_VERSION});
     }
     if (state.processing_1_0 &&
@@ -265,17 +312,12 @@ auto process_context(ExpansionState &state, ActiveContext &active_context,
       } else if (!base.is_string()) {
         throw JSONLDError("Invalid base IRI", location, {KEYWORD_BASE});
       } else {
-        const auto &base_string{base.to_string()};
-        if (active_context.base.has_value()) {
-          active_context.base =
-              URI::from_iri(base_string)
-                  .resolve_from(URI::from_iri(active_context.base.value()))
-                  .recompose();
-        } else if (URI::from_iri(base_string).is_absolute()) {
-          active_context.base = base_string;
-        } else {
+        auto resolved{resolved_base(active_context.base, base.to_string())};
+        if (!resolved.has_value()) {
           throw JSONLDError("Invalid base IRI", location, {KEYWORD_BASE});
         }
+
+        active_context.base = std::move(resolved);
       }
     }
 

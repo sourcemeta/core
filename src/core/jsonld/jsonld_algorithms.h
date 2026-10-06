@@ -80,6 +80,12 @@ struct ExpansionState {
   static constexpr std::size_t MAXIMUM_DEPTH{100};
   std::size_t depth{0};
 
+  // Bounds the remote context chain, which the resolver grows by one for every
+  // reference it answers with, and is therefore attacker-controlled the same
+  // way the nesting depth is. A processor is free to set this limit (JSON-LD
+  // 1.1 API Section 5.1 step 5.2.3)
+  static constexpr std::size_t MAXIMUM_REMOTE_CONTEXTS{32};
+
   // Used to load remote contexts. The chain detects recursive inclusion.
   const JSONLDResolver *resolver{nullptr};
   std::vector<JSON::String> remote_context_chain;
