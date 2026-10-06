@@ -5,3 +5,9 @@ target_link_libraries(sourcemeta_core_http_ci_unit
   PRIVATE sourcemeta::core::http)
 target_link_libraries(sourcemeta_core_http_ci_unit
   PRIVATE sourcemeta::core::json)
+
+# The timeout test stands up a loopback listener, which needs the Windows
+# sockets library on both toolchains, unlike the client itself
+if(WIN32)
+  target_link_libraries(sourcemeta_core_http_ci_unit PRIVATE ws2_32)
+endif()

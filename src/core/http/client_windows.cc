@@ -51,10 +51,12 @@ auto to_winhttp_timeout(const std::chrono::milliseconds value) -> int {
 // WinHTTP reports an expired resolution, connection, send, or receive bound
 // from WinHttpSetTimeouts with the same error, so which of the configured
 // bounds elapsed cannot be recovered here
-[[noreturn]] auto throw_transfer_failure(
-    const sourcemeta::core::HTTPMethod method, const std::string &url,
-    const std::chrono::milliseconds timeout, const char *message) -> void {
-  if (GetLastError() == ERROR_WINHTTP_TIMEOUT) {
+[[noreturn]] auto
+throw_transfer_failure(const sourcemeta::core::HTTPMethod method,
+                       const std::string &url,
+                       const std::chrono::milliseconds timeout,
+                       const DWORD error, const char *message) -> void {
+  if (error == ERROR_WINHTTP_TIMEOUT) {
     throw sourcemeta::core::HTTPTimeoutError{method, url, timeout};
   }
 
@@ -237,14 +239,18 @@ auto HTTPSystemRequest::send() const -> HTTPResponse {
                               : request_headers.c_str(),
       request_headers.empty() ? 0 : static_cast<DWORD>(request_headers.size()),
       body_data, body_size, body_size, 0)};
+  // The last error is captured before wiping the serialised headers, so the
+  // classification never reads a code some later call has replaced
+  const auto send_error{sent ? ERROR_SUCCESS : GetLastError()};
   secure_zero(request_headers.data(), request_headers.size() * sizeof(wchar_t));
   if (!sent) {
     throw_transfer_failure(this->method_, this->url_, this->timeout_,
-                           "Failed to send the HTTP request");
+                           send_error, "Failed to send the HTTP request");
   }
 
   if (!WinHttpReceiveResponse(request_handle.get(), nullptr)) {
     throw_transfer_failure(this->method_, this->url_, this->timeout_,
+                           GetLastError(),
                            "Failed to receive the HTTP response");
   }
 
@@ -266,6 +272,7 @@ auto HTTPSystemRequest::send() const -> HTTPResponse {
     DWORD available{0};
     if (!WinHttpQueryDataAvailable(request_handle.get(), &available)) {
       throw_transfer_failure(this->method_, this->url_, this->timeout_,
+                             GetLastError(),
                              "Failed to read the HTTP response body");
     }
 
@@ -287,6 +294,7 @@ auto HTTPSystemRequest::send() const -> HTTPResponse {
     if (!WinHttpReadData(request_handle.get(), response.body.data() + offset,
                          available, &read)) {
       throw_transfer_failure(this->method_, this->url_, this->timeout_,
+                             GetLastError(),
                              "Failed to read the HTTP response body");
     }
 
