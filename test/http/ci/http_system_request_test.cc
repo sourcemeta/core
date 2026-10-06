@@ -114,9 +114,10 @@ TEST(timeout_against_unreachable_host_throws) {
   try {
     [[maybe_unused]] const auto response{request.send()};
     FAIL();
-  } catch (const sourcemeta::core::HTTPError &error) {
+  } catch (const sourcemeta::core::HTTPTimeoutError &error) {
     EXPECT_EQ(error.method(), sourcemeta::core::HTTPMethod::GET);
     EXPECT_EQ(error.url(), "https://192.0.2.1/");
+    EXPECT_EQ(error.timeout(), std::chrono::milliseconds{1000});
   }
 }
 
@@ -125,6 +126,8 @@ TEST(unresolvable_host_throws) {
       "https://this-host-does-not-exist.sourcemeta.invalid/"};
   try {
     [[maybe_unused]] const auto response{request.send()};
+    FAIL();
+  } catch (const sourcemeta::core::HTTPTimeoutError &) {
     FAIL();
   } catch (const sourcemeta::core::HTTPError &error) {
     EXPECT_EQ(error.method(), sourcemeta::core::HTTPMethod::GET);

@@ -48,6 +48,19 @@ auto to_winhttp_timeout(const std::chrono::milliseconds value) -> int {
   return static_cast<int>(value.count());
 }
 
+// WinHTTP reports an expired resolution, connection, send, or receive bound
+// from WinHttpSetTimeouts with the same error, so which of the configured
+// bounds elapsed cannot be recovered here
+[[noreturn]] auto throw_transfer_failure(
+    const sourcemeta::core::HTTPMethod method, const std::string &url,
+    const std::chrono::milliseconds timeout, const char *message) -> void {
+  if (GetLastError() == ERROR_WINHTTP_TIMEOUT) {
+    throw sourcemeta::core::HTTPTimeoutError{method, url, timeout};
+  }
+
+  throw sourcemeta::core::HTTPError{method, url, message};
+}
+
 class WinHTTPHandle {
 public:
   WinHTTPHandle(const HINTERNET handle) : handle_{handle} {}
@@ -226,13 +239,13 @@ auto HTTPSystemRequest::send() const -> HTTPResponse {
       body_data, body_size, body_size, 0)};
   secure_zero(request_headers.data(), request_headers.size() * sizeof(wchar_t));
   if (!sent) {
-    throw HTTPError{this->method_, this->url_,
-                    "Failed to send the HTTP request"};
+    throw_transfer_failure(this->method_, this->url_, this->timeout_,
+                           "Failed to send the HTTP request");
   }
 
   if (!WinHttpReceiveResponse(request_handle.get(), nullptr)) {
-    throw HTTPError{this->method_, this->url_,
-                    "Failed to receive the HTTP response"};
+    throw_transfer_failure(this->method_, this->url_, this->timeout_,
+                           "Failed to receive the HTTP response");
   }
 
   DWORD status_code{0};
@@ -252,8 +265,8 @@ auto HTTPSystemRequest::send() const -> HTTPResponse {
   while (true) {
     DWORD available{0};
     if (!WinHttpQueryDataAvailable(request_handle.get(), &available)) {
-      throw HTTPError{this->method_, this->url_,
-                      "Failed to read the HTTP response body"};
+      throw_transfer_failure(this->method_, this->url_, this->timeout_,
+                             "Failed to read the HTTP response body");
     }
 
     if (available == 0) {
@@ -273,8 +286,8 @@ auto HTTPSystemRequest::send() const -> HTTPResponse {
     DWORD read{0};
     if (!WinHttpReadData(request_handle.get(), response.body.data() + offset,
                          available, &read)) {
-      throw HTTPError{this->method_, this->url_,
-                      "Failed to read the HTTP response body"};
+      throw_transfer_failure(this->method_, this->url_, this->timeout_,
+                             "Failed to read the HTTP response body");
     }
 
     response.body.resize(offset + read);

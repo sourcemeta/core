@@ -3,6 +3,7 @@
 #include <sourcemeta/core/http_status.h>
 #include <sourcemeta/core/test.h>
 
+#include <chrono>   // std::chrono::milliseconds, std::chrono::seconds
 #include <optional> // std::optional
 #include <string>   // std::string
 
@@ -25,6 +26,46 @@ TEST(url) {
                                           "https://example.com/schema.json",
                                           "Connection refused"};
   EXPECT_EQ(error.url(), "https://example.com/schema.json");
+}
+
+TEST(timeout_error_message) {
+  const sourcemeta::core::HTTPTimeoutError error{
+      sourcemeta::core::HTTPMethod::GET, "https://example.com",
+      std::chrono::seconds{30}};
+  EXPECT_STREQ(error.what(), "The HTTP request timed out");
+}
+
+TEST(timeout_error_method) {
+  const sourcemeta::core::HTTPTimeoutError error{
+      sourcemeta::core::HTTPMethod::POST, "https://example.com",
+      std::chrono::seconds{30}};
+  EXPECT_EQ(error.method(), sourcemeta::core::HTTPMethod::POST);
+}
+
+TEST(timeout_error_url) {
+  const sourcemeta::core::HTTPTimeoutError error{
+      sourcemeta::core::HTTPMethod::GET, "https://example.com/schema.json",
+      std::chrono::seconds{30}};
+  EXPECT_EQ(error.url(), "https://example.com/schema.json");
+}
+
+TEST(timeout_error_timeout) {
+  const sourcemeta::core::HTTPTimeoutError error{
+      sourcemeta::core::HTTPMethod::GET, "https://example.com",
+      std::chrono::milliseconds{1500}};
+  EXPECT_EQ(error.timeout(), std::chrono::milliseconds{1500});
+}
+
+TEST(timeout_error_caught_as_base) {
+  try {
+    throw sourcemeta::core::HTTPTimeoutError{sourcemeta::core::HTTPMethod::GET,
+                                             "https://example.com",
+                                             std::chrono::seconds{30}};
+  } catch (const sourcemeta::core::HTTPError &error) {
+    EXPECT_EQ(error.method(), sourcemeta::core::HTTPMethod::GET);
+    EXPECT_EQ(error.url(), "https://example.com");
+    EXPECT_STREQ(error.what(), "The HTTP request timed out");
+  }
 }
 
 TEST(status_error_message) {
