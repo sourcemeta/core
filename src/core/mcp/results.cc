@@ -1120,20 +1120,32 @@ void mcp_write_result(std::ostream &stream, const MCPProtocolVersion version,
   // Own the envelope and its new fields, and borrow the page's existing values.
   auto payload{JSON::make_object()};
   for (const auto &entry : result.as_object()) {
-    payload.assign_assume_new(entry.first, JSON{nullptr});
+    payload.assign_assume_new(JSON::String{entry.first}, JSON{nullptr},
+                              entry.hash);
   }
   for (const auto &entry : decorations.as_object()) {
-    payload.assign(entry.first, entry.second);
+    if (auto *value{payload.try_at(entry.first, entry.hash)}; value) {
+      *value = entry.second;
+    } else {
+      payload.assign_assume_new(JSON::String{entry.first}, JSON{entry.second},
+                                entry.hash);
+    }
   }
   const auto *source_meta{result.try_at("_meta", MCP_HASH_META)};
   const auto *new_meta{decorations.try_at("_meta", MCP_HASH_META)};
   if (source_meta != nullptr && new_meta != nullptr) {
     auto merged{JSON::make_object()};
     for (const auto &entry : source_meta->as_object()) {
-      merged.assign_assume_new(entry.first, JSON{nullptr});
+      merged.assign_assume_new(JSON::String{entry.first}, JSON{nullptr},
+                               entry.hash);
     }
     for (const auto &entry : new_meta->as_object()) {
-      merged.assign(entry.first, entry.second);
+      if (auto *value{merged.try_at(entry.first, entry.hash)}; value) {
+        *value = entry.second;
+      } else {
+        merged.assign_assume_new(JSON::String{entry.first}, JSON{entry.second},
+                                 entry.hash);
+      }
     }
     payload.at("_meta", MCP_HASH_META) = std::move(merged);
   }
@@ -1147,15 +1159,16 @@ void mcp_write_result(std::ostream &stream, const MCPProtocolVersion version,
                         ? source_meta->size()
                         : 0));
   for (const auto &entry : result.as_object()) {
-    if (!decorations.defines(entry.first)) {
-      borrowed.emplace_back(&output.at(entry.first), &entry.second);
+    if (!decorations.defines(entry.first, entry.hash)) {
+      borrowed.emplace_back(&output.at(entry.first, entry.hash), &entry.second);
     }
   }
   if (source_meta != nullptr && new_meta != nullptr) {
     const auto &output_meta{output.at("_meta", MCP_HASH_META)};
     for (const auto &entry : source_meta->as_object()) {
-      if (!new_meta->defines(entry.first)) {
-        borrowed.emplace_back(&output_meta.at(entry.first), &entry.second);
+      if (!new_meta->defines(entry.first, entry.hash)) {
+        borrowed.emplace_back(&output_meta.at(entry.first, entry.hash),
+                              &entry.second);
       }
     }
   }
