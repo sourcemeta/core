@@ -7,7 +7,22 @@
     },
     "paths": {
       "/pets": {
-        "$ref": "shared.json#/paths/~1pets"
+        "get": {
+          "responses": {
+            "200": {
+              "description": "ok",
+              "content": {
+                "application/json": {
+                  "examples": {
+                    "One": {
+                      "$ref": "shared.json#/paths/~1pets/get/responses/200/content/application~1json/examples/my%20example"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     }
   },
@@ -24,7 +39,16 @@
           "get": {
             "responses": {
               "200": {
-                "description": "OK"
+                "description": "Some pets",
+                "content": {
+                  "application/json": {
+                    "examples": {
+                      "my example": {
+                        "value": 1
+                      }
+                    }
+                  }
+                }
               }
             }
           }
@@ -44,17 +68,33 @@
         "get": {
           "responses": {
             "200": {
-              "description": "OK"
+              "description": "ok",
+              "content": {
+                "application/json": {
+                  "examples": {
+                    "One": {
+                      "$ref": "#/components/examples/myexample"
+                    }
+                  }
+                }
+              }
             }
           }
+        }
+      }
+    },
+    "components": {
+      "examples": {
+        "myexample": {
+          "value": 1
         }
       }
     }
   },
   "inserted": [
     {
-      "from": "https://example.com/shared.json#/paths/~1pets",
-      "at": "/paths/~1pets"
+      "from": "https://example.com/shared.json#/paths/~1pets/get/responses/200/content/application~1json/examples/my%20example",
+      "at": "/components/examples/myexample"
     }
   ],
   "reads": {

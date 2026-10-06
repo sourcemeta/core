@@ -1,0 +1,97 @@
+{
+  "document": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "securitySchemes": {
+        "OAuth": {
+          "$ref": "shared.json#/components/securitySchemes/OAuth"
+        }
+      }
+    },
+    "security": [
+      {
+        "OAuth": [
+          "read"
+        ]
+      }
+    ]
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/shared.json": {
+      "openapi": "3.0.4",
+      "info": {
+        "title": "Shared",
+        "version": "1.0.0"
+      },
+      "paths": {},
+      "components": {
+        "securitySchemes": {
+          "OAuth": {
+            "type": "oauth2",
+            "flows": {
+              "implicit": {
+                "authorizationUrl": "https://example.com/authorize",
+                "scopes": {
+                  "read": "Read access"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "securitySchemes": {
+        "OAuth": {
+          "$ref": "#/components/securitySchemes/OAuth_"
+        },
+        "OAuth_": {
+          "type": "oauth2",
+          "flows": {
+            "implicit": {
+              "authorizationUrl": "https://example.com/authorize",
+              "scopes": {
+                "read": "Read access"
+              }
+            }
+          }
+        }
+      }
+    },
+    "security": [
+      {
+        "OAuth": [
+          "read"
+        ]
+      }
+    ]
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/shared.json#/components/securitySchemes/OAuth",
+      "at": "/components/securitySchemes/OAuth_"
+    }
+  ],
+  "reads": {
+    "https://example.com/shared.json": 1
+  },
+  "schemaReads": {},
+  "standalone": true,
+  "relocatable": true,
+  "operations": []
+}

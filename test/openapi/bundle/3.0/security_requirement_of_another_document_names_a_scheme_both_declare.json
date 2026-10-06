@@ -8,14 +8,14 @@
     "paths": {
       "/pets": {
         "$ref": "shared.json#/paths/~1pets"
-      },
-      "/animals": {
-        "get": {
-          "responses": {
-            "200": {
-              "description": "ok"
-            }
-          }
+      }
+    },
+    "components": {
+      "securitySchemes": {
+        "MySecurity": {
+          "type": "http",
+          "scheme": "bearer",
+          "bearerFormat": "JWT"
         }
       }
     }
@@ -30,7 +30,26 @@
       },
       "paths": {
         "/pets": {
-          "$ref": "openapi.json#/paths/~1animals"
+          "get": {
+            "security": [
+              {
+                "MySecurity": []
+              }
+            ],
+            "responses": {
+              "200": {
+                "description": "ok"
+              }
+            }
+          }
+        }
+      },
+      "components": {
+        "securitySchemes": {
+          "MySecurity": {
+            "type": "http",
+            "scheme": "basic"
+          }
         }
       }
     }
@@ -44,15 +63,26 @@
     },
     "paths": {
       "/pets": {
-        "$ref": "#/paths/~1animals"
-      },
-      "/animals": {
         "get": {
+          "security": [
+            {
+              "MySecurity": []
+            }
+          ],
           "responses": {
             "200": {
               "description": "ok"
             }
           }
+        }
+      }
+    },
+    "components": {
+      "securitySchemes": {
+        "MySecurity": {
+          "type": "http",
+          "scheme": "bearer",
+          "bearerFormat": "JWT"
         }
       }
     }
@@ -74,22 +104,13 @@
       "type": "path",
       "path": "/pets",
       "method": "get",
-      "origin": "https://example.com/openapi.json#/paths/~1animals/get",
+      "origin": "https://example.com/openapi.json#/paths/~1pets/get",
       "endpoint": "https://example.com/openapi.json#/paths/~1pets",
       "tags": [],
       "servers": [],
-      "security": [],
-      "parameters": []
-    },
-    {
-      "type": "path",
-      "path": "/animals",
-      "method": "get",
-      "origin": "https://example.com/openapi.json#/paths/~1animals/get",
-      "endpoint": "https://example.com/openapi.json#/paths/~1animals",
-      "tags": [],
-      "servers": [],
-      "security": [],
+      "security": [
+        "https://example.com/openapi.json#/paths/~1pets/get/security/0"
+      ],
       "parameters": []
     }
   ]

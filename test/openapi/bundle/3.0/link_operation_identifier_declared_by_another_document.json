@@ -1,16 +1,25 @@
 {
   "document": {
     "openapi": "3.0.4",
-    "info": { "title": "Example", "version": "1.0.0" },
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
     "paths": {
       "/pets": {
         "get": {
           "responses": {
             "200": {
               "description": "Some pets",
-              "links": { "Owner": { "operationId": "getOwner" } }
+              "links": {
+                "Owner": {
+                  "operationId": "getOwner"
+                }
+              }
             },
-            "404": { "$ref": "shared.json#/components/responses/NotFound" }
+            "404": {
+              "$ref": "shared.json#/components/responses/NotFound"
+            }
           }
         }
       }
@@ -20,24 +29,35 @@
   "openapiResolver": {
     "https://example.com/shared.json": {
       "openapi": "3.0.4",
-      "info": { "title": "Shared", "version": "1.0.0" },
+      "info": {
+        "title": "Shared",
+        "version": "1.0.0"
+      },
       "paths": {
         "/owners": {
           "get": {
             "operationId": "getOwner",
-            "responses": { "200": { "description": "Owners" } }
+            "responses": {
+              "200": {
+                "description": "Owners"
+              }
+            }
           }
         }
       },
       "components": {
-        "responses": { "NotFound": { "description": "Not found" } }
+        "responses": {
+          "NotFound": {
+            "description": "Not found"
+          }
+        }
       }
     }
   },
   "schemaResolver": {},
   "error": {
     "type": "OpenAPIError",
-    "message": "The Link Object operation identifier must name an operation the OpenAPI Description declares",
+    "message": "This revision has nowhere to hold the Path Item Object that holds the operation this identifier names",
     "location": "/paths/~1pets/get/responses/200/links/Owner/operationId"
   }
 }

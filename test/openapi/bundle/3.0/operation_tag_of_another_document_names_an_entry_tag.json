@@ -8,17 +8,14 @@
     "paths": {
       "/pets": {
         "$ref": "shared.json#/paths/~1pets"
-      },
-      "/animals": {
-        "get": {
-          "responses": {
-            "200": {
-              "description": "ok"
-            }
-          }
-        }
       }
-    }
+    },
+    "tags": [
+      {
+        "name": "pets",
+        "description": "Everything about pets"
+      }
+    ]
   },
   "defaultBase": "https://example.com/openapi.json",
   "openapiResolver": {
@@ -30,7 +27,16 @@
       },
       "paths": {
         "/pets": {
-          "$ref": "openapi.json#/paths/~1animals"
+          "get": {
+            "tags": [
+              "pets"
+            ],
+            "responses": {
+              "200": {
+                "description": "ok"
+              }
+            }
+          }
         }
       }
     }
@@ -44,10 +50,10 @@
     },
     "paths": {
       "/pets": {
-        "$ref": "#/paths/~1animals"
-      },
-      "/animals": {
         "get": {
+          "tags": [
+            "pets"
+          ],
           "responses": {
             "200": {
               "description": "ok"
@@ -55,7 +61,13 @@
           }
         }
       }
-    }
+    },
+    "tags": [
+      {
+        "name": "pets",
+        "description": "Everything about pets"
+      }
+    ]
   },
   "inserted": [
     {
@@ -74,20 +86,11 @@
       "type": "path",
       "path": "/pets",
       "method": "get",
-      "origin": "https://example.com/openapi.json#/paths/~1animals/get",
+      "origin": "https://example.com/openapi.json#/paths/~1pets/get",
       "endpoint": "https://example.com/openapi.json#/paths/~1pets",
-      "tags": [],
-      "servers": [],
-      "security": [],
-      "parameters": []
-    },
-    {
-      "type": "path",
-      "path": "/animals",
-      "method": "get",
-      "origin": "https://example.com/openapi.json#/paths/~1animals/get",
-      "endpoint": "https://example.com/openapi.json#/paths/~1animals",
-      "tags": [],
+      "tags": [
+        "https://example.com/openapi.json#/tags/0"
+      ],
       "servers": [],
       "security": [],
       "parameters": []

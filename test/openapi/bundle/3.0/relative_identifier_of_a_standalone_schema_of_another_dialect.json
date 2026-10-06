@@ -33,11 +33,11 @@
     "components": {
       "schemas": {
         "Pet": {
-          "$ref": "https://example.com/pet.json"
+          "$ref": "https://example.com/deep/pet.json"
         },
-        "pet.json_": {
+        "pet.json": {
           "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$id": "pet.json",
+          "$id": "https://example.com/deep/pet.json",
           "type": "object"
         }
       }
@@ -45,8 +45,8 @@
   },
   "inserted": [
     {
-      "from": "pet.json",
-      "at": "/components/schemas/pet.json_"
+      "from": "https://example.com/deep/pet.json",
+      "at": "/components/schemas/pet.json"
     }
   ],
   "reads": {},
@@ -54,6 +54,6 @@
     "https://example.com/deep/pet.json": 1
   },
   "standalone": true,
-  "relocatable": false,
+  "relocatable": true,
   "operations": []
 }

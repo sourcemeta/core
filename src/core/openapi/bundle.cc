@@ -685,43 +685,48 @@ auto repoint_schemas(
   std::vector<
       std::pair<sourcemeta::core::Pointer, sourcemeta::core::JSON::String>>
       writes;
-  frame.for_each_reference([&walk, &container, &renamed,
-                            &writes](const auto type, const auto &pointer,
-                                     const auto &reference) -> void {
-    // What settles a dynamic reference is where the schema is evaluated rather
-    // than where it sits, and the one thing a pointer at a key cannot be is
-    // settled later
-    if (type != sourcemeta::core::SchemaReferenceType::Static ||
-        !sourcemeta::core::openapi_within_document(reference.destination,
-                                                   walk.base)) {
-      return;
-    }
+  frame.for_each_reference(
+      [&walk, &container, &renamed, &writes](const auto, const auto &pointer,
+                                             const auto &reference) -> void {
+        // What a dynamic reference settles where the schema is evaluated is the
+        // name it carries rather than the document that name is looked for in,
+        // which JSON Schema Section 8.2.3.2 settles on load: "Resolved against
+        // the current URI base, it produces the URI used as the starting point
+        // for runtime resolution. This initial resolution is safe to perform on
+        // schema load". So one of these may name a place just as a static
+        // reference does, and one that names a place within this document is a
+        // place that renaming moves. What carries a bare name instead resolves
+        // to no pointer at all and is left below
+        if (!sourcemeta::core::openapi_within_document(reference.destination,
+                                                       walk.base)) {
+          return;
+        }
 
-    // Section 4.6 reads a fragment of this shape as a JSON Pointer, and the
-    // rest of this file reads one the same way
-    const auto held{sourcemeta::core::fragment_to_pointer(
-        sourcemeta::core::URI{reference.destination})};
-    if (!held.has_value() || held.value().size() < 3 ||
-        !held.value().starts_with(container) ||
-        !held.value().at(2).is_property()) {
-      return;
-    }
+        // Section 4.6 reads a fragment of this shape as a JSON Pointer, and the
+        // rest of this file reads one the same way
+        const auto held{sourcemeta::core::fragment_to_pointer(
+            sourcemeta::core::URI{reference.destination})};
+        if (!held.has_value() || held.value().size() < 3 ||
+            !held.value().starts_with(container) ||
+            !held.value().at(2).is_property()) {
+          return;
+        }
 
-    for (const auto &entry : renamed) {
-      if (held.value().at(2).to_property() != entry.first) {
-        continue;
-      }
+        for (const auto &entry : renamed) {
+          if (held.value().at(2).to_property() != entry.first) {
+            continue;
+          }
 
-      // Whatever the reference named within that schema is named within it
-      // still, so only the key it was reached by moves
-      const auto rewritten{
-          container.concat(sourcemeta::core::Pointer{entry.second})
-              .concat(held.value().slice(3))};
-      writes.emplace_back(sourcemeta::core::to_pointer(pointer),
-                          sourcemeta::core::to_uri(rewritten).recompose());
-      return;
-    }
-  });
+          // Whatever the reference named within that schema is named within it
+          // still, so only the key it was reached by moves
+          const auto rewritten{
+              container.concat(sourcemeta::core::Pointer{entry.second})
+                  .concat(held.value().slice(3))};
+          writes.emplace_back(sourcemeta::core::to_pointer(pointer),
+                              sourcemeta::core::to_uri(rewritten).recompose());
+          return;
+        }
+      });
 
   // Collected before any of them is applied, as writing invalidates what the
   // frame holds views into
@@ -795,7 +800,11 @@ auto bundle_schemas(sourcemeta::core::JSON &document,
   // description settled on
   const auto nameable{
       sourcemeta::core::openapi_schema_object_is_self_describing(walk.version)};
-  const auto standalone_resolver{[&resolver, &standalone, &base,
+  // And whether a schema of this description may be a boolean at all, which
+  // the revision settles for the same reason
+  const auto booleans{
+      sourcemeta::core::openapi_schema_object_is_boolean(walk.version)};
+  const auto standalone_resolver{[&resolver, &standalone, &base, booleans,
                                   nameable](const std::string_view identifier)
                                      -> sourcemeta::core::SchemaResolverResult {
     auto result{resolver(identifier)};
@@ -815,6 +824,21 @@ auto bundle_schemas(sourcemeta::core::JSON &document,
           sourcemeta::core::JSON::String{identifier},
           "This reference must name a schema rather than a document that "
           "holds an OpenAPI Description"};
+    }
+
+    // A schema that says nothing about the dialect it is written against is
+    // read under the one this revision publishes, and before 3.1 that dialect
+    // has no boolean form. OpenAPI Specification 3.0.4, Schema Object, has it
+    // be "an extended subset of the JSON Schema Specification Draft Wright-00",
+    // whose Section 4.4 reads "A JSON schema MUST be an object", where 3.1.1
+    // Section 4.8.24 is where "The empty schema (which allows any instance to
+    // validate) MAY be represented by the boolean value `true`" arrives. So
+    // one of those is no schema of this description to bring in
+    if (result.has_value() && result.value().is_boolean() && !booleans) {
+      throw sourcemeta::core::OpenAPIReferenceError{
+          base, sourcemeta::core::EMPTY_POINTER,
+          sourcemeta::core::JSON::String{identifier},
+          "A Schema Object must be an object"};
     }
 
     if (!result.has_value() || !result.value().is_object() ||
@@ -1421,17 +1445,32 @@ auto adopt_operations(JSON &document, const OpenAPIWalk &walk,
                       const SchemaResolver &schema_resolver,
                       const OpenAPIBundleOptions &options,
                       std::uint64_t &remaining) -> bool {
-  // The Object this brings in is a Path Item Object, and a revision with
-  // nowhere to hold one has nowhere to bring it. What is left is a name the
-  // description no longer answers for, which the check at the end of bundling
-  // is what reports
-  if (!openapi_components_hold_path_items(walk.version)) {
-    return false;
-  }
-
   bool changed{false};
   for (const auto &entry : walk.operation_id_links) {
     if (walk.operation_ids.contains(entry.second)) {
+      continue;
+    }
+
+    // The Object this brings in is a Path Item Object, and a revision with
+    // nowhere to hold one has nowhere to bring it. Section 4.1 has an OpenAPI
+    // Description be the entry document "and any/all of its referenced
+    // documents", so a name another of those declares is a name the
+    // description answers for, and saying it declares none would be to say
+    // something untrue of it. What there is to report is the obstacle itself,
+    // which is the one the same name reached by an `operationRef` is given
+    if (!openapi_components_hold_path_items(walk.version)) {
+      for (const auto &other : walks) {
+        if (other.second.operation_ids.contains(entry.second)) {
+          throw openapi_error_at(
+              walk.locations, entry.first,
+              "This revision has nowhere to hold the Path Item Object that "
+              "holds the operation this identifier names",
+              "operationId"sv);
+        }
+      }
+
+      // And a name no document of the description declares is one the check at
+      // the end of bundling reports, which is what it has always said
       continue;
     }
 

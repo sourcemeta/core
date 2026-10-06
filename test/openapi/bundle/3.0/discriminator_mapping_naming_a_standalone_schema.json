@@ -9,17 +9,13 @@
     "components": {
       "schemas": {
         "Pet": {
-          "oneOf": [
-            {
-              "type": "object"
-            }
-          ],
           "discriminator": {
             "propertyName": "kind",
             "mapping": {
               "dog": "https://example.com/dog.json"
             }
-          }
+          },
+          "type": "object"
         }
       }
     }
@@ -42,17 +38,13 @@
     "components": {
       "schemas": {
         "Pet": {
-          "oneOf": [
-            {
-              "type": "object"
-            }
-          ],
           "discriminator": {
             "propertyName": "kind",
             "mapping": {
               "dog": "#/components/schemas/dog.json"
             }
-          }
+          },
+          "type": "object"
         },
         "dog.json": {
           "type": "object",

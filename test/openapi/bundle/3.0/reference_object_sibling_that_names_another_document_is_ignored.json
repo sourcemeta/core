@@ -9,15 +9,11 @@
       "/pets": {
         "get": {
           "responses": {
-            "200": {
-              "description": "ok",
-              "content": {
-                "application/json": {
-                  "examples": {
-                    "One": {
-                      "$ref": "shared.json#/paths/~1pets/get/responses/200/content/application~1json/examples/%21%21%21"
-                    }
-                  }
+            "404": {
+              "$ref": "shared.json#/components/responses/NotFound",
+              "headers": {
+                "X": {
+                  "$ref": "elsewhere.json#/components/headers/H"
                 }
               }
             }
@@ -34,22 +30,27 @@
         "title": "Shared",
         "version": "1.0.0"
       },
-      "paths": {
-        "/pets": {
-          "get": {
-            "responses": {
-              "200": {
-                "description": "Some pets",
-                "content": {
-                  "application/json": {
-                    "examples": {
-                      "!!!": {
-                        "value": 1
-                      }
-                    }
-                  }
-                }
-              }
+      "paths": {},
+      "components": {
+        "responses": {
+          "NotFound": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "https://example.com/elsewhere.json": {
+      "openapi": "3.0.4",
+      "info": {
+        "title": "Elsewhere",
+        "version": "1.0.0"
+      },
+      "paths": {},
+      "components": {
+        "headers": {
+          "H": {
+            "schema": {
+              "type": "string"
             }
           }
         }
@@ -67,15 +68,11 @@
       "/pets": {
         "get": {
           "responses": {
-            "200": {
-              "description": "ok",
-              "content": {
-                "application/json": {
-                  "examples": {
-                    "One": {
-                      "$ref": "#/components/examples/Bundled"
-                    }
-                  }
+            "404": {
+              "$ref": "#/components/responses/NotFound",
+              "headers": {
+                "X": {
+                  "$ref": "elsewhere.json#/components/headers/H"
                 }
               }
             }
@@ -84,17 +81,17 @@
       }
     },
     "components": {
-      "examples": {
-        "Bundled": {
-          "value": 1
+      "responses": {
+        "NotFound": {
+          "description": "Not found"
         }
       }
     }
   },
   "inserted": [
     {
-      "from": "https://example.com/shared.json#/paths/~1pets/get/responses/200/content/application~1json/examples/!!!",
-      "at": "/components/examples/Bundled"
+      "from": "https://example.com/shared.json#/components/responses/NotFound",
+      "at": "/components/responses/NotFound"
     }
   ],
   "reads": {

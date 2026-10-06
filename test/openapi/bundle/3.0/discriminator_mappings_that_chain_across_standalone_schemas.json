@@ -23,7 +23,6 @@
   "openapiResolver": {},
   "schemaResolver": {
     "https://example.com/schemas/a": {
-      "$id": "https://example.com/schemas/a",
       "discriminator": {
         "propertyName": "t",
         "mapping": {
@@ -32,7 +31,6 @@
       }
     },
     "https://example.com/schemas/b": {
-      "$id": "https://example.com/schemas/b",
       "type": "object"
     }
   },
@@ -53,7 +51,6 @@
           }
         },
         "a": {
-          "$id": "https://example.com/schemas/a",
           "discriminator": {
             "propertyName": "t",
             "mapping": {
@@ -62,7 +59,6 @@
           }
         },
         "b": {
-          "$id": "https://example.com/schemas/b",
           "type": "object"
         }
       }

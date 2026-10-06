@@ -7,22 +7,13 @@
     },
     "paths": {
       "/pets": {
-        "$ref": "shared.json#/paths/~1pets"
-      },
-      "/animals": {
-        "get": {
-          "responses": {
-            "200": {
-              "description": "ok"
-            }
-          }
-        }
+        "$ref": "shared/api.json#/paths/~1pets"
       }
     }
   },
   "defaultBase": "https://example.com/openapi.json",
   "openapiResolver": {
-    "https://example.com/shared.json": {
+    "https://example.com/shared/api.json": {
       "openapi": "3.0.4",
       "info": {
         "title": "Shared",
@@ -30,7 +21,23 @@
       },
       "paths": {
         "/pets": {
-          "$ref": "openapi.json#/paths/~1animals"
+          "servers": [
+            {
+              "url": "v2/{region}",
+              "variables": {
+                "region": {
+                  "default": "eu"
+                }
+              }
+            }
+          ],
+          "get": {
+            "responses": {
+              "200": {
+                "description": "ok"
+              }
+            }
+          }
         }
       }
     }
@@ -44,9 +51,16 @@
     },
     "paths": {
       "/pets": {
-        "$ref": "#/paths/~1animals"
-      },
-      "/animals": {
+        "servers": [
+          {
+            "url": "https://example.com/shared/v2/{region}",
+            "variables": {
+              "region": {
+                "default": "eu"
+              }
+            }
+          }
+        ],
         "get": {
           "responses": {
             "200": {
@@ -59,12 +73,12 @@
   },
   "inserted": [
     {
-      "from": "https://example.com/shared.json#/paths/~1pets",
+      "from": "https://example.com/shared/api.json#/paths/~1pets",
       "at": "/paths/~1pets"
     }
   ],
   "reads": {
-    "https://example.com/shared.json": 1
+    "https://example.com/shared/api.json": 1
   },
   "schemaReads": {},
   "standalone": true,
@@ -74,21 +88,12 @@
       "type": "path",
       "path": "/pets",
       "method": "get",
-      "origin": "https://example.com/openapi.json#/paths/~1animals/get",
+      "origin": "https://example.com/openapi.json#/paths/~1pets/get",
       "endpoint": "https://example.com/openapi.json#/paths/~1pets",
       "tags": [],
-      "servers": [],
-      "security": [],
-      "parameters": []
-    },
-    {
-      "type": "path",
-      "path": "/animals",
-      "method": "get",
-      "origin": "https://example.com/openapi.json#/paths/~1animals/get",
-      "endpoint": "https://example.com/openapi.json#/paths/~1animals",
-      "tags": [],
-      "servers": [],
+      "servers": [
+        "https://example.com/openapi.json#/paths/~1pets/servers/0"
+      ],
       "security": [],
       "parameters": []
     }

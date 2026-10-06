@@ -7,7 +7,7 @@
     },
     "paths": {
       "/pets": {
-        "$ref": "other.json#/paths/~1pet"
+        "$ref": "other.json#/paths/~1pet~1%7BpetId%7D"
       }
     }
   },
@@ -20,7 +20,7 @@
         "version": "1.0.0"
       },
       "paths": {
-        "/pet": {
+        "/pet/{petId}": {
           "get": {
             "parameters": [
               {
