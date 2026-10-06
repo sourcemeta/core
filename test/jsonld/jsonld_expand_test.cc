@@ -157,6 +157,50 @@ TEST(graph_map_null_value_contributes_nothing) {
   EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
 }
 
+TEST(graph_container_null_value_is_dropped) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "@version": 1.1,
+      "p": { "@id": "http://example.com/p", "@container": "@graph" }
+    },
+    "p": null
+  })");
+
+  const auto expected = sourcemeta::core::parse_json("[]");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(graph_container_value_expanding_to_null_is_dropped) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "@version": 1.1,
+      "p": { "@id": "http://example.com/p", "@container": "@graph" }
+    },
+    "p": { "@value": null }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json("[]");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(graph_container_empty_array_contributes_an_empty_array) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "@version": 1.1,
+      "p": { "@id": "http://example.com/p", "@container": "@graph" }
+    },
+    "p": [ null ]
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    { "http://example.com/p": [] }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
 TEST(reordered_container_does_not_redefine_a_protected_term) {
   const auto input = sourcemeta::core::parse_json(R"({
     "@context": [
@@ -343,6 +387,55 @@ TEST(type_coercion_to_datatype) {
         }
       ]
     }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(relative_typed_value_datatype_resolves_against_the_base) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "http://example.com/p": { "@value": "x", "@type": "relative" }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/p": [
+        { "@value": "x", "@type": "https://example.com/relative" }
+      ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input, "https://example.com/"),
+            expected);
+}
+
+TEST(fragment_typed_value_datatype) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "http://example.com/p": {
+      "@value": "x",
+      "@type": "http://example.com/t#dt"
+    }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/p": [
+        { "@value": "x", "@type": "http://example.com/t#dt" }
+      ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(exponent_version_value) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "@version": 1.1e0, "p": "http://example.com/p" },
+    "p": "v"
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    { "http://example.com/p": [ { "@value": "v" } ] }
   ])");
 
   EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);

@@ -1,6 +1,8 @@
 #include "jsonld_algorithms.h"
 #include "jsonld_keywords.h"
 
+#include <sourcemeta/core/uri.h>
+
 #include <algorithm> // std::ranges::sort
 #include <cstddef>   // std::size_t
 #include <optional>  // std::optional
@@ -112,6 +114,35 @@ auto offending_pointer(ExpansionState &state, ActiveContext &active_context,
   return result;
 }
 
+// Whether the datatype of a typed value names an IRI, which a blank node
+// identifier is not (JSON-LD 1.1 API Section 5.1.2 step 15.5)
+auto is_datatype_iri(const JSON::String &type) -> bool {
+  if (type.starts_with("_:")) {
+    return false;
+  }
+
+  try {
+    return URI::from_iri(type).is_absolute();
+  } catch (const URIParseError &) {
+    return false;
+  }
+}
+
+// Whether a nested object carries a value entry, which the nesting forbids,
+// under a keyword alias too (JSON-LD 1.1 API Section 5.1.2 step 14.2.1)
+auto nest_defines_value(ExpansionState &state, ActiveContext &active_context,
+                        const JSON &nested) -> bool {
+  for (const auto &entry : nested.as_object()) {
+    const auto expanded{expand_iri(state, active_context, entry.first, false,
+                                   true, nullptr, nullptr, EMPTY_WEAK_POINTER)};
+    if (expanded.has_value() && expanded.value() == KEYWORD_VALUE) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 // Expand the direct (and deferred @nest) entries of a map into the result,
 // mutating it in place. Mutually recursive with expand_object.
 auto expand_entries(ExpansionState &state, ActiveContext &active_context,
@@ -181,7 +212,8 @@ auto expand_object(ExpansionState &state, ActiveContext active_context,
     const bool has_type{type != nullptr};
     const JSON::String *const type_string{
         type != nullptr && type->is_string() ? &type->to_string() : nullptr};
-    const bool is_json{type_string != nullptr && *type_string == KEYWORD_JSON};
+    const bool is_json{type_string != nullptr && *type_string == KEYWORD_JSON &&
+                       !state.processing_1_0};
     for (const auto &entry : result.as_object()) {
       if (!entry.key_equals(KEYWORD_VALUE, KEYWORD_VALUE_HASH) &&
           !entry.key_equals(KEYWORD_TYPE, KEYWORD_TYPE_HASH) &&
@@ -210,8 +242,8 @@ auto expand_object(ExpansionState &state, ActiveContext active_context,
                         offending_pointer(state, active_context, element,
                                           pointer, KEYWORD_VALUE));
     }
-    if (has_type && (type_string == nullptr || type_string->starts_with("_:") ||
-                     type_string->contains(' '))) {
+    if (has_type && !is_json &&
+        (type_string == nullptr || !is_datatype_iri(*type_string))) {
       throw JSONLDError("Invalid typed value",
                         offending_pointer(state, active_context, element,
                                           pointer, KEYWORD_TYPE));
@@ -233,6 +265,14 @@ auto expand_object(ExpansionState &state, ActiveContext active_context,
   // validated before any value is dropped.
   if (result.defines(KEYWORD_LIST, KEYWORD_LIST_HASH) ||
       result.defines(KEYWORD_SET, KEYWORD_SET_HASH)) {
+    // Neither collection keyword counts as the one other entry the other may
+    // carry, so a map that defines both is invalid whatever else it holds
+    // (JSON-LD 1.1 API Section 5.1.2 step 17.1).
+    if (result.defines(KEYWORD_LIST, KEYWORD_LIST_HASH) &&
+        result.defines(KEYWORD_SET, KEYWORD_SET_HASH)) {
+      throw JSONLDError("Invalid set or list object", pointer);
+    }
+
     for (const auto &entry : result.as_object()) {
       if (!entry.key_equals(KEYWORD_LIST, KEYWORD_LIST_HASH) &&
           !entry.key_equals(KEYWORD_SET, KEYWORD_SET_HASH) &&
@@ -315,7 +355,7 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
         std::size_t nest_index{0};
         for (const auto &nest_value : entry.second.as_array()) {
           if (!nest_value.is_object() ||
-              nest_value.defines(KEYWORD_VALUE, KEYWORD_VALUE_HASH)) {
+              nest_defines_value(state, active_context, nest_value)) {
             throw JSONLDError("Invalid @nest value",
                               entry_pointer.concat(nest_index));
           }
@@ -326,7 +366,7 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
           nest_index += 1;
         }
       } else if (entry.second.is_object() &&
-                 !entry.second.defines(KEYWORD_VALUE, KEYWORD_VALUE_HASH)) {
+                 !nest_defines_value(state, active_context, entry.second)) {
         nests.push_back(
             {.property = &property, .value = &entry.second, .index = {}});
       } else {
@@ -579,7 +619,7 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
       definition = &term->second;
     }
 
-    // Property-scoped context (JSON-LD 1.1 API Section 5.1.2 step 13.3)
+    // Property-scoped context (JSON-LD 1.1 API Section 5.1.2 steps 3 and 8)
     ActiveContext scoped_context;
     const bool scoped{definition != nullptr && definition->context.has_value()};
     if (scoped) {
@@ -638,7 +678,7 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
                               entry_pointer.concat(index)))};
         for (auto &item : graph_items.as_array()) {
           // Nothing is carried over for a null, as in an array (JSON-LD 1.1
-          // API Section 5.1.2 step 3.2.3)
+          // API Section 5.1.2 step 5.2.3)
           if (item.is_null()) {
             continue;
           }
@@ -738,7 +778,7 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
         for (auto &item : index_items.as_array()) {
           // An entry of a map expands the way it would as a member of an
           // array, where nothing is carried over for a null (JSON-LD 1.1 API
-          // Section 5.1.2 step 3.2.3), so the steps below only ever see a value
+          // Section 5.1.2 step 5.2.3), so the steps below only ever see a value
           if (item.is_null()) {
             continue;
           }
@@ -832,7 +872,7 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
                                   entry_pointer.concat(index)))};
             for (auto &expanded : expanded_items.as_array()) {
               // Nothing is carried over for a null, as in an array
-              // (JSON-LD 1.1 API Section 5.1.2 step 3.2.3)
+              // (JSON-LD 1.1 API Section 5.1.2 step 5.2.3)
               if (!expanded.is_null()) {
                 entries.push_back(expanded);
               }
@@ -864,9 +904,17 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
         }
       }
     } else if (container_includes(definition, KEYWORD_GRAPH)) {
+      auto graph_value{
+          expand(state, value_context, property, entry.second, entry_pointer)};
+      // Nothing is carried over for a null, which is dropped before a graph
+      // object could wrap it (JSON-LD 1.1 API Section 5.1.2 steps 13.10 and
+      // 13.12)
+      if (graph_value.is_null()) {
+        continue;
+      }
+
       expanded_value = JSON::make_array();
-      auto graph_items{into_array(
-          expand(state, value_context, property, entry.second, entry_pointer))};
+      auto graph_items{into_array(std::move(graph_value))};
       for (auto &item : graph_items.as_array()) {
         auto graph{JSON::make_object()};
         graph.assign_assume_new(JSON::String{KEYWORD_GRAPH},
