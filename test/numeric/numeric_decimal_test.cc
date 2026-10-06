@@ -1394,7 +1394,7 @@ TEST(divisible_by_million_exponent_multiple_of_eleven_is_false) {
 
 TEST(divisible_by_ten_million_exponent_power_of_two) {
   const sourcemeta::core::Decimal dividend{"1e10000001"};
-  const sourcemeta::core::Decimal divisor{20};
+  const sourcemeta::core::Decimal divisor{2};
   EXPECT_TRUE(dividend.divisible_by(divisor));
 }
 
@@ -6021,4 +6021,14 @@ TEST(divisible_by_across_the_whole_exponent_range_is_false) {
   const sourcemeta::core::Decimal dividend{"1e2147483647"};
   const sourcemeta::core::Decimal divisor{"3e-2147483648"};
   EXPECT_FALSE(dividend.divisible_by(divisor));
+}
+
+TEST(to_integral_of_a_sum_that_fills_the_compact_range) {
+  const sourcemeta::core::Decimal left{"920000000000000000e-19"};
+  const sourcemeta::core::Decimal right{"920000000000000000e-19"};
+  const auto sum{left + right};
+  EXPECT_EQ(sum, sourcemeta::core::Decimal{"0.184"});
+  const auto result{sum.to_integral()};
+  EXPECT_TRUE(result.is_zero());
+  EXPECT_EQ(result.to_string(), "0");
 }

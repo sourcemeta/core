@@ -1104,21 +1104,21 @@ auto Decimal::to_integral() const -> Decimal {
     return result;
   }
 
-  std::int64_t divisor = 1;
-  for (std::int64_t index = 0; index < digits_to_remove; index++) {
-    divisor *= 10;
-  }
-
-  auto quotient = coefficient / divisor;
-  auto remainder = coefficient % divisor;
-  auto half = divisor / 2;
+  // An addition stores a sum of two compact coefficients, which reaches one
+  // digit further than either of them, and dropping that many positions calls
+  // for a power of ten that only an unsigned integer holds
+  const auto divisor{POWERS_OF_10[static_cast<std::size_t>(digits_to_remove)]};
+  const auto magnitude{static_cast<std::uint64_t>(coefficient)};
+  auto quotient = magnitude / divisor;
+  const auto remainder = magnitude % divisor;
+  const auto half = divisor / 2;
 
   if (remainder > half || (remainder == half && quotient % 2 != 0)) {
     quotient++;
   }
 
   Decimal result;
-  result.coefficient_ = quotient;
+  result.coefficient_ = static_cast<std::int64_t>(quotient);
   result.exponent_ = 0;
   if ((this->flags_ & FLAG_SIGN) != 0) {
     result.flags_ = FLAG_SIGN;
