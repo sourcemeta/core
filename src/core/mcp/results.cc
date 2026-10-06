@@ -14,6 +14,7 @@
 #include <sstream>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace {
 
@@ -1110,11 +1111,61 @@ void mcp_write_result(std::ostream &stream, const MCPProtocolVersion version,
       cursor) {
     internal::require(cursor->is_string(), "Invalid result cursor");
   }
-  auto payload{result};
-  decorate_result(version, payload, server_info);
+  auto decorations{JSON::make_object()};
+  decorate_result(version, decorations, server_info);
   if (cache_policy) {
-    decorate_cacheable_result(version, payload, *cache_policy, method);
+    decorate_cacheable_result(version, decorations, *cache_policy, method);
   }
-  stringify(jsonrpc_make_success(identifier, std::move(payload)), stream);
+
+  // Own the envelope and its new fields, and borrow the page's existing values.
+  auto payload{JSON::make_object()};
+  for (const auto &entry : result.as_object()) {
+    payload.assign_assume_new(entry.first, JSON{nullptr});
+  }
+  for (const auto &entry : decorations.as_object()) {
+    payload.assign(entry.first, entry.second);
+  }
+  const auto *source_meta{result.try_at("_meta", MCP_HASH_META)};
+  const auto *new_meta{decorations.try_at("_meta", MCP_HASH_META)};
+  if (source_meta != nullptr && new_meta != nullptr) {
+    auto merged{JSON::make_object()};
+    for (const auto &entry : source_meta->as_object()) {
+      merged.assign_assume_new(entry.first, JSON{nullptr});
+    }
+    for (const auto &entry : new_meta->as_object()) {
+      merged.assign(entry.first, entry.second);
+    }
+    payload.at("_meta", MCP_HASH_META) = std::move(merged);
+  }
+
+  auto envelope{jsonrpc_make_success(identifier, std::move(payload))};
+  const auto &output{envelope.at("result", MCP_HASH_RESULT)};
+  // Take member addresses only after the envelope is fully constructed.
+  std::vector<std::pair<const JSON *, const JSON *>> borrowed;
+  borrowed.reserve(result.size() +
+                   (source_meta != nullptr && new_meta != nullptr
+                        ? source_meta->size()
+                        : 0));
+  for (const auto &entry : result.as_object()) {
+    if (!decorations.defines(entry.first)) {
+      borrowed.emplace_back(&output.at(entry.first), &entry.second);
+    }
+  }
+  if (source_meta != nullptr && new_meta != nullptr) {
+    const auto &output_meta{output.at("_meta", MCP_HASH_META)};
+    for (const auto &entry : source_meta->as_object()) {
+      if (!new_meta->defines(entry.first)) {
+        borrowed.emplace_back(&output_meta.at(entry.first), &entry.second);
+      }
+    }
+  }
+  stringify(envelope, stream, [&borrowed](const JSON &value) -> const JSON * {
+    for (const auto &entry : borrowed) {
+      if (entry.first == &value) {
+        return entry.second;
+      }
+    }
+    return nullptr;
+  });
 }
 } // namespace sourcemeta::core

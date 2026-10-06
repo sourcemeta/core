@@ -288,10 +288,9 @@ auto mcp_make_notification(const MCPProtocolVersion version,
   }
   return jsonrpc_make_notification(method, std::move(parameters));
 }
-auto mcp_validate_continuation(
-    const MCPProtocolVersion version, const JSON &parameters,
-    const JSON &input_requests,
-    const std::optional<JSON::StringView> expected_state) -> bool {
+auto mcp_validate_continuation(const MCPProtocolVersion version,
+                               const JSON &parameters,
+                               const JSON &input_requests) -> bool {
   if (!mcp_supports_mrtr(version) || !input_requests.is_object() ||
       mcp_validate_request_parameters(parameters).first !=
           MCPRequestMetaStatus::Valid) {
@@ -303,8 +302,6 @@ auto mcp_validate_continuation(
       "inputResponses", sourcemeta::core::MCP_HASH_INPUT_RESPONSES)};
   if (((state == nullptr) && (responses == nullptr)) ||
       ((state != nullptr) && !state->is_string()) ||
-      (expected_state &&
-       ((state == nullptr) || state->to_string() != *expected_state)) ||
       ((responses != nullptr) && !responses->is_object())) {
     return false;
   }
@@ -329,6 +326,19 @@ auto mcp_validate_continuation(
     }
   }
   return true;
+}
+
+auto mcp_validate_continuation(const MCPProtocolVersion version,
+                               const JSON &parameters,
+                               const JSON &input_requests,
+                               const JSON::StringView expected_state) -> bool {
+  const auto *state{
+      parameters.is_object()
+          ? parameters.try_at("requestState", MCP_HASH_REQUEST_STATE)
+          : nullptr};
+  return state != nullptr && state->is_string() &&
+         state->to_string() == expected_state &&
+         mcp_validate_continuation(version, parameters, input_requests);
 }
 
 } // namespace sourcemeta::core

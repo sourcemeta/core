@@ -3,6 +3,66 @@
 
 #include <sstream>
 
+TEST(borrowed_subtree) {
+  using namespace sourcemeta::core;
+  const auto source{parse_json(
+      R"({"escaped\"\\key":[null,true,false,-4,1.25,"text\n\t\"\\",{},[]]})")};
+  std::ostringstream before;
+  stringify(source, before);
+  const auto document{parse_json(R"({"page":null,"status":"complete"})")};
+  const auto &placeholder{document.at("page")};
+  std::size_t calls{0};
+  std::ostringstream stream;
+  stringify(document, stream,
+            [&source, &placeholder, &calls](const JSON &value) -> const JSON * {
+              ++calls;
+              return &value == &placeholder ? &source : nullptr;
+            });
+  auto expected{document};
+  expected.assign("page", source);
+  std::ostringstream expected_stream;
+  stringify(expected, expected_stream);
+  EXPECT_EQ(stream.str(), expected_stream.str());
+  EXPECT_EQ(source, parse_json(before.str()));
+  // Only the envelope and its two children are visited, not the borrowed page.
+  EXPECT_EQ(calls, 3);
+}
+
+TEST(borrowed_root) {
+  using namespace sourcemeta::core;
+  const JSON placeholder{nullptr};
+  for (const auto *const text : {"null", "true", "12", "1.25", R"("a\n\"\\")",
+                                 "[]", "{}", R"({"nested":[1,2,3]})"}) {
+    const auto source{parse_json(text)};
+    std::size_t calls{0};
+    std::ostringstream stream;
+    stringify(placeholder, stream,
+              [&source, &calls](const JSON &) -> const JSON * {
+                ++calls;
+                return &source;
+              });
+    std::ostringstream expected;
+    stringify(source, expected);
+    EXPECT_EQ(stream.str(), expected.str());
+    EXPECT_EQ(calls, 1);
+  }
+}
+
+TEST(borrowed_identity_and_empty_callback) {
+  using namespace sourcemeta::core;
+  const auto document{parse_json(
+      R"([{},[],null,false,42,1.25,{"escaped\"key":["line\n",true]}])")};
+  std::ostringstream expected;
+  stringify(document, expected);
+  std::ostringstream identity;
+  stringify(document, identity,
+            [](const JSON &value) -> const JSON * { return &value; });
+  EXPECT_EQ(identity.str(), expected.str());
+  std::ostringstream empty;
+  stringify(document, empty, {});
+  EXPECT_EQ(empty.str(), expected.str());
+}
+
 TEST(boolean_false) {
   const sourcemeta::core::JSON document{false};
   std::ostringstream stream;

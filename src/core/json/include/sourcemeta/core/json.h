@@ -18,6 +18,7 @@
 #include <filesystem> // std::filesystem
 #include <format> // std::formatter, std::format_context, std::format_parse_context, std::format_to
 #include <fstream>          // std::basic_ifstream
+#include <functional>       // std::function
 #include <initializer_list> // std::initializer_list
 #include <istream>          // std::basic_istream
 #include <optional>         // std::optional
@@ -256,6 +257,19 @@ auto read_json(const std::filesystem::path &path, JSON &output,
 SOURCEMETA_CORE_JSON_EXPORT
 auto stringify(const JSON &document,
                std::basic_ostream<JSON::Char, JSON::CharTraits> &stream)
+    -> void;
+
+/// @ingroup json
+///
+/// Stringify a document while borrowing replacement values from a callback.
+/// Returning nullptr or the input address visits its children normally.
+/// Returning another value's address serializes that subtree without further
+/// callbacks. Borrowed values must remain valid until serialization finishes.
+/// An empty callback uses ordinary compact serialization.
+SOURCEMETA_CORE_JSON_EXPORT
+auto stringify(const JSON &document,
+               std::basic_ostream<JSON::Char, JSON::CharTraits> &stream,
+               const std::function<const JSON *(const JSON &)> &callback)
     -> void;
 
 /// @ingroup json

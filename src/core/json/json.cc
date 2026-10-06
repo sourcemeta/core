@@ -11,7 +11,9 @@
 #include <cassert>     // assert
 #include <cstdint>     // std::uint64_t
 #include <filesystem>  // std::filesystem
+#include <functional>  // std::function
 #include <istream>     // std::basic_istream
+#include <iterator>    // std::next
 #include <limits>      // std::numeric_limits
 #include <optional>    // std::optional, std::nullopt
 #include <ostream>     // std::basic_ostream
@@ -274,6 +276,45 @@ auto stringify(const JSON &document,
                std::basic_ostream<JSON::Char, JSON::CharTraits> &stream)
     -> void {
   stringify<std::allocator>(document, stream);
+}
+
+auto stringify(const JSON &document,
+               std::basic_ostream<JSON::Char, JSON::CharTraits> &stream,
+               const std::function<const JSON *(const JSON &)> &callback)
+    -> void {
+  if (!callback) {
+    stringify(document, stream);
+    return;
+  }
+  const auto *value{callback(document)};
+  if (value != nullptr && value != &document) {
+    stringify(*value, stream);
+  } else if (document.is_array()) {
+    stream.put(internal::TOKEN_ARRAY_BEGIN<JSON::Char>);
+    const auto &array{document.as_array()};
+    for (auto iterator = array.cbegin(); iterator != array.cend(); ++iterator) {
+      stringify(*iterator, stream, callback);
+      if (std::next(iterator) != array.cend()) {
+        stream.put(internal::TOKEN_ARRAY_DELIMITER<JSON::Char>);
+      }
+    }
+    stream.put(internal::TOKEN_ARRAY_END<JSON::Char>);
+  } else if (document.is_object()) {
+    stream.put(internal::TOKEN_OBJECT_BEGIN<JSON::Char>);
+    const auto &object{document.as_object()};
+    for (auto iterator = object.cbegin(); iterator != object.cend();
+         ++iterator) {
+      stringify<std::allocator>(iterator->first, stream);
+      stream.put(internal::TOKEN_OBJECT_KEY_DELIMITER<JSON::Char>);
+      stringify(iterator->second, stream, callback);
+      if (std::next(iterator) != object.cend()) {
+        stream.put(internal::TOKEN_OBJECT_DELIMITER<JSON::Char>);
+      }
+    }
+    stream.put(internal::TOKEN_OBJECT_END<JSON::Char>);
+  } else {
+    stringify(document, stream);
+  }
 }
 
 auto prettify(const JSON &document,

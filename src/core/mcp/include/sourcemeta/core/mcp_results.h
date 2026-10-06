@@ -347,9 +347,10 @@ auto mcp_make_completion_result(MCPProtocolVersion version, JSON values,
 
 /// @ingroup mcp
 /// Serialize a complete MCP response for one of the six cacheable operations.
-/// The result is copied before decoration. The source remains unchanged.
-/// A cache policy is mandatory for 2026-07-28. Omit it for legacy responses.
-/// This writes JSON only. Stdio callers must append a newline themselves.
+/// Result entries are borrowed during serialization. The source remains
+/// unchanged. A cache policy is mandatory for 2026-07-28. Omit it for legacy
+/// responses. This writes JSON only. Stdio callers must append a newline
+/// themselves.
 SOURCEMETA_CORE_MCP_EXPORT
 void mcp_write_result(
     std::ostream &stream, MCPProtocolVersion version, JSON::StringView method,
@@ -467,16 +468,22 @@ auto mcp_resolve_result_type(
 /// response kinds against the prior input requests. Unknown response keys are
 /// ignored. Core does not validate the user's form values against arbitrary
 /// JSON Schema, protect state integrity, or enforce new request IDs/history.
-/// An absent expected_state skips matching. An empty string requires an empty
-/// state token.
+/// This overload checks field shapes without matching a state token.
 /// @see
 /// https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/mrtr#client-requirements-basic-workflow
 SOURCEMETA_CORE_MCP_EXPORT
 auto mcp_validate_continuation(MCPProtocolVersion version,
                                const JSON &parameters,
+                               const JSON &input_requests) -> bool;
+
+/// @ingroup mcp
+/// Check continuation fields and require an exact state echo. An empty
+/// expected_state requires a present, empty state token.
+SOURCEMETA_CORE_MCP_EXPORT
+auto mcp_validate_continuation(MCPProtocolVersion version,
+                               const JSON &parameters,
                                const JSON &input_requests,
-                               std::optional<JSON::StringView> expected_state)
-    -> bool;
+                               JSON::StringView expected_state) -> bool;
 
 /// @ingroup mcp
 /// Construct a checked notification. The direction and parameters are explicit.

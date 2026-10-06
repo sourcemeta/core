@@ -945,20 +945,22 @@ TEST(conformance_continuation_validation) {
   EXPECT_FALSE(mcp_validate_continuation(CURRENT, bad, prior, "state"));
   bad = value;
   bad.assign("requestState", JSON{1});
-  EXPECT_FALSE(mcp_validate_continuation(CURRENT, bad, prior, std::nullopt));
-  EXPECT_FALSE(
-      mcp_validate_continuation(CURRENT, parameters(), prior, std::nullopt));
+  EXPECT_FALSE(mcp_validate_continuation(CURRENT, bad, prior));
+  EXPECT_FALSE(mcp_validate_continuation(CURRENT, parameters(), prior));
 }
 
 TEST(continuation_empty_expected_state) {
   auto value{parameters()};
   value.assign("inputResponses", JSON::make_object());
   const auto prior{JSON::make_object()};
-  EXPECT_TRUE(mcp_validate_continuation(CURRENT, value, prior, std::nullopt));
+  EXPECT_TRUE(mcp_validate_continuation(CURRENT, value, prior));
   EXPECT_FALSE(mcp_validate_continuation(CURRENT, value, prior, ""));
   value.assign("requestState", JSON{""});
   EXPECT_TRUE(mcp_validate_continuation(CURRENT, value, prior, ""));
   value.assign("requestState", JSON{"different"});
+  EXPECT_FALSE(mcp_validate_continuation(CURRENT, value, prior, ""));
+  EXPECT_FALSE(mcp_validate_continuation(CURRENT, JSON{false}, prior, ""));
+  value.assign("requestState", JSON{false});
   EXPECT_FALSE(mcp_validate_continuation(CURRENT, value, prior, ""));
 }
 
@@ -1006,20 +1008,19 @@ TEST(review_elicitation_numbers_and_mode) {
       "inputResponses",
       parse_json(
           R"({"form":{"action":"accept","content":{"value":1.25,"precise":1.0000000000000000001}}})"));
-  EXPECT_TRUE(mcp_validate_continuation(CURRENT, value, prior, std::nullopt));
+  EXPECT_TRUE(mcp_validate_continuation(CURRENT, value, prior));
   prior.at("form").at("params").assign("mode", JSON{"url"});
-  EXPECT_FALSE(mcp_validate_continuation(CURRENT, value, prior, std::nullopt));
+  EXPECT_FALSE(mcp_validate_continuation(CURRENT, value, prior));
   value.at("inputResponses").at("form").erase("content");
-  EXPECT_TRUE(mcp_validate_continuation(CURRENT, value, prior, std::nullopt));
+  EXPECT_TRUE(mcp_validate_continuation(CURRENT, value, prior));
   prior.at("form").at("params").assign("mode", JSON{"form"});
   for (const auto *const action : {"decline", "cancel"}) {
     value.at("inputResponses").at("form").assign("action", JSON{action});
-    EXPECT_TRUE(mcp_validate_continuation(CURRENT, value, prior, std::nullopt));
+    EXPECT_TRUE(mcp_validate_continuation(CURRENT, value, prior));
     value.at("inputResponses")
         .at("form")
         .assign("content", JSON::make_object());
-    EXPECT_FALSE(
-        mcp_validate_continuation(CURRENT, value, prior, std::nullopt));
+    EXPECT_FALSE(mcp_validate_continuation(CURRENT, value, prior));
     value.at("inputResponses").at("form").erase("content");
   }
   MCPClientCapabilities capabilities;
@@ -1132,6 +1133,17 @@ TEST(review_result_writer_full_parity) {
   const JSON identifier{"escaped\"\\\n"};
   const MCPImplementation server{.name = "server", .version = "1"};
   for (const auto version : REVISIONS) {
+    const auto plain{parse_json(R"({"resources":[]})")};
+    std::ostringstream plain_stream;
+    mcp_write_result(plain_stream, version, "resources/list", identifier, plain,
+                     MCPCachePolicy{}, server);
+    EXPECT_EQ(parse_json(plain_stream.str()),
+              jsonrpc_make_success(
+                  identifier,
+                  mcp_decorate_cacheable_result(
+                      version, mcp_decorate_result(version, plain, server),
+                      MCPCachePolicy{}, "resources/list")));
+    EXPECT_EQ(plain, parse_json(R"({"resources":[]})"));
     for (const auto &entry : cases) {
       if (entry.first == "server/discover" &&
           !mcp_supports_server_discover(version)) {
@@ -1141,6 +1153,8 @@ TEST(review_result_writer_full_parity) {
         auto source{parse_json(entry.second)};
         source.assign("_meta",
                       parse_json(R"({"org.example/custom":{"value":true}})"));
+        source.assign("org.example/extension",
+                      parse_json(R"({"escaped\"key":[null,true,"line\n\\"]})"));
         if (decorated && version == CURRENT) {
           source = mcp_decorate_result(version, std::move(source), server);
           source = mcp_decorate_cacheable_result(
@@ -1148,23 +1162,31 @@ TEST(review_result_writer_full_parity) {
               {.ttl_ms = 5, .scope = MCPCacheScope::Public}, entry.first);
         }
         const auto before{source};
-        const auto copied{jsonrpc_make_success(
-            identifier,
-            mcp_decorate_cacheable_result(
-                version, mcp_decorate_result(version, source, server),
-                {.ttl_ms = 123, .scope = MCPCacheScope::Private},
-                entry.first))};
-        std::ostringstream stream;
-        mcp_write_result(
-            stream, version, entry.first, identifier, source,
-            version == CURRENT
-                ? std::optional<MCPCachePolicy>{{.ttl_ms = 123,
-                                                 .scope =
-                                                     MCPCacheScope::Private}}
-                : std::nullopt,
-            server);
-        EXPECT_EQ(parse_json(stream.str()), copied);
-        EXPECT_EQ(source, before);
+        for (const auto include_server : {false, true}) {
+          const auto server_info{include_server
+                                     ? std::optional<MCPImplementation>{server}
+                                     : std::nullopt};
+          const auto copied{jsonrpc_make_success(
+              identifier,
+              mcp_decorate_cacheable_result(
+                  version, mcp_decorate_result(version, source, server_info),
+                  {.ttl_ms = 123, .scope = MCPCacheScope::Private},
+                  entry.first))};
+          std::ostringstream stream;
+          mcp_write_result(
+              stream, version, entry.first, identifier, source,
+              version == CURRENT
+                  ? std::optional<MCPCachePolicy>{{.ttl_ms = 123,
+                                                   .scope =
+                                                       MCPCacheScope::Private}}
+                  : std::nullopt,
+              server_info);
+          EXPECT_EQ(parse_json(stream.str()), copied);
+          std::ostringstream expected_stream;
+          stringify(copied, expected_stream);
+          EXPECT_EQ(stream.str(), expected_stream.str());
+          EXPECT_EQ(source, before);
+        }
       }
     }
   }
@@ -1575,13 +1597,13 @@ TEST(conformance_enum_forms_and_sampling_continuations) {
       "inputResponses",
       parse_json(
           R"({"sample":{"role":"assistant","model":"model","content":[{"type":"text","text":"answer"},{"type":"tool_use","id":"call-1","name":"tool","input":{}}]}})"));
-  EXPECT_TRUE(mcp_validate_continuation(CURRENT, value, prior, std::nullopt));
+  EXPECT_TRUE(mcp_validate_continuation(CURRENT, value, prior));
   value.at("inputResponses")
       .at("sample")
       .at("content")
       .at(1)
       .assign("input", JSON{false});
-  EXPECT_FALSE(mcp_validate_continuation(CURRENT, value, prior, std::nullopt));
+  EXPECT_FALSE(mcp_validate_continuation(CURRENT, value, prior));
 }
 
 TEST(conformance_nested_descriptor_metadata) {
@@ -1833,21 +1855,18 @@ TEST(conformance_continuation_nested_metadata) {
             R"({"roots":{"roots":[{"uri":"file:///r"}]},"sample":{"role":"assistant","model":"model","content":{"type":"text","text":"hello"}}})"));
     auto &root{value.at("inputResponses").at("roots").at("roots").at(0)};
     root.assign("_meta", parse_json(text));
-    EXPECT_FALSE(
-        mcp_validate_continuation(CURRENT, value, prior, std::nullopt));
+    EXPECT_FALSE(mcp_validate_continuation(CURRENT, value, prior));
     root.erase("_meta");
     auto &sample{value.at("inputResponses").at("sample")};
     sample.assign("_meta", parse_json(text));
-    EXPECT_FALSE(
-        mcp_validate_continuation(CURRENT, value, prior, std::nullopt));
+    EXPECT_FALSE(mcp_validate_continuation(CURRENT, value, prior));
     sample.erase("_meta");
     sample.at("content").assign("_meta", parse_json(text));
-    EXPECT_FALSE(
-        mcp_validate_continuation(CURRENT, value, prior, std::nullopt));
+    EXPECT_FALSE(mcp_validate_continuation(CURRENT, value, prior));
     sample.at("content").assign(
         "_meta", parse_json(R"({"org.example/value":{"_meta":false}})"));
     root.assign("_meta", JSON::make_object());
-    EXPECT_TRUE(mcp_validate_continuation(CURRENT, value, prior, std::nullopt));
+    EXPECT_TRUE(mcp_validate_continuation(CURRENT, value, prior));
   }
 }
 
