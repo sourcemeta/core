@@ -1,0 +1,404 @@
+{
+  "schema": {
+    "$schema": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17",
+    "type": "object",
+    "properties": {
+      "pet": {
+        "$id": "https://www.sourcemeta.com/pet",
+        "type": "string",
+        "discriminator": {
+          "propertyName": "kind"
+        }
+      }
+    }
+  },
+  "root": {
+    "mode": "root",
+    "locations": {
+      "static": {
+        "": {
+          "parent": null,
+          "type": "subschema",
+          "root": null,
+          "base": "",
+          "pointer": "",
+          "relativePointer": "",
+          "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17",
+          "baseDialect": "https://json-schema.org/draft/2020-12/schema",
+          "propertyName": false,
+          "orphan": false,
+          "hasReferencesTo": false,
+          "hasReferencesThrough": false,
+          "vocabularies": {
+            "https://json-schema.org/draft/2020-12/vocab/core": true,
+            "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+            "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
+            "https://json-schema.org/draft/2020-12/vocab/validation": true,
+            "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
+            "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
+            "https://json-schema.org/draft/2020-12/vocab/content": true,
+            "https://spec.openapis.org/oas/3.2/vocab/base": false
+          }
+        }
+      },
+      "dynamic": {}
+    },
+    "references": []
+  },
+  "pointers": {
+    "mode": "pointers",
+    "locations": {
+      "static": {
+        "": {
+          "parent": null,
+          "type": "subschema",
+          "root": null,
+          "base": "",
+          "pointer": "",
+          "relativePointer": "",
+          "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17",
+          "baseDialect": "https://json-schema.org/draft/2020-12/schema",
+          "propertyName": false,
+          "orphan": false,
+          "hasReferencesTo": false,
+          "hasReferencesThrough": false,
+          "vocabularies": {
+            "https://json-schema.org/draft/2020-12/vocab/core": true,
+            "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+            "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
+            "https://json-schema.org/draft/2020-12/vocab/validation": true,
+            "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
+            "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
+            "https://json-schema.org/draft/2020-12/vocab/content": true,
+            "https://spec.openapis.org/oas/3.2/vocab/base": false
+          }
+        },
+        "#/$schema": {
+          "parent": "",
+          "type": "pointer",
+          "root": null,
+          "base": "",
+          "pointer": "/$schema",
+          "relativePointer": "/$schema",
+          "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17",
+          "baseDialect": "https://json-schema.org/draft/2020-12/schema",
+          "propertyName": false,
+          "orphan": false,
+          "hasReferencesTo": false,
+          "hasReferencesThrough": false,
+          "vocabularies": {
+            "https://json-schema.org/draft/2020-12/vocab/core": true,
+            "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+            "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
+            "https://json-schema.org/draft/2020-12/vocab/validation": true,
+            "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
+            "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
+            "https://json-schema.org/draft/2020-12/vocab/content": true,
+            "https://spec.openapis.org/oas/3.2/vocab/base": false
+          }
+        },
+        "#/properties": {
+          "parent": "",
+          "type": "pointer",
+          "root": null,
+          "base": "",
+          "pointer": "/properties",
+          "relativePointer": "/properties",
+          "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17",
+          "baseDialect": "https://json-schema.org/draft/2020-12/schema",
+          "propertyName": false,
+          "orphan": false,
+          "hasReferencesTo": false,
+          "hasReferencesThrough": false,
+          "vocabularies": {
+            "https://json-schema.org/draft/2020-12/vocab/core": true,
+            "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+            "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
+            "https://json-schema.org/draft/2020-12/vocab/validation": true,
+            "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
+            "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
+            "https://json-schema.org/draft/2020-12/vocab/content": true,
+            "https://spec.openapis.org/oas/3.2/vocab/base": false
+          }
+        },
+        "#/properties/pet": {
+          "parent": "",
+          "type": "subschema",
+          "root": null,
+          "base": "https://www.sourcemeta.com/pet",
+          "pointer": "/properties/pet",
+          "relativePointer": "",
+          "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17",
+          "baseDialect": "https://json-schema.org/draft/2020-12/schema",
+          "propertyName": false,
+          "orphan": false,
+          "hasReferencesTo": false,
+          "hasReferencesThrough": false,
+          "vocabularies": {
+            "https://json-schema.org/draft/2020-12/vocab/core": true,
+            "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+            "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
+            "https://json-schema.org/draft/2020-12/vocab/validation": true,
+            "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
+            "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
+            "https://json-schema.org/draft/2020-12/vocab/content": true,
+            "https://spec.openapis.org/oas/3.2/vocab/base": false
+          }
+        },
+        "#/properties/pet/$id": {
+          "parent": "/properties/pet",
+          "type": "pointer",
+          "root": null,
+          "base": "https://www.sourcemeta.com/pet",
+          "pointer": "/properties/pet/$id",
+          "relativePointer": "/$id",
+          "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17",
+          "baseDialect": "https://json-schema.org/draft/2020-12/schema",
+          "propertyName": false,
+          "orphan": false,
+          "hasReferencesTo": false,
+          "hasReferencesThrough": false,
+          "vocabularies": {
+            "https://json-schema.org/draft/2020-12/vocab/core": true,
+            "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+            "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
+            "https://json-schema.org/draft/2020-12/vocab/validation": true,
+            "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
+            "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
+            "https://json-schema.org/draft/2020-12/vocab/content": true,
+            "https://spec.openapis.org/oas/3.2/vocab/base": false
+          }
+        },
+        "#/properties/pet/discriminator": {
+          "parent": "/properties/pet",
+          "type": "pointer",
+          "root": null,
+          "base": "https://www.sourcemeta.com/pet",
+          "pointer": "/properties/pet/discriminator",
+          "relativePointer": "/discriminator",
+          "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17",
+          "baseDialect": "https://json-schema.org/draft/2020-12/schema",
+          "propertyName": false,
+          "orphan": false,
+          "hasReferencesTo": false,
+          "hasReferencesThrough": false,
+          "vocabularies": {
+            "https://json-schema.org/draft/2020-12/vocab/core": true,
+            "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+            "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
+            "https://json-schema.org/draft/2020-12/vocab/validation": true,
+            "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
+            "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
+            "https://json-schema.org/draft/2020-12/vocab/content": true,
+            "https://spec.openapis.org/oas/3.2/vocab/base": false
+          }
+        },
+        "#/properties/pet/discriminator/propertyName": {
+          "parent": "/properties/pet",
+          "type": "pointer",
+          "root": null,
+          "base": "https://www.sourcemeta.com/pet",
+          "pointer": "/properties/pet/discriminator/propertyName",
+          "relativePointer": "/discriminator/propertyName",
+          "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17",
+          "baseDialect": "https://json-schema.org/draft/2020-12/schema",
+          "propertyName": false,
+          "orphan": false,
+          "hasReferencesTo": false,
+          "hasReferencesThrough": false,
+          "vocabularies": {
+            "https://json-schema.org/draft/2020-12/vocab/core": true,
+            "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+            "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
+            "https://json-schema.org/draft/2020-12/vocab/validation": true,
+            "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
+            "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
+            "https://json-schema.org/draft/2020-12/vocab/content": true,
+            "https://spec.openapis.org/oas/3.2/vocab/base": false
+          }
+        },
+        "#/properties/pet/type": {
+          "parent": "/properties/pet",
+          "type": "pointer",
+          "root": null,
+          "base": "https://www.sourcemeta.com/pet",
+          "pointer": "/properties/pet/type",
+          "relativePointer": "/type",
+          "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17",
+          "baseDialect": "https://json-schema.org/draft/2020-12/schema",
+          "propertyName": false,
+          "orphan": false,
+          "hasReferencesTo": false,
+          "hasReferencesThrough": false,
+          "vocabularies": {
+            "https://json-schema.org/draft/2020-12/vocab/core": true,
+            "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+            "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
+            "https://json-schema.org/draft/2020-12/vocab/validation": true,
+            "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
+            "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
+            "https://json-schema.org/draft/2020-12/vocab/content": true,
+            "https://spec.openapis.org/oas/3.2/vocab/base": false
+          }
+        },
+        "#/type": {
+          "parent": "",
+          "type": "pointer",
+          "root": null,
+          "base": "",
+          "pointer": "/type",
+          "relativePointer": "/type",
+          "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17",
+          "baseDialect": "https://json-schema.org/draft/2020-12/schema",
+          "propertyName": false,
+          "orphan": false,
+          "hasReferencesTo": false,
+          "hasReferencesThrough": false,
+          "vocabularies": {
+            "https://json-schema.org/draft/2020-12/vocab/core": true,
+            "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+            "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
+            "https://json-schema.org/draft/2020-12/vocab/validation": true,
+            "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
+            "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
+            "https://json-schema.org/draft/2020-12/vocab/content": true,
+            "https://spec.openapis.org/oas/3.2/vocab/base": false
+          }
+        },
+        "https://www.sourcemeta.com/pet": {
+          "parent": "",
+          "type": "resource",
+          "root": null,
+          "base": "https://www.sourcemeta.com/pet",
+          "pointer": "/properties/pet",
+          "relativePointer": "",
+          "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17",
+          "baseDialect": "https://json-schema.org/draft/2020-12/schema",
+          "propertyName": false,
+          "orphan": false,
+          "hasReferencesTo": false,
+          "hasReferencesThrough": false,
+          "vocabularies": {
+            "https://json-schema.org/draft/2020-12/vocab/core": true,
+            "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+            "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
+            "https://json-schema.org/draft/2020-12/vocab/validation": true,
+            "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
+            "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
+            "https://json-schema.org/draft/2020-12/vocab/content": true,
+            "https://spec.openapis.org/oas/3.2/vocab/base": false
+          }
+        },
+        "https://www.sourcemeta.com/pet#/$id": {
+          "parent": "/properties/pet",
+          "type": "pointer",
+          "root": null,
+          "base": "https://www.sourcemeta.com/pet",
+          "pointer": "/properties/pet/$id",
+          "relativePointer": "/$id",
+          "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17",
+          "baseDialect": "https://json-schema.org/draft/2020-12/schema",
+          "propertyName": false,
+          "orphan": false,
+          "hasReferencesTo": false,
+          "hasReferencesThrough": false,
+          "vocabularies": {
+            "https://json-schema.org/draft/2020-12/vocab/core": true,
+            "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+            "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
+            "https://json-schema.org/draft/2020-12/vocab/validation": true,
+            "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
+            "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
+            "https://json-schema.org/draft/2020-12/vocab/content": true,
+            "https://spec.openapis.org/oas/3.2/vocab/base": false
+          }
+        },
+        "https://www.sourcemeta.com/pet#/discriminator": {
+          "parent": "/properties/pet",
+          "type": "pointer",
+          "root": null,
+          "base": "https://www.sourcemeta.com/pet",
+          "pointer": "/properties/pet/discriminator",
+          "relativePointer": "/discriminator",
+          "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17",
+          "baseDialect": "https://json-schema.org/draft/2020-12/schema",
+          "propertyName": false,
+          "orphan": false,
+          "hasReferencesTo": false,
+          "hasReferencesThrough": false,
+          "vocabularies": {
+            "https://json-schema.org/draft/2020-12/vocab/core": true,
+            "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+            "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
+            "https://json-schema.org/draft/2020-12/vocab/validation": true,
+            "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
+            "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
+            "https://json-schema.org/draft/2020-12/vocab/content": true,
+            "https://spec.openapis.org/oas/3.2/vocab/base": false
+          }
+        },
+        "https://www.sourcemeta.com/pet#/discriminator/propertyName": {
+          "parent": "/properties/pet",
+          "type": "pointer",
+          "root": null,
+          "base": "https://www.sourcemeta.com/pet",
+          "pointer": "/properties/pet/discriminator/propertyName",
+          "relativePointer": "/discriminator/propertyName",
+          "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17",
+          "baseDialect": "https://json-schema.org/draft/2020-12/schema",
+          "propertyName": false,
+          "orphan": false,
+          "hasReferencesTo": false,
+          "hasReferencesThrough": false,
+          "vocabularies": {
+            "https://json-schema.org/draft/2020-12/vocab/core": true,
+            "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+            "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
+            "https://json-schema.org/draft/2020-12/vocab/validation": true,
+            "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
+            "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
+            "https://json-schema.org/draft/2020-12/vocab/content": true,
+            "https://spec.openapis.org/oas/3.2/vocab/base": false
+          }
+        },
+        "https://www.sourcemeta.com/pet#/type": {
+          "parent": "/properties/pet",
+          "type": "pointer",
+          "root": null,
+          "base": "https://www.sourcemeta.com/pet",
+          "pointer": "/properties/pet/type",
+          "relativePointer": "/type",
+          "dialect": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17",
+          "baseDialect": "https://json-schema.org/draft/2020-12/schema",
+          "propertyName": false,
+          "orphan": false,
+          "hasReferencesTo": false,
+          "hasReferencesThrough": false,
+          "vocabularies": {
+            "https://json-schema.org/draft/2020-12/vocab/core": true,
+            "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+            "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
+            "https://json-schema.org/draft/2020-12/vocab/validation": true,
+            "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
+            "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
+            "https://json-schema.org/draft/2020-12/vocab/content": true,
+            "https://spec.openapis.org/oas/3.2/vocab/base": false
+          }
+        }
+      },
+      "dynamic": {}
+    },
+    "references": [
+      {
+        "type": "static",
+        "origin": "/$schema",
+        "original": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17",
+        "destination": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17",
+        "base": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17",
+        "fragment": null
+      }
+    ]
+  },
+  "standalone": true,
+  "standaloneIgnoringMetaschemas": true
+}
