@@ -242,6 +242,43 @@ auto create_term_definition(ExpansionState &state,
   } else if (value.is_object()) {
     const bool has_id{id_entry != nullptr};
     const JSON *const identifier{id_entry};
+
+    // The protected flag and the type mapping are settled before the entry
+    // that names the term is, so what either of them says wrong is reported
+    // whichever way the term is named (JSON-LD 1.1 API Section 5.1.1 steps 13
+    // and 14)
+    if (const auto *protected_entry{
+            value.try_at(KEYWORD_PROTECTED, KEYWORD_PROTECTED_HASH)}) {
+      if (!protected_entry->is_boolean()) {
+        throw JSONLDError("Invalid @protected value", term_pointer,
+                          {KEYWORD_PROTECTED});
+      }
+      if (state.processing_1_0) {
+        throw JSONLDError("Invalid term definition", term_pointer,
+                          {KEYWORD_PROTECTED});
+      }
+      definition.is_protected = protected_entry->to_boolean();
+    }
+
+    if (const auto *type_entry{value.try_at(KEYWORD_TYPE, KEYWORD_TYPE_HASH)}) {
+      const auto &type_value{*type_entry};
+      if (!type_value.is_string()) {
+        throw JSONLDError("Invalid type mapping", term_pointer, {KEYWORD_TYPE});
+      }
+      const auto type{expand_iri(state, active_context, type_value.to_string(),
+                                 false, true, &local_context, &defined,
+                                 context_pointer)};
+      if (!type.has_value() || type.value().starts_with("_:") ||
+          (type.value() != KEYWORD_ID && type.value() != KEYWORD_VOCAB &&
+           type.value() != KEYWORD_JSON && type.value() != KEYWORD_NONE &&
+           !type.value().contains(':')) ||
+          (state.processing_1_0 &&
+           (type.value() == KEYWORD_JSON || type.value() == KEYWORD_NONE))) {
+        throw JSONLDError("Invalid type mapping", term_pointer, {KEYWORD_TYPE});
+      }
+      definition.type_mapping = type;
+    }
+
     if (const auto *reverse_entry{
             value.try_at(KEYWORD_REVERSE, KEYWORD_REVERSE_HASH)}) {
       if (has_id || value.defines(KEYWORD_NEST, KEYWORD_NEST_HASH)) {
@@ -253,16 +290,19 @@ auto create_term_definition(ExpansionState &state,
         throw JSONLDError("Invalid IRI mapping", term_pointer,
                           {KEYWORD_REVERSE});
       }
+      // A reverse value that looks like a keyword is left alone, the keywords
+      // themselves included (JSON-LD 1.1 API Section 5.1.1 step 15.3)
+      if (has_keyword_form(reverse.to_string())) {
+        defined[term] = true;
+        return;
+      }
+
       definition.reverse = true;
       definition.iri =
           expand_iri(state, active_context, reverse.to_string(), false, true,
                      &local_context, &defined, context_pointer);
-      if (!definition.iri.has_value()) {
-        // A reverse value with the form of a keyword is ignored.
-        defined[term] = true;
-        return;
-      }
-      if (!definition.iri.value().contains(':')) {
+      if (!definition.iri.has_value() ||
+          !definition.iri.value().contains(':')) {
         throw JSONLDError("Invalid IRI mapping", term_pointer,
                           {KEYWORD_REVERSE});
       }
@@ -325,25 +365,6 @@ auto create_term_definition(ExpansionState &state,
                                   nullptr, nullptr, EMPTY_WEAK_POINTER);
     } else if (active_context.vocabulary.has_value()) {
       definition.iri = active_context.vocabulary.value() + term;
-    }
-
-    if (const auto *type_entry{value.try_at(KEYWORD_TYPE, KEYWORD_TYPE_HASH)}) {
-      const auto &type_value{*type_entry};
-      if (!type_value.is_string()) {
-        throw JSONLDError("Invalid type mapping", term_pointer, {KEYWORD_TYPE});
-      }
-      const auto type{expand_iri(state, active_context, type_value.to_string(),
-                                 false, true, &local_context, &defined,
-                                 context_pointer)};
-      if (!type.has_value() || type.value().starts_with("_:") ||
-          (type.value() != KEYWORD_ID && type.value() != KEYWORD_VOCAB &&
-           type.value() != KEYWORD_JSON && type.value() != KEYWORD_NONE &&
-           !type.value().contains(':')) ||
-          (state.processing_1_0 &&
-           (type.value() == KEYWORD_JSON || type.value() == KEYWORD_NONE))) {
-        throw JSONLDError("Invalid type mapping", term_pointer, {KEYWORD_TYPE});
-      }
-      definition.type_mapping = type;
     }
 
     if (const auto *container_entry{
@@ -591,19 +612,6 @@ auto create_term_definition(ExpansionState &state,
       }
       definition.index = index_string;
       definition.index_iri = index_iri.value();
-    }
-
-    if (const auto *protected_entry{
-            value.try_at(KEYWORD_PROTECTED, KEYWORD_PROTECTED_HASH)}) {
-      if (!protected_entry->is_boolean()) {
-        throw JSONLDError("Invalid @protected value", term_pointer,
-                          {KEYWORD_PROTECTED});
-      }
-      if (state.processing_1_0) {
-        throw JSONLDError("Invalid term definition", term_pointer,
-                          {KEYWORD_PROTECTED});
-      }
-      definition.is_protected = protected_entry->to_boolean();
     }
 
     // A term definition may not contain any entry other than the keywords
