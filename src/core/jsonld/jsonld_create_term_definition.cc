@@ -253,16 +253,19 @@ auto create_term_definition(ExpansionState &state,
         throw JSONLDError("Invalid IRI mapping", term_pointer,
                           {KEYWORD_REVERSE});
       }
+      // A reverse value that looks like a keyword is left alone, the keywords
+      // themselves included (JSON-LD 1.1 API Section 5.1.1 step 15.3)
+      if (has_keyword_form(reverse.to_string())) {
+        defined[term] = true;
+        return;
+      }
+
       definition.reverse = true;
       definition.iri =
           expand_iri(state, active_context, reverse.to_string(), false, true,
                      &local_context, &defined, context_pointer);
-      if (!definition.iri.has_value()) {
-        // A reverse value with the form of a keyword is ignored.
-        defined[term] = true;
-        return;
-      }
-      if (!definition.iri.value().contains(':')) {
+      if (!definition.iri.has_value() ||
+          !definition.iri.value().contains(':')) {
         throw JSONLDError("Invalid IRI mapping", term_pointer,
                           {KEYWORD_REVERSE});
       }

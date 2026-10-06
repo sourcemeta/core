@@ -1190,3 +1190,42 @@ TEST(index_map_array_value_keeps_the_type_scoped_context) {
 
   EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
 }
+
+TEST(context_direction_applies_to_a_value) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "@direction": "rtl", "p": "https://example.com/p" },
+    "p": "v"
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    { "https://example.com/p": [ { "@value": "v", "@direction": "rtl" } ] }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(reverse_term_with_a_keyword_value_is_ignored) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "p": { "@reverse": "@id" } },
+    "http://example.com/q": "v"
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    { "http://example.com/q": [ { "@value": "v" } ] }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(reverse_term_with_a_keyword_form_value_is_ignored) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "p": { "@reverse": "@foo" } },
+    "http://example.com/q": "v"
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    { "http://example.com/q": [ { "@value": "v" } ] }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}

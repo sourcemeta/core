@@ -253,11 +253,28 @@ auto process_context(ExpansionState &state, ActiveContext &active_context,
       throw JSONLDError("Processing mode conflict", location,
                         {KEYWORD_VERSION});
     }
-    if (state.processing_1_0 &&
-        (context.defines(KEYWORD_PROPAGATE, KEYWORD_PROPAGATE_HASH) ||
-         context.defines(KEYWORD_IMPORT, KEYWORD_IMPORT_HASH) ||
-         context.defines(KEYWORD_PROTECTED, KEYWORD_PROTECTED_HASH))) {
-      throw JSONLDError("Invalid context entry", location);
+    // The entries 1.1 introduced are refused one by one in the order the
+    // algorithm reaches them, so each names itself (JSON-LD 1.1 API Section 5.1
+    // steps 5.6.1, 5.10.1 and 5.11.1)
+    if (state.processing_1_0) {
+      if (context.defines(KEYWORD_IMPORT, KEYWORD_IMPORT_HASH)) {
+        throw JSONLDError("Invalid context entry", location, {KEYWORD_IMPORT});
+      }
+
+      if (context.defines(KEYWORD_DIRECTION, KEYWORD_DIRECTION_HASH)) {
+        throw JSONLDError("Invalid context entry", location,
+                          {KEYWORD_DIRECTION});
+      }
+
+      if (context.defines(KEYWORD_PROPAGATE, KEYWORD_PROPAGATE_HASH)) {
+        throw JSONLDError("Invalid context entry", location,
+                          {KEYWORD_PROPAGATE});
+      }
+
+      if (context.defines(KEYWORD_PROTECTED, KEYWORD_PROTECTED_HASH)) {
+        throw JSONLDError("Invalid context entry", location,
+                          {KEYWORD_PROTECTED});
+      }
     }
 
     if (const auto *propagate_entry{

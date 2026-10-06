@@ -315,7 +315,7 @@ TEST(invalid_context_entry) {
   EXPECT_JSONLD_EXPAND_ERROR(
       sourcemeta::core::jsonld_expand(input, "", {},
                                       sourcemeta::core::JSONLDVersion::V1_0),
-      "Invalid context entry", "/@context");
+      "Invalid context entry", "/@context/@protected");
 }
 
 TEST(loading_remote_context_failed) {
@@ -1254,4 +1254,40 @@ TEST(reverse_map_error_under_a_protected_type_scope) {
   EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
                              "Invalid reverse property value",
                              "/@reverse/https:~1~1example.com~1p");
+}
+
+TEST(direction_in_a_context_in_1_0) {
+  const auto input = sourcemeta::core::parse_json(
+      R"({ "@context": { "@direction": "ltr" } })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(
+      sourcemeta::core::jsonld_expand(input, "", {},
+                                      sourcemeta::core::JSONLDVersion::V1_0),
+      "Invalid context entry", "/@context/@direction");
+}
+
+TEST(malformed_context_reference_fails_to_load_against_a_base) {
+  const auto input = sourcemeta::core::parse_json(
+      R"({ "@context": "https://example.com/%zz" })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(
+      sourcemeta::core::jsonld_expand(input, "https://example.com/"),
+      "Loading document failed", "/@context");
+}
+
+TEST(malformed_import_reference_fails_to_load_against_a_base) {
+  const auto input = sourcemeta::core::parse_json(
+      R"({ "@context": { "@import": "https://example.com/%zz" } })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(
+      sourcemeta::core::jsonld_expand(input, "https://example.com/"),
+      "Loading remote context failed", "/@context/@import");
+}
+
+TEST(context_reference_against_a_malformed_base_fails_to_load) {
+  const auto input =
+      sourcemeta::core::parse_json(R"({ "@context": "context.jsonld" })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input, "bad base"),
+                             "Loading document failed", "/@context");
 }
