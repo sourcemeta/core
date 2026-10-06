@@ -38,6 +38,18 @@ auto absolute_reference(const std::optional<JSON::String> &base,
   }
 }
 
+// What the resolver answers with, where an error of this library's own kind
+// coming out of it would otherwise reach the caller carrying a position that
+// belongs to another document
+auto resolve(const JSONLDResolver &resolver, const JSON::String &reference)
+    -> std::optional<JSON> {
+  try {
+    return resolver(reference);
+  } catch (const JSONLDError &) {
+    return std::nullopt;
+  }
+}
+
 // The base IRI a value sets, resolved against the current one when there is
 // one. A string the parser rejects, and a relative reference with no base to
 // resolve it against, both name no base (JSON-LD 1.1 API Section 5.1 steps
@@ -143,10 +155,16 @@ auto process_context(ExpansionState &state, ActiveContext &active_context,
       // the document base. The relativise option and the processing mode are
       // processing state rather than context state, so they survive the reset.
       const bool relativise{active_context.compact_to_relative};
+      // What a scope reverts to outlives the nullification inside it, or the
+      // nodes below would never regain the context the scope was entered from
+      // (JSON-LD 1.1 API Section 5.1 step 5.1.2)
+      auto saved_previous{effective_propagate ? nullptr
+                                              : active_context.previous};
       active_context = ActiveContext{};
       active_context.base = state.document_base;
       active_context.compact_to_relative = relativise;
       active_context.processing_1_0 = state.processing_1_0;
+      active_context.previous = std::move(saved_previous);
       continue;
     }
 
@@ -159,18 +177,31 @@ auto process_context(ExpansionState &state, ActiveContext &active_context,
 
       const auto &reference{resolved.value()};
 
+      bool already_loaded{false};
       for (const auto &loaded : state.remote_context_chain) {
         if (loaded == reference) {
-          // A scoped context can be loaded again on purpose, so JSON-LD 1.1
-          // withdrew the recursion error and treats meeting a context already
-          // in the chain as reaching the limit on how many may be loaded
-          // (JSON-LD 1.1 API Section 5.1 step 5.2.3)
-          if (state.processing_1_0) {
-            throw JSONLDError("Recursive context inclusion", location);
-          }
-
-          throw JSONLDError("Context overflow", location);
+          already_loaded = true;
+          break;
         }
+      }
+
+      // A scoped context being validated stops at a reference that is already
+      // loading rather than treating it as recursion (JSON-LD 1.1 API Section
+      // 5.1 step 5.2.2)
+      if (already_loaded && !state.validate_scoped_context) {
+        continue;
+      }
+
+      if (already_loaded) {
+        // A scoped context can be loaded again on purpose, so JSON-LD 1.1
+        // withdrew the recursion error and treats meeting a context already
+        // in the chain as reaching the limit on how many may be loaded
+        // (JSON-LD 1.1 API Section 5.1 step 5.2.3)
+        if (state.processing_1_0) {
+          throw JSONLDError("Recursive context inclusion", location);
+        }
+
+        throw JSONLDError("Context overflow", location);
       }
       if (state.remote_context_chain.size() >=
           ExpansionState::MAXIMUM_REMOTE_CONTEXTS) {
@@ -179,7 +210,7 @@ auto process_context(ExpansionState &state, ActiveContext &active_context,
       if (state.resolver == nullptr || !*state.resolver) {
         throw JSONLDError("Loading remote context failed", location);
       }
-      const auto document{(*state.resolver)(reference)};
+      const auto document{resolve(*state.resolver, reference)};
       if (!document.has_value()) {
         throw JSONLDError("Loading remote context failed", location);
       }
@@ -267,7 +298,7 @@ auto process_context(ExpansionState &state, ActiveContext &active_context,
         throw JSONLDError("Loading remote context failed", location,
                           {KEYWORD_IMPORT});
       }
-      const auto document{(*state.resolver)(reference)};
+      const auto document{resolve(*state.resolver, reference)};
       if (!document.has_value()) {
         throw JSONLDError("Loading remote context failed", location,
                           {KEYWORD_IMPORT});
