@@ -1321,3 +1321,31 @@ TEST(the_import_entry_precedes_the_base_entry_in_1_0) {
                                       sourcemeta::core::JSONLDVersion::V1_0),
       "Invalid context entry", "/@context/@import");
 }
+
+TEST(keyword_reverse_term_still_validates_its_type) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "p": { "@reverse": "@id", "@type": true } }
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Invalid type mapping", "/@context/p/@type");
+}
+
+TEST(keyword_reverse_term_still_validates_its_protected_flag) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "p": { "@reverse": "@id", "@protected": "yes" } }
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Invalid @protected value",
+                             "/@context/p/@protected");
+}
+
+TEST(invalid_type_mapping_precedes_an_invalid_identifier) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "p": { "@id": true, "@type": true } }
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Invalid type mapping", "/@context/p/@type");
+}
