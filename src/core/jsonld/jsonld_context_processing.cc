@@ -253,35 +253,18 @@ auto process_context(ExpansionState &state, ActiveContext &active_context,
       throw JSONLDError("Processing mode conflict", location,
                         {KEYWORD_VERSION});
     }
-    // The entries 1.1 introduced are refused one by one in the order the
-    // algorithm reaches them, so each names itself (JSON-LD 1.1 API Section 5.1
-    // steps 5.6.1, 5.10.1 and 5.11.1)
+    // The entries 1.1 introduced are refused where the algorithm reaches them,
+    // so each names itself and none stands in for an entry judged earlier
+    // (JSON-LD 1.1 API Section 5.1 step 5.6.1)
     if (state.processing_1_0) {
       if (context.defines(KEYWORD_IMPORT, KEYWORD_IMPORT_HASH)) {
         throw JSONLDError("Invalid context entry", location, {KEYWORD_IMPORT});
-      }
-
-      if (context.defines(KEYWORD_DIRECTION, KEYWORD_DIRECTION_HASH)) {
-        throw JSONLDError("Invalid context entry", location,
-                          {KEYWORD_DIRECTION});
-      }
-
-      if (context.defines(KEYWORD_PROPAGATE, KEYWORD_PROPAGATE_HASH)) {
-        throw JSONLDError("Invalid context entry", location,
-                          {KEYWORD_PROPAGATE});
       }
 
       if (context.defines(KEYWORD_PROTECTED, KEYWORD_PROTECTED_HASH)) {
         throw JSONLDError("Invalid context entry", location,
                           {KEYWORD_PROTECTED});
       }
-    }
-
-    if (const auto *propagate_entry{
-            context.try_at(KEYWORD_PROPAGATE, KEYWORD_PROPAGATE_HASH)};
-        propagate_entry != nullptr && !propagate_entry->is_boolean()) {
-      throw JSONLDError("Invalid @propagate value", location,
-                        {KEYWORD_PROPAGATE});
     }
 
     // @protected applies to imported terms too, so it is set before @import.
@@ -401,8 +384,14 @@ auto process_context(ExpansionState &state, ActiveContext &active_context,
       }
     }
 
+    // (JSON-LD 1.1 API Section 5.1 step 5.10)
     if (const auto *direction_entry{
             context.try_at(KEYWORD_DIRECTION, KEYWORD_DIRECTION_HASH)}) {
+      if (state.processing_1_0) {
+        throw JSONLDError("Invalid context entry", location,
+                          {KEYWORD_DIRECTION});
+      }
+
       const auto &direction{*direction_entry};
       if (direction.is_null()) {
         active_context.default_direction = std::nullopt;
@@ -416,6 +405,22 @@ auto process_context(ExpansionState &state, ActiveContext &active_context,
                             {KEYWORD_DIRECTION});
         }
         active_context.default_direction = direction_string;
+      }
+    }
+
+    // The flag itself is read before the entries are, so that a context that
+    // does not propagate is remembered first, and only what it says is judged
+    // here (JSON-LD 1.1 API Section 5.1 step 5.11)
+    if (const auto *propagate_entry{
+            context.try_at(KEYWORD_PROPAGATE, KEYWORD_PROPAGATE_HASH)}) {
+      if (state.processing_1_0) {
+        throw JSONLDError("Invalid context entry", location,
+                          {KEYWORD_PROPAGATE});
+      }
+
+      if (!propagate_entry->is_boolean()) {
+        throw JSONLDError("Invalid @propagate value", location,
+                          {KEYWORD_PROPAGATE});
       }
     }
 

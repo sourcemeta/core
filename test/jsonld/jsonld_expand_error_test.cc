@@ -1291,3 +1291,33 @@ TEST(context_reference_against_a_malformed_base_fails_to_load) {
   EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input, "bad base"),
                              "Loading document failed", "/@context");
 }
+
+TEST(invalid_base_precedes_the_direction_entry_in_1_0) {
+  const auto input = sourcemeta::core::parse_json(
+      R"({ "@context": { "@base": true, "@direction": "ltr" } })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(
+      sourcemeta::core::jsonld_expand(input, "", {},
+                                      sourcemeta::core::JSONLDVersion::V1_0),
+      "Invalid base IRI", "/@context/@base");
+}
+
+TEST(invalid_vocabulary_precedes_the_propagate_entry_in_1_0) {
+  const auto input = sourcemeta::core::parse_json(
+      R"({ "@context": { "@vocab": true, "@propagate": false } })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(
+      sourcemeta::core::jsonld_expand(input, "", {},
+                                      sourcemeta::core::JSONLDVersion::V1_0),
+      "Invalid vocab mapping", "/@context/@vocab");
+}
+
+TEST(the_import_entry_precedes_the_base_entry_in_1_0) {
+  const auto input = sourcemeta::core::parse_json(
+      R"({ "@context": { "@base": true, "@import": "ctx.jsonld" } })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(
+      sourcemeta::core::jsonld_expand(input, "", {},
+                                      sourcemeta::core::JSONLDVersion::V1_0),
+      "Invalid context entry", "/@context/@import");
+}
