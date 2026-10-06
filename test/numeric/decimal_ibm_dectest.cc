@@ -157,6 +157,22 @@ static auto spells_a_negative_zero(const std::string &value) -> bool {
   return parsed.is_zero() && parsed.is_signed();
 }
 
+// The quiet NaN a two-operand extremum hands back, where a signaling operand
+// comes before a quiet one and the left before the right (IEEE 754-2008
+// Section 6.2)
+static auto decimal_propagate_nan(const sourcemeta::core::Decimal &left,
+                                  const sourcemeta::core::Decimal &right)
+    -> sourcemeta::core::Decimal {
+  const bool left_first{left.is_snan() || (!right.is_snan() && left.is_nan())};
+  const auto &source{left_first ? left : right};
+  auto result{sourcemeta::core::Decimal::nan(source.nan_payload())};
+  if (source.is_signed()) {
+    result = -result;
+  }
+
+  return result;
+}
+
 static auto expect_comparison_result(const sourcemeta::core::Decimal &left,
                                      const sourcemeta::core::Decimal &right,
                                      const std::string &expected) -> bool {
@@ -322,8 +338,8 @@ static auto run_copysign(const DecTestCase &test_case) -> void {
 static auto run_logb(const DecTestCase &test_case) -> void {
   if (has_condition(test_case.conditions, "division_by_zero")) {
     try {
-      auto result = make_decimal(test_case.operand1).logb();
-      static_cast<void>(result);
+      [[maybe_unused]] const auto result{
+          make_decimal(test_case.operand1).logb()};
       FAIL();
     } catch (const sourcemeta::core::NumericDivisionByZeroError &) {
       // Signalling the condition rather than returning infinity is expected too
@@ -341,12 +357,12 @@ static auto run_max_min(const DecTestCase &test_case, bool is_max,
   const auto expected{make_decimal(test_case.expected)};
 
   if (left.is_snan() || right.is_snan()) {
-    EXPECT_TRUE(expected.is_nan());
+    expect_decimal_eq(decimal_propagate_nan(left, right), expected);
     return;
   }
 
   if (left.is_qnan() && right.is_qnan()) {
-    EXPECT_TRUE(expected.is_nan());
+    expect_decimal_eq(decimal_propagate_nan(left, right), expected);
     return;
   }
 
