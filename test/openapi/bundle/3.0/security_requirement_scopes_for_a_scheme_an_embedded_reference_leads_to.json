@@ -1,0 +1,50 @@
+{
+  "document": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "securitySchemes": {
+        "Key": {
+          "$ref": "shared.json#/components/securitySchemes/Key"
+        }
+      }
+    },
+    "security": [
+      {
+        "Key": [
+          "read"
+        ]
+      }
+    ]
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/shared.json": {
+      "openapi": "3.0.4",
+      "info": {
+        "title": "Shared",
+        "version": "1.0.0"
+      },
+      "paths": {},
+      "components": {
+        "securitySchemes": {
+          "Key": {
+            "type": "apiKey",
+            "name": "key",
+            "in": "header"
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "error": {
+    "type": "OpenAPIError",
+    "message": "The Security Requirement Object entry must be empty for a security scheme of this type",
+    "location": "/security/0/Key"
+  }
+}

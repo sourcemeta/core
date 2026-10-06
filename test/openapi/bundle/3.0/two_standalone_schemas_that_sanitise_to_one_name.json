@@ -1,0 +1,76 @@
+{
+  "document": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "schemas": {
+        "First": {
+          "$ref": "https://example.com/one/pet.json"
+        },
+        "Second": {
+          "$ref": "https://example.com/two/pet.json"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {},
+  "schemaResolver": {
+    "https://example.com/one/pet.json": {
+      "type": "object",
+      "title": "One"
+    },
+    "https://example.com/two/pet.json": {
+      "type": "object",
+      "title": "Two"
+    }
+  },
+  "result": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "schemas": {
+        "First": {
+          "$ref": "#/components/schemas/pet.json"
+        },
+        "Second": {
+          "$ref": "#/components/schemas/pet.json_"
+        },
+        "pet.json": {
+          "type": "object",
+          "title": "One"
+        },
+        "pet.json_": {
+          "type": "object",
+          "title": "Two"
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/one/pet.json",
+      "at": "/components/schemas/pet.json"
+    },
+    {
+      "from": "https://example.com/two/pet.json",
+      "at": "/components/schemas/pet.json_"
+    }
+  ],
+  "reads": {},
+  "schemaReads": {
+    "https://example.com/one/pet.json": 1,
+    "https://example.com/two/pet.json": 1
+  },
+  "standalone": true,
+  "relocatable": true,
+  "operations": []
+}

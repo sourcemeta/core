@@ -1,0 +1,103 @@
+{
+  "document": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "schemas": {
+        "Pet": {
+          "type": "object"
+        },
+        "Wrap": {
+          "$ref": "shared/api.json#/components/schemas/Pet"
+        }
+      }
+    },
+    "paths": {}
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/shared/api.json": {
+      "openapi": "3.0.4",
+      "info": {
+        "title": "Example",
+        "version": "1.0.0"
+      },
+      "components": {
+        "schemas": {
+          "Pet": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Pet/properties/Cat"
+              }
+            ],
+            "discriminator": {
+              "propertyName": "petType",
+              "mapping": {
+                "cat": "#/components/schemas/Pet/properties/Cat"
+              }
+            },
+            "properties": {
+              "Cat": {
+                "title": "REMOTE CAT"
+              }
+            }
+          }
+        }
+      },
+      "paths": {}
+    }
+  },
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "schemas": {
+        "Pet": {
+          "type": "object"
+        },
+        "Wrap": {
+          "$ref": "#/components/schemas/Pet_"
+        },
+        "Pet_": {
+          "oneOf": [
+            {
+              "$ref": "#/components/schemas/Pet_/properties/Cat"
+            }
+          ],
+          "discriminator": {
+            "propertyName": "petType",
+            "mapping": {
+              "cat": "#/components/schemas/Pet_/properties/Cat"
+            }
+          },
+          "properties": {
+            "Cat": {
+              "title": "REMOTE CAT"
+            }
+          }
+        }
+      }
+    },
+    "paths": {}
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/shared/api.json#/components/schemas/Pet",
+      "at": "/components/schemas/Pet_"
+    }
+  ],
+  "reads": {
+    "https://example.com/shared/api.json": 1
+  },
+  "schemaReads": {},
+  "standalone": true,
+  "relocatable": true,
+  "operations": []
+}

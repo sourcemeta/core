@@ -264,6 +264,46 @@ struct OpenAPIWalk {
   std::uint64_t limit{std::numeric_limits<std::uint64_t>::max()};
 };
 
+// Whether a Schema Object of this revision may carry the keywords that name the
+// dialect it is written against and the identity it answers to. OpenAPI
+// Specification 3.0.4, Schema Object, lists the twenty-seven keywords it takes
+// from JSON Schema, tables eight of its own, and closes the set: "Additional
+// keywords defined by the JSON Schema specification that are not mentioned here
+// are strictly unsupported". Neither keyword is among them, so a Schema Object
+// of that revision can say neither what it is written against nor what it
+// answers to, and writing either leaves a declaration that reading the result
+// back refuses
+inline auto
+openapi_schema_object_is_self_describing(const OpenAPIVersion version) noexcept
+    -> bool {
+  return version >= OpenAPIVersion::OPENAPI_3_1;
+}
+
+// Whether a Schema Object of this revision may be a boolean. OpenAPI
+// Specification 3.1.1, Section 4.8.24: "The empty schema (which allows any
+// instance to validate) MAY be represented by the boolean value `true` and a
+// schema which allows no instance to validate MAY be represented by the
+// boolean value `false`". 3.0.4, Schema Object, instead has one be "an
+// extended subset of the JSON Schema Specification Draft Wright-00", whose
+// Section 4.4 reads "A JSON schema MUST be an object", so the boolean form is
+// one the later revision brings and the earlier one has no room for
+inline auto
+openapi_schema_object_is_boolean(const OpenAPIVersion version) noexcept
+    -> bool {
+  return version >= OpenAPIVersion::OPENAPI_3_1;
+}
+
+// Whether the Components Object of this revision holds a Path Item Object.
+// OpenAPI Specification 3.1.1, Section 4.8.7 adds `pathItems`, there being no
+// Path Item Object to hold until that revision lets `webhooks` and a reference
+// reach one. 3.0.4, Components Object, tables nine containers without it and
+// closes the Object to everything but a `^x-` field
+inline auto
+openapi_components_hold_path_items(const OpenAPIVersion version) noexcept
+    -> bool {
+  return version >= OpenAPIVersion::OPENAPI_3_1;
+}
+
 // Where a position that stands in for another leads, following as far as the
 // chain goes. A Reference Object may name another one, so this is a walk
 // rather than a lookup, and a position that stands in for nothing is itself

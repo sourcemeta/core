@@ -1,0 +1,69 @@
+{
+  "document": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "schemas": {
+        "Pet": {
+          "discriminator": {
+            "propertyName": "kind",
+            "mapping": {
+              "dog": "https://example.com/dog.json"
+            }
+          },
+          "type": "object"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {},
+  "schemaResolver": {
+    "https://example.com/dog.json": {
+      "type": "object",
+      "nullable": true
+    }
+  },
+  "result": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "schemas": {
+        "Pet": {
+          "discriminator": {
+            "propertyName": "kind",
+            "mapping": {
+              "dog": "#/components/schemas/dog.json"
+            }
+          },
+          "type": "object"
+        },
+        "dog.json": {
+          "type": "object",
+          "nullable": true
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/dog.json",
+      "at": "/components/schemas/dog.json"
+    }
+  ],
+  "reads": {},
+  "schemaReads": {
+    "https://example.com/dog.json": 1
+  },
+  "standalone": true,
+  "relocatable": true,
+  "operations": []
+}

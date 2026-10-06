@@ -1,0 +1,117 @@
+{
+  "document": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "schemas": {
+        "Use": {
+          "$ref": "shared/api.json#/paths/~1remote/get/responses/200/content/application~1json/schema/properties/Cat"
+        }
+      }
+    },
+    "paths": {}
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/shared/api.json": {
+      "openapi": "3.0.4",
+      "info": {
+        "title": "Example",
+        "version": "1.0.0"
+      },
+      "paths": {
+        "/remote": {
+          "get": {
+            "responses": {
+              "200": {
+                "description": "OK",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "properties": {
+                        "Cat": {
+                          "title": "REMOTE CAT",
+                          "properties": {
+                            "kind": {
+                              "$ref": "kind.json"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {
+    "https://example.com/shared/kind.json": {
+      "$id": "https://example.com/shared/kind.json",
+      "title": "RIGHT KIND",
+      "$schema": "https://json-schema.org/draft/2020-12/schema"
+    },
+    "https://example.com/kind.json": {
+      "$id": "https://example.com/kind.json",
+      "title": "WRONG KIND",
+      "$schema": "https://json-schema.org/draft/2020-12/schema"
+    }
+  },
+  "result": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "schemas": {
+        "Use": {
+          "$ref": "#/components/schemas/schema/properties/Cat"
+        },
+        "schema": {
+          "properties": {
+            "Cat": {
+              "title": "REMOTE CAT",
+              "properties": {
+                "kind": {
+                  "$ref": "https://example.com/shared/kind.json"
+                }
+              }
+            }
+          }
+        },
+        "kind.json": {
+          "$id": "https://example.com/shared/kind.json",
+          "title": "RIGHT KIND",
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
+        }
+      }
+    },
+    "paths": {}
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/shared/api.json#/paths/~1remote/get/responses/200/content/application~1json/schema",
+      "at": "/components/schemas/schema"
+    },
+    {
+      "from": "https://example.com/shared/kind.json",
+      "at": "/components/schemas/kind.json"
+    }
+  ],
+  "reads": {
+    "https://example.com/shared/api.json": 1
+  },
+  "schemaReads": {
+    "https://example.com/shared/kind.json": 1
+  },
+  "standalone": true,
+  "relocatable": true,
+  "operations": []
+}

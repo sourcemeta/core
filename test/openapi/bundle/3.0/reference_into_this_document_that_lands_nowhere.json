@@ -1,0 +1,41 @@
+{
+  "document": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "responses": {
+        "R": {
+          "$ref": "#/components/responses/Missing"
+        }
+      }
+    },
+    "paths": {}
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {},
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "responses": {
+        "R": {
+          "$ref": "#/components/responses/Missing"
+        }
+      }
+    },
+    "paths": {}
+  },
+  "inserted": [],
+  "reads": {},
+  "schemaReads": {},
+  "standalone": false,
+  "relocatable": false,
+  "operations": []
+}

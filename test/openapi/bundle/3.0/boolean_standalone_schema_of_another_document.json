@@ -1,0 +1,28 @@
+{
+  "document": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "schemas": {
+        "Pet": {
+          "$ref": "pet.json"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {},
+  "schemaResolver": {
+    "https://example.com/pet.json": false
+  },
+  "error": {
+    "type": "OpenAPIReferenceError",
+    "message": "A Schema Object must be an object",
+    "identifier": "https://example.com/pet.json",
+    "location": ""
+  }
+}

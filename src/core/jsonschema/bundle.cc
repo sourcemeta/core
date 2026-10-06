@@ -721,10 +721,17 @@ auto embed_references(
 
     std::optional<SchemaFrame> remote_root_frame;
     try {
+      // What a relative identifier resolves against is where the document was
+      // retrieved from, which JSON Schema 2020-12 Section 8.2.1 settles: "If
+      // this URI is a relative reference, it is resolved against the base URI
+      // of the schema resource that contains it", and the resource containing
+      // the root of a fetched document is the document itself. Saying nothing
+      // here would leave a relative one resolving against whatever document
+      // this is bundling into, which names something else
       remote_root_frame.emplace(
           SchemaFrame::Mode::Root, remote, walker, resolver, default_dialect,
           "", SchemaFrame::IdentifierMode::Additional,
-          SchemaFrame::Paths{EMPTY_WEAK_POINTER}, "", remaining);
+          SchemaFrame::Paths{EMPTY_WEAK_POINTER}, identifier, remaining);
       charge(remaining, remote_root_frame.value());
     } catch (const SchemaUnknownBaseDialectError &) {
       throw SchemaReferenceError(identifier, to_pointer(pointer),
@@ -785,7 +792,7 @@ auto embed_references(
                                        identifier,
                                        SchemaFrame::IdentifierMode::Additional,
                                        {EMPTY_WEAK_POINTER},
-                                       "",
+                                       identifier,
                                        remaining};
         charge(remaining, remote_frame);
         exists = remote_frame.traverse(reference.destination).has_value();
