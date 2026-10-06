@@ -3,9 +3,12 @@
 #include <sourcemeta/core/jsonpointer.h>
 #include <sourcemeta/core/test.h>
 
-#include <cstddef>  // std::size_t
+#include <cstddef> // std::size_t
+#include <iostream>
 #include <optional> // std::optional, std::nullopt
 #include <string>   // std::string
+#include <typeinfo>
+#include <utility> // std::move
 
 #define EXPECT_JSONLD_EXPAND_ERROR(expression, expected_code,                  \
                                    expected_pointer)                           \
@@ -508,7 +511,7 @@ TEST(invalid_typed_value_relative_datatype) {
                              "/http:~1~1example.com~1p/@type");
 }
 
-TEST(invalid_typed_value_json_datatype_in_1_0) {
+TEST(json_datatype_in_1_0) {
   const auto input = sourcemeta::core::parse_json(R"({
     "http://example.com/p": { "@value": { "x": 1 }, "@type": "@json" }
   })");
@@ -516,7 +519,30 @@ TEST(invalid_typed_value_json_datatype_in_1_0) {
   EXPECT_JSONLD_EXPAND_ERROR(
       sourcemeta::core::jsonld_expand(input, "", {},
                                       sourcemeta::core::JSONLDVersion::V1_0),
-      "Invalid typed value", "/http:~1~1example.com~1p/@type");
+      "Invalid value object value", "/http:~1~1example.com~1p/@value");
+}
+
+TEST(json_datatype_with_a_null_value_in_1_0) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "http://example.com/p": { "@value": null, "@type": "@json" }
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(
+      sourcemeta::core::jsonld_expand(input, "", {},
+                                      sourcemeta::core::JSONLDVersion::V1_0),
+      "Invalid value object value", "/http:~1~1example.com~1p/@value");
+}
+
+TEST(json_datatype_alias_in_1_0) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "value": "@value", "type": "@type" },
+    "http://example.com/p": { "value": "x", "type": "@json" }
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(
+      sourcemeta::core::jsonld_expand(input, "", {},
+                                      sourcemeta::core::JSONLDVersion::V1_0),
+      "Invalid value object value", "/http:~1~1example.com~1p/value");
 }
 
 TEST(invalid_value_object_value) {
@@ -637,6 +663,19 @@ TEST(invalid_nest_value_aliased_value) {
 
   EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
                              "Invalid @nest value", "/@nest");
+}
+
+TEST(invalid_nest_value_aliased_value_from_a_scoped_context) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "@version": 1.1,
+      "nest": { "@id": "@nest", "@context": { "value": "@value" } }
+    },
+    "nest": { "value": "x" }
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Invalid @nest value", "/nest");
 }
 
 TEST(invalid_nest_value_aliased_value_in_array) {
@@ -802,6 +841,15 @@ TEST(invalid_version_precedes_mode_conflict) {
       sourcemeta::core::jsonld_expand(input, "", {},
                                       sourcemeta::core::JSONLDVersion::V1_0),
       "Invalid @version value", "/@context/@version");
+}
+
+TEST(version_with_an_extreme_exponent) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "@version": 12345678901234567890123456789e2147483600 }
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Invalid @version value", "/@context/@version");
 }
 
 TEST(exponent_version_conflicts_with_the_mode_in_1_0) {

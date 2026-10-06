@@ -114,20 +114,6 @@ auto offending_pointer(ExpansionState &state, ActiveContext &active_context,
   return result;
 }
 
-// Whether the datatype of a typed value names an IRI, which a blank node
-// identifier is not (JSON-LD 1.1 API Section 5.1.2 step 15.5)
-auto is_datatype_iri(const JSON::String &type) -> bool {
-  if (type.starts_with("_:")) {
-    return false;
-  }
-
-  try {
-    return URI::from_iri(type).is_absolute();
-  } catch (const URIParseError &) {
-    return false;
-  }
-}
-
 // Whether a nested object carries a value entry, which the nesting forbids,
 // under a keyword alias too (JSON-LD 1.1 API Section 5.1.2 step 14.2.1)
 auto nest_defines_value(ExpansionState &state, ActiveContext &active_context,
@@ -212,8 +198,15 @@ auto expand_object(ExpansionState &state, ActiveContext active_context,
     const bool has_type{type != nullptr};
     const JSON::String *const type_string{
         type != nullptr && type->is_string() ? &type->to_string() : nullptr};
-    const bool is_json{type_string != nullptr && *type_string == KEYWORD_JSON &&
-                       !state.processing_1_0};
+    const bool is_json{type_string != nullptr && *type_string == KEYWORD_JSON};
+    // A JSON literal is a 1.1 feature, so a 1.0 processor rejects the value of
+    // a value object the input types as @json, whatever that value is (JSON-LD
+    // 1.1 API Section 5.1.2 step 13.4.7.1)
+    if (is_json && state.processing_1_0) {
+      throw JSONLDError("Invalid value object value",
+                        offending_pointer(state, active_context, element,
+                                          pointer, KEYWORD_VALUE));
+    }
     for (const auto &entry : result.as_object()) {
       if (!entry.key_equals(KEYWORD_VALUE, KEYWORD_VALUE_HASH) &&
           !entry.key_equals(KEYWORD_TYPE, KEYWORD_TYPE_HASH) &&
@@ -242,8 +235,10 @@ auto expand_object(ExpansionState &state, ActiveContext active_context,
                         offending_pointer(state, active_context, element,
                                           pointer, KEYWORD_VALUE));
     }
+    // The datatype of a typed value must be an IRI, which a blank node
+    // identifier is not (JSON-LD 1.1 API Section 5.1.2 step 15.5)
     if (has_type && !is_json &&
-        (type_string == nullptr || !is_datatype_iri(*type_string))) {
+        (type_string == nullptr || !URI::is_iri(*type_string))) {
       throw JSONLDError("Invalid typed value",
                         offending_pointer(state, active_context, element,
                                           pointer, KEYWORD_TYPE));
@@ -354,23 +349,14 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
       if (entry.second.is_array()) {
         std::size_t nest_index{0};
         for (const auto &nest_value : entry.second.as_array()) {
-          if (!nest_value.is_object() ||
-              nest_defines_value(state, active_context, nest_value)) {
-            throw JSONLDError("Invalid @nest value",
-                              entry_pointer.concat(nest_index));
-          }
-
           nests.push_back({.property = &property,
                            .value = &nest_value,
                            .index = nest_index});
           nest_index += 1;
         }
-      } else if (entry.second.is_object() &&
-                 !nest_defines_value(state, active_context, entry.second)) {
+      } else {
         nests.push_back(
             {.property = &property, .value = &entry.second, .index = {}});
-      } else {
-        throw JSONLDError("Invalid @nest value", entry_pointer);
       }
       continue;
     }
@@ -991,11 +977,13 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
             ? nest_pointer.concat(nest_entry.index.value())
             : nest_pointer};
     const auto definition{active_context.terms.find(*nest_entry.property)};
-    if (definition != active_context.terms.cend() &&
-        definition->second.context.has_value()) {
+    const bool scoped{definition != active_context.terms.cend() &&
+                      definition->second.context.has_value()};
+    ActiveContext nested;
+    if (scoped) {
       // Process the scoped context into a copy so the term that owns it is not
       // freed while it is being read.
-      ActiveContext nested{active_context};
+      nested = active_context;
       const auto saved_base{state.context_base_override};
       state.context_base_override = definition->second.context_base;
       const auto saved_override{state.protected_override};
@@ -1005,12 +993,19 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
       state.protected_override = saved_override;
       state.context_base_override = saved_base;
       nested.previous = nullptr;
-      expand_entries(state, nested, type_context, result, active_property,
-                     *nest_entry.value, element_pointer);
-    } else {
-      expand_entries(state, active_context, type_context, result,
-                     active_property, *nest_entry.value, element_pointer);
     }
+
+    ActiveContext &nest_context{scoped ? nested : active_context};
+    // The nested entries expand under the context the term brings, so a value
+    // entry that only that context names is forbidden just the same (JSON-LD
+    // 1.1 API Section 5.1.2 step 14.2.1)
+    if (!nest_entry.value->is_object() ||
+        nest_defines_value(state, nest_context, *nest_entry.value)) {
+      throw JSONLDError("Invalid @nest value", element_pointer);
+    }
+
+    expand_entries(state, nest_context, type_context, result, active_property,
+                   *nest_entry.value, element_pointer);
   }
 }
 

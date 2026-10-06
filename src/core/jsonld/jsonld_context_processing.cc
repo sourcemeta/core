@@ -63,14 +63,22 @@ auto resolved_base(const std::optional<JSON::String> &base,
 
 // The version number, which the JSON library holds as a real or as an exact
 // decimal depending on how the input spells it, and which both representations
-// may name (JSON-LD 1.1 API Section 5.1 step 5.5.1)
+// may name (JSON-LD 1.1 API Section 5.1 step 5.5.1). Trailing zeros come off
+// first, so that every spelling of the value lands on the same exponent, and
+// an exponent that does not match then settles the comparison without the
+// digits of either side having to be aligned
 auto is_version_1_1(const JSON &version) -> bool {
   static const Decimal VERSION_1_1{"1.1"};
   if (version.is_real()) {
     return version.to_real() == 1.1;
   }
 
-  return version.is_decimal() && version.to_decimal() == VERSION_1_1;
+  if (!version.is_decimal()) {
+    return false;
+  }
+
+  const auto reduced{version.to_decimal().reduce()};
+  return reduced.same_quantum(VERSION_1_1) && reduced == VERSION_1_1;
 }
 
 // A context merged with an imported one (JSON-LD 1.1 API Section 5.1 step
