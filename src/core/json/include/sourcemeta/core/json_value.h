@@ -518,10 +518,10 @@ public:
   }
 
   /// Check whether the number this document holds is exactly a value of the
-  /// IEEE 754-2019 binary64 interchange format, which is the format that
-  /// OpenAPI names `double`. A number that no binary significand reaches is
-  /// not one of its values however closely it sits. The result of this method
-  /// is undefined unless the JSON instance holds a number. For example:
+  /// IEEE 754-2019 binary64 interchange format, the double precision format of
+  /// that standard. A number that no binary significand reaches is not one of
+  /// its values however closely it sits. The result of this method is
+  /// undefined unless the JSON instance holds a number. For example:
   ///
   /// ```cpp
   /// #include <sourcemeta/core/json.h>
@@ -544,9 +544,9 @@ public:
   }
 
   /// Check whether the number this document holds is exactly a value of the
-  /// IEEE 754-2019 binary32 interchange format, which is the format that
-  /// OpenAPI names `float`. The result of this method is undefined unless the
-  /// JSON instance holds a number. For example:
+  /// IEEE 754-2019 binary32 interchange format, the single precision format of
+  /// that standard. The result of this method is undefined unless the JSON
+  /// instance holds a number. For example:
   ///
   /// ```cpp
   /// #include <sourcemeta/core/json.h>
