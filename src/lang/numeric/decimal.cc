@@ -430,8 +430,10 @@ auto parse_decimal_string(const char *input, std::size_t length)
   return result;
 }
 
-// How far a power of five climbs before it outgrows a given significand
-constexpr auto highest_power_of_five(const std::uint64_t limit)
+// How far a power of five climbs before it outgrows a given significand. This
+// only ever answers for a bound that is itself known at compile time, so it is
+// immediate, which also keeps it out of the runtime image
+consteval auto highest_power_of_five(const std::uint64_t limit)
     -> std::int64_t {
   std::int64_t power{0};
   std::uint64_t value{1};
