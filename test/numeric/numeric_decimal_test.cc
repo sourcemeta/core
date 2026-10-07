@@ -1277,6 +1277,7 @@ TEST(strict_from_double_lowest) {
   EXPECT_TRUE(value.is_finite());
   EXPECT_FALSE(value.is_zero());
   EXPECT_TRUE(value.is_signed());
+  EXPECT_EQ(value, sourcemeta::core::Decimal{"-1.7976931348623157e+308"});
 }
 
 TEST(strict_from_double_denormal_minimum) {
@@ -1285,6 +1286,7 @@ TEST(strict_from_double_denormal_minimum) {
   EXPECT_TRUE(value.is_finite());
   EXPECT_FALSE(value.is_zero());
   EXPECT_FALSE(value.is_signed());
+  EXPECT_EQ(value, sourcemeta::core::Decimal{"5e-324"});
 }
 
 TEST(divisible_by_hundred_digit_coefficient) {
@@ -6249,4 +6251,105 @@ TEST(divide_integer_of_a_scaled_zero_by_one_has_a_zero_exponent) {
   EXPECT_TRUE(result.is_zero());
   EXPECT_TRUE(result.same_quantum(sourcemeta::core::Decimal{0}));
   EXPECT_EQ(result.to_string(), "0");
+}
+
+TEST(exception_invalid_operation_logb_signaling_nan) {
+  const auto value{sourcemeta::core::Decimal::snan()};
+  try {
+    const auto result = value.logb();
+    FAIL();
+  } catch (const sourcemeta::core::NumericInvalidOperationError &error) {
+    EXPECT_STREQ(error.what(), "Invalid numeric operation");
+  }
+}
+
+TEST(logb_quiet_nan_is_returned_whole) {
+  const auto value{sourcemeta::core::Decimal{"NaN123"}};
+  const auto result{value.logb()};
+  EXPECT_TRUE(result.is_qnan());
+  EXPECT_EQ(result.nan_payload(), 123);
+  EXPECT_FALSE(result.is_signed());
+}
+
+TEST(exception_invalid_operation_reduce_signaling_nan) {
+  const auto value{sourcemeta::core::Decimal{"-sNaN010"}};
+  try {
+    const auto result = value.reduce();
+    FAIL();
+  } catch (const sourcemeta::core::NumericInvalidOperationError &error) {
+    EXPECT_STREQ(error.what(), "Invalid numeric operation");
+  }
+}
+
+TEST(trim_signaling_nan_is_returned_whole) {
+  const auto value{sourcemeta::core::Decimal{"-sNaN777"}};
+  const auto result{value.trim()};
+  EXPECT_TRUE(result.is_snan());
+  EXPECT_EQ(result.nan_payload(), 777);
+  EXPECT_TRUE(result.is_signed());
+}
+
+TEST(exception_invalid_operation_to_integral_signaling_nan) {
+  const auto value{sourcemeta::core::Decimal{"sNaN080"}};
+  try {
+    const auto result = value.to_integral();
+    FAIL();
+  } catch (const sourcemeta::core::NumericInvalidOperationError &error) {
+    EXPECT_STREQ(error.what(), "Invalid numeric operation");
+  }
+}
+
+TEST(to_integral_quiet_nan_is_returned_whole) {
+  const auto value{sourcemeta::core::Decimal{"-NaN080"}};
+  const auto result{value.to_integral()};
+  EXPECT_TRUE(result.is_qnan());
+  EXPECT_EQ(result.nan_payload(), 80);
+  EXPECT_TRUE(result.is_signed());
+}
+
+TEST(to_integral_infinity_does_not_signal) {
+  const auto value{sourcemeta::core::Decimal::negative_infinity()};
+  const auto result{value.to_integral()};
+  EXPECT_TRUE(result.is_infinite());
+  EXPECT_TRUE(result.is_signed());
+}
+
+TEST(strict_from_double_negative_denormal_minimum) {
+  const auto value{sourcemeta::core::Decimal::strict_from(
+      -std::numeric_limits<double>::denorm_min())};
+  EXPECT_TRUE(value.is_signed());
+  EXPECT_EQ(value, sourcemeta::core::Decimal{"-5e-324"});
+}
+
+TEST(strict_from_double_negative_zero_keeps_its_sign) {
+  const auto value{sourcemeta::core::Decimal::strict_from(-0.0)};
+  EXPECT_TRUE(value.is_zero());
+  EXPECT_TRUE(value.is_signed());
+}
+
+TEST(divide_inexact_keeps_a_rounded_trailing_zero_quantum) {
+  const sourcemeta::core::Decimal numerator{"100000000000000001"};
+  const sourcemeta::core::Decimal denominator{"100000000000000000"};
+  const sourcemeta::core::Decimal expected{"1.000000000000000"};
+  const auto result{numerator / denominator};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.same_quantum(expected));
+}
+
+TEST(divide_inexact_keeps_a_rounded_trailing_zero_quantum_negative) {
+  const sourcemeta::core::Decimal numerator{"-100000000000000001"};
+  const sourcemeta::core::Decimal denominator{"100000000000000000"};
+  const sourcemeta::core::Decimal expected{"-1.000000000000000"};
+  const auto result{numerator / denominator};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.same_quantum(expected));
+}
+
+TEST(divide_exact_integer_strips_to_the_preferred_quantum) {
+  const sourcemeta::core::Decimal numerator{"100000000000000000"};
+  const sourcemeta::core::Decimal denominator{"100000000000000000"};
+  const sourcemeta::core::Decimal expected{1};
+  const auto result{numerator / denominator};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.same_quantum(expected));
 }

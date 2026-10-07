@@ -1217,6 +1217,14 @@ auto Decimal::is_uint64() const -> bool {
 }
 
 auto Decimal::to_integral() const -> Decimal {
+  // The General Decimal Arithmetic Specification signals invalid-operation
+  // whenever "an operand to an operation is [s,sNaN] or [s,sNaN,d] (any
+  // signaling NaN)", and the corpus spells out the outcome for this operation
+  // in tointegral.decTest rows intx123 to intx157
+  if (this->is_snan()) {
+    throw NumericInvalidOperationError{};
+  }
+
   if (!this->is_finite()) {
     return *this;
   }
@@ -1470,6 +1478,17 @@ auto Decimal::remove_trailing_zeros(const std::int32_t allowance) const
 }
 
 auto Decimal::reduce() const -> Decimal {
+  // The General Decimal Arithmetic Specification signals invalid-operation
+  // whenever "an operand to an operation is [s,sNaN] or [s,sNaN,d] (any
+  // signaling NaN)", and the corpus spells out the outcome for this operation
+  // in reduce.decTest rows redx823 to redx830
+  // The check sits here rather than in the shared helper, because trim is not
+  // a specification operation and its corpus keeps a signaling NaN whole in
+  // trim.decTest rows trmx323 to trmx329
+  if (this->is_snan()) {
+    throw NumericInvalidOperationError{};
+  }
+
   return this->remove_trailing_zeros(std::numeric_limits<std::int32_t>::max());
 }
 
@@ -1486,6 +1505,14 @@ auto Decimal::trim() const -> Decimal {
 }
 
 auto Decimal::logb() const -> Decimal {
+  // The General Decimal Arithmetic Specification signals invalid-operation
+  // whenever "an operand to an operation is [s,sNaN] or [s,sNaN,d] (any
+  // signaling NaN)", and the corpus spells out the outcome for this operation
+  // in logb.decTest rows logbx824 to logbx826
+  if (this->is_snan()) {
+    throw NumericInvalidOperationError{};
+  }
+
   if (this->is_nan()) {
     return *this;
   }
