@@ -233,6 +233,21 @@ TEST(build_rejects_an_overlong_code_challenge_under_strict) {
       "https://server.example/authorize", request, url));
 }
 
+TEST(build_rejects_a_non_canonical_code_challenge_under_strict) {
+  sourcemeta::core::OIDCAuthenticationRequest request;
+  request.client_id = "s6BhdRkqt3";
+  request.redirect_uri = "https://client.example/cb";
+  request.scope = "openid";
+  request.response_type = "code";
+  // Forty-three base64url characters whose last one leaves bits set that a
+  // SHA-256 digest never occupies, so no verifier can ever redeem it
+  request.code_challenge = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cN";
+  request.code_challenge_method = "S256";
+  std::string url;
+  EXPECT_FALSE(sourcemeta::core::oidc_build_authentication_url(
+      "https://server.example/authorize", request, url));
+}
+
 TEST(build_accepts_a_missing_pkce_under_legacy) {
   sourcemeta::core::OIDCAuthenticationRequest request;
   request.client_id = "s6BhdRkqt3";
@@ -634,10 +649,10 @@ TEST(parse_accepts_code_challenge_with_underscore) {
   EXPECT_TRUE(sourcemeta::core::oidc_parse_authentication_request(
       "client_id=x&redirect_uri=https%3A%2F%2Fcb.example.com&scope=openid&"
       "response_type=code&code_challenge_method=S256&"
-      "code_challenge=abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOP_",
+      "code_challenge=abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNO_A",
       storage, request, sourcemeta::core::OIDCProfile::Strict));
   EXPECT_EQ(request.code_challenge,
-            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOP_");
+            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNO_A");
 }
 
 TEST(parse_drops_offline_access_scope_with_prompt_none) {
