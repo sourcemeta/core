@@ -200,3 +200,79 @@ TEST(decode_rejects_nonzero_pad_bits_two_characters) {
 TEST(decode_rejects_nonzero_pad_bits_three_characters) {
   EXPECT_FALSE(sourcemeta::core::base64url_decode("Zm9").has_value());
 }
+
+TEST(is_base64url_accepts_rfc4648_empty) {
+  EXPECT_TRUE(sourcemeta::core::is_base64url(""));
+}
+
+TEST(is_base64url_accepts_rfc4648_f) {
+  EXPECT_TRUE(sourcemeta::core::is_base64url("Zg"));
+}
+
+TEST(is_base64url_accepts_rfc4648_fo) {
+  EXPECT_TRUE(sourcemeta::core::is_base64url("Zm8"));
+}
+
+TEST(is_base64url_accepts_rfc4648_foo) {
+  EXPECT_TRUE(sourcemeta::core::is_base64url("Zm9v"));
+}
+
+TEST(is_base64url_accepts_rfc4648_foob) {
+  EXPECT_TRUE(sourcemeta::core::is_base64url("Zm9vYg"));
+}
+
+TEST(is_base64url_accepts_rfc4648_fooba) {
+  EXPECT_TRUE(sourcemeta::core::is_base64url("Zm9vYmE"));
+}
+
+TEST(is_base64url_accepts_rfc4648_foobar) {
+  EXPECT_TRUE(sourcemeta::core::is_base64url("Zm9vYmFy"));
+}
+
+TEST(is_base64url_accepts_rfc7515_appendix_c) {
+  EXPECT_TRUE(sourcemeta::core::is_base64url("A-z_4ME"));
+}
+
+TEST(is_base64url_accepts_all_high_bytes) {
+  EXPECT_TRUE(sourcemeta::core::is_base64url("____"));
+}
+
+TEST(is_base64url_accepts_single_high_byte) {
+  EXPECT_TRUE(sourcemeta::core::is_base64url("-A"));
+}
+
+TEST(is_base64url_rejects_length_one) {
+  EXPECT_FALSE(sourcemeta::core::is_base64url("Z"));
+}
+
+TEST(is_base64url_rejects_padding) {
+  EXPECT_FALSE(sourcemeta::core::is_base64url("Zg=="));
+}
+
+TEST(is_base64url_rejects_single_padding_character) {
+  EXPECT_FALSE(sourcemeta::core::is_base64url("Zm8="));
+}
+
+TEST(is_base64url_rejects_plus) {
+  EXPECT_FALSE(sourcemeta::core::is_base64url("+A"));
+}
+
+TEST(is_base64url_rejects_slash) {
+  EXPECT_FALSE(sourcemeta::core::is_base64url("AA//"));
+}
+
+TEST(is_base64url_rejects_invalid_character) {
+  EXPECT_FALSE(sourcemeta::core::is_base64url("Z!"));
+}
+
+TEST(is_base64url_rejects_interior_space) {
+  EXPECT_FALSE(sourcemeta::core::is_base64url("Zm 9"));
+}
+
+TEST(is_base64url_rejects_nonzero_pad_bits_two_characters) {
+  EXPECT_FALSE(sourcemeta::core::is_base64url("Zh"));
+}
+
+TEST(is_base64url_rejects_nonzero_pad_bits_three_characters) {
+  EXPECT_FALSE(sourcemeta::core::is_base64url("Zm9"));
+}

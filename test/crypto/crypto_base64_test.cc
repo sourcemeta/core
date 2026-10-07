@@ -236,3 +236,95 @@ TEST(decode_secure_string_overload_leaves_output_unchanged_on_failure) {
   EXPECT_FALSE(sourcemeta::core::base64_decode("Zm9v!!!!", output));
   EXPECT_TRUE(output == "prefix");
 }
+
+TEST(is_base64_accepts_rfc4648_empty) {
+  EXPECT_TRUE(sourcemeta::core::is_base64(""));
+}
+
+TEST(is_base64_accepts_rfc4648_f) {
+  EXPECT_TRUE(sourcemeta::core::is_base64("Zg=="));
+}
+
+TEST(is_base64_accepts_rfc4648_fo) {
+  EXPECT_TRUE(sourcemeta::core::is_base64("Zm8="));
+}
+
+TEST(is_base64_accepts_rfc4648_foo) {
+  EXPECT_TRUE(sourcemeta::core::is_base64("Zm9v"));
+}
+
+TEST(is_base64_accepts_rfc4648_foob) {
+  EXPECT_TRUE(sourcemeta::core::is_base64("Zm9vYg=="));
+}
+
+TEST(is_base64_accepts_rfc4648_fooba) {
+  EXPECT_TRUE(sourcemeta::core::is_base64("Zm9vYmE="));
+}
+
+TEST(is_base64_accepts_rfc4648_foobar) {
+  EXPECT_TRUE(sourcemeta::core::is_base64("Zm9vYmFy"));
+}
+
+TEST(is_base64_accepts_all_high_bytes) {
+  EXPECT_TRUE(sourcemeta::core::is_base64("////"));
+}
+
+TEST(is_base64_accepts_single_high_byte) {
+  EXPECT_TRUE(sourcemeta::core::is_base64("+A=="));
+}
+
+TEST(is_base64_rejects_length_one) {
+  EXPECT_FALSE(sourcemeta::core::is_base64("Z"));
+}
+
+TEST(is_base64_rejects_missing_padding) {
+  EXPECT_FALSE(sourcemeta::core::is_base64("Zg"));
+}
+
+TEST(is_base64_rejects_partial_padding) {
+  EXPECT_FALSE(sourcemeta::core::is_base64("Zm8"));
+}
+
+TEST(is_base64_rejects_invalid_character) {
+  EXPECT_FALSE(sourcemeta::core::is_base64("Zm!v"));
+}
+
+TEST(is_base64_rejects_interior_space) {
+  EXPECT_FALSE(sourcemeta::core::is_base64("Zm 9"));
+}
+
+TEST(is_base64_rejects_interior_newline) {
+  EXPECT_FALSE(sourcemeta::core::is_base64("Zm\n9"));
+}
+
+TEST(is_base64_rejects_url_safe_minus) {
+  EXPECT_FALSE(sourcemeta::core::is_base64("-A=="));
+}
+
+TEST(is_base64_rejects_url_safe_underscore) {
+  EXPECT_FALSE(sourcemeta::core::is_base64("_A=="));
+}
+
+TEST(is_base64_rejects_padding_only) {
+  EXPECT_FALSE(sourcemeta::core::is_base64("===="));
+}
+
+TEST(is_base64_rejects_interior_padding) {
+  EXPECT_FALSE(sourcemeta::core::is_base64("Z=g="));
+}
+
+TEST(is_base64_rejects_triple_padding) {
+  EXPECT_FALSE(sourcemeta::core::is_base64("Z==="));
+}
+
+TEST(is_base64_rejects_padding_across_groups) {
+  EXPECT_FALSE(sourcemeta::core::is_base64("Zg==Zg=="));
+}
+
+TEST(is_base64_rejects_nonzero_pad_bits_two_characters) {
+  EXPECT_FALSE(sourcemeta::core::is_base64("Zh=="));
+}
+
+TEST(is_base64_rejects_nonzero_pad_bits_three_characters) {
+  EXPECT_FALSE(sourcemeta::core::is_base64("Zm9="));
+}
