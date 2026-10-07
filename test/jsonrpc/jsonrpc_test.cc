@@ -407,6 +407,53 @@ TEST(params_on_non_object) {
   EXPECT_EQ(sourcemeta::core::jsonrpc_params(request), nullptr);
 }
 
+TEST(make_notification_object_parameters) {
+  const auto notification{sourcemeta::core::jsonrpc_make_notification(
+      "update", sourcemeta::core::parse_json(R"({
+        "values": [42, null, {"name": "example"}]
+      })"))};
+  EXPECT_TRUE(sourcemeta::core::jsonrpc_is_notification(notification));
+  EXPECT_EQ(notification, sourcemeta::core::parse_json(R"({
+    "jsonrpc": "2.0",
+    "method": "update",
+    "params": {"values": [42, null, {"name": "example"}]}
+  })"));
+}
+
+TEST(make_notification_array_parameters) {
+  const auto notification{sourcemeta::core::jsonrpc_make_notification(
+      "update",
+      sourcemeta::core::parse_json(R"([42, null, {"name": "example"}])"))};
+  EXPECT_TRUE(sourcemeta::core::jsonrpc_is_notification(notification));
+  EXPECT_EQ(notification, sourcemeta::core::parse_json(R"({
+    "jsonrpc": "2.0",
+    "method": "update",
+    "params": [42, null, {"name": "example"}]
+  })"));
+}
+
+TEST(make_notification_empty_object_parameters) {
+  const auto notification{sourcemeta::core::jsonrpc_make_notification(
+      "update", sourcemeta::core::JSON::make_object())};
+  EXPECT_TRUE(sourcemeta::core::jsonrpc_is_notification(notification));
+  EXPECT_EQ(notification, sourcemeta::core::parse_json(R"({
+    "jsonrpc": "2.0",
+    "method": "update",
+    "params": {}
+  })"));
+}
+
+TEST(make_notification_empty_array_parameters) {
+  const auto notification{sourcemeta::core::jsonrpc_make_notification(
+      "update", sourcemeta::core::JSON::make_array())};
+  EXPECT_TRUE(sourcemeta::core::jsonrpc_is_notification(notification));
+  EXPECT_EQ(notification, sourcemeta::core::parse_json(R"({
+    "jsonrpc": "2.0",
+    "method": "update",
+    "params": []
+  })"));
+}
+
 TEST(make_success_empty) {
   const auto identifier{sourcemeta::core::JSON{1}};
   const auto envelope{sourcemeta::core::jsonrpc_make_success_empty(identifier)};
