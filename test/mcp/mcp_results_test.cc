@@ -1,9 +1,7 @@
-#include <sourcemeta/core/mcp_results.h>
+#include <sourcemeta/core/mcp.h>
 
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonrpc.h>
-#include <sourcemeta/core/mcp_capabilities.h>
-#include <sourcemeta/core/mcp_protocol.h>
 
 #include <sourcemeta/core/test.h>
 
