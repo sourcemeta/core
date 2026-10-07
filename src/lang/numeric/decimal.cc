@@ -484,9 +484,12 @@ template <typename FloatingPointType>
 constexpr auto fits_binary_format(const std::uint64_t significand,
                                   const std::int64_t scale) -> bool {
   const auto width{static_cast<std::int64_t>(std::bit_width(significand))};
+  // The leading bit is compared against the highest the format reaches without
+  // forming their sum, which a scale near the limit of its own type would
+  // otherwise overflow
   return width <= IEEE754_PRECISION<FloatingPointType> &&
          scale >= IEEE754_MINIMUM_EXPONENT<FloatingPointType> &&
-         scale + width - 1 <= IEEE754_MAXIMUM_EXPONENT<FloatingPointType>;
+         scale <= IEEE754_MAXIMUM_EXPONENT<FloatingPointType> - (width - 1);
 }
 
 // The powers of five that a positive exponent can call for before the

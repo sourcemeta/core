@@ -417,6 +417,8 @@ auto real_equal(const Real left, const Real right) -> bool {
 /// ```
 template <std::floating_point Real, std::integral Integer>
 constexpr auto is_representable_as(const Integer value) -> bool {
+  static_assert(sizeof(Integer) <= sizeof(std::uint64_t),
+                "The magnitude of the integer must fit in 64 bits");
   const auto magnitude{sourcemeta::core::abs(value)};
   return magnitude == 0 ||
          std::bit_width(magnitude >> std::countr_zero(magnitude)) <=
@@ -442,7 +444,14 @@ constexpr auto is_representable_as(const Integer value) -> bool {
 /// ```
 template <std::floating_point Real, std::floating_point Wider>
 auto is_representable_as(const Wider value) -> bool {
-  if constexpr (sizeof(Real) >= sizeof(Wider)) {
+  // A format whose significand and exponent range both cover those of another
+  // holds every one of its values, which the width in bytes only stands in for
+  if constexpr (std::numeric_limits<Real>::digits >=
+                    std::numeric_limits<Wider>::digits &&
+                std::numeric_limits<Real>::max_exponent >=
+                    std::numeric_limits<Wider>::max_exponent &&
+                std::numeric_limits<Real>::min_exponent <=
+                    std::numeric_limits<Wider>::min_exponent) {
     return true;
   } else {
     if (!std::isfinite(value)) {

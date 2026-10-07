@@ -698,3 +698,16 @@ TEST(is_representable_as_float_infinity) {
   EXPECT_TRUE(sourcemeta::core::is_representable_as<float>(
       std::numeric_limits<double>::infinity()));
 }
+
+TEST(is_representable_as_float_highest_scale_does_not_overflow) {
+  EXPECT_FALSE(sourcemeta::core::is_representable_as<float>(
+      std::numeric_limits<double>::max()));
+}
+
+TEST(is_representable_as_double_from_a_float) {
+  EXPECT_TRUE(sourcemeta::core::is_representable_as<double>(3.14F));
+}
+
+TEST(is_representable_as_float_from_a_float) {
+  EXPECT_TRUE(sourcemeta::core::is_representable_as<float>(3.14F));
+}
