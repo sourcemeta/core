@@ -1417,3 +1417,28 @@ TEST(null_aliased_nest_value) {
   EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
                              "Invalid @nest value", "/n");
 }
+
+TEST(empty_type_keyword_definition_after_a_protected_one) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": [
+      { "@type": { "@protected": true } },
+      { "@type": {} }
+    ]
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Keyword redefinition", "/@context/1/@type");
+}
+
+TEST(type_keyword_definition_inherits_context_protected) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": [
+      { "@protected": true, "@type": { "@container": "@set" } },
+      null
+    ],
+    "https://example.com/p": "value"
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Invalid context nullification", "/@context/1");
+}

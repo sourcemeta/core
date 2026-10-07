@@ -1509,3 +1509,19 @@ TEST(nested_array_under_list_container_is_wrapped) {
 
   EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
 }
+
+TEST(type_keyword_definition_explicit_false_overrides_context_protected) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": [
+      { "@protected": true, "@type": { "@protected": false } },
+      null
+    ],
+    "https://example.com/p": "value"
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    { "https://example.com/p": [ { "@value": "value" } ] }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
