@@ -430,7 +430,7 @@ auto parse_decimal_string(const char *input, std::size_t length)
 }
 
 // How far a power of five climbs before it outgrows a given significand
-constexpr auto highest_power_of_five(const std::uint64_t limit)
+consteval auto highest_power_of_five(const std::uint64_t limit)
     -> std::int64_t {
   std::int64_t power{0};
   std::uint64_t value{1};
