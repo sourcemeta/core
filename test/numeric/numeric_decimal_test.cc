@@ -904,6 +904,34 @@ TEST(is_double_smallest_normal) {
   EXPECT_TRUE(value.is_double());
 }
 
+TEST(is_double_big_coefficient_with_a_positive_exponent) {
+  const sourcemeta::core::Decimal value{
+      "1606938044258990275541962092341162602522202993782792835301376e2"};
+  EXPECT_TRUE(value.is_double());
+}
+
+TEST(is_double_big_coefficient_with_too_large_an_exponent) {
+  const sourcemeta::core::Decimal value{
+      "1606938044258990275541962092341162602522202993782792835301376e30"};
+  EXPECT_FALSE(value.is_double());
+}
+
+TEST(is_double_long_odd_coefficient) {
+  const sourcemeta::core::Decimal value{
+      "10000000000000000000000000000000000000001"};
+  EXPECT_FALSE(value.is_double());
+}
+
+TEST(is_double_power_of_two_far_past_the_exponent_range) {
+  const sourcemeta::core::Decimal value{
+      "13582985290493858492773514283592667786034938469317445497485196697278"
+      "13092754241848720539208320756059229857826295384738347503872554323492"
+      "99711555483428006287218857634994063903317828641441646807307668371605"
+      "26223176512798435772129956553355286032203080380775759732320198985094"
+      "884004069116123084147875437183658467465148948790552744165376"};
+  EXPECT_FALSE(value.is_double());
+}
+
 TEST(to_float_simple) {
   const sourcemeta::core::Decimal value{"3.14"};
   EXPECT_FLOAT_EQ(value.to_float(), 3.14f);
