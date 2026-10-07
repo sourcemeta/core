@@ -217,19 +217,22 @@ static auto expect_decimal_eq(const sourcemeta::core::Decimal &result,
   }
 }
 
-static auto run_comparison(const DecTestCase &test_case, bool signal_on_nan)
-    -> void {
+static auto run_comparison(const DecTestCase &test_case) -> void {
   const auto left{make_decimal(test_case.operand1)};
   const auto right{make_decimal(test_case.operand2)};
 
-  // A quiet comparison answers an unordered pair with a NaN, which the
-  // specification describes as how the "compare operation can return a quiet
-  // NaN as a result, which indicates an 'unordered' comparison". The operators
-  // here are the quiet predicates, which carry that outcome as equality and
-  // every ordering answering false while inequality answers true
-  if (!signal_on_nan &&
-      to_lower(strip_quotes(test_case.expected)).find("nan") !=
-          std::string::npos) {
+  // A comparison answers an unordered pair with a NaN, which the specification
+  // describes as how the "compare operation can return a quiet NaN as a
+  // result, which indicates an 'unordered' comparison". These operators are
+  // the quiet predicates, which carry that outcome as equality and every
+  // ordering answering false while inequality answers true.
+  //
+  // A row is held to that outcome whether or not it also asks for an invalid
+  // operation, which these operators never raise. That signal belongs to a
+  // predicate this Decimal does not expose, and dropping the rows instead
+  // would give up the operand spellings they alone parse
+  if (to_lower(strip_quotes(test_case.expected)).find("nan") !=
+      std::string::npos) {
     EXPECT_FALSE(left == right);
     EXPECT_TRUE(left != right);
     EXPECT_FALSE(left < right);
@@ -413,7 +416,7 @@ static auto run_dectest_case(const DecTestCase &test_case) -> void {
   const auto operation{to_lower(test_case.operation)};
 
   if (operation == "compare" || operation == "comparesig") {
-    run_comparison(test_case, operation == "comparesig");
+    run_comparison(test_case);
   } else if (operation == "add") {
     run_binary(test_case, [](const auto &left, const auto &right) {
       return left + right;
@@ -665,19 +668,6 @@ static auto should_skip_test(const DecTestCase &test_case,
   if (test_case.operand1.find('#') != std::string::npos ||
       test_case.operand2.find('#') != std::string::npos ||
       test_case.expected.find('#') != std::string::npos) {
-    return true;
-  }
-
-  // A quiet comparison of an unordered pair is carried by the operators
-  // themselves, so those rows are run. The signalling variant is not: the
-  // specification has a closed set of comparisons raise invalid operation
-  // where "a comparison (such a 'greater than') which does not explicitly
-  // allow for an 'unordered' result yet would require an unordered result
-  // will give rise to an Invalid operation condition", and these operators are
-  // the quiet predicates, which answer false instead of signalling
-  if (operation == "comparesig" &&
-      to_lower(strip_quotes(test_case.expected)).find("nan") !=
-          std::string::npos) {
     return true;
   }
 
