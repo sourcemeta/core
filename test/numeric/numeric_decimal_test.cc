@@ -588,9 +588,9 @@ TEST(is_float_large_exponent_in_range) {
   EXPECT_FALSE(value.is_float());
 }
 
-TEST(is_float_large_negative_exponent_in_range) {
+TEST(is_float_negative_exponent_keeps_a_factor_of_five) {
   const sourcemeta::core::Decimal value{"1.5e-30"};
-  EXPECT_TRUE(value.is_float());
+  EXPECT_FALSE(value.is_float());
 }
 
 TEST(is_float_too_large) {
@@ -692,9 +692,9 @@ TEST(is_double_large_exponent_in_range) {
   EXPECT_FALSE(value.is_double());
 }
 
-TEST(is_double_large_negative_exponent_in_range) {
+TEST(is_double_negative_exponent_keeps_a_factor_of_five) {
   const sourcemeta::core::Decimal value{"1.5e-100"};
-  EXPECT_TRUE(value.is_double());
+  EXPECT_FALSE(value.is_double());
 }
 
 TEST(is_double_too_large) {
@@ -727,14 +727,14 @@ TEST(is_double_below_min_double) {
   EXPECT_FALSE(value.is_double());
 }
 
-TEST(is_double_15_significant_digits) {
+TEST(is_double_15_significant_digits_keep_a_factor_of_five) {
   const sourcemeta::core::Decimal value{"1.23456789012345"};
-  EXPECT_TRUE(value.is_double());
+  EXPECT_FALSE(value.is_double());
 }
 
-TEST(is_double_16_significant_digits_no_loss) {
+TEST(is_double_16_significant_digits_keep_a_factor_of_five) {
   const sourcemeta::core::Decimal value{"1.234567890123456"};
-  EXPECT_TRUE(value.is_double());
+  EXPECT_FALSE(value.is_double());
 }
 
 TEST(is_double_many_digits_with_loss) {
@@ -765,6 +765,87 @@ TEST(is_double_zero) {
 TEST(is_double_negative_zero) {
   const sourcemeta::core::Decimal value{"-0.0"};
   EXPECT_TRUE(value.is_double());
+}
+
+TEST(is_double_one_half) {
+  const sourcemeta::core::Decimal value{"0.5"};
+  EXPECT_TRUE(value.is_double());
+}
+
+TEST(is_double_one_quarter) {
+  const sourcemeta::core::Decimal value{"0.25"};
+  EXPECT_TRUE(value.is_double());
+}
+
+TEST(is_double_one_tenth) {
+  const sourcemeta::core::Decimal value{"0.1"};
+  EXPECT_FALSE(value.is_double());
+}
+
+TEST(is_double_largest_exact_power_of_ten) {
+  const sourcemeta::core::Decimal value{"1e22"};
+  EXPECT_TRUE(value.is_double());
+}
+
+TEST(is_double_first_inexact_power_of_ten) {
+  const sourcemeta::core::Decimal value{"1e23"};
+  EXPECT_FALSE(value.is_double());
+}
+
+TEST(is_float_largest_exact_power_of_ten) {
+  const sourcemeta::core::Decimal value{"1e10"};
+  EXPECT_TRUE(value.is_float());
+}
+
+TEST(is_float_first_inexact_power_of_ten) {
+  const sourcemeta::core::Decimal value{"1e11"};
+  EXPECT_FALSE(value.is_float());
+}
+
+TEST(is_double_power_of_two_past_the_significand) {
+  const sourcemeta::core::Decimal value{
+      "1606938044258990275541962092341162602522202993782792835301376"};
+  EXPECT_TRUE(value.is_double());
+}
+
+TEST(is_double_exact_expansion_of_a_double) {
+  const auto value{sourcemeta::core::Decimal::exact_from(3.2)};
+  EXPECT_TRUE(value.is_double());
+}
+
+TEST(is_double_shortest_form_of_a_double) {
+  const sourcemeta::core::Decimal value{3.2};
+  EXPECT_FALSE(value.is_double());
+}
+
+TEST(is_double_largest_finite) {
+  const auto value{sourcemeta::core::Decimal::exact_from(
+      std::numeric_limits<double>::max())};
+  EXPECT_TRUE(value.is_double());
+}
+
+TEST(is_double_smallest_subnormal) {
+  const auto value{sourcemeta::core::Decimal::exact_from(
+      std::numeric_limits<double>::denorm_min())};
+  EXPECT_TRUE(value.is_double());
+}
+
+TEST(is_float_largest_finite) {
+  const auto value{sourcemeta::core::Decimal::exact_from(
+      static_cast<double>(std::numeric_limits<float>::max()))};
+  EXPECT_TRUE(value.is_float());
+}
+
+TEST(is_float_smallest_subnormal) {
+  const auto value{sourcemeta::core::Decimal::exact_from(
+      static_cast<double>(std::numeric_limits<float>::denorm_min()))};
+  EXPECT_TRUE(value.is_float());
+}
+
+TEST(is_float_subnormal_below_the_float_range) {
+  const auto value{sourcemeta::core::Decimal::exact_from(
+      std::numeric_limits<double>::denorm_min())};
+  EXPECT_FALSE(value.is_float());
 }
 
 TEST(to_float_simple) {
@@ -2243,7 +2324,6 @@ TEST(construct_from_double_very_small) {
 TEST(construct_from_double_roundtrip) {
   const double value{3.2};
   const sourcemeta::core::Decimal decimal{value};
-  EXPECT_TRUE(decimal.is_double());
   const double roundtrip{decimal.to_double()};
   EXPECT_EQ(roundtrip, value);
 }
@@ -2251,7 +2331,6 @@ TEST(construct_from_double_roundtrip) {
 TEST(construct_from_float_roundtrip) {
   const float value{3.2f};
   const sourcemeta::core::Decimal decimal{value};
-  EXPECT_TRUE(decimal.is_float());
   const float roundtrip{decimal.to_float()};
   EXPECT_EQ(roundtrip, value);
 }
