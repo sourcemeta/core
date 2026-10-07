@@ -1349,3 +1349,71 @@ TEST(invalid_type_mapping_precedes_an_invalid_identifier) {
   EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
                              "Invalid type mapping", "/@context/p/@type");
 }
+
+TEST(nest_in_reverse_map) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@reverse": { "@nest": {} }
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Invalid reverse property map", "/@reverse/@nest");
+}
+
+TEST(aliased_nest_in_reverse_map) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "nest": "@nest" },
+    "@reverse": { "nest": {} }
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Invalid reverse property map", "/@reverse/nest");
+}
+
+TEST(deferred_external_context_error_at_root) {
+  const auto context = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "p": {
+        "@id": "https://example.com/p",
+        "@context": { "@propagate": "not-a-boolean" }
+      }
+    }
+  })");
+
+  const auto input = sourcemeta::core::parse_json(R"({
+    "p": { "https://example.com/q": "value" }
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input, context),
+                             "Invalid scoped context", "");
+}
+
+TEST(empty_type_keyword_definition) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "@type": {} },
+    "@type": "urn:T"
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Keyword redefinition", "/@context/@type");
+}
+
+TEST(null_nest_value) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "https://example.com/p": "v",
+    "@nest": null
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Invalid @nest value", "/@nest");
+}
+
+TEST(null_aliased_nest_value) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "n": "@nest" },
+    "https://example.com/p": "v",
+    "n": null
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Invalid @nest value", "/n");
+}
