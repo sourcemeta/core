@@ -848,6 +848,62 @@ TEST(is_float_subnormal_below_the_float_range) {
   EXPECT_FALSE(value.is_float());
 }
 
+TEST(is_double_negative_binary_fraction) {
+  const sourcemeta::core::Decimal value{"-0.5"};
+  EXPECT_TRUE(value.is_double());
+}
+
+TEST(is_double_negative_one_tenth) {
+  const sourcemeta::core::Decimal value{"-0.1"};
+  EXPECT_FALSE(value.is_double());
+}
+
+TEST(is_double_widest_odd_significand) {
+  const sourcemeta::core::Decimal value{"9007199254740991"};
+  EXPECT_TRUE(value.is_double());
+}
+
+TEST(is_double_reciprocal_power_of_ten) {
+  const sourcemeta::core::Decimal value{"1e-22"};
+  EXPECT_FALSE(value.is_double());
+}
+
+TEST(is_double_seventeen_digits_that_are_exact) {
+  const sourcemeta::core::Decimal value{"1.1920928955078125e-7"};
+  EXPECT_TRUE(value.is_double());
+}
+
+TEST(is_float_seventeen_digits_that_are_exact) {
+  const sourcemeta::core::Decimal value{"1.1920928955078125e-7"};
+  EXPECT_TRUE(value.is_float());
+}
+
+TEST(is_double_highest_reachable_power_of_two) {
+  const sourcemeta::core::Decimal value{
+      "8988465674311579538646525953945123668089884894711532863671504057886633"
+      "7902750481566354238661203768010560056939935696678829394884407208311246"
+      "4237153197370621888839467124327426381511098006230470597265414760425028"
+      "84419075341171231440736956555270413618581675255342293149119973622969239"
+      "858152417678164812112068608"};
+  EXPECT_TRUE(value.is_double());
+}
+
+TEST(is_double_one_power_of_two_too_far) {
+  const sourcemeta::core::Decimal value{
+      "1797693134862315907729305190789024733617976978942306572734300811577326"
+      "7580550096313270847732240753602112011387987139335765878976881441662249"
+      "2847430639474124377767893424865485276302219601246094119453082952085005"
+      "76883815068234246288147391311054082723716335051068458629823994724593847"
+      "9716304835356329624224137216"};
+  EXPECT_FALSE(value.is_double());
+}
+
+TEST(is_double_smallest_normal) {
+  const auto value{sourcemeta::core::Decimal::exact_from(
+      std::numeric_limits<double>::min())};
+  EXPECT_TRUE(value.is_double());
+}
+
 TEST(to_float_simple) {
   const sourcemeta::core::Decimal value{"3.14"};
   EXPECT_FLOAT_EQ(value.to_float(), 3.14f);
