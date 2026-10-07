@@ -193,8 +193,8 @@ auto jsonrpc_is_notification(const sourcemeta::core::JSON &request) -> bool;
 
 /// @ingroup jsonrpc
 /// Construct a JSON-RPC 2.0 notification with object or array parameters.
-/// The envelope has no identifier. Throws std::invalid_argument if the
-/// parameters are not an object or array. For example:
+/// The envelope has no identifier. The parameters must be an object or array.
+/// This precondition is checked in debug builds. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/json.h>

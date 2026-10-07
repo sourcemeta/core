@@ -4,8 +4,7 @@
 
 #include <sourcemeta/core/test.h>
 
-#include <cstdint>   // std::int64_t
-#include <stdexcept> // std::invalid_argument
+#include <cstdint> // std::int64_t
 
 TEST(code_constants) {
   EXPECT_EQ(sourcemeta::core::JSONRPC_CODE_PARSE,
@@ -413,6 +412,7 @@ TEST(make_notification_object_parameters) {
       "update", sourcemeta::core::parse_json(R"({
         "values": [42, null, {"name": "example"}]
       })"))};
+  EXPECT_TRUE(sourcemeta::core::jsonrpc_is_notification(notification));
   EXPECT_EQ(notification, sourcemeta::core::parse_json(R"({
     "jsonrpc": "2.0",
     "method": "update",
@@ -424,6 +424,7 @@ TEST(make_notification_array_parameters) {
   const auto notification{sourcemeta::core::jsonrpc_make_notification(
       "update",
       sourcemeta::core::parse_json(R"([42, null, {"name": "example"}])"))};
+  EXPECT_TRUE(sourcemeta::core::jsonrpc_is_notification(notification));
   EXPECT_EQ(notification, sourcemeta::core::parse_json(R"({
     "jsonrpc": "2.0",
     "method": "update",
@@ -434,6 +435,7 @@ TEST(make_notification_array_parameters) {
 TEST(make_notification_empty_object_parameters) {
   const auto notification{sourcemeta::core::jsonrpc_make_notification(
       "update", sourcemeta::core::JSON::make_object())};
+  EXPECT_TRUE(sourcemeta::core::jsonrpc_is_notification(notification));
   EXPECT_EQ(notification, sourcemeta::core::parse_json(R"({
     "jsonrpc": "2.0",
     "method": "update",
@@ -444,71 +446,12 @@ TEST(make_notification_empty_object_parameters) {
 TEST(make_notification_empty_array_parameters) {
   const auto notification{sourcemeta::core::jsonrpc_make_notification(
       "update", sourcemeta::core::JSON::make_array())};
+  EXPECT_TRUE(sourcemeta::core::jsonrpc_is_notification(notification));
   EXPECT_EQ(notification, sourcemeta::core::parse_json(R"({
     "jsonrpc": "2.0",
     "method": "update",
     "params": []
   })"));
-}
-
-TEST(make_notification_null_parameters) {
-  try {
-    sourcemeta::core::jsonrpc_make_notification(
-        "update", sourcemeta::core::JSON{nullptr});
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
-}
-
-TEST(make_notification_boolean_parameters) {
-  try {
-    sourcemeta::core::jsonrpc_make_notification("update",
-                                                sourcemeta::core::JSON{false});
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
-}
-
-TEST(make_notification_integer_parameters) {
-  try {
-    sourcemeta::core::jsonrpc_make_notification("update",
-                                                sourcemeta::core::JSON{42});
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
-}
-
-TEST(make_notification_real_parameters) {
-  try {
-    sourcemeta::core::jsonrpc_make_notification("update",
-                                                sourcemeta::core::JSON{1.25});
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
-}
-
-TEST(make_notification_decimal_parameters) {
-  try {
-    sourcemeta::core::jsonrpc_make_notification(
-        "update", sourcemeta::core::JSON{sourcemeta::core::Decimal{"1.25"}});
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
-}
-
-TEST(make_notification_string_parameters) {
-  try {
-    sourcemeta::core::jsonrpc_make_notification(
-        "update", sourcemeta::core::JSON{"value"});
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
 }
 
 TEST(make_success_empty) {
