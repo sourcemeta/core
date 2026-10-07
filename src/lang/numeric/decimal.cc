@@ -1,5 +1,6 @@
 #include <sourcemeta/core/numeric_decimal.h>
 #include <sourcemeta/core/numeric_error.h>
+#include <sourcemeta/core/numeric_util.h>
 
 #include "big_coefficient.h"
 
@@ -442,24 +443,12 @@ constexpr auto highest_power_of_five(const std::uint64_t limit)
   return power;
 }
 
-// IEEE 754-2019 Section 3.3: every finite value of a binary interchange format
-// is an integral significand scaled by a power of two, where the significand
-// fits the precision of the format and the scale stays inside the exponent
-// range it reaches, the subnormal reach included. Requiring the significand to
-// be odd leaves exactly one such decomposition, so a decimal has an exact
-// counterpart precisely when its own odd decomposition clears those bounds
-template <typename FloatingPointType> struct BinaryFormat {
-  static constexpr std::int64_t PRECISION{
-      std::numeric_limits<FloatingPointType>::digits};
-  static constexpr std::int64_t MINIMUM_EXPONENT{
-      std::numeric_limits<FloatingPointType>::min_exponent - PRECISION};
-  static constexpr std::int64_t MAXIMUM_EXPONENT{
-      std::numeric_limits<FloatingPointType>::max_exponent - 1};
-  static constexpr std::uint64_t MAXIMUM_SIGNIFICAND{
-      (static_cast<std::uint64_t>(1) << PRECISION) - 1};
-  static constexpr std::int64_t MAXIMUM_POSITIVE_POWER{
-      highest_power_of_five(MAXIMUM_SIGNIFICAND)};
-};
+// A power of ten carries a power of five, and five being odd means no scaling
+// takes it back out, so the width of the significand bounds how far a positive
+// exponent reaches
+template <typename FloatingPointType>
+constexpr std::int64_t MAXIMUM_POSITIVE_POWER{highest_power_of_five(
+    sourcemeta::core::BinaryFormat<FloatingPointType>::MAXIMUM_SIGNIFICAND)};
 
 // The powers of five that a positive exponent can call for before the
 // significand of the widest format here runs out of room
@@ -487,34 +476,23 @@ constexpr std::array<std::uint64_t, 23> POWERS_OF_FIVE{{1ULL,
                                                         476837158203125ULL,
                                                         2384185791015625ULL}};
 
-static_assert(BinaryFormat<double>::MAXIMUM_POSITIVE_POWER <
+static_assert(MAXIMUM_POSITIVE_POWER<double> <
               static_cast<std::int64_t>(POWERS_OF_FIVE.size()));
 
-// Whether an odd significand scaled by a power of two is one of the values the
-// format holds
-template <typename FloatingPointType>
-constexpr auto fits_binary_format(const std::uint64_t significand,
-                                  const std::int64_t scale) -> bool {
-  using Format = BinaryFormat<FloatingPointType>;
-  const auto width{static_cast<std::int64_t>(std::bit_width(significand))};
-  return width <= Format::PRECISION && scale >= Format::MINIMUM_EXPONENT &&
-         scale + width - 1 <= Format::MAXIMUM_EXPONENT;
-}
-
-// Hands a positive exponent to an odd significand. A power of ten carries a
-// power of five, and five being odd means no scaling takes it back out, so the
-// width of the significand is what bounds how far such an exponent reaches
+// Hands a positive exponent to an odd significand, refusing the product the
+// significand cannot hold rather than letting it wrap
 template <typename FloatingPointType>
 auto scale_by_positive_power(std::uint64_t &significand,
                              const std::int32_t exponent, std::int64_t &scale)
     -> bool {
-  using Format = BinaryFormat<FloatingPointType>;
-  if (exponent > Format::MAXIMUM_POSITIVE_POWER) {
+  if (exponent > MAXIMUM_POSITIVE_POWER<FloatingPointType>) {
     return false;
   }
 
   const auto power{POWERS_OF_FIVE[static_cast<std::size_t>(exponent)]};
-  if (significand > Format::MAXIMUM_SIGNIFICAND / power) {
+  if (significand >
+      sourcemeta::core::BinaryFormat<FloatingPointType>::MAXIMUM_SIGNIFICAND /
+          power) {
     return false;
   }
 
@@ -534,7 +512,8 @@ auto is_representable_compact(std::uint64_t coefficient,
   if (exponent >= 0) {
     return scale_by_positive_power<FloatingPointType>(coefficient, exponent,
                                                       scale) &&
-           fits_binary_format<FloatingPointType>(coefficient, scale);
+           sourcemeta::core::fits_binary_format<FloatingPointType>(coefficient,
+                                                                   scale);
   }
 
   // A negative exponent puts a power of five underneath the value, so only a
@@ -551,7 +530,8 @@ auto is_representable_compact(std::uint64_t coefficient,
   }
 
   scale += exponent;
-  return fits_binary_format<FloatingPointType>(coefficient, scale);
+  return sourcemeta::core::fits_binary_format<FloatingPointType>(coefficient,
+                                                                 scale);
 }
 
 // A coefficient of several words is wider than any significand, so the work is
@@ -587,7 +567,8 @@ auto is_representable_big(BigCoefficient &coefficient,
   // of two comes out. A scale already past what the format reaches cannot come
   // back, which is what ends this for a coefficient of any width
   while (coefficient.words[0] % 2 == 0) {
-    if (scale > BinaryFormat<FloatingPointType>::MAXIMUM_EXPONENT) {
+    if (scale >
+        sourcemeta::core::BinaryFormat<FloatingPointType>::MAXIMUM_EXPONENT) {
       return false;
     }
 
@@ -605,7 +586,8 @@ auto is_representable_big(BigCoefficient &coefficient,
     return false;
   }
 
-  return fits_binary_format<FloatingPointType>(significand, scale);
+  return sourcemeta::core::fits_binary_format<FloatingPointType>(significand,
+                                                                 scale);
 }
 
 // Both NaN and the infinities are values of every binary interchange format, as

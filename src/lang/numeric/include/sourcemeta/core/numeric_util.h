@@ -3,7 +3,7 @@
 
 #include <sourcemeta/core/numeric_decimal.h>
 
-#include <bit>      // std::bit_cast
+#include <bit>      // std::bit_cast, std::bit_width, std::countr_zero
 #include <cassert>  // assert
 #include <cmath>    // std::modf, std::floor, std::isfinite
 #include <concepts> // std::floating_point, std::integral, std::same_as
@@ -396,6 +396,113 @@ auto real_equal(const Real left, const Real right) -> bool {
   return (left_biased >= right_biased
               ? left_biased - right_biased
               : right_biased - left_biased) <= MAXIMUM_UNITS_IN_LAST_PLACE;
+}
+
+/// @ingroup numeric
+/// The bounds that decide which values an IEEE 754-2019 binary interchange
+/// format holds, named after the properties the standard gives them rather
+/// than after the biased encoding they are stored in
+template <std::floating_point Real> struct BinaryFormat {
+  /// The width of the significand in bits
+  static constexpr std::int64_t PRECISION{std::numeric_limits<Real>::digits};
+
+  /// The exponent of the least significant bit of the smallest subnormal
+  static constexpr std::int64_t MINIMUM_EXPONENT{
+      std::numeric_limits<Real>::min_exponent - PRECISION};
+
+  /// The exponent of the leading bit of the largest finite value
+  static constexpr std::int64_t MAXIMUM_EXPONENT{
+      std::numeric_limits<Real>::max_exponent - 1};
+
+  /// The widest significand the format can hold
+  static constexpr std::uint64_t MAXIMUM_SIGNIFICAND{
+      (static_cast<std::uint64_t>(1) << PRECISION) - 1};
+};
+
+/// @ingroup numeric
+/// Check whether an odd significand scaled by a power of two is one of the
+/// values an IEEE 754-2019 binary interchange format holds. Section 3.3 of
+/// that standard makes every finite value of such a format exactly that
+/// product, and requiring the significand to be odd leaves only one such
+/// decomposition, so these three bounds decide the question outright. Passing
+/// an even significand understates what the format reaches, since the powers
+/// of two it still carries belong in the scale. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/numeric.h>
+///
+/// #include <cassert>
+///
+/// assert(sourcemeta::core::fits_binary_format<double>(1, 0));
+/// assert(!sourcemeta::core::fits_binary_format<float>(1, -150));
+/// ```
+template <std::floating_point Real>
+constexpr auto fits_binary_format(const std::uint64_t significand,
+                                  const std::int64_t scale) -> bool {
+  const auto width{static_cast<std::int64_t>(std::bit_width(significand))};
+  return width <= BinaryFormat<Real>::PRECISION &&
+         scale >= BinaryFormat<Real>::MINIMUM_EXPONENT &&
+         scale + width - 1 <= BinaryFormat<Real>::MAXIMUM_EXPONENT;
+}
+
+/// @ingroup numeric
+/// Check whether an integer is exactly one of the values an IEEE 754-2019
+/// binary interchange format holds. Every integer of this width scales by a
+/// power of two that either format reaches, so the width of its odd part is
+/// all that can leave it outside. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/numeric.h>
+///
+/// #include <cassert>
+///
+/// assert(sourcemeta::core::is_representable_as<float>(16777215));
+/// assert(!sourcemeta::core::is_representable_as<float>(16777217));
+/// ```
+template <std::floating_point Real, std::integral Integer>
+constexpr auto is_representable_as(const Integer value) -> bool {
+  const auto magnitude{sourcemeta::core::abs(value)};
+  if (magnitude == 0) {
+    return true;
+  }
+
+  const auto scale{std::countr_zero(magnitude)};
+  return fits_binary_format<Real>(magnitude >> scale, scale);
+}
+
+/// @ingroup numeric
+/// Check whether a floating-point value is exactly one of the values a
+/// narrower IEEE 754-2019 binary interchange format holds. The magnitude is
+/// settled before narrowing, as a conversion the narrower format cannot reach
+/// is not defined, and what returns from the round trip unchanged is what that
+/// format holds exactly. A value too small for it falls to zero and fails that
+/// comparison, while an infinity and every NaN belong to either format. For
+/// example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/numeric.h>
+///
+/// #include <cassert>
+///
+/// assert(sourcemeta::core::is_representable_as<float>(0.5));
+/// assert(!sourcemeta::core::is_representable_as<float>(3.14));
+/// ```
+template <std::floating_point Real, std::floating_point Wider>
+auto is_representable_as(const Wider value) -> bool {
+  if constexpr (sizeof(Real) >= sizeof(Wider)) {
+    return true;
+  } else {
+    if (!std::isfinite(value)) {
+      return true;
+    }
+
+    constexpr auto LIMIT{static_cast<Wider>(std::numeric_limits<Real>::max())};
+    if (value > LIMIT || value < -LIMIT) {
+      return false;
+    }
+
+    return static_cast<Wider>(static_cast<Real>(value)) == value;
+  }
 }
 
 } // namespace sourcemeta::core
