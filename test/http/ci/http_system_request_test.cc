@@ -49,6 +49,8 @@ public:
     if (WSAStartup(MAKEWORD(2, 2), &information) != 0) {
       return;
     }
+
+    this->initialised_ = true;
 #endif
 
     this->descriptor_ = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -93,7 +95,12 @@ public:
     }
 
 #ifdef _WIN32
-    WSACleanup();
+    // Every successful startup owes exactly one cleanup, which decrements a
+    // reference count shared across the process, so skipping it on a failed
+    // startup is what keeps this from releasing somebody else's initialisation
+    if (this->initialised_) {
+      WSACleanup();
+    }
 #endif
   }
 
@@ -108,6 +115,9 @@ public:
   }
 
 private:
+#ifdef _WIN32
+  bool initialised_{false};
+#endif
   ListenerDescriptor descriptor_{LISTENER_INVALID};
   std::uint16_t port_{0};
 };
