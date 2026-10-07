@@ -623,48 +623,6 @@ TEST(is_within_at_runtime) {
       sourcemeta::core::is_within(above, std::uint64_t{0}, std::uint64_t{10}));
 }
 
-TEST(fits_binary_format_unit_significand) {
-  EXPECT_TRUE(sourcemeta::core::fits_binary_format<double>(1, 0));
-}
-
-TEST(fits_binary_format_double_highest_scale) {
-  EXPECT_TRUE(sourcemeta::core::fits_binary_format<double>(1, 1023));
-}
-
-TEST(fits_binary_format_double_past_the_highest_scale) {
-  EXPECT_FALSE(sourcemeta::core::fits_binary_format<double>(1, 1024));
-}
-
-TEST(fits_binary_format_double_lowest_scale) {
-  EXPECT_TRUE(sourcemeta::core::fits_binary_format<double>(1, -1074));
-}
-
-TEST(fits_binary_format_double_past_the_lowest_scale) {
-  EXPECT_FALSE(sourcemeta::core::fits_binary_format<double>(1, -1075));
-}
-
-TEST(fits_binary_format_float_lowest_scale) {
-  EXPECT_TRUE(sourcemeta::core::fits_binary_format<float>(1, -149));
-}
-
-TEST(fits_binary_format_float_past_the_lowest_scale) {
-  EXPECT_FALSE(sourcemeta::core::fits_binary_format<float>(1, -150));
-}
-
-TEST(fits_binary_format_double_widest_significand) {
-  EXPECT_TRUE(
-      sourcemeta::core::fits_binary_format<double>(9007199254740991, 0));
-}
-
-TEST(fits_binary_format_double_past_the_widest_significand) {
-  EXPECT_FALSE(
-      sourcemeta::core::fits_binary_format<double>(9007199254740993, 0));
-}
-
-TEST(fits_binary_format_leading_bit_past_the_highest_scale) {
-  EXPECT_FALSE(sourcemeta::core::fits_binary_format<double>(3, 1023));
-}
-
 TEST(is_representable_as_integer_zero) {
   EXPECT_TRUE(sourcemeta::core::is_representable_as<float>(0));
 }

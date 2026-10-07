@@ -399,57 +399,13 @@ auto real_equal(const Real left, const Real right) -> bool {
 }
 
 /// @ingroup numeric
-/// The bounds that decide which values an IEEE 754-2019 binary interchange
-/// format holds, named after the properties the standard gives them rather
-/// than after the biased encoding they are stored in
-template <std::floating_point Real> struct BinaryFormat {
-  /// The width of the significand in bits
-  static constexpr std::int64_t PRECISION{std::numeric_limits<Real>::digits};
-
-  /// The exponent of the least significant bit of the smallest subnormal
-  static constexpr std::int64_t MINIMUM_EXPONENT{
-      std::numeric_limits<Real>::min_exponent - PRECISION};
-
-  /// The exponent of the leading bit of the largest finite value
-  static constexpr std::int64_t MAXIMUM_EXPONENT{
-      std::numeric_limits<Real>::max_exponent - 1};
-
-  /// The widest significand the format can hold
-  static constexpr std::uint64_t MAXIMUM_SIGNIFICAND{
-      (static_cast<std::uint64_t>(1) << PRECISION) - 1};
-};
-
-/// @ingroup numeric
-/// Check whether an odd significand scaled by a power of two is one of the
-/// values an IEEE 754-2019 binary interchange format holds. Section 3.3 of
-/// that standard makes every finite value of such a format exactly that
-/// product, and requiring the significand to be odd leaves only one such
-/// decomposition, so these three bounds decide the question outright. Passing
-/// an even significand understates what the format reaches, since the powers
-/// of two it still carries belong in the scale. For example:
-///
-/// ```cpp
-/// #include <sourcemeta/core/numeric.h>
-///
-/// #include <cassert>
-///
-/// assert(sourcemeta::core::fits_binary_format<double>(1, 0));
-/// assert(!sourcemeta::core::fits_binary_format<float>(1, -150));
-/// ```
-template <std::floating_point Real>
-constexpr auto fits_binary_format(const std::uint64_t significand,
-                                  const std::int64_t scale) -> bool {
-  const auto width{static_cast<std::int64_t>(std::bit_width(significand))};
-  return width <= BinaryFormat<Real>::PRECISION &&
-         scale >= BinaryFormat<Real>::MINIMUM_EXPONENT &&
-         scale + width - 1 <= BinaryFormat<Real>::MAXIMUM_EXPONENT;
-}
-
-/// @ingroup numeric
 /// Check whether an integer is exactly one of the values an IEEE 754-2019
-/// binary interchange format holds. Every integer of this width scales by a
-/// power of two that either format reaches, so the width of its odd part is
-/// all that can leave it outside. For example:
+/// binary interchange format holds. Section 3.3 of that standard makes every
+/// finite value of such a format an integral significand scaled by a power of
+/// two. An integer scales by a non negative power of two whose leading bit sits
+/// no higher than the width of the integer itself, which every format here
+/// reaches, so the width of its odd part is all that can leave it outside. For
+/// example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/numeric.h>
@@ -462,12 +418,9 @@ constexpr auto fits_binary_format(const std::uint64_t significand,
 template <std::floating_point Real, std::integral Integer>
 constexpr auto is_representable_as(const Integer value) -> bool {
   const auto magnitude{sourcemeta::core::abs(value)};
-  if (magnitude == 0) {
-    return true;
-  }
-
-  const auto scale{std::countr_zero(magnitude)};
-  return fits_binary_format<Real>(magnitude >> scale, scale);
+  return magnitude == 0 ||
+         std::bit_width(magnitude >> std::countr_zero(magnitude)) <=
+             std::numeric_limits<Real>::digits;
 }
 
 /// @ingroup numeric
