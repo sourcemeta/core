@@ -222,9 +222,20 @@ static auto run_comparison(const DecTestCase &test_case, bool signal_on_nan)
   const auto left{make_decimal(test_case.operand1)};
   const auto right{make_decimal(test_case.operand2)};
 
-  if (signal_on_nan &&
-      has_condition(test_case.conditions, "invalid_operation")) {
-    EXPECT_TRUE(make_decimal(test_case.expected).is_nan());
+  // A quiet comparison answers an unordered pair with a NaN, which the
+  // specification describes as how the "compare operation can return a quiet
+  // NaN as a result, which indicates an 'unordered' comparison". The operators
+  // here are the quiet predicates, which carry that outcome as equality and
+  // every ordering answering false while inequality answers true
+  if (!signal_on_nan &&
+      to_lower(strip_quotes(test_case.expected)).find("nan") !=
+          std::string::npos) {
+    EXPECT_FALSE(left == right);
+    EXPECT_TRUE(left != right);
+    EXPECT_FALSE(left < right);
+    EXPECT_FALSE(left <= right);
+    EXPECT_FALSE(left > right);
+    EXPECT_FALSE(left >= right);
     return;
   }
 
@@ -245,7 +256,7 @@ static auto run_binary(const DecTestCase &test_case, Operation operation)
     try {
       const auto result{operation(make_decimal(test_case.operand1),
                                   make_decimal(test_case.operand2))};
-      EXPECT_TRUE(result.is_nan());
+      expect_decimal_eq(result, make_decimal(test_case.expected));
     } catch (const sourcemeta::core::NumericInvalidOperationError &) {
       // Signalling the condition rather than returning NaN is expected too
     } catch (const sourcemeta::core::NumericDivisionByZeroError &) {
@@ -281,7 +292,8 @@ static auto run_unary(const DecTestCase &test_case, Operation operation)
     -> void {
   if (has_condition(test_case.conditions, "invalid_operation")) {
     try {
-      EXPECT_TRUE(operation(make_decimal(test_case.operand1)).is_nan());
+      expect_decimal_eq(operation(make_decimal(test_case.operand1)),
+                        make_decimal(test_case.expected));
     } catch (const sourcemeta::core::NumericInvalidOperationError &) {
       // Signalling the condition rather than returning NaN is expected too
     }
@@ -656,19 +668,17 @@ static auto should_skip_test(const DecTestCase &test_case,
     return true;
   }
 
-  // The decTest spec defines compare(NaN, x) = NaN, but our comparison
-  // operators return bool, so a NaN comparison result cannot be represented.
-  // The signalling case that carries an invalid_operation condition is kept, as
-  // it only asserts that the expected result parses as NaN.
-  if (operation == "compare" || operation == "comparesig") {
-    const auto signalling_nan{
-        operation == "comparesig" &&
-        has_condition(test_case.conditions, "invalid_operation")};
-    if (!signalling_nan &&
-        to_lower(strip_quotes(test_case.expected)).find("nan") !=
-            std::string::npos) {
-      return true;
-    }
+  // A quiet comparison of an unordered pair is carried by the operators
+  // themselves, so those rows are run. The signalling variant is not: the
+  // specification has a closed set of comparisons raise invalid operation
+  // where "a comparison (such a 'greater than') which does not explicitly
+  // allow for an 'unordered' result yet would require an unordered result
+  // will give rise to an Invalid operation condition", and these operators are
+  // the quiet predicates, which answer false instead of signalling
+  if (operation == "comparesig" &&
+      to_lower(strip_quotes(test_case.expected)).find("nan") !=
+          std::string::npos) {
+    return true;
   }
 
   if (operation == "compare" || operation == "comparetotal" ||
@@ -698,9 +708,14 @@ static auto should_skip_test(const DecTestCase &test_case,
 
   // TODO: Our Decimal context uses half_even rounding exclusively.
   // tointegral results depend on rounding mode, so we can only run
-  // these tests when the file's rounding directive matches ours.
+  // these tests when the file's rounding directive matches ours. A row whose
+  // operand is a NaN reaches no rounding at all, so the rounding directive
+  // does not decide its outcome and it is run whatever that directive says
   if (operation == "tointegral" || operation == "tointegralx") {
-    if (context.rounding != "half_even") {
+    const auto rounding_free{
+        to_lower(strip_quotes(test_case.operand1)).find("nan") !=
+        std::string::npos};
+    if (context.rounding != "half_even" && !rounding_free) {
       return true;
     }
   }
