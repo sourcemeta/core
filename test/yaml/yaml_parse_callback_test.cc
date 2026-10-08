@@ -627,3 +627,29 @@ TEST(parse_in_place_with_roundtrip_and_callback) {
   EXPECT_EQ(output.at("foo").to_integer(), 1);
   EXPECT_EQ(events, 4);
 }
+
+// An empty node that carries an anchor is still a node, and used to be
+// returned without being announced at all, while the same node without the
+// anchor was announced like any other.
+TEST(yaml_anchored_empty_node_at_the_end_of_the_stream) {
+  std::istringstream input{"a: &x"};
+  PARSE_YAML_WITH_TRACES(document, input, 4);
+  EXPECT_TRACE(0, Pre, Object, 1, 1, Root, 0, "");
+  EXPECT_TRACE(1, Pre, Null, 1, 4, Property, 0, "a");
+  EXPECT_TRACE(2, Post, Null, 1, 4, Root, 0, "");
+  EXPECT_TRACE(3, Post, Object, 2, 0, Root, 0, "");
+}
+
+// A tag can make an empty node stand for something other than null, so what is
+// announced has to be what the node came back as. Announcing null regardless
+// told whoever is listening a different type from the value they received.
+TEST(yaml_anchored_empty_string_node_at_the_end_of_the_stream) {
+  std::istringstream input{"a: !!str &x"};
+  PARSE_YAML_WITH_TRACES(document, input, 4);
+  EXPECT_TRUE(document.at("a").is_string());
+  EXPECT_EQ(document.at("a"), sourcemeta::core::JSON{""});
+  EXPECT_TRACE(0, Pre, Object, 1, 1, Root, 0, "");
+  EXPECT_TRACE(1, Pre, String, 1, 4, Property, 0, "a");
+  EXPECT_TRACE(2, Post, String, 1, 4, Root, 0, "");
+  EXPECT_TRACE(3, Post, Object, 2, 0, Root, 0, "");
+}

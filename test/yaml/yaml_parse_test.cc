@@ -1,6 +1,7 @@
 #include <sourcemeta/core/io.h>
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/test.h>
+#include <sourcemeta/core/unicode.h>
 #include <sourcemeta/core/yaml.h>
 
 #include <fstream>  // std::ifstream
@@ -9,6 +10,19 @@
 #include <sstream>  // std::istringstream
 #include <string>   // std::string
 #include <utility>  // std::move
+
+// A run of one character that takes four bytes to write, for showing that what
+// a copy occupies is counted in bytes rather than in the characters they spell
+static auto wide_characters(const std::size_t count) -> std::string {
+  const auto character{sourcemeta::core::codepoint_to_utf8(U'\U0001F600')};
+  std::string result;
+  result.reserve(count * character.size());
+  for (std::size_t index = 0; index < count; index++) {
+    result += character;
+  }
+
+  return result;
+}
 
 TEST(deeply_nested_flow_is_rejected) {
   const std::string input{std::string(2000, '[') + std::string(2000, ']')};
@@ -207,6 +221,25 @@ TEST(read_yaml_resolves_a_tag_directive_before_a_later_document) {
   EXPECT_EQ(result, expected);
 }
 
+// YAML 1.2.2 Section 9.2: a document that is not terminated by a document end
+// marker is followed by one that begins with a directives end marker, and
+// production 211 admits an explicit document directly after any other, so a
+// stream separated by directives end markers alone is well formed.
+TEST(read_yaml_accepts_documents_separated_by_a_directives_end_marker) {
+  const auto result{sourcemeta::core::read_yaml(
+      std::filesystem::path{STUBS_PATH} / "multi_document_objects.yaml")};
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON({ "foo": 1 })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(read_yaml_accepts_scalar_documents_separated_by_a_directives_end_marker) {
+  const auto result{sourcemeta::core::read_yaml(
+      std::filesystem::path{STUBS_PATH} / "multi_document_lf.yaml")};
+  const sourcemeta::core::JSON expected{sourcemeta::core::JSON{"foo"}};
+  EXPECT_EQ(result, expected);
+}
+
 TEST(yaml_or_json_stub_test_1) {
   const auto result{sourcemeta::core::read_yaml_or_json(
       std::filesystem::path{STUBS_PATH} / "test_1.yaml")};
@@ -291,6 +324,22 @@ TEST(multi_document_unix_line_endings) {
   EXPECT_EQ(doc3, sourcemeta::core::JSON{"baz"});
 
   EXPECT_EQ(stream.peek(), EOF);
+}
+
+// A token handed back has not been read as far as the caller is concerned, so
+// where the stream stands has to be where that token begins. Leaving it where
+// reading the token ended made the next read resume past it and lose it.
+TEST(multi_document_after_a_leading_document_end_marker) {
+  std::istringstream stream{"...\nfoo\n---\nbar"};
+
+  const auto doc1{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_TRUE(doc1.is_null());
+
+  const auto doc2{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(doc2, sourcemeta::core::JSON{"foo"});
+
+  const auto doc3{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(doc3, sourcemeta::core::JSON{"bar"});
 }
 
 TEST(multi_document_windows_line_endings) {
@@ -858,6 +907,26 @@ TEST(alias_expansion_allowance_ignores_a_comment_behind_the_alias) {
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 5);
     EXPECT_EQ(error.column(), 4);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// What an expansion costs is what materialising it takes, so a place holding a
+// long run of text cannot be copied for the price of an empty one. Charging
+// each place alone let this one spend about one part in a thousand of its
+// allowance while materialising two megabytes from two kilobytes of input.
+TEST(alias_expansion_allowance_counts_the_text_a_place_carries) {
+  const std::string input{"a: &a " + std::string(2000, 'x') + "\n" +
+                          "b: &b [ *a, *a, *a, *a, *a, *a, *a, *a, *a, *a ]\n"
+                          "c: &c [ *b, *b, *b, *b, *b, *b, *b, *b, *b, *b ]\n"
+                          "d: [ *c, *c, *c, *c, *c, *c, *c, *c, *c, *c ]\n"};
+
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_EQ(error.line(), 4);
   } catch (...) {
     FAIL();
   }
@@ -2572,10 +2641,23 @@ TEST(block_mapping_second_key_value_at_document_end) {
   EXPECT_TRUE(result.at("b").is_null());
 }
 
+// YAML 1.2.2 Section 10.3.2 resolves an empty node to null, which this module
+// spells as the empty string when it stands as a key, and Example 7.3 reads a
+// leading value indicator into that key holding the scalar beside it.
 TEST(leading_colon_value_indicator_mapping) {
   const auto result{sourcemeta::core::parse_yaml(": v")};
   EXPECT_TRUE(result.is_object());
   EXPECT_EQ(result.size(), 1);
+  EXPECT_TRUE(result.defines(""));
+  EXPECT_EQ(result.at(""), sourcemeta::core::JSON{"v"});
+}
+
+TEST(leading_colon_value_indicator_mapping_with_an_empty_value) {
+  const auto result{sourcemeta::core::parse_yaml(":")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_TRUE(result.defines(""));
+  EXPECT_TRUE(result.at("").is_null());
 }
 
 TEST(anchor_empty_value_before_document_start) {
@@ -2947,4 +3029,95 @@ TEST(carriage_return_block_scalar_header_comment) {
   auto expected{sourcemeta::core::JSON::make_object()};
   expected.assign("foo", sourcemeta::core::JSON{"one\ntwo"});
   EXPECT_EQ(result, expected);
+}
+
+// Section 9.1 has each document be "completely independent from the rest", so
+// an anchor declared in one is out of reach of an alias in the next. The
+// anchors survived the boundary, which let the second document borrow them.
+TEST(anchor_does_not_reach_across_a_directives_end_marker) {
+  try {
+    sourcemeta::core::read_yaml(std::filesystem::path{STUBS_PATH} /
+                                "multi_document_anchor_reuse.yaml");
+    FAIL();
+  } catch (const sourcemeta::core::YAMLFileParseError &error) {
+    EXPECT_STREQ(error.what(), "YAML alias references undefined anchor");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(anchor_does_not_reach_across_a_document_end_marker) {
+  try {
+    sourcemeta::core::read_yaml(std::filesystem::path{STUBS_PATH} /
+                                "multi_document_anchor_reuse_after_end.yaml");
+    FAIL();
+  } catch (const sourcemeta::core::YAMLFileParseError &error) {
+    EXPECT_STREQ(error.what(), "YAML alias references undefined anchor");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// An empty key is a key like any other, so naming it twice names the same key
+// twice. Nothing recorded it, which left the mapping quietly keeping only the
+// last of them.
+TEST(leading_colon_value_indicator_duplicate_is_rejected) {
+  const std::string input{": v\n~: w\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLDuplicateKeyError &error) {
+    EXPECT_STREQ(error.what(), "Duplicate key in YAML mapping");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// The entry a value indicator opens is committed on more than one path, and an
+// empty key naming the same place twice has to be refused on each of them. The
+// path that ends the document committed without ever weighing the key, which
+// quietly kept the last of them.
+TEST(leading_colon_value_indicator_duplicate_at_the_end_of_a_document) {
+  const std::string input{": [1]\n:\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLDuplicateKeyError &error) {
+    EXPECT_STREQ(error.what(), "Duplicate key in YAML mapping");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// A value indicator that turns out to open an explicit key commits nothing, so
+// the empty key it looked like must not be marked as one the mapping has seen.
+TEST(leading_colon_value_indicator_before_an_explicit_key_is_not_seen) {
+  const auto result{sourcemeta::core::parse_yaml(":\n? a\n: b\n: c\n")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_TRUE(result.defines("a"));
+  EXPECT_TRUE(result.at("a").is_object());
+  EXPECT_EQ(result.at("a").size(), 1);
+  EXPECT_TRUE(result.at("a").defines("b"));
+  EXPECT_TRUE(result.at("a").at("b").is_null());
+}
+
+// What a copy occupies is counted in bytes, where the logical length counts
+// the characters those bytes spell. A character written in four of them was
+// charged as one, so this chain stayed within an allowance it outgrows four
+// times over.
+TEST(alias_expansion_allowance_counts_bytes_not_characters) {
+  const std::string input{"a: &a " + wide_characters(100) + "\n" +
+                          "b: &b [ *a, *a, *a, *a, *a, *a, *a, *a, *a, *a, *a, "
+                          "*a, *a, *a, *a, *a, *a, *a, *a, *a ]\n"
+                          "c: [ *b, *b, *b, *b, *b, *b, *b, *b, *b, *b, *b, "
+                          "*b, *b, *b, *b, *b, *b, *b, *b, *b ]\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_EQ(error.line(), 3);
+  } catch (...) {
+    FAIL();
+  }
 }
