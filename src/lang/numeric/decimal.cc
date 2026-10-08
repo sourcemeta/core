@@ -2215,6 +2215,19 @@ auto Decimal::operator+=(const Decimal &other) -> Decimal & {
     result_negative = false;
   }
 
+  // A sum of two compact coefficients reaches one digit further than either of
+  // them, so it can land beyond the compact range even though both addends sat
+  // inside it. Storing it compact anyway would break the invariant the compact
+  // arithmetic paths rely on, and the next addition over such a value overflows
+  if (result_coefficient > COMPACT_MAX) {
+    store_big_result(this->coefficient_, this->coefficient_high_, this->flags_,
+                     BigCoefficient::from_uint64(
+                         static_cast<std::uint64_t>(result_coefficient)),
+                     result_negative);
+    this->exponent_ = result_exponent;
+    return *this;
+  }
+
   this->coefficient_ = result_coefficient;
   this->exponent_ = result_exponent;
   this->flags_ = result_negative ? FLAG_SIGN : 0;
