@@ -1,5 +1,6 @@
 #include <sourcemeta/core/numeric_decimal.h>
 #include <sourcemeta/core/numeric_error.h>
+#include <sourcemeta/core/numeric_parse.h>
 #include <sourcemeta/core/numeric_util.h>
 
 #include "big_coefficient.h"
@@ -1197,11 +1198,21 @@ auto Decimal::to_double() const -> double {
     return std::numeric_limits<double>::quiet_NaN();
   }
 
-  try {
-    return std::stod(this->to_scientific_string());
-  } catch (const std::out_of_range &) {
+  if (this->is_infinite()) {
+    return this->is_signed() ? -std::numeric_limits<double>::infinity()
+                             : std::numeric_limits<double>::infinity();
+  }
+
+  // Read back through this module's own conversion rather than the C library
+  // one, which reads the separator the running locale names rather than the
+  // one a written decimal carries, and which reports a result too small to be
+  // written in full as out of range although the format holds it
+  const auto result{sourcemeta::core::to_double(this->to_scientific_string())};
+  if (!result.has_value()) {
     throw NumericOutOfRangeError{};
   }
+
+  return result.value();
 }
 
 auto Decimal::is_zero() const -> bool {

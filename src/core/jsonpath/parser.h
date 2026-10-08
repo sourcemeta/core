@@ -13,7 +13,6 @@
 #include <cstddef>     // std::size_t
 #include <cstdint>     // std::int64_t, std::uint32_t
 #include <optional>    // std::optional, std::nullopt
-#include <stdexcept>   // std::invalid_argument
 #include <string>      // std::string
 #include <string_view> // std::string_view
 #include <utility>     // std::move
@@ -890,8 +889,6 @@ private:
     try {
       return JSON{Decimal{text}};
     } catch (const DecimalParseError &) {
-      this->fail();
-    } catch (const std::invalid_argument &) {
       this->fail();
     }
   }

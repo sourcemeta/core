@@ -1262,8 +1262,8 @@ private:
 
     // YAML 1.2.2 Section 10.3.2 tags a dotted or explicitly floated value as a
     // float, so an integral-valued float stays a real rather than collapsing to
-    // an integer, matching the JSON parser where a dotted literal the format
-    // holds exactly is a real
+    // an integer, matching the JSON parser where a dotted literal that the
+    // format holds exactly is a real
     return JSON{result.value()};
   }
 
