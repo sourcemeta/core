@@ -1,5 +1,6 @@
 #include <sourcemeta/core/text.h>
 
+#include <algorithm>   // std::min
 #include <array>       // std::array
 #include <cstddef>     // std::size_t
 #include <cstdio>      // std::fread, std::fwrite, std::fflush, std::FILE
@@ -60,6 +61,25 @@ auto write_all(std::FILE *stream, const std::string_view payload) -> void {
   }
 
   std::fflush(stream);
+}
+
+// Reads only as much as it was asked for, so that the caller gets far enough
+// into writing its input for the pipe to come back ready for writing, and only
+// then meets a reader that is gone
+auto read_some(std::FILE *stream, const std::size_t size) -> std::string {
+  std::string result;
+  std::array<char, 4096> buffer{};
+  while (result.size() < size) {
+    const auto wanted{std::min(buffer.size(), size - result.size())};
+    const auto count{std::fread(buffer.data(), 1, wanted, stream)};
+    if (count == 0) {
+      break;
+    }
+
+    result.append(buffer.data(), count);
+  }
+
+  return result;
 }
 
 auto read_all(std::FILE *stream) -> std::string {
@@ -152,6 +172,14 @@ auto main(int argc, char *argv[]) -> int {
     const auto payload{payload_of(to_size(argv[2]))};
     write_all(stdout, payload);
     write_all(stderr, payload);
+    return 0;
+  }
+
+  // Exits after reading only part of its input, so a parent still writing the
+  // rest meets a pipe with no reader after the pipe had room again
+  if (command == "read-some-stdin") {
+    write_all(stdout,
+              std::to_string(read_some(stdin, to_size(argv[2])).size()));
     return 0;
   }
 
