@@ -976,3 +976,16 @@ TEST(quotes_document_marker_with_tab) {
   sourcemeta::core::stringify_yaml(document, stream);
   EXPECT_EQ(stream.str(), "\"---\\t\"\n");
 }
+
+// Production 163 makes an indentation indicator a single digit from one to
+// nine. A document that asked for an indicator of its own, laid out at a width
+// that no digit can express, used to be written with the character one past
+// the digits instead of giving up on block style.
+TEST(block_scalar_with_an_explicit_indicator_laid_out_beyond_one_digit) {
+  sourcemeta::core::YAMLRoundTrip roundtrip;
+  const auto document{
+      sourcemeta::core::parse_yaml("foo: |2\n  bar\n", roundtrip)};
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream, roundtrip, 10);
+  EXPECT_EQ(stream.str(), "foo: \"bar\\n\"\n");
+}
