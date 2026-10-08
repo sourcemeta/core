@@ -261,7 +261,10 @@ auto stringify(const JSON &document,
 
 /// @ingroup json
 ///
-/// Stringify a document while borrowing replacement values from a callback.
+/// Stringify an envelope whose placeholder values refer to separately owned
+/// JSON subtrees. This avoids copying large arrays or objects into the envelope
+/// before serialization. Neither the envelope nor the borrowed values change.
+/// The callback maps a placeholder's address to the subtree to serialize.
 /// Returning nullptr or the input address visits its children normally.
 /// Returning another value's address serializes that subtree without further
 /// callbacks. Borrowed values must remain valid until serialization finishes.

@@ -1269,3 +1269,33 @@ TEST(large_exponent_comparison_no_overflow) {
       sourcemeta::core::parse_json("10000000000000000e2147483647")};
   EXPECT_TRUE(value == value);
 }
+
+TEST(divisible_by_ten_million_exponent_by_twenty) {
+  const sourcemeta::core::JSON dividend{
+      sourcemeta::core::Decimal{"1e10000001"}};
+  const sourcemeta::core::JSON divisor{sourcemeta::core::Decimal{20}};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
+TEST(divisible_by_ten_million_exponent_by_twenty_two_is_false) {
+  const sourcemeta::core::JSON dividend{
+      sourcemeta::core::Decimal{"1e10000001"}};
+  const sourcemeta::core::JSON divisor{sourcemeta::core::Decimal{22}};
+  EXPECT_FALSE(dividend.divisible_by(divisor));
+}
+
+TEST(divisible_by_across_the_whole_exponent_range) {
+  const sourcemeta::core::JSON dividend{
+      sourcemeta::core::Decimal{"9e2147483647"}};
+  const sourcemeta::core::JSON divisor{
+      sourcemeta::core::Decimal{"3e-2147483648"}};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
+TEST(divisible_by_across_the_whole_exponent_range_is_false) {
+  const sourcemeta::core::JSON dividend{
+      sourcemeta::core::Decimal{"1e2147483647"}};
+  const sourcemeta::core::JSON divisor{
+      sourcemeta::core::Decimal{"3e-2147483648"}};
+  EXPECT_FALSE(dividend.divisible_by(divisor));
+}

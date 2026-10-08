@@ -8,7 +8,6 @@
 namespace sourcemeta::core {
 
 using namespace std::string_view_literals;
-
 inline constexpr auto MCP_HASH_ANNOTATIONS{
     sourcemeta::core::JSON::Object::hash("annotations"sv)};
 inline constexpr auto MCP_HASH_ARGUMENTS{
@@ -155,181 +154,122 @@ inline constexpr auto MCP_HASH_VERSION{
     sourcemeta::core::JSON::Object::hash("version"sv)};
 inline constexpr auto MCP_HASH_WEBSITE_URL{
     sourcemeta::core::JSON::Object::hash("websiteUrl"sv)};
-
 inline constexpr auto MCP_HASH_ACTION{
     sourcemeta::core::JSON::Object::hash("action"sv)};
-
 inline constexpr auto MCP_HASH_AUDIENCE{
     sourcemeta::core::JSON::Object::hash("audience"sv)};
-
 inline constexpr auto MCP_HASH_BAGGAGE{
     sourcemeta::core::JSON::Object::hash("baggage"sv)};
-
 inline constexpr auto MCP_HASH_BLOB{
     sourcemeta::core::JSON::Object::hash("blob"sv)};
-
 inline constexpr auto MCP_HASH_CALL{
     sourcemeta::core::JSON::Object::hash("call"sv)};
-
 inline constexpr auto MCP_HASH_CANCEL{
     sourcemeta::core::JSON::Object::hash("cancel"sv)};
-
 inline constexpr auto MCP_HASH_CLIENT_INFO{
     sourcemeta::core::JSON::Object::hash("clientInfo"sv)};
-
 inline constexpr auto MCP_HASH_COMPLETION{
     sourcemeta::core::JSON::Object::hash("completion"sv)};
-
 inline constexpr auto MCP_HASH_COST_PRIORITY{
     sourcemeta::core::JSON::Object::hash("costPriority"sv)};
-
 inline constexpr auto MCP_HASH_CREATE{
     sourcemeta::core::JSON::Object::hash("create"sv)};
-
 inline constexpr auto MCP_HASH_CREATE_MESSAGE{
     sourcemeta::core::JSON::Object::hash("createMessage"sv)};
-
 inline constexpr auto MCP_HASH_DATA{
     sourcemeta::core::JSON::Object::hash("data"sv)};
-
 inline constexpr auto MCP_HASH_ELICITATION_ID{
     sourcemeta::core::JSON::Object::hash("elicitationId"sv)};
-
 inline constexpr auto MCP_HASH_ERROR{
     sourcemeta::core::JSON::Object::hash("error"sv)};
-
 inline constexpr auto MCP_HASH_HAS_MORE{
     sourcemeta::core::JSON::Object::hash("hasMore"sv)};
-
 inline constexpr auto MCP_HASH_HINTS{
     sourcemeta::core::JSON::Object::hash("hints"sv)};
-
 inline constexpr auto MCP_HASH_ICONS{
     sourcemeta::core::JSON::Object::hash("icons"sv)};
-
 inline constexpr auto MCP_HASH_INCLUDE_CONTEXT{
     sourcemeta::core::JSON::Object::hash("includeContext"sv)};
-
 inline constexpr auto MCP_HASH_INPUT{
     sourcemeta::core::JSON::Object::hash("input"sv)};
-
 inline constexpr auto MCP_HASH_INTELLIGENCE_PRIORITY{
     sourcemeta::core::JSON::Object::hash("intelligencePriority"sv)};
-
 inline constexpr auto MCP_HASH_LAST_MODIFIED{
     sourcemeta::core::JSON::Object::hash("lastModified"sv)};
-
 inline constexpr auto MCP_HASH_LEVEL{
     sourcemeta::core::JSON::Object::hash("level"sv)};
-
 inline constexpr auto MCP_HASH_LIST{
     sourcemeta::core::JSON::Object::hash("list"sv)};
-
 inline constexpr auto MCP_HASH_LOGGER{
     sourcemeta::core::JSON::Object::hash("logger"sv)};
-
 inline constexpr auto MCP_HASH_MAX_TOKENS{
     sourcemeta::core::JSON::Object::hash("maxTokens"sv)};
-
 inline constexpr auto MCP_HASH_MESSAGE{
     sourcemeta::core::JSON::Object::hash("message"sv)};
-
 inline constexpr auto MCP_HASH_MESSAGES{
     sourcemeta::core::JSON::Object::hash("messages"sv)};
-
 inline constexpr auto MCP_HASH_METADATA{
     sourcemeta::core::JSON::Object::hash("metadata"sv)};
-
 inline constexpr auto MCP_HASH_MODE{
     sourcemeta::core::JSON::Object::hash("mode"sv)};
-
 inline constexpr auto MCP_HASH_MODEL{
     sourcemeta::core::JSON::Object::hash("model"sv)};
-
 inline constexpr auto MCP_HASH_MODEL_PREFERENCES{
     sourcemeta::core::JSON::Object::hash("modelPreferences"sv)};
-
 inline constexpr auto MCP_HASH_PROGRESS{
     sourcemeta::core::JSON::Object::hash("progress"sv)};
-
 inline constexpr auto MCP_HASH_PROGRESS_TOKEN{
     sourcemeta::core::JSON::Object::hash("progressToken"sv)};
-
 inline constexpr auto MCP_HASH_PROMPTS_LIST_CHANGED{
     sourcemeta::core::JSON::Object::hash("promptsListChanged"sv)};
-
 inline constexpr auto MCP_HASH_REASON{
     sourcemeta::core::JSON::Object::hash("reason"sv)};
-
 inline constexpr auto MCP_HASH_REQUEST_ID{
     sourcemeta::core::JSON::Object::hash("requestId"sv)};
-
 inline constexpr auto MCP_HASH_REQUESTED_SCHEMA{
     sourcemeta::core::JSON::Object::hash("requestedSchema"sv)};
-
 inline constexpr auto MCP_HASH_REQUESTS{
     sourcemeta::core::JSON::Object::hash("requests"sv)};
-
 inline constexpr auto MCP_HASH_REQUIRED{
     sourcemeta::core::JSON::Object::hash("required"sv)};
-
 inline constexpr auto MCP_HASH_RESOURCE{
     sourcemeta::core::JSON::Object::hash("resource"sv)};
-
 inline constexpr auto MCP_HASH_RESOURCE_SUBSCRIPTIONS{
     sourcemeta::core::JSON::Object::hash("resourceSubscriptions"sv)};
-
 inline constexpr auto MCP_HASH_RESOURCES_LIST_CHANGED{
     sourcemeta::core::JSON::Object::hash("resourcesListChanged"sv)};
-
 inline constexpr auto MCP_HASH_ROLE{
     sourcemeta::core::JSON::Object::hash("role"sv)};
-
 inline constexpr auto MCP_HASH_SIZES{
     sourcemeta::core::JSON::Object::hash("sizes"sv)};
-
 inline constexpr auto MCP_HASH_SPEED_PRIORITY{
     sourcemeta::core::JSON::Object::hash("speedPriority"sv)};
-
 inline constexpr auto MCP_HASH_SRC{
     sourcemeta::core::JSON::Object::hash("src"sv)};
-
 inline constexpr auto MCP_HASH_STOP_REASON{
     sourcemeta::core::JSON::Object::hash("stopReason"sv)};
-
 inline constexpr auto MCP_HASH_STOP_SEQUENCES{
     sourcemeta::core::JSON::Object::hash("stopSequences"sv)};
-
 inline constexpr auto MCP_HASH_SYSTEM_PROMPT{
     sourcemeta::core::JSON::Object::hash("systemPrompt"sv)};
-
 inline constexpr auto MCP_HASH_TASKS{
     sourcemeta::core::JSON::Object::hash("tasks"sv)};
-
 inline constexpr auto MCP_HASH_TEMPERATURE{
     sourcemeta::core::JSON::Object::hash("temperature"sv)};
-
 inline constexpr auto MCP_HASH_THEME{
     sourcemeta::core::JSON::Object::hash("theme"sv)};
-
 inline constexpr auto MCP_HASH_TOOL_CHOICE{
     sourcemeta::core::JSON::Object::hash("toolChoice"sv)};
-
 inline constexpr auto MCP_HASH_TOOL_USE_ID{
     sourcemeta::core::JSON::Object::hash("toolUseId"sv)};
-
 inline constexpr auto MCP_HASH_TOOLS_LIST_CHANGED{
     sourcemeta::core::JSON::Object::hash("toolsListChanged"sv)};
-
 inline constexpr auto MCP_HASH_TOTAL{
     sourcemeta::core::JSON::Object::hash("total"sv)};
-
 inline constexpr auto MCP_HASH_TRACEPARENT{
     sourcemeta::core::JSON::Object::hash("traceparent"sv)};
-
 inline constexpr auto MCP_HASH_TRACESTATE{
     sourcemeta::core::JSON::Object::hash("tracestate"sv)};
-
 inline constexpr auto MCP_HASH_VALUES{
     sourcemeta::core::JSON::Object::hash("values"sv)};
 

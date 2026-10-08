@@ -1,0 +1,39 @@
+{
+  "document": {
+    "openapi": "3.0.4",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "200": {
+              "description": "Some pets",
+              "links": {
+                "Owner": { "operationRef": "shared.json#/paths/~1owners/get" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/shared.json": {
+      "openapi": "3.0.4",
+      "info": { "title": "Shared", "version": "1.0.0" },
+      "paths": {
+        "/owners": {
+          "get": { "responses": { "200": { "description": "Owners" } } }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "error": {
+    "type": "OpenAPIReferenceError",
+    "message": "This revision has nowhere to hold the Path Item Object that holds the operation this reference names",
+    "identifier": "https://example.com/shared.json#/paths/~1owners/get",
+    "location": "/paths/~1pets/get/responses/200/links/Owner/operationRef"
+  }
+}

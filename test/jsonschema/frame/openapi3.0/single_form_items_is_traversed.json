@@ -1,0 +1,133 @@
+{
+  "schema": {
+    "type": "array",
+    "items": {
+      "type": "string",
+      "nullable": true
+    }
+  },
+  "defaultDialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+  "root": {
+    "mode": "root",
+    "locations": {
+      "static": {
+        "": {
+          "parent": null,
+          "type": "subschema",
+          "root": null,
+          "base": "",
+          "pointer": "",
+          "relativePointer": "",
+          "dialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+          "baseDialect": "http://json-schema.org/draft-04/schema#",
+          "propertyName": false,
+          "orphan": false,
+          "hasReferencesTo": false,
+          "hasReferencesThrough": false,
+          "vocabularies": {
+            "tag:spec.openapis.org,2017:oas/3.0/vocab/base": true
+          }
+        }
+      },
+      "dynamic": {}
+    },
+    "references": []
+  },
+  "pointers": {
+    "mode": "pointers",
+    "locations": {
+      "static": {
+        "": {
+          "parent": null,
+          "type": "subschema",
+          "root": null,
+          "base": "",
+          "pointer": "",
+          "relativePointer": "",
+          "dialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+          "baseDialect": "http://json-schema.org/draft-04/schema#",
+          "propertyName": false,
+          "orphan": false,
+          "hasReferencesTo": false,
+          "hasReferencesThrough": false,
+          "vocabularies": {
+            "tag:spec.openapis.org,2017:oas/3.0/vocab/base": true
+          }
+        },
+        "#/items": {
+          "parent": "",
+          "type": "subschema",
+          "root": null,
+          "base": "",
+          "pointer": "/items",
+          "relativePointer": "/items",
+          "dialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+          "baseDialect": "http://json-schema.org/draft-04/schema#",
+          "propertyName": false,
+          "orphan": false,
+          "hasReferencesTo": false,
+          "hasReferencesThrough": false,
+          "vocabularies": {
+            "tag:spec.openapis.org,2017:oas/3.0/vocab/base": true
+          }
+        },
+        "#/items/nullable": {
+          "parent": "/items",
+          "type": "pointer",
+          "root": null,
+          "base": "",
+          "pointer": "/items/nullable",
+          "relativePointer": "/items/nullable",
+          "dialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+          "baseDialect": "http://json-schema.org/draft-04/schema#",
+          "propertyName": false,
+          "orphan": false,
+          "hasReferencesTo": false,
+          "hasReferencesThrough": false,
+          "vocabularies": {
+            "tag:spec.openapis.org,2017:oas/3.0/vocab/base": true
+          }
+        },
+        "#/items/type": {
+          "parent": "/items",
+          "type": "pointer",
+          "root": null,
+          "base": "",
+          "pointer": "/items/type",
+          "relativePointer": "/items/type",
+          "dialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+          "baseDialect": "http://json-schema.org/draft-04/schema#",
+          "propertyName": false,
+          "orphan": false,
+          "hasReferencesTo": false,
+          "hasReferencesThrough": false,
+          "vocabularies": {
+            "tag:spec.openapis.org,2017:oas/3.0/vocab/base": true
+          }
+        },
+        "#/type": {
+          "parent": "",
+          "type": "pointer",
+          "root": null,
+          "base": "",
+          "pointer": "/type",
+          "relativePointer": "/type",
+          "dialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+          "baseDialect": "http://json-schema.org/draft-04/schema#",
+          "propertyName": false,
+          "orphan": false,
+          "hasReferencesTo": false,
+          "hasReferencesThrough": false,
+          "vocabularies": {
+            "tag:spec.openapis.org,2017:oas/3.0/vocab/base": true
+          }
+        }
+      },
+      "dynamic": {}
+    },
+    "references": []
+  },
+  "standalone": true,
+  "standaloneIgnoringMetaschemas": true,
+  "reachability": []
+}

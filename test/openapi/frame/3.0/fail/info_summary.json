@@ -1,0 +1,15 @@
+{
+  "document": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0",
+      "summary": "A summary"
+    },
+    "paths": {}
+  },
+  "error": {
+    "message": "The Info Object does not define this field",
+    "location": "/info/summary"
+  }
+}

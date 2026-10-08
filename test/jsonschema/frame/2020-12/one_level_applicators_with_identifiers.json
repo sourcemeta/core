@@ -386,6 +386,7 @@
     ]
   },
   "standalone": true,
+  "standaloneIgnoringMetaschemas": true,
   "reachability": [
     {
       "from": "https://www.sourcemeta.com/test/qux",

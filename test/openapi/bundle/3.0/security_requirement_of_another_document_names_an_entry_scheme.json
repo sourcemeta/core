@@ -1,0 +1,107 @@
+{
+  "document": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "securitySchemes": {
+        "MySecurity": {
+          "type": "http",
+          "scheme": "bearer"
+        }
+      }
+    },
+    "paths": {
+      "/foo": {
+        "$ref": "other.json#/paths/~1foo"
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/other.json": {
+      "openapi": "3.0.4",
+      "info": {
+        "title": "Example",
+        "version": "1.0.0"
+      },
+      "paths": {
+        "/foo": {
+          "get": {
+            "security": [
+              {
+                "MySecurity": []
+              }
+            ],
+            "responses": {
+              "200": {
+                "description": "OK"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "securitySchemes": {
+        "MySecurity": {
+          "type": "http",
+          "scheme": "bearer"
+        }
+      }
+    },
+    "paths": {
+      "/foo": {
+        "get": {
+          "security": [
+            {
+              "MySecurity": []
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "OK"
+            }
+          }
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/other.json#/paths/~1foo",
+      "at": "/paths/~1foo"
+    }
+  ],
+  "reads": {
+    "https://example.com/other.json": 1
+  },
+  "schemaReads": {},
+  "standalone": true,
+  "relocatable": true,
+  "operations": [
+    {
+      "type": "path",
+      "path": "/foo",
+      "method": "get",
+      "origin": "https://example.com/openapi.json#/paths/~1foo/get",
+      "endpoint": "https://example.com/openapi.json#/paths/~1foo",
+      "tags": [],
+      "servers": [],
+      "security": [
+        "https://example.com/openapi.json#/paths/~1foo/get/security/0"
+      ],
+      "parameters": []
+    }
+  ]
+}

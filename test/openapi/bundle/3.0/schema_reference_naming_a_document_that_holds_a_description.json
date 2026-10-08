@@ -1,0 +1,35 @@
+{
+  "document": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "schemas": {
+        "Pet": {
+          "$ref": "pet.json"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {},
+  "schemaResolver": {
+    "https://example.com/pet.json": {
+      "openapi": "3.0.4",
+      "info": {
+        "title": "Not a schema",
+        "version": "1.0.0"
+      },
+      "paths": {}
+    }
+  },
+  "error": {
+    "type": "OpenAPIReferenceError",
+    "message": "This reference must name a schema rather than a document that holds an OpenAPI Description",
+    "identifier": "https://example.com/pet.json",
+    "location": ""
+  }
+}

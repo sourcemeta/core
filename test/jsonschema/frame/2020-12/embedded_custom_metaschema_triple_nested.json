@@ -2636,6 +2636,7 @@
     ]
   },
   "standalone": true,
+  "standaloneIgnoringMetaschemas": true,
   "reachability": [
     {
       "from": "https://example.com/schema",

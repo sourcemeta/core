@@ -127,6 +127,7 @@
     ]
   },
   "standalone": false,
+  "standaloneIgnoringMetaschemas": false,
   "reachability": [
     {
       "from": "",

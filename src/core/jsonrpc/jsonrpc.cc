@@ -2,9 +2,9 @@
 
 #include <sourcemeta/core/json.h>
 
-#include <cstdint>  // std::int64_t
-#include <optional> // std::optional, std::nullopt
-#include <stdexcept>
+#include <cassert>     // assert
+#include <cstdint>     // std::int64_t
+#include <optional>    // std::optional, std::nullopt
 #include <string_view> // std::string_view_literals
 #include <utility>     // std::move
 
@@ -126,10 +126,8 @@ auto jsonrpc_is_notification(const sourcemeta::core::JSON &request) -> bool {
 
 auto jsonrpc_make_notification(const JSON::StringView method, JSON parameters)
     -> JSON {
-  if (!parameters.is_object() && !parameters.is_array()) {
-    throw std::invalid_argument{
-        "JSON-RPC notification params must be structured"};
-  }
+  assert(parameters.is_object() || parameters.is_array());
+
   auto result{JSON::make_object()};
   result.assign_assume_new("jsonrpc", JSON{"2.0"}, JSONRPC_HASH_JSONRPC);
   result.assign_assume_new("method", JSON{method}, JSONRPC_HASH_METHOD);

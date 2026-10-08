@@ -1,0 +1,96 @@
+{
+  "document": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "$ref": "shared.json#/paths/~1pets"
+      },
+      "/animals": {
+        "get": {
+          "responses": {
+            "200": {
+              "description": "ok"
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/shared.json": {
+      "openapi": "3.0.4",
+      "info": {
+        "title": "Shared",
+        "version": "1.0.0"
+      },
+      "paths": {
+        "/pets": {
+          "$ref": "openapi.json#/paths/~1animals"
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "$ref": "#/paths/~1animals"
+      },
+      "/animals": {
+        "get": {
+          "responses": {
+            "200": {
+              "description": "ok"
+            }
+          }
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/shared.json#/paths/~1pets",
+      "at": "/paths/~1pets"
+    }
+  ],
+  "reads": {
+    "https://example.com/shared.json": 1
+  },
+  "schemaReads": {},
+  "standalone": true,
+  "relocatable": true,
+  "operations": [
+    {
+      "type": "path",
+      "path": "/pets",
+      "method": "get",
+      "origin": "https://example.com/openapi.json#/paths/~1animals/get",
+      "endpoint": "https://example.com/openapi.json#/paths/~1pets",
+      "tags": [],
+      "servers": [],
+      "security": [],
+      "parameters": []
+    },
+    {
+      "type": "path",
+      "path": "/animals",
+      "method": "get",
+      "origin": "https://example.com/openapi.json#/paths/~1animals/get",
+      "endpoint": "https://example.com/openapi.json#/paths/~1animals",
+      "tags": [],
+      "servers": [],
+      "security": [],
+      "parameters": []
+    }
+  ]
+}

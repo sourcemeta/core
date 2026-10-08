@@ -1,0 +1,138 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/host",
+    "properties": {
+      "pet": {
+        "$ref": "https://www.sourcemeta.com/pet"
+      }
+    }
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/pet": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/pet",
+      "properties": {
+        "inner": {
+          "$ref": "https://www.sourcemeta.com/inner"
+        }
+      },
+      "$defs": {
+        "https://www.sourcemeta.com/inner": {
+          "$id": "https://www.sourcemeta.com/inner",
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "properties": {
+            "tag": {
+              "$ref": "https://www.sourcemeta.com/tag"
+            }
+          }
+        }
+      }
+    },
+    "https://www.sourcemeta.com/tag": {
+      "type": "string",
+      "nullable": true
+    }
+  },
+  "defaultDialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+  "result": {
+    "nonOfficialMetaschemas": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/host",
+      "properties": {
+        "pet": {
+          "$ref": "https://www.sourcemeta.com/pet"
+        }
+      },
+      "$defs": {
+        "https://www.sourcemeta.com/tag": {
+          "type": "string",
+          "nullable": true,
+          "x-sourcemeta-dialect-override-subschema": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect"
+        },
+        "https://www.sourcemeta.com/inner": {
+          "$id": "https://www.sourcemeta.com/inner",
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "properties": {
+            "tag": {
+              "$ref": "https://example.com/host#/$defs/https:~1~1www.sourcemeta.com~1tag"
+            }
+          }
+        },
+        "https://www.sourcemeta.com/pet": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://www.sourcemeta.com/pet",
+          "properties": {
+            "inner": {
+              "$ref": "https://www.sourcemeta.com/inner"
+            }
+          }
+        }
+      }
+    },
+    "references": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/host",
+      "properties": {
+        "pet": {
+          "$ref": "https://www.sourcemeta.com/pet"
+        }
+      },
+      "$defs": {
+        "https://www.sourcemeta.com/tag": {
+          "type": "string",
+          "nullable": true,
+          "x-sourcemeta-dialect-override-subschema": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect"
+        },
+        "https://www.sourcemeta.com/inner": {
+          "$id": "https://www.sourcemeta.com/inner",
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "properties": {
+            "tag": {
+              "$ref": "https://example.com/host#/$defs/https:~1~1www.sourcemeta.com~1tag"
+            }
+          }
+        },
+        "https://www.sourcemeta.com/pet": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://www.sourcemeta.com/pet",
+          "properties": {
+            "inner": {
+              "$ref": "https://www.sourcemeta.com/inner"
+            }
+          }
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://www.sourcemeta.com/tag",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1tag"
+      },
+      {
+        "from": "https://www.sourcemeta.com/inner",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1inner"
+      },
+      {
+        "from": "https://www.sourcemeta.com/pet",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1pet"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://www.sourcemeta.com/tag",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1tag"
+      },
+      {
+        "from": "https://www.sourcemeta.com/inner",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1inner"
+      },
+      {
+        "from": "https://www.sourcemeta.com/pet",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1pet"
+      }
+    ]
+  }
+}

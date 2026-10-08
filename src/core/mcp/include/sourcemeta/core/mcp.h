@@ -6,6 +6,7 @@
 #endif
 
 // NOLINTBEGIN(misc-include-cleaner)
+#include <sourcemeta/core/jsonrpc.h>
 #include <sourcemeta/core/mcp_capabilities.h>
 #include <sourcemeta/core/mcp_error.h>
 #include <sourcemeta/core/mcp_headers.h>

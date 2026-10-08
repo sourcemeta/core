@@ -1,0 +1,66 @@
+{
+  "schema": {
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "https://example.com/host",
+    "properties": {
+      "pet": {
+        "$ref": "https://www.sourcemeta.com/pet"
+      }
+    }
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/pet": {
+      "type": "string",
+      "nullable": true
+    }
+  },
+  "defaultDialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+  "result": {
+    "nonOfficialMetaschemas": {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "id": "https://example.com/host",
+      "properties": {
+        "pet": {
+          "$ref": "#/definitions/https:~1~1www.sourcemeta.com~1pet"
+        }
+      },
+      "definitions": {
+        "https://www.sourcemeta.com/pet": {
+          "type": "string",
+          "nullable": true,
+          "x-sourcemeta-dialect-override-subschema": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect"
+        }
+      }
+    },
+    "references": {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "id": "https://example.com/host",
+      "properties": {
+        "pet": {
+          "$ref": "#/definitions/https:~1~1www.sourcemeta.com~1pet"
+        }
+      },
+      "definitions": {
+        "https://www.sourcemeta.com/pet": {
+          "type": "string",
+          "nullable": true,
+          "x-sourcemeta-dialect-override-subschema": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect"
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://www.sourcemeta.com/pet",
+        "at": "/definitions/https:~1~1www.sourcemeta.com~1pet"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://www.sourcemeta.com/pet",
+        "at": "/definitions/https:~1~1www.sourcemeta.com~1pet"
+      }
+    ]
+  }
+}

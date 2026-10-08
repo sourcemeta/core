@@ -1,7 +1,11 @@
 {
   "schema": {
     "components": {
-      "schemas": { "Pet": { "$ref": "https://www.sourcemeta.com/test-1" } }
+      "schemas": {
+        "Pet": {
+          "$ref": "https://www.sourcemeta.com/test-1"
+        }
+      }
     }
   },
   "resolver": {
@@ -13,17 +17,21 @@
   },
   "defaultDialect": "https://json-schema.org/draft/2020-12/schema",
   "container": "/components/schemas/Pet/x-definitions",
-  "paths": [ "/components/schemas/Pet" ],
+  "paths": [
+    "/components/schemas/Pet"
+  ],
   "result": {},
   "inserted": {},
   "errors": {
     "nonOfficialMetaschemas": {
-      "type": "SchemaError",
-      "message": "Could not bundle to a container that the dialect does not reserve for schema definitions"
+      "type": "SchemaContainerError",
+      "message": "Could not bundle to a container that the dialect does not reserve for schema definitions",
+      "location": "/components/schemas/Pet/x-definitions"
     },
     "references": {
-      "type": "SchemaError",
-      "message": "Could not bundle to a container that the dialect does not reserve for schema definitions"
+      "type": "SchemaContainerError",
+      "message": "Could not bundle to a container that the dialect does not reserve for schema definitions",
+      "location": "/components/schemas/Pet/x-definitions"
     }
   }
 }

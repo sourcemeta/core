@@ -104,5 +104,6 @@
       }
     ]
   },
-  "standalone": true
+  "standalone": false,
+  "standaloneIgnoringMetaschemas": true
 }

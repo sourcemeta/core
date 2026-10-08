@@ -1,0 +1,118 @@
+{
+  "document": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "404": {
+              "$ref": "shared.json#/components/responses/NotFound"
+            }
+          }
+        }
+      },
+      "/owners": {
+        "get": {
+          "responses": {
+            "404": {
+              "$ref": "shared.json#/components/responses/NotFound"
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/shared.json": {
+      "openapi": "3.0.4",
+      "info": {
+        "title": "Shared",
+        "version": "1.0.0"
+      },
+      "components": {
+        "responses": {
+          "NotFound": {
+            "description": "Not found"
+          }
+        }
+      },
+      "paths": {}
+    }
+  },
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "404": {
+              "$ref": "#/components/responses/NotFound"
+            }
+          }
+        }
+      },
+      "/owners": {
+        "get": {
+          "responses": {
+            "404": {
+              "$ref": "#/components/responses/NotFound"
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "responses": {
+        "NotFound": {
+          "description": "Not found"
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/shared.json#/components/responses/NotFound",
+      "at": "/components/responses/NotFound"
+    }
+  ],
+  "reads": {
+    "https://example.com/shared.json": 1
+  },
+  "schemaReads": {},
+  "standalone": true,
+  "relocatable": true,
+  "operations": [
+    {
+      "type": "path",
+      "path": "/pets",
+      "method": "get",
+      "origin": "https://example.com/openapi.json#/paths/~1pets/get",
+      "endpoint": "https://example.com/openapi.json#/paths/~1pets",
+      "tags": [],
+      "servers": [],
+      "security": [],
+      "parameters": []
+    },
+    {
+      "type": "path",
+      "path": "/owners",
+      "method": "get",
+      "origin": "https://example.com/openapi.json#/paths/~1owners/get",
+      "endpoint": "https://example.com/openapi.json#/paths/~1owners",
+      "tags": [],
+      "servers": [],
+      "security": [],
+      "parameters": []
+    }
+  ]
+}

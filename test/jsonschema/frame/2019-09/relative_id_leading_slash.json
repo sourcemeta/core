@@ -119,6 +119,7 @@
     ]
   },
   "standalone": true,
+  "standaloneIgnoringMetaschemas": true,
   "reachability": [
     {
       "from": "/base",

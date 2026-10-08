@@ -80,9 +80,29 @@ struct ExpansionState {
   static constexpr std::size_t MAXIMUM_DEPTH{100};
   std::size_t depth{0};
 
+  // Bounds the remote context chain, which the resolver grows by one for every
+  // reference it answers with, and is therefore attacker-controlled the same
+  // way the nesting depth is. A processor is free to set this limit (JSON-LD
+  // 1.1 API Section 5.1 step 5.2.3)
+  static constexpr std::size_t MAXIMUM_REMOTE_CONTEXTS{32};
+
   // Used to load remote contexts. The chain detects recursive inclusion.
   const JSONLDResolver *resolver{nullptr};
+  // Whether a reference already in the chain is an error. A scoped context is
+  // validated against the contexts that are loading it, where meeting one of
+  // them again is the recursion the validation must not follow (JSON-LD 1.1
+  // API Section 5.1 step 5.2.2)
+  bool validate_scoped_context{true};
   std::vector<JSON::String> remote_context_chain;
+  // The `@context` entry of every remote context already dereferenced in this
+  // expansion, keyed by the reference that loaded it. Step 5.2.4: "If context
+  // was previously dereferenced, then the processor MUST NOT do a further
+  // dereference, and context is set to the previously established internal
+  // representation: set context document to the previously dereferenced
+  // document, and set loaded context to the value of the @context entry from
+  // the document in context document", whose note adds that "Only the
+  // @context entry need be retained" (JSON-LD 1.1 API Section 5.1 step 5.2.4)
+  std::map<JSON::String, JSON, std::less<>> remote_documents;
   std::optional<JSON::String> document_base;
   // When a scoped context is processed after the fact, remote references in it
   // resolve against the URL of the document that defined the term.
@@ -136,10 +156,13 @@ auto expand_value(ExpansionState &state, ActiveContext &active_context,
                   const std::optional<JSON::String> &active_property,
                   const JSON &value) -> JSON;
 
-// Expansion (JSON-LD 1.1 API Section 5.1.2)
+// Expansion (JSON-LD 1.1 API Section 5.1.2). A value taken from a container
+// map does not begin a new scope, so the context a scope would be left for
+// stays in force across it
 auto expand(ExpansionState &state, ActiveContext &active_context,
             const std::optional<JSON::String> &active_property,
-            const JSON &element, const WeakPointer &pointer) -> JSON;
+            const JSON &element, const WeakPointer &pointer,
+            const bool from_map = false) -> JSON;
 
 // Inverse Context Creation (JSON-LD 1.1 API Section 4.3.1). The inverse context
 // is represented as a JSON map of IRI to container to type/language to term.

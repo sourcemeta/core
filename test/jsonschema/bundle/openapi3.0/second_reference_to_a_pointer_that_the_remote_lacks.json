@@ -1,0 +1,41 @@
+{
+  "schema": {
+    "type": "object",
+    "properties": {
+      "a": {
+        "$ref": "https://www.sourcemeta.com/pet"
+      },
+      "b": {
+        "$ref": "https://www.sourcemeta.com/pet#/properties/nope"
+      }
+    }
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/pet": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "nullable": true
+        }
+      }
+    }
+  },
+  "defaultDialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+  "errors": {
+    "nonOfficialMetaschemas": {
+      "type": "SchemaReferenceError",
+      "message": "Could not resolve schema reference",
+      "identifier": "https://www.sourcemeta.com/pet#/properties/nope",
+      "location": "/properties/b/$ref"
+    },
+    "references": {
+      "type": "SchemaReferenceError",
+      "message": "Could not resolve schema reference",
+      "identifier": "https://www.sourcemeta.com/pet#/properties/nope",
+      "location": "/properties/b/$ref"
+    }
+  },
+  "result": {},
+  "inserted": {}
+}

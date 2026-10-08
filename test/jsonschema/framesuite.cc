@@ -21,9 +21,10 @@ namespace {
 // otherwise go unnoticed, as the runner would simply not read it
 // NOLINTBEGIN(cert-err58-cpp,bugprone-throwing-static-initialization)
 const std::vector<std::string> KNOWN_KEYS{
-    "schema",      "resolver",     "defaultDialect", "defaultId",
-    "defaultBase", "paths",        "root",           "identifierMode",
-    "pointers",    "reachability", "standalone"};
+    "schema",       "resolver",       "defaultDialect",
+    "defaultId",    "defaultBase",    "paths",
+    "root",         "identifierMode", "pointers",
+    "reachability", "standalone",     "standaloneIgnoringMetaschemas"};
 // NOLINTEND(cert-err58-cpp,bugprone-throwing-static-initialization)
 
 // Every type of location and every mode that the frame reports, so that a
@@ -64,7 +65,9 @@ auto location_keys(const sourcemeta::core::JSON &frame)
 // bless an expectation that contradicts the way locations and references are
 // meant to relate to each other
 auto check_frame_invariants(const sourcemeta::core::JSON &frame,
-                            const bool standalone) -> void {
+                            const bool standalone,
+                            const bool standalone_ignoring_metaschemas)
+    -> void {
   EXPECT_TRUE(std::ranges::find(KNOWN_MODES, frame.at("mode").to_string()) !=
               KNOWN_MODES.cend());
 
@@ -162,10 +165,14 @@ auto check_frame_invariants(const sourcemeta::core::JSON &frame,
 
     EXPECT_EQ(recomposed, destination);
 
-    // The dialect of a schema is not something the schema has to carry with
-    // it, so a reference to one that is not there does not make the frame any
-    // less standalone
-    if (last_token(origin) != "$schema" && !keys.contains(destination)) {
+    // A dialect that this library already comes with is not something a
+    // schema has to carry, so a reference to one that is absent does not make
+    // the frame any less standalone. Every other dialect has to be present
+    // just like any other destination, as a reader that does not have it
+    // cannot tell what the schema means without fetching it first
+    if (!(last_token(origin) == "$schema" &&
+          sourcemeta::core::schema_is_known(destination)) &&
+        !keys.contains(destination)) {
       every_reference_resolves = false;
     }
   }
@@ -178,6 +185,12 @@ auto check_frame_invariants(const sourcemeta::core::JSON &frame,
     EXPECT_FALSE(standalone);
   } else {
     EXPECT_EQ(standalone, every_reference_resolves);
+  }
+
+  // Setting dialects aside can only ever forgive a reference, so whatever
+  // stands alone once a dialect is held against it stands alone without that
+  if (standalone) {
+    EXPECT_TRUE(standalone_ignoring_metaschemas);
   }
 }
 
@@ -321,6 +334,7 @@ auto run_frame_test(const sourcemeta::core::JSON &test) -> void {
   EXPECT_TRUE(test.defines("root"));
   EXPECT_TRUE(test.defines("pointers"));
   EXPECT_TRUE(test.defines("standalone"));
+  EXPECT_TRUE(test.defines("standaloneIgnoringMetaschemas"));
 
   const auto resolver{make_resolver(test)};
   const auto inputs{make_inputs(test)};
@@ -339,7 +353,8 @@ auto run_frame_test(const sourcemeta::core::JSON &test) -> void {
       inputs.default_base};
   const auto root_json{root.to_json(resolver)};
   EXPECT_EQ(root_json, test.at("root"));
-  check_frame_invariants(root_json, root.standalone());
+  check_frame_invariants(root_json, root.standalone(),
+                         root.standalone_ignoring_metaschemas());
 
   const sourcemeta::core::SchemaFrame pointers{
       sourcemeta::core::SchemaFrame::Mode::Pointers,
@@ -353,7 +368,8 @@ auto run_frame_test(const sourcemeta::core::JSON &test) -> void {
       inputs.default_base};
   const auto pointers_json{pointers.to_json(resolver)};
   EXPECT_EQ(pointers_json, test.at("pointers"));
-  check_frame_invariants(pointers_json, pointers.standalone());
+  check_frame_invariants(pointers_json, pointers.standalone(),
+                         pointers.standalone_ignoring_metaschemas());
 
   // Wherever the mode that reports on a single schema gives it an address,
   // that address is one the mode that locates everything reports too, as each
@@ -395,7 +411,10 @@ auto run_frame_test(const sourcemeta::core::JSON &test) -> void {
   EXPECT_EQ(references_json, expected_references);
 
   EXPECT_EQ(references.standalone(), test.at("standalone").to_boolean());
-  check_frame_invariants(references_json, references.standalone());
+  EXPECT_EQ(references.standalone_ignoring_metaschemas(),
+            test.at("standaloneIgnoringMetaschemas").to_boolean());
+  check_frame_invariants(references_json, references.standalone(),
+                         references.standalone_ignoring_metaschemas());
 
   if (test.defines("reachability")) {
     for (const auto &check : test.at("reachability").as_array()) {
@@ -434,7 +453,8 @@ auto run_frame_test(const sourcemeta::core::JSON &test) -> void {
       inputs.default_base};
   const auto locations_json{locations.to_json(resolver)};
   EXPECT_EQ(locations_json, expected_locations);
-  check_frame_invariants(locations_json, locations.standalone());
+  check_frame_invariants(locations_json, locations.standalone(),
+                         locations.standalone_ignoring_metaschemas());
 }
 
 auto register_tests(const std::filesystem::path &directory) -> std::size_t {

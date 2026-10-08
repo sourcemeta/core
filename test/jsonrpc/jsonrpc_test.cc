@@ -5,25 +5,6 @@
 #include <sourcemeta/core/test.h>
 
 #include <cstdint> // std::int64_t
-#include <stdexcept>
-
-TEST(notification_builder) {
-  using namespace sourcemeta::core;
-  for (const auto &parameters : {JSON::make_object(), JSON::make_array()}) {
-    const auto notification{jsonrpc_make_notification("notify", parameters)};
-    EXPECT_TRUE(jsonrpc_is_notification(notification));
-    EXPECT_FALSE(notification.defines("id"));
-    EXPECT_EQ(notification.at("method"), JSON{"notify"});
-    EXPECT_EQ(notification.at("params"), parameters);
-  }
-  bool rejected = false;
-  try {
-    jsonrpc_make_notification("notify", JSON{false});
-  } catch (const std::invalid_argument &) {
-    rejected = true;
-  }
-  EXPECT_TRUE(rejected);
-}
 
 TEST(code_constants) {
   EXPECT_EQ(sourcemeta::core::JSONRPC_CODE_PARSE,
@@ -424,6 +405,53 @@ TEST(params_null) {
 TEST(params_on_non_object) {
   const auto request{sourcemeta::core::parse_json(R"([ 1, 2 ])")};
   EXPECT_EQ(sourcemeta::core::jsonrpc_params(request), nullptr);
+}
+
+TEST(make_notification_object_parameters) {
+  const auto notification{sourcemeta::core::jsonrpc_make_notification(
+      "update", sourcemeta::core::parse_json(R"({
+        "values": [42, null, {"name": "example"}]
+      })"))};
+  EXPECT_TRUE(sourcemeta::core::jsonrpc_is_notification(notification));
+  EXPECT_EQ(notification, sourcemeta::core::parse_json(R"({
+    "jsonrpc": "2.0",
+    "method": "update",
+    "params": {"values": [42, null, {"name": "example"}]}
+  })"));
+}
+
+TEST(make_notification_array_parameters) {
+  const auto notification{sourcemeta::core::jsonrpc_make_notification(
+      "update",
+      sourcemeta::core::parse_json(R"([42, null, {"name": "example"}])"))};
+  EXPECT_TRUE(sourcemeta::core::jsonrpc_is_notification(notification));
+  EXPECT_EQ(notification, sourcemeta::core::parse_json(R"({
+    "jsonrpc": "2.0",
+    "method": "update",
+    "params": [42, null, {"name": "example"}]
+  })"));
+}
+
+TEST(make_notification_empty_object_parameters) {
+  const auto notification{sourcemeta::core::jsonrpc_make_notification(
+      "update", sourcemeta::core::JSON::make_object())};
+  EXPECT_TRUE(sourcemeta::core::jsonrpc_is_notification(notification));
+  EXPECT_EQ(notification, sourcemeta::core::parse_json(R"({
+    "jsonrpc": "2.0",
+    "method": "update",
+    "params": {}
+  })"));
+}
+
+TEST(make_notification_empty_array_parameters) {
+  const auto notification{sourcemeta::core::jsonrpc_make_notification(
+      "update", sourcemeta::core::JSON::make_array())};
+  EXPECT_TRUE(sourcemeta::core::jsonrpc_is_notification(notification));
+  EXPECT_EQ(notification, sourcemeta::core::parse_json(R"({
+    "jsonrpc": "2.0",
+    "method": "update",
+    "params": []
+  })"));
 }
 
 TEST(make_success_empty) {

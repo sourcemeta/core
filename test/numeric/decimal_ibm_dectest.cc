@@ -157,6 +157,22 @@ static auto spells_a_negative_zero(const std::string &value) -> bool {
   return parsed.is_zero() && parsed.is_signed();
 }
 
+// The quiet NaN a two-operand extremum hands back, where a signaling operand
+// comes before a quiet one and the left before the right (IEEE 754-2008
+// Section 6.2)
+static auto decimal_propagate_nan(const sourcemeta::core::Decimal &left,
+                                  const sourcemeta::core::Decimal &right)
+    -> sourcemeta::core::Decimal {
+  const bool left_first{left.is_snan() || (!right.is_snan() && left.is_nan())};
+  const auto &source{left_first ? left : right};
+  auto result{sourcemeta::core::Decimal::nan(source.nan_payload())};
+  if (source.is_signed()) {
+    result = -result;
+  }
+
+  return result;
+}
+
 static auto expect_comparison_result(const sourcemeta::core::Decimal &left,
                                      const sourcemeta::core::Decimal &right,
                                      const std::string &expected) -> bool {
@@ -201,14 +217,28 @@ static auto expect_decimal_eq(const sourcemeta::core::Decimal &result,
   }
 }
 
-static auto run_comparison(const DecTestCase &test_case, bool signal_on_nan)
-    -> void {
+static auto run_comparison(const DecTestCase &test_case) -> void {
   const auto left{make_decimal(test_case.operand1)};
   const auto right{make_decimal(test_case.operand2)};
 
-  if (signal_on_nan &&
-      has_condition(test_case.conditions, "invalid_operation")) {
-    EXPECT_TRUE(make_decimal(test_case.expected).is_nan());
+  // A comparison answers an unordered pair with a NaN, which the specification
+  // describes as how the "compare operation can return a quiet NaN as a
+  // result, which indicates an 'unordered' comparison". These operators are
+  // the quiet predicates, which carry that outcome as equality and every
+  // ordering answering false while inequality answers true.
+  //
+  // A row is held to that outcome whether or not it also asks for an invalid
+  // operation, which these operators never raise. That signal belongs to a
+  // predicate this Decimal does not expose, and dropping the rows instead
+  // would give up the operand spellings they alone parse
+  if (to_lower(strip_quotes(test_case.expected)).find("nan") !=
+      std::string::npos) {
+    EXPECT_FALSE(left == right);
+    EXPECT_TRUE(left != right);
+    EXPECT_FALSE(left < right);
+    EXPECT_FALSE(left <= right);
+    EXPECT_FALSE(left > right);
+    EXPECT_FALSE(left >= right);
     return;
   }
 
@@ -229,7 +259,7 @@ static auto run_binary(const DecTestCase &test_case, Operation operation)
     try {
       const auto result{operation(make_decimal(test_case.operand1),
                                   make_decimal(test_case.operand2))};
-      EXPECT_TRUE(result.is_nan());
+      expect_decimal_eq(result, make_decimal(test_case.expected));
     } catch (const sourcemeta::core::NumericInvalidOperationError &) {
       // Signalling the condition rather than returning NaN is expected too
     } catch (const sourcemeta::core::NumericDivisionByZeroError &) {
@@ -265,7 +295,8 @@ static auto run_unary(const DecTestCase &test_case, Operation operation)
     -> void {
   if (has_condition(test_case.conditions, "invalid_operation")) {
     try {
-      EXPECT_TRUE(operation(make_decimal(test_case.operand1)).is_nan());
+      expect_decimal_eq(operation(make_decimal(test_case.operand1)),
+                        make_decimal(test_case.expected));
     } catch (const sourcemeta::core::NumericInvalidOperationError &) {
       // Signalling the condition rather than returning NaN is expected too
     }
@@ -322,8 +353,8 @@ static auto run_copysign(const DecTestCase &test_case) -> void {
 static auto run_logb(const DecTestCase &test_case) -> void {
   if (has_condition(test_case.conditions, "division_by_zero")) {
     try {
-      auto result = make_decimal(test_case.operand1).logb();
-      static_cast<void>(result);
+      [[maybe_unused]] const auto result{
+          make_decimal(test_case.operand1).logb()};
       FAIL();
     } catch (const sourcemeta::core::NumericDivisionByZeroError &) {
       // Signalling the condition rather than returning infinity is expected too
@@ -341,12 +372,12 @@ static auto run_max_min(const DecTestCase &test_case, bool is_max,
   const auto expected{make_decimal(test_case.expected)};
 
   if (left.is_snan() || right.is_snan()) {
-    EXPECT_TRUE(expected.is_nan());
+    expect_decimal_eq(decimal_propagate_nan(left, right), expected);
     return;
   }
 
   if (left.is_qnan() && right.is_qnan()) {
-    EXPECT_TRUE(expected.is_nan());
+    expect_decimal_eq(decimal_propagate_nan(left, right), expected);
     return;
   }
 
@@ -385,7 +416,7 @@ static auto run_dectest_case(const DecTestCase &test_case) -> void {
   const auto operation{to_lower(test_case.operation)};
 
   if (operation == "compare" || operation == "comparesig") {
-    run_comparison(test_case, operation == "comparesig");
+    run_comparison(test_case);
   } else if (operation == "add") {
     run_binary(test_case, [](const auto &left, const auto &right) {
       return left + right;
@@ -640,21 +671,6 @@ static auto should_skip_test(const DecTestCase &test_case,
     return true;
   }
 
-  // The decTest spec defines compare(NaN, x) = NaN, but our comparison
-  // operators return bool, so a NaN comparison result cannot be represented.
-  // The signalling case that carries an invalid_operation condition is kept, as
-  // it only asserts that the expected result parses as NaN.
-  if (operation == "compare" || operation == "comparesig") {
-    const auto signalling_nan{
-        operation == "comparesig" &&
-        has_condition(test_case.conditions, "invalid_operation")};
-    if (!signalling_nan &&
-        to_lower(strip_quotes(test_case.expected)).find("nan") !=
-            std::string::npos) {
-      return true;
-    }
-  }
-
   if (operation == "compare" || operation == "comparetotal" ||
       operation == "comparetotmag" || operation == "comparesig" ||
       operation == "copy" || operation == "copyabs" ||
@@ -682,9 +698,14 @@ static auto should_skip_test(const DecTestCase &test_case,
 
   // TODO: Our Decimal context uses half_even rounding exclusively.
   // tointegral results depend on rounding mode, so we can only run
-  // these tests when the file's rounding directive matches ours.
+  // these tests when the file's rounding directive matches ours. A row whose
+  // operand is a NaN reaches no rounding at all, so the rounding directive
+  // does not decide its outcome and it is run whatever that directive says
   if (operation == "tointegral" || operation == "tointegralx") {
-    if (context.rounding != "half_even") {
+    const auto rounding_free{
+        to_lower(strip_quotes(test_case.operand1)).find("nan") !=
+        std::string::npos};
+    if (context.rounding != "half_even" && !rounding_free) {
       return true;
     }
   }

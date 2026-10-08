@@ -464,6 +464,7 @@
     ]
   },
   "standalone": true,
+  "standaloneIgnoringMetaschemas": true,
   "reachability": [
     {
       "from": "https://www.example.com",

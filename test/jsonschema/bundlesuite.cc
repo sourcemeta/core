@@ -37,10 +37,12 @@ const std::vector<std::string> KNOWN_ERROR_TYPES{
     "SchemaReferenceError",
     "SchemaReferenceObjectResourceError",
     "SchemaUnknownBaseDialectError",
+    "SchemaContainerError",
+    "SchemaDialectImpossibleError",
     "SchemaFrameLimitError"};
 
-const std::vector<std::string> KNOWN_ERROR_KEYS{"type", "message", "identifier",
-                                                "location", "limit"};
+const std::vector<std::string> KNOWN_ERROR_KEYS{
+    "type", "message", "identifier", "location", "keyword", "dialect", "limit"};
 // NOLINTEND(cert-err58-cpp,bugprone-throwing-static-initialization)
 
 struct Mode {
@@ -247,7 +249,18 @@ auto with_insertions(const Inputs &inputs, const Insertions &insertions)
                              inputs.path_storage.cbegin(),
                              inputs.path_storage.cend());
   for (const auto &insertion : insertions) {
-    result.path_storage.push_back(insertion.second);
+    // Framing takes paths that do not sit inside one another, and where a
+    // container is itself within a framed schema its entries are already
+    // covered by the path that covers it. What has been gathered so far is
+    // what each one is held against, so the invariant holds over the whole set
+    // rather than over the ones the fixture started with
+    if (std::ranges::none_of(result.path_storage,
+                             [&insertion](const auto &path) -> bool {
+                               return insertion.second.starts_with(path) ||
+                                      path.starts_with(insertion.second);
+                             })) {
+      result.path_storage.push_back(insertion.second);
+    }
   }
   result.paths.reserve(result.path_storage.size());
   for (const auto &path : result.path_storage) {
@@ -297,7 +310,13 @@ auto check_shape(const sourcemeta::core::JSON &test) -> void {
                     type == "SchemaReferenceError" ||
                     type == "SchemaReferenceObjectResourceError");
       EXPECT_EQ(entry.second.defines("location"),
-                type == "SchemaReferenceError");
+                type == "SchemaReferenceError" ||
+                    type == "SchemaContainerError" ||
+                    type == "SchemaDialectImpossibleError");
+      EXPECT_EQ(entry.second.defines("keyword"),
+                type == "SchemaDialectImpossibleError");
+      EXPECT_EQ(entry.second.defines("dialect"),
+                type == "SchemaDialectImpossibleError");
       EXPECT_EQ(entry.second.defines("limit"), type == "SchemaFrameLimitError");
     }
   }
@@ -375,6 +394,30 @@ auto check_error(const sourcemeta::core::JSON &schema,
         const sourcemeta::core::SchemaReferenceObjectResourceError &error) {
       EXPECT_STREQ(error.what(), message.c_str());
       EXPECT_EQ(error.identifier(), expected.at("identifier").to_string());
+    }
+  } else if (type == "SchemaContainerError") {
+    try {
+      Insertions insertions;
+      [[maybe_unused]] const auto document{bundle_schema(
+          schema, resolver, inputs, mode, inputs.max_locations, insertions)};
+      FAIL();
+    } catch (const sourcemeta::core::SchemaContainerError &error) {
+      EXPECT_STREQ(error.what(), message.c_str());
+      EXPECT_EQ(sourcemeta::core::to_string(error.location()),
+                expected.at("location").to_string());
+    }
+  } else if (type == "SchemaDialectImpossibleError") {
+    try {
+      Insertions insertions;
+      [[maybe_unused]] const auto document{bundle_schema(
+          schema, resolver, inputs, mode, inputs.max_locations, insertions)};
+      FAIL();
+    } catch (const sourcemeta::core::SchemaDialectImpossibleError &error) {
+      EXPECT_STREQ(error.what(), message.c_str());
+      EXPECT_EQ(error.keyword(), expected.at("keyword").to_string());
+      EXPECT_EQ(error.dialect(), expected.at("dialect").to_string());
+      EXPECT_EQ(sourcemeta::core::to_string(error.location()),
+                expected.at("location").to_string());
     }
   } else if (type == "SchemaUnknownBaseDialectError") {
     try {

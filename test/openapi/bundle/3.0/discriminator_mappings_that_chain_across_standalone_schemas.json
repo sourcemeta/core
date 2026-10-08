@@ -1,0 +1,86 @@
+{
+  "document": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "schemas": {
+        "Pet": {
+          "discriminator": {
+            "propertyName": "t",
+            "mapping": {
+              "a": "https://example.com/schemas/a"
+            }
+          }
+        }
+      }
+    },
+    "paths": {}
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {},
+  "schemaResolver": {
+    "https://example.com/schemas/a": {
+      "discriminator": {
+        "propertyName": "t",
+        "mapping": {
+          "b": "https://example.com/schemas/b"
+        }
+      }
+    },
+    "https://example.com/schemas/b": {
+      "type": "object"
+    }
+  },
+  "result": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "schemas": {
+        "Pet": {
+          "discriminator": {
+            "propertyName": "t",
+            "mapping": {
+              "a": "#/components/schemas/a"
+            }
+          }
+        },
+        "a": {
+          "discriminator": {
+            "propertyName": "t",
+            "mapping": {
+              "b": "#/components/schemas/b"
+            }
+          }
+        },
+        "b": {
+          "type": "object"
+        }
+      }
+    },
+    "paths": {}
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/schemas/a",
+      "at": "/components/schemas/a"
+    },
+    {
+      "from": "https://example.com/schemas/b",
+      "at": "/components/schemas/b"
+    }
+  ],
+  "reads": {},
+  "schemaReads": {
+    "https://example.com/schemas/a": 1,
+    "https://example.com/schemas/b": 1
+  },
+  "standalone": true,
+  "relocatable": true,
+  "operations": []
+}

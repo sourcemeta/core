@@ -1439,3 +1439,115 @@ TEST(less_equal_and_greater_equal_cross_type_distinct) {
   EXPECT_FALSE(real <= integer);
   EXPECT_TRUE(real >= integer);
 }
+
+TEST(is_double_integer_zero) {
+  const sourcemeta::core::JSON document{0};
+  EXPECT_TRUE(document.is_double());
+}
+
+TEST(is_double_integer_small) {
+  const sourcemeta::core::JSON document{5};
+  EXPECT_TRUE(document.is_double());
+}
+
+TEST(is_double_integer_widest_significand) {
+  const sourcemeta::core::JSON document{std::int64_t{9007199254740991}};
+  EXPECT_TRUE(document.is_double());
+}
+
+TEST(is_double_integer_past_the_significand) {
+  const sourcemeta::core::JSON document{std::int64_t{9007199254740993}};
+  EXPECT_FALSE(document.is_double());
+}
+
+TEST(is_double_integer_power_of_two_past_the_significand) {
+  const sourcemeta::core::JSON document{std::int64_t{1152921504606846976}};
+  EXPECT_TRUE(document.is_double());
+}
+
+TEST(is_double_integer_minimum) {
+  const sourcemeta::core::JSON document{
+      std::numeric_limits<std::int64_t>::min()};
+  EXPECT_TRUE(document.is_double());
+}
+
+TEST(is_double_integer_maximum) {
+  const sourcemeta::core::JSON document{
+      std::numeric_limits<std::int64_t>::max()};
+  EXPECT_FALSE(document.is_double());
+}
+
+TEST(is_float_integer_widest_significand) {
+  const sourcemeta::core::JSON document{16777215};
+  EXPECT_TRUE(document.is_float());
+}
+
+TEST(is_float_integer_past_the_significand) {
+  const sourcemeta::core::JSON document{16777217};
+  EXPECT_FALSE(document.is_float());
+}
+
+TEST(is_float_integer_power_of_two_past_the_significand) {
+  const sourcemeta::core::JSON document{std::int64_t{1152921504606846976}};
+  EXPECT_TRUE(document.is_float());
+}
+
+TEST(is_double_real_inexact_decimal) {
+  const sourcemeta::core::JSON document{3.14};
+  EXPECT_TRUE(document.is_double());
+}
+
+TEST(is_float_real_exact) {
+  const sourcemeta::core::JSON document{0.5};
+  EXPECT_TRUE(document.is_float());
+}
+
+TEST(is_float_real_inexact) {
+  const sourcemeta::core::JSON document{3.14};
+  EXPECT_FALSE(document.is_float());
+}
+
+TEST(is_float_real_past_the_float_maximum) {
+  const sourcemeta::core::JSON document{1e100};
+  EXPECT_FALSE(document.is_float());
+}
+
+TEST(is_float_real_below_the_float_minimum) {
+  const sourcemeta::core::JSON document{1e-50};
+  EXPECT_FALSE(document.is_float());
+}
+
+TEST(is_double_decimal_binary_fraction) {
+  const sourcemeta::core::JSON document{sourcemeta::core::Decimal{"0.5"}};
+  EXPECT_TRUE(document.is_double());
+}
+
+TEST(is_double_decimal_one_tenth) {
+  const sourcemeta::core::JSON document{sourcemeta::core::Decimal{"0.1"}};
+  EXPECT_FALSE(document.is_double());
+}
+
+TEST(is_double_decimal_largest_exact_power_of_ten) {
+  const sourcemeta::core::JSON document{sourcemeta::core::Decimal{"1e22"}};
+  EXPECT_TRUE(document.is_double());
+}
+
+TEST(is_double_decimal_first_inexact_power_of_ten) {
+  const sourcemeta::core::JSON document{sourcemeta::core::Decimal{"1e23"}};
+  EXPECT_FALSE(document.is_double());
+}
+
+TEST(is_float_decimal_binary_fraction) {
+  const sourcemeta::core::JSON document{sourcemeta::core::Decimal{"0.5"}};
+  EXPECT_TRUE(document.is_float());
+}
+
+TEST(is_float_decimal_inexact) {
+  const sourcemeta::core::JSON document{sourcemeta::core::Decimal{"3.14"}};
+  EXPECT_FALSE(document.is_float());
+}
+
+TEST(is_float_decimal_past_the_float_significand) {
+  const sourcemeta::core::JSON document{sourcemeta::core::Decimal{"1e22"}};
+  EXPECT_FALSE(document.is_float());
+}

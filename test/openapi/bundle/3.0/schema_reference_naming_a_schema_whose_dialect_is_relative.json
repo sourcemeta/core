@@ -1,0 +1,30 @@
+{
+  "document": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "schemas": {
+        "Pet": {
+          "$ref": "pet.json"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {},
+  "schemaResolver": {
+    "https://example.com/pet.json": {
+      "$schema": "some/dialect",
+      "type": "object"
+    }
+  },
+  "error": {
+    "type": "SchemaResolutionError",
+    "message": "Relative meta-schema URIs are not valid according to the JSON Schema specification",
+    "identifier": "some/dialect"
+  }
+}

@@ -26,7 +26,7 @@
   "schemaResolver": {},
   "error": {
     "type": "OpenAPIReferenceError",
-    "message": "This reference must name a place within the document it points at",
+    "message": "This reference must name a document that holds an OpenAPI Description",
     "location": "/paths/~1pets/get/responses/404/$ref",
     "identifier": "https://example.com/shared.json"
   }

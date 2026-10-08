@@ -1,0 +1,81 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/host",
+    "properties": {
+      "pet": {
+        "$ref": "https://www.sourcemeta.com/pet"
+      }
+    }
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/pet": {
+      "type": "object",
+      "properties": {
+        "modern": {
+          "x-sourcemeta-dialect-override-subschema": "https://json-schema.org/draft/2020-12/schema",
+          "exclusiveMaximum": 5
+        }
+      }
+    }
+  },
+  "defaultDialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+  "result": {
+    "nonOfficialMetaschemas": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/host",
+      "properties": {
+        "pet": {
+          "$ref": "#/$defs/https:~1~1www.sourcemeta.com~1pet"
+        }
+      },
+      "$defs": {
+        "https://www.sourcemeta.com/pet": {
+          "type": "object",
+          "properties": {
+            "modern": {
+              "x-sourcemeta-dialect-override-subschema": "https://json-schema.org/draft/2020-12/schema",
+              "exclusiveMaximum": 5
+            }
+          },
+          "x-sourcemeta-dialect-override-subschema": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect"
+        }
+      }
+    },
+    "references": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/host",
+      "properties": {
+        "pet": {
+          "$ref": "#/$defs/https:~1~1www.sourcemeta.com~1pet"
+        }
+      },
+      "$defs": {
+        "https://www.sourcemeta.com/pet": {
+          "type": "object",
+          "properties": {
+            "modern": {
+              "x-sourcemeta-dialect-override-subschema": "https://json-schema.org/draft/2020-12/schema",
+              "exclusiveMaximum": 5
+            }
+          },
+          "x-sourcemeta-dialect-override-subschema": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect"
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://www.sourcemeta.com/pet",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1pet"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://www.sourcemeta.com/pet",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1pet"
+      }
+    ]
+  }
+}
