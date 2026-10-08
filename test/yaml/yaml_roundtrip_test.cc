@@ -5898,3 +5898,44 @@ TEST(mutated_alias_in_sequence_item) {
   document.at(1) = sourcemeta::core::JSON{2};
   EXPECT_EQ(stringify(document, metadata), "- &x 1\n- 2\n");
 }
+
+// A block scalar can only ever be an explicit key, there being no way to open
+// one and close the key on the same line. Nothing recorded how such a key was
+// written, so it came back out as a quoted scalar on one line.
+TEST(literal_block_scalar_as_an_explicit_key) {
+  EXPECT_EQ(roundtrip("? |\n  text\n: value\n"), "? |\n  text\n: value\n");
+}
+
+TEST(folded_block_scalar_as_an_explicit_key) {
+  EXPECT_EQ(roundtrip("? >\n  text\n: value\n"), "? >\n  text\n: value\n");
+}
+
+TEST(stripped_literal_block_scalar_as_an_explicit_key) {
+  EXPECT_EQ(roundtrip("? |-\n  text\n: value\n"), "? |-\n  text\n: value\n");
+}
+
+TEST(kept_literal_block_scalar_as_an_explicit_key) {
+  EXPECT_EQ(roundtrip("? |+\n  text\n: value\n"), "? |+\n  text\n: value\n");
+}
+
+TEST(block_scalar_as_an_explicit_key_reads_back_the_same) {
+  const auto document{roundtrip_value("? |\n  text\n: value\n")};
+  EXPECT_TRUE(document.is_object());
+  EXPECT_EQ(document.size(), 1);
+  EXPECT_TRUE(document.defines("text\n"));
+  EXPECT_EQ(document.at("text\n"), sourcemeta::core::JSON{"value"});
+}
+
+// A sequence may sit at the indentation of the key it belongs to, but where
+// that key is written out as an explicit one, what it would sit at is the
+// indicator opening the key rather than the key's own node. Pulling it back
+// there puts it where reading the result again does not place it, so the round
+// trip stops settling.
+TEST(explicit_block_key_holding_a_sequence_stays_indented) {
+  const auto once{
+      roundtrip("? explicit key # Empty value\n? |\n  block key\n: - one "
+                "# Explicit compact\n  - two # block value\n")};
+  EXPECT_EQ(once, "explicit key:\n? |\n  block key\n:\n"
+                  "  - one # Explicit compact\n  - two # block value\n");
+  EXPECT_EQ(roundtrip(once), once);
+}
