@@ -61,3 +61,19 @@ TEST(empty_file_does_not_throw) {
   const sourcemeta::core::FileView view{path};
   EXPECT_EQ(view.size(), 0);
 }
+
+// A directory opens for reading, reports a size the standard leaves
+// unspecified, and on at least one widely used filesystem reports zero, which
+// the empty-view shortcut would otherwise hand back as a view of nothing.
+TEST(directory_throws) {
+  const sourcemeta::core::TemporaryDirectory directory{
+      std::filesystem::temp_directory_path(), ".fileview-"};
+
+  try {
+    const sourcemeta::core::FileView view{directory.path()};
+    FAIL();
+  } catch (const sourcemeta::core::FileViewError &error) {
+    EXPECT_EQ(error.path(), directory.path());
+    EXPECT_STREQ(error.what(), "Could not map a directory into memory");
+  }
+}
