@@ -59,7 +59,6 @@ static auto internal_parse_json(const char *&cursor, const char *end,
         tape.clear();
         line = 1;
         column = 0;
-        output = JSON{nullptr};
         scan_json<true>(cursor, end, buffer_start, line, column, tape);
         construct_json(buffer_start, tape, callback, output);
       }

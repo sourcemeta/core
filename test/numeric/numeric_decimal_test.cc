@@ -6413,3 +6413,33 @@ TEST(compound_add_repeated_doubling_beyond_the_compact_range_keeps_the_sign) {
   EXPECT_TRUE(value.is_signed());
   EXPECT_TRUE(value.same_quantum(expected));
 }
+
+// The digit count predicts how far rounding raises the exponent, but the
+// increment it applies can carry into a further position and raise it once
+// more. That left the prediction one short, and the exponent wrapped on being
+// narrowed to what it is stored in rather than being refused.
+TEST(multiply_carrying_past_the_widest_exponent_overflows) {
+  const sourcemeta::core::Decimal left{"99999999999999999e2147483629"};
+  const sourcemeta::core::Decimal right{"1e17"};
+  try {
+    const auto result{left * right};
+    FAIL();
+  } catch (const sourcemeta::core::NumericOverflowError &error) {
+    EXPECT_STREQ(error.what(), "Numeric overflow");
+  }
+}
+
+// The refusal has to land before the coefficient is committed, so the operand
+// is left as it was.
+TEST(multiply_carrying_past_the_widest_exponent_leaves_the_operand_alone) {
+  const sourcemeta::core::Decimal original{"99999999999999999e2147483629"};
+  sourcemeta::core::Decimal left{original};
+  try {
+    left *= sourcemeta::core::Decimal{"1e17"};
+    FAIL();
+  } catch (const sourcemeta::core::NumericOverflowError &) {
+    EXPECT_EQ(left, original);
+    EXPECT_TRUE(left.same_quantum(original));
+    EXPECT_EQ(left.to_string(), original.to_string());
+  }
+}

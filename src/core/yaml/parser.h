@@ -243,11 +243,14 @@ public:
     // any, is not among the tokens seen here. YAML 1.2.2 Section 6.8.2: tag
     // directives are local to one document, so crossing that boundary begins a
     // fresh directive scope.
-    // The document read before this point is complete, so the directives that
-    // applied to it go out of scope here. Section 6.8.2 makes them local to
-    // one document, and what follows opens a fresh scope whether an end marker
-    // closed the last document or a directives end marker opens the next
+    // The document read before this point is complete, so what applied to it
+    // goes out of scope here. Section 6.8.2 makes directives local to one
+    // document, and Section 9.1 has each document be "completely independent
+    // from the rest", which puts the anchors it declared out of reach of
+    // whatever follows. A fresh scope opens whether an end marker closed the
+    // last document or a directives end marker opens the next
     this->tag_directives_.clear();
+    this->anchors_.clear();
     bool saw_document_end{this->document_ended_};
     while (token.has_value() && token->type == TokenType::DocumentEnd) {
       saw_document_end = true;
@@ -297,6 +300,7 @@ public:
       // That document is complete, so anything it declared stops applying
       // before the next one reads its own
       this->tag_directives_.clear();
+      this->anchors_.clear();
       token = this->next_token();
       while (token.has_value() && token->type == TokenType::DocumentEnd) {
         saw_document_end = true;
@@ -729,8 +733,9 @@ private:
         // does. Doing only the part that records how it was written left it
         // unannounced and left the anchor unresolvable further on
         if (anchor_name.has_value()) {
-          this->register_anchored_null(anchor_name.value(), token, context,
-                                       index, property, anchor_inline_comment);
+          this->register_anchored_empty(anchor_name.value(), empty_value, token,
+                                        context, index, property,
+                                        anchor_inline_comment);
         }
 
         this->record_tag(raw_tag, tag_before_anchor, empty_value);
@@ -753,9 +758,9 @@ private:
             empty_value = JSON{std::string{}};
           }
           if (anchor_name.has_value()) {
-            this->register_anchored_null(anchor_name.value(), token, context,
-                                         index, property,
-                                         anchor_inline_comment);
+            this->register_anchored_empty(anchor_name.value(), empty_value,
+                                          token, context, index, property,
+                                          anchor_inline_comment);
           }
           this->record_tag(raw_tag, tag_before_anchor, empty_value);
           if ((this->roundtrip_ != nullptr) &&
@@ -784,9 +789,9 @@ private:
             empty_value = JSON{std::string{}};
           }
           if (anchor_name.has_value()) {
-            this->register_anchored_null(anchor_name.value(), token, context,
-                                         index, property,
-                                         anchor_inline_comment);
+            this->register_anchored_empty(anchor_name.value(), empty_value,
+                                          token, context, index, property,
+                                          anchor_inline_comment);
           }
           this->record_tag(raw_tag, tag_before_anchor, empty_value);
           if ((this->roundtrip_ != nullptr) &&
@@ -1787,6 +1792,17 @@ private:
         // resolves to an empty string, so a dedicated flag marks its presence
         const bool key_absent{(this->roundtrip_ != nullptr) ? key.empty()
                                                             : !key_present};
+        // An empty key is a key like any other, so naming it twice names the
+        // same key twice. Nothing recorded it, which left the mapping quietly
+        // keeping only the last of them where any other key would be refused
+        if (!key_present) {
+          if (seen_keys.contains(key)) [[unlikely]] {
+            throw YAMLDuplicateKeyError{key, token.line, token.column};
+          }
+
+          seen_keys.insert(key);
+        }
+
         if (next->type == TokenType::BlockMappingValue ||
             next->type == TokenType::BlockMappingKey) {
           if (key_absent && next->type == TokenType::BlockMappingKey) {
@@ -2369,25 +2385,28 @@ private:
   }
 
   auto
-  register_anchored_null(const std::string_view anchor_name, const Token &token,
-                         const JSON::ParseContext context,
-                         const std::size_t index, const std::string &property,
-                         std::optional<std::string> &inline_comment) -> void {
+  // A tag can make an empty node stand for something other than null, so what
+  // is announced and what is filed are both taken from the value itself.
+  // Announcing null regardless told whoever is listening a different type from
+  // the one the node came back as
+  register_anchored_empty(const std::string_view anchor_name, const JSON &value,
+                          const Token &token, const JSON::ParseContext context,
+                          const std::size_t index, const std::string &property,
+                          std::optional<std::string> &inline_comment) -> void {
     this->recording_anchor_ = true;
     this->current_anchor_callbacks_.clear();
-    JSON null_value{nullptr};
-    this->invoke_callback(JSON::ParsePhase::Pre, JSON::Type::Null, token.line,
-                          token.column, context, index, property);
-    this->invoke_callback(JSON::ParsePhase::Post, JSON::Type::Null, token.line,
+    const auto type{value.type()};
+    this->invoke_callback(JSON::ParsePhase::Pre, type, token.line, token.column,
+                          context, index, property);
+    this->invoke_callback(JSON::ParsePhase::Post, type, token.line,
                           token.column, JSON::ParseContext::Root, 0,
                           EMPTY_PROPERTY);
     this->recording_anchor_ = false;
     this->anchors_.insert_or_assign(
         std::string{anchor_name},
-        AnchoredValue{.value = null_value,
+        AnchoredValue{.value = value,
                       .callbacks = std::move(this->current_anchor_callbacks_),
-                      .expanded_weight =
-                          this->count_expanded_weight(null_value)});
+                      .expanded_weight = this->count_expanded_weight(value)});
     this->current_anchor_callbacks_.clear();
     if (this->roundtrip_ != nullptr) {
       auto &style{this->roundtrip_->styles[this->pointer_stack_]};

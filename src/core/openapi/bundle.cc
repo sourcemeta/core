@@ -4,16 +4,18 @@
 #include "document.h"
 #include "helpers.h"
 
-#include <algorithm> // std::min
-#include <cassert>   // assert
-#include <cstddef>   // std::size_t
-#include <cstdint>   // std::uint64_t
-#include <map>       // std::map
-#include <optional>  // std::optional
-#include <set>       // std::set
-#include <string>    // std::to_string
-#include <utility>   // std::move, std::make_pair, std::pair
-#include <vector>    // std::vector
+#include <algorithm>    // std::min
+#include <cassert>      // assert
+#include <charconv>     // std::from_chars
+#include <cstddef>      // std::size_t
+#include <cstdint>      // std::uint64_t
+#include <map>          // std::map
+#include <optional>     // std::optional
+#include <set>          // std::set
+#include <string>       // std::to_string
+#include <system_error> // std::errc
+#include <utility>      // std::move, std::make_pair, std::pair
+#include <vector>       // std::vector
 
 namespace {
 
@@ -530,12 +532,35 @@ auto vacant(const sourcemeta::core::JSON &entries,
   }
 
   // Every number the doubling visited was taken, so the free one the count
-  // above guarantees is a number it stepped over. Walking up to it costs what
-  // the doubling exists to avoid, but a description has to name one place
-  // beyond every power of two to get here
+  // above guarantees is a number it stepped over. Asking about those one at a
+  // time would be the very walk per question the doubling exists to avoid, so
+  // the numbers in use are gathered in a single walk and the first missing
+  // from them is the answer
   if (entries.defines(taken + std::to_string(upper))) {
+    std::vector<bool> used(ceiling + 1, false);
+    for (const auto &entry : entries.as_object()) {
+      if (entry.first.size() <= taken.size() ||
+          !entry.first.starts_with(taken)) {
+        continue;
+      }
+
+      const sourcemeta::core::JSON::StringView suffix{
+          entry.first.data() + taken.size(), entry.first.size() - taken.size()};
+      std::uint64_t number{0};
+      const auto parsed{std::from_chars(suffix.data(),
+                                        suffix.data() + suffix.size(), number)};
+      if (parsed.ec != std::errc{} ||
+          parsed.ptr != suffix.data() + suffix.size()) {
+        continue;
+      }
+
+      if (number <= ceiling) {
+        used[static_cast<std::size_t>(number)] = true;
+      }
+    }
+
     upper = 1;
-    while (entries.defines(taken + std::to_string(upper))) {
+    while (upper <= ceiling && used[static_cast<std::size_t>(upper)]) {
       upper += 1;
     }
 

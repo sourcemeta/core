@@ -242,8 +242,11 @@ auto ecdsa_signature_for_nonce(const CurveBignum &nonce,
   // The ladder leaves its projective output fixed-width rather than normalized,
   // so it does not leak the secret nonce through a value-dependent loop. The
   // nonce lies in [1, n), so the result is never the point at infinity, and the
-  // r == 0 rejection below is the FIPS 186-5 Section 6.4.1 step 11 restart
-  // condition regardless
+  // r == 0 rejection below draws another candidate regardless, which is what
+  // RFC 6979 Section 3.2 step h asks for. FIPS 186-5 Section 6.4.1 step 11
+  // instead ends in failure where the nonce came from its own deterministic
+  // procedure, that procedure yielding the same nonce again, where advancing
+  // the generator state the way RFC 6979 does yields a different one
   auto r{point_affine_x_constant_time(point, parameters)};
   bignum_reduce(r, parameters.order);
   if (bignum_is_zero(r)) {

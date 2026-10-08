@@ -442,6 +442,15 @@ constexpr auto is_representable_as(const Integer value) -> bool {
 /// assert(sourcemeta::core::is_representable_as<float>(0.5));
 /// assert(!sourcemeta::core::is_representable_as<float>(3.14));
 /// ```
+// The narrowing below is reached only for a magnitude the guard above admits,
+// but a caller naming a constant too large for the narrower format has that
+// cast folded at compile time, where the guard is not yet in play, and the
+// fold is reported as an overflow
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4756)
+#endif
+
 template <std::floating_point Real, std::floating_point Wider>
 auto is_representable_as(const Wider value) -> bool {
   // A format whose significand and exponent range both cover those of another
@@ -466,6 +475,10 @@ auto is_representable_as(const Wider value) -> bool {
     return static_cast<Wider>(static_cast<Real>(value)) == value;
   }
 }
+
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
 
 } // namespace sourcemeta::core
 

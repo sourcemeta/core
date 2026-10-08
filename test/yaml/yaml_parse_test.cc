@@ -3016,3 +3016,45 @@ TEST(carriage_return_block_scalar_header_comment) {
   expected.assign("foo", sourcemeta::core::JSON{"one\ntwo"});
   EXPECT_EQ(result, expected);
 }
+
+// Section 9.1 has each document be "completely independent from the rest", so
+// an anchor declared in one is out of reach of an alias in the next. The
+// anchors survived the boundary, which let the second document borrow them.
+TEST(anchor_does_not_reach_across_a_directives_end_marker) {
+  try {
+    sourcemeta::core::read_yaml(std::filesystem::path{STUBS_PATH} /
+                                "multi_document_anchor_reuse.yaml");
+    FAIL();
+  } catch (const sourcemeta::core::YAMLFileParseError &error) {
+    EXPECT_STREQ(error.what(), "YAML alias references undefined anchor");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(anchor_does_not_reach_across_a_document_end_marker) {
+  try {
+    sourcemeta::core::read_yaml(std::filesystem::path{STUBS_PATH} /
+                                "multi_document_anchor_reuse_after_end.yaml");
+    FAIL();
+  } catch (const sourcemeta::core::YAMLFileParseError &error) {
+    EXPECT_STREQ(error.what(), "YAML alias references undefined anchor");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// An empty key is a key like any other, so naming it twice names the same key
+// twice. Nothing recorded it, which left the mapping quietly keeping only the
+// last of them.
+TEST(leading_colon_value_indicator_duplicate_is_rejected) {
+  const std::string input{": v\n~: w\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLDuplicateKeyError &error) {
+    EXPECT_STREQ(error.what(), "Duplicate key in YAML mapping");
+  } catch (...) {
+    FAIL();
+  }
+}

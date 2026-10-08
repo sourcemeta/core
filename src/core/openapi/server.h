@@ -210,6 +210,28 @@ inline auto openapi_substitute_server_variables(const JSON::StringView address,
   return result;
 }
 
+// Whether what a variable stands for can bear on the kind of reference the
+// template names. RFC 3986 Section 3 puts the scheme and the authority before
+// the first slash, and what follows that slash is the path and the rest, none
+// of which can turn an absolute reference into a relative one. So only a
+// variable reaching the part before that slash has to have what it stands for
+// bounded, and one the template never names reaches nothing at all
+inline auto openapi_server_variable_bears_on_absoluteness(
+    const JSON::StringView address, const JSON::String &name) -> bool {
+  JSON::String placeholder;
+  placeholder.reserve(name.size() + 2);
+  placeholder.push_back('{');
+  placeholder.append(name);
+  placeholder.push_back('}');
+  const auto occurrence{address.find(placeholder)};
+  if (occurrence == JSON::StringView::npos) {
+    return false;
+  }
+
+  const auto path_start{address.find('/')};
+  return path_start == JSON::StringView::npos || occurrence < path_start;
+}
+
 // Whether a server URL template names an absolute URI whatever its variables
 // stand for. Section 4.8.6 bounds that: a `default` is "REQUIRED. The default
 // value to use for substitution, which SHALL be sent if an alternate value is
@@ -228,6 +250,11 @@ openapi_is_absolute_server_url_template(const JSON::StringView address,
   }
 
   for (const auto &variable : variables.as_object()) {
+    if (!openapi_server_variable_bears_on_absoluteness(address,
+                                                       variable.first)) {
+      continue;
+    }
+
     const auto *choices{variable.second.try_at("enum")};
     // Section 4.8.6 admits an enumeration only where the substitution options
     // are from a limited set, and sends the default only where an alternate

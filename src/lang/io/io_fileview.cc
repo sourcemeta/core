@@ -3,7 +3,11 @@
 
 #if defined(_WIN32)
 #define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
 #include <windows.h>
+
+#include <filesystem>   // std::filesystem::is_directory
+#include <system_error> // std::error_code
 #else
 #include <fcntl.h>    // open, O_RDONLY
 #include <sys/mman.h> // mmap, munmap
@@ -20,6 +24,15 @@ FileView::FileView(const std::filesystem::path &path) {
       CreateFileW(path.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr,
                   OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
   if (this->file_handle_ == INVALID_HANDLE_VALUE) {
+    // Opening a directory here needs a flag this does not ask for, so one
+    // fails to open at all rather than failing to be mapped. Reporting that as
+    // a file that could not be opened would have the same refusal give a
+    // different account of itself depending on the system it ran on
+    std::error_code directory_error;
+    if (std::filesystem::is_directory(path, directory_error)) {
+      throw FileViewError(path, "Could not map a directory into memory");
+    }
+
     throw FileViewError(path, "Could not open the file");
   }
 
