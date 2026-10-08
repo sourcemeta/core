@@ -375,8 +375,16 @@ private:
         total += entry.first.size() + this->count_expanded_weight(entry.second);
       }
     } else if (value.is_string()) {
-      total += value.string_size();
+      // What a copy occupies is counted in bytes, where the logical length
+      // counts the characters those bytes spell, so a character written in
+      // four of them would be charged as one
+      total += value.to_string().size();
+    } else if (value.is_decimal()) {
+      // A coefficient runs as wide as the digits it was written with, so one
+      // of them is no more a single unit than a run of text is
+      total += value.to_decimal().to_string().size();
     }
+
     return total;
   }
 
@@ -1777,6 +1785,10 @@ private:
         if (!next.has_value() || next->type == TokenType::StreamEnd ||
             next->type == TokenType::DocumentEnd ||
             next->type == TokenType::DocumentStart) {
+          if (!key_present) {
+            note_implicit_key(seen_keys, key, token);
+          }
+
           result.assign(key, JSON{nullptr});
           if (!next.has_value()) {
             break;
@@ -1791,23 +1803,17 @@ private:
         // resolves to an empty string, so a dedicated flag marks its presence
         const bool key_absent{(this->roundtrip_ != nullptr) ? key.empty()
                                                             : !key_present};
-        // An empty key is a key like any other, so naming it twice names the
-        // same key twice. Nothing recorded it, which left the mapping quietly
-        // keeping only the last of them where any other key would be refused
-        if (!key_present) {
-          if (seen_keys.contains(key)) [[unlikely]] {
-            throw YAMLDuplicateKeyError{key, token.line, token.column};
-          }
-
-          seen_keys.insert(key);
-        }
-
         if (next->type == TokenType::BlockMappingValue ||
             next->type == TokenType::BlockMappingKey) {
           if (key_absent && next->type == TokenType::BlockMappingKey) {
             token = next.value();
             continue;
           }
+
+          if (!key_present) {
+            note_implicit_key(seen_keys, key, token);
+          }
+
           result.assign(key, JSON{nullptr});
           token = next.value();
           continue;
@@ -1821,6 +1827,10 @@ private:
         auto value{this->parse_value(next.value(), JSON::ParseContext::Property,
                                      0, key, current_key_line,
                                      current_key_column)};
+        if (!key_present) {
+          note_implicit_key(seen_keys, key, token);
+        }
+
         result.assign(key, std::move(value));
 
         auto after{this->next_token()};
@@ -2494,6 +2504,21 @@ private:
     }
   }
 
+  // An empty key is a key like any other, so naming it twice names the same
+  // key twice. It is recorded where the entry is committed rather than where
+  // the indicator is read, since an indicator that turns out to open an
+  // explicit key commits nothing and would otherwise mark a key the mapping
+  // never holds as one it has already seen
+  static auto note_implicit_key(std::unordered_set<std::string> &seen_keys,
+                                const std::string &key, const Token &token)
+      -> void {
+    if (seen_keys.contains(key)) [[unlikely]] {
+      throw YAMLDuplicateKeyError{key, token.line, token.column};
+    }
+
+    seen_keys.insert(key);
+  }
+
   auto record_key_scalar_style(const std::string &key, const ScalarStyle style,
                                const std::string_view quoted_original = {})
       -> void {
@@ -2522,7 +2547,13 @@ private:
       case ScalarStyle::Folded:
         break;
     }
-    if (!quoted_original.empty()) {
+    // A key is written back without the indicator that can open an explicit
+    // one, so text spanning lines cannot be replayed as it was read. Keeping
+    // it would put a line break inside a key that nothing marks as explicit,
+    // which is not a document that can be read again, where writing the key
+    // out afresh keeps it to one line
+    if (!quoted_original.empty() &&
+        quoted_original.find('\n') == std::string_view::npos) {
       this->roundtrip_->key_quoted_contents[this->pointer_stack_] =
           std::string{quoted_original};
     }

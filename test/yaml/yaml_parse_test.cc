@@ -1,6 +1,7 @@
 #include <sourcemeta/core/io.h>
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/test.h>
+#include <sourcemeta/core/unicode.h>
 #include <sourcemeta/core/yaml.h>
 
 #include <fstream>  // std::ifstream
@@ -9,6 +10,19 @@
 #include <sstream>  // std::istringstream
 #include <string>   // std::string
 #include <utility>  // std::move
+
+// A run of one character that takes four bytes to write, for showing that what
+// a copy occupies is counted in bytes rather than in the characters they spell
+static auto wide_characters(const std::size_t count) -> std::string {
+  const auto character{sourcemeta::core::codepoint_to_utf8(U'\U0001F600')};
+  std::string result;
+  result.reserve(count * character.size());
+  for (std::size_t index = 0; index < count; index++) {
+    result += character;
+  }
+
+  return result;
+}
 
 TEST(deeply_nested_flow_is_rejected) {
   const std::string input{std::string(2000, '[') + std::string(2000, ']')};
@@ -3054,6 +3068,55 @@ TEST(leading_colon_value_indicator_duplicate_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLDuplicateKeyError &error) {
     EXPECT_STREQ(error.what(), "Duplicate key in YAML mapping");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// The entry a value indicator opens is committed on more than one path, and an
+// empty key naming the same place twice has to be refused on each of them. The
+// path that ends the document committed without ever weighing the key, which
+// quietly kept the last of them.
+TEST(leading_colon_value_indicator_duplicate_at_the_end_of_a_document) {
+  const std::string input{": [1]\n:\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLDuplicateKeyError &error) {
+    EXPECT_STREQ(error.what(), "Duplicate key in YAML mapping");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// A value indicator that turns out to open an explicit key commits nothing, so
+// the empty key it looked like must not be marked as one the mapping has seen.
+TEST(leading_colon_value_indicator_before_an_explicit_key_is_not_seen) {
+  const auto result{sourcemeta::core::parse_yaml(":\n? a\n: b\n: c\n")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_TRUE(result.defines("a"));
+  EXPECT_TRUE(result.at("a").is_object());
+  EXPECT_EQ(result.at("a").size(), 1);
+  EXPECT_TRUE(result.at("a").defines("b"));
+  EXPECT_TRUE(result.at("a").at("b").is_null());
+}
+
+// What a copy occupies is counted in bytes, where the logical length counts
+// the characters those bytes spell. A character written in four of them was
+// charged as one, so this chain stayed within an allowance it outgrows four
+// times over.
+TEST(alias_expansion_allowance_counts_bytes_not_characters) {
+  const std::string input{"a: &a " + wide_characters(100) + "\n" +
+                          "b: &b [ *a, *a, *a, *a, *a, *a, *a, *a, *a, *a, *a, "
+                          "*a, *a, *a, *a, *a, *a, *a, *a, *a ]\n"
+                          "c: [ *b, *b, *b, *b, *b, *b, *b, *b, *b, *b, *b, "
+                          "*b, *b, *b, *b, *b, *b, *b, *b, *b ]\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_EQ(error.line(), 3);
   } catch (...) {
     FAIL();
   }
