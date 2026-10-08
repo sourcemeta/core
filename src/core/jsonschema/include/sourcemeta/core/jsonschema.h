@@ -208,6 +208,9 @@ struct SchemaBundleOptions {
   /// way to know what a later call has to frame when bundling into a
   /// container that the dialect does not otherwise traverse
   Callback callback;
+  /// Where to report how much of the limit is left once bundling is done, for
+  /// a caller that spends from the same limit elsewhere
+  std::uint64_t *locations_remaining{nullptr};
 };
 
 /// @ingroup jsonschema

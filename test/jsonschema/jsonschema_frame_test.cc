@@ -2089,11 +2089,37 @@ TEST(accessors_uri_and_traverse_relative_to_a_location) {
   EXPECT_EQ(frame.uri(root, sourcemeta::core::to_weak_pointer(relative)),
             "https://example.com/schema#/$defs/foo");
 
-  const auto &destination{
+  const auto destination{
       frame.traverse(root, sourcemeta::core::to_weak_pointer(relative))};
-  EXPECT_EQ(destination.type,
+  EXPECT_TRUE(destination.has_value());
+  EXPECT_EQ(destination.value().get().type,
             sourcemeta::core::SchemaFrame::LocationType::Subschema);
-  EXPECT_EQ(sourcemeta::core::to_string(destination.pointer), "/$defs/foo");
+  EXPECT_EQ(sourcemeta::core::to_string(destination.value().get().pointer),
+            "/$defs/foo");
+}
+
+// Reaching past a location that holds no such place used to walk off the end
+// of the table it looks in, which a release build does not catch. An anonymous
+// schema settles its own name differently from the one its places are filed
+// under, so asking it for the place it stands at is enough to get there.
+TEST(accessors_traverse_from_a_location_that_leads_nowhere) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "string"
+  })JSON");
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Locations, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+
+  const auto &root{frame.traverse("").value().get()};
+  const auto destination{
+      frame.traverse(root, sourcemeta::core::EMPTY_WEAK_POINTER)};
+  EXPECT_TRUE(destination.has_value());
+
+  const sourcemeta::core::Pointer absent{"nope"};
+  const auto missing{
+      frame.traverse(root, sourcemeta::core::to_weak_pointer(absent))};
+  EXPECT_FALSE(missing.has_value());
 }
 
 TEST(accessors_metaschema_from_resolver) {

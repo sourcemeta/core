@@ -611,14 +611,20 @@ auto parse_vocabularies(const sourcemeta::core::JSON &schema,
     return std::nullopt;
   }
 
+  // Section 8.1.2 requires the value to be an object whose property values
+  // are booleans. A metaschema that breaks either is malformed, and reading it
+  // as declaring nothing would quietly hand the caller a core-only answer for
+  // a document that never said so
   if (!vocabulary_entry->is_object()) {
-    return std::nullopt;
+    throw sourcemeta::core::SchemaError(
+        "The vocabularies of a metaschema must be an object");
   }
 
   sourcemeta::core::SchemaVocabularies result;
   for (const auto &entry : vocabulary_entry->as_object()) {
     if (!entry.second.is_boolean()) {
-      return std::nullopt;
+      throw sourcemeta::core::SchemaError(
+          "Every vocabulary of a metaschema must be declared with a boolean");
     }
 
     result.insert(entry.first, entry.second.to_boolean());
@@ -687,13 +693,6 @@ auto sourcemeta::core::vocabularies(const SchemaResolver &resolver,
         dialect, "Could not resolve the metaschema of the schema");
   }
   const sourcemeta::core::JSON &schema_dialect{maybe_schema_dialect.value()};
-  // At this point we are sure that the dialect is vocabulary aware and the
-  // identifier keyword is indeed `$id`, so we can avoid the added
-  // complexity of the generic `id` function.
-  assert(
-      schema_dialect.defines("$id"sv, sourcemeta::core::JSONSCHEMA_HASH_ID) &&
-      schema_dialect.at("$id"sv, sourcemeta::core::JSONSCHEMA_HASH_ID)
-          .is_string());
 
   /*
    * (4) Retrieve the vocabularies explicitly or implicitly declared by the
