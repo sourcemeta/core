@@ -57,8 +57,9 @@ static auto internal_parse_json(const char *&cursor, const char *end,
       // needs, and this is the path everything else goes through. So a failure
       // reads the input a second time and builds a second time, which is twice
       // the work on a document that is about to be thrown away. What is
-      // counted never decides what is accepted, so the second attempt reaches
-      // the same place and differs only in being able to say where
+      // counted never decides what is accepted, so the second attempt fails in
+      // the same place as the first and differs only in being able to say
+      // where that place is
       try {
         scan_json<false>(cursor, end, buffer_start, line, column, tape);
         construct_json(buffer_start, tape, callback, output);
