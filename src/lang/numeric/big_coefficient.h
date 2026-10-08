@@ -966,6 +966,15 @@ auto round_to_precision(std::int64_t &coefficient,
     }
     if (round_up) {
       new_coefficient++;
+      // The round operation of the decimal arithmetic specification shortens
+      // the result by one digit and raises the exponent to match when the
+      // increment carries past the precision being rounded to. Leaving that
+      // out hands back one digit more than was asked for
+      if (digit_count(static_cast<std::uint64_t>(new_coefficient)) >
+          static_cast<std::uint32_t>(WORKING_PRECISION)) {
+        new_coefficient /= 10;
+        excess++;
+      }
     }
 
     coefficient = new_coefficient;
@@ -993,6 +1002,11 @@ auto round_to_precision(std::int64_t &coefficient,
   if (remainder > half ||
       (remainder == half && (residue || quotient % 2 != 0))) {
     quotient++;
+    if (digit_count(static_cast<std::uint64_t>(quotient)) >
+        static_cast<std::uint32_t>(WORKING_PRECISION)) {
+      quotient /= 10;
+      excess++;
+    }
   }
 
   coefficient = quotient;

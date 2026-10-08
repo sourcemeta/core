@@ -4945,10 +4945,15 @@ TEST(positive_exponent_is_integral) {
   EXPECT_TRUE(value.is_integral());
 }
 
+// Rounding a run of nines carries into a new digit, and the round operation of
+// the decimal arithmetic specification then shortens the result by one digit
+// and raises the exponent to match, leaving sixteen of them here rather than
+// seventeen. The same value written one digit longer compares equal, so only
+// the written form shows whether that happened.
 TEST(multiply_bigs_with_carry) {
   const sourcemeta::core::Decimal left{"99999999999999999999"};
   const sourcemeta::core::Decimal right{"99999999999999999999"};
-  EXPECT_EQ((left * right).to_string(), "10.000000000000000e+39");
+  EXPECT_EQ((left * right).to_string(), "10.00000000000000e+39");
 }
 
 TEST(to_integral_of_big_fraction) {
@@ -6380,4 +6385,31 @@ TEST(divide_exact_integer_strips_to_the_preferred_quantum) {
   const auto result{numerator / denominator};
   EXPECT_EQ(result, expected);
   EXPECT_TRUE(result.same_quantum(expected));
+}
+
+// A sum of two compact coefficients reaches one digit further than either of
+// them, so it lands outside the range the compact paths may hold. Keeping it
+// there anyway stays unnoticed until a later sum over it runs past what the
+// narrow form can carry, which takes four doublings to reach from here.
+TEST(compound_add_repeated_doubling_beyond_the_compact_range) {
+  sourcemeta::core::Decimal value{"999999999999999999"};
+  value += value;
+  value += value;
+  value += value;
+  value += value;
+  const sourcemeta::core::Decimal expected{"15999999999999999984"};
+  EXPECT_EQ(value, expected);
+  EXPECT_TRUE(value.same_quantum(expected));
+}
+
+TEST(compound_add_repeated_doubling_beyond_the_compact_range_keeps_the_sign) {
+  sourcemeta::core::Decimal value{"-999999999999999999"};
+  value += value;
+  value += value;
+  value += value;
+  value += value;
+  const sourcemeta::core::Decimal expected{"-15999999999999999984"};
+  EXPECT_EQ(value, expected);
+  EXPECT_TRUE(value.is_signed());
+  EXPECT_TRUE(value.same_quantum(expected));
 }

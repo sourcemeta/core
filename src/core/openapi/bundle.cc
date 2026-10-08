@@ -4,15 +4,16 @@
 #include "document.h"
 #include "helpers.h"
 
-#include <cassert>  // assert
-#include <cstddef>  // std::size_t
-#include <cstdint>  // std::uint64_t
-#include <map>      // std::map
-#include <optional> // std::optional
-#include <set>      // std::set
-#include <string>   // std::to_string
-#include <utility>  // std::move, std::make_pair, std::pair
-#include <vector>   // std::vector
+#include <algorithm> // std::min
+#include <cassert>   // assert
+#include <cstddef>   // std::size_t
+#include <cstdint>   // std::uint64_t
+#include <map>       // std::map
+#include <optional>  // std::optional
+#include <set>       // std::set
+#include <string>    // std::to_string
+#include <utility>   // std::move, std::make_pair, std::pair
+#include <vector>    // std::vector
 
 namespace {
 
@@ -512,15 +513,37 @@ auto vacant(const sourcemeta::core::JSON &entries,
   // one, which a document already holding some of them out of order is what
   // makes the two differ. Either is a name nothing else goes by, which is all
   // a name bundling invents has to be
+  //
+  // No more of these names are taken than the object holds places, so one of
+  // the first as many numbers as it holds, plus one, is free, and the search
+  // never has to look past that. The bound is what keeps the doubling below
+  // from running away: without it a description that takes every power of two
+  // wraps the count back to zero after sixty-three steps, and the search then
+  // asks about the same name forever
+  const auto ceiling{static_cast<std::uint64_t>(entries.object_size()) + 1};
+
   std::uint64_t lower{1};
   std::uint64_t upper{2};
-  while (entries.defines(taken + std::to_string(upper))) {
+  while (upper < ceiling && entries.defines(taken + std::to_string(upper))) {
     lower = upper;
-    upper *= 2;
+    upper = std::min(upper * 2, ceiling);
   }
 
-  // The number above is free and the one below it is taken, and every step
-  // keeps both of those true, so the number this ends on is free
+  // Every number the doubling visited was taken, so the free one the count
+  // above guarantees is a number it stepped over. Walking up to it costs what
+  // the doubling exists to avoid, but a description has to name one place
+  // beyond every power of two to get here
+  if (entries.defines(taken + std::to_string(upper))) {
+    upper = 1;
+    while (entries.defines(taken + std::to_string(upper))) {
+      upper += 1;
+    }
+
+    return taken + std::to_string(upper);
+  }
+
+  // The number above is free, and every step keeps that true, so the number
+  // this ends on is free
   while (upper - lower > 1) {
     const auto middle{lower + ((upper - lower) / 2)};
     if (entries.defines(taken + std::to_string(middle))) {

@@ -81,6 +81,17 @@ FileView::FileView(const std::filesystem::path &path) {
     close(this->file_descriptor_);
     throw FileViewError(path, "Could not determine the file size");
   }
+
+  // Opening a directory for reading is allowed, its reported size is left
+  // unspecified for anything that is not a regular file, and whether it can be
+  // mapped at all is unspecified too. Where that size comes back as zero, and
+  // it does on at least one widely used filesystem, the empty-view shortcut
+  // below would hand back a view of nothing instead of refusing
+  if (S_ISDIR(file_stat.st_mode)) {
+    close(this->file_descriptor_);
+    throw FileViewError(path, "Could not map a directory into memory");
+  }
+
   this->size_ = static_cast<std::size_t>(file_stat.st_size);
 
   // Mapping a zero-length region fails with EINVAL, so leave the view empty

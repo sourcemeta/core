@@ -229,8 +229,14 @@ openapi_is_absolute_server_url_template(const JSON::StringView address,
 
   for (const auto &variable : variables.as_object()) {
     const auto *choices{variable.second.try_at("enum")};
+    // Section 4.8.6 admits an enumeration only where the substitution options
+    // are from a limited set, and sends the default only where an alternate
+    // value is not supplied, so a variable that enumerates nothing may stand
+    // for anything at all. Reading its default as the whole of what it may
+    // stand for would settle a question the description leaves open, which is
+    // the one thing this is here to refuse
     if (choices == nullptr || !choices->is_array()) {
-      continue;
+      return false;
     }
 
     for (const auto &choice : choices->as_array()) {

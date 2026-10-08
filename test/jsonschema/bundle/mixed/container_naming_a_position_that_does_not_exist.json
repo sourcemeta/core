@@ -1,0 +1,29 @@
+{
+  "schema": {
+    "wrapper": { "$ref": "https://www.sourcemeta.com/test-1" }
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/test-1": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/test-1",
+      "type": "string"
+    }
+  },
+  "defaultDialect": "https://json-schema.org/draft/2020-12/schema",
+  "container": "/components/0",
+  "paths": [ "/wrapper" ],
+  "result": {},
+  "inserted": {},
+  "errors": {
+    "nonOfficialMetaschemas": {
+      "type": "SchemaContainerError",
+      "message": "Could not bundle to a container that does not exist",
+      "location": "/components/0"
+    },
+    "references": {
+      "type": "SchemaContainerError",
+      "message": "Could not bundle to a container that does not exist",
+      "location": "/components/0"
+    }
+  }
+}

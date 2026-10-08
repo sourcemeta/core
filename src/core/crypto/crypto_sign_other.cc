@@ -192,8 +192,8 @@ auto hmac(const SignatureHashFunction hash, const std::string_view key,
   return secure_digest_message(hash, outer_input);
 }
 
-// RFC 6979 Section 2.3.2 bits2int, which is also the FIPS 186-4 Section 6.4
-// truncation of a bit string to the leftmost order-length bits
+// RFC 6979 Section 2.3.2 bits2int, which is also the FIPS 186-5 Section 6.4.1
+// step 2 truncation of a bit string to the leftmost order-length bits
 auto bits2int(const std::string_view bits, const std::size_t order_bits)
     -> CurveBignum {
   auto value{bignum_from_bytes<CURVE_BIGNUM_CAPACITY>(bits)};
@@ -223,7 +223,7 @@ auto sign_rsa(const PrivateKey::Internal &key,
   return bignum_to_bytes(representative, key.modulus.size());
 }
 
-// The signature for one nonce candidate (FIPS 186-4 Section 6.4.1), returning
+// The signature for one nonce candidate (FIPS 186-5 Section 6.4.1), returning
 // no value when the candidate must be rejected and a fresh one drawn
 auto ecdsa_signature_for_nonce(const CurveBignum &nonce,
                                const CurveBignum &digest_integer,
@@ -242,7 +242,8 @@ auto ecdsa_signature_for_nonce(const CurveBignum &nonce,
   // The ladder leaves its projective output fixed-width rather than normalized,
   // so it does not leak the secret nonce through a value-dependent loop. The
   // nonce lies in [1, n), so the result is never the point at infinity, and the
-  // r == 0 rejection below is the FIPS 186-4 restart condition regardless
+  // r == 0 rejection below is the FIPS 186-5 Section 6.4.1 step 11 restart
+  // condition regardless
   auto r{point_affine_x_constant_time(point, parameters)};
   bignum_reduce(r, parameters.order);
   if (bignum_is_zero(r)) {
@@ -275,7 +276,7 @@ auto ecdsa_signature_for_nonce(const CurveBignum &nonce,
   return signature;
 }
 
-// ECDSA signature generation (FIPS 186-4 Section 6.4.1) with the per-signature
+// ECDSA signature generation (FIPS 186-5 Section 6.4.1) with the per-signature
 // nonce derived deterministically from the private key and the message digest,
 // so that the signature never depends on the quality of the random generator
 // (RFC 6979 Section 3.2)
@@ -337,10 +338,13 @@ auto sign_ecdsa(const EllipticCurve curve, const SignatureHashFunction hash,
       return signature;
     }
 
-    // RFC 6979 Section 3.2 step h: reseed before the next candidate
-    SecureString reseed{hmac_value};
-    reseed.push_back('\x00');
-    hmac_key = hmac(hash, hmac_key, reseed);
+    // RFC 6979 Section 3.2 step h, sub-step 3 advances the generator state
+    // before drawing the next candidate. Section 3.3 notes that the reseeding
+    // the underlying construction offers is never invoked here, so this is
+    // that state advance and not a reseed
+    SecureString key_input{hmac_value};
+    key_input.push_back('\x00');
+    hmac_key = hmac(hash, hmac_key, key_input);
     hmac_value = hmac(hash, hmac_key, hmac_value);
   }
 

@@ -36,7 +36,7 @@ struct CallbackRecord {
 struct AnchoredValue {
   JSON value;
   std::vector<CallbackRecord> callbacks;
-  std::size_t node_count;
+  std::size_t expanded_weight;
 };
 
 class Parser {
@@ -113,15 +113,26 @@ public:
         [[unlikely]] {
       throw YAMLParseError{1, 1, "Empty YAML document"};
     } else if (token->type == TokenType::DocumentEnd) {
+      auto pos_before_pending{this->lexer_->position()};
       while (token.has_value() && token->type == TokenType::DocumentEnd) {
         this->document_ended_ = true;
+        pos_before_pending = this->lexer_->position();
         token = this->lexer_->next();
       }
       if (!token.has_value() || token->type == TokenType::StreamEnd)
           [[unlikely]] {
         throw YAMLParseError{1, 1, "Empty YAML document"};
       }
+      // A token handed back has not been read as far as the caller is
+      // concerned, so where the stream stands is where that token begins
+      // rather than where reading it left off. Without that the caller resumes
+      // part way into it and loses the text in between. Only a document marker
+      // carries where it began, so anything else is placed by what the stream
+      // stood at before it was read, which is how the other handback does it
       this->pending_tokens_.push_back(token.value());
+      this->pending_token_position_ = token->type == TokenType::DocumentStart
+                                          ? token->position
+                                          : pos_before_pending;
       return JSON{nullptr};
     }
 
@@ -218,10 +229,12 @@ public:
     // any, is not among the tokens seen here. YAML 1.2.2 Section 6.8.2: tag
     // directives are local to one document, so crossing that boundary begins a
     // fresh directive scope.
+    // The document read before this point is complete, so the directives that
+    // applied to it go out of scope here. Section 6.8.2 makes them local to
+    // one document, and what follows opens a fresh scope whether an end marker
+    // closed the last document or a directives end marker opens the next
+    this->tag_directives_.clear();
     bool saw_document_end{this->document_ended_};
-    if (saw_document_end) {
-      this->tag_directives_.clear();
-    }
     while (token.has_value() && token->type == TokenType::DocumentEnd) {
       saw_document_end = true;
       this->tag_directives_.clear();
@@ -231,7 +244,14 @@ public:
       return;
     }
     while (token.has_value() && token->type != TokenType::StreamEnd) {
+      // Section 9.2: a document that is not terminated by a document end
+      // marker is followed by one that begins with a directives end marker, so
+      // crossing that marker opens a document just as the end marker closes
+      // one. Production 211 admits an explicit document directly after any
+      // other, with no suffix between them
+      bool opened_document{false};
       if (token->type == TokenType::DocumentStart) {
+        opened_document = true;
         token = this->next_token();
         if (!token.has_value() || token->type == TokenType::StreamEnd) {
           return;
@@ -252,14 +272,17 @@ public:
         this->process_directives(token.value());
         continue;
       }
-      if (!saw_document_end && token->type != TokenType::DocumentStart)
-          [[unlikely]] {
+      if (!saw_document_end && !opened_document &&
+          token->type != TokenType::DocumentStart) [[unlikely]] {
         throw YAMLParseError{token->line, token->column,
                              "Unexpected content after document"};
       }
       this->parse_value(token.value(), JSON::ParseContext::Root, 0,
                         EMPTY_PROPERTY);
       saw_document_end = false;
+      // That document is complete, so anything it declared stops applying
+      // before the next one reads its own
+      this->tag_directives_.clear();
       token = this->next_token();
       while (token.has_value() && token->type == TokenType::DocumentEnd) {
         saw_document_end = true;
@@ -272,7 +295,7 @@ public:
   }
 
 private:
-  // Cap how many nodes alias expansion may materialise, so that a document
+  // Cap how much alias expansion may materialise, so that a document
   // cannot expand into a far larger one on attacker-controlled input. The
   // allowance grows with the text that stands ahead of the alias drawing on
   // it, as an expansion that outgrows the text calling for it by orders of
@@ -283,19 +306,19 @@ private:
   // documents that follow this one in a stream, from paying for an expansion it
   // takes no part in. The floor keeps short documents workable and the ceiling
   // keeps long ones from claiming an unbounded allowance
-  static constexpr std::size_t MAXIMUM_EXPANDED_NODES{10000000};
-  static constexpr std::size_t MINIMUM_EXPANDED_NODES{10000};
-  static constexpr std::size_t EXPANDED_NODES_PER_INPUT_BYTE{100};
+  static constexpr std::size_t MAXIMUM_EXPANDED_WEIGHT{20000000};
+  static constexpr std::size_t MINIMUM_EXPANDED_WEIGHT{20000};
+  static constexpr std::size_t EXPANDED_WEIGHT_PER_INPUT_BYTE{200};
 
   [[nodiscard]] static auto expansion_budget(const std::size_t input_read)
       -> std::size_t {
-    if (input_read > MAXIMUM_EXPANDED_NODES / EXPANDED_NODES_PER_INPUT_BYTE)
+    if (input_read > MAXIMUM_EXPANDED_WEIGHT / EXPANDED_WEIGHT_PER_INPUT_BYTE)
         [[unlikely]] {
-      return MAXIMUM_EXPANDED_NODES;
+      return MAXIMUM_EXPANDED_WEIGHT;
     }
 
-    return std::max(MINIMUM_EXPANDED_NODES,
-                    input_read * EXPANDED_NODES_PER_INPUT_BYTE);
+    return std::max(MINIMUM_EXPANDED_WEIGHT,
+                    input_read * EXPANDED_WEIGHT_PER_INPUT_BYTE);
   }
 
   // Cap the recursion depth of the value parser so that a deeply nested
@@ -317,16 +340,24 @@ private:
     auto operator=(DepthScope &&) -> DepthScope & = delete;
   };
 
-  auto count_expanded_nodes(const JSON &value) -> std::size_t {
+  // What an expansion costs is what materialising it takes, not how many
+  // places it fills. Charging a place alone lets one holding a long run of
+  // text be copied for the price of an empty one, which turns the allowance
+  // into a multiplier on that length. So a place costs one for itself and one
+  // more for each byte of text it carries, keeping what an expansion is
+  // charged in step with what it occupies
+  auto count_expanded_weight(const JSON &value) -> std::size_t {
     std::size_t total{1};
     if (value.is_array()) {
       for (const auto &element : value.as_array()) {
-        total += this->count_expanded_nodes(element);
+        total += this->count_expanded_weight(element);
       }
     } else if (value.is_object()) {
       for (const auto &entry : value.as_object()) {
-        total += this->count_expanded_nodes(entry.second);
+        total += entry.first.size() + this->count_expanded_weight(entry.second);
       }
+    } else if (value.is_string()) {
+      total += value.string_size();
     }
     return total;
   }
@@ -679,13 +710,15 @@ private:
         if (next.has_value()) {
           this->pending_tokens_.push_back(next.value());
         }
-        if ((this->roundtrip_ != nullptr) && anchor_name.has_value()) {
-          auto &style{this->roundtrip_->styles[this->pointer_stack_]};
-          style.anchor = std::string{anchor_name.value()};
-          if (anchor_inline_comment.has_value()) {
-            style.comment_inline = std::move(anchor_inline_comment);
-          }
+        // An empty node that carries an anchor is still a node, so it is
+        // announced and filed the same way as one ending any other place
+        // does. Doing only the part that records how it was written left it
+        // unannounced and left the anchor unresolvable further on
+        if (anchor_name.has_value()) {
+          this->register_anchored_null(anchor_name.value(), token, context,
+                                       index, property, anchor_inline_comment);
         }
+
         this->record_tag(raw_tag, tag_before_anchor, empty_value);
         if ((this->roundtrip_ != nullptr) &&
             context != JSON::ParseContext::Root) {
@@ -836,7 +869,7 @@ private:
                 AnchoredValue{
                     .value = key_value,
                     .callbacks = std::move(this->current_anchor_callbacks_),
-                    .node_count = this->count_expanded_nodes(key_value)});
+                    .expanded_weight = this->count_expanded_weight(key_value)});
             this->current_anchor_callbacks_.clear();
             anchor_name.reset();
           }
@@ -924,7 +957,8 @@ private:
           std::string{anchor_name.value()},
           AnchoredValue{.value = result,
                         .callbacks = std::move(this->current_anchor_callbacks_),
-                        .node_count = this->count_expanded_nodes(result)});
+                        .expanded_weight =
+                            this->count_expanded_weight(result)});
       this->current_anchor_callbacks_.clear();
 
       if (this->roundtrip_ != nullptr) {
@@ -1653,11 +1687,13 @@ private:
         // for later aliases, exactly as it would on any other node
         if (key_anchor.has_value()) {
           JSON key_value{this->resolve_scalar_node(token, key_tag)};
-          const auto key_node_count{this->count_expanded_nodes(key_value)};
+          const auto key_expanded_weight{
+              this->count_expanded_weight(key_value)};
           this->anchors_.insert_or_assign(
-              key_anchor.value(), AnchoredValue{.value = std::move(key_value),
-                                                .callbacks = {},
-                                                .node_count = key_node_count});
+              key_anchor.value(),
+              AnchoredValue{.value = std::move(key_value),
+                            .callbacks = {},
+                            .expanded_weight = key_expanded_weight});
         }
 
         if (seen_keys.contains(key)) [[unlikely]] {
@@ -1741,19 +1777,11 @@ private:
           continue;
         }
 
-        if (key_absent && next->type == TokenType::Scalar) {
-          key = this->resolve_scalar_key(next.value());
-          if (seen_keys.contains(key)) [[unlikely]] {
-            throw YAMLDuplicateKeyError{key, next->line, next->column};
-          }
-          seen_keys.insert(key);
-          result.assign(key, JSON{nullptr});
-          auto next_after_key{this->next_token()};
-          assert(next_after_key.has_value());
-          token = next_after_key.value();
-          continue;
-        }
-
+        // A value indicator with nothing before it carries an empty key, which
+        // Section 10.3.2 resolves to null and this module spells as the empty
+        // string. What follows the indicator is that key's value, not a key of
+        // its own, as Example 7.3 shows by reading a leading indicator into a
+        // null key holding the scalar beside it
         auto value{this->parse_value(next.value(), JSON::ParseContext::Property,
                                      0, key, current_key_line,
                                      current_key_column)};
@@ -1828,8 +1856,8 @@ private:
       callback_index++;
     }
 
-    this->expanded_nodes_ += anchored.node_count;
-    if (this->expanded_nodes_ > expansion_budget(input_read)) [[unlikely]] {
+    this->expanded_weight_ += anchored.expanded_weight;
+    if (this->expanded_weight_ > expansion_budget(input_read)) [[unlikely]] {
       throw YAMLParseError{token.line, token.column,
                            "Maximum YAML alias expansion exceeded"};
     }
@@ -2018,12 +2046,13 @@ private:
                                         next->quoted_original);
           if (explicit_key_anchor.has_value()) {
             JSON key_value{this->resolve_scalar_node(next.value())};
-            const auto key_node_count{this->count_expanded_nodes(key_value)};
+            const auto key_expanded_weight{
+                this->count_expanded_weight(key_value)};
             this->anchors_.insert_or_assign(
                 explicit_key_anchor.value(),
                 AnchoredValue{.value = std::move(key_value),
                               .callbacks = {},
-                              .node_count = key_node_count});
+                              .expanded_weight = key_expanded_weight});
           }
         }
 
@@ -2335,7 +2364,8 @@ private:
         std::string{anchor_name},
         AnchoredValue{.value = null_value,
                       .callbacks = std::move(this->current_anchor_callbacks_),
-                      .node_count = this->count_expanded_nodes(null_value)});
+                      .expanded_weight =
+                          this->count_expanded_weight(null_value)});
     this->current_anchor_callbacks_.clear();
     if (this->roundtrip_ != nullptr) {
       auto &style{this->roundtrip_->styles[this->pointer_stack_]};
@@ -2485,7 +2515,7 @@ private:
   std::unordered_map<std::string, AnchoredValue> anchors_;
   bool recording_anchor_{false};
   bool indent_width_detected_{false};
-  std::size_t expanded_nodes_{0};
+  std::size_t expanded_weight_{0};
   std::vector<CallbackRecord> current_anchor_callbacks_;
   std::deque<Token> pending_tokens_;
   std::optional<std::size_t> pending_token_position_;
