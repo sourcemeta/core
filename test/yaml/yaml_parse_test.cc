@@ -604,20 +604,25 @@ TEST(exponent_sign_without_digit_is_a_string) {
   EXPECT_TRUE(result.is_string());
 }
 
-TEST(real_long_small_decimal) {
+TEST(decimal_long_small_decimal) {
   const std::string input{
       "0.00000000000000000000000000000000000000000000000000000000000000000000"
       "1"};
   const auto result{sourcemeta::core::parse_yaml(input)};
-  EXPECT_TRUE(result.is_real());
-  EXPECT_EQ(result.to_real(), 1e-69);
+  EXPECT_TRUE(result.is_decimal());
+  EXPECT_EQ(result.to_decimal(),
+            sourcemeta::core::Decimal{
+                "0.000000000000000000000000000000000000000000000000000000000000"
+                "00000000"
+                "1"});
 }
 
-TEST(real_subnormal_decimal) {
+TEST(decimal_subnormal_decimal) {
   const std::string input{"0." + std::string(309, '0') + "5"};
   const auto result{sourcemeta::core::parse_yaml(input)};
-  EXPECT_TRUE(result.is_real());
-  EXPECT_EQ(result.to_real(), 5e-310);
+  EXPECT_TRUE(result.is_decimal());
+  EXPECT_EQ(result.to_decimal(),
+            sourcemeta::core::Decimal{"0." + std::string(309, '0') + "5"});
 }
 
 TEST(decimal_underflowing_decimal) {
@@ -746,8 +751,8 @@ TEST(verbatim_tag_str) {
 TEST(verbatim_tag_float) {
   const std::string input{"!<tag:yaml.org,2002:float> 3.14"};
   const auto result{sourcemeta::core::parse_yaml(input)};
-  EXPECT_TRUE(result.is_real());
-  EXPECT_DOUBLE_EQ(result.to_real(), 3.14);
+  EXPECT_TRUE(result.is_decimal());
+  EXPECT_EQ(result.to_decimal(), sourcemeta::core::Decimal{"3.14"});
 }
 
 TEST(plain_scalar_triple_dash_value) {
@@ -988,15 +993,15 @@ TEST(repeated_alias_expansion_beyond_the_input_length_is_accepted) {
 TEST(float_tag_out_of_integer_range) {
   const std::string input{"!!float 1e300"};
   const auto result{sourcemeta::core::parse_yaml(input)};
-  EXPECT_TRUE(result.is_real());
-  EXPECT_EQ(result.to_real(), 1e300);
+  EXPECT_TRUE(result.is_decimal());
+  EXPECT_EQ(result.to_decimal(), sourcemeta::core::Decimal{"1e300"});
 }
 
 TEST(float_tag_just_above_integer_range) {
   const std::string input{"!!float 1e19"};
   const auto result{sourcemeta::core::parse_yaml(input)};
-  EXPECT_TRUE(result.is_real());
-  EXPECT_EQ(result.to_real(), 1e19);
+  EXPECT_TRUE(result.is_decimal());
+  EXPECT_EQ(result.to_decimal(), sourcemeta::core::Decimal{"1e19"});
 }
 
 // YAML 1.2.2 Section 8.2.1: an empty block sequence entry is a null node rather

@@ -626,9 +626,21 @@ inline auto write_inline_value(OutputStream &stream, const JSON &value,
         }
       }
     } break;
-    case JSON::Type::Decimal:
-      stream << value.to_decimal().to_scientific_string();
-      break;
+    case JSON::Type::Decimal: {
+      // Written so that reading the output again recovers the same number as a
+      // decimal rather than as a double, preferring the plain form where it
+      // states the number as it came in
+      const auto &decimal{value.to_decimal()};
+      if (!decimal.is_double()) {
+        const auto plain{decimal.to_string()};
+        if (plain.find('e') == std::string::npos) {
+          stream << plain;
+          break;
+        }
+      }
+
+      stream << decimal.to_scientific_string();
+    } break;
     case JSON::Type::String:
       write_string_with_style(stream, value, roundtrip, pointer);
       break;

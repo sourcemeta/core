@@ -754,20 +754,25 @@ TEST(negative_real) {
   EXPECT_EQ(document.to_real(), -1.5);
 }
 
-TEST(real_long_small_decimal) {
+TEST(decimal_long_small_decimal) {
   std::istringstream input{
       "0.00000000000000000000000000000000000000000000000000000000000000000000"
       "1"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
-  EXPECT_TRUE(document.is_real());
-  EXPECT_EQ(document.to_real(), 1e-69);
+  EXPECT_TRUE(document.is_decimal());
+  EXPECT_EQ(document.to_decimal(),
+            sourcemeta::core::Decimal{
+                "0.000000000000000000000000000000000000000000000000000000000000"
+                "00000000"
+                "1"});
 }
 
-TEST(real_subnormal_decimal) {
+TEST(decimal_subnormal_decimal) {
   std::istringstream input{"0." + std::string(309, '0') + "5"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
-  EXPECT_TRUE(document.is_real());
-  EXPECT_EQ(document.to_real(), 5e-310);
+  EXPECT_TRUE(document.is_decimal());
+  EXPECT_EQ(document.to_decimal(),
+            sourcemeta::core::Decimal{"0." + std::string(309, '0') + "5"});
 }
 
 TEST(decimal_underflowing_decimal) {
@@ -799,18 +804,18 @@ TEST(real_multi_left_digit_negative_real) {
   EXPECT_EQ(document.to_real(), -1234.5);
 }
 
-TEST(real_long_positive_real) {
+TEST(decimal_long_positive_real) {
   std::istringstream input{"1234.56789"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
-  EXPECT_TRUE(document.is_real());
-  EXPECT_EQ(document.to_real(), 1234.56789);
+  EXPECT_TRUE(document.is_decimal());
+  EXPECT_EQ(document.to_decimal(), sourcemeta::core::Decimal{"1234.56789"});
 }
 
-TEST(real_long_negative_real) {
+TEST(decimal_long_negative_real) {
   std::istringstream input{"-1234.56789"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
-  EXPECT_TRUE(document.is_real());
-  EXPECT_EQ(document.to_real(), -1234.56789);
+  EXPECT_TRUE(document.is_decimal());
+  EXPECT_EQ(document.to_decimal(), sourcemeta::core::Decimal{"-1234.56789"});
 }
 
 TEST(single_digit_positive_real_integer) {
@@ -1301,8 +1306,8 @@ TEST(rfc8259_example_2) {
 
   // Member types
   EXPECT_TRUE(value.at(0).at("precision").is_string());
-  EXPECT_TRUE(value.at(0).at("Latitude").is_real());
-  EXPECT_TRUE(value.at(0).at("Longitude").is_real());
+  EXPECT_TRUE(value.at(0).at("Latitude").is_decimal());
+  EXPECT_TRUE(value.at(0).at("Longitude").is_decimal());
   EXPECT_TRUE(value.at(0).at("Address").is_string());
   EXPECT_TRUE(value.at(0).at("City").is_string());
   EXPECT_TRUE(value.at(0).at("State").is_string());
@@ -1311,8 +1316,10 @@ TEST(rfc8259_example_2) {
 
   // Member values
   EXPECT_EQ(value.at(0).at("precision").to_string(), "zip");
-  EXPECT_EQ(value.at(0).at("Latitude").to_real(), 37.7668);
-  EXPECT_EQ(value.at(0).at("Longitude").to_real(), -122.3959);
+  EXPECT_EQ(value.at(0).at("Latitude").to_decimal(),
+            sourcemeta::core::Decimal{"37.7668"});
+  EXPECT_EQ(value.at(0).at("Longitude").to_decimal(),
+            sourcemeta::core::Decimal{"-122.3959"});
   EXPECT_EQ(value.at(0).at("Address").to_string(), "");
   EXPECT_EQ(value.at(0).at("City").to_string(), "SAN FRANCISCO");
   EXPECT_EQ(value.at(0).at("State").to_string(), "CA");
@@ -1335,8 +1342,8 @@ TEST(rfc8259_example_2) {
 
   // Member types
   EXPECT_TRUE(value.at(1).at("precision").is_string());
-  EXPECT_TRUE(value.at(1).at("Latitude").is_real());
-  EXPECT_TRUE(value.at(1).at("Longitude").is_real());
+  EXPECT_TRUE(value.at(1).at("Latitude").is_decimal());
+  EXPECT_TRUE(value.at(1).at("Longitude").is_decimal());
   EXPECT_TRUE(value.at(1).at("Address").is_string());
   EXPECT_TRUE(value.at(1).at("City").is_string());
   EXPECT_TRUE(value.at(1).at("State").is_string());
@@ -1345,8 +1352,10 @@ TEST(rfc8259_example_2) {
 
   // Member values
   EXPECT_EQ(value.at(1).at("precision").to_string(), "zip");
-  EXPECT_EQ(value.at(1).at("Latitude").to_real(), 37.371991);
-  EXPECT_EQ(value.at(1).at("Longitude").to_real(), -122.026020);
+  EXPECT_EQ(value.at(1).at("Latitude").to_decimal(),
+            sourcemeta::core::Decimal{"37.371991"});
+  EXPECT_EQ(value.at(1).at("Longitude").to_decimal(),
+            sourcemeta::core::Decimal{"-122.026020"});
   EXPECT_EQ(value.at(1).at("Address").to_string(), "");
   EXPECT_EQ(value.at(1).at("City").to_string(), "SUNNYVALE");
   EXPECT_EQ(value.at(1).at("State").to_string(), "CA");
@@ -1485,8 +1494,9 @@ TEST(big_real_number) {
 TEST(very_small_real_number) {
   std::istringstream input{"0.000000000000000000000000000001"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
-  EXPECT_TRUE(document.is_real());
-  EXPECT_EQ(document.to_real(), 0.000000000000000000000000000001);
+  EXPECT_TRUE(document.is_decimal());
+  EXPECT_EQ(document.to_decimal(),
+            sourcemeta::core::Decimal{"0.000000000000000000000000000001"});
 }
 
 TEST(big_real_in_array) {
@@ -1719,17 +1729,17 @@ TEST(double_precision_10_20_with_point_0) {
 TEST(double_precision_small_number_with_fraction) {
   std::istringstream input{"123.456"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
-  EXPECT_TRUE(document.is_real());
+  EXPECT_TRUE(document.is_decimal());
   EXPECT_FALSE(document.is_integral());
-  EXPECT_EQ(document.to_real(), 123.456);
+  EXPECT_EQ(document.to_decimal(), sourcemeta::core::Decimal{"123.456"});
 }
 
 TEST(double_precision_medium_number_with_fraction) {
   std::istringstream input{"123456789.123"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
-  EXPECT_TRUE(document.is_real());
+  EXPECT_TRUE(document.is_decimal());
   EXPECT_FALSE(document.is_integral());
-  EXPECT_EQ(document.to_real(), 123456789.123);
+  EXPECT_EQ(document.to_decimal(), sourcemeta::core::Decimal{"123456789.123"});
 }
 
 TEST(double_precision_10_14_with_fraction) {
@@ -1898,4 +1908,44 @@ TEST(parse_exponent_number_root) {
   const auto result{sourcemeta::core::parse_json("1e309")};
   EXPECT_TRUE(result.is_decimal());
   EXPECT_EQ(result.to_decimal(), sourcemeta::core::Decimal{"1e309"});
+}
+
+TEST(real_binary_fraction_is_stored_as_a_real) {
+  std::istringstream input{"0.5"};
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
+  EXPECT_TRUE(document.is_real());
+  EXPECT_EQ(document.to_real(), 0.5);
+}
+
+TEST(real_integral_valued_fraction_is_stored_as_a_real) {
+  std::istringstream input{"2.0"};
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
+  EXPECT_TRUE(document.is_real());
+  EXPECT_EQ(document.to_real(), 2.0);
+}
+
+TEST(real_fraction_with_trailing_zeros_is_stored_as_a_real) {
+  std::istringstream input{"1.500"};
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
+  EXPECT_TRUE(document.is_real());
+  EXPECT_EQ(document.to_real(), 1.5);
+}
+
+TEST(decimal_inexact_fraction_is_stored_as_a_decimal) {
+  std::istringstream input{"3.14"};
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
+  EXPECT_TRUE(document.is_decimal());
+  EXPECT_EQ(document.to_decimal(), sourcemeta::core::Decimal{"3.14"});
+}
+
+TEST(decimal_inexact_fraction_equals_its_exponent_spelling) {
+  const auto left{sourcemeta::core::parse_json("3.14")};
+  const auto right{sourcemeta::core::parse_json("314e-2")};
+  EXPECT_EQ(left, right);
+}
+
+TEST(real_binary_fraction_equals_its_exponent_spelling) {
+  const auto left{sourcemeta::core::parse_json("0.5")};
+  const auto right{sourcemeta::core::parse_json("5e-1")};
+  EXPECT_EQ(left, right);
 }

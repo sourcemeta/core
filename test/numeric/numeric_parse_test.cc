@@ -1028,3 +1028,134 @@ TEST(to_uint16_t_string_view_substring_no_terminator) {
   EXPECT_TRUE(result.has_value());
   EXPECT_EQ(result.value(), 99);
 }
+
+TEST(to_double_exact_binary_fraction) {
+  const std::string input{"0.5"};
+  const auto result{sourcemeta::core::to_double_exact(input)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), 0.5);
+}
+
+TEST(to_double_exact_negative_binary_fraction) {
+  const std::string input{"-4.25"};
+  const auto result{sourcemeta::core::to_double_exact(input)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), -4.25);
+}
+
+TEST(to_double_exact_integral_with_fraction_zero) {
+  const std::string input{"1.0"};
+  const auto result{sourcemeta::core::to_double_exact(input)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), 1.0);
+}
+
+TEST(to_double_exact_trailing_fraction_zeros) {
+  const std::string input{"1.500"};
+  const auto result{sourcemeta::core::to_double_exact(input)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), 1.5);
+}
+
+TEST(to_double_exact_smallest_fraction_within_the_significand) {
+  const std::string input{"0.00048828125"};
+  const auto result{sourcemeta::core::to_double_exact(input)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), 0.00048828125);
+}
+
+TEST(to_double_exact_integer) {
+  const std::string input{"42"};
+  const auto result{sourcemeta::core::to_double_exact(input)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), 42.0);
+}
+
+TEST(to_double_exact_zero) {
+  const std::string input{"0.0"};
+  const auto result{sourcemeta::core::to_double_exact(input)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), 0.0);
+  EXPECT_FALSE(std::signbit(result.value()));
+}
+
+TEST(to_double_exact_negative_zero) {
+  const std::string input{"-0.0"};
+  const auto result{sourcemeta::core::to_double_exact(input)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), 0.0);
+  EXPECT_TRUE(std::signbit(result.value()));
+}
+
+TEST(to_double_exact_one_tenth) {
+  const std::string input{"0.1"};
+  const auto result{sourcemeta::core::to_double_exact(input)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(to_double_exact_two_tenths) {
+  const std::string input{"0.2"};
+  const auto result{sourcemeta::core::to_double_exact(input)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(to_double_exact_pi_to_two_places) {
+  const std::string input{"3.14"};
+  const auto result{sourcemeta::core::to_double_exact(input)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(to_double_exact_pi_to_two_places_with_trailing_zeros) {
+  const std::string input{"3.1400000000000000"};
+  const auto result{sourcemeta::core::to_double_exact(input)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(to_double_exact_past_the_significand) {
+  const std::string input{"9007199254740993"};
+  const auto result{sourcemeta::core::to_double_exact(input)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(to_double_exact_power_of_two_past_the_significand) {
+  const std::string input{"1152921504606846976"};
+  const auto result{sourcemeta::core::to_double_exact(input)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), 1152921504606846976.0);
+}
+
+TEST(to_double_exact_exponent_is_not_fixed_point) {
+  const std::string input{"5e-1"};
+  const auto result{sourcemeta::core::to_double_exact(input)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(to_double_exact_wider_than_the_accumulator) {
+  const std::string input{"0.50000000000000000000"};
+  const auto result{sourcemeta::core::to_double_exact(input)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(to_double_exact_empty) {
+  const std::string input{""};
+  const auto result{sourcemeta::core::to_double_exact(input)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(to_double_exact_not_a_number) {
+  const std::string input{"hello"};
+  const auto result{sourcemeta::core::to_double_exact(input)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(to_double_exact_trailing_dot) {
+  const std::string input{"1."};
+  const auto result{sourcemeta::core::to_double_exact(input)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(to_double_exact_leading_plus) {
+  const std::string input{"+1.5"};
+  const auto result{sourcemeta::core::to_double_exact(input)};
+  EXPECT_FALSE(result.has_value());
+}

@@ -150,14 +150,14 @@ TEST(decimal_high_precision_real) {
       sourcemeta::core::Decimal{"3.14159265358979"}};
   std::ostringstream stream;
   sourcemeta::core::stringify_yaml(document, stream);
-  EXPECT_EQ(stream.str(), "3.14159265358979e+0\n");
+  EXPECT_EQ(stream.str(), "3.14159265358979\n");
 }
 
-TEST(decimal_exponential_notation) {
+TEST(decimal_small_fraction) {
   const sourcemeta::core::JSON document{sourcemeta::core::Decimal{"0.001"}};
   std::ostringstream stream;
   sourcemeta::core::stringify_yaml(document, stream);
-  EXPECT_EQ(stream.str(), "1e-3\n");
+  EXPECT_EQ(stream.str(), "0.001\n");
 }
 
 TEST(decimal_in_object) {

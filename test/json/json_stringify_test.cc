@@ -531,7 +531,7 @@ TEST(decimal_fractional) {
   const sourcemeta::core::JSON document{value};
   std::ostringstream stream;
   sourcemeta::core::stringify(document, stream);
-  EXPECT_EQ(stream.str(), "3.14159e+0");
+  EXPECT_EQ(stream.str(), "3.14159");
 }
 
 TEST(decimal_negative_fractional) {
@@ -539,7 +539,7 @@ TEST(decimal_negative_fractional) {
   const sourcemeta::core::JSON document{value};
   std::ostringstream stream;
   sourcemeta::core::stringify(document, stream);
-  EXPECT_EQ(stream.str(), "-2.71828e+0");
+  EXPECT_EQ(stream.str(), "-2.71828");
 }
 
 TEST(decimal_large_integer) {
@@ -547,7 +547,7 @@ TEST(decimal_large_integer) {
   const sourcemeta::core::JSON document{value};
   std::ostringstream stream;
   sourcemeta::core::stringify(document, stream);
-  EXPECT_EQ(stream.str(), "1.23456789012345678901234567890e+29");
+  EXPECT_EQ(stream.str(), "123456789012345678901234567890");
 }
 
 TEST(decimal_large_negative_integer) {
@@ -555,7 +555,7 @@ TEST(decimal_large_negative_integer) {
   const sourcemeta::core::JSON document{value};
   std::ostringstream stream;
   sourcemeta::core::stringify(document, stream);
-  EXPECT_EQ(stream.str(), "-9.87654321098765432109876543210e+29");
+  EXPECT_EQ(stream.str(), "-987654321098765432109876543210");
 }
 
 TEST(decimal_high_precision_fractional) {
@@ -564,7 +564,7 @@ TEST(decimal_high_precision_fractional) {
   const sourcemeta::core::JSON document{value};
   std::ostringstream stream;
   sourcemeta::core::stringify(document, stream);
-  EXPECT_EQ(stream.str(), "3.141592653589793238462643383279502884197e+0");
+  EXPECT_EQ(stream.str(), "3.141592653589793238462643383279502884197");
 }
 
 TEST(decimal_very_small_fractional) {
@@ -616,7 +616,7 @@ TEST(decimal_in_array) {
        sourcemeta::core::JSON{value3}})};
   std::ostringstream stream;
   sourcemeta::core::stringify(document, stream);
-  EXPECT_EQ(stream.str(), "[1.00e+2,9.99999e+2,-4.2e+1]");
+  EXPECT_EQ(stream.str(), "[1.00e+2,999.999,-4.2e+1]");
 }
 
 TEST(decimal_large_numbers_in_array) {
@@ -627,8 +627,8 @@ TEST(decimal_large_numbers_in_array) {
       {sourcemeta::core::JSON{value1}, sourcemeta::core::JSON{value2}})};
   std::ostringstream stream;
   sourcemeta::core::stringify(document, stream);
-  EXPECT_EQ(stream.str(), "[1.23456789012345678901234567890e+29,9."
-                          "876543210987654321098765432109876543210e+19]");
+  EXPECT_EQ(stream.str(), "[123456789012345678901234567890,"
+                          "98765432109876543210.98765432109876543210]");
 }
 
 TEST(decimal_nested_in_array) {
@@ -640,7 +640,7 @@ TEST(decimal_nested_in_array) {
   document.push_back(std::move(inner_array));
   std::ostringstream stream;
   sourcemeta::core::stringify(document, stream);
-  EXPECT_EQ(stream.str(), "[[1.11111e+2,2.22222e+2]]");
+  EXPECT_EQ(stream.str(), "[[111.111,222.222]]");
 }
 
 TEST(decimal_in_object) {
@@ -652,8 +652,8 @@ TEST(decimal_in_object) {
   std::ostringstream stream;
   sourcemeta::core::stringify(document, stream);
   const bool matches =
-      stream.str() == R"({"integer":1.2345e+4,"fractional":-6.789e+1})" ||
-      stream.str() == R"({"fractional":-6.789e+1,"integer":1.2345e+4})";
+      stream.str() == R"({"integer":1.2345e+4,"fractional":-67.89})" ||
+      stream.str() == R"({"fractional":-67.89,"integer":1.2345e+4})";
   EXPECT_TRUE(matches);
 }
 
@@ -669,8 +669,8 @@ TEST(decimal_large_numbers_in_object) {
   std::ostringstream stream;
   sourcemeta::core::stringify(document, stream);
   EXPECT_EQ(stream.str(),
-            "{\"bigInt\":9.99999999999999999999999999999e+29,\"bigReal\":1."
-            "23456789123456789123456789123456789e+8}");
+            "{\"bigInt\":999999999999999999999999999999,\"bigReal\":"
+            "123456789.123456789123456789123456789}");
 }
 
 TEST(decimal_mixed_with_other_types_in_object) {
@@ -684,10 +684,9 @@ TEST(decimal_mixed_with_other_types_in_object) {
       [](const auto &left, const auto &right) { return left < right; });
   std::ostringstream stream;
   sourcemeta::core::stringify(document, stream);
-  EXPECT_EQ(
-      stream.str(),
-      "{\"boolean\":true,\"decimal\":3.14159e+0,\"integer\":42,\"string\":"
-      "\"hello\"}");
+  EXPECT_EQ(stream.str(),
+            "{\"boolean\":true,\"decimal\":3.14159,\"integer\":42,\"string\":"
+            "\"hello\"}");
 }
 
 TEST(decimal_nested_in_object_with_array) {
@@ -699,5 +698,5 @@ TEST(decimal_nested_in_object_with_array) {
   const sourcemeta::core::JSON document{{"decimals", std::move(array)}};
   std::ostringstream stream;
   sourcemeta::core::stringify(document, stream);
-  EXPECT_EQ(stream.str(), "{\"decimals\":[1.11e+2,2.22222e+2]}");
+  EXPECT_EQ(stream.str(), "{\"decimals\":[1.11e+2,222.222]}");
 }

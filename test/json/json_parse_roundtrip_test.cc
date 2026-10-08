@@ -99,65 +99,65 @@ TEST(decimal_small_4) {
   EXPECT_TRUE(parsed.is_decimal());
 }
 
-TEST(real_number_precision_1) {
+TEST(decimal_number_precision_1) {
   const auto original{sourcemeta::core::parse_json("10.213854")};
   std::ostringstream stream;
   sourcemeta::core::stringify(original, stream);
   const auto parsed{sourcemeta::core::parse_json(stream.str())};
   EXPECT_EQ(original, parsed);
-  EXPECT_TRUE(parsed.is_real());
+  EXPECT_TRUE(parsed.is_decimal());
 }
 
-TEST(real_number_precision_2) {
+TEST(decimal_number_precision_2) {
   const auto original{sourcemeta::core::parse_json("52.273577")};
   std::ostringstream stream;
   sourcemeta::core::stringify(original, stream);
   const auto parsed{sourcemeta::core::parse_json(stream.str())};
   EXPECT_EQ(original, parsed);
-  EXPECT_TRUE(parsed.is_real());
+  EXPECT_TRUE(parsed.is_decimal());
 }
 
-TEST(real_number_precision_3) {
+TEST(decimal_number_precision_3) {
   const auto original{sourcemeta::core::parse_json("10.107058")};
   std::ostringstream stream;
   sourcemeta::core::stringify(original, stream);
   const auto parsed{sourcemeta::core::parse_json(stream.str())};
   EXPECT_EQ(original, parsed);
-  EXPECT_TRUE(parsed.is_real());
+  EXPECT_TRUE(parsed.is_decimal());
 }
 
-TEST(real_number_precision_4) {
+TEST(decimal_number_precision_4) {
   const auto original{sourcemeta::core::parse_json("52.148044")};
   std::ostringstream stream;
   sourcemeta::core::stringify(original, stream);
   const auto parsed{sourcemeta::core::parse_json(stream.str())};
   EXPECT_EQ(original, parsed);
-  EXPECT_TRUE(parsed.is_real());
+  EXPECT_TRUE(parsed.is_decimal());
 }
 
-TEST(real_number_precision_negative) {
+TEST(decimal_number_precision_negative) {
   const auto original{sourcemeta::core::parse_json("-52.273577")};
   std::ostringstream stream;
   sourcemeta::core::stringify(original, stream);
   const auto parsed{sourcemeta::core::parse_json(stream.str())};
   EXPECT_EQ(original, parsed);
-  EXPECT_TRUE(parsed.is_real());
+  EXPECT_TRUE(parsed.is_decimal());
 }
 
-TEST(real_number_precision_small_fractional) {
+TEST(decimal_number_precision_small_fractional) {
   const auto original{sourcemeta::core::parse_json("0.00123456789")};
   std::ostringstream stream;
   sourcemeta::core::stringify(original, stream);
   const auto parsed{sourcemeta::core::parse_json(stream.str())};
   EXPECT_EQ(original, parsed);
-  EXPECT_TRUE(parsed.is_real());
+  EXPECT_TRUE(parsed.is_decimal());
 }
 
-TEST(real_number_precision_15_significant_digits) {
+TEST(decimal_number_precision_15_significant_digits) {
   const auto original{sourcemeta::core::parse_json("1.23456789012345")};
   std::ostringstream stream;
   sourcemeta::core::stringify(original, stream);
   const auto parsed{sourcemeta::core::parse_json(stream.str())};
   EXPECT_EQ(original, parsed);
-  EXPECT_TRUE(parsed.is_real());
+  EXPECT_TRUE(parsed.is_decimal());
 }

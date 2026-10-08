@@ -1255,14 +1255,15 @@ private:
       return JSON{Decimal{value}};
     }
 
-    const auto result{to_double(std::string{value})};
+    const auto result{to_double_exact(value)};
     if (!result.has_value()) {
       return JSON{Decimal{value}};
     }
 
     // YAML 1.2.2 Section 10.3.2 tags a dotted or explicitly floated value as a
     // float, so an integral-valued float stays a real rather than collapsing to
-    // an integer, matching the JSON parser where a dotted literal is a real
+    // an integer, matching the JSON parser where a dotted literal the format
+    // holds exactly is a real
     return JSON{result.value()};
   }
 
