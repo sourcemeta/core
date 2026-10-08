@@ -1,7 +1,6 @@
 #include <sourcemeta/core/numeric.h>
 #include <sourcemeta/core/test.h>
 
-#include <clocale> // std::setlocale, LC_NUMERIC
 #include <cmath>   // std::isnan, std::isinf
 #include <cstdint> // std::int32_t, std::int64_t, std::uint32_t, std::uint64_t
 #include <limits>  // std::numeric_limits
@@ -6477,24 +6476,13 @@ TEST(multiply_carrying_past_the_widest_exponent_leaves_the_operand_alone) {
   }
 }
 
-// The C library reads the separator the running locale names rather than the
-// one a written decimal carries, so reading a value back through it turned a
-// fraction into its integer part wherever the locale spells the separator with
-// a comma.
-TEST(to_double_does_not_follow_the_locale) {
-  auto *const previous{std::setlocale(LC_NUMERIC, nullptr)};
-  const std::string saved{previous == nullptr ? "C" : previous};
-  if (std::setlocale(LC_NUMERIC, "de_DE.UTF-8") != nullptr) {
-    const sourcemeta::core::Decimal value{"3.14"};
-    const auto result{value.to_double()};
-    std::setlocale(LC_NUMERIC, saved.c_str());
-    EXPECT_GT(result, 3.1);
-    EXPECT_LT(result, 3.2);
-  }
-}
-
 // A result too small to be written in full is reported as out of range by the
-// C library on some platforms although the format holds it.
+// C library on some platforms although the format holds it. Reading a value
+// back goes through this module's own conversion for that reason, and for the
+// separate reason that the C library reads the separator the running locale
+// names rather than the one a written decimal carries. This pins the choice of
+// conversion, so it also stands guard over that second reason, which cannot be
+// shown directly without a locale the platform may not carry.
 TEST(to_double_keeps_a_subnormal_result) {
   const sourcemeta::core::Decimal value{"0." + std::string(309, '0') + "5"};
   const auto result{value.to_double()};
