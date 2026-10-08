@@ -76,9 +76,17 @@ auto expand_iri(ExpansionState &state, ActiveContext &active_context,
   }
 
   if (document_relative && active_context.base.has_value()) {
-    return URI::from_iri(value)
-        .resolve_from(URI::from_iri(active_context.base.value()))
-        .recompose();
+    // Expansion builds identifiers without validating them, so what the
+    // parser cannot read is carried through as it stands rather than
+    // surfacing as an exception of another module's kind (JSON-LD 1.1 API
+    // Section 5.2 step 5)
+    try {
+      return URI::from_iri(value)
+          .resolve_from(URI::from_iri(active_context.base.value()))
+          .recompose();
+    } catch (const URIParseError &) {
+      return value;
+    }
   }
 
   return value;

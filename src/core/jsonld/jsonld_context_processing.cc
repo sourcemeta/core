@@ -236,6 +236,10 @@ auto process_context(ExpansionState &state, ActiveContext &active_context,
             &state.remote_documents.emplace(reference, *loaded).first->second;
       }
       state.remote_context_chain.push_back(reference);
+      // A scoped context the loaded document defines is processed again when
+      // its term comes into use, long after this location is out of reach, so
+      // the reference is recorded for it to report against
+      const ForeignContextScope origin{state, to_pointer(location)};
       try {
         // A loaded remote context is processed with the default propagation.
         process_context(state, active_context, *context_entry, location);
@@ -335,6 +339,12 @@ auto process_context(ExpansionState &state, ActiveContext &active_context,
           merged.assign(entry.first, entry.second);
         }
       }
+      // The merged context holds entries from two documents, so a scoped
+      // context defined in it is reported against the entry that merged them
+      // rather than against a position that only one of them has
+      auto import_location{to_pointer(location)};
+      import_location.push_back(JSON::String{KEYWORD_IMPORT});
+      const ForeignContextScope origin{state, std::move(import_location)};
       try {
         process_context(state, active_context, merged, location, propagate);
       } catch (const JSONLDError &error) {
