@@ -336,6 +336,13 @@ inline auto parse_class_to_bitset(const std::string &content, std::size_t start,
       continue;
     }
 
+    // A member past what the set reaches cannot be carried whether it stands
+    // alone or opens a range, and the range below is consumed without coming
+    // back here, so it is weighed first
+    if (first >= 128) {
+      representable = false;
+    }
+
     if (end < content.size() && content[end] == '-' &&
         end + 1 < content.size() && content[end + 1] != ']') {
       std::size_t range_end{0};
@@ -361,8 +368,6 @@ inline auto parse_class_to_bitset(const std::string &content, std::size_t start,
 
     if (first < 128) {
       characters.set(static_cast<std::size_t>(first));
-    } else {
-      representable = false;
     }
 
     position = end;
