@@ -50,7 +50,15 @@ static auto internal_parse_json(const char *&cursor, const char *end,
       // Turning what was read into a value fails over a literal that naming it
       // alone cannot settle, such as one past the range that can be held, so
       // the retry has to cover that second phase as well. Leaving it out of
-      // the retry reports every such failure at the start of the document
+      // the retry reports every such failure at the start of the document.
+      //
+      // Counting positions all along would spare the retry, but it would
+      // charge every document that parses for what only a document that fails
+      // needs, and this is the path everything else goes through. So a failure
+      // reads the input a second time and builds a second time, which is twice
+      // the work on a document that is about to be thrown away. What is
+      // counted never decides what is accepted, so the second attempt reaches
+      // the same place and differs only in being able to say where
       try {
         scan_json<false>(cursor, end, buffer_start, line, column, tape);
         construct_json(buffer_start, tape, callback, output);
