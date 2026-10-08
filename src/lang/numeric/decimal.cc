@@ -670,6 +670,20 @@ void check_rounded_exponent(const std::int64_t exponent,
   }
 }
 
+// What the digit count predicts above is one short wherever the increment that
+// rounding applies carries into a further position, which drops one more digit
+// and raises the exponent again. So where the exponent has actually landed is
+// weighed once rounding has settled it, rather than only being predicted from
+// the digits beforehand. A result refused here has already had its coefficient
+// committed, the rounding being what reveals the carry, so this reports the
+// refusal rather than leaving the operand untouched
+void check_settled_exponent(const std::int64_t exponent) {
+  if (exponent > std::numeric_limits<std::int32_t>::max() ||
+      exponent < std::numeric_limits<std::int32_t>::min()) {
+    throw sourcemeta::core::NumericOverflowError{};
+  }
+}
+
 auto format_special_value(std::string &result, std::uint8_t flags,
                           std::int64_t coefficient) -> bool {
   if ((flags & FLAG_NAN) != 0) {
@@ -2306,6 +2320,7 @@ auto Decimal::operator*=(const Decimal &other) -> Decimal & {
     auto rounded_exponent{result_exponent_64};
     round_to_precision(this->coefficient_, this->coefficient_high_,
                        rounded_exponent, this->flags_);
+    check_settled_exponent(rounded_exponent);
     this->exponent_ = static_cast<std::int32_t>(rounded_exponent);
     return *this;
   }
@@ -2339,6 +2354,7 @@ auto Decimal::operator*=(const Decimal &other) -> Decimal & {
   auto rounded_exponent{static_cast<std::int64_t>(this->exponent_)};
   round_to_precision(this->coefficient_, this->coefficient_high_,
                      rounded_exponent, this->flags_);
+  check_settled_exponent(rounded_exponent);
   this->exponent_ = static_cast<std::int32_t>(rounded_exponent);
   return *this;
 }
@@ -2444,6 +2460,7 @@ auto Decimal::operator/=(const Decimal &other) -> Decimal & {
   // among the positions the working precision drops
   round_to_precision(this->coefficient_, this->coefficient_high_,
                      result_exponent, this->flags_, residue);
+  check_settled_exponent(result_exponent);
   this->exponent_ = static_cast<std::int32_t>(result_exponent);
   return *this;
 }

@@ -6436,3 +6436,25 @@ TEST(multiply_landing_exactly_on_the_widest_exponent_is_held) {
   const auto result{left * sourcemeta::core::Decimal{1}};
   EXPECT_EQ(result.to_string(), "10.00000000000000e+2147483661");
 }
+
+// A run of nines carries into a further position, which the digit count cannot
+// predict, so the exponent lands one beyond what was weighed and wrapped on
+// being narrowed. The value came back with the opposite sign of exponent.
+TEST(multiply_carrying_past_the_widest_exponent_overflows) {
+  const sourcemeta::core::Decimal left{"99999999999999999e2147483646"};
+  const sourcemeta::core::Decimal right{1};
+  try {
+    const auto result{left * right};
+    FAIL();
+  } catch (const sourcemeta::core::NumericOverflowError &error) {
+    EXPECT_STREQ(error.what(), "Numeric overflow");
+  }
+}
+
+// And the same coefficient one position lower still fits, so weighing the
+// carry must not turn away a result the storage holds.
+TEST(multiply_carrying_within_the_widest_exponent_is_held) {
+  const sourcemeta::core::Decimal left{"99999999999999999e2147483645"};
+  const auto result{left * sourcemeta::core::Decimal{1}};
+  EXPECT_EQ(result.to_string(), "10.00000000000000e+2147483661");
+}
