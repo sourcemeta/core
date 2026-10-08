@@ -6458,3 +6458,20 @@ TEST(multiply_carrying_within_the_widest_exponent_is_held) {
   const auto result{left * sourcemeta::core::Decimal{1}};
   EXPECT_EQ(result.to_string(), "10.00000000000000e+2147483661");
 }
+
+// The carry is what reveals the need to refuse, so the result is rounded where
+// it stands and only reaches the operand once it is known to fit. Committing
+// it first left the operand holding a coefficient from a result that was then
+// turned away.
+TEST(multiply_carrying_past_the_widest_exponent_leaves_the_operand_alone) {
+  const sourcemeta::core::Decimal original{"99999999999999999e2147483646"};
+  sourcemeta::core::Decimal left{original};
+  try {
+    left *= sourcemeta::core::Decimal{1};
+    FAIL();
+  } catch (const sourcemeta::core::NumericOverflowError &) {
+    EXPECT_EQ(left, original);
+    EXPECT_TRUE(left.same_quantum(original));
+    EXPECT_EQ(left.to_string(), original.to_string());
+  }
+}

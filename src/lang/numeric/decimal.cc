@@ -672,16 +672,32 @@ void check_rounded_exponent(const std::int64_t exponent,
 
 // What the digit count predicts above is one short wherever the increment that
 // rounding applies carries into a further position, which drops one more digit
-// and raises the exponent again. So where the exponent has actually landed is
-// weighed once rounding has settled it, rather than only being predicted from
-// the digits beforehand. A result refused here has already had its coefficient
-// committed, the rounding being what reveals the carry, so this reports the
-// refusal rather than leaving the operand untouched
-void check_settled_exponent(const std::int64_t exponent) {
-  if (exponent > std::numeric_limits<std::int32_t>::max() ||
-      exponent < std::numeric_limits<std::int32_t>::min()) {
+// and raises the exponent again. So the result is rounded where it stands and
+// weighed there, and only reaches the operand once it is known to fit. The
+// carry is what reveals the need to refuse, which is why the refusal cannot be
+// made before rounding, and staging it here is what keeps the operand as it
+// was when one is made
+void settle_rounded_result(std::int64_t &coefficient,
+                           std::uint64_t &coefficient_high,
+                           std::int32_t &exponent, std::uint8_t &flags,
+                           std::int64_t staged_coefficient,
+                           std::uint64_t staged_coefficient_high,
+                           std::uint8_t staged_flags,
+                           std::int64_t staged_exponent,
+                           const bool residue = false) {
+  round_to_precision(staged_coefficient, staged_coefficient_high,
+                     staged_exponent, staged_flags, residue);
+  if (staged_exponent > std::numeric_limits<std::int32_t>::max() ||
+      staged_exponent < std::numeric_limits<std::int32_t>::min()) {
+    free_big_coefficient(staged_coefficient, staged_flags);
     throw sourcemeta::core::NumericOverflowError{};
   }
+
+  free_big_coefficient(coefficient, flags);
+  coefficient = staged_coefficient;
+  coefficient_high = staged_coefficient_high;
+  exponent = static_cast<std::int32_t>(staged_exponent);
+  flags = staged_flags;
 }
 
 auto format_special_value(std::string &result, std::uint8_t flags,
@@ -2304,8 +2320,6 @@ auto Decimal::operator*=(const Decimal &other) -> Decimal & {
     throw NumericOverflowError{};
   }
 
-  auto result_exponent = static_cast<std::int32_t>(result_exponent_64);
-
   if (((this->flags_ & FLAG_BIG) != 0) || ((other.flags_ & FLAG_BIG) != 0)) {
     auto left_big = coefficient_as_big(this->coefficient_,
                                        this->coefficient_high_, this->flags_);
@@ -2314,30 +2328,33 @@ auto Decimal::operator*=(const Decimal &other) -> Decimal & {
     auto product = left_big.multiply(right_big);
     check_rounded_exponent(result_exponent_64, product.digit_count());
 
-    free_big_coefficient(this->coefficient_, this->flags_);
-    store_big_result(this->coefficient_, this->coefficient_high_, this->flags_,
+    std::int64_t staged_coefficient{0};
+    std::uint64_t staged_coefficient_high{0};
+    std::uint8_t staged_flags{0};
+    store_big_result(staged_coefficient, staged_coefficient_high, staged_flags,
                      std::move(product), result_negative);
-    auto rounded_exponent{result_exponent_64};
-    round_to_precision(this->coefficient_, this->coefficient_high_,
-                       rounded_exponent, this->flags_);
-    check_settled_exponent(rounded_exponent);
-    this->exponent_ = static_cast<std::int32_t>(rounded_exponent);
+    settle_rounded_result(this->coefficient_, this->coefficient_high_,
+                          this->exponent_, this->flags_, staged_coefficient,
+                          staged_coefficient_high, staged_flags,
+                          result_exponent_64);
     return *this;
   }
 
   auto product = static_cast<sourcemeta::core::uint128_t>(this->coefficient_) *
                  static_cast<sourcemeta::core::uint128_t>(other.coefficient_);
 
+  std::int64_t staged_coefficient{0};
+  std::uint64_t staged_coefficient_high{0};
+  std::uint8_t staged_flags{0};
   if (product <= static_cast<sourcemeta::core::uint128_t>(COMPACT_MAX)) {
     check_rounded_exponent(result_exponent_64,
                            digit_count(static_cast<std::uint64_t>(product)));
 
-    this->coefficient_ = static_cast<std::int64_t>(product);
-    this->exponent_ = result_exponent;
+    staged_coefficient = static_cast<std::int64_t>(product);
     // The General Decimal Arithmetic Specification states that "the sign of
     // the result of a multiplication or division will be 1 only if the
     // operands have different signs", which holds for a zero product too
-    this->flags_ = result_negative ? FLAG_SIGN : 0;
+    staged_flags = result_negative ? FLAG_SIGN : 0;
   } else {
     auto left_big = coefficient_as_big(this->coefficient_,
                                        this->coefficient_high_, this->flags_);
@@ -2346,16 +2363,14 @@ auto Decimal::operator*=(const Decimal &other) -> Decimal & {
     auto result = left_big.multiply(right_big);
     check_rounded_exponent(result_exponent_64, result.digit_count());
 
-    store_big_result(this->coefficient_, this->coefficient_high_, this->flags_,
+    store_big_result(staged_coefficient, staged_coefficient_high, staged_flags,
                      std::move(result), result_negative);
-    this->exponent_ = result_exponent;
   }
 
-  auto rounded_exponent{static_cast<std::int64_t>(this->exponent_)};
-  round_to_precision(this->coefficient_, this->coefficient_high_,
-                     rounded_exponent, this->flags_);
-  check_settled_exponent(rounded_exponent);
-  this->exponent_ = static_cast<std::int32_t>(rounded_exponent);
+  settle_rounded_result(this->coefficient_, this->coefficient_high_,
+                        this->exponent_, this->flags_, staged_coefficient,
+                        staged_coefficient_high, staged_flags,
+                        result_exponent_64);
   return *this;
 }
 
@@ -2448,20 +2463,22 @@ auto Decimal::operator/=(const Decimal &other) -> Decimal & {
 
   check_rounded_exponent(result_exponent, quotient.digit_count());
 
-  free_big_coefficient(this->coefficient_, this->flags_);
+  std::int64_t staged_coefficient{0};
+  std::uint64_t staged_coefficient_high{0};
+  std::uint8_t staged_flags{0};
   // The specification states that "the sign of the result of a multiplication
   // or division will be 1 only if the operands have different signs", which
   // holds for a zero quotient too
-  store_big_result(this->coefficient_, this->coefficient_high_, this->flags_,
+  store_big_result(staged_coefficient, staged_coefficient_high, staged_flags,
                    std::move(quotient), result_negative);
 
   // The specification rounds the quotient "taking into account the remainder
   // from the division", so what the long division left behind decides a tie
   // among the positions the working precision drops
-  round_to_precision(this->coefficient_, this->coefficient_high_,
-                     result_exponent, this->flags_, residue);
-  check_settled_exponent(result_exponent);
-  this->exponent_ = static_cast<std::int32_t>(result_exponent);
+  settle_rounded_result(this->coefficient_, this->coefficient_high_,
+                        this->exponent_, this->flags_, staged_coefficient,
+                        staged_coefficient_high, staged_flags, result_exponent,
+                        residue);
   return *this;
 }
 
