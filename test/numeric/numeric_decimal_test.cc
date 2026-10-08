@@ -1,8 +1,7 @@
 #include <sourcemeta/core/numeric.h>
-
-#include <clocale> // std::setlocale, LC_NUMERIC
 #include <sourcemeta/core/test.h>
 
+#include <clocale> // std::setlocale, LC_NUMERIC
 #include <cmath>   // std::isnan, std::isinf
 #include <cstdint> // std::int32_t, std::int64_t, std::uint32_t, std::uint64_t
 #include <limits>  // std::numeric_limits
