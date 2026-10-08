@@ -37,6 +37,13 @@ FileView::FileView(const std::filesystem::path &path) {
     throw FileViewError(path, "Could not open the file");
   }
 
+  // Only a file on disk reports a size that says what can be read from it, so
+  // anything else is refused here rather than handed back as a view of nothing
+  if (GetFileType(this->file_handle_) != FILE_TYPE_DISK) {
+    CloseHandle(this->file_handle_);
+    throw FileViewError(path, "Could not map this kind of file into memory");
+  }
+
   LARGE_INTEGER file_size;
   if (GetFileSizeEx(this->file_handle_, &file_size) == 0) {
     CloseHandle(this->file_handle_);
@@ -96,14 +103,20 @@ FileView::FileView(const std::filesystem::path &path) {
     throw FileViewError(path, "Could not determine the file size");
   }
 
-  // Opening a directory for reading is allowed, its reported size is left
-  // unspecified for anything that is not a regular file, and whether it can be
-  // mapped at all is unspecified too. Where that size comes back as zero, and
-  // it does on at least one widely used filesystem, the empty-view shortcut
-  // below would hand back a view of nothing instead of refusing
+  // Opening something that is not a regular file is allowed, the size it
+  // reports says nothing about what can be read from it, and whether it can be
+  // mapped at all is unspecified. Where that size comes back as zero, and it
+  // does for a directory on at least one widely used filesystem and for a
+  // character device everywhere, the empty-view shortcut below would hand back
+  // a view of nothing rather than refusing
   if (S_ISDIR(file_stat.st_mode)) {
     close(this->file_descriptor_);
     throw FileViewError(path, "Could not map a directory into memory");
+  }
+
+  if (!S_ISREG(file_stat.st_mode)) {
+    close(this->file_descriptor_);
+    throw FileViewError(path, "Could not map this kind of file into memory");
   }
 
   this->size_ = static_cast<std::size_t>(file_stat.st_size);

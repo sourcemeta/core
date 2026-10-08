@@ -77,3 +77,19 @@ TEST(directory_throws) {
     EXPECT_STREQ(error.what(), "Could not map a directory into memory");
   }
 }
+
+// A character device reports a size that says nothing about what can be read
+// from it, which the empty-view shortcut would otherwise hand back as a view of
+// nothing. Windows has no such path to name here, and the kind of file it
+// refuses is settled from the handle rather than from a mode.
+#if !defined(_WIN32)
+TEST(character_device_throws) {
+  try {
+    const sourcemeta::core::FileView view{std::filesystem::path{"/dev/zero"}};
+    FAIL();
+  } catch (const sourcemeta::core::FileViewError &error) {
+    EXPECT_EQ(error.path(), std::filesystem::path{"/dev/zero"});
+    EXPECT_STREQ(error.what(), "Could not map this kind of file into memory");
+  }
+}
+#endif
