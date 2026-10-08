@@ -4,6 +4,7 @@
 #include <algorithm>   // std::max, std::copy, std::fill
 #include <array>       // std::array
 #include <bit>         // std::endian
+#include <cassert>     // assert
 #include <cstdint>     // std::int32_t, std::int64_t, std::uint32_t,
                        // std::uint64_t, std::uintptr_t, std::uint8_t
 #include <cstring>     // std::memcpy
@@ -1041,8 +1042,11 @@ auto coefficient_as_big(std::int64_t coefficient,
 void store_big_result(std::int64_t &coefficient,
                       std::uint64_t &coefficient_high, std::uint8_t &flags,
                       BigCoefficient result_big, bool result_negative) {
-  if (result_big.length <= 1 &&
-      result_big.words[0] <= static_cast<std::uint64_t>(COMPACT_MAX)) {
+  // Every limb is held below the base it counts in, which is the largest the
+  // narrow form takes plus one, so a lone limb always fits it and asking
+  // whether it does can only ever answer yes
+  assert(result_big.length == 0 || result_big.words[0] < BASE);
+  if (result_big.length <= 1) {
     coefficient = static_cast<std::int64_t>(result_big.words[0]);
     coefficient_high = 0;
     flags = result_negative ? FLAG_SIGN : 0;

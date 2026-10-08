@@ -18,7 +18,7 @@
 #include <string_view>   // std::string_view
 #include <unordered_map> // std::unordered_map
 #include <unordered_set> // std::unordered_set
-#include <utility>       // std::move
+#include <utility>       // std::move, std::unreachable
 #include <vector>        // std::vector
 
 namespace sourcemeta::core::yaml {
@@ -38,6 +38,20 @@ struct AnchoredValue {
   std::vector<CallbackRecord> callbacks;
   std::size_t expanded_weight;
 };
+
+inline auto to_roundtrip_chomping(const BlockChomping chomping)
+    -> YAMLRoundTrip::Chomping {
+  switch (chomping) {
+    case BlockChomping::Clip:
+      return YAMLRoundTrip::Chomping::Clip;
+    case BlockChomping::Strip:
+      return YAMLRoundTrip::Chomping::Strip;
+    case BlockChomping::Keep:
+      return YAMLRoundTrip::Chomping::Keep;
+  }
+
+  std::unreachable();
+}
 
 class Parser {
 public:
@@ -1290,7 +1304,8 @@ private:
       } else if (key_token.type == TokenType::Scalar) {
         key = this->resolve_scalar_key(key_token, key_tag);
         this->record_key_scalar_style(key, key_token.scalar_style,
-                                      key_token.quoted_original);
+                                      key_token.quoted_original,
+                                      key_token.chomping);
       } else [[unlikely]] {
         throw YAMLParseError{key_token.line, key_token.column,
                              "Expected scalar key in mapping"};
@@ -1682,6 +1697,12 @@ private:
         key_present = true;
         current_key_line = token.line;
         current_key_column = token.column;
+        // How a key was written is recorded here as it is anywhere else. An
+        // explicit key read on this path recorded nothing at all, so one
+        // written as a block scalar, which only an explicit key can be, came
+        // back out as a quoted scalar on one line
+        this->record_key_scalar_style(key, token.scalar_style,
+                                      token.quoted_original, token.chomping);
 
         // YAML 1.2.2 Section 7.1: an anchor on an explicit key names that key
         // for later aliases, exactly as it would on any other node
@@ -1941,7 +1962,8 @@ private:
     const auto first_key_line{key_token.line};
     seen_keys.insert(key);
     this->record_key_scalar_style(key, key_token.scalar_style,
-                                  key_token.quoted_original);
+                                  key_token.quoted_original,
+                                  key_token.chomping);
     this->record_preceding_comments_for_key(key);
 
     this->lexer_->set_block_indent(static_cast<std::size_t>(base_column - 1));
@@ -2043,7 +2065,7 @@ private:
         } else {
           key = this->resolve_scalar_key(next.value());
           this->record_key_scalar_style(key, next->scalar_style,
-                                        next->quoted_original);
+                                        next->quoted_original, next->chomping);
           if (explicit_key_anchor.has_value()) {
             JSON key_value{this->resolve_scalar_node(next.value())};
             const auto key_expanded_weight{
@@ -2198,7 +2220,7 @@ private:
       key_line = next->line;
       key_column = next->column;
       this->record_key_scalar_style(key, next->scalar_style,
-                                    next->quoted_original);
+                                    next->quoted_original, next->chomping);
       this->record_preceding_comments_for_key(key);
 
       if (next->multiline) [[unlikely]] {
@@ -2438,17 +2460,7 @@ private:
 
     if (token.scalar_style == ScalarStyle::Literal ||
         token.scalar_style == ScalarStyle::Folded) {
-      switch (token.chomping) {
-        case BlockChomping::Clip:
-          node_style.chomping = YAMLRoundTrip::Chomping::Clip;
-          break;
-        case BlockChomping::Strip:
-          node_style.chomping = YAMLRoundTrip::Chomping::Strip;
-          break;
-        case BlockChomping::Keep:
-          node_style.chomping = YAMLRoundTrip::Chomping::Keep;
-          break;
-      }
+      node_style.chomping = to_roundtrip_chomping(token.chomping);
 
       node_style.explicit_indent = token.explicit_indent;
       node_style.indent_before_chomping = token.indent_before_chomping;
@@ -2465,8 +2477,10 @@ private:
     }
   }
 
-  auto record_key_scalar_style(const std::string &key, const ScalarStyle style,
-                               const std::string_view quoted_original = {})
+  auto
+  record_key_scalar_style(const std::string &key, const ScalarStyle style,
+                          const std::string_view quoted_original = {},
+                          const BlockChomping chomping = BlockChomping::Clip)
       -> void {
     if (this->roundtrip_ == nullptr) {
       return;
@@ -2485,7 +2499,20 @@ private:
         this->roundtrip_->key_styles[this->pointer_stack_] =
             YAMLRoundTrip::ScalarStyle::DoubleQuoted;
         break;
-      default:
+      // A key written as a block scalar needs how it was chomped as well,
+      // since what it stands for carries no trace of the line breaks that
+      // were dropped from the end of it
+      case ScalarStyle::Literal:
+        this->roundtrip_->key_styles[this->pointer_stack_] =
+            YAMLRoundTrip::ScalarStyle::Literal;
+        this->roundtrip_->key_block_chomping[this->pointer_stack_] =
+            to_roundtrip_chomping(chomping);
+        break;
+      case ScalarStyle::Folded:
+        this->roundtrip_->key_styles[this->pointer_stack_] =
+            YAMLRoundTrip::ScalarStyle::Folded;
+        this->roundtrip_->key_block_chomping[this->pointer_stack_] =
+            to_roundtrip_chomping(chomping);
         break;
     }
     if (!quoted_original.empty()) {

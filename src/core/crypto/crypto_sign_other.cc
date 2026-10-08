@@ -489,61 +489,22 @@ auto make_private_key(const std::string_view pem) -> std::optional<PrivateKey> {
 
   switch (parsed->kind) {
     case PKCS8KeyKind::RSA: {
-      // RFC 8017 Appendix A.1.2: RSAPrivateKey is a SEQUENCE of version,
-      // modulus, publicExponent, privateExponent, and the further primes
-      const auto sequence{der_read(parsed->key)};
-      if (!sequence.has_value() || sequence->tag != 0x30) {
-        return std::nullopt;
-      }
-
-      const auto version{der_read(sequence->content)};
-      if (!version.has_value() || version->tag != 0x02) {
-        return std::nullopt;
-      }
-
-      const auto modulus{der_read(version->rest)};
-      if (!modulus.has_value() || modulus->tag != 0x02) {
-        return std::nullopt;
-      }
-
-      const auto public_exponent{der_read(modulus->rest)};
-      if (!public_exponent.has_value() || public_exponent->tag != 0x02) {
-        return std::nullopt;
-      }
-
-      const auto private_exponent{der_read(public_exponent->rest)};
-      if (!private_exponent.has_value() || private_exponent->tag != 0x02) {
-        return std::nullopt;
-      }
-
-      // Decode each field as a canonical non-negative DER INTEGER, so a
-      // negative or non-canonically encoded value cannot be silently
-      // reinterpreted as a different positive number and used for signing
-      const auto modulus_value{der_unsigned_integer(modulus->content)};
-      const auto public_exponent_value{
-          der_unsigned_integer(public_exponent->content)};
-      const auto private_exponent_value{
-          der_unsigned_integer(private_exponent->content)};
-      if (!modulus_value.has_value() || !public_exponent_value.has_value() ||
-          !private_exponent_value.has_value() || modulus_value->empty() ||
-          private_exponent_value->empty() ||
-          modulus_value->size() > MAXIMUM_KEY_BYTES ||
-          private_exponent_value->size() > MAXIMUM_KEY_BYTES ||
-          !rsa_public_exponent_acceptable(public_exponent_value.value(),
-                                          modulus_value.value())) {
-        return std::nullopt;
-      }
-
+      // RFC 8017 Appendix A.1.2 has RSAPrivateKey be a SEQUENCE of version,
+      // modulus, publicExponent, privateExponent and the further primes, and
+      // reading it apart is what admitted this key in the first place. Reading
+      // it again here would only repeat checks already made, which left this
+      // arm unable to turn anything away and the tests that name it covering
+      // the gate rather than the arm
       // RFC 8017 Appendix A.1.2: the two-prime form carries the CRT components
       // after the private exponent, which the private operation uses to take
       // the cheaper path of RFC 8017 Section 5.1.2 step 2.b
       const auto crt{
-          read_rsa_crt_components(version->content, private_exponent->rest)};
+          read_rsa_crt_components(parsed->rsa.version, parsed->rsa.rest)};
       return PrivateKey{new PrivateKey::Internal{
           .kind = PrivateKey::Type::RSA,
-          .modulus = std::string{modulus_value.value()},
-          .public_exponent = std::string{public_exponent_value.value()},
-          .private_exponent = std::string{private_exponent_value.value()},
+          .modulus = std::string{parsed->rsa.modulus},
+          .public_exponent = std::string{parsed->rsa.public_exponent},
+          .private_exponent = std::string{parsed->rsa.private_exponent},
           .prime1 = crt.has_value() ? std::string{crt->prime1} : std::string{},
           .prime2 = crt.has_value() ? std::string{crt->prime2} : std::string{},
           .exponent1 =

@@ -1144,6 +1144,10 @@ auto schema_bundle(JSON &schema, const SchemaWalker &walker,
     // for the operation, so that is what the operation reports back
     throw SchemaFrameLimitError{options.max_locations};
   }
+
+  if (options.locations_remaining != nullptr) {
+    *options.locations_remaining = remaining;
+  }
 }
 
 auto schema_bundle(const JSON &schema, const SchemaWalker &walker,

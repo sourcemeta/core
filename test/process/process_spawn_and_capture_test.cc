@@ -197,6 +197,25 @@ TEST(both_streams_flooding_at_once_does_not_deadlock) {
   EXPECT_EQ(result.standard_error, payload);
 }
 
+// POSIX.1-2024 reports a descriptor whose reader is gone as both in error and
+// ready for writing, so weighing the error first gives up the stream without
+// ever attempting to write, and the broken pipe the guard exists to absorb is
+// never raised. Reading part of the input gets the caller far enough in for
+// the pipe to have had room again before the reader went away. At least one
+// platform reports the error on its own, where there is nothing to attempt and
+// nothing to absorb, so what this pins everywhere is that the caller survives
+// and still collects what the program did read.
+TEST(a_program_that_reads_part_of_its_input_does_not_kill_the_caller) {
+  const auto payload{payload_of(FLOOD_SIZE)};
+  const sourcemeta::core::ProcessInput input{.standard_input = payload};
+  const auto result{sourcemeta::core::spawn_and_capture(
+      HELPER, {"read-some-stdin", "1024"}, input)};
+  EXPECT_TRUE(result.exit_code.has_value());
+  EXPECT_EQ(result.exit_code.value(), 0);
+  EXPECT_EQ(result.standard_output, "1024");
+  EXPECT_EQ(result.standard_error, "");
+}
+
 TEST(a_program_that_never_reads_its_input_does_not_kill_the_caller) {
   const auto payload{payload_of(FLOOD_SIZE)};
   const sourcemeta::core::ProcessInput input{.standard_input = payload};

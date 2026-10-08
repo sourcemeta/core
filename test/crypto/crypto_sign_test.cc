@@ -1768,6 +1768,20 @@ TEST(make_private_key_rejects_an_rsa_key_with_no_elements) {
                    .has_value());
 }
 
+// X.690 Section 10.1 makes a canonical key exactly one SEQUENCE, so bytes
+// trailing it mark a malformed encoding. This is the one check that reading the
+// key apart a second time never made, which is why it is the only one of these
+// that the shared gate alone ever turned away.
+TEST(make_private_key_rejects_an_rsa_key_with_trailing_bytes) {
+  const auto body{der_element(0x30, std::string{rsa_version()} +
+                                        std::string{rsa_modulus()} +
+                                        std::string{rsa_public_exponent()} +
+                                        std::string{rsa_private_exponent()})};
+  EXPECT_FALSE(sourcemeta::core::make_private_key(
+                   pkcs8_document(rsa_algorithm(), body + std::string{'\x00'}))
+                   .has_value());
+}
+
 TEST(make_private_key_rejects_an_rsa_modulus_that_is_not_an_integer) {
   EXPECT_FALSE(sourcemeta::core::make_private_key(
                    rsa_document(rsa_version(),

@@ -119,6 +119,10 @@ public:
   std::unordered_map<Pointer, ScalarStyle, Pointer::Hasher> key_styles;
   /// The original quoted content for each mapping key
   std::unordered_map<Pointer, std::string, Pointer::Hasher> key_quoted_contents;
+  /// The chomping behavior for each mapping key written as a block scalar,
+  /// which can only be an explicit key, there being no way to open a block
+  /// scalar and close the key on one line
+  std::unordered_map<Pointer, Chomping, Pointer::Hasher> key_block_chomping;
   /// The directive and comment lines that precede the document start marker,
   /// in the order they were written. A document that carries a directive
   /// always begins with an explicit start marker.
