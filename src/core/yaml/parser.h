@@ -1309,8 +1309,7 @@ private:
       } else if (key_token.type == TokenType::Scalar) {
         key = this->resolve_scalar_key(key_token, key_tag);
         this->record_key_scalar_style(key, key_token.scalar_style,
-                                      key_token.quoted_original,
-                                      key_token.chomping);
+                                      key_token.quoted_original);
       } else [[unlikely]] {
         throw YAMLParseError{key_token.line, key_token.column,
                              "Expected scalar key in mapping"};
@@ -1707,7 +1706,7 @@ private:
         // written as a block scalar, which only an explicit key can be, came
         // back out as a quoted scalar on one line
         this->record_key_scalar_style(key, token.scalar_style,
-                                      token.quoted_original, token.chomping);
+                                      token.quoted_original);
 
         // YAML 1.2.2 Section 7.1: an anchor on an explicit key names that key
         // for later aliases, exactly as it would on any other node
@@ -1978,8 +1977,7 @@ private:
     const auto first_key_line{key_token.line};
     seen_keys.insert(key);
     this->record_key_scalar_style(key, key_token.scalar_style,
-                                  key_token.quoted_original,
-                                  key_token.chomping);
+                                  key_token.quoted_original);
     this->record_preceding_comments_for_key(key);
 
     this->lexer_->set_block_indent(static_cast<std::size_t>(base_column - 1));
@@ -2081,7 +2079,7 @@ private:
         } else {
           key = this->resolve_scalar_key(next.value());
           this->record_key_scalar_style(key, next->scalar_style,
-                                        next->quoted_original, next->chomping);
+                                        next->quoted_original);
           if (explicit_key_anchor.has_value()) {
             JSON key_value{this->resolve_scalar_node(next.value())};
             const auto key_expanded_weight{
@@ -2236,7 +2234,7 @@ private:
       key_line = next->line;
       key_column = next->column;
       this->record_key_scalar_style(key, next->scalar_style,
-                                    next->quoted_original, next->chomping);
+                                    next->quoted_original);
       this->record_preceding_comments_for_key(key);
 
       if (next->multiline) [[unlikely]] {
@@ -2496,10 +2494,8 @@ private:
     }
   }
 
-  auto
-  record_key_scalar_style(const std::string &key, const ScalarStyle style,
-                          const std::string_view quoted_original = {},
-                          const BlockChomping chomping = BlockChomping::Clip)
+  auto record_key_scalar_style(const std::string &key, const ScalarStyle style,
+                               const std::string_view quoted_original = {})
       -> void {
     if (this->roundtrip_ == nullptr) {
       return;
@@ -2518,20 +2514,12 @@ private:
         this->roundtrip_->key_styles[this->pointer_stack_] =
             YAMLRoundTrip::ScalarStyle::DoubleQuoted;
         break;
-      // A key written as a block scalar needs how it was chomped as well,
-      // since what it stands for carries no trace of the line breaks that
-      // were dropped from the end of it
+      // A block scalar key is left to be written as a quoted scalar. What one
+      // stands for rests on the indicator, the chomping and the folding it was
+      // written with together, and writing it back without all three carries a
+      // different key than the one that was read
       case ScalarStyle::Literal:
-        this->roundtrip_->key_styles[this->pointer_stack_] =
-            YAMLRoundTrip::ScalarStyle::Literal;
-        this->roundtrip_->key_block_chomping[this->pointer_stack_] =
-            to_roundtrip_chomping(chomping);
-        break;
       case ScalarStyle::Folded:
-        this->roundtrip_->key_styles[this->pointer_stack_] =
-            YAMLRoundTrip::ScalarStyle::Folded;
-        this->roundtrip_->key_block_chomping[this->pointer_stack_] =
-            to_roundtrip_chomping(chomping);
         break;
     }
     if (!quoted_original.empty()) {

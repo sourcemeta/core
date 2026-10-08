@@ -211,11 +211,12 @@ inline auto openapi_substitute_server_variables(const JSON::StringView address,
 }
 
 // Whether what a variable stands for can bear on the kind of reference the
-// template names. RFC 3986 Section 3 puts the scheme and the authority before
-// the first slash, and what follows that slash is the path and the rest, none
-// of which can turn an absolute reference into a relative one. So only a
-// variable reaching the part before that slash has to have what it stands for
-// bounded, and one the template never names reaches nothing at all
+// template names. RFC 3986 Section 3.2 ends the authority at the first slash,
+// question mark or number sign, and what follows any of those is the path, the
+// query or the fragment, none of which can turn an absolute reference into a
+// relative one. So only a variable reaching the part before the earliest of
+// them has to have what it stands for bounded, and one the template never
+// names reaches nothing at all
 inline auto openapi_server_variable_bears_on_absoluteness(
     const JSON::StringView address, const JSON::String &name) -> bool {
   JSON::String placeholder;
@@ -228,8 +229,8 @@ inline auto openapi_server_variable_bears_on_absoluteness(
     return false;
   }
 
-  const auto path_start{address.find('/')};
-  return path_start == JSON::StringView::npos || occurrence < path_start;
+  const auto authority_end{address.find_first_of("/?#")};
+  return authority_end == JSON::StringView::npos || occurrence < authority_end;
 }
 
 // Whether a server URL template names an absolute URI whatever its variables

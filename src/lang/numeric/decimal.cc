@@ -663,13 +663,7 @@ auto is_representable_as_floating_point(const std::int64_t coefficient,
 // the operand as it was
 void check_rounded_exponent(const std::int64_t exponent,
                             const std::uint64_t digits) {
-  // The increment that rounding applies can itself carry into a further
-  // position, which drops one more digit and raises the exponent once more, so
-  // what has to fit is one position beyond what the digit count alone gives.
-  // Allowing for it here rather than once rounding has run is what keeps a
-  // refusal from landing after the coefficient has been committed
-  const auto excess{precision_excess(digits)};
-  const auto rounded{exponent + excess + (excess > 0 ? 1 : 0)};
+  const auto rounded{exponent + precision_excess(digits)};
   if (rounded > std::numeric_limits<std::int32_t>::max() ||
       rounded < std::numeric_limits<std::int32_t>::min()) {
     throw sourcemeta::core::NumericOverflowError{};

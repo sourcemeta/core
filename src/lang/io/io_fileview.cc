@@ -2,12 +2,13 @@
 #include <sourcemeta/core/io_fileview.h>
 
 #if defined(_WIN32)
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
-#include <windows.h>
-
+// Ahead of the platform header, so that the macros it brings in cannot reach
+// the standard ones
 #include <filesystem>   // std::filesystem::is_directory
 #include <system_error> // std::error_code
+
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
 #else
 #include <fcntl.h>    // open, O_RDONLY
 #include <sys/mman.h> // mmap, munmap

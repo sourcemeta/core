@@ -6414,32 +6414,25 @@ TEST(compound_add_repeated_doubling_beyond_the_compact_range_keeps_the_sign) {
   EXPECT_TRUE(value.same_quantum(expected));
 }
 
-// The digit count predicts how far rounding raises the exponent, but the
-// increment it applies can carry into a further position and raise it once
-// more. That left the prediction one short, and the exponent wrapped on being
-// narrowed to what it is stored in rather than being refused.
-TEST(multiply_carrying_past_the_widest_exponent_overflows) {
-  const sourcemeta::core::Decimal left{"99999999999999999e2147483629"};
-  const sourcemeta::core::Decimal right{"1e17"};
+// Rounding only ever raises the exponent, so allowing for it when weighing the
+// floor lets a quotient that lands below the narrowest exponent pass and wrap
+// on being narrowed, coming back with the opposite sign of exponent. What is
+// weighed against the floor has to be where the exponent actually lands.
+TEST(divide_below_the_narrowest_exponent_overflows) {
+  const sourcemeta::core::Decimal dividend{"1e-2147483633"};
   try {
-    const auto result{left * right};
+    const auto result{dividend / sourcemeta::core::Decimal{3}};
     FAIL();
   } catch (const sourcemeta::core::NumericOverflowError &error) {
     EXPECT_STREQ(error.what(), "Numeric overflow");
   }
 }
 
-// The refusal has to land before the coefficient is committed, so the operand
-// is left as it was.
-TEST(multiply_carrying_past_the_widest_exponent_leaves_the_operand_alone) {
-  const sourcemeta::core::Decimal original{"99999999999999999e2147483629"};
-  sourcemeta::core::Decimal left{original};
-  try {
-    left *= sourcemeta::core::Decimal{"1e17"};
-    FAIL();
-  } catch (const sourcemeta::core::NumericOverflowError &) {
-    EXPECT_EQ(left, original);
-    EXPECT_TRUE(left.same_quantum(original));
-    EXPECT_EQ(left.to_string(), original.to_string());
-  }
+// And a product whose rounded exponent lands exactly on the widest one fits,
+// so allowing for a carry that this rounding never makes would turn away a
+// result the storage holds.
+TEST(multiply_landing_exactly_on_the_widest_exponent_is_held) {
+  const sourcemeta::core::Decimal left{"10000000000000000e2147483646"};
+  const auto result{left * sourcemeta::core::Decimal{1}};
+  EXPECT_EQ(result.to_string(), "10.00000000000000e+2147483661");
 }

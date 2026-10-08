@@ -514,37 +514,6 @@ inline auto write_string_with_style(OutputStream &stream, const JSON &value,
   write_string(stream, text);
 }
 
-// How a mapping key was written when it was written as a block scalar. Such a
-// key can only be an explicit one, there being no way to open a block scalar
-// and close the key on the same line, so what it stands for is the whole of
-// the content and only the header has to be rebuilt
-struct BlockKeyStyle {
-  YAMLRoundTrip::ScalarStyle scalar{YAMLRoundTrip::ScalarStyle::Literal};
-  YAMLRoundTrip::Chomping chomping{YAMLRoundTrip::Chomping::Clip};
-};
-
-inline auto block_key_style(const YAMLRoundTrip *roundtrip,
-                            const Pointer &pointer)
-    -> std::optional<BlockKeyStyle> {
-  if (roundtrip == nullptr) {
-    return std::nullopt;
-  }
-
-  const auto style{roundtrip->key_styles.find(pointer)};
-  if (style == roundtrip->key_styles.end() ||
-      (style->second != YAMLRoundTrip::ScalarStyle::Literal &&
-       style->second != YAMLRoundTrip::ScalarStyle::Folded)) {
-    return std::nullopt;
-  }
-
-  const auto chomping{roundtrip->key_block_chomping.find(pointer)};
-  return BlockKeyStyle{.scalar = style->second,
-                       .chomping =
-                           chomping == roundtrip->key_block_chomping.end()
-                               ? YAMLRoundTrip::Chomping::Clip
-                               : chomping->second};
-}
-
 inline auto write_key_string(OutputStream &stream, const std::string &key,
                              const YAMLRoundTrip *roundtrip,
                              const Pointer &pointer) -> void {
@@ -842,8 +811,7 @@ inline auto write_node(OutputStream &stream, const JSON &value,
                        const bool skip_first_indent,
                        const YAMLRoundTrip *roundtrip, AnchorValues &anchors,
                        Pointer &pointer, const bool skip_properties = false,
-                       const bool annotations = true,
-                       const bool allow_unindented_sequence = true) -> void {
+                       const bool annotations = true) -> void {
   // Only the document root sits at the leftmost column, and a block scalar
   // there has no column of its own, so its content is pushed one nesting level
   // in to leave room for whatever follows it
@@ -921,15 +889,12 @@ inline auto write_node(OutputStream &stream, const JSON &value,
         write_break(stream, roundtrip);
       }
       // A block sequence may sit at the indentation of the mapping key it
-      // belongs to rather than one level further in. Where that key is written
-      // out as an explicit one, what it sits at is the indicator opening the
-      // key rather than the key's own node, so pulling the sequence back by
-      // one level would put it where reading it again does not place it
-      const auto sequence_columns{
-          allow_unindented_sequence && (node_style != nullptr) &&
-                  node_style->unindented_sequence && columns >= block_indicator
-              ? columns - block_indicator
-              : columns};
+      // belongs to rather than one level further in
+      const auto sequence_columns{(node_style != nullptr) &&
+                                          node_style->unindented_sequence &&
+                                          columns >= block_indicator
+                                      ? columns - block_indicator
+                                      : columns};
       write_block_sequence(stream, value, sequence_columns, width,
                            has_properties ? false : skip_first_indent,
                            roundtrip, anchors, pointer);
@@ -1007,18 +972,7 @@ inline auto write_block_mapping(OutputStream &stream, const JSON &value,
     }
     first = false;
 
-    const auto block_key{block_key_style(roundtrip, pointer)};
-    if (block_key.has_value()) {
-      stream.put('?');
-      stream.put(' ');
-      write_block_scalar(stream, entry.first, columns + width,
-                         block_key->scalar, block_key->chomping, std::nullopt,
-                         0, false, roundtrip);
-      write_indent(stream, columns);
-    } else {
-      write_key_string(stream, entry.first, roundtrip, pointer);
-    }
-
+    write_key_string(stream, entry.first, roundtrip, pointer);
     stream.put(':');
 
     const bool implicit_null{
@@ -1062,7 +1016,7 @@ inline auto write_block_mapping(OutputStream &stream, const JSON &value,
       }
       write_node(stream, entry.second, columns + width, width, width,
                  has_indicator_comment ? true : false, roundtrip, anchors,
-                 pointer, false, true, !block_key.has_value());
+                 pointer);
     }
 
     pointer.pop_back();
