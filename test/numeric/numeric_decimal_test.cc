@@ -4945,10 +4945,15 @@ TEST(positive_exponent_is_integral) {
   EXPECT_TRUE(value.is_integral());
 }
 
+// Rounding a run of nines carries into a new digit, and the round operation of
+// the decimal arithmetic specification then shortens the result by one digit
+// and raises the exponent to match, leaving sixteen of them here rather than
+// seventeen. The same value written one digit longer compares equal, so only
+// the written form shows whether that happened.
 TEST(multiply_bigs_with_carry) {
   const sourcemeta::core::Decimal left{"99999999999999999999"};
   const sourcemeta::core::Decimal right{"99999999999999999999"};
-  EXPECT_EQ((left * right).to_string(), "10.000000000000000e+39");
+  EXPECT_EQ((left * right).to_string(), "10.00000000000000e+39");
 }
 
 TEST(to_integral_of_big_fraction) {
@@ -6380,4 +6385,93 @@ TEST(divide_exact_integer_strips_to_the_preferred_quantum) {
   const auto result{numerator / denominator};
   EXPECT_EQ(result, expected);
   EXPECT_TRUE(result.same_quantum(expected));
+}
+
+// A sum of two compact coefficients reaches one digit further than either of
+// them, so it lands outside the range the compact paths may hold. Keeping it
+// there anyway stays unnoticed until a later sum over it runs past what the
+// narrow form can carry, which takes four doublings to reach from here.
+TEST(compound_add_repeated_doubling_beyond_the_compact_range) {
+  sourcemeta::core::Decimal value{"999999999999999999"};
+  value += value;
+  value += value;
+  value += value;
+  value += value;
+  const sourcemeta::core::Decimal expected{"15999999999999999984"};
+  EXPECT_EQ(value, expected);
+  EXPECT_TRUE(value.same_quantum(expected));
+}
+
+TEST(compound_add_repeated_doubling_beyond_the_compact_range_keeps_the_sign) {
+  sourcemeta::core::Decimal value{"-999999999999999999"};
+  value += value;
+  value += value;
+  value += value;
+  value += value;
+  const sourcemeta::core::Decimal expected{"-15999999999999999984"};
+  EXPECT_EQ(value, expected);
+  EXPECT_TRUE(value.is_signed());
+  EXPECT_TRUE(value.same_quantum(expected));
+}
+
+// Rounding only ever raises the exponent, so allowing for it when weighing the
+// floor lets a quotient that lands below the narrowest exponent pass and wrap
+// on being narrowed, coming back with the opposite sign of exponent. What is
+// weighed against the floor has to be where the exponent actually lands.
+TEST(divide_below_the_narrowest_exponent_overflows) {
+  const sourcemeta::core::Decimal dividend{"1e-2147483633"};
+  try {
+    const auto result{dividend / sourcemeta::core::Decimal{3}};
+    FAIL();
+  } catch (const sourcemeta::core::NumericOverflowError &error) {
+    EXPECT_STREQ(error.what(), "Numeric overflow");
+  }
+}
+
+// And a product whose rounded exponent lands exactly on the widest one fits,
+// so allowing for a carry that this rounding never makes would turn away a
+// result the storage holds.
+TEST(multiply_landing_exactly_on_the_widest_exponent_is_held) {
+  const sourcemeta::core::Decimal left{"10000000000000000e2147483646"};
+  const auto result{left * sourcemeta::core::Decimal{1}};
+  EXPECT_EQ(result.to_string(), "10.00000000000000e+2147483661");
+}
+
+// A run of nines carries into a further position, which the digit count cannot
+// predict, so the exponent lands one beyond what was weighed and wrapped on
+// being narrowed. The value came back with the opposite sign of exponent.
+TEST(multiply_carrying_past_the_widest_exponent_overflows) {
+  const sourcemeta::core::Decimal left{"99999999999999999e2147483646"};
+  const sourcemeta::core::Decimal right{1};
+  try {
+    const auto result{left * right};
+    FAIL();
+  } catch (const sourcemeta::core::NumericOverflowError &error) {
+    EXPECT_STREQ(error.what(), "Numeric overflow");
+  }
+}
+
+// And the same coefficient one position lower still fits, so weighing the
+// carry must not turn away a result the storage holds.
+TEST(multiply_carrying_within_the_widest_exponent_is_held) {
+  const sourcemeta::core::Decimal left{"99999999999999999e2147483645"};
+  const auto result{left * sourcemeta::core::Decimal{1}};
+  EXPECT_EQ(result.to_string(), "10.00000000000000e+2147483661");
+}
+
+// The carry is what reveals the need to refuse, so the result is rounded where
+// it stands and only reaches the operand once it is known to fit. Committing
+// it first left the operand holding a coefficient from a result that was then
+// turned away.
+TEST(multiply_carrying_past_the_widest_exponent_leaves_the_operand_alone) {
+  const sourcemeta::core::Decimal original{"99999999999999999e2147483646"};
+  sourcemeta::core::Decimal left{original};
+  try {
+    left *= sourcemeta::core::Decimal{1};
+    FAIL();
+  } catch (const sourcemeta::core::NumericOverflowError &) {
+    EXPECT_EQ(left, original);
+    EXPECT_TRUE(left.same_quantum(original));
+    EXPECT_EQ(left.to_string(), original.to_string());
+  }
 }
