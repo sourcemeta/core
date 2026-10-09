@@ -67,6 +67,8 @@ constexpr std::string_view OCT_JWK_16_BYTES{
     R"JSON({"kty":"oct","k":"QUFBQUFBQUFBQUFBQUFBQQ"})JSON"};
 constexpr std::string_view OCT_JWK_32_BYTES{
     R"JSON({"kty":"oct","k":"QUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUE"})JSON"};
+constexpr std::string_view EC_P256_OTHER_JWK{
+    R"JSON({ "kty": "EC", "crv": "P-256", "x": "f5qz3NpV9TWR9WS-LMxoQ85jXz1oJafYhP0dhHOYjgE", "y": "Gn_pneRFnAQcsd3piv9ddYAOfz6kOgvKev7Eh6Naupg" })JSON"};
 } // namespace
 
 TEST(rs256_valid) {
@@ -280,6 +282,8 @@ TEST(jws_verify_signature_hs256_key_declaring_other_algorithm) {
 }
 
 // RFC 7518 Section 3.5 gives PSS an RSA key
+// A signature the wrong verifier would accept does not exist, so what this
+// pins is the refusal rather than the comparison that follows it
 TEST(ps256_rejects_an_ec_key) {
   const auto signature{sourcemeta::core::base64url_decode(RSA_SIGNATURE)};
   EXPECT_TRUE(signature.has_value());
@@ -291,10 +295,15 @@ TEST(ps256_rejects_an_ec_key) {
       signature.value(), key.value()));
 }
 
-// RFC 7518 Section 3.4 ties this algorithm to the P-256 curve alone,
-// so a key on another curve is turned away rather than tried
+// RFC 7518 Section 3.4 ties this algorithm to the P-256 curve alone. The
+// signature is a real one over this input, made with the P-384 key below under
+// this algorithm's own hash, so it would verify if the curve were not checked
+// and the refusal can only come from the curve
 TEST(es256_rejects_a_p384_key) {
-  const auto signature{sourcemeta::core::base64url_decode(RSA_SIGNATURE)};
+  const auto signature{sourcemeta::core::base64url_decode(
+      "PtKwAViIAQoBqIK2D3Xflpd7eaS9yqGWyuBiKClC5f0yqG1hEc4ClwxHorkP"
+      "IpiqmWrKZ8E9g98MnLawdqEM4C3bmwrkyxW_grAD-NZaQBnEC0220-9mfrJi"
+      "h4zCNM3a")};
   EXPECT_TRUE(signature.has_value());
   const auto key{
       sourcemeta::core::JWK::from(sourcemeta::core::parse_json(EC_P384_JWK))};
@@ -305,6 +314,8 @@ TEST(es256_rejects_a_p384_key) {
 }
 
 // RFC 7518 Section 3.4 gives every ECDSA algorithm an elliptic curve key
+// A signature the wrong verifier would accept does not exist, so what this
+// pins is the refusal rather than the comparison that follows it
 TEST(es384_rejects_an_rsa_key) {
   const auto signature{sourcemeta::core::base64url_decode(RSA_SIGNATURE)};
   EXPECT_TRUE(signature.has_value());
@@ -316,18 +327,24 @@ TEST(es384_rejects_an_rsa_key) {
       signature.value(), key.value()));
 }
 
-// RFC 7518 Section 3.4 ties this algorithm to the P-384 curve alone
+// RFC 7518 Section 3.4 ties this algorithm to the P-384 curve alone. As above,
+// the signature is a real one made with the P-256 key below under this
+// algorithm's own hash, so only the curve stands between it and acceptance
 TEST(es384_rejects_a_p256_key) {
-  const auto signature{sourcemeta::core::base64url_decode(RSA_SIGNATURE)};
+  const auto signature{sourcemeta::core::base64url_decode(
+      "zqMLn9iNimNYZJbUJ4a6oLVgwKGlYS1idat2HCcDPX-P07ZDfsJ5U2sBcUz5"
+      "YUkbjkHHvdNr6W8UCzU_NjOwWQ")};
   EXPECT_TRUE(signature.has_value());
-  const auto key{
-      sourcemeta::core::JWK::from(sourcemeta::core::parse_json(EC_JWK))};
+  const auto key{sourcemeta::core::JWK::from(
+      sourcemeta::core::parse_json(EC_P256_OTHER_JWK))};
   EXPECT_TRUE(key.has_value());
   EXPECT_FALSE(sourcemeta::core::jws_verify_signature(
       sourcemeta::core::JWSAlgorithm::ES384, ES256_SIGNING_INPUT,
       signature.value(), key.value()));
 }
 
+// A signature the wrong verifier would accept does not exist, so what this
+// pins is the refusal rather than the comparison that follows it
 TEST(es512_rejects_an_rsa_key) {
   const auto signature{sourcemeta::core::base64url_decode(RSA_SIGNATURE)};
   EXPECT_TRUE(signature.has_value());
@@ -339,6 +356,8 @@ TEST(es512_rejects_an_rsa_key) {
       signature.value(), key.value()));
 }
 
+// A signature the wrong verifier would accept does not exist, so what this
+// pins is the refusal rather than the comparison that follows it
 TEST(eddsa_rejects_an_rsa_key) {
   const auto signature{sourcemeta::core::base64url_decode(EDDSA_SIGNATURE)};
   EXPECT_TRUE(signature.has_value());
@@ -352,30 +371,50 @@ TEST(eddsa_rejects_an_rsa_key) {
 
 // RFC 7518 Section 3.2 asks for a key of at least the hash output size
 TEST(hs256_rejects_a_secret_below_the_hash_size) {
+  // The tag is the one this key and input really produce, computed outside
+  // this library, so the refusal can only come from the size of the key and
+  // not from a signature that was never going to match
+  const auto signature{sourcemeta::core::base64url_decode(
+      "ChFflhqtBAe4-Nn-P5U2RRzl1RB181AbzNxaNku9ftk")};
+  EXPECT_TRUE(signature.has_value());
   const auto key{sourcemeta::core::JWK::from(
       sourcemeta::core::parse_json(OCT_JWK_16_BYTES))};
   EXPECT_TRUE(key.has_value());
   EXPECT_FALSE(sourcemeta::core::jws_verify_signature(
-      sourcemeta::core::JWSAlgorithm::HS256, RFC7515_A1_SIGNING_INPUT, "",
-      key.value()));
+      sourcemeta::core::JWSAlgorithm::HS256, RFC7515_A1_SIGNING_INPUT,
+      signature.value(), key.value()));
 }
 
 TEST(hs384_rejects_a_secret_below_the_hash_size) {
+  // The tag is the one this key and input really produce, computed outside
+  // this library, so the refusal can only come from the size of the key and
+  // not from a signature that was never going to match
+  const auto signature{sourcemeta::core::base64url_decode(
+      "cLISYhgbinnpCk4MlYVbwxRscu4a8Uan8FrU4hMjeYdI_BtseA2_3vUlEmVT"
+      "kWnN")};
+  EXPECT_TRUE(signature.has_value());
   const auto key{sourcemeta::core::JWK::from(
       sourcemeta::core::parse_json(OCT_JWK_32_BYTES))};
   EXPECT_TRUE(key.has_value());
   EXPECT_FALSE(sourcemeta::core::jws_verify_signature(
-      sourcemeta::core::JWSAlgorithm::HS384, RFC7515_A1_SIGNING_INPUT, "",
-      key.value()));
+      sourcemeta::core::JWSAlgorithm::HS384, RFC7515_A1_SIGNING_INPUT,
+      signature.value(), key.value()));
 }
 
 TEST(hs512_rejects_a_secret_below_the_hash_size) {
+  // The tag is the one this key and input really produce, computed outside
+  // this library, so the refusal can only come from the size of the key and
+  // not from a signature that was never going to match
+  const auto signature{sourcemeta::core::base64url_decode(
+      "nROtnrTtvHMh8h-pNXtUZUpulAZvRzeFjPAomkVhKBASJAffuQZmDBG9F7JZ"
+      "80orxd2-wK4c7TdcbXXyQCB2gQ")};
+  EXPECT_TRUE(signature.has_value());
   const auto key{sourcemeta::core::JWK::from(
       sourcemeta::core::parse_json(OCT_JWK_32_BYTES))};
   EXPECT_TRUE(key.has_value());
   EXPECT_FALSE(sourcemeta::core::jws_verify_signature(
-      sourcemeta::core::JWSAlgorithm::HS512, RFC7515_A1_SIGNING_INPUT, "",
-      key.value()));
+      sourcemeta::core::JWSAlgorithm::HS512, RFC7515_A1_SIGNING_INPUT,
+      signature.value(), key.value()));
 }
 
 // The key names the same algorithm the caller asked for, which is the one

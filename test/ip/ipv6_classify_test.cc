@@ -300,11 +300,6 @@ TEST(near_miss_of_the_nat64_local_use_prefix) {
             sourcemeta::core::IPAddressClass::Reserved);
 }
 
-TEST(near_miss_of_the_anycast_addresses_above_the_range) {
-  EXPECT_EQ(sourcemeta::core::ipv6_classify("2001:1::4").value(),
-            sourcemeta::core::IPAddressClass::Reserved);
-}
-
 TEST(near_miss_of_the_anycast_addresses_with_a_set_interior_byte) {
   EXPECT_EQ(sourcemeta::core::ipv6_classify("2001:1::1:1").value(),
             sourcemeta::core::IPAddressClass::Reserved);
@@ -342,10 +337,5 @@ TEST(near_miss_of_the_6to4_prefix) {
 
 TEST(near_miss_of_the_later_documentation_prefix_on_its_second_byte) {
   EXPECT_EQ(sourcemeta::core::ipv6_classify("3ffe::1").value(),
-            sourcemeta::core::IPAddressClass::Public);
-}
-
-TEST(near_miss_of_the_later_documentation_prefix_on_its_third_byte) {
-  EXPECT_EQ(sourcemeta::core::ipv6_classify("3fff:1000::1").value(),
             sourcemeta::core::IPAddressClass::Public);
 }

@@ -449,14 +449,15 @@ TEST(html_block_tag_closed_after_its_name) {
   EXPECT_EQ(result, "<div/>\ntext\n");
 }
 
-// The scanner lowercases a tag name into a fixed buffer to weigh it against
-// the names that open a block of their own. A name longer than that buffer
-// holds is none of them, so CommonMark section 4.6 start condition 7 takes it
-// as an ordinary open tag rather than the buffer being overrun
+// The scanner lowercases a tag name into a sixteen byte buffer to weigh it
+// against the names that open a block of their own. A seventeenth letter is
+// one more than the buffer holds, so the name is abandoned rather than the
+// buffer overrun, and CommonMark section 4.6 start condition 7 takes the tag
+// as an ordinary one
 TEST(html_block_tag_name_longer_than_the_lowercase_buffer) {
   const auto result{
-      sourcemeta::core::markdown_to_html("<abcdefghijklmnop>\n"sv, false)};
-  EXPECT_EQ(result, "<abcdefghijklmnop>\n");
+      sourcemeta::core::markdown_to_html("<abcdefghijklmnopq>\n"sv, false)};
+  EXPECT_EQ(result, "<abcdefghijklmnopq>\n");
 }
 
 // CommonMark section 6.6 gives a declaration an ASCII letter and then
