@@ -1,0 +1,5 @@
+TAP version 14
+1..1
+not ok 1 - error_env_usage.clitest
+# error_env_usage.clitest:1: usage: ENV <name> <value>
+# 0 passed, 1 failed

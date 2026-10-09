@@ -4600,6 +4600,18 @@ TEST(corrupt_operation_entry_string_out_of_bounds) {
   EXPECT_TRUE(view.operation_id(1).empty());
 }
 
+TEST(corrupt_operation_entry_string_length_past_the_string_table) {
+  auto bytes{corrupt_router_core(0x50, 0x50)};
+  bytes.insert(bytes.end(), {0x01, 0x00});
+  bytes.insert(bytes.end(), {0x00, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00,
+                             0x01, 0x00, 0x0B, 0x00});
+  const sourcemeta::core::URITemplateRouterView view{bytes.data(),
+                                                     bytes.size()};
+  EXPECT_EQ(view.operation("op_1").first, 0);
+  EXPECT_EQ(view.operation("op_1").second, 0);
+  EXPECT_TRUE(view.operation_id(1).empty());
+}
+
 TEST(corrupt_paths_entries_exceed_buffer) {
   auto bytes{corrupt_router_core(0x50, 0x50)};
   bytes.insert(bytes.end(), {0xFF, 0xFF});
@@ -4622,6 +4634,18 @@ TEST(corrupt_path_entry_string_out_of_bounds) {
   EXPECT_EQ(view.path(1), "");
 }
 
+TEST(corrupt_path_entry_string_length_past_the_string_table) {
+  auto bytes{corrupt_router_core(0x50, 0x50)};
+  bytes.insert(bytes.end(), {0x01, 0x00});
+  bytes.insert(bytes.end(), {0x01, 0x00, 0x0B, 0x00, 0x00, 0x00, 0x00, 0x00,
+                             0x05, 0x00, 0x00, 0x00});
+  const sourcemeta::core::URITemplateRouterView view{bytes.data(),
+                                                     bytes.size()};
+  EXPECT_EQ(view.at(0), 1);
+  EXPECT_EQ(view.context(1), 11);
+  EXPECT_EQ(view.path(1), "");
+}
+
 TEST(corrupt_base_path_outside_string_table) {
   const std::array<std::uint32_t, 20> data{
       {0x52544552, 9, 1, 80, 80,         0, 999,        5, 0, 0,
@@ -4632,9 +4656,32 @@ TEST(corrupt_base_path_outside_string_table) {
   EXPECT_TRUE(view.base_path().empty());
 }
 
+// The offset and the length are checked as a pair, and an offset the table
+// holds leaves the length as the only thing standing between a reader and the
+// bytes past its end
+TEST(corrupt_base_path_length_past_the_string_table) {
+  const std::array<std::uint32_t, 20> data{
+      {0x52544552, 9, 1, 80, 80,         0, 0,          5, 0, 0,
+       0,          0, 0, 0,  0xFFFFFFFF, 0, 0xFFFFFFFF, 0, 0, 0}};
+  const sourcemeta::core::URITemplateRouterView view{
+      reinterpret_cast<const std::uint8_t *>(data.data()),
+      (data.size() * sizeof(data[0]))};
+  EXPECT_TRUE(view.base_path().empty());
+}
+
 TEST(corrupt_base_url_outside_string_table) {
   const std::array<std::uint32_t, 20> data{
       {0x52544552, 9, 1, 80, 80,         0, 0,          0, 0, 999,
+       5,          0, 0, 0,  0xFFFFFFFF, 0, 0xFFFFFFFF, 0, 0, 0}};
+  const sourcemeta::core::URITemplateRouterView view{
+      reinterpret_cast<const std::uint8_t *>(data.data()),
+      (data.size() * sizeof(data[0]))};
+  EXPECT_TRUE(view.base_url().empty());
+}
+
+TEST(corrupt_base_url_length_past_the_string_table) {
+  const std::array<std::uint32_t, 20> data{
+      {0x52544552, 9, 1, 80, 80,         0, 0,          0, 0, 0,
        5,          0, 0, 0,  0xFFFFFFFF, 0, 0xFFFFFFFF, 0, 0, 0}};
   const sourcemeta::core::URITemplateRouterView view{
       reinterpret_cast<const std::uint8_t *>(data.data()),

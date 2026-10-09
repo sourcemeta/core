@@ -7,6 +7,8 @@
 #include <filesystem>   // std::filesystem
 #include <fstream>      // std::ofstream
 #include <ios>          // std::ios::binary
+#include <istream>      // std::istream
+#include <ostream>      // std::ostream
 #include <sstream>      // std::istringstream, std::ostringstream
 #include <string>       // std::string
 #include <system_error> // std::error_code
@@ -445,4 +447,52 @@ TEST_F(IOBinaryTest, has_more_data_on_file_view) {
   EXPECT_TRUE(reader.has_more_data());
   [[maybe_unused]] const auto second_byte{reader.get_byte()};
   EXPECT_FALSE(reader.has_more_data());
+}
+
+// A stream with no buffer behind it reports failure for every operation, which
+// is the one way to reach the stream error arms without a filesystem that
+// misbehaves
+TEST(write_to_a_stream_with_no_buffer_throws) {
+  std::ostream output{nullptr};
+  sourcemeta::core::BinaryWriter writer{output};
+  const std::array<std::byte, 2> data{{std::byte{0x01}, std::byte{0x02}}};
+  try {
+    writer.put_bytes(data.data(), data.size());
+    FAIL();
+  } catch (const sourcemeta::core::IOStreamWriteError &error) {
+    EXPECT_STREQ(error.what(), "Failed to write to stream");
+  }
+}
+
+TEST(the_position_of_a_stream_with_no_buffer_throws) {
+  std::ostream output{nullptr};
+  sourcemeta::core::BinaryWriter writer{output};
+  try {
+    [[maybe_unused]] const auto position{writer.position()};
+    FAIL();
+  } catch (const sourcemeta::core::IOStreamWriteError &error) {
+    EXPECT_STREQ(error.what(), "Failed to write to stream");
+  }
+}
+
+TEST(the_read_position_of_a_stream_with_no_buffer_throws) {
+  std::istream input{nullptr};
+  sourcemeta::core::BinaryReader reader{input};
+  try {
+    [[maybe_unused]] const auto position{reader.position()};
+    FAIL();
+  } catch (const sourcemeta::core::IOReadOutOfBoundsError &error) {
+    EXPECT_STREQ(error.what(), "Read past the end of the underlying data");
+  }
+}
+
+TEST(seeking_a_stream_with_no_buffer_throws) {
+  std::istream input{nullptr};
+  sourcemeta::core::BinaryReader reader{input};
+  try {
+    reader.seek(0);
+    FAIL();
+  } catch (const sourcemeta::core::IOReadOutOfBoundsError &error) {
+    EXPECT_STREQ(error.what(), "Read past the end of the underlying data");
+  }
 }

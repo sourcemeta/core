@@ -32,6 +32,11 @@ struct ClassWithCustomMethod {
 
 enum class SampleEnum : std::uint8_t { Foo = 0, Bar = 1, Baz = 2 };
 
+static auto integer_from_json(const sourcemeta::core::JSON &value)
+    -> std::optional<int> {
+  return sourcemeta::core::from_json<int>(value);
+}
+
 TEST(class_with_custom_method) {
   const ClassWithCustomMethod value;
   const auto result{sourcemeta::core::to_json(value)};
@@ -1339,5 +1344,70 @@ TEST(from_json_variant_non_integer_index_fails) {
 TEST(from_json_variant_index_out_of_range_fails) {
   const auto result{sourcemeta::core::from_json<std::variant<int, bool>>(
       sourcemeta::core::parse_json("[ 5, 0 ]"))};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_decimal_non_decimal_fails) {
+  const auto result{sourcemeta::core::from_json<sourcemeta::core::Decimal>(
+      sourcemeta::core::JSON{1.5})};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_object_hash_second_element_non_integer_fails) {
+  const auto result{
+      sourcemeta::core::from_json<sourcemeta::core::JSON::Object::hash_type>(
+          sourcemeta::core::parse_json(R"JSON([ 1, "x", 3, 4 ])JSON"))};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_object_hash_third_element_non_integer_fails) {
+  const auto result{
+      sourcemeta::core::from_json<sourcemeta::core::JSON::Object::hash_type>(
+          sourcemeta::core::parse_json(R"JSON([ 1, 2, "x", 4 ])JSON"))};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_object_hash_fourth_element_non_integer_fails) {
+  const auto result{
+      sourcemeta::core::from_json<sourcemeta::core::JSON::Object::hash_type>(
+          sourcemeta::core::parse_json(R"JSON([ 1, 2, 3, "x" ])JSON"))};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_file_time_non_integer_fails) {
+  const auto result{
+      sourcemeta::core::from_json<std::filesystem::file_time_type>(
+          sourcemeta::core::JSON{"x"})};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_path_non_string_fails) {
+  const auto result{sourcemeta::core::from_json<std::filesystem::path>(
+      sourcemeta::core::JSON{5})};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_small_bitset_non_integer_fails) {
+  const auto result{
+      sourcemeta::core::from_json<std::bitset<8>>(sourcemeta::core::JSON{"x"})};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_large_bitset_non_string_fails) {
+  const auto result{
+      sourcemeta::core::from_json<std::bitset<128>>(sourcemeta::core::JSON{5})};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_vector_with_callback_non_array_fails) {
+  const auto result{sourcemeta::core::from_json<std::vector<int>>(
+      sourcemeta::core::parse_json(R"JSON({ "foo": 1 })JSON"),
+      integer_from_json)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_map_with_callback_non_object_fails) {
+  const auto result{sourcemeta::core::from_json<std::map<std::string, int>>(
+      sourcemeta::core::parse_json(R"JSON([ 1, 2 ])JSON"), integer_from_json)};
   EXPECT_FALSE(result.has_value());
 }
