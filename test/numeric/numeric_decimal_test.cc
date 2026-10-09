@@ -6475,3 +6475,17 @@ TEST(multiply_carrying_past_the_widest_exponent_leaves_the_operand_alone) {
     EXPECT_EQ(left.to_string(), original.to_string());
   }
 }
+
+// A result too small to be written in full is reported as out of range by the
+// C library on some platforms although the format holds it. Reading a value
+// back goes through this module's own conversion for that reason, and for the
+// separate reason that the C library reads the separator the running locale
+// names rather than the one a written decimal carries. This pins the choice of
+// conversion, so it also stands guard over that second reason, which cannot be
+// shown directly without a locale the platform may not carry.
+TEST(to_double_keeps_a_subnormal_result) {
+  const sourcemeta::core::Decimal value{"0." + std::string(309, '0') + "5"};
+  const auto result{value.to_double()};
+  EXPECT_GT(result, 0.0);
+  EXPECT_LT(result, 1e-300);
+}

@@ -141,10 +141,11 @@ inline auto construct_number(const char *data, const std::uint32_t length,
     }
 
     const std::string_view value{data, length};
-    const auto double_result{sourcemeta::core::to_double(value)};
+    const auto double_result{sourcemeta::core::to_double_exact(value)};
     if (double_result.has_value()) {
       return JSON{double_result.value()};
     }
+
     try {
       return JSON{Decimal{value}};
     } catch (const DecimalParseError &) {

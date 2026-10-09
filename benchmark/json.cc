@@ -256,6 +256,81 @@ BENCHMARK(JSON_Parse_Real) {
   }
 }
 
+BENCHMARK(JSON_Parse_Real_Inexact) {
+  const auto *const document{R"JSON([
+    3.14,
+    2.4,
+    34.12,
+    2.13,
+    0.2,
+    1.1,
+    9997.76,
+    0.01,
+    123.456,
+    -273.15,
+    192.168,
+    37.76,
+    -122.427,
+    52.273577,
+    10.213854,
+    0.001,
+    99.9,
+    1.7,
+    4.7,
+    66.6,
+    3.14,
+    2.4,
+    34.12,
+    2.13,
+    0.2,
+    1.1,
+    9997.76,
+    0.01,
+    123.456,
+    -273.15,
+    192.168,
+    37.76,
+    -122.427,
+    52.273577,
+    10.213854,
+    0.001,
+    99.9,
+    1.7,
+    4.7,
+    66.6,
+    3.14,
+    2.4,
+    34.12,
+    2.13,
+    0.2,
+    1.1,
+    9997.76,
+    0.01,
+    123.456,
+    -273.15,
+    192.168,
+    37.76,
+    -122.427,
+    52.273577,
+    10.213854,
+    0.001,
+    99.9,
+    1.7,
+    4.7,
+    66.6
+  ])JSON"};
+
+  assert(
+      std::ranges::all_of(sourcemeta::core::parse_json(document).as_array(),
+                          [](const auto &item) { return item.is_decimal(); }));
+
+  for (auto iteration : state) {
+    auto result{sourcemeta::core::parse_json(document)};
+    assert(result.is_array());
+    sourcemeta::core::benchmark_do_not_optimize(result);
+  }
+}
+
 BENCHMARK(JSON_Parse_Decimal) {
   const auto *const document{R"JSON([
     123456789012345678901234567890,

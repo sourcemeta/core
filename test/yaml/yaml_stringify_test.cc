@@ -150,14 +150,14 @@ TEST(decimal_high_precision_real) {
       sourcemeta::core::Decimal{"3.14159265358979"}};
   std::ostringstream stream;
   sourcemeta::core::stringify_yaml(document, stream);
-  EXPECT_EQ(stream.str(), "3.14159265358979e+0\n");
+  EXPECT_EQ(stream.str(), "3.14159265358979\n");
 }
 
-TEST(decimal_exponential_notation) {
+TEST(decimal_small_fraction) {
   const sourcemeta::core::JSON document{sourcemeta::core::Decimal{"0.001"}};
   std::ostringstream stream;
   sourcemeta::core::stringify_yaml(document, stream);
-  EXPECT_EQ(stream.str(), "1e-3\n");
+  EXPECT_EQ(stream.str(), "0.001\n");
 }
 
 TEST(decimal_in_object) {
@@ -988,4 +988,45 @@ TEST(block_scalar_with_an_explicit_indicator_laid_out_beyond_one_digit) {
   std::ostringstream stream;
   sourcemeta::core::stringify_yaml(document, stream, roundtrip, 10);
   EXPECT_EQ(stream.str(), "foo: \"bar\\n\"\n");
+}
+
+// The rule that decides how a decimal is written is what keeps reading the
+// output again from recovering a double instead, and it is written out once in
+// each of the two writers. Holding them to the same answer here is what shows
+// that the two copies have not drifted apart.
+TEST(decimal_an_inexact_dotted_number_is_written_as_json_writes_it) {
+  const auto document{sourcemeta::core::parse_json("3.14")};
+  std::ostringstream json_stream;
+  sourcemeta::core::stringify(document, json_stream);
+  std::ostringstream yaml_stream;
+  sourcemeta::core::stringify_yaml(document, yaml_stream);
+  EXPECT_EQ(yaml_stream.str(), json_stream.str() + "\n");
+}
+
+TEST(decimal_an_integral_number_in_exponent_form_is_written_as_json_writes_it) {
+  const auto document{sourcemeta::core::parse_json("9007199254740993e0")};
+  std::ostringstream json_stream;
+  sourcemeta::core::stringify(document, json_stream);
+  std::ostringstream yaml_stream;
+  sourcemeta::core::stringify_yaml(document, yaml_stream);
+  EXPECT_EQ(yaml_stream.str(), json_stream.str() + "\n");
+}
+
+TEST(decimal_a_large_number_in_exponent_form_is_written_as_json_writes_it) {
+  const auto document{sourcemeta::core::parse_json("1e300")};
+  std::ostringstream json_stream;
+  sourcemeta::core::stringify(document, json_stream);
+  std::ostringstream yaml_stream;
+  sourcemeta::core::stringify_yaml(document, yaml_stream);
+  EXPECT_EQ(yaml_stream.str(), json_stream.str() + "\n");
+}
+
+TEST(
+    decimal_a_dotted_number_the_format_holds_exactly_is_written_as_json_writes_it) {
+  const auto document{sourcemeta::core::parse_json("0.5")};
+  std::ostringstream json_stream;
+  sourcemeta::core::stringify(document, json_stream);
+  std::ostringstream yaml_stream;
+  sourcemeta::core::stringify_yaml(document, yaml_stream);
+  EXPECT_EQ(yaml_stream.str(), json_stream.str() + "\n");
 }
