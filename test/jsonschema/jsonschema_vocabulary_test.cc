@@ -1073,7 +1073,8 @@ TEST(vocabularies_of_a_metaschema_must_be_an_object) {
   try {
     const auto result{vocabularies(document, test_resolver)};
     FAIL();
-  } catch (const sourcemeta::core::SchemaError &error) {
+  } catch (const sourcemeta::core::SchemaVocabularyError &error) {
+    EXPECT_EQ(error.uri(), "https://sourcemeta.com/array-vocabularies");
     EXPECT_STREQ(error.what(),
                  "The vocabularies of a metaschema must be an object");
   } catch (...) {
@@ -1089,7 +1090,8 @@ TEST(vocabularies_of_a_metaschema_must_be_declared_with_booleans) {
   try {
     const auto result{vocabularies(document, test_resolver)};
     FAIL();
-  } catch (const sourcemeta::core::SchemaError &error) {
+  } catch (const sourcemeta::core::SchemaVocabularyError &error) {
+    EXPECT_EQ(error.uri(), "https://sourcemeta.com/string-vocabulary-value");
     EXPECT_STREQ(
         error.what(),
         "Every vocabulary of a metaschema must be declared with a boolean");

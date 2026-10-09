@@ -588,7 +588,8 @@ auto is_pre_vocabulary_base_dialect(
 }
 
 auto parse_vocabularies(const sourcemeta::core::JSON &schema,
-                        const sourcemeta::core::SchemaBaseDialect base_dialect)
+                        const sourcemeta::core::SchemaBaseDialect base_dialect,
+                        const std::string_view dialect)
     -> std::optional<sourcemeta::core::SchemaVocabularies> {
   if (base_dialect !=
           sourcemeta::core::SchemaBaseDialect::JSON_SCHEMA_2020_12 &&
@@ -616,14 +617,15 @@ auto parse_vocabularies(const sourcemeta::core::JSON &schema,
   // as declaring nothing would quietly hand the caller a core-only answer for
   // a document that never said so
   if (!vocabulary_entry->is_object()) {
-    throw sourcemeta::core::SchemaError(
-        "The vocabularies of a metaschema must be an object");
+    throw sourcemeta::core::SchemaVocabularyError(
+        dialect, "The vocabularies of a metaschema must be an object");
   }
 
   sourcemeta::core::SchemaVocabularies result;
   for (const auto &entry : vocabulary_entry->as_object()) {
     if (!entry.second.is_boolean()) {
-      throw sourcemeta::core::SchemaError(
+      throw sourcemeta::core::SchemaVocabularyError(
+          dialect,
           "Every vocabulary of a metaschema must be declared with a boolean");
     }
 
@@ -700,7 +702,7 @@ auto sourcemeta::core::vocabularies(const SchemaResolver &resolver,
    */
 
   const auto core{core_vocabulary_known(base_dialect)};
-  auto result{parse_vocabularies(schema_dialect, base_dialect)
+  auto result{parse_vocabularies(schema_dialect, base_dialect, dialect)
                   .value_or(SchemaVocabularies{})};
   if (result.empty()) {
     result.insert(core, true);

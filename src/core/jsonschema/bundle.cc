@@ -213,12 +213,21 @@ auto embed_schema(JSON &root, const Pointer &container,
       current->assign_if_missing(token.to_property(), JSON::make_object());
       current = &current->at(token.to_property());
     } else {
-      // A place that holds names cannot be stepped into by position, and a
-      // position at or past the end names nothing. Neither can be left to a
-      // check that only runs in debug: the step above makes a missing place
-      // hold names, so reading a position out of it in a release build reads
-      // storage that was never written
-      if (!current->is_array() || current->size() <= token.to_index()) {
+      // Neither of these can be left to a check that only runs in debug: the
+      // step above makes a missing place hold names, so reading a position out
+      // of it in a release build reads storage that was never written
+      //
+      // A place that holds names cannot be stepped into by position at all,
+      // which is a different thing from a position that reaches past what a
+      // place holds, so the two are told apart the way the step below tells
+      // the kind of a place apart
+      if (!current->is_array()) {
+        throw SchemaContainerError(container,
+                                   "Could not bundle to a container that is "
+                                   "not an array");
+      }
+
+      if (current->size() <= token.to_index()) {
         throw SchemaContainerError(
             container, "Could not bundle to a container that does not exist");
       }
@@ -1143,10 +1152,6 @@ auto schema_bundle(JSON &schema, const SchemaWalker &walker,
     // one that ran out reports what it was handed. The caller set the limit
     // for the operation, so that is what the operation reports back
     throw SchemaFrameLimitError{options.max_locations};
-  }
-
-  if (options.locations_remaining != nullptr) {
-    *options.locations_remaining = remaining;
   }
 }
 
