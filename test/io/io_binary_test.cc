@@ -455,7 +455,7 @@ TEST_F(IOBinaryTest, has_more_data_on_file_view) {
 TEST(write_to_a_stream_with_no_buffer_throws) {
   std::ostream output{nullptr};
   sourcemeta::core::BinaryWriter writer{output};
-  const std::array<std::byte, 2> data{std::byte{0x01}, std::byte{0x02}};
+  const std::array<std::byte, 2> data{{std::byte{0x01}, std::byte{0x02}}};
   try {
     writer.put_bytes(data.data(), data.size());
     FAIL();
