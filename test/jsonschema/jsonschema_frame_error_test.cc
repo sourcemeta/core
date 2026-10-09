@@ -2878,3 +2878,251 @@ TEST(a_metaschema_carried_by_another_selected_path_is_out_of_scope) {
     FAIL();
   }
 }
+
+// JSON Schema 2020-12 Section 8.2.2 gives the anchor production as
+// "^[A-Za-z_][-A-Za-z0-9._]*$", so the first character may be a letter or an
+// underscore and nothing else
+TEST(anchor_2020_12_starting_with_a_digit) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$anchor": "1foo"
+  })JSON");
+
+  try {
+    [[maybe_unused]] const sourcemeta::core::SchemaFrame frame{
+        sourcemeta::core::SchemaFrame::Mode::References, document,
+        sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_STREQ(error.what(), "Invalid anchor value");
+    EXPECT_EQ(error.keyword(), "$anchor");
+    EXPECT_EQ(error.value(), "1foo");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// An underscore opens an anchor of this revision, which the earlier one does
+// not allow
+TEST(anchor_2020_12_starting_with_an_underscore) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$anchor": "_foo"
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+  EXPECT_TRUE(frame.traverse("#_foo").has_value());
+}
+
+// Every character the production admits after the first is accepted, and the
+// tilde sits above them all so it closes the run
+TEST(anchor_2020_12_holding_every_admitted_character_then_one_that_is_not) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$anchor": "aA1_.~"
+  })JSON");
+
+  try {
+    [[maybe_unused]] const sourcemeta::core::SchemaFrame frame{
+        sourcemeta::core::SchemaFrame::Mode::References, document,
+        sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_STREQ(error.what(), "Invalid anchor value");
+    EXPECT_EQ(error.keyword(), "$anchor");
+    EXPECT_EQ(error.value(), "aA1_.~");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// The dynamic anchor of the same revision is held to the same production
+TEST(dynamic_anchor_2020_12_starting_with_a_digit) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$dynamicAnchor": "1foo"
+  })JSON");
+
+  try {
+    [[maybe_unused]] const sourcemeta::core::SchemaFrame frame{
+        sourcemeta::core::SchemaFrame::Mode::References, document,
+        sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_STREQ(error.what(), "Invalid dynamic anchor value");
+    EXPECT_EQ(error.keyword(), "$dynamicAnchor");
+    EXPECT_EQ(error.value(), "1foo");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// JSON Schema 2019-09 Section 8.2.3 gives the anchor production as
+// "^[A-Za-z][-A-Za-z0-9.:_]*$", so it opens with a letter alone and admits a
+// colon after it
+TEST(anchor_2019_09_starting_with_an_underscore) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$anchor": "_foo"
+  })JSON");
+
+  try {
+    [[maybe_unused]] const sourcemeta::core::SchemaFrame frame{
+        sourcemeta::core::SchemaFrame::Mode::References, document,
+        sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_STREQ(error.what(), "Invalid anchor value");
+    EXPECT_EQ(error.keyword(), "$anchor");
+    EXPECT_EQ(error.value(), "_foo");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(anchor_2019_09_starting_above_the_letters) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$anchor": "~foo"
+  })JSON");
+
+  try {
+    [[maybe_unused]] const sourcemeta::core::SchemaFrame frame{
+        sourcemeta::core::SchemaFrame::Mode::References, document,
+        sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_STREQ(error.what(), "Invalid anchor value");
+    EXPECT_EQ(error.keyword(), "$anchor");
+    EXPECT_EQ(error.value(), "~foo");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(anchor_2019_09_starting_with_a_capital) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$anchor": "Foo"
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+  EXPECT_TRUE(frame.traverse("#Foo").has_value());
+}
+
+TEST(anchor_2019_09_holding_every_admitted_character_then_one_that_is_not) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$anchor": "aA1-_.:~"
+  })JSON");
+
+  try {
+    [[maybe_unused]] const sourcemeta::core::SchemaFrame frame{
+        sourcemeta::core::SchemaFrame::Mode::References, document,
+        sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_STREQ(error.what(), "Invalid anchor value");
+    EXPECT_EQ(error.keyword(), "$anchor");
+    EXPECT_EQ(error.value(), "aA1-_.:~");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// Draft 7 spells a plain name fragment inside the identifier, and holds it to
+// the same production the later revision gives the anchor
+TEST(draft7_identifier_fragment_holding_a_character_that_is_not_admitted) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "#aA1-_.:~"
+  })JSON");
+
+  try {
+    [[maybe_unused]] const sourcemeta::core::SchemaFrame frame{
+        sourcemeta::core::SchemaFrame::Mode::References, document,
+        sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_STREQ(error.what(), "Invalid anchor value");
+    EXPECT_EQ(error.keyword(), "$id");
+    EXPECT_EQ(error.value(), "#aA1-_.:~");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// JSON Schema 2020-12 Section 8.2.2 lets one name carry both anchors, which
+// makes that name an extension point as well as a plain fragment
+TEST(anchor_and_dynamic_anchor_of_one_name) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$dynamicAnchor": "same",
+    "$anchor": "same"
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+  EXPECT_TRUE(frame.traverse("#same").has_value());
+}
+
+TEST(anchor_and_dynamic_anchor_of_different_names) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$dynamicAnchor": "first",
+    "$anchor": "second"
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+  EXPECT_TRUE(frame.traverse("#first").has_value());
+  EXPECT_TRUE(frame.traverse("#second").has_value());
+}
+
+// JSON Schema 2019-09 Section 8.2.4.2.2 carries the recursive anchor as a
+// boolean, which is kept as an anchor of no name and so never collides with a
+// plain one
+TEST(recursive_anchor_beside_a_plain_anchor) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$recursiveAnchor": true,
+    "$anchor": "plain"
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+  EXPECT_TRUE(frame.traverse("#plain").has_value());
+}
+
+// The hyper-schema dialects of each draft spell their plain name fragments the
+// same way the schema dialects do
+TEST(draft7_hyper_schema_identifier_fragment) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/hyper-schema#",
+    "$id": "#plain"
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+  EXPECT_TRUE(frame.traverse("#plain").has_value());
+}
+
+TEST(draft6_hyper_schema_identifier_fragment) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/hyper-schema#",
+    "$id": "#plain"
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+  EXPECT_TRUE(frame.traverse("#plain").has_value());
+}

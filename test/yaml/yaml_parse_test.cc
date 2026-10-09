@@ -7,7 +7,7 @@
 #include <fstream>  // std::ifstream
 #include <ios>      // std::ios::binary
 #include <iostream> // std::cerr
-#include <sstream>  // std::istringstream
+#include <sstream>  // std::istringstream, std::ostringstream
 #include <string>   // std::string
 #include <utility>  // std::move
 
@@ -3225,4 +3225,229 @@ TEST(two_consecutive_breaks_in_a_quoted_scalar_fold_to_a_newline) {
   const auto result{sourcemeta::core::parse_yaml(input)};
   EXPECT_TRUE(result.is_string());
   EXPECT_EQ(result.to_string(), "a\nb");
+}
+
+// YAML 1.2.2 Section 6.8.1 joins a major and a minor decimal number with a
+// dot, so neither side may be missing
+TEST(yaml_directive_version_with_no_major_is_rejected) {
+  const std::string input{"%YAML .1\n---\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid version in %YAML directive");
+    EXPECT_EQ(error.line(), 1);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(yaml_directive_version_with_no_minor_is_rejected) {
+  const std::string input{"%YAML 1.\n---\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid version in %YAML directive");
+    EXPECT_EQ(error.line(), 1);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(yaml_directive_version_with_a_non_digit_major_is_rejected) {
+  const std::string input{"%YAML a.1\n---\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid version in %YAML directive");
+    EXPECT_EQ(error.line(), 1);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// YAML 1.2.2 Section 6.8.1 rejects a document naming a higher major version
+// than the processor supports, however many digits that version carries
+TEST(yaml_directive_version_of_a_higher_major_is_rejected) {
+  const std::string input{"%YAML 2.0\n---\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Unsupported major version in %YAML directive");
+    EXPECT_EQ(error.line(), 1);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(yaml_directive_version_of_a_two_digit_major_is_rejected) {
+  const std::string input{"%YAML 11.0\n---\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Unsupported major version in %YAML directive");
+    EXPECT_EQ(error.line(), 1);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// YAML 1.2.2 Section 6.8 separates a directive from what follows it with white
+// space, which a tab satisfies as much as a space
+TEST(yaml_directive_version_followed_by_a_tab_is_accepted) {
+  const std::string input{"%YAML 1.2\t\n--- value\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"value"});
+}
+
+TEST(yaml_directive_version_followed_by_a_tab_then_a_comment_is_accepted) {
+  const std::string input{"%YAML 1.2\t# a comment\n--- value\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"value"});
+}
+
+// YAML 1.2.2 Section 6.8.2 gives the tag directive a handle and a prefix, and
+// one carrying neither names nothing to register
+TEST(yaml_tag_directive_with_no_handle_is_ignored) {
+  const std::string input{"%TAG\n--- value\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"value"});
+}
+
+TEST(yaml_tag_directive_with_no_prefix_is_ignored) {
+  const std::string input{"%TAG !\n--- value\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"value"});
+}
+
+TEST(yaml_tag_directive_separated_by_tabs_is_accepted) {
+  const std::string input{"%TAG\t!e!\thttp://example.com/\n--- value\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"value"});
+}
+
+// YAML 1.2.2 Section 6.9.1 writes a verbatim tag between angle brackets, and
+// the opening bracket is not a tag character, so one left unclosed cannot be
+// read as a shorthand tag either
+TEST(yaml_verbatim_tag_without_its_closing_bracket_is_rejected) {
+  const std::string input{"!<tag:yaml.org,2002:str value\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Unterminated verbatim tag");
+    EXPECT_EQ(error.line(), 1);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// A verbatim tag is built from URI characters, which exclude a line break
+TEST(yaml_verbatim_tag_broken_by_a_line_break_is_rejected) {
+  const std::string input{"!<tag:yaml.org\n2002:str> value\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Unterminated verbatim tag");
+    EXPECT_EQ(error.line(), 1);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// A handle with nothing after it names no tag, so the whole property is left
+// as the local tag it spells and the value keeps its plain resolution
+TEST(yaml_secondary_handle_with_an_empty_suffix) {
+  const std::string input{"!! value\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"value"});
+}
+
+TEST(yaml_named_handle_with_an_empty_suffix) {
+  const std::string input{"!e! value\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"value"});
+}
+
+TEST(yaml_local_tag_with_a_name) {
+  const std::string input{"!custom value\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"value"});
+}
+
+// YAML 1.2.2 Section 9.2 lets an explicit document carry no node, so a
+// marker with nothing after it is one empty document
+TEST(yaml_a_directives_end_marker_with_nothing_after_it) {
+  std::istringstream stream{"---\n"};
+  const auto first{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_TRUE(first.is_null());
+  EXPECT_EQ(stream.peek(), EOF);
+}
+
+// A leading document end marker closes a document that was never opened,
+// and the marker that follows opens the next one
+TEST(yaml_a_document_end_marker_then_a_directives_end_marker) {
+  std::istringstream stream{"...\n---\nfoo"};
+  const auto first{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_TRUE(first.is_null());
+  const auto second{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(second, sourcemeta::core::JSON{"foo"});
+  EXPECT_EQ(stream.peek(), EOF);
+}
+
+// Section 9.2 admits a run of document end markers, which close nothing
+// more than the one empty document between them
+TEST(yaml_two_document_end_markers_then_a_scalar) {
+  std::istringstream stream{"...\n...\nfoo"};
+  const auto first{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_TRUE(first.is_null());
+  const auto second{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(second, sourcemeta::core::JSON{"foo"});
+  EXPECT_EQ(stream.peek(), EOF);
+}
+
+// YAML 1.2.2 Section 6.8.3 has a processor ignore a directive it does not
+// know rather than refuse the document
+TEST(yaml_a_reserved_directive_before_a_document) {
+  std::istringstream stream{"%FOO bar\n---\nfoo"};
+  const auto first{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(first, sourcemeta::core::JSON{"foo"});
+  EXPECT_EQ(stream.peek(), EOF);
+}
+
+TEST(yaml_a_scalar_then_a_document_end_marker) {
+  std::istringstream stream{"---\nfoo\n...\n"};
+  const auto first{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(first, sourcemeta::core::JSON{"foo"});
+  EXPECT_EQ(stream.peek(), EOF);
+}
+
+// A directives end marker closes the document before it, so the first of
+// two stands for an empty document of its own
+TEST(yaml_two_directives_end_markers_then_a_scalar) {
+  std::istringstream stream{"---\n---\nfoo"};
+  const auto first{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_TRUE(first.is_null());
+  const auto second{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(second, sourcemeta::core::JSON{"foo"});
+  EXPECT_EQ(stream.peek(), EOF);
+}
+
+// A document end marker with nothing after it closes a document that never
+// began, which is nothing to read
+TEST(yaml_a_document_end_marker_with_nothing_after_it) {
+  const std::string input{"...\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Empty YAML document");
+  } catch (...) {
+    FAIL();
+  }
 }
