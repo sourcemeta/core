@@ -210,6 +210,29 @@ inline auto openapi_substitute_server_variables(const JSON::StringView address,
   return result;
 }
 
+// Whether what a variable stands for can bear on the kind of reference the
+// template names. RFC 3986 Section 3.2 ends the authority at the first slash,
+// question mark or number sign, and what follows any of those is the path, the
+// query or the fragment, none of which can turn an absolute reference into a
+// relative one. So only a variable reaching the part before the earliest of
+// them has to have what it stands for bounded, and one the template never
+// names reaches nothing at all
+inline auto openapi_server_variable_bears_on_absoluteness(
+    const JSON::StringView address, const JSON::String &name) -> bool {
+  JSON::String placeholder;
+  placeholder.reserve(name.size() + 2);
+  placeholder.push_back('{');
+  placeholder.append(name);
+  placeholder.push_back('}');
+  const auto occurrence{address.find(placeholder)};
+  if (occurrence == JSON::StringView::npos) {
+    return false;
+  }
+
+  const auto authority_end{address.find_first_of("/?#")};
+  return authority_end == JSON::StringView::npos || occurrence < authority_end;
+}
+
 // Whether a server URL template names an absolute URI whatever its variables
 // stand for. Section 4.8.6 bounds that: a `default` is "REQUIRED. The default
 // value to use for substitution, which SHALL be sent if an alternate value is
@@ -228,9 +251,20 @@ openapi_is_absolute_server_url_template(const JSON::StringView address,
   }
 
   for (const auto &variable : variables.as_object()) {
-    const auto *choices{variable.second.try_at("enum")};
-    if (choices == nullptr || !choices->is_array()) {
+    if (!openapi_server_variable_bears_on_absoluteness(address,
+                                                       variable.first)) {
       continue;
+    }
+
+    const auto *choices{variable.second.try_at("enum")};
+    // Section 4.8.6 admits an enumeration only where the substitution options
+    // are from a limited set, and sends the default only where an alternate
+    // value is not supplied, so a variable that enumerates nothing may stand
+    // for anything at all. Reading its default as the whole of what it may
+    // stand for would settle a question the description leaves open, which is
+    // the one thing this is here to refuse
+    if (choices == nullptr || !choices->is_array()) {
+      return false;
     }
 
     for (const auto &choice : choices->as_array()) {
