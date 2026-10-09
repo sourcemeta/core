@@ -210,6 +210,31 @@ inline auto openapi_substitute_server_variables(const JSON::StringView address,
   return result;
 }
 
+// The first slash, question mark or number sign standing in literal text,
+// which is the boundary the reasoning below draws on. Substitution takes
+// whatever a pair of braces holds as the name to look up, so one of those
+// inside a variable expression is part of a name rather than a boundary, and
+// the scan steps over every expression rather than reading the template flat
+inline auto openapi_server_authority_end(const JSON::StringView address)
+    -> JSON::StringView::size_type {
+  JSON::StringView::size_type cursor{0};
+  while (cursor < address.size()) {
+    const auto boundary{address.find_first_of("/?#{", cursor)};
+    if (boundary == JSON::StringView::npos || address[boundary] != '{') {
+      return boundary;
+    }
+
+    const auto closing{address.find('}', boundary)};
+    if (closing == JSON::StringView::npos) {
+      return JSON::StringView::npos;
+    }
+
+    cursor = closing + 1;
+  }
+
+  return JSON::StringView::npos;
+}
+
 // Whether what a variable stands for can bear on the kind of reference the
 // template names. RFC 3986 Section 3.2 ends the authority at the first slash,
 // question mark or number sign, and what follows any of those is the path, the
@@ -229,7 +254,7 @@ inline auto openapi_server_variable_bears_on_absoluteness(
     return false;
   }
 
-  const auto authority_end{address.find_first_of("/?#")};
+  const auto authority_end{openapi_server_authority_end(address)};
   return authority_end == JSON::StringView::npos || occurrence < authority_end;
 }
 

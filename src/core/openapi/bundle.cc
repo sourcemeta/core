@@ -24,7 +24,7 @@ namespace {
 // the resolvers hand back rather than of the document the caller passed in. A
 // walk reads a document in full before anything charges for it, so what this
 // bounds is how many oversized documents are read rather than whether one is
-auto charge(std::uint64_t &remaining, const std::size_t locations) -> void {
+auto charge(std::uint64_t &remaining, const std::uint64_t locations) -> void {
   assert(locations <= remaining);
   remaining -= locations;
 }
@@ -917,7 +917,7 @@ auto bundle_schemas(sourcemeta::core::JSON &document,
   const auto registered{
       sourcemeta::core::schema_bundle(document, walker, standalone_resolver,
                                       walk.dialect, "", schemas_options)};
-  charge(remaining, static_cast<std::size_t>(registered));
+  charge(remaining, registered);
   if (landed.empty()) {
     return false;
   }
