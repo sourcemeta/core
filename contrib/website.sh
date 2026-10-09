@@ -319,16 +319,17 @@ with open(merged, "w", encoding="utf-8") as output:
 
 total_lines = 0
 total_covered = 0
+# A file every one of whose lines is excused stays on the list, reading as no
+# lines out of no lines, because the list is the authoritative record and a file
+# that quietly stopped appearing on it would be the hardest kind of change to
+# notice
 for source in sorted(lines):
     held = {number: count for number, count in lines[source].items()
             if (source, number) not in forgiven}
-    if not held:
-        continue
-
     covered = sum(1 for count in held.values() if count > 0)
     total_lines += len(held)
     total_covered += covered
-    share = covered * 100 / len(held)
+    share = covered * 100 / len(held) if held else 100
     print(f"{share:8.2f}% {covered:6d}/{len(held):<6d} {source}")
 
 share = total_covered * 100 / total_lines if total_lines else 100
