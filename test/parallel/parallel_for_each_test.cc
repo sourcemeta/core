@@ -2,6 +2,7 @@
 #include <sourcemeta/core/test.h>
 
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <chrono>
 #include <climits>
@@ -202,10 +203,9 @@ TEST(thread_creation_failure) {
 
 // A size above the minimum is recorded without being checked against what the
 // machine has, so the refusal comes from the allocation at creation rather than
-// from the request. Darwin maps such a stack lazily and creates the thread, so
-// this is held to the platform that commits it up front, and to a word wide
-// enough for the size to be representable at all
-#if defined(__linux__) && SIZE_MAX > UINT_MAX
+// from the request. The shift is only representable in a word wider than
+// thirty-two bits
+#if SIZE_MAX > UINT_MAX
 TEST(thread_creation_failure_on_a_stack_too_large_to_allocate) {
   std::vector<std::size_t> items;
   items.reserve(20);
@@ -214,12 +214,18 @@ TEST(thread_creation_failure_on_a_stack_too_large_to_allocate) {
   }
 
   std::atomic<std::size_t> processed{0};
+  std::atomic<std::size_t> repeated{0};
+  std::array<std::atomic<std::size_t>, 20> handled{};
 
   try {
     sourcemeta::core::parallel_for_each(
         items.cbegin(), items.cend(),
-        [&processed](const auto, const auto, const auto) {
+        [&processed, &repeated, &handled](const auto item, const auto,
+                                          const auto) {
           processed.fetch_add(1);
+          if (handled.at(item).fetch_add(1) != 0) {
+            repeated.fetch_add(1);
+          }
         },
         4, 1uz << 46);
     FAIL();
@@ -228,8 +234,9 @@ TEST(thread_creation_failure_on_a_stack_too_large_to_allocate) {
   }
 
   // Whichever workers were created before the refusal may have taken items off
-  // the queue already, so what is pinned here is that the refusal is reported
-  // and that no item was handled twice
+  // the queue already, so the count is not pinned. What is pinned is that the
+  // refusal is reported and that the queue handed no item out twice
+  EXPECT_EQ(repeated.load(), 0);
   EXPECT_TRUE(processed.load() <= items.size());
 }
 #endif

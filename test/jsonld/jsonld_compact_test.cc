@@ -448,10 +448,10 @@ TEST(language_mismatch_keeps_value_object) {
   EXPECT_EQ(result, expected);
 }
 
-// JSON-LD 1.1 API Section 4.3.2 step 3.13 builds an inverse context key from a
+// JSON-LD 1.1 API Section 4.3, Inverse Context Creation, builds a key from a
 // term's language and direction together, so a term carrying both has to be
 // told apart from one carrying either alone or neither. The uppercase language
-// tag is what pins the lowercasing the step asks for
+// tag is what pins the lowercasing that algorithm asks for
 TEST(compact_selects_a_term_carrying_both_language_and_direction) {
   const auto input = sourcemeta::core::parse_json(R"([
     {
@@ -499,8 +499,8 @@ TEST(compact_selects_a_term_carrying_both_language_and_direction) {
   EXPECT_EQ(result, expected);
 }
 
-// API Section 6.2.2 step 4.6.4.1 reaches the same key while choosing a term for
-// a list, which asks for every item to carry both
+// JSON-LD 1.1 API Section 4.4, Term Selection, reaches the same key while
+// choosing a term for a list, which asks for every item to carry both
 TEST(compact_selects_a_list_term_carrying_both_language_and_direction) {
   const auto input = sourcemeta::core::parse_json(R"([
     {

@@ -3036,7 +3036,7 @@ TEST(context_defines_a_compact_iri_string_term_before_its_prefix) {
   EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
 }
 
-// JSON-LD 1.1 API Section 6.3 step 6 resolves a compact IRI through a term for
+// JSON-LD 1.1 API Section 5.2 step 6 resolves a compact IRI through a term for
 // its prefix, and with no such term the value is handed back as it was
 // written. The underscore keeps it from reading as a scheme RFC 3987 defines,
 // so nothing else could have resolved it either
