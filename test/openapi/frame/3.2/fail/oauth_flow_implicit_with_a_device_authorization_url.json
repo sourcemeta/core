@@ -1,0 +1,24 @@
+{
+  "document": {
+    "openapi": "3.2.1",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "components": {
+      "securitySchemes": {
+        "S": {
+          "type": "oauth2",
+          "flows": {
+            "implicit": {
+              "authorizationUrl": "/authorize",
+              "deviceAuthorizationUrl": "/device",
+              "scopes": {}
+            }
+          }
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "This OAuth Flow Object does not define a device authorization URI",
+    "location": "/components/securitySchemes/S/flows/implicit/deviceAuthorizationUrl"
+  }
+}

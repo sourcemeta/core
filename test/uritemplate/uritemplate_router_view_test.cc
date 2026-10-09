@@ -4610,6 +4610,10 @@ TEST(corrupt_operation_entry_string_length_past_the_string_table) {
   EXPECT_EQ(view.operation("op_1").first, 0);
   EXPECT_EQ(view.operation("op_1").second, 0);
   EXPECT_TRUE(view.operation_id(1).empty());
+  EXPECT_TRUE(view.base_path().empty());
+  EXPECT_TRUE(view.base_url().empty());
+  EXPECT_EQ(view.path(1), "");
+  EXPECT_FALSE(view.describes("/users"));
 }
 
 TEST(corrupt_paths_entries_exceed_buffer) {
@@ -4644,6 +4648,11 @@ TEST(corrupt_path_entry_string_length_past_the_string_table) {
   EXPECT_EQ(view.at(0), 1);
   EXPECT_EQ(view.context(1), 11);
   EXPECT_EQ(view.path(1), "");
+  EXPECT_TRUE(view.base_path().empty());
+  EXPECT_TRUE(view.base_url().empty());
+  EXPECT_EQ(view.operation("op_1").first, 0);
+  EXPECT_TRUE(view.operation_id(1).empty());
+  EXPECT_FALSE(view.describes("/users"));
 }
 
 TEST(corrupt_base_path_outside_string_table) {
@@ -4667,6 +4676,14 @@ TEST(corrupt_base_path_length_past_the_string_table) {
       reinterpret_cast<const std::uint8_t *>(data.data()),
       (data.size() * sizeof(data[0]))};
   EXPECT_TRUE(view.base_path().empty());
+  EXPECT_TRUE(view.base_url().empty());
+  EXPECT_EQ(view.at(0), 0);
+  EXPECT_EQ(view.context(1), 0);
+  EXPECT_EQ(view.path(1), "");
+  EXPECT_EQ(view.operation("op_1").first, 0);
+  EXPECT_EQ(view.operation("op_1").second, 0);
+  EXPECT_TRUE(view.operation_id(1).empty());
+  EXPECT_FALSE(view.describes("/users"));
 }
 
 TEST(corrupt_base_url_outside_string_table) {
@@ -4686,7 +4703,15 @@ TEST(corrupt_base_url_length_past_the_string_table) {
   const sourcemeta::core::URITemplateRouterView view{
       reinterpret_cast<const std::uint8_t *>(data.data()),
       (data.size() * sizeof(data[0]))};
+  EXPECT_TRUE(view.base_path().empty());
   EXPECT_TRUE(view.base_url().empty());
+  EXPECT_EQ(view.at(0), 0);
+  EXPECT_EQ(view.context(1), 0);
+  EXPECT_EQ(view.path(1), "");
+  EXPECT_EQ(view.operation("op_1").first, 0);
+  EXPECT_EQ(view.operation("op_1").second, 0);
+  EXPECT_TRUE(view.operation_id(1).empty());
+  EXPECT_FALSE(view.describes("/users"));
 }
 
 TEST(corrupt_string_table_with_valid_operation_and_path_tables) {

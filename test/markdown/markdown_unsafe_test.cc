@@ -433,3 +433,44 @@ TEST(html_block_cdata_with_an_interior_double_bracket) {
       sourcemeta::core::markdown_to_html("<![CDATA[a]]b]]>x", false)};
   EXPECT_EQ(result, "<![CDATA[a]]b]]>x\n");
 }
+
+// CommonMark section 6.6 gives a closing tag a name, so a tag with none is
+// text rather than HTML
+TEST(html_closing_tag_without_a_name_is_text) {
+  const auto result{sourcemeta::core::markdown_to_html("a </> b"sv, false)};
+  EXPECT_EQ(result, "<p>a &lt;/&gt; b</p>\n");
+}
+
+// GFM section 4.6 start condition 6 admits a tag closed with a slash straight
+// after its name, which no spec example carries
+TEST(html_block_tag_closed_after_its_name) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("<div/>\ntext"sv, false)};
+  EXPECT_EQ(result, "<div/>\ntext\n");
+}
+
+// The scanner lowercases a tag name into a sixteen byte buffer to weigh it
+// against the names that open a block of their own. A seventeenth letter is
+// one more than the buffer holds, so the name is abandoned rather than the
+// buffer overrun, and CommonMark section 4.6 start condition 7 takes the tag
+// as an ordinary one
+TEST(html_block_tag_name_longer_than_the_lowercase_buffer) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("<abcdefghijklmnopq>\n"sv, false)};
+  EXPECT_EQ(result, "<abcdefghijklmnopq>\n");
+}
+
+// CommonMark section 6.6 gives a declaration an ASCII letter and then
+// whitespace, so this one is neither a declaration nor HTML
+TEST(html_inline_declaration_without_whitespace_is_text) {
+  const auto result{sourcemeta::core::markdown_to_html("a <!X> b"sv, false)};
+  EXPECT_EQ(result, "<p>a &lt;!X&gt; b</p>\n");
+}
+
+// A CDATA section ends at the first "]]>", so a "]]" that is not followed by
+// the closing angle bracket keeps the section open
+TEST(html_inline_cdata_with_a_bracket_pair_inside) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("a <![CDATA[x]]y]]> b"sv, false)};
+  EXPECT_EQ(result, "<p>a <![CDATA[x]]y]]> b</p>\n");
+}

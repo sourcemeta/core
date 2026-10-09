@@ -251,3 +251,91 @@ TEST(leading_zero_but_not_mapped_form) {
   const auto result{sourcemeta::core::ipv6_classify("::100:0:0")};
   EXPECT_EQ(result.value(), sourcemeta::core::IPAddressClass::Reserved);
 }
+
+// RFC 4291 Section 2.5.5.2 gives the mapped prefix as ::ffff:0:0/96, so an
+// address that matches all but its last octet is not one
+TEST(near_miss_of_the_mapped_prefix) {
+  EXPECT_EQ(sourcemeta::core::ipv6_classify("::ff00:0:1").value(),
+            sourcemeta::core::IPAddressClass::Reserved);
+}
+
+TEST(near_miss_of_the_compatible_prefix) {
+  EXPECT_EQ(sourcemeta::core::ipv6_classify("::1:0:0").value(),
+            sourcemeta::core::IPAddressClass::Reserved);
+}
+
+// Anything the low 32 bits hold here falls to the deprecated IPv4-compatible
+// form, and RFC 6890 gives the whole of 0.0.0.0/8 as this host on this
+// network, so the class these carry is the embedded address's own
+TEST(near_miss_of_the_unspecified_address_on_its_third_byte) {
+  EXPECT_EQ(sourcemeta::core::ipv6_classify("::100").value(),
+            sourcemeta::core::IPAddressClass::Unspecified);
+}
+
+TEST(near_miss_of_the_unspecified_address_on_its_second_byte) {
+  EXPECT_EQ(sourcemeta::core::ipv6_classify("::1:0").value(),
+            sourcemeta::core::IPAddressClass::Unspecified);
+}
+
+// The one address that is neither of the two the section names, so it is the
+// last comparison of each that turns it away rather than an earlier one. That
+// it does not read as a loopback is the part worth pinning
+TEST(near_miss_of_both_named_addresses_on_their_last_byte) {
+  EXPECT_EQ(sourcemeta::core::ipv6_classify("::2").value(),
+            sourcemeta::core::IPAddressClass::Unspecified);
+}
+
+TEST(near_miss_of_the_link_local_prefix) {
+  EXPECT_EQ(sourcemeta::core::ipv6_classify("fe00::1").value(),
+            sourcemeta::core::IPAddressClass::Reserved);
+}
+
+TEST(near_miss_of_the_nat64_well_known_prefix) {
+  EXPECT_EQ(sourcemeta::core::ipv6_classify("64:1::1").value(),
+            sourcemeta::core::IPAddressClass::Reserved);
+}
+
+TEST(near_miss_of_the_nat64_local_use_prefix) {
+  EXPECT_EQ(sourcemeta::core::ipv6_classify("64:ff9b:2::1").value(),
+            sourcemeta::core::IPAddressClass::Reserved);
+}
+
+TEST(near_miss_of_the_anycast_addresses_with_a_set_interior_byte) {
+  EXPECT_EQ(sourcemeta::core::ipv6_classify("2001:1::1:1").value(),
+            sourcemeta::core::IPAddressClass::Reserved);
+}
+
+TEST(near_miss_of_the_as112_prefix_on_its_fifth_byte) {
+  EXPECT_EQ(sourcemeta::core::ipv6_classify("2001:4::1").value(),
+            sourcemeta::core::IPAddressClass::Reserved);
+}
+
+TEST(near_miss_of_the_as112_prefix_on_its_sixth_byte) {
+  EXPECT_EQ(sourcemeta::core::ipv6_classify("2001:4:113::1").value(),
+            sourcemeta::core::IPAddressClass::Reserved);
+}
+
+TEST(near_miss_of_the_orchid_prefix) {
+  EXPECT_EQ(sourcemeta::core::ipv6_classify("2001:40::1").value(),
+            sourcemeta::core::IPAddressClass::Reserved);
+}
+
+TEST(near_miss_of_the_protocol_assignments_block) {
+  EXPECT_EQ(sourcemeta::core::ipv6_classify("2001:200::1").value(),
+            sourcemeta::core::IPAddressClass::Public);
+}
+
+TEST(near_miss_of_the_documentation_prefix) {
+  EXPECT_EQ(sourcemeta::core::ipv6_classify("2001:db9::1").value(),
+            sourcemeta::core::IPAddressClass::Public);
+}
+
+TEST(near_miss_of_the_6to4_prefix) {
+  EXPECT_EQ(sourcemeta::core::ipv6_classify("2003::1").value(),
+            sourcemeta::core::IPAddressClass::Public);
+}
+
+TEST(near_miss_of_the_later_documentation_prefix_on_its_second_byte) {
+  EXPECT_EQ(sourcemeta::core::ipv6_classify("3ffe::1").value(),
+            sourcemeta::core::IPAddressClass::Public);
+}

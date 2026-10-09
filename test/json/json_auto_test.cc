@@ -32,11 +32,6 @@ struct ClassWithCustomMethod {
 
 enum class SampleEnum : std::uint8_t { Foo = 0, Bar = 1, Baz = 2 };
 
-static auto integer_from_json(const sourcemeta::core::JSON &value)
-    -> std::optional<int> {
-  return sourcemeta::core::from_json<int>(value);
-}
-
 TEST(class_with_custom_method) {
   const ClassWithCustomMethod value;
   const auto result{sourcemeta::core::to_json(value)};
@@ -1402,12 +1397,17 @@ TEST(from_json_large_bitset_non_string_fails) {
 TEST(from_json_vector_with_callback_non_array_fails) {
   const auto result{sourcemeta::core::from_json<std::vector<int>>(
       sourcemeta::core::parse_json(R"JSON({ "foo": 1 })JSON"),
-      integer_from_json)};
+      [](const sourcemeta::core::JSON &item) -> std::optional<int> {
+        return sourcemeta::core::from_json<int>(item);
+      })};
   EXPECT_FALSE(result.has_value());
 }
 
 TEST(from_json_map_with_callback_non_object_fails) {
   const auto result{sourcemeta::core::from_json<std::map<std::string, int>>(
-      sourcemeta::core::parse_json(R"JSON([ 1, 2 ])JSON"), integer_from_json)};
+      sourcemeta::core::parse_json(R"JSON([ 1, 2 ])JSON"),
+      [](const sourcemeta::core::JSON &item) -> std::optional<int> {
+        return sourcemeta::core::from_json<int>(item);
+      })};
   EXPECT_FALSE(result.has_value());
 }

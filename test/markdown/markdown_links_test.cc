@@ -661,3 +661,26 @@ TEST(reference_link_label_with_a_space_before_a_non_ascii_character) {
       "[click][a \u00e9]\n\n[a \u00e9]: https://example.com")};
   EXPECT_EQ(result, "<p><a href=\"https://example.com\">click</a></p>\n");
 }
+
+// CommonMark section 4.7 asks a link label to hold at least one character that
+// is not whitespace, so this defines nothing and stays a paragraph
+TEST(link_reference_definition_with_a_blank_label) {
+  const auto result{sourcemeta::core::markdown_to_html("[ ]: /url\n\n[ ]")};
+  EXPECT_EQ(result, "<p>[ ]: /url</p>\n<p>[ ]</p>\n");
+}
+
+// CommonMark section 6.3 excludes ASCII control characters from an unbracketed
+// destination, and the whitespace ones are turned away a step earlier
+TEST(link_destination_starting_with_a_control_character) {
+  const auto result{sourcemeta::core::markdown_to_html("[a](\x01"
+                                                       "b)")};
+  EXPECT_EQ(result, "<p>[a](\x01"
+                    "b)</p>\n");
+}
+
+TEST(link_destination_starting_with_delete) {
+  const auto result{sourcemeta::core::markdown_to_html("[a](\x7F"
+                                                       "b)")};
+  EXPECT_EQ(result, "<p>[a](\x7F"
+                    "b)</p>\n");
+}

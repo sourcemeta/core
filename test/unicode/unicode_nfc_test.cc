@@ -147,3 +147,38 @@ TEST(greek_decomposed_composes) {
             U"\u03C0\u03B1\u03C1\u03AC\u03B4"
             U"\u03B5\u03B9\u03B3\u03BC\u03B1");
 }
+
+// UAX #15 Section 3.12 counts nineteen leading jamo, so the twentieth is not
+// one and falls through to the static table rather than composing
+TEST(hangul_leading_jamo_past_its_range_does_not_compose) {
+  EXPECT_EQ(sourcemeta::core::nfc(U"\u1113\u1161"), U"\u1113\u1161");
+}
+
+// UAX #15 Section 3.12 counts twenty-one vowel jamo
+TEST(hangul_vowel_jamo_past_its_range_does_not_compose) {
+  EXPECT_EQ(sourcemeta::core::nfc(U"\u1100\u1176"), U"\u1100\u1176");
+}
+
+// UAX #15 Section 3.12 counts 11172 syllables, so the one above the last
+// is no syllable at all
+TEST(hangul_syllable_past_its_range_does_not_take_a_trailing_jamo) {
+  EXPECT_EQ(sourcemeta::core::nfc(U"\uD7A4\u11A8"), U"\uD7A4\u11A8");
+}
+
+// UAX #15 Section 3.12 counts twenty-eight trailing positions, the first
+// of which stands for no jamo
+TEST(hangul_trailing_jamo_past_its_range_does_not_compose) {
+  EXPECT_EQ(sourcemeta::core::nfc(U"\uAC00\u11C3"), U"\uAC00\u11C3");
+}
+
+// The base of the trailing range stands for no jamo of its own, so the
+// comparison against it is strict
+TEST(hangul_trailing_jamo_at_its_base_does_not_compose) {
+  EXPECT_EQ(sourcemeta::core::nfc(U"\uAC00\u11A7"), U"\uAC00\u11A7");
+}
+
+// A syllable that already carries a trailing jamo is not an LV syllable, so it
+// takes no second one
+TEST(hangul_syllable_with_a_trailing_jamo_takes_no_second_one) {
+  EXPECT_EQ(sourcemeta::core::nfc(U"\uAC01\u11A8"), U"\uAC01\u11A8");
+}

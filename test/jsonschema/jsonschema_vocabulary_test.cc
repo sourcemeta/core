@@ -1099,3 +1099,41 @@ TEST(vocabularies_of_a_metaschema_must_be_declared_with_booleans) {
     FAIL();
   }
 }
+
+// Naming a vocabulary this module does not know, where the dialect declared no
+// unknown vocabularies either, leaves nothing to answer with
+TEST(get_an_unknown_uri_where_no_unknown_vocabularies_were_declared) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema"
+  })JSON")};
+  const auto result{vocabularies(document, sourcemeta::core::schema_resolver)};
+  EXPECT_FALSE(result.has_unknown());
+  EXPECT_FALSE(result.get("https://example.com/not-a-vocabulary").has_value());
+}
+
+// With the far end of that chain unknown, there is no base dialect to report
+// rather than a guess at one
+TEST(base_dialect_unresolved_where_the_chain_leaves_the_known) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://example.com/meta-1",
+    "$defs": {
+      "meta-1": {
+        "$id": "https://example.com/meta-1",
+        "$schema": "https://example.com/meta-2",
+        "$vocabulary": {
+          "https://json-schema.org/draft/2020-12/vocab/core": true
+        }
+      }
+    }
+  })JSON")};
+
+  // The chain is abandoned rather than reported step by step, so what the
+  // refusal names is the dialect that was asked about and not the one further
+  // along that could not be fetched
+  try {
+    vocabularies(document, sourcemeta::core::schema_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaResolutionError &error) {
+    EXPECT_EQ(error.identifier(), "https://example.com/meta-1");
+  }
+}

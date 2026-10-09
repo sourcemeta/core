@@ -2197,3 +2197,19 @@ TEST(accessors_metaschema_unresolvable) {
                  "Could not resolve the metaschema of the schema");
   }
 }
+
+// Asking for a reference at a position the document never held leaves nothing
+// to hand back
+TEST(reference_at_a_pointer_the_document_does_not_hold) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema"
+  })JSON")};
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+  const auto pointer{sourcemeta::core::Pointer{"nope"}};
+  EXPECT_FALSE(frame
+                   .reference(sourcemeta::core::SchemaReferenceType::Static,
+                              sourcemeta::core::to_weak_pointer(pointer))
+                   .has_value());
+}
