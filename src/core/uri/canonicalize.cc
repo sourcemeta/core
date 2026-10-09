@@ -6,7 +6,6 @@
 #include "normalize.h"
 
 #include <array>    // std::array
-#include <cassert>  // assert
 #include <cstdint>  // std::uint8_t
 #include <optional> // std::optional
 #include <string>   // std::string
@@ -117,8 +116,7 @@ auto URI::canonicalize() -> URI & {
   }
 
   // Canonicalize path by removing "." and ".." segments
-  assert(!this->path_.has_value() || !this->path_.value().empty());
-  if (this->path_.has_value()) {
+  if (this->path_.has_value() && !this->path_.value().empty()) {
     auto &current_path{this->path_.value()};
     sourcemeta::core::normalize_path(current_path);
     if (current_path.empty()) {
