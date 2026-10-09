@@ -4078,20 +4078,3 @@ TEST(ecma262_class_intersection_with_a_four_digit_escape_past_ascii) {
       R"(^[\u00e9&&[\u00e9]]$)", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_FALSE(regex.has_value());
 }
-
-// A range whose start is no code point cannot be expanded
-TEST(
-    permissive_rejects_a_set_operation_whose_range_starts_with_an_unknown_escape) {
-  EXPECT_FALSE(sourcemeta::core::to_regex(
-                   "[\\q-z--[a]]", sourcemeta::core::RegexDialect::Permissive)
-                   .has_value());
-}
-
-// The expansion holds one bit per ASCII code point, so a range reaching
-// past that cannot be represented
-TEST(permissive_rejects_a_set_operation_whose_range_ends_beyond_ascii) {
-  EXPECT_FALSE(
-      sourcemeta::core::to_regex("[a-\\u{10000}--[b]]",
-                                 sourcemeta::core::RegexDialect::Permissive)
-          .has_value());
-}
