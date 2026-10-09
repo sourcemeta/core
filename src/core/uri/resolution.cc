@@ -1,8 +1,8 @@
-#include <cassert> // assert
 #include <sourcemeta/core/uri.h>
 
 #include "normalize.h"
 
+#include <cassert>  // assert
 #include <optional> // std::optional
 #include <string>   // std::string
 

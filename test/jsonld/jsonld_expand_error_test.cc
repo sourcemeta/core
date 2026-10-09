@@ -192,9 +192,17 @@ TEST(protected_term_redefinition_differing_in_an_index) {
   const auto input = sourcemeta::core::parse_json(R"({
     "@context": [
       { "@version": 1.1, "@protected": true,
-        "a": { "@id": "http://example.com/a", "@container": "@index", "@index": "http://example.com/x" } },
+        "a": {
+          "@id": "http://example.com/a",
+          "@container": "@index",
+          "@index": "http://example.com/x"
+        } },
       { "@version": 1.1,
-        "a": { "@id": "http://example.com/a", "@container": "@index", "@index": "http://example.com/y" } }
+        "a": {
+          "@id": "http://example.com/a",
+          "@container": "@index",
+          "@index": "http://example.com/y"
+        } }
     ]
   })");
 

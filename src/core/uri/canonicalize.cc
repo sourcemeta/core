@@ -1,4 +1,3 @@
-#include <cassert> // assert
 #include <sourcemeta/core/text.h>
 #include <sourcemeta/core/unicode.h>
 #include <sourcemeta/core/uri.h>
@@ -7,6 +6,7 @@
 #include "normalize.h"
 
 #include <array>    // std::array
+#include <cassert>  // assert
 #include <cstdint>  // std::uint8_t
 #include <optional> // std::optional
 #include <string>   // std::string
