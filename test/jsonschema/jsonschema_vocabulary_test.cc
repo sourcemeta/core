@@ -1071,7 +1071,7 @@ TEST(vocabularies_of_a_metaschema_must_be_an_object) {
   })JSON");
 
   try {
-    const auto result{vocabularies(document, test_resolver)};
+    vocabularies(document, test_resolver);
     FAIL();
   } catch (const sourcemeta::core::SchemaVocabularyError &error) {
     EXPECT_EQ(error.uri(), "https://sourcemeta.com/array-vocabularies");
@@ -1088,7 +1088,7 @@ TEST(vocabularies_of_a_metaschema_must_be_declared_with_booleans) {
   })JSON");
 
   try {
-    const auto result{vocabularies(document, test_resolver)};
+    vocabularies(document, test_resolver);
     FAIL();
   } catch (const sourcemeta::core::SchemaVocabularyError &error) {
     EXPECT_EQ(error.uri(), "https://sourcemeta.com/string-vocabulary-value");
