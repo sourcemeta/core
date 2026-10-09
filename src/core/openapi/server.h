@@ -173,28 +173,29 @@ inline auto openapi_substitute_server_variables(const JSON::StringView address,
   JSON::String result;
   JSON::StringView::size_type cursor{0};
   while (cursor < address.size()) {
-    const auto opening{address.find('{', cursor)};
-    if (opening == JSON::StringView::npos) {
+    const auto expression{openapi_next_brace_expression(address, cursor)};
+    if (expression.opening == JSON::StringView::npos) {
       result.append(address.substr(cursor));
       break;
     }
 
-    const auto closing{address.find('}', opening)};
-    if (closing == JSON::StringView::npos) {
+    // A run that never closes leaves no name to look up, and what a template
+    // means by one is not something to guess at
+    if (expression.closing == JSON::StringView::npos) {
       return std::nullopt;
     }
 
-    result.append(address.substr(cursor, opening - cursor));
-    const auto *variable{
-        variables.try_at(address.substr(opening + 1, closing - opening - 1))};
+    result.append(address.substr(cursor, expression.opening - cursor));
+    const auto name{address.substr(
+        expression.opening + 1, expression.closing - expression.opening - 1)};
+    const auto *variable{variables.try_at(name)};
     if (variable == nullptr || !variable->is_object()) {
       return std::nullopt;
     }
 
-    const auto name{address.substr(opening + 1, closing - opening - 1)};
     if (!varied.empty() && name == varied) {
       result.append(value);
-      cursor = closing + 1;
+      cursor = expression.closing + 1;
       continue;
     }
 
@@ -204,7 +205,7 @@ inline auto openapi_substitute_server_variables(const JSON::StringView address,
     }
 
     result.append(fallback->to_string());
-    cursor = closing + 1;
+    cursor = expression.closing + 1;
   }
 
   return result;
@@ -218,21 +219,21 @@ inline auto openapi_substitute_server_variables(const JSON::StringView address,
 inline auto openapi_server_authority_end(const JSON::StringView address)
     -> JSON::StringView::size_type {
   JSON::StringView::size_type cursor{0};
-  while (cursor < address.size()) {
-    const auto boundary{address.find_first_of("/?#{", cursor)};
-    if (boundary == JSON::StringView::npos || address[boundary] != '{') {
+  while (true) {
+    const auto boundary{address.find_first_of("/?#", cursor)};
+    const auto expression{openapi_next_brace_expression(address, cursor)};
+    // Where nothing was found, where no expression stands in the way, where
+    // one begins only after what was found, or where a run never closes and so
+    // is no expression at all, what was found stands in literal text
+    if (boundary == JSON::StringView::npos ||
+        expression.opening == JSON::StringView::npos ||
+        expression.closing == JSON::StringView::npos ||
+        boundary < expression.opening) {
       return boundary;
     }
 
-    const auto closing{address.find('}', boundary)};
-    if (closing == JSON::StringView::npos) {
-      return JSON::StringView::npos;
-    }
-
-    cursor = closing + 1;
+    cursor = expression.closing + 1;
   }
-
-  return JSON::StringView::npos;
 }
 
 // Whether what a variable stands for can bear on the kind of reference the
