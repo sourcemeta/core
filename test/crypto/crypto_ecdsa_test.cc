@@ -211,7 +211,9 @@ TEST(verify_with_a_key_that_holds_nothing) {
       "signature"));
 }
 
-// RFC 7518 Section 3.4 defines this scheme over elliptic-curve keys alone
+// RFC 7518 Section 3.4 defines this scheme over elliptic-curve keys alone. A
+// key of another type carries no coordinates to read, so this pins the refusal
+// rather than the type check that reaches it
 TEST(verify_with_an_rsa_key) {
   const auto key{sourcemeta::core::make_rsa_public_key(
       sourcemeta::core::hex_to_bytes(OTHER_TYPE_MODULUS).value(),

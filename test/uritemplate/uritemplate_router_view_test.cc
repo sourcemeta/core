@@ -5118,8 +5118,12 @@ TEST_F(URITemplateRouterViewTest,
 
 TEST_F(URITemplateRouterViewTest, arguments_of_a_blob_whose_magic_is_wrong) {
   {
-    sourcemeta::core::URITemplateRouter router;
-    router.add("/users", "op_1", 1);
+    sourcemeta::core::URITemplateRouter router{"/api",
+                                               "https://example.com/api"};
+    const std::string argument_value{"some/response/schema"};
+    const std::array<sourcemeta::core::URITemplateRouter::Argument, 1>
+        arguments{{{"responseSchema", std::string_view{argument_value}}}};
+    router.add("/users", "op_1", 1, 0, arguments);
     sourcemeta::core::URITemplateRouterView::save(router, this->path_);
   }
 
@@ -5132,6 +5136,18 @@ TEST_F(URITemplateRouterViewTest, arguments_of_a_blob_whose_magic_is_wrong) {
     file.read(reinterpret_cast<char *>(blob.data()),
               static_cast<std::streamsize>(size));
   }
+
+  std::vector<std::pair<std::string_view,
+                        sourcemeta::core::URITemplateRouter::ArgumentValue>>
+      sound_arguments;
+  const sourcemeta::core::URITemplateRouterView sound{blob.data(), blob.size()};
+  sound.arguments(
+      1, [&sound_arguments](
+             const std::string_view name,
+             const sourcemeta::core::URITemplateRouter::ArgumentValue &value) {
+        sound_arguments.emplace_back(name, value);
+      });
+  EXPECT_EQ(sound_arguments.size(), 1);
 
   const auto corrupt{std::uint32_t{0}};
   std::memcpy(blob.data() + (0 * sizeof(std::uint32_t)), &corrupt,
@@ -5443,7 +5459,10 @@ TEST_F(URITemplateRouterViewTest, arguments_of_a_blob_whose_version_is_wrong) {
   {
     sourcemeta::core::URITemplateRouter router{"/api",
                                                "https://example.com/api"};
-    router.add("/users", "op_1", 1);
+    const std::string argument_value{"some/response/schema"};
+    const std::array<sourcemeta::core::URITemplateRouter::Argument, 1>
+        arguments{{{"responseSchema", std::string_view{argument_value}}}};
+    router.add("/users", "op_1", 1, 0, arguments);
     sourcemeta::core::URITemplateRouterView::save(router, this->path_);
   }
 
@@ -5456,6 +5475,18 @@ TEST_F(URITemplateRouterViewTest, arguments_of_a_blob_whose_version_is_wrong) {
     file.read(reinterpret_cast<char *>(blob.data()),
               static_cast<std::streamsize>(size));
   }
+
+  std::vector<std::pair<std::string_view,
+                        sourcemeta::core::URITemplateRouter::ArgumentValue>>
+      sound_arguments;
+  const sourcemeta::core::URITemplateRouterView sound{blob.data(), blob.size()};
+  sound.arguments(
+      1, [&sound_arguments](
+             const std::string_view name,
+             const sourcemeta::core::URITemplateRouter::ArgumentValue &value) {
+        sound_arguments.emplace_back(name, value);
+      });
+  EXPECT_EQ(sound_arguments.size(), 1);
 
   const auto corrupt{std::uint32_t{5}};
   std::memcpy(blob.data() + (1 * sizeof(std::uint32_t)), &corrupt,

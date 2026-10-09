@@ -556,8 +556,9 @@ TEST(a_dotdot_reference_steps_out_of_the_base_directory) {
   EXPECT_EQ(reference.recompose(), "https://example.com/c");
 }
 
-// RFC 3986 Section 5.3 keeps the base path for a reference that carries none,
-// whether or not that base is itself relative
+// RFC 3986 Section 5.2.2 takes the base path for a reference that carries
+// none. Section 5.2.1 asks the base to be absolute, so resolving against a
+// relative one is this implementation going further than the RFC
 TEST(fragment_only_against_a_relative_base) {
   sourcemeta::core::URI uri{"#frag"};
   uri.resolve_from(sourcemeta::core::URI{"foo/bar"});

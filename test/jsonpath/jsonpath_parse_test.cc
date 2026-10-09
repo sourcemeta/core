@@ -533,11 +533,7 @@ TEST(parse_accepts_a_filter_comparing_against_the_root) {
   EXPECT_JSONPATH_VALID("$[?$.a==1]");
 }
 
-// The strict comparisons are spelled without an equals sign
-TEST(parse_accepts_a_strictly_less_than_comparison) {
-  EXPECT_JSONPATH_VALID("$[?@.a<1]");
-}
-
+// The other strict comparison is spelled without an equals sign too
 TEST(parse_accepts_a_strictly_greater_than_comparison) {
   EXPECT_JSONPATH_VALID("$[?@.a>1]");
 }

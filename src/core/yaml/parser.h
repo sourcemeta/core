@@ -513,7 +513,14 @@ private:
         }
         const auto prefix{
             std::string{content.substr(prefix_start, cursor - prefix_start)}};
-        if (!handle.empty() && !prefix.empty()) {
+        // YAML 1.2.2 Section 6.8.2 spells the directive with a handle and a
+        // prefix, so one that names neither is not a directive at all
+        if (handle.empty() || prefix.empty()) [[unlikely]] {
+          throw YAMLParseError{token.line, token.column,
+                               "Incomplete %TAG directive"};
+        }
+
+        {
           // YAML 1.2.2 Section 6.8.2: a handle may carry at most one tag
           // directive in a document, even when both give the same prefix
           if (this->tag_directives_.contains(handle)) [[unlikely]] {
@@ -539,6 +546,13 @@ private:
     }
 
     if (raw_tag.starts_with("!!")) {
+      // The shorthand form takes one or more tag characters after its handle,
+      // which Example 6.27 of the specification turns down for want of
+      if (raw_tag.size() == 2) [[unlikely]] {
+        throw YAMLParseError{this->lexer_->line(), this->lexer_->column(),
+                             "Tag shorthand with no suffix"};
+      }
+
       const auto iterator{this->tag_directives_.find("!!")};
       if (iterator != this->tag_directives_.end()) {
         return iterator->second + std::string{raw_tag.substr(2)};
@@ -548,6 +562,11 @@ private:
 
     if (raw_tag.size() > 1 && raw_tag[0] == '!') {
       const auto second_bang{raw_tag.find('!', 1)};
+      if (second_bang == raw_tag.size() - 1) [[unlikely]] {
+        throw YAMLParseError{this->lexer_->line(), this->lexer_->column(),
+                             "Tag shorthand with no suffix"};
+      }
+
       if (second_bang != std::string_view::npos &&
           second_bang < raw_tag.size() - 1) {
         const auto handle{std::string{raw_tag.substr(0, second_bang + 1)}};

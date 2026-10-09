@@ -2380,13 +2380,13 @@ TEST(try_at_start_string_view_a_key_too_long_to_hash_perfectly) {
 TEST(less_than_prefers_a_smaller_key_found_later) {
   auto left{sourcemeta::core::JSON::make_object()};
   left.assign("b", sourcemeta::core::JSON{1});
-  left.assign("a", sourcemeta::core::JSON{1});
+  left.assign("a", sourcemeta::core::JSON{2});
   auto right{sourcemeta::core::JSON::make_object()};
   right.assign("b", sourcemeta::core::JSON{2});
-  right.assign("a", sourcemeta::core::JSON{2});
+  right.assign("a", sourcemeta::core::JSON{1});
 
-  EXPECT_TRUE(left < right);
-  EXPECT_FALSE(right < left);
+  EXPECT_FALSE(left < right);
+  EXPECT_TRUE(right < left);
 }
 
 // A key the other object holds alone can be the smallest point of difference,

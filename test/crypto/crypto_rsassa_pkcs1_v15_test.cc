@@ -284,7 +284,9 @@ TEST(verify_with_a_key_that_holds_nothing) {
       "signature"));
 }
 
-// RFC 7518 Section 3.3 defines this scheme over RSA keys alone
+// RFC 7518 Section 3.3 defines this scheme over RSA keys alone. A key of
+// another type carries no modulus to read, so this pins the refusal rather
+// than the type check that reaches it
 TEST(verify_with_an_elliptic_curve_key) {
   const auto key{sourcemeta::core::make_ec_public_key(
       sourcemeta::core::EllipticCurve::P256,

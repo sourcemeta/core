@@ -261,7 +261,9 @@ TEST(verify_with_a_key_that_holds_nothing) {
   EXPECT_FALSE(sourcemeta::core::eddsa_verify(key, "message", "signature"));
 }
 
-// RFC 8037 Section 3.1 defines this scheme over Edwards-curve keys alone
+// RFC 8037 Section 3.1 defines this scheme over Edwards-curve keys alone. A
+// key of another type carries no point to read, so this pins the refusal
+// rather than the type check that reaches it
 TEST(verify_with_an_rsa_key) {
   const auto key{sourcemeta::core::make_rsa_public_key(
       sourcemeta::core::hex_to_bytes(OTHER_TYPE_MODULUS).value(),

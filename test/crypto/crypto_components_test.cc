@@ -4,6 +4,7 @@
 
 #include <string>      // std::string
 #include <string_view> // std::string_view
+#include <utility>     // std::move
 
 // RFC 7638 Section 3.1: the RSA public key whose thumbprint the RFC publishes
 static constexpr std::string_view RFC7638_RSA_N{

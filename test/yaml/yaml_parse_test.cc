@@ -1044,7 +1044,9 @@ TEST(yaml_directive_comment_without_separation_is_rejected) {
     sourcemeta::core::parse_yaml(input);
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid version in %YAML directive");
     EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 1);
   } catch (...) {
     FAIL();
   }
@@ -1056,7 +1058,9 @@ TEST(yaml_directive_non_numeric_version_is_rejected) {
     sourcemeta::core::parse_yaml(input);
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid version in %YAML directive");
     EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 1);
   } catch (...) {
     FAIL();
   }
@@ -1610,7 +1614,9 @@ TEST(yaml_directive_without_version_is_rejected) {
     sourcemeta::core::parse_yaml(input);
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid version in %YAML directive");
     EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 1);
   } catch (...) {
     FAIL();
   }
@@ -1623,7 +1629,9 @@ TEST(yaml_directive_multiple_dot_version_is_rejected) {
     sourcemeta::core::parse_yaml(input);
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid version in %YAML directive");
     EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 1);
   } catch (...) {
     FAIL();
   }
@@ -1882,7 +1890,9 @@ TEST(yaml_directive_higher_major_version_is_rejected) {
     sourcemeta::core::parse_yaml(input);
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Unsupported major version in %YAML directive");
     EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 1);
   } catch (...) {
     FAIL();
   }
@@ -3237,6 +3247,7 @@ TEST(yaml_directive_version_with_no_major_is_rejected) {
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Invalid version in %YAML directive");
     EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 1);
   } catch (...) {
     FAIL();
   }
@@ -3250,6 +3261,7 @@ TEST(yaml_directive_version_with_no_minor_is_rejected) {
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Invalid version in %YAML directive");
     EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 1);
   } catch (...) {
     FAIL();
   }
@@ -3263,6 +3275,7 @@ TEST(yaml_directive_version_with_a_non_digit_major_is_rejected) {
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Invalid version in %YAML directive");
     EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 1);
   } catch (...) {
     FAIL();
   }
@@ -3278,6 +3291,7 @@ TEST(yaml_directive_version_of_a_higher_major_is_rejected) {
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Unsupported major version in %YAML directive");
     EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 1);
   } catch (...) {
     FAIL();
   }
@@ -3291,6 +3305,7 @@ TEST(yaml_directive_version_of_a_two_digit_major_is_rejected) {
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Unsupported major version in %YAML directive");
     EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 1);
   } catch (...) {
     FAIL();
   }
@@ -3310,18 +3325,34 @@ TEST(yaml_directive_version_followed_by_a_tab_then_a_comment_is_accepted) {
   EXPECT_EQ(result, sourcemeta::core::JSON{"value"});
 }
 
-// YAML 1.2.2 Section 6.8.2 gives the tag directive a handle and a prefix, and
-// one carrying neither names nothing to register
-TEST(yaml_tag_directive_with_no_handle_is_ignored) {
+// YAML 1.2.2 Section 6.8.2 spells the directive as "TAG" followed by a handle
+// and then a prefix, so neither argument may be left out
+TEST(yaml_tag_directive_with_no_handle_is_rejected) {
   const std::string input{"%TAG\n--- value\n"};
-  const auto result{sourcemeta::core::parse_yaml(input)};
-  EXPECT_EQ(result, sourcemeta::core::JSON{"value"});
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Incomplete %TAG directive");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 1);
+  } catch (...) {
+    FAIL();
+  }
 }
 
-TEST(yaml_tag_directive_with_no_prefix_is_ignored) {
+TEST(yaml_tag_directive_with_no_prefix_is_rejected) {
   const std::string input{"%TAG !\n--- value\n"};
-  const auto result{sourcemeta::core::parse_yaml(input)};
-  EXPECT_EQ(result, sourcemeta::core::JSON{"value"});
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Incomplete %TAG directive");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 1);
+  } catch (...) {
+    FAIL();
+  }
 }
 
 TEST(yaml_tag_directive_separated_by_tabs_is_accepted) {
@@ -3341,6 +3372,7 @@ TEST(yaml_verbatim_tag_without_its_closing_bracket_is_rejected) {
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Unterminated verbatim tag");
     EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 1);
   } catch (...) {
     FAIL();
   }
@@ -3355,21 +3387,46 @@ TEST(yaml_verbatim_tag_broken_by_a_line_break_is_rejected) {
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Unterminated verbatim tag");
     EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 1);
   } catch (...) {
     FAIL();
   }
 }
 
-// A handle with nothing after it names no tag, so the whole property is left
-// as the local tag it spells and the value keeps its plain resolution
-TEST(yaml_secondary_handle_with_an_empty_suffix) {
+// YAML 1.2.2 Section 6.9.1 takes one or more tag characters after the handle,
+// and Example 6.27 turns down a shorthand for want of them
+TEST(yaml_secondary_handle_with_an_empty_suffix_is_rejected) {
   const std::string input{"!! value\n"};
-  const auto result{sourcemeta::core::parse_yaml(input)};
-  EXPECT_EQ(result, sourcemeta::core::JSON{"value"});
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Tag shorthand with no suffix");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 3);
+  } catch (...) {
+    FAIL();
+  }
 }
 
-TEST(yaml_named_handle_with_an_empty_suffix) {
+TEST(yaml_named_handle_with_an_empty_suffix_is_rejected) {
   const std::string input{"!e! value\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Tag shorthand with no suffix");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 4);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// The single exclamation mark on its own is the non-specific tag of Section
+// 6.9.1 rather than a handle short of a suffix
+TEST(yaml_a_lone_exclamation_mark_is_the_non_specific_tag) {
+  const std::string input{"! value\n"};
   const auto result{sourcemeta::core::parse_yaml(input)};
   EXPECT_EQ(result, sourcemeta::core::JSON{"value"});
 }
@@ -3447,6 +3504,8 @@ TEST(yaml_a_document_end_marker_with_nothing_after_it) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Empty YAML document");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 1);
   } catch (...) {
     FAIL();
   }
