@@ -93,52 +93,73 @@ auto holds_forbidden_member(const JSON &expanded,
   return forbidden(expanded);
 }
 
-// Raise the given error at the position the offending member was written at,
-// descending through the arrays and set objects that flatten into the
-// expansion. Expansion does not retain which input each expanded member came
-// from, so the members are expanded again to find it, which only ever happens
-// on the way out of an error
-[[noreturn]] auto
-throw_at_forbidden_member(ExpansionState &state, ActiveContext &active_context,
-                          const std::optional<JSON::String> &active_property,
-                          const JSON &member, const WeakPointer &pointer,
-                          const ForbiddenMember forbidden,
-                          const char *const code) -> void {
-  if (member.is_array()) {
-    std::size_t index{0};
-    for (const auto &item : member.as_array()) {
-      const WeakPointer item_pointer{pointer.concat(index)};
-      if (holds_forbidden_member(expand(state, active_context, active_property,
-                                        item, item_pointer),
-                                 forbidden)) {
-        throw_at_forbidden_member(state, active_context, active_property, item,
-                                  item_pointer, forbidden, code);
+// Declared ahead of the member tracer below, which needs it to reproduce the
+// context an offending member was originally expanded under
+auto apply_scoped_context(ExpansionState &state, ActiveContext &context,
+                          const TermDefinition &definition) -> void;
+
+// The position the offending member was written at, found by descending
+// through the arrays and set objects that flatten into the expansion.
+// Expansion does not retain which input each expanded member came from, so the
+// members are expanded again to find it, which only ever happens on the way
+// out of an error. Locating a member must not change what is reported, so
+// whatever that re-expansion runs into costs no more than the precision of the
+// position
+auto forbidden_member_pointer(
+    ExpansionState &state, ActiveContext &active_context,
+    const std::optional<JSON::String> &active_property, const JSON &member,
+    const WeakPointer &pointer, const ForbiddenMember forbidden) -> Pointer {
+  try {
+    if (member.is_array()) {
+      std::size_t index{0};
+      for (const auto &item : member.as_array()) {
+        const WeakPointer item_pointer{pointer.concat(index)};
+        if (holds_forbidden_member(expand(state, active_context,
+                                          active_property, item, item_pointer),
+                                   forbidden)) {
+          return forbidden_member_pointer(state, active_context,
+                                          active_property, item, item_pointer,
+                                          forbidden);
+        }
+        index += 1;
       }
-      index += 1;
-    }
-  } else if (member.is_object()) {
-    // A set object hands its members to the enclosing position, and a context
-    // of its own may be what names the keyword, so that context applies before
-    // the keys are read
-    ActiveContext effective{active_context};
-    if (member.defines(KEYWORD_CONTEXT, KEYWORD_CONTEXT_HASH)) {
-      process_context(state, effective,
-                      member.at(KEYWORD_CONTEXT, KEYWORD_CONTEXT_HASH),
-                      pointer.concat(keyword_context()));
-    }
-    for (const auto &entry : member.as_object()) {
-      const auto expanded_key{expand_iri(state, effective, entry.first, false,
-                                         true, nullptr, nullptr,
-                                         EMPTY_WEAK_POINTER)};
-      if (expanded_key.has_value() && expanded_key.value() == KEYWORD_SET) {
-        throw_at_forbidden_member(state, effective, active_property,
-                                  entry.second, pointer.concat(entry.first),
-                                  forbidden, code);
+    } else if (member.is_object()) {
+      // A set object hands its members to the enclosing position, and the
+      // context of the property or of the member itself may be what names the
+      // keyword, so both are layered on before the keys are read, the way they
+      // are when the member is expanded
+      ActiveContext effective{active_context};
+      if (active_property.has_value()) {
+        const auto definition{
+            active_context.terms.find(active_property.value())};
+        if (definition != active_context.terms.cend() &&
+            definition->second.context.has_value()) {
+          effective.previous = nullptr;
+          apply_scoped_context(state, effective, definition->second);
+        }
+      }
+      if (member.defines(KEYWORD_CONTEXT, KEYWORD_CONTEXT_HASH)) {
+        process_context(state, effective,
+                        member.at(KEYWORD_CONTEXT, KEYWORD_CONTEXT_HASH),
+                        pointer.concat(keyword_context()));
+      }
+      for (const auto &entry : member.as_object()) {
+        const auto expanded_key{expand_iri(state, effective, entry.first, false,
+                                           true, nullptr, nullptr,
+                                           EMPTY_WEAK_POINTER)};
+        if (expanded_key.has_value() && expanded_key.value() == KEYWORD_SET) {
+          return forbidden_member_pointer(
+              state, effective, active_property, entry.second,
+              pointer.concat(entry.first), forbidden);
+        }
       }
     }
+  } catch (const JSONLDError &) {
+    // The enclosing position stands when the member cannot be narrowed down
+    return to_pointer(pointer);
   }
 
-  throw JSONLDError(code, pointer);
+  return to_pointer(pointer);
 }
 
 auto container_includes(const TermDefinition *const definition,
@@ -682,9 +703,10 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
       if (name == KEYWORD_LIST && state.processing_1_0) {
         for (const auto &item : elements.as_array()) {
           if (is_list_object(item)) {
-            throw_at_forbidden_member(state, active_context, active_property,
-                                      entry.second, entry_pointer,
-                                      is_list_object, "List of lists");
+            throw JSONLDError("List of lists",
+                              forbidden_member_pointer(
+                                  state, active_context, active_property,
+                                  entry.second, entry_pointer, is_list_object));
           }
         }
       }
@@ -731,9 +753,11 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
                               : into_array(std::move(expanded_member))};
         for (auto &item : member_items.as_array()) {
           if (is_not_node_object(item)) {
-            throw_at_forbidden_member(
-                state, active_context, JSON::String{KEYWORD_INCLUDED}, member,
-                member_pointer, is_not_node_object, "Invalid @included value");
+            throw JSONLDError(
+                "Invalid @included value",
+                forbidden_member_pointer(state, active_context,
+                                         JSON::String{KEYWORD_INCLUDED}, member,
+                                         member_pointer, is_not_node_object));
           }
           included.push_back(std::move(item));
         }
@@ -811,10 +835,11 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
                                                     *input_key, *input_value,
                                                     input_pointer),
                                              is_value_or_list_object)) {
-                    throw_at_forbidden_member(
-                        state, reverse_context, *input_key, *input_value,
-                        input_pointer, is_value_or_list_object,
-                        "Invalid reverse property value");
+                    throw JSONLDError("Invalid reverse property value",
+                                      forbidden_member_pointer(
+                                          state, reverse_context, *input_key,
+                                          *input_value, input_pointer,
+                                          is_value_or_list_object));
                   }
                 }
 
@@ -1017,10 +1042,11 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
               // step 13.8.3.7.2)
               if (index_property.has_value()) {
                 if (is_value_object(item)) {
-                  throw_at_forbidden_member(
-                      state, active_context, property, *index_value,
-                      entry_pointer.concat(index), is_value_object,
-                      "Invalid value object");
+                  throw JSONLDError(
+                      "Invalid value object",
+                      forbidden_member_pointer(
+                          state, active_context, property, *index_value,
+                          entry_pointer.concat(index), is_value_object));
                 }
                 // The index value is prepended to any existing values.
                 auto combined{into_array(expand_value(
@@ -1186,9 +1212,10 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
       if (state.processing_1_0) {
         for (const auto &item : expanded_value.as_array()) {
           if (is_list_object(item)) {
-            throw_at_forbidden_member(state, active_context, property,
-                                      entry.second, entry_pointer,
-                                      is_list_object, "List of lists");
+            throw JSONLDError("List of lists",
+                              forbidden_member_pointer(
+                                  state, active_context, property, entry.second,
+                                  entry_pointer, is_list_object));
           }
         }
       }
@@ -1206,9 +1233,10 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
       const auto reverse_items{into_array(JSON{expanded_value})};
       for (const auto &item : reverse_items.as_array()) {
         if (is_value_or_list_object(item)) {
-          throw_at_forbidden_member(
-              state, active_context, property, entry.second, entry_pointer,
-              is_value_or_list_object, "Invalid reverse property value");
+          throw JSONLDError("Invalid reverse property value",
+                            forbidden_member_pointer(
+                                state, active_context, property, entry.second,
+                                entry_pointer, is_value_or_list_object));
         }
       }
       const auto *existing_reverse{
@@ -1332,9 +1360,10 @@ auto expand(ExpansionState &state, ActiveContext &active_context,
       if (state.processing_1_0) {
         for (const auto &item : result.as_array()) {
           if (is_list_object(item)) {
-            throw_at_forbidden_member(state, active_context, active_property,
-                                      element, pointer, is_list_object,
-                                      "List of lists");
+            throw JSONLDError(
+                "List of lists",
+                forbidden_member_pointer(state, active_context, active_property,
+                                         element, pointer, is_list_object));
           }
         }
       }

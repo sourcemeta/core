@@ -117,9 +117,13 @@ struct ExpansionState {
   // Where to report what the context currently being processed says wrong when
   // the input does not spell out its entries: one fetched by reference, one
   // merged in from an import, and the expansion context the caller supplies
-  // are each named by what brought them rather than by their own entries
+  // are each named by what brought them rather than by their own entries.
   // Absent while the input's own context is being processed
   std::optional<Pointer> foreign_context_location;
+  // While a context merged from an @import is being processed, the entries the
+  // input itself spells out. Those terms are located by their own scoped
+  // context, unlike the ones the imported document contributed
+  const JSON *input_context{nullptr};
   // Protected-term state for the context currently being processed.
   bool context_protected{false};
   bool protected_override{false};
@@ -142,18 +146,25 @@ struct ExpansionState {
 };
 
 // RAII guard for where the context being processed reports what it says wrong,
-// restoring the enclosing origin on every exit path
+// restoring the enclosing origin, and which of its entries the input itself
+// spells out, on every exit path
 struct ForeignContextScope {
   ExpansionState &state;
-  std::optional<Pointer> previous;
+  std::optional<Pointer> previous_location;
+  const JSON *previous_input;
 
-  ForeignContextScope(ExpansionState &value, std::optional<Pointer> location)
-      : state{value}, previous{std::move(value.foreign_context_location)} {
+  ForeignContextScope(ExpansionState &value, std::optional<Pointer> location,
+                      const JSON *const input = nullptr)
+      : state{value},
+        previous_location{std::move(value.foreign_context_location)},
+        previous_input{value.input_context} {
     this->state.foreign_context_location = std::move(location);
+    this->state.input_context = input;
   }
 
   ~ForeignContextScope() {
-    this->state.foreign_context_location = std::move(this->previous);
+    this->state.foreign_context_location = std::move(this->previous_location);
+    this->state.input_context = this->previous_input;
   }
 
   ForeignContextScope(const ForeignContextScope &) = delete;

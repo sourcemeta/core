@@ -52,6 +52,28 @@ auto remote_resolver() -> sourcemeta::core::JSONLDResolver {
       return sourcemeta::core::parse_json(
           R"({ "@context": { "@vocab": 42 } })");
     }
+    if (identifier == "https://example.com/import-protected") {
+      return sourcemeta::core::parse_json(R"({
+        "@context": {
+          "@protected": true,
+          "a": "urn:a",
+          "I": { "@id": "urn:I", "@context": { "a": "urn:imported" } }
+        }
+      })");
+    }
+    if (identifier == "https://example.com/chain-a") {
+      return sourcemeta::core::parse_json(
+          R"({ "@context": [ "https://example.com/chain-b" ] })");
+    }
+    if (identifier == "https://example.com/chain-b") {
+      return sourcemeta::core::parse_json(R"({
+        "@context": {
+          "@protected": true,
+          "a": "urn:a",
+          "T": { "@id": "urn:T", "@context": { "a": "urn:other" } }
+        }
+      })");
+    }
     if (identifier == "https://example.com/scoped-missing") {
       return sourcemeta::core::parse_json(R"({
         "@context": {
@@ -2818,4 +2840,90 @@ TEST(reverse_alias_lexicographic_reversed) {
 
   EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
                              "Invalid reverse property value", "/@reverse/a");
+}
+
+TEST(vocab_mapping_that_cannot_be_resolved) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "@vocab": "bad%zz" },
+    "name": "x"
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(
+      sourcemeta::core::jsonld_expand(input, "https://example.com/", {}),
+      "Invalid vocab mapping", "/@context/@vocab");
+}
+
+TEST(index_map_member_scope_redefines_a_protected_term) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "@protected": true,
+      "x": "urn:x",
+      "p": {
+        "@id": "urn:p",
+        "@container": "@index",
+        "@index": "urn:i",
+        "@context": { "x": "urn:scoped" }
+      }
+    },
+    "p": { "k": { "@context": { "x": "urn:local" }, "@value": "v" } }
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Invalid value object", "/p/k");
+}
+
+TEST(index_map_scoped_set_alias_member_keeps_indices) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "p": {
+        "@id": "urn:p",
+        "@container": "@index",
+        "@index": "urn:i",
+        "@context": { "s": "@set" }
+      }
+    },
+    "p": { "k": { "s": [ { "@id": "urn:a" }, { "@value": "v" } ] } }
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Invalid value object", "/p/k/s/1");
+}
+
+TEST(deferred_scope_from_a_nested_remote_context_reports_at_the_reference) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": "https://example.com/chain-a",
+    "@type": "T",
+    "a": "x"
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(
+      sourcemeta::core::jsonld_expand(input, "", remote_resolver()),
+      "Protected term redefinition", "/@context");
+}
+
+TEST(deferred_scope_of_an_imported_term_reports_at_the_import) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "@import": "https://example.com/import-protected" },
+    "@type": "I",
+    "a": "x"
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(
+      sourcemeta::core::jsonld_expand(input, "", remote_resolver()),
+      "Protected term redefinition", "/@context/@import");
+}
+
+TEST(deferred_scope_of_a_local_term_beside_an_import_keeps_its_position) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "@import": "https://example.com/import-protected",
+      "T": { "@id": "urn:T", "@context": { "a": "urn:other" } }
+    },
+    "@type": "T",
+    "a": "x"
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(
+      sourcemeta::core::jsonld_expand(input, "", remote_resolver()),
+      "Protected term redefinition", "/@context/T/@context/a");
 }

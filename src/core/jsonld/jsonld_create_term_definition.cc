@@ -589,8 +589,12 @@ auto create_term_definition(ExpansionState &state,
       // Step 21.7 keeps the local context of the definition to re-process when
       // the term comes into use, so whatever it says wrong then belongs where
       // it was written. Only a context the input spells out has entries of its
-      // own to point into (JSON-LD 1.1 API Section 5.1.1 step 21.7)
-      definition.context_authored = !state.foreign_context_location.has_value();
+      // own to point into, which a context merged from an import settles one
+      // term at a time (JSON-LD 1.1 API Section 5.1.1 step 21.7)
+      definition.context_authored =
+          !state.foreign_context_location.has_value() ||
+          (state.input_context != nullptr &&
+           state.input_context->defines(term));
       definition.context_location =
           definition.context_authored
               ? to_pointer(term_pointer.concat(keyword_context()))
