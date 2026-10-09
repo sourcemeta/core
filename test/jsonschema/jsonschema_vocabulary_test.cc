@@ -1144,8 +1144,12 @@ TEST(base_dialect_resolved_across_two_documents) {
                      }
                      return sourcemeta::core::schema_resolver(identifier);
                    })};
-  EXPECT_TRUE(
-      result.get("https://json-schema.org/draft/2020-12/vocab/core").value());
+
+  using Known = sourcemeta::core::SchemaVocabularies::Known;
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_FALSE(result.has_unknown());
+  EXPECT_TRUE(result.get(Known::JSON_SCHEMA_2020_12_CORE).value());
+  EXPECT_FALSE(result.get(Known::JSON_SCHEMA_2020_12_VALIDATION).has_value());
 }
 
 // With the far end of that chain unknown, there is no base dialect to report

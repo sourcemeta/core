@@ -2225,12 +2225,9 @@ TEST(reference_fragment_that_is_not_a_valid_pointer) {
   const sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::References, document,
       sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
-  const auto pointer{sourcemeta::core::Pointer{"$ref"}};
-  const auto entry{
-      frame.reference(sourcemeta::core::SchemaReferenceType::Static,
-                      sourcemeta::core::to_weak_pointer(pointer))};
-  EXPECT_TRUE(entry.has_value());
-  EXPECT_EQ(entry->get().destination, "https://example.com/schema#/foo~2bar");
+  EXPECT_STATIC_REFERENCE(
+      frame, "/$ref", "https://example.com/schema#/foo~2bar",
+      "https://example.com/schema", "/foo~2bar", "#/foo~2bar");
 }
 
 // A subschema declaring an empty dialect names no base dialect at all, so the
@@ -2244,5 +2241,65 @@ TEST(subschema_declaring_an_empty_dialect) {
   const sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::Locations, document,
       sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
-  EXPECT_TRUE(frame.root_location().has_value());
+
+  const auto result{frame.to_json(sourcemeta::core::schema_resolver)};
+  const auto expected = sourcemeta::core::parse_json(R"JSON(
+  {
+    "mode": "locations",
+    "locations": {
+      "static": {
+        "": {
+          "parent": null,
+          "type": "subschema",
+          "root": null,
+          "base": "",
+          "pointer": "",
+          "relativePointer": "",
+          "dialect": "https://json-schema.org/draft/2020-12/schema",
+          "baseDialect": "https://json-schema.org/draft/2020-12/schema",
+          "propertyName": false,
+          "orphan": false,
+          "hasReferencesTo": false,
+          "hasReferencesThrough": false,
+          "vocabularies": {
+            "https://json-schema.org/draft/2020-12/vocab/core": true,
+            "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+            "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
+            "https://json-schema.org/draft/2020-12/vocab/validation": true,
+            "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
+            "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
+            "https://json-schema.org/draft/2020-12/vocab/content": true
+          }
+        },
+        "#/properties/foo": {
+          "parent": "",
+          "type": "subschema",
+          "root": null,
+          "base": "",
+          "pointer": "/properties/foo",
+          "relativePointer": "/properties/foo",
+          "dialect": "https://json-schema.org/draft/2020-12/schema",
+          "baseDialect": "https://json-schema.org/draft/2020-12/schema",
+          "propertyName": false,
+          "orphan": false,
+          "hasReferencesTo": false,
+          "hasReferencesThrough": false,
+          "vocabularies": {
+            "https://json-schema.org/draft/2020-12/vocab/core": true,
+            "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+            "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
+            "https://json-schema.org/draft/2020-12/vocab/validation": true,
+            "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
+            "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
+            "https://json-schema.org/draft/2020-12/vocab/content": true
+          }
+        }
+      },
+      "dynamic": {}
+    },
+    "references": []
+  }
+  )JSON");
+
+  EXPECT_EQ(result, expected);
 }

@@ -812,6 +812,9 @@ TEST(validate_accepts_a_required_code_hash) {
       "client-id", REFERENCE_NOW, options)};
   EXPECT_TRUE(identity.has_value());
   EXPECT_EQ(identity.value().subject, "user-1");
+  EXPECT_EQ(identity.value().issuer, "https://issuer.example");
+  EXPECT_FALSE(identity.value().authentication_context_class.has_value());
+  EXPECT_FALSE(identity.value().authentication_time.has_value());
 }
 
 TEST(validate_accepts_a_required_access_token_hash) {
@@ -836,6 +839,9 @@ TEST(validate_accepts_a_required_access_token_hash) {
       "client-id", REFERENCE_NOW, options)};
   EXPECT_TRUE(identity.has_value());
   EXPECT_EQ(identity.value().subject, "user-1");
+  EXPECT_EQ(identity.value().issuer, "https://issuer.example");
+  EXPECT_FALSE(identity.value().authentication_context_class.has_value());
+  EXPECT_FALSE(identity.value().authentication_time.has_value());
 }
 
 TEST(parse_id_token_extracts_the_member) {

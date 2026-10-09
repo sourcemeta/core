@@ -479,12 +479,24 @@ TEST(compact_selects_a_term_carrying_both_language_and_direction) {
       input, context, "", {}, sourcemeta::core::JSONLDVersion::V1_1, true,
       true)};
 
-  EXPECT_TRUE(result.defines("both"));
-  EXPECT_TRUE(result.defines("lang"));
-  EXPECT_TRUE(result.defines("dir"));
-  EXPECT_TRUE(result.defines("neither"));
-  EXPECT_EQ(result.at("both"), sourcemeta::core::JSON{"x"});
-  EXPECT_EQ(result.at("lang"), sourcemeta::core::JSON{"x"});
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "both": "x",
+    "lang": "x",
+    "dir": "x",
+    "neither": "x",
+    "@context": {
+      "both": {
+        "@id": "http://example.com/both",
+        "@language": "EN",
+        "@direction": "ltr"
+      },
+      "lang": { "@id": "http://example.com/lang", "@language": "en" },
+      "dir": { "@id": "http://example.com/dir", "@direction": "ltr" },
+      "neither": { "@id": "http://example.com/neither" }
+    }
+  })");
+
+  EXPECT_EQ(result, expected);
 }
 
 // API Section 6.2.2 step 4.6.4.1 reaches the same key while choosing a term for
@@ -516,7 +528,17 @@ TEST(compact_selects_a_list_term_carrying_both_language_and_direction) {
       input, context, "", {}, sourcemeta::core::JSONLDVersion::V1_1, true,
       true)};
 
-  EXPECT_TRUE(result.defines("both"));
-  EXPECT_TRUE(result.at("both").is_array());
-  EXPECT_EQ(result.at("both").size(), 2);
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "both": [ "x", "y" ],
+    "@context": {
+      "both": {
+        "@id": "http://example.com/both",
+        "@container": "@list",
+        "@language": "EN",
+        "@direction": "ltr"
+      }
+    }
+  })");
+
+  EXPECT_EQ(result, expected);
 }
