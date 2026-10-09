@@ -1,3 +1,4 @@
+#include <cassert> // assert
 #include <sourcemeta/core/text.h>
 #include <sourcemeta/core/unicode.h>
 #include <sourcemeta/core/uri.h>
@@ -116,7 +117,8 @@ auto URI::canonicalize() -> URI & {
   }
 
   // Canonicalize path by removing "." and ".." segments
-  if (this->path_.has_value() && !this->path_.value().empty()) {
+  assert(!this->path_.has_value() || !this->path_.value().empty());
+  if (this->path_.has_value()) {
     auto &current_path{this->path_.value()};
     sourcemeta::core::normalize_path(current_path);
     if (current_path.empty()) {

@@ -455,6 +455,85 @@ TEST(jsonpath_parse_error_exponent_without_digit){
 TEST(jsonpath_parse_error_integer_above_maximum){
     EXPECT_JSONPATH_PARSE_ERROR("$[?@.a==999999999999999999]", 27)}
 
-TEST(jsonpath_parse_error_slice_step_non_digit) {
-  EXPECT_JSONPATH_PARSE_ERROR("$[1:2:x]", 7)
+TEST(jsonpath_parse_error_slice_step_non_digit){
+    EXPECT_JSONPATH_PARSE_ERROR("$[1:2:x]", 7)}
+
+// RFC 9535 Section 2.5 admits this shape, which no other query here carries
+TEST(parse_member_name_shorthand_with_an_underscore) {
+  EXPECT_JSONPATH_VALID("$.a_b");
+}
+
+// RFC 9535 Section 2.5 admits this shape, which no other query here carries
+TEST(parse_member_name_shorthand_with_a_digit) {
+  EXPECT_JSONPATH_VALID("$.a1");
+}
+
+// RFC 9535 Section 2.5 admits this shape, which no other query here carries
+TEST(parse_filter_with_an_absolute_singular_query) {
+  EXPECT_JSONPATH_VALID("$[?$.a]");
+}
+
+// RFC 9535 Section 2.5 admits this shape, which no other query here carries
+TEST(parse_filter_comparison_without_an_equals) {
+  EXPECT_JSONPATH_VALID("$[?@.a<1]");
+}
+
+// RFC 9535 Section 2 gives no production for this, so the parser stops on it
+TEST(parse_rejects_a_slice_that_ends_after_its_colon) {
+  try {
+    const sourcemeta::core::JSONPath path{"$[1:"};
+    FAIL();
+  } catch (const sourcemeta::core::JSONPathParseError &error) {
+    EXPECT_STREQ(error.what(), "The input is not a valid JSON Path query");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// RFC 9535 Section 2 gives no production for this, so the parser stops on it
+TEST(parse_rejects_a_slice_that_ends_after_its_second_colon) {
+  try {
+    const sourcemeta::core::JSONPath path{"$[1:2:"};
+    FAIL();
+  } catch (const sourcemeta::core::JSONPathParseError &error) {
+    EXPECT_STREQ(error.what(), "The input is not a valid JSON Path query");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// RFC 9535 Section 2 gives no production for this, so the parser stops on it
+TEST(parse_rejects_a_single_pipe_in_a_filter) {
+  try {
+    const sourcemeta::core::JSONPath path{"$[?@.a|@.b]"};
+    FAIL();
+  } catch (const sourcemeta::core::JSONPathParseError &error) {
+    EXPECT_STREQ(error.what(), "The input is not a valid JSON Path query");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// RFC 9535 Section 2 gives no production for this, so the parser stops on it
+TEST(parse_rejects_a_single_ampersand_in_a_filter) {
+  try {
+    const sourcemeta::core::JSONPath path{"$[?@.a&@.b]"};
+    FAIL();
+  } catch (const sourcemeta::core::JSONPathParseError &error) {
+    EXPECT_STREQ(error.what(), "The input is not a valid JSON Path query");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// RFC 9535 Section 2 gives no production for this, so the parser stops on it
+TEST(parse_rejects_a_function_name_that_is_not_lower_case) {
+  try {
+    const sourcemeta::core::JSONPath path{"$[?Count(@)>1]"};
+    FAIL();
+  } catch (const sourcemeta::core::JSONPathParseError &error) {
+    EXPECT_STREQ(error.what(), "The input is not a valid JSON Path query");
+  } catch (...) {
+    FAIL();
+  }
 }

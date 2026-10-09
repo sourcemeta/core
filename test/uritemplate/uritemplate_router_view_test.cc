@@ -4748,3 +4748,41 @@ TEST(corrupt_paths_offset_past_end) {
   EXPECT_EQ(view.at(0), 0);
   EXPECT_EQ(view.context(1), 0);
 }
+
+// A node count the buffer cannot hold describes nothing, however sound the
+// rest of the header reads
+TEST(describes_rejects_a_node_count_beyond_the_buffer) {
+  const std::array<std::uint32_t, 21> data{
+      {0x52544552, 9, 9999, 112,        112, 0, 0, 0, 0, 0, 0,
+       0,          0, 0,    0xFFFFFFFF, 0,   1, 0, 0, 0, 0}};
+  const sourcemeta::core::URITemplateRouterView view{
+      reinterpret_cast<const std::uint8_t *>(data.data()),
+      (data.size() * sizeof(data[0]))};
+  EXPECT_FALSE(view.describes("/users"));
+  EXPECT_FALSE(view.describes("/users", "/base"));
+}
+
+// The string table begins where the nodes end, so an offset below that
+// would read a node as a string
+TEST(describes_rejects_a_string_table_that_overlaps_the_nodes) {
+  const std::array<std::uint32_t, 21> data{{0x52544552, 9, 1, 1, 112, 0, 0,
+                                            0,          0, 0, 0, 0,   0, 0,
+                                            0xFFFFFFFF, 0, 1, 0, 0,   0, 0}};
+  const sourcemeta::core::URITemplateRouterView view{
+      reinterpret_cast<const std::uint8_t *>(data.data()),
+      (data.size() * sizeof(data[0]))};
+  EXPECT_FALSE(view.describes("/users"));
+  EXPECT_FALSE(view.describes("/users", "/base"));
+}
+
+// Arguments past the end of the buffer are no arguments at all
+TEST(describes_rejects_arguments_past_the_end) {
+  const std::array<std::uint32_t, 21> data{
+      {0x52544552, 9, 1, 112,        99999, 0, 0, 0, 0, 0, 0,
+       0,          0, 0, 0xFFFFFFFF, 0,     1, 0, 0, 0, 0}};
+  const sourcemeta::core::URITemplateRouterView view{
+      reinterpret_cast<const std::uint8_t *>(data.data()),
+      (data.size() * sizeof(data[0]))};
+  EXPECT_FALSE(view.describes("/users"));
+  EXPECT_FALSE(view.describes("/users", "/base"));
+}

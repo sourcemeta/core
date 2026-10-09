@@ -3126,3 +3126,103 @@ TEST(alias_expansion_allowance_counts_bytes_not_characters) {
     FAIL();
   }
 }
+
+// YAML 1.2.2 Section 6.9.2 forbids only "[", "]", "{", "}" and "," in an
+// anchor name, so a colon belongs to the name and the alias here reaches to the
+// end of the word rather than leaving a mapping indicator behind
+TEST(undefined_anchor_with_an_undefined_anchor_as_the_first_key) {
+  const std::string input{"*missing: 2"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLUnknownAnchorError &error) {
+    EXPECT_EQ(error.anchor(), "missing:");
+    EXPECT_STREQ(error.what(), "YAML alias references undefined anchor");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// YAML 1.2.2 Section 7.1 resolves an alias against an anchor already seen, and
+// a key is a position no suite case aliases from
+TEST(undefined_anchor_with_an_undefined_anchor_as_an_explicit_key) {
+  const std::string input{"? *missing\n: 2"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLUnknownAnchorError &error) {
+    EXPECT_EQ(error.anchor(), "missing");
+    EXPECT_STREQ(error.what(), "YAML alias references undefined anchor");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// The same reading of the anchor name on a line that is not the document's
+// first, which the parser reaches through a separate path
+TEST(undefined_anchor_with_an_undefined_anchor_as_a_later_key) {
+  const std::string input{"a: 1\n*missing: 2"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLUnknownAnchorError &error) {
+    EXPECT_EQ(error.anchor(), "missing:");
+    EXPECT_STREQ(error.what(), "YAML alias references undefined anchor");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// With the indicator separated the name ends before it, which is what shows the
+// reading above to be the grammar at work rather than the colon being lost
+TEST(undefined_anchor_as_a_key_separated_from_its_indicator) {
+  const std::string input{"*missing : 2"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLUnknownAnchorError &error) {
+    EXPECT_EQ(error.anchor(), "missing");
+    EXPECT_STREQ(error.what(), "YAML alias references undefined anchor");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// YAML 1.2.2 Section 8.2.1 indents the compact content of a block entry with
+// spaces, so a tab in that separation is invalid where the content is itself an
+// indicator. The sequence sibling of this check is already exercised, the
+// explicit key one is not
+TEST(a_tab_before_an_explicit_key_indicator_is_rejected) {
+  const std::string input{"-\t? a\n  : 1"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Tab characters cannot be used for indentation");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// Section 5.7 gives the escape as a fixed number of hex digits, so an input
+// that ends inside one never completes it
+TEST(a_hex_escape_cut_short_by_the_end_of_input_is_rejected) {
+  const std::string input{"\"\\x4"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Truncated hex escape sequence");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// Section 6.5 folds a line break in a quoted scalar into a space and a second
+// break into a newline, which two consecutive breaks are what reach
+TEST(two_consecutive_breaks_in_a_quoted_scalar_fold_to_a_newline) {
+  const std::string input{"\"a\r\n\r\nb\""};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_TRUE(result.is_string());
+  EXPECT_EQ(result.to_string(), "a\nb");
+}

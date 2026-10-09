@@ -315,3 +315,80 @@ TEST(emphasis_underscore_closer_before_tilde) {
   const auto result{sourcemeta::core::markdown_to_html("_a_~b")};
   EXPECT_EQ(result, "<p><em>a</em>~b</p>\n");
 }
+
+// U+203F carries this category, and CommonMark section 6.2 reads the character
+// beside a delimiter run to decide its flanking
+TEST(emphasis_beside_connector_punctuation) {
+  const auto result{sourcemeta::core::markdown_to_html("\xE2\x80\xBF"
+                                                       "*foo*"
+                                                       "\xE2\x80\xBF")};
+  EXPECT_EQ(result, "<p>\xE2\x80\xBF"
+                    "<em>foo</em>"
+                    "\xE2\x80\xBF</p>\n");
+}
+
+// U+2013 carries this category, and CommonMark section 6.2 reads the character
+// beside a delimiter run to decide its flanking
+TEST(emphasis_beside_dash_punctuation) {
+  const auto result{sourcemeta::core::markdown_to_html("\xE2\x80\x93"
+                                                       "*foo*"
+                                                       "\xE2\x80\x93")};
+  EXPECT_EQ(result, "<p>\xE2\x80\x93"
+                    "<em>foo</em>"
+                    "\xE2\x80\x93</p>\n");
+}
+
+// U+2045 carries this category, and CommonMark section 6.2 reads the character
+// beside a delimiter run to decide its flanking
+TEST(emphasis_beside_open_punctuation) {
+  const auto result{sourcemeta::core::markdown_to_html("\xE2\x81\x85"
+                                                       "*foo*"
+                                                       "\xE2\x81\x85")};
+  EXPECT_EQ(result, "<p>\xE2\x81\x85"
+                    "<em>foo</em>"
+                    "\xE2\x81\x85</p>\n");
+}
+
+// U+2046 carries this category, and CommonMark section 6.2 reads the character
+// beside a delimiter run to decide its flanking
+TEST(emphasis_beside_close_punctuation) {
+  const auto result{sourcemeta::core::markdown_to_html("\xE2\x81\x86"
+                                                       "*foo*"
+                                                       "\xE2\x81\x86")};
+  EXPECT_EQ(result, "<p>\xE2\x81\x86"
+                    "<em>foo</em>"
+                    "\xE2\x81\x86</p>\n");
+}
+
+// U+2018 carries this category, and CommonMark section 6.2 reads the character
+// beside a delimiter run to decide its flanking
+TEST(emphasis_beside_initial_punctuation) {
+  const auto result{sourcemeta::core::markdown_to_html("\xE2\x80\x98"
+                                                       "*foo*"
+                                                       "\xE2\x80\x98")};
+  EXPECT_EQ(result, "<p>\xE2\x80\x98"
+                    "<em>foo</em>"
+                    "\xE2\x80\x98</p>\n");
+}
+
+// U+2019 carries this category, and CommonMark section 6.2 reads the character
+// beside a delimiter run to decide its flanking
+TEST(emphasis_beside_final_punctuation) {
+  const auto result{sourcemeta::core::markdown_to_html("\xE2\x80\x99"
+                                                       "*foo*"
+                                                       "\xE2\x80\x99")};
+  EXPECT_EQ(result, "<p>\xE2\x80\x99"
+                    "<em>foo</em>"
+                    "\xE2\x80\x99</p>\n");
+}
+
+// U+00A1 carries this category, and CommonMark section 6.2 reads the character
+// beside a delimiter run to decide its flanking
+TEST(emphasis_beside_other_punctuation) {
+  const auto result{sourcemeta::core::markdown_to_html("\xC2\xA1"
+                                                       "*foo*"
+                                                       "\xC2\xA1")};
+  EXPECT_EQ(result, "<p>\xC2\xA1"
+                    "<em>foo</em>"
+                    "\xC2\xA1</p>\n");
+}

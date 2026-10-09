@@ -1,3 +1,4 @@
+#include <cassert> // assert
 #include <sourcemeta/core/uri.h>
 
 #include "normalize.h"
@@ -103,8 +104,10 @@ auto URI::resolve_from(const URI &base) -> URI & {
   // brackets for that form
   this->ip_literal_ = base.ip_literal_;
 
-  // Reference has empty path
-  if (!this->path_.has_value() || this->path_.value().empty()) {
+  // Reference has empty path. Every writer of this component stores either no
+  // value or at least one character, so the absent case is the whole of it
+  assert(!this->path_.has_value() || !this->path_.value().empty());
+  if (!this->path_.has_value()) {
     // Empty path with query or fragment means use base path
     this->path_ = base.path_;
     if (!this->query_.has_value()) {

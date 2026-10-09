@@ -1,0 +1,4 @@
+TAP version 14
+1..1
+ok 1 - accepts_escapes_inside_quotes.clitest
+# 1 passed, 0 failed

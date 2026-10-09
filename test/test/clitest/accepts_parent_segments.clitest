@@ -1,0 +1,2 @@
+COPY expected.txt TO out/../copy.txt
+COMPARE out/../copy.txt AGAINST expected.txt

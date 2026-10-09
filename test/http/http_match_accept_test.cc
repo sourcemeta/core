@@ -566,3 +566,50 @@ TEST(range_with_an_empty_type_is_ignored) {
                                                 {"application/json"}),
             "application/json");
 }
+
+// RFC 9110 Section 12.5.1 says a recipient "SHOULD process any parameter named
+// "q" as weight", and the registry disallows a media type parameter of that
+// name, so a parameter named anything else is not a weight however short it is
+TEST(a_single_character_parameter_that_is_not_a_weight) {
+  // Reading this parameter as a weight would drop the first range to 0.1 and
+  // hand the answer to the second
+  EXPECT_EQ(
+      sourcemeta::core::http_match_accept("text/plain;x=0.1, text/html;q=0.5",
+                                          {"text/plain;x=0.1", "text/html"}),
+      "text/plain;x=0.1");
+}
+
+// A parameter name of more than one character is not a weight either, so the
+// range keeps the quality it would have had without it
+TEST(a_longer_parameter_name_is_not_a_weight) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept(
+                "text/plain;charset=utf-8;q=0.1, text/html;q=0.9",
+                {"text/plain", "text/html"}),
+            "text/html");
+}
+
+// That section names the parameter "q" without pinning its case, and
+// Section 5.6.6 reads a parameter name case insensitively
+TEST(an_upper_case_weight_parameter) {
+  EXPECT_EQ(
+      sourcemeta::core::http_match_accept("text/plain;Q=0.1, text/html;Q=0.9",
+                                          {"text/plain", "text/html"}),
+      "text/html");
+}
+
+// Section 12.4.2 gives qvalue as at most three digits after a point, so a
+// character that is no digit at all leaves the weight unreadable
+TEST(a_weight_that_is_not_a_number) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept("text/plain;q=0.5x, text/html",
+                                                {"text/plain", "text/html"}),
+            "text/html");
+}
+
+// A parameter written with nothing after its equals sign carries an empty
+// value, which is not the same as the parameter being absent
+TEST(a_parameter_with_an_empty_value) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept(
+                "text/plain;charset=, text/html;q=0.5",
+                {"text/plain;charset=", "text/html"}),
+            "text/plain;charset=");
+}

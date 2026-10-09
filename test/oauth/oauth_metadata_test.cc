@@ -2703,3 +2703,84 @@ TEST(server_metadata_explicit_false_iss_parameter) {
   EXPECT_FALSE(
       metadata.value().authorization_response_iss_parameter_supported());
 }
+
+// RFC 8414 Section 2 makes the authorization endpoint REQUIRED only where a
+// grant needs it, so with one that does not it may be left out, and where it is
+// written anyway it still has to be a usable URL
+TEST(make_server_metadata_accepts_an_unneeded_authorization_endpoint) {
+  const std::array<std::string_view, 1> response_types{{"token"}};
+  const std::array<std::string_view, 1> grant_types{{"client_credentials"}};
+  sourcemeta::core::OAuthServerMetadataConfig config;
+  config.issuer = "https://server.example";
+  config.authorization_endpoint = "https://server.example/authorize";
+  config.token_endpoint = "https://server.example/token";
+  config.response_types_supported = response_types;
+  config.grant_types_supported = grant_types;
+  EXPECT_TRUE(sourcemeta::core::oauth_make_server_metadata(config).has_value());
+}
+
+TEST(
+    make_server_metadata_rejects_an_unneeded_authorization_endpoint_that_is_no_url) {
+  const std::array<std::string_view, 1> response_types{{"token"}};
+  const std::array<std::string_view, 1> grant_types{{"client_credentials"}};
+  sourcemeta::core::OAuthServerMetadataConfig config;
+  config.issuer = "https://server.example";
+  config.authorization_endpoint = "not a url";
+  config.token_endpoint = "https://server.example/token";
+  config.response_types_supported = response_types;
+  config.grant_types_supported = grant_types;
+  EXPECT_FALSE(
+      sourcemeta::core::oauth_make_server_metadata(config).has_value());
+}
+
+// Section 2 makes the token endpoint REQUIRED for every grant but the implicit
+// one, so that grant alone leaves it optional and still checked when written
+TEST(make_server_metadata_accepts_an_unneeded_token_endpoint) {
+  const std::array<std::string_view, 1> response_types{{"token"}};
+  const std::array<std::string_view, 1> grant_types{{"implicit"}};
+  sourcemeta::core::OAuthServerMetadataConfig config;
+  config.issuer = "https://server.example";
+  config.authorization_endpoint = "https://server.example/authorize";
+  config.token_endpoint = "https://server.example/token";
+  config.response_types_supported = response_types;
+  config.grant_types_supported = grant_types;
+  EXPECT_TRUE(sourcemeta::core::oauth_make_server_metadata(config).has_value());
+}
+
+TEST(make_server_metadata_rejects_an_unneeded_token_endpoint_that_is_no_url) {
+  const std::array<std::string_view, 1> response_types{{"token"}};
+  const std::array<std::string_view, 1> grant_types{{"implicit"}};
+  sourcemeta::core::OAuthServerMetadataConfig config;
+  config.issuer = "https://server.example";
+  config.authorization_endpoint = "https://server.example/authorize";
+  config.token_endpoint = "not a url";
+  config.response_types_supported = response_types;
+  config.grant_types_supported = grant_types;
+  EXPECT_FALSE(
+      sourcemeta::core::oauth_make_server_metadata(config).has_value());
+}
+
+// RFC 7591 Section 1.2 gives the registration endpoint, which Section 2 of RFC
+// 8414 leaves OPTIONAL, so it is read only where it is written
+TEST(make_server_metadata_accepts_a_registration_endpoint) {
+  const std::array<std::string_view, 1> response_types{{"code"}};
+  sourcemeta::core::OAuthServerMetadataConfig config;
+  config.issuer = "https://server.example";
+  config.authorization_endpoint = "https://server.example/authorize";
+  config.token_endpoint = "https://server.example/token";
+  config.registration_endpoint = "https://server.example/register";
+  config.response_types_supported = response_types;
+  EXPECT_TRUE(sourcemeta::core::oauth_make_server_metadata(config).has_value());
+}
+
+TEST(make_server_metadata_rejects_a_registration_endpoint_that_is_no_url) {
+  const std::array<std::string_view, 1> response_types{{"code"}};
+  sourcemeta::core::OAuthServerMetadataConfig config;
+  config.issuer = "https://server.example";
+  config.authorization_endpoint = "https://server.example/authorize";
+  config.token_endpoint = "https://server.example/token";
+  config.registration_endpoint = "not a url";
+  config.response_types_supported = response_types;
+  EXPECT_FALSE(
+      sourcemeta::core::oauth_make_server_metadata(config).has_value());
+}

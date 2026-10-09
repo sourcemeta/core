@@ -129,6 +129,107 @@ TEST(protected_term_redefinition) {
                              "Protected term redefinition", "/@context/1/a");
 }
 
+// JSON-LD 1.1 API Section 4.2 step 5 admits a redefinition of a protected
+// term only where the definition is identical, so each part of one is
+// compared and a difference in any of them is a redefinition
+TEST(protected_term_redefinition_differing_in_a_type_mapping) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": [
+      { "@version": 1.1, "@protected": true,
+        "a": { "@id": "http://example.com/a", "@type": "@id" } },
+      { "@version": 1.1,
+        "a": { "@id": "http://example.com/a", "@type": "@vocab" } }
+    ]
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Protected term redefinition", "/@context/1/a");
+}
+
+TEST(protected_term_redefinition_differing_in_a_container) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": [
+      { "@version": 1.1, "@protected": true,
+        "a": { "@id": "http://example.com/a", "@container": "@set" } },
+      { "@version": 1.1,
+        "a": { "@id": "http://example.com/a", "@container": "@list" } }
+    ]
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Protected term redefinition", "/@context/1/a");
+}
+
+TEST(protected_term_redefinition_differing_in_a_language) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": [
+      { "@version": 1.1, "@protected": true,
+        "a": { "@id": "http://example.com/a", "@language": "en" } },
+      { "@version": 1.1,
+        "a": { "@id": "http://example.com/a", "@language": "fr" } }
+    ]
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Protected term redefinition", "/@context/1/a");
+}
+
+TEST(protected_term_redefinition_differing_in_a_direction) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": [
+      { "@version": 1.1, "@protected": true,
+        "a": { "@id": "http://example.com/a", "@direction": "ltr" } },
+      { "@version": 1.1,
+        "a": { "@id": "http://example.com/a", "@direction": "rtl" } }
+    ]
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Protected term redefinition", "/@context/1/a");
+}
+
+TEST(protected_term_redefinition_differing_in_an_index) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": [
+      { "@version": 1.1, "@protected": true,
+        "a": { "@id": "http://example.com/a", "@container": "@index", "@index": "http://example.com/x" } },
+      { "@version": 1.1,
+        "a": { "@id": "http://example.com/a", "@container": "@index", "@index": "http://example.com/y" } }
+    ]
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Protected term redefinition", "/@context/1/a");
+}
+
+TEST(protected_term_redefinition_differing_in_a_nest) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": [
+      { "@version": 1.1, "@protected": true,
+        "a": { "@id": "http://example.com/a", "@nest": "x" } },
+      { "@version": 1.1,
+        "a": { "@id": "http://example.com/a", "@nest": "y" } }
+    ]
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Protected term redefinition", "/@context/1/a");
+}
+
+TEST(protected_term_redefinition_differing_in_a_prefix) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": [
+      { "@version": 1.1, "@protected": true,
+        "a": { "@id": "http://example.com/a", "@prefix": true } },
+      { "@version": 1.1,
+        "a": { "@id": "http://example.com/a", "@prefix": false } }
+    ]
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Protected term redefinition", "/@context/1/a");
+}
+
 TEST(invalid_protected_value) {
   const auto input = sourcemeta::core::parse_json(R"({
     "@context": { "a": { "@id": "http://example.com/a", "@protected": "yes" } }

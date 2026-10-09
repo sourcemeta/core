@@ -2038,3 +2038,83 @@ TEST(try_assign_before_existing_key_with_the_suffix_at_the_front) {
   std::advance(iterator, 2);
   EXPECT_EQ(iterator->first, "baz");
 }
+
+// The perfect hash copies key bytes into a zero filled block, so a key and the
+// same key followed by a null byte hash the same. RFC 8259 Section 7 admits a
+// null in a string, so both can sit in one object and only the size tells them
+// apart
+TEST(two_keys_that_differ_only_by_a_trailing_null) {
+  const sourcemeta::core::JSON::String bare{"a"};
+  const sourcemeta::core::JSON::String padded{"a\0", 2};
+  EXPECT_EQ(sourcemeta::core::JSON::Object::hash(bare),
+            sourcemeta::core::JSON::Object::hash(padded));
+
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign(bare, sourcemeta::core::JSON{1});
+  document.assign(padded, sourcemeta::core::JSON{2});
+
+  EXPECT_EQ(document.size(), 2);
+  EXPECT_TRUE(document.defines(bare));
+  EXPECT_TRUE(document.defines(padded));
+  EXPECT_EQ(document.at(bare).to_integer(), 1);
+  EXPECT_EQ(document.at(padded).to_integer(), 2);
+  EXPECT_TRUE(document.try_at(bare) != nullptr);
+  EXPECT_TRUE(document.try_at(padded) != nullptr);
+  EXPECT_EQ(document.try_at(bare)->to_integer(), 1);
+  EXPECT_EQ(document.try_at(padded)->to_integer(), 2);
+
+  document.erase(bare);
+  EXPECT_EQ(document.size(), 1);
+  EXPECT_FALSE(document.defines(bare));
+  EXPECT_TRUE(document.defines(padded));
+  EXPECT_EQ(document.at(padded).to_integer(), 2);
+}
+
+// A key of thirty-two bytes or more is hashed from its first thirty-one plus a
+// byte derived from its size and its end characters, so these two collide
+// outright and only comparing the whole string can tell them apart
+TEST(two_keys_of_thirty_two_bytes_or_more_that_hash_alike) {
+  const sourcemeta::core::JSON::String first{std::string(31, 'a') + "b"};
+  const sourcemeta::core::JSON::String second{std::string(31, 'a') + "za"};
+  EXPECT_EQ(first.size(), 32);
+  EXPECT_EQ(second.size(), 33);
+  EXPECT_EQ(sourcemeta::core::JSON::Object::hash(first),
+            sourcemeta::core::JSON::Object::hash(second));
+
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign(first, sourcemeta::core::JSON{1});
+  document.assign(second, sourcemeta::core::JSON{2});
+
+  EXPECT_EQ(document.size(), 2);
+  EXPECT_TRUE(document.defines(first));
+  EXPECT_TRUE(document.defines(second));
+  EXPECT_EQ(document.at(first).to_integer(), 1);
+  EXPECT_EQ(document.at(second).to_integer(), 2);
+  EXPECT_EQ(document.try_at(first)->to_integer(), 1);
+  EXPECT_EQ(document.try_at(second)->to_integer(), 2);
+
+  document.erase(first);
+  EXPECT_EQ(document.size(), 1);
+  EXPECT_FALSE(document.defines(first));
+  EXPECT_TRUE(document.defines(second));
+  EXPECT_EQ(document.at(second).to_integer(), 2);
+}
+
+// A key that hashes to the same place as one the object holds but is not it,
+// so the lookup has to walk past a candidate and then report nothing
+TEST(a_miss_on_a_key_that_collides_with_one_that_is_held) {
+  const sourcemeta::core::JSON::String held{std::string(31, 'a') + "b"};
+  const sourcemeta::core::JSON::String absent{std::string(31, 'a') + "za"};
+  EXPECT_EQ(sourcemeta::core::JSON::Object::hash(held),
+            sourcemeta::core::JSON::Object::hash(absent));
+
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign(held, sourcemeta::core::JSON{1});
+
+  EXPECT_EQ(document.size(), 1);
+  EXPECT_FALSE(document.defines(absent));
+  EXPECT_TRUE(document.try_at(absent) == nullptr);
+  document.erase(absent);
+  EXPECT_EQ(document.size(), 1);
+  EXPECT_TRUE(document.defines(held));
+}
