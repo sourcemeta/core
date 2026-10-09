@@ -827,13 +827,6 @@ auto bundle_schemas(sourcemeta::core::JSON &document,
   schemas_options.paths = paths;
   schemas_options.default_base = base;
   schemas_options.max_locations = remaining;
-  // What bundling the schemas spends has to come off the same allowance the
-  // rest of this spends from, which is what the allowance is documented to be.
-  // Handing over what is left every pass and never charging for it lets the
-  // reading a settling description does grow without bound, each pass starting
-  // over from the whole of what remains
-  std::uint64_t schemas_remaining{remaining};
-  schemas_options.locations_remaining = &schemas_remaining;
   schemas_options.callback =
       [&landed](const std::string_view identifier,
                 const sourcemeta::core::WeakPointer &location) -> void {
@@ -916,9 +909,15 @@ auto bundle_schemas(sourcemeta::core::JSON &document,
     return owned;
   }};
 
-  sourcemeta::core::schema_bundle(document, walker, standalone_resolver,
-                                  walk.dialect, "", schemas_options);
-  charge(remaining, static_cast<std::size_t>(remaining - schemas_remaining));
+  // What bundling the schemas registers has to come off the same allowance the
+  // rest of this spends from, which is what the allowance is documented to be.
+  // Handing over what is left every pass and never charging for it lets the
+  // reading a settling description does grow without bound, each pass starting
+  // over from the whole of what remains
+  const auto registered{
+      sourcemeta::core::schema_bundle(document, walker, standalone_resolver,
+                                      walk.dialect, "", schemas_options)};
+  charge(remaining, static_cast<std::size_t>(registered));
   if (landed.empty()) {
     return false;
   }

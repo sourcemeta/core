@@ -208,11 +208,6 @@ struct SchemaBundleOptions {
   /// way to know what a later call has to frame when bundling into a
   /// container that the dialect does not otherwise traverse
   Callback callback;
-  /// Where to report how much of the limit is left once bundling has
-  /// finished, for a caller that spends from the same limit elsewhere. Only
-  /// written where bundling finishes, since what a failed attempt spent is not
-  /// a number the caller can go on to spend against
-  std::uint64_t *locations_remaining{nullptr};
 };
 
 /// @ingroup jsonschema
@@ -264,12 +259,15 @@ struct SchemaBundleOptions {
 ///
 /// assert(document == expected);
 /// ```
+///
+/// Returns how many frame locations the analysis registered, which a caller
+/// that spends from the same allowance elsewhere takes off its own count.
 SOURCEMETA_CORE_JSONSCHEMA_EXPORT
 auto schema_bundle(sourcemeta::core::JSON &schema, const SchemaWalker &walker,
                    const SchemaResolver &resolver,
                    std::string_view default_dialect = "",
                    std::string_view default_id = "",
-                   const SchemaBundleOptions &options = {}) -> void;
+                   const SchemaBundleOptions &options = {}) -> std::uint64_t;
 
 /// @ingroup jsonschema
 ///
