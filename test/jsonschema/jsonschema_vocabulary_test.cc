@@ -12,21 +12,6 @@
 #include <variant>       // std::variant
 #include <vector>        // std::vector
 
-static auto chained_resolver(std::string_view identifier)
-    -> sourcemeta::core::SchemaResolverResult {
-  if (identifier == "https://example.com/meta-2") {
-    return sourcemeta::core::parse_json(R"JSON({
-      "$id": "https://example.com/meta-2",
-      "$schema": "https://json-schema.org/draft/2020-12/schema",
-      "$vocabulary": {
-        "https://json-schema.org/draft/2020-12/vocab/core": true,
-        "https://json-schema.org/draft/2020-12/vocab/validation": true
-      }
-    })JSON");
-  }
-  return sourcemeta::core::schema_resolver(identifier);
-}
-
 static auto test_resolver(std::string_view identifier)
     -> sourcemeta::core::SchemaResolverResult {
   if (identifier == "https://sourcemeta.com/optional-core") {
@@ -1143,7 +1128,22 @@ TEST(base_dialect_resolved_across_two_documents) {
     }
   })JSON")};
 
-  const auto result{vocabularies(document, chained_resolver)};
+  const auto result{
+      vocabularies(document,
+                   [](std::string_view identifier)
+                       -> sourcemeta::core::SchemaResolverResult {
+                     if (identifier == "https://example.com/meta-2") {
+                       return sourcemeta::core::parse_json(R"JSON({
+            "$id": "https://example.com/meta-2",
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$vocabulary": {
+              "https://json-schema.org/draft/2020-12/vocab/core": true,
+              "https://json-schema.org/draft/2020-12/vocab/validation": true
+            }
+          })JSON");
+                     }
+                     return sourcemeta::core::schema_resolver(identifier);
+                   })};
   EXPECT_TRUE(
       result.get("https://json-schema.org/draft/2020-12/vocab/core").value());
 }
