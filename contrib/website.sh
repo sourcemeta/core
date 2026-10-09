@@ -172,104 +172,22 @@ do
   TRACE_INDEX=$((TRACE_INDEX + 1))
 done < "$OBJECT_LIST"
 
-# Merge the traces line by line, keeping the highest count observed for every
-# line and branch, then emit a merged LCOV trace plus a per file summary
-MERGE_PROGRAM="$WORK_DIRECTORY/merge.awk"
-cat > "$MERGE_PROGRAM" <<'AWK'
-/^SF:/ { source = substr($0, 4); files[source] = 1; next }
-/^DA:/ {
-  split(substr($0, 4), record, ",")
-  key = source SUBSEP record[1]
-  if (!(key in lines) || record[2] + 0 > lines[key] + 0) {
-    lines[key] = record[2] + 0
-  }
-  next
-}
-/^BRDA:/ {
-  split(substr($0, 6), record, ",")
-  key = source SUBSEP record[1] SUBSEP record[2] SUBSEP record[3]
-  count = record[4] == "-" ? 0 : record[4] + 0
-  if (!(key in branches) || count > branches[key] + 0) {
-    branches[key] = count
-  }
-  next
-}
-END {
-  total_lines = 0
-  total_covered = 0
-  total_branches = 0
-  total_branches_covered = 0
-  for (key in lines) {
-    split(key, parts, SUBSEP)
-    file_lines[parts[1]] += 1
-    total_lines += 1
-    if (lines[key] > 0) {
-      file_covered[parts[1]] += 1
-      total_covered += 1
-    }
-  }
-  for (key in branches) {
-    split(key, parts, SUBSEP)
-    file_branches[parts[1]] += 1
-    total_branches += 1
-    if (branches[key] > 0) {
-      file_branches_covered[parts[1]] += 1
-      total_branches_covered += 1
-    }
-  }
-  for (source in files) {
-    printf "SF:%s\n", source > merged
-    for (key in lines) {
-      split(key, parts, SUBSEP)
-      if (parts[1] == source) {
-        printf "DA:%s,%s\n", parts[2], lines[key] > merged
-      }
-    }
-    for (key in branches) {
-      split(key, parts, SUBSEP)
-      if (parts[1] == source) {
-        printf "BRDA:%s,%s,%s,%s\n", parts[2], parts[3], parts[4],
-          branches[key] > merged
-      }
-    }
-    printf "end_of_record\n" > merged
-    covered = file_covered[source] + 0
-    percentage = file_lines[source] > 0 \
-      ? (covered * 100.0) / file_lines[source] : 100
-    printf "%8.2f%% %6d/%-6d %s\n", percentage, covered,
-      file_lines[source], source | "sort -k4"
-  }
-  close("sort -k4")
-  line_percentage = total_lines > 0 \
-    ? (total_covered * 100.0) / total_lines : 100
-  branch_percentage = total_branches > 0 \
-    ? (total_branches_covered * 100.0) / total_branches : 100
-  printf "%8.2f%% %6d/%-6d TOTAL lines\n", line_percentage,
-    total_covered, total_lines
-  printf "%8.2f%% %6d/%-6d TOTAL branches\n", branch_percentage,
-    total_branches_covered, total_branches
-}
-AWK
-
-awk -v "merged=$WORK_DIRECTORY/coverage.lcov" -f "$MERGE_PROGRAM" \
-  "$LCOV_DIRECTORY"/*.lcov > "$WORK_DIRECTORY/summary.txt"
-
-# Functions and regions are merged apart from the traces, which carry neither at
-# the granularity needed. A trace only records the line a function starts on,
-# which cannot tell apart two functions starting on the same line, and it records
-# no regions at all. The JSON export gives both with their columns, which is how
-# the report itself counts every instantiation of a template as a single
-# function, and the highest count across the binaries is kept for the same reason
-# as above
+# All four metrics are counted in one place, from one set of exceptions. The
+# traces carry the report's own verdict on each line and branch, and the JSON
+# export carries the functions and regions with their columns, which is how the
+# report itself counts every instantiation of a template as a single function.
+# The highest count across the binaries is kept for the same reason as above
 EXPORT_PROGRAM="$WORK_DIRECTORY/export.py"
 cat > "$EXPORT_PROGRAM" <<'PYTHON'
 import json
+import os
 import re
 import subprocess
 import sys
+from collections import defaultdict
 
-llvm_cov, profile_data, exclude, object_list, uncovered, exceptions = \
-    sys.argv[1:]
+llvm_cov, profile_data, exclude, object_list, uncovered, exceptions, \
+    traces, merged = sys.argv[1:]
 excluded = re.compile(exclude)
 
 # Functions the suite does exercise but cannot measure, each paired with the
@@ -283,6 +201,34 @@ with open(exceptions, encoding="utf-8") as listing:
             suffix, _, name = text.partition(" ")
             permitted.add((suffix, name.strip()))
 
+# Lines and branches are read from the traces rather than derived from the
+# regions below. A line counts as covered when the report says it does, and the
+# report settles that from segments that carry which part of a line is code,
+# which the regions do not: taking a region to cover every line it spans counts
+# blank and declaration lines as code and reports a line as run whenever any
+# region spanning it ran. Keeping the highest count seen for each line is what
+# makes one count as covered when any binary truly ran it
+lines = defaultdict(dict)
+branches = defaultdict(dict)
+for entry in sorted(os.listdir(traces)):
+    source = None
+    with open(os.path.join(traces, entry), encoding="utf-8") as trace:
+        for row in trace:
+            if row.startswith("SF:"):
+                source = row[3:].strip()
+                lines.setdefault(source, {})
+            elif row.startswith("DA:"):
+                number, _, count = row[3:].strip().partition(",")
+                held = lines[source]
+                number = int(number)
+                held[number] = max(held.get(number, 0), int(count))
+            elif row.startswith("BRDA:"):
+                number, block, edge, count = row[5:].strip().split(",")
+                held = branches[source]
+                key = (int(number), block, edge)
+                taken = 0 if count == "-" else int(count)
+                held[key] = max(held.get(key, 0), taken)
+
 # The eighth element of a region says what it is, and only a code region counts
 # towards region coverage, which the report agrees with file by file. The sixth
 # names which of the function's files it belongs to, since a region can sit in a
@@ -294,6 +240,7 @@ REGION_KIND = 7
 counts = {}
 names = {}
 owned = {}
+spans = {}
 with open(object_list, encoding="utf-8") as objects:
     for binary in objects.read().splitlines():
         export = subprocess.run(
@@ -320,6 +267,9 @@ with open(object_list, encoding="utf-8") as objects:
                              region[3])
                     mine = owned.setdefault(key, {})
                     mine[where] = max(mine.get(where, 0), region[4])
+                    reach = spans.setdefault(key, set())
+                    for number in range(region[0], region[2] + 1):
+                        reach.add((source, number))
 
 def excused(key):
     filename = key[0]
@@ -335,19 +285,68 @@ with open(uncovered, "w", encoding="utf-8") as output:
         for name in sorted(names[key]):
             output.write(f"{filename}:{line}:{column} {name}\n")
 
-# An excused function is left out of the region count as well, so that the two
-# metrics answer to the same exceptions rather than one of them holding a
-# function to a standard the other has already set aside. Applied once the whole
-# export has been read, since which names a function goes by is only settled
-# then, and a location an excused function shares with one that is measurable
-# stays in through the latter
+# An excused function is left out of the region, line and branch counts as
+# well, so that the four metrics answer to the same exceptions rather than some
+# of them holding a function to a standard the others have already set aside.
+# Applied once the whole export has been read, since which names a function
+# goes by is only settled then, and a place an excused function shares with one
+# that is measurable stays in through the latter
 regions = {}
+forgiven = set()
+measurable = set()
 for key, mine in owned.items():
     if excused(key):
+        forgiven.update(spans.get(key, ()))
         continue
 
+    measurable.update(spans.get(key, ()))
     for where, count in mine.items():
         regions[where] = max(regions.get(where, 0), count)
+
+forgiven -= measurable
+
+# The merged trace the browsable report is built from carries every line the
+# binaries reported, excused or not, since the report is there to be read rather
+# than to be met
+with open(merged, "w", encoding="utf-8") as output:
+    for source in sorted(lines):
+        output.write(f"SF:{source}\n")
+        for number, count in sorted(lines[source].items()):
+            output.write(f"DA:{number},{count}\n")
+        for (number, block, edge), count in sorted(branches[source].items()):
+            output.write(f"BRDA:{number},{block},{edge},{count}\n")
+        output.write("end_of_record\n")
+
+total_lines = 0
+total_covered = 0
+for source in sorted(lines):
+    held = {number: count for number, count in lines[source].items()
+            if (source, number) not in forgiven}
+    if not held:
+        continue
+
+    covered = sum(1 for count in held.values() if count > 0)
+    total_lines += len(held)
+    total_covered += covered
+    share = covered * 100 / len(held)
+    print(f"{share:8.2f}% {covered:6d}/{len(held):<6d} {source}")
+
+share = total_covered * 100 / total_lines if total_lines else 100
+print(f"{share:8.2f}% {total_covered:6d}/{total_lines:<6d} TOTAL lines")
+
+taken = 0
+total_branches = 0
+for source in branches:
+    for (number, block, edge), count in branches[source].items():
+        if (source, number) in forgiven:
+            continue
+
+        total_branches += 1
+        if count > 0:
+            taken += 1
+
+share = taken * 100 / total_branches if total_branches else 100
+print(f"{share:8.2f}% {taken:6d}/{total_branches:<6d} TOTAL branches")
 
 reached = sum(1 for count in regions.values() if count > 0)
 share = reached * 100 / len(regions) if regions else 100
@@ -362,7 +361,8 @@ UNCOVERED_FUNCTIONS="$WORK_DIRECTORY/uncovered.txt"
 python3 "$EXPORT_PROGRAM" "$LLVM_COV" "$PROFILE_DATA" "$EXCLUDE" \
   "$OBJECT_LIST" "$UNCOVERED_FUNCTIONS" \
   "$SOURCE_DIRECTORY/contrib/coverage-exceptions.txt" \
-  >> "$WORK_DIRECTORY/summary.txt"
+  "$LCOV_DIRECTORY" "$WORK_DIRECTORY/coverage.lcov" \
+  > "$WORK_DIRECTORY/summary.txt"
 
 # Optionally require every function under measurement to be reached by the
 # suite. Only the platform that the report is published from is held to it, as
