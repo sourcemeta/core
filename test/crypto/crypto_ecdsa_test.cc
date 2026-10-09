@@ -44,6 +44,12 @@ static constexpr std::string_view P521_SIG{
     "03f3165be805564f612a5e228207b3007258023bbfe33014bbe759aaef96f28c"
     "56018df4"};
 
+// A small RSA public key, for showing that a scheme turns down a key of a type
+// it is not defined over
+static constexpr std::string_view OTHER_TYPE_MODULUS{
+    "00c4a7b1a7b3c2d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d"};
+static constexpr std::string_view OTHER_TYPE_EXPONENT{"010001"};
+
 namespace {
 auto verify_ecdsa(const sourcemeta::core::EllipticCurve curve,
                   const sourcemeta::core::SignatureHashFunction hash,
@@ -195,4 +201,23 @@ TEST(verify_rejects_oversized_coordinate) {
                    sourcemeta::core::SignatureHashFunction::SHA256, coordinate,
                    sourcemeta::core::hex_to_bytes(P256_QY).value(), MESSAGE,
                    sourcemeta::core::hex_to_bytes(P256_SIG).value()));
+}
+
+// A key holding no parsed state verifies nothing
+TEST(verify_with_a_key_that_holds_nothing) {
+  const sourcemeta::core::PublicKey key{nullptr};
+  EXPECT_FALSE(sourcemeta::core::ecdsa_verify(
+      key, sourcemeta::core::SignatureHashFunction::SHA256, MESSAGE,
+      "signature"));
+}
+
+// RFC 7518 Section 3.4 defines this scheme over elliptic-curve keys alone
+TEST(verify_with_an_rsa_key) {
+  const auto key{sourcemeta::core::make_rsa_public_key(
+      sourcemeta::core::hex_to_bytes(OTHER_TYPE_MODULUS).value(),
+      sourcemeta::core::hex_to_bytes(OTHER_TYPE_EXPONENT).value())};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_FALSE(sourcemeta::core::ecdsa_verify(
+      key.value(), sourcemeta::core::SignatureHashFunction::SHA256, MESSAGE,
+      "signature"));
 }

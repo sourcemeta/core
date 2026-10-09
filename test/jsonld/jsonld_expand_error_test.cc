@@ -3148,7 +3148,9 @@ TEST(protected_term_redefinition_differing_in_whether_it_is_reversed) {
 // set container, so one written as an array redefines the keyword
 TEST(a_type_keyword_definition_with_a_container_that_is_not_a_string) {
   const auto input = sourcemeta::core::parse_json(
-      R"({ "@context": { "@version": 1.1, "@type": { "@container": [ "@set" ] } } })");
+      R"({
+    "@context": { "@version": 1.1, "@type": { "@container": [ "@set" ] } }
+  })");
 
   EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
                              "Keyword redefinition", "/@context/@type");

@@ -217,33 +217,6 @@ TEST(edwards_public_components_rejects_an_elliptic_curve_key) {
       sourcemeta::core::edwards_public_components(key.value()).has_value());
 }
 
-// A key holding no parsed state verifies nothing and reports no components
-TEST(rsassa_pkcs1_v15_verify_with_a_key_that_holds_nothing) {
-  const sourcemeta::core::PublicKey key{nullptr};
-  EXPECT_FALSE(sourcemeta::core::rsassa_pkcs1_v15_verify(
-      key, sourcemeta::core::SignatureHashFunction::SHA256, "message",
-      "signature"));
-}
-
-TEST(rsassa_pss_verify_with_a_key_that_holds_nothing) {
-  const sourcemeta::core::PublicKey key{nullptr};
-  EXPECT_FALSE(sourcemeta::core::rsassa_pss_verify(
-      key, sourcemeta::core::SignatureHashFunction::SHA256, "message",
-      "signature"));
-}
-
-TEST(ecdsa_verify_with_a_key_that_holds_nothing) {
-  const sourcemeta::core::PublicKey key{nullptr};
-  EXPECT_FALSE(sourcemeta::core::ecdsa_verify(
-      key, sourcemeta::core::SignatureHashFunction::SHA256, "message",
-      "signature"));
-}
-
-TEST(eddsa_verify_with_a_key_that_holds_nothing) {
-  const sourcemeta::core::PublicKey key{nullptr};
-  EXPECT_FALSE(sourcemeta::core::eddsa_verify(key, "message", "signature"));
-}
-
 TEST(rsa_public_components_of_a_key_that_holds_nothing) {
   const sourcemeta::core::PublicKey key{nullptr};
   EXPECT_FALSE(sourcemeta::core::rsa_public_components(key).has_value());
@@ -257,53 +230,6 @@ TEST(ec_public_components_of_a_key_that_holds_nothing) {
 TEST(edwards_public_components_of_a_key_that_holds_nothing) {
   const sourcemeta::core::PublicKey key{nullptr};
   EXPECT_FALSE(sourcemeta::core::edwards_public_components(key).has_value());
-}
-
-// Each scheme is pinned to one key type, so a key of another type verifies
-// nothing even where the signature would otherwise be well formed
-TEST(rsassa_pkcs1_v15_verify_with_an_elliptic_curve_key) {
-  const auto coordinate_x{sourcemeta::core::hex_to_bytes(P256_QX_HEX)};
-  const auto coordinate_y{sourcemeta::core::hex_to_bytes(P256_QY_HEX)};
-  const auto key{sourcemeta::core::make_ec_public_key(
-      sourcemeta::core::EllipticCurve::P256, coordinate_x.value(),
-      coordinate_y.value())};
-  EXPECT_TRUE(key.has_value());
-  EXPECT_FALSE(sourcemeta::core::rsassa_pkcs1_v15_verify(
-      key.value(), sourcemeta::core::SignatureHashFunction::SHA256, "message",
-      "signature"));
-}
-
-TEST(rsassa_pss_verify_with_an_elliptic_curve_key) {
-  const auto coordinate_x{sourcemeta::core::hex_to_bytes(P256_QX_HEX)};
-  const auto coordinate_y{sourcemeta::core::hex_to_bytes(P256_QY_HEX)};
-  const auto key{sourcemeta::core::make_ec_public_key(
-      sourcemeta::core::EllipticCurve::P256, coordinate_x.value(),
-      coordinate_y.value())};
-  EXPECT_TRUE(key.has_value());
-  EXPECT_FALSE(sourcemeta::core::rsassa_pss_verify(
-      key.value(), sourcemeta::core::SignatureHashFunction::SHA256, "message",
-      "signature"));
-}
-
-TEST(ecdsa_verify_with_an_rsa_key) {
-  const auto modulus{sourcemeta::core::base64url_decode(RFC7638_RSA_N)};
-  const auto exponent{sourcemeta::core::base64url_decode("AQAB")};
-  const auto key{
-      sourcemeta::core::make_rsa_public_key(modulus.value(), exponent.value())};
-  EXPECT_TRUE(key.has_value());
-  EXPECT_FALSE(sourcemeta::core::ecdsa_verify(
-      key.value(), sourcemeta::core::SignatureHashFunction::SHA256, "message",
-      "signature"));
-}
-
-TEST(eddsa_verify_with_an_rsa_key) {
-  const auto modulus{sourcemeta::core::base64url_decode(RFC7638_RSA_N)};
-  const auto exponent{sourcemeta::core::base64url_decode("AQAB")};
-  const auto key{
-      sourcemeta::core::make_rsa_public_key(modulus.value(), exponent.value())};
-  EXPECT_TRUE(key.has_value());
-  EXPECT_FALSE(
-      sourcemeta::core::eddsa_verify(key.value(), "message", "signature"));
 }
 
 // Moving a key onto itself leaves it as it was

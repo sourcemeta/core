@@ -574,14 +574,21 @@ TEST(compact_breaks_a_tie_between_two_prefixes_of_one_length) {
 // An identifier equal to the base relativises to nothing, and with no base
 // path there is no last segment to put in its place
 TEST(an_identifier_equal_to_a_base_that_carries_no_path) {
-  const auto input = sourcemeta::core::parse_json(
-      R"([ { "@id": "http://example.org", "http://example.com/b": [ { "@value": "v" } ] } ])");
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "http://example.org",
+      "http://example.com/b": [ { "@value": "v" } ]
+    }
+  ])");
 
   const auto context =
       sourcemeta::core::parse_json(R"({ "b": "http://example.com/b" })");
 
-  const auto expected = sourcemeta::core::parse_json(
-      R"({ "@id": "", "b": "v", "@context": { "b": "http://example.com/b" } })");
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "@id": "",
+    "b": "v",
+    "@context": { "b": "http://example.com/b" }
+  })");
 
   EXPECT_EQ(
       sourcemeta::core::jsonld_compact(input, context, "http://example.org"),
@@ -590,14 +597,21 @@ TEST(an_identifier_equal_to_a_base_that_carries_no_path) {
 
 // A base path with no slash is its own last segment
 TEST(an_identifier_equal_to_a_base_whose_path_holds_no_slash) {
-  const auto input = sourcemeta::core::parse_json(
-      R"([ { "@id": "urn:example", "http://example.com/b": [ { "@value": "v" } ] } ])");
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "urn:example",
+      "http://example.com/b": [ { "@value": "v" } ]
+    }
+  ])");
 
   const auto context =
       sourcemeta::core::parse_json(R"({ "b": "http://example.com/b" })");
 
-  const auto expected = sourcemeta::core::parse_json(
-      R"({ "@id": "example", "b": "v", "@context": { "b": "http://example.com/b" } })");
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "@id": "example",
+    "b": "v",
+    "@context": { "b": "http://example.com/b" }
+  })");
 
   EXPECT_EQ(sourcemeta::core::jsonld_compact(input, context, "urn:example"),
             expected);
@@ -607,14 +621,30 @@ TEST(an_identifier_equal_to_a_base_whose_path_holds_no_slash) {
 // with an underscore when a direction is set, which is the key a value
 // carrying both is looked up under
 TEST(a_context_carrying_both_a_language_and_a_direction) {
-  const auto input = sourcemeta::core::parse_json(
-      R"([ { "http://example.com/b": [ { "@value": "v", "@language": "en", "@direction": "ltr" } ] } ])");
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/b": [
+        { "@value": "v", "@language": "en", "@direction": "ltr" }
+      ]
+    }
+  ])");
 
-  const auto context = sourcemeta::core::parse_json(
-      R"({ "@version": 1.1, "@language": "en", "@direction": "ltr", "b": "http://example.com/b" })");
+  const auto context = sourcemeta::core::parse_json(R"({
+    "@version": 1.1,
+    "@language": "en",
+    "@direction": "ltr",
+    "b": "http://example.com/b"
+  })");
 
-  const auto expected = sourcemeta::core::parse_json(
-      R"({ "b": "v", "@context": { "@version": 1.1, "@language": "en", "@direction": "ltr", "b": "http://example.com/b" } })");
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "b": "v",
+    "@context": {
+      "@version": 1.1,
+      "@language": "en",
+      "@direction": "ltr",
+      "b": "http://example.com/b"
+    }
+  })");
 
   EXPECT_EQ(sourcemeta::core::jsonld_compact(input, context, ""), expected);
 }
@@ -622,14 +652,24 @@ TEST(a_context_carrying_both_a_language_and_a_direction) {
 // The index candidates are offered only to a value that does not already
 // carry an index of its own
 TEST(a_value_that_already_carries_an_index) {
-  const auto input = sourcemeta::core::parse_json(
-      R"([ { "http://example.com/b": [ { "@value": "v", "@index": "i" } ] } ])");
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/b": [ { "@value": "v", "@index": "i" } ]
+    }
+  ])");
 
-  const auto context = sourcemeta::core::parse_json(
-      R"({ "@version": 1.1, "b": { "@id": "http://example.com/b", "@container": "@index" } })");
+  const auto context = sourcemeta::core::parse_json(R"({
+    "@version": 1.1,
+    "b": { "@id": "http://example.com/b", "@container": "@index" }
+  })");
 
-  const auto expected = sourcemeta::core::parse_json(
-      R"({ "b": { "i": "v" }, "@context": { "@version": 1.1, "b": { "@id": "http://example.com/b", "@container": "@index" } } })");
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "b": { "i": "v" },
+    "@context": {
+      "@version": 1.1,
+      "b": { "@id": "http://example.com/b", "@container": "@index" }
+    }
+  })");
 
   EXPECT_EQ(sourcemeta::core::jsonld_compact(input, context, ""), expected);
 }

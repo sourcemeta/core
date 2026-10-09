@@ -3094,7 +3094,10 @@ TEST(a_self_referential_term_whose_suffix_opens_an_authority) {
 // order the two are written in does not matter
 TEST(a_self_referential_compact_term_defined_after_its_prefix) {
   const auto input = sourcemeta::core::parse_json(
-      R"({ "@context": { "foo:bar": "foo:bar", "foo": "http://example.com/" }, "foo:bar": "v" })");
+      R"({
+    "@context": { "foo:bar": "foo:bar", "foo": "http://example.com/" },
+    "foo:bar": "v"
+  })");
 
   const auto expected = sourcemeta::core::parse_json(
       R"([ { "http://example.com/bar": [ { "@value": "v" } ] } ])");
@@ -3130,7 +3133,10 @@ TEST(a_term_whose_mapping_begins_with_a_colon) {
 // so it is not held to expanding onto its own mapping
 TEST(a_term_opening_with_a_colon_given_an_explicit_identifier) {
   const auto input = sourcemeta::core::parse_json(
-      R"({ "@context": { ":bar": { "@id": "http://example.com/x" } }, ":bar": "v" })");
+      R"({
+    "@context": { ":bar": { "@id": "http://example.com/x" } },
+    ":bar": "v"
+  })");
 
   const auto expected = sourcemeta::core::parse_json(
       R"([ { "http://example.com/x": [ { "@value": "v" } ] } ])");
@@ -3140,7 +3146,10 @@ TEST(a_term_opening_with_a_colon_given_an_explicit_identifier) {
 
 TEST(a_term_closing_with_a_colon_given_an_explicit_identifier) {
   const auto input = sourcemeta::core::parse_json(
-      R"({ "@context": { "foo:": { "@id": "http://example.com/x" } }, "foo:": "v" })");
+      R"({
+    "@context": { "foo:": { "@id": "http://example.com/x" } },
+    "foo:": "v"
+  })");
 
   const auto expected = sourcemeta::core::parse_json(
       R"([ { "http://example.com/x": [ { "@value": "v" } ] } ])");
@@ -3176,7 +3185,10 @@ TEST(an_identifier_with_the_form_of_a_keyword_retires_the_term) {
 // same way
 TEST(a_reverse_mapping_with_the_form_of_a_keyword_retires_the_term) {
   const auto input = sourcemeta::core::parse_json(
-      R"({ "@context": { "t": { "@reverse": "@foo" } }, "t": { "@id": "http://x/y" } })");
+      R"({
+    "@context": { "t": { "@reverse": "@foo" } },
+    "t": { "@id": "http://x/y" }
+  })");
 
   const auto expected = sourcemeta::core::parse_json(R"([ ])");
 

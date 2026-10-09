@@ -42,6 +42,12 @@ static constexpr std::string_view TEST_ABC_SIGNATURE{
     "dc2a4459e7369633a52b1bf277839a00201009a3efbf3ecb69bea2186c26b58909"
     "351fc9ac90b3ecfdfbc7c66431e0303dca179c138ac17ad9bef1177331a704"};
 
+// A small RSA public key, for showing that a scheme turns down a key of a type
+// it is not defined over
+static constexpr std::string_view OTHER_TYPE_MODULUS{
+    "00c4a7b1a7b3c2d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d"};
+static constexpr std::string_view OTHER_TYPE_EXPONENT{"010001"};
+
 namespace {
 auto verify_eddsa(const sourcemeta::core::EdwardsCurve curve,
                   const std::string_view public_key,
@@ -247,4 +253,20 @@ TEST(verify_ed448_rejects_ed25519_inputs) {
       sourcemeta::core::EdwardsCurve::Ed448,
       sourcemeta::core::hex_to_bytes(TEST1_PUBLIC_KEY).value(), TEST1_MESSAGE,
       sourcemeta::core::hex_to_bytes(TEST1_SIGNATURE).value()));
+}
+
+// A key holding no parsed state verifies nothing
+TEST(verify_with_a_key_that_holds_nothing) {
+  const sourcemeta::core::PublicKey key{nullptr};
+  EXPECT_FALSE(sourcemeta::core::eddsa_verify(key, "message", "signature"));
+}
+
+// RFC 8037 Section 3.1 defines this scheme over Edwards-curve keys alone
+TEST(verify_with_an_rsa_key) {
+  const auto key{sourcemeta::core::make_rsa_public_key(
+      sourcemeta::core::hex_to_bytes(OTHER_TYPE_MODULUS).value(),
+      sourcemeta::core::hex_to_bytes(OTHER_TYPE_EXPONENT).value())};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_FALSE(
+      sourcemeta::core::eddsa_verify(key.value(), "message", "signature"));
 }
