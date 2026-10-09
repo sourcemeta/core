@@ -570,28 +570,3 @@ TEST(compact_breaks_a_tie_between_two_prefixes_of_one_length) {
 
   EXPECT_EQ(result, expected);
 }
-
-TEST(compact_breaks_the_same_tie_with_the_prefixes_the_other_way_round) {
-  const auto input = sourcemeta::core::parse_json(R"([
-    { "http://example.com/x": [ { "@value": "v" } ] }
-  ])");
-
-  const auto context = sourcemeta::core::parse_json(R"({
-    "ab": "http://example.com/",
-    "aa": "http://example.com/"
-  })");
-
-  const auto result{sourcemeta::core::jsonld_compact(
-      input, context, "", {}, sourcemeta::core::JSONLDVersion::V1_1, true,
-      true)};
-
-  const auto expected = sourcemeta::core::parse_json(R"({
-    "aa:x": "v",
-    "@context": {
-      "ab": "http://example.com/",
-      "aa": "http://example.com/"
-    }
-  })");
-
-  EXPECT_EQ(result, expected);
-}

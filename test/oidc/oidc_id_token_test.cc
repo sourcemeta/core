@@ -857,9 +857,14 @@ TEST(validate_rejects_an_authorized_party_that_is_not_a_string) {
   })JSON")};
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
+  // The second audience is trusted here, so the refusal can only come from the
+  // authorized party and not from the audience list
+  const std::array<std::string_view, 1> trusted{{"other"}};
+  sourcemeta::core::OIDCValidationOptions options;
+  options.trusted_audiences = trusted;
   const auto identity{sourcemeta::core::oidc_validate_id_token(
       token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
-      "client-id", REFERENCE_NOW)};
+      "client-id", REFERENCE_NOW, options)};
   EXPECT_FALSE(identity.has_value());
 }
 
@@ -876,9 +881,14 @@ TEST(validate_rejects_an_authorized_party_naming_another_client) {
   })JSON")};
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
+  // The second audience is trusted here, so the refusal can only come from the
+  // authorized party and not from the audience list
+  const std::array<std::string_view, 1> trusted{{"other"}};
+  sourcemeta::core::OIDCValidationOptions options;
+  options.trusted_audiences = trusted;
   const auto identity{sourcemeta::core::oidc_validate_id_token(
       token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
-      "client-id", REFERENCE_NOW)};
+      "client-id", REFERENCE_NOW, options)};
   EXPECT_FALSE(identity.has_value());
 }
 

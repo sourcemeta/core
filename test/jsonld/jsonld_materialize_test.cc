@@ -5748,8 +5748,9 @@ TEST(a_root_annotated_as_a_literal_yields_nothing) {
             expected);
 }
 
-// The same shape inside an array, where each element is weighed on its own
-TEST(an_array_of_roots_annotated_as_literals_yields_nothing) {
+// The annotation names the root rather than its elements, so the array itself
+// materializes as one literal and is dropped whole
+TEST(an_array_root_annotated_as_a_literal_yields_nothing) {
   const auto instance = sourcemeta::core::parse_json(R"([ "a", "b" ])");
 
   sourcemeta::core::JSONLDAnnotationList annotations;

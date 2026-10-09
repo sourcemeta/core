@@ -579,13 +579,15 @@ TEST(a_single_character_parameter_that_is_not_a_weight) {
       "text/plain;x=0.1");
 }
 
-// A parameter name of more than one character is not a weight either, so the
-// range keeps the quality it would have had without it
+// A parameter name of more than one character is not a weight either. Reading
+// this one as a weight would leave the first range at 0.1 and still hand the
+// answer to the second, so the candidate carries the parameter and the weight
+// is what decides
 TEST(a_longer_parameter_name_is_not_a_weight) {
   EXPECT_EQ(sourcemeta::core::http_match_accept(
-                "text/plain;charset=utf-8;q=0.1, text/html;q=0.9",
-                {"text/plain", "text/html"}),
-            "text/html");
+                "text/plain;charset=utf-8;q=0.9, text/html;q=0.1",
+                {"text/plain;charset=utf-8", "text/html"}),
+            "text/plain;charset=utf-8");
 }
 
 // That section names the parameter "q" without pinning its case, and
@@ -607,9 +609,12 @@ TEST(a_weight_that_is_not_a_number) {
 
 // A parameter written with nothing after its equals sign carries an empty
 // value, which is not the same as the parameter being absent
-TEST(a_parameter_with_an_empty_value) {
+// RFC 9110 Section 5.6.6 gives a parameter value as a token or a quoted
+// string, so an empty one is written with quotes and is not the same as the
+// parameter being absent
+TEST(a_parameter_with_an_empty_quoted_value) {
   EXPECT_EQ(sourcemeta::core::http_match_accept(
-                "text/plain;charset=, text/html;q=0.5",
-                {"text/plain;charset=", "text/html"}),
-            "text/plain;charset=");
+                "text/plain;x=\"\";q=0.9, text/html;q=0.1",
+                {"text/plain;x=\"\"", "text/html"}),
+            "text/plain;x=\"\"");
 }
