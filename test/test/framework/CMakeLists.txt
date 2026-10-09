@@ -38,6 +38,16 @@ sourcemeta_executable(NAMESPACE sourcemeta PROJECT core NAME test
 target_link_libraries(sourcemeta_core_test_empty
   PRIVATE sourcemeta::core::test sourcemeta::core::test_main)
 
+sourcemeta_executable(NAMESPACE sourcemeta PROJECT core NAME test
+  VARIANT assertions SOURCES test_assertions.cc)
+target_link_libraries(sourcemeta_core_test_assertions
+  PRIVATE sourcemeta::core::test sourcemeta::core::test_main)
+
+sourcemeta_executable(NAMESPACE sourcemeta PROJECT core NAME test
+  VARIANT unknown SOURCES test_unknown.cc)
+target_link_libraries(sourcemeta_core_test_unknown
+  PRIVATE sourcemeta::core::test sourcemeta::core::test_main)
+
 # The framework's own command line is exercised through the script runner that
 # this module ships, so the language is proven against the framework hosting it
 macro(add_framework_test name binary)
@@ -58,3 +68,6 @@ add_framework_test(filter_none sourcemeta_core_test_filter)
 add_framework_test(fixture sourcemeta_core_test_fixture)
 add_framework_test(dynamic sourcemeta_core_test_dynamic)
 add_framework_test(empty sourcemeta_core_test_empty)
+add_framework_test(assertions sourcemeta_core_test_assertions)
+add_framework_test(unknown sourcemeta_core_test_unknown)
+add_framework_test(option sourcemeta_core_test_success)
