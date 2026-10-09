@@ -2965,3 +2965,19 @@ TEST(aliased_indexed_set_accepts_index_metadata) {
 
   EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
 }
+
+TEST(included_null_array_member_is_dropped) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "urn:p": "v",
+    "@included": [ null ]
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "urn:p": [ { "@value": "v" } ],
+      "@included": []
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}

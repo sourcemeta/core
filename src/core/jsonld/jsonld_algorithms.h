@@ -11,6 +11,7 @@
 #include <memory>      // std::shared_ptr
 #include <optional>    // std::optional
 #include <string_view> // std::string_view
+#include <utility>     // std::move
 #include <vector>      // std::vector
 
 namespace sourcemeta::core {

@@ -2927,3 +2927,33 @@ TEST(deferred_scope_of_a_local_term_beside_an_import_keeps_its_position) {
       sourcemeta::core::jsonld_expand(input, "", remote_resolver()),
       "Protected term redefinition", "/@context/T/@context/a");
 }
+
+TEST(included_null_value) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "urn:p": "v",
+    "@included": null
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Invalid @included value", "/@included");
+}
+
+TEST(included_aliased_null_value) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "inc": "@included" },
+    "urn:p": "v",
+    "inc": null
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Invalid @included value", "/inc");
+}
+
+TEST(included_value_object_with_a_null_value) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@included": { "@value": null }
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Invalid @included value", "/@included");
+}

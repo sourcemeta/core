@@ -748,7 +748,11 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
         auto expanded_member{expand(state, active_context,
                                     JSON::String{KEYWORD_INCLUDED}, member,
                                     member_pointer)};
-        auto member_items{expanded_member.is_null()
+        // A null member of an array carries nothing over, the way step 5.2.3
+        // drops one from any array, whereas a lone null value is no included
+        // block at all and is held to the same account as any other member
+        // (JSON-LD 1.1 Section 9.13, JSON-LD 1.1 API Section 5.1.2 step 5.2.3)
+        auto member_items{from_array && expanded_member.is_null()
                               ? JSON::make_array()
                               : into_array(std::move(expanded_member))};
         for (auto &item : member_items.as_array()) {
