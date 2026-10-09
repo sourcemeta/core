@@ -542,3 +542,31 @@ TEST(compact_selects_a_list_term_carrying_both_language_and_direction) {
 
   EXPECT_EQ(result, expected);
 }
+
+// JSON-LD 1.1 API Section 6.2 keeps a candidate that is shorter, or the same
+// length and lexicographically less, so two prefixes of one length settle it
+// by comparison rather than by the order they were written
+TEST(compact_breaks_a_tie_between_two_prefixes_of_one_length) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    { "http://example.com/x": [ { "@value": "v" } ] }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({
+    "aa": "http://example.com/",
+    "ab": "http://example.com/"
+  })");
+
+  const auto result{sourcemeta::core::jsonld_compact(
+      input, context, "", {}, sourcemeta::core::JSONLDVersion::V1_1, true,
+      true)};
+
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "aa:x": "v",
+    "@context": {
+      "aa": "http://example.com/",
+      "ab": "http://example.com/"
+    }
+  })");
+
+  EXPECT_EQ(result, expected);
+}

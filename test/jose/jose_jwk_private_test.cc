@@ -479,3 +479,117 @@ TEST(jwk_private_from_json_ignores_an_algorithm_that_suits_another_key_type) {
   EXPECT_TRUE(key.has_value());
   EXPECT_FALSE(key.value().algorithm().has_value());
 }
+
+// RFC 7518 Section 6.3.2 marks every one of these REQUIRED for a private RSA
+// key, so a document missing this one never formed a usable key
+TEST(jwk_private_from_json_rejects_rsa_without_its_modulus) {
+  auto document{sourcemeta::core::parse_json(RSA_PRIVATE_JWK)};
+  document.erase("n");
+  EXPECT_FALSE(sourcemeta::core::JWKPrivate::from(document).has_value());
+}
+
+TEST(jwk_private_from_json_rejects_rsa_without_its_public_exponent) {
+  auto document{sourcemeta::core::parse_json(RSA_PRIVATE_JWK)};
+  document.erase("e");
+  EXPECT_FALSE(sourcemeta::core::JWKPrivate::from(document).has_value());
+}
+
+// RFC 7518 Section 6.3.2 marks every one of these REQUIRED for a private RSA
+// key, so a document missing this one never formed a usable key
+TEST(jwk_private_from_json_rejects_rsa_without_its_first_prime) {
+  auto document{sourcemeta::core::parse_json(RSA_PRIVATE_JWK)};
+  document.erase("p");
+  EXPECT_FALSE(sourcemeta::core::JWKPrivate::from(document).has_value());
+}
+
+// RFC 7518 Section 6.3.2 marks every one of these REQUIRED for a private RSA
+// key, so a document missing this one never formed a usable key
+TEST(jwk_private_from_json_rejects_rsa_without_its_second_prime) {
+  auto document{sourcemeta::core::parse_json(RSA_PRIVATE_JWK)};
+  document.erase("q");
+  EXPECT_FALSE(sourcemeta::core::JWKPrivate::from(document).has_value());
+}
+
+// RFC 7518 Section 6.3.2 marks every one of these REQUIRED for a private RSA
+// key, so a document missing this one never formed a usable key
+TEST(jwk_private_from_json_rejects_rsa_without_its_first_exponent) {
+  auto document{sourcemeta::core::parse_json(RSA_PRIVATE_JWK)};
+  document.erase("dp");
+  EXPECT_FALSE(sourcemeta::core::JWKPrivate::from(document).has_value());
+}
+
+// RFC 7518 Section 6.3.2 marks every one of these REQUIRED for a private RSA
+// key, so a document missing this one never formed a usable key
+TEST(jwk_private_from_json_rejects_rsa_without_its_second_exponent) {
+  auto document{sourcemeta::core::parse_json(RSA_PRIVATE_JWK)};
+  document.erase("dq");
+  EXPECT_FALSE(sourcemeta::core::JWKPrivate::from(document).has_value());
+}
+
+// RFC 7518 Section 6.2.1 fixes the width of each value to the curve's own, so
+// one of another width belongs to no point on it
+TEST(jwk_private_from_json_rejects_ec_without_its_x_coordinate) {
+  auto document{sourcemeta::core::parse_json(EC_PRIVATE_JWK)};
+  document.erase("x");
+  EXPECT_FALSE(sourcemeta::core::JWKPrivate::from(document).has_value());
+}
+
+// RFC 7518 Section 6.2.1 fixes the width of each value to the curve's own, so
+// one of another width belongs to no point on it
+TEST(jwk_private_from_json_rejects_ec_with_a_short_x_coordinate) {
+  auto document{sourcemeta::core::parse_json(EC_PRIVATE_JWK)};
+  document.assign("x", sourcemeta::core::JSON{"2TAR"});
+  EXPECT_FALSE(sourcemeta::core::JWKPrivate::from(document).has_value());
+}
+
+// RFC 7518 Section 6.2.1 fixes the width of each value to the curve's own, so
+// one of another width belongs to no point on it
+TEST(jwk_private_from_json_rejects_ec_without_its_y_coordinate) {
+  auto document{sourcemeta::core::parse_json(EC_PRIVATE_JWK)};
+  document.erase("y");
+  EXPECT_FALSE(sourcemeta::core::JWKPrivate::from(document).has_value());
+}
+
+// RFC 7518 Section 6.2.1 fixes the width of each value to the curve's own, so
+// one of another width belongs to no point on it
+TEST(jwk_private_from_json_rejects_ec_with_a_short_y_coordinate) {
+  auto document{sourcemeta::core::parse_json(EC_PRIVATE_JWK)};
+  document.assign("y", sourcemeta::core::JSON{"5lkz"});
+  EXPECT_FALSE(sourcemeta::core::JWKPrivate::from(document).has_value());
+}
+
+// RFC 7518 Section 6.2.1 fixes the width of each value to the curve's own, so
+// one of another width belongs to no point on it
+TEST(jwk_private_from_json_rejects_ec_with_a_short_private_scalar) {
+  auto document{sourcemeta::core::parse_json(EC_PRIVATE_JWK)};
+  document.assign("d", sourcemeta::core::JSON{"ttep"});
+  EXPECT_FALSE(sourcemeta::core::JWKPrivate::from(document).has_value());
+}
+
+// RFC 8037 Section 2 fixes the width of both values to the curve's own
+TEST(jwk_private_from_json_rejects_okp_without_its_public_key) {
+  auto document{sourcemeta::core::parse_json(OKP_PRIVATE_JWK)};
+  document.erase("x");
+  EXPECT_FALSE(sourcemeta::core::JWKPrivate::from(document).has_value());
+}
+
+// RFC 8037 Section 2 fixes the width of both values to the curve's own
+TEST(jwk_private_from_json_rejects_okp_with_a_short_public_key) {
+  auto document{sourcemeta::core::parse_json(OKP_PRIVATE_JWK)};
+  document.assign("x", sourcemeta::core::JSON{"SFOe"});
+  EXPECT_FALSE(sourcemeta::core::JWKPrivate::from(document).has_value());
+}
+
+// RFC 8037 Section 2 fixes the width of both values to the curve's own
+TEST(jwk_private_from_json_rejects_okp_without_its_seed) {
+  auto document{sourcemeta::core::parse_json(OKP_PRIVATE_JWK)};
+  document.erase("d");
+  EXPECT_FALSE(sourcemeta::core::JWKPrivate::from(document).has_value());
+}
+
+// RFC 8037 Section 2 fixes the width of both values to the curve's own
+TEST(jwk_private_from_json_rejects_okp_with_a_short_seed) {
+  auto document{sourcemeta::core::parse_json(OKP_PRIVATE_JWK)};
+  document.assign("d", sourcemeta::core::JSON{"dB7D"});
+  EXPECT_FALSE(sourcemeta::core::JWKPrivate::from(document).has_value());
+}

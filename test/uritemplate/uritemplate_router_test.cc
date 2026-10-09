@@ -3220,3 +3220,35 @@ TEST(root_literals_are_sorted_and_nest_across_multiple_segments) {
   EXPECT_EQ(segment_a.literals.at(1)->value, "c");
   EXPECT_EQ(segment_a.literals.at(1)->identifier, 3);
 }
+
+// A template of one character cannot be the expansion that opens a path,
+// so there is no second character to weigh
+TEST(rejects_a_single_character_template) {
+  sourcemeta::core::URITemplateRouter router;
+  try {
+    router.add("{", "op_a_single_character_template", 1);
+    FAIL();
+  } catch (
+      const sourcemeta::core::URITemplateRouterInvalidSegmentError &error) {
+    EXPECT_STREQ(error.what(), "Template must start with '/'");
+    EXPECT_EQ(error.segment(), "{");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// Only an expansion that opens the path itself may stand before the first
+// slash, so a brace followed by anything else is not one
+TEST(rejects_a_brace_not_followed_by_a_slash) {
+  sourcemeta::core::URITemplateRouter router;
+  try {
+    router.add("{x}/a", "op_a_brace_not_followed_by_a_slash", 1);
+    FAIL();
+  } catch (
+      const sourcemeta::core::URITemplateRouterInvalidSegmentError &error) {
+    EXPECT_STREQ(error.what(), "Template must start with '/'");
+    EXPECT_EQ(error.segment(), "{x}/a");
+  } catch (...) {
+    FAIL();
+  }
+}

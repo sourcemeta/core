@@ -1200,3 +1200,96 @@ TEST(iregexp_quantifier_junk_after_digits) {
                    "a{1x}", sourcemeta::core::RegexDialect::IRegexp)
                    .has_value());
 }
+
+// RFC 9485 Section 3.1 draws the second letter of this category from a set of
+// its own, so one drawn from that set names a category and one outside it does
+// not name anything
+TEST(rfc9485_matches_mark_subcategory) {
+  const auto regex{sourcemeta::core::to_regex(
+      "\\p{Mn}", sourcemeta::core::RegexDialect::IRegexp)};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\u0301"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
+}
+
+TEST(rfc9485_rejects_mark_subcategory_outside_its_set) {
+  EXPECT_FALSE(sourcemeta::core::to_regex(
+                   "\\p{Mz}", sourcemeta::core::RegexDialect::IRegexp)
+                   .has_value());
+}
+
+// RFC 9485 Section 3.1 draws the second letter of this category from a set of
+// its own, so one drawn from that set names a category and one outside it does
+// not name anything
+TEST(rfc9485_matches_number_subcategory) {
+  const auto regex{sourcemeta::core::to_regex(
+      "\\p{No}", sourcemeta::core::RegexDialect::IRegexp)};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\u00B2"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
+}
+
+TEST(rfc9485_rejects_number_subcategory_outside_its_set) {
+  EXPECT_FALSE(sourcemeta::core::to_regex(
+                   "\\p{Nz}", sourcemeta::core::RegexDialect::IRegexp)
+                   .has_value());
+}
+
+// RFC 9485 Section 3.1 draws the second letter of this category from a set of
+// its own, so one drawn from that set names a category and one outside it does
+// not name anything
+TEST(rfc9485_matches_punctuation_subcategory) {
+  const auto regex{sourcemeta::core::to_regex(
+      "\\p{Po}", sourcemeta::core::RegexDialect::IRegexp)};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "!"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
+}
+
+TEST(rfc9485_rejects_punctuation_subcategory_outside_its_set) {
+  EXPECT_FALSE(sourcemeta::core::to_regex(
+                   "\\p{Pz}", sourcemeta::core::RegexDialect::IRegexp)
+                   .has_value());
+}
+
+// RFC 9485 Section 3.1 draws the second letter of this category from a set of
+// its own, so one drawn from that set names a category and one outside it does
+// not name anything
+TEST(rfc9485_matches_separator_subcategory) {
+  const auto regex{sourcemeta::core::to_regex(
+      "\\p{Zs}", sourcemeta::core::RegexDialect::IRegexp)};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), " "));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
+}
+
+TEST(rfc9485_rejects_separator_subcategory_outside_its_set) {
+  EXPECT_FALSE(sourcemeta::core::to_regex(
+                   "\\p{Zz}", sourcemeta::core::RegexDialect::IRegexp)
+                   .has_value());
+}
+
+// RFC 9485 Section 3.1 draws the second letter of this category from a set of
+// its own, so one drawn from that set names a category and one outside it does
+// not name anything
+TEST(rfc9485_matches_symbol_subcategory) {
+  const auto regex{sourcemeta::core::to_regex(
+      "\\p{Sc}", sourcemeta::core::RegexDialect::IRegexp)};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "$"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
+}
+
+TEST(rfc9485_rejects_symbol_subcategory_outside_its_set) {
+  EXPECT_FALSE(sourcemeta::core::to_regex(
+                   "\\p{Sz}", sourcemeta::core::RegexDialect::IRegexp)
+                   .has_value());
+}
+
+// RFC 9485 Section 3.1 gives the single character escapes as a set that ends at
+// %x7D, so the code point above it is no escape
+TEST(rfc9485_rejects_an_escape_above_the_brace_range) {
+  EXPECT_FALSE(
+      sourcemeta::core::to_regex("\\~", sourcemeta::core::RegexDialect::IRegexp)
+          .has_value());
+}

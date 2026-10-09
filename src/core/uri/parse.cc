@@ -533,6 +533,11 @@ auto parse_authority(const std::string_view input,
         }
 
         port = static_cast<std::uint32_t>(port_value.value());
+        // RFC 3986 Section 3.2 reads a port only inside an authority, and the
+        // host of an authority is always recorded even when it is empty, so a
+        // port never stands without one. Callers rely on this to ask about the
+        // authority through the host alone
+        assert(host.has_value());
       }
     }
   }

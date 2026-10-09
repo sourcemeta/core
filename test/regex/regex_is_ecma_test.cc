@@ -1412,3 +1412,37 @@ TEST(invalid_unterminated_string_literal_inside_a_class) {
 TEST(invalid_utf8_pattern) {
   EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\xFF\xFE"));
 }
+
+// ECMA-262 IdentifierStartChar admits an underscore, which no group name
+// here begins with
+TEST(accepts_a_group_name_starting_with_an_underscore) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("(?<_a>x)"));
+}
+
+// IdentifierPartChar admits a dollar sign
+TEST(accepts_a_group_name_continuing_with_a_dollar) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("(?<a$>x)"));
+}
+
+// IdentifierPartChar names U+200C among the two characters it adds beyond
+// the Unicode identifier set
+TEST(accepts_a_group_name_continuing_with_a_zero_width_non_joiner) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("(?<a\xE2\x80\x8C>x)"));
+}
+
+// The second of those two is U+200D
+TEST(accepts_a_group_name_continuing_with_a_zero_width_joiner) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("(?<a\xE2\x80\x8D>x)"));
+}
+
+// A property escape names a property, so an empty pair of braces names
+// nothing
+TEST(rejects_a_property_with_no_name) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\p{}"));
+}
+
+// Only the non-binary properties the specification lists may take a
+// value, so an unlisted name is no property
+TEST(rejects_a_non_binary_property_that_is_not_listed) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\p{Bogus=Latin}"));
+}

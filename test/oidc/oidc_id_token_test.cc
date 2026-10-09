@@ -844,6 +844,142 @@ TEST(validate_accepts_a_required_access_token_hash) {
   EXPECT_FALSE(identity.value().authentication_time.has_value());
 }
 
+// OpenID Connect Core 1.0 Section 2 gives the authorized party as a
+// StringOrURI, so one that is no string carries no client identifier
+TEST(validate_rejects_an_authorized_party_that_is_not_a_string) {
+  const auto compact{sign_id_token(R"JSON({
+    "iss": "https://issuer.example",
+    "sub": "user-1",
+    "iat": 1699996400,
+    "exp": 2000000000,
+    "aud": [ "client-id", "other" ],
+    "azp": 123
+  })JSON")};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  // The second audience is trusted here, so the refusal can only come from the
+  // authorized party and not from the audience list
+  const std::array<std::string_view, 1> trusted{{"other"}};
+  sourcemeta::core::OIDCValidationOptions options;
+  options.trusted_audiences = trusted;
+  const auto identity{sourcemeta::core::oidc_validate_id_token(
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, options)};
+  EXPECT_FALSE(identity.has_value());
+}
+
+// Section 2 says the authorized party carries the client identifier of
+// the party the token was issued to, so another one is not this client
+TEST(validate_rejects_an_authorized_party_naming_another_client) {
+  const auto compact{sign_id_token(R"JSON({
+    "iss": "https://issuer.example",
+    "sub": "user-1",
+    "iat": 1699996400,
+    "exp": 2000000000,
+    "aud": [ "client-id", "other" ],
+    "azp": "other"
+  })JSON")};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  // The second audience is trusted here, so the refusal can only come from the
+  // authorized party and not from the audience list
+  const std::array<std::string_view, 1> trusted{{"other"}};
+  sourcemeta::core::OIDCValidationOptions options;
+  options.trusted_audiences = trusted;
+  const auto identity{sourcemeta::core::oidc_validate_id_token(
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, options)};
+  EXPECT_FALSE(identity.has_value());
+}
+
+// The same shape with one audience, where the party is optional but is
+// still read when it is written
+TEST(validate_rejects_a_single_audience_authorized_party_that_is_not_a_string) {
+  const auto compact{sign_id_token(R"JSON({
+    "iss": "https://issuer.example",
+    "sub": "user-1",
+    "iat": 1699996400,
+    "exp": 2000000000,
+    "aud": "client-id",
+    "azp": 123
+  })JSON")};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  const auto identity{sourcemeta::core::oidc_validate_id_token(
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW)};
+  EXPECT_FALSE(identity.has_value());
+}
+
+// Section 3.1.3.7 step 11 compares the nonce to the one sent, which a
+// value that is no string cannot be
+TEST(validate_rejects_a_nonce_that_is_not_a_string) {
+  const auto compact{sign_id_token(R"JSON({
+    "iss": "https://issuer.example",
+    "sub": "user-1",
+    "iat": 1699996400,
+    "exp": 2000000000,
+    "aud": "client-id",
+    "nonce": 123
+  })JSON")};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  sourcemeta::core::OIDCValidationOptions options;
+  options.nonce = "n-0S6_WzA2Mj";
+
+  const auto identity{sourcemeta::core::oidc_validate_id_token(
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, options)};
+  EXPECT_FALSE(identity.has_value());
+}
+
+// Section 2 gives the authentication context class reference as a
+// String, so one that is no string is not a reference
+TEST(validate_rejects_an_authentication_context_class_that_is_not_a_string) {
+  const auto compact{sign_id_token(R"JSON({
+    "iss": "https://issuer.example",
+    "sub": "user-1",
+    "iat": 1699996400,
+    "exp": 2000000000,
+    "aud": "client-id",
+    "acr": 123
+  })JSON")};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  const std::array<std::string_view, 1> acceptable{
+      {"urn:mace:incommon:iap:silver"}};
+  sourcemeta::core::OIDCValidationOptions options;
+  options.acceptable_authentication_context_classes = acceptable;
+
+  const auto identity{sourcemeta::core::oidc_validate_id_token(
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, options)};
+  EXPECT_FALSE(identity.has_value());
+}
+
+// Section 3.3.2.11 gives the access token hash as the base64url of a
+// digest, so a value that is no string is no hash
+TEST(validate_rejects_an_access_token_hash_that_is_not_a_string) {
+  const auto compact{sign_id_token(R"JSON({
+    "iss": "https://issuer.example",
+    "sub": "user-1",
+    "iat": 1699996400,
+    "exp": 2000000000,
+    "aud": "client-id",
+    "at_hash": 123
+  })JSON")};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  sourcemeta::core::OIDCValidationOptions options;
+  options.access_token = "the-access-token";
+  options.require_access_token_hash = true;
+
+  const auto identity{sourcemeta::core::oidc_validate_id_token(
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, options)};
+  EXPECT_FALSE(identity.has_value());
+}
+
 TEST(parse_id_token_extracts_the_member) {
   const auto response{sourcemeta::core::parse_json(R"JSON({
     "access_token": "at",

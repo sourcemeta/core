@@ -474,3 +474,59 @@ TEST(html_inline_cdata_with_a_bracket_pair_inside) {
       sourcemeta::core::markdown_to_html("a <![CDATA[x]]y]]> b"sv, false)};
   EXPECT_EQ(result, "<p>a <![CDATA[x]]y]]> b</p>\n");
 }
+
+// CommonMark section 6.6 gives an attribute name as
+// [A-Za-z_:][A-Za-z0-9_.:-]*, so this character belongs in one
+TEST(html_inline_attribute_name_with_a_colon) {
+  const auto result{sourcemeta::core::markdown_to_html(
+      "a <span xml:lang=\"en\">b</span> c"sv, false)};
+  EXPECT_EQ(result, "<p>a <span xml:lang=\"en\">b</span> c</p>\n");
+}
+
+// CommonMark section 6.6 gives an attribute name as
+// [A-Za-z_:][A-Za-z0-9_.:-]*, so this character belongs in one
+TEST(html_inline_attribute_name_with_a_dot) {
+  const auto result{sourcemeta::core::markdown_to_html(
+      "a <span a.b=\"1\">b</span> c"sv, false)};
+  EXPECT_EQ(result, "<p>a <span a.b=\"1\">b</span> c</p>\n");
+}
+
+// CommonMark section 6.6 gives an attribute name as
+// [A-Za-z_:][A-Za-z0-9_.:-]*, so this character belongs in one
+TEST(html_inline_attribute_name_with_a_hyphen) {
+  const auto result{sourcemeta::core::markdown_to_html(
+      "a <span data-x=\"1\">b</span> c"sv, false)};
+  EXPECT_EQ(result, "<p>a <span data-x=\"1\">b</span> c</p>\n");
+}
+
+// Section 6.6 excludes this character from an unquoted attribute value, so the
+// tag is no tag and the text stands as written
+TEST(html_inline_unquoted_attribute_value_with_a_single_quote) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("a <span x=a'b>c"sv, false)};
+  EXPECT_EQ(result, "<p>a &lt;span x=a&#39;b&gt;c</p>\n");
+}
+
+// Section 6.6 excludes this character from an unquoted attribute value, so the
+// tag is no tag and the text stands as written
+TEST(html_inline_unquoted_attribute_value_with_an_equals_sign) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("a <span x=a=b>c"sv, false)};
+  EXPECT_EQ(result, "<p>a &lt;span x=a=b&gt;c</p>\n");
+}
+
+// Section 6.6 excludes this character from an unquoted attribute value, so the
+// tag is no tag and the text stands as written
+TEST(html_inline_unquoted_attribute_value_with_a_less_than_sign) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("a <span x=a<b>c"sv, false)};
+  EXPECT_EQ(result, "<p>a &lt;span x=a<b>c</p>\n");
+}
+
+// Section 6.6 excludes this character from an unquoted attribute value, so the
+// tag is no tag and the text stands as written
+TEST(html_inline_unquoted_attribute_value_with_a_backtick) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("a <span x=a`b>c"sv, false)};
+  EXPECT_EQ(result, "<p>a &lt;span x=a`b&gt;c</p>\n");
+}

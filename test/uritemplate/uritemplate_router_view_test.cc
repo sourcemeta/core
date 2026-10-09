@@ -4748,3 +4748,91 @@ TEST(corrupt_paths_offset_past_end) {
   EXPECT_EQ(view.at(0), 0);
   EXPECT_EQ(view.context(1), 0);
 }
+
+// A node count the buffer cannot hold describes nothing, where the same
+// blob with its real count describes the route it was built from
+TEST_F(URITemplateRouterViewTest,
+       describes_rejects_node_count_beyond_the_buffer) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/users", "op_1", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path_);
+  }
+
+  std::vector<std::uint8_t> blob;
+  {
+    std::ifstream file{this->path_, std::ios::binary | std::ios::ate};
+    const auto size = static_cast<std::size_t>(file.tellg());
+    file.seekg(0, std::ios::beg);
+    blob.resize(size);
+    file.read(reinterpret_cast<char *>(blob.data()),
+              static_cast<std::streamsize>(size));
+  }
+
+  const sourcemeta::core::URITemplateRouterView sound{blob.data(), blob.size()};
+  EXPECT_TRUE(sound.describes("/users"));
+
+  const auto corrupt{std::uint32_t{9999}};
+  std::memcpy(blob.data() + (2 * sizeof(std::uint32_t)), &corrupt,
+              sizeof(corrupt));
+  const sourcemeta::core::URITemplateRouterView view{blob.data(), blob.size()};
+  EXPECT_FALSE(view.describes("/users"));
+}
+
+// The string table begins where the nodes end, so an offset below that
+// would read a node as a string
+TEST_F(URITemplateRouterViewTest,
+       describes_rejects_string_table_overlapping_the_nodes) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/users", "op_1", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path_);
+  }
+
+  std::vector<std::uint8_t> blob;
+  {
+    std::ifstream file{this->path_, std::ios::binary | std::ios::ate};
+    const auto size = static_cast<std::size_t>(file.tellg());
+    file.seekg(0, std::ios::beg);
+    blob.resize(size);
+    file.read(reinterpret_cast<char *>(blob.data()),
+              static_cast<std::streamsize>(size));
+  }
+
+  const sourcemeta::core::URITemplateRouterView sound{blob.data(), blob.size()};
+  EXPECT_TRUE(sound.describes("/users"));
+
+  const auto corrupt{std::uint32_t{1}};
+  std::memcpy(blob.data() + (3 * sizeof(std::uint32_t)), &corrupt,
+              sizeof(corrupt));
+  const sourcemeta::core::URITemplateRouterView view{blob.data(), blob.size()};
+  EXPECT_FALSE(view.describes("/users"));
+}
+
+// Arguments past the end of the buffer are no arguments at all
+TEST_F(URITemplateRouterViewTest, describes_rejects_arguments_past_the_end) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/users", "op_1", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path_);
+  }
+
+  std::vector<std::uint8_t> blob;
+  {
+    std::ifstream file{this->path_, std::ios::binary | std::ios::ate};
+    const auto size = static_cast<std::size_t>(file.tellg());
+    file.seekg(0, std::ios::beg);
+    blob.resize(size);
+    file.read(reinterpret_cast<char *>(blob.data()),
+              static_cast<std::streamsize>(size));
+  }
+
+  const sourcemeta::core::URITemplateRouterView sound{blob.data(), blob.size()};
+  EXPECT_TRUE(sound.describes("/users"));
+
+  const auto corrupt{std::uint32_t{99999}};
+  std::memcpy(blob.data() + (4 * sizeof(std::uint32_t)), &corrupt,
+              sizeof(corrupt));
+  const sourcemeta::core::URITemplateRouterView view{blob.data(), blob.size()};
+  EXPECT_FALSE(view.describes("/users"));
+}

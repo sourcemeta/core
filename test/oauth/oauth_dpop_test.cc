@@ -512,6 +512,181 @@ TEST(verify_rejects_a_private_key_in_the_header) {
             sourcemeta::core::OAuthDPoPError::PrivateKey);
 }
 
+// RFC 9449 Section 4.3 check 7 forbids private material in the embedded key,
+// and RFC 7517 Section 4 marks this member as part of it
+TEST(verify_rejects_a_p_member_in_the_header) {
+  auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(EC_PRIVATE_JWK))};
+  EXPECT_TRUE(key.has_value());
+  auto embedded{sourcemeta::core::parse_json(EC_PUBLIC_JWK)};
+  embedded.assign("p", sourcemeta::core::JSON{"x"});
+  auto header{
+      sourcemeta::core::parse_json(R"({"typ":"dpop+jwt","alg":"ES256"})")};
+  header.assign("jwk", embedded);
+  const auto payload{sourcemeta::core::parse_json(
+      R"({"jti":"x","htm":"POST","htu":"https://server.example.com/token",)"
+      R"("iat":1562262616})")};
+  const auto proof{sourcemeta::core::jwt_sign(header, payload, key.value())};
+  EXPECT_TRUE(proof.has_value());
+
+  const sourcemeta::core::OAuthDPoPVerifyOptions options;
+  EXPECT_EQ(sourcemeta::core::oauth_dpop_verify(
+                proof.value(), "POST", "https://server.example.com/token",
+                FIXED_TIME, options)
+                .value(),
+            sourcemeta::core::OAuthDPoPError::PrivateKey);
+}
+
+// RFC 9449 Section 4.3 check 7 forbids private material in the embedded key,
+// and RFC 7517 Section 4 marks this member as part of it
+TEST(verify_rejects_a_q_member_in_the_header) {
+  auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(EC_PRIVATE_JWK))};
+  EXPECT_TRUE(key.has_value());
+  auto embedded{sourcemeta::core::parse_json(EC_PUBLIC_JWK)};
+  embedded.assign("q", sourcemeta::core::JSON{"x"});
+  auto header{
+      sourcemeta::core::parse_json(R"({"typ":"dpop+jwt","alg":"ES256"})")};
+  header.assign("jwk", embedded);
+  const auto payload{sourcemeta::core::parse_json(
+      R"({"jti":"x","htm":"POST","htu":"https://server.example.com/token",)"
+      R"("iat":1562262616})")};
+  const auto proof{sourcemeta::core::jwt_sign(header, payload, key.value())};
+  EXPECT_TRUE(proof.has_value());
+
+  const sourcemeta::core::OAuthDPoPVerifyOptions options;
+  EXPECT_EQ(sourcemeta::core::oauth_dpop_verify(
+                proof.value(), "POST", "https://server.example.com/token",
+                FIXED_TIME, options)
+                .value(),
+            sourcemeta::core::OAuthDPoPError::PrivateKey);
+}
+
+// RFC 9449 Section 4.3 check 7 forbids private material in the embedded key,
+// and RFC 7517 Section 4 marks this member as part of it
+TEST(verify_rejects_a_dp_member_in_the_header) {
+  auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(EC_PRIVATE_JWK))};
+  EXPECT_TRUE(key.has_value());
+  auto embedded{sourcemeta::core::parse_json(EC_PUBLIC_JWK)};
+  embedded.assign("dp", sourcemeta::core::JSON{"x"});
+  auto header{
+      sourcemeta::core::parse_json(R"({"typ":"dpop+jwt","alg":"ES256"})")};
+  header.assign("jwk", embedded);
+  const auto payload{sourcemeta::core::parse_json(
+      R"({"jti":"x","htm":"POST","htu":"https://server.example.com/token",)"
+      R"("iat":1562262616})")};
+  const auto proof{sourcemeta::core::jwt_sign(header, payload, key.value())};
+  EXPECT_TRUE(proof.has_value());
+
+  const sourcemeta::core::OAuthDPoPVerifyOptions options;
+  EXPECT_EQ(sourcemeta::core::oauth_dpop_verify(
+                proof.value(), "POST", "https://server.example.com/token",
+                FIXED_TIME, options)
+                .value(),
+            sourcemeta::core::OAuthDPoPError::PrivateKey);
+}
+
+// RFC 9449 Section 4.3 check 7 forbids private material in the embedded key,
+// and RFC 7517 Section 4 marks this member as part of it
+TEST(verify_rejects_a_dq_member_in_the_header) {
+  auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(EC_PRIVATE_JWK))};
+  EXPECT_TRUE(key.has_value());
+  auto embedded{sourcemeta::core::parse_json(EC_PUBLIC_JWK)};
+  embedded.assign("dq", sourcemeta::core::JSON{"x"});
+  auto header{
+      sourcemeta::core::parse_json(R"({"typ":"dpop+jwt","alg":"ES256"})")};
+  header.assign("jwk", embedded);
+  const auto payload{sourcemeta::core::parse_json(
+      R"({"jti":"x","htm":"POST","htu":"https://server.example.com/token",)"
+      R"("iat":1562262616})")};
+  const auto proof{sourcemeta::core::jwt_sign(header, payload, key.value())};
+  EXPECT_TRUE(proof.has_value());
+
+  const sourcemeta::core::OAuthDPoPVerifyOptions options;
+  EXPECT_EQ(sourcemeta::core::oauth_dpop_verify(
+                proof.value(), "POST", "https://server.example.com/token",
+                FIXED_TIME, options)
+                .value(),
+            sourcemeta::core::OAuthDPoPError::PrivateKey);
+}
+
+// RFC 9449 Section 4.3 check 7 forbids private material in the embedded key,
+// and RFC 7517 Section 4 marks this member as part of it
+TEST(verify_rejects_a_qi_member_in_the_header) {
+  auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(EC_PRIVATE_JWK))};
+  EXPECT_TRUE(key.has_value());
+  auto embedded{sourcemeta::core::parse_json(EC_PUBLIC_JWK)};
+  embedded.assign("qi", sourcemeta::core::JSON{"x"});
+  auto header{
+      sourcemeta::core::parse_json(R"({"typ":"dpop+jwt","alg":"ES256"})")};
+  header.assign("jwk", embedded);
+  const auto payload{sourcemeta::core::parse_json(
+      R"({"jti":"x","htm":"POST","htu":"https://server.example.com/token",)"
+      R"("iat":1562262616})")};
+  const auto proof{sourcemeta::core::jwt_sign(header, payload, key.value())};
+  EXPECT_TRUE(proof.has_value());
+
+  const sourcemeta::core::OAuthDPoPVerifyOptions options;
+  EXPECT_EQ(sourcemeta::core::oauth_dpop_verify(
+                proof.value(), "POST", "https://server.example.com/token",
+                FIXED_TIME, options)
+                .value(),
+            sourcemeta::core::OAuthDPoPError::PrivateKey);
+}
+
+// RFC 9449 Section 4.3 check 7 forbids private material in the embedded key,
+// and RFC 7517 Section 4 marks this member as part of it
+TEST(verify_rejects_a_oth_member_in_the_header) {
+  auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(EC_PRIVATE_JWK))};
+  EXPECT_TRUE(key.has_value());
+  auto embedded{sourcemeta::core::parse_json(EC_PUBLIC_JWK)};
+  embedded.assign("oth", sourcemeta::core::JSON{"x"});
+  auto header{
+      sourcemeta::core::parse_json(R"({"typ":"dpop+jwt","alg":"ES256"})")};
+  header.assign("jwk", embedded);
+  const auto payload{sourcemeta::core::parse_json(
+      R"({"jti":"x","htm":"POST","htu":"https://server.example.com/token",)"
+      R"("iat":1562262616})")};
+  const auto proof{sourcemeta::core::jwt_sign(header, payload, key.value())};
+  EXPECT_TRUE(proof.has_value());
+
+  const sourcemeta::core::OAuthDPoPVerifyOptions options;
+  EXPECT_EQ(sourcemeta::core::oauth_dpop_verify(
+                proof.value(), "POST", "https://server.example.com/token",
+                FIXED_TIME, options)
+                .value(),
+            sourcemeta::core::OAuthDPoPError::PrivateKey);
+}
+
+// RFC 9449 Section 4.3 check 7 forbids private material in the embedded key,
+// and RFC 7517 Section 4 marks this member as part of it
+TEST(verify_rejects_a_k_member_in_the_header) {
+  auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(EC_PRIVATE_JWK))};
+  EXPECT_TRUE(key.has_value());
+  auto embedded{sourcemeta::core::parse_json(EC_PUBLIC_JWK)};
+  embedded.assign("k", sourcemeta::core::JSON{"x"});
+  auto header{
+      sourcemeta::core::parse_json(R"({"typ":"dpop+jwt","alg":"ES256"})")};
+  header.assign("jwk", embedded);
+  const auto payload{sourcemeta::core::parse_json(
+      R"({"jti":"x","htm":"POST","htu":"https://server.example.com/token",)"
+      R"("iat":1562262616})")};
+  const auto proof{sourcemeta::core::jwt_sign(header, payload, key.value())};
+  EXPECT_TRUE(proof.has_value());
+
+  const sourcemeta::core::OAuthDPoPVerifyOptions options;
+  EXPECT_EQ(sourcemeta::core::oauth_dpop_verify(
+                proof.value(), "POST", "https://server.example.com/token",
+                FIXED_TIME, options)
+                .value(),
+            sourcemeta::core::OAuthDPoPError::PrivateKey);
+}
+
 TEST(verify_rejects_a_missing_claim) {
   auto key{sourcemeta::core::JWKPrivate::from(
       sourcemeta::core::parse_json(EC_PRIVATE_JWK))};

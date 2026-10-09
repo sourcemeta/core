@@ -195,3 +195,24 @@ TEST(derive_public_key_from_ed448_private_matches_public) {
   EXPECT_TRUE(components.has_value());
   EXPECT_EQ(components.value().point, expected.value());
 }
+
+TEST(edwards_public_components_rejects_an_rsa_key) {
+  const auto modulus{sourcemeta::core::base64url_decode(RFC7638_RSA_N)};
+  const auto exponent{sourcemeta::core::base64url_decode("AQAB")};
+  const auto key{
+      sourcemeta::core::make_rsa_public_key(modulus.value(), exponent.value())};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_FALSE(
+      sourcemeta::core::edwards_public_components(key.value()).has_value());
+}
+
+TEST(edwards_public_components_rejects_an_elliptic_curve_key) {
+  const auto coordinate_x{sourcemeta::core::hex_to_bytes(P256_QX_HEX)};
+  const auto coordinate_y{sourcemeta::core::hex_to_bytes(P256_QY_HEX)};
+  const auto key{sourcemeta::core::make_ec_public_key(
+      sourcemeta::core::EllipticCurve::P256, coordinate_x.value(),
+      coordinate_y.value())};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_FALSE(
+      sourcemeta::core::edwards_public_components(key.value()).has_value());
+}
