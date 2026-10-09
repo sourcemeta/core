@@ -175,3 +175,11 @@ TEST(unquoted_entry_still_splits_on_parameter) {
   EXPECT_FALSE(
       sourcemeta::core::http_field_list_contains_any("a;p=1", {"a;p=1"}));
 }
+
+// RFC 9110 Section 5.6.1 allows empty list elements, which "MUST be ignored"
+TEST(field_list_skips_an_empty_element) {
+  EXPECT_TRUE(
+      sourcemeta::core::http_field_list_contains_any("gzip, , br", {"br"}));
+  EXPECT_FALSE(
+      sourcemeta::core::http_field_list_contains_any("gzip, , br", {""}));
+}

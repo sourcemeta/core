@@ -77,6 +77,13 @@ static constexpr std::string_view SIGNATURE_SHA256_PKCS1_V15_HEX{
     "7080b42118a2380d03d58f488a4241f1624cbda93d9f50b95fbd0f2ff7e35b54"
     "f0c410dd41988958e0400e20442efdd2f8a7c963b9e874f50bf489b553269ba4"};
 
+// A NIST P-256 public point, for showing that a scheme turns down a key of a
+// type it is not defined over
+static constexpr std::string_view OTHER_TYPE_QX{
+    "60fed4ba255a9d31c961eb74c6356d68c049b8923b61fa6ce669622e60f29fb6"};
+static constexpr std::string_view OTHER_TYPE_QY{
+    "7903fe1008b8bc99a41ae9e95628bc64f2f1b20c2d7e9f5177a3c294d4462299"};
+
 namespace {
 auto verify_pss(const sourcemeta::core::SignatureHashFunction hash,
                 const std::string_view modulus, const std::string_view exponent,
@@ -241,4 +248,26 @@ TEST(verify_rejects_a_truncated_signature) {
                           sourcemeta::core::hex_to_bytes(MODULUS_HEX).value(),
                           sourcemeta::core::hex_to_bytes(EXPONENT_HEX).value(),
                           MESSAGE, signature.substr(1)));
+}
+
+// A key holding no parsed state verifies nothing
+TEST(verify_with_a_key_that_holds_nothing) {
+  const sourcemeta::core::PublicKey key{nullptr};
+  EXPECT_FALSE(sourcemeta::core::rsassa_pss_verify(
+      key, sourcemeta::core::SignatureHashFunction::SHA256, MESSAGE,
+      "signature"));
+}
+
+// RFC 7518 Section 3.5 defines this scheme over RSA keys alone. A key of
+// another type carries no modulus to read, so this pins the refusal rather
+// than the type check that reaches it
+TEST(verify_with_an_elliptic_curve_key) {
+  const auto key{sourcemeta::core::make_ec_public_key(
+      sourcemeta::core::EllipticCurve::P256,
+      sourcemeta::core::hex_to_bytes(OTHER_TYPE_QX).value(),
+      sourcemeta::core::hex_to_bytes(OTHER_TYPE_QY).value())};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_FALSE(sourcemeta::core::rsassa_pss_verify(
+      key.value(), sourcemeta::core::SignatureHashFunction::SHA256, MESSAGE,
+      "signature"));
 }

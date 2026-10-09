@@ -4,6 +4,7 @@
 
 #include <string>      // std::string
 #include <string_view> // std::string_view
+#include <utility>     // std::move
 
 // RFC 7638 Section 3.1: the RSA public key whose thumbprint the RFC publishes
 static constexpr std::string_view RFC7638_RSA_N{
@@ -215,4 +216,33 @@ TEST(edwards_public_components_rejects_an_elliptic_curve_key) {
   EXPECT_TRUE(key.has_value());
   EXPECT_FALSE(
       sourcemeta::core::edwards_public_components(key.value()).has_value());
+}
+
+TEST(rsa_public_components_of_a_key_that_holds_nothing) {
+  const sourcemeta::core::PublicKey key{nullptr};
+  EXPECT_FALSE(sourcemeta::core::rsa_public_components(key).has_value());
+}
+
+TEST(ec_public_components_of_a_key_that_holds_nothing) {
+  const sourcemeta::core::PublicKey key{nullptr};
+  EXPECT_FALSE(sourcemeta::core::ec_public_components(key).has_value());
+}
+
+TEST(edwards_public_components_of_a_key_that_holds_nothing) {
+  const sourcemeta::core::PublicKey key{nullptr};
+  EXPECT_FALSE(sourcemeta::core::edwards_public_components(key).has_value());
+}
+
+// Moving a key onto itself leaves it as it was
+TEST(public_key_moved_onto_itself_keeps_its_state) {
+  const auto modulus{sourcemeta::core::base64url_decode(RFC7638_RSA_N)};
+  const auto exponent{sourcemeta::core::base64url_decode("AQAB")};
+  auto key{
+      sourcemeta::core::make_rsa_public_key(modulus.value(), exponent.value())};
+  EXPECT_TRUE(key.has_value());
+
+  auto *pointer{&key.value()};
+  key.value() = std::move(*pointer);
+  EXPECT_TRUE(key.value().type() == sourcemeta::core::PublicKey::Type::RSA);
+  EXPECT_TRUE(sourcemeta::core::rsa_public_components(key.value()).has_value());
 }

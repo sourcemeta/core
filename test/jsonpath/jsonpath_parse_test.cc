@@ -502,3 +502,70 @@ TEST(parse_rejects_a_single_ampersand_in_a_filter) {
 TEST(parse_rejects_a_function_name_that_is_not_lower_case) {
   EXPECT_JSONPATH_PARSE_ERROR("$[?Count(@)>1]", 4);
 }
+
+// RFC 9535 Section 2.3.3 gives an index as "0" or an optionally signed digit
+// run, so a sign with nothing after it ends the query early
+TEST(parse_rejects_an_index_that_is_only_a_sign) {
+  EXPECT_JSONPATH_PARSE_ERROR("$[-", 4);
+}
+
+TEST(parse_rejects_an_index_of_zero_that_runs_off_the_end) {
+  EXPECT_JSONPATH_PARSE_ERROR("$[0", 4);
+}
+
+// RFC 9535 Section 2.3.1 pairs a high surrogate with a low one, so the escape
+// that follows has to be there
+TEST(parse_rejects_a_high_surrogate_at_the_end_of_the_query) {
+  EXPECT_JSONPATH_PARSE_ERROR("$[\"\\uD800", 10);
+}
+
+TEST(parse_rejects_a_high_surrogate_paired_with_a_plain_code_point) {
+  EXPECT_JSONPATH_PARSE_ERROR("$[\"\\uD800\\uFFFF\"]", 16);
+}
+
+// RFC 9535 Section 2.4.3 writes a function name in lower case alone
+TEST(parse_rejects_a_function_name_that_starts_upper_case) {
+  EXPECT_JSONPATH_PARSE_ERROR("$[?Length(@)>1]", 4);
+}
+
+// A filter may test the root rather than the current node
+TEST(parse_accepts_a_filter_comparing_against_the_root) {
+  EXPECT_JSONPATH_VALID("$[?$.a==1]");
+}
+
+// The other strict comparison is spelled without an equals sign too
+TEST(parse_accepts_a_strictly_greater_than_comparison) {
+  EXPECT_JSONPATH_VALID("$[?@.a>1]");
+}
+
+// RFC 9535 Section 2.3.5 builds a number from an integer, an optional
+// fraction, and an optional exponent, each of which needs its digits
+TEST(parse_rejects_a_literal_that_is_only_a_minus_sign) {
+  EXPECT_JSONPATH_PARSE_ERROR("$[?@.a==-", 10);
+}
+
+TEST(parse_rejects_a_zero_literal_that_runs_off_the_end) {
+  EXPECT_JSONPATH_PARSE_ERROR("$[?@.a==0", 10);
+}
+
+TEST(parse_rejects_a_fraction_with_no_digits_at_the_end) {
+  EXPECT_JSONPATH_PARSE_ERROR("$[?@.a==1.", 11);
+}
+
+TEST(parse_rejects_an_exponent_with_no_digits_at_the_end) {
+  EXPECT_JSONPATH_PARSE_ERROR("$[?@.a==1e", 11);
+}
+
+TEST(parse_rejects_an_exponent_whose_sign_ends_the_query) {
+  EXPECT_JSONPATH_PARSE_ERROR("$[?@.a==1e+", 12);
+}
+
+// RFC 9535 Section 2.1 holds a query to I-JSON, which bounds an integer to
+// the range a double can hold exactly
+TEST(parse_rejects_an_integer_literal_too_large_to_hold) {
+  EXPECT_JSONPATH_PARSE_ERROR("$[?@.a==99999999999999999999]", 29);
+}
+
+TEST(parse_rejects_an_integer_literal_below_the_allowed_range) {
+  EXPECT_JSONPATH_PARSE_ERROR("$[?@.a==-9007199254740992]", 26);
+}

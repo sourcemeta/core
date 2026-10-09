@@ -3066,3 +3066,165 @@ TEST(included_value_object_with_a_null_value) {
   EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
                              "Invalid @included value", "/@included");
 }
+
+// A null language is a language that was set, which differs from one that was
+// never given at all
+TEST(protected_term_redefinition_differing_in_whether_a_language_was_set) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": [
+      { "@version": 1.1, "@protected": true,
+        "a": { "@id": "http://example.com/a", "@language": null } },
+      { "@version": 1.1,
+        "a": { "@id": "http://example.com/a" } }
+    ]
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Protected term redefinition", "/@context/1/a");
+}
+
+TEST(protected_term_redefinition_differing_in_whether_a_direction_was_set) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": [
+      { "@version": 1.1, "@protected": true,
+        "a": { "@id": "http://example.com/a", "@direction": null } },
+      { "@version": 1.1,
+        "a": { "@id": "http://example.com/a" } }
+    ]
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Protected term redefinition", "/@context/1/a");
+}
+
+// A scoped context is resolved against the base of the context that carried
+// it, so the same scoped context reached through a different remote context
+// is a different definition
+TEST(protected_term_redefinition_differing_in_the_base_of_a_scoped_context) {
+  const sourcemeta::core::JSONLDResolver resolver =
+      [](const sourcemeta::core::JSON::StringView identifier)
+      -> std::optional<sourcemeta::core::JSON> {
+    if (identifier == "http://one.example/context") {
+      return sourcemeta::core::parse_json(R"({ "@context": {
+        "@version": 1.1, "@protected": true,
+        "a": { "@id": "http://example.com/a", "@context": { } } } })");
+    }
+
+    if (identifier == "http://two.example/context") {
+      return sourcemeta::core::parse_json(R"({ "@context": {
+        "@version": 1.1,
+        "a": { "@id": "http://example.com/a", "@context": { } } } })");
+    }
+
+    return std::nullopt;
+  };
+
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": [ "http://one.example/context", "http://two.example/context" ]
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(
+      sourcemeta::core::jsonld_expand(input, "http://doc.example/", resolver),
+      "Protected term redefinition", "/@context/1");
+}
+
+// A term stated in reverse points the other way, which the same IRI stated
+// forwards does not
+TEST(protected_term_redefinition_differing_in_whether_it_is_reversed) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": [
+      { "@version": 1.1, "@protected": true,
+        "a": { "@reverse": "http://example.com/a" } },
+      { "@version": 1.1,
+        "a": { "@id": "http://example.com/a" } }
+    ]
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Protected term redefinition", "/@context/1/a");
+}
+
+// JSON-LD 1.1 API Section 4.2 step 5.2 lets the type keyword carry only a
+// set container, so one written as an array redefines the keyword
+TEST(a_type_keyword_definition_with_a_container_that_is_not_a_string) {
+  const auto input = sourcemeta::core::parse_json(
+      R"({
+    "@context": { "@version": 1.1, "@type": { "@container": [ "@set" ] } }
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Keyword redefinition", "/@context/@type");
+}
+
+// A type mapping has to name an IRI or one of the keywords the
+// specification lists, which a term with nothing to expand against does
+// not
+TEST(a_type_mapping_that_expands_to_nothing) {
+  const auto input = sourcemeta::core::parse_json(
+      R"({ "@context": { "t": { "@id": "http://x/t", "@type": "foo" } } })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Invalid type mapping", "/@context/t/@type");
+}
+
+// The none and json type mappings arrived with JSON-LD 1.1, so neither is
+// available to a 1.0 processor
+TEST(a_type_mapping_of_none_under_1_0_processing) {
+  const auto input = sourcemeta::core::parse_json(
+      R"({ "@context": { "t": { "@id": "http://x/t", "@type": "@none" } } })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(
+      sourcemeta::core::jsonld_expand(input, "", {},
+                                      sourcemeta::core::JSONLDVersion::V1_0),
+      "Invalid type mapping", "/@context/t/@type");
+}
+
+TEST(a_type_mapping_of_json_under_1_0_processing) {
+  const auto input = sourcemeta::core::parse_json(
+      R"({ "@context": { "t": { "@id": "http://x/t", "@type": "@json" } } })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(
+      sourcemeta::core::jsonld_expand(input, "", {},
+                                      sourcemeta::core::JSONLDVersion::V1_0),
+      "Invalid type mapping", "/@context/t/@type");
+}
+
+// A reverse mapping is held to naming an IRI just as a forward one is
+TEST(a_reverse_mapping_that_expands_to_nothing) {
+  const auto input = sourcemeta::core::parse_json(
+      R"({ "@context": { "t": { "@reverse": "foo" } } })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Invalid IRI mapping", "/@context/t/@reverse");
+}
+
+// A type mapping that only looks like a keyword expands to nothing, which
+// is no type mapping at all
+TEST(a_type_mapping_with_the_form_of_a_keyword) {
+  const auto input = sourcemeta::core::parse_json(
+      R"({ "@context": { "t": { "@id": "http://x/t", "@type": "@foo" } } })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Invalid type mapping", "/@context/t/@type");
+}
+
+// JSON-LD 1.1 API Section 4.2 step 14.2.4 holds a term with the form of an
+// IRI to expanding onto the mapping it was given, and a slash is enough to
+// give it that form
+TEST(a_term_holding_a_slash_that_does_not_expand_onto_its_own_mapping) {
+  const auto input = sourcemeta::core::parse_json(
+      R"({ "@context": { "a/b": { "@id": "http://example.com/x" } } })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Invalid IRI mapping", "/@context/a~1b/@id");
+}
+
+// A trailing colon leaves no suffix to join to a prefix, so nothing names
+// the term and it keeps no mapping
+TEST(a_term_closing_with_a_colon_and_no_identifier) {
+  const auto input = sourcemeta::core::parse_json(
+      R"({ "@context": { "foo:": { "@type": "@id" } } })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Invalid IRI mapping", "/@context/foo:");
+}

@@ -3065,3 +3065,132 @@ TEST(context_defines_a_self_referential_term_holding_a_slash) {
   const auto expected = sourcemeta::core::parse_json("[]");
   EXPECT_EQ(result, expected);
 }
+
+// JSON-LD 1.1 API Section 5.2 step 4 leaves a prefix of a single
+// underscore alone, so the term stands for the blank node it spells
+TEST(a_self_referential_blank_node_term) {
+  const auto input = sourcemeta::core::parse_json(
+      R"({ "@context": { "_:b": "_:b" }, "_:b": "v" })");
+
+  const auto expected =
+      sourcemeta::core::parse_json(R"([ { "_:b": [ { "@value": "v" } ] } ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+// A suffix beginning with two slashes belongs to an absolute IRI rather
+// than to a compact one, so no prefix is looked up
+TEST(a_self_referential_term_whose_suffix_opens_an_authority) {
+  const auto input = sourcemeta::core::parse_json(
+      R"({ "@context": { "http://x": "http://x" }, "http://x": "v" })");
+
+  const auto expected = sourcemeta::core::parse_json(
+      R"([ { "http://x": [ { "@value": "v" } ] } ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+// A prefix the same context defines later is created on demand, so the
+// order the two are written in does not matter
+TEST(a_self_referential_compact_term_defined_after_its_prefix) {
+  const auto input = sourcemeta::core::parse_json(
+      R"({
+    "@context": { "foo:bar": "foo:bar", "foo": "http://example.com/" },
+    "foo:bar": "v"
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(
+      R"([ { "http://example.com/bar": [ { "@value": "v" } ] } ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+// With nothing defining the prefix the term keeps the IRI it already
+// spells
+TEST(a_self_referential_compact_term_with_no_prefix_definition) {
+  const auto input = sourcemeta::core::parse_json(
+      R"({ "@context": { "foo:bar": "foo:bar" }, "foo:bar": "v" })");
+
+  const auto expected = sourcemeta::core::parse_json(
+      R"([ { "foo:bar": [ { "@value": "v" } ] } ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+// A colon in first position leaves no prefix, so the term is not IRI like
+// and its mapping is not held to expanding onto itself
+TEST(a_term_whose_mapping_begins_with_a_colon) {
+  const auto input = sourcemeta::core::parse_json(
+      R"({ "@context": { ":bar": "http://example.com/x" }, ":bar": "v" })");
+
+  const auto expected = sourcemeta::core::parse_json(
+      R"([ { "http://example.com/x": [ { "@value": "v" } ] } ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+// A colon in first or last position leaves the term short of the IRI form,
+// so it is not held to expanding onto its own mapping
+TEST(a_term_opening_with_a_colon_given_an_explicit_identifier) {
+  const auto input = sourcemeta::core::parse_json(
+      R"({
+    "@context": { ":bar": { "@id": "http://example.com/x" } },
+    ":bar": "v"
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(
+      R"([ { "http://example.com/x": [ { "@value": "v" } ] } ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(a_term_closing_with_a_colon_given_an_explicit_identifier) {
+  const auto input = sourcemeta::core::parse_json(
+      R"({
+    "@context": { "foo:": { "@id": "http://example.com/x" } },
+    "foo:": "v"
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(
+      R"([ { "http://example.com/x": [ { "@value": "v" } ] } ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+// A prefix of a single underscore is left alone, so the term keeps the
+// blank node it already spells
+TEST(a_blank_node_term_defined_without_an_identifier) {
+  const auto input = sourcemeta::core::parse_json(
+      R"({ "@context": { "_:b": { "@type": "@id" } }, "_:b": "http://x/y" })");
+
+  const auto expected = sourcemeta::core::parse_json(
+      R"([ { "_:b": [ { "@id": "http://x/y" } ] } ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+// JSON-LD 1.1 API Section 4.2 step 14.2.2 has a processor warn and return
+// for an identifier that only looks like a keyword, which leaves the term
+// with no mapping to expand against
+TEST(an_identifier_with_the_form_of_a_keyword_retires_the_term) {
+  const auto input = sourcemeta::core::parse_json(
+      R"({ "@context": { "t": { "@id": "@foo" } }, "t": "v" })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([ ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+// Step 15.3 leaves a reverse value that looks like a keyword alone in the
+// same way
+TEST(a_reverse_mapping_with_the_form_of_a_keyword_retires_the_term) {
+  const auto input = sourcemeta::core::parse_json(
+      R"({
+    "@context": { "t": { "@reverse": "@foo" } },
+    "t": { "@id": "http://x/y" }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([ ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}

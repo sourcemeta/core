@@ -215,3 +215,24 @@ TEST(an_ip_literal_base_does_not_match_a_registered_name) {
              sourcemeta::core::URI{"/qux"});
   EXPECT_EQ(uri.recompose(), "https://v1.x/foo/bar");
 }
+
+// The internationalized flag of either side carries into the result, so a
+// rebase onto an IRI leaves an IRI behind
+TEST(rebase_onto_an_internationalized_new_base) {
+  sourcemeta::core::URI uri{"https://example.com/foo/bar"};
+  const sourcemeta::core::URI base{"https://example.com/foo"};
+  const auto new_base{
+      sourcemeta::core::URI::from_iri("https://example.com/caf\xC3\xA9")};
+  uri.rebase(base, new_base);
+  EXPECT_TRUE(uri.is_internationalized());
+  EXPECT_EQ(uri.recompose(), "https://example.com/caf\xC3\xA9/bar");
+}
+
+TEST(rebase_onto_an_internationalized_rvalue_new_base) {
+  sourcemeta::core::URI uri{"https://example.com/foo/bar"};
+  const sourcemeta::core::URI base{"https://example.com/foo"};
+  uri.rebase(
+      base, sourcemeta::core::URI::from_iri("https://example.com/caf\xC3\xA9"));
+  EXPECT_TRUE(uri.is_internationalized());
+  EXPECT_EQ(uri.recompose(), "https://example.com/caf\xC3\xA9/bar");
+}

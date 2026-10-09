@@ -185,12 +185,17 @@ auto find_anchors(const sourcemeta::core::JSON &schema,
   }
 
   // Draft 7 and 6
-  // Old `$id` anchor form
+  // Old `$id` anchor form, which the hyper-schema dialect of each draft spells
+  // the same way, as it is that draft plus the links vocabulary
   if (schema.is_object() &&
       (vocabularies.contains(
            sourcemeta::core::SchemaVocabularies::Known::JSON_SCHEMA_DRAFT_7) ||
+       vocabularies.contains(sourcemeta::core::SchemaVocabularies::Known::
+                                 JSON_SCHEMA_DRAFT_7_HYPER) ||
        vocabularies.contains(
-           sourcemeta::core::SchemaVocabularies::Known::JSON_SCHEMA_DRAFT_6))) {
+           sourcemeta::core::SchemaVocabularies::Known::JSON_SCHEMA_DRAFT_6) ||
+       vocabularies.contains(sourcemeta::core::SchemaVocabularies::Known::
+                                 JSON_SCHEMA_DRAFT_6_HYPER))) {
     const auto *id_value{
         schema.try_at("$id"sv, sourcemeta::core::JSONSCHEMA_HASH_ID)};
     if (id_value != nullptr) {

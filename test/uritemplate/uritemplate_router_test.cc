@@ -3252,3 +3252,35 @@ TEST(rejects_a_brace_not_followed_by_a_slash) {
     FAIL();
   }
 }
+
+// An operator has to be followed by the name it applies to
+TEST(expansion_operator_with_nothing_after_it) {
+  sourcemeta::core::URITemplateRouter router;
+  EXPECT_ROUTER_SEGMENT_ERROR(router, "/{+", 1, "{+");
+}
+
+TEST(path_operator_with_nothing_after_it) {
+  sourcemeta::core::URITemplateRouter router;
+  EXPECT_ROUTER_SEGMENT_ERROR(router, "/{/", 1, "{/");
+}
+
+// A variable may only be followed by another expression where that one opens a
+// path segment of its own
+TEST(variable_followed_by_an_unfinished_expression) {
+  sourcemeta::core::URITemplateRouter router;
+  EXPECT_ROUTER_SEGMENT_ERROR(router, "/{x}{", 1, "{x}{");
+}
+
+TEST(two_adjacent_variables_in_one_segment) {
+  sourcemeta::core::URITemplateRouter router;
+  EXPECT_ROUTER_SEGMENT_ERROR(router, "/{x}{y}", 1, "{x}{y}");
+}
+
+// A route of nothing but a variable makes that variable the only child of the
+// root
+TEST(a_route_of_a_single_variable) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/{x}", "op_1", 1);
+  EXPECT_TRUE(router.describes("/anything"));
+  EXPECT_FALSE(router.describes("/anything/else"));
+}

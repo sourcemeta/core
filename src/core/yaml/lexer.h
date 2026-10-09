@@ -686,12 +686,18 @@ private:
 
     if (this->peek() == '<') {
       this->advance(1);
-      while (this->position_ < this->input_.size() && this->peek() != '>') {
+      while (this->position_ < this->input_.size() && this->peek() != '>' &&
+             this->peek() != '\n' && this->peek() != '\r') {
         this->advance(1);
       }
-      if (this->peek() == '>') {
-        this->advance(1);
+      // YAML 1.2.2 Section 6.9.1 closes a verbatim tag with an angle bracket,
+      // and the opening bracket is no tag character, so one left unclosed can
+      // fall back on nothing
+      if (this->peek() != '>') [[unlikely]] {
+        throw YAMLParseError{start_line, start_column,
+                             "Unterminated verbatim tag"};
       }
+      this->advance(1);
     } else {
       while (this->position_ < this->input_.size()) {
         const char current{this->peek()};
