@@ -218,5 +218,17 @@
     ]
   },
   "standalone": true,
-  "standaloneIgnoringMetaschemas": true
+  "standaloneIgnoringMetaschemas": true,
+  "reachability": [
+    {
+      "from": "https://www.sourcemeta.com/schema",
+      "to": "https://www.sourcemeta.com/schema",
+      "reachable": true
+    },
+    {
+      "from": "https://www.sourcemeta.com/schema",
+      "to": "https://www.sourcemeta.com/schema#same",
+      "reachable": true
+    }
+  ]
 }

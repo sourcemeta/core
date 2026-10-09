@@ -217,5 +217,22 @@
     ]
   },
   "standalone": true,
-  "standaloneIgnoringMetaschemas": true
+  "standaloneIgnoringMetaschemas": true,
+  "reachability": [
+    {
+      "from": "",
+      "to": "",
+      "reachable": true
+    },
+    {
+      "from": "",
+      "to": "#first",
+      "reachable": true
+    },
+    {
+      "from": "",
+      "to": "#second",
+      "reachable": true
+    }
+  ]
 }

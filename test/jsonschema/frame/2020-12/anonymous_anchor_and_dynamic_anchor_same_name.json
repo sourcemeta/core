@@ -194,5 +194,17 @@
     ]
   },
   "standalone": true,
-  "standaloneIgnoringMetaschemas": true
+  "standaloneIgnoringMetaschemas": true,
+  "reachability": [
+    {
+      "from": "",
+      "to": "",
+      "reachable": true
+    },
+    {
+      "from": "",
+      "to": "#same",
+      "reachable": true
+    }
+  ]
 }

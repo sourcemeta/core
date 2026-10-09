@@ -547,7 +547,7 @@ private:
 
     if (raw_tag.starts_with("!!")) {
       // The shorthand form takes one or more tag characters after its handle,
-      // which Example 6.27 of the specification turns down for want of
+      // and Example 6.27 of the specification turns one down for want of them
       if (raw_tag.size() == 2) [[unlikely]] {
         throw YAMLParseError{this->lexer_->line(), this->lexer_->column(),
                              "Tag shorthand with no suffix"};
