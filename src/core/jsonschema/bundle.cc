@@ -1141,7 +1141,7 @@ auto schema_bundle(JSON &schema, const SchemaWalker &walker,
                    const SchemaResolver &resolver,
                    std::string_view default_dialect,
                    std::string_view default_id,
-                   const SchemaBundleOptions &options) -> void {
+                   const SchemaBundleOptions &options) -> std::uint64_t {
   auto remaining{options.max_locations};
   try {
     bundle_internal(schema, walker, resolver, options.mode, default_dialect,
@@ -1153,6 +1153,8 @@ auto schema_bundle(JSON &schema, const SchemaWalker &walker,
     // for the operation, so that is what the operation reports back
     throw SchemaFrameLimitError{options.max_locations};
   }
+
+  return options.max_locations - remaining;
 }
 
 auto schema_bundle(const JSON &schema, const SchemaWalker &walker,
@@ -1161,7 +1163,8 @@ auto schema_bundle(const JSON &schema, const SchemaWalker &walker,
                    std::string_view default_id,
                    const SchemaBundleOptions &options) -> JSON {
   JSON copy = schema;
-  schema_bundle(copy, walker, resolver, default_dialect, default_id, options);
+  [[maybe_unused]] const auto registered{schema_bundle(
+      copy, walker, resolver, default_dialect, default_id, options)};
   return copy;
 }
 

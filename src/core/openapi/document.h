@@ -311,9 +311,11 @@ inline auto openapi_follow_reference(const JSON::StringView reference,
                                      OpenAPIWalk &walk) -> void {
   const auto target{openapi_reference_target(reference, walk)};
   if (!target.has_value()) {
-    // The value was already held to the form of a URI reference where it was
-    // read, so what fails here is resolving it against the base, which leaves
-    // nothing to record and nothing to land on
+    // Resolving against the base leaves nothing to record and nothing to land
+    // on. The form the value was held to where it was read is checked by a
+    // looser test than the one applied here, so a value that passed there can
+    // still fail here and go unrecorded, which is a known gap rather than
+    // something this place settles
     return;
   }
 
