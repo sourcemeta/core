@@ -199,6 +199,36 @@ TEST(thread_creation_failure) {
   // drained and no callback runs at all
   EXPECT_EQ(processed.load(), 0);
 }
+
+// A size above the minimum is recorded without being checked against what the
+// machine has, so the refusal comes from the allocation at creation rather than
+// from the request. Darwin maps such a stack lazily and creates the thread, so
+// this is held to the platform that commits it up front
+#if defined(__linux__)
+TEST(thread_creation_failure_on_a_stack_too_large_to_allocate) {
+  std::vector<std::size_t> items;
+  items.reserve(20);
+  for (std::size_t index = 0; index < 20; index++) {
+    items.push_back(index);
+  }
+
+  std::atomic<std::size_t> processed{0};
+
+  try {
+    sourcemeta::core::parallel_for_each(
+        items.cbegin(), items.cend(),
+        [&processed](const auto, const auto, const auto) {
+          processed.fetch_add(1);
+        },
+        4, 1uz << 46);
+    FAIL();
+  } catch (const std::runtime_error &error) {
+    EXPECT_STREQ(error.what(), "Could not create thread");
+  }
+
+  EXPECT_EQ(processed.load(), 0);
+}
+#endif
 #endif
 
 // Every worker takes one item, throws on it, and exits, so each one that

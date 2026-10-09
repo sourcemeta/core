@@ -55,6 +55,18 @@ constexpr std::string_view EDDSA_SIGNATURE{
     "vpAr_MuM0KAg"};
 constexpr std::string_view OKP_JWK{
     R"JSON({ "kty": "OKP", "crv": "Ed25519", "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo" })JSON"};
+constexpr std::string_view RSA_JWK_MATCHING_ALGORITHM{
+    R"JSON({ "kty": "RSA", "n": "g6AMCEh4IMEnWr_9s8s-uUPXOWm1Zt2h4nV2ZCWsZRHnQg-SzmkNDw3SqUF9nLbjCz_HlElABwe9XZ8gfwVGKr3TNHcaTS_QQNGzX6WndznyQKvoEL3BkvMAk-p-CzUpW4XzAl7iwdpOjxh8iFAR-pOcdvCzEcwEVkwlcVL1IDXN_oFxfpldOA94Ljcp4fA0FmsTo74x93el3hzfgHYSt1UeHQkrjQwmfecbjVHpDHmpqcaAmgWpKHYnWa0WZJ5t-cm17UIydct-lEUKne_bqoUHuyqakJG6fLHbunxc0CRxqcV5r_i64D0vMDsdu3I1YehoOj9CDvzE8rKGeSA8Mw", "e": "AQAB", "alg": "RS256" })JSON"};
+// A P-384 public key, so that a curve the algorithm does not name can be told
+// apart from a key type it does not name
+constexpr std::string_view EC_P384_JWK{
+    R"JSON({ "kty": "EC", "crv": "P-384", "x": "2vNb4tkbgqO0zEAs2uZ7sfAud-yiG24vhu8f_n7t1bGuAk6Ri1cGMIqUv8vcaDFf", "y": "Y1aaM4Jna_mH2L_KgEA5SIrhaq5XbASmay0UnPTw2F3-znyZ-fZ8yCwtj3aPGUGv" })JSON"};
+// Secrets below what RFC 7518 Section 3.2 requires of each MAC, which asks for
+// a key of at least the size of the hash output
+constexpr std::string_view OCT_JWK_16_BYTES{
+    R"JSON({"kty":"oct","k":"QUFBQUFBQUFBQUFBQUFBQQ"})JSON"};
+constexpr std::string_view OCT_JWK_32_BYTES{
+    R"JSON({"kty":"oct","k":"QUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUE"})JSON"};
 } // namespace
 
 TEST(rs256_valid) {
@@ -264,5 +276,117 @@ TEST(jws_verify_signature_hs256_key_declaring_other_algorithm) {
   EXPECT_TRUE(signature.has_value());
   EXPECT_FALSE(sourcemeta::core::jws_verify_signature(
       sourcemeta::core::JWSAlgorithm::HS256, RFC7515_A1_SIGNING_INPUT,
+      signature.value(), key.value()));
+}
+
+// RFC 7518 Section 3.5 gives PSS an RSA key
+TEST(ps256_rejects_an_ec_key) {
+  const auto signature{sourcemeta::core::base64url_decode(RSA_SIGNATURE)};
+  EXPECT_TRUE(signature.has_value());
+  const auto key{
+      sourcemeta::core::JWK::from(sourcemeta::core::parse_json(EC_JWK))};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_FALSE(sourcemeta::core::jws_verify_signature(
+      sourcemeta::core::JWSAlgorithm::PS256, RS256_SIGNING_INPUT,
+      signature.value(), key.value()));
+}
+
+// RFC 7518 Section 3.4 ties this algorithm to the P-256 curve alone,
+// so a key on another curve is turned away rather than tried
+TEST(es256_rejects_a_p384_key) {
+  const auto signature{sourcemeta::core::base64url_decode(RSA_SIGNATURE)};
+  EXPECT_TRUE(signature.has_value());
+  const auto key{
+      sourcemeta::core::JWK::from(sourcemeta::core::parse_json(EC_P384_JWK))};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_FALSE(sourcemeta::core::jws_verify_signature(
+      sourcemeta::core::JWSAlgorithm::ES256, ES256_SIGNING_INPUT,
+      signature.value(), key.value()));
+}
+
+// RFC 7518 Section 3.4 gives every ECDSA algorithm an elliptic curve key
+TEST(es384_rejects_an_rsa_key) {
+  const auto signature{sourcemeta::core::base64url_decode(RSA_SIGNATURE)};
+  EXPECT_TRUE(signature.has_value());
+  const auto key{
+      sourcemeta::core::JWK::from(sourcemeta::core::parse_json(RSA_JWK))};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_FALSE(sourcemeta::core::jws_verify_signature(
+      sourcemeta::core::JWSAlgorithm::ES384, ES256_SIGNING_INPUT,
+      signature.value(), key.value()));
+}
+
+// RFC 7518 Section 3.4 ties this algorithm to the P-384 curve alone
+TEST(es384_rejects_a_p256_key) {
+  const auto signature{sourcemeta::core::base64url_decode(RSA_SIGNATURE)};
+  EXPECT_TRUE(signature.has_value());
+  const auto key{
+      sourcemeta::core::JWK::from(sourcemeta::core::parse_json(EC_JWK))};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_FALSE(sourcemeta::core::jws_verify_signature(
+      sourcemeta::core::JWSAlgorithm::ES384, ES256_SIGNING_INPUT,
+      signature.value(), key.value()));
+}
+
+TEST(es512_rejects_an_rsa_key) {
+  const auto signature{sourcemeta::core::base64url_decode(RSA_SIGNATURE)};
+  EXPECT_TRUE(signature.has_value());
+  const auto key{
+      sourcemeta::core::JWK::from(sourcemeta::core::parse_json(RSA_JWK))};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_FALSE(sourcemeta::core::jws_verify_signature(
+      sourcemeta::core::JWSAlgorithm::ES512, ES256_SIGNING_INPUT,
+      signature.value(), key.value()));
+}
+
+TEST(eddsa_rejects_an_rsa_key) {
+  const auto signature{sourcemeta::core::base64url_decode(EDDSA_SIGNATURE)};
+  EXPECT_TRUE(signature.has_value());
+  const auto key{
+      sourcemeta::core::JWK::from(sourcemeta::core::parse_json(RSA_JWK))};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_FALSE(sourcemeta::core::jws_verify_signature(
+      sourcemeta::core::JWSAlgorithm::EdDSA, EDDSA_SIGNING_INPUT,
+      signature.value(), key.value()));
+}
+
+// RFC 7518 Section 3.2 asks for a key of at least the hash output size
+TEST(hs256_rejects_a_secret_below_the_hash_size) {
+  const auto key{sourcemeta::core::JWK::from(
+      sourcemeta::core::parse_json(OCT_JWK_16_BYTES))};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_FALSE(sourcemeta::core::jws_verify_signature(
+      sourcemeta::core::JWSAlgorithm::HS256, RFC7515_A1_SIGNING_INPUT, "",
+      key.value()));
+}
+
+TEST(hs384_rejects_a_secret_below_the_hash_size) {
+  const auto key{sourcemeta::core::JWK::from(
+      sourcemeta::core::parse_json(OCT_JWK_32_BYTES))};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_FALSE(sourcemeta::core::jws_verify_signature(
+      sourcemeta::core::JWSAlgorithm::HS384, RFC7515_A1_SIGNING_INPUT, "",
+      key.value()));
+}
+
+TEST(hs512_rejects_a_secret_below_the_hash_size) {
+  const auto key{sourcemeta::core::JWK::from(
+      sourcemeta::core::parse_json(OCT_JWK_32_BYTES))};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_FALSE(sourcemeta::core::jws_verify_signature(
+      sourcemeta::core::JWSAlgorithm::HS512, RFC7515_A1_SIGNING_INPUT, "",
+      key.value()));
+}
+
+// The key names the same algorithm the caller asked for, which is the one
+// reading of the hint that has never been taken
+TEST(rs256_accepts_a_key_whose_algorithm_hint_matches) {
+  const auto signature{sourcemeta::core::base64url_decode(RSA_SIGNATURE)};
+  EXPECT_TRUE(signature.has_value());
+  const auto key{sourcemeta::core::JWK::from(
+      sourcemeta::core::parse_json(RSA_JWK_MATCHING_ALGORITHM))};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_TRUE(sourcemeta::core::jws_verify_signature(
+      sourcemeta::core::JWSAlgorithm::RS256, RS256_SIGNING_INPUT,
       signature.value(), key.value()));
 }

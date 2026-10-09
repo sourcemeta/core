@@ -787,6 +787,57 @@ TEST(validate_rejects_a_required_code_hash_without_the_code) {
   EXPECT_FALSE(identity.has_value());
 }
 
+// OpenID Connect Core 1.0 Section 3.3.2.11 makes the code hash REQUIRED where
+// an identity token is issued from the authorization endpoint alongside a code,
+// so the binding has to be acceptable and not only refusable
+TEST(validate_accepts_a_required_code_hash) {
+  sourcemeta::core::OIDCIdTokenClaims claims;
+  claims.issuer = "https://issuer.example";
+  claims.subject = "user-1";
+  claims.audience = "client-id";
+  claims.issued_at = REFERENCE_NOW;
+  claims.expiration = REFERENCE_NOW + std::chrono::hours{1};
+  claims.code = "the-authorization-code";
+  const auto compact{sourcemeta::core::oidc_mint_id_token(
+      claims, oct_private_key(), sourcemeta::core::JWSAlgorithm::HS256)};
+  const auto token{sourcemeta::core::JWT::from(compact.value())};
+  EXPECT_TRUE(token.has_value());
+  EXPECT_TRUE(token.value().payload().defines("c_hash"));
+
+  sourcemeta::core::OIDCValidationOptions options;
+  options.code = "the-authorization-code";
+  options.require_code_hash = true;
+  const auto identity{sourcemeta::core::oidc_validate_id_token(
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, options)};
+  EXPECT_TRUE(identity.has_value());
+  EXPECT_EQ(identity.value().subject, "user-1");
+}
+
+TEST(validate_accepts_a_required_access_token_hash) {
+  sourcemeta::core::OIDCIdTokenClaims claims;
+  claims.issuer = "https://issuer.example";
+  claims.subject = "user-1";
+  claims.audience = "client-id";
+  claims.issued_at = REFERENCE_NOW;
+  claims.expiration = REFERENCE_NOW + std::chrono::hours{1};
+  claims.access_token = "the-access-token";
+  const auto compact{sourcemeta::core::oidc_mint_id_token(
+      claims, oct_private_key(), sourcemeta::core::JWSAlgorithm::HS256)};
+  const auto token{sourcemeta::core::JWT::from(compact.value())};
+  EXPECT_TRUE(token.has_value());
+  EXPECT_TRUE(token.value().payload().defines("at_hash"));
+
+  sourcemeta::core::OIDCValidationOptions options;
+  options.access_token = "the-access-token";
+  options.require_access_token_hash = true;
+  const auto identity{sourcemeta::core::oidc_validate_id_token(
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, options)};
+  EXPECT_TRUE(identity.has_value());
+  EXPECT_EQ(identity.value().subject, "user-1");
+}
+
 TEST(parse_id_token_extracts_the_member) {
   const auto response{sourcemeta::core::parse_json(R"JSON({
     "access_token": "at",

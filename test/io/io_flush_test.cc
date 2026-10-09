@@ -1,6 +1,10 @@
 #include <sourcemeta/core/io.h>
 #include <sourcemeta/core/test.h>
 
+#if defined(__linux__)
+#include <sys/stat.h> // mkfifo
+#endif
+
 TEST(test_txt) {
   const auto path{std::filesystem::path{STUBS_DIRECTORY} / "test.txt"};
   sourcemeta::core::flush(path);
@@ -74,6 +78,33 @@ TEST(flush_an_unreadable_file_throws_permission_error) {
                                  std::filesystem::perm_options::replace);
     std::filesystem::remove(path);
   } catch (...) {
+    FAIL();
+  }
+}
+#endif
+
+// A pipe is a file the filesystem names and holds no blocks for, and Linux
+// reports a synchronisation request against one as invalid, which is the one
+// way to reach the failure arm without a device that misbehaves. Opening it for
+// both reading and writing is what keeps the call from waiting for a peer that
+// never arrives. Darwin answers the same request successfully, so this is held
+// to the platform that documents the refusal
+#if defined(__linux__)
+TEST(flush_a_pipe_throws) {
+  const auto path{std::filesystem::temp_directory_path() /
+                  "sourcemeta_core_io_flush_pipe"};
+  std::filesystem::remove(path);
+  EXPECT_EQ(::mkfifo(path.c_str(), 0600), 0);
+
+  try {
+    sourcemeta::core::flush(path);
+    std::filesystem::remove(path);
+    FAIL();
+  } catch (const std::filesystem::filesystem_error &error) {
+    EXPECT_EQ(error.path1(), path);
+    std::filesystem::remove(path);
+  } catch (...) {
+    std::filesystem::remove(path);
     FAIL();
   }
 }

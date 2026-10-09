@@ -854,3 +854,47 @@ TEST(object_no_explode_empty_value_semicolon) {
       });
   EXPECT_EQ(result, ";keys=a,");
 }
+
+// RFC 6570 Section 2.4.1: "this numbering is in characters, not octets, in
+// order to avoid splitting between the octets of a multi-octet-encoded
+// character or within a pct-encoded triplet"
+TEST(prefix_modifier_keeps_a_triplet_whole_under_reserved_expansion) {
+  const sourcemeta::core::URITemplate uri_template{"{+var:1}"};
+  const std::map<std::string, std::string> variables{{"var", "%41b"}};
+  const auto result = uri_template.expand(variables);
+
+  EXPECT_EQ(result, "%41");
+}
+
+// The triplet counts as one character before the percent that opens it is
+// itself encoded, so the prefix is taken over the value as it was given
+TEST(prefix_modifier_keeps_a_triplet_whole_before_encoding_it) {
+  const sourcemeta::core::URITemplate uri_template{"{var:1}"};
+  const std::map<std::string, std::string> variables{{"var", "%41b"}};
+  const auto result = uri_template.expand(variables);
+
+  EXPECT_EQ(result, "%2541");
+}
+
+// Section 2.4.1 counts a four octet character once, so a prefix of one
+// character takes all four
+TEST(prefix_modifier_keeps_a_four_octet_character_whole) {
+  const sourcemeta::core::URITemplate uri_template{"{var:1}"};
+  const std::map<std::string, std::string> variables{
+      {"var", "\xF0\x9F\x98\x80X"}};
+  const auto result = uri_template.expand(variables);
+
+  EXPECT_EQ(result, "%F0%9F%98%80");
+}
+
+// Every lead octet a well-formed encoding may carry is below %xF5, so the arm
+// that takes one octet for a lead above the four octet range is only reachable
+// with input that is not valid UTF-8 at all
+TEST(prefix_modifier_takes_one_octet_for_a_lead_no_encoding_defines) {
+  const sourcemeta::core::URITemplate uri_template{"{var:1}"};
+  const std::map<std::string, std::string> variables{{"var", "\xF8"
+                                                             "A"}};
+  const auto result = uri_template.expand(variables);
+
+  EXPECT_EQ(result, "%F8");
+}

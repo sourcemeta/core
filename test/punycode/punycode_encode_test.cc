@@ -400,3 +400,20 @@ TEST(error_encode_invalid_utf8_input) {
     EXPECT_STREQ(error.what(), "Invalid UTF-8 input");
   }
 }
+
+// RFC 3492 Section 6.4 leaves overflow handling to the implementation and the
+// arithmetic here detects it as it happens. The delta reaches its ceiling while
+// counting the basic code points that sort below the one being inserted, so the
+// input has to be long enough for the count to arrive there
+TEST(error_encode_overflow) {
+  const std::u32string input{std::u32string(3855, U'a') +
+                             static_cast<char32_t>(0x10FF70)};
+
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::utf32_to_punycode(input)};
+    FAIL();
+  } catch (const sourcemeta::core::PunycodeError &error) {
+    EXPECT_STREQ(error.what(), "Encode overflow");
+  }
+}

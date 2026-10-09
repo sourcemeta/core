@@ -415,3 +415,22 @@ TEST(table_leading_pipe_without_trailing_pipe) {
                     "</tbody>\n"
                     "</table>\n");
 }
+
+// GFM section 4.10 lets a table header interrupt a paragraph, so the lines
+// before it stay a paragraph of their own and the header is read over the last
+// one alone
+TEST(table_header_splits_the_paragraph_before_it) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("a\n| c | d |\n| --- | --- |")};
+  EXPECT_EQ(result, "<p>a</p>\n<table>\n<thead>\n<tr>\n<th>c</th>\n"
+                    "<th>d</th>\n</tr>\n</thead>\n</table>\n");
+}
+
+// Trailing space after the delimiter row's last pipe, which the row scanner
+// has to step over before it can accept the row
+TEST(table_header_splits_the_paragraph_with_a_padded_delimiter_row) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("a\n| c | d |\n| --- | --- |   ")};
+  EXPECT_EQ(result, "<p>a</p>\n<table>\n<thead>\n<tr>\n<th>c</th>\n"
+                    "<th>d</th>\n</tr>\n</thead>\n</table>\n");
+}

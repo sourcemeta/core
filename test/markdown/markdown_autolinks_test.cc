@@ -519,3 +519,30 @@ TEST(extended_autolink_inside_brackets_that_are_not_a_link) {
       sourcemeta::core::markdown_to_html("[see www.sourcemeta.com]")};
   EXPECT_EQ(result, "<p>[see www.sourcemeta.com]</p>\n");
 }
+
+// GFM section 6.9 trims a trailing question mark from an extended autolink,
+// which is the one character of the eight the suite never reaches
+TEST(autolink_trailing_question_mark_is_trimmed) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("See www.example.com? ok")};
+  EXPECT_EQ(result, "<p>See <a href=\"http://www.example.com\">"
+                    "www.example.com</a>? ok</p>\n");
+}
+
+// CommonMark section 6.2 requires an entity inside an absolute URI autolink to
+// be recognised rather than left as written
+TEST(autolink_resolves_an_entity_inside_the_destination) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("<http://example.com/&amp;>")};
+  EXPECT_EQ(result, "<p><a href=\"http://example.com/&amp;\">"
+                    "http://example.com/&amp;</a></p>\n");
+}
+
+// GFM section 6.9 trims trailing punctuation from an extended autolink, and the
+// resource part of an xmpp address is where a trailing dot has never been seen
+TEST(extended_autolink_xmpp_resource_trailing_dot_is_trimmed) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("xmpp:team@sourcemeta.com/resource.")};
+  EXPECT_EQ(result, "<p><a href=\"xmpp:team@sourcemeta.com/resource\">"
+                    "xmpp:team@sourcemeta.com/resource</a>.</p>\n");
+}

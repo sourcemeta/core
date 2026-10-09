@@ -394,3 +394,16 @@ TEST(error_decode_surrogate_code_point) {
     EXPECT_STREQ(error.what(), "Invalid code point");
   }
 }
+
+// The sibling above is turned away while a digit is still being weighed. Here
+// every digit clears its own guard, and it is the insertion index they add up
+// to that carries the code point past what the type holds
+TEST(error_decode_overflow_at_the_insertion_index) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::punycode_to_utf32("kz902716a")};
+    FAIL();
+  } catch (const sourcemeta::core::PunycodeError &error) {
+    EXPECT_STREQ(error.what(), "Decode overflow");
+  }
+}

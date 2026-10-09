@@ -447,3 +447,76 @@ TEST(language_mismatch_keeps_value_object) {
   })");
   EXPECT_EQ(result, expected);
 }
+
+// JSON-LD 1.1 API Section 4.3.2 step 3.13 builds an inverse context key from a
+// term's language and direction together, so a term carrying both has to be
+// told apart from one carrying either alone or neither. The uppercase language
+// tag is what pins the lowercasing the step asks for
+TEST(compact_selects_a_term_carrying_both_language_and_direction) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/both": [
+        { "@value": "x", "@language": "en", "@direction": "ltr" }
+      ],
+      "http://example.com/lang": [ { "@value": "x", "@language": "en" } ],
+      "http://example.com/dir": [ { "@value": "x", "@direction": "ltr" } ],
+      "http://example.com/neither": [ { "@value": "x" } ]
+    }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({
+    "both": {
+      "@id": "http://example.com/both",
+      "@language": "EN",
+      "@direction": "ltr"
+    },
+    "lang": { "@id": "http://example.com/lang", "@language": "en" },
+    "dir": { "@id": "http://example.com/dir", "@direction": "ltr" },
+    "neither": { "@id": "http://example.com/neither" }
+  })");
+
+  const auto result{sourcemeta::core::jsonld_compact(
+      input, context, "", {}, sourcemeta::core::JSONLDVersion::V1_1, true,
+      true)};
+
+  EXPECT_TRUE(result.defines("both"));
+  EXPECT_TRUE(result.defines("lang"));
+  EXPECT_TRUE(result.defines("dir"));
+  EXPECT_TRUE(result.defines("neither"));
+  EXPECT_EQ(result.at("both"), sourcemeta::core::JSON{"x"});
+  EXPECT_EQ(result.at("lang"), sourcemeta::core::JSON{"x"});
+}
+
+// API Section 6.2.2 step 4.6.4.1 reaches the same key while choosing a term for
+// a list, which asks for every item to carry both
+TEST(compact_selects_a_list_term_carrying_both_language_and_direction) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/both": [
+        {
+          "@list": [
+            { "@value": "x", "@language": "en", "@direction": "ltr" },
+            { "@value": "y", "@language": "en", "@direction": "ltr" }
+          ]
+        }
+      ]
+    }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({
+    "both": {
+      "@id": "http://example.com/both",
+      "@container": "@list",
+      "@language": "EN",
+      "@direction": "ltr"
+    }
+  })");
+
+  const auto result{sourcemeta::core::jsonld_compact(
+      input, context, "", {}, sourcemeta::core::JSONLDVersion::V1_1, true,
+      true)};
+
+  EXPECT_TRUE(result.defines("both"));
+  EXPECT_TRUE(result.at("both").is_array());
+  EXPECT_EQ(result.at("both").size(), 2);
+}

@@ -2197,3 +2197,52 @@ TEST(accessors_metaschema_unresolvable) {
                  "Could not resolve the metaschema of the schema");
   }
 }
+
+// Asking for a reference at a position the document never held leaves nothing
+// to hand back
+TEST(reference_at_a_pointer_the_document_does_not_hold) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema"
+  })JSON")};
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+  const auto pointer{sourcemeta::core::Pointer{"nope"}};
+  EXPECT_FALSE(frame
+                   .reference(sourcemeta::core::SchemaReferenceType::Static,
+                              sourcemeta::core::to_weak_pointer(pointer))
+                   .has_value());
+}
+
+// RFC 6901 Section 3 escapes a slash as ~1, so ~2 escapes nothing and the
+// fragment is no pointer at all, which leaves the reference without one
+TEST(reference_fragment_that_is_not_a_valid_pointer) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/schema",
+    "$ref": "#/foo~2bar"
+  })JSON")};
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+  const auto pointer{sourcemeta::core::Pointer{"$ref"}};
+  const auto entry{
+      frame.reference(sourcemeta::core::SchemaReferenceType::Static,
+                      sourcemeta::core::to_weak_pointer(pointer))};
+  EXPECT_TRUE(entry.has_value());
+  EXPECT_EQ(entry->get().destination, "https://example.com/schema#/foo~2bar");
+}
+
+// A subschema declaring an empty dialect names no base dialect at all, so the
+// walk has nothing to decide a keyword against and treats the place as a
+// subschema rather than refusing it
+TEST(subschema_declaring_an_empty_dialect) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": { "foo": { "$schema": "" } }
+  })JSON")};
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Locations, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+  EXPECT_TRUE(frame.root_location().has_value());
+}

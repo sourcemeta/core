@@ -2981,3 +2981,85 @@ TEST(included_null_array_member_is_dropped) {
 
   EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
 }
+
+// JSON-LD 1.1 API Section 4.2 steps 16.1 to 16.3 resolve the prefix of a
+// compact IRI by defining that prefix's own term first, so a context that
+// spells the dependent term before its prefix gives the same result as one that
+// spells them the other way round
+TEST(context_defines_a_compact_iri_term_before_its_prefix) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "ex:foo": { "@container": "@set" },
+      "ex": "http://example.com/"
+    },
+    "ex:foo": "x"
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    { "http://example.com/foo": [ { "@value": "x" } ] }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(context_defines_a_compact_iri_term_after_its_prefix) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "ex": "http://example.com/",
+      "ex:foo": { "@container": "@set" }
+    },
+    "ex:foo": "x"
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    { "http://example.com/foo": [ { "@value": "x" } ] }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+// The same dependency, with the dependent term given as a string rather than as
+// a definition object
+TEST(context_defines_a_compact_iri_string_term_before_its_prefix) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "bar": "ex:foo",
+      "ex": "http://example.com/"
+    },
+    "bar": "x"
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    { "http://example.com/foo": [ { "@value": "x" } ] }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+// With no term for the prefix anywhere, there is nothing to resolve and the
+// compact IRI stands as the IRI it already spells
+TEST(context_defines_a_compact_iri_term_whose_prefix_has_no_term) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "bar": "http://example.com/foo" },
+    "bar": "x"
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    { "http://example.com/foo": [ { "@value": "x" } ] }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+// A term that maps to itself and carries a slash is not a prefix of itself, so
+// resolving it must stop rather than recur
+TEST(context_defines_a_self_referential_term_holding_a_slash) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "foo/bar": "foo/bar" },
+    "foo/bar": "x"
+  })");
+
+  const auto result{sourcemeta::core::jsonld_expand(input)};
+  const auto expected = sourcemeta::core::parse_json("[]");
+  EXPECT_EQ(result, expected);
+}
