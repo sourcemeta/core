@@ -31,6 +31,8 @@ TEST(deeply_nested_flow_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Maximum nesting depth exceeded");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 101);
   }
 }
 
@@ -153,6 +155,7 @@ TEST(empty) {
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 1);
     EXPECT_EQ(error.column(), 1);
+    EXPECT_STREQ(error.what(), "Empty YAML document");
   } catch (...) {
     FAIL();
   }
@@ -166,6 +169,7 @@ TEST(blank) {
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 1);
     EXPECT_EQ(error.column(), 1);
+    EXPECT_STREQ(error.what(), "Empty YAML document");
   } catch (...) {
     FAIL();
   }
@@ -179,6 +183,7 @@ TEST(invalid_1) {
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 1);
     EXPECT_EQ(error.column(), 5);
+    EXPECT_STREQ(error.what(), "Expected ':' after mapping key");
   } catch (...) {
     FAIL();
   }
@@ -716,6 +721,7 @@ TEST(yaml_or_json_invalid_yaml_throws_yaml_error) {
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 1);
     EXPECT_EQ(error.column(), 15);
+    EXPECT_STREQ(error.what(), "Expected ':' after mapping key");
   } catch (...) {
     FAIL();
   }
@@ -776,6 +782,8 @@ TEST(invalid_hex_escape) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 1);
+    EXPECT_STREQ(error.what(), "Invalid hex escape sequence");
+    EXPECT_EQ(error.column(), 6);
   } catch (...) {
     FAIL();
   }
@@ -788,6 +796,8 @@ TEST(invalid_unicode_escape_4) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 1);
+    EXPECT_STREQ(error.what(), "Invalid hex escape sequence");
+    EXPECT_EQ(error.column(), 8);
   } catch (...) {
     FAIL();
   }
@@ -800,6 +810,8 @@ TEST(invalid_unicode_escape_8) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 1);
+    EXPECT_STREQ(error.what(), "Invalid hex escape sequence");
+    EXPECT_EQ(error.column(), 12);
   } catch (...) {
     FAIL();
   }
@@ -827,6 +839,8 @@ TEST(surrogate_unicode_escape_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 1);
+    EXPECT_STREQ(error.what(), "Invalid Unicode escape sequence");
+    EXPECT_EQ(error.column(), 8);
   } catch (...) {
     FAIL();
   }
@@ -839,6 +853,8 @@ TEST(out_of_range_unicode_escape_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 1);
+    EXPECT_STREQ(error.what(), "Invalid Unicode escape sequence");
+    EXPECT_EQ(error.column(), 12);
   } catch (...) {
     FAIL();
   }
@@ -860,6 +876,7 @@ TEST(exponential_alias_expansion_is_bounded) {
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 5);
     EXPECT_EQ(error.column(), 9);
+    EXPECT_STREQ(error.what(), "Maximum YAML alias expansion exceeded");
   } catch (...) {
     FAIL();
   }
@@ -881,6 +898,7 @@ TEST(alias_expansion_allowance_scales_with_the_input) {
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 5);
     EXPECT_EQ(error.column(), 6);
+    EXPECT_STREQ(error.what(), "Maximum YAML alias expansion exceeded");
   } catch (...) {
     FAIL();
   }
@@ -912,6 +930,7 @@ TEST(alias_expansion_allowance_ignores_a_comment_behind_the_alias) {
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 5);
     EXPECT_EQ(error.column(), 4);
+    EXPECT_STREQ(error.what(), "Maximum YAML alias expansion exceeded");
   } catch (...) {
     FAIL();
   }
@@ -932,6 +951,8 @@ TEST(alias_expansion_allowance_counts_the_text_a_place_carries) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 4);
+    EXPECT_STREQ(error.what(), "Maximum YAML alias expansion exceeded");
+    EXPECT_EQ(error.column(), 10);
   } catch (...) {
     FAIL();
   }
@@ -956,6 +977,7 @@ TEST(alias_expansion_allowance_ignores_text_after_the_expansion) {
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 5);
     EXPECT_EQ(error.column(), 6);
+    EXPECT_STREQ(error.what(), "Maximum YAML alias expansion exceeded");
   } catch (...) {
     FAIL();
   }
@@ -1089,6 +1111,8 @@ TEST(tab_before_compact_nested_sequence_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 1);
+    EXPECT_STREQ(error.what(), "Tab characters cannot be used for indentation");
+    EXPECT_EQ(error.column(), 3);
   } catch (...) {
     FAIL();
   }
@@ -1101,6 +1125,8 @@ TEST(tab_after_space_before_compact_nested_sequence_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 1);
+    EXPECT_STREQ(error.what(), "Tab characters cannot be used for indentation");
+    EXPECT_EQ(error.column(), 4);
   } catch (...) {
     FAIL();
   }
@@ -1113,6 +1139,8 @@ TEST(tab_before_compact_nested_sequence_under_explicit_key_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 1);
+    EXPECT_STREQ(error.what(), "Tab characters cannot be used for indentation");
+    EXPECT_EQ(error.column(), 3);
   } catch (...) {
     FAIL();
   }
@@ -1146,6 +1174,8 @@ TEST(tab_in_block_mapping_key_indentation_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 3);
+    EXPECT_STREQ(error.what(), "Tab characters cannot be used for indentation");
+    EXPECT_EQ(error.column(), 4);
   } catch (...) {
     FAIL();
   }
@@ -1167,6 +1197,8 @@ TEST(tab_before_compact_mapping_under_explicit_key_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 1);
+    EXPECT_STREQ(error.what(), "Tab characters cannot be used for indentation");
+    EXPECT_EQ(error.column(), 6);
   } catch (...) {
     FAIL();
   }
@@ -1195,6 +1227,8 @@ TEST(tab_indented_double_quoted_continuation_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 2);
+    EXPECT_STREQ(error.what(), "Tab characters cannot be used for indentation");
+    EXPECT_EQ(error.column(), 1);
   } catch (...) {
     FAIL();
   }
@@ -1219,6 +1253,8 @@ TEST(tab_on_empty_block_scalar_line_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 2);
+    EXPECT_STREQ(error.what(), "Tab characters cannot be used for indentation");
+    EXPECT_EQ(error.column(), 1);
   } catch (...) {
     FAIL();
   }
@@ -1242,6 +1278,8 @@ TEST(flow_mapping_content_at_block_indent_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 2);
+    EXPECT_STREQ(error.what(), "Insufficient indentation in flow collection");
+    EXPECT_EQ(error.column(), 1);
   } catch (...) {
     FAIL();
   }
@@ -1262,6 +1300,8 @@ TEST(flow_sequence_content_at_block_indent_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 2);
+    EXPECT_STREQ(error.what(), "Insufficient indentation in flow collection");
+    EXPECT_EQ(error.column(), 1);
   } catch (...) {
     FAIL();
   }
@@ -1285,6 +1325,8 @@ TEST(tab_indented_flow_continuation_line_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 2);
+    EXPECT_STREQ(error.what(), "Insufficient indentation in flow collection");
+    EXPECT_EQ(error.column(), 2);
   } catch (...) {
     FAIL();
   }
@@ -1548,6 +1590,8 @@ TEST(anchored_indentless_sequence_at_the_mapping_indentation_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 3);
+    EXPECT_STREQ(error.what(), "Node property at wrong indentation level");
+    EXPECT_EQ(error.column(), 3);
   } catch (...) {
     FAIL();
   }
@@ -1560,6 +1604,8 @@ TEST(tagged_indentless_sequence_at_the_mapping_indentation_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 3);
+    EXPECT_STREQ(error.what(), "Node property at wrong indentation level");
+    EXPECT_EQ(error.column(), 3);
   } catch (...) {
     FAIL();
   }
@@ -1727,6 +1773,7 @@ TEST(tab_line_start_after_blank_indented_line_is_rejected) {
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 3);
     EXPECT_EQ(error.column(), 2);
+    EXPECT_STREQ(error.what(), "Tab characters cannot be used for indentation");
   } catch (...) {
     FAIL();
   }
@@ -1847,6 +1894,8 @@ TEST(raw_control_character_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Control character not allowed in YAML stream");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 8);
   } catch (...) {
     FAIL();
   }
@@ -1925,6 +1974,8 @@ TEST(duplicate_tag_directive_same_handle_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Duplicate %TAG directive for the same handle");
+    EXPECT_EQ(error.line(), 2);
+    EXPECT_EQ(error.column(), 1);
   } catch (...) {
     FAIL();
   }
@@ -1959,6 +2010,8 @@ TEST(undefined_tag_handle_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Undefined tag handle");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 7);
   } catch (...) {
     FAIL();
   }
@@ -2022,6 +2075,8 @@ TEST(c0_control_inside_a_quoted_scalar_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Control character not allowed in YAML stream");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 8);
   } catch (...) {
     FAIL();
   }
@@ -2036,6 +2091,8 @@ TEST(invalid_utf8_sequence_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Invalid UTF-8 sequence in YAML stream");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 8);
   } catch (...) {
     FAIL();
   }
@@ -2114,6 +2171,8 @@ TEST(positive_infinity_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Infinity and NaN are not permitted");
+    EXPECT_EQ(error.line(), 2);
+    EXPECT_EQ(error.column(), 0);
   } catch (...) {
     FAIL();
   }
@@ -2126,6 +2185,8 @@ TEST(negative_infinity_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Infinity and NaN are not permitted");
+    EXPECT_EQ(error.line(), 2);
+    EXPECT_EQ(error.column(), 0);
   } catch (...) {
     FAIL();
   }
@@ -2138,6 +2199,8 @@ TEST(not_a_number_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Infinity and NaN are not permitted");
+    EXPECT_EQ(error.line(), 2);
+    EXPECT_EQ(error.column(), 0);
   } catch (...) {
     FAIL();
   }
@@ -2150,6 +2213,8 @@ TEST(infinity_as_mapping_value_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Infinity and NaN are not permitted");
+    EXPECT_EQ(error.line(), 2);
+    EXPECT_EQ(error.column(), 0);
   } catch (...) {
     FAIL();
   }
@@ -2185,6 +2250,8 @@ TEST(block_explicit_flow_sequence_key_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Mapping key cannot be a collection");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 3);
   } catch (...) {
     FAIL();
   }
@@ -2197,6 +2264,8 @@ TEST(block_explicit_flow_mapping_key_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Mapping key cannot be a collection");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 3);
   } catch (...) {
     FAIL();
   }
@@ -2209,6 +2278,8 @@ TEST(block_explicit_block_sequence_key_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Mapping key cannot be a collection");
+    EXPECT_EQ(error.line(), 2);
+    EXPECT_EQ(error.column(), 3);
   } catch (...) {
     FAIL();
   }
@@ -2223,6 +2294,8 @@ TEST(alias_collection_key_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Mapping key cannot be a collection");
+    EXPECT_EQ(error.line(), 2);
+    EXPECT_EQ(error.column(), 1);
   } catch (...) {
     FAIL();
   }
@@ -2235,6 +2308,8 @@ TEST(flow_sequence_explicit_collection_key_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Mapping key cannot be a collection");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 5);
   } catch (...) {
     FAIL();
   }
@@ -2357,6 +2432,8 @@ TEST(float_tag_infinity_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Infinity and NaN are not permitted");
+    EXPECT_EQ(error.line(), 2);
+    EXPECT_EQ(error.column(), 0);
   } catch (...) {
     FAIL();
   }
@@ -2369,6 +2446,8 @@ TEST(float_tag_not_a_number_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Infinity and NaN are not permitted");
+    EXPECT_EQ(error.line(), 2);
+    EXPECT_EQ(error.column(), 0);
   } catch (...) {
     FAIL();
   }
@@ -2448,6 +2527,8 @@ TEST(escape_incomplete_hex) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Invalid hex escape sequence");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 6);
   }
 }
 
@@ -2458,6 +2539,8 @@ TEST(unterminated_single_quote) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Missing closing quote in single-quoted scalar");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 1);
   }
 }
 
@@ -2509,6 +2592,8 @@ TEST(flow_mapping_bare_key_at_eof_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Expected ':' after mapping key");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 3);
   }
 }
 
@@ -2518,6 +2603,8 @@ TEST(flow_mapping_colon_at_eof_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Unexpected token");
+    EXPECT_EQ(error.line(), 2);
+    EXPECT_EQ(error.column(), 0);
   }
 }
 
@@ -2527,6 +2614,8 @@ TEST(flow_mapping_anchor_key_at_eof_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Expected scalar key in mapping");
+    EXPECT_EQ(error.line(), 2);
+    EXPECT_EQ(error.column(), 0);
   }
 }
 
@@ -2584,6 +2673,8 @@ TEST(flow_sequence_dash_at_eof_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Invalid plain scalar start in flow context");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 2);
   }
 }
 
@@ -2610,6 +2701,8 @@ TEST(alias_key_referencing_unknown_anchor_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "YAML alias references undefined anchor");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 1);
   }
 }
 
@@ -2619,6 +2712,8 @@ TEST(flow_explicit_key_at_eof_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Unexpected token");
+    EXPECT_EQ(error.line(), 2);
+    EXPECT_EQ(error.column(), 0);
   }
 }
 
@@ -2628,6 +2723,8 @@ TEST(flow_collection_indented_at_parent_block_level_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Insufficient indentation in flow collection");
+    EXPECT_EQ(error.line(), 2);
+    EXPECT_EQ(error.column(), 1);
   }
 }
 
@@ -2686,6 +2783,8 @@ TEST(mapping_key_that_is_a_collection_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Mapping key cannot be a collection");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 4);
   }
 }
 
@@ -2695,6 +2794,8 @@ TEST(tab_trailing_after_quoted_scalar_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Invalid trailing content");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 4);
   }
 }
 
@@ -2878,6 +2979,8 @@ TEST(flow_mapping_entries_without_a_comma) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Missing comma between flow mapping entries");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 8);
   }
 }
 
@@ -2897,6 +3000,8 @@ TEST(flow_sequence_single_pair_value_cannot_be_another_pair) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Missing comma in flow sequence");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 6);
   }
 }
 
@@ -3132,6 +3237,8 @@ TEST(alias_expansion_allowance_counts_bytes_not_characters) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 3);
+    EXPECT_STREQ(error.what(), "Maximum YAML alias expansion exceeded");
+    EXPECT_EQ(error.column(), 54);
   } catch (...) {
     FAIL();
   }
@@ -3209,6 +3316,8 @@ TEST(a_tab_before_an_explicit_key_indicator_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Tab characters cannot be used for indentation");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 3);
   } catch (...) {
     FAIL();
   }
@@ -3223,6 +3332,8 @@ TEST(a_hex_escape_cut_short_by_the_end_of_input_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Truncated hex escape sequence");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 5);
   } catch (...) {
     FAIL();
   }
@@ -3509,4 +3620,35 @@ TEST(yaml_a_document_end_marker_with_nothing_after_it) {
   } catch (...) {
     FAIL();
   }
+}
+
+// The shorter spelling of the extension names the same format
+TEST(yaml_or_json_short_yaml_extension) {
+  const auto result{sourcemeta::core::read_yaml_or_json(
+      std::filesystem::path{STUBS_PATH} / "test_4.yml")};
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "foo": "bar",
+    "baz": 2
+  })JSON");
+
+  EXPECT_EQ(result, expected);
+}
+
+TEST(yaml_or_json_short_yaml_extension_with_a_callback) {
+  sourcemeta::core::JSON result{nullptr};
+  std::size_t visits{0};
+  sourcemeta::core::read_yaml_or_json(
+      std::filesystem::path{STUBS_PATH} / "test_4.yml", result,
+      [&visits](const sourcemeta::core::JSON::ParsePhase,
+                const sourcemeta::core::JSON::Type, const std::uint64_t,
+                const std::uint64_t, const sourcemeta::core::JSON::ParseContext,
+                const std::size_t,
+                const sourcemeta::core::JSON::String &) { visits += 1; });
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "foo": "bar",
+    "baz": 2
+  })JSON");
+
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(visits > 0);
 }

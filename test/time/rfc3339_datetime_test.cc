@@ -690,3 +690,11 @@ TEST(fullwidth_separator) {
   EXPECT_FALSE(sourcemeta::core::is_rfc3339_datetime("2020-01-01\xef\xbc\xb4"
                                                      "00:00:00Z"));
 }
+
+// A leap second is only ever the last second of June or December, so one that
+// rolls back onto any other day names no instant. The day of the month being
+// past the first is what sends the rollback down the ordinary path
+TEST(leap_offset_rolls_back_to_a_day_that_carries_no_leap_second) {
+  EXPECT_FALSE(
+      sourcemeta::core::is_rfc3339_datetime("2016-03-15T00:59:60+01:00"));
+}

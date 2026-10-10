@@ -602,19 +602,24 @@ TEST(lifetime_bound_requires_an_issuance_time) {
   EXPECT_EQ(error.value(), sourcemeta::core::JWTClaimError::Lifetime);
 }
 
-// A token expiring before it was issued names no interval at all
+// A token expiring before it was issued names no interval at all. An expiry
+// already past is turned away before the interval is reached, so the tolerance
+// that admits such an expiry is what lets the comparison be seen
 TEST(lifetime_expiring_before_issuance) {
   const auto input{make_token(
       R"({ "alg": "RS256" })",
-      R"({ "iss": "acme", "aud": "client", "iat": 3000, "exp": 2000 })",
-      "sig")};
+      R"({ "iss": "acme", "aud": "client", "iat": 700, "exp": 600 })", "sig")};
   const auto token{sourcemeta::core::JWT::from(input)};
   EXPECT_TRUE(token.has_value());
   const auto error{sourcemeta::core::jwt_check_claims(
       token.value(), "acme", "client",
-      std::chrono::system_clock::from_time_t(1500), {}, std::nullopt,
-      std::chrono::seconds{1000})};
+      std::chrono::system_clock::from_time_t(1500),
+      sourcemeta::core::JWTClockSkew{std::chrono::seconds{1000},
+                                     std::chrono::seconds{0},
+                                     std::chrono::seconds{0}},
+      std::nullopt, std::chrono::seconds{1000})};
   EXPECT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(), sourcemeta::core::JWTClaimError::Lifetime);
 }
 
 // Without a bound the claim relationship is not examined, so nothing an

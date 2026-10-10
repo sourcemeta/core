@@ -465,3 +465,35 @@ TEST(backend_error_exposes_the_search) {
   EXPECT_EQ(error.paths().at(0), "libcurl.so.4");
   EXPECT_EQ(error.paths().at(1), "libcurl.so");
 }
+
+// The signing headers of an earlier signature are cleared before a new one is
+// stamped, the session token among them, so re-signing replaces rather than
+// repeats
+TEST(sign_aws_sigv4_twice_replaces_the_session_token_header) {
+  const auto moment{
+      sourcemeta::core::from_iso8601_basic("20150830T123600Z").value()};
+  sourcemeta::core::HTTPSystemRequest request{
+      "https://example.amazonaws.com/", sourcemeta::core::HTTPMethod::GET};
+  request.sign_aws_sigv4(
+      {.access_key_id = "AKIDEXAMPLE",
+       .secret_access_key = "wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY",
+       .session_token = "first-token"},
+      "us-east-1", "service", moment);
+  EXPECT_EQ(request.header("x-amz-security-token").value(), "first-token");
+
+  request.sign_aws_sigv4(
+      {.access_key_id = "AKIDEXAMPLE",
+       .secret_access_key = "wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY",
+       .session_token = "second-token"},
+      "us-east-1", "service", moment);
+  EXPECT_EQ(request.header("x-amz-security-token").value(), "second-token");
+}
+
+// RFC 9110 Section 5.5 has a recipient reject a field carrying a bare carriage
+// return, line feed or null, so a name holding one is not added at all
+TEST(a_header_name_carrying_a_forbidden_byte_is_not_added) {
+  sourcemeta::core::HTTPSystemRequest request{
+      "https://example.com/", sourcemeta::core::HTTPMethod::GET};
+  request.header("X-Bad\r\nInjected", sourcemeta::core::SecureString{"value"});
+  EXPECT_FALSE(request.header("X-Bad\r\nInjected").has_value());
+}

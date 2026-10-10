@@ -496,3 +496,21 @@ TEST(seeking_a_stream_with_no_buffer_throws) {
     EXPECT_STREQ(error.what(), "Read past the end of the underlying data");
   }
 }
+
+// A read of nothing moves neither the cursor nor any bytes, and a view with
+// nothing left to read still answers the question
+TEST_F(IOBinaryTest, get_zero_bytes_from_a_view_reads_nothing) {
+  const auto path{this->workspace_ / "empty_read.bin"};
+  {
+    std::ofstream raw{path, std::ios::binary};
+    sourcemeta::core::BinaryWriter writer{raw};
+    writer.put_dword(0x12345678);
+  }
+
+  const sourcemeta::core::FileView view{path};
+  sourcemeta::core::BinaryReader reader{view};
+  std::array<std::byte, 1> destination{};
+  reader.get_bytes(destination.data(), 0);
+  EXPECT_EQ(reader.position(), 0);
+  EXPECT_TRUE(reader.has_more_data());
+}

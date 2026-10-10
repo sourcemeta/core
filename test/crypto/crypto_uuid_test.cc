@@ -329,3 +329,20 @@ TEST(invalid_trailing_newline) {
   EXPECT_FALSE(
       sourcemeta::core::is_uuid_like("2eb8aa08-aa98-11ea-b4aa-73b441d16380\n"));
 }
+
+// Every one of the four separators sits at a fixed offset, so a value short of
+// any of them is not a UUID
+TEST(invalid_separator_at_the_second_position) {
+  EXPECT_FALSE(
+      sourcemeta::core::is_uuid_like("2eb8aa08-aa98x11ea-b4aa-73b441d16380"));
+}
+
+TEST(invalid_separator_at_the_third_position) {
+  EXPECT_FALSE(
+      sourcemeta::core::is_uuid_like("2eb8aa08-aa98-11eax b4aa-73b441d1638"));
+}
+
+TEST(invalid_separator_at_the_fourth_position) {
+  EXPECT_FALSE(
+      sourcemeta::core::is_uuid_like("2eb8aa08-aa98-11ea-b4aax73b441d16380"));
+}

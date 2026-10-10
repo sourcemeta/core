@@ -197,3 +197,22 @@ TEST(build_request_object_from_a_non_object) {
           parameters, oct_private_key(), sourcemeta::core::JWSAlgorithm::HS256)
           .has_value());
 }
+
+// The issuer is held to naming the client, which a value of another type
+// cannot do whatever it carries
+TEST(verify_rejects_an_issuer_that_is_not_a_string) {
+  const auto parameters{sourcemeta::core::parse_json(
+      R"JSON({
+    "iss": 1,
+    "aud": "https://op.example",
+    "scope": "openid"
+  })JSON")};
+  const auto object{sourcemeta::core::oidc_build_request_object(
+      parameters, oct_private_key(), sourcemeta::core::JWSAlgorithm::HS256)};
+  const auto token{sourcemeta::core::JWT::from(object.value())};
+  EXPECT_TRUE(token.has_value());
+  const auto verified{sourcemeta::core::oidc_verify_request_object(
+      token.value(), oct_key_set(), ALLOWED_HS256, "client",
+      "https://op.example")};
+  EXPECT_FALSE(verified.has_value());
+}

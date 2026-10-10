@@ -105,3 +105,27 @@ TEST(relative_leading_double_dot_is_preserved) {
 TEST(relative_multiple_leading_double_dots_are_preserved) {
   EXPECT_EQ(sourcemeta::core::URI::normalize_path("../../foo"), "../../foo");
 }
+
+// RFC 3986 Section 5.2.4 removes a dot-dot segment together with the one
+// before it, and an absolute path that walks past its own root stays rooted
+TEST(absolute_double_dot_only_keeps_the_root) {
+  EXPECT_EQ(sourcemeta::core::URI::normalize_path("/.."), "/");
+}
+
+TEST(absolute_walking_past_the_root_keeps_the_root) {
+  EXPECT_EQ(sourcemeta::core::URI::normalize_path("/../.."), "/");
+}
+
+// A relative path walking past its own start keeps the segments it could not
+// resolve, which is what distinguishes it from a rooted one
+TEST(relative_double_dot_only_is_preserved) {
+  EXPECT_EQ(sourcemeta::core::URI::normalize_path(".."), "../");
+}
+
+TEST(relative_dot_dot_followed_by_a_rooted_remainder) {
+  EXPECT_EQ(sourcemeta::core::URI::normalize_path("../foo"), "../foo");
+}
+
+TEST(relative_dot_dot_segment_with_nothing_after_it) {
+  EXPECT_EQ(sourcemeta::core::URI::normalize_path("/../"), "/");
+}

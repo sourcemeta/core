@@ -330,6 +330,9 @@ public:
     return this->scan_plain_scalar();
   }
 
+  // Where the input ran out before what was being read could be finished,
+  // the position reported is the start of the line that never came, which
+  // pairs with a column of zero to say there is no character to point at
   [[nodiscard]] auto line() const noexcept -> std::uint64_t {
     if (this->position_ >= this->input_.size() && this->column_ > 1) {
       return this->line_ + 1;

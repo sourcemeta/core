@@ -378,3 +378,40 @@ TEST(scan_quoted_string_unescapes_obs_text) {
   EXPECT_EQ(value.size(), 2);
   EXPECT_EQ(static_cast<unsigned char>(value.back()), 0x80);
 }
+
+// RFC 9110 Section 5.6.4 admits HTAB and the visible characters, so the
+// delete control character cannot be written into a quoted string
+TEST(encode_quoted_string_rejects_the_delete_character) {
+  std::string sink;
+  EXPECT_FALSE(sourcemeta::core::http_encode_quoted_string("a\x7F"
+                                                           "b",
+                                                           sink));
+}
+
+// A quoted string opens with a quotation mark, so scanning from anywhere else
+// reads nothing
+TEST(scan_quoted_string_without_an_opening_quote) {
+  std::string storage;
+  std::string_view value;
+  EXPECT_FALSE(
+      sourcemeta::core::http_scan_quoted_string("hello", 0, storage, value)
+          .has_value());
+}
+
+TEST(scan_quoted_string_from_past_the_end) {
+  std::string storage;
+  std::string_view value;
+  EXPECT_FALSE(
+      sourcemeta::core::http_scan_quoted_string(R"("a")", 5, storage, value)
+          .has_value());
+}
+
+// RFC 9110 Section 5.6.4 lets a quoted pair carry only HTAB, SP, VCHAR and
+// obs-text, so a backslash before anything else ends the value
+TEST(scan_quoted_string_escaping_a_character_it_may_not) {
+  std::string storage;
+  std::string_view value;
+  EXPECT_FALSE(
+      sourcemeta::core::http_scan_quoted_string("\"a\\\nb\"", 0, storage, value)
+          .has_value());
+}

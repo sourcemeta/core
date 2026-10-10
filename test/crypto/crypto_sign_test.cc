@@ -1890,3 +1890,19 @@ TEST(make_private_key_rejects_an_rsa_private_exponent_past_the_size_limit) {
                        der_element(0x02, std::string(513, '\x01'))))
           .has_value());
 }
+
+// A component wider than the key size the parsing paths admit is turned away
+// before it drives the document allocation
+TEST(make_rsa_private_key_refuses_an_oversized_component) {
+  const std::string oversized(513, '\x01');
+  EXPECT_FALSE(sourcemeta::core::make_rsa_private_key(
+                   oversized,
+                   sourcemeta::core::hex_to_bytes(EXPONENT_HEX).value(),
+                   sourcemeta::core::hex_to_bytes(PRIVATE_EXPONENT_HEX).value(),
+                   sourcemeta::core::hex_to_bytes(PRIME1_HEX).value(),
+                   sourcemeta::core::hex_to_bytes(PRIME2_HEX).value(),
+                   sourcemeta::core::hex_to_bytes(EXPONENT1_HEX).value(),
+                   sourcemeta::core::hex_to_bytes(EXPONENT2_HEX).value(),
+                   sourcemeta::core::hex_to_bytes(COEFFICIENT_HEX).value())
+                   .has_value());
+}

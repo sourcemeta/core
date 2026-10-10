@@ -1,0 +1,22 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "200": "oops"
+          }
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "The Response Object must be an object",
+    "location": "/paths/~1pets/get/responses/200"
+  }
+}

@@ -932,3 +932,21 @@ TEST(tool_call_arguments_null_value) {
   })JSON")};
   EXPECT_EQ(sourcemeta::core::mcp_tool_call_arguments(envelope), nullptr);
 }
+
+// The initialize parameters are an Object, so a request carrying any other
+// JSON value there is as malformed as one carrying none
+TEST(make_initialize_result_returns_invalid_request_when_params_is_an_array) {
+  const auto request{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0", "id": 1, "method": "initialize", "params": []
+  })JSON")};
+  const sourcemeta::core::MCPServerCapabilities capabilities;
+  const sourcemeta::core::MCPImplementation server{.name = "srv",
+                                                   .version = "1.0.0",
+                                                   .title = {},
+                                                   .description = {},
+                                                   .website_url = {}};
+  const auto envelope{sourcemeta::core::mcp_make_initialize_result(
+      request, capabilities, server)};
+  EXPECT_EQ(envelope.at("error").at("code").to_integer(),
+            sourcemeta::core::JSONRPC_CODE_INVALID_REQUEST);
+}

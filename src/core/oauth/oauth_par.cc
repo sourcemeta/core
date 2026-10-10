@@ -1,5 +1,6 @@
 #include <sourcemeta/core/oauth_par.h>
 
+#include <cassert> // assert
 #include <sourcemeta/core/crypto.h>
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/oauth_authorization.h>
@@ -97,10 +98,8 @@ auto oauth_build_par_authorization_url(const std::string_view endpoint,
   // one (RFC 6749 Section 3.1)
   char separator{'?'};
   if (endpoint.contains('?')) {
-    separator =
-        (endpoint.empty() || endpoint.back() == '?' || endpoint.back() == '&')
-            ? '\0'
-            : '&';
+    assert(!endpoint.empty());
+    separator = (endpoint.back() == '?' || endpoint.back() == '&') ? '\0' : '&';
   }
 
   if (separator != '\0') {
