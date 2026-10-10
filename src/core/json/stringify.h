@@ -254,10 +254,8 @@ auto prettify(const typename JSON::Array &document,
     }
   }
 
-  if (std::cbegin(document) != end) {
-    internal::indent(stream, indentation, indent_by);
-  }
-
+  assert(std::cbegin(document) != end);
+  internal::indent(stream, indentation, indent_by);
   stream.put(internal::TOKEN_ARRAY_END<JSON::Char>);
 }
 

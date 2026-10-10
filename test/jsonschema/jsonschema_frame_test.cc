@@ -1663,6 +1663,53 @@ TEST(accessors_any_reference_from) {
          const sourcemeta::core::SchemaFrame::Reference &) { return true; }));
 }
 
+// A predicate that turns every reference down is how the search reports none
+// even where the pointer does hold some
+TEST(accessors_any_reference_from_with_a_predicate_that_declines) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://example.com/schema",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$defs": { "foo": { "type": "string" } },
+    "properties": { "one": { "$ref": "#/$defs/foo" } }
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+
+  const sourcemeta::core::Pointer properties{"properties"};
+  EXPECT_FALSE(frame.any_reference_from(
+      sourcemeta::core::to_weak_pointer(properties),
+      [](const sourcemeta::core::SchemaReferenceType,
+         const sourcemeta::core::WeakPointer &,
+         const sourcemeta::core::SchemaFrame::Reference &) { return false; }));
+}
+
+TEST(accessors_any_reference_into_with_a_predicate_that_declines) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://example.com/schema",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$defs": { "foo": { "type": "string" } },
+    "properties": { "one": { "$ref": "#/$defs/foo" } }
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+
+  const sourcemeta::core::Pointer definitions{"$defs"};
+  EXPECT_TRUE(frame.any_reference_into(
+      sourcemeta::core::to_weak_pointer(definitions),
+      [](const sourcemeta::core::SchemaReferenceType,
+         const sourcemeta::core::WeakPointer &,
+         const sourcemeta::core::SchemaFrame::Reference &) { return true; }));
+  EXPECT_FALSE(frame.any_reference_into(
+      sourcemeta::core::to_weak_pointer(definitions),
+      [](const sourcemeta::core::SchemaReferenceType,
+         const sourcemeta::core::WeakPointer &,
+         const sourcemeta::core::SchemaFrame::Reference &) { return false; }));
+}
+
 TEST(accessors_for_each_reference_into) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$id": "https://example.com/schema",

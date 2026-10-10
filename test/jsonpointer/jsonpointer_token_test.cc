@@ -310,3 +310,13 @@ TEST(at_property_with_hash) {
   EXPECT_TRUE(result.is_integer());
   EXPECT_EQ(result.to_integer(), 1);
 }
+
+// A property sorts before an index, whichever side of the comparison it is on,
+// so that a mixed collection has a total order
+TEST(property_sorts_before_an_index) {
+  const sourcemeta::core::Pointer::Token property{"foo"};
+  const sourcemeta::core::Pointer::Token index{
+      static_cast<sourcemeta::core::Pointer::Token::Index>(0)};
+  EXPECT_TRUE(property < index);
+  EXPECT_FALSE(index < property);
+}

@@ -329,3 +329,39 @@ TEST(rsa_oaep_decrypt_rejects_a_modulus_too_small_for_two_digests) {
                    std::string(64, '\x00'))
                    .has_value());
 }
+
+// A NIST P-256 public point, for showing that the scheme turns down a key of a
+// type it is not defined over
+static constexpr std::string_view OTHER_TYPE_QX{
+    "60fed4ba255a9d31c961eb74c6356d68c049b8923b61fa6ce669622e60f29fb6"};
+static constexpr std::string_view OTHER_TYPE_QY{
+    "7903fe1008b8bc99a41ae9e95628bc64f2f1b20c2d7e9f5177a3c294d4462299"};
+
+// RFC 8017 defines this scheme over RSA keys alone
+TEST(rsa_oaep_encrypt_rejects_an_elliptic_curve_key) {
+  const auto key{sourcemeta::core::make_ec_public_key(
+      sourcemeta::core::EllipticCurve::P256,
+      sourcemeta::core::hex_to_bytes(OTHER_TYPE_QX).value(),
+      sourcemeta::core::hex_to_bytes(OTHER_TYPE_QY).value())};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_FALSE(sourcemeta::core::rsa_oaep_encrypt(
+                   key.value(), sourcemeta::core::RSAOAEPHash::SHA256,
+                   "a content encryption key")
+                   .has_value());
+}
+
+// The NIST P-256 private scalar of RFC 6979 Appendix A.2.5
+static constexpr std::string_view OTHER_TYPE_D{
+    "c9afa9d845ba75166b5c215767b1d6934e50c3db36e89b127b8a622b120f6721"};
+
+TEST(rsa_oaep_decrypt_rejects_an_elliptic_curve_key) {
+  const auto key{sourcemeta::core::make_ec_private_key(
+      sourcemeta::core::EllipticCurve::P256,
+      sourcemeta::core::hex_to_bytes(OTHER_TYPE_D).value(),
+      sourcemeta::core::hex_to_bytes(OTHER_TYPE_QX).value(),
+      sourcemeta::core::hex_to_bytes(OTHER_TYPE_QY).value())};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_FALSE(sourcemeta::core::rsa_oaep_decrypt(
+                   key.value(), sourcemeta::core::RSAOAEPHash::SHA256, "secret")
+                   .has_value());
+}

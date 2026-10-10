@@ -1916,3 +1916,14 @@ TEST(valid_uppercase_a_label_domain) {
 TEST(invalid_uppercase_a_label_domain) {
   EXPECT_FALSE(sourcemeta::core::is_email("user@XN--HELLO-TXK"));
 }
+
+// RFC 5321 Section 4.1.2 pairs the backslash with the character after it, so
+// one at the very end pairs with nothing
+TEST(invalid_quoted_local_part_ending_in_a_backslash) {
+  EXPECT_FALSE(sourcemeta::core::is_email("\"a\\"));
+}
+
+// Atoms are joined by single dots, so one dot may not follow another
+TEST(invalid_local_part_with_two_consecutive_dots) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a..b@example.com"));
+}

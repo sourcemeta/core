@@ -530,3 +530,32 @@ TEST(resource_metadata_provider_derives_a_url_for_a_resource_with_a_path) {
       seen,
       "https://api.example.com/.well-known/oauth-protected-resource/tenant");
 }
+
+// An issuer that is not a usable https identifier names no well known
+// document, so nothing is fetched and no metadata is produced
+TEST(metadata_provider_without_a_usable_issuer_fetches_nothing) {
+  int fetch_count{0};
+  sourcemeta::core::OAuthMetadataProvider provider{
+      "http://example.com",
+      sourcemeta::core::OAuthWellKnownKind::AuthorizationServer,
+      [&fetch_count](std::string_view) -> Fetch {
+        fetch_count += 1;
+        return sourcemeta::core::OAuthMetadataProvider::FetchResult{
+            .body = std::string{SERVER_DOCUMENT}, .max_age = std::nullopt};
+      }};
+  EXPECT_TRUE(provider.metadata() == nullptr);
+  EXPECT_EQ(fetch_count, 0);
+}
+
+TEST(resource_metadata_provider_without_a_usable_resource_fetches_nothing) {
+  int fetch_count{0};
+  sourcemeta::core::OAuthResourceMetadataProvider provider{
+      "http://api.example.com",
+      [&fetch_count](std::string_view) -> ResourceFetch {
+        fetch_count += 1;
+        return sourcemeta::core::OAuthResourceMetadataProvider::FetchResult{
+            .body = std::string{RESOURCE_DOCUMENT}, .max_age = std::nullopt};
+      }};
+  EXPECT_TRUE(provider.metadata() == nullptr);
+  EXPECT_EQ(fetch_count, 0);
+}

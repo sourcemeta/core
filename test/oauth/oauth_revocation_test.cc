@@ -106,3 +106,21 @@ TEST(parse_revocation_request_rejects_a_malformed_escape) {
       "token=%zz", storage, request,
       [](std::string_view, std::string_view) {}));
 }
+
+// RFC 6749 Appendix B encodes the name as well as the value, so a truncated
+// escape in either is no parameter at all
+TEST(parse_revocation_request_rejects_a_malformed_escape_in_a_name) {
+  sourcemeta::core::SecureString storage;
+  sourcemeta::core::OAuthTokenLookupRequest request;
+  EXPECT_FALSE(sourcemeta::core::oauth_parse_revocation_request(
+      "token=abc&cli%ent_id=x", storage, request,
+      [](std::string_view, std::string_view) {}));
+}
+
+TEST(parse_revocation_request_rejects_a_malformed_escape_in_an_extra_value) {
+  sourcemeta::core::SecureString storage;
+  sourcemeta::core::OAuthTokenLookupRequest request;
+  EXPECT_FALSE(sourcemeta::core::oauth_parse_revocation_request(
+      "token=abc&client_id=x%", storage, request,
+      [](std::string_view, std::string_view) {}));
+}

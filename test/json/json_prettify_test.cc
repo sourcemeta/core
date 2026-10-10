@@ -869,3 +869,14 @@ TEST(array_strings_with_property_of_14_characters_and_a_control_character) {
 
   EXPECT_EQ(stream.str(), expected);
 }
+
+// A property name is measured as JSON to work out the column, which counts the
+// escape a backslash needs
+TEST(object_property_name_holding_a_backslash) {
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign(sourcemeta::core::JSON::String{"a\\b"},
+                  sourcemeta::core::JSON{1});
+  std::ostringstream stream;
+  sourcemeta::core::prettify(document, stream);
+  EXPECT_EQ(stream.str(), "{\n  \"a\\\\b\": 1\n}");
+}
