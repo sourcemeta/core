@@ -613,3 +613,32 @@ TEST(buffer_no_break_space_across_word_boundary) {
   sourcemeta::core::html_escape_append(buffer, "abcdefg\xC2\xA0hijklmnop");
   EXPECT_EQ(buffer.str(), "abcdefg&nbsp;hijklmnop");
 }
+
+// The HTML Living Standard replaces the no-break space with its named entity,
+// which takes both of its UTF-8 bytes, so a lead byte that is not followed by
+// the trailing one of that pair is left where it is
+TEST(lead_byte_of_the_no_break_space_at_the_end) {
+  std::string text = "a\xC2";
+  sourcemeta::core::html_escape(text);
+  EXPECT_EQ(text, "a\xC2");
+}
+
+TEST(lead_byte_of_the_no_break_space_before_another_byte) {
+  std::string text = "a\xC2\xA1"
+                     "b";
+  sourcemeta::core::html_escape(text);
+  EXPECT_EQ(text, "a\xC2\xA1"
+                  "b");
+}
+
+TEST(trailing_byte_of_the_no_break_space_at_the_start) {
+  std::string text = "\xA0<b";
+  sourcemeta::core::html_escape(text);
+  EXPECT_EQ(text, "\xA0&lt;b");
+}
+
+TEST(trailing_byte_of_the_no_break_space_after_another_byte) {
+  std::string text = "a\xA0<b";
+  sourcemeta::core::html_escape(text);
+  EXPECT_EQ(text, "a\xA0&lt;b");
+}

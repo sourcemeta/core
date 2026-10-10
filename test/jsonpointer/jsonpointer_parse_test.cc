@@ -1277,3 +1277,69 @@ TEST(out_of_range_index_as_property_before_slash) {
   EXPECT_TRUE(pointer.at(1).is_property());
   EXPECT_EQ(pointer.at(1).to_property(), "foo");
 }
+
+// RFC 6901 Section 4 writes an array index without a leading zero, so every
+// digit from one to nine may open one
+TEST(index_opening_with_six) {
+  EXPECT_TRUE(sourcemeta::core::is_pointer("/60"));
+  const sourcemeta::core::Pointer pointer = sourcemeta::core::to_pointer("/60");
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_TRUE(pointer.at(0).is_index());
+  EXPECT_EQ(pointer.at(0).to_index(), 60);
+}
+
+TEST(index_opening_with_seven) {
+  EXPECT_TRUE(sourcemeta::core::is_pointer("/70"));
+  const sourcemeta::core::Pointer pointer = sourcemeta::core::to_pointer("/70");
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_TRUE(pointer.at(0).is_index());
+  EXPECT_EQ(pointer.at(0).to_index(), 70);
+}
+
+TEST(index_opening_with_eight) {
+  EXPECT_TRUE(sourcemeta::core::is_pointer("/80"));
+  const sourcemeta::core::Pointer pointer = sourcemeta::core::to_pointer("/80");
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_TRUE(pointer.at(0).is_index());
+  EXPECT_EQ(pointer.at(0).to_index(), 80);
+}
+
+TEST(index_opening_with_nine) {
+  EXPECT_TRUE(sourcemeta::core::is_pointer("/90"));
+  const sourcemeta::core::Pointer pointer = sourcemeta::core::to_pointer("/90");
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_TRUE(pointer.at(0).is_index());
+  EXPECT_EQ(pointer.at(0).to_index(), 90);
+}
+
+TEST(index_continuing_with_three) {
+  EXPECT_TRUE(sourcemeta::core::is_pointer("/13"));
+  const sourcemeta::core::Pointer pointer = sourcemeta::core::to_pointer("/13");
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_TRUE(pointer.at(0).is_index());
+  EXPECT_EQ(pointer.at(0).to_index(), 13);
+}
+
+TEST(index_continuing_with_four) {
+  EXPECT_TRUE(sourcemeta::core::is_pointer("/14"));
+  const sourcemeta::core::Pointer pointer = sourcemeta::core::to_pointer("/14");
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_TRUE(pointer.at(0).is_index());
+  EXPECT_EQ(pointer.at(0).to_index(), 14);
+}
+
+TEST(index_opening_with_three_and_continuing_with_four) {
+  EXPECT_TRUE(sourcemeta::core::is_pointer("/34"));
+  const sourcemeta::core::Pointer pointer = sourcemeta::core::to_pointer("/34");
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_TRUE(pointer.at(0).is_index());
+  EXPECT_EQ(pointer.at(0).to_index(), 34);
+}
+
+TEST(index_opening_with_four) {
+  EXPECT_TRUE(sourcemeta::core::is_pointer("/45"));
+  const sourcemeta::core::Pointer pointer = sourcemeta::core::to_pointer("/45");
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_TRUE(pointer.at(0).is_index());
+  EXPECT_EQ(pointer.at(0).to_index(), 45);
+}

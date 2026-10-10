@@ -1,6 +1,8 @@
 #include <sourcemeta/core/test.h>
 #include <sourcemeta/core/text.h>
 
+#include <string> // std::string
+
 TEST(lowercase_letters) {
   EXPECT_TRUE(sourcemeta::core::is_alpha('a'));
   EXPECT_TRUE(sourcemeta::core::is_alpha('m'));
@@ -41,3 +43,14 @@ TEST(string_with_punctuation) {
 }
 
 TEST(empty_string) { EXPECT_FALSE(sourcemeta::core::is_alpha("")); }
+
+// The same questions asked of values the compiler cannot fold, so the answers
+// come from the code that ships rather than from constant evaluation
+TEST(strings_at_runtime) {
+  std::string empty;
+  EXPECT_FALSE(sourcemeta::core::is_alpha(empty));
+  std::string letters{"abc"};
+  EXPECT_TRUE(sourcemeta::core::is_alpha(letters));
+  std::string mixed{"ab1"};
+  EXPECT_FALSE(sourcemeta::core::is_alpha(mixed));
+}

@@ -273,3 +273,39 @@ TEST(parse_client_authentication_decodes_a_percent_encoded_name) {
             sourcemeta::core::OAuthClientAuthenticationMethod::Public);
   EXPECT_EQ(credentials.client_id, "s6BhdRkqt3");
 }
+
+// RFC 7235 Section 2.1 separates the scheme from the credential with one or
+// more spaces, so a header of nothing but the scheme and spaces carries none,
+// and the empty credential is no Base64 of a colon-joined pair
+TEST(parse_client_authentication_of_a_basic_scheme_without_a_credential) {
+  sourcemeta::core::SecureString storage;
+  sourcemeta::core::OAuthClientCredentials credentials;
+  EXPECT_FALSE(sourcemeta::core::oauth_parse_client_authentication(
+      "Basic    ", "", storage, credentials));
+}
+
+// RFC 6749 Section 2.3.1 percent encodes each half before joining them, so a
+// half carrying a malformed escape is a malformed request
+
+TEST(parse_client_authentication_of_a_basic_identifier_with_a_bad_escape) {
+  sourcemeta::core::SecureString storage;
+  sourcemeta::core::OAuthClientCredentials credentials;
+  EXPECT_FALSE(sourcemeta::core::oauth_parse_client_authentication(
+      "Basic YSV6ejpi", "", storage, credentials));
+}
+
+TEST(parse_client_authentication_of_a_basic_secret_with_a_bad_escape) {
+  sourcemeta::core::SecureString storage;
+  sourcemeta::core::OAuthClientCredentials credentials;
+  EXPECT_FALSE(sourcemeta::core::oauth_parse_client_authentication(
+      "Basic YTpiJXp6", "", storage, credentials));
+}
+
+// RFC 6749 Appendix B encodes parameter names too, so a name carrying a
+// malformed escape fails the parse before the name is recognised
+TEST(parse_client_authentication_of_a_body_parameter_name_with_a_bad_escape) {
+  sourcemeta::core::SecureString storage;
+  sourcemeta::core::OAuthClientCredentials credentials;
+  EXPECT_FALSE(sourcemeta::core::oauth_parse_client_authentication(
+      "", "a%zz=1", storage, credentials));
+}

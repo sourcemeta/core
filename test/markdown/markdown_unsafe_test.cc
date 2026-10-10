@@ -530,3 +530,109 @@ TEST(html_inline_unquoted_attribute_value_with_a_backtick) {
       sourcemeta::core::markdown_to_html("a <span x=a`b>c"sv, false)};
   EXPECT_EQ(result, "<p>a &lt;span x=a`b&gt;c</p>\n");
 }
+
+// GFM section 4.6 start condition 1 admits whitespace after the tag name, and
+// the whitespace raw HTML allows includes the vertical tab and the form feed
+TEST(html_block_pre_opened_with_a_line_tabulation) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("<pre\vx>a</pre>\nafter", false)};
+  EXPECT_EQ(result, "<pre\vx>a</pre>\n<p>after</p>\n");
+}
+
+TEST(html_block_pre_opened_with_a_form_feed) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("<pre\fx>a</pre>\nafter", false)};
+  EXPECT_EQ(result, "<pre\fx>a</pre>\n<p>after</p>\n");
+}
+
+// The end condition of start condition 1 is a closing tag of one of its four
+// names, so a closing tag of another name leaves the block open, and one of
+// those names that is not closed by an angle bracket does too
+TEST(html_block_pre_ignores_a_closing_tag_of_another_name) {
+  const auto result{sourcemeta::core::markdown_to_html(
+      "<pre>\n</div>\n</pre>\nafter", false)};
+  EXPECT_EQ(result, "<pre>\n</div>\n</pre>\n<p>after</p>\n");
+}
+
+TEST(html_block_pre_ignores_a_closing_tag_without_an_angle_bracket) {
+  const auto result{sourcemeta::core::markdown_to_html(
+      "<pre>\n</pre x\n</pre>\nafter", false)};
+  EXPECT_EQ(result, "<pre>\n</pre x\n</pre>\n<p>after</p>\n");
+}
+
+// GFM section 6.11 reads a comment as raw HTML only when it closes, and the
+// text may neither open with an angle bracket nor be a single dash
+TEST(inline_html_comment_without_a_closing_is_not_raw_html) {
+  const auto result{sourcemeta::core::markdown_to_html("a <!--b c", false)};
+  EXPECT_EQ(result, "<p>a &lt;!--b c</p>\n");
+}
+
+TEST(inline_html_declaration_without_an_angle_bracket_is_not_raw_html) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("a <!DOCTYPE html", false)};
+  EXPECT_EQ(result, "<p>a &lt;!DOCTYPE html</p>\n");
+}
+
+// GFM section 6.11 reads an attribute name as "a letter, _, or :, followed by
+// zero or more ASCII letters, digits, _, ., :, or -"
+TEST(html_inline_attribute_name_starting_with_a_colon) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("a <b :x=\"1\">c</b>", false)};
+  EXPECT_EQ(result, "<p>a <b :x=\"1\">c</b></p>\n");
+}
+
+TEST(html_inline_attribute_name_carrying_an_underscore) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("a <b data_x=\"1\">c</b>", false)};
+  EXPECT_EQ(result, "<p>a <b data_x=\"1\">c</b></p>\n");
+}
+
+// The same section ends an unquoted attribute value at whitespace or at any of
+// ", ', =, <, > and `
+TEST(html_inline_unquoted_attribute_value_ends_at_a_single_quote) {
+  const auto result{sourcemeta::core::markdown_to_html("a <b x=y'z>c", false)};
+  EXPECT_EQ(result, "<p>a &lt;b x=y&#39;z&gt;c</p>\n");
+}
+
+TEST(html_inline_unquoted_attribute_value_ends_at_an_equals_sign) {
+  const auto result{sourcemeta::core::markdown_to_html("a <b x=y=z>c", false)};
+  EXPECT_EQ(result, "<p>a &lt;b x=y=z&gt;c</p>\n");
+}
+
+TEST(html_inline_unquoted_attribute_value_ends_at_a_line_tabulation) {
+  const auto result{sourcemeta::core::markdown_to_html("a <b x=y\vz>c", false)};
+  EXPECT_EQ(result, "<p>a <b x=y\vz>c</p>\n");
+}
+
+TEST(html_inline_unquoted_attribute_value_ends_at_a_form_feed) {
+  const auto result{sourcemeta::core::markdown_to_html("a <b x=y\fz>c", false)};
+  EXPECT_EQ(result, "<p>a <b x=y\fz>c</p>\n");
+}
+
+// The other two names of GFM section 4.6 start condition 1
+TEST(html_block_textarea) {
+  const auto result{sourcemeta::core::markdown_to_html(
+      "<textarea>\na\n</textarea>\nafter", false)};
+  EXPECT_EQ(result, "&lt;textarea>\na\n&lt;/textarea>\n<p>after</p>\n");
+}
+
+TEST(html_block_style) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("<style>\na\n</style>\nafter", false)};
+  EXPECT_EQ(result, "&lt;style>\na\n&lt;/style>\n<p>after</p>\n");
+}
+
+TEST(html_inline_unquoted_attribute_value_ends_at_a_space) {
+  const auto result{sourcemeta::core::markdown_to_html("a <b x=y z>c", false)};
+  EXPECT_EQ(result, "<p>a <b x=y z>c</p>\n");
+}
+
+TEST(html_inline_unquoted_attribute_value_ends_at_a_tabulation) {
+  const auto result{sourcemeta::core::markdown_to_html("a <b x=y\tz>c", false)};
+  EXPECT_EQ(result, "<p>a <b x=y\tz>c</p>\n");
+}
+
+TEST(html_inline_unquoted_attribute_value_ends_at_a_double_quote) {
+  const auto result{sourcemeta::core::markdown_to_html("a <b x=y\"z>c", false)};
+  EXPECT_EQ(result, "<p>a &lt;b x=y&quot;z&gt;c</p>\n");
+}

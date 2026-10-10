@@ -383,3 +383,36 @@ TEST(jws_sign_hs512_rejects_an_ec_key) {
                                           "eyJhbGciOiJIUzUxMiJ9.e30",
                                           key.value()));
 }
+
+// An asymmetric algorithm signs with the platform key the JWK was parsed into,
+// and a symmetric key has none, so there is nothing to sign with
+
+TEST(jws_sign_rs256_with_a_symmetric_key) {
+  const auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(OCT_JWK_32_BYTES))};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_FALSE(sourcemeta::core::jws_sign(sourcemeta::core::JWSAlgorithm::RS256,
+                                          "eyJhbGciOiJSUzI1NiJ9.e30",
+                                          key.value())
+                   .has_value());
+}
+
+TEST(jws_sign_ps256_with_a_symmetric_key) {
+  const auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(OCT_JWK_32_BYTES))};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_FALSE(sourcemeta::core::jws_sign(sourcemeta::core::JWSAlgorithm::PS256,
+                                          "eyJhbGciOiJQUzI1NiJ9.e30",
+                                          key.value())
+                   .has_value());
+}
+
+TEST(jws_sign_eddsa_with_a_symmetric_key) {
+  const auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(OCT_JWK_32_BYTES))};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_FALSE(sourcemeta::core::jws_sign(sourcemeta::core::JWSAlgorithm::EdDSA,
+                                          "eyJhbGciOiJFZERTQSJ9.e30",
+                                          key.value())
+                   .has_value());
+}

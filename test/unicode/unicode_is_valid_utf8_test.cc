@@ -60,3 +60,22 @@ TEST(a_sequence_cut_short_by_the_end_of_the_input) {
 TEST(an_incomplete_sequence_after_a_valid_one) {
   EXPECT_FALSE(sourcemeta::core::is_valid_utf8("\xC3\xA9\xC3"));
 }
+
+// RFC 3629 Section 4 narrows the byte after specific lead bytes, so a byte
+// past the end of each of those narrowed runs is no encoding
+
+TEST(three_byte_sequence_with_a_second_byte_past_the_narrowed_run) {
+  EXPECT_FALSE(sourcemeta::core::is_valid_utf8("\xe0\xc0\x80"));
+}
+
+TEST(three_byte_sequence_with_a_second_byte_before_the_narrowed_run) {
+  EXPECT_FALSE(sourcemeta::core::is_valid_utf8("\xed\x7f\x80"));
+}
+
+TEST(four_byte_sequence_with_a_second_byte_past_the_narrowed_run) {
+  EXPECT_FALSE(sourcemeta::core::is_valid_utf8("\xf0\xc0\x80\x80"));
+}
+
+TEST(four_byte_sequence_with_a_second_byte_before_the_narrowed_run) {
+  EXPECT_FALSE(sourcemeta::core::is_valid_utf8("\xf4\x7f\x80\x80"));
+}

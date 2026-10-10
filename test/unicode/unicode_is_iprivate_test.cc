@@ -1,6 +1,8 @@
 #include <sourcemeta/core/test.h>
 #include <sourcemeta/core/unicode.h>
 
+#include <vector> // std::vector
+
 TEST(ascii_letter_excluded) {
   EXPECT_FALSE(sourcemeta::core::is_iprivate(U'A'));
 }
@@ -67,3 +69,12 @@ TEST(latin_extended_excluded) {
 }
 
 TEST(han_excluded) { EXPECT_FALSE(sourcemeta::core::is_iprivate(0x4E2D)); }
+
+// The last plane of private use ends at U+10FFFD, so the two noncharacters
+// past it are not private use. The value is built at runtime so the answer
+// comes from the code that ships rather than from constant evaluation
+TEST(past_the_last_plane_of_private_use_excluded) {
+  std::vector<char32_t> codepoints{0x10FFFE, 0x10FFFF};
+  EXPECT_FALSE(sourcemeta::core::is_iprivate(codepoints.at(0)));
+  EXPECT_FALSE(sourcemeta::core::is_iprivate(codepoints.at(1)));
+}

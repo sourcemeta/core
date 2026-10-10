@@ -288,3 +288,45 @@ TEST(container_discards_value_with_embedded_nul) {
   sourcemeta::core::http_parse_headers(input, headers);
   EXPECT_TRUE(headers.empty());
 }
+
+// RFC 9112 Section 5.2 reads a line opening with whitespace as a continuation
+// of the field value before it, reported with no name of its own. A
+// continuation of nothing but whitespace carries no value at all
+TEST(callback_continuation_of_only_whitespace) {
+  const auto result{collect("HTTP/1.1 200 OK\r\nServer: test\r\n \t \r\n\r\n")};
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at(0).first, "Server");
+  EXPECT_EQ(result.at(0).second, "test");
+  EXPECT_EQ(result.at(1).first, "");
+  EXPECT_EQ(result.at(1).second, "");
+}
+
+// A continuation is trimmed at both ends, the whitespace of each being the
+// space and the tabulation of RFC 9110 Section 5.6.3
+TEST(callback_continuation_with_trailing_whitespace) {
+  const auto result{
+      collect("HTTP/1.1 200 OK\r\nServer: test\r\n  more \t\r\n\r\n")};
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at(1).first, "");
+  EXPECT_EQ(result.at(1).second, "more");
+}
+
+// RFC 9112 Section 5.1 allows no whitespace between the field name and the
+// colon, which has led to security problems in the past, so the line goes
+TEST(callback_field_name_ending_in_a_tabulation) {
+  const auto result{
+      collect("HTTP/1.1 200 OK\r\nServer\t: test\r\nDate: now\r\n\r\n")};
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_EQ(result.at(0).first, "Date");
+}
+
+// RFC 9110 Section 5.5 has a recipient reject or replace a carriage return, a
+// line feed or a null inside a field, and a name carrying one is dropped
+TEST(callback_field_name_carrying_a_null) {
+  const std::string input{std::string{"HTTP/1.1 200 OK\r\nSer"} +
+                          std::string(1, '\0') +
+                          std::string{"ver: test\r\nDate: now\r\n\r\n"}};
+  const auto result{collect(input)};
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_EQ(result.at(0).first, "Date");
+}

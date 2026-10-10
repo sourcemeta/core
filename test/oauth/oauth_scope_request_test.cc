@@ -186,3 +186,11 @@ TEST(unconstrained_request_against_non_object_claims) {
   EXPECT_EQ(decide("null", "{}"),
             sourcemeta::core::OAuthScopeDecision::Refused);
 }
+
+// RFC 9068 Section 2.2.3 carries the granted scope as one string of scope
+// tokens, so a request that constrains no member of it still needs that string
+// to be there and to be a string
+TEST(scope_request_without_a_constraint_and_a_granted_scope_of_another_type) {
+  EXPECT_EQ(decide(R"JSON({ "scope": [ "read" ] })JSON", R"JSON({})JSON"),
+            sourcemeta::core::OAuthScopeDecision::Refused);
+}

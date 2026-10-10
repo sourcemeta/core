@@ -437,3 +437,229 @@ TEST(jsonpath_evaluate_multibyte_shorthand) {
   EXPECT_EQ(nodes.at(0).value->to_integer(), 1);
   EXPECT_EQ(sourcemeta::core::to_string(nodes.at(0).location), "/a\xc3\xa9");
 }
+
+// RFC 9535 Section 2.3 selects nothing when the selector does not match the
+// kind of value it is applied to, and Section 2.3.3 bounds an index to the
+// array it indexes
+
+TEST(jsonpath_evaluate_index_past_the_end) {
+  const auto document{sourcemeta::core::parse_json(R"JSON([ 1, 2 ])JSON")};
+  const sourcemeta::core::JSONPath path{"$[9]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 0);
+}
+
+TEST(jsonpath_evaluate_negative_index_before_the_start) {
+  const auto document{sourcemeta::core::parse_json(R"JSON([ 1, 2 ])JSON")};
+  const sourcemeta::core::JSONPath path{"$[-9]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 0);
+}
+
+TEST(jsonpath_evaluate_wildcard_on_scalar) {
+  const auto document{sourcemeta::core::parse_json("1")};
+  const sourcemeta::core::JSONPath path{"$[*]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 0);
+}
+
+TEST(jsonpath_evaluate_slice_on_object) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({ "a": 1 })JSON")};
+  const sourcemeta::core::JSONPath path{"$[0:1]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 0);
+}
+
+TEST(jsonpath_evaluate_negative_step_slice_on_object) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({ "a": 1 })JSON")};
+  const sourcemeta::core::JSONPath path{"$[::-1]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 0);
+}
+
+TEST(jsonpath_evaluate_filter_on_scalar) {
+  const auto document{sourcemeta::core::parse_json("1")};
+  const sourcemeta::core::JSONPath path{"$[?@.a]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 0);
+}
+
+TEST(jsonpath_evaluate_name_on_scalar) {
+  const auto document{sourcemeta::core::parse_json("1")};
+  const sourcemeta::core::JSONPath path{"$.a"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 0);
+}
+
+TEST(jsonpath_evaluate_deep_index_on_object) {
+  const auto document{deeply_nested_array(
+      sourcemeta::core::parse_json(R"JSON({ "0": 1 })JSON"))};
+  const sourcemeta::core::JSONPath path{"$..[0]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 300);
+}
+
+TEST(jsonpath_evaluate_deep_index_past_the_end) {
+  const auto document{
+      deeply_nested_array(sourcemeta::core::parse_json(R"JSON([ 1 ])JSON"))};
+  const sourcemeta::core::JSONPath path{"$..[9]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 0);
+}
+
+TEST(jsonpath_evaluate_deep_negative_index_before_the_start) {
+  const auto document{
+      deeply_nested_array(sourcemeta::core::parse_json(R"JSON([ 1 ])JSON"))};
+  const sourcemeta::core::JSONPath path{"$..[-9]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 0);
+}
+
+TEST(jsonpath_evaluate_deep_name_on_scalar) {
+  const auto document{deeply_nested_array(sourcemeta::core::parse_json("1"))};
+  const sourcemeta::core::JSONPath path{"$..a"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 0);
+}
+
+// A query inside a filter walks the document on its own, so a selector that
+// does not match what it reaches selects nothing there either
+
+TEST(jsonpath_evaluate_filter_with_an_index_on_an_object) {
+  const auto document{
+      sourcemeta::core::parse_json(R"JSON([ { "0": 1 }, [ 1 ] ])JSON")};
+  const sourcemeta::core::JSONPath path{"$[?@[0]]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 1);
+  EXPECT_TRUE(nodes.at(0).value->is_array());
+}
+
+TEST(jsonpath_evaluate_filter_with_an_index_past_the_end) {
+  const auto document{sourcemeta::core::parse_json(R"JSON([ [ 1 ] ])JSON")};
+  const sourcemeta::core::JSONPath path{"$[?@[9]]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 0);
+}
+
+TEST(jsonpath_evaluate_filter_with_a_negative_index_before_the_start) {
+  const auto document{sourcemeta::core::parse_json(R"JSON([ [ 1 ] ])JSON")};
+  const sourcemeta::core::JSONPath path{"$[?@[-9]]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 0);
+}
+
+TEST(jsonpath_evaluate_filter_with_a_wildcard_on_a_scalar) {
+  const auto document{sourcemeta::core::parse_json(R"JSON([ 1, [ 2 ] ])JSON")};
+  const sourcemeta::core::JSONPath path{"$[?@[*]]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 1);
+  EXPECT_TRUE(nodes.at(0).value->is_array());
+}
+
+TEST(jsonpath_evaluate_filter_with_a_slice_on_an_object) {
+  const auto document{
+      sourcemeta::core::parse_json(R"JSON([ { "a": 1 }, [ 2 ] ])JSON")};
+  const sourcemeta::core::JSONPath path{"$[?@[0:1]]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 1);
+  EXPECT_TRUE(nodes.at(0).value->is_array());
+}
+
+TEST(jsonpath_evaluate_filter_with_a_descendant_query) {
+  const auto document{
+      sourcemeta::core::parse_json(R"JSON([ { "a": { "b": 1 } }, 2 ])JSON")};
+  const sourcemeta::core::JSONPath path{"$[?@..b]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 1);
+  EXPECT_TRUE(nodes.at(0).value->is_object());
+}
+
+TEST(jsonpath_evaluate_filter_with_a_name_on_a_scalar) {
+  const auto document{
+      sourcemeta::core::parse_json(R"JSON([ 1, { "a": 2 } ])JSON")};
+  const sourcemeta::core::JSONPath path{"$[?@.a]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 1);
+  EXPECT_TRUE(nodes.at(0).value->is_object());
+}
+
+// A query inside a filter continues on an iterative walk of its own once it
+// runs past the recursion limit, which is a second reading of every selector
+
+TEST(jsonpath_evaluate_deep_filter_with_a_descendant_name) {
+  auto document{sourcemeta::core::JSON::make_array()};
+  document.push_back(deeply_nested_array(
+      sourcemeta::core::parse_json(R"JSON({ "a": 1 })JSON")));
+  document.push_back(deeply_nested_array(sourcemeta::core::parse_json("1")));
+  const sourcemeta::core::JSONPath path{"$[?@..a]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 1);
+}
+
+TEST(jsonpath_evaluate_deep_filter_with_a_descendant_index) {
+  auto document{sourcemeta::core::JSON::make_array()};
+  document.push_back(
+      deeply_nested_array(sourcemeta::core::parse_json(R"JSON([ 1 ])JSON")));
+  document.push_back(deeply_nested_array(
+      sourcemeta::core::parse_json(R"JSON({ "0": 1 })JSON")));
+  const sourcemeta::core::JSONPath path{"$[?@..[0]]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 2);
+}
+
+TEST(jsonpath_evaluate_deep_filter_with_a_descendant_index_past_the_end) {
+  auto document{sourcemeta::core::JSON::make_array()};
+  document.push_back(
+      deeply_nested_array(sourcemeta::core::parse_json(R"JSON([ 1 ])JSON")));
+  const sourcemeta::core::JSONPath path{"$[?@..[9]]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 0);
+}
+
+TEST(jsonpath_evaluate_deep_filter_with_a_descendant_negative_index) {
+  auto document{sourcemeta::core::JSON::make_array()};
+  document.push_back(
+      deeply_nested_array(sourcemeta::core::parse_json(R"JSON([ 1 ])JSON")));
+  const sourcemeta::core::JSONPath path{"$[?@..[-1]]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 1);
+}
+
+TEST(
+    jsonpath_evaluate_deep_filter_with_a_descendant_negative_index_before_the_start) {
+  auto document{sourcemeta::core::JSON::make_array()};
+  document.push_back(
+      deeply_nested_array(sourcemeta::core::parse_json(R"JSON([ 1 ])JSON")));
+  const sourcemeta::core::JSONPath path{"$[?@..[-9]]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 0);
+}
+
+TEST(jsonpath_evaluate_deep_filter_with_a_descendant_wildcard) {
+  auto document{sourcemeta::core::JSON::make_array()};
+  document.push_back(deeply_nested_array(
+      sourcemeta::core::parse_json(R"JSON({ "a": 1 })JSON")));
+  const sourcemeta::core::JSONPath path{"$[?@..[*]]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 1);
+}
+
+TEST(jsonpath_evaluate_deep_filter_with_a_descendant_slice) {
+  auto document{sourcemeta::core::JSON::make_array()};
+  document.push_back(deeply_nested_array(
+      sourcemeta::core::parse_json(R"JSON({ "a": 1 })JSON")));
+  const sourcemeta::core::JSONPath path{"$[?@..[0:1]]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 1);
+}
+
+TEST(jsonpath_evaluate_deep_filter_with_a_descendant_filter) {
+  auto document{sourcemeta::core::JSON::make_array()};
+  document.push_back(deeply_nested_array(
+      sourcemeta::core::parse_json(R"JSON([ { "a": 1 } ])JSON")));
+  document.push_back(deeply_nested_array(
+      sourcemeta::core::parse_json(R"JSON({ "b": { "a": 1 } })JSON")));
+  const sourcemeta::core::JSONPath path{"$[?@..[?@.a]]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 2);
+}

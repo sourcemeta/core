@@ -405,3 +405,40 @@ TEST(trailing_content_leaves_output_untouched) {
     EXPECT_EQ(output.to_string(), "sentinel");
   }
 }
+
+// An empty input has no buffer of its own to point at, so the cursor starts on
+// a literal instead, and the document it would hold is missing rather than
+// malformed
+TEST(empty_input_with_a_callback) {
+  sourcemeta::core::JSON result{nullptr};
+  try {
+    sourcemeta::core::parse_json(
+        "", result,
+        [](const sourcemeta::core::JSON::ParsePhase,
+           const sourcemeta::core::JSON::Type, const std::uint64_t,
+           const std::uint64_t, const sourcemeta::core::JSON::ParseContext,
+           const std::size_t, const sourcemeta::core::JSON::String &) {});
+    FAIL();
+  } catch (const sourcemeta::core::JSONParseError &error) {
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 1);
+  }
+}
+
+TEST(empty_input_with_a_callback_and_a_position) {
+  sourcemeta::core::JSON result{nullptr};
+  std::uint64_t line{1};
+  std::uint64_t column{0};
+  try {
+    sourcemeta::core::parse_json(
+        "", line, column, result,
+        [](const sourcemeta::core::JSON::ParsePhase,
+           const sourcemeta::core::JSON::Type, const std::uint64_t,
+           const std::uint64_t, const sourcemeta::core::JSON::ParseContext,
+           const std::size_t, const sourcemeta::core::JSON::String &) {});
+    FAIL();
+  } catch (const sourcemeta::core::JSONParseError &error) {
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 1);
+  }
+}

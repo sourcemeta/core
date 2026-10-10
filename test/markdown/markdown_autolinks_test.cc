@@ -592,3 +592,132 @@ TEST(autolink_trailing_semicolon_without_an_entity_is_kept) {
   const auto result{sourcemeta::core::markdown_to_html("See www.a.b; ok")};
   EXPECT_EQ(result, "<p>See <a href=\"http://www.a.b;\">www.a.b;</a> ok</p>\n");
 }
+
+// GFM section 6.9 admits an extended autolink at the beginning of a line or
+// after whitespace or one of *, _, ~ and (. An address that starts a text node
+// has no character of its own to the left, so the boundary is whatever node
+// precedes it. Strong emphasis ends on one of those characters, so an address
+// behind it is an autolink
+TEST(extended_autolink_email_after_strong_emphasis) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("**bold**user@example.com")};
+  EXPECT_EQ(result, "<p><strong>bold</strong>"
+                    "<a href=\"mailto:user@example.com\">user@example.com</a>"
+                    "</p>\n");
+}
+
+TEST(extended_autolink_email_after_strikethrough) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("~~gone~~user@example.com")};
+  EXPECT_EQ(result, "<p><del>gone</del>"
+                    "<a href=\"mailto:user@example.com\">user@example.com</a>"
+                    "</p>\n");
+}
+
+TEST(extended_autolink_email_after_a_soft_break) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("See\nuser@example.com")};
+  EXPECT_EQ(result, "<p>See\n"
+                    "<a href=\"mailto:user@example.com\">user@example.com</a>"
+                    "</p>\n");
+}
+
+TEST(extended_autolink_email_after_a_hard_break) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("See  \nuser@example.com")};
+  EXPECT_EQ(result, "<p>See<br />\n"
+                    "<a href=\"mailto:user@example.com\">user@example.com</a>"
+                    "</p>\n");
+}
+
+// A node that ends on none of those characters leaves the address without the
+// boundary the section asks for, so it stays plain text
+TEST(extended_autolink_email_after_raw_html_is_not_autolink) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("<span>user@example.com")};
+  EXPECT_EQ(result, "<p><!-- raw HTML omitted -->user@example.com</p>\n");
+}
+
+TEST(extended_autolink_email_after_a_link_is_not_autolink) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("[one](/a)user@example.com")};
+  EXPECT_EQ(result, "<p><a href=\"/a\">one</a>user@example.com</p>\n");
+}
+
+TEST(extended_autolink_email_after_an_image_is_not_autolink) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("![one](/a)user@example.com")};
+  EXPECT_EQ(result, "<p><img src=\"/a\" alt=\"one\" />user@example.com</p>\n");
+}
+
+TEST(extended_autolink_email_after_a_code_span_is_not_autolink) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("`one`user@example.com")};
+  EXPECT_EQ(result, "<p><code>one</code>user@example.com</p>\n");
+}
+
+TEST(extended_autolink_email_after_a_footnote_reference_is_not_autolink) {
+  const auto result{sourcemeta::core::markdown_to_html(
+      "Note[^1]user@example.com\n\n[^1]: Text")};
+  EXPECT_EQ(
+      result,
+      "<p>Note<sup class=\"footnote-ref\"><a href=\"#fn-1\" "
+      "id=\"fnref-1\" data-footnote-ref>1</a></sup>user@example.com</p>\n"
+      "<section class=\"footnotes\" data-footnotes>\n<ol>\n"
+      "<li id=\"fn-1\">\n<p>Text <a href=\"#fnref-1\" "
+      "class=\"footnote-backref\" data-footnote-backref "
+      "data-footnote-backref-idx=\"1\" aria-label=\"Back to reference 1\">"
+      "\xe2\x86\xa9</a></p>\n</li>\n</ol>\n</section>\n");
+}
+
+// A backslash escape becomes a text node of its own, so the node before the
+// address is text rather than a delimiter node, and the last character it
+// carries decides. An escaped asterisk is one of the characters GFM section
+// 6.9 admits
+TEST(extended_autolink_email_after_an_escaped_asterisk) {
+  const auto result{sourcemeta::core::markdown_to_html("\\*user@example.com")};
+  EXPECT_EQ(result, "<p>*<a href=\"mailto:user@example.com\">"
+                    "user@example.com</a></p>\n");
+}
+
+TEST(extended_autolink_email_after_an_escaped_exclamation_is_not_autolink) {
+  const auto result{sourcemeta::core::markdown_to_html("\\!user@example.com")};
+  EXPECT_EQ(result, "<p>!user@example.com</p>\n");
+}
+
+// GFM section 6.5 keeps an angle bracket out of the URI of an autolink, so the
+// one inside closes nothing and the whole run stays text
+TEST(angle_bracket_autolink_with_an_angle_bracket_in_the_uri) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("<http://example.com/a<b>")};
+  EXPECT_EQ(result,
+            "<p>&lt;http://example.com/a<!-- raw HTML omitted --></p>\n");
+}
+
+// An angle bracket cannot be part of an extended autolink, so it ends the one
+// that runs into it
+TEST(extended_autolink_ends_at_an_angle_bracket) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("See www.example.com<1 ok")};
+  EXPECT_EQ(result, "<p>See <a href=\"http://www.example.com\">"
+                    "www.example.com</a>&lt;1 ok</p>\n");
+}
+
+// GFM section 6.9 lists the underscore among the trailing punctuation, which a
+// protocol autolink reaches since the rule about the last two domain segments
+// only governs the ones written without a protocol
+TEST(extended_autolink_protocol_with_a_trailing_underscore_is_trimmed) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("See http://example.com/a_ ok")};
+  EXPECT_EQ(result, "<p>See <a href=\"http://example.com/a\">"
+                    "http://example.com/a</a>_ ok</p>\n");
+}
+
+// The semicolon only leaves an autolink together with an entity reference
+// lookalike, which needs at least one alphanumeric character after its
+// ampersand, so an ampersand right before the semicolon keeps both
+TEST(autolink_trailing_semicolon_after_a_bare_ampersand_is_kept) {
+  const auto result{sourcemeta::core::markdown_to_html("See www.a.b/&; ok")};
+  EXPECT_EQ(result, "<p>See <a href=\"http://www.a.b/&amp;;\">"
+                    "www.a.b/&amp;;</a> ok</p>\n");
+}

@@ -575,3 +575,60 @@ TEST(list_object_with_non_string_index) {
   ])");
   EXPECT_FALSE(sourcemeta::core::jsonld_is_expanded(document));
 }
+
+// JSON-LD 1.1 Section 9 writes every member of the expanded array as a node
+// object, so an element of another type is not expanded form
+TEST(array_element_that_is_not_an_object) {
+  const auto document = sourcemeta::core::parse_json("[ 1 ]");
+  EXPECT_FALSE(sourcemeta::core::jsonld_is_expanded(document));
+}
+
+// A term is an absolute IRI or a blank node identifier, neither of which the
+// empty string is
+TEST(node_object_with_an_empty_key) {
+  const auto document = sourcemeta::core::parse_json(R"([
+    { "": [ { "@value": 1 } ] }
+  ])");
+  EXPECT_FALSE(sourcemeta::core::jsonld_is_expanded(document));
+}
+
+// Section 9 writes the index of a node object as a string
+TEST(node_object_with_an_index) {
+  const auto document = sourcemeta::core::parse_json(R"([
+    { "@index": "first", "http://example.com/p": [ { "@value": 1 } ] }
+  ])");
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(document));
+}
+
+TEST(node_object_with_an_index_of_another_type) {
+  const auto document = sourcemeta::core::parse_json(R"([
+    { "@index": 1, "http://example.com/p": [ { "@value": 1 } ] }
+  ])");
+  EXPECT_FALSE(sourcemeta::core::jsonld_is_expanded(document));
+}
+
+// A value object carries the value itself, so one that names only its type is
+// not expanded form either
+TEST(value_object_without_a_value) {
+  const auto document = sourcemeta::core::parse_json(R"([
+    { "http://example.com/p": [ { "@type": "http://example.com/t" } ] }
+  ])");
+  EXPECT_FALSE(sourcemeta::core::jsonld_is_expanded(document));
+}
+
+// Section 9 lets a list or set object carry an index beside its keyword, which
+// is a string there too
+
+TEST(list_object_with_an_index) {
+  const auto document = sourcemeta::core::parse_json(R"([
+    { "http://example.com/p": [ { "@list": [], "@index": "first" } ] }
+  ])");
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(document));
+}
+
+TEST(set_object_with_an_index_of_another_type) {
+  const auto document = sourcemeta::core::parse_json(R"([
+    { "http://example.com/p": [ { "@set": [], "@index": 1 } ] }
+  ])");
+  EXPECT_FALSE(sourcemeta::core::jsonld_is_expanded(document));
+}

@@ -732,3 +732,20 @@ TEST(a_single_character_subtype_is_not_a_wildcard) {
                                                 {"text/html"}),
             "text/html");
 }
+
+// RFC 9110 Section 12.5.1 lets a header name the same media range twice, and
+// the weight a candidate is matched at is the highest of those it matches, so
+// the order the two are written in does not decide it
+TEST(repeated_media_range_with_a_higher_weight_second) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept(
+                "text/html;q=0.2, text/html;q=0.8, application/json;q=0.5",
+                {"application/json", "text/html"}),
+            "text/html");
+}
+
+TEST(repeated_media_range_with_a_higher_weight_first) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept(
+                "text/html;q=0.8, text/html;q=0.2, application/json;q=0.5",
+                {"application/json", "text/html"}),
+            "text/html");
+}

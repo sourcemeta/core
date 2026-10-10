@@ -127,3 +127,12 @@ TEST(entity_seven_decimal_digits_and_six_hexadecimal_digits) {
       sourcemeta::core::markdown_to_html("&#0000065; &#x000041;")};
   EXPECT_EQ(result, "<p>A A</p>\n");
 }
+
+// Two entity references in a row decode into the string store rather than into
+// the input, and the store hands out adjacent runs, so the two literals look
+// like one contiguous view without being part of the document content. Merging
+// them by extending the first over the second is only sound inside the content
+TEST(two_adjacent_entities_merge_into_one_text_node) {
+  const auto result{sourcemeta::core::markdown_to_html("&copy;&copy;")};
+  EXPECT_EQ(result, "<p>\xc2\xa9\xc2\xa9</p>\n");
+}

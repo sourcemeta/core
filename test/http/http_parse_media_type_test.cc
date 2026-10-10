@@ -295,3 +295,10 @@ TEST(invalid_parameter_without_a_separator) {
   EXPECT_FALSE(sourcemeta::core::http_parse_media_type("text/plain; a=1 b=2")
                    .has_value());
 }
+
+// RFC 9110 Section 5.6.6 writes every parameter behind a semicolon, so a
+// second one that only whitespace separates from the first is no media type
+TEST(invalid_second_parameter_without_a_semicolon) {
+  EXPECT_FALSE(
+      sourcemeta::core::http_parse_media_type("text/html;a=1 b=2").has_value());
+}

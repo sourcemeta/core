@@ -673,3 +673,20 @@ TEST(a_value_that_already_carries_an_index) {
 
   EXPECT_EQ(sourcemeta::core::jsonld_compact(input, context, ""), expected);
 }
+
+// The compacted document carries the context it was compacted against, and an
+// empty one says nothing worth carrying
+TEST(compact_against_an_empty_array_context_carries_no_context) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    { "@id": "http://example.org/a" }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json("[]");
+
+  const auto result{sourcemeta::core::jsonld_compact(
+      input, context, "http://example.org/", {},
+      sourcemeta::core::JSONLDVersion::V1_1, true, false)};
+
+  EXPECT_FALSE(result.defines("@context"));
+  EXPECT_EQ(result.at("@id").to_string(), "http://example.org/a");
+}

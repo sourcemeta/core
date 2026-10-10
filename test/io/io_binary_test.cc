@@ -5,7 +5,7 @@
 #include <cstddef> // std::byte
 #include <cstdint> // std::uint8_t, std::uint16_t, std::uint32_t, std::uint64_t
 #include <filesystem>   // std::filesystem
-#include <fstream>      // std::ofstream
+#include <fstream>      // std::ifstream, std::ofstream
 #include <ios>          // std::ios::binary
 #include <istream>      // std::istream
 #include <ostream>      // std::ostream
@@ -531,4 +531,15 @@ TEST_F(IOBinaryTest, get_zero_bytes_from_an_exhausted_view_reads_nothing) {
   reader.get_bytes(destination.data(), 0);
   EXPECT_EQ(reader.position(), view.size());
   EXPECT_FALSE(reader.has_more_data());
+}
+
+// A file stream holds nothing in its buffer until something is read from it,
+// so what is left to read is settled by peeking rather than by what the
+// buffer already has
+TEST(has_more_data_on_a_file_stream_before_any_read) {
+  std::ifstream input{std::filesystem::path{STUBS_DIRECTORY} / "test.txt",
+                      std::ios::binary};
+  EXPECT_TRUE(input.good());
+  sourcemeta::core::BinaryReader reader{input};
+  EXPECT_TRUE(reader.has_more_data());
 }

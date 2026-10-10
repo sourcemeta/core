@@ -124,3 +124,12 @@ TEST(noop_shortcuts_are_equal) {
   EXPECT_TRUE(right.has_value());
   EXPECT_TRUE(left.value() == right.value());
 }
+
+// Exhausting a matching resource counts as finding nothing to rewrite, the
+// same way matching counts it as finding nothing to match
+TEST(catastrophic_backtracking_rewrites_nothing) {
+  const auto regex{sourcemeta::core::to_regex("(a+)+$")};
+  EXPECT_TRUE(regex.has_value());
+  const std::string value{std::string(64, 'a') + "!"};
+  EXPECT_EQ(sourcemeta::core::replace_all(regex.value(), value, "#"), value);
+}

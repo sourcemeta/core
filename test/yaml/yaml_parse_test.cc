@@ -3652,3 +3652,204 @@ TEST(yaml_or_json_short_yaml_extension_with_a_callback) {
   EXPECT_EQ(result, expected);
   EXPECT_TRUE(visits > 0);
 }
+
+// YAML 1.2.2 Section 5.4 admits a carriage return and line feed pair, and a
+// lone carriage return, as line breaks, so every construct has to read the
+// same when its lines end that way
+TEST(crlf_object) {
+  const std::string input{"hello: world\r\nfoo: 1\r\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "hello": "world", "foo": 1
+  })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(crlf_comment) {
+  const std::string input{"hello: world # a comment\r\nfoo: 1\r\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "hello": "world", "foo": 1
+  })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(crlf_sequence) {
+  const std::string input{"- 1\r\n- 2\r\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const auto expected{sourcemeta::core::parse_json("[ 1, 2 ]")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(crlf_flow_sequence) {
+  const std::string input{"[1,\r\n2]"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const auto expected{sourcemeta::core::parse_json("[ 1, 2 ]")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(crlf_literal_block_scalar) {
+  const std::string input{"text: |\r\n  one\r\n  two\r\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "text": "one\ntwo\n"
+  })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(crlf_folded_block_scalar) {
+  const std::string input{"text: >\r\n  one\r\n  two\r\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "text": "one two\n"
+  })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(crlf_double_quoted_scalar_over_two_lines) {
+  const std::string input{"text: \"one\r\n  two\"\r\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "text": "one two"
+  })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(crlf_plain_scalar_over_two_lines) {
+  const std::string input{"text: one\r\n  two\r\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "text": "one two"
+  })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(lone_carriage_return_ends_the_stream) {
+  const std::string input{"foo: 1\r"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const auto expected{sourcemeta::core::parse_json(R"JSON({ "foo": 1 })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(lone_carriage_return_between_two_entries) {
+  const std::string input{"foo: 1\rbar: 2"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "foo": 1, "bar": 2
+  })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+// YAML 1.2.2 Section 5.2 only strips the byte order mark of UTF-8, which takes
+// all three of its bytes, so a prefix of it is content
+TEST(first_byte_of_the_byte_order_mark_on_its_own) {
+  const std::string input{"\xEF: 1"};
+  try {
+    const auto result{sourcemeta::core::parse_yaml(input)};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid UTF-8 sequence in YAML stream");
+  }
+}
+
+TEST(first_two_bytes_of_the_byte_order_mark_on_their_own) {
+  const std::string input{"\xEF\xBB: 1"};
+  try {
+    const auto result{sourcemeta::core::parse_yaml(input)};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid UTF-8 sequence in YAML stream");
+  }
+}
+
+// A stream may stop in the middle of any construct, which is where the scans
+// that look for what closes one run out of input instead
+
+TEST(comment_at_the_end_of_the_stream) {
+  const std::string input{"foo: 1 # note"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const auto expected{sourcemeta::core::parse_json(R"JSON({ "foo": 1 })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(comment_as_the_whole_stream) {
+  const std::string input{"# note"};
+  try {
+    const auto result{sourcemeta::core::parse_yaml(input)};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Empty YAML document");
+  }
+}
+
+TEST(anchor_at_the_end_of_the_stream) {
+  const std::string input{"foo: &anchor"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const auto expected{
+      sourcemeta::core::parse_json(R"JSON({ "foo": null })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(tag_at_the_end_of_the_stream) {
+  const std::string input{"foo: !tag"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const auto expected{
+      sourcemeta::core::parse_json(R"JSON({ "foo": null })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(verbatim_tag_that_never_closes) {
+  const std::string input{"foo: !<tag"};
+  try {
+    const auto result{sourcemeta::core::parse_yaml(input)};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Unterminated verbatim tag");
+  }
+}
+
+TEST(literal_block_scalar_header_at_the_end_of_the_stream) {
+  const std::string input{"foo: |"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const auto expected{sourcemeta::core::parse_json(R"JSON({ "foo": "" })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(folded_block_scalar_header_at_the_end_of_the_stream) {
+  const std::string input{"foo: >"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const auto expected{sourcemeta::core::parse_json(R"JSON({ "foo": "" })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(block_scalar_header_with_an_indentation_indicator_at_the_end) {
+  const std::string input{"foo: |2"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const auto expected{sourcemeta::core::parse_json(R"JSON({ "foo": "" })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(mapping_value_missing_at_the_end_of_the_stream) {
+  const std::string input{"foo:"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const auto expected{
+      sourcemeta::core::parse_json(R"JSON({ "foo": null })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(only_spaces_in_the_stream) {
+  const std::string input{"   "};
+  try {
+    const auto result{sourcemeta::core::parse_yaml(input)};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Empty YAML document");
+  }
+}
+
+TEST(tabulation_after_a_scalar_at_the_end_of_the_stream) {
+  const std::string input{"foo: 1\t"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const auto expected{sourcemeta::core::parse_json(R"JSON({ "foo": 1 })JSON")};
+  EXPECT_EQ(result, expected);
+}

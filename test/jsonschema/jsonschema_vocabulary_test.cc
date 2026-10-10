@@ -8,7 +8,7 @@
 #include <sstream>       // std::ostringstream
 #include <string>        // std::string
 #include <unordered_set> // std::unordered_set
-#include <utility>       // std::pair
+#include <utility>       // std::move, std::pair
 #include <variant>       // std::variant
 #include <vector>        // std::vector
 
@@ -1154,4 +1154,21 @@ TEST(empty_with_only_a_custom_vocabulary) {
 
   EXPECT_FALSE(vocabularies.empty());
   EXPECT_EQ(vocabularies.size(), 1);
+}
+
+// Moving the set leaves the moved-from one holding an engaged but empty map of
+// unknown vocabularies, which is no unknown vocabulary at all
+TEST(has_unknown_of_a_moved_from_set) {
+  using Known = sourcemeta::core::SchemaVocabularies::Known;
+
+  sourcemeta::core::SchemaVocabularies vocabularies{
+      {Known::JSON_SCHEMA_2020_12_CORE, true}};
+  vocabularies.insert("https://example.com/custom-vocab-1", true);
+  EXPECT_TRUE(vocabularies.has_unknown());
+
+  const sourcemeta::core::SchemaVocabularies moved{std::move(vocabularies)};
+  EXPECT_TRUE(moved.has_unknown());
+  // The moved-from state is what this test is about
+  // NOLINTNEXTLINE(bugprone-use-after-move)
+  EXPECT_FALSE(vocabularies.has_unknown());
 }

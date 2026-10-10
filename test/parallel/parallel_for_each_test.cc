@@ -4,11 +4,9 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
-#include <chrono>
 #include <climits>
 #include <cstdint>
 #include <mutex>
-#include <numeric>
 #include <set>
 #include <stdexcept>
 #include <thread>
@@ -204,7 +202,8 @@ TEST(thread_creation_failure) {
 // A size above the minimum is recorded without being checked against what the
 // machine has, so the refusal comes from the allocation at creation rather than
 // from the request. The shift is only representable in a word wider than
-// thirty-two bits
+// thirty-two bits, and it names a size no address space can hold, so the
+// allocation cannot succeed however generously the kernel overcommits
 #if SIZE_MAX > UINT_MAX
 TEST(thread_creation_failure_on_a_stack_too_large_to_allocate) {
   std::vector<std::size_t> items;
@@ -227,7 +226,7 @@ TEST(thread_creation_failure_on_a_stack_too_large_to_allocate) {
             repeated.fetch_add(1);
           }
         },
-        4, 1uz << 46);
+        4, 1uz << 62);
     FAIL();
   } catch (const std::runtime_error &error) {
     EXPECT_STREQ(error.what(), "Could not create thread");

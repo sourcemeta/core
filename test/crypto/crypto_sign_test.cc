@@ -1906,3 +1906,21 @@ TEST(make_rsa_private_key_refuses_an_oversized_component) {
                    sourcemeta::core::hex_to_bytes(COEFFICIENT_HEX).value())
                    .has_value());
 }
+
+// RFC 8017 Appendix A.1.2 writes each component as a DER INTEGER, whose
+// encoding carries no leading zero octet of its own, so a component handed
+// over with one is the same key
+TEST(make_rsa_private_key_from_components_with_a_leading_zero_octet) {
+  const auto key{sourcemeta::core::make_rsa_private_key(
+      sourcemeta::core::hex_to_bytes(std::string{"00"}.append(MODULUS_HEX))
+          .value(),
+      sourcemeta::core::hex_to_bytes(EXPONENT_HEX).value(),
+      sourcemeta::core::hex_to_bytes(PRIVATE_EXPONENT_HEX).value(),
+      sourcemeta::core::hex_to_bytes(PRIME1_HEX).value(),
+      sourcemeta::core::hex_to_bytes(PRIME2_HEX).value(),
+      sourcemeta::core::hex_to_bytes(EXPONENT1_HEX).value(),
+      sourcemeta::core::hex_to_bytes(EXPONENT2_HEX).value(),
+      sourcemeta::core::hex_to_bytes(COEFFICIENT_HEX).value())};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_TRUE(key.value().type() == sourcemeta::core::PrivateKey::Type::RSA);
+}

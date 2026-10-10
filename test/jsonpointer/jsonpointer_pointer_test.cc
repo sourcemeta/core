@@ -369,3 +369,56 @@ TEST(push_back_single_token_rvalue_pointer) {
   target.push_back(sourcemeta::core::Pointer{"bar"});
   EXPECT_EQ(target, (sourcemeta::core::Pointer{"foo", "bar"}));
 }
+
+// A weak pointer may take the tokens of an owning one, which it borrows rather
+// than copies, so the hash each property already carries travels with it
+
+TEST(weak_push_back_empty_pointer) {
+  const sourcemeta::core::JSON::String foo{"foo"};
+  sourcemeta::core::WeakPointer pointer{std::cref(foo)};
+  const sourcemeta::core::Pointer other;
+  pointer.push_back(other);
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_EQ(pointer.at(0).to_property(), "foo");
+}
+
+TEST(weak_push_back_pointer_of_one_property) {
+  const sourcemeta::core::JSON::String foo{"foo"};
+  sourcemeta::core::WeakPointer pointer{std::cref(foo)};
+  const sourcemeta::core::Pointer other{"bar"};
+  pointer.push_back(other);
+  EXPECT_EQ(pointer.size(), 2);
+  EXPECT_EQ(pointer.at(1).to_property(), "bar");
+}
+
+TEST(weak_push_back_pointer_of_one_index) {
+  const sourcemeta::core::JSON::String foo{"foo"};
+  sourcemeta::core::WeakPointer pointer{std::cref(foo)};
+  const sourcemeta::core::Pointer other{2};
+  pointer.push_back(other);
+  EXPECT_EQ(pointer.size(), 2);
+  EXPECT_TRUE(pointer.at(1).is_index());
+  EXPECT_EQ(pointer.at(1).to_index(), 2);
+}
+
+TEST(weak_push_back_pointer_of_a_property_and_an_index) {
+  const sourcemeta::core::JSON::String foo{"foo"};
+  sourcemeta::core::WeakPointer pointer{std::cref(foo)};
+  const sourcemeta::core::Pointer other{"bar", 3};
+  pointer.push_back(other);
+  EXPECT_EQ(pointer.size(), 3);
+  EXPECT_EQ(pointer.at(1).to_property(), "bar");
+  EXPECT_TRUE(pointer.at(2).is_index());
+  EXPECT_EQ(pointer.at(2).to_index(), 3);
+}
+
+// The hash is taken from the first, the middle and the last token, each of
+// which contributes its own hash as a property and its value as an index
+TEST(hash_of_indexes_only) {
+  const sourcemeta::core::Pointer::Hasher hasher;
+  const sourcemeta::core::Pointer indexes_1{1, 2, 3};
+  const sourcemeta::core::Pointer indexes_2{1, 2, 3};
+  const sourcemeta::core::Pointer indexes_3{1, 2, 4};
+  EXPECT_EQ(hasher(indexes_1), hasher(indexes_2));
+  EXPECT_NE(hasher(indexes_1), hasher(indexes_3));
+}

@@ -434,3 +434,25 @@ TEST(table_header_splits_the_paragraph_with_a_padded_delimiter_row) {
   EXPECT_EQ(result, "<p>a</p>\n<table>\n<thead>\n<tr>\n<th>c</th>\n"
                     "<th>d</th>\n</tr>\n</thead>\n</table>\n");
 }
+
+// A line of a paragraph that opens with a vertical tab or a form feed is a
+// candidate for a table header, since the extension admits both within a line
+TEST(table_header_candidate_opening_with_a_line_tabulation) {
+  const auto result{sourcemeta::core::markdown_to_html("Head\n\vnot a table")};
+  EXPECT_EQ(result, "<p>Head\n\vnot a table</p>\n");
+}
+
+TEST(table_header_candidate_opening_with_a_form_feed) {
+  const auto result{sourcemeta::core::markdown_to_html("Head\n\fnot a table")};
+  EXPECT_EQ(result, "<p>Head\n\fnot a table</p>\n");
+}
+
+// Only a backslash before a pipe is an escape inside a cell, so one before any
+// other character stays where it is
+TEST(table_cell_with_a_backslash_before_another_character) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("| a |\n| - |\n| x\\y |")};
+  EXPECT_EQ(result, "<table>\n<thead>\n<tr>\n<th>a</th>\n</tr>\n</thead>\n"
+                    "<tbody>\n<tr>\n<td>x\\y</td>\n</tr>\n</tbody>\n"
+                    "</table>\n");
+}

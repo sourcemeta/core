@@ -6489,3 +6489,132 @@ TEST(to_double_keeps_a_subnormal_result) {
   EXPECT_GT(result, 0.0);
   EXPECT_LT(result, 1e-300);
 }
+
+// IEEE 754-2019 Section 5.12 spells the special values without regard to case,
+// so each letter is read either way. A word that matches up to one letter and
+// then does not is no special value, and no number either
+
+TEST(not_a_number_with_a_wrong_third_letter) {
+  try {
+    const sourcemeta::core::Decimal value{"Nax"};
+    FAIL();
+  } catch (const sourcemeta::core::DecimalParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid decimal string format");
+  }
+}
+
+TEST(signalling_not_a_number_with_a_wrong_second_letter) {
+  try {
+    const sourcemeta::core::Decimal value{"sxaN"};
+    FAIL();
+  } catch (const sourcemeta::core::DecimalParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid decimal string format");
+  }
+}
+
+TEST(signalling_not_a_number_with_a_wrong_third_letter) {
+  try {
+    const sourcemeta::core::Decimal value{"sNxN"};
+    FAIL();
+  } catch (const sourcemeta::core::DecimalParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid decimal string format");
+  }
+}
+
+TEST(signalling_not_a_number_with_a_wrong_fourth_letter) {
+  try {
+    const sourcemeta::core::Decimal value{"sNax"};
+    FAIL();
+  } catch (const sourcemeta::core::DecimalParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid decimal string format");
+  }
+}
+
+TEST(infinity_with_a_wrong_second_letter) {
+  try {
+    const sourcemeta::core::Decimal value{"Ixf"};
+    FAIL();
+  } catch (const sourcemeta::core::DecimalParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid decimal string format");
+  }
+}
+
+TEST(infinity_with_a_wrong_third_letter) {
+  try {
+    const sourcemeta::core::Decimal value{"Inx"};
+    FAIL();
+  } catch (const sourcemeta::core::DecimalParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid decimal string format");
+  }
+}
+
+TEST(infinity_with_a_wrong_fourth_letter) {
+  try {
+    const sourcemeta::core::Decimal value{"Infxnity"};
+    FAIL();
+  } catch (const sourcemeta::core::DecimalParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid decimal string format");
+  }
+}
+
+TEST(infinity_with_a_wrong_fifth_letter) {
+  try {
+    const sourcemeta::core::Decimal value{"Infixity"};
+    FAIL();
+  } catch (const sourcemeta::core::DecimalParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid decimal string format");
+  }
+}
+
+TEST(infinity_with_a_wrong_sixth_letter) {
+  try {
+    const sourcemeta::core::Decimal value{"Infinxty"};
+    FAIL();
+  } catch (const sourcemeta::core::DecimalParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid decimal string format");
+  }
+}
+
+TEST(infinity_with_a_wrong_seventh_letter) {
+  try {
+    const sourcemeta::core::Decimal value{"Infinixy"};
+    FAIL();
+  } catch (const sourcemeta::core::DecimalParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid decimal string format");
+  }
+}
+
+TEST(infinity_with_a_wrong_eighth_letter) {
+  try {
+    const sourcemeta::core::Decimal value{"Infinitx"};
+    FAIL();
+  } catch (const sourcemeta::core::DecimalParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid decimal string format");
+  }
+}
+
+TEST(not_a_number_in_lower_case) {
+  const sourcemeta::core::Decimal value{"nan"};
+  EXPECT_TRUE(value.is_nan());
+  EXPECT_FALSE(value.is_snan());
+}
+
+TEST(signalling_not_a_number_in_upper_case) {
+  const sourcemeta::core::Decimal value{"SNAN"};
+  EXPECT_TRUE(value.is_snan());
+}
+
+TEST(infinity_in_lower_case) {
+  const sourcemeta::core::Decimal value{"inf"};
+  EXPECT_TRUE(value.is_infinite());
+}
+
+TEST(infinity_spelled_out_in_upper_case) {
+  const sourcemeta::core::Decimal value{"INFINITY"};
+  EXPECT_TRUE(value.is_infinite());
+}
+
+TEST(infinity_spelled_out_in_mixed_case) {
+  const sourcemeta::core::Decimal value{"InFiNiTy"};
+  EXPECT_TRUE(value.is_infinite());
+}

@@ -382,3 +382,37 @@ TEST(serialize_challenge_empty_error_uri) {
   EXPECT_TRUE(value.has_value());
   EXPECT_EQ(value.value(), "Bearer error_uri=\"\"");
 }
+
+// The exclamation mark is the one octet RFC 6750 Section 3 admits in a scope
+// below the printable run that follows it
+TEST(serialize_challenge_scope_carrying_an_exclamation_mark) {
+  const std::array<Parameter, 1> parameters{{{"scope", "open!id"}}};
+  const auto value{sourcemeta::core::http_serialize_challenge(
+      {.scheme = "Bearer", .parameters = parameters})};
+  EXPECT_TRUE(value.has_value());
+  EXPECT_EQ(value.value(), "Bearer scope=\"open!id\"");
+}
+
+TEST(serialize_challenge_rejects_a_scope_above_the_printable_run) {
+  const std::array<Parameter, 1> parameters{{{"scope", "open\x7f"
+                                                       "id"}}};
+  EXPECT_FALSE(sourcemeta::core::http_serialize_challenge(
+                   {.scheme = "Bearer", .parameters = parameters})
+                   .has_value());
+}
+
+TEST(serialize_challenge_rejects_an_error_below_the_printable_run) {
+  const std::array<Parameter, 1> parameters{{{"error", "invalid\x1f"
+                                                       "token"}}};
+  EXPECT_FALSE(sourcemeta::core::http_serialize_challenge(
+                   {.scheme = "Bearer", .parameters = parameters})
+                   .has_value());
+}
+
+TEST(serialize_challenge_rejects_an_error_above_the_printable_run) {
+  const std::array<Parameter, 1> parameters{{{"error", "invalid\x7f"
+                                                       "token"}}};
+  EXPECT_FALSE(sourcemeta::core::http_serialize_challenge(
+                   {.scheme = "Bearer", .parameters = parameters})
+                   .has_value());
+}

@@ -112,3 +112,30 @@ TEST(to_json_1) {
   EXPECT_EQ(tracker.to_json(), expected);
   EXPECT_EQ(sourcemeta::core::to_json(tracker), expected);
 }
+
+// The parser keeps a repeated member rather than collapsing it, so the trie
+// meets the same property, and the same index below it, a second time and
+// walks into the node it already has. The position each one keeps is the last
+// one read
+TEST(track_a_repeated_property_holding_an_array) {
+  const auto *const input{R"JSON({
+  "a": [ 1 ],
+  "a": [ 2 ]
+})JSON"};
+
+  sourcemeta::core::PointerPositionTracker tracker;
+  sourcemeta::core::JSON result{nullptr};
+  sourcemeta::core::parse_json(input, result, std::ref(tracker));
+
+  EXPECT_EQ(tracker.size(), 5);
+
+  const sourcemeta::core::Pointer property{"a"};
+  EXPECT_TRUE(tracker.get(property).has_value());
+  EXPECT_EQ(tracker.get(property).value(),
+            sourcemeta::core::PointerPositionTracker::Position({3, 3, 3, 12}));
+
+  const sourcemeta::core::Pointer element{"a", 0};
+  EXPECT_TRUE(tracker.get(element).has_value());
+  EXPECT_EQ(tracker.get(element).value(),
+            sourcemeta::core::PointerPositionTracker::Position({3, 10, 3, 10}));
+}

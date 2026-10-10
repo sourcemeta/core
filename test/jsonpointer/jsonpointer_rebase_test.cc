@@ -72,3 +72,12 @@ TEST(no_prefix_match_1) {
   const sourcemeta::core::Pointer expected{"foo", "bar"};
   EXPECT_EQ(pointer.rebase(prefix, replacement), expected);
 }
+
+// A prefix longer than the pointer cannot open it, so there is nothing to
+// replace and the pointer comes back as it was
+TEST(prefix_longer_than_the_pointer) {
+  const sourcemeta::core::Pointer pointer{"foo"};
+  const sourcemeta::core::Pointer prefix{"foo", "bar"};
+  const sourcemeta::core::Pointer replacement{"baz"};
+  EXPECT_EQ(pointer.rebase(prefix, replacement), pointer);
+}

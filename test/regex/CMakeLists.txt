@@ -2,6 +2,7 @@ sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME regex
   SOURCES
     regex_matches_if_valid_test.cc
     regex_permissive_matches_ecma262_test.cc
+    regex_permissive_translate_test.cc
     regex_permissive_matches_rfc9485_test.cc
     regex_rfc9485_matches_test.cc
     regex_rfc9485_search_matches_test.cc

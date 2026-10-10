@@ -171,3 +171,50 @@ TEST(constructor_throws_on_invalid_input) {
                  "The input is not a valid JSON Web Encryption object");
   }
 }
+
+// RFC 7516 Section 7.1 writes all five parts of a compact object in base64url,
+// so a part that is not readable that way is no compact object
+
+TEST(from_rejects_an_encrypted_key_that_is_no_base64url) {
+  std::string compact{
+      sourcemeta::core::base64url_encode(R"({"alg":"dir","enc":"A128GCM"})")};
+  compact.append(".!!!!.QUFB.QUFB.QUFB");
+  EXPECT_FALSE(sourcemeta::core::JWE::from(compact).has_value());
+}
+
+TEST(from_rejects_an_initialisation_vector_that_is_no_base64url) {
+  std::string compact{
+      sourcemeta::core::base64url_encode(R"({"alg":"dir","enc":"A128GCM"})")};
+  compact.append(".QUFB.!!!!.QUFB.QUFB");
+  EXPECT_FALSE(sourcemeta::core::JWE::from(compact).has_value());
+}
+
+TEST(from_rejects_a_ciphertext_that_is_no_base64url) {
+  std::string compact{
+      sourcemeta::core::base64url_encode(R"({"alg":"dir","enc":"A128GCM"})")};
+  compact.append(".QUFB.QUFB.!!!!.QUFB");
+  EXPECT_FALSE(sourcemeta::core::JWE::from(compact).has_value());
+}
+
+TEST(from_rejects_a_tag_that_is_no_base64url) {
+  std::string compact{
+      sourcemeta::core::base64url_encode(R"({"alg":"dir","enc":"A128GCM"})")};
+  compact.append(".QUFB.QUFB.QUFB.!!!!");
+  EXPECT_FALSE(sourcemeta::core::JWE::from(compact).has_value());
+}
+
+// RFC 7515 Section 4.1.4 writes the key identifier as a string, so a header
+// that gives it another type names no key
+TEST(key_id_of_a_header_whose_value_is_not_a_string) {
+  const auto object{sourcemeta::core::JWE::from(
+      compact_from_header(R"({"alg":"dir","enc":"A128GCM","kid":1})"))};
+  EXPECT_TRUE(object.has_value());
+  EXPECT_FALSE(object.value().key_id().has_value());
+}
+
+TEST(key_id_of_a_header_that_names_none) {
+  const auto object{sourcemeta::core::JWE::from(
+      compact_from_header(R"({"alg":"dir","enc":"A128GCM"})"))};
+  EXPECT_TRUE(object.has_value());
+  EXPECT_FALSE(object.value().key_id().has_value());
+}

@@ -96,3 +96,16 @@ TEST(parent_is_a_file) {
     FAIL();
   }
 }
+
+// The name is handed to the platform whole, so a prefix past what a path may
+// hold is refused there rather than silently shortened
+TEST(prefix_too_long_for_a_path) {
+  const auto parent{std::filesystem::path{BUILD_DIRECTORY}};
+  const std::string prefix{"." + std::string(5000, 'a') + "-"};
+  try {
+    const sourcemeta::core::TemporaryDirectory temporary{parent, prefix};
+    FAIL();
+  } catch (const std::filesystem::filesystem_error &error) {
+    EXPECT_EQ(error.path1(), parent);
+  }
+}

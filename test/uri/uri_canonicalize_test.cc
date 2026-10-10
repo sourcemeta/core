@@ -571,3 +571,47 @@ TEST(path_setter_decodes_percent_encoded_ascii_unreserved) {
   uri.canonicalize();
   EXPECT_EQ(uri.recompose(), "https://example.com/A");
 }
+
+// RFC 3987 Section 3.2 decodes a percent-encoded character into an IRI only
+// when the whole of it is there and spells a character the IRI admits
+
+TEST(iri_leaves_a_lead_byte_whose_continuation_is_missing) {
+  auto uri{sourcemeta::core::URI::from_iri("https://example.com/%C3")};
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "https://example.com/%C3");
+}
+
+TEST(iri_leaves_a_lead_byte_followed_by_a_byte_that_is_no_continuation) {
+  auto uri{sourcemeta::core::URI::from_iri("https://example.com/%C3%41")};
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "https://example.com/%C3A");
+}
+
+TEST(iri_leaves_a_surrogate_written_as_three_bytes) {
+  auto uri{sourcemeta::core::URI::from_iri("https://example.com/%ED%A0%80")};
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "https://example.com/%ED%A0%80");
+}
+
+TEST(iri_leaves_an_overlong_encoding) {
+  auto uri{sourcemeta::core::URI::from_iri("https://example.com/%E0%80%80")};
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "https://example.com/%E0%80%80");
+}
+
+// RFC 3986 Section 3.2.3 reads the default port from the scheme, so a port
+// with no scheme to compare it against is kept as it is
+TEST(port_without_a_scheme_is_kept) {
+  sourcemeta::core::URI uri{"//example.com:443/foo"};
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "//example.com:443/foo");
+}
+
+// A percent-encoded reserved character survives the normalisation that decodes
+// the unreserved ones, so it reaches the character reading as a triplet that is
+// no continuation byte
+TEST(iri_leaves_a_lead_byte_followed_by_an_encoded_reserved_character) {
+  auto uri{sourcemeta::core::URI::from_iri("https://example.com/%C3%3A")};
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "https://example.com/%C3%3A");
+}

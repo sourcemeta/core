@@ -114,3 +114,11 @@ TEST(strikethrough_with_single_tilde_inside_double_tildes) {
   const auto result{sourcemeta::core::markdown_to_html("~~a~b~~")};
   EXPECT_EQ(result, "<p><del>a~b</del></p>\n");
 }
+
+// A run of tildes with punctuation on both sides and no whitespace before it
+// is both left and right flanking, which the clauses of GFM section 6.5 reach
+// only through the punctuation before and after it
+TEST(strikethrough_run_between_punctuation_on_both_sides) {
+  const auto result{sourcemeta::core::markdown_to_html("x.~~.y.~~.z")};
+  EXPECT_EQ(result, "<p>x.<del>.y.</del>.z</p>\n");
+}

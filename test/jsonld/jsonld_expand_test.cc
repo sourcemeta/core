@@ -3219,3 +3219,19 @@ TEST(a_document_that_is_only_a_scalar) {
 
   EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
 }
+
+// JSON-LD 1.1 API Section 5.1 drops a result that is a map with only an
+// identifier, and one with nothing at all, since neither says anything
+TEST(node_with_only_an_identifier_expands_to_nothing) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@id": "http://example.com/a"
+  })");
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input),
+            sourcemeta::core::parse_json("[]"));
+}
+
+TEST(graph_holding_an_empty_node_expands_to_nothing) {
+  const auto input = sourcemeta::core::parse_json(R"({ "@graph": {} })");
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input),
+            sourcemeta::core::parse_json("[]"));
+}

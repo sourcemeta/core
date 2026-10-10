@@ -407,3 +407,33 @@ TEST(error_decode_overflow_at_the_insertion_index) {
     EXPECT_STREQ(error.what(), "Decode overflow");
   }
 }
+
+// RFC 3492 Section 5 reads a digit from one of three runs of code points, and
+// a code point just past the end of each of them is no digit
+
+TEST(error_digit_just_past_the_lowercase_run) {
+  try {
+    sourcemeta::core::punycode_to_utf32("abc{def");
+    FAIL();
+  } catch (const sourcemeta::core::PunycodeError &error) {
+    EXPECT_STREQ(error.what(), "Invalid digit");
+  }
+}
+
+TEST(error_digit_just_past_the_uppercase_run) {
+  try {
+    sourcemeta::core::punycode_to_utf32("abc[def");
+    FAIL();
+  } catch (const sourcemeta::core::PunycodeError &error) {
+    EXPECT_STREQ(error.what(), "Invalid digit");
+  }
+}
+
+TEST(error_digit_just_past_the_decimal_run) {
+  try {
+    sourcemeta::core::punycode_to_utf32("abc:def");
+    FAIL();
+  } catch (const sourcemeta::core::PunycodeError &error) {
+    EXPECT_STREQ(error.what(), "Invalid digit");
+  }
+}
