@@ -545,3 +545,18 @@ TEST(iri_rejects_invalid_utf8) {
       sourcemeta::core::URI::strip_path_prefix("/caf\xC3/page", "/")};
   EXPECT_FALSE(result.has_value());
 }
+
+// RFC 3987 admits only the ucschar ranges beyond ASCII, so a private use code
+// point is a well formed sequence that no IRI path may carry
+TEST(iri_rejects_a_private_use_code_point) {
+  const auto result{
+      sourcemeta::core::URI::strip_path_prefix("/\xEE\x80\x80/page", "/")};
+  EXPECT_FALSE(result.has_value());
+}
+
+// Where the prefix ends without a slash and the path continues with an
+// ordinary character, the prefix did not land on a segment boundary
+TEST(prefix_without_a_boundary_followed_by_an_ordinary_character) {
+  const auto result{sourcemeta::core::URI::strip_path_prefix("/abc", "/ab")};
+  EXPECT_FALSE(result.has_value());
+}

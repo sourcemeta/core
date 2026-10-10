@@ -1100,8 +1100,8 @@ TEST(address_literal_over_total_length_rejected) {
       sourcemeta::core::is_idn_email("a@[X:" + std::string(251, 'a') + "]"));
 }
 
-// RFC 5321 §4.5.3.1.2: an address-literal one octet past the 255-octet cap is
-// rejected
+// RFC 5321 §4.5.3.1.3: a 256-octet address literal is turned down by the
+// mailbox total, which runs out before the domain cap of §4.5.3.1.2 can
 TEST(invalid_address_literal_length_256) {
   EXPECT_FALSE(
       sourcemeta::core::is_email("a@[X:" + std::string(252, 'a') + "]"));
@@ -1915,4 +1915,32 @@ TEST(valid_uppercase_a_label_domain) {
 
 TEST(invalid_uppercase_a_label_domain) {
   EXPECT_FALSE(sourcemeta::core::is_email("user@XN--HELLO-TXK"));
+}
+
+// RFC 5321 Section 4.1.2 pairs the backslash with the character after it, so
+// one at the very end pairs with nothing
+TEST(invalid_quoted_local_part_ending_in_a_backslash) {
+  EXPECT_FALSE(sourcemeta::core::is_email("\"a\\"));
+}
+
+// Atoms are joined by single dots, so one dot may not follow another
+TEST(invalid_local_part_with_two_consecutive_dots) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a..b@example.com"));
+}
+
+// RFC 5321 Section 4.1.3 spells the tag "IPv6:", so a literal that only
+// matches its first character is no address literal
+TEST(invalid_ipv6_literal_tag_second_character) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a@[IXv6:::1]"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("a@[IXv6:::1]"));
+}
+
+TEST(invalid_ipv6_literal_tag_third_character) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a@[IPx6:::1]"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("a@[IPx6:::1]"));
+}
+
+TEST(invalid_ipv6_literal_tag_colon) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a@[IPv6x::1]"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("a@[IPv6x::1]"));
 }

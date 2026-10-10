@@ -1,0 +1,32 @@
+{
+  "document": {
+    "openapi": "3.2.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/users/{a{b}": {
+        "parameters": [
+          {
+            "name": "a{b",
+            "in": "path",
+            "required": true,
+            "schema": {}
+          }
+        ],
+        "get": {
+          "responses": {
+            "200": {
+              "description": "ok"
+            }
+          }
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "The Paths Object keys must take the form of a path template",
+    "location": "/paths/~1users~1{a{b}"
+  }
+}

@@ -260,3 +260,17 @@ TEST(aes_gcm_decrypt_rejects_a_wrong_size_iv) {
                    result.value().ciphertext(), result.value().tag())
                    .has_value());
 }
+
+// NIST SP 800-38D Section 6.2 advances the counter block once per sixteen byte
+// block, so a payload past two hundred and fifty six blocks carries its least
+// significant byte. Both directions share the counter, so this holds that a
+// payload that long survives rather than that the carry is right, which would
+// need a known answer vector at a length no published set reaches
+TEST(aes_256_gcm_round_trips_past_a_counter_byte_carry) {
+  const std::string plaintext(4160, 'x');
+  const auto sealed{sourcemeta::core::aes_256_gcm_seal(KEY, plaintext)};
+  EXPECT_TRUE(sealed.has_value());
+  const auto opened{sourcemeta::core::aes_256_gcm_unseal(KEY, sealed.value())};
+  EXPECT_TRUE(opened.has_value());
+  EXPECT_EQ(opened.value(), plaintext);
+}

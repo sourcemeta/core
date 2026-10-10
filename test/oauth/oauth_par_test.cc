@@ -331,3 +331,18 @@ TEST(par_response_exposes_the_document) {
   const sourcemeta::core::OAuthPARResponse response{document};
   EXPECT_EQ(response.data(), document);
 }
+
+// The request URI is the provider's answer to this request, so one smuggled in
+// through the resource list is dropped just as one in the extra list is
+TEST(build_par_request_drops_a_request_uri_among_the_resources) {
+  const std::array<sourcemeta::core::OAuthParameter, 2> resources{
+      {{.name = "request_uri", .value = "urn:evil"},
+       {.name = "resource", .value = "https://api.example"}}};
+  sourcemeta::core::OAuthAuthorizationRequest request;
+  request.scope = "read";
+  request.resources = resources;
+  sourcemeta::core::SecureString body;
+  sourcemeta::core::oauth_build_par_request(request, body);
+  EXPECT_EQ(body, "response_type=code&scope=read"
+                  "&resource=https%3A%2F%2Fapi.example");
+}

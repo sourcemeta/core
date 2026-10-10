@@ -2,11 +2,10 @@
 
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonschema.h>
-
-#include <string_view> // std::string_view
-
 #include <sourcemeta/core/uri.h>
-#include <string> // std::string
+
+#include <string>      // std::string
+#include <string_view> // std::string_view
 
 #define EXPECT_SCHEMA(identifier)                                              \
   {                                                                            \

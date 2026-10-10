@@ -197,3 +197,86 @@ TEST(build_request_object_from_a_non_object) {
           parameters, oct_private_key(), sourcemeta::core::JWSAlgorithm::HS256)
           .has_value());
 }
+
+// The issuer is held to naming the client, which a value of another type
+// cannot do whatever it carries
+TEST(verify_rejects_an_issuer_that_is_not_a_string) {
+  const auto parameters{sourcemeta::core::parse_json(
+      R"JSON({
+    "iss": 1,
+    "aud": "https://op.example",
+    "scope": "openid"
+  })JSON")};
+  const auto object{sourcemeta::core::oidc_build_request_object(
+      parameters, oct_private_key(), sourcemeta::core::JWSAlgorithm::HS256)};
+  const auto token{sourcemeta::core::JWT::from(object.value())};
+  EXPECT_TRUE(token.has_value());
+  const auto verified{sourcemeta::core::oidc_verify_request_object(
+      token.value(), oct_key_set(), ALLOWED_HS256, "client",
+      "https://op.example")};
+  EXPECT_FALSE(verified.has_value());
+}
+
+// A header naming its key by identifier takes the direct lookup rather than
+// trying each key in turn
+TEST(verify_accepts_a_request_object_naming_its_key_by_identifier) {
+  const auto compact{sourcemeta::core::jwt_sign(
+      sourcemeta::core::parse_json(
+          R"JSON({ "alg": "HS256", "kid": "k1" })JSON"),
+      sourcemeta::core::parse_json(R"JSON({
+        "iss": "client", "aud": "https://op.example", "scope": "openid"
+      })JSON"),
+      oct_private_key())};
+  EXPECT_TRUE(compact.has_value());
+  const auto token{sourcemeta::core::JWT::from(compact.value())};
+  EXPECT_TRUE(token.has_value());
+
+  auto keys{sourcemeta::core::JSON::make_array()};
+  auto key{sourcemeta::core::parse_json(OCT_JWK)};
+  key.assign("kid", sourcemeta::core::JSON{"k1"});
+  keys.push_back(std::move(key));
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign("keys", std::move(keys));
+  const auto key_set{sourcemeta::core::JWKS::from(std::move(document))};
+  EXPECT_TRUE(key_set.has_value());
+
+  const auto verified{sourcemeta::core::oidc_verify_request_object(
+      token.value(), key_set.value(), ALLOWED_HS256, "client",
+      "https://op.example")};
+  EXPECT_TRUE(verified.has_value());
+}
+
+// The identifier only selects the key, so a signature that does not stand up
+// under it is still refused
+TEST(verify_rejects_a_request_object_whose_named_key_does_not_verify) {
+  const auto other{
+      sourcemeta::core::JWKPrivate::from(sourcemeta::core::parse_json(R"JSON({
+        "kty": "oct",
+        "k": "b3RoZXItc2VjcmV0LXZhbHVlLXRoYXQtaXMtbG9uZy1lbm91Z2gtMzI"
+      })JSON"))};
+  EXPECT_TRUE(other.has_value());
+  const auto compact{sourcemeta::core::jwt_sign(
+      sourcemeta::core::parse_json(
+          R"JSON({ "alg": "HS256", "kid": "k1" })JSON"),
+      sourcemeta::core::parse_json(R"JSON({
+        "iss": "client", "aud": "https://op.example", "scope": "openid"
+      })JSON"),
+      other.value())};
+  EXPECT_TRUE(compact.has_value());
+  const auto token{sourcemeta::core::JWT::from(compact.value())};
+  EXPECT_TRUE(token.has_value());
+
+  auto keys{sourcemeta::core::JSON::make_array()};
+  auto key{sourcemeta::core::parse_json(OCT_JWK)};
+  key.assign("kid", sourcemeta::core::JSON{"k1"});
+  keys.push_back(std::move(key));
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign("keys", std::move(keys));
+  const auto key_set{sourcemeta::core::JWKS::from(std::move(document))};
+  EXPECT_TRUE(key_set.has_value());
+
+  const auto verified{sourcemeta::core::oidc_verify_request_object(
+      token.value(), key_set.value(), ALLOWED_HS256, "client",
+      "https://op.example")};
+  EXPECT_FALSE(verified.has_value());
+}

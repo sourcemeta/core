@@ -187,3 +187,11 @@ TEST(non_ascii_byte_is_not_uppercased) {
   expected.append("Hello");
   EXPECT_EQ(value, expected);
 }
+
+// A character outside the two letter ranges is written through unchanged and
+// leaves the next one still waiting to be capitalised
+TEST(leading_character_above_the_letters) {
+  std::string value{"~foo"};
+  sourcemeta::core::to_title_case(value);
+  EXPECT_EQ(value, "~Foo");
+}

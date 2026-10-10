@@ -166,3 +166,16 @@ TEST(key_order_is_canonical) {
   EXPECT_TRUE(body.defines("instance"));
   EXPECT_EQ(body.size(), 5);
 }
+
+// The type defaults to the blank identifier, and a caller clearing it lands
+// back on the same value rather than writing an empty one
+TEST(an_explicitly_empty_type_falls_back_to_the_blank_identifier) {
+  const auto body{sourcemeta::core::http_make_problem_details(
+      {.status = sourcemeta::core::HTTP_STATUS_NOT_FOUND, .type = ""})};
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "type": "about:blank",
+    "title": "Not Found",
+    "status": 404
+  })JSON")};
+  EXPECT_EQ(body, expected);
+}
