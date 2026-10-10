@@ -24,23 +24,23 @@ constexpr auto OPENAPI_HASH_WEBHOOKS{JSON::Object::hash("webhooks"sv)};
 inline auto openapi_path_shape(const JSON::StringView path) -> JSON::String {
   JSON::String result;
   result.reserve(path.size());
-  std::size_t cursor{0};
+  JSON::StringView::size_type cursor{0};
   while (cursor < path.size()) {
-    const auto open{path.find('{', cursor)};
-    if (open == JSON::StringView::npos) {
+    const auto expression{openapi_next_brace_expression(path, cursor)};
+    if (expression.opening == JSON::StringView::npos) {
       break;
     }
 
     // A brace that never closes opens no expression, so what follows it is
     // ordinary text. Dropping it instead would make two paths that differ only
     // after an unclosed brace compare as one, and 3.1 constrains neither
-    const auto close{path.find('}', open)};
-    if (close == JSON::StringView::npos) {
+    if (expression.closing == JSON::StringView::npos) {
       break;
     }
 
-    result.append(path.substr(cursor, open - cursor)).append("{}");
-    cursor = close + 1;
+    result.append(path.substr(cursor, expression.opening - cursor))
+        .append("{}");
+    cursor = expression.closing + 1;
   }
 
   result.append(path.substr(cursor));

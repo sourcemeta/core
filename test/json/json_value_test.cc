@@ -12,6 +12,18 @@
 #include <unordered_set> // std::unordered_set
 #include <utility>       // std::move
 
+class ClassMemberInitializerList {
+public:
+  ClassMemberInitializerList(sourcemeta::core::JSON document)
+      : data_{std::move(document)} {}
+  [[nodiscard]] auto get() const -> const sourcemeta::core::JSON & {
+    return this->data_;
+  }
+
+private:
+  const sourcemeta::core::JSON data_;
+};
+
 TEST(general_traits) {
   EXPECT_FALSE(std::is_default_constructible_v<sourcemeta::core::JSON>);
   EXPECT_TRUE(std::is_destructible_v<sourcemeta::core::JSON>);
@@ -362,18 +374,6 @@ TEST(to_ostream) {
   EXPECT_EQ(stream.str(), "[ 1, 2, 3, 4 ]");
 #endif
 }
-
-class ClassMemberInitializerList {
-public:
-  ClassMemberInitializerList(sourcemeta::core::JSON document)
-      : data_{std::move(document)} {}
-  [[nodiscard]] auto get() const -> const sourcemeta::core::JSON & {
-    return this->data_;
-  }
-
-private:
-  const sourcemeta::core::JSON data_;
-};
 
 TEST(class_member_initializer_list) {
   const sourcemeta::core::JSON document{5};

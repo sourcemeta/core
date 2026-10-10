@@ -730,3 +730,26 @@ TEST(format_openapi_3_0_names_an_extension_it_knows) {
   }
 })JSON");
 }
+
+// Two keywords the dialect gives the same rank are ordered against each other
+// by name, which is the tie-break the ranked comparison falls back on
+TEST(format_orders_two_keywords_of_equal_rank_by_name) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "zzz": 1,
+    "aaa": 2
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Locations, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+
+  sourcemeta::core::schema_format(document, frame);
+  std::ostringstream stream;
+  sourcemeta::core::prettify(document, stream);
+  EXPECT_EQ(stream.str(), R"JSON({
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "aaa": 2,
+  "zzz": 1
+})JSON");
+}

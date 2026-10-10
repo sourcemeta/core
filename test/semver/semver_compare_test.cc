@@ -449,3 +449,8 @@ TEST(not_equal_differing_in_build_metadata_only) {
   EXPECT_NE(sourcemeta::core::SemVer{"1.2.3+one"},
             sourcemeta::core::SemVer{"1.2.3+two"});
 }
+
+TEST(different_major_not_equal) {
+  EXPECT_NE(sourcemeta::core::SemVer{"1.2.3"},
+            sourcemeta::core::SemVer{"2.2.3"});
+}

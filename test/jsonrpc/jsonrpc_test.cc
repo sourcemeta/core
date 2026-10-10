@@ -686,3 +686,25 @@ TEST(make_error_internal_without_id) {
   })JSON")};
   EXPECT_EQ(envelope, expected);
 }
+
+// JSON-RPC 2.0 Section 4 gives the parameters as either a structured Object or
+// an Array, so both are accepted and anything else is not
+TEST(is_request_accepts_object_parameters) {
+  EXPECT_TRUE(sourcemeta::core::jsonrpc_is_request(sourcemeta::core::parse_json(
+      R"JSON({ "jsonrpc": "2.0", "id": 1, "method": "ping",
+               "params": { "a": 1 } })JSON")));
+}
+
+TEST(is_request_accepts_array_parameters) {
+  EXPECT_TRUE(sourcemeta::core::jsonrpc_is_request(sourcemeta::core::parse_json(
+      R"JSON({ "jsonrpc": "2.0", "id": 1, "method": "ping",
+               "params": [ 1 ] })JSON")));
+}
+
+// The version is a string, so a notification carrying it as anything else is
+// no notification
+TEST(is_notification_rejects_a_non_string_version) {
+  EXPECT_FALSE(
+      sourcemeta::core::jsonrpc_is_notification(sourcemeta::core::parse_json(
+          R"JSON({ "jsonrpc": 2.0, "method": "ping" })JSON")));
+}

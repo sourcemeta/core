@@ -4600,6 +4600,22 @@ TEST(corrupt_operation_entry_string_out_of_bounds) {
   EXPECT_TRUE(view.operation_id(1).empty());
 }
 
+TEST(corrupt_operation_entry_string_length_past_the_string_table) {
+  auto bytes{corrupt_router_core(0x50, 0x50)};
+  bytes.insert(bytes.end(), {0x01, 0x00});
+  bytes.insert(bytes.end(), {0x00, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00,
+                             0x01, 0x00, 0x0B, 0x00});
+  const sourcemeta::core::URITemplateRouterView view{bytes.data(),
+                                                     bytes.size()};
+  EXPECT_EQ(view.operation("op_1").first, 0);
+  EXPECT_EQ(view.operation("op_1").second, 0);
+  EXPECT_TRUE(view.operation_id(1).empty());
+  EXPECT_TRUE(view.base_path().empty());
+  EXPECT_TRUE(view.base_url().empty());
+  EXPECT_EQ(view.path(1), "");
+  EXPECT_FALSE(view.describes("/users"));
+}
+
 TEST(corrupt_paths_entries_exceed_buffer) {
   auto bytes{corrupt_router_core(0x50, 0x50)};
   bytes.insert(bytes.end(), {0xFF, 0xFF});
@@ -4622,6 +4638,23 @@ TEST(corrupt_path_entry_string_out_of_bounds) {
   EXPECT_EQ(view.path(1), "");
 }
 
+TEST(corrupt_path_entry_string_length_past_the_string_table) {
+  auto bytes{corrupt_router_core(0x50, 0x50)};
+  bytes.insert(bytes.end(), {0x01, 0x00});
+  bytes.insert(bytes.end(), {0x01, 0x00, 0x0B, 0x00, 0x00, 0x00, 0x00, 0x00,
+                             0x05, 0x00, 0x00, 0x00});
+  const sourcemeta::core::URITemplateRouterView view{bytes.data(),
+                                                     bytes.size()};
+  EXPECT_EQ(view.at(0), 1);
+  EXPECT_EQ(view.context(1), 11);
+  EXPECT_EQ(view.path(1), "");
+  EXPECT_TRUE(view.base_path().empty());
+  EXPECT_TRUE(view.base_url().empty());
+  EXPECT_EQ(view.operation("op_1").first, 0);
+  EXPECT_TRUE(view.operation_id(1).empty());
+  EXPECT_FALSE(view.describes("/users"));
+}
+
 TEST(corrupt_base_path_outside_string_table) {
   const std::array<std::uint32_t, 20> data{
       {0x52544552, 9, 1, 80, 80,         0, 999,        5, 0, 0,
@@ -4632,6 +4665,27 @@ TEST(corrupt_base_path_outside_string_table) {
   EXPECT_TRUE(view.base_path().empty());
 }
 
+// The offset and the length are checked as a pair, and an offset the table
+// holds leaves the length as the only thing standing between a reader and the
+// bytes past its end
+TEST(corrupt_base_path_length_past_the_string_table) {
+  const std::array<std::uint32_t, 20> data{
+      {0x52544552, 9, 1, 80, 80,         0, 0,          5, 0, 0,
+       0,          0, 0, 0,  0xFFFFFFFF, 0, 0xFFFFFFFF, 0, 0, 0}};
+  const sourcemeta::core::URITemplateRouterView view{
+      reinterpret_cast<const std::uint8_t *>(data.data()),
+      (data.size() * sizeof(data[0]))};
+  EXPECT_TRUE(view.base_path().empty());
+  EXPECT_TRUE(view.base_url().empty());
+  EXPECT_EQ(view.at(0), 0);
+  EXPECT_EQ(view.context(1), 0);
+  EXPECT_EQ(view.path(1), "");
+  EXPECT_EQ(view.operation("op_1").first, 0);
+  EXPECT_EQ(view.operation("op_1").second, 0);
+  EXPECT_TRUE(view.operation_id(1).empty());
+  EXPECT_FALSE(view.describes("/users"));
+}
+
 TEST(corrupt_base_url_outside_string_table) {
   const std::array<std::uint32_t, 20> data{
       {0x52544552, 9, 1, 80, 80,         0, 0,          0, 0, 999,
@@ -4640,6 +4694,24 @@ TEST(corrupt_base_url_outside_string_table) {
       reinterpret_cast<const std::uint8_t *>(data.data()),
       (data.size() * sizeof(data[0]))};
   EXPECT_TRUE(view.base_url().empty());
+}
+
+TEST(corrupt_base_url_length_past_the_string_table) {
+  const std::array<std::uint32_t, 20> data{
+      {0x52544552, 9, 1, 80, 80,         0, 0,          0, 0, 0,
+       5,          0, 0, 0,  0xFFFFFFFF, 0, 0xFFFFFFFF, 0, 0, 0}};
+  const sourcemeta::core::URITemplateRouterView view{
+      reinterpret_cast<const std::uint8_t *>(data.data()),
+      (data.size() * sizeof(data[0]))};
+  EXPECT_TRUE(view.base_path().empty());
+  EXPECT_TRUE(view.base_url().empty());
+  EXPECT_EQ(view.at(0), 0);
+  EXPECT_EQ(view.context(1), 0);
+  EXPECT_EQ(view.path(1), "");
+  EXPECT_EQ(view.operation("op_1").first, 0);
+  EXPECT_EQ(view.operation("op_1").second, 0);
+  EXPECT_TRUE(view.operation_id(1).empty());
+  EXPECT_FALSE(view.describes("/users"));
 }
 
 TEST(corrupt_string_table_with_valid_operation_and_path_tables) {
@@ -4675,4 +4747,861 @@ TEST(corrupt_paths_offset_past_end) {
                                                      bytes.size()};
   EXPECT_EQ(view.at(0), 0);
   EXPECT_EQ(view.context(1), 0);
+}
+
+// A node count the buffer cannot hold describes nothing, where the same
+// blob with its real count describes the route it was built from
+TEST_F(URITemplateRouterViewTest,
+       describes_rejects_node_count_beyond_the_buffer) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/users", "op_1", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path_);
+  }
+
+  std::vector<std::uint8_t> blob;
+  {
+    std::ifstream file{this->path_, std::ios::binary | std::ios::ate};
+    const auto size = static_cast<std::size_t>(file.tellg());
+    file.seekg(0, std::ios::beg);
+    blob.resize(size);
+    file.read(reinterpret_cast<char *>(blob.data()),
+              static_cast<std::streamsize>(size));
+  }
+
+  const sourcemeta::core::URITemplateRouterView sound{blob.data(), blob.size()};
+  EXPECT_TRUE(sound.describes("/users"));
+
+  const auto corrupt{std::uint32_t{9999}};
+  std::memcpy(blob.data() + (2 * sizeof(std::uint32_t)), &corrupt,
+              sizeof(corrupt));
+  const sourcemeta::core::URITemplateRouterView view{blob.data(), blob.size()};
+  EXPECT_FALSE(view.describes("/users"));
+}
+
+// The string table begins where the nodes end, so an offset below that
+// would read a node as a string
+TEST_F(URITemplateRouterViewTest,
+       describes_rejects_string_table_overlapping_the_nodes) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/users", "op_1", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path_);
+  }
+
+  std::vector<std::uint8_t> blob;
+  {
+    std::ifstream file{this->path_, std::ios::binary | std::ios::ate};
+    const auto size = static_cast<std::size_t>(file.tellg());
+    file.seekg(0, std::ios::beg);
+    blob.resize(size);
+    file.read(reinterpret_cast<char *>(blob.data()),
+              static_cast<std::streamsize>(size));
+  }
+
+  const sourcemeta::core::URITemplateRouterView sound{blob.data(), blob.size()};
+  EXPECT_TRUE(sound.describes("/users"));
+
+  const auto corrupt{std::uint32_t{1}};
+  std::memcpy(blob.data() + (3 * sizeof(std::uint32_t)), &corrupt,
+              sizeof(corrupt));
+  const sourcemeta::core::URITemplateRouterView view{blob.data(), blob.size()};
+  EXPECT_FALSE(view.describes("/users"));
+}
+
+// Arguments past the end of the buffer are no arguments at all
+TEST_F(URITemplateRouterViewTest, describes_rejects_arguments_past_the_end) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/users", "op_1", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path_);
+  }
+
+  std::vector<std::uint8_t> blob;
+  {
+    std::ifstream file{this->path_, std::ios::binary | std::ios::ate};
+    const auto size = static_cast<std::size_t>(file.tellg());
+    file.seekg(0, std::ios::beg);
+    blob.resize(size);
+    file.read(reinterpret_cast<char *>(blob.data()),
+              static_cast<std::streamsize>(size));
+  }
+
+  const sourcemeta::core::URITemplateRouterView sound{blob.data(), blob.size()};
+  EXPECT_TRUE(sound.describes("/users"));
+
+  const auto corrupt{std::uint32_t{99999}};
+  std::memcpy(blob.data() + (4 * sizeof(std::uint32_t)), &corrupt,
+              sizeof(corrupt));
+  const sourcemeta::core::URITemplateRouterView view{blob.data(), blob.size()};
+  EXPECT_FALSE(view.describes("/users"));
+}
+
+TEST_F(URITemplateRouterViewTest,
+       base_path_of_a_blob_whose_arguments_run_past_the_end) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/users", "op_1", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path_);
+  }
+
+  std::vector<std::uint8_t> blob;
+  {
+    std::ifstream file{this->path_, std::ios::binary | std::ios::ate};
+    const auto size = static_cast<std::size_t>(file.tellg());
+    file.seekg(0, std::ios::beg);
+    blob.resize(size);
+    file.read(reinterpret_cast<char *>(blob.data()),
+              static_cast<std::streamsize>(size));
+  }
+
+  const auto corrupt{std::uint32_t{99999}};
+  std::memcpy(blob.data() + (4 * sizeof(std::uint32_t)), &corrupt,
+              sizeof(corrupt));
+  const sourcemeta::core::URITemplateRouterView view{blob.data(), blob.size()};
+  EXPECT_TRUE(view.base_path().empty());
+}
+
+TEST_F(URITemplateRouterViewTest,
+       base_url_of_a_blob_whose_arguments_run_past_the_end) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/users", "op_1", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path_);
+  }
+
+  std::vector<std::uint8_t> blob;
+  {
+    std::ifstream file{this->path_, std::ios::binary | std::ios::ate};
+    const auto size = static_cast<std::size_t>(file.tellg());
+    file.seekg(0, std::ios::beg);
+    blob.resize(size);
+    file.read(reinterpret_cast<char *>(blob.data()),
+              static_cast<std::streamsize>(size));
+  }
+
+  const auto corrupt{std::uint32_t{99999}};
+  std::memcpy(blob.data() + (4 * sizeof(std::uint32_t)), &corrupt,
+              sizeof(corrupt));
+  const sourcemeta::core::URITemplateRouterView view{blob.data(), blob.size()};
+  EXPECT_TRUE(view.base_url().empty());
+}
+
+TEST_F(URITemplateRouterViewTest,
+       size_of_a_blob_whose_node_count_exceeds_the_buffer) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/users", "op_1", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path_);
+  }
+
+  std::vector<std::uint8_t> blob;
+  {
+    std::ifstream file{this->path_, std::ios::binary | std::ios::ate};
+    const auto size = static_cast<std::size_t>(file.tellg());
+    file.seekg(0, std::ios::beg);
+    blob.resize(size);
+    file.read(reinterpret_cast<char *>(blob.data()),
+              static_cast<std::streamsize>(size));
+  }
+
+  const auto corrupt{std::uint32_t{99999}};
+  std::memcpy(blob.data() + (2 * sizeof(std::uint32_t)), &corrupt,
+              sizeof(corrupt));
+  const sourcemeta::core::URITemplateRouterView view{blob.data(), blob.size()};
+  EXPECT_EQ(view.size(), 0);
+}
+
+TEST_F(URITemplateRouterViewTest,
+       operation_of_a_blob_whose_operations_run_past_the_end) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/users", "op_1", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path_);
+  }
+
+  std::vector<std::uint8_t> blob;
+  {
+    std::ifstream file{this->path_, std::ios::binary | std::ios::ate};
+    const auto size = static_cast<std::size_t>(file.tellg());
+    file.seekg(0, std::ios::beg);
+    blob.resize(size);
+    file.read(reinterpret_cast<char *>(blob.data()),
+              static_cast<std::streamsize>(size));
+  }
+
+  const auto corrupt{std::uint32_t{99999}};
+  std::memcpy(blob.data() + (5 * sizeof(std::uint32_t)), &corrupt,
+              sizeof(corrupt));
+  const sourcemeta::core::URITemplateRouterView view{blob.data(), blob.size()};
+  const auto result{view.operation("op_1")};
+  EXPECT_EQ(result.first, 0);
+  EXPECT_EQ(result.second, 0);
+}
+
+TEST_F(URITemplateRouterViewTest,
+       operation_of_a_blob_whose_arguments_run_past_the_end) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/users", "op_1", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path_);
+  }
+
+  std::vector<std::uint8_t> blob;
+  {
+    std::ifstream file{this->path_, std::ios::binary | std::ios::ate};
+    const auto size = static_cast<std::size_t>(file.tellg());
+    file.seekg(0, std::ios::beg);
+    blob.resize(size);
+    file.read(reinterpret_cast<char *>(blob.data()),
+              static_cast<std::streamsize>(size));
+  }
+
+  const auto corrupt{std::uint32_t{99999}};
+  std::memcpy(blob.data() + (4 * sizeof(std::uint32_t)), &corrupt,
+              sizeof(corrupt));
+  const sourcemeta::core::URITemplateRouterView view{blob.data(), blob.size()};
+  const auto result{view.operation("op_1")};
+  EXPECT_EQ(result.first, 0);
+  EXPECT_EQ(result.second, 0);
+}
+
+TEST_F(URITemplateRouterViewTest,
+       context_of_a_blob_whose_paths_run_past_the_end) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/users", "op_1", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path_);
+  }
+
+  std::vector<std::uint8_t> blob;
+  {
+    std::ifstream file{this->path_, std::ios::binary | std::ios::ate};
+    const auto size = static_cast<std::size_t>(file.tellg());
+    file.seekg(0, std::ios::beg);
+    blob.resize(size);
+    file.read(reinterpret_cast<char *>(blob.data()),
+              static_cast<std::streamsize>(size));
+  }
+
+  const auto corrupt{std::uint32_t{99999}};
+  std::memcpy(blob.data() + (11 * sizeof(std::uint32_t)), &corrupt,
+              sizeof(corrupt));
+  const sourcemeta::core::URITemplateRouterView view{blob.data(), blob.size()};
+  EXPECT_EQ(view.context(1), 0);
+}
+
+TEST_F(URITemplateRouterViewTest, path_of_a_blob_whose_paths_run_past_the_end) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/users", "op_1", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path_);
+  }
+
+  std::vector<std::uint8_t> blob;
+  {
+    std::ifstream file{this->path_, std::ios::binary | std::ios::ate};
+    const auto size = static_cast<std::size_t>(file.tellg());
+    file.seekg(0, std::ios::beg);
+    blob.resize(size);
+    file.read(reinterpret_cast<char *>(blob.data()),
+              static_cast<std::streamsize>(size));
+  }
+
+  const auto corrupt{std::uint32_t{99999}};
+  std::memcpy(blob.data() + (11 * sizeof(std::uint32_t)), &corrupt,
+              sizeof(corrupt));
+  const sourcemeta::core::URITemplateRouterView view{blob.data(), blob.size()};
+  EXPECT_TRUE(view.path(1).empty());
+}
+
+TEST_F(URITemplateRouterViewTest,
+       path_of_a_blob_whose_arguments_run_past_the_end) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/users", "op_1", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path_);
+  }
+
+  std::vector<std::uint8_t> blob;
+  {
+    std::ifstream file{this->path_, std::ios::binary | std::ios::ate};
+    const auto size = static_cast<std::size_t>(file.tellg());
+    file.seekg(0, std::ios::beg);
+    blob.resize(size);
+    file.read(reinterpret_cast<char *>(blob.data()),
+              static_cast<std::streamsize>(size));
+  }
+
+  const auto corrupt{std::uint32_t{99999}};
+  std::memcpy(blob.data() + (4 * sizeof(std::uint32_t)), &corrupt,
+              sizeof(corrupt));
+  const sourcemeta::core::URITemplateRouterView view{blob.data(), blob.size()};
+  EXPECT_TRUE(view.path(1).empty());
+}
+
+TEST_F(URITemplateRouterViewTest,
+       operation_id_of_a_blob_whose_operations_run_past_the_end) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/users", "op_1", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path_);
+  }
+
+  std::vector<std::uint8_t> blob;
+  {
+    std::ifstream file{this->path_, std::ios::binary | std::ios::ate};
+    const auto size = static_cast<std::size_t>(file.tellg());
+    file.seekg(0, std::ios::beg);
+    blob.resize(size);
+    file.read(reinterpret_cast<char *>(blob.data()),
+              static_cast<std::streamsize>(size));
+  }
+
+  const auto corrupt{std::uint32_t{99999}};
+  std::memcpy(blob.data() + (5 * sizeof(std::uint32_t)), &corrupt,
+              sizeof(corrupt));
+  const sourcemeta::core::URITemplateRouterView view{blob.data(), blob.size()};
+  EXPECT_TRUE(view.operation_id(1).empty());
+}
+
+TEST_F(URITemplateRouterViewTest,
+       operation_id_of_a_blob_whose_arguments_run_past_the_end) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/users", "op_1", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path_);
+  }
+
+  std::vector<std::uint8_t> blob;
+  {
+    std::ifstream file{this->path_, std::ios::binary | std::ios::ate};
+    const auto size = static_cast<std::size_t>(file.tellg());
+    file.seekg(0, std::ios::beg);
+    blob.resize(size);
+    file.read(reinterpret_cast<char *>(blob.data()),
+              static_cast<std::streamsize>(size));
+  }
+
+  const auto corrupt{std::uint32_t{99999}};
+  std::memcpy(blob.data() + (4 * sizeof(std::uint32_t)), &corrupt,
+              sizeof(corrupt));
+  const sourcemeta::core::URITemplateRouterView view{blob.data(), blob.size()};
+  EXPECT_TRUE(view.operation_id(1).empty());
+}
+
+TEST_F(URITemplateRouterViewTest,
+       match_of_a_blob_whose_arguments_run_past_the_end) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/users", "op_1", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path_);
+  }
+
+  std::vector<std::uint8_t> blob;
+  {
+    std::ifstream file{this->path_, std::ios::binary | std::ios::ate};
+    const auto size = static_cast<std::size_t>(file.tellg());
+    file.seekg(0, std::ios::beg);
+    blob.resize(size);
+    file.read(reinterpret_cast<char *>(blob.data()),
+              static_cast<std::streamsize>(size));
+  }
+
+  const auto corrupt{std::uint32_t{99999}};
+  std::memcpy(blob.data() + (4 * sizeof(std::uint32_t)), &corrupt,
+              sizeof(corrupt));
+  const sourcemeta::core::URITemplateRouterView view{blob.data(), blob.size()};
+  EXPECT_ROUTER_MATCH(view, "/users", 0, 0, captures);
+  EXPECT_EQ(captures.size(), 0);
+}
+
+TEST_F(URITemplateRouterViewTest, arguments_of_a_blob_whose_magic_is_wrong) {
+  {
+    sourcemeta::core::URITemplateRouter router{"/api",
+                                               "https://example.com/api"};
+    const std::string argument_value{"some/response/schema"};
+    const std::array<sourcemeta::core::URITemplateRouter::Argument, 1>
+        arguments{{{"responseSchema", std::string_view{argument_value}}}};
+    router.add("/users", "op_1", 1, 0, arguments);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path_);
+  }
+
+  std::vector<std::uint8_t> blob;
+  {
+    std::ifstream file{this->path_, std::ios::binary | std::ios::ate};
+    const auto size = static_cast<std::size_t>(file.tellg());
+    file.seekg(0, std::ios::beg);
+    blob.resize(size);
+    file.read(reinterpret_cast<char *>(blob.data()),
+              static_cast<std::streamsize>(size));
+  }
+
+  std::vector<std::pair<std::string_view,
+                        sourcemeta::core::URITemplateRouter::ArgumentValue>>
+      sound_arguments;
+  const sourcemeta::core::URITemplateRouterView sound{blob.data(), blob.size()};
+  sound.arguments(
+      1, [&sound_arguments](
+             const std::string_view name,
+             const sourcemeta::core::URITemplateRouter::ArgumentValue &value) {
+        sound_arguments.emplace_back(name, value);
+      });
+  EXPECT_EQ(sound_arguments.size(), 1);
+
+  const auto corrupt{std::uint32_t{0}};
+  std::memcpy(blob.data() + (0 * sizeof(std::uint32_t)), &corrupt,
+              sizeof(corrupt));
+  const sourcemeta::core::URITemplateRouterView view{blob.data(), blob.size()};
+  std::vector<std::pair<std::string_view,
+                        sourcemeta::core::URITemplateRouter::ArgumentValue>>
+      collected;
+  view.arguments(
+      1, [&collected](
+             const std::string_view name,
+             const sourcemeta::core::URITemplateRouter::ArgumentValue &value) {
+        collected.emplace_back(name, value);
+      });
+  EXPECT_EQ(collected.size(), 0);
+}
+
+TEST_F(URITemplateRouterViewTest,
+       base_path_of_a_blob_whose_arguments_precede_the_string_table) {
+  {
+    sourcemeta::core::URITemplateRouter router{"/api",
+                                               "https://example.com/api"};
+    router.add("/users", "op_1", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path_);
+  }
+
+  std::vector<std::uint8_t> blob;
+  {
+    std::ifstream file{this->path_, std::ios::binary | std::ios::ate};
+    const auto size = static_cast<std::size_t>(file.tellg());
+    file.seekg(0, std::ios::beg);
+    blob.resize(size);
+    file.read(reinterpret_cast<char *>(blob.data()),
+              static_cast<std::streamsize>(size));
+  }
+
+  const auto corrupt{std::uint32_t{4}};
+  std::memcpy(blob.data() + (4 * sizeof(std::uint32_t)), &corrupt,
+              sizeof(corrupt));
+  const sourcemeta::core::URITemplateRouterView view{blob.data(), blob.size()};
+  EXPECT_TRUE(view.base_path().empty());
+}
+
+TEST_F(URITemplateRouterViewTest,
+       base_path_of_a_blob_whose_arguments_run_past_the_end_with_a_base) {
+  {
+    sourcemeta::core::URITemplateRouter router{"/api",
+                                               "https://example.com/api"};
+    router.add("/users", "op_1", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path_);
+  }
+
+  std::vector<std::uint8_t> blob;
+  {
+    std::ifstream file{this->path_, std::ios::binary | std::ios::ate};
+    const auto size = static_cast<std::size_t>(file.tellg());
+    file.seekg(0, std::ios::beg);
+    blob.resize(size);
+    file.read(reinterpret_cast<char *>(blob.data()),
+              static_cast<std::streamsize>(size));
+  }
+
+  const auto corrupt{std::uint32_t{99999}};
+  std::memcpy(blob.data() + (4 * sizeof(std::uint32_t)), &corrupt,
+              sizeof(corrupt));
+  const sourcemeta::core::URITemplateRouterView view{blob.data(), blob.size()};
+  EXPECT_TRUE(view.base_path().empty());
+}
+
+TEST_F(URITemplateRouterViewTest,
+       base_url_of_a_blob_whose_arguments_precede_the_string_table) {
+  {
+    sourcemeta::core::URITemplateRouter router{"/api",
+                                               "https://example.com/api"};
+    router.add("/users", "op_1", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path_);
+  }
+
+  std::vector<std::uint8_t> blob;
+  {
+    std::ifstream file{this->path_, std::ios::binary | std::ios::ate};
+    const auto size = static_cast<std::size_t>(file.tellg());
+    file.seekg(0, std::ios::beg);
+    blob.resize(size);
+    file.read(reinterpret_cast<char *>(blob.data()),
+              static_cast<std::streamsize>(size));
+  }
+
+  const auto corrupt{std::uint32_t{4}};
+  std::memcpy(blob.data() + (4 * sizeof(std::uint32_t)), &corrupt,
+              sizeof(corrupt));
+  const sourcemeta::core::URITemplateRouterView view{blob.data(), blob.size()};
+  EXPECT_TRUE(view.base_url().empty());
+}
+
+TEST_F(URITemplateRouterViewTest,
+       base_url_of_a_blob_whose_arguments_run_past_the_end_with_a_base) {
+  {
+    sourcemeta::core::URITemplateRouter router{"/api",
+                                               "https://example.com/api"};
+    router.add("/users", "op_1", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path_);
+  }
+
+  std::vector<std::uint8_t> blob;
+  {
+    std::ifstream file{this->path_, std::ios::binary | std::ios::ate};
+    const auto size = static_cast<std::size_t>(file.tellg());
+    file.seekg(0, std::ios::beg);
+    blob.resize(size);
+    file.read(reinterpret_cast<char *>(blob.data()),
+              static_cast<std::streamsize>(size));
+  }
+
+  const auto corrupt{std::uint32_t{99999}};
+  std::memcpy(blob.data() + (4 * sizeof(std::uint32_t)), &corrupt,
+              sizeof(corrupt));
+  const sourcemeta::core::URITemplateRouterView view{blob.data(), blob.size()};
+  EXPECT_TRUE(view.base_url().empty());
+}
+
+TEST_F(URITemplateRouterViewTest,
+       operation_of_a_blob_whose_operations_leave_no_room_for_a_count) {
+  {
+    sourcemeta::core::URITemplateRouter router{"/api",
+                                               "https://example.com/api"};
+    router.add("/users", "op_1", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path_);
+  }
+
+  std::vector<std::uint8_t> blob;
+  {
+    std::ifstream file{this->path_, std::ios::binary | std::ios::ate};
+    const auto size = static_cast<std::size_t>(file.tellg());
+    file.seekg(0, std::ios::beg);
+    blob.resize(size);
+    file.read(reinterpret_cast<char *>(blob.data()),
+              static_cast<std::streamsize>(size));
+  }
+
+  const auto corrupt{static_cast<std::uint32_t>(blob.size() - 1)};
+  std::memcpy(blob.data() + (5 * sizeof(std::uint32_t)), &corrupt,
+              sizeof(corrupt));
+  const sourcemeta::core::URITemplateRouterView view{blob.data(), blob.size()};
+  const auto result{view.operation("op_1")};
+  EXPECT_EQ(result.first, 0);
+  EXPECT_EQ(result.second, 0);
+}
+
+TEST_F(URITemplateRouterViewTest,
+       operation_of_a_blob_whose_arguments_precede_the_string_table) {
+  {
+    sourcemeta::core::URITemplateRouter router{"/api",
+                                               "https://example.com/api"};
+    router.add("/users", "op_1", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path_);
+  }
+
+  std::vector<std::uint8_t> blob;
+  {
+    std::ifstream file{this->path_, std::ios::binary | std::ios::ate};
+    const auto size = static_cast<std::size_t>(file.tellg());
+    file.seekg(0, std::ios::beg);
+    blob.resize(size);
+    file.read(reinterpret_cast<char *>(blob.data()),
+              static_cast<std::streamsize>(size));
+  }
+
+  const auto corrupt{std::uint32_t{4}};
+  std::memcpy(blob.data() + (4 * sizeof(std::uint32_t)), &corrupt,
+              sizeof(corrupt));
+  const sourcemeta::core::URITemplateRouterView view{blob.data(), blob.size()};
+  const auto result{view.operation("op_1")};
+  EXPECT_EQ(result.first, 0);
+  EXPECT_EQ(result.second, 0);
+}
+
+TEST_F(URITemplateRouterViewTest,
+       context_of_a_blob_whose_paths_leave_no_room_for_a_count) {
+  {
+    sourcemeta::core::URITemplateRouter router{"/api",
+                                               "https://example.com/api"};
+    router.add("/users", "op_1", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path_);
+  }
+
+  std::vector<std::uint8_t> blob;
+  {
+    std::ifstream file{this->path_, std::ios::binary | std::ios::ate};
+    const auto size = static_cast<std::size_t>(file.tellg());
+    file.seekg(0, std::ios::beg);
+    blob.resize(size);
+    file.read(reinterpret_cast<char *>(blob.data()),
+              static_cast<std::streamsize>(size));
+  }
+
+  const auto corrupt{static_cast<std::uint32_t>(blob.size() - 1)};
+  std::memcpy(blob.data() + (11 * sizeof(std::uint32_t)), &corrupt,
+              sizeof(corrupt));
+  const sourcemeta::core::URITemplateRouterView view{blob.data(), blob.size()};
+  EXPECT_EQ(view.context(1), 0);
+}
+
+TEST_F(URITemplateRouterViewTest,
+       path_of_a_blob_whose_paths_leave_no_room_for_a_count) {
+  {
+    sourcemeta::core::URITemplateRouter router{"/api",
+                                               "https://example.com/api"};
+    router.add("/users", "op_1", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path_);
+  }
+
+  std::vector<std::uint8_t> blob;
+  {
+    std::ifstream file{this->path_, std::ios::binary | std::ios::ate};
+    const auto size = static_cast<std::size_t>(file.tellg());
+    file.seekg(0, std::ios::beg);
+    blob.resize(size);
+    file.read(reinterpret_cast<char *>(blob.data()),
+              static_cast<std::streamsize>(size));
+  }
+
+  const auto corrupt{static_cast<std::uint32_t>(blob.size() - 1)};
+  std::memcpy(blob.data() + (11 * sizeof(std::uint32_t)), &corrupt,
+              sizeof(corrupt));
+  const sourcemeta::core::URITemplateRouterView view{blob.data(), blob.size()};
+  EXPECT_TRUE(view.path(1).empty());
+}
+
+TEST_F(URITemplateRouterViewTest,
+       path_of_a_blob_whose_arguments_precede_the_string_table) {
+  {
+    sourcemeta::core::URITemplateRouter router{"/api",
+                                               "https://example.com/api"};
+    router.add("/users", "op_1", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path_);
+  }
+
+  std::vector<std::uint8_t> blob;
+  {
+    std::ifstream file{this->path_, std::ios::binary | std::ios::ate};
+    const auto size = static_cast<std::size_t>(file.tellg());
+    file.seekg(0, std::ios::beg);
+    blob.resize(size);
+    file.read(reinterpret_cast<char *>(blob.data()),
+              static_cast<std::streamsize>(size));
+  }
+
+  const auto corrupt{std::uint32_t{4}};
+  std::memcpy(blob.data() + (4 * sizeof(std::uint32_t)), &corrupt,
+              sizeof(corrupt));
+  const sourcemeta::core::URITemplateRouterView view{blob.data(), blob.size()};
+  EXPECT_TRUE(view.path(1).empty());
+}
+
+TEST_F(URITemplateRouterViewTest,
+       operation_id_of_a_blob_whose_operations_leave_no_room_for_a_count) {
+  {
+    sourcemeta::core::URITemplateRouter router{"/api",
+                                               "https://example.com/api"};
+    router.add("/users", "op_1", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path_);
+  }
+
+  std::vector<std::uint8_t> blob;
+  {
+    std::ifstream file{this->path_, std::ios::binary | std::ios::ate};
+    const auto size = static_cast<std::size_t>(file.tellg());
+    file.seekg(0, std::ios::beg);
+    blob.resize(size);
+    file.read(reinterpret_cast<char *>(blob.data()),
+              static_cast<std::streamsize>(size));
+  }
+
+  const auto corrupt{static_cast<std::uint32_t>(blob.size() - 1)};
+  std::memcpy(blob.data() + (5 * sizeof(std::uint32_t)), &corrupt,
+              sizeof(corrupt));
+  const sourcemeta::core::URITemplateRouterView view{blob.data(), blob.size()};
+  EXPECT_TRUE(view.operation_id(1).empty());
+}
+
+TEST_F(URITemplateRouterViewTest,
+       operation_id_of_a_blob_whose_arguments_precede_the_string_table) {
+  {
+    sourcemeta::core::URITemplateRouter router{"/api",
+                                               "https://example.com/api"};
+    router.add("/users", "op_1", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path_);
+  }
+
+  std::vector<std::uint8_t> blob;
+  {
+    std::ifstream file{this->path_, std::ios::binary | std::ios::ate};
+    const auto size = static_cast<std::size_t>(file.tellg());
+    file.seekg(0, std::ios::beg);
+    blob.resize(size);
+    file.read(reinterpret_cast<char *>(blob.data()),
+              static_cast<std::streamsize>(size));
+  }
+
+  const auto corrupt{std::uint32_t{4}};
+  std::memcpy(blob.data() + (4 * sizeof(std::uint32_t)), &corrupt,
+              sizeof(corrupt));
+  const sourcemeta::core::URITemplateRouterView view{blob.data(), blob.size()};
+  EXPECT_TRUE(view.operation_id(1).empty());
+}
+
+TEST_F(URITemplateRouterViewTest, arguments_of_a_blob_whose_version_is_wrong) {
+  {
+    sourcemeta::core::URITemplateRouter router{"/api",
+                                               "https://example.com/api"};
+    const std::string argument_value{"some/response/schema"};
+    const std::array<sourcemeta::core::URITemplateRouter::Argument, 1>
+        arguments{{{"responseSchema", std::string_view{argument_value}}}};
+    router.add("/users", "op_1", 1, 0, arguments);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path_);
+  }
+
+  std::vector<std::uint8_t> blob;
+  {
+    std::ifstream file{this->path_, std::ios::binary | std::ios::ate};
+    const auto size = static_cast<std::size_t>(file.tellg());
+    file.seekg(0, std::ios::beg);
+    blob.resize(size);
+    file.read(reinterpret_cast<char *>(blob.data()),
+              static_cast<std::streamsize>(size));
+  }
+
+  std::vector<std::pair<std::string_view,
+                        sourcemeta::core::URITemplateRouter::ArgumentValue>>
+      sound_arguments;
+  const sourcemeta::core::URITemplateRouterView sound{blob.data(), blob.size()};
+  sound.arguments(
+      1, [&sound_arguments](
+             const std::string_view name,
+             const sourcemeta::core::URITemplateRouter::ArgumentValue &value) {
+        sound_arguments.emplace_back(name, value);
+      });
+  EXPECT_EQ(sound_arguments.size(), 1);
+
+  const auto corrupt{std::uint32_t{5}};
+  std::memcpy(blob.data() + (1 * sizeof(std::uint32_t)), &corrupt,
+              sizeof(corrupt));
+  const sourcemeta::core::URITemplateRouterView view{blob.data(), blob.size()};
+  std::vector<std::pair<std::string_view,
+                        sourcemeta::core::URITemplateRouter::ArgumentValue>>
+      collected;
+  view.arguments(
+      1, [&collected](
+             const std::string_view name,
+             const sourcemeta::core::URITemplateRouter::ArgumentValue &value) {
+        collected.emplace_back(name, value);
+      });
+  EXPECT_EQ(collected.size(), 0);
+}
+
+TEST_F(URITemplateRouterViewTest,
+       match_of_a_blob_whose_arguments_precede_the_string_table) {
+  {
+    sourcemeta::core::URITemplateRouter router{"/api",
+                                               "https://example.com/api"};
+    router.add("/users", "op_1", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path_);
+  }
+
+  std::vector<std::uint8_t> blob;
+  {
+    std::ifstream file{this->path_, std::ios::binary | std::ios::ate};
+    const auto size = static_cast<std::size_t>(file.tellg());
+    file.seekg(0, std::ios::beg);
+    blob.resize(size);
+    file.read(reinterpret_cast<char *>(blob.data()),
+              static_cast<std::streamsize>(size));
+  }
+
+  const auto corrupt{std::uint32_t{4}};
+  std::memcpy(blob.data() + (4 * sizeof(std::uint32_t)), &corrupt,
+              sizeof(corrupt));
+  const sourcemeta::core::URITemplateRouterView view{blob.data(), blob.size()};
+  EXPECT_ROUTER_MATCH(view, "/users", 0, 0, captures);
+  EXPECT_EQ(captures.size(), 0);
+}
+
+// Route identifiers are handed out from one upwards, so zero names no route
+TEST_F(URITemplateRouterViewTest, context_of_identifier_zero) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/users", "op_1", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path_);
+  }
+
+  const sourcemeta::core::URITemplateRouterView view{this->path_};
+  EXPECT_EQ(view.context(0), 0);
+}
+
+TEST_F(URITemplateRouterViewTest, path_of_identifier_zero) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/users", "op_1", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path_);
+  }
+
+  const sourcemeta::core::URITemplateRouterView view{this->path_};
+  EXPECT_TRUE(view.path(0).empty());
+}
+
+TEST_F(URITemplateRouterViewTest, save_into_a_directory_that_does_not_exist) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/users", "op_1", 1);
+  const auto target{this->path_.parent_path() / "missing-directory" /
+                    "router.bin"};
+
+  try {
+    sourcemeta::core::URITemplateRouterView::save(router, target);
+    FAIL();
+  } catch (const sourcemeta::core::URITemplateRouterSaveError &error) {
+    EXPECT_EQ(error.path(), target);
+  }
+}
+
+// A buffer of no bytes is nothing to mirror, however it is aligned
+TEST(view_of_a_buffer_of_no_bytes) {
+  const std::array<std::uint8_t, 1> data{{0}};
+  const sourcemeta::core::URITemplateRouterView view{data.data(), 0};
+  EXPECT_EQ(view.size(), 0);
+  EXPECT_TRUE(view.base_path().empty());
+}
+
+// An unaligned buffer is mirrored into aligned storage, and a size that is
+// already a whole number of words needs no extra word for the remainder
+TEST_F(URITemplateRouterViewTest, view_of_an_unaligned_buffer_of_whole_words) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/users", "op_1", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path_);
+  }
+
+  std::vector<std::uint8_t> blob;
+  {
+    std::ifstream file{this->path_, std::ios::binary | std::ios::ate};
+    const auto size = static_cast<std::size_t>(file.tellg());
+    file.seekg(0, std::ios::beg);
+    blob.resize(size);
+    file.read(reinterpret_cast<char *>(blob.data()),
+              static_cast<std::streamsize>(size));
+  }
+
+  const auto words{
+      ((blob.size() + sizeof(std::uint64_t) - 1) / sizeof(std::uint64_t)) *
+      sizeof(std::uint64_t)};
+  std::vector<std::uint8_t> shifted(words + 1, 0);
+  std::memcpy(shifted.data() + 1, blob.data(), blob.size());
+
+  const sourcemeta::core::URITemplateRouterView view{shifted.data() + 1, words};
+  EXPECT_EQ(view.size(), 1);
+  EXPECT_TRUE(view.describes("/users"));
 }

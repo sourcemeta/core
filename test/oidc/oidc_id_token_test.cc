@@ -787,6 +787,199 @@ TEST(validate_rejects_a_required_code_hash_without_the_code) {
   EXPECT_FALSE(identity.has_value());
 }
 
+// OpenID Connect Core 1.0 Section 3.3.2.11 makes the code hash REQUIRED where
+// an identity token is issued from the authorization endpoint alongside a code,
+// so the binding has to be acceptable and not only refusable
+TEST(validate_accepts_a_required_code_hash) {
+  sourcemeta::core::OIDCIdTokenClaims claims;
+  claims.issuer = "https://issuer.example";
+  claims.subject = "user-1";
+  claims.audience = "client-id";
+  claims.issued_at = REFERENCE_NOW;
+  claims.expiration = REFERENCE_NOW + std::chrono::hours{1};
+  claims.code = "the-authorization-code";
+  const auto compact{sourcemeta::core::oidc_mint_id_token(
+      claims, oct_private_key(), sourcemeta::core::JWSAlgorithm::HS256)};
+  const auto token{sourcemeta::core::JWT::from(compact.value())};
+  EXPECT_TRUE(token.has_value());
+  EXPECT_TRUE(token.value().payload().defines("c_hash"));
+
+  sourcemeta::core::OIDCValidationOptions options;
+  options.code = "the-authorization-code";
+  options.require_code_hash = true;
+  const auto identity{sourcemeta::core::oidc_validate_id_token(
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, options)};
+  EXPECT_TRUE(identity.has_value());
+  EXPECT_EQ(identity.value().subject, "user-1");
+  EXPECT_EQ(identity.value().issuer, "https://issuer.example");
+  EXPECT_FALSE(identity.value().authentication_context_class.has_value());
+  EXPECT_FALSE(identity.value().authentication_time.has_value());
+}
+
+TEST(validate_accepts_a_required_access_token_hash) {
+  sourcemeta::core::OIDCIdTokenClaims claims;
+  claims.issuer = "https://issuer.example";
+  claims.subject = "user-1";
+  claims.audience = "client-id";
+  claims.issued_at = REFERENCE_NOW;
+  claims.expiration = REFERENCE_NOW + std::chrono::hours{1};
+  claims.access_token = "the-access-token";
+  const auto compact{sourcemeta::core::oidc_mint_id_token(
+      claims, oct_private_key(), sourcemeta::core::JWSAlgorithm::HS256)};
+  const auto token{sourcemeta::core::JWT::from(compact.value())};
+  EXPECT_TRUE(token.has_value());
+  EXPECT_TRUE(token.value().payload().defines("at_hash"));
+
+  sourcemeta::core::OIDCValidationOptions options;
+  options.access_token = "the-access-token";
+  options.require_access_token_hash = true;
+  const auto identity{sourcemeta::core::oidc_validate_id_token(
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, options)};
+  EXPECT_TRUE(identity.has_value());
+  EXPECT_EQ(identity.value().subject, "user-1");
+  EXPECT_EQ(identity.value().issuer, "https://issuer.example");
+  EXPECT_FALSE(identity.value().authentication_context_class.has_value());
+  EXPECT_FALSE(identity.value().authentication_time.has_value());
+}
+
+// OpenID Connect Core 1.0 Section 2 gives the authorized party as a
+// StringOrURI, so one that is no string carries no client identifier
+TEST(validate_rejects_an_authorized_party_that_is_not_a_string) {
+  const auto compact{sign_id_token(R"JSON({
+    "iss": "https://issuer.example",
+    "sub": "user-1",
+    "iat": 1699996400,
+    "exp": 2000000000,
+    "aud": [ "client-id", "other" ],
+    "azp": 123
+  })JSON")};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  // The second audience is trusted here, so the refusal can only come from the
+  // authorized party and not from the audience list
+  const std::array<std::string_view, 1> trusted{{"other"}};
+  sourcemeta::core::OIDCValidationOptions options;
+  options.trusted_audiences = trusted;
+  const auto identity{sourcemeta::core::oidc_validate_id_token(
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, options)};
+  EXPECT_FALSE(identity.has_value());
+}
+
+// Section 2 says the authorized party carries the client identifier of
+// the party the token was issued to, so another one is not this client
+TEST(validate_rejects_an_authorized_party_naming_another_client) {
+  const auto compact{sign_id_token(R"JSON({
+    "iss": "https://issuer.example",
+    "sub": "user-1",
+    "iat": 1699996400,
+    "exp": 2000000000,
+    "aud": [ "client-id", "other" ],
+    "azp": "other"
+  })JSON")};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  // The second audience is trusted here, so the refusal can only come from the
+  // authorized party and not from the audience list
+  const std::array<std::string_view, 1> trusted{{"other"}};
+  sourcemeta::core::OIDCValidationOptions options;
+  options.trusted_audiences = trusted;
+  const auto identity{sourcemeta::core::oidc_validate_id_token(
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, options)};
+  EXPECT_FALSE(identity.has_value());
+}
+
+// The same shape with one audience, where the party is optional but is
+// still read when it is written
+TEST(validate_rejects_a_single_audience_authorized_party_that_is_not_a_string) {
+  const auto compact{sign_id_token(R"JSON({
+    "iss": "https://issuer.example",
+    "sub": "user-1",
+    "iat": 1699996400,
+    "exp": 2000000000,
+    "aud": "client-id",
+    "azp": 123
+  })JSON")};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  const auto identity{sourcemeta::core::oidc_validate_id_token(
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW)};
+  EXPECT_FALSE(identity.has_value());
+}
+
+// Section 3.1.3.7 step 11 compares the nonce to the one sent, which a
+// value that is no string cannot be
+TEST(validate_rejects_a_nonce_that_is_not_a_string) {
+  const auto compact{sign_id_token(R"JSON({
+    "iss": "https://issuer.example",
+    "sub": "user-1",
+    "iat": 1699996400,
+    "exp": 2000000000,
+    "aud": "client-id",
+    "nonce": 123
+  })JSON")};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  sourcemeta::core::OIDCValidationOptions options;
+  options.nonce = "n-0S6_WzA2Mj";
+
+  const auto identity{sourcemeta::core::oidc_validate_id_token(
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, options)};
+  EXPECT_FALSE(identity.has_value());
+}
+
+// Section 2 gives the authentication context class reference as a
+// String, so one that is no string is not a reference
+TEST(validate_rejects_an_authentication_context_class_that_is_not_a_string) {
+  const auto compact{sign_id_token(R"JSON({
+    "iss": "https://issuer.example",
+    "sub": "user-1",
+    "iat": 1699996400,
+    "exp": 2000000000,
+    "aud": "client-id",
+    "acr": 123
+  })JSON")};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  const std::array<std::string_view, 1> acceptable{
+      {"urn:mace:incommon:iap:silver"}};
+  sourcemeta::core::OIDCValidationOptions options;
+  options.acceptable_authentication_context_classes = acceptable;
+
+  const auto identity{sourcemeta::core::oidc_validate_id_token(
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, options)};
+  EXPECT_FALSE(identity.has_value());
+}
+
+// Section 3.3.2.11 gives the access token hash as the base64url of a
+// digest, so a value that is no string is no hash
+TEST(validate_rejects_an_access_token_hash_that_is_not_a_string) {
+  const auto compact{sign_id_token(R"JSON({
+    "iss": "https://issuer.example",
+    "sub": "user-1",
+    "iat": 1699996400,
+    "exp": 2000000000,
+    "aud": "client-id",
+    "at_hash": 123
+  })JSON")};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  sourcemeta::core::OIDCValidationOptions options;
+  options.access_token = "the-access-token";
+  options.require_access_token_hash = true;
+
+  const auto identity{sourcemeta::core::oidc_validate_id_token(
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, options)};
+  EXPECT_FALSE(identity.has_value());
+}
+
 TEST(parse_id_token_extracts_the_member) {
   const auto response{sourcemeta::core::parse_json(R"JSON({
     "access_token": "at",
@@ -951,5 +1144,293 @@ TEST(validate_through_a_provider_rejects_a_wrong_issuer) {
   const auto identity{sourcemeta::core::oidc_validate_id_token(
       provider, token.value(), ALLOWED_HS256, "https://attacker.example",
       "client-id")};
+  EXPECT_FALSE(identity.has_value());
+}
+
+// A trusted audience is looked for across the whole set, not only its first
+// member
+TEST(validate_accepts_an_audience_trusted_later_in_the_set) {
+  const auto compact{sign_id_token(R"JSON({
+    "iss": "https://issuer.example",
+    "sub": "user-1",
+    "aud": [ "client-id", "second" ],
+    "azp": "client-id",
+    "iat": 1699996400,
+    "exp": 2000000000
+  })JSON")};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  const std::array<std::string_view, 2> trusted{{"other", "second"}};
+  sourcemeta::core::OIDCValidationOptions options;
+  options.trusted_audiences = trusted;
+  const auto identity{sourcemeta::core::oidc_validate_id_token(
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, options)};
+  EXPECT_TRUE(identity.has_value());
+}
+
+// OpenID Connect Core 1.0 Section 2 asks for an authorized party only where
+// there is more than one audience, so an array naming the client alone needs
+// none
+TEST(validate_accepts_an_audience_array_of_one_without_an_authorized_party) {
+  const auto compact{sign_id_token(R"JSON({
+    "iss": "https://issuer.example",
+    "sub": "user-1",
+    "aud": [ "client-id" ],
+    "iat": 1699996400,
+    "exp": 2000000000
+  })JSON")};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  const auto identity{sourcemeta::core::oidc_validate_id_token(
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW)};
+  EXPECT_TRUE(identity.has_value());
+}
+
+TEST(validate_accepts_an_authorized_party_naming_the_client) {
+  const auto compact{sign_id_token(R"JSON({
+    "iss": "https://issuer.example",
+    "sub": "user-1",
+    "aud": [ "client-id", "other" ],
+    "azp": "client-id",
+    "iat": 1699996400,
+    "exp": 2000000000
+  })JSON")};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  const std::array<std::string_view, 1> trusted{{"other"}};
+  sourcemeta::core::OIDCValidationOptions options;
+  options.trusted_audiences = trusted;
+  const auto identity{sourcemeta::core::oidc_validate_id_token(
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, options)};
+  EXPECT_TRUE(identity.has_value());
+}
+
+// RFC 7519 Section 2 gives a NumericDate as a number, so a claim of another
+// type carries no time and is read as absent
+TEST(validate_reads_a_non_numeric_authentication_time_as_absent) {
+  const auto compact{sign_id_token(R"JSON({
+    "iss": "https://issuer.example",
+    "sub": "user-1",
+    "aud": "client-id",
+    "auth_time": "soon",
+    "iat": 1699996400,
+    "exp": 2000000000
+  })JSON")};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  const auto identity{sourcemeta::core::oidc_validate_id_token(
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW)};
+  EXPECT_TRUE(identity.has_value());
+  EXPECT_FALSE(identity.value().authentication_time.has_value());
+}
+
+// OpenID Connect Core 1.0 Section 3.3.2.11 binds the hash to the access token
+// it was taken from, so there is nothing to check against without one
+TEST(validate_rejects_a_required_access_token_hash_with_no_access_token) {
+  sourcemeta::core::OIDCIdTokenClaims claims;
+  claims.issuer = "https://issuer.example";
+  claims.subject = "user-1";
+  claims.audience = "client-id";
+  claims.issued_at = REFERENCE_NOW;
+  claims.expiration = REFERENCE_NOW + std::chrono::hours{1};
+  claims.access_token = "the-access-token";
+  const auto compact{sourcemeta::core::oidc_mint_id_token(
+      claims, oct_private_key(), sourcemeta::core::JWSAlgorithm::HS256)};
+  const auto token{sourcemeta::core::JWT::from(compact.value())};
+  EXPECT_TRUE(token.has_value());
+
+  sourcemeta::core::OIDCValidationOptions options;
+  options.require_access_token_hash = true;
+  const auto identity{sourcemeta::core::oidc_validate_id_token(
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, options)};
+  EXPECT_FALSE(identity.has_value());
+}
+
+TEST(validate_rejects_an_unrequired_access_token_hash_that_is_not_a_string) {
+  const auto compact{sign_id_token(R"JSON({
+    "iss": "https://issuer.example",
+    "sub": "user-1",
+    "aud": "client-id",
+    "at_hash": 1,
+    "iat": 1699996400,
+    "exp": 2000000000
+  })JSON")};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  sourcemeta::core::OIDCValidationOptions options;
+  options.access_token = "the-access-token";
+  const auto identity{sourcemeta::core::oidc_validate_id_token(
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, options)};
+  EXPECT_FALSE(identity.has_value());
+}
+
+TEST(validate_rejects_a_required_code_hash_that_is_not_a_string) {
+  const auto compact{sign_id_token(R"JSON({
+    "iss": "https://issuer.example",
+    "sub": "user-1",
+    "aud": "client-id",
+    "c_hash": 1,
+    "iat": 1699996400,
+    "exp": 2000000000
+  })JSON")};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  sourcemeta::core::OIDCValidationOptions options;
+  options.code = "the-code";
+  options.require_code_hash = true;
+  const auto identity{sourcemeta::core::oidc_validate_id_token(
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, options)};
+  EXPECT_FALSE(identity.has_value());
+}
+
+// Without a code to hash there is nothing the claim can be held against, so a
+// present one is left alone
+TEST(validate_leaves_a_code_hash_alone_when_no_code_is_given) {
+  sourcemeta::core::OIDCIdTokenClaims claims;
+  claims.issuer = "https://issuer.example";
+  claims.subject = "user-1";
+  claims.audience = "client-id";
+  claims.issued_at = REFERENCE_NOW;
+  claims.expiration = REFERENCE_NOW + std::chrono::hours{1};
+  claims.code = "the-code";
+  const auto compact{sourcemeta::core::oidc_mint_id_token(
+      claims, oct_private_key(), sourcemeta::core::JWSAlgorithm::HS256)};
+  const auto token{sourcemeta::core::JWT::from(compact.value())};
+  EXPECT_TRUE(token.has_value());
+
+  const auto identity{sourcemeta::core::oidc_validate_id_token(
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW)};
+  EXPECT_TRUE(identity.has_value());
+}
+
+TEST(validate_rejects_a_code_hash_that_is_not_a_string_when_a_code_is_given) {
+  const auto compact{sign_id_token(R"JSON({
+    "iss": "https://issuer.example",
+    "sub": "user-1",
+    "aud": "client-id",
+    "c_hash": 1,
+    "iat": 1699996400,
+    "exp": 2000000000
+  })JSON")};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  sourcemeta::core::OIDCValidationOptions options;
+  options.code = "the-code";
+  const auto identity{sourcemeta::core::oidc_validate_id_token(
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, options)};
+  EXPECT_FALSE(identity.has_value());
+}
+
+TEST(validate_accepts_a_matching_code_hash_that_was_not_required) {
+  sourcemeta::core::OIDCIdTokenClaims claims;
+  claims.issuer = "https://issuer.example";
+  claims.subject = "user-1";
+  claims.audience = "client-id";
+  claims.issued_at = REFERENCE_NOW;
+  claims.expiration = REFERENCE_NOW + std::chrono::hours{1};
+  claims.code = "the-code";
+  const auto compact{sourcemeta::core::oidc_mint_id_token(
+      claims, oct_private_key(), sourcemeta::core::JWSAlgorithm::HS256)};
+  const auto token{sourcemeta::core::JWT::from(compact.value())};
+  EXPECT_TRUE(token.has_value());
+
+  sourcemeta::core::OIDCValidationOptions options;
+  options.code = "the-code";
+  const auto identity{sourcemeta::core::oidc_validate_id_token(
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, options)};
+  EXPECT_TRUE(identity.has_value());
+}
+
+// The authentication context class is reported only where the claim carries a
+// string, so one of another type leaves it unset
+TEST(validate_leaves_a_non_string_context_class_unreported) {
+  const auto compact{sign_id_token(R"JSON({
+    "iss": "https://issuer.example",
+    "sub": "user-1",
+    "aud": "client-id",
+    "acr": 1,
+    "iat": 1699996400,
+    "exp": 2000000000
+  })JSON")};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  const auto identity{sourcemeta::core::oidc_validate_id_token(
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW)};
+  EXPECT_TRUE(identity.has_value());
+  EXPECT_FALSE(identity.value().authentication_context_class.has_value());
+}
+
+// A single audience needs no authorized party, but one that is given is still
+// held to naming the client
+TEST(validate_accepts_a_single_audience_authorized_party_naming_the_client) {
+  const auto compact{sign_id_token(R"JSON({
+    "iss": "https://issuer.example",
+    "sub": "user-1",
+    "aud": "client-id",
+    "azp": "client-id",
+    "iat": 1699996400,
+    "exp": 2000000000
+  })JSON")};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  const auto identity{sourcemeta::core::oidc_validate_id_token(
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW)};
+  EXPECT_TRUE(identity.has_value());
+}
+
+// A required binding has to match, not merely be present
+TEST(validate_rejects_a_required_access_token_hash_that_does_not_match) {
+  sourcemeta::core::OIDCIdTokenClaims claims;
+  claims.issuer = "https://issuer.example";
+  claims.subject = "user-1";
+  claims.audience = "client-id";
+  claims.issued_at = REFERENCE_NOW;
+  claims.expiration = REFERENCE_NOW + std::chrono::hours{1};
+  claims.access_token = "the-access-token";
+  const auto compact{sourcemeta::core::oidc_mint_id_token(
+      claims, oct_private_key(), sourcemeta::core::JWSAlgorithm::HS256)};
+  const auto token{sourcemeta::core::JWT::from(compact.value())};
+  EXPECT_TRUE(token.has_value());
+
+  sourcemeta::core::OIDCValidationOptions options;
+  options.access_token = "the-wrong-access-token";
+  options.require_access_token_hash = true;
+  const auto identity{sourcemeta::core::oidc_validate_id_token(
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, options)};
+  EXPECT_FALSE(identity.has_value());
+}
+
+TEST(validate_rejects_a_required_code_hash_that_does_not_match) {
+  sourcemeta::core::OIDCIdTokenClaims claims;
+  claims.issuer = "https://issuer.example";
+  claims.subject = "user-1";
+  claims.audience = "client-id";
+  claims.issued_at = REFERENCE_NOW;
+  claims.expiration = REFERENCE_NOW + std::chrono::hours{1};
+  claims.code = "the-code";
+  const auto compact{sourcemeta::core::oidc_mint_id_token(
+      claims, oct_private_key(), sourcemeta::core::JWSAlgorithm::HS256)};
+  const auto token{sourcemeta::core::JWT::from(compact.value())};
+  EXPECT_TRUE(token.has_value());
+
+  sourcemeta::core::OIDCValidationOptions options;
+  options.code = "the-wrong-code";
+  options.require_code_hash = true;
+  const auto identity{sourcemeta::core::oidc_validate_id_token(
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, options)};
   EXPECT_FALSE(identity.has_value());
 }

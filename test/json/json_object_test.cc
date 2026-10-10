@@ -2038,3 +2038,807 @@ TEST(try_assign_before_existing_key_with_the_suffix_at_the_front) {
   std::advance(iterator, 2);
   EXPECT_EQ(iterator->first, "baz");
 }
+
+// The perfect hash copies key bytes into a zero filled block, so a key and the
+// same key followed by a null byte hash the same. RFC 8259 Section 7 admits a
+// null in a string, so both can sit in one object and only the size tells them
+// apart
+TEST(two_keys_that_differ_only_by_a_trailing_null) {
+  const sourcemeta::core::JSON::String bare{"a"};
+  const sourcemeta::core::JSON::String padded{"a\0", 2};
+  EXPECT_EQ(sourcemeta::core::JSON::Object::hash(bare),
+            sourcemeta::core::JSON::Object::hash(padded));
+
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign(bare, sourcemeta::core::JSON{1});
+  document.assign(padded, sourcemeta::core::JSON{2});
+
+  EXPECT_EQ(document.size(), 2);
+  EXPECT_TRUE(document.defines(bare));
+  EXPECT_TRUE(document.defines(padded));
+  EXPECT_EQ(document.at(bare).to_integer(), 1);
+  EXPECT_EQ(document.at(padded).to_integer(), 2);
+  EXPECT_TRUE(document.try_at(bare) != nullptr);
+  EXPECT_TRUE(document.try_at(padded) != nullptr);
+  EXPECT_EQ(document.try_at(bare)->to_integer(), 1);
+  EXPECT_EQ(document.try_at(padded)->to_integer(), 2);
+
+  document.erase(bare);
+  EXPECT_EQ(document.size(), 1);
+  EXPECT_FALSE(document.defines(bare));
+  EXPECT_TRUE(document.defines(padded));
+  EXPECT_EQ(document.at(padded).to_integer(), 2);
+}
+
+// A key of thirty-two bytes or more is hashed from its first thirty-one plus a
+// byte derived from its size and its end characters, so these two collide
+// outright and only comparing the whole string can tell them apart
+TEST(two_keys_of_thirty_two_bytes_or_more_that_hash_alike) {
+  const sourcemeta::core::JSON::String first{std::string(31, 'a') + "b"};
+  const sourcemeta::core::JSON::String second{std::string(31, 'a') + "za"};
+  EXPECT_EQ(first.size(), 32);
+  EXPECT_EQ(second.size(), 33);
+  EXPECT_EQ(sourcemeta::core::JSON::Object::hash(first),
+            sourcemeta::core::JSON::Object::hash(second));
+
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign(first, sourcemeta::core::JSON{1});
+  document.assign(second, sourcemeta::core::JSON{2});
+
+  EXPECT_EQ(document.size(), 2);
+  EXPECT_TRUE(document.defines(first));
+  EXPECT_TRUE(document.defines(second));
+  EXPECT_EQ(document.at(first).to_integer(), 1);
+  EXPECT_EQ(document.at(second).to_integer(), 2);
+  EXPECT_EQ(document.try_at(first)->to_integer(), 1);
+  EXPECT_EQ(document.try_at(second)->to_integer(), 2);
+
+  document.erase(first);
+  EXPECT_EQ(document.size(), 1);
+  EXPECT_FALSE(document.defines(first));
+  EXPECT_TRUE(document.defines(second));
+  EXPECT_EQ(document.at(second).to_integer(), 2);
+}
+
+// A key that hashes to the same place as one the object holds but is not it,
+// so the lookup has to walk past a candidate and then report nothing
+TEST(a_miss_on_a_key_that_collides_with_one_that_is_held) {
+  const sourcemeta::core::JSON::String held{std::string(31, 'a') + "b"};
+  const sourcemeta::core::JSON::String absent{std::string(31, 'a') + "za"};
+  EXPECT_EQ(sourcemeta::core::JSON::Object::hash(held),
+            sourcemeta::core::JSON::Object::hash(absent));
+
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign(held, sourcemeta::core::JSON{1});
+
+  EXPECT_EQ(document.size(), 1);
+  EXPECT_FALSE(document.defines(absent));
+  EXPECT_TRUE(document.try_at(absent) == nullptr);
+  document.erase(absent);
+  EXPECT_EQ(document.size(), 1);
+  EXPECT_TRUE(document.defines(held));
+}
+
+// The hash only takes the first 31 bytes verbatim, so a longer key folds its
+// size and its outer bytes into the first byte and stops being a perfect hash,
+// which makes the lookups compare whole keys rather than only their lengths
+TEST(find_a_key_too_long_to_hash_perfectly) {
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign("property_with_a_very_long_name_one",
+                  sourcemeta::core::JSON{1});
+  document.assign("property_with_a_very_long_name_two",
+                  sourcemeta::core::JSON{2});
+
+  const auto &object{document.as_object()};
+  EXPECT_NE(object.find("property_with_a_very_long_name_one"), object.cend());
+  EXPECT_EQ(
+      object.find("property_with_a_very_long_name_one")->second.to_integer(),
+      1);
+  EXPECT_NE(object.find("property_with_a_very_long_name_two"), object.cend());
+  EXPECT_EQ(
+      object.find("property_with_a_very_long_name_two")->second.to_integer(),
+      2);
+  EXPECT_EQ(object.find("property_with_a_very_long_name_six"), object.cend());
+}
+
+// Two keys that agree on their first 31 bytes, their size, and their outer
+// bytes hash alike, so only comparing the keys themselves tells them apart
+TEST(find_two_long_keys_that_share_a_hash) {
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign("property_with_a_very_long_name_oAe",
+                  sourcemeta::core::JSON{1});
+  document.assign("property_with_a_very_long_name_oBe",
+                  sourcemeta::core::JSON{2});
+
+  const auto &object{document.as_object()};
+  EXPECT_EQ(object.hash("property_with_a_very_long_name_oAe"),
+            object.hash("property_with_a_very_long_name_oBe"));
+
+  EXPECT_EQ(
+      object.find("property_with_a_very_long_name_oAe")->second.to_integer(),
+      1);
+  EXPECT_EQ(
+      object.find("property_with_a_very_long_name_oBe")->second.to_integer(),
+      2);
+  EXPECT_EQ(object.find("property_with_a_very_long_name_oCe"), object.cend());
+}
+
+TEST(defines_hash_a_key_too_long_to_hash_perfectly) {
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign("property_with_a_very_long_name_one",
+                  sourcemeta::core::JSON{1});
+  document.assign("property_with_a_very_long_name_two",
+                  sourcemeta::core::JSON{2});
+
+  const auto &object{document.as_object()};
+  EXPECT_TRUE(
+      document.defines(std::string_view{"property_with_a_very_long_name_one"},
+                       object.hash("property_with_a_very_long_name_one")));
+  EXPECT_TRUE(
+      document.defines(std::string_view{"property_with_a_very_long_name_two"},
+                       object.hash("property_with_a_very_long_name_two")));
+  EXPECT_FALSE(
+      document.defines(std::string_view{"property_with_a_very_long_name_six"},
+                       object.hash("property_with_a_very_long_name_six")));
+}
+
+TEST(at_hash_const_a_key_too_long_to_hash_perfectly) {
+  auto mutable_document{sourcemeta::core::JSON::make_object()};
+  mutable_document.assign("property_with_a_very_long_name_one",
+                          sourcemeta::core::JSON{1});
+  mutable_document.assign("property_with_a_very_long_name_two",
+                          sourcemeta::core::JSON{2});
+  const auto document{mutable_document};
+
+  const auto &object{document.as_object()};
+  const sourcemeta::core::JSON::String first{
+      "property_with_a_very_long_name_one"};
+  const sourcemeta::core::JSON::String second{
+      "property_with_a_very_long_name_two"};
+  EXPECT_EQ(document.at(first, object.hash(first)).to_integer(), 1);
+  EXPECT_EQ(document.at(second, object.hash(second)).to_integer(), 2);
+}
+
+TEST(at_hash_const_string_view_a_key_too_long_to_hash_perfectly) {
+  auto mutable_document{sourcemeta::core::JSON::make_object()};
+  mutable_document.assign("property_with_a_very_long_name_one",
+                          sourcemeta::core::JSON{1});
+  mutable_document.assign("property_with_a_very_long_name_two",
+                          sourcemeta::core::JSON{2});
+  const auto document{mutable_document};
+
+  const auto &object{document.as_object()};
+  EXPECT_EQ(document
+                .at(std::string_view{"property_with_a_very_long_name_one"},
+                    object.hash("property_with_a_very_long_name_one"))
+                .to_integer(),
+            1);
+  EXPECT_EQ(document
+                .at(std::string_view{"property_with_a_very_long_name_two"},
+                    object.hash("property_with_a_very_long_name_two"))
+                .to_integer(),
+            2);
+}
+
+TEST(at_hash_non_const_a_key_too_long_to_hash_perfectly) {
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign("property_with_a_very_long_name_one",
+                  sourcemeta::core::JSON{1});
+  document.assign("property_with_a_very_long_name_two",
+                  sourcemeta::core::JSON{2});
+
+  const sourcemeta::core::JSON::String first{
+      "property_with_a_very_long_name_one"};
+  const sourcemeta::core::JSON::String second{
+      "property_with_a_very_long_name_two"};
+  const auto first_hash{document.as_object().hash(first)};
+  const auto second_hash{document.as_object().hash(second)};
+  EXPECT_EQ(document.at(first, first_hash).to_integer(), 1);
+  EXPECT_EQ(document.at(second, second_hash).to_integer(), 2);
+}
+
+TEST(at_hash_non_const_string_view_a_key_too_long_to_hash_perfectly) {
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign("property_with_a_very_long_name_one",
+                  sourcemeta::core::JSON{1});
+  document.assign("property_with_a_very_long_name_two",
+                  sourcemeta::core::JSON{2});
+
+  const auto first_hash{
+      document.as_object().hash("property_with_a_very_long_name_one")};
+  const auto second_hash{
+      document.as_object().hash("property_with_a_very_long_name_two")};
+  EXPECT_EQ(document
+                .at(std::string_view{"property_with_a_very_long_name_one"},
+                    first_hash)
+                .to_integer(),
+            1);
+  EXPECT_EQ(document
+                .at(std::string_view{"property_with_a_very_long_name_two"},
+                    second_hash)
+                .to_integer(),
+            2);
+}
+
+TEST(try_at_hash_non_const_string_view_a_key_too_long_to_hash_perfectly) {
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign("property_with_a_very_long_name_one",
+                  sourcemeta::core::JSON{1});
+  document.assign("property_with_a_very_long_name_two",
+                  sourcemeta::core::JSON{2});
+
+  const auto first_hash{
+      document.as_object().hash("property_with_a_very_long_name_one")};
+  const auto absent_hash{
+      document.as_object().hash("property_with_a_very_long_name_six")};
+  auto *first{document.try_at(
+      std::string_view{"property_with_a_very_long_name_one"}, first_hash)};
+  EXPECT_TRUE(first != nullptr);
+  EXPECT_EQ(first->to_integer(), 1);
+  EXPECT_TRUE(
+      document.try_at(std::string_view{"property_with_a_very_long_name_six"},
+                      absent_hash) == nullptr);
+}
+
+TEST(try_at_hash_const_a_key_too_long_to_hash_perfectly) {
+  auto mutable_document{sourcemeta::core::JSON::make_object()};
+  mutable_document.assign("property_with_a_very_long_name_one",
+                          sourcemeta::core::JSON{1});
+  mutable_document.assign("property_with_a_very_long_name_two",
+                          sourcemeta::core::JSON{2});
+  const auto document{mutable_document};
+
+  const auto &object{document.as_object()};
+  const sourcemeta::core::JSON::String first{
+      "property_with_a_very_long_name_one"};
+  const sourcemeta::core::JSON::String absent{
+      "property_with_a_very_long_name_six"};
+  const auto *found{document.try_at(first, object.hash(first))};
+  EXPECT_TRUE(found != nullptr);
+  EXPECT_EQ(found->to_integer(), 1);
+  EXPECT_TRUE(document.try_at(absent, object.hash(absent)) == nullptr);
+}
+
+TEST(try_at_hash_const_string_view_a_key_too_long_to_hash_perfectly) {
+  auto mutable_document{sourcemeta::core::JSON::make_object()};
+  mutable_document.assign("property_with_a_very_long_name_one",
+                          sourcemeta::core::JSON{1});
+  mutable_document.assign("property_with_a_very_long_name_two",
+                          sourcemeta::core::JSON{2});
+  const auto document{mutable_document};
+
+  const auto &object{document.as_object()};
+  const auto *found{
+      document.try_at(std::string_view{"property_with_a_very_long_name_two"},
+                      object.hash("property_with_a_very_long_name_two"))};
+  EXPECT_TRUE(found != nullptr);
+  EXPECT_EQ(found->to_integer(), 2);
+  EXPECT_TRUE(
+      document.try_at(std::string_view{"property_with_a_very_long_name_six"},
+                      object.hash("property_with_a_very_long_name_six")) ==
+      nullptr);
+}
+
+TEST(try_at_start_a_key_too_long_to_hash_perfectly) {
+  auto mutable_document{sourcemeta::core::JSON::make_object()};
+  mutable_document.assign("property_with_a_very_long_name_one",
+                          sourcemeta::core::JSON{1});
+  mutable_document.assign("property_with_a_very_long_name_two",
+                          sourcemeta::core::JSON{2});
+  const auto document{mutable_document};
+
+  const auto &object{document.as_object()};
+  const sourcemeta::core::JSON::String first{
+      "property_with_a_very_long_name_one"};
+  const sourcemeta::core::JSON::String second{
+      "property_with_a_very_long_name_two"};
+  const sourcemeta::core::JSON::String absent{
+      "property_with_a_very_long_name_six"};
+
+  sourcemeta::core::JSON::Object::size_type start{0};
+  const auto *found_first{object.try_at(first, object.hash(first), start)};
+  EXPECT_TRUE(found_first != nullptr);
+  EXPECT_EQ(found_first->to_integer(), 1);
+  EXPECT_EQ(start, 1);
+
+  const auto *found_second{object.try_at(second, object.hash(second), start)};
+  EXPECT_TRUE(found_second != nullptr);
+  EXPECT_EQ(found_second->to_integer(), 2);
+  EXPECT_EQ(start, 2);
+
+  EXPECT_TRUE(object.try_at(absent, object.hash(absent), start) == nullptr);
+  EXPECT_EQ(start, 2);
+}
+
+TEST(try_at_start_string_view_a_key_too_long_to_hash_perfectly) {
+  auto mutable_document{sourcemeta::core::JSON::make_object()};
+  mutable_document.assign("property_with_a_very_long_name_one",
+                          sourcemeta::core::JSON{1});
+  mutable_document.assign("property_with_a_very_long_name_two",
+                          sourcemeta::core::JSON{2});
+  const auto document{mutable_document};
+
+  const auto &object{document.as_object()};
+  sourcemeta::core::JSON::Object::size_type start{0};
+  const auto *found{
+      object.try_at(std::string_view{"property_with_a_very_long_name_one"},
+                    object.hash("property_with_a_very_long_name_one"), start)};
+  EXPECT_TRUE(found != nullptr);
+  EXPECT_EQ(found->to_integer(), 1);
+  EXPECT_EQ(start, 1);
+
+  EXPECT_TRUE(
+      object.try_at(std::string_view{"property_with_a_very_long_name_six"},
+                    object.hash("property_with_a_very_long_name_six"),
+                    start) == nullptr);
+  EXPECT_EQ(start, 1);
+}
+
+// The ordering is decided by the smallest key at which the objects differ, so
+// a difference found later in insertion order but earlier in key order has to
+// displace the one already held
+TEST(less_than_prefers_a_smaller_key_found_later) {
+  auto left{sourcemeta::core::JSON::make_object()};
+  left.assign("b", sourcemeta::core::JSON{1});
+  left.assign("a", sourcemeta::core::JSON{2});
+  auto right{sourcemeta::core::JSON::make_object()};
+  right.assign("b", sourcemeta::core::JSON{2});
+  right.assign("a", sourcemeta::core::JSON{1});
+
+  EXPECT_FALSE(left < right);
+  EXPECT_TRUE(right < left);
+}
+
+// A key the other object holds alone can be the smallest point of difference,
+// which orders this object after it
+TEST(less_than_defers_to_a_smaller_key_held_only_by_the_other) {
+  auto left{sourcemeta::core::JSON::make_object()};
+  left.assign("b", sourcemeta::core::JSON{1});
+  auto right{sourcemeta::core::JSON::make_object()};
+  right.assign("a", sourcemeta::core::JSON{1});
+
+  EXPECT_FALSE(left < right);
+  EXPECT_TRUE(right < left);
+}
+
+// A key short enough to hash perfectly is copied into a zeroed buffer, so one
+// key and the same key followed by a null byte produce the very same hash and
+// are told apart only by their length
+TEST(find_two_keys_differing_only_by_a_trailing_null) {
+  sourcemeta::core::JSON::String padded{"ab"};
+  padded.push_back('\0');
+
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign(sourcemeta::core::JSON::String{"ab"},
+                  sourcemeta::core::JSON{1});
+  document.assign(padded, sourcemeta::core::JSON{2});
+
+  const auto &object{document.as_object()};
+  EXPECT_EQ(object.hash("ab"), object.hash(padded));
+  EXPECT_EQ(object.find("ab")->second.to_integer(), 1);
+  EXPECT_EQ(object.find(padded)->second.to_integer(), 2);
+}
+
+TEST(defines_hash_two_keys_differing_only_by_a_trailing_null) {
+  sourcemeta::core::JSON::String padded{"ab"};
+  padded.push_back('\0');
+
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign(sourcemeta::core::JSON::String{"ab"},
+                  sourcemeta::core::JSON{1});
+
+  const auto &object{document.as_object()};
+  EXPECT_TRUE(document.defines(std::string_view{"ab"}, object.hash("ab")));
+  EXPECT_FALSE(document.defines(std::string_view{padded}, object.hash(padded)));
+}
+
+TEST(at_hash_const_two_keys_differing_only_by_a_trailing_null) {
+  sourcemeta::core::JSON::String padded{"ab"};
+  padded.push_back('\0');
+
+  auto mutable_document{sourcemeta::core::JSON::make_object()};
+  mutable_document.assign(sourcemeta::core::JSON::String{"ab"},
+                          sourcemeta::core::JSON{1});
+  mutable_document.assign(padded, sourcemeta::core::JSON{2});
+  const auto document{mutable_document};
+
+  const auto &object{document.as_object()};
+  EXPECT_EQ(document.at(padded, object.hash(padded)).to_integer(), 2);
+}
+
+TEST(at_hash_const_string_view_two_keys_differing_only_by_a_trailing_null) {
+  sourcemeta::core::JSON::String padded{"ab"};
+  padded.push_back('\0');
+
+  auto mutable_document{sourcemeta::core::JSON::make_object()};
+  mutable_document.assign(sourcemeta::core::JSON::String{"ab"},
+                          sourcemeta::core::JSON{1});
+  mutable_document.assign(padded, sourcemeta::core::JSON{2});
+  const auto document{mutable_document};
+
+  const auto &object{document.as_object()};
+  EXPECT_EQ(
+      document.at(std::string_view{padded}, object.hash(padded)).to_integer(),
+      2);
+}
+
+TEST(at_hash_non_const_string_view_two_keys_differing_only_by_a_trailing_null) {
+  sourcemeta::core::JSON::String padded{"ab"};
+  padded.push_back('\0');
+
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign(sourcemeta::core::JSON::String{"ab"},
+                  sourcemeta::core::JSON{1});
+  document.assign(padded, sourcemeta::core::JSON{2});
+
+  const auto padded_hash{document.as_object().hash(padded)};
+  EXPECT_EQ(document.at(std::string_view{padded}, padded_hash).to_integer(), 2);
+}
+
+TEST(try_at_hash_non_const_string_view_two_keys_differing_by_a_trailing_null) {
+  sourcemeta::core::JSON::String padded{"ab"};
+  padded.push_back('\0');
+
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign(sourcemeta::core::JSON::String{"ab"},
+                  sourcemeta::core::JSON{1});
+
+  const auto padded_hash{document.as_object().hash(padded)};
+  EXPECT_TRUE(document.try_at(std::string_view{padded}, padded_hash) ==
+              nullptr);
+}
+
+TEST(try_at_hash_const_two_keys_differing_only_by_a_trailing_null) {
+  sourcemeta::core::JSON::String padded{"ab"};
+  padded.push_back('\0');
+
+  auto mutable_document{sourcemeta::core::JSON::make_object()};
+  mutable_document.assign(sourcemeta::core::JSON::String{"ab"},
+                          sourcemeta::core::JSON{1});
+  const auto document{mutable_document};
+
+  const auto &object{document.as_object()};
+  EXPECT_TRUE(document.try_at(padded, object.hash(padded)) == nullptr);
+}
+
+TEST(try_at_hash_const_string_view_two_keys_differing_by_a_trailing_null) {
+  sourcemeta::core::JSON::String padded{"ab"};
+  padded.push_back('\0');
+
+  auto mutable_document{sourcemeta::core::JSON::make_object()};
+  mutable_document.assign(sourcemeta::core::JSON::String{"ab"},
+                          sourcemeta::core::JSON{1});
+  const auto document{mutable_document};
+
+  const auto &object{document.as_object()};
+  EXPECT_TRUE(document.try_at(std::string_view{padded}, object.hash(padded)) ==
+              nullptr);
+}
+
+TEST(try_at_start_two_keys_differing_only_by_a_trailing_null) {
+  sourcemeta::core::JSON::String padded{"ab"};
+  padded.push_back('\0');
+
+  auto mutable_document{sourcemeta::core::JSON::make_object()};
+  mutable_document.assign(sourcemeta::core::JSON::String{"ab"},
+                          sourcemeta::core::JSON{1});
+  const auto document{mutable_document};
+
+  const auto &object{document.as_object()};
+  sourcemeta::core::JSON::Object::size_type start{0};
+  EXPECT_TRUE(object.try_at(padded, object.hash(padded), start) == nullptr);
+  EXPECT_EQ(start, 0);
+}
+
+TEST(try_at_start_string_view_two_keys_differing_by_a_trailing_null) {
+  sourcemeta::core::JSON::String padded{"ab"};
+  padded.push_back('\0');
+
+  auto mutable_document{sourcemeta::core::JSON::make_object()};
+  mutable_document.assign(sourcemeta::core::JSON::String{"ab"},
+                          sourcemeta::core::JSON{1});
+  const auto document{mutable_document};
+
+  const auto &object{document.as_object()};
+  sourcemeta::core::JSON::Object::size_type start{0};
+  EXPECT_TRUE(object.try_at(std::string_view{padded}, object.hash(padded),
+                            start) == nullptr);
+  EXPECT_EQ(start, 0);
+}
+
+TEST(assign_two_keys_differing_only_by_a_trailing_null) {
+  sourcemeta::core::JSON::String padded{"ab"};
+  padded.push_back('\0');
+
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign(sourcemeta::core::JSON::String{"ab"},
+                  sourcemeta::core::JSON{1});
+  document.assign(padded, sourcemeta::core::JSON{2});
+
+  EXPECT_EQ(document.size(), 2);
+  EXPECT_EQ(document.at(sourcemeta::core::JSON::String{"ab"}).to_integer(), 1);
+  EXPECT_EQ(document.at(padded).to_integer(), 2);
+}
+
+TEST(assign_moved_two_keys_differing_only_by_a_trailing_null) {
+  sourcemeta::core::JSON::String padded{"ab"};
+  padded.push_back('\0');
+
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign(sourcemeta::core::JSON::String{"ab"},
+                  sourcemeta::core::JSON{1});
+  document.assign(padded, sourcemeta::core::JSON{2});
+
+  EXPECT_EQ(document.size(), 2);
+  EXPECT_EQ(document.at(padded).to_integer(), 2);
+}
+
+TEST(rename_two_keys_differing_only_by_a_trailing_null) {
+  sourcemeta::core::JSON::String padded{"ab"};
+  padded.push_back('\0');
+
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign(sourcemeta::core::JSON::String{"ab"},
+                  sourcemeta::core::JSON{1});
+  document.rename(padded, sourcemeta::core::JSON::String{"cd"});
+
+  EXPECT_EQ(document.size(), 1);
+  EXPECT_TRUE(document.defines(sourcemeta::core::JSON::String{"ab"}));
+  EXPECT_FALSE(document.defines(sourcemeta::core::JSON::String{"cd"}));
+}
+
+TEST(erase_two_keys_differing_only_by_a_trailing_null) {
+  sourcemeta::core::JSON::String padded{"ab"};
+  padded.push_back('\0');
+
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign(sourcemeta::core::JSON::String{"ab"},
+                  sourcemeta::core::JSON{1});
+
+  EXPECT_EQ(document.erase(padded), 1);
+  EXPECT_EQ(document.size(), 1);
+  EXPECT_TRUE(document.defines(sourcemeta::core::JSON::String{"ab"}));
+}
+
+TEST(erase_string_view_two_keys_differing_only_by_a_trailing_null) {
+  sourcemeta::core::JSON::String padded{"ab"};
+  padded.push_back('\0');
+
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign(sourcemeta::core::JSON::String{"ab"},
+                  sourcemeta::core::JSON{1});
+
+  EXPECT_EQ(document.erase(std::string_view{padded}), 1);
+  EXPECT_EQ(document.size(), 1);
+  EXPECT_TRUE(document.defines(sourcemeta::core::JSON::String{"ab"}));
+}
+
+TEST(try_assign_before_two_keys_differing_only_by_a_trailing_null) {
+  sourcemeta::core::JSON::String padded{"ab"};
+  padded.push_back('\0');
+
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign(sourcemeta::core::JSON::String{"ab"},
+                  sourcemeta::core::JSON{1});
+  const sourcemeta::core::JSON value{2};
+  document.try_assign_before(padded, value,
+                             sourcemeta::core::JSON::String{"ab"});
+
+  EXPECT_EQ(document.size(), 2);
+  EXPECT_EQ(document.as_object().cbegin()->first, padded);
+}
+
+// Two keys agreeing on their first 31 bytes, their length, and their outer
+// bytes share a hash without being equal, so the lookups past the hash have to
+// compare the keys themselves
+TEST(at_hash_const_string_view_two_long_keys_that_share_a_hash) {
+  auto mutable_document{sourcemeta::core::JSON::make_object()};
+  mutable_document.assign("property_with_a_very_long_name_oAe",
+                          sourcemeta::core::JSON{1});
+  mutable_document.assign("property_with_a_very_long_name_oBe",
+                          sourcemeta::core::JSON{2});
+  const auto document{mutable_document};
+
+  const auto &object{document.as_object()};
+  EXPECT_EQ(document
+                .at(std::string_view{"property_with_a_very_long_name_oBe"},
+                    object.hash("property_with_a_very_long_name_oBe"))
+                .to_integer(),
+            2);
+}
+
+TEST(try_at_hash_non_const_string_view_two_long_keys_that_share_a_hash) {
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign("property_with_a_very_long_name_oAe",
+                  sourcemeta::core::JSON{1});
+
+  const auto absent_hash{
+      document.as_object().hash("property_with_a_very_long_name_oBe")};
+  EXPECT_TRUE(
+      document.try_at(std::string_view{"property_with_a_very_long_name_oBe"},
+                      absent_hash) == nullptr);
+}
+
+TEST(try_at_hash_const_string_view_two_long_keys_that_share_a_hash) {
+  auto mutable_document{sourcemeta::core::JSON::make_object()};
+  mutable_document.assign("property_with_a_very_long_name_oAe",
+                          sourcemeta::core::JSON{1});
+  const auto document{mutable_document};
+
+  const auto &object{document.as_object()};
+  EXPECT_TRUE(
+      document.try_at(std::string_view{"property_with_a_very_long_name_oBe"},
+                      object.hash("property_with_a_very_long_name_oBe")) ==
+      nullptr);
+}
+
+TEST(erase_string_view_two_long_keys_that_share_a_hash) {
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign("property_with_a_very_long_name_oAe",
+                  sourcemeta::core::JSON{1});
+
+  EXPECT_EQ(
+      document.erase(std::string_view{"property_with_a_very_long_name_oBe"}),
+      1);
+  EXPECT_TRUE(document.defines("property_with_a_very_long_name_oAe"));
+}
+
+TEST(rename_two_long_keys_that_share_a_hash) {
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign("property_with_a_very_long_name_oAe",
+                  sourcemeta::core::JSON{1});
+  document.rename(
+      sourcemeta::core::JSON::String{"property_with_a_very_long_name_oBe"},
+      sourcemeta::core::JSON::String{"cd"});
+
+  EXPECT_EQ(document.size(), 1);
+  EXPECT_TRUE(document.defines("property_with_a_very_long_name_oAe"));
+  EXPECT_FALSE(document.defines("cd"));
+}
+
+TEST(try_at_start_string_view_scanning_past_every_entry) {
+  const auto document{sourcemeta::core::parse_json(R"({"foo":1,"bar":2})")};
+  const auto &object{document.as_object()};
+  sourcemeta::core::JSON::Object::size_type start{0};
+  EXPECT_TRUE(object.try_at(std::string_view{"baz"}, object.hash("baz"),
+                            start) == nullptr);
+  EXPECT_EQ(start, 0);
+}
+
+// The entry named as the anchor has to be the one compared, not merely one
+// whose hash agrees with it
+TEST(try_assign_before_an_anchor_whose_hash_collides) {
+  sourcemeta::core::JSON::String padded{"ab"};
+  padded.push_back('\0');
+
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign(padded, sourcemeta::core::JSON{1});
+  document.assign(sourcemeta::core::JSON::String{"zz"},
+                  sourcemeta::core::JSON{2});
+  const sourcemeta::core::JSON value{3};
+  document.try_assign_before(sourcemeta::core::JSON::String{"cd"}, value,
+                             sourcemeta::core::JSON::String{"ab"});
+
+  EXPECT_EQ(document.size(), 3);
+  EXPECT_EQ(document.as_object().cbegin()->first, padded);
+  EXPECT_EQ(std::next(document.as_object().cbegin(), 2)->first, "cd");
+}
+
+TEST(try_assign_before_an_anchor_that_is_not_the_last_entry) {
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign(sourcemeta::core::JSON::String{"ab"},
+                  sourcemeta::core::JSON{1});
+  document.assign(sourcemeta::core::JSON::String{"zz"},
+                  sourcemeta::core::JSON{2});
+  const sourcemeta::core::JSON value{3};
+  document.try_assign_before(sourcemeta::core::JSON::String{"cd"}, value,
+                             sourcemeta::core::JSON::String{"ab"});
+
+  EXPECT_EQ(document.size(), 3);
+  EXPECT_EQ(document.as_object().cbegin()->first, "cd");
+  EXPECT_EQ(std::next(document.as_object().cbegin())->first, "ab");
+  EXPECT_EQ(std::next(document.as_object().cbegin(), 2)->first, "zz");
+}
+
+TEST(try_assign_before_a_long_key_sharing_a_hash_with_the_anchor) {
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign("property_with_a_very_long_name_oAe",
+                  sourcemeta::core::JSON{1});
+  document.assign(sourcemeta::core::JSON::String{"zz"},
+                  sourcemeta::core::JSON{2});
+  const sourcemeta::core::JSON value{3};
+  document.try_assign_before(
+      sourcemeta::core::JSON::String{"property_with_a_very_long_name_oBe"},
+      value,
+      sourcemeta::core::JSON::String{"property_with_a_very_long_name_oAe"});
+
+  EXPECT_EQ(document.size(), 3);
+  EXPECT_EQ(document.as_object().cbegin()->first,
+            "property_with_a_very_long_name_oBe");
+  EXPECT_EQ(std::next(document.as_object().cbegin())->first,
+            "property_with_a_very_long_name_oAe");
+}
+
+TEST(try_assign_before_an_anchor_sharing_a_hash_with_a_long_entry) {
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign("property_with_a_very_long_name_oBe",
+                  sourcemeta::core::JSON{1});
+  document.assign(sourcemeta::core::JSON::String{"zz"},
+                  sourcemeta::core::JSON{2});
+  const sourcemeta::core::JSON value{3};
+  document.try_assign_before(
+      sourcemeta::core::JSON::String{"another_very_long_property_name_xyz"},
+      value,
+      sourcemeta::core::JSON::String{"property_with_a_very_long_name_oAe"});
+
+  EXPECT_EQ(document.size(), 3);
+  EXPECT_EQ(std::next(document.as_object().cbegin(), 2)->first,
+            "another_very_long_property_name_xyz");
+}
+
+// A parsed document builds its keys in place, where a key written with an
+// escaped null byte shares its hash with the key it extends
+TEST(parse_two_keys_differing_only_by_a_trailing_null) {
+  sourcemeta::core::JSON::String padded{"ab"};
+  padded.push_back('\0');
+
+  const auto document{sourcemeta::core::parse_json(R"({"ab":1,"ab\u0000":2})")};
+  EXPECT_EQ(document.size(), 2);
+  EXPECT_EQ(document.at(sourcemeta::core::JSON::String{"ab"}).to_integer(), 1);
+  EXPECT_EQ(document.at(padded).to_integer(), 2);
+}
+
+TEST(assign_a_held_value_over_two_keys_differing_by_a_trailing_null) {
+  sourcemeta::core::JSON::String padded{"ab"};
+  padded.push_back('\0');
+
+  auto document{sourcemeta::core::JSON::make_object()};
+  const sourcemeta::core::JSON first{1};
+  const sourcemeta::core::JSON second{2};
+  document.assign(sourcemeta::core::JSON::String{"ab"}, first);
+  document.assign(padded, second);
+
+  EXPECT_EQ(document.size(), 2);
+  EXPECT_EQ(document.at(sourcemeta::core::JSON::String{"ab"}).to_integer(), 1);
+  EXPECT_EQ(document.at(padded).to_integer(), 2);
+}
+
+TEST(erase_hash_string_view_two_long_keys_that_share_a_hash) {
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign("property_with_a_very_long_name_oAe",
+                  sourcemeta::core::JSON{1});
+
+  const auto absent_hash{
+      document.as_object().hash("property_with_a_very_long_name_oBe")};
+  EXPECT_EQ(
+      document.erase(std::string_view{"property_with_a_very_long_name_oBe"},
+                     absent_hash),
+      1);
+  EXPECT_TRUE(document.defines("property_with_a_very_long_name_oAe"));
+}
+
+TEST(assign_string_view_two_keys_differing_only_by_a_trailing_null) {
+  sourcemeta::core::JSON::String padded{"ab"};
+  padded.push_back('\0');
+
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign(std::string_view{"ab"}, sourcemeta::core::JSON{1});
+  document.assign(std::string_view{padded}, sourcemeta::core::JSON{2});
+
+  EXPECT_EQ(document.size(), 2);
+  EXPECT_EQ(document.at(sourcemeta::core::JSON::String{"ab"}).to_integer(), 1);
+  EXPECT_EQ(document.at(padded).to_integer(), 2);
+}
+
+TEST(erase_hash_string_view_a_long_key_against_an_unrelated_entry) {
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign("zz", sourcemeta::core::JSON{1});
+
+  const auto absent_hash{
+      document.as_object().hash("property_with_a_very_long_name_oAe")};
+  EXPECT_EQ(
+      document.erase(std::string_view{"property_with_a_very_long_name_oAe"},
+                     absent_hash),
+      1);
+  EXPECT_TRUE(document.defines("zz"));
+}

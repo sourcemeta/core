@@ -789,3 +789,16 @@ TEST(read_json_in_place_with_callback_invalid) {
     FAIL();
   }
 }
+
+TEST(number_out_of_range_exponent_at_the_root) {
+  EXPECT_PARSE_ERROR("\n\n  1e999999999999999999999", 3, 3);
+}
+
+TEST(number_out_of_range_exponent_in_an_array) {
+  EXPECT_PARSE_ERROR("[\n  1,\n  1e999999999999999999999\n]", 3, 3);
+}
+
+TEST(number_out_of_range_exponent_in_an_object) {
+  EXPECT_PARSE_ERROR("{\n  \"foo\": 1,\n  \"bar\": 1e999999999999999999999\n}",
+                     3, 10);
+}

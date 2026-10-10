@@ -226,3 +226,10 @@ TEST(format_year_below_1000_pads_to_four_digits) {
     EXPECT_EQ(sourcemeta::core::from_iso8601_basic(formatted), point);
   }
 }
+
+// ISO 8601-1 Section 5.4.2.1 writes the time of day in digits, which the
+// designators around it do not excuse
+TEST(parse_rejects_a_non_digit_in_the_time_of_day) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_iso8601_basic("20150830T12a600Z").has_value());
+}

@@ -898,3 +898,13 @@ TEST(astral_digit_in_hour) {
   EXPECT_FALSE(sourcemeta::core::is_rfc3339_fulltime("\xf0\x9d\x9f\x98"
                                                      "0:30:06Z"));
 }
+
+// RFC 3339 Section 5.6 writes the offset minutes as two digits, which the
+// colon before them does not excuse
+TEST(invalid_offset_minute_first_digit) {
+  EXPECT_FALSE(sourcemeta::core::is_rfc3339_fulltime("12:34:56+01:a0"));
+}
+
+TEST(invalid_offset_minute_second_digit) {
+  EXPECT_FALSE(sourcemeta::core::is_rfc3339_fulltime("12:34:56+01:0a"));
+}

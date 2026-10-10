@@ -1,0 +1,35 @@
+RUN STDIN /dev/null IN . INTO result.txt EXPECTING 1
+WRITE expected.txt UNTIL EXPECTED
+1> TAP version 14
+1> 1..9
+1> not ok 1 - test_assertions.truth
+1> # test_assertions.cc:16: expected true: 1 == 2
+1> not ok 2 - test_assertions.falsehood
+1> # test_assertions.cc:18: expected false: 1 == 1
+1> not ok 3 - test_assertions.runtime_truth
+1> # test_assertions.cc:24: expected true: held
+1> not ok 4 - test_assertions.runtime_falsehood
+1> # test_assertions.cc:29: expected false: held
+1> not ok 5 - test_assertions.double_approximate
+1> # test_assertions.cc:32: expected 1.0 ~= 2.0
+1> #   actual:   1
+1> #   expected: 2
+1> not ok 6 - test_assertions.float_approximate
+1> # test_assertions.cc:34: expected 1.0F ~= 2.0F
+1> #   actual:   1
+1> #   expected: 2
+1> not ok 7 - test_assertions.absent_string
+1> # test_assertions.cc:36: expected nullptr == "beta"
+1> #   actual:   (null)
+1> #   expected: beta
+1> not ok 8 - test_assertions.absent_expected_string
+1> # test_assertions.cc:38: expected "alpha" == nullptr
+1> #   actual:   alpha
+1> #   expected: (null)
+1> not ok 9 - test_assertions.unprintable
+1> # test_assertions.cc:43: expected actual == expected
+1> #   actual:   <unprintable>
+1> #   expected: <unprintable>
+1> # 0 passed, 9 failed
+EXPECTED
+COMPARE result.txt AGAINST expected.txt

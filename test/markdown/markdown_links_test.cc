@@ -661,3 +661,116 @@ TEST(reference_link_label_with_a_space_before_a_non_ascii_character) {
       "[click][a \u00e9]\n\n[a \u00e9]: https://example.com")};
   EXPECT_EQ(result, "<p><a href=\"https://example.com\">click</a></p>\n");
 }
+
+// CommonMark section 4.7 asks a link label to hold at least one character that
+// is not whitespace, so this defines nothing and stays a paragraph
+TEST(link_reference_definition_with_a_blank_label) {
+  const auto result{sourcemeta::core::markdown_to_html("[ ]: /url\n\n[ ]")};
+  EXPECT_EQ(result, "<p>[ ]: /url</p>\n<p>[ ]</p>\n");
+}
+
+// CommonMark section 6.3 excludes ASCII control characters from an unbracketed
+// destination, and the whitespace ones are turned away a step earlier
+TEST(link_destination_starting_with_a_control_character) {
+  const auto result{sourcemeta::core::markdown_to_html("[a](\x01"
+                                                       "b)")};
+  EXPECT_EQ(result, "<p>[a](\x01"
+                    "b)</p>\n");
+}
+
+TEST(link_destination_starting_with_delete) {
+  const auto result{sourcemeta::core::markdown_to_html("[a](\x7F"
+                                                       "b)")};
+  EXPECT_EQ(result, "<p>[a](\x7F"
+                    "b)</p>\n");
+}
+
+// GFM section 4.7 needs a closing bracket to end a link label, so a label
+// that runs to the end of the input defines nothing
+TEST(an_unterminated_link_label_defines_nothing) {
+  const auto result{sourcemeta::core::markdown_to_html("[foo")};
+  EXPECT_EQ(result, "<p>[foo</p>\n");
+}
+
+// GFM section 6.1 only lets ASCII punctuation be backslash-escaped, so a
+// backslash before a letter stays part of the label and of the text
+TEST(a_link_label_escaping_a_character_that_is_not_punctuation) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("[a\\zb]: /url\n\n[a\\zb]")};
+  EXPECT_EQ(result, "<p><a href=\"/url\">a\\zb</a></p>\n");
+}
+
+// A destination between angle brackets needs its closing bracket, which a
+// trailing backslash cannot stand in for
+TEST(a_bracketed_destination_ending_in_a_backslash) {
+  const auto result{sourcemeta::core::markdown_to_html("[a]: <foo\\")};
+  EXPECT_EQ(result, "<p>[a]: &lt;foo\\</p>\n");
+}
+
+// GFM section 6.6 forbids an unescaped angle bracket inside a bracketed
+// destination, so what follows is read as inline content instead
+TEST(a_bracketed_destination_holding_an_unescaped_opening_bracket) {
+  const auto result{sourcemeta::core::markdown_to_html("[a]: <a<b>")};
+  EXPECT_EQ(result, "<p>[a]: &lt;a<!-- raw HTML omitted --></p>\n");
+}
+
+// A trailing backslash is not escaping anything, so it belongs to the
+// destination and is encoded with it
+TEST(a_bare_destination_ending_in_a_backslash) {
+  const auto result{sourcemeta::core::markdown_to_html("[a]: foo\\\n\n[a]")};
+  EXPECT_EQ(result, "<p><a href=\"foo%5C\">a</a></p>\n");
+}
+
+// GFM section 6.6 lets an implementation cap parentheses nesting, and a
+// destination past the cap is no destination at all
+TEST(a_bare_destination_nesting_parentheses_past_the_limit) {
+  const auto result{sourcemeta::core::markdown_to_html(
+      "[a]: (((((((((((((((((((((((((((((((((x\n\n[a]")};
+  EXPECT_EQ(result,
+            "<p>[a]: (((((((((((((((((((((((((((((((((x</p>\n<p>[a]</p>\n");
+}
+
+// A title that never closes leaves content on the line after the
+// destination, which disqualifies the whole definition
+TEST(a_title_opening_with_a_quote_that_never_closes) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("[a]: /url 'title\n\n[a]")};
+  EXPECT_EQ(result, "<p>[a]: /url &#39;title</p>\n<p>[a]</p>\n");
+}
+
+// The same holds for a parenthesised title, which is the other
+// spelling GFM section 6.6 allows
+TEST(a_title_opening_with_a_parenthesis_that_never_closes) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("[a]: /url (title\n\n[a]")};
+  EXPECT_EQ(result, "<p>[a]: /url (title</p>\n<p>[a]</p>\n");
+}
+
+TEST(an_empty_title_yields_no_title_attribute) {
+  const auto result{sourcemeta::core::markdown_to_html("[a]: /url ''\n\n[a]")};
+  EXPECT_EQ(result, "<p><a href=\"/url\">a</a></p>\n");
+}
+
+TEST(a_tab_between_a_label_and_its_destination) {
+  const auto result{sourcemeta::core::markdown_to_html("[a]:\t/url\n\n[a]")};
+  EXPECT_EQ(result, "<p><a href=\"/url\">a</a></p>\n");
+}
+
+TEST(a_reference_definition_separated_by_a_carriage_return) {
+  const auto result{sourcemeta::core::markdown_to_html("[a]: /url\r\n\r\n[a]")};
+  EXPECT_EQ(result, "<p><a href=\"/url\">a</a></p>\n");
+}
+
+// A definition produces no output of its own, and needs no line ending to
+// be complete
+TEST(a_reference_definition_at_the_very_end_of_the_input) {
+  const auto result{sourcemeta::core::markdown_to_html("[a]: /url")};
+  EXPECT_EQ(result, "");
+}
+
+// GFM section 4.7 needs a label to hold at least one non-whitespace
+// character, so one made only of spaces matches no definition
+TEST(a_reference_label_that_normalizes_to_nothing) {
+  const auto result{sourcemeta::core::markdown_to_html("[a]: /url\n\n[ ]")};
+  EXPECT_EQ(result, "<p>[ ]</p>\n");
+}

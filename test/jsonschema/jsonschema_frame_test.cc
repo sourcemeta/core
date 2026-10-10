@@ -1663,6 +1663,53 @@ TEST(accessors_any_reference_from) {
          const sourcemeta::core::SchemaFrame::Reference &) { return true; }));
 }
 
+// A predicate that turns every reference down is how the search reports none
+// even where the pointer does hold some
+TEST(accessors_any_reference_from_with_a_predicate_that_declines) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://example.com/schema",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$defs": { "foo": { "type": "string" } },
+    "properties": { "one": { "$ref": "#/$defs/foo" } }
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+
+  const sourcemeta::core::Pointer properties{"properties"};
+  EXPECT_FALSE(frame.any_reference_from(
+      sourcemeta::core::to_weak_pointer(properties),
+      [](const sourcemeta::core::SchemaReferenceType,
+         const sourcemeta::core::WeakPointer &,
+         const sourcemeta::core::SchemaFrame::Reference &) { return false; }));
+}
+
+TEST(accessors_any_reference_into_with_a_predicate_that_declines) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://example.com/schema",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$defs": { "foo": { "type": "string" } },
+    "properties": { "one": { "$ref": "#/$defs/foo" } }
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+
+  const sourcemeta::core::Pointer definitions{"$defs"};
+  EXPECT_TRUE(frame.any_reference_into(
+      sourcemeta::core::to_weak_pointer(definitions),
+      [](const sourcemeta::core::SchemaReferenceType,
+         const sourcemeta::core::WeakPointer &,
+         const sourcemeta::core::SchemaFrame::Reference &) { return true; }));
+  EXPECT_FALSE(frame.any_reference_into(
+      sourcemeta::core::to_weak_pointer(definitions),
+      [](const sourcemeta::core::SchemaReferenceType,
+         const sourcemeta::core::WeakPointer &,
+         const sourcemeta::core::SchemaFrame::Reference &) { return false; }));
+}
+
 TEST(accessors_for_each_reference_into) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$id": "https://example.com/schema",
@@ -2089,11 +2136,37 @@ TEST(accessors_uri_and_traverse_relative_to_a_location) {
   EXPECT_EQ(frame.uri(root, sourcemeta::core::to_weak_pointer(relative)),
             "https://example.com/schema#/$defs/foo");
 
-  const auto &destination{
+  const auto destination{
       frame.traverse(root, sourcemeta::core::to_weak_pointer(relative))};
-  EXPECT_EQ(destination.type,
+  EXPECT_TRUE(destination.has_value());
+  EXPECT_EQ(destination.value().get().type,
             sourcemeta::core::SchemaFrame::LocationType::Subschema);
-  EXPECT_EQ(sourcemeta::core::to_string(destination.pointer), "/$defs/foo");
+  EXPECT_EQ(sourcemeta::core::to_string(destination.value().get().pointer),
+            "/$defs/foo");
+}
+
+// Reaching past a location that holds no such place used to walk off the end
+// of the table it looks in, which a release build does not catch. An anonymous
+// schema settles its own name differently from the one its places are filed
+// under, so asking it for the place it stands at is enough to get there.
+TEST(accessors_traverse_from_a_location_that_leads_nowhere) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "string"
+  })JSON");
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Locations, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+
+  const auto &root{frame.traverse("").value().get()};
+  const auto destination{
+      frame.traverse(root, sourcemeta::core::EMPTY_WEAK_POINTER)};
+  EXPECT_TRUE(destination.has_value());
+
+  const sourcemeta::core::Pointer absent{"nope"};
+  const auto missing{
+      frame.traverse(root, sourcemeta::core::to_weak_pointer(absent))};
+  EXPECT_FALSE(missing.has_value());
 }
 
 TEST(accessors_metaschema_from_resolver) {
@@ -2170,4 +2243,20 @@ TEST(accessors_metaschema_unresolvable) {
     EXPECT_STREQ(error.what(),
                  "Could not resolve the metaschema of the schema");
   }
+}
+
+// Asking for a reference at a position the document never held leaves nothing
+// to hand back
+TEST(reference_at_a_pointer_the_document_does_not_hold) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema"
+  })JSON")};
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+  const auto pointer{sourcemeta::core::Pointer{"nope"}};
+  EXPECT_FALSE(frame
+                   .reference(sourcemeta::core::SchemaReferenceType::Static,
+                              sourcemeta::core::to_weak_pointer(pointer))
+                   .has_value());
 }

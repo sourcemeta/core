@@ -285,3 +285,26 @@ TEST(hkdf_sha512_expand_rejects_a_short_pseudorandom_key) {
   const std::string key(63, '\x0b');
   EXPECT_FALSE(sourcemeta::core::hkdf_sha512_expand(key, "", 42).has_value());
 }
+
+// A request for nothing needs no block, so each of the three widths answers it
+// without asking the backend
+TEST(hkdf_sha256_expand_zero_output_length) {
+  const auto okm{sourcemeta::core::hkdf_sha256_expand(bytes(CASE_1_PRK),
+                                                      bytes(CASE_1_INFO), 0)};
+  EXPECT_TRUE(okm.has_value());
+  EXPECT_TRUE(okm.value().empty());
+}
+
+TEST(hkdf_sha384_expand_zero_output_length) {
+  const auto okm{sourcemeta::core::hkdf_sha384_expand(
+      bytes(CASE_1_PRK) + bytes(CASE_1_PRK), bytes(CASE_1_INFO), 0)};
+  EXPECT_TRUE(okm.has_value());
+  EXPECT_TRUE(okm.value().empty());
+}
+
+TEST(hkdf_sha512_expand_zero_output_length) {
+  const auto okm{sourcemeta::core::hkdf_sha512_expand(
+      bytes(CASE_1_PRK) + bytes(CASE_1_PRK), bytes(CASE_1_INFO), 0)};
+  EXPECT_TRUE(okm.has_value());
+  EXPECT_TRUE(okm.value().empty());
+}

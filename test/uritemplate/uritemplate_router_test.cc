@@ -3220,3 +3220,67 @@ TEST(root_literals_are_sorted_and_nest_across_multiple_segments) {
   EXPECT_EQ(segment_a.literals.at(1)->value, "c");
   EXPECT_EQ(segment_a.literals.at(1)->identifier, 3);
 }
+
+// A template of one character cannot be the expansion that opens a path,
+// so there is no second character to weigh
+TEST(rejects_a_single_character_template) {
+  sourcemeta::core::URITemplateRouter router;
+  try {
+    router.add("{", "op_a_single_character_template", 1);
+    FAIL();
+  } catch (
+      const sourcemeta::core::URITemplateRouterInvalidSegmentError &error) {
+    EXPECT_STREQ(error.what(), "Template must start with '/'");
+    EXPECT_EQ(error.segment(), "{");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// Only an expansion that opens the path itself may stand before the first
+// slash, so a brace followed by anything else is not one
+TEST(rejects_a_brace_not_followed_by_a_slash) {
+  sourcemeta::core::URITemplateRouter router;
+  try {
+    router.add("{x}/a", "op_a_brace_not_followed_by_a_slash", 1);
+    FAIL();
+  } catch (
+      const sourcemeta::core::URITemplateRouterInvalidSegmentError &error) {
+    EXPECT_STREQ(error.what(), "Template must start with '/'");
+    EXPECT_EQ(error.segment(), "{x}/a");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// An operator has to be followed by the name it applies to
+TEST(expansion_operator_with_nothing_after_it) {
+  sourcemeta::core::URITemplateRouter router;
+  EXPECT_ROUTER_SEGMENT_ERROR(router, "/{+", 1, "{+");
+}
+
+TEST(path_operator_with_nothing_after_it) {
+  sourcemeta::core::URITemplateRouter router;
+  EXPECT_ROUTER_SEGMENT_ERROR(router, "/{/", 1, "{/");
+}
+
+// A variable may only be followed by another expression where that one opens a
+// path segment of its own
+TEST(variable_followed_by_an_unfinished_expression) {
+  sourcemeta::core::URITemplateRouter router;
+  EXPECT_ROUTER_SEGMENT_ERROR(router, "/{x}{", 1, "{x}{");
+}
+
+TEST(two_adjacent_variables_in_one_segment) {
+  sourcemeta::core::URITemplateRouter router;
+  EXPECT_ROUTER_SEGMENT_ERROR(router, "/{x}{y}", 1, "{x}{y}");
+}
+
+// A route of nothing but a variable makes that variable the only child of the
+// root
+TEST(a_route_of_a_single_variable) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/{x}", "op_1", 1);
+  EXPECT_TRUE(router.describes("/anything"));
+  EXPECT_FALSE(router.describes("/anything/else"));
+}

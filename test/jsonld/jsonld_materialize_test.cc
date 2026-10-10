@@ -5730,3 +5730,36 @@ TEST(promotion_output_compacts_and_re_expands) {
   const auto re_expanded{sourcemeta::core::jsonld_expand(compacted)};
   EXPECT_EQ(re_expanded, expanded);
 }
+
+// JSON-LD 1.1 API Section 5.1.2: "If result is a map which is empty, or
+// contains only the entries @value or @list, set result to null". A root
+// annotated as a literal materializes to such a map, so nothing is asserted
+TEST(a_root_annotated_as_a_literal_yields_nothing) {
+  const auto instance = sourcemeta::core::parse_json(R"("Sourcemeta")");
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {}, .value = sourcemeta::core::JSONLDLiteral{}});
+
+  const auto expected = sourcemeta::core::parse_json("[]");
+  EXPECT_EQ(sourcemeta::core::jsonld_materialize(instance, annotations),
+            expected);
+}
+
+// The annotation names the root rather than its elements, so the array itself
+// materializes as one literal and is dropped whole
+TEST(an_array_root_annotated_as_a_literal_yields_nothing) {
+  const auto instance = sourcemeta::core::parse_json(R"([ "a", "b" ])");
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {}, .value = sourcemeta::core::JSONLDLiteral{}});
+
+  const auto expected = sourcemeta::core::parse_json("[]");
+  EXPECT_EQ(sourcemeta::core::jsonld_materialize(instance, annotations),
+            expected);
+}

@@ -566,3 +566,169 @@ TEST(range_with_an_empty_type_is_ignored) {
                                                 {"application/json"}),
             "application/json");
 }
+
+// RFC 9110 Section 12.5.1 says a recipient "SHOULD process any parameter named
+// "q" as weight", and the registry disallows a media type parameter of that
+// name, so a parameter named anything else is not a weight however short it is
+TEST(a_single_character_parameter_that_is_not_a_weight) {
+  // Reading this parameter as a weight would drop the first range to 0.1 and
+  // hand the answer to the second
+  EXPECT_EQ(
+      sourcemeta::core::http_match_accept("text/plain;x=0.1, text/html;q=0.5",
+                                          {"text/plain;x=0.1", "text/html"}),
+      "text/plain;x=0.1");
+}
+
+// A parameter name of more than one character is not a weight either. Reading
+// this one as a weight would leave the first range at 0.1 and still hand the
+// answer to the second, so the candidate carries the parameter and the weight
+// is what decides
+TEST(a_longer_parameter_name_is_not_a_weight) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept(
+                "text/plain;charset=utf-8;q=0.9, text/html;q=0.1",
+                {"text/plain;charset=utf-8", "text/html"}),
+            "text/plain;charset=utf-8");
+}
+
+// That section names the parameter "q" without pinning its case, and
+// Section 5.6.6 reads a parameter name case insensitively
+TEST(an_upper_case_weight_parameter) {
+  EXPECT_EQ(
+      sourcemeta::core::http_match_accept("text/plain;Q=0.1, text/html;Q=0.9",
+                                          {"text/plain", "text/html"}),
+      "text/html");
+}
+
+// Section 12.4.2 gives qvalue as at most three digits after a point, so a
+// character that is no digit at all leaves the weight unreadable
+TEST(a_weight_that_is_not_a_number) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept("text/plain;q=0.5x, text/html",
+                                                {"text/plain", "text/html"}),
+            "text/html");
+}
+
+// A parameter written with nothing after its equals sign carries an empty
+// value, which is not the same as the parameter being absent
+// RFC 9110 Section 5.6.6 gives a parameter value as a token or a quoted
+// string, so an empty one is written with quotes and is not the same as the
+// parameter being absent
+TEST(a_parameter_with_an_empty_quoted_value) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept(
+                "text/plain;x=\"\";q=0.9, text/html;q=0.1",
+                {"text/plain;x=\"\"", "text/html"}),
+            "text/plain;x=\"\"");
+}
+
+// RFC 9110 Section 5.6.6 gives a parameter value as a token or a quoted
+// string, so the two spellings of one value are the same value
+TEST(a_quoted_range_parameter_matches_an_unquoted_candidate_parameter) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept("text/html;x=\"a\"",
+                                                {"text/html;x=a"}),
+            "text/html;x=a");
+}
+
+TEST(a_single_character_parameter_value_matches) {
+  EXPECT_EQ(
+      sourcemeta::core::http_match_accept("text/html;x=a", {"text/html;x=a"}),
+      "text/html;x=a");
+}
+
+// A value that agrees as far as the shorter one reaches is still a different
+// value, whichever side runs out first
+TEST(a_longer_candidate_parameter_value_does_not_match) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept("text/html;x=\"ab\"",
+                                                {"text/html;x=\"abc\""}),
+            "");
+}
+
+TEST(a_shorter_candidate_parameter_value_does_not_match) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept("text/html;x=\"abc\"",
+                                                {"text/html;x=\"ab\""}),
+            "");
+}
+
+// RFC 9110 Section 8.3.1 makes the charset value case-insensitive, which the
+// quoting must not change
+TEST(a_quoted_charset_folds_case_against_an_unquoted_one) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept("text/html;charset=\"UTF-8\"",
+                                                {"text/html;charset=utf-8"}),
+            "text/html;charset=utf-8");
+}
+
+// A backslash inside a quoted value stands for the character after it (RFC
+// 9110 Section 5.6.4), so an escaped character equals its plain spelling
+TEST(an_escaped_character_in_a_quoted_parameter_value_matches_its_plain_form) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept("text/html;x=\"\\a\"",
+                                                {"text/html;x=a"}),
+            "text/html;x=a");
+}
+
+// RFC 9110 Section 5.6.1 allows empty list elements, which "MUST be ignored"
+TEST(an_empty_list_element_is_ignored) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept(
+                "text/html;q=0.1, , application/json;q=0.9",
+                {"text/html", "application/json"}),
+            "application/json");
+}
+
+// RFC 9110 Section 12.4.2 gives the weight as "1*3DIGIT" after the point, so a
+// character that is not a digit makes the whole weight unusable
+TEST(a_weight_fraction_below_the_digit_range_is_not_a_weight) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept(
+                "text/html;q=0.+, application/json;q=0.5",
+                {"text/html", "application/json"}),
+            "application/json");
+}
+
+// RFC 9110 Section 5.6.6 makes a parameter name case-insensitive, so the
+// weight can be spelled with a capital
+TEST(an_upper_case_weight_parameter_is_a_weight) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept(
+                "text/html;Q=0.1, application/json;Q=0.9",
+                {"text/html", "application/json"}),
+            "application/json");
+}
+
+// A single-character parameter name that is not the weight is an ordinary
+// media-type parameter, which the candidate then has to carry
+TEST(a_single_character_parameter_name_that_is_not_a_weight) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept(
+                "text/html;x=1, application/json;q=0.5",
+                {"text/html", "application/json"}),
+            "application/json");
+}
+
+TEST(a_two_character_unquoted_parameter_value_matches_a_quoted_one) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept("text/html;x=\"ab\"",
+                                                {"text/html;x=ab"}),
+            "text/html;x=ab");
+}
+
+TEST(a_two_character_quoted_parameter_value_matches_an_unquoted_one) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept("text/html;x=ab",
+                                                {"text/html;x=\"ab\""}),
+            "text/html;x=\"ab\"");
+}
+
+// Optional whitespace may trail the parameter list (RFC 9110 Section 5.6.3)
+TEST(a_parameter_list_ending_in_whitespace) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept("text/html;x=ab ",
+                                                {"text/html;x=ab"}),
+            "text/html;x=ab");
+}
+
+// A backslash with nothing after it inside a quoted value escapes nothing, so
+// the value never closes and the range carries no usable parameter
+TEST(a_quoted_parameter_value_ending_in_a_backslash) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept("text/html;x=\"ab\\",
+                                                {"text/html;x=ab"}),
+            "");
+}
+
+// RFC 9110 Section 12.5.1 treats "type/*" as less specific than a full type,
+// and a one-character subtype is a full subtype rather than a wildcard
+TEST(a_single_character_subtype_is_not_a_wildcard) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept("text/h, text/html;q=0.5",
+                                                {"text/html"}),
+            "text/html");
+}

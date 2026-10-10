@@ -98,7 +98,7 @@ auto URI::path(const std::string &path) -> URI & {
   const auto needs_leading_slash =
       (!this->is_urn() && !this->is_tag() && !this->is_mailto() &&
        this->scheme_.has_value()) ||
-      this->port_.has_value() || this->host_.has_value();
+      this->host_.has_value();
 
   this->path_ = apply_leading_slash_transform(std::optional<std::string>{path},
                                               needs_leading_slash);
@@ -122,7 +122,7 @@ auto URI::path(std::string &&path) -> URI & {
   const auto needs_leading_slash =
       (!this->is_urn() && !this->is_tag() && !this->is_mailto() &&
        this->scheme_.has_value()) ||
-      this->port_.has_value() || this->host_.has_value();
+      this->host_.has_value();
 
   this->path_ = apply_leading_slash_transform(
       std::optional<std::string>{std::move(path)}, needs_leading_slash);
@@ -227,7 +227,7 @@ auto URI::append_path(std::string_view path) -> URI & {
   const auto needs_leading_slash =
       (!this->is_urn() && !this->is_tag() && !this->is_mailto() &&
        this->scheme_.has_value()) ||
-      this->port_.has_value() || this->host_.has_value();
+      this->host_.has_value();
   merge_reference_path(this->path_, needs_leading_slash, path);
   return *this;
 }
@@ -259,7 +259,7 @@ auto URI::append_path(const URI &reference) -> URI & {
   const auto needs_leading_slash =
       (!this->is_urn() && !this->is_tag() && !this->is_mailto() &&
        this->scheme_.has_value()) ||
-      this->port_.has_value() || this->host_.has_value();
+      this->host_.has_value();
   merge_reference_path(this->path_, needs_leading_slash,
                        reference.path_.value());
   return *this;
@@ -275,7 +275,7 @@ auto URI::append_path(URI &&reference) -> URI & {
   const auto needs_leading_slash =
       (!this->is_urn() && !this->is_tag() && !this->is_mailto() &&
        this->scheme_.has_value()) ||
-      this->port_.has_value() || this->host_.has_value();
+      this->host_.has_value();
   std::string reference_path{std::move(reference.path_.value())};
   reference.path_ = std::nullopt;
   merge_reference_path(this->path_, needs_leading_slash, reference_path);

@@ -225,3 +225,18 @@ TEST(canonicalize_from_string) {
   const auto result{sourcemeta::core::URI::canonicalize(input)};
   EXPECT_EQ(result, "http://example.com/TEST");
 }
+
+// RFC 3986 Section 5.2.2 merges a relative reference against a base whose path
+// holds no slash by taking the reference alone, and Section 5.2.4 then removes
+// its dot segments, which for a lone dot leaves nothing at all
+TEST(resolve_a_lone_dot_against_a_base_with_no_slash_in_its_path) {
+  sourcemeta::core::URI uri{"."};
+  uri.resolve_from(sourcemeta::core::URI{"urn:isbn:0451450523"});
+  EXPECT_EQ(uri.recompose(), "urn:");
+  EXPECT_TRUE(uri.path().has_value());
+  EXPECT_TRUE(uri.path().value().empty());
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "urn:");
+  uri.resolve_from(sourcemeta::core::URI{"urn:isbn:0451450523"});
+  EXPECT_EQ(uri.recompose(), "urn:");
+}

@@ -354,3 +354,27 @@ TEST(transaction_check_state_takes_precedence_over_received_uri) {
   EXPECT_TRUE(error.has_value());
   EXPECT_EQ(error.value(), sourcemeta::core::OAuthCallbackError::State);
 }
+
+// RFC 9207 has the issuer identified in the response where the provider
+// supports it, and a provider whose support is unknown may still send one,
+// which is then held to matching the transaction
+TEST(transaction_check_accepts_a_matching_issuer_from_an_unknown_provider) {
+  const sourcemeta::core::OAuthTransaction transaction{.state = "xyz",
+                                                       .code_verifier = "",
+                                                       .issuer =
+                                                           "https://op.example",
+                                                       .redirect_uri = ""};
+  const sourcemeta::core::OAuthAuthorizationResponse response{
+      .code = "SplxlOBeZQQYbYS6WxSbIA",
+      .state = "xyz",
+      .iss = "https://op.example",
+      .error = "",
+      .error_description = "",
+      .error_uri = ""};
+  std::string_view code;
+  const auto error{sourcemeta::core::oauth_transaction_check(
+      transaction, response, sourcemeta::core::OAuthIssuerSupport::Unknown, "",
+      code)};
+  EXPECT_FALSE(error.has_value());
+  EXPECT_EQ(code, "SplxlOBeZQQYbYS6WxSbIA");
+}

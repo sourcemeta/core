@@ -14,6 +14,23 @@
 #include <thread>     // std::thread
 #endif
 
+class IOReadFileToStringTest {
+protected:
+  IOReadFileToStringTest() {
+    std::filesystem::create_directories(this->workspace_);
+  }
+
+  ~IOReadFileToStringTest() {
+    std::error_code error;
+    std::filesystem::remove_all(this->workspace_, error);
+  }
+
+  // The tests are always sequential, so using the same path is safe
+  std::filesystem::path workspace_{
+      std::filesystem::path{BUILD_DIRECTORY} /
+      "sourcemeta_core_io_read_file_to_string_test"};
+};
+
 TEST(empty_stream) {
   std::istringstream stream{""};
   EXPECT_EQ(sourcemeta::core::read_to_string(stream), "");
@@ -73,23 +90,6 @@ TEST(missing_file_throws) {
     FAIL();
   }
 }
-
-class IOReadFileToStringTest {
-protected:
-  IOReadFileToStringTest() {
-    std::filesystem::create_directories(this->workspace_);
-  }
-
-  ~IOReadFileToStringTest() {
-    std::error_code error;
-    std::filesystem::remove_all(this->workspace_, error);
-  }
-
-  // The tests are always sequential, so using the same path is safe
-  std::filesystem::path workspace_{
-      std::filesystem::path{BUILD_DIRECTORY} /
-      "sourcemeta_core_io_read_file_to_string_test"};
-};
 
 TEST_F(IOReadFileToStringTest, freshly_written_file) {
   const auto path{this->workspace_ / "payload.txt"};

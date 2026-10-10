@@ -271,6 +271,14 @@ public:
       }
       this->advance(1);
       this->last_was_quoted_scalar_ = false;
+      // Section 8.2.1 indents the compact content that shares a line with its
+      // indicator by spaces, and a value indicator opens such a line just as a
+      // sequence entry or an explicit key does, so a tab separating it from a
+      // nested block indicator is invalid the same way
+      if (this->flow_level_ == 0) {
+        this->after_block_indicator_ = true;
+      }
+
       return Token{.type = TokenType::BlockMappingValue,
                    .value = ":",
                    .line = current_line,
@@ -322,6 +330,9 @@ public:
     return this->scan_plain_scalar();
   }
 
+  // Where the input ran out before what was being read could be finished,
+  // the position reported is the start of the line that never came, which
+  // pairs with a column of zero to say there is no character to point at
   [[nodiscard]] auto line() const noexcept -> std::uint64_t {
     if (this->position_ >= this->input_.size() && this->column_ > 1) {
       return this->line_ + 1;
@@ -678,12 +689,18 @@ private:
 
     if (this->peek() == '<') {
       this->advance(1);
-      while (this->position_ < this->input_.size() && this->peek() != '>') {
+      while (this->position_ < this->input_.size() && this->peek() != '>' &&
+             this->peek() != '\n' && this->peek() != '\r') {
         this->advance(1);
       }
-      if (this->peek() == '>') {
-        this->advance(1);
+      // YAML 1.2.2 Section 6.9.1 closes a verbatim tag with an angle bracket,
+      // and the opening bracket is no tag character, so one left unclosed can
+      // fall back on nothing
+      if (this->peek() != '>') [[unlikely]] {
+        throw YAMLParseError{start_line, start_column,
+                             "Unterminated verbatim tag"};
       }
+      this->advance(1);
     } else {
       while (this->position_ < this->input_.size()) {
         const char current{this->peek()};

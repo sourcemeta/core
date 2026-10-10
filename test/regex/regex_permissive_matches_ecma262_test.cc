@@ -4025,3 +4025,56 @@ TEST(ecma262_brace_quantifier_with_only_a_minimum_followed_by_a_plus) {
   EXPECT_TRUE(regex.has_value());
   EXPECT_FALSE(sourcemeta::core::is_regex_ecma(R"(^a{2}+$)"));
 }
+
+// A class taking part in a set operation is expanded into a set of code points
+// that reaches only as far as the last ASCII one, so a member named beyond it
+// cannot be carried. Dropping it used to leave a class that turns such input
+// away, and where it was the only member, one that turns everything away.
+TEST(ecma262_class_intersection_with_a_hex_escape_past_ascii) {
+  const auto regex{sourcemeta::core::to_regex(
+      R"(^[\xe9&&[\xe9]]$)", sourcemeta::core::RegexDialect::Permissive)};
+  EXPECT_FALSE(regex.has_value());
+}
+
+TEST(ecma262_class_intersection_with_a_character_past_ascii) {
+  const auto regex{sourcemeta::core::to_regex(
+      R"(^[é&&[é]]$)", sourcemeta::core::RegexDialect::Permissive)};
+  EXPECT_FALSE(regex.has_value());
+}
+
+TEST(ecma262_class_intersection_with_a_braced_escape_past_ascii) {
+  const auto regex{sourcemeta::core::to_regex(
+      R"(^[\u{e9}&&[\u{e9}]]$)", sourcemeta::core::RegexDialect::Permissive)};
+  EXPECT_FALSE(regex.has_value());
+}
+
+TEST(ecma262_class_intersection_with_a_range_ending_past_ascii) {
+  const auto regex{sourcemeta::core::to_regex(
+      R"(^[[a-\xff]&&[a-z]]$)", sourcemeta::core::RegexDialect::Permissive)};
+  EXPECT_FALSE(regex.has_value());
+}
+
+// A range is consumed without coming back to where a lone member is weighed,
+// so one opening past ASCII was carried through as though it fitted.
+TEST(ecma262_class_intersection_with_a_range_opening_past_ascii) {
+  const auto regex{sourcemeta::core::to_regex(
+      R"(^[[\xff-a]&&[a-z]]$)", sourcemeta::core::RegexDialect::Permissive)};
+  EXPECT_FALSE(regex.has_value());
+}
+
+TEST(ecma262_class_intersection_within_ascii_still_expands) {
+  const auto regex{sourcemeta::core::to_regex(
+      R"(^[\x61&&[a-z]]$)", sourcemeta::core::RegexDialect::Permissive)};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "b"));
+}
+
+// The four digit escape is read by a different branch from the braced one, and
+// both have to report a code point they cannot carry rather than falling
+// through to be read as the letters it is written with.
+TEST(ecma262_class_intersection_with_a_four_digit_escape_past_ascii) {
+  const auto regex{sourcemeta::core::to_regex(
+      R"(^[\u00e9&&[\u00e9]]$)", sourcemeta::core::RegexDialect::Permissive)};
+  EXPECT_FALSE(regex.has_value());
+}

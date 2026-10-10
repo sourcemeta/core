@@ -1,0 +1,9 @@
+RUN STDIN /dev/null IN . INTO result.txt EXPECTING 1
+WRITE expected.txt UNTIL EXPECTED
+1> TAP version 14
+1> 1..1
+1> not ok 1 - test_unknown.unknown_throw
+1> # test_unknown.cc:7: threw an unexpected unknown exception
+1> # 0 passed, 1 failed
+EXPECTED
+COMPARE result.txt AGAINST expected.txt

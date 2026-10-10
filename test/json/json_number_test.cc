@@ -1290,11 +1290,11 @@ TEST(equal_array_with_integer_and_real_elements) {
   EXPECT_TRUE(left == right);
 }
 
-TEST(equal_array_with_real_and_decimal_precision_differ) {
+TEST(equal_array_with_one_decimal_spelled_two_ways) {
   const sourcemeta::core::JSON left = sourcemeta::core::parse_json("[ 2.1 ]");
   const sourcemeta::core::JSON right =
       sourcemeta::core::parse_json("[ 2.1e0 ]");
-  EXPECT_FALSE(left == right);
+  EXPECT_TRUE(left == right);
 }
 
 TEST(equal_object_with_integer_and_real_values) {
@@ -1549,5 +1549,90 @@ TEST(is_float_decimal_inexact) {
 
 TEST(is_float_decimal_past_the_float_significand) {
   const sourcemeta::core::JSON document{sourcemeta::core::Decimal{"1e22"}};
+  EXPECT_FALSE(document.is_float());
+}
+
+TEST(is_double_parsed_binary_fraction) {
+  const auto document{sourcemeta::core::parse_json("0.5")};
+  EXPECT_TRUE(document.is_double());
+}
+
+TEST(is_double_parsed_binary_fraction_with_exponent) {
+  const auto document{sourcemeta::core::parse_json("5e-1")};
+  EXPECT_TRUE(document.is_double());
+}
+
+TEST(is_double_parsed_inexact_fraction) {
+  const auto document{sourcemeta::core::parse_json("3.14")};
+  EXPECT_FALSE(document.is_double());
+}
+
+TEST(is_double_parsed_inexact_fraction_with_trailing_zero) {
+  const auto document{sourcemeta::core::parse_json("3.140")};
+  EXPECT_FALSE(document.is_double());
+}
+
+TEST(is_double_parsed_inexact_fraction_past_the_safe_digits) {
+  const auto document{sourcemeta::core::parse_json("3.1400000000000000")};
+  EXPECT_FALSE(document.is_double());
+}
+
+TEST(is_double_parsed_inexact_fraction_with_exponent) {
+  const auto document{sourcemeta::core::parse_json("314e-2")};
+  EXPECT_FALSE(document.is_double());
+}
+
+TEST(is_double_parsed_one_tenth) {
+  const auto document{sourcemeta::core::parse_json("0.1")};
+  EXPECT_FALSE(document.is_double());
+}
+
+TEST(is_double_parsed_one_tenth_with_exponent) {
+  const auto document{sourcemeta::core::parse_json("1e-1")};
+  EXPECT_FALSE(document.is_double());
+}
+
+TEST(is_double_parsed_hundred_with_exponent) {
+  const auto document{sourcemeta::core::parse_json("1e2")};
+  EXPECT_TRUE(document.is_double());
+}
+
+TEST(is_double_parsed_largest_exact_power_of_ten) {
+  const auto document{sourcemeta::core::parse_json("1e22")};
+  EXPECT_TRUE(document.is_double());
+}
+
+TEST(is_double_parsed_first_inexact_power_of_ten) {
+  const auto document{sourcemeta::core::parse_json("1e23")};
+  EXPECT_FALSE(document.is_double());
+}
+
+TEST(is_double_parsed_within_range_but_inexact) {
+  const auto document{sourcemeta::core::parse_json("1e300")};
+  EXPECT_FALSE(document.is_double());
+}
+
+TEST(is_float_parsed_binary_fraction) {
+  const auto document{sourcemeta::core::parse_json("0.5")};
+  EXPECT_TRUE(document.is_float());
+}
+
+TEST(is_float_parsed_binary_fraction_with_exponent) {
+  const auto document{sourcemeta::core::parse_json("5e-1")};
+  EXPECT_TRUE(document.is_float());
+}
+
+TEST(is_float_parsed_inexact_fraction) {
+  const auto document{sourcemeta::core::parse_json("3.14")};
+  EXPECT_FALSE(document.is_float());
+}
+
+TEST(is_float_parsed_inexact_fraction_with_exponent) {
+  const auto document{sourcemeta::core::parse_json("314e-2")};
+  EXPECT_FALSE(document.is_float());
+}
+
+TEST(is_float_parsed_past_the_float_significand) {
+  const auto document{sourcemeta::core::parse_json("16777217")};
   EXPECT_FALSE(document.is_float());
 }

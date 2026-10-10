@@ -1,0 +1,23 @@
+{
+  "document": {
+    "openapi": "3.2.1",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "components": {
+      "securitySchemes": {
+        "S": {
+          "type": "oauth2",
+          "flows": {
+            "deviceAuthorization": {
+              "tokenUrl": "/token",
+              "scopes": {}
+            }
+          }
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "This OAuth Flow Object must declare a device authorization URI",
+    "location": "/components/securitySchemes/S/flows/deviceAuthorization"
+  }
+}

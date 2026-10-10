@@ -5898,3 +5898,32 @@ TEST(mutated_alias_in_sequence_item) {
   document.at(1) = sourcemeta::core::JSON{2};
   EXPECT_EQ(stringify(document, metadata), "- &x 1\n- 2\n");
 }
+
+// A block scalar used as a mapping key is written back as a quoted scalar.
+// What such a key stands for rests on the indicator, the chomping and the
+// folding it was written with together, so writing it back in block form
+// without carrying all three names a different key than the one read.
+TEST(block_scalar_as_an_explicit_key_keeps_the_key_it_stands_for) {
+  EXPECT_EQ(roundtrip_value("? |\n  text\n: value\n"),
+            sourcemeta::core::parse_yaml("? |\n  text\n: value\n"));
+  EXPECT_EQ(roundtrip_value("? |2\n   text\n: value\n"),
+            sourcemeta::core::parse_yaml("? |2\n   text\n: value\n"));
+  EXPECT_EQ(roundtrip_value("? |\n  text"),
+            sourcemeta::core::parse_yaml("? |\n  text"));
+  EXPECT_EQ(roundtrip_value("? >\n  one\n\n  two\n: value\n"),
+            sourcemeta::core::parse_yaml("? >\n  one\n\n  two\n: value\n"));
+  EXPECT_EQ(roundtrip_value("? |2-\n   text\n: value\n"),
+            sourcemeta::core::parse_yaml("? |2-\n   text\n: value\n"));
+}
+
+// A key is written back without the indicator that can open an explicit one,
+// so quoted text spanning lines cannot be replayed as it was read. Replaying
+// it put a line break inside a key that nothing marked as explicit, which is
+// not a document that can be read again.
+TEST(multiline_quoted_explicit_key_is_written_on_one_line) {
+  const auto once{roundtrip("? \"one\n  two\"\n: value\n")};
+  EXPECT_EQ(once, "\"one two\": value\n");
+  EXPECT_EQ(roundtrip(once), once);
+  EXPECT_EQ(roundtrip_value("? \"one\n  two\"\n: value\n"),
+            sourcemeta::core::parse_yaml("? \"one\n  two\"\n: value\n"));
+}

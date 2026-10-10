@@ -315,3 +315,94 @@ TEST(emphasis_underscore_closer_before_tilde) {
   const auto result{sourcemeta::core::markdown_to_html("_a_~b")};
   EXPECT_EQ(result, "<p><em>a</em>~b</p>\n");
 }
+
+// U+203F carries this category. CommonMark section 6.2 makes a run
+// left-flanking only where it is not followed by punctuation, or is followed by
+// punctuation and preceded by whitespace or punctuation, so a run between a
+// letter and this character opens nothing and the asterisks stay literal
+TEST(emphasis_between_a_letter_and_connector_punctuation) {
+  const auto result{sourcemeta::core::markdown_to_html("foo*"
+                                                       "\xE2\x80\xBF"
+                                                       "bar*")};
+  EXPECT_EQ(result, "<p>foo*"
+                    "\xE2\x80\xBF"
+                    "bar*</p>\n");
+}
+
+// U+2013 carries this category. CommonMark section 6.2 makes a run
+// left-flanking only where it is not followed by punctuation, or is followed by
+// punctuation and preceded by whitespace or punctuation, so a run between a
+// letter and this character opens nothing and the asterisks stay literal
+TEST(emphasis_between_a_letter_and_dash_punctuation) {
+  const auto result{sourcemeta::core::markdown_to_html("foo*"
+                                                       "\xE2\x80\x93"
+                                                       "bar*")};
+  EXPECT_EQ(result, "<p>foo*"
+                    "\xE2\x80\x93"
+                    "bar*</p>\n");
+}
+
+// U+2045 carries this category. CommonMark section 6.2 makes a run
+// left-flanking only where it is not followed by punctuation, or is followed by
+// punctuation and preceded by whitespace or punctuation, so a run between a
+// letter and this character opens nothing and the asterisks stay literal
+TEST(emphasis_between_a_letter_and_open_punctuation) {
+  const auto result{sourcemeta::core::markdown_to_html("foo*"
+                                                       "\xE2\x81\x85"
+                                                       "bar*")};
+  EXPECT_EQ(result, "<p>foo*"
+                    "\xE2\x81\x85"
+                    "bar*</p>\n");
+}
+
+// U+2046 carries this category. CommonMark section 6.2 makes a run
+// left-flanking only where it is not followed by punctuation, or is followed by
+// punctuation and preceded by whitespace or punctuation, so a run between a
+// letter and this character opens nothing and the asterisks stay literal
+TEST(emphasis_between_a_letter_and_close_punctuation) {
+  const auto result{sourcemeta::core::markdown_to_html("foo*"
+                                                       "\xE2\x81\x86"
+                                                       "bar*")};
+  EXPECT_EQ(result, "<p>foo*"
+                    "\xE2\x81\x86"
+                    "bar*</p>\n");
+}
+
+// U+2018 carries this category. CommonMark section 6.2 makes a run
+// left-flanking only where it is not followed by punctuation, or is followed by
+// punctuation and preceded by whitespace or punctuation, so a run between a
+// letter and this character opens nothing and the asterisks stay literal
+TEST(emphasis_between_a_letter_and_initial_punctuation) {
+  const auto result{sourcemeta::core::markdown_to_html("foo*"
+                                                       "\xE2\x80\x98"
+                                                       "bar*")};
+  EXPECT_EQ(result, "<p>foo*"
+                    "\xE2\x80\x98"
+                    "bar*</p>\n");
+}
+
+// U+2019 carries this category. CommonMark section 6.2 makes a run
+// left-flanking only where it is not followed by punctuation, or is followed by
+// punctuation and preceded by whitespace or punctuation, so a run between a
+// letter and this character opens nothing and the asterisks stay literal
+TEST(emphasis_between_a_letter_and_final_punctuation) {
+  const auto result{sourcemeta::core::markdown_to_html("foo*"
+                                                       "\xE2\x80\x99"
+                                                       "bar*")};
+  EXPECT_EQ(result, "<p>foo*"
+                    "\xE2\x80\x99"
+                    "bar*</p>\n");
+}
+
+// U+00A1 carries this category. CommonMark section 6.2 makes a run
+// left-flanking only where it is not followed by punctuation, or is followed by
+// punctuation and preceded by whitespace or punctuation, so a run between a
+// letter and this character opens nothing and the asterisks stay literal
+TEST(emphasis_between_a_letter_and_other_punctuation) {
+  const auto result{sourcemeta::core::markdown_to_html("foo*"
+                                                       "\xC2\xA1"
+                                                       "bar*")};
+  EXPECT_EQ(result, "<p>foo*"
+                    "\xC2\xA1"
+                    "bar*</p>\n");
+}

@@ -1069,3 +1069,99 @@ TEST(append_path_rejects_reference_with_fragment) {
         "Cannot append a URI as a path that contains a query or fragment");
   }
 }
+
+// RFC 8141 Section 2 gives a URN its namespace-specific string with no leading
+// slash, so setting a path on one must not introduce one
+TEST(set_const_path_on_a_urn) {
+  sourcemeta::core::URI uri{"urn:isbn:0451450523"};
+  const std::string value{"foo"};
+  uri.path(value);
+  EXPECT_EQ(uri.recompose(), "urn:foo");
+}
+
+// RFC 4151 Section 2.1 builds a tag URI from an authority name and a date with
+// no slash-rooted path
+TEST(set_const_path_on_a_tag) {
+  sourcemeta::core::URI uri{"tag:example.com,2026:resource"};
+  const std::string value{"foo"};
+  uri.path(value);
+  EXPECT_EQ(uri.recompose(), "tag:foo");
+}
+
+// RFC 6068 Section 2 makes the mailto path a list of addresses rather than a
+// hierarchical path
+TEST(set_const_path_on_a_mailto) {
+  sourcemeta::core::URI uri{"mailto:someone@example.com"};
+  const std::string value{"foo"};
+  uri.path(value);
+  EXPECT_EQ(uri.recompose(), "mailto:foo");
+}
+
+TEST(set_rvalue_path_on_a_tag) {
+  sourcemeta::core::URI uri{"tag:example.com,2026:resource"};
+  uri.path(std::string{"foo"});
+  EXPECT_EQ(uri.recompose(), "tag:foo");
+}
+
+TEST(set_rvalue_path_on_a_mailto) {
+  sourcemeta::core::URI uri{"mailto:someone@example.com"};
+  uri.path(std::string{"foo"});
+  EXPECT_EQ(uri.recompose(), "mailto:foo");
+}
+
+TEST(append_path_view_on_a_urn) {
+  sourcemeta::core::URI uri{"urn:isbn:0451450523"};
+  uri.append_path("extra");
+  EXPECT_EQ(uri.recompose(), "urn:isbn:0451450523/extra");
+}
+
+TEST(append_path_view_on_a_tag) {
+  sourcemeta::core::URI uri{"tag:example.com,2026:resource"};
+  uri.append_path("extra");
+  EXPECT_EQ(uri.recompose(), "tag:example.com,2026:resource/extra");
+}
+
+TEST(append_path_view_on_a_mailto) {
+  sourcemeta::core::URI uri{"mailto:someone@example.com"};
+  uri.append_path("extra");
+  EXPECT_EQ(uri.recompose(), "mailto:someone@example.com/extra");
+}
+
+TEST(append_path_reference_on_a_tag) {
+  sourcemeta::core::URI uri{"tag:example.com,2026:resource"};
+  uri.append_path(sourcemeta::core::URI{"extra"});
+  EXPECT_EQ(uri.recompose(), "tag:example.com,2026:resource/extra");
+}
+
+TEST(append_path_reference_on_a_mailto) {
+  sourcemeta::core::URI uri{"mailto:someone@example.com"};
+  uri.append_path(sourcemeta::core::URI{"extra"});
+  EXPECT_EQ(uri.recompose(), "mailto:someone@example.com/extra");
+}
+
+TEST(append_path_reference_on_a_relative_reference) {
+  sourcemeta::core::URI uri{"base"};
+  uri.append_path(sourcemeta::core::URI{"extra"});
+  EXPECT_EQ(uri.recompose(), "base/extra");
+}
+
+TEST(append_path_rvalue_reference_on_a_tag) {
+  sourcemeta::core::URI uri{"tag:example.com,2026:resource"};
+  sourcemeta::core::URI reference{"extra"};
+  uri.append_path(std::move(reference));
+  EXPECT_EQ(uri.recompose(), "tag:example.com,2026:resource/extra");
+}
+
+TEST(append_path_rvalue_reference_on_a_mailto) {
+  sourcemeta::core::URI uri{"mailto:someone@example.com"};
+  sourcemeta::core::URI reference{"extra"};
+  uri.append_path(std::move(reference));
+  EXPECT_EQ(uri.recompose(), "mailto:someone@example.com/extra");
+}
+
+TEST(append_path_rvalue_reference_on_a_relative_reference) {
+  sourcemeta::core::URI uri{"base"};
+  sourcemeta::core::URI reference{"extra"};
+  uri.append_path(std::move(reference));
+  EXPECT_EQ(uri.recompose(), "base/extra");
+}

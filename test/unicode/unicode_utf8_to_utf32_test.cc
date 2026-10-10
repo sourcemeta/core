@@ -106,3 +106,11 @@ TEST(string_view_invalid) {
   const auto result{sourcemeta::core::utf8_to_utf32("\xFF")};
   EXPECT_FALSE(result.has_value());
 }
+
+// A stream that stops for a reason other than running out has not been read to
+// its end, so what was decoded so far stands for nothing
+TEST(stream_already_in_a_failed_state) {
+  std::istringstream input{"Hello"};
+  input.setstate(std::ios::failbit);
+  EXPECT_FALSE(sourcemeta::core::utf8_to_utf32(input).has_value());
+}

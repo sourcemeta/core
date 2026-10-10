@@ -305,3 +305,19 @@ TEST(footnote_label_with_number_sign) {
             "</ol>\n"
             "</section>\n");
 }
+
+// GFM section 2.1 counts line tabulation and form feed as whitespace, so a
+// label made only of those normalises away. Such a definition can never be
+// referenced, and leaving it in the tree opens a footnotes section that
+// nothing closes until the end of the document.
+TEST(footnote_definition_with_a_label_that_normalises_away_is_dropped) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("[^\v]: note\n\ntext\n")};
+  EXPECT_EQ(result, "<p>text</p>\n");
+}
+
+TEST(footnote_definition_with_a_form_feed_label_is_dropped) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("[^\f]: note\n\ntext\n")};
+  EXPECT_EQ(result, "<p>text</p>\n");
+}

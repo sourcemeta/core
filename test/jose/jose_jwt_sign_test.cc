@@ -155,3 +155,42 @@ TEST(jwt_sign_hs256_from_octets_rejects_short_secret) {
                    sourcemeta::core::parse_json(R"({ "iss": "acme" })"), key)
                    .has_value());
 }
+
+// RFC 7515 Section 4 and RFC 7519 Section 4 each describe an Object, so a
+// token is not produced from a value of any other kind
+TEST(jwt_sign_refuses_a_header_that_is_not_an_object) {
+  const auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(EC_PRIVATE_JWK))};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_FALSE(sourcemeta::core::jwt_sign(
+                   sourcemeta::core::parse_json(R"(["alg"])"),
+                   sourcemeta::core::parse_json(R"({"iss":"acme"})"),
+                   key.value())
+                   .has_value());
+}
+
+// RFC 7515 Section 4.1.1 takes the algorithm from the header, so one naming
+// none cannot be signed
+TEST(jwt_sign_refuses_a_header_with_no_algorithm) {
+  const auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(EC_PRIVATE_JWK))};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_FALSE(sourcemeta::core::jwt_sign(
+                   sourcemeta::core::parse_json(R"({"typ":"JWT"})"),
+                   sourcemeta::core::parse_json(R"({"iss":"acme"})"),
+                   key.value())
+                   .has_value());
+}
+
+// RFC 7515 Section 4.1.1 gives the algorithm as a string, so a value of
+// another type names no algorithm
+TEST(jwt_sign_refuses_an_algorithm_that_is_not_a_string) {
+  const auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(EC_PRIVATE_JWK))};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_FALSE(sourcemeta::core::jwt_sign(
+                   sourcemeta::core::parse_json(R"({"alg":1})"),
+                   sourcemeta::core::parse_json(R"({"iss":"acme"})"),
+                   key.value())
+                   .has_value());
+}

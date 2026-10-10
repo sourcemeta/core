@@ -513,3 +513,34 @@ TEST(canonicalize_is_idempotent) {
   const auto twice{sourcemeta::core::jsonld_canonicalize_fragment(once)};
   EXPECT_EQ(once, twice);
 }
+
+// An identifier of another type is no absolute IRI, whatever it holds
+TEST(canonicalize_non_string_reference_identifier_rejected) {
+  const auto fragment{sourcemeta::core::parse_json(R"({
+    "https://example.com/see": { "@id": 1 }
+  })")};
+  EXPECT_JSONLD_FRAGMENT_ERROR(
+      sourcemeta::core::jsonld_canonicalize_fragment(fragment),
+      "A node reference identifier must be an absolute IRI",
+      "/https:~1~1example.com~1see", "https://example.com/see");
+}
+
+TEST(canonicalize_non_string_value_object_language_rejected) {
+  const auto fragment{sourcemeta::core::parse_json(R"({
+    "https://example.com/see": { "@value": "x", "@language": 1 }
+  })")};
+  EXPECT_JSONLD_FRAGMENT_ERROR(
+      sourcemeta::core::jsonld_canonicalize_fragment(fragment),
+      "A value object language must be a canonical BCP 47 language tag",
+      "/https:~1~1example.com~1see", "https://example.com/see");
+}
+
+TEST(canonicalize_non_string_value_object_type_rejected) {
+  const auto fragment{sourcemeta::core::parse_json(R"({
+    "https://example.com/see": { "@value": "x", "@type": 1 }
+  })")};
+  EXPECT_JSONLD_FRAGMENT_ERROR(
+      sourcemeta::core::jsonld_canonicalize_fragment(fragment),
+      "A value object type must be an absolute IRI",
+      "/https:~1~1example.com~1see", "https://example.com/see");
+}

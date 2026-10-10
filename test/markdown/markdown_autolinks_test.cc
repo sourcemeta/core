@@ -519,3 +519,76 @@ TEST(extended_autolink_inside_brackets_that_are_not_a_link) {
       sourcemeta::core::markdown_to_html("[see www.sourcemeta.com]")};
   EXPECT_EQ(result, "<p>[see www.sourcemeta.com]</p>\n");
 }
+
+// GFM section 6.9 trims a trailing question mark from an extended autolink,
+// which is the one character of the eight the suite never reaches
+TEST(autolink_trailing_question_mark_is_trimmed) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("See www.example.com? ok")};
+  EXPECT_EQ(result, "<p>See <a href=\"http://www.example.com\">"
+                    "www.example.com</a>? ok</p>\n");
+}
+
+// CommonMark section 6.2 requires an entity inside an absolute URI autolink to
+// be recognised rather than left as written
+TEST(autolink_resolves_an_entity_inside_the_destination) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("<http://example.com/&amp;>")};
+  EXPECT_EQ(result, "<p><a href=\"http://example.com/&amp;\">"
+                    "http://example.com/&amp;</a></p>\n");
+}
+
+// GFM section 6.9 trims trailing punctuation from an extended autolink, and the
+// resource part of an xmpp address is where a trailing dot has never been seen
+TEST(extended_autolink_xmpp_resource_trailing_dot_is_trimmed) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("xmpp:team@sourcemeta.com/resource.")};
+  EXPECT_EQ(result, "<p><a href=\"xmpp:team@sourcemeta.com/resource\">"
+                    "xmpp:team@sourcemeta.com/resource</a>.</p>\n");
+}
+
+// GFM section 6.9: "Trailing punctuation (specifically, ?, !, ., ,, :, *, _,
+// and ~) will not be considered part of the autolink"
+TEST(autolink_trailing_a_comma_is_trimmed) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("See www.example.com, ok")};
+  EXPECT_EQ(result, "<p>See <a href=\"http://www.example.com\">"
+                    "www.example.com</a>, ok</p>\n");
+}
+
+// GFM section 6.9: "Trailing punctuation (specifically, ?, !, ., ,, :, *, _,
+// and ~) will not be considered part of the autolink"
+TEST(autolink_trailing_a_colon_is_trimmed) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("See www.example.com: ok")};
+  EXPECT_EQ(result, "<p>See <a href=\"http://www.example.com\">"
+                    "www.example.com</a>: ok</p>\n");
+}
+
+// GFM section 6.9: "Trailing punctuation (specifically, ?, !, ., ,, :, *, _,
+// and ~) will not be considered part of the autolink"
+// The same section also admits "no underscores may be present in the last two
+// segments of the domain", and that reading comes first, so the candidate is no
+// autolink rather than one with its tail trimmed
+TEST(autolink_with_a_trailing_underscore_is_no_autolink) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("See www.example.com_ ok")};
+  EXPECT_EQ(result, "<p>See www.example.com_ ok</p>\n");
+}
+
+// GFM section 6.9: "Trailing punctuation (specifically, ?, !, ., ,, :, *, _,
+// and ~) will not be considered part of the autolink"
+TEST(autolink_trailing_a_tilde_is_trimmed) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("See www.example.com~ ok")};
+  EXPECT_EQ(result, "<p>See <a href=\"http://www.example.com\">"
+                    "www.example.com</a>~ ok</p>\n");
+}
+
+// A semicolon is not among the trailing punctuation that section lists. It is
+// excluded only where it closes an entity reference lookalike, so one standing
+// on its own stays part of the link
+TEST(autolink_trailing_semicolon_without_an_entity_is_kept) {
+  const auto result{sourcemeta::core::markdown_to_html("See www.a.b; ok")};
+  EXPECT_EQ(result, "<p>See <a href=\"http://www.a.b;\">www.a.b;</a> ok</p>\n");
+}

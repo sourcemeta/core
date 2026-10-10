@@ -1412,3 +1412,219 @@ TEST(invalid_unterminated_string_literal_inside_a_class) {
 TEST(invalid_utf8_pattern) {
   EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\xFF\xFE"));
 }
+
+// ECMA-262 IdentifierStartChar admits an underscore, which no group name
+// here begins with
+TEST(accepts_a_group_name_starting_with_an_underscore) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("(?<_a>x)"));
+}
+
+// IdentifierPartChar admits a dollar sign
+TEST(accepts_a_group_name_continuing_with_a_dollar) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("(?<a$>x)"));
+}
+
+// IdentifierPartChar names U+200C among the two characters it adds beyond
+// the Unicode identifier set
+TEST(accepts_a_group_name_continuing_with_a_zero_width_non_joiner) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("(?<a\xE2\x80\x8C>x)"));
+}
+
+// The second of those two is U+200D
+TEST(accepts_a_group_name_continuing_with_a_zero_width_joiner) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("(?<a\xE2\x80\x8D>x)"));
+}
+
+// A property escape names a property, so an empty pair of braces names
+// nothing
+TEST(rejects_a_property_with_no_name) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\p{}"));
+}
+
+// Only the non-binary properties the specification lists may take a
+// value, so an unlisted name is no property
+TEST(rejects_a_non_binary_property_that_is_not_listed) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\p{Bogus=Latin}"));
+}
+
+// A hexadecimal digit is nothing below the decimal digits either, which the
+// upper-case half of the test has to decide on its own
+TEST(rejects_a_unicode_escape_of_characters_below_the_digits) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\u!!!!"));
+}
+
+// ECMA-262 puts the zero width non-joiner into IdentifierPart, so a group name
+// may carry one after its first character
+TEST(accepts_a_group_name_holding_a_zero_width_non_joiner) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("(?<a\xE2\x80\x8C>x)"));
+}
+
+TEST(accepts_a_group_name_holding_a_zero_width_joiner) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("(?<a\xE2\x80\x8D>x)"));
+}
+
+TEST(rejects_a_group_that_opens_at_the_end_of_the_pattern) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("("));
+}
+
+TEST(rejects_an_unclosed_lookahead) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("(?=a"));
+}
+
+TEST(rejects_an_unclosed_named_group) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("(?<name>a"));
+}
+
+// A back reference that names an earlier group than one already seen leaves
+// the largest reference where it was
+TEST(accepts_back_references_in_descending_order) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("(a)(b)\\2\\1"));
+}
+
+TEST(rejects_a_property_with_no_name_before_its_value) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\p{=Latin}"));
+}
+
+TEST(rejects_a_property_value_that_is_never_closed) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\p{Script=Latin"));
+}
+
+// A property name may hold digits, which does not make an unlisted one listed
+TEST(rejects_an_unlisted_property_name_holding_a_digit) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\p{Bogus1}"));
+}
+
+TEST(rejects_a_hex_escape_whose_second_digit_is_not_hexadecimal) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\xA!"));
+}
+
+// A lead surrogate only pairs with an escape that spells a trail surrogate, so
+// an escape of another kind leaves it standing as its own code point
+TEST(accepts_a_lead_surrogate_followed_by_another_escape) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\uD800\\d"));
+}
+
+TEST(rejects_a_lead_surrogate_followed_by_a_malformed_escape) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\uD800\\uZZZZ"));
+}
+
+TEST(rejects_a_class_whose_range_runs_to_the_end_of_the_pattern) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("[a-"));
+}
+
+TEST(rejects_a_class_range_ending_in_a_malformed_escape) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("[a-\\xZZ]"));
+}
+
+// A modifier may not be named twice in the same run
+TEST(rejects_a_repeated_modifier_among_those_removed) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("(?-ss:a)"));
+}
+
+// Set notation belongs to the v mode of ECMA-262, which is tried once the
+// plain unicode reading has turned the pattern down
+TEST(accepts_an_intersection_of_two_classes) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[[a-z]&&[b]]"));
+}
+
+TEST(accepts_a_difference_of_two_classes) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[[a-z]--[b]]"));
+}
+
+// An intersection of two string operands may still stand for strings
+TEST(accepts_an_intersection_of_two_string_operands) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[\\q{ab}&&\\q{ab}]"));
+}
+
+// Intersecting with a class of single characters cannot yield a string
+TEST(accepts_an_intersection_of_a_string_operand_and_a_class) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[\\q{ab}&&[a]]"));
+}
+
+TEST(rejects_an_intersection_followed_by_a_stray_character) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("[[a]&&[b]x]"));
+}
+
+TEST(accepts_a_union_of_two_string_operands) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[\\q{ab}\\q{cd}]"));
+}
+
+// A single character before the difference operator is an operand rather than
+// the start of a range
+TEST(accepts_a_difference_whose_left_side_is_one_character) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[a--[b]]"));
+}
+
+TEST(rejects_a_range_ending_in_a_string_operand) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("[a-\\q{x}]"));
+}
+
+// There is no sensible complement of a set of strings, so a negated class may
+// not hold one
+TEST(rejects_a_negated_operand_standing_for_strings) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("[[^\\q{ab}]--[x]]"));
+}
+
+TEST(accepts_a_difference_whose_left_side_is_a_negated_property) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[\\P{L}--[a]]"));
+}
+
+TEST(rejects_a_string_operand_that_is_never_closed) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("[\\q{ab--[x]]"));
+}
+
+// A punctuator is only held back when it is doubled, so a lone one is an
+// ordinary member of the class
+TEST(accepts_a_lone_reserved_punctuator_inside_a_set_operand) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[[a]--[!]]"));
+}
+
+TEST(accepts_a_negated_property_inside_a_class) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[\\P{L}]"));
+}
+
+TEST(rejects_an_unclosed_lookbehind) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("(?<=a"));
+}
+
+TEST(rejects_a_repeated_modifier_among_those_added) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("(?ii:a)"));
+}
+
+// A lead surrogate pairs only with a trail surrogate, so an escape naming any
+// other code point leaves the two standing apart
+TEST(accepts_a_lead_surrogate_followed_by_a_plain_escape) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\uD800\\u0041"));
+}
+
+TEST(accepts_an_intersection_of_three_classes) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[[a-z]&&[b]&&[b]]"));
+}
+
+TEST(accepts_a_difference_of_three_classes) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[[a-z]--[b]--[c]]"));
+}
+
+TEST(accepts_an_intersection_of_a_string_operand_and_two_classes) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[\\q{ab}&&[a]&&[b]]"));
+}
+
+// Set notation counts the hyphen among its syntax characters, so one standing
+// for itself has to be escaped
+TEST(rejects_an_unescaped_trailing_hyphen_inside_a_set_operand) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("[[a-]--[b]]"));
+}
+
+TEST(accepts_an_escaped_trailing_hyphen_inside_a_set_operand) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[[a\\-]--[b]]"));
+}
+
+// Only the punctuators the specification reserves are held back when doubled,
+// so an ordinary character may repeat
+TEST(accepts_a_doubled_ordinary_character_inside_a_set_operand) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[[a]--[bb]]"));
+}
+
+TEST(rejects_a_string_operand_whose_brace_never_closes) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("[[a]--\\q{b]]"));
+}

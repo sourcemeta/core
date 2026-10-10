@@ -447,3 +447,229 @@ TEST(language_mismatch_keeps_value_object) {
   })");
   EXPECT_EQ(result, expected);
 }
+
+// JSON-LD 1.1 API Section 4.3, Inverse Context Creation, builds a key from a
+// term's language and direction together, so a term carrying both has to be
+// told apart from one carrying either alone or neither. The uppercase language
+// tag is what pins the lowercasing that algorithm asks for
+TEST(compact_selects_a_term_carrying_both_language_and_direction) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/both": [
+        { "@value": "x", "@language": "en", "@direction": "ltr" }
+      ],
+      "http://example.com/lang": [ { "@value": "x", "@language": "en" } ],
+      "http://example.com/dir": [ { "@value": "x", "@direction": "ltr" } ],
+      "http://example.com/neither": [ { "@value": "x" } ]
+    }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({
+    "both": {
+      "@id": "http://example.com/both",
+      "@language": "EN",
+      "@direction": "ltr"
+    },
+    "lang": { "@id": "http://example.com/lang", "@language": "en" },
+    "dir": { "@id": "http://example.com/dir", "@direction": "ltr" },
+    "neither": { "@id": "http://example.com/neither" }
+  })");
+
+  const auto result{sourcemeta::core::jsonld_compact(
+      input, context, "", {}, sourcemeta::core::JSONLDVersion::V1_1, true,
+      true)};
+
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "both": "x",
+    "lang": "x",
+    "dir": "x",
+    "neither": "x",
+    "@context": {
+      "both": {
+        "@id": "http://example.com/both",
+        "@language": "EN",
+        "@direction": "ltr"
+      },
+      "lang": { "@id": "http://example.com/lang", "@language": "en" },
+      "dir": { "@id": "http://example.com/dir", "@direction": "ltr" },
+      "neither": { "@id": "http://example.com/neither" }
+    }
+  })");
+
+  EXPECT_EQ(result, expected);
+}
+
+// JSON-LD 1.1 API Section 4.4, Term Selection, reaches the same key while
+// choosing a term for a list, which asks for every item to carry both
+TEST(compact_selects_a_list_term_carrying_both_language_and_direction) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/both": [
+        {
+          "@list": [
+            { "@value": "x", "@language": "en", "@direction": "ltr" },
+            { "@value": "y", "@language": "en", "@direction": "ltr" }
+          ]
+        }
+      ]
+    }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({
+    "both": {
+      "@id": "http://example.com/both",
+      "@container": "@list",
+      "@language": "EN",
+      "@direction": "ltr"
+    }
+  })");
+
+  const auto result{sourcemeta::core::jsonld_compact(
+      input, context, "", {}, sourcemeta::core::JSONLDVersion::V1_1, true,
+      true)};
+
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "both": [ "x", "y" ],
+    "@context": {
+      "both": {
+        "@id": "http://example.com/both",
+        "@container": "@list",
+        "@language": "EN",
+        "@direction": "ltr"
+      }
+    }
+  })");
+
+  EXPECT_EQ(result, expected);
+}
+
+// JSON-LD 1.1 API Section 6.2 keeps a candidate that is shorter, or the same
+// length and lexicographically less, so two prefixes of one length settle it
+// by comparison rather than by the order they were written
+TEST(compact_breaks_a_tie_between_two_prefixes_of_one_length) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    { "http://example.com/x": [ { "@value": "v" } ] }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({
+    "aa": "http://example.com/",
+    "ab": "http://example.com/"
+  })");
+
+  const auto result{sourcemeta::core::jsonld_compact(
+      input, context, "", {}, sourcemeta::core::JSONLDVersion::V1_1, true,
+      true)};
+
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "aa:x": "v",
+    "@context": {
+      "aa": "http://example.com/",
+      "ab": "http://example.com/"
+    }
+  })");
+
+  EXPECT_EQ(result, expected);
+}
+
+// An identifier equal to the base relativises to nothing, and with no base
+// path there is no last segment to put in its place
+TEST(an_identifier_equal_to_a_base_that_carries_no_path) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "http://example.org",
+      "http://example.com/b": [ { "@value": "v" } ]
+    }
+  ])");
+
+  const auto context =
+      sourcemeta::core::parse_json(R"({ "b": "http://example.com/b" })");
+
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "@id": "",
+    "b": "v",
+    "@context": { "b": "http://example.com/b" }
+  })");
+
+  EXPECT_EQ(
+      sourcemeta::core::jsonld_compact(input, context, "http://example.org"),
+      expected);
+}
+
+// A base path with no slash is its own last segment
+TEST(an_identifier_equal_to_a_base_whose_path_holds_no_slash) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "urn:example",
+      "http://example.com/b": [ { "@value": "v" } ]
+    }
+  ])");
+
+  const auto context =
+      sourcemeta::core::parse_json(R"({ "b": "http://example.com/b" })");
+
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "@id": "example",
+    "b": "v",
+    "@context": { "b": "http://example.com/b" }
+  })");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_compact(input, context, "urn:example"),
+            expected);
+}
+
+// JSON-LD 1.1 API Section 5.2.3 joins the default language and direction
+// with an underscore when a direction is set, which is the key a value
+// carrying both is looked up under
+TEST(a_context_carrying_both_a_language_and_a_direction) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/b": [
+        { "@value": "v", "@language": "en", "@direction": "ltr" }
+      ]
+    }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({
+    "@version": 1.1,
+    "@language": "en",
+    "@direction": "ltr",
+    "b": "http://example.com/b"
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "b": "v",
+    "@context": {
+      "@version": 1.1,
+      "@language": "en",
+      "@direction": "ltr",
+      "b": "http://example.com/b"
+    }
+  })");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_compact(input, context, ""), expected);
+}
+
+// The index candidates are offered only to a value that does not already
+// carry an index of its own
+TEST(a_value_that_already_carries_an_index) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/b": [ { "@value": "v", "@index": "i" } ]
+    }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({
+    "@version": 1.1,
+    "b": { "@id": "http://example.com/b", "@container": "@index" }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "b": { "i": "v" },
+    "@context": {
+      "@version": 1.1,
+      "b": { "@id": "http://example.com/b", "@container": "@index" }
+    }
+  })");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_compact(input, context, ""), expected);
+}

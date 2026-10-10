@@ -669,3 +669,15 @@ TEST(invalid_zwnj_failing_at_one_occurrence) {
   EXPECT_FALSE(sourcemeta::core::is_idn_hostname(
       "\xe0\xa4\x95\xe0\xa5\x8d\xe2\x80\x8c\xe0\xa4\xb7\x78\xe2\x80\x8c\x79"));
 }
+
+// RFC 5891 Section 4.2.4 caps a label at 63 octets in its A-label form, which
+// a long enough U-label exceeds however compactly it encodes
+TEST(invalid_u_label_far_past_63_octets) {
+  std::string label;
+  for (int index = 0; index < 10; ++index) {
+    label.append("\xcf\x80\xce\xb1\xcf\x81\xce\xac\xce\xb4"
+                 "\xce\xb5\xce\xb9\xce\xb3\xce\xbc\xce\xb1");
+  }
+  EXPECT_EQ(label.size(), 200u);
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname(label));
+}

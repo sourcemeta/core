@@ -32,6 +32,24 @@ static auto test_resolver(std::string_view identifier)
       }
     })JSON");
   }
+  if (identifier == "https://sourcemeta.com/array-vocabularies") {
+    return sourcemeta::core::parse_json(R"JSON({
+      "$id": "https://sourcemeta.com/array-vocabularies",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$vocabulary": [
+        "https://json-schema.org/draft/2020-12/vocab/core"
+      ]
+    })JSON");
+  }
+  if (identifier == "https://sourcemeta.com/string-vocabulary-value") {
+    return sourcemeta::core::parse_json(R"JSON({
+      "$id": "https://sourcemeta.com/string-vocabulary-value",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$vocabulary": {
+        "https://json-schema.org/draft/2020-12/vocab/core": "true"
+      }
+    })JSON");
+  }
   return sourcemeta::core::schema_resolver(identifier);
 }
 
@@ -1013,4 +1031,127 @@ TEST(openapi_3_0_dialect_document_is_itself_draft4) {
       sourcemeta::core::SchemaVocabularies::Known::JSON_SCHEMA_DRAFT_4));
   EXPECT_FALSE(result.contains(
       sourcemeta::core::SchemaVocabularies::Known::OPENAPI_3_0_BASE));
+}
+
+// Asking by URI is a documented way of asking, and naming one of the
+// vocabularies this module already knows that way used to abort a debug build
+// rather than answer.
+TEST(contains_a_known_vocabulary_by_its_uri) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema"
+  })JSON");
+  const auto result{vocabularies(document, sourcemeta::core::schema_resolver)};
+  EXPECT_TRUE(result.contains(sourcemeta::core::JSON::String{
+      "https://json-schema.org/draft/2020-12/vocab/core"}));
+  EXPECT_FALSE(result.contains(
+      sourcemeta::core::JSON::String{"https://example.com/vocab/absent"}));
+}
+
+TEST(get_a_known_vocabulary_by_its_uri) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema"
+  })JSON");
+  const auto result{vocabularies(document, sourcemeta::core::schema_resolver)};
+  const auto status{result.get(sourcemeta::core::JSON::String{
+      "https://json-schema.org/draft/2020-12/vocab/core"})};
+  EXPECT_TRUE(status.has_value());
+  EXPECT_TRUE(status.value());
+  EXPECT_FALSE(result
+                   .get(sourcemeta::core::JSON::String{
+                       "https://example.com/vocab/absent"})
+                   .has_value());
+}
+
+// Section 8.1.2 requires the value to be an object whose property values are
+// booleans. Reading a metaschema that breaks either as declaring nothing
+// quietly hands back a core-only answer for a document that never said so.
+TEST(vocabularies_of_a_metaschema_must_be_an_object) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://sourcemeta.com/array-vocabularies"
+  })JSON");
+
+  try {
+    vocabularies(document, test_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaVocabularyError &error) {
+    EXPECT_EQ(error.uri(), "https://sourcemeta.com/array-vocabularies");
+    EXPECT_STREQ(error.what(),
+                 "The vocabularies of a metaschema must be an object");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(vocabularies_of_a_metaschema_must_be_declared_with_booleans) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://sourcemeta.com/string-vocabulary-value"
+  })JSON");
+
+  try {
+    vocabularies(document, test_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaVocabularyError &error) {
+    EXPECT_EQ(error.uri(), "https://sourcemeta.com/string-vocabulary-value");
+    EXPECT_STREQ(
+        error.what(),
+        "Every vocabulary of a metaschema must be declared with a boolean");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// Naming a vocabulary this module does not know, where the dialect declared no
+// unknown vocabularies either, leaves nothing to answer with
+TEST(get_an_unknown_uri_where_no_unknown_vocabularies_were_declared) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema"
+  })JSON")};
+  const auto result{vocabularies(document, sourcemeta::core::schema_resolver)};
+  EXPECT_FALSE(result.has_unknown());
+  EXPECT_FALSE(result.get("https://example.com/not-a-vocabulary").has_value());
+}
+
+// With the far end of that chain unknown, there is no base dialect to report
+// rather than a guess at one
+TEST(base_dialect_unresolved_where_the_chain_leaves_the_known) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://example.com/meta-1",
+    "$defs": {
+      "meta-1": {
+        "$id": "https://example.com/meta-1",
+        "$schema": "https://example.com/meta-2",
+        "$vocabulary": {
+          "https://json-schema.org/draft/2020-12/vocab/core": true
+        }
+      }
+    }
+  })JSON")};
+
+  // The chain is abandoned rather than reported step by step, so what the
+  // refusal names is the dialect that was asked about and not the one further
+  // along that could not be fetched
+  try {
+    vocabularies(document, sourcemeta::core::schema_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaResolutionError &error) {
+    EXPECT_EQ(error.identifier(), "https://example.com/meta-1");
+  }
+}
+
+TEST(get_known_absent_vocabulary) {
+  using Known = sourcemeta::core::SchemaVocabularies::Known;
+
+  const sourcemeta::core::SchemaVocabularies vocabularies{
+      {Known::JSON_SCHEMA_2020_12_CORE, true}};
+
+  EXPECT_FALSE(
+      vocabularies.get(Known::JSON_SCHEMA_2020_12_APPLICATOR).has_value());
+}
+
+TEST(empty_with_only_a_custom_vocabulary) {
+  sourcemeta::core::SchemaVocabularies vocabularies{};
+  vocabularies.insert("https://example.com/custom-vocab", true);
+
+  EXPECT_FALSE(vocabularies.empty());
+  EXPECT_EQ(vocabularies.size(), 1);
 }

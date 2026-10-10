@@ -319,3 +319,26 @@ TEST(no_skip_treats_program_name_as_option_if_prefixed) {
   EXPECT_EQ(app.at("file").size(), 1);
   EXPECT_EQ(app.at("file")[0], "fromprog");
 }
+
+// A lone dash names no short option, so it is an ordinary positional argument
+TEST(a_bare_dash_is_positional) {
+  sourcemeta::core::Options app;
+  app.option("foo", {"f"});
+
+  const std::array<const char *, 2> argv{{"prog", "-"}};
+  app.parse(static_cast<int>(argv.size()), argv.data());
+
+  EXPECT_EQ(app.positional().size(), 1);
+  EXPECT_EQ(app.positional()[0], "-");
+}
+
+// A bare double dash is not a short option run either
+TEST(a_bare_double_dash_is_not_a_short_option_run) {
+  sourcemeta::core::Options app;
+  app.option("foo", {"f"});
+
+  const std::array<const char *, 2> argv{{"prog", "--"}};
+  app.parse(static_cast<int>(argv.size()), argv.data());
+
+  EXPECT_TRUE(app.at("foo").empty());
+}

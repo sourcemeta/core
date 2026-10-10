@@ -18,6 +18,13 @@ static const sourcemeta::core::JSON DOCUMENT =
   }
 })JSON");
 
+static const sourcemeta::core::JSON COLLIDING_DOCUMENT =
+    sourcemeta::core::parse_json(R"JSON({
+  "id": "https://www.sourcemeta.com/schema",
+  "$schema": "http://json-schema.org/draft-00/schema#",
+  "items": { "id": "schema" }
+})JSON");
+
 TEST(references_location_count) {
   const sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::References, DOCUMENT,
@@ -120,13 +127,6 @@ TEST(pointers_mode_consumes_more_than_references_mode) {
     EXPECT_EQ(error.limit(), 3);
   }
 }
-
-static const sourcemeta::core::JSON COLLIDING_DOCUMENT =
-    sourcemeta::core::parse_json(R"JSON({
-  "id": "https://www.sourcemeta.com/schema",
-  "$schema": "http://json-schema.org/draft-00/schema#",
-  "items": { "id": "schema" }
-})JSON");
 
 // The insertion that collides is checked for collision before it is charged,
 // so a schema that is invalid on its own terms is still reported as invalid

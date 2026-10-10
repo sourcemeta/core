@@ -1,14 +1,28 @@
 #include <sourcemeta/core/io.h>
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/test.h>
+#include <sourcemeta/core/unicode.h>
 #include <sourcemeta/core/yaml.h>
 
 #include <fstream>  // std::ifstream
 #include <ios>      // std::ios::binary
 #include <iostream> // std::cerr
-#include <sstream>  // std::istringstream
+#include <sstream>  // std::istringstream, std::ostringstream
 #include <string>   // std::string
 #include <utility>  // std::move
+
+// A run of one character that takes four bytes to write, for showing that what
+// a copy occupies is counted in bytes rather than in the characters they spell
+static auto wide_characters(const std::size_t count) -> std::string {
+  const auto character{sourcemeta::core::codepoint_to_utf8(U'\U0001F600')};
+  std::string result;
+  result.reserve(count * character.size());
+  for (std::size_t index = 0; index < count; index++) {
+    result += character;
+  }
+
+  return result;
+}
 
 TEST(deeply_nested_flow_is_rejected) {
   const std::string input{std::string(2000, '[') + std::string(2000, ']')};
@@ -17,6 +31,8 @@ TEST(deeply_nested_flow_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Maximum nesting depth exceeded");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 101);
   }
 }
 
@@ -139,6 +155,7 @@ TEST(empty) {
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 1);
     EXPECT_EQ(error.column(), 1);
+    EXPECT_STREQ(error.what(), "Empty YAML document");
   } catch (...) {
     FAIL();
   }
@@ -152,6 +169,7 @@ TEST(blank) {
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 1);
     EXPECT_EQ(error.column(), 1);
+    EXPECT_STREQ(error.what(), "Empty YAML document");
   } catch (...) {
     FAIL();
   }
@@ -165,6 +183,7 @@ TEST(invalid_1) {
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 1);
     EXPECT_EQ(error.column(), 5);
+    EXPECT_STREQ(error.what(), "Expected ':' after mapping key");
   } catch (...) {
     FAIL();
   }
@@ -204,6 +223,25 @@ TEST(read_yaml_resolves_a_tag_directive_before_a_later_document) {
       std::filesystem::path{STUBS_PATH} / "multi_document_tag_directive.yaml")};
   const sourcemeta::core::JSON expected{
       sourcemeta::core::parse_json(R"JSON({ "first": "document" })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+// YAML 1.2.2 Section 9.2: a document that is not terminated by a document end
+// marker is followed by one that begins with a directives end marker, and
+// production 211 admits an explicit document directly after any other, so a
+// stream separated by directives end markers alone is well formed.
+TEST(read_yaml_accepts_documents_separated_by_a_directives_end_marker) {
+  const auto result{sourcemeta::core::read_yaml(
+      std::filesystem::path{STUBS_PATH} / "multi_document_objects.yaml")};
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON({ "foo": 1 })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(read_yaml_accepts_scalar_documents_separated_by_a_directives_end_marker) {
+  const auto result{sourcemeta::core::read_yaml(
+      std::filesystem::path{STUBS_PATH} / "multi_document_lf.yaml")};
+  const sourcemeta::core::JSON expected{sourcemeta::core::JSON{"foo"}};
   EXPECT_EQ(result, expected);
 }
 
@@ -291,6 +329,22 @@ TEST(multi_document_unix_line_endings) {
   EXPECT_EQ(doc3, sourcemeta::core::JSON{"baz"});
 
   EXPECT_EQ(stream.peek(), EOF);
+}
+
+// A token handed back has not been read as far as the caller is concerned, so
+// where the stream stands has to be where that token begins. Leaving it where
+// reading the token ended made the next read resume past it and lose it.
+TEST(multi_document_after_a_leading_document_end_marker) {
+  std::istringstream stream{"...\nfoo\n---\nbar"};
+
+  const auto doc1{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_TRUE(doc1.is_null());
+
+  const auto doc2{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(doc2, sourcemeta::core::JSON{"foo"});
+
+  const auto doc3{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(doc3, sourcemeta::core::JSON{"bar"});
 }
 
 TEST(multi_document_windows_line_endings) {
@@ -555,20 +609,25 @@ TEST(exponent_sign_without_digit_is_a_string) {
   EXPECT_TRUE(result.is_string());
 }
 
-TEST(real_long_small_decimal) {
+TEST(decimal_long_small_decimal) {
   const std::string input{
       "0.00000000000000000000000000000000000000000000000000000000000000000000"
       "1"};
   const auto result{sourcemeta::core::parse_yaml(input)};
-  EXPECT_TRUE(result.is_real());
-  EXPECT_EQ(result.to_real(), 1e-69);
+  EXPECT_TRUE(result.is_decimal());
+  EXPECT_EQ(result.to_decimal(),
+            sourcemeta::core::Decimal{
+                "0.000000000000000000000000000000000000000000000000000000000000"
+                "00000000"
+                "1"});
 }
 
-TEST(real_subnormal_decimal) {
+TEST(decimal_subnormal_decimal) {
   const std::string input{"0." + std::string(309, '0') + "5"};
   const auto result{sourcemeta::core::parse_yaml(input)};
-  EXPECT_TRUE(result.is_real());
-  EXPECT_EQ(result.to_real(), 5e-310);
+  EXPECT_TRUE(result.is_decimal());
+  EXPECT_EQ(result.to_decimal(),
+            sourcemeta::core::Decimal{"0." + std::string(309, '0') + "5"});
 }
 
 TEST(decimal_underflowing_decimal) {
@@ -662,6 +721,7 @@ TEST(yaml_or_json_invalid_yaml_throws_yaml_error) {
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 1);
     EXPECT_EQ(error.column(), 15);
+    EXPECT_STREQ(error.what(), "Expected ':' after mapping key");
   } catch (...) {
     FAIL();
   }
@@ -697,8 +757,8 @@ TEST(verbatim_tag_str) {
 TEST(verbatim_tag_float) {
   const std::string input{"!<tag:yaml.org,2002:float> 3.14"};
   const auto result{sourcemeta::core::parse_yaml(input)};
-  EXPECT_TRUE(result.is_real());
-  EXPECT_DOUBLE_EQ(result.to_real(), 3.14);
+  EXPECT_TRUE(result.is_decimal());
+  EXPECT_EQ(result.to_decimal(), sourcemeta::core::Decimal{"3.14"});
 }
 
 TEST(plain_scalar_triple_dash_value) {
@@ -722,6 +782,8 @@ TEST(invalid_hex_escape) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 1);
+    EXPECT_STREQ(error.what(), "Invalid hex escape sequence");
+    EXPECT_EQ(error.column(), 6);
   } catch (...) {
     FAIL();
   }
@@ -734,6 +796,8 @@ TEST(invalid_unicode_escape_4) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 1);
+    EXPECT_STREQ(error.what(), "Invalid hex escape sequence");
+    EXPECT_EQ(error.column(), 8);
   } catch (...) {
     FAIL();
   }
@@ -746,6 +810,8 @@ TEST(invalid_unicode_escape_8) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 1);
+    EXPECT_STREQ(error.what(), "Invalid hex escape sequence");
+    EXPECT_EQ(error.column(), 12);
   } catch (...) {
     FAIL();
   }
@@ -773,6 +839,8 @@ TEST(surrogate_unicode_escape_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 1);
+    EXPECT_STREQ(error.what(), "Invalid Unicode escape sequence");
+    EXPECT_EQ(error.column(), 8);
   } catch (...) {
     FAIL();
   }
@@ -785,6 +853,8 @@ TEST(out_of_range_unicode_escape_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 1);
+    EXPECT_STREQ(error.what(), "Invalid Unicode escape sequence");
+    EXPECT_EQ(error.column(), 12);
   } catch (...) {
     FAIL();
   }
@@ -806,6 +876,7 @@ TEST(exponential_alias_expansion_is_bounded) {
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 5);
     EXPECT_EQ(error.column(), 9);
+    EXPECT_STREQ(error.what(), "Maximum YAML alias expansion exceeded");
   } catch (...) {
     FAIL();
   }
@@ -827,6 +898,7 @@ TEST(alias_expansion_allowance_scales_with_the_input) {
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 5);
     EXPECT_EQ(error.column(), 6);
+    EXPECT_STREQ(error.what(), "Maximum YAML alias expansion exceeded");
   } catch (...) {
     FAIL();
   }
@@ -858,6 +930,29 @@ TEST(alias_expansion_allowance_ignores_a_comment_behind_the_alias) {
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 5);
     EXPECT_EQ(error.column(), 4);
+    EXPECT_STREQ(error.what(), "Maximum YAML alias expansion exceeded");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// What an expansion costs is what materialising it takes, so a place holding a
+// long run of text cannot be copied for the price of an empty one. Charging
+// each place alone let this one spend about one part in a thousand of its
+// allowance while materialising two megabytes from two kilobytes of input.
+TEST(alias_expansion_allowance_counts_the_text_a_place_carries) {
+  const std::string input{"a: &a " + std::string(2000, 'x') + "\n" +
+                          "b: &b [ *a, *a, *a, *a, *a, *a, *a, *a, *a, *a ]\n"
+                          "c: &c [ *b, *b, *b, *b, *b, *b, *b, *b, *b, *b ]\n"
+                          "d: [ *c, *c, *c, *c, *c, *c, *c, *c, *c, *c ]\n"};
+
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_EQ(error.line(), 4);
+    EXPECT_STREQ(error.what(), "Maximum YAML alias expansion exceeded");
+    EXPECT_EQ(error.column(), 10);
   } catch (...) {
     FAIL();
   }
@@ -882,6 +977,7 @@ TEST(alias_expansion_allowance_ignores_text_after_the_expansion) {
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 5);
     EXPECT_EQ(error.column(), 6);
+    EXPECT_STREQ(error.what(), "Maximum YAML alias expansion exceeded");
   } catch (...) {
     FAIL();
   }
@@ -919,15 +1015,15 @@ TEST(repeated_alias_expansion_beyond_the_input_length_is_accepted) {
 TEST(float_tag_out_of_integer_range) {
   const std::string input{"!!float 1e300"};
   const auto result{sourcemeta::core::parse_yaml(input)};
-  EXPECT_TRUE(result.is_real());
-  EXPECT_EQ(result.to_real(), 1e300);
+  EXPECT_TRUE(result.is_decimal());
+  EXPECT_EQ(result.to_decimal(), sourcemeta::core::Decimal{"1e300"});
 }
 
 TEST(float_tag_just_above_integer_range) {
   const std::string input{"!!float 1e19"};
   const auto result{sourcemeta::core::parse_yaml(input)};
-  EXPECT_TRUE(result.is_real());
-  EXPECT_EQ(result.to_real(), 1e19);
+  EXPECT_TRUE(result.is_decimal());
+  EXPECT_EQ(result.to_decimal(), sourcemeta::core::Decimal{"1e19"});
 }
 
 // YAML 1.2.2 Section 8.2.1: an empty block sequence entry is a null node rather
@@ -970,7 +1066,9 @@ TEST(yaml_directive_comment_without_separation_is_rejected) {
     sourcemeta::core::parse_yaml(input);
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid version in %YAML directive");
     EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 1);
   } catch (...) {
     FAIL();
   }
@@ -982,7 +1080,9 @@ TEST(yaml_directive_non_numeric_version_is_rejected) {
     sourcemeta::core::parse_yaml(input);
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid version in %YAML directive");
     EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 1);
   } catch (...) {
     FAIL();
   }
@@ -1011,6 +1111,8 @@ TEST(tab_before_compact_nested_sequence_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 1);
+    EXPECT_STREQ(error.what(), "Tab characters cannot be used for indentation");
+    EXPECT_EQ(error.column(), 3);
   } catch (...) {
     FAIL();
   }
@@ -1023,6 +1125,8 @@ TEST(tab_after_space_before_compact_nested_sequence_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 1);
+    EXPECT_STREQ(error.what(), "Tab characters cannot be used for indentation");
+    EXPECT_EQ(error.column(), 4);
   } catch (...) {
     FAIL();
   }
@@ -1035,6 +1139,8 @@ TEST(tab_before_compact_nested_sequence_under_explicit_key_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 1);
+    EXPECT_STREQ(error.what(), "Tab characters cannot be used for indentation");
+    EXPECT_EQ(error.column(), 3);
   } catch (...) {
     FAIL();
   }
@@ -1068,6 +1174,8 @@ TEST(tab_in_block_mapping_key_indentation_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 3);
+    EXPECT_STREQ(error.what(), "Tab characters cannot be used for indentation");
+    EXPECT_EQ(error.column(), 4);
   } catch (...) {
     FAIL();
   }
@@ -1089,6 +1197,8 @@ TEST(tab_before_compact_mapping_under_explicit_key_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 1);
+    EXPECT_STREQ(error.what(), "Tab characters cannot be used for indentation");
+    EXPECT_EQ(error.column(), 6);
   } catch (...) {
     FAIL();
   }
@@ -1117,6 +1227,8 @@ TEST(tab_indented_double_quoted_continuation_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 2);
+    EXPECT_STREQ(error.what(), "Tab characters cannot be used for indentation");
+    EXPECT_EQ(error.column(), 1);
   } catch (...) {
     FAIL();
   }
@@ -1141,6 +1253,8 @@ TEST(tab_on_empty_block_scalar_line_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 2);
+    EXPECT_STREQ(error.what(), "Tab characters cannot be used for indentation");
+    EXPECT_EQ(error.column(), 1);
   } catch (...) {
     FAIL();
   }
@@ -1164,6 +1278,8 @@ TEST(flow_mapping_content_at_block_indent_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 2);
+    EXPECT_STREQ(error.what(), "Insufficient indentation in flow collection");
+    EXPECT_EQ(error.column(), 1);
   } catch (...) {
     FAIL();
   }
@@ -1184,6 +1300,8 @@ TEST(flow_sequence_content_at_block_indent_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 2);
+    EXPECT_STREQ(error.what(), "Insufficient indentation in flow collection");
+    EXPECT_EQ(error.column(), 1);
   } catch (...) {
     FAIL();
   }
@@ -1207,6 +1325,8 @@ TEST(tab_indented_flow_continuation_line_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 2);
+    EXPECT_STREQ(error.what(), "Insufficient indentation in flow collection");
+    EXPECT_EQ(error.column(), 2);
   } catch (...) {
     FAIL();
   }
@@ -1470,6 +1590,8 @@ TEST(anchored_indentless_sequence_at_the_mapping_indentation_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 3);
+    EXPECT_STREQ(error.what(), "Node property at wrong indentation level");
+    EXPECT_EQ(error.column(), 3);
   } catch (...) {
     FAIL();
   }
@@ -1482,6 +1604,8 @@ TEST(tagged_indentless_sequence_at_the_mapping_indentation_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 3);
+    EXPECT_STREQ(error.what(), "Node property at wrong indentation level");
+    EXPECT_EQ(error.column(), 3);
   } catch (...) {
     FAIL();
   }
@@ -1536,7 +1660,9 @@ TEST(yaml_directive_without_version_is_rejected) {
     sourcemeta::core::parse_yaml(input);
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid version in %YAML directive");
     EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 1);
   } catch (...) {
     FAIL();
   }
@@ -1549,7 +1675,9 @@ TEST(yaml_directive_multiple_dot_version_is_rejected) {
     sourcemeta::core::parse_yaml(input);
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid version in %YAML directive");
     EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 1);
   } catch (...) {
     FAIL();
   }
@@ -1645,6 +1773,7 @@ TEST(tab_line_start_after_blank_indented_line_is_rejected) {
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 3);
     EXPECT_EQ(error.column(), 2);
+    EXPECT_STREQ(error.what(), "Tab characters cannot be used for indentation");
   } catch (...) {
     FAIL();
   }
@@ -1765,6 +1894,8 @@ TEST(raw_control_character_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Control character not allowed in YAML stream");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 8);
   } catch (...) {
     FAIL();
   }
@@ -1808,7 +1939,9 @@ TEST(yaml_directive_higher_major_version_is_rejected) {
     sourcemeta::core::parse_yaml(input);
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Unsupported major version in %YAML directive");
     EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 1);
   } catch (...) {
     FAIL();
   }
@@ -1841,6 +1974,8 @@ TEST(duplicate_tag_directive_same_handle_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Duplicate %TAG directive for the same handle");
+    EXPECT_EQ(error.line(), 2);
+    EXPECT_EQ(error.column(), 1);
   } catch (...) {
     FAIL();
   }
@@ -1875,6 +2010,8 @@ TEST(undefined_tag_handle_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Undefined tag handle");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 7);
   } catch (...) {
     FAIL();
   }
@@ -1938,6 +2075,8 @@ TEST(c0_control_inside_a_quoted_scalar_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Control character not allowed in YAML stream");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 8);
   } catch (...) {
     FAIL();
   }
@@ -1952,6 +2091,8 @@ TEST(invalid_utf8_sequence_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Invalid UTF-8 sequence in YAML stream");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 8);
   } catch (...) {
     FAIL();
   }
@@ -2030,6 +2171,8 @@ TEST(positive_infinity_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Infinity and NaN are not permitted");
+    EXPECT_EQ(error.line(), 2);
+    EXPECT_EQ(error.column(), 0);
   } catch (...) {
     FAIL();
   }
@@ -2042,6 +2185,8 @@ TEST(negative_infinity_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Infinity and NaN are not permitted");
+    EXPECT_EQ(error.line(), 2);
+    EXPECT_EQ(error.column(), 0);
   } catch (...) {
     FAIL();
   }
@@ -2054,6 +2199,8 @@ TEST(not_a_number_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Infinity and NaN are not permitted");
+    EXPECT_EQ(error.line(), 2);
+    EXPECT_EQ(error.column(), 0);
   } catch (...) {
     FAIL();
   }
@@ -2066,6 +2213,8 @@ TEST(infinity_as_mapping_value_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Infinity and NaN are not permitted");
+    EXPECT_EQ(error.line(), 2);
+    EXPECT_EQ(error.column(), 0);
   } catch (...) {
     FAIL();
   }
@@ -2101,6 +2250,8 @@ TEST(block_explicit_flow_sequence_key_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Mapping key cannot be a collection");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 3);
   } catch (...) {
     FAIL();
   }
@@ -2113,6 +2264,8 @@ TEST(block_explicit_flow_mapping_key_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Mapping key cannot be a collection");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 3);
   } catch (...) {
     FAIL();
   }
@@ -2125,6 +2278,8 @@ TEST(block_explicit_block_sequence_key_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Mapping key cannot be a collection");
+    EXPECT_EQ(error.line(), 2);
+    EXPECT_EQ(error.column(), 3);
   } catch (...) {
     FAIL();
   }
@@ -2139,6 +2294,8 @@ TEST(alias_collection_key_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Mapping key cannot be a collection");
+    EXPECT_EQ(error.line(), 2);
+    EXPECT_EQ(error.column(), 1);
   } catch (...) {
     FAIL();
   }
@@ -2151,6 +2308,8 @@ TEST(flow_sequence_explicit_collection_key_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Mapping key cannot be a collection");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 5);
   } catch (...) {
     FAIL();
   }
@@ -2273,6 +2432,8 @@ TEST(float_tag_infinity_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Infinity and NaN are not permitted");
+    EXPECT_EQ(error.line(), 2);
+    EXPECT_EQ(error.column(), 0);
   } catch (...) {
     FAIL();
   }
@@ -2285,6 +2446,8 @@ TEST(float_tag_not_a_number_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Infinity and NaN are not permitted");
+    EXPECT_EQ(error.line(), 2);
+    EXPECT_EQ(error.column(), 0);
   } catch (...) {
     FAIL();
   }
@@ -2364,6 +2527,8 @@ TEST(escape_incomplete_hex) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Invalid hex escape sequence");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 6);
   }
 }
 
@@ -2374,6 +2539,8 @@ TEST(unterminated_single_quote) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Missing closing quote in single-quoted scalar");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 1);
   }
 }
 
@@ -2425,6 +2592,8 @@ TEST(flow_mapping_bare_key_at_eof_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Expected ':' after mapping key");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 3);
   }
 }
 
@@ -2434,6 +2603,8 @@ TEST(flow_mapping_colon_at_eof_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Unexpected token");
+    EXPECT_EQ(error.line(), 2);
+    EXPECT_EQ(error.column(), 0);
   }
 }
 
@@ -2443,6 +2614,8 @@ TEST(flow_mapping_anchor_key_at_eof_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Expected scalar key in mapping");
+    EXPECT_EQ(error.line(), 2);
+    EXPECT_EQ(error.column(), 0);
   }
 }
 
@@ -2500,6 +2673,8 @@ TEST(flow_sequence_dash_at_eof_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Invalid plain scalar start in flow context");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 2);
   }
 }
 
@@ -2526,6 +2701,8 @@ TEST(alias_key_referencing_unknown_anchor_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "YAML alias references undefined anchor");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 1);
   }
 }
 
@@ -2535,6 +2712,8 @@ TEST(flow_explicit_key_at_eof_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Unexpected token");
+    EXPECT_EQ(error.line(), 2);
+    EXPECT_EQ(error.column(), 0);
   }
 }
 
@@ -2544,6 +2723,8 @@ TEST(flow_collection_indented_at_parent_block_level_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Insufficient indentation in flow collection");
+    EXPECT_EQ(error.line(), 2);
+    EXPECT_EQ(error.column(), 1);
   }
 }
 
@@ -2572,10 +2753,23 @@ TEST(block_mapping_second_key_value_at_document_end) {
   EXPECT_TRUE(result.at("b").is_null());
 }
 
+// YAML 1.2.2 Section 10.3.2 resolves an empty node to null, which this module
+// spells as the empty string when it stands as a key, and Example 7.3 reads a
+// leading value indicator into that key holding the scalar beside it.
 TEST(leading_colon_value_indicator_mapping) {
   const auto result{sourcemeta::core::parse_yaml(": v")};
   EXPECT_TRUE(result.is_object());
   EXPECT_EQ(result.size(), 1);
+  EXPECT_TRUE(result.defines(""));
+  EXPECT_EQ(result.at(""), sourcemeta::core::JSON{"v"});
+}
+
+TEST(leading_colon_value_indicator_mapping_with_an_empty_value) {
+  const auto result{sourcemeta::core::parse_yaml(":")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_TRUE(result.defines(""));
+  EXPECT_TRUE(result.at("").is_null());
 }
 
 TEST(anchor_empty_value_before_document_start) {
@@ -2589,6 +2783,8 @@ TEST(mapping_key_that_is_a_collection_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Mapping key cannot be a collection");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 4);
   }
 }
 
@@ -2598,6 +2794,8 @@ TEST(tab_trailing_after_quoted_scalar_is_rejected) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Invalid trailing content");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 4);
   }
 }
 
@@ -2781,6 +2979,8 @@ TEST(flow_mapping_entries_without_a_comma) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Missing comma between flow mapping entries");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 8);
   }
 }
 
@@ -2800,6 +3000,8 @@ TEST(flow_sequence_single_pair_value_cannot_be_another_pair) {
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_STREQ(error.what(), "Missing comma in flow sequence");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 6);
   }
 }
 
@@ -2947,4 +3149,506 @@ TEST(carriage_return_block_scalar_header_comment) {
   auto expected{sourcemeta::core::JSON::make_object()};
   expected.assign("foo", sourcemeta::core::JSON{"one\ntwo"});
   EXPECT_EQ(result, expected);
+}
+
+// Section 9.1 has each document be "completely independent from the rest", so
+// an anchor declared in one is out of reach of an alias in the next. The
+// anchors survived the boundary, which let the second document borrow them.
+TEST(anchor_does_not_reach_across_a_directives_end_marker) {
+  try {
+    sourcemeta::core::read_yaml(std::filesystem::path{STUBS_PATH} /
+                                "multi_document_anchor_reuse.yaml");
+    FAIL();
+  } catch (const sourcemeta::core::YAMLFileParseError &error) {
+    EXPECT_STREQ(error.what(), "YAML alias references undefined anchor");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(anchor_does_not_reach_across_a_document_end_marker) {
+  try {
+    sourcemeta::core::read_yaml(std::filesystem::path{STUBS_PATH} /
+                                "multi_document_anchor_reuse_after_end.yaml");
+    FAIL();
+  } catch (const sourcemeta::core::YAMLFileParseError &error) {
+    EXPECT_STREQ(error.what(), "YAML alias references undefined anchor");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// An empty key is a key like any other, so naming it twice names the same key
+// twice. Nothing recorded it, which left the mapping quietly keeping only the
+// last of them.
+TEST(leading_colon_value_indicator_duplicate_is_rejected) {
+  const std::string input{": v\n~: w\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLDuplicateKeyError &error) {
+    EXPECT_STREQ(error.what(), "Duplicate key in YAML mapping");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// The entry a value indicator opens is committed on more than one path, and an
+// empty key naming the same place twice has to be refused on each of them. The
+// path that ends the document committed without ever weighing the key, which
+// quietly kept the last of them.
+TEST(leading_colon_value_indicator_duplicate_at_the_end_of_a_document) {
+  const std::string input{": [1]\n:\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLDuplicateKeyError &error) {
+    EXPECT_STREQ(error.what(), "Duplicate key in YAML mapping");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// A value indicator that turns out to open an explicit key commits nothing, so
+// the empty key it looked like must not be marked as one the mapping has seen.
+TEST(leading_colon_value_indicator_before_an_explicit_key_is_not_seen) {
+  const auto result{sourcemeta::core::parse_yaml(":\n? a\n: b\n: c\n")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_TRUE(result.defines("a"));
+  EXPECT_TRUE(result.at("a").is_object());
+  EXPECT_EQ(result.at("a").size(), 1);
+  EXPECT_TRUE(result.at("a").defines("b"));
+  EXPECT_TRUE(result.at("a").at("b").is_null());
+}
+
+// What a copy occupies is counted in bytes, where the logical length counts
+// the characters those bytes spell. A character written in four of them was
+// charged as one, so this chain stayed within an allowance it outgrows four
+// times over.
+TEST(alias_expansion_allowance_counts_bytes_not_characters) {
+  const std::string input{"a: &a " + wide_characters(100) + "\n" +
+                          "b: &b [ *a, *a, *a, *a, *a, *a, *a, *a, *a, *a, *a, "
+                          "*a, *a, *a, *a, *a, *a, *a, *a, *a ]\n"
+                          "c: [ *b, *b, *b, *b, *b, *b, *b, *b, *b, *b, *b, "
+                          "*b, *b, *b, *b, *b, *b, *b, *b, *b ]\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_EQ(error.line(), 3);
+    EXPECT_STREQ(error.what(), "Maximum YAML alias expansion exceeded");
+    EXPECT_EQ(error.column(), 54);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// YAML 1.2.2 Section 6.9.2 forbids only "[", "]", "{", "}" and "," in an
+// anchor name, so a colon belongs to the name and the alias here reaches to the
+// end of the word rather than leaving a mapping indicator behind
+TEST(undefined_anchor_with_an_undefined_anchor_as_the_first_key) {
+  const std::string input{"*missing: 2"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLUnknownAnchorError &error) {
+    EXPECT_EQ(error.anchor(), "missing:");
+    EXPECT_STREQ(error.what(), "YAML alias references undefined anchor");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// YAML 1.2.2 Section 7.1 resolves an alias against an anchor already seen, and
+// a key is a position no suite case aliases from
+TEST(undefined_anchor_with_an_undefined_anchor_as_an_explicit_key) {
+  const std::string input{"? *missing\n: 2"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLUnknownAnchorError &error) {
+    EXPECT_EQ(error.anchor(), "missing");
+    EXPECT_STREQ(error.what(), "YAML alias references undefined anchor");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// The same reading of the anchor name on a line that is not the document's
+// first, which the parser reaches through a separate path
+TEST(undefined_anchor_with_an_undefined_anchor_as_a_later_key) {
+  const std::string input{"a: 1\n*missing: 2"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLUnknownAnchorError &error) {
+    EXPECT_EQ(error.anchor(), "missing:");
+    EXPECT_STREQ(error.what(), "YAML alias references undefined anchor");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// With the indicator separated the name ends before it, which is what shows the
+// reading above to be the grammar at work rather than the colon being lost
+TEST(undefined_anchor_as_a_key_separated_from_its_indicator) {
+  const std::string input{"*missing : 2"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLUnknownAnchorError &error) {
+    EXPECT_EQ(error.anchor(), "missing");
+    EXPECT_STREQ(error.what(), "YAML alias references undefined anchor");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// YAML 1.2.2 Section 8.2.1 indents the compact content of a block entry with
+// spaces, so a tab in that separation is invalid where the content is itself an
+// indicator. The sequence sibling of this check is already exercised, the
+// explicit key one is not
+TEST(a_tab_before_an_explicit_key_indicator_is_rejected) {
+  const std::string input{"-\t? a\n  : 1"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Tab characters cannot be used for indentation");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 3);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// Section 5.7 gives the escape as a fixed number of hex digits, so an input
+// that ends inside one never completes it
+TEST(a_hex_escape_cut_short_by_the_end_of_input_is_rejected) {
+  const std::string input{"\"\\x4"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Truncated hex escape sequence");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 5);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// Section 6.5 folds a line break in a quoted scalar into a space and a second
+// break into a newline, which two consecutive breaks are what reach
+TEST(two_consecutive_breaks_in_a_quoted_scalar_fold_to_a_newline) {
+  const std::string input{"\"a\r\n\r\nb\""};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_TRUE(result.is_string());
+  EXPECT_EQ(result.to_string(), "a\nb");
+}
+
+// YAML 1.2.2 Section 6.8.1 joins a major and a minor decimal number with a
+// dot, so neither side may be missing
+TEST(yaml_directive_version_with_no_major_is_rejected) {
+  const std::string input{"%YAML .1\n---\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid version in %YAML directive");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 1);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(yaml_directive_version_with_no_minor_is_rejected) {
+  const std::string input{"%YAML 1.\n---\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid version in %YAML directive");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 1);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(yaml_directive_version_with_a_non_digit_major_is_rejected) {
+  const std::string input{"%YAML a.1\n---\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid version in %YAML directive");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 1);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// YAML 1.2.2 Section 6.8.1 rejects a document naming a higher major version
+// than the processor supports, however many digits that version carries
+TEST(yaml_directive_version_of_a_higher_major_is_rejected) {
+  const std::string input{"%YAML 2.0\n---\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Unsupported major version in %YAML directive");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 1);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(yaml_directive_version_of_a_two_digit_major_is_rejected) {
+  const std::string input{"%YAML 11.0\n---\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Unsupported major version in %YAML directive");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 1);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// YAML 1.2.2 Section 6.8 separates a directive from what follows it with white
+// space, which a tab satisfies as much as a space
+TEST(yaml_directive_version_followed_by_a_tab_is_accepted) {
+  const std::string input{"%YAML 1.2\t\n--- value\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"value"});
+}
+
+TEST(yaml_directive_version_followed_by_a_tab_then_a_comment_is_accepted) {
+  const std::string input{"%YAML 1.2\t# a comment\n--- value\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"value"});
+}
+
+// YAML 1.2.2 Section 6.8.2 spells the directive as "TAG" followed by a handle
+// and then a prefix, so neither argument may be left out
+TEST(yaml_tag_directive_with_no_handle_is_rejected) {
+  const std::string input{"%TAG\n--- value\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Incomplete %TAG directive");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 1);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(yaml_tag_directive_with_no_prefix_is_rejected) {
+  const std::string input{"%TAG !\n--- value\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Incomplete %TAG directive");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 1);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(yaml_tag_directive_separated_by_tabs_is_accepted) {
+  const std::string input{"%TAG\t!e!\thttp://example.com/\n--- value\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"value"});
+}
+
+// YAML 1.2.2 Section 6.9.1 writes a verbatim tag between angle brackets, and
+// the opening bracket is not a tag character, so one left unclosed cannot be
+// read as a shorthand tag either
+TEST(yaml_verbatim_tag_without_its_closing_bracket_is_rejected) {
+  const std::string input{"!<tag:yaml.org,2002:str value\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Unterminated verbatim tag");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 1);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// A verbatim tag is built from URI characters, which exclude a line break
+TEST(yaml_verbatim_tag_broken_by_a_line_break_is_rejected) {
+  const std::string input{"!<tag:yaml.org\n2002:str> value\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Unterminated verbatim tag");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 1);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// YAML 1.2.2 Section 6.9.1 takes one or more tag characters after the handle,
+// and Example 6.27 turns down a shorthand for want of them
+TEST(yaml_secondary_handle_with_an_empty_suffix_is_rejected) {
+  const std::string input{"!! value\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Tag shorthand with no suffix");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 3);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(yaml_named_handle_with_an_empty_suffix_is_rejected) {
+  const std::string input{"!e! value\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Tag shorthand with no suffix");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 4);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// The single exclamation mark on its own is the non-specific tag of Section
+// 6.9.1 rather than a handle short of a suffix
+TEST(yaml_a_lone_exclamation_mark_is_the_non_specific_tag) {
+  const std::string input{"! value\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"value"});
+}
+
+TEST(yaml_local_tag_with_a_name) {
+  const std::string input{"!custom value\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"value"});
+}
+
+// YAML 1.2.2 Section 9.2 lets an explicit document carry no node, so a
+// marker with nothing after it is one empty document
+TEST(yaml_a_directives_end_marker_with_nothing_after_it) {
+  std::istringstream stream{"---\n"};
+  const auto first{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_TRUE(first.is_null());
+  EXPECT_EQ(stream.peek(), EOF);
+}
+
+// A leading document end marker closes a document that was never opened,
+// and the marker that follows opens the next one
+TEST(yaml_a_document_end_marker_then_a_directives_end_marker) {
+  std::istringstream stream{"...\n---\nfoo"};
+  const auto first{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_TRUE(first.is_null());
+  const auto second{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(second, sourcemeta::core::JSON{"foo"});
+  EXPECT_EQ(stream.peek(), EOF);
+}
+
+// Section 9.2 admits a run of document end markers, which close nothing
+// more than the one empty document between them
+TEST(yaml_two_document_end_markers_then_a_scalar) {
+  std::istringstream stream{"...\n...\nfoo"};
+  const auto first{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_TRUE(first.is_null());
+  const auto second{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(second, sourcemeta::core::JSON{"foo"});
+  EXPECT_EQ(stream.peek(), EOF);
+}
+
+// YAML 1.2.2 Section 6.8.3 has a processor ignore a directive it does not
+// know rather than refuse the document
+TEST(yaml_a_reserved_directive_before_a_document) {
+  std::istringstream stream{"%FOO bar\n---\nfoo"};
+  const auto first{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(first, sourcemeta::core::JSON{"foo"});
+  EXPECT_EQ(stream.peek(), EOF);
+}
+
+TEST(yaml_a_scalar_then_a_document_end_marker) {
+  std::istringstream stream{"---\nfoo\n...\n"};
+  const auto first{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(first, sourcemeta::core::JSON{"foo"});
+  EXPECT_EQ(stream.peek(), EOF);
+}
+
+// A directives end marker closes the document before it, so the first of
+// two stands for an empty document of its own
+TEST(yaml_two_directives_end_markers_then_a_scalar) {
+  std::istringstream stream{"---\n---\nfoo"};
+  const auto first{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_TRUE(first.is_null());
+  const auto second{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(second, sourcemeta::core::JSON{"foo"});
+  EXPECT_EQ(stream.peek(), EOF);
+}
+
+// A document end marker with nothing after it closes a document that never
+// began, which is nothing to read
+TEST(yaml_a_document_end_marker_with_nothing_after_it) {
+  const std::string input{"...\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Empty YAML document");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 1);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// The shorter spelling of the extension names the same format
+TEST(yaml_or_json_short_yaml_extension) {
+  const auto result{sourcemeta::core::read_yaml_or_json(
+      std::filesystem::path{STUBS_PATH} / "test_4.yml")};
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "foo": "bar",
+    "baz": 2
+  })JSON");
+
+  EXPECT_EQ(result, expected);
+}
+
+TEST(yaml_or_json_short_yaml_extension_with_a_callback) {
+  sourcemeta::core::JSON result{nullptr};
+  std::size_t visits{0};
+  sourcemeta::core::read_yaml_or_json(
+      std::filesystem::path{STUBS_PATH} / "test_4.yml", result,
+      [&visits](const sourcemeta::core::JSON::ParsePhase,
+                const sourcemeta::core::JSON::Type, const std::uint64_t,
+                const std::uint64_t, const sourcemeta::core::JSON::ParseContext,
+                const std::size_t,
+                const sourcemeta::core::JSON::String &) { visits += 1; });
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "foo": "bar",
+    "baz": 2
+  })JSON");
+
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(visits > 0);
 }

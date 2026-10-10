@@ -1,6 +1,8 @@
 #include <sourcemeta/core/html.h>
 #include <sourcemeta/core/test.h>
 
+#include <string> // std::string
+
 TEST(entity_with_semicolon) {
   EXPECT_EQ(sourcemeta::core::html_entity("amp;"), "&");
 }
@@ -69,4 +71,10 @@ TEST(entity_unknown_name) {
 
 TEST(entity_name_with_trailing_characters) {
   EXPECT_TRUE(sourcemeta::core::html_entity("amp;x").empty());
+}
+
+// The table holds no name longer than the longest one it was built from, so a
+// longer candidate is turned away before any lookup
+TEST(entity_name_longer_than_any_in_the_table) {
+  EXPECT_TRUE(sourcemeta::core::html_entity(std::string(33, 'a')).empty());
 }

@@ -462,3 +462,9 @@ TEST(valid_mixed_all_branches) {
   // one octet from each of the four multi-value branches
   EXPECT_TRUE(sourcemeta::core::is_ipv4("9.42.200.255"));
 }
+
+// A trailing separator leaves the loop looking for a fourth octet with nothing
+// left to read
+TEST(invalid_three_octets_and_a_trailing_dot) {
+  EXPECT_FALSE(sourcemeta::core::is_ipv4("1.2.3."));
+}

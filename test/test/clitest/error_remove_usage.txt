@@ -1,0 +1,5 @@
+TAP version 14
+1..1
+not ok 1 - error_remove_usage.clitest
+# error_remove_usage.clitest:1: usage: REMOVE <path>
+# 0 passed, 1 failed

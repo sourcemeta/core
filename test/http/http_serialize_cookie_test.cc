@@ -162,3 +162,11 @@ TEST(append_form_rejects_invalid_and_leaves_buffer_unchanged) {
   EXPECT_FALSE(result);
   EXPECT_EQ(buffer, "Set-Cookie: ");
 }
+
+// RFC 6265 Section 4.1.1 admits the exclamation mark as a cookie octet on its
+// own, the codepoint below the quotation mark that follows it
+TEST(value_holding_an_exclamation_mark) {
+  EXPECT_EQ(sourcemeta::core::http_serialize_cookie(
+                {.name = "session", .value = "a!b"}),
+            "session=a!b");
+}

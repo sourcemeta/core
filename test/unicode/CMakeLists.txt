@@ -15,6 +15,7 @@ sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME unicode
     unicode_utf8_codepoint_count_test.cc
     unicode_utf8_codepoint_within_test.cc
     unicode_is_utf8_continuation_test.cc
+    unicode_is_utf8_tail_test.cc
     unicode_is_surrogate_test.cc
     unicode_is_valid_codepoint_test.cc
     unicode_combining_class_test.cc

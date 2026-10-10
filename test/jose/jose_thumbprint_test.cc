@@ -282,3 +282,18 @@ TEST(pem_edwards_private_key_public_jwk) {
   })JSON")};
   EXPECT_EQ(serialized.value(), expected);
 }
+
+// RFC 7518 Section 2 writes a Base64urlUInt with no leading zero octets, and
+// keeps a single octet so the value stays a member rather than an empty one
+TEST(thumbprint_of_a_key_whose_exponent_is_one_octet) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "kty": "RSA",
+    "n": "0vx7agoebGcQSuuPiLJXZptN9nndrQmbXEps2aiAFbWhM78LhWx4cbbfAAtVT86zwu1RK7aPFFxuhDR1L6tSoc_BJECPebWKRXjBZCiFV4n3oknjhMstn64tZ_2W-5JsGY4Hc5n9yBXArwl93lqt7_RN5w6Cf0h4QyQ5v-65YGjQR0_FDW2QvzqY368QQMicAtaSqzs8KJZgnYb9c7d0zgdAZHzu6qMQvRL5hajrn1n91CbOpbISD08qNLyrdkt-bFTWhAI4vMQFh6WeZu0fM4lFd2NcRwr3XPksINHaQ-G_xBniIqbw0Ls1jF44-csFCur-kEgU8awapJzKnqDKgw",
+    "e": "Aw"
+  })JSON")};
+  const auto key{sourcemeta::core::JWK::from(document)};
+  EXPECT_TRUE(key.has_value());
+  const auto thumbprint{key.value().thumbprint()};
+  EXPECT_TRUE(thumbprint.has_value());
+  EXPECT_EQ(thumbprint.value(), "jqCR92i-PGD6t6zNSmvhT_8txm2lMJqFSuJpb9ITU2E");
+}

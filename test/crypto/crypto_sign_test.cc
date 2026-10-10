@@ -761,6 +761,52 @@ auto pem_document_with_whitespace(const std::string_view der) -> std::string {
          " \t\r\n-----END PRIVATE KEY-----\r\n";
 }
 
+// How long an element declares itself and where its content begins, read the
+// way the writer above spells it
+auto der_header(const std::string_view der, const std::size_t offset,
+                std::size_t &content_begin) -> std::size_t {
+  const auto first{static_cast<unsigned char>(der[offset + 1])};
+  if (first < 0x80) {
+    content_begin = offset + 2;
+    return first;
+  }
+
+  const std::size_t octets{first - 0x80U};
+  std::size_t length{0};
+  for (std::size_t index = 0; index < octets; index++) {
+    length =
+        (length * 0x100) + static_cast<unsigned char>(der[offset + 2 + index]);
+  }
+
+  content_begin = offset + 2 + octets;
+  return length;
+}
+
+// Re-wrap a PKCS#8 PEM with a single extra byte appended inside the octets
+// carrying the private key, past the structure they hold but still within
+// them, which is a different place from the one the helper above reaches
+auto with_trailing_private_key_byte(const std::string_view pem) -> std::string {
+  const auto der{pem_body_der(pem)};
+  std::size_t outer{0};
+  der_header(der, 0, outer);
+
+  std::size_t version_content{0};
+  const auto version_length{der_header(der, outer, version_content)};
+  const auto algorithm{version_content + version_length};
+
+  std::size_t algorithm_content{0};
+  const auto algorithm_length{der_header(der, algorithm, algorithm_content)};
+  const auto octets{algorithm_content + algorithm_length};
+
+  std::size_t key_content{0};
+  const auto key_length{der_header(der, octets, key_content)};
+
+  return pem_document(der_element(
+      0x30, der.substr(outer, octets - outer) +
+                der_element(0x04, der.substr(key_content, key_length) +
+                                      std::string{'\x00'})));
+}
+
 // The algorithm identifier naming unrestricted RSA, with its absent parameters
 auto rsa_algorithm() -> std::string {
   return der_element(0x30, der_element(0x06, "\x2a\x86\x48\x86\xf7\x0d\x01"
@@ -1768,6 +1814,18 @@ TEST(make_private_key_rejects_an_rsa_key_with_no_elements) {
                    .has_value());
 }
 
+// X.690 Section 10.1 makes a canonical key exactly one SEQUENCE, so bytes
+// trailing it mark a malformed encoding. This is the one check that reading the
+// key apart a second time never made, which is why it is the only one of these
+// that the shared gate alone ever turned away. The same key is read first so
+// that what the extra byte changes is the only thing being shown.
+TEST(make_private_key_rejects_trailing_data_within_the_private_key) {
+  EXPECT_TRUE(sourcemeta::core::make_private_key(RSA_PRIVATE_KEY).has_value());
+  EXPECT_FALSE(sourcemeta::core::make_private_key(
+                   with_trailing_private_key_byte(RSA_PRIVATE_KEY))
+                   .has_value());
+}
+
 TEST(make_private_key_rejects_an_rsa_modulus_that_is_not_an_integer) {
   EXPECT_FALSE(sourcemeta::core::make_private_key(
                    rsa_document(rsa_version(),
@@ -1831,4 +1889,20 @@ TEST(make_private_key_rejects_an_rsa_private_exponent_past_the_size_limit) {
           rsa_document(rsa_version(), rsa_modulus(), rsa_public_exponent(),
                        der_element(0x02, std::string(513, '\x01'))))
           .has_value());
+}
+
+// A component wider than the key size the parsing paths admit is turned away
+// before it drives the document allocation
+TEST(make_rsa_private_key_refuses_an_oversized_component) {
+  const std::string oversized(513, '\x01');
+  EXPECT_FALSE(sourcemeta::core::make_rsa_private_key(
+                   oversized,
+                   sourcemeta::core::hex_to_bytes(EXPONENT_HEX).value(),
+                   sourcemeta::core::hex_to_bytes(PRIVATE_EXPONENT_HEX).value(),
+                   sourcemeta::core::hex_to_bytes(PRIME1_HEX).value(),
+                   sourcemeta::core::hex_to_bytes(PRIME2_HEX).value(),
+                   sourcemeta::core::hex_to_bytes(EXPONENT1_HEX).value(),
+                   sourcemeta::core::hex_to_bytes(EXPONENT2_HEX).value(),
+                   sourcemeta::core::hex_to_bytes(COEFFICIENT_HEX).value())
+                   .has_value());
 }
