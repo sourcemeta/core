@@ -3052,3 +3052,111 @@ TEST(anchor_with_a_first_character_above_the_letters) {
     FAIL();
   }
 }
+
+// RFC 3986 Section 5.1 keeps a fragment out of a base URI, and a fragment that
+// is empty states nothing, so one spelled with nothing after the number sign
+// leaves the base meaning what it would without it
+TEST(default_base_with_an_empty_fragment_is_accepted) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema"
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References,
+      document,
+      sourcemeta::core::schema_walker,
+      sourcemeta::core::schema_resolver,
+      "",
+      "",
+      sourcemeta::core::SchemaFrame::IdentifierMode::Additional,
+      {sourcemeta::core::EMPTY_WEAK_POINTER},
+      "https://www.sourcemeta.com/test#"};
+
+  EXPECT_TRUE(frame.traverse("https://www.sourcemeta.com/test").has_value());
+}
+
+// An identifier states the same thing with an empty fragment as without one
+TEST(root_identifier_with_an_empty_fragment_is_accepted) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://www.sourcemeta.com/schema#"
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+
+  EXPECT_TRUE(frame.traverse("https://www.sourcemeta.com/schema").has_value());
+}
+
+// JSON Schema 2020-12 Section 8.2.2 writes an anchor as a string, so a value
+// of any other kind names no anchor at all
+TEST(anchor_that_is_not_a_string_names_nothing) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$anchor": 5
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+
+  EXPECT_FALSE(frame.traverse("#5").has_value());
+}
+
+TEST(root_identifier_with_an_empty_fragment_is_accepted_in_root_mode) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://www.sourcemeta.com/schema#"
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Root, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+
+  EXPECT_TRUE(frame.traverse("https://www.sourcemeta.com/schema").has_value());
+}
+
+// The older drafts spell an anchor as an identifier of nothing but a fragment,
+// so one that carries a fragment on top of everything else is neither
+TEST(draft7_root_identifier_with_a_fragment_in_root_mode) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://www.sourcemeta.com/schema#foo"
+  })JSON");
+
+  try {
+    [[maybe_unused]] const sourcemeta::core::SchemaFrame frame{
+        sourcemeta::core::SchemaFrame::Mode::Root, document,
+        sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+    FAIL();
+  } catch (const sourcemeta::core::SchemaFrameError &error) {
+    EXPECT_STREQ(error.what(),
+                 "Identifiers may only carry a fragment when they consist of "
+                 "nothing else");
+    EXPECT_EQ(error.identifier(), "https://www.sourcemeta.com/schema#foo");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// The later drafts leave no room for a fragment in an identifier at all
+TEST(root_identifier_with_a_fragment_in_root_mode) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://www.sourcemeta.com/schema#foo"
+  })JSON");
+
+  try {
+    [[maybe_unused]] const sourcemeta::core::SchemaFrame frame{
+        sourcemeta::core::SchemaFrame::Mode::Root, document,
+        sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+    FAIL();
+  } catch (const sourcemeta::core::SchemaFrameError &error) {
+    EXPECT_STREQ(error.what(),
+                 "Identifiers must not contain non-empty fragments");
+    EXPECT_EQ(error.identifier(), "https://www.sourcemeta.com/schema#foo");
+  } catch (...) {
+    FAIL();
+  }
+}

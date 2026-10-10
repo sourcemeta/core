@@ -3947,3 +3947,93 @@ TEST(yaml_tabulation_before_a_plain_scalar_continuation) {
       sourcemeta::core::parse_json(R"JSON({ "a": "1 b" })JSON")};
   EXPECT_EQ(result, expected);
 }
+
+// YAML 1.2.2 Section 9.1: a stream carries documents independently of one
+// another, and parsing a string reads the first while holding the rest to the
+// same grammar. Section 9.2 writes the end marker as "..." and the directives
+// end marker as "---", and admits either directly after the other
+TEST(yaml_string_with_a_document_end_marker_after_the_document) {
+  const auto result{sourcemeta::core::parse_yaml(std::string{"foo\n...\n"})};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"foo"});
+}
+
+TEST(yaml_string_with_a_directives_end_marker_and_nothing_after_it) {
+  const auto result{
+      sourcemeta::core::parse_yaml(std::string{"foo\n...\n---\n"})};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"foo"});
+}
+
+TEST(yaml_string_with_two_directives_end_markers_in_a_row) {
+  const auto result{
+      sourcemeta::core::parse_yaml(std::string{"foo\n...\n---\n---\nbar\n"})};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"foo"});
+}
+
+TEST(yaml_string_with_a_document_end_marker_closing_an_empty_document) {
+  const auto result{
+      sourcemeta::core::parse_yaml(std::string{"foo\n...\n---\n...\n"})};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"foo"});
+}
+
+// Section 6.8 reserves the directives it does not define for future use, and a
+// document end marker opens the scope the next one declares them in
+TEST(yaml_string_with_a_reserved_directive_in_a_later_document) {
+  const auto result{sourcemeta::core::parse_yaml(
+      std::string{"foo\n...\n%FOO bar\n---\nbaz\n"})};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"foo"});
+}
+
+TEST(yaml_string_with_a_later_document_closed_by_its_own_end_marker) {
+  const auto result{
+      sourcemeta::core::parse_yaml(std::string{"foo\n...\nbar\n...\n"})};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"foo"});
+}
+
+// Reading a file holds every document of the stream to the grammar rather than
+// only the first, which is where YAML 1.2.2 Section 9.2 production 211 is read:
+// a document end marker may be followed by another document, by a directives
+// end marker, or by nothing at all
+TEST(read_file_with_a_document_end_marker_closing_the_document) {
+  const auto result{sourcemeta::core::read_yaml(
+      std::filesystem::path{STUBS_PATH} / "documents_closed_by_a_marker.yaml")};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"foo"});
+}
+
+TEST(read_file_with_a_directives_end_marker_and_nothing_after_it) {
+  const auto result{
+      sourcemeta::core::read_yaml(std::filesystem::path{STUBS_PATH} /
+                                  "documents_with_a_bare_directives_end.yaml")};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"foo"});
+}
+
+TEST(read_file_with_two_directives_end_markers_in_a_row) {
+  const auto result{
+      sourcemeta::core::read_yaml(std::filesystem::path{STUBS_PATH} /
+                                  "documents_with_two_directives_ends.yaml")};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"foo"});
+}
+
+// Section 8.2.3 admits an empty node, so a document opened by a directives end
+// marker may carry nothing and be closed by its own end marker
+TEST(read_file_with_an_empty_document_closed_by_its_marker) {
+  const auto result{sourcemeta::core::read_yaml(
+      std::filesystem::path{STUBS_PATH} /
+      "documents_with_an_empty_later_document.yaml")};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"foo"});
+}
+
+// Section 6.8 reserves the directives it does not define, and an end marker
+// opens the scope the document after it declares them in
+TEST(read_file_with_a_reserved_directive_in_a_later_document) {
+  const auto result{
+      sourcemeta::core::read_yaml(std::filesystem::path{STUBS_PATH} /
+                                  "documents_with_a_reserved_directive.yaml")};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"foo"});
+}
+
+TEST(read_file_with_every_document_closed_by_its_own_marker) {
+  const auto result{
+      sourcemeta::core::read_yaml(std::filesystem::path{STUBS_PATH} /
+                                  "documents_each_closed_by_a_marker.yaml")};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"foo"});
+}

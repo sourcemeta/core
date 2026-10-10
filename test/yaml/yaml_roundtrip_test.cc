@@ -5986,3 +5986,16 @@ TEST(crlf_plain_scalar_over_two_lines) {
 TEST(lone_carriage_return_as_a_line_break) {
   EXPECT_EQ(roundtrip("foo: 1\rbar: 2\r"), "foo: 1\nbar: 2\n");
 }
+
+// A round trip describes the one document it was read from, and a run of end
+// markers closes that document rather than opening another, so the stream
+// still holds nothing a round trip could not write back
+TEST(read_file_with_roundtrip_accepts_a_run_of_end_markers) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  const auto document{sourcemeta::core::read_yaml(
+      std::filesystem::path{STUBS_PATH} /
+          "single_document_with_two_end_markers.yaml",
+      metadata)};
+  EXPECT_TRUE(document.is_object());
+  EXPECT_EQ(document.at("foo"), sourcemeta::core::JSON{1});
+}

@@ -237,6 +237,17 @@ public:
     }
   }
 
+  // YAML 1.2.2 Section 6.8.2 makes tag directives local to one document, so
+  // every end marker crossed here leaves the next document to declare its own
+  auto skip_document_ends(std::optional<Token> &token, bool &saw_document_end)
+      -> void {
+    while (token.has_value() && token->type == TokenType::DocumentEnd) {
+      saw_document_end = true;
+      this->tag_directives_.clear();
+      token = this->next_token();
+    }
+  }
+
   auto validate_end_of_stream() -> void {
     auto token{this->next_token()};
     // The preceding parse already consumed a document, so its end marker, if
@@ -252,11 +263,7 @@ public:
     this->tag_directives_.clear();
     this->anchors_.clear();
     bool saw_document_end{this->document_ended_};
-    while (token.has_value() && token->type == TokenType::DocumentEnd) {
-      saw_document_end = true;
-      this->tag_directives_.clear();
-      token = this->next_token();
-    }
+    this->skip_document_ends(token, saw_document_end);
     if (!token.has_value() || token->type == TokenType::StreamEnd) {
       return;
     }
@@ -273,8 +280,14 @@ public:
         if (!token.has_value() || token->type == TokenType::StreamEnd) {
           return;
         }
-        if (token->type == TokenType::DocumentEnd ||
-            token->type == TokenType::DocumentStart) {
+        // Section 8.2.3 admits an empty node, so an explicit document may
+        // carry nothing of its own and be closed by its end marker directly
+        if (token->type == TokenType::DocumentEnd) {
+          this->skip_document_ends(token, saw_document_end);
+          continue;
+        }
+
+        if (token->type == TokenType::DocumentStart) {
           continue;
         }
       }
@@ -302,13 +315,7 @@ public:
       this->tag_directives_.clear();
       this->anchors_.clear();
       token = this->next_token();
-      while (token.has_value() && token->type == TokenType::DocumentEnd) {
-        saw_document_end = true;
-        // YAML 1.2.2 Section 6.8.2: the next document begins with an empty
-        // directive scope
-        this->tag_directives_.clear();
-        token = this->next_token();
-      }
+      this->skip_document_ends(token, saw_document_end);
     }
   }
 
@@ -540,8 +547,12 @@ private:
   }
 
   auto resolve_tag(const std::string_view raw_tag) -> std::string {
-    if (raw_tag.size() > 2 && raw_tag[0] == '!' && raw_tag[1] == '<' &&
-        raw_tag.back() == '>') {
+    // A tag token begins at the exclamation mark the lexer scanned it from,
+    // and YAML 1.2.2 Section 6.9.1 has that lexer turn down a verbatim tag
+    // left unclosed, so one that opens with a bracket closes with one
+    assert(raw_tag.starts_with('!'));
+    assert(!raw_tag.starts_with("!<") || raw_tag.back() == '>');
+    if (raw_tag.size() > 2 && raw_tag[1] == '<') {
       return std::string{raw_tag.substr(2, raw_tag.size() - 3)};
     }
 
@@ -560,15 +571,14 @@ private:
       return "tag:yaml.org,2002:" + std::string{raw_tag.substr(2)};
     }
 
-    if (raw_tag.size() > 1 && raw_tag[0] == '!') {
+    if (raw_tag.size() > 1) {
       const auto second_bang{raw_tag.find('!', 1)};
       if (second_bang == raw_tag.size() - 1) [[unlikely]] {
         throw YAMLParseError{this->lexer_->line(), this->lexer_->column(),
                              "Tag shorthand with no suffix"};
       }
 
-      if (second_bang != std::string_view::npos &&
-          second_bang < raw_tag.size() - 1) {
+      if (second_bang != std::string_view::npos) {
         const auto handle{std::string{raw_tag.substr(0, second_bang + 1)}};
         const auto iterator{this->tag_directives_.find(handle)};
         if (iterator != this->tag_directives_.end()) {
