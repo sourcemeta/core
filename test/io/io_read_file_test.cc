@@ -7,6 +7,23 @@
 #include <sstream>
 #include <system_error>
 
+class IOReadFileTest {
+protected:
+  IOReadFileTest() { std::filesystem::create_directories(this->workspace_); }
+
+  ~IOReadFileTest() {
+    std::error_code error;
+    std::filesystem::permissions(this->workspace_ / "locked.txt",
+                                 std::filesystem::perms::owner_all,
+                                 std::filesystem::perm_options::replace, error);
+    std::filesystem::remove_all(this->workspace_, error);
+  }
+
+  // The tests are always sequential, so using the same path is safe
+  std::filesystem::path workspace_{std::filesystem::path{BUILD_DIRECTORY} /
+                                   "sourcemeta_core_io_read_file_test"};
+};
+
 TEST(text_file) {
   auto stream{sourcemeta::core::read_file(
       std::filesystem::path{STUBS_DIRECTORY} / "test.txt")};
@@ -42,23 +59,6 @@ TEST(not_exists) {
     FAIL();
   }
 }
-
-class IOReadFileTest {
-protected:
-  IOReadFileTest() { std::filesystem::create_directories(this->workspace_); }
-
-  ~IOReadFileTest() {
-    std::error_code error;
-    std::filesystem::permissions(this->workspace_ / "locked.txt",
-                                 std::filesystem::perms::owner_all,
-                                 std::filesystem::perm_options::replace, error);
-    std::filesystem::remove_all(this->workspace_, error);
-  }
-
-  // The tests are always sequential, so using the same path is safe
-  std::filesystem::path workspace_{std::filesystem::path{BUILD_DIRECTORY} /
-                                   "sourcemeta_core_io_read_file_test"};
-};
 
 // A file that exists but cannot be opened is a different refusal from one that
 // is missing or is a directory. Windows keeps the owner's read access whatever

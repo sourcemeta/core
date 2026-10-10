@@ -1,10 +1,10 @@
 #include <sourcemeta/core/terminal.h>
 #include <sourcemeta/core/test.h>
-#include <type_traits> // std::underlying_type_t
 
-#include <array>   // std::array
-#include <sstream> // std::ostringstream
-#include <string>  // std::string
+#include <array>       // std::array
+#include <sstream>     // std::ostringstream
+#include <string>      // std::string
+#include <type_traits> // std::underlying_type_t
 
 #if defined(_WIN32)
 #include <fcntl.h> // _O_BINARY
