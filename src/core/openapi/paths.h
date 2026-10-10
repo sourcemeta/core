@@ -9,6 +9,7 @@
 #include <sourcemeta/core/text.h>
 #include <sourcemeta/core/uri.h>
 
+#include <cassert>     // assert
 #include <cstddef>     // std::size_t
 #include <set>         // std::set
 #include <string_view> // std::string_view
@@ -62,9 +63,9 @@ inline auto openapi_path_shape(const JSON::StringView path) -> JSON::String {
 // the bytes of one holds only of a brace, so it is read byte by byte like the
 // rest
 inline auto openapi_is_path_template(const JSON::StringView path) -> bool {
-  if (!path.starts_with('/')) {
-    return false;
-  }
+  // The leading slash is settled before this is asked, and the scan below
+  // starts past it
+  assert(path.starts_with('/'));
 
   std::size_t cursor{1};
   bool segment_is_empty{true};

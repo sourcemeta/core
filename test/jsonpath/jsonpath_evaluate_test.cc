@@ -663,3 +663,275 @@ TEST(jsonpath_evaluate_deep_filter_with_a_descendant_filter) {
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 2);
 }
+
+// RFC 9535 Section 2.3.1: a name selector "selects at most one object member
+// value", so it selects nothing from an array. The nesting is what carries the
+// query inside the filter past the recursion limit and onto the iterative
+// walk, where every selector is read a second time
+TEST(jsonpath_evaluate_deep_filter_with_a_name_on_an_array) {
+  auto document{sourcemeta::core::JSON::make_array()};
+  document.push_back(deeply_nested_array(
+      sourcemeta::core::parse_json(R"JSON({ "a": [ 1, 2 ] })JSON")));
+  const sourcemeta::core::JSONPath path{"$[?@..a.b]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 0);
+}
+
+TEST(jsonpath_evaluate_deep_filter_with_a_name_the_object_lacks) {
+  auto document{sourcemeta::core::JSON::make_array()};
+  document.push_back(deeply_nested_array(
+      sourcemeta::core::parse_json(R"JSON({ "a": { "c": 1 } })JSON")));
+  const sourcemeta::core::JSONPath path{"$[?@..a.b]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 0);
+}
+
+// RFC 9535 Section 2.3.3: an index selector "selects at most one array
+// element", so it selects nothing from an object
+TEST(jsonpath_evaluate_deep_filter_with_an_index_on_an_object) {
+  auto document{sourcemeta::core::JSON::make_array()};
+  document.push_back(deeply_nested_array(
+      sourcemeta::core::parse_json(R"JSON({ "a": { "c": 1 } })JSON")));
+  const sourcemeta::core::JSONPath path{"$[?@..a[0]]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 0);
+}
+
+// That section counts a negative index from the end of the array
+TEST(jsonpath_evaluate_deep_filter_with_a_negative_index) {
+  auto document{sourcemeta::core::JSON::make_array()};
+  document.push_back(deeply_nested_array(
+      sourcemeta::core::parse_json(R"JSON({ "a": [ 1, 2 ] })JSON")));
+  const sourcemeta::core::JSONPath path{"$[?@..a[-1]]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 1);
+}
+
+TEST(jsonpath_evaluate_deep_filter_with_a_negative_index_past_the_front) {
+  auto document{sourcemeta::core::JSON::make_array()};
+  document.push_back(deeply_nested_array(
+      sourcemeta::core::parse_json(R"JSON({ "a": [ 1, 2 ] })JSON")));
+  const sourcemeta::core::JSONPath path{"$[?@..a[-5]]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 0);
+}
+
+TEST(jsonpath_evaluate_deep_filter_with_an_index_past_the_end) {
+  auto document{sourcemeta::core::JSON::make_array()};
+  document.push_back(deeply_nested_array(
+      sourcemeta::core::parse_json(R"JSON({ "a": [ 1, 2 ] })JSON")));
+  const sourcemeta::core::JSONPath path{"$[?@..a[5]]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 0);
+}
+
+// RFC 9535 Section 2.3.2: a wildcard selector "selects the nodes of all
+// children of an object or array", so it selects nothing from a scalar
+TEST(jsonpath_evaluate_deep_filter_with_a_wildcard_on_a_scalar) {
+  auto document{sourcemeta::core::JSON::make_array()};
+  document.push_back(deeply_nested_array(
+      sourcemeta::core::parse_json(R"JSON({ "a": 1 })JSON")));
+  const sourcemeta::core::JSONPath path{"$[?@..a.*]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 0);
+}
+
+// RFC 9535 Section 2.3.4: a slice selector applies to an array, so it selects
+// nothing from an object
+TEST(jsonpath_evaluate_deep_filter_with_a_slice_on_an_object) {
+  auto document{sourcemeta::core::JSON::make_array()};
+  document.push_back(deeply_nested_array(
+      sourcemeta::core::parse_json(R"JSON({ "a": { "c": 1 } })JSON")));
+  const sourcemeta::core::JSONPath path{"$[?@..a[0:1]]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 0);
+}
+
+// RFC 9535 Section 2.3.5 applies a filter selector to the children of an
+// object as well as to the elements of an array, and selects the ones it holds
+// of
+TEST(jsonpath_evaluate_deep_filter_over_object_members_that_do_not_match) {
+  auto document{sourcemeta::core::JSON::make_array()};
+  document.push_back(deeply_nested_array(
+      sourcemeta::core::parse_json(R"JSON({ "a": { "m": { "n": 1 } } })JSON")));
+  const sourcemeta::core::JSONPath path{"$[?@..a[?@.z]]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 0);
+}
+
+TEST(jsonpath_evaluate_deep_filter_over_a_scalar) {
+  auto document{sourcemeta::core::JSON::make_array()};
+  document.push_back(deeply_nested_array(
+      sourcemeta::core::parse_json(R"JSON({ "a": 1 })JSON")));
+  const sourcemeta::core::JSONPath path{"$[?@..a[?@.z]]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 0);
+}
+
+// The same selectors, read a second time by the iterative walk the main
+// evaluation falls back on once the document runs past the recursion limit
+TEST(jsonpath_evaluate_deep_single_name_on_an_array) {
+  const auto document{deeply_nested_array(
+      sourcemeta::core::parse_json(R"JSON({ "a": [ 1, 2 ] })JSON"))};
+  const sourcemeta::core::JSONPath path{"$..a.b"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 0);
+}
+
+TEST(jsonpath_evaluate_deep_single_name_the_object_lacks) {
+  const auto document{deeply_nested_array(
+      sourcemeta::core::parse_json(R"JSON({ "a": { "c": 1 } })JSON"))};
+  const sourcemeta::core::JSONPath path{"$..a.b"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 0);
+}
+
+TEST(jsonpath_evaluate_deep_single_index_on_an_object) {
+  const auto document{deeply_nested_array(
+      sourcemeta::core::parse_json(R"JSON({ "a": { "c": 1 } })JSON"))};
+  const sourcemeta::core::JSONPath path{"$..a[0]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 0);
+}
+
+TEST(jsonpath_evaluate_deep_single_negative_index) {
+  const auto document{deeply_nested_array(
+      sourcemeta::core::parse_json(R"JSON({ "a": [ 1, 2 ] })JSON"))};
+  const sourcemeta::core::JSONPath path{"$..a[-1]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(nodes.at(0).value->to_integer(), 2);
+}
+
+TEST(jsonpath_evaluate_deep_single_negative_index_past_the_front) {
+  const auto document{deeply_nested_array(
+      sourcemeta::core::parse_json(R"JSON({ "a": [ 1, 2 ] })JSON"))};
+  const sourcemeta::core::JSONPath path{"$..a[-5]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 0);
+}
+
+TEST(jsonpath_evaluate_deep_single_index_past_the_end) {
+  const auto document{deeply_nested_array(
+      sourcemeta::core::parse_json(R"JSON({ "a": [ 1, 2 ] })JSON"))};
+  const sourcemeta::core::JSONPath path{"$..a[5]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 0);
+}
+
+TEST(jsonpath_evaluate_deep_slice_on_an_object) {
+  const auto document{deeply_nested_array(
+      sourcemeta::core::parse_json(R"JSON({ "a": { "c": 1 } })JSON"))};
+  const sourcemeta::core::JSONPath path{"$..a[0:1]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 0);
+}
+
+TEST(jsonpath_evaluate_deep_filter_selector_over_object_members) {
+  const auto document{deeply_nested_array(
+      sourcemeta::core::parse_json(R"JSON({ "a": { "m": { "n": 1 } } })JSON"))};
+  const sourcemeta::core::JSONPath path{"$..a[?@.z]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 0);
+}
+
+TEST(jsonpath_evaluate_deep_filter_selector_over_a_scalar) {
+  const auto document{deeply_nested_array(
+      sourcemeta::core::parse_json(R"JSON({ "a": 1 })JSON"))};
+  const sourcemeta::core::JSONPath path{"$..a[?@.z]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 0);
+}
+
+// The recursive walk reads a lone index selector through a shape check of its
+// own, which an object does not answer
+TEST(jsonpath_evaluate_single_index_on_an_object) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({ "a": 1 })JSON")};
+  const sourcemeta::core::JSONPath path{"$[0]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 0);
+}
+
+TEST(jsonpath_evaluate_single_index_past_the_end) {
+  const auto document{sourcemeta::core::parse_json(R"JSON([ 1, 2 ])JSON")};
+  const sourcemeta::core::JSONPath path{"$[5]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 0);
+}
+
+TEST(jsonpath_evaluate_single_negative_index_past_the_front) {
+  const auto document{sourcemeta::core::parse_json(R"JSON([ 1, 2 ])JSON")};
+  const sourcemeta::core::JSONPath path{"$[-5]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 0);
+}
+
+// RFC 9535 Section 2.5.1 lets a segment carry several selectors, which the
+// general loop reads one at a time rather than through the shape checks above
+TEST(jsonpath_evaluate_two_name_selectors_in_one_segment) {
+  const auto document{
+      sourcemeta::core::parse_json(R"JSON({ "a": 1, "b": 2 })JSON")};
+  const sourcemeta::core::JSONPath path{"$['a','b']"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 2);
+}
+
+TEST(jsonpath_evaluate_two_name_selectors_on_an_array) {
+  const auto document{sourcemeta::core::parse_json(R"JSON([ 1, 2 ])JSON")};
+  const sourcemeta::core::JSONPath path{"$['a','b']"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 0);
+}
+
+TEST(jsonpath_evaluate_two_name_selectors_the_object_lacks) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({ "c": 1 })JSON")};
+  const sourcemeta::core::JSONPath path{"$['a','b']"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 0);
+}
+
+// A segment carrying several selectors reads an index selector through the
+// general loop, which asks the same question of the value's shape
+TEST(jsonpath_evaluate_two_index_selectors_on_an_object) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({ "a": 1 })JSON")};
+  const sourcemeta::core::JSONPath path{"$[0,1]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 0);
+}
+
+TEST(jsonpath_evaluate_two_index_selectors_one_past_the_end) {
+  const auto document{sourcemeta::core::parse_json(R"JSON([ 1, 2 ])JSON")};
+  const sourcemeta::core::JSONPath path{"$[0,5]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(nodes.at(0).value->to_integer(), 1);
+}
+
+TEST(jsonpath_evaluate_two_index_selectors_one_past_the_front) {
+  const auto document{sourcemeta::core::parse_json(R"JSON([ 1, 2 ])JSON")};
+  const sourcemeta::core::JSONPath path{"$[0,-5]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(nodes.at(0).value->to_integer(), 1);
+}
+
+// A path of three hundred segments over a chain of three hundred nested
+// single-member objects, so evaluation runs past the recursion limit on the
+// length of the path rather than on the depth of the document
+TEST(jsonpath_evaluate_a_path_longer_than_the_recursion_limit) {
+  auto document{sourcemeta::core::JSON{7}};
+  std::string expression{"$"};
+  expression.reserve(601);
+  for (std::size_t level{0}; level < 300; level += 1) {
+    auto wrapper{sourcemeta::core::JSON::make_object()};
+    wrapper.assign("a", std::move(document));
+    document = std::move(wrapper);
+    expression.append(".a");
+  }
+
+  const sourcemeta::core::JSONPath path{expression};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(nodes.at(0).value->to_integer(), 7);
+  EXPECT_EQ(nodes.at(0).location.size(), 300);
+}

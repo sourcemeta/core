@@ -3029,3 +3029,26 @@ TEST(draft7_identifier_fragment_holding_a_character_that_is_not_admitted) {
     FAIL();
   }
 }
+
+// JSON Schema 2020-12 Section 8.2.2 writes a plain name as
+// `[A-Za-z_][A-Za-z0-9._-]*`, so a first character above the letters it admits
+// opens no anchor
+TEST(anchor_with_a_first_character_above_the_letters) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$anchor": "{foo",
+    "$schema": "https://json-schema.org/draft/2020-12/schema"
+  })JSON");
+
+  try {
+    [[maybe_unused]] const sourcemeta::core::SchemaFrame frame{
+        sourcemeta::core::SchemaFrame::Mode::References, document,
+        sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_STREQ(error.what(), "Invalid anchor value");
+    EXPECT_EQ(error.keyword(), "$anchor");
+    EXPECT_EQ(error.value(), "{foo");
+  } catch (...) {
+    FAIL();
+  }
+}
