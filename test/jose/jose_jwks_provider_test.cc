@@ -362,6 +362,35 @@ TEST(unknown_key_triggers_one_guarded_refetch) {
   EXPECT_EQ(calls, std::size_t{2});
 }
 
+// The guarded refetch is one attempt, so an issuer that has become unreachable
+// by the time it is made leaves the verification reporting what it already knew
+TEST(unknown_key_refetch_that_fails_keeps_the_error) {
+  std::size_t calls{0};
+  const auto fetcher{
+      [&calls](const std::string_view)
+          -> std::optional<sourcemeta::core::JWKSProvider::FetchResult> {
+        calls += 1;
+        if (calls > 1) {
+          return std::nullopt;
+        }
+
+        return sourcemeta::core::JWKSProvider::FetchResult{
+            .body = std::string{ELLIPTIC_CURVE_KEYS}, .max_age = std::nullopt};
+      }};
+  auto now{std::chrono::system_clock::from_time_t(1000000000)};
+  sourcemeta::core::JWKSProvider provider{
+      "https://issuer.test/jwks", fetcher,
+      sourcemeta::core::JWKSProvider::Options{}, [&now] { return now; }};
+  const auto token{sourcemeta::core::JWT::from(SIGNED_TOKEN)};
+  EXPECT_TRUE(token.has_value());
+
+  const auto error{provider.verify(token.value(), ALLOWED_RS256, "acme",
+                                   "client", std::nullopt, std::nullopt)};
+  EXPECT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(), sourcemeta::core::JWTVerificationError::UnknownKey);
+  EXPECT_EQ(calls, std::size_t{2});
+}
+
 TEST(signature_failure_is_not_retried) {
   std::size_t calls{0};
   const auto fetcher{
@@ -618,6 +647,28 @@ TEST(empty_key_set_is_treated_as_failure) {
           -> std::optional<sourcemeta::core::JWKSProvider::FetchResult> {
         return sourcemeta::core::JWKSProvider::FetchResult{
             .body = R"({ "keys": [] })", .max_age = std::nullopt};
+      }};
+  auto now{std::chrono::system_clock::from_time_t(1000000000)};
+  sourcemeta::core::JWKSProvider provider{
+      "https://issuer.test/jwks", fetcher,
+      sourcemeta::core::JWKSProvider::Options{}, [&now] { return now; }};
+  const auto token{sourcemeta::core::JWT::from(SIGNED_TOKEN)};
+  EXPECT_TRUE(token.has_value());
+
+  const auto error{provider.verify(token.value(), ALLOWED_RS256, "acme",
+                                   "client", std::nullopt, std::nullopt)};
+  EXPECT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(), sourcemeta::core::JWTVerificationError::UnknownKey);
+}
+
+// RFC 7517 Section 5 has a key set carry its keys under a required array, so a
+// body that parses as JSON but names no such array is no key set at all
+TEST(a_body_that_is_no_key_set_is_treated_as_failure) {
+  const auto fetcher{
+      [](const std::string_view)
+          -> std::optional<sourcemeta::core::JWKSProvider::FetchResult> {
+        return sourcemeta::core::JWKSProvider::FetchResult{
+            .body = "[]", .max_age = std::nullopt};
       }};
   auto now{std::chrono::system_clock::from_time_t(1000000000)};
   sourcemeta::core::JWKSProvider provider{

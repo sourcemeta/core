@@ -499,6 +499,66 @@ TEST(compact_selects_a_term_carrying_both_language_and_direction) {
   EXPECT_EQ(result, expected);
 }
 
+// JSON-LD 1.1 API Section 4.3 builds that key from whichever of the two
+// mappings is not null, so a term setting one of them to null, or both, lands
+// under a key of its own
+TEST(compact_selects_terms_whose_language_or_direction_is_null) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/lang": [ { "@value": "x", "@language": "en" } ],
+      "http://example.com/dir": [ { "@value": "x", "@direction": "ltr" } ],
+      "http://example.com/none": [ { "@value": "x" } ]
+    }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({
+    "lang": {
+      "@id": "http://example.com/lang",
+      "@language": "EN",
+      "@direction": null
+    },
+    "dir": {
+      "@id": "http://example.com/dir",
+      "@language": null,
+      "@direction": "ltr"
+    },
+    "none": {
+      "@id": "http://example.com/none",
+      "@language": null,
+      "@direction": null
+    }
+  })");
+
+  const auto result{sourcemeta::core::jsonld_compact(
+      input, context, "", {}, sourcemeta::core::JSONLDVersion::V1_1, true,
+      true)};
+
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "lang": "x",
+    "dir": "x",
+    "none": "x",
+    "@context": {
+      "lang": {
+        "@id": "http://example.com/lang",
+        "@language": "EN",
+        "@direction": null
+      },
+      "dir": {
+        "@id": "http://example.com/dir",
+        "@language": null,
+        "@direction": "ltr"
+      },
+      "none": {
+        "@id": "http://example.com/none",
+        "@language": null,
+        "@direction": null
+      }
+    }
+  })");
+
+  EXPECT_EQ(result, expected);
+}
+
 // JSON-LD 1.1 API Section 4.4, Term Selection, reaches the same key while
 // choosing a term for a list, which asks for every item to carry both
 TEST(compact_selects_a_list_term_carrying_both_language_and_direction) {
@@ -689,4 +749,60 @@ TEST(compact_against_an_empty_array_context_carries_no_context) {
 
   EXPECT_FALSE(result.defines("@context"));
   EXPECT_EQ(result.at("@id").to_string(), "http://example.org/a");
+}
+
+// JSON-LD 1.1 API Section 6.1 keeps the value object whole when its index
+// cannot be carried by the term, even though the type mapping does match
+TEST(a_typed_value_that_already_carries_an_index) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/b": [
+        { "@value": "x", "@type": "http://example.com/t", "@index": "i" }
+      ]
+    }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({
+    "b": { "@id": "http://example.com/b", "@type": "http://example.com/t" }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "b": {
+      "@value": "x",
+      "@type": "http://example.com/t",
+      "@index": "i"
+    },
+    "@context": {
+      "b": { "@id": "http://example.com/b", "@type": "http://example.com/t" }
+    }
+  })");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_compact(input, context, ""), expected);
+}
+
+// A value whose direction disagrees with the one the context sets by default
+// has to keep that direction, so it cannot compact to a bare string
+TEST(a_value_whose_direction_disagrees_with_the_default) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/b": [ { "@value": "x", "@direction": "rtl" } ]
+    }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({
+    "@version": 1.1,
+    "@direction": "ltr",
+    "b": "http://example.com/b"
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "b": { "@value": "x", "@direction": "rtl" },
+    "@context": {
+      "@version": 1.1,
+      "@direction": "ltr",
+      "b": "http://example.com/b"
+    }
+  })");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_compact(input, context, ""), expected);
 }

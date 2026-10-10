@@ -987,6 +987,21 @@ TEST(null_id_term_drops_the_property) {
   EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
 }
 
+// A term retired by a null identifier keeps no IRI mapping, so it cannot serve
+// as the prefix of a compact IRI, which then stands as an IRI of its own
+TEST(null_id_term_is_not_a_prefix) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "a": { "@id": null } },
+    "a:b": "x"
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    { "a:b": [ { "@value": "x" } ] }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
 TEST(scoped_context_is_invisible_to_language_map_keys) {
   const auto input = sourcemeta::core::parse_json(R"({
     "@context": {

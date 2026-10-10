@@ -1602,6 +1602,17 @@ TEST(cyclic_iri_mapping_shorthand) {
                              "Cyclic IRI mapping", "/@context/a");
 }
 
+// Two terms naming each other as their identifier are both in flight when the
+// second one asks for the first, which is the cycle reported here
+TEST(cyclic_iri_mapping_between_two_terms) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "a": { "@id": "b" }, "b": { "@id": "a" } }
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Cyclic IRI mapping", "/@context/a");
+}
+
 TEST(invalid_iri_mapping_shorthand) {
   const auto input = sourcemeta::core::parse_json(R"({
     "@context": { "a": "bad" }

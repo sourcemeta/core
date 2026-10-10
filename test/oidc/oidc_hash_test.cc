@@ -66,6 +66,14 @@ TEST(verify_token_hash_rejects_a_wrong_algorithm) {
       "piwt8oCH-K2D9pXlaS1Y-w"));
 }
 
+// An algorithm with no defined digest yields no hash to compare against, so
+// the claim cannot be confirmed whatever it holds
+TEST(verify_token_hash_rejects_an_algorithm_with_no_digest) {
+  EXPECT_FALSE(sourcemeta::core::oidc_verify_token_hash(
+      REFERENCE_TOKEN, sourcemeta::core::JWSAlgorithm::EdDSA,
+      "piwt8oCH-K2D9pXlaS1Y-w"));
+}
+
 TEST(verify_token_hash_rejects_an_empty_claim) {
   EXPECT_FALSE(sourcemeta::core::oidc_verify_token_hash(
       REFERENCE_TOKEN, sourcemeta::core::JWSAlgorithm::RS256, ""));

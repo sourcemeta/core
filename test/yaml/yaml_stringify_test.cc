@@ -1030,3 +1030,87 @@ TEST(
   sourcemeta::core::stringify_yaml(document, yaml_stream);
   EXPECT_EQ(yaml_stream.str(), json_stream.str() + "\n");
 }
+
+TEST(string_quoting_uppercase_octal) {
+  const sourcemeta::core::JSON document{"0O77"};
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream);
+  EXPECT_EQ(stream.str(), "\"0O77\"\n");
+}
+
+TEST(string_binary_prefix_plain) {
+  const sourcemeta::core::JSON document{"0b1"};
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream);
+  EXPECT_EQ(stream.str(), "0b1\n");
+}
+
+TEST(string_exponent_followed_by_a_point_plain) {
+  const sourcemeta::core::JSON document{"1e5.5"};
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream);
+  EXPECT_EQ(stream.str(), "1e5.5\n");
+}
+
+TEST(string_two_exponents_plain) {
+  const sourcemeta::core::JSON document{"1e5e5"};
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream);
+  EXPECT_EQ(stream.str(), "1e5e5\n");
+}
+
+TEST(string_quoting_exponent_without_digits) {
+  const sourcemeta::core::JSON document{"1e"};
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream);
+  EXPECT_EQ(stream.str(), "\"1e\"\n");
+}
+
+TEST(string_quoting_positive_Inf) {
+  const sourcemeta::core::JSON document{"+.Inf"};
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream);
+  EXPECT_EQ(stream.str(), "\"+.Inf\"\n");
+}
+
+TEST(string_quoting_positive_INF) {
+  const sourcemeta::core::JSON document{"+.INF"};
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream);
+  EXPECT_EQ(stream.str(), "\"+.INF\"\n");
+}
+
+TEST(string_quoting_negative_INF) {
+  const sourcemeta::core::JSON document{"-.INF"};
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream);
+  EXPECT_EQ(stream.str(), "\"-.INF\"\n");
+}
+
+TEST(string_two_dashes_then_another_character_plain) {
+  const sourcemeta::core::JSON document{"--x"};
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream);
+  EXPECT_EQ(stream.str(), "--x\n");
+}
+
+TEST(string_point_then_another_character_plain) {
+  const sourcemeta::core::JSON document{".x."};
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream);
+  EXPECT_EQ(stream.str(), ".x.\n");
+}
+
+TEST(string_two_points_then_another_character_plain) {
+  const sourcemeta::core::JSON document{"..x"};
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream);
+  EXPECT_EQ(stream.str(), "..x\n");
+}
+
+TEST(string_quoting_keeps_a_multi_byte_character_as_it_stands) {
+  const sourcemeta::core::JSON document{"#\xC3\xA9"};
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream);
+  EXPECT_EQ(stream.str(), "\"#\xC3\xA9\"\n");
+}

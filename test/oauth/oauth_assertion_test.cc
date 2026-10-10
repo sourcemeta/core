@@ -881,6 +881,32 @@ TEST(verify_client_assertion_rejects_an_audience_that_is_neither_form) {
   EXPECT_EQ(error.value(), sourcemeta::core::OAuthAssertionError::Audience);
 }
 
+// RFC 7523 Section 3 check 3 has the assertion name the authorization server
+// as its audience, so one that names nobody names the wrong recipient rather
+// than being malformed
+TEST(verify_client_assertion_rejects_an_assertion_without_an_audience) {
+  auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(EC_PRIVATE_JWK))};
+  EXPECT_TRUE(key.has_value());
+  const auto payload{
+      sourcemeta::core::parse_json(R"({"iss":"s6BhdRkqt3","sub":"s6BhdRkqt3",)"
+                                   R"("exp":1562262916,"iat":1562262616})")};
+  const auto assertion{sourcemeta::core::jwt_sign(
+      sourcemeta::core::parse_json(R"({"alg":"ES256"})"), payload,
+      key.value())};
+  EXPECT_TRUE(assertion.has_value());
+  const auto keys{
+      sourcemeta::core::JWKS::from(sourcemeta::core::parse_json(JWKS_JSON))};
+  EXPECT_TRUE(keys.has_value());
+  sourcemeta::core::OAuthAssertionVerifyOptions options;
+  options.allowed_algorithms = ALLOWED;
+  const auto error{sourcemeta::core::oauth_verify_client_assertion(
+      assertion.value(), AUDIENCES, "s6BhdRkqt3", keys.value(), FIXED_TIME,
+      options)};
+  EXPECT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(), sourcemeta::core::OAuthAssertionError::Audience);
+}
+
 TEST(verify_client_assertion_rejects_a_missing_subject) {
   auto key{sourcemeta::core::JWKPrivate::from(
       sourcemeta::core::parse_json(EC_PRIVATE_JWK))};
