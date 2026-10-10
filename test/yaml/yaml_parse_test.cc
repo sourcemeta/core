@@ -3211,15 +3211,21 @@ TEST(leading_colon_value_indicator_duplicate_at_the_end_of_a_document) {
 
 // A value indicator that turns out to open an explicit key commits nothing, so
 // the empty key it looked like must not be marked as one the mapping has seen.
+// The trailing indicator is what shows it: a mapping that had marked the empty
+// key would turn this one down as a duplicate, where what it is turned down for
+// is standing outside the document the mapping closed
 TEST(leading_colon_value_indicator_before_an_explicit_key_is_not_seen) {
-  const auto result{sourcemeta::core::parse_yaml(":\n? a\n: b\n: c\n")};
-  EXPECT_TRUE(result.is_object());
-  EXPECT_EQ(result.size(), 1);
-  EXPECT_TRUE(result.defines("a"));
-  EXPECT_TRUE(result.at("a").is_object());
-  EXPECT_EQ(result.at("a").size(), 1);
-  EXPECT_TRUE(result.at("a").defines("b"));
-  EXPECT_TRUE(result.at("a").at("b").is_null());
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(":\n? a\n: b\n: c\n")};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLDuplicateKeyError &) {
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Unexpected content after document");
+  } catch (...) {
+    FAIL();
+  }
 }
 
 // What a copy occupies is counted in bytes, where the logical length counts
@@ -4036,4 +4042,45 @@ TEST(read_file_with_every_document_closed_by_its_own_marker) {
       sourcemeta::core::read_yaml(std::filesystem::path{STUBS_PATH} /
                                   "documents_each_closed_by_a_marker.yaml")};
   EXPECT_EQ(result, sourcemeta::core::JSON{"foo"});
+}
+
+// YAML 1.2.2 productions 192 to 194 have a block mapping entry's value follow a
+// literal colon, so a plain scalar alone at the mapping's own indentation forms
+// no entry. A caller holding the whole input cannot ask for a second document,
+// so content the first one does not account for is content nothing could ever
+// reach, and parsing a string holds it to that just as reading a file does
+TEST(yaml_string_with_a_trailing_scalar_that_forms_no_entry) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"key: 1\nv\n"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Unexpected content after document");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(yaml_string_with_a_trailing_scalar_after_an_empty_value) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"key:\nv\n"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Unexpected content after document");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// The stream overloads read one document at a time by design, so they leave
+// what follows where the next call will find it rather than turning it down
+TEST(yaml_stream_leaves_a_second_document_for_the_next_read) {
+  std::istringstream stream{"key: 1\n---\nv\n"};
+  const auto first{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_TRUE(first.is_object());
+  EXPECT_EQ(first.at("key"), sourcemeta::core::JSON{1});
+
+  const auto second{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(second, sourcemeta::core::JSON{"v"});
 }
