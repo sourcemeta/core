@@ -242,10 +242,9 @@ inline auto scan_html_tag(const std::string_view input,
 inline auto scan_html_comment(const std::string_view input,
                               const std::size_t offset) noexcept
     -> std::size_t {
-  if (character_at(input, offset) != '-' ||
-      character_at(input, offset + 1) != '-') {
-    return 0;
-  }
+  // The caller reads both of these before asking
+  assert(character_at(input, offset) == '-');
+  assert(character_at(input, offset + 1) == '-');
 
   const auto text{offset + 2};
   if (character_at(input, text) == '>' ||
@@ -315,8 +314,10 @@ inline auto scan_html_declaration(const std::string_view input,
 // brackets and angle bracket
 inline auto scan_html_cdata(const std::string_view input,
                             const std::size_t offset) noexcept -> std::size_t {
-  if (offset > input.size() ||
-      input.substr(offset, 6) != std::string_view{"CDATA["}) {
+  // The caller reads the two characters before this one, so the offset is at
+  // most the end of the input and the view below is well formed
+  assert(offset <= input.size());
+  if (input.substr(offset, 6) != std::string_view{"CDATA["}) {
     return 0;
   }
 
@@ -454,9 +455,9 @@ inline auto scan_html_block_start_7(const std::string_view input,
 inline auto scan_html_block_end(const std::string_view input,
                                 const std::size_t offset,
                                 const std::size_t condition) noexcept -> bool {
-  if (offset > input.size()) {
-    return false;
-  }
+  // The offset is the first character of the line that is not a space, and a
+  // line ends with a line feed, so there is always one to find
+  assert(offset < input.size());
 
   const auto line{input.substr(offset)};
   switch (condition) {
@@ -703,17 +704,18 @@ inline auto scan_footnote_definition(const std::string_view input,
 
 inline auto scan_table_marker(const std::string_view input,
                               std::size_t position) noexcept -> std::size_t {
+  assert(input.ends_with('\n'));
   const auto start{position};
-  while (position < input.size() && is_line_space(input[position])) {
+  while (is_line_space(input[position])) {
     ++position;
   }
 
-  if (character_at(input, position) == ':') {
+  if (input[position] == ':') {
     ++position;
   }
 
   const auto dashes_start{position};
-  while (position < input.size() && input[position] == '-') {
+  while (input[position] == '-') {
     ++position;
   }
 
@@ -721,11 +723,11 @@ inline auto scan_table_marker(const std::string_view input,
     return 0;
   }
 
-  if (character_at(input, position) == ':') {
+  if (input[position] == ':') {
     ++position;
   }
 
-  while (position < input.size() && is_line_space(input[position])) {
+  while (is_line_space(input[position])) {
     ++position;
   }
 
@@ -736,28 +738,21 @@ inline auto scan_table_marker(const std::string_view input,
 inline auto scan_table_row_end(const std::string_view input,
                                const std::size_t offset) noexcept
     -> std::size_t {
-  if (offset >= input.size()) {
-    return 0;
-  }
-
+  assert(input.ends_with('\n'));
+  assert(offset < input.size());
   auto position{offset};
-  while (position < input.size() && is_line_space(input[position])) {
+  while (is_line_space(input[position])) {
     ++position;
   }
 
-  if (character_at(input, position) == '\r') {
-    ++position;
-  }
-
-  return character_at(input, position) == '\n' ? position + 1 - offset : 0;
+  return input[position] == '\n' ? position + 1 - offset : 0;
 }
 
 // The delimiter row of a table of GFM section 4.10
 inline auto scan_table_start(const std::string_view input,
                              const std::size_t offset) noexcept -> std::size_t {
-  if (offset >= input.size()) {
-    return 0;
-  }
+  assert(input.ends_with('\n'));
+  assert(offset < input.size());
 
   auto position{offset};
   if (input[position] == '|') {
@@ -788,10 +783,11 @@ inline auto scan_table_start(const std::string_view input,
 // is not preceded by a backslash
 inline auto scan_table_cell(const std::string_view input,
                             const std::size_t offset) noexcept -> std::size_t {
+  assert(input.ends_with('\n'));
   auto position{offset};
-  while (position < input.size()) {
+  while (true) {
     const auto character{input[position]};
-    if (character == '\r' || character == '\n') {
+    if (character == '\n') {
       break;
     }
 
@@ -810,12 +806,13 @@ inline auto scan_table_cell(const std::string_view input,
 inline auto scan_table_cell_end(const std::string_view input,
                                 const std::size_t offset) noexcept
     -> std::size_t {
+  assert(input.ends_with('\n'));
   if (character_at(input, offset) != '|') {
     return 0;
   }
 
   auto position{offset + 1};
-  while (position < input.size() && is_line_space(input[position])) {
+  while (is_line_space(input[position])) {
     ++position;
   }
 
