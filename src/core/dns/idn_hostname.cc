@@ -1,10 +1,10 @@
 #include <sourcemeta/core/dns.h>
 
-#include <cassert> // assert
 #include <sourcemeta/core/idna.h>
 #include <sourcemeta/core/punycode.h>
 #include <sourcemeta/core/unicode.h>
 
+#include <cassert>     // assert
 #include <cstddef>     // std::size_t
 #include <optional>    // std::optional
 #include <string>      // std::string, std::u32string

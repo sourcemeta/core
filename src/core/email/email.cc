@@ -1,11 +1,12 @@
 #include <sourcemeta/core/email.h>
 
-#include <cassert> // assert
 #include <sourcemeta/core/dns.h>
 #include <sourcemeta/core/text.h>
 #include <sourcemeta/core/unicode.h>
 
 #include "helpers.h"
+
+#include <cassert> // assert
 
 namespace sourcemeta::core {
 

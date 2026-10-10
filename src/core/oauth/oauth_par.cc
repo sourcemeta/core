@@ -1,6 +1,5 @@
 #include <sourcemeta/core/oauth_par.h>
 
-#include <cassert> // assert
 #include <sourcemeta/core/crypto.h>
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/oauth_authorization.h>
@@ -10,6 +9,7 @@
 #include "oauth_authorization_parse.h"
 #include "oauth_json.h"
 
+#include <cassert>     // assert
 #include <chrono>      // std::chrono::seconds
 #include <cstdint>     // std::int64_t
 #include <functional>  // std::function
