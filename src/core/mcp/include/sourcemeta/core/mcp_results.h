@@ -348,8 +348,20 @@ auto mcp_make_completion_result(MCPProtocolVersion version, JSON values,
 /// @ingroup mcp
 /// Serialize a complete MCP response for one of the six cacheable operations.
 /// The result is copied before decoration. The source remains unchanged.
-/// A cache policy is mandatory for 2026-07-28. Omit it for legacy responses.
+/// A cache policy is mandatory for 2026-07-28. Pass `std::nullopt` for legacy
+/// responses.
 /// This writes JSON only. Stdio callers must append a newline themselves.
+///
+/// ```cpp
+/// auto result{sourcemeta::core::JSON::make_object()};
+/// result.assign("resources", sourcemeta::core::JSON::make_array());
+/// std::ostringstream stream;
+/// sourcemeta::core::mcp_write_result(
+///     stream, sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+///     "resources/list", sourcemeta::core::JSON{1}, result,
+///     sourcemeta::core::MCPCachePolicy{
+///         .ttl_ms = 0, .scope = sourcemeta::core::MCPCacheScope::Private});
+/// ```
 SOURCEMETA_CORE_MCP_EXPORT
 void mcp_write_result(
     std::ostream &stream, MCPProtocolVersion version, JSON::StringView method,
