@@ -85,6 +85,13 @@ TEST(aes_256_gcm_unseal_rejects_a_different_key) {
       sourcemeta::core::aes_256_gcm_unseal(other.value(), sealed).has_value());
 }
 
+TEST(aes_256_gcm_unseal_rejects_a_wrong_size_key) {
+  const auto sealed{sourcemeta::core::aes_256_gcm_seal(KEY, "hello").value()};
+  EXPECT_FALSE(
+      sourcemeta::core::aes_256_gcm_unseal(std::string(31, '\x00'), sealed)
+          .has_value());
+}
+
 TEST(aes_256_gcm_seal_rejects_a_wrong_size_key) {
   EXPECT_FALSE(sourcemeta::core::aes_256_gcm_seal(std::string(31, '\x00'), "x")
                    .has_value());
