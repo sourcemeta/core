@@ -1,0 +1,3 @@
+CHECKSUM result.txt AS SUM
+REPLACE $SUM:x WITH y IN result.txt
+COMPARE result.txt AGAINST expected.txt

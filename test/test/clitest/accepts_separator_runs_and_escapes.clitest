@@ -1,0 +1,2 @@
+COPY  expected.txt	TO a\ b.txt
+COMPARE a\ b.txt AGAINST expected.txt

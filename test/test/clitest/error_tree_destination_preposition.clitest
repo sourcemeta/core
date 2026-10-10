@@ -1,0 +1,2 @@
+TREE a TO b
+COMPARE b AGAINST expected.txt

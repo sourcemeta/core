@@ -1,0 +1,2 @@
+COMPRESS ZIP a INTO b
+COMPARE b AGAINST expected.txt

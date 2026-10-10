@@ -1,0 +1,2 @@
+DROP LINES MATCHING '[\]]x' IN result.txt
+COMPARE result.txt AGAINST expected.txt

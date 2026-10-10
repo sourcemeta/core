@@ -3853,3 +3853,97 @@ TEST(tabulation_after_a_scalar_at_the_end_of_the_stream) {
   const auto expected{sourcemeta::core::parse_json(R"JSON({ "foo": 1 })JSON")};
   EXPECT_EQ(result, expected);
 }
+// YAML 1.2.2 Section 5.4 counts a lone carriage return as a line break, so a
+// document that ends on one ends on an empty line rather than mid-token
+TEST(yaml_document_ending_in_a_lone_carriage_return) {
+  const std::string input{"a: 1\r"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const auto expected{sourcemeta::core::parse_json(R"JSON({ "a": 1 })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+// A comment runs to the end of its line, which the end of the document is one
+// of (YAML 1.2.2 Section 6.6)
+TEST(yaml_comment_closed_by_the_end_of_the_document) {
+  const std::string input{"a: 1 # note"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const auto expected{sourcemeta::core::parse_json(R"JSON({ "a": 1 })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+// YAML 1.2.2 Section 6.1 excludes a tabulation from indentation but admits it
+// as separation space, so one between a key and its value separates them
+TEST(yaml_tabulation_separates_a_key_from_its_value) {
+  const std::string input{"a:\tb"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const auto expected{sourcemeta::core::parse_json(R"JSON({ "a": "b" })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+// A verbatim tag that the document ends inside closes no more than one that a
+// line break ends inside
+TEST(yaml_verbatim_tag_that_the_document_ends_inside_is_rejected) {
+  const std::string input{"a: !<tag"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Unterminated verbatim tag");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// An escape needs a character to escape, and the end of the document is not
+// one, so the quote it opened is never closed
+TEST(yaml_double_quoted_scalar_ending_on_an_escape_is_rejected) {
+  const std::string input{"a: \"x\\"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Missing closing quote in double-quoted scalar");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(yaml_flow_sequence_that_the_document_ends_inside_is_rejected) {
+  const std::string input{"a: [b"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Missing comma in flow sequence");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// A block scalar header may carry a comment, which YAML 1.2.2 Section 6.6 ends
+// at a line break or at the end of the document
+TEST(yaml_block_scalar_header_comment_closed_by_the_end_of_the_document) {
+  const std::string input{"a: | # note"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const auto expected{sourcemeta::core::parse_json(R"JSON({ "a": "" })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+// YAML 1.2.2 Section 6.1 excludes a tabulation from indentation, so a line
+// holding nothing else indents nothing and the document ends there
+TEST(yaml_document_ending_in_a_tabulation_only_line) {
+  const std::string input{"a: 1\n\t"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const auto expected{sourcemeta::core::parse_json(R"JSON({ "a": 1 })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+// A tabulation is separation space rather than indentation, so what follows one
+// continues the plain scalar of the line before (YAML 1.2.2 Section 7.3.3)
+TEST(yaml_tabulation_before_a_plain_scalar_continuation) {
+  const std::string input{"a: 1\n\tb\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const auto expected{
+      sourcemeta::core::parse_json(R"JSON({ "a": "1 b" })JSON")};
+  EXPECT_EQ(result, expected);
+}

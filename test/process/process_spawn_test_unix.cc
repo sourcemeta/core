@@ -1,9 +1,10 @@
 #include <sourcemeta/core/process.h>
 #include <sourcemeta/core/test.h>
 
-#include <csignal>    // SIGPIPE, sigaddset, sigemptyset, sigset_t
-#include <filesystem> // std::filesystem::path
-#include <pthread.h>  // pthread_sigmask
+#include <csignal>        // SIGPIPE, sigaddset, sigemptyset, sigset_t
+#include <filesystem>     // std::filesystem::path
+#include <pthread.h>      // pthread_sigmask
+#include <sys/resource.h> // RLIMIT_NOFILE, getrlimit, rlimit, setrlimit
 
 TEST(usr_bin_true_returns_zero) {
   const int exit_code{sourcemeta::core::spawn("/usr/bin/true", {})};
@@ -95,6 +96,49 @@ TEST(a_caller_already_blocking_the_broken_pipe_signal_keeps_its_mask) {
 
   EXPECT_EQ(exit_code, 0);
   EXPECT_EQ(sigismember(&current, SIGPIPE), 1);
+}
+
+// Spawning a program that is handed its standard input needs a pipe, and a
+// descriptor limit the process has already reached is the one way to deny it
+// one without a program to misbehave
+TEST(a_descriptor_limit_that_denies_a_pipe_is_a_spawn_error) {
+  rlimit original{};
+  EXPECT_EQ(getrlimit(RLIMIT_NOFILE, &original), 0);
+  rlimit restricted{original};
+  restricted.rlim_cur = 4;
+  EXPECT_EQ(setrlimit(RLIMIT_NOFILE, &restricted), 0);
+
+  bool refused{false};
+  try {
+    const sourcemeta::core::ProcessInput input{.standard_input = "payload"};
+    [[maybe_unused]] const auto exit_code{
+        sourcemeta::core::spawn("/usr/bin/true", {}, input)};
+  } catch (const sourcemeta::core::ProcessSpawnError &) {
+    refused = true;
+  }
+
+  EXPECT_EQ(setrlimit(RLIMIT_NOFILE, &original), 0);
+  EXPECT_TRUE(refused);
+}
+
+// Capturing a program needs two more pipes, which the same limit denies
+TEST(a_descriptor_limit_that_denies_a_capture_pipe_is_a_spawn_error) {
+  rlimit original{};
+  EXPECT_EQ(getrlimit(RLIMIT_NOFILE, &original), 0);
+  rlimit restricted{original};
+  restricted.rlim_cur = 4;
+  EXPECT_EQ(setrlimit(RLIMIT_NOFILE, &restricted), 0);
+
+  bool refused{false};
+  try {
+    [[maybe_unused]] const auto output{
+        sourcemeta::core::spawn_and_capture("/usr/bin/true", {})};
+  } catch (const sourcemeta::core::ProcessSpawnError &) {
+    refused = true;
+  }
+
+  EXPECT_EQ(setrlimit(RLIMIT_NOFILE, &original), 0);
+  EXPECT_TRUE(refused);
 }
 
 TEST(echo_with_arguments) {
