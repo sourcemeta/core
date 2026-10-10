@@ -98,3 +98,13 @@ TEST(only_padding_rejected) {
 TEST(padding_before_alphabet_rejected) {
   EXPECT_TRUE(sourcemeta::core::http_parse_bearer("Bearer ab=cd").empty());
 }
+
+// RFC 6750 Section 2.1 names this scheme, and another of the same length is
+// not it
+TEST(parse_bearer_of_another_scheme_of_the_same_length) {
+  EXPECT_EQ(sourcemeta::core::http_parse_bearer("Basic? abc123"), "");
+}
+
+TEST(parse_bearer_of_a_basic_credential) {
+  EXPECT_EQ(sourcemeta::core::http_parse_bearer("Basic dXNlcjpwYXNz"), "");
+}
