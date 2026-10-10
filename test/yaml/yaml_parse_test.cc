@@ -3212,20 +3212,16 @@ TEST(leading_colon_value_indicator_duplicate_at_the_end_of_a_document) {
 // A value indicator that turns out to open an explicit key commits nothing, so
 // the empty key it looked like must not be marked as one the mapping has seen.
 // The trailing indicator is what shows it: a mapping that had marked the empty
-// key would turn this one down as a duplicate, where what it is turned down for
-// is standing outside the document the mapping closed
+// key would turn this one down as a duplicate, where what it names is the one
+// entry of the mapping whose key is empty
 TEST(leading_colon_value_indicator_before_an_explicit_key_is_not_seen) {
-  try {
-    [[maybe_unused]] const auto result{
-        sourcemeta::core::parse_yaml(":\n? a\n: b\n: c\n")};
-    FAIL();
-  } catch (const sourcemeta::core::YAMLDuplicateKeyError &) {
-    FAIL();
-  } catch (const sourcemeta::core::YAMLParseError &error) {
-    EXPECT_STREQ(error.what(), "Unexpected content after document");
-  } catch (...) {
-    FAIL();
-  }
+  const auto result{sourcemeta::core::parse_yaml(":\n? a\n: b\n: c\n")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_TRUE(result.defines("a"));
+  EXPECT_EQ(result.at("a"), sourcemeta::core::JSON{"b"});
+  EXPECT_TRUE(result.defines(""));
+  EXPECT_EQ(result.at(""), sourcemeta::core::JSON{"c"});
 }
 
 // What a copy occupies is counted in bytes, where the logical length counts
@@ -4083,4 +4079,46 @@ TEST(yaml_stream_leaves_a_second_document_for_the_next_read) {
 
   const auto second{sourcemeta::core::parse_yaml(stream)};
   EXPECT_EQ(second, sourcemeta::core::JSON{"v"});
+}
+
+// YAML 1.2.2 production 192 writes a block mapping entry as
+// `( ns-s-block-map-implicit-key | e-node ) c-l-block-map-implicit-value`, so
+// the key of any entry may be empty rather than only the key of the first, and
+// Section 8.2.2 settles what makes it one: "while both the implicit key and
+// the value following it may be empty, the ':' indicator is mandatory"
+TEST(yaml_empty_key_entry_after_another_entry) {
+  const auto result{sourcemeta::core::parse_yaml(std::string{"a: 1\n: c\n"})};
+  const auto expected{
+      sourcemeta::core::parse_json(R"JSON({ "a": 1, "": "c" })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(yaml_empty_key_entry_with_an_empty_value) {
+  const auto result{sourcemeta::core::parse_yaml(std::string{"a: 1\n:\n"})};
+  const auto expected{
+      sourcemeta::core::parse_json(R"JSON({ "a": 1, "": null })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(yaml_empty_key_entry_twice_is_a_duplicate) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"a: 1\n: b\n: c\n"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLDuplicateKeyError &error) {
+    EXPECT_STREQ(error.what(), "Duplicate key in YAML mapping");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// Section 6.7: "Implicit keys are restricted to a single line", so an
+// indicator on a later line belongs to a mapping further out rather than
+// making the scalar before it a key
+TEST(yaml_value_indicator_on_a_later_line_closes_the_inner_mapping) {
+  const auto result{
+      sourcemeta::core::parse_yaml(std::string{"a:\n  b: 1\n: c\n"})};
+  const auto expected{
+      sourcemeta::core::parse_json(R"JSON({ "a": { "b": 1 }, "": "c" })JSON")};
+  EXPECT_EQ(result, expected);
 }

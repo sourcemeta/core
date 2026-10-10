@@ -887,8 +887,16 @@ private:
         const auto pair_without_brackets_allowed{
             this->lexer_->flow_level() == 0 ||
             context != JSON::ParseContext::Property};
+        // YAML 1.2.2 Section 6.7: "Implicit keys are restricted to a single
+        // line", so an indicator standing on a later line belongs to a mapping
+        // further out rather than making this scalar a key of its own. Flow
+        // context is told the same by the error below, which reports where the
+        // indicator was read instead of handing it back
+        const bool indicator_shares_the_key_line{
+            next.has_value() && (this->lexer_->flow_level() > 0 ||
+                                 next->line == current_token.line)};
         if (next.has_value() && next->type == TokenType::BlockMappingValue &&
-            pair_without_brackets_allowed) {
+            pair_without_brackets_allowed && indicator_shares_the_key_line) {
           if (current_token.multiline) [[unlikely]] {
             throw YAMLParseError{current_token.line, current_token.column,
                                  "Multi-line implicit mapping key"};
@@ -1986,6 +1994,54 @@ private:
     return result;
   }
 
+  // Read the value of an entry whose indicator has just been consumed, and
+  // report whether the mapping carries on after it. YAML 1.2.2 Section 8.2.2
+  // leaves the value optional where the indicator is not, so a token that can
+  // open no value leaves the entry empty
+  auto read_block_mapping_value(JSON &result, std::optional<Token> &next,
+                                const std::string &key,
+                                const std::uint64_t key_line,
+                                const std::uint64_t key_column,
+                                const std::uint64_t base_column) -> bool {
+    next = this->next_token();
+
+    if (!next.has_value() || next->type == TokenType::Scalar) {
+      if (next.has_value() &&
+          this->starts_mapping_value(next.value(), key_line, base_column)) {
+        this->record_inline_comment_for_key(key, next->line != key_line);
+        auto after{this->next_token()};
+        if (after.has_value()) {
+          this->pending_tokens_.push_back(after.value());
+        }
+        auto value{this->parse_value(next.value(), JSON::ParseContext::Property,
+                                     0, key, key_line, key_column)};
+        result.assign(key, std::move(value));
+        next = this->next_token();
+      } else if (next.has_value()) {
+        this->record_inline_comment_for_key(key);
+        result.assign(key, JSON{nullptr});
+      } else {
+        result.assign(key, JSON{nullptr});
+      }
+    } else if (next->type == TokenType::StreamEnd ||
+               next->type == TokenType::DocumentEnd ||
+               next->type == TokenType::DocumentStart) {
+      result.assign(key, JSON{nullptr});
+      return false;
+    } else if (this->starts_mapping_value(next.value(), key_line,
+                                          base_column)) {
+      this->record_inline_comment_for_key(key, next->line != key_line);
+      auto value{this->parse_value(next.value(), JSON::ParseContext::Property,
+                                   0, key, key_line, key_column)};
+      result.assign(key, std::move(value));
+      next = this->next_token();
+    } else {
+      result.assign(key, JSON{nullptr});
+    }
+
+    return true;
+  }
+
   auto parse_block_mapping_from_first_key(
       const Token &key_token, const JSON::ParseContext context,
       const std::size_t index, const std::string &property,
@@ -2075,6 +2131,7 @@ private:
     while (next.has_value() &&
            (next->type == TokenType::Scalar ||
             next->type == TokenType::BlockMappingKey ||
+            next->type == TokenType::BlockMappingValue ||
             next->type == TokenType::Anchor || next->type == TokenType::Tag ||
             next->type == TokenType::Alias)) {
       if (this->document_start_line_ > 0 &&
@@ -2265,6 +2322,34 @@ private:
         continue;
       }
 
+      // YAML 1.2.2 production 192 writes an entry as
+      // `( ns-s-block-map-implicit-key | e-node ) c-l-block-map-implicit-value`
+      // so the key of any entry may be empty, and Section 8.2.2 settles what
+      // makes it one: "while both the implicit key and the value following it
+      // may be empty, the ':' indicator is mandatory"
+      if (next->type == TokenType::BlockMappingValue) {
+        if (next->column != base_column) {
+          break;
+        }
+
+        this->record_inline_comment_for_key(key);
+        key.clear();
+        key_line = next->line;
+        key_column = next->column;
+
+        if (seen_keys.contains(key)) [[unlikely]] {
+          throw YAMLDuplicateKeyError{key, next->line, next->column};
+        }
+        seen_keys.insert(key);
+
+        if (!this->read_block_mapping_value(result, next, key, key_line,
+                                            key_column, base_column)) {
+          break;
+        }
+
+        continue;
+      }
+
       if (effective_column != base_column) {
         break;
       }
@@ -2295,41 +2380,9 @@ private:
         break;
       }
 
-      next = this->next_token();
-
-      if (!next.has_value() || next->type == TokenType::Scalar) {
-        if (next.has_value() &&
-            this->starts_mapping_value(next.value(), key_line, base_column)) {
-          this->record_inline_comment_for_key(key, next->line != key_line);
-          auto after{this->next_token()};
-          if (after.has_value()) {
-            this->pending_tokens_.push_back(after.value());
-          }
-          auto value{this->parse_value(next.value(),
-                                       JSON::ParseContext::Property, 0, key,
-                                       key_line, key_column)};
-          result.assign(key, std::move(value));
-          next = this->next_token();
-        } else if (next.has_value()) {
-          this->record_inline_comment_for_key(key);
-          result.assign(key, JSON{nullptr});
-        } else {
-          result.assign(key, JSON{nullptr});
-        }
-      } else if (next->type == TokenType::StreamEnd ||
-                 next->type == TokenType::DocumentEnd ||
-                 next->type == TokenType::DocumentStart) {
-        result.assign(key, JSON{nullptr});
+      if (!this->read_block_mapping_value(result, next, key, key_line,
+                                          key_column, base_column)) {
         break;
-      } else if (this->starts_mapping_value(next.value(), key_line,
-                                            base_column)) {
-        this->record_inline_comment_for_key(key, next->line != key_line);
-        auto value{this->parse_value(next.value(), JSON::ParseContext::Property,
-                                     0, key, key_line, key_column)};
-        result.assign(key, std::move(value));
-        next = this->next_token();
-      } else {
-        result.assign(key, JSON{nullptr});
       }
     }
 
