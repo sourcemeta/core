@@ -228,3 +228,10 @@ TEST(safe_mode_keeps_data_image_png_without_parameters) {
       sourcemeta::core::markdown_to_html("![x](data:image/png,AAAA)")};
   EXPECT_EQ(result, "<p><img src=\"data:image/png,AAAA\" alt=\"x\" /></p>\n");
 }
+
+// RFC 2397 Section 3 ends the media type of a data URL at a semicolon or a
+// comma, so one that stops at the subtype carries no data and is no image
+TEST(a_data_url_that_is_nothing_but_an_image_media_type_is_dropped) {
+  const auto result{sourcemeta::core::markdown_to_html("[x](data:image/png)")};
+  EXPECT_EQ(result, "<p><a href=\"\">x</a></p>\n");
+}

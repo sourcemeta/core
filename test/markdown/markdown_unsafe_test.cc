@@ -636,3 +636,38 @@ TEST(html_inline_unquoted_attribute_value_ends_at_a_double_quote) {
   const auto result{sourcemeta::core::markdown_to_html("a <b x=y\"z>c", false)};
   EXPECT_EQ(result, "<p>a &lt;b x=y&quot;z&gt;c</p>\n");
 }
+
+// GFM section 4.6 has start condition 1 need whitespace or a right angle
+// bracket after the tag name, so a self-closing one does not open that kind of
+// block and is left to the condition that takes any complete tag
+TEST(html_block_self_closing_script_is_not_the_raw_text_condition) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("<script/>\ntext", false)};
+  EXPECT_EQ(result, "&lt;script/>\ntext\n");
+}
+
+// Start condition 6 needs the same, and the slash it also admits has to be the
+// one that closes the tag
+TEST(html_block_block_tag_followed_by_an_equals_sign_opens_nothing) {
+  const auto result{sourcemeta::core::markdown_to_html("<div=x>\ntext", false)};
+  EXPECT_EQ(result, "<p>&lt;div=x&gt;\ntext</p>\n");
+}
+
+TEST(html_block_block_tag_with_a_slash_that_closes_nothing_opens_nothing) {
+  const auto result{sourcemeta::core::markdown_to_html("<div/x>\ntext", false)};
+  EXPECT_EQ(result, "<p>&lt;div/x&gt;\ntext</p>\n");
+}
+
+// Start condition 7 takes a complete tag followed by nothing but whitespace,
+// which GFM section 2.1 counts a tabulation among
+TEST(html_block_complete_tag_followed_by_a_tabulation) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("<del>\t\ntext\n\nafter", false)};
+  EXPECT_EQ(result, "<del>\t\ntext\n<p>after</p>\n");
+}
+
+TEST(html_block_complete_tag_followed_by_a_form_feed) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("<del>\f\ntext\n\nafter", false)};
+  EXPECT_EQ(result, "<del>\f\ntext\n<p>after</p>\n");
+}

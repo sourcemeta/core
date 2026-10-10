@@ -105,3 +105,23 @@ TEST(code_span_after_rejected_and_matched_backtick_strings) {
   const auto result{sourcemeta::core::markdown_to_html("```a ``b`c`` `d`")};
   EXPECT_EQ(result, "<p>```a <code>b`c</code> <code>d</code></p>\n");
 }
+
+// GFM section 6.1 strips one space from each end of a code span only when both
+// ends carry one, so a space at one end alone stays
+TEST(code_span_with_a_leading_space_only) {
+  const auto result{sourcemeta::core::markdown_to_html("` a`")};
+  EXPECT_EQ(result, "<p><code> a</code></p>\n");
+}
+
+TEST(code_span_with_a_trailing_space_only) {
+  const auto result{sourcemeta::core::markdown_to_html("`a `")};
+  EXPECT_EQ(result, "<p><code>a </code></p>\n");
+}
+
+// A code span spanning a line break has that break become a space before the
+// ends are looked at, so one that begins with a space and ends with a letter
+// keeps both
+TEST(code_span_across_a_line_break_with_a_leading_space_only) {
+  const auto result{sourcemeta::core::markdown_to_html("` a\nb`")};
+  EXPECT_EQ(result, "<p><code> a b</code></p>\n");
+}

@@ -381,3 +381,20 @@ TEST(footnote_definition_with_a_tabulation_after_the_colon) {
       " aria-label=\"Back to reference 1\">\xe2\x86\xa9</a></p>\n"
       "</li>\n</ol>\n</section>\n");
 }
+
+// A footnote label ends at the line it sits on, so a definition whose bracket
+// is never closed defines nothing and the reference it would have answered
+// stands as text
+TEST(footnote_definition_label_left_unclosed_at_the_line_end) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("[^foo\nbar\n\n[^foo]: note")};
+  EXPECT_EQ(result, "<p>[^foo\nbar</p>\n");
+}
+
+// A label ends at a tabulation too, so the bracket that follows one closes
+// nothing
+TEST(footnote_definition_label_broken_by_a_tabulation) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("[^foo\tbar]: note\n\ntext")};
+  EXPECT_EQ(result, "<p>text</p>\n");
+}

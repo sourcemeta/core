@@ -1,7 +1,9 @@
 #include <sourcemeta/core/process.h>
 #include <sourcemeta/core/test.h>
 
+#include <csignal>    // SIGPIPE, sigaddset, sigemptyset, sigset_t
 #include <filesystem> // std::filesystem::path
+#include <pthread.h>  // pthread_sigmask
 
 TEST(usr_bin_true_returns_zero) {
   const int exit_code{sourcemeta::core::spawn("/usr/bin/true", {})};
@@ -46,6 +48,53 @@ TEST(nonexistent_program_throws_exception) {
   } catch (const sourcemeta::core::ProcessProgramNotFoundError &error) {
     EXPECT_EQ(error.program(), program);
   }
+}
+
+// A path that names something present but not executable is a different
+// failure from a path that names nothing, and only the latter reports a
+// missing program
+TEST(non_executable_program_throws_a_spawn_error) {
+  const auto *const program{"/etc/hosts"};
+  try {
+    sourcemeta::core::spawn(program, {});
+    FAIL();
+  } catch (const sourcemeta::core::ProcessSpawnError &error) {
+    EXPECT_EQ(error.program(), program);
+    EXPECT_TRUE(error.arguments().empty());
+  }
+}
+
+// A program cut short by a signal reports no exit code of its own
+TEST(signalled_program_throws_a_spawn_error) {
+  try {
+    sourcemeta::core::spawn("/bin/sh", {"-c", "kill -9 $$"});
+    FAIL();
+  } catch (const sourcemeta::core::ProcessSpawnError &error) {
+    EXPECT_EQ(error.program(), "/bin/sh");
+  }
+}
+
+// Spawning blocks the broken-pipe signal for the calling thread and consumes
+// any instance raised meanwhile, but an instance raised under a mask the caller
+// established belongs to whoever established it, so the mask comes back as it
+// was and the signal is left alone
+TEST(a_caller_already_blocking_the_broken_pipe_signal_keeps_its_mask) {
+  sigset_t blocked;
+  sigemptyset(&blocked);
+  sigaddset(&blocked, SIGPIPE);
+  sigset_t previous;
+  sigemptyset(&previous);
+  EXPECT_EQ(pthread_sigmask(SIG_BLOCK, &blocked, &previous), 0);
+
+  const int exit_code{sourcemeta::core::spawn("/usr/bin/true", {})};
+
+  sigset_t current;
+  sigemptyset(&current);
+  EXPECT_EQ(pthread_sigmask(SIG_BLOCK, nullptr, &current), 0);
+  EXPECT_EQ(pthread_sigmask(SIG_SETMASK, &previous, nullptr), 0);
+
+  EXPECT_EQ(exit_code, 0);
+  EXPECT_EQ(sigismember(&current, SIGPIPE), 1);
 }
 
 TEST(echo_with_arguments) {

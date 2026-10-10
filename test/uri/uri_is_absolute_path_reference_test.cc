@@ -131,6 +131,10 @@ TEST(is_absolute_path_reference_non_hexadecimal_percent_encoding) {
   EXPECT_FALSE(sourcemeta::core::URI::is_absolute_path_reference("/a%zz"));
 }
 
+TEST(is_absolute_path_reference_second_percent_digit_not_hexadecimal) {
+  EXPECT_FALSE(sourcemeta::core::URI::is_absolute_path_reference("/a%2z"));
+}
+
 TEST(is_absolute_path_reference_percent_encoding_in_a_query) {
   EXPECT_TRUE(sourcemeta::core::URI::is_absolute_path_reference("/a?b=%20"));
 }

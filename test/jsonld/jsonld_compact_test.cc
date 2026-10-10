@@ -806,3 +806,370 @@ TEST(a_value_whose_direction_disagrees_with_the_default) {
 
   EXPECT_EQ(sourcemeta::core::jsonld_compact(input, context, ""), expected);
 }
+
+// JSON-LD 1.1 API Section 5.2.2 refuses to compact a list of lists under the
+// json-ld-1.0 processing mode, as that revision has no spelling for one
+TEST(compaction_in_1_0_refuses_a_list_of_lists) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/p": [
+        { "@list": [ { "@list": [ { "@value": "x" } ] } ] }
+      ]
+    }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({
+    "p": "http://example.com/p"
+  })");
+
+  try {
+    sourcemeta::core::jsonld_compact(input, context, "", {},
+                                     sourcemeta::core::JSONLDVersion::V1_0);
+    FAIL();
+  } catch (const sourcemeta::core::JSONLDError &error) {
+    EXPECT_EQ(sourcemeta::core::to_string(error.pointer()), "");
+  }
+}
+
+// A list whose members are not themselves lists is what that revision does
+// have a spelling for
+TEST(compaction_in_1_0_keeps_a_plain_list) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/p": [
+        { "@list": [ { "@value": "x" }, { "@value": "y" } ] }
+      ]
+    }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({
+    "p": "http://example.com/p"
+  })");
+
+  const auto result{sourcemeta::core::jsonld_compact(
+      input, context, "", {}, sourcemeta::core::JSONLDVersion::V1_0)};
+
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "p": { "@list": [ "x", "y" ] },
+    "@context": { "p": "http://example.com/p" }
+  })");
+
+  EXPECT_EQ(result, expected);
+}
+
+// JSON-LD 1.1 API Section 6.1.2 takes the index key of a property-valued index
+// container from the compacted item's own property, which the container then
+// drops. A term keeping that property as an array is what shows the key being
+// lifted out of one
+TEST(compaction_takes_a_property_index_key_from_a_single_valued_array) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/p": [
+        {
+          "@id": "http://example.com/a",
+          "http://example.com/key": [ { "@value": "one" } ]
+        }
+      ]
+    }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({
+    "@version": 1.1,
+    "p": {
+      "@id": "http://example.com/p",
+      "@container": "@index",
+      "@index": "http://example.com/key"
+    },
+    "key": { "@id": "http://example.com/key", "@container": "@set" }
+  })");
+
+  const auto result{sourcemeta::core::jsonld_compact(input, context, "")};
+
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "p": { "one": { "@id": "http://example.com/a" } },
+    "@context": {
+      "@version": 1.1,
+      "p": {
+        "@id": "http://example.com/p",
+        "@container": "@index",
+        "@index": "http://example.com/key"
+      },
+      "key": { "@id": "http://example.com/key", "@container": "@set" }
+    }
+  })");
+
+  EXPECT_EQ(result, expected);
+}
+
+// Only the first value becomes the key, so the rest of the property stays on
+// the item
+TEST(compaction_takes_a_property_index_key_from_the_first_of_several) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/p": [
+        {
+          "@id": "http://example.com/a",
+          "http://example.com/key": [
+            { "@value": "one" },
+            { "@value": "two" },
+            { "@value": "three" }
+          ]
+        }
+      ]
+    }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({
+    "@version": 1.1,
+    "p": {
+      "@id": "http://example.com/p",
+      "@container": "@index",
+      "@index": "http://example.com/key"
+    },
+    "key": "http://example.com/key"
+  })");
+
+  const auto result{sourcemeta::core::jsonld_compact(input, context, "")};
+
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "p": {
+      "one": {
+        "@id": "http://example.com/a",
+        "key": [ "two", "three" ]
+      }
+    },
+    "@context": {
+      "@version": 1.1,
+      "p": {
+        "@id": "http://example.com/p",
+        "@container": "@index",
+        "@index": "http://example.com/key"
+      },
+      "key": "http://example.com/key"
+    }
+  })");
+
+  EXPECT_EQ(result, expected);
+}
+
+// A lone remaining value collapses to a scalar only when arrays are being
+// compacted, so leaving them alone keeps it an array of one
+TEST(compaction_keeps_a_lone_remaining_property_index_value_as_an_array) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/p": [
+        {
+          "@id": "http://example.com/a",
+          "http://example.com/key": [ { "@value": "one" }, { "@value": "two" } ]
+        }
+      ]
+    }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({
+    "@version": 1.1,
+    "p": {
+      "@id": "http://example.com/p",
+      "@container": "@index",
+      "@index": "http://example.com/key"
+    },
+    "key": "http://example.com/key"
+  })");
+
+  const auto result{sourcemeta::core::jsonld_compact(
+      input, context, "", {}, sourcemeta::core::JSONLDVersion::V1_1, false,
+      true)};
+
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "@graph": [
+      {
+        "p": {
+          "one": [
+            {
+              "@id": "http://example.com/a",
+              "key": [ "two" ]
+            }
+          ]
+        }
+      }
+    ],
+    "@context": {
+      "@version": 1.1,
+      "p": {
+        "@id": "http://example.com/p",
+        "@container": "@index",
+        "@index": "http://example.com/key"
+      },
+      "key": "http://example.com/key"
+    }
+  })");
+
+  EXPECT_EQ(result, expected);
+}
+
+// The key has to be a string, so a property holding anything else names no
+// index and the item falls to the default entry
+TEST(compaction_falls_back_when_a_property_index_value_is_no_string) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/p": [
+        {
+          "@id": "http://example.com/a",
+          "http://example.com/key": [ { "@value": 5 } ]
+        }
+      ]
+    }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({
+    "@version": 1.1,
+    "p": {
+      "@id": "http://example.com/p",
+      "@container": "@index",
+      "@index": "http://example.com/key"
+    },
+    "key": { "@id": "http://example.com/key", "@container": "@set" }
+  })");
+
+  const auto result{sourcemeta::core::jsonld_compact(input, context, "")};
+
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "p": {
+      "@none": {
+        "@id": "http://example.com/a",
+        "key": [ 5 ]
+      }
+    },
+    "@context": {
+      "@version": 1.1,
+      "p": {
+        "@id": "http://example.com/p",
+        "@container": "@index",
+        "@index": "http://example.com/key"
+      },
+      "key": { "@id": "http://example.com/key", "@container": "@set" }
+    }
+  })");
+
+  EXPECT_EQ(result, expected);
+}
+
+// An item that holds no such property at all names no index either
+TEST(compaction_falls_back_when_an_item_lacks_the_index_property) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/p": [ { "@id": "http://example.com/a" } ]
+    }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({
+    "@version": 1.1,
+    "p": {
+      "@id": "http://example.com/p",
+      "@container": "@index",
+      "@index": "http://example.com/key"
+    }
+  })");
+
+  const auto result{sourcemeta::core::jsonld_compact(input, context, "")};
+
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "p": { "@none": { "@id": "http://example.com/a" } },
+    "@context": {
+      "@version": 1.1,
+      "p": {
+        "@id": "http://example.com/p",
+        "@container": "@index",
+        "@index": "http://example.com/key"
+      }
+    }
+  })");
+
+  EXPECT_EQ(result, expected);
+}
+
+// JSON-LD 1.1 API Section 6.1.2 indexes a type map by the item's first type and
+// drops that type from the item, which leaves a node holding nothing but an
+// identifier as the identifier alone. Leaving arrays alone is what keeps the
+// single type an array long enough to be dropped as one
+TEST(compaction_indexes_a_type_map_by_a_lone_type) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/p": [
+        {
+          "@id": "http://example.com/a",
+          "@type": [ "http://example.com/T" ]
+        }
+      ]
+    }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({
+    "@version": 1.1,
+    "p": { "@id": "http://example.com/p", "@container": "@type" },
+    "T": "http://example.com/T"
+  })");
+
+  const auto result{sourcemeta::core::jsonld_compact(
+      input, context, "", {}, sourcemeta::core::JSONLDVersion::V1_1, false,
+      true)};
+
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "@graph": [
+      { "p": { "T": [ "http://example.com/a" ] } }
+    ],
+    "@context": {
+      "@version": 1.1,
+      "p": { "@id": "http://example.com/p", "@container": "@type" },
+      "T": "http://example.com/T"
+    }
+  })");
+
+  EXPECT_EQ(result, expected);
+}
+
+// Only the first type is dropped, so the types beyond the second stay an array
+TEST(compaction_indexes_a_type_map_and_keeps_the_remaining_types) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/p": [
+        {
+          "@id": "http://example.com/a",
+          "@type": [
+            "http://example.com/T",
+            "http://example.com/U",
+            "http://example.com/V"
+          ]
+        }
+      ]
+    }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({
+    "@version": 1.1,
+    "p": { "@id": "http://example.com/p", "@container": "@type" },
+    "T": "http://example.com/T",
+    "U": "http://example.com/U",
+    "V": "http://example.com/V"
+  })");
+
+  const auto result{sourcemeta::core::jsonld_compact(input, context, "")};
+
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "p": {
+      "T": {
+        "@id": "http://example.com/a",
+        "@type": [ "U", "V" ]
+      }
+    },
+    "@context": {
+      "@version": 1.1,
+      "p": { "@id": "http://example.com/p", "@container": "@type" },
+      "T": "http://example.com/T",
+      "U": "http://example.com/U",
+      "V": "http://example.com/V"
+    }
+  })");
+
+  EXPECT_EQ(result, expected);
+}

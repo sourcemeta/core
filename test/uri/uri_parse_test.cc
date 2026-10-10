@@ -978,3 +978,45 @@ TEST(success_with_percent_encoded_unreserved_is_decoded) {
   EXPECT_EQ(uri.path(), "/a/../b");
   EXPECT_EQ(uri.recompose(), "https://www.example.com/a/../b");
 }
+
+// RFC 3986 Section 3.2.2 has an IP literal carry its closing bracket, so every
+// way of running out of input inside one is a syntax error
+TEST(syntax_error_ip_literal_cut_short_after_the_opening_bracket) {
+  try {
+    sourcemeta::core::URI uri{"http://["};
+    FAIL();
+  } catch (const sourcemeta::core::URIParseError &error) {
+    EXPECT_EQ(error.column(), 8);
+  }
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri("http://["));
+}
+
+TEST(syntax_error_ip_future_cut_short_after_the_version_marker) {
+  try {
+    sourcemeta::core::URI uri{"http://[v"};
+    FAIL();
+  } catch (const sourcemeta::core::URIParseError &error) {
+    EXPECT_EQ(error.column(), 10);
+  }
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri("http://[v"));
+}
+
+TEST(syntax_error_ip_future_cut_short_after_the_version) {
+  try {
+    sourcemeta::core::URI uri{"http://[v7"};
+    FAIL();
+  } catch (const sourcemeta::core::URIParseError &error) {
+    EXPECT_EQ(error.column(), 11);
+  }
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri("http://[v7"));
+}
+
+TEST(syntax_error_ip_future_cut_short_after_the_point) {
+  try {
+    sourcemeta::core::URI uri{"http://[v7."};
+    FAIL();
+  } catch (const sourcemeta::core::URIParseError &error) {
+    EXPECT_EQ(error.column(), 12);
+  }
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri("http://[v7."));
+}

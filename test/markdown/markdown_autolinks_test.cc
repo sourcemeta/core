@@ -721,3 +721,48 @@ TEST(autolink_trailing_semicolon_after_a_bare_ampersand_is_kept) {
   EXPECT_EQ(result, "<p>See <a href=\"http://www.a.b/&amp;;\">"
                     "www.a.b/&amp;;</a> ok</p>\n");
 }
+
+// GFM section 6.9 writes a scheme as "any sequence of 2-32 characters
+// beginning with an ASCII letter", so a longer one names no scheme and the
+// angle brackets stand for themselves
+TEST(autolink_scheme_of_thirty_three_characters_is_not_an_autolink) {
+  const auto result{sourcemeta::core::markdown_to_html(
+      "<aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:x>")};
+  EXPECT_EQ(result, "<p>&lt;aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:x&gt;</p>\n");
+}
+
+TEST(autolink_scheme_of_thirty_one_characters_is_an_autolink) {
+  const auto result{sourcemeta::core::markdown_to_html(
+      "<aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:x>")};
+  EXPECT_EQ(result, "<p><a href=\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:x\">"
+                    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:x</a></p>\n");
+}
+
+// GFM section 6.9 has an extended url autolink need a valid domain after the
+// scheme, so a scheme standing on its own names nothing to link to
+TEST(extended_autolink_scheme_with_nothing_after_it) {
+  const auto result{sourcemeta::core::markdown_to_html("see http:// here")};
+  EXPECT_EQ(result, "<p>see http:// here</p>\n");
+}
+
+TEST(extended_autolink_scheme_followed_by_no_domain_character) {
+  const auto result{sourcemeta::core::markdown_to_html("see http://! here")};
+  EXPECT_EQ(result, "<p>see http://! here</p>\n");
+}
+
+TEST(extended_autolink_scheme_with_a_single_slash) {
+  const auto result{sourcemeta::core::markdown_to_html("see http:/x here")};
+  EXPECT_EQ(result, "<p>see http:/x here</p>\n");
+}
+
+TEST(extended_autolink_bare_scheme_is_not_an_autolink) {
+  const auto result{sourcemeta::core::markdown_to_html("http://")};
+  EXPECT_EQ(result, "<p>http://</p>\n");
+}
+
+// That section has a valid domain carry "at least one period", so a single
+// segment is no domain
+TEST(extended_autolink_domain_without_a_period) {
+  const auto result{sourcemeta::core::markdown_to_html("http://a")};
+  EXPECT_EQ(result, "<p>http://a</p>\n");
+}
