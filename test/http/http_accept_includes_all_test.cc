@@ -138,3 +138,15 @@ TEST(three_types_one_missing) {
       "text/html, application/json",
       {"text/html", "application/json", "image/png"}));
 }
+
+// Two ranges of the same specificity are separated by their weight, so the
+// higher one is what the candidate is judged against
+TEST(two_ranges_of_one_specificity_keep_the_higher_weight) {
+  EXPECT_TRUE(sourcemeta::core::http_accept_includes_all(
+      "text/html;q=0, text/html;q=0.8", {"text/html"}));
+}
+
+TEST(two_ranges_of_one_specificity_in_the_other_order) {
+  EXPECT_TRUE(sourcemeta::core::http_accept_includes_all(
+      "text/html;q=0.8, text/html;q=0", {"text/html"}));
+}

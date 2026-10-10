@@ -1137,3 +1137,21 @@ TEST(base_dialect_unresolved_where_the_chain_leaves_the_known) {
     EXPECT_EQ(error.identifier(), "https://example.com/meta-1");
   }
 }
+
+TEST(get_known_absent_vocabulary) {
+  using Known = sourcemeta::core::SchemaVocabularies::Known;
+
+  const sourcemeta::core::SchemaVocabularies vocabularies{
+      {Known::JSON_SCHEMA_2020_12_CORE, true}};
+
+  EXPECT_FALSE(
+      vocabularies.get(Known::JSON_SCHEMA_2020_12_APPLICATOR).has_value());
+}
+
+TEST(empty_with_only_a_custom_vocabulary) {
+  sourcemeta::core::SchemaVocabularies vocabularies{};
+  vocabularies.insert("https://example.com/custom-vocab", true);
+
+  EXPECT_FALSE(vocabularies.empty());
+  EXPECT_EQ(vocabularies.size(), 1);
+}

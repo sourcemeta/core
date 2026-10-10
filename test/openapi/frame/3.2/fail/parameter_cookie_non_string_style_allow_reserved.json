@@ -1,0 +1,26 @@
+{
+  "document": {
+    "openapi": "3.2.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/a": {
+        "parameters": [
+          {
+            "name": "a",
+            "in": "cookie",
+            "schema": {},
+            "style": 1,
+            "allowReserved": true
+          }
+        ]
+      }
+    }
+  },
+  "error": {
+    "message": "The Parameter Object does not admit this field as declared",
+    "location": "/paths/~1a/parameters/0/allowReserved"
+  }
+}

@@ -169,3 +169,14 @@ TEST(out_of_range_index_not_found_against_array) {
   const auto *const result{sourcemeta::core::try_get(document, pointer)};
   EXPECT_FALSE(result);
 }
+
+TEST(empty_weak_pointer_on_object) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "foo": 1
+  })JSON")};
+
+  const sourcemeta::core::WeakPointer pointer;
+  const auto *const result{sourcemeta::core::try_get(document, pointer)};
+  EXPECT_TRUE(result);
+  EXPECT_EQ(*result, document);
+}

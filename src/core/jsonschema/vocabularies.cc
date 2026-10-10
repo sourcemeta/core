@@ -247,7 +247,8 @@ auto sourcemeta::core::SchemaVocabularies::empty() const noexcept -> bool {
 
 auto sourcemeta::core::SchemaVocabularies::has_unknown() const noexcept
     -> bool {
-  return this->unknown_.has_value() && !this->unknown_->empty();
+  assert(!this->unknown_.has_value() || !this->unknown_->empty());
+  return this->unknown_.has_value();
 }
 
 auto sourcemeta::core::operator<<(std::ostream &stream,

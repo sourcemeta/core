@@ -179,3 +179,25 @@ TEST(round_trip_percent_encoded_colon) {
   EXPECT_TRUE(result.has_value());
   EXPECT_EQ(result.value(), pointer);
 }
+
+// RFC 3986 Section 2.1 wants two hex digits after the percent, and anything
+// else is no escape at all, so the percent stands for itself
+TEST(uri_with_a_percent_followed_by_non_hex_digits) {
+  sourcemeta::core::URI uri{"#/placeholder"};
+  uri.fragment("/a%zzb");
+  const auto pointer{sourcemeta::core::fragment_to_pointer(uri)};
+  EXPECT_TRUE(pointer.has_value());
+  EXPECT_EQ(pointer.value().size(), 1);
+  EXPECT_TRUE(pointer.value().at(0).is_property());
+  EXPECT_EQ(pointer.value().at(0).to_property(), "a%zzb");
+}
+
+TEST(uri_with_a_percent_whose_second_digit_is_not_hex) {
+  sourcemeta::core::URI uri{"#/placeholder"};
+  uri.fragment("/a%4zb");
+  const auto pointer{sourcemeta::core::fragment_to_pointer(uri)};
+  EXPECT_TRUE(pointer.has_value());
+  EXPECT_EQ(pointer.value().size(), 1);
+  EXPECT_TRUE(pointer.value().at(0).is_property());
+  EXPECT_EQ(pointer.value().at(0).to_property(), "a%4zb");
+}

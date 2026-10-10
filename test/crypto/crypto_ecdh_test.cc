@@ -14,6 +14,20 @@ constexpr std::string_view A_COORDINATE_X{
     "7ba511d9f36a052945e3229573db7d5ed17141897e58e9f64abb5464264b7d56"};
 constexpr std::string_view A_COORDINATE_Y{
     "d5ee7f014ea98dadab10cb47e6f7ff423a10e02540194e642354b1f56bc17c94"};
+// A key of another kind, which agreement has no use for
+constexpr std::string_view RSA_PRIVATE_KEY{
+    R"(-----BEGIN PRIVATE KEY-----
+MIIBVQIBADANBgkqhkiG9w0BAQEFAASCAT8wggE7AgEAAkEA15H1VHHC4bxshQIR
+LgtCq2knTKLKnyitHVMrOfKnPdiKc9IKh/owsVwy75++iVlkyr77s6S/+otKO0LQ
+GQI1kwIDAQABAkACIM/COKlK3zhXC9EtmjDbTltz9zt23MjwvCx2Ev4xrxfwTOpm
+jKIZ5Eu8MLDVDP1zJOSnavs2RqhWkRez1Vf5AiEA/H2SortsjBRawMZEGNgd8O11
+XYrmD8ncnyxyJddVZ70CIQDakQNhrhK6KuUa69w7W9ZbrOE9ffVv/UvnHH5COVj/
+jwIhANAP1mb9FWy1VTen6fOjG8EunFlyHTUDfic4o/Ok537tAiB/6gyTlz/IiqAo
+4E60wquyXXw488W3tAM/D9LoyQ1ICwIhAN0gYVKR3E4hd75QhmaC4MscmWxCvow5
+p9j8f3ztFN/3
+-----END PRIVATE KEY-----
+)"};
+
 constexpr std::string_view B_SCALAR{
     "a80aeab3dca90d227049a8197f3198160b1f38bcfbc08955411e1c254858ca6a"};
 constexpr std::string_view B_COORDINATE_X{
@@ -184,4 +198,32 @@ TEST(ecdh_es_round_trips_with_generated_keys) {
   EXPECT_TRUE(alice_key.has_value());
   EXPECT_TRUE(bob_key.has_value());
   EXPECT_EQ(alice_key, bob_key);
+}
+
+// RFC 6090 agreement is defined over a curve, so a key of another kind has no
+// scalar or point to take part with
+TEST(ecdh_derive_rejects_a_private_key_of_another_kind) {
+  const auto private_key{sourcemeta::core::make_private_key(RSA_PRIVATE_KEY)};
+  EXPECT_TRUE(private_key.has_value());
+  const auto public_key{sourcemeta::core::make_ec_public_key(
+      sourcemeta::core::EllipticCurve::P256,
+      sourcemeta::core::hex_to_bytes(A_COORDINATE_X).value(),
+      sourcemeta::core::hex_to_bytes(A_COORDINATE_Y).value())};
+  EXPECT_TRUE(public_key.has_value());
+  EXPECT_FALSE(
+      sourcemeta::core::ecdh_derive(private_key.value(), public_key.value())
+          .has_value());
+}
+
+TEST(ecdh_derive_rejects_a_public_key_of_another_kind) {
+  const auto private_key{
+      p256_private_key(A_SCALAR, A_COORDINATE_X, A_COORDINATE_Y)};
+  EXPECT_TRUE(private_key.has_value());
+  const auto other{sourcemeta::core::make_private_key(RSA_PRIVATE_KEY)};
+  EXPECT_TRUE(other.has_value());
+  const auto public_key{sourcemeta::core::derive_public_key(other.value())};
+  EXPECT_TRUE(public_key.has_value());
+  EXPECT_FALSE(
+      sourcemeta::core::ecdh_derive(private_key.value(), public_key.value())
+          .has_value());
 }
