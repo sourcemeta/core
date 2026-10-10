@@ -286,3 +286,31 @@ TEST(jwt_verify_hs256_rejected_when_not_allowed) {
   EXPECT_EQ(error.value(),
             sourcemeta::core::JWTVerificationError::AlgorithmNotAllowed);
 }
+
+// A token naming its key by identifier takes the direct lookup rather than
+// trying each key in turn, and a signature that verifies there carries on into
+// the claim checks
+TEST(key_identifier_with_a_valid_signature) {
+  const auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(OCT_JWK))};
+  EXPECT_TRUE(key.has_value());
+  const auto token_string{sourcemeta::core::jwt_sign(
+      sourcemeta::core::parse_json(R"({ "alg": "HS256", "kid": "k1" })"),
+      sourcemeta::core::parse_json(
+          R"({ "iss": "acme", "aud": "client", "exp": 2000000000 })"),
+      key.value())};
+  EXPECT_TRUE(token_string.has_value());
+  const auto token{sourcemeta::core::JWT::from(token_string.value())};
+  EXPECT_TRUE(token.has_value());
+  const auto keys{sourcemeta::core::JWKS::from(sourcemeta::core::parse_json(
+      R"({ "keys": [ {"kty":"oct","kid":"k1","k":"AyM1SysPpbyDfgZld3umj1qz)"
+      R"(KObwVMkoqQ-EstJQLr_T-1qS0gZH75aKtMN3Yj0iPS4hcgUuTwjAzZr1Z9CAow"} ] })"))};
+  EXPECT_TRUE(keys.has_value());
+  const std::array<sourcemeta::core::JWSAlgorithm, 1> allowed{
+      {sourcemeta::core::JWSAlgorithm::HS256}};
+  const auto error{sourcemeta::core::jwt_verify(
+      token.value(), keys.value(), allowed, "acme", "client",
+      std::chrono::system_clock::from_time_t(1500000000), {}, std::nullopt,
+      std::nullopt)};
+  EXPECT_FALSE(error.has_value());
+}

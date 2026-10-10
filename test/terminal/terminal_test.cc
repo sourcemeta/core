@@ -1,5 +1,6 @@
 #include <sourcemeta/core/terminal.h>
 #include <sourcemeta/core/test.h>
+#include <type_traits> // std::underlying_type_t
 
 #include <array>   // std::array
 #include <sstream> // std::ostringstream
@@ -375,4 +376,14 @@ TEST(style_bitwise_not_and_xor_at_runtime) {
   EXPECT_EQ(bold ^ bold, sourcemeta::core::TerminalStyle::None);
   EXPECT_EQ(bold_cyan ^ bold, sourcemeta::core::TerminalStyle::Cyan);
   EXPECT_EQ(bold ^ none, sourcemeta::core::TerminalStyle::Bold);
+}
+
+// A value carrying a bit outside the ones the enumeration defines is no style,
+// which the predicate settles before weighing the colours
+TEST(style_validity_of_an_undefined_bit_at_runtime) {
+  auto raw{
+      static_cast<std::underlying_type_t<sourcemeta::core::TerminalStyle>>(1)};
+  raw = static_cast<decltype(raw)>(raw << 7U);
+  const auto style{static_cast<sourcemeta::core::TerminalStyle>(raw)};
+  EXPECT_FALSE(sourcemeta::core::terminal_style_is_valid(style));
 }

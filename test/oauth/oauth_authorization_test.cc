@@ -1351,3 +1351,14 @@ TEST(parse_request_rejects_a_repeated_dpop_key_thumbprint) {
       "client_id=s6BhdRkqt3&dpop_jkt=one&dpop_jkt=two", storage, request,
       [](std::string_view, std::string_view) {}));
 }
+
+// RFC 6749 Appendix B encodes a parameter value, so one carrying a truncated
+// escape is not a value at all, the repeatable and extension parameters
+// included
+TEST(parse_request_rejects_a_malformed_escape_in_an_extension_parameter) {
+  std::string storage;
+  sourcemeta::core::OAuthAuthorizationRequest request;
+  EXPECT_FALSE(sourcemeta::core::oauth_parse_authorization_request(
+      "resource=https%3A%2F%2Fa.example%", storage, request,
+      [](std::string_view, std::string_view) {}));
+}
