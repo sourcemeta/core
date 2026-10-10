@@ -61,7 +61,9 @@ protected:
 };
 
 // A file that exists but cannot be opened is a different refusal from one that
-// is missing or is a directory
+// is missing or is a directory. Windows keeps the owner's read access whatever
+// the mode bits say, so there is no denial to observe there
+#if !defined(_WIN32)
 TEST_F(IOReadFileTest, unreadable_file) {
   const auto path{this->workspace_ / "locked.txt"};
   {
@@ -80,3 +82,4 @@ TEST_F(IOReadFileTest, unreadable_file) {
     FAIL();
   }
 }
+#endif

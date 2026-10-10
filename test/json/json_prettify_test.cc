@@ -870,13 +870,60 @@ TEST(array_strings_with_property_of_14_characters_and_a_control_character) {
   EXPECT_EQ(stream.str(), expected);
 }
 
-// A property name is measured as JSON to work out the column, which counts the
-// escape a backslash needs
-TEST(object_property_name_holding_a_backslash) {
+// A property name is measured as JSON to work out the column, so the escape a
+// backslash needs counts towards the width that decides the wrapping. These
+// two sit either side of that decision, one column apart
+TEST(array_strings_with_property_of_14_characters_and_a_backslash) {
   auto document{sourcemeta::core::JSON::make_object()};
-  document.assign(sourcemeta::core::JSON::String{"a\\b"},
-                  sourcemeta::core::JSON{1});
+  const auto name{std::string(14, 'a') + "\\"};
+  document.assign(name, sourcemeta::core::JSON::make_array());
+  document.at(name).push_back(sourcemeta::core::JSON{"bbbbbbbbbb"});
+  document.at(name).push_back(sourcemeta::core::JSON{"cccccccccc"});
+  document.at(name).push_back(sourcemeta::core::JSON{"dddddddddd"});
+  document.at(name).push_back(sourcemeta::core::JSON{"eeeeeeeeee"});
+
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);
-  EXPECT_EQ(stream.str(), "{\n  \"a\\\\b\": 1\n}");
+
+  const auto *const expected = R"JSON({
+  "aaaaaaaaaaaaaa\\": [ "bbbbbbbbbb", "cccccccccc", "dddddddddd", "eeeeeeeeee" ]
+})JSON";
+
+  EXPECT_EQ(stream.str(), expected);
+}
+
+TEST(array_strings_with_property_of_15_characters_and_a_backslash) {
+  auto document{sourcemeta::core::JSON::make_object()};
+  const auto name{std::string(15, 'a') + "\\"};
+  document.assign(name, sourcemeta::core::JSON::make_array());
+  document.at(name).push_back(sourcemeta::core::JSON{"bbbbbbbbbb"});
+  document.at(name).push_back(sourcemeta::core::JSON{"cccccccccc"});
+  document.at(name).push_back(sourcemeta::core::JSON{"dddddddddd"});
+  document.at(name).push_back(sourcemeta::core::JSON{"eeeeeeeeee"});
+
+  std::ostringstream stream;
+  sourcemeta::core::prettify(document, stream);
+
+  const auto *const expected = R"JSON({
+  "aaaaaaaaaaaaaaa\\": [
+    "bbbbbbbbbb",
+    "cccccccccc",
+    "dddddddddd",
+    "eeeeeeeeee"
+  ]
+})JSON";
+
+  EXPECT_EQ(stream.str(), expected);
+}
+
+// The single line attempt is abandoned before it starts when the property name
+// alone fills the width, which is the one way an empty array reaches the
+// multi line path
+TEST(array_empty_under_a_property_name_that_fills_the_width) {
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign(sourcemeta::core::JSON::String(90, 'k'),
+                  sourcemeta::core::JSON{sourcemeta::core::JSON::Array{}});
+  std::ostringstream stream;
+  sourcemeta::core::prettify(document, stream);
+  EXPECT_EQ(stream.str(), "{\n  \"" + std::string(90, 'k') + "\": []\n}");
 }

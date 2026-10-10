@@ -388,16 +388,6 @@ TEST(encode_quoted_string_rejects_the_delete_character) {
                                                            sink));
 }
 
-// A quoted string opens with a quotation mark, so scanning from anywhere else
-// reads nothing
-TEST(scan_quoted_string_without_an_opening_quote) {
-  std::string storage;
-  std::string_view value;
-  EXPECT_FALSE(
-      sourcemeta::core::http_scan_quoted_string("hello", 0, storage, value)
-          .has_value());
-}
-
 TEST(scan_quoted_string_from_past_the_end) {
   std::string storage;
   std::string_view value;

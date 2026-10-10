@@ -127,5 +127,5 @@ TEST(relative_dot_dot_followed_by_a_rooted_remainder) {
 }
 
 TEST(relative_dot_dot_segment_with_nothing_after_it) {
-  EXPECT_EQ(sourcemeta::core::URI::normalize_path("/../"), "/");
+  EXPECT_EQ(sourcemeta::core::URI::normalize_path("../"), "../");
 }

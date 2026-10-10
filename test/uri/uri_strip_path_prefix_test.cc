@@ -557,7 +557,6 @@ TEST(iri_rejects_a_private_use_code_point) {
 // Where the prefix ends without a slash and the path continues with an
 // ordinary character, the prefix did not land on a segment boundary
 TEST(prefix_without_a_boundary_followed_by_an_ordinary_character) {
-  const auto result{sourcemeta::core::URI::strip_path_prefix("/ab", "/ab")};
-  EXPECT_TRUE(result.has_value());
-  EXPECT_EQ(result.value(), "");
+  const auto result{sourcemeta::core::URI::strip_path_prefix("/abc", "/ab")};
+  EXPECT_FALSE(result.has_value());
 }

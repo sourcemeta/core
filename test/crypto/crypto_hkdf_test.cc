@@ -301,3 +301,10 @@ TEST(hkdf_sha384_expand_zero_output_length) {
   EXPECT_TRUE(okm.has_value());
   EXPECT_TRUE(okm.value().empty());
 }
+
+TEST(hkdf_sha512_expand_zero_output_length) {
+  const auto okm{sourcemeta::core::hkdf_sha512_expand(
+      bytes(CASE_1_PRK) + bytes(CASE_1_PRK), bytes(CASE_1_INFO), 0)};
+  EXPECT_TRUE(okm.has_value());
+  EXPECT_TRUE(okm.value().empty());
+}

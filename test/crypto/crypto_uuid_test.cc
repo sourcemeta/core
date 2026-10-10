@@ -339,7 +339,7 @@ TEST(invalid_separator_at_the_second_position) {
 
 TEST(invalid_separator_at_the_third_position) {
   EXPECT_FALSE(
-      sourcemeta::core::is_uuid_like("2eb8aa08-aa98-11eax b4aa-73b441d1638"));
+      sourcemeta::core::is_uuid_like("2eb8aa08-aa98-11eaxb4aa-73b441d16380"));
 }
 
 TEST(invalid_separator_at_the_fourth_position) {
