@@ -3194,3 +3194,28 @@ TEST(a_reverse_mapping_with_the_form_of_a_keyword_retires_the_term) {
 
   EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
 }
+
+// JSON-LD 1.1 API Section 5.3.3 step 2 expands a value typed as vocab through
+// IRI expansion, which yields nothing for a value that only looks like a
+// keyword
+TEST(a_vocab_typed_value_with_the_form_of_a_keyword) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "t": { "@id": "http://x/t", "@type": "@vocab" } },
+    "t": "@foo"
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    { "http://x/t": [ { "@id": null } ] }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+// A scalar standing alone is no node object, so expansion yields nothing
+TEST(a_document_that_is_only_a_scalar) {
+  const auto input = sourcemeta::core::parse_json(R"("hello")");
+
+  const auto expected = sourcemeta::core::parse_json(R"([ ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}

@@ -260,3 +260,15 @@ TEST(aes_gcm_decrypt_rejects_a_wrong_size_iv) {
                    result.value().ciphertext(), result.value().tag())
                    .has_value());
 }
+
+// The counter block advances once per sixteen byte block, so a payload past
+// two hundred and fifty six blocks carries its least significant byte over
+// into the one beside it
+TEST(aes_256_gcm_round_trips_past_a_counter_byte_carry) {
+  const std::string plaintext(4160, 'x');
+  const auto sealed{sourcemeta::core::aes_256_gcm_seal(KEY, plaintext)};
+  EXPECT_TRUE(sealed.has_value());
+  const auto opened{sourcemeta::core::aes_256_gcm_unseal(KEY, sealed.value())};
+  EXPECT_TRUE(opened.has_value());
+  EXPECT_EQ(opened.value(), plaintext);
+}
