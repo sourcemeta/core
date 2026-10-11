@@ -3065,6 +3065,74 @@ TEST(input_required_result_with_a_url_elicitation) {
             sourcemeta::core::JSON{"input_required"});
 }
 
+// The user navigates to this address out of band, so a reference that only
+// resolves against some base is not one they can be sent to
+// https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation#url-mode-elicitation-requests
+TEST(input_required_result_rejects_a_relative_elicitation_url) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.elicitation = true;
+  capabilities.elicitation_url = true;
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tools/call", sourcemeta::core::JSON{0},
+                         sourcemeta::core::parse_json(R"JSON({
+    "r": {
+      "method": "elicitation/create",
+      "params": {
+        "mode": "url",
+        "message": "visit",
+        "url": "/ui/set_api_key"
+      }
+    }
+  })JSON"),
+                         std::nullopt, capabilities),
+                     "Invalid or unsupported nested input requests");
+}
+
+TEST(input_required_result_rejects_a_malformed_elicitation_url) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.elicitation = true;
+  capabilities.elicitation_url = true;
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tools/call", sourcemeta::core::JSON{0},
+                         sourcemeta::core::parse_json(R"JSON({
+    "r": {
+      "method": "elicitation/create",
+      "params": {
+        "mode": "url",
+        "message": "visit",
+        "url": "http://[not a host]/x"
+      }
+    }
+  })JSON"),
+                         std::nullopt, capabilities),
+                     "Invalid or unsupported nested input requests");
+}
+
+TEST(input_required_result_accepts_a_non_http_elicitation_url) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.elicitation = true;
+  capabilities.elicitation_url = true;
+  EXPECT_EQ(sourcemeta::core::mcp_make_input_required_result(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                "tools/call", sourcemeta::core::JSON{0},
+                sourcemeta::core::parse_json(R"JSON({
+    "r": {
+      "method": "elicitation/create",
+      "params": {
+        "mode": "url",
+        "message": "visit",
+        "url": "urn:example:resource"
+      }
+    }
+  })JSON"),
+                std::nullopt, capabilities)
+                .at("result")
+                .at("resultType"),
+            sourcemeta::core::JSON{"input_required"});
+}
+
 TEST(input_required_result_with_a_form_elicitation) {
   sourcemeta::core::MCPClientCapabilities capabilities;
   capabilities.roots = true;

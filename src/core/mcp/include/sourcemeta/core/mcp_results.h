@@ -179,8 +179,13 @@ auto mcp_serialize_resource_annotations(
 /// @ingroup mcp
 /// Build a base64 image or audio content block for an explicit revision.
 /// Core checks the block shape, not the media bytes or MIME semantics.
-/// Returns a bare content block for the caller to place in a result. For
-/// example:
+/// Returns a bare content block for the caller to place in a result.
+///
+/// The encoding of the data is a schema format annotation rather than a stated
+/// requirement, so it is not checked here, and a caller that cares about it
+/// decodes the data itself. Contrast the address of a URL mode elicitation,
+/// which the specification states as a requirement in prose and which is
+/// therefore checked. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/mcp.h>

@@ -7,6 +7,7 @@
 
 #include <sourcemeta/core/http.h>
 #include <sourcemeta/core/text.h>
+#include <sourcemeta/core/uri.h>
 
 #include <algorithm>        // std::all_of
 #include <cmath>            // std::isfinite
@@ -166,6 +167,14 @@ inline auto icons(const JSON &value) -> bool {
 // module never inspects. That is intended, and a test pins it.
 // https://modelcontextprotocol.io/specification/2026-07-28/schema#tool
 // https://modelcontextprotocol.io/specification/2026-07-28/schema#elicitrequestformparams
+inline auto absolute_url(const JSON::StringView value) -> bool {
+  try {
+    return sourcemeta::core::URI{value}.is_absolute();
+  } catch (const sourcemeta::core::URIParseError &) {
+    return false;
+  }
+}
+
 inline auto object_schema(const JSON &value) -> bool {
   const auto *type{field(value, "type", sourcemeta::core::MCP_HASH_TYPE)};
   return (type != nullptr) && type->is_string() &&
@@ -982,9 +991,17 @@ inline auto valid_input_requests(const JSON &value,
         return false;
       }
       if ((mode != nullptr) && mode->to_string() == "url") {
-        if (!capabilities.elicitation_url ||
-            !validation::string_field(*params, "url",
-                                      sourcemeta::core::MCP_HASH_URL, true)) {
+        const auto *url{
+            validation::field(*params, "url", sourcemeta::core::MCP_HASH_URL)};
+        if (!capabilities.elicitation_url || (url == nullptr) ||
+            !url->is_string()) {
+          return false;
+        }
+        // The user is sent out of band to this address, which the
+        // specification requires to be a URL rather than a reference to
+        // resolve against something
+        // https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation#url-mode-elicitation-requests
+        if (!validation::absolute_url(url->to_string())) {
           return false;
         }
       } else {
