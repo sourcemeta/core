@@ -177,7 +177,7 @@ auto mcp_validate_request_parameters(const JSON &parameters)
 /// not a readable request becomes an invalid-request error, and every
 /// remaining failure becomes an invalid-params error naming the offending
 /// field. Passing the status for valid metadata throws
-/// `std::invalid_argument`. For example:
+/// @ref MCPError. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/mcp.h>
@@ -298,7 +298,7 @@ auto mcp_validate_request_headers(
 /// encoding when the value cannot be represented literally. A value passes
 /// through only when every byte is printable ASCII, it neither begins nor ends
 /// with a space, and it would not be mistaken for the sentinel form.
-/// Everything else is encoded. Throws `std::invalid_argument` for input that
+/// Everything else is encoded. Throws @ref MCPError for input that
 /// is not UTF-8. For example:
 ///
 /// ```cpp
@@ -384,7 +384,7 @@ struct MCPHeaderParameter {
 
 /// @ingroup mcp
 /// Produce mirrored parameter headers. Missing/null values are omitted.
-/// Throws `std::invalid_argument` on a type mismatch or an unsafe integer. A
+/// Throws @ref MCPError on a type mismatch or an unsafe integer. A
 /// value that cannot be represented literally is sentinel encoded. For
 /// example:
 ///
