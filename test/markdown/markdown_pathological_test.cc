@@ -348,3 +348,9 @@ TEST(an_input_of_many_megabytes_does_not_disturb_the_next_conversion) {
   const auto third{sourcemeta::core::markdown_to_html(large)};
   EXPECT_EQ(third, first);
 }
+
+TEST(unclosed_inline_declarations) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("x" + repeat("<!A", 5000))};
+  EXPECT_EQ(result, "<p>x" + repeat("&lt;!A", 5000) + "</p>\n");
+}

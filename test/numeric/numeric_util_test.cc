@@ -711,3 +711,21 @@ TEST(is_representable_as_double_from_a_float) {
 TEST(is_representable_as_float_from_a_float) {
   EXPECT_TRUE(sourcemeta::core::is_representable_as<float>(3.14F));
 }
+
+// Dividing by one leaves the dividend as it stands, which is worth settling
+// before the division runs rather than through it
+TEST(divide_floor_decimal_by_one) {
+  const sourcemeta::core::Decimal dividend{
+      std::string{"123456789012345678901234567890"}};
+  const sourcemeta::core::Decimal divisor{1};
+  EXPECT_EQ(sourcemeta::core::divide_floor(dividend, divisor).to_string(),
+            "123456789012345678901234567890");
+}
+
+TEST(divide_ceil_decimal_by_one) {
+  const sourcemeta::core::Decimal dividend{
+      std::string{"123456789012345678901234567890"}};
+  const sourcemeta::core::Decimal divisor{1};
+  EXPECT_EQ(sourcemeta::core::divide_ceil(dividend, divisor).to_string(),
+            "123456789012345678901234567890");
+}

@@ -781,6 +781,28 @@ auto propagate_nan(const sourcemeta::core::Decimal &left,
   return source.is_signed() ? -result : result;
 }
 
+// The ordering IEEE 754 compare_total lays over the classes of a value, where
+// a sign turns the class it belongs to into its negative
+auto total_order_class(const sourcemeta::core::Decimal &value) -> int {
+  if (value.is_qnan()) {
+    return value.is_signed() ? -6 : 6;
+  }
+
+  if (value.is_snan()) {
+    return value.is_signed() ? -5 : 5;
+  }
+
+  if (value.is_infinite()) {
+    return value.is_signed() ? -4 : 4;
+  }
+
+  if (value.is_zero()) {
+    return value.is_signed() ? -2 : 2;
+  }
+
+  return value.is_signed() ? -3 : 3;
+}
+
 } // namespace
 
 namespace sourcemeta::core {
@@ -1672,28 +1694,9 @@ auto Decimal::scale_by(const Decimal &scale) const -> Decimal {
 }
 
 auto Decimal::compare_total(const Decimal &other) const -> Decimal {
-  auto classify = [](const Decimal &value) -> int {
-    if (value.is_qnan()) {
-      return value.is_signed() ? -6 : 6;
-    }
 
-    if (value.is_snan()) {
-      return value.is_signed() ? -5 : 5;
-    }
-
-    if (value.is_infinite()) {
-      return value.is_signed() ? -4 : 4;
-    }
-
-    if (value.is_zero()) {
-      return value.is_signed() ? -2 : 2;
-    }
-
-    return value.is_signed() ? -3 : 3;
-  };
-
-  auto left_class = classify(*this);
-  auto right_class = classify(other);
+  auto left_class = total_order_class(*this);
+  auto right_class = total_order_class(other);
 
   if (left_class != right_class) {
     if (left_class < right_class) {

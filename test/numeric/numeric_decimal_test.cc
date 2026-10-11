@@ -6667,3 +6667,67 @@ TEST(infinity_spelled_out_in_mixed_case) {
   const sourcemeta::core::Decimal value{"InFiNiTy"};
   EXPECT_TRUE(value.is_infinite());
 }
+
+// A coefficient carried in the wide storage still reads back as a single zero
+// digit once the two sides of a subtraction cancel each other out
+TEST(subtracting_equal_wide_coefficients_reads_back_as_zero) {
+  const sourcemeta::core::Decimal left{
+      std::string{"123456789012345678901234567890"}};
+  const sourcemeta::core::Decimal right{
+      std::string{"123456789012345678901234567890"}};
+  const auto result{left - right};
+  EXPECT_TRUE(result.is_zero());
+  EXPECT_EQ(result.to_string(), "0");
+}
+
+// Summing two coefficients whose top words carry over needs one more word than
+// either of them occupies on its own
+TEST(adding_wide_coefficients_that_carry_into_a_new_word) {
+  const sourcemeta::core::Decimal left{
+      std::string{"999999999999999999999999999999999999"}};
+  const sourcemeta::core::Decimal right{
+      std::string{"999999999999999999999999999999999999"}};
+  EXPECT_EQ((left + right).to_string(),
+            "1999999999999999999999999999999999998");
+}
+
+// IEEE 754 roundTiesToEven keeps the tie only where nothing follows the five,
+// so a digit after it settles the direction on its own
+TEST(to_integral_rounds_up_past_a_tie_that_carries_more_digits) {
+  const sourcemeta::core::Decimal value{
+      std::string{"12345678901234567890123456789.50001"}};
+  EXPECT_EQ(value.to_integral().to_string(), "12345678901234567890123456790");
+}
+
+TEST(to_integral_keeps_a_tie_on_the_even_side) {
+  const sourcemeta::core::Decimal value{
+      std::string{"12345678901234567890123456788.5"}};
+  EXPECT_EQ(value.to_integral().to_string(), "12345678901234567890123456788");
+}
+
+// A coefficient of more digits than the inline storage holds moves to the heap,
+// and what it holds reads back the same either way
+TEST(coefficient_that_outgrows_the_inline_storage) {
+  const std::string digits(100, '9');
+  const sourcemeta::core::Decimal value{digits};
+  EXPECT_EQ(value.to_string(), digits);
+  const auto doubled{value + value};
+  EXPECT_EQ(doubled.to_string(), "1" + std::string(99, '9') + "8");
+}
+
+// Lining two coefficients up means scaling one of them, and an exponent that
+// runs more than eighteen digits ahead of the other cannot be scaled into the
+// same storage, so the one carrying it is the larger in magnitude outright
+TEST(compare_total_across_an_exponent_gap_too_wide_to_scale) {
+  const sourcemeta::core::Decimal left{std::string{"1e30"}};
+  const sourcemeta::core::Decimal right{std::string{"1"}};
+  EXPECT_EQ(left.compare_total(right).to_string(), "1");
+  EXPECT_EQ(right.compare_total(left).to_string(), "-1");
+}
+
+TEST(less_than_across_an_exponent_gap_too_wide_to_scale) {
+  const sourcemeta::core::Decimal left{std::string{"1e30"}};
+  const sourcemeta::core::Decimal right{std::string{"1"}};
+  EXPECT_FALSE(left < right);
+  EXPECT_TRUE(right < left);
+}

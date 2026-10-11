@@ -6102,3 +6102,29 @@ TEST(tag_on_a_document_root_holding_a_mapping) {
 TEST(flow_sequence_holding_a_pair_without_a_value) {
   EXPECT_EQ(roundtrip("[a: ]\n"), "[{a: }]\n");
 }
+
+// YAML 1.2.2 production 205 writes a document end marker on its own, so a
+// stream may carry several of them before it ends, and what they end is still
+// the one document the round-trip describes
+TEST(several_document_end_markers) {
+  sourcemeta::core::YAMLRoundTrip roundtrip;
+  const auto result{
+      sourcemeta::core::parse_yaml(std::string{"a: 1\n...\n...\n"}, roundtrip)};
+  EXPECT_EQ(result, sourcemeta::core::parse_json(R"JSON({ "a": 1 })JSON"));
+}
+
+// YAML 1.2.2 Section 8.1.1.1 reads the content indentation of a block scalar
+// that carries no indicator off its first non-empty line, so content opening
+// with empty lines is what makes that reading look past them
+TEST(block_scalar_opening_with_an_empty_line) {
+  EXPECT_EQ(roundtrip("a: |\n\n  one\n"), "a: |\n\n  one\n");
+}
+
+// Section 8.1.1.2 clips the trailing line breaks of content that holds no
+// non-empty line down to nothing, so the value is empty and what is written
+// back carries the block style without the lines that produced it
+TEST(block_scalar_of_only_empty_lines) {
+  EXPECT_EQ(roundtrip("a: |\n\n\n"), "a: |\n");
+  EXPECT_EQ(roundtrip_value("a: |\n\n\n"),
+            sourcemeta::core::parse_json(R"JSON({ "a": "" })JSON"));
+}

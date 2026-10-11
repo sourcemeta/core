@@ -774,3 +774,12 @@ TEST(a_reference_label_that_normalizes_to_nothing) {
   const auto result{sourcemeta::core::markdown_to_html("[a]: /url\n\n[ ]")};
   EXPECT_EQ(result, "<p>[ ]</p>\n");
 }
+
+// Matching a link label folds its case, which reads it as UTF-8, and a byte
+// that opens no sequence stands for the replacement character so that two
+// labels carrying it still match each other
+TEST(label_with_a_byte_that_opens_no_utf8_sequence) {
+  const auto result{sourcemeta::core::markdown_to_html(
+      "[\xFF]: http://example.com\n\n[\xFF]\n")};
+  EXPECT_EQ(result, "<p><a href=\"http://example.com\">\xEF\xBF\xBD</a></p>\n");
+}

@@ -1628,3 +1628,11 @@ TEST(accepts_a_doubled_ordinary_character_inside_a_set_operand) {
 TEST(rejects_a_string_operand_whose_brace_never_closes) {
   EXPECT_FALSE(sourcemeta::core::is_regex_ecma("[[a]--\\q{b]]"));
 }
+
+// ECMA-262 ClassStringDisjunction closes with a brace, so one that runs to
+// the end of the class or of the pattern closes nothing
+TEST(unterminated_string_disjunction) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("[\\q{abc]"));
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("[\\q{abc"));
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("[\\q{ab|cd]"));
+}

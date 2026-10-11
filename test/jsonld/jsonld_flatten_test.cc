@@ -178,3 +178,75 @@ TEST(flatten_and_compact_against_context) {
 
   EXPECT_EQ(sourcemeta::core::jsonld_flatten(input, context), expected);
 }
+
+// JSON-LD 1.1 API Section 5.2.2 relabels every blank node identifier the
+// input carries, and `@type` is one of the places an input may carry one
+TEST(blank_node_identifiers_among_several_types_are_relabelled) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "http://example.com/a",
+      "@type": [ "_:t0", "http://example.com/T", "_:t1" ]
+    }
+  ])");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "http://example.com/a",
+      "@type": [ "_:b0", "http://example.com/T", "_:b1" ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_flatten(input), expected);
+}
+
+// Section 5.2.2 keeps the label it issued for a blank node identifier, so the
+// same identifier arriving again names the same node rather than a new one
+TEST(blank_node_identifier_used_twice_names_one_node) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "_:x",
+      "http://example.com/p": [ { "@value": "one" } ]
+    },
+    {
+      "@id": "http://example.com/a",
+      "http://example.com/q": [ { "@id": "_:x" } ]
+    }
+  ])");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "_:b0",
+      "http://example.com/p": [ { "@value": "one" } ]
+    },
+    {
+      "@id": "http://example.com/a",
+      "http://example.com/q": [ { "@id": "_:b0" } ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_flatten(input), expected);
+}
+
+// Section 5.2.2 keeps a list object whole and hangs it off the property of the
+// subject that carries it, creating that property where the subject has none
+TEST(list_object_hangs_off_the_property_of_its_subject) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "http://example.com/a",
+      "http://example.com/p": [
+        { "@list": [ { "@value": "one" }, { "@value": "two" } ] }
+      ]
+    }
+  ])");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "http://example.com/a",
+      "http://example.com/p": [
+        { "@list": [ { "@value": "one" }, { "@value": "two" } ] }
+      ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_flatten(input), expected);
+}

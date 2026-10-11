@@ -3276,3 +3276,22 @@ TEST(a_term_closing_with_a_colon_and_no_identifier) {
   EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
                              "Invalid IRI mapping", "/@context/foo:");
 }
+
+// JSON-LD 1.0 has no nesting of lists, so a `@list` container holding a list
+// object is turned away where 1.1 would keep it
+TEST(list_of_lists_under_a_list_container_in_1_0) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "p": { "@id": "http://example.com/p", "@container": "@list" }
+    },
+    "p": [ { "@list": [ { "@value": "x" } ] } ]
+  })");
+
+  try {
+    [[maybe_unused]] const auto result{sourcemeta::core::jsonld_expand(
+        input, "", {}, sourcemeta::core::JSONLDVersion::V1_0)};
+    FAIL();
+  } catch (const sourcemeta::core::JSONLDError &error) {
+    EXPECT_STREQ(error.what(), "List of lists");
+  }
+}

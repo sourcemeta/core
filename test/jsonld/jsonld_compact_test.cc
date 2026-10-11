@@ -2,6 +2,25 @@
 #include <sourcemeta/core/jsonld.h>
 #include <sourcemeta/core/test.h>
 
+#include <cstddef> // std::size_t
+#include <string>  // std::string
+
+// Expanded form nests a node object inside the array of a property, so depth
+// is reached by repeating that shape rather than by bare arrays
+static auto nested_expanded_document(const std::size_t depth) -> std::string {
+  std::string result;
+  for (std::size_t level = 0; level < depth; level++) {
+    result += R"([{"http://example.com/p":)";
+  }
+
+  result += "[]";
+  for (std::size_t level = 0; level < depth; level++) {
+    result += "}]";
+  }
+
+  return result;
+}
+
 TEST(compact_to_relative_true_relativises_against_base) {
   const auto input = sourcemeta::core::parse_json(R"([
     {
@@ -1275,4 +1294,18 @@ TEST(list_compacted_under_1_0) {
   })");
 
   EXPECT_EQ(result, expected);
+}
+
+// Compaction walks the same nesting that expansion does, so it is held to the
+// same bound on how deep that nesting may run
+TEST(deeply_nested_input_is_rejected) {
+  const auto input{sourcemeta::core::parse_json(nested_expanded_document(150))};
+  const auto context{sourcemeta::core::parse_json("{}")};
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::jsonld_compact(input, context)};
+    FAIL();
+  } catch (const sourcemeta::core::JSONLDError &error) {
+    EXPECT_EQ(std::string{error.what()}, "Maximum nesting depth exceeded");
+  }
 }

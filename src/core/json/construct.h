@@ -22,6 +22,18 @@ namespace sourcemeta::core {
 
 namespace internal {
 
+// The four hexadecimal digits of a `\u` escape, read from the position given
+// and leaving it on whatever follows them
+inline auto parse_hex4(const char *&position) -> unsigned long {
+  unsigned long value{0};
+  for (std::size_t index = 0; index < 4; index++) {
+    const auto digit{hex_digit_value(*position++)};
+    value = (value << 4) | static_cast<unsigned long>(digit < 0 ? 0 : digit);
+  }
+
+  return value;
+}
+
 inline auto unescape_string(const char *data, const std::uint32_t length,
                             const bool has_escape) -> JSON::String {
   JSON::String result;
@@ -79,16 +91,6 @@ inline auto unescape_string(const char *data, const std::uint32_t length,
         result.push_back('\t');
         break;
       case 'u': {
-        auto parse_hex4 = [](const char *&position) -> unsigned long {
-          unsigned long value{0};
-          for (std::size_t index = 0; index < 4; index++) {
-            const auto digit{hex_digit_value(*position++)};
-            value = (value << 4) |
-                    static_cast<unsigned long>(digit < 0 ? 0 : digit);
-          }
-          return value;
-        };
-
         auto code_point{parse_hex4(cursor)};
         if (code_point >= 0xD800 && code_point <= 0xDBFF) {
           assert(cursor + 6 <= string_end);

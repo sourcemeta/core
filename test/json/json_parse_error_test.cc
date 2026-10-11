@@ -832,3 +832,15 @@ TEST(string_surrogate_pair_with_a_low_half_past_the_range) {
   std::istringstream input{R"("\ud83d\uffff")"};
   EXPECT_PARSE_ERROR(input, 1, 13);
 }
+
+// A number the tape reads as well formed may still name no decimal value, and
+// an exponent beyond what one can carry is where the two part ways
+TEST(number_with_an_exponent_beyond_the_decimal_range) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_json("1.5e999999999999999999")};
+    FAIL();
+  } catch (const sourcemeta::core::JSONParseError &error) {
+    EXPECT_EQ(error.line(), 1);
+  }
+}
