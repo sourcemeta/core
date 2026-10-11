@@ -1308,10 +1308,12 @@ auto mcp_validate_continuation(MCPProtocolVersion version,
                                const JSON &input_requests) -> bool;
 
 /// @ingroup mcp
-/// Check continuation fields and matching state. A value requires an exact
-/// echo, where an empty one requires a present but empty token, and no value
-/// requires the token to be absent, which is how a server that issued no state
-/// enforces that the retry carries none. For example:
+/// Check continuation fields and the state token, where the expected state
+/// selects one of three outcomes. Passing `std::nullopt` requires the token to
+/// be absent, which is how a server that issued no state enforces that the
+/// retry carries none. Passing an empty string requires a token that is
+/// present and empty. Passing any other string requires the token to equal it
+/// exactly. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/mcp.h>
@@ -1331,6 +1333,9 @@ auto mcp_validate_continuation(MCPProtocolVersion version,
 /// assert(!sourcemeta::core::mcp_validate_continuation(
 ///     sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior,
 ///     "other"));
+/// assert(!sourcemeta::core::mcp_validate_continuation(
+///     sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior,
+///     std::nullopt));
 /// ```
 ///
 /// @see
