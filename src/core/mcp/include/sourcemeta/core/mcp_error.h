@@ -10,9 +10,9 @@
 #include <sourcemeta/core/jsonrpc.h>
 #include <sourcemeta/core/mcp_protocol.h>
 
-#include <cstdint>
-#include <optional>
-#include <span>
+#include <cstdint>  // std::int64_t, std::uint8_t
+#include <optional> // std::optional, std::nullopt
+#include <span>     // std::span
 
 namespace sourcemeta::core {
 

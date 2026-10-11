@@ -3,7 +3,7 @@
 
 #include <sourcemeta/core/json.h>
 
-#include <string_view>
+#include <string_view> // std::string_view, std::string_view_literals
 
 namespace sourcemeta::core {
 

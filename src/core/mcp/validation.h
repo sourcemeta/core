@@ -8,14 +8,12 @@
 #include <sourcemeta/core/http.h>
 #include <sourcemeta/core/text.h>
 
-#include <algorithm>
-#include <array>
-#include <cmath>
-#include <initializer_list>
-#include <set>
-#include <stdexcept>
-#include <string_view>
-#include <utility>
+#include <algorithm>        // std::all_of
+#include <cmath>            // std::isfinite
+#include <initializer_list> // std::initializer_list
+#include <set>              // std::set
+#include <stdexcept>        // std::invalid_argument
+#include <utility>          // std::move, std::pair
 
 namespace sourcemeta::core::internal {
 

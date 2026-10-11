@@ -9,13 +9,11 @@
 #include <sourcemeta/core/text.h>
 #include <sourcemeta/core/unicode.h>
 
-#include <algorithm>
-#include <array>
-#include <optional>
-#include <span>
-#include <string>
-#include <string_view>
-#include <utility>
+#include <algorithm> // std::all_of, std::find
+#include <optional>  // std::optional, std::nullopt
+#include <span>      // std::span
+#include <string>    // std::string
+#include <utility>   // std::move, std::pair, std::unreachable
 
 namespace {
 

@@ -10,13 +10,12 @@
 #include <sourcemeta/core/mcp_error.h>
 #include <sourcemeta/core/mcp_protocol.h>
 
-#include <cstdint>
-#include <optional>
-#include <span>
-#include <string>
-#include <string_view>
-#include <utility>
-#include <vector>
+#include <cstdint>  // std::uint8_t
+#include <optional> // std::optional
+#include <span>     // std::span
+#include <string>   // std::string
+#include <utility>  // std::pair
+#include <vector>   // std::vector
 
 namespace sourcemeta::core {
 

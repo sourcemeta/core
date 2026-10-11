@@ -5,7 +5,7 @@
 
 #include <sourcemeta/core/json.h>
 
-#include <utility>
+#include <utility> // std::move, std::pair
 
 namespace {
 template <typename Capabilities>
@@ -50,7 +50,8 @@ void emit_capability(
     settings.erase("listChanged", sourcemeta::core::MCP_HASH_LIST_CHANGED);
   }
   if (changed) {
-    settings.assign("listChanged", JSON{true});
+    settings.assign_assume_new("listChanged", JSON{true},
+                               sourcemeta::core::MCP_HASH_LIST_CHANGED);
   }
   if (name == "resources") {
     if (subscribe ||
@@ -60,10 +61,11 @@ void emit_capability(
       settings.erase("subscribe", sourcemeta::core::MCP_HASH_SUBSCRIBE);
     }
     if (subscribe) {
-      settings.assign("subscribe", JSON{true});
+      settings.assign_assume_new("subscribe", JSON{true},
+                                 sourcemeta::core::MCP_HASH_SUBSCRIBE);
     }
   }
-  result.assign(name, std::move(settings));
+  result.assign_assume_new(JSON::String{name}, std::move(settings), hash);
 }
 } // namespace
 
@@ -182,9 +184,12 @@ auto mcp_serialize_client_capabilities(
     }
     if (capabilities.roots_list_changed &&
         version != MCPProtocolVersion::V_2026_07_28) {
+      // The snapshot may already carry this setting, which the erase above
+      // deliberately left in place
       roots_object.assign("listChanged", sourcemeta::core::JSON{true});
     }
-    result.assign("roots", std::move(roots_object));
+    result.assign_assume_new("roots", std::move(roots_object),
+                             sourcemeta::core::MCP_HASH_ROOTS);
   }
 
   if (capabilities.sampling || capabilities.sampling_context ||
@@ -207,17 +212,20 @@ auto mcp_serialize_client_capabilities(
       if (capabilities.sampling_context) {
         if (!sampling_object.defines("context",
                                      sourcemeta::core::MCP_HASH_CONTEXT)) {
-          sampling_object.assign("context", JSON::make_object());
+          sampling_object.assign_assume_new("context", JSON::make_object(),
+                                            sourcemeta::core::MCP_HASH_CONTEXT);
         }
       }
       if (capabilities.sampling_tools) {
         if (!sampling_object.defines("tools",
                                      sourcemeta::core::MCP_HASH_TOOLS)) {
-          sampling_object.assign("tools", JSON::make_object());
+          sampling_object.assign_assume_new("tools", JSON::make_object(),
+                                            sourcemeta::core::MCP_HASH_TOOLS);
         }
       }
     }
-    result.assign("sampling", std::move(sampling_object));
+    result.assign_assume_new("sampling", std::move(sampling_object),
+                             sourcemeta::core::MCP_HASH_SAMPLING);
   }
 
   if (mcp_protocol_version_at_least(version,
@@ -241,30 +249,36 @@ auto mcp_serialize_client_capabilities(
       if (capabilities.elicitation_form) {
         if (!elicitation_object.defines("form",
                                         sourcemeta::core::MCP_HASH_FORM)) {
-          elicitation_object.assign("form", JSON::make_object());
+          elicitation_object.assign_assume_new("form", JSON::make_object(),
+                                               sourcemeta::core::MCP_HASH_FORM);
         }
       }
       if (capabilities.elicitation_url) {
         if (!elicitation_object.defines("url",
                                         sourcemeta::core::MCP_HASH_URL)) {
-          elicitation_object.assign("url", JSON::make_object());
+          elicitation_object.assign_assume_new("url", JSON::make_object(),
+                                               sourcemeta::core::MCP_HASH_URL);
         }
       }
     }
-    result.assign("elicitation", std::move(elicitation_object));
+    result.assign_assume_new("elicitation", std::move(elicitation_object),
+                             sourcemeta::core::MCP_HASH_ELICITATION);
   }
 
   if (version == MCPProtocolVersion::V_2026_07_28 &&
       capabilities.extensions.has_value() &&
       capabilities.extensions->is_object()) {
-    result.assign("extensions",
-                  sourcemeta::core::JSON{capabilities.extensions.value()});
+    result.assign_assume_new(
+        "extensions", sourcemeta::core::JSON{capabilities.extensions.value()},
+        sourcemeta::core::MCP_HASH_EXTENSIONS);
   }
 
   if (capabilities.experimental.has_value() &&
       capabilities.experimental->is_object()) {
-    result.assign("experimental",
-                  sourcemeta::core::JSON{capabilities.experimental.value()});
+    result.assign_assume_new(
+        "experimental",
+        sourcemeta::core::JSON{capabilities.experimental.value()},
+        sourcemeta::core::MCP_HASH_EXPERIMENTAL);
   }
 
   internal::require(internal::valid_capabilities(version, result, true),
@@ -351,20 +365,28 @@ auto mcp_serialize_server_capabilities(
                   sourcemeta::core::MCP_HASH_TOOLS, capabilities.tools,
                   capabilities.tools_list_changed, false);
   if (capabilities.logging) {
-    result.assign("logging",
-                  capability_settings(capabilities, "logging",
-                                      sourcemeta::core::MCP_HASH_LOGGING));
+    result.assign_assume_new(
+        "logging",
+        capability_settings(capabilities, "logging",
+                            sourcemeta::core::MCP_HASH_LOGGING),
+        sourcemeta::core::MCP_HASH_LOGGING);
   }
   if (capabilities.completions) {
-    result.assign("completions",
-                  capability_settings(capabilities, "completions",
-                                      sourcemeta::core::MCP_HASH_COMPLETIONS));
+    result.assign_assume_new(
+        "completions",
+        capability_settings(capabilities, "completions",
+                            sourcemeta::core::MCP_HASH_COMPLETIONS),
+        sourcemeta::core::MCP_HASH_COMPLETIONS);
   }
   if (version == MCPProtocolVersion::V_2026_07_28 && capabilities.extensions) {
-    result.assign("extensions", *capabilities.extensions);
+    result.assign_assume_new("extensions",
+                             sourcemeta::core::JSON{*capabilities.extensions},
+                             sourcemeta::core::MCP_HASH_EXTENSIONS);
   }
   if (capabilities.experimental) {
-    result.assign("experimental", *capabilities.experimental);
+    result.assign_assume_new("experimental",
+                             sourcemeta::core::JSON{*capabilities.experimental},
+                             sourcemeta::core::MCP_HASH_EXPERIMENTAL);
   }
   internal::require(internal::valid_capabilities(version, result, false),
                     "Invalid capability map");

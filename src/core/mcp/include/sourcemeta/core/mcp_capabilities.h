@@ -8,7 +8,7 @@
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/mcp_protocol.h>
 
-#include <optional>
+#include <optional> // std::optional, std::nullopt
 
 namespace sourcemeta::core {
 

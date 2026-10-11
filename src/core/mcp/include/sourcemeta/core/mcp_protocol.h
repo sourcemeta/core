@@ -7,10 +7,9 @@
 
 #include <sourcemeta/core/json.h>
 
-#include <cstdint>
-#include <optional>
-#include <string_view>
-#include <utility>
+#include <cstdint>  // std::uint8_t
+#include <optional> // std::optional, std::nullopt
+#include <utility>  // std::to_underlying, std::unreachable
 
 namespace sourcemeta::core {
 
