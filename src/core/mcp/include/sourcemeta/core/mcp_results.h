@@ -1031,7 +1031,17 @@ auto mcp_make_server_discover_result(
 /// `input_requests` or `request_state` must be provided. Only `tools/call`,
 /// `resources/read`, and `prompts/get` may carry this result. The client
 /// capabilities are checked so a server does not ask for input the client
-/// never advertised. For example:
+/// never advertised.
+///
+/// A nested request that sends the user to an address has that address checked
+/// for being a URI with a scheme, which is the format the specification
+/// annotates the field with and the reading its prose requirement supports.
+/// What makes an address usable within a particular scheme is left alone: the
+/// specification restricts the scheme not at all, and each scheme states its
+/// own rules in its own document, so enforcing one scheme's rules and not the
+/// others would be a policy this builder has no grounds to choose. A caller
+/// that needs an address it can actually open checks that where it opens it.
+/// For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/mcp.h>
