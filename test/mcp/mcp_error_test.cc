@@ -706,11 +706,12 @@ TEST(make_error_header_mismatch_does_not_check_data_on_2026_07_28) {
 }
 
 TEST(make_error_unsupported_protocol_version_builder) {
+  const sourcemeta::core::JSON identifier{7};
   constexpr std::array<sourcemeta::core::JSON::StringView, 2> SUPPORTED{
       {"2025-11-25", "2026-07-28"}};
   EXPECT_EQ(sourcemeta::core::mcp_make_error_unsupported_protocol_version(
-                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-                sourcemeta::core::JSON{7}, "1999-01-01", SUPPORTED),
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28, &identifier,
+                "1999-01-01", SUPPORTED),
             sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "id": 7,
@@ -729,8 +730,8 @@ TEST(make_error_unsupported_protocol_version_builder_without_identifier) {
   constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
       {"2026-07-28"}};
   EXPECT_EQ(sourcemeta::core::mcp_make_error_unsupported_protocol_version(
-                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-                std::nullopt, "1999-01-01", SUPPORTED),
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28, nullptr,
+                "1999-01-01", SUPPORTED),
             sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "error": {
@@ -745,29 +746,31 @@ TEST(make_error_unsupported_protocol_version_builder_without_identifier) {
 }
 
 TEST(make_error_unsupported_protocol_version_builder_rejects_empty_supported) {
+  const sourcemeta::core::JSON identifier{1};
   constexpr std::array<sourcemeta::core::JSON::StringView, 0> SUPPORTED{};
   EXPECT_MCP_REJECTS(
       sourcemeta::core::mcp_make_error_unsupported_protocol_version(
-          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-          sourcemeta::core::JSON{1}, "1999-01-01", SUPPORTED),
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, &identifier,
+          "1999-01-01", SUPPORTED),
       "Supported protocol versions must not be empty");
 }
 
 TEST(make_error_unsupported_protocol_version_builder_rejects_2025_11_25) {
+  const sourcemeta::core::JSON identifier{1};
   constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
       {"2025-11-25"}};
   EXPECT_MCP_REJECTS(
       sourcemeta::core::mcp_make_error_unsupported_protocol_version(
-          sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
-          sourcemeta::core::JSON{1}, "1999-01-01", SUPPORTED),
+          sourcemeta::core::MCPProtocolVersion::V_2025_11_25, &identifier,
+          "1999-01-01", SUPPORTED),
       "This protocol error is defined for MCP 2026-07-28");
 }
 
 TEST(make_error_missing_required_capability_builder) {
+  const sourcemeta::core::JSON identifier{"x"};
   EXPECT_EQ(
       sourcemeta::core::mcp_make_error_missing_required_capability(
-          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-          sourcemeta::core::JSON{"x"},
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, &identifier,
           sourcemeta::core::parse_json(R"JSON({ "elicitation": {} })JSON"),
           "Elicitation is required"),
       sourcemeta::core::parse_json(R"JSON({
@@ -782,29 +785,30 @@ TEST(make_error_missing_required_capability_builder) {
 }
 
 TEST(make_error_missing_required_capability_builder_rejects_2025_11_25) {
+  const sourcemeta::core::JSON identifier{1};
   EXPECT_MCP_REJECTS(
       sourcemeta::core::mcp_make_error_missing_required_capability(
-          sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
-          sourcemeta::core::JSON{1},
+          sourcemeta::core::MCPProtocolVersion::V_2025_11_25, &identifier,
           sourcemeta::core::parse_json(R"JSON({ "roots": {} })JSON"),
           "Roots are required"),
       "This protocol error is defined for MCP 2026-07-28");
 }
 
 TEST(make_error_missing_required_capability_builder_rejects_malformed) {
+  const sourcemeta::core::JSON identifier{1};
   EXPECT_MCP_REJECTS(
       sourcemeta::core::mcp_make_error_missing_required_capability(
-          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-          sourcemeta::core::JSON{1},
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, &identifier,
           sourcemeta::core::parse_json(R"JSON({ "roots": false })JSON"),
           "Roots are required"),
       "Invalid required client capabilities");
 }
 
 TEST(make_error_header_mismatch_with_message) {
+  const sourcemeta::core::JSON identifier{1};
   EXPECT_EQ(sourcemeta::core::mcp_make_error_header_mismatch(
-                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-                sourcemeta::core::JSON{1}, "Duplicate routing header"),
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28, &identifier,
+                "Duplicate routing header"),
             sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "id": 1,
@@ -814,8 +818,8 @@ TEST(make_error_header_mismatch_with_message) {
 
 TEST(make_error_header_mismatch_with_message_without_identifier) {
   EXPECT_EQ(sourcemeta::core::mcp_make_error_header_mismatch(
-                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-                std::nullopt, "Duplicate routing header"),
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28, nullptr,
+                "Duplicate routing header"),
             sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "error": { "code": -32020, "message": "Duplicate routing header" }
@@ -823,16 +827,18 @@ TEST(make_error_header_mismatch_with_message_without_identifier) {
 }
 
 TEST(make_error_header_mismatch_with_message_rejects_2025_11_25) {
+  const sourcemeta::core::JSON identifier{1};
   EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_error_header_mismatch(
                          sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
-                         sourcemeta::core::JSON{1}, "Duplicate routing header"),
+                         &identifier, "Duplicate routing header"),
                      "This protocol error is defined for MCP 2026-07-28");
 }
 
 TEST(make_error_header_mismatch_with_header_and_body_value) {
+  const sourcemeta::core::JSON identifier{1};
   EXPECT_EQ(sourcemeta::core::mcp_make_error_header_mismatch(
-                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-                sourcemeta::core::JSON{1}, "Mcp-Name", "foo", "bar"),
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28, &identifier,
+                "Mcp-Name", "foo", "bar"),
             sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "id": 1,
@@ -849,16 +855,18 @@ TEST(make_error_header_mismatch_with_header_and_body_value) {
 }
 
 TEST(make_error_header_mismatch_with_header_and_body_value_rejects_2025_11_25) {
+  const sourcemeta::core::JSON identifier{1};
   EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_error_header_mismatch(
                          sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
-                         sourcemeta::core::JSON{1}, "Mcp-Name", "foo", "bar"),
+                         &identifier, "Mcp-Name", "foo", "bar"),
                      "This protocol error is defined for MCP 2026-07-28");
 }
 
 TEST(make_error_header_mismatch_with_unexpected_header) {
+  const sourcemeta::core::JSON identifier{1};
   EXPECT_EQ(sourcemeta::core::mcp_make_error_header_mismatch(
-                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-                sourcemeta::core::JSON{1}, "Mcp-Name", "foo"),
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28, &identifier,
+                "Mcp-Name", "foo"),
             sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "id": 1,
@@ -871,19 +879,21 @@ TEST(make_error_header_mismatch_with_unexpected_header) {
 }
 
 TEST(make_error_header_mismatch_with_unexpected_header_rejects_2025_11_25) {
+  const sourcemeta::core::JSON identifier{1};
   EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_error_header_mismatch(
                          sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
-                         sourcemeta::core::JSON{1}, "Mcp-Name", "foo"),
+                         &identifier, "Mcp-Name", "foo"),
                      "This protocol error is defined for MCP 2026-07-28");
 }
 
 // Resource-not-found moved from its own code to invalid params in 2026-07-28
 // https://modelcontextprotocol.io/specification/2026-07-28/server/resources#error-handling
 TEST(make_error_resource_not_found_2026_07_28) {
-  EXPECT_EQ(sourcemeta::core::mcp_make_error_resource_not_found(
-                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-                sourcemeta::core::JSON{1}),
-            sourcemeta::core::parse_json(R"JSON({
+  const sourcemeta::core::JSON identifier{1};
+  EXPECT_EQ(
+      sourcemeta::core::mcp_make_error_resource_not_found(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, &identifier),
+      sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "id": 1,
     "error": { "code": -32602, "message": "Resource not found" }
@@ -891,10 +901,11 @@ TEST(make_error_resource_not_found_2026_07_28) {
 }
 
 TEST(make_error_resource_not_found_2025_11_25) {
-  EXPECT_EQ(sourcemeta::core::mcp_make_error_resource_not_found(
-                sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
-                sourcemeta::core::JSON{1}),
-            sourcemeta::core::parse_json(R"JSON({
+  const sourcemeta::core::JSON identifier{1};
+  EXPECT_EQ(
+      sourcemeta::core::mcp_make_error_resource_not_found(
+          sourcemeta::core::MCPProtocolVersion::V_2025_11_25, &identifier),
+      sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "id": 1,
     "error": { "code": -32002, "message": "Resource not found" }
@@ -902,10 +913,11 @@ TEST(make_error_resource_not_found_2025_11_25) {
 }
 
 TEST(make_error_resource_not_found_2025_06_18) {
-  EXPECT_EQ(sourcemeta::core::mcp_make_error_resource_not_found(
-                sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
-                sourcemeta::core::JSON{1}),
-            sourcemeta::core::parse_json(R"JSON({
+  const sourcemeta::core::JSON identifier{1};
+  EXPECT_EQ(
+      sourcemeta::core::mcp_make_error_resource_not_found(
+          sourcemeta::core::MCPProtocolVersion::V_2025_06_18, &identifier),
+      sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "id": 1,
     "error": { "code": -32002, "message": "Resource not found" }
@@ -913,10 +925,11 @@ TEST(make_error_resource_not_found_2025_06_18) {
 }
 
 TEST(make_error_resource_not_found_2025_03_26) {
-  EXPECT_EQ(sourcemeta::core::mcp_make_error_resource_not_found(
-                sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
-                sourcemeta::core::JSON{1}),
-            sourcemeta::core::parse_json(R"JSON({
+  const sourcemeta::core::JSON identifier{1};
+  EXPECT_EQ(
+      sourcemeta::core::mcp_make_error_resource_not_found(
+          sourcemeta::core::MCPProtocolVersion::V_2025_03_26, &identifier),
+      sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "id": 1,
     "error": { "code": -32002, "message": "Resource not found" }
@@ -926,15 +939,14 @@ TEST(make_error_resource_not_found_2025_03_26) {
 TEST(make_error_resource_not_found_rejects_absent_identifier_2025_03_26) {
   EXPECT_MCP_REJECTS(
       sourcemeta::core::mcp_make_error_resource_not_found(
-          sourcemeta::core::MCPProtocolVersion::V_2025_03_26, std::nullopt),
+          sourcemeta::core::MCPProtocolVersion::V_2025_03_26, nullptr),
       "This MCP revision requires a readable error identifier");
 }
 
 TEST(make_error_resource_not_found_omits_absent_identifier_2026_07_28) {
-  EXPECT_EQ(
-      sourcemeta::core::mcp_make_error_resource_not_found(
-          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, std::nullopt),
-      sourcemeta::core::parse_json(R"JSON({
+  EXPECT_EQ(sourcemeta::core::mcp_make_error_resource_not_found(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28, nullptr),
+            sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "error": { "code": -32602, "message": "Resource not found" }
   })JSON"));

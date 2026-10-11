@@ -205,12 +205,12 @@ constexpr auto mcp_error_code_to_http_status(const MCPProtocolVersion version,
 /// #include <array>
 /// #include <cassert>
 ///
+/// const sourcemeta::core::JSON identifier{7};
 /// constexpr std::array<sourcemeta::core::JSON::StringView, 2> SUPPORTED{
 ///     {"2025-11-25", "2026-07-28"}};
 /// assert(sourcemeta::core::mcp_make_error_unsupported_protocol_version(
-///            sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-///            sourcemeta::core::JSON{7}, "1999-01-01",
-///            SUPPORTED) == sourcemeta::core::parse_json(R"JSON({
+///            sourcemeta::core::MCPProtocolVersion::V_2026_07_28, &identifier,
+///            "1999-01-01", SUPPORTED) == sourcemeta::core::parse_json(R"JSON({
 ///          "jsonrpc": "2.0",
 ///          "id": 7,
 ///          "error": {
@@ -228,8 +228,7 @@ constexpr auto mcp_error_code_to_http_status(const MCPProtocolVersion version,
 /// https://modelcontextprotocol.io/specification/2026-07-28/basic/index#error-codes
 SOURCEMETA_CORE_MCP_EXPORT
 auto mcp_make_error_unsupported_protocol_version(
-    const MCPProtocolVersion version,
-    const std::optional<sourcemeta::core::JSON> &identifier,
+    const MCPProtocolVersion version, const sourcemeta::core::JSON *identifier,
     const JSON::StringView requested,
     const std::span<const JSON::StringView> supported)
     -> sourcemeta::core::JSON;
@@ -244,9 +243,9 @@ auto mcp_make_error_unsupported_protocol_version(
 /// #include <sourcemeta/core/mcp.h>
 /// #include <cassert>
 ///
+/// const sourcemeta::core::JSON identifier{"x"};
 /// assert(sourcemeta::core::mcp_make_error_missing_required_capability(
-///            sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-///            sourcemeta::core::JSON{"x"},
+///            sourcemeta::core::MCPProtocolVersion::V_2026_07_28, &identifier,
 ///            sourcemeta::core::parse_json(R"JSON({ "elicitation": {} })JSON"),
 ///            "Elicitation is required") ==
 ///        sourcemeta::core::parse_json(R"JSON({
@@ -264,8 +263,7 @@ auto mcp_make_error_unsupported_protocol_version(
 /// https://modelcontextprotocol.io/specification/2026-07-28/basic/index#error-codes
 SOURCEMETA_CORE_MCP_EXPORT
 auto mcp_make_error_missing_required_capability(
-    const MCPProtocolVersion version,
-    const std::optional<sourcemeta::core::JSON> &identifier,
+    const MCPProtocolVersion version, const sourcemeta::core::JSON *identifier,
     sourcemeta::core::JSON required_capabilities,
     const JSON::StringView message) -> sourcemeta::core::JSON;
 
@@ -278,9 +276,10 @@ auto mcp_make_error_missing_required_capability(
 /// #include <sourcemeta/core/mcp.h>
 /// #include <cassert>
 ///
+/// const sourcemeta::core::JSON identifier{1};
 /// assert(sourcemeta::core::mcp_make_error_header_mismatch(
-///            sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-///            sourcemeta::core::JSON{1}, "Duplicate routing header") ==
+///            sourcemeta::core::MCPProtocolVersion::V_2026_07_28, &identifier,
+///            "Duplicate routing header") ==
 ///        sourcemeta::core::parse_json(R"JSON({
 ///          "jsonrpc": "2.0",
 ///          "id": 1,
@@ -291,10 +290,10 @@ auto mcp_make_error_missing_required_capability(
 /// @see
 /// https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#schema-extension
 SOURCEMETA_CORE_MCP_EXPORT
-auto mcp_make_error_header_mismatch(
-    const MCPProtocolVersion version,
-    const std::optional<sourcemeta::core::JSON> &identifier,
-    const JSON::StringView message) -> sourcemeta::core::JSON;
+auto mcp_make_error_header_mismatch(const MCPProtocolVersion version,
+                                    const sourcemeta::core::JSON *identifier,
+                                    const JSON::StringView message)
+    -> sourcemeta::core::JSON;
 
 /// @ingroup mcp
 /// Build a JSON-RPC error response for header mismatch (-32020) with detailed
@@ -305,9 +304,10 @@ auto mcp_make_error_header_mismatch(
 /// #include <sourcemeta/core/mcp.h>
 /// #include <cassert>
 ///
+/// const sourcemeta::core::JSON identifier{1};
 /// assert(sourcemeta::core::mcp_make_error_header_mismatch(
-///            sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-///            sourcemeta::core::JSON{1}, "Mcp-Name", "foo",
+///            sourcemeta::core::MCPProtocolVersion::V_2026_07_28, &identifier,
+///            "Mcp-Name", "foo",
 ///            "bar") == sourcemeta::core::parse_json(R"JSON({
 ///          "jsonrpc": "2.0",
 ///          "id": 1,
@@ -326,11 +326,12 @@ auto mcp_make_error_header_mismatch(
 /// @see
 /// https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#schema-extension
 SOURCEMETA_CORE_MCP_EXPORT
-auto mcp_make_error_header_mismatch(
-    const MCPProtocolVersion version,
-    const std::optional<sourcemeta::core::JSON> &identifier,
-    const JSON::StringView header_name, const JSON::StringView header_value,
-    const JSON::StringView body_value) -> sourcemeta::core::JSON;
+auto mcp_make_error_header_mismatch(const MCPProtocolVersion version,
+                                    const sourcemeta::core::JSON *identifier,
+                                    const JSON::StringView header_name,
+                                    const JSON::StringView header_value,
+                                    const JSON::StringView body_value)
+    -> sourcemeta::core::JSON;
 
 /// @ingroup mcp
 /// Build a JSON-RPC error response for header mismatch (-32020) reporting an
@@ -341,10 +342,10 @@ auto mcp_make_error_header_mismatch(
 /// #include <sourcemeta/core/mcp.h>
 /// #include <cassert>
 ///
+/// const sourcemeta::core::JSON identifier{1};
 /// assert(sourcemeta::core::mcp_make_error_header_mismatch(
-///            sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-///            sourcemeta::core::JSON{1}, "Mcp-Name",
-///            "foo") == sourcemeta::core::parse_json(R"JSON({
+///            sourcemeta::core::MCPProtocolVersion::V_2026_07_28, &identifier,
+///            "Mcp-Name", "foo") == sourcemeta::core::parse_json(R"JSON({
 ///          "jsonrpc": "2.0",
 ///          "id": 1,
 ///          "error": {
@@ -358,10 +359,10 @@ auto mcp_make_error_header_mismatch(
 /// @see
 /// https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#schema-extension
 SOURCEMETA_CORE_MCP_EXPORT
-auto mcp_make_error_header_mismatch(
-    const MCPProtocolVersion version,
-    const std::optional<sourcemeta::core::JSON> &identifier,
-    const JSON::StringView header_name, const JSON::StringView header_value)
+auto mcp_make_error_header_mismatch(const MCPProtocolVersion version,
+                                    const sourcemeta::core::JSON *identifier,
+                                    const JSON::StringView header_name,
+                                    const JSON::StringView header_value)
     -> sourcemeta::core::JSON;
 
 /// @ingroup mcp
@@ -373,18 +374,17 @@ auto mcp_make_error_header_mismatch(
 /// #include <sourcemeta/core/mcp.h>
 /// #include <cassert>
 ///
+/// const sourcemeta::core::JSON identifier{1};
 /// assert(sourcemeta::core::mcp_make_error_resource_not_found(
 ///            sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-///            sourcemeta::core::JSON{1}) ==
-///        sourcemeta::core::parse_json(R"JSON({
+///            &identifier) == sourcemeta::core::parse_json(R"JSON({
 ///          "jsonrpc": "2.0",
 ///          "id": 1,
 ///          "error": { "code": -32602, "message": "Resource not found" }
 ///        })JSON"));
 /// assert(sourcemeta::core::mcp_make_error_resource_not_found(
 ///            sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
-///            sourcemeta::core::JSON{1}) ==
-///        sourcemeta::core::parse_json(R"JSON({
+///            &identifier) == sourcemeta::core::parse_json(R"JSON({
 ///          "jsonrpc": "2.0",
 ///          "id": 1,
 ///          "error": { "code": -32002, "message": "Resource not found" }
@@ -394,9 +394,8 @@ auto mcp_make_error_header_mismatch(
 /// @see
 /// https://modelcontextprotocol.io/specification/2026-07-28/server/resources#error-handling
 SOURCEMETA_CORE_MCP_EXPORT
-auto mcp_make_error_resource_not_found(
-    const MCPProtocolVersion version,
-    const std::optional<sourcemeta::core::JSON> &identifier)
+auto mcp_make_error_resource_not_found(const MCPProtocolVersion version,
+                                       const sourcemeta::core::JSON *identifier)
     -> sourcemeta::core::JSON;
 
 } // namespace sourcemeta::core

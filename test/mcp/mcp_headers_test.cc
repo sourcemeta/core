@@ -580,11 +580,11 @@ TEST(request_meta_view_borrows_source) {
 // which field was at fault
 // https://modelcontextprotocol.io/specification/2026-07-28/basic/index#_meta
 TEST(make_error_request_meta_invalid_envelope) {
+  const sourcemeta::core::JSON identifier{1};
   constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
       {"2026-07-28"}};
   EXPECT_EQ(sourcemeta::core::mcp_make_error_request_meta(
-                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-                sourcemeta::core::JSON{1},
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28, &identifier,
                 sourcemeta::core::MCPRequestMetaStatus::InvalidEnvelope, "",
                 SUPPORTED),
             sourcemeta::core::parse_json(R"JSON({
@@ -595,11 +595,11 @@ TEST(make_error_request_meta_invalid_envelope) {
 }
 
 TEST(make_error_request_meta_invalid_meta_key) {
+  const sourcemeta::core::JSON identifier{1};
   constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
       {"2026-07-28"}};
   EXPECT_EQ(sourcemeta::core::mcp_make_error_request_meta(
-                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-                sourcemeta::core::JSON{1},
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28, &identifier,
                 sourcemeta::core::MCPRequestMetaStatus::InvalidMetaKey, "",
                 SUPPORTED),
             sourcemeta::core::parse_json(R"JSON({
@@ -613,12 +613,12 @@ TEST(make_error_request_meta_invalid_meta_key) {
 }
 
 TEST(make_error_request_meta_invalid_client_capabilities) {
+  const sourcemeta::core::JSON identifier{1};
   constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
       {"2026-07-28"}};
   EXPECT_EQ(
       sourcemeta::core::mcp_make_error_request_meta(
-          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-          sourcemeta::core::JSON{1},
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, &identifier,
           sourcemeta::core::MCPRequestMetaStatus::InvalidClientCapabilities, "",
           SUPPORTED),
       sourcemeta::core::parse_json(R"JSON({
@@ -632,12 +632,12 @@ TEST(make_error_request_meta_invalid_client_capabilities) {
 }
 
 TEST(make_error_request_meta_client_info_website_url_not_string) {
+  const sourcemeta::core::JSON identifier{1};
   constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
       {"2026-07-28"}};
   EXPECT_EQ(
       sourcemeta::core::mcp_make_error_request_meta(
-          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-          sourcemeta::core::JSON{1},
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, &identifier,
           sourcemeta::core::MCPRequestMetaStatus::ClientInfoWebsiteUrlNotString,
           "", SUPPORTED),
       sourcemeta::core::parse_json(R"JSON({
@@ -651,11 +651,11 @@ TEST(make_error_request_meta_client_info_website_url_not_string) {
 }
 
 TEST(make_error_request_meta_invalid_client_info) {
+  const sourcemeta::core::JSON identifier{1};
   constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
       {"2026-07-28"}};
   EXPECT_EQ(sourcemeta::core::mcp_make_error_request_meta(
-                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-                sourcemeta::core::JSON{1},
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28, &identifier,
                 sourcemeta::core::MCPRequestMetaStatus::InvalidClientInfo, "",
                 SUPPORTED),
             sourcemeta::core::parse_json(R"JSON({
@@ -669,11 +669,11 @@ TEST(make_error_request_meta_invalid_client_info) {
 }
 
 TEST(make_error_request_meta_invalid_log_level) {
+  const sourcemeta::core::JSON identifier{1};
   constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
       {"2026-07-28"}};
   EXPECT_EQ(sourcemeta::core::mcp_make_error_request_meta(
-                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-                sourcemeta::core::JSON{1},
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28, &identifier,
                 sourcemeta::core::MCPRequestMetaStatus::InvalidLogLevel, "",
                 SUPPORTED),
             sourcemeta::core::parse_json(R"JSON({
@@ -687,11 +687,11 @@ TEST(make_error_request_meta_invalid_log_level) {
 }
 
 TEST(make_error_request_meta_invalid_progress_token) {
+  const sourcemeta::core::JSON identifier{1};
   constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
       {"2026-07-28"}};
   EXPECT_EQ(sourcemeta::core::mcp_make_error_request_meta(
-                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-                sourcemeta::core::JSON{1},
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28, &identifier,
                 sourcemeta::core::MCPRequestMetaStatus::InvalidProgressToken,
                 "", SUPPORTED),
             sourcemeta::core::parse_json(R"JSON({
@@ -705,11 +705,11 @@ TEST(make_error_request_meta_invalid_progress_token) {
 }
 
 TEST(make_error_request_meta_missing_params) {
+  const sourcemeta::core::JSON identifier{1};
   constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
       {"2026-07-28"}};
   EXPECT_EQ(sourcemeta::core::mcp_make_error_request_meta(
-                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-                sourcemeta::core::JSON{1},
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28, &identifier,
                 sourcemeta::core::MCPRequestMetaStatus::MissingParams, "",
                 SUPPORTED),
             sourcemeta::core::parse_json(R"JSON({
@@ -723,11 +723,11 @@ TEST(make_error_request_meta_missing_params) {
 }
 
 TEST(make_error_request_meta_params_not_object) {
+  const sourcemeta::core::JSON identifier{1};
   constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
       {"2026-07-28"}};
   EXPECT_EQ(sourcemeta::core::mcp_make_error_request_meta(
-                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-                sourcemeta::core::JSON{1},
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28, &identifier,
                 sourcemeta::core::MCPRequestMetaStatus::ParamsNotObject, "",
                 SUPPORTED),
             sourcemeta::core::parse_json(R"JSON({
@@ -741,11 +741,11 @@ TEST(make_error_request_meta_params_not_object) {
 }
 
 TEST(make_error_request_meta_missing_meta) {
+  const sourcemeta::core::JSON identifier{1};
   constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
       {"2026-07-28"}};
   EXPECT_EQ(sourcemeta::core::mcp_make_error_request_meta(
-                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-                sourcemeta::core::JSON{1},
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28, &identifier,
                 sourcemeta::core::MCPRequestMetaStatus::MissingMeta, "",
                 SUPPORTED),
             sourcemeta::core::parse_json(R"JSON({
@@ -759,11 +759,11 @@ TEST(make_error_request_meta_missing_meta) {
 }
 
 TEST(make_error_request_meta_meta_not_object) {
+  const sourcemeta::core::JSON identifier{1};
   constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
       {"2026-07-28"}};
   EXPECT_EQ(sourcemeta::core::mcp_make_error_request_meta(
-                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-                sourcemeta::core::JSON{1},
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28, &identifier,
                 sourcemeta::core::MCPRequestMetaStatus::MetaNotObject, "",
                 SUPPORTED),
             sourcemeta::core::parse_json(R"JSON({
@@ -777,11 +777,11 @@ TEST(make_error_request_meta_meta_not_object) {
 }
 
 TEST(make_error_request_meta_missing_protocol_version) {
+  const sourcemeta::core::JSON identifier{1};
   constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
       {"2026-07-28"}};
   EXPECT_EQ(sourcemeta::core::mcp_make_error_request_meta(
-                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-                sourcemeta::core::JSON{1},
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28, &identifier,
                 sourcemeta::core::MCPRequestMetaStatus::MissingProtocolVersion,
                 "", SUPPORTED),
             sourcemeta::core::parse_json(R"JSON({
@@ -795,12 +795,12 @@ TEST(make_error_request_meta_missing_protocol_version) {
 }
 
 TEST(make_error_request_meta_protocol_version_not_string) {
+  const sourcemeta::core::JSON identifier{1};
   constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
       {"2026-07-28"}};
   EXPECT_EQ(
       sourcemeta::core::mcp_make_error_request_meta(
-          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-          sourcemeta::core::JSON{1},
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, &identifier,
           sourcemeta::core::MCPRequestMetaStatus::ProtocolVersionNotString, "",
           SUPPORTED),
       sourcemeta::core::parse_json(R"JSON({
@@ -814,12 +814,12 @@ TEST(make_error_request_meta_protocol_version_not_string) {
 }
 
 TEST(make_error_request_meta_missing_client_capabilities) {
+  const sourcemeta::core::JSON identifier{1};
   constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
       {"2026-07-28"}};
   EXPECT_EQ(
       sourcemeta::core::mcp_make_error_request_meta(
-          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-          sourcemeta::core::JSON{1},
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, &identifier,
           sourcemeta::core::MCPRequestMetaStatus::MissingClientCapabilities, "",
           SUPPORTED),
       sourcemeta::core::parse_json(R"JSON({
@@ -833,12 +833,12 @@ TEST(make_error_request_meta_missing_client_capabilities) {
 }
 
 TEST(make_error_request_meta_client_capabilities_not_object) {
+  const sourcemeta::core::JSON identifier{1};
   constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
       {"2026-07-28"}};
   EXPECT_EQ(
       sourcemeta::core::mcp_make_error_request_meta(
-          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-          sourcemeta::core::JSON{1},
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, &identifier,
           sourcemeta::core::MCPRequestMetaStatus::ClientCapabilitiesNotObject,
           "", SUPPORTED),
       sourcemeta::core::parse_json(R"JSON({
@@ -852,11 +852,11 @@ TEST(make_error_request_meta_client_capabilities_not_object) {
 }
 
 TEST(make_error_request_meta_client_info_not_object) {
+  const sourcemeta::core::JSON identifier{1};
   constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
       {"2026-07-28"}};
   EXPECT_EQ(sourcemeta::core::mcp_make_error_request_meta(
-                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-                sourcemeta::core::JSON{1},
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28, &identifier,
                 sourcemeta::core::MCPRequestMetaStatus::ClientInfoNotObject, "",
                 SUPPORTED),
             sourcemeta::core::parse_json(R"JSON({
@@ -870,11 +870,11 @@ TEST(make_error_request_meta_client_info_not_object) {
 }
 
 TEST(make_error_request_meta_missing_client_info_name) {
+  const sourcemeta::core::JSON identifier{1};
   constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
       {"2026-07-28"}};
   EXPECT_EQ(sourcemeta::core::mcp_make_error_request_meta(
-                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-                sourcemeta::core::JSON{1},
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28, &identifier,
                 sourcemeta::core::MCPRequestMetaStatus::MissingClientInfoName,
                 "", SUPPORTED),
             sourcemeta::core::parse_json(R"JSON({
@@ -888,11 +888,11 @@ TEST(make_error_request_meta_missing_client_info_name) {
 }
 
 TEST(make_error_request_meta_client_info_name_not_string) {
+  const sourcemeta::core::JSON identifier{1};
   constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
       {"2026-07-28"}};
   EXPECT_EQ(sourcemeta::core::mcp_make_error_request_meta(
-                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-                sourcemeta::core::JSON{1},
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28, &identifier,
                 sourcemeta::core::MCPRequestMetaStatus::ClientInfoNameNotString,
                 "", SUPPORTED),
             sourcemeta::core::parse_json(R"JSON({
@@ -906,12 +906,12 @@ TEST(make_error_request_meta_client_info_name_not_string) {
 }
 
 TEST(make_error_request_meta_missing_client_info_version) {
+  const sourcemeta::core::JSON identifier{1};
   constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
       {"2026-07-28"}};
   EXPECT_EQ(
       sourcemeta::core::mcp_make_error_request_meta(
-          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-          sourcemeta::core::JSON{1},
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, &identifier,
           sourcemeta::core::MCPRequestMetaStatus::MissingClientInfoVersion, "",
           SUPPORTED),
       sourcemeta::core::parse_json(R"JSON({
@@ -925,12 +925,12 @@ TEST(make_error_request_meta_missing_client_info_version) {
 }
 
 TEST(make_error_request_meta_client_info_version_not_string) {
+  const sourcemeta::core::JSON identifier{1};
   constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
       {"2026-07-28"}};
   EXPECT_EQ(
       sourcemeta::core::mcp_make_error_request_meta(
-          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-          sourcemeta::core::JSON{1},
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, &identifier,
           sourcemeta::core::MCPRequestMetaStatus::ClientInfoVersionNotString,
           "", SUPPORTED),
       sourcemeta::core::parse_json(R"JSON({
@@ -944,12 +944,12 @@ TEST(make_error_request_meta_client_info_version_not_string) {
 }
 
 TEST(make_error_request_meta_client_info_title_not_string) {
+  const sourcemeta::core::JSON identifier{1};
   constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
       {"2026-07-28"}};
   EXPECT_EQ(
       sourcemeta::core::mcp_make_error_request_meta(
-          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-          sourcemeta::core::JSON{1},
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, &identifier,
           sourcemeta::core::MCPRequestMetaStatus::ClientInfoTitleNotString, "",
           SUPPORTED),
       sourcemeta::core::parse_json(R"JSON({
@@ -963,11 +963,11 @@ TEST(make_error_request_meta_client_info_title_not_string) {
 }
 
 TEST(make_error_request_meta_client_info_description_not_string) {
+  const sourcemeta::core::JSON identifier{1};
   constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
       {"2026-07-28"}};
   EXPECT_EQ(sourcemeta::core::mcp_make_error_request_meta(
-                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-                sourcemeta::core::JSON{1},
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28, &identifier,
                 sourcemeta::core::MCPRequestMetaStatus::
                     ClientInfoDescriptionNotString,
                 "", SUPPORTED),
@@ -984,12 +984,12 @@ TEST(make_error_request_meta_client_info_description_not_string) {
 // An unsupported version reports the revisions the server does offer
 // https://modelcontextprotocol.io/specification/2026-07-28/schema#unsupportedprotocolversionerror
 TEST(make_error_request_meta_unsupported_protocol_version) {
+  const sourcemeta::core::JSON identifier{1};
   constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
       {"2026-07-28"}};
   EXPECT_EQ(
       sourcemeta::core::mcp_make_error_request_meta(
-          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-          sourcemeta::core::JSON{1},
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, &identifier,
           sourcemeta::core::MCPRequestMetaStatus::UnsupportedProtocolVersion,
           "2024-01-01", SUPPORTED),
       sourcemeta::core::parse_json(R"JSON({
@@ -1009,11 +1009,11 @@ TEST(make_error_request_meta_unsupported_protocol_version) {
 TEST(make_error_request_meta_omits_an_absent_identifier) {
   constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
       {"2026-07-28"}};
-  EXPECT_EQ(
-      sourcemeta::core::mcp_make_error_request_meta(
-          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, std::nullopt,
-          sourcemeta::core::MCPRequestMetaStatus::MissingMeta, "", SUPPORTED),
-      sourcemeta::core::parse_json(R"JSON({
+  EXPECT_EQ(sourcemeta::core::mcp_make_error_request_meta(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28, nullptr,
+                sourcemeta::core::MCPRequestMetaStatus::MissingMeta, "",
+                SUPPORTED),
+            sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "error": {
       "code": -32602,
@@ -1023,28 +1023,28 @@ TEST(make_error_request_meta_omits_an_absent_identifier) {
 }
 
 TEST(make_error_request_meta_rejects_a_valid_status) {
+  const sourcemeta::core::JSON identifier{1};
   constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
       {"2026-07-28"}};
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_error_request_meta(
-                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-                         sourcemeta::core::JSON{1},
-                         sourcemeta::core::MCPRequestMetaStatus::Valid, "",
-                         SUPPORTED),
-                     "Cannot construct an error for valid metadata");
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_error_request_meta(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, &identifier,
+          sourcemeta::core::MCPRequestMetaStatus::Valid, "", SUPPORTED),
+      "Cannot construct an error for valid metadata");
 }
 
 // Stateless metadata errors only exist in the revision that defines the
 // metadata
 // https://modelcontextprotocol.io/specification/2026-07-28/basic/index#_meta
 TEST(make_error_request_meta_rejects_2025_11_25) {
+  const sourcemeta::core::JSON identifier{1};
   constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
       {"2026-07-28"}};
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_error_request_meta(
-                         sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
-                         sourcemeta::core::JSON{1},
-                         sourcemeta::core::MCPRequestMetaStatus::MissingMeta,
-                         "", SUPPORTED),
-                     "Stateless metadata errors require MCP 2026-07-28");
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_error_request_meta(
+          sourcemeta::core::MCPProtocolVersion::V_2025_11_25, &identifier,
+          sourcemeta::core::MCPRequestMetaStatus::MissingMeta, "", SUPPORTED),
+      "Stateless metadata errors require MCP 2026-07-28");
 }
 
 TEST(request_meta_validation_empty_protocol_version) {

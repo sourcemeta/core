@@ -223,7 +223,7 @@ TEST(tool_error_with_null_id) {
 TEST(error_resource_not_found_with_integer_id) {
   const auto identifier{sourcemeta::core::JSON{3}};
   const auto envelope{sourcemeta::core::mcp_make_error_resource_not_found(
-      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, identifier)};
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, &identifier)};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "id": 3,
@@ -235,7 +235,7 @@ TEST(error_resource_not_found_with_integer_id) {
 TEST(error_resource_not_found_with_string_id) {
   const auto identifier{sourcemeta::core::JSON{"req-7"}};
   const auto envelope{sourcemeta::core::mcp_make_error_resource_not_found(
-      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, identifier)};
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, &identifier)};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "id": "req-7",
@@ -1017,7 +1017,7 @@ TEST(error_unsupported_protocol_version) {
                                                                   "2025-11-25"};
   const auto envelope{
       sourcemeta::core::mcp_make_error_unsupported_protocol_version(
-          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, identifier,
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, &identifier,
           "1900-01-01", supported)};
 
   EXPECT_EQ(envelope.at("error").at("code").to_integer(), -32022);
@@ -1038,7 +1038,7 @@ TEST(error_missing_required_capability) {
   required.assign("elicitation", sourcemeta::core::JSON::make_object());
 
   EXPECT_EQ(sourcemeta::core::mcp_make_error_missing_required_capability(
-                sourcemeta::core::MCPProtocolVersion::V_2026_07_28, identifier,
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28, &identifier,
                 std::move(required), "Missing required client capability"),
             sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
@@ -1054,7 +1054,7 @@ TEST(error_missing_required_capability) {
 TEST(error_header_mismatch) {
   const auto identifier{sourcemeta::core::JSON{12}};
   const auto envelope{sourcemeta::core::mcp_make_error_header_mismatch(
-      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, identifier,
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, &identifier,
       "Mcp-Method header does not match body method")};
 
   EXPECT_EQ(envelope.at("error").at("code").to_integer(), -32020);
@@ -1065,7 +1065,7 @@ TEST(error_header_mismatch) {
 TEST(error_header_mismatch_unexpected) {
   const auto identifier{sourcemeta::core::JSON{14}};
   const auto envelope{sourcemeta::core::mcp_make_error_header_mismatch(
-      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, identifier,
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, &identifier,
       "Mcp-Name", "unexpected-name")};
 
   EXPECT_EQ(envelope.at("error").at("code").to_integer(), -32020);
@@ -1080,7 +1080,7 @@ TEST(error_header_mismatch_unexpected) {
 TEST(error_header_mismatch_detailed) {
   const auto identifier{sourcemeta::core::JSON{15}};
   const auto envelope{sourcemeta::core::mcp_make_error_header_mismatch(
-      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, identifier,
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, &identifier,
       "Mcp-Method", "tools/call", "resources/read")};
 
   EXPECT_EQ(envelope.at("error").at("code").to_integer(), -32020);
@@ -1094,10 +1094,10 @@ TEST(error_header_mismatch_detailed) {
 }
 
 TEST(make_error_header_mismatch_omits_a_null_identifier) {
+  const sourcemeta::core::JSON identifier{nullptr};
   EXPECT_EQ(sourcemeta::core::mcp_make_error_header_mismatch(
-                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-                sourcemeta::core::JSON{nullptr}, "Mcp-Method", "tools/call",
-                "resources/read"),
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28, &identifier,
+                "Mcp-Method", "tools/call", "resources/read"),
             sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "error": {
@@ -1114,8 +1114,8 @@ TEST(make_error_header_mismatch_omits_a_null_identifier) {
 
 TEST(make_error_header_mismatch_omits_an_absent_identifier) {
   EXPECT_EQ(sourcemeta::core::mcp_make_error_header_mismatch(
-                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-                std::nullopt, "Mcp-Method", "tools/call", "resources/read"),
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28, nullptr,
+                "Mcp-Method", "tools/call", "resources/read"),
             sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "error": {
@@ -1134,13 +1134,13 @@ TEST(error_resource_not_found_version_aware) {
   const auto identifier{sourcemeta::core::JSON{13}};
 
   const auto modern_err{sourcemeta::core::mcp_make_error_resource_not_found(
-      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, identifier)};
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, &identifier)};
   EXPECT_EQ(modern_err.at("error").at("code").to_integer(), -32602);
   EXPECT_EQ(modern_err.at("error").at("message").to_string(),
             "Resource not found");
 
   const auto legacy_err{sourcemeta::core::mcp_make_error_resource_not_found(
-      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, identifier)};
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, &identifier)};
   EXPECT_EQ(legacy_err.at("error").at("code").to_integer(), -32002);
   EXPECT_EQ(legacy_err.at("error").at("message").to_string(),
             "Resource not found");
