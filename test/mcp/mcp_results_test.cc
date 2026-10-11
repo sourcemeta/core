@@ -3110,7 +3110,9 @@ TEST(input_required_result_rejects_a_malformed_elicitation_url) {
                      "Invalid or unsupported nested input requests");
 }
 
-TEST(input_required_result_accepts_a_non_http_elicitation_url) {
+// The specification restricts the scheme no further than requiring a URL, so
+// a destination outside the web is still one a user can be sent to
+TEST(input_required_result_accepts_a_non_web_elicitation_url) {
   sourcemeta::core::MCPClientCapabilities capabilities;
   capabilities.elicitation = true;
   capabilities.elicitation_url = true;
@@ -3123,7 +3125,7 @@ TEST(input_required_result_accepts_a_non_http_elicitation_url) {
       "params": {
         "mode": "url",
         "message": "visit",
-        "url": "urn:example:resource"
+        "url": "ftp://files.example.com/form"
       }
     }
   })JSON"),

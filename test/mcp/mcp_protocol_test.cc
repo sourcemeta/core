@@ -129,6 +129,15 @@ TEST(protocol_version_is_valid_rejects_an_unknown_revision) {
   EXPECT_FALSE(sourcemeta::core::mcp_protocol_version_is_valid("1999-01-01"));
 }
 
+// Every other assertion for this predicate passes a constant the compiler
+// folds away, so this is the one that runs it on a value only known at run
+// time
+TEST(protocol_version_is_valid_on_a_parsed_revision) {
+  const auto document{sourcemeta::core::parse_json(R"JSON("2025-11-25")JSON")};
+  EXPECT_TRUE(
+      sourcemeta::core::mcp_protocol_version_is_valid(document.to_string()));
+}
+
 TEST(protocol_version_is_valid_rejects_an_empty_string) {
   EXPECT_FALSE(sourcemeta::core::mcp_protocol_version_is_valid(""));
 }
@@ -432,6 +441,16 @@ TEST(supports_ping_2026_07_28) {
 
 // 2026-07-28 is a stateless protocol, so a connection is not a session
 // https://modelcontextprotocol.io/specification/2026-07-28/basic/index#statelessness
+// Every other assertion for this predicate passes a constant the compiler
+// folds away, so this is the one that runs it on a value only known at run
+// time
+TEST(supports_ping_on_a_parsed_revision) {
+  const auto document{sourcemeta::core::parse_json(R"JSON("2025-11-25")JSON")};
+  const auto version{
+      sourcemeta::core::mcp_resolve_protocol_version(document.to_string())};
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_ping(version.value()));
+}
+
 TEST(supports_protocol_sessions_2025_03_26) {
   EXPECT_TRUE(sourcemeta::core::mcp_supports_protocol_sessions(
       sourcemeta::core::MCPProtocolVersion::V_2025_03_26));
@@ -521,6 +540,17 @@ TEST(requires_cacheable_metadata_2026_07_28) {
 
 // Discovery replaced initialize as the way to learn what a server offers
 // https://modelcontextprotocol.io/specification/2026-07-28/server/discover
+// Every other assertion for this predicate passes a constant the compiler
+// folds away, so this is the one that runs it on a value only known at run
+// time
+TEST(supports_protocol_sessions_on_a_parsed_revision) {
+  const auto document{sourcemeta::core::parse_json(R"JSON("2025-11-25")JSON")};
+  const auto version{
+      sourcemeta::core::mcp_resolve_protocol_version(document.to_string())};
+  EXPECT_TRUE(
+      sourcemeta::core::mcp_supports_protocol_sessions(version.value()));
+}
+
 TEST(supports_server_discover_2025_03_26) {
   EXPECT_FALSE(sourcemeta::core::mcp_supports_server_discover(
       sourcemeta::core::MCPProtocolVersion::V_2025_03_26));
@@ -697,6 +727,16 @@ TEST(supports_implementation_description_2026_07_28) {
 
 // Implementations gained a website URL in 2025-11-25
 // https://modelcontextprotocol.io/specification/2026-07-28/schema#implementation
+// Every other assertion for this predicate passes a constant the compiler
+// folds away, so this is the one that runs it on a value only known at run
+// time
+TEST(supports_server_discover_on_a_parsed_revision) {
+  const auto document{sourcemeta::core::parse_json(R"JSON("2026-07-28")JSON")};
+  const auto version{
+      sourcemeta::core::mcp_resolve_protocol_version(document.to_string())};
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_server_discover(version.value()));
+}
+
 TEST(supports_implementation_website_url_2025_03_26) {
   EXPECT_FALSE(sourcemeta::core::mcp_supports_implementation_website_url(
       sourcemeta::core::MCPProtocolVersion::V_2025_03_26));
@@ -719,6 +759,17 @@ TEST(supports_implementation_website_url_2026_07_28) {
 
 // JSON-RPC batching existed only in 2025-03-26
 // https://modelcontextprotocol.io/specification/2026-07-28/changelog
+// Every other assertion for this predicate passes a constant the compiler
+// folds away, so this is the one that runs it on a value only known at run
+// time
+TEST(supports_implementation_website_url_on_a_parsed_revision) {
+  const auto document{sourcemeta::core::parse_json(R"JSON("2025-11-25")JSON")};
+  const auto version{
+      sourcemeta::core::mcp_resolve_protocol_version(document.to_string())};
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_implementation_website_url(
+      version.value()));
+}
+
 TEST(supports_jsonrpc_batching_2025_03_26) {
   EXPECT_TRUE(sourcemeta::core::mcp_supports_jsonrpc_batching(
       sourcemeta::core::MCPProtocolVersion::V_2025_03_26));
@@ -1121,6 +1172,16 @@ TEST(is_request_method_2026_07_28) {
 
 // The standalone server-to-client requests the revision defines in 2025-03-26
 // https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/schema/2025-03-26/schema.ts
+// Every other assertion for this predicate passes a constant the compiler
+// folds away, so this is the one that runs it on a value only known at run
+// time
+TEST(supports_jsonrpc_batching_on_a_parsed_revision) {
+  const auto document{sourcemeta::core::parse_json(R"JSON("2025-03-26")JSON")};
+  const auto version{
+      sourcemeta::core::mcp_resolve_protocol_version(document.to_string())};
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_jsonrpc_batching(version.value()));
+}
+
 TEST(is_server_request_method_2025_03_26) {
   EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
       sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
@@ -2261,6 +2322,20 @@ TEST(is_server_notification_method_2026_07_28) {
 
 // The notifications the revision defines in either direction in 2025-03-26
 // https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/schema/2025-03-26/schema.ts
+// Every other assertion for this predicate passes a constant the compiler
+// folds away, so this is the one that runs it on a value only known at run
+// time
+TEST(is_server_request_method_on_parsed_input) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "version": "2025-11-25",
+    "method": "roots/list"
+  })JSON")};
+  const auto version{sourcemeta::core::mcp_resolve_protocol_version(
+      document.at("version").to_string())};
+  EXPECT_TRUE(sourcemeta::core::mcp_is_server_request_method(
+      version.value(), document.at("method").to_string()));
+}
+
 TEST(is_notification_method_2025_03_26) {
   EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
       sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
@@ -2641,6 +2716,20 @@ TEST(is_notification_method_2026_07_28) {
 
 // The nested requests a server may ask for mid-request in 2025-03-26
 // https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/schema/2025-03-26/schema.ts
+// Every other assertion for this predicate passes a constant the compiler
+// folds away, so this is the one that runs it on a value only known at run
+// time
+TEST(is_notification_method_on_parsed_input) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "version": "2026-07-28",
+    "method": "notifications/cancelled"
+  })JSON")};
+  const auto version{sourcemeta::core::mcp_resolve_protocol_version(
+      document.at("version").to_string())};
+  EXPECT_TRUE(sourcemeta::core::mcp_is_notification_method(
+      version.value(), document.at("method").to_string()));
+}
+
 TEST(is_input_request_method_2025_03_26) {
   EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
       sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
@@ -3021,6 +3110,20 @@ TEST(is_input_request_method_2026_07_28) {
 
 // The methods the base protocol defines, nested requests included in 2025-03-26
 // https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/schema/2025-03-26/schema.ts
+// Every other assertion for this predicate passes a constant the compiler
+// folds away, so this is the one that runs it on a value only known at run
+// time
+TEST(is_input_request_method_on_parsed_input) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "version": "2026-07-28",
+    "method": "elicitation/create"
+  })JSON")};
+  const auto version{sourcemeta::core::mcp_resolve_protocol_version(
+      document.at("version").to_string())};
+  EXPECT_TRUE(sourcemeta::core::mcp_is_input_request_method(
+      version.value(), document.at("method").to_string()));
+}
+
 TEST(supports_method_2025_03_26) {
   EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
       sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
@@ -3506,4 +3609,18 @@ TEST(is_cacheable_method) {
   EXPECT_TRUE(sourcemeta::core::mcp_is_cacheable_method("tools/list"));
   EXPECT_FALSE(
       sourcemeta::core::mcp_is_cacheable_method("custom/unknownMethod"));
+}
+
+// Every other assertion for this predicate passes a constant the compiler
+// folds away, so this is the one that runs it on a value only known at run
+// time
+TEST(supports_method_on_parsed_input) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "version": "2026-07-28",
+    "method": "server/discover"
+  })JSON")};
+  const auto version{sourcemeta::core::mcp_resolve_protocol_version(
+      document.at("version").to_string())};
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      version.value(), document.at("method").to_string()));
 }
