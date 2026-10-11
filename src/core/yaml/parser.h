@@ -234,6 +234,10 @@ public:
   }
 
   auto validate_end_of_stream() -> void {
+    // Whatever stands after the document that was read is checked rather than
+    // handed over, so nothing of it is announced to whoever is listening for
+    // the one document the caller gets
+    this->callback_ = nullptr;
     auto token{this->next_token()};
     // The preceding parse already consumed a document, so its end marker, if
     // any, is not among the tokens seen here. YAML 1.2.2 Section 6.8.2: tag

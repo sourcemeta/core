@@ -370,9 +370,6 @@ TEST(push_back_single_token_rvalue_pointer) {
   EXPECT_EQ(target, (sourcemeta::core::Pointer{"foo", "bar"}));
 }
 
-// A weak pointer may take the tokens of an owning one, which it borrows rather
-// than copies, so the hash each property already carries travels with it
-
 TEST(weak_push_back_empty_pointer) {
   const sourcemeta::core::JSON::String foo{"foo"};
   sourcemeta::core::WeakPointer pointer{std::cref(foo)};

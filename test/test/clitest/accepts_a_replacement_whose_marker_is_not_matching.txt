@@ -1,0 +1,4 @@
+TAP version 14
+1..1
+ok 1 - accepts_a_replacement_whose_marker_is_not_matching.clitest
+# 1 passed, 0 failed

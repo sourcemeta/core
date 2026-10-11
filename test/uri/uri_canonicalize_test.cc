@@ -282,7 +282,6 @@ TEST(empty_uri_string_constructor) {
 }
 
 // Inspired from https://cr.openjdk.org/~dfuchs/writeups/updating-uri/
-
 TEST(rfc3986_1) {
   sourcemeta::core::URI uri{"s://h/a/../../b"};
   uri.canonicalize();
@@ -291,7 +290,6 @@ TEST(rfc3986_1) {
 
 // Inspired from
 // https://github.com/uriparser/uriparser/blob/master/test/test.cpp#L1438
-
 TEST(rfc3986_2) {
   sourcemeta::core::URI uri{"eXAMPLE://a/./b/../b/%63/%7bfoo%7d"};
   uri.canonicalize();
@@ -392,7 +390,6 @@ TEST(relative_path_colon_ambiguity) {
 
 // Inspired from
 // https://github.com/uriparser/uriparser/blob/master/test/test.cpp#L1531
-
 TEST(path_multiple_dotdot_to_root) {
   sourcemeta::core::URI uri{"http://a/b/c/../../.."};
   uri.canonicalize();
@@ -571,9 +568,6 @@ TEST(path_setter_decodes_percent_encoded_ascii_unreserved) {
   uri.canonicalize();
   EXPECT_EQ(uri.recompose(), "https://example.com/A");
 }
-
-// RFC 3987 Section 3.2 decodes a percent-encoded character into an IRI only
-// when the whole of it is there and spells a character the IRI admits
 
 TEST(iri_leaves_a_lead_byte_whose_continuation_is_missing) {
   auto uri{sourcemeta::core::URI::from_iri("https://example.com/%C3")};

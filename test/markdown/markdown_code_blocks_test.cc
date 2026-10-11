@@ -320,3 +320,21 @@ TEST(fenced_code_block_closing_fence_with_a_trailing_tabulation) {
   const auto result{sourcemeta::core::markdown_to_html("```\na\n```\t")};
   EXPECT_EQ(result, "<pre><code>a\n</code></pre>\n");
 }
+
+// GFM section 2.2: "Tabs in lines are not expanded to spaces. However, in
+// contexts where spaces help to define block structure, tabs behave as if they
+// were replaced by spaces with a tab stop of 4 characters", so a tabulation
+// opens an indented code block on its own
+TEST(indented_code_block_opened_by_a_tabulation) {
+  const auto result{sourcemeta::core::markdown_to_html("\tx\n")};
+  EXPECT_EQ(result, "<pre><code>x\n</code></pre>\n");
+}
+
+// A list marker takes one column of the tabulation that follows it and leaves
+// the rest, so the code block opens four columns past that and the columns
+// beyond it are content
+TEST(indented_code_block_opened_by_a_tabulation_inside_a_list_item) {
+  const auto result{sourcemeta::core::markdown_to_html("-\t\tx\n")};
+  EXPECT_EQ(result, "<ul>\n<li>\n<pre><code>  x\n</code></pre>\n</li>\n"
+                    "</ul>\n");
+}

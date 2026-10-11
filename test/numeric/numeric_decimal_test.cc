@@ -6490,10 +6490,6 @@ TEST(to_double_keeps_a_subnormal_result) {
   EXPECT_LT(result, 1e-300);
 }
 
-// IEEE 754-2019 Section 5.12 spells the special values without regard to case,
-// so each letter is read either way. A word that matches up to one letter and
-// then does not is no special value, and no number either
-
 TEST(not_a_number_with_a_wrong_third_letter) {
   try {
     const sourcemeta::core::Decimal value{"Nax"};

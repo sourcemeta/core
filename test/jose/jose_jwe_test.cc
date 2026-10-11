@@ -172,9 +172,6 @@ TEST(constructor_throws_on_invalid_input) {
   }
 }
 
-// RFC 7516 Section 7.1 writes all five parts of a compact object in base64url,
-// so a part that is not readable that way is no compact object
-
 TEST(from_rejects_an_encrypted_key_that_is_no_base64url) {
   std::string compact{
       sourcemeta::core::base64url_encode(R"({"alg":"dir","enc":"A128GCM"})")};

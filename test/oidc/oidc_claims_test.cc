@@ -515,9 +515,6 @@ TEST(build_claims_parameter_carries_a_requested_value) {
   EXPECT_FALSE(document.at("id_token").at("acr").defines("essential"));
 }
 
-// Section 5.5 reads the specification from a target member, so a parameter
-// that names no such member requests nothing
-
 TEST(claims_parameter_is_essential_without_the_target_member) {
   const auto claims{sourcemeta::core::parse_json(R"JSON({
     "userinfo": { "email": { "essential": true } }
@@ -525,9 +522,6 @@ TEST(claims_parameter_is_essential_without_the_target_member) {
   EXPECT_FALSE(sourcemeta::core::oidc_claims_parameter_is_essential(
       claims, "id_token", "email"));
 }
-
-// The essential member is a boolean, so one of another type marks nothing, and
-// a specification that omits it is voluntary
 
 TEST(claims_parameter_is_essential_of_another_type) {
   const auto claims{sourcemeta::core::parse_json(R"JSON({

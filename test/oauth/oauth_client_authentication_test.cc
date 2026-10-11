@@ -284,9 +284,6 @@ TEST(parse_client_authentication_of_a_basic_scheme_without_a_credential) {
       "Basic    ", "", storage, credentials));
 }
 
-// RFC 6749 Section 2.3.1 percent encodes each half before joining them, so a
-// half carrying a malformed escape is a malformed request
-
 TEST(parse_client_authentication_of_a_basic_identifier_with_a_bad_escape) {
   sourcemeta::core::SecureString storage;
   sourcemeta::core::OAuthClientCredentials credentials;

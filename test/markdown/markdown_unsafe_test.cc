@@ -637,13 +637,19 @@ TEST(html_inline_unquoted_attribute_value_ends_at_a_double_quote) {
   EXPECT_EQ(result, "<p>a &lt;b x=y&quot;z&gt;c</p>\n");
 }
 
-// GFM section 4.6 has start condition 1 need whitespace or a right angle
-// bracket after the tag name, so a self-closing one does not open that kind of
-// block and is left to the condition that takes any complete tag
-TEST(html_block_self_closing_script_is_not_the_raw_text_condition) {
+// Start condition 1 needs whitespace or a right angle bracket after the tag
+// name, and condition 7 leaves the raw text elements out, so a self-closing
+// one of those opens no block at all
+TEST(html_block_self_closing_script_opens_no_block) {
   const auto result{
       sourcemeta::core::markdown_to_html("<script/>\ntext", false)};
-  EXPECT_EQ(result, "&lt;script/>\ntext\n");
+  EXPECT_EQ(result, "<p>&lt;script/>\ntext</p>\n");
+}
+
+TEST(html_block_closing_script_tag_opens_the_complete_tag_condition) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("</script>\ntext", false)};
+  EXPECT_EQ(result, "&lt;/script>\ntext\n");
 }
 
 // Start condition 6 needs the same, and the slash it also admits has to be the

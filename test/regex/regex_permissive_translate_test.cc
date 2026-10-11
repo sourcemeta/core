@@ -3,9 +3,6 @@
 
 #include <string> // std::string
 
-// The permissive dialect rewrites a pattern before handing it over, so every
-// escape it reads has to behave when the pattern stops in the middle of one
-
 TEST(permissive_class_hex_escape_without_digits) {
   const auto regex{sourcemeta::core::to_regex(
       "[\\x]", sourcemeta::core::RegexDialect::Permissive)};
@@ -174,9 +171,6 @@ TEST(permissive_class_with_a_closing_bracket_inside_a_nested_one) {
   EXPECT_TRUE(regex.has_value());
 }
 
-// A class is only expanded when it carries a set operation or a nested
-// bracket, so every escape above is read by the expansion only in that company
-
 TEST(permissive_set_difference_with_a_hex_escape_without_digits) {
   const auto regex{sourcemeta::core::to_regex(
       "[\\x--a]", sourcemeta::core::RegexDialect::Permissive)};
@@ -327,9 +321,6 @@ TEST(permissive_class_left_open_by_a_trailing_backslash) {
       "[[a]--[b\\", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
 }
-
-// An operand written as a bracket of its own is validated before it is read,
-// which weighs the same escapes a second time
 
 TEST(permissive_bracketed_operand_with_a_hex_escape_without_digits) {
   const auto regex{sourcemeta::core::to_regex(
@@ -716,4 +707,19 @@ TEST(permissive_escaped_space) {
   EXPECT_TRUE(regex.has_value());
   EXPECT_FALSE(sourcemeta::core::is_regex_ecma("a\\ b"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a b"));
+}
+
+// An intersection chains only with further intersections and a subtraction
+// only with further subtractions, so the kinds cannot be mixed however far
+// into the class the second kind stands
+TEST(permissive_class_mixing_two_subtractions_and_an_intersection) {
+  const auto regex{sourcemeta::core::to_regex(
+      "[a--b--c&&d]", sourcemeta::core::RegexDialect::Permissive)};
+  EXPECT_FALSE(regex.has_value());
+}
+
+TEST(permissive_class_mixing_two_intersections_and_a_subtraction) {
+  const auto regex{sourcemeta::core::to_regex(
+      "[a&&b&&c--d]", sourcemeta::core::RegexDialect::Permissive)};
+  EXPECT_FALSE(regex.has_value());
 }

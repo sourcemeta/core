@@ -616,9 +616,6 @@ TEST(value_object_without_a_value) {
   EXPECT_FALSE(sourcemeta::core::jsonld_is_expanded(document));
 }
 
-// Section 9 lets a list or set object carry an index beside its keyword, which
-// is a string there too
-
 TEST(list_object_with_an_index) {
   const auto document = sourcemeta::core::parse_json(R"([
     { "http://example.com/p": [ { "@list": [], "@index": "first" } ] }

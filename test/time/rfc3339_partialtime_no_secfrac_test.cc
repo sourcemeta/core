@@ -129,9 +129,6 @@ TEST(suite_invalid_datetime_passed_in) {
       "2020-11-28T23:55:45Z"));
 }
 
-// RFC 3339 Section 5.6 writes each of the three parts as two digits separated
-// by colons, so every one of the eight positions is held to its own shape
-
 TEST(invalid_second_hour_digit) {
   EXPECT_FALSE(sourcemeta::core::is_rfc3339_partialtime_no_secfrac("0x:30:06"));
 }

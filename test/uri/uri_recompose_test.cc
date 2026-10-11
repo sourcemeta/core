@@ -81,10 +81,6 @@ TEST(preserves_scheme_and_host_case) {
   EXPECT_EQ(uri.recompose(), "HtTp://ExAmPlE.CoM/foo");
 }
 
-// Per RFC 3986 Section 2.2, percent-encoded reserved characters must be
-// preserved during recomposition. They are semantically distinct from
-// their literal counterparts.
-
 TEST(encoded_slash_in_path) {
   const sourcemeta::core::URI uri{"http://example.com/v1%2F2.json"};
   EXPECT_EQ(uri.recompose(), "http://example.com/v1%2F2.json");

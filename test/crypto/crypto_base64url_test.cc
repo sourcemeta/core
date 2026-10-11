@@ -7,9 +7,6 @@
 #include <string>      // std::string
 #include <string_view> // std::string_view
 
-// RFC 4648 Section 10 test vectors
-// See https://www.rfc-editor.org/rfc/rfc4648#section-10
-
 TEST(encode_rfc4648_empty) {
   EXPECT_EQ(sourcemeta::core::base64url_encode(""), "");
 }

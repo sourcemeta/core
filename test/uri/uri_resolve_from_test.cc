@@ -1,12 +1,10 @@
 #include <sourcemeta/core/test.h>
 #include <sourcemeta/core/uri.h>
 
-// NON-STANDARD EXTENSION: Relative-to-Relative Resolution
-// The following tests exercise relative-to-relative URI resolution, which is
-// NOT defined by RFC 3986. RFC 3986 Section 5.1 explicitly states:
-// "Relative resolution requires a base URI to be absolute."
-// This implementation extends RFC 3986 to support relative bases in specific
-// cases as a convenience feature.
+// Relative-to-relative resolution is no part of RFC 3986, whose Section 5.1
+// states that "Relative resolution requires a base URI to be absolute". This
+// module extends that to a relative base as a convenience, and every test of
+// it is named with an extension prefix
 
 TEST(extension_relative_base_unchanged) {
   const sourcemeta::core::URI base{"../foo"};

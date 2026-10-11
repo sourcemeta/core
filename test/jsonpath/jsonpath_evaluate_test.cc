@@ -438,10 +438,6 @@ TEST(jsonpath_evaluate_multibyte_shorthand) {
   EXPECT_EQ(sourcemeta::core::to_string(nodes.at(0).location), "/a\xc3\xa9");
 }
 
-// RFC 9535 Section 2.3 selects nothing when the selector does not match the
-// kind of value it is applied to, and Section 2.3.3 bounds an index to the
-// array it indexes
-
 TEST(jsonpath_evaluate_index_past_the_end) {
   const auto document{sourcemeta::core::parse_json(R"JSON([ 1, 2 ])JSON")};
   const sourcemeta::core::JSONPath path{"$[9]"};
@@ -522,9 +518,6 @@ TEST(jsonpath_evaluate_deep_name_on_scalar) {
   EXPECT_EQ(nodes.size(), 0);
 }
 
-// A query inside a filter walks the document on its own, so a selector that
-// does not match what it reaches selects nothing there either
-
 TEST(jsonpath_evaluate_filter_with_an_index_on_an_object) {
   const auto document{
       sourcemeta::core::parse_json(R"JSON([ { "0": 1 }, [ 1 ] ])JSON")};
@@ -582,9 +575,6 @@ TEST(jsonpath_evaluate_filter_with_a_name_on_a_scalar) {
   EXPECT_EQ(nodes.size(), 1);
   EXPECT_TRUE(nodes.at(0).value->is_object());
 }
-
-// A query inside a filter continues on an iterative walk of its own once it
-// runs past the recursion limit, which is a second reading of every selector
 
 TEST(jsonpath_evaluate_deep_filter_with_a_descendant_name) {
   auto document{sourcemeta::core::JSON::make_array()};

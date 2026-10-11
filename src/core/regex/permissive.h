@@ -526,20 +526,23 @@ inline auto expand_set_ops(const std::string &content, std::bitset<128> &result)
     return representable;
   }
 
-  if (auto [next_pos, next_op] = first_operator(content, op_pos + 2);
-      next_pos != std::string::npos && next_op != op_char) {
-    return false;
-  }
-
   if (!parse_operand(content.substr(0, op_pos), result)) {
     return false;
   }
 
   std::size_t position{op_pos};
   while (true) {
+    // The scan that reaches every operator here reports it whole
     assert(position + 1 < content.size());
-    assert(content[position] == op_char);
-    assert(content[position + 1] == op_char);
+    assert(content[position + 1] == content[position]);
+    // ECMA-262 writes a class set expression as a union, an intersection or a
+    // subtraction, and chains an intersection only with further intersections
+    // and a subtraction only with further subtractions, so a class naming two
+    // kinds of operator names no set this can work out
+    if (content[position] != op_char) {
+      return false;
+    }
+
     auto [next, unused] = first_operator(content, position += 2);
     std::bitset<128> operand_chars;
     if (!parse_operand(next != std::string::npos

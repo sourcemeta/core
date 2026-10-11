@@ -263,9 +263,6 @@ TEST(merge_claims_rejects_an_id_token_subject_of_another_type) {
       sourcemeta::core::oidc_merge_claims(id_token, userinfo).has_value());
 }
 
-// Section 5.6.2 makes the names a set of references into the sources, so the
-// pair is taken from one answer or from neither
-
 TEST(merge_claims_keeps_aggregated_claims_of_the_id_token) {
   const auto id_token{sourcemeta::core::parse_json(R"JSON({
     "sub": "user-1",

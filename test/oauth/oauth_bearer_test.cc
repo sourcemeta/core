@@ -842,10 +842,6 @@ TEST(has_scope_rejects_when_the_claims_are_not_an_object) {
   EXPECT_FALSE(sourcemeta::core::oauth_has_scope(claims, "read"));
 }
 
-// RFC 9110 Section 11.6.1 writes a challenge as a scheme token optionally
-// followed by a credential or by parameters, so a header that opens with none
-// of that names no challenge
-
 TEST(challenge_parameter_of_a_header_opening_with_a_separator) {
   EXPECT_FALSE(
       sourcemeta::core::oauth_challenge_parameter(", Bearer", "Bearer", "realm")

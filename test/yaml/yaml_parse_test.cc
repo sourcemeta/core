@@ -3764,9 +3764,6 @@ TEST(first_two_bytes_of_the_byte_order_mark_on_their_own) {
   }
 }
 
-// A stream may stop in the middle of any construct, which is where the scans
-// that look for what closes one run out of input instead
-
 TEST(comment_at_the_end_of_the_stream) {
   const std::string input{"foo: 1 # note"};
   const auto result{sourcemeta::core::parse_yaml(input)};

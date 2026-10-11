@@ -384,9 +384,6 @@ TEST(jws_sign_hs512_rejects_an_ec_key) {
                                           key.value()));
 }
 
-// An asymmetric algorithm signs with the platform key the JWK was parsed into,
-// and a symmetric key has none, so there is nothing to sign with
-
 TEST(jws_sign_rs256_with_a_symmetric_key) {
   const auto key{sourcemeta::core::JWKPrivate::from(
       sourcemeta::core::parse_json(OCT_JWK_32_BYTES))};

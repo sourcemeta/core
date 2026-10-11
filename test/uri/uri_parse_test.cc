@@ -3,7 +3,6 @@
 
 // Inspired from
 // https://github.com/uriparser/uriparser/blob/bf0174e83164a4659c51c135399478bec389eafa/test/test.cpp#L302
-
 TEST(syntax_error_1) {
   try {
     sourcemeta::core::URI uri{"//[::44.1"};
@@ -18,7 +17,6 @@ TEST(syntax_error_1) {
 
 // Inspired from
 // https://github.com/uriparser/uriparser/blob/bf0174e83164a4659c51c135399478bec389eafa/test/test.cpp#L510-L516
-
 TEST(syntax_error_2) {
   try {
     sourcemeta::core::URI uri{"http://moo:21@moo:21@moo/"};
@@ -45,7 +43,6 @@ TEST(syntax_error_3) {
 
 // Inspired from
 // https://github.com/uriparser/uriparser/blob/bf0174e83164a4659c51c135399478bec389eafa/test/test.cpp#L2180
-
 TEST(syntax_error_4) {
   try {
     // missing "]"
@@ -489,7 +486,6 @@ TEST(rfc3986_empty_port_with_path) {
 
 // Inspired from
 // https://github.com/uriparser/uriparser/blob/bf0174e83164a4659c51c135399478bec389eafa/test/test.cpp#L315
-
 TEST(success_1) {
   EXPECT_FALSE(sourcemeta::core::URI::is_uri(
       "//user:pass@[::1]:80/segment/index.html?query#frag"));

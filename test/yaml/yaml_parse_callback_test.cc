@@ -653,3 +653,13 @@ TEST(yaml_anchored_empty_string_node_at_the_end_of_the_stream) {
   EXPECT_TRACE(2, Post, String, 1, 4, Root, 0, "");
   EXPECT_TRACE(3, Post, Object, 2, 0, Root, 0, "");
 }
+
+// Only the document the caller gets is announced, so the documents checked
+// after it are silent
+TEST(callback_hears_nothing_of_the_documents_after_the_first) {
+  const auto *const input{"a\n...\nb\n"};
+  PARSE_YAML_WITH_TRACES(document, input, 2);
+  EXPECT_TRACE(0, Pre, String, 1, 1, Root, 0, "");
+  EXPECT_TRACE(1, Post, String, 1, 1, Root, 0, "");
+  EXPECT_EQ(document, sourcemeta::core::JSON{"a"});
+}

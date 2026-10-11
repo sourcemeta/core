@@ -263,10 +263,12 @@ private:
   // Advance by a number of bytes, or by a number of columns where a tab might
   // only be partially consumed
   auto advance_offset(std::ptrdiff_t count, const bool columns) -> void {
-    // No caller asks to walk past the end of the line, which is what lets the
-    // scan below read the bytes it is given and the loop after it read a
-    // character at every step
-    assert(this->offset_ + count <= this->line_size());
+    // No caller asks to walk past the end of the line by bytes, which is what
+    // lets the scan below read the bytes it is given. A run of columns is not
+    // bounded the same way, since a tab carries more columns than it does
+    // bytes, and the loop after the scan reads through an accessor that stops
+    // at the end of the line of its own accord
+    assert(columns || this->offset_ + count <= this->line_size());
     // Without tabs, advancing by bytes also advances by the same columns
     if (!columns && count > 0 &&
         std::memchr(this->line_.data() + this->offset_, '\t',

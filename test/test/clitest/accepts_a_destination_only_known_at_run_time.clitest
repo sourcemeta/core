@@ -1,4 +1,4 @@
 RUN validate STDIN /dev/null IN . INTO ./result.txt EXPECTING 0
-CHECKSUM result.txt AS SUM
+CHECKSUM SHA256 result.txt AS SUM
 COPY result.txt TO $SUM.txt
 COMPARE result.txt AGAINST expected.txt

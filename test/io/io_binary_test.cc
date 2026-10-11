@@ -40,10 +40,6 @@ protected:
                                    "sourcemeta_core_io_binary_test"};
 };
 
-// -----------------------------------------------------------------------------
-// BinaryWriter — std::ostream backend
-// -----------------------------------------------------------------------------
-
 TEST(put_byte_emits_one_byte) {
   std::ostringstream stream;
   sourcemeta::core::BinaryWriter writer{stream};
@@ -132,10 +128,6 @@ TEST(position_advances_after_writes) {
   writer.put_dword(0xDEADBEEF);
   EXPECT_EQ(writer.position(), 7);
 }
-
-// -----------------------------------------------------------------------------
-// BinaryReader — std::istream backend
-// -----------------------------------------------------------------------------
 
 TEST(get_byte_from_stringstream) {
   std::istringstream input{"X"};
@@ -260,10 +252,6 @@ TEST(has_more_data_treats_null_byte_as_data) {
   EXPECT_TRUE(reader.has_more_data());
 }
 
-// -----------------------------------------------------------------------------
-// BinaryWriter — file backend (via std::ofstream)
-// -----------------------------------------------------------------------------
-
 TEST_F(IOBinaryTest, put_dword_to_file) {
   const auto path{this->workspace_ / "value.bin"};
   {
@@ -285,10 +273,6 @@ TEST_F(IOBinaryTest, put_bytes_to_file) {
   }
   EXPECT_EQ(std::filesystem::file_size(path), PAYLOAD.size());
 }
-
-// -----------------------------------------------------------------------------
-// BinaryReader — FileView backend
-// -----------------------------------------------------------------------------
 
 TEST_F(IOBinaryTest, get_after_put_integer_roundtrip_via_file) {
   const auto path{this->workspace_ / "value.bin"};

@@ -4,9 +4,6 @@
 #include <sstream> // std::ostringstream
 #include <string>  // std::string
 
-// RFC 4648 Section 10 test vectors
-// See https://www.rfc-editor.org/rfc/rfc4648#section-10
-
 TEST(encode_rfc4648_empty) {
   EXPECT_EQ(sourcemeta::core::base64_encode(""), "");
 }
