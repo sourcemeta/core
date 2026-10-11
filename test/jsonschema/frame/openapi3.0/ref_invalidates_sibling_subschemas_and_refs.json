@@ -1,0 +1,239 @@
+{
+  "schema": {
+    "properties": {
+      "foo": {
+        "$ref": "#/x-definitions/enabled",
+        "properties": {
+          "bar": {
+            "$ref": "#/x-definitions/config",
+            "additionalProperties": {
+              "$ref": "#/x-definitions/threshold"
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultDialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+  "root": {
+    "mode": "root",
+    "locations": {
+      "static": {
+        "": {
+          "parent": null,
+          "type": "subschema",
+          "root": null,
+          "base": "",
+          "pointer": "",
+          "relativePointer": "",
+          "dialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+          "baseDialect": "http://json-schema.org/draft-04/schema#",
+          "propertyName": false,
+          "orphan": false,
+          "hasReferencesTo": false,
+          "hasReferencesThrough": false,
+          "vocabularies": {
+            "tag:spec.openapis.org,2017:oas/3.0/vocab/base": true
+          }
+        }
+      },
+      "dynamic": {}
+    },
+    "references": []
+  },
+  "pointers": {
+    "mode": "pointers",
+    "locations": {
+      "static": {
+        "": {
+          "parent": null,
+          "type": "subschema",
+          "root": null,
+          "base": "",
+          "pointer": "",
+          "relativePointer": "",
+          "dialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+          "baseDialect": "http://json-schema.org/draft-04/schema#",
+          "propertyName": false,
+          "orphan": false,
+          "hasReferencesTo": false,
+          "hasReferencesThrough": false,
+          "vocabularies": {
+            "tag:spec.openapis.org,2017:oas/3.0/vocab/base": true
+          }
+        },
+        "#/properties": {
+          "parent": "",
+          "type": "pointer",
+          "root": null,
+          "base": "",
+          "pointer": "/properties",
+          "relativePointer": "/properties",
+          "dialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+          "baseDialect": "http://json-schema.org/draft-04/schema#",
+          "propertyName": false,
+          "orphan": false,
+          "hasReferencesTo": false,
+          "hasReferencesThrough": false,
+          "vocabularies": {
+            "tag:spec.openapis.org,2017:oas/3.0/vocab/base": true
+          }
+        },
+        "#/properties/foo": {
+          "parent": "",
+          "type": "subschema",
+          "root": null,
+          "base": "",
+          "pointer": "/properties/foo",
+          "relativePointer": "/properties/foo",
+          "dialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+          "baseDialect": "http://json-schema.org/draft-04/schema#",
+          "propertyName": false,
+          "orphan": false,
+          "hasReferencesTo": false,
+          "hasReferencesThrough": false,
+          "vocabularies": {
+            "tag:spec.openapis.org,2017:oas/3.0/vocab/base": true
+          }
+        },
+        "#/properties/foo/$ref": {
+          "parent": "/properties/foo",
+          "type": "pointer",
+          "root": null,
+          "base": "",
+          "pointer": "/properties/foo/$ref",
+          "relativePointer": "/properties/foo/$ref",
+          "dialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+          "baseDialect": "http://json-schema.org/draft-04/schema#",
+          "propertyName": false,
+          "orphan": false,
+          "hasReferencesTo": false,
+          "hasReferencesThrough": false,
+          "vocabularies": {
+            "tag:spec.openapis.org,2017:oas/3.0/vocab/base": true
+          }
+        },
+        "#/properties/foo/properties": {
+          "parent": "/properties/foo",
+          "type": "pointer",
+          "root": null,
+          "base": "",
+          "pointer": "/properties/foo/properties",
+          "relativePointer": "/properties/foo/properties",
+          "dialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+          "baseDialect": "http://json-schema.org/draft-04/schema#",
+          "propertyName": false,
+          "orphan": false,
+          "hasReferencesTo": false,
+          "hasReferencesThrough": false,
+          "vocabularies": {
+            "tag:spec.openapis.org,2017:oas/3.0/vocab/base": true
+          }
+        },
+        "#/properties/foo/properties/bar": {
+          "parent": "/properties/foo",
+          "type": "pointer",
+          "root": null,
+          "base": "",
+          "pointer": "/properties/foo/properties/bar",
+          "relativePointer": "/properties/foo/properties/bar",
+          "dialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+          "baseDialect": "http://json-schema.org/draft-04/schema#",
+          "propertyName": false,
+          "orphan": false,
+          "hasReferencesTo": false,
+          "hasReferencesThrough": false,
+          "vocabularies": {
+            "tag:spec.openapis.org,2017:oas/3.0/vocab/base": true
+          }
+        },
+        "#/properties/foo/properties/bar/$ref": {
+          "parent": "/properties/foo",
+          "type": "pointer",
+          "root": null,
+          "base": "",
+          "pointer": "/properties/foo/properties/bar/$ref",
+          "relativePointer": "/properties/foo/properties/bar/$ref",
+          "dialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+          "baseDialect": "http://json-schema.org/draft-04/schema#",
+          "propertyName": false,
+          "orphan": false,
+          "hasReferencesTo": false,
+          "hasReferencesThrough": false,
+          "vocabularies": {
+            "tag:spec.openapis.org,2017:oas/3.0/vocab/base": true
+          }
+        },
+        "#/properties/foo/properties/bar/additionalProperties": {
+          "parent": "/properties/foo",
+          "type": "pointer",
+          "root": null,
+          "base": "",
+          "pointer": "/properties/foo/properties/bar/additionalProperties",
+          "relativePointer": "/properties/foo/properties/bar/additionalProperties",
+          "dialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+          "baseDialect": "http://json-schema.org/draft-04/schema#",
+          "propertyName": false,
+          "orphan": false,
+          "hasReferencesTo": false,
+          "hasReferencesThrough": false,
+          "vocabularies": {
+            "tag:spec.openapis.org,2017:oas/3.0/vocab/base": true
+          }
+        },
+        "#/properties/foo/properties/bar/additionalProperties/$ref": {
+          "parent": "/properties/foo",
+          "type": "pointer",
+          "root": null,
+          "base": "",
+          "pointer": "/properties/foo/properties/bar/additionalProperties/$ref",
+          "relativePointer": "/properties/foo/properties/bar/additionalProperties/$ref",
+          "dialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+          "baseDialect": "http://json-schema.org/draft-04/schema#",
+          "propertyName": false,
+          "orphan": false,
+          "hasReferencesTo": false,
+          "hasReferencesThrough": false,
+          "vocabularies": {
+            "tag:spec.openapis.org,2017:oas/3.0/vocab/base": true
+          }
+        }
+      },
+      "dynamic": {}
+    },
+    "references": [
+      {
+        "type": "static",
+        "origin": "/properties/foo/$ref",
+        "original": "#/x-definitions/enabled",
+        "destination": "#/x-definitions/enabled",
+        "base": null,
+        "fragment": "/x-definitions/enabled"
+      }
+    ]
+  },
+  "standalone": false,
+  "standaloneIgnoringMetaschemas": false,
+  "reachability": [
+    {
+      "from": "",
+      "to": "",
+      "reachable": true
+    },
+    {
+      "from": "",
+      "to": "#/properties/foo",
+      "reachable": true
+    },
+    {
+      "from": "#/properties/foo",
+      "to": "",
+      "reachable": false
+    },
+    {
+      "from": "#/properties/foo",
+      "to": "#/properties/foo",
+      "reachable": true
+    }
+  ]
+}
