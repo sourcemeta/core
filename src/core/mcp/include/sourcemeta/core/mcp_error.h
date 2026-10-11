@@ -146,13 +146,20 @@ constexpr std::int64_t MCP_CODE_UNSUPPORTED_PROTOCOL_VERSION{-32022};
 /// mandates for it on the Streamable HTTP transport, or nothing where it
 /// mandates none.
 ///
-/// Only 2026-07-28 ties an error code to a status, and only for five of them:
-/// an unimplemented method answers `404`, while invalid parameters, a header
+/// Only 2026-07-28 ties a status to an error code on its own, and only for
+/// four of them: an unimplemented method answers `404`, while a header
 /// mismatch, a missing required client capability and an unsupported protocol
-/// version each answer `400`. The invalid-parameters mandate is written for
-/// the commonest cause of that code, a request that omits a required metadata
-/// field, and nothing in the revision names a different status for any other
-/// cause of it.
+/// version each answer `400`.
+///
+/// Invalid parameters is deliberately absent despite carrying a mandate of its
+/// own, because the mandate is written for one cause of that code, a request
+/// that omits a required metadata field, while the same code also answers a
+/// resource that cannot be found and an argument that disagrees with its
+/// mirrored header. Those have no mandated status, and a missing resource
+/// would be poorly served by the one the metadata rule gives. A caller
+/// rejecting a request for missing metadata therefore answers `400` on its own
+/// authority, which it can do because it chose that rejection and this helper
+/// cannot see which cause produced the code.
 ///
 /// Every other code in that revision, and every code in the three earlier
 /// revisions, has no mandated status: those revisions tie a status to a
@@ -176,10 +183,6 @@ constexpr std::int64_t MCP_CODE_UNSUPPORTED_PROTOCOL_VERSION{-32022};
 ///            sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
 ///            sourcemeta::core::MCP_CODE_HEADER_MISMATCH) ==
 ///        sourcemeta::core::HTTP_STATUS_BAD_REQUEST);
-/// assert(sourcemeta::core::mcp_error_code_to_http_status(
-///            sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-///            sourcemeta::core::JSONRPC_CODE_INVALID_PARAMS) ==
-///        sourcemeta::core::HTTP_STATUS_BAD_REQUEST);
 /// assert(!sourcemeta::core::mcp_error_code_to_http_status(
 ///             sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
 ///             sourcemeta::core::JSONRPC_CODE_INTERNAL)
@@ -202,7 +205,7 @@ constexpr auto mcp_error_code_to_http_status(const MCPProtocolVersion version,
   if (code == JSONRPC_CODE_METHOD_NOT_FOUND) {
     return HTTP_STATUS_NOT_FOUND;
   }
-  if (code == JSONRPC_CODE_INVALID_PARAMS || code == MCP_CODE_HEADER_MISMATCH ||
+  if (code == MCP_CODE_HEADER_MISMATCH ||
       code == MCP_CODE_MISSING_REQUIRED_CLIENT_CAPABILITY ||
       code == MCP_CODE_UNSUPPORTED_PROTOCOL_VERSION) {
     return HTTP_STATUS_BAD_REQUEST;
