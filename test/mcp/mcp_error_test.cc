@@ -1002,8 +1002,8 @@ TEST(error_code_to_http_status_method_not_found_2025_03_26) {
                    .has_value());
 }
 
-// 2026-07-28 names a status for four codes and no others, so the generic
-// JSON-RPC failures leave the choice to the adapter
+// 2026-07-28 names a status for five codes and no others, so a parse failure,
+// a malformed envelope and an internal fault leave the choice to the adapter
 // https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#server-validation
 TEST(error_code_to_http_status_parse_error) {
   EXPECT_FALSE(sourcemeta::core::mcp_error_code_to_http_status(
@@ -1019,9 +1019,19 @@ TEST(error_code_to_http_status_invalid_request) {
                    .has_value());
 }
 
+// A request that omits a required metadata field is answered with invalid
+// parameters and a 400, which is the one mandate that attaches to this code
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/index#_meta
 TEST(error_code_to_http_status_invalid_params) {
+  EXPECT_EQ(sourcemeta::core::mcp_error_code_to_http_status(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::JSONRPC_CODE_INVALID_PARAMS),
+            sourcemeta::core::HTTP_STATUS_BAD_REQUEST);
+}
+
+TEST(error_code_to_http_status_invalid_params_2025_11_25) {
   EXPECT_FALSE(sourcemeta::core::mcp_error_code_to_http_status(
-                   sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                   sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
                    sourcemeta::core::JSONRPC_CODE_INVALID_PARAMS)
                    .has_value());
 }
