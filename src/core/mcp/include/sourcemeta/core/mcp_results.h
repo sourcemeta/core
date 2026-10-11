@@ -450,9 +450,10 @@ auto mcp_make_empty_result(
 /// @see
 /// https://modelcontextprotocol.io/specification/2026-07-28/server/tools
 SOURCEMETA_CORE_MCP_EXPORT
-auto mcp_make_tool_success(const MCPProtocolVersion version,
-                           const sourcemeta::core::JSON &identifier,
-                           sourcemeta::core::JSON result)
+auto mcp_make_tool_success(
+    const MCPProtocolVersion version, const sourcemeta::core::JSON &identifier,
+    sourcemeta::core::JSON result,
+    const std::optional<MCPImplementation> &server_info = std::nullopt)
     -> sourcemeta::core::JSON;
 
 /// @ingroup mcp
@@ -486,10 +487,10 @@ auto mcp_make_tool_success(const MCPProtocolVersion version,
 /// @see
 /// https://modelcontextprotocol.io/specification/2026-07-28/server/tools
 SOURCEMETA_CORE_MCP_EXPORT
-auto mcp_make_tool_success(const MCPProtocolVersion version,
-                           const sourcemeta::core::JSON &identifier,
-                           sourcemeta::core::JSON structured,
-                           sourcemeta::core::JSON content_blocks)
+auto mcp_make_tool_success(
+    const MCPProtocolVersion version, const sourcemeta::core::JSON &identifier,
+    sourcemeta::core::JSON structured, sourcemeta::core::JSON content_blocks,
+    const std::optional<MCPImplementation> &server_info = std::nullopt)
     -> sourcemeta::core::JSON;
 
 /// @ingroup mcp
@@ -518,9 +519,10 @@ auto mcp_make_tool_success(const MCPProtocolVersion version,
 /// @see
 /// https://modelcontextprotocol.io/specification/2026-07-28/server/tools#error-handling
 SOURCEMETA_CORE_MCP_EXPORT
-auto mcp_make_tool_error(const MCPProtocolVersion version,
-                         const sourcemeta::core::JSON &identifier,
-                         const JSON::StringView message)
+auto mcp_make_tool_error(
+    const MCPProtocolVersion version, const sourcemeta::core::JSON &identifier,
+    const JSON::StringView message,
+    const std::optional<MCPImplementation> &server_info = std::nullopt)
     -> sourcemeta::core::JSON;
 
 /// @ingroup mcp
@@ -1060,7 +1062,9 @@ auto mcp_make_input_required_result(
     const sourcemeta::core::JSON &identifier,
     std::optional<sourcemeta::core::JSON> input_requests,
     std::optional<JSON::StringView> request_state,
-    const MCPClientCapabilities &client_capabilities) -> sourcemeta::core::JSON;
+    const MCPClientCapabilities &client_capabilities,
+    const std::optional<MCPImplementation> &server_info = std::nullopt)
+    -> sourcemeta::core::JSON;
 
 /// @ingroup mcp
 /// Access `inputResponses` from an MRTR continuation request envelope. Returns
@@ -1304,8 +1308,10 @@ auto mcp_validate_continuation(MCPProtocolVersion version,
                                const JSON &input_requests) -> bool;
 
 /// @ingroup mcp
-/// Check continuation fields and require an exact state echo. An empty
-/// expected_state requires a present, empty state token. For example:
+/// Check continuation fields and matching state. A value requires an exact
+/// echo, where an empty one requires a present but empty token, and no value
+/// requires the token to be absent, which is how a server that issued no state
+/// enforces that the retry carries none. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/mcp.h>
@@ -1333,7 +1339,8 @@ SOURCEMETA_CORE_MCP_EXPORT
 auto mcp_validate_continuation(MCPProtocolVersion version,
                                const JSON &parameters,
                                const JSON &input_requests,
-                               JSON::StringView expected_state) -> bool;
+                               std::optional<JSON::StringView> expected_state)
+    -> bool;
 
 /// @ingroup mcp
 /// Construct a checked notification. The direction and parameters are explicit.
@@ -1456,7 +1463,8 @@ auto mcp_make_subscription_acknowledged_notification(
 /// https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/subscriptions
 SOURCEMETA_CORE_MCP_EXPORT
 auto mcp_make_subscription_close_result(
-    const MCPProtocolVersion version, const sourcemeta::core::JSON &identifier)
+    const MCPProtocolVersion version, const sourcemeta::core::JSON &identifier,
+    const std::optional<MCPImplementation> &server_info = std::nullopt)
     -> sourcemeta::core::JSON;
 
 /// @ingroup mcp

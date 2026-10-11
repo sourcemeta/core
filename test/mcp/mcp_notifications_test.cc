@@ -1344,3 +1344,48 @@ TEST(make_notification_message_cannot_use_a_subscription_stream) {
                          &context.second.value()),
                      "Logging cannot be sent on a subscription stream");
 }
+
+// A client that was given no state token must not include one on the retry
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/mrtr#client-requirements-basic-workflow
+TEST(validate_continuation_requires_an_absent_state_when_none_was_issued) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "inputResponses": { "form": { "action": "decline" } }
+  })JSON")};
+  const auto prior{sourcemeta::core::JSON::make_object()};
+  EXPECT_TRUE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior,
+      std::nullopt));
+}
+
+TEST(validate_continuation_rejects_an_unsolicited_state_token) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "requestState": "invented",
+    "inputResponses": { "form": { "action": "decline" } }
+  })JSON")};
+  const auto prior{sourcemeta::core::JSON::make_object()};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior,
+      std::nullopt));
+}
+
+TEST(validate_continuation_requires_a_present_empty_state_for_an_empty_echo) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "requestState": ""
+  })JSON")};
+  const auto prior{sourcemeta::core::JSON::make_object()};
+  EXPECT_TRUE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior,
+      ""));
+}

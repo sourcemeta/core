@@ -3399,69 +3399,6 @@ TEST(supports_method_2026_07_28) {
       "custom/unknownMethod"));
 }
 
-// The operations that name a target, which in 2026-07-28 are the ones
-// required to mirror it into Mcp-Name
-// https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#standard-request-headers
-TEST(is_named_request_method) {
-  EXPECT_FALSE(
-      sourcemeta::core::mcp_is_named_request_method("completion/complete"));
-  EXPECT_FALSE(
-      sourcemeta::core::mcp_is_named_request_method("elicitation/create"));
-  EXPECT_FALSE(sourcemeta::core::mcp_is_named_request_method("initialize"));
-  EXPECT_FALSE(
-      sourcemeta::core::mcp_is_named_request_method("logging/setLevel"));
-  EXPECT_FALSE(
-      sourcemeta::core::mcp_is_named_request_method("notifications/cancelled"));
-  EXPECT_FALSE(sourcemeta::core::mcp_is_named_request_method(
-      "notifications/elicitation/complete"));
-  EXPECT_FALSE(sourcemeta::core::mcp_is_named_request_method(
-      "notifications/initialized"));
-  EXPECT_FALSE(
-      sourcemeta::core::mcp_is_named_request_method("notifications/message"));
-  EXPECT_FALSE(
-      sourcemeta::core::mcp_is_named_request_method("notifications/progress"));
-  EXPECT_FALSE(sourcemeta::core::mcp_is_named_request_method(
-      "notifications/prompts/list_changed"));
-  EXPECT_FALSE(sourcemeta::core::mcp_is_named_request_method(
-      "notifications/resources/list_changed"));
-  EXPECT_FALSE(sourcemeta::core::mcp_is_named_request_method(
-      "notifications/resources/updated"));
-  EXPECT_FALSE(sourcemeta::core::mcp_is_named_request_method(
-      "notifications/roots/list_changed"));
-  EXPECT_FALSE(sourcemeta::core::mcp_is_named_request_method(
-      "notifications/subscriptions/acknowledged"));
-  EXPECT_FALSE(sourcemeta::core::mcp_is_named_request_method(
-      "notifications/tasks/status"));
-  EXPECT_FALSE(sourcemeta::core::mcp_is_named_request_method(
-      "notifications/tools/list_changed"));
-  EXPECT_FALSE(sourcemeta::core::mcp_is_named_request_method("ping"));
-  EXPECT_TRUE(sourcemeta::core::mcp_is_named_request_method("prompts/get"));
-  EXPECT_FALSE(sourcemeta::core::mcp_is_named_request_method("prompts/list"));
-  EXPECT_FALSE(sourcemeta::core::mcp_is_named_request_method("resources/list"));
-  EXPECT_TRUE(sourcemeta::core::mcp_is_named_request_method("resources/read"));
-  EXPECT_TRUE(
-      sourcemeta::core::mcp_is_named_request_method("resources/subscribe"));
-  EXPECT_FALSE(sourcemeta::core::mcp_is_named_request_method(
-      "resources/templates/list"));
-  EXPECT_TRUE(
-      sourcemeta::core::mcp_is_named_request_method("resources/unsubscribe"));
-  EXPECT_FALSE(sourcemeta::core::mcp_is_named_request_method("roots/list"));
-  EXPECT_FALSE(
-      sourcemeta::core::mcp_is_named_request_method("sampling/createMessage"));
-  EXPECT_FALSE(
-      sourcemeta::core::mcp_is_named_request_method("server/discover"));
-  EXPECT_FALSE(
-      sourcemeta::core::mcp_is_named_request_method("subscriptions/listen"));
-  EXPECT_FALSE(sourcemeta::core::mcp_is_named_request_method("tasks/cancel"));
-  EXPECT_FALSE(sourcemeta::core::mcp_is_named_request_method("tasks/get"));
-  EXPECT_FALSE(sourcemeta::core::mcp_is_named_request_method("tasks/list"));
-  EXPECT_FALSE(sourcemeta::core::mcp_is_named_request_method("tasks/result"));
-  EXPECT_TRUE(sourcemeta::core::mcp_is_named_request_method("tools/call"));
-  EXPECT_FALSE(sourcemeta::core::mcp_is_named_request_method("tools/list"));
-  EXPECT_FALSE(
-      sourcemeta::core::mcp_is_named_request_method("custom/unknownMethod"));
-}
-
 // Only these three operations may answer with an interim result
 // https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/mrtr#supported-requests
 TEST(is_mrtr_method) {

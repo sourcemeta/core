@@ -1165,29 +1165,6 @@ constexpr auto mcp_supports_method(const MCPProtocolVersion version,
 }
 
 /// @ingroup mcp
-/// Check whether an MCP request method expects a target name/URI identifier.
-/// For example:
-///
-/// ```cpp
-/// #include <sourcemeta/core/mcp.h>
-/// #include <cassert>
-///
-/// assert(sourcemeta::core::mcp_is_named_request_method("tools/call"));
-/// assert(!sourcemeta::core::mcp_is_named_request_method("tools/list"));
-/// ```
-///
-/// @see
-/// https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#standard-request-headers
-constexpr auto
-mcp_is_named_request_method(const JSON::StringView method) noexcept -> bool {
-  return method == MCP_METHOD_TOOLS_CALL ||
-         method == MCP_METHOD_RESOURCES_READ ||
-         method == MCP_METHOD_PROMPTS_GET ||
-         method == MCP_METHOD_RESOURCES_SUBSCRIBE ||
-         method == MCP_METHOD_RESOURCES_UNSUBSCRIBE;
-}
-
-/// @ingroup mcp
 /// Whether an operation may return an input_required result.
 /// For example:
 ///
