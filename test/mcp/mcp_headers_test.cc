@@ -1921,7 +1921,11 @@ TEST(request_metadata_accepts_tracing_whitespace_and_escapes) {
                   .second.has_value());
 }
 
-TEST(tracestate_rejects_duplicate_key) {
+// A tracestate that does not parse must not decide the outcome for a
+// traceparent that does, so one arriving alongside a valid traceparent is left
+// alone rather than costing the trace it was meant to carry
+// https://www.w3.org/TR/trace-context/#tracestate-header
+TEST(a_malformed_tracestate_does_not_discard_a_valid_traceparent) {
   auto value{sourcemeta::core::parse_json(R"JSON({
     "_meta": {
       "io.modelcontextprotocol/protocolVersion": "2026-07-28",
@@ -1932,6 +1936,35 @@ TEST(tracestate_rejects_duplicate_key) {
       "traceparent",
       sourcemeta::core::JSON{
           "00-0123456789abcdef0123456789abcdef-0123456789abcdef-01"});
+  value.at("_meta").assign("tracestate", sourcemeta::core::JSON{"UPPER=value"});
+  EXPECT_TRUE(sourcemeta::core::mcp_validate_request_parameters(value)
+                  .second.has_value());
+}
+
+// A malformed traceparent ends the walk on its own terms, and the grammar
+// forbids reading the tracestate once it has failed
+// https://www.w3.org/TR/trace-context/#tracestate-header
+TEST(a_malformed_traceparent_is_still_rejected_with_a_good_tracestate) {
+  auto value{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    }
+  })JSON")};
+  value.at("_meta").assign("traceparent", sourcemeta::core::JSON{"nope"});
+  value.at("_meta").assign("tracestate",
+                           sourcemeta::core::JSON{"vendor=state"});
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_parameters(value)
+                   .second.has_value());
+}
+
+TEST(tracestate_rejects_duplicate_key) {
+  auto value{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    }
+  })JSON")};
   value.at("_meta").assign(
       "tracestate",
       sourcemeta::core::JSON{"\tvendor=state,1tenant@system=value\t"});
@@ -1952,10 +1985,6 @@ TEST(tracestate_rejects_uppercase_key) {
     }
   })JSON")};
   value.at("_meta").assign(
-      "traceparent",
-      sourcemeta::core::JSON{
-          "00-0123456789abcdef0123456789abcdef-0123456789abcdef-01"});
-  value.at("_meta").assign(
       "tracestate",
       sourcemeta::core::JSON{"\tvendor=state,1tenant@system=value\t"});
   value.at("_meta").assign(
@@ -1974,10 +2003,6 @@ TEST(tracestate_rejects_extra_equals) {
       "io.modelcontextprotocol/clientCapabilities": {}
     }
   })JSON")};
-  value.at("_meta").assign(
-      "traceparent",
-      sourcemeta::core::JSON{
-          "00-0123456789abcdef0123456789abcdef-0123456789abcdef-01"});
   value.at("_meta").assign(
       "tracestate",
       sourcemeta::core::JSON{"\tvendor=state,1tenant@system=value\t"});
