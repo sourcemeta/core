@@ -226,78 +226,6 @@ inline auto metadata_key(const JSON::StringView key, const bool prefix_required)
           }));
 }
 
-inline auto traceparent(const JSON::StringView value) -> bool {
-  if (value.size() < 55 || value[2] != '-' || value[35] != '-' ||
-      value[52] != '-' || value.starts_with("ff") ||
-      (value.starts_with("00") && value.size() != 55) ||
-      (value.size() > 55 && value[55] != '-')) {
-    return false;
-  }
-  for (std::size_t index = 0; index < 55; ++index) {
-    if (index != 2 && index != 35 && index != 52 &&
-        (!sourcemeta::core::is_hex_digit(value[index]) ||
-         sourcemeta::core::to_lowercase(value[index]) != value[index])) {
-      return false;
-    }
-  }
-  return value.substr(3, 32).find_first_not_of('0') != JSON::StringView::npos &&
-         value.substr(36, 16).find_first_not_of('0') != JSON::StringView::npos;
-}
-
-inline auto trace_key_part(const JSON::StringView value, const bool tenant,
-                           const std::size_t maximum) -> bool {
-  if (value.empty() || value.size() > maximum ||
-      !((value.front() >= 'a' && value.front() <= 'z') ||
-        (tenant && sourcemeta::core::is_digit(value.front())))) {
-    return false;
-  }
-  return std::all_of(value.begin(), value.end(), [](const char character) {
-    return (character >= 'a' && character <= 'z') ||
-           sourcemeta::core::is_digit(character) || character == '_' ||
-           character == '-' || character == '*' || character == '/';
-  });
-}
-
-inline auto tracestate(JSON::StringView value) -> bool {
-  std::set<JSON::StringView> keys;
-  std::size_t members = 0;
-  while (true) {
-    if (++members > 32) {
-      return false;
-    }
-    const auto comma{value.find(',')};
-    const auto entry{sourcemeta::core::trim(value.substr(0, comma),
-                                            sourcemeta::core::http_is_ows)};
-    if (!entry.empty()) {
-      const auto equal{entry.find('=')};
-      if (equal == JSON::StringView::npos) {
-        return false;
-      }
-      const auto key{entry.substr(0, equal)};
-      const auto content{entry.substr(equal + 1)};
-      const auto at_position{key.find('@')};
-      const bool valid_key{
-          at_position == JSON::StringView::npos
-              ? trace_key_part(key, false, 256)
-              : trace_key_part(key.substr(0, at_position), true, 241) &&
-                    trace_key_part(key.substr(at_position + 1), false, 14)};
-      if (!valid_key || !keys.insert(key).second || content.empty() ||
-          content.size() > 256 || content.back() == ' ' ||
-          !std::all_of(content.begin(), content.end(),
-                       [](const char character) {
-                         return character >= 0x20 && character <= 0x7e &&
-                                character != ',' && character != '=';
-                       })) {
-        return false;
-      }
-    }
-    if (comma == JSON::StringView::npos) {
-      return true;
-    }
-    value.remove_prefix(comma + 1);
-  }
-}
-
 inline auto baggage_value(const JSON::StringView value) -> bool {
   for (std::size_t index = 0; index < value.size(); ++index) {
     const auto character{value[index]};
@@ -601,7 +529,7 @@ inline auto valid_metadata_object(const JSON &meta, const bool received)
       meta.try_at("traceparent", sourcemeta::core::MCP_HASH_TRACEPARENT)};
   if (traceparent != nullptr &&
       (!traceparent->is_string() ||
-       !validation::traceparent(traceparent->to_string()))) {
+       !http_is_traceparent(traceparent->to_string()))) {
     return false;
   }
   if (!received || traceparent == nullptr) {
@@ -609,7 +537,7 @@ inline auto valid_metadata_object(const JSON &meta, const bool received)
             meta.try_at("tracestate", sourcemeta::core::MCP_HASH_TRACESTATE)};
         tracestate != nullptr &&
         (!tracestate->is_string() ||
-         !validation::tracestate(tracestate->to_string()))) {
+         !http_is_tracestate(tracestate->to_string()))) {
       return false;
     }
   }
