@@ -926,8 +926,10 @@ void mcp_write_result(
 /// request. The revision is the one the client asked for when the server
 /// supports it and it uses the handshake, and otherwise the highest supported
 /// handshake revision, so an unrecognized request negotiates down rather than
-/// failing. A request that is not readable, or whose parameters are missing or
-/// malformed, does yield an error envelope. For example:
+/// failing. The advertised list must be non-empty, every revision in it must
+/// be one this library models, and at least one must use the handshake. A
+/// request that is not readable, or whose parameters are missing or malformed,
+/// does yield an error envelope. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/mcp.h>
@@ -991,7 +993,8 @@ auto mcp_make_initialize_result(
 /// Build the JSON-RPC response envelope for an MCP 2026-07-28 `server/discover`
 /// request. This is the stateless replacement for the initialization
 /// handshake, so it carries the supported revisions, the capabilities and the
-/// cache metadata in one response. For example:
+/// cache metadata in one response. The advertised list must be non-empty and
+/// every revision in it must be one this library models. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/mcp.h>

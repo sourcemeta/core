@@ -79,8 +79,9 @@ enum class MCPErrorContext : std::uint8_t {
 /// Construct a checked MCP error. Null, fractional and container identifiers
 /// are treated as unreadable. For 2026-07-28, rejects retired and undefined
 /// reserved codes and checks the required data for version/capability errors.
-/// The caller remains responsible for choosing an error that describes the
-/// actual failure. Header mismatch data is optional. Returns a complete
+/// Every revision the version error advertises must be one this library
+/// models. The caller remains responsible for choosing an error that describes
+/// the actual failure. Header mismatch data is optional. Returns a complete
 /// JSON-RPC error envelope rather than a bare error object. For example:
 ///
 /// ```cpp
@@ -197,8 +198,10 @@ constexpr auto mcp_error_code_to_http_status(const MCPProtocolVersion version,
 /// @ingroup mcp
 /// Build a JSON-RPC error response for unsupported protocol version (-32022).
 /// This error is defined for 2026-07-28 only, and the list of supported
-/// revisions must not be empty. An absent identifier omits the member rather
-/// than sending a null one. For example:
+/// revisions must not be empty. Every revision in it must be one this library
+/// models, which is a condition on the caller rather than on the peer, so a
+/// violation throws instead of becoming an error envelope. An absent identifier
+/// omits the member rather than sending a null one. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/mcp.h>

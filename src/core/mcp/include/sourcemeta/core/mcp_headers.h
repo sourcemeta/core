@@ -177,7 +177,9 @@ auto mcp_validate_request_parameters(const JSON &parameters)
 /// not a readable request becomes an invalid-request error, and every
 /// remaining failure becomes an invalid-params error naming the offending
 /// field. Passing the status for valid metadata throws
-/// @ref MCPError. For example:
+/// @ref MCPError, and so does a supported list naming a revision this library
+/// does not model, since that is a condition on the caller rather than on the
+/// peer. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/mcp.h>
@@ -248,7 +250,9 @@ auto mcp_request_name_from_body(const sourcemeta::core::JSON &envelope)
 /// Validate Streamable HTTP transport header values against the parsed
 /// JSON-RPC request body for the specified protocol version. Returns nothing
 /// when the headers agree with the body, and a ready-to-send JSON-RPC error
-/// envelope otherwise. For example:
+/// envelope otherwise. Every revision in the supported list must be one this
+/// library models, which is a condition on the caller rather than on the peer,
+/// so a violation throws rather than producing an envelope. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/mcp.h>
@@ -319,7 +323,10 @@ auto mcp_encode_header_value(JSON::StringView value) -> std::string;
 /// Validate a borrowed HTTP header collection. Names are case insensitive.
 /// Duplicate recognized singleton fields are rejected. Unknown fields stay
 /// opaque. HTTP framing, Origin and session validation belong to the adapter.
-/// Returns nothing on success and a JSON-RPC error envelope otherwise. For
+/// Returns nothing on success and a JSON-RPC error envelope otherwise. Every
+/// revision in the supported list must be one this library models, which is a
+/// condition on the caller rather than on the peer, so a violation throws
+/// rather than producing an envelope. For
 /// example:
 ///
 /// ```cpp
