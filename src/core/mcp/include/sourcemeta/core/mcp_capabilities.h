@@ -13,7 +13,42 @@
 namespace sourcemeta::core {
 
 /// @ingroup mcp
-/// Information about an MCP implementation (client or server).
+/// Information about an MCP implementation (client or server). Every string is
+/// a borrowed view and the icons array is a borrowed pointer, so the referents
+/// must outlive any builder this is passed to. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/mcp.h>
+/// #include <array>
+/// #include <cassert>
+///
+/// constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
+///     {"2025-11-25"}};
+/// const auto request{sourcemeta::core::parse_json(R"JSON({
+///   "jsonrpc": "2.0",
+///   "id": 1,
+///   "method": "initialize",
+///   "params": {
+///     "protocolVersion": "2025-11-25",
+///     "capabilities": {},
+///     "clientInfo": { "name": "client", "version": "1" }
+///   }
+/// })JSON")};
+/// const sourcemeta::core::MCPImplementation server{.name = "srv",
+///                                                  .version = "1.0.0"};
+/// assert(sourcemeta::core::mcp_make_initialize_result(
+///            request, sourcemeta::core::MCPServerCapabilities{}, server,
+///            SUPPORTED) == sourcemeta::core::parse_json(R"JSON({
+///          "jsonrpc": "2.0",
+///          "id": 1,
+///          "result": {
+///            "protocolVersion": "2025-11-25",
+///            "capabilities": {},
+///            "serverInfo": { "name": "srv", "version": "1.0.0" }
+///          }
+///        })JSON"));
+/// ```
+///
 /// @see
 /// https://modelcontextprotocol.io/specification/2025-11-25/schema#implementation
 struct MCPImplementation {
@@ -32,11 +67,19 @@ struct MCPImplementation {
 };
 
 /// @ingroup mcp
-/// Capabilities advertised by an MCP client.
+/// Capabilities advertised by an MCP client. The typed flags describe the
+/// capabilities this library understands, while the snapshot retains whatever
+/// else the peer sent so that a parse followed by a serialize does not discard
+/// it.
+///
+/// Roots and sampling are deprecated as of protocol version `2026-07-28`,
+/// which states that new implementations should not adopt them. They remain
+/// representable here because the library still speaks the revisions that
+/// define them.
 ///
 /// @see
+/// https://modelcontextprotocol.io/specification/2026-07-28/deprecated
 /// https://modelcontextprotocol.io/specification/2026-07-28/basic/index#_meta
-/// @see
 /// https://modelcontextprotocol.io/specification/2026-07-28/schema#clientcapabilities
 struct MCPClientCapabilities {
   /// Whether the client advertises roots.
@@ -45,7 +88,9 @@ struct MCPClientCapabilities {
   bool roots_list_changed = false;
   /// Whether the client advertises sampling.
   bool sampling = false;
-  /// Whether sampling advertises context support.
+  /// Whether sampling advertises context support. The two context-inclusion
+  /// values this capability enables were deprecated in `2025-11-25`, which
+  /// directs a client to omit the field or request no context instead.
   bool sampling_context = false;
   /// Whether sampling advertises tools support.
   bool sampling_tools = false;
@@ -68,6 +113,7 @@ struct MCPClientCapabilities {
 
 /// @ingroup mcp
 /// Capabilities advertised by an MCP server.
+///
 /// @see
 /// https://modelcontextprotocol.io/specification/2026-07-28/schema#servercapabilities
 struct MCPServerCapabilities {
@@ -99,7 +145,27 @@ struct MCPServerCapabilities {
 };
 
 /// @ingroup mcp
-/// Parse client capabilities from a JSON object.
+/// Parse client capabilities from a JSON object. A capability the given
+/// revision does not define is ignored rather than reported, while a known
+/// capability of the wrong type is rejected with `std::invalid_argument`. For
+/// example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/mcp.h>
+/// #include <cassert>
+///
+/// const auto capabilities{sourcemeta::core::mcp_parse_client_capabilities(
+///     sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+///     sourcemeta::core::parse_json(R"JSON({
+///       "roots": { "listChanged": true }
+///     })JSON"))};
+/// assert(capabilities.roots);
+/// assert(capabilities.roots_list_changed);
+/// assert(!capabilities.sampling);
+/// ```
+///
+/// @see
+/// https://modelcontextprotocol.io/specification/2026-07-28/schema#clientcapabilities
 SOURCEMETA_CORE_MCP_EXPORT
 auto mcp_parse_client_capabilities(const MCPProtocolVersion version,
                                    const sourcemeta::core::JSON &capabilities)
@@ -107,7 +173,30 @@ auto mcp_parse_client_capabilities(const MCPProtocolVersion version,
 
 /// @ingroup mcp
 /// Serialize client capabilities into a JSON object for the specified protocol
-/// version.
+/// version. A capability the target revision does not define is dropped, so
+/// serializing for an older revision than the one parsed is how a caller
+/// downgrades an advertisement. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/mcp.h>
+/// #include <cassert>
+///
+/// sourcemeta::core::MCPClientCapabilities capabilities;
+/// capabilities.roots = true;
+/// capabilities.roots_list_changed = true;
+/// assert(sourcemeta::core::mcp_serialize_client_capabilities(
+///            sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+///            capabilities) == sourcemeta::core::parse_json(R"JSON({
+///          "roots": { "listChanged": true }
+///        })JSON"));
+/// assert(sourcemeta::core::mcp_serialize_client_capabilities(
+///            sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+///            capabilities) ==
+///        sourcemeta::core::parse_json(R"JSON({ "roots": {} })JSON"));
+/// ```
+///
+/// @see
+/// https://modelcontextprotocol.io/specification/2026-07-28/schema#clientcapabilities
 SOURCEMETA_CORE_MCP_EXPORT
 auto mcp_serialize_client_capabilities(
     const MCPProtocolVersion version, const MCPClientCapabilities &capabilities)
@@ -115,7 +204,26 @@ auto mcp_serialize_client_capabilities(
 
 /// @ingroup mcp
 /// Parse validated server capabilities, owning the snapshot and opaque
-/// settings.
+/// settings. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/mcp.h>
+/// #include <cassert>
+///
+/// const auto capabilities{sourcemeta::core::mcp_parse_server_capabilities(
+///     sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+///     sourcemeta::core::parse_json(R"JSON({
+///       "tools": { "listChanged": true },
+///       "resources": { "subscribe": true }
+///     })JSON"))};
+/// assert(capabilities.tools);
+/// assert(capabilities.tools_list_changed);
+/// assert(capabilities.resources_subscribe);
+/// assert(!capabilities.prompts);
+/// ```
+///
+/// @see
+/// https://modelcontextprotocol.io/specification/2026-07-28/schema#servercapabilities
 SOURCEMETA_CORE_MCP_EXPORT
 auto mcp_parse_server_capabilities(MCPProtocolVersion version,
                                    const JSON &capabilities)
@@ -124,7 +232,24 @@ auto mcp_parse_server_capabilities(MCPProtocolVersion version,
 /// @ingroup mcp
 /// Serialize server capabilities for an explicit revision. Typed flags override
 /// the source snapshot. Opaque settings survive only in retained capabilities.
-/// Throws std::invalid_argument for malformed known fields.
+/// Throws `std::invalid_argument` for malformed known fields. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/mcp.h>
+/// #include <cassert>
+///
+/// sourcemeta::core::MCPServerCapabilities capabilities;
+/// capabilities.tools = true;
+/// capabilities.tools_list_changed = true;
+/// assert(sourcemeta::core::mcp_serialize_server_capabilities(
+///            sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+///            capabilities) == sourcemeta::core::parse_json(R"JSON({
+///          "tools": { "listChanged": true }
+///        })JSON"));
+/// ```
+///
+/// @see
+/// https://modelcontextprotocol.io/specification/2026-07-28/schema#servercapabilities
 SOURCEMETA_CORE_MCP_EXPORT
 auto mcp_serialize_server_capabilities(
     MCPProtocolVersion version, const MCPServerCapabilities &capabilities)
