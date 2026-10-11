@@ -719,11 +719,8 @@ auto embed_references(
 
     auto resolved{resolver(identifier)};
     if (!resolved.has_value()) {
-      if (frame.traverse(identifier).has_value()) {
-        throw SchemaReferenceError(reference.destination, to_pointer(pointer),
-                                   "Could not resolve schema reference");
-      }
-
+      // A base the document itself holds is already answered for above, so
+      // one that nobody hands over is a schema from elsewhere that is missing
       throw SchemaResolutionError(
           identifier, "Could not resolve the reference to an external schema");
     }

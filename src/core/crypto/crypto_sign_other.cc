@@ -801,12 +801,9 @@ auto derive_public_key(const PrivateKey &key) -> std::optional<PublicKey> {
       return make_rsa_public_key(internal->modulus, internal->public_exponent);
     case PrivateKey::Type::EllipticCurve:
       // The public coordinates are populated for every elliptic curve private
-      // key, whether supplied directly or recomputed from a PEM scalar at parse
-      // time, so the guard is a defensive check rather than a common path
-      if (internal->coordinate_x.empty()) {
-        return std::nullopt;
-      }
-
+      // key, whether supplied directly or recomputed from a PEM scalar at
+      // parse time
+      assert(!internal->coordinate_x.empty());
       return make_ec_public_key(internal->elliptic_curve,
                                 internal->coordinate_x, internal->coordinate_y);
     case PrivateKey::Type::Edwards:

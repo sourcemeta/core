@@ -1,0 +1,19 @@
+{
+  "document": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "securitySchemes": {
+        "Key": 5
+      }
+    }
+  },
+  "error": {
+    "message": "The Components Object entries must be objects",
+    "location": "/components/securitySchemes/Key"
+  }
+}

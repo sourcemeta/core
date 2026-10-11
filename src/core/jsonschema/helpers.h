@@ -11,7 +11,7 @@
 #include <optional>      // std::optional
 #include <string_view>   // std::string_view
 #include <unordered_set> // std::unordered_set
-#include <utility>       // std::pair, std::move
+#include <utility>       // std::pair, std::move, std::unreachable
 #include <vector>        // std::vector
 
 namespace sourcemeta::core {
@@ -100,9 +100,6 @@ inline auto id_keyword(const SchemaBaseDialect base_dialect) -> SchemaKeyword {
     case SchemaBaseDialect::JSON_SCHEMA_DRAFT_0_HYPER:
       return {.name = "id"sv, .hash = JSONSCHEMA_HASH_LEGACY_ID};
   }
-
-  assert(false);
-  return {.name = "$id"sv, .hash = JSONSCHEMA_HASH_ID};
 }
 
 // Whether the dialect in force gives a keyword any meaning at all, which is
@@ -197,9 +194,6 @@ inline auto definitions_keyword(const SchemaBaseDialect base_dialect)
     case SchemaBaseDialect::JSON_SCHEMA_DRAFT_0_HYPER:
       return "";
   }
-
-  assert(false);
-  return "$defs";
 }
 
 // In older drafts, the presence of `$ref` would override any sibling keywords
@@ -323,10 +317,8 @@ inline auto embedded_metaschema_link_valid(const sourcemeta::core::JSON &link,
     case SchemaBaseDialect::JSON_SCHEMA_2020_12_HYPER:
     case SchemaBaseDialect::JSON_SCHEMA_2019_09:
     case SchemaBaseDialect::JSON_SCHEMA_2019_09_HYPER:
-      if (container != "$defs" && container != "definitions") {
-        return false;
-      }
-
+      // The search that found this link looks under no name but those two
+      assert(container == "$defs" || container == "definitions");
       break;
     default:
       if (container != definitions_keyword(base_dialect)) {

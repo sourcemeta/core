@@ -1173,3 +1173,106 @@ TEST(compaction_indexes_a_type_map_and_keeps_the_remaining_types) {
 
   EXPECT_EQ(result, expected);
 }
+
+// JSON-LD 1.1 Section 4 writes the value of `@value` as any value, and a null
+// one is a datum of its own once a document already holds it, so compaction
+// keeps it rather than reading it as the absence the algorithm drops
+TEST(value_object_holding_null_without_a_type) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "http://example.org/a",
+      "http://example.com/p": [ { "@value": null } ]
+    }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({
+    "p": "http://example.com/p"
+  })");
+
+  const auto result{sourcemeta::core::jsonld_compact(input, context)};
+
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "@id": "http://example.org/a",
+    "p": null,
+    "@context": { "p": "http://example.com/p" }
+  })");
+
+  EXPECT_EQ(result, expected);
+}
+
+// A type the term is not coerced to leaves the value object standing, as the
+// shape is what carries the type rather than the term
+TEST(value_object_holding_null_with_an_ordinary_type) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "http://example.org/a",
+      "http://example.com/p": [
+        { "@value": null, "@type": "http://example.com/t" }
+      ]
+    }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({
+    "p": "http://example.com/p"
+  })");
+
+  const auto result{sourcemeta::core::jsonld_compact(input, context)};
+
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "@id": "http://example.org/a",
+    "p": { "@value": null, "@type": "http://example.com/t" },
+    "@context": { "p": "http://example.com/p" }
+  })");
+
+  EXPECT_EQ(result, expected);
+}
+
+// JSON-LD 1.1 API Section 6.1.2 writes an empty array out as it stands rather
+// than dropping it, since the property is present and says it holds nothing
+TEST(property_holding_an_empty_array) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    { "@id": "http://example.org/a", "http://example.com/p": [] }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({
+    "p": "http://example.com/p"
+  })");
+
+  const auto result{sourcemeta::core::jsonld_compact(input, context)};
+
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "@id": "http://example.org/a",
+    "p": [],
+    "@context": { "p": "http://example.com/p" }
+  })");
+
+  EXPECT_EQ(result, expected);
+}
+
+// JSON-LD 1.0 has no list of lists, which compaction of a list under a term
+// that wraps its value in one has to account for
+TEST(list_compacted_under_1_0) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "http://example.org/a",
+      "http://example.com/p": [ { "@list": [ { "@value": "x" } ] } ]
+    }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({
+    "p": { "@id": "http://example.com/p", "@container": "@list" }
+  })");
+
+  const auto result{sourcemeta::core::jsonld_compact(
+      input, context, "", {}, sourcemeta::core::JSONLDVersion::V1_0)};
+
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "@id": "http://example.org/a",
+    "p": [ "x" ],
+    "@context": {
+      "p": { "@id": "http://example.com/p", "@container": "@list" }
+    }
+  })");
+
+  EXPECT_EQ(result, expected);
+}

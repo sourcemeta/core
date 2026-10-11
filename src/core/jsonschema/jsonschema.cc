@@ -6,7 +6,7 @@
 #include <sstream>       // std::ostringstream
 #include <string_view>   // std::string_view
 #include <unordered_set> // std::unordered_set
-#include <utility>       // std::move, std::to_underlying
+#include <utility>       // std::move, std::to_underlying, std::unreachable
 
 // TODO: Make this function detect schemas only using identifier/comment
 // keywords, etc
@@ -44,9 +44,6 @@ auto sourcemeta::core::base_dialect_uri(const SchemaBaseDialect base_dialect)
     case SchemaBaseDialect::JSON_SCHEMA_DRAFT_0_HYPER:
       return "http://json-schema.org/draft-00/hyper-schema#";
   }
-
-  assert(false);
-  return {};
 }
 
 auto sourcemeta::core::operator<<(std::ostream &stream,
@@ -487,9 +484,9 @@ auto core_vocabulary_known(
     case SchemaBaseDialect::JSON_SCHEMA_2019_09:
     case SchemaBaseDialect::JSON_SCHEMA_2019_09_HYPER:
       return SchemaVocabularies::Known::JSON_SCHEMA_2019_09_CORE;
+    // Only the dialects that carry vocabularies reach here
     default:
-      assert(false);
-      return SchemaVocabularies::Known::JSON_SCHEMA_2020_12_CORE;
+      std::unreachable();
   }
 }
 
@@ -560,9 +557,9 @@ auto base_dialect_to_known(const sourcemeta::core::SchemaBaseDialect dialect)
       return SchemaVocabularies::Known::JSON_SCHEMA_DRAFT_1_HYPER;
     case SchemaBaseDialect::JSON_SCHEMA_DRAFT_0_HYPER:
       return SchemaVocabularies::Known::JSON_SCHEMA_DRAFT_0_HYPER;
+    // Only the dialects that predate vocabularies reach here
     default:
-      assert(false);
-      return SchemaVocabularies::Known::JSON_SCHEMA_DRAFT_7;
+      std::unreachable();
   }
 }
 

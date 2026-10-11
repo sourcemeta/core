@@ -63,8 +63,6 @@ constexpr auto http_method_string(const HTTPMethod method) noexcept
     case HTTPMethod::PATCH:
       return "PATCH";
   }
-
-  std::unreachable();
 }
 
 } // namespace sourcemeta::core

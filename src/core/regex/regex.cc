@@ -158,8 +158,6 @@ auto matches(const Regex &regex, const std::string_view value) -> bool {
     case RegexIndex::Noop:
       return true;
   }
-
-  std::unreachable();
 }
 
 auto replace_all(const Regex &regex, const std::string_view subject,

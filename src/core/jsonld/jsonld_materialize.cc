@@ -93,8 +93,6 @@ auto direction_to_string(const JSONLDDirection direction) -> JSON::StringView {
     case JSONLDDirection::RTL:
       return "rtl";
   }
-
-  std::unreachable();
 }
 
 auto types_to_array(const std::vector<JSON::String> &types) -> JSON {
@@ -569,8 +567,6 @@ auto materialize_value(const JSON &value, PointerT &pointer,
       assert(value.is_object());
       return build_index_collection(value, pointer, range, standalone);
   }
-
-  std::unreachable();
 }
 
 template <typename PointerT>

@@ -45,8 +45,7 @@ auto parent_of(const sourcemeta::core::OpenAPIFrame::Locations &locations,
     }
   }
 
-  assert(false);
-  return std::nullopt;
+  std::unreachable();
 }
 
 auto error_at(const sourcemeta::core::OpenAPIWalk &walk,
@@ -500,8 +499,6 @@ auto openapi_kind_name(const OpenAPIObjectKind kind) noexcept
     case OpenAPIObjectKind::SecurityRequirement:
       return "security-requirement"sv;
   }
-
-  std::unreachable();
 }
 
 // What framing a document under a given retrieval URI would key every place of
@@ -546,8 +543,6 @@ auto openapi_operation_kind_name(const OpenAPIOperationKind kind) noexcept
     case OpenAPIOperationKind::Callback:
       return "callback"sv;
   }
-
-  std::unreachable();
 }
 
 // Every operation the description exposes, which Section 4.3.3 confines to what

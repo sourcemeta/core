@@ -620,3 +620,24 @@ TEST(set_object_with_an_index_of_another_type) {
   ])");
   EXPECT_FALSE(sourcemeta::core::jsonld_is_expanded(document));
 }
+
+// JSON-LD 1.1 Section 4 writes the value of `@value` as "any value", and only
+// expansion drops a null one, so a document that already holds one is in
+// expanded form whether or not expansion would have produced it
+TEST(value_object_holding_null_without_a_type) {
+  const auto input{sourcemeta::core::parse_json(
+      R"([ { "http://e.com/p": [ { "@value": null } ] } ])")};
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(input));
+}
+
+TEST(value_object_holding_null_with_a_type_that_is_no_string) {
+  const auto input{sourcemeta::core::parse_json(
+      R"([ { "http://e.com/p": [ { "@value": null, "@type": 1 } ] } ])")};
+  EXPECT_FALSE(sourcemeta::core::jsonld_is_expanded(input));
+}
+
+TEST(property_value_that_is_a_bare_null) {
+  const auto input{
+      sourcemeta::core::parse_json(R"([ { "http://e.com/p": [ null ] } ])")};
+  EXPECT_FALSE(sourcemeta::core::jsonld_is_expanded(input));
+}

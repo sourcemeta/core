@@ -49,8 +49,6 @@ inline auto to_roundtrip_chomping(const BlockChomping chomping)
     case BlockChomping::Keep:
       return YAMLRoundTrip::Chomping::Keep;
   }
-
-  std::unreachable();
 }
 
 class Parser {
@@ -2209,12 +2207,14 @@ private:
         }
         seen_keys.insert(key);
 
+        // YAML 1.2.2 production 193 has the value of an implicit block
+        // mapping entry follow a literal colon, so an alias standing without
+        // one names no entry, exactly as a plain scalar standing without one
+        // names none. An explicit key is the one that may leave its value out
         auto colon{this->next_token()};
         if (colon.type != TokenType::BlockMappingValue) {
-          result.assign(key, JSON{nullptr});
           this->pending_tokens_.push_back(colon);
-          next = this->next_token();
-          continue;
+          break;
         }
 
         next = this->next_token();

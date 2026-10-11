@@ -375,30 +375,40 @@ then
   exit 1
 fi
 
-# Optionally hold the line and region shares to a floor, given as a percentage.
-# Branches are deliberately not held to one: an exhaustive switch over an
-# enumeration carries an edge out of it that nothing can take, so the branch
-# share has a ceiling below a hundred that the other two do not. Gated on the
-# same platform argument as the function requirement above
-if [ -n "${REQUIRE_MINIMUM_COVERAGE:-}" ]
+# Optionally hold each share to a floor, given as a percentage. Branches answer
+# to a floor of their own rather than the one the other two share, because an
+# exhaustive switch over an enumeration carries an edge out of it that nothing
+# can take, so that share alone has a ceiling below a hundred. A metric with no
+# floor named is still read, so that the check below notices a summary that
+# stopped carrying one. Gated on the same platform argument as the function
+# requirement above
+if [ -n "${REQUIRE_MINIMUM_COVERAGE:-}" ] ||
+  [ -n "${REQUIRE_MINIMUM_BRANCH_COVERAGE:-}" ]
 then
-  awk -v "minimum=$REQUIRE_MINIMUM_COVERAGE" '
-BEGIN { failed = 0 }
-$3 == "TOTAL" && ($4 == "lines" || $4 == "regions") {
+  awk -v "lines_minimum=${REQUIRE_MINIMUM_COVERAGE:-0}" \
+    -v "regions_minimum=${REQUIRE_MINIMUM_COVERAGE:-0}" \
+    -v "branches_minimum=${REQUIRE_MINIMUM_BRANCH_COVERAGE:-0}" '
+BEGIN {
+  failed = 0
+  required["lines"] = lines_minimum
+  required["regions"] = regions_minimum
+  required["branches"] = branches_minimum
+}
+$3 == "TOTAL" && $4 in required {
   # Compared as the counts behind the share rather than as the share itself,
   # which is already rounded to two places by the time it is printed and would
   # let a total just under the floor round up into passing
   split($2, tally, "/")
-  if (100 * tally[1] < minimum * tally[2]) {
+  if (100 * tally[1] < required[$4] * tally[2]) {
     printf "The %s coverage is %s, below the required %s%%\n", $4, $1,
-      minimum > "/dev/stderr"
+      required[$4] > "/dev/stderr"
     failed = 1
   }
   seen += 1
 }
 END {
-  if (seen != 2) {
-    printf "Expected a line and a region total, found %d\n", seen \
+  if (seen != 3) {
+    printf "Expected a line, a region and a branch total, found %d\n", seen \
       > "/dev/stderr"
     exit 1
   }

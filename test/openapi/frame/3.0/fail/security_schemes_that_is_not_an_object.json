@@ -1,0 +1,17 @@
+{
+  "document": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "securitySchemes": 5
+    }
+  },
+  "error": {
+    "message": "The Components Object fields must each be an object",
+    "location": "/components/securitySchemes"
+  }
+}

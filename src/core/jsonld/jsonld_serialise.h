@@ -237,8 +237,6 @@ inline auto typed_literal_lexical_form(const JSON &value,
     case JSON::Type::Object:
       return std::nullopt;
   }
-
-  std::unreachable();
 }
 
 } // namespace sourcemeta::core

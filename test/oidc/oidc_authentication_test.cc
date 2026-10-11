@@ -89,6 +89,22 @@ TEST(build_rejects_an_empty_redirect_uri) {
       "https://server.example/authorize", request, url));
 }
 
+// OpenID Connect Core Section 3.1.2.1 writes the prompt as a space delimited
+// list, and a run of spaces delimits nothing, so what stands between them is
+// not a value that keeps `none` from standing alone
+TEST(build_accepts_a_none_prompt_padded_with_spaces) {
+  sourcemeta::core::OIDCAuthenticationRequest request;
+  request.client_id = "s6BhdRkqt3";
+  request.redirect_uri = "https://client.example/cb";
+  request.scope = "openid";
+  request.prompt = "none  ";
+  request.code_challenge = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM";
+  request.code_challenge_method = "S256";
+  std::string url;
+  EXPECT_TRUE(sourcemeta::core::oidc_build_authentication_url(
+      "https://server.example/authorize", request, url));
+}
+
 TEST(build_rejects_a_non_exclusive_none_prompt) {
   sourcemeta::core::OIDCAuthenticationRequest request;
   request.client_id = "s6BhdRkqt3";
@@ -372,6 +388,23 @@ TEST(parse_extracts_the_base_and_openid_parameters) {
   EXPECT_EQ(request.prompt, "consent");
   EXPECT_EQ(request.max_age, "3600");
   EXPECT_EQ(request.acr_values, "urn:acr:1");
+}
+
+// OpenID Connect Core Section 3.1.2.1 names the parameters this reads, and
+// RFC 6749 Section 3.1 lets a request carry others besides, which are kept out
+// of the request this reports rather than turning it down
+TEST(parse_ignores_a_parameter_it_does_not_name) {
+  std::string storage;
+  sourcemeta::core::OIDCAuthenticationRequest request;
+  EXPECT_TRUE(sourcemeta::core::oidc_parse_authentication_request(
+      "response_type=code&client_id=s6BhdRkqt3&"
+      "redirect_uri=https%3A%2F%2Fclient.example%2Fcb&scope=openid&"
+      "nonce=n-0S6&unknown=value&"
+      "code_challenge=E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM&code_"
+      "challenge_method=S256",
+      storage, request));
+  EXPECT_EQ(request.client_id, "s6BhdRkqt3");
+  EXPECT_TRUE(request.display.empty());
 }
 
 TEST(authorization_url_rejects_an_empty_code_challenge) {

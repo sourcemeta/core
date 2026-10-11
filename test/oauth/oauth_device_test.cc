@@ -14,6 +14,22 @@ TEST(build_device_authorization_request_emits_client_id_and_scope) {
   EXPECT_EQ(body, "client_id=1406020730&scope=read");
 }
 
+// RFC 8628 Section 3.1 writes the client identifier as required only where
+// the client is not otherwise authenticated and the scope as optional, so
+// neither is written out when the caller leaves it out
+TEST(build_device_authorization_request_without_a_client_id_or_scope) {
+  std::string body;
+  sourcemeta::core::oauth_build_device_authorization_request("", "", {}, body);
+  EXPECT_EQ(body, "");
+}
+
+TEST(build_device_authorization_request_without_a_scope) {
+  std::string body;
+  sourcemeta::core::oauth_build_device_authorization_request("1406020730", "",
+                                                             {}, body);
+  EXPECT_EQ(body, "client_id=1406020730");
+}
+
 TEST(build_token_request_device_emits_the_grant_and_code) {
   sourcemeta::core::SecureString body;
   sourcemeta::core::oauth_build_token_request_device("GmRhmhcxhwAzkoEqiMEg", {},
@@ -55,6 +71,20 @@ TEST(device_poller_defaults_a_zero_interval_to_five_seconds) {
       std::chrono::seconds{0}, std::chrono::seconds{1800},
       std::chrono::steady_clock::time_point{}};
   EXPECT_EQ(poller.interval(), std::chrono::seconds{5});
+}
+
+// RFC 8628 Section 3.5 has slow_down raise the interval by five seconds, and
+// an interval already at the end of its range stays there rather than wrapping
+TEST(device_poller_slow_down_saturates_a_maximal_interval) {
+  sourcemeta::core::OAuthDevicePoller poller{
+      std::chrono::seconds{
+          std::numeric_limits<std::chrono::seconds::rep>::max()},
+      std::chrono::seconds{1800}, std::chrono::steady_clock::time_point{}};
+  EXPECT_EQ(poller.observe(sourcemeta::core::OAuthTokenError::SlowDown),
+            sourcemeta::core::OAuthDevicePollDecision::Continue);
+  EXPECT_EQ(poller.interval(),
+            std::chrono::seconds{
+                std::numeric_limits<std::chrono::seconds::rep>::max()});
 }
 
 TEST(device_poller_slow_down_grows_the_interval_and_continues) {

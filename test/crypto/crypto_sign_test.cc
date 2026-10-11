@@ -1326,6 +1326,29 @@ TEST(private_key_move_assignment_takes_the_other_key) {
   EXPECT_TRUE(key.type() == sourcemeta::core::PrivateKey::Type::Edwards);
 }
 
+TEST(private_key_move_assignment_onto_itself_keeps_the_key) {
+  auto key{sourcemeta::core::make_private_key(RSA_PRIVATE_KEY).value()};
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wself-move"
+#elif defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wself-move"
+#endif
+  key = std::move(key);
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#elif defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
+  EXPECT_TRUE(key.type() == sourcemeta::core::PrivateKey::Type::RSA);
+  const auto signature{sourcemeta::core::rsassa_pkcs1_v15_sign(
+      key, sourcemeta::core::SignatureHashFunction::SHA256, MESSAGE)};
+  EXPECT_TRUE(signature.has_value());
+  EXPECT_EQ(sourcemeta::core::bytes_to_hex(signature.value()),
+            SIGNATURE_SHA256_HEX);
+}
+
 TEST(public_key_move_assignment_takes_the_other_key) {
   const auto rsa{sourcemeta::core::make_private_key(RSA_PRIVATE_KEY)};
   EXPECT_TRUE(rsa.has_value());

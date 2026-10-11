@@ -104,11 +104,10 @@ auto terminal_sgr_sequence(TerminalStyle style) noexcept -> std::string_view {
     return has_bold ? internal::ESCAPE_BOLD_CYAN : internal::ESCAPE_CYAN;
   }
 
-  if (has_bold) {
-    return internal::ESCAPE_BOLD;
-  }
-
-  return {};
+  // A valid style names at most one colour and nothing besides the bold bit,
+  // so one that is neither None nor a colour names bold on its own
+  assert(has_bold);
+  return internal::ESCAPE_BOLD;
 }
 
 auto terminal_paint(std::string_view text, TerminalStyle style, bool enabled)

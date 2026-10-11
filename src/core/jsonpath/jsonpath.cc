@@ -11,6 +11,7 @@
 #include <functional> // std::cref
 #include <optional>   // std::optional
 #include <string>     // std::to_string
+#include <utility>    // std::unreachable
 #include <variant> // std::get, std::get_if, std::holds_alternative, std::monostate, std::variant
 #include <vector> // std::vector
 
@@ -752,9 +753,10 @@ inline auto evaluate_value_function(const JSONPath::FilterFunctionCall &call,
                          });
       return count == 1 ? single : nullptr;
     }
+    // The two functions that answer with a truth value rather than with a node
+    // are weighed where a test stands rather than here
     default:
-      assert(false);
-      return nullptr;
+      std::unreachable();
   }
 }
 
@@ -853,9 +855,6 @@ inline auto filter_compare(const JSONPath::FilterComparison &comparison,
     case JSONPath::FilterComparisonOperator::GreaterEqual:
       return filter_less(right, left) || filter_equals(left, right);
   }
-
-  assert(false);
-  return false;
 }
 
 inline auto filter_matches(const JSONPath::FilterExpression &expression,
@@ -915,8 +914,7 @@ inline auto filter_matches(const JSONPath::FilterExpression &expression,
           candidate, root);
   }
 
-  assert(false);
-  return false;
+  std::unreachable();
 }
 
 // The main walk is iterative over an explicit stack, so document depth

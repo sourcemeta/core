@@ -353,6 +353,13 @@ TEST(overflow_pre_release_same_length_lexical) {
             sourcemeta::core::SemVer{"1.0.0-99999999999999999998"});
 }
 
+// Two identifiers too wide to hold as numbers and equal as text settle
+// nothing, so what follows them is what decides
+TEST(overflow_pre_release_identifiers_that_are_equal_defer_to_the_next) {
+  EXPECT_LT(sourcemeta::core::SemVer{"1.0.0-99999999999999999999.1"},
+            sourcemeta::core::SemVer{"1.0.0-99999999999999999999.2"});
+}
+
 TEST(numeric_pre_release_identifiers_compare_by_value) {
   EXPECT_LT(sourcemeta::core::SemVer{"1.0.0-alpha.2"},
             sourcemeta::core::SemVer{"1.0.0-alpha.10"});

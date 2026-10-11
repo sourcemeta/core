@@ -27,6 +27,32 @@ TEST(read_char_by_char) {
   EXPECT_EQ(result, input);
 }
 
+// The buffer hands the inflater one block of the stream at a time, so a
+// payload wider than a block leaves it short of input with more still to come,
+// which is a different thing from reaching the end of the stream
+TEST(payload_wider_than_one_input_block) {
+  std::string input;
+  input.reserve(300000);
+  std::uint32_t state{1};
+  for (std::size_t index = 0; index < 300000; ++index) {
+    state = (state * 1103515245U) + 12345U;
+    input += static_cast<char>((state >> 16U) & 0xFFU);
+  }
+
+  const auto compressed{sourcemeta::core::gzip(
+      reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
+  // Incompressible bytes keep the payload past the block the buffer reads
+  EXPECT_TRUE(compressed.size() > 65536);
+
+  std::istringstream stream{compressed};
+  sourcemeta::core::GZIPStreamBuffer buffer{stream};
+  std::istream decompressed{&buffer};
+  std::string result;
+  result.assign(std::istreambuf_iterator<char>(decompressed),
+                std::istreambuf_iterator<char>());
+  EXPECT_EQ(result, input);
+}
+
 TEST(multiple_small_reads) {
   const std::string pattern{"abcdefghij"};
   std::string input;

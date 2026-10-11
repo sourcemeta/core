@@ -77,8 +77,6 @@ auto openapi_version_name(const OpenAPIVersion version) noexcept
     case OpenAPIVersion::OPENAPI_3_2:
       return "3.2"sv;
   }
-
-  std::unreachable();
 }
 
 auto openapi_version_string(const JSON &document)

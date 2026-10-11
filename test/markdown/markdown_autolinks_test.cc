@@ -766,3 +766,39 @@ TEST(extended_autolink_domain_without_a_period) {
   const auto result{sourcemeta::core::markdown_to_html("http://a")};
   EXPECT_EQ(result, "<p>http://a</p>\n");
 }
+
+// GFM section 6.9 lets an extended autolink follow any of the characters that
+// also delimit emphasis, which an unpaired delimiter run is left as
+TEST(extended_autolink_after_an_unpaired_emphasis_delimiter) {
+  const auto result{sourcemeta::core::markdown_to_html("*www.example.com")};
+  EXPECT_EQ(result, "<p>*<a href=\"http://www.example.com\">"
+                    "www.example.com</a></p>\n");
+}
+
+TEST(extended_autolink_after_an_unpaired_strong_delimiter) {
+  const auto result{sourcemeta::core::markdown_to_html("**www.example.com")};
+  EXPECT_EQ(result, "<p>**<a href=\"http://www.example.com\">"
+                    "www.example.com</a></p>\n");
+}
+
+TEST(two_extended_autolinks_in_one_paragraph) {
+  const auto result{sourcemeta::core::markdown_to_html("www.a.com www.b.com")};
+  EXPECT_EQ(result, "<p><a href=\"http://www.a.com\">www.a.com</a> "
+                    "<a href=\"http://www.b.com\">www.b.com</a></p>\n");
+}
+
+// That section has the resource of an xmpp autolink made of alphanumerics,
+// at signs and periods, and strips a trailing period the way it does from a
+// domain, so a resource of nothing but periods leaves the slash behind
+TEST(extended_autolink_xmpp_resource_of_only_periods) {
+  const auto result{sourcemeta::core::markdown_to_html("xmpp:foo@bar.baz/...")};
+  EXPECT_EQ(result, "<p><a href=\"xmpp:foo@bar.baz\">xmpp:foo@bar.baz</a>"
+                    "/...</p>\n");
+}
+
+TEST(extended_autolink_xmpp_followed_by_text) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("xmpp:foo@bar.baz and more")};
+  EXPECT_EQ(result, "<p><a href=\"xmpp:foo@bar.baz\">xmpp:foo@bar.baz</a>"
+                    " and more</p>\n");
+}

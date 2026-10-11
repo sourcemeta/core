@@ -22,6 +22,23 @@ TEST(add_large_integers) {
   EXPECT_EQ(left + right, result);
 }
 
+// Lining two coefficients up scales one of them, and a coefficient that no
+// longer fits the compact storage once scaled is carried in the wide one
+// instead, whichever side of the sum it came from
+TEST(add_where_scaling_the_right_overflows_the_compact_storage) {
+  const sourcemeta::core::Decimal left{"900000000000000000"};
+  const sourcemeta::core::Decimal right{"0.1"};
+  const sourcemeta::core::Decimal result{"900000000000000000.1"};
+  EXPECT_EQ(left + right, result);
+}
+
+TEST(add_where_scaling_the_left_overflows_the_compact_storage) {
+  const sourcemeta::core::Decimal left{"0.1"};
+  const sourcemeta::core::Decimal right{"900000000000000000"};
+  const sourcemeta::core::Decimal result{"900000000000000000.1"};
+  EXPECT_EQ(left + right, result);
+}
+
 TEST(add_negative_integers) {
   const sourcemeta::core::Decimal left{-5};
   const sourcemeta::core::Decimal right{-10};
@@ -3853,6 +3870,27 @@ TEST(self_move_assignment) {
   EXPECT_EQ(value, sourcemeta::core::Decimal{42});
 }
 
+// A coefficient too wide for the inline storage keeps its digits elsewhere,
+// and assigning one onto itself has to leave those digits where they are
+TEST(self_move_assignment_of_a_wide_coefficient) {
+  const std::string digits{"123456789012345678901234567890123456789"};
+  sourcemeta::core::Decimal value{digits};
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wself-move"
+#elif defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wself-move"
+#endif
+  value = std::move(value);
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#elif defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
+  EXPECT_EQ(value, sourcemeta::core::Decimal{digits});
+}
+
 TEST(move_from_state_is_valid) {
   sourcemeta::core::Decimal original{42};
   const sourcemeta::core::Decimal moved{std::move(original)};
@@ -4330,6 +4368,21 @@ TEST(compare_total_same_value_different_exponent) {
   const sourcemeta::core::Decimal left{"7.0"};
   const sourcemeta::core::Decimal right{7};
   EXPECT_EQ(left.compare_total(right), sourcemeta::core::Decimal{-1});
+}
+
+// Lining two coefficients up means scaling one of them, and a gap of more
+// than eighteen steps is wider than the scaling can hold, so the exponents
+// settle the order between them on their own
+TEST(compare_total_across_a_gap_too_wide_to_scale) {
+  const sourcemeta::core::Decimal left{"1"};
+  const sourcemeta::core::Decimal right{"1E+20"};
+  EXPECT_EQ(left.compare_total(right), sourcemeta::core::Decimal{-1});
+}
+
+TEST(compare_total_across_a_gap_too_wide_to_scale_reversed) {
+  const sourcemeta::core::Decimal left{"1E+20"};
+  const sourcemeta::core::Decimal right{"1"};
+  EXPECT_EQ(left.compare_total(right), sourcemeta::core::Decimal{1});
 }
 
 TEST(compare_total_negative_less_than_positive) {

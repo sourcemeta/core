@@ -12,6 +12,7 @@
 
 #include <algorithm>   // std::ranges::any_of
 #include <array>       // std::array
+#include <cassert>     // assert
 #include <cstddef>     // std::size_t
 #include <optional>    // std::optional, std::nullopt
 #include <set>         // std::set
@@ -188,10 +189,16 @@ inline auto openapi_substitute_server_variables(const JSON::StringView address,
     result.append(address.substr(cursor, expression.opening - cursor));
     const auto name{address.substr(
         expression.opening + 1, expression.closing - expression.opening - 1)};
+    // Nothing holds a URL template to naming only variables that are declared,
+    // so one that names an undeclared variable stands for nothing this can
+    // work out. Whatever is declared has already been read as a Server
+    // Variable Object by the time any of this runs
     const auto *variable{variables.try_at(name)};
-    if (variable == nullptr || !variable->is_object()) {
+    if (variable == nullptr) {
       return std::nullopt;
     }
+
+    assert(variable->is_object());
 
     if (!varied.empty() && name == varied) {
       result.append(value);
@@ -200,10 +207,7 @@ inline auto openapi_substitute_server_variables(const JSON::StringView address,
     }
 
     const auto *fallback{variable->try_at("default")};
-    if (fallback == nullptr || !fallback->is_string()) {
-      return std::nullopt;
-    }
-
+    assert(fallback != nullptr && fallback->is_string());
     result.append(fallback->to_string());
     cursor = expression.closing + 1;
   }
@@ -289,15 +293,13 @@ openapi_is_absolute_server_url_template(const JSON::StringView address,
     // for anything at all. Reading its default as the whole of what it may
     // stand for would settle a question the description leaves open, which is
     // the one thing this is here to refuse
-    if (choices == nullptr || !choices->is_array()) {
+    if (choices == nullptr) {
       return false;
     }
 
+    assert(choices->is_array());
     for (const auto &choice : choices->as_array()) {
-      if (!choice.is_string()) {
-        return false;
-      }
-
+      assert(choice.is_string());
       const auto candidate{openapi_substitute_server_variables(
           address, variables, variable.first, choice.to_string())};
       if (!candidate.has_value() || !URI::is_uri(candidate.value())) {
@@ -341,9 +343,11 @@ inline auto openapi_resolve_server_url(const JSON::StringView address,
   // and a template that names an absolute URI that way names the same place
   // wherever the Object holding it comes to sit
   if (separator == JSON::StringView::npos) {
-    if (variables == nullptr || !variables->is_object()) {
+    if (variables == nullptr) {
       return std::nullopt;
     }
+
+    assert(variables->is_object());
 
     if (!openapi_is_absolute_server_url_template(address, *variables)) {
       return std::nullopt;

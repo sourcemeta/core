@@ -1,0 +1,19 @@
+{
+  "document": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "securitySchemes": {
+        "Key": {}
+      }
+    }
+  },
+  "error": {
+    "message": "The Security Scheme Object must declare its type",
+    "location": "/components/securitySchemes/Key"
+  }
+}

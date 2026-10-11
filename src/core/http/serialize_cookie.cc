@@ -80,8 +80,6 @@ auto same_site_token(const sourcemeta::core::HTTPCookieSameSite value) noexcept
     case sourcemeta::core::HTTPCookieSameSite::None:
       return COOKIE_SAME_SITE_NONE;
   }
-
-  std::unreachable();
 }
 
 auto required_size(const sourcemeta::core::HTTPCookie &cookie,

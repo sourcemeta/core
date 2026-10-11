@@ -82,8 +82,6 @@ inline auto openapi_dialect(const OpenAPIVersion version) -> JSON::StringView {
     case OpenAPIVersion::OPENAPI_3_2:
       return OPENAPI_DIALECT_3_2;
   }
-
-  std::unreachable();
 }
 
 constexpr auto OPENAPI_HASH_OPENAPI{JSON::Object::hash("openapi"sv)};

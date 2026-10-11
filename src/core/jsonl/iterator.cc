@@ -72,8 +72,6 @@ auto ConstJSONLIterator::parse_next() -> JSON {
     case JSONLFraming::RecordSeparator:
       return this->parse_next_record();
   }
-
-  std::unreachable();
 }
 
 auto ConstJSONLIterator::parse_next_record() -> JSON {

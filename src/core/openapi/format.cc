@@ -437,8 +437,6 @@ auto row_of(const OpenAPIObjectKind kind) -> KindRow {
     case OpenAPIObjectKind::Schema:
       return {};
   }
-
-  std::unreachable();
 }
 
 // Byte order on the key, which is the whole of what a map whose keys the author

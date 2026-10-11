@@ -50,11 +50,14 @@ jobs:
       # permission bits that part of the suite asserts on
       - name: Build the website
         # Every function that the published report measures has to be called by
-        # the test suite, so that a change cannot quietly lower it, and the line
-        # and region shares have a floor the project has already cleared
+        # the test suite, so that a change cannot quietly lower it, and each of
+        # the other three shares has a floor the project has already cleared.
+        # Branches sit lower than the rest because an exhaustive switch over an
+        # enumeration carries an edge out of it that nothing can take
         env:
           REQUIRE_FULL_FUNCTION_COVERAGE: "1"
-          REQUIRE_MINIMUM_COVERAGE: "95"
+          REQUIRE_MINIMUM_COVERAGE: "97"
+          REQUIRE_MINIMUM_BRANCH_COVERAGE: "92"
         run: |
           useradd --create-home builder
           chown -R builder .

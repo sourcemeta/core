@@ -8,6 +8,7 @@
 
 #include <algorithm>        // std::ranges::find
 #include <array>            // std::array
+#include <cassert>          // assert
 #include <cstddef>          // std::size_t
 #include <cstdint>          // std::uint8_t, std::uint64_t
 #include <functional>       // std::less
@@ -598,10 +599,11 @@ inline auto openapi_canonical_base(const std::string_view input)
   // every location this frame reports
   if (base.has_value() && base.value().scheme().has_value()) {
     base.value().canonicalize();
+    // A URI that names a scheme writes out as at least that scheme, so what
+    // comes back of it is never nothing
     const auto result{base.value().recompose_without_fragment()};
-    if (result.has_value()) {
-      return result.value();
-    }
+    assert(result.has_value());
+    return result.value();
   }
 
   throw OpenAPIError{EMPTY_POINTER,

@@ -7,7 +7,7 @@
 #include <cassert>  // assert
 #include <optional> // std::optional
 #include <string>   // std::string
-#include <utility>  // std::pair, std::to_underlying
+#include <utility>  // std::pair, std::to_underlying, std::unreachable
 #include <vector>   // std::vector
 
 // X-macro defining all known vocabulary mappings (enum, URI)
@@ -268,9 +268,6 @@ auto sourcemeta::core::vocabulary_uri(SchemaVocabularies::Known vocabulary)
 
 #undef X_ENUM_TO_URI
   }
-
-  assert(false);
-  return {};
 }
 
 auto sourcemeta::core::vocabulary_uri(const SchemaVocabularies::URI &vocabulary)

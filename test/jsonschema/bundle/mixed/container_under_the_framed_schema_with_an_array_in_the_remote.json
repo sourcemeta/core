@@ -1,0 +1,99 @@
+{
+  "schema": {
+    "schema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/host",
+      "properties": {
+        "pet": {
+          "$ref": "https://remote.example/pet"
+        }
+      },
+      "$defs": {}
+    }
+  },
+  "resolver": {
+    "https://remote.example/pet": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://remote.example/pet",
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "integer"
+        }
+      ]
+    }
+  },
+  "defaultDialect": "https://json-schema.org/draft/2020-12/schema",
+  "paths": [
+    "/schema"
+  ],
+  "container": "/schema/$defs",
+  "result": {
+    "nonOfficialMetaschemas": {
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "https://example.com/host",
+        "properties": {
+          "pet": {
+            "$ref": "https://remote.example/pet"
+          }
+        },
+        "$defs": {
+          "https://remote.example/pet": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "https://remote.example/pet",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "references": {
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "https://example.com/host",
+        "properties": {
+          "pet": {
+            "$ref": "https://remote.example/pet"
+          }
+        },
+        "$defs": {
+          "https://remote.example/pet": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "https://remote.example/pet",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://remote.example/pet",
+        "at": "/schema/$defs/https:~1~1remote.example~1pet"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://remote.example/pet",
+        "at": "/schema/$defs/https:~1~1remote.example~1pet"
+      }
+    ]
+  }
+}

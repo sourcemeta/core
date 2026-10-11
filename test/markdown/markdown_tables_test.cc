@@ -456,3 +456,34 @@ TEST(table_cell_with_a_backslash_before_another_character) {
                     "<tbody>\n<tr>\n<td>x\\y</td>\n</tr>\n</tbody>\n"
                     "</table>\n");
 }
+
+// GFM section 4.10 requires the delimiter row to hold as many cells as the
+// header row, and the header is the last line of the paragraph above it, so a
+// paragraph of several lines is weighed by that line alone
+TEST(delimiter_row_under_a_paragraph_of_several_lines) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("one | two\nthree\n| --- | --- |\n")};
+  EXPECT_EQ(result, "<p>one | two\nthree\n| --- | --- |</p>\n");
+}
+
+// GFM section 4.10: "The remainder of the table's rows may vary in the number
+// of cells. If a row has fewer cells than the header row, empty cells are
+// inserted", so a line carrying no pipe at all is still a row of one cell
+TEST(row_without_a_pipe_is_a_row_of_one_cell) {
+  const auto result{sourcemeta::core::markdown_to_html(
+      "| a | b |\n| --- | --- |\n| 1 | 2 |\nplain\n")};
+  EXPECT_EQ(result, "<table>\n<thead>\n<tr>\n<th>a</th>\n<th>b</th>\n</tr>\n"
+                    "</thead>\n<tbody>\n<tr>\n<td>1</td>\n<td>2</td>\n</tr>\n"
+                    "<tr>\n<td>plain</td>\n<td></td>\n</tr>\n</tbody>\n"
+                    "</table>\n");
+}
+
+// That section ends the table at "the first empty line, or beginning of
+// another block-level structure", which a heading is
+TEST(heading_after_a_table_ends_it) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("| a |\n| --- |\n| 1 |\n# Title\n")};
+  EXPECT_EQ(result, "<table>\n<thead>\n<tr>\n<th>a</th>\n</tr>\n</thead>\n"
+                    "<tbody>\n<tr>\n<td>1</td>\n</tr>\n</tbody>\n</table>\n"
+                    "<h1>Title</h1>\n");
+}

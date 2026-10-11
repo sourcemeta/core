@@ -67,8 +67,6 @@ auto visibility_directive(
     case sourcemeta::core::HTTPCacheVisibility::Private:
       return "private";
   }
-
-  std::unreachable();
 }
 
 // RFC 9110 §5.1: field-name = token, so a name outside that set could not be
