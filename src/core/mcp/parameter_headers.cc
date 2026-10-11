@@ -7,10 +7,10 @@
 #include <sourcemeta/core/text.h>
 #include <sourcemeta/core/unicode.h>
 
-#include <algorithm>
-#include <set>
-#include <string>
-#include <vector>
+#include <algorithm> // std::all_of
+#include <set>       // std::set
+#include <string>    // std::string, std::to_string
+#include <vector>    // std::vector
 
 namespace {
 using sourcemeta::core::JSON;

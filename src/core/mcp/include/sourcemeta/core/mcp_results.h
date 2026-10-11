@@ -10,13 +10,13 @@
 #include <sourcemeta/core/mcp_headers.h>
 #include <sourcemeta/core/mcp_protocol.h>
 
-#include <cstddef>
-#include <cstdint>
-#include <optional>
-#include <ostream>
-#include <span>
-#include <utility>
-#include <vector>
+#include <cstddef>  // std::size_t
+#include <cstdint>  // std::int64_t, std::uint8_t
+#include <optional> // std::optional, std::nullopt
+#include <ostream>  // std::ostream
+#include <span>     // std::span
+#include <utility>  // std::unreachable
+#include <vector>   // std::vector
 
 namespace sourcemeta::core {
 

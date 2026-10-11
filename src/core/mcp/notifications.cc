@@ -3,9 +3,9 @@
 #include "helpers.h"
 #include "validation.h"
 
-#include <algorithm>
-#include <cmath>
-#include <utility>
+#include <algorithm> // std::find
+#include <cmath>     // std::isfinite
+#include <utility>   // std::move, std::pair
 
 namespace {
 using sourcemeta::core::JSON;
@@ -287,6 +287,7 @@ auto mcp_make_notification(const MCPProtocolVersion version,
                                    sourcemeta::core::MCP_HASH_META);
       meta = parameters.try_at("_meta", sourcemeta::core::MCP_HASH_META);
     }
+    // Caller-supplied metadata may already name a subscription
     meta->assign("io.modelcontextprotocol/subscriptionId",
                  std::move(*subscription_id));
   }

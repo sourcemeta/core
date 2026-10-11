@@ -6,8 +6,8 @@
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonrpc.h>
 
-#include <span>
-#include <utility>
+#include <span>    // std::span
+#include <utility> // std::move
 
 namespace sourcemeta::core {
 

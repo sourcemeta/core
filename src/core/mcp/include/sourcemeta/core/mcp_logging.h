@@ -1,11 +1,12 @@
 #ifndef SOURCEMETA_CORE_MCP_LOGGING_H_
 #define SOURCEMETA_CORE_MCP_LOGGING_H_
 
-#include <array>
-#include <cstdint>
-#include <optional>
 #include <sourcemeta/core/json.h>
-#include <utility>
+
+#include <array>    // std::array
+#include <cstdint>  // std::uint8_t
+#include <optional> // std::optional, std::nullopt
+#include <utility>  // std::unreachable
 
 namespace sourcemeta::core {
 
