@@ -5163,3 +5163,215 @@ TEST(yaml_block_sequence_closed_by_a_directives_end_marker) {
       sourcemeta::core::parse_json(R"JSON([ "b" ])JSON")};
   EXPECT_EQ(second, second_expected);
 }
+
+// Production 187 writes `l+block-mapping(n) ::= ( s-indent(n+m)
+// ns-l-block-map-entry(n+m) )+`, so an entry standing further in than the
+// mapping holding it belongs to a mapping of its own, which is the value of
+// the entry before it
+TEST(yaml_block_mapping_value_opening_with_an_explicit_key) {
+  const auto result{
+      sourcemeta::core::parse_yaml(std::string{"a:\n  ? b\n  : c\n"})};
+  const auto expected{
+      sourcemeta::core::parse_json(R"JSON({ "a": { "b": "c" } })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(yaml_block_mapping_value_with_a_scalar_key_before_an_explicit_key) {
+  const auto result{
+      sourcemeta::core::parse_yaml(std::string{"a:\n  b: 1\n  ? c\n  : d\n"})};
+  const auto expected{
+      sourcemeta::core::parse_json(R"JSON({ "a": { "b": 1, "c": "d" } })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(yaml_explicit_key_at_the_level_of_the_mapping_holding_it) {
+  const auto result{
+      sourcemeta::core::parse_yaml(std::string{"a: 1\n? b\n: c\n"})};
+  const auto expected{
+      sourcemeta::core::parse_json(R"JSON({ "a": 1, "b": "c" })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+// Section 8.2.2 reaches the block collection of an entry through
+// `s-l-comments`, which ends on a line break, so a nested mapping opens on a
+// line of its own
+TEST(yaml_explicit_key_on_the_line_of_the_value_indicator_before_it) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"a: ? b\n"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(
+        error.what(),
+        "Explicit mapping key in block value on same line as parent key");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(yaml_explicit_key_indented_past_an_entry_that_already_has_a_value) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"a: 1\n  ? b\n  : c\n"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Unexpected content after document");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// Production 104 writes `c-ns-alias-node ::= "*" ns-anchor-name` and
+// production 102 writes `ns-anchor-char ::= ns-char - c-flow-indicator`, so a
+// colon belongs to the name and the indicator needs a space before it
+TEST(yaml_alias_as_a_mapping_key) {
+  const auto result{
+      sourcemeta::core::parse_yaml(std::string{"a: &k key\n*k : 1\n"})};
+  const auto expected{
+      sourcemeta::core::parse_json(R"JSON({ "a": "key", "key": 1 })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(yaml_alias_as_a_mapping_key_without_a_value) {
+  const auto result{
+      sourcemeta::core::parse_yaml(std::string{"a: &k key\n*k\n"})};
+  const auto expected{
+      sourcemeta::core::parse_json(R"JSON({ "a": "key", "key": null })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(yaml_alias_naming_an_anchor_whose_name_takes_in_a_colon) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"a: &k key\n*k: 1\n"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLUnknownAnchorError &error) {
+    EXPECT_STREQ(error.what(), "YAML alias references undefined anchor");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// Section 10.2.1.4 gives the mapping tag, which a block mapping may carry on
+// the line before its first entry
+TEST(yaml_block_mapping_carrying_a_mapping_tag) {
+  const auto result{sourcemeta::core::parse_yaml(std::string{"!!map\na: 1\n"})};
+  const auto expected{sourcemeta::core::parse_json(R"JSON({ "a": 1 })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+// Production 183 writes `c-l-block-seq-entry(n) ::= "-" s-l+block-indented`,
+// whose node may be empty, and production 206 closes the document at a marker
+// of its own
+TEST(yaml_sequence_entry_without_a_value_before_a_document_end_marker) {
+  const auto result{sourcemeta::core::parse_yaml(std::string{"- a\n-\n...\n"})};
+  const auto expected{sourcemeta::core::parse_json(R"JSON([ "a", null ])JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(yaml_lone_sequence_entry_before_a_document_end_marker) {
+  const auto result{sourcemeta::core::parse_yaml(std::string{"-\n...\n"})};
+  const auto expected{sourcemeta::core::parse_json(R"JSON([ null ])JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(yaml_lone_sequence_entry_before_a_directives_end_marker) {
+  std::istringstream stream{"-\n---\na\n"};
+  const auto first{sourcemeta::core::parse_yaml(stream)};
+  const auto expected{sourcemeta::core::parse_json(R"JSON([ null ])JSON")};
+  EXPECT_EQ(first, expected);
+
+  const auto second{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(second, sourcemeta::core::JSON{"a"});
+}
+
+// Section 10.2.1.3 gives the string tag, which a later key of a mapping opened
+// by an explicit key carries the same way any other node does
+TEST(yaml_tagged_key_after_an_explicit_key_entry) {
+  const auto result{
+      sourcemeta::core::parse_yaml(std::string{"? a\n: 1\n!!str b: 2\n"})};
+  const auto expected{
+      sourcemeta::core::parse_json(R"JSON({ "a": 1, "b": 2 })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(yaml_mapping_opened_by_an_explicit_key_before_a_document_end_marker) {
+  const auto result{
+      sourcemeta::core::parse_yaml(std::string{"? a\n: 1\n...\n"})};
+  const auto expected{sourcemeta::core::parse_json(R"JSON({ "a": 1 })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(yaml_mapping_opened_by_an_explicit_key_before_a_directives_end_marker) {
+  std::istringstream stream{"? a\n: 1\n---\nb\n"};
+  const auto first{sourcemeta::core::parse_yaml(stream)};
+  const auto expected{sourcemeta::core::parse_json(R"JSON({ "a": 1 })JSON")};
+  EXPECT_EQ(first, expected);
+
+  const auto second{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(second, sourcemeta::core::JSON{"b"});
+}
+
+// Production 211 writes the stream as `l-document-prefix* l-any-document? (
+// ( l-document-suffix+ l-document-prefix* l-any-document? ) | c-byte-order-mark
+// | l-comment | l-explicit-document )*`, so another document may carry
+// directives of its own only where an end marker closed the one before it
+TEST(yaml_version_directive_in_a_document_after_an_end_marker) {
+  const auto result{
+      sourcemeta::core::parse_yaml(std::string{"a\n...\n%YAML 1.2\n--- b\n"})};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"a"});
+}
+
+TEST(yaml_version_directive_after_a_mapping_that_no_marker_closed) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"a: 1\n%YAML 1.2\n--- b\n"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Directive not allowed without preceding "
+                               "document end marker");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(yaml_tag_directive_after_a_sequence_that_no_marker_closed) {
+  try {
+    [[maybe_unused]] const auto result{sourcemeta::core::parse_yaml(
+        std::string{"- a\n%TAG !e! tag:x\n--- b\n"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Directive not allowed without preceding "
+                               "document end marker");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// Production 130 writes `ns-plain-char(c)` as every `ns-plain-safe(c)` but a
+// colon and a comment indicator, so a directive indicator opening a later line
+// of a plain scalar is content of it rather than a directive
+TEST(yaml_plain_scalar_continued_on_a_line_opening_with_a_directive_indicator) {
+  const auto result{
+      sourcemeta::core::parse_yaml(std::string{"a\n%YAML 1.2\n--- b\n"})};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"a %YAML 1.2"});
+}
+
+// A round-trip describes the one document it was read from, which an end
+// marker closes without anything following it
+TEST(yaml_roundtrip_of_a_document_closed_by_its_end_marker) {
+  sourcemeta::core::YAMLRoundTrip roundtrip;
+  const auto result{
+      sourcemeta::core::parse_yaml(std::string{"a: 1\n...\n"}, roundtrip)};
+  const auto expected{sourcemeta::core::parse_json(R"JSON({ "a": 1 })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+// The allowance has a ceiling, so a document long enough to claim it does not
+// go on buying more with every further byte
+TEST(alias_expansion_allowance_reaches_a_ceiling) {
+  const std::string input{"filler: " + std::string(100001, 'x') +
+                          "\na: &a x\nb: *a\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result.at("b"), sourcemeta::core::JSON{"x"});
+}

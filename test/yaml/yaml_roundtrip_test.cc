@@ -6007,3 +6007,11 @@ TEST(folded_block_scalar_with_an_empty_line_deeper_than_its_content) {
 TEST(flow_sequence_entry_separator_followed_by_a_line_break) {
   EXPECT_EQ(roundtrip("[ a,\n  b ]\n"), "[ a, b ]\n");
 }
+
+TEST(nested_explicit_key_mapping_is_written_without_the_indicator) {
+  const auto once{roundtrip("a:\n  ? b\n  : c\n")};
+  EXPECT_EQ(once, "a:\n  b: c\n");
+  EXPECT_EQ(roundtrip(once), once);
+  EXPECT_EQ(roundtrip_value("a:\n  ? b\n  : c\n"),
+            sourcemeta::core::parse_yaml("a:\n  ? b\n  : c\n"));
+}

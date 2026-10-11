@@ -287,8 +287,9 @@ public:
         this->process_directives(token);
         continue;
       }
-      if (!saw_document_end && !opened_document &&
-          token.type != TokenType::DocumentStart) [[unlikely]] {
+      // A directives end marker is read above, which is what opens a document
+      assert(opened_document || token.type != TokenType::DocumentStart);
+      if (!saw_document_end && !opened_document) [[unlikely]] {
         throw YAMLParseError{token.line, token.column,
                              "Unexpected content after document"};
       }
@@ -614,6 +615,14 @@ private:
                : token.column;
   }
 
+  // Columns are counted from one, so the indentation a token establishes is
+  // one less. Only the token that ends the stream carries no column, and no
+  // node property or block collection opens on one
+  [[nodiscard]] static auto indentation_of(const Token &token) -> std::size_t {
+    assert(token.column > 0);
+    return static_cast<std::size_t>(token.column - 1);
+  }
+
   [[nodiscard]] auto json_to_key_string(const JSON &value,
                                         const std::uint64_t key_line,
                                         const std::uint64_t key_column) const
@@ -695,10 +704,7 @@ private:
       if (this->lexer_->flow_level() == 0 &&
           context == JSON::ParseContext::Property && key_line > 0 &&
           current_token.line != key_line) {
-        const auto value_indent{
-            current_token.column > 0
-                ? static_cast<std::size_t>(current_token.column - 1)
-                : 0UZ};
+        const auto value_indent{indentation_of(current_token)};
         const auto parent_indent{this->lexer_->block_indent()};
         if (parent_indent != SIZE_MAX && value_indent <= parent_indent)
             [[unlikely]] {
@@ -789,10 +795,7 @@ private:
           context == JSON::ParseContext::Index &&
           current_token.type == TokenType::BlockSequenceEntry) {
         const auto block_indent{this->lexer_->block_indent()};
-        const auto entry_indent{
-            current_token.column > 0
-                ? static_cast<std::size_t>(current_token.column - 1)
-                : 0UZ};
+        const auto entry_indent{indentation_of(current_token)};
         if (block_indent != SIZE_MAX && entry_indent <= block_indent) {
           this->pending_tokens_.push_back(current_token);
           JSON empty_value{nullptr};
@@ -1530,8 +1533,7 @@ private:
     JSON result{JSON::make_array()};
     std::size_t element_index{0};
     const auto base_column{start_token.column};
-    const auto sequence_indent{
-        base_column > 0 ? static_cast<std::size_t>(base_column - 1) : 0UZ};
+    const auto sequence_indent{indentation_of(start_token)};
     this->detect_indent_width(key_column, base_column);
     if ((this->roundtrip_ != nullptr) &&
         context == JSON::ParseContext::Property && key_column > 0 &&
@@ -1636,10 +1638,7 @@ private:
     std::unordered_set<std::string> seen_keys;
 
     auto token{start_token};
-    const auto mapping_indent{
-        start_token.column > 0
-            ? static_cast<std::size_t>(start_token.column - 1)
-            : 0UZ};
+    const auto mapping_indent{indentation_of(start_token)};
 
     while (true) {
       this->lexer_->set_block_indent(mapping_indent);
@@ -2027,6 +2026,7 @@ private:
     } else if (next.type == TokenType::MappingStart ||
                next.type == TokenType::SequenceStart ||
                next.type == TokenType::BlockSequenceEntry ||
+               next.type == TokenType::BlockMappingKey ||
                next.type == TokenType::Anchor || next.type == TokenType::Tag ||
                next.type == TokenType::Alias) {
       if (!this->starts_mapping_value(next, key_line, base_column)) {
@@ -2037,6 +2037,15 @@ private:
           throw YAMLParseError{
               next.line, next.column,
               "Block sequence entry on same line as mapping key"};
+        }
+        // YAML 1.2.2 Section 8.2.2 reaches the block collection of an entry
+        // through `s-l-comments`, which ends on a line break, so a nested
+        // mapping opens on a line of its own
+        if (next.type == TokenType::BlockMappingKey && next.line == key_line)
+            [[unlikely]] {
+          throw YAMLParseError{
+              next.line, next.column,
+              "Explicit mapping key in block value on same line as parent key"};
         }
         this->record_inline_comment_for_key(key, next.line != key_line);
         auto value{this->parse_value(next, JSON::ParseContext::Property, 0, key,
@@ -2064,7 +2073,7 @@ private:
       this->lexer_->set_block_indent(static_cast<std::size_t>(base_column - 1));
 
       if (next.type == TokenType::BlockMappingKey) {
-        if (next.column < base_column) {
+        if (next.column != base_column) {
           break;
         }
         next = this->next_token();
