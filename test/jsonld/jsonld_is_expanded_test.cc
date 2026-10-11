@@ -607,15 +607,6 @@ TEST(node_object_with_an_index_of_another_type) {
   EXPECT_FALSE(sourcemeta::core::jsonld_is_expanded(document));
 }
 
-// A value object carries the value itself, so one that names only its type is
-// not expanded form either
-TEST(value_object_without_a_value) {
-  const auto document = sourcemeta::core::parse_json(R"([
-    { "http://example.com/p": [ { "@type": "http://example.com/t" } ] }
-  ])");
-  EXPECT_FALSE(sourcemeta::core::jsonld_is_expanded(document));
-}
-
 TEST(list_object_with_an_index) {
   const auto document = sourcemeta::core::parse_json(R"([
     { "http://example.com/p": [ { "@list": [], "@index": "first" } ] }

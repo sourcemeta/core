@@ -802,3 +802,33 @@ TEST(number_out_of_range_exponent_in_an_object) {
   EXPECT_PARSE_ERROR("{\n  \"foo\": 1,\n  \"bar\": 1e999999999999999999999\n}",
                      3, 10);
 }
+
+// A document may stop in the middle of an escape, which the scan for the four
+// hexadecimal digits of one runs into
+TEST(string_unicode_escape_cut_short) {
+  std::istringstream input{R"("\u12)"};
+  EXPECT_PARSE_ERROR(input, 1, 6);
+}
+
+TEST(string_surrogate_pair_cut_short_after_the_high_half) {
+  std::istringstream input{R"("\ud83d)"};
+  EXPECT_PARSE_ERROR(input, 1, 8);
+}
+
+TEST(string_surrogate_pair_cut_short_after_the_escape) {
+  std::istringstream input{R"("\ud83d\)"};
+  EXPECT_PARSE_ERROR(input, 1, 9);
+}
+
+// The second half of a surrogate pair has to sit in the low surrogate range
+TEST(string_surrogate_pair_with_a_high_half_and_no_low_half) {
+  std::istringstream input{R"("\ud83d")"};
+  EXPECT_PARSE_ERROR(input, 1, 8);
+}
+
+// The second half of a surrogate pair has to sit in the low surrogate range,
+// which a code point past its end is not
+TEST(string_surrogate_pair_with_a_low_half_past_the_range) {
+  std::istringstream input{R"("\ud83d\uffff")"};
+  EXPECT_PARSE_ERROR(input, 1, 13);
+}

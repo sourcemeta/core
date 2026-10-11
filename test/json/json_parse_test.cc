@@ -1950,66 +1950,6 @@ TEST(real_binary_fraction_equals_its_exponent_spelling) {
   EXPECT_EQ(left, right);
 }
 
-// A document may stop in the middle of an escape, which the scan for the four
-// hexadecimal digits of one runs into
-TEST(string_unicode_escape_cut_short) {
-  std::istringstream input{R"("\u12)"};
-  try {
-    sourcemeta::core::parse_json(input);
-    FAIL();
-  } catch (const sourcemeta::core::JSONParseError &error) {
-    EXPECT_EQ(error.line(), 1);
-    EXPECT_EQ(error.column(), 6);
-  }
-}
-
-TEST(string_surrogate_pair_cut_short_after_the_high_half) {
-  std::istringstream input{R"("\ud83d)"};
-  try {
-    sourcemeta::core::parse_json(input);
-    FAIL();
-  } catch (const sourcemeta::core::JSONParseError &error) {
-    EXPECT_EQ(error.line(), 1);
-    EXPECT_EQ(error.column(), 8);
-  }
-}
-
-TEST(string_surrogate_pair_cut_short_after_the_escape) {
-  std::istringstream input{R"("\ud83d\)"};
-  try {
-    sourcemeta::core::parse_json(input);
-    FAIL();
-  } catch (const sourcemeta::core::JSONParseError &error) {
-    EXPECT_EQ(error.line(), 1);
-    EXPECT_EQ(error.column(), 9);
-  }
-}
-
-// The second half of a surrogate pair has to sit in the low surrogate range
-TEST(string_surrogate_pair_with_a_high_half_and_no_low_half) {
-  std::istringstream input{R"("\ud83d")"};
-  try {
-    sourcemeta::core::parse_json(input);
-    FAIL();
-  } catch (const sourcemeta::core::JSONParseError &error) {
-    EXPECT_EQ(error.line(), 1);
-    EXPECT_EQ(error.column(), 8);
-  }
-}
-
-// The second half of a surrogate pair has to sit in the low surrogate range,
-// which a code point past its end is not
-TEST(string_surrogate_pair_with_a_low_half_past_the_range) {
-  std::istringstream input{R"("\ud83d\uffff")"};
-  try {
-    sourcemeta::core::parse_json(input);
-    FAIL();
-  } catch (const sourcemeta::core::JSONParseError &error) {
-    EXPECT_EQ(error.line(), 1);
-    EXPECT_EQ(error.column(), 13);
-  }
-}
-
 TEST(top_level_number_starting_with_eight) {
   std::istringstream input{"87"};
   const auto document{sourcemeta::core::parse_json(input)};

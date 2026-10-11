@@ -169,8 +169,8 @@ TEST(brackets_around_an_incomplete_ip_future_literal_are_encoded) {
 }
 
 // RFC 3986 Section 3.2.2 writes IPvFuture as "v" 1*HEXDIG "." 1*( unreserved /
-// sub-delims / ":" ), and Section 3.1 makes the version marker itself
-// case-insensitive
+// sub-delims / ":" ), and RFC 5234 Section 2.3 reads a literal of a grammar
+// without regard to case, which the version marker is
 TEST(brackets_around_an_uppercase_ip_future_literal_pass_through) {
   std::string output;
   sourcemeta::core::URI::escape_reference("http://[V7.host]/x", output);

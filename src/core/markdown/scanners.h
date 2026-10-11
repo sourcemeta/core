@@ -383,7 +383,7 @@ inline auto scan_html_block_start(const std::string_view input,
                                   const std::size_t offset) noexcept
     -> std::size_t {
   assert(input.ends_with('\n'));
-  assert(input[offset] == '<');
+  assert(character_at(input, offset) == '<');
   const auto next{character_at(input, offset + 1)};
   if (next == '!') {
     const auto after{character_at(input, offset + 2)};
@@ -436,12 +436,13 @@ inline auto scan_html_block_start(const std::string_view input,
 inline auto scan_html_block_start_7(const std::string_view input,
                                     const std::size_t offset) noexcept -> bool {
   assert(input.ends_with('\n'));
-  assert(input[offset] == '<');
-  // GFM section 4.6 writes this condition as "a complete open tag (with any
-  // tag name other than script, style, or pre) or a complete closing tag", so
-  // an open tag of an element whose content is raw text opens a block of the
-  // first condition or none at all. The exclusion is written of the open tag
-  // alone, so the closing tag of one of those elements opens a block here
+  assert(character_at(input, offset) == '<');
+  // CommonMark 0.31.2 section 4.6 writes this condition as "a complete open
+  // tag (with any tag name other than pre, script, style, or textarea) or a
+  // complete closing tag", so an open tag of an element whose content is raw
+  // text opens a block of the first condition or none at all. The exclusion is
+  // written of the open tag alone, so the closing tag of one of those elements
+  // opens a block here
   if (character_at(input, offset + 1) != '/') {
     std::array<char, 16> buffer{};
     const auto name{lowercase_tag_name(input, offset + 1, buffer)};
@@ -687,7 +688,7 @@ inline auto scan_footnote_definition(const std::string_view input,
                                      const std::size_t offset) noexcept
     -> std::size_t {
   assert(input.ends_with('\n'));
-  assert(input[offset] == '[');
+  assert(character_at(input, offset) == '[');
   if (character_at(input, offset + 1) != '^') {
     return 0;
   }

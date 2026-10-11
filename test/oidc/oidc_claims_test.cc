@@ -494,7 +494,7 @@ TEST(claims_parameter_with_a_non_object_specification) {
             nullptr);
 }
 
-// OpenID Connect Core 1.0 Section 5.5 writes the scope claim sets apart from
+// OpenID Connect Core 1.0 Section 5.4 writes the scope claim sets apart from
 // the subject, which only the openid scope yields
 TEST(scope_to_claims_without_openid) {
   EXPECT_EQ(collect("email"),

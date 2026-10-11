@@ -347,8 +347,9 @@ TEST(iterator_comparison_of_two_positions_of_one_stream) {
   EXPECT_TRUE(first == last);
 }
 
-// Each iterator reads its own document out of the stream as it is made, so two
-// of them over one stream stand on different documents and are not equal
+// An iterator holds the document it last read, and that is what a comparison
+// weighs, so two of them that each read a document of their own out of one
+// stream are unequal where those documents differ
 TEST(iterator_comparison_of_two_iterators_over_one_stream) {
   std::istringstream stream{"{ \"a\": 1 }\n{ \"b\": 2 }"};
   sourcemeta::core::JSONL parser{stream};

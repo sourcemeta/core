@@ -314,8 +314,9 @@ TEST(fenced_code_block_info_string_ended_by_a_carriage_return) {
   EXPECT_EQ(result, "<pre><code class=\"language-js\">code\n</code></pre>\n");
 }
 
-// GFM section 4.5 admits trailing whitespace after the closing fence, which
-// includes a tabulation
+// CommonMark 0.31.2 section 4.5 has the closing fence "followed only by
+// spaces or tabs, which are ignored", where the older wording GFM carries
+// names spaces alone
 TEST(fenced_code_block_closing_fence_with_a_trailing_tabulation) {
   const auto result{sourcemeta::core::markdown_to_html("```\na\n```\t")};
   EXPECT_EQ(result, "<pre><code>a\n</code></pre>\n");

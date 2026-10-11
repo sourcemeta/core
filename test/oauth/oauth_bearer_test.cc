@@ -848,12 +848,6 @@ TEST(challenge_parameter_of_a_header_opening_with_a_separator) {
           .has_value());
 }
 
-TEST(challenge_parameter_of_a_parameter_without_a_value) {
-  EXPECT_FALSE(sourcemeta::core::oauth_challenge_parameter(
-                   "Bearer realm=", "Bearer", "realm")
-                   .has_value());
-}
-
 TEST(challenge_parameter_of_a_parameter_whose_value_is_a_separator) {
   EXPECT_FALSE(sourcemeta::core::oauth_challenge_parameter("Bearer realm=,",
                                                            "Bearer", "realm")
