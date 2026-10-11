@@ -977,53 +977,60 @@ TEST(error_code_to_http_status_method_not_found_2026_07_28) {
             sourcemeta::core::HTTP_STATUS_NOT_FOUND);
 }
 
+// The three earlier revisions tie a status to a transport condition, such as a
+// terminated session, rather than to a JSON-RPC error, which in that era
+// travels on a 200, so there is no status to report for any code
+// https://modelcontextprotocol.io/specification/2025-11-25/basic/transports
 TEST(error_code_to_http_status_method_not_found_2025_11_25) {
-  EXPECT_EQ(sourcemeta::core::mcp_error_code_to_http_status(
-                sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
-                sourcemeta::core::JSONRPC_CODE_METHOD_NOT_FOUND),
-            sourcemeta::core::HTTP_STATUS_BAD_REQUEST);
+  EXPECT_FALSE(sourcemeta::core::mcp_error_code_to_http_status(
+                   sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+                   sourcemeta::core::JSONRPC_CODE_METHOD_NOT_FOUND)
+                   .has_value());
 }
 
 TEST(error_code_to_http_status_method_not_found_2025_06_18) {
-  EXPECT_EQ(sourcemeta::core::mcp_error_code_to_http_status(
-                sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
-                sourcemeta::core::JSONRPC_CODE_METHOD_NOT_FOUND),
-            sourcemeta::core::HTTP_STATUS_BAD_REQUEST);
+  EXPECT_FALSE(sourcemeta::core::mcp_error_code_to_http_status(
+                   sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+                   sourcemeta::core::JSONRPC_CODE_METHOD_NOT_FOUND)
+                   .has_value());
 }
 
 TEST(error_code_to_http_status_method_not_found_2025_03_26) {
-  EXPECT_EQ(sourcemeta::core::mcp_error_code_to_http_status(
-                sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
-                sourcemeta::core::JSONRPC_CODE_METHOD_NOT_FOUND),
-            sourcemeta::core::HTTP_STATUS_BAD_REQUEST);
+  EXPECT_FALSE(sourcemeta::core::mcp_error_code_to_http_status(
+                   sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+                   sourcemeta::core::JSONRPC_CODE_METHOD_NOT_FOUND)
+                   .has_value());
 }
 
+// 2026-07-28 names a status for four codes and no others, so the generic
+// JSON-RPC failures leave the choice to the adapter
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#server-validation
 TEST(error_code_to_http_status_parse_error) {
-  EXPECT_EQ(sourcemeta::core::mcp_error_code_to_http_status(
-                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-                sourcemeta::core::JSONRPC_CODE_PARSE),
-            sourcemeta::core::HTTP_STATUS_BAD_REQUEST);
+  EXPECT_FALSE(sourcemeta::core::mcp_error_code_to_http_status(
+                   sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                   sourcemeta::core::JSONRPC_CODE_PARSE)
+                   .has_value());
 }
 
 TEST(error_code_to_http_status_invalid_request) {
-  EXPECT_EQ(sourcemeta::core::mcp_error_code_to_http_status(
-                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-                sourcemeta::core::JSONRPC_CODE_INVALID_REQUEST),
-            sourcemeta::core::HTTP_STATUS_BAD_REQUEST);
+  EXPECT_FALSE(sourcemeta::core::mcp_error_code_to_http_status(
+                   sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                   sourcemeta::core::JSONRPC_CODE_INVALID_REQUEST)
+                   .has_value());
 }
 
 TEST(error_code_to_http_status_invalid_params) {
-  EXPECT_EQ(sourcemeta::core::mcp_error_code_to_http_status(
-                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-                sourcemeta::core::JSONRPC_CODE_INVALID_PARAMS),
-            sourcemeta::core::HTTP_STATUS_BAD_REQUEST);
+  EXPECT_FALSE(sourcemeta::core::mcp_error_code_to_http_status(
+                   sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                   sourcemeta::core::JSONRPC_CODE_INVALID_PARAMS)
+                   .has_value());
 }
 
 TEST(error_code_to_http_status_internal_error) {
-  EXPECT_EQ(sourcemeta::core::mcp_error_code_to_http_status(
-                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-                sourcemeta::core::JSONRPC_CODE_INTERNAL),
-            sourcemeta::core::HTTP_STATUS_INTERNAL_SERVER_ERROR);
+  EXPECT_FALSE(sourcemeta::core::mcp_error_code_to_http_status(
+                   sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                   sourcemeta::core::JSONRPC_CODE_INTERNAL)
+                   .has_value());
 }
 
 // A header mismatch, a missing capability and an unsupported version are all
@@ -1050,10 +1057,20 @@ TEST(error_code_to_http_status_unsupported_protocol_version) {
             sourcemeta::core::HTTP_STATUS_BAD_REQUEST);
 }
 
+// A resource that cannot be found is the client asking for something absent,
+// so the earlier mapping reporting the server at fault was the one row that
+// was wrong whichever way the convention went
+TEST(error_code_to_http_status_resource_not_found) {
+  EXPECT_FALSE(sourcemeta::core::mcp_error_code_to_http_status(
+                   sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+                   sourcemeta::core::MCP_CODE_RESOURCE_NOT_FOUND)
+                   .has_value());
+}
+
 TEST(error_code_to_http_status_unmapped_code) {
-  EXPECT_EQ(sourcemeta::core::mcp_error_code_to_http_status(
-                sourcemeta::core::MCPProtocolVersion::V_2026_07_28, -99999),
-            sourcemeta::core::HTTP_STATUS_INTERNAL_SERVER_ERROR);
+  EXPECT_FALSE(sourcemeta::core::mcp_error_code_to_http_status(
+                   sourcemeta::core::MCPProtocolVersion::V_2026_07_28, -99999)
+                   .has_value());
 }
 
 TEST(mcp_error_is_catchable_as_an_invalid_argument) {

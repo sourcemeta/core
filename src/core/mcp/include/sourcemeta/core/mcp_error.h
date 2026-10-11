@@ -142,16 +142,22 @@ constexpr std::int64_t MCP_CODE_MISSING_REQUIRED_CLIENT_CAPABILITY{-32021};
 constexpr std::int64_t MCP_CODE_UNSUPPORTED_PROTOCOL_VERSION{-32022};
 
 /// @ingroup mcp
-/// Map an MCP or JSON-RPC error code to an appropriate HTTP status code
-/// for the Streamable HTTP transport.
+/// Map an MCP or JSON-RPC error code to the HTTP status the specification
+/// mandates for it on the Streamable HTTP transport, or nothing where it
+/// mandates none.
 ///
-/// For MCP 2026-07-28, returns @ref HTTP_STATUS_NOT_FOUND for method not found
-/// (-32601). For earlier protocol versions, returns @ref
-/// HTTP_STATUS_BAD_REQUEST for method not found. Returns @ref
-/// HTTP_STATUS_BAD_REQUEST for client errors
-/// (-32600, -32602, -32700, -32020, -32021, -32022), and @ref
-/// HTTP_STATUS_INTERNAL_SERVER_ERROR for internal or unmapped server errors.
-/// For example:
+/// Only 2026-07-28 ties an error code to a status, and only for four of them:
+/// an unimplemented method answers `404`, while a header mismatch, a missing
+/// required client capability and an unsupported protocol version each answer
+/// `400`. Every other code in that revision, and every code in the three
+/// earlier revisions, has no mandated status: those revisions tie a status to
+/// a transport condition such as a terminated session rather than to a
+/// JSON-RPC error, which in that era travels on a `200`.
+///
+/// So an absent result is not a gap to paper over. It says the choice belongs
+/// to the adapter, which is why this returns nothing instead of inventing a
+/// status, and in particular why a resource that cannot be found no longer
+/// reports the server as being at fault. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/mcp.h>
@@ -162,37 +168,37 @@ constexpr std::int64_t MCP_CODE_UNSUPPORTED_PROTOCOL_VERSION{-32022};
 ///            sourcemeta::core::JSONRPC_CODE_METHOD_NOT_FOUND) ==
 ///        sourcemeta::core::HTTP_STATUS_NOT_FOUND);
 /// assert(sourcemeta::core::mcp_error_code_to_http_status(
-///            sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
-///            sourcemeta::core::JSONRPC_CODE_METHOD_NOT_FOUND) ==
-///        sourcemeta::core::HTTP_STATUS_BAD_REQUEST);
-/// assert(sourcemeta::core::mcp_error_code_to_http_status(
 ///            sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-///            sourcemeta::core::JSONRPC_CODE_INTERNAL) ==
-///        sourcemeta::core::HTTP_STATUS_INTERNAL_SERVER_ERROR);
+///            sourcemeta::core::MCP_CODE_HEADER_MISMATCH) ==
+///        sourcemeta::core::HTTP_STATUS_BAD_REQUEST);
+/// assert(!sourcemeta::core::mcp_error_code_to_http_status(
+///             sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+///             sourcemeta::core::JSONRPC_CODE_INTERNAL)
+///             .has_value());
+/// assert(!sourcemeta::core::mcp_error_code_to_http_status(
+///             sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+///             sourcemeta::core::JSONRPC_CODE_METHOD_NOT_FOUND)
+///             .has_value());
 /// ```
 ///
 /// @see
-/// https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http
+/// https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#server-validation
+/// https://modelcontextprotocol.io/specification/2026-07-28/basic/index#_meta
 constexpr auto mcp_error_code_to_http_status(const MCPProtocolVersion version,
                                              const std::int64_t code) noexcept
-    -> HTTPStatus {
-  if (version == MCPProtocolVersion::V_2026_07_28) {
-    if (code == JSONRPC_CODE_METHOD_NOT_FOUND) {
-      return HTTP_STATUS_NOT_FOUND;
-    }
-  } else {
-    if (code == JSONRPC_CODE_METHOD_NOT_FOUND) {
-      return HTTP_STATUS_BAD_REQUEST;
-    }
+    -> std::optional<HTTPStatus> {
+  if (version != MCPProtocolVersion::V_2026_07_28) {
+    return std::nullopt;
   }
-  if (code == JSONRPC_CODE_INVALID_REQUEST ||
-      code == JSONRPC_CODE_INVALID_PARAMS || code == JSONRPC_CODE_PARSE ||
-      code == MCP_CODE_HEADER_MISMATCH ||
+  if (code == JSONRPC_CODE_METHOD_NOT_FOUND) {
+    return HTTP_STATUS_NOT_FOUND;
+  }
+  if (code == MCP_CODE_HEADER_MISMATCH ||
       code == MCP_CODE_MISSING_REQUIRED_CLIENT_CAPABILITY ||
       code == MCP_CODE_UNSUPPORTED_PROTOCOL_VERSION) {
     return HTTP_STATUS_BAD_REQUEST;
   }
-  return HTTP_STATUS_INTERNAL_SERVER_ERROR;
+  return std::nullopt;
 }
 
 /// @ingroup mcp
