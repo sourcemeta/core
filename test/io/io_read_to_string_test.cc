@@ -1,4 +1,5 @@
 #include <sourcemeta/core/io.h>
+#include <sourcemeta/core/system.h>
 #include <sourcemeta/core/test.h>
 
 #include <algorithm>    // std::remove
@@ -84,7 +85,7 @@ TEST(missing_file_throws) {
   try {
     sourcemeta::core::read_file_to_string(path);
     FAIL();
-  } catch (const sourcemeta::core::IOFileNotFoundError &error) {
+  } catch (const sourcemeta::core::FileNotFoundError &error) {
     EXPECT_EQ(error.path(), path);
   } catch (...) {
     FAIL();

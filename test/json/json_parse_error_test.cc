@@ -1,5 +1,6 @@
 #include <sourcemeta/core/io.h>
 #include <sourcemeta/core/json.h>
+#include <sourcemeta/core/system.h>
 #include <sourcemeta/core/test.h>
 
 #include <exception>
@@ -728,7 +729,7 @@ TEST(read_json_non_existent) {
   try {
     sourcemeta::core::read_json(path);
     FAIL();
-  } catch (const sourcemeta::core::IOFileNotFoundError &error) {
+  } catch (const sourcemeta::core::FileNotFoundError &error) {
     EXPECT_EQ(error.path(), path);
   } catch (...) {
     FAIL();

@@ -3,6 +3,7 @@
 
 #include <sourcemeta/core/io.h>
 #include <sourcemeta/core/options.h>
+#include <sourcemeta/core/system.h>
 #include <sourcemeta/core/text.h>
 
 #include <cstdlib>    // EXIT_FAILURE, EXIT_SUCCESS
@@ -88,13 +89,13 @@ static auto run(const std::string &script, const bool check,
     // meaning the same thing everywhere
     contents = sourcemeta::core::replace(
         sourcemeta::core::read_to_string(stream), "\r\n", "\n");
-  } catch (const sourcemeta::core::IOFileNotFoundError &) {
+  } catch (const sourcemeta::core::FileNotFoundError &) {
     notes.emplace_back(script + ": no such file");
     return false;
   } catch (const sourcemeta::core::IOIsADirectoryError &) {
     notes.emplace_back(script + ": is a directory");
     return false;
-  } catch (const sourcemeta::core::IOFilePermissionError &) {
+  } catch (const sourcemeta::core::FilePermissionError &) {
     notes.emplace_back(script + ": cannot be read");
     return false;
   } catch (const std::exception &error) {

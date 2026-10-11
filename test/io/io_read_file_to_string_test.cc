@@ -1,4 +1,5 @@
 #include <sourcemeta/core/io.h>
+#include <sourcemeta/core/system.h>
 #include <sourcemeta/core/test.h>
 
 #include <filesystem> // std::filesystem::path
@@ -55,7 +56,7 @@ TEST(a_missing_file) {
   try {
     sourcemeta::core::read_file_to_string(path);
     FAIL();
-  } catch (const sourcemeta::core::IOFileNotFoundError &error) {
+  } catch (const sourcemeta::core::FileNotFoundError &error) {
     EXPECT_STREQ(error.what(), "File not found");
     EXPECT_EQ(error.path(), path);
   } catch (...) {
@@ -99,7 +100,7 @@ TEST(an_unreadable_file) {
   try {
     sourcemeta::core::read_file_to_string(path);
     FAIL();
-  } catch (const sourcemeta::core::IOFilePermissionError &error) {
+  } catch (const sourcemeta::core::FilePermissionError &error) {
     EXPECT_STREQ(error.what(), "Permission denied");
     // The path is resolved before the file is opened, so the error carries the
     // canonical form rather than the one that was asked for

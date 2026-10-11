@@ -7,6 +7,7 @@ if(SOURCEMETA_CORE_INSTALL)
 endif()
 
 target_link_libraries(sourcemeta_core_uritemplate PUBLIC sourcemeta::core::io)
+target_link_libraries(sourcemeta_core_uritemplate PUBLIC sourcemeta::core::system)
 target_link_libraries(sourcemeta_core_uritemplate PRIVATE sourcemeta::core::regex)
 target_link_libraries(sourcemeta_core_uritemplate PRIVATE sourcemeta::core::text)
 target_link_libraries(sourcemeta_core_uritemplate PRIVATE

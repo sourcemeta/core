@@ -13,7 +13,7 @@ target_link_libraries(sourcemeta_core_clitest
 target_link_libraries(sourcemeta_core_clitest
   PRIVATE sourcemeta::core::text)
 target_link_libraries(sourcemeta_core_clitest
-  PRIVATE sourcemeta::core::process)
+  PRIVATE sourcemeta::core::system)
 target_link_libraries(sourcemeta_core_clitest
   PRIVATE sourcemeta::core::crypto)
 target_link_libraries(sourcemeta_core_clitest

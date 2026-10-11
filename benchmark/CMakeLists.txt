@@ -123,7 +123,8 @@ if(BENCHMARK_SOURCES)
 
   if(SOURCEMETA_CORE_GZIP)
     target_link_libraries(sourcemeta_core_benchmarks
-      PRIVATE sourcemeta::core::gzip sourcemeta::core::io)
+      PRIVATE sourcemeta::core::gzip sourcemeta::core::io
+              sourcemeta::core::system)
   endif()
 
   if(SOURCEMETA_CORE_JOSE)
@@ -134,7 +135,8 @@ if(BENCHMARK_SOURCES)
 
   if(SOURCEMETA_CORE_CRYPTO)
     target_link_libraries(sourcemeta_core_benchmarks
-      PRIVATE sourcemeta::core::crypto sourcemeta::core::io)
+      PRIVATE sourcemeta::core::crypto sourcemeta::core::io
+              sourcemeta::core::system)
   endif()
 
   # A single run prints the human readable report and writes the JSON file, so

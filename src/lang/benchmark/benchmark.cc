@@ -2,7 +2,7 @@
 #include <sourcemeta/core/io.h>
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/options.h>
-#include <sourcemeta/core/process.h>
+#include <sourcemeta/core/system.h>
 
 #include <algorithm>   // std::max, std::min
 #include <array>       // std::array

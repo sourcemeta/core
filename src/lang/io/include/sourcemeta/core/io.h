@@ -6,12 +6,10 @@
 #endif
 
 // NOLINTBEGIN(misc-include-cleaner)
-#include <sourcemeta/core/io_atomic.h>
 #include <sourcemeta/core/io_binary.h>
 #include <sourcemeta/core/io_bytestream.h>
 #include <sourcemeta/core/io_error.h>
-#include <sourcemeta/core/io_fileview.h>
-#include <sourcemeta/core/io_temporary.h>
+#include <sourcemeta/core/system.h>
 // NOLINTEND(misc-include-cleaner)
 
 #include <cstddef>    // std::byte
@@ -144,7 +142,7 @@ auto read_file(const std::filesystem::path &path)
   // reposition by arithmetic
   std::basic_ifstream<CharT, Traits> stream{canonical_path, std::ios::binary};
   if (!stream.is_open()) {
-    throw IOFilePermissionError{canonical_path};
+    throw FilePermissionError{canonical_path};
   }
 
   stream.exceptions(std::basic_ifstream<CharT, Traits>::badbit);
@@ -241,7 +239,7 @@ auto read_file_to_string(const std::filesystem::path &path)
   // and every offset into it disagree with the file itself
   std::basic_ifstream<CharT, Traits> stream{canonical_path, std::ios::binary};
   if (!stream.is_open()) {
-    throw IOFilePermissionError{canonical_path};
+    throw FilePermissionError{canonical_path};
   }
 
   stream.exceptions(std::basic_ifstream<CharT, Traits>::badbit);
@@ -377,19 +375,6 @@ auto write_file(const std::filesystem::path &path,
 SOURCEMETA_CORE_IO_EXPORT
 auto write_file(const std::filesystem::path &path,
                 const std::function<void(std::ostream &)> &writer) -> void;
-
-/// @ingroup io
-///
-/// Flush an existing file to disk, beyond just to the operating system. For
-/// example:
-///
-/// ```cpp
-/// #include <sourcemeta/core/io.h>
-///
-/// sourcemeta::core::flush("/foo/bar.txt");
-/// ```
-SOURCEMETA_CORE_IO_EXPORT
-auto flush(const std::filesystem::path &path) -> void;
 
 } // namespace sourcemeta::core
 

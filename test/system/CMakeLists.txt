@@ -1,0 +1,147 @@
+if(WIN32)
+  add_test(NAME core.system.spawn.e2e
+    COMMAND powershell -ExecutionPolicy Bypass -File
+      "${CMAKE_CURRENT_SOURCE_DIR}/system_spawn_test.ps1"
+      "$<TARGET_FILE:sourcemeta_core_system_unit_spawn_main>")
+  sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME system
+    SOURCES system_error_test.cc system_spawn_test_windows.cc
+      system_spawn_and_capture_test.cc system_spawn_input_test.cc
+      system_usage_test.cc system_descriptors_test.cc
+      system_start_time_test.cc system_parallel_for_each_test.cc
+      system_atomic_write_file_test.cc
+      system_atomic_directory_swap_test.cc system_fileview_test.cc
+      system_temporary_test.cc system_flush_test.cc)
+else()
+  add_test(NAME core.system.spawn.e2e
+    COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/system_spawn_test.sh"
+      "$<TARGET_FILE:sourcemeta_core_system_unit_spawn_main>")
+  sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME system
+    SOURCES system_error_test.cc system_spawn_test_unix.cc
+      system_spawn_and_capture_test.cc system_spawn_input_test.cc
+      system_usage_test.cc system_descriptors_test.cc
+      system_start_time_test.cc system_parallel_for_each_test.cc
+      system_atomic_write_file_test.cc
+      system_atomic_directory_swap_test.cc system_fileview_test.cc
+      system_temporary_test.cc system_flush_test.cc)
+endif()
+
+target_link_libraries(sourcemeta_core_system_unit PRIVATE sourcemeta::core::system)
+# A handful of suites read back through the higher-level I/O helpers to
+# verify what the primitives below them wrote
+target_link_libraries(sourcemeta_core_system_unit PRIVATE sourcemeta::core::io)
+target_compile_definitions(sourcemeta_core_system_unit
+  PRIVATE STUBS_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}/stubs"
+  PRIVATE BUILD_DIRECTORY="${CMAKE_CURRENT_BINARY_DIR}")
+
+sourcemeta_executable(NAMESPACE sourcemeta PROJECT core NAME system
+  VARIANT unit_spawn_main SOURCES system_spawn_main.cc)
+target_link_libraries(sourcemeta_core_system_unit_spawn_main
+  PRIVATE sourcemeta::core::system)
+
+sourcemeta_executable(NAMESPACE sourcemeta PROJECT core NAME system
+  VARIANT unit_capture_main SOURCES system_spawn_and_capture_main.cc)
+target_link_libraries(sourcemeta_core_system_unit_capture_main
+  PRIVATE sourcemeta::core::text)
+
+add_dependencies(sourcemeta_core_system_unit
+  sourcemeta_core_system_unit_capture_main)
+target_compile_definitions(sourcemeta_core_system_unit
+  PRIVATE HELPER_BINARY="$<TARGET_FILE:sourcemeta_core_system_unit_capture_main>")
+
+macro(add_stacktrace_test_unix scenario debug_flag)
+  if(UNIX)
+    set(target sourcemeta_core_system_unit_stacktrace_${scenario}_main_${debug_flag})
+    add_executable(${target} system_stacktrace_${scenario}_main.cc)
+    target_link_libraries(${target} PRIVATE sourcemeta::core::system)
+    # These programs set their own diagnostics and their own visibility, so
+    # they are not built through the usual helper, but they are still programs
+    # of this project and run on the allocator that this project ships
+    if(SOURCEMETA_CORE_ALLOCATOR_TARGET)
+      target_link_libraries(${target} PRIVATE ${SOURCEMETA_CORE_ALLOCATOR_TARGET})
+    endif()
+    # We don't want consumers to be bothered with this
+    if(PROJECT_IS_TOP_LEVEL)
+      sourcemeta_clang_tidy_attempt_enable(TARGET ${target})
+    endif()
+    if("${debug_flag}" STREQUAL "none")
+      target_compile_options(${target} PRIVATE -g0 -fvisibility=default)
+    else()
+      target_compile_options(${target} PRIVATE -${debug_flag} -fvisibility=default)
+    endif()
+    add_test(NAME core.system.stacktrace.${scenario}.${debug_flag}.e2e
+      COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/system_stacktrace_${scenario}_test.sh"
+        "$<TARGET_FILE:${target}>"
+        "${CMAKE_CURRENT_BINARY_DIR}"
+        "$<TARGET_FILE:sourcemeta_core_system>")
+  endif()
+endmacro()
+
+# These variants assert symbolized frames, which dbghelp can only resolve from
+# the PDB that MSVC emits
+macro(add_stacktrace_test_windows scenario)
+  if(MSVC)
+    set(target sourcemeta_core_system_unit_stacktrace_${scenario}_main)
+    add_executable(${target} system_stacktrace_${scenario}_main.cc)
+    target_link_libraries(${target} PRIVATE sourcemeta::core::system)
+    # These programs set their own diagnostics and their own visibility, so
+    # they are not built through the usual helper, but they are still programs
+    # of this project and run on the allocator that this project ships
+    if(SOURCEMETA_CORE_ALLOCATOR_TARGET)
+      target_link_libraries(${target} PRIVATE ${SOURCEMETA_CORE_ALLOCATOR_TARGET})
+    endif()
+    # We don't want consumers to be bothered with this
+    if(PROJECT_IS_TOP_LEVEL)
+      sourcemeta_clang_tidy_attempt_enable(TARGET ${target})
+    endif()
+    target_compile_options(${target} PRIVATE /Zi)
+    target_link_options(${target} PRIVATE /DEBUG)
+    add_test(NAME core.system.stacktrace.${scenario}.e2e
+      COMMAND powershell -ExecutionPolicy Bypass -File
+        "${CMAKE_CURRENT_SOURCE_DIR}/system_stacktrace_${scenario}_test.ps1"
+        "$<TARGET_FILE:${target}>"
+        "${CMAKE_CURRENT_BINARY_DIR}"
+        "$<TARGET_FILE:sourcemeta_core_system>")
+  endif()
+endmacro()
+
+macro(add_stacktrace_test_windows_no_debug scenario)
+  if(WIN32)
+    set(target sourcemeta_core_system_unit_stacktrace_${scenario}_main_no_debug)
+    add_executable(${target} system_stacktrace_${scenario}_main.cc)
+    target_link_libraries(${target} PRIVATE sourcemeta::core::system)
+    # These programs set their own diagnostics and their own visibility, so
+    # they are not built through the usual helper, but they are still programs
+    # of this project and run on the allocator that this project ships
+    if(SOURCEMETA_CORE_ALLOCATOR_TARGET)
+      target_link_libraries(${target} PRIVATE ${SOURCEMETA_CORE_ALLOCATOR_TARGET})
+    endif()
+    # We don't want consumers to be bothered with this
+    if(PROJECT_IS_TOP_LEVEL)
+      sourcemeta_clang_tidy_attempt_enable(TARGET ${target})
+    endif()
+    add_test(NAME core.system.stacktrace.${scenario}.no_debug.e2e
+      COMMAND powershell -ExecutionPolicy Bypass -File
+        "${CMAKE_CURRENT_SOURCE_DIR}/system_stacktrace_${scenario}_no_debug_test.ps1"
+        "$<TARGET_FILE:${target}>"
+        "${CMAKE_CURRENT_BINARY_DIR}")
+  endif()
+endmacro()
+
+# A sanitizer installs handlers for the very signals these assert on, so the
+# report they diff against never gets written
+if(NOT SOURCEMETA_CORE_ADDRESS_SANITIZER AND NOT SOURCEMETA_CORE_UNDEFINED_SANITIZER)
+  add_stacktrace_test_unix(segfault g)
+  add_stacktrace_test_unix(segfault g1)
+  add_stacktrace_test_unix(segfault none)
+  add_stacktrace_test_unix(abort g)
+  add_stacktrace_test_unix(abort g1)
+  add_stacktrace_test_unix(abort none)
+  add_stacktrace_test_unix(on_demand g)
+  add_stacktrace_test_unix(on_demand g1)
+  add_stacktrace_test_unix(on_demand none)
+
+  add_stacktrace_test_windows(segfault)
+  add_stacktrace_test_windows(on_demand)
+  add_stacktrace_test_windows_no_debug(segfault)
+  add_stacktrace_test_windows_no_debug(on_demand)
+endif()

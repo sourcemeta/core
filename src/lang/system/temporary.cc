@@ -1,0 +1,72 @@
+#include <sourcemeta/core/system_error.h>
+#include <sourcemeta/core/system_temporary.h>
+
+#include <cassert>      // assert
+#include <filesystem>   // std::filesystem
+#include <string>       // std::string
+#include <system_error> // std::error_code, std::generic_category
+
+#if defined(_WIN32)
+#include <io.h> // _mktemp_s
+#else
+#include <cerrno>   // errno
+#include <unistd.h> // mkdtemp
+#endif
+
+namespace sourcemeta::core {
+
+TemporaryDirectory::TemporaryDirectory(const std::filesystem::path &parent,
+                                       const std::string_view prefix) {
+  assert(!prefix.empty());
+  assert(!prefix.contains('/'));
+  assert(!prefix.contains('\\'));
+  if (std::filesystem::exists(parent) &&
+      !std::filesystem::is_directory(parent)) {
+    throw NotADirectoryError{parent};
+  }
+
+  std::filesystem::create_directories(parent);
+  auto name{(parent / std::string{prefix}).string() + "XXXXXX"};
+
+#if defined(_WIN32)
+  const auto error{_mktemp_s(name.data(), name.size() + 1)};
+  if (error != 0) {
+    throw std::filesystem::filesystem_error{
+        "failed to create temporary directory", parent,
+        std::error_code{error, std::generic_category()}};
+  }
+
+  // The name the platform settled on may still be one the file system cannot
+  // hold, which is a failure of its own rather than a name already taken, and
+  // is reported the way the other platform reports it
+  std::error_code code;
+  if (!std::filesystem::create_directory(name, code)) {
+    if (code) {
+      throw std::filesystem::filesystem_error{
+          "failed to create temporary directory", parent, code};
+    }
+
+    throw FileAlreadyExistsError{std::filesystem::path{name}};
+  }
+#else
+  if (mkdtemp(name.data()) == nullptr) {
+    throw std::filesystem::filesystem_error{
+        "failed to create temporary directory", parent,
+        std::error_code{errno, std::generic_category()}};
+  }
+#endif
+
+  this->path_ = std::filesystem::path{name};
+}
+
+TemporaryDirectory::~TemporaryDirectory() {
+  std::error_code error;
+  std::filesystem::remove_all(this->path_, error);
+}
+
+auto TemporaryDirectory::path() const noexcept
+    -> const std::filesystem::path & {
+  return this->path_;
+}
+
+} // namespace sourcemeta::core

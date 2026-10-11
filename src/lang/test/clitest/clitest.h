@@ -6,8 +6,8 @@
 #include <sourcemeta/core/gzip.h>
 #include <sourcemeta/core/io.h>
 #include <sourcemeta/core/numeric.h>
-#include <sourcemeta/core/process.h>
 #include <sourcemeta/core/regex.h>
+#include <sourcemeta/core/system.h>
 #include <sourcemeta/core/text.h>
 #include <sourcemeta/core/unicode.h>
 #include <sourcemeta/core/uri.h>
@@ -1004,11 +1004,11 @@ struct CLITestCommand {
     try {
       auto stream{sourcemeta::core::read_file(this->resolve(index))};
       return sourcemeta::core::read_to_string(stream);
-    } catch (const IOFileNotFoundError &) {
+    } catch (const FileNotFoundError &) {
       this->fail("no such file", this->expand(index));
     } catch (const IOIsADirectoryError &) {
       this->fail("is a directory", this->expand(index));
-    } catch (const IOFilePermissionError &) {
+    } catch (const FilePermissionError &) {
       this->fail("cannot be read", this->expand(index));
     }
   }

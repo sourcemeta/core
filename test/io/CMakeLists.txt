@@ -1,13 +1,9 @@
 sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME io
   SOURCES
-    io_atomic_directory_swap_test.cc
-    io_atomic_write_file_test.cc
     io_binary_test.cc
     io_bytestream_test.cc
     io_canonical_test.cc
     io_error_test.cc
-    io_fileview_test.cc
-    io_flush_test.cc
     io_for_each_line_test.cc
     io_hardlink_directory_test.cc
     io_read_file_test.cc
@@ -17,7 +13,6 @@ sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME io
     io_is_under_path_test.cc
     io_is_lexically_under_path_test.cc
     io_strip_path_prefix_test.cc
-    io_temporary_test.cc
     io_weakly_canonical_test.cc
     io_write_file_test.cc)
 

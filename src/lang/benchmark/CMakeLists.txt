@@ -14,7 +14,7 @@ target_link_libraries(sourcemeta_core_benchmark
 target_link_libraries(sourcemeta_core_benchmark
   PRIVATE sourcemeta::core::options)
 target_link_libraries(sourcemeta_core_benchmark
-  PRIVATE sourcemeta::core::process)
+  PRIVATE sourcemeta::core::system)
 
 # A dedicated, always-static entry point library. Linking it into every
 # benchmark executable provides a default `main()` through static archive

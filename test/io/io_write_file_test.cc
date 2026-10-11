@@ -1,4 +1,5 @@
 #include <sourcemeta/core/io.h>
+#include <sourcemeta/core/system.h>
 #include <sourcemeta/core/test.h>
 
 #include <array>      // std::array
@@ -161,7 +162,7 @@ TEST_F(IOWriteFileTest, read_only_parent_throws_permission_error) {
   try {
     sourcemeta::core::write_file(path, "written");
     FAIL();
-  } catch (const sourcemeta::core::IOFilePermissionError &error) {
+  } catch (const sourcemeta::core::FilePermissionError &error) {
     EXPECT_STREQ(error.what(), "Permission denied");
     EXPECT_EQ(error.path(), path);
   } catch (...) {

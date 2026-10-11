@@ -1,5 +1,6 @@
 #include <sourcemeta/core/io.h>
 #include <sourcemeta/core/json.h>
+#include <sourcemeta/core/system.h>
 #include <sourcemeta/core/test.h>
 #include <sourcemeta/core/unicode.h>
 #include <sourcemeta/core/yaml.h>
@@ -272,7 +273,7 @@ TEST(file_not_exists) {
     sourcemeta::core::read_yaml(std::filesystem::path{STUBS_PATH} /
                                 "not_exists.yaml");
     FAIL();
-  } catch (const sourcemeta::core::IOFileNotFoundError &error) {
+  } catch (const sourcemeta::core::FileNotFoundError &error) {
     EXPECT_EQ(error.path(),
               std::filesystem::path{STUBS_PATH} / "not_exists.yaml");
   }
@@ -283,7 +284,7 @@ TEST(yaml_or_json_file_not_exists) {
     sourcemeta::core::read_yaml_or_json(std::filesystem::path{STUBS_PATH} /
                                         "not_exists.yaml");
     FAIL();
-  } catch (const sourcemeta::core::IOFileNotFoundError &error) {
+  } catch (const sourcemeta::core::FileNotFoundError &error) {
     EXPECT_EQ(error.path(),
               std::filesystem::path{STUBS_PATH} / "not_exists.yaml");
   }

@@ -27,13 +27,11 @@
 #include <sourcemeta/core/oidc.h>
 #include <sourcemeta/core/openapi.h>
 #include <sourcemeta/core/options.h>
-#include <sourcemeta/core/parallel.h>
 #include <sourcemeta/core/preprocessor.h>
-#include <sourcemeta/core/process.h>
 #include <sourcemeta/core/punycode.h>
 #include <sourcemeta/core/regex.h>
 #include <sourcemeta/core/semver.h>
-#include <sourcemeta/core/stacktrace.h>
+#include <sourcemeta/core/system.h>
 #include <sourcemeta/core/terminal.h>
 #include <sourcemeta/core/test.h>
 #include <sourcemeta/core/text.h>

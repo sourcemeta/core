@@ -2,6 +2,7 @@
 
 #include <sourcemeta/core/crypto.h>
 #include <sourcemeta/core/io.h>
+#include <sourcemeta/core/system.h>
 
 #include <cstdint>     // std::uint8_t
 #include <filesystem>  // std::filesystem

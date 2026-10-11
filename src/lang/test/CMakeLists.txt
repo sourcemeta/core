@@ -12,7 +12,7 @@ target_link_libraries(sourcemeta_core_test
 target_link_libraries(sourcemeta_core_test
   PRIVATE sourcemeta::core::text)
 target_link_libraries(sourcemeta_core_test
-  PRIVATE sourcemeta::core::stacktrace)
+  PRIVATE sourcemeta::core::system)
 target_link_libraries(sourcemeta_core_test
   PRIVATE sourcemeta::core::diff)
 

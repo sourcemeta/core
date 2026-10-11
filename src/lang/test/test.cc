@@ -1,6 +1,6 @@
 #include <sourcemeta/core/diff.h>
 #include <sourcemeta/core/options.h>
-#include <sourcemeta/core/stacktrace.h>
+#include <sourcemeta/core/system.h>
 #include <sourcemeta/core/test.h>
 #include <sourcemeta/core/text.h>
 

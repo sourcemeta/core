@@ -1,4 +1,5 @@
 #include <sourcemeta/core/io.h>
+#include <sourcemeta/core/system.h>
 #include <sourcemeta/core/test.h>
 
 TEST(test_txt) {
@@ -12,7 +13,7 @@ TEST(not_exists) {
   try {
     sourcemeta::core::canonical(path);
     FAIL();
-  } catch (const sourcemeta::core::IOFileNotFoundError &error) {
+  } catch (const sourcemeta::core::FileNotFoundError &error) {
     EXPECT_EQ(error.path(), path);
   } catch (...) {
     FAIL();

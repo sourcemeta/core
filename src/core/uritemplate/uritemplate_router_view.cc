@@ -1,4 +1,5 @@
 #include <sourcemeta/core/io.h>
+#include <sourcemeta/core/system.h>
 #include <sourcemeta/core/uritemplate.h>
 
 #include <algorithm>     // std::ranges::sort

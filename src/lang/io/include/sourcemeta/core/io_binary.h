@@ -5,7 +5,7 @@
 #include <sourcemeta/core/io_export.h>
 #endif
 
-#include <sourcemeta/core/io_fileview.h>
+#include <sourcemeta/core/system.h>
 
 #include <cstddef> // std::byte, std::size_t
 #include <cstdint> // std::uint8_t, std::uint16_t, std::uint32_t, std::uint64_t
