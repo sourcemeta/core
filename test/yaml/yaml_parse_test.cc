@@ -181,9 +181,9 @@ TEST(invalid_1) {
     sourcemeta::core::parse_yaml(input);
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
-    EXPECT_EQ(error.line(), 1);
-    EXPECT_EQ(error.column(), 5);
-    EXPECT_STREQ(error.what(), "Expected ':' after mapping key");
+    EXPECT_EQ(error.line(), 2);
+    EXPECT_EQ(error.column(), 0);
+    EXPECT_STREQ(error.what(), "Unexpected end of input in flow mapping");
   } catch (...) {
     FAIL();
   }
@@ -296,8 +296,8 @@ TEST(read_yaml_invalid_carries_path) {
     FAIL();
   } catch (const sourcemeta::core::YAMLFileParseError &error) {
     EXPECT_EQ(error.path(), std::filesystem::path{STUBS_PATH} / "invalid.yaml");
-    EXPECT_EQ(error.line(), 1);
-    EXPECT_EQ(error.column(), 15);
+    EXPECT_EQ(error.line(), 2);
+    EXPECT_EQ(error.column(), 0);
   } catch (...) {
     FAIL();
   }
@@ -719,9 +719,9 @@ TEST(yaml_or_json_invalid_yaml_throws_yaml_error) {
                                         "invalid.yaml");
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
-    EXPECT_EQ(error.line(), 1);
-    EXPECT_EQ(error.column(), 15);
-    EXPECT_STREQ(error.what(), "Expected ':' after mapping key");
+    EXPECT_EQ(error.line(), 2);
+    EXPECT_EQ(error.column(), 0);
+    EXPECT_STREQ(error.what(), "Unexpected end of input in flow mapping");
   } catch (...) {
     FAIL();
   }
@@ -2591,9 +2591,9 @@ TEST(flow_mapping_bare_key_at_eof_is_rejected) {
     const auto result{sourcemeta::core::parse_yaml("{a")};
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
-    EXPECT_STREQ(error.what(), "Expected ':' after mapping key");
-    EXPECT_EQ(error.line(), 1);
-    EXPECT_EQ(error.column(), 3);
+    EXPECT_STREQ(error.what(), "Unexpected end of input in flow mapping");
+    EXPECT_EQ(error.line(), 2);
+    EXPECT_EQ(error.column(), 0);
   }
 }
 
@@ -2602,7 +2602,7 @@ TEST(flow_mapping_colon_at_eof_is_rejected) {
     const auto result{sourcemeta::core::parse_yaml("{a:")};
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
-    EXPECT_STREQ(error.what(), "Unexpected token");
+    EXPECT_STREQ(error.what(), "Expected value after ':'");
     EXPECT_EQ(error.line(), 2);
     EXPECT_EQ(error.column(), 0);
   }
@@ -2613,7 +2613,7 @@ TEST(flow_mapping_anchor_key_at_eof_is_rejected) {
     const auto result{sourcemeta::core::parse_yaml("{&a")};
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
-    EXPECT_STREQ(error.what(), "Expected scalar key in mapping");
+    EXPECT_STREQ(error.what(), "Unexpected end of input in flow mapping");
     EXPECT_EQ(error.line(), 2);
     EXPECT_EQ(error.column(), 0);
   }
@@ -2711,7 +2711,7 @@ TEST(flow_explicit_key_at_eof_is_rejected) {
     const auto result{sourcemeta::core::parse_yaml("[?")};
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
-    EXPECT_STREQ(error.what(), "Unexpected token");
+    EXPECT_STREQ(error.what(), "Unexpected end after explicit key in flow");
     EXPECT_EQ(error.line(), 2);
     EXPECT_EQ(error.column(), 0);
   }
@@ -4266,4 +4266,900 @@ TEST(yaml_block_scalar_leading_empty_line_shallower_than_its_content) {
   const auto expected{
       sourcemeta::core::parse_json(R"JSON({ "a": "\nx\n" })JSON")};
   EXPECT_EQ(result, expected);
+}
+
+// YAML 1.2.2 production 207 writes the bare document as
+// `s-l+block-node(-1,BLOCK-IN)`, so a block scalar at the root reads its
+// content at the leftmost column
+TEST(yaml_root_block_scalar_with_content_at_the_leftmost_column) {
+  const auto result{sourcemeta::core::parse_yaml(std::string{"|\nfoo\nbar\n"})};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"foo\nbar\n"});
+}
+
+// Production 206 writes the forbidden content as
+// `( c-directives-end | c-document-end ) ( b-char | s-white | <end-of-input> )`
+// so a line that merely begins with those three characters is content
+TEST(yaml_root_block_scalar_line_starting_with_three_dashes_and_content) {
+  const auto result{sourcemeta::core::parse_yaml(std::string{"|\n---foo\n"})};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"---foo\n"});
+}
+
+TEST(yaml_root_block_scalar_line_starting_with_three_dots_and_content) {
+  const auto result{sourcemeta::core::parse_yaml(std::string{"|\n...foo\n"})};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"...foo\n"});
+}
+
+TEST(yaml_root_block_scalar_closed_by_a_document_end_marker) {
+  const auto result{sourcemeta::core::parse_yaml(std::string{"|\nfoo\n...\n"})};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"foo\n"});
+}
+
+TEST(yaml_root_block_scalar_closed_by_a_directives_end_marker) {
+  std::istringstream stream{"|\nfoo\n---\nbar\n"};
+  const auto first{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(first, sourcemeta::core::JSON{"foo\n"});
+
+  const auto second{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(second, sourcemeta::core::JSON{"bar"});
+}
+
+// A root scalar whose every line is empty has no content line to measure, so
+// Section 8.1.1.1 takes "the number of spaces on the longest line" and there
+// is no node holding it to stand further in than
+TEST(yaml_root_block_scalar_of_only_an_empty_line) {
+  const auto result{sourcemeta::core::parse_yaml(std::string{"|\n  \n"})};
+  EXPECT_EQ(result, sourcemeta::core::JSON{""});
+}
+
+TEST(yaml_block_scalar_with_a_carriage_return_empty_line_before_its_content) {
+  const auto result{
+      sourcemeta::core::parse_yaml(std::string{"a: |\r\n\r\n  x\r\n"})};
+  const auto expected{
+      sourcemeta::core::parse_json(R"JSON({ "a": "\nx\n" })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+// Production 162 ends the header with `s-b-comment`, whose comment is reached
+// through `s-separate-in-line`, so a comment with nothing white before it is
+// no comment at all
+TEST(yaml_block_scalar_header_comment_without_separating_whitespace) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"a: |#c\n  x\n"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid content in block scalar header");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(yaml_block_scalar_header_with_an_invalid_character) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"a: |x\n  y\n"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid content in block scalar header");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(yaml_block_scalar_tab_only_line_at_the_end_of_input) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"|\n\t"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Tab characters cannot be used for indentation");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(yaml_block_scalar_tab_only_line_ending_in_a_carriage_return) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"|\n\t\r\nx\n"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Tab characters cannot be used for indentation");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// Section 8.1.1.1 measures the content indentation in leading spaces, so a
+// tabulation is none of it and stands as the first character of the content
+TEST(yaml_root_block_scalar_content_line_starting_with_a_tabulation) {
+  const auto result{sourcemeta::core::parse_yaml(std::string{"|\n\tx\n"})};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"\tx\n"});
+}
+
+// Section 7.3.1: "In a multi-line single-quoted scalar, line breaks are
+// subject to flow line folding, which discards any trailing white space
+// characters"
+TEST(yaml_single_quoted_scalar_with_a_trailing_tabulation_before_a_fold) {
+  const auto result{
+      sourcemeta::core::parse_yaml(std::string{"a: 'x\t\n  y'\n"})};
+  const auto expected{
+      sourcemeta::core::parse_json(R"JSON({ "a": "x y" })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(yaml_single_quoted_scalar_unterminated_after_a_line_break) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"a: 'x\n"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Missing closing quote in single-quoted scalar");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// Section 5.4 counts a lone carriage return as a line break
+TEST(yaml_single_quoted_scalar_folded_over_a_lone_carriage_return) {
+  const auto result{sourcemeta::core::parse_yaml(std::string{"a: 'x\r  y'\n"})};
+  const auto expected{
+      sourcemeta::core::parse_json(R"JSON({ "a": "x y" })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(yaml_single_quoted_scalar_with_a_directives_end_marker_on_a_later_line) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"a: 'x\n---\n'"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Document marker inside flow scalar");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(yaml_single_quoted_scalar_with_a_document_end_marker_on_a_later_line) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"a: 'x\n...\n'"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Document marker inside flow scalar");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// Section 6.1 only demands that a folded line reach the block indentation when
+// there is one to reach, and inside a flow collection there is not
+TEST(
+    yaml_single_quoted_scalar_folded_over_a_tabulation_inside_a_flow_sequence) {
+  const auto result{
+      sourcemeta::core::parse_yaml(std::string{"a: [ 'x\n\ty' ]\n"})};
+  const auto expected{
+      sourcemeta::core::parse_json(R"JSON({ "a": [ "x y" ] })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(yaml_single_quoted_scalar_followed_by_a_comment_without_whitespace) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"a: 'x'#c\n"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid trailing content");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(yaml_single_quoted_scalar_followed_by_a_plain_scalar_in_a_flow_sequence) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"[ 'x' y ]\n"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid trailing content");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// Production 68 writes the escaped tabulation as `ns-esc-tab ::= "t" | #x9`,
+// so a backslash before a tabulation character stands for one
+TEST(yaml_double_quoted_scalar_with_an_escaped_tabulation_character) {
+  const auto result{
+      sourcemeta::core::parse_yaml(std::string{"a: \"x\\\ty\"\n"})};
+  const auto expected{
+      sourcemeta::core::parse_json(R"JSON({ "a": "x\ty" })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(yaml_double_quoted_scalar_with_an_unknown_escape) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"a: \"\\q\"\n"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(),
+                 "Invalid escape sequence in double-quoted scalar");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(yaml_double_quoted_scalar_with_an_escaped_break_before_the_end_of_input) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"a: \"x\\\n  "})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Missing closing quote in double-quoted scalar");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(yaml_plain_scalar_closed_by_a_document_end_marker) {
+  const auto result{sourcemeta::core::parse_yaml(std::string{"a\n...\n"})};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"a"});
+}
+
+// Production 130 writes `ns-plain-char(c)` without excluding the dash, so a
+// line of a plain scalar may open on one, and production 206 only forbids a
+// document marker that white space or the end of input follows
+TEST(yaml_plain_scalar_continued_on_a_line_starting_with_three_dashes) {
+  const auto result{sourcemeta::core::parse_yaml(std::string{"a\n---foo\n"})};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"a ---foo"});
+}
+
+TEST(yaml_plain_scalar_continued_on_a_line_starting_with_three_dots) {
+  const auto result{sourcemeta::core::parse_yaml(std::string{"a\n...foo\n"})};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"a ...foo"});
+}
+
+// Section 7.3.3: "Plain scalars are further restricted to a single line when
+// contained inside an implicit key", and otherwise fold with the trailing
+// white space of each line discarded
+TEST(yaml_plain_scalar_whose_last_line_ends_in_a_space) {
+  const auto result{sourcemeta::core::parse_yaml(std::string{"x\ny  \n"})};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"x y"});
+}
+
+TEST(yaml_plain_scalar_whose_last_line_ends_in_a_tabulation) {
+  const auto result{sourcemeta::core::parse_yaml(std::string{"x\ny\t\n"})};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"x y"});
+}
+
+// Section 6.6 reaches a comment through `s-separate-in-line`, which a
+// tabulation satisfies just as a space does
+TEST(yaml_plain_scalar_followed_by_a_comment_after_a_tabulation) {
+  const auto result{sourcemeta::core::parse_yaml(std::string{"a: x\t#c\n"})};
+  const auto expected{sourcemeta::core::parse_json(R"JSON({ "a": "x" })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+// Production 126 writes `ns-plain-first(c)` as `( ns-char - c-indicator ) | (
+// ( "?" | ":" | "-" ) /* Followed by an ns-plain-safe(c) */ )`, and production
+// 129 writes `ns-plain-safe-in ::= ns-char - c-flow-indicator`
+TEST(yaml_dash_alone_inside_a_flow_sequence) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"[ - ]"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid plain scalar start in flow context");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(yaml_question_mark_before_a_flow_indicator_inside_a_flow_sequence) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"[ ?, x ]"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid plain scalar start in flow context");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// Production 130 writes `ns-plain-char(c)` as admitting a colon that an
+// `ns-plain-safe(c)` follows, so one inside a word is content
+TEST(yaml_colon_inside_a_word_inside_a_flow_sequence) {
+  const auto result{sourcemeta::core::parse_yaml(std::string{"[ a:b ]"})};
+  const auto expected{sourcemeta::core::parse_json(R"JSON([ "a:b" ])JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+// Section 6.6: "Comments must be separated from other tokens by white space
+// characters"
+TEST(yaml_comment_right_after_a_flow_sequence_indicator) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"[#c]"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Unexpected '#' character");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// Section 6.1 only demands spaces where indentation is called for, and a flow
+// collection at the root has none to reach, so a tabulation before a space is
+// separation
+TEST(yaml_root_flow_sequence_continued_after_a_tabulation_and_a_space) {
+  const auto result{sourcemeta::core::parse_yaml(std::string{"[\n\t 1 ]\n"})};
+  const auto expected{sourcemeta::core::parse_json(R"JSON([ 1 ])JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(yaml_plain_scalar_opening_on_a_question_mark) {
+  const auto result{sourcemeta::core::parse_yaml(std::string{"?x"})};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"?x"});
+}
+
+TEST(yaml_plain_scalar_opening_on_a_colon) {
+  const auto result{sourcemeta::core::parse_yaml(std::string{":x"})};
+  EXPECT_EQ(result, sourcemeta::core::JSON{":x"});
+}
+
+// Production 130 leaves a colon that white space follows out of
+// `ns-plain-char(c)`, so a line carrying one cannot be a line of a plain
+// scalar and the scalar ends before it
+TEST(yaml_plain_scalar_value_followed_by_a_deeper_mapping_entry) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"a: x\n   b: 1\n"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Unexpected content after document");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(yaml_plain_scalar_value_followed_by_a_deeper_key_holding_a_colon) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"a: x\n   b:c: 1\n"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Unexpected content after document");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(yaml_plain_scalar_value_followed_by_a_deeper_colon_at_the_end_of_input) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"a: x\n   b:"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Unexpected content after document");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// Production 130 writes `ns-plain-char(c)` as every `ns-plain-safe(c)` but a
+// colon and a comment indicator, so a dash is content wherever it stands, and
+// the root node is settled as a scalar by its first line
+TEST(yaml_root_plain_scalar_continued_on_a_line_opening_with_a_dash) {
+  const auto result{sourcemeta::core::parse_yaml(std::string{"a\n- b\n"})};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"a - b"});
+}
+
+TEST(yaml_root_plain_scalar_continued_on_a_line_opening_with_a_question_mark) {
+  const auto result{sourcemeta::core::parse_yaml(std::string{"a\n? b\n"})};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"a ? b"});
+}
+
+// A line carrying a mapping entry is no line of a plain scalar, so the scalar
+// ends before it, and Section 6.7 restricts an implicit key to a single line,
+// so the entry has no key to take either
+TEST(yaml_root_plain_scalar_followed_by_a_line_opening_with_a_colon) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"a\n: b\n"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Unexpected content after document");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(yaml_sequence_entry_continued_on_a_deeper_line_opening_with_a_dash) {
+  const auto result{sourcemeta::core::parse_yaml(std::string{"- a\n  - b\n"})};
+  const auto expected{sourcemeta::core::parse_json(R"JSON([ "a - b" ])JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+// Section 5.4 counts a lone carriage return as a line break, including the one
+// that closes a directives end marker at the very end of the input
+TEST(yaml_directives_end_marker_followed_by_a_lone_carriage_return) {
+  const auto result{sourcemeta::core::parse_yaml(std::string{"---\r"})};
+  EXPECT_TRUE(result.is_null());
+}
+
+// Production 126 admits a colon that an `ns-plain-safe(c)` follows as the
+// first character of a plain scalar
+TEST(yaml_plain_scalar_opening_on_a_colon_inside_a_flow_sequence) {
+  const auto result{sourcemeta::core::parse_yaml(std::string{"[ :a ]"})};
+  const auto expected{sourcemeta::core::parse_json(R"JSON([ ":a" ])JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(yaml_tag_followed_by_a_comma_in_block_context) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"a: !!str, b\n"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid character after tag in block context");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// Section 6.9.1 closes a verbatim tag with an angle bracket, which a line
+// break can never stand in for
+TEST(yaml_verbatim_tag_cut_off_by_a_lone_carriage_return) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"a: !<tag\r"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Unterminated verbatim tag");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(yaml_single_quoted_scalar_folded_over_a_tabulation_and_a_space) {
+  const auto result{sourcemeta::core::parse_yaml(std::string{"[ 'x\n\t y' ]"})};
+  const auto expected{sourcemeta::core::parse_json(R"JSON([ "x y" ])JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(yaml_single_quoted_scalar_folded_over_two_breaks_ending_in_a_lone_return) {
+  const auto result{
+      sourcemeta::core::parse_yaml(std::string{"a: 'x\n\r y'\n"})};
+  const auto expected{
+      sourcemeta::core::parse_json(R"JSON({ "a": "x\ny" })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(yaml_block_scalar_line_of_a_tabulation_and_a_space) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"|\n\t \nx\n"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Tab characters cannot be used for indentation");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// Section 8.1.1.1: "It is an error for any of the leading empty lines to
+// contain more spaces than the first non-empty line". An empty line past the
+// first non-empty one is no leading line, and the spaces it carries beyond the
+// content indentation are content
+TEST(yaml_literal_block_scalar_with_an_empty_line_deeper_than_its_content) {
+  const auto result{
+      sourcemeta::core::parse_yaml(std::string{"a: |\n  x\n    \n  y\n"})};
+  const auto expected{
+      sourcemeta::core::parse_json(R"JSON({ "a": "x\n  \ny\n" })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+// Section 8.1.3: "Lines starting with white space characters (more-indented
+// lines) are not folded"
+TEST(yaml_folded_block_scalar_with_a_line_opening_on_a_tabulation) {
+  const auto result{
+      sourcemeta::core::parse_yaml(std::string{"a: >\n  x\n  \ty\n  z\n"})};
+  const auto expected{
+      sourcemeta::core::parse_json(R"JSON({ "a": "x\n\ty\nz\n" })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(yaml_folded_block_scalar_opening_with_an_empty_line) {
+  const auto result{sourcemeta::core::parse_yaml(std::string{"a: >\n\n  x\n"})};
+  const auto expected{
+      sourcemeta::core::parse_json(R"JSON({ "a": "\nx\n" })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+// Production 130 admits a comment indicator only where an `ns-char` precedes
+// it, so a line opening on one is no line of the scalar
+TEST(yaml_plain_scalar_followed_by_a_line_opening_with_a_comment) {
+  const auto result{sourcemeta::core::parse_yaml(std::string{"a\n#c\n"})};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"a"});
+}
+
+TEST(yaml_flow_sequence_entry_separator_at_the_end_of_input) {
+  sourcemeta::core::YAMLRoundTrip roundtrip;
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"[a,"}, roundtrip)};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Unexpected token");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// Production 129 takes the flow indicators out of `ns-plain-safe-in`, so a
+// plain scalar ends where one stands, leaving the collection with two entries
+// and no separator between them
+TEST(yaml_plain_scalar_followed_by_a_flow_mapping_inside_a_flow_sequence) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"[a{}]"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Missing comma in flow sequence");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(yaml_directive_at_the_end_of_input) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"%YAML 1.2"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Empty YAML document");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(yaml_directive_ended_by_a_lone_carriage_return) {
+  const auto result{
+      sourcemeta::core::parse_yaml(std::string{"%YAML 1.2\r--- a\r"})};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"a"});
+}
+
+TEST(yaml_plain_scalar_followed_by_a_flow_sequence_inside_a_flow_sequence) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"[a[]]"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Missing comma in flow sequence");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// Section 10.2.1.2 gives the boolean tag the canonical forms "true" and
+// "false", so a value that is none of the true ones is false
+TEST(yaml_boolean_tag_on_a_capitalised_false) {
+  const auto result{
+      sourcemeta::core::parse_yaml(std::string{"a: !!bool False\n"})};
+  const auto expected{
+      sourcemeta::core::parse_json(R"JSON({ "a": false })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+// Section 10.3.2 writes the float form as `[-+]? ( \. [0-9]+ | [0-9]+ ( \.
+// [0-9]* )? ) ( [eE] [-+]? [0-9]+ )?`, so a lone decimal point carries no
+// digit and resolves to a string
+TEST(yaml_lone_decimal_point_is_a_string) {
+  const auto result{sourcemeta::core::parse_yaml(std::string{"a: .\n"})};
+  const auto expected{sourcemeta::core::parse_json(R"JSON({ "a": "." })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(yaml_unterminated_flow_mapping_after_a_value) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"{a: b"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Missing comma between flow mapping entries");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(yaml_unterminated_flow_sequence_after_an_entry) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"[a"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Missing comma in flow sequence");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(yaml_unterminated_flow_mapping_after_an_explicit_key) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"{? a"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Expected scalar key in mapping");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(yaml_unterminated_flow_sequence_after_an_explicit_key) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"[? a"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Unexpected token");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// Production 86 writes `ns-yaml-directive ::= "YAML" s-separate-in-line
+// ns-yaml-version`, and production 66 admits a tabulation as that separation
+TEST(yaml_version_directive_separated_by_a_tabulation) {
+  const auto result{
+      sourcemeta::core::parse_yaml(std::string{"%YAML\t1.2\n--- a\n"})};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"a"});
+}
+
+TEST(yaml_version_directive_followed_by_content_that_is_no_comment) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"%YAML 1.2 x\n--- a\n"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid content in %YAML directive");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// Section 6.8.1: "It is an error to specify more than one YAML directive for
+// the same document"
+TEST(yaml_version_directive_given_twice_for_one_document) {
+  try {
+    [[maybe_unused]] const auto result{sourcemeta::core::parse_yaml(
+        std::string{"%YAML 1.2\n%YAML 1.2\n--- a\n"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Duplicate %YAML directive");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// Section 6.8.2 ends the prefix of a tag directive at the separation space, so
+// a comment after it is no part of the prefix
+TEST(yaml_tag_directive_followed_by_a_comment) {
+  const auto result{sourcemeta::core::parse_yaml(
+      std::string{"%TAG !e! tag:example.com,2000: # c\n--- !e!foo a\n"})};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"a"});
+}
+
+TEST(yaml_tag_directive_prefix_followed_by_a_tabulation) {
+  const auto result{sourcemeta::core::parse_yaml(
+      std::string{"%TAG !e! tag:example.com,2000:\t# c\n--- !e!foo a\n"})};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"a"});
+}
+
+// Production 150 writes `ns-flow-pair` for a flow collection entry, and
+// Section 7.4 leaves the value of such a pair optional
+TEST(yaml_flow_mapping_key_without_a_value) {
+  const auto result{sourcemeta::core::parse_yaml(std::string{"{ a }"})};
+  const auto expected{sourcemeta::core::parse_json(R"JSON({ "a": null })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(yaml_flow_mapping_two_keys_without_values) {
+  const auto result{sourcemeta::core::parse_yaml(std::string{"{ a, b }"})};
+  const auto expected{
+      sourcemeta::core::parse_json(R"JSON({ "a": null, "b": null })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(yaml_flow_mapping_entries_separated_without_a_space) {
+  const auto result{sourcemeta::core::parse_yaml(std::string{"{a: b,c: d}"})};
+  const auto expected{
+      sourcemeta::core::parse_json(R"JSON({ "a": "b", "c": "d" })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+// Section 10.2.1.3 gives the string tag, which keeps a key that would
+// otherwise resolve to a number as the text it was written as
+TEST(yaml_flow_mapping_key_carrying_a_string_tag) {
+  const auto result{
+      sourcemeta::core::parse_yaml(std::string{"{ !!str 1: b }"})};
+  const auto expected{sourcemeta::core::parse_json(R"JSON({ "1": "b" })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(yaml_flow_sequence_opening_with_a_comma) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"[,a]"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Leading comma in flow sequence");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(yaml_flow_sequence_with_two_commas_in_a_row) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"[a,,b]"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Empty entry in flow sequence");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// Production 149 writes the explicit key of a flow pair, and such a pair
+// stands as a single entry of the collection holding it
+TEST(yaml_flow_sequence_with_an_explicit_key_and_a_value) {
+  const auto result{sourcemeta::core::parse_yaml(std::string{"[? a: b]"})};
+  const auto expected{
+      sourcemeta::core::parse_json(R"JSON([ { "a": "b" } ])JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+// Section 8.2 indents a flow collection nested in a block context past that
+// context, which an entry standing at the block's own level does not
+TEST(yaml_flow_sequence_entry_at_the_parent_block_level) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"a: [\n1 ]\n"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Insufficient indentation in flow collection");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(yaml_flow_sequence_left_unterminated_at_the_end_of_a_line) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"a: [\n"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(
+        error.what(),
+        "Flow content indented less than or equal to parent block level");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// Section 6.7: "Implicit keys are restricted to a single line"
+TEST(yaml_multiline_quoted_key_of_a_pair_inside_a_flow_sequence) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"['a\n b': 1]"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Multi-line implicit mapping key");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(yaml_flow_pair_value_indicator_on_the_line_after_its_key) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"['a'\n: 1]"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Implicit key and value indicator on "
+                               "different lines in flow context");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// Section 8.2.2 indents the content of a block mapping entry past the entry's
+// own key, so a nested key sharing that key's line has nowhere to stand
+TEST(yaml_nested_implicit_key_on_the_line_of_its_parent_key) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"a: b: 1\n"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Implicit mapping key in block value on "
+                               "same line as parent key");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(yaml_node_property_before_an_implicit_key_on_the_document_start_line) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"--- &x a: 1\n"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Node properties before implicit mapping key on "
+                               "document start line");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// Section 3.2.2.2 gives a node at most one anchor
+TEST(yaml_two_anchors_on_one_scalar) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"a: &x &y 1\n"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Multiple anchors on a scalar node");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// Section 7.1 makes an alias stand for a node already anchored elsewhere, so
+// it is no node of its own to anchor
+TEST(yaml_anchor_on_an_alias_node) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"a: &x *y\n"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Cannot anchor an alias node");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// Production 187 writes `l+block-sequence(n) ::= ( s-indent(n+m)
+// c-l-block-seq-entry(n+m) )+`, so every entry of one sequence stands at the
+// same indentation
+TEST(yaml_sequence_entry_indented_one_space_past_its_siblings) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"- 'a'\n - b\n"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Wrong indentation for sequence entry");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(yaml_block_sequence_closed_by_a_document_end_marker) {
+  const auto result{sourcemeta::core::parse_yaml(std::string{"- a\n...\n"})};
+  const auto expected{sourcemeta::core::parse_json(R"JSON([ "a" ])JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(yaml_block_sequence_closed_by_a_directives_end_marker) {
+  std::istringstream stream{"- a\n---\n- b\n"};
+  const auto first{sourcemeta::core::parse_yaml(stream)};
+  const auto first_expected{sourcemeta::core::parse_json(R"JSON([ "a" ])JSON")};
+  EXPECT_EQ(first, first_expected);
+
+  const auto second{sourcemeta::core::parse_yaml(stream)};
+  const auto second_expected{
+      sourcemeta::core::parse_json(R"JSON([ "b" ])JSON")};
+  EXPECT_EQ(second, second_expected);
 }

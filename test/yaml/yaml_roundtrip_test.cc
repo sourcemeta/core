@@ -5999,3 +5999,11 @@ TEST(read_file_with_roundtrip_accepts_a_run_of_end_markers) {
   EXPECT_TRUE(document.is_object());
   EXPECT_EQ(document.at("foo"), sourcemeta::core::JSON{1});
 }
+
+TEST(folded_block_scalar_with_an_empty_line_deeper_than_its_content) {
+  EXPECT_EQ(roundtrip("a: >\n  x\n    \n  y\n"), "a: >\n  x\n    \n  y\n");
+}
+
+TEST(flow_sequence_entry_separator_followed_by_a_line_break) {
+  EXPECT_EQ(roundtrip("[ a,\n  b ]\n"), "[ a, b ]\n");
+}
