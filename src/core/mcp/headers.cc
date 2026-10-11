@@ -100,7 +100,7 @@ auto mcp_validate_request_parameters(const JSON &parameters_value)
     return {MCPRequestMetaStatus::MetaNotObject, std::nullopt};
   }
 
-  if (!internal::valid_metadata_object(*meta)) {
+  if (!internal::valid_metadata_object(*meta, true)) {
     return {MCPRequestMetaStatus::InvalidMetaKey, std::nullopt};
   }
   const auto *protocol_version_field{

@@ -6800,6 +6800,36 @@ TEST(resources_list_result_rejects_a_malformed_traceparent_entry_metadata) {
                      "Invalid MCP resource descriptor entry");
 }
 
+// The grammar protects a receiver reading what someone else sent, so a sender
+// gets no such latitude: a value this module builds is held to the format MCP
+// requires of whoever emits it, even where a valid traceparent accompanies it
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/index#_meta
+TEST(decorate_result_rejects_a_malformed_tracestate_it_would_send) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_decorate_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         sourcemeta::core::parse_json(R"JSON({
+            "_meta": {
+              "traceparent":
+                  "00-0123456789abcdef0123456789abcdef-0123456789abcdef-01",
+              "tracestate": "UPPER=value"
+            }
+          })JSON")),
+                     "Invalid MCP 2026-07-28 metadata");
+}
+
+TEST(decorate_result_rejects_a_non_string_tracestate_it_would_send) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_decorate_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         sourcemeta::core::parse_json(R"JSON({
+            "_meta": {
+              "traceparent":
+                  "00-0123456789abcdef0123456789abcdef-0123456789abcdef-01",
+              "tracestate": false
+            }
+          })JSON")),
+                     "Invalid MCP 2026-07-28 metadata");
+}
+
 TEST(resources_list_result_rejects_an_array_tracestate_entry_metadata) {
   EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_resources_list_result(
                          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,

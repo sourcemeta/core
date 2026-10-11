@@ -47,7 +47,7 @@ inline auto valid_input_response(JSON::StringView method, const JSON &request,
                                  const JSON &value) -> bool;
 inline auto valid_meta(const JSON &value) -> bool;
 inline auto valid_meta(MCPProtocolVersion version, const JSON &value) -> bool;
-inline auto valid_metadata_object(const JSON &meta) -> bool;
+inline auto valid_metadata_object(const JSON &meta, bool received) -> bool;
 inline auto valid_log_level(JSON::StringView value) noexcept -> bool;
 
 } // namespace sourcemeta::core::internal
@@ -561,11 +561,12 @@ inline auto valid_meta(const MCPProtocolVersion version, const JSON &value)
   const auto *meta{
       validation::field(value, "_meta", sourcemeta::core::MCP_HASH_META)};
   return meta == nullptr || (version == MCPProtocolVersion::V_2026_07_28
-                                 ? valid_metadata_object(*meta)
+                                 ? valid_metadata_object(*meta, false)
                                  : meta->is_object());
 }
 
-inline auto valid_metadata_object(const JSON &meta) -> bool {
+inline auto valid_metadata_object(const JSON &meta, const bool received)
+    -> bool {
   if (!meta.is_object()) {
     return false;
   }
@@ -582,13 +583,18 @@ inline auto valid_metadata_object(const JSON &meta) -> bool {
   // protection and a traceparent that does not parse ends the walk before the
   // tracestate is looked at.
   //
-  // So a tracestate is held to its format only when it arrives without a
-  // traceparent, where there is no parse to protect and the sender requirement
-  // still applies. A tracestate that accompanies a valid traceparent is left
-  // alone, which is what keeps a value an intermediary injected from costing
-  // the trace it was meant to carry. The remedy itself is a choice rather than
-  // a rule: MCP prescribes none for a receiver, and the processing model that
-  // describes discarding is a section the grammar marks as non-normative.
+  // That protection is for a receiver reading what someone else sent, so it
+  // applies to received metadata alone. A sender has no such excuse, since the
+  // requirement is on whoever emits the value, and nothing this module builds
+  // should carry a value it would refuse to accept. So on the receive path a
+  // tracestate is held to its format only when it arrives without a
+  // traceparent, where there is no parse to protect, which is what keeps a
+  // value an intermediary injected from costing the trace it was meant to
+  // carry. Everywhere else all three are held to their formats.
+  //
+  // The remedy itself is a choice rather than a rule: MCP prescribes none for
+  // a receiver, and the processing model that describes discarding is a
+  // section the grammar marks as non-normative.
   // https://www.w3.org/TR/trace-context/#tracestate-header
   // https://modelcontextprotocol.io/specification/2026-07-28/basic/index#_meta
   const auto *traceparent{
@@ -598,7 +604,7 @@ inline auto valid_metadata_object(const JSON &meta) -> bool {
        !validation::traceparent(traceparent->to_string()))) {
     return false;
   }
-  if (traceparent == nullptr) {
+  if (!received || traceparent == nullptr) {
     if (const auto *tracestate{
             meta.try_at("tracestate", sourcemeta::core::MCP_HASH_TRACESTATE)};
         tracestate != nullptr &&

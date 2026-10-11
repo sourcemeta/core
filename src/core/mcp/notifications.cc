@@ -159,7 +159,7 @@ auto mcp_make_notification(const MCPProtocolVersion version,
     if (const auto *meta{
             parameters.try_at("_meta", sourcemeta::core::MCP_HASH_META)};
         meta) {
-      internal::require(internal::valid_metadata_object(*meta),
+      internal::require(internal::valid_metadata_object(*meta, false),
                         "Invalid notification metadata");
     }
   }
