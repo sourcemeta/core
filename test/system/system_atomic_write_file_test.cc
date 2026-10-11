@@ -26,7 +26,7 @@ protected:
 
   // The tests are always sequential, so using the same path is safe
   std::filesystem::path workspace_{std::filesystem::path{BUILD_DIRECTORY} /
-                                   "sourcemeta_core_io_atomic_write_test"};
+                                   "sourcemeta_core_system_atomic_write_test"};
 };
 
 TEST_F(IOAtomicWriteFileTest, string_view_creates_file) {

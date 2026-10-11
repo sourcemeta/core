@@ -46,7 +46,7 @@ TEST(flush_a_directory_throws) {
 #if !defined(_WIN32)
 TEST(flush_an_unreadable_file_throws_permission_error) {
   const auto path{std::filesystem::temp_directory_path() /
-                  "sourcemeta_core_io_flush_locked.txt"};
+                  "sourcemeta_core_system_flush_locked.txt"};
   std::ofstream output{path};
   output << "content";
   output.close();
@@ -95,7 +95,7 @@ TEST(flush_an_unreadable_file_throws_permission_error) {
 #if defined(__linux__)
 TEST(flush_a_pipe_throws) {
   const auto path{std::filesystem::temp_directory_path() /
-                  "sourcemeta_core_io_flush_pipe"};
+                  "sourcemeta_core_system_flush_pipe"};
   std::filesystem::remove(path);
   EXPECT_EQ(::mkfifo(path.c_str(), 0600), 0);
 
