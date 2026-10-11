@@ -5,10 +5,16 @@
 #include <cstddef>  // std::size_t
 #include <optional> // std::optional, std::nullopt
 #include <string>   // std::string
+#include <utility>  // std::move
 
 TEST(deeply_nested_input_is_rejected) {
-  const auto input{sourcemeta::core::parse_json(std::string(1500, '[') +
-                                                std::string(1500, ']'))};
+  auto input{sourcemeta::core::JSON::make_array()};
+  for (std::size_t level = 0; level < 1500; level++) {
+    auto wrapper{sourcemeta::core::JSON::make_array()};
+    wrapper.push_back(std::move(input));
+    input = std::move(wrapper);
+  }
+
   try {
     const auto result{sourcemeta::core::jsonld_expand(input)};
     FAIL();

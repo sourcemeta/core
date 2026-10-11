@@ -3,7 +3,9 @@
 #include <sourcemeta/core/jsonpointer.h>
 #include <sourcemeta/core/test.h>
 
-#include <string> // std::string
+#include <cstddef> // std::size_t
+#include <string>  // std::string
+#include <utility> // std::move
 
 namespace {
 
@@ -247,14 +249,14 @@ TEST(jsonpath_evaluate_escaped_name_decodes) {
 }
 
 TEST(jsonpath_evaluate_descendant_deep_document) {
-  std::string text;
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign("leaf", sourcemeta::core::JSON{1});
   for (std::size_t index = 0; index < 10000; ++index) {
-    text += "{\"a\":";
+    auto wrapper{sourcemeta::core::JSON::make_object()};
+    wrapper.assign("a", std::move(document));
+    document = std::move(wrapper);
   }
 
-  text += "{\"leaf\":1}";
-  text += std::string(10000, '}');
-  const auto document{sourcemeta::core::parse_json(text)};
   const sourcemeta::core::JSONPath path{"$..leaf"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
@@ -262,14 +264,13 @@ TEST(jsonpath_evaluate_descendant_deep_document) {
 }
 
 TEST(jsonpath_evaluate_deep_name_chain_document) {
-  std::string text;
+  auto document{sourcemeta::core::JSON{1}};
   for (std::size_t index = 0; index < 10000; ++index) {
-    text += "[";
+    auto wrapper{sourcemeta::core::JSON::make_array()};
+    wrapper.push_back(std::move(document));
+    document = std::move(wrapper);
   }
 
-  text += "1";
-  text += std::string(10000, ']');
-  const auto document{sourcemeta::core::parse_json(text)};
   const sourcemeta::core::JSONPath path{"$..*"};
   std::size_t count{0};
   path.evaluate(document, [&count](const sourcemeta::core::JSON &,

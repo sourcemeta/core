@@ -4,22 +4,7 @@
 
 #include <cstddef> // std::size_t
 #include <string>  // std::string
-
-// Expanded form nests a node object inside the array of a property, so depth
-// is reached by repeating that shape rather than by bare arrays
-static auto nested_expanded_document(const std::size_t depth) -> std::string {
-  std::string result;
-  for (std::size_t level = 0; level < depth; level++) {
-    result += R"([{"http://example.com/p":)";
-  }
-
-  result += "[]";
-  for (std::size_t level = 0; level < depth; level++) {
-    result += "}]";
-  }
-
-  return result;
-}
+#include <utility> // std::move
 
 TEST(compact_to_relative_true_relativises_against_base) {
   const auto input = sourcemeta::core::parse_json(R"([
@@ -1299,7 +1284,16 @@ TEST(list_compacted_under_1_0) {
 // Compaction walks the same nesting that expansion does, so it is held to the
 // same bound on how deep that nesting may run
 TEST(deeply_nested_input_is_rejected) {
-  const auto input{sourcemeta::core::parse_json(nested_expanded_document(150))};
+  // Expanded form nests a node object inside the array of a property, so the
+  // depth is reached by wrapping that shape around itself from the inside out
+  auto input{sourcemeta::core::JSON::make_array()};
+  for (std::size_t level = 0; level < 150; level++) {
+    auto node{sourcemeta::core::JSON::make_object()};
+    node.assign("http://example.com/p", std::move(input));
+    input = sourcemeta::core::JSON::make_array();
+    input.push_back(std::move(node));
+  }
+
   const auto context{sourcemeta::core::parse_json("{}")};
   try {
     [[maybe_unused]] const auto result{
