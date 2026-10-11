@@ -24,6 +24,14 @@ TEST(a_whitespace_only_member_is_accepted) {
   EXPECT_TRUE(sourcemeta::core::http_is_tracestate(" , "));
 }
 
+// A member made of nothing but padding is one of the whitespace-only members
+// the rule allows, with or without a comma to sit beside
+// https://www.w3.org/TR/trace-context/#tracestate-header-field-values
+TEST(a_lone_whitespace_member_is_accepted) {
+  EXPECT_TRUE(sourcemeta::core::http_is_tracestate(" "));
+  EXPECT_TRUE(sourcemeta::core::http_is_tracestate("\t"));
+}
+
 TEST(a_trailing_comma_is_accepted) {
   EXPECT_TRUE(sourcemeta::core::http_is_tracestate("foo=1,"));
 }
@@ -34,17 +42,16 @@ TEST(whitespace_around_a_comma_is_accepted) {
   EXPECT_TRUE(sourcemeta::core::http_is_tracestate("foo=1 , \tbar=2"));
 }
 
-// The list production places optional whitespace only beside a comma, so there
-// is none to spend before the first member or after the last. The upstream
-// reference parser splits on whitespace adjacent to a comma alone and rejects
-// both of these
-// https://www.w3.org/TR/trace-context/#list
-TEST(whitespace_before_the_first_member_is_rejected) {
-  EXPECT_FALSE(sourcemeta::core::http_is_tracestate(" foo=1"));
+// "Spaces and horizontal tabs surrounding list-members are ignored", which
+// covers the first and the last as much as any other, so padding a value on
+// either side leaves it well formed
+// https://www.w3.org/TR/trace-context/#tracestate-header-field-values
+TEST(whitespace_before_the_first_member_is_accepted) {
+  EXPECT_TRUE(sourcemeta::core::http_is_tracestate(" foo=1"));
 }
 
-TEST(whitespace_after_the_last_member_is_rejected) {
-  EXPECT_FALSE(sourcemeta::core::http_is_tracestate("foo=1\t"));
+TEST(whitespace_after_the_last_member_is_accepted) {
+  EXPECT_TRUE(sourcemeta::core::http_is_tracestate("foo=1\t"));
 }
 
 // There is no optional whitespace inside a member, so an equals sign with
@@ -134,6 +141,16 @@ TEST(a_system_starting_with_a_digit_is_rejected) {
   EXPECT_FALSE(sourcemeta::core::http_is_tracestate("tenant@1system=1"));
 }
 
+TEST(a_tenant_of_two_hundred_and_forty_one_characters_is_accepted) {
+  EXPECT_TRUE(sourcemeta::core::http_is_tracestate(std::string(241, 'z') +
+                                                   "@system=1"));
+}
+
+TEST(a_system_of_fourteen_characters_is_accepted) {
+  EXPECT_TRUE(sourcemeta::core::http_is_tracestate(
+      "tenant@" + std::string(14, 'z') + "=1"));
+}
+
 TEST(a_tenant_of_two_hundred_and_forty_two_characters_is_rejected) {
   EXPECT_FALSE(sourcemeta::core::http_is_tracestate(std::string(242, 'z') +
                                                     "@system=1"));
@@ -151,8 +168,11 @@ TEST(an_empty_member_value_is_rejected) {
   EXPECT_FALSE(sourcemeta::core::http_is_tracestate("foo="));
 }
 
-TEST(a_space_terminated_value_is_rejected) {
-  EXPECT_FALSE(sourcemeta::core::http_is_tracestate("foo=bar "));
+// A trailing space is stripped as padding before the value is read, so it is
+// the mandatory non-blank character that ends the value either way
+// https://www.w3.org/TR/trace-context/#value
+TEST(a_space_terminated_value_is_accepted) {
+  EXPECT_TRUE(sourcemeta::core::http_is_tracestate("foo=bar "));
 }
 
 TEST(a_value_containing_a_space_is_accepted) {

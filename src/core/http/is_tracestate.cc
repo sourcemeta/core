@@ -1,9 +1,9 @@
 #include <sourcemeta/core/http.h>
 #include <sourcemeta/core/text.h>
 
-#include <algorithm>   // std::all_of
+#include <algorithm>   // std::all_of, std::find
+#include <array>       // std::array
 #include <cstddef>     // std::size_t
-#include <set>         // std::set
 #include <string_view> // std::string_view
 
 namespace {
@@ -27,43 +27,41 @@ auto key_part(const std::string_view value, const bool tenant,
   });
 }
 
+// "There can be a maximum of 32 list-members in a list", which bounds both the
+// count and the keys kept to compare against
+// https://www.w3.org/TR/trace-context/#tracestate-header-field-values
+constexpr std::size_t MAXIMUM_MEMBERS{32};
+
 } // namespace
 
 namespace sourcemeta::core {
 
 auto http_is_tracestate(const std::string_view value) noexcept -> bool {
-  std::set<std::string_view> keys;
-  std::size_t members = 0;
+  // A list holds at most 32 members, so the keys seen so far fit in a fixed
+  // array that a linear scan searches, which keeps this free of allocation
+  std::array<std::string_view, MAXIMUM_MEMBERS> keys;
+  std::size_t seen{0};
+  std::size_t members{0};
   auto rest{value};
-  bool first = true;
   while (true) {
-    // "There can be a maximum of 32 list-members in a list", counted including
-    // the empty ones, since each is a list-member of its own
-    // https://www.w3.org/TR/trace-context/#tracestate-header-field-values
-    if (++members > 32) {
+    // The limit counts the empty members too, since each is a list-member of
+    // its own
+    if (members >= MAXIMUM_MEMBERS) {
       return false;
     }
     const auto comma{rest.find(',')};
-    const auto last{comma == std::string_view::npos};
 
-    // Optional whitespace belongs to the list production, which places it only
-    // on either side of a comma, so the first member cannot lead with it and
-    // the last cannot trail it. That is what makes a value ending in a space
-    // malformed rather than merely untidy, and the upstream reference parser
-    // agrees, splitting on whitespace adjacent to a comma alone
-    // https://www.w3.org/TR/trace-context/#list
-    auto entry{rest.substr(0, comma)};
-    if (!first) {
-      entry = http_trim_leading_ows(entry);
-    }
-    if (!last) {
-      entry = http_trim_trailing_ows(entry);
-    }
-    first = false;
+    // "Spaces and horizontal tabs surrounding list-members are ignored", so
+    // they are stripped from every member wherever it sits, and what is left
+    // of one made of nothing else is the empty member the next rule allows
+    // https://www.w3.org/TR/trace-context/#tracestate-header-field-values
+    const auto entry{trim(rest.substr(0, comma), http_is_ows)};
 
     // "Empty and whitespace-only list members are allowed. Vendors MUST accept
-    // empty tracestate headers but SHOULD avoid sending them". Baggage forbids
-    // both, so a reader coming from that parser should not expect this
+    // empty tracestate headers but SHOULD avoid sending them", which is there
+    // because "some vendors automatically inject whitespace after a comma
+    // separator, even in the case of an empty header". Baggage forbids an
+    // empty member, so a reader coming from that parser should not expect this
     // https://www.w3.org/TR/trace-context/#tracestate-header-field-values
     if (!entry.empty()) {
       const auto equal{entry.find('=')};
@@ -82,34 +80,42 @@ auto http_is_tracestate(const std::string_view value) noexcept -> bool {
               ? key_part(key, false, 256)
               : key_part(key.substr(0, at_position), true, 241) &&
                     key_part(key.substr(at_position + 1), false, 14)};
-
-      // A repeated key is rejected, which is stricter than the grammar. The
-      // grammar permits one and the only guidance for a reader is
-      // non-normative, but a key records a position in the trace and "Only one
-      // entry per key is allowed", so a repeat is a producer that appended
-      // where it should have overwritten. Baggage is the opposite again, where
-      // duplicates are legal and their order carries meaning
-      // https://www.w3.org/TR/trace-context/#combined-header-value
-      if (!valid_key || !keys.insert(key).second) {
+      if (!valid_key) {
         return false;
       }
 
+      // "Only one entry per key is allowed because the entry represents that
+      // last position in the trace", which the grammar cannot say and which
+      // this rejects rather than resolves, leaving to a caller the choice the
+      // sentence implies for a producer: "vendors must overwrite their entry
+      // upon reentry to their tracing system". Baggage is the opposite again,
+      // where a repeated key is legal and its order carries meaning
+      // https://www.w3.org/TR/trace-context/#combined-header-value
+      if (std::find(keys.begin(), keys.begin() + seen, key) !=
+          keys.begin() + seen) {
+        return false;
+      }
+      keys[seen] = key;
+      ++seen;
+
       // A value is at most 256 characters and ends in a mandatory non-blank
-      // one, so it can neither be empty nor end in a space, and it excludes
-      // the comma at %x2C and the equals at %x3D that the two ranges of
-      // nblk-chr leave out. Baggage permits an empty value
+      // one, which stripping the surrounding whitespace has already settled,
+      // and it excludes the comma at %x2C and the equals at %x3D that the two
+      // ranges of nblk-chr leave out. Baggage permits an empty value
       // https://www.w3.org/TR/trace-context/#value
-      if (content.empty() || content.size() > 256 || content.back() == ' ' ||
+      if (content.empty() || content.size() > 256 ||
           !std::all_of(content.begin(), content.end(),
                        [](const char character) {
-                         return character >= 0x20 && character <= 0x7e &&
+                         const auto byte{static_cast<unsigned char>(character)};
+                         return byte >= 0x20 && byte <= 0x7E &&
                                 character != ',' && character != '=';
                        })) {
         return false;
       }
     }
 
-    if (last) {
+    ++members;
+    if (comma == std::string_view::npos) {
       return true;
     }
     rest.remove_prefix(comma + 1);

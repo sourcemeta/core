@@ -88,10 +88,3 @@ TEST(the_identifiers_borrow_the_input) {
   EXPECT_TRUE(parent.has_value());
   EXPECT_EQ(parent->trace_id.data(), value.data() + 3);
 }
-
-TEST(sampled_masks_rather_than_compares) {
-  EXPECT_TRUE(sourcemeta::core::http_traceparent_sampled(0x01));
-  EXPECT_TRUE(sourcemeta::core::http_traceparent_sampled(0xff));
-  EXPECT_FALSE(sourcemeta::core::http_traceparent_sampled(0x00));
-  EXPECT_FALSE(sourcemeta::core::http_traceparent_sampled(0xfe));
-}

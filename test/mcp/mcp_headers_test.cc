@@ -1837,7 +1837,7 @@ TEST(request_metadata_accepts_tracing_whitespace_and_escapes) {
           "00-0123456789abcdef0123456789abcdef-0123456789abcdef-01"});
   value.at("_meta").assign(
       "tracestate",
-      sourcemeta::core::JSON{"vendor=state, \t1tenant@system=value"});
+      sourcemeta::core::JSON{"\tvendor=state,1tenant@system=value\t"});
   value.at("_meta").assign(
       "baggage",
       sourcemeta::core::JSON{

@@ -30,14 +30,20 @@ TEST(version_ff_is_rejected) {
 
 // A value of exactly 55 characters is well formed whatever its version, since
 // the flags may be followed by "either the end of the string or a dash". These
-// four cases come from the upstream corpus, whose permissive base parser
-// accepts them, at vendor/w3c-trace-context/test/tracecontext
+// three versions come from the upstream corpus, whose permissive base parser
+// accepts each of them, at vendor/w3c-trace-context/test/tracecontext
 // https://www.w3.org/TR/trace-context/#versioning-of-traceparent
-TEST(a_later_version_of_exactly_fifty_five_characters) {
+TEST(version_01_of_exactly_fifty_five_characters) {
   EXPECT_TRUE(sourcemeta::core::http_is_traceparent(
       "01-12345678901234567890123456789012-1234567890123456-00"));
+}
+
+TEST(version_02_of_exactly_fifty_five_characters) {
   EXPECT_TRUE(sourcemeta::core::http_is_traceparent(
       "02-12345678901234567890123456789012-1234567890123456-00"));
+}
+
+TEST(version_cc_of_exactly_fifty_five_characters) {
   EXPECT_TRUE(sourcemeta::core::http_is_traceparent(
       "cc-12345678901234567890123456789012-1234567890123456-00"));
 }
@@ -94,14 +100,14 @@ TEST(a_non_hexadecimal_character_is_rejected) {
 }
 
 // "When the version prefix cannot be parsed (it's not 2 hex characters
-// followed by a dash), the implementation should restart the trace"
+// followed by a dash (-)), the implementation should restart the trace"
 // https://www.w3.org/TR/trace-context/#versioning-of-traceparent
 TEST(a_non_hexadecimal_version_is_rejected) {
   EXPECT_FALSE(sourcemeta::core::http_is_traceparent(
       "zz-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"));
 }
 
-// These five length cases come from the upstream corpus
+// These six length cases come from the upstream corpus
 // https://www.w3.org/TR/trace-context/#traceparent-header-field-values
 TEST(a_one_character_version_is_rejected) {
   EXPECT_FALSE(sourcemeta::core::http_is_traceparent(
@@ -128,6 +134,13 @@ TEST(a_short_parent_id_is_rejected) {
       "00-12345678901234567890123456789012-123456789012345-00"));
 }
 
+// A parent id one character too long pushes the dash that ends it past where
+// the flags begin, which is the only way to reach that dash test
+TEST(a_long_parent_id_is_rejected) {
+  EXPECT_FALSE(sourcemeta::core::http_is_traceparent(
+      "00-12345678901234567890123456789012-12345678901234567-00"));
+}
+
 TEST(an_empty_value_is_rejected) {
   EXPECT_FALSE(sourcemeta::core::http_is_traceparent(""));
 }
@@ -141,8 +154,34 @@ TEST(a_missing_dash_is_rejected) {
       "0004bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"));
 }
 
-TEST(a_runtime_value_is_accepted) {
+// What a later version appends is left uninterpreted but is still part of a
+// field value, and "The value is US-ASCII encoded (which is UTF-8
+// compliant)", so a control character or a byte above the range is refused
+// there as it would be anywhere else
+// https://www.w3.org/TR/trace-context/#version
+TEST(an_appended_carriage_return_is_rejected) {
+  EXPECT_FALSE(sourcemeta::core::http_is_traceparent(
+      "01-12345678901234567890123456789012-1234567890123456-00-\r\nFoo: 1"));
+}
+
+TEST(an_appended_null_byte_is_rejected) {
   const std::string value{
-      "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01"};
-  EXPECT_TRUE(sourcemeta::core::http_is_traceparent(value));
+      std::string{"01-12345678901234567890123456789012-1234567890123456-00-"} +
+      '\0' + "x"};
+  EXPECT_FALSE(sourcemeta::core::http_is_traceparent(value));
+}
+
+TEST(an_appended_high_byte_is_rejected) {
+  EXPECT_FALSE(sourcemeta::core::http_is_traceparent(
+      "01-12345678901234567890123456789012-1234567890123456-00-\xc3\xa9"));
+}
+
+TEST(an_appended_space_is_rejected) {
+  EXPECT_FALSE(sourcemeta::core::http_is_traceparent(
+      "01-12345678901234567890123456789012-1234567890123456-00-a b"));
+}
+
+TEST(an_appended_visible_field_is_accepted) {
+  EXPECT_TRUE(sourcemeta::core::http_is_traceparent(
+      "01-12345678901234567890123456789012-1234567890123456-00-cafe01"));
 }

@@ -21,16 +21,21 @@ namespace sourcemeta::core {
 ///
 /// @see https://www.w3.org/TR/trace-context/#traceparent-header
 struct HTTPTraceParent {
-  /// The revision of the field format this value was written to.
-  std::uint8_t version;
+  /// The revision of the field format this value was written to. Note that a
+  /// value being forwarded is not sent on under this revision but under "the
+  /// highest version of the specification known to the implementation", so a
+  /// higher one read here is reported rather than endorsed.
+  ///
+  /// @see https://www.w3.org/TR/trace-context/#versioning-of-traceparent
+  std::uint8_t version{0};
   /// Identifies the trace this request belongs to, as 32 lowercase hexadecimal
-  /// characters.
+  /// characters
   std::string_view trace_id;
   /// Identifies the operation that made this request, as 16 lowercase
-  /// hexadecimal characters.
+  /// hexadecimal characters
   std::string_view parent_id;
-  /// An eight bit field of which one bit is currently defined.
-  std::uint8_t flags;
+  /// An eight bit field of which one bit is currently defined
+  std::uint8_t flags{0};
 };
 
 /// @ingroup http
@@ -59,10 +64,12 @@ constexpr auto http_traceparent_sampled(const std::uint8_t flags) noexcept
 /// Whether the input is a well-formed traceparent field value (RFC 5234 ABNF
 /// in W3C Trace Context Section 3.2.2).
 ///
-/// A value of exactly 55 characters is well formed whatever its version, since
-/// a reader is told to "check that the 2 characters are either the end of the
-/// string or a dash", and a longer value must carry a dash where the flags
-/// end. Version `ff` is forbidden, and an identifier of all zeroes is
+/// Version `00` is exactly 55 characters and admits nothing further. A later
+/// version may append, since a reader is told to "check that the 2 characters
+/// are either the end of the string or a dash", so a longer value must carry a
+/// dash where the flags end. What follows it is left uninterpreted but must
+/// still be a field value, so a control character is refused there as
+/// anywhere. Version `ff` is forbidden, and an identifier of all zeroes is
 /// "considered an invalid value". For example:
 ///
 /// ```cpp
@@ -79,7 +86,7 @@ constexpr auto http_traceparent_sampled(const std::uint8_t flags) noexcept
 ///
 /// @see https://www.w3.org/TR/trace-context/#traceparent-header-field-values
 SOURCEMETA_CORE_HTTP_EXPORT
-auto http_is_traceparent(std::string_view value) noexcept -> bool;
+auto http_is_traceparent(const std::string_view value) noexcept -> bool;
 
 /// @ingroup http
 /// Parse a traceparent field value into its fields, or nothing when it is not
@@ -100,7 +107,7 @@ auto http_is_traceparent(std::string_view value) noexcept -> bool;
 ///
 /// @see https://www.w3.org/TR/trace-context/#traceparent-header-field-values
 SOURCEMETA_CORE_HTTP_EXPORT
-auto http_parse_traceparent(std::string_view value) noexcept
+auto http_parse_traceparent(const std::string_view value) noexcept
     -> std::optional<HTTPTraceParent>;
 
 /// @ingroup http
@@ -109,15 +116,14 @@ auto http_parse_traceparent(std::string_view value) noexcept
 ///
 /// The grammar is permissive in ways that surprise: at most 32 members, and
 /// "Empty and whitespace-only list members are allowed. Vendors MUST accept
-/// empty tracestate headers". A member's value, in contrast, cannot be empty
-/// and cannot end in a space, since the production ends in a mandatory
-/// non-blank character. Note that baggage differs on every one of those
-/// points.
+/// empty tracestate headers". Since "Spaces and horizontal tabs surrounding
+/// list-members are ignored", a member padded on either side is well formed
+/// and so is one made only of padding. A member's value, in contrast, cannot
+/// be empty. Note that baggage differs on every one of those points.
 ///
-/// This rejects a repeated key, which is stricter than the grammar. The
-/// grammar does not forbid one, but a key records a position in the trace and
-/// "Only one entry per key is allowed", so a repeat is a producer that
-/// appended where it should have overwritten. For example:
+/// This rejects a repeated key, which the grammar alone does not forbid,
+/// on the rule that "Only one entry per key is allowed because the entry
+/// represents that last position in the trace". For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/http.h>
@@ -132,13 +138,14 @@ auto http_parse_traceparent(std::string_view value) noexcept
 ///
 /// @see https://www.w3.org/TR/trace-context/#tracestate-header
 SOURCEMETA_CORE_HTTP_EXPORT
-auto http_is_tracestate(std::string_view value) noexcept -> bool;
+auto http_is_tracestate(const std::string_view value) noexcept -> bool;
 
 /// @ingroup http
 /// Visit each tracestate member in order as a key and a value, skipping the
 /// empty members the grammar allows. The whole value is checked before
 /// anything is visited, so a caller never acts on part of a malformed value,
-/// and nothing is visited when it does not parse. For example:
+/// and nothing is visited when it does not parse. Every key and value borrows
+/// the input, so the value they came from must outlive them. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/http.h>
@@ -157,8 +164,8 @@ auto http_is_tracestate(std::string_view value) noexcept -> bool;
 /// @see https://www.w3.org/TR/trace-context/#list
 template <typename Callback>
   requires std::invocable<Callback, std::string_view, std::string_view>
-auto http_parse_tracestate(const std::string_view value, Callback callback)
-    -> bool {
+inline auto http_parse_tracestate(const std::string_view value,
+                                  Callback callback) -> bool {
   if (!http_is_tracestate(value)) {
     return false;
   }
@@ -166,8 +173,8 @@ auto http_parse_tracestate(const std::string_view value, Callback callback)
   while (true) {
     const auto comma{rest.find(',')};
     const auto entry{trim(rest.substr(0, comma), http_is_ows)};
-    if (!entry.empty()) {
-      const auto equal{entry.find('=')};
+    const auto equal{entry.find('=')};
+    if (equal != std::string_view::npos) {
       callback(entry.substr(0, equal), entry.substr(equal + 1));
     }
     if (comma == std::string_view::npos) {
@@ -178,8 +185,9 @@ auto http_parse_tracestate(const std::string_view value, Callback callback)
 }
 
 /// @ingroup http
-/// Collect each tracestate member in order into a container of pairs. For
-/// example:
+/// Collect each tracestate member in order into a container of pairs. Every
+/// key and value borrows the input, so the value they came from must outlive
+/// the container. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/http.h>
@@ -199,12 +207,12 @@ template <typename Container>
   requires requires(Container container, std::string_view entry) {
     container.emplace_back(entry, entry);
   }
-auto http_parse_tracestate(const std::string_view value, Container &members)
-    -> bool {
-  return http_parse_tracestate(value,
-                               [&members](const auto key, const auto entry) {
-                                 members.emplace_back(key, entry);
-                               });
+inline auto http_parse_tracestate(const std::string_view value,
+                                  Container &members) -> bool {
+  return http_parse_tracestate(
+      value,
+      [&members](const std::string_view key, const std::string_view entry)
+          -> void { members.emplace_back(key, entry); });
 }
 
 } // namespace sourcemeta::core

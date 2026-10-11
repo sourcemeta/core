@@ -94,11 +94,24 @@ TEST(the_callback_overload_is_not_invoked_on_failure) {
   EXPECT_TRUE(flat.empty());
 }
 
-// The views borrow the input rather than copying it
+// Both halves of a member borrow the input rather than copying it, so each
+// pointer is checked: the key at the start and the value just past the equals
 TEST(the_members_borrow_the_input) {
   const std::string value{"rojo=00f067aa0ba902b7"};
   std::vector<std::pair<std::string_view, std::string_view>> members;
   EXPECT_TRUE(sourcemeta::core::http_parse_tracestate(value, members));
   EXPECT_EQ(members.size(), 1);
   EXPECT_EQ(members.at(0).first.data(), value.data());
+  EXPECT_EQ(members.at(0).second.data(), value.data() + 5);
+}
+
+// The constraint admits any container that can take the two views, so an
+// owning one is instantiated too
+TEST(the_members_collect_into_an_owning_container) {
+  std::vector<std::pair<std::string, std::string>> members;
+  EXPECT_TRUE(
+      sourcemeta::core::http_parse_tracestate("rojo=1,congo=2", members));
+  EXPECT_EQ(members.size(), 2);
+  EXPECT_EQ(members.at(0).first, "rojo");
+  EXPECT_EQ(members.at(1).second, "2");
 }
