@@ -916,16 +916,19 @@ void mcp_write_result(
 
 /// @ingroup mcp
 /// Build the JSON-RPC envelope returned in response to an MCP `initialize`
-/// request. The revision is negotiated from the one the client asked for, so
-/// an unsupported request yields an error envelope instead. For example:
+/// request. The revision is the one the client asked for when the server
+/// supports it and it uses the handshake, and otherwise the highest supported
+/// handshake revision, so an unrecognized request negotiates down rather than
+/// failing. A request that is not readable, or whose parameters are missing or
+/// malformed, does yield an error envelope. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/mcp.h>
 /// #include <array>
 /// #include <cassert>
 ///
-/// constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
-///     {"2025-11-25"}};
+/// constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+///     {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
 /// const auto request{sourcemeta::core::parse_json(R"JSON({
 ///   "jsonrpc": "2.0",
 ///   "id": 1,
@@ -950,6 +953,22 @@ void mcp_write_result(
 ///            "serverInfo": { "name": "srv", "version": "1.0.0" }
 ///          }
 ///        })JSON"));
+///
+/// const auto unknown{sourcemeta::core::parse_json(R"JSON({
+///   "jsonrpc": "2.0",
+///   "id": 1,
+///   "method": "initialize",
+///   "params": {
+///     "protocolVersion": "9999-01-01",
+///     "capabilities": {},
+///     "clientInfo": { "name": "client", "version": "1" }
+///   }
+/// })JSON")};
+/// assert(sourcemeta::core::mcp_make_initialize_result(
+///            unknown, sourcemeta::core::MCPServerCapabilities{}, server,
+///            SUPPORTED)
+///            .at("result")
+///            .at("protocolVersion") == sourcemeta::core::JSON{"2025-11-25"});
 /// ```
 ///
 /// @see

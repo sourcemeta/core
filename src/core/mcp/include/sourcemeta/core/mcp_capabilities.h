@@ -88,9 +88,11 @@ struct MCPClientCapabilities {
   bool roots_list_changed = false;
   /// Whether the client advertises sampling.
   bool sampling = false;
-  /// Whether sampling advertises context support. The two context-inclusion
-  /// values this capability enables were deprecated in `2025-11-25`, which
-  /// directs a client to omit the field or request no context instead.
+  /// Whether sampling advertises context support. Declaring it is what permits
+  /// a server to ask for context from the requesting server or from all of
+  /// them. Those two request values were deprecated in `2025-11-25`, which
+  /// asks a server to avoid them and not to use them at all unless a client
+  /// declares this capability. The capability itself is not deprecated.
   bool sampling_context = false;
   /// Whether sampling advertises tools support.
   bool sampling_tools = false;

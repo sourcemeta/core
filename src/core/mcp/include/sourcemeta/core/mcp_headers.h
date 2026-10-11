@@ -87,9 +87,10 @@ enum class MCPRequestMetaStatus : std::uint8_t {
 };
 
 /// @ingroup mcp
-/// Parsed representation of 2026-07-28 request metadata. Every member either
-/// borrows from or points into the validated request, so the request must
-/// outlive this view.
+/// Parsed representation of 2026-07-28 request metadata. The protocol revision
+/// is a value, while the capabilities, implementation, log level, metadata
+/// object and progress token all reference the validated request, so the
+/// request must outlive this view.
 ///
 /// @see
 /// https://modelcontextprotocol.io/specification/2026-07-28/basic/index#_meta
@@ -172,8 +173,11 @@ auto mcp_validate_request_parameters(const JSON &parameters)
 /// @ingroup mcp
 /// Construct an appropriate JSON-RPC error response from an invalid
 /// @ref MCPRequestMetaStatus. An unrecognized revision becomes the dedicated
-/// unsupported-version error carrying the supported list, while every other
-/// failure becomes an invalid-params error. For example:
+/// unsupported-version error carrying the supported list, an envelope that is
+/// not a readable request becomes an invalid-request error, and every
+/// remaining failure becomes an invalid-params error naming the offending
+/// field. Passing the status for valid metadata throws
+/// `std::invalid_argument`. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/mcp.h>
@@ -190,6 +194,23 @@ auto mcp_validate_request_parameters(const JSON &parameters)
 ///            .at("error")
 ///            .at("code")
 ///            .to_integer() == sourcemeta::core::JSONRPC_CODE_INVALID_PARAMS);
+/// assert(sourcemeta::core::mcp_make_error_request_meta(
+///            sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+///            sourcemeta::core::JSON{1},
+///            sourcemeta::core::MCPRequestMetaStatus::InvalidEnvelope, "",
+///            SUPPORTED)
+///            .at("error")
+///            .at("code")
+///            .to_integer() == sourcemeta::core::JSONRPC_CODE_INVALID_REQUEST);
+/// constexpr auto UNSUPPORTED{
+///     sourcemeta::core::MCPRequestMetaStatus::UnsupportedProtocolVersion};
+/// assert(sourcemeta::core::mcp_make_error_request_meta(
+///            sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+///            sourcemeta::core::JSON{1}, UNSUPPORTED, "1999-01-01", SUPPORTED)
+///            .at("error")
+///            .at("code")
+///            .to_integer() ==
+///        sourcemeta::core::MCP_CODE_UNSUPPORTED_PROTOCOL_VERSION);
 /// ```
 ///
 /// @see
@@ -274,10 +295,11 @@ auto mcp_validate_request_headers(
 
 /// @ingroup mcp
 /// Encode a Mcp-Name or Mcp-Param value using the MCP 2026-07-28 sentinel
-/// encoding when the value cannot be represented literally. A value that is
-/// already printable ASCII passes through, unless it would be mistaken for the
-/// sentinel form. Throws `std::invalid_argument` for input that is not UTF-8.
-/// For example:
+/// encoding when the value cannot be represented literally. A value passes
+/// through only when every byte is printable ASCII, it neither begins nor ends
+/// with a space, and it would not be mistaken for the sentinel form.
+/// Everything else is encoded. Throws `std::invalid_argument` for input that
+/// is not UTF-8. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/mcp.h>
@@ -286,6 +308,8 @@ auto mcp_validate_request_headers(
 /// assert(sourcemeta::core::mcp_encode_header_value("weather") == "weather");
 /// assert(sourcemeta::core::mcp_encode_header_value(" café ") ==
 ///        "=?base64?IGNhZsOpIA==?=");
+/// assert(sourcemeta::core::mcp_encode_header_value(" padded ") ==
+///        "=?base64?IHBhZGRlZCA=?=");
 /// ```
 ///
 /// @see
