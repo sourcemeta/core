@@ -68,8 +68,7 @@ auto mcp_make_error(const MCPProtocolVersion version, const JSON *identifier,
 }
 
 auto mcp_make_error_unsupported_protocol_version(
-    const MCPProtocolVersion version,
-    const std::optional<sourcemeta::core::JSON> &identifier,
+    const MCPProtocolVersion version, const sourcemeta::core::JSON *identifier,
     const JSON::StringView requested,
     const std::span<const JSON::StringView> supported)
     -> sourcemeta::core::JSON {
@@ -87,55 +86,46 @@ auto mcp_make_error_unsupported_protocol_version(
   data.assign_assume_new("requested", sourcemeta::core::JSON{requested},
                          MCP_HASH_REQUESTED);
 
-  const auto *const identifier_pointer{
-      identifier.has_value() ? &identifier.value() : nullptr};
-  auto envelope{mcp_make_error(
-      version, identifier_pointer, MCP_CODE_UNSUPPORTED_PROTOCOL_VERSION,
-      "Unsupported protocol version", std::move(data))};
+  auto envelope{
+      mcp_make_error(version, identifier, MCP_CODE_UNSUPPORTED_PROTOCOL_VERSION,
+                     "Unsupported protocol version", std::move(data))};
   return envelope;
 }
 
 auto mcp_make_error_missing_required_capability(
-    const MCPProtocolVersion version,
-    const std::optional<sourcemeta::core::JSON> &identifier,
+    const MCPProtocolVersion version, const sourcemeta::core::JSON *identifier,
     sourcemeta::core::JSON required_capabilities,
     const JSON::StringView message) -> sourcemeta::core::JSON {
   internal::require(version == MCPProtocolVersion::V_2026_07_28,
                     "This protocol error is defined for MCP 2026-07-28");
-  internal::require(
-      internal::valid_capabilities(version, required_capabilities, true),
-      "Invalid required client capabilities");
   auto data{sourcemeta::core::JSON::make_object()};
   data.assign_assume_new("requiredCapabilities",
                          std::move(required_capabilities),
                          MCP_HASH_REQUIRED_CAPABILITIES);
 
-  const auto *const identifier_pointer{
-      identifier.has_value() ? &identifier.value() : nullptr};
-  auto envelope{mcp_make_error(version, identifier_pointer,
+  auto envelope{mcp_make_error(version, identifier,
                                MCP_CODE_MISSING_REQUIRED_CLIENT_CAPABILITY,
                                message, std::move(data))};
   return envelope;
 }
 
-auto mcp_make_error_header_mismatch(
-    const MCPProtocolVersion version,
-    const std::optional<sourcemeta::core::JSON> &identifier,
-    const JSON::StringView message) -> sourcemeta::core::JSON {
+auto mcp_make_error_header_mismatch(const MCPProtocolVersion version,
+                                    const sourcemeta::core::JSON *identifier,
+                                    const JSON::StringView message)
+    -> sourcemeta::core::JSON {
   internal::require(version == MCPProtocolVersion::V_2026_07_28,
                     "This protocol error is defined for MCP 2026-07-28");
-  const auto *const identifier_pointer{
-      identifier.has_value() ? &identifier.value() : nullptr};
-  auto envelope{mcp_make_error(version, identifier_pointer,
-                               MCP_CODE_HEADER_MISMATCH, message)};
+  auto envelope{
+      mcp_make_error(version, identifier, MCP_CODE_HEADER_MISMATCH, message)};
   return envelope;
 }
 
-auto mcp_make_error_header_mismatch(
-    const MCPProtocolVersion version,
-    const std::optional<sourcemeta::core::JSON> &identifier,
-    const JSON::StringView header_name, const JSON::StringView header_value,
-    const JSON::StringView body_value) -> sourcemeta::core::JSON {
+auto mcp_make_error_header_mismatch(const MCPProtocolVersion version,
+                                    const sourcemeta::core::JSON *identifier,
+                                    const JSON::StringView header_name,
+                                    const JSON::StringView header_value,
+                                    const JSON::StringView body_value)
+    -> sourcemeta::core::JSON {
   internal::require(version == MCPProtocolVersion::V_2026_07_28,
                     "This protocol error is defined for MCP 2026-07-28");
   auto data{sourcemeta::core::JSON::make_object()};
@@ -146,18 +136,15 @@ auto mcp_make_error_header_mismatch(
   data.assign_assume_new("bodyValue", sourcemeta::core::JSON{body_value},
                          MCP_HASH_BODY_VALUE);
 
-  const auto *const identifier_pointer{
-      identifier.has_value() ? &identifier.value() : nullptr};
-  auto envelope{mcp_make_error(version, identifier_pointer,
-                               MCP_CODE_HEADER_MISMATCH, "Header mismatch",
-                               std::move(data))};
+  auto envelope{mcp_make_error(version, identifier, MCP_CODE_HEADER_MISMATCH,
+                               "Header mismatch", std::move(data))};
   return envelope;
 }
 
-auto mcp_make_error_header_mismatch(
-    const MCPProtocolVersion version,
-    const std::optional<sourcemeta::core::JSON> &identifier,
-    const JSON::StringView header_name, const JSON::StringView header_value)
+auto mcp_make_error_header_mismatch(const MCPProtocolVersion version,
+                                    const sourcemeta::core::JSON *identifier,
+                                    const JSON::StringView header_name,
+                                    const JSON::StringView header_value)
     -> sourcemeta::core::JSON {
   internal::require(version == MCPProtocolVersion::V_2026_07_28,
                     "This protocol error is defined for MCP 2026-07-28");
@@ -167,26 +154,21 @@ auto mcp_make_error_header_mismatch(
   data.assign_assume_new("headerValue", sourcemeta::core::JSON{header_value},
                          MCP_HASH_HEADER_VALUE);
 
-  const auto *const identifier_pointer{
-      identifier.has_value() ? &identifier.value() : nullptr};
-  auto envelope{mcp_make_error(
-      version, identifier_pointer, MCP_CODE_HEADER_MISMATCH,
-      "Header mismatch: unexpected header provided", std::move(data))};
+  auto envelope{mcp_make_error(version, identifier, MCP_CODE_HEADER_MISMATCH,
+                               "Header mismatch: unexpected header provided",
+                               std::move(data))};
   return envelope;
 }
 
-auto mcp_make_error_resource_not_found(
-    const MCPProtocolVersion version,
-    const std::optional<sourcemeta::core::JSON> &identifier)
+auto mcp_make_error_resource_not_found(const MCPProtocolVersion version,
+                                       const sourcemeta::core::JSON *identifier)
     -> sourcemeta::core::JSON {
-  const auto *const identifier_pointer{
-      identifier.has_value() ? &identifier.value() : nullptr};
   auto envelope{
       version == MCPProtocolVersion::V_2026_07_28
-          ? mcp_make_error(version, identifier_pointer,
-                           JSONRPC_CODE_INVALID_PARAMS, "Resource not found")
-          : mcp_make_error(version, identifier_pointer,
-                           MCP_CODE_RESOURCE_NOT_FOUND, "Resource not found")};
+          ? mcp_make_error(version, identifier, JSONRPC_CODE_INVALID_PARAMS,
+                           "Resource not found")
+          : mcp_make_error(version, identifier, MCP_CODE_RESOURCE_NOT_FOUND,
+                           "Resource not found")};
   return envelope;
 }
 

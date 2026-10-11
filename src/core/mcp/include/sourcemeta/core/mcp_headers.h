@@ -184,19 +184,18 @@ auto mcp_validate_request_parameters(const JSON &parameters)
 /// #include <array>
 /// #include <cassert>
 ///
+/// const sourcemeta::core::JSON identifier{1};
 /// constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
 ///     {"2026-07-28"}};
 /// assert(sourcemeta::core::mcp_make_error_request_meta(
-///            sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-///            sourcemeta::core::JSON{1},
+///            sourcemeta::core::MCPProtocolVersion::V_2026_07_28, &identifier,
 ///            sourcemeta::core::MCPRequestMetaStatus::MissingMeta, "",
 ///            SUPPORTED)
 ///            .at("error")
 ///            .at("code")
 ///            .to_integer() == sourcemeta::core::JSONRPC_CODE_INVALID_PARAMS);
 /// assert(sourcemeta::core::mcp_make_error_request_meta(
-///            sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-///            sourcemeta::core::JSON{1},
+///            sourcemeta::core::MCPProtocolVersion::V_2026_07_28, &identifier,
 ///            sourcemeta::core::MCPRequestMetaStatus::InvalidEnvelope, "",
 ///            SUPPORTED)
 ///            .at("error")
@@ -205,8 +204,8 @@ auto mcp_validate_request_parameters(const JSON &parameters)
 /// constexpr auto UNSUPPORTED{
 ///     sourcemeta::core::MCPRequestMetaStatus::UnsupportedProtocolVersion};
 /// assert(sourcemeta::core::mcp_make_error_request_meta(
-///            sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-///            sourcemeta::core::JSON{1}, UNSUPPORTED, "1999-01-01", SUPPORTED)
+///            sourcemeta::core::MCPProtocolVersion::V_2026_07_28, &identifier,
+///            UNSUPPORTED, "1999-01-01", SUPPORTED)
 ///            .at("error")
 ///            .at("code")
 ///            .to_integer() ==
@@ -217,8 +216,7 @@ auto mcp_validate_request_parameters(const JSON &parameters)
 /// https://modelcontextprotocol.io/specification/2026-07-28/basic/index#error-codes
 SOURCEMETA_CORE_MCP_EXPORT
 auto mcp_make_error_request_meta(
-    const MCPProtocolVersion version,
-    const std::optional<sourcemeta::core::JSON> &identifier,
+    const MCPProtocolVersion version, const sourcemeta::core::JSON *identifier,
     const MCPRequestMetaStatus status, const JSON::StringView requested,
     const std::span<const JSON::StringView> supported)
     -> sourcemeta::core::JSON;

@@ -143,7 +143,7 @@ auto mcp_validate_parameter_headers(
     for (const auto &candidate : headers) {
       if (equals_ignore_case(candidate.first, name)) {
         if (header) {
-          return mcp_make_error_header_mismatch(version, identifier,
+          return mcp_make_error_header_mismatch(version, &identifier,
                                                 "Duplicate parameter header");
         }
         header = candidate.second;
@@ -152,7 +152,7 @@ auto mcp_validate_parameter_headers(
     const auto *value{value_at(arguments, parameter)};
     if (value == nullptr) {
       if (header) {
-        return mcp_make_error_header_mismatch(version, identifier, name,
+        return mcp_make_error_header_mismatch(version, &identifier, name,
                                               *header);
       }
       continue;
@@ -179,7 +179,7 @@ auto mcp_validate_parameter_headers(
       }
     }
     if (!matches) {
-      return mcp_make_error_header_mismatch(version, identifier, name,
+      return mcp_make_error_header_mismatch(version, &identifier, name,
                                             header.value_or(""),
                                             parameter_text(*value));
     }
