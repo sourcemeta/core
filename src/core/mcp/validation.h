@@ -47,7 +47,7 @@ inline auto valid_input_response(JSON::StringView method, const JSON &request,
                                  const JSON &value) -> bool;
 inline auto valid_meta(const JSON &value) -> bool;
 inline auto valid_meta(MCPProtocolVersion version, const JSON &value) -> bool;
-inline auto valid_metadata_object(const JSON &meta) -> bool;
+inline auto valid_metadata_object(const JSON &meta, bool received) -> bool;
 inline auto valid_log_level(JSON::StringView value) noexcept -> bool;
 
 } // namespace sourcemeta::core::internal
@@ -561,11 +561,12 @@ inline auto valid_meta(const MCPProtocolVersion version, const JSON &value)
   const auto *meta{
       validation::field(value, "_meta", sourcemeta::core::MCP_HASH_META)};
   return meta == nullptr || (version == MCPProtocolVersion::V_2026_07_28
-                                 ? valid_metadata_object(*meta)
+                                 ? valid_metadata_object(*meta, false)
                                  : meta->is_object());
 }
 
-inline auto valid_metadata_object(const JSON &meta) -> bool {
+inline auto valid_metadata_object(const JSON &meta, const bool received)
+    -> bool {
   if (!meta.is_object()) {
     return false;
   }
@@ -574,27 +575,49 @@ inline auto valid_metadata_object(const JSON &meta) -> bool {
       return false;
     }
   }
-  for (const auto &[name, hash] :
-       {std::pair{JSON::StringView{"traceparent"},
-                  sourcemeta::core::MCP_HASH_TRACEPARENT},
-        std::pair{JSON::StringView{"tracestate"},
-                  sourcemeta::core::MCP_HASH_TRACESTATE},
-        std::pair{JSON::StringView{"baggage"},
-                  sourcemeta::core::MCP_HASH_BAGGAGE}}) {
-    if (const auto *value{meta.try_at(name, hash)}; value) {
-      if (!value->is_string()) {
-        return false;
-      }
-      const auto text{value->to_string()};
-      const bool valid{JSON::StringView{name} == "traceparent"
-                           ? validation::traceparent(text)
-                       : JSON::StringView{name} == "tracestate"
-                           ? validation::tracestate(text)
-                           : validation::baggage(text)};
-      if (!valid) {
-        return false;
-      }
+  // MCP states the three reserved tracing values as a requirement on the
+  // sender, so a value that does not follow its format makes the metadata
+  // invalid. The trace context grammar constrains how that is enforced, in one
+  // direction only: a tracestate that does not parse must not decide the
+  // outcome for a traceparent that does, while the reverse carries no such
+  // protection and a traceparent that does not parse ends the walk before the
+  // tracestate is looked at.
+  //
+  // That protection is for a receiver reading what someone else sent, so it
+  // applies to received metadata alone. A sender has no such excuse, since the
+  // requirement is on whoever emits the value, and nothing this module builds
+  // should carry a value it would refuse to accept. So on the receive path a
+  // tracestate is held to its format only when it arrives without a
+  // traceparent, where there is no parse to protect, which is what keeps a
+  // value an intermediary injected from costing the trace it was meant to
+  // carry. Everywhere else all three are held to their formats.
+  //
+  // The remedy itself is a choice rather than a rule: MCP prescribes none for
+  // a receiver, and the processing model that describes discarding is a
+  // section the grammar marks as non-normative.
+  // https://www.w3.org/TR/trace-context/#tracestate-header
+  // https://modelcontextprotocol.io/specification/2026-07-28/basic/index#_meta
+  const auto *traceparent{
+      meta.try_at("traceparent", sourcemeta::core::MCP_HASH_TRACEPARENT)};
+  if (traceparent != nullptr &&
+      (!traceparent->is_string() ||
+       !validation::traceparent(traceparent->to_string()))) {
+    return false;
+  }
+  if (!received || traceparent == nullptr) {
+    if (const auto *tracestate{
+            meta.try_at("tracestate", sourcemeta::core::MCP_HASH_TRACESTATE)};
+        tracestate != nullptr &&
+        (!tracestate->is_string() ||
+         !validation::tracestate(tracestate->to_string()))) {
+      return false;
     }
+  }
+  if (const auto *baggage{
+          meta.try_at("baggage", sourcemeta::core::MCP_HASH_BAGGAGE)};
+      baggage != nullptr &&
+      (!baggage->is_string() || !validation::baggage(baggage->to_string()))) {
+    return false;
   }
   return true;
 }

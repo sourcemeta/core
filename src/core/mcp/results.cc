@@ -218,7 +218,7 @@ void decorate_result(
   }
   if (const auto *meta{result.try_at("_meta", sourcemeta::core::MCP_HASH_META)};
       meta) {
-    internal::require(internal::valid_metadata_object(*meta),
+    internal::require(internal::valid_metadata_object(*meta, false),
                       "Invalid MCP 2026-07-28 metadata");
     if (const auto *info{
             meta->try_at("io.modelcontextprotocol/serverInfo",
@@ -1057,7 +1057,7 @@ void mcp_write_result(std::ostream &stream, const MCPProtocolVersion version,
     if (const auto *meta{
             result.try_at("_meta", sourcemeta::core::MCP_HASH_META)};
         meta) {
-      internal::require(internal::valid_metadata_object(*meta),
+      internal::require(internal::valid_metadata_object(*meta, false),
                         "Invalid precomputed metadata");
       if (const auto *info{
               meta->try_at("io.modelcontextprotocol/serverInfo",
