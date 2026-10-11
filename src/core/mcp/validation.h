@@ -149,6 +149,23 @@ inline auto icons(const JSON &value) -> bool {
   return true;
 }
 
+// Several MCP members carry a JSON Schema. This module checks such a member
+// only as far as the specification constrains the member itself, which is that
+// it is an object declaring the object type, and deliberately does not
+// interpret the schema inside it.
+//
+// The two cases differ in why. A tool schema is declared with an open index
+// signature, so beyond the object type the specification constrains nothing
+// and there is nothing further to check. An elicitation form schema is
+// restricted to a set of primitive property forms, which is a real constraint,
+// but checking it is schema validation rather than wire-shape validation: it
+// belongs to a schema evaluator layered on top, which also keeps this module
+// from carrying a second implementation of rules that evaluator already owns.
+//
+// Keeping the line here means a caller can build a form whose properties this
+// module never inspects. That is intended, and a test pins it.
+// https://modelcontextprotocol.io/specification/2026-07-28/schema#tool
+// https://modelcontextprotocol.io/specification/2026-07-28/schema#elicitrequestformparams
 inline auto object_schema(const JSON &value) -> bool {
   const auto *type{field(value, "type", sourcemeta::core::MCP_HASH_TYPE)};
   return (type != nullptr) && type->is_string() &&
@@ -978,6 +995,15 @@ inline auto valid_input_requests(const JSON &value,
                                  !capabilities.elicitation_url};
         if ((!capabilities.elicitation_form && !implicit_form) ||
             (schema == nullptr) || !validation::object_schema(*schema)) {
+          return false;
+        }
+        // A form names the fields it asks for, so the property map is
+        // mandatory. What each property contains is a schema, which this
+        // module deliberately does not interpret
+        // https://modelcontextprotocol.io/specification/2026-07-28/schema#elicitrequestformparams
+        const auto *properties{validation::field(
+            *schema, "properties", sourcemeta::core::MCP_HASH_PROPERTIES)};
+        if ((properties == nullptr) || !properties->is_object()) {
           return false;
         }
       }

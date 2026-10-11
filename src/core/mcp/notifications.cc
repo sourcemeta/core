@@ -333,16 +333,23 @@ auto mcp_validate_continuation(const MCPProtocolVersion version,
   return true;
 }
 
-auto mcp_validate_continuation(const MCPProtocolVersion version,
-                               const JSON &parameters,
-                               const JSON &input_requests,
-                               const JSON::StringView expected_state) -> bool {
+auto mcp_validate_continuation(
+    const MCPProtocolVersion version, const JSON &parameters,
+    const JSON &input_requests,
+    const std::optional<JSON::StringView> expected_state) -> bool {
   const auto *state{
       parameters.is_object()
           ? parameters.try_at("requestState", MCP_HASH_REQUEST_STATE)
           : nullptr};
+  // A client that was given no state token must not invent one, so a server
+  // that sent none can require its absence
+  // https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/mrtr#client-requirements-basic-workflow
+  if (!expected_state.has_value()) {
+    return (state == nullptr) &&
+           mcp_validate_continuation(version, parameters, input_requests);
+  }
   return state != nullptr && state->is_string() &&
-         state->to_string() == expected_state &&
+         state->to_string() == *expected_state &&
          mcp_validate_continuation(version, parameters, input_requests);
 }
 

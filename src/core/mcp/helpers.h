@@ -222,6 +222,8 @@ inline constexpr auto MCP_HASH_PROGRESS_TOKEN{
     sourcemeta::core::JSON::Object::hash("progressToken"sv)};
 inline constexpr auto MCP_HASH_PROMPTS_LIST_CHANGED{
     sourcemeta::core::JSON::Object::hash("promptsListChanged"sv)};
+inline constexpr auto MCP_HASH_PROPERTIES{
+    sourcemeta::core::JSON::Object::hash("properties"sv)};
 inline constexpr auto MCP_HASH_REASON{
     sourcemeta::core::JSON::Object::hash("reason"sv)};
 inline constexpr auto MCP_HASH_REQUEST_ID{

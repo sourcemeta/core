@@ -142,7 +142,9 @@ auto mcp_make_resource_blob_content(const JSON::StringView uri,
                                     const JSON::StringView blob) -> JSON {
   auto result{JSON::make_object()};
   result.assign_assume_new("uri", JSON{uri}, MCP_HASH_URI);
-  result.assign_assume_new("mimeType", JSON{mime_type}, MCP_HASH_MIME_TYPE);
+  if (!mime_type.empty()) {
+    result.assign_assume_new("mimeType", JSON{mime_type}, MCP_HASH_MIME_TYPE);
+  }
   result.assign_assume_new("blob", JSON{blob}, MCP_HASH_BLOB);
   return result;
 }
@@ -182,6 +184,29 @@ auto mcp_make_resource_link(const MCPProtocolVersion version,
 }
 
 namespace {
+// The specification asks a server to identify itself on every result, so this
+// is reachable from the interim and subscription results too, whose own result
+// type rules out the complete-result decorator
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/index#responses
+void attach_server_info(const MCPProtocolVersion version,
+                        sourcemeta::core::JSON &result,
+                        const std::optional<MCPImplementation> &server_info) {
+  if (!server_info.has_value() || !mcp_requires_result_type(version)) {
+    return;
+  }
+  auto info{internal::make_implementation(version, *server_info)};
+  if (auto *meta{result.try_at("_meta", MCP_HASH_META)};
+      meta != nullptr && meta->is_object()) {
+    // Caller-supplied metadata may already identify the server
+    meta->assign("io.modelcontextprotocol/serverInfo", std::move(info));
+  } else {
+    auto meta_object{sourcemeta::core::JSON::make_object()};
+    meta_object.assign_assume_new("io.modelcontextprotocol/serverInfo",
+                                  std::move(info), MCP_HASH_META_SERVER_INFO);
+    result.assign_assume_new("_meta", std::move(meta_object), MCP_HASH_META);
+  }
+}
+
 void decorate_result(
     const MCPProtocolVersion version, sourcemeta::core::JSON &result,
     const std::optional<MCPImplementation> &server_info = std::nullopt) {
@@ -215,20 +240,7 @@ void decorate_result(
                              MCP_HASH_RESULT_TYPE);
   }
 
-  if (server_info.has_value()) {
-    auto info{internal::make_implementation(version, *server_info)};
-
-    if (auto *meta{result.try_at("_meta", MCP_HASH_META)};
-        meta != nullptr && meta->is_object()) {
-      // Caller-supplied metadata may already identify the server
-      meta->assign("io.modelcontextprotocol/serverInfo", std::move(info));
-    } else {
-      auto meta_object{sourcemeta::core::JSON::make_object()};
-      meta_object.assign_assume_new("io.modelcontextprotocol/serverInfo",
-                                    std::move(info), MCP_HASH_META_SERVER_INFO);
-      result.assign_assume_new("_meta", std::move(meta_object), MCP_HASH_META);
-    }
-  }
+  attach_server_info(version, result, server_info);
 }
 
 } // namespace
@@ -286,7 +298,8 @@ auto mcp_make_empty_result(const MCPProtocolVersion version,
 
 auto mcp_make_tool_success(const MCPProtocolVersion version,
                            const sourcemeta::core::JSON &identifier,
-                           sourcemeta::core::JSON result)
+                           sourcemeta::core::JSON result,
+                           const std::optional<MCPImplementation> &server_info)
     -> sourcemeta::core::JSON {
   internal::require(!mcp_supports_structured_content(version) ||
                         version == MCPProtocolVersion::V_2026_07_28 ||
@@ -299,10 +312,6 @@ auto mcp_make_tool_success(const MCPProtocolVersion version,
   content.push_back(mcp_make_text_block(payload.str()));
 
   auto envelope_result{sourcemeta::core::JSON::make_object()};
-  if (mcp_requires_result_type(version)) {
-    envelope_result.assign_assume_new(
-        "resultType", sourcemeta::core::JSON{"complete"}, MCP_HASH_RESULT_TYPE);
-  }
   envelope_result.assign_assume_new("content", std::move(content),
                                     MCP_HASH_CONTENT);
   if (mcp_supports_structured_content(version)) {
@@ -311,13 +320,16 @@ auto mcp_make_tool_success(const MCPProtocolVersion version,
   }
   envelope_result.assign_assume_new("isError", sourcemeta::core::JSON{false},
                                     MCP_HASH_IS_ERROR);
-  return checked_success(identifier, std::move(envelope_result));
+  return checked_success(
+      identifier,
+      mcp_decorate_result(version, std::move(envelope_result), server_info));
 }
 
 auto mcp_make_tool_success(const MCPProtocolVersion version,
                            const sourcemeta::core::JSON &identifier,
                            sourcemeta::core::JSON structured,
-                           sourcemeta::core::JSON content_blocks)
+                           sourcemeta::core::JSON content_blocks,
+                           const std::optional<MCPImplementation> &server_info)
     -> sourcemeta::core::JSON {
   internal::require(!mcp_supports_structured_content(version) ||
                         version == MCPProtocolVersion::V_2026_07_28 ||
@@ -329,10 +341,6 @@ auto mcp_make_tool_success(const MCPProtocolVersion version,
                       "Invalid MCP content block");
   }
   auto envelope_result{sourcemeta::core::JSON::make_object()};
-  if (mcp_requires_result_type(version)) {
-    envelope_result.assign_assume_new(
-        "resultType", sourcemeta::core::JSON{"complete"}, MCP_HASH_RESULT_TYPE);
-  }
   envelope_result.assign_assume_new("content", std::move(content_blocks),
                                     MCP_HASH_CONTENT);
   if (mcp_supports_structured_content(version)) {
@@ -342,26 +350,27 @@ auto mcp_make_tool_success(const MCPProtocolVersion version,
   }
   envelope_result.assign_assume_new("isError", sourcemeta::core::JSON{false},
                                     MCP_HASH_IS_ERROR);
-  return checked_success(identifier, std::move(envelope_result));
+  return checked_success(
+      identifier,
+      mcp_decorate_result(version, std::move(envelope_result), server_info));
 }
 
 auto mcp_make_tool_error(const MCPProtocolVersion version,
                          const sourcemeta::core::JSON &identifier,
-                         const JSON::StringView message)
+                         const JSON::StringView message,
+                         const std::optional<MCPImplementation> &server_info)
     -> sourcemeta::core::JSON {
   auto content{sourcemeta::core::JSON::make_array()};
   content.push_back(mcp_make_text_block(message));
 
   auto envelope_result{sourcemeta::core::JSON::make_object()};
-  if (mcp_requires_result_type(version)) {
-    envelope_result.assign_assume_new(
-        "resultType", sourcemeta::core::JSON{"complete"}, MCP_HASH_RESULT_TYPE);
-  }
   envelope_result.assign_assume_new("content", std::move(content),
                                     MCP_HASH_CONTENT);
   envelope_result.assign_assume_new("isError", sourcemeta::core::JSON{true},
                                     MCP_HASH_IS_ERROR);
-  return checked_success(identifier, std::move(envelope_result));
+  return checked_success(
+      identifier,
+      mcp_decorate_result(version, std::move(envelope_result), server_info));
 }
 
 auto mcp_make_resource(const MCPProtocolVersion version,
@@ -382,8 +391,10 @@ auto mcp_make_resource(const MCPProtocolVersion version,
                                sourcemeta::core::JSON{description},
                                MCP_HASH_DESCRIPTION);
   }
-  resource.assign_assume_new("mimeType", sourcemeta::core::JSON{mime_type},
-                             MCP_HASH_MIME_TYPE);
+  if (!mime_type.empty()) {
+    resource.assign_assume_new("mimeType", sourcemeta::core::JSON{mime_type},
+                               MCP_HASH_MIME_TYPE);
+  }
   if (size.has_value()) {
     resource.assign_assume_new("size", sourcemeta::core::JSON{size.value()},
                                MCP_HASH_SIZE);
@@ -409,8 +420,10 @@ auto mcp_make_resource_text_content(const JSON::StringView uri,
     -> sourcemeta::core::JSON {
   auto entry{sourcemeta::core::JSON::make_object()};
   entry.assign_assume_new("uri", sourcemeta::core::JSON{uri}, MCP_HASH_URI);
-  entry.assign_assume_new("mimeType", sourcemeta::core::JSON{mime_type},
-                          MCP_HASH_MIME_TYPE);
+  if (!mime_type.empty()) {
+    entry.assign_assume_new("mimeType", sourcemeta::core::JSON{mime_type},
+                            MCP_HASH_MIME_TYPE);
+  }
   entry.assign_assume_new("text", sourcemeta::core::JSON{text}, MCP_HASH_TEXT);
   return entry;
 }
@@ -544,10 +557,14 @@ auto mcp_make_resource_template(const MCPProtocolVersion version,
   entry.assign_assume_new("uriTemplate", sourcemeta::core::JSON{uri_template},
                           MCP_HASH_URI_TEMPLATE);
   entry.assign_assume_new("name", sourcemeta::core::JSON{name}, MCP_HASH_NAME);
-  entry.assign_assume_new("description", sourcemeta::core::JSON{description},
-                          MCP_HASH_DESCRIPTION);
-  entry.assign_assume_new("mimeType", sourcemeta::core::JSON{mime_type},
-                          MCP_HASH_MIME_TYPE);
+  if (!description.empty()) {
+    entry.assign_assume_new("description", sourcemeta::core::JSON{description},
+                            MCP_HASH_DESCRIPTION);
+  }
+  if (!mime_type.empty()) {
+    entry.assign_assume_new("mimeType", sourcemeta::core::JSON{mime_type},
+                            MCP_HASH_MIME_TYPE);
+  }
   apply_presentation(version, entry, presentation);
   auto annotation_object{
       mcp_serialize_resource_annotations(version, annotations)};
@@ -569,8 +586,10 @@ auto mcp_make_tool_descriptor(
 
   auto entry{sourcemeta::core::JSON::make_object()};
   entry.assign_assume_new("name", sourcemeta::core::JSON{name}, MCP_HASH_NAME);
-  entry.assign_assume_new("description", sourcemeta::core::JSON{description},
-                          MCP_HASH_DESCRIPTION);
+  if (!description.empty()) {
+    entry.assign_assume_new("description", sourcemeta::core::JSON{description},
+                            MCP_HASH_DESCRIPTION);
+  }
   entry.assign_assume_new("inputSchema", std::move(input_schema),
                           MCP_HASH_INPUT_SCHEMA);
   if (output_schema.has_value() && mcp_supports_output_schema(version)) {
@@ -743,7 +762,8 @@ auto mcp_make_input_required_result(
     const sourcemeta::core::JSON &identifier,
     std::optional<sourcemeta::core::JSON> input_requests,
     std::optional<JSON::StringView> request_state,
-    const MCPClientCapabilities &client_capabilities)
+    const MCPClientCapabilities &client_capabilities,
+    const std::optional<MCPImplementation> &server_info)
     -> sourcemeta::core::JSON {
   internal::require(mcp_supports_mrtr(version), "MRTR requires MCP 2026-07-28");
   internal::require(mcp_is_mrtr_method(method),
@@ -772,6 +792,7 @@ auto mcp_make_input_required_result(
                              MCP_HASH_REQUEST_STATE);
   }
 
+  attach_server_info(version, result, server_info);
   return checked_success(identifier, std::move(result));
 }
 
@@ -890,7 +911,8 @@ auto mcp_make_subscription_acknowledged_notification(
 }
 
 auto mcp_make_subscription_close_result(
-    const MCPProtocolVersion version, const sourcemeta::core::JSON &identifier)
+    const MCPProtocolVersion version, const sourcemeta::core::JSON &identifier,
+    const std::optional<MCPImplementation> &server_info)
     -> sourcemeta::core::JSON {
   internal::require(mcp_supports_subscriptions_listen(version),
                     "Subscriptions require MCP 2026-07-28");
@@ -906,6 +928,7 @@ auto mcp_make_subscription_close_result(
                            MCP_HASH_RESULT_TYPE);
   result.assign_assume_new("_meta", std::move(meta), MCP_HASH_META);
 
+  attach_server_info(version, result, server_info);
   return checked_success(identifier, std::move(result));
 }
 

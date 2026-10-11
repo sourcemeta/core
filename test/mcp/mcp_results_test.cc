@@ -3195,6 +3195,249 @@ TEST(input_required_result_rejects_a_non_object_elicitation_schema) {
                      "Invalid or unsupported nested input requests");
 }
 
+// A form names the fields it asks for, so the property map is mandatory
+// https://modelcontextprotocol.io/specification/2026-07-28/schema#elicitrequestformparams
+TEST(input_required_result_rejects_an_elicitation_schema_without_properties) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.elicitation = true;
+  capabilities.elicitation_form = true;
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tools/call", sourcemeta::core::JSON{0},
+                         sourcemeta::core::parse_json(R"JSON({
+    "r": {
+      "method": "elicitation/create",
+      "params": {
+        "message": "choose",
+        "requestedSchema": { "type": "object" }
+      }
+    }
+  })JSON"),
+                         std::nullopt, capabilities),
+                     "Invalid or unsupported nested input requests");
+}
+
+TEST(input_required_result_rejects_non_object_elicitation_properties) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.elicitation = true;
+  capabilities.elicitation_form = true;
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tools/call", sourcemeta::core::JSON{0},
+                         sourcemeta::core::parse_json(R"JSON({
+    "r": {
+      "method": "elicitation/create",
+      "params": {
+        "message": "choose",
+        "requestedSchema": { "type": "object", "properties": [] }
+      }
+    }
+  })JSON"),
+                         std::nullopt, capabilities),
+                     "Invalid or unsupported nested input requests");
+}
+
+// What a property contains is a schema, which this module does not interpret,
+// so a nested object is accepted here and left for a schema validator
+TEST(input_required_result_accepts_an_uninterpreted_property_schema) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.elicitation = true;
+  capabilities.elicitation_form = true;
+  const auto envelope{sourcemeta::core::mcp_make_input_required_result(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tools/call",
+      sourcemeta::core::JSON{0}, sourcemeta::core::parse_json(R"JSON({
+    "r": {
+      "method": "elicitation/create",
+      "params": {
+        "message": "choose",
+        "requestedSchema": {
+          "type": "object",
+          "properties": { "nested": { "type": "object" } }
+        }
+      }
+    }
+  })JSON"),
+      std::nullopt, capabilities)};
+  EXPECT_EQ(envelope.at("result").at("resultType"),
+            sourcemeta::core::JSON{"input_required"});
+}
+
+// An optional member the caller leaves empty is absent rather than present and
+// empty, consistently across the descriptor and contents builders
+// https://modelcontextprotocol.io/specification/2026-07-28/schema#resource
+TEST(make_resource_omits_an_empty_mime_type) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_resource(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "file:///a",
+                "a", ""),
+            sourcemeta::core::parse_json(R"JSON({
+    "uri": "file:///a",
+    "name": "a"
+  })JSON"));
+}
+
+TEST(make_resource_template_omits_an_empty_description_and_mime_type) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_resource_template(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                "file:///{path}", "Files", "", ""),
+            sourcemeta::core::parse_json(R"JSON({
+    "uriTemplate": "file:///{path}",
+    "name": "Files"
+  })JSON"));
+}
+
+TEST(make_tool_descriptor_omits_an_empty_description) {
+  EXPECT_EQ(
+      sourcemeta::core::mcp_make_tool_descriptor(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "calc", "",
+          sourcemeta::core::parse_json(R"JSON({ "type": "object" })JSON")),
+      sourcemeta::core::parse_json(R"JSON({
+    "name": "calc",
+    "inputSchema": { "type": "object" },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true
+    }
+  })JSON"));
+}
+
+TEST(make_resource_text_content_omits_an_empty_mime_type) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_resource_text_content("file:///a", "",
+                                                             "Hello"),
+            sourcemeta::core::parse_json(R"JSON({
+    "uri": "file:///a",
+    "text": "Hello"
+  })JSON"));
+}
+
+TEST(make_resource_blob_content_omits_an_empty_mime_type) {
+  EXPECT_EQ(
+      sourcemeta::core::mcp_make_resource_blob_content("file:///a", "", "YWJj"),
+      sourcemeta::core::parse_json(R"JSON({
+    "uri": "file:///a",
+    "blob": "YWJj"
+  })JSON"));
+}
+
+// A server identifies itself on every result it sends, including the interim
+// and subscription results whose own result type rules out the complete-result
+// decorator
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/index#responses
+TEST(tool_success_carries_server_information_2026_07_28) {
+  const sourcemeta::core::MCPImplementation server{.name = "srv",
+                                                   .version = "1.0.0"};
+  const auto identifier{sourcemeta::core::JSON{1}};
+  EXPECT_EQ(sourcemeta::core::mcp_make_tool_success(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28, identifier,
+                sourcemeta::core::parse_json(R"JSON({ "ok": true })JSON"),
+                server),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "result": {
+      "content": [ { "type": "text", "text": "{\n  \"ok\": true\n}" } ],
+      "structuredContent": { "ok": true },
+      "isError": false,
+      "resultType": "complete",
+      "_meta": {
+        "io.modelcontextprotocol/serverInfo": {
+          "name": "srv",
+          "version": "1.0.0"
+        }
+      }
+    }
+  })JSON"));
+}
+
+TEST(tool_error_carries_server_information_2026_07_28) {
+  const sourcemeta::core::MCPImplementation server{.name = "srv",
+                                                   .version = "1.0.0"};
+  const auto identifier{sourcemeta::core::JSON{2}};
+  EXPECT_EQ(sourcemeta::core::mcp_make_tool_error(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28, identifier,
+                "Nope", server),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 2,
+    "result": {
+      "content": [ { "type": "text", "text": "Nope" } ],
+      "isError": true,
+      "resultType": "complete",
+      "_meta": {
+        "io.modelcontextprotocol/serverInfo": {
+          "name": "srv",
+          "version": "1.0.0"
+        }
+      }
+    }
+  })JSON"));
+}
+
+TEST(tool_success_ignores_server_information_on_2025_11_25) {
+  const sourcemeta::core::MCPImplementation server{.name = "srv",
+                                                   .version = "1.0.0"};
+  const auto identifier{sourcemeta::core::JSON{1}};
+  EXPECT_EQ(sourcemeta::core::mcp_make_tool_success(
+                sourcemeta::core::MCPProtocolVersion::V_2025_11_25, identifier,
+                sourcemeta::core::parse_json(R"JSON({ "ok": true })JSON"),
+                server),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "result": {
+      "content": [ { "type": "text", "text": "{\n  \"ok\": true\n}" } ],
+      "structuredContent": { "ok": true },
+      "isError": false
+    }
+  })JSON"));
+}
+
+TEST(input_required_result_carries_server_information) {
+  const sourcemeta::core::MCPImplementation server{.name = "srv",
+                                                   .version = "1.0.0"};
+  EXPECT_EQ(sourcemeta::core::mcp_make_input_required_result(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                "tools/call", sourcemeta::core::JSON{50}, std::nullopt, "token",
+                sourcemeta::core::MCPClientCapabilities{}, server),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 50,
+    "result": {
+      "resultType": "input_required",
+      "requestState": "token",
+      "_meta": {
+        "io.modelcontextprotocol/serverInfo": {
+          "name": "srv",
+          "version": "1.0.0"
+        }
+      }
+    }
+  })JSON"));
+}
+
+TEST(subscription_close_result_carries_server_information) {
+  const sourcemeta::core::MCPImplementation server{.name = "srv",
+                                                   .version = "1.0.0"};
+  EXPECT_EQ(sourcemeta::core::mcp_make_subscription_close_result(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::JSON{"sub-1"}, server),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": "sub-1",
+    "result": {
+      "resultType": "complete",
+      "_meta": {
+        "io.modelcontextprotocol/subscriptionId": "sub-1",
+        "io.modelcontextprotocol/serverInfo": {
+          "name": "srv",
+          "version": "1.0.0"
+        }
+      }
+    }
+  })JSON"));
+}
+
 // A sampling message carries text, an image, audio or a tool exchange
 // https://modelcontextprotocol.io/specification/2026-07-28/schema#samplingmessage
 TEST(input_required_result_rejects_a_resource_link_sampling_message) {
