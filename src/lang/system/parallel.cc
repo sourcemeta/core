@@ -2,6 +2,7 @@
 
 #include <cstddef>    // std::size_t
 #include <functional> // std::function
+#include <memory>     // std::make_unique, std::unique_ptr
 #include <stdexcept>  // std::runtime_error
 #include <utility>    // std::move
 
@@ -38,6 +39,31 @@ auto posix_thread_start(void *argument) -> void * {
   delete callable;
   return nullptr;
 }
+
+// Owning the attributes keeps them released on every path out of the creation
+// below, including the ones an allocation failure takes
+class ThreadAttributes {
+public:
+  ThreadAttributes() {
+    if (pthread_attr_init(&this->value_) != 0) {
+      throw std::runtime_error{"Could not initialise the thread attributes"};
+    }
+  }
+
+  ~ThreadAttributes() { pthread_attr_destroy(&this->value_); }
+
+  ThreadAttributes(const ThreadAttributes &) = delete;
+  ThreadAttributes(ThreadAttributes &&) = delete;
+  auto operator=(const ThreadAttributes &) -> ThreadAttributes & = delete;
+  auto operator=(ThreadAttributes &&) -> ThreadAttributes & = delete;
+
+  [[nodiscard]] auto get() noexcept -> pthread_attr_t * {
+    return &this->value_;
+  }
+
+private:
+  pthread_attr_t value_;
+};
 #endif
 
 } // namespace
@@ -52,44 +78,46 @@ auto parallel_thread_start(std::function<void()> callable,
         "The requested stack size is too large for this platform"};
   }
 
-  auto *heap_callable{new std::function<void()>(std::move(callable))};
+  // The started thread takes over the callable, so ownership is only given up
+  // once there is a thread to take it
+  auto callable_owner{
+      std::make_unique<std::function<void()>>(std::move(callable))};
   const auto thread{
       _beginthreadex(nullptr, static_cast<unsigned>(stack_size_bytes),
-                     &windows_thread_start, heap_callable, 0, nullptr)};
+                     &windows_thread_start, callable_owner.get(), 0, nullptr)};
   if (thread == 0) {
-    delete heap_callable;
     throw std::runtime_error{"Could not create thread"};
   }
 
+  [[maybe_unused]] const auto *released{callable_owner.release()};
   return reinterpret_cast<void *>(thread);
 #else
-  pthread_attr_t attributes;
-  pthread_attr_init(&attributes);
+  ThreadAttributes attributes;
   // A stack size the platform cannot honour, such as one below its minimum
   // or one that is not a multiple of its page size, must be reported rather
   // than dropped in favour of the default, as the caller asked for it to
   // bound how deep the work it hands over may recurse
   if (stack_size_bytes > 0 &&
-      pthread_attr_setstacksize(&attributes, stack_size_bytes) != 0) {
-    pthread_attr_destroy(&attributes);
+      pthread_attr_setstacksize(attributes.get(), stack_size_bytes) != 0) {
     throw std::runtime_error{
         "The requested stack size is not supported by this platform"};
   }
 
-  auto *heap_callable{new std::function<void()>(std::move(callable))};
-  // Allocated rather than held in the returned pointer itself, as this type is
-  // not guaranteed to be a pointer, or to fit in one, on every platform
-  auto *thread{new pthread_t{}};
-  if (pthread_create(thread, &attributes, &posix_thread_start, heap_callable) !=
-      0) {
-    pthread_attr_destroy(&attributes);
-    delete heap_callable;
-    delete thread;
+  // The started thread takes over the callable, so ownership is only given up
+  // once there is a thread to take it
+  auto callable_owner{
+      std::make_unique<std::function<void()>>(std::move(callable))};
+  // The handle is allocated rather than held in the returned pointer itself, as
+  // this type is not guaranteed to be a pointer, or to fit in one, on every
+  // platform
+  auto thread_owner{std::make_unique<pthread_t>()};
+  if (pthread_create(thread_owner.get(), attributes.get(), &posix_thread_start,
+                     callable_owner.get()) != 0) {
     throw std::runtime_error{"Could not create thread"};
   }
 
-  pthread_attr_destroy(&attributes);
-  return static_cast<void *>(thread);
+  [[maybe_unused]] const auto *released{callable_owner.release()};
+  return static_cast<void *>(thread_owner.release());
 #endif
 }
 

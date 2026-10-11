@@ -1,10 +1,44 @@
 #include <sourcemeta/core/system.h>
 #include <sourcemeta/core/test.h>
 
-#include <csignal>        // SIGPIPE, sigaddset, sigemptyset, sigset_t
-#include <filesystem>     // std::filesystem::path
+#include <csignal>    // SIGPIPE, sigaddset, sigemptyset, sigset_t
+#include <filesystem> // std::filesystem::path
+#include <stdexcept>  // std::runtime_error
+
 #include <pthread.h>      // pthread_sigmask
 #include <sys/resource.h> // RLIMIT_NOFILE, getrlimit, rlimit, setrlimit
+
+namespace {
+
+// The descriptor limit belongs to the whole process, so a test that lowers it
+// has to put it back however it leaves, or every later test runs against a
+// ceiling it never asked for
+class DescriptorLimit {
+public:
+  DescriptorLimit(const rlim_t limit) {
+    if (getrlimit(RLIMIT_NOFILE, &this->original_) != 0) {
+      throw std::runtime_error{"Could not read the descriptor limit"};
+    }
+
+    rlimit restricted{this->original_};
+    restricted.rlim_cur = limit;
+    if (setrlimit(RLIMIT_NOFILE, &restricted) != 0) {
+      throw std::runtime_error{"Could not lower the descriptor limit"};
+    }
+  }
+
+  ~DescriptorLimit() { setrlimit(RLIMIT_NOFILE, &this->original_); }
+
+  DescriptorLimit(const DescriptorLimit &) = delete;
+  DescriptorLimit(DescriptorLimit &&) = delete;
+  auto operator=(const DescriptorLimit &) -> DescriptorLimit & = delete;
+  auto operator=(DescriptorLimit &&) -> DescriptorLimit & = delete;
+
+private:
+  rlimit original_{};
+};
+
+} // namespace
 
 TEST(usr_bin_true_returns_zero) {
   const int exit_code{sourcemeta::core::spawn("/usr/bin/true", {})};
@@ -102,42 +136,37 @@ TEST(a_caller_already_blocking_the_broken_pipe_signal_keeps_its_mask) {
 // descriptor limit the process has already reached is the one way to deny it
 // one without a program to misbehave
 TEST(a_descriptor_limit_that_denies_a_pipe_is_a_spawn_error) {
-  rlimit original{};
-  EXPECT_EQ(getrlimit(RLIMIT_NOFILE, &original), 0);
-  rlimit restricted{original};
-  restricted.rlim_cur = 4;
-  EXPECT_EQ(setrlimit(RLIMIT_NOFILE, &restricted), 0);
+  const sourcemeta::core::ProcessInput input{.standard_input = "payload"};
 
   bool refused{false};
-  try {
-    const sourcemeta::core::ProcessInput input{.standard_input = "payload"};
-    [[maybe_unused]] const auto exit_code{
-        sourcemeta::core::spawn("/usr/bin/true", {}, input)};
-  } catch (const sourcemeta::core::ProcessSpawnError &) {
-    refused = true;
+  {
+    const DescriptorLimit limit{4};
+    try {
+      [[maybe_unused]] const auto exit_code{
+          sourcemeta::core::spawn("/usr/bin/true", {}, input)};
+    } catch (const sourcemeta::core::ProcessSpawnError &) {
+      refused = true;
+    }
   }
 
-  EXPECT_EQ(setrlimit(RLIMIT_NOFILE, &original), 0);
   EXPECT_TRUE(refused);
 }
 
 // Capturing a program needs two more pipes, which the same limit denies
 TEST(a_descriptor_limit_that_denies_a_capture_pipe_is_a_spawn_error) {
-  rlimit original{};
-  EXPECT_EQ(getrlimit(RLIMIT_NOFILE, &original), 0);
-  rlimit restricted{original};
-  restricted.rlim_cur = 4;
-  EXPECT_EQ(setrlimit(RLIMIT_NOFILE, &restricted), 0);
+  const sourcemeta::core::ProcessInput input{};
 
   bool refused{false};
-  try {
-    [[maybe_unused]] const auto output{
-        sourcemeta::core::spawn_and_capture("/usr/bin/true", {})};
-  } catch (const sourcemeta::core::ProcessSpawnError &) {
-    refused = true;
+  {
+    const DescriptorLimit limit{4};
+    try {
+      [[maybe_unused]] const auto output{
+          sourcemeta::core::spawn_and_capture("/usr/bin/true", {}, input)};
+    } catch (const sourcemeta::core::ProcessSpawnError &) {
+      refused = true;
+    }
   }
 
-  EXPECT_EQ(setrlimit(RLIMIT_NOFILE, &original), 0);
   EXPECT_TRUE(refused);
 }
 

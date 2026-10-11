@@ -116,7 +116,11 @@ macro(add_stacktrace_test_windows_no_debug scenario)
     if(PROJECT_IS_TOP_LEVEL)
       sourcemeta_clang_tidy_attempt_enable(TARGET ${target})
     endif()
-    target_link_options(${target} PRIVATE /DEBUG:NONE)
+    # This macro also covers the MinGW toolchain, which emits its debug
+    # information into the executable and cannot read this linker option
+    if(MSVC)
+      target_link_options(${target} PRIVATE /DEBUG:NONE)
+    endif()
     add_test(NAME core.system.stacktrace.${scenario}.no_debug.e2e
       COMMAND powershell -ExecutionPolicy Bypass -File
         "${CMAKE_CURRENT_SOURCE_DIR}/system_stacktrace_${scenario}_no_debug_test.ps1"
