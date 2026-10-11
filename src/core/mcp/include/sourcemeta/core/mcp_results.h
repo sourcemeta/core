@@ -882,7 +882,10 @@ auto mcp_make_completion_result(MCPProtocolVersion version, JSON values,
 /// Serialize a complete MCP response for one of the six cacheable operations.
 /// The result is copied before decoration. The source remains unchanged.
 /// A cache policy is mandatory for 2026-07-28. Pass `std::nullopt` for legacy
-/// responses.
+/// responses. A precomputed discovery result is held to the same rules as the
+/// builder that produces one, so its advertised revisions must be non-empty,
+/// must include the revision being served, and must each be one this library
+/// models.
 /// This writes JSON only. Stdio callers must append a newline themselves. For
 /// example:
 ///
@@ -993,8 +996,9 @@ auto mcp_make_initialize_result(
 /// Build the JSON-RPC response envelope for an MCP 2026-07-28 `server/discover`
 /// request. This is the stateless replacement for the initialization
 /// handshake, so it carries the supported revisions, the capabilities and the
-/// cache metadata in one response. The advertised list must be non-empty and
-/// every revision in it must be one this library models. For example:
+/// cache metadata in one response. The advertised list must be non-empty, must
+/// include the revision being served, and every revision in it must be one
+/// this library models. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/mcp.h>
