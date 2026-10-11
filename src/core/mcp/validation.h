@@ -7,6 +7,7 @@
 
 #include <sourcemeta/core/http.h>
 #include <sourcemeta/core/text.h>
+#include <sourcemeta/core/uri.h>
 
 #include <algorithm>        // std::all_of
 #include <cmath>            // std::isfinite
@@ -982,9 +983,17 @@ inline auto valid_input_requests(const JSON &value,
         return false;
       }
       if ((mode != nullptr) && mode->to_string() == "url") {
-        if (!capabilities.elicitation_url ||
-            !validation::string_field(*params, "url",
-                                      sourcemeta::core::MCP_HASH_URL, true)) {
+        const auto *url{
+            validation::field(*params, "url", sourcemeta::core::MCP_HASH_URL)};
+        if (!capabilities.elicitation_url || (url == nullptr) ||
+            !url->is_string()) {
+          return false;
+        }
+        // The user is sent out of band to this address, which the
+        // specification requires to be a URL rather than a reference to
+        // resolve against something
+        // https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation#url-mode-elicitation-requests
+        if (!sourcemeta::core::URI::is_uri(url->to_string())) {
           return false;
         }
       } else {

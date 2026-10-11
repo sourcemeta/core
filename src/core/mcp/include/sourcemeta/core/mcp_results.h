@@ -179,8 +179,13 @@ auto mcp_serialize_resource_annotations(
 /// @ingroup mcp
 /// Build a base64 image or audio content block for an explicit revision.
 /// Core checks the block shape, not the media bytes or MIME semantics.
-/// Returns a bare content block for the caller to place in a result. For
-/// example:
+/// Returns a bare content block for the caller to place in a result.
+///
+/// The encoding of the data is a schema format annotation rather than a stated
+/// requirement, so it is not checked here, and a caller that cares about it
+/// decodes the data itself. Contrast the address of a URL mode elicitation,
+/// which the specification states as a requirement in prose and which is
+/// therefore checked. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/mcp.h>
@@ -1026,7 +1031,17 @@ auto mcp_make_server_discover_result(
 /// `input_requests` or `request_state` must be provided. Only `tools/call`,
 /// `resources/read`, and `prompts/get` may carry this result. The client
 /// capabilities are checked so a server does not ask for input the client
-/// never advertised. For example:
+/// never advertised.
+///
+/// A nested request that sends the user to an address has that address checked
+/// for being a URI with a scheme, which is the format the specification
+/// annotates the field with and the reading its prose requirement supports.
+/// What makes an address usable within a particular scheme is left alone: the
+/// specification restricts the scheme not at all, and each scheme states its
+/// own rules in its own document, so enforcing one scheme's rules and not the
+/// others would be a policy this builder has no grounds to choose. A caller
+/// that needs an address it can actually open checks that where it opens it.
+/// For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/mcp.h>
