@@ -369,8 +369,24 @@ auto mcp_validate_request_headers(
 /// properties reaching the mirrored value from the arguments root, and the
 /// type is restricted to the three primitives the specification permits.
 ///
+/// A server declares these mirrors as annotations inside a tool's input
+/// schema, and deriving descriptors from that schema is the caller's job
+/// rather than this module's, because it means interpreting a schema. In
+/// particular the caller owns the rule that an annotation counts only where
+/// the property is reachable from the schema root through a chain of property
+/// keys alone, never through an array, composition, conditional or reference
+/// keyword, and that a tool whose annotation sits anywhere else is rejected
+/// and excluded from the tool listing.
+///
+/// Given descriptors, this module enforces the remaining constraints on them:
+/// each name is a non-empty HTTP token, which also rules out control
+/// characters, the names are case-insensitively unique, only the three
+/// primitive types are mirrored, and an integer value stays within the range
+/// a double can represent exactly.
+///
 /// @see
 /// https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#schema-extension
+/// https://modelcontextprotocol.io/specification/2026-07-28/server/tools#x-mcp-header
 struct MCPHeaderParameter {
   /// The suffix of Mcp-Param-{name}.
   JSON::StringView name;
