@@ -1,0 +1,2 @@
+EXTRACT STDOUT OF a INTO b
+COMPARE b AGAINST expected.txt

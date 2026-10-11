@@ -246,3 +246,48 @@ TEST(userinfo_matches_subject_from_a_non_object) {
   EXPECT_FALSE(
       sourcemeta::core::oidc_userinfo_matches_subject(userinfo, "alice"));
 }
+
+// OpenID Connect Core 1.0 Section 2 requires the subject to be a string, on
+// both sides of the comparison of Section 5.3.2
+TEST(matches_subject_rejects_a_subject_of_another_type) {
+  const auto userinfo{sourcemeta::core::parse_json(R"JSON({ "sub": 1 })JSON")};
+  EXPECT_FALSE(
+      sourcemeta::core::oidc_userinfo_matches_subject(userinfo, "user-1"));
+}
+
+TEST(merge_claims_rejects_an_id_token_subject_of_another_type) {
+  const auto id_token{sourcemeta::core::parse_json(R"JSON({ "sub": 1 })JSON")};
+  const auto userinfo{
+      sourcemeta::core::parse_json(R"JSON({ "sub": "user-1" })JSON")};
+  EXPECT_FALSE(
+      sourcemeta::core::oidc_merge_claims(id_token, userinfo).has_value());
+}
+
+TEST(merge_claims_keeps_aggregated_claims_of_the_id_token) {
+  const auto id_token{sourcemeta::core::parse_json(R"JSON({
+    "sub": "user-1",
+    "_claim_sources": { "src1": { "JWT": "eyJ.aaa.bbb" } }
+  })JSON")};
+  const auto userinfo{sourcemeta::core::parse_json(R"JSON({
+    "sub": "user-1",
+    "_claim_names": { "email": "src2" },
+    "_claim_sources": { "src2": { "JWT": "eyJ.ccc.ddd" } }
+  })JSON")};
+  const auto claims{sourcemeta::core::oidc_merge_claims(id_token, userinfo)};
+  EXPECT_TRUE(claims.has_value());
+  EXPECT_FALSE(claims.value().defines("_claim_names"));
+  EXPECT_TRUE(claims.value().at("_claim_sources").defines("src1"));
+}
+
+TEST(merge_claims_refuses_half_of_an_aggregated_pair) {
+  const auto id_token{
+      sourcemeta::core::parse_json(R"JSON({ "sub": "user-1" })JSON")};
+  const auto userinfo{sourcemeta::core::parse_json(R"JSON({
+    "sub": "user-1",
+    "_claim_names": { "email": "src1" }
+  })JSON")};
+  const auto claims{sourcemeta::core::oidc_merge_claims(id_token, userinfo)};
+  EXPECT_TRUE(claims.has_value());
+  EXPECT_FALSE(claims.value().defines("_claim_names"));
+  EXPECT_FALSE(claims.value().defines("_claim_sources"));
+}

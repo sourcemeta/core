@@ -1462,14 +1462,13 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
 
       const auto combined{
           find_dialect_and_all_bases(base_dialects, base_uris, pointer_weak)};
+      // Every schema records the dialect it is read under, the root among
+      // them, so the walk up from any pointer reaches one
+      assert(combined.dialect_match.has_value());
       const auto &dialect_for_pointer{
-          combined.dialect_match.has_value()
-              ? combined.dialect_match->first.get().dialects.front()
-              : root_dialect};
+          combined.dialect_match->first.get().dialects.front()};
       const auto base_dialect_for_pointer{
-          combined.dialect_match.has_value()
-              ? combined.dialect_match->first.get().base_dialect
-              : root_base_dialect.value()};
+          combined.dialect_match->first.get().base_dialect};
       const auto &every_base_result{combined.every_base};
 
       std::optional<std::pair<std::string_view, sourcemeta::core::WeakPointer>>
@@ -1530,10 +1529,7 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
                   subschema_it->second.property_name,
                   subschema_it->second.orphan, true);
           } else {
-            const auto &parent_pointer{
-                combined.dialect_match.has_value()
-                    ? combined.dialect_match->second
-                    : sourcemeta::core::EMPTY_WEAK_POINTER};
+            const auto &parent_pointer{combined.dialect_match->second};
             const auto parent_subschema_it{subschemas.find(parent_pointer)};
             const bool parent_property_name{
                 parent_subschema_it != subschemas.cend() &&

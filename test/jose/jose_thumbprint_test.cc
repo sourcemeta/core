@@ -297,3 +297,13 @@ TEST(thumbprint_of_a_key_whose_exponent_is_one_octet) {
   EXPECT_TRUE(thumbprint.has_value());
   EXPECT_EQ(thumbprint.value(), "jqCR92i-PGD6t6zNSmvhT_8txm2lMJqFSuJpb9ITU2E");
 }
+
+// RFC 7638 Section 3.2 names the required members of each key type, and a
+// symmetric key needs its secret, so an empty one is no key and never reaches
+// the point of having a canonical form to hash
+TEST(symmetric_key_without_a_secret_is_refused) {
+  EXPECT_FALSE(
+      sourcemeta::core::JWK::from(
+          sourcemeta::core::parse_json(R"JSON({ "kty": "oct", "k": "" })JSON"))
+          .has_value());
+}

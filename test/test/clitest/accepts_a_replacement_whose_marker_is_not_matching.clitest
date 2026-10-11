@@ -1,0 +1,2 @@
+REPLACE LITERAL a WITH b IN result.txt
+COMPARE result.txt AGAINST expected.txt

@@ -173,3 +173,10 @@ TEST(task_list_marker_in_second_paragraph) {
                     "</li>\n"
                     "</ul>\n");
 }
+
+// GFM section 5.3 has the marker close immediately after the single character
+// between the brackets, so a longer run between them is no marker
+TEST(task_list_marker_with_two_characters_between_the_brackets) {
+  const auto result{sourcemeta::core::markdown_to_html("- [xx] text")};
+  EXPECT_EQ(result, "<ul>\n<li>[xx] text</li>\n</ul>\n");
+}

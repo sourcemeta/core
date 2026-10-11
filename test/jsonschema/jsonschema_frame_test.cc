@@ -524,8 +524,6 @@ TEST(embedded_custom_metaschema_across_two_frames) {
 
   EXPECT_EQ(frame.location_count(), 19);
 
-  // Resources
-
   EXPECT_FRAME_STATIC_RESOURCE(
       frame, "https://example.com/schema", "https://example.com/schema", "",
       "https://example.com/meta", JSON_SCHEMA_2020_12,
@@ -535,8 +533,6 @@ TEST(embedded_custom_metaschema_across_two_frames) {
       "/$defs/https:~1~1example.com~1meta",
       "https://json-schema.org/draft/2020-12/schema", JSON_SCHEMA_2020_12,
       "https://example.com/meta", "", "", false, true);
-
-  // JSON Pointers
 
   EXPECT_FRAME_STATIC_POINTER(frame, "https://example.com/schema#/$schema",
                               "https://example.com/schema", "/$schema",
@@ -664,8 +660,6 @@ TEST(embedded_custom_metaschema_across_two_frames) {
       "https://example.com/meta", "/type", "/$defs/https:~1~1example.com~1meta",
       false, true);
 
-  // References
-
   EXPECT_EQ(frame.reference_count(), 2);
 
   EXPECT_STATIC_REFERENCE(frame, "/$schema", "https://example.com/meta",
@@ -676,8 +670,6 @@ TEST(embedded_custom_metaschema_across_two_frames) {
                           "https://json-schema.org/draft/2020-12/schema",
                           std::nullopt,
                           "https://json-schema.org/draft/2020-12/schema");
-
-  // SchemaVocabularies
 
   const auto root_location{frame.traverse("https://example.com/schema")};
   EXPECT_TRUE(root_location.has_value());

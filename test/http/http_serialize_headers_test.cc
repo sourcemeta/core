@@ -100,3 +100,15 @@ TEST(drops_only_the_injected_header) {
   EXPECT_EQ(sourcemeta::core::http_serialize_headers(headers),
             "Accept: application/json\r\nUser-Agent: test/1.0\r\n");
 }
+
+// A value that wipes itself is held to the same rule of RFC 9110 Section 5.5
+// as a plain one, and the request refuses it when it is added rather than when
+// it is written out, so the field never reaches the serialiser at all
+TEST(request_refuses_a_wiping_value_carrying_crlf) {
+  sourcemeta::core::HTTPSystemRequest request{"https://example.com"};
+  request.header("Accept", "application/json");
+  request.header("Authorization",
+                 sourcemeta::core::SecureString{"Basic\r\nEvil: yes"});
+  EXPECT_EQ(sourcemeta::core::http_serialize_headers(request.headers()),
+            "Accept: application/json\r\n");
+}

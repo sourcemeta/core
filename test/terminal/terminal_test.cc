@@ -142,10 +142,10 @@ TEST(paint_string_default_argument) {
 
 TEST(paint_string_empty) {
   EXPECT_EQ(sourcemeta::core::terminal_paint(
-                "", sourcemeta::core::TerminalStyle::Red, /*enabled=*/true),
+                "", sourcemeta::core::TerminalStyle::Red, true),
             "");
   EXPECT_EQ(sourcemeta::core::terminal_paint(
-                "", sourcemeta::core::TerminalStyle::Red, /*enabled=*/false),
+                "", sourcemeta::core::TerminalStyle::Red, false),
             "");
 }
 
@@ -386,4 +386,15 @@ TEST(style_validity_of_an_undefined_bit_at_runtime) {
   raw = static_cast<decltype(raw)>(raw << 7U);
   const auto style{static_cast<sourcemeta::core::TerminalStyle>(raw)};
   EXPECT_FALSE(sourcemeta::core::terminal_style_is_valid(style));
+}
+
+TEST(paint_stream_empty) {
+  std::ostringstream enabled_output;
+  sourcemeta::core::terminal_paint(enabled_output, "",
+                                   sourcemeta::core::TerminalStyle::Red, true);
+  EXPECT_EQ(enabled_output.str(), "");
+  std::ostringstream disabled_output;
+  sourcemeta::core::terminal_paint(disabled_output, "",
+                                   sourcemeta::core::TerminalStyle::Red, false);
+  EXPECT_EQ(disabled_output.str(), "");
 }

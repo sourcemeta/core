@@ -342,3 +342,19 @@ TEST(a_bare_double_dash_is_not_a_short_option_run) {
 
   EXPECT_TRUE(app.at("foo").empty());
 }
+
+// Two dashes on their own end option parsing, so everything after them is a
+// positional argument whatever it looks like
+TEST(two_dashes_end_option_parsing) {
+  sourcemeta::core::Options app;
+  app.option("foo", {"f"});
+
+  const std::array<const char *, 4> argv{{"prog", "--", "--foo", "-f"}};
+
+  app.parse(static_cast<int>(argv.size()), argv.data());
+
+  EXPECT_EQ(app.positional().size(), 2);
+  EXPECT_EQ(app.positional()[0], "--foo");
+  EXPECT_EQ(app.positional()[1], "-f");
+  EXPECT_FALSE(app.contains("foo"));
+}

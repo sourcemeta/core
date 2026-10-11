@@ -499,10 +499,6 @@ static auto run_dectest_case(const DecTestCase &test_case) -> void {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Parsing
-// ---------------------------------------------------------------------------
-
 static auto is_supported_operation(const std::string &operation) -> bool {
   const auto lower{to_lower(operation)};
   return std::any_of(std::begin(SUPPORTED_OPERATIONS),
@@ -622,10 +618,6 @@ static auto parse_directive(const std::string &line, DecTestContext &context)
       [&lower_key](const auto name) { return lower_key == name; });
 }
 
-// ---------------------------------------------------------------------------
-// Skip logic
-// ---------------------------------------------------------------------------
-
 static auto should_skip_file(const std::string &filename) -> bool {
   const auto lower{to_lower(filename)};
   if (lower.starts_with("dd") || lower.starts_with("dq") ||
@@ -743,10 +735,6 @@ static auto should_skip_test(const DecTestCase &test_case,
 
   return has_skip_condition(test_case.conditions);
 }
-
-// ---------------------------------------------------------------------------
-// Main
-// ---------------------------------------------------------------------------
 
 static auto sanitize_test_name(const std::string &name) -> std::string {
   std::string result;

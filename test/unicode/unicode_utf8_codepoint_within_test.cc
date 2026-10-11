@@ -184,3 +184,12 @@ TEST(agrees_with_count_multibyte) {
   EXPECT_FALSE(sourcemeta::core::utf8_codepoint_within(input, count + 1, 100));
   EXPECT_FALSE(sourcemeta::core::utf8_codepoint_within(input, 0, count - 1));
 }
+
+// A code point takes at most four bytes, so a byte length of more than four
+// times the maximum cannot be that few code points however it is encoded. The
+// value is built at runtime so the answer comes from the code that ships
+// rather than from constant evaluation
+TEST(too_many_bytes_for_the_maximum) {
+  std::string value(8, 'a');
+  EXPECT_FALSE(sourcemeta::core::utf8_codepoint_within(value, 1, 1));
+}

@@ -118,3 +118,9 @@ TEST(normalized_append_preserves_existing_output) {
   sourcemeta::core::URI::escape("a b%2Fc", output, true);
   EXPECT_EQ(output, "prefix=a%20b%2Fc");
 }
+
+// RFC 3986 Section 2.1 writes the two hexadecimal digits of a triplet in
+// upper case, which a byte whose every nibble is above nine exercises
+TEST(byte_whose_nibbles_are_both_above_nine) {
+  EXPECT_EQ(sourcemeta::core::URI::escape("\xaf"), "%AF");
+}

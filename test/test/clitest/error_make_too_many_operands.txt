@@ -1,0 +1,5 @@
+TAP version 14
+1..1
+not ok 1 - error_make_too_many_operands.clitest
+# error_make_too_many_operands.clitest:1: usage: MAKE DIRECTORY <path>
+# 0 passed, 1 failed

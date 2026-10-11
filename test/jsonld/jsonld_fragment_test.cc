@@ -500,6 +500,31 @@ TEST(canonicalize_empty_array_entry_dropped) {
   EXPECT_EQ(result, expected);
 }
 
+// XSD 1.1 Part 2 Section 3.3.3 has the canonical form of a negative decimal
+// carry its sign, and an exponent that lands the point inside the digits is
+// the spelling that has to grow one
+TEST(canonicalize_typed_negative_decimal_rewritten) {
+  auto fragment{sourcemeta::core::parse_json(R"({
+    "https://example.com/factor": {
+      "@type": "http://www.w3.org/2001/XMLSchema#decimal"
+    }
+  })")};
+  fragment.at("https://example.com/factor")
+      .assign("@value",
+              sourcemeta::core::JSON{sourcemeta::core::Decimal{"-1.85"}});
+
+  const auto result{sourcemeta::core::jsonld_canonicalize_fragment(fragment)};
+  const auto expected{sourcemeta::core::parse_json(R"({
+    "https://example.com/factor": [
+      {
+        "@value": "-1.85",
+        "@type": "http://www.w3.org/2001/XMLSchema#decimal"
+      }
+    ]
+  })")};
+  EXPECT_EQ(result, expected);
+}
+
 TEST(canonicalize_is_idempotent) {
   const auto fragment{sourcemeta::core::parse_json(R"({
     "https://example.com/unit": { "@id": "https://example.com/metre" },

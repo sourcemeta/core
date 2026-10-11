@@ -493,3 +493,48 @@ TEST(claims_parameter_with_a_non_object_specification) {
                                                           "email"),
             nullptr);
 }
+
+// OpenID Connect Core 1.0 Section 5.4 writes the scope claim sets apart from
+// the subject, which only the openid scope yields
+TEST(scope_to_claims_without_openid) {
+  EXPECT_EQ(collect("email"),
+            (std::vector<std::string>{"email", "email_verified"}));
+}
+
+// Section 5.5.1 carries a requested value inside the specification rather than
+// leaving it null
+TEST(build_claims_parameter_carries_a_requested_value) {
+  const sourcemeta::core::JSON value{"urn:example:acr"};
+  const std::array<sourcemeta::core::OIDCClaimRequest, 1> id_token{
+      {{.name = "acr", .value = &value}}};
+  const auto document{
+      sourcemeta::core::oidc_build_claims_parameter({}, id_token)};
+  EXPECT_TRUE(document.defines("id_token"));
+  EXPECT_EQ(document.at("id_token").at("acr").at("value").to_string(),
+            "urn:example:acr");
+  EXPECT_FALSE(document.at("id_token").at("acr").defines("essential"));
+}
+
+TEST(claims_parameter_is_essential_without_the_target_member) {
+  const auto claims{sourcemeta::core::parse_json(R"JSON({
+    "userinfo": { "email": { "essential": true } }
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::oidc_claims_parameter_is_essential(
+      claims, "id_token", "email"));
+}
+
+TEST(claims_parameter_is_essential_of_another_type) {
+  const auto claims{sourcemeta::core::parse_json(R"JSON({
+    "userinfo": { "email": { "essential": "yes" } }
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::oidc_claims_parameter_is_essential(
+      claims, "userinfo", "email"));
+}
+
+TEST(claims_parameter_is_essential_without_the_member) {
+  const auto claims{sourcemeta::core::parse_json(R"JSON({
+    "userinfo": { "email": { "value": "a@b.example" } }
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::oidc_claims_parameter_is_essential(
+      claims, "userinfo", "email"));
+}

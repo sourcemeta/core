@@ -500,13 +500,22 @@ auto materialize_value(const JSON &value, PointerT &pointer,
   const auto &descriptor{(*range.begin)->descriptor};
   const auto *literal_descriptor{std::get_if<JSONLDLiteral>(&descriptor.value)};
 
-  // A null value is treated as if its entry were absent, except under a JSON
-  // literal, where the null is the data itself (JSON-LD 1.1 API Section
-  // 5.1.2: "If the result's @type entry is @json, then the @value entry may
-  // contain any value, and is treated as a JSON literal").
-  if (value.is_null() &&
-      (literal_descriptor == nullptr || !literal_descriptor->json)) {
-    return std::nullopt;
+  if (literal_descriptor == nullptr || !literal_descriptor->json) {
+    // Section 4.6 admits a string, a number, a boolean or null as what a value
+    // object holds, so a null is treated as if its entry were absent, and so
+    // is a value an annotation calls a literal while it holds something no
+    // value object can hold. The exemption is the JSON literal, where what the
+    // entry holds is the data itself (JSON-LD 1.1 API Section 5.1.2: "If the
+    // result's @type entry is @json, then the @value entry may contain any
+    // value, and is treated as a JSON literal")
+    if (value.is_null()) {
+      return std::nullopt;
+    }
+
+    if (literal_descriptor != nullptr &&
+        (value.is_array() || value.is_object())) {
+      return std::nullopt;
+    }
   }
 
   range.begin += 1;

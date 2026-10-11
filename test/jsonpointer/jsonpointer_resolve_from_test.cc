@@ -43,3 +43,11 @@ TEST(match_2) {
   const sourcemeta::core::Pointer base{0, 1};
   EXPECT_EQ(pointer.resolve_from(base), sourcemeta::core::Pointer({2}));
 }
+
+// A base the pointer disagrees with at a token it shares a position with is no
+// base of it, so the pointer comes back whole
+TEST(base_that_diverges_from_the_pointer) {
+  const sourcemeta::core::Pointer pointer{"foo", "bar"};
+  const sourcemeta::core::Pointer base{"qux"};
+  EXPECT_EQ(pointer.resolve_from(base), pointer);
+}

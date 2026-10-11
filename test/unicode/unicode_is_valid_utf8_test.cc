@@ -60,3 +60,19 @@ TEST(a_sequence_cut_short_by_the_end_of_the_input) {
 TEST(an_incomplete_sequence_after_a_valid_one) {
   EXPECT_FALSE(sourcemeta::core::is_valid_utf8("\xC3\xA9\xC3"));
 }
+
+TEST(three_byte_sequence_with_a_continuation_below_the_narrowed_run) {
+  EXPECT_FALSE(sourcemeta::core::is_valid_utf8("\xe0\x9f\x80"));
+}
+
+TEST(three_byte_sequence_with_a_continuation_above_the_narrowed_run) {
+  EXPECT_FALSE(sourcemeta::core::is_valid_utf8("\xed\xa0\x80"));
+}
+
+TEST(four_byte_sequence_with_a_continuation_below_the_narrowed_run) {
+  EXPECT_FALSE(sourcemeta::core::is_valid_utf8("\xf0\x8f\x80\x80"));
+}
+
+TEST(four_byte_sequence_with_a_continuation_above_the_narrowed_run) {
+  EXPECT_FALSE(sourcemeta::core::is_valid_utf8("\xf4\x90\x80\x80"));
+}

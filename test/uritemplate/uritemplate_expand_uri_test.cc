@@ -898,3 +898,50 @@ TEST(prefix_modifier_takes_one_octet_for_a_lead_no_encoding_defines) {
 
   EXPECT_EQ(result, "%F8");
 }
+
+// RFC 6570 Section 2.4.1 counts a prefix in characters rather than in bytes,
+// which it does by stepping over a percent triplet or a UTF-8 sequence whole.
+// A percent sign that begins neither is one character of its own, and so is
+// encoded
+TEST(prefix_modifier_over_a_trailing_percent_sign) {
+  const sourcemeta::core::URITemplate uri_template{"{var:4}"};
+  const std::map<std::string, std::string> variables{{"var", "ab%"}};
+  const auto result = uri_template.expand(variables);
+
+  EXPECT_EQ(result, "ab%25");
+}
+
+TEST(prefix_modifier_over_a_percent_sign_with_no_hexadecimal) {
+  const sourcemeta::core::URITemplate uri_template{"{var:4}"};
+  const std::map<std::string, std::string> variables{{"var", "a%zzb"}};
+  const auto result = uri_template.expand(variables);
+
+  EXPECT_EQ(result, "a%25zz");
+}
+
+TEST(prefix_modifier_over_a_three_byte_character) {
+  const sourcemeta::core::URITemplate uri_template{"{var:2}"};
+  const std::map<std::string, std::string> variables{
+      {"var", "a\xE4\xB8\xAD b"}};
+  const auto result = uri_template.expand(variables);
+
+  EXPECT_EQ(result, "a%E4%B8%AD");
+}
+
+// RFC 6570 Section 3.2.3 keeps an already encoded triplet as it stands under
+// reserved expansion, which a percent sign that begins none of them is not
+TEST(reserved_expansion_of_a_trailing_percent_sign) {
+  const sourcemeta::core::URITemplate uri_template{"{+var}"};
+  const std::map<std::string, std::string> variables{{"var", "ab%"}};
+  const auto result = uri_template.expand(variables);
+
+  EXPECT_EQ(result, "ab%25");
+}
+
+TEST(reserved_expansion_of_a_percent_sign_with_no_hexadecimal) {
+  const sourcemeta::core::URITemplate uri_template{"{+var}"};
+  const std::map<std::string, std::string> variables{{"var", "a%zb"}};
+  const auto result = uri_template.expand(variables);
+
+  EXPECT_EQ(result, "a%25zb");
+}

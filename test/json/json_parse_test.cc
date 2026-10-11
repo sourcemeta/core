@@ -1949,3 +1949,60 @@ TEST(real_binary_fraction_equals_its_exponent_spelling) {
   const auto right{sourcemeta::core::parse_json("5e-1")};
   EXPECT_EQ(left, right);
 }
+
+TEST(top_level_number_starting_with_eight) {
+  std::istringstream input{"87"};
+  const auto document{sourcemeta::core::parse_json(input)};
+  EXPECT_TRUE(document.is_integer());
+  EXPECT_EQ(document.to_integer(), 87);
+}
+
+TEST(object_value_number_starting_with_seven) {
+  std::istringstream input{R"({ "a": 76 })"};
+  const auto document{sourcemeta::core::parse_json(input)};
+  EXPECT_TRUE(document.is_object());
+  EXPECT_EQ(document.at("a").to_integer(), 76);
+}
+
+TEST(object_value_number_starting_with_eight) {
+  std::istringstream input{R"({ "a": 85 })"};
+  const auto document{sourcemeta::core::parse_json(input)};
+  EXPECT_TRUE(document.is_object());
+  EXPECT_EQ(document.at("a").to_integer(), 85);
+}
+
+TEST(array_element_number_starting_with_seven) {
+  std::istringstream input{"[ 74 ]"};
+  const auto document{sourcemeta::core::parse_json(input)};
+  EXPECT_TRUE(document.is_array());
+  EXPECT_EQ(document.at(0).to_integer(), 74);
+}
+
+TEST(array_element_number_starting_with_eight) {
+  std::istringstream input{"[ 83 ]"};
+  const auto document{sourcemeta::core::parse_json(input)};
+  EXPECT_TRUE(document.is_array());
+  EXPECT_EQ(document.at(0).to_integer(), 83);
+}
+
+TEST(top_level_number_starting_with_seven) {
+  std::istringstream input{"78"};
+  const auto document{sourcemeta::core::parse_json(input)};
+  EXPECT_TRUE(document.is_integer());
+  EXPECT_EQ(document.to_integer(), 78);
+}
+
+// The whitespace after a document is skipped before the input is held to
+// having nothing else in it, and RFC 8259 Section 2 counts the tabulation and
+// the carriage return among it
+TEST(trailing_tabulation_after_a_document) {
+  const auto document{sourcemeta::core::parse_json("1\t")};
+  EXPECT_TRUE(document.is_integer());
+  EXPECT_EQ(document.to_integer(), 1);
+}
+
+TEST(trailing_carriage_return_after_a_document) {
+  const auto document{sourcemeta::core::parse_json("1\r")};
+  EXPECT_TRUE(document.is_integer());
+  EXPECT_EQ(document.to_integer(), 1);
+}

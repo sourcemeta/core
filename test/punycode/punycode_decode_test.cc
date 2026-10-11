@@ -4,9 +4,6 @@
 #include <sstream> // std::istringstream, std::ostringstream
 #include <string>  // std::string
 
-// RFC 3492 Section 7.1 Sample strings
-// See https://www.rfc-editor.org/rfc/rfc3492#section-7.1
-
 // (A) Arabic (Egyptian)
 TEST(rfc3492_sample_a_arabic) {
   const std::u32string expected{0x0644, 0x064A, 0x0647, 0x0645, 0x0627, 0x0628,
@@ -405,5 +402,32 @@ TEST(error_decode_overflow_at_the_insertion_index) {
     FAIL();
   } catch (const sourcemeta::core::PunycodeError &error) {
     EXPECT_STREQ(error.what(), "Decode overflow");
+  }
+}
+
+TEST(error_digit_just_past_the_lowercase_run) {
+  try {
+    sourcemeta::core::punycode_to_utf32("abc{def");
+    FAIL();
+  } catch (const sourcemeta::core::PunycodeError &error) {
+    EXPECT_STREQ(error.what(), "Invalid digit");
+  }
+}
+
+TEST(error_digit_just_past_the_uppercase_run) {
+  try {
+    sourcemeta::core::punycode_to_utf32("abc[def");
+    FAIL();
+  } catch (const sourcemeta::core::PunycodeError &error) {
+    EXPECT_STREQ(error.what(), "Invalid digit");
+  }
+}
+
+TEST(error_digit_just_past_the_decimal_run) {
+  try {
+    sourcemeta::core::punycode_to_utf32("abc:def");
+    FAIL();
+  } catch (const sourcemeta::core::PunycodeError &error) {
+    EXPECT_STREQ(error.what(), "Invalid digit");
   }
 }

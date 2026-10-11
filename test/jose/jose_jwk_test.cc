@@ -423,6 +423,70 @@ TEST(ignores_algorithm_not_matching_curve) {
   EXPECT_FALSE(key.value().algorithm().has_value());
 }
 
+// RFC 7518 Section 3.1 ties each ECDSA algorithm to one curve, so the hint is
+// actionable exactly where the two agree
+TEST(honours_es384_on_a_p384_key) {
+  const std::string coordinate(64, 'A');
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign_assume_new("kty", sourcemeta::core::JSON{"EC"});
+  document.assign_assume_new("crv", sourcemeta::core::JSON{"P-384"});
+  document.assign_assume_new("x", sourcemeta::core::JSON{coordinate});
+  document.assign_assume_new("y", sourcemeta::core::JSON{coordinate});
+  document.assign_assume_new("alg", sourcemeta::core::JSON{"ES384"});
+  const auto key{sourcemeta::core::JWK::from(document)};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_TRUE(key.value().algorithm().has_value());
+  EXPECT_EQ(key.value().algorithm().value(),
+            sourcemeta::core::JWSAlgorithm::ES384);
+}
+
+TEST(honours_es512_on_a_p521_key) {
+  const std::string coordinate(88, 'A');
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign_assume_new("kty", sourcemeta::core::JSON{"EC"});
+  document.assign_assume_new("crv", sourcemeta::core::JSON{"P-521"});
+  document.assign_assume_new("x", sourcemeta::core::JSON{coordinate});
+  document.assign_assume_new("y", sourcemeta::core::JSON{coordinate});
+  document.assign_assume_new("alg", sourcemeta::core::JSON{"ES512"});
+  const auto key{sourcemeta::core::JWK::from(document)};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_TRUE(key.value().algorithm().has_value());
+  EXPECT_EQ(key.value().algorithm().value(),
+            sourcemeta::core::JWSAlgorithm::ES512);
+}
+
+TEST(ignores_es256_on_a_p384_key) {
+  const std::string coordinate(64, 'A');
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign_assume_new("kty", sourcemeta::core::JSON{"EC"});
+  document.assign_assume_new("crv", sourcemeta::core::JSON{"P-384"});
+  document.assign_assume_new("x", sourcemeta::core::JSON{coordinate});
+  document.assign_assume_new("y", sourcemeta::core::JSON{coordinate});
+  document.assign_assume_new("alg", sourcemeta::core::JSON{"ES256"});
+  const auto key{sourcemeta::core::JWK::from(document)};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_FALSE(key.value().algorithm().has_value());
+}
+
+// An ECDSA hint names no curve an octet key could carry
+TEST(ignores_es384_on_an_octet_key) {
+  const auto document{sourcemeta::core::parse_json(
+      R"({"kty":"oct","k":"AyM1SysPpbyDfgZld3umj1qzKObwVMkoqQ-EstJQLr_T)"
+      R"(-1qS0gZH75aKtMN3Yj0iPS4hcgUuTwjAzZr1Z9CAow","alg":"ES384"})")};
+  const auto key{sourcemeta::core::JWK::from(document)};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_FALSE(key.value().algorithm().has_value());
+}
+
+TEST(ignores_es512_on_an_octet_key) {
+  const auto document{sourcemeta::core::parse_json(
+      R"({"kty":"oct","k":"AyM1SysPpbyDfgZld3umj1qzKObwVMkoqQ-EstJQLr_T)"
+      R"(-1qS0gZH75aKtMN3Yj0iPS4hcgUuTwjAzZr1Z9CAow","alg":"ES512"})")};
+  const auto key{sourcemeta::core::JWK::from(document)};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_FALSE(key.value().algorithm().has_value());
+}
+
 TEST(jwk_oct_valid) {
   const auto document{sourcemeta::core::parse_json(
       R"({"kty":"oct","k":"AyM1SysPpbyDfgZld3umj1qzKObwVMkoqQ-EstJQLr_T)"

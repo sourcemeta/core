@@ -50,3 +50,11 @@ TEST(characters_of_a_string) {
   EXPECT_FALSE(sourcemeta::core::is_punctuation(text.front()));
   EXPECT_TRUE(sourcemeta::core::is_punctuation(text.back()));
 }
+
+// ASCII punctuation stops at the tilde, so the delete character past it is
+// none. The value is built at runtime so the answer comes from the code that
+// ships rather than from constant evaluation
+TEST(delete_character_at_runtime) {
+  std::string value{"\x7f"};
+  EXPECT_FALSE(sourcemeta::core::is_punctuation(value.front()));
+}

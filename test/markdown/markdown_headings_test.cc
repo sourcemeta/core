@@ -358,3 +358,34 @@ TEST(setext_heading_escaped_equals_are_paragraph) {
                     "===\n"
                     "three</p>\n");
 }
+
+// GFM section 4.2 admits one to six opening hashes, so a seventh makes the
+// line a paragraph rather than a heading
+TEST(atx_heading_with_seven_hashes_is_a_paragraph) {
+  const auto result{sourcemeta::core::markdown_to_html("####### Seven")};
+  EXPECT_EQ(result, "<p>####### Seven</p>\n");
+}
+
+// GFM section 4.3 admits trailing whitespace after the underline of a setext
+// heading, which includes a tabulation
+TEST(setext_heading_underline_with_a_trailing_tabulation) {
+  const auto result{sourcemeta::core::markdown_to_html("Title\n=\t")};
+  EXPECT_EQ(result, "<h1>Title</h1>\n");
+}
+
+// GFM section 4.2 admits an empty heading, whose closing sequence is the whole
+// of what follows the opening one
+TEST(atx_heading_of_only_hashes) {
+  const auto result{sourcemeta::core::markdown_to_html("###")};
+  EXPECT_EQ(result, "<h3></h3>\n");
+}
+
+TEST(atx_heading_of_only_hashes_and_spaces) {
+  const auto result{sourcemeta::core::markdown_to_html("###   ")};
+  EXPECT_EQ(result, "<h3></h3>\n");
+}
+
+TEST(atx_heading_with_a_closing_sequence_and_nothing_else) {
+  const auto result{sourcemeta::core::markdown_to_html("### ###")};
+  EXPECT_EQ(result, "<h3></h3>\n");
+}

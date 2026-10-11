@@ -105,6 +105,11 @@ TEST(three_byte_e0_overlong_boundary) {
   EXPECT_EQ(sourcemeta::core::utf8_codepoint_length("\xe0\x9f\xbf", 0), 0u);
 }
 
+TEST(three_byte_e0_above_the_continuation_range) {
+  // %xE0 admits %xA0-BF, so a second byte above that range is no continuation
+  EXPECT_EQ(sourcemeta::core::utf8_codepoint_length("\xe0\xc0\x80", 0), 0u);
+}
+
 TEST(three_byte_e1_letter) {
   // U+1000 MYANMAR: \xE1\x80\x80
   EXPECT_EQ(sourcemeta::core::utf8_codepoint_length("\xe1\x80\x80", 0), 3u);
@@ -133,6 +138,11 @@ TEST(three_byte_ed_low_boundary) {
 TEST(three_byte_ed_high_boundary) {
   // U+D7FF: \xED\x9F\xBF (the last codepoint before the surrogate range)
   EXPECT_EQ(sourcemeta::core::utf8_codepoint_length("\xed\x9f\xbf", 0), 3u);
+}
+
+TEST(three_byte_ed_below_the_continuation_range) {
+  // %xED admits %x80-9F, so a second byte below that range is no continuation
+  EXPECT_EQ(sourcemeta::core::utf8_codepoint_length("\xed\x7f\x80", 0), 0u);
 }
 
 TEST(three_byte_surrogate_low) {
@@ -188,6 +198,11 @@ TEST(four_byte_f0_overlong_high_boundary) {
   EXPECT_EQ(sourcemeta::core::utf8_codepoint_length("\xf0\x8f\xbf\xbf", 0), 0u);
 }
 
+TEST(four_byte_f0_above_the_continuation_range) {
+  // %xF0 admits %x90-BF, so a second byte above that range is no continuation
+  EXPECT_EQ(sourcemeta::core::utf8_codepoint_length("\xf0\xc0\x80\x80", 0), 0u);
+}
+
 TEST(four_byte_f1_low) {
   // U+40000: \xF1\x80\x80\x80
   EXPECT_EQ(sourcemeta::core::utf8_codepoint_length("\xf1\x80\x80\x80", 0), 4u);
@@ -211,6 +226,11 @@ TEST(four_byte_f4_low_boundary) {
 TEST(four_byte_f4_high_boundary) {
   // U+10FFFF (last valid Unicode codepoint): \xF4\x8F\xBF\xBF
   EXPECT_EQ(sourcemeta::core::utf8_codepoint_length("\xf4\x8f\xbf\xbf", 0), 4u);
+}
+
+TEST(four_byte_f4_below_the_continuation_range) {
+  // %xF4 admits %x80-8F, so a second byte below that range is no continuation
+  EXPECT_EQ(sourcemeta::core::utf8_codepoint_length("\xf4\x7f\x80\x80", 0), 0u);
 }
 
 TEST(four_byte_above_max_codepoint) {

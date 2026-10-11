@@ -987,3 +987,49 @@ TEST(make_registration_update_request_excludes_server_assigned_members) {
   EXPECT_FALSE(body.value().defines("client_id_issued_at"));
   EXPECT_FALSE(body.value().defines("client_secret_expires_at"));
 }
+
+// RFC 7591 Section 2.1 pairs the implicit grant with the token response type,
+// and only the lists a client registers explicitly are compared
+TEST(grant_response_consistent_rejects_implicit_without_the_token_response) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "grant_types": [ "implicit" ],
+    "response_types": [ "code" ]
+  })JSON")};
+  const auto metadata{
+      sourcemeta::core::OAuthClientMetadata::from(std::move(document))};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_FALSE(sourcemeta::core::oauth_registration_grant_response_consistent(
+      metadata.value()));
+}
+
+TEST(grant_response_consistent_rejects_the_code_response_without_its_grant) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "grant_types": [ "refresh_token" ],
+    "response_types": [ "code" ]
+  })JSON")};
+  const auto metadata{
+      sourcemeta::core::OAuthClientMetadata::from(std::move(document))};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_FALSE(sourcemeta::core::oauth_registration_grant_response_consistent(
+      metadata.value()));
+}
+
+// RFC 7591 Section 2 reads an omitted list as the one value the specification
+// names rather than as an empty one
+TEST(client_metadata_supports_the_default_grant_type_when_omitted) {
+  auto document{sourcemeta::core::parse_json(R"JSON({})JSON")};
+  const auto metadata{
+      sourcemeta::core::OAuthClientMetadata::from(std::move(document))};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_TRUE(metadata.value().supports_grant_type("authorization_code"));
+  EXPECT_FALSE(metadata.value().supports_grant_type("implicit"));
+}
+
+TEST(client_metadata_supports_the_default_response_type_when_omitted) {
+  auto document{sourcemeta::core::parse_json(R"JSON({})JSON")};
+  const auto metadata{
+      sourcemeta::core::OAuthClientMetadata::from(std::move(document))};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_TRUE(metadata.value().supports_response_type("code"));
+  EXPECT_FALSE(metadata.value().supports_response_type("token"));
+}

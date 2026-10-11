@@ -339,7 +339,7 @@ auto URI::unescaped_fragment(const std::string_view fragment) -> URI & {
   // mistaken for input the caller wrote
   for (const auto character : fragment) {
     if (character == URI_PERCENT) {
-      uri_percent_encode_byte(value, URI_PERCENT);
+      value.append("%25");
     } else {
       value.push_back(character);
     }

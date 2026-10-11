@@ -3,7 +3,6 @@
 
 // Inspired from
 // https://github.com/uriparser/uriparser/blob/bf0174e83164a4659c51c135399478bec389eafa/test/test.cpp#L302
-
 TEST(syntax_error_1) {
   try {
     sourcemeta::core::URI uri{"//[::44.1"};
@@ -18,7 +17,6 @@ TEST(syntax_error_1) {
 
 // Inspired from
 // https://github.com/uriparser/uriparser/blob/bf0174e83164a4659c51c135399478bec389eafa/test/test.cpp#L510-L516
-
 TEST(syntax_error_2) {
   try {
     sourcemeta::core::URI uri{"http://moo:21@moo:21@moo/"};
@@ -45,7 +43,6 @@ TEST(syntax_error_3) {
 
 // Inspired from
 // https://github.com/uriparser/uriparser/blob/bf0174e83164a4659c51c135399478bec389eafa/test/test.cpp#L2180
-
 TEST(syntax_error_4) {
   try {
     // missing "]"
@@ -489,7 +486,6 @@ TEST(rfc3986_empty_port_with_path) {
 
 // Inspired from
 // https://github.com/uriparser/uriparser/blob/bf0174e83164a4659c51c135399478bec389eafa/test/test.cpp#L315
-
 TEST(success_1) {
   EXPECT_FALSE(sourcemeta::core::URI::is_uri(
       "//user:pass@[::1]:80/segment/index.html?query#frag"));
@@ -977,4 +973,46 @@ TEST(success_with_percent_encoded_unreserved_is_decoded) {
   sourcemeta::core::URI uri{"https://www.example.com/a/%2E%2E/b"};
   EXPECT_EQ(uri.path(), "/a/../b");
   EXPECT_EQ(uri.recompose(), "https://www.example.com/a/../b");
+}
+
+// RFC 3986 Section 3.2.2 has an IP literal carry its closing bracket, so every
+// way of running out of input inside one is a syntax error
+TEST(syntax_error_ip_literal_cut_short_after_the_opening_bracket) {
+  try {
+    sourcemeta::core::URI uri{"http://["};
+    FAIL();
+  } catch (const sourcemeta::core::URIParseError &error) {
+    EXPECT_EQ(error.column(), 8);
+  }
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri("http://["));
+}
+
+TEST(syntax_error_ip_future_cut_short_after_the_version_marker) {
+  try {
+    sourcemeta::core::URI uri{"http://[v"};
+    FAIL();
+  } catch (const sourcemeta::core::URIParseError &error) {
+    EXPECT_EQ(error.column(), 10);
+  }
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri("http://[v"));
+}
+
+TEST(syntax_error_ip_future_cut_short_after_the_version) {
+  try {
+    sourcemeta::core::URI uri{"http://[v7"};
+    FAIL();
+  } catch (const sourcemeta::core::URIParseError &error) {
+    EXPECT_EQ(error.column(), 11);
+  }
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri("http://[v7"));
+}
+
+TEST(syntax_error_ip_future_cut_short_after_the_point) {
+  try {
+    sourcemeta::core::URI uri{"http://[v7."};
+    FAIL();
+  } catch (const sourcemeta::core::URIParseError &error) {
+    EXPECT_EQ(error.column(), 12);
+  }
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri("http://[v7."));
 }

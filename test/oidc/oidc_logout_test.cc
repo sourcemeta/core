@@ -615,3 +615,63 @@ TEST(validate_logout_token_rejects_a_non_object_events) {
       token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
       "client-id", REFERENCE_NOW));
 }
+
+// OpenID Connect Back-Channel Logout 1.0 Section 2.4 admits a sub, a sid, or
+// both, so a token carrying only the session identifier is valid
+TEST(validate_logout_token_accepts_a_session_identifier_alone) {
+  const auto compact{sign_logout_token(VALID_HEADER, R"JSON({
+    "iss": "https://issuer.example",
+    "aud": "client-id",
+    "iat": 1700000000,
+    "exp": 2000000000,
+    "jti": "logout-1",
+    "sid": "session-1",
+    "events": {
+      "http://schemas.openid.net/event/backchannel-logout": {}
+    }
+  })JSON")};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  EXPECT_TRUE(sourcemeta::core::oidc_validate_logout_token(
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW));
+}
+
+// The events claim has to carry the back-channel logout member itself, so an
+// events object naming something else is no logout token
+TEST(validate_logout_token_rejects_events_without_the_logout_member) {
+  const auto compact{sign_logout_token(VALID_HEADER, R"JSON({
+    "iss": "https://issuer.example",
+    "aud": "client-id",
+    "iat": 1700000000,
+    "exp": 2000000000,
+    "jti": "logout-1",
+    "sub": "user-1",
+    "events": { "http://schemas.openid.net/event/other": {} }
+  })JSON")};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  EXPECT_FALSE(sourcemeta::core::oidc_validate_logout_token(
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW));
+}
+
+// An endpoint that already ends in a query opener needs no separator of its
+// own before the first parameter
+TEST(build_logout_url_on_an_endpoint_ending_in_a_question_mark) {
+  sourcemeta::core::OIDCLogoutRequest request;
+  request.client_id = "client-id";
+  std::string url;
+  sourcemeta::core::oidc_build_logout_url("https://server.example/logout?",
+                                          request, url);
+  EXPECT_EQ(url, "https://server.example/logout?client_id=client-id");
+}
+
+TEST(build_logout_url_on_an_endpoint_ending_in_an_ampersand) {
+  sourcemeta::core::OIDCLogoutRequest request;
+  request.client_id = "client-id";
+  std::string url;
+  sourcemeta::core::oidc_build_logout_url("https://server.example/logout?a=1&",
+                                          request, url);
+  EXPECT_EQ(url, "https://server.example/logout?a=1&client_id=client-id");
+}

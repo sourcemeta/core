@@ -119,3 +119,14 @@ TEST(aes_key_unwrap_rejects_a_non_block_input) {
       sourcemeta::core::aes_key_unwrap(KEK_128, std::string(28, '\x00'))
           .has_value());
 }
+
+// RFC 3394 Section 2 admits a key encryption key of sixteen, twenty four or
+// thirty two bytes, so unwrapping with any other size is refused
+TEST(unwrap_with_a_key_encryption_key_of_the_wrong_size) {
+  const auto wrapped{
+      sourcemeta::core::aes_key_wrap(KEK_128, std::string(16, '\x00'))};
+  EXPECT_TRUE(wrapped.has_value());
+  EXPECT_FALSE(
+      sourcemeta::core::aes_key_unwrap(std::string(7, '\x00'), wrapped.value())
+          .has_value());
+}

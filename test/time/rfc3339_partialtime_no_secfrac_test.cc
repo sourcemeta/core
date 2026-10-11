@@ -128,3 +128,27 @@ TEST(suite_invalid_datetime_passed_in) {
   EXPECT_FALSE(sourcemeta::core::is_rfc3339_partialtime_no_secfrac(
       "2020-11-28T23:55:45Z"));
 }
+
+TEST(invalid_second_hour_digit) {
+  EXPECT_FALSE(sourcemeta::core::is_rfc3339_partialtime_no_secfrac("0x:30:06"));
+}
+
+TEST(invalid_first_minute_digit) {
+  EXPECT_FALSE(sourcemeta::core::is_rfc3339_partialtime_no_secfrac("08:x0:06"));
+}
+
+TEST(invalid_second_minute_digit) {
+  EXPECT_FALSE(sourcemeta::core::is_rfc3339_partialtime_no_secfrac("08:3x:06"));
+}
+
+TEST(invalid_second_separator) {
+  EXPECT_FALSE(sourcemeta::core::is_rfc3339_partialtime_no_secfrac("08:30-06"));
+}
+
+TEST(invalid_first_second_digit) {
+  EXPECT_FALSE(sourcemeta::core::is_rfc3339_partialtime_no_secfrac("08:30:x6"));
+}
+
+TEST(invalid_second_second_digit) {
+  EXPECT_FALSE(sourcemeta::core::is_rfc3339_partialtime_no_secfrac("08:30:0x"));
+}

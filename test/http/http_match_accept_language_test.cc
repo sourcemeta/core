@@ -181,3 +181,18 @@ TEST(specific_zero_quality_alone_refuses_candidate) {
                                                          {"en-US", "fr"}),
             "");
 }
+
+// RFC 9110 Section 12.5.4 lets a header name the same language range twice,
+// and the weight a candidate is matched at is the highest of those it matches,
+// so the order the two are written in does not decide it
+TEST(repeated_language_range_with_a_higher_weight_second) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept_language(
+                "en;q=0.2, en;q=0.8, fr;q=0.5", {"fr", "en"}),
+            "en");
+}
+
+TEST(repeated_language_range_with_a_higher_weight_first) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept_language(
+                "en;q=0.8, en;q=0.2, fr;q=0.5", {"fr", "en"}),
+            "en");
+}

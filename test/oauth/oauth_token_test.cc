@@ -432,3 +432,41 @@ TEST(token_response_from_a_non_object) {
   EXPECT_FALSE(response.has_scope("openid"));
   EXPECT_EQ(response.data(), document);
 }
+
+// RFC 6749 Section 5.2 makes error the only required member, and writes the
+// optional description and URI out only when they are given
+TEST(make_token_error_response_without_a_description) {
+  const auto response{sourcemeta::core::oauth_make_token_error_response(
+      "invalid_grant", "", "")};
+  EXPECT_EQ(response.at("error").to_string(), "invalid_grant");
+  EXPECT_FALSE(response.defines("error_description"));
+  EXPECT_FALSE(response.defines("error_uri"));
+}
+
+TEST(make_token_error_response_with_a_uri) {
+  const auto response{sourcemeta::core::oauth_make_token_error_response(
+      "invalid_grant", "", "https://example.com/errors/1")};
+  EXPECT_EQ(response.at("error").to_string(), "invalid_grant");
+  EXPECT_FALSE(response.defines("error_description"));
+  EXPECT_EQ(response.at("error_uri").to_string(),
+            "https://example.com/errors/1");
+}
+
+// RFC 6749 Appendix B encodes parameter names too, so a name carrying a
+// malformed escape fails the parse before the name is recognised
+TEST(parse_token_request_with_a_parameter_name_carrying_a_bad_escape) {
+  sourcemeta::core::SecureString storage;
+  sourcemeta::core::OAuthTokenRequest request;
+  EXPECT_FALSE(sourcemeta::core::oauth_parse_token_request(
+      "a%zz=1", storage, request, [](std::string_view, std::string_view) {}));
+}
+
+// A parameter the result does not hold is surfaced with its decoded value, so
+// one carrying a malformed escape fails the parse too
+TEST(parse_token_request_with_an_other_parameter_carrying_a_bad_escape) {
+  sourcemeta::core::SecureString storage;
+  sourcemeta::core::OAuthTokenRequest request;
+  EXPECT_FALSE(sourcemeta::core::oauth_parse_token_request(
+      "resource=%zz", storage, request,
+      [](std::string_view, std::string_view) {}));
+}

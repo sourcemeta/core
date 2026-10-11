@@ -8,7 +8,7 @@
 #include <sstream>       // std::ostringstream
 #include <string>        // std::string
 #include <unordered_set> // std::unordered_set
-#include <utility>       // std::pair
+#include <utility>       // std::move, std::pair
 #include <variant>       // std::variant
 #include <vector>        // std::vector
 

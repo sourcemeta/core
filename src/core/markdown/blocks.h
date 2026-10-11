@@ -50,11 +50,13 @@ inline auto accepts_lines(const NodeType type) noexcept -> bool {
          type == NodeType::CodeBlock;
 }
 
-// Whether the content is blank up to its first line ending
+// Whether the content is blank up to its first line ending. Every line a block
+// is built from ends with a line feed and carries no carriage return, so that
+// is the only ending to look for
 inline auto is_blank_until_line_end(const std::string_view content) noexcept
     -> bool {
   for (const auto character : content) {
-    if (character == '\r' || character == '\n') {
+    if (character == '\n') {
       return true;
     }
 
@@ -81,6 +83,7 @@ inline auto find_line_feed(const std::string_view input,
 inline auto parse_table_row(const std::string_view string,
                             std::vector<TableCellSpan> &cells,
                             std::size_t &last_line_offset) -> bool {
+  assert(string.ends_with('\n'));
   cells.clear();
   last_line_offset = 0;
   const auto length{string.size()};
@@ -183,6 +186,8 @@ private:
   }
 
   auto process_line(const std::string_view line) -> void {
+    assert(line.ends_with('\n'));
+    assert(line.find('\r') == std::string_view::npos);
     this->line_ = line;
     this->line_end_ = this->line_size();
     this->offset_ = 0;
@@ -207,8 +212,7 @@ private:
     this->skip_blank_continuations_ =
         this->blank_line_matched_everything_ &&
         is_blank_until_line_end(line.substr(starting_offset)) &&
-        (this->open_footnote_definitions_ == 0 || this->peek(0) == '\n' ||
-         (this->peek(0) == '\r' && this->peek(1) == '\n')) &&
+        (this->open_footnote_definitions_ == 0 || this->peek(0) == '\n') &&
         !(this->node(starting_tip).type == NodeType::Item &&
           this->node(starting_tip).first_child == NO_NODE);
     this->blank_line_matched_everything_ = false;
@@ -259,8 +263,14 @@ private:
   // Advance by a number of bytes, or by a number of columns where a tab might
   // only be partially consumed
   auto advance_offset(std::ptrdiff_t count, const bool columns) -> void {
+    // No caller asks to walk past the end of the line by bytes, which is what
+    // lets the scan below read the bytes it is given. A run of columns is not
+    // bounded the same way, since a tab carries more columns than it does
+    // bytes, and the loop after the scan reads through an accessor that stops
+    // at the end of the line of its own accord
+    assert(columns || this->offset_ + count <= this->line_size());
     // Without tabs, advancing by bytes also advances by the same columns
-    if (!columns && count > 0 && this->offset_ + count <= this->line_size() &&
+    if (!columns && count > 0 &&
         std::memchr(this->line_.data() + this->offset_, '\t',
                     static_cast<std::size_t>(count)) == nullptr) {
       this->partially_consumed_tab_ = false;
@@ -271,10 +281,6 @@ private:
 
     while (count > 0) {
       const auto character{this->peek(this->offset_)};
-      if (character == '\0') {
-        break;
-      }
-
       if (character != '\t') {
         this->partially_consumed_tab_ = false;
         ++this->offset_;
@@ -474,27 +480,15 @@ private:
         return;
       }
 
-      const auto line_end{content.find_first_of("\r\n", end - 1)};
-      if (line_end == std::string_view::npos) {
-        this->value_buffer_.assign(content);
-        this->value_buffer_.push_back('\n');
-        target.literal = this->document_.strings.store(this->value_buffer_);
-        return;
-      }
-
-      if (content[line_end] == '\n') {
-        target.content_length = static_cast<std::uint32_t>(line_end + 1);
-        return;
-      }
-
-      this->value_buffer_.assign(content.substr(0, line_end));
-      this->value_buffer_.push_back('\n');
-      target.literal = this->document_.strings.store(this->value_buffer_);
-
+      // The content is built from lines that each end with a line feed, so one
+      // always follows the last byte that is not blank
+      const auto line_end{content.find('\n', end - 1)};
+      assert(line_end != std::string_view::npos);
+      target.content_length = static_cast<std::uint32_t>(line_end + 1);
       return;
     }
 
-    auto position{content.find_first_of("\r\n")};
+    auto position{content.find('\n')};
     if (position == std::string_view::npos) {
       position = content.size();
     }
@@ -504,10 +498,6 @@ private:
                                   content.substr(0, position));
     target.title = this->document_.strings.store(
         sourcemeta::core::trim(this->value_buffer_, is_space));
-    if (character_at(content, position) == '\r') {
-      ++position;
-    }
-
     if (character_at(content, position) == '\n') {
       ++position;
     }
@@ -557,8 +547,7 @@ private:
       return true;
     }
 
-    return this->peek(0) == '\n' ||
-           (this->peek(0) == '\r' && this->peek(1) == '\n');
+    return this->peek(0) == '\n';
   }
 
   auto parse_item_prefix(const std::uint32_t index) -> bool {
@@ -713,10 +702,6 @@ private:
     while (true) {
       ++index;
       next = this->peek(index);
-      if (next == '\0') {
-        break;
-      }
-
       if (next == marker) {
         ++count;
       } else if (next != ' ' && next != '\t') {
@@ -724,7 +709,7 @@ private:
       }
     }
 
-    if (count >= 3 && (next == '\r' || next == '\n')) {
+    if (count >= 3 && next == '\n') {
       return index - position + 1;
     }
 

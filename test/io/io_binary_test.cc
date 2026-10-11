@@ -5,7 +5,7 @@
 #include <cstddef> // std::byte
 #include <cstdint> // std::uint8_t, std::uint16_t, std::uint32_t, std::uint64_t
 #include <filesystem>   // std::filesystem
-#include <fstream>      // std::ofstream
+#include <fstream>      // std::ifstream, std::ofstream
 #include <ios>          // std::ios::binary
 #include <istream>      // std::istream
 #include <ostream>      // std::ostream
@@ -39,10 +39,6 @@ protected:
   std::filesystem::path workspace_{std::filesystem::path{BUILD_DIRECTORY} /
                                    "sourcemeta_core_io_binary_test"};
 };
-
-// -----------------------------------------------------------------------------
-// BinaryWriter — std::ostream backend
-// -----------------------------------------------------------------------------
 
 TEST(put_byte_emits_one_byte) {
   std::ostringstream stream;
@@ -132,10 +128,6 @@ TEST(position_advances_after_writes) {
   writer.put_dword(0xDEADBEEF);
   EXPECT_EQ(writer.position(), 7);
 }
-
-// -----------------------------------------------------------------------------
-// BinaryReader — std::istream backend
-// -----------------------------------------------------------------------------
 
 TEST(get_byte_from_stringstream) {
   std::istringstream input{"X"};
@@ -260,10 +252,6 @@ TEST(has_more_data_treats_null_byte_as_data) {
   EXPECT_TRUE(reader.has_more_data());
 }
 
-// -----------------------------------------------------------------------------
-// BinaryWriter — file backend (via std::ofstream)
-// -----------------------------------------------------------------------------
-
 TEST_F(IOBinaryTest, put_dword_to_file) {
   const auto path{this->workspace_ / "value.bin"};
   {
@@ -285,10 +273,6 @@ TEST_F(IOBinaryTest, put_bytes_to_file) {
   }
   EXPECT_EQ(std::filesystem::file_size(path), PAYLOAD.size());
 }
-
-// -----------------------------------------------------------------------------
-// BinaryReader — FileView backend
-// -----------------------------------------------------------------------------
 
 TEST_F(IOBinaryTest, get_after_put_integer_roundtrip_via_file) {
   const auto path{this->workspace_ / "value.bin"};
@@ -531,4 +515,15 @@ TEST_F(IOBinaryTest, get_zero_bytes_from_an_exhausted_view_reads_nothing) {
   reader.get_bytes(destination.data(), 0);
   EXPECT_EQ(reader.position(), view.size());
   EXPECT_FALSE(reader.has_more_data());
+}
+
+// A file stream holds nothing in its buffer until something is read from it,
+// so what is left to read is settled by peeking rather than by what the
+// buffer already has
+TEST(has_more_data_on_a_file_stream_before_any_read) {
+  std::ifstream input{std::filesystem::path{STUBS_DIRECTORY} / "test.txt",
+                      std::ios::binary};
+  EXPECT_TRUE(input.good());
+  sourcemeta::core::BinaryReader reader{input};
+  EXPECT_TRUE(reader.has_more_data());
 }

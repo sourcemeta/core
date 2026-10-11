@@ -841,3 +841,54 @@ TEST(has_scope_rejects_when_the_claims_are_not_an_object) {
   const auto claims{sourcemeta::core::parse_json(R"JSON([ "scope" ])JSON")};
   EXPECT_FALSE(sourcemeta::core::oauth_has_scope(claims, "read"));
 }
+
+TEST(challenge_parameter_of_a_header_opening_with_a_separator) {
+  EXPECT_FALSE(
+      sourcemeta::core::oauth_challenge_parameter(", Bearer", "Bearer", "realm")
+          .has_value());
+}
+
+TEST(challenge_parameter_of_a_parameter_whose_value_is_a_separator) {
+  EXPECT_FALSE(sourcemeta::core::oauth_challenge_parameter("Bearer realm=,",
+                                                           "Bearer", "realm")
+                   .has_value());
+}
+
+// A scheme on its own, with nothing but whitespace behind it, carries neither
+// a credential nor a parameter
+TEST(challenge_parameter_of_a_scheme_followed_by_whitespace_only) {
+  EXPECT_FALSE(
+      sourcemeta::core::oauth_challenge_parameter("Bearer ", "Bearer", "realm")
+          .has_value());
+}
+
+// A token68 credential is skipped whole so the scan reaches what follows, and
+// one that ends the header leaves nothing to reach
+TEST(challenge_parameter_of_a_scheme_with_a_credential_at_the_end) {
+  EXPECT_FALSE(sourcemeta::core::oauth_challenge_parameter(
+                   "Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==", "Bearer", "realm")
+                   .has_value());
+}
+
+// A parameter name is a token of RFC 9110 Section 5.6.2, which admits
+// characters a token68 does not, so the credential reading does not claim it
+// and the parameter is read as one even when its value is missing
+TEST(challenge_parameter_of_a_parameter_whose_value_is_missing) {
+  EXPECT_FALSE(sourcemeta::core::oauth_challenge_parameter(
+                   "Bearer re!lm=", "Bearer", "re!lm")
+                   .has_value());
+}
+
+// An element that is neither a comma nor a token is no part of the grammar
+TEST(challenge_parameter_of_an_element_that_is_no_token) {
+  EXPECT_FALSE(
+      sourcemeta::core::oauth_challenge_parameter("Bearer @", "Bearer", "realm")
+          .has_value());
+}
+
+// A credential of nothing but token68 characters runs to the end of the header
+TEST(challenge_parameter_of_a_credential_without_padding) {
+  EXPECT_FALSE(sourcemeta::core::oauth_challenge_parameter("Basic QWxhZGRpbg",
+                                                           "Bearer", "realm")
+                   .has_value());
+}

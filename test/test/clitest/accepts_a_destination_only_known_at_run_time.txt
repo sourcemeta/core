@@ -1,0 +1,4 @@
+TAP version 14
+1..1
+ok 1 - accepts_a_destination_only_known_at_run_time.clitest
+# 1 passed, 0 failed

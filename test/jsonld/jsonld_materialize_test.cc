@@ -69,6 +69,51 @@ TEST(literal_with_datatype) {
   EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
 }
 
+// JSON-LD 1.1 Section 4.6 admits a string, a number, a boolean or null as what
+// a value object holds, so an annotation that calls an array or an object a
+// literal describes no literal and the entry contributes nothing
+TEST(literal_with_datatype_over_a_value_that_has_no_lexical_form) {
+  const auto instance = sourcemeta::core::parse_json(R"({
+    "nothing": null,
+    "many": [ 1 ],
+    "nested": { "inner": 1 }
+  })");
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{},
+      sourcemeta::core::JSONLDDescriptor{.edges = {},
+                                         .value = sourcemeta::core::JSONLDNode{
+                                             .id = "https://example.com/doc"}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"nothing"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{.predicate = "https://example.com/nothing"}},
+          .value = sourcemeta::core::JSONLDLiteral{
+              .datatype = "http://www.w3.org/2001/XMLSchema#string"}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"many"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{.predicate = "https://example.com/many"}},
+          .value = sourcemeta::core::JSONLDLiteral{
+              .datatype = "http://www.w3.org/2001/XMLSchema#string"}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"nested"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{.predicate = "https://example.com/nested"}},
+          .value = sourcemeta::core::JSONLDLiteral{
+              .datatype = "http://www.w3.org/2001/XMLSchema#string"}});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    { "@id": "https://example.com/doc" }
+  ])");
+
+  const auto result{
+      sourcemeta::core::jsonld_materialize(instance, annotations)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
 TEST(literal_with_language_and_direction) {
   const auto instance = sourcemeta::core::parse_json(R"({ "title": "مرحبا" })");
 

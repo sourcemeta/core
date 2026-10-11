@@ -1,0 +1,2 @@
+STAT SIZE a INTO b
+COMPARE b AGAINST expected.txt

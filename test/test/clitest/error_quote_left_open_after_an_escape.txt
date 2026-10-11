@@ -1,0 +1,5 @@
+TAP version 14
+1..1
+not ok 1 - error_quote_left_open_after_an_escape.clitest
+# error_quote_left_open_after_an_escape.clitest:1: a quote is left open at the end of the line
+# 0 passed, 1 failed

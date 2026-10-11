@@ -5927,3 +5927,91 @@ TEST(multiline_quoted_explicit_key_is_written_on_one_line) {
   EXPECT_EQ(roundtrip_value("? \"one\n  two\"\n: value\n"),
             sourcemeta::core::parse_yaml("? \"one\n  two\"\n: value\n"));
 }
+
+// A document that separates its lines with a carriage return and a line feed
+// is written back the same way, which the roundtrip remembers of the whole
+// document rather than of each line
+TEST(crlf_comment_on_a_mapping_entry) {
+  EXPECT_EQ(roundtrip("foo: 1 # note\r\nbar: 2\r\n"),
+            "foo: 1 # note\r\nbar: 2\r\n");
+}
+
+TEST(crlf_comment_on_its_own_line) {
+  EXPECT_EQ(roundtrip("# note\r\nfoo: 1\r\n"), "# note\r\nfoo: 1\r\n");
+}
+
+TEST(crlf_flow_sequence_entry_without_a_space) {
+  EXPECT_EQ(roundtrip("[1,\r\n2]\r\n"), "[1, 2]\r\n");
+}
+
+TEST(crlf_mapping) {
+  EXPECT_EQ(roundtrip("foo: 1\r\nbar: 2\r\n"), "foo: 1\r\nbar: 2\r\n");
+}
+
+TEST(crlf_sequence) {
+  EXPECT_EQ(roundtrip("- 1\r\n- 2\r\n"), "- 1\r\n- 2\r\n");
+}
+
+TEST(crlf_literal_block_scalar) {
+  EXPECT_EQ(roundtrip("text: |\r\n  one\r\n  two\r\n"),
+            "text: |\r\n  one\r\n  two\r\n");
+}
+
+TEST(crlf_folded_block_scalar) {
+  EXPECT_EQ(roundtrip("text: >\r\n  one\r\n  two\r\n"),
+            "text: >\r\n  one\r\n  two\r\n");
+}
+
+TEST(crlf_blank_line_between_entries) {
+  EXPECT_EQ(roundtrip("foo: 1\r\n\r\nbar: 2\r\n"), "foo: 1\r\n\r\nbar: 2\r\n");
+}
+
+TEST(crlf_anchor_and_alias) {
+  EXPECT_EQ(roundtrip("foo: &a 1\r\nbar: *a\r\n"), "foo: &a 1\r\nbar: *a\r\n");
+}
+
+TEST(crlf_tag) { EXPECT_EQ(roundtrip("foo: !!str 1\r\n"), "foo: !!str 1\r\n"); }
+
+TEST(crlf_document_markers) {
+  EXPECT_EQ(roundtrip("---\r\nfoo: 1\r\n...\r\n"), "---\r\nfoo: 1\r\n...\r\n");
+}
+
+TEST(crlf_plain_scalar_over_two_lines) {
+  EXPECT_EQ(roundtrip("text: one\r\n  two\r\n"), "text: one\r\n  two\r\n");
+}
+
+// A carriage return on its own is a line break too, but it is not the pair the
+// document is remembered as using, so the lines come back separated by a line
+// feed
+TEST(lone_carriage_return_as_a_line_break) {
+  EXPECT_EQ(roundtrip("foo: 1\rbar: 2\r"), "foo: 1\nbar: 2\n");
+}
+
+// A round trip describes the one document it was read from, and a run of end
+// markers closes that document rather than opening another, so the stream
+// still holds nothing a round trip could not write back
+TEST(read_file_with_roundtrip_accepts_a_run_of_end_markers) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  const auto document{sourcemeta::core::read_yaml(
+      std::filesystem::path{STUBS_PATH} /
+          "single_document_with_two_end_markers.yaml",
+      metadata)};
+  EXPECT_TRUE(document.is_object());
+  EXPECT_EQ(document.at("foo"), sourcemeta::core::JSON{1});
+}
+
+TEST(folded_block_scalar_with_an_empty_line_deeper_than_its_content) {
+  EXPECT_EQ(roundtrip("a: >\n  x\n    \n  y\n"), "a: >\n  x\n    \n  y\n");
+}
+
+TEST(flow_sequence_entry_separator_followed_by_a_line_break) {
+  EXPECT_EQ(roundtrip("[ a,\n  b ]\n"), "[ a, b ]\n");
+}
+
+TEST(nested_explicit_key_mapping_is_written_without_the_indicator) {
+  const auto once{roundtrip("a:\n  ? b\n  : c\n")};
+  EXPECT_EQ(once, "a:\n  b: c\n");
+  EXPECT_EQ(roundtrip(once), once);
+  EXPECT_EQ(roundtrip_value("a:\n  ? b\n  : c\n"),
+            sourcemeta::core::parse_yaml("a:\n  ? b\n  : c\n"));
+}

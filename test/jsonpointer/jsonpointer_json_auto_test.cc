@@ -86,3 +86,12 @@ TEST(to_json_foo_bar_baz) {
   EXPECT_TRUE(result.at(2).is_string());
   EXPECT_EQ(result.at(2).to_string(), "baz");
 }
+
+// An index is a position in an array, so a negative integer names none
+TEST(from_json_negative_index) {
+  auto input{sourcemeta::core::JSON::make_array()};
+  input.push_back(sourcemeta::core::JSON{-1});
+  const auto result{
+      sourcemeta::core::from_json<sourcemeta::core::Pointer>(input)};
+  EXPECT_FALSE(result.has_value());
+}

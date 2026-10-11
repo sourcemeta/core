@@ -2,6 +2,8 @@
 
 #include <sourcemeta/core/test.h>
 
+#include <string> // std::string
+
 TEST(footnote_basic) {
   const auto result{
       sourcemeta::core::markdown_to_html("Text[^1]\n\n[^1]: Footnote content")};
@@ -319,5 +321,80 @@ TEST(footnote_definition_with_a_label_that_normalises_away_is_dropped) {
 TEST(footnote_definition_with_a_form_feed_label_is_dropped) {
   const auto result{
       sourcemeta::core::markdown_to_html("[^\f]: note\n\ntext\n")};
+  EXPECT_EQ(result, "<p>text</p>\n");
+}
+
+// Forming a footnote reference out of an unmatched bracket drops everything
+// between its brackets, so a reference nested in another one is created first
+// and then leaves the document. It never resolves, and the outer label keeps
+// the text the inner brackets were written as
+TEST(footnote_reference_nested_in_another_reference) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("Text[^a[^b]c]\n\n[^a[^b]c]: Note")};
+  EXPECT_EQ(result, "<p>Text[^a[^b]c]</p>\n<p>[^a[^b]c]: Note</p>\n");
+}
+
+// A label of more codepoints than GFM section 6.6 admits for a link label
+// cannot name a definition, so the reference stays the text it was written as
+// even when a definition of exactly that label is present
+TEST(footnote_reference_label_over_the_length_limit) {
+  const std::string label(1000, 'a');
+  const auto result{sourcemeta::core::markdown_to_html(
+      "Text[^" + label + "]\n\n[^" + label + "]: Note")};
+  EXPECT_EQ(result, "<p>Text[^" + label + "]</p>\n");
+}
+
+// A footnote reference needs a label, so empty brackets are not one
+TEST(footnote_reference_without_a_label) {
+  const auto result{sourcemeta::core::markdown_to_html("Text[^] rest")};
+  EXPECT_EQ(result, "<p>Text[^] rest</p>\n");
+}
+
+// A label of nothing between the caret and the closing bracket is no footnote
+// definition, which leaves the line to GFM section 6.6 as a link reference
+// definition whose label is the caret
+TEST(footnote_definition_without_a_label_is_a_link_reference_definition) {
+  const auto result{sourcemeta::core::markdown_to_html("Text[^]\n\n[^]: Note")};
+  EXPECT_EQ(result, "<p>Text<a href=\"Note\">^</a></p>\n");
+}
+
+// A label that carries whitespace never reaches its closing bracket, so the
+// line is no footnote definition either
+TEST(footnote_definition_with_whitespace_in_the_label) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("Text[^a b]\n\n[^a b]: Note")};
+  EXPECT_EQ(result, "<p>Text<a href=\"Note\">^a b</a></p>\n");
+}
+
+// A definition admits whitespace after its colon, which includes a tabulation
+TEST(footnote_definition_with_a_tabulation_after_the_colon) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("Text[^1]\n\n[^1]:\tNote")};
+  EXPECT_EQ(
+      result,
+      "<p>Text<sup class=\"footnote-ref\"><a href=\"#fn-1\" id=\"fnref-1\""
+      " data-footnote-ref>1</a></sup></p>\n"
+      "<section class=\"footnotes\" data-footnotes>\n<ol>\n"
+      "<li id=\"fn-1\">\n<p>Note "
+      "<a href=\"#fnref-1\" class=\"footnote-backref\""
+      " data-footnote-backref data-footnote-backref-idx=\"1\""
+      " aria-label=\"Back to reference 1\">\xe2\x86\xa9</a></p>\n"
+      "</li>\n</ol>\n</section>\n");
+}
+
+// A footnote label ends at the line it sits on, so a definition whose bracket
+// is never closed defines nothing and the reference it would have answered
+// stands as text
+TEST(footnote_definition_label_left_unclosed_at_the_line_end) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("[^foo\nbar\n\n[^foo]: note")};
+  EXPECT_EQ(result, "<p>[^foo\nbar</p>\n");
+}
+
+// A label ends at a tabulation too, so the bracket that follows one closes
+// nothing
+TEST(footnote_definition_label_broken_by_a_tabulation) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("[^foo\tbar]: note\n\ntext")};
   EXPECT_EQ(result, "<p>text</p>\n");
 }

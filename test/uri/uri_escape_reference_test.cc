@@ -167,3 +167,64 @@ TEST(brackets_around_an_incomplete_ip_future_literal_are_encoded) {
   sourcemeta::core::URI::escape_reference("http://[v.host]/x", output);
   EXPECT_EQ(output, "http://%5Bv.host%5D/x");
 }
+
+// RFC 3986 Section 3.2.2 writes IPvFuture as "v" 1*HEXDIG "." 1*( unreserved /
+// sub-delims / ":" ), and RFC 5234 Section 2.3 reads a literal of a grammar
+// without regard to case, which the version marker is
+TEST(brackets_around_an_uppercase_ip_future_literal_pass_through) {
+  std::string output;
+  sourcemeta::core::URI::escape_reference("http://[V7.host]/x", output);
+  EXPECT_EQ(output, "http://[V7.host]/x");
+}
+
+TEST(brackets_around_an_ip_future_literal_of_a_sub_delimiter_pass_through) {
+  std::string output;
+  sourcemeta::core::URI::escape_reference("http://[v7.a$b]/x", output);
+  EXPECT_EQ(output, "http://[v7.a$b]/x");
+}
+
+TEST(brackets_around_an_ip_future_literal_without_a_point_are_encoded) {
+  std::string output;
+  sourcemeta::core::URI::escape_reference("http://[v7]/x", output);
+  EXPECT_EQ(output, "http://%5Bv7%5D/x");
+}
+
+TEST(brackets_around_an_ip_future_version_cut_short_are_encoded) {
+  std::string output;
+  sourcemeta::core::URI::escape_reference("http://[v7x]/x", output);
+  EXPECT_EQ(output, "http://%5Bv7x%5D/x");
+}
+
+TEST(
+    brackets_around_an_ip_future_literal_with_nothing_after_the_point_are_encoded) {
+  std::string output;
+  sourcemeta::core::URI::escape_reference("http://[v7.]/x", output);
+  EXPECT_EQ(output, "http://%5Bv7.%5D/x");
+}
+
+TEST(brackets_around_an_ip_future_literal_of_a_delimiter_are_encoded) {
+  std::string output;
+  sourcemeta::core::URI::escape_reference("http://[v7.a%b]/x", output);
+  EXPECT_EQ(output, "http://%5Bv7.a%25b%5D/x");
+}
+
+// RFC 3986 Section 3.2 has an authority follow a "//", which only a valid
+// scheme or the start of the reference can precede, so brackets anywhere else
+// are no IP literal
+TEST(brackets_after_a_prefix_that_is_no_scheme_are_encoded) {
+  std::string output;
+  sourcemeta::core::URI::escape_reference("1x://[::1]/", output);
+  EXPECT_EQ(output, "1x://%5B::1%5D/");
+}
+
+TEST(brackets_in_a_path_rather_than_a_host_are_encoded) {
+  std::string output;
+  sourcemeta::core::URI::escape_reference("http://a/[x]", output);
+  EXPECT_EQ(output, "http://a/%5Bx%5D");
+}
+
+TEST(brackets_after_an_empty_authority_are_encoded) {
+  std::string output;
+  sourcemeta::core::URI::escape_reference("http:///[x]", output);
+  EXPECT_EQ(output, "http:///%5Bx%5D");
+}

@@ -282,7 +282,6 @@ TEST(empty_uri_string_constructor) {
 }
 
 // Inspired from https://cr.openjdk.org/~dfuchs/writeups/updating-uri/
-
 TEST(rfc3986_1) {
   sourcemeta::core::URI uri{"s://h/a/../../b"};
   uri.canonicalize();
@@ -291,7 +290,6 @@ TEST(rfc3986_1) {
 
 // Inspired from
 // https://github.com/uriparser/uriparser/blob/master/test/test.cpp#L1438
-
 TEST(rfc3986_2) {
   sourcemeta::core::URI uri{"eXAMPLE://a/./b/../b/%63/%7bfoo%7d"};
   uri.canonicalize();
@@ -392,7 +390,6 @@ TEST(relative_path_colon_ambiguity) {
 
 // Inspired from
 // https://github.com/uriparser/uriparser/blob/master/test/test.cpp#L1531
-
 TEST(path_multiple_dotdot_to_root) {
   sourcemeta::core::URI uri{"http://a/b/c/../../.."};
   uri.canonicalize();
@@ -570,4 +567,45 @@ TEST(path_setter_decodes_percent_encoded_ascii_unreserved) {
   uri.path("/%41");
   uri.canonicalize();
   EXPECT_EQ(uri.recompose(), "https://example.com/A");
+}
+
+TEST(iri_leaves_a_lead_byte_whose_continuation_is_missing) {
+  auto uri{sourcemeta::core::URI::from_iri("https://example.com/%C3")};
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "https://example.com/%C3");
+}
+
+TEST(iri_leaves_a_lead_byte_followed_by_a_byte_that_is_no_continuation) {
+  auto uri{sourcemeta::core::URI::from_iri("https://example.com/%C3%41")};
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "https://example.com/%C3A");
+}
+
+TEST(iri_leaves_a_surrogate_written_as_three_bytes) {
+  auto uri{sourcemeta::core::URI::from_iri("https://example.com/%ED%A0%80")};
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "https://example.com/%ED%A0%80");
+}
+
+TEST(iri_leaves_an_overlong_encoding) {
+  auto uri{sourcemeta::core::URI::from_iri("https://example.com/%E0%80%80")};
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "https://example.com/%E0%80%80");
+}
+
+// RFC 3986 Section 3.2.3 reads the default port from the scheme, so a port
+// with no scheme to compare it against is kept as it is
+TEST(port_without_a_scheme_is_kept) {
+  sourcemeta::core::URI uri{"//example.com:443/foo"};
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "//example.com:443/foo");
+}
+
+// A percent-encoded reserved character survives the normalisation that decodes
+// the unreserved ones, so it reaches the character reading as a triplet that is
+// no continuation byte
+TEST(iri_leaves_a_lead_byte_followed_by_an_encoded_reserved_character) {
+  auto uri{sourcemeta::core::URI::from_iri("https://example.com/%C3%3A")};
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "https://example.com/%C3%3A");
 }

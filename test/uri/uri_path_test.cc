@@ -4,8 +4,6 @@
 #include <string>
 #include <string_view>
 
-// Getter
-
 TEST(https_example_url_no_path) {
   const sourcemeta::core::URI uri{"https://example.com"};
   EXPECT_FALSE(uri.path().has_value());
@@ -72,8 +70,6 @@ TEST(mailto) {
   const sourcemeta::core::URI uri{"mailto:jdoe@woo.com"};
   EXPECT_EQ(uri.path().value(), "jdoe@woo.com");
 }
-
-// Setter
 
 TEST(no_path) {
   sourcemeta::core::URI uri{"https://example.com"};

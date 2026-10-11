@@ -90,3 +90,20 @@ TEST(image_description_spanning_a_soft_break) {
   const auto result{sourcemeta::core::markdown_to_html("![a\nb](/u)")};
   EXPECT_EQ(result, "<p><img src=\"/u\" alt=\"a b\" /></p>\n");
 }
+
+// An exclamation mark opens an image only before a link label, and a label
+// that opens with a caret belongs to a footnote reference instead
+TEST(image_bang_before_a_footnote_reference) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("Text![^1]\n\n[^1]: Note")};
+  EXPECT_EQ(
+      result,
+      "<p>Text!<sup class=\"footnote-ref\"><a href=\"#fn-1\" id=\"fnref-1\""
+      " data-footnote-ref>1</a></sup></p>\n"
+      "<section class=\"footnotes\" data-footnotes>\n<ol>\n"
+      "<li id=\"fn-1\">\n<p>Note "
+      "<a href=\"#fnref-1\" class=\"footnote-backref\""
+      " data-footnote-backref data-footnote-backref-idx=\"1\""
+      " aria-label=\"Back to reference 1\">\xe2\x86\xa9</a></p>\n"
+      "</li>\n</ol>\n</section>\n");
+}

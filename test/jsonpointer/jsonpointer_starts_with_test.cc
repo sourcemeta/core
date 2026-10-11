@@ -201,3 +201,13 @@ TEST(property_two_tails_index_in_right) {
   const sourcemeta::core::Pointer prefix{"foo"};
   EXPECT_FALSE(pointer.starts_with(prefix, "$defs", "0"));
 }
+
+// A prefix one token longer than the pointer is only a prefix of it with the
+// tail appended when the pointer itself opens it, which a disagreement before
+// the last token rules out
+TEST(tail_longer_prefix_that_diverges_is_false) {
+  const sourcemeta::core::Pointer pointer{"foo", "bar"};
+  const sourcemeta::core::Pointer::Token tail{"qux"};
+  const sourcemeta::core::Pointer prefix{"foo", "baz", "qux"};
+  EXPECT_FALSE(pointer.starts_with(prefix, tail));
+}

@@ -1,0 +1,4 @@
+TAP version 14
+1..1
+ok 1 - accepts_a_name_followed_by_punctuation.clitest
+# 1 passed, 0 failed
