@@ -121,6 +121,23 @@ public:
       return std::nullopt;
     }
 
+    // Read before the stream start token is handed out, as the leading
+    // whitespace of the first line has already been stepped over by this point
+    // and the next call would find the flag cleared
+    if (this->tab_at_line_start_) {
+      this->tab_at_line_start_ = false;
+      const char next_char{this->peek()};
+      // YAML 1.2.2 production 63 writes indentation as `s-indent(n+1) ::=
+      // s-space s-indent(n)`, so a tab can be none of it. Production 197 has a
+      // flow node at block level preceded by `s-separate` instead, which does
+      // admit one, so a tab opening a flow collection is separation rather
+      // than indentation
+      if (next_char != '{' && next_char != '[') [[unlikely]] {
+        throw YAMLParseError{this->line_, this->column_,
+                             "Tab characters cannot be used for indentation"};
+      }
+    }
+
     if (!this->stream_started_) {
       this->stream_started_ = true;
       return Token{.type = TokenType::StreamStart,
@@ -132,15 +149,6 @@ public:
     const auto current_line{this->line_};
     const auto current_column{this->column_};
     const auto current_position{this->position_};
-
-    if (this->tab_at_line_start_) {
-      this->tab_at_line_start_ = false;
-      const char next_char{this->peek()};
-      if (next_char != '{' && next_char != '[') [[unlikely]] {
-        throw YAMLParseError{current_line, current_column,
-                             "Tab characters cannot be used for indentation"};
-      }
-    }
 
     // YAML 1.2.2 Section 8.2: a flow collection nested in a block context
     // continues on the following lines only when they are indented past that
@@ -613,8 +621,11 @@ private:
       return false;
     }
     if (this->position_ + 3 < this->input_.size()) {
-      const char after{this->input_[this->position_ + 3]};
-      return is_whitespace(after) || after == '\0';
+      // Read straight out of the input rather than through the accessor that
+      // reports the end as a null character, and the whole stream was turned
+      // down for carrying one of those, so what stands here is a character of
+      // the document
+      return is_whitespace(this->input_[this->position_ + 3]);
     }
     return true;
   }
@@ -1187,22 +1198,33 @@ private:
       this->line_ = saved_line;
       this->column_ = saved_column;
 
-      if (found_content) {
-        if (max_leading_empty_indent > content_indent && content_indent > 0)
-            [[unlikely]] {
+      // YAML 1.2.2 production 170 reads the content of a literal at
+      // `s-indent(n+m)` where the increment auto-detection yields is positive,
+      // so content stands further in than the node holding the scalar. A first
+      // non-empty line that stands no further in is a sibling of that node
+      // rather than a line of the contents, and at the root there is no node
+      // for it to be a sibling of
+      const bool first_line_is_content{found_content &&
+                                       (this->block_indent_ == SIZE_MAX ||
+                                        content_indent > this->block_indent_)};
+      if (first_line_is_content) {
+        // Section 8.1.1.1: "It is an error for any of the leading empty lines
+        // to contain more spaces than the first non-empty line"
+        if (max_leading_empty_indent > content_indent) [[unlikely]] {
           throw YAMLParseError{
               start_line, start_column,
               "Leading empty line has more spaces than content indentation"};
         }
       } else {
-        // YAML 1.2.2 Section 8.1.1.1: with no non-empty content line the
-        // indentation level is the number of spaces on the longest line
+        // Section 8.1.1.1: with no non-empty line of its own the level is
+        // "the number of spaces on the longest line", and it still stands
+        // further in than the node holding the scalar so that what follows at
+        // that node's own level is read as a sibling rather than as content
         content_indent = std::max(content_indent, max_leading_empty_indent);
+        if (this->block_indent_ != SIZE_MAX) {
+          content_indent = std::max(content_indent, this->block_indent_ + 1);
+        }
       }
-    }
-
-    if (content_indent == 0 && start_column > 5) {
-      content_indent = 1;
     }
 
     return content_indent;

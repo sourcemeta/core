@@ -4122,3 +4122,148 @@ TEST(yaml_value_indicator_on_a_later_line_closes_the_inner_mapping) {
       sourcemeta::core::parse_json(R"JSON({ "a": { "b": 1 }, "": "c" })JSON")};
   EXPECT_EQ(result, expected);
 }
+
+// The escape takes a fixed count of characters without asking whether each is
+// a hexadecimal digit, so one that starts as a number and stops being one is
+// turned down by the conversion rather than by the scan
+TEST(yaml_hex_escape_ending_in_a_character_that_is_no_digit) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"a: \"\\x4G\"\n"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid hex escape sequence");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(yaml_four_digit_escape_ending_in_a_character_that_is_no_digit) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"a: \"\\u00G0\"\n"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid hex escape sequence");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(yaml_eight_digit_escape_ending_in_a_character_that_is_no_digit) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"a: \"\\U0000004G\"\n"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid hex escape sequence");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// YAML 1.2.2 production 63 writes indentation as `s-indent(n+1) ::= s-space
+// s-indent(n)`, so a tab can be no part of it, and Section 6.1 says as much:
+// "tab characters must not be used in indentation". Production 197 has a flow
+// node at block level preceded by `s-separate` rather than by indentation, and
+// that does admit a tab, which is what the two cases below tell apart
+TEST(yaml_tab_before_a_flow_mapping_on_the_first_line) {
+  const auto result{sourcemeta::core::parse_yaml(std::string{"\t{a: 1}\n"})};
+  const auto expected{sourcemeta::core::parse_json(R"JSON({ "a": 1 })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(yaml_tab_before_a_flow_sequence_on_the_first_line) {
+  const auto result{sourcemeta::core::parse_yaml(std::string{"\t[1]\n"})};
+  const auto expected{sourcemeta::core::parse_json("[ 1 ]")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(yaml_tab_indenting_a_block_mapping_on_the_first_line) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"\ta: 1\n"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Tab characters cannot be used for indentation");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(yaml_tab_indenting_a_block_mapping_on_a_later_line) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"a:\n\tb: 1\n"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Tab characters cannot be used for indentation");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// YAML 1.2.2 Section 8.1.1 writes the header as an indicator, a chomping
+// indicator and a comment, with separation between them, and Section 6.2 has
+// that separation admit a tabulation as readily as a space
+TEST(yaml_block_scalar_header_separated_by_a_tabulation) {
+  const auto result{sourcemeta::core::parse_yaml(std::string{"a: |\t\n  x\n"})};
+  const auto expected{
+      sourcemeta::core::parse_json(R"JSON({ "a": "x\n" })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(yaml_block_scalar_with_carriage_return_line_breaks) {
+  const auto result{
+      sourcemeta::core::parse_yaml(std::string{"a: |\r\n  x\r\n"})};
+  const auto expected{
+      sourcemeta::core::parse_json(R"JSON({ "a": "x\n" })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+// Section 8.1.1.1: "It is an error for any of the leading empty lines to
+// contain more spaces than the first non-empty line". A scalar at the root has
+// no node holding it, so a first non-empty line of no indentation at all is
+// content of it and the leading empty line stands further in than that
+TEST(yaml_root_block_scalar_leading_empty_line_deeper_than_its_content) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"|\n  \nx\n"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(),
+                 "Leading empty line has more spaces than content indentation");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// Below the root, a line standing no further in than the node holding the
+// scalar is a sibling of that node rather than content, so the scalar holds no
+// non-empty line and Section 8.1.1.1 takes "the number of spaces on the
+// longest line" for its level
+TEST(yaml_block_scalar_of_empty_lines_does_not_take_in_the_next_key) {
+  const auto result{
+      sourcemeta::core::parse_yaml(std::string{"a: |\n  \nb: 1\n"})};
+  const auto expected{
+      sourcemeta::core::parse_json(R"JSON({ "a": "", "b": 1 })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(yaml_block_scalar_of_one_empty_line_does_not_take_in_the_next_key) {
+  const auto result{
+      sourcemeta::core::parse_yaml(std::string{"a: |\n\nb: 1\n"})};
+  const auto expected{
+      sourcemeta::core::parse_json(R"JSON({ "a": "", "b": 1 })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+// A scalar whose leading empty lines are no deeper than its content is read as
+// it stands, which is what the error above is told apart from
+TEST(yaml_block_scalar_leading_empty_line_shallower_than_its_content) {
+  const auto result{
+      sourcemeta::core::parse_yaml(std::string{"a: |\n \n  x\n"})};
+  const auto expected{
+      sourcemeta::core::parse_json(R"JSON({ "a": "\nx\n" })JSON")};
+  EXPECT_EQ(result, expected);
+}
