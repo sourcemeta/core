@@ -38,19 +38,16 @@ void apply_presentation(
   if (mcp_protocol_version_at_least(version,
                                     MCPProtocolVersion::V_2025_06_18) &&
       !presentation.title.empty()) {
-    value.assign("title", JSON{presentation.title});
+    value.assign_assume_new(JSON::String{"title"}, JSON{presentation.title},
+                            MCP_HASH_TITLE);
   }
   if (mcp_protocol_version_at_least(version,
                                     MCPProtocolVersion::V_2025_11_25) &&
       presentation.icons != nullptr) {
-    const MCPImplementation check{.name = "descriptor",
-                                  .version = "",
-                                  .title = {},
-                                  .description = {},
-                                  .website_url = {},
-                                  .icons = presentation.icons};
-    internal::make_implementation(version, check);
-    value.assign("icons", *presentation.icons);
+    value.assign_assume_new(JSON::String{"icons"}, JSON{*presentation.icons},
+                            MCP_HASH_ICONS);
+    internal::require(internal::validation::icons(value),
+                      "Invalid descriptor icons");
   }
 }
 
@@ -72,10 +69,14 @@ auto mcp_serialize_resource_annotations(
     result.assign("audience", std::move(audience));
   }
   if (annotations.priority.has_value()) {
-    const auto priority{std::isnan(*annotations.priority)
-                            ? 1.0
-                            : std::clamp(*annotations.priority, 0.0, 1.0)};
-    result.assign("priority", JSON{priority});
+    // Annotation priority is a number between 0 and 1, and JSON has no
+    // representation for infinity or NaN, so a non-finite input is not a
+    // priority this builder can express
+    // https://modelcontextprotocol.io/specification/2026-07-28/schema#annotations
+    internal::require(std::isfinite(*annotations.priority),
+                      "Annotation priority must be a finite number");
+    result.assign("priority",
+                  JSON{std::clamp(*annotations.priority, 0.0, 1.0)});
   }
   if (mcp_protocol_version_at_least(version,
                                     MCPProtocolVersion::V_2025_06_18) &&
@@ -415,7 +416,7 @@ auto mcp_make_resources_read_result(const MCPProtocolVersion version,
   require_array(contents);
   for (const auto &entry : contents.as_array()) {
     internal::require(internal::valid_resource(version, entry, true, false),
-                      "Invalid MCP result entry");
+                      "Invalid MCP resource contents entry");
   }
   auto result{sourcemeta::core::JSON::make_object()};
   if (version == MCPProtocolVersion::V_2026_07_28) {
@@ -434,7 +435,7 @@ auto mcp_make_tools_list_result(
   require_array(tools);
   for (const auto &entry : tools.as_array()) {
     internal::require(internal::valid_tool(version, entry),
-                      "Invalid MCP result entry");
+                      "Invalid MCP tool descriptor entry");
   }
   auto result{sourcemeta::core::JSON::make_object()};
   if (version == MCPProtocolVersion::V_2026_07_28) {
@@ -458,7 +459,7 @@ auto mcp_make_resources_list_result(
   require_array(resources);
   for (const auto &entry : resources.as_array()) {
     internal::require(internal::valid_resource(version, entry, false, false),
-                      "Invalid MCP result entry");
+                      "Invalid MCP resource descriptor entry");
   }
   auto result{sourcemeta::core::JSON::make_object()};
   if (version == MCPProtocolVersion::V_2026_07_28) {
@@ -483,7 +484,7 @@ auto mcp_make_resource_templates_list_result(
   require_array(resource_templates);
   for (const auto &entry : resource_templates.as_array()) {
     internal::require(internal::valid_resource(version, entry, false, true),
-                      "Invalid MCP result entry");
+                      "Invalid MCP resource template entry");
   }
   auto result{sourcemeta::core::JSON::make_object()};
   if (version == MCPProtocolVersion::V_2026_07_28) {
@@ -508,7 +509,7 @@ auto mcp_make_prompts_list_result(
   require_array(prompts);
   for (const auto &entry : prompts.as_array()) {
     internal::require(internal::valid_prompt(version, entry),
-                      "Invalid MCP result entry");
+                      "Invalid MCP prompt descriptor entry");
   }
   auto result{sourcemeta::core::JSON::make_object()};
   if (version == MCPProtocolVersion::V_2026_07_28) {

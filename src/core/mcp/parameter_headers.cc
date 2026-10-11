@@ -31,19 +31,33 @@ auto value_at(const JSON &arguments, const MCPHeaderParameter &parameter)
   return value->is_null() ? nullptr : value;
 }
 
+// The specification constrains each mirrored parameter name, type and location
+// separately, so each constraint reports itself
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#schema-extension
 void require_parameters(const std::span<const MCPHeaderParameter> parameters) {
   std::set<std::string> names;
   for (const auto &parameter : parameters) {
     std::string name{parameter.name};
     sourcemeta::core::to_lowercase(name);
+    // A name must be non-empty and match HTTP field-name token syntax, which
+    // also rules out control characters
     sourcemeta::core::internal::require(
-        sourcemeta::core::http_is_token(parameter.name) &&
-            !parameter.path.empty() &&
-            (parameter.type == JSON::Type::String ||
-             parameter.type == JSON::Type::Integer ||
-             parameter.type == JSON::Type::Boolean) &&
-            names.insert(std::move(name)).second,
-        "Invalid or duplicate parameter header descriptor");
+        sourcemeta::core::http_is_token(parameter.name),
+        "Parameter header names must be non-empty HTTP tokens");
+    // Only a property statically reachable from the schema root may be
+    // mirrored, which a chain of property names expresses
+    sourcemeta::core::internal::require(
+        !parameter.path.empty(),
+        "Parameter header descriptors must name a property path");
+    // Primitive types only, and a JSON number is explicitly not permitted
+    sourcemeta::core::internal::require(
+        parameter.type == JSON::Type::String ||
+            parameter.type == JSON::Type::Integer ||
+            parameter.type == JSON::Type::Boolean,
+        "Parameter headers only mirror strings, integers and booleans");
+    sourcemeta::core::internal::require(
+        names.insert(std::move(name)).second,
+        "Parameter header names must be case-insensitively unique");
   }
 }
 

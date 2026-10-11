@@ -16,10 +16,15 @@ auto optional_string(const JSON &value, const JSON::StringView name,
   return (field == nullptr) || field->is_string();
 }
 
+// The acknowledgment reflects only the subset the server agreed to honor, and
+// a notification type the server does not support is omitted rather than
+// acknowledged as false, so an event survives the intersection only when both
+// sides opted into it
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/subscriptions
 auto opt_in(const std::optional<bool> requested,
             const std::optional<bool> supported) -> std::optional<bool> {
-  return requested.has_value()
-             ? std::optional<bool>{*requested && supported.value_or(false)}
+  return requested.value_or(false) && supported.value_or(false)
+             ? std::optional<bool>{true}
              : std::nullopt;
 }
 } // namespace
@@ -89,11 +94,10 @@ auto mcp_intersect_subscription_filters(const MCPSubscriptionFilter &requested,
       opt_in(requested.prompts_list_changed, supported.prompts_list_changed);
   result.resources_list_changed = opt_in(requested.resources_list_changed,
                                          supported.resources_list_changed);
-  if (requested.resource_subscriptions) {
+  if (requested.resource_subscriptions && supported.resource_subscriptions) {
     result.resource_subscriptions.emplace();
     for (const auto uri : *requested.resource_subscriptions) {
-      if (supported.resource_subscriptions &&
-          std::find(supported.resource_subscriptions->begin(),
+      if (std::find(supported.resource_subscriptions->begin(),
                     supported.resource_subscriptions->end(),
                     uri) != supported.resource_subscriptions->end()) {
         result.resource_subscriptions->push_back(uri);

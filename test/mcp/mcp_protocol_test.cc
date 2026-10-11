@@ -1,27 +1,26 @@
 #include <sourcemeta/core/mcp.h>
 
-#include <sourcemeta/core/http.h>
 #include <sourcemeta/core/json.h>
-#include <sourcemeta/core/jsonrpc.h>
 
 #include <sourcemeta/core/test.h>
 
-#include <array>
-#include <stdexcept>
-#include <vector>
+#include <string> // std::string
 
-#include <cstddef>  // std::size_t
-#include <cstdint>  // std::int64_t
-#include <limits>   // std::numeric_limits
-#include <optional> // std::optional, std::nullopt
-#include <sstream>
-#include <string>
-#include <utility> // std::move
+TEST(protocol_version_constant_2025_03_26) {
+  EXPECT_EQ(sourcemeta::core::MCP_PROTOCOL_VERSION_2025_03_26, "2025-03-26");
+}
 
-namespace {
-using namespace sourcemeta::core;
+TEST(protocol_version_constant_2025_06_18) {
+  EXPECT_EQ(sourcemeta::core::MCP_PROTOCOL_VERSION_2025_06_18, "2025-06-18");
+}
 
-} // namespace
+TEST(protocol_version_constant_2025_11_25) {
+  EXPECT_EQ(sourcemeta::core::MCP_PROTOCOL_VERSION_2025_11_25, "2025-11-25");
+}
+
+TEST(protocol_version_constant_2026_07_28) {
+  EXPECT_EQ(sourcemeta::core::MCP_PROTOCOL_VERSION_2026_07_28, "2026-07-28");
+}
 
 TEST(protocol_version_string_2025_03_26) {
   EXPECT_EQ(sourcemeta::core::mcp_protocol_version_string(
@@ -47,219 +46,547 @@ TEST(protocol_version_string_2026_07_28) {
             "2026-07-28");
 }
 
-TEST(method_initialize) {
+TEST(resolve_protocol_version_2025_03_26) {
+  EXPECT_EQ(sourcemeta::core::mcp_resolve_protocol_version("2025-03-26"),
+            sourcemeta::core::MCPProtocolVersion::V_2025_03_26);
+}
+
+TEST(resolve_protocol_version_2025_06_18) {
+  EXPECT_EQ(sourcemeta::core::mcp_resolve_protocol_version("2025-06-18"),
+            sourcemeta::core::MCPProtocolVersion::V_2025_06_18);
+}
+
+TEST(resolve_protocol_version_2025_11_25) {
+  EXPECT_EQ(sourcemeta::core::mcp_resolve_protocol_version("2025-11-25"),
+            sourcemeta::core::MCPProtocolVersion::V_2025_11_25);
+}
+
+TEST(resolve_protocol_version_2026_07_28) {
+  EXPECT_EQ(sourcemeta::core::mcp_resolve_protocol_version("2026-07-28"),
+            sourcemeta::core::MCPProtocolVersion::V_2026_07_28);
+}
+
+// Resolution does not guess, so a caller that wants the pre-header default of
+// 2025-03-26 opts into it explicitly
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#protocol-version-header
+TEST(resolve_protocol_version_rejects_an_empty_string) {
+  EXPECT_FALSE(sourcemeta::core::mcp_resolve_protocol_version("").has_value());
+}
+
+TEST(resolve_protocol_version_rejects_an_unknown_revision) {
+  EXPECT_FALSE(
+      sourcemeta::core::mcp_resolve_protocol_version("1999-01-01").has_value());
+}
+
+TEST(resolve_protocol_version_rejects_a_malformed_revision) {
+  EXPECT_FALSE(
+      sourcemeta::core::mcp_resolve_protocol_version("2026/07/28").has_value());
+}
+
+TEST(resolve_protocol_version_rejects_a_padded_revision) {
+  EXPECT_FALSE(sourcemeta::core::mcp_resolve_protocol_version(" 2026-07-28 ")
+                   .has_value());
+}
+
+TEST(resolve_protocol_version_rejects_a_prefix) {
+  EXPECT_FALSE(
+      sourcemeta::core::mcp_resolve_protocol_version("2026-07").has_value());
+}
+
+TEST(resolve_protocol_version_rejects_the_draft_revision) {
+  EXPECT_FALSE(
+      sourcemeta::core::mcp_resolve_protocol_version("draft").has_value());
+}
+
+TEST(resolve_protocol_version_rejects_the_first_revision) {
+  EXPECT_FALSE(
+      sourcemeta::core::mcp_resolve_protocol_version("2024-11-05").has_value());
+}
+
+TEST(resolve_protocol_version_of_a_runtime_string) {
+  const std::string value{"2026-07-28"};
+  EXPECT_EQ(sourcemeta::core::mcp_resolve_protocol_version(value),
+            sourcemeta::core::MCPProtocolVersion::V_2026_07_28);
+}
+
+TEST(protocol_version_is_valid_2025_03_26) {
+  EXPECT_TRUE(sourcemeta::core::mcp_protocol_version_is_valid("2025-03-26"));
+}
+
+TEST(protocol_version_is_valid_2025_06_18) {
+  EXPECT_TRUE(sourcemeta::core::mcp_protocol_version_is_valid("2025-06-18"));
+}
+
+TEST(protocol_version_is_valid_2025_11_25) {
+  EXPECT_TRUE(sourcemeta::core::mcp_protocol_version_is_valid("2025-11-25"));
+}
+
+TEST(protocol_version_is_valid_2026_07_28) {
+  EXPECT_TRUE(sourcemeta::core::mcp_protocol_version_is_valid("2026-07-28"));
+}
+
+TEST(protocol_version_is_valid_rejects_an_unknown_revision) {
+  EXPECT_FALSE(sourcemeta::core::mcp_protocol_version_is_valid("1999-01-01"));
+}
+
+TEST(protocol_version_is_valid_rejects_an_empty_string) {
+  EXPECT_FALSE(sourcemeta::core::mcp_protocol_version_is_valid(""));
+}
+
+TEST(protocol_version_2025_03_26_is_at_least_2025_03_26) {
+  EXPECT_TRUE(sourcemeta::core::mcp_protocol_version_at_least(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26));
+}
+
+TEST(protocol_version_2025_03_26_is_at_least_2025_06_18) {
+  EXPECT_FALSE(sourcemeta::core::mcp_protocol_version_at_least(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18));
+}
+
+TEST(protocol_version_2025_03_26_is_at_least_2025_11_25) {
+  EXPECT_FALSE(sourcemeta::core::mcp_protocol_version_at_least(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25));
+}
+
+TEST(protocol_version_2025_03_26_is_at_least_2026_07_28) {
+  EXPECT_FALSE(sourcemeta::core::mcp_protocol_version_at_least(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28));
+}
+
+TEST(protocol_version_2025_06_18_is_at_least_2025_03_26) {
+  EXPECT_TRUE(sourcemeta::core::mcp_protocol_version_at_least(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26));
+}
+
+TEST(protocol_version_2025_06_18_is_at_least_2025_06_18) {
+  EXPECT_TRUE(sourcemeta::core::mcp_protocol_version_at_least(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18));
+}
+
+TEST(protocol_version_2025_06_18_is_at_least_2025_11_25) {
+  EXPECT_FALSE(sourcemeta::core::mcp_protocol_version_at_least(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25));
+}
+
+TEST(protocol_version_2025_06_18_is_at_least_2026_07_28) {
+  EXPECT_FALSE(sourcemeta::core::mcp_protocol_version_at_least(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28));
+}
+
+TEST(protocol_version_2025_11_25_is_at_least_2025_03_26) {
+  EXPECT_TRUE(sourcemeta::core::mcp_protocol_version_at_least(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26));
+}
+
+TEST(protocol_version_2025_11_25_is_at_least_2025_06_18) {
+  EXPECT_TRUE(sourcemeta::core::mcp_protocol_version_at_least(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18));
+}
+
+TEST(protocol_version_2025_11_25_is_at_least_2025_11_25) {
+  EXPECT_TRUE(sourcemeta::core::mcp_protocol_version_at_least(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25));
+}
+
+TEST(protocol_version_2025_11_25_is_at_least_2026_07_28) {
+  EXPECT_FALSE(sourcemeta::core::mcp_protocol_version_at_least(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28));
+}
+
+TEST(protocol_version_2026_07_28_is_at_least_2025_03_26) {
+  EXPECT_TRUE(sourcemeta::core::mcp_protocol_version_at_least(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26));
+}
+
+TEST(protocol_version_2026_07_28_is_at_least_2025_06_18) {
+  EXPECT_TRUE(sourcemeta::core::mcp_protocol_version_at_least(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18));
+}
+
+TEST(protocol_version_2026_07_28_is_at_least_2025_11_25) {
+  EXPECT_TRUE(sourcemeta::core::mcp_protocol_version_at_least(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25));
+}
+
+TEST(protocol_version_2026_07_28_is_at_least_2026_07_28) {
+  EXPECT_TRUE(sourcemeta::core::mcp_protocol_version_at_least(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28));
+}
+
+TEST(method_constant_method_completion_complete) {
+  EXPECT_EQ(sourcemeta::core::MCP_METHOD_COMPLETION_COMPLETE,
+            "completion/complete");
+}
+
+TEST(method_constant_method_elicitation_create) {
+  EXPECT_EQ(sourcemeta::core::MCP_METHOD_ELICITATION_CREATE,
+            "elicitation/create");
+}
+
+TEST(method_constant_method_initialize) {
   EXPECT_EQ(sourcemeta::core::MCP_METHOD_INITIALIZE, "initialize");
 }
 
-TEST(method_ping) { EXPECT_EQ(sourcemeta::core::MCP_METHOD_PING, "ping"); }
-
-TEST(method_tools_list) {
-  EXPECT_EQ(sourcemeta::core::MCP_METHOD_TOOLS_LIST, "tools/list");
+TEST(method_constant_method_logging_set_level) {
+  EXPECT_EQ(sourcemeta::core::MCP_METHOD_LOGGING_SET_LEVEL, "logging/setLevel");
 }
 
-TEST(method_tools_call) {
-  EXPECT_EQ(sourcemeta::core::MCP_METHOD_TOOLS_CALL, "tools/call");
+TEST(method_constant_method_notifications_cancelled) {
+  EXPECT_EQ(sourcemeta::core::MCP_METHOD_NOTIFICATIONS_CANCELLED,
+            "notifications/cancelled");
 }
 
-TEST(method_resources_list) {
+TEST(method_constant_method_notifications_elicitation_complete) {
+  EXPECT_EQ(sourcemeta::core::MCP_METHOD_NOTIFICATIONS_ELICITATION_COMPLETE,
+            "notifications/elicitation/complete");
+}
+
+TEST(method_constant_method_notifications_initialized) {
+  EXPECT_EQ(sourcemeta::core::MCP_METHOD_NOTIFICATIONS_INITIALIZED,
+            "notifications/initialized");
+}
+
+TEST(method_constant_method_notifications_message) {
+  EXPECT_EQ(sourcemeta::core::MCP_METHOD_NOTIFICATIONS_MESSAGE,
+            "notifications/message");
+}
+
+TEST(method_constant_method_notifications_progress) {
+  EXPECT_EQ(sourcemeta::core::MCP_METHOD_NOTIFICATIONS_PROGRESS,
+            "notifications/progress");
+}
+
+TEST(method_constant_method_notifications_prompts_list_changed) {
+  EXPECT_EQ(sourcemeta::core::MCP_METHOD_NOTIFICATIONS_PROMPTS_LIST_CHANGED,
+            "notifications/prompts/list_changed");
+}
+
+TEST(method_constant_method_notifications_resources_list_changed) {
+  EXPECT_EQ(sourcemeta::core::MCP_METHOD_NOTIFICATIONS_RESOURCES_LIST_CHANGED,
+            "notifications/resources/list_changed");
+}
+
+TEST(method_constant_method_notifications_resources_updated) {
+  EXPECT_EQ(sourcemeta::core::MCP_METHOD_NOTIFICATIONS_RESOURCES_UPDATED,
+            "notifications/resources/updated");
+}
+
+TEST(method_constant_method_notifications_roots_list_changed) {
+  EXPECT_EQ(sourcemeta::core::MCP_METHOD_NOTIFICATIONS_ROOTS_LIST_CHANGED,
+            "notifications/roots/list_changed");
+}
+
+TEST(method_constant_method_notifications_subscriptions_acknowledged) {
+  EXPECT_EQ(
+      sourcemeta::core::MCP_METHOD_NOTIFICATIONS_SUBSCRIPTIONS_ACKNOWLEDGED,
+      "notifications/subscriptions/acknowledged");
+}
+
+TEST(method_constant_method_notifications_tasks_status) {
+  EXPECT_EQ(sourcemeta::core::MCP_METHOD_NOTIFICATIONS_TASKS_STATUS,
+            "notifications/tasks/status");
+}
+
+TEST(method_constant_method_notifications_tools_list_changed) {
+  EXPECT_EQ(sourcemeta::core::MCP_METHOD_NOTIFICATIONS_TOOLS_LIST_CHANGED,
+            "notifications/tools/list_changed");
+}
+
+TEST(method_constant_method_ping) {
+  EXPECT_EQ(sourcemeta::core::MCP_METHOD_PING, "ping");
+}
+
+TEST(method_constant_method_prompts_get) {
+  EXPECT_EQ(sourcemeta::core::MCP_METHOD_PROMPTS_GET, "prompts/get");
+}
+
+TEST(method_constant_method_prompts_list) {
+  EXPECT_EQ(sourcemeta::core::MCP_METHOD_PROMPTS_LIST, "prompts/list");
+}
+
+TEST(method_constant_method_resources_list) {
   EXPECT_EQ(sourcemeta::core::MCP_METHOD_RESOURCES_LIST, "resources/list");
 }
 
-TEST(method_resources_read) {
+TEST(method_constant_method_resources_read) {
   EXPECT_EQ(sourcemeta::core::MCP_METHOD_RESOURCES_READ, "resources/read");
 }
 
-TEST(method_resources_templates_list) {
+TEST(method_constant_method_resources_subscribe) {
+  EXPECT_EQ(sourcemeta::core::MCP_METHOD_RESOURCES_SUBSCRIBE,
+            "resources/subscribe");
+}
+
+TEST(method_constant_method_resources_templates_list) {
   EXPECT_EQ(sourcemeta::core::MCP_METHOD_RESOURCES_TEMPLATES_LIST,
             "resources/templates/list");
 }
 
-TEST(is_request_method_initialize) {
-  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
-      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "initialize"));
+TEST(method_constant_method_resources_unsubscribe) {
+  EXPECT_EQ(sourcemeta::core::MCP_METHOD_RESOURCES_UNSUBSCRIBE,
+            "resources/unsubscribe");
 }
 
-TEST(is_request_method_ping) {
-  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
-      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "ping"));
+TEST(method_constant_method_roots_list) {
+  EXPECT_EQ(sourcemeta::core::MCP_METHOD_ROOTS_LIST, "roots/list");
 }
 
-TEST(is_request_method_tools_list) {
-  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
-      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "tools/list"));
+TEST(method_constant_method_sampling_create_message) {
+  EXPECT_EQ(sourcemeta::core::MCP_METHOD_SAMPLING_CREATE_MESSAGE,
+            "sampling/createMessage");
 }
 
-TEST(is_request_method_tools_call) {
-  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
-      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "tools/call"));
+TEST(method_constant_method_server_discover) {
+  EXPECT_EQ(sourcemeta::core::MCP_METHOD_SERVER_DISCOVER, "server/discover");
 }
 
-TEST(is_request_method_resources_list) {
-  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
-      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "resources/list"));
+TEST(method_constant_method_subscriptions_listen) {
+  EXPECT_EQ(sourcemeta::core::MCP_METHOD_SUBSCRIPTIONS_LISTEN,
+            "subscriptions/listen");
 }
 
-TEST(is_request_method_resources_read) {
-  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
-      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "resources/read"));
+TEST(method_constant_method_tasks_cancel) {
+  EXPECT_EQ(sourcemeta::core::MCP_METHOD_TASKS_CANCEL, "tasks/cancel");
 }
 
-TEST(is_request_method_resources_templates_list) {
-  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
-      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
-      "resources/templates/list"));
+TEST(method_constant_method_tasks_get) {
+  EXPECT_EQ(sourcemeta::core::MCP_METHOD_TASKS_GET, "tasks/get");
 }
 
-TEST(is_request_method_unknown) {
-  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
-      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "foo/bar"));
+TEST(method_constant_method_tasks_list) {
+  EXPECT_EQ(sourcemeta::core::MCP_METHOD_TASKS_LIST, "tasks/list");
 }
 
-TEST(is_request_method_empty) {
-  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
-      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, ""));
+TEST(method_constant_method_tasks_result) {
+  EXPECT_EQ(sourcemeta::core::MCP_METHOD_TASKS_RESULT, "tasks/result");
 }
 
-TEST(resolve_protocol_version_empty_returns_nullopt) {
-  const auto result{sourcemeta::core::mcp_resolve_protocol_version("")};
-  EXPECT_FALSE(result.has_value());
+TEST(method_constant_method_tools_call) {
+  EXPECT_EQ(sourcemeta::core::MCP_METHOD_TOOLS_CALL, "tools/call");
 }
 
-TEST(resolve_protocol_version_2025_03_26) {
-  const auto result{
-      sourcemeta::core::mcp_resolve_protocol_version("2025-03-26")};
-  EXPECT_TRUE(result.has_value());
-  EXPECT_EQ(result.value(), sourcemeta::core::MCPProtocolVersion::V_2025_03_26);
+TEST(method_constant_method_tools_list) {
+  EXPECT_EQ(sourcemeta::core::MCP_METHOD_TOOLS_LIST, "tools/list");
 }
 
-TEST(resolve_protocol_version_2025_06_18) {
-  const auto result{
-      sourcemeta::core::mcp_resolve_protocol_version("2025-06-18")};
-  EXPECT_TRUE(result.has_value());
-  EXPECT_EQ(result.value(), sourcemeta::core::MCPProtocolVersion::V_2025_06_18);
-}
-
-TEST(resolve_protocol_version_2025_11_25) {
-  const auto result{
-      sourcemeta::core::mcp_resolve_protocol_version("2025-11-25")};
-  EXPECT_TRUE(result.has_value());
-  EXPECT_EQ(result.value(), sourcemeta::core::MCPProtocolVersion::V_2025_11_25);
-}
-
-TEST(resolve_protocol_version_2026_07_28) {
-  const auto result{
-      sourcemeta::core::mcp_resolve_protocol_version("2026-07-28")};
-  EXPECT_TRUE(result.has_value());
-  EXPECT_EQ(result.value(), sourcemeta::core::MCPProtocolVersion::V_2026_07_28);
-}
-
-TEST(resolve_protocol_version_unknown) {
-  EXPECT_FALSE(
-      sourcemeta::core::mcp_resolve_protocol_version("9999-01-01").has_value());
-}
-
-TEST(resolve_protocol_version_malformed) {
-  EXPECT_FALSE(
-      sourcemeta::core::mcp_resolve_protocol_version("not-a-date").has_value());
-}
-
-TEST(resolve_protocol_version_unrecognized_dates) {
-  EXPECT_FALSE(
-      sourcemeta::core::mcp_resolve_protocol_version("2026-07-27").has_value());
-  EXPECT_FALSE(sourcemeta::core::mcp_resolve_protocol_version("2026-07-28 ")
-                   .has_value());
-  EXPECT_FALSE(sourcemeta::core::mcp_resolve_protocol_version(" 2026-07-28")
-                   .has_value());
-  EXPECT_FALSE(
-      sourcemeta::core::mcp_resolve_protocol_version("2026-7-28").has_value());
-  EXPECT_FALSE(
-      sourcemeta::core::mcp_resolve_protocol_version("2027-01-01").has_value());
-}
-
-TEST(protocol_version_at_least_2025_03_26_vs_2025_03_26) {
-  EXPECT_TRUE(sourcemeta::core::mcp_protocol_version_at_least(
-      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+// 2026-07-28 dropped the initialize handshake for per-request metadata
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/index#statelessness
+TEST(uses_initialization_handshake_2025_03_26) {
+  EXPECT_TRUE(sourcemeta::core::mcp_uses_initialization_handshake(
       sourcemeta::core::MCPProtocolVersion::V_2025_03_26));
 }
 
-TEST(protocol_version_at_least_2025_06_18_vs_2025_06_18) {
-  EXPECT_TRUE(sourcemeta::core::mcp_protocol_version_at_least(
-      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+TEST(uses_initialization_handshake_2025_06_18) {
+  EXPECT_TRUE(sourcemeta::core::mcp_uses_initialization_handshake(
       sourcemeta::core::MCPProtocolVersion::V_2025_06_18));
 }
 
-TEST(protocol_version_at_least_2025_11_25_vs_2025_11_25) {
-  EXPECT_TRUE(sourcemeta::core::mcp_protocol_version_at_least(
-      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+TEST(uses_initialization_handshake_2025_11_25) {
+  EXPECT_TRUE(sourcemeta::core::mcp_uses_initialization_handshake(
       sourcemeta::core::MCPProtocolVersion::V_2025_11_25));
 }
 
-TEST(protocol_version_at_least_2026_07_28_vs_2026_07_28) {
-  EXPECT_TRUE(sourcemeta::core::mcp_protocol_version_at_least(
-      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+TEST(uses_initialization_handshake_2026_07_28) {
+  EXPECT_FALSE(sourcemeta::core::mcp_uses_initialization_handshake(
       sourcemeta::core::MCPProtocolVersion::V_2026_07_28));
 }
 
-TEST(protocol_version_at_least_2026_07_28_vs_2025_03_26) {
-  EXPECT_TRUE(sourcemeta::core::mcp_protocol_version_at_least(
-      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+// The liveness check is gone from 2026-07-28, which has no session to keep
+// alive
+// https://modelcontextprotocol.io/specification/2026-07-28/changelog
+TEST(supports_ping_2025_03_26) {
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_ping(
       sourcemeta::core::MCPProtocolVersion::V_2025_03_26));
 }
 
-TEST(protocol_version_at_least_2026_07_28_vs_2025_06_18) {
-  EXPECT_TRUE(sourcemeta::core::mcp_protocol_version_at_least(
-      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+TEST(supports_ping_2025_06_18) {
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_ping(
       sourcemeta::core::MCPProtocolVersion::V_2025_06_18));
 }
 
-TEST(protocol_version_at_least_2026_07_28_vs_2025_11_25) {
-  EXPECT_TRUE(sourcemeta::core::mcp_protocol_version_at_least(
-      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+TEST(supports_ping_2025_11_25) {
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_ping(
       sourcemeta::core::MCPProtocolVersion::V_2025_11_25));
 }
 
-TEST(protocol_version_at_least_2025_03_26_vs_2026_07_28) {
-  EXPECT_FALSE(sourcemeta::core::mcp_protocol_version_at_least(
-      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+TEST(supports_ping_2026_07_28) {
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_ping(
       sourcemeta::core::MCPProtocolVersion::V_2026_07_28));
 }
 
-TEST(protocol_version_at_least_2025_06_18_vs_2026_07_28) {
-  EXPECT_FALSE(sourcemeta::core::mcp_protocol_version_at_least(
-      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
-      sourcemeta::core::MCPProtocolVersion::V_2026_07_28));
-}
-
-TEST(protocol_version_at_least_2025_11_25_vs_2026_07_28) {
-  EXPECT_FALSE(sourcemeta::core::mcp_protocol_version_at_least(
-      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
-      sourcemeta::core::MCPProtocolVersion::V_2026_07_28));
-}
-
-TEST(protocol_version_at_least_2025_06_18_vs_2025_03_26) {
-  EXPECT_TRUE(sourcemeta::core::mcp_protocol_version_at_least(
-      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+// 2026-07-28 is a stateless protocol, so a connection is not a session
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/index#statelessness
+TEST(supports_protocol_sessions_2025_03_26) {
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_protocol_sessions(
       sourcemeta::core::MCPProtocolVersion::V_2025_03_26));
 }
 
-TEST(protocol_version_at_least_2025_03_26_vs_2025_06_18) {
-  EXPECT_FALSE(sourcemeta::core::mcp_protocol_version_at_least(
-      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+TEST(supports_protocol_sessions_2025_06_18) {
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_protocol_sessions(
       sourcemeta::core::MCPProtocolVersion::V_2025_06_18));
 }
 
-TEST(protocol_version_at_least_2025_11_25_vs_2025_06_18) {
-  EXPECT_TRUE(sourcemeta::core::mcp_protocol_version_at_least(
-      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
-      sourcemeta::core::MCPProtocolVersion::V_2025_06_18));
-}
-
-TEST(protocol_version_at_least_2025_06_18_vs_2025_11_25) {
-  EXPECT_FALSE(sourcemeta::core::mcp_protocol_version_at_least(
-      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+TEST(supports_protocol_sessions_2025_11_25) {
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_protocol_sessions(
       sourcemeta::core::MCPProtocolVersion::V_2025_11_25));
 }
 
+TEST(supports_protocol_sessions_2026_07_28) {
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_protocol_sessions(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28));
+}
+
+// 2026-07-28 carries the protocol version and client capabilities on every
+// request instead of negotiating them once
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/index#_meta
+TEST(requires_request_meta_2025_03_26) {
+  EXPECT_FALSE(sourcemeta::core::mcp_requires_request_meta(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26));
+}
+
+TEST(requires_request_meta_2025_06_18) {
+  EXPECT_FALSE(sourcemeta::core::mcp_requires_request_meta(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18));
+}
+
+TEST(requires_request_meta_2025_11_25) {
+  EXPECT_FALSE(sourcemeta::core::mcp_requires_request_meta(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25));
+}
+
+TEST(requires_request_meta_2026_07_28) {
+  EXPECT_TRUE(sourcemeta::core::mcp_requires_request_meta(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28));
+}
+
+// A 2026-07-28 result says what kind of result it is
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/index#resulttype
+TEST(requires_result_type_2025_03_26) {
+  EXPECT_FALSE(sourcemeta::core::mcp_requires_result_type(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26));
+}
+
+TEST(requires_result_type_2025_06_18) {
+  EXPECT_FALSE(sourcemeta::core::mcp_requires_result_type(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18));
+}
+
+TEST(requires_result_type_2025_11_25) {
+  EXPECT_FALSE(sourcemeta::core::mcp_requires_result_type(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25));
+}
+
+TEST(requires_result_type_2026_07_28) {
+  EXPECT_TRUE(sourcemeta::core::mcp_requires_result_type(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28));
+}
+
+// 2026-07-28 added caching hints to the six cacheable operations
+// https://modelcontextprotocol.io/specification/2026-07-28/server/utilities/caching#cacheable-results
+TEST(requires_cacheable_metadata_2025_03_26) {
+  EXPECT_FALSE(sourcemeta::core::mcp_requires_cacheable_metadata(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26));
+}
+
+TEST(requires_cacheable_metadata_2025_06_18) {
+  EXPECT_FALSE(sourcemeta::core::mcp_requires_cacheable_metadata(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18));
+}
+
+TEST(requires_cacheable_metadata_2025_11_25) {
+  EXPECT_FALSE(sourcemeta::core::mcp_requires_cacheable_metadata(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25));
+}
+
+TEST(requires_cacheable_metadata_2026_07_28) {
+  EXPECT_TRUE(sourcemeta::core::mcp_requires_cacheable_metadata(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28));
+}
+
+// Discovery replaced initialize as the way to learn what a server offers
+// https://modelcontextprotocol.io/specification/2026-07-28/server/discover
+TEST(supports_server_discover_2025_03_26) {
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_server_discover(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26));
+}
+
+TEST(supports_server_discover_2025_06_18) {
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_server_discover(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18));
+}
+
+TEST(supports_server_discover_2025_11_25) {
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_server_discover(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25));
+}
+
+TEST(supports_server_discover_2026_07_28) {
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_server_discover(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28));
+}
+
+// Listening replaced the resource subscribe request and the HTTP GET stream
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/subscriptions
+TEST(supports_subscriptions_listen_2025_03_26) {
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_subscriptions_listen(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26));
+}
+
+TEST(supports_subscriptions_listen_2025_06_18) {
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_subscriptions_listen(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18));
+}
+
+TEST(supports_subscriptions_listen_2025_11_25) {
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_subscriptions_listen(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25));
+}
+
+TEST(supports_subscriptions_listen_2026_07_28) {
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_subscriptions_listen(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28));
+}
+
+// Multi round-trip requests replaced server-initiated JSON-RPC requests
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/mrtr
+TEST(supports_mrtr_2025_03_26) {
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_mrtr(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26));
+}
+
+TEST(supports_mrtr_2025_06_18) {
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_mrtr(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18));
+}
+
+TEST(supports_mrtr_2025_11_25) {
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_mrtr(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25));
+}
+
+TEST(supports_mrtr_2026_07_28) {
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_mrtr(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28));
+}
+
+// Tools gained an output schema in 2025-06-18
+// https://modelcontextprotocol.io/specification/2026-07-28/schema#tool
 TEST(supports_output_schema_2025_03_26) {
   EXPECT_FALSE(sourcemeta::core::mcp_supports_output_schema(
       sourcemeta::core::MCPProtocolVersion::V_2025_03_26));
@@ -280,6 +607,8 @@ TEST(supports_output_schema_2026_07_28) {
       sourcemeta::core::MCPProtocolVersion::V_2026_07_28));
 }
 
+// Tool results gained structured content in 2025-06-18
+// https://modelcontextprotocol.io/specification/2026-07-28/schema#calltoolresult
 TEST(supports_structured_content_2025_03_26) {
   EXPECT_FALSE(sourcemeta::core::mcp_supports_structured_content(
       sourcemeta::core::MCPProtocolVersion::V_2025_03_26));
@@ -300,6 +629,8 @@ TEST(supports_structured_content_2026_07_28) {
       sourcemeta::core::MCPProtocolVersion::V_2026_07_28));
 }
 
+// Resource links became a content block in 2025-06-18
+// https://modelcontextprotocol.io/specification/2026-07-28/schema#resourcelink
 TEST(supports_resource_link_content_2025_03_26) {
   EXPECT_FALSE(sourcemeta::core::mcp_supports_resource_link_content(
       sourcemeta::core::MCPProtocolVersion::V_2025_03_26));
@@ -320,6 +651,8 @@ TEST(supports_resource_link_content_2026_07_28) {
       sourcemeta::core::MCPProtocolVersion::V_2026_07_28));
 }
 
+// Implementations gained a display title in 2025-06-18
+// https://modelcontextprotocol.io/specification/2026-07-28/schema#implementation
 TEST(supports_implementation_title_2025_03_26) {
   EXPECT_FALSE(sourcemeta::core::mcp_supports_implementation_title(
       sourcemeta::core::MCPProtocolVersion::V_2025_03_26));
@@ -340,6 +673,8 @@ TEST(supports_implementation_title_2026_07_28) {
       sourcemeta::core::MCPProtocolVersion::V_2026_07_28));
 }
 
+// Implementations gained a description in 2025-11-25
+// https://modelcontextprotocol.io/specification/2026-07-28/schema#implementation
 TEST(supports_implementation_description_2025_03_26) {
   EXPECT_FALSE(sourcemeta::core::mcp_supports_implementation_description(
       sourcemeta::core::MCPProtocolVersion::V_2025_03_26));
@@ -360,6 +695,8 @@ TEST(supports_implementation_description_2026_07_28) {
       sourcemeta::core::MCPProtocolVersion::V_2026_07_28));
 }
 
+// Implementations gained a website URL in 2025-11-25
+// https://modelcontextprotocol.io/specification/2026-07-28/schema#implementation
 TEST(supports_implementation_website_url_2025_03_26) {
   EXPECT_FALSE(sourcemeta::core::mcp_supports_implementation_website_url(
       sourcemeta::core::MCPProtocolVersion::V_2025_03_26));
@@ -380,6 +717,8 @@ TEST(supports_implementation_website_url_2026_07_28) {
       sourcemeta::core::MCPProtocolVersion::V_2026_07_28));
 }
 
+// JSON-RPC batching existed only in 2025-03-26
+// https://modelcontextprotocol.io/specification/2026-07-28/changelog
 TEST(supports_jsonrpc_batching_2025_03_26) {
   EXPECT_TRUE(sourcemeta::core::mcp_supports_jsonrpc_batching(
       sourcemeta::core::MCPProtocolVersion::V_2025_03_26));
@@ -400,620 +739,2834 @@ TEST(supports_jsonrpc_batching_2026_07_28) {
       sourcemeta::core::MCPProtocolVersion::V_2026_07_28));
 }
 
-TEST(is_request_method_of_a_parsed_message) {
-  const auto message{sourcemeta::core::parse_json(R"JSON({
-    "jsonrpc": "2.0", "id": 1, "method": "tools/call"
-  })JSON")};
+// The client-to-server requests the revision defines in 2025-03-26
+// https://modelcontextprotocol.io/specification/2025-03-26/schema
+TEST(is_request_method_2025_03_26) {
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "completion/complete"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "elicitation/create"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "initialize"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "logging/setLevel"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/cancelled"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/elicitation/complete"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/initialized"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/message"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/progress"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/prompts/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/resources/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/resources/updated"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/roots/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/subscriptions/acknowledged"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/tasks/status"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/tools/list_changed"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "ping"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "prompts/get"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "prompts/list"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "resources/list"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "resources/read"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "resources/subscribe"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "resources/templates/list"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "resources/unsubscribe"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "roots/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "sampling/createMessage"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "server/discover"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "subscriptions/listen"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "tasks/cancel"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "tasks/get"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "tasks/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "tasks/result"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "tools/call"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "tools/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "custom/unknownMethod"));
+}
+
+// The client-to-server requests the revision defines in 2025-06-18
+// https://modelcontextprotocol.io/specification/2025-06-18/schema
+TEST(is_request_method_2025_06_18) {
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "completion/complete"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "elicitation/create"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "initialize"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "logging/setLevel"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/cancelled"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/elicitation/complete"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/initialized"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/message"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/progress"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/prompts/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/resources/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/resources/updated"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/roots/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/subscriptions/acknowledged"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/tasks/status"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/tools/list_changed"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "ping"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "prompts/get"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "prompts/list"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "resources/list"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "resources/read"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "resources/subscribe"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "resources/templates/list"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "resources/unsubscribe"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "roots/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "sampling/createMessage"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "server/discover"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "subscriptions/listen"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "tasks/cancel"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "tasks/get"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "tasks/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "tasks/result"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "tools/call"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "tools/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "custom/unknownMethod"));
+}
+
+// The client-to-server requests the revision defines in 2025-11-25
+// https://modelcontextprotocol.io/specification/2025-11-25/schema
+TEST(is_request_method_2025_11_25) {
   EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
       sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
-      message.at("method").to_string()));
-}
-
-TEST(supports_jsonrpc_batching_at_runtime) {
-  auto version_2025_03_26{sourcemeta::core::MCPProtocolVersion::V_2025_03_26};
-  auto version_2025_06_18{sourcemeta::core::MCPProtocolVersion::V_2025_06_18};
-  auto version_2025_11_25{sourcemeta::core::MCPProtocolVersion::V_2025_11_25};
-  auto version_2026_07_28{sourcemeta::core::MCPProtocolVersion::V_2026_07_28};
-  EXPECT_TRUE(
-      sourcemeta::core::mcp_supports_jsonrpc_batching(version_2025_03_26));
-  EXPECT_FALSE(
-      sourcemeta::core::mcp_supports_jsonrpc_batching(version_2025_06_18));
-  EXPECT_FALSE(
-      sourcemeta::core::mcp_supports_jsonrpc_batching(version_2025_11_25));
-  EXPECT_FALSE(
-      sourcemeta::core::mcp_supports_jsonrpc_batching(version_2026_07_28));
-}
-
-TEST(protocol_era_predicates_initialization_handshake) {
-  auto version_2025_03_26{sourcemeta::core::MCPProtocolVersion::V_2025_03_26};
-  auto version_2025_06_18{sourcemeta::core::MCPProtocolVersion::V_2025_06_18};
-  auto version_2025_11_25{sourcemeta::core::MCPProtocolVersion::V_2025_11_25};
-  auto version_2026_07_28{sourcemeta::core::MCPProtocolVersion::V_2026_07_28};
-  EXPECT_TRUE(
-      sourcemeta::core::mcp_uses_initialization_handshake(version_2025_03_26));
-  EXPECT_TRUE(
-      sourcemeta::core::mcp_uses_initialization_handshake(version_2025_06_18));
-  EXPECT_TRUE(
-      sourcemeta::core::mcp_uses_initialization_handshake(version_2025_11_25));
-  EXPECT_FALSE(
-      sourcemeta::core::mcp_uses_initialization_handshake(version_2026_07_28));
-}
-
-TEST(protocol_era_predicates_ping) {
-  auto version_2025_03_26{sourcemeta::core::MCPProtocolVersion::V_2025_03_26};
-  auto version_2025_06_18{sourcemeta::core::MCPProtocolVersion::V_2025_06_18};
-  auto version_2025_11_25{sourcemeta::core::MCPProtocolVersion::V_2025_11_25};
-  auto version_2026_07_28{sourcemeta::core::MCPProtocolVersion::V_2026_07_28};
-  EXPECT_TRUE(sourcemeta::core::mcp_supports_ping(version_2025_03_26));
-  EXPECT_TRUE(sourcemeta::core::mcp_supports_ping(version_2025_06_18));
-  EXPECT_TRUE(sourcemeta::core::mcp_supports_ping(version_2025_11_25));
-  EXPECT_FALSE(sourcemeta::core::mcp_supports_ping(version_2026_07_28));
-}
-
-TEST(protocol_era_predicates_protocol_sessions) {
-  auto version_2025_03_26{sourcemeta::core::MCPProtocolVersion::V_2025_03_26};
-  auto version_2025_06_18{sourcemeta::core::MCPProtocolVersion::V_2025_06_18};
-  auto version_2025_11_25{sourcemeta::core::MCPProtocolVersion::V_2025_11_25};
-  auto version_2026_07_28{sourcemeta::core::MCPProtocolVersion::V_2026_07_28};
-  EXPECT_TRUE(
-      sourcemeta::core::mcp_supports_protocol_sessions(version_2025_03_26));
-  EXPECT_TRUE(
-      sourcemeta::core::mcp_supports_protocol_sessions(version_2025_06_18));
-  EXPECT_TRUE(
-      sourcemeta::core::mcp_supports_protocol_sessions(version_2025_11_25));
-  EXPECT_FALSE(
-      sourcemeta::core::mcp_supports_protocol_sessions(version_2026_07_28));
-}
-
-TEST(protocol_era_predicates_requires_result_type) {
-  auto version_2025_03_26{sourcemeta::core::MCPProtocolVersion::V_2025_03_26};
-  auto version_2025_06_18{sourcemeta::core::MCPProtocolVersion::V_2025_06_18};
-  auto version_2025_11_25{sourcemeta::core::MCPProtocolVersion::V_2025_11_25};
-  auto version_2026_07_28{sourcemeta::core::MCPProtocolVersion::V_2026_07_28};
-  EXPECT_FALSE(sourcemeta::core::mcp_requires_result_type(version_2025_03_26));
-  EXPECT_FALSE(sourcemeta::core::mcp_requires_result_type(version_2025_06_18));
-  EXPECT_FALSE(sourcemeta::core::mcp_requires_result_type(version_2025_11_25));
-  EXPECT_TRUE(sourcemeta::core::mcp_requires_result_type(version_2026_07_28));
-}
-
-TEST(protocol_era_predicates_requires_cacheable_metadata) {
-  auto version_2025_03_26{sourcemeta::core::MCPProtocolVersion::V_2025_03_26};
-  auto version_2025_06_18{sourcemeta::core::MCPProtocolVersion::V_2025_06_18};
-  auto version_2025_11_25{sourcemeta::core::MCPProtocolVersion::V_2025_11_25};
-  auto version_2026_07_28{sourcemeta::core::MCPProtocolVersion::V_2026_07_28};
-  EXPECT_FALSE(
-      sourcemeta::core::mcp_requires_cacheable_metadata(version_2025_03_26));
-  EXPECT_FALSE(
-      sourcemeta::core::mcp_requires_cacheable_metadata(version_2025_06_18));
-  EXPECT_FALSE(
-      sourcemeta::core::mcp_requires_cacheable_metadata(version_2025_11_25));
-  EXPECT_TRUE(
-      sourcemeta::core::mcp_requires_cacheable_metadata(version_2026_07_28));
-}
-
-TEST(protocol_era_predicates_supports_server_discover) {
-  auto version_2025_03_26{sourcemeta::core::MCPProtocolVersion::V_2025_03_26};
-  auto version_2025_06_18{sourcemeta::core::MCPProtocolVersion::V_2025_06_18};
-  auto version_2025_11_25{sourcemeta::core::MCPProtocolVersion::V_2025_11_25};
-  auto version_2026_07_28{sourcemeta::core::MCPProtocolVersion::V_2026_07_28};
-  EXPECT_FALSE(
-      sourcemeta::core::mcp_supports_server_discover(version_2025_03_26));
-  EXPECT_FALSE(
-      sourcemeta::core::mcp_supports_server_discover(version_2025_06_18));
-  EXPECT_FALSE(
-      sourcemeta::core::mcp_supports_server_discover(version_2025_11_25));
-  EXPECT_TRUE(
-      sourcemeta::core::mcp_supports_server_discover(version_2026_07_28));
-}
-
-TEST(protocol_era_predicates_supports_mrtr) {
-  auto version_2025_03_26{sourcemeta::core::MCPProtocolVersion::V_2025_03_26};
-  auto version_2025_06_18{sourcemeta::core::MCPProtocolVersion::V_2025_06_18};
-  auto version_2025_11_25{sourcemeta::core::MCPProtocolVersion::V_2025_11_25};
-  auto version_2026_07_28{sourcemeta::core::MCPProtocolVersion::V_2026_07_28};
-  EXPECT_FALSE(sourcemeta::core::mcp_supports_mrtr(version_2025_03_26));
-  EXPECT_FALSE(sourcemeta::core::mcp_supports_mrtr(version_2025_06_18));
-  EXPECT_FALSE(sourcemeta::core::mcp_supports_mrtr(version_2025_11_25));
-  EXPECT_TRUE(sourcemeta::core::mcp_supports_mrtr(version_2026_07_28));
-}
-
-TEST(method_support_predicates_at_runtime) {
-  std::string method_init{sourcemeta::core::MCP_METHOD_INITIALIZE};
-  std::string method_ping{sourcemeta::core::MCP_METHOD_PING};
-  std::string method_init_notif{
-      sourcemeta::core::MCP_METHOD_NOTIFICATIONS_INITIALIZED};
-  std::string method_logging_set_level{
-      sourcemeta::core::MCP_METHOD_LOGGING_SET_LEVEL};
-  std::string method_discover{sourcemeta::core::MCP_METHOD_SERVER_DISCOVER};
-  std::string method_listen{sourcemeta::core::MCP_METHOD_SUBSCRIPTIONS_LISTEN};
-  std::string method_sub_ack{
-      sourcemeta::core::MCP_METHOD_NOTIFICATIONS_SUBSCRIPTIONS_ACKNOWLEDGED};
-  std::string method_tools_list{sourcemeta::core::MCP_METHOD_TOOLS_LIST};
-  std::string method_tools_call{sourcemeta::core::MCP_METHOD_TOOLS_CALL};
-  std::string method_resources_list{
-      sourcemeta::core::MCP_METHOD_RESOURCES_LIST};
-  std::string method_resources_read{
-      sourcemeta::core::MCP_METHOD_RESOURCES_READ};
-  std::string method_resources_templates_list{
-      sourcemeta::core::MCP_METHOD_RESOURCES_TEMPLATES_LIST};
-  std::string method_custom{"custom/unknownMethod"};
-
-  auto version_legacy{sourcemeta::core::MCPProtocolVersion::V_2025_11_25};
-  auto version_modern{sourcemeta::core::MCPProtocolVersion::V_2026_07_28};
-
-  // Legacy-only methods (removed in 2026-07-28)
-  EXPECT_TRUE(
-      sourcemeta::core::mcp_supports_method(version_legacy, method_init));
-  EXPECT_FALSE(
-      sourcemeta::core::mcp_supports_method(version_modern, method_init));
-  EXPECT_TRUE(
-      sourcemeta::core::mcp_supports_method(version_legacy, method_ping));
-  EXPECT_FALSE(
-      sourcemeta::core::mcp_supports_method(version_modern, method_ping));
-  EXPECT_TRUE(
-      sourcemeta::core::mcp_supports_method(version_legacy, method_init_notif));
-  EXPECT_FALSE(
-      sourcemeta::core::mcp_supports_method(version_modern, method_init_notif));
-  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(version_legacy,
-                                                    method_logging_set_level));
-  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(version_modern,
-                                                     method_logging_set_level));
-
-  // Modern-only methods (introduced in 2026-07-28)
-  EXPECT_FALSE(
-      sourcemeta::core::mcp_supports_method(version_legacy, method_discover));
-  EXPECT_TRUE(
-      sourcemeta::core::mcp_supports_method(version_modern, method_discover));
-  EXPECT_FALSE(
-      sourcemeta::core::mcp_supports_method(version_legacy, method_listen));
-  EXPECT_TRUE(
-      sourcemeta::core::mcp_supports_method(version_modern, method_listen));
-  EXPECT_FALSE(
-      sourcemeta::core::mcp_supports_method(version_legacy, method_sub_ack));
-  EXPECT_TRUE(
-      sourcemeta::core::mcp_supports_method(version_modern, method_sub_ack));
-
-  // Shared methods across versions
-  EXPECT_TRUE(
-      sourcemeta::core::mcp_supports_method(version_legacy, method_tools_list));
-  EXPECT_TRUE(
-      sourcemeta::core::mcp_supports_method(version_modern, method_tools_list));
-  EXPECT_TRUE(
-      sourcemeta::core::mcp_supports_method(version_legacy, method_tools_call));
-  EXPECT_TRUE(
-      sourcemeta::core::mcp_supports_method(version_modern, method_tools_call));
-  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(version_legacy,
-                                                    method_resources_list));
-  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(version_modern,
-                                                    method_resources_list));
-  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(version_legacy,
-                                                    method_resources_read));
-  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(version_modern,
-                                                    method_resources_read));
-  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
-      version_legacy, method_resources_templates_list));
-  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
-      version_modern, method_resources_templates_list));
-
-  // Unknown method
-  EXPECT_FALSE(
-      sourcemeta::core::mcp_supports_method(version_legacy, method_custom));
-  EXPECT_FALSE(
-      sourcemeta::core::mcp_supports_method(version_modern, method_custom));
-}
-
-TEST(method_server_discover) {
-  EXPECT_EQ(sourcemeta::core::MCP_METHOD_SERVER_DISCOVER, "server/discover");
-}
-
-TEST(method_support_per_version) {
-  using sourcemeta::core::MCPProtocolVersion;
-
-  // Legacy versions support legacy methods but not 2026-07-28 methods
-  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
-      MCPProtocolVersion::V_2025_11_25, "initialize"));
-  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
-      MCPProtocolVersion::V_2025_11_25, "ping"));
-  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
-      MCPProtocolVersion::V_2025_11_25, "notifications/initialized"));
-  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
-      MCPProtocolVersion::V_2025_11_25, "logging/setLevel"));
-  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
-      MCPProtocolVersion::V_2025_11_25, "tools/list"));
-  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
-      MCPProtocolVersion::V_2025_11_25, "tools/call"));
-  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
-      MCPProtocolVersion::V_2025_11_25, "resources/list"));
-  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
-      MCPProtocolVersion::V_2025_11_25, "resources/read"));
-  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
-      MCPProtocolVersion::V_2025_11_25, "resources/templates/list"));
-  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
-      MCPProtocolVersion::V_2025_11_25, "server/discover"));
-  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
-      MCPProtocolVersion::V_2025_11_25, "subscriptions/listen"));
-  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
-      MCPProtocolVersion::V_2025_11_25,
-      "notifications/subscriptions/acknowledged"));
-
-  // 2026-07-28 removed initialize, ping, notifications/initialized,
-  // logging/setLevel
-  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
-      MCPProtocolVersion::V_2026_07_28, "initialize"));
-  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
-      MCPProtocolVersion::V_2026_07_28, "ping"));
-  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
-      MCPProtocolVersion::V_2026_07_28, "notifications/initialized"));
-  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
-      MCPProtocolVersion::V_2026_07_28, "logging/setLevel"));
-
-  // 2026-07-28 added server/discover, subscriptions/listen,
-  // notifications/subscriptions/acknowledged
-  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
-      MCPProtocolVersion::V_2026_07_28, "server/discover"));
-  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
-      MCPProtocolVersion::V_2026_07_28, "subscriptions/listen"));
-  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
-      MCPProtocolVersion::V_2026_07_28,
-      "notifications/subscriptions/acknowledged"));
-
-  // Shared methods supported on 2026-07-28
-  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
-      MCPProtocolVersion::V_2026_07_28, "tools/list"));
-  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
-      MCPProtocolVersion::V_2026_07_28, "tools/call"));
-  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
-      MCPProtocolVersion::V_2026_07_28, "resources/list"));
-  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
-      MCPProtocolVersion::V_2026_07_28, "resources/read"));
-  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
-      MCPProtocolVersion::V_2026_07_28, "resources/templates/list"));
-
-  // Unknown method unsupported on all
-  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
-      MCPProtocolVersion::V_2025_11_25, "unknown/method"));
-  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
-      MCPProtocolVersion::V_2026_07_28, "unknown/method"));
-
-  // mcp_is_request_method checks for logging/setLevel
-  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
-      MCPProtocolVersion::V_2025_11_25, "logging/setLevel"));
+      "completion/complete"));
   EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
-      MCPProtocolVersion::V_2026_07_28, "logging/setLevel"));
-}
-
-TEST(is_request_method_initialize_at_runtime) {
-  const std::string method{"initialize"};
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "elicitation/create"));
   EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
-      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, method));
-}
-
-TEST(is_request_method_ping_at_runtime) {
-  const std::string method{"ping"};
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "initialize"));
   EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
-      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, method));
-}
-
-TEST(is_request_method_tools_list_at_runtime) {
-  const std::string method{"tools/list"};
-  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
-      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, method));
-}
-
-TEST(is_request_method_tools_call_at_runtime) {
-  const std::string method{"tools/call"};
-  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
-      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, method));
-}
-
-TEST(is_request_method_resources_list_at_runtime) {
-  const std::string method{"resources/list"};
-  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
-      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, method));
-}
-
-TEST(is_request_method_resources_read_at_runtime) {
-  const std::string method{"resources/read"};
-  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
-      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, method));
-}
-
-TEST(is_request_method_resources_templates_list_at_runtime) {
-  const std::string method{"resources/templates/list"};
-  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
-      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, method));
-}
-
-TEST(is_request_method_unknown_at_runtime) {
-  const std::string method{"foo/bar"};
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "logging/setLevel"));
   EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
-      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, method));
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/cancelled"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/elicitation/complete"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/initialized"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/message"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/progress"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/prompts/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/resources/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/resources/updated"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/roots/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/subscriptions/acknowledged"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/tasks/status"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/tools/list_changed"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "ping"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "prompts/get"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "prompts/list"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "resources/list"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "resources/read"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "resources/subscribe"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "resources/templates/list"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "resources/unsubscribe"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "roots/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "sampling/createMessage"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "server/discover"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "subscriptions/listen"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "tasks/cancel"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "tasks/get"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "tasks/list"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "tasks/result"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "tools/call"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "tools/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "custom/unknownMethod"));
 }
 
-TEST(protocol_version_is_valid_checks) {
-  const std::string empty;
-  const std::string v_2025_03_26{"2025-03-26"};
-  const std::string v_2025_06_18{"2025-06-18"};
-  const std::string v_2025_11_25{"2025-11-25"};
-  const std::string v_2026_07_28{"2026-07-28"};
-  const std::string v_2024_11_05{"2024-11-05"};
-  const std::string invalid{"invalid-version"};
-
-  EXPECT_FALSE(sourcemeta::core::mcp_protocol_version_is_valid(empty));
-  EXPECT_TRUE(sourcemeta::core::mcp_protocol_version_is_valid(v_2025_03_26));
-  EXPECT_TRUE(sourcemeta::core::mcp_protocol_version_is_valid(v_2025_06_18));
-  EXPECT_TRUE(sourcemeta::core::mcp_protocol_version_is_valid(v_2025_11_25));
-  EXPECT_TRUE(sourcemeta::core::mcp_protocol_version_is_valid(v_2026_07_28));
-  EXPECT_FALSE(sourcemeta::core::mcp_protocol_version_is_valid(v_2024_11_05));
-  EXPECT_FALSE(sourcemeta::core::mcp_protocol_version_is_valid(invalid));
+// The client-to-server requests the revision defines in 2026-07-28
+// https://modelcontextprotocol.io/specification/2026-07-28/schema
+TEST(is_request_method_2026_07_28) {
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "completion/complete"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "elicitation/create"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "initialize"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "logging/setLevel"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/cancelled"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/elicitation/complete"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/initialized"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/message"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/progress"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/prompts/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/resources/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/resources/updated"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/roots/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/subscriptions/acknowledged"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/tasks/status"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/tools/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "ping"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "prompts/get"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "prompts/list"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "resources/list"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "resources/read"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "resources/subscribe"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "resources/templates/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "resources/unsubscribe"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "roots/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "sampling/createMessage"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "server/discover"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "subscriptions/listen"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tasks/cancel"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tasks/get"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tasks/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tasks/result"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tools/call"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tools/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "custom/unknownMethod"));
 }
 
-TEST(official_method_matrix) {
-  struct Entry {
-    JSON::StringView method;
-    unsigned client_request;
-    unsigned server_request;
-    unsigned client_notification;
-    unsigned server_notification;
-    unsigned input_request;
-  };
-  const std::array<Entry, 35> entries{{
-      {.method = "completion/complete",
-       .client_request = 15,
-       .server_request = 0,
-       .client_notification = 0,
-       .server_notification = 0,
-       .input_request = 0},
-      {.method = "elicitation/create",
-       .client_request = 0,
-       .server_request = 6,
-       .client_notification = 0,
-       .server_notification = 0,
-       .input_request = 8},
-      {.method = "initialize",
-       .client_request = 7,
-       .server_request = 0,
-       .client_notification = 0,
-       .server_notification = 0,
-       .input_request = 0},
-      {.method = "logging/setLevel",
-       .client_request = 7,
-       .server_request = 0,
-       .client_notification = 0,
-       .server_notification = 0,
-       .input_request = 0},
-      {.method = "notifications/cancelled",
-       .client_request = 0,
-       .server_request = 0,
-       .client_notification = 15,
-       .server_notification = 15,
-       .input_request = 0},
-      {.method = "notifications/elicitation/complete",
-       .client_request = 0,
-       .server_request = 0,
-       .client_notification = 0,
-       .server_notification = 4,
-       .input_request = 0},
-      {.method = "notifications/initialized",
-       .client_request = 0,
-       .server_request = 0,
-       .client_notification = 7,
-       .server_notification = 0,
-       .input_request = 0},
-      {.method = "notifications/message",
-       .client_request = 0,
-       .server_request = 0,
-       .client_notification = 0,
-       .server_notification = 15,
-       .input_request = 0},
-      {.method = "notifications/progress",
-       .client_request = 0,
-       .server_request = 0,
-       .client_notification = 7,
-       .server_notification = 15,
-       .input_request = 0},
-      {.method = "notifications/prompts/list_changed",
-       .client_request = 0,
-       .server_request = 0,
-       .client_notification = 0,
-       .server_notification = 15,
-       .input_request = 0},
-      {.method = "notifications/resources/list_changed",
-       .client_request = 0,
-       .server_request = 0,
-       .client_notification = 0,
-       .server_notification = 15,
-       .input_request = 0},
-      {.method = "notifications/resources/updated",
-       .client_request = 0,
-       .server_request = 0,
-       .client_notification = 0,
-       .server_notification = 15,
-       .input_request = 0},
-      {.method = "notifications/roots/list_changed",
-       .client_request = 0,
-       .server_request = 0,
-       .client_notification = 7,
-       .server_notification = 0,
-       .input_request = 0},
-      {.method = "notifications/subscriptions/acknowledged",
-       .client_request = 0,
-       .server_request = 0,
-       .client_notification = 0,
-       .server_notification = 8,
-       .input_request = 0},
-      {.method = "notifications/tasks/status",
-       .client_request = 0,
-       .server_request = 0,
-       .client_notification = 4,
-       .server_notification = 4,
-       .input_request = 0},
-      {.method = "notifications/tools/list_changed",
-       .client_request = 0,
-       .server_request = 0,
-       .client_notification = 0,
-       .server_notification = 15,
-       .input_request = 0},
-      {.method = "ping",
-       .client_request = 7,
-       .server_request = 7,
-       .client_notification = 0,
-       .server_notification = 0,
-       .input_request = 0},
-      {.method = "prompts/get",
-       .client_request = 15,
-       .server_request = 0,
-       .client_notification = 0,
-       .server_notification = 0,
-       .input_request = 0},
-      {.method = "prompts/list",
-       .client_request = 15,
-       .server_request = 0,
-       .client_notification = 0,
-       .server_notification = 0,
-       .input_request = 0},
-      {.method = "resources/list",
-       .client_request = 15,
-       .server_request = 0,
-       .client_notification = 0,
-       .server_notification = 0,
-       .input_request = 0},
-      {.method = "resources/read",
-       .client_request = 15,
-       .server_request = 0,
-       .client_notification = 0,
-       .server_notification = 0,
-       .input_request = 0},
-      {.method = "resources/subscribe",
-       .client_request = 7,
-       .server_request = 0,
-       .client_notification = 0,
-       .server_notification = 0,
-       .input_request = 0},
-      {.method = "resources/templates/list",
-       .client_request = 15,
-       .server_request = 0,
-       .client_notification = 0,
-       .server_notification = 0,
-       .input_request = 0},
-      {.method = "resources/unsubscribe",
-       .client_request = 7,
-       .server_request = 0,
-       .client_notification = 0,
-       .server_notification = 0,
-       .input_request = 0},
-      {.method = "roots/list",
-       .client_request = 0,
-       .server_request = 7,
-       .client_notification = 0,
-       .server_notification = 0,
-       .input_request = 8},
-      {.method = "sampling/createMessage",
-       .client_request = 0,
-       .server_request = 7,
-       .client_notification = 0,
-       .server_notification = 0,
-       .input_request = 8},
-      {.method = "server/discover",
-       .client_request = 8,
-       .server_request = 0,
-       .client_notification = 0,
-       .server_notification = 0,
-       .input_request = 0},
-      {.method = "subscriptions/listen",
-       .client_request = 8,
-       .server_request = 0,
-       .client_notification = 0,
-       .server_notification = 0,
-       .input_request = 0},
-      {.method = "tasks/cancel",
-       .client_request = 4,
-       .server_request = 4,
-       .client_notification = 0,
-       .server_notification = 0,
-       .input_request = 0},
-      {.method = "tasks/get",
-       .client_request = 4,
-       .server_request = 4,
-       .client_notification = 0,
-       .server_notification = 0,
-       .input_request = 0},
-      {.method = "tasks/list",
-       .client_request = 4,
-       .server_request = 4,
-       .client_notification = 0,
-       .server_notification = 0,
-       .input_request = 0},
-      {.method = "tasks/result",
-       .client_request = 4,
-       .server_request = 4,
-       .client_notification = 0,
-       .server_notification = 0,
-       .input_request = 0},
-      {.method = "tools/call",
-       .client_request = 15,
-       .server_request = 0,
-       .client_notification = 0,
-       .server_notification = 0,
-       .input_request = 0},
-      {.method = "tools/list",
-       .client_request = 15,
-       .server_request = 0,
-       .client_notification = 0,
-       .server_notification = 0,
-       .input_request = 0},
-      {.method = "extension/unknown",
-       .client_request = 0,
-       .server_request = 0,
-       .client_notification = 0,
-       .server_notification = 0,
-       .input_request = 0},
-  }};
-  for (std::size_t index = 0; index < 4; ++index) {
-    struct Revision {
-      MCPProtocolVersion version;
-      unsigned bit;
-    };
-    constexpr std::array<Revision, 4> DATED{
-        {{.version = MCPProtocolVersion::V_2025_03_26, .bit = 1},
-         {.version = MCPProtocolVersion::V_2025_06_18, .bit = 2},
-         {.version = MCPProtocolVersion::V_2025_11_25, .bit = 4},
-         {.version = MCPProtocolVersion::V_2026_07_28, .bit = 8}}};
-    static_assert(DATED.size() == 4);
-    const auto version{DATED[index].version};
-    const auto bit{DATED[index].bit};
-    EXPECT_EQ(mcp_supports_implementation_website_url(version),
-              mcp_protocol_version_at_least(version,
-                                            MCPProtocolVersion::V_2025_11_25));
-    for (const auto &entry : entries) {
-      EXPECT_EQ(mcp_is_request_method(version, entry.method),
-                (entry.client_request & bit) != 0);
-      EXPECT_EQ(mcp_is_server_request_method(version, entry.method),
-                (entry.server_request & bit) != 0);
-      EXPECT_EQ(mcp_is_client_notification_method(version, entry.method),
-                (entry.client_notification & bit) != 0);
-      EXPECT_EQ(mcp_is_server_notification_method(version, entry.method),
-                (entry.server_notification & bit) != 0);
-      EXPECT_EQ(
-          mcp_is_notification_method(version, entry.method),
-          ((entry.client_notification | entry.server_notification) & bit) != 0);
-      EXPECT_EQ(mcp_is_input_request_method(version, entry.method),
-                (entry.input_request & bit) != 0);
-      EXPECT_EQ(mcp_supports_method(version, entry.method),
-                ((entry.client_request | entry.server_request |
-                  entry.client_notification | entry.server_notification |
-                  entry.input_request) &
-                 bit) != 0);
-    }
-  }
-  for (const auto *const method :
-       {"tools/call", "resources/read", "prompts/get", "resources/subscribe",
-        "resources/unsubscribe"}) {
-    EXPECT_TRUE(mcp_is_named_request_method(method));
-  }
-  for (const auto *const method :
-       {"tools/list", "resources/list", "server/discover",
-        "subscriptions/listen", "extension/unknown"}) {
-    EXPECT_FALSE(mcp_is_named_request_method(method));
-  }
+// The standalone server-to-client requests the revision defines in 2025-03-26
+// https://modelcontextprotocol.io/specification/2025-03-26/schema
+TEST(is_server_request_method_2025_03_26) {
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "completion/complete"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "elicitation/create"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "initialize"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "logging/setLevel"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/cancelled"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/elicitation/complete"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/initialized"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/message"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/progress"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/prompts/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/resources/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/resources/updated"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/roots/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/subscriptions/acknowledged"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/tasks/status"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/tools/list_changed"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "ping"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "prompts/get"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "prompts/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "resources/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "resources/read"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "resources/subscribe"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "resources/templates/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "resources/unsubscribe"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "roots/list"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "sampling/createMessage"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "server/discover"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "subscriptions/listen"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "tasks/cancel"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "tasks/get"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "tasks/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "tasks/result"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "tools/call"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "tools/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "custom/unknownMethod"));
+}
+
+// The standalone server-to-client requests the revision defines in 2025-06-18
+// https://modelcontextprotocol.io/specification/2025-06-18/schema
+TEST(is_server_request_method_2025_06_18) {
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "completion/complete"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "elicitation/create"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "initialize"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "logging/setLevel"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/cancelled"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/elicitation/complete"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/initialized"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/message"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/progress"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/prompts/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/resources/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/resources/updated"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/roots/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/subscriptions/acknowledged"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/tasks/status"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/tools/list_changed"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "ping"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "prompts/get"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "prompts/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "resources/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "resources/read"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "resources/subscribe"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "resources/templates/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "resources/unsubscribe"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "roots/list"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "sampling/createMessage"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "server/discover"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "subscriptions/listen"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "tasks/cancel"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "tasks/get"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "tasks/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "tasks/result"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "tools/call"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "tools/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "custom/unknownMethod"));
+}
+
+// The standalone server-to-client requests the revision defines in 2025-11-25
+// https://modelcontextprotocol.io/specification/2025-11-25/schema
+TEST(is_server_request_method_2025_11_25) {
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "completion/complete"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "elicitation/create"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "initialize"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "logging/setLevel"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/cancelled"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/elicitation/complete"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/initialized"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/message"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/progress"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/prompts/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/resources/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/resources/updated"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/roots/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/subscriptions/acknowledged"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/tasks/status"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/tools/list_changed"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "ping"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "prompts/get"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "prompts/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "resources/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "resources/read"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "resources/subscribe"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "resources/templates/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "resources/unsubscribe"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "roots/list"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "sampling/createMessage"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "server/discover"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "subscriptions/listen"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "tasks/cancel"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "tasks/get"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "tasks/list"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "tasks/result"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "tools/call"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "tools/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "custom/unknownMethod"));
+}
+
+// The standalone server-to-client requests the revision defines in 2026-07-28
+// https://modelcontextprotocol.io/specification/2026-07-28/schema
+TEST(is_server_request_method_2026_07_28) {
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "completion/complete"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "elicitation/create"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "initialize"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "logging/setLevel"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/cancelled"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/elicitation/complete"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/initialized"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/message"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/progress"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/prompts/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/resources/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/resources/updated"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/roots/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/subscriptions/acknowledged"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/tasks/status"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/tools/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "ping"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "prompts/get"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "prompts/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "resources/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "resources/read"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "resources/subscribe"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "resources/templates/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "resources/unsubscribe"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "roots/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "sampling/createMessage"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "server/discover"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "subscriptions/listen"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tasks/cancel"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tasks/get"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tasks/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tasks/result"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tools/call"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tools/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "custom/unknownMethod"));
+}
+
+// The notifications a client may send in 2025-03-26
+// https://modelcontextprotocol.io/specification/2025-03-26/schema
+TEST(is_client_notification_method_2025_03_26) {
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "completion/complete"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "elicitation/create"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "initialize"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "logging/setLevel"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/cancelled"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/elicitation/complete"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/initialized"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/message"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/progress"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/prompts/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/resources/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/resources/updated"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/roots/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/subscriptions/acknowledged"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/tasks/status"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/tools/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "ping"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "prompts/get"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "prompts/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "resources/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "resources/read"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "resources/subscribe"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "resources/templates/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "resources/unsubscribe"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "roots/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "sampling/createMessage"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "server/discover"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "subscriptions/listen"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "tasks/cancel"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "tasks/get"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "tasks/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "tasks/result"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "tools/call"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "tools/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "custom/unknownMethod"));
+}
+
+// The notifications a client may send in 2025-06-18
+// https://modelcontextprotocol.io/specification/2025-06-18/schema
+TEST(is_client_notification_method_2025_06_18) {
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "completion/complete"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "elicitation/create"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "initialize"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "logging/setLevel"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/cancelled"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/elicitation/complete"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/initialized"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/message"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/progress"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/prompts/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/resources/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/resources/updated"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/roots/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/subscriptions/acknowledged"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/tasks/status"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/tools/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "ping"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "prompts/get"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "prompts/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "resources/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "resources/read"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "resources/subscribe"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "resources/templates/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "resources/unsubscribe"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "roots/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "sampling/createMessage"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "server/discover"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "subscriptions/listen"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "tasks/cancel"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "tasks/get"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "tasks/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "tasks/result"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "tools/call"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "tools/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "custom/unknownMethod"));
+}
+
+// The notifications a client may send in 2025-11-25
+// https://modelcontextprotocol.io/specification/2025-11-25/schema
+TEST(is_client_notification_method_2025_11_25) {
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "completion/complete"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "elicitation/create"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "initialize"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "logging/setLevel"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/cancelled"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/elicitation/complete"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/initialized"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/message"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/progress"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/prompts/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/resources/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/resources/updated"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/roots/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/subscriptions/acknowledged"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/tasks/status"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/tools/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "ping"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "prompts/get"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "prompts/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "resources/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "resources/read"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "resources/subscribe"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "resources/templates/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "resources/unsubscribe"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "roots/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "sampling/createMessage"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "server/discover"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "subscriptions/listen"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "tasks/cancel"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "tasks/get"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "tasks/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "tasks/result"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "tools/call"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "tools/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "custom/unknownMethod"));
+}
+
+// The notifications a client may send in 2026-07-28
+// https://modelcontextprotocol.io/specification/2026-07-28/schema
+TEST(is_client_notification_method_2026_07_28) {
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "completion/complete"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "elicitation/create"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "initialize"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "logging/setLevel"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/cancelled"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/elicitation/complete"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/initialized"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/message"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/progress"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/prompts/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/resources/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/resources/updated"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/roots/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/subscriptions/acknowledged"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/tasks/status"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/tools/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "ping"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "prompts/get"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "prompts/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "resources/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "resources/read"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "resources/subscribe"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "resources/templates/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "resources/unsubscribe"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "roots/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "sampling/createMessage"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "server/discover"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "subscriptions/listen"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tasks/cancel"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tasks/get"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tasks/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tasks/result"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tools/call"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tools/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "custom/unknownMethod"));
+}
+
+// The notifications a server may send in 2025-03-26
+// https://modelcontextprotocol.io/specification/2025-03-26/schema
+TEST(is_server_notification_method_2025_03_26) {
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "completion/complete"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "elicitation/create"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "initialize"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "logging/setLevel"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/cancelled"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/elicitation/complete"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/initialized"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/message"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/progress"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/prompts/list_changed"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/resources/list_changed"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/resources/updated"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/roots/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/subscriptions/acknowledged"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/tasks/status"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/tools/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "ping"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "prompts/get"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "prompts/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "resources/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "resources/read"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "resources/subscribe"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "resources/templates/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "resources/unsubscribe"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "roots/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "sampling/createMessage"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "server/discover"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "subscriptions/listen"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "tasks/cancel"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "tasks/get"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "tasks/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "tasks/result"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "tools/call"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "tools/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "custom/unknownMethod"));
+}
+
+// The notifications a server may send in 2025-06-18
+// https://modelcontextprotocol.io/specification/2025-06-18/schema
+TEST(is_server_notification_method_2025_06_18) {
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "completion/complete"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "elicitation/create"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "initialize"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "logging/setLevel"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/cancelled"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/elicitation/complete"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/initialized"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/message"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/progress"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/prompts/list_changed"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/resources/list_changed"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/resources/updated"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/roots/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/subscriptions/acknowledged"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/tasks/status"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/tools/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "ping"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "prompts/get"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "prompts/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "resources/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "resources/read"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "resources/subscribe"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "resources/templates/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "resources/unsubscribe"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "roots/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "sampling/createMessage"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "server/discover"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "subscriptions/listen"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "tasks/cancel"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "tasks/get"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "tasks/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "tasks/result"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "tools/call"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "tools/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "custom/unknownMethod"));
+}
+
+// The notifications a server may send in 2025-11-25
+// https://modelcontextprotocol.io/specification/2025-11-25/schema
+TEST(is_server_notification_method_2025_11_25) {
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "completion/complete"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "elicitation/create"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "initialize"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "logging/setLevel"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/cancelled"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/elicitation/complete"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/initialized"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/message"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/progress"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/prompts/list_changed"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/resources/list_changed"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/resources/updated"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/roots/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/subscriptions/acknowledged"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/tasks/status"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/tools/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "ping"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "prompts/get"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "prompts/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "resources/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "resources/read"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "resources/subscribe"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "resources/templates/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "resources/unsubscribe"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "roots/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "sampling/createMessage"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "server/discover"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "subscriptions/listen"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "tasks/cancel"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "tasks/get"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "tasks/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "tasks/result"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "tools/call"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "tools/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "custom/unknownMethod"));
+}
+
+// The notifications a server may send in 2026-07-28
+// https://modelcontextprotocol.io/specification/2026-07-28/schema
+TEST(is_server_notification_method_2026_07_28) {
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "completion/complete"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "elicitation/create"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "initialize"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "logging/setLevel"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/cancelled"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/elicitation/complete"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/initialized"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/message"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/progress"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/prompts/list_changed"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/resources/list_changed"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/resources/updated"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/roots/list_changed"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/subscriptions/acknowledged"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/tasks/status"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/tools/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "ping"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "prompts/get"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "prompts/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "resources/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "resources/read"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "resources/subscribe"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "resources/templates/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "resources/unsubscribe"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "roots/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "sampling/createMessage"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "server/discover"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "subscriptions/listen"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tasks/cancel"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tasks/get"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tasks/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tasks/result"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tools/call"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tools/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "custom/unknownMethod"));
+}
+
+// The notifications the revision defines in either direction in 2025-03-26
+// https://modelcontextprotocol.io/specification/2025-03-26/schema
+TEST(is_notification_method_2025_03_26) {
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "completion/complete"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "elicitation/create"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "initialize"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "logging/setLevel"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/cancelled"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/elicitation/complete"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/initialized"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/message"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/progress"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/prompts/list_changed"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/resources/list_changed"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/resources/updated"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/roots/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/subscriptions/acknowledged"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/tasks/status"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/tools/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "ping"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "prompts/get"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "prompts/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "resources/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "resources/read"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "resources/subscribe"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "resources/templates/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "resources/unsubscribe"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "roots/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "sampling/createMessage"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "server/discover"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "subscriptions/listen"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "tasks/cancel"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "tasks/get"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "tasks/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "tasks/result"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "tools/call"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "tools/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "custom/unknownMethod"));
+}
+
+// The notifications the revision defines in either direction in 2025-06-18
+// https://modelcontextprotocol.io/specification/2025-06-18/schema
+TEST(is_notification_method_2025_06_18) {
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "completion/complete"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "elicitation/create"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "initialize"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "logging/setLevel"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/cancelled"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/elicitation/complete"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/initialized"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/message"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/progress"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/prompts/list_changed"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/resources/list_changed"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/resources/updated"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/roots/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/subscriptions/acknowledged"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/tasks/status"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/tools/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "ping"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "prompts/get"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "prompts/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "resources/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "resources/read"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "resources/subscribe"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "resources/templates/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "resources/unsubscribe"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "roots/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "sampling/createMessage"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "server/discover"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "subscriptions/listen"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "tasks/cancel"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "tasks/get"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "tasks/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "tasks/result"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "tools/call"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "tools/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "custom/unknownMethod"));
+}
+
+// The notifications the revision defines in either direction in 2025-11-25
+// https://modelcontextprotocol.io/specification/2025-11-25/schema
+TEST(is_notification_method_2025_11_25) {
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "completion/complete"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "elicitation/create"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "initialize"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "logging/setLevel"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/cancelled"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/elicitation/complete"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/initialized"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/message"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/progress"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/prompts/list_changed"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/resources/list_changed"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/resources/updated"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/roots/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/subscriptions/acknowledged"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/tasks/status"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/tools/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "ping"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "prompts/get"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "prompts/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "resources/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "resources/read"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "resources/subscribe"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "resources/templates/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "resources/unsubscribe"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "roots/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "sampling/createMessage"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "server/discover"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "subscriptions/listen"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "tasks/cancel"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "tasks/get"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "tasks/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "tasks/result"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "tools/call"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "tools/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "custom/unknownMethod"));
+}
+
+// The notifications the revision defines in either direction in 2026-07-28
+// https://modelcontextprotocol.io/specification/2026-07-28/schema
+TEST(is_notification_method_2026_07_28) {
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "completion/complete"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "elicitation/create"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "initialize"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "logging/setLevel"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/cancelled"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/elicitation/complete"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/initialized"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/message"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/progress"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/prompts/list_changed"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/resources/list_changed"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/resources/updated"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/roots/list_changed"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/subscriptions/acknowledged"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/tasks/status"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/tools/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "ping"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "prompts/get"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "prompts/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "resources/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "resources/read"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "resources/subscribe"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "resources/templates/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "resources/unsubscribe"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "roots/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "sampling/createMessage"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "server/discover"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "subscriptions/listen"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tasks/cancel"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tasks/get"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tasks/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tasks/result"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tools/call"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tools/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "custom/unknownMethod"));
+}
+
+// The nested requests a server may ask for mid-request in 2025-03-26
+// https://modelcontextprotocol.io/specification/2025-03-26/schema
+TEST(is_input_request_method_2025_03_26) {
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "completion/complete"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "elicitation/create"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "initialize"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "logging/setLevel"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/cancelled"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/elicitation/complete"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/initialized"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/message"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/progress"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/prompts/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/resources/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/resources/updated"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/roots/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/subscriptions/acknowledged"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/tasks/status"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/tools/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "ping"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "prompts/get"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "prompts/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "resources/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "resources/read"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "resources/subscribe"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "resources/templates/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "resources/unsubscribe"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "roots/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "sampling/createMessage"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "server/discover"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "subscriptions/listen"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "tasks/cancel"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "tasks/get"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "tasks/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "tasks/result"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "tools/call"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "tools/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "custom/unknownMethod"));
+}
+
+// The nested requests a server may ask for mid-request in 2025-06-18
+// https://modelcontextprotocol.io/specification/2025-06-18/schema
+TEST(is_input_request_method_2025_06_18) {
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "completion/complete"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "elicitation/create"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "initialize"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "logging/setLevel"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/cancelled"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/elicitation/complete"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/initialized"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/message"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/progress"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/prompts/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/resources/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/resources/updated"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/roots/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/subscriptions/acknowledged"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/tasks/status"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/tools/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "ping"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "prompts/get"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "prompts/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "resources/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "resources/read"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "resources/subscribe"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "resources/templates/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "resources/unsubscribe"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "roots/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "sampling/createMessage"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "server/discover"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "subscriptions/listen"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "tasks/cancel"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "tasks/get"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "tasks/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "tasks/result"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "tools/call"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "tools/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "custom/unknownMethod"));
+}
+
+// The nested requests a server may ask for mid-request in 2025-11-25
+// https://modelcontextprotocol.io/specification/2025-11-25/schema
+TEST(is_input_request_method_2025_11_25) {
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "completion/complete"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "elicitation/create"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "initialize"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "logging/setLevel"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/cancelled"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/elicitation/complete"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/initialized"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/message"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/progress"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/prompts/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/resources/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/resources/updated"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/roots/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/subscriptions/acknowledged"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/tasks/status"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/tools/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "ping"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "prompts/get"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "prompts/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "resources/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "resources/read"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "resources/subscribe"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "resources/templates/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "resources/unsubscribe"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "roots/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "sampling/createMessage"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "server/discover"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "subscriptions/listen"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "tasks/cancel"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "tasks/get"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "tasks/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "tasks/result"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "tools/call"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "tools/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "custom/unknownMethod"));
+}
+
+// The nested requests a server may ask for mid-request in 2026-07-28
+// https://modelcontextprotocol.io/specification/2026-07-28/schema
+TEST(is_input_request_method_2026_07_28) {
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "completion/complete"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "elicitation/create"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "initialize"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "logging/setLevel"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/cancelled"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/elicitation/complete"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/initialized"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/message"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/progress"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/prompts/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/resources/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/resources/updated"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/roots/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/subscriptions/acknowledged"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/tasks/status"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/tools/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "ping"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "prompts/get"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "prompts/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "resources/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "resources/read"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "resources/subscribe"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "resources/templates/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "resources/unsubscribe"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "roots/list"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "sampling/createMessage"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "server/discover"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "subscriptions/listen"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tasks/cancel"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tasks/get"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tasks/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tasks/result"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tools/call"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tools/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "custom/unknownMethod"));
+}
+
+// The methods the base protocol defines, nested requests included in 2025-03-26
+// https://modelcontextprotocol.io/specification/2025-03-26/schema
+TEST(supports_method_2025_03_26) {
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "completion/complete"));
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "elicitation/create"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "initialize"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "logging/setLevel"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/cancelled"));
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/elicitation/complete"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/initialized"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/message"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/progress"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/prompts/list_changed"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/resources/list_changed"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/resources/updated"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/roots/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/subscriptions/acknowledged"));
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/tasks/status"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "notifications/tools/list_changed"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "ping"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "prompts/get"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "prompts/list"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "resources/list"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "resources/read"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "resources/subscribe"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "resources/templates/list"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "resources/unsubscribe"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "roots/list"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "sampling/createMessage"));
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "server/discover"));
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "subscriptions/listen"));
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "tasks/cancel"));
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "tasks/get"));
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "tasks/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "tasks/result"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "tools/call"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "tools/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "custom/unknownMethod"));
+}
+
+// The methods the base protocol defines, nested requests included in 2025-06-18
+// https://modelcontextprotocol.io/specification/2025-06-18/schema
+TEST(supports_method_2025_06_18) {
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "completion/complete"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "elicitation/create"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "initialize"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "logging/setLevel"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/cancelled"));
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/elicitation/complete"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/initialized"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/message"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/progress"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/prompts/list_changed"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/resources/list_changed"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/resources/updated"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/roots/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/subscriptions/acknowledged"));
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/tasks/status"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "notifications/tools/list_changed"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "ping"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "prompts/get"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "prompts/list"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "resources/list"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "resources/read"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "resources/subscribe"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "resources/templates/list"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "resources/unsubscribe"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "roots/list"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "sampling/createMessage"));
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "server/discover"));
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "subscriptions/listen"));
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "tasks/cancel"));
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "tasks/get"));
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "tasks/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "tasks/result"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "tools/call"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "tools/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+      "custom/unknownMethod"));
+}
+
+// The methods the base protocol defines, nested requests included in 2025-11-25
+// https://modelcontextprotocol.io/specification/2025-11-25/schema
+TEST(supports_method_2025_11_25) {
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "completion/complete"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "elicitation/create"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "initialize"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "logging/setLevel"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/cancelled"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/elicitation/complete"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/initialized"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/message"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/progress"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/prompts/list_changed"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/resources/list_changed"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/resources/updated"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/roots/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/subscriptions/acknowledged"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/tasks/status"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "notifications/tools/list_changed"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "ping"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "prompts/get"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "prompts/list"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "resources/list"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "resources/read"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "resources/subscribe"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "resources/templates/list"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "resources/unsubscribe"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "roots/list"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "sampling/createMessage"));
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "server/discover"));
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "subscriptions/listen"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "tasks/cancel"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "tasks/get"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "tasks/list"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "tasks/result"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "tools/call"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "tools/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "custom/unknownMethod"));
+}
+
+// The methods the base protocol defines, nested requests included in 2026-07-28
+// https://modelcontextprotocol.io/specification/2026-07-28/schema
+TEST(supports_method_2026_07_28) {
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "completion/complete"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "elicitation/create"));
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "initialize"));
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "logging/setLevel"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/cancelled"));
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/elicitation/complete"));
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/initialized"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/message"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/progress"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/prompts/list_changed"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/resources/list_changed"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/resources/updated"));
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/roots/list_changed"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/subscriptions/acknowledged"));
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/tasks/status"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "notifications/tools/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "ping"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "prompts/get"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "prompts/list"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "resources/list"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "resources/read"));
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "resources/subscribe"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "resources/templates/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "resources/unsubscribe"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "roots/list"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "sampling/createMessage"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "server/discover"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "subscriptions/listen"));
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tasks/cancel"));
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tasks/get"));
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tasks/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tasks/result"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tools/call"));
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tools/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "custom/unknownMethod"));
+}
+
+// The operations that name a target, which in 2026-07-28 are the ones
+// required to mirror it into Mcp-Name
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#standard-request-headers
+TEST(is_named_request_method) {
+  EXPECT_FALSE(
+      sourcemeta::core::mcp_is_named_request_method("completion/complete"));
+  EXPECT_FALSE(
+      sourcemeta::core::mcp_is_named_request_method("elicitation/create"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_named_request_method("initialize"));
+  EXPECT_FALSE(
+      sourcemeta::core::mcp_is_named_request_method("logging/setLevel"));
+  EXPECT_FALSE(
+      sourcemeta::core::mcp_is_named_request_method("notifications/cancelled"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_named_request_method(
+      "notifications/elicitation/complete"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_named_request_method(
+      "notifications/initialized"));
+  EXPECT_FALSE(
+      sourcemeta::core::mcp_is_named_request_method("notifications/message"));
+  EXPECT_FALSE(
+      sourcemeta::core::mcp_is_named_request_method("notifications/progress"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_named_request_method(
+      "notifications/prompts/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_named_request_method(
+      "notifications/resources/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_named_request_method(
+      "notifications/resources/updated"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_named_request_method(
+      "notifications/roots/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_named_request_method(
+      "notifications/subscriptions/acknowledged"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_named_request_method(
+      "notifications/tasks/status"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_named_request_method(
+      "notifications/tools/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_named_request_method("ping"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_named_request_method("prompts/get"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_named_request_method("prompts/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_named_request_method("resources/list"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_named_request_method("resources/read"));
+  EXPECT_TRUE(
+      sourcemeta::core::mcp_is_named_request_method("resources/subscribe"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_named_request_method(
+      "resources/templates/list"));
+  EXPECT_TRUE(
+      sourcemeta::core::mcp_is_named_request_method("resources/unsubscribe"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_named_request_method("roots/list"));
+  EXPECT_FALSE(
+      sourcemeta::core::mcp_is_named_request_method("sampling/createMessage"));
+  EXPECT_FALSE(
+      sourcemeta::core::mcp_is_named_request_method("server/discover"));
+  EXPECT_FALSE(
+      sourcemeta::core::mcp_is_named_request_method("subscriptions/listen"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_named_request_method("tasks/cancel"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_named_request_method("tasks/get"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_named_request_method("tasks/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_named_request_method("tasks/result"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_named_request_method("tools/call"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_named_request_method("tools/list"));
+  EXPECT_FALSE(
+      sourcemeta::core::mcp_is_named_request_method("custom/unknownMethod"));
+}
+
+// Only these three operations may answer with an interim result
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/mrtr#supported-requests
+TEST(is_mrtr_method) {
+  EXPECT_FALSE(sourcemeta::core::mcp_is_mrtr_method("completion/complete"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_mrtr_method("elicitation/create"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_mrtr_method("initialize"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_mrtr_method("logging/setLevel"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_mrtr_method("notifications/cancelled"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_mrtr_method(
+      "notifications/elicitation/complete"));
+  EXPECT_FALSE(
+      sourcemeta::core::mcp_is_mrtr_method("notifications/initialized"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_mrtr_method("notifications/message"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_mrtr_method("notifications/progress"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_mrtr_method(
+      "notifications/prompts/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_mrtr_method(
+      "notifications/resources/list_changed"));
+  EXPECT_FALSE(
+      sourcemeta::core::mcp_is_mrtr_method("notifications/resources/updated"));
+  EXPECT_FALSE(
+      sourcemeta::core::mcp_is_mrtr_method("notifications/roots/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_mrtr_method(
+      "notifications/subscriptions/acknowledged"));
+  EXPECT_FALSE(
+      sourcemeta::core::mcp_is_mrtr_method("notifications/tasks/status"));
+  EXPECT_FALSE(
+      sourcemeta::core::mcp_is_mrtr_method("notifications/tools/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_mrtr_method("ping"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_mrtr_method("prompts/get"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_mrtr_method("prompts/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_mrtr_method("resources/list"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_mrtr_method("resources/read"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_mrtr_method("resources/subscribe"));
+  EXPECT_FALSE(
+      sourcemeta::core::mcp_is_mrtr_method("resources/templates/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_mrtr_method("resources/unsubscribe"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_mrtr_method("roots/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_mrtr_method("sampling/createMessage"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_mrtr_method("server/discover"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_mrtr_method("subscriptions/listen"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_mrtr_method("tasks/cancel"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_mrtr_method("tasks/get"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_mrtr_method("tasks/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_mrtr_method("tasks/result"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_mrtr_method("tools/call"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_mrtr_method("tools/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_mrtr_method("custom/unknownMethod"));
+}
+
+// The operations that must carry caching hints on a complete result
+// https://modelcontextprotocol.io/specification/2026-07-28/server/utilities/caching#cacheable-results
+TEST(is_cacheable_method) {
+  EXPECT_FALSE(
+      sourcemeta::core::mcp_is_cacheable_method("completion/complete"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_cacheable_method("elicitation/create"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_cacheable_method("initialize"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_cacheable_method("logging/setLevel"));
+  EXPECT_FALSE(
+      sourcemeta::core::mcp_is_cacheable_method("notifications/cancelled"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_cacheable_method(
+      "notifications/elicitation/complete"));
+  EXPECT_FALSE(
+      sourcemeta::core::mcp_is_cacheable_method("notifications/initialized"));
+  EXPECT_FALSE(
+      sourcemeta::core::mcp_is_cacheable_method("notifications/message"));
+  EXPECT_FALSE(
+      sourcemeta::core::mcp_is_cacheable_method("notifications/progress"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_cacheable_method(
+      "notifications/prompts/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_cacheable_method(
+      "notifications/resources/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_cacheable_method(
+      "notifications/resources/updated"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_cacheable_method(
+      "notifications/roots/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_cacheable_method(
+      "notifications/subscriptions/acknowledged"));
+  EXPECT_FALSE(
+      sourcemeta::core::mcp_is_cacheable_method("notifications/tasks/status"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_cacheable_method(
+      "notifications/tools/list_changed"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_cacheable_method("ping"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_cacheable_method("prompts/get"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_cacheable_method("prompts/list"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_cacheable_method("resources/list"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_cacheable_method("resources/read"));
+  EXPECT_FALSE(
+      sourcemeta::core::mcp_is_cacheable_method("resources/subscribe"));
+  EXPECT_TRUE(
+      sourcemeta::core::mcp_is_cacheable_method("resources/templates/list"));
+  EXPECT_FALSE(
+      sourcemeta::core::mcp_is_cacheable_method("resources/unsubscribe"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_cacheable_method("roots/list"));
+  EXPECT_FALSE(
+      sourcemeta::core::mcp_is_cacheable_method("sampling/createMessage"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_cacheable_method("server/discover"));
+  EXPECT_FALSE(
+      sourcemeta::core::mcp_is_cacheable_method("subscriptions/listen"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_cacheable_method("tasks/cancel"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_cacheable_method("tasks/get"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_cacheable_method("tasks/list"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_cacheable_method("tasks/result"));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_cacheable_method("tools/call"));
+  EXPECT_TRUE(sourcemeta::core::mcp_is_cacheable_method("tools/list"));
+  EXPECT_FALSE(
+      sourcemeta::core::mcp_is_cacheable_method("custom/unknownMethod"));
 }
