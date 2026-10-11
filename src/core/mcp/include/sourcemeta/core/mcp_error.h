@@ -17,7 +17,13 @@
 namespace sourcemeta::core {
 
 /// @ingroup mcp
-/// Context for errors with no readable MCP request identifier.
+/// Context for errors with no readable MCP request identifier. The two
+/// legacy revisions require an error response to echo a readable identifier,
+/// which a transport-level rejection cannot always produce, so the context
+/// selects whether that requirement is enforced.
+///
+/// @see
+/// https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http
 enum class MCPErrorContext : std::uint8_t {
   /// A normal request response. Older schemas require a readable identifier.
   Request,
@@ -32,7 +38,34 @@ enum class MCPErrorContext : std::uint8_t {
 /// are treated as unreadable. For 2026-07-28, rejects retired and undefined
 /// reserved codes and checks the required data for version/capability errors.
 /// The caller remains responsible for choosing an error that describes the
-/// actual failure. Header mismatch data is optional.
+/// actual failure. Header mismatch data is optional. Returns a complete
+/// JSON-RPC error envelope rather than a bare error object. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/mcp.h>
+/// #include <cassert>
+///
+/// const sourcemeta::core::JSON identifier{1};
+/// assert(sourcemeta::core::mcp_make_error(
+///            sourcemeta::core::MCPProtocolVersion::V_2026_07_28, &identifier,
+///            sourcemeta::core::MCP_CODE_UNSUPPORTED_PROTOCOL_VERSION,
+///            "Unsupported protocol version",
+///            sourcemeta::core::parse_json(R"JSON({
+///              "requested": "1999-01-01",
+///              "supported": []
+///            })JSON")) == sourcemeta::core::parse_json(R"JSON({
+///          "jsonrpc": "2.0",
+///          "id": 1,
+///          "error": {
+///            "code": -32022,
+///            "message": "Unsupported protocol version",
+///            "data": { "requested": "1999-01-01", "supported": [] }
+///          }
+///        })JSON"));
+/// ```
+///
+/// @see
+/// https://modelcontextprotocol.io/specification/2026-07-28/basic/index#responses
 SOURCEMETA_CORE_MCP_EXPORT
 auto mcp_make_error(MCPProtocolVersion version, const JSON *identifier,
                     std::int64_t code, JSON::StringView message,
@@ -75,6 +108,28 @@ constexpr std::int64_t MCP_CODE_UNSUPPORTED_PROTOCOL_VERSION{-32022};
 /// HTTP_STATUS_BAD_REQUEST for client errors
 /// (-32600, -32602, -32700, -32020, -32021, -32022), and @ref
 /// HTTP_STATUS_INTERNAL_SERVER_ERROR for internal or unmapped server errors.
+/// For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/mcp.h>
+/// #include <cassert>
+///
+/// assert(sourcemeta::core::mcp_error_code_to_http_status(
+///            sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+///            sourcemeta::core::JSONRPC_CODE_METHOD_NOT_FOUND) ==
+///        sourcemeta::core::HTTP_STATUS_NOT_FOUND);
+/// assert(sourcemeta::core::mcp_error_code_to_http_status(
+///            sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+///            sourcemeta::core::JSONRPC_CODE_METHOD_NOT_FOUND) ==
+///        sourcemeta::core::HTTP_STATUS_BAD_REQUEST);
+/// assert(sourcemeta::core::mcp_error_code_to_http_status(
+///            sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+///            sourcemeta::core::JSONRPC_CODE_INTERNAL) ==
+///        sourcemeta::core::HTTP_STATUS_INTERNAL_SERVER_ERROR);
+/// ```
+///
+/// @see
+/// https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http
 constexpr auto mcp_error_code_to_http_status(const MCPProtocolVersion version,
                                              const std::int64_t code) noexcept
     -> HTTPStatus {
@@ -99,6 +154,36 @@ constexpr auto mcp_error_code_to_http_status(const MCPProtocolVersion version,
 
 /// @ingroup mcp
 /// Build a JSON-RPC error response for unsupported protocol version (-32022).
+/// This error is defined for 2026-07-28 only, and the list of supported
+/// revisions must not be empty. An absent identifier omits the member rather
+/// than sending a null one. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/mcp.h>
+/// #include <array>
+/// #include <cassert>
+///
+/// constexpr std::array<sourcemeta::core::JSON::StringView, 2> SUPPORTED{
+///     {"2025-11-25", "2026-07-28"}};
+/// assert(sourcemeta::core::mcp_make_error_unsupported_protocol_version(
+///            sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+///            sourcemeta::core::JSON{7}, "1999-01-01",
+///            SUPPORTED) == sourcemeta::core::parse_json(R"JSON({
+///          "jsonrpc": "2.0",
+///          "id": 7,
+///          "error": {
+///            "code": -32022,
+///            "message": "Unsupported protocol version",
+///            "data": {
+///              "supported": [ "2025-11-25", "2026-07-28" ],
+///              "requested": "1999-01-01"
+///            }
+///          }
+///        })JSON"));
+/// ```
+///
+/// @see
+/// https://modelcontextprotocol.io/specification/2026-07-28/basic/index#error-codes
 SOURCEMETA_CORE_MCP_EXPORT
 auto mcp_make_error_unsupported_protocol_version(
     const MCPProtocolVersion version,
@@ -109,7 +194,32 @@ auto mcp_make_error_unsupported_protocol_version(
 
 /// @ingroup mcp
 /// Build a JSON-RPC error response for missing required client capability
-/// (-32021).
+/// (-32021). This error is defined for 2026-07-28 only, and the required
+/// capabilities must themselves be a valid client capability object. For
+/// example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/mcp.h>
+/// #include <cassert>
+///
+/// assert(sourcemeta::core::mcp_make_error_missing_required_capability(
+///            sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+///            sourcemeta::core::JSON{"x"},
+///            sourcemeta::core::parse_json(R"JSON({ "elicitation": {} })JSON"),
+///            "Elicitation is required") ==
+///        sourcemeta::core::parse_json(R"JSON({
+///          "jsonrpc": "2.0",
+///          "id": "x",
+///          "error": {
+///            "code": -32021,
+///            "message": "Elicitation is required",
+///            "data": { "requiredCapabilities": { "elicitation": {} } }
+///          }
+///        })JSON"));
+/// ```
+///
+/// @see
+/// https://modelcontextprotocol.io/specification/2026-07-28/basic/index#error-codes
 SOURCEMETA_CORE_MCP_EXPORT
 auto mcp_make_error_missing_required_capability(
     const MCPProtocolVersion version,
@@ -118,7 +228,26 @@ auto mcp_make_error_missing_required_capability(
     const JSON::StringView message) -> sourcemeta::core::JSON;
 
 /// @ingroup mcp
-/// Build a JSON-RPC error response for header mismatch (-32020).
+/// Build a JSON-RPC error response for header mismatch (-32020). This overload
+/// carries a caller-supplied message and no data, for a mismatch that names no
+/// single header. Defined for 2026-07-28 only. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/mcp.h>
+/// #include <cassert>
+///
+/// assert(sourcemeta::core::mcp_make_error_header_mismatch(
+///            sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+///            sourcemeta::core::JSON{1}, "Duplicate routing header") ==
+///        sourcemeta::core::parse_json(R"JSON({
+///          "jsonrpc": "2.0",
+///          "id": 1,
+///          "error": { "code": -32020, "message": "Duplicate routing header" }
+///        })JSON"));
+/// ```
+///
+/// @see
+/// https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#schema-extension
 SOURCEMETA_CORE_MCP_EXPORT
 auto mcp_make_error_header_mismatch(
     const MCPProtocolVersion version,
@@ -127,7 +256,33 @@ auto mcp_make_error_header_mismatch(
 
 /// @ingroup mcp
 /// Build a JSON-RPC error response for header mismatch (-32020) with detailed
-/// header mismatch payload.
+/// header mismatch payload, naming the header along with the conflicting
+/// transport and body values. Defined for 2026-07-28 only. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/mcp.h>
+/// #include <cassert>
+///
+/// assert(sourcemeta::core::mcp_make_error_header_mismatch(
+///            sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+///            sourcemeta::core::JSON{1}, "Mcp-Name", "foo",
+///            "bar") == sourcemeta::core::parse_json(R"JSON({
+///          "jsonrpc": "2.0",
+///          "id": 1,
+///          "error": {
+///            "code": -32020,
+///            "message": "Header mismatch",
+///            "data": {
+///              "header": "Mcp-Name",
+///              "headerValue": "foo",
+///              "bodyValue": "bar"
+///            }
+///          }
+///        })JSON"));
+/// ```
+///
+/// @see
+/// https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#schema-extension
 SOURCEMETA_CORE_MCP_EXPORT
 auto mcp_make_error_header_mismatch(
     const MCPProtocolVersion version,
@@ -137,7 +292,29 @@ auto mcp_make_error_header_mismatch(
 
 /// @ingroup mcp
 /// Build a JSON-RPC error response for header mismatch (-32020) reporting an
-/// unexpected header supplied without a corresponding body value.
+/// unexpected header supplied without a corresponding body value. Defined for
+/// 2026-07-28 only. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/mcp.h>
+/// #include <cassert>
+///
+/// assert(sourcemeta::core::mcp_make_error_header_mismatch(
+///            sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+///            sourcemeta::core::JSON{1}, "Mcp-Name",
+///            "foo") == sourcemeta::core::parse_json(R"JSON({
+///          "jsonrpc": "2.0",
+///          "id": 1,
+///          "error": {
+///            "code": -32020,
+///            "message": "Header mismatch: unexpected header provided",
+///            "data": { "header": "Mcp-Name", "headerValue": "foo" }
+///          }
+///        })JSON"));
+/// ```
+///
+/// @see
+/// https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#schema-extension
 SOURCEMETA_CORE_MCP_EXPORT
 auto mcp_make_error_header_mismatch(
     const MCPProtocolVersion version,
@@ -148,7 +325,32 @@ auto mcp_make_error_header_mismatch(
 /// @ingroup mcp
 /// Build a version-aware JSON-RPC error response reporting that a resource
 /// was not found. Emits -32002 for legacy revisions, and -32602 (Invalid
-/// Params) for 2026-07-28.
+/// Params) for 2026-07-28, which retired the dedicated code. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/mcp.h>
+/// #include <cassert>
+///
+/// assert(sourcemeta::core::mcp_make_error_resource_not_found(
+///            sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+///            sourcemeta::core::JSON{1}) ==
+///        sourcemeta::core::parse_json(R"JSON({
+///          "jsonrpc": "2.0",
+///          "id": 1,
+///          "error": { "code": -32602, "message": "Resource not found" }
+///        })JSON"));
+/// assert(sourcemeta::core::mcp_make_error_resource_not_found(
+///            sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+///            sourcemeta::core::JSON{1}) ==
+///        sourcemeta::core::parse_json(R"JSON({
+///          "jsonrpc": "2.0",
+///          "id": 1,
+///          "error": { "code": -32002, "message": "Resource not found" }
+///        })JSON"));
+/// ```
+///
+/// @see
+/// https://modelcontextprotocol.io/specification/2026-07-28/server/resources#error-handling
 SOURCEMETA_CORE_MCP_EXPORT
 auto mcp_make_error_resource_not_found(
     const MCPProtocolVersion version,

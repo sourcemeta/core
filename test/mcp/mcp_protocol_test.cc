@@ -476,7 +476,7 @@ TEST(requires_request_meta_2026_07_28) {
 }
 
 // A 2026-07-28 result says what kind of result it is
-// https://modelcontextprotocol.io/specification/2026-07-28/basic/index#resulttype
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/index#result-responses
 TEST(requires_result_type_2025_03_26) {
   EXPECT_FALSE(sourcemeta::core::mcp_requires_result_type(
       sourcemeta::core::MCPProtocolVersion::V_2025_03_26));
@@ -740,7 +740,7 @@ TEST(supports_jsonrpc_batching_2026_07_28) {
 }
 
 // The client-to-server requests the revision defines in 2025-03-26
-// https://modelcontextprotocol.io/specification/2025-03-26/schema
+// https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/schema/2025-03-26/schema.ts
 TEST(is_request_method_2025_03_26) {
   EXPECT_TRUE(sourcemeta::core::mcp_is_request_method(
       sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
@@ -1120,7 +1120,7 @@ TEST(is_request_method_2026_07_28) {
 }
 
 // The standalone server-to-client requests the revision defines in 2025-03-26
-// https://modelcontextprotocol.io/specification/2025-03-26/schema
+// https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/schema/2025-03-26/schema.ts
 TEST(is_server_request_method_2025_03_26) {
   EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
       sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
@@ -1500,7 +1500,7 @@ TEST(is_server_request_method_2026_07_28) {
 }
 
 // The notifications a client may send in 2025-03-26
-// https://modelcontextprotocol.io/specification/2025-03-26/schema
+// https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/schema/2025-03-26/schema.ts
 TEST(is_client_notification_method_2025_03_26) {
   EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
       sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
@@ -1880,7 +1880,7 @@ TEST(is_client_notification_method_2026_07_28) {
 }
 
 // The notifications a server may send in 2025-03-26
-// https://modelcontextprotocol.io/specification/2025-03-26/schema
+// https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/schema/2025-03-26/schema.ts
 TEST(is_server_notification_method_2025_03_26) {
   EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
       sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
@@ -2260,7 +2260,7 @@ TEST(is_server_notification_method_2026_07_28) {
 }
 
 // The notifications the revision defines in either direction in 2025-03-26
-// https://modelcontextprotocol.io/specification/2025-03-26/schema
+// https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/schema/2025-03-26/schema.ts
 TEST(is_notification_method_2025_03_26) {
   EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
       sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
@@ -2640,7 +2640,7 @@ TEST(is_notification_method_2026_07_28) {
 }
 
 // The nested requests a server may ask for mid-request in 2025-03-26
-// https://modelcontextprotocol.io/specification/2025-03-26/schema
+// https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/schema/2025-03-26/schema.ts
 TEST(is_input_request_method_2025_03_26) {
   EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
       sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
@@ -3020,7 +3020,7 @@ TEST(is_input_request_method_2026_07_28) {
 }
 
 // The methods the base protocol defines, nested requests included in 2025-03-26
-// https://modelcontextprotocol.io/specification/2025-03-26/schema
+// https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/schema/2025-03-26/schema.ts
 TEST(supports_method_2025_03_26) {
   EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
       sourcemeta::core::MCPProtocolVersion::V_2025_03_26,

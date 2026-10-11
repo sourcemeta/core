@@ -2451,7 +2451,7 @@ TEST(initialize_rejects_modern_only_support) {
 
 // An absent discriminator means the result is complete, which keeps results
 // from earlier revisions readable
-// https://modelcontextprotocol.io/specification/2026-07-28/basic/index#resulttype
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/index#result-responses
 TEST(result_type_of_a_result_without_a_discriminator) {
   EXPECT_EQ(
       sourcemeta::core::mcp_result_type(sourcemeta::core::JSON::make_object()),
@@ -6606,7 +6606,7 @@ TEST(tools_list_result_accepts_a_metadata_shaped_schema_property) {
 
 // Earlier revisions only require the metadata to be an object, so a key that
 // 2026-07-28 rejects still passes there
-// https://modelcontextprotocol.io/specification/2025-11-25/basic/index#meta
+// https://modelcontextprotocol.io/specification/2025-11-25/basic/index#_meta
 TEST(resources_list_result_accepts_a_malformed_key_on_2025_03_26) {
   EXPECT_EQ(sourcemeta::core::mcp_make_resources_list_result(
                 sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
@@ -7197,7 +7197,7 @@ TEST(write_result_rejects_malformed_prompt_argument_metadata) {
 }
 
 // Earlier revisions only require the metadata to be an object
-// https://modelcontextprotocol.io/specification/2025-11-25/basic/index#meta
+// https://modelcontextprotocol.io/specification/2025-11-25/basic/index#_meta
 TEST(prompts_list_result_accepts_a_malformed_argument_key_on_2025_11_25) {
   EXPECT_EQ(sourcemeta::core::mcp_make_prompts_list_result(
                 sourcemeta::core::MCPProtocolVersion::V_2025_11_25,

@@ -12,9 +12,17 @@ namespace sourcemeta::core {
 
 /// @ingroup mcp
 /// Syslog severity levels, ordered from least to most severe. A request's
-/// logging threshold admits its own level and all more severe levels.
+/// logging threshold admits its own level and all more severe levels. The
+/// enumerator order is the severity order, so the levels compare directly.
+///
+/// This feature is deprecated as of protocol version `2026-07-28`, which
+/// states that new implementations should not adopt it and that existing
+/// implementations should migrate to standard error output for the stdio
+/// transport, or to a general-purpose observability framework.
+///
 /// @see
 /// https://modelcontextprotocol.io/specification/2026-07-28/server/utilities/logging
+/// https://modelcontextprotocol.io/specification/2026-07-28/deprecated
 enum class MCPLogLevel : std::uint8_t {
   /// Detailed information useful for debugging.
   Debug,
@@ -35,7 +43,18 @@ enum class MCPLogLevel : std::uint8_t {
 };
 
 /// @ingroup mcp
-/// Convert a logging severity to its canonical wire string.
+/// Convert a logging severity to its canonical wire string. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/mcp.h>
+/// #include <cassert>
+///
+/// assert(sourcemeta::core::mcp_log_level_string(
+///            sourcemeta::core::MCPLogLevel::Warning) == "warning");
+/// ```
+///
+/// @see
+/// https://modelcontextprotocol.io/specification/2026-07-28/server/utilities/logging
 constexpr auto mcp_log_level_string(const MCPLogLevel level) noexcept
     -> JSON::StringView {
   switch (level) {
@@ -60,7 +79,22 @@ constexpr auto mcp_log_level_string(const MCPLogLevel level) noexcept
 }
 
 /// @ingroup mcp
-/// Parse an exact, case-sensitive logging severity without allocating.
+/// Parse an exact, case-sensitive logging severity without allocating. An
+/// unrecognized value yields no level, which the specification asks a server
+/// to report as an invalid parameter. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/mcp.h>
+/// #include <cassert>
+///
+/// assert(sourcemeta::core::mcp_resolve_log_level("notice") ==
+///        sourcemeta::core::MCPLogLevel::Notice);
+/// assert(!sourcemeta::core::mcp_resolve_log_level("NOTICE").has_value());
+/// assert(!sourcemeta::core::mcp_resolve_log_level("verbose").has_value());
+/// ```
+///
+/// @see
+/// https://modelcontextprotocol.io/specification/2026-07-28/server/utilities/logging
 constexpr auto mcp_resolve_log_level(const JSON::StringView value) noexcept
     -> std::optional<MCPLogLevel> {
   constexpr std::array<MCPLogLevel, 8> LEVELS{
@@ -76,7 +110,27 @@ constexpr auto mcp_resolve_log_level(const JSON::StringView value) noexcept
 }
 
 /// @ingroup mcp
-/// Whether a notification meets an explicitly selected logging threshold.
+/// Whether a notification meets an explicitly selected logging threshold. A
+/// threshold admits its own severity and every more severe one. The
+/// specification scopes a threshold to the request that carried it and only
+/// permits a notification once a request has asked for one, so a caller
+/// reaches this predicate having already found a threshold to apply. For
+/// example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/mcp.h>
+/// #include <cassert>
+///
+/// assert(sourcemeta::core::mcp_log_level_enabled(
+///     sourcemeta::core::MCPLogLevel::Error,
+///     sourcemeta::core::MCPLogLevel::Warning));
+/// assert(!sourcemeta::core::mcp_log_level_enabled(
+///     sourcemeta::core::MCPLogLevel::Debug,
+///     sourcemeta::core::MCPLogLevel::Warning));
+/// ```
+///
+/// @see
+/// https://modelcontextprotocol.io/specification/2026-07-28/server/utilities/logging
 constexpr auto mcp_log_level_enabled(const MCPLogLevel level,
                                      const MCPLogLevel threshold) noexcept
     -> bool {

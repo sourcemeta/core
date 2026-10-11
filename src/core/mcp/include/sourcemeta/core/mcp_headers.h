@@ -87,7 +87,13 @@ enum class MCPRequestMetaStatus : std::uint8_t {
 };
 
 /// @ingroup mcp
-/// Parsed representation of 2026-07-28 request metadata.
+/// Parsed representation of 2026-07-28 request metadata. The protocol revision
+/// is a value, while the capabilities, implementation, log level, metadata
+/// object and progress token all reference the validated request, so the
+/// request must outlive this view.
+///
+/// @see
+/// https://modelcontextprotocol.io/specification/2026-07-28/basic/index#_meta
 struct MCPRequestMeta {
   /// The declared protocol revision.
   MCPProtocolVersion protocol_version;
@@ -105,20 +111,110 @@ struct MCPRequestMeta {
 
 /// @ingroup mcp
 /// Validate and extract MCP 2026-07-28 request metadata from a request
-/// envelope. Use mcp_validate_request_parameters for parameters.
+/// envelope. Use @ref mcp_validate_request_parameters for parameters. The
+/// metadata is only present when the status is
+/// @ref MCPRequestMetaStatus::Valid, and it borrows from the envelope. For
+/// example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/mcp.h>
+/// #include <cassert>
+///
+/// const auto envelope{sourcemeta::core::parse_json(R"JSON({
+///   "jsonrpc": "2.0",
+///   "id": 1,
+///   "method": "tools/list",
+///   "params": {
+///     "_meta": {
+///       "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+///       "io.modelcontextprotocol/clientCapabilities": {}
+///     }
+///   }
+/// })JSON")};
+/// const auto [status,
+///             meta]{sourcemeta::core::mcp_validate_request_meta(envelope)};
+/// assert(status == sourcemeta::core::MCPRequestMetaStatus::Valid);
+/// assert(meta->protocol_version ==
+///        sourcemeta::core::MCPProtocolVersion::V_2026_07_28);
+/// assert(!meta->client_info.has_value());
+/// ```
+///
+/// @see
+/// https://modelcontextprotocol.io/specification/2026-07-28/basic/index#_meta
 SOURCEMETA_CORE_MCP_EXPORT
 auto mcp_validate_request_meta(const sourcemeta::core::JSON &envelope)
     -> std::pair<MCPRequestMetaStatus, std::optional<MCPRequestMeta>>;
 
 /// @ingroup mcp
 /// Validate metadata in a parameters object, without guessing envelope shape.
+/// This is the entry point for a caller that has already located the
+/// parameters, such as one dispatching a batch member. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/mcp.h>
+/// #include <cassert>
+///
+/// const auto parameters{sourcemeta::core::parse_json(R"JSON({
+///   "_meta": {
+///     "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+///     "io.modelcontextprotocol/clientCapabilities": {}
+///   }
+/// })JSON")};
+/// assert(sourcemeta::core::mcp_validate_request_parameters(parameters)
+///            .first == sourcemeta::core::MCPRequestMetaStatus::Valid);
+/// ```
+///
+/// @see
+/// https://modelcontextprotocol.io/specification/2026-07-28/basic/index#_meta
 SOURCEMETA_CORE_MCP_EXPORT
 auto mcp_validate_request_parameters(const JSON &parameters)
     -> std::pair<MCPRequestMetaStatus, std::optional<MCPRequestMeta>>;
 
 /// @ingroup mcp
 /// Construct an appropriate JSON-RPC error response from an invalid
-/// @ref MCPRequestMetaStatus.
+/// @ref MCPRequestMetaStatus. An unrecognized revision becomes the dedicated
+/// unsupported-version error carrying the supported list, an envelope that is
+/// not a readable request becomes an invalid-request error, and every
+/// remaining failure becomes an invalid-params error naming the offending
+/// field. Passing the status for valid metadata throws
+/// `std::invalid_argument`. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/mcp.h>
+/// #include <array>
+/// #include <cassert>
+///
+/// constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
+///     {"2026-07-28"}};
+/// assert(sourcemeta::core::mcp_make_error_request_meta(
+///            sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+///            sourcemeta::core::JSON{1},
+///            sourcemeta::core::MCPRequestMetaStatus::MissingMeta, "",
+///            SUPPORTED)
+///            .at("error")
+///            .at("code")
+///            .to_integer() == sourcemeta::core::JSONRPC_CODE_INVALID_PARAMS);
+/// assert(sourcemeta::core::mcp_make_error_request_meta(
+///            sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+///            sourcemeta::core::JSON{1},
+///            sourcemeta::core::MCPRequestMetaStatus::InvalidEnvelope, "",
+///            SUPPORTED)
+///            .at("error")
+///            .at("code")
+///            .to_integer() == sourcemeta::core::JSONRPC_CODE_INVALID_REQUEST);
+/// constexpr auto UNSUPPORTED{
+///     sourcemeta::core::MCPRequestMetaStatus::UnsupportedProtocolVersion};
+/// assert(sourcemeta::core::mcp_make_error_request_meta(
+///            sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+///            sourcemeta::core::JSON{1}, UNSUPPORTED, "1999-01-01", SUPPORTED)
+///            .at("error")
+///            .at("code")
+///            .to_integer() ==
+///        sourcemeta::core::MCP_CODE_UNSUPPORTED_PROTOCOL_VERSION);
+/// ```
+///
+/// @see
+/// https://modelcontextprotocol.io/specification/2026-07-28/basic/index#error-codes
 SOURCEMETA_CORE_MCP_EXPORT
 auto mcp_make_error_request_meta(
     const MCPProtocolVersion version,
@@ -130,14 +226,63 @@ auto mcp_make_error_request_meta(
 /// @ingroup mcp
 /// Borrow the target tool name or resource URI from a JSON-RPC request body.
 /// The returned view is valid only while the source string remains alive and
-/// unchanged.
+/// unchanged. A resource read is named by its URI rather than by a name, and a
+/// request that names no target yields nothing. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/mcp.h>
+/// #include <cassert>
+///
+/// const auto envelope{sourcemeta::core::parse_json(R"JSON({
+///   "method": "tools/call",
+///   "params": { "name": "weather" }
+/// })JSON")};
+/// assert(sourcemeta::core::mcp_request_name_from_body(envelope) == "weather");
+/// ```
+///
+/// @see
+/// https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#standard-request-headers
 SOURCEMETA_CORE_MCP_EXPORT
 auto mcp_request_name_from_body(const sourcemeta::core::JSON &envelope)
     -> std::optional<JSON::StringView>;
 
 /// @ingroup mcp
 /// Validate Streamable HTTP transport header values against the parsed
-/// JSON-RPC request body for the specified protocol version.
+/// JSON-RPC request body for the specified protocol version. Returns nothing
+/// when the headers agree with the body, and a ready-to-send JSON-RPC error
+/// envelope otherwise. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/mcp.h>
+/// #include <array>
+/// #include <cassert>
+///
+/// constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
+///     {"2026-07-28"}};
+/// const auto envelope{sourcemeta::core::parse_json(R"JSON({
+///   "jsonrpc": "2.0",
+///   "id": 1,
+///   "method": "tools/call",
+///   "params": {
+///     "name": "weather",
+///     "_meta": {
+///       "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+///       "io.modelcontextprotocol/clientCapabilities": {}
+///     }
+///   }
+/// })JSON")};
+/// assert(!sourcemeta::core::mcp_validate_request_headers(
+///             sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+///             "2026-07-28", "tools/call", "weather", envelope, SUPPORTED)
+///             .has_value());
+/// assert(sourcemeta::core::mcp_validate_request_headers(
+///            sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "2026-07-28",
+///            "tools/call", "other", envelope, SUPPORTED)
+///            .has_value());
+/// ```
+///
+/// @see
+/// https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#server-validation
 SOURCEMETA_CORE_MCP_EXPORT
 auto mcp_validate_request_headers(
     const MCPProtocolVersion version,
@@ -150,7 +295,25 @@ auto mcp_validate_request_headers(
 
 /// @ingroup mcp
 /// Encode a Mcp-Name or Mcp-Param value using the MCP 2026-07-28 sentinel
-/// encoding when the value cannot be represented literally.
+/// encoding when the value cannot be represented literally. A value passes
+/// through only when every byte is printable ASCII, it neither begins nor ends
+/// with a space, and it would not be mistaken for the sentinel form.
+/// Everything else is encoded. Throws `std::invalid_argument` for input that
+/// is not UTF-8. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/mcp.h>
+/// #include <cassert>
+///
+/// assert(sourcemeta::core::mcp_encode_header_value("weather") == "weather");
+/// assert(sourcemeta::core::mcp_encode_header_value(" café ") ==
+///        "=?base64?IGNhZsOpIA==?=");
+/// assert(sourcemeta::core::mcp_encode_header_value(" padded ") ==
+///        "=?base64?IHBhZGRlZCA=?=");
+/// ```
+///
+/// @see
+/// https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#value-encoding
 SOURCEMETA_CORE_MCP_EXPORT
 auto mcp_encode_header_value(JSON::StringView value) -> std::string;
 
@@ -158,6 +321,43 @@ auto mcp_encode_header_value(JSON::StringView value) -> std::string;
 /// Validate a borrowed HTTP header collection. Names are case insensitive.
 /// Duplicate recognized singleton fields are rejected. Unknown fields stay
 /// opaque. HTTP framing, Origin and session validation belong to the adapter.
+/// Returns nothing on success and a JSON-RPC error envelope otherwise. For
+/// example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/mcp.h>
+/// #include <array>
+/// #include <cassert>
+/// #include <utility>
+///
+/// constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
+///     {"2026-07-28"}};
+/// const auto envelope{sourcemeta::core::parse_json(R"JSON({
+///   "jsonrpc": "2.0",
+///   "id": 1,
+///   "method": "tools/call",
+///   "params": {
+///     "name": "weather",
+///     "_meta": {
+///       "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+///       "io.modelcontextprotocol/clientCapabilities": {}
+///     }
+///   }
+/// })JSON")};
+/// const std::array<std::pair<sourcemeta::core::JSON::StringView,
+///                            sourcemeta::core::JSON::StringView>,
+///                  3>
+///     headers{{{"MCP-Protocol-Version", "2026-07-28"},
+///              {"Mcp-Method", "tools/call"},
+///              {"Mcp-Name", "weather"}}};
+/// assert(!sourcemeta::core::mcp_validate_request_headers(
+///             sourcemeta::core::MCPProtocolVersion::V_2026_07_28, headers,
+///             envelope, SUPPORTED)
+///             .has_value());
+/// ```
+///
+/// @see
+/// https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#server-validation
 SOURCEMETA_CORE_MCP_EXPORT
 auto mcp_validate_request_headers(
     MCPProtocolVersion version,
@@ -167,7 +367,12 @@ auto mcp_validate_request_headers(
 
 /// @ingroup mcp
 /// A caller-provided parameter header descriptor. String views borrow the
-/// name and property path supplied by the caller.
+/// name and property path supplied by the caller. The path names the chain of
+/// properties reaching the mirrored value from the arguments root, and the
+/// type is restricted to the three primitives the specification permits.
+///
+/// @see
+/// https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#schema-extension
 struct MCPHeaderParameter {
   /// The suffix of Mcp-Param-{name}.
   JSON::StringView name;
@@ -179,7 +384,43 @@ struct MCPHeaderParameter {
 
 /// @ingroup mcp
 /// Produce mirrored parameter headers. Missing/null values are omitted.
-/// Throws invalid_argument on a type mismatch or an unsafe integer.
+/// Throws `std::invalid_argument` on a type mismatch or an unsafe integer. A
+/// value that cannot be represented literally is sentinel encoded. For
+/// example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/mcp.h>
+/// #include <array>
+/// #include <cassert>
+/// #include <string>
+/// #include <utility>
+/// #include <vector>
+///
+/// const std::array<sourcemeta::core::MCPHeaderParameter, 3> descriptors{
+///     {{.name = "Label",
+///       .path = {"nested", "text"},
+///       .type = sourcemeta::core::JSON::Type::String},
+///      {.name = "Count",
+///       .path = {"number"},
+///       .type = sourcemeta::core::JSON::Type::Integer},
+///      {.name = "Enabled",
+///       .path = {"enabled"},
+///       .type = sourcemeta::core::JSON::Type::Boolean}}};
+/// const auto arguments{sourcemeta::core::parse_json(R"JSON({
+///   "nested": { "text": " café " },
+///   "number": 42,
+///   "enabled": false
+/// })JSON")};
+/// const std::vector<std::pair<std::string, std::string>> expected{
+///     {"Mcp-Param-Label", "=?base64?IGNhZsOpIA==?="},
+///     {"Mcp-Param-Count", "42"},
+///     {"Mcp-Param-Enabled", "false"}};
+/// assert(sourcemeta::core::mcp_make_parameter_headers(descriptors,
+///                                                     arguments) == expected);
+/// ```
+///
+/// @see
+/// https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#schema-extension
 SOURCEMETA_CORE_MCP_EXPORT
 auto mcp_make_parameter_headers(std::span<const MCPHeaderParameter> parameters,
                                 const JSON &arguments)
@@ -189,6 +430,33 @@ auto mcp_make_parameter_headers(std::span<const MCPHeaderParameter> parameters,
 /// Compare annotated parameters with raw HTTP headers case-insensitively.
 /// Validates required mirrors, encoding, duplicates and numeric equivalence.
 /// Protocol version must be 2026-07-28. The caller supplies the descriptors.
+/// Returns nothing when every mirror agrees, and a JSON-RPC error envelope
+/// otherwise. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/mcp.h>
+/// #include <array>
+/// #include <cassert>
+/// #include <utility>
+///
+/// const std::array<sourcemeta::core::MCPHeaderParameter, 1> descriptors{
+///     {{.name = "Count",
+///       .path = {"number"},
+///       .type = sourcemeta::core::JSON::Type::Integer}}};
+/// const auto arguments{
+///     sourcemeta::core::parse_json(R"JSON({ "number": 42 })JSON")};
+/// const std::array<std::pair<sourcemeta::core::JSON::StringView,
+///                            sourcemeta::core::JSON::StringView>,
+///                  1>
+///     headers{{{"Mcp-Param-Count", "42"}}};
+/// assert(!sourcemeta::core::mcp_validate_parameter_headers(
+///             sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+///             sourcemeta::core::JSON{0}, descriptors, arguments, headers)
+///             .has_value());
+/// ```
+///
+/// @see
+/// https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#server-validation
 SOURCEMETA_CORE_MCP_EXPORT
 auto mcp_validate_parameter_headers(
     MCPProtocolVersion version, const JSON &identifier,
