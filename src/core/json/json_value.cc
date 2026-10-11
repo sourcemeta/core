@@ -894,6 +894,12 @@ auto JSON::operator-=(const JSON &substractive) -> JSON & {
       return 5;
     }
   }
+
+    // Clang settles that no other value arrives, so only GCC and MSVC
+    // need to be told that the end of this function is never reached
+#if !defined(__clang__)
+  std::unreachable();
+#endif
 }
 
 [[nodiscard]] auto JSON::divisible_by(const JSON &divisor) const -> bool {

@@ -49,6 +49,12 @@ inline auto to_roundtrip_chomping(const BlockChomping chomping)
     case BlockChomping::Keep:
       return YAMLRoundTrip::Chomping::Keep;
   }
+
+    // Clang settles that no other value arrives, so only GCC and MSVC
+    // need to be told that the end of this function is never reached
+#if !defined(__clang__)
+  std::unreachable();
+#endif
 }
 
 class Parser {

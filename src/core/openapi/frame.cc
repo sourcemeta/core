@@ -499,6 +499,12 @@ auto openapi_kind_name(const OpenAPIObjectKind kind) noexcept
     case OpenAPIObjectKind::SecurityRequirement:
       return "security-requirement"sv;
   }
+
+    // Clang settles that no other value arrives, so only GCC and MSVC
+    // need to be told that the end of this function is never reached
+#if !defined(__clang__)
+  std::unreachable();
+#endif
 }
 
 // What framing a document under a given retrieval URI would key every place of
@@ -543,6 +549,12 @@ auto openapi_operation_kind_name(const OpenAPIOperationKind kind) noexcept
     case OpenAPIOperationKind::Callback:
       return "callback"sv;
   }
+
+    // Clang settles that no other value arrives, so only GCC and MSVC
+    // need to be told that the end of this function is never reached
+#if !defined(__clang__)
+  std::unreachable();
+#endif
 }
 
 // Every operation the description exposes, which Section 4.3.3 confines to what

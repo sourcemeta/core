@@ -602,6 +602,12 @@ auto to_json(const SchemaFrame::LocationType value) -> sourcemeta::core::JSON {
     case SchemaFrame::LocationType::Subschema:
       return sourcemeta::core::JSON{"subschema"};
   }
+
+    // Clang settles that no other value arrives, so only GCC and MSVC
+    // need to be told that the end of this function is never reached
+#if !defined(__clang__)
+  std::unreachable();
+#endif
 }
 
 auto SchemaFrame::to_json(

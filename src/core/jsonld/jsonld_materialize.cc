@@ -93,6 +93,12 @@ auto direction_to_string(const JSONLDDirection direction) -> JSON::StringView {
     case JSONLDDirection::RTL:
       return "rtl";
   }
+
+    // Clang settles that no other value arrives, so only GCC and MSVC
+    // need to be told that the end of this function is never reached
+#if !defined(__clang__)
+  std::unreachable();
+#endif
 }
 
 auto types_to_array(const std::vector<JSON::String> &types) -> JSON {
@@ -567,6 +573,12 @@ auto materialize_value(const JSON &value, PointerT &pointer,
       assert(value.is_object());
       return build_index_collection(value, pointer, range, standalone);
   }
+
+    // Clang settles that no other value arrives, so only GCC and MSVC
+    // need to be told that the end of this function is never reached
+#if !defined(__clang__)
+  std::unreachable();
+#endif
 }
 
 template <typename PointerT>

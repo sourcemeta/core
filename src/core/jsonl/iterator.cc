@@ -72,6 +72,12 @@ auto ConstJSONLIterator::parse_next() -> JSON {
     case JSONLFraming::RecordSeparator:
       return this->parse_next_record();
   }
+
+    // Clang settles that no other value arrives, so only GCC and MSVC
+    // need to be told that the end of this function is never reached
+#if !defined(__clang__)
+  std::unreachable();
+#endif
 }
 
 auto ConstJSONLIterator::parse_next_record() -> JSON {

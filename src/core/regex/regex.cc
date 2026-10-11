@@ -158,6 +158,12 @@ auto matches(const Regex &regex, const std::string_view value) -> bool {
     case RegexIndex::Noop:
       return true;
   }
+
+    // Clang settles that no other value arrives, so only GCC and MSVC
+    // need to be told that the end of this function is never reached
+#if !defined(__clang__)
+  std::unreachable();
+#endif
 }
 
 auto replace_all(const Regex &regex, const std::string_view subject,

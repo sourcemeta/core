@@ -77,6 +77,12 @@ auto openapi_version_name(const OpenAPIVersion version) noexcept
     case OpenAPIVersion::OPENAPI_3_2:
       return "3.2"sv;
   }
+
+    // Clang settles that no other value arrives, so only GCC and MSVC
+    // need to be told that the end of this function is never reached
+#if !defined(__clang__)
+  std::unreachable();
+#endif
 }
 
 auto openapi_version_string(const JSON &document)

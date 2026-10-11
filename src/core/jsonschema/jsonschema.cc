@@ -44,6 +44,12 @@ auto sourcemeta::core::base_dialect_uri(const SchemaBaseDialect base_dialect)
     case SchemaBaseDialect::JSON_SCHEMA_DRAFT_0_HYPER:
       return "http://json-schema.org/draft-00/hyper-schema#";
   }
+
+    // Clang settles that no other value arrives, so only GCC and MSVC
+    // need to be told that the end of this function is never reached
+#if !defined(__clang__)
+  std::unreachable();
+#endif
 }
 
 auto sourcemeta::core::operator<<(std::ostream &stream,

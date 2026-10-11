@@ -855,6 +855,12 @@ inline auto filter_compare(const JSONPath::FilterComparison &comparison,
     case JSONPath::FilterComparisonOperator::GreaterEqual:
       return filter_less(right, left) || filter_equals(left, right);
   }
+
+    // Clang settles that no other value arrives, so only GCC and MSVC
+    // need to be told that the end of this function is never reached
+#if !defined(__clang__)
+  std::unreachable();
+#endif
 }
 
 inline auto filter_matches(const JSONPath::FilterExpression &expression,

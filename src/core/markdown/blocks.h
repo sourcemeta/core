@@ -356,6 +356,12 @@ private:
       case NodeType::Strikethrough:
         return false;
     }
+
+      // Clang settles that no other value arrives, so only GCC and MSVC
+      // need to be told that the end of this function is never reached
+#if !defined(__clang__)
+    std::unreachable();
+#endif
   }
 
   auto add_child(std::uint32_t parent, const NodeType type) -> std::uint32_t {
@@ -654,6 +660,12 @@ private:
       case NodeType::Strikethrough:
         return true;
     }
+
+      // Clang settles that no other value arrives, so only GCC and MSVC
+      // need to be told that the end of this function is never reached
+#if !defined(__clang__)
+    std::unreachable();
+#endif
   }
 
   auto check_open_blocks(bool &all_matched) -> std::uint32_t {

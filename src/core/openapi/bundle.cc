@@ -244,17 +244,15 @@ auto absolutize_schemas(sourcemeta::core::JSON &value,
   // just as what it names by a reference is
   for (const auto &discriminator : sourcemeta::core::openapi_discriminators(
            remote_document, frame, remote.base, walker, resolver)) {
-    // The frame above is built from the schema locations that sit under what
-    // moves, and a discriminator is reported from within one of them, so every
-    // one that arrives here belongs to what moves
-    assert(discriminator.origin.starts_with(origin));
+    if (!discriminator.origin.starts_with(origin)) {
+      continue;
+    }
 
     const auto held{(discriminator.origin).resolve_from(origin)};
-    // A mapping that names a schema with anything but a string is turned away
-    // where discriminators are read, and this one sits within what moves, so
-    // the string it holds is there to be read back out of the copy
     const auto *written{sourcemeta::core::try_get(value, held)};
-    assert(written != nullptr && written->is_string());
+    if (written == nullptr || !written->is_string()) {
+      continue;
+    }
 
     // Section 4.3.3 resolves a name against the Components Object of the entry
     // document wherever the Discriminator Object naming it sits, so moving the

@@ -268,6 +268,12 @@ auto sourcemeta::core::vocabulary_uri(SchemaVocabularies::Known vocabulary)
 
 #undef X_ENUM_TO_URI
   }
+
+  // Clang settles that no other value arrives, so only GCC and MSVC
+  // need to be told that the end of this function is never reached
+#if !defined(__clang__)
+  std::unreachable();
+#endif
 }
 
 auto sourcemeta::core::vocabulary_uri(const SchemaVocabularies::URI &vocabulary)

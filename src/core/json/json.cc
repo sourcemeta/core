@@ -327,6 +327,12 @@ auto operator<<(std::basic_ostream<JSON::Char, JSON::CharTraits> &stream,
     case sourcemeta::core::JSON::Type::Object:
       return stream << "object";
   }
+
+    // Clang settles that no other value arrives, so only GCC and MSVC
+    // need to be told that the end of this function is never reached
+#if !defined(__clang__)
+  std::unreachable();
+#endif
 }
 
 } // namespace sourcemeta::core

@@ -100,6 +100,12 @@ inline auto id_keyword(const SchemaBaseDialect base_dialect) -> SchemaKeyword {
     case SchemaBaseDialect::JSON_SCHEMA_DRAFT_0_HYPER:
       return {.name = "id"sv, .hash = JSONSCHEMA_HASH_LEGACY_ID};
   }
+
+    // Clang settles that no other value arrives, so only GCC and MSVC
+    // need to be told that the end of this function is never reached
+#if !defined(__clang__)
+  std::unreachable();
+#endif
 }
 
 // Whether the dialect in force gives a keyword any meaning at all, which is
@@ -194,6 +200,12 @@ inline auto definitions_keyword(const SchemaBaseDialect base_dialect)
     case SchemaBaseDialect::JSON_SCHEMA_DRAFT_0_HYPER:
       return "";
   }
+
+    // Clang settles that no other value arrives, so only GCC and MSVC
+    // need to be told that the end of this function is never reached
+#if !defined(__clang__)
+  std::unreachable();
+#endif
 }
 
 // In older drafts, the presence of `$ref` would override any sibling keywords
