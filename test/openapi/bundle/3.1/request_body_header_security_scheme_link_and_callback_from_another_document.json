@@ -85,7 +85,7 @@
         },
         "callbacks": {
           "C": {
-            "https://example.com/cb": {
+            "{$request.body#/url}": {
               "post": {
                 "responses": {
                   "200": {
@@ -148,7 +148,7 @@
       },
       "callbacks": {
         "C": {
-          "https://example.com/cb": {
+          "{$request.body#/url}": {
             "post": {
               "responses": {
                 "200": {
@@ -228,10 +228,10 @@
     },
     {
       "type": "callback",
-      "path": "https://example.com/cb",
+      "path": "{$request.body#/url}",
       "method": "post",
-      "origin": "https://example.com/openapi.json#/components/callbacks/C/https:~1~1example.com~1cb/post",
-      "endpoint": "https://example.com/openapi.json#/components/callbacks/C/https:~1~1example.com~1cb",
+      "origin": "https://example.com/openapi.json#/components/callbacks/C/%7B$request.body%23~1url%7D/post",
+      "endpoint": "https://example.com/openapi.json#/components/callbacks/C/%7B$request.body%23~1url%7D",
       "parent": "https://example.com/openapi.json#/paths/~1a/post",
       "tags": [],
       "servers": [],

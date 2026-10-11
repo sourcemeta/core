@@ -351,6 +351,6 @@ TEST(an_input_of_many_megabytes_does_not_disturb_the_next_conversion) {
 
 TEST(unclosed_inline_declarations) {
   const auto result{
-      sourcemeta::core::markdown_to_html("x" + repeat("<!A", 5000))};
-  EXPECT_EQ(result, "<p>x" + repeat("&lt;!A", 5000) + "</p>\n");
+      sourcemeta::core::markdown_to_html("x" + repeat("<!A ", 5000))};
+  EXPECT_EQ(result, "<p>x" + repeat("&lt;!A ", 4999) + "&lt;!A</p>\n");
 }

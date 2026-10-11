@@ -149,6 +149,31 @@ struct ExpansionState {
 // RAII guard for where the context being processed reports what it says wrong,
 // restoring the enclosing origin, and which of its entries the input itself
 // spells out, on every exit path
+struct ForeignContextScope {
+  ExpansionState &state;
+  std::optional<Pointer> previous_location;
+  const JSON *previous_input;
+
+  ForeignContextScope(ExpansionState &value, std::optional<Pointer> location,
+                      const JSON *const input = nullptr)
+      : state{value},
+        previous_location{std::move(value.foreign_context_location)},
+        previous_input{value.input_context} {
+    this->state.foreign_context_location = std::move(location);
+    this->state.input_context = input;
+  }
+
+  ~ForeignContextScope() {
+    this->state.foreign_context_location = std::move(this->previous_location);
+    this->state.input_context = this->previous_input;
+  }
+
+  ForeignContextScope(const ForeignContextScope &) = delete;
+  auto operator=(const ForeignContextScope &) -> ForeignContextScope & = delete;
+  ForeignContextScope(ForeignContextScope &&) = delete;
+  auto operator=(ForeignContextScope &&) -> ForeignContextScope & = delete;
+};
+
 // A scoped context is processed with the protected override in force, and what
 // was in force before comes back whichever way that processing ends
 struct ProtectedOverrideScope {
@@ -186,31 +211,6 @@ struct RemoteContextScope {
   auto operator=(const RemoteContextScope &) -> RemoteContextScope & = delete;
   RemoteContextScope(RemoteContextScope &&) = delete;
   auto operator=(RemoteContextScope &&) -> RemoteContextScope & = delete;
-};
-
-struct ForeignContextScope {
-  ExpansionState &state;
-  std::optional<Pointer> previous_location;
-  const JSON *previous_input;
-
-  ForeignContextScope(ExpansionState &value, std::optional<Pointer> location,
-                      const JSON *const input = nullptr)
-      : state{value},
-        previous_location{std::move(value.foreign_context_location)},
-        previous_input{value.input_context} {
-    this->state.foreign_context_location = std::move(location);
-    this->state.input_context = input;
-  }
-
-  ~ForeignContextScope() {
-    this->state.foreign_context_location = std::move(this->previous_location);
-    this->state.input_context = this->previous_input;
-  }
-
-  ForeignContextScope(const ForeignContextScope &) = delete;
-  auto operator=(const ForeignContextScope &) -> ForeignContextScope & = delete;
-  ForeignContextScope(ForeignContextScope &&) = delete;
-  auto operator=(ForeignContextScope &&) -> ForeignContextScope & = delete;
 };
 
 // RAII guard for the base that the remote references of the context being

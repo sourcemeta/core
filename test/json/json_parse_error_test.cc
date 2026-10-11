@@ -842,5 +842,6 @@ TEST(number_with_an_exponent_beyond_the_decimal_range) {
     FAIL();
   } catch (const sourcemeta::core::JSONParseError &error) {
     EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 1);
   }
 }

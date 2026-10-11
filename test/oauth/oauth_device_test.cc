@@ -339,17 +339,20 @@ TEST(device_authorization_response_with_a_non_integer_expires_in) {
   EXPECT_FALSE(response.expires_in().has_value());
 }
 
-// RFC 8707 Section 2 sends one `resource` parameter per target, and anything
-// else the caller names rides along with them
+// RFC 8707 Section 2 sends one `resource` parameter per target, so a name that
+// repeats is kept as it stands rather than folded, and anything else the
+// caller names rides along with them
 TEST(build_device_authorization_request_carries_extra_parameters) {
-  const std::array<sourcemeta::core::OAuthParameter, 2> resources{
+  const std::array<sourcemeta::core::OAuthParameter, 3> resources{
       {{.name = "resource", .value = "https://example.com/api"},
+       {.name = "resource", .value = "https://example.com/other"},
        {.name = "audience", .value = "https://example.com"}}};
   std::string body;
   sourcemeta::core::oauth_build_device_authorization_request(
       "1406020730", "read", resources, body);
   EXPECT_EQ(body, "client_id=1406020730&scope=read"
                   "&resource=https%3A%2F%2Fexample.com%2Fapi"
+                  "&resource=https%3A%2F%2Fexample.com%2Fother"
                   "&audience=https%3A%2F%2Fexample.com");
 }
 

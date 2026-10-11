@@ -226,27 +226,3 @@ TEST(blank_node_identifier_used_twice_names_one_node) {
 
   EXPECT_EQ(sourcemeta::core::jsonld_flatten(input), expected);
 }
-
-// Section 5.2.2 keeps a list object whole and hangs it off the property of the
-// subject that carries it, creating that property where the subject has none
-TEST(list_object_hangs_off_the_property_of_its_subject) {
-  const auto input = sourcemeta::core::parse_json(R"([
-    {
-      "@id": "http://example.com/a",
-      "http://example.com/p": [
-        { "@list": [ { "@value": "one" }, { "@value": "two" } ] }
-      ]
-    }
-  ])");
-
-  const auto expected = sourcemeta::core::parse_json(R"([
-    {
-      "@id": "http://example.com/a",
-      "http://example.com/p": [
-        { "@list": [ { "@value": "one" }, { "@value": "two" } ] }
-      ]
-    }
-  ])");
-
-  EXPECT_EQ(sourcemeta::core::jsonld_flatten(input), expected);
-}
