@@ -238,8 +238,7 @@ auto mcp_make_error_request_meta(
       identifier.has_value() ? &identifier.value() : nullptr};
   switch (status) {
     case MCPRequestMetaStatus::Valid:
-      throw std::invalid_argument{
-          "Cannot construct an error for valid metadata"};
+      throw MCPError{"Cannot construct an error for valid metadata"};
     case MCPRequestMetaStatus::InvalidEnvelope:
       return mcp_make_error(version, identifier_pointer,
                             JSONRPC_CODE_INVALID_REQUEST, "Invalid Request");

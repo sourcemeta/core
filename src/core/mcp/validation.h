@@ -12,14 +12,13 @@
 #include <cmath>            // std::isfinite
 #include <initializer_list> // std::initializer_list
 #include <set>              // std::set
-#include <stdexcept>        // std::invalid_argument
 #include <utility>          // std::move, std::pair
 
 namespace sourcemeta::core::internal {
 
 inline void require(const bool condition, const char *message) {
   if (!condition) {
-    throw std::invalid_argument{message};
+    throw MCPError{message};
   }
 }
 

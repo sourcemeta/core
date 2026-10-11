@@ -8,9 +8,12 @@
 
 #include "mcp_helpers.h"
 
-#include <array>    // std::array
-#include <cstdint>  // std::int64_t
-#include <optional> // std::optional, std::nullopt
+#include <array>     // std::array
+#include <cstdint>   // std::int64_t
+#include <limits>    // std::numeric_limits
+#include <optional>  // std::optional, std::nullopt
+#include <stdexcept> // std::invalid_argument
+#include <string>    // std::string
 
 TEST(code_resource_not_found) {
   EXPECT_EQ(sourcemeta::core::MCP_CODE_RESOURCE_NOT_FOUND,
@@ -1024,4 +1027,36 @@ TEST(error_code_to_http_status_unmapped_code) {
   EXPECT_EQ(sourcemeta::core::mcp_error_code_to_http_status(
                 sourcemeta::core::MCPProtocolVersion::V_2026_07_28, -99999),
             sourcemeta::core::HTTP_STATUS_INTERNAL_SERVER_ERROR);
+}
+
+TEST(mcp_error_is_catchable_as_an_invalid_argument) {
+  try {
+    sourcemeta::core::mcp_make_resource_link(
+        sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "file:///a", "a");
+    FAIL();
+  } catch (const std::invalid_argument &error) {
+    EXPECT_STREQ(error.what(),
+                 "Resource links require MCP 2025-06-18 or later");
+  }
+}
+
+TEST(mcp_error_reports_a_contract_violation_before_the_json_module) {
+  const sourcemeta::core::MCPResourceAnnotations annotations{
+      .priority = std::numeric_limits<double>::infinity()};
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_serialize_resource_annotations(
+          sourcemeta::core::MCPProtocolVersion::V_2025_03_26, annotations),
+      "Annotation priority must be a finite number");
+}
+
+TEST(a_json_non_finite_value_is_not_an_mcp_error) {
+  try {
+    const sourcemeta::core::JSON value{std::numeric_limits<double>::infinity()};
+    EXPECT_TRUE(value.is_real());
+    FAIL();
+  } catch (const sourcemeta::core::MCPError &) {
+    FAIL();
+  } catch (const std::invalid_argument &error) {
+    EXPECT_STREQ(error.what(), "JSON does not support Infinity or NaN");
+  }
 }

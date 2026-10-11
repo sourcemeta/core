@@ -149,7 +149,7 @@ struct MCPServerCapabilities {
 /// @ingroup mcp
 /// Parse client capabilities from a JSON object. A capability the given
 /// revision does not define is ignored rather than reported, while a known
-/// capability of the wrong type is rejected with `std::invalid_argument`. For
+/// capability of the wrong type is rejected with @ref MCPError. For
 /// example:
 ///
 /// ```cpp
@@ -234,7 +234,7 @@ auto mcp_parse_server_capabilities(MCPProtocolVersion version,
 /// @ingroup mcp
 /// Serialize server capabilities for an explicit revision. Typed flags override
 /// the source snapshot. Opaque settings survive only in retained capabilities.
-/// Throws `std::invalid_argument` for malformed known fields. For example:
+/// Throws @ref MCPError for malformed known fields. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/mcp.h>

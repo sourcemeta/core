@@ -10,11 +10,53 @@
 #include <sourcemeta/core/jsonrpc.h>
 #include <sourcemeta/core/mcp_protocol.h>
 
-#include <cstdint>  // std::int64_t, std::uint8_t
-#include <optional> // std::optional, std::nullopt
-#include <span>     // std::span
+#include <cstdint>   // std::int64_t, std::uint8_t
+#include <optional>  // std::optional, std::nullopt
+#include <span>      // std::span
+#include <stdexcept> // std::invalid_argument
 
 namespace sourcemeta::core {
+
+// Exporting symbols that depends on the standard C++ library is considered
+// safe.
+// https://learn.microsoft.com/en-us/cpp/error-messages/compiler-warnings/compiler-warning-level-2-c4275?view=msvc-170&redirectedfrom=MSDN
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4251 4275)
+#endif
+
+/// @ingroup mcp
+/// An error that represents a violation of an MCP contract, such as building a
+/// result for a revision that does not define it, or supplying a descriptor
+/// the specification rejects. It derives from the standard invalid-argument
+/// error so that distinguishing it from the one the JSON module raises for a
+/// non-finite number is a matter of catching the more specific type first. For
+/// example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/mcp.h>
+/// #include <cassert>
+/// #include <string>
+///
+/// try {
+///   // Resource links arrived in 2025-06-18
+///   sourcemeta::core::mcp_make_resource_link(
+///       sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "file:///a", "a");
+///   assert(false);
+/// } catch (const sourcemeta::core::MCPError &error) {
+///   assert(error.what() ==
+///          std::string{"Resource links require MCP 2025-06-18 or later"});
+/// }
+/// ```
+class SOURCEMETA_CORE_MCP_EXPORT MCPError : public std::invalid_argument {
+public:
+  /// Construct an error with a descriptive message
+  MCPError(const char *message) : std::invalid_argument{message} {}
+};
+
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
 
 /// @ingroup mcp
 /// Context for errors with no readable MCP request identifier. The two
