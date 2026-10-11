@@ -41,6 +41,9 @@ static auto test_resolver(std::string_view identifier)
       ]
     })JSON");
   }
+  if (identifier == "https://sourcemeta.com/not-a-schema-object") {
+    return sourcemeta::core::JSON{"neither an object nor a boolean"};
+  }
   if (identifier == "https://sourcemeta.com/string-vocabulary-value") {
     return sourcemeta::core::parse_json(R"JSON({
       "$id": "https://sourcemeta.com/string-vocabulary-value",
@@ -1154,4 +1157,30 @@ TEST(empty_with_only_a_custom_vocabulary) {
 
   EXPECT_FALSE(vocabularies.empty());
   EXPECT_EQ(vocabularies.size(), 1);
+}
+
+// Every link of an embedded meta-schema chain has to be a schema in its own
+// right for the chain to say anything about the base dialect, and one that is
+// not leaves the chain unable to terminate anywhere official
+TEST(embedded_metaschema_chain_reaching_something_that_is_no_schema) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://example.com/meta-1",
+    "$defs": {
+      "meta-1": {
+        "$id": "https://example.com/meta-1",
+        "$schema": "https://sourcemeta.com/not-a-schema-object",
+        "$vocabulary": {
+          "https://json-schema.org/draft/2020-12/vocab/core": true
+        }
+      }
+    }
+  })JSON")};
+
+  try {
+    vocabularies(document, test_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaUnknownBaseDialectError &error) {
+    EXPECT_STREQ(error.what(),
+                 "Could not determine the base dialect of the schema");
+  }
 }

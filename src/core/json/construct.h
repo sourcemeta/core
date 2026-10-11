@@ -14,9 +14,8 @@
 #include <cstddef>     // std::size_t
 #include <cstdint>     // std::uint64_t, std::uint32_t, std::uint8_t
 #include <functional>  // std::reference_wrapper
-#include <stdexcept>   // std::invalid_argument
 #include <string_view> // std::string_view
-#include <utility>     // std::move
+#include <utility>     // std::move, std::unreachable
 #include <vector>      // std::vector
 
 namespace sourcemeta::core {
@@ -102,8 +101,10 @@ inline auto unescape_string(const char *data, const std::uint32_t length,
                                             result);
         break;
       }
+      // The scan accepted the escape, so what stands after the reverse solidus
+      // is one of the characters the grammar names
       default:
-        break;
+        std::unreachable();
     }
   }
 
@@ -123,8 +124,6 @@ inline auto construct_number(const char *data, const std::uint32_t length,
       return JSON{Decimal{std::string_view{data, length}}};
     } catch (const DecimalParseError &) {
       throw JSONParseError(line, column);
-    } catch (const std::invalid_argument &) {
-      throw JSONParseError(line, column);
     }
   }
 
@@ -134,8 +133,6 @@ inline auto construct_number(const char *data, const std::uint32_t length,
       try {
         return JSON{Decimal{std::string_view{data, length}}};
       } catch (const DecimalParseError &) {
-        throw JSONParseError(line, column);
-      } catch (const std::invalid_argument &) {
         throw JSONParseError(line, column);
       }
     }
@@ -150,8 +147,6 @@ inline auto construct_number(const char *data, const std::uint32_t length,
       return JSON{Decimal{value}};
     } catch (const DecimalParseError &) {
       throw JSONParseError(line, column);
-    } catch (const std::invalid_argument &) {
-      throw JSONParseError(line, column);
     }
   }
 
@@ -160,28 +155,20 @@ inline auto construct_number(const char *data, const std::uint32_t length,
     digit_length--;
   }
 
+  // A literal of digits alone stands for an exponent of zero, which is inside
+  // the range the storage holds, so reading one back cannot fail the way a
+  // literal that carries an exponent of its own can
   if (digit_length <= 19) {
     const std::string_view value{data, length};
     const auto int_result{sourcemeta::core::to_int64_t(value)};
     if (int_result.has_value()) {
       return JSON{int_result.value()};
     }
-    try {
-      return JSON{Decimal{value}};
-    } catch (const DecimalParseError &) {
-      throw JSONParseError(line, column);
-    } catch (const std::invalid_argument &) {
-      throw JSONParseError(line, column);
-    }
+
+    return JSON{Decimal{value}};
   }
 
-  try {
-    return JSON{Decimal{std::string_view{data, length}}};
-  } catch (const DecimalParseError &) {
-    throw JSONParseError(line, column);
-  } catch (const std::invalid_argument &) {
-    throw JSONParseError(line, column);
-  }
+  return JSON{Decimal{std::string_view{data, length}}};
 }
 
 inline auto post_column_for(const TapeEntry &entry) -> std::uint64_t {
@@ -197,8 +184,9 @@ inline auto post_column_for(const TapeEntry &entry) -> std::uint64_t {
       return entry.column + entry.length + 1;
     case TapeType::Number:
       return entry.column + entry.length - 1;
+    // Every call stands in the arm of a value the scan read out of the input
     default:
-      return entry.column;
+      std::unreachable();
   }
 }
 
@@ -235,9 +223,7 @@ inline auto construct_json(const char *buffer,
   std::size_t tape_index{0};
   static const JSON::String empty_property;
 
-  if (tape.empty()) {
-    throw JSONParseError(1, 1);
-  }
+  assert(!tape.empty());
 
   const auto &entry{tape[tape_index]};
   switch (entry.type) {
@@ -290,8 +276,9 @@ inline auto construct_json(const char *buffer,
     case TapeType::ObjectStart:
       CALLBACK_PRE(Object, entry, JSON::ParseContext::Root, 0, empty_property);
       goto do_construct_object;
+    // What the scan leaves behind names a value in every place one can stand
     default:
-      throw JSONParseError(1, 1);
+      std::unreachable();
   }
 
   /*
@@ -415,8 +402,9 @@ do_construct_array_item: {
       }
       goto do_construct_array_item_separator;
     }
+    // What the scan leaves behind names a value in every place one can stand
     default:
-      throw JSONParseError(1, 1);
+      std::unreachable();
   }
 }
 
@@ -588,8 +576,9 @@ do_construct_object_value: {
       }
       goto do_construct_object_property_end;
     }
+    // What the scan leaves behind names a value in every place one can stand
     default:
-      throw JSONParseError(1, 1);
+      std::unreachable();
   }
 }
 

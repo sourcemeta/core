@@ -150,3 +150,16 @@ TEST(two_ranges_of_one_specificity_in_the_other_order) {
   EXPECT_TRUE(sourcemeta::core::http_accept_includes_all(
       "text/html;q=0.8, text/html;q=0", {"text/html"}));
 }
+
+// RFC 9110 Section 12.5.1 writes the header as a list of media ranges, and
+// RFC 9110 Section 5.6.1 permits an empty element in a list, which names no
+// range and so neither admits nor rules out anything
+TEST(header_holding_an_empty_element) {
+  EXPECT_TRUE(
+      sourcemeta::core::http_accept_includes_all(", text/html", {"text/html"}));
+}
+
+TEST(header_element_holding_only_a_parameter) {
+  EXPECT_FALSE(
+      sourcemeta::core::http_accept_includes_all(";q=1", {"text/html"}));
+}

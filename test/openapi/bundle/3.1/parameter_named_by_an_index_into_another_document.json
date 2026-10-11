@@ -1,0 +1,117 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "parameters": [
+            {
+              "$ref": "shared.json#/paths/~1limits/get/parameters/0"
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "OK"
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/shared.json": {
+      "openapi": "3.1.1",
+      "info": {
+        "title": "Shared",
+        "version": "1.0.0"
+      },
+      "paths": {
+        "/limits": {
+          "get": {
+            "parameters": [
+              {
+                "name": "limit",
+                "in": "query",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            ],
+            "responses": {
+              "200": {
+                "description": "OK"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "parameters": [
+            {
+              "$ref": "#/components/parameters/0"
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "OK"
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "parameters": {
+        "0": {
+          "name": "limit",
+          "in": "query",
+          "schema": {
+            "type": "integer"
+          }
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/shared.json#/paths/~1limits/get/parameters/0",
+      "at": "/components/parameters/0"
+    }
+  ],
+  "reads": {
+    "https://example.com/shared.json": 1
+  },
+  "schemaReads": {},
+  "standalone": true,
+  "relocatable": true,
+  "operations": [
+    {
+      "type": "path",
+      "path": "/pets",
+      "method": "get",
+      "origin": "https://example.com/openapi.json#/paths/~1pets/get",
+      "endpoint": "https://example.com/openapi.json#/paths/~1pets",
+      "tags": [],
+      "servers": [],
+      "security": [],
+      "parameters": [
+        "https://example.com/openapi.json#/paths/~1pets/get/parameters/0"
+      ]
+    }
+  ]
+}

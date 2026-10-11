@@ -367,6 +367,16 @@ auto URI::userinfo(const std::string_view userinfo) -> URI & {
     return *this;
   }
 
+  // RFC 3986 section 3.2 writes `authority = [ userinfo "@" ] host [ ":" port
+  // ]`, so userinfo only ever reads back as part of an authority, and section
+  // 3.3 requires the path of a reference that has an authority to be empty or
+  // to begin with a slash. Writing one over a relative path would hand that
+  // path's first segment to the host on the way back in
+  if (!this->host_.has_value() && this->path_.has_value() &&
+      !this->path_.value().starts_with('/')) {
+    throw URIError{"You cannot set a userinfo on a URI with a relative path"};
+  }
+
   std::string value{userinfo};
   uri_unescape_unreserved_inplace(value);
   this->userinfo_ = std::move(value);

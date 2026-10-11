@@ -10,11 +10,13 @@
 #include "scanners.h"
 
 #include <algorithm> // std::min, std::max
+#include <cassert>   // assert
 #include <cstddef>   // std::size_t, std::ptrdiff_t
 #include <cstdint>   // std::int32_t, std::int64_t, std::uint8_t, std::uint32_t
 #include <cstring>   // std::memchr
 #include <string>    // std::string
 #include <string_view> // std::string_view
+#include <utility>     // std::unreachable
 #include <vector>      // std::vector
 
 namespace sourcemeta::core::markdown {
@@ -355,7 +357,11 @@ private:
         return false;
     }
 
-    return false;
+      // Clang settles that no other value arrives, so only GCC and MSVC
+      // need to be told that the end of this function is never reached
+#if !defined(__clang__)
+    std::unreachable();
+#endif
   }
 
   auto add_child(std::uint32_t parent, const NodeType type) -> std::uint32_t {
@@ -474,12 +480,10 @@ private:
         --end;
       }
 
-      if (end == 0) {
-        target.content_length = 0;
-        target.literal = "\n";
-        return;
-      }
-
+      // A block of this kind only opens on a line that carries something other
+      // than space, tab or a line ending, and that byte is part of what it
+      // holds, so trimming the blanks off the end never reaches the start
+      assert(end > 0);
       // The content is built from lines that each end with a line feed, so one
       // always follows the last byte that is not blank
       const auto line_end{content.find('\n', end - 1)};
@@ -657,7 +661,11 @@ private:
         return true;
     }
 
-    return true;
+      // Clang settles that no other value arrives, so only GCC and MSVC
+      // need to be told that the end of this function is never reached
+#if !defined(__clang__)
+    std::unreachable();
+#endif
   }
 
   auto check_open_blocks(bool &all_matched) -> std::uint32_t {
@@ -691,11 +699,9 @@ private:
 
   auto scan_thematic_break(const std::ptrdiff_t position) -> std::ptrdiff_t {
     const auto marker{this->peek(position)};
-    if (marker != '*' && marker != '_' && marker != '-') {
-      this->thematic_break_kill_position_ = position;
-      return 0;
-    }
-
+    // The scan that reaches here has already settled that the line opens with
+    // one of the three characters a thematic break is written with
+    assert(marker == '*' || marker == '_' || marker == '-');
     std::ptrdiff_t count{1};
     auto index{position};
     char next{'\0'};
@@ -744,10 +750,9 @@ private:
       return cursor - position;
     }
 
-    if (!sourcemeta::core::is_digit(marker)) {
-      return 0;
-    }
-
+    // The scan that reaches here has already settled that the line opens with
+    // a bullet character or a digit, and the bullets are taken above
+    assert(sourcemeta::core::is_digit(marker));
     std::int32_t start{0};
     std::int32_t digits{0};
     while (true) {
@@ -855,8 +860,12 @@ private:
     for (const auto &cell : this->cells_) {
       const auto marker{sourcemeta::core::trim(
           this->line_.substr(nonspace + cell.offset, cell.length), is_space)};
-      const auto left{!marker.empty() && marker.front() == ':'};
-      const auto right{!marker.empty() && marker.back() == ':'};
+      // GFM section 4.10 writes a delimiter cell as at least one hyphen with
+      // an optional colon at either end, so a row that was accepted as one has
+      // nothing empty in it
+      assert(!marker.empty());
+      const auto left{marker.front() == ':'};
+      const auto right{marker.back() == ':'};
       std::uint8_t alignment{0};
       if (left && right) {
         alignment = 'c';
@@ -1068,9 +1077,10 @@ private:
           label.remove_suffix(1);
         }
 
-        if (!label.empty()) {
-          label.remove_suffix(1);
-        }
+        // The scan only reports a definition where a closing bracket follows
+        // the label, so what is left once the rest is dropped is that bracket
+        assert(!label.empty());
+        label.remove_suffix(1);
 
         const auto stored{this->document_.strings.store(label)};
         this->advance_offset(this->first_nonspace_ +

@@ -169,6 +169,23 @@ static auto metaschema_test_resolver(std::string_view identifier)
     })JSON");
   }
 
+  if (identifier == "meta") {
+    return sourcemeta::core::parse_json(R"JSON({
+      "$schema": "https://json-schema.org/draft/2020-12/schema"
+    })JSON");
+  }
+
+  if (identifier == "https://example.com/two-cores") {
+    return sourcemeta::core::parse_json(R"JSON({
+      "$id": "https://example.com/two-cores",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$vocabulary": {
+        "https://json-schema.org/draft/2020-12/vocab/core": true,
+        "https://json-schema.org/draft/2019-09/vocab/core": true
+      }
+    })JSON");
+  }
+
   return sourcemeta::core::schema_resolver(identifier);
 }
 
@@ -2215,6 +2232,58 @@ TEST(accessors_metaschema_embedded) {
   EXPECT_EQ(frame.metaschema(sourcemeta::core::schema_resolver), expected);
 }
 
+// A dialect that stands relative is no dialect any specification admits, so
+// one that nobody hands over is refused as that rather than as a fetch that
+// did not land
+TEST(accessors_metaschema_of_a_relative_dialect) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://example.com/schema",
+    "$schema": "meta",
+    "type": "string"
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References, document,
+      sourcemeta::core::schema_walker, metaschema_test_resolver};
+
+  try {
+    [[maybe_unused]] const auto &metaschema{
+        frame.metaschema(sourcemeta::core::schema_resolver)};
+    FAIL();
+  } catch (
+      const sourcemeta::core::SchemaRelativeMetaschemaResolutionError &error) {
+    EXPECT_EQ(error.identifier(), "meta");
+    EXPECT_STREQ(error.what(),
+                 "Relative meta-schema URIs are not valid according to the "
+                 "JSON Schema specification");
+  }
+}
+
+// What a dialect declares is read with the resolver handed over at that
+// moment rather than the one the document was framed with
+TEST(accessors_vocabularies_of_a_dialect_the_handed_resolver_does_not_know) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://example.com/schema",
+    "$schema": "https://example.com/meta",
+    "type": "string"
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References, document,
+      sourcemeta::core::schema_walker, metaschema_test_resolver};
+
+  try {
+    [[maybe_unused]] const auto &vocabularies{
+        frame.vocabularies(frame.root_location().value().get(),
+                           sourcemeta::core::schema_resolver)};
+    FAIL();
+  } catch (const sourcemeta::core::SchemaResolutionError &error) {
+    EXPECT_EQ(error.identifier(), "https://example.com/meta");
+    EXPECT_STREQ(error.what(),
+                 "Could not resolve the metaschema of the schema");
+  }
+}
+
 TEST(accessors_metaschema_unresolvable) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$id": "https://example.com/schema",
@@ -2251,4 +2320,22 @@ TEST(reference_at_a_pointer_the_document_does_not_hold) {
                    .reference(sourcemeta::core::SchemaReferenceType::Static,
                               sourcemeta::core::to_weak_pointer(pointer))
                    .has_value());
+}
+
+// A dialect may draw on the core vocabulary of more than one revision, and
+// both spell the plain anchor the same way, so the name it declares is
+// recorded once rather than once per vocabulary that named it
+TEST(anchor_of_a_dialect_drawing_on_two_core_vocabularies) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://example.com/schema",
+    "$schema": "https://example.com/two-cores",
+    "$anchor": "x"
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Locations, document,
+      sourcemeta::core::schema_walker, metaschema_test_resolver};
+
+  EXPECT_TRUE(frame.traverse("https://example.com/schema#x").has_value());
+  EXPECT_EQ(frame.location_count(), 2);
 }

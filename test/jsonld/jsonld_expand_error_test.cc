@@ -325,6 +325,16 @@ TEST(invalid_container_mapping) {
                              "/@context/a/@container");
 }
 
+TEST(container_mapping_that_is_neither_an_array_nor_a_string) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "a": { "@id": "http://example.com/a", "@container": 1 } }
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Invalid container mapping",
+                             "/@context/a/@container");
+}
+
 TEST(invalid_language_mapping) {
   const auto input = sourcemeta::core::parse_json(R"({
     "@context": { "a": { "@id": "http://example.com/a", "@language": true } }
@@ -448,6 +458,14 @@ TEST(invalid_base_direction) {
                              "Invalid base direction", "/@context/@direction");
 }
 
+TEST(base_direction_that_is_not_a_string) {
+  const auto input =
+      sourcemeta::core::parse_json(R"({ "@context": { "@direction": 1 } })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Invalid base direction", "/@context/@direction");
+}
+
 TEST(processing_mode_conflict) {
   const auto input =
       sourcemeta::core::parse_json(R"({ "@context": { "@version": 1.1 } })");
@@ -475,6 +493,25 @@ TEST(loading_remote_context_failed) {
   EXPECT_JSONLD_EXPAND_ERROR(
       sourcemeta::core::jsonld_expand(input, "", remote_resolver()),
       "Loading remote context failed", "/@context");
+}
+
+// A context that stands elsewhere is only reachable through a resolver, so
+// expanding without one leaves it unreachable rather than empty
+TEST(remote_context_without_a_resolver) {
+  const auto input = sourcemeta::core::parse_json(
+      R"({ "@context": "https://example.com/missing" })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Loading remote context failed", "/@context");
+}
+
+TEST(import_without_a_resolver) {
+  const auto input = sourcemeta::core::parse_json(
+      R"({ "@context": { "@import": "https://example.com/missing" } })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Loading remote context failed",
+                             "/@context/@import");
 }
 
 TEST(invalid_remote_context) {

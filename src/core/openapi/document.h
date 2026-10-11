@@ -83,7 +83,11 @@ inline auto openapi_dialect(const OpenAPIVersion version) -> JSON::StringView {
       return OPENAPI_DIALECT_3_2;
   }
 
+    // Clang settles that no other value arrives, so only GCC and MSVC
+    // need to be told that the end of this function is never reached
+#if !defined(__clang__)
   std::unreachable();
+#endif
 }
 
 constexpr auto OPENAPI_HASH_OPENAPI{JSON::Object::hash("openapi"sv)};

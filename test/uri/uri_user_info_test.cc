@@ -171,3 +171,31 @@ TEST(iri_unicode_userinfo) {
   EXPECT_TRUE(uri.userinfo().has_value());
   EXPECT_EQ(uri.userinfo().value(), "user\xE5\x90\x8D");
 }
+
+// RFC 3986 Section 3.3 requires the path of a reference that carries an
+// authority to be empty or to begin with a slash, and Section 3.2 only ever
+// writes userinfo inside an authority, so a relative path cannot take one
+TEST(set_on_a_reference_with_a_relative_path) {
+  sourcemeta::core::URI uri{"foo/bar"};
+  try {
+    uri.userinfo("user");
+    FAIL();
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(error.what(),
+                 "You cannot set a userinfo on a URI with a relative path");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(set_on_a_reference_with_an_absolute_path) {
+  sourcemeta::core::URI uri{"/foo/bar"};
+  uri.userinfo("user");
+  EXPECT_TRUE(uri.userinfo().has_value());
+  EXPECT_EQ(uri.recompose(), "//user@/foo/bar");
+  const sourcemeta::core::URI again{uri.recompose()};
+  EXPECT_TRUE(again.userinfo().has_value());
+  EXPECT_EQ(again.userinfo().value(), "user");
+  EXPECT_TRUE(again.path().has_value());
+  EXPECT_EQ(again.path().value(), "/foo/bar");
+}

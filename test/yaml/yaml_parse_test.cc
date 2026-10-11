@@ -4066,6 +4066,34 @@ TEST(yaml_string_with_a_trailing_scalar_after_an_empty_value) {
   }
 }
 
+// YAML 1.2.2 production 205 writes the end of a document as its own marker, so
+// one standing after the document a caller asked for accounts for what follows
+// rather than leaving it unreachable
+TEST(yaml_string_with_a_trailing_document_end_marker) {
+  const auto result{sourcemeta::core::parse_yaml(std::string{"key: 1\n...\n"})};
+  EXPECT_EQ(result, sourcemeta::core::parse_yaml("key: 1"));
+}
+
+TEST(yaml_string_with_two_trailing_document_end_markers) {
+  const auto result{
+      sourcemeta::core::parse_yaml(std::string{"key: 1\n...\n...\n"})};
+  EXPECT_EQ(result, sourcemeta::core::parse_yaml("key: 1"));
+}
+
+// YAML 1.2.2 production 142 has a flow mapping entry separate its key from its
+// value with a colon, so a key that another collection follows names no entry
+TEST(flow_mapping_key_followed_by_a_flow_sequence) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"{a [1]}"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Expected ':' after mapping key");
+  } catch (...) {
+    FAIL();
+  }
+}
+
 // The stream overloads read one document at a time by design, so they leave
 // what follows where the next call will find it rather than turning it down
 TEST(yaml_stream_leaves_a_second_document_for_the_next_read) {
@@ -5229,12 +5257,20 @@ TEST(yaml_alias_as_a_mapping_key) {
   EXPECT_EQ(result, expected);
 }
 
-TEST(yaml_alias_as_a_mapping_key_without_a_value) {
-  const auto result{
-      sourcemeta::core::parse_yaml(std::string{"a: &k key\n*k\n"})};
-  const auto expected{
-      sourcemeta::core::parse_json(R"JSON({ "a": "key", "key": null })JSON")};
-  EXPECT_EQ(result, expected);
+// Production 193 has the value of an implicit entry follow a literal colon, so
+// an alias with none after it forms no entry any more than a plain scalar with
+// none after it does, and what forms no entry is content the document cannot
+// account for
+TEST(yaml_alias_as_a_mapping_key_without_a_value_is_rejected) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"a: &k key\n*k\n"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Unexpected content after document");
+  } catch (...) {
+    FAIL();
+  }
 }
 
 TEST(yaml_alias_naming_an_anchor_whose_name_takes_in_a_colon) {
@@ -5371,4 +5407,52 @@ TEST(alias_expansion_allowance_reaches_a_ceiling) {
                           "\na: &a x\nb: *a\n"};
   const auto result{sourcemeta::core::parse_yaml(input)};
   EXPECT_EQ(result.at("b"), sourcemeta::core::JSON{"x"});
+}
+
+// That section has an alias stand for the value of its anchor wherever it is
+// written, so one standing as a plain key collides with the member name it
+// resolves to just as an explicit one does
+TEST(plain_key_alias_duplicate_is_rejected) {
+  const std::string input{"x: &a dup\ndup: 1\n*a : 2\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLDuplicateKeyError &error) {
+    EXPECT_EQ(error.key(), "dup");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// YAML 1.2.2 Section 10.3.2 resolves an empty key to null, which this module
+// spells as the empty string, and a tag before it names the type that key is
+// read as rather than one it has to spell out
+TEST(flow_mapping_empty_key_without_a_tag) {
+  const auto result{sourcemeta::core::parse_yaml(std::string{"{: 1}"})};
+  EXPECT_EQ(result, sourcemeta::core::parse_json(R"JSON({ "": 1 })JSON"));
+}
+
+TEST(flow_mapping_empty_key_tagged_as_a_string) {
+  const auto result{sourcemeta::core::parse_yaml(std::string{"{!!str : 1}"})};
+  EXPECT_EQ(result, sourcemeta::core::parse_json(R"JSON({ "": 1 })JSON"));
+}
+
+TEST(flow_mapping_empty_key_tagged_as_null) {
+  const auto result{sourcemeta::core::parse_yaml(std::string{"{!!null : 1}"})};
+  EXPECT_EQ(result, sourcemeta::core::parse_json(R"JSON({ "": 1 })JSON"));
+}
+
+// YAML 1.2.2 production 140 admits a single pair as a flow sequence entry, and
+// Section 10.3.2 resolves the value it leaves out to null, whether what
+// follows the entry is the end of the sequence or another entry
+TEST(flow_sequence_pair_without_a_value_before_another_entry) {
+  const auto result{sourcemeta::core::parse_yaml(std::string{"[a: , b]"})};
+  EXPECT_EQ(result,
+            sourcemeta::core::parse_json(R"JSON([ { "a": null }, "b" ])JSON"));
+}
+
+TEST(flow_sequence_pair_without_a_value_at_the_end) {
+  const auto result{sourcemeta::core::parse_yaml(std::string{"[b, a: ]"})};
+  EXPECT_EQ(result,
+            sourcemeta::core::parse_json(R"JSON([ "b", { "a": null } ])JSON"));
 }

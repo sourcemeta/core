@@ -613,3 +613,17 @@ TEST(attribute_on_void_element_at_exact_capacity) {
   document.img().attribute("alt", "x");
   EXPECT_EQ(document.str(), "<img alt=\"x\" />");
 }
+
+TEST(closing_with_nothing_open_has_no_effect) {
+  sourcemeta::core::HTMLWriter document;
+  document.close();
+  EXPECT_EQ(document.str(), "");
+}
+
+TEST(closing_more_than_was_opened_has_no_effect) {
+  sourcemeta::core::HTMLWriter document;
+  document.p("Text");
+  document.close();
+  document.close();
+  EXPECT_EQ(document.str(), "<p>Text</p>");
+}

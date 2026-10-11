@@ -1,0 +1,25 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "foo": { "$ref": "#/$defs/nope" }
+    }
+  },
+  "resolver": {},
+  "result": {},
+  "errors": {
+    "nonOfficialMetaschemas": {
+      "type": "SchemaReferenceError",
+      "message": "Could not resolve schema reference",
+      "identifier": "#/$defs/nope",
+      "location": "/properties/foo/$ref"
+    },
+    "references": {
+      "type": "SchemaReferenceError",
+      "message": "Could not resolve schema reference",
+      "identifier": "#/$defs/nope",
+      "location": "/properties/foo/$ref"
+    }
+  },
+  "inserted": {}
+}

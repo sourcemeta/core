@@ -5,6 +5,7 @@
 #include <cstdint>    // std::uint64_t
 #include <filesystem> // std::filesystem
 #include <sstream>    // std::ostringstream
+#include <string>     // std::string
 
 static auto stringify(const sourcemeta::core::JSON &document,
                       const sourcemeta::core::YAMLRoundTrip &metadata)
@@ -2243,6 +2244,15 @@ TEST(anchor_alias_same_key_implicit_null) {
 b: *x
 c: &y
 d: *y
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+// A flow mapping member that names an anchor is written as that name, even
+// where what it stands for is the empty value a plain member would leave out
+TEST(flow_mapping_member_aliasing_an_anchored_empty_value) {
+  const std::string input{R"YAML(a: &x
+b: {c: *x}
 )YAML"};
   EXPECT_EQ(roundtrip(input), input);
 }
@@ -5628,6 +5638,17 @@ TEST(mutated_single_quoted_scalar_into_embedded_quote) {
   EXPECT_EQ(stringify(document, metadata), "foo: 'it''s'\n");
 }
 
+// YAML 1.2.2 production 120 keeps every single quoted character printable, so
+// a value the document can no longer spell that way is written the one way
+// that can hold it
+TEST(mutated_single_quoted_scalar_into_one_holding_a_control_byte) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  auto document{sourcemeta::core::parse_yaml("foo: 'bar'\n", metadata)};
+  document.assign("foo", sourcemeta::core::JSON{std::string{"a\x01"
+                                                            "b"}});
+  EXPECT_EQ(stringify(document, metadata), "foo: \"a\\x01b\"\n");
+}
+
 TEST(mutated_double_quoted_scalar) {
   sourcemeta::core::YAMLRoundTrip metadata;
   auto document{sourcemeta::core::parse_yaml("foo: \"bar\"\n", metadata)};
@@ -6014,4 +6035,70 @@ TEST(nested_explicit_key_mapping_is_written_without_the_indicator) {
   EXPECT_EQ(roundtrip(once), once);
   EXPECT_EQ(roundtrip_value("a:\n  ? b\n  : c\n"),
             sourcemeta::core::parse_yaml("a:\n  ? b\n  : c\n"));
+}
+
+// YAML 1.2.2 production 96 lets a node carry an anchor or a tag with nothing
+// after it, which at the root of a document leaves the document itself empty
+TEST(anchor_on_an_empty_document_root) {
+  const std::string input{"--- &a\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+// A node property of the document itself is written against the start marker,
+// so what it describes begins on the line after, and a tag that settles the
+// type of an empty value is spelled out there the way it is anywhere else
+TEST(tag_on_an_empty_document_root) {
+  EXPECT_EQ(roundtrip("--- !!str\n"), "--- !!str\n\"\"\n");
+}
+
+TEST(tag_and_anchor_on_an_empty_document_root) {
+  EXPECT_EQ(roundtrip("--- !!str &a\n"), "--- !!str &a\n\"\"\n");
+}
+
+TEST(tag_on_a_document_root_holding_a_scalar) {
+  EXPECT_EQ(roundtrip("--- !!str x\n"), "--- !!str\nx\n");
+}
+
+// YAML 1.2.2 Section 7.1 has an alias in key position stand for the value of
+// its anchor, and an explicit key is written back the way it was read
+TEST(explicit_key_that_is_an_alias) {
+  const std::string input{R"YAML(x: &a zzz
+? *a
+: 2
+)YAML"};
+  EXPECT_EQ(roundtrip(input), "x: &a zzz\nzzz: 2\n");
+}
+
+TEST(trailing_document_end_marker_is_written_back) {
+  const std::string input{"key: 1\n...\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+// YAML 1.2.2 production 137 separates flow entries with a comma, which needs no
+// space after it, and that spelling travels with the collection
+TEST(flow_mapping_without_a_space_after_the_comma) {
+  const std::string input{"{a: 1,b: 2}\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(flow_mapping_entry_without_a_value_and_no_space_after_the_comma) {
+  EXPECT_EQ(roundtrip("{a,b: 2}\n"), "{a: ,b: 2}\n");
+}
+
+// A node property of the document itself travels with the start marker,
+// whatever kind of node it goes on to describe
+TEST(anchor_on_a_document_root_holding_a_sequence) {
+  const std::string input{"--- &a\n- 1\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(tag_on_a_document_root_holding_a_mapping) {
+  const std::string input{"--- !!map\na: 1\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+// YAML 1.2.2 production 140 admits a single pair as a flow sequence entry, and
+// Section 10.3.2 resolves the value it leaves out to null
+TEST(flow_sequence_holding_a_pair_without_a_value) {
+  EXPECT_EQ(roundtrip("[a: ]\n"), "[{a: }]\n");
 }

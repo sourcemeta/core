@@ -1,0 +1,37 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "servers": [
+      {
+        "url": "https://{region.example.com/v2"
+      }
+    ]
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {},
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "servers": [
+      {
+        "url": "https://{region.example.com/v2"
+      }
+    ]
+  },
+  "inserted": [],
+  "reads": {},
+  "schemaReads": {},
+  "standalone": true,
+  "relocatable": true,
+  "operations": []
+}

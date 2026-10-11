@@ -3250,3 +3250,126 @@ TEST(graph_holding_an_empty_node_expands_to_nothing) {
   EXPECT_EQ(sourcemeta::core::jsonld_expand(input),
             sourcemeta::core::parse_json("[]"));
 }
+
+// JSON-LD 1.0 has no list of lists, and a term that wraps its value in a list
+// reaches that shape as soon as what it wraps is a list of its own
+TEST(list_container_in_1_0_wrapping_a_scalar) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "p": { "@id": "urn:p", "@container": "@list" } },
+    "p": "x"
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    { "urn:p": [ { "@list": [ { "@value": "x" } ] } ] }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(
+                input, "", {}, sourcemeta::core::JSONLDVersion::V1_0),
+            expected);
+}
+
+TEST(list_container_in_1_0_wrapping_a_list_object) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "p": { "@id": "urn:p", "@container": "@list" } },
+    "p": [ { "@list": [ "x" ] } ]
+  })");
+
+  try {
+    [[maybe_unused]] const auto result{sourcemeta::core::jsonld_expand(
+        input, "", {}, sourcemeta::core::JSONLDVersion::V1_0)};
+    FAIL();
+  } catch (const sourcemeta::core::JSONLDError &error) {
+    EXPECT_EQ(std::string{error.what()}, "List of lists");
+  }
+}
+
+// JSON-LD 1.1 Section 4.1.8 has `@direction` reset the base direction when it
+// is null, so one context undoes what an earlier one set rather than leaving
+// the direction on every string it governs
+TEST(context_base_direction_carries_onto_a_string) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "@direction": "ltr" },
+    "http://example.com/p": "x"
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    { "http://example.com/p": [ { "@value": "x", "@direction": "ltr" } ] }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(context_base_direction_reset_to_null_undoes_an_earlier_one) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": [ { "@direction": "ltr" }, { "@direction": null } ],
+    "http://example.com/p": "x"
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    { "http://example.com/p": [ { "@value": "x" } ] }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+// That section writes `@version` as the number 1.1, so a value of another
+// kind entirely names no processing mode this reads
+TEST(context_version_that_is_an_integer) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "@version": 1 },
+    "http://example.com/p": "x"
+  })");
+
+  try {
+    [[maybe_unused]] const auto result{sourcemeta::core::jsonld_expand(input)};
+    FAIL();
+  } catch (const sourcemeta::core::JSONLDError &error) {
+    EXPECT_EQ(std::string{error.what()}, "Invalid @version value");
+  }
+}
+
+// JSON-LD 1.1 API Section 5.1.2 drops a value object that says how to read a
+// value without carrying one, since an index alone names nothing either
+TEST(value_object_with_a_language_and_no_value_is_dropped) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "http://example.com/p": { "@language": "en", "@index": "i" }
+  })");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input),
+            sourcemeta::core::parse_json("[]"));
+}
+
+TEST(value_object_with_a_language_and_an_identifier_is_kept) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "http://example.com/p": { "@language": "en", "@id": "http://example.org/a" }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/p": [
+        { "@id": "http://example.org/a", "@language": "en" }
+      ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+// A property-scoped context lifts the protection of the terms it redefines
+// while it is being read, and what it lifted is put back whether reading it
+// settles or refuses
+TEST(property_scoped_context_that_cannot_be_read) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "p": { "@id": "urn:p", "@context": { "@version": 1 } }
+    },
+    "p": { "http://example.com/q": "x" }
+  })");
+
+  try {
+    [[maybe_unused]] const auto result{sourcemeta::core::jsonld_expand(input)};
+    FAIL();
+  } catch (const sourcemeta::core::JSONLDError &error) {
+    EXPECT_EQ(std::string{error.what()}, "Invalid scoped context");
+  }
+}

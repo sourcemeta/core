@@ -1,0 +1,21 @@
+{
+  "document": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "securitySchemes": {
+        "Key": {
+          "$ref": 5
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "The Reference Object identifier must be a string",
+    "location": "/components/securitySchemes/Key/$ref"
+  }
+}

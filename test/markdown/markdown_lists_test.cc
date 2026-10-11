@@ -820,3 +820,21 @@ TEST(list_item_with_table_header_stays_tight) {
                     "<li>b</li>\n"
                     "</ul>\n");
 }
+
+// GFM section 5.3 makes a list loose when any of its constituent items are
+// separated by blank lines, which a nested list answers for its own items as
+// well as for the one holding it
+TEST(three_levels_of_nesting_with_a_blank_line_in_the_innermost) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("- - - a\n\n    - b\n- c\n")};
+  EXPECT_EQ(result, "<ul>\n<li>\n<ul>\n<li>\n<ul>\n<li>\n<p>a</p>\n</li>\n"
+                    "<li>\n<p>b</p>\n</li>\n</ul>\n</li>\n</ul>\n</li>\n"
+                    "<li>c</li>\n</ul>\n");
+}
+
+TEST(nested_list_followed_by_a_sibling_item) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("- a\n  - b\n\n  - c\n- d\n")};
+  EXPECT_EQ(result, "<ul>\n<li>a\n<ul>\n<li>\n<p>b</p>\n</li>\n"
+                    "<li>\n<p>c</p>\n</li>\n</ul>\n</li>\n<li>d</li>\n</ul>\n");
+}

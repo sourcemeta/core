@@ -1,0 +1,26 @@
+{
+  "schema": {
+    "$id": "https://example.com",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "foo": { "$ref": "https://example.com#/$defs/nope" }
+    }
+  },
+  "resolver": {},
+  "result": {},
+  "errors": {
+    "nonOfficialMetaschemas": {
+      "type": "SchemaReferenceError",
+      "message": "Could not resolve schema reference",
+      "identifier": "https://example.com#/$defs/nope",
+      "location": "/properties/foo/$ref"
+    },
+    "references": {
+      "type": "SchemaReferenceError",
+      "message": "Could not resolve schema reference",
+      "identifier": "https://example.com#/$defs/nope",
+      "location": "/properties/foo/$ref"
+    }
+  },
+  "inserted": {}
+}

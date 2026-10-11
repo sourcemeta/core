@@ -283,3 +283,12 @@ TEST(parse_challenges_rejects_a_token_that_opens_no_parameter) {
   EXPECT_FALSE(
       sourcemeta::core::http_parse_challenges("Bearer abc def", challenges));
 }
+
+// RFC 9110 Section 11.2 writes token68 out of a fixed set of characters, so a
+// scheme followed by anything outside it carries no credential and what comes
+// after has to read as a parameter instead
+TEST(parse_challenges_scheme_followed_by_a_quoted_string) {
+  Challenges challenges;
+  EXPECT_FALSE(
+      sourcemeta::core::http_parse_challenges("Basic \"foo\"", challenges));
+}

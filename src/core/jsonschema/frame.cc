@@ -17,7 +17,7 @@
 #include <tuple>         // std::tuple
 #include <unordered_map> // std::unordered_map
 #include <unordered_set> // std::unordered_set
-#include <utility>       // std::pair, std::move
+#include <utility>       // std::pair, std::move, std::unreachable
 #include <vector>        // std::vector
 
 enum class AnchorType : std::uint8_t { Static, Dynamic, All };
@@ -601,10 +601,13 @@ auto to_json(const SchemaFrame::LocationType value) -> sourcemeta::core::JSON {
       return sourcemeta::core::JSON{"pointer"};
     case SchemaFrame::LocationType::Subschema:
       return sourcemeta::core::JSON{"subschema"};
-    default:
-      assert(false);
-      return sourcemeta::core::JSON{nullptr};
   }
+
+    // Clang settles that no other value arrives, so only GCC and MSVC
+    // need to be told that the end of this function is never reached
+#if !defined(__clang__)
+  std::unreachable();
+#endif
 }
 
 auto SchemaFrame::to_json(
@@ -710,8 +713,6 @@ auto SchemaFrame::to_json(
         dynamic_locations.assign_assume_new(location.first.second,
                                             std::move(entry));
         break;
-      default:
-        assert(false);
     }
   }
 
@@ -2298,9 +2299,9 @@ auto SchemaFrame::Cache::populate_pointer_to_location(const SchemaFrame &frame)
 auto SchemaFrame::Cache::populate_location_members(
     const SchemaFrame &frame, const SchemaWalker &walker,
     const SchemaResolver &resolver) -> void {
-  if (!this->location_members_children.empty()) {
-    return;
-  }
+  // The graph that reaches this is built once and answers for every question
+  // after, so this is only ever reached with nothing built yet
+  assert(this->location_members_children.empty());
 
   this->populate_pointer_to_location(frame);
 
@@ -2330,9 +2331,7 @@ auto SchemaFrame::Cache::populate_location_members(
 
 auto SchemaFrame::Cache::populate_reference_graph(const SchemaFrame &frame)
     -> void {
-  if (!this->references_by_destination.empty()) {
-    return;
-  }
+  assert(this->references_by_destination.empty());
 
   std::unordered_map<std::string_view,
                      std::vector<const sourcemeta::core::WeakPointer *>>

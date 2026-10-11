@@ -907,6 +907,16 @@ TEST(string_with_control_byte) {
   EXPECT_EQ(stream.str(), "\"a\\x01b\"\n");
 }
 
+// YAML 1.2.2 section 5.7 escapes a byte one at a time, which would take the
+// bytes of a character apart and leave them standing for other characters, so
+// the sequence is written out whole
+TEST(string_with_a_multibyte_character) {
+  const sourcemeta::core::JSON document{std::string{"caf\xC3\xA9\x01", 6}};
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream);
+  EXPECT_EQ(stream.str(), "\"caf\xC3\xA9\\x01\"\n");
+}
+
 TEST(string_with_quote_backslash_and_newline) {
   const sourcemeta::core::JSON document{"a\"b\\c\nd"};
   std::ostringstream stream;

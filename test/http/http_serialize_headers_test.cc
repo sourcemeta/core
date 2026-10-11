@@ -112,3 +112,22 @@ TEST(request_refuses_a_wiping_value_carrying_crlf) {
   EXPECT_EQ(sourcemeta::core::http_serialize_headers(request.headers()),
             "Accept: application/json\r\n");
 }
+
+// The serialiser holds a value that wipes itself to the same rule whatever
+// built the range, so one reaching it with a forbidden byte is dropped there
+// rather than trusted because something upstream usually catches it first
+TEST(rejects_a_wiping_value_with_crlf) {
+  const std::vector<std::pair<std::string, sourcemeta::core::SecureString>>
+      headers{
+          {"X-Injected", sourcemeta::core::SecureString{"value\r\nEvil: yes"}}};
+  EXPECT_EQ(sourcemeta::core::http_serialize_headers(headers), "");
+}
+
+TEST(drops_only_the_injected_wiping_value) {
+  const std::vector<std::pair<std::string, sourcemeta::core::SecureString>>
+      headers{
+          {"Accept", sourcemeta::core::SecureString{"application/json"}},
+          {"X-Injected", sourcemeta::core::SecureString{"value\r\nEvil: yes"}}};
+  EXPECT_EQ(sourcemeta::core::http_serialize_headers(headers),
+            "Accept: application/json\r\n");
+}

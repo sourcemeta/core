@@ -238,7 +238,11 @@ inline auto typed_literal_lexical_form(const JSON &value,
       return std::nullopt;
   }
 
+    // Clang settles that no other value arrives, so only GCC and MSVC
+    // need to be told that the end of this function is never reached
+#if !defined(__clang__)
   std::unreachable();
+#endif
 }
 
 } // namespace sourcemeta::core
