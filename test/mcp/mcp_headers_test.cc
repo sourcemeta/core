@@ -2856,6 +2856,45 @@ TEST(validate_request_headers_rejects_missing_client_capabilities) {
 // Every request mirrors its method, and a tool call, a resource read and a
 // prompt get also mirror the target they name
 // https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#standard-request-headers
+// A notification carries no stateless metadata, so it needs no parameters
+// either, and the schema marks them optional on one
+// https://modelcontextprotocol.io/specification/2026-07-28/schema#jsonrpcnotification
+TEST(validate_request_headers_accepts_a_notification_without_parameters) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
+      {"2026-07-28"}};
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "method": "notifications/cancelled"
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_headers(
+                   sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                   "2026-07-28", "notifications/cancelled", std::nullopt,
+                   envelope, SUPPORTED)
+                   .has_value());
+}
+
+// A request carries the stateless metadata inside its parameters, so leaving
+// them out is still a rejection
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/index#_meta
+TEST(validate_request_headers_rejects_a_request_without_parameters) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
+      {"2026-07-28"}};
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/list"
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_validate_request_headers(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                "2026-07-28", "tools/list", std::nullopt, envelope, SUPPORTED)
+                .value(),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "error": { "code": -32602, "message": "Invalid params" }
+  })JSON"));
+}
+
 TEST(validate_request_headers_accepts_server_discover) {
   constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
       {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};

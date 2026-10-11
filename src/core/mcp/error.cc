@@ -38,6 +38,14 @@ auto mcp_make_error(const MCPProtocolVersion version, const JSON *identifier,
       for (const auto &revision : supported->as_array()) {
         internal::require(revision.is_string(),
                           "Supported protocol versions must be strings");
+        // The list is what a client picks its next attempt from, so it can
+        // only name revisions this library speaks, which is the rule the
+        // discovery and initialization builders already apply to the same
+        // advertisement
+        // https://modelcontextprotocol.io/specification/2026-07-28/basic/versioning
+        internal::require(
+            mcp_resolve_protocol_version(revision.to_string()).has_value(),
+            "Unknown server-supported MCP version");
       }
     } else if (code == MCP_CODE_MISSING_REQUIRED_CLIENT_CAPABILITY) {
       internal::require(data.has_value() && data->is_object(),
