@@ -569,6 +569,21 @@ TEST(make_error_unsupported_protocol_version_rejects_non_string_supported) {
       "Supported protocol versions must be strings");
 }
 
+// The advertised list is what a client picks its next attempt from, so the
+// chokepoint holds it to the same rule as the builders that advertise it
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/versioning
+TEST(make_error_unsupported_protocol_version_rejects_an_unmodelled_supported) {
+  const sourcemeta::core::JSON identifier{1};
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_error(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, &identifier,
+          sourcemeta::core::MCP_CODE_UNSUPPORTED_PROTOCOL_VERSION,
+          "Unsupported protocol version",
+          sourcemeta::core::parse_json(
+              R"JSON({ "requested": "x", "supported": [ "1999-01-01" ] })JSON")),
+      "Unknown server-supported MCP version");
+}
+
 TEST(make_error_unsupported_protocol_version_with_data) {
   const sourcemeta::core::JSON identifier{1};
   EXPECT_EQ(

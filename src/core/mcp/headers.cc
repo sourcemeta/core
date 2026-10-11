@@ -408,11 +408,15 @@ auto mcp_validate_request_headers(
     return std::nullopt;
   }
 
-  if ((parameters == nullptr) || !parameters->is_object()) {
+  // The stateless metadata lives inside the parameters and is required on a
+  // request, so a request has to carry them. A notification may leave them out,
+  // which the schema permits, and the check above has already settled their
+  // shape for a message that does carry them
+  // https://modelcontextprotocol.io/specification/2026-07-28/schema#jsonrpcnotification
+  if ((identifier != nullptr) && (parameters == nullptr)) {
     return transport_error(version, identifier, JSONRPC_CODE_INVALID_PARAMS,
                            "Invalid params");
   }
-  // Stateless metadata is required on requests, not notifications.
   std::optional<JSON::StringView> body_version;
   if (identifier != nullptr) {
     const auto *meta{parameters->try_at("_meta", MCP_HASH_META)};
@@ -479,9 +483,13 @@ auto mcp_validate_request_headers(
   }
   const bool named{mcp_is_mrtr_method(method)};
   if (named) {
-    const auto *name{parameters->try_at(
-        method == MCP_METHOD_RESOURCES_READ ? "uri" : "name",
-        method == MCP_METHOD_RESOURCES_READ ? MCP_HASH_URI : MCP_HASH_NAME)};
+    const auto *name{
+        parameters == nullptr
+            ? nullptr
+            : parameters->try_at(
+                  method == MCP_METHOD_RESOURCES_READ ? "uri" : "name",
+                  method == MCP_METHOD_RESOURCES_READ ? MCP_HASH_URI
+                                                      : MCP_HASH_NAME)};
     if ((name == nullptr) || !name->is_string()) {
       return transport_error(version, identifier, JSONRPC_CODE_INVALID_PARAMS,
                              "Invalid params");
