@@ -450,7 +450,11 @@ auto mcp_parse_subscription_filter(MCPProtocolVersion version,
     -> std::optional<MCPSubscriptionFilter>;
 
 /// @ingroup mcp
-/// Restrict requested events and URIs to those the server supports.
+/// Restrict requested events and URIs to those the server supports. The result
+/// is the subset the server agreed to honor, so an event only carries a value
+/// when both sides opted into it and an unsupported event stays absent.
+/// @see
+/// https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/subscriptions
 SOURCEMETA_CORE_MCP_EXPORT
 auto mcp_intersect_subscription_filters(const MCPSubscriptionFilter &requested,
                                         const MCPSubscriptionFilter &supported)

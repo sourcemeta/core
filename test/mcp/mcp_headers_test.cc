@@ -1,61 +1,16 @@
 #include <sourcemeta/core/mcp.h>
 
-#include <sourcemeta/core/http.h>
 #include <sourcemeta/core/json.h>
-#include <sourcemeta/core/jsonrpc.h>
 
 #include <sourcemeta/core/test.h>
 
-#include <array>
-#include <stdexcept>
-#include <vector>
+#include "mcp_helpers.h"
 
-#include <cstddef>  // std::size_t
-#include <cstdint>  // std::int64_t
-#include <limits>   // std::numeric_limits
+#include <array>    // std::array
 #include <optional> // std::optional, std::nullopt
-#include <sstream>
-#include <string>
-#include <utility> // std::move
-
-namespace {
-constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED_VERSIONS{
-    {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
-
-using namespace sourcemeta::core;
-
-constexpr std::array<JSON::StringView, 4> WIRES{
-    {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
-constexpr auto CURRENT{MCPProtocolVersion::V_2026_07_28};
-
-auto parameters() -> JSON {
-  return parse_json(
-      R"({
-  "_meta": {
-    "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-    "io.modelcontextprotocol/clientCapabilities": {}
-  }
-})");
-}
-
-auto request(const JSON::StringView method = "tools/list") -> JSON {
-  auto result{jsonrpc_make_notification(method, parameters())};
-  result.assign("id", JSON{0});
-  return result;
-}
-
-} // namespace
-
-TEST(protocol_era_predicates_requires_request_meta) {
-  auto version_2025_03_26{sourcemeta::core::MCPProtocolVersion::V_2025_03_26};
-  auto version_2025_06_18{sourcemeta::core::MCPProtocolVersion::V_2025_06_18};
-  auto version_2025_11_25{sourcemeta::core::MCPProtocolVersion::V_2025_11_25};
-  auto version_2026_07_28{sourcemeta::core::MCPProtocolVersion::V_2026_07_28};
-  EXPECT_FALSE(sourcemeta::core::mcp_requires_request_meta(version_2025_03_26));
-  EXPECT_FALSE(sourcemeta::core::mcp_requires_request_meta(version_2025_06_18));
-  EXPECT_FALSE(sourcemeta::core::mcp_requires_request_meta(version_2025_11_25));
-  EXPECT_TRUE(sourcemeta::core::mcp_requires_request_meta(version_2026_07_28));
-}
+#include <string>   // std::string
+#include <utility>  // std::pair
+#include <vector>   // std::vector
 
 TEST(request_meta_validation_valid_minimum) {
   const auto envelope{sourcemeta::core::parse_json(R"JSON({
@@ -65,88 +20,101 @@ TEST(request_meta_validation_valid_minimum) {
     "params": {
       "_meta": {
         "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-        "io.modelcontextprotocol/clientCapabilities": {},
-        "io.modelcontextprotocol/clientInfo": {
-          "name": "ExampleClient",
-          "version": "1.0.0"
-        }
+        "io.modelcontextprotocol/clientCapabilities": {}
       }
     }
   })JSON")};
-
   const auto [status,
               meta]{sourcemeta::core::mcp_validate_request_meta(envelope)};
   EXPECT_EQ(status, sourcemeta::core::MCPRequestMetaStatus::Valid);
-  EXPECT_TRUE(meta.has_value());
   EXPECT_EQ(meta->protocol_version,
             sourcemeta::core::MCPProtocolVersion::V_2026_07_28);
-  EXPECT_TRUE(meta->client_capabilities.is_object());
-  EXPECT_TRUE(meta->client_info.has_value());
+  EXPECT_EQ(meta->client_capabilities,
+            sourcemeta::core::parse_json(R"JSON({})JSON"));
+  EXPECT_FALSE(meta->client_info.has_value());
+  EXPECT_FALSE(meta->log_level.has_value());
+  EXPECT_EQ(meta->progress_token, nullptr);
+}
+
+TEST(request_meta_validation_valid_with_client_info) {
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/list",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientCapabilities": {},
+        "io.modelcontextprotocol/clientInfo": { "name": "ExampleClient", "version": "1.0.0" }
+      }
+    }
+  })JSON")};
+  const auto [status,
+              meta]{sourcemeta::core::mcp_validate_request_meta(envelope)};
+  EXPECT_EQ(status, sourcemeta::core::MCPRequestMetaStatus::Valid);
   EXPECT_EQ(meta->client_info->name, "ExampleClient");
   EXPECT_EQ(meta->client_info->version, "1.0.0");
   EXPECT_TRUE(meta->client_info->title.empty());
   EXPECT_TRUE(meta->client_info->description.empty());
-  EXPECT_TRUE((sourcemeta::core::mcp_validate_request_meta(envelope).first ==
-               sourcemeta::core::MCPRequestMetaStatus::Valid));
+  EXPECT_TRUE(meta->client_info->website_url.empty());
+  EXPECT_EQ(meta->client_info->icons, nullptr);
+}
 
-  const auto client_info{
-      sourcemeta::core::mcp_validate_request_meta(envelope)
-          .second.transform([](const auto &value) { return value.client_info; })
-          .value_or(std::nullopt)};
-  EXPECT_TRUE(client_info.has_value());
-  EXPECT_EQ(client_info->name, "ExampleClient");
-  EXPECT_EQ(client_info->version, "1.0.0");
-  EXPECT_FALSE(meta->log_level.has_value());
-  auto empty_method{envelope};
-  empty_method.assign("method", sourcemeta::core::JSON{""});
-  EXPECT_EQ(sourcemeta::core::mcp_validate_request_meta(empty_method).first,
+// A method name is not metadata, so an empty one is left to the dispatcher
+TEST(request_meta_validation_accepts_an_empty_method) {
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientCapabilities": {}
+      }
+    }
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_validate_request_meta(envelope).first,
             sourcemeta::core::MCPRequestMetaStatus::Valid);
 }
 
-TEST(request_meta_validation_valid_with_client_info_and_log_level) {
+TEST(request_meta_validation_valid_with_log_level_and_progress_token) {
   const auto envelope{sourcemeta::core::parse_json(R"JSON({
-  "jsonrpc": "2.0",
-  "id": 1,
-  "method": "tools/call",
-  "params": {
-    "_meta": {
-      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-      "io.modelcontextprotocol/clientCapabilities": {
-        "roots": {
-          "listChanged": true
-        }
-      },
-      "io.modelcontextprotocol/clientInfo": {
-        "name": "client-one",
-        "version": "1.2.3",
-        "title": "Client Title",
-        "description": "Client Description"
-      },
-      "io.modelcontextprotocol/logLevel": "debug",
-      "customExtension": 42
-    },
-    "name": "compute"
-  }
-})JSON")};
-
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/call",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientCapabilities": { "roots": {} },
+        "io.modelcontextprotocol/clientInfo": {
+          "name": "ExampleClient",
+          "version": "1.0.0",
+          "title": "Example",
+          "description": "An example",
+          "websiteUrl": "https://example.com"
+        },
+        "io.modelcontextprotocol/logLevel": "warning",
+        "progressToken": 7
+      }
+    }
+  })JSON")};
   const auto [status,
               meta]{sourcemeta::core::mcp_validate_request_meta(envelope)};
   EXPECT_EQ(status, sourcemeta::core::MCPRequestMetaStatus::Valid);
-  EXPECT_TRUE(meta.has_value());
-  EXPECT_TRUE(meta->client_info.has_value());
-  EXPECT_EQ(meta->client_info->name, "client-one");
-  EXPECT_EQ(meta->client_info->version, "1.2.3");
-  EXPECT_EQ(meta->client_info->title, "Client Title");
-  EXPECT_EQ(meta->client_info->description, "Client Description");
-  EXPECT_TRUE(meta->log_level.has_value());
-  EXPECT_EQ(meta->log_level.value(), "debug");
-  EXPECT_TRUE(meta->meta_object.defines("customExtension"));
+  EXPECT_EQ(meta->client_capabilities,
+            sourcemeta::core::parse_json(R"JSON({ "roots": {} })JSON"));
+  EXPECT_EQ(meta->client_info->name, "ExampleClient");
+  EXPECT_EQ(meta->client_info->version, "1.0.0");
+  EXPECT_EQ(meta->client_info->title, "Example");
+  EXPECT_EQ(meta->client_info->description, "An example");
+  EXPECT_EQ(meta->client_info->website_url, "https://example.com");
+  EXPECT_EQ(meta->log_level.value(), "warning");
+  EXPECT_EQ(*meta->progress_token, sourcemeta::core::JSON{7});
 }
 
 TEST(request_meta_validation_missing_params) {
-  const auto envelope{sourcemeta::core::parse_json(R"JSON({
-    "jsonrpc": "2.0", "id": 1, "method": "tools/list"
-  })JSON")};
+  const auto envelope{sourcemeta::core::parse_json(
+      R"JSON({ "jsonrpc": "2.0", "id": 1, "method": "tools/list" })JSON")};
   const auto [status,
               meta]{sourcemeta::core::mcp_validate_request_meta(envelope)};
   EXPECT_EQ(status, sourcemeta::core::MCPRequestMetaStatus::MissingParams);
@@ -155,7 +123,10 @@ TEST(request_meta_validation_missing_params) {
 
 TEST(request_meta_validation_params_not_object) {
   const auto envelope{sourcemeta::core::parse_json(R"JSON({
-    "jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": [ 1, 2 ]
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/list",
+    "params": [ 1, 2 ]
   })JSON")};
   const auto [status,
               meta]{sourcemeta::core::mcp_validate_request_meta(envelope)};
@@ -165,7 +136,10 @@ TEST(request_meta_validation_params_not_object) {
 
 TEST(request_meta_validation_missing_meta) {
   const auto envelope{sourcemeta::core::parse_json(R"JSON({
-    "jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": { "name": "test" }
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/list",
+    "params": { "name": "test" }
   })JSON")};
   const auto [status,
               meta]{sourcemeta::core::mcp_validate_request_meta(envelope)};
@@ -175,13 +149,11 @@ TEST(request_meta_validation_missing_meta) {
 
 TEST(request_meta_validation_meta_not_object) {
   const auto envelope{sourcemeta::core::parse_json(R"JSON({
-  "jsonrpc": "2.0",
-  "id": 1,
-  "method": "tools/list",
-  "params": {
-    "_meta": "invalid"
-  }
-})JSON")};
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/list",
+    "params": { "_meta": "invalid" }
+  })JSON")};
   const auto [status,
               meta]{sourcemeta::core::mcp_validate_request_meta(envelope)};
   EXPECT_EQ(status, sourcemeta::core::MCPRequestMetaStatus::MetaNotObject);
@@ -190,8 +162,12 @@ TEST(request_meta_validation_meta_not_object) {
 
 TEST(request_meta_validation_missing_protocol_version) {
   const auto envelope{sourcemeta::core::parse_json(R"JSON({
-    "jsonrpc": "2.0", "id": 1, "method": "tools/list",
-    "params": { "_meta": { "io.modelcontextprotocol/clientCapabilities": {} } }
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/list",
+    "params": {
+      "_meta": { "io.modelcontextprotocol/clientCapabilities": {} }
+    }
   })JSON")};
   const auto [status,
               meta]{sourcemeta::core::mcp_validate_request_meta(envelope)};
@@ -202,11 +178,15 @@ TEST(request_meta_validation_missing_protocol_version) {
 
 TEST(request_meta_validation_protocol_version_not_string) {
   const auto envelope{sourcemeta::core::parse_json(R"JSON({
-    "jsonrpc": "2.0", "id": 1, "method": "tools/list",
-    "params": { "_meta": {
-      "io.modelcontextprotocol/protocolVersion": 2026,
-      "io.modelcontextprotocol/clientCapabilities": {}
-    } }
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/list",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": 2026,
+        "io.modelcontextprotocol/clientCapabilities": {}
+      }
+    }
   })JSON")};
   const auto [status,
               meta]{sourcemeta::core::mcp_validate_request_meta(envelope)};
@@ -217,11 +197,15 @@ TEST(request_meta_validation_protocol_version_not_string) {
 
 TEST(request_meta_validation_unsupported_protocol_version) {
   const auto envelope{sourcemeta::core::parse_json(R"JSON({
-    "jsonrpc": "2.0", "id": 1, "method": "tools/list",
-    "params": { "_meta": {
-      "io.modelcontextprotocol/protocolVersion": "1900-01-01",
-      "io.modelcontextprotocol/clientCapabilities": {}
-    } }
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/list",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "1900-01-01",
+        "io.modelcontextprotocol/clientCapabilities": {}
+      }
+    }
   })JSON")};
   const auto [status,
               meta]{sourcemeta::core::mcp_validate_request_meta(envelope)};
@@ -232,10 +216,14 @@ TEST(request_meta_validation_unsupported_protocol_version) {
 
 TEST(request_meta_validation_missing_client_capabilities) {
   const auto envelope{sourcemeta::core::parse_json(R"JSON({
-    "jsonrpc": "2.0", "id": 1, "method": "tools/list",
-    "params": { "_meta": {
-      "io.modelcontextprotocol/protocolVersion": "2026-07-28"
-    } }
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/list",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28"
+      }
+    }
   })JSON")};
   const auto [status,
               meta]{sourcemeta::core::mcp_validate_request_meta(envelope)};
@@ -246,11 +234,15 @@ TEST(request_meta_validation_missing_client_capabilities) {
 
 TEST(request_meta_validation_client_capabilities_not_object) {
   const auto envelope{sourcemeta::core::parse_json(R"JSON({
-    "jsonrpc": "2.0", "id": 1, "method": "tools/list",
-    "params": { "_meta": {
-      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-      "io.modelcontextprotocol/clientCapabilities": "not-an-object"
-    } }
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/list",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientCapabilities": "not-an-object"
+      }
+    }
   })JSON")};
   const auto [status,
               meta]{sourcemeta::core::mcp_validate_request_meta(envelope)};
@@ -262,11 +254,15 @@ TEST(request_meta_validation_client_capabilities_not_object) {
 
 TEST(request_meta_validation_missing_client_info) {
   const auto envelope{sourcemeta::core::parse_json(R"JSON({
-    "jsonrpc": "2.0", "id": 1, "method": "tools/list",
-    "params": { "_meta": {
-      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-      "io.modelcontextprotocol/clientCapabilities": {}
-    } }
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/list",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientCapabilities": {}
+      }
+    }
   })JSON")};
   const auto [status,
               meta]{sourcemeta::core::mcp_validate_request_meta(envelope)};
@@ -292,13 +288,17 @@ TEST(request_meta_validation_missing_client_info) {
 
 TEST(request_meta_validation_client_info_null) {
   const auto envelope{sourcemeta::core::parse_json(R"JSON({
-      "jsonrpc": "2.0", "id": 1, "method": "tools/list",
-      "params": { "_meta": {
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/list",
+    "params": {
+      "_meta": {
         "io.modelcontextprotocol/protocolVersion": "2026-07-28",
         "io.modelcontextprotocol/clientCapabilities": {},
         "io.modelcontextprotocol/clientInfo": null
-      } }
-    })JSON")};
+      }
+    }
+  })JSON")};
   const auto [status,
               meta]{sourcemeta::core::mcp_validate_request_meta(envelope)};
   EXPECT_EQ(status,
@@ -315,13 +315,17 @@ TEST(request_meta_validation_client_info_null) {
 
 TEST(request_meta_validation_client_info_array) {
   const auto envelope{sourcemeta::core::parse_json(R"JSON({
-      "jsonrpc": "2.0", "id": 1, "method": "tools/list",
-      "params": { "_meta": {
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/list",
+    "params": {
+      "_meta": {
         "io.modelcontextprotocol/protocolVersion": "2026-07-28",
         "io.modelcontextprotocol/clientCapabilities": {},
         "io.modelcontextprotocol/clientInfo": [ "ExampleClient", "1.0.0" ]
-      } }
-    })JSON")};
+      }
+    }
+  })JSON")};
   const auto [status,
               meta]{sourcemeta::core::mcp_validate_request_meta(envelope)};
   EXPECT_EQ(status,
@@ -338,13 +342,17 @@ TEST(request_meta_validation_client_info_array) {
 
 TEST(request_meta_validation_client_info_string) {
   const auto envelope{sourcemeta::core::parse_json(R"JSON({
-      "jsonrpc": "2.0", "id": 1, "method": "tools/list",
-      "params": { "_meta": {
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/list",
+    "params": {
+      "_meta": {
         "io.modelcontextprotocol/protocolVersion": "2026-07-28",
         "io.modelcontextprotocol/clientCapabilities": {},
         "io.modelcontextprotocol/clientInfo": "ExampleClient/1.0.0"
-      } }
-    })JSON")};
+      }
+    }
+  })JSON")};
   const auto [status,
               meta]{sourcemeta::core::mcp_validate_request_meta(envelope)};
   EXPECT_EQ(status,
@@ -359,70 +367,58 @@ TEST(request_meta_validation_client_info_string) {
           .has_value());
 }
 
-TEST(request_meta_validation_missing_client_info_name) {
-  // Empty object
-  {
-    const auto envelope{sourcemeta::core::parse_json(R"JSON({
-      "jsonrpc": "2.0", "id": 1, "method": "tools/list",
-      "params": { "_meta": {
+TEST(request_meta_validation_empty_client_info) {
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/list",
+    "params": {
+      "_meta": {
         "io.modelcontextprotocol/protocolVersion": "2026-07-28",
         "io.modelcontextprotocol/clientCapabilities": {},
         "io.modelcontextprotocol/clientInfo": {}
-      } }
-    })JSON")};
-    const auto [status,
-                meta]{sourcemeta::core::mcp_validate_request_meta(envelope)};
-    EXPECT_EQ(status,
-              sourcemeta::core::MCPRequestMetaStatus::MissingClientInfoName);
-    EXPECT_FALSE(meta.has_value());
-    EXPECT_FALSE((sourcemeta::core::mcp_validate_request_meta(envelope).first ==
-                  sourcemeta::core::MCPRequestMetaStatus::Valid));
-    EXPECT_FALSE(
-        sourcemeta::core::mcp_validate_request_meta(envelope)
-            .second
-            .transform([](const auto &value) { return value.client_info; })
-            .value_or(std::nullopt)
-            .has_value());
-  }
-  // Version present, name missing
-  {
-    const auto envelope{sourcemeta::core::parse_json(R"JSON({
-      "jsonrpc": "2.0", "id": 1, "method": "tools/list",
-      "params": { "_meta": {
+      }
+    }
+  })JSON")};
+  const auto [status,
+              meta]{sourcemeta::core::mcp_validate_request_meta(envelope)};
+  EXPECT_EQ(status,
+            sourcemeta::core::MCPRequestMetaStatus::MissingClientInfoName);
+  EXPECT_FALSE(meta.has_value());
+}
+
+TEST(request_meta_validation_missing_client_info_name) {
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/list",
+    "params": {
+      "_meta": {
         "io.modelcontextprotocol/protocolVersion": "2026-07-28",
         "io.modelcontextprotocol/clientCapabilities": {},
-        "io.modelcontextprotocol/clientInfo": {
-          "version": "1.0.0"
-        }
-      } }
-    })JSON")};
-    const auto [status,
-                meta]{sourcemeta::core::mcp_validate_request_meta(envelope)};
-    EXPECT_EQ(status,
-              sourcemeta::core::MCPRequestMetaStatus::MissingClientInfoName);
-    EXPECT_FALSE(meta.has_value());
-    EXPECT_FALSE((sourcemeta::core::mcp_validate_request_meta(envelope).first ==
-                  sourcemeta::core::MCPRequestMetaStatus::Valid));
-    EXPECT_FALSE(
-        sourcemeta::core::mcp_validate_request_meta(envelope)
-            .second
-            .transform([](const auto &value) { return value.client_info; })
-            .value_or(std::nullopt)
-            .has_value());
-  }
+        "io.modelcontextprotocol/clientInfo": { "version": "1.0.0" }
+      }
+    }
+  })JSON")};
+  const auto [status,
+              meta]{sourcemeta::core::mcp_validate_request_meta(envelope)};
+  EXPECT_EQ(status,
+            sourcemeta::core::MCPRequestMetaStatus::MissingClientInfoName);
+  EXPECT_FALSE(meta.has_value());
 }
 
 TEST(request_meta_validation_client_info_name_not_string) {
   const auto envelope{sourcemeta::core::parse_json(R"JSON({
-    "jsonrpc": "2.0", "id": 1, "method": "tools/list",
-    "params": { "_meta": {
-      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-      "io.modelcontextprotocol/clientCapabilities": {},
-      "io.modelcontextprotocol/clientInfo": {
-        "name": 42,
-        "version": "1.0.0"
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/list",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientCapabilities": {},
+        "io.modelcontextprotocol/clientInfo": { "name": 42, "version": "1.0.0" }
       }
-    } }
+    }
   })JSON")};
   const auto [status,
               meta]{sourcemeta::core::mcp_validate_request_meta(envelope)};
@@ -440,14 +436,16 @@ TEST(request_meta_validation_client_info_name_not_string) {
 
 TEST(request_meta_validation_missing_client_info_version) {
   const auto envelope{sourcemeta::core::parse_json(R"JSON({
-    "jsonrpc": "2.0", "id": 1, "method": "tools/list",
-    "params": { "_meta": {
-      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-      "io.modelcontextprotocol/clientCapabilities": {},
-      "io.modelcontextprotocol/clientInfo": {
-        "name": "ExampleClient"
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/list",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientCapabilities": {},
+        "io.modelcontextprotocol/clientInfo": { "name": "ExampleClient" }
       }
-    } }
+    }
   })JSON")};
   const auto [status,
               meta]{sourcemeta::core::mcp_validate_request_meta(envelope)};
@@ -465,15 +463,16 @@ TEST(request_meta_validation_missing_client_info_version) {
 
 TEST(request_meta_validation_client_info_version_not_string) {
   const auto envelope{sourcemeta::core::parse_json(R"JSON({
-    "jsonrpc": "2.0", "id": 1, "method": "tools/list",
-    "params": { "_meta": {
-      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-      "io.modelcontextprotocol/clientCapabilities": {},
-      "io.modelcontextprotocol/clientInfo": {
-        "name": "ExampleClient",
-        "version": false
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/list",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientCapabilities": {},
+        "io.modelcontextprotocol/clientInfo": { "name": "ExampleClient", "version": false }
       }
-    } }
+    }
   })JSON")};
   const auto [status,
               meta]{sourcemeta::core::mcp_validate_request_meta(envelope)};
@@ -491,16 +490,20 @@ TEST(request_meta_validation_client_info_version_not_string) {
 
 TEST(request_meta_validation_client_info_title_not_string) {
   const auto envelope{sourcemeta::core::parse_json(R"JSON({
-    "jsonrpc": "2.0", "id": 1, "method": "tools/list",
-    "params": { "_meta": {
-      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-      "io.modelcontextprotocol/clientCapabilities": {},
-      "io.modelcontextprotocol/clientInfo": {
-        "name": "ExampleClient",
-        "version": "1.0.0",
-        "title": 123
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/list",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientCapabilities": {},
+        "io.modelcontextprotocol/clientInfo": {
+          "name": "ExampleClient",
+          "version": "1.0.0",
+          "title": 123
+        }
       }
-    } }
+    }
   })JSON")};
   const auto [status,
               meta]{sourcemeta::core::mcp_validate_request_meta(envelope)};
@@ -518,16 +521,20 @@ TEST(request_meta_validation_client_info_title_not_string) {
 
 TEST(request_meta_validation_client_info_description_not_string) {
   const auto envelope{sourcemeta::core::parse_json(R"JSON({
-    "jsonrpc": "2.0", "id": 1, "method": "tools/list",
-    "params": { "_meta": {
-      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-      "io.modelcontextprotocol/clientCapabilities": {},
-      "io.modelcontextprotocol/clientInfo": {
-        "name": "ExampleClient",
-        "version": "1.0.0",
-        "description": [ "an", "mcp", "client" ]
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/list",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientCapabilities": {},
+        "io.modelcontextprotocol/clientInfo": {
+          "name": "ExampleClient",
+          "version": "1.0.0",
+          "description": [ "an", "mcp", "client" ]
+        }
       }
-    } }
+    }
   })JSON")};
   const auto [status,
               meta]{sourcemeta::core::mcp_validate_request_meta(envelope)};
@@ -546,18 +553,18 @@ TEST(request_meta_validation_client_info_description_not_string) {
 
 TEST(request_meta_view_borrows_source) {
   const auto request{sourcemeta::core::parse_json(
-      R"({
-  "jsonrpc": "2.0",
-  "id": 1,
-  "method": "tools/list",
-  "params": {
-    "_meta": {
-      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-      "io.modelcontextprotocol/clientCapabilities": {},
-      "io.modelcontextprotocol/logLevel": "info"
-    }
-  }
-})")};
+      R"JSON({
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "tools/list",
+        "params": {
+          "_meta": {
+            "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+            "io.modelcontextprotocol/clientCapabilities": {},
+            "io.modelcontextprotocol/logLevel": "info"
+          }
+        }
+      })JSON")};
   const auto [status,
               parsed]{sourcemeta::core::mcp_validate_request_meta(request)};
   EXPECT_EQ(status, sourcemeta::core::MCPRequestMetaStatus::Valid);
@@ -569,31 +576,475 @@ TEST(request_meta_view_borrows_source) {
   EXPECT_EQ(parsed->log_level, "info");
 }
 
-TEST(error_request_meta_generation) {
-  const auto identifier{sourcemeta::core::JSON{1}};
-  const auto error{sourcemeta::core::mcp_make_error_request_meta(
-      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, identifier,
-      sourcemeta::core::MCPRequestMetaStatus::MissingMeta, "",
-      SUPPORTED_VERSIONS)};
-  EXPECT_EQ(error.at("error").at("code").to_integer(),
-            sourcemeta::core::JSONRPC_CODE_INVALID_PARAMS);
-  EXPECT_EQ(error.at("id").to_integer(), 1);
+// A malformed request is rejected with invalid params, and the status says
+// which field was at fault
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/index#_meta
+TEST(make_error_request_meta_invalid_envelope) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
+      {"2026-07-28"}};
+  EXPECT_EQ(sourcemeta::core::mcp_make_error_request_meta(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::JSON{1},
+                sourcemeta::core::MCPRequestMetaStatus::InvalidEnvelope, "",
+                SUPPORTED),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "error": { "code": -32600, "message": "Invalid Request" }
+  })JSON"));
+}
 
-  const auto unsupported_error{sourcemeta::core::mcp_make_error_request_meta(
-      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, identifier,
-      sourcemeta::core::MCPRequestMetaStatus::UnsupportedProtocolVersion,
-      "2024-01-01",
-      std::array<sourcemeta::core::JSON::StringView, 1>{{"2026-07-28"}})};
-  EXPECT_EQ(unsupported_error.at("error").at("code").to_integer(), -32022);
+TEST(make_error_request_meta_invalid_meta_key) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
+      {"2026-07-28"}};
+  EXPECT_EQ(sourcemeta::core::mcp_make_error_request_meta(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::JSON{1},
+                sourcemeta::core::MCPRequestMetaStatus::InvalidMetaKey, "",
+                SUPPORTED),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "error": {
+      "code": -32602,
+      "message": "Invalid params: malformed metadata field"
+    }
+  })JSON"));
+}
+
+TEST(make_error_request_meta_invalid_client_capabilities) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
+      {"2026-07-28"}};
   EXPECT_EQ(
-      unsupported_error.at("error").at("data").at("requested").to_string(),
-      "2024-01-01");
-  EXPECT_EQ(unsupported_error.at("error")
-                .at("data")
-                .at("supported")
-                .at(0)
-                .to_string(),
-            "2026-07-28");
+      sourcemeta::core::mcp_make_error_request_meta(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+          sourcemeta::core::JSON{1},
+          sourcemeta::core::MCPRequestMetaStatus::InvalidClientCapabilities, "",
+          SUPPORTED),
+      sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "error": {
+      "code": -32602,
+      "message": "Invalid params: malformed metadata field"
+    }
+  })JSON"));
+}
+
+TEST(make_error_request_meta_client_info_website_url_not_string) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
+      {"2026-07-28"}};
+  EXPECT_EQ(
+      sourcemeta::core::mcp_make_error_request_meta(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+          sourcemeta::core::JSON{1},
+          sourcemeta::core::MCPRequestMetaStatus::ClientInfoWebsiteUrlNotString,
+          "", SUPPORTED),
+      sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "error": {
+      "code": -32602,
+      "message": "Invalid params: malformed metadata field"
+    }
+  })JSON"));
+}
+
+TEST(make_error_request_meta_invalid_client_info) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
+      {"2026-07-28"}};
+  EXPECT_EQ(sourcemeta::core::mcp_make_error_request_meta(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::JSON{1},
+                sourcemeta::core::MCPRequestMetaStatus::InvalidClientInfo, "",
+                SUPPORTED),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "error": {
+      "code": -32602,
+      "message": "Invalid params: malformed metadata field"
+    }
+  })JSON"));
+}
+
+TEST(make_error_request_meta_invalid_log_level) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
+      {"2026-07-28"}};
+  EXPECT_EQ(sourcemeta::core::mcp_make_error_request_meta(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::JSON{1},
+                sourcemeta::core::MCPRequestMetaStatus::InvalidLogLevel, "",
+                SUPPORTED),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "error": {
+      "code": -32602,
+      "message": "Invalid params: malformed metadata field"
+    }
+  })JSON"));
+}
+
+TEST(make_error_request_meta_invalid_progress_token) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
+      {"2026-07-28"}};
+  EXPECT_EQ(sourcemeta::core::mcp_make_error_request_meta(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::JSON{1},
+                sourcemeta::core::MCPRequestMetaStatus::InvalidProgressToken,
+                "", SUPPORTED),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "error": {
+      "code": -32602,
+      "message": "Invalid params: malformed metadata field"
+    }
+  })JSON"));
+}
+
+TEST(make_error_request_meta_missing_params) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
+      {"2026-07-28"}};
+  EXPECT_EQ(sourcemeta::core::mcp_make_error_request_meta(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::JSON{1},
+                sourcemeta::core::MCPRequestMetaStatus::MissingParams, "",
+                SUPPORTED),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "error": {
+      "code": -32602,
+      "message": "Invalid params: missing params object"
+    }
+  })JSON"));
+}
+
+TEST(make_error_request_meta_params_not_object) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
+      {"2026-07-28"}};
+  EXPECT_EQ(sourcemeta::core::mcp_make_error_request_meta(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::JSON{1},
+                sourcemeta::core::MCPRequestMetaStatus::ParamsNotObject, "",
+                SUPPORTED),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "error": {
+      "code": -32602,
+      "message": "Invalid params: params must be an object"
+    }
+  })JSON"));
+}
+
+TEST(make_error_request_meta_missing_meta) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
+      {"2026-07-28"}};
+  EXPECT_EQ(sourcemeta::core::mcp_make_error_request_meta(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::JSON{1},
+                sourcemeta::core::MCPRequestMetaStatus::MissingMeta, "",
+                SUPPORTED),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "error": {
+      "code": -32602,
+      "message": "Invalid params: missing _meta object"
+    }
+  })JSON"));
+}
+
+TEST(make_error_request_meta_meta_not_object) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
+      {"2026-07-28"}};
+  EXPECT_EQ(sourcemeta::core::mcp_make_error_request_meta(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::JSON{1},
+                sourcemeta::core::MCPRequestMetaStatus::MetaNotObject, "",
+                SUPPORTED),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "error": {
+      "code": -32602,
+      "message": "Invalid params: _meta must be an object"
+    }
+  })JSON"));
+}
+
+TEST(make_error_request_meta_missing_protocol_version) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
+      {"2026-07-28"}};
+  EXPECT_EQ(sourcemeta::core::mcp_make_error_request_meta(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::JSON{1},
+                sourcemeta::core::MCPRequestMetaStatus::MissingProtocolVersion,
+                "", SUPPORTED),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "error": {
+      "code": -32602,
+      "message": "Invalid params: missing protocolVersion in _meta"
+    }
+  })JSON"));
+}
+
+TEST(make_error_request_meta_protocol_version_not_string) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
+      {"2026-07-28"}};
+  EXPECT_EQ(
+      sourcemeta::core::mcp_make_error_request_meta(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+          sourcemeta::core::JSON{1},
+          sourcemeta::core::MCPRequestMetaStatus::ProtocolVersionNotString, "",
+          SUPPORTED),
+      sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "error": {
+      "code": -32602,
+      "message": "Invalid params: protocolVersion must be a string"
+    }
+  })JSON"));
+}
+
+TEST(make_error_request_meta_missing_client_capabilities) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
+      {"2026-07-28"}};
+  EXPECT_EQ(
+      sourcemeta::core::mcp_make_error_request_meta(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+          sourcemeta::core::JSON{1},
+          sourcemeta::core::MCPRequestMetaStatus::MissingClientCapabilities, "",
+          SUPPORTED),
+      sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "error": {
+      "code": -32602,
+      "message": "Invalid params: missing clientCapabilities in _meta"
+    }
+  })JSON"));
+}
+
+TEST(make_error_request_meta_client_capabilities_not_object) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
+      {"2026-07-28"}};
+  EXPECT_EQ(
+      sourcemeta::core::mcp_make_error_request_meta(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+          sourcemeta::core::JSON{1},
+          sourcemeta::core::MCPRequestMetaStatus::ClientCapabilitiesNotObject,
+          "", SUPPORTED),
+      sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "error": {
+      "code": -32602,
+      "message": "Invalid params: clientCapabilities must be an object"
+    }
+  })JSON"));
+}
+
+TEST(make_error_request_meta_client_info_not_object) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
+      {"2026-07-28"}};
+  EXPECT_EQ(sourcemeta::core::mcp_make_error_request_meta(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::JSON{1},
+                sourcemeta::core::MCPRequestMetaStatus::ClientInfoNotObject, "",
+                SUPPORTED),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "error": {
+      "code": -32602,
+      "message": "Invalid params: clientInfo must be an object"
+    }
+  })JSON"));
+}
+
+TEST(make_error_request_meta_missing_client_info_name) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
+      {"2026-07-28"}};
+  EXPECT_EQ(sourcemeta::core::mcp_make_error_request_meta(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::JSON{1},
+                sourcemeta::core::MCPRequestMetaStatus::MissingClientInfoName,
+                "", SUPPORTED),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "error": {
+      "code": -32602,
+      "message": "Invalid params: missing name in clientInfo"
+    }
+  })JSON"));
+}
+
+TEST(make_error_request_meta_client_info_name_not_string) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
+      {"2026-07-28"}};
+  EXPECT_EQ(sourcemeta::core::mcp_make_error_request_meta(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::JSON{1},
+                sourcemeta::core::MCPRequestMetaStatus::ClientInfoNameNotString,
+                "", SUPPORTED),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "error": {
+      "code": -32602,
+      "message": "Invalid params: clientInfo name must be a string"
+    }
+  })JSON"));
+}
+
+TEST(make_error_request_meta_missing_client_info_version) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
+      {"2026-07-28"}};
+  EXPECT_EQ(
+      sourcemeta::core::mcp_make_error_request_meta(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+          sourcemeta::core::JSON{1},
+          sourcemeta::core::MCPRequestMetaStatus::MissingClientInfoVersion, "",
+          SUPPORTED),
+      sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "error": {
+      "code": -32602,
+      "message": "Invalid params: missing version in clientInfo"
+    }
+  })JSON"));
+}
+
+TEST(make_error_request_meta_client_info_version_not_string) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
+      {"2026-07-28"}};
+  EXPECT_EQ(
+      sourcemeta::core::mcp_make_error_request_meta(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+          sourcemeta::core::JSON{1},
+          sourcemeta::core::MCPRequestMetaStatus::ClientInfoVersionNotString,
+          "", SUPPORTED),
+      sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "error": {
+      "code": -32602,
+      "message": "Invalid params: clientInfo version must be a string"
+    }
+  })JSON"));
+}
+
+TEST(make_error_request_meta_client_info_title_not_string) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
+      {"2026-07-28"}};
+  EXPECT_EQ(
+      sourcemeta::core::mcp_make_error_request_meta(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+          sourcemeta::core::JSON{1},
+          sourcemeta::core::MCPRequestMetaStatus::ClientInfoTitleNotString, "",
+          SUPPORTED),
+      sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "error": {
+      "code": -32602,
+      "message": "Invalid params: clientInfo title must be a string"
+    }
+  })JSON"));
+}
+
+TEST(make_error_request_meta_client_info_description_not_string) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
+      {"2026-07-28"}};
+  EXPECT_EQ(sourcemeta::core::mcp_make_error_request_meta(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::JSON{1},
+                sourcemeta::core::MCPRequestMetaStatus::
+                    ClientInfoDescriptionNotString,
+                "", SUPPORTED),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "error": {
+      "code": -32602,
+      "message": "Invalid params: clientInfo description must be a string"
+    }
+  })JSON"));
+}
+
+// An unsupported version reports the revisions the server does offer
+// https://modelcontextprotocol.io/specification/2026-07-28/schema#unsupportedprotocolversionerror
+TEST(make_error_request_meta_unsupported_protocol_version) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
+      {"2026-07-28"}};
+  EXPECT_EQ(
+      sourcemeta::core::mcp_make_error_request_meta(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+          sourcemeta::core::JSON{1},
+          sourcemeta::core::MCPRequestMetaStatus::UnsupportedProtocolVersion,
+          "2024-01-01", SUPPORTED),
+      sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "error": {
+      "code": -32022,
+      "message": "Unsupported protocol version",
+      "data": {
+        "supported": [ "2026-07-28" ],
+        "requested": "2024-01-01"
+      }
+    }
+  })JSON"));
+}
+
+TEST(make_error_request_meta_omits_an_absent_identifier) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
+      {"2026-07-28"}};
+  EXPECT_EQ(
+      sourcemeta::core::mcp_make_error_request_meta(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, std::nullopt,
+          sourcemeta::core::MCPRequestMetaStatus::MissingMeta, "", SUPPORTED),
+      sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "error": {
+      "code": -32602,
+      "message": "Invalid params: missing _meta object"
+    }
+  })JSON"));
+}
+
+TEST(make_error_request_meta_rejects_a_valid_status) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
+      {"2026-07-28"}};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_error_request_meta(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         sourcemeta::core::JSON{1},
+                         sourcemeta::core::MCPRequestMetaStatus::Valid, "",
+                         SUPPORTED),
+                     "Cannot construct an error for valid metadata");
+}
+
+// Stateless metadata errors only exist in the revision that defines the
+// metadata
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/index#_meta
+TEST(make_error_request_meta_rejects_2025_11_25) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
+      {"2026-07-28"}};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_error_request_meta(
+                         sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+                         sourcemeta::core::JSON{1},
+                         sourcemeta::core::MCPRequestMetaStatus::MissingMeta,
+                         "", SUPPORTED),
+                     "Stateless metadata errors require MCP 2026-07-28");
 }
 
 TEST(request_meta_validation_empty_protocol_version) {
@@ -632,303 +1083,488 @@ TEST(request_meta_validation_accepts_params_with_jsonrpc_property) {
 }
 
 TEST(parameter_integer_accepts_decimal) {
-  using namespace sourcemeta::core;
-  constexpr auto VERSION{MCPProtocolVersion::V_2026_07_28};
-  const std::array<MCPHeaderParameter, 1> descriptors{
-      {{.name = "Value", .path = {"value"}, .type = JSON::Type::Integer}}};
+  const std::array<sourcemeta::core::MCPHeaderParameter, 1> descriptors{
+      {{.name = "Value",
+        .path = {"value"},
+        .type = sourcemeta::core::JSON::Type::Integer}}};
 
   const auto *const text{"42.0"};
 
-  auto arguments{JSON::make_object()};
-  arguments.assign("value", parse_json(text));
-  const auto headers{mcp_make_parameter_headers(descriptors, arguments)};
+  auto arguments{sourcemeta::core::JSON::make_object()};
+  arguments.assign("value", sourcemeta::core::parse_json(text));
+  const auto headers{
+      sourcemeta::core::mcp_make_parameter_headers(descriptors, arguments)};
   EXPECT_EQ(headers.size(), 1);
   EXPECT_EQ(headers.front().second,
             std::to_string(arguments.at("value").as_integer()));
-  const std::array<std::pair<JSON::StringView, JSON::StringView>, 1> views{
-      {{headers.front().first, headers.front().second}}};
-  EXPECT_FALSE(mcp_validate_parameter_headers(VERSION, JSON{0}, descriptors,
-                                              arguments, views)
+  const std::array<std::pair<sourcemeta::core::JSON::StringView,
+                             sourcemeta::core::JSON::StringView>,
+                   1>
+      views{{{headers.front().first, headers.front().second}}};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_parameter_headers(
+                   sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                   sourcemeta::core::JSON{0}, descriptors, arguments, views)
                    .has_value());
 }
 
 TEST(parameter_integer_accepts_exponent) {
-  using namespace sourcemeta::core;
-  constexpr auto VERSION{MCPProtocolVersion::V_2026_07_28};
-  const std::array<MCPHeaderParameter, 1> descriptors{
-      {{.name = "Value", .path = {"value"}, .type = JSON::Type::Integer}}};
+  const std::array<sourcemeta::core::MCPHeaderParameter, 1> descriptors{
+      {{.name = "Value",
+        .path = {"value"},
+        .type = sourcemeta::core::JSON::Type::Integer}}};
 
   const auto *const text{"4.2e1"};
 
-  auto arguments{JSON::make_object()};
-  arguments.assign("value", parse_json(text));
-  const auto headers{mcp_make_parameter_headers(descriptors, arguments)};
+  auto arguments{sourcemeta::core::JSON::make_object()};
+  arguments.assign("value", sourcemeta::core::parse_json(text));
+  const auto headers{
+      sourcemeta::core::mcp_make_parameter_headers(descriptors, arguments)};
   EXPECT_EQ(headers.size(), 1);
   EXPECT_EQ(headers.front().second,
             std::to_string(arguments.at("value").as_integer()));
-  const std::array<std::pair<JSON::StringView, JSON::StringView>, 1> views{
-      {{headers.front().first, headers.front().second}}};
-  EXPECT_FALSE(mcp_validate_parameter_headers(VERSION, JSON{0}, descriptors,
-                                              arguments, views)
+  const std::array<std::pair<sourcemeta::core::JSON::StringView,
+                             sourcemeta::core::JSON::StringView>,
+                   1>
+      views{{{headers.front().first, headers.front().second}}};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_parameter_headers(
+                   sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                   sourcemeta::core::JSON{0}, descriptors, arguments, views)
                    .has_value());
 }
 
 TEST(parameter_integer_accepts_maximum) {
-  using namespace sourcemeta::core;
-  constexpr auto VERSION{MCPProtocolVersion::V_2026_07_28};
-  const std::array<MCPHeaderParameter, 1> descriptors{
-      {{.name = "Value", .path = {"value"}, .type = JSON::Type::Integer}}};
+  const std::array<sourcemeta::core::MCPHeaderParameter, 1> descriptors{
+      {{.name = "Value",
+        .path = {"value"},
+        .type = sourcemeta::core::JSON::Type::Integer}}};
 
   const auto *const text{"9007199254740991.0"};
 
-  auto arguments{JSON::make_object()};
-  arguments.assign("value", parse_json(text));
-  const auto headers{mcp_make_parameter_headers(descriptors, arguments)};
+  auto arguments{sourcemeta::core::JSON::make_object()};
+  arguments.assign("value", sourcemeta::core::parse_json(text));
+  const auto headers{
+      sourcemeta::core::mcp_make_parameter_headers(descriptors, arguments)};
   EXPECT_EQ(headers.size(), 1);
   EXPECT_EQ(headers.front().second,
             std::to_string(arguments.at("value").as_integer()));
-  const std::array<std::pair<JSON::StringView, JSON::StringView>, 1> views{
-      {{headers.front().first, headers.front().second}}};
-  EXPECT_FALSE(mcp_validate_parameter_headers(VERSION, JSON{0}, descriptors,
-                                              arguments, views)
+  const std::array<std::pair<sourcemeta::core::JSON::StringView,
+                             sourcemeta::core::JSON::StringView>,
+                   1>
+      views{{{headers.front().first, headers.front().second}}};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_parameter_headers(
+                   sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                   sourcemeta::core::JSON{0}, descriptors, arguments, views)
                    .has_value());
 }
 
 TEST(parameter_integer_accepts_minimum) {
-  using namespace sourcemeta::core;
-  constexpr auto VERSION{MCPProtocolVersion::V_2026_07_28};
-  const std::array<MCPHeaderParameter, 1> descriptors{
-      {{.name = "Value", .path = {"value"}, .type = JSON::Type::Integer}}};
+  const std::array<sourcemeta::core::MCPHeaderParameter, 1> descriptors{
+      {{.name = "Value",
+        .path = {"value"},
+        .type = sourcemeta::core::JSON::Type::Integer}}};
 
   const auto *const text{"-9007199254740991.0"};
 
-  auto arguments{JSON::make_object()};
-  arguments.assign("value", parse_json(text));
-  const auto headers{mcp_make_parameter_headers(descriptors, arguments)};
+  auto arguments{sourcemeta::core::JSON::make_object()};
+  arguments.assign("value", sourcemeta::core::parse_json(text));
+  const auto headers{
+      sourcemeta::core::mcp_make_parameter_headers(descriptors, arguments)};
   EXPECT_EQ(headers.size(), 1);
   EXPECT_EQ(headers.front().second,
             std::to_string(arguments.at("value").as_integer()));
-  const std::array<std::pair<JSON::StringView, JSON::StringView>, 1> views{
-      {{headers.front().first, headers.front().second}}};
-  EXPECT_FALSE(mcp_validate_parameter_headers(VERSION, JSON{0}, descriptors,
-                                              arguments, views)
+  const std::array<std::pair<sourcemeta::core::JSON::StringView,
+                             sourcemeta::core::JSON::StringView>,
+                   1>
+      views{{{headers.front().first, headers.front().second}}};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_parameter_headers(
+                   sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                   sourcemeta::core::JSON{0}, descriptors, arguments, views)
                    .has_value());
 }
 
 TEST(parameter_integer_accepts_zero) {
-  using namespace sourcemeta::core;
-  constexpr auto VERSION{MCPProtocolVersion::V_2026_07_28};
-  const std::array<MCPHeaderParameter, 1> descriptors{
-      {{.name = "Value", .path = {"value"}, .type = JSON::Type::Integer}}};
+  const std::array<sourcemeta::core::MCPHeaderParameter, 1> descriptors{
+      {{.name = "Value",
+        .path = {"value"},
+        .type = sourcemeta::core::JSON::Type::Integer}}};
 
   const auto *const text{"0.0"};
 
-  auto arguments{JSON::make_object()};
-  arguments.assign("value", parse_json(text));
-  const auto headers{mcp_make_parameter_headers(descriptors, arguments)};
+  auto arguments{sourcemeta::core::JSON::make_object()};
+  arguments.assign("value", sourcemeta::core::parse_json(text));
+  const auto headers{
+      sourcemeta::core::mcp_make_parameter_headers(descriptors, arguments)};
   EXPECT_EQ(headers.size(), 1);
   EXPECT_EQ(headers.front().second,
             std::to_string(arguments.at("value").as_integer()));
-  const std::array<std::pair<JSON::StringView, JSON::StringView>, 1> views{
-      {{headers.front().first, headers.front().second}}};
-  EXPECT_FALSE(mcp_validate_parameter_headers(VERSION, JSON{0}, descriptors,
-                                              arguments, views)
+  const std::array<std::pair<sourcemeta::core::JSON::StringView,
+                             sourcemeta::core::JSON::StringView>,
+                   1>
+      views{{{headers.front().first, headers.front().second}}};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_parameter_headers(
+                   sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                   sourcemeta::core::JSON{0}, descriptors, arguments, views)
                    .has_value());
 }
 
 TEST(parameter_integer_rejects_fraction) {
-  using namespace sourcemeta::core;
-  constexpr auto VERSION{MCPProtocolVersion::V_2026_07_28};
-  const std::array<MCPHeaderParameter, 1> descriptors{
-      {{.name = "Value", .path = {"value"}, .type = JSON::Type::Integer}}};
+  const std::array<sourcemeta::core::MCPHeaderParameter, 1> descriptors{
+      {{.name = "Value",
+        .path = {"value"},
+        .type = sourcemeta::core::JSON::Type::Integer}}};
 
   const auto *const text{"42.00000000000000000001"};
 
-  auto arguments{JSON::make_object()};
-  arguments.assign("value", parse_json(text));
-  try {
-    mcp_make_parameter_headers(descriptors, arguments);
-    FAIL();
-  } catch (const std::invalid_argument &) {
-    // Invalid input is expected to be rejected
-  }
-  EXPECT_EQ(mcp_validate_parameter_headers(VERSION, JSON{0}, descriptors,
-                                           arguments, {})
-                ->at("error")
-                .at("code"),
-            JSON{-32602});
+  auto arguments{sourcemeta::core::JSON::make_object()};
+  arguments.assign("value", sourcemeta::core::parse_json(text));
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_parameter_headers(descriptors, arguments),
+      "Invalid mirrored argument type or unsafe integer");
+  EXPECT_EQ(sourcemeta::core::mcp_validate_parameter_headers(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::JSON{0}, descriptors, arguments, {})
+                .value(),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "error": { "code": -32602, "message": "Invalid mirrored argument" }
+  })JSON"));
 }
 
 TEST(parameter_integer_rejects_maximum_fraction) {
-  using namespace sourcemeta::core;
-  constexpr auto VERSION{MCPProtocolVersion::V_2026_07_28};
-  const std::array<MCPHeaderParameter, 1> descriptors{
-      {{.name = "Value", .path = {"value"}, .type = JSON::Type::Integer}}};
+  const std::array<sourcemeta::core::MCPHeaderParameter, 1> descriptors{
+      {{.name = "Value",
+        .path = {"value"},
+        .type = sourcemeta::core::JSON::Type::Integer}}};
 
   const auto *const text{"9007199254740991.1"};
 
-  auto arguments{JSON::make_object()};
-  arguments.assign("value", parse_json(text));
-  try {
-    mcp_make_parameter_headers(descriptors, arguments);
-    FAIL();
-  } catch (const std::invalid_argument &) {
-    // Invalid input is expected to be rejected
-  }
-  EXPECT_EQ(mcp_validate_parameter_headers(VERSION, JSON{0}, descriptors,
-                                           arguments, {})
-                ->at("error")
-                .at("code"),
-            JSON{-32602});
+  auto arguments{sourcemeta::core::JSON::make_object()};
+  arguments.assign("value", sourcemeta::core::parse_json(text));
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_parameter_headers(descriptors, arguments),
+      "Invalid mirrored argument type or unsafe integer");
+  EXPECT_EQ(sourcemeta::core::mcp_validate_parameter_headers(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::JSON{0}, descriptors, arguments, {})
+                .value(),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "error": { "code": -32602, "message": "Invalid mirrored argument" }
+  })JSON"));
 }
 
 TEST(parameter_integer_rejects_minimum_fraction) {
-  using namespace sourcemeta::core;
-  constexpr auto VERSION{MCPProtocolVersion::V_2026_07_28};
-  const std::array<MCPHeaderParameter, 1> descriptors{
-      {{.name = "Value", .path = {"value"}, .type = JSON::Type::Integer}}};
+  const std::array<sourcemeta::core::MCPHeaderParameter, 1> descriptors{
+      {{.name = "Value",
+        .path = {"value"},
+        .type = sourcemeta::core::JSON::Type::Integer}}};
 
   const auto *const text{"-9007199254740991.1"};
 
-  auto arguments{JSON::make_object()};
-  arguments.assign("value", parse_json(text));
-  try {
-    mcp_make_parameter_headers(descriptors, arguments);
-    FAIL();
-  } catch (const std::invalid_argument &) {
-    // Invalid input is expected to be rejected
-  }
-  EXPECT_EQ(mcp_validate_parameter_headers(VERSION, JSON{0}, descriptors,
-                                           arguments, {})
-                ->at("error")
-                .at("code"),
-            JSON{-32602});
+  auto arguments{sourcemeta::core::JSON::make_object()};
+  arguments.assign("value", sourcemeta::core::parse_json(text));
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_parameter_headers(descriptors, arguments),
+      "Invalid mirrored argument type or unsafe integer");
+  EXPECT_EQ(sourcemeta::core::mcp_validate_parameter_headers(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::JSON{0}, descriptors, arguments, {})
+                .value(),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "error": { "code": -32602, "message": "Invalid mirrored argument" }
+  })JSON"));
 }
 
 TEST(parameter_integer_rejects_above_maximum) {
-  using namespace sourcemeta::core;
-  constexpr auto VERSION{MCPProtocolVersion::V_2026_07_28};
-  const std::array<MCPHeaderParameter, 1> descriptors{
-      {{.name = "Value", .path = {"value"}, .type = JSON::Type::Integer}}};
+  const std::array<sourcemeta::core::MCPHeaderParameter, 1> descriptors{
+      {{.name = "Value",
+        .path = {"value"},
+        .type = sourcemeta::core::JSON::Type::Integer}}};
 
   const auto *const text{"9007199254740992"};
 
-  auto arguments{JSON::make_object()};
-  arguments.assign("value", parse_json(text));
-  try {
-    mcp_make_parameter_headers(descriptors, arguments);
-    FAIL();
-  } catch (const std::invalid_argument &) {
-    // Invalid input is expected to be rejected
-  }
-  EXPECT_EQ(mcp_validate_parameter_headers(VERSION, JSON{0}, descriptors,
-                                           arguments, {})
-                ->at("error")
-                .at("code"),
-            JSON{-32602});
+  auto arguments{sourcemeta::core::JSON::make_object()};
+  arguments.assign("value", sourcemeta::core::parse_json(text));
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_parameter_headers(descriptors, arguments),
+      "Invalid mirrored argument type or unsafe integer");
+  EXPECT_EQ(sourcemeta::core::mcp_validate_parameter_headers(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::JSON{0}, descriptors, arguments, {})
+                .value(),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "error": { "code": -32602, "message": "Invalid mirrored argument" }
+  })JSON"));
 }
 
 TEST(parameter_integer_rejects_below_minimum) {
-  using namespace sourcemeta::core;
-  constexpr auto VERSION{MCPProtocolVersion::V_2026_07_28};
-  const std::array<MCPHeaderParameter, 1> descriptors{
-      {{.name = "Value", .path = {"value"}, .type = JSON::Type::Integer}}};
+  const std::array<sourcemeta::core::MCPHeaderParameter, 1> descriptors{
+      {{.name = "Value",
+        .path = {"value"},
+        .type = sourcemeta::core::JSON::Type::Integer}}};
 
   const auto *const text{"-9007199254740992"};
 
-  auto arguments{JSON::make_object()};
-  arguments.assign("value", parse_json(text));
-  try {
-    mcp_make_parameter_headers(descriptors, arguments);
-    FAIL();
-  } catch (const std::invalid_argument &) {
-    // Invalid input is expected to be rejected
-  }
-  EXPECT_EQ(mcp_validate_parameter_headers(VERSION, JSON{0}, descriptors,
-                                           arguments, {})
-                ->at("error")
-                .at("code"),
-            JSON{-32602});
+  auto arguments{sourcemeta::core::JSON::make_object()};
+  arguments.assign("value", sourcemeta::core::parse_json(text));
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_parameter_headers(descriptors, arguments),
+      "Invalid mirrored argument type or unsafe integer");
+  EXPECT_EQ(sourcemeta::core::mcp_validate_parameter_headers(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::JSON{0}, descriptors, arguments, {})
+                .value(),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "error": { "code": -32602, "message": "Invalid mirrored argument" }
+  })JSON"));
 }
 
 TEST(parameter_integer_rejects_huge_exponent) {
-  using namespace sourcemeta::core;
-  constexpr auto VERSION{MCPProtocolVersion::V_2026_07_28};
-  const std::array<MCPHeaderParameter, 1> descriptors{
-      {{.name = "Value", .path = {"value"}, .type = JSON::Type::Integer}}};
+  const std::array<sourcemeta::core::MCPHeaderParameter, 1> descriptors{
+      {{.name = "Value",
+        .path = {"value"},
+        .type = sourcemeta::core::JSON::Type::Integer}}};
 
   const auto *const text{"1e100"};
 
-  auto arguments{JSON::make_object()};
-  arguments.assign("value", parse_json(text));
-  try {
-    mcp_make_parameter_headers(descriptors, arguments);
-    FAIL();
-  } catch (const std::invalid_argument &) {
-    // Invalid input is expected to be rejected
-  }
-  EXPECT_EQ(mcp_validate_parameter_headers(VERSION, JSON{0}, descriptors,
-                                           arguments, {})
-                ->at("error")
-                .at("code"),
-            JSON{-32602});
+  auto arguments{sourcemeta::core::JSON::make_object()};
+  arguments.assign("value", sourcemeta::core::parse_json(text));
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_parameter_headers(descriptors, arguments),
+      "Invalid mirrored argument type or unsafe integer");
+  EXPECT_EQ(sourcemeta::core::mcp_validate_parameter_headers(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::JSON{0}, descriptors, arguments, {})
+                .value(),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "error": { "code": -32602, "message": "Invalid mirrored argument" }
+  })JSON"));
 }
 
 TEST(parameter_integer_rejects_tiny_exponent) {
-  using namespace sourcemeta::core;
-  constexpr auto VERSION{MCPProtocolVersion::V_2026_07_28};
-  const std::array<MCPHeaderParameter, 1> descriptors{
-      {{.name = "Value", .path = {"value"}, .type = JSON::Type::Integer}}};
+  const std::array<sourcemeta::core::MCPHeaderParameter, 1> descriptors{
+      {{.name = "Value",
+        .path = {"value"},
+        .type = sourcemeta::core::JSON::Type::Integer}}};
 
   const auto *const text{"1e-100"};
 
-  auto arguments{JSON::make_object()};
-  arguments.assign("value", parse_json(text));
-  try {
-    mcp_make_parameter_headers(descriptors, arguments);
-    FAIL();
-  } catch (const std::invalid_argument &) {
-    // Invalid input is expected to be rejected
-  }
-  EXPECT_EQ(mcp_validate_parameter_headers(VERSION, JSON{0}, descriptors,
-                                           arguments, {})
-                ->at("error")
-                .at("code"),
-            JSON{-32602});
+  auto arguments{sourcemeta::core::JSON::make_object()};
+  arguments.assign("value", sourcemeta::core::parse_json(text));
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_parameter_headers(descriptors, arguments),
+      "Invalid mirrored argument type or unsafe integer");
+  EXPECT_EQ(sourcemeta::core::mcp_validate_parameter_headers(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::JSON{0}, descriptors, arguments, {})
+                .value(),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "error": { "code": -32602, "message": "Invalid mirrored argument" }
+  })JSON"));
 }
 
-TEST(legacy_parameter_structure_and_borrowed_name) {
-  using namespace sourcemeta::core;
-  constexpr std::array<JSON::StringView, 3> SUPPORTED{
+TEST(legacy_headers_ignore_the_method_and_name_on_2025_03_26) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 3> SUPPORTED{
       {"2025-03-26", "2025-06-18", "2025-11-25"}};
-  for (const auto wire : SUPPORTED) {
-    const auto version{*mcp_resolve_protocol_version(wire)};
-    auto envelope{
-        parse_json(R"({"jsonrpc":"2.0","id":0,"method":"tools/list"})")};
-    EXPECT_FALSE(mcp_validate_request_headers(version, std::nullopt, "ignored",
-                                              "ignored", envelope, SUPPORTED)
-                     .has_value());
-    for (const auto *const text :
-         {"false", "[]", "null", R"({"_meta":true})"}) {
-      envelope.assign("params", parse_json(text));
-      EXPECT_EQ(mcp_validate_request_headers(version, std::nullopt,
-                                             std::nullopt, std::nullopt,
-                                             envelope, SUPPORTED)
-                    ->at("error")
-                    .at("code"),
-                JSON{-32602});
-    }
-  }
-  const auto named{
-      parse_json(R"({"method":"tools/call","params":{"name":"borrowed"}})")};
-  const auto name{mcp_request_name_from_body(named)};
-  EXPECT_EQ(name->data(), named.at("params").at("name").to_string().data());
+  const auto envelope{sourcemeta::core::parse_json(
+      R"JSON({ "jsonrpc": "2.0", "id": 0, "method": "tools/list" })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_headers(
+                   sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+                   std::nullopt, "ignored", "ignored", envelope, SUPPORTED)
+                   .has_value());
+}
+
+TEST(legacy_headers_ignore_the_method_and_name_on_2025_06_18) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 3> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25"}};
+  const auto envelope{sourcemeta::core::parse_json(
+      R"JSON({ "jsonrpc": "2.0", "id": 0, "method": "tools/list" })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_headers(
+                   sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+                   std::nullopt, "ignored", "ignored", envelope, SUPPORTED)
+                   .has_value());
+}
+
+TEST(legacy_headers_ignore_the_method_and_name_on_2025_11_25) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 3> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25"}};
+  const auto envelope{sourcemeta::core::parse_json(
+      R"JSON({ "jsonrpc": "2.0", "id": 0, "method": "tools/list" })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_headers(
+                   sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+                   std::nullopt, "ignored", "ignored", envelope, SUPPORTED)
+                   .has_value());
+}
+
+TEST(legacy_headers_reject_boolean_parameters) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 3> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25"}};
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "method": "tools/list",
+    "params": false
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_validate_request_headers(
+                sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+                std::nullopt, std::nullopt, std::nullopt, envelope, SUPPORTED)
+                .value(),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "error": { "code": -32602, "message": "Invalid params" }
+  })JSON"));
+}
+
+TEST(legacy_headers_reject_array_parameters) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 3> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25"}};
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "method": "tools/list",
+    "params": []
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_validate_request_headers(
+                sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+                std::nullopt, std::nullopt, std::nullopt, envelope, SUPPORTED)
+                .value(),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "error": { "code": -32602, "message": "Invalid params" }
+  })JSON"));
+}
+
+TEST(legacy_headers_reject_null_parameters) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 3> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25"}};
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "method": "tools/list",
+    "params": null
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_validate_request_headers(
+                sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+                std::nullopt, std::nullopt, std::nullopt, envelope, SUPPORTED)
+                .value(),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "error": { "code": -32602, "message": "Invalid params" }
+  })JSON"));
+}
+
+TEST(legacy_headers_reject_non_object_metadata) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 3> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25"}};
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "method": "tools/list",
+    "params": { "_meta": true }
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_validate_request_headers(
+                sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+                std::nullopt, std::nullopt, std::nullopt, envelope, SUPPORTED)
+                .value(),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "error": { "code": -32602, "message": "Invalid params" }
+  })JSON"));
+}
+
+TEST(request_name_from_body_of_a_tool_call) {
+  const auto envelope{sourcemeta::core::parse_json(
+      R"JSON({
+        "method": "tools/call",
+        "params": { "name": "weather" }
+      })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_request_name_from_body(envelope).value(),
+            "weather");
+}
+
+TEST(request_name_from_body_of_a_prompt_get) {
+  const auto envelope{sourcemeta::core::parse_json(
+      R"JSON({
+        "method": "prompts/get",
+        "params": { "name": "review" }
+      })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_request_name_from_body(envelope).value(),
+            "review");
+}
+
+// A resource is named by its URI rather than by a name
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#standard-request-headers
+TEST(request_name_from_body_of_a_resource_read) {
+  const auto envelope{sourcemeta::core::parse_json(
+      R"JSON({
+        "method": "resources/read",
+        "params": { "uri": "file:///a" }
+      })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_request_name_from_body(envelope).value(),
+            "file:///a");
+}
+
+TEST(request_name_from_body_of_a_resource_read_ignores_a_name) {
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "method": "resources/read",
+    "params": { "uri": "file:///a", "name": "ignored" }
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_request_name_from_body(envelope).value(),
+            "file:///a");
+}
+
+TEST(request_name_from_body_without_parameters) {
+  const auto envelope{
+      sourcemeta::core::parse_json(R"JSON({ "method": "tools/call" })JSON")};
+  EXPECT_FALSE(
+      sourcemeta::core::mcp_request_name_from_body(envelope).has_value());
+}
+
+TEST(request_name_from_body_without_a_name) {
+  const auto envelope{sourcemeta::core::parse_json(
+      R"JSON({ "method": "tools/call", "params": {} })JSON")};
+  EXPECT_FALSE(
+      sourcemeta::core::mcp_request_name_from_body(envelope).has_value());
+}
+
+TEST(request_name_from_body_with_a_non_string_name) {
+  const auto envelope{sourcemeta::core::parse_json(
+      R"JSON({ "method": "tools/call", "params": { "name": 1 } })JSON")};
+  EXPECT_FALSE(
+      sourcemeta::core::mcp_request_name_from_body(envelope).has_value());
+}
+
+TEST(request_name_from_body_of_a_non_object) {
+  EXPECT_FALSE(sourcemeta::core::mcp_request_name_from_body(
+                   sourcemeta::core::parse_json(R"JSON([])JSON"))
+                   .has_value());
 }
 
 TEST(metadata_borrows_request_values) {
-  auto value{parameters()};
-  const auto parsed{mcp_validate_request_parameters(value)};
-  EXPECT_EQ(parsed.first, MCPRequestMetaStatus::Valid);
+  auto value{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    }
+  })JSON")};
+  const auto parsed{sourcemeta::core::mcp_validate_request_parameters(value)};
+  EXPECT_EQ(parsed.first, sourcemeta::core::MCPRequestMetaStatus::Valid);
   EXPECT_EQ(&parsed.second->meta_object, &value.at("_meta"));
   EXPECT_EQ(
       &parsed.second->client_capabilities,
@@ -936,612 +1572,2068 @@ TEST(metadata_borrows_request_values) {
 }
 
 TEST(request_parameters_rejects_null) {
-  EXPECT_FALSE(
-      mcp_validate_request_parameters(JSON{nullptr}).second.has_value());
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_parameters(
+                   sourcemeta::core::JSON{nullptr})
+                   .second.has_value());
 }
 
 TEST(request_meta_rejects_null) {
-  EXPECT_FALSE(mcp_validate_request_meta(JSON{nullptr}).second.has_value());
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_meta(
+                   sourcemeta::core::JSON{nullptr})
+                   .second.has_value());
 }
 
 TEST(request_parameters_rejects_boolean) {
-  EXPECT_FALSE(mcp_validate_request_parameters(JSON{true}).second.has_value());
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_parameters(
+                   sourcemeta::core::JSON{true})
+                   .second.has_value());
 }
 
 TEST(request_meta_rejects_boolean) {
-  EXPECT_FALSE(mcp_validate_request_meta(JSON{true}).second.has_value());
+  EXPECT_FALSE(
+      sourcemeta::core::mcp_validate_request_meta(sourcemeta::core::JSON{true})
+          .second.has_value());
 }
 
 TEST(request_parameters_rejects_array) {
-  EXPECT_FALSE(
-      mcp_validate_request_parameters(JSON::make_array()).second.has_value());
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_parameters(
+                   sourcemeta::core::JSON::make_array())
+                   .second.has_value());
 }
 
 TEST(request_meta_rejects_array) {
-  EXPECT_FALSE(
-      mcp_validate_request_meta(JSON::make_array()).second.has_value());
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_meta(
+                   sourcemeta::core::JSON::make_array())
+                   .second.has_value());
 }
 
 TEST(request_metadata_rejects_roots_boolean) {
-  const auto capabilities{parse_json(R"({"roots":true})")};
-  auto value{parameters()};
+  const auto capabilities{
+      sourcemeta::core::parse_json(R"JSON({ "roots": true })JSON")};
+  auto value{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    }
+  })JSON")};
   value.at("_meta").assign("io.modelcontextprotocol/clientCapabilities",
                            capabilities);
-  EXPECT_FALSE(mcp_validate_request_parameters(value).second.has_value());
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_parameters(value)
+                   .second.has_value());
 }
 
 TEST(client_capabilities_rejects_roots_boolean) {
-  const auto capabilities{parse_json(R"({"roots":true})")};
-  try {
-    mcp_parse_client_capabilities(CURRENT, capabilities);
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const auto capabilities{
+      sourcemeta::core::parse_json(R"JSON({ "roots": true })JSON")};
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_parse_client_capabilities(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, capabilities),
+      "Invalid client capabilities");
 }
 
 TEST(request_metadata_rejects_sampling_tools_boolean) {
-  const auto capabilities{parse_json(R"({"sampling":{"tools":false}})")};
-  auto value{parameters()};
+  const auto capabilities{sourcemeta::core::parse_json(
+      R"JSON({ "sampling": { "tools": false } })JSON")};
+  auto value{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    }
+  })JSON")};
   value.at("_meta").assign("io.modelcontextprotocol/clientCapabilities",
                            capabilities);
-  EXPECT_FALSE(mcp_validate_request_parameters(value).second.has_value());
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_parameters(value)
+                   .second.has_value());
 }
 
 TEST(client_capabilities_rejects_sampling_tools_boolean) {
-  const auto capabilities{parse_json(R"({"sampling":{"tools":false}})")};
-  try {
-    mcp_parse_client_capabilities(CURRENT, capabilities);
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const auto capabilities{sourcemeta::core::parse_json(
+      R"JSON({ "sampling": { "tools": false } })JSON")};
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_parse_client_capabilities(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, capabilities),
+      "Invalid client capabilities");
 }
 
 TEST(request_metadata_rejects_elicitation_url_boolean) {
-  const auto capabilities{parse_json(R"({"elicitation":{"url":true}})")};
-  auto value{parameters()};
+  const auto capabilities{sourcemeta::core::parse_json(
+      R"JSON({ "elicitation": { "url": true } })JSON")};
+  auto value{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    }
+  })JSON")};
   value.at("_meta").assign("io.modelcontextprotocol/clientCapabilities",
                            capabilities);
-  EXPECT_FALSE(mcp_validate_request_parameters(value).second.has_value());
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_parameters(value)
+                   .second.has_value());
 }
 
 TEST(client_capabilities_rejects_elicitation_url_boolean) {
-  const auto capabilities{parse_json(R"({"elicitation":{"url":true}})")};
-  try {
-    mcp_parse_client_capabilities(CURRENT, capabilities);
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const auto capabilities{sourcemeta::core::parse_json(
+      R"JSON({ "elicitation": { "url": true } })JSON")};
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_parse_client_capabilities(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, capabilities),
+      "Invalid client capabilities");
 }
 
 TEST(request_metadata_rejects_unqualified_extension) {
-  const auto capabilities{parse_json(R"({"extensions":{"bad":{}}})")};
-  auto value{parameters()};
+  const auto capabilities{sourcemeta::core::parse_json(
+      R"JSON({ "extensions": { "bad": {} } })JSON")};
+  auto value{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    }
+  })JSON")};
   value.at("_meta").assign("io.modelcontextprotocol/clientCapabilities",
                            capabilities);
-  EXPECT_FALSE(mcp_validate_request_parameters(value).second.has_value());
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_parameters(value)
+                   .second.has_value());
 }
 
 TEST(client_capabilities_rejects_unqualified_extension) {
-  const auto capabilities{parse_json(R"({"extensions":{"bad":{}}})")};
-  try {
-    mcp_parse_client_capabilities(CURRENT, capabilities);
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const auto capabilities{sourcemeta::core::parse_json(
+      R"JSON({ "extensions": { "bad": {} } })JSON")};
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_parse_client_capabilities(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, capabilities),
+      "Invalid client capabilities");
 }
 
 TEST(request_metadata_rejects_experimental_boolean) {
-  const auto capabilities{
-      parse_json(R"({"experimental":{"extension":false}})")};
-  auto value{parameters()};
+  const auto capabilities{sourcemeta::core::parse_json(
+      R"JSON({ "experimental": { "extension": false } })JSON")};
+  auto value{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    }
+  })JSON")};
   value.at("_meta").assign("io.modelcontextprotocol/clientCapabilities",
                            capabilities);
-  EXPECT_FALSE(mcp_validate_request_parameters(value).second.has_value());
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_parameters(value)
+                   .second.has_value());
 }
 
 TEST(client_capabilities_rejects_experimental_boolean) {
-  const auto capabilities{
-      parse_json(R"({"experimental":{"extension":false}})")};
-  try {
-    mcp_parse_client_capabilities(CURRENT, capabilities);
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const auto capabilities{sourcemeta::core::parse_json(
+      R"JSON({ "experimental": { "extension": false } })JSON")};
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_parse_client_capabilities(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, capabilities),
+      "Invalid client capabilities");
 }
 
 TEST(request_client_info_rejects_website_url_boolean) {
-  auto value{parameters()};
-  value.at("_meta").assign(
-      "io.modelcontextprotocol/clientInfo",
-      parse_json(R"({"name":"client","version":"1","websiteUrl":false})"));
-  EXPECT_FALSE(mcp_validate_request_parameters(value).second.has_value());
+  auto value{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    }
+  })JSON")};
+  value.at("_meta").assign("io.modelcontextprotocol/clientInfo",
+                           sourcemeta::core::parse_json(
+                               R"JSON({
+            "name": "client",
+            "version": "1",
+            "websiteUrl": false
+          })JSON"));
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_parameters(value)
+                   .second.has_value());
 }
 
 TEST(request_client_info_rejects_icon_src_number) {
-  auto value{parameters()};
-  value.at("_meta").assign(
-      "io.modelcontextprotocol/clientInfo",
-      parse_json(R"({"name":"client","version":"1","icons":[{"src":5}]})"));
-  EXPECT_FALSE(mcp_validate_request_parameters(value).second.has_value());
+  auto value{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    }
+  })JSON")};
+  value.at("_meta").assign("io.modelcontextprotocol/clientInfo",
+                           sourcemeta::core::parse_json(
+                               R"JSON({
+            "name": "client",
+            "version": "1",
+            "icons": [ { "src": 5 } ]
+          })JSON"));
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_parameters(value)
+                   .second.has_value());
 }
 
 TEST(request_metadata_rejects_fractional_progress_token) {
-  auto value{parameters()};
-  value.at("_meta").assign("progressToken", JSON{1.5});
-  EXPECT_EQ(mcp_validate_request_parameters(value).first,
-            MCPRequestMetaStatus::InvalidProgressToken);
+  auto value{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    }
+  })JSON")};
+  value.at("_meta").assign("progressToken", sourcemeta::core::JSON{1.5});
+  EXPECT_EQ(sourcemeta::core::mcp_validate_request_parameters(value).first,
+            sourcemeta::core::MCPRequestMetaStatus::InvalidProgressToken);
 }
 
 TEST(request_metadata_rejects_unknown_log_level) {
-  auto value{parameters()};
-  value.at("_meta").assign("io.modelcontextprotocol/logLevel", JSON{"verbose"});
-  EXPECT_EQ(mcp_validate_request_parameters(value).first,
-            MCPRequestMetaStatus::InvalidLogLevel);
+  auto value{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    }
+  })JSON")};
+  value.at("_meta").assign("io.modelcontextprotocol/logLevel",
+                           sourcemeta::core::JSON{"verbose"});
+  EXPECT_EQ(sourcemeta::core::mcp_validate_request_parameters(value).first,
+            sourcemeta::core::MCPRequestMetaStatus::InvalidLogLevel);
 }
 
 TEST(request_metadata_rejects_boolean_traceparent) {
-  auto value{parameters()};
-  value.at("_meta").assign("traceparent", JSON{false});
-  EXPECT_FALSE(mcp_validate_request_parameters(value).second.has_value());
+  auto value{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    }
+  })JSON")};
+  value.at("_meta").assign("traceparent", sourcemeta::core::JSON{false});
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_parameters(value)
+                   .second.has_value());
 }
 
 TEST(request_metadata_rejects_boolean_tracestate) {
-  auto value{parameters()};
-  value.at("_meta").assign("tracestate", JSON{false});
-  EXPECT_FALSE(mcp_validate_request_parameters(value).second.has_value());
+  auto value{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    }
+  })JSON")};
+  value.at("_meta").assign("tracestate", sourcemeta::core::JSON{false});
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_parameters(value)
+                   .second.has_value());
 }
 
 TEST(request_metadata_rejects_boolean_baggage) {
-  auto value{parameters()};
-  value.at("_meta").assign("baggage", JSON{false});
-  EXPECT_FALSE(mcp_validate_request_parameters(value).second.has_value());
+  auto value{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    }
+  })JSON")};
+  value.at("_meta").assign("baggage", sourcemeta::core::JSON{false});
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_parameters(value)
+                   .second.has_value());
 }
 
 TEST(traceparent_rejects_zero_trace) {
-  auto value{parameters()};
+  auto value{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    }
+  })JSON")};
   value.at("_meta").assign(
       "traceparent",
-      JSON{"00-00000000000000000000000000000000-0123456789abcdef-01"});
-  EXPECT_FALSE(mcp_validate_request_parameters(value).second.has_value());
+      sourcemeta::core::JSON{
+          "00-00000000000000000000000000000000-0123456789abcdef-01"});
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_parameters(value)
+                   .second.has_value());
 }
 
 TEST(traceparent_rejects_zero_parent) {
-  auto value{parameters()};
+  auto value{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    }
+  })JSON")};
   value.at("_meta").assign(
       "traceparent",
-      JSON{"00-0123456789abcdef0123456789abcdef-0000000000000000-01"});
-  EXPECT_FALSE(mcp_validate_request_parameters(value).second.has_value());
+      sourcemeta::core::JSON{
+          "00-0123456789abcdef0123456789abcdef-0000000000000000-01"});
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_parameters(value)
+                   .second.has_value());
 }
 
 TEST(traceparent_rejects_reserved_version) {
-  auto value{parameters()};
+  auto value{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    }
+  })JSON")};
   value.at("_meta").assign(
       "traceparent",
-      JSON{"ff-0123456789abcdef0123456789abcdef-0123456789abcdef-01"});
-  EXPECT_FALSE(mcp_validate_request_parameters(value).second.has_value());
+      sourcemeta::core::JSON{
+          "ff-0123456789abcdef0123456789abcdef-0123456789abcdef-01"});
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_parameters(value)
+                   .second.has_value());
 }
 
 TEST(traceparent_rejects_uppercase_hex) {
-  auto value{parameters()};
+  auto value{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    }
+  })JSON")};
   value.at("_meta").assign(
       "traceparent",
-      JSON{"00-0123456789ABCDEF0123456789abcdef-0123456789abcdef-01"});
-  EXPECT_FALSE(mcp_validate_request_parameters(value).second.has_value());
+      sourcemeta::core::JSON{
+          "00-0123456789ABCDEF0123456789abcdef-0123456789abcdef-01"});
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_parameters(value)
+                   .second.has_value());
 }
 
 TEST(traceparent_rejects_extra_fields) {
-  auto value{parameters()};
+  auto value{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    }
+  })JSON")};
   value.at("_meta").assign(
       "traceparent",
-      JSON{"00-0123456789abcdef0123456789abcdef-0123456789abcdef-01-extra"});
-  EXPECT_FALSE(mcp_validate_request_parameters(value).second.has_value());
+      sourcemeta::core::JSON{
+          "00-0123456789abcdef0123456789abcdef-0123456789abcdef-01-extra"});
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_parameters(value)
+                   .second.has_value());
 }
 
 TEST(request_metadata_accepts_tracing_whitespace_and_escapes) {
-  auto value{parameters()};
+  auto value{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    }
+  })JSON")};
   value.at("_meta").assign(
       "traceparent",
-      JSON{"00-0123456789abcdef0123456789abcdef-0123456789abcdef-01"});
-  value.at("_meta").assign("tracestate",
-                           JSON{"\tvendor=state,1tenant@system=value\t"});
+      sourcemeta::core::JSON{
+          "00-0123456789abcdef0123456789abcdef-0123456789abcdef-01"});
+  value.at("_meta").assign(
+      "tracestate",
+      sourcemeta::core::JSON{"\tvendor=state,1tenant@system=value\t"});
   value.at("_meta").assign(
       "baggage",
-      JSON{"\tuser=alice;property=value,region=us%20east,path=%2f%2F\t"});
-  EXPECT_TRUE(mcp_validate_request_parameters(value).second.has_value());
+      sourcemeta::core::JSON{
+          "\tuser=alice;property=value,region=us%20east,path=%2f%2F\t"});
+  EXPECT_TRUE(sourcemeta::core::mcp_validate_request_parameters(value)
+                  .second.has_value());
 }
 
 TEST(tracestate_rejects_duplicate_key) {
-  auto value{parameters()};
+  auto value{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    }
+  })JSON")};
   value.at("_meta").assign(
       "traceparent",
-      JSON{"00-0123456789abcdef0123456789abcdef-0123456789abcdef-01"});
-  value.at("_meta").assign("tracestate",
-                           JSON{"\tvendor=state,1tenant@system=value\t"});
+      sourcemeta::core::JSON{
+          "00-0123456789abcdef0123456789abcdef-0123456789abcdef-01"});
+  value.at("_meta").assign(
+      "tracestate",
+      sourcemeta::core::JSON{"\tvendor=state,1tenant@system=value\t"});
   value.at("_meta").assign(
       "baggage",
-      JSON{"\tuser=alice;property=value,region=us%20east,path=%2f%2F\t"});
-  value.at("_meta").assign("tracestate", JSON{"a=b,a=c"});
-  EXPECT_FALSE(mcp_validate_request_parameters(value).second.has_value());
+      sourcemeta::core::JSON{
+          "\tuser=alice;property=value,region=us%20east,path=%2f%2F\t"});
+  value.at("_meta").assign("tracestate", sourcemeta::core::JSON{"a=b,a=c"});
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_parameters(value)
+                   .second.has_value());
 }
 
 TEST(tracestate_rejects_uppercase_key) {
-  auto value{parameters()};
+  auto value{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    }
+  })JSON")};
   value.at("_meta").assign(
       "traceparent",
-      JSON{"00-0123456789abcdef0123456789abcdef-0123456789abcdef-01"});
-  value.at("_meta").assign("tracestate",
-                           JSON{"\tvendor=state,1tenant@system=value\t"});
+      sourcemeta::core::JSON{
+          "00-0123456789abcdef0123456789abcdef-0123456789abcdef-01"});
+  value.at("_meta").assign(
+      "tracestate",
+      sourcemeta::core::JSON{"\tvendor=state,1tenant@system=value\t"});
   value.at("_meta").assign(
       "baggage",
-      JSON{"\tuser=alice;property=value,region=us%20east,path=%2f%2F\t"});
-  value.at("_meta").assign("tracestate", JSON{"UPPER=value"});
-  EXPECT_FALSE(mcp_validate_request_parameters(value).second.has_value());
+      sourcemeta::core::JSON{
+          "\tuser=alice;property=value,region=us%20east,path=%2f%2F\t"});
+  value.at("_meta").assign("tracestate", sourcemeta::core::JSON{"UPPER=value"});
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_parameters(value)
+                   .second.has_value());
 }
 
 TEST(tracestate_rejects_extra_equals) {
-  auto value{parameters()};
+  auto value{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    }
+  })JSON")};
   value.at("_meta").assign(
       "traceparent",
-      JSON{"00-0123456789abcdef0123456789abcdef-0123456789abcdef-01"});
-  value.at("_meta").assign("tracestate",
-                           JSON{"\tvendor=state,1tenant@system=value\t"});
+      sourcemeta::core::JSON{
+          "00-0123456789abcdef0123456789abcdef-0123456789abcdef-01"});
+  value.at("_meta").assign(
+      "tracestate",
+      sourcemeta::core::JSON{"\tvendor=state,1tenant@system=value\t"});
   value.at("_meta").assign(
       "baggage",
-      JSON{"\tuser=alice;property=value,region=us%20east,path=%2f%2F\t"});
-  value.at("_meta").assign("tracestate", JSON{"a=value=wrong"});
-  EXPECT_FALSE(mcp_validate_request_parameters(value).second.has_value());
+      sourcemeta::core::JSON{
+          "\tuser=alice;property=value,region=us%20east,path=%2f%2F\t"});
+  value.at("_meta").assign("tracestate",
+                           sourcemeta::core::JSON{"a=value=wrong"});
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_parameters(value)
+                   .second.has_value());
 }
 
 TEST(baggage_rejects_invalid_escape) {
-  auto value{parameters()};
-  value.at("_meta").assign("baggage", JSON{"a=%ZZ"});
-  EXPECT_FALSE(mcp_validate_request_parameters(value).second.has_value());
+  auto value{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    }
+  })JSON")};
+  value.at("_meta").assign("baggage", sourcemeta::core::JSON{"a=%ZZ"});
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_parameters(value)
+                   .second.has_value());
 }
 
 TEST(baggage_rejects_bare_percent) {
-  auto value{parameters()};
-  value.at("_meta").assign("baggage", JSON{"a=%"});
-  EXPECT_FALSE(mcp_validate_request_parameters(value).second.has_value());
+  auto value{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    }
+  })JSON")};
+  value.at("_meta").assign("baggage", sourcemeta::core::JSON{"a=%"});
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_parameters(value)
+                   .second.has_value());
 }
 
 TEST(baggage_rejects_short_escape) {
-  auto value{parameters()};
-  value.at("_meta").assign("baggage", JSON{"a=%2"});
-  EXPECT_FALSE(mcp_validate_request_parameters(value).second.has_value());
+  auto value{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    }
+  })JSON")};
+  value.at("_meta").assign("baggage", sourcemeta::core::JSON{"a=%2"});
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_parameters(value)
+                   .second.has_value());
 }
 
 TEST(baggage_rejects_newline) {
-  auto value{parameters()};
-  value.at("_meta").assign("baggage", JSON{"a=value\n"});
-  EXPECT_FALSE(mcp_validate_request_parameters(value).second.has_value());
+  auto value{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    }
+  })JSON")};
+  value.at("_meta").assign("baggage", sourcemeta::core::JSON{"a=value\n"});
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_parameters(value)
+                   .second.has_value());
 }
 
 TEST(legacy_result_allows_unreserved_traceparent) {
-  const auto legacy{parse_json(R"({"_meta":{"traceparent":false}})")};
-  EXPECT_EQ(mcp_decorate_result(MCPProtocolVersion::V_2025_03_26, legacy),
+  const auto legacy{sourcemeta::core::parse_json(
+      R"JSON({ "_meta": { "traceparent": false } })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_decorate_result(
+                sourcemeta::core::MCPProtocolVersion::V_2025_03_26, legacy),
             legacy);
 }
 
 TEST(modern_result_rejects_boolean_traceparent) {
-  const auto legacy{parse_json(R"({"_meta":{"traceparent":false}})")};
-  try {
-    mcp_decorate_result(CURRENT, legacy);
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const auto legacy{sourcemeta::core::parse_json(
+      R"JSON({ "_meta": { "traceparent": false } })JSON")};
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_decorate_result(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, legacy),
+      "Invalid MCP 2026-07-28 metadata");
 }
 
-TEST(header_error_ordering) {
-  auto value{request()};
-  EXPECT_EQ(mcp_validate_request_headers(CURRENT, std::nullopt, "tools/list",
-                                         std::nullopt, value, WIRES)
-                ->at("error")
-                .at("code"),
-            JSON{-32020});
-  value.at("params").erase("_meta");
-  EXPECT_EQ(mcp_validate_request_headers(CURRENT, std::nullopt, std::nullopt,
-                                         std::nullopt, value, WIRES)
-                ->at("error")
-                .at("code"),
-            JSON{-32602});
-  value = request();
-  value.at("params").at("_meta").assign(
-      "io.modelcontextprotocol/protocolVersion", JSON{"unknown"});
-  EXPECT_EQ(mcp_validate_request_headers(CURRENT, "2026-07-28", "tools/list",
-                                         std::nullopt, value, WIRES)
-                ->at("error")
-                .at("code"),
-            JSON{-32020});
-  EXPECT_EQ(mcp_validate_request_headers(CURRENT, "unknown", "tools/list",
-                                         std::nullopt, value, WIRES)
-                ->at("error")
-                .at("code"),
-            JSON{-32022});
-  constexpr std::array<JSON::StringView, 1> DISABLED{{"2025-11-25"}};
-  value = request();
-  EXPECT_EQ(mcp_validate_request_headers(CURRENT, "2026-07-28", "tools/list",
-                                         std::nullopt, value, DISABLED)
-                ->at("error")
-                .at("code"),
-            JSON{-32022});
-  EXPECT_EQ(mcp_validate_request_headers(CURRENT, "2026-07-28", "tools/list",
-                                         "unexpected", value, WIRES)
-                ->at("error")
-                .at("code"),
-            JSON{-32020});
-  value.assign("id", JSON{true});
-  const auto invalid{mcp_validate_request_headers(
-      MCPProtocolVersion::V_2025_03_26, std::nullopt, std::nullopt,
-      std::nullopt, value, WIRES)};
-  EXPECT_TRUE(invalid->at("id").is_null());
-}
-
-TEST(parameter_header_roundtrip) {
-  const std::array<MCPHeaderParameter, 3> descriptors{{
-      {.name = "Label", .path = {"nested", "text"}, .type = JSON::Type::String},
-      {.name = "Count", .path = {"number"}, .type = JSON::Type::Integer},
-      {.name = "Enabled", .path = {"enabled"}, .type = JSON::Type::Boolean},
-  }};
-  const auto args{parse_json(
-      R"({"nested":{"text":" café "},"number":42,"enabled":false})")};
-  const auto headers{mcp_make_parameter_headers(descriptors, args)};
-  std::vector<std::pair<JSON::StringView, JSON::StringView>> views;
-  views.reserve(headers.size());
-  for (const auto &header : headers) {
-    views.emplace_back(header.first, header.second);
-  }
-  EXPECT_FALSE(
-      mcp_validate_parameter_headers(CURRENT, JSON{0}, descriptors, args, views)
-          .has_value());
-  for (auto &header : views) {
-    if (header.first == "Mcp-Param-Count") {
-      header.second = "42.0";
+// Every POST must carry the protocol version header
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#protocol-version-header
+TEST(validate_request_headers_rejects_a_missing_protocol_version_header) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "method": "tools/list",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientCapabilities": {}
+      }
     }
-  }
-  EXPECT_FALSE(
-      mcp_validate_parameter_headers(CURRENT, JSON{0}, descriptors, args, views)
-          .has_value());
-  views.emplace_back("mcp-param-count", "42");
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_validate_request_headers(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                std::nullopt, "tools/list", std::nullopt, envelope, SUPPORTED)
+                .value(),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "error": {
+      "code": -32020,
+      "message": "Missing or malformed MCP-Protocol-Version"
+    }
+  })JSON"));
+}
+
+TEST(validate_request_headers_rejects_a_request_without_metadata) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "method": "tools/list",
+    "params": {}
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_validate_request_headers(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                std::nullopt, std::nullopt, std::nullopt, envelope, SUPPORTED)
+                .value(),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "error": {
+      "code": -32602,
+      "message": "Invalid params: missing or malformed protocol metadata"
+    }
+  })JSON"));
+}
+
+// The header value must match the version carried in the body, and a
+// disagreement is reported before the server decides whether it supports the
+// version at all
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#protocol-version-header
+TEST(validate_request_headers_rejects_a_version_disagreement) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "method": "tools/list",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "unknown",
+        "io.modelcontextprotocol/clientCapabilities": {}
+      }
+    }
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_validate_request_headers(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                "2026-07-28", "tools/list", std::nullopt, envelope, SUPPORTED)
+                .value(),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "error": {
+      "code": -32020,
+      "message": "Header mismatch",
+      "data": {
+        "header": "MCP-Protocol-Version",
+        "headerValue": "2026-07-28",
+        "bodyValue": "unknown"
+      }
+    }
+  })JSON"));
+}
+
+// An unknown version is reported with the versions the server does support
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#protocol-version-header
+TEST(validate_request_headers_rejects_an_unknown_version) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "method": "tools/list",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "unknown",
+        "io.modelcontextprotocol/clientCapabilities": {}
+      }
+    }
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_validate_request_headers(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "unknown",
+                "tools/list", std::nullopt, envelope, SUPPORTED)
+                .value(),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "error": {
+      "code": -32022,
+      "message": "Unsupported protocol version",
+      "data": {
+        "supported": [
+          "2025-03-26",
+          "2025-06-18",
+          "2025-11-25",
+          "2026-07-28"
+        ],
+        "requested": "unknown"
+      }
+    }
+  })JSON"));
+}
+
+TEST(validate_request_headers_rejects_a_version_the_server_withholds) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
+      {"2025-11-25"}};
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "method": "tools/list",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientCapabilities": {}
+      }
+    }
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_validate_request_headers(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                "2026-07-28", "tools/list", std::nullopt, envelope, SUPPORTED)
+                .value(),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "error": {
+      "code": -32022,
+      "message": "Unsupported protocol version",
+      "data": {
+        "supported": [ "2025-11-25" ],
+        "requested": "2026-07-28"
+      }
+    }
+  })JSON"));
+}
+
+// Only a tool call, a resource read and a prompt get name a target, so the
+// name header is unexpected anywhere else
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#standard-request-headers
+TEST(validate_request_headers_rejects_an_unexpected_name_header) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "method": "tools/list",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientCapabilities": {}
+      }
+    }
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_validate_request_headers(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                "2026-07-28", "tools/list", "unexpected", envelope, SUPPORTED)
+                .value(),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "error": {
+      "code": -32020,
+      "message": "Header mismatch: unexpected header provided",
+      "data": { "header": "Mcp-Name", "headerValue": "unexpected" }
+    }
+  })JSON"));
+}
+
+// A legacy error response has no way to omit the identifier, so an unreadable
+// one is reported as null
+// https://modelcontextprotocol.io/specification/2025-06-18/schema#jsonrpcerror
+TEST(validate_request_headers_reports_a_null_identifier_on_2025_03_26) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": true,
+    "method": "tools/list",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientCapabilities": {}
+      }
+    }
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_validate_request_headers(
+                sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+                std::nullopt, std::nullopt, std::nullopt, envelope, SUPPORTED)
+                .value(),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": null,
+    "error": { "code": -32600, "message": "Invalid Request" }
+  })JSON"));
+}
+
+TEST(make_parameter_headers_mirrors_every_annotated_type) {
+  const std::array<sourcemeta::core::MCPHeaderParameter, 3> descriptors{
+      {{.name = "Label",
+        .path = {"nested", "text"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "Count",
+        .path = {"number"},
+        .type = sourcemeta::core::JSON::Type::Integer},
+       {.name = "Enabled",
+        .path = {"enabled"},
+        .type = sourcemeta::core::JSON::Type::Boolean}}};
+  const auto arguments{sourcemeta::core::parse_json(R"JSON({
+    "nested": { "text": " café " },
+    "number": 42,
+    "enabled": false
+  })JSON")};
+  const std::vector<std::pair<std::string, std::string>> expected{
+      {"Mcp-Param-Label", "=?base64?IGNhZsOpIA==?="},
+      {"Mcp-Param-Count", "42"},
+      {"Mcp-Param-Enabled", "false"}};
   EXPECT_EQ(
-      mcp_validate_parameter_headers(CURRENT, JSON{0}, descriptors, args, views)
-          ->at("error")
-          .at("code"),
-      JSON{-32020});
-  EXPECT_TRUE(
-      mcp_make_parameter_headers(descriptors, parse_json(R"({"number":null})"))
-          .empty());
-  try {
-    mcp_make_parameter_headers(descriptors,
-                               parse_json(R"({"number":9007199254740992})"));
-    FAIL();
-  } catch (const std::invalid_argument &) {
-    // Invalid input is expected to be rejected
-  }
-  try {
-    mcp_make_parameter_headers(descriptors, parse_json(R"({"number":1.5})"));
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+      sourcemeta::core::mcp_make_parameter_headers(descriptors, arguments),
+      expected);
+}
+
+TEST(validate_parameter_headers_accepts_mirrored_values) {
+  const std::array<sourcemeta::core::MCPHeaderParameter, 2> descriptors{
+      {{.name = "Count",
+        .path = {"number"},
+        .type = sourcemeta::core::JSON::Type::Integer},
+       {.name = "Enabled",
+        .path = {"enabled"},
+        .type = sourcemeta::core::JSON::Type::Boolean}}};
+  const auto arguments{sourcemeta::core::parse_json(
+      R"JSON({ "number": 42, "enabled": false })JSON")};
+  const std::vector<std::pair<sourcemeta::core::JSON::StringView,
+                              sourcemeta::core::JSON::StringView>>
+      headers{{"Mcp-Param-Count", "42"}, {"Mcp-Param-Enabled", "false"}};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_parameter_headers(
+                   sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                   sourcemeta::core::JSON{0}, descriptors, arguments, headers)
+                   .has_value());
+}
+
+// An integer parameter is compared numerically rather than as a string
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#server-validation
+TEST(validate_parameter_headers_compares_integers_numerically) {
+  const std::array<sourcemeta::core::MCPHeaderParameter, 1> descriptors{
+      {{.name = "Count",
+        .path = {"number"},
+        .type = sourcemeta::core::JSON::Type::Integer}}};
+  const auto arguments{
+      sourcemeta::core::parse_json(R"JSON({ "number": 42 })JSON")};
+  const std::vector<std::pair<sourcemeta::core::JSON::StringView,
+                              sourcemeta::core::JSON::StringView>>
+      headers{{"Mcp-Param-Count", "42.0"}};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_parameter_headers(
+                   sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                   sourcemeta::core::JSON{0}, descriptors, arguments, headers)
+                   .has_value());
+}
+
+// Field names are compared case insensitively, so the same parameter cannot
+// arrive twice under different spellings
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#case-sensitivity
+TEST(validate_parameter_headers_rejects_a_duplicate_parameter) {
+  const std::array<sourcemeta::core::MCPHeaderParameter, 1> descriptors{
+      {{.name = "Count",
+        .path = {"number"},
+        .type = sourcemeta::core::JSON::Type::Integer}}};
+  const auto arguments{
+      sourcemeta::core::parse_json(R"JSON({ "number": 42 })JSON")};
+  const std::vector<std::pair<sourcemeta::core::JSON::StringView,
+                              sourcemeta::core::JSON::StringView>>
+      headers{{"Mcp-Param-Count", "42"}, {"mcp-param-count", "42"}};
+  EXPECT_EQ(sourcemeta::core::mcp_validate_parameter_headers(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::JSON{0}, descriptors, arguments, headers)
+                .value(),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "error": {
+      "code": -32020,
+      "message": "Duplicate parameter header"
+    }
+  })JSON"));
+}
+
+// A null value is not mirrored, and the server must not expect the header
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#server-behavior-for-custom-headers
+TEST(make_parameter_headers_omits_a_null_value) {
+  const std::array<sourcemeta::core::MCPHeaderParameter, 1> descriptors{
+      {{.name = "Count",
+        .path = {"number"},
+        .type = sourcemeta::core::JSON::Type::Integer}}};
+  EXPECT_TRUE(sourcemeta::core::mcp_make_parameter_headers(
+                  descriptors,
+                  sourcemeta::core::parse_json(R"JSON({ "number": null })JSON"))
+                  .empty());
+}
+
+TEST(make_parameter_headers_omits_an_absent_value) {
+  const std::array<sourcemeta::core::MCPHeaderParameter, 1> descriptors{
+      {{.name = "Count",
+        .path = {"number"},
+        .type = sourcemeta::core::JSON::Type::Integer}}};
+  EXPECT_TRUE(sourcemeta::core::mcp_make_parameter_headers(
+                  descriptors, sourcemeta::core::parse_json(R"JSON({})JSON"))
+                  .empty());
+}
+
+// Integer values must stay within the safe range for JavaScript
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#schema-extension
+TEST(make_parameter_headers_rejects_an_unsafe_integer) {
+  const std::array<sourcemeta::core::MCPHeaderParameter, 1> descriptors{
+      {{.name = "Count",
+        .path = {"number"},
+        .type = sourcemeta::core::JSON::Type::Integer}}};
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_parameter_headers(
+          descriptors, sourcemeta::core::parse_json(
+                           R"JSON({ "number": 9007199254740992 })JSON")),
+      "Invalid mirrored argument type or unsafe integer");
+}
+
+TEST(make_parameter_headers_rejects_a_fractional_integer) {
+  const std::array<sourcemeta::core::MCPHeaderParameter, 1> descriptors{
+      {{.name = "Count",
+        .path = {"number"},
+        .type = sourcemeta::core::JSON::Type::Integer}}};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_parameter_headers(
+                         descriptors, sourcemeta::core::parse_json(
+                                          R"JSON({ "number": 1.5 })JSON")),
+                     "Invalid mirrored argument type or unsafe integer");
+}
+
+TEST(make_parameter_headers_rejects_non_object_arguments) {
+  const std::array<sourcemeta::core::MCPHeaderParameter, 1> descriptors{
+      {{.name = "Count",
+        .path = {"number"},
+        .type = sourcemeta::core::JSON::Type::Integer}}};
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_parameter_headers(
+          descriptors, sourcemeta::core::parse_json(R"JSON([])JSON")),
+      "Tool arguments must be an object");
 }
 
 TEST(parameter_header_builder_rejects_empty_path) {
-  const std::array<MCPHeaderParameter, 1> descriptors{
-      {{.name = "Value", .path = {}, .type = JSON::Type::String}}};
-  try {
-    mcp_make_parameter_headers(descriptors, JSON::make_object());
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const std::array<sourcemeta::core::MCPHeaderParameter, 1> descriptors{
+      {{.name = "Value",
+        .path = {},
+        .type = sourcemeta::core::JSON::Type::String}}};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_parameter_headers(
+                         descriptors, sourcemeta::core::JSON::make_object()),
+                     "Parameter header descriptors must name a property path");
 }
 
 TEST(parameter_header_validator_rejects_empty_path) {
-  const std::array<MCPHeaderParameter, 1> descriptors{
-      {{.name = "Value", .path = {}, .type = JSON::Type::String}}};
-  try {
-    mcp_validate_parameter_headers(CURRENT, JSON{0}, descriptors,
-                                   JSON::make_object(), {});
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const std::array<sourcemeta::core::MCPHeaderParameter, 1> descriptors{
+      {{.name = "Value",
+        .path = {},
+        .type = sourcemeta::core::JSON::Type::String}}};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_validate_parameter_headers(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         sourcemeta::core::JSON{0}, descriptors,
+                         sourcemeta::core::JSON::make_object(), {}),
+                     "Parameter header descriptors must name a property path");
 }
 
 TEST(parameter_header_builder_rejects_real_type) {
-  const std::array<MCPHeaderParameter, 1> descriptors{
-      {{.name = "Value", .path = {"x"}, .type = JSON::Type::Real}}};
-  try {
-    mcp_make_parameter_headers(descriptors, JSON::make_object());
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const std::array<sourcemeta::core::MCPHeaderParameter, 1> descriptors{
+      {{.name = "Value",
+        .path = {"x"},
+        .type = sourcemeta::core::JSON::Type::Real}}};
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_parameter_headers(
+          descriptors, sourcemeta::core::JSON::make_object()),
+      "Parameter headers only mirror strings, integers and booleans");
 }
 
 TEST(parameter_header_validator_rejects_real_type) {
-  const std::array<MCPHeaderParameter, 1> descriptors{
-      {{.name = "Value", .path = {"x"}, .type = JSON::Type::Real}}};
-  try {
-    mcp_validate_parameter_headers(CURRENT, JSON{0}, descriptors,
-                                   JSON::make_object(), {});
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const std::array<sourcemeta::core::MCPHeaderParameter, 1> descriptors{
+      {{.name = "Value",
+        .path = {"x"},
+        .type = sourcemeta::core::JSON::Type::Real}}};
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_validate_parameter_headers(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+          sourcemeta::core::JSON{0}, descriptors,
+          sourcemeta::core::JSON::make_object(), {}),
+      "Parameter headers only mirror strings, integers and booleans");
 }
 
 TEST(parameter_header_builder_rejects_injected_name) {
-  const std::array<MCPHeaderParameter, 1> descriptors{
-      {{.name = "bad\r\nInjected", .path = {"x"}, .type = JSON::Type::String}}};
-  try {
-    mcp_make_parameter_headers(descriptors, JSON::make_object());
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const std::array<sourcemeta::core::MCPHeaderParameter, 1> descriptors{
+      {{.name = "bad\r\nInjected",
+        .path = {"x"},
+        .type = sourcemeta::core::JSON::Type::String}}};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_parameter_headers(
+                         descriptors, sourcemeta::core::JSON::make_object()),
+                     "Parameter header names must be non-empty HTTP tokens");
 }
 
 TEST(parameter_header_validator_rejects_injected_name) {
-  const std::array<MCPHeaderParameter, 1> descriptors{
-      {{.name = "bad\r\nInjected", .path = {"x"}, .type = JSON::Type::String}}};
-  try {
-    mcp_validate_parameter_headers(CURRENT, JSON{0}, descriptors,
-                                   JSON::make_object(), {});
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const std::array<sourcemeta::core::MCPHeaderParameter, 1> descriptors{
+      {{.name = "bad\r\nInjected",
+        .path = {"x"},
+        .type = sourcemeta::core::JSON::Type::String}}};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_validate_parameter_headers(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         sourcemeta::core::JSON{0}, descriptors,
+                         sourcemeta::core::JSON::make_object(), {}),
+                     "Parameter header names must be non-empty HTTP tokens");
 }
 
 TEST(parameter_header_builder_rejects_duplicate_names) {
-  const std::array<MCPHeaderParameter, 2> descriptors{
-      {{.name = "Value", .path = {"x"}, .type = JSON::Type::String},
-       {.name = "value", .path = {"y"}, .type = JSON::Type::String}}};
-  try {
-    mcp_make_parameter_headers(descriptors, JSON::make_object());
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const std::array<sourcemeta::core::MCPHeaderParameter, 2> descriptors{
+      {{.name = "Value",
+        .path = {"x"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "value",
+        .path = {"y"},
+        .type = sourcemeta::core::JSON::Type::String}}};
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_parameter_headers(
+          descriptors, sourcemeta::core::JSON::make_object()),
+      "Parameter header names must be case-insensitively unique");
 }
 
 TEST(parameter_header_validator_rejects_duplicate_names) {
-  const std::array<MCPHeaderParameter, 2> descriptors{
-      {{.name = "Value", .path = {"x"}, .type = JSON::Type::String},
-       {.name = "value", .path = {"y"}, .type = JSON::Type::String}}};
-  try {
-    mcp_validate_parameter_headers(CURRENT, JSON{0}, descriptors,
-                                   JSON::make_object(), {});
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const std::array<sourcemeta::core::MCPHeaderParameter, 2> descriptors{
+      {{.name = "Value",
+        .path = {"x"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "value",
+        .path = {"y"},
+        .type = sourcemeta::core::JSON::Type::String}}};
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_validate_parameter_headers(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+          sourcemeta::core::JSON{0}, descriptors,
+          sourcemeta::core::JSON::make_object(), {}),
+      "Parameter header names must be case-insensitively unique");
 }
 
 TEST(name_header_rejects_bad_base64) {
-  auto value{request("tools/call")};
-  value.at("params").assign("name", JSON{"café"});
-  EXPECT_TRUE(mcp_validate_request_headers(CURRENT, "2026-07-28", "tools/call",
-                                           "=?base64?!!!!?=", value, WIRES)
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  auto value{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "method": "tools/call",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientCapabilities": {}
+      }
+    }
+  })JSON")};
+  value.at("params").assign("name", sourcemeta::core::JSON{"café"});
+  EXPECT_TRUE(sourcemeta::core::mcp_validate_request_headers(
+                  sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                  "2026-07-28", "tools/call", "=?base64?!!!!?=", value,
+                  SUPPORTED)
                   .has_value());
 }
 
 TEST(name_header_rejects_invalid_utf8) {
-  auto value{request("tools/call")};
-  value.at("params").assign("name", JSON{"café"});
-  EXPECT_TRUE(mcp_validate_request_headers(CURRENT, "2026-07-28", "tools/call",
-                                           "=?base64?/w==?=", value, WIRES)
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  auto value{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "method": "tools/call",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientCapabilities": {}
+      }
+    }
+  })JSON")};
+  value.at("params").assign("name", sourcemeta::core::JSON{"café"});
+  EXPECT_TRUE(sourcemeta::core::mcp_validate_request_headers(
+                  sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                  "2026-07-28", "tools/call", "=?base64?/w==?=", value,
+                  SUPPORTED)
                   .has_value());
 }
 
 TEST(name_header_rejects_leading_space) {
-  auto value{request("tools/call")};
-  value.at("params").assign("name", JSON{"café"});
-  EXPECT_TRUE(mcp_validate_request_headers(CURRENT, "2026-07-28", "tools/call",
-                                           " café", value, WIRES)
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  auto value{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "method": "tools/call",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientCapabilities": {}
+      }
+    }
+  })JSON")};
+  value.at("params").assign("name", sourcemeta::core::JSON{"café"});
+  EXPECT_TRUE(sourcemeta::core::mcp_validate_request_headers(
+                  sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                  "2026-07-28", "tools/call", " café", value, SUPPORTED)
                   .has_value());
 }
 
 TEST(name_header_rejects_non_ascii) {
-  auto value{request("tools/call")};
-  value.at("params").assign("name", JSON{"café"});
-  EXPECT_TRUE(mcp_validate_request_headers(CURRENT, "2026-07-28", "tools/call",
-                                           "café", value, WIRES)
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  auto value{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "method": "tools/call",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientCapabilities": {}
+      }
+    }
+  })JSON")};
+  value.at("params").assign("name", sourcemeta::core::JSON{"café"});
+  EXPECT_TRUE(sourcemeta::core::mcp_validate_request_headers(
+                  sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                  "2026-07-28", "tools/call", "café", value, SUPPORTED)
                   .has_value());
 }
 
 TEST(name_header_rejects_newline) {
-  auto value{request("tools/call")};
-  value.at("params").assign("name", JSON{"café"});
-  EXPECT_TRUE(mcp_validate_request_headers(CURRENT, "2026-07-28", "tools/call",
-                                           "cafe\n", value, WIRES)
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  auto value{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "method": "tools/call",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientCapabilities": {}
+      }
+    }
+  })JSON")};
+  value.at("params").assign("name", sourcemeta::core::JSON{"café"});
+  EXPECT_TRUE(sourcemeta::core::mcp_validate_request_headers(
+                  sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                  "2026-07-28", "tools/call", "cafe\n", value, SUPPORTED)
                   .has_value());
 }
 
 TEST(encoded_name_header_roundtrip_base64_marker) {
-  auto value{request("tools/call")};
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  auto value{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "method": "tools/call",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientCapabilities": {}
+      }
+    }
+  })JSON")};
   const auto *text{"=?base64?YWJj?="};
-  value.at("params").assign("name", JSON{text});
-  const auto encoded{mcp_encode_header_value(text)};
-  EXPECT_FALSE(mcp_validate_request_headers(CURRENT, "2026-07-28", "tools/call",
-                                            encoded, value, WIRES)
+  value.at("params").assign("name", sourcemeta::core::JSON{text});
+  const auto encoded{sourcemeta::core::mcp_encode_header_value(text)};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_headers(
+                   sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                   "2026-07-28", "tools/call", encoded, value, SUPPORTED)
                    .has_value());
 }
 
 TEST(encoded_name_header_roundtrip_padded) {
-  auto value{request("tools/call")};
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  auto value{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "method": "tools/call",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientCapabilities": {}
+      }
+    }
+  })JSON")};
   const auto *text{" padded "};
-  value.at("params").assign("name", JSON{text});
-  const auto encoded{mcp_encode_header_value(text)};
-  EXPECT_FALSE(mcp_validate_request_headers(CURRENT, "2026-07-28", "tools/call",
-                                            encoded, value, WIRES)
+  value.at("params").assign("name", sourcemeta::core::JSON{text});
+  const auto encoded{sourcemeta::core::mcp_encode_header_value(text)};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_headers(
+                   sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                   "2026-07-28", "tools/call", encoded, value, SUPPORTED)
                    .has_value());
 }
 
 TEST(encoded_name_header_roundtrip_non_ascii) {
-  auto value{request("tools/call")};
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  auto value{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "method": "tools/call",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientCapabilities": {}
+      }
+    }
+  })JSON")};
   const auto *text{"café"};
-  value.at("params").assign("name", JSON{text});
-  const auto encoded{mcp_encode_header_value(text)};
-  EXPECT_FALSE(mcp_validate_request_headers(CURRENT, "2026-07-28", "tools/call",
-                                            encoded, value, WIRES)
+  value.at("params").assign("name", sourcemeta::core::JSON{text});
+  const auto encoded{sourcemeta::core::mcp_encode_header_value(text)};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_headers(
+                   sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                   "2026-07-28", "tools/call", encoded, value, SUPPORTED)
                    .has_value());
 }
 
 TEST(encoded_name_header_roundtrip_tab) {
-  auto value{request("tools/call")};
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  auto value{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "method": "tools/call",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientCapabilities": {}
+      }
+    }
+  })JSON")};
   const auto *text{"a\tb"};
-  value.at("params").assign("name", JSON{text});
-  const auto encoded{mcp_encode_header_value(text)};
-  EXPECT_FALSE(mcp_validate_request_headers(CURRENT, "2026-07-28", "tools/call",
-                                            encoded, value, WIRES)
+  value.at("params").assign("name", sourcemeta::core::JSON{text});
+  const auto encoded{sourcemeta::core::mcp_encode_header_value(text)};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_headers(
+                   sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                   "2026-07-28", "tools/call", encoded, value, SUPPORTED)
                    .has_value());
 }
 
 TEST(header_encoder_rejects_invalid_utf8) {
-  try {
-    mcp_encode_header_value(std::string_view{"\xff", 1});
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_encode_header_value(std::string_view{"\xff", 1}),
+      "MCP header values must be UTF-8");
 }
 
-TEST(borrowed_header_collection) {
-  const auto value{request()};
-  std::vector<std::pair<JSON::StringView, JSON::StringView>> headers{
-      {"mcp-protocol-version", "2026-07-28"}, {"MCP-METHOD", "tools/list"}};
-  EXPECT_FALSE(
-      mcp_validate_request_headers(CURRENT, headers, value, WIRES).has_value());
-  headers.emplace_back("Mcp-Method", "tools/list");
-  EXPECT_EQ(mcp_validate_request_headers(CURRENT, headers, value, WIRES)
-                ->at("error")
-                .at("code"),
-            JSON{-32020});
-  const auto legacy{MCPProtocolVersion::V_2025_11_25};
-  headers.front().second = "2025-11-25";
-  EXPECT_FALSE(
-      mcp_validate_request_headers(legacy, headers, value, WIRES).has_value());
+TEST(validate_request_headers_matches_case_insensitively) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "method": "tools/list",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientCapabilities": {}
+      }
+    }
+  })JSON")};
+  const std::vector<std::pair<sourcemeta::core::JSON::StringView,
+                              sourcemeta::core::JSON::StringView>>
+      headers{{"mcp-protocol-version", "2026-07-28"},
+              {"MCP-METHOD", "tools/list"}};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_headers(
+                   sourcemeta::core::MCPProtocolVersion::V_2026_07_28, headers,
+                   envelope, SUPPORTED)
+                   .has_value());
 }
 
-TEST(stateless_revision_and_missing_capabilities) {
-  auto value{request()};
-  value.at("params").at("_meta").assign(
-      "io.modelcontextprotocol/protocolVersion", JSON{"2025-11-25"});
-  EXPECT_FALSE(mcp_validate_request_meta(value).second.has_value());
-  value = request();
-  value.at("params").at("_meta").erase(
-      "io.modelcontextprotocol/clientCapabilities");
-  EXPECT_EQ(mcp_validate_request_headers(CURRENT, std::nullopt, std::nullopt,
-                                         std::nullopt, value, WIRES)
-                ->at("error")
-                .at("code"),
-            JSON{-32602});
+TEST(validate_request_headers_rejects_a_duplicate_routing_header) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "method": "tools/list",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientCapabilities": {}
+      }
+    }
+  })JSON")};
+  const std::vector<std::pair<sourcemeta::core::JSON::StringView,
+                              sourcemeta::core::JSON::StringView>>
+      headers{{"mcp-protocol-version", "2026-07-28"},
+              {"MCP-METHOD", "tools/list"},
+              {"Mcp-Method", "tools/list"}};
+  EXPECT_EQ(sourcemeta::core::mcp_validate_request_headers(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28, headers,
+                envelope, SUPPORTED)
+                .value(),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "error": { "code": -32020, "message": "Duplicate routing header" }
+  })JSON"));
+}
+
+TEST(validate_request_headers_ignores_routing_headers_on_2025_11_25) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "method": "tools/list",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientCapabilities": {}
+      }
+    }
+  })JSON")};
+  const std::vector<std::pair<sourcemeta::core::JSON::StringView,
+                              sourcemeta::core::JSON::StringView>>
+      headers{{"mcp-protocol-version", "2025-11-25"},
+              {"MCP-METHOD", "tools/list"},
+              {"Mcp-Method", "tools/list"}};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_headers(
+                   sourcemeta::core::MCPProtocolVersion::V_2025_11_25, headers,
+                   envelope, SUPPORTED)
+                   .has_value());
+}
+
+TEST(request_meta_validation_rejects_a_legacy_revision) {
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "method": "tools/list",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2025-11-25",
+        "io.modelcontextprotocol/clientCapabilities": {}
+      }
+    }
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_validate_request_meta(envelope).first,
+            sourcemeta::core::MCPRequestMetaStatus::UnsupportedProtocolVersion);
+}
+
+// A request that omits a required metadata field is malformed and the server
+// must reject it with invalid params
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/index#_meta
+TEST(validate_request_headers_rejects_missing_client_capabilities) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "method": "tools/list",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28"
+      }
+    }
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_validate_request_headers(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                std::nullopt, std::nullopt, std::nullopt, envelope, SUPPORTED)
+                .value(),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "error": {
+      "code": -32602,
+      "message": "Invalid params: missing clientCapabilities in _meta"
+    }
+  })JSON"));
+}
+
+// Every request mirrors its method, and a tool call, a resource read and a
+// prompt get also mirror the target they name
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#standard-request-headers
+TEST(validate_request_headers_accepts_server_discover) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "server/discover",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientCapabilities": {}
+      }
+    }
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_headers(
+                   sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                   "2026-07-28", "server/discover", std::nullopt, envelope,
+                   SUPPORTED)
+                   .has_value());
+}
+
+TEST(validate_request_headers_accepts_tools_list) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/list",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientCapabilities": {}
+      }
+    }
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_headers(
+                   sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                   "2026-07-28", "tools/list", std::nullopt, envelope,
+                   SUPPORTED)
+                   .has_value());
+}
+
+TEST(validate_request_headers_accepts_tools_call) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/call",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientCapabilities": {}
+      },
+      "name": "calculator"
+    }
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_headers(
+                   sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                   "2026-07-28", "tools/call", "calculator", envelope,
+                   SUPPORTED)
+                   .has_value());
+}
+
+TEST(validate_request_headers_accepts_resources_read) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "resources/read",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientCapabilities": {}
+      },
+      "uri": "file:///a"
+    }
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_headers(
+                   sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                   "2026-07-28", "resources/read", "file:///a", envelope,
+                   SUPPORTED)
+                   .has_value());
+}
+
+TEST(validate_request_headers_accepts_prompts_get) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "prompts/get",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientCapabilities": {}
+      },
+      "name": "review"
+    }
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_headers(
+                   sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                   "2026-07-28", "prompts/get", "review", envelope, SUPPORTED)
+                   .has_value());
+}
+
+TEST(validate_request_headers_accepts_subscriptions_listen) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "subscriptions/listen",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientCapabilities": {}
+      }
+    }
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_headers(
+                   sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                   "2026-07-28", "subscriptions/listen", std::nullopt, envelope,
+                   SUPPORTED)
+                   .has_value());
+}
+
+TEST(validate_request_headers_rejects_a_missing_method_header) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 42,
+    "method": "tools/call",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientCapabilities": {}
+      },
+      "name": "calculator"
+    }
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_validate_request_headers(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                "2026-07-28", std::nullopt, "calculator", envelope, SUPPORTED)
+                .value(),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 42,
+    "error": {
+      "code": -32020,
+      "message": "Missing or malformed Mcp-Method"
+    }
+  })JSON"));
+}
+
+TEST(validate_request_headers_rejects_a_missing_name_header) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 42,
+    "method": "tools/call",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientCapabilities": {}
+      },
+      "name": "calculator"
+    }
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_validate_request_headers(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                "2026-07-28", "tools/call", std::nullopt, envelope, SUPPORTED)
+                .value(),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 42,
+    "error": {
+      "code": -32020,
+      "message": "Header mismatch",
+      "data": {
+        "header": "Mcp-Name",
+        "headerValue": "",
+        "bodyValue": "calculator"
+      }
+    }
+  })JSON"));
+}
+
+TEST(validate_request_headers_rejects_a_method_header_disagreement) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 42,
+    "method": "tools/call",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientCapabilities": {}
+      },
+      "name": "calculator"
+    }
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_validate_request_headers(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                "2026-07-28", "tools/list", "calculator", envelope, SUPPORTED)
+                .value(),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 42,
+    "error": {
+      "code": -32020,
+      "message": "Header mismatch",
+      "data": {
+        "header": "Mcp-Method",
+        "headerValue": "tools/list",
+        "bodyValue": "tools/call"
+      }
+    }
+  })JSON"));
+}
+
+TEST(validate_request_headers_rejects_a_name_header_disagreement) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 42,
+    "method": "tools/call",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientCapabilities": {}
+      },
+      "name": "calculator"
+    }
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_validate_request_headers(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                "2026-07-28", "tools/call", "other", envelope, SUPPORTED)
+                .value(),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 42,
+    "error": {
+      "code": -32020,
+      "message": "Header mismatch",
+      "data": {
+        "header": "Mcp-Name",
+        "headerValue": "other",
+        "bodyValue": "calculator"
+      }
+    }
+  })JSON"));
+}
+
+TEST(validate_request_headers_rejects_a_uri_header_disagreement) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 42,
+    "method": "resources/read",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientCapabilities": {}
+      },
+      "uri": "file:///a"
+    }
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_validate_request_headers(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                "2026-07-28", "resources/read", "file:///b", envelope,
+                SUPPORTED)
+                .value(),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 42,
+    "error": {
+      "code": -32020,
+      "message": "Header mismatch",
+      "data": {
+        "header": "Mcp-Name",
+        "headerValue": "file:///b",
+        "bodyValue": "file:///a"
+      }
+    }
+  })JSON"));
+}
+
+// An envelope that is not a JSON-RPC request is rejected before any header is
+// considered
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/index#requests
+TEST(validate_request_headers_rejects_a_non_object_envelope) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  EXPECT_EQ(sourcemeta::core::mcp_validate_request_headers(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                "2026-07-28", "tools/list", std::nullopt,
+                sourcemeta::core::JSON{42}, SUPPORTED)
+                .value(),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "error": { "code": -32600, "message": "Invalid Request" }
+  })JSON"));
+}
+
+TEST(validate_request_headers_rejects_an_envelope_without_a_method) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  EXPECT_EQ(sourcemeta::core::mcp_validate_request_headers(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                "2026-07-28", "tools/list", std::nullopt,
+                sourcemeta::core::parse_json(
+                    R"JSON({
+                      "jsonrpc": "2.0",
+                      "id": 1,
+                      "params": {}
+                    })JSON"),
+                SUPPORTED)
+                .value(),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "error": { "code": -32600, "message": "Invalid Request" }
+  })JSON"));
+}
+
+TEST(validate_request_headers_rejects_a_named_request_without_parameters) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  EXPECT_EQ(sourcemeta::core::mcp_validate_request_headers(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                "2026-07-28", "tools/call", "calculator",
+                sourcemeta::core::parse_json(
+                    R"JSON({
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "tools/call"
+              })JSON"),
+                SUPPORTED)
+                .value(),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "error": { "code": -32602, "message": "Invalid params" }
+  })JSON"));
+}
+
+TEST(validate_request_headers_rejects_array_parameters) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  EXPECT_EQ(sourcemeta::core::mcp_validate_request_headers(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                "2026-07-28", "tools/call", "calculator",
+                sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/call",
+    "params": [ 1, 2, 3 ]
+  })JSON"),
+                SUPPORTED)
+                .value(),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "error": { "code": -32602, "message": "Invalid params" }
+  })JSON"));
+}
+
+TEST(validate_request_headers_rejects_a_non_string_name) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  EXPECT_EQ(sourcemeta::core::mcp_validate_request_headers(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                "2026-07-28", "tools/call", "calculator",
+                sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/call",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientCapabilities": {}
+      },
+      "name": 42
+    }
+  })JSON"),
+                SUPPORTED)
+                .value(),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "error": { "code": -32602, "message": "Invalid params" }
+  })JSON"));
+}
+
+// An identifier that cannot be read is omitted from the error response
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/index#error-responses
+TEST(validate_request_headers_omits_a_null_identifier) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  const auto error{sourcemeta::core::mcp_validate_request_headers(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "2026-07-28",
+      "tools/call", "other", sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": null,
+    "method": "tools/call",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientCapabilities": {}
+      },
+      "name": "calculator"
+    }
+  })JSON"),
+      SUPPORTED)};
+  EXPECT_EQ(error.value(), sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "error": { "code": -32600, "message": "Invalid Request" }
+  })JSON"));
+}
+
+TEST(validate_request_headers_omits_an_unreadable_identifier) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  const auto error{sourcemeta::core::mcp_validate_request_headers(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "2026-07-28",
+      "tools/call", "other", sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": true,
+    "method": "tools/call",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientCapabilities": {}
+      },
+      "name": "calculator"
+    }
+  })JSON"),
+      SUPPORTED)};
+  EXPECT_EQ(error.value(), sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "error": { "code": -32600, "message": "Invalid Request" }
+  })JSON"));
+}
+
+// A notification has no identifier to echo
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/index#notifications
+TEST(validate_request_headers_omits_the_identifier_of_a_notification) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  const auto error{sourcemeta::core::mcp_validate_request_headers(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "2026-07-28",
+      "tools/call", "other", sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "method": "tools/call",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientCapabilities": {}
+      },
+      "name": "calculator"
+    }
+  })JSON"),
+      SUPPORTED)};
+  EXPECT_EQ(error.value(), sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "error": {
+      "code": -32020,
+      "message": "Header mismatch",
+      "data": {
+        "header": "Mcp-Name",
+        "headerValue": "other",
+        "bodyValue": "calculator"
+      }
+    }
+  })JSON"));
+}
+
+// Routing headers are undefined before 2026-07-28, so a legacy request needs
+// none of them and a disagreement is not an error
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#request-metadata
+TEST(validate_request_headers_without_any_header_2025_03_26) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/call",
+    "params": { "name": "calculator" }
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_headers(
+                   sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+                   std::nullopt, std::nullopt, std::nullopt, envelope,
+                   SUPPORTED)
+                   .has_value());
+}
+
+TEST(validate_request_headers_ignores_a_method_disagreement_2025_03_26) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/call",
+    "params": { "name": "calculator" }
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_headers(
+                   sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+                   std::nullopt, "tools/list", std::nullopt, envelope,
+                   SUPPORTED)
+                   .has_value());
+}
+
+TEST(validate_request_headers_ignores_a_name_disagreement_2025_03_26) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/call",
+    "params": { "name": "calculator" }
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_headers(
+                   sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+                   std::nullopt, std::nullopt, "other", envelope, SUPPORTED)
+                   .has_value());
+}
+
+TEST(validate_request_headers_accepts_an_empty_method_2025_03_26) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "",
+    "params": { "name": "calculator" }
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_headers(
+                   sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+                   std::nullopt, std::nullopt, std::nullopt, envelope,
+                   SUPPORTED)
+                   .has_value());
+}
+
+TEST(validate_request_headers_rejects_a_malformed_version_header_2025_03_26) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/call",
+    "params": { "name": "calculator" }
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_validate_request_headers(
+                sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+                "invalid-protocol", std::nullopt, std::nullopt, envelope,
+                SUPPORTED)
+                .value(),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "error": {
+      "code": -32600,
+      "message": "Unsupported protocol version"
+    }
+  })JSON"));
+}
+
+TEST(validate_request_headers_without_any_header_2025_06_18) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/call",
+    "params": { "name": "calculator" }
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_headers(
+                   sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+                   std::nullopt, std::nullopt, std::nullopt, envelope,
+                   SUPPORTED)
+                   .has_value());
+}
+
+TEST(validate_request_headers_ignores_a_method_disagreement_2025_06_18) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/call",
+    "params": { "name": "calculator" }
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_headers(
+                   sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+                   std::nullopt, "tools/list", std::nullopt, envelope,
+                   SUPPORTED)
+                   .has_value());
+}
+
+TEST(validate_request_headers_ignores_a_name_disagreement_2025_06_18) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/call",
+    "params": { "name": "calculator" }
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_headers(
+                   sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+                   std::nullopt, std::nullopt, "other", envelope, SUPPORTED)
+                   .has_value());
+}
+
+TEST(validate_request_headers_accepts_an_empty_method_2025_06_18) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "",
+    "params": { "name": "calculator" }
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_headers(
+                   sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+                   std::nullopt, std::nullopt, std::nullopt, envelope,
+                   SUPPORTED)
+                   .has_value());
+}
+
+TEST(validate_request_headers_rejects_a_malformed_version_header_2025_06_18) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/call",
+    "params": { "name": "calculator" }
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_validate_request_headers(
+                sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+                "invalid-protocol", std::nullopt, std::nullopt, envelope,
+                SUPPORTED)
+                .value(),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "error": {
+      "code": -32600,
+      "message": "Unsupported protocol version"
+    }
+  })JSON"));
+}
+
+TEST(validate_request_headers_without_any_header_2025_11_25) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/call",
+    "params": { "name": "calculator" }
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_headers(
+                   sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+                   std::nullopt, std::nullopt, std::nullopt, envelope,
+                   SUPPORTED)
+                   .has_value());
+}
+
+TEST(validate_request_headers_ignores_a_method_disagreement_2025_11_25) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/call",
+    "params": { "name": "calculator" }
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_headers(
+                   sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+                   std::nullopt, "tools/list", std::nullopt, envelope,
+                   SUPPORTED)
+                   .has_value());
+}
+
+TEST(validate_request_headers_ignores_a_name_disagreement_2025_11_25) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/call",
+    "params": { "name": "calculator" }
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_headers(
+                   sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+                   std::nullopt, std::nullopt, "other", envelope, SUPPORTED)
+                   .has_value());
+}
+
+TEST(validate_request_headers_accepts_an_empty_method_2025_11_25) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "",
+    "params": { "name": "calculator" }
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_headers(
+                   sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+                   std::nullopt, std::nullopt, std::nullopt, envelope,
+                   SUPPORTED)
+                   .has_value());
+}
+
+TEST(validate_request_headers_rejects_a_malformed_version_header_2025_11_25) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/call",
+    "params": { "name": "calculator" }
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_validate_request_headers(
+                sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+                "invalid-protocol", std::nullopt, std::nullopt, envelope,
+                SUPPORTED)
+                .value(),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "error": {
+      "code": -32600,
+      "message": "Unsupported protocol version"
+    }
+  })JSON"));
+}
+
+// A legacy resource subscription names its target with a URI
+// https://modelcontextprotocol.io/specification/2025-11-25/server/resources#subscriptions
+TEST(validate_request_headers_accepts_resources_subscribe_on_2025_11_25) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "resources/subscribe",
+    "params": { "uri": "memo://channel" }
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_headers(
+                   sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+                   std::nullopt, "resources/subscribe", "memo://channel",
+                   envelope, SUPPORTED)
+                   .has_value());
+}
+
+TEST(validate_request_headers_accepts_resources_unsubscribe_on_2025_11_25) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "resources/unsubscribe",
+    "params": { "uri": "memo://channel" }
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_headers(
+                   sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+                   std::nullopt, "resources/unsubscribe", "memo://channel",
+                   envelope, SUPPORTED)
+                   .has_value());
 }

@@ -1,98 +1,39 @@
 #include <sourcemeta/core/mcp.h>
 
-#include <sourcemeta/core/http.h>
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonrpc.h>
 
 #include <sourcemeta/core/test.h>
 
-#include <array>
-#include <stdexcept>
-#include <vector>
+#include "mcp_helpers.h"
 
+#include <array>    // std::array
 #include <cstddef>  // std::size_t
 #include <cstdint>  // std::int64_t
 #include <limits>   // std::numeric_limits
 #include <optional> // std::optional, std::nullopt
-#include <sstream>
-#include <string>
-#include <utility> // std::move
-
-namespace {
-constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED_VERSIONS{
-    {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
-
-using namespace sourcemeta::core;
-
-constexpr std::array<JSON::StringView, 4> WIRES{
-    {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
-constexpr auto CURRENT{MCPProtocolVersion::V_2026_07_28};
-
-auto parameters() -> JSON {
-  return parse_json(
-      R"({
-  "_meta": {
-    "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-    "io.modelcontextprotocol/clientCapabilities": {}
-  }
-})");
-}
-
-auto list_result(const JSON::StringView method,
-                 const MCPProtocolVersion version, JSON entries) -> JSON {
-  if (method == "resources/list") {
-    return mcp_make_resources_list_result(version, std::move(entries),
-                                          std::nullopt, {});
-  }
-  if (method == "resources/templates/list") {
-    return mcp_make_resource_templates_list_result(version, std::move(entries),
-                                                   std::nullopt, {});
-  }
-  if (method == "resources/read") {
-    return mcp_make_resources_read_result(version, std::move(entries), {});
-  }
-  if (method == "prompts/list") {
-    return mcp_make_prompts_list_result(version, std::move(entries),
-                                        std::nullopt, {});
-  }
-  return mcp_make_tools_list_result(version, std::move(entries), std::nullopt,
-                                    {});
-}
-
-auto sampling_result(const JSON &messages,
-                     const MCPClientCapabilities &capabilities) -> JSON {
-  auto requests{parse_json(
-      R"({"r":{"method":"sampling/createMessage","params":{"maxTokens":1}}})")};
-  requests.at("r").at("params").assign("messages", messages);
-  return mcp_make_input_required_result(CURRENT, "tools/call", JSON{1},
-                                        requests, std::nullopt, capabilities);
-}
-} // namespace
+#include <sstream>  // std::ostringstream
+#include <utility>  // std::move
+#include <vector>   // std::vector
 
 TEST(make_text_block) {
   const auto block{sourcemeta::core::mcp_make_text_block("hello")};
-  const auto expected{sourcemeta::core::parse_json(R"JSON({
-    "type": "text",
-    "text": "hello"
-  })JSON")};
+  const auto expected{sourcemeta::core::parse_json(
+      R"JSON({ "type": "text", "text": "hello" })JSON")};
   EXPECT_EQ(block, expected);
 }
 
 TEST(make_text_block_empty_string) {
   const auto block{sourcemeta::core::mcp_make_text_block("")};
-  const auto expected{sourcemeta::core::parse_json(R"JSON({
-    "type": "text",
-    "text": ""
-  })JSON")};
+  const auto expected{sourcemeta::core::parse_json(
+      R"JSON({ "type": "text", "text": "" })JSON")};
   EXPECT_EQ(block, expected);
 }
 
 TEST(make_text_block_with_newlines) {
   const auto block{sourcemeta::core::mcp_make_text_block("line1\nline2")};
-  const auto expected{sourcemeta::core::parse_json(R"JSON({
-    "type": "text",
-    "text": "line1\nline2"
-  })JSON")};
+  const auto expected{sourcemeta::core::parse_json(
+      R"JSON({ "type": "text", "text": "line1\nline2" })JSON")};
   EXPECT_EQ(block, expected);
 }
 
@@ -136,17 +77,6 @@ TEST(make_resource_link_2025_06_18_supports_structured) {
   EXPECT_EQ(block, expected);
 }
 
-TEST(make_resource_link_unsupported_revision) {
-  bool rejected = false;
-  try {
-    sourcemeta::core::mcp_make_resource_link(
-        sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "file:///a", "a");
-  } catch (const std::invalid_argument &) {
-    rejected = true;
-  }
-  EXPECT_TRUE(rejected);
-}
-
 TEST(tool_success_with_object_result) {
   const auto identifier{sourcemeta::core::JSON{1}};
   auto result{sourcemeta::core::JSON::make_object()};
@@ -158,9 +88,7 @@ TEST(tool_success_with_object_result) {
     "jsonrpc": "2.0",
     "id": 1,
     "result": {
-      "content": [
-        { "type": "text", "text": "{\n  \"foo\": 42\n}" }
-      ],
+      "content": [ { "type": "text", "text": "{\n  \"foo\": 42\n}" } ],
       "structuredContent": { "foo": 42 },
       "isError": false
     }
@@ -172,15 +100,13 @@ TEST(tool_success_with_array_result) {
   const auto identifier{sourcemeta::core::JSON{"abc"}};
   const auto envelope{sourcemeta::core::mcp_make_tool_success(
       sourcemeta::core::MCPProtocolVersion::V_2026_07_28, identifier,
-      sourcemeta::core::parse_json(R"([ 1, 2, 3 ])"))};
+      sourcemeta::core::parse_json(R"JSON([ 1, 2, 3 ])JSON"))};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "id": "abc",
     "result": {
       "resultType": "complete",
-      "content": [
-        { "type": "text", "text": "[ 1, 2, 3 ]" }
-      ],
+      "content": [ { "type": "text", "text": "[ 1, 2, 3 ]" } ],
       "structuredContent": [ 1, 2, 3 ],
       "isError": false
     }
@@ -189,14 +115,11 @@ TEST(tool_success_with_array_result) {
 }
 
 TEST(tool_success_with_null_id) {
-  try {
-    (void)sourcemeta::core::mcp_make_tool_success(
-        sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
-        sourcemeta::core::JSON{nullptr}, sourcemeta::core::JSON::make_object());
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  EXPECT_MCP_REJECTS((void)sourcemeta::core::mcp_make_tool_success(
+                         sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+                         sourcemeta::core::JSON{nullptr},
+                         sourcemeta::core::JSON::make_object()),
+                     "MCP identifiers must be strings or integers");
 }
 
 TEST(tool_success_2025_03_26_omits_structured_content) {
@@ -210,9 +133,7 @@ TEST(tool_success_2025_03_26_omits_structured_content) {
     "jsonrpc": "2.0",
     "id": 1,
     "result": {
-      "content": [
-        { "type": "text", "text": "{\n  \"foo\": 42\n}" }
-      ],
+      "content": [ { "type": "text", "text": "{\n  \"foo\": 42\n}" } ],
       "isError": false
     }
   })JSON")};
@@ -293,14 +214,10 @@ TEST(tool_error_with_string_id) {
 }
 
 TEST(tool_error_with_null_id) {
-  try {
-    (void)sourcemeta::core::mcp_make_tool_error(
-        sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
-        sourcemeta::core::JSON{nullptr}, "Failure");
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  EXPECT_MCP_REJECTS((void)sourcemeta::core::mcp_make_tool_error(
+                         sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+                         sourcemeta::core::JSON{nullptr}, "Failure"),
+                     "MCP identifiers must be strings or integers");
 }
 
 TEST(error_resource_not_found_with_integer_id) {
@@ -310,10 +227,7 @@ TEST(error_resource_not_found_with_integer_id) {
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "id": 3,
-    "error": {
-      "code": -32002,
-      "message": "Resource not found"
-    }
+    "error": { "code": -32002, "message": "Resource not found" }
   })JSON")};
   EXPECT_EQ(envelope, expected);
 }
@@ -325,10 +239,7 @@ TEST(error_resource_not_found_with_string_id) {
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "id": "req-7",
-    "error": {
-      "code": -32002,
-      "message": "Resource not found"
-    }
+    "error": { "code": -32002, "message": "Resource not found" }
   })JSON")};
   EXPECT_EQ(envelope, expected);
 }
@@ -427,46 +338,31 @@ TEST(make_resource_with_priority_clamped_low) {
   EXPECT_EQ(resource, expected);
 }
 
-TEST(make_resource_with_priority_positive_infinity) {
-  const auto resource{sourcemeta::core::mcp_make_resource(
-      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "file:///a", "Alpha",
-      "text/plain", {}, std::nullopt,
-      std::optional<double>{std::numeric_limits<double>::infinity()})};
-  const auto expected{sourcemeta::core::parse_json(R"JSON({
-    "uri": "file:///a",
-    "name": "Alpha",
-    "mimeType": "text/plain",
-    "annotations": { "priority": 1.0 }
-  })JSON")};
-  EXPECT_EQ(resource, expected);
+TEST(make_resource_rejects_priority_positive_infinity) {
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_resource(
+          sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "file:///a",
+          "Alpha", "text/plain", {}, std::nullopt,
+          std::optional<double>{std::numeric_limits<double>::infinity()}),
+      "Annotation priority must be a finite number");
 }
 
-TEST(make_resource_with_priority_negative_infinity) {
-  const auto resource{sourcemeta::core::mcp_make_resource(
-      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "file:///a", "Alpha",
-      "text/plain", {}, std::nullopt,
-      std::optional<double>{-std::numeric_limits<double>::infinity()})};
-  const auto expected{sourcemeta::core::parse_json(R"JSON({
-    "uri": "file:///a",
-    "name": "Alpha",
-    "mimeType": "text/plain",
-    "annotations": { "priority": 0.0 }
-  })JSON")};
-  EXPECT_EQ(resource, expected);
+TEST(make_resource_rejects_priority_negative_infinity) {
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_resource(
+          sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "file:///a",
+          "Alpha", "text/plain", {}, std::nullopt,
+          std::optional<double>{-std::numeric_limits<double>::infinity()}),
+      "Annotation priority must be a finite number");
 }
 
-TEST(make_resource_with_priority_nan) {
-  const auto resource{sourcemeta::core::mcp_make_resource(
-      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "file:///a", "Alpha",
-      "text/plain", {}, std::nullopt,
-      std::optional<double>{std::numeric_limits<double>::quiet_NaN()})};
-  const auto expected{sourcemeta::core::parse_json(R"JSON({
-    "uri": "file:///a",
-    "name": "Alpha",
-    "mimeType": "text/plain",
-    "annotations": { "priority": 1.0 }
-  })JSON")};
-  EXPECT_EQ(resource, expected);
+TEST(make_resource_rejects_priority_nan) {
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_resource(
+          sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "file:///a",
+          "Alpha", "text/plain", {}, std::nullopt,
+          std::optional<double>{std::numeric_limits<double>::quiet_NaN()}),
+      "Annotation priority must be a finite number");
 }
 
 TEST(make_resource_text_content) {
@@ -491,7 +387,11 @@ TEST(make_resources_read_result_single) {
       policy)};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "contents": [
-      { "uri": "file:///a", "mimeType": "text/plain", "text": "Hello" }
+      {
+        "uri": "file:///a",
+        "mimeType": "text/plain",
+        "text": "Hello"
+      }
     ]
   })JSON")};
   EXPECT_EQ(result, expected);
@@ -503,9 +403,8 @@ TEST(make_resources_read_result_empty) {
   const auto result{sourcemeta::core::mcp_make_resources_read_result(
       sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
       sourcemeta::core::JSON::make_array(), policy)};
-  const auto expected{sourcemeta::core::parse_json(R"JSON({
-    "contents": []
-  })JSON")};
+  const auto expected{
+      sourcemeta::core::parse_json(R"JSON({ "contents": [] })JSON")};
   EXPECT_EQ(result, expected);
 }
 
@@ -525,7 +424,7 @@ TEST(make_resource_template) {
 TEST(make_tool_descriptor_default_annotations_2025_11_25) {
   const auto entry{sourcemeta::core::mcp_make_tool_descriptor(
       sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "say", "Says hello",
-      sourcemeta::core::parse_json(R"({ "type": "object" })"))};
+      sourcemeta::core::parse_json(R"JSON({ "type": "object" })JSON"))};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "name": "say",
     "description": "Says hello",
@@ -543,8 +442,8 @@ TEST(make_tool_descriptor_default_annotations_2025_11_25) {
 TEST(make_tool_descriptor_with_output_schema_2025_11_25) {
   const auto entry{sourcemeta::core::mcp_make_tool_descriptor(
       sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "say", "Says hello",
-      sourcemeta::core::parse_json(R"({ "type": "object" })"),
-      sourcemeta::core::parse_json(R"({ "type": "object" })"))};
+      sourcemeta::core::parse_json(R"JSON({ "type": "object" })JSON"),
+      sourcemeta::core::parse_json(R"JSON({ "type": "object" })JSON"))};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "name": "say",
     "description": "Says hello",
@@ -563,8 +462,8 @@ TEST(make_tool_descriptor_with_output_schema_2025_11_25) {
 TEST(make_tool_descriptor_with_output_schema_dropped_on_2025_03_26) {
   const auto entry{sourcemeta::core::mcp_make_tool_descriptor(
       sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "say", "Says hello",
-      sourcemeta::core::parse_json(R"({ "type": "object" })"),
-      sourcemeta::core::parse_json(R"({ "type": "string" })"))};
+      sourcemeta::core::parse_json(R"JSON({ "type": "object" })JSON"),
+      sourcemeta::core::parse_json(R"JSON({ "type": "string" })JSON"))};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "name": "say",
     "description": "Says hello",
@@ -588,8 +487,8 @@ TEST(make_tool_descriptor_with_title_and_read_only_hints) {
   annotations.open_world = false;
   const auto entry{sourcemeta::core::mcp_make_tool_descriptor(
       sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "say", "Says hello",
-      sourcemeta::core::parse_json(R"({ "type": "object" })"), std::nullopt,
-      annotations)};
+      sourcemeta::core::parse_json(R"JSON({ "type": "object" })JSON"),
+      std::nullopt, annotations)};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "name": "say",
     "description": "Says hello",
@@ -606,19 +505,18 @@ TEST(make_tool_descriptor_with_title_and_read_only_hints) {
 }
 
 TEST(make_initialize_result_minimal_2025_11_25) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
   const auto request{sourcemeta::core::parse_json(R"JSON({
-  "jsonrpc": "2.0",
-  "id": 1,
-  "method": "initialize",
-  "params": {
-    "protocolVersion": "2025-11-25",
-    "capabilities": {},
-    "clientInfo": {
-      "name": "client",
-      "version": "1"
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "initialize",
+    "params": {
+      "protocolVersion": "2025-11-25",
+      "capabilities": {},
+      "clientInfo": { "name": "client", "version": "1" }
     }
-  }
-})JSON")};
+  })JSON")};
   const sourcemeta::core::MCPServerCapabilities capabilities;
   const sourcemeta::core::MCPImplementation server{.name = "srv",
                                                    .version = "1.0.0",
@@ -626,7 +524,7 @@ TEST(make_initialize_result_minimal_2025_11_25) {
                                                    .description = {},
                                                    .website_url = {}};
   const auto envelope{sourcemeta::core::mcp_make_initialize_result(
-      request, capabilities, server, SUPPORTED_VERSIONS)};
+      request, capabilities, server, SUPPORTED)};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "id": 1,
@@ -640,6 +538,8 @@ TEST(make_initialize_result_minimal_2025_11_25) {
 }
 
 TEST(make_initialize_result_missing_protocol_version_is_invalid_params) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
   const auto request{sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "id": 1,
@@ -653,7 +553,7 @@ TEST(make_initialize_result_missing_protocol_version_is_invalid_params) {
                                                    .description = {},
                                                    .website_url = {}};
   const auto envelope{sourcemeta::core::mcp_make_initialize_result(
-      request, capabilities, server, SUPPORTED_VERSIONS)};
+      request, capabilities, server, SUPPORTED)};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "id": 1,
@@ -663,6 +563,8 @@ TEST(make_initialize_result_missing_protocol_version_is_invalid_params) {
 }
 
 TEST(make_initialize_result_non_string_protocol_version_is_invalid_params) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
   const auto request{sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "id": 1,
@@ -676,7 +578,7 @@ TEST(make_initialize_result_non_string_protocol_version_is_invalid_params) {
                                                    .description = {},
                                                    .website_url = {}};
   const auto envelope{sourcemeta::core::mcp_make_initialize_result(
-      request, capabilities, server, SUPPORTED_VERSIONS)};
+      request, capabilities, server, SUPPORTED)};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "id": 1,
@@ -686,19 +588,18 @@ TEST(make_initialize_result_non_string_protocol_version_is_invalid_params) {
 }
 
 TEST(make_initialize_result_unsupported_protocol_version_negotiates_latest) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
   const auto request{sourcemeta::core::parse_json(R"JSON({
-  "jsonrpc": "2.0",
-  "id": 1,
-  "method": "initialize",
-  "params": {
-    "protocolVersion": "9999-01-01",
-    "capabilities": {},
-    "clientInfo": {
-      "name": "client",
-      "version": "1"
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "initialize",
+    "params": {
+      "protocolVersion": "9999-01-01",
+      "capabilities": {},
+      "clientInfo": { "name": "client", "version": "1" }
     }
-  }
-})JSON")};
+  })JSON")};
   const sourcemeta::core::MCPServerCapabilities capabilities;
   const sourcemeta::core::MCPImplementation server{.name = "srv",
                                                    .version = "1.0.0",
@@ -706,7 +607,7 @@ TEST(make_initialize_result_unsupported_protocol_version_negotiates_latest) {
                                                    .description = {},
                                                    .website_url = {}};
   const auto envelope{sourcemeta::core::mcp_make_initialize_result(
-      request, capabilities, server, SUPPORTED_VERSIONS)};
+      request, capabilities, server, SUPPORTED)};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "id": 1,
@@ -720,19 +621,18 @@ TEST(make_initialize_result_unsupported_protocol_version_negotiates_latest) {
 }
 
 TEST(make_initialize_result_with_all_capabilities) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
   const auto request{sourcemeta::core::parse_json(R"JSON({
-  "jsonrpc": "2.0",
-  "id": 1,
-  "method": "initialize",
-  "params": {
-    "protocolVersion": "2025-11-25",
-    "capabilities": {},
-    "clientInfo": {
-      "name": "client",
-      "version": "1"
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "initialize",
+    "params": {
+      "protocolVersion": "2025-11-25",
+      "capabilities": {},
+      "clientInfo": { "name": "client", "version": "1" }
     }
-  }
-})JSON")};
+  })JSON")};
   sourcemeta::core::MCPServerCapabilities capabilities;
   capabilities.prompts = true;
   capabilities.resources = true;
@@ -745,7 +645,7 @@ TEST(make_initialize_result_with_all_capabilities) {
                                                    .description = {},
                                                    .website_url = {}};
   const auto envelope{sourcemeta::core::mcp_make_initialize_result(
-      request, capabilities, server, SUPPORTED_VERSIONS)};
+      request, capabilities, server, SUPPORTED)};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "id": 1,
@@ -765,19 +665,18 @@ TEST(make_initialize_result_with_all_capabilities) {
 }
 
 TEST(make_initialize_result_includes_instructions_when_provided) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
   const auto request{sourcemeta::core::parse_json(R"JSON({
-  "jsonrpc": "2.0",
-  "id": 1,
-  "method": "initialize",
-  "params": {
-    "protocolVersion": "2025-11-25",
-    "capabilities": {},
-    "clientInfo": {
-      "name": "client",
-      "version": "1"
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "initialize",
+    "params": {
+      "protocolVersion": "2025-11-25",
+      "capabilities": {},
+      "clientInfo": { "name": "client", "version": "1" }
     }
-  }
-})JSON")};
+  })JSON")};
   const sourcemeta::core::MCPServerCapabilities capabilities;
   const sourcemeta::core::MCPImplementation server{.name = "srv",
                                                    .version = "1.0.0",
@@ -785,53 +684,59 @@ TEST(make_initialize_result_includes_instructions_when_provided) {
                                                    .description = {},
                                                    .website_url = {}};
   const auto envelope{sourcemeta::core::mcp_make_initialize_result(
-      request, capabilities, server, SUPPORTED_VERSIONS, "Be careful.")};
+      request, capabilities, server, SUPPORTED, "Be careful.")};
   EXPECT_EQ(envelope.at("result").at("instructions").to_string(),
             "Be careful.");
 }
 
-TEST(make_initialize_result_includes_title_on_2025_06_18) {
-  const auto request{sourcemeta::core::parse_json(R"JSON({
-  "jsonrpc": "2.0",
-  "id": 1,
-  "method": "initialize",
-  "params": {
-    "protocolVersion": "2025-06-18",
-    "capabilities": {},
-    "clientInfo": {
-      "name": "client",
-      "version": "1"
-    }
-  }
-})JSON")};
-  const sourcemeta::core::MCPServerCapabilities capabilities;
+// A description and a website URL arrived in 2025-11-25, so an earlier
+// handshake carries only the title
+// https://modelcontextprotocol.io/specification/2026-07-28/schema#implementation
+TEST(make_initialize_result_includes_only_the_title_on_2025_06_18) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
   const sourcemeta::core::MCPImplementation server{.name = "srv",
                                                    .version = "1.0.0",
                                                    .title = "Server",
                                                    .description = "desc",
-                                                   .website_url = "https://x"};
-  const auto envelope{sourcemeta::core::mcp_make_initialize_result(
-      request, capabilities, server, SUPPORTED_VERSIONS)};
-  EXPECT_EQ(envelope.at("result").at("serverInfo").at("title").to_string(),
-            "Server");
-  EXPECT_FALSE(envelope.at("result").at("serverInfo").defines("description"));
-  EXPECT_FALSE(envelope.at("result").at("serverInfo").defines("websiteUrl"));
+                                                   .website_url =
+                                                       "https://example.com"};
+  EXPECT_EQ(sourcemeta::core::mcp_make_initialize_result(
+                sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "initialize",
+    "params": {
+      "protocolVersion": "2025-06-18",
+      "capabilities": {},
+      "clientInfo": { "name": "client", "version": "1" }
+    }
+  })JSON"),
+                {}, server, SUPPORTED),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "result": {
+      "protocolVersion": "2025-06-18",
+      "capabilities": {},
+      "serverInfo": { "name": "srv", "version": "1.0.0", "title": "Server" }
+    }
+  })JSON"));
 }
 
 TEST(make_initialize_result_includes_full_implementation_on_2025_11_25) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
   const auto request{sourcemeta::core::parse_json(R"JSON({
-  "jsonrpc": "2.0",
-  "id": 1,
-  "method": "initialize",
-  "params": {
-    "protocolVersion": "2025-11-25",
-    "capabilities": {},
-    "clientInfo": {
-      "name": "client",
-      "version": "1"
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "initialize",
+    "params": {
+      "protocolVersion": "2025-11-25",
+      "capabilities": {},
+      "clientInfo": { "name": "client", "version": "1" }
     }
-  }
-})JSON")};
+  })JSON")};
   const sourcemeta::core::MCPServerCapabilities capabilities;
   const sourcemeta::core::MCPImplementation server{.name = "srv",
                                                    .version = "1.0.0",
@@ -839,7 +744,7 @@ TEST(make_initialize_result_includes_full_implementation_on_2025_11_25) {
                                                    .description = "desc",
                                                    .website_url = "https://x"};
   const auto envelope{sourcemeta::core::mcp_make_initialize_result(
-      request, capabilities, server, SUPPORTED_VERSIONS)};
+      request, capabilities, server, SUPPORTED)};
   EXPECT_EQ(envelope.at("result").at("serverInfo").at("title").to_string(),
             "Server");
   EXPECT_EQ(
@@ -851,46 +756,50 @@ TEST(make_initialize_result_includes_full_implementation_on_2025_11_25) {
 
 TEST(
     make_initialize_result_strips_unsupported_implementation_fields_on_2025_03_26) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
   const auto request{sourcemeta::core::parse_json(R"JSON({
-  "jsonrpc": "2.0",
-  "id": 1,
-  "method": "initialize",
-  "params": {
-    "protocolVersion": "2025-03-26",
-    "capabilities": {},
-    "clientInfo": {
-      "name": "client",
-      "version": "1"
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "initialize",
+    "params": {
+      "protocolVersion": "2025-03-26",
+      "capabilities": {},
+      "clientInfo": { "name": "client", "version": "1" }
     }
-  }
-})JSON")};
+  })JSON")};
   const sourcemeta::core::MCPServerCapabilities capabilities;
   const sourcemeta::core::MCPImplementation server{.name = "srv",
                                                    .version = "1.0.0",
                                                    .title = "Server",
                                                    .description = "desc",
                                                    .website_url = "https://x"};
-  const auto envelope{sourcemeta::core::mcp_make_initialize_result(
-      request, capabilities, server, SUPPORTED_VERSIONS)};
-  EXPECT_FALSE(envelope.at("result").at("serverInfo").defines("title"));
-  EXPECT_FALSE(envelope.at("result").at("serverInfo").defines("description"));
-  EXPECT_FALSE(envelope.at("result").at("serverInfo").defines("websiteUrl"));
+  EXPECT_EQ(sourcemeta::core::mcp_make_initialize_result(request, capabilities,
+                                                         server, SUPPORTED),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "result": {
+      "protocolVersion": "2025-03-26",
+      "capabilities": {},
+      "serverInfo": { "name": "srv", "version": "1.0.0" }
+    }
+  })JSON"));
 }
 
 TEST(make_initialize_result_falls_back_to_2025_11_25_on_unknown_version) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
   const auto request{sourcemeta::core::parse_json(R"JSON({
-  "jsonrpc": "2.0",
-  "id": 1,
-  "method": "initialize",
-  "params": {
-    "protocolVersion": "9999-01-01",
-    "capabilities": {},
-    "clientInfo": {
-      "name": "client",
-      "version": "1"
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "initialize",
+    "params": {
+      "protocolVersion": "9999-01-01",
+      "capabilities": {},
+      "clientInfo": { "name": "client", "version": "1" }
     }
-  }
-})JSON")};
+  })JSON")};
   const sourcemeta::core::MCPServerCapabilities capabilities;
   const sourcemeta::core::MCPImplementation server{.name = "srv",
                                                    .version = "1.0.0",
@@ -898,15 +807,16 @@ TEST(make_initialize_result_falls_back_to_2025_11_25_on_unknown_version) {
                                                    .description = {},
                                                    .website_url = {}};
   const auto envelope{sourcemeta::core::mcp_make_initialize_result(
-      request, capabilities, server, SUPPORTED_VERSIONS)};
+      request, capabilities, server, SUPPORTED)};
   EXPECT_EQ(envelope.at("result").at("protocolVersion").to_string(),
             "2025-11-25");
 }
 
 TEST(make_initialize_result_returns_invalid_request_when_missing_params) {
-  const auto request{sourcemeta::core::parse_json(R"JSON({
-    "jsonrpc": "2.0", "id": 1, "method": "initialize"
-  })JSON")};
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  const auto request{sourcemeta::core::parse_json(
+      R"JSON({ "jsonrpc": "2.0", "id": 1, "method": "initialize" })JSON")};
   const sourcemeta::core::MCPServerCapabilities capabilities;
   const sourcemeta::core::MCPImplementation server{.name = "srv",
                                                    .version = "1.0.0",
@@ -914,15 +824,20 @@ TEST(make_initialize_result_returns_invalid_request_when_missing_params) {
                                                    .description = {},
                                                    .website_url = {}};
   const auto envelope{sourcemeta::core::mcp_make_initialize_result(
-      request, capabilities, server, SUPPORTED_VERSIONS)};
+      request, capabilities, server, SUPPORTED)};
   EXPECT_EQ(envelope.at("error").at("code").to_integer(),
             sourcemeta::core::JSONRPC_CODE_INVALID_REQUEST);
 }
 
 TEST(make_initialize_result_returns_invalid_request_when_id_missing) {
-  const auto request{sourcemeta::core::parse_json(R"JSON({
-    "jsonrpc": "2.0", "method": "initialize", "params": {}
-  })JSON")};
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  const auto request{sourcemeta::core::parse_json(
+      R"JSON({
+        "jsonrpc": "2.0",
+        "method": "initialize",
+        "params": {}
+      })JSON")};
   const sourcemeta::core::MCPServerCapabilities capabilities;
   const sourcemeta::core::MCPImplementation server{.name = "srv",
                                                    .version = "1.0.0",
@@ -930,22 +845,20 @@ TEST(make_initialize_result_returns_invalid_request_when_id_missing) {
                                                    .description = {},
                                                    .website_url = {}};
   const auto envelope{sourcemeta::core::mcp_make_initialize_result(
-      request, capabilities, server, SUPPORTED_VERSIONS)};
+      request, capabilities, server, SUPPORTED)};
   EXPECT_EQ(envelope.at("error").at("code").to_integer(),
             sourcemeta::core::JSONRPC_CODE_INVALID_REQUEST);
 }
 
-TEST(tool_call_arguments_present) {
+TEST(tool_call_arguments_of_a_tool_call) {
   const auto envelope{sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "id": 1,
     "method": "tools/call",
     "params": { "name": "foo", "arguments": { "x": 1 } }
   })JSON")};
-  const auto *arguments{sourcemeta::core::mcp_tool_call_arguments(envelope)};
-  EXPECT_NE(arguments, nullptr);
-  EXPECT_TRUE(arguments->is_object());
-  EXPECT_EQ(arguments->at("x").to_integer(), 1);
+  EXPECT_EQ(*sourcemeta::core::mcp_tool_call_arguments(envelope),
+            sourcemeta::core::parse_json(R"JSON({ "x": 1 })JSON"));
 }
 
 TEST(tool_call_arguments_missing) {
@@ -969,11 +882,8 @@ TEST(tool_call_arguments_params_not_object) {
 }
 
 TEST(tool_call_arguments_no_params) {
-  const auto envelope{sourcemeta::core::parse_json(R"JSON({
-    "jsonrpc": "2.0",
-    "id": 1,
-    "method": "tools/call"
-  })JSON")};
+  const auto envelope{sourcemeta::core::parse_json(
+      R"JSON({ "jsonrpc": "2.0", "id": 1, "method": "tools/call" })JSON")};
   EXPECT_EQ(sourcemeta::core::mcp_tool_call_arguments(envelope), nullptr);
 }
 
@@ -1066,27 +976,35 @@ TEST(cache_scope_parsing) {
 
 TEST(body_extraction_name) {
   const auto tool_call{sourcemeta::core::parse_json(R"JSON({
-    "jsonrpc": "2.0", "id": 1, "method": "tools/call",
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/call",
     "params": { "name": "my-tool", "arguments": {} }
   })JSON")};
   EXPECT_EQ(sourcemeta::core::mcp_request_name_from_body(tool_call), "my-tool");
 
   const auto res_read{sourcemeta::core::parse_json(R"JSON({
-    "jsonrpc": "2.0", "id": 1, "method": "resources/read",
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "resources/read",
     "params": { "uri": "file:///path/to/file" }
   })JSON")};
   EXPECT_EQ(sourcemeta::core::mcp_request_name_from_body(res_read),
             "file:///path/to/file");
 
   const auto prompt_get{sourcemeta::core::parse_json(R"JSON({
-    "jsonrpc": "2.0", "id": 1, "method": "prompts/get",
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "prompts/get",
     "params": { "name": "code-review" }
   })JSON")};
   EXPECT_EQ(sourcemeta::core::mcp_request_name_from_body(prompt_get),
             "code-review");
 
   const auto neither{sourcemeta::core::parse_json(R"JSON({
-    "jsonrpc": "2.0", "id": 1, "method": "tools/list",
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/list",
     "params": {}
   })JSON")};
   EXPECT_EQ(sourcemeta::core::mcp_request_name_from_body(neither),
@@ -1119,18 +1037,18 @@ TEST(error_missing_required_capability) {
   auto required{sourcemeta::core::JSON::make_object()};
   required.assign("elicitation", sourcemeta::core::JSON::make_object());
 
-  const auto envelope{
-      sourcemeta::core::mcp_make_error_missing_required_capability(
-          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, identifier,
-          std::move(required), "Missing required client capability")};
-
-  EXPECT_EQ(envelope.at("error").at("code").to_integer(), -32021);
-  EXPECT_EQ(envelope.at("error").at("message").to_string(),
-            "Missing required client capability");
-  EXPECT_TRUE(envelope.at("error")
-                  .at("data")
-                  .at("requiredCapabilities")
-                  .defines("elicitation"));
+  EXPECT_EQ(sourcemeta::core::mcp_make_error_missing_required_capability(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28, identifier,
+                std::move(required), "Missing required client capability"),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 11,
+    "error": {
+      "code": -32021,
+      "message": "Missing required client capability",
+      "data": { "requiredCapabilities": { "elicitation": {} } }
+    }
+  })JSON"));
 }
 
 TEST(error_header_mismatch) {
@@ -1175,592 +1093,41 @@ TEST(error_header_mismatch_detailed) {
             "resources/read");
 }
 
-TEST(error_header_mismatch_null_and_missing_identifier) {
-  const auto null_identifier{sourcemeta::core::JSON{nullptr}};
-  const auto envelope_null_identifier{
-      sourcemeta::core::mcp_make_error_header_mismatch(
-          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, null_identifier,
-          "Mcp-Method", "tools/call", "resources/read")};
-  EXPECT_FALSE(envelope_null_identifier.defines("id"));
-
-  const auto envelope_missing_identifier{
-      sourcemeta::core::mcp_make_error_header_mismatch(
-          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, std::nullopt,
-          "Mcp-Method", "tools/call", "resources/read")};
-  EXPECT_FALSE(envelope_missing_identifier.defines("id"));
-}
-
-TEST(header_validation_modern_valid_server_discover) {
-  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+TEST(make_error_header_mismatch_omits_a_null_identifier) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_error_header_mismatch(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::JSON{nullptr}, "Mcp-Method", "tools/call",
+                "resources/read"),
+            sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
-    "id": 1,
-    "method": "server/discover",
-    "params": {
-      "_meta": {
-        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-        "io.modelcontextprotocol/clientCapabilities": {},
-        "io.modelcontextprotocol/clientInfo": {
-          "name": "ExampleClient",
-          "version": "1.0.0"
-        }
+    "error": {
+      "code": -32020,
+      "message": "Header mismatch",
+      "data": {
+        "header": "Mcp-Method",
+        "headerValue": "tools/call",
+        "bodyValue": "resources/read"
       }
     }
-  })JSON")};
-
-  const auto error{sourcemeta::core::mcp_validate_request_headers(
-      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "2026-07-28",
-      "server/discover", std::nullopt, envelope, SUPPORTED_VERSIONS)};
-  EXPECT_FALSE(error.has_value());
+  })JSON"));
 }
 
-TEST(header_validation_modern_valid_tools_list) {
-  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+TEST(make_error_header_mismatch_omits_an_absent_identifier) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_error_header_mismatch(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                std::nullopt, "Mcp-Method", "tools/call", "resources/read"),
+            sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
-    "id": 1,
-    "method": "tools/list",
-    "params": {
-      "_meta": {
-        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-        "io.modelcontextprotocol/clientCapabilities": {},
-        "io.modelcontextprotocol/clientInfo": {
-          "name": "ExampleClient",
-          "version": "1.0.0"
-        }
+    "error": {
+      "code": -32020,
+      "message": "Header mismatch",
+      "data": {
+        "header": "Mcp-Method",
+        "headerValue": "tools/call",
+        "bodyValue": "resources/read"
       }
     }
-  })JSON")};
-
-  const auto error{sourcemeta::core::mcp_validate_request_headers(
-      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "2026-07-28",
-      "tools/list", std::nullopt, envelope, SUPPORTED_VERSIONS)};
-  EXPECT_FALSE(error.has_value());
-}
-
-TEST(header_validation_modern_valid_tools_call) {
-  const auto envelope{sourcemeta::core::parse_json(R"JSON({
-    "jsonrpc": "2.0",
-    "id": 1,
-    "method": "tools/call",
-    "params": {
-      "_meta": {
-        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-        "io.modelcontextprotocol/clientCapabilities": {},
-        "io.modelcontextprotocol/clientInfo": {
-          "name": "ExampleClient",
-          "version": "1.0.0"
-        }
-      },
-      "name": "calculator"
-    }
-  })JSON")};
-
-  const auto error{sourcemeta::core::mcp_validate_request_headers(
-      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "2026-07-28",
-      "tools/call", "calculator", envelope, SUPPORTED_VERSIONS)};
-  EXPECT_FALSE(error.has_value());
-}
-
-TEST(header_validation_modern_valid_resources_read) {
-  const auto envelope{sourcemeta::core::parse_json(R"JSON({
-    "jsonrpc": "2.0",
-    "id": 1,
-    "method": "resources/read",
-    "params": {
-      "_meta": {
-        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-        "io.modelcontextprotocol/clientCapabilities": {},
-        "io.modelcontextprotocol/clientInfo": {
-          "name": "ExampleClient",
-          "version": "1.0.0"
-        }
-      },
-      "uri": "file:///path/to/resource.txt"
-    }
-  })JSON")};
-
-  // Plain URI
-  {
-    const auto error{sourcemeta::core::mcp_validate_request_headers(
-        sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "2026-07-28",
-        "resources/read", "file:///path/to/resource.txt", envelope,
-        SUPPORTED_VERSIONS)};
-    EXPECT_FALSE(error.has_value());
-  }
-
-  // Base64 encoded header value
-  {
-    // "file:///path/to/resource.txt" in base64 is
-    // "ZmlsZTovLy9wYXRoL3RvL3Jlc291cmNlLnR4dA=="
-    const auto error{sourcemeta::core::mcp_validate_request_headers(
-        sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "2026-07-28",
-        "resources/read", "=?base64?ZmlsZTovLy9wYXRoL3RvL3Jlc291cmNlLnR4dA==?=",
-        envelope, SUPPORTED_VERSIONS)};
-    EXPECT_FALSE(error.has_value());
-  }
-}
-
-TEST(header_validation_modern_valid_prompts_get) {
-  const auto envelope{sourcemeta::core::parse_json(R"JSON({
-    "jsonrpc": "2.0",
-    "id": 1,
-    "method": "prompts/get",
-    "params": {
-      "_meta": {
-        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-        "io.modelcontextprotocol/clientCapabilities": {},
-        "io.modelcontextprotocol/clientInfo": {
-          "name": "ExampleClient",
-          "version": "1.0.0"
-        }
-      },
-      "name": "summarize"
-    }
-  })JSON")};
-
-  const auto error{sourcemeta::core::mcp_validate_request_headers(
-      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "2026-07-28",
-      "prompts/get", "summarize", envelope, SUPPORTED_VERSIONS)};
-  EXPECT_FALSE(error.has_value());
-}
-
-TEST(header_validation_modern_missing_headers) {
-  const auto envelope{sourcemeta::core::parse_json(R"JSON({
-    "jsonrpc": "2.0",
-    "id": 42,
-    "method": "tools/call",
-    "params": {
-      "_meta": {
-        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-        "io.modelcontextprotocol/clientCapabilities": {},
-        "io.modelcontextprotocol/clientInfo": {
-          "name": "ExampleClient",
-          "version": "1.0.0"
-        }
-      },
-      "name": "calculator"
-    }
-  })JSON")};
-
-  // Missing MCP-Protocol-Version
-  {
-    const auto error{sourcemeta::core::mcp_validate_request_headers(
-        sourcemeta::core::MCPProtocolVersion::V_2026_07_28, std::nullopt,
-        "tools/call", "calculator", envelope, SUPPORTED_VERSIONS)};
-    EXPECT_TRUE(error.has_value());
-    EXPECT_EQ(error->at("error").at("code").to_integer(), -32020);
-    EXPECT_EQ(error->at("id").to_integer(), 42);
-  }
-
-  // Missing Mcp-Method
-  {
-    const auto error{sourcemeta::core::mcp_validate_request_headers(
-        sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "2026-07-28",
-        std::nullopt, "calculator", envelope, SUPPORTED_VERSIONS)};
-    EXPECT_TRUE(error.has_value());
-    EXPECT_EQ(error->at("error").at("code").to_integer(), -32020);
-    EXPECT_EQ(error->at("id").to_integer(), 42);
-  }
-
-  // Missing Mcp-Name on named method
-  {
-    const auto error{sourcemeta::core::mcp_validate_request_headers(
-        sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "2026-07-28",
-        "tools/call", std::nullopt, envelope, SUPPORTED_VERSIONS)};
-    EXPECT_TRUE(error.has_value());
-    EXPECT_EQ(error->at("error").at("code").to_integer(), -32020);
-    EXPECT_EQ(error->at("id").to_integer(), 42);
-  }
-}
-
-TEST(header_validation_modern_mismatches) {
-  const auto envelope{sourcemeta::core::parse_json(R"JSON({
-    "jsonrpc": "2.0",
-    "id": 100,
-    "method": "tools/call",
-    "params": {
-      "_meta": {
-        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-        "io.modelcontextprotocol/clientCapabilities": {},
-        "io.modelcontextprotocol/clientInfo": {
-          "name": "ExampleClient",
-          "version": "1.0.0"
-        }
-      },
-      "name": "calculator"
-    }
-  })JSON")};
-
-  // Protocol header disagrees with request metadata
-  {
-    const auto envelope_legacy_meta{sourcemeta::core::parse_json(R"JSON({
-      "jsonrpc": "2.0",
-      "id": 100,
-      "method": "tools/call",
-      "params": {
-        "_meta": {
-          "io.modelcontextprotocol/protocolVersion": "2025-11-25",
-          "io.modelcontextprotocol/clientCapabilities": {},
-          "io.modelcontextprotocol/clientInfo": {
-            "name": "ExampleClient",
-            "version": "1.0.0"
-          }
-        },
-        "name": "calculator"
-      }
-    })JSON")};
-    const auto error{sourcemeta::core::mcp_validate_request_headers(
-        sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "2026-07-28",
-        "tools/call", "calculator", envelope_legacy_meta, SUPPORTED_VERSIONS)};
-    EXPECT_TRUE(error.has_value());
-    EXPECT_EQ(error->at("error").at("code").to_integer(), -32020);
-  }
-
-  // Mcp-Method disagrees with JSON-RPC method
-  {
-    const auto error{sourcemeta::core::mcp_validate_request_headers(
-        sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "2026-07-28",
-        "tools/list", "calculator", envelope, SUPPORTED_VERSIONS)};
-    EXPECT_TRUE(error.has_value());
-    EXPECT_EQ(error->at("error").at("code").to_integer(), -32020);
-  }
-
-  // Mcp-Name disagrees with request body name
-  {
-    const auto error{sourcemeta::core::mcp_validate_request_headers(
-        sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "2026-07-28",
-        "tools/call", "other_tool", envelope, SUPPORTED_VERSIONS)};
-    EXPECT_TRUE(error.has_value());
-    EXPECT_EQ(error->at("error").at("code").to_integer(), -32020);
-  }
-
-  // Unsupported protocol header
-  {
-    const auto error{sourcemeta::core::mcp_validate_request_headers(
-        sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "1900-01-01",
-        "tools/call", "calculator", envelope, SUPPORTED_VERSIONS)};
-    EXPECT_TRUE(error.has_value());
-    EXPECT_EQ(error->at("error").at("code").to_integer(), -32020);
-  }
-
-  // Header name supplied for an operation with no body name
-  {
-    const auto envelope_tools_list{sourcemeta::core::parse_json(R"JSON({
-      "jsonrpc": "2.0",
-      "id": 101,
-      "method": "tools/list",
-      "params": {
-        "_meta": {
-          "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-          "io.modelcontextprotocol/clientCapabilities": {},
-          "io.modelcontextprotocol/clientInfo": {
-            "name": "ExampleClient",
-            "version": "1.0.0"
-          }
-        }
-      }
-    })JSON")};
-    const auto error{sourcemeta::core::mcp_validate_request_headers(
-        sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "2026-07-28",
-        "tools/list", "unexpected_name", envelope_tools_list,
-        SUPPORTED_VERSIONS)};
-    EXPECT_TRUE(error.has_value());
-    EXPECT_EQ(error->at("error").at("code").to_integer(), -32020);
-  }
-}
-
-TEST(header_validation_legacy_regressions) {
-  const std::vector<sourcemeta::core::MCPProtocolVersion> legacy_versions{
-      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
-      sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
-      sourcemeta::core::MCPProtocolVersion::V_2025_11_25};
-
-  for (const auto legacy_version : legacy_versions) {
-    const auto envelope{sourcemeta::core::parse_json(R"JSON({
-      "jsonrpc": "2.0",
-      "id": 1,
-      "method": "tools/call",
-      "params": {
-        "name": "calculator"
-      }
-    })JSON")};
-
-    // Modern routing headers are not required for legacy versions
-    const auto no_headers{sourcemeta::core::mcp_validate_request_headers(
-        legacy_version, std::nullopt, std::nullopt, std::nullopt, envelope,
-        SUPPORTED_VERSIONS)};
-    EXPECT_FALSE(no_headers.has_value());
-
-    // An empty method is a string. Dispatch handles unsupported method names.
-    auto empty_method{envelope};
-    empty_method.assign("method", sourcemeta::core::JSON{""});
-    EXPECT_FALSE(sourcemeta::core::mcp_validate_request_headers(
-                     legacy_version, std::nullopt, std::nullopt, std::nullopt,
-                     empty_method, SUPPORTED_VERSIONS)
-                     .has_value());
-
-    // If matching headers are supplied, validation passes
-    const auto matching{sourcemeta::core::mcp_validate_request_headers(
-        legacy_version,
-        sourcemeta::core::mcp_protocol_version_string(legacy_version),
-        "tools/call", "calculator", envelope, SUPPORTED_VERSIONS)};
-    EXPECT_FALSE(matching.has_value());
-
-    // Routing headers are undefined and ignored in legacy revisions
-    const auto method_mismatch{sourcemeta::core::mcp_validate_request_headers(
-        legacy_version, std::nullopt, "tools/list", std::nullopt, envelope,
-        SUPPORTED_VERSIONS)};
-    EXPECT_FALSE(method_mismatch.has_value());
-
-    // A mismatched name is also ignored
-    const auto name_mismatch{sourcemeta::core::mcp_validate_request_headers(
-        legacy_version, std::nullopt, std::nullopt, "other_tool", envelope,
-        SUPPORTED_VERSIONS)};
-    EXPECT_FALSE(name_mismatch.has_value());
-
-    // Unsupported legacy transport version is a bad request
-    const auto unsupported{sourcemeta::core::mcp_validate_request_headers(
-        legacy_version, "invalid-protocol", std::nullopt, std::nullopt,
-        envelope, SUPPORTED_VERSIONS)};
-    EXPECT_TRUE(unsupported.has_value());
-    EXPECT_EQ(unsupported->at("error").at("code").to_integer(), -32600);
-  }
-}
-
-TEST(header_validation_safety_cases) {
-  // Envelope is not an object
-  {
-    const auto not_object{sourcemeta::core::JSON{42}};
-    const auto error{sourcemeta::core::mcp_validate_request_headers(
-        sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "2026-07-28",
-        "tools/list", std::nullopt, not_object, SUPPORTED_VERSIONS)};
-    EXPECT_TRUE(error.has_value());
-    EXPECT_EQ(error->at("error").at("code").to_integer(), -32600);
-  }
-
-  // Missing JSON-RPC method
-  {
-    const auto no_method{sourcemeta::core::parse_json(R"JSON({
-      "jsonrpc": "2.0",
-      "id": 1,
-      "params": {}
-    })JSON")};
-    const auto error{sourcemeta::core::mcp_validate_request_headers(
-        sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "2026-07-28",
-        "tools/list", std::nullopt, no_method, SUPPORTED_VERSIONS)};
-    EXPECT_TRUE(error.has_value());
-    EXPECT_EQ(error->at("error").at("code").to_integer(), -32600);
-  }
-
-  // params is missing for a named method
-  {
-    const auto no_parameters{sourcemeta::core::parse_json(R"JSON({
-      "jsonrpc": "2.0",
-      "id": 1,
-      "method": "tools/call"
-    })JSON")};
-    const auto error{sourcemeta::core::mcp_validate_request_headers(
-        sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "2026-07-28",
-        "tools/call", "calculator", no_parameters, SUPPORTED_VERSIONS)};
-    EXPECT_TRUE(error.has_value());
-    EXPECT_EQ(error->at("error").at("code").to_integer(), -32602);
-  }
-
-  // params is not an object for a named method
-  {
-    const auto parameters_array{sourcemeta::core::parse_json(R"JSON({
-      "jsonrpc": "2.0",
-      "id": 1,
-      "method": "tools/call",
-      "params": [ 1, 2, 3 ]
-    })JSON")};
-    const auto error{sourcemeta::core::mcp_validate_request_headers(
-        sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "2026-07-28",
-        "tools/call", "calculator", parameters_array, SUPPORTED_VERSIONS)};
-    EXPECT_TRUE(error.has_value());
-    EXPECT_EQ(error->at("error").at("code").to_integer(), -32602);
-  }
-
-  // Name property has the wrong type
-  {
-    const auto wrong_name_type{sourcemeta::core::parse_json(R"JSON({
-      "jsonrpc": "2.0",
-      "id": 1,
-      "method": "tools/call",
-      "params": {
-        "_meta": {
-          "io.modelcontextprotocol/protocolVersion": "2026-07-28"
-        },
-        "name": 42
-      }
-    })JSON")};
-    const auto error{sourcemeta::core::mcp_validate_request_headers(
-        sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "2026-07-28",
-        "tools/call", "calculator", wrong_name_type, SUPPORTED_VERSIONS)};
-    EXPECT_TRUE(error.has_value());
-    EXPECT_EQ(error->at("error").at("code").to_integer(), -32602);
-  }
-
-  // Metadata has already failed validation (missing _meta)
-  {
-    const auto missing_meta{sourcemeta::core::parse_json(R"JSON({
-      "jsonrpc": "2.0",
-      "id": 1,
-      "method": "tools/list",
-      "params": {}
-    })JSON")};
-    const auto error{sourcemeta::core::mcp_validate_request_headers(
-        sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "2026-07-28",
-        "tools/list", std::nullopt, missing_meta, SUPPORTED_VERSIONS)};
-    EXPECT_TRUE(error.has_value());
-    EXPECT_EQ(error->at("error").at("code").to_integer(), -32602);
-  }
-}
-
-TEST(header_validation_id_handling) {
-  // Explicit id: null is unreadable and omitted from the error response
-  const auto null_identifier_envelope{sourcemeta::core::parse_json(R"JSON({
-    "jsonrpc": "2.0",
-    "id": null,
-    "method": "tools/call",
-    "params": {
-      "_meta": {
-        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-        "io.modelcontextprotocol/clientCapabilities": {},
-        "io.modelcontextprotocol/clientInfo": {
-          "name": "ExampleClient",
-          "version": "1.0.0"
-        }
-      },
-      "name": "calculator"
-    }
-  })JSON")};
-
-  const auto error_null_identifier{
-      sourcemeta::core::mcp_validate_request_headers(
-          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "2026-07-28",
-          "tools/call", "mismatched_tool", null_identifier_envelope,
-          SUPPORTED_VERSIONS)};
-  EXPECT_TRUE(error_null_identifier.has_value());
-  EXPECT_FALSE(error_null_identifier->defines("id"));
-
-  // Notification (missing id) omits id in error response
-  const auto notification_envelope{sourcemeta::core::parse_json(R"JSON({
-    "jsonrpc": "2.0",
-    "method": "tools/call",
-    "params": {
-      "_meta": {
-        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-        "io.modelcontextprotocol/clientCapabilities": {},
-        "io.modelcontextprotocol/clientInfo": {
-          "name": "ExampleClient",
-          "version": "1.0.0"
-        }
-      },
-      "name": "calculator"
-    }
-  })JSON")};
-
-  const auto error_notification{sourcemeta::core::mcp_validate_request_headers(
-      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "2026-07-28",
-      "tools/call", "mismatched_tool", notification_envelope,
-      SUPPORTED_VERSIONS)};
-  EXPECT_TRUE(error_notification.has_value());
-  EXPECT_FALSE(error_notification->defines("id"));
-
-  // Invalid id type sets id: null in error response
-  const auto invalid_identifier_envelope{sourcemeta::core::parse_json(R"JSON({
-    "jsonrpc": "2.0",
-    "id": true,
-    "method": "tools/call",
-    "params": {
-      "_meta": {
-        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-        "io.modelcontextprotocol/clientCapabilities": {},
-        "io.modelcontextprotocol/clientInfo": {
-          "name": "ExampleClient",
-          "version": "1.0.0"
-        }
-      },
-      "name": "calculator"
-    }
-  })JSON")};
-
-  const auto error_invalid_identifier{
-      sourcemeta::core::mcp_validate_request_headers(
-          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "2026-07-28",
-          "tools/call", "mismatched_tool", invalid_identifier_envelope,
-          SUPPORTED_VERSIONS)};
-  EXPECT_TRUE(error_invalid_identifier.has_value());
-  EXPECT_FALSE(error_invalid_identifier->defines("id"));
-}
-
-TEST(header_validation_resources_subscribe_unsubscribe) {
-  // Legacy resources/subscribe with params.uri
-  const auto envelope_subscribe{sourcemeta::core::parse_json(R"JSON({
-    "jsonrpc": "2.0",
-    "id": 1,
-    "method": "resources/subscribe",
-    "params": {
-      "uri": "memo://my-channel"
-    }
-  })JSON")};
-
-  const auto error_subscribe{sourcemeta::core::mcp_validate_request_headers(
-      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, std::nullopt,
-      "resources/subscribe", "memo://my-channel", envelope_subscribe,
-      SUPPORTED_VERSIONS)};
-  EXPECT_FALSE(error_subscribe.has_value());
-
-  // Legacy resources/unsubscribe with params.uri
-  const auto envelope_unsubscribe{sourcemeta::core::parse_json(R"JSON({
-    "jsonrpc": "2.0",
-    "id": 2,
-    "method": "resources/unsubscribe",
-    "params": {
-      "uri": "memo://my-channel"
-    }
-  })JSON")};
-
-  const auto error_unsubscribe{sourcemeta::core::mcp_validate_request_headers(
-      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, std::nullopt,
-      "resources/unsubscribe", "memo://my-channel", envelope_unsubscribe,
-      SUPPORTED_VERSIONS)};
-  EXPECT_FALSE(error_unsubscribe.has_value());
-
-  // Legacy transport ignores the later routing field
-  const auto error_subscribe_mismatch{
-      sourcemeta::core::mcp_validate_request_headers(
-          sourcemeta::core::MCPProtocolVersion::V_2025_11_25, std::nullopt,
-          "resources/subscribe", "memo://other-channel", envelope_subscribe,
-          SUPPORTED_VERSIONS)};
-  EXPECT_FALSE(error_subscribe_mismatch.has_value());
-}
-
-TEST(header_validation_obs_text_characters) {
-  const auto request{sourcemeta::core::parse_json(
-      R"({
-  "jsonrpc": "2.0",
-  "id": 1,
-  "method": "tools/call",
-  "params": {
-    "name": "café",
-    "_meta": {
-      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-      "io.modelcontextprotocol/clientCapabilities": {}
-    }
-  }
-})")};
-  const auto raw{sourcemeta::core::mcp_validate_request_headers(
-      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "2026-07-28",
-      "tools/call", "café", request, SUPPORTED_VERSIONS)};
-  EXPECT_TRUE(raw.has_value());
-  EXPECT_EQ(raw->at("error").at("code").to_integer(), -32020);
-  const auto encoded{sourcemeta::core::mcp_encode_header_value("café")};
-  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_headers(
-                   sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-                   "2026-07-28", "tools/call", encoded, request,
-                   SUPPORTED_VERSIONS)
-                   .has_value());
+  })JSON"));
 }
 
 TEST(error_resource_not_found_version_aware) {
@@ -1779,182 +1146,55 @@ TEST(error_resource_not_found_version_aware) {
             "Resource not found");
 }
 
-TEST(error_builders_preserve_null_and_omit_missing_identifier) {
-  const auto null_identifier{sourcemeta::core::JSON{nullptr}};
-
-  const auto unsupported_null{
-      sourcemeta::core::mcp_make_error_unsupported_protocol_version(
-          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, null_identifier,
-          "1900-01-01",
-          std::array<sourcemeta::core::JSON::StringView, 1>{{"2026-07-28"}})};
-  EXPECT_FALSE(unsupported_null.defines("id"));
-
-  const auto unsupported_missing{
-      sourcemeta::core::mcp_make_error_unsupported_protocol_version(
-          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, std::nullopt,
-          "1900-01-01",
-          std::array<sourcemeta::core::JSON::StringView, 1>{{"2026-07-28"}})};
-  EXPECT_FALSE(unsupported_missing.defines("id"));
-
-  const auto not_found_null{sourcemeta::core::mcp_make_error_resource_not_found(
-      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, null_identifier)};
-  EXPECT_FALSE(not_found_null.defines("id"));
-
-  const auto not_found_missing{
-      sourcemeta::core::mcp_make_error_resource_not_found(
-          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, std::nullopt)};
-  EXPECT_FALSE(not_found_missing.defines("id"));
-
-  auto required_capabilities{sourcemeta::core::JSON::make_object()};
-  const auto missing_capability_null{
-      sourcemeta::core::mcp_make_error_missing_required_capability(
-          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, null_identifier,
-          required_capabilities, "Missing capability")};
-  EXPECT_FALSE(missing_capability_null.defines("id"));
-
-  const auto missing_capability_missing{
-      sourcemeta::core::mcp_make_error_missing_required_capability(
-          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, std::nullopt,
-          required_capabilities, "Missing capability")};
-  EXPECT_FALSE(missing_capability_missing.defines("id"));
+TEST(decorate_result_2025_11_25) {
+  EXPECT_EQ(sourcemeta::core::mcp_decorate_result(
+                sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+                sourcemeta::core::parse_json(R"JSON({ "status": "ok" })JSON")),
+            sourcemeta::core::parse_json(R"JSON({ "status": "ok" })JSON"));
 }
 
-TEST(decorate_result_modern_and_legacy) {
-  auto result_legacy{sourcemeta::core::JSON::make_object()};
-  result_legacy.assign("status", sourcemeta::core::JSON{"ok"});
-  const auto decorated_legacy{sourcemeta::core::mcp_decorate_result(
-      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
-      std::move(result_legacy))};
-  EXPECT_FALSE(decorated_legacy.defines("resultType"));
-  EXPECT_FALSE(decorated_legacy.defines("_meta"));
+TEST(decorate_result_2026_07_28) {
+  EXPECT_EQ(sourcemeta::core::mcp_decorate_result(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::parse_json(R"JSON({ "status": "ok" })JSON")),
+            sourcemeta::core::parse_json(
+                R"JSON({ "status": "ok", "resultType": "complete" })JSON"));
+}
 
-  auto result_modern{sourcemeta::core::JSON::make_object()};
-  result_modern.assign("status", sourcemeta::core::JSON{"ok"});
+TEST(decorate_result_with_full_server_information) {
   const sourcemeta::core::MCPImplementation server{.name = "ExampleServer",
                                                    .version = "1.0.0",
                                                    .title = "Example Title",
                                                    .description = "Description",
                                                    .website_url =
-                                                       "https://ex.com"};
-  const auto decorated_modern{sourcemeta::core::mcp_decorate_result(
-      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-      std::move(result_modern), server)};
-  EXPECT_EQ(decorated_modern.at("resultType").to_string(), "complete");
-  EXPECT_TRUE(decorated_modern.defines("_meta"));
-  const auto &info{
-      decorated_modern.at("_meta").at("io.modelcontextprotocol/serverInfo")};
-  EXPECT_EQ(info.at("name").to_string(), "ExampleServer");
-  EXPECT_EQ(info.at("version").to_string(), "1.0.0");
-  EXPECT_EQ(info.at("title").to_string(), "Example Title");
-  EXPECT_EQ(info.at("description").to_string(), "Description");
-  EXPECT_EQ(info.at("websiteUrl").to_string(), "https://ex.com");
+                                                       "https://example.com"};
+  EXPECT_EQ(sourcemeta::core::mcp_decorate_result(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::parse_json(R"JSON({ "status": "ok" })JSON"),
+                server),
+            sourcemeta::core::parse_json(R"JSON({
+    "status": "ok",
+    "resultType": "complete",
+    "_meta": {
+      "io.modelcontextprotocol/serverInfo": {
+        "name": "ExampleServer",
+        "version": "1.0.0",
+        "title": "Example Title",
+        "description": "Description",
+        "websiteUrl": "https://example.com"
+      }
+    }
+  })JSON"));
 }
 
-TEST(decorate_cacheable_result_modern_and_legacy) {
-  auto result_legacy{sourcemeta::core::JSON::make_object()};
-  const sourcemeta::core::MCPCachePolicy policy{
-      .ttl_ms = 60000, .scope = sourcemeta::core::MCPCacheScope::Private};
-  const auto decorated_legacy{sourcemeta::core::mcp_decorate_cacheable_result(
-      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
-      std::move(result_legacy), policy,
-      sourcemeta::core::MCP_METHOD_TOOLS_LIST)};
-  EXPECT_FALSE(decorated_legacy.defines("ttlMs"));
-  EXPECT_FALSE(decorated_legacy.defines("cacheScope"));
-
-  auto result_modern{sourcemeta::core::JSON::make_object()};
-  const auto decorated_modern{sourcemeta::core::mcp_decorate_cacheable_result(
-      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-      std::move(result_modern), policy,
-      sourcemeta::core::MCP_METHOD_TOOLS_LIST)};
-  EXPECT_EQ(decorated_modern.at("ttlMs").to_integer(), 60000);
-  EXPECT_EQ(decorated_modern.at("cacheScope").to_string(), "private");
-}
-
-TEST(tool_success_modern_result_type_and_structured_content) {
-  const auto identifier{sourcemeta::core::JSON{100}};
-
-  // Structured content with object
-  auto structured_object{sourcemeta::core::JSON::make_object()};
-  structured_object.assign("foo", sourcemeta::core::JSON{123});
-  const auto envelope_object{sourcemeta::core::mcp_make_tool_success(
-      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, identifier,
-      std::move(structured_object))};
-  EXPECT_EQ(envelope_object.at("result").at("resultType").to_string(),
-            "complete");
-  EXPECT_EQ(envelope_object.at("result").at("isError").to_boolean(), false);
-  EXPECT_EQ(envelope_object.at("result")
-                .at("structuredContent")
-                .at("foo")
-                .to_integer(),
-            123);
-
-  // Structured content with array
-  auto structured_array{sourcemeta::core::JSON::make_array()};
-  structured_array.push_back(sourcemeta::core::JSON{"item"});
-  const auto envelope_array{sourcemeta::core::mcp_make_tool_success(
-      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, identifier,
-      std::move(structured_array))};
-  EXPECT_EQ(envelope_array.at("result").at("resultType").to_string(),
-            "complete");
-  EXPECT_TRUE(envelope_array.at("result").at("structuredContent").is_array());
-
-  // Structured content with scalar string
-  const auto envelope_string{sourcemeta::core::mcp_make_tool_success(
-      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, identifier,
-      sourcemeta::core::JSON{"hello scalar"})};
-  EXPECT_EQ(envelope_string.at("result").at("resultType").to_string(),
-            "complete");
-  EXPECT_EQ(envelope_string.at("result").at("structuredContent").to_string(),
-            "hello scalar");
-
-  // Structured content with null
-  const auto envelope_null{sourcemeta::core::mcp_make_tool_success(
-      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, identifier,
-      sourcemeta::core::JSON{nullptr})};
-  EXPECT_EQ(envelope_null.at("result").at("resultType").to_string(),
-            "complete");
-  EXPECT_TRUE(envelope_null.at("result").at("structuredContent").is_null());
-}
-
-TEST(tool_error_modern_result_type) {
-  const auto identifier{sourcemeta::core::JSON{101}};
-  const auto modern_error{sourcemeta::core::mcp_make_tool_error(
-      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, identifier,
-      "Something failed")};
-  EXPECT_EQ(modern_error.at("result").at("resultType").to_string(), "complete");
-  EXPECT_EQ(modern_error.at("result").at("isError").to_boolean(), true);
-  EXPECT_EQ(
-      modern_error.at("result").at("content").at(0).at("text").to_string(),
-      "Something failed");
-
-  const auto legacy_error{sourcemeta::core::mcp_make_tool_error(
-      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, identifier,
-      "Something failed")};
-  EXPECT_FALSE(legacy_error.at("result").defines("resultType"));
-  EXPECT_EQ(legacy_error.at("result").at("isError").to_boolean(), true);
-}
-
-TEST(resources_read_result_modern_and_legacy) {
-  auto contents{sourcemeta::core::JSON::make_array()};
-  contents.push_back(sourcemeta::core::mcp_make_resource_text_content(
-      "file:///a", "text/plain", "data"));
-
-  const sourcemeta::core::MCPCachePolicy policy{
-      .ttl_ms = 30000, .scope = sourcemeta::core::MCPCacheScope::Public};
-  const auto modern_result{sourcemeta::core::mcp_make_resources_read_result(
-      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-      sourcemeta::core::JSON{contents}, policy)};
-  EXPECT_EQ(modern_result.at("resultType").to_string(), "complete");
-  EXPECT_EQ(modern_result.at("ttlMs").to_integer(), 30000);
-  EXPECT_EQ(modern_result.at("cacheScope").to_string(), "public");
-  EXPECT_EQ(modern_result.at("contents").size(), 1);
-
-  const auto legacy_result{sourcemeta::core::mcp_make_resources_read_result(
-      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, std::move(contents),
-      policy)};
-  EXPECT_FALSE(legacy_result.defines("resultType"));
-  EXPECT_FALSE(legacy_result.defines("ttlMs"));
-  EXPECT_FALSE(legacy_result.defines("cacheScope"));
+TEST(decorate_result_ignores_server_information_on_2025_11_25) {
+  const sourcemeta::core::MCPImplementation server{.name = "ExampleServer",
+                                                   .version = "1.0.0"};
+  EXPECT_EQ(sourcemeta::core::mcp_decorate_result(
+                sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+                sourcemeta::core::parse_json(R"JSON({ "status": "ok" })JSON"),
+                server),
+            sourcemeta::core::parse_json(R"JSON({ "status": "ok" })JSON"));
 }
 
 TEST(server_discover_result) {
@@ -1999,56 +1239,56 @@ TEST(server_discover_result) {
   EXPECT_EQ(result.at("cacheScope").to_string(), "public");
 }
 
-TEST(initialize_negotiation_with_modern_request) {
-  // If an older client calls initialize with protocolVersion = "2026-07-28",
-  // this handshake builder selects a revision from its explicit supported set
-  // that still implements initialize (2025-11-25 in this fixture).
-  const auto request{sourcemeta::core::parse_json(R"JSON({
-  "jsonrpc": "2.0",
-  "id": 1,
-  "method": "initialize",
-  "params": {
-    "protocolVersion": "2026-07-28",
-    "capabilities": {},
-    "clientInfo": {
-      "name": "client",
-      "version": "1"
-    }
-  }
-})JSON")};
-
-  const sourcemeta::core::MCPServerCapabilities capabilities;
+// The handshake only exists before 2026-07-28, so a client asking for the
+// stateless revision is answered with the newest revision that still has one
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/versioning#protocol-version-negotiation
+TEST(make_initialize_result_negotiates_down_from_2026_07_28) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
   const sourcemeta::core::MCPImplementation server{.name = "srv",
                                                    .version = "1.0.0"};
-  const auto envelope{sourcemeta::core::mcp_make_initialize_result(
-      request, capabilities, server, SUPPORTED_VERSIONS)};
-
-  EXPECT_EQ(envelope.at("result").at("protocolVersion").to_string(),
-            "2025-11-25");
-  EXPECT_FALSE(envelope.at("result").defines("resultType"));
-  EXPECT_FALSE(envelope.at("result").defines("_meta"));
+  EXPECT_EQ(sourcemeta::core::mcp_make_initialize_result(
+                sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "initialize",
+    "params": {
+      "protocolVersion": "2026-07-28",
+      "capabilities": {},
+      "clientInfo": { "name": "client", "version": "1" }
+    }
+  })JSON"),
+                {}, server, SUPPORTED),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "result": {
+      "protocolVersion": "2025-11-25",
+      "capabilities": {},
+      "serverInfo": { "name": "srv", "version": "1.0.0" }
+    }
+  })JSON"));
 }
 
 TEST(initialize_negotiation_with_unknown_version) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
   const auto request{sourcemeta::core::parse_json(R"JSON({
-  "jsonrpc": "2.0",
-  "id": 1,
-  "method": "initialize",
-  "params": {
-    "protocolVersion": "3000-01-01",
-    "capabilities": {},
-    "clientInfo": {
-      "name": "client",
-      "version": "1"
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "initialize",
+    "params": {
+      "protocolVersion": "3000-01-01",
+      "capabilities": {},
+      "clientInfo": { "name": "client", "version": "1" }
     }
-  }
-})JSON")};
+  })JSON")};
 
   const sourcemeta::core::MCPServerCapabilities capabilities;
   const sourcemeta::core::MCPImplementation server{.name = "srv",
                                                    .version = "1.0.0"};
   const auto envelope{sourcemeta::core::mcp_make_initialize_result(
-      request, capabilities, server, SUPPORTED_VERSIONS)};
+      request, capabilities, server, SUPPORTED)};
 
   EXPECT_EQ(envelope.at("result").at("protocolVersion").to_string(),
             "2025-11-25");
@@ -2059,10 +1299,11 @@ TEST(mrtr_input_required_result) {
   auto input_requests{sourcemeta::core::JSON::make_object()};
   auto input_request{sourcemeta::core::JSON::make_object()};
   input_request.assign("method", sourcemeta::core::JSON{"elicitation/create"});
-  input_request.assign(
-      "params",
-      sourcemeta::core::parse_json(
-          R"({"message":"Confirm delete?","requestedSchema":{"type":"object","properties":{}}})"));
+  input_request.assign("params", sourcemeta::core::parse_json(
+                                     R"JSON({
+            "message": "Confirm delete?",
+            "requestedSchema": { "type": "object", "properties": {} }
+          })JSON"));
   input_requests.assign("confirm", std::move(input_request));
 
   const auto envelope{sourcemeta::core::mcp_make_input_required_result(
@@ -2090,9 +1331,7 @@ TEST(mrtr_request_accessors) {
     "params": {
       "name": "my-tool",
       "requestState": "token-xyz",
-      "inputResponses": {
-        "confirm": { "value": true }
-      }
+      "inputResponses": { "confirm": { "value": true } }
     }
   })JSON")};
 
@@ -2100,498 +1339,445 @@ TEST(mrtr_request_accessors) {
       sourcemeta::core::mcp_request_state(
           sourcemeta::core::MCPProtocolVersion::V_2026_07_28, continuation),
       "token-xyz");
-  const auto *responses{sourcemeta::core::mcp_request_input_responses(
-      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, continuation)};
-  EXPECT_NE(responses, nullptr);
-  EXPECT_TRUE(responses->is_object());
-  EXPECT_EQ(responses->at("confirm").at("value").to_boolean(), true);
+  EXPECT_EQ(
+      *sourcemeta::core::mcp_request_input_responses(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, continuation),
+      sourcemeta::core::parse_json(
+          R"JSON({ "confirm": { "value": true } })JSON"));
 }
 
-TEST(client_capabilities_parsing_and_serialization) {
-  sourcemeta::core::MCPClientCapabilities capabilities;
-  capabilities.roots = true;
-  capabilities.roots_list_changed = true;
-  capabilities.sampling = true;
-  capabilities.sampling_context = true;
-  capabilities.sampling_tools = true;
-  capabilities.elicitation = true;
-  capabilities.elicitation_form = true;
-  capabilities.elicitation_url = true;
-
-  auto extensions{sourcemeta::core::JSON::make_object()};
-  extensions.assign("com.example/customCapability",
-                    sourcemeta::core::JSON::make_object());
-  capabilities.extensions = std::move(extensions);
-
-  const auto serialized_legacy{
-      sourcemeta::core::mcp_serialize_client_capabilities(
-          sourcemeta::core::MCPProtocolVersion::V_2025_11_25, capabilities)};
-  EXPECT_TRUE(serialized_legacy.at("roots").at("listChanged").to_boolean());
-  EXPECT_TRUE(serialized_legacy.defines("sampling"));
-  EXPECT_TRUE(serialized_legacy.at("sampling").defines("context"));
-  EXPECT_TRUE(serialized_legacy.at("sampling").defines("tools"));
-  EXPECT_TRUE(serialized_legacy.defines("elicitation"));
-  EXPECT_TRUE(serialized_legacy.at("elicitation").defines("form"));
-  EXPECT_TRUE(serialized_legacy.at("elicitation").defines("url"));
-  EXPECT_FALSE(serialized_legacy.defines("extensions"));
-
-  const auto serialized_modern{
-      sourcemeta::core::mcp_serialize_client_capabilities(
-          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, capabilities)};
-  EXPECT_FALSE(serialized_modern.at("roots").defines("listChanged"));
-  EXPECT_TRUE(serialized_modern.defines("sampling"));
-  EXPECT_TRUE(serialized_modern.at("sampling").defines("context"));
-  EXPECT_TRUE(serialized_modern.at("sampling").defines("tools"));
-  EXPECT_TRUE(serialized_modern.defines("elicitation"));
-  EXPECT_TRUE(serialized_modern.at("elicitation").defines("form"));
-  EXPECT_TRUE(serialized_modern.at("elicitation").defines("url"));
-  EXPECT_TRUE(serialized_modern.at("extensions")
-                  .at("com.example/customCapability")
-                  .is_object());
-
-  const auto parsed_legacy{sourcemeta::core::mcp_parse_client_capabilities(
-      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, serialized_legacy)};
-  EXPECT_TRUE(parsed_legacy.roots);
-  EXPECT_TRUE(parsed_legacy.roots_list_changed);
-  EXPECT_TRUE(parsed_legacy.sampling);
-  EXPECT_TRUE(parsed_legacy.sampling_context);
-  EXPECT_TRUE(parsed_legacy.sampling_tools);
-  EXPECT_TRUE(parsed_legacy.elicitation);
-  EXPECT_TRUE(parsed_legacy.elicitation_form);
-  EXPECT_TRUE(parsed_legacy.elicitation_url);
-  EXPECT_FALSE(parsed_legacy.extensions.has_value());
-
-  const auto parsed_modern{sourcemeta::core::mcp_parse_client_capabilities(
-      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, serialized_modern)};
-  EXPECT_TRUE(parsed_modern.roots);
-  EXPECT_FALSE(parsed_modern.roots_list_changed);
-  EXPECT_TRUE(parsed_modern.extensions.has_value());
-  EXPECT_TRUE(
-      parsed_modern.extensions->at("com.example/customCapability").is_object());
-}
-
-TEST(header_validation_and_mismatch_error) {
-  const auto request{sourcemeta::core::parse_json(R"JSON({
-  "jsonrpc": "2.0",
-  "id": 42,
-  "method": "tools/call",
-  "params": {
-    "name": "my-tool",
-    "_meta": {
-      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-      "io.modelcontextprotocol/clientCapabilities": {}
-    }
-  }
-})JSON")};
-
-  const auto version{sourcemeta::core::MCPProtocolVersion::V_2026_07_28};
-
-  // Matching headers
-  const auto ok_result{sourcemeta::core::mcp_validate_request_headers(
-      version, "2026-07-28", "tools/call", "my-tool", request,
-      SUPPORTED_VERSIONS)};
-  EXPECT_FALSE(ok_result.has_value());
-
-  // Method mismatch
-  const auto method_error{sourcemeta::core::mcp_validate_request_headers(
-      version, "2026-07-28", "tools/list", "my-tool", request,
-      SUPPORTED_VERSIONS)};
-  EXPECT_TRUE(method_error.has_value());
-  EXPECT_EQ(method_error->at("error").at("code").to_integer(), -32020);
-  EXPECT_EQ(method_error->at("error").at("data").at("header").to_string(),
-            "Mcp-Method");
-  EXPECT_EQ(method_error->at("error").at("data").at("headerValue").to_string(),
-            "tools/list");
-  EXPECT_EQ(method_error->at("error").at("data").at("bodyValue").to_string(),
-            "tools/call");
-
-  // Name mismatch
-  const auto name_error{sourcemeta::core::mcp_validate_request_headers(
-      version, "2026-07-28", "tools/call", "other-tool", request,
-      SUPPORTED_VERSIONS)};
-  EXPECT_TRUE(name_error.has_value());
-  EXPECT_EQ(name_error->at("error").at("code").to_integer(), -32020);
-  EXPECT_EQ(name_error->at("error").at("data").at("header").to_string(),
-            "Mcp-Name");
-  EXPECT_EQ(name_error->at("error").at("data").at("headerValue").to_string(),
-            "other-tool");
-  EXPECT_EQ(name_error->at("error").at("data").at("bodyValue").to_string(),
-            "my-tool");
-}
-
-TEST(tools_list_result_modern_and_legacy) {
-  auto tools{sourcemeta::core::JSON::make_array()};
-  tools.push_back(sourcemeta::core::mcp_make_tool_descriptor(
+// A list result carries its page cursor and, in 2026-07-28, the caching hints
+// the operation requires
+// https://modelcontextprotocol.io/specification/2026-07-28/server/utilities/caching#cacheable-results
+TEST(tools_list_result_with_a_cursor_2026_07_28) {
+  auto entries{sourcemeta::core::JSON::make_array()};
+  entries.push_back(sourcemeta::core::mcp_make_tool_descriptor(
       sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "calc", "Calculator",
-      sourcemeta::core::parse_json(R"({ "type": "object" })")));
-
-  const sourcemeta::core::MCPCachePolicy policy{
-      .ttl_ms = 120000, .scope = sourcemeta::core::MCPCacheScope::Public};
-
-  // Modern: has resultType, nextCursor, ttlMs, cacheScope
-  const auto modern_result{sourcemeta::core::mcp_make_tools_list_result(
-      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-      sourcemeta::core::JSON{tools}, "cursor-abc", policy)};
-  EXPECT_EQ(modern_result.at("resultType").to_string(), "complete");
-  EXPECT_EQ(modern_result.at("nextCursor").to_string(), "cursor-abc");
-  EXPECT_EQ(modern_result.at("ttlMs").to_integer(), 120000);
-  EXPECT_EQ(modern_result.at("cacheScope").to_string(), "public");
-  EXPECT_EQ(modern_result.at("tools").size(), 1);
-
-  // Legacy: omits resultType, ttlMs, cacheScope
-  const auto legacy_result{sourcemeta::core::mcp_make_tools_list_result(
-      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, std::move(tools),
-      "cursor-abc", policy)};
-  EXPECT_FALSE(legacy_result.defines("resultType"));
-  EXPECT_FALSE(legacy_result.defines("ttlMs"));
-  EXPECT_FALSE(legacy_result.defines("cacheScope"));
-  EXPECT_EQ(legacy_result.at("nextCursor").to_string(), "cursor-abc");
-
-  const auto legacy_no_policy{sourcemeta::core::mcp_make_tools_list_result(
-      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
-      sourcemeta::core::JSON::make_array(), "cursor-no-policy", policy)};
-  EXPECT_FALSE(legacy_no_policy.defines("resultType"));
-  EXPECT_EQ(legacy_no_policy.at("nextCursor").to_string(), "cursor-no-policy");
+      sourcemeta::core::parse_json(R"JSON({ "type": "object" })JSON")));
+  EXPECT_EQ(
+      sourcemeta::core::mcp_make_tools_list_result(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+          sourcemeta::core::JSON{entries}, "cursor-abc",
+          {.ttl_ms = 120000, .scope = sourcemeta::core::MCPCacheScope::Public}),
+      sourcemeta::core::parse_json(R"JSON({
+    "resultType": "complete",
+    "tools": [
+      {
+        "name": "calc",
+        "description": "Calculator",
+        "inputSchema": { "type": "object" },
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": true,
+          "idempotentHint": false,
+          "openWorldHint": true
+        }
+      }
+    ],
+    "nextCursor": "cursor-abc",
+    "ttlMs": 120000,
+    "cacheScope": "public"
+  })JSON"));
 }
 
-TEST(resources_list_result_modern_and_legacy) {
-  auto resources{sourcemeta::core::JSON::make_array()};
-  resources.push_back(sourcemeta::core::mcp_make_resource(
-      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "file:///doc.txt",
-      "doc", "text/plain"));
-
-  const sourcemeta::core::MCPCachePolicy policy{
-      .ttl_ms = 60000, .scope = sourcemeta::core::MCPCacheScope::Private};
-
-  const auto modern_result{sourcemeta::core::mcp_make_resources_list_result(
-      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-      sourcemeta::core::JSON{resources}, "cursor-123", policy)};
-  EXPECT_EQ(modern_result.at("resultType").to_string(), "complete");
-  EXPECT_EQ(modern_result.at("nextCursor").to_string(), "cursor-123");
-  EXPECT_EQ(modern_result.at("ttlMs").to_integer(), 60000);
-  EXPECT_EQ(modern_result.at("cacheScope").to_string(), "private");
-
-  const auto legacy_result{sourcemeta::core::mcp_make_resources_list_result(
-      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, std::move(resources),
-      "cursor-123", policy)};
-  EXPECT_FALSE(legacy_result.defines("resultType"));
-  EXPECT_FALSE(legacy_result.defines("ttlMs"));
-  EXPECT_FALSE(legacy_result.defines("cacheScope"));
-  EXPECT_EQ(legacy_result.at("nextCursor").to_string(), "cursor-123");
-
-  const auto legacy_no_policy{sourcemeta::core::mcp_make_resources_list_result(
-      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
-      sourcemeta::core::JSON::make_array(), "cursor-no-policy", policy)};
-  EXPECT_FALSE(legacy_no_policy.defines("resultType"));
-  EXPECT_EQ(legacy_no_policy.at("nextCursor").to_string(), "cursor-no-policy");
+TEST(tools_list_result_with_a_cursor_2025_11_25) {
+  auto entries{sourcemeta::core::JSON::make_array()};
+  entries.push_back(sourcemeta::core::mcp_make_tool_descriptor(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "calc", "Calculator",
+      sourcemeta::core::parse_json(R"JSON({ "type": "object" })JSON")));
+  EXPECT_EQ(
+      sourcemeta::core::mcp_make_tools_list_result(
+          sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+          sourcemeta::core::JSON{entries}, "cursor-abc",
+          {.ttl_ms = 120000, .scope = sourcemeta::core::MCPCacheScope::Public}),
+      sourcemeta::core::parse_json(R"JSON({
+    "tools": [
+      {
+        "name": "calc",
+        "description": "Calculator",
+        "inputSchema": { "type": "object" },
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": true,
+          "idempotentHint": false,
+          "openWorldHint": true
+        }
+      }
+    ],
+    "nextCursor": "cursor-abc"
+  })JSON"));
 }
 
-TEST(resource_templates_list_result_modern_and_legacy) {
-  auto templates{sourcemeta::core::JSON::make_array()};
-  templates.push_back(sourcemeta::core::mcp_make_resource_template(
-      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "file:///{path}",
-      "Files", "File access", "text/plain"));
+TEST(resources_list_result_with_a_cursor_2026_07_28) {
+  auto entries{sourcemeta::core::JSON::make_array()};
+  entries.push_back(sourcemeta::core::mcp_make_resource(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "file:///a", "a",
+      "text/plain"));
+  EXPECT_EQ(
+      sourcemeta::core::mcp_make_resources_list_result(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+          sourcemeta::core::JSON{entries}, "cursor-abc",
+          {.ttl_ms = 120000, .scope = sourcemeta::core::MCPCacheScope::Public}),
+      sourcemeta::core::parse_json(R"JSON({
+    "resultType": "complete",
+    "resources": [
+      {
+        "uri": "file:///a",
+        "name": "a",
+        "mimeType": "text/plain"
+      }
+    ],
+    "nextCursor": "cursor-abc",
+    "ttlMs": 120000,
+    "cacheScope": "public"
+  })JSON"));
+}
 
-  const sourcemeta::core::MCPCachePolicy tmpl_policy{
-      .ttl_ms = 45000, .scope = sourcemeta::core::MCPCacheScope::Public};
-  const auto modern_result{
+TEST(resources_list_result_with_a_cursor_2025_11_25) {
+  auto entries{sourcemeta::core::JSON::make_array()};
+  entries.push_back(sourcemeta::core::mcp_make_resource(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "file:///a", "a",
+      "text/plain"));
+  EXPECT_EQ(
+      sourcemeta::core::mcp_make_resources_list_result(
+          sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+          sourcemeta::core::JSON{entries}, "cursor-abc",
+          {.ttl_ms = 120000, .scope = sourcemeta::core::MCPCacheScope::Public}),
+      sourcemeta::core::parse_json(R"JSON({
+    "resources": [
+      {
+        "uri": "file:///a",
+        "name": "a",
+        "mimeType": "text/plain"
+      }
+    ],
+    "nextCursor": "cursor-abc"
+  })JSON"));
+}
+
+TEST(resource_templates_list_result_with_a_cursor_2026_07_28) {
+  auto entries{sourcemeta::core::JSON::make_array()};
+  entries.push_back(sourcemeta::core::mcp_make_resource_template(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "file:///{name}",
+      "template", "description", "text/plain"));
+  EXPECT_EQ(
       sourcemeta::core::mcp_make_resource_templates_list_result(
           sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-          sourcemeta::core::JSON{templates}, "cursor-tmpl", tmpl_policy)};
-  EXPECT_EQ(modern_result.at("resultType").to_string(), "complete");
-  EXPECT_EQ(modern_result.at("nextCursor").to_string(), "cursor-tmpl");
-  EXPECT_EQ(modern_result.at("ttlMs").to_integer(), 45000);
-  EXPECT_EQ(modern_result.at("cacheScope").to_string(), "public");
+          sourcemeta::core::JSON{entries}, "cursor-abc",
+          {.ttl_ms = 120000, .scope = sourcemeta::core::MCPCacheScope::Public}),
+      sourcemeta::core::parse_json(R"JSON({
+    "resultType": "complete",
+    "resourceTemplates": [
+      {
+        "uriTemplate": "file:///{name}",
+        "name": "template",
+        "description": "description",
+        "mimeType": "text/plain"
+      }
+    ],
+    "nextCursor": "cursor-abc",
+    "ttlMs": 120000,
+    "cacheScope": "public"
+  })JSON"));
+}
 
-  const auto legacy_result{
+TEST(resource_templates_list_result_with_a_cursor_2025_11_25) {
+  auto entries{sourcemeta::core::JSON::make_array()};
+  entries.push_back(sourcemeta::core::mcp_make_resource_template(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "file:///{name}",
+      "template", "description", "text/plain"));
+  EXPECT_EQ(
       sourcemeta::core::mcp_make_resource_templates_list_result(
           sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
-          std::move(templates), "cursor-tmpl", tmpl_policy)};
-  EXPECT_FALSE(legacy_result.defines("resultType"));
-  EXPECT_EQ(legacy_result.at("nextCursor").to_string(), "cursor-tmpl");
-
-  const auto modern_with_policy{
-      sourcemeta::core::mcp_make_resource_templates_list_result(
-          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-          sourcemeta::core::JSON::make_array(), "cursor-tmpl-policy",
-          tmpl_policy)};
-  EXPECT_EQ(modern_with_policy.at("resultType").to_string(), "complete");
-  EXPECT_EQ(modern_with_policy.at("ttlMs").to_integer(), 45000);
-  EXPECT_EQ(modern_with_policy.at("cacheScope").to_string(), "public");
+          sourcemeta::core::JSON{entries}, "cursor-abc",
+          {.ttl_ms = 120000, .scope = sourcemeta::core::MCPCacheScope::Public}),
+      sourcemeta::core::parse_json(R"JSON({
+    "resourceTemplates": [
+      {
+        "uriTemplate": "file:///{name}",
+        "name": "template",
+        "description": "description",
+        "mimeType": "text/plain"
+      }
+    ],
+    "nextCursor": "cursor-abc"
+  })JSON"));
 }
 
-TEST(list_results_preserve_empty_next_cursor) {
-  const sourcemeta::core::MCPCachePolicy policy{
-      .ttl_ms = 10000, .scope = sourcemeta::core::MCPCacheScope::Public};
+TEST(prompts_list_result_with_a_cursor_2026_07_28) {
+  const auto entries{sourcemeta::core::parse_json(
+      R"JSON([ { "name": "review", "description": "Review" } ])JSON")};
+  EXPECT_EQ(
+      sourcemeta::core::mcp_make_prompts_list_result(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+          sourcemeta::core::JSON{entries}, "cursor-abc",
+          {.ttl_ms = 120000, .scope = sourcemeta::core::MCPCacheScope::Public}),
+      sourcemeta::core::parse_json(R"JSON({
+    "resultType": "complete",
+    "prompts": [ { "name": "review", "description": "Review" } ],
+    "nextCursor": "cursor-abc",
+    "ttlMs": 120000,
+    "cacheScope": "public"
+  })JSON"));
+}
 
-  // Tools list
-  const auto tools_modern{sourcemeta::core::mcp_make_tools_list_result(
-      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-      sourcemeta::core::JSON::make_array(), "", policy)};
-  EXPECT_TRUE(tools_modern.defines("nextCursor"));
-  EXPECT_EQ(tools_modern.at("nextCursor").to_string(), "");
+TEST(prompts_list_result_with_a_cursor_2025_11_25) {
+  const auto entries{sourcemeta::core::parse_json(
+      R"JSON([ { "name": "review", "description": "Review" } ])JSON")};
+  EXPECT_EQ(
+      sourcemeta::core::mcp_make_prompts_list_result(
+          sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+          sourcemeta::core::JSON{entries}, "cursor-abc",
+          {.ttl_ms = 120000, .scope = sourcemeta::core::MCPCacheScope::Public}),
+      sourcemeta::core::parse_json(R"JSON({
+    "prompts": [ { "name": "review", "description": "Review" } ],
+    "nextCursor": "cursor-abc"
+  })JSON"));
+}
 
-  const auto tools_legacy{sourcemeta::core::mcp_make_tools_list_result(
-      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
-      sourcemeta::core::JSON::make_array(), "", policy)};
-  EXPECT_TRUE(tools_legacy.defines("nextCursor"));
-  EXPECT_EQ(tools_legacy.at("nextCursor").to_string(), "");
+// An empty cursor is a cursor, so a caller that asks for one gets it rather
+// than having it treated as absent
+// https://modelcontextprotocol.io/specification/2026-07-28/server/utilities/pagination
+TEST(tools_list_result_preserves_an_empty_cursor_2026_07_28) {
+  EXPECT_EQ(
+      sourcemeta::core::mcp_make_tools_list_result(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+          sourcemeta::core::JSON::make_array(), "",
+          {.ttl_ms = 10000, .scope = sourcemeta::core::MCPCacheScope::Public}),
+      sourcemeta::core::parse_json(R"JSON({
+    "resultType": "complete",
+    "tools": [],
+    "nextCursor": "",
+    "ttlMs": 10000,
+    "cacheScope": "public"
+  })JSON"));
+}
 
-  // Resources list
-  const auto resources_modern{sourcemeta::core::mcp_make_resources_list_result(
-      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-      sourcemeta::core::JSON::make_array(), "", policy)};
-  EXPECT_TRUE(resources_modern.defines("nextCursor"));
-  EXPECT_EQ(resources_modern.at("nextCursor").to_string(), "");
+TEST(tools_list_result_preserves_an_empty_cursor_2025_11_25) {
+  EXPECT_EQ(
+      sourcemeta::core::mcp_make_tools_list_result(
+          sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+          sourcemeta::core::JSON::make_array(), "",
+          {.ttl_ms = 10000, .scope = sourcemeta::core::MCPCacheScope::Public}),
+      sourcemeta::core::parse_json(
+          R"JSON({ "tools": [], "nextCursor": "" })JSON"));
+}
 
-  const auto resources_legacy{sourcemeta::core::mcp_make_resources_list_result(
-      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
-      sourcemeta::core::JSON::make_array(), "", policy)};
-  EXPECT_TRUE(resources_legacy.defines("nextCursor"));
-  EXPECT_EQ(resources_legacy.at("nextCursor").to_string(), "");
+TEST(resources_list_result_preserves_an_empty_cursor_2026_07_28) {
+  EXPECT_EQ(
+      sourcemeta::core::mcp_make_resources_list_result(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+          sourcemeta::core::JSON::make_array(), "",
+          {.ttl_ms = 10000, .scope = sourcemeta::core::MCPCacheScope::Public}),
+      sourcemeta::core::parse_json(R"JSON({
+    "resultType": "complete",
+    "resources": [],
+    "nextCursor": "",
+    "ttlMs": 10000,
+    "cacheScope": "public"
+  })JSON"));
+}
 
-  // Resource templates list
-  const auto tmpls_modern{
+TEST(resources_list_result_preserves_an_empty_cursor_2025_11_25) {
+  EXPECT_EQ(
+      sourcemeta::core::mcp_make_resources_list_result(
+          sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+          sourcemeta::core::JSON::make_array(), "",
+          {.ttl_ms = 10000, .scope = sourcemeta::core::MCPCacheScope::Public}),
+      sourcemeta::core::parse_json(
+          R"JSON({ "resources": [], "nextCursor": "" })JSON"));
+}
+
+TEST(resource_templates_list_result_preserves_an_empty_cursor_2026_07_28) {
+  EXPECT_EQ(
       sourcemeta::core::mcp_make_resource_templates_list_result(
           sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-          sourcemeta::core::JSON::make_array(), "", policy)};
-  EXPECT_TRUE(tmpls_modern.defines("nextCursor"));
-  EXPECT_EQ(tmpls_modern.at("nextCursor").to_string(), "");
+          sourcemeta::core::JSON::make_array(), "",
+          {.ttl_ms = 10000, .scope = sourcemeta::core::MCPCacheScope::Public}),
+      sourcemeta::core::parse_json(R"JSON({
+    "resultType": "complete",
+    "resourceTemplates": [],
+    "nextCursor": "",
+    "ttlMs": 10000,
+    "cacheScope": "public"
+  })JSON"));
+}
 
-  const auto tmpls_legacy{
+TEST(resource_templates_list_result_preserves_an_empty_cursor_2025_11_25) {
+  EXPECT_EQ(
       sourcemeta::core::mcp_make_resource_templates_list_result(
           sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
-          sourcemeta::core::JSON::make_array(), "", policy)};
-  EXPECT_TRUE(tmpls_legacy.defines("nextCursor"));
-  EXPECT_EQ(tmpls_legacy.at("nextCursor").to_string(), "");
-
-  // Prompts list
-  const auto prompts_modern{sourcemeta::core::mcp_make_prompts_list_result(
-      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-      sourcemeta::core::JSON::make_array(), "", policy)};
-  EXPECT_TRUE(prompts_modern.defines("nextCursor"));
-  EXPECT_EQ(prompts_modern.at("nextCursor").to_string(), "");
-
-  const auto prompts_legacy{sourcemeta::core::mcp_make_prompts_list_result(
-      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
-      sourcemeta::core::JSON::make_array(), "", policy)};
-  EXPECT_TRUE(prompts_legacy.defines("nextCursor"));
-  EXPECT_EQ(prompts_legacy.at("nextCursor").to_string(), "");
+          sourcemeta::core::JSON::make_array(), "",
+          {.ttl_ms = 10000, .scope = sourcemeta::core::MCPCacheScope::Public}),
+      sourcemeta::core::parse_json(
+          R"JSON({ "resourceTemplates": [], "nextCursor": "" })JSON"));
 }
 
-TEST(make_tool_descriptor_2026_07_28_arbitrary_json_schema) {
-  // Arbitrary JSON Schema 2020-12 keywords
-  const auto input_schema{sourcemeta::core::parse_json(R"JSON({
+TEST(prompts_list_result_preserves_an_empty_cursor_2026_07_28) {
+  EXPECT_EQ(
+      sourcemeta::core::mcp_make_prompts_list_result(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+          sourcemeta::core::JSON::make_array(), "",
+          {.ttl_ms = 10000, .scope = sourcemeta::core::MCPCacheScope::Public}),
+      sourcemeta::core::parse_json(R"JSON({
+    "resultType": "complete",
+    "prompts": [],
+    "nextCursor": "",
+    "ttlMs": 10000,
+    "cacheScope": "public"
+  })JSON"));
+}
+
+TEST(prompts_list_result_preserves_an_empty_cursor_2025_11_25) {
+  EXPECT_EQ(
+      sourcemeta::core::mcp_make_prompts_list_result(
+          sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+          sourcemeta::core::JSON::make_array(), "",
+          {.ttl_ms = 10000, .scope = sourcemeta::core::MCPCacheScope::Public}),
+      sourcemeta::core::parse_json(
+          R"JSON({ "prompts": [], "nextCursor": "" })JSON"));
+}
+
+// Schema keywords are carried through verbatim, so a tool may use the whole of
+// JSON Schema 2020-12
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/index#json-schema-usage
+TEST(make_tool_descriptor_with_arbitrary_schema_keywords) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_tool_descriptor(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                "advanced_tool", "Tool using modern JSON Schema",
+                sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "type": "object",
-    "$defs": {
-      "item": { "type": "string" }
-    },
+    "$defs": { "item": { "type": "string" } },
     "properties": {
       "tags": {
         "type": "array",
         "prefixItems": [ { "$ref": "#/$defs/item" } ]
       }
     },
-    "dependentRequired": {
-      "tags": [ "name" ]
-    },
+    "dependentRequired": { "tags": [ "name" ] },
     "unevaluatedProperties": false
-  })JSON")};
-
-  const auto output_schema{sourcemeta::core::parse_json(R"JSON({
+  })JSON"),
+                sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "type": "object",
-    "properties": {
-      "status": { "type": "string" }
+    "properties": { "status": { "type": "string" } }
+  })JSON")),
+            sourcemeta::core::parse_json(R"JSON({
+    "name": "advanced_tool",
+    "description": "Tool using modern JSON Schema",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "$defs": { "item": { "type": "string" } },
+      "properties": {
+        "tags": {
+          "type": "array",
+          "prefixItems": [ { "$ref": "#/$defs/item" } ]
+        }
+      },
+      "dependentRequired": { "tags": [ "name" ] },
+      "unevaluatedProperties": false
+    },
+    "outputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": { "status": { "type": "string" } }
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true
     }
-  })JSON")};
-
-  const auto descriptor{sourcemeta::core::mcp_make_tool_descriptor(
-      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "advanced_tool",
-      "Tool using modern JSON Schema", input_schema, output_schema)};
-
-  EXPECT_EQ(descriptor.at("name").to_string(), "advanced_tool");
-  EXPECT_TRUE(descriptor.at("inputSchema").defines("$defs"));
-  EXPECT_TRUE(descriptor.at("inputSchema").defines("dependentRequired"));
-  EXPECT_TRUE(descriptor.at("inputSchema").defines("unevaluatedProperties"));
-  EXPECT_TRUE(descriptor.defines("outputSchema"));
-  EXPECT_EQ(descriptor.at("outputSchema").at("type").to_string(), "object");
+  })JSON"));
 }
 
-TEST(initialize_negotiation_with_2024_11_05_legacy_date) {
-  // A legacy client from 2024-11-05 requesting initialize falls back to
-  // the latest handshake-compatible version (2025-11-25).
-  const auto request{sourcemeta::core::parse_json(R"JSON({
-  "jsonrpc": "2.0",
-  "id": 1,
-  "method": "initialize",
-  "params": {
-    "protocolVersion": "2024-11-05",
-    "capabilities": {},
-    "clientInfo": {
-      "name": "client",
-      "version": "1"
-    }
-  }
-})JSON")};
-
-  const sourcemeta::core::MCPServerCapabilities capabilities;
+TEST(make_initialize_result_negotiates_up_from_an_unknown_revision) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
   const sourcemeta::core::MCPImplementation server{.name = "srv",
                                                    .version = "1.0.0"};
-  const auto envelope{sourcemeta::core::mcp_make_initialize_result(
-      request, capabilities, server, SUPPORTED_VERSIONS)};
-
-  EXPECT_EQ(envelope.at("result").at("protocolVersion").to_string(),
-            "2025-11-25");
-  EXPECT_FALSE(envelope.at("result").defines("resultType"));
-  EXPECT_FALSE(envelope.at("result").defines("_meta"));
+  EXPECT_EQ(sourcemeta::core::mcp_make_initialize_result(
+                sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "initialize",
+    "params": {
+      "protocolVersion": "2024-11-05",
+      "capabilities": {},
+      "clientInfo": { "name": "client", "version": "1" }
+    }
+  })JSON"),
+                {}, server, SUPPORTED),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "result": {
+      "protocolVersion": "2025-11-25",
+      "capabilities": {},
+      "serverInfo": { "name": "srv", "version": "1.0.0" }
+    }
+  })JSON"));
 }
 
-TEST(error_code_to_http_status_mapping) {
-  EXPECT_EQ(sourcemeta::core::mcp_error_code_to_http_status(
+// A server identifies itself in the metadata of a result it returns
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/index#_meta
+TEST(make_empty_result_with_server_information) {
+  const sourcemeta::core::MCPImplementation server{.name = "srv",
+                                                   .version = "1.0.0"};
+  EXPECT_EQ(sourcemeta::core::mcp_make_empty_result(
                 sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-                sourcemeta::core::JSONRPC_CODE_PARSE),
-            sourcemeta::core::HTTP_STATUS_BAD_REQUEST);
-  EXPECT_EQ(sourcemeta::core::mcp_error_code_to_http_status(
-                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-                sourcemeta::core::JSONRPC_CODE_INVALID_REQUEST),
-            sourcemeta::core::HTTP_STATUS_BAD_REQUEST);
-  EXPECT_EQ(sourcemeta::core::mcp_error_code_to_http_status(
-                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-                sourcemeta::core::JSONRPC_CODE_METHOD_NOT_FOUND),
-            sourcemeta::core::HTTP_STATUS_NOT_FOUND);
-  EXPECT_EQ(sourcemeta::core::mcp_error_code_to_http_status(
-                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-                sourcemeta::core::JSONRPC_CODE_INVALID_PARAMS),
-            sourcemeta::core::HTTP_STATUS_BAD_REQUEST);
-  EXPECT_EQ(sourcemeta::core::mcp_error_code_to_http_status(
-                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-                sourcemeta::core::JSONRPC_CODE_INTERNAL),
-            sourcemeta::core::HTTP_STATUS_INTERNAL_SERVER_ERROR);
-  EXPECT_EQ(sourcemeta::core::mcp_error_code_to_http_status(
-                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-                sourcemeta::core::MCP_CODE_HEADER_MISMATCH),
-            sourcemeta::core::HTTP_STATUS_BAD_REQUEST);
-  EXPECT_EQ(sourcemeta::core::mcp_error_code_to_http_status(
-                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-                sourcemeta::core::MCP_CODE_MISSING_REQUIRED_CLIENT_CAPABILITY),
-            sourcemeta::core::HTTP_STATUS_BAD_REQUEST);
-  EXPECT_EQ(sourcemeta::core::mcp_error_code_to_http_status(
-                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-                sourcemeta::core::MCP_CODE_UNSUPPORTED_PROTOCOL_VERSION),
-            sourcemeta::core::HTTP_STATUS_BAD_REQUEST);
-  EXPECT_EQ(sourcemeta::core::mcp_error_code_to_http_status(
-                sourcemeta::core::MCPProtocolVersion::V_2026_07_28, -99999),
-            sourcemeta::core::HTTP_STATUS_INTERNAL_SERVER_ERROR);
+                sourcemeta::core::JSON{100}, server),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 100,
+    "result": {
+      "resultType": "complete",
+      "_meta": {
+        "io.modelcontextprotocol/serverInfo": { "name": "srv", "version": "1.0.0" }
+      }
+    }
+  })JSON"));
 }
 
-TEST(error_code_to_http_status_mapping_version_aware) {
-  EXPECT_EQ(sourcemeta::core::mcp_error_code_to_http_status(
-                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-                sourcemeta::core::JSONRPC_CODE_METHOD_NOT_FOUND),
-            sourcemeta::core::HTTP_STATUS_NOT_FOUND);
-  EXPECT_EQ(sourcemeta::core::mcp_error_code_to_http_status(
+TEST(make_empty_result_ignores_server_information_on_2025_11_25) {
+  const sourcemeta::core::MCPImplementation server{.name = "srv",
+                                                   .version = "1.0.0"};
+  EXPECT_EQ(sourcemeta::core::mcp_make_empty_result(
                 sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
-                sourcemeta::core::JSONRPC_CODE_METHOD_NOT_FOUND),
-            sourcemeta::core::HTTP_STATUS_BAD_REQUEST);
-  EXPECT_EQ(sourcemeta::core::mcp_error_code_to_http_status(
-                sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
-                sourcemeta::core::JSONRPC_CODE_METHOD_NOT_FOUND),
-            sourcemeta::core::HTTP_STATUS_BAD_REQUEST);
-  EXPECT_EQ(sourcemeta::core::mcp_error_code_to_http_status(
-                sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
-                sourcemeta::core::JSONRPC_CODE_METHOD_NOT_FOUND),
-            sourcemeta::core::HTTP_STATUS_BAD_REQUEST);
+                sourcemeta::core::JSON{100}, server),
+            sourcemeta::core::parse_json(
+                R"JSON({ "jsonrpc": "2.0", "id": 100, "result": {} })JSON"));
 }
 
-TEST(empty_result_builder) {
-  const auto identifier{sourcemeta::core::JSON{100}};
-  const auto legacy{sourcemeta::core::mcp_make_empty_result(
-      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, identifier)};
-  EXPECT_TRUE(legacy.at("result").is_object());
-  EXPECT_FALSE(legacy.at("result").defines("resultType"));
-  EXPECT_FALSE(legacy.at("result").defines("_meta"));
-  EXPECT_EQ(legacy.at("id").to_integer(), 100);
-
-  const auto modern{sourcemeta::core::mcp_make_empty_result(
-      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, identifier)};
-  EXPECT_TRUE(modern.at("result").is_object());
-  EXPECT_EQ(modern.at("result").at("resultType").to_string(), "complete");
-  EXPECT_FALSE(modern.at("result").defines("_meta"));
-  EXPECT_EQ(modern.at("id").to_integer(), 100);
-
-  const sourcemeta::core::MCPImplementation srv{.name = "srv",
-                                                .version = "1.0.0"};
-  const auto modern_with_info{sourcemeta::core::mcp_make_empty_result(
-      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, identifier, srv)};
-  EXPECT_TRUE(modern_with_info.at("result").defines("_meta"));
-  EXPECT_EQ(modern_with_info.at("result")
-                .at("_meta")
-                .at("io.modelcontextprotocol/serverInfo")
-                .at("name")
-                .to_string(),
-            "srv");
+TEST(decorate_cacheable_result_2026_07_28) {
+  EXPECT_EQ(
+      sourcemeta::core::mcp_decorate_cacheable_result(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+          sourcemeta::core::JSON::make_object(),
+          {.ttl_ms = 5000, .scope = sourcemeta::core::MCPCacheScope::Private},
+          sourcemeta::core::MCP_METHOD_TOOLS_LIST),
+      sourcemeta::core::parse_json(R"JSON({
+    "resultType": "complete",
+    "ttlMs": 5000,
+    "cacheScope": "private"
+  })JSON"));
 }
 
-TEST(value_result_decoration) {
-  auto legacy_payload{sourcemeta::core::JSON::make_object()};
-  legacy_payload.assign("key", sourcemeta::core::JSON{"value"});
-  legacy_payload = sourcemeta::core::mcp_decorate_result(
-      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
-      std::move(legacy_payload));
-  EXPECT_FALSE(legacy_payload.defines("resultType"));
-  EXPECT_FALSE(legacy_payload.defines("_meta"));
-  EXPECT_EQ(legacy_payload.at("key").to_string(), "value");
-
-  auto modern_payload{sourcemeta::core::JSON::make_object()};
-  modern_payload.assign("key", sourcemeta::core::JSON{"value"});
-  modern_payload = sourcemeta::core::mcp_decorate_result(
-      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-      std::move(modern_payload));
-  EXPECT_EQ(modern_payload.at("resultType").to_string(), "complete");
-  EXPECT_EQ(modern_payload.at("key").to_string(), "value");
-
-  // In-place cacheable decoration
-  auto modern_cacheable{sourcemeta::core::JSON::make_object()};
-  const sourcemeta::core::MCPCachePolicy policy{
-      .ttl_ms = 5000, .scope = sourcemeta::core::MCPCacheScope::Private};
-  modern_cacheable = sourcemeta::core::mcp_decorate_cacheable_result(
-      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
-      std::move(modern_cacheable), policy,
-      sourcemeta::core::MCP_METHOD_TOOLS_LIST);
-  EXPECT_EQ(modern_cacheable.at("ttlMs").to_integer(), 5000);
-  EXPECT_EQ(modern_cacheable.at("cacheScope").to_string(), "private");
-}
-
-TEST(prompts_list_result_builder) {
-  auto prompts{sourcemeta::core::JSON::make_array()};
-  auto prompt1{sourcemeta::core::JSON::make_object()};
-  prompt1.assign("name", sourcemeta::core::JSON{"test-prompt"});
-  prompts.push_back(std::move(prompt1));
-
-  const sourcemeta::core::MCPCachePolicy policy{
-      .ttl_ms = 10000, .scope = sourcemeta::core::MCPCacheScope::Public};
-
-  const auto legacy{sourcemeta::core::mcp_make_prompts_list_result(
-      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, prompts,
-      "next-cursor", policy)};
-  EXPECT_FALSE(legacy.defines("resultType"));
-  EXPECT_FALSE(legacy.defines("_meta"));
-  EXPECT_EQ(legacy.at("prompts").size(), 1);
-  EXPECT_EQ(legacy.at("nextCursor").to_string(), "next-cursor");
-
-  const auto modern{sourcemeta::core::mcp_make_prompts_list_result(
-      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, prompts, std::nullopt,
-      policy)};
-  EXPECT_EQ(modern.at("resultType").to_string(), "complete");
-  EXPECT_EQ(modern.at("prompts").size(), 1);
-  EXPECT_FALSE(modern.defines("nextCursor"));
-  EXPECT_EQ(modern.at("ttlMs").to_integer(), 10000);
-  EXPECT_EQ(modern.at("cacheScope").to_string(), "public");
+TEST(decorate_cacheable_result_2025_11_25) {
+  EXPECT_EQ(
+      sourcemeta::core::mcp_decorate_cacheable_result(
+          sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+          sourcemeta::core::JSON::make_object(),
+          {.ttl_ms = 5000, .scope = sourcemeta::core::MCPCacheScope::Private},
+          sourcemeta::core::MCP_METHOD_TOOLS_LIST),
+      sourcemeta::core::parse_json(R"JSON({})JSON"));
 }
 
 TEST(base64_header_malformed_rejected_on_2026) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
   const auto request{sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "id": 1,
@@ -2608,7 +1794,7 @@ TEST(base64_header_malformed_rejected_on_2026) {
   // Malformed base64 in Mcp-Name header on 2026-07-28
   const auto error{sourcemeta::core::mcp_validate_request_headers(
       sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "2026-07-28",
-      "tools/call", "base64:%%%invalid-chars&&&", request, SUPPORTED_VERSIONS)};
+      "tools/call", "base64:%%%invalid-chars&&&", request, SUPPORTED)};
   EXPECT_TRUE(error.has_value());
   EXPECT_EQ(error->at("error").at("code").to_integer(),
             sourcemeta::core::MCP_CODE_HEADER_MISMATCH);
@@ -2619,7 +1805,10 @@ TEST(request_name_from_body_prefers_uri_for_resources_read) {
     "jsonrpc": "2.0",
     "id": 1,
     "method": "resources/read",
-    "params": { "name": "ignored-name", "uri": "file:///path/to/resource" }
+    "params": {
+      "name": "ignored-name",
+      "uri": "file:///path/to/resource"
+    }
   })JSON")};
   const auto extracted_uri{
       sourcemeta::core::mcp_request_name_from_body(envelope_with_both)};
@@ -2640,3627 +1829,6296 @@ TEST(request_name_from_body_prefers_uri_for_resources_read) {
 
 TEST(decorate_result_rejects_non_object_meta) {
   auto result{sourcemeta::core::parse_json(
-      R"({"resultType":"complete","_meta":"invalid"})")};
+      R"JSON({ "resultType": "complete", "_meta": "invalid" })JSON")};
   const auto before{result};
-  try {
-    result = sourcemeta::core::mcp_decorate_result(
-        sourcemeta::core::MCPProtocolVersion::V_2026_07_28, result);
-    FAIL();
-  } catch (const std::invalid_argument &) {
-    // Invalid input is expected to be rejected
-  }
+  EXPECT_MCP_REJECTS(
+      result = sourcemeta::core::mcp_decorate_result(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, result),
+      "MCP result _meta must be an object");
   EXPECT_EQ(result, before);
 }
 
-TEST(cache_policy_clamps_negative_ttl_ms_to_zero) {
-  auto result{sourcemeta::core::JSON::make_object()};
-  const sourcemeta::core::MCPCachePolicy negative_policy{
-      .ttl_ms = -500, .scope = sourcemeta::core::MCPCacheScope::Public};
-  result = sourcemeta::core::mcp_decorate_cacheable_result(
-      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, std::move(result),
-      negative_policy, sourcemeta::core::MCP_METHOD_TOOLS_LIST);
-
-  EXPECT_TRUE(result.defines("ttlMs"));
-  EXPECT_EQ(result.at("ttlMs").to_integer(), 0);
-  EXPECT_EQ(result.at("cacheScope").to_string(), "public");
-}
-
 TEST(result_type_defaults_to_complete_2025_03_26) {
-  const auto version{MCPProtocolVersion::V_2025_03_26};
-  EXPECT_EQ(mcp_resolve_result_type(version, JSON::make_object()).value(),
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_03_26};
+  EXPECT_EQ(sourcemeta::core::mcp_resolve_result_type(
+                version, sourcemeta::core::JSON::make_object())
+                .value(),
             "complete");
 }
 
 TEST(result_type_rejects_unnegotiated_extension_2025_03_26) {
-  const auto version{MCPProtocolVersion::V_2025_03_26};
-  const auto custom{parse_json(R"({"resultType":"org.example/custom"})")};
-  EXPECT_FALSE(mcp_resolve_result_type(version, custom).has_value());
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_03_26};
+  const auto custom{sourcemeta::core::parse_json(
+      R"JSON({ "resultType": "org.example/custom" })JSON")};
+  EXPECT_FALSE(
+      sourcemeta::core::mcp_resolve_result_type(version, custom).has_value());
 }
 
 TEST(result_type_negotiated_extension_2025_03_26) {
-  const auto version{MCPProtocolVersion::V_2025_03_26};
-  const std::array<JSON::StringView, 1> extensions{{"org.example/custom"}};
-  const auto custom{parse_json(R"({"resultType":"org.example/custom"})")};
-  EXPECT_EQ(mcp_resolve_result_type(version, custom, extensions).has_value(),
-            false);
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_03_26};
+  const std::array<sourcemeta::core::JSON::StringView, 1> extensions{
+      {"org.example/custom"}};
+  const auto custom{sourcemeta::core::parse_json(
+      R"JSON({ "resultType": "org.example/custom" })JSON")};
+  EXPECT_EQ(
+      sourcemeta::core::mcp_resolve_result_type(version, custom, extensions)
+          .has_value(),
+      false);
 }
 
 TEST(result_type_input_required_2025_03_26) {
-  const auto version{MCPProtocolVersion::V_2025_03_26};
-  const auto interim{parse_json(R"({"resultType":"input_required"})")};
-  EXPECT_EQ(mcp_resolve_result_type(version, interim).has_value(), false);
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_03_26};
+  const auto interim{sourcemeta::core::parse_json(
+      R"JSON({ "resultType": "input_required" })JSON")};
+  EXPECT_EQ(
+      sourcemeta::core::mcp_resolve_result_type(version, interim).has_value(),
+      false);
 }
 
 TEST(result_type_rejects_boolean_2025_03_26) {
-  const auto version{MCPProtocolVersion::V_2025_03_26};
-  EXPECT_FALSE(mcp_resolve_result_type(version, JSON{false}).has_value());
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_03_26};
+  EXPECT_FALSE(sourcemeta::core::mcp_resolve_result_type(
+                   version, sourcemeta::core::JSON{false})
+                   .has_value());
 }
 
 TEST(result_type_defaults_to_complete_2025_06_18) {
-  const auto version{MCPProtocolVersion::V_2025_06_18};
-  EXPECT_EQ(mcp_resolve_result_type(version, JSON::make_object()).value(),
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_06_18};
+  EXPECT_EQ(sourcemeta::core::mcp_resolve_result_type(
+                version, sourcemeta::core::JSON::make_object())
+                .value(),
             "complete");
 }
 
 TEST(result_type_rejects_unnegotiated_extension_2025_06_18) {
-  const auto version{MCPProtocolVersion::V_2025_06_18};
-  const auto custom{parse_json(R"({"resultType":"org.example/custom"})")};
-  EXPECT_FALSE(mcp_resolve_result_type(version, custom).has_value());
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_06_18};
+  const auto custom{sourcemeta::core::parse_json(
+      R"JSON({ "resultType": "org.example/custom" })JSON")};
+  EXPECT_FALSE(
+      sourcemeta::core::mcp_resolve_result_type(version, custom).has_value());
 }
 
 TEST(result_type_negotiated_extension_2025_06_18) {
-  const auto version{MCPProtocolVersion::V_2025_06_18};
-  const std::array<JSON::StringView, 1> extensions{{"org.example/custom"}};
-  const auto custom{parse_json(R"({"resultType":"org.example/custom"})")};
-  EXPECT_EQ(mcp_resolve_result_type(version, custom, extensions).has_value(),
-            false);
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_06_18};
+  const std::array<sourcemeta::core::JSON::StringView, 1> extensions{
+      {"org.example/custom"}};
+  const auto custom{sourcemeta::core::parse_json(
+      R"JSON({ "resultType": "org.example/custom" })JSON")};
+  EXPECT_EQ(
+      sourcemeta::core::mcp_resolve_result_type(version, custom, extensions)
+          .has_value(),
+      false);
 }
 
 TEST(result_type_input_required_2025_06_18) {
-  const auto version{MCPProtocolVersion::V_2025_06_18};
-  const auto interim{parse_json(R"({"resultType":"input_required"})")};
-  EXPECT_EQ(mcp_resolve_result_type(version, interim).has_value(), false);
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_06_18};
+  const auto interim{sourcemeta::core::parse_json(
+      R"JSON({ "resultType": "input_required" })JSON")};
+  EXPECT_EQ(
+      sourcemeta::core::mcp_resolve_result_type(version, interim).has_value(),
+      false);
 }
 
 TEST(result_type_rejects_boolean_2025_06_18) {
-  const auto version{MCPProtocolVersion::V_2025_06_18};
-  EXPECT_FALSE(mcp_resolve_result_type(version, JSON{false}).has_value());
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_06_18};
+  EXPECT_FALSE(sourcemeta::core::mcp_resolve_result_type(
+                   version, sourcemeta::core::JSON{false})
+                   .has_value());
 }
 
 TEST(result_type_defaults_to_complete_2025_11_25) {
-  const auto version{MCPProtocolVersion::V_2025_11_25};
-  EXPECT_EQ(mcp_resolve_result_type(version, JSON::make_object()).value(),
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_11_25};
+  EXPECT_EQ(sourcemeta::core::mcp_resolve_result_type(
+                version, sourcemeta::core::JSON::make_object())
+                .value(),
             "complete");
 }
 
 TEST(result_type_rejects_unnegotiated_extension_2025_11_25) {
-  const auto version{MCPProtocolVersion::V_2025_11_25};
-  const auto custom{parse_json(R"({"resultType":"org.example/custom"})")};
-  EXPECT_FALSE(mcp_resolve_result_type(version, custom).has_value());
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_11_25};
+  const auto custom{sourcemeta::core::parse_json(
+      R"JSON({ "resultType": "org.example/custom" })JSON")};
+  EXPECT_FALSE(
+      sourcemeta::core::mcp_resolve_result_type(version, custom).has_value());
 }
 
 TEST(result_type_negotiated_extension_2025_11_25) {
-  const auto version{MCPProtocolVersion::V_2025_11_25};
-  const std::array<JSON::StringView, 1> extensions{{"org.example/custom"}};
-  const auto custom{parse_json(R"({"resultType":"org.example/custom"})")};
-  EXPECT_EQ(mcp_resolve_result_type(version, custom, extensions).has_value(),
-            false);
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_11_25};
+  const std::array<sourcemeta::core::JSON::StringView, 1> extensions{
+      {"org.example/custom"}};
+  const auto custom{sourcemeta::core::parse_json(
+      R"JSON({ "resultType": "org.example/custom" })JSON")};
+  EXPECT_EQ(
+      sourcemeta::core::mcp_resolve_result_type(version, custom, extensions)
+          .has_value(),
+      false);
 }
 
 TEST(result_type_input_required_2025_11_25) {
-  const auto version{MCPProtocolVersion::V_2025_11_25};
-  const auto interim{parse_json(R"({"resultType":"input_required"})")};
-  EXPECT_EQ(mcp_resolve_result_type(version, interim).has_value(), false);
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_11_25};
+  const auto interim{sourcemeta::core::parse_json(
+      R"JSON({ "resultType": "input_required" })JSON")};
+  EXPECT_EQ(
+      sourcemeta::core::mcp_resolve_result_type(version, interim).has_value(),
+      false);
 }
 
 TEST(result_type_rejects_boolean_2025_11_25) {
-  const auto version{MCPProtocolVersion::V_2025_11_25};
-  EXPECT_FALSE(mcp_resolve_result_type(version, JSON{false}).has_value());
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_11_25};
+  EXPECT_FALSE(sourcemeta::core::mcp_resolve_result_type(
+                   version, sourcemeta::core::JSON{false})
+                   .has_value());
 }
 
 TEST(result_type_defaults_to_complete_2026_07_28) {
-  const auto version{MCPProtocolVersion::V_2026_07_28};
-  EXPECT_EQ(mcp_resolve_result_type(version, JSON::make_object()).value(),
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2026_07_28};
+  EXPECT_EQ(sourcemeta::core::mcp_resolve_result_type(
+                version, sourcemeta::core::JSON::make_object())
+                .value(),
             "complete");
 }
 
 TEST(result_type_rejects_unnegotiated_extension_2026_07_28) {
-  const auto version{MCPProtocolVersion::V_2026_07_28};
-  const auto custom{parse_json(R"({"resultType":"org.example/custom"})")};
-  EXPECT_FALSE(mcp_resolve_result_type(version, custom).has_value());
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2026_07_28};
+  const auto custom{sourcemeta::core::parse_json(
+      R"JSON({ "resultType": "org.example/custom" })JSON")};
+  EXPECT_FALSE(
+      sourcemeta::core::mcp_resolve_result_type(version, custom).has_value());
 }
 
 TEST(result_type_negotiated_extension_2026_07_28) {
-  const auto version{MCPProtocolVersion::V_2026_07_28};
-  const std::array<JSON::StringView, 1> extensions{{"org.example/custom"}};
-  const auto custom{parse_json(R"({"resultType":"org.example/custom"})")};
-  EXPECT_EQ(mcp_resolve_result_type(version, custom, extensions).has_value(),
-            true);
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2026_07_28};
+  const std::array<sourcemeta::core::JSON::StringView, 1> extensions{
+      {"org.example/custom"}};
+  const auto custom{sourcemeta::core::parse_json(
+      R"JSON({ "resultType": "org.example/custom" })JSON")};
+  EXPECT_EQ(
+      sourcemeta::core::mcp_resolve_result_type(version, custom, extensions)
+          .has_value(),
+      true);
 }
 
 TEST(result_type_input_required_2026_07_28) {
-  const auto version{MCPProtocolVersion::V_2026_07_28};
-  const auto interim{parse_json(R"({"resultType":"input_required"})")};
-  EXPECT_EQ(mcp_resolve_result_type(version, interim).has_value(), true);
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2026_07_28};
+  const auto interim{sourcemeta::core::parse_json(
+      R"JSON({ "resultType": "input_required" })JSON")};
+  EXPECT_EQ(
+      sourcemeta::core::mcp_resolve_result_type(version, interim).has_value(),
+      true);
 }
 
 TEST(result_type_rejects_boolean_2026_07_28) {
-  const auto version{MCPProtocolVersion::V_2026_07_28};
-  EXPECT_FALSE(mcp_resolve_result_type(version, JSON{false}).has_value());
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2026_07_28};
+  EXPECT_FALSE(sourcemeta::core::mcp_resolve_result_type(
+                   version, sourcemeta::core::JSON{false})
+                   .has_value());
 }
 
 TEST(empty_result_rejects_null_id_2025_03_26) {
-  const auto version{MCPProtocolVersion::V_2025_03_26};
-  try {
-    mcp_make_empty_result(version, JSON{nullptr});
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_03_26};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_result(
+                         version, sourcemeta::core::JSON{nullptr}),
+                     "MCP identifiers must be strings or integers");
 }
 
 TEST(tool_error_rejects_null_id_2025_03_26) {
-  const auto version{MCPProtocolVersion::V_2025_03_26};
-  try {
-    mcp_make_tool_error(version, JSON{nullptr}, "error");
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_03_26};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_tool_error(
+                         version, sourcemeta::core::JSON{nullptr}, "error"),
+                     "MCP identifiers must be strings or integers");
 }
 
 TEST(empty_result_rejects_boolean_id_2025_03_26) {
-  const auto version{MCPProtocolVersion::V_2025_03_26};
-  try {
-    mcp_make_empty_result(version, JSON{true});
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_03_26};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_result(
+                         version, sourcemeta::core::JSON{true}),
+                     "MCP identifiers must be strings or integers");
 }
 
 TEST(tool_error_rejects_boolean_id_2025_03_26) {
-  const auto version{MCPProtocolVersion::V_2025_03_26};
-  try {
-    mcp_make_tool_error(version, JSON{true}, "error");
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_03_26};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_tool_error(
+                         version, sourcemeta::core::JSON{true}, "error"),
+                     "MCP identifiers must be strings or integers");
 }
 
 TEST(empty_result_rejects_real_id_2025_03_26) {
-  const auto version{MCPProtocolVersion::V_2025_03_26};
-  try {
-    mcp_make_empty_result(version, JSON{1.5});
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_03_26};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_result(
+                         version, sourcemeta::core::JSON{1.5}),
+                     "MCP identifiers must be strings or integers");
 }
 
 TEST(tool_error_rejects_real_id_2025_03_26) {
-  const auto version{MCPProtocolVersion::V_2025_03_26};
-  try {
-    mcp_make_tool_error(version, JSON{1.5}, "error");
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_03_26};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_tool_error(
+                         version, sourcemeta::core::JSON{1.5}, "error"),
+                     "MCP identifiers must be strings or integers");
 }
 
 TEST(empty_result_rejects_array_id_2025_03_26) {
-  const auto version{MCPProtocolVersion::V_2025_03_26};
-  try {
-    mcp_make_empty_result(version, JSON::make_array());
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_03_26};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_result(
+                         version, sourcemeta::core::JSON::make_array()),
+                     "MCP identifiers must be strings or integers");
 }
 
 TEST(tool_error_rejects_array_id_2025_03_26) {
-  const auto version{MCPProtocolVersion::V_2025_03_26};
-  try {
-    mcp_make_tool_error(version, JSON::make_array(), "error");
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_03_26};
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_tool_error(
+          version, sourcemeta::core::JSON::make_array(), "error"),
+      "MCP identifiers must be strings or integers");
 }
 
 TEST(empty_result_rejects_object_id_2025_03_26) {
-  const auto version{MCPProtocolVersion::V_2025_03_26};
-  try {
-    mcp_make_empty_result(version, JSON::make_object());
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_03_26};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_result(
+                         version, sourcemeta::core::JSON::make_object()),
+                     "MCP identifiers must be strings or integers");
 }
 
 TEST(tool_error_rejects_object_id_2025_03_26) {
-  const auto version{MCPProtocolVersion::V_2025_03_26};
-  try {
-    mcp_make_tool_error(version, JSON::make_object(), "error");
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_03_26};
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_tool_error(
+          version, sourcemeta::core::JSON::make_object(), "error"),
+      "MCP identifiers must be strings or integers");
 }
 
 TEST(empty_result_accepts_zero_id_2025_03_26) {
-  const auto version{MCPProtocolVersion::V_2025_03_26};
-  EXPECT_EQ(mcp_make_empty_result(version, JSON{0}).at("id"), JSON{0});
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_03_26};
+  EXPECT_EQ(sourcemeta::core::mcp_make_empty_result(version,
+                                                    sourcemeta::core::JSON{0})
+                .at("id"),
+            sourcemeta::core::JSON{0});
 }
 
 TEST(empty_result_accepts_empty_string_id_2025_03_26) {
-  const auto version{MCPProtocolVersion::V_2025_03_26};
-  EXPECT_EQ(mcp_make_empty_result(version, JSON{""}).at("id"), JSON{""});
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_03_26};
+  EXPECT_EQ(sourcemeta::core::mcp_make_empty_result(version,
+                                                    sourcemeta::core::JSON{""})
+                .at("id"),
+            sourcemeta::core::JSON{""});
 }
 
 TEST(empty_result_rejects_null_id_2025_06_18) {
-  const auto version{MCPProtocolVersion::V_2025_06_18};
-  try {
-    mcp_make_empty_result(version, JSON{nullptr});
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_06_18};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_result(
+                         version, sourcemeta::core::JSON{nullptr}),
+                     "MCP identifiers must be strings or integers");
 }
 
 TEST(tool_error_rejects_null_id_2025_06_18) {
-  const auto version{MCPProtocolVersion::V_2025_06_18};
-  try {
-    mcp_make_tool_error(version, JSON{nullptr}, "error");
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_06_18};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_tool_error(
+                         version, sourcemeta::core::JSON{nullptr}, "error"),
+                     "MCP identifiers must be strings or integers");
 }
 
 TEST(empty_result_rejects_boolean_id_2025_06_18) {
-  const auto version{MCPProtocolVersion::V_2025_06_18};
-  try {
-    mcp_make_empty_result(version, JSON{true});
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_06_18};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_result(
+                         version, sourcemeta::core::JSON{true}),
+                     "MCP identifiers must be strings or integers");
 }
 
 TEST(tool_error_rejects_boolean_id_2025_06_18) {
-  const auto version{MCPProtocolVersion::V_2025_06_18};
-  try {
-    mcp_make_tool_error(version, JSON{true}, "error");
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_06_18};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_tool_error(
+                         version, sourcemeta::core::JSON{true}, "error"),
+                     "MCP identifiers must be strings or integers");
 }
 
 TEST(empty_result_rejects_real_id_2025_06_18) {
-  const auto version{MCPProtocolVersion::V_2025_06_18};
-  try {
-    mcp_make_empty_result(version, JSON{1.5});
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_06_18};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_result(
+                         version, sourcemeta::core::JSON{1.5}),
+                     "MCP identifiers must be strings or integers");
 }
 
 TEST(tool_error_rejects_real_id_2025_06_18) {
-  const auto version{MCPProtocolVersion::V_2025_06_18};
-  try {
-    mcp_make_tool_error(version, JSON{1.5}, "error");
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_06_18};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_tool_error(
+                         version, sourcemeta::core::JSON{1.5}, "error"),
+                     "MCP identifiers must be strings or integers");
 }
 
 TEST(empty_result_rejects_array_id_2025_06_18) {
-  const auto version{MCPProtocolVersion::V_2025_06_18};
-  try {
-    mcp_make_empty_result(version, JSON::make_array());
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_06_18};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_result(
+                         version, sourcemeta::core::JSON::make_array()),
+                     "MCP identifiers must be strings or integers");
 }
 
 TEST(tool_error_rejects_array_id_2025_06_18) {
-  const auto version{MCPProtocolVersion::V_2025_06_18};
-  try {
-    mcp_make_tool_error(version, JSON::make_array(), "error");
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_06_18};
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_tool_error(
+          version, sourcemeta::core::JSON::make_array(), "error"),
+      "MCP identifiers must be strings or integers");
 }
 
 TEST(empty_result_rejects_object_id_2025_06_18) {
-  const auto version{MCPProtocolVersion::V_2025_06_18};
-  try {
-    mcp_make_empty_result(version, JSON::make_object());
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_06_18};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_result(
+                         version, sourcemeta::core::JSON::make_object()),
+                     "MCP identifiers must be strings or integers");
 }
 
 TEST(tool_error_rejects_object_id_2025_06_18) {
-  const auto version{MCPProtocolVersion::V_2025_06_18};
-  try {
-    mcp_make_tool_error(version, JSON::make_object(), "error");
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_06_18};
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_tool_error(
+          version, sourcemeta::core::JSON::make_object(), "error"),
+      "MCP identifiers must be strings or integers");
 }
 
 TEST(empty_result_accepts_zero_id_2025_06_18) {
-  const auto version{MCPProtocolVersion::V_2025_06_18};
-  EXPECT_EQ(mcp_make_empty_result(version, JSON{0}).at("id"), JSON{0});
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_06_18};
+  EXPECT_EQ(sourcemeta::core::mcp_make_empty_result(version,
+                                                    sourcemeta::core::JSON{0})
+                .at("id"),
+            sourcemeta::core::JSON{0});
 }
 
 TEST(empty_result_accepts_empty_string_id_2025_06_18) {
-  const auto version{MCPProtocolVersion::V_2025_06_18};
-  EXPECT_EQ(mcp_make_empty_result(version, JSON{""}).at("id"), JSON{""});
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_06_18};
+  EXPECT_EQ(sourcemeta::core::mcp_make_empty_result(version,
+                                                    sourcemeta::core::JSON{""})
+                .at("id"),
+            sourcemeta::core::JSON{""});
 }
 
 TEST(empty_result_rejects_null_id_2025_11_25) {
-  const auto version{MCPProtocolVersion::V_2025_11_25};
-  try {
-    mcp_make_empty_result(version, JSON{nullptr});
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_11_25};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_result(
+                         version, sourcemeta::core::JSON{nullptr}),
+                     "MCP identifiers must be strings or integers");
 }
 
 TEST(tool_error_rejects_null_id_2025_11_25) {
-  const auto version{MCPProtocolVersion::V_2025_11_25};
-  try {
-    mcp_make_tool_error(version, JSON{nullptr}, "error");
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_11_25};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_tool_error(
+                         version, sourcemeta::core::JSON{nullptr}, "error"),
+                     "MCP identifiers must be strings or integers");
 }
 
 TEST(empty_result_rejects_boolean_id_2025_11_25) {
-  const auto version{MCPProtocolVersion::V_2025_11_25};
-  try {
-    mcp_make_empty_result(version, JSON{true});
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_11_25};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_result(
+                         version, sourcemeta::core::JSON{true}),
+                     "MCP identifiers must be strings or integers");
 }
 
 TEST(tool_error_rejects_boolean_id_2025_11_25) {
-  const auto version{MCPProtocolVersion::V_2025_11_25};
-  try {
-    mcp_make_tool_error(version, JSON{true}, "error");
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_11_25};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_tool_error(
+                         version, sourcemeta::core::JSON{true}, "error"),
+                     "MCP identifiers must be strings or integers");
 }
 
 TEST(empty_result_rejects_real_id_2025_11_25) {
-  const auto version{MCPProtocolVersion::V_2025_11_25};
-  try {
-    mcp_make_empty_result(version, JSON{1.5});
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_11_25};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_result(
+                         version, sourcemeta::core::JSON{1.5}),
+                     "MCP identifiers must be strings or integers");
 }
 
 TEST(tool_error_rejects_real_id_2025_11_25) {
-  const auto version{MCPProtocolVersion::V_2025_11_25};
-  try {
-    mcp_make_tool_error(version, JSON{1.5}, "error");
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_11_25};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_tool_error(
+                         version, sourcemeta::core::JSON{1.5}, "error"),
+                     "MCP identifiers must be strings or integers");
 }
 
 TEST(empty_result_rejects_array_id_2025_11_25) {
-  const auto version{MCPProtocolVersion::V_2025_11_25};
-  try {
-    mcp_make_empty_result(version, JSON::make_array());
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_11_25};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_result(
+                         version, sourcemeta::core::JSON::make_array()),
+                     "MCP identifiers must be strings or integers");
 }
 
 TEST(tool_error_rejects_array_id_2025_11_25) {
-  const auto version{MCPProtocolVersion::V_2025_11_25};
-  try {
-    mcp_make_tool_error(version, JSON::make_array(), "error");
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_11_25};
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_tool_error(
+          version, sourcemeta::core::JSON::make_array(), "error"),
+      "MCP identifiers must be strings or integers");
 }
 
 TEST(empty_result_rejects_object_id_2025_11_25) {
-  const auto version{MCPProtocolVersion::V_2025_11_25};
-  try {
-    mcp_make_empty_result(version, JSON::make_object());
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_11_25};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_result(
+                         version, sourcemeta::core::JSON::make_object()),
+                     "MCP identifiers must be strings or integers");
 }
 
 TEST(tool_error_rejects_object_id_2025_11_25) {
-  const auto version{MCPProtocolVersion::V_2025_11_25};
-  try {
-    mcp_make_tool_error(version, JSON::make_object(), "error");
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_11_25};
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_tool_error(
+          version, sourcemeta::core::JSON::make_object(), "error"),
+      "MCP identifiers must be strings or integers");
 }
 
 TEST(empty_result_accepts_zero_id_2025_11_25) {
-  const auto version{MCPProtocolVersion::V_2025_11_25};
-  EXPECT_EQ(mcp_make_empty_result(version, JSON{0}).at("id"), JSON{0});
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_11_25};
+  EXPECT_EQ(sourcemeta::core::mcp_make_empty_result(version,
+                                                    sourcemeta::core::JSON{0})
+                .at("id"),
+            sourcemeta::core::JSON{0});
 }
 
 TEST(empty_result_accepts_empty_string_id_2025_11_25) {
-  const auto version{MCPProtocolVersion::V_2025_11_25};
-  EXPECT_EQ(mcp_make_empty_result(version, JSON{""}).at("id"), JSON{""});
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_11_25};
+  EXPECT_EQ(sourcemeta::core::mcp_make_empty_result(version,
+                                                    sourcemeta::core::JSON{""})
+                .at("id"),
+            sourcemeta::core::JSON{""});
 }
 
 TEST(empty_result_rejects_null_id_2026_07_28) {
-  const auto version{MCPProtocolVersion::V_2026_07_28};
-  try {
-    mcp_make_empty_result(version, JSON{nullptr});
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2026_07_28};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_result(
+                         version, sourcemeta::core::JSON{nullptr}),
+                     "MCP identifiers must be strings or integers");
 }
 
 TEST(tool_error_rejects_null_id_2026_07_28) {
-  const auto version{MCPProtocolVersion::V_2026_07_28};
-  try {
-    mcp_make_tool_error(version, JSON{nullptr}, "error");
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2026_07_28};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_tool_error(
+                         version, sourcemeta::core::JSON{nullptr}, "error"),
+                     "MCP identifiers must be strings or integers");
 }
 
 TEST(empty_result_rejects_boolean_id_2026_07_28) {
-  const auto version{MCPProtocolVersion::V_2026_07_28};
-  try {
-    mcp_make_empty_result(version, JSON{true});
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2026_07_28};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_result(
+                         version, sourcemeta::core::JSON{true}),
+                     "MCP identifiers must be strings or integers");
 }
 
 TEST(tool_error_rejects_boolean_id_2026_07_28) {
-  const auto version{MCPProtocolVersion::V_2026_07_28};
-  try {
-    mcp_make_tool_error(version, JSON{true}, "error");
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2026_07_28};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_tool_error(
+                         version, sourcemeta::core::JSON{true}, "error"),
+                     "MCP identifiers must be strings or integers");
 }
 
 TEST(empty_result_rejects_real_id_2026_07_28) {
-  const auto version{MCPProtocolVersion::V_2026_07_28};
-  try {
-    mcp_make_empty_result(version, JSON{1.5});
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2026_07_28};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_result(
+                         version, sourcemeta::core::JSON{1.5}),
+                     "MCP identifiers must be strings or integers");
 }
 
 TEST(tool_error_rejects_real_id_2026_07_28) {
-  const auto version{MCPProtocolVersion::V_2026_07_28};
-  try {
-    mcp_make_tool_error(version, JSON{1.5}, "error");
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2026_07_28};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_tool_error(
+                         version, sourcemeta::core::JSON{1.5}, "error"),
+                     "MCP identifiers must be strings or integers");
 }
 
 TEST(empty_result_rejects_array_id_2026_07_28) {
-  const auto version{MCPProtocolVersion::V_2026_07_28};
-  try {
-    mcp_make_empty_result(version, JSON::make_array());
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2026_07_28};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_result(
+                         version, sourcemeta::core::JSON::make_array()),
+                     "MCP identifiers must be strings or integers");
 }
 
 TEST(tool_error_rejects_array_id_2026_07_28) {
-  const auto version{MCPProtocolVersion::V_2026_07_28};
-  try {
-    mcp_make_tool_error(version, JSON::make_array(), "error");
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2026_07_28};
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_tool_error(
+          version, sourcemeta::core::JSON::make_array(), "error"),
+      "MCP identifiers must be strings or integers");
 }
 
 TEST(empty_result_rejects_object_id_2026_07_28) {
-  const auto version{MCPProtocolVersion::V_2026_07_28};
-  try {
-    mcp_make_empty_result(version, JSON::make_object());
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2026_07_28};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_result(
+                         version, sourcemeta::core::JSON::make_object()),
+                     "MCP identifiers must be strings or integers");
 }
 
 TEST(tool_error_rejects_object_id_2026_07_28) {
-  const auto version{MCPProtocolVersion::V_2026_07_28};
-  try {
-    mcp_make_tool_error(version, JSON::make_object(), "error");
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2026_07_28};
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_tool_error(
+          version, sourcemeta::core::JSON::make_object(), "error"),
+      "MCP identifiers must be strings or integers");
 }
 
 TEST(empty_result_accepts_zero_id_2026_07_28) {
-  const auto version{MCPProtocolVersion::V_2026_07_28};
-  EXPECT_EQ(mcp_make_empty_result(version, JSON{0}).at("id"), JSON{0});
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2026_07_28};
+  EXPECT_EQ(sourcemeta::core::mcp_make_empty_result(version,
+                                                    sourcemeta::core::JSON{0})
+                .at("id"),
+            sourcemeta::core::JSON{0});
 }
 
 TEST(empty_result_accepts_empty_string_id_2026_07_28) {
-  const auto version{MCPProtocolVersion::V_2026_07_28};
-  EXPECT_EQ(mcp_make_empty_result(version, JSON{""}).at("id"), JSON{""});
+  const auto version{sourcemeta::core::MCPProtocolVersion::V_2026_07_28};
+  EXPECT_EQ(sourcemeta::core::mcp_make_empty_result(version,
+                                                    sourcemeta::core::JSON{""})
+                .at("id"),
+            sourcemeta::core::JSON{""});
 }
 
 TEST(initialize_supported_subset) {
-  const std::array<JSON::StringView, 1> only{{"2025-03-26"}};
-  const auto init{parse_json(
-      R"({
-  "jsonrpc": "2.0",
-  "id": 0,
-  "method": "initialize",
-  "params": {
-    "protocolVersion": "unknown",
-    "capabilities": {},
-    "clientInfo": {
-      "name": "client",
-      "version": "1"
-    }
-  }
-})")};
-  const auto result{mcp_make_initialize_result(
+  const std::array<sourcemeta::core::JSON::StringView, 1> only{{"2025-03-26"}};
+  const auto init{sourcemeta::core::parse_json(
+      R"JSON({
+        "jsonrpc": "2.0",
+        "id": 0,
+        "method": "initialize",
+        "params": {
+          "protocolVersion": "unknown",
+          "capabilities": {},
+          "clientInfo": { "name": "client", "version": "1" }
+        }
+      })JSON")};
+  const auto result{sourcemeta::core::mcp_make_initialize_result(
       init, {}, {.name = "server", .version = "1"}, only)};
-  EXPECT_EQ(result.at("result").at("protocolVersion"), JSON{"2025-03-26"});
+  EXPECT_EQ(result.at("result").at("protocolVersion"),
+            sourcemeta::core::JSON{"2025-03-26"});
 }
 
 TEST(initialize_missing_client_info) {
-  const std::array<JSON::StringView, 1> only{{"2025-03-26"}};
-  const auto init{parse_json(
-      R"({
-  "jsonrpc": "2.0",
-  "id": 0,
-  "method": "initialize",
-  "params": {
-    "protocolVersion": "unknown",
-    "capabilities": {},
-    "clientInfo": {
-      "name": "client",
-      "version": "1"
-    }
-  }
-})")};
+  const std::array<sourcemeta::core::JSON::StringView, 1> only{{"2025-03-26"}};
+  const auto init{sourcemeta::core::parse_json(
+      R"JSON({
+        "jsonrpc": "2.0",
+        "id": 0,
+        "method": "initialize",
+        "params": {
+          "protocolVersion": "unknown",
+          "capabilities": {},
+          "clientInfo": { "name": "client", "version": "1" }
+        }
+      })JSON")};
   auto invalid{init};
   invalid.at("params").erase("clientInfo");
-  EXPECT_EQ(mcp_make_initialize_result(invalid, {}, {"server", "1"}, only)
+  EXPECT_EQ(sourcemeta::core::mcp_make_initialize_result(invalid, {},
+                                                         {"server", "1"}, only)
                 .at("error")
                 .at("code"),
-            JSON{-32602});
+            sourcemeta::core::JSON{-32602});
 }
 
 TEST(initialize_invalid_identifier) {
-  const std::array<JSON::StringView, 1> only{{"2025-03-26"}};
-  const auto init{parse_json(
-      R"({
-  "jsonrpc": "2.0",
-  "id": 0,
-  "method": "initialize",
-  "params": {
-    "protocolVersion": "unknown",
-    "capabilities": {},
-    "clientInfo": {
-      "name": "client",
-      "version": "1"
-    }
-  }
-})")};
+  const std::array<sourcemeta::core::JSON::StringView, 1> only{{"2025-03-26"}};
+  const auto init{sourcemeta::core::parse_json(
+      R"JSON({
+        "jsonrpc": "2.0",
+        "id": 0,
+        "method": "initialize",
+        "params": {
+          "protocolVersion": "unknown",
+          "capabilities": {},
+          "clientInfo": { "name": "client", "version": "1" }
+        }
+      })JSON")};
 
   auto invalid{init};
   invalid.at("params").erase("clientInfo");
-  invalid.assign("id", JSON{});
-  try {
-    mcp_make_initialize_result(invalid, {}, {.name = "server", .version = "1"},
-                               only);
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  invalid.assign("id", sourcemeta::core::JSON{});
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_initialize_result(
+                         invalid, {}, {.name = "server", .version = "1"}, only),
+                     "This MCP revision requires a readable error identifier");
 }
 
 TEST(initialize_rejects_modern_only_support) {
-  const auto init{parse_json(
-      R"({
-  "jsonrpc": "2.0",
-  "id": 0,
-  "method": "initialize",
-  "params": {
-    "protocolVersion": "unknown",
-    "capabilities": {},
-    "clientInfo": {
-      "name": "client",
-      "version": "1"
-    }
-  }
-})")};
-  const std::array<JSON::StringView, 1> modern_only{{"2026-07-28"}};
-  try {
-    mcp_make_initialize_result(init, {}, {.name = "server", .version = "1"},
-                               modern_only);
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const auto init{sourcemeta::core::parse_json(
+      R"JSON({
+        "jsonrpc": "2.0",
+        "id": 0,
+        "method": "initialize",
+        "params": {
+          "protocolVersion": "unknown",
+          "capabilities": {},
+          "clientInfo": { "name": "client", "version": "1" }
+        }
+      })JSON")};
+  const std::array<sourcemeta::core::JSON::StringView, 1> modern_only{
+      {"2026-07-28"}};
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_initialize_result(
+          init, {}, {.name = "server", .version = "1"}, modern_only),
+      "No initialization-compatible version is supported");
 }
 
-TEST(result_types_and_cache_scope) {
-  EXPECT_EQ(mcp_result_type(JSON::make_object()), "complete");
+// An absent discriminator means the result is complete, which keeps results
+// from earlier revisions readable
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/index#resulttype
+TEST(result_type_of_a_result_without_a_discriminator) {
   EXPECT_EQ(
-      mcp_result_type(parse_json(R"({"resultType":"example/extension"})")),
-      "example/extension");
-  EXPECT_FALSE(mcp_result_type(JSON{nullptr}).has_value());
+      sourcemeta::core::mcp_result_type(sourcemeta::core::JSON::make_object()),
+      "complete");
+}
+
+TEST(result_type_of_an_extension_discriminator) {
+  EXPECT_EQ(sourcemeta::core::mcp_result_type(sourcemeta::core::parse_json(
+                R"JSON({ "resultType": "example/extension" })JSON")),
+            "example/extension");
+}
+
+TEST(result_type_of_a_non_object) {
   EXPECT_FALSE(
-      mcp_result_type(parse_json(R"({"resultType":false})")).has_value());
-  for (const auto *const text :
-       {R"({"resultType":"input_required","requestState":"state"})",
-        R"({"resultType":"unknown"})"}) {
-    try {
-      mcp_decorate_result(CURRENT, parse_json(text));
-      FAIL();
-    } catch (const std::invalid_argument &) {
-      // Invalid input is expected to be rejected
-    }
-    try {
-      mcp_decorate_cacheable_result(CURRENT, parse_json(text), {},
-                                    "resources/read");
-      FAIL();
-    } catch (const std::invalid_argument &) {
-      // Invalid input is expected to be rejected
-    }
-  }
-  try {
-    mcp_decorate_cacheable_result(CURRENT, JSON::make_object(), {},
-                                  "tools/call");
-    FAIL();
-  } catch (const std::invalid_argument &) {
-    // Invalid input is expected to be rejected
-  }
-  EXPECT_EQ(mcp_decorate_cacheable_result(CURRENT, JSON::make_object(),
-                                          {-4, MCPCacheScope::Private},
-                                          "resources/read")
-                .at("ttlMs"),
-            JSON{0});
-  const auto invalid_info{parse_json(
-      R"({"_meta":{"io.modelcontextprotocol/serverInfo":{"name":"server"}}})")};
-  try {
-    mcp_decorate_result(CURRENT, invalid_info);
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+      sourcemeta::core::mcp_result_type(sourcemeta::core::JSON{nullptr})
+          .has_value());
 }
 
-TEST(content_and_schemas) {
-  {
-    const auto version{MCPProtocolVersion::V_2025_03_26};
+TEST(result_type_of_a_non_string_discriminator) {
+  EXPECT_FALSE(
+      sourcemeta::core::mcp_result_type(
+          sourcemeta::core::parse_json(R"JSON({ "resultType": false })JSON"))
+          .has_value());
+}
 
-    try {
-      mcp_make_tool_descriptor(version, "tool", "",
-                               parse_json(R"({"type":"string"})"));
-      FAIL();
-    } catch (const std::invalid_argument &) {
-      // Invalid input is expected to be rejected
-    }
-    try {
-      mcp_make_resources_list_result(version, parse_json(R"([{"uri":"x"}])"),
-                                     std::nullopt, {});
-      FAIL();
-    } catch (const std::invalid_argument &) {
-      // Invalid input is expected to be rejected
-    }
-    try {
-      mcp_make_prompts_list_result(
-          version,
-          parse_json(R"([{"name":"prompt","arguments":[{"name":3}]}])"),
-          std::nullopt, {});
-      FAIL();
-    } catch (const std::invalid_argument &) {
-      // Invalid input is expected to be rejected
-    }
-    try {
-      mcp_make_resources_read_result(
-          version, parse_json(R"([{"uri":"x","blob":false}])"), {});
-      FAIL();
-    } catch (const std::invalid_argument &) {
-      // Invalid input is expected to be rejected
-    }
-    try {
-      mcp_make_tool_success(version, JSON{0}, JSON::make_object(),
-                            parse_json(R"([{"type":"text","text":false}])"));
-      FAIL();
-    } catch (const std::invalid_argument &) {
-      // Invalid input is expected to be rejected
-    }
-    try {
-      mcp_make_prompts_get_result(
-          version, "",
-          parse_json(
-              R"([{"role":"system","content":{"type":"text","text":"hi"}}])"));
-      FAIL();
-    } catch (const std::invalid_argument &) {
-      // Invalid input is expected to be rejected
-    }
-  }
-  {
-    const auto version{MCPProtocolVersion::V_2025_06_18};
+TEST(decorate_result_rejects_an_interim_result) {
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_decorate_result(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+          sourcemeta::core::parse_json(
+              R"JSON({
+                "resultType": "input_required",
+                "requestState": "s"
+              })JSON")),
+      "The complete-result decorator cannot construct interim or extension "
+      "results");
+}
 
-    try {
-      mcp_make_tool_descriptor(version, "tool", "",
-                               parse_json(R"({"type":"string"})"));
-      FAIL();
-    } catch (const std::invalid_argument &) {
-      // Invalid input is expected to be rejected
-    }
-    try {
-      mcp_make_resources_list_result(version, parse_json(R"([{"uri":"x"}])"),
-                                     std::nullopt, {});
-      FAIL();
-    } catch (const std::invalid_argument &) {
-      // Invalid input is expected to be rejected
-    }
-    try {
-      mcp_make_prompts_list_result(
-          version,
-          parse_json(R"([{"name":"prompt","arguments":[{"name":3}]}])"),
-          std::nullopt, {});
-      FAIL();
-    } catch (const std::invalid_argument &) {
-      // Invalid input is expected to be rejected
-    }
-    try {
-      mcp_make_resources_read_result(
-          version, parse_json(R"([{"uri":"x","blob":false}])"), {});
-      FAIL();
-    } catch (const std::invalid_argument &) {
-      // Invalid input is expected to be rejected
-    }
-    try {
-      mcp_make_tool_success(version, JSON{0}, JSON::make_object(),
-                            parse_json(R"([{"type":"text","text":false}])"));
-      FAIL();
-    } catch (const std::invalid_argument &) {
-      // Invalid input is expected to be rejected
-    }
-    try {
-      mcp_make_prompts_get_result(
-          version, "",
-          parse_json(
-              R"([{"role":"system","content":{"type":"text","text":"hi"}}])"));
-      FAIL();
-    } catch (const std::invalid_argument &) {
-      // Invalid input is expected to be rejected
-    }
-  }
-  {
-    const auto version{MCPProtocolVersion::V_2025_11_25};
+TEST(decorate_result_rejects_an_extension_result) {
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_decorate_result(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+          sourcemeta::core::parse_json(
+              R"JSON({ "resultType": "unknown" })JSON")),
+      "The complete-result decorator cannot construct interim or extension "
+      "results");
+}
 
-    try {
-      mcp_make_tool_descriptor(version, "tool", "",
-                               parse_json(R"({"type":"string"})"));
-      FAIL();
-    } catch (const std::invalid_argument &) {
-      // Invalid input is expected to be rejected
-    }
-    try {
-      mcp_make_resources_list_result(version, parse_json(R"([{"uri":"x"}])"),
-                                     std::nullopt, {});
-      FAIL();
-    } catch (const std::invalid_argument &) {
-      // Invalid input is expected to be rejected
-    }
-    try {
-      mcp_make_prompts_list_result(
-          version,
-          parse_json(R"([{"name":"prompt","arguments":[{"name":3}]}])"),
-          std::nullopt, {});
-      FAIL();
-    } catch (const std::invalid_argument &) {
-      // Invalid input is expected to be rejected
-    }
-    try {
-      mcp_make_resources_read_result(
-          version, parse_json(R"([{"uri":"x","blob":false}])"), {});
-      FAIL();
-    } catch (const std::invalid_argument &) {
-      // Invalid input is expected to be rejected
-    }
-    try {
-      mcp_make_tool_success(version, JSON{0}, JSON::make_object(),
-                            parse_json(R"([{"type":"text","text":false}])"));
-      FAIL();
-    } catch (const std::invalid_argument &) {
-      // Invalid input is expected to be rejected
-    }
-    try {
-      mcp_make_prompts_get_result(
-          version, "",
-          parse_json(
-              R"([{"role":"system","content":{"type":"text","text":"hi"}}])"));
-      FAIL();
-    } catch (const std::invalid_argument &) {
-      // Invalid input is expected to be rejected
-    }
-  }
-  {
-    const auto version{MCPProtocolVersion::V_2026_07_28};
+TEST(decorate_cacheable_result_rejects_an_interim_result) {
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_decorate_cacheable_result(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+          sourcemeta::core::parse_json(
+              R"JSON({
+                "resultType": "input_required",
+                "requestState": "s"
+              })JSON"),
+          {}, "resources/read"),
+      "The complete-result decorator cannot construct interim or extension "
+      "results");
+}
 
-    try {
-      mcp_make_tool_descriptor(version, "tool", "",
-                               parse_json(R"({"type":"string"})"));
-      FAIL();
-    } catch (const std::invalid_argument &) {
-      // Invalid input is expected to be rejected
+TEST(decorate_cacheable_result_rejects_an_extension_result) {
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_decorate_cacheable_result(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+          sourcemeta::core::parse_json(
+              R"JSON({ "resultType": "unknown" })JSON"),
+          {}, "resources/read"),
+      "The complete-result decorator cannot construct interim or extension "
+      "results");
+}
+
+// Caching hints belong to the six cacheable operations and nowhere else
+// https://modelcontextprotocol.io/specification/2026-07-28/server/utilities/caching#cacheable-results
+TEST(decorate_cacheable_result_rejects_a_non_cacheable_operation) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_decorate_cacheable_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         sourcemeta::core::JSON::make_object(), {},
+                         "tools/call"),
+                     "Operation is not cacheable");
+}
+
+// A time to live is a count of milliseconds, so a negative hint becomes an
+// immediately stale one
+// https://modelcontextprotocol.io/specification/2026-07-28/server/utilities/caching#time-to-live-ttl-field
+TEST(decorate_cacheable_result_clamps_a_negative_time_to_live) {
+  EXPECT_EQ(
+      sourcemeta::core::mcp_decorate_cacheable_result(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+          sourcemeta::core::JSON::make_object(),
+          {.ttl_ms = -4, .scope = sourcemeta::core::MCPCacheScope::Private},
+          "resources/read"),
+      sourcemeta::core::parse_json(R"JSON({
+    "resultType": "complete",
+    "ttlMs": 0,
+    "cacheScope": "private"
+  })JSON"));
+}
+
+TEST(decorate_result_rejects_incomplete_server_information) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_decorate_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/serverInfo": { "name": "server" }
     }
-    try {
-      mcp_make_resources_list_result(version, parse_json(R"([{"uri":"x"}])"),
-                                     std::nullopt, {});
-      FAIL();
-    } catch (const std::invalid_argument &) {
-      // Invalid input is expected to be rejected
+  })JSON")),
+                     "Invalid server information");
+}
+
+// A tool's input schema declares an object at its root
+// https://modelcontextprotocol.io/specification/2026-07-28/schema#tool
+TEST(tool_descriptor_rejects_a_non_object_schema_2025_03_26) {
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_tool_descriptor(
+          sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "tool", "",
+          sourcemeta::core::parse_json(R"JSON({ "type": "string" })JSON")),
+      "Invalid MCP tool descriptor");
+}
+
+TEST(tool_descriptor_rejects_a_non_object_schema_2025_06_18) {
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_tool_descriptor(
+          sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "tool", "",
+          sourcemeta::core::parse_json(R"JSON({ "type": "string" })JSON")),
+      "Invalid MCP tool descriptor");
+}
+
+TEST(tool_descriptor_rejects_a_non_object_schema_2025_11_25) {
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_tool_descriptor(
+          sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "tool", "",
+          sourcemeta::core::parse_json(R"JSON({ "type": "string" })JSON")),
+      "Invalid MCP tool descriptor");
+}
+
+TEST(tool_descriptor_rejects_a_non_object_schema_2026_07_28) {
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_tool_descriptor(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tool", "",
+          sourcemeta::core::parse_json(R"JSON({ "type": "string" })JSON")),
+      "Invalid MCP tool descriptor");
+}
+
+TEST(resources_list_result_rejects_a_nameless_resource_2025_03_26) {
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_resources_list_result(
+          sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+          sourcemeta::core::parse_json(R"JSON([ { "uri": "x" } ])JSON"),
+          std::nullopt, {}),
+      "Invalid MCP resource descriptor entry");
+}
+
+TEST(resources_list_result_rejects_a_nameless_resource_2025_06_18) {
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_resources_list_result(
+          sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+          sourcemeta::core::parse_json(R"JSON([ { "uri": "x" } ])JSON"),
+          std::nullopt, {}),
+      "Invalid MCP resource descriptor entry");
+}
+
+TEST(resources_list_result_rejects_a_nameless_resource_2025_11_25) {
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_resources_list_result(
+          sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+          sourcemeta::core::parse_json(R"JSON([ { "uri": "x" } ])JSON"),
+          std::nullopt, {}),
+      "Invalid MCP resource descriptor entry");
+}
+
+TEST(resources_list_result_rejects_a_nameless_resource_2026_07_28) {
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_resources_list_result(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+          sourcemeta::core::parse_json(R"JSON([ { "uri": "x" } ])JSON"),
+          std::nullopt, {}),
+      "Invalid MCP resource descriptor entry");
+}
+
+TEST(prompts_list_result_rejects_a_non_string_argument_name_2025_03_26) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_prompts_list_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+                         sourcemeta::core::parse_json(
+                             R"JSON([
+                {
+                  "name": "prompt",
+                  "arguments": [ { "name": 3 } ]
+                }
+              ])JSON"),
+                         std::nullopt, {}),
+                     "Invalid MCP prompt descriptor entry");
+}
+
+TEST(prompts_list_result_rejects_a_non_string_argument_name_2025_06_18) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_prompts_list_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+                         sourcemeta::core::parse_json(
+                             R"JSON([
+                {
+                  "name": "prompt",
+                  "arguments": [ { "name": 3 } ]
+                }
+              ])JSON"),
+                         std::nullopt, {}),
+                     "Invalid MCP prompt descriptor entry");
+}
+
+TEST(prompts_list_result_rejects_a_non_string_argument_name_2025_11_25) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_prompts_list_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+                         sourcemeta::core::parse_json(
+                             R"JSON([
+                {
+                  "name": "prompt",
+                  "arguments": [ { "name": 3 } ]
+                }
+              ])JSON"),
+                         std::nullopt, {}),
+                     "Invalid MCP prompt descriptor entry");
+}
+
+TEST(prompts_list_result_rejects_a_non_string_argument_name_2026_07_28) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_prompts_list_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         sourcemeta::core::parse_json(
+                             R"JSON([
+                {
+                  "name": "prompt",
+                  "arguments": [ { "name": 3 } ]
+                }
+              ])JSON"),
+                         std::nullopt, {}),
+                     "Invalid MCP prompt descriptor entry");
+}
+
+TEST(resources_read_result_rejects_a_non_string_blob_2025_03_26) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_resources_read_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+                         sourcemeta::core::parse_json(
+                             R"JSON([ { "uri": "x", "blob": false } ])JSON"),
+                         {}),
+                     "Invalid MCP resource contents entry");
+}
+
+TEST(resources_read_result_rejects_a_non_string_blob_2025_06_18) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_resources_read_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+                         sourcemeta::core::parse_json(
+                             R"JSON([ { "uri": "x", "blob": false } ])JSON"),
+                         {}),
+                     "Invalid MCP resource contents entry");
+}
+
+TEST(resources_read_result_rejects_a_non_string_blob_2025_11_25) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_resources_read_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+                         sourcemeta::core::parse_json(
+                             R"JSON([ { "uri": "x", "blob": false } ])JSON"),
+                         {}),
+                     "Invalid MCP resource contents entry");
+}
+
+TEST(resources_read_result_rejects_a_non_string_blob_2026_07_28) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_resources_read_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         sourcemeta::core::parse_json(
+                             R"JSON([ { "uri": "x", "blob": false } ])JSON"),
+                         {}),
+                     "Invalid MCP resource contents entry");
+}
+
+TEST(tool_success_rejects_a_non_string_text_block_2025_03_26) {
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_tool_success(
+          sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+          sourcemeta::core::JSON{0}, sourcemeta::core::JSON::make_object(),
+          sourcemeta::core::parse_json(
+              R"JSON([ { "type": "text", "text": false } ])JSON")),
+      "Invalid MCP content block");
+}
+
+TEST(tool_success_rejects_a_non_string_text_block_2025_06_18) {
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_tool_success(
+          sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+          sourcemeta::core::JSON{0}, sourcemeta::core::JSON::make_object(),
+          sourcemeta::core::parse_json(
+              R"JSON([ { "type": "text", "text": false } ])JSON")),
+      "Invalid MCP content block");
+}
+
+TEST(tool_success_rejects_a_non_string_text_block_2025_11_25) {
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_tool_success(
+          sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+          sourcemeta::core::JSON{0}, sourcemeta::core::JSON::make_object(),
+          sourcemeta::core::parse_json(
+              R"JSON([ { "type": "text", "text": false } ])JSON")),
+      "Invalid MCP content block");
+}
+
+TEST(tool_success_rejects_a_non_string_text_block_2026_07_28) {
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_tool_success(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+          sourcemeta::core::JSON{0}, sourcemeta::core::JSON::make_object(),
+          sourcemeta::core::parse_json(
+              R"JSON([ { "type": "text", "text": false } ])JSON")),
+      "Invalid MCP content block");
+}
+
+// A prompt message speaks as the user or as the assistant
+// https://modelcontextprotocol.io/specification/2026-07-28/schema#promptmessage
+TEST(prompts_get_result_rejects_an_unknown_role_2025_03_26) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_prompts_get_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "",
+                         sourcemeta::core::parse_json(R"JSON([
+    {
+      "role": "system",
+      "content": { "type": "text", "text": "hi" }
     }
-    try {
-      mcp_make_prompts_list_result(
-          version,
-          parse_json(R"([{"name":"prompt","arguments":[{"name":3}]}])"),
-          std::nullopt, {});
-      FAIL();
-    } catch (const std::invalid_argument &) {
-      // Invalid input is expected to be rejected
+  ])JSON")),
+                     "Invalid prompt message");
+}
+
+TEST(prompts_get_result_rejects_an_unknown_role_2025_06_18) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_prompts_get_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "",
+                         sourcemeta::core::parse_json(R"JSON([
+    {
+      "role": "system",
+      "content": { "type": "text", "text": "hi" }
     }
-    try {
-      mcp_make_resources_read_result(
-          version, parse_json(R"([{"uri":"x","blob":false}])"), {});
-      FAIL();
-    } catch (const std::invalid_argument &) {
-      // Invalid input is expected to be rejected
+  ])JSON")),
+                     "Invalid prompt message");
+}
+
+TEST(prompts_get_result_rejects_an_unknown_role_2025_11_25) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_prompts_get_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "",
+                         sourcemeta::core::parse_json(R"JSON([
+    {
+      "role": "system",
+      "content": { "type": "text", "text": "hi" }
     }
-    try {
-      mcp_make_tool_success(version, JSON{0}, JSON::make_object(),
-                            parse_json(R"([{"type":"text","text":false}])"));
-      FAIL();
-    } catch (const std::invalid_argument &) {
-      // Invalid input is expected to be rejected
+  ])JSON")),
+                     "Invalid prompt message");
+}
+
+TEST(prompts_get_result_rejects_an_unknown_role_2026_07_28) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_prompts_get_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "",
+                         sourcemeta::core::parse_json(R"JSON([
+    {
+      "role": "system",
+      "content": { "type": "text", "text": "hi" }
     }
-    try {
-      mcp_make_prompts_get_result(
-          version, "",
-          parse_json(
-              R"([{"role":"system","content":{"type":"text","text":"hi"}}])"));
-      FAIL();
-    } catch (const std::invalid_argument &) {
-      // Invalid input is expected to be rejected
-    }
-  }
-  for (const auto version :
-       {MCPProtocolVersion::V_2025_06_18, MCPProtocolVersion::V_2025_11_25}) {
-    try {
-      mcp_make_tool_success(version, JSON{0}, JSON::make_array());
-      FAIL();
-    } catch (const std::invalid_argument &) {
-      // Invalid input is expected to be rejected
-    }
-    try {
-      mcp_make_tool_descriptor(version, "tool", "",
-                               parse_json(R"({"type":"object"})"),
-                               parse_json(R"({"type":"string"})"));
-      FAIL();
-    } catch (const std::invalid_argument &) {
-      // Invalid input is expected to be rejected
-    }
-  }
-  for (const auto &value :
-       {JSON{nullptr}, JSON{true}, JSON{5}, JSON{"text"}, JSON::make_array()}) {
-    EXPECT_EQ(mcp_make_tool_success(CURRENT, JSON{0}, value)
-                  .at("result")
-                  .at("structuredContent"),
-              value);
-  }
-  auto many{JSON::make_array()};
+  ])JSON")),
+                     "Invalid prompt message");
+}
+
+// Structured content became an object only from 2025-06-18, and
+// 2026-07-28 allows any JSON value again
+// https://modelcontextprotocol.io/specification/2026-07-28/schema#calltoolresult
+TEST(tool_success_rejects_an_array_structured_content_on_2025_06_18) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_tool_success(
+                         sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+                         sourcemeta::core::JSON{0},
+                         sourcemeta::core::JSON::make_array()),
+                     "Legacy structuredContent must be an object");
+}
+
+TEST(tool_success_rejects_an_array_structured_content_on_2025_11_25) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_tool_success(
+                         sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+                         sourcemeta::core::JSON{0},
+                         sourcemeta::core::JSON::make_array()),
+                     "Legacy structuredContent must be an object");
+}
+
+TEST(tool_descriptor_rejects_a_non_object_output_schema_on_2025_06_18) {
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_tool_descriptor(
+          sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "tool", "",
+          sourcemeta::core::parse_json(R"JSON({ "type": "object" })JSON"),
+          sourcemeta::core::parse_json(R"JSON({ "type": "string" })JSON")),
+      "Invalid MCP tool descriptor");
+}
+
+TEST(tool_descriptor_rejects_a_non_object_output_schema_on_2025_11_25) {
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_tool_descriptor(
+          sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "tool", "",
+          sourcemeta::core::parse_json(R"JSON({ "type": "object" })JSON"),
+          sourcemeta::core::parse_json(R"JSON({ "type": "string" })JSON")),
+      "Invalid MCP tool descriptor");
+}
+
+TEST(tool_success_accepts_null_structured_content_on_2026_07_28) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_tool_success(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::JSON{0},
+                sourcemeta::core::parse_json(R"JSON(null)JSON"))
+                .at("result")
+                .at("structuredContent"),
+            sourcemeta::core::parse_json(R"JSON(null)JSON"));
+}
+
+TEST(tool_success_accepts_a_boolean_structured_content_on_2026_07_28) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_tool_success(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::JSON{0},
+                sourcemeta::core::parse_json(R"JSON(true)JSON"))
+                .at("result")
+                .at("structuredContent"),
+            sourcemeta::core::parse_json(R"JSON(true)JSON"));
+}
+
+TEST(tool_success_accepts_an_integer_structured_content_on_2026_07_28) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_tool_success(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::JSON{0},
+                sourcemeta::core::parse_json(R"JSON(5)JSON"))
+                .at("result")
+                .at("structuredContent"),
+            sourcemeta::core::parse_json(R"JSON(5)JSON"));
+}
+
+TEST(tool_success_accepts_a_string_structured_content_on_2026_07_28) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_tool_success(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::JSON{0},
+                sourcemeta::core::parse_json(R"JSON("text")JSON"))
+                .at("result")
+                .at("structuredContent"),
+            sourcemeta::core::parse_json(R"JSON("text")JSON"));
+}
+
+TEST(tool_success_accepts_an_array_structured_content_on_2026_07_28) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_tool_success(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::JSON{0},
+                sourcemeta::core::parse_json(R"JSON([])JSON"))
+                .at("result")
+                .at("structuredContent"),
+            sourcemeta::core::parse_json(R"JSON([])JSON"));
+}
+
+// A completion result carries at most 100 values
+// https://modelcontextprotocol.io/specification/2026-07-28/schema#completeresult
+TEST(completion_result_rejects_more_than_one_hundred_values) {
+  auto values{sourcemeta::core::JSON::make_array()};
   for (std::size_t index = 0; index < 101; ++index) {
-    many.push_back(JSON{"value"});
+    values.push_back(sourcemeta::core::JSON{"value"});
   }
-  try {
-    mcp_make_completion_result(CURRENT, many, std::nullopt, std::nullopt);
-    FAIL();
-  } catch (const std::invalid_argument &) {
-    // Invalid input is expected to be rejected
-  }
-  try {
-    mcp_make_completion_result(CURRENT, parse_json(R"(["value"] )"), 0, false);
-    FAIL();
-  } catch (const std::invalid_argument &) {
-    // Invalid input is expected to be rejected
-  }
-  for (const auto version :
-       {MCPProtocolVersion::V_2025_03_26, MCPProtocolVersion::V_2025_06_18,
-        MCPProtocolVersion::V_2025_11_25, MCPProtocolVersion::V_2026_07_28}) {
-    try {
-      mcp_make_completion_result(version, JSON::make_array(), -1, false);
-      FAIL();
-    } catch (const std::invalid_argument &) {
-      // Invalid input is expected to be rejected
-    }
-    EXPECT_EQ(mcp_make_completion_result(version, JSON::make_array(), 0, false)
-                  .at("completion")
-                  .at("total"),
-              JSON{0});
-    EXPECT_EQ(mcp_make_completion_result(version, parse_json(R"(["value"])"), 1,
-                                         false)
-                  .at("completion")
-                  .at("total"),
-              JSON{1});
-    constexpr auto MAXIMUM{std::numeric_limits<std::int64_t>::max()};
-    EXPECT_EQ(mcp_make_completion_result(version, parse_json(R"(["value"])"),
-                                         MAXIMUM, false)
-                  .at("completion")
-                  .at("total"),
-              JSON{MAXIMUM});
-  }
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_completion_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         values, std::nullopt, std::nullopt),
+                     "At most 100 completion values are permitted");
 }
 
-TEST(mrtr_nested_requests) {
-  MCPClientCapabilities capabilities;
+TEST(completion_result_accepts_exactly_one_hundred_values) {
+  auto values{sourcemeta::core::JSON::make_array()};
+  for (std::size_t index = 0; index < 100; ++index) {
+    values.push_back(sourcemeta::core::JSON{"value"});
+  }
+  auto completion{sourcemeta::core::JSON::make_object()};
+  completion.assign("values", values);
+  auto expected{sourcemeta::core::JSON::make_object()};
+  expected.assign("resultType", sourcemeta::core::JSON{"complete"});
+  expected.assign("completion", std::move(completion));
+  EXPECT_EQ(sourcemeta::core::mcp_make_completion_result(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28, values,
+                std::nullopt, std::nullopt),
+            expected);
+}
+
+// A total may exceed the values actually sent, so it may never fall below them
+// https://modelcontextprotocol.io/specification/2026-07-28/schema#completeresult
+TEST(completion_result_rejects_a_total_below_the_value_count) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_completion_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         sourcemeta::core::parse_json(R"JSON([ "value" ])JSON"),
+                         0, false),
+                     "Invalid completion total");
+}
+
+TEST(completion_result_rejects_a_negative_total_2025_03_26) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_completion_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+                         sourcemeta::core::JSON::make_array(), -1, false),
+                     "Invalid completion total");
+}
+
+TEST(completion_result_rejects_a_negative_total_2025_06_18) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_completion_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+                         sourcemeta::core::JSON::make_array(), -1, false),
+                     "Invalid completion total");
+}
+
+TEST(completion_result_rejects_a_negative_total_2025_11_25) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_completion_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+                         sourcemeta::core::JSON::make_array(), -1, false),
+                     "Invalid completion total");
+}
+
+TEST(completion_result_rejects_a_negative_total_2026_07_28) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_completion_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         sourcemeta::core::JSON::make_array(), -1, false),
+                     "Invalid completion total");
+}
+
+TEST(completion_result_with_a_zero_total_2025_03_26) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_completion_result(
+                sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+                sourcemeta::core::JSON::make_array(), 0, false),
+            sourcemeta::core::parse_json(R"JSON({
+    "completion": { "values": [], "total": 0, "hasMore": false }
+  })JSON"));
+}
+
+TEST(completion_result_with_a_zero_total_2025_06_18) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_completion_result(
+                sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+                sourcemeta::core::JSON::make_array(), 0, false),
+            sourcemeta::core::parse_json(R"JSON({
+    "completion": { "values": [], "total": 0, "hasMore": false }
+  })JSON"));
+}
+
+TEST(completion_result_with_a_zero_total_2025_11_25) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_completion_result(
+                sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+                sourcemeta::core::JSON::make_array(), 0, false),
+            sourcemeta::core::parse_json(R"JSON({
+    "completion": { "values": [], "total": 0, "hasMore": false }
+  })JSON"));
+}
+
+TEST(completion_result_with_a_zero_total_2026_07_28) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_completion_result(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::JSON::make_array(), 0, false),
+            sourcemeta::core::parse_json(R"JSON({
+    "completion": { "values": [], "total": 0, "hasMore": false },
+    "resultType": "complete"
+  })JSON"));
+}
+
+TEST(completion_result_with_the_maximum_total) {
+  constexpr auto MAXIMUM{std::numeric_limits<std::int64_t>::max()};
+  EXPECT_EQ(sourcemeta::core::mcp_make_completion_result(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::parse_json(R"JSON([ "value" ])JSON"), MAXIMUM,
+                false)
+                .at("completion")
+                .at("total"),
+            sourcemeta::core::JSON{MAXIMUM});
+}
+
+// A server asks for roots, elicitation or sampling, and nothing else
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/mrtr#inputrequiredresult
+TEST(input_required_result_with_a_roots_request) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
   capabilities.roots = true;
   capabilities.sampling = true;
   capabilities.sampling_tools = true;
+  capabilities.elicitation = true;
   capabilities.elicitation_url = true;
   capabilities.elicitation_form = true;
-  for (const auto *const text : {R"({"r":{"method":"roots/list"}})",
-                                 R"({
-  "r": {
-    "method": "elicitation/create",
-    "params": {
-      "mode": "url",
-      "message": "visit",
-      "url": "https://example.com"
+  EXPECT_EQ(sourcemeta::core::mcp_make_input_required_result(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                "tools/call", sourcemeta::core::JSON{0},
+                sourcemeta::core::parse_json(
+                    R"JSON({ "r": { "method": "roots/list" } })JSON"),
+                std::nullopt, capabilities)
+                .at("result")
+                .at("resultType"),
+            sourcemeta::core::JSON{"input_required"});
+}
+
+TEST(input_required_result_with_a_url_elicitation) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.roots = true;
+  capabilities.sampling = true;
+  capabilities.sampling_tools = true;
+  capabilities.elicitation = true;
+  capabilities.elicitation_url = true;
+  capabilities.elicitation_form = true;
+  EXPECT_EQ(sourcemeta::core::mcp_make_input_required_result(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                "tools/call", sourcemeta::core::JSON{0},
+                sourcemeta::core::parse_json(R"JSON({
+    "r": {
+      "method": "elicitation/create",
+      "params": {
+        "mode": "url",
+        "message": "visit",
+        "url": "https://example.com"
+      }
     }
-  }
-})",
-                                 R"({
-  "r": {
-    "method": "elicitation/create",
-    "params": {
-      "message": "choose",
-      "requestedSchema": {
-        "type": "object",
-        "properties": {
-          "choice": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "enum": [
-                "a"
-              ]
+  })JSON"),
+                std::nullopt, capabilities)
+                .at("result")
+                .at("resultType"),
+            sourcemeta::core::JSON{"input_required"});
+}
+
+TEST(input_required_result_with_a_form_elicitation) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.roots = true;
+  capabilities.sampling = true;
+  capabilities.sampling_tools = true;
+  capabilities.elicitation = true;
+  capabilities.elicitation_url = true;
+  capabilities.elicitation_form = true;
+  EXPECT_EQ(sourcemeta::core::mcp_make_input_required_result(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                "tools/call", sourcemeta::core::JSON{0},
+                sourcemeta::core::parse_json(R"JSON({
+    "r": {
+      "method": "elicitation/create",
+      "params": {
+        "message": "choose",
+        "requestedSchema": {
+          "type": "object",
+          "properties": {
+            "choice": {
+              "type": "array",
+              "items": { "type": "string", "enum": [ "a" ] }
             }
           }
         }
       }
     }
-  }
-})",
-                                 R"({
-  "r": {
-    "method": "sampling/createMessage",
-    "params": {
-      "maxTokens": 10,
-      "messages": [
-        {
-          "role": "assistant",
-          "content": {
-            "type": "tool_use",
-            "id": "call",
+  })JSON"),
+                std::nullopt, capabilities)
+                .at("result")
+                .at("resultType"),
+            sourcemeta::core::JSON{"input_required"});
+}
+
+TEST(input_required_result_with_a_sampling_request) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.roots = true;
+  capabilities.sampling = true;
+  capabilities.sampling_tools = true;
+  capabilities.elicitation = true;
+  capabilities.elicitation_url = true;
+  capabilities.elicitation_form = true;
+  EXPECT_EQ(sourcemeta::core::mcp_make_input_required_result(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                "tools/call", sourcemeta::core::JSON{0},
+                sourcemeta::core::parse_json(R"JSON({
+    "r": {
+      "method": "sampling/createMessage",
+      "params": {
+        "maxTokens": 10,
+        "messages": [
+          {
+            "role": "assistant",
+            "content": {
+              "type": "tool_use",
+              "id": "call",
+              "name": "tool",
+              "input": {}
+            }
+          },
+          {
+            "role": "user",
+            "content": {
+              "type": "tool_result",
+              "toolUseId": "call",
+              "content": [ { "type": "text", "text": "ok" } ]
+            }
+          }
+        ],
+        "tools": [
+          {
             "name": "tool",
-            "input": {}
+            "inputSchema": { "type": "object" }
           }
-        },
-        {
-          "role": "user",
-          "content": {
-            "type": "tool_result",
-            "toolUseId": "call",
-            "content": [
-              {
-                "type": "text",
-                "text": "ok"
-              }
-            ]
+        ],
+        "toolChoice": { "mode": "auto" }
+      }
+    }
+  })JSON"),
+                std::nullopt, capabilities)
+                .at("result")
+                .at("resultType"),
+            sourcemeta::core::JSON{"input_required"});
+}
+
+TEST(input_required_result_rejects_non_object_roots_parameters) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.roots = true;
+  capabilities.sampling = true;
+  capabilities.sampling_tools = true;
+  capabilities.elicitation = true;
+  capabilities.elicitation_url = true;
+  capabilities.elicitation_form = true;
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tools/call", sourcemeta::core::JSON{0},
+                         sourcemeta::core::parse_json(
+                             R"JSON({
+                "r": { "method": "roots/list", "params": false }
+              })JSON"),
+                         std::nullopt, capabilities),
+                     "Invalid or unsupported nested input requests");
+}
+
+// An elicitation form describes an object of fields
+// https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation
+TEST(input_required_result_rejects_a_non_object_elicitation_schema) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.roots = true;
+  capabilities.sampling = true;
+  capabilities.sampling_tools = true;
+  capabilities.elicitation = true;
+  capabilities.elicitation_url = true;
+  capabilities.elicitation_form = true;
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tools/call", sourcemeta::core::JSON{0},
+                         sourcemeta::core::parse_json(R"JSON({
+    "r": {
+      "method": "elicitation/create",
+      "params": {
+        "message": "choose",
+        "requestedSchema": { "type": "array" }
+      }
+    }
+  })JSON"),
+                         std::nullopt, capabilities),
+                     "Invalid or unsupported nested input requests");
+}
+
+// A sampling message carries text, an image, audio or a tool exchange
+// https://modelcontextprotocol.io/specification/2026-07-28/schema#samplingmessage
+TEST(input_required_result_rejects_a_resource_link_sampling_message) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.roots = true;
+  capabilities.sampling = true;
+  capabilities.sampling_tools = true;
+  capabilities.elicitation = true;
+  capabilities.elicitation_url = true;
+  capabilities.elicitation_form = true;
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tools/call", sourcemeta::core::JSON{0},
+                         sourcemeta::core::parse_json(R"JSON({
+    "r": {
+      "method": "sampling/createMessage",
+      "params": {
+        "maxTokens": 10,
+        "messages": [
+          {
+            "role": "user",
+            "content": {
+              "type": "resource_link",
+              "uri": "x",
+              "name": "x"
+            }
           }
-        }
-      ],
-      "tools": [
-        {
-          "name": "tool",
-          "inputSchema": {
-            "type": "object"
-          }
-        }
-      ],
-      "toolChoice": {
-        "mode": "auto"
+        ]
       }
     }
-  }
-})"}) {
-    const auto result{mcp_make_input_required_result(
-        CURRENT, "tools/call", JSON{0}, parse_json(text), std::nullopt,
-        capabilities)};
-    EXPECT_TRUE(result.at("result").is_object());
-  }
-  for (const auto *const text :
-       {R"({"r":{"method":"roots/list","params":false}})",
-        R"({
-  "r": {
-    "method": "elicitation/create",
-    "params": {
-      "message": "choose",
-      "requestedSchema": {
-        "type": "array"
-      }
-    }
-  }
-})",
-        R"({
-  "r": {
-    "method": "sampling/createMessage",
-    "params": {
-      "maxTokens": 10,
-      "messages": [
-        {
-          "role": "user",
-          "content": {
-            "type": "resource_link",
-            "uri": "x",
-            "name": "x"
-          }
-        }
-      ]
-    }
-  }
-})",
-        R"({
-  "r": {
-    "method": "sampling/createMessage",
-    "params": {
-      "maxTokens": 10,
-      "messages": [],
-      "temperature": false
-    }
-  }
-})",
-        R"({
-  "r": {
-    "method": "sampling/createMessage",
-    "params": {
-      "maxTokens": 10,
-      "messages": [],
-      "modelPreferences": {
-        "costPriority": 2
-      }
-    }
-  }
-})",
-        R"({
-  "r": {
-    "method": "sampling/createMessage",
-    "params": {
-      "maxTokens": 10,
-      "messages": [],
-      "toolChoice": {
-        "mode": "bad"
-      }
-    }
-  }
-})"}) {
-    try {
-      mcp_make_input_required_result(CURRENT, "tools/call", JSON{0},
-                                     parse_json(text), std::nullopt,
-                                     capabilities);
-      FAIL();
-    } catch (const std::invalid_argument &) {
-      // Invalid input is expected to be rejected
-    }
-  }
-  try {
-    mcp_make_input_required_result(CURRENT, "tools/list", JSON{0}, std::nullopt,
-                                   "token", capabilities);
-    FAIL();
-  } catch (const std::invalid_argument &) {
-    // Invalid input is expected to be rejected
-  }
-  {
-    const auto version{MCPProtocolVersion::V_2025_03_26};
-
-    if (version != CURRENT) {
-      try {
-        mcp_make_input_required_result(version, "tools/call", JSON{0},
-                                       std::nullopt, "token", capabilities);
-        FAIL();
-      } catch (const std::invalid_argument &) {
-        // Invalid input is expected to be rejected
-      }
-    }
-  }
-  {
-    const auto version{MCPProtocolVersion::V_2025_06_18};
-
-    if (version != CURRENT) {
-      try {
-        mcp_make_input_required_result(version, "tools/call", JSON{0},
-                                       std::nullopt, "token", capabilities);
-        FAIL();
-      } catch (const std::invalid_argument &) {
-        // Invalid input is expected to be rejected
-      }
-    }
-  }
-  {
-    const auto version{MCPProtocolVersion::V_2025_11_25};
-
-    if (version != CURRENT) {
-      try {
-        mcp_make_input_required_result(version, "tools/call", JSON{0},
-                                       std::nullopt, "token", capabilities);
-        FAIL();
-      } catch (const std::invalid_argument &) {
-        // Invalid input is expected to be rejected
-      }
-    }
-  }
-  {
-    const auto version{MCPProtocolVersion::V_2026_07_28};
-
-    if (version != CURRENT) {
-      try {
-        mcp_make_input_required_result(version, "tools/call", JSON{0},
-                                       std::nullopt, "token", capabilities);
-        FAIL();
-      } catch (const std::invalid_argument &) {
-        // Invalid input is expected to be rejected
-      }
-    }
-  }
-  const auto continuation{parse_json(
-      R"({
-  "jsonrpc": "2.0",
-  "id": 0,
-  "method": "tools/call",
-  "params": {
-    "requestState": "s",
-    "inputResponses": {}
-  }
-})")};
-  EXPECT_TRUE(mcp_request_state(CURRENT, continuation).has_value());
-  EXPECT_FALSE(mcp_request_state(MCPProtocolVersion::V_2025_11_25, continuation)
-                   .has_value());
-  auto unrelated{continuation};
-  unrelated.assign("method", JSON{"tools/list"});
-  EXPECT_EQ(mcp_request_input_responses(CURRENT, unrelated), nullptr);
+  })JSON"),
+                         std::nullopt, capabilities),
+                     "Invalid or unsupported nested input requests");
 }
 
-TEST(result_writer_2025_03_26) {
-  constexpr auto *FIXTURE{
-      R"({
-  "resources": [
+TEST(input_required_result_rejects_a_non_numeric_temperature) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.roots = true;
+  capabilities.sampling = true;
+  capabilities.sampling_tools = true;
+  capabilities.elicitation = true;
+  capabilities.elicitation_url = true;
+  capabilities.elicitation_form = true;
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tools/call", sourcemeta::core::JSON{0},
+                         sourcemeta::core::parse_json(R"JSON({
+    "r": {
+      "method": "sampling/createMessage",
+      "params": {
+        "maxTokens": 10,
+        "messages": [],
+        "temperature": false
+      }
+    }
+  })JSON"),
+                         std::nullopt, capabilities),
+                     "Invalid or unsupported nested input requests");
+}
+
+// A model preference priority is normalized between zero and one
+// https://modelcontextprotocol.io/specification/2026-07-28/schema#modelpreferences
+TEST(input_required_result_rejects_an_out_of_range_model_priority) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.roots = true;
+  capabilities.sampling = true;
+  capabilities.sampling_tools = true;
+  capabilities.elicitation = true;
+  capabilities.elicitation_url = true;
+  capabilities.elicitation_form = true;
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tools/call", sourcemeta::core::JSON{0},
+                         sourcemeta::core::parse_json(R"JSON({
+    "r": {
+      "method": "sampling/createMessage",
+      "params": {
+        "maxTokens": 10,
+        "messages": [],
+        "modelPreferences": { "costPriority": 2 }
+      }
+    }
+  })JSON"),
+                         std::nullopt, capabilities),
+                     "Invalid or unsupported nested input requests");
+}
+
+TEST(input_required_result_rejects_an_unknown_tool_choice_mode) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.roots = true;
+  capabilities.sampling = true;
+  capabilities.sampling_tools = true;
+  capabilities.elicitation = true;
+  capabilities.elicitation_url = true;
+  capabilities.elicitation_form = true;
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tools/call", sourcemeta::core::JSON{0},
+                         sourcemeta::core::parse_json(R"JSON({
+    "r": {
+      "method": "sampling/createMessage",
+      "params": {
+        "maxTokens": 10,
+        "messages": [],
+        "toolChoice": { "mode": "bad" }
+      }
+    }
+  })JSON"),
+                         std::nullopt, capabilities),
+                     "Invalid or unsupported nested input requests");
+}
+
+// Only a tool call, a resource read and a prompt get may answer with an
+// interim result
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/mrtr#supported-requests
+TEST(input_required_result_rejects_tools_list) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tools/list", sourcemeta::core::JSON{0}, std::nullopt,
+                         "token", {}),
+                     "Operation does not support MRTR");
+}
+
+TEST(input_required_result_rejects_prompts_list) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "prompts/list", sourcemeta::core::JSON{0},
+                         std::nullopt, "token", {}),
+                     "Operation does not support MRTR");
+}
+
+TEST(input_required_result_rejects_server_discover) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "server/discover", sourcemeta::core::JSON{0},
+                         std::nullopt, "token", {}),
+                     "Operation does not support MRTR");
+}
+
+TEST(input_required_result_rejects_2025_03_26) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+                         "tools/call", sourcemeta::core::JSON{0}, std::nullopt,
+                         "token", {}),
+                     "MRTR requires MCP 2026-07-28");
+}
+
+TEST(input_required_result_rejects_2025_06_18) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+                         "tools/call", sourcemeta::core::JSON{0}, std::nullopt,
+                         "token", {}),
+                     "MRTR requires MCP 2026-07-28");
+}
+
+TEST(input_required_result_rejects_2025_11_25) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+                         "tools/call", sourcemeta::core::JSON{0}, std::nullopt,
+                         "token", {}),
+                     "MRTR requires MCP 2026-07-28");
+}
+
+// An interim result carries input requests, a state token, or both
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/mrtr#inputrequiredresult
+TEST(input_required_result_requires_requests_or_state) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tools/call", sourcemeta::core::JSON{0}, std::nullopt,
+                         std::nullopt, {}),
+                     "An interim result requires input or state");
+}
+
+// The client echoes the state token back on the request that continues the
+// operation
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/mrtr#client-requirements-basic-workflow
+TEST(request_state_of_a_continuation) {
+  const auto continuation{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "method": "tools/call",
+    "params": { "requestState": "s", "inputResponses": {} }
+  })JSON")};
+  EXPECT_EQ(
+      sourcemeta::core::mcp_request_state(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, continuation)
+          .value(),
+      "s");
+}
+
+TEST(request_state_on_2025_11_25) {
+  const auto continuation{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "method": "tools/call",
+    "params": { "requestState": "s", "inputResponses": {} }
+  })JSON")};
+  EXPECT_FALSE(
+      sourcemeta::core::mcp_request_state(
+          sourcemeta::core::MCPProtocolVersion::V_2025_11_25, continuation)
+          .has_value());
+}
+
+TEST(request_input_responses_of_a_non_mrtr_method) {
+  const auto continuation{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "method": "tools/list",
+    "params": { "requestState": "s", "inputResponses": {} }
+  })JSON")};
+  EXPECT_EQ(
+      sourcemeta::core::mcp_request_input_responses(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, continuation),
+      nullptr);
+}
+
+TEST(make_empty_result_2025_03_26) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_empty_result(
+                sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+                sourcemeta::core::JSON{0}),
+            sourcemeta::core::parse_json(
+                R"JSON({ "jsonrpc": "2.0", "id": 0, "result": {} })JSON"));
+}
+
+TEST(make_empty_result_2025_06_18) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_empty_result(
+                sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+                sourcemeta::core::JSON{0}),
+            sourcemeta::core::parse_json(
+                R"JSON({ "jsonrpc": "2.0", "id": 0, "result": {} })JSON"));
+}
+
+TEST(make_empty_result_2025_11_25) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_empty_result(
+                sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+                sourcemeta::core::JSON{0}),
+            sourcemeta::core::parse_json(
+                R"JSON({ "jsonrpc": "2.0", "id": 0, "result": {} })JSON"));
+}
+
+TEST(make_empty_result_2026_07_28) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_empty_result(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::JSON{0}),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "result": { "resultType": "complete" }
+  })JSON"));
+}
+
+TEST(make_tool_success_from_a_structured_payload_2025_03_26) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_tool_success(
+                sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+                sourcemeta::core::JSON{0},
+                sourcemeta::core::parse_json(R"JSON({ "value": 1 })JSON")),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "result": {
+      "content": [ { "type": "text", "text": "{\n  \"value\": 1\n}" } ],
+      "isError": false
+    }
+  })JSON"));
+}
+
+TEST(make_tool_success_from_a_structured_payload_2025_06_18) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_tool_success(
+                sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+                sourcemeta::core::JSON{0},
+                sourcemeta::core::parse_json(R"JSON({ "value": 1 })JSON")),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "result": {
+      "content": [ { "type": "text", "text": "{\n  \"value\": 1\n}" } ],
+      "structuredContent": { "value": 1 },
+      "isError": false
+    }
+  })JSON"));
+}
+
+TEST(make_tool_success_from_a_structured_payload_2025_11_25) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_tool_success(
+                sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+                sourcemeta::core::JSON{0},
+                sourcemeta::core::parse_json(R"JSON({ "value": 1 })JSON")),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "result": {
+      "content": [ { "type": "text", "text": "{\n  \"value\": 1\n}" } ],
+      "structuredContent": { "value": 1 },
+      "isError": false
+    }
+  })JSON"));
+}
+
+TEST(make_tool_success_from_a_structured_payload_2026_07_28) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_tool_success(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::JSON{0},
+                sourcemeta::core::parse_json(R"JSON({ "value": 1 })JSON")),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "result": {
+      "resultType": "complete",
+      "content": [ { "type": "text", "text": "{\n  \"value\": 1\n}" } ],
+      "structuredContent": { "value": 1 },
+      "isError": false
+    }
+  })JSON"));
+}
+
+TEST(make_tool_success_from_content_blocks_2025_03_26) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_tool_success(
+                sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+                sourcemeta::core::JSON{0},
+                sourcemeta::core::JSON::make_object(),
+                sourcemeta::core::parse_json(
+                    R"JSON([ { "type": "text", "text": "hello" } ])JSON")),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "result": {
+      "content": [ { "type": "text", "text": "hello" } ],
+      "isError": false
+    }
+  })JSON"));
+}
+
+TEST(make_tool_success_from_content_blocks_2025_06_18) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_tool_success(
+                sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+                sourcemeta::core::JSON{0},
+                sourcemeta::core::JSON::make_object(),
+                sourcemeta::core::parse_json(
+                    R"JSON([ { "type": "text", "text": "hello" } ])JSON")),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "result": {
+      "content": [ { "type": "text", "text": "hello" } ],
+      "structuredContent": {},
+      "isError": false
+    }
+  })JSON"));
+}
+
+TEST(make_tool_success_from_content_blocks_2025_11_25) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_tool_success(
+                sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+                sourcemeta::core::JSON{0},
+                sourcemeta::core::JSON::make_object(),
+                sourcemeta::core::parse_json(
+                    R"JSON([ { "type": "text", "text": "hello" } ])JSON")),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "result": {
+      "content": [ { "type": "text", "text": "hello" } ],
+      "structuredContent": {},
+      "isError": false
+    }
+  })JSON"));
+}
+
+TEST(make_tool_success_from_content_blocks_2026_07_28) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_tool_success(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::JSON{0},
+                sourcemeta::core::JSON::make_object(),
+                sourcemeta::core::parse_json(
+                    R"JSON([ { "type": "text", "text": "hello" } ])JSON")),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "result": {
+      "resultType": "complete",
+      "content": [ { "type": "text", "text": "hello" } ],
+      "structuredContent": {},
+      "isError": false
+    }
+  })JSON"));
+}
+
+TEST(make_tool_error_2025_03_26) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_tool_error(
+                sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+                sourcemeta::core::JSON{0}, "failure"),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "result": {
+      "content": [ { "type": "text", "text": "failure" } ],
+      "isError": true
+    }
+  })JSON"));
+}
+
+TEST(make_tool_error_2025_06_18) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_tool_error(
+                sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+                sourcemeta::core::JSON{0}, "failure"),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "result": {
+      "content": [ { "type": "text", "text": "failure" } ],
+      "isError": true
+    }
+  })JSON"));
+}
+
+TEST(make_tool_error_2025_11_25) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_tool_error(
+                sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+                sourcemeta::core::JSON{0}, "failure"),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "result": {
+      "content": [ { "type": "text", "text": "failure" } ],
+      "isError": true
+    }
+  })JSON"));
+}
+
+TEST(make_tool_error_2026_07_28) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_tool_error(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::JSON{0}, "failure"),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "result": {
+      "resultType": "complete",
+      "content": [ { "type": "text", "text": "failure" } ],
+      "isError": true
+    }
+  })JSON"));
+}
+
+TEST(make_tool_descriptor_2025_03_26) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_tool_descriptor(
+                sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "tool",
+                "description",
+                sourcemeta::core::parse_json(
+                    R"JSON({ "type": "object", "properties": {} })JSON")),
+            sourcemeta::core::parse_json(R"JSON({
+    "name": "tool",
+    "description": "description",
+    "inputSchema": { "type": "object", "properties": {} },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true
+    }
+  })JSON"));
+}
+
+TEST(make_tool_descriptor_2025_06_18) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_tool_descriptor(
+                sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "tool",
+                "description",
+                sourcemeta::core::parse_json(
+                    R"JSON({ "type": "object", "properties": {} })JSON")),
+            sourcemeta::core::parse_json(R"JSON({
+    "name": "tool",
+    "description": "description",
+    "inputSchema": { "type": "object", "properties": {} },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true
+    }
+  })JSON"));
+}
+
+TEST(make_tool_descriptor_2025_11_25) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_tool_descriptor(
+                sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "tool",
+                "description",
+                sourcemeta::core::parse_json(
+                    R"JSON({ "type": "object", "properties": {} })JSON")),
+            sourcemeta::core::parse_json(R"JSON({
+    "name": "tool",
+    "description": "description",
+    "inputSchema": { "type": "object", "properties": {} },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true
+    }
+  })JSON"));
+}
+
+TEST(make_tool_descriptor_2026_07_28) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_tool_descriptor(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tool",
+                "description",
+                sourcemeta::core::parse_json(
+                    R"JSON({ "type": "object", "properties": {} })JSON")),
+            sourcemeta::core::parse_json(R"JSON({
+    "name": "tool",
+    "description": "description",
+    "inputSchema": { "type": "object", "properties": {} },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true
+    }
+  })JSON"));
+}
+
+TEST(make_resource_2025_03_26) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_resource(
+                sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+                "https://example.com", "resource", "text/plain", "", 10, 0.5),
+            sourcemeta::core::parse_json(R"JSON({
+    "uri": "https://example.com",
+    "name": "resource",
+    "mimeType": "text/plain",
+    "size": 10,
+    "annotations": { "priority": 0.5 }
+  })JSON"));
+}
+
+TEST(make_resource_2025_06_18) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_resource(
+                sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+                "https://example.com", "resource", "text/plain", "", 10, 0.5),
+            sourcemeta::core::parse_json(R"JSON({
+    "uri": "https://example.com",
+    "name": "resource",
+    "mimeType": "text/plain",
+    "size": 10,
+    "annotations": { "priority": 0.5 }
+  })JSON"));
+}
+
+TEST(make_resource_2025_11_25) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_resource(
+                sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+                "https://example.com", "resource", "text/plain", "", 10, 0.5),
+            sourcemeta::core::parse_json(R"JSON({
+    "uri": "https://example.com",
+    "name": "resource",
+    "mimeType": "text/plain",
+    "size": 10,
+    "annotations": { "priority": 0.5 }
+  })JSON"));
+}
+
+TEST(make_resource_2026_07_28) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_resource(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                "https://example.com", "resource", "text/plain", "", 10, 0.5),
+            sourcemeta::core::parse_json(R"JSON({
+    "uri": "https://example.com",
+    "name": "resource",
+    "mimeType": "text/plain",
+    "size": 10,
+    "annotations": { "priority": 0.5 }
+  })JSON"));
+}
+
+TEST(make_resource_template_2025_03_26) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_resource_template(
+                sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+                "https://example.com/{name}", "template", "description",
+                "text/plain"),
+            sourcemeta::core::parse_json(R"JSON({
+    "uriTemplate": "https://example.com/{name}",
+    "name": "template",
+    "description": "description",
+    "mimeType": "text/plain"
+  })JSON"));
+}
+
+TEST(make_resource_template_2025_06_18) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_resource_template(
+                sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+                "https://example.com/{name}", "template", "description",
+                "text/plain"),
+            sourcemeta::core::parse_json(R"JSON({
+    "uriTemplate": "https://example.com/{name}",
+    "name": "template",
+    "description": "description",
+    "mimeType": "text/plain"
+  })JSON"));
+}
+
+TEST(make_resource_template_2025_11_25) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_resource_template(
+                sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+                "https://example.com/{name}", "template", "description",
+                "text/plain"),
+            sourcemeta::core::parse_json(R"JSON({
+    "uriTemplate": "https://example.com/{name}",
+    "name": "template",
+    "description": "description",
+    "mimeType": "text/plain"
+  })JSON"));
+}
+
+TEST(make_resource_template_2026_07_28) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_resource_template(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                "https://example.com/{name}", "template", "description",
+                "text/plain"),
+            sourcemeta::core::parse_json(R"JSON({
+    "uriTemplate": "https://example.com/{name}",
+    "name": "template",
+    "description": "description",
+    "mimeType": "text/plain"
+  })JSON"));
+}
+
+TEST(make_tools_list_result_2025_03_26) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_tools_list_result(
+                sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+                sourcemeta::core::JSON::make_array(), "", {}),
+            sourcemeta::core::parse_json(
+                R"JSON({ "tools": [], "nextCursor": "" })JSON"));
+}
+
+TEST(make_tools_list_result_2025_06_18) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_tools_list_result(
+                sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+                sourcemeta::core::JSON::make_array(), "", {}),
+            sourcemeta::core::parse_json(
+                R"JSON({ "tools": [], "nextCursor": "" })JSON"));
+}
+
+TEST(make_tools_list_result_2025_11_25) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_tools_list_result(
+                sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+                sourcemeta::core::JSON::make_array(), "", {}),
+            sourcemeta::core::parse_json(
+                R"JSON({ "tools": [], "nextCursor": "" })JSON"));
+}
+
+TEST(make_tools_list_result_2026_07_28) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_tools_list_result(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::JSON::make_array(), "", {}),
+            sourcemeta::core::parse_json(R"JSON({
+    "resultType": "complete",
+    "tools": [],
+    "nextCursor": "",
+    "ttlMs": 0,
+    "cacheScope": "private"
+  })JSON"));
+}
+
+TEST(make_resources_list_result_2025_03_26) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_resources_list_result(
+                sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+                sourcemeta::core::JSON::make_array(), "", {}),
+            sourcemeta::core::parse_json(
+                R"JSON({ "resources": [], "nextCursor": "" })JSON"));
+}
+
+TEST(make_resources_list_result_2025_06_18) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_resources_list_result(
+                sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+                sourcemeta::core::JSON::make_array(), "", {}),
+            sourcemeta::core::parse_json(
+                R"JSON({ "resources": [], "nextCursor": "" })JSON"));
+}
+
+TEST(make_resources_list_result_2025_11_25) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_resources_list_result(
+                sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+                sourcemeta::core::JSON::make_array(), "", {}),
+            sourcemeta::core::parse_json(
+                R"JSON({ "resources": [], "nextCursor": "" })JSON"));
+}
+
+TEST(make_resources_list_result_2026_07_28) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_resources_list_result(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::JSON::make_array(), "", {}),
+            sourcemeta::core::parse_json(R"JSON({
+    "resultType": "complete",
+    "resources": [],
+    "nextCursor": "",
+    "ttlMs": 0,
+    "cacheScope": "private"
+  })JSON"));
+}
+
+TEST(make_resource_templates_list_result_2025_03_26) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_resource_templates_list_result(
+                sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+                sourcemeta::core::JSON::make_array(), "", {}),
+            sourcemeta::core::parse_json(
+                R"JSON({ "resourceTemplates": [], "nextCursor": "" })JSON"));
+}
+
+TEST(make_resource_templates_list_result_2025_06_18) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_resource_templates_list_result(
+                sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+                sourcemeta::core::JSON::make_array(), "", {}),
+            sourcemeta::core::parse_json(
+                R"JSON({ "resourceTemplates": [], "nextCursor": "" })JSON"));
+}
+
+TEST(make_resource_templates_list_result_2025_11_25) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_resource_templates_list_result(
+                sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+                sourcemeta::core::JSON::make_array(), "", {}),
+            sourcemeta::core::parse_json(
+                R"JSON({ "resourceTemplates": [], "nextCursor": "" })JSON"));
+}
+
+TEST(make_resource_templates_list_result_2026_07_28) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_resource_templates_list_result(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::JSON::make_array(), "", {}),
+            sourcemeta::core::parse_json(R"JSON({
+    "resultType": "complete",
+    "resourceTemplates": [],
+    "nextCursor": "",
+    "ttlMs": 0,
+    "cacheScope": "private"
+  })JSON"));
+}
+
+TEST(make_prompts_list_result_2025_03_26) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_prompts_list_result(
+                sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+                sourcemeta::core::JSON::make_array(), "", {}),
+            sourcemeta::core::parse_json(
+                R"JSON({ "prompts": [], "nextCursor": "" })JSON"));
+}
+
+TEST(make_prompts_list_result_2025_06_18) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_prompts_list_result(
+                sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+                sourcemeta::core::JSON::make_array(), "", {}),
+            sourcemeta::core::parse_json(
+                R"JSON({ "prompts": [], "nextCursor": "" })JSON"));
+}
+
+TEST(make_prompts_list_result_2025_11_25) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_prompts_list_result(
+                sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+                sourcemeta::core::JSON::make_array(), "", {}),
+            sourcemeta::core::parse_json(
+                R"JSON({ "prompts": [], "nextCursor": "" })JSON"));
+}
+
+TEST(make_prompts_list_result_2026_07_28) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_prompts_list_result(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::JSON::make_array(), "", {}),
+            sourcemeta::core::parse_json(R"JSON({
+    "resultType": "complete",
+    "prompts": [],
+    "nextCursor": "",
+    "ttlMs": 0,
+    "cacheScope": "private"
+  })JSON"));
+}
+
+TEST(make_resources_read_result_2025_03_26) {
+  EXPECT_EQ(
+      sourcemeta::core::mcp_make_resources_read_result(
+          sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+          sourcemeta::core::parse_json(
+              R"JSON([ { "uri": "https://example.com", "text": "hello" } ])JSON"),
+          {}),
+      sourcemeta::core::parse_json(R"JSON({
+    "contents": [ { "uri": "https://example.com", "text": "hello" } ]
+  })JSON"));
+}
+
+TEST(make_resources_read_result_2025_06_18) {
+  EXPECT_EQ(
+      sourcemeta::core::mcp_make_resources_read_result(
+          sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+          sourcemeta::core::parse_json(
+              R"JSON([ { "uri": "https://example.com", "text": "hello" } ])JSON"),
+          {}),
+      sourcemeta::core::parse_json(R"JSON({
+    "contents": [ { "uri": "https://example.com", "text": "hello" } ]
+  })JSON"));
+}
+
+TEST(make_resources_read_result_2025_11_25) {
+  EXPECT_EQ(
+      sourcemeta::core::mcp_make_resources_read_result(
+          sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+          sourcemeta::core::parse_json(
+              R"JSON([ { "uri": "https://example.com", "text": "hello" } ])JSON"),
+          {}),
+      sourcemeta::core::parse_json(R"JSON({
+    "contents": [ { "uri": "https://example.com", "text": "hello" } ]
+  })JSON"));
+}
+
+TEST(make_resources_read_result_2026_07_28) {
+  EXPECT_EQ(
+      sourcemeta::core::mcp_make_resources_read_result(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+          sourcemeta::core::parse_json(
+              R"JSON([ { "uri": "https://example.com", "text": "hello" } ])JSON"),
+          {}),
+      sourcemeta::core::parse_json(R"JSON({
+    "resultType": "complete",
+    "contents": [ { "uri": "https://example.com", "text": "hello" } ],
+    "ttlMs": 0,
+    "cacheScope": "private"
+  })JSON"));
+}
+
+TEST(make_prompts_get_result_2025_03_26) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_prompts_get_result(
+                sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+                "description", sourcemeta::core::parse_json(R"JSON([
     {
-      "name": "test",
-      "uri": "https://example.com/a"
+      "role": "user",
+      "content": { "type": "text", "text": "hello" }
     }
-  ],
-  "nextCursor": "",
-  "_meta": {
-    "example.org/value": "preserved"
-  }
-})"};
-  const auto page{parse_json(FIXTURE)};
-  // Parse a separate snapshot so the comparison detects source mutation.
-  const auto saved{parse_json(FIXTURE)};
-
-  const auto version{MCPProtocolVersion::V_2025_03_26};
-
-  std::ostringstream stream;
-  mcp_write_result(stream, version, "resources/list", JSON{"quote\"\n"}, page,
-                   MCPCachePolicy{});
-  const auto parsed{parse_json(stream.str())};
-  EXPECT_EQ(parsed.at("id"), JSON{"quote\"\n"});
-  EXPECT_EQ(parsed.at("result").at("resources"), page.at("resources"));
-  EXPECT_EQ(parsed.at("result").at("nextCursor"), JSON{""});
-  EXPECT_EQ(parsed.at("result").at("_meta").at("example.org/value"),
-            JSON{"preserved"});
-  EXPECT_EQ(page, saved);
-  EXPECT_EQ(stream.str().find('\n'), std::string::npos);
-  EXPECT_TRUE(parsed.at("result").is_object());
-}
-
-TEST(result_writer_2025_06_18) {
-  constexpr auto *FIXTURE{
-      R"({
-  "resources": [
-    {
-      "name": "test",
-      "uri": "https://example.com/a"
-    }
-  ],
-  "nextCursor": "",
-  "_meta": {
-    "example.org/value": "preserved"
-  }
-})"};
-  const auto page{parse_json(FIXTURE)};
-  // Parse a separate snapshot so the comparison detects source mutation.
-  const auto saved{parse_json(FIXTURE)};
-
-  const auto version{MCPProtocolVersion::V_2025_06_18};
-
-  std::ostringstream stream;
-  mcp_write_result(stream, version, "resources/list", JSON{"quote\"\n"}, page,
-                   MCPCachePolicy{});
-  const auto parsed{parse_json(stream.str())};
-  EXPECT_EQ(parsed.at("id"), JSON{"quote\"\n"});
-  EXPECT_EQ(parsed.at("result").at("resources"), page.at("resources"));
-  EXPECT_EQ(parsed.at("result").at("nextCursor"), JSON{""});
-  EXPECT_EQ(parsed.at("result").at("_meta").at("example.org/value"),
-            JSON{"preserved"});
-  EXPECT_EQ(page, saved);
-  EXPECT_EQ(stream.str().find('\n'), std::string::npos);
-  EXPECT_TRUE(parsed.at("result").is_object());
-}
-
-TEST(result_writer_2025_11_25) {
-  constexpr auto *FIXTURE{
-      R"({
-  "resources": [
-    {
-      "name": "test",
-      "uri": "https://example.com/a"
-    }
-  ],
-  "nextCursor": "",
-  "_meta": {
-    "example.org/value": "preserved"
-  }
-})"};
-  const auto page{parse_json(FIXTURE)};
-  // Parse a separate snapshot so the comparison detects source mutation.
-  const auto saved{parse_json(FIXTURE)};
-
-  const auto version{MCPProtocolVersion::V_2025_11_25};
-
-  std::ostringstream stream;
-  mcp_write_result(stream, version, "resources/list", JSON{"quote\"\n"}, page,
-                   MCPCachePolicy{});
-  const auto parsed{parse_json(stream.str())};
-  EXPECT_EQ(parsed.at("id"), JSON{"quote\"\n"});
-  EXPECT_EQ(parsed.at("result").at("resources"), page.at("resources"));
-  EXPECT_EQ(parsed.at("result").at("nextCursor"), JSON{""});
-  EXPECT_EQ(parsed.at("result").at("_meta").at("example.org/value"),
-            JSON{"preserved"});
-  EXPECT_EQ(page, saved);
-  EXPECT_EQ(stream.str().find('\n'), std::string::npos);
-  EXPECT_TRUE(parsed.at("result").is_object());
-}
-
-TEST(result_writer_2026_07_28) {
-  constexpr auto *FIXTURE{
-      R"({
-  "resources": [
-    {
-      "name": "test",
-      "uri": "https://example.com/a"
-    }
-  ],
-  "nextCursor": "",
-  "_meta": {
-    "example.org/value": "preserved"
-  }
-})"};
-  const auto page{parse_json(FIXTURE)};
-  // Parse a separate snapshot so the comparison detects source mutation.
-  const auto saved{parse_json(FIXTURE)};
-
-  const auto version{MCPProtocolVersion::V_2026_07_28};
-
-  std::ostringstream stream;
-  mcp_write_result(stream, version, "resources/list", JSON{"quote\"\n"}, page,
-                   MCPCachePolicy{});
-  const auto parsed{parse_json(stream.str())};
-  EXPECT_EQ(parsed.at("id"), JSON{"quote\"\n"});
-  EXPECT_EQ(parsed.at("result").at("resources"), page.at("resources"));
-  EXPECT_EQ(parsed.at("result").at("nextCursor"), JSON{""});
-  EXPECT_EQ(parsed.at("result").at("_meta").at("example.org/value"),
-            JSON{"preserved"});
-  EXPECT_EQ(page, saved);
-  EXPECT_EQ(stream.str().find('\n'), std::string::npos);
-  EXPECT_TRUE(parsed.at("result").is_object());
-}
-
-TEST(builder_results_2025_03_26) {
-  const JSON identifier{0};
-  const MCPImplementation server{.name = "server",
-                                 .version = "1",
-                                 .title = "Title",
-                                 .description = "Description",
-                                 .website_url = "https://example.com"};
-
-  const auto version{MCPProtocolVersion::V_2025_03_26};
-
-  EXPECT_TRUE(
-      mcp_make_empty_result(version, identifier).at("result").is_object());
-  EXPECT_TRUE(mcp_make_tool_success(version, identifier, JSON::make_object())
-                  .at("result")
-                  .is_object());
-  EXPECT_TRUE(
-      mcp_make_tool_success(version, identifier, JSON::make_object(),
-                            parse_json(R"([{"type":"text","text":"hello"}])"))
-          .at("result")
-          .is_object());
-  EXPECT_TRUE(mcp_make_tool_error(version, identifier, "failure")
-                  .at("result")
-                  .is_object());
-  EXPECT_TRUE(mcp_make_tool_descriptor(
-                  version, "tool", "description",
-                  parse_json(R"({"type":"object","properties":{}})"))
-                  .is_object());
-  EXPECT_TRUE(mcp_make_resource(version, "https://example.com", "resource",
-                                "text/plain", "", 10, 0.5)
-                  .is_object());
-  EXPECT_TRUE(mcp_make_resource_template(version, "https://example.com/{name}",
-                                         "template", "description",
-                                         "text/plain")
-                  .is_object());
-  EXPECT_TRUE(
-      (mcp_supports_resource_link_content(version)
-           ? mcp_make_resource_link(version, "https://example.com", "link")
-           : mcp_make_text_block("link"))
-          .is_object());
-  EXPECT_TRUE(mcp_make_tools_list_result(version, JSON::make_array(), "", {})
-                  .is_object());
-  EXPECT_TRUE(
-      mcp_make_resources_list_result(version, JSON::make_array(), "", {})
-          .is_object());
-  EXPECT_TRUE(mcp_make_resource_templates_list_result(
-                  version, JSON::make_array(), "", {})
-                  .is_object());
-  EXPECT_TRUE(mcp_make_prompts_list_result(version, JSON::make_array(), "", {})
-                  .is_object());
-  EXPECT_TRUE(
-      mcp_make_resources_read_result(
-          version,
-          parse_json(R"([{"uri":"https://example.com","text":"hello"}])"), {})
-          .is_object());
-  EXPECT_TRUE(
-      mcp_make_prompts_get_result(
-          version, "description",
-          parse_json(
-              R"([{"role":"user","content":{"type":"text","text":"hello"}}])"))
-          .is_object());
-  EXPECT_TRUE(mcp_make_completion_result(
-                  version, parse_json(R"(["one","two"] )"), 3, true)
-                  .is_object());
-  EXPECT_TRUE(mcp_serialize_client_capabilities(version, {}).is_object());
-  const auto error{
-      mcp_make_error(version, &identifier, JSONRPC_CODE_INVALID_PARAMS, "bad")};
-  EXPECT_TRUE(error.is_object());
-  EXPECT_TRUE(
-      mcp_make_error_resource_not_found(version, identifier).is_object());
-  if (mcp_uses_initialization_handshake(version)) {
-    auto init{parse_json(
-        R"({
-  "jsonrpc": "2.0",
-  "id": 0,
-  "method": "initialize",
-  "params": {
-    "capabilities": {},
-    "clientInfo": {
-      "name": "client",
-      "version": "1"
-    }
-  }
-})")};
-    init.at("params").assign("protocolVersion",
-                             JSON{mcp_protocol_version_string(version)});
-    EXPECT_TRUE(mcp_make_initialize_result(init, {}, server, WIRES)
-                    .at("result")
-                    .is_object());
-  }
-
-  EXPECT_TRUE(mcp_make_server_discover_result(CURRENT, identifier, {}, server,
-                                              WIRES, "instructions", {})
-                  .at("result")
-                  .is_object());
-  EXPECT_TRUE(mcp_make_subscription_close_result(CURRENT, identifier)
-                  .at("result")
-                  .is_object());
-  EXPECT_TRUE(mcp_make_input_required_result(CURRENT, "resources/read",
-                                             identifier, std::nullopt, "state",
-                                             {})
-                  .at("result")
-                  .is_object());
-}
-
-TEST(builder_results_2025_06_18) {
-  const JSON identifier{0};
-  const MCPImplementation server{.name = "server",
-                                 .version = "1",
-                                 .title = "Title",
-                                 .description = "Description",
-                                 .website_url = "https://example.com"};
-
-  const auto version{MCPProtocolVersion::V_2025_06_18};
-
-  EXPECT_TRUE(
-      mcp_make_empty_result(version, identifier).at("result").is_object());
-  EXPECT_TRUE(mcp_make_tool_success(version, identifier, JSON::make_object())
-                  .at("result")
-                  .is_object());
-  EXPECT_TRUE(
-      mcp_make_tool_success(version, identifier, JSON::make_object(),
-                            parse_json(R"([{"type":"text","text":"hello"}])"))
-          .at("result")
-          .is_object());
-  EXPECT_TRUE(mcp_make_tool_error(version, identifier, "failure")
-                  .at("result")
-                  .is_object());
-  EXPECT_TRUE(mcp_make_tool_descriptor(
-                  version, "tool", "description",
-                  parse_json(R"({"type":"object","properties":{}})"))
-                  .is_object());
-  EXPECT_TRUE(mcp_make_resource(version, "https://example.com", "resource",
-                                "text/plain", "", 10, 0.5)
-                  .is_object());
-  EXPECT_TRUE(mcp_make_resource_template(version, "https://example.com/{name}",
-                                         "template", "description",
-                                         "text/plain")
-                  .is_object());
-  EXPECT_TRUE(
-      (mcp_supports_resource_link_content(version)
-           ? mcp_make_resource_link(version, "https://example.com", "link")
-           : mcp_make_text_block("link"))
-          .is_object());
-  EXPECT_TRUE(mcp_make_tools_list_result(version, JSON::make_array(), "", {})
-                  .is_object());
-  EXPECT_TRUE(
-      mcp_make_resources_list_result(version, JSON::make_array(), "", {})
-          .is_object());
-  EXPECT_TRUE(mcp_make_resource_templates_list_result(
-                  version, JSON::make_array(), "", {})
-                  .is_object());
-  EXPECT_TRUE(mcp_make_prompts_list_result(version, JSON::make_array(), "", {})
-                  .is_object());
-  EXPECT_TRUE(
-      mcp_make_resources_read_result(
-          version,
-          parse_json(R"([{"uri":"https://example.com","text":"hello"}])"), {})
-          .is_object());
-  EXPECT_TRUE(
-      mcp_make_prompts_get_result(
-          version, "description",
-          parse_json(
-              R"([{"role":"user","content":{"type":"text","text":"hello"}}])"))
-          .is_object());
-  EXPECT_TRUE(mcp_make_completion_result(
-                  version, parse_json(R"(["one","two"] )"), 3, true)
-                  .is_object());
-  EXPECT_TRUE(mcp_serialize_client_capabilities(version, {}).is_object());
-  const auto error{
-      mcp_make_error(version, &identifier, JSONRPC_CODE_INVALID_PARAMS, "bad")};
-  EXPECT_TRUE(error.is_object());
-  EXPECT_TRUE(
-      mcp_make_error_resource_not_found(version, identifier).is_object());
-  if (mcp_uses_initialization_handshake(version)) {
-    auto init{parse_json(
-        R"({
-  "jsonrpc": "2.0",
-  "id": 0,
-  "method": "initialize",
-  "params": {
-    "capabilities": {},
-    "clientInfo": {
-      "name": "client",
-      "version": "1"
-    }
-  }
-})")};
-    init.at("params").assign("protocolVersion",
-                             JSON{mcp_protocol_version_string(version)});
-    EXPECT_TRUE(mcp_make_initialize_result(init, {}, server, WIRES)
-                    .at("result")
-                    .is_object());
-  }
-
-  EXPECT_TRUE(mcp_make_server_discover_result(CURRENT, identifier, {}, server,
-                                              WIRES, "instructions", {})
-                  .at("result")
-                  .is_object());
-  EXPECT_TRUE(mcp_make_subscription_close_result(CURRENT, identifier)
-                  .at("result")
-                  .is_object());
-  EXPECT_TRUE(mcp_make_input_required_result(CURRENT, "resources/read",
-                                             identifier, std::nullopt, "state",
-                                             {})
-                  .at("result")
-                  .is_object());
-}
-
-TEST(builder_results_2025_11_25) {
-  const JSON identifier{0};
-  const MCPImplementation server{.name = "server",
-                                 .version = "1",
-                                 .title = "Title",
-                                 .description = "Description",
-                                 .website_url = "https://example.com"};
-
-  const auto version{MCPProtocolVersion::V_2025_11_25};
-
-  EXPECT_TRUE(
-      mcp_make_empty_result(version, identifier).at("result").is_object());
-  EXPECT_TRUE(mcp_make_tool_success(version, identifier, JSON::make_object())
-                  .at("result")
-                  .is_object());
-  EXPECT_TRUE(
-      mcp_make_tool_success(version, identifier, JSON::make_object(),
-                            parse_json(R"([{"type":"text","text":"hello"}])"))
-          .at("result")
-          .is_object());
-  EXPECT_TRUE(mcp_make_tool_error(version, identifier, "failure")
-                  .at("result")
-                  .is_object());
-  EXPECT_TRUE(mcp_make_tool_descriptor(
-                  version, "tool", "description",
-                  parse_json(R"({"type":"object","properties":{}})"))
-                  .is_object());
-  EXPECT_TRUE(mcp_make_resource(version, "https://example.com", "resource",
-                                "text/plain", "", 10, 0.5)
-                  .is_object());
-  EXPECT_TRUE(mcp_make_resource_template(version, "https://example.com/{name}",
-                                         "template", "description",
-                                         "text/plain")
-                  .is_object());
-  EXPECT_TRUE(
-      (mcp_supports_resource_link_content(version)
-           ? mcp_make_resource_link(version, "https://example.com", "link")
-           : mcp_make_text_block("link"))
-          .is_object());
-  EXPECT_TRUE(mcp_make_tools_list_result(version, JSON::make_array(), "", {})
-                  .is_object());
-  EXPECT_TRUE(
-      mcp_make_resources_list_result(version, JSON::make_array(), "", {})
-          .is_object());
-  EXPECT_TRUE(mcp_make_resource_templates_list_result(
-                  version, JSON::make_array(), "", {})
-                  .is_object());
-  EXPECT_TRUE(mcp_make_prompts_list_result(version, JSON::make_array(), "", {})
-                  .is_object());
-  EXPECT_TRUE(
-      mcp_make_resources_read_result(
-          version,
-          parse_json(R"([{"uri":"https://example.com","text":"hello"}])"), {})
-          .is_object());
-  EXPECT_TRUE(
-      mcp_make_prompts_get_result(
-          version, "description",
-          parse_json(
-              R"([{"role":"user","content":{"type":"text","text":"hello"}}])"))
-          .is_object());
-  EXPECT_TRUE(mcp_make_completion_result(
-                  version, parse_json(R"(["one","two"] )"), 3, true)
-                  .is_object());
-  EXPECT_TRUE(mcp_serialize_client_capabilities(version, {}).is_object());
-  const auto error{
-      mcp_make_error(version, &identifier, JSONRPC_CODE_INVALID_PARAMS, "bad")};
-  EXPECT_TRUE(error.is_object());
-  EXPECT_TRUE(
-      mcp_make_error_resource_not_found(version, identifier).is_object());
-  if (mcp_uses_initialization_handshake(version)) {
-    auto init{parse_json(
-        R"({
-  "jsonrpc": "2.0",
-  "id": 0,
-  "method": "initialize",
-  "params": {
-    "capabilities": {},
-    "clientInfo": {
-      "name": "client",
-      "version": "1"
-    }
-  }
-})")};
-    init.at("params").assign("protocolVersion",
-                             JSON{mcp_protocol_version_string(version)});
-    EXPECT_TRUE(mcp_make_initialize_result(init, {}, server, WIRES)
-                    .at("result")
-                    .is_object());
-  }
-
-  EXPECT_TRUE(mcp_make_server_discover_result(CURRENT, identifier, {}, server,
-                                              WIRES, "instructions", {})
-                  .at("result")
-                  .is_object());
-  EXPECT_TRUE(mcp_make_subscription_close_result(CURRENT, identifier)
-                  .at("result")
-                  .is_object());
-  EXPECT_TRUE(mcp_make_input_required_result(CURRENT, "resources/read",
-                                             identifier, std::nullopt, "state",
-                                             {})
-                  .at("result")
-                  .is_object());
-}
-
-TEST(builder_results_2026_07_28) {
-  const JSON identifier{0};
-  const MCPImplementation server{.name = "server",
-                                 .version = "1",
-                                 .title = "Title",
-                                 .description = "Description",
-                                 .website_url = "https://example.com"};
-
-  const auto version{MCPProtocolVersion::V_2026_07_28};
-
-  EXPECT_TRUE(
-      mcp_make_empty_result(version, identifier).at("result").is_object());
-  EXPECT_TRUE(mcp_make_tool_success(version, identifier, JSON::make_object())
-                  .at("result")
-                  .is_object());
-  EXPECT_TRUE(
-      mcp_make_tool_success(version, identifier, JSON::make_object(),
-                            parse_json(R"([{"type":"text","text":"hello"}])"))
-          .at("result")
-          .is_object());
-  EXPECT_TRUE(mcp_make_tool_error(version, identifier, "failure")
-                  .at("result")
-                  .is_object());
-  EXPECT_TRUE(mcp_make_tool_descriptor(
-                  version, "tool", "description",
-                  parse_json(R"({"type":"object","properties":{}})"))
-                  .is_object());
-  EXPECT_TRUE(mcp_make_resource(version, "https://example.com", "resource",
-                                "text/plain", "", 10, 0.5)
-                  .is_object());
-  EXPECT_TRUE(mcp_make_resource_template(version, "https://example.com/{name}",
-                                         "template", "description",
-                                         "text/plain")
-                  .is_object());
-  EXPECT_TRUE(
-      (mcp_supports_resource_link_content(version)
-           ? mcp_make_resource_link(version, "https://example.com", "link")
-           : mcp_make_text_block("link"))
-          .is_object());
-  EXPECT_TRUE(mcp_make_tools_list_result(version, JSON::make_array(), "", {})
-                  .is_object());
-  EXPECT_TRUE(
-      mcp_make_resources_list_result(version, JSON::make_array(), "", {})
-          .is_object());
-  EXPECT_TRUE(mcp_make_resource_templates_list_result(
-                  version, JSON::make_array(), "", {})
-                  .is_object());
-  EXPECT_TRUE(mcp_make_prompts_list_result(version, JSON::make_array(), "", {})
-                  .is_object());
-  EXPECT_TRUE(
-      mcp_make_resources_read_result(
-          version,
-          parse_json(R"([{"uri":"https://example.com","text":"hello"}])"), {})
-          .is_object());
-  EXPECT_TRUE(
-      mcp_make_prompts_get_result(
-          version, "description",
-          parse_json(
-              R"([{"role":"user","content":{"type":"text","text":"hello"}}])"))
-          .is_object());
-  EXPECT_TRUE(mcp_make_completion_result(
-                  version, parse_json(R"(["one","two"] )"), 3, true)
-                  .is_object());
-  EXPECT_TRUE(mcp_serialize_client_capabilities(version, {}).is_object());
-  const auto error{
-      mcp_make_error(version, &identifier, JSONRPC_CODE_INVALID_PARAMS, "bad")};
-  EXPECT_TRUE(error.is_object());
-  EXPECT_TRUE(
-      mcp_make_error_resource_not_found(version, identifier).is_object());
-  if (mcp_uses_initialization_handshake(version)) {
-    auto init{parse_json(
-        R"({
-  "jsonrpc": "2.0",
-  "id": 0,
-  "method": "initialize",
-  "params": {
-    "capabilities": {},
-    "clientInfo": {
-      "name": "client",
-      "version": "1"
-    }
-  }
-})")};
-    init.at("params").assign("protocolVersion",
-                             JSON{mcp_protocol_version_string(version)});
-    EXPECT_TRUE(mcp_make_initialize_result(init, {}, server, WIRES)
-                    .at("result")
-                    .is_object());
-  }
-
-  EXPECT_TRUE(mcp_make_server_discover_result(CURRENT, identifier, {}, server,
-                                              WIRES, "instructions", {})
-                  .at("result")
-                  .is_object());
-  EXPECT_TRUE(mcp_make_subscription_close_result(CURRENT, identifier)
-                  .at("result")
-                  .is_object());
-  EXPECT_TRUE(mcp_make_input_required_result(CURRENT, "resources/read",
-                                             identifier, std::nullopt, "state",
-                                             {})
-                  .at("result")
-                  .is_object());
-}
-
-TEST(continuation_validation) {
-  auto value{parameters()};
-  value.assign("requestState", JSON{"state"});
-  value.assign("inputResponses", parse_json(
-                                     R"({
-  "roots": {
-    "roots": [
+  ])JSON")),
+            sourcemeta::core::parse_json(R"JSON({
+    "description": "description",
+    "messages": [
       {
-        "uri": "file:///workspace"
+        "role": "user",
+        "content": { "type": "text", "text": "hello" }
       }
     ]
-  },
-  "form": {
-    "action": "accept",
-    "content": {
-      "choice": [
-        "a"
+  })JSON"));
+}
+
+TEST(make_prompts_get_result_2025_06_18) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_prompts_get_result(
+                sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+                "description", sourcemeta::core::parse_json(R"JSON([
+    {
+      "role": "user",
+      "content": { "type": "text", "text": "hello" }
+    }
+  ])JSON")),
+            sourcemeta::core::parse_json(R"JSON({
+    "description": "description",
+    "messages": [
+      {
+        "role": "user",
+        "content": { "type": "text", "text": "hello" }
+      }
+    ]
+  })JSON"));
+}
+
+TEST(make_prompts_get_result_2025_11_25) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_prompts_get_result(
+                sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+                "description", sourcemeta::core::parse_json(R"JSON([
+    {
+      "role": "user",
+      "content": { "type": "text", "text": "hello" }
+    }
+  ])JSON")),
+            sourcemeta::core::parse_json(R"JSON({
+    "description": "description",
+    "messages": [
+      {
+        "role": "user",
+        "content": { "type": "text", "text": "hello" }
+      }
+    ]
+  })JSON"));
+}
+
+TEST(make_prompts_get_result_2026_07_28) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_prompts_get_result(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                "description", sourcemeta::core::parse_json(R"JSON([
+    {
+      "role": "user",
+      "content": { "type": "text", "text": "hello" }
+    }
+  ])JSON")),
+            sourcemeta::core::parse_json(R"JSON({
+    "description": "description",
+    "messages": [
+      {
+        "role": "user",
+        "content": { "type": "text", "text": "hello" }
+      }
+    ],
+    "resultType": "complete"
+  })JSON"));
+}
+
+TEST(make_completion_result_2025_03_26) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_completion_result(
+                sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+                sourcemeta::core::parse_json(R"JSON([ "one", "two" ])JSON"), 3,
+                true),
+            sourcemeta::core::parse_json(R"JSON({
+    "completion": {
+      "values": [ "one", "two" ],
+      "total": 3,
+      "hasMore": true
+    }
+  })JSON"));
+}
+
+TEST(make_completion_result_2025_06_18) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_completion_result(
+                sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+                sourcemeta::core::parse_json(R"JSON([ "one", "two" ])JSON"), 3,
+                true),
+            sourcemeta::core::parse_json(R"JSON({
+    "completion": {
+      "values": [ "one", "two" ],
+      "total": 3,
+      "hasMore": true
+    }
+  })JSON"));
+}
+
+TEST(make_completion_result_2025_11_25) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_completion_result(
+                sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+                sourcemeta::core::parse_json(R"JSON([ "one", "two" ])JSON"), 3,
+                true),
+            sourcemeta::core::parse_json(R"JSON({
+    "completion": {
+      "values": [ "one", "two" ],
+      "total": 3,
+      "hasMore": true
+    }
+  })JSON"));
+}
+
+TEST(make_completion_result_2026_07_28) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_completion_result(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::parse_json(R"JSON([ "one", "two" ])JSON"), 3,
+                true),
+            sourcemeta::core::parse_json(R"JSON({
+    "completion": {
+      "values": [ "one", "two" ],
+      "total": 3,
+      "hasMore": true
+    },
+    "resultType": "complete"
+  })JSON"));
+}
+
+TEST(make_resource_link_2025_06_18) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_resource_link(
+                sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+                "https://example.com", "link"),
+            sourcemeta::core::parse_json(R"JSON({
+    "type": "resource_link",
+    "uri": "https://example.com",
+    "name": "link"
+  })JSON"));
+}
+
+TEST(make_resource_link_2025_11_25) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_resource_link(
+                sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+                "https://example.com", "link"),
+            sourcemeta::core::parse_json(R"JSON({
+    "type": "resource_link",
+    "uri": "https://example.com",
+    "name": "link"
+  })JSON"));
+}
+
+TEST(make_resource_link_2026_07_28) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_resource_link(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                "https://example.com", "link"),
+            sourcemeta::core::parse_json(R"JSON({
+    "type": "resource_link",
+    "uri": "https://example.com",
+    "name": "link"
+  })JSON"));
+}
+
+// Resource link content blocks arrived in 2025-06-18
+// https://modelcontextprotocol.io/specification/2026-07-28/schema#resourcelink
+TEST(make_resource_link_rejects_2025_03_26) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_resource_link(
+                         sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+                         "https://example.com", "link"),
+                     "Resource links require MCP 2025-06-18 or later");
+}
+
+TEST(make_initialize_result_2025_03_26) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  const sourcemeta::core::MCPImplementation server{.name = "server",
+                                                   .version = "1",
+                                                   .title = "Title",
+                                                   .description = "Description",
+                                                   .website_url =
+                                                       "https://example.com"};
+  EXPECT_EQ(sourcemeta::core::mcp_make_initialize_result(
+                sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "method": "initialize",
+    "params": {
+      "protocolVersion": "2025-03-26",
+      "capabilities": {},
+      "clientInfo": { "name": "client", "version": "1" }
+    }
+  })JSON"),
+                {}, server, SUPPORTED),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "result": {
+      "protocolVersion": "2025-03-26",
+      "capabilities": {},
+      "serverInfo": { "name": "server", "version": "1" }
+    }
+  })JSON"));
+}
+
+TEST(make_initialize_result_2025_06_18) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  const sourcemeta::core::MCPImplementation server{.name = "server",
+                                                   .version = "1",
+                                                   .title = "Title",
+                                                   .description = "Description",
+                                                   .website_url =
+                                                       "https://example.com"};
+  EXPECT_EQ(sourcemeta::core::mcp_make_initialize_result(
+                sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "method": "initialize",
+    "params": {
+      "protocolVersion": "2025-06-18",
+      "capabilities": {},
+      "clientInfo": { "name": "client", "version": "1" }
+    }
+  })JSON"),
+                {}, server, SUPPORTED),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "result": {
+      "protocolVersion": "2025-06-18",
+      "capabilities": {},
+      "serverInfo": { "name": "server", "version": "1", "title": "Title" }
+    }
+  })JSON"));
+}
+
+TEST(make_initialize_result_2025_11_25) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  const sourcemeta::core::MCPImplementation server{.name = "server",
+                                                   .version = "1",
+                                                   .title = "Title",
+                                                   .description = "Description",
+                                                   .website_url =
+                                                       "https://example.com"};
+  EXPECT_EQ(sourcemeta::core::mcp_make_initialize_result(
+                sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "method": "initialize",
+    "params": {
+      "protocolVersion": "2025-11-25",
+      "capabilities": {},
+      "clientInfo": { "name": "client", "version": "1" }
+    }
+  })JSON"),
+                {}, server, SUPPORTED),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "result": {
+      "protocolVersion": "2025-11-25",
+      "capabilities": {},
+      "serverInfo": {
+        "name": "server",
+        "version": "1",
+        "title": "Title",
+        "description": "Description",
+        "websiteUrl": "https://example.com"
+      }
+    }
+  })JSON"));
+}
+
+TEST(make_server_discover_result) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  const sourcemeta::core::MCPImplementation server{.name = "server",
+                                                   .version = "1",
+                                                   .title = "Title",
+                                                   .description = "Description",
+                                                   .website_url =
+                                                       "https://example.com"};
+  EXPECT_EQ(sourcemeta::core::mcp_make_server_discover_result(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::JSON{0}, {}, server, SUPPORTED,
+                "instructions", {}),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "result": {
+      "resultType": "complete",
+      "supportedVersions": [
+        "2025-03-26",
+        "2025-06-18",
+        "2025-11-25",
+        "2026-07-28"
       ],
-      "accepted": true
+      "capabilities": {},
+      "_meta": {
+        "io.modelcontextprotocol/serverInfo": {
+          "name": "server",
+          "version": "1",
+          "title": "Title",
+          "description": "Description",
+          "websiteUrl": "https://example.com"
+        }
+      },
+      "instructions": "instructions",
+      "ttlMs": 0,
+      "cacheScope": "private"
     }
-  },
-  "sample": {
-    "role": "assistant",
-    "model": "model",
-    "content": {
-      "type": "text",
-      "text": "hello"
+  })JSON"));
+}
+
+TEST(make_input_required_result_from_request_state) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_input_required_result(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                "resources/read", sourcemeta::core::JSON{0}, std::nullopt,
+                "state", {}),
+            sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 0,
+    "result": {
+      "resultType": "input_required",
+      "requestState": "state"
     }
-  },
-  "unknown": {
-    "ignored": true
-  }
-})"));
-  const auto prior{parse_json(
-      R"({
-  "roots": {
-    "method": "roots/list"
-  },
-  "form": {
-    "method": "elicitation/create"
-  },
-  "sample": {
-    "method": "sampling/createMessage"
-  }
-})")};
-  EXPECT_TRUE(mcp_validate_continuation(CURRENT, value, prior, "state"));
-  EXPECT_FALSE(mcp_validate_continuation(CURRENT, value, prior, "different"));
-  EXPECT_FALSE(mcp_validate_continuation(MCPProtocolVersion::V_2025_11_25,
-                                         value, prior, "state"));
-  auto bad{value};
-  bad.at("inputResponses")
-      .at("roots")
-      .at("roots")
-      .at(0)
-      .assign("uri", JSON{"https://example.com"});
-  EXPECT_FALSE(mcp_validate_continuation(CURRENT, bad, prior, "state"));
-  bad = value;
-  bad.at("inputResponses").at("form").assign("action", JSON{"unknown"});
-  EXPECT_FALSE(mcp_validate_continuation(CURRENT, bad, prior, "state"));
-  bad = value;
-  bad.at("inputResponses").at("sample").erase("model");
-  EXPECT_FALSE(mcp_validate_continuation(CURRENT, bad, prior, "state"));
-  bad = value;
-  bad.assign("inputResponses", JSON{false});
-  EXPECT_FALSE(mcp_validate_continuation(CURRENT, bad, prior, "state"));
-  bad = value;
-  bad.assign("requestState", JSON{1});
-  EXPECT_FALSE(mcp_validate_continuation(CURRENT, bad, prior));
-  EXPECT_FALSE(mcp_validate_continuation(CURRENT, parameters(), prior));
+  })JSON"));
+}
+
+// The continuation echoes the state token exactly and answers the requests
+// the server asked for, while an unrecognized key is ignored
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/mrtr#client-requirements-basic-workflow
+TEST(validate_continuation_with_every_response_kind) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "requestState": "state",
+    "inputResponses": {
+      "roots": { "roots": [ { "uri": "file:///workspace" } ] },
+      "form": {
+        "action": "accept",
+        "content": { "choice": [ "a" ], "accepted": true }
+      },
+      "sample": {
+        "role": "assistant",
+        "model": "model",
+        "content": { "type": "text", "text": "hello" }
+      },
+      "unknown": { "ignored": true }
+    }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(R"JSON({
+    "roots": { "method": "roots/list" },
+    "form": { "method": "elicitation/create" },
+    "sample": { "method": "sampling/createMessage" }
+  })JSON")};
+  EXPECT_TRUE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior,
+      "state"));
+}
+
+TEST(validate_continuation_rejects_a_different_state_token) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "requestState": "state",
+    "inputResponses": {
+      "roots": { "roots": [ { "uri": "file:///workspace" } ] },
+      "form": {
+        "action": "accept",
+        "content": { "choice": [ "a" ], "accepted": true }
+      },
+      "sample": {
+        "role": "assistant",
+        "model": "model",
+        "content": { "type": "text", "text": "hello" }
+      },
+      "unknown": { "ignored": true }
+    }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(R"JSON({
+    "roots": { "method": "roots/list" },
+    "form": { "method": "elicitation/create" },
+    "sample": { "method": "sampling/createMessage" }
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior,
+      "different"));
+}
+
+TEST(validate_continuation_rejects_2025_11_25) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "requestState": "state",
+    "inputResponses": {
+      "roots": { "roots": [ { "uri": "file:///workspace" } ] },
+      "form": {
+        "action": "accept",
+        "content": { "choice": [ "a" ], "accepted": true }
+      },
+      "sample": {
+        "role": "assistant",
+        "model": "model",
+        "content": { "type": "text", "text": "hello" }
+      },
+      "unknown": { "ignored": true }
+    }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(R"JSON({
+    "roots": { "method": "roots/list" },
+    "form": { "method": "elicitation/create" },
+    "sample": { "method": "sampling/createMessage" }
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, parameters, prior,
+      "state"));
+}
+
+// A root is a file URI
+// https://modelcontextprotocol.io/specification/2026-07-28/schema#root
+TEST(validate_continuation_rejects_a_non_file_root) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "requestState": "state",
+    "inputResponses": {
+      "roots": { "roots": [ { "uri": "https://example.com" } ] }
+    }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(
+      R"JSON({ "roots": { "method": "roots/list" } })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior,
+      "state"));
+}
+
+// An elicitation is accepted, declined or cancelled
+// https://modelcontextprotocol.io/specification/2026-07-28/schema#elicitresult
+TEST(validate_continuation_rejects_an_unknown_elicitation_action) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "requestState": "state",
+    "inputResponses": { "form": { "action": "unknown" } }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(
+      R"JSON({ "form": { "method": "elicitation/create" } })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior,
+      "state"));
+}
+
+// A sampling result names the model that produced it
+// https://modelcontextprotocol.io/specification/2026-07-28/schema#createmessageresult
+TEST(validate_continuation_rejects_a_sampling_response_without_a_model) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "requestState": "state",
+    "inputResponses": {
+      "sample": {
+        "role": "assistant",
+        "content": { "type": "text", "text": "hello" }
+      }
+    }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(
+      R"JSON({ "sample": { "method": "sampling/createMessage" } })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior,
+      "state"));
+}
+
+TEST(validate_continuation_rejects_non_object_responses) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "requestState": "state",
+    "inputResponses": false
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(R"JSON({
+    "roots": { "method": "roots/list" },
+    "form": { "method": "elicitation/create" },
+    "sample": { "method": "sampling/createMessage" }
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior,
+      "state"));
+}
+
+TEST(validate_continuation_rejects_a_non_string_state_token) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "requestState": 1,
+    "inputResponses": {}
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(R"JSON({
+    "roots": { "method": "roots/list" },
+    "form": { "method": "elicitation/create" },
+    "sample": { "method": "sampling/createMessage" }
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior));
+}
+
+// A continuation carries responses, a state token, or both
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/mrtr#client-requirements-basic-workflow
+TEST(validate_continuation_rejects_neither_responses_nor_state) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(R"JSON({
+    "roots": { "method": "roots/list" },
+    "form": { "method": "elicitation/create" },
+    "sample": { "method": "sampling/createMessage" }
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior));
 }
 
 TEST(continuation_empty_expected_state) {
-  auto value{parameters()};
-  value.assign("inputResponses", JSON::make_object());
-  const auto prior{JSON::make_object()};
-  EXPECT_TRUE(mcp_validate_continuation(CURRENT, value, prior));
-  EXPECT_FALSE(mcp_validate_continuation(CURRENT, value, prior, ""));
-  value.assign("requestState", JSON{""});
-  EXPECT_TRUE(mcp_validate_continuation(CURRENT, value, prior, ""));
-  value.assign("requestState", JSON{"different"});
-  EXPECT_FALSE(mcp_validate_continuation(CURRENT, value, prior, ""));
-  EXPECT_FALSE(mcp_validate_continuation(CURRENT, JSON{false}, prior, ""));
-  value.assign("requestState", JSON{false});
-  EXPECT_FALSE(mcp_validate_continuation(CURRENT, value, prior, ""));
+  auto value{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    }
+  })JSON")};
+  value.assign("inputResponses", sourcemeta::core::JSON::make_object());
+  const auto prior{sourcemeta::core::JSON::make_object()};
+  EXPECT_TRUE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, value, prior));
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, value, prior, ""));
+  value.assign("requestState", sourcemeta::core::JSON{""});
+  EXPECT_TRUE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, value, prior, ""));
+  value.assign("requestState", sourcemeta::core::JSON{"different"});
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, value, prior, ""));
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      sourcemeta::core::JSON{false}, prior, ""));
+  value.assign("requestState", sourcemeta::core::JSON{false});
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, value, prior, ""));
 }
 
+// A tool's input schema is carried through untouched, so neither a nested
+// annotation-looking key nor a reference is interpreted
+// https://modelcontextprotocol.io/specification/2026-07-28/schema#tool
 TEST(tool_schema_content_is_opaque_2025_03_26) {
-  const auto schema{parse_json(
-      R"({
-  "type": "object",
-  "$defs": {
-    "value": {
-      "type": "string"
-    }
-  },
-  "properties": {
-    "name": {
-      "$ref": "#/$defs/value"
-    }
-  },
-  "examples": [
-    {
-      "x-mcp-header": "Not an annotation",
-      "properties": {
-        "type": "invalid"
+  const auto schema{sourcemeta::core::parse_json(R"JSON({
+    "type": "object",
+    "$defs": { "value": { "type": "string" } },
+    "properties": { "name": { "$ref": "#/$defs/value" } },
+    "examples": [
+      {
+        "x-mcp-header": "Not an annotation",
+        "properties": { "type": "invalid" }
       }
-    }
-  ]
-})")};
-
-  const auto version{MCPProtocolVersion::V_2025_03_26};
-
-  EXPECT_EQ(
-      mcp_make_tool_descriptor(version, "tool", "", schema).at("inputSchema"),
-      schema);
-  for (const auto *const text :
-       {"false", "null", "[]", "{}", R"({"type":"array"})"}) {
-    try {
-      mcp_make_tool_descriptor(version, "tool", "", parse_json(text));
-      FAIL();
-    } catch (const std::invalid_argument &) {
-      // Invalid input is expected to be rejected
-    }
-  }
+    ]
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_make_tool_descriptor(
+                sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "tool", "",
+                schema)
+                .at("inputSchema"),
+            schema);
 }
 
 TEST(tool_schema_content_is_opaque_2025_06_18) {
-  const auto schema{parse_json(
-      R"({
-  "type": "object",
-  "$defs": {
-    "value": {
-      "type": "string"
-    }
-  },
-  "properties": {
-    "name": {
-      "$ref": "#/$defs/value"
-    }
-  },
-  "examples": [
-    {
-      "x-mcp-header": "Not an annotation",
-      "properties": {
-        "type": "invalid"
+  const auto schema{sourcemeta::core::parse_json(R"JSON({
+    "type": "object",
+    "$defs": { "value": { "type": "string" } },
+    "properties": { "name": { "$ref": "#/$defs/value" } },
+    "examples": [
+      {
+        "x-mcp-header": "Not an annotation",
+        "properties": { "type": "invalid" }
       }
-    }
-  ]
-})")};
-
-  const auto version{MCPProtocolVersion::V_2025_06_18};
-
-  EXPECT_EQ(
-      mcp_make_tool_descriptor(version, "tool", "", schema).at("inputSchema"),
-      schema);
-  for (const auto *const text :
-       {"false", "null", "[]", "{}", R"({"type":"array"})"}) {
-    try {
-      mcp_make_tool_descriptor(version, "tool", "", parse_json(text));
-      FAIL();
-    } catch (const std::invalid_argument &) {
-      // Invalid input is expected to be rejected
-    }
-  }
+    ]
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_make_tool_descriptor(
+                sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "tool", "",
+                schema)
+                .at("inputSchema"),
+            schema);
 }
 
 TEST(tool_schema_content_is_opaque_2025_11_25) {
-  const auto schema{parse_json(
-      R"({
-  "type": "object",
-  "$defs": {
-    "value": {
-      "type": "string"
-    }
-  },
-  "properties": {
-    "name": {
-      "$ref": "#/$defs/value"
-    }
-  },
-  "examples": [
-    {
-      "x-mcp-header": "Not an annotation",
-      "properties": {
-        "type": "invalid"
+  const auto schema{sourcemeta::core::parse_json(R"JSON({
+    "type": "object",
+    "$defs": { "value": { "type": "string" } },
+    "properties": { "name": { "$ref": "#/$defs/value" } },
+    "examples": [
+      {
+        "x-mcp-header": "Not an annotation",
+        "properties": { "type": "invalid" }
       }
-    }
-  ]
-})")};
-
-  const auto version{MCPProtocolVersion::V_2025_11_25};
-
-  EXPECT_EQ(
-      mcp_make_tool_descriptor(version, "tool", "", schema).at("inputSchema"),
-      schema);
-  for (const auto *const text :
-       {"false", "null", "[]", "{}", R"({"type":"array"})"}) {
-    try {
-      mcp_make_tool_descriptor(version, "tool", "", parse_json(text));
-      FAIL();
-    } catch (const std::invalid_argument &) {
-      // Invalid input is expected to be rejected
-    }
-  }
+    ]
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_make_tool_descriptor(
+                sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "tool", "",
+                schema)
+                .at("inputSchema"),
+            schema);
 }
 
 TEST(tool_schema_content_is_opaque_2026_07_28) {
-  const auto schema{parse_json(
-      R"({
-  "type": "object",
-  "$defs": {
-    "value": {
-      "type": "string"
-    }
-  },
-  "properties": {
-    "name": {
-      "$ref": "#/$defs/value"
-    }
-  },
-  "examples": [
-    {
-      "x-mcp-header": "Not an annotation",
-      "properties": {
-        "type": "invalid"
+  const auto schema{sourcemeta::core::parse_json(R"JSON({
+    "type": "object",
+    "$defs": { "value": { "type": "string" } },
+    "properties": { "name": { "$ref": "#/$defs/value" } },
+    "examples": [
+      {
+        "x-mcp-header": "Not an annotation",
+        "properties": { "type": "invalid" }
       }
-    }
-  ]
-})")};
-
-  const auto version{MCPProtocolVersion::V_2026_07_28};
-
-  EXPECT_EQ(
-      mcp_make_tool_descriptor(version, "tool", "", schema).at("inputSchema"),
-      schema);
-  for (const auto *const text :
-       {"false", "null", "[]", "{}", R"({"type":"array"})"}) {
-    try {
-      mcp_make_tool_descriptor(version, "tool", "", parse_json(text));
-      FAIL();
-    } catch (const std::invalid_argument &) {
-      // Invalid input is expected to be rejected
-    }
-  }
+    ]
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_make_tool_descriptor(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tool", "",
+                schema)
+                .at("inputSchema"),
+            schema);
 }
 
-TEST(elicitation_numbers_and_mode) {
-  auto value{parameters()};
-  auto prior{parse_json(
-      R"({
-  "form": {
-    "method": "elicitation/create",
-    "params": {
-      "mode": "form",
-      "message": "value",
-      "requestedSchema": {
-        "type": "object",
-        "properties": {}
+TEST(make_tool_descriptor_rejects_a_boolean_schema) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_tool_descriptor(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tool", "",
+                         sourcemeta::core::parse_json(R"JSON(false)JSON")),
+                     "Invalid MCP tool descriptor");
+}
+
+TEST(make_tool_descriptor_rejects_a_null_schema) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_tool_descriptor(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tool", "",
+                         sourcemeta::core::parse_json(R"JSON(null)JSON")),
+                     "Invalid MCP tool descriptor");
+}
+
+TEST(make_tool_descriptor_rejects_an_array_schema) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_tool_descriptor(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tool", "",
+                         sourcemeta::core::parse_json(R"JSON([])JSON")),
+                     "Invalid MCP tool descriptor");
+}
+
+TEST(make_tool_descriptor_rejects_an_untyped_object_schema) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_tool_descriptor(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tool", "",
+                         sourcemeta::core::parse_json(R"JSON({})JSON")),
+                     "Invalid MCP tool descriptor");
+}
+
+TEST(make_tool_descriptor_rejects_an_array_type_schema) {
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_tool_descriptor(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tool", "",
+          sourcemeta::core::parse_json(R"JSON({ "type": "array" })JSON")),
+      "Invalid MCP tool descriptor");
+}
+
+// Form content answers a form elicitation, and a URL elicitation carries no
+// content to validate
+// https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation
+TEST(validate_continuation_accepts_fractional_form_content) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "requestState": "state",
+    "inputResponses": {
+      "form": {
+        "action": "accept",
+        "content": { "value": 1.25, "precise": 1.0 }
       }
     }
-  }
-})")};
-  value.assign("inputResponses", parse_json(
-                                     R"({
-  "form": {
-    "action": "accept",
-    "content": {
-      "value": 1.25,
-      "precise": 1.0
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(R"JSON({
+    "form": {
+      "method": "elicitation/create",
+      "params": {
+        "mode": "form",
+        "message": "value",
+        "requestedSchema": { "type": "object", "properties": {} }
+      }
     }
-  }
-})"));
-  EXPECT_TRUE(mcp_validate_continuation(CURRENT, value, prior));
-  prior.at("form").at("params").assign("mode", JSON{"url"});
-  EXPECT_FALSE(mcp_validate_continuation(CURRENT, value, prior));
-  value.at("inputResponses").at("form").erase("content");
-  EXPECT_TRUE(mcp_validate_continuation(CURRENT, value, prior));
-  prior.at("form").at("params").assign("mode", JSON{"form"});
-  for (const auto *const action : {"decline", "cancel"}) {
-    value.at("inputResponses").at("form").assign("action", JSON{action});
-    EXPECT_TRUE(mcp_validate_continuation(CURRENT, value, prior));
-    value.at("inputResponses")
-        .at("form")
-        .assign("content", JSON::make_object());
-    EXPECT_FALSE(mcp_validate_continuation(CURRENT, value, prior));
-    value.at("inputResponses").at("form").erase("content");
-  }
-  MCPClientCapabilities capabilities;
+  })JSON")};
+  EXPECT_TRUE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior));
+}
+
+TEST(validate_continuation_rejects_content_for_a_url_elicitation) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "requestState": "state",
+    "inputResponses": {
+      "form": { "action": "accept", "content": { "value": 1.25 } }
+    }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(R"JSON({
+    "form": {
+      "method": "elicitation/create",
+      "params": {
+        "mode": "url",
+        "message": "value",
+        "requestedSchema": { "type": "object", "properties": {} }
+      }
+    }
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior));
+}
+
+TEST(validate_continuation_accepts_a_url_elicitation_without_content) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "requestState": "state",
+    "inputResponses": { "form": { "action": "accept" } }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(R"JSON({
+    "form": {
+      "method": "elicitation/create",
+      "params": {
+        "mode": "url",
+        "message": "value",
+        "requestedSchema": { "type": "object", "properties": {} }
+      }
+    }
+  })JSON")};
+  EXPECT_TRUE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior));
+}
+
+TEST(validate_continuation_accepts_a_declined_elicitation) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "requestState": "state",
+    "inputResponses": { "form": { "action": "decline" } }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(R"JSON({
+    "form": {
+      "method": "elicitation/create",
+      "params": {
+        "mode": "form",
+        "message": "value",
+        "requestedSchema": { "type": "object", "properties": {} }
+      }
+    }
+  })JSON")};
+  EXPECT_TRUE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior));
+}
+
+TEST(validate_continuation_accepts_a_cancelled_elicitation) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "requestState": "state",
+    "inputResponses": { "form": { "action": "cancel" } }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(R"JSON({
+    "form": {
+      "method": "elicitation/create",
+      "params": {
+        "mode": "form",
+        "message": "value",
+        "requestedSchema": { "type": "object", "properties": {} }
+      }
+    }
+  })JSON")};
+  EXPECT_TRUE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior));
+}
+
+// Only an accepted elicitation carries content
+// https://modelcontextprotocol.io/specification/2026-07-28/schema#elicitresult
+TEST(validate_continuation_rejects_content_on_a_declined_elicitation) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "requestState": "state",
+    "inputResponses": { "form": { "action": "decline", "content": {} } }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(R"JSON({
+    "form": {
+      "method": "elicitation/create",
+      "params": {
+        "mode": "form",
+        "message": "value",
+        "requestedSchema": { "type": "object", "properties": {} }
+      }
+    }
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior));
+}
+
+TEST(validate_continuation_rejects_content_on_a_cancelled_elicitation) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "requestState": "state",
+    "inputResponses": { "form": { "action": "cancel", "content": {} } }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(R"JSON({
+    "form": {
+      "method": "elicitation/create",
+      "params": {
+        "mode": "form",
+        "message": "value",
+        "requestedSchema": { "type": "object", "properties": {} }
+      }
+    }
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior));
+}
+
+// A token budget is a number the protocol does not otherwise constrain
+// https://modelcontextprotocol.io/specification/2026-07-28/schema#createmessagerequestparams
+TEST(input_required_result_accepts_a_fractional_token_budget) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
   capabilities.sampling = true;
-  for (const auto *const tokens : {"100.0", "0", "-1"}) {
-    auto inputs{parse_json(
-        R"({
-  "sample": {
-    "method": "sampling/createMessage",
-    "params": {
-      "messages": [],
-      "maxTokens": 0
+  EXPECT_EQ(sourcemeta::core::mcp_make_input_required_result(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                "tools/call", sourcemeta::core::JSON{0},
+                sourcemeta::core::parse_json(R"JSON({
+    "sample": {
+      "method": "sampling/createMessage",
+      "params": { "messages": [], "maxTokens": 100.0 }
     }
-  }
-})")};
-    inputs.at("sample").at("params").assign("maxTokens", parse_json(tokens));
-    EXPECT_TRUE(mcp_make_input_required_result(CURRENT, "tools/call", JSON{0},
-                                               inputs, std::nullopt,
-                                               capabilities)
-                    .at("result")
-                    .defines("inputRequests"));
-  }
+  })JSON"),
+                std::nullopt, capabilities)
+                .at("result")
+                .at("resultType"),
+            sourcemeta::core::JSON{"input_required"});
 }
 
-TEST(descriptor_and_content_2025_03_26) {
-  constexpr std::array<JSON::StringView, 2> ROLES{{"user", "assistant"}};
-  const auto icons{parse_json(
-      R"([
-  {
-    "src": "https://example.com/icon.png",
-    "mimeType": "image/png",
-    "sizes": [
-      "32x32"
+TEST(input_required_result_accepts_a_zero_token_budget) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.sampling = true;
+  EXPECT_EQ(sourcemeta::core::mcp_make_input_required_result(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                "tools/call", sourcemeta::core::JSON{0},
+                sourcemeta::core::parse_json(R"JSON({
+    "sample": {
+      "method": "sampling/createMessage",
+      "params": { "messages": [], "maxTokens": 0 }
+    }
+  })JSON"),
+                std::nullopt, capabilities)
+                .at("result")
+                .at("resultType"),
+            sourcemeta::core::JSON{"input_required"});
+}
+
+TEST(input_required_result_accepts_a_negative_token_budget) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.sampling = true;
+  EXPECT_EQ(sourcemeta::core::mcp_make_input_required_result(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                "tools/call", sourcemeta::core::JSON{0},
+                sourcemeta::core::parse_json(R"JSON({
+    "sample": {
+      "method": "sampling/createMessage",
+      "params": { "messages": [], "maxTokens": -1 }
+    }
+  })JSON"),
+                std::nullopt, capabilities)
+                .at("result")
+                .at("resultType"),
+            sourcemeta::core::JSON{"input_required"});
+}
+
+// A title arrived in 2025-06-18 and icons in 2025-11-25, so a descriptor
+// built for an earlier revision carries neither
+// https://modelcontextprotocol.io/specification/2026-07-28/schema#implementation
+TEST(make_resource_with_presentation_and_annotations_2025_03_26) {
+  const auto icons{sourcemeta::core::parse_json(R"JSON([
+    {
+      "src": "https://example.com/icon.png",
+      "mimeType": "image/png",
+      "sizes": [ "32x32" ],
+      "theme": "dark"
+    }
+  ])JSON")};
+  const sourcemeta::core::MCPDescriptorPresentation presentation{
+      .title = "Title", .icons = &icons};
+  constexpr std::array<sourcemeta::core::JSON::StringView, 2> ROLES{
+      {"user", "assistant"}};
+  const sourcemeta::core::MCPResourceAnnotations annotations{
+      .audience = ROLES,
+      .priority = 0.5,
+      .last_modified = "2026-07-28T00:00:00Z"};
+  EXPECT_EQ(sourcemeta::core::mcp_make_resource(
+                sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "file:///a",
+                "a", "text/plain", "description", std::nullopt, std::nullopt,
+                presentation, annotations),
+            sourcemeta::core::parse_json(R"JSON({
+    "uri": "file:///a",
+    "name": "a",
+    "description": "description",
+    "mimeType": "text/plain",
+    "annotations": { "audience": [ "user", "assistant" ], "priority": 0.5 }
+  })JSON"));
+}
+
+TEST(make_resource_with_presentation_and_annotations_2025_06_18) {
+  const auto icons{sourcemeta::core::parse_json(R"JSON([
+    {
+      "src": "https://example.com/icon.png",
+      "mimeType": "image/png",
+      "sizes": [ "32x32" ],
+      "theme": "dark"
+    }
+  ])JSON")};
+  const sourcemeta::core::MCPDescriptorPresentation presentation{
+      .title = "Title", .icons = &icons};
+  constexpr std::array<sourcemeta::core::JSON::StringView, 2> ROLES{
+      {"user", "assistant"}};
+  const sourcemeta::core::MCPResourceAnnotations annotations{
+      .audience = ROLES,
+      .priority = 0.5,
+      .last_modified = "2026-07-28T00:00:00Z"};
+  EXPECT_EQ(sourcemeta::core::mcp_make_resource(
+                sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "file:///a",
+                "a", "text/plain", "description", std::nullopt, std::nullopt,
+                presentation, annotations),
+            sourcemeta::core::parse_json(R"JSON({
+    "uri": "file:///a",
+    "name": "a",
+    "description": "description",
+    "mimeType": "text/plain",
+    "annotations": {
+      "audience": [ "user", "assistant" ],
+      "priority": 0.5,
+      "lastModified": "2026-07-28T00:00:00Z"
+    },
+    "title": "Title"
+  })JSON"));
+}
+
+TEST(make_resource_with_presentation_and_annotations_2025_11_25) {
+  const auto icons{sourcemeta::core::parse_json(R"JSON([
+    {
+      "src": "https://example.com/icon.png",
+      "mimeType": "image/png",
+      "sizes": [ "32x32" ],
+      "theme": "dark"
+    }
+  ])JSON")};
+  const sourcemeta::core::MCPDescriptorPresentation presentation{
+      .title = "Title", .icons = &icons};
+  constexpr std::array<sourcemeta::core::JSON::StringView, 2> ROLES{
+      {"user", "assistant"}};
+  const sourcemeta::core::MCPResourceAnnotations annotations{
+      .audience = ROLES,
+      .priority = 0.5,
+      .last_modified = "2026-07-28T00:00:00Z"};
+  EXPECT_EQ(sourcemeta::core::mcp_make_resource(
+                sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "file:///a",
+                "a", "text/plain", "description", std::nullopt, std::nullopt,
+                presentation, annotations),
+            sourcemeta::core::parse_json(R"JSON({
+    "uri": "file:///a",
+    "name": "a",
+    "description": "description",
+    "mimeType": "text/plain",
+    "annotations": {
+      "audience": [ "user", "assistant" ],
+      "priority": 0.5,
+      "lastModified": "2026-07-28T00:00:00Z"
+    },
+    "title": "Title",
+    "icons": [
+      {
+        "src": "https://example.com/icon.png",
+        "mimeType": "image/png",
+        "sizes": [ "32x32" ],
+        "theme": "dark"
+      }
+    ]
+  })JSON"));
+}
+
+TEST(make_resource_with_presentation_and_annotations_2026_07_28) {
+  const auto icons{sourcemeta::core::parse_json(R"JSON([
+    {
+      "src": "https://example.com/icon.png",
+      "mimeType": "image/png",
+      "sizes": [ "32x32" ],
+      "theme": "dark"
+    }
+  ])JSON")};
+  const sourcemeta::core::MCPDescriptorPresentation presentation{
+      .title = "Title", .icons = &icons};
+  constexpr std::array<sourcemeta::core::JSON::StringView, 2> ROLES{
+      {"user", "assistant"}};
+  const sourcemeta::core::MCPResourceAnnotations annotations{
+      .audience = ROLES,
+      .priority = 0.5,
+      .last_modified = "2026-07-28T00:00:00Z"};
+  EXPECT_EQ(sourcemeta::core::mcp_make_resource(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "file:///a",
+                "a", "text/plain", "description", std::nullopt, std::nullopt,
+                presentation, annotations),
+            sourcemeta::core::parse_json(R"JSON({
+    "uri": "file:///a",
+    "name": "a",
+    "description": "description",
+    "mimeType": "text/plain",
+    "annotations": {
+      "audience": [ "user", "assistant" ],
+      "priority": 0.5,
+      "lastModified": "2026-07-28T00:00:00Z"
+    },
+    "title": "Title",
+    "icons": [
+      {
+        "src": "https://example.com/icon.png",
+        "mimeType": "image/png",
+        "sizes": [ "32x32" ],
+        "theme": "dark"
+      }
+    ]
+  })JSON"));
+}
+
+TEST(make_resource_template_with_presentation_2025_03_26) {
+  const auto icons{sourcemeta::core::parse_json(R"JSON([
+    {
+      "src": "https://example.com/icon.png",
+      "mimeType": "image/png",
+      "sizes": [ "32x32" ],
+      "theme": "dark"
+    }
+  ])JSON")};
+  const sourcemeta::core::MCPDescriptorPresentation presentation{
+      .title = "Title", .icons = &icons};
+  constexpr std::array<sourcemeta::core::JSON::StringView, 2> ROLES{
+      {"user", "assistant"}};
+  const sourcemeta::core::MCPResourceAnnotations annotations{
+      .audience = ROLES,
+      .priority = 0.5,
+      .last_modified = "2026-07-28T00:00:00Z"};
+  EXPECT_EQ(sourcemeta::core::mcp_make_resource_template(
+                sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+                "file:///{name}", "template", "description", "text/plain",
+                presentation, annotations),
+            sourcemeta::core::parse_json(R"JSON({
+    "uriTemplate": "file:///{name}",
+    "name": "template",
+    "description": "description",
+    "mimeType": "text/plain",
+    "annotations": { "audience": [ "user", "assistant" ], "priority": 0.5 }
+  })JSON"));
+}
+
+TEST(make_resource_template_with_presentation_2025_06_18) {
+  const auto icons{sourcemeta::core::parse_json(R"JSON([
+    {
+      "src": "https://example.com/icon.png",
+      "mimeType": "image/png",
+      "sizes": [ "32x32" ],
+      "theme": "dark"
+    }
+  ])JSON")};
+  const sourcemeta::core::MCPDescriptorPresentation presentation{
+      .title = "Title", .icons = &icons};
+  constexpr std::array<sourcemeta::core::JSON::StringView, 2> ROLES{
+      {"user", "assistant"}};
+  const sourcemeta::core::MCPResourceAnnotations annotations{
+      .audience = ROLES,
+      .priority = 0.5,
+      .last_modified = "2026-07-28T00:00:00Z"};
+  EXPECT_EQ(sourcemeta::core::mcp_make_resource_template(
+                sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+                "file:///{name}", "template", "description", "text/plain",
+                presentation, annotations),
+            sourcemeta::core::parse_json(R"JSON({
+    "uriTemplate": "file:///{name}",
+    "name": "template",
+    "description": "description",
+    "mimeType": "text/plain",
+    "title": "Title",
+    "annotations": {
+      "audience": [ "user", "assistant" ],
+      "priority": 0.5,
+      "lastModified": "2026-07-28T00:00:00Z"
+    }
+  })JSON"));
+}
+
+TEST(make_resource_template_with_presentation_2025_11_25) {
+  const auto icons{sourcemeta::core::parse_json(R"JSON([
+    {
+      "src": "https://example.com/icon.png",
+      "mimeType": "image/png",
+      "sizes": [ "32x32" ],
+      "theme": "dark"
+    }
+  ])JSON")};
+  const sourcemeta::core::MCPDescriptorPresentation presentation{
+      .title = "Title", .icons = &icons};
+  constexpr std::array<sourcemeta::core::JSON::StringView, 2> ROLES{
+      {"user", "assistant"}};
+  const sourcemeta::core::MCPResourceAnnotations annotations{
+      .audience = ROLES,
+      .priority = 0.5,
+      .last_modified = "2026-07-28T00:00:00Z"};
+  EXPECT_EQ(sourcemeta::core::mcp_make_resource_template(
+                sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+                "file:///{name}", "template", "description", "text/plain",
+                presentation, annotations),
+            sourcemeta::core::parse_json(R"JSON({
+    "uriTemplate": "file:///{name}",
+    "name": "template",
+    "description": "description",
+    "mimeType": "text/plain",
+    "title": "Title",
+    "icons": [
+      {
+        "src": "https://example.com/icon.png",
+        "mimeType": "image/png",
+        "sizes": [ "32x32" ],
+        "theme": "dark"
+      }
     ],
-    "theme": "dark"
-  }
-])")};
-  const MCPDescriptorPresentation presentation{.title = "Title",
-                                               .icons = &icons};
-  const MCPResourceAnnotations annotations{.audience = ROLES,
-                                           .priority = 0.5,
-                                           .last_modified =
-                                               "2026-07-28T00:00:00Z"};
-
-  const auto version{MCPProtocolVersion::V_2025_03_26};
-
-  const auto resource{
-      mcp_make_resource(version, "file:///a", "a", "text/plain", "description",
-                        std::nullopt, std::nullopt, presentation, annotations)};
-  EXPECT_EQ(resource.defines("title"),
-            version != MCPProtocolVersion::V_2025_03_26);
-  EXPECT_EQ(
-      resource.defines("icons"),
-      mcp_protocol_version_at_least(version, MCPProtocolVersion::V_2025_11_25));
-  EXPECT_EQ(resource.at("annotations").defines("lastModified"),
-            version != MCPProtocolVersion::V_2025_03_26);
-  EXPECT_TRUE(resource.is_object());
-  EXPECT_TRUE(mcp_make_resource_template(version, "file:///{name}", "template",
-                                         "description", "text/plain",
-                                         presentation, annotations)
-                  .is_object());
-  EXPECT_TRUE(mcp_make_tool_descriptor(version, "tool", "description",
-                                       parse_json(R"({"type":"object"})"),
-                                       std::nullopt, {}, presentation)
-                  .is_object());
-  EXPECT_TRUE(
-      mcp_serialize_resource_annotations(version, annotations).is_object());
-  EXPECT_TRUE(mcp_make_image_block(version, "YWJj", "image/png", annotations)
-                  .is_object());
-  EXPECT_TRUE(mcp_make_audio_block(version, "YWJj", "audio/wav", annotations)
-                  .is_object());
-  const auto blob{mcp_make_resource_blob_content(
-      "file:///a", "application/octet-stream", "YWJj")};
-  EXPECT_TRUE(blob.is_object());
-  EXPECT_TRUE(
-      mcp_make_embedded_resource(version, blob, annotations).is_object());
-  EXPECT_TRUE(
-      mcp_make_embedded_resource(
-          version,
-          mcp_make_resource_text_content("file:///a", "text/plain", "hello"),
-          annotations)
-          .is_object());
-  EXPECT_TRUE(mcp_serialize_server_capabilities(
-                  version, mcp_parse_server_capabilities(version, parse_json(
-                                                                      R"({
-  "resources": {
-    "subscribe": true,
-    "listChanged": false,
-    "custom": {}
-  },
-  "logging": {},
-  "completions": {}
-})")))
-                  .is_object());
-
-  const std::array<JSON::StringView, 1> invalid{{"system"}};
-  try {
-    mcp_serialize_resource_annotations(
-        CURRENT,
-        {.audience = invalid, .priority = std::nullopt, .last_modified = {}});
-    FAIL();
-  } catch (const std::invalid_argument &) {
-    // Invalid input is expected to be rejected
-  }
-  try {
-    mcp_make_embedded_resource(CURRENT, parse_json(R"({"uri":"file:///a"})"));
-    FAIL();
-  } catch (const std::invalid_argument &) {
-    // Invalid input is expected to be rejected
-  }
-  const auto bad_icons{parse_json(R"([{"src":true}])")};
-  try {
-    mcp_make_tool_descriptor(CURRENT, "tool", "",
-                             parse_json(R"({"type":"object"})"), std::nullopt,
-                             {}, {.title = {}, .icons = &bad_icons});
-    FAIL();
-  } catch (const std::invalid_argument &) {
-    // Invalid input is expected to be rejected
-  }
-  try {
-    mcp_parse_server_capabilities(
-        CURRENT,
-        parse_json(
-            R"({"resources":{"subscribe":false,"listChanged":"invalid"}})"));
-    FAIL();
-  } catch (const std::invalid_argument &) {
-    // Invalid input is expected to be rejected
-  }
-  try {
-    mcp_serialize_server_capabilities(CURRENT, {.extensions = JSON{false}});
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+    "annotations": {
+      "audience": [ "user", "assistant" ],
+      "priority": 0.5,
+      "lastModified": "2026-07-28T00:00:00Z"
+    }
+  })JSON"));
 }
 
-TEST(descriptor_and_content_2025_06_18) {
-  constexpr std::array<JSON::StringView, 2> ROLES{{"user", "assistant"}};
-  const auto icons{parse_json(
-      R"([
-  {
-    "src": "https://example.com/icon.png",
-    "mimeType": "image/png",
-    "sizes": [
-      "32x32"
+TEST(make_resource_template_with_presentation_2026_07_28) {
+  const auto icons{sourcemeta::core::parse_json(R"JSON([
+    {
+      "src": "https://example.com/icon.png",
+      "mimeType": "image/png",
+      "sizes": [ "32x32" ],
+      "theme": "dark"
+    }
+  ])JSON")};
+  const sourcemeta::core::MCPDescriptorPresentation presentation{
+      .title = "Title", .icons = &icons};
+  constexpr std::array<sourcemeta::core::JSON::StringView, 2> ROLES{
+      {"user", "assistant"}};
+  const sourcemeta::core::MCPResourceAnnotations annotations{
+      .audience = ROLES,
+      .priority = 0.5,
+      .last_modified = "2026-07-28T00:00:00Z"};
+  EXPECT_EQ(sourcemeta::core::mcp_make_resource_template(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                "file:///{name}", "template", "description", "text/plain",
+                presentation, annotations),
+            sourcemeta::core::parse_json(R"JSON({
+    "uriTemplate": "file:///{name}",
+    "name": "template",
+    "description": "description",
+    "mimeType": "text/plain",
+    "title": "Title",
+    "icons": [
+      {
+        "src": "https://example.com/icon.png",
+        "mimeType": "image/png",
+        "sizes": [ "32x32" ],
+        "theme": "dark"
+      }
     ],
-    "theme": "dark"
-  }
-])")};
-  const MCPDescriptorPresentation presentation{.title = "Title",
-                                               .icons = &icons};
-  const MCPResourceAnnotations annotations{.audience = ROLES,
-                                           .priority = 0.5,
-                                           .last_modified =
-                                               "2026-07-28T00:00:00Z"};
-
-  const auto version{MCPProtocolVersion::V_2025_06_18};
-
-  const auto resource{
-      mcp_make_resource(version, "file:///a", "a", "text/plain", "description",
-                        std::nullopt, std::nullopt, presentation, annotations)};
-  EXPECT_EQ(resource.defines("title"),
-            version != MCPProtocolVersion::V_2025_03_26);
-  EXPECT_EQ(
-      resource.defines("icons"),
-      mcp_protocol_version_at_least(version, MCPProtocolVersion::V_2025_11_25));
-  EXPECT_EQ(resource.at("annotations").defines("lastModified"),
-            version != MCPProtocolVersion::V_2025_03_26);
-  EXPECT_TRUE(resource.is_object());
-  EXPECT_TRUE(mcp_make_resource_template(version, "file:///{name}", "template",
-                                         "description", "text/plain",
-                                         presentation, annotations)
-                  .is_object());
-  EXPECT_TRUE(mcp_make_tool_descriptor(version, "tool", "description",
-                                       parse_json(R"({"type":"object"})"),
-                                       std::nullopt, {}, presentation)
-                  .is_object());
-  EXPECT_TRUE(
-      mcp_serialize_resource_annotations(version, annotations).is_object());
-  EXPECT_TRUE(mcp_make_image_block(version, "YWJj", "image/png", annotations)
-                  .is_object());
-  EXPECT_TRUE(mcp_make_audio_block(version, "YWJj", "audio/wav", annotations)
-                  .is_object());
-  const auto blob{mcp_make_resource_blob_content(
-      "file:///a", "application/octet-stream", "YWJj")};
-  EXPECT_TRUE(blob.is_object());
-  EXPECT_TRUE(
-      mcp_make_embedded_resource(version, blob, annotations).is_object());
-  EXPECT_TRUE(
-      mcp_make_embedded_resource(
-          version,
-          mcp_make_resource_text_content("file:///a", "text/plain", "hello"),
-          annotations)
-          .is_object());
-  EXPECT_TRUE(mcp_serialize_server_capabilities(
-                  version, mcp_parse_server_capabilities(version, parse_json(
-                                                                      R"({
-  "resources": {
-    "subscribe": true,
-    "listChanged": false,
-    "custom": {}
-  },
-  "logging": {},
-  "completions": {}
-})")))
-                  .is_object());
-
-  const std::array<JSON::StringView, 1> invalid{{"system"}};
-  try {
-    mcp_serialize_resource_annotations(
-        CURRENT,
-        {.audience = invalid, .priority = std::nullopt, .last_modified = {}});
-    FAIL();
-  } catch (const std::invalid_argument &) {
-    // Invalid input is expected to be rejected
-  }
-  try {
-    mcp_make_embedded_resource(CURRENT, parse_json(R"({"uri":"file:///a"})"));
-    FAIL();
-  } catch (const std::invalid_argument &) {
-    // Invalid input is expected to be rejected
-  }
-  const auto bad_icons{parse_json(R"([{"src":true}])")};
-  try {
-    mcp_make_tool_descriptor(CURRENT, "tool", "",
-                             parse_json(R"({"type":"object"})"), std::nullopt,
-                             {}, {.title = {}, .icons = &bad_icons});
-    FAIL();
-  } catch (const std::invalid_argument &) {
-    // Invalid input is expected to be rejected
-  }
-  try {
-    mcp_parse_server_capabilities(
-        CURRENT,
-        parse_json(
-            R"({"resources":{"subscribe":false,"listChanged":"invalid"}})"));
-    FAIL();
-  } catch (const std::invalid_argument &) {
-    // Invalid input is expected to be rejected
-  }
-  try {
-    mcp_serialize_server_capabilities(CURRENT, {.extensions = JSON{false}});
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+    "annotations": {
+      "audience": [ "user", "assistant" ],
+      "priority": 0.5,
+      "lastModified": "2026-07-28T00:00:00Z"
+    }
+  })JSON"));
 }
 
-TEST(descriptor_and_content_2025_11_25) {
-  constexpr std::array<JSON::StringView, 2> ROLES{{"user", "assistant"}};
-  const auto icons{parse_json(
-      R"([
-  {
-    "src": "https://example.com/icon.png",
+TEST(make_tool_descriptor_with_presentation_2025_03_26) {
+  const auto icons{sourcemeta::core::parse_json(R"JSON([
+    {
+      "src": "https://example.com/icon.png",
+      "mimeType": "image/png",
+      "sizes": [ "32x32" ],
+      "theme": "dark"
+    }
+  ])JSON")};
+  const sourcemeta::core::MCPDescriptorPresentation presentation{
+      .title = "Title", .icons = &icons};
+  EXPECT_EQ(sourcemeta::core::mcp_make_tool_descriptor(
+                sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "tool",
+                "description",
+                sourcemeta::core::parse_json(R"JSON({ "type": "object" })JSON"),
+                std::nullopt, {}, presentation),
+            sourcemeta::core::parse_json(R"JSON({
+    "name": "tool",
+    "description": "description",
+    "inputSchema": { "type": "object" },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true
+    }
+  })JSON"));
+}
+
+TEST(make_tool_descriptor_with_presentation_2025_06_18) {
+  const auto icons{sourcemeta::core::parse_json(R"JSON([
+    {
+      "src": "https://example.com/icon.png",
+      "mimeType": "image/png",
+      "sizes": [ "32x32" ],
+      "theme": "dark"
+    }
+  ])JSON")};
+  const sourcemeta::core::MCPDescriptorPresentation presentation{
+      .title = "Title", .icons = &icons};
+  EXPECT_EQ(sourcemeta::core::mcp_make_tool_descriptor(
+                sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "tool",
+                "description",
+                sourcemeta::core::parse_json(R"JSON({ "type": "object" })JSON"),
+                std::nullopt, {}, presentation),
+            sourcemeta::core::parse_json(R"JSON({
+    "name": "tool",
+    "description": "description",
+    "inputSchema": { "type": "object" },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true
+    },
+    "title": "Title"
+  })JSON"));
+}
+
+TEST(make_tool_descriptor_with_presentation_2025_11_25) {
+  const auto icons{sourcemeta::core::parse_json(R"JSON([
+    {
+      "src": "https://example.com/icon.png",
+      "mimeType": "image/png",
+      "sizes": [ "32x32" ],
+      "theme": "dark"
+    }
+  ])JSON")};
+  const sourcemeta::core::MCPDescriptorPresentation presentation{
+      .title = "Title", .icons = &icons};
+  EXPECT_EQ(sourcemeta::core::mcp_make_tool_descriptor(
+                sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "tool",
+                "description",
+                sourcemeta::core::parse_json(R"JSON({ "type": "object" })JSON"),
+                std::nullopt, {}, presentation),
+            sourcemeta::core::parse_json(R"JSON({
+    "name": "tool",
+    "description": "description",
+    "inputSchema": { "type": "object" },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true
+    },
+    "title": "Title",
+    "icons": [
+      {
+        "src": "https://example.com/icon.png",
+        "mimeType": "image/png",
+        "sizes": [ "32x32" ],
+        "theme": "dark"
+      }
+    ]
+  })JSON"));
+}
+
+TEST(make_tool_descriptor_with_presentation_2026_07_28) {
+  const auto icons{sourcemeta::core::parse_json(R"JSON([
+    {
+      "src": "https://example.com/icon.png",
+      "mimeType": "image/png",
+      "sizes": [ "32x32" ],
+      "theme": "dark"
+    }
+  ])JSON")};
+  const sourcemeta::core::MCPDescriptorPresentation presentation{
+      .title = "Title", .icons = &icons};
+  EXPECT_EQ(sourcemeta::core::mcp_make_tool_descriptor(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tool",
+                "description",
+                sourcemeta::core::parse_json(R"JSON({ "type": "object" })JSON"),
+                std::nullopt, {}, presentation),
+            sourcemeta::core::parse_json(R"JSON({
+    "name": "tool",
+    "description": "description",
+    "inputSchema": { "type": "object" },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true
+    },
+    "title": "Title",
+    "icons": [
+      {
+        "src": "https://example.com/icon.png",
+        "mimeType": "image/png",
+        "sizes": [ "32x32" ],
+        "theme": "dark"
+      }
+    ]
+  })JSON"));
+}
+
+TEST(serialize_resource_annotations_2025_03_26) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 2> ROLES{
+      {"user", "assistant"}};
+  const sourcemeta::core::MCPResourceAnnotations annotations{
+      .audience = ROLES,
+      .priority = 0.5,
+      .last_modified = "2026-07-28T00:00:00Z"};
+  EXPECT_EQ(
+      sourcemeta::core::mcp_serialize_resource_annotations(
+          sourcemeta::core::MCPProtocolVersion::V_2025_03_26, annotations),
+      sourcemeta::core::parse_json(
+          R"JSON({
+            "audience": [ "user", "assistant" ],
+            "priority": 0.5
+          })JSON"));
+}
+
+TEST(serialize_resource_annotations_2025_06_18) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 2> ROLES{
+      {"user", "assistant"}};
+  const sourcemeta::core::MCPResourceAnnotations annotations{
+      .audience = ROLES,
+      .priority = 0.5,
+      .last_modified = "2026-07-28T00:00:00Z"};
+  EXPECT_EQ(
+      sourcemeta::core::mcp_serialize_resource_annotations(
+          sourcemeta::core::MCPProtocolVersion::V_2025_06_18, annotations),
+      sourcemeta::core::parse_json(R"JSON({
+    "audience": [ "user", "assistant" ],
+    "priority": 0.5,
+    "lastModified": "2026-07-28T00:00:00Z"
+  })JSON"));
+}
+
+TEST(serialize_resource_annotations_2025_11_25) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 2> ROLES{
+      {"user", "assistant"}};
+  const sourcemeta::core::MCPResourceAnnotations annotations{
+      .audience = ROLES,
+      .priority = 0.5,
+      .last_modified = "2026-07-28T00:00:00Z"};
+  EXPECT_EQ(
+      sourcemeta::core::mcp_serialize_resource_annotations(
+          sourcemeta::core::MCPProtocolVersion::V_2025_11_25, annotations),
+      sourcemeta::core::parse_json(R"JSON({
+    "audience": [ "user", "assistant" ],
+    "priority": 0.5,
+    "lastModified": "2026-07-28T00:00:00Z"
+  })JSON"));
+}
+
+TEST(serialize_resource_annotations_2026_07_28) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 2> ROLES{
+      {"user", "assistant"}};
+  const sourcemeta::core::MCPResourceAnnotations annotations{
+      .audience = ROLES,
+      .priority = 0.5,
+      .last_modified = "2026-07-28T00:00:00Z"};
+  EXPECT_EQ(
+      sourcemeta::core::mcp_serialize_resource_annotations(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, annotations),
+      sourcemeta::core::parse_json(R"JSON({
+    "audience": [ "user", "assistant" ],
+    "priority": 0.5,
+    "lastModified": "2026-07-28T00:00:00Z"
+  })JSON"));
+}
+
+TEST(make_image_block_2025_03_26) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 2> ROLES{
+      {"user", "assistant"}};
+  const sourcemeta::core::MCPResourceAnnotations annotations{
+      .audience = ROLES,
+      .priority = 0.5,
+      .last_modified = "2026-07-28T00:00:00Z"};
+  EXPECT_EQ(sourcemeta::core::mcp_make_image_block(
+                sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "YWJj",
+                "image/png", annotations),
+            sourcemeta::core::parse_json(R"JSON({
+    "type": "image",
+    "data": "YWJj",
     "mimeType": "image/png",
-    "sizes": [
-      "32x32"
-    ],
-    "theme": "dark"
-  }
-])")};
-  const MCPDescriptorPresentation presentation{.title = "Title",
-                                               .icons = &icons};
-  const MCPResourceAnnotations annotations{.audience = ROLES,
-                                           .priority = 0.5,
-                                           .last_modified =
-                                               "2026-07-28T00:00:00Z"};
-
-  const auto version{MCPProtocolVersion::V_2025_11_25};
-
-  const auto resource{
-      mcp_make_resource(version, "file:///a", "a", "text/plain", "description",
-                        std::nullopt, std::nullopt, presentation, annotations)};
-  EXPECT_EQ(resource.defines("title"),
-            version != MCPProtocolVersion::V_2025_03_26);
-  EXPECT_EQ(
-      resource.defines("icons"),
-      mcp_protocol_version_at_least(version, MCPProtocolVersion::V_2025_11_25));
-  EXPECT_EQ(resource.at("annotations").defines("lastModified"),
-            version != MCPProtocolVersion::V_2025_03_26);
-  EXPECT_TRUE(resource.is_object());
-  EXPECT_TRUE(mcp_make_resource_template(version, "file:///{name}", "template",
-                                         "description", "text/plain",
-                                         presentation, annotations)
-                  .is_object());
-  EXPECT_TRUE(mcp_make_tool_descriptor(version, "tool", "description",
-                                       parse_json(R"({"type":"object"})"),
-                                       std::nullopt, {}, presentation)
-                  .is_object());
-  EXPECT_TRUE(
-      mcp_serialize_resource_annotations(version, annotations).is_object());
-  EXPECT_TRUE(mcp_make_image_block(version, "YWJj", "image/png", annotations)
-                  .is_object());
-  EXPECT_TRUE(mcp_make_audio_block(version, "YWJj", "audio/wav", annotations)
-                  .is_object());
-  const auto blob{mcp_make_resource_blob_content(
-      "file:///a", "application/octet-stream", "YWJj")};
-  EXPECT_TRUE(blob.is_object());
-  EXPECT_TRUE(
-      mcp_make_embedded_resource(version, blob, annotations).is_object());
-  EXPECT_TRUE(
-      mcp_make_embedded_resource(
-          version,
-          mcp_make_resource_text_content("file:///a", "text/plain", "hello"),
-          annotations)
-          .is_object());
-  EXPECT_TRUE(mcp_serialize_server_capabilities(
-                  version, mcp_parse_server_capabilities(version, parse_json(
-                                                                      R"({
-  "resources": {
-    "subscribe": true,
-    "listChanged": false,
-    "custom": {}
-  },
-  "logging": {},
-  "completions": {}
-})")))
-                  .is_object());
-
-  const std::array<JSON::StringView, 1> invalid{{"system"}};
-  try {
-    mcp_serialize_resource_annotations(
-        CURRENT,
-        {.audience = invalid, .priority = std::nullopt, .last_modified = {}});
-    FAIL();
-  } catch (const std::invalid_argument &) {
-    // Invalid input is expected to be rejected
-  }
-  try {
-    mcp_make_embedded_resource(CURRENT, parse_json(R"({"uri":"file:///a"})"));
-    FAIL();
-  } catch (const std::invalid_argument &) {
-    // Invalid input is expected to be rejected
-  }
-  const auto bad_icons{parse_json(R"([{"src":true}])")};
-  try {
-    mcp_make_tool_descriptor(CURRENT, "tool", "",
-                             parse_json(R"({"type":"object"})"), std::nullopt,
-                             {}, {.title = {}, .icons = &bad_icons});
-    FAIL();
-  } catch (const std::invalid_argument &) {
-    // Invalid input is expected to be rejected
-  }
-  try {
-    mcp_parse_server_capabilities(
-        CURRENT,
-        parse_json(
-            R"({"resources":{"subscribe":false,"listChanged":"invalid"}})"));
-    FAIL();
-  } catch (const std::invalid_argument &) {
-    // Invalid input is expected to be rejected
-  }
-  try {
-    mcp_serialize_server_capabilities(CURRENT, {.extensions = JSON{false}});
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+    "annotations": { "audience": [ "user", "assistant" ], "priority": 0.5 }
+  })JSON"));
 }
 
-TEST(descriptor_and_content_2026_07_28) {
-  constexpr std::array<JSON::StringView, 2> ROLES{{"user", "assistant"}};
-  const auto icons{parse_json(
-      R"([
-  {
-    "src": "https://example.com/icon.png",
+TEST(make_image_block_2025_06_18) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 2> ROLES{
+      {"user", "assistant"}};
+  const sourcemeta::core::MCPResourceAnnotations annotations{
+      .audience = ROLES,
+      .priority = 0.5,
+      .last_modified = "2026-07-28T00:00:00Z"};
+  EXPECT_EQ(sourcemeta::core::mcp_make_image_block(
+                sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "YWJj",
+                "image/png", annotations),
+            sourcemeta::core::parse_json(R"JSON({
+    "type": "image",
+    "data": "YWJj",
     "mimeType": "image/png",
-    "sizes": [
-      "32x32"
-    ],
-    "theme": "dark"
-  }
-])")};
-  const MCPDescriptorPresentation presentation{.title = "Title",
-                                               .icons = &icons};
-  const MCPResourceAnnotations annotations{.audience = ROLES,
-                                           .priority = 0.5,
-                                           .last_modified =
-                                               "2026-07-28T00:00:00Z"};
+    "annotations": {
+      "audience": [ "user", "assistant" ],
+      "priority": 0.5,
+      "lastModified": "2026-07-28T00:00:00Z"
+    }
+  })JSON"));
+}
 
-  const auto version{MCPProtocolVersion::V_2026_07_28};
+TEST(make_image_block_2025_11_25) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 2> ROLES{
+      {"user", "assistant"}};
+  const sourcemeta::core::MCPResourceAnnotations annotations{
+      .audience = ROLES,
+      .priority = 0.5,
+      .last_modified = "2026-07-28T00:00:00Z"};
+  EXPECT_EQ(sourcemeta::core::mcp_make_image_block(
+                sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "YWJj",
+                "image/png", annotations),
+            sourcemeta::core::parse_json(R"JSON({
+    "type": "image",
+    "data": "YWJj",
+    "mimeType": "image/png",
+    "annotations": {
+      "audience": [ "user", "assistant" ],
+      "priority": 0.5,
+      "lastModified": "2026-07-28T00:00:00Z"
+    }
+  })JSON"));
+}
 
-  const auto resource{
-      mcp_make_resource(version, "file:///a", "a", "text/plain", "description",
-                        std::nullopt, std::nullopt, presentation, annotations)};
-  EXPECT_EQ(resource.defines("title"),
-            version != MCPProtocolVersion::V_2025_03_26);
+TEST(make_image_block_2026_07_28) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 2> ROLES{
+      {"user", "assistant"}};
+  const sourcemeta::core::MCPResourceAnnotations annotations{
+      .audience = ROLES,
+      .priority = 0.5,
+      .last_modified = "2026-07-28T00:00:00Z"};
+  EXPECT_EQ(sourcemeta::core::mcp_make_image_block(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "YWJj",
+                "image/png", annotations),
+            sourcemeta::core::parse_json(R"JSON({
+    "type": "image",
+    "data": "YWJj",
+    "mimeType": "image/png",
+    "annotations": {
+      "audience": [ "user", "assistant" ],
+      "priority": 0.5,
+      "lastModified": "2026-07-28T00:00:00Z"
+    }
+  })JSON"));
+}
+
+TEST(make_audio_block_2025_03_26) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 2> ROLES{
+      {"user", "assistant"}};
+  const sourcemeta::core::MCPResourceAnnotations annotations{
+      .audience = ROLES,
+      .priority = 0.5,
+      .last_modified = "2026-07-28T00:00:00Z"};
+  EXPECT_EQ(sourcemeta::core::mcp_make_audio_block(
+                sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "YWJj",
+                "audio/wav", annotations),
+            sourcemeta::core::parse_json(R"JSON({
+    "type": "audio",
+    "data": "YWJj",
+    "mimeType": "audio/wav",
+    "annotations": { "audience": [ "user", "assistant" ], "priority": 0.5 }
+  })JSON"));
+}
+
+TEST(make_audio_block_2025_06_18) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 2> ROLES{
+      {"user", "assistant"}};
+  const sourcemeta::core::MCPResourceAnnotations annotations{
+      .audience = ROLES,
+      .priority = 0.5,
+      .last_modified = "2026-07-28T00:00:00Z"};
+  EXPECT_EQ(sourcemeta::core::mcp_make_audio_block(
+                sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "YWJj",
+                "audio/wav", annotations),
+            sourcemeta::core::parse_json(R"JSON({
+    "type": "audio",
+    "data": "YWJj",
+    "mimeType": "audio/wav",
+    "annotations": {
+      "audience": [ "user", "assistant" ],
+      "priority": 0.5,
+      "lastModified": "2026-07-28T00:00:00Z"
+    }
+  })JSON"));
+}
+
+TEST(make_audio_block_2025_11_25) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 2> ROLES{
+      {"user", "assistant"}};
+  const sourcemeta::core::MCPResourceAnnotations annotations{
+      .audience = ROLES,
+      .priority = 0.5,
+      .last_modified = "2026-07-28T00:00:00Z"};
+  EXPECT_EQ(sourcemeta::core::mcp_make_audio_block(
+                sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "YWJj",
+                "audio/wav", annotations),
+            sourcemeta::core::parse_json(R"JSON({
+    "type": "audio",
+    "data": "YWJj",
+    "mimeType": "audio/wav",
+    "annotations": {
+      "audience": [ "user", "assistant" ],
+      "priority": 0.5,
+      "lastModified": "2026-07-28T00:00:00Z"
+    }
+  })JSON"));
+}
+
+TEST(make_audio_block_2026_07_28) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 2> ROLES{
+      {"user", "assistant"}};
+  const sourcemeta::core::MCPResourceAnnotations annotations{
+      .audience = ROLES,
+      .priority = 0.5,
+      .last_modified = "2026-07-28T00:00:00Z"};
+  EXPECT_EQ(sourcemeta::core::mcp_make_audio_block(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "YWJj",
+                "audio/wav", annotations),
+            sourcemeta::core::parse_json(R"JSON({
+    "type": "audio",
+    "data": "YWJj",
+    "mimeType": "audio/wav",
+    "annotations": {
+      "audience": [ "user", "assistant" ],
+      "priority": 0.5,
+      "lastModified": "2026-07-28T00:00:00Z"
+    }
+  })JSON"));
+}
+
+TEST(make_resource_blob_content) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_resource_blob_content(
+                "file:///a", "application/octet-stream", "YWJj"),
+            sourcemeta::core::parse_json(R"JSON({
+    "uri": "file:///a",
+    "mimeType": "application/octet-stream",
+    "blob": "YWJj"
+  })JSON"));
+}
+
+TEST(make_embedded_resource_from_a_blob_2025_03_26) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 2> ROLES{
+      {"user", "assistant"}};
+  const sourcemeta::core::MCPResourceAnnotations annotations{
+      .audience = ROLES,
+      .priority = 0.5,
+      .last_modified = "2026-07-28T00:00:00Z"};
+  EXPECT_EQ(sourcemeta::core::mcp_make_embedded_resource(
+                sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+                sourcemeta::core::mcp_make_resource_blob_content(
+                    "file:///a", "application/octet-stream", "YWJj"),
+                annotations),
+            sourcemeta::core::parse_json(R"JSON({
+    "type": "resource",
+    "resource": {
+      "uri": "file:///a",
+      "mimeType": "application/octet-stream",
+      "blob": "YWJj"
+    },
+    "annotations": { "audience": [ "user", "assistant" ], "priority": 0.5 }
+  })JSON"));
+}
+
+TEST(make_embedded_resource_from_a_blob_2025_06_18) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 2> ROLES{
+      {"user", "assistant"}};
+  const sourcemeta::core::MCPResourceAnnotations annotations{
+      .audience = ROLES,
+      .priority = 0.5,
+      .last_modified = "2026-07-28T00:00:00Z"};
+  EXPECT_EQ(sourcemeta::core::mcp_make_embedded_resource(
+                sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+                sourcemeta::core::mcp_make_resource_blob_content(
+                    "file:///a", "application/octet-stream", "YWJj"),
+                annotations),
+            sourcemeta::core::parse_json(R"JSON({
+    "type": "resource",
+    "resource": {
+      "uri": "file:///a",
+      "mimeType": "application/octet-stream",
+      "blob": "YWJj"
+    },
+    "annotations": {
+      "audience": [ "user", "assistant" ],
+      "priority": 0.5,
+      "lastModified": "2026-07-28T00:00:00Z"
+    }
+  })JSON"));
+}
+
+TEST(make_embedded_resource_from_a_blob_2025_11_25) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 2> ROLES{
+      {"user", "assistant"}};
+  const sourcemeta::core::MCPResourceAnnotations annotations{
+      .audience = ROLES,
+      .priority = 0.5,
+      .last_modified = "2026-07-28T00:00:00Z"};
+  EXPECT_EQ(sourcemeta::core::mcp_make_embedded_resource(
+                sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+                sourcemeta::core::mcp_make_resource_blob_content(
+                    "file:///a", "application/octet-stream", "YWJj"),
+                annotations),
+            sourcemeta::core::parse_json(R"JSON({
+    "type": "resource",
+    "resource": {
+      "uri": "file:///a",
+      "mimeType": "application/octet-stream",
+      "blob": "YWJj"
+    },
+    "annotations": {
+      "audience": [ "user", "assistant" ],
+      "priority": 0.5,
+      "lastModified": "2026-07-28T00:00:00Z"
+    }
+  })JSON"));
+}
+
+TEST(make_embedded_resource_from_a_blob_2026_07_28) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 2> ROLES{
+      {"user", "assistant"}};
+  const sourcemeta::core::MCPResourceAnnotations annotations{
+      .audience = ROLES,
+      .priority = 0.5,
+      .last_modified = "2026-07-28T00:00:00Z"};
+  EXPECT_EQ(sourcemeta::core::mcp_make_embedded_resource(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::mcp_make_resource_blob_content(
+                    "file:///a", "application/octet-stream", "YWJj"),
+                annotations),
+            sourcemeta::core::parse_json(R"JSON({
+    "type": "resource",
+    "resource": {
+      "uri": "file:///a",
+      "mimeType": "application/octet-stream",
+      "blob": "YWJj"
+    },
+    "annotations": {
+      "audience": [ "user", "assistant" ],
+      "priority": 0.5,
+      "lastModified": "2026-07-28T00:00:00Z"
+    }
+  })JSON"));
+}
+
+TEST(make_embedded_resource_from_text_2025_03_26) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 2> ROLES{
+      {"user", "assistant"}};
+  const sourcemeta::core::MCPResourceAnnotations annotations{
+      .audience = ROLES,
+      .priority = 0.5,
+      .last_modified = "2026-07-28T00:00:00Z"};
+  EXPECT_EQ(sourcemeta::core::mcp_make_embedded_resource(
+                sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+                sourcemeta::core::mcp_make_resource_text_content(
+                    "file:///a", "text/plain", "hello"),
+                annotations),
+            sourcemeta::core::parse_json(R"JSON({
+    "type": "resource",
+    "resource": {
+      "uri": "file:///a",
+      "mimeType": "text/plain",
+      "text": "hello"
+    },
+    "annotations": { "audience": [ "user", "assistant" ], "priority": 0.5 }
+  })JSON"));
+}
+
+TEST(make_embedded_resource_from_text_2025_06_18) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 2> ROLES{
+      {"user", "assistant"}};
+  const sourcemeta::core::MCPResourceAnnotations annotations{
+      .audience = ROLES,
+      .priority = 0.5,
+      .last_modified = "2026-07-28T00:00:00Z"};
+  EXPECT_EQ(sourcemeta::core::mcp_make_embedded_resource(
+                sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+                sourcemeta::core::mcp_make_resource_text_content(
+                    "file:///a", "text/plain", "hello"),
+                annotations),
+            sourcemeta::core::parse_json(R"JSON({
+    "type": "resource",
+    "resource": {
+      "uri": "file:///a",
+      "mimeType": "text/plain",
+      "text": "hello"
+    },
+    "annotations": {
+      "audience": [ "user", "assistant" ],
+      "priority": 0.5,
+      "lastModified": "2026-07-28T00:00:00Z"
+    }
+  })JSON"));
+}
+
+TEST(make_embedded_resource_from_text_2025_11_25) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 2> ROLES{
+      {"user", "assistant"}};
+  const sourcemeta::core::MCPResourceAnnotations annotations{
+      .audience = ROLES,
+      .priority = 0.5,
+      .last_modified = "2026-07-28T00:00:00Z"};
+  EXPECT_EQ(sourcemeta::core::mcp_make_embedded_resource(
+                sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+                sourcemeta::core::mcp_make_resource_text_content(
+                    "file:///a", "text/plain", "hello"),
+                annotations),
+            sourcemeta::core::parse_json(R"JSON({
+    "type": "resource",
+    "resource": {
+      "uri": "file:///a",
+      "mimeType": "text/plain",
+      "text": "hello"
+    },
+    "annotations": {
+      "audience": [ "user", "assistant" ],
+      "priority": 0.5,
+      "lastModified": "2026-07-28T00:00:00Z"
+    }
+  })JSON"));
+}
+
+TEST(make_embedded_resource_from_text_2026_07_28) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 2> ROLES{
+      {"user", "assistant"}};
+  const sourcemeta::core::MCPResourceAnnotations annotations{
+      .audience = ROLES,
+      .priority = 0.5,
+      .last_modified = "2026-07-28T00:00:00Z"};
+  EXPECT_EQ(sourcemeta::core::mcp_make_embedded_resource(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::mcp_make_resource_text_content(
+                    "file:///a", "text/plain", "hello"),
+                annotations),
+            sourcemeta::core::parse_json(R"JSON({
+    "type": "resource",
+    "resource": {
+      "uri": "file:///a",
+      "mimeType": "text/plain",
+      "text": "hello"
+    },
+    "annotations": {
+      "audience": [ "user", "assistant" ],
+      "priority": 0.5,
+      "lastModified": "2026-07-28T00:00:00Z"
+    }
+  })JSON"));
+}
+
+// Only the user and the assistant are audiences
+// https://modelcontextprotocol.io/specification/2026-07-28/schema#annotations
+TEST(serialize_resource_annotations_rejects_an_unknown_audience) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 1> ROLES{{"system"}};
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_serialize_resource_annotations(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+          {.audience = ROLES, .priority = std::nullopt, .last_modified = {}}),
+      "Invalid annotation audience");
+}
+
+// An embedded resource carries either text or a blob
+// https://modelcontextprotocol.io/specification/2026-07-28/schema#embeddedresource
+TEST(make_embedded_resource_rejects_a_resource_without_contents) {
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_embedded_resource(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+          sourcemeta::core::parse_json(R"JSON({ "uri": "file:///a" })JSON")),
+      "Invalid embedded resource");
+}
+
+TEST(make_tool_descriptor_rejects_a_non_string_icon_source) {
+  const auto icons{
+      sourcemeta::core::parse_json(R"JSON([ { "src": true } ])JSON")};
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_tool_descriptor(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tool", "",
+          sourcemeta::core::parse_json(R"JSON({ "type": "object" })JSON"),
+          std::nullopt, {}, {.title = {}, .icons = &icons}),
+      "Invalid descriptor icons");
+}
+
+TEST(make_resource_rejects_an_unknown_icon_theme) {
+  const auto icons{sourcemeta::core::parse_json(
+      R"JSON([
+        {
+          "src": "https://example.com/i.png",
+          "theme": "sepia"
+        }
+      ])JSON")};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_resource(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "file:///a", "a", "text/plain", "", std::nullopt,
+                         std::nullopt, {.title = {}, .icons = &icons}),
+                     "Invalid descriptor icons");
+}
+
+// The writer emits the JSON-RPC envelope for one of the six cacheable
+// operations, decorated for the revision it serves
+// https://modelcontextprotocol.io/specification/2026-07-28/server/utilities/caching#cacheable-results
+TEST(write_result_tools_list_2026_07_28) {
+  std::ostringstream stream;
+  sourcemeta::core::mcp_write_result(
+      stream, sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tools/list",
+      sourcemeta::core::JSON{1},
+      sourcemeta::core::parse_json(R"JSON({ "tools": [] })JSON"),
+      sourcemeta::core::MCPCachePolicy{
+          .ttl_ms = 123, .scope = sourcemeta::core::MCPCacheScope::Public});
   EXPECT_EQ(
-      resource.defines("icons"),
-      mcp_protocol_version_at_least(version, MCPProtocolVersion::V_2025_11_25));
-  EXPECT_EQ(resource.at("annotations").defines("lastModified"),
-            version != MCPProtocolVersion::V_2025_03_26);
-  EXPECT_TRUE(resource.is_object());
-  EXPECT_TRUE(mcp_make_resource_template(version, "file:///{name}", "template",
-                                         "description", "text/plain",
-                                         presentation, annotations)
-                  .is_object());
-  EXPECT_TRUE(mcp_make_tool_descriptor(version, "tool", "description",
-                                       parse_json(R"({"type":"object"})"),
-                                       std::nullopt, {}, presentation)
-                  .is_object());
-  EXPECT_TRUE(
-      mcp_serialize_resource_annotations(version, annotations).is_object());
-  EXPECT_TRUE(mcp_make_image_block(version, "YWJj", "image/png", annotations)
-                  .is_object());
-  EXPECT_TRUE(mcp_make_audio_block(version, "YWJj", "audio/wav", annotations)
-                  .is_object());
-  const auto blob{mcp_make_resource_blob_content(
-      "file:///a", "application/octet-stream", "YWJj")};
-  EXPECT_TRUE(blob.is_object());
-  EXPECT_TRUE(
-      mcp_make_embedded_resource(version, blob, annotations).is_object());
-  EXPECT_TRUE(
-      mcp_make_embedded_resource(
-          version,
-          mcp_make_resource_text_content("file:///a", "text/plain", "hello"),
-          annotations)
-          .is_object());
-  EXPECT_TRUE(mcp_serialize_server_capabilities(
-                  version, mcp_parse_server_capabilities(version, parse_json(
-                                                                      R"({
-  "resources": {
-    "subscribe": true,
-    "listChanged": false,
-    "custom": {}
-  },
-  "logging": {},
-  "completions": {}
-})")))
-                  .is_object());
-
-  const std::array<JSON::StringView, 1> invalid{{"system"}};
-  try {
-    mcp_serialize_resource_annotations(
-        CURRENT,
-        {.audience = invalid, .priority = std::nullopt, .last_modified = {}});
-    FAIL();
-  } catch (const std::invalid_argument &) {
-    // Invalid input is expected to be rejected
-  }
-  try {
-    mcp_make_embedded_resource(CURRENT, parse_json(R"({"uri":"file:///a"})"));
-    FAIL();
-  } catch (const std::invalid_argument &) {
-    // Invalid input is expected to be rejected
-  }
-  const auto bad_icons{parse_json(R"([{"src":true}])")};
-  try {
-    mcp_make_tool_descriptor(CURRENT, "tool", "",
-                             parse_json(R"({"type":"object"})"), std::nullopt,
-                             {}, {.title = {}, .icons = &bad_icons});
-    FAIL();
-  } catch (const std::invalid_argument &) {
-    // Invalid input is expected to be rejected
-  }
-  try {
-    mcp_parse_server_capabilities(
-        CURRENT,
-        parse_json(
-            R"({"resources":{"subscribe":false,"listChanged":"invalid"}})"));
-    FAIL();
-  } catch (const std::invalid_argument &) {
-    // Invalid input is expected to be rejected
-  }
-  try {
-    mcp_serialize_server_capabilities(CURRENT, {.extensions = JSON{false}});
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+      stream.str(),
+      "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"tools\":[],\"resultType\":"
+      "\"complete\",\"ttlMs\":123,\"cacheScope\":\"public\"}}");
 }
 
-TEST(result_writer_full_parity) {
-  const std::array<std::pair<JSON::StringView, JSON::StringView>, 6> cases{
-      {{"tools/list", R"({"tools":[],"nextCursor":""})"},
-       {"resources/list", R"({"resources":[],"nextCursor":""})"},
-       {"resources/templates/list",
-        R"({"resourceTemplates":[],"nextCursor":""})"},
-       {"prompts/list", R"({"prompts":[],"nextCursor":""})"},
-       {"resources/read",
-        R"({"contents":[{"uri":"file:///a","text":"hello","blob":"YWJj"}]})"},
-       {"server/discover",
-        R"({
-  "supportedVersions": [
-    "2026-07-28"
-  ],
-  "capabilities": {},
-  "serverInfo": {
-    "name": "server",
-    "version": "1"
-  }
-})"}}};
-  const JSON identifier{"escaped\"\\\n"};
-  const MCPImplementation server{.name = "server", .version = "1"};
-  {
-    const auto version{MCPProtocolVersion::V_2025_03_26};
-
-    const auto plain{parse_json(R"({"resources":[]})")};
-    std::ostringstream plain_stream;
-    mcp_write_result(plain_stream, version, "resources/list", identifier, plain,
-                     MCPCachePolicy{}, server);
-    EXPECT_EQ(parse_json(plain_stream.str()),
-              jsonrpc_make_success(
-                  identifier,
-                  mcp_decorate_cacheable_result(
-                      version, mcp_decorate_result(version, plain, server),
-                      MCPCachePolicy{}, "resources/list")));
-    EXPECT_EQ(plain, parse_json(R"({"resources":[]})"));
-    for (const auto &entry : cases) {
-      if (entry.first == "server/discover" &&
-          !mcp_supports_server_discover(version)) {
-        continue;
-      }
-      for (const auto decorated : {false, true}) {
-        auto source{parse_json(entry.second)};
-        source.assign("_meta",
-                      parse_json(R"({"org.example/custom":{"value":true}})"));
-        source.assign("org.example/extension",
-                      parse_json(R"({"escaped\"key":[null,true,"line\n\\"]})"));
-        if (decorated && version == CURRENT) {
-          source = mcp_decorate_result(version, std::move(source), server);
-          source = mcp_decorate_cacheable_result(
-              version, std::move(source),
-              {.ttl_ms = 5, .scope = MCPCacheScope::Public}, entry.first);
-        }
-        const auto before{source};
-        for (const auto include_server : {false, true}) {
-          const auto server_info{include_server
-                                     ? std::optional<MCPImplementation>{server}
-                                     : std::nullopt};
-          const auto copied{jsonrpc_make_success(
-              identifier,
-              mcp_decorate_cacheable_result(
-                  version, mcp_decorate_result(version, source, server_info),
-                  {.ttl_ms = 123, .scope = MCPCacheScope::Private},
-                  entry.first))};
-          std::ostringstream stream;
-          mcp_write_result(
-              stream, version, entry.first, identifier, source,
-              version == CURRENT
-                  ? std::optional<MCPCachePolicy>{{.ttl_ms = 123,
-                                                   .scope =
-                                                       MCPCacheScope::Private}}
-                  : std::nullopt,
-              server_info);
-          EXPECT_EQ(parse_json(stream.str()), copied);
-          std::ostringstream expected_stream;
-          stringify(copied, expected_stream);
-          EXPECT_EQ(stream.str(), expected_stream.str());
-          EXPECT_EQ(source, before);
-        }
-      }
-    }
-  }
-  {
-    const auto version{MCPProtocolVersion::V_2025_06_18};
-
-    const auto plain{parse_json(R"({"resources":[]})")};
-    std::ostringstream plain_stream;
-    mcp_write_result(plain_stream, version, "resources/list", identifier, plain,
-                     MCPCachePolicy{}, server);
-    EXPECT_EQ(parse_json(plain_stream.str()),
-              jsonrpc_make_success(
-                  identifier,
-                  mcp_decorate_cacheable_result(
-                      version, mcp_decorate_result(version, plain, server),
-                      MCPCachePolicy{}, "resources/list")));
-    EXPECT_EQ(plain, parse_json(R"({"resources":[]})"));
-    for (const auto &entry : cases) {
-      if (entry.first == "server/discover" &&
-          !mcp_supports_server_discover(version)) {
-        continue;
-      }
-      for (const auto decorated : {false, true}) {
-        auto source{parse_json(entry.second)};
-        source.assign("_meta",
-                      parse_json(R"({"org.example/custom":{"value":true}})"));
-        source.assign("org.example/extension",
-                      parse_json(R"({"escaped\"key":[null,true,"line\n\\"]})"));
-        if (decorated && version == CURRENT) {
-          source = mcp_decorate_result(version, std::move(source), server);
-          source = mcp_decorate_cacheable_result(
-              version, std::move(source),
-              {.ttl_ms = 5, .scope = MCPCacheScope::Public}, entry.first);
-        }
-        const auto before{source};
-        for (const auto include_server : {false, true}) {
-          const auto server_info{include_server
-                                     ? std::optional<MCPImplementation>{server}
-                                     : std::nullopt};
-          const auto copied{jsonrpc_make_success(
-              identifier,
-              mcp_decorate_cacheable_result(
-                  version, mcp_decorate_result(version, source, server_info),
-                  {.ttl_ms = 123, .scope = MCPCacheScope::Private},
-                  entry.first))};
-          std::ostringstream stream;
-          mcp_write_result(
-              stream, version, entry.first, identifier, source,
-              version == CURRENT
-                  ? std::optional<MCPCachePolicy>{{.ttl_ms = 123,
-                                                   .scope =
-                                                       MCPCacheScope::Private}}
-                  : std::nullopt,
-              server_info);
-          EXPECT_EQ(parse_json(stream.str()), copied);
-          std::ostringstream expected_stream;
-          stringify(copied, expected_stream);
-          EXPECT_EQ(stream.str(), expected_stream.str());
-          EXPECT_EQ(source, before);
-        }
-      }
-    }
-  }
-  {
-    const auto version{MCPProtocolVersion::V_2025_11_25};
-
-    const auto plain{parse_json(R"({"resources":[]})")};
-    std::ostringstream plain_stream;
-    mcp_write_result(plain_stream, version, "resources/list", identifier, plain,
-                     MCPCachePolicy{}, server);
-    EXPECT_EQ(parse_json(plain_stream.str()),
-              jsonrpc_make_success(
-                  identifier,
-                  mcp_decorate_cacheable_result(
-                      version, mcp_decorate_result(version, plain, server),
-                      MCPCachePolicy{}, "resources/list")));
-    EXPECT_EQ(plain, parse_json(R"({"resources":[]})"));
-    for (const auto &entry : cases) {
-      if (entry.first == "server/discover" &&
-          !mcp_supports_server_discover(version)) {
-        continue;
-      }
-      for (const auto decorated : {false, true}) {
-        auto source{parse_json(entry.second)};
-        source.assign("_meta",
-                      parse_json(R"({"org.example/custom":{"value":true}})"));
-        source.assign("org.example/extension",
-                      parse_json(R"({"escaped\"key":[null,true,"line\n\\"]})"));
-        if (decorated && version == CURRENT) {
-          source = mcp_decorate_result(version, std::move(source), server);
-          source = mcp_decorate_cacheable_result(
-              version, std::move(source),
-              {.ttl_ms = 5, .scope = MCPCacheScope::Public}, entry.first);
-        }
-        const auto before{source};
-        for (const auto include_server : {false, true}) {
-          const auto server_info{include_server
-                                     ? std::optional<MCPImplementation>{server}
-                                     : std::nullopt};
-          const auto copied{jsonrpc_make_success(
-              identifier,
-              mcp_decorate_cacheable_result(
-                  version, mcp_decorate_result(version, source, server_info),
-                  {.ttl_ms = 123, .scope = MCPCacheScope::Private},
-                  entry.first))};
-          std::ostringstream stream;
-          mcp_write_result(
-              stream, version, entry.first, identifier, source,
-              version == CURRENT
-                  ? std::optional<MCPCachePolicy>{{.ttl_ms = 123,
-                                                   .scope =
-                                                       MCPCacheScope::Private}}
-                  : std::nullopt,
-              server_info);
-          EXPECT_EQ(parse_json(stream.str()), copied);
-          std::ostringstream expected_stream;
-          stringify(copied, expected_stream);
-          EXPECT_EQ(stream.str(), expected_stream.str());
-          EXPECT_EQ(source, before);
-        }
-      }
-    }
-  }
-  {
-    const auto version{MCPProtocolVersion::V_2026_07_28};
-
-    const auto plain{parse_json(R"({"resources":[]})")};
-    std::ostringstream plain_stream;
-    mcp_write_result(plain_stream, version, "resources/list", identifier, plain,
-                     MCPCachePolicy{}, server);
-    EXPECT_EQ(parse_json(plain_stream.str()),
-              jsonrpc_make_success(
-                  identifier,
-                  mcp_decorate_cacheable_result(
-                      version, mcp_decorate_result(version, plain, server),
-                      MCPCachePolicy{}, "resources/list")));
-    EXPECT_EQ(plain, parse_json(R"({"resources":[]})"));
-    for (const auto &entry : cases) {
-      if (entry.first == "server/discover" &&
-          !mcp_supports_server_discover(version)) {
-        continue;
-      }
-      for (const auto decorated : {false, true}) {
-        auto source{parse_json(entry.second)};
-        source.assign("_meta",
-                      parse_json(R"({"org.example/custom":{"value":true}})"));
-        source.assign("org.example/extension",
-                      parse_json(R"({"escaped\"key":[null,true,"line\n\\"]})"));
-        if (decorated && version == CURRENT) {
-          source = mcp_decorate_result(version, std::move(source), server);
-          source = mcp_decorate_cacheable_result(
-              version, std::move(source),
-              {.ttl_ms = 5, .scope = MCPCacheScope::Public}, entry.first);
-        }
-        const auto before{source};
-        for (const auto include_server : {false, true}) {
-          const auto server_info{include_server
-                                     ? std::optional<MCPImplementation>{server}
-                                     : std::nullopt};
-          const auto copied{jsonrpc_make_success(
-              identifier,
-              mcp_decorate_cacheable_result(
-                  version, mcp_decorate_result(version, source, server_info),
-                  {.ttl_ms = 123, .scope = MCPCacheScope::Private},
-                  entry.first))};
-          std::ostringstream stream;
-          mcp_write_result(
-              stream, version, entry.first, identifier, source,
-              version == CURRENT
-                  ? std::optional<MCPCachePolicy>{{.ttl_ms = 123,
-                                                   .scope =
-                                                       MCPCacheScope::Private}}
-                  : std::nullopt,
-              server_info);
-          EXPECT_EQ(parse_json(stream.str()), copied);
-          std::ostringstream expected_stream;
-          stringify(copied, expected_stream);
-          EXPECT_EQ(stream.str(), expected_stream.str());
-          EXPECT_EQ(source, before);
-        }
-      }
-    }
-  }
-  for (const auto *const text :
-       {R"({"resources":false})", R"({"resources":[],"nextCursor":false})",
-        R"({"resources":[],"_meta":false})",
-        R"({"resources":[],"resultType":"input_required"})"}) {
-    std::ostringstream stream;
-    try {
-      mcp_write_result(stream, CURRENT, "resources/list", identifier,
-                       parse_json(text), MCPCachePolicy{});
-      FAIL();
-    } catch (const std::invalid_argument &) {
-      // Invalid input is expected to be rejected
-    }
-    EXPECT_TRUE(stream.str().empty());
-  }
+TEST(write_result_resources_list_2026_07_28) {
+  std::ostringstream stream;
+  sourcemeta::core::mcp_write_result(
+      stream, sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "resources/list", sourcemeta::core::JSON{1},
+      sourcemeta::core::parse_json(R"JSON({ "resources": [] })JSON"),
+      sourcemeta::core::MCPCachePolicy{
+          .ttl_ms = 123, .scope = sourcemeta::core::MCPCacheScope::Public});
+  EXPECT_EQ(
+      stream.str(),
+      "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"resources\":[],"
+      "\"resultType\":\"complete\",\"ttlMs\":123,\"cacheScope\":\"public\"}}");
 }
 
-TEST(disputed_valid_inputs) {
-  auto value{parameters()};
-  for (const auto *const text : {"", " , ", "vendor=value,,"}) {
-    value.at("_meta").assign("tracestate", JSON{text});
-    EXPECT_TRUE(mcp_validate_request_parameters(value).second.has_value());
-  }
-  value.at("_meta").erase("tracestate");
-  value.at("_meta").assign("baggage", JSON{"key=value;flag"});
-  EXPECT_TRUE(mcp_validate_request_parameters(value).second.has_value());
-  value.at("_meta").assign("io.modelcontextprotocol/clientCapabilities",
-                           parse_json(R"({"extensions":{"org.example/":{}}})"));
-  EXPECT_TRUE(mcp_validate_request_parameters(value).second.has_value());
+TEST(write_result_resource_templates_list_2026_07_28) {
+  std::ostringstream stream;
+  sourcemeta::core::mcp_write_result(
+      stream, sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "resources/templates/list", sourcemeta::core::JSON{1},
+      sourcemeta::core::parse_json(R"JSON({ "resourceTemplates": [] })JSON"),
+      sourcemeta::core::MCPCachePolicy{
+          .ttl_ms = 123, .scope = sourcemeta::core::MCPCacheScope::Public});
+  EXPECT_EQ(
+      stream.str(),
+      "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"resourceTemplates\":[],"
+      "\"resultType\":\"complete\",\"ttlMs\":123,\"cacheScope\":\"public\"}}");
+}
+
+TEST(write_result_prompts_list_2026_07_28) {
+  std::ostringstream stream;
+  sourcemeta::core::mcp_write_result(
+      stream, sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "prompts/list", sourcemeta::core::JSON{1},
+      sourcemeta::core::parse_json(R"JSON({ "prompts": [] })JSON"),
+      sourcemeta::core::MCPCachePolicy{
+          .ttl_ms = 123, .scope = sourcemeta::core::MCPCacheScope::Public});
+  EXPECT_EQ(
+      stream.str(),
+      "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"prompts\":[],\"resultType\":"
+      "\"complete\",\"ttlMs\":123,\"cacheScope\":\"public\"}}");
+}
+
+TEST(write_result_resources_read_2026_07_28) {
+  std::ostringstream stream;
+  sourcemeta::core::mcp_write_result(
+      stream, sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "resources/read", sourcemeta::core::JSON{1},
+      sourcemeta::core::parse_json(
+          R"JSON({
+            "contents": [ { "uri": "file:///a", "text": "hello" } ]
+          })JSON"),
+      sourcemeta::core::MCPCachePolicy{
+          .ttl_ms = 123, .scope = sourcemeta::core::MCPCacheScope::Public});
+  EXPECT_EQ(stream.str(),
+            "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"contents\":[{\"uri\":"
+            "\"file:///"
+            "a\",\"text\":\"hello\"}],\"resultType\":\"complete\",\"ttlMs\":"
+            "123,\"cacheScope\":\"public\"}}");
+}
+
+TEST(write_result_tools_list_2025_11_25) {
+  std::ostringstream stream;
+  sourcemeta::core::mcp_write_result(
+      stream, sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "tools/list",
+      sourcemeta::core::JSON{1},
+      sourcemeta::core::parse_json(R"JSON({ "tools": [] })JSON"), std::nullopt);
+  EXPECT_EQ(stream.str(),
+            "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"tools\":[]}}");
+}
+
+TEST(write_result_resources_list_2025_11_25) {
+  std::ostringstream stream;
+  sourcemeta::core::mcp_write_result(
+      stream, sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "resources/list", sourcemeta::core::JSON{1},
+      sourcemeta::core::parse_json(R"JSON({ "resources": [] })JSON"),
+      std::nullopt);
+  EXPECT_EQ(stream.str(),
+            "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"resources\":[]}}");
+}
+
+TEST(write_result_resource_templates_list_2025_11_25) {
+  std::ostringstream stream;
+  sourcemeta::core::mcp_write_result(
+      stream, sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "resources/templates/list", sourcemeta::core::JSON{1},
+      sourcemeta::core::parse_json(R"JSON({ "resourceTemplates": [] })JSON"),
+      std::nullopt);
+  EXPECT_EQ(
+      stream.str(),
+      "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"resourceTemplates\":[]}}");
+}
+
+TEST(write_result_prompts_list_2025_11_25) {
+  std::ostringstream stream;
+  sourcemeta::core::mcp_write_result(
+      stream, sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "prompts/list", sourcemeta::core::JSON{1},
+      sourcemeta::core::parse_json(R"JSON({ "prompts": [] })JSON"),
+      std::nullopt);
+  EXPECT_EQ(stream.str(),
+            "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"prompts\":[]}}");
+}
+
+TEST(write_result_resources_read_2025_11_25) {
+  std::ostringstream stream;
+  sourcemeta::core::mcp_write_result(
+      stream, sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      "resources/read", sourcemeta::core::JSON{1},
+      sourcemeta::core::parse_json(
+          R"JSON({
+            "contents": [ { "uri": "file:///a", "text": "hello" } ]
+          })JSON"),
+      std::nullopt);
+  EXPECT_EQ(stream.str(),
+            "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"contents\":[{\"uri\":"
+            "\"file:///a\",\"text\":\"hello\"}]}}");
+}
+
+TEST(write_result_server_discover_2026_07_28) {
+  std::ostringstream stream;
+  sourcemeta::core::mcp_write_result(
+      stream, sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "server/discover", sourcemeta::core::JSON{1},
+      sourcemeta::core::parse_json(R"JSON({
+    "supportedVersions": [ "2026-07-28" ],
+    "capabilities": {}
+  })JSON"),
+      sourcemeta::core::MCPCachePolicy{
+          .ttl_ms = 0, .scope = sourcemeta::core::MCPCacheScope::Private});
+  EXPECT_EQ(stream.str(),
+            "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"supportedVersions\":["
+            "\"2026-07-28\"],\"capabilities\":{},\"resultType\":\"complete\","
+            "\"ttlMs\":0,\"cacheScope\":\"private\"}}");
+}
+
+TEST(write_result_with_server_information) {
+  const sourcemeta::core::MCPImplementation server{.name = "server",
+                                                   .version = "1"};
+  std::ostringstream stream;
+  sourcemeta::core::mcp_write_result(
+      stream, sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "resources/list", sourcemeta::core::JSON{1},
+      sourcemeta::core::parse_json(R"JSON({ "resources": [] })JSON"),
+      sourcemeta::core::MCPCachePolicy{
+          .ttl_ms = 0, .scope = sourcemeta::core::MCPCacheScope::Private},
+      server);
+  EXPECT_EQ(stream.str(),
+            "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"resources\":[],"
+            "\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/"
+            "serverInfo\":{\"name\":\"server\",\"version\":\"1\"}},\"ttlMs\":0,"
+            "\"cacheScope\":\"private\"}}");
+}
+
+TEST(write_result_preserves_a_pagination_cursor) {
+  std::ostringstream stream;
+  sourcemeta::core::mcp_write_result(
+      stream, sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tools/list",
+      sourcemeta::core::JSON{1},
+      sourcemeta::core::parse_json(
+          R"JSON({ "tools": [], "nextCursor": "" })JSON"),
+      sourcemeta::core::MCPCachePolicy{
+          .ttl_ms = 0, .scope = sourcemeta::core::MCPCacheScope::Private});
+  EXPECT_EQ(stream.str(), "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"tools\":"
+                          "[],\"nextCursor\":\"\",\"resultType\":\"complete\","
+                          "\"ttlMs\":0,\"cacheScope\":\"private\"}}");
+}
+
+TEST(write_result_preserves_vendor_metadata_and_extension_keys) {
+  std::ostringstream stream;
+  sourcemeta::core::mcp_write_result(
+      stream, sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "resources/list", sourcemeta::core::JSON{1},
+      sourcemeta::core::parse_json(R"JSON({
+    "resources": [],
+    "_meta": { "org.example/custom": { "value": true } },
+    "org.example/extension": [ null, true, "line" ]
+  })JSON"),
+      sourcemeta::core::MCPCachePolicy{
+          .ttl_ms = 0, .scope = sourcemeta::core::MCPCacheScope::Private});
+  EXPECT_EQ(stream.str(),
+            "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"resources\":[],\"_"
+            "meta\":{\"org.example/custom\":{\"value\":true}},\"org.example/"
+            "extension\":[null,true,\"line\"],\"resultType\":\"complete\","
+            "\"ttlMs\":0,\"cacheScope\":\"private\"}}");
+}
+
+TEST(write_result_escapes_the_identifier) {
+  std::ostringstream stream;
+  sourcemeta::core::mcp_write_result(
+      stream, sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "resources/list", sourcemeta::core::JSON{"escaped\"\\\n"},
+      sourcemeta::core::parse_json(R"JSON({ "resources": [] })JSON"),
+      sourcemeta::core::MCPCachePolicy{
+          .ttl_ms = 0, .scope = sourcemeta::core::MCPCacheScope::Private});
+  EXPECT_EQ(stream.str(),
+            "{\"jsonrpc\":\"2.0\",\"id\":\"escaped\\\"\\\\\\n\",\"result\":{"
+            "\"resources\":[],\"resultType\":\"complete\",\"ttlMs\":0,"
+            "\"cacheScope\":\"private\"}}");
+}
+
+TEST(write_result_accepts_an_already_decorated_result) {
+  std::ostringstream stream;
+  sourcemeta::core::mcp_write_result(
+      stream, sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "resources/list", sourcemeta::core::JSON{1},
+      sourcemeta::core::parse_json(R"JSON({
+    "resultType": "complete",
+    "resources": [],
+    "ttlMs": 5,
+    "cacheScope": "public"
+  })JSON"),
+      sourcemeta::core::MCPCachePolicy{
+          .ttl_ms = 123, .scope = sourcemeta::core::MCPCacheScope::Private});
+  EXPECT_EQ(
+      stream.str(),
+      "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"resultType\":\"complete\","
+      "\"resources\":[],\"ttlMs\":123,\"cacheScope\":\"private\"}}");
+}
+
+// The writer takes the result by reference and leaves it untouched
+TEST(write_result_does_not_mutate_the_result) {
+  const auto result{
+      sourcemeta::core::parse_json(R"JSON({ "resources": [] })JSON")};
+  std::ostringstream stream;
+  sourcemeta::core::mcp_write_result(
+      stream, sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+      "resources/list", sourcemeta::core::JSON{1}, result,
+      sourcemeta::core::MCPCachePolicy{
+          .ttl_ms = 0, .scope = sourcemeta::core::MCPCacheScope::Private});
+  EXPECT_EQ(result,
+            sourcemeta::core::parse_json(R"JSON({ "resources": [] })JSON"));
+}
+
+TEST(write_result_rejects_a_non_array_entry_collection) {
+  std::ostringstream stream;
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_write_result(
+          stream, sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+          "resources/list", sourcemeta::core::JSON{1},
+          sourcemeta::core::parse_json(R"JSON({ "resources": false })JSON"),
+          sourcemeta::core::MCPCachePolicy{}),
+      "MCP result entries must be an array");
+  EXPECT_TRUE(stream.str().empty());
+}
+
+TEST(write_result_rejects_a_non_string_cursor) {
+  std::ostringstream stream;
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_write_result(
+          stream, sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+          "resources/list", sourcemeta::core::JSON{1},
+          sourcemeta::core::parse_json(
+              R"JSON({ "resources": [], "nextCursor": false })JSON"),
+          sourcemeta::core::MCPCachePolicy{}),
+      "Invalid result cursor");
+  EXPECT_TRUE(stream.str().empty());
+}
+
+TEST(write_result_rejects_non_object_metadata) {
+  std::ostringstream stream;
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_write_result(
+                         stream,
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "resources/list", sourcemeta::core::JSON{1},
+                         sourcemeta::core::parse_json(
+                             R"JSON({
+                               "resources": [],
+                               "_meta": false
+                             })JSON"),
+                         sourcemeta::core::MCPCachePolicy{}),
+                     "Invalid MCP result object");
+  EXPECT_TRUE(stream.str().empty());
+}
+
+// Only a complete result is cacheable, so an interim one cannot be written
+// through the cacheable writer
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/mrtr
+TEST(write_result_rejects_an_interim_result) {
+  std::ostringstream stream;
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_write_result(
+                         stream,
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "resources/list", sourcemeta::core::JSON{1},
+                         sourcemeta::core::parse_json(
+                             R"JSON({
+                "resources": [],
+                "resultType": "input_required"
+              })JSON"),
+                         sourcemeta::core::MCPCachePolicy{}),
+                     "Writer requires a complete result");
+  EXPECT_TRUE(stream.str().empty());
+}
+
+// A tracing header may be empty or carry empty list members, which W3C
+// permits and a receiver simply has nothing to read from
+// https://www.w3.org/TR/trace-context/
+TEST(request_parameters_accept_an_empty_tracestate) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {},
+      "tracestate": ""
+    }
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_validate_request_parameters(parameters).first,
+            sourcemeta::core::MCPRequestMetaStatus::Valid);
+}
+
+TEST(request_parameters_accept_a_tracestate_of_empty_members) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {},
+      "tracestate": " , "
+    }
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_validate_request_parameters(parameters).first,
+            sourcemeta::core::MCPRequestMetaStatus::Valid);
+}
+
+TEST(request_parameters_accept_a_tracestate_with_a_trailing_comma) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {},
+      "tracestate": "vendor=value,,"
+    }
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_validate_request_parameters(parameters).first,
+            sourcemeta::core::MCPRequestMetaStatus::Valid);
+}
+
+// A baggage member may carry a property without a value
+// https://www.w3.org/TR/baggage/
+TEST(request_parameters_accept_a_valueless_baggage_property) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {},
+      "baggage": "key=value;flag"
+    }
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_validate_request_parameters(parameters).first,
+            sourcemeta::core::MCPRequestMetaStatus::Valid);
+}
+
+// An extension key is a prefix with an empty name, which the key rules allow
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/index#_meta
+TEST(request_parameters_accept_an_extension_key_without_a_name) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": { "extensions": { "org.example/": {} } }
+    }
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_validate_request_parameters(parameters).first,
+            sourcemeta::core::MCPRequestMetaStatus::Valid);
 }
 
 TEST(result_writer_metadata_rejections) {
   std::ostringstream stream;
-  const auto bad{parse_json(
-      R"({
-  "resources": [],
-  "_meta": {
-    "io.modelcontextprotocol/serverInfo": {
-      "name": "missing-version"
-    }
-  }
-})")};
-  try {
-    mcp_write_result(stream, CURRENT, "resources/list", JSON{0}, bad,
-                     MCPCachePolicy{});
-    FAIL();
-  } catch (const std::invalid_argument &) {
-    // Invalid input is expected to be rejected
-  }
+  const auto bad{sourcemeta::core::parse_json(
+      R"JSON({
+        "resources": [],
+        "_meta": {
+          "io.modelcontextprotocol/serverInfo": { "name": "missing-version" }
+        }
+      })JSON")};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_write_result(
+                         stream,
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "resources/list", sourcemeta::core::JSON{0}, bad,
+                         sourcemeta::core::MCPCachePolicy{}),
+                     "Invalid precomputed server information");
   EXPECT_TRUE(stream.str().empty());
-  const auto discovery{
-      parse_json(R"({"supportedVersions":["2025-11-25"],"capabilities":{}})")};
-  try {
-    mcp_write_result(stream, CURRENT, "server/discover", JSON{0}, discovery,
-                     MCPCachePolicy{});
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  const auto discovery{sourcemeta::core::parse_json(
+      R"JSON({
+        "supportedVersions": [ "2025-11-25" ],
+        "capabilities": {}
+      })JSON")};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_write_result(
+                         stream,
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "server/discover", sourcemeta::core::JSON{0},
+                         discovery, sourcemeta::core::MCPCachePolicy{}),
+                     "Discovery must include its serving revision");
 }
 
-TEST(enum_forms_and_sampling_continuations) {
-  MCPClientCapabilities capabilities;
+// An elicitation schema may describe a single or a multiple choice, and the
+// builder carries the schema through untouched
+// https://modelcontextprotocol.io/specification/2026-07-28/schema#titledsingleselectenumschema
+TEST(input_required_result_carries_enum_form_schemas_through) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
   capabilities.elicitation = true;
   capabilities.elicitation_form = true;
-  const auto inputs{parse_json(
-      R"({
-  "form": {
-    "method": "elicitation/create",
-    "params": {
-      "mode": "form",
-      "message": "Choose options",
-      "requestedSchema": {
-        "type": "object",
-        "properties": {
-          "single": {
-            "type": "string",
-            "oneOf": [
-              {
-                "const": "a",
-                "title": "Alpha"
-              },
-              {
-                "const": "b",
-                "title": "Beta"
-              }
-            ]
-          },
-          "multiple": {
-            "type": "array",
-            "items": {
-              "anyOf": [
-                {
-                  "const": "a",
-                  "title": "Alpha"
-                },
-                {
-                  "const": "b",
-                  "title": "Beta"
-                }
+  const auto requests{sourcemeta::core::parse_json(R"JSON({
+    "form": {
+      "method": "elicitation/create",
+      "params": {
+        "mode": "form",
+        "message": "Choose options",
+        "requestedSchema": {
+          "type": "object",
+          "properties": {
+            "single": {
+              "type": "string",
+              "oneOf": [
+                { "const": "a", "title": "Alpha" },
+                { "const": "b", "title": "Beta" }
               ]
+            },
+            "multiple": {
+              "type": "array",
+              "items": {
+                "anyOf": [
+                  { "const": "a", "title": "Alpha" },
+                  { "const": "b", "title": "Beta" }
+                ]
+              }
             }
           }
         }
       }
     }
-  }
-})")};
-  EXPECT_EQ(mcp_make_input_required_result(CURRENT, "tools/call", JSON{0},
-                                           inputs, std::nullopt, capabilities)
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_make_input_required_result(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                "tools/call", sourcemeta::core::JSON{0}, requests, std::nullopt,
+                capabilities)
                 .at("result")
                 .at("inputRequests"),
-            inputs);
-  const auto prior{
-      parse_json(R"({"sample":{"method":"sampling/createMessage"}})")};
-  auto value{parameters()};
-  value.assign("inputResponses", parse_json(
-                                     R"({
-  "sample": {
-    "role": "assistant",
-    "model": "model",
-    "content": [
-      {
-        "type": "text",
-        "text": "answer"
-      },
-      {
-        "type": "tool_use",
-        "id": "call-1",
-        "name": "tool",
-        "input": {}
-      }
-    ]
-  }
-})"));
-  EXPECT_TRUE(mcp_validate_continuation(CURRENT, value, prior));
-  value.at("inputResponses")
-      .at("sample")
-      .at("content")
-      .at(1)
-      .assign("input", JSON{false});
-  EXPECT_FALSE(mcp_validate_continuation(CURRENT, value, prior));
+            requests);
 }
 
-TEST(nested_descriptor_metadata) {
-  const std::array<std::pair<JSON::StringView, JSON::StringView>, 5> cases{{
-      {"resources/list", R"({"resources":[{"name":"r","uri":"file:///r"}]})"},
-      {"resources/templates/list",
-       R"({"resourceTemplates":[{"name":"r","uriTemplate":"file:///{name}"}]})"},
-      {"resources/read",
-       R"({"contents":[{"uri":"file:///r","text":"value"}]})"},
-      {"prompts/list", R"({"prompts":[{"name":"p"}]})"},
-      {"tools/list",
-       R"({
-  "tools": [
+// A sampling result may answer with several content blocks, including a tool
+// call of its own
+// https://modelcontextprotocol.io/specification/2026-07-28/schema#createmessageresult
+TEST(validate_continuation_accepts_a_multi_block_sampling_response) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "inputResponses": {
+      "sample": {
+        "role": "assistant",
+        "model": "model",
+        "content": [
+          { "type": "text", "text": "answer" },
+          {
+            "type": "tool_use",
+            "id": "call-1",
+            "name": "tool",
+            "input": {}
+          }
+        ]
+      }
+    }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(
+      R"JSON({ "sample": { "method": "sampling/createMessage" } })JSON")};
+  EXPECT_TRUE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior));
+}
+
+TEST(validate_continuation_rejects_a_non_object_tool_use_input) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "inputResponses": {
+      "sample": {
+        "role": "assistant",
+        "model": "model",
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "call-1",
+            "name": "tool",
+            "input": false
+          }
+        ]
+      }
+    }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(
+      R"JSON({ "sample": { "method": "sampling/createMessage" } })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior));
+}
+
+// A descriptor's own metadata must follow the 2026-07-28 key naming rules and
+// the tracing formats
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/index#_meta
+TEST(resources_list_result_rejects_a_boolean_entry_metadata) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_resources_list_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         sourcemeta::core::parse_json(
+                             R"JSON([
+                               {
+                                 "name": "r",
+                                 "uri": "file:///r",
+                                 "_meta": false
+                               }
+                             ])JSON"),
+                         std::nullopt, {}),
+                     "Invalid MCP resource descriptor entry");
+}
+
+TEST(resources_list_result_rejects_a_null_entry_metadata) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_resources_list_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         sourcemeta::core::parse_json(
+                             R"JSON([
+                               {
+                                 "name": "r",
+                                 "uri": "file:///r",
+                                 "_meta": null
+                               }
+                             ])JSON"),
+                         std::nullopt, {}),
+                     "Invalid MCP resource descriptor entry");
+}
+
+TEST(resources_list_result_rejects_an_array_entry_metadata) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_resources_list_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         sourcemeta::core::parse_json(
+                             R"JSON([
+                               {
+                                 "name": "r",
+                                 "uri": "file:///r",
+                                 "_meta": []
+                               }
+                             ])JSON"),
+                         std::nullopt, {}),
+                     "Invalid MCP resource descriptor entry");
+}
+
+TEST(resources_list_result_rejects_a_malformed_key_entry_metadata) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_resources_list_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         sourcemeta::core::parse_json(
+                             R"JSON([
+                               {
+                                 "name": "r",
+                                 "uri": "file:///r",
+                                 "_meta": { "invalid key": true }
+                               }
+                             ])JSON"),
+                         std::nullopt, {}),
+                     "Invalid MCP resource descriptor entry");
+}
+
+TEST(resources_list_result_rejects_a_boolean_traceparent_entry_metadata) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_resources_list_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         sourcemeta::core::parse_json(
+                             R"JSON([
+                               {
+                                 "name": "r",
+                                 "uri": "file:///r",
+                                 "_meta": { "traceparent": false }
+                               }
+                             ])JSON"),
+                         std::nullopt, {}),
+                     "Invalid MCP resource descriptor entry");
+}
+
+TEST(resources_list_result_rejects_a_malformed_traceparent_entry_metadata) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_resources_list_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         sourcemeta::core::parse_json(
+                             R"JSON([
+                               {
+                                 "name": "r",
+                                 "uri": "file:///r",
+                                 "_meta": { "traceparent": "bad" }
+                               }
+                             ])JSON"),
+                         std::nullopt, {}),
+                     "Invalid MCP resource descriptor entry");
+}
+
+TEST(resources_list_result_rejects_an_array_tracestate_entry_metadata) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_resources_list_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         sourcemeta::core::parse_json(
+                             R"JSON([
+                               {
+                                 "name": "r",
+                                 "uri": "file:///r",
+                                 "_meta": { "tracestate": [] }
+                               }
+                             ])JSON"),
+                         std::nullopt, {}),
+                     "Invalid MCP resource descriptor entry");
+}
+
+TEST(resources_list_result_rejects_a_null_baggage_entry_metadata) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_resources_list_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         sourcemeta::core::parse_json(
+                             R"JSON([
+                               {
+                                 "name": "r",
+                                 "uri": "file:///r",
+                                 "_meta": { "baggage": null }
+                               }
+                             ])JSON"),
+                         std::nullopt, {}),
+                     "Invalid MCP resource descriptor entry");
+}
+
+TEST(resources_templates_list_result_rejects_malformed_entry_metadata) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_resource_templates_list_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         sourcemeta::core::parse_json(
+                             R"JSON([
+                               {
+                                 "name": "r",
+                                 "uriTemplate": "file:///{name}",
+                                 "_meta": false
+                               }
+                             ])JSON"),
+                         std::nullopt, {}),
+                     "Invalid MCP resource template entry");
+}
+
+TEST(resources_read_result_rejects_malformed_entry_metadata) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_resources_read_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         sourcemeta::core::parse_json(
+                             R"JSON([
+                               {
+                                 "uri": "file:///r",
+                                 "text": "value",
+                                 "_meta": false
+                               }
+                             ])JSON"),
+                         {}),
+                     "Invalid MCP resource contents entry");
+}
+
+TEST(prompts_list_result_rejects_malformed_entry_metadata) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_prompts_list_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         sourcemeta::core::parse_json(
+                             R"JSON([
+                               { "name": "p", "_meta": false }
+                             ])JSON"),
+                         std::nullopt, {}),
+                     "Invalid MCP prompt descriptor entry");
+}
+
+TEST(tools_list_result_rejects_malformed_entry_metadata) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_tools_list_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         sourcemeta::core::parse_json(R"JSON([
+    {
+      "name": "t",
+      "inputSchema": { "type": "object" },
+      "_meta": false
+    }
+  ])JSON"),
+                         std::nullopt, {}),
+                     "Invalid MCP tool descriptor entry");
+}
+
+// A tool's input schema is opaque to the protocol, so a property named like a
+// metadata field is just a property
+// https://modelcontextprotocol.io/specification/2026-07-28/schema#tool
+TEST(tools_list_result_accepts_a_metadata_shaped_schema_property) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_tools_list_result(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::parse_json(R"JSON([
     {
       "name": "t",
       "inputSchema": {
         "type": "object",
-        "properties": {
-          "_meta": {
-            "const": false
-          }
-        }
+        "properties": { "_meta": { "const": false } }
       }
     }
-  ]
-})"},
-  }};
-  const std::array<JSON::StringView, 5> keys{
-      {"resources", "resourceTemplates", "contents", "prompts", "tools"}};
-  for (std::size_t index = 0; index < cases.size(); ++index) {
-    const auto &[method, fixture]{cases[index]};
-    for (const auto *const text :
-         {"false", "null", "[]", R"({"invalid key":true})",
-          R"({"traceparent":false})", R"({"traceparent":"bad"})",
-          R"({"tracestate":[]})", R"({"baggage":null})"}) {
-      auto source{parse_json(fixture)};
-      const auto meta{parse_json(text)};
-      source.at(keys[index]).at(0).assign("_meta", meta);
-      try {
-        list_result(method, CURRENT, source.at(keys[index]));
-        FAIL();
-      } catch (const std::invalid_argument &) {
-        // Invalid input is expected to be rejected
-      }
-      std::ostringstream stream;
-      try {
-        mcp_write_result(stream, CURRENT, method, JSON{1}, source,
-                         MCPCachePolicy{});
-        FAIL();
-      } catch (const std::invalid_argument &) {
-        // Invalid input is expected to be rejected
-      }
-      EXPECT_TRUE(stream.str().empty());
-      if (meta.is_object()) {
-        {
-          const auto version{MCPProtocolVersion::V_2025_03_26};
-
-          if (version != CURRENT) {
-            EXPECT_EQ(list_result(method, version, source.at(keys[index]))
-                          .at(keys[index]),
-                      source.at(keys[index]));
-            std::ostringstream legacy;
-            mcp_write_result(legacy, version, method, JSON{1}, source,
-                             std::nullopt);
-            EXPECT_EQ(parse_json(legacy.str()).at("result").at(keys[index]),
-                      source.at(keys[index]));
-          }
-        }
-        {
-          const auto version{MCPProtocolVersion::V_2025_06_18};
-
-          if (version != CURRENT) {
-            EXPECT_EQ(list_result(method, version, source.at(keys[index]))
-                          .at(keys[index]),
-                      source.at(keys[index]));
-            std::ostringstream legacy;
-            mcp_write_result(legacy, version, method, JSON{1}, source,
-                             std::nullopt);
-            EXPECT_EQ(parse_json(legacy.str()).at("result").at(keys[index]),
-                      source.at(keys[index]));
-          }
-        }
-        {
-          const auto version{MCPProtocolVersion::V_2025_11_25};
-
-          if (version != CURRENT) {
-            EXPECT_EQ(list_result(method, version, source.at(keys[index]))
-                          .at(keys[index]),
-                      source.at(keys[index]));
-            std::ostringstream legacy;
-            mcp_write_result(legacy, version, method, JSON{1}, source,
-                             std::nullopt);
-            EXPECT_EQ(parse_json(legacy.str()).at("result").at(keys[index]),
-                      source.at(keys[index]));
-          }
-        }
-        {
-          const auto version{MCPProtocolVersion::V_2026_07_28};
-
-          if (version != CURRENT) {
-            EXPECT_EQ(list_result(method, version, source.at(keys[index]))
-                          .at(keys[index]),
-                      source.at(keys[index]));
-            std::ostringstream legacy;
-            mcp_write_result(legacy, version, method, JSON{1}, source,
-                             std::nullopt);
-            EXPECT_EQ(parse_json(legacy.str()).at("result").at(keys[index]),
-                      source.at(keys[index]));
-          }
+  ])JSON"),
+                std::nullopt, {}),
+            sourcemeta::core::parse_json(R"JSON({
+    "resultType": "complete",
+    "tools": [
+      {
+        "name": "t",
+        "inputSchema": {
+          "type": "object",
+          "properties": { "_meta": { "const": false } }
         }
       }
-    }
-    for (const auto *const text :
-         {"{}", R"({"org.example/data":{"_meta":false}})",
-          R"({
-  "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
-  "tracestate": "vendor=value",
-  "baggage": "key=value"
-})"}) {
-      auto source{parse_json(fixture)};
-      source.at(keys[index]).at(0).assign("_meta", parse_json(text));
-      const auto built{list_result(method, CURRENT, source.at(keys[index]))};
-      std::ostringstream stream;
-      mcp_write_result(stream, CURRENT, method, JSON{1}, source,
-                       MCPCachePolicy{});
-      EXPECT_EQ(parse_json(stream.str()).at("result"), built);
-    }
-  }
-  const auto embedded{parse_json(
-      R"([
-  {
-    "type": "resource",
-    "resource": {
+    ],
+    "ttlMs": 0,
+    "cacheScope": "private"
+  })JSON"));
+}
+
+// Earlier revisions only require the metadata to be an object, so a key that
+// 2026-07-28 rejects still passes there
+// https://modelcontextprotocol.io/specification/2025-11-25/basic/index#meta
+TEST(resources_list_result_accepts_a_malformed_key_on_2025_03_26) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_resources_list_result(
+                sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+                sourcemeta::core::parse_json(R"JSON([
+    {
+      "name": "r",
       "uri": "file:///r",
-      "text": "value",
+      "_meta": { "invalid key": true }
+    }
+  ])JSON"),
+                std::nullopt, {}),
+            sourcemeta::core::parse_json(R"JSON({
+    "resources": [
+      {
+        "name": "r",
+        "uri": "file:///r",
+        "_meta": { "invalid key": true }
+      }
+    ]
+  })JSON"));
+}
+
+TEST(resources_list_result_accepts_a_malformed_key_on_2025_06_18) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_resources_list_result(
+                sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+                sourcemeta::core::parse_json(R"JSON([
+    {
+      "name": "r",
+      "uri": "file:///r",
+      "_meta": { "invalid key": true }
+    }
+  ])JSON"),
+                std::nullopt, {}),
+            sourcemeta::core::parse_json(R"JSON({
+    "resources": [
+      {
+        "name": "r",
+        "uri": "file:///r",
+        "_meta": { "invalid key": true }
+      }
+    ]
+  })JSON"));
+}
+
+TEST(resources_list_result_accepts_a_malformed_key_on_2025_11_25) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_resources_list_result(
+                sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+                sourcemeta::core::parse_json(R"JSON([
+    {
+      "name": "r",
+      "uri": "file:///r",
+      "_meta": { "invalid key": true }
+    }
+  ])JSON"),
+                std::nullopt, {}),
+            sourcemeta::core::parse_json(R"JSON({
+    "resources": [
+      {
+        "name": "r",
+        "uri": "file:///r",
+        "_meta": { "invalid key": true }
+      }
+    ]
+  })JSON"));
+}
+
+TEST(resources_list_result_accepts_empty_entry_metadata) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_resources_list_result(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::parse_json(
+                    R"JSON([
+                {
+                  "name": "r",
+                  "uri": "file:///r",
+                  "_meta": {}
+                }
+              ])JSON"),
+                std::nullopt, {}),
+            sourcemeta::core::parse_json(R"JSON({
+    "resultType": "complete",
+    "resources": [ { "name": "r", "uri": "file:///r", "_meta": {} } ],
+    "ttlMs": 0,
+    "cacheScope": "private"
+  })JSON"));
+}
+
+// A prefixed vendor key may hold anything, including a nested object that
+// happens to use a reserved name
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/index#_meta
+TEST(resources_list_result_accepts_a_vendor_prefixed_entry_key) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_resources_list_result(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::parse_json(R"JSON([
+    {
+      "name": "r",
+      "uri": "file:///r",
+      "_meta": { "org.example/data": { "_meta": false } }
+    }
+  ])JSON"),
+                std::nullopt, {}),
+            sourcemeta::core::parse_json(R"JSON({
+    "resultType": "complete",
+    "resources": [
+      {
+        "name": "r",
+        "uri": "file:///r",
+        "_meta": { "org.example/data": { "_meta": false } }
+      }
+    ],
+    "ttlMs": 0,
+    "cacheScope": "private"
+  })JSON"));
+}
+
+TEST(resources_list_result_accepts_well_formed_tracing_metadata) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_resources_list_result(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::parse_json(R"JSON([
+    {
+      "name": "r",
+      "uri": "file:///r",
       "_meta": {
-        "invalid key": true
+        "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+        "tracestate": "vendor=value",
+        "baggage": "key=value"
       }
     }
-  }
-])")};
-  try {
-    mcp_make_tool_success(CURRENT, JSON{1}, JSON::make_object(), embedded);
-    FAIL();
-  } catch (const std::invalid_argument &) {
-    // Invalid input is expected to be rejected
-  }
-  try {
-    mcp_make_prompts_get_result(
-        CURRENT, "",
-        parse_json(
-            R"([{"role":"user","content":{"type":"text","text":"value","_meta":false}}])"));
-    FAIL();
-  } catch (const std::invalid_argument &) {
-    // Invalid input is expected to be rejected
-  }
-  const auto business{
-      parse_json(R"({"_meta":false,"nested":{"_meta":{"invalid key":true}}})")};
-  EXPECT_EQ(mcp_make_tool_success(CURRENT, JSON{1}, business)
+  ])JSON"),
+                std::nullopt, {}),
+            sourcemeta::core::parse_json(R"JSON({
+    "resultType": "complete",
+    "resources": [
+      {
+        "name": "r",
+        "uri": "file:///r",
+        "_meta": {
+          "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+          "tracestate": "vendor=value",
+          "baggage": "key=value"
+        }
+      }
+    ],
+    "ttlMs": 0,
+    "cacheScope": "private"
+  })JSON"));
+}
+
+TEST(embedded_resource_metadata) {
+  const auto embedded{sourcemeta::core::parse_json(
+      R"JSON([
+        {
+          "type": "resource",
+          "resource": {
+            "uri": "file:///r",
+            "text": "value",
+            "_meta": { "invalid key": true }
+          }
+        }
+      ])JSON")};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_tool_success(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         sourcemeta::core::JSON{1},
+                         sourcemeta::core::JSON::make_object(), embedded),
+                     "Invalid MCP content block");
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_prompts_get_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "",
+                         sourcemeta::core::parse_json(
+                             R"JSON([
+                {
+                  "role": "user",
+                  "content": {
+                    "type": "text",
+                    "text": "value",
+                    "_meta": false
+                  }
+                }
+              ])JSON")),
+                     "Invalid prompt message");
+  const auto business{sourcemeta::core::parse_json(
+      R"JSON({
+        "_meta": false,
+        "nested": { "_meta": { "invalid key": true } }
+      })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_make_tool_success(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::JSON{1}, business)
                 .at("result")
                 .at("structuredContent"),
             business);
 }
 
-TEST(nested_input_metadata) {
-  MCPClientCapabilities capabilities;
+// A nested request does not carry the outer stateless metadata, and whatever
+// metadata it does carry must still be well formed
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/index#_meta
+TEST(input_required_result_rejects_a_boolean_in_roots_list_metadata) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
   capabilities.roots = true;
-  capabilities.elicitation_form = true;
-  capabilities.sampling = true;
-  const std::array<JSON::StringView, 3> cases{{
-      R"({"r":{"method":"roots/list","params":{}}})",
-      R"({
-  "r": {
-    "method": "elicitation/create",
-    "params": {
-      "message": "choose",
-      "requestedSchema": {
-        "type": "object",
-        "properties": {}
-      }
-    }
-  }
-})",
-      R"({
-  "r": {
-    "method": "sampling/createMessage",
-    "params": {
-      "maxTokens": 1,
-      "messages": [
-        {
-          "role": "user",
-          "content": {
-            "type": "text",
-            "text": "hello"
-          }
-        }
-      ]
-    }
-  }
-})",
-  }};
-  for (const auto fixture : cases) {
-    for (const auto *const text :
-         {"false", "null", "[]", R"({"invalid key":true})",
-          R"({"traceparent":"bad"})"}) {
-      auto request{parse_json(fixture)};
-      request.at("r").at("params").assign("_meta", parse_json(text));
-      try {
-        mcp_make_input_required_result(CURRENT, "tools/call", JSON{1}, request,
-                                       std::nullopt, capabilities);
-        FAIL();
-      } catch (const std::invalid_argument &) {
-        // Invalid input is expected to be rejected
-      }
-    }
-    for (const auto *const text : {"{}", R"({"org.example/value":true})"}) {
-      auto request{parse_json(fixture)};
-      request.at("r").at("params").assign("_meta", parse_json(text));
-      const auto result{mcp_make_input_required_result(
-          CURRENT, "tools/call", JSON{1}, request, std::nullopt, capabilities)};
-      EXPECT_TRUE(result.at("result").is_object());
-    }
-  }
-  auto sampling{parse_json(cases[2])};
-  auto &message{sampling.at("r").at("params").at("messages").at(0)};
-  message.assign("_meta", JSON{false});
-  try {
-    mcp_make_input_required_result(CURRENT, "tools/call", JSON{1}, sampling,
-                                   std::nullopt, capabilities);
-    FAIL();
-  } catch (const std::invalid_argument &) {
-    // Invalid input is expected to be rejected
-  }
-  message.erase("_meta");
-  message.at("content").assign("_meta", parse_json(R"({"invalid key":true})"));
-  try {
-    mcp_make_input_required_result(CURRENT, "tools/call", JSON{1}, sampling,
-                                   std::nullopt, capabilities);
-    FAIL();
-  } catch (const std::invalid_argument &) {
-    // Invalid input is expected to be rejected
-  }
-  message.at("content") = parse_json(
-      R"({
-  "type": "tool_use",
-  "id": "call",
-  "name": "tool",
-  "input": {
-    "_meta": false
-  },
-  "_meta": {
-    "org.example/value": true
-  }
-})");
-  message.assign("role", JSON{"assistant"});
-  capabilities.sampling_tools = true;
-  sampling.at("r")
-      .at("params")
-      .at("messages")
-      .push_back(parse_json(
-          R"({
-  "role": "user",
-  "content": {
-    "type": "tool_result",
-    "toolUseId": "call",
-    "content": [
-      {
-        "type": "text",
-        "text": "done"
-      }
-    ]
-  }
-})"));
-  const auto result{mcp_make_input_required_result(
-      CURRENT, "tools/call", JSON{1}, sampling, std::nullopt, capabilities)};
-  EXPECT_TRUE(result.at("result").is_object());
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tools/call", sourcemeta::core::JSON{1},
+                         sourcemeta::core::parse_json(R"JSON({
+    "r": { "method": "roots/list", "params": { "_meta": false } }
+  })JSON"),
+                         std::nullopt, capabilities),
+                     "Invalid or unsupported nested input requests");
 }
 
-TEST(prompt_argument_metadata) {
-  for (const auto *const text :
-       {"false", "null", "[]", R"({"invalid key":true})",
-        R"({"traceparent":"bad"})"}) {
-    auto source{
-        parse_json(R"({"prompts":[{"name":"p","arguments":[{"name":"a"}]}]})")};
-    const auto meta{parse_json(text)};
-    source.at("prompts").at(0).at("arguments").at(0).assign("_meta", meta);
-    try {
-      mcp_make_prompts_list_result(CURRENT, source.at("prompts"), std::nullopt,
-                                   {});
-      FAIL();
-    } catch (const std::invalid_argument &) {
-      // Invalid input is expected to be rejected
+TEST(input_required_result_rejects_a_null_in_roots_list_metadata) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.roots = true;
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tools/call", sourcemeta::core::JSON{1},
+                         sourcemeta::core::parse_json(R"JSON({
+    "r": { "method": "roots/list", "params": { "_meta": null } }
+  })JSON"),
+                         std::nullopt, capabilities),
+                     "Invalid or unsupported nested input requests");
+}
+
+TEST(input_required_result_rejects_an_array_in_roots_list_metadata) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.roots = true;
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tools/call", sourcemeta::core::JSON{1},
+                         sourcemeta::core::parse_json(R"JSON({
+    "r": { "method": "roots/list", "params": { "_meta": [] } }
+  })JSON"),
+                         std::nullopt, capabilities),
+                     "Invalid or unsupported nested input requests");
+}
+
+TEST(input_required_result_rejects_a_malformed_key_in_roots_list_metadata) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.roots = true;
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tools/call", sourcemeta::core::JSON{1},
+                         sourcemeta::core::parse_json(R"JSON({
+    "r": {
+      "method": "roots/list",
+      "params": { "_meta": { "invalid key": true } }
     }
-    std::ostringstream stream;
-    try {
-      mcp_write_result(stream, CURRENT, "prompts/list", JSON{1}, source,
-                       MCPCachePolicy{});
-      FAIL();
-    } catch (const std::invalid_argument &) {
-      // Invalid input is expected to be rejected
+  })JSON"),
+                         std::nullopt, capabilities),
+                     "Invalid or unsupported nested input requests");
+}
+
+TEST(
+    input_required_result_rejects_a_malformed_traceparent_in_roots_list_metadata) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.roots = true;
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tools/call", sourcemeta::core::JSON{1},
+                         sourcemeta::core::parse_json(R"JSON({
+    "r": {
+      "method": "roots/list",
+      "params": { "_meta": { "traceparent": "bad" } }
     }
-    EXPECT_TRUE(stream.str().empty());
-    if (meta.is_object()) {
-      {
-        const auto version{MCPProtocolVersion::V_2025_03_26};
+  })JSON"),
+                         std::nullopt, capabilities),
+                     "Invalid or unsupported nested input requests");
+}
 
-        if (version == CURRENT) {
-          continue;
-        }
-        EXPECT_EQ(mcp_make_prompts_list_result(version, source.at("prompts"),
-                                               std::nullopt, {})
-                      .at("prompts"),
-                  source.at("prompts"));
-        std::ostringstream legacy;
-        mcp_write_result(legacy, version, "prompts/list", JSON{1}, source,
-                         std::nullopt);
-        EXPECT_EQ(parse_json(legacy.str()).at("result").at("prompts"),
-                  source.at("prompts"));
-      }
-      {
-        const auto version{MCPProtocolVersion::V_2025_06_18};
-
-        if (version == CURRENT) {
-          continue;
-        }
-        EXPECT_EQ(mcp_make_prompts_list_result(version, source.at("prompts"),
-                                               std::nullopt, {})
-                      .at("prompts"),
-                  source.at("prompts"));
-        std::ostringstream legacy;
-        mcp_write_result(legacy, version, "prompts/list", JSON{1}, source,
-                         std::nullopt);
-        EXPECT_EQ(parse_json(legacy.str()).at("result").at("prompts"),
-                  source.at("prompts"));
-      }
-      {
-        const auto version{MCPProtocolVersion::V_2025_11_25};
-
-        if (version == CURRENT) {
-          continue;
-        }
-        EXPECT_EQ(mcp_make_prompts_list_result(version, source.at("prompts"),
-                                               std::nullopt, {})
-                      .at("prompts"),
-                  source.at("prompts"));
-        std::ostringstream legacy;
-        mcp_write_result(legacy, version, "prompts/list", JSON{1}, source,
-                         std::nullopt);
-        EXPECT_EQ(parse_json(legacy.str()).at("result").at("prompts"),
-                  source.at("prompts"));
-      }
-      {
-        const auto version{MCPProtocolVersion::V_2026_07_28};
-
-        if (version == CURRENT) {
-          continue;
-        }
-        EXPECT_EQ(mcp_make_prompts_list_result(version, source.at("prompts"),
-                                               std::nullopt, {})
-                      .at("prompts"),
-                  source.at("prompts"));
-        std::ostringstream legacy;
-        mcp_write_result(legacy, version, "prompts/list", JSON{1}, source,
-                         std::nullopt);
-        EXPECT_EQ(parse_json(legacy.str()).at("result").at("prompts"),
-                  source.at("prompts"));
+TEST(input_required_result_rejects_a_boolean_in_elicitation_create_metadata) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.elicitation = true;
+  capabilities.elicitation_form = true;
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tools/call", sourcemeta::core::JSON{1},
+                         sourcemeta::core::parse_json(R"JSON({
+    "r": {
+      "method": "elicitation/create",
+      "params": {
+        "message": "choose",
+        "requestedSchema": { "type": "object", "properties": {} },
+        "_meta": false
       }
     }
-  }
-  const auto source{parse_json(
-      R"({
-  "prompts": [
+  })JSON"),
+                         std::nullopt, capabilities),
+                     "Invalid or unsupported nested input requests");
+}
+
+TEST(input_required_result_rejects_a_null_in_elicitation_create_metadata) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.elicitation = true;
+  capabilities.elicitation_form = true;
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tools/call", sourcemeta::core::JSON{1},
+                         sourcemeta::core::parse_json(R"JSON({
+    "r": {
+      "method": "elicitation/create",
+      "params": {
+        "message": "choose",
+        "requestedSchema": { "type": "object", "properties": {} },
+        "_meta": null
+      }
+    }
+  })JSON"),
+                         std::nullopt, capabilities),
+                     "Invalid or unsupported nested input requests");
+}
+
+TEST(input_required_result_rejects_an_array_in_elicitation_create_metadata) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.elicitation = true;
+  capabilities.elicitation_form = true;
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tools/call", sourcemeta::core::JSON{1},
+                         sourcemeta::core::parse_json(R"JSON({
+    "r": {
+      "method": "elicitation/create",
+      "params": {
+        "message": "choose",
+        "requestedSchema": { "type": "object", "properties": {} },
+        "_meta": []
+      }
+    }
+  })JSON"),
+                         std::nullopt, capabilities),
+                     "Invalid or unsupported nested input requests");
+}
+
+TEST(
+    input_required_result_rejects_a_malformed_key_in_elicitation_create_metadata) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.elicitation = true;
+  capabilities.elicitation_form = true;
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tools/call", sourcemeta::core::JSON{1},
+                         sourcemeta::core::parse_json(R"JSON({
+    "r": {
+      "method": "elicitation/create",
+      "params": {
+        "message": "choose",
+        "requestedSchema": { "type": "object", "properties": {} },
+        "_meta": { "invalid key": true }
+      }
+    }
+  })JSON"),
+                         std::nullopt, capabilities),
+                     "Invalid or unsupported nested input requests");
+}
+
+TEST(
+    input_required_result_rejects_a_malformed_traceparent_in_elicitation_create_metadata) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.elicitation = true;
+  capabilities.elicitation_form = true;
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tools/call", sourcemeta::core::JSON{1},
+                         sourcemeta::core::parse_json(R"JSON({
+    "r": {
+      "method": "elicitation/create",
+      "params": {
+        "message": "choose",
+        "requestedSchema": { "type": "object", "properties": {} },
+        "_meta": { "traceparent": "bad" }
+      }
+    }
+  })JSON"),
+                         std::nullopt, capabilities),
+                     "Invalid or unsupported nested input requests");
+}
+
+TEST(
+    input_required_result_rejects_a_boolean_in_sampling_create_message_metadata) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.sampling = true;
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tools/call", sourcemeta::core::JSON{1},
+                         sourcemeta::core::parse_json(R"JSON({
+    "r": {
+      "method": "sampling/createMessage",
+      "params": {
+        "maxTokens": 1,
+        "messages": [
+          {
+            "role": "user",
+            "content": { "type": "text", "text": "hello" }
+          }
+        ],
+        "_meta": false
+      }
+    }
+  })JSON"),
+                         std::nullopt, capabilities),
+                     "Invalid or unsupported nested input requests");
+}
+
+TEST(input_required_result_rejects_a_null_in_sampling_create_message_metadata) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.sampling = true;
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tools/call", sourcemeta::core::JSON{1},
+                         sourcemeta::core::parse_json(R"JSON({
+    "r": {
+      "method": "sampling/createMessage",
+      "params": {
+        "maxTokens": 1,
+        "messages": [
+          {
+            "role": "user",
+            "content": { "type": "text", "text": "hello" }
+          }
+        ],
+        "_meta": null
+      }
+    }
+  })JSON"),
+                         std::nullopt, capabilities),
+                     "Invalid or unsupported nested input requests");
+}
+
+TEST(
+    input_required_result_rejects_an_array_in_sampling_create_message_metadata) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.sampling = true;
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tools/call", sourcemeta::core::JSON{1},
+                         sourcemeta::core::parse_json(R"JSON({
+    "r": {
+      "method": "sampling/createMessage",
+      "params": {
+        "maxTokens": 1,
+        "messages": [
+          {
+            "role": "user",
+            "content": { "type": "text", "text": "hello" }
+          }
+        ],
+        "_meta": []
+      }
+    }
+  })JSON"),
+                         std::nullopt, capabilities),
+                     "Invalid or unsupported nested input requests");
+}
+
+TEST(
+    input_required_result_rejects_a_malformed_key_in_sampling_create_message_metadata) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.sampling = true;
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tools/call", sourcemeta::core::JSON{1},
+                         sourcemeta::core::parse_json(R"JSON({
+    "r": {
+      "method": "sampling/createMessage",
+      "params": {
+        "maxTokens": 1,
+        "messages": [
+          {
+            "role": "user",
+            "content": { "type": "text", "text": "hello" }
+          }
+        ],
+        "_meta": { "invalid key": true }
+      }
+    }
+  })JSON"),
+                         std::nullopt, capabilities),
+                     "Invalid or unsupported nested input requests");
+}
+
+TEST(
+    input_required_result_rejects_a_malformed_traceparent_in_sampling_create_message_metadata) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.sampling = true;
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tools/call", sourcemeta::core::JSON{1},
+                         sourcemeta::core::parse_json(R"JSON({
+    "r": {
+      "method": "sampling/createMessage",
+      "params": {
+        "maxTokens": 1,
+        "messages": [
+          {
+            "role": "user",
+            "content": { "type": "text", "text": "hello" }
+          }
+        ],
+        "_meta": { "traceparent": "bad" }
+      }
+    }
+  })JSON"),
+                         std::nullopt, capabilities),
+                     "Invalid or unsupported nested input requests");
+}
+
+// A prompt argument carries its own metadata, which follows the same rules as
+// everywhere else
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/index#_meta
+TEST(prompts_list_result_rejects_a_boolean_argument_metadata) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_prompts_list_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         sourcemeta::core::parse_json(R"JSON([
+    {
+      "name": "p",
+      "arguments": [ { "name": "a", "_meta": false } ]
+    }
+  ])JSON"),
+                         std::nullopt, {}),
+                     "Invalid MCP prompt descriptor entry");
+}
+
+TEST(prompts_list_result_rejects_a_null_argument_metadata) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_prompts_list_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         sourcemeta::core::parse_json(R"JSON([
+    {
+      "name": "p",
+      "arguments": [ { "name": "a", "_meta": null } ]
+    }
+  ])JSON"),
+                         std::nullopt, {}),
+                     "Invalid MCP prompt descriptor entry");
+}
+
+TEST(prompts_list_result_rejects_an_array_argument_metadata) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_prompts_list_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         sourcemeta::core::parse_json(R"JSON([
+    {
+      "name": "p",
+      "arguments": [ { "name": "a", "_meta": [] } ]
+    }
+  ])JSON"),
+                         std::nullopt, {}),
+                     "Invalid MCP prompt descriptor entry");
+}
+
+TEST(prompts_list_result_rejects_a_malformed_key_argument_metadata) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_prompts_list_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         sourcemeta::core::parse_json(R"JSON([
+    {
+      "name": "p",
+      "arguments": [ { "name": "a", "_meta": { "invalid key": true } } ]
+    }
+  ])JSON"),
+                         std::nullopt, {}),
+                     "Invalid MCP prompt descriptor entry");
+}
+
+TEST(prompts_list_result_rejects_a_malformed_traceparent_argument_metadata) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_prompts_list_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         sourcemeta::core::parse_json(R"JSON([
+    {
+      "name": "p",
+      "arguments": [ { "name": "a", "_meta": { "traceparent": "bad" } } ]
+    }
+  ])JSON"),
+                         std::nullopt, {}),
+                     "Invalid MCP prompt descriptor entry");
+}
+
+TEST(write_result_rejects_malformed_prompt_argument_metadata) {
+  std::ostringstream stream;
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_write_result(
+                         stream,
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "prompts/list", sourcemeta::core::JSON{1},
+                         sourcemeta::core::parse_json(R"JSON({
+    "prompts": [
+      {
+        "name": "p",
+        "arguments": [ { "name": "a", "_meta": false } ]
+      }
+    ]
+  })JSON"),
+                         sourcemeta::core::MCPCachePolicy{}),
+                     "Invalid precomputed MCP result entry");
+  EXPECT_TRUE(stream.str().empty());
+}
+
+// Earlier revisions only require the metadata to be an object
+// https://modelcontextprotocol.io/specification/2025-11-25/basic/index#meta
+TEST(prompts_list_result_accepts_a_malformed_argument_key_on_2025_11_25) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_prompts_list_result(
+                sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+                sourcemeta::core::parse_json(R"JSON([
+    {
+      "name": "p",
+      "arguments": [ { "name": "a", "_meta": { "invalid key": true } } ]
+    }
+  ])JSON"),
+                std::nullopt, {}),
+            sourcemeta::core::parse_json(R"JSON({
+    "prompts": [
+      {
+        "name": "p",
+        "arguments": [ { "name": "a", "_meta": { "invalid key": true } } ]
+      }
+    ]
+  })JSON"));
+}
+
+TEST(prompts_list_result_accepts_well_formed_argument_metadata) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_prompts_list_result(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::parse_json(R"JSON([
     {
       "name": "p",
       "arguments": [
         {
           "name": "a",
-          "_meta": {
-            "org.example/value": {
-              "_meta": false
-            }
-          }
+          "_meta": { "org.example/data": { "value": 1 } }
         }
       ]
     }
-  ]
-})")};
-  const auto result{mcp_make_prompts_list_result(CURRENT, source.at("prompts"),
-                                                 std::nullopt, {})};
-  std::ostringstream stream;
-  mcp_write_result(stream, CURRENT, "prompts/list", JSON{1}, source,
-                   MCPCachePolicy{});
-  EXPECT_EQ(parse_json(stream.str()).at("result"), result);
-  EXPECT_TRUE(result.is_object());
+  ])JSON"),
+                std::nullopt, {}),
+            sourcemeta::core::parse_json(R"JSON({
+    "resultType": "complete",
+    "prompts": [
+      {
+        "name": "p",
+        "arguments": [
+          {
+            "name": "a",
+            "_meta": { "org.example/data": { "value": 1 } }
+          }
+        ]
+      }
+    ],
+    "ttlMs": 0,
+    "cacheScope": "private"
+  })JSON"));
 }
 
-TEST(sampling_tool_history) {
-  MCPClientCapabilities capabilities;
+TEST(prompts_list_result_rejects_a_non_boolean_required_argument) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_prompts_list_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         sourcemeta::core::parse_json(R"JSON([
+    {
+      "name": "p",
+      "arguments": [ { "name": "a", "required": 1 } ]
+    }
+  ])JSON"),
+                         std::nullopt, {}),
+                     "Invalid MCP prompt descriptor entry");
+}
+
+TEST(prompts_list_result_rejects_non_array_arguments) {
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_prompts_list_result(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+          sourcemeta::core::parse_json(
+              R"JSON([ { "name": "p", "arguments": false } ])JSON"),
+          std::nullopt, {}),
+      "Invalid MCP prompt descriptor entry");
+}
+
+// A tool call is resolved by the immediately following user message, which
+// may answer the outstanding calls in any order
+// https://modelcontextprotocol.io/specification/2026-07-28/client/sampling
+TEST(sampling_history_accepts_tool_calls_answered_in_any_order) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
   capabilities.sampling = true;
   capabilities.sampling_tools = true;
-  const auto call{parse_json(
-      R"({"type":"tool_use","id":"call","name":"tool","input":{"_meta":false}})")};
-  const auto answer{parse_json(
-      R"({"type":"tool_result","toolUseId":"call","content":[{"type":"text","text":"done"}]})")};
-  const auto valid{parse_json(
-      R"([
-  {
-    "role": "assistant",
-    "content": [
-      {
-        "type": "tool_use",
-        "id": "a",
-        "name": "tool",
-        "input": {}
-      },
-      {
-        "type": "tool_use",
-        "id": "b",
-        "name": "tool",
-        "input": {}
-      }
-    ]
-  },
-  {
-    "role": "user",
-    "content": [
-      {
-        "type": "tool_result",
-        "toolUseId": "b",
-        "content": []
-      },
-      {
-        "type": "tool_result",
-        "toolUseId": "a",
-        "content": []
-      }
-    ]
-  },
-  {
-    "role": "assistant",
-    "content": {
-      "type": "text",
-      "text": "done"
-    }
-  }
-])")};
-  const auto result{sampling_result(valid, capabilities)};
-  EXPECT_TRUE(result.at("result").is_object());
-  capabilities.sampling_tools = false;
-  try {
-    sampling_result(valid, capabilities);
-    FAIL();
-  } catch (const std::invalid_argument &) {
-    // Invalid input is expected to be rejected
-  }
-  capabilities.sampling_tools = true;
-  for (
-      const auto *const text :
-      {R"([{"role":"user","content":{}}])",
-       R"([{"role":"assistant","content":{}}])",
-       R"([
-  {
-    "role": "assistant",
-    "content": {}
-  },
-  {
-    "role": "user",
-    "content": [
-      {},
-      {
-        "type": "text",
-        "text": "mixed"
-      }
-    ]
-  }
-])",
-       R"([{"role":"assistant","content":{}},{"role":"user","content":[{}, {}]}])"}) {
-    auto messages{parse_json(text)};
-    messages.at(0).assign("content", call);
-    if (messages.size() > 1) {
-      auto &content{messages.at(1).at("content")};
-      if (content.is_array()) {
-        content.at(0) = answer;
-        if (content.at(1).empty()) {
-          content.at(1) = answer;
-        }
-      } else {
-        content = answer;
+  const auto requests{sourcemeta::core::parse_json(R"JSON({
+    "r": {
+      "method": "sampling/createMessage",
+      "params": {
+        "maxTokens": 1,
+        "messages": [
+          {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "tool_use",
+                "id": "a",
+                "name": "tool",
+                "input": {}
+              },
+              {
+                "type": "tool_use",
+                "id": "b",
+                "name": "tool",
+                "input": {}
+              }
+            ]
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "tool_result",
+                "toolUseId": "b",
+                "content": []
+              },
+              {
+                "type": "tool_result",
+                "toolUseId": "a",
+                "content": []
+              }
+            ]
+          },
+          {
+            "role": "assistant",
+            "content": { "type": "text", "text": "ok" }
+          }
+        ]
       }
     }
-    try {
-      sampling_result(messages, capabilities);
-      FAIL();
-    } catch (const std::invalid_argument &) {
-      // Invalid input is expected to be rejected
-    }
-  }
-  auto incomplete{valid};
-  incomplete.at(1).at("content").at(1).assign("toolUseId", JSON{"unknown"});
-  try {
-    sampling_result(incomplete, capabilities);
-    FAIL();
-  } catch (const std::invalid_argument &) {
-    // Invalid input is expected to be rejected
-  }
-  auto duplicate{valid};
-  duplicate.at(0).at("content").at(1).assign("id", JSON{"a"});
-  duplicate.at(1).assign(
-      "content",
-      parse_json(R"([{ "type":"tool_result","toolUseId":"a","content":[]}])"));
-  try {
-    sampling_result(duplicate, capabilities);
-    FAIL();
-  } catch (const std::invalid_argument &) {
-    // Invalid input is expected to be rejected
-  }
-  // Every block is otherwise valid: only the intervening text message violates
-  // the immediate tool-result requirement.
-  const auto interrupted{parse_json(
-      R"([
-  {
-    "role": "assistant",
-    "content": {
-      "type": "tool_use",
-      "id": "call",
-      "name": "tool",
-      "input": {}
-    }
-  },
-  {
-    "role": "assistant",
-    "content": {
-      "type": "text",
-      "text": "interrupted"
-    }
-  },
-  {
-    "role": "user",
-    "content": {
-      "type": "tool_result",
-      "toolUseId": "call",
-      "content": []
-    }
-  }
-])")};
-  try {
-    sampling_result(interrupted, capabilities);
-    FAIL();
-  } catch (const std::invalid_argument &) {
-    // Invalid input is expected to be rejected
-  }
-  auto orphan{JSON::make_array()};
-  auto message{JSON::make_object()};
-  message.assign("role", JSON{"user"});
-  message.assign("content", answer);
-  orphan.push_back(std::move(message));
-  try {
-    sampling_result(orphan, capabilities);
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_make_input_required_result(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                "tools/call", sourcemeta::core::JSON{1}, requests, std::nullopt,
+                capabilities)
+                .at("result")
+                .at("resultType"),
+            sourcemeta::core::JSON{"input_required"});
 }
 
-TEST(continuation_nested_metadata) {
-  const auto prior{parse_json(
-      R"({"roots":{"method":"roots/list"},"sample":{"method":"sampling/createMessage"}})")};
-  for (const auto *const text :
-       {"false", "null", "[]", R"({"invalid key":true})",
-        R"({"traceparent":"bad"})"}) {
-    auto value{parameters()};
-    value.assign("inputResponses", parse_json(
-                                       R"({
-  "roots": {
-    "roots": [
-      {
-        "uri": "file:///r"
+TEST(sampling_history_requires_the_tool_use_capability) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.sampling = true;
+  const auto requests{sourcemeta::core::parse_json(R"JSON({
+    "r": {
+      "method": "sampling/createMessage",
+      "params": {
+        "maxTokens": 1,
+        "messages": [
+          {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "tool_use",
+                "id": "a",
+                "name": "tool",
+                "input": {}
+              },
+              {
+                "type": "tool_use",
+                "id": "b",
+                "name": "tool",
+                "input": {}
+              }
+            ]
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "tool_result",
+                "toolUseId": "b",
+                "content": []
+              },
+              {
+                "type": "tool_result",
+                "toolUseId": "a",
+                "content": []
+              }
+            ]
+          },
+          {
+            "role": "assistant",
+            "content": { "type": "text", "text": "ok" }
+          }
+        ]
       }
-    ]
-  },
-  "sample": {
-    "role": "assistant",
-    "model": "model",
-    "content": {
-      "type": "text",
-      "text": "hello"
     }
-  }
-})"));
-    auto &root{value.at("inputResponses").at("roots").at("roots").at(0)};
-    root.assign("_meta", parse_json(text));
-    EXPECT_FALSE(mcp_validate_continuation(CURRENT, value, prior));
-    root.erase("_meta");
-    auto &sample{value.at("inputResponses").at("sample")};
-    sample.assign("_meta", parse_json(text));
-    EXPECT_FALSE(mcp_validate_continuation(CURRENT, value, prior));
-    sample.erase("_meta");
-    sample.at("content").assign("_meta", parse_json(text));
-    EXPECT_FALSE(mcp_validate_continuation(CURRENT, value, prior));
-    sample.at("content").assign(
-        "_meta", parse_json(R"({"org.example/value":{"_meta":false}})"));
-    root.assign("_meta", JSON::make_object());
-    EXPECT_TRUE(mcp_validate_continuation(CURRENT, value, prior));
-  }
+  })JSON")};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tools/call", sourcemeta::core::JSON{1}, requests,
+                         std::nullopt, capabilities),
+                     "Invalid or unsupported nested input requests");
+}
+
+// Only an assistant message carries a tool call
+TEST(sampling_history_rejects_a_tool_call_from_a_user) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.sampling = true;
+  capabilities.sampling_tools = true;
+  const auto requests{sourcemeta::core::parse_json(R"JSON({
+    "r": {
+      "method": "sampling/createMessage",
+      "params": {
+        "maxTokens": 1,
+        "messages": [
+          {
+            "role": "user",
+            "content": {
+              "type": "tool_use",
+              "id": "call",
+              "name": "tool",
+              "input": {}
+            }
+          }
+        ]
+      }
+    }
+  })JSON")};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tools/call", sourcemeta::core::JSON{1}, requests,
+                         std::nullopt, capabilities),
+                     "Invalid or unsupported nested input requests");
+}
+
+TEST(sampling_history_rejects_an_unanswered_tool_call) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.sampling = true;
+  capabilities.sampling_tools = true;
+  const auto requests{sourcemeta::core::parse_json(R"JSON({
+    "r": {
+      "method": "sampling/createMessage",
+      "params": {
+        "maxTokens": 1,
+        "messages": [
+          {
+            "role": "assistant",
+            "content": {
+              "type": "tool_use",
+              "id": "call",
+              "name": "tool",
+              "input": {}
+            }
+          }
+        ]
+      }
+    }
+  })JSON")};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tools/call", sourcemeta::core::JSON{1}, requests,
+                         std::nullopt, capabilities),
+                     "Invalid or unsupported nested input requests");
+}
+
+TEST(sampling_history_rejects_a_tool_result_from_an_assistant) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.sampling = true;
+  capabilities.sampling_tools = true;
+  const auto requests{sourcemeta::core::parse_json(R"JSON({
+    "r": {
+      "method": "sampling/createMessage",
+      "params": {
+        "maxTokens": 1,
+        "messages": [
+          {
+            "role": "assistant",
+            "content": {
+              "type": "tool_use",
+              "id": "call",
+              "name": "tool",
+              "input": {}
+            }
+          },
+          {
+            "role": "assistant",
+            "content": {
+              "type": "tool_result",
+              "toolUseId": "call",
+              "content": []
+            }
+          }
+        ]
+      }
+    }
+  })JSON")};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tools/call", sourcemeta::core::JSON{1}, requests,
+                         std::nullopt, capabilities),
+                     "Invalid or unsupported nested input requests");
+}
+
+// The answering user message may contain only the corresponding tool
+// results
+TEST(sampling_history_rejects_a_tool_result_mixed_with_other_content) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.sampling = true;
+  capabilities.sampling_tools = true;
+  const auto requests{sourcemeta::core::parse_json(R"JSON({
+    "r": {
+      "method": "sampling/createMessage",
+      "params": {
+        "maxTokens": 1,
+        "messages": [
+          {
+            "role": "assistant",
+            "content": {
+              "type": "tool_use",
+              "id": "call",
+              "name": "tool",
+              "input": {}
+            }
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "tool_result",
+                "toolUseId": "call",
+                "content": []
+              },
+              { "type": "text", "text": "mixed" }
+            ]
+          }
+        ]
+      }
+    }
+  })JSON")};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tools/call", sourcemeta::core::JSON{1}, requests,
+                         std::nullopt, capabilities),
+                     "Invalid or unsupported nested input requests");
+}
+
+TEST(sampling_history_rejects_an_unknown_tool_use_identifier) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.sampling = true;
+  capabilities.sampling_tools = true;
+  const auto requests{sourcemeta::core::parse_json(R"JSON({
+    "r": {
+      "method": "sampling/createMessage",
+      "params": {
+        "maxTokens": 1,
+        "messages": [
+          {
+            "role": "assistant",
+            "content": {
+              "type": "tool_use",
+              "id": "call",
+              "name": "tool",
+              "input": {}
+            }
+          },
+          {
+            "role": "user",
+            "content": {
+              "type": "tool_result",
+              "toolUseId": "unknown",
+              "content": []
+            }
+          }
+        ]
+      }
+    }
+  })JSON")};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tools/call", sourcemeta::core::JSON{1}, requests,
+                         std::nullopt, capabilities),
+                     "Invalid or unsupported nested input requests");
+}
+
+TEST(sampling_history_rejects_duplicate_tool_use_identifiers) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.sampling = true;
+  capabilities.sampling_tools = true;
+  const auto requests{sourcemeta::core::parse_json(R"JSON({
+    "r": {
+      "method": "sampling/createMessage",
+      "params": {
+        "maxTokens": 1,
+        "messages": [
+          {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "tool_use",
+                "id": "a",
+                "name": "tool",
+                "input": {}
+              },
+              {
+                "type": "tool_use",
+                "id": "a",
+                "name": "tool",
+                "input": {}
+              }
+            ]
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "tool_result",
+                "toolUseId": "a",
+                "content": []
+              }
+            ]
+          }
+        ]
+      }
+    }
+  })JSON")};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tools/call", sourcemeta::core::JSON{1}, requests,
+                         std::nullopt, capabilities),
+                     "Invalid or unsupported nested input requests");
+}
+
+// Every block here is well formed on its own, and only the intervening text
+// message breaks the immediate-answer requirement
+TEST(sampling_history_rejects_an_interrupted_tool_call) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.sampling = true;
+  capabilities.sampling_tools = true;
+  const auto requests{sourcemeta::core::parse_json(R"JSON({
+    "r": {
+      "method": "sampling/createMessage",
+      "params": {
+        "maxTokens": 1,
+        "messages": [
+          {
+            "role": "assistant",
+            "content": {
+              "type": "tool_use",
+              "id": "call",
+              "name": "tool",
+              "input": {}
+            }
+          },
+          {
+            "role": "assistant",
+            "content": { "type": "text", "text": "interrupted" }
+          },
+          {
+            "role": "user",
+            "content": {
+              "type": "tool_result",
+              "toolUseId": "call",
+              "content": []
+            }
+          }
+        ]
+      }
+    }
+  })JSON")};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tools/call", sourcemeta::core::JSON{1}, requests,
+                         std::nullopt, capabilities),
+                     "Invalid or unsupported nested input requests");
+}
+
+TEST(sampling_history_rejects_an_orphan_tool_result) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.sampling = true;
+  capabilities.sampling_tools = true;
+  const auto requests{sourcemeta::core::parse_json(R"JSON({
+    "r": {
+      "method": "sampling/createMessage",
+      "params": {
+        "maxTokens": 1,
+        "messages": [
+          {
+            "role": "user",
+            "content": {
+              "type": "tool_result",
+              "toolUseId": "call",
+              "content": []
+            }
+          }
+        ]
+      }
+    }
+  })JSON")};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tools/call", sourcemeta::core::JSON{1}, requests,
+                         std::nullopt, capabilities),
+                     "Invalid or unsupported nested input requests");
+}
+
+TEST(sampling_history_rejects_a_non_object_tool_input) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.sampling = true;
+  capabilities.sampling_tools = true;
+  const auto requests{sourcemeta::core::parse_json(R"JSON({
+    "r": {
+      "method": "sampling/createMessage",
+      "params": {
+        "maxTokens": 1,
+        "messages": [
+          {
+            "role": "assistant",
+            "content": {
+              "type": "tool_use",
+              "id": "call",
+              "name": "tool",
+              "input": false
+            }
+          },
+          {
+            "role": "user",
+            "content": {
+              "type": "tool_result",
+              "toolUseId": "call",
+              "content": []
+            }
+          }
+        ]
+      }
+    }
+  })JSON")};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tools/call", sourcemeta::core::JSON{1}, requests,
+                         std::nullopt, capabilities),
+                     "Invalid or unsupported nested input requests");
+}
+
+// Metadata nested inside a continuation response follows the same key and
+// tracing rules as metadata anywhere else
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/index#_meta
+TEST(validate_continuation_rejects_a_boolean_in_root_metadata) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "inputResponses": {
+      "roots": { "roots": [ { "uri": "file:///r", "_meta": false } ] }
+    }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(
+      R"JSON({ "roots": { "method": "roots/list" } })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior));
+}
+
+TEST(validate_continuation_rejects_a_boolean_in_sampling_metadata) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "inputResponses": {
+      "sample": {
+        "role": "assistant",
+        "model": "model",
+        "content": { "type": "text", "text": "hello" },
+        "_meta": false
+      }
+    }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(
+      R"JSON({ "sample": { "method": "sampling/createMessage" } })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior));
+}
+
+TEST(validate_continuation_rejects_a_boolean_in_content_metadata) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "inputResponses": {
+      "sample": {
+        "role": "assistant",
+        "model": "model",
+        "content": { "type": "text", "text": "hello", "_meta": false }
+      }
+    }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(
+      R"JSON({ "sample": { "method": "sampling/createMessage" } })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior));
+}
+
+TEST(validate_continuation_rejects_a_null_in_root_metadata) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "inputResponses": {
+      "roots": { "roots": [ { "uri": "file:///r", "_meta": null } ] }
+    }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(
+      R"JSON({ "roots": { "method": "roots/list" } })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior));
+}
+
+TEST(validate_continuation_rejects_a_null_in_sampling_metadata) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "inputResponses": {
+      "sample": {
+        "role": "assistant",
+        "model": "model",
+        "content": { "type": "text", "text": "hello" },
+        "_meta": null
+      }
+    }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(
+      R"JSON({ "sample": { "method": "sampling/createMessage" } })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior));
+}
+
+TEST(validate_continuation_rejects_a_null_in_content_metadata) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "inputResponses": {
+      "sample": {
+        "role": "assistant",
+        "model": "model",
+        "content": { "type": "text", "text": "hello", "_meta": null }
+      }
+    }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(
+      R"JSON({ "sample": { "method": "sampling/createMessage" } })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior));
+}
+
+TEST(validate_continuation_rejects_an_array_in_root_metadata) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "inputResponses": {
+      "roots": { "roots": [ { "uri": "file:///r", "_meta": [] } ] }
+    }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(
+      R"JSON({ "roots": { "method": "roots/list" } })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior));
+}
+
+TEST(validate_continuation_rejects_an_array_in_sampling_metadata) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "inputResponses": {
+      "sample": {
+        "role": "assistant",
+        "model": "model",
+        "content": { "type": "text", "text": "hello" },
+        "_meta": []
+      }
+    }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(
+      R"JSON({ "sample": { "method": "sampling/createMessage" } })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior));
+}
+
+TEST(validate_continuation_rejects_an_array_in_content_metadata) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "inputResponses": {
+      "sample": {
+        "role": "assistant",
+        "model": "model",
+        "content": { "type": "text", "text": "hello", "_meta": [] }
+      }
+    }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(
+      R"JSON({ "sample": { "method": "sampling/createMessage" } })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior));
+}
+
+TEST(validate_continuation_rejects_a_malformed_key_in_root_metadata) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "inputResponses": {
+      "roots": {
+        "roots": [
+          {
+            "uri": "file:///r",
+            "_meta": { "invalid key": true }
+          }
+        ]
+      }
+    }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(
+      R"JSON({ "roots": { "method": "roots/list" } })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior));
+}
+
+TEST(validate_continuation_rejects_a_malformed_key_in_sampling_metadata) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "inputResponses": {
+      "sample": {
+        "role": "assistant",
+        "model": "model",
+        "content": { "type": "text", "text": "hello" },
+        "_meta": { "invalid key": true }
+      }
+    }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(
+      R"JSON({ "sample": { "method": "sampling/createMessage" } })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior));
+}
+
+TEST(validate_continuation_rejects_a_malformed_key_in_content_metadata) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "inputResponses": {
+      "sample": {
+        "role": "assistant",
+        "model": "model",
+        "content": {
+          "type": "text",
+          "text": "hello",
+          "_meta": { "invalid key": true }
+        }
+      }
+    }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(
+      R"JSON({ "sample": { "method": "sampling/createMessage" } })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior));
+}
+
+TEST(validate_continuation_rejects_a_malformed_traceparent_in_root_metadata) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "inputResponses": {
+      "roots": {
+        "roots": [
+          {
+            "uri": "file:///r",
+            "_meta": { "traceparent": "bad" }
+          }
+        ]
+      }
+    }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(
+      R"JSON({ "roots": { "method": "roots/list" } })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior));
+}
+
+TEST(
+    validate_continuation_rejects_a_malformed_traceparent_in_sampling_metadata) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "inputResponses": {
+      "sample": {
+        "role": "assistant",
+        "model": "model",
+        "content": { "type": "text", "text": "hello" },
+        "_meta": { "traceparent": "bad" }
+      }
+    }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(
+      R"JSON({ "sample": { "method": "sampling/createMessage" } })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior));
+}
+
+TEST(
+    validate_continuation_rejects_a_malformed_traceparent_in_content_metadata) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "inputResponses": {
+      "sample": {
+        "role": "assistant",
+        "model": "model",
+        "content": {
+          "type": "text",
+          "text": "hello",
+          "_meta": { "traceparent": "bad" }
+        }
+      }
+    }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(
+      R"JSON({ "sample": { "method": "sampling/createMessage" } })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior));
+}
+
+TEST(validate_continuation_accepts_well_formed_nested_metadata) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "inputResponses": {
+      "roots": { "roots": [ { "uri": "file:///r", "_meta": {} } ] },
+      "sample": {
+        "role": "assistant",
+        "model": "model",
+        "content": {
+          "type": "text",
+          "text": "hello",
+          "_meta": { "org.example/value": { "_meta": false } }
+        }
+      }
+    }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(R"JSON({
+    "roots": { "method": "roots/list" },
+    "sample": { "method": "sampling/createMessage" }
+  })JSON")};
+  EXPECT_TRUE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior));
 }
 
 TEST(result_writer_requires_cache_policy) {
   constexpr auto *FIXTURE{
-      R"({
-  "resources": [
-    {
-      "name": "test",
-      "uri": "https://example.com/a"
-    }
-  ],
-  "nextCursor": "",
-  "_meta": {
-    "example.org/value": "preserved"
-  }
-})"};
-  const auto page{parse_json(FIXTURE)};
+      R"JSON({
+        "resources": [ { "name": "test", "uri": "https://example.com/a" } ],
+        "nextCursor": "",
+        "_meta": { "example.org/value": "preserved" }
+      })JSON"};
+  const auto page{sourcemeta::core::parse_json(FIXTURE)};
   // Parse a separate snapshot so the comparison detects source mutation.
-  const auto saved{parse_json(FIXTURE)};
+  const auto saved{sourcemeta::core::parse_json(FIXTURE)};
 
   std::ostringstream stream;
-  try {
-    mcp_write_result(stream, CURRENT, "resources/list", JSON{0}, page,
-                     std::nullopt);
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_write_result(
+          stream, sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+          "resources/list", sourcemeta::core::JSON{0}, page, std::nullopt),
+      "Cacheable results require a policy");
 }
 
 TEST(result_writer_rejects_non_cacheable_method) {
   constexpr auto *FIXTURE{
-      R"({
-  "resources": [
-    {
-      "name": "test",
-      "uri": "https://example.com/a"
-    }
-  ],
-  "nextCursor": "",
-  "_meta": {
-    "example.org/value": "preserved"
-  }
-})"};
-  const auto page{parse_json(FIXTURE)};
+      R"JSON({
+        "resources": [ { "name": "test", "uri": "https://example.com/a" } ],
+        "nextCursor": "",
+        "_meta": { "example.org/value": "preserved" }
+      })JSON"};
+  const auto page{sourcemeta::core::parse_json(FIXTURE)};
   // Parse a separate snapshot so the comparison detects source mutation.
-  const auto saved{parse_json(FIXTURE)};
+  const auto saved{sourcemeta::core::parse_json(FIXTURE)};
 
   std::ostringstream stream;
-  try {
-    mcp_write_result(stream, CURRENT, "tools/call", JSON{0}, page,
-                     MCPCachePolicy{});
-  } catch (const std::invalid_argument &) {
-    return;
-  }
-  FAIL();
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_write_result(
+                         stream,
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tools/call", sourcemeta::core::JSON{0}, page,
+                         sourcemeta::core::MCPCachePolicy{}),
+                     "Writer requires a cacheable operation");
 }
 
 // The initialize parameters are an Object, so a request carrying any other
 // JSON value there is as malformed as one carrying none
 TEST(make_initialize_result_returns_invalid_request_when_params_is_an_array) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
   const auto request{sourcemeta::core::parse_json(R"JSON({
-    "jsonrpc": "2.0", "id": 1, "method": "initialize", "params": []
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "initialize",
+    "params": []
   })JSON")};
   const sourcemeta::core::MCPServerCapabilities capabilities;
   const sourcemeta::core::MCPImplementation server{.name = "srv",
@@ -6269,7 +8127,7 @@ TEST(make_initialize_result_returns_invalid_request_when_params_is_an_array) {
                                                    .description = {},
                                                    .website_url = {}};
   const auto envelope{sourcemeta::core::mcp_make_initialize_result(
-      request, capabilities, server, SUPPORTED_VERSIONS)};
+      request, capabilities, server, SUPPORTED)};
   EXPECT_EQ(envelope.at("error").at("code").to_integer(),
             sourcemeta::core::JSONRPC_CODE_INVALID_REQUEST);
 }
