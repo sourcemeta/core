@@ -7,8 +7,8 @@
 #if defined(_WIN32)
 #include <windows.h> // HANDLE, CreateFileW, FlushFileBuffers, CloseHandle
 #else
-#include <cerrno>   // errno
-#include <fcntl.h>  // open, O_RDWR, O_DIRECTORY, O_RDONLY
+#include <cerrno>   // errno, EINVAL, ENOTSUP, EOPNOTSUPP
+#include <fcntl.h>  // open, O_RDWR, O_DIRECTORY, O_RDONLY, O_CLOEXEC
 #include <unistd.h> // close, fsync
 #endif
 
@@ -45,7 +45,7 @@ auto flush(const std::filesystem::path &path) -> void {
   CloseHandle(hFile);
 
 #else
-  auto descriptor = ::open(path.c_str(), O_RDWR);
+  auto descriptor = ::open(path.c_str(), O_RDWR | O_CLOEXEC);
   if (descriptor == -1) {
     const auto error_code = std::error_code{errno, std::generic_category()};
     if (error_code == std::errc::no_such_file_or_directory) {
@@ -68,20 +68,32 @@ auto flush(const std::filesystem::path &path) -> void {
 
   ::close(descriptor);
 
-  // After syncing a file, we should also sync the directory to ensure
-  // durability
-  auto directory_fd =
-      ::open(path.parent_path().c_str(), O_DIRECTORY | O_RDONLY);
-  if (directory_fd != -1) {
-    if (::fsync(directory_fd) == -1) {
-      const auto error_code = std::error_code{errno, std::generic_category()};
-      ::close(directory_fd);
-      throw std::filesystem::filesystem_error{
-          "failed to flush the parent directory to disk", path, error_code};
-    }
-
-    ::close(directory_fd);
+  // Syncing the file alone leaves its directory entry in the cache, so a
+  // crash can lose the name of a file whose contents are on the disk. A
+  // relative path without a directory component names an entry of the working
+  // directory rather than of no directory at all
+  const auto parent{path.has_parent_path() ? path.parent_path()
+                                           : std::filesystem::path{"."}};
+  const auto directory{
+      ::open(parent.c_str(), O_DIRECTORY | O_RDONLY | O_CLOEXEC)};
+  if (directory == -1) {
+    const auto error_code = std::error_code{errno, std::generic_category()};
+    throw std::filesystem::filesystem_error{
+        "failed to open the parent directory for flushing", path, error_code};
   }
+
+  // A filesystem that holds no directory entries to flush reports the request
+  // as invalid or unsupported, which leaves nothing for this call to do rather
+  // than anything for it to report
+  if (::fsync(directory) == -1 && errno != EINVAL && errno != ENOTSUP &&
+      errno != EOPNOTSUPP) {
+    const auto error_code = std::error_code{errno, std::generic_category()};
+    ::close(directory);
+    throw std::filesystem::filesystem_error{
+        "failed to flush the parent directory to disk", path, error_code};
+  }
+
+  ::close(directory);
 #endif
 }
 

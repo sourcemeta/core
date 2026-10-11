@@ -84,15 +84,13 @@ private:
 /// An error that represents a failure to memory-map a file
 class SOURCEMETA_CORE_SYSTEM_EXPORT FileViewError : public std::exception {
 public:
-  /// Construct the error given the offending path and a message.
-  FileViewError(std::filesystem::path path, const char *message)
-      : path_{std::move(path)}, message_{message} {}
-  FileViewError(std::filesystem::path path, std::string message) = delete;
-  FileViewError(std::filesystem::path path, std::string &&message) = delete;
-  FileViewError(std::filesystem::path path, std::string_view message) = delete;
+  /// Construct the error given the offending path and a message. The message is
+  /// copied, so that it may name a buffer that does not outlive the call.
+  FileViewError(std::filesystem::path path, std::string message)
+      : path_{std::move(path)}, message_{std::move(message)} {}
 
   [[nodiscard]] auto what() const noexcept -> const char * override {
-    return this->message_;
+    return this->message_.c_str();
   }
 
   /// The offending path.
@@ -102,7 +100,7 @@ public:
 
 private:
   std::filesystem::path path_;
-  const char *message_;
+  std::string message_;
 };
 
 /// @ingroup system

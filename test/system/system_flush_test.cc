@@ -86,6 +86,26 @@ TEST(flush_an_unreadable_file_throws_permission_error) {
 }
 #endif
 
+TEST(flush_a_bare_relative_filename) {
+  const auto previous{std::filesystem::current_path()};
+  const sourcemeta::core::TemporaryDirectory directory{
+      std::filesystem::temp_directory_path(), ".flush-"};
+  std::filesystem::current_path(directory.path());
+
+  std::ofstream output{"bare.txt"};
+  output << "content";
+  output.close();
+
+  try {
+    sourcemeta::core::flush("bare.txt");
+  } catch (...) {
+    std::filesystem::current_path(previous);
+    FAIL();
+  }
+
+  std::filesystem::current_path(previous);
+}
+
 // A pipe is a file the filesystem names and holds no blocks for, and Linux
 // reports a synchronisation request against one as invalid, which is the one
 // way to reach the failure arm without a device that misbehaves. Opening it for

@@ -26,9 +26,6 @@ else()
 endif()
 
 target_link_libraries(sourcemeta_core_system_unit PRIVATE sourcemeta::core::system)
-# A handful of suites read back through the higher-level I/O helpers to
-# verify what the primitives below them wrote
-target_link_libraries(sourcemeta_core_system_unit PRIVATE sourcemeta::core::io)
 target_compile_definitions(sourcemeta_core_system_unit
   PRIVATE STUBS_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}/stubs"
   PRIVATE BUILD_DIRECTORY="${CMAKE_CURRENT_BINARY_DIR}")
@@ -119,6 +116,7 @@ macro(add_stacktrace_test_windows_no_debug scenario)
     if(PROJECT_IS_TOP_LEVEL)
       sourcemeta_clang_tidy_attempt_enable(TARGET ${target})
     endif()
+    target_link_options(${target} PRIVATE /DEBUG:NONE)
     add_test(NAME core.system.stacktrace.${scenario}.no_debug.e2e
       COMMAND powershell -ExecutionPolicy Bypass -File
         "${CMAKE_CURRENT_SOURCE_DIR}/system_stacktrace_${scenario}_no_debug_test.ps1"

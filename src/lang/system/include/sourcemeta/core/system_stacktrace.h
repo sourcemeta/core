@@ -9,8 +9,9 @@ namespace sourcemeta::core {
 
 /// @ingroup system
 ///
-/// Install a process-wide handler that prints a stack trace on fatal signals.
-/// For example:
+/// Install a process-wide handler that prints a stack trace when the program
+/// is about to die: on a fatal signal where the platform raises one, and on an
+/// unhandled structured exception on Windows. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/system.h>

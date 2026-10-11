@@ -61,6 +61,13 @@ option(SOURCEMETA_CORE_USE_SYSTEM_ALLOCATOR "Always use the system allocator" OF
 
 include(Sourcemeta)
 
+# The I/O library is written on top of the operating system primitives that the
+# system library wraps, so asking for one without the other cannot be honoured
+if(SOURCEMETA_CORE_LANG_IO AND NOT SOURCEMETA_CORE_LANG_SYSTEM)
+  message(FATAL_ERROR
+    "The Sourcemeta Core language I/O library requires the system library")
+endif()
+
 # Don't force downstream consumers on this
 if(PROJECT_IS_TOP_LEVEL)
   sourcemeta_enable_simd()

@@ -2,6 +2,7 @@
 #include <sourcemeta/core/test.h>
 
 #include <filesystem>  // std::filesystem::path
+#include <string>      // std::string
 #include <string_view> // std::string_view
 #include <vector>      // std::vector
 
@@ -54,6 +55,14 @@ TEST(fileview_error_path) {
   const sourcemeta::core::FileViewError error{"/foo/bar.json",
                                               "Failed to memory-map the file"};
   EXPECT_EQ(error.path(), std::filesystem::path{"/foo/bar.json"});
+}
+
+TEST(fileview_error_message_outlives_its_argument) {
+  const auto error{[]() {
+    std::string message{"Failed to memory-map the file"};
+    return sourcemeta::core::FileViewError{"/foo/bar.json", message};
+  }()};
+  EXPECT_STREQ(error.what(), "Failed to memory-map the file");
 }
 
 TEST(file_not_found_error_message) {

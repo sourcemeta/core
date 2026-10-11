@@ -1,43 +1,34 @@
 #ifndef SOURCEMETA_CORE_SYSTEM_PARALLEL_H_
 #define SOURCEMETA_CORE_SYSTEM_PARALLEL_H_
 
+#ifndef SOURCEMETA_CORE_SYSTEM_EXPORT
+#include <sourcemeta/core/system_export.h>
+#endif
+
 #include <algorithm> // std::max
-#include <climits>   // UINT_MAX
 #include <concepts>  // std::copyable, std::invocable
+#include <cstddef>   // std::size_t
 #include <exception> // std::exception_ptr, std::current_exception, std::rethrow_exception
 #include <functional> // std::function
 #include <iterator>   // std::input_iterator, std::iter_reference_t
 #include <mutex>      // std::mutex, std::scoped_lock
 #include <queue>      // std::queue
-#include <stdexcept>  // std::runtime_error
 #include <thread>     // std::thread
 #include <utility>    // std::forward
 #include <vector>     // std::vector
 
-#if defined(_WIN32)
-#include <process.h> // _beginthreadex
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#include <windows.h>
-#else
-#include <pthread.h>
-#endif
-
 namespace sourcemeta::core {
 
 #ifndef DOXYGEN
-#if defined(_WIN32)
-// See
-// https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/beginthread-beginthreadex?view=msvc-170
-inline unsigned __stdcall parallel_for_each_windows_thread_start(
-    void *argument) {
-  auto *function_ptr = static_cast<std::function<void()> *>(argument);
-  (*function_ptr)();
-  delete function_ptr;
-  return 0;
-}
-#endif
+// The platform threading APIs stay behind these, as the header that declares
+// them is included by much of this project and the Windows one defines macros
+// that collide with ordinary identifiers. The standard thread class cannot
+// serve here, as it offers no way of choosing a stack size
+SOURCEMETA_CORE_SYSTEM_EXPORT
+auto parallel_thread_start(std::function<void()> callable,
+                           const std::size_t stack_size_bytes) -> void *;
+SOURCEMETA_CORE_SYSTEM_EXPORT
+auto parallel_thread_join(void *thread) noexcept -> void;
 #endif
 
 /// @ingroup system
@@ -117,7 +108,7 @@ auto parallel_for_each(
     }
   };
 
-  std::vector<std::thread> workers;
+  std::vector<void *> workers;
   workers.reserve(effective_parallelism);
 
   const auto total{tasks.size()};
@@ -147,93 +138,36 @@ auto parallel_for_each(
     }
   };
 
-  const char *creation_error{nullptr};
+  // A worker that fails to start leaves the ones already running referencing
+  // the locals of this frame, so the failure is held rather than thrown here
+  std::exception_ptr creation_failure{nullptr};
 
   // TODO: Replace std::function with std::move_only_function once
   // Apple Clang ships libc++ 19+ (__cpp_lib_move_only_function)
-#if defined(_WIN32)
   for (std::size_t index = 0; index < effective_parallelism; ++index) {
-    auto *heap_function = new std::function<void()>(worker_callable);
-    if (stack_size_bytes > static_cast<std::size_t>(UINT_MAX)) {
-      delete heap_function;
-      creation_error =
-          "The requested stack size is too large for this platform";
+    try {
+      workers.push_back(
+          parallel_thread_start(worker_callable, stack_size_bytes));
+    } catch (...) {
+      creation_failure = std::current_exception();
       break;
     }
-
-    auto raw_handle = _beginthreadex(
-        nullptr, static_cast<unsigned>(stack_size_bytes),
-        &parallel_for_each_windows_thread_start, heap_function, 0, nullptr);
-    if (raw_handle == 0) {
-      delete heap_function;
-      creation_error = "Could not create thread";
-      break;
-    }
-
-    HANDLE thread_handle = reinterpret_cast<HANDLE>(raw_handle);
-    workers.emplace_back([thread_handle] {
-      WaitForSingleObject(thread_handle, INFINITE);
-      CloseHandle(thread_handle);
-    });
   }
-#else
-  for (std::size_t index = 0; index < effective_parallelism; ++index) {
-    // We can't use std::thread, as it doesn't let us tweak the thread stack
-    // size
-    pthread_attr_t attr;
-    pthread_attr_init(&attr);
-    // A stack size the platform cannot honour, such as one below its minimum
-    // or one that is not a multiple of its page size, must be reported rather
-    // than dropped in favour of the default, as the caller asked for it to
-    // bound how deep the work it hands over may recurse
-    if (stack_size_bytes > 0 &&
-        pthread_attr_setstacksize(&attr, stack_size_bytes) != 0) {
-      pthread_attr_destroy(&attr);
-      creation_error = "The requested stack size is not supported by this "
-                       "platform";
-      break;
-    }
 
-    auto *heap_function = new std::function<void()>(worker_callable);
-    pthread_t pthread_handle;
-    auto raw_handle = pthread_create(
-        &pthread_handle, &attr,
-        [](void *arg) -> void * {
-          auto *function_ptr = static_cast<std::function<void()> *>(arg);
-          (*function_ptr)();
-          delete function_ptr;
-          return nullptr;
-        },
-        heap_function);
-    if (raw_handle != 0) {
-      pthread_attr_destroy(&attr);
-      delete heap_function;
-      creation_error = "Could not create thread";
-      break;
-    }
-    workers.emplace_back(
-        [pthread_handle] { pthread_join(pthread_handle, nullptr); });
-    pthread_attr_destroy(&attr);
-  }
-#endif
-
-  // If thread creation failed after some workers have already started, those
-  // workers keep referencing the stack locals of this frame, so unwinding past
-  // them must be avoided. Drain the remaining tasks so the running workers stop
-  // pulling new work and exit, then join every already-created worker before
-  // propagating the failure
-  if (creation_error != nullptr) {
+  // Draining the remaining tasks stops the running workers from pulling new
+  // work, so that every one of them can be joined before this frame goes away
+  if (creation_failure) {
     std::scoped_lock lock{queue_mutex};
     std::queue<Iterator> empty;
     tasks.swap(empty);
   }
 
-  for (auto &worker_thread : workers) {
-    worker_thread.join();
+  for (auto *worker_thread : workers) {
+    parallel_thread_join(worker_thread);
   }
 
-  if (creation_error != nullptr) {
-    throw std::runtime_error(creation_error);
+  if (creation_failure) {
+    std::rethrow_exception(creation_failure);
   }
 
   if (exception) {

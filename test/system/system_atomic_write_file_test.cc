@@ -1,4 +1,3 @@
-#include <sourcemeta/core/io.h>
 #include <sourcemeta/core/system.h>
 #include <sourcemeta/core/test.h>
 
@@ -12,6 +11,12 @@
 #include <stdexcept>    // std::runtime_error
 #include <string>       // std::string
 #include <system_error> // std::error_code
+
+static auto contents_of(const std::filesystem::path &path) -> std::string {
+  std::ifstream stream{path, std::ios::binary};
+  return std::string{std::istreambuf_iterator<char>{stream},
+                     std::istreambuf_iterator<char>{}};
+}
 
 class IOAtomicWriteFileTest {
 protected:
@@ -33,7 +38,7 @@ TEST_F(IOAtomicWriteFileTest, string_view_creates_file) {
   const auto path{this->workspace_ / "out.txt"};
   sourcemeta::core::atomic_write_file(path, "hello");
   EXPECT_TRUE(std::filesystem::exists(path));
-  EXPECT_EQ(sourcemeta::core::read_file_to_string(path), "hello");
+  EXPECT_EQ(contents_of(path), "hello");
 }
 
 TEST_F(IOAtomicWriteFileTest, empty_contents) {
@@ -50,7 +55,7 @@ TEST_F(IOAtomicWriteFileTest, byte_span_creates_file) {
                                             std::byte{0x6f}}};
   sourcemeta::core::atomic_write_file(path, std::span<const std::byte>{BYTES});
   EXPECT_TRUE(std::filesystem::exists(path));
-  EXPECT_EQ(sourcemeta::core::read_file_to_string(path), "Hello");
+  EXPECT_EQ(contents_of(path), "Hello");
 }
 
 TEST_F(IOAtomicWriteFileTest, callback_variant) {
@@ -60,21 +65,21 @@ TEST_F(IOAtomicWriteFileTest, callback_variant) {
     stream << " ";
     stream << "second";
   });
-  EXPECT_EQ(sourcemeta::core::read_file_to_string(path), "first second");
+  EXPECT_EQ(contents_of(path), "first second");
 }
 
 TEST_F(IOAtomicWriteFileTest, creates_parent_directories) {
   const auto path{this->workspace_ / "a" / "b" / "c" / "deep.txt"};
   sourcemeta::core::atomic_write_file(path, "nested");
   EXPECT_TRUE(std::filesystem::exists(path));
-  EXPECT_EQ(sourcemeta::core::read_file_to_string(path), "nested");
+  EXPECT_EQ(contents_of(path), "nested");
 }
 
 TEST_F(IOAtomicWriteFileTest, overwrites_existing_file) {
   const auto path{this->workspace_ / "out.txt"};
   sourcemeta::core::atomic_write_file(path, "original");
   sourcemeta::core::atomic_write_file(path, "replacement");
-  EXPECT_EQ(sourcemeta::core::read_file_to_string(path), "replacement");
+  EXPECT_EQ(contents_of(path), "replacement");
 }
 
 TEST_F(IOAtomicWriteFileTest,
@@ -90,7 +95,7 @@ TEST_F(IOAtomicWriteFileTest,
     });
     FAIL();
   } catch (const std::runtime_error &) {
-    EXPECT_EQ(sourcemeta::core::read_file_to_string(path), "original");
+    EXPECT_EQ(contents_of(path), "original");
   } catch (...) {
     FAIL();
   }

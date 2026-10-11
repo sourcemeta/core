@@ -1,10 +1,10 @@
-#include <sourcemeta/core/io.h>
 #include <sourcemeta/core/system.h>
 #include <sourcemeta/core/test.h>
 
-#include <cstdint>     // std::uint32_t
-#include <filesystem>  // std::filesystem
-#include <string_view> // std::string_view
+#include <cstdint>    // std::uint32_t
+#include <filesystem> // std::filesystem
+#include <fstream>    // std::ofstream
+#include <ios>        // std::ios::binary
 
 TEST(size) {
   const sourcemeta::core::FileView view{std::filesystem::path{STUBS_DIRECTORY} /
@@ -57,7 +57,7 @@ TEST(empty_file_does_not_throw) {
   const sourcemeta::core::TemporaryDirectory directory{
       std::filesystem::temp_directory_path(), ".fileview-"};
   const auto path{directory.path() / "empty.bin"};
-  sourcemeta::core::write_file(path, std::string_view{""});
+  const std::ofstream output{path, std::ios::binary};
 
   const sourcemeta::core::FileView view{path};
   EXPECT_EQ(view.size(), 0);
