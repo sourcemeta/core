@@ -23,8 +23,8 @@ auto header_matches(const sourcemeta::core::JSON::StringView header,
     return false;
   }
   if (sourcemeta::core::mcp_is_encoded_header_value(header)) {
-    const auto decoded{
-        sourcemeta::core::base64_decode(header.substr(9, header.size() - 11))};
+    const auto decoded{sourcemeta::core::base64_decode(
+        sourcemeta::core::mcp_header_sentinel_body(header))};
     return decoded && sourcemeta::core::is_valid_utf8(*decoded) &&
            *decoded == body;
   }

@@ -944,7 +944,9 @@ auto bytes_to_hex(const std::string_view input) -> std::string;
 /// Write a byte sequence as lowercase hexadecimal into storage the caller
 /// owns, two characters to the byte, which is what lets a fixed-size
 /// identifier be spelled without allocating. The output must be exactly twice
-/// the length of the input. For example:
+/// the length of the input, and the two must not share storage, since this
+/// writes forward and would otherwise overwrite input it has yet to read.
+/// For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/text.h>

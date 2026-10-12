@@ -273,13 +273,19 @@ auto bytes_to_hex(const std::span<const std::uint8_t> input,
 
 auto bytes_to_hex(const std::string_view input) -> std::string {
   std::string result;
-  result.resize(input.size() * 2);
-  // The caller handed text rather than bytes, so this is where the two views
-  // of the same storage meet
-  bytes_to_hex(
-      std::span{reinterpret_cast<const std::uint8_t *>(input.data()), // NOLINT
-                input.size()},
-      result);
+  // Writing into uninitialised storage rather than resizing first, as every
+  // digest in this project spells its output through here
+  result.resize_and_overwrite(
+      input.size() * 2,
+      [input](char *const buffer, const std::size_t count) -> std::size_t {
+        // The caller handed text rather than bytes, so this is where the two
+        // views of the same storage meet
+        bytes_to_hex(std::span{reinterpret_cast<const std::uint8_t *>( // NOLINT
+                                   input.data()),
+                               input.size()},
+                     std::span{buffer, count});
+        return count;
+      });
   return result;
 }
 

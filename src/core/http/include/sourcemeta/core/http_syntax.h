@@ -40,6 +40,29 @@ inline auto http_is_ows(const char character) noexcept -> bool {
 /// assert(sourcemeta::core::http_is_tchar('a'));
 /// assert(!sourcemeta::core::http_is_tchar('"'));
 /// ```
+inline auto http_is_tchar(const char character) noexcept -> bool {
+  switch (character) {
+    case '!':
+    case '#':
+    case '$':
+    case '%':
+    case '&':
+    case '\'':
+    case '*':
+    case '+':
+    case '-':
+    case '.':
+    case '^':
+    case '_':
+    case '`':
+    case '|':
+    case '~':
+      return true;
+    default:
+      return is_alphanum(character);
+  }
+}
+
 /// @ingroup http
 /// Whether the character is one a field value may carry. RFC 9110 Section 5.5
 /// admits the visible characters and obsolete text, along with the spaces and
@@ -63,29 +86,6 @@ inline auto http_is_ows(const char character) noexcept -> bool {
 inline auto http_is_field_octet(const char character) noexcept -> bool {
   const auto byte{static_cast<unsigned char>(character)};
   return byte == 0x09 || (byte >= 0x20 && byte != 0x7F);
-}
-
-inline auto http_is_tchar(const char character) noexcept -> bool {
-  switch (character) {
-    case '!':
-    case '#':
-    case '$':
-    case '%':
-    case '&':
-    case '\'':
-    case '*':
-    case '+':
-    case '-':
-    case '.':
-    case '^':
-    case '_':
-    case '`':
-    case '|':
-    case '~':
-      return true;
-    default:
-      return is_alphanum(character);
-  }
 }
 
 /// @ingroup http
@@ -182,12 +182,11 @@ inline auto http_is_token(const std::string_view value) noexcept -> bool {
 /// ```
 inline auto http_encode_quoted_string(const std::string_view value,
                                       std::string &sink) -> bool {
+  // RFC 9110 Section 5.6.4: quoted text and a quoted-pair admit what a field
+  // value admits, so a control character beyond the horizontal tab makes the
+  // value unencodable, carriage return and line feed among them
   for (const auto character : value) {
-    const auto byte{static_cast<unsigned char>(character)};
-    // RFC 9110 Section 5.6.4: qdtext and quoted-pair admit HTAB, SP through
-    // VCHAR, and obs-text, so every other control character (CR and LF among
-    // them) makes the value unencodable
-    if (byte != 0x09 && (byte < 0x20 || byte == 0x7F)) {
+    if (!http_is_field_octet(character)) {
       return false;
     }
   }
