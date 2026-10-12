@@ -6,11 +6,11 @@
 
 namespace {
 
-// "baggage-octet = %x21 / %x23-2B / %x2D-3A / %x3C-5B / %x5D-7E", which the
-// grammar's own comment explains as the US-ASCII characters other than the
-// control ones, whitespace, the double quote, the comma, the semicolon and
-// the backslash. The gaps between the four ranges are where those last four
-// sit
+// The octet production runs in five alternatives, a single character and four
+// ranges, which its own comment explains as the US-ASCII characters other than
+// the control ones, whitespace, the double quote, the comma, the semicolon and
+// the backslash. The four gaps between those alternatives are where the last
+// four of those sit
 // https://www.w3.org/TR/baggage/#definition
 auto is_baggage_octet(const char character) noexcept -> bool {
   const auto byte{static_cast<unsigned char>(character)};

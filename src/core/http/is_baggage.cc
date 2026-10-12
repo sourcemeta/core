@@ -10,8 +10,8 @@ auto http_is_baggage(const std::string_view value) noexcept -> bool {
   std::size_t members{0};
   auto rest{value};
   while (true) {
-    // "baggage-string = list-member 0*179( OWS "," OWS list-member )" caps the
-    // list at 180. The separate figures of 64 members and 8192 bytes are the
+    // The list production is one member followed by at most 179 more, so 180
+    // is the cap. The separate figures of 64 members and 8192 bytes are the
     // point past which a platform "MAY drop list-members" rather than a bound
     // on what is well formed, so they are left alone
     // https://www.w3.org/TR/baggage/#definition
@@ -27,9 +27,11 @@ auto http_is_baggage(const std::string_view value) noexcept -> bool {
     // A member carries its own pair and then any number of properties, and
     // only the pair must hold an equals sign, since "Additional metadata MAY
     // be appended to values in the form of property set" whose entries are
-    // "keys and/or key-value pairs". There is no alternative for an empty
-    // member, so one is malformed, which is the opposite of tracestate
+    // "keys and/or key-value pairs". The list production offers no alternative
+    // for an empty member, so one is malformed, which is the opposite of
+    // tracestate
     // https://www.w3.org/TR/baggage/#property
+    // https://www.w3.org/TR/baggage/#definition
     bool pair{true};
     while (true) {
       const auto semicolon{member.find(';')};
@@ -41,8 +43,13 @@ auto http_is_baggage(const std::string_view value) noexcept -> bool {
 
       // "Leading and trailing whitespaces (OWS) are allowed and are not
       // considered to be a part of the key", which is itself the token this
-      // module already knows
+      // module already knows. The list production brackets whitespace around
+      // each key and value but not around the whole field value, so stripping
+      // at the two outer ends accepts a little more than the grammar writes
+      // down. It costs nothing, since "A field value does not include leading
+      // or trailing whitespace" in the first place
       // https://www.w3.org/TR/baggage/#key
+      // https://www.rfc-editor.org/rfc/rfc9110#section-5.5
       if (!http_is_token(trim(entry.substr(0, equal), http_is_ows))) {
         return false;
       }

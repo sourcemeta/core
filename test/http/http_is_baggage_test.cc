@@ -1,6 +1,8 @@
 #include <sourcemeta/core/http_baggage.h>
 #include <sourcemeta/core/test.h>
 
+#include <string> // std::string
+
 TEST(the_example_from_the_specification) {
   EXPECT_TRUE(sourcemeta::core::http_is_baggage(
       "userId=alice,serverNode=DF%2028,isProduction=false"));
@@ -117,6 +119,47 @@ TEST(an_empty_property_is_rejected) {
   EXPECT_FALSE(sourcemeta::core::http_is_baggage("a=1;;k=v"));
 }
 
+// A key is a token, and a token admits a percent, so the rule that a percent
+// must introduce an encoded octet binds a value and not a key. These two
+// inputs differ only in which side of the equals sign the percent falls on
+// https://www.w3.org/TR/baggage/#key
+// https://www.w3.org/TR/baggage/#value
+TEST(a_bare_percent_in_a_key_is_accepted) {
+  EXPECT_TRUE(sourcemeta::core::http_is_baggage("a%b=1"));
+}
+
+TEST(a_bare_percent_in_a_value_is_rejected) {
+  EXPECT_FALSE(sourcemeta::core::http_is_baggage("a=b%c"));
+}
+
+// A property key is a token on the same terms
+TEST(a_bare_percent_in_a_property_key_is_accepted) {
+  EXPECT_TRUE(sourcemeta::core::http_is_baggage("a=1;b%c"));
+}
+
+// The property set has no uniqueness rule of its own, so a repeated property
+// key is well formed just as a repeated member key is
+// https://www.w3.org/TR/baggage/#property
+TEST(a_duplicate_property_key_is_accepted) {
+  EXPECT_TRUE(sourcemeta::core::http_is_baggage("a=1;p;p=v;p=v2"));
+}
+
+// Encoding is what lets a value carry a delimiter, so a value made of encoded
+// tabs, quotes, semicolons and equals signs is well formed
+// https://www.w3.org/TR/baggage/#value
+TEST(a_value_of_encoded_delimiters_is_accepted) {
+  EXPECT_TRUE(sourcemeta::core::http_is_baggage(
+      "SomeKey=%09%20%22%27%3B%3Dasdf%21%40%23%24%25%5E%26%2A%28%29"));
+}
+
+// Whitespace is allowed around every key and value, at every level
+// https://www.w3.org/TR/baggage/#key
+TEST(whitespace_at_every_level_is_accepted) {
+  EXPECT_TRUE(sourcemeta::core::http_is_baggage(
+      "SomeKey \t = \t SomeValue \t ; \t SomeProp \t , \t SomeKey2 \t = \t "
+      "SomeValue2 \t ; \t ValueProp \t = \t PropVal"));
+}
+
 // A value is checked wherever it appears, so what the value predicate refuses
 // a member carrying it is refused for
 // https://www.w3.org/TR/baggage/#value
@@ -138,6 +181,18 @@ TEST(a_property_value_with_a_bad_escape_is_rejected) {
 
 TEST(a_member_value_may_carry_an_equals_sign) {
   EXPECT_TRUE(sourcemeta::core::http_is_baggage("a=b=c"));
+}
+
+// A value is not capped by the grammar, and neither is the whole list, so one
+// well past the byte figure in the limits is still well formed
+// https://www.w3.org/TR/baggage/#limits
+TEST(a_field_value_over_eight_thousand_bytes_is_accepted) {
+  EXPECT_TRUE(sourcemeta::core::http_is_baggage("a=" + std::string(9000, 'x')));
+}
+
+TEST(a_null_byte_in_a_value_is_rejected) {
+  EXPECT_FALSE(
+      sourcemeta::core::http_is_baggage(std::string{"a=b"} + '\0' + "c"));
 }
 
 // The grammar allows one member and up to 179 more. The separate figure of 64

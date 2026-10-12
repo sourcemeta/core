@@ -1883,6 +1883,21 @@ TEST(a_malformed_traceparent_is_still_rejected_with_a_good_tracestate) {
                    .second.has_value());
 }
 
+// A malformed tracing value is refused through the MCP path too, which is the
+// policy this module owns rather than the grammar the http module owns
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/index#_meta
+TEST(request_metadata_rejects_a_malformed_baggage) {
+  auto value{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    }
+  })JSON")};
+  value.at("_meta").assign("baggage", sourcemeta::core::JSON{"a=%ZZ"});
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_parameters(value)
+                   .second.has_value());
+}
+
 TEST(legacy_result_allows_unreserved_traceparent) {
   const auto legacy{sourcemeta::core::parse_json(
       R"JSON({ "_meta": { "traceparent": false } })JSON")};

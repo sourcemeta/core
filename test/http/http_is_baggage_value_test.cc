@@ -1,7 +1,8 @@
 #include <sourcemeta/core/http_baggage.h>
 #include <sourcemeta/core/test.h>
 
-#include <string> // std::string
+#include <string>      // std::string
+#include <string_view> // std::string_view
 
 TEST(a_plain_value) {
   EXPECT_TRUE(sourcemeta::core::http_is_baggage_value("alice"));
@@ -22,6 +23,29 @@ TEST(a_space_is_rejected) {
 
 TEST(an_encoded_space_is_accepted) {
   EXPECT_TRUE(sourcemeta::core::http_is_baggage_value("DF%2028"));
+}
+
+// "The uppercase hexadecimal digits 'A' through 'F' are equivalent to the
+// lowercase digits 'a' through 'f', respectively", so an escape is read in
+// either case
+// https://www.rfc-editor.org/rfc/rfc3986#section-2.1
+TEST(a_lowercase_escape_is_accepted) {
+  EXPECT_TRUE(sourcemeta::core::http_is_baggage_value("%3b%2c"));
+}
+
+TEST(an_uppercase_escape_is_accepted) {
+  EXPECT_TRUE(sourcemeta::core::http_is_baggage_value("%3B%2C"));
+}
+
+// A comma is what separates members, so a value can only carry one encoded
+// https://www.w3.org/TR/baggage/#definition
+TEST(an_encoded_comma_is_accepted) {
+  EXPECT_TRUE(sourcemeta::core::http_is_baggage_value("a%2Cb"));
+}
+
+TEST(a_null_byte_is_rejected) {
+  EXPECT_FALSE(
+      sourcemeta::core::http_is_baggage_value(std::string_view{"a\0b", 3}));
 }
 
 TEST(an_encoded_non_ascii_character_is_accepted) {

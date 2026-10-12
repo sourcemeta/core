@@ -5,7 +5,7 @@
 #include <string_view> // std::string_view
 #include <vector>      // std::vector
 
-TEST(the_example_from_the_specification) {
+TEST(a_bare_entry_and_an_entry_with_a_value) {
   std::vector<std::string> flat;
   EXPECT_TRUE(sourcemeta::core::http_parse_baggage_properties(
       "property1;propertyKey=propertyValue",
@@ -48,7 +48,8 @@ TEST(whitespace_is_not_reported) {
   std::string flat;
   EXPECT_TRUE(sourcemeta::core::http_parse_baggage_properties(
       " k = v ", [&flat](const auto key, const auto value) {
-        flat = std::string{key} + "=" + std::string{*value};
+        flat = std::string{key} +
+               (value.has_value() ? "=" + std::string{*value} : "");
       }));
   EXPECT_EQ(flat, "k=v");
 }
@@ -95,8 +96,18 @@ TEST(the_entries_borrow_the_input) {
   EXPECT_TRUE(sourcemeta::core::http_parse_baggage_properties(
       properties, [&key, &reported](const auto entry, const auto value) {
         key = entry;
-        reported = *value;
+        reported = value.value_or(std::string_view{});
       }));
   EXPECT_EQ(key.data(), properties.data());
   EXPECT_EQ(reported.data(), properties.data() + 2);
+}
+
+// The repetition that carries properties may run zero times, so the empty set
+// a member without any hands over is a set of no entries and parses
+// https://www.w3.org/TR/baggage/#definition
+TEST(an_empty_set_parses_and_visits_nothing) {
+  bool visited{false};
+  EXPECT_TRUE(sourcemeta::core::http_parse_baggage_properties(
+      "", [&visited](const auto, const auto) { visited = true; }));
+  EXPECT_FALSE(visited);
 }
