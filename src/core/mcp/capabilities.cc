@@ -31,12 +31,12 @@ auto capability_flag(
   return value != nullptr && value->is_boolean() && value->to_boolean();
 }
 
-void emit_capability(
+auto emit_capability(
     sourcemeta::core::JSON &result,
     const sourcemeta::core::MCPServerCapabilities &capabilities,
     const sourcemeta::core::JSON::StringView name,
     const sourcemeta::core::JSON::Object::hash_type hash, const bool enabled,
-    const bool changed, const bool subscribe) {
+    const bool changed, const bool subscribe) -> void {
   using namespace sourcemeta::core;
   if (!enabled && !changed && !subscribe) {
     return;

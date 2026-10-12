@@ -33,7 +33,8 @@ auto value_at(const JSON &arguments, const MCPHeaderParameter &parameter)
 // The specification constrains each mirrored parameter name, type and location
 // separately, so each constraint reports itself
 // https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#schema-extension
-void require_parameters(const std::span<const MCPHeaderParameter> parameters) {
+auto require_parameters(const std::span<const MCPHeaderParameter> parameters)
+    -> void {
   std::set<std::string> names;
   for (const auto &parameter : parameters) {
     std::string name{parameter.name};

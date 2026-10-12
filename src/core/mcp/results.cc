@@ -28,10 +28,10 @@ auto require_array(const sourcemeta::core::JSON &value) -> void {
                                       "MCP result entries must be an array");
 }
 
-void apply_presentation(
+auto apply_presentation(
     const sourcemeta::core::MCPProtocolVersion version,
     sourcemeta::core::JSON &value,
-    const sourcemeta::core::MCPDescriptorPresentation &presentation) {
+    const sourcemeta::core::MCPDescriptorPresentation &presentation) -> void {
   using namespace sourcemeta::core;
   if (mcp_protocol_version_at_least(version,
                                     MCPProtocolVersion::V_2025_06_18) &&
@@ -188,9 +188,10 @@ namespace {
 // is reachable from the interim and subscription results too, whose own result
 // type rules out the complete-result decorator
 // https://modelcontextprotocol.io/specification/2026-07-28/basic/index#responses
-void attach_server_info(const MCPProtocolVersion version,
+auto attach_server_info(const MCPProtocolVersion version,
                         sourcemeta::core::JSON &result,
-                        const std::optional<MCPImplementation> &server_info) {
+                        const std::optional<MCPImplementation> &server_info)
+    -> void {
   if (!server_info.has_value() || !mcp_requires_result_type(version)) {
     return;
   }
@@ -207,9 +208,10 @@ void attach_server_info(const MCPProtocolVersion version,
   }
 }
 
-void decorate_result(
+auto decorate_result(
     const MCPProtocolVersion version, sourcemeta::core::JSON &result,
-    const std::optional<MCPImplementation> &server_info = std::nullopt) {
+    const std::optional<MCPImplementation> &server_info = std::nullopt)
+    -> void {
   internal::require(result.is_object(), "MCP results must be objects");
   internal::require(internal::valid_meta(result),
                     "MCP result _meta must be an object");
@@ -254,10 +256,10 @@ auto mcp_decorate_result(const MCPProtocolVersion version,
 }
 
 namespace {
-void decorate_cacheable_result(const MCPProtocolVersion version,
+auto decorate_cacheable_result(const MCPProtocolVersion version,
                                sourcemeta::core::JSON &result,
                                const MCPCachePolicy &cache_policy,
-                               const JSON::StringView method) {
+                               const JSON::StringView method) -> void {
   internal::require(result.is_object(), "MCP results must be objects");
   if (!mcp_requires_cacheable_metadata(version)) {
     return;
@@ -1042,11 +1044,12 @@ auto mcp_make_completion_result(const MCPProtocolVersion version, JSON values,
   return result;
 }
 
-void mcp_write_result(std::ostream &stream, const MCPProtocolVersion version,
+auto mcp_write_result(std::ostream &stream, const MCPProtocolVersion version,
                       const JSON::StringView method, const JSON &identifier,
                       const JSON &result,
                       const std::optional<MCPCachePolicy> cache_policy,
-                      const std::optional<MCPImplementation> server_info) {
+                      const std::optional<MCPImplementation> server_info)
+    -> void {
   internal::require(internal::valid_id(identifier), "Invalid MCP identifier");
   internal::require(mcp_is_request_method(version, method) &&
                         mcp_is_cacheable_method(method),

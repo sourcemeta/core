@@ -18,7 +18,7 @@
 
 namespace sourcemeta::core::internal {
 
-inline void require(const bool condition, const char *message) {
+inline auto require(const bool condition, const char *message) -> void {
   if (!condition) {
     throw MCPError{message};
   }

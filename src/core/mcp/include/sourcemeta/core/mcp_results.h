@@ -918,11 +918,11 @@ auto mcp_make_completion_result(MCPProtocolVersion version, JSON values,
 /// @see
 /// https://modelcontextprotocol.io/specification/2026-07-28/server/utilities/caching#cacheable-results
 SOURCEMETA_CORE_MCP_EXPORT
-void mcp_write_result(
+auto mcp_write_result(
     std::ostream &stream, MCPProtocolVersion version, JSON::StringView method,
     const JSON &identifier, const JSON &result,
     std::optional<MCPCachePolicy> cache_policy,
-    std::optional<MCPImplementation> server_info = std::nullopt);
+    std::optional<MCPImplementation> server_info = std::nullopt) -> void;
 
 /// @ingroup mcp
 /// Build the JSON-RPC envelope returned in response to an MCP `initialize`

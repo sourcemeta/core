@@ -672,8 +672,8 @@ auto is_representable_as_floating_point(const std::int64_t coefficient,
 // over the top of the range, so the prediction settles that end outright, while
 // at the bottom it is the carry that can bring one back inside and only the
 // rounding itself can tell
-void check_rounded_exponent(const std::int64_t exponent,
-                            const std::uint64_t digits) {
+auto check_rounded_exponent(const std::int64_t exponent,
+                            const std::uint64_t digits) -> void {
   const auto rounded{exponent + precision_excess(digits)};
   if (rounded > std::numeric_limits<std::int32_t>::max() ||
       rounded + 1 < std::numeric_limits<std::int32_t>::min()) {
@@ -714,11 +714,11 @@ struct StagedResult {
 // carry is what reveals the need to refuse, which is why the refusal cannot be
 // made before rounding, and staging it here is what keeps the operand as it
 // was when one is made
-void settle_rounded_result(std::int64_t &coefficient,
+auto settle_rounded_result(std::int64_t &coefficient,
                            std::uint64_t &coefficient_high,
                            std::int32_t &exponent, std::uint8_t &flags,
                            StagedResult &staged, std::int64_t staged_exponent,
-                           const bool residue = false) {
+                           const bool residue = false) -> void {
   round_to_precision(staged.coefficient, staged.coefficient_high,
                      staged_exponent, staged.flags, residue);
   if (staged_exponent > std::numeric_limits<std::int32_t>::max() ||
