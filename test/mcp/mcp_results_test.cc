@@ -4782,11 +4782,11 @@ TEST(validate_continuation_accepts_loose_formats_from_a_peer) {
       "state"));
 }
 
-// A sampled response carries text, an image or audio and nothing else, so a
-// resource block is refused for its type rather than for anything about the
-// fields on it. This is why the format rules never arise for a received
-// resource
-// https://modelcontextprotocol.io/specification/2026-07-28/schema#createmessageresult
+// The block types a sampled response may carry are text, an image, audio, a
+// tool use and a tool result. A resource is not among them, so one is refused
+// for its type rather than for anything about the fields on it, which is why
+// the format rules never arise for a received resource
+// https://modelcontextprotocol.io/specification/2026-07-28/schema#samplingmessagecontentblock
 TEST(validate_continuation_rejects_a_resource_link_in_a_sampled_response) {
   const auto parameters{sourcemeta::core::parse_json(R"JSON({
     "_meta": {
