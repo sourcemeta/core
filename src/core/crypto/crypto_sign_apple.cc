@@ -103,9 +103,7 @@ auto native_private_key(const void *type, const std::string_view key)
 // The platform expects an elliptic curve private key as the X9.63 public point
 // followed by the private scalar, both recovered from the SEC1 ECPrivateKey
 auto native_ec_private_key(const std::string_view sec1,
-                           const sourcemeta::core::EllipticCurve curve)
-    -> SecKeyRef {
-  const auto field_bytes{sourcemeta::core::curve_field_bytes(curve)};
+                           const std::size_t field_bytes) -> SecKeyRef {
   const auto sequence{sourcemeta::core::der_read(sec1)};
   if (!sequence.has_value() || sequence->tag != 0x30) {
     return nullptr;
@@ -144,15 +142,12 @@ auto native_ec_private_key(const std::string_view sec1,
     rest = element->rest;
   }
 
-  const auto stripped_scalar{
-      sourcemeta::core::strip_left(scalar->content, '\x00')};
-  // SEC 1 Section 3.2 writes the private key as an integer in the interval
-  // [1, n-1], which the other backends hold a key to as well
-  if (point.empty() || stripped_scalar.empty() ||
-      stripped_scalar.size() > field_bytes ||
-      !sourcemeta::core::ec_private_scalar_in_range(stripped_scalar, curve)) {
+  if (point.empty()) {
     return nullptr;
   }
+
+  const auto stripped_scalar{
+      sourcemeta::core::strip_left(scalar->content, '\x00')};
 
   std::string data{point};
   data.append(sourcemeta::core::pad_left(stripped_scalar, field_bytes, '\x00'));
@@ -308,7 +303,7 @@ auto make_private_key(const std::string_view pem) -> std::optional<PrivateKey> {
     }
     case PKCS8KeyKind::EllipticCurve: {
       const auto field_bytes{curve_field_bytes(parsed->curve)};
-      auto *key{native_ec_private_key(parsed->key, parsed->curve)};
+      auto *key{native_ec_private_key(parsed->key, field_bytes)};
       if (key == nullptr) {
         return std::nullopt;
       }

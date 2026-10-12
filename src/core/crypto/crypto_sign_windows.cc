@@ -226,15 +226,12 @@ auto native_ec_private_key(const sourcemeta::core::EllipticCurve curve,
     rest = element->rest;
   }
 
-  const auto stripped_scalar{
-      sourcemeta::core::strip_left(scalar->content, '\x00')};
-  // SEC 1 Section 3.2 writes the private key as an integer in the interval
-  // [1, n-1], which the components path below holds a key to as well
-  if (point.size() != 2 * field_bytes || stripped_scalar.empty() ||
-      stripped_scalar.size() > field_bytes ||
-      !sourcemeta::core::ec_private_scalar_in_range(stripped_scalar, curve)) {
+  if (point.size() != 2 * field_bytes) {
     return {.algorithm = nullptr, .key = nullptr};
   }
+
+  const auto stripped_scalar{
+      sourcemeta::core::strip_left(scalar->content, '\x00')};
 
   BCRYPT_ECCKEY_BLOB header{};
   header.dwMagic = to_ecc_private_magic(curve);

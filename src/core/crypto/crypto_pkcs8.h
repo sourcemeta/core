@@ -142,6 +142,32 @@ inline auto read_rsa_private_key(const std::string_view key)
                             .rest = private_exponent->rest};
 }
 
+// Whether a SEC 1 ECPrivateKey carries a usable private scalar, which RFC 5915
+// Section 3 writes as the OCTET STRING following the version. SEC 1 Section 3.2
+// draws the private key from the interval [1, n-1], so a zero scalar, or one at
+// or above the group order, names no key. Checked here rather than in each
+// backend, as the platform ones hand the blob straight to a system that does
+// not apply the rule
+inline auto ec_private_key_acceptable(const std::string_view key,
+                                      const EllipticCurve curve) -> bool {
+  const auto sequence{der_read(key)};
+  if (!sequence.has_value() || sequence->tag != 0x30) {
+    return false;
+  }
+
+  const auto version{der_read(sequence->content)};
+  if (!version.has_value() || version->tag != 0x02) {
+    return false;
+  }
+
+  const auto scalar{der_read(version->rest)};
+  if (!scalar.has_value() || scalar->tag != 0x04) {
+    return false;
+  }
+
+  return ec_private_scalar_in_range(scalar->content, curve);
+}
+
 // Parse an RFC 5958 PrivateKeyInfo, identifying the algorithm from its object
 // identifier and returning the raw privateKey octets
 inline auto parse_pkcs8(const std::string_view der) -> std::optional<PKCS8Key> {
@@ -228,6 +254,10 @@ inline auto parse_pkcs8(const std::string_view der) -> std::optional<PKCS8Key> {
     } else if (curve_oid->content == P521) {
       curve = EllipticCurve::P521;
     } else {
+      return std::nullopt;
+    }
+
+    if (!ec_private_key_acceptable(private_key->content, curve)) {
       return std::nullopt;
     }
 
