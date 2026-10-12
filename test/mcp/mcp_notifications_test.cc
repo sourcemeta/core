@@ -533,7 +533,7 @@ TEST(request_subscription_id_integer) {
 
 TEST(request_subscription_id_integral_real) {
   const auto notification{sourcemeta::core::parse_json(R"JSON({
-    "params": { "_meta": { "io.modelcontextprotocol/subscriptionId": 4.2e1 } }
+    "params": { "_meta": { "io.modelcontextprotocol/subscriptionId": 42.0 } }
   })JSON")};
   EXPECT_EQ(
       sourcemeta::core::mcp_request_subscription_id(
