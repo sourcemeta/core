@@ -3406,3 +3406,16 @@ TEST(object_of_only_an_identifier_expands_to_nothing) {
   const auto expected = sourcemeta::core::parse_json("[]");
   EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
 }
+
+// JSON-LD 1.1 API Section 5.1: a node object left at the top of the result
+// with nothing but an identifier says nothing, so expansion drops it rather
+// than reporting a document that holds only a name
+TEST(top_level_node_with_only_an_identifier_is_dropped) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@id": "http://example.com/subject"
+  })");
+
+  const auto expected = sourcemeta::core::parse_json("[]");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}

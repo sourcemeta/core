@@ -3245,3 +3245,31 @@ TEST(metaschema_of_a_frame_that_never_registered_the_document) {
     FAIL();
   }
 }
+
+// A document may carry the meta-schema it declares, and settling a base
+// dialect then walks from that copy to whatever it declares in turn. A copy
+// that names itself as its own dialect ends that walk nowhere
+TEST(embedded_metaschema_that_declares_itself) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://example.com/meta",
+    "$id": "https://example.com/schema",
+    "$defs": {
+      "meta": {
+        "$id": "https://example.com/meta",
+        "$schema": "https://example.com/meta"
+      }
+    }
+  })JSON");
+
+  try {
+    [[maybe_unused]] const sourcemeta::core::SchemaFrame frame{
+        sourcemeta::core::SchemaFrame::Mode::References, document,
+        sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+    FAIL();
+  } catch (const sourcemeta::core::SchemaUnknownBaseDialectError &error) {
+    EXPECT_STREQ(error.what(),
+                 "Could not determine the base dialect of the schema");
+  } catch (...) {
+    FAIL();
+  }
+}

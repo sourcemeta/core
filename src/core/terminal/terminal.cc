@@ -118,11 +118,9 @@ auto terminal_paint(std::string_view text, TerminalStyle style, bool enabled)
     return std::string{text};
   }
 
+  // Only the empty style names no sequence, which the branch above has already
+  // answered for
   const std::string_view sequence{terminal_sgr_sequence(style)};
-  if (sequence.empty()) {
-    return std::string{text};
-  }
-
   const std::string_view reset{terminal_sgr_reset()};
   std::string styled_text;
   styled_text.reserve(sequence.size() + text.size() + reset.size());
@@ -154,13 +152,9 @@ auto terminal_paint(std::ostream &output, std::string_view text,
     return output;
   }
 
-  const std::string_view sequence{terminal_sgr_sequence(style)};
-  if (sequence.empty()) {
-    output << text;
-    return output;
-  }
-
-  output << sequence << text << terminal_sgr_reset();
+  // Only the empty style names no sequence, which the branch above has already
+  // answered for
+  output << terminal_sgr_sequence(style) << text << terminal_sgr_reset();
   return output;
 }
 

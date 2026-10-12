@@ -6128,3 +6128,27 @@ TEST(block_scalar_of_only_empty_lines) {
   EXPECT_EQ(roundtrip_value("a: |\n\n\n"),
             sourcemeta::core::parse_json(R"JSON({ "a": "" })JSON"));
 }
+
+// A key whose value is left out holds the null that YAML reads there, which a
+// round trip writes back the way it was given rather than spelling the null out
+TEST(block_mapping_key_with_no_value_at_the_end_of_the_document) {
+  EXPECT_EQ(roundtrip("a:\n"), "a:\n");
+}
+
+TEST(block_mapping_key_with_no_value_followed_by_another_key) {
+  EXPECT_EQ(roundtrip("a:\nb: 1\n"), "a:\nb: 1\n");
+}
+
+TEST(block_mapping_keys_with_no_values) {
+  EXPECT_EQ(roundtrip("a:\nb:\n"), "a:\nb:\n");
+}
+
+// A flow mapping may leave out the separator along with the value, which has
+// nowhere to be written back to, so the null is spelled out instead
+TEST(flow_mapping_key_with_no_separator_or_value) {
+  EXPECT_EQ(roundtrip("{a}\n"), "{a: }\n");
+}
+
+TEST(flow_mapping_last_key_with_no_separator_or_value) {
+  EXPECT_EQ(roundtrip("{a: 1, b}\n"), "{a: 1, b: }\n");
+}
