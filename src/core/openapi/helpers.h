@@ -364,39 +364,6 @@ openapi_terms_of_service_is_a_uri(const OpenAPIVersion version) noexcept
   return version >= OpenAPIVersion::OPENAPI_3_0;
 }
 
-// Whether this revision gathers what a description reuses into one Object.
-// The oldest one instead spreads it across four containers of the root, one
-// per kind of Object a reference may name, and has no Components Object at all
-inline auto openapi_has_components(const OpenAPIVersion version) noexcept
-    -> bool {
-  return version >= OpenAPIVersion::OPENAPI_3_0;
-}
-
-// Whether this revision names the hosts the API is served from with Objects of
-// their own. The oldest one instead takes a single host, a base path and a
-// list of schemes, and has no Server Object to hold them
-inline auto openapi_has_servers(const OpenAPIVersion version) noexcept -> bool {
-  return version >= OpenAPIVersion::OPENAPI_3_0;
-}
-
-// Whether this revision describes a body through a map keyed by media type.
-// The oldest one instead lists the media types an operation consumes and
-// produces beside it, and carries the body as one parameter among the rest
-inline auto openapi_has_media_types(const OpenAPIVersion version) noexcept
-    -> bool {
-  return version >= OpenAPIVersion::OPENAPI_3_0;
-}
-
-// Whether a parameter of this revision describes what it holds by nesting a
-// schema. The oldest one does so only for the one that carries the body, and
-// has every other form carry the type, the format and the validation fields
-// on the Parameter Object itself
-inline auto
-openapi_parameters_always_nest_a_schema(const OpenAPIVersion version) noexcept
-    -> bool {
-  return version >= OpenAPIVersion::OPENAPI_3_0;
-}
-
 // Whether a Schema Object of this revision may carry the keywords that name the
 // dialect it is written against and the identity it answers to. OpenAPI
 // Specification 3.0.4, Schema Object, lists the twenty-seven keywords it takes

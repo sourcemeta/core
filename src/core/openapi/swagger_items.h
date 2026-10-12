@@ -109,8 +109,17 @@ inline auto swagger_check_validation_fields(const JSON &value,
                          "This validation field must be a number"};
     }
 
+    // A number reaches this as whichever of the three the parser settled on,
+    // and each is read through its own accessor. A value the binary64 format
+    // holds exactly arrives as a floating point one, and every other
+    // fractional value arrives as a decimal, so reading the second as the
+    // first is a question of which digits were written rather than of
+    // anything this can see here
     const auto positive{factor->is_integer() ? factor->to_integer() > 0
-                                             : factor->to_real() > 0};
+                        : factor->is_real()
+                            ? factor->to_real() > 0
+                            : !factor->to_decimal().is_zero() &&
+                                  !factor->to_decimal().is_signed()};
     if (!positive) {
       throw OpenAPIError{openapi_child(base, "multipleOf"sv),
                          "This validation field must be greater than zero"};

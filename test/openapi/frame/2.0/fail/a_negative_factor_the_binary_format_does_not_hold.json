@@ -1,0 +1,32 @@
+{
+  "document": {
+    "swagger": "2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "parameters": [
+            {
+              "name": "n",
+              "in": "query",
+              "type": "number",
+              "multipleOf": -0.1
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Fine"
+            }
+          }
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "This validation field must be greater than zero",
+    "location": "/paths/~1pets/get/parameters/0/multipleOf"
+  }
+}
