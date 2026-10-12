@@ -36,12 +36,6 @@ static const sourcemeta::core::SchemaVocabularies VOCABULARIES_DRAFT_4{
 static const sourcemeta::core::SchemaVocabularies VOCABULARIES_2020_12_CORE{
     {"https://json-schema.org/draft/2020-12/vocab/core", true}};
 
-// Every keyword this revision's base dialect defines and it leaves out, which
-// is what reading one of its schemas as that base dialect would wrongly honour
-static constexpr auto DROPPED_FROM_DRAFT_4{std::to_array<std::string_view>(
-    {"patternProperties", "additionalItems", "dependencies", "definitions",
-     "id", "$schema"})};
-
 // NOLINTEND(cert-err58-cpp,bugprone-throwing-static-initialization)
 TEST(openapi_3_1_discriminator) {
   using namespace sourcemeta::core;
@@ -1601,60 +1595,84 @@ TEST(swagger_2_0_rejects_writeOnly) {
   EXPECT_TRUE(result.order_dependencies.empty());
 }
 
-TEST(swagger_2_0_rejects_patternProperties) {
+TEST(swagger_2_0_does_not_inherit_patternProperties) {
   using namespace sourcemeta::core;
-  const auto &result{
+  const auto &dropped{
       schema_walker("patternProperties", VOCABULARIES_SWAGGER_2_0)};
-  EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
-  EXPECT_FALSE(result.vocabulary.has_value());
-  EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_TRUE(result.order_dependencies.empty());
+  EXPECT_EQ(dropped.type, SchemaKeywordType::Unknown);
+  EXPECT_FALSE(dropped.vocabulary.has_value());
+  EXPECT_TRUE(dropped.dependencies.empty());
+  EXPECT_TRUE(dropped.order_dependencies.empty());
+  const auto &kept{schema_walker("patternProperties", VOCABULARIES_DRAFT_4)};
+  EXPECT_NE(kept.type, SchemaKeywordType::Unknown);
+  EXPECT_TRUE(kept.vocabulary.has_value());
+  EXPECT_VOCABULARY_KNOWN(kept.vocabulary.value(), JSON_SCHEMA_DRAFT_4);
 }
 
-TEST(swagger_2_0_rejects_additionalItems) {
+TEST(swagger_2_0_does_not_inherit_additionalItems) {
   using namespace sourcemeta::core;
-  const auto &result{
+  const auto &dropped{
       schema_walker("additionalItems", VOCABULARIES_SWAGGER_2_0)};
-  EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
-  EXPECT_FALSE(result.vocabulary.has_value());
-  EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_TRUE(result.order_dependencies.empty());
+  EXPECT_EQ(dropped.type, SchemaKeywordType::Unknown);
+  EXPECT_FALSE(dropped.vocabulary.has_value());
+  EXPECT_TRUE(dropped.dependencies.empty());
+  EXPECT_TRUE(dropped.order_dependencies.empty());
+  const auto &kept{schema_walker("additionalItems", VOCABULARIES_DRAFT_4)};
+  EXPECT_NE(kept.type, SchemaKeywordType::Unknown);
+  EXPECT_TRUE(kept.vocabulary.has_value());
+  EXPECT_VOCABULARY_KNOWN(kept.vocabulary.value(), JSON_SCHEMA_DRAFT_4);
 }
 
-TEST(swagger_2_0_rejects_dependencies) {
+TEST(swagger_2_0_does_not_inherit_dependencies) {
   using namespace sourcemeta::core;
-  const auto &result{schema_walker("dependencies", VOCABULARIES_SWAGGER_2_0)};
-  EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
-  EXPECT_FALSE(result.vocabulary.has_value());
-  EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_TRUE(result.order_dependencies.empty());
+  const auto &dropped{schema_walker("dependencies", VOCABULARIES_SWAGGER_2_0)};
+  EXPECT_EQ(dropped.type, SchemaKeywordType::Unknown);
+  EXPECT_FALSE(dropped.vocabulary.has_value());
+  EXPECT_TRUE(dropped.dependencies.empty());
+  EXPECT_TRUE(dropped.order_dependencies.empty());
+  const auto &kept{schema_walker("dependencies", VOCABULARIES_DRAFT_4)};
+  EXPECT_NE(kept.type, SchemaKeywordType::Unknown);
+  EXPECT_TRUE(kept.vocabulary.has_value());
+  EXPECT_VOCABULARY_KNOWN(kept.vocabulary.value(), JSON_SCHEMA_DRAFT_4);
 }
 
-TEST(swagger_2_0_rejects_definitions) {
+TEST(swagger_2_0_does_not_inherit_definitions) {
   using namespace sourcemeta::core;
-  const auto &result{schema_walker("definitions", VOCABULARIES_SWAGGER_2_0)};
-  EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
-  EXPECT_FALSE(result.vocabulary.has_value());
-  EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_TRUE(result.order_dependencies.empty());
+  const auto &dropped{schema_walker("definitions", VOCABULARIES_SWAGGER_2_0)};
+  EXPECT_EQ(dropped.type, SchemaKeywordType::Unknown);
+  EXPECT_FALSE(dropped.vocabulary.has_value());
+  EXPECT_TRUE(dropped.dependencies.empty());
+  EXPECT_TRUE(dropped.order_dependencies.empty());
+  const auto &kept{schema_walker("definitions", VOCABULARIES_DRAFT_4)};
+  EXPECT_NE(kept.type, SchemaKeywordType::Unknown);
+  EXPECT_TRUE(kept.vocabulary.has_value());
+  EXPECT_VOCABULARY_KNOWN(kept.vocabulary.value(), JSON_SCHEMA_DRAFT_4);
 }
 
-TEST(swagger_2_0_rejects_id) {
+TEST(swagger_2_0_does_not_inherit_id) {
   using namespace sourcemeta::core;
-  const auto &result{schema_walker("id", VOCABULARIES_SWAGGER_2_0)};
-  EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
-  EXPECT_FALSE(result.vocabulary.has_value());
-  EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_TRUE(result.order_dependencies.empty());
+  const auto &dropped{schema_walker("id", VOCABULARIES_SWAGGER_2_0)};
+  EXPECT_EQ(dropped.type, SchemaKeywordType::Unknown);
+  EXPECT_FALSE(dropped.vocabulary.has_value());
+  EXPECT_TRUE(dropped.dependencies.empty());
+  EXPECT_TRUE(dropped.order_dependencies.empty());
+  const auto &kept{schema_walker("id", VOCABULARIES_DRAFT_4)};
+  EXPECT_NE(kept.type, SchemaKeywordType::Unknown);
+  EXPECT_TRUE(kept.vocabulary.has_value());
+  EXPECT_VOCABULARY_KNOWN(kept.vocabulary.value(), JSON_SCHEMA_DRAFT_4);
 }
 
-TEST(swagger_2_0_rejects_dollar_schema) {
+TEST(swagger_2_0_does_not_inherit_dollar_schema) {
   using namespace sourcemeta::core;
-  const auto &result{schema_walker("$schema", VOCABULARIES_SWAGGER_2_0)};
-  EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
-  EXPECT_FALSE(result.vocabulary.has_value());
-  EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_TRUE(result.order_dependencies.empty());
+  const auto &dropped{schema_walker("$schema", VOCABULARIES_SWAGGER_2_0)};
+  EXPECT_EQ(dropped.type, SchemaKeywordType::Unknown);
+  EXPECT_FALSE(dropped.vocabulary.has_value());
+  EXPECT_TRUE(dropped.dependencies.empty());
+  EXPECT_TRUE(dropped.order_dependencies.empty());
+  const auto &kept{schema_walker("$schema", VOCABULARIES_DRAFT_4)};
+  EXPECT_NE(kept.type, SchemaKeywordType::Unknown);
+  EXPECT_TRUE(kept.vocabulary.has_value());
+  EXPECT_VOCABULARY_KNOWN(kept.vocabulary.value(), JSON_SCHEMA_DRAFT_4);
 }
 
 TEST(swagger_2_0_rejects_x_foo) {
@@ -1683,14 +1701,4 @@ TEST(swagger_2_0_items_keeps_the_tuple_form_that_3_0_dropped) {
   EXPECT_EQ(older.type,
             SchemaKeywordType::ApplicatorValueOrElementsTraverseAnyItemOrItem);
   EXPECT_EQ(newer.type, SchemaKeywordType::ApplicatorValueTraverseAnyItem);
-}
-
-TEST(swagger_2_0_does_not_inherit_what_its_base_dialect_defines) {
-  using namespace sourcemeta::core;
-  for (const auto keyword : DROPPED_FROM_DRAFT_4) {
-    const auto &dropped{schema_walker(keyword, VOCABULARIES_SWAGGER_2_0)};
-    EXPECT_EQ(dropped.type, SchemaKeywordType::Unknown);
-    const auto &kept{schema_walker(keyword, VOCABULARIES_DRAFT_4)};
-    EXPECT_NE(kept.type, SchemaKeywordType::Unknown);
-  }
 }
