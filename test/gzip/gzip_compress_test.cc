@@ -599,3 +599,19 @@ TEST(compress_length_limited_codes_level_12_round_trips) {
   // than giving up and storing the block verbatim
   EXPECT_LT(compressed.size(), input.size());
 }
+
+// A match is copied out in a fixed run of bytes first and then in smaller
+// steps until it is finished, where the size of the step is what the distance
+// back to the source allows without the two overlapping. Only a repeat longer
+// than that first run reaches the stepping
+TEST(compress_long_repeat_at_a_short_non_overlapping_distance_round_trips) {
+  std::string input;
+  input.reserve(65536);
+  while (input.size() < 65536) {
+    input.append("abcdefghijkl");
+  }
+
+  const auto compressed{compress(input, 9)};
+  EXPECT_GZIP_DECOMPRESS(compressed, input);
+  EXPECT_LT(compressed.size(), input.size());
+}
