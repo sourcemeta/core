@@ -153,24 +153,26 @@ auto http_make_traceparent(const bool sampled) -> std::array<char, 55>;
 /// the specification calls "the most typical" and says "should be considered a
 /// default".
 ///
+/// The input is the field value that arrived rather than its parsed fields, so
+/// that what is carried over is known to be well formed, and nothing comes
+/// back for one that does not parse.
+///
 /// The sampling decision is the one being made here rather than the one that
 /// arrived, since the flag "reflects the caller's recording behavior" and the
-/// caller is now this service. Pass on the decision that arrived by reading it
-/// off the flags. A value read at a later revision is written back at the
-/// revision this library implements, which is the downgrade a reader of one
-/// owes, and whatever that value appended is dropped with it. For example:
+/// caller is now this service. Read the arriving decision off the parsed flags
+/// to pass it on unchanged. A value read at a later revision is written back
+/// at the revision this library implements, which is the downgrade a reader of
+/// one owes, and whatever that value appended is dropped with it. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/http.h>
 /// #include <cassert>
 /// #include <string_view>
 ///
-/// const auto parent{sourcemeta::core::http_parse_traceparent(
-///     "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01")};
-/// assert(parent.has_value());
 /// const auto value{sourcemeta::core::http_continue_traceparent(
-///     *parent, sourcemeta::core::http_traceparent_sampled(parent->flags))};
-/// const std::string_view view{value.data(), value.size()};
+///     "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01", true)};
+/// assert(value.has_value());
+/// const std::string_view view{value->data(), value->size()};
 /// assert(sourcemeta::core::http_is_traceparent(view));
 /// assert(view.substr(3, 32) == "0af7651916cd43dd8448eb211c80319c");
 /// assert(view.substr(36, 16) != "b7ad6b7169203331");
@@ -179,8 +181,8 @@ auto http_make_traceparent(const bool sampled) -> std::array<char, 55>;
 /// @see https://www.w3.org/TR/trace-context/#mutating-the-traceparent-field
 /// @see https://www.w3.org/TR/trace-context/#versioning-of-traceparent
 SOURCEMETA_CORE_HTTP_EXPORT
-auto http_continue_traceparent(const HTTPTraceParent &parent,
-                               const bool sampled) -> std::array<char, 55>;
+auto http_continue_traceparent(const std::string_view value, const bool sampled)
+    -> std::optional<std::array<char, 55>>;
 
 /// @ingroup http
 /// Whether the input is a well-formed tracestate field value (RFC 5234 ABNF in
