@@ -14,6 +14,7 @@
 #include "swagger_security.h"
 #include "tag.h"
 
+#include <algorithm>   // std::ranges::all_of
 #include <array>       // std::array
 #include <cassert>     // assert
 #include <set>         // std::set
@@ -137,10 +138,36 @@ inline auto swagger_check_root(const JSON &document, OpenAPIWalk &walk)
                  std::move(dialect));
 
   // Swagger Object: "host | string | The host (name or ip) serving the API.
-  // This MUST be the host only and does not include the scheme nor sub-paths"
-  openapi_check_optional_string(
-      document, EMPTY_POINTER, "host"sv, SWAGGER_HASH_HOST,
-      "The Swagger Object host must be a string");
+  // This MUST be the host only and does not include the scheme nor sub-paths.
+  // It MAY include a port [...] The `host` does not support path templating".
+  //
+  // The specification's own schema states the same shape as a pattern, and the
+  // two agree: a run of characters that are none of a brace, a slash, a space,
+  // a colon or a backslash, optionally followed by a colon and a port of
+  // digits. A brace is what templating would be written with, a slash is what
+  // a sub-path would begin, and a colon is what separates a scheme or
+  // introduces the port this allows for
+  const auto *host{document.try_at("host"sv, SWAGGER_HASH_HOST)};
+  if (host != nullptr) {
+    const auto name{openapi_expect_string(
+        *host, EMPTY_POINTER, "host"sv,
+        "The Swagger Object host must be a string")};
+    const auto port{name.find(':')};
+    const auto authority{name.substr(0, port)};
+    const auto valid{
+        !authority.empty() &&
+        authority.find_first_of("{}/ \\") == JSON::StringView::npos &&
+        (port == JSON::StringView::npos ||
+         (name.size() > port + 1 &&
+          std::ranges::all_of(name.substr(port + 1), [](const auto digit) {
+            return digit >= '0' && digit <= '9';
+          })))};
+    if (!valid) {
+      throw OpenAPIError{Pointer{"host"},
+                         "The Swagger Object host must name a host, and a "
+                         "port at most, and nothing else"};
+    }
+  }
 
   // "basePath | string | The base path on which the API is served [...] The
   // value MUST start with a leading slash (`/`)"
@@ -169,6 +196,13 @@ inline auto swagger_check_root(const JSON &document, OpenAPIWalk &walk)
         *consumes, Pointer{"consumes"},
         "The Swagger Object consumed media types must be an array",
         "The Swagger Object consumed media types must be strings");
+
+    // Swagger Object: "This is global to all APIs but can be overridden on
+    // specific API calls", so this is what an operation declaring none of its
+    // own is held against
+    for (const auto &entry : consumes->as_array()) {
+      walk.consumes.emplace_back(entry.to_string());
+    }
   }
 
   const auto *produces{document.try_at("produces"sv, SWAGGER_HASH_PRODUCES)};

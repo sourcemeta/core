@@ -8,6 +8,7 @@
 #include "swagger_items.h"
 
 #include <array>       // std::array
+#include <utility>     // std::pair
 #include <string_view> // std::string_view
 
 namespace sourcemeta::core {
@@ -46,7 +47,8 @@ inline auto swagger_parameter_may_repeat(const JSON::StringView where) noexcept
 // itself, the way an Items Object does, and so is not a Schema Object and must
 // never be handed to one
 inline auto swagger_check_parameter(const JSON &value, const Pointer &base,
-                                    OpenAPIWalk &walk) -> void {
+                                    OpenAPIWalk &walk)
+    -> std::pair<JSON::StringView, JSON::StringView> {
   openapi_record(walk, base, OpenAPIObjectKind::Parameter);
   openapi_expect_object(value, base, "The Parameter Object must be an object");
 
@@ -126,7 +128,7 @@ inline auto swagger_check_parameter(const JSON &value, const Pointer &base,
     walk.parameters.insert_or_assign(
         openapi_location_uri(walk.base, base),
         std::pair{JSON::String{parameter}, JSON::String{where}});
-    return;
+    return {parameter, where};
   }
 
   // "If `in` is any value other than "body": type | string | **Required.**"
@@ -151,16 +153,41 @@ inline auto swagger_check_parameter(const JSON &value, const Pointer &base,
       "The Parameter Object type must be a string",
       "The Parameter Object type must name a type this location admits", walk);
 
+  const auto position{openapi_location_uri(walk.base, base)};
   walk.parameters.insert_or_assign(
-      openapi_location_uri(walk.base, base),
-      std::pair{JSON::String{parameter}, JSON::String{where}});
+      position, std::pair{JSON::String{parameter}, JSON::String{where}});
+
+  // Parameter Object, of the file type: "the `consumes` MUST be either
+  // `"multipart/form-data"`, `" application/x-www-form-urlencoded"` or both
+  // and the parameter MUST be `in` `"formData"`". The second half is settled
+  // above, a form being the only location whose type list holds the value at
+  // all. The first is a question about the operation reaching this parameter
+  // rather than about the parameter, so it is settled once that operation is
+  // known and this records what it will be asked about
+  const auto *type{value.try_at("type"sv, SWAGGER_HASH_TYPE)};
+  if (type != nullptr && type->is_string() && type->to_string() == "file"sv) {
+    walk.file_parameters.insert(position);
+  }
+
+  return {parameter, where};
+}
+
+// What the template that reads an Object or the reference standing in for it
+// expects, the identity being of no use to whoever only wanted it read
+inline auto swagger_check_parameter_discarding_identity(const JSON &value,
+                                                        const Pointer &base,
+                                                        OpenAPIWalk &walk)
+    -> void {
+  [[maybe_unused]] const auto identity{
+      swagger_check_parameter(value, base, walk)};
 }
 
 inline auto swagger_check_parameter_or_reference(const JSON &value,
                                                  const Pointer &base,
                                                  OpenAPIWalk &walk) -> void {
-  openapi_check_or_reference<OpenAPIObjectKind::Parameter,
-                             swagger_check_parameter>(value, base, walk);
+  openapi_check_or_reference<
+      OpenAPIObjectKind::Parameter,
+      swagger_check_parameter_discarding_identity>(value, base, walk);
 }
 
 // Swagger 2.0, Parameters Definitions Object: "An object to hold parameters to
@@ -181,8 +208,8 @@ inline auto swagger_check_parameters_definitions(const JSON &document,
       "The Parameters Definitions Object must be an object");
 
   for (const auto &entry : definitions->as_object()) {
-    swagger_check_parameter(entry.second, openapi_child(base, entry.first),
-                            walk);
+    swagger_check_parameter_discarding_identity(
+        entry.second, openapi_child(base, entry.first), walk);
   }
 }
 

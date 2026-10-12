@@ -249,6 +249,15 @@ struct OpenAPIWalk {
   /// referenced documents prior to determining an `operationId` to be
   /// unresolvable", so nothing is decided about them until the walk is over
   std::map<JSON::String, JSON::String> operation_id_links;
+  /// Where each Parameter Object that names the file type sits, which only the
+  /// oldest revision has, and what the media types an operation consumes are
+  /// held against. Keyed by position so that one reached through a reference
+  /// answers alongside one written out in place
+  std::set<JSON::String> file_parameters;
+  /// The media types the entry document says every operation consumes, which
+  /// is what one declaring none of its own falls back on. Only the oldest
+  /// revision states them at the root
+  std::vector<JSON::String> consumes;
   /// The revision the document declares, which is what settles which field
   /// table each of its Objects is held to
   OpenAPIVersion version{OpenAPIVersion::OPENAPI_3_1};

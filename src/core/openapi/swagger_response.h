@@ -3,6 +3,8 @@
 
 #include <sourcemeta/core/openapi.h>
 
+#include <sourcemeta/core/http.h>
+
 #include "helpers.h"
 #include "reference.h"
 #include "swagger_items.h"
@@ -138,38 +140,48 @@ inline auto swagger_check_responses(const JSON &value, const Pointer &base,
   openapi_expect_object(value, base, "The Responses Object must be an object");
 
   // Responses Object: "The Responses Object MUST contain at least one response
-  // code"
-  bool holds_a_response{false};
+  // code". Which keys count as one goes unsaid here, exactly as it does in the
+  // revisions after it, and the same two answers settle it: the specification's
+  // own schema holds this Object to carrying a member that is not an
+  // extension, by refusing one whose every member is, and nothing there asks
+  // for a status code in particular. So a default answers for a response, and
+  // only an Object answering for none at all is turned down, which is the
+  // reading the revisions after it already go by
+  if (value.empty()) {
+    throw OpenAPIError{base, "The Responses Object must not be empty"};
+  }
+
+  bool answers_for_a_response{false};
   for (const auto &entry : value.as_object()) {
     if (entry.first.starts_with(OPENAPI_EXTENSION_PREFIX)) {
       continue;
     }
 
+    answers_for_a_response = true;
     const auto location{openapi_child(base, entry.first)};
 
     // Responses Object: "default | Response Object | Reference Object | The
     // documentation of responses other than the ones declared for specific
     // HTTP response codes", and beside it "{HTTP Status Code} | Response
-    // Object | Reference Object"
-    if (entry.first != "default"sv) {
-      if (entry.first.size() != 3 ||
-          !std::ranges::all_of(entry.first, [](const auto character) {
-            return character >= '0' && character <= '9';
-          })) {
-        throw OpenAPIError{location,
-                           "The Responses Object keys must name a status code "
-                           "or the default response"};
-      }
-
-      holds_a_response = true;
+    // Object | Reference Object".
+    //
+    // Of what a status code is, this revision says "The available status codes
+    // are described by RFC 7231 [...] and in the IANA Status Code Registry",
+    // and nothing more. The revisions after it add a range form of their own,
+    // writing a class as a digit and two literal characters, so that form is
+    // one this revision has no room for and is not admitted here
+    if (entry.first != "default"sv && !http_is_status_code(entry.first)) {
+      throw OpenAPIError{location,
+                         "The Responses Object keys must name a status code "
+                         "or the default response"};
     }
 
     swagger_check_response_or_reference(entry.second, location, walk);
   }
 
-  if (!holds_a_response) {
+  if (!answers_for_a_response) {
     throw OpenAPIError{
-        base, "The Responses Object must declare at least one status code"};
+        base, "The Responses Object must answer for at least one response"};
   }
 }
 

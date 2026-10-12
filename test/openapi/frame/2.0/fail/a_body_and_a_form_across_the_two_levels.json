@@ -1,0 +1,40 @@
+{
+  "document": {
+    "swagger": "2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object"
+            }
+          }
+        ],
+        "post": {
+          "parameters": [
+            {
+              "name": "field",
+              "in": "formData",
+              "type": "string"
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Fine"
+            }
+          }
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "The parameters of an operation must not carry both a body and a form",
+    "location": "/paths/~1pets/post"
+  }
+}

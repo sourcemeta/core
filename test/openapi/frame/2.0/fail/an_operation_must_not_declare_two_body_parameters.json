@@ -1,0 +1,40 @@
+{
+  "document": {
+    "swagger": "2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "post": {
+          "parameters": [
+            {
+              "name": "one",
+              "in": "body",
+              "schema": {
+                "type": "object"
+              }
+            },
+            {
+              "name": "two",
+              "in": "body",
+              "schema": {
+                "type": "object"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Fine"
+            }
+          }
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "The parameters must declare at most one body",
+    "location": "/paths/~1pets/post/parameters/1"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "document": {
+    "swagger": "2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "host": "",
+    "paths": {}
+  },
+  "error": {
+    "message": "The Swagger Object host must name a host, and a port at most, and nothing else",
+    "location": "/host"
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "document": {
+    "swagger": "2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "type": "integer"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "type": "string"
+          }
+        ],
+        "get": {
+          "responses": {
+            "200": {
+              "description": "Fine"
+            }
+          }
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "The parameters must not repeat another one",
+    "location": "/paths/~1pets/parameters/1"
+  }
+}

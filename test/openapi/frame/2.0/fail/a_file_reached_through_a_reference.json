@@ -1,0 +1,39 @@
+{
+  "document": {
+    "swagger": "2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "parameters": {
+      "Payload": {
+        "name": "payload",
+        "in": "formData",
+        "type": "file"
+      }
+    },
+    "paths": {
+      "/upload": {
+        "post": {
+          "consumes": [
+            "application/json"
+          ],
+          "parameters": [
+            {
+              "$ref": "#/parameters/Payload"
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Fine"
+            }
+          }
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "An operation taking a file must consume a form media type",
+    "location": "/paths/~1upload/post"
+  }
+}

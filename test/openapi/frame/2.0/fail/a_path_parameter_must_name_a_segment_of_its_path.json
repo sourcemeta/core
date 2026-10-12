@@ -1,0 +1,32 @@
+{
+  "document": {
+    "swagger": "2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets/{id}": {
+        "get": {
+          "parameters": [
+            {
+              "name": "petId",
+              "in": "path",
+              "required": true,
+              "type": "string"
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Fine"
+            }
+          }
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "A path Parameter Object must name a template expression of a path that exposes it",
+    "location": "/paths/~1pets~1{id}/get/parameters/0"
+  }
+}

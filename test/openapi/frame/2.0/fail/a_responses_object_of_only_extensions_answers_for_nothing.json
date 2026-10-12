@@ -9,16 +9,14 @@
       "/pets": {
         "get": {
           "responses": {
-            "default": {
-              "description": "Any"
-            }
+            "x-note": "nothing"
           }
         }
       }
     }
   },
   "error": {
-    "message": "The Responses Object must declare at least one status code",
+    "message": "The Responses Object must answer for at least one response",
     "location": "/paths/~1pets/get/responses"
   }
 }
