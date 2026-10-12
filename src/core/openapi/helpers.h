@@ -265,6 +265,119 @@ struct OpenAPIWalk {
   std::uint64_t limit{std::numeric_limits<std::uint64_t>::max()};
 };
 
+// The OpenAPI Initiative assigned the Schema Object of neither of the two
+// oldest revisions a dialect identifier, the way it has from the third
+// onwards, so the two below are minted here instead, each against the release
+// of the document schema that carries the Schema Object it describes.
+//
+// Swagger 2.0, Schema Object, takes "a predefined subset" of the validation
+// draft it cites and tables five fields of its own, closing the set to
+// everything but an extension. A keyword naming a dialect is in neither list,
+// so a Schema Object of that revision has nothing to name one with, and this
+// fallback is the only way one is ever in force
+constexpr auto OPENAPI_DIALECT_2_0{
+    "tag:spec.openapis.org,2017-08-27:oas/2.0/dialect"sv};
+
+// The same holds of the revision after it, and this is the identifier minted
+// for the later of the two releases of the document schema that carries its
+// Schema Object. Both releases describe the same keywords and draw on the same
+// vocabulary.
+//
+// OpenAPI Specification 3.0.4, Schema Object, lists twenty-seven keywords it
+// takes from JSON Schema, tables eight of its own, and closes the set:
+// "Additional keywords defined by the JSON Schema specification that are not
+// mentioned here are strictly unsupported". The releases before it say the
+// same of "Additional properties". A keyword naming a dialect is in neither
+// list, so a Schema Object of this revision has nothing to name one with, and
+// this fallback is the only way one is ever in force
+constexpr auto OPENAPI_DIALECT_3_0{
+    "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect"sv};
+
+// OpenAPI Specification 3.1.1, Section 4.8.24.1: "The OpenAPI Schema Object
+// dialect for this version of the specification is identified by the URI
+// `https://spec.openapis.org/oas/3.1/dialect/base`"
+constexpr auto OPENAPI_DIALECT_3_1{
+    "https://spec.openapis.org/oas/3.1/dialect/base"sv};
+
+// OpenAPI Specification 3.2.1, Section 4.24.1 names the same thing by a dated
+// URI instead: it "is identified by the URI of the form
+// `https://spec.openapis.org/oas/3.2/dialect/YYYY-MM-DD` [...] see the list of
+// current schemas for the specific URI". One date is published for 3.2, and it
+// is the one this repository already resolves.
+//
+// A document that declares 3.2.0 gets this one as well, although that patch
+// reads "identified by the URI
+// `https://spec.openapis.org/oas/3.1/dialect/base`" and so names the dialect of
+// the revision before it. 3.2.1 Section 2.1 makes a revision the
+// `major`.`minor` pair alone, so what a later patch of one says is what the
+// whole of it says, and the earlier wording is a mistake that patch corrects
+// rather than a rule of its own
+constexpr auto OPENAPI_DIALECT_3_2{
+    "https://spec.openapis.org/oas/3.2/dialect/2025-09-17"sv};
+
+// The revision a document declares settles which dialect its Schema Objects
+// fall back on, as each revision publishes one of its own
+inline auto openapi_dialect(const OpenAPIVersion version) -> JSON::StringView {
+  switch (version) {
+    case OpenAPIVersion::SWAGGER_2_0:
+      return OPENAPI_DIALECT_2_0;
+    case OpenAPIVersion::OPENAPI_3_0:
+      return OPENAPI_DIALECT_3_0;
+    case OpenAPIVersion::OPENAPI_3_1:
+      return OPENAPI_DIALECT_3_1;
+    case OpenAPIVersion::OPENAPI_3_2:
+      return OPENAPI_DIALECT_3_2;
+  }
+
+    // Clang settles that no other value arrives, so only GCC and MSVC
+    // need to be told that the end of this function is never reached
+#if !defined(__clang__)
+  std::unreachable();
+#endif
+}
+
+// Whether this revision declares the version it is written against through the
+// field the OpenAPI Initiative named, rather than the one the specification
+// carried while it went by the Swagger name
+inline auto
+openapi_declares_version_as_openapi(const OpenAPIVersion version) noexcept
+    -> bool {
+  return version >= OpenAPIVersion::OPENAPI_3_0;
+}
+
+// Whether this revision gathers what a description reuses into one Object.
+// The oldest one instead spreads it across four containers of the root, one
+// per kind of Object a reference may name, and has no Components Object at all
+inline auto openapi_has_components(const OpenAPIVersion version) noexcept
+    -> bool {
+  return version >= OpenAPIVersion::OPENAPI_3_0;
+}
+
+// Whether this revision names the hosts the API is served from with Objects of
+// their own. The oldest one instead takes a single host, a base path and a
+// list of schemes, and has no Server Object to hold them
+inline auto openapi_has_servers(const OpenAPIVersion version) noexcept -> bool {
+  return version >= OpenAPIVersion::OPENAPI_3_0;
+}
+
+// Whether this revision describes a body through a map keyed by media type.
+// The oldest one instead lists the media types an operation consumes and
+// produces beside it, and carries the body as one parameter among the rest
+inline auto openapi_has_media_types(const OpenAPIVersion version) noexcept
+    -> bool {
+  return version >= OpenAPIVersion::OPENAPI_3_0;
+}
+
+// Whether a parameter of this revision describes what it holds by nesting a
+// schema. The oldest one does so only for the one that carries the body, and
+// has every other form carry the type, the format and the validation fields
+// on the Parameter Object itself
+inline auto
+openapi_parameters_always_nest_a_schema(const OpenAPIVersion version) noexcept
+    -> bool {
+  return version >= OpenAPIVersion::OPENAPI_3_0;
+}
+
 // Whether a Schema Object of this revision may carry the keywords that name the
 // dialect it is written against and the identity it answers to. OpenAPI
 // Specification 3.0.4, Schema Object, lists the twenty-seven keywords it takes

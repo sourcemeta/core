@@ -1,0 +1,17 @@
+{
+  "document": {
+    "swagger": "2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "schemes": [
+      "ftp"
+    ],
+    "paths": {}
+  },
+  "error": {
+    "message": "A scheme must name a transfer protocol this revision admits",
+    "location": "/schemes/0"
+  }
+}

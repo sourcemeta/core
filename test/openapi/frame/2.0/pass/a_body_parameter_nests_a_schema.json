@@ -1,0 +1,157 @@
+{
+  "document": {
+    "swagger": "2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "post": {
+          "parameters": [
+            {
+              "name": "body",
+              "in": "body",
+              "required": true,
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          ],
+          "responses": {
+            "201": {
+              "description": "Created"
+            }
+          }
+        }
+      }
+    }
+  },
+  "frame": {
+    "version": "2.0",
+    "base": "",
+    "standalone": true,
+    "schemas": {
+      "mode": "references",
+      "locations": {
+        "static": {
+          "#/paths/~1pets/post/parameters/0/schema": {
+            "parent": null,
+            "type": "subschema",
+            "root": null,
+            "base": "",
+            "pointer": "/paths/~1pets/post/parameters/0/schema",
+            "relativePointer": "/paths/~1pets/post/parameters/0/schema",
+            "dialect": "tag:spec.openapis.org,2017-08-27:oas/2.0/dialect",
+            "baseDialect": "http://json-schema.org/draft-04/schema#",
+            "propertyName": false,
+            "orphan": false,
+            "hasReferencesTo": false,
+            "hasReferencesThrough": false,
+            "vocabularies": {
+              "tag:swagger.io,2014:oas/2.0/vocab/base": true
+            }
+          },
+          "#/paths/~1pets/post/parameters/0/schema/properties/name": {
+            "parent": "/paths/~1pets/post/parameters/0/schema",
+            "type": "subschema",
+            "root": null,
+            "base": "",
+            "pointer": "/paths/~1pets/post/parameters/0/schema/properties/name",
+            "relativePointer": "/paths/~1pets/post/parameters/0/schema/properties/name",
+            "dialect": "tag:spec.openapis.org,2017-08-27:oas/2.0/dialect",
+            "baseDialect": "http://json-schema.org/draft-04/schema#",
+            "propertyName": false,
+            "orphan": false,
+            "hasReferencesTo": false,
+            "hasReferencesThrough": false,
+            "vocabularies": {
+              "tag:swagger.io,2014:oas/2.0/vocab/base": true
+            }
+          }
+        },
+        "dynamic": {}
+      },
+      "references": []
+    },
+    "info": {
+      "title": "Example",
+      "version": "1.0.0",
+      "summary": null,
+      "description": null,
+      "termsOfService": null,
+      "contact": null,
+      "license": null
+    },
+    "locations": {
+      "": {
+        "type": "openapi",
+        "pointer": "",
+        "parent": null,
+        "defaultDialect": "tag:spec.openapis.org,2017-08-27:oas/2.0/dialect"
+      },
+      "#/info": {
+        "type": "info",
+        "pointer": "/info",
+        "parent": ""
+      },
+      "#/paths": {
+        "type": "paths",
+        "pointer": "/paths",
+        "parent": ""
+      },
+      "#/paths/~1pets": {
+        "type": "path-item",
+        "pointer": "/paths/~1pets",
+        "parent": "#/paths"
+      },
+      "#/paths/~1pets/post": {
+        "type": "operation",
+        "pointer": "/paths/~1pets/post",
+        "parent": "#/paths/~1pets"
+      },
+      "#/paths/~1pets/post/parameters/0": {
+        "type": "parameter",
+        "pointer": "/paths/~1pets/post/parameters/0",
+        "parent": "#/paths/~1pets/post"
+      },
+      "#/paths/~1pets/post/parameters/0/schema": {
+        "type": "schema",
+        "pointer": "/paths/~1pets/post/parameters/0/schema",
+        "parent": "#/paths/~1pets/post/parameters/0",
+        "defaultDialect": "tag:spec.openapis.org,2017-08-27:oas/2.0/dialect",
+        "base": ""
+      },
+      "#/paths/~1pets/post/responses": {
+        "type": "responses",
+        "pointer": "/paths/~1pets/post/responses",
+        "parent": "#/paths/~1pets/post"
+      },
+      "#/paths/~1pets/post/responses/201": {
+        "type": "response",
+        "pointer": "/paths/~1pets/post/responses/201",
+        "parent": "#/paths/~1pets/post/responses"
+      }
+    },
+    "operations": [
+      {
+        "type": "path",
+        "path": "/pets",
+        "method": "post",
+        "origin": "#/paths/~1pets/post",
+        "endpoint": "#/paths/~1pets",
+        "tags": [],
+        "servers": [],
+        "security": [],
+        "parameters": [
+          "#/paths/~1pets/post/parameters/0"
+        ]
+      }
+    ]
+  }
+}

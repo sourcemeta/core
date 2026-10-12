@@ -1,0 +1,21 @@
+{
+  "document": {
+    "swagger": "2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "securityDefinitions": {
+      "oauth": {
+        "type": "oauth2",
+        "flow": "implicit",
+        "authorizationUrl": "https://example.com/authorize"
+      }
+    }
+  },
+  "error": {
+    "message": "A Security Scheme Object of OAuth2 must declare its scopes",
+    "location": "/securityDefinitions/oauth"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "document": {
+    "swagger": "2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "summary": "List"
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "The Operation Object must declare its responses",
+    "location": "/paths/~1pets/get"
+  }
+}

@@ -44,6 +44,9 @@ namespace sourcemeta::core {
 /// comparing them says what the specification says when it gives the revision
 /// a field arrived in
 enum class OpenAPIVersion : std::uint8_t {
+  /// The Swagger 2.0 revision, which this specification was called before the
+  /// OpenAPI Initiative took it over
+  SWAGGER_2_0,
   /// The OpenAPI Specification 3.0 revision
   OPENAPI_3_0,
   /// The OpenAPI Specification 3.1 revision
@@ -326,7 +329,28 @@ public:
     /// An OAuth Flow Object, which describes one flow a scheme supports
     OAuthFlow,
     /// A Security Requirement Object, which names the schemes that apply
-    SecurityRequirement
+    SecurityRequirement,
+    // The Objects only the oldest revision defines, which gathers what a
+    // description reuses into four containers of its root rather than one
+    /// An Items Object, which describes the entries of an array that a
+    /// parameter or a header carries, and which is not a Schema Object
+    Items,
+    /// A Scopes Object, which names the scopes an OAuth2 scheme offers
+    Scopes,
+    /// A Headers Object, which maps header names to what describes them
+    Headers,
+    /// A Definitions Object, which holds the Schema Objects a description
+    /// reuses
+    Definitions,
+    /// A Parameters Definitions Object, which holds the Parameter Objects a
+    /// description reuses
+    ParametersDefinitions,
+    /// A Responses Definitions Object, which holds the Response Objects a
+    /// description reuses
+    ResponsesDefinitions,
+    /// A Security Definitions Object, which holds the Security Scheme Objects
+    /// a description reuses
+    SecurityDefinitions
   };
 
   /// How an Operation Object is reached from the entry document. OpenAPI

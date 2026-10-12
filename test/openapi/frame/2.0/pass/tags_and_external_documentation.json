@@ -1,0 +1,126 @@
+{
+  "document": {
+    "swagger": "2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "tags": [
+      {
+        "name": "pets",
+        "description": "About pets",
+        "externalDocs": {
+          "url": "https://example.com/pets"
+        }
+      }
+    ],
+    "externalDocs": {
+      "description": "More",
+      "url": "https://example.com"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "tags": [
+            "pets"
+          ],
+          "responses": {
+            "200": {
+              "description": "Fine"
+            }
+          }
+        }
+      }
+    }
+  },
+  "frame": {
+    "version": "2.0",
+    "base": "",
+    "standalone": true,
+    "schemas": {
+      "mode": "references",
+      "locations": {
+        "static": {},
+        "dynamic": {}
+      },
+      "references": []
+    },
+    "info": {
+      "title": "Example",
+      "version": "1.0.0",
+      "summary": null,
+      "description": null,
+      "termsOfService": null,
+      "contact": null,
+      "license": null
+    },
+    "locations": {
+      "": {
+        "type": "openapi",
+        "pointer": "",
+        "parent": null,
+        "defaultDialect": "tag:spec.openapis.org,2017-08-27:oas/2.0/dialect"
+      },
+      "#/externalDocs": {
+        "type": "external-documentation",
+        "pointer": "/externalDocs",
+        "parent": ""
+      },
+      "#/info": {
+        "type": "info",
+        "pointer": "/info",
+        "parent": ""
+      },
+      "#/paths": {
+        "type": "paths",
+        "pointer": "/paths",
+        "parent": ""
+      },
+      "#/paths/~1pets": {
+        "type": "path-item",
+        "pointer": "/paths/~1pets",
+        "parent": "#/paths"
+      },
+      "#/paths/~1pets/get": {
+        "type": "operation",
+        "pointer": "/paths/~1pets/get",
+        "parent": "#/paths/~1pets"
+      },
+      "#/paths/~1pets/get/responses": {
+        "type": "responses",
+        "pointer": "/paths/~1pets/get/responses",
+        "parent": "#/paths/~1pets/get"
+      },
+      "#/paths/~1pets/get/responses/200": {
+        "type": "response",
+        "pointer": "/paths/~1pets/get/responses/200",
+        "parent": "#/paths/~1pets/get/responses"
+      },
+      "#/tags/0": {
+        "type": "tag",
+        "pointer": "/tags/0",
+        "parent": ""
+      },
+      "#/tags/0/externalDocs": {
+        "type": "external-documentation",
+        "pointer": "/tags/0/externalDocs",
+        "parent": "#/tags/0"
+      }
+    },
+    "operations": [
+      {
+        "type": "path",
+        "path": "/pets",
+        "method": "get",
+        "origin": "#/paths/~1pets/get",
+        "endpoint": "#/paths/~1pets",
+        "tags": [
+          "#/tags/0"
+        ],
+        "servers": [],
+        "security": [],
+        "parameters": []
+      }
+    ]
+  }
+}

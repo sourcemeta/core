@@ -1,0 +1,31 @@
+{
+  "document": {
+    "swagger": "2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "parameters": [
+            {
+              "name": "tags",
+              "in": "query",
+              "type": "array"
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Fine"
+            }
+          }
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "This position must declare items when its type is an array",
+    "location": "/paths/~1pets/get/parameters/0"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "document": {
+    "swagger": "2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "securityDefinitions": {
+      "bearer": {
+        "type": "basic",
+        "scheme": "bearer"
+      }
+    }
+  },
+  "error": {
+    "message": "The Security Scheme Object does not define this field",
+    "location": "/securityDefinitions/bearer/scheme"
+  }
+}

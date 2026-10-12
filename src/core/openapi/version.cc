@@ -8,6 +8,7 @@ namespace {
 using namespace std::string_view_literals;
 
 constexpr auto HASH_OPENAPI{sourcemeta::core::JSON::Object::hash("openapi"sv)};
+constexpr auto HASH_SWAGGER{sourcemeta::core::JSON::Object::hash("swagger"sv)};
 
 // ECMA-262 Section 22.2.2.7 compiles `Atom :: .` by taking every character and,
 // when the `dotAll` flag is unset, "Remove from charSet all characters
@@ -67,6 +68,10 @@ namespace sourcemeta::core {
 auto openapi_version_name(const OpenAPIVersion version) noexcept
     -> JSON::StringView {
   switch (version) {
+    // This revision pins the field that declares it to a single value, so the
+    // name it goes by is that value rather than a part of it
+    case OpenAPIVersion::SWAGGER_2_0:
+      return "2.0"sv;
     // OpenAPI Specification 3.1.1, Section 4.1: "The `major`.`minor` portion
     // of the version string (for example `3.1`) SHALL designate the OAS
     // feature set"
@@ -94,11 +99,22 @@ auto openapi_version_string(const JSON &document)
   // OpenAPI Specification 3.1.1, Section 4.8.1: "openapi | string | REQUIRED",
   // so a member of any other type declares no version at all
   const auto *version{document.try_at("openapi", HASH_OPENAPI)};
-  if (version == nullptr || !version->is_string()) {
+  if (version != nullptr) {
+    return version->is_string()
+               ? std::optional<JSON::StringView>{version->to_string()}
+               : std::nullopt;
+  }
+
+  // The oldest revision names that field differently, its Swagger Object
+  // reading "swagger | string | Required". A document declares one or the
+  // other and never both, so finding neither is what declares no version,
+  // and finding the older one is read only once the newer one is absent
+  const auto *legacy{document.try_at("swagger", HASH_SWAGGER)};
+  if (legacy == nullptr || !legacy->is_string()) {
     return std::nullopt;
   }
 
-  return version->to_string();
+  return legacy->to_string();
 }
 
 auto openapi_is_document(const JSON &document) -> bool {
@@ -106,27 +122,49 @@ auto openapi_is_document(const JSON &document) -> bool {
 }
 
 auto openapi_version(const JSON &document) -> std::optional<OpenAPIVersion> {
-  // Which feature set a version designates is read from the same bytes that
-  // say there is one to read, so the two cannot disagree about what a document
-  // declares
-  const auto declared{openapi_version_string(document)};
-  if (!declared.has_value()) {
+  if (!document.is_object()) {
     return std::nullopt;
   }
 
-  if (is_openapi_minor(declared.value(), "3.0."sv)) {
-    return OpenAPIVersion::OPENAPI_3_0;
+  // Which field a document declares its version through is part of what it
+  // declares, rather than a spelling of one thing. The field the OpenAPI
+  // Initiative named carries a feature set designated by a prefix of its
+  // value, and the one the specification carried before that pins its value
+  // outright. So a value belonging to one of them says nothing when it is
+  // written in the other, and neither set of values is read from both
+  const auto *declared{document.try_at("openapi", HASH_OPENAPI)};
+  if (declared != nullptr) {
+    if (!declared->is_string()) {
+      return std::nullopt;
+    }
+
+    const auto &version{declared->to_string()};
+    if (is_openapi_minor(version, "3.0."sv)) {
+      return OpenAPIVersion::OPENAPI_3_0;
+    }
+
+    if (is_openapi_minor(version, "3.1."sv)) {
+      return OpenAPIVersion::OPENAPI_3_1;
+    }
+
+    if (is_openapi_minor(version, "3.2."sv)) {
+      return OpenAPIVersion::OPENAPI_3_2;
+    }
+
+    return std::nullopt;
   }
 
-  if (is_openapi_minor(declared.value(), "3.1."sv)) {
-    return OpenAPIVersion::OPENAPI_3_1;
+  // Swagger 2.0, Swagger Object: "swagger | string | Required. Specifies the
+  // Swagger Specification version being used [...] The value MUST be
+  // `\"2.0\"`". There is no patch component to ignore and nothing but that
+  // one value to accept
+  const auto *legacy{document.try_at("swagger", HASH_SWAGGER)};
+  if (legacy == nullptr || !legacy->is_string() ||
+      legacy->to_string() != "2.0"sv) {
+    return std::nullopt;
   }
 
-  if (is_openapi_minor(declared.value(), "3.2."sv)) {
-    return OpenAPIVersion::OPENAPI_3_2;
-  }
-
-  return std::nullopt;
+  return OpenAPIVersion::SWAGGER_2_0;
 }
 
 } // namespace sourcemeta::core

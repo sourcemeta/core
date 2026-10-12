@@ -1,0 +1,15 @@
+{
+  "document": {
+    "swagger": "2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {}
+  },
+  "error": {
+    "message": "The Swagger Object does not define this field",
+    "location": "/components"
+  }
+}

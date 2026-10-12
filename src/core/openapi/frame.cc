@@ -498,6 +498,20 @@ auto openapi_kind_name(const OpenAPIObjectKind kind) noexcept
       return "oauth-flow"sv;
     case OpenAPIObjectKind::SecurityRequirement:
       return "security-requirement"sv;
+    case OpenAPIObjectKind::Items:
+      return "items"sv;
+    case OpenAPIObjectKind::Scopes:
+      return "scopes"sv;
+    case OpenAPIObjectKind::Headers:
+      return "headers"sv;
+    case OpenAPIObjectKind::Definitions:
+      return "definitions"sv;
+    case OpenAPIObjectKind::ParametersDefinitions:
+      return "parameters-definitions"sv;
+    case OpenAPIObjectKind::ResponsesDefinitions:
+      return "responses-definitions"sv;
+    case OpenAPIObjectKind::SecurityDefinitions:
+      return "security-definitions"sv;
   }
 
     // Clang settles that no other value arrives, so only GCC and MSVC

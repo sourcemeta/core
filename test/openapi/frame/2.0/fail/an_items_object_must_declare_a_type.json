@@ -1,0 +1,34 @@
+{
+  "document": {
+    "swagger": "2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "parameters": [
+            {
+              "name": "tags",
+              "in": "query",
+              "type": "array",
+              "items": {
+                "format": "int32"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Fine"
+            }
+          }
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "The Items Object must declare a type",
+    "location": "/paths/~1pets/get/parameters/0/items"
+  }
+}

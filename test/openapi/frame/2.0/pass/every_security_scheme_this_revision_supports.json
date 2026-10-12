@@ -1,0 +1,150 @@
+{
+  "document": {
+    "swagger": "2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "securityDefinitions": {
+      "basicAuth": {
+        "type": "basic",
+        "description": "A password"
+      },
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "name": "api_key",
+        "in": "query"
+      },
+      "implicitFlow": {
+        "type": "oauth2",
+        "flow": "implicit",
+        "authorizationUrl": "https://example.com/authorize",
+        "scopes": {
+          "read": "Read everything"
+        }
+      },
+      "passwordFlow": {
+        "type": "oauth2",
+        "flow": "password",
+        "tokenUrl": "https://example.com/token",
+        "scopes": {}
+      },
+      "accessCodeFlow": {
+        "type": "oauth2",
+        "flow": "accessCode",
+        "authorizationUrl": "https://example.com/authorize",
+        "tokenUrl": "https://example.com/token",
+        "scopes": {
+          "write": "Write everything"
+        }
+      }
+    },
+    "security": [
+      {
+        "apiKeyAuth": []
+      },
+      {
+        "implicitFlow": [
+          "read"
+        ]
+      }
+    ],
+    "paths": {}
+  },
+  "frame": {
+    "version": "2.0",
+    "base": "",
+    "standalone": true,
+    "schemas": {
+      "mode": "references",
+      "locations": {
+        "static": {},
+        "dynamic": {}
+      },
+      "references": []
+    },
+    "info": {
+      "title": "Example",
+      "version": "1.0.0",
+      "summary": null,
+      "description": null,
+      "termsOfService": null,
+      "contact": null,
+      "license": null
+    },
+    "locations": {
+      "": {
+        "type": "openapi",
+        "pointer": "",
+        "parent": null,
+        "defaultDialect": "tag:spec.openapis.org,2017-08-27:oas/2.0/dialect"
+      },
+      "#/info": {
+        "type": "info",
+        "pointer": "/info",
+        "parent": ""
+      },
+      "#/paths": {
+        "type": "paths",
+        "pointer": "/paths",
+        "parent": ""
+      },
+      "#/security/0": {
+        "type": "security-requirement",
+        "pointer": "/security/0",
+        "parent": ""
+      },
+      "#/security/1": {
+        "type": "security-requirement",
+        "pointer": "/security/1",
+        "parent": ""
+      },
+      "#/securityDefinitions": {
+        "type": "security-definitions",
+        "pointer": "/securityDefinitions",
+        "parent": ""
+      },
+      "#/securityDefinitions/accessCodeFlow": {
+        "type": "security-scheme",
+        "pointer": "/securityDefinitions/accessCodeFlow",
+        "parent": "#/securityDefinitions"
+      },
+      "#/securityDefinitions/accessCodeFlow/scopes": {
+        "type": "scopes",
+        "pointer": "/securityDefinitions/accessCodeFlow/scopes",
+        "parent": "#/securityDefinitions/accessCodeFlow"
+      },
+      "#/securityDefinitions/apiKeyAuth": {
+        "type": "security-scheme",
+        "pointer": "/securityDefinitions/apiKeyAuth",
+        "parent": "#/securityDefinitions"
+      },
+      "#/securityDefinitions/basicAuth": {
+        "type": "security-scheme",
+        "pointer": "/securityDefinitions/basicAuth",
+        "parent": "#/securityDefinitions"
+      },
+      "#/securityDefinitions/implicitFlow": {
+        "type": "security-scheme",
+        "pointer": "/securityDefinitions/implicitFlow",
+        "parent": "#/securityDefinitions"
+      },
+      "#/securityDefinitions/implicitFlow/scopes": {
+        "type": "scopes",
+        "pointer": "/securityDefinitions/implicitFlow/scopes",
+        "parent": "#/securityDefinitions/implicitFlow"
+      },
+      "#/securityDefinitions/passwordFlow": {
+        "type": "security-scheme",
+        "pointer": "/securityDefinitions/passwordFlow",
+        "parent": "#/securityDefinitions"
+      },
+      "#/securityDefinitions/passwordFlow/scopes": {
+        "type": "scopes",
+        "pointer": "/securityDefinitions/passwordFlow/scopes",
+        "parent": "#/securityDefinitions/passwordFlow"
+      }
+    },
+    "operations": []
+  }
+}

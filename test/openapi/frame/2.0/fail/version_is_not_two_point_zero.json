@@ -1,0 +1,14 @@
+{
+  "document": {
+    "swagger": "1.2",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {}
+  },
+  "error": {
+    "message": "Unsupported OpenAPI Specification version",
+    "location": "/swagger"
+  }
+}

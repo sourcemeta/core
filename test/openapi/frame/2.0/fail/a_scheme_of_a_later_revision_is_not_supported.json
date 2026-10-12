@@ -1,0 +1,19 @@
+{
+  "document": {
+    "swagger": "2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "securityDefinitions": {
+      "bearer": {
+        "type": "http"
+      }
+    }
+  },
+  "error": {
+    "message": "The Security Scheme Object type must name a scheme this revision supports",
+    "location": "/securityDefinitions/bearer/type"
+  }
+}

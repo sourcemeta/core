@@ -20,6 +20,7 @@
 #include "response.h"
 #include "security.h"
 #include "server.h"
+#include "swagger.h"
 #include "tag.h"
 
 #include <array>       // std::array
@@ -34,63 +35,8 @@
 
 namespace sourcemeta::core {
 
-// OpenAPI Specification 3.1.1, Section 4.8.24.1: "The OpenAPI Schema Object
-// dialect for this version of the specification is identified by the URI
-// `https://spec.openapis.org/oas/3.1/dialect/base`"
-constexpr auto OPENAPI_DIALECT_3_1{
-    "https://spec.openapis.org/oas/3.1/dialect/base"sv};
-
-// OpenAPI Specification 3.2.1, Section 4.24.1 names the same thing by a dated
-// URI instead: it "is identified by the URI of the form
-// `https://spec.openapis.org/oas/3.2/dialect/YYYY-MM-DD` [...] see the list of
-// current schemas for the specific URI". One date is published for 3.2, and it
-// is the one this repository already resolves.
-//
-// A document that declares 3.2.0 gets this one as well, although that patch
-// reads "identified by the URI
-// `https://spec.openapis.org/oas/3.1/dialect/base`" and so names the dialect of
-// the revision before it. 3.2.1 Section 2.1 makes a revision the
-// `major`.`minor` pair alone, so what a later patch of one says is what the
-// whole of it says, and the earlier wording is a mistake that patch corrects
-// rather than a rule of its own
-constexpr auto OPENAPI_DIALECT_3_2{
-    "https://spec.openapis.org/oas/3.2/dialect/2025-09-17"sv};
-
-// The OpenAPI Initiative published no dialect for the 3.0 Schema Object, so
-// this is the identifier this repository mints for the later of the two
-// releases of the document schema that carries it. Both releases describe the
-// same keywords and draw on the same vocabulary.
-//
-// OpenAPI Specification 3.0.4, Schema Object, lists twenty-seven keywords it
-// takes from JSON Schema, tables eight of its own, and closes the set:
-// "Additional keywords defined by the JSON Schema specification that are not
-// mentioned here are strictly unsupported". The releases before it say the
-// same of "Additional properties". A keyword naming a dialect is in neither
-// list, so a Schema Object of this revision has nothing to name one with, and
-// this fallback is the only way one is ever in force
-constexpr auto OPENAPI_DIALECT_3_0{
-    "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect"sv};
-
-// The revision a document declares settles which dialect its Schema Objects
-// fall back on, as each revision publishes one of its own
-inline auto openapi_dialect(const OpenAPIVersion version) -> JSON::StringView {
-  switch (version) {
-    case OpenAPIVersion::OPENAPI_3_0:
-      return OPENAPI_DIALECT_3_0;
-    case OpenAPIVersion::OPENAPI_3_1:
-      return OPENAPI_DIALECT_3_1;
-    case OpenAPIVersion::OPENAPI_3_2:
-      return OPENAPI_DIALECT_3_2;
-  }
-
-    // Clang settles that no other value arrives, so only GCC and MSVC
-    // need to be told that the end of this function is never reached
-#if !defined(__clang__)
-  std::unreachable();
-#endif
-}
-
 constexpr auto OPENAPI_HASH_OPENAPI{JSON::Object::hash("openapi"sv)};
+constexpr auto OPENAPI_HASH_SWAGGER{JSON::Object::hash("swagger"sv)};
 constexpr auto OPENAPI_HASH_JSON_SCHEMA_DIALECT{
     JSON::Object::hash("jsonSchemaDialect"sv)};
 
@@ -166,7 +112,8 @@ inline auto openapi_document_base(const JSON::StringView self,
 // it, rather than turned away as no OpenAPI Description at all
 inline auto openapi_has_version_field(const JSON &document) -> bool {
   return document.is_object() &&
-         document.try_at("openapi", OPENAPI_HASH_OPENAPI) != nullptr;
+         (document.try_at("openapi", OPENAPI_HASH_OPENAPI) != nullptr ||
+          document.try_at("swagger", OPENAPI_HASH_SWAGGER) != nullptr);
 }
 
 // Check an Object that a reference expected to find where it landed, which is
@@ -184,16 +131,28 @@ inline auto openapi_check_object(const OpenAPIObjectKind expected,
       openapi_check_document(value, walk);
       return;
     case OpenAPIObjectKind::PathItem:
-      openapi_check_path_item(value, base, walk);
+      if (openapi_declares_version_as_openapi(walk.version)) {
+        openapi_check_path_item(value, base, walk);
+      } else {
+        swagger_check_path_item(value, base, walk);
+      }
       return;
     case OpenAPIObjectKind::Parameter:
-      openapi_check_parameters_entry(value, base, walk);
+      if (openapi_declares_version_as_openapi(walk.version)) {
+        openapi_check_parameters_entry(value, base, walk);
+      } else {
+        swagger_check_parameter_or_reference(value, base, walk);
+      }
       return;
     case OpenAPIObjectKind::RequestBody:
       openapi_check_request_body_or_reference(value, base, walk);
       return;
     case OpenAPIObjectKind::Response:
-      openapi_check_response_or_reference(value, base, walk);
+      if (openapi_declares_version_as_openapi(walk.version)) {
+        openapi_check_response_or_reference(value, base, walk);
+      } else {
+        swagger_check_response_or_reference(value, base, walk);
+      }
       return;
     case OpenAPIObjectKind::Example:
       openapi_check_example_or_reference(value, base, walk);
@@ -369,19 +328,29 @@ inline auto openapi_check_document(const JSON &document, OpenAPIWalk &walk)
                          "The OpenAPI Description must be an object"};
     }
 
-    // Section 4.8.1: "openapi | string | REQUIRED"
-    const auto &version{openapi_require(
-        document, "openapi"sv, OPENAPI_HASH_OPENAPI, EMPTY_POINTER,
-        "The OpenAPI Description must declare its version")};
+    // Section 4.8.1: "openapi | string | REQUIRED", which the oldest revision
+    // names differently, its Swagger Object reading "swagger | string |
+    // Required". A document declares one or the other and never both, so which
+    // field carries the version is what the document itself says
+    const auto *declared{document.try_at("openapi"sv, OPENAPI_HASH_OPENAPI)};
+    const auto field{declared != nullptr ? "openapi"sv : "swagger"sv};
+    if (declared == nullptr) {
+      declared = document.try_at("swagger"sv, OPENAPI_HASH_SWAGGER);
+    }
 
-    if (!version.is_string()) {
-      throw OpenAPIError{Pointer{"openapi"},
+    if (declared == nullptr) {
+      throw OpenAPIError{EMPTY_POINTER,
+                         "The OpenAPI Description must declare its version"};
+    }
+
+    if (!declared->is_string()) {
+      throw OpenAPIError{Pointer{JSON::String{field}},
                          "The OpenAPI version must be a string"};
     }
 
     const auto revision{openapi_version(document)};
     if (!revision.has_value()) {
-      throw OpenAPIError{Pointer{"openapi"},
+      throw OpenAPIError{Pointer{JSON::String{field}},
                          "Unsupported OpenAPI Specification version"};
     }
 
@@ -389,6 +358,16 @@ inline auto openapi_check_document(const JSON &document, OpenAPIWalk &walk)
     // publishes, so which revision that is has to be settled before the first
     // of them is consulted
     walk.version = revision.value();
+
+    // The oldest revision shapes its root, its paths, its parameters, its
+    // responses and its security schemes differently enough that reading them
+    // against the tables below would say nothing true about either. What it
+    // shares is read through the same checks, each holding the document to its
+    // own revision's table
+    if (!openapi_declares_version_as_openapi(walk.version)) {
+      swagger_check_root(document, walk);
+      return;
+    }
 
     // 3.2.1 Section 4.1: "$self | string | This string MUST be in the form of a
     // URI reference as defined by RFC3986 Section 4.1", and the field

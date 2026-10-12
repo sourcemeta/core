@@ -1,0 +1,13 @@
+{
+  "document": {
+    "swagger": "2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    }
+  },
+  "error": {
+    "message": "The Swagger Object must declare paths",
+    "location": ""
+  }
+}

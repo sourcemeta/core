@@ -1,0 +1,30 @@
+{
+  "document": {
+    "swagger": "2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "post": {
+          "parameters": [
+            {
+              "name": "body",
+              "in": "body"
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Fine"
+            }
+          }
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "A Parameter Object of a body must declare a schema",
+    "location": "/paths/~1pets/post/parameters/0"
+  }
+}

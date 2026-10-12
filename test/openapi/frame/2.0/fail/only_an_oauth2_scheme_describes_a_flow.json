@@ -1,0 +1,20 @@
+{
+  "document": {
+    "swagger": "2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "securityDefinitions": {
+      "basic": {
+        "type": "basic",
+        "flow": "implicit"
+      }
+    }
+  },
+  "error": {
+    "message": "Only a Security Scheme Object of OAuth2 describes a flow",
+    "location": "/securityDefinitions/basic/flow"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "document": {
+    "swagger": "2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "basePath": "v1",
+    "paths": {}
+  },
+  "error": {
+    "message": "The Swagger Object base path must begin with a slash",
+    "location": "/basePath"
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "document": {
+    "swagger": "2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "parameters": [
+            {
+              "name": "X-Trace",
+              "in": "header",
+              "type": "string",
+              "allowEmptyValue": true
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Fine"
+            }
+          }
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "Only a Parameter Object of a query or a form may allow an empty value",
+    "location": "/paths/~1pets/get/parameters/0/allowEmptyValue"
+  }
+}

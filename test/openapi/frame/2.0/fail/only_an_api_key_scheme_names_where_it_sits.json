@@ -1,0 +1,20 @@
+{
+  "document": {
+    "swagger": "2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "securityDefinitions": {
+      "basic": {
+        "type": "basic",
+        "in": "header"
+      }
+    }
+  },
+  "error": {
+    "message": "Only a Security Scheme Object of an API key names where the key sits",
+    "location": "/securityDefinitions/basic/in"
+  }
+}

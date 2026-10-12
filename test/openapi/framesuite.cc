@@ -64,7 +64,14 @@ const std::vector<std::string> KNOWN_TYPES{"openapi",
                                            "schema",
                                            "oauth-flows",
                                            "oauth-flow",
-                                           "security-requirement"};
+                                           "security-requirement",
+                                           "items",
+                                           "scopes",
+                                           "headers",
+                                           "definitions",
+                                           "parameters-definitions",
+                                           "responses-definitions",
+                                           "security-definitions"};
 const std::vector<std::string> KNOWN_OPERATION_TYPES{"path", "webhook",
                                                      "callback"};
 // NOLINTEND(cert-err58-cpp,bugprone-throwing-static-initialization)

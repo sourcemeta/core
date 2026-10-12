@@ -377,6 +377,13 @@ struct KindRow {
   bool sorts_own_keys{false};
 };
 
+// Swagger 2.0, Items Object, in the order it tables its fields
+constexpr auto FIELDS_SWAGGER_ITEMS{std::to_array<JSON::StringView>(
+    {"type"sv, "format"sv, "items"sv, "collectionFormat"sv, "default"sv,
+     "maximum"sv, "exclusiveMaximum"sv, "minimum"sv, "exclusiveMinimum"sv,
+     "maxLength"sv, "minLength"sv, "pattern"sv, "maxItems"sv, "minItems"sv,
+     "uniqueItems"sv, "enum"sv, "multipleOf"sv})};
+
 auto row_of(const OpenAPIObjectKind kind) -> KindRow {
   switch (kind) {
     case OpenAPIObjectKind::Document:
@@ -436,6 +443,19 @@ auto row_of(const OpenAPIObjectKind kind) -> KindRow {
     // Handled before this is ever asked
     case OpenAPIObjectKind::Schema:
       return {};
+    // The Objects only the oldest revision defines. Each of the four
+    // containers of its root holds members a description names itself, and so
+    // does each of the three Objects beside them, so none of the seven has an
+    // order this module imposes
+    case OpenAPIObjectKind::Items:
+      return {.fields = FIELDS_SWAGGER_ITEMS, .maps = {}};
+    case OpenAPIObjectKind::Headers:
+    case OpenAPIObjectKind::Scopes:
+    case OpenAPIObjectKind::Definitions:
+    case OpenAPIObjectKind::ParametersDefinitions:
+    case OpenAPIObjectKind::ResponsesDefinitions:
+    case OpenAPIObjectKind::SecurityDefinitions:
+      return {.fields = {}, .maps = {}, .sorts_own_keys = true};
   }
 
     // Clang settles that no other value arrives, so only GCC and MSVC

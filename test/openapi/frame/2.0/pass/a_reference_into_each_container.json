@@ -1,0 +1,222 @@
+{
+  "document": {
+    "swagger": "2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "definitions": {
+      "Pet": {
+        "type": "object"
+      }
+    },
+    "parameters": {
+      "Limit": {
+        "name": "limit",
+        "in": "query",
+        "type": "integer"
+      }
+    },
+    "responses": {
+      "NotFound": {
+        "description": "Absent"
+      }
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "parameters": [
+            {
+              "$ref": "#/parameters/Limit"
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Every pet",
+              "schema": {
+                "$ref": "#/definitions/Pet"
+              }
+            },
+            "404": {
+              "$ref": "#/responses/NotFound"
+            }
+          }
+        }
+      }
+    }
+  },
+  "frame": {
+    "version": "2.0",
+    "base": "",
+    "standalone": true,
+    "schemas": {
+      "mode": "references",
+      "locations": {
+        "static": {
+          "#/definitions/Pet": {
+            "parent": null,
+            "type": "subschema",
+            "root": null,
+            "base": "",
+            "pointer": "/definitions/Pet",
+            "relativePointer": "/definitions/Pet",
+            "dialect": "tag:spec.openapis.org,2017-08-27:oas/2.0/dialect",
+            "baseDialect": "http://json-schema.org/draft-04/schema#",
+            "propertyName": false,
+            "orphan": false,
+            "hasReferencesTo": true,
+            "hasReferencesThrough": true,
+            "vocabularies": {
+              "tag:swagger.io,2014:oas/2.0/vocab/base": true
+            }
+          },
+          "#/paths/~1pets/get/responses/200/schema": {
+            "parent": null,
+            "type": "subschema",
+            "root": null,
+            "base": "",
+            "pointer": "/paths/~1pets/get/responses/200/schema",
+            "relativePointer": "/paths/~1pets/get/responses/200/schema",
+            "dialect": "tag:spec.openapis.org,2017-08-27:oas/2.0/dialect",
+            "baseDialect": "http://json-schema.org/draft-04/schema#",
+            "propertyName": false,
+            "orphan": false,
+            "hasReferencesTo": false,
+            "hasReferencesThrough": false,
+            "vocabularies": {
+              "tag:swagger.io,2014:oas/2.0/vocab/base": true
+            }
+          }
+        },
+        "dynamic": {}
+      },
+      "references": [
+        {
+          "type": "static",
+          "origin": "/paths/~1pets/get/responses/200/schema/$ref",
+          "original": "#/definitions/Pet",
+          "destination": "#/definitions/Pet",
+          "base": null,
+          "fragment": "/definitions/Pet"
+        }
+      ]
+    },
+    "info": {
+      "title": "Example",
+      "version": "1.0.0",
+      "summary": null,
+      "description": null,
+      "termsOfService": null,
+      "contact": null,
+      "license": null
+    },
+    "locations": {
+      "": {
+        "type": "openapi",
+        "pointer": "",
+        "parent": null,
+        "defaultDialect": "tag:spec.openapis.org,2017-08-27:oas/2.0/dialect"
+      },
+      "#/definitions": {
+        "type": "definitions",
+        "pointer": "/definitions",
+        "parent": ""
+      },
+      "#/definitions/Pet": {
+        "type": "schema",
+        "pointer": "/definitions/Pet",
+        "parent": "#/definitions",
+        "defaultDialect": "tag:spec.openapis.org,2017-08-27:oas/2.0/dialect",
+        "base": ""
+      },
+      "#/info": {
+        "type": "info",
+        "pointer": "/info",
+        "parent": ""
+      },
+      "#/parameters": {
+        "type": "parameters-definitions",
+        "pointer": "/parameters",
+        "parent": ""
+      },
+      "#/parameters/Limit": {
+        "type": "parameter",
+        "pointer": "/parameters/Limit",
+        "parent": "#/parameters"
+      },
+      "#/paths": {
+        "type": "paths",
+        "pointer": "/paths",
+        "parent": ""
+      },
+      "#/paths/~1pets": {
+        "type": "path-item",
+        "pointer": "/paths/~1pets",
+        "parent": "#/paths"
+      },
+      "#/paths/~1pets/get": {
+        "type": "operation",
+        "pointer": "/paths/~1pets/get",
+        "parent": "#/paths/~1pets"
+      },
+      "#/paths/~1pets/get/parameters/0": {
+        "type": "reference",
+        "pointer": "/paths/~1pets/get/parameters/0",
+        "parent": "#/paths/~1pets/get",
+        "original": "#/parameters/Limit",
+        "destination": "#/parameters/Limit",
+        "dangling": false
+      },
+      "#/paths/~1pets/get/responses": {
+        "type": "responses",
+        "pointer": "/paths/~1pets/get/responses",
+        "parent": "#/paths/~1pets/get"
+      },
+      "#/paths/~1pets/get/responses/200": {
+        "type": "response",
+        "pointer": "/paths/~1pets/get/responses/200",
+        "parent": "#/paths/~1pets/get/responses"
+      },
+      "#/paths/~1pets/get/responses/200/schema": {
+        "type": "schema",
+        "pointer": "/paths/~1pets/get/responses/200/schema",
+        "parent": "#/paths/~1pets/get/responses/200",
+        "defaultDialect": "tag:spec.openapis.org,2017-08-27:oas/2.0/dialect",
+        "base": ""
+      },
+      "#/paths/~1pets/get/responses/404": {
+        "type": "reference",
+        "pointer": "/paths/~1pets/get/responses/404",
+        "parent": "#/paths/~1pets/get/responses",
+        "original": "#/responses/NotFound",
+        "destination": "#/responses/NotFound",
+        "dangling": false
+      },
+      "#/responses": {
+        "type": "responses-definitions",
+        "pointer": "/responses",
+        "parent": ""
+      },
+      "#/responses/NotFound": {
+        "type": "response",
+        "pointer": "/responses/NotFound",
+        "parent": "#/responses"
+      }
+    },
+    "operations": [
+      {
+        "type": "path",
+        "path": "/pets",
+        "method": "get",
+        "origin": "#/paths/~1pets/get",
+        "endpoint": "#/paths/~1pets",
+        "tags": [],
+        "servers": [],
+        "security": [],
+        "parameters": [
+          "#/paths/~1pets/get/parameters/0"
+        ]
+      }
+    ]
+  }
+}

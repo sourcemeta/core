@@ -1,0 +1,21 @@
+{
+  "document": {
+    "swagger": "2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "securityDefinitions": {
+      "oauth": {
+        "type": "oauth2",
+        "flow": "implicit",
+        "scopes": {}
+      }
+    }
+  },
+  "error": {
+    "message": "This OAuth2 flow must declare an authorization URL",
+    "location": "/securityDefinitions/oauth"
+  }
+}

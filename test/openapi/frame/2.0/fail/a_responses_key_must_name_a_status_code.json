@@ -1,0 +1,24 @@
+{
+  "document": {
+    "swagger": "2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "2xx": {
+              "description": "Fine"
+            }
+          }
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "The Responses Object keys must name a status code or the default response",
+    "location": "/paths/~1pets/get/responses/2xx"
+  }
+}
