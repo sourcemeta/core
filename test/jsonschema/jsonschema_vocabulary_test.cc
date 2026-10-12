@@ -192,6 +192,8 @@ TEST(known_vocabulary_to_string) {
                         "https://spec.openapis.org/oas/3.2/vocab/base");
   EXPECT_VOCABULARY_URI(Known::OPENAPI_3_0_BASE,
                         "tag:spec.openapis.org,2017:oas/3.0/vocab/base");
+  EXPECT_VOCABULARY_URI(Known::OPENAPI_2_0_BASE,
+                        "tag:swagger.io,2014:oas/2.0/vocab/base");
 
 #undef EXPECT_VOCABULARY_URI
 }
@@ -444,6 +446,8 @@ TEST(format_known) {
             "https://spec.openapis.org/oas/3.2/vocab/base");
   EXPECT_EQ(std::format("{}", Known::OPENAPI_3_0_BASE),
             "tag:spec.openapis.org,2017:oas/3.0/vocab/base");
+  EXPECT_EQ(std::format("{}", Known::OPENAPI_2_0_BASE),
+            "tag:swagger.io,2014:oas/2.0/vocab/base");
 }
 
 TEST(format_uri_known_variant) {
@@ -1183,4 +1187,47 @@ TEST(embedded_metaschema_chain_reaching_something_that_is_no_schema) {
     EXPECT_STREQ(error.what(),
                  "Could not determine the base dialect of the schema");
   }
+}
+
+TEST(swagger_2_0_dialect) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "type": "string",
+    "discriminator": "kind"
+  })JSON");
+  const auto result{
+      vocabularies(document, sourcemeta::core::schema_resolver,
+                   "tag:spec.openapis.org,2017-08-27:oas/2.0/dialect")};
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_TRUE(result.contains(
+      sourcemeta::core::SchemaVocabularies::Known::OPENAPI_2_0_BASE));
+  EXPECT_FALSE(result.contains(
+      sourcemeta::core::SchemaVocabularies::Known::JSON_SCHEMA_DRAFT_4));
+  EXPECT_FALSE(result.contains(
+      sourcemeta::core::SchemaVocabularies::Known::OPENAPI_3_0_BASE));
+}
+
+TEST(swagger_2_0_dialect_via_subschema_override) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "x-sourcemeta-dialect-override-subschema":
+      "tag:spec.openapis.org,2017-08-27:oas/2.0/dialect",
+    "type": "string"
+  })JSON");
+  const auto result{vocabularies(document, sourcemeta::core::schema_resolver)};
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_TRUE(result.contains(
+      sourcemeta::core::SchemaVocabularies::Known::OPENAPI_2_0_BASE));
+}
+
+TEST(swagger_2_0_dialect_document_is_itself_draft4) {
+  const auto dialect{sourcemeta::core::schema_resolver(
+      "tag:spec.openapis.org,2017-08-27:oas/2.0/dialect")};
+  EXPECT_TRUE(dialect.has_value());
+  const auto result{
+      vocabularies(dialect.value(), sourcemeta::core::schema_resolver)};
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_TRUE(result.contains(
+      sourcemeta::core::SchemaVocabularies::Known::JSON_SCHEMA_DRAFT_4));
+  EXPECT_FALSE(result.contains(
+      sourcemeta::core::SchemaVocabularies::Known::OPENAPI_2_0_BASE));
 }
