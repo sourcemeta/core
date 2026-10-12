@@ -127,22 +127,15 @@ auto sourcemeta::core::to_base_dialect(const std::string_view base_dialect)
 auto sourcemeta::core::identify(const sourcemeta::core::JSON &schema,
                                 const SchemaResolver &resolver,
                                 std::string_view default_dialect,
-                                std::string_view default_id,
                                 const bool allow_dialect_override)
     -> std::string_view {
-  try {
-    const auto maybe_base_dialect{sourcemeta::core::base_dialect(
-        schema, resolver, default_dialect, allow_dialect_override)};
-    if (maybe_base_dialect.has_value()) {
-      return identify(schema, maybe_base_dialect.value(), default_id);
-    }
-    return default_id;
-  } catch (const SchemaResolutionError &) {
-    if (!default_id.empty()) {
-      return default_id;
-    }
-    throw;
+  const auto maybe_base_dialect{sourcemeta::core::base_dialect(
+      schema, resolver, default_dialect, allow_dialect_override)};
+  if (maybe_base_dialect.has_value()) {
+    return identify(schema, maybe_base_dialect.value());
   }
+
+  return {};
 }
 
 auto sourcemeta::core::identify(const sourcemeta::core::JSON &schema,

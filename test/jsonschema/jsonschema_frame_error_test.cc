@@ -3185,3 +3185,63 @@ TEST(subschema_dialect_that_is_not_a_uri) {
     FAIL();
   }
 }
+
+// A dialect is a URI, so one that cannot be parsed as such is refused where it
+// is read rather than carried as far as whatever would resolve it
+TEST(embedded_resource_whose_dialect_is_unparseable) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/schema",
+    "$defs": {
+      "embedded": {
+        "$id": "https://example.com/embedded",
+        "$schema": "http://[vA.123456"
+      }
+    }
+  })JSON");
+
+  try {
+    [[maybe_unused]] const sourcemeta::core::SchemaFrame frame{
+        sourcemeta::core::SchemaFrame::Mode::References, document,
+        sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_EQ(error.keyword(), "$schema");
+    EXPECT_EQ(error.value(), "http://[vA.123456");
+    EXPECT_STREQ(error.what(), "The dialect is not a valid URI");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// Framing only the given paths leaves the document itself unregistered, so
+// there is no root to read a meta-schema off of
+TEST(metaschema_of_a_frame_that_never_registered_the_document) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "wrapper": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "string"
+    }
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References,
+      document,
+      sourcemeta::core::schema_walker,
+      sourcemeta::core::schema_resolver,
+      "",
+      "",
+      sourcemeta::core::SchemaFrame::IdentifierMode::Additional,
+      {sourcemeta::core::to_weak_pointer(
+          sourcemeta::core::Pointer{"wrapper"})}};
+
+  try {
+    [[maybe_unused]] const auto &metaschema{
+        frame.metaschema(sourcemeta::core::schema_resolver)};
+    FAIL();
+  } catch (const sourcemeta::core::SchemaFrameError &error) {
+    EXPECT_STREQ(error.what(), "The schema has no root location");
+  } catch (...) {
+    FAIL();
+  }
+}
