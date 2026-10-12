@@ -36,10 +36,11 @@ inline auto valid_capabilities(MCPProtocolVersion version, const JSON &value,
                                bool client) -> bool;
 inline auto valid_extensions(const JSON &value) -> bool;
 inline auto valid_tool(MCPProtocolVersion version, const JSON &value) -> bool;
-inline auto valid_content(MCPProtocolVersion version, const JSON &value)
-    -> bool;
+inline auto valid_content(MCPProtocolVersion version, const JSON &value,
+                          bool received = false) -> bool;
 inline auto valid_resource(MCPProtocolVersion version, const JSON &value,
-                           bool contents, bool is_template) -> bool;
+                           bool contents, bool is_template,
+                           bool received = false) -> bool;
 inline auto valid_prompt(MCPProtocolVersion version, const JSON &value) -> bool;
 inline auto valid_input_requests(const JSON &value,
                                  const MCPClientCapabilities &capabilities)
@@ -158,9 +159,11 @@ inline auto icon_size(const JSON::StringView value) -> bool {
     return false;
   }
 
-  return std::all_of(value.begin(), value.end(), [](const char character) {
-    return sourcemeta::core::is_digit(character) || character == 'x';
-  });
+  // A pair, so exactly one separator with a run of decimal digits either side
+  return value.find('x', separator + 1) == JSON::StringView::npos &&
+         std::all_of(value.begin(), value.end(), [](const char character) {
+           return sourcemeta::core::is_digit(character) || character == 'x';
+         });
 }
 
 inline auto strings(const JSON &value) -> bool {
@@ -169,15 +172,18 @@ inline auto strings(const JSON &value) -> bool {
                      [](const auto &item) { return item.is_string(); });
 }
 
-inline auto annotations(const JSON &value) -> bool {
+inline auto annotations(const JSON &value, const bool received = false)
+    -> bool {
   const auto *item{
       field(value, "annotations", sourcemeta::core::MCP_HASH_ANNOTATIONS)};
   if (item == nullptr) {
     return true;
   }
   if (!item->is_object() ||
-      !timestamp_field(*item, "lastModified",
-                       sourcemeta::core::MCP_HASH_LAST_MODIFIED)) {
+      !(received ? string_field(*item, "lastModified",
+                                sourcemeta::core::MCP_HASH_LAST_MODIFIED)
+                 : timestamp_field(*item, "lastModified",
+                                   sourcemeta::core::MCP_HASH_LAST_MODIFIED))) {
     return false;
   }
   if (const auto *priority{
@@ -349,7 +355,8 @@ inline auto metadata_key(const JSON::StringView key, const bool prefix_required)
           }));
 }
 
-inline auto sampling_block(const JSON &value) -> bool {
+inline auto sampling_block(const JSON &value, const bool received = false)
+    -> bool {
   const auto *type{field(value, "type", sourcemeta::core::MCP_HASH_TYPE)};
   if ((type == nullptr) || !type->is_string() ||
       !sourcemeta::core::internal::valid_meta(MCPProtocolVersion::V_2026_07_28,
@@ -359,7 +366,7 @@ inline auto sampling_block(const JSON &value) -> bool {
   const auto name{type->to_string()};
   if (name == "text" || name == "image" || name == "audio") {
     return sourcemeta::core::internal::valid_content(
-        MCPProtocolVersion::V_2026_07_28, value);
+        MCPProtocolVersion::V_2026_07_28, value, received);
   }
   if (name == "tool_use") {
     const auto *input{field(value, "input", sourcemeta::core::MCP_HASH_INPUT)};
@@ -380,7 +387,7 @@ inline auto sampling_block(const JSON &value) -> bool {
     }
     for (const auto &block : content->as_array()) {
       if (!sourcemeta::core::internal::valid_content(
-              MCPProtocolVersion::V_2026_07_28, block)) {
+              MCPProtocolVersion::V_2026_07_28, block, received)) {
         return false;
       }
     }
@@ -879,16 +886,22 @@ inline auto valid_tool(const MCPProtocolVersion version, const JSON &value)
 }
 
 inline auto valid_resource(const MCPProtocolVersion version, const JSON &value,
-                           const bool contents, const bool is_template)
-    -> bool {
+                           const bool contents, const bool is_template,
+                           const bool received) -> bool {
   if (!value.is_object() || !valid_meta(version, value) ||
-      (is_template ? !validation::string_field(
-                         value, "uriTemplate",
-                         sourcemeta::core::MCP_HASH_URI_TEMPLATE, true)
-                   : !validation::uri_field(
-                         value, "uri", sourcemeta::core::MCP_HASH_URI, true)) ||
-      !validation::media_type_field(value, "mimeType",
-                                    sourcemeta::core::MCP_HASH_MIME_TYPE)) {
+      (is_template || received
+           ? !validation::string_field(
+                 value, is_template ? "uriTemplate" : "uri",
+                 is_template ? sourcemeta::core::MCP_HASH_URI_TEMPLATE
+                             : sourcemeta::core::MCP_HASH_URI,
+                 true)
+           : !validation::uri_field(value, "uri",
+                                    sourcemeta::core::MCP_HASH_URI, true)) ||
+      !(received
+            ? validation::string_field(value, "mimeType",
+                                       sourcemeta::core::MCP_HASH_MIME_TYPE)
+            : validation::media_type_field(
+                  value, "mimeType", sourcemeta::core::MCP_HASH_MIME_TYPE))) {
     return false;
   }
   if (contents) {
@@ -905,10 +918,10 @@ inline auto valid_resource(const MCPProtocolVersion version, const JSON &value,
          ((size == nullptr) || (size->is_integer() && size->to_integer() >= 0));
 }
 
-inline auto valid_content(const MCPProtocolVersion version, const JSON &value)
-    -> bool {
+inline auto valid_content(const MCPProtocolVersion version, const JSON &value,
+                          const bool received) -> bool {
   if (!value.is_object() || !valid_meta(version, value) ||
-      !validation::annotations(value)) {
+      !validation::annotations(value, received)) {
     return false;
   }
   const auto *type{
@@ -924,18 +937,22 @@ inline auto valid_content(const MCPProtocolVersion version, const JSON &value)
   if (name == "image" || name == "audio") {
     return validation::string_field(value, "data",
                                     sourcemeta::core::MCP_HASH_DATA, true) &&
-           validation::media_type_field(
-               value, "mimeType", sourcemeta::core::MCP_HASH_MIME_TYPE, true);
+           (received ? validation::string_field(
+                           value, "mimeType",
+                           sourcemeta::core::MCP_HASH_MIME_TYPE, true)
+                     : validation::media_type_field(
+                           value, "mimeType",
+                           sourcemeta::core::MCP_HASH_MIME_TYPE, true));
   }
   if (name == "resource") {
     const auto *resource{validation::field(
         value, "resource", sourcemeta::core::MCP_HASH_RESOURCE)};
     return (resource != nullptr) &&
-           valid_resource(version, *resource, true, false);
+           valid_resource(version, *resource, true, false, received);
   }
   return name == "resource_link" &&
          mcp_supports_resource_link_content(version) &&
-         valid_resource(version, value, false, false);
+         valid_resource(version, value, false, false, received);
 }
 
 inline auto valid_prompt(const MCPProtocolVersion version, const JSON &value)
@@ -1156,11 +1173,12 @@ inline auto valid_input_response(const JSON::StringView method,
       return false;
     }
     if (!content->is_array()) {
-      return validation::sampling_block(*content);
+      return validation::sampling_block(*content, true);
     }
-    return std::all_of(
-        content->as_array().begin(), content->as_array().end(),
-        [](const auto &block) { return validation::sampling_block(block); });
+    return std::all_of(content->as_array().begin(), content->as_array().end(),
+                       [](const auto &block) {
+                         return validation::sampling_block(block, true);
+                       });
   }
   return false;
 }

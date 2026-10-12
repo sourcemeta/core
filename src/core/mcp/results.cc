@@ -672,7 +672,7 @@ auto mcp_make_initialize_result(
     chosen = requested;
   }
   const auto version{*chosen};
-  if (!internal::valid_implementation(version, *client_info) ||
+  if (!internal::valid_implementation(version, *client_info, true) ||
       !internal::valid_capabilities(version, *client_capabilities, true)) {
     return mcp_make_error(version, identifier, JSONRPC_CODE_INVALID_PARAMS,
                           "Invalid params");
