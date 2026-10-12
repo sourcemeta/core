@@ -70,11 +70,16 @@ export CTEST_PARALLEL_LEVEL
 
 # Counters are written out when each program exits. Keeping them up to date as
 # they change instead, so that a program dying on a fatal signal still reports
-# what it ran, costs the compiler cache entirely, as the option that arranges it
-# is one the cache does not recognise, and it refuses every compilation carrying
-# it. Asking for it through the profile file name alone is not an alternative,
-# as a program built without the option then fails to honour the request and
-# says so on its error stream, which the tests that compare output then read
+# what it ran, costs the compiler cache for every compilation carrying the
+# option that arranges it, as the cache does not recognise it. Asking for it
+# through the profile file name alone is not an alternative either, as a program
+# built without the option then fails to honour the request and says so on its
+# error stream, which the tests that compare output then read.
+#
+# So it is asked for by the one module whose programs die that way, over the
+# handful of translation units that module builds, rather than here across the
+# project. Those programs ask for it by name themselves, having been built to
+# honour it, which is why nothing of the sort is set below
 PROFILE_FLAGS="-fprofile-instr-generate -fcoverage-mapping"
 
 # Assertions are compiled out, which is a measurement decision rather than an
