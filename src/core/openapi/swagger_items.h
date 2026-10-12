@@ -63,19 +63,57 @@ constexpr std::initializer_list<JSON::StringView>
     SWAGGER_COLLECTION_FORMATS_WITH_MULTI{"csv"sv, "ssv"sv, "tsv"sv, "pipes"sv,
                                           "multi"sv};
 
-// The twelve validation fields hold what the draft they come from holds, and
-// nothing here reads further into them than the type each one takes. What a
-// value means is the business of whatever validates against it, and what a
-// position does with it is settled by the type beside it
+// The twelve validation fields a position carries where it describes a value
+// without nesting a schema. Each is tabled with a type of its own, and a
+// position of this kind never reaches a schema validator, so the type is read
+// here or nowhere.
+//
+// Swagger 2.0 tables the four bounds on a length or a count as `integer`, and
+// its own schema points each of them at the validation draft it cites, where
+// the two upper bounds are a non-negative integer and the two lower ones are
+// the same with a default. The two bounds on a value are tabled as `number`
+// and point at that draft's own, which asks nothing more. The factor is tabled
+// as `number` too and points at the one that draft states as greater than zero
 inline auto swagger_check_validation_fields(const JSON &value,
                                             const Pointer &base) -> void {
   for (const auto &field :
-       {"maximum"sv, "minimum"sv, "multipleOf"sv, "maxLength"sv, "minLength"sv,
-        "maxItems"sv, "minItems"sv}) {
+       {"maxLength"sv, "minLength"sv, "maxItems"sv, "minItems"sv}) {
+    const auto *member{value.try_at(field)};
+    if (member == nullptr) {
+      continue;
+    }
+
+    if (!member->is_integer()) {
+      throw OpenAPIError{openapi_child(base, field),
+                         "This validation field must be an integer"};
+    }
+
+    if (member->to_integer() < 0) {
+      throw OpenAPIError{openapi_child(base, field),
+                         "This validation field must not be negative"};
+    }
+  }
+
+  for (const auto &field : {"maximum"sv, "minimum"sv}) {
     const auto *member{value.try_at(field)};
     if (member != nullptr && !member->is_number()) {
       throw OpenAPIError{openapi_child(base, field),
                          "This validation field must be a number"};
+    }
+  }
+
+  const auto *factor{value.try_at("multipleOf"sv)};
+  if (factor != nullptr) {
+    if (!factor->is_number()) {
+      throw OpenAPIError{openapi_child(base, "multipleOf"sv),
+                         "This validation field must be a number"};
+    }
+
+    const auto positive{factor->is_integer() ? factor->to_integer() > 0
+                                             : factor->to_real() > 0};
+    if (!positive) {
+      throw OpenAPIError{openapi_child(base, "multipleOf"sv),
+                         "This validation field must be greater than zero"};
     }
   }
 

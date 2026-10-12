@@ -206,14 +206,20 @@ inline auto openapi_parse_info(const JSON &document, OpenAPIWalk &walk)
   }
 
   // OpenAPI Specification 3.1.1, Section 4.8.2: "A URI for the Terms of
-  // Service for the API. This MUST be in the form of a URI"
+  // Service for the API. This MUST be in the form of a URI". The oldest
+  // revision asks only for a string there, so what it holds is read as one
   const auto *terms{
       value.try_at("termsOfService", OPENAPI_HASH_TERMS_OF_SERVICE)};
   if (terms != nullptr) {
-    result.terms_of_service = openapi_expect_uri_reference(
-        *terms, base, "termsOfService"sv,
-        "The Info Object terms of service must be a string",
-        "The Info Object terms of service must be a URI reference");
+    result.terms_of_service =
+        openapi_terms_of_service_is_a_uri(walk.version)
+            ? openapi_expect_uri_reference(
+                  *terms, base, "termsOfService"sv,
+                  "The Info Object terms of service must be a string",
+                  "The Info Object terms of service must be a URI reference")
+            : openapi_expect_string(
+                  *terms, base, "termsOfService"sv,
+                  "The Info Object terms of service must be a string");
   }
 
   const auto *contact{value.try_at("contact", OPENAPI_HASH_CONTACT)};

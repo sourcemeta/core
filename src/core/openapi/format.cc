@@ -15,6 +15,7 @@
 #include "response.h"
 #include "security.h"
 #include "server.h"
+#include "swagger_items.h"
 #include "tag.h"
 
 #include <algorithm> // std::ranges::find
@@ -377,12 +378,19 @@ struct KindRow {
   bool sorts_own_keys{false};
 };
 
-// Swagger 2.0, Items Object, in the order it tables its fields
+// Swagger 2.0, Items Object. What it names first is what the value is, then
+// how it is carried, then what it may hold, with the one field that nests
+// another Object of the same kind last, which is where every table here puts
+// the field that nests. The extension rank sits where the others put it, after
+// what the Object says of itself and before what it holds
 constexpr auto FIELDS_SWAGGER_ITEMS{std::to_array<JSON::StringView>(
-    {"type"sv, "format"sv, "items"sv, "collectionFormat"sv, "default"sv,
-     "maximum"sv, "exclusiveMaximum"sv, "minimum"sv, "exclusiveMinimum"sv,
-     "maxLength"sv, "minLength"sv, "pattern"sv, "maxItems"sv, "minItems"sv,
-     "uniqueItems"sv, "enum"sv, "multipleOf"sv})};
+    {"type"sv, "format"sv, "collectionFormat"sv, "default"sv, "x-"sv, "enum"sv,
+     "multipleOf"sv, "maximum"sv, "exclusiveMaximum"sv, "minimum"sv,
+     "exclusiveMinimum"sv, "pattern"sv, "maxLength"sv, "minLength"sv,
+     "uniqueItems"sv, "maxItems"sv, "minItems"sv, "items"sv})};
+
+static_assert(ranks_every_field(FIELDS_SWAGGER_ITEMS, SWAGGER_ITEMS_FIELDS));
+static_assert(defines_every_rank(FIELDS_SWAGGER_ITEMS, SWAGGER_ITEMS_FIELDS));
 
 auto row_of(const OpenAPIObjectKind kind) -> KindRow {
   switch (kind) {
@@ -443,12 +451,13 @@ auto row_of(const OpenAPIObjectKind kind) -> KindRow {
     // Handled before this is ever asked
     case OpenAPIObjectKind::Schema:
       return {};
-    // The Objects only the oldest revision defines. Each of the four
-    // containers of its root holds members a description names itself, and so
-    // does each of the three Objects beside them, so none of the seven has an
-    // order this module imposes
+    // The Objects only the oldest revision defines. Its Items Object tables
+    // fields of its own, so it has an order like any other Object that does
     case OpenAPIObjectKind::Items:
       return {.fields = FIELDS_SWAGGER_ITEMS, .maps = {}};
+    // Each of the four containers of its root holds members a description
+    // names itself, and so do the two Objects beside them, so none of the six
+    // has an order this module imposes
     case OpenAPIObjectKind::Headers:
     case OpenAPIObjectKind::Scopes:
     case OpenAPIObjectKind::Definitions:

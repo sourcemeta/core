@@ -138,6 +138,23 @@ openapi_discriminators(const JSON &document, const SchemaFrame &schemas,
     const JSON::String scope{location.base};
     origin.push_back(JSON::String{"discriminator"});
 
+    // Swagger 2.0, Schema Object: "discriminator | string | Adds support for
+    // polymorphism. The discriminator is the schema property name that is used
+    // to differentiate between other schema that inherit this schema". So
+    // under the dialect of that revision the member names a property rather
+    // than holding an Object, and there is no map beside it for anything to
+    // follow. What a keyword amounts to follows the dialect in force, which is
+    // what the vocabulary asked here says
+    if (vocabularies.contains(SchemaVocabularies::Known::OPENAPI_2_0_BASE)) {
+      if (!discriminator->is_string()) {
+        throw OpenAPIError{base, std::move(origin),
+                           "The discriminator must name a property with a "
+                           "string"};
+      }
+
+      return;
+    }
+
     // Section 4.8.24.2 has the dialect this specification publishes hold the
     // keyword, and the schema that dialect is written as admits nothing but a
     // map there, so what the keyword names is an Object or it is an error. The

@@ -354,6 +354,16 @@ openapi_declares_version_as_openapi(const OpenAPIVersion version) noexcept
   return version >= OpenAPIVersion::OPENAPI_3_0;
 }
 
+// Whether this revision asks the terms of service of a description to be a
+// URI. The oldest one tables the field as "The Terms of Service for the API"
+// and asks nothing of its shape, where the ones after it have it be "A URL to
+// the Terms of Service for the API" that "MUST be in the format of a URL"
+inline auto
+openapi_terms_of_service_is_a_uri(const OpenAPIVersion version) noexcept
+    -> bool {
+  return version >= OpenAPIVersion::OPENAPI_3_0;
+}
+
 // Whether this revision gathers what a description reuses into one Object.
 // The oldest one instead spreads it across four containers of the root, one
 // per kind of Object a reference may name, and has no Components Object at all

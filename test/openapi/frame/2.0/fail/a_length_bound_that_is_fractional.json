@@ -1,0 +1,32 @@
+{
+  "document": {
+    "swagger": "2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "parameters": [
+            {
+              "name": "q",
+              "in": "query",
+              "type": "string",
+              "maxLength": 1.5
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Fine"
+            }
+          }
+        }
+      }
+    }
+  },
+  "error": {
+    "message": "This validation field must be an integer",
+    "location": "/paths/~1pets/get/parameters/0/maxLength"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "document": {
+    "swagger": "2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "definitions": {
+      "Pet": {
+        "type": "object",
+        "discriminator": {
+          "propertyName": "kind"
+        }
+      }
+    },
+    "paths": {}
+  },
+  "error": {
+    "message": "The discriminator must name a property with a string",
+    "location": "/definitions/Pet/discriminator"
+  }
+}
