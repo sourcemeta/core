@@ -64,7 +64,8 @@ TEST(whitespace_inside_a_member_is_rejected) {
   EXPECT_FALSE(sourcemeta::core::http_is_tracestate("foo = 1"));
 }
 
-// From the upstream corpus at vendor/w3c-trace-context/test/tracecontext
+// From the reference parser's own tests, read at commit acab820b of
+// https://github.com/w3c/trace-context
 TEST(a_member_without_an_equals_sign_is_rejected) {
   EXPECT_FALSE(sourcemeta::core::http_is_tracestate("foobarbaz"));
 }
@@ -122,7 +123,9 @@ TEST(a_key_starting_with_a_digit_is_rejected) {
   EXPECT_FALSE(sourcemeta::core::http_is_tracestate("1foo=1"));
 }
 
-// From the upstream corpus: a dot is not in the permitted set
+// A dot is not in the permitted set, which the reference parser's own tests
+// also cover
+// https://github.com/w3c/trace-context/tree/acab820b
 TEST(a_dotted_key_is_rejected) {
   EXPECT_FALSE(sourcemeta::core::http_is_tracestate("special.vendor=1"));
 }
@@ -158,9 +161,10 @@ TEST(a_multi_tenant_key_with_an_empty_tenant_is_rejected) {
 
 // A key joins a tenant and a system with one at sign, so a second one lands
 // inside the system, where the at sign is not a permitted character. The
-// upstream corpus accepts both of these, following a note the specification
+// reference parser accepts both of these, following a note the specification
 // marks non-normative over the grammar it also states
 // https://www.w3.org/TR/trace-context/#key
+// https://github.com/w3c/trace-context/tree/acab820b
 TEST(a_key_with_two_at_signs_is_rejected) {
   EXPECT_FALSE(sourcemeta::core::http_is_tracestate("tenant@system@extra=1"));
 }

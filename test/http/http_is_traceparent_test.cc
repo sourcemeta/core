@@ -32,9 +32,10 @@ TEST(version_ff_is_rejected) {
 
 // A version above the lowest is accepted, and at exactly 55 characters the
 // flags end the value, which satisfies "either the end of the string or a
-// dash". These three versions come from the upstream corpus, whose permissive
-// base parser accepts each of them
+// dash". These three versions are taken from the reference parser's own
+// tests, whose permissive base class accepts each of them
 // https://www.w3.org/TR/trace-context/#versioning-of-traceparent
+// https://github.com/w3c/trace-context/tree/acab820b
 TEST(version_01_of_exactly_fifty_five_characters) {
   EXPECT_TRUE(sourcemeta::core::http_is_traceparent(
       "01-12345678901234567890123456789012-1234567890123456-00"));
@@ -68,9 +69,10 @@ TEST(version_00_may_not_append) {
 }
 
 // "All bytes as zero (00000000000000000000000000000000) is considered an
-// invalid value". The upstream corpus accepts these through its base parser
+// invalid value". The reference parser accepts these through its base class
 // and refuses them through the strict one, which is the behaviour here
 // https://www.w3.org/TR/trace-context/#trace-id
+// https://github.com/w3c/trace-context/tree/acab820b
 TEST(an_all_zero_trace_id_is_rejected) {
   EXPECT_FALSE(sourcemeta::core::http_is_traceparent(
       "00-00000000000000000000000000000000-1234567890123456-00"));
@@ -109,8 +111,9 @@ TEST(a_non_hexadecimal_version_is_rejected) {
       "zz-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"));
 }
 
-// These six length cases come from the upstream corpus
+// These six length cases are taken from the reference parser's own tests
 // https://www.w3.org/TR/trace-context/#traceparent-header-field-values
+// https://github.com/w3c/trace-context/tree/acab820b
 TEST(a_one_character_version_is_rejected) {
   EXPECT_FALSE(sourcemeta::core::http_is_traceparent(
       "0-12345678901234567890123456789012-1234567890123456-00"));
