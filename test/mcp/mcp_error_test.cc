@@ -55,54 +55,54 @@ TEST(make_error_with_integer_identifier) {
 
 TEST(make_error_preserves_integral_real_identifier_2025_03_26) {
   const sourcemeta::core::JSON identifier{42.0};
-  EXPECT_EQ(sourcemeta::core::mcp_make_error(
-                sourcemeta::core::MCPProtocolVersion::V_2025_03_26, &identifier,
-                sourcemeta::core::JSONRPC_CODE_INVALID_PARAMS,
-                "Invalid params"),
-            sourcemeta::core::parse_json(R"JSON({
+  const auto error{sourcemeta::core::mcp_make_error(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, &identifier,
+      sourcemeta::core::JSONRPC_CODE_INVALID_PARAMS, "Invalid params")};
+  EXPECT_EQ(error, sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "id": 42.0,
     "error": { "code": -32602, "message": "Invalid params" }
   })JSON"));
+  EXPECT_TRUE(error.at("id").is_real());
 }
 
 TEST(make_error_preserves_integral_real_identifier_2025_06_18) {
   const sourcemeta::core::JSON identifier{42.0};
-  EXPECT_EQ(sourcemeta::core::mcp_make_error(
-                sourcemeta::core::MCPProtocolVersion::V_2025_06_18, &identifier,
-                sourcemeta::core::JSONRPC_CODE_INVALID_PARAMS,
-                "Invalid params"),
-            sourcemeta::core::parse_json(R"JSON({
+  const auto error{sourcemeta::core::mcp_make_error(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, &identifier,
+      sourcemeta::core::JSONRPC_CODE_INVALID_PARAMS, "Invalid params")};
+  EXPECT_EQ(error, sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "id": 42.0,
     "error": { "code": -32602, "message": "Invalid params" }
   })JSON"));
+  EXPECT_TRUE(error.at("id").is_real());
 }
 
 TEST(make_error_preserves_integral_real_identifier_2025_11_25) {
   const sourcemeta::core::JSON identifier{42.0};
-  EXPECT_EQ(sourcemeta::core::mcp_make_error(
-                sourcemeta::core::MCPProtocolVersion::V_2025_11_25, &identifier,
-                sourcemeta::core::JSONRPC_CODE_INVALID_PARAMS,
-                "Invalid params"),
-            sourcemeta::core::parse_json(R"JSON({
+  const auto error{sourcemeta::core::mcp_make_error(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, &identifier,
+      sourcemeta::core::JSONRPC_CODE_INVALID_PARAMS, "Invalid params")};
+  EXPECT_EQ(error, sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "id": 42.0,
     "error": { "code": -32602, "message": "Invalid params" }
   })JSON"));
+  EXPECT_TRUE(error.at("id").is_real());
 }
 
 TEST(make_error_preserves_integral_real_identifier_2026_07_28) {
   const sourcemeta::core::JSON identifier{42.0};
-  EXPECT_EQ(sourcemeta::core::mcp_make_error(
-                sourcemeta::core::MCPProtocolVersion::V_2026_07_28, &identifier,
-                sourcemeta::core::JSONRPC_CODE_INVALID_PARAMS,
-                "Invalid params"),
-            sourcemeta::core::parse_json(R"JSON({
+  const auto error{sourcemeta::core::mcp_make_error(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, &identifier,
+      sourcemeta::core::JSONRPC_CODE_INVALID_PARAMS, "Invalid params")};
+  EXPECT_EQ(error, sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "id": 42.0,
     "error": { "code": -32602, "message": "Invalid params" }
   })JSON"));
+  EXPECT_TRUE(error.at("id").is_real());
 }
 
 TEST(make_error_with_string_identifier) {
