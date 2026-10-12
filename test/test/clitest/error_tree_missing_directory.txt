@@ -1,0 +1,5 @@
+TAP version 14
+1..1
+not ok 1 - error_tree_missing_directory.clitest
+# error_tree_missing_directory.clitest:1: cannot list this directory: missing (No such file or directory)
+# 0 passed, 1 failed

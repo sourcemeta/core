@@ -10,6 +10,7 @@
 #include <span>         // std::span
 #include <stdexcept>    // std::runtime_error
 #include <string>       // std::string
+#include <string_view>  // std::string_view
 #include <system_error> // std::error_code
 
 class IOAtomicWriteFileTest {
@@ -159,3 +160,20 @@ TEST_F(IOAtomicWriteFileTest, read_only_parent_throws_permission_error) {
   }
 }
 #endif
+
+// Staging the replacement needs a directory to stage it in, and a parent that
+// is a file of its own refuses the open for a reason that is not about
+// permissions
+TEST_F(IOAtomicWriteFileTest, parent_that_is_a_file_of_its_own) {
+  const auto blocker{this->workspace_ / "blocker"};
+  sourcemeta::core::write_file(blocker, "x");
+  const auto path{blocker / "out.txt"};
+  try {
+    sourcemeta::core::atomic_write_file(path, "hello");
+    FAIL();
+  } catch (const sourcemeta::core::IOFilePermissionError &) {
+    FAIL();
+  } catch (const std::exception &error) {
+    EXPECT_FALSE(std::string_view{error.what()}.empty());
+  }
+}

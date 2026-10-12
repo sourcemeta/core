@@ -567,3 +567,31 @@ TEST(move_assignment_takes_the_other_key) {
   EXPECT_TRUE(key.key_id().has_value());
   EXPECT_EQ(key.key_id().value(), "key-2");
 }
+
+// RFC 8037 Section 2 writes both `crv` and `x` as required members of an
+// Octet Key Pair, so a key missing either names no curve point
+TEST(octet_key_pair_without_a_curve) {
+  const auto document{sourcemeta::core::parse_json(
+      R"({ "kty": "OKP",
+           "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo" })")};
+  EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
+}
+
+TEST(octet_key_pair_without_a_public_key) {
+  const auto document{
+      sourcemeta::core::parse_json(R"({ "kty": "OKP", "crv": "Ed25519" })")};
+  EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
+}
+
+TEST(octet_key_pair_with_a_curve_that_is_not_a_string) {
+  const auto document{sourcemeta::core::parse_json(
+      R"({ "kty": "OKP", "crv": 25519,
+           "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo" })")};
+  EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
+}
+
+TEST(octet_key_pair_with_a_public_key_that_is_not_a_string) {
+  const auto document{sourcemeta::core::parse_json(
+      R"({ "kty": "OKP", "crv": "Ed25519", "x": 42 })")};
+  EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
+}

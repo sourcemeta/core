@@ -246,3 +246,28 @@ TEST(public_key_moved_onto_itself_keeps_its_state) {
   EXPECT_TRUE(key.value().type() == sourcemeta::core::PublicKey::Type::RSA);
   EXPECT_TRUE(sourcemeta::core::rsa_public_components(key.value()).has_value());
 }
+
+// SEC 1 Section 3.2 writes the private key of an elliptic curve as an integer
+// in the interval [1, n-1], so a scalar of nothing but zeroes names no key
+TEST(ec_private_key_whose_scalar_is_zero) {
+  const std::string pem{
+      "-----BEGIN PRIVATE KEY-----\n"
+      "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgAAAAAAAAAAAAAAAA\n"
+      "AAAAAAAAAAAAAAAAAAAAAAAAAAChRANCAAQrQCBl4pxLtKex84zvju8dntvZF1Dm\n"
+      "etJQhjqZwh81vCWJlgdqoA+F3pQN4jrapP2//GNWJ1pM+Yd7xZoDhKZI\n"
+      "-----END PRIVATE KEY-----\n"};
+  EXPECT_FALSE(sourcemeta::core::make_private_key(pem).has_value());
+}
+
+// That interval ends below the group order, so a scalar at or above it names
+// no key either, which the range check settles before the public point is
+// recovered from it
+TEST(ec_private_key_whose_scalar_is_above_the_order) {
+  const std::string pem{
+      "-----BEGIN PRIVATE KEY-----\n"
+      "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQg////////////////\n"
+      "//////////////////////////+hRANCAAQrQCBl4pxLtKex84zvju8dntvZF1Dm\n"
+      "etJQhjqZwh81vCWJlgdqoA+F3pQN4jrapP2//GNWJ1pM+Yd7xZoDhKZI\n"
+      "-----END PRIVATE KEY-----\n"};
+  EXPECT_FALSE(sourcemeta::core::make_private_key(pem).has_value());
+}
