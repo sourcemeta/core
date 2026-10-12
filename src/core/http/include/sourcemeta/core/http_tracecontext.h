@@ -8,6 +8,7 @@
 #include <sourcemeta/core/http_syntax.h>
 #include <sourcemeta/core/text.h>
 
+#include <array>       // std::array
 #include <concepts>    // std::invocable
 #include <cstdint>     // std::uint8_t
 #include <optional>    // std::optional
@@ -113,6 +114,73 @@ auto http_is_traceparent(const std::string_view value) noexcept -> bool;
 SOURCEMETA_CORE_HTTP_EXPORT
 auto http_parse_traceparent(const std::string_view value) noexcept
     -> std::optional<HTTPTraceParent>;
+
+/// @ingroup http
+/// Generate a traceparent field value that starts a new trace, drawing both
+/// identifiers from the random provider of the crypto module. This is what a
+/// request that arrived without one needs, and it is also the mutation that
+/// regenerates every property, which a service acting as "a front gate into
+/// secure networks" performs to shed what it was handed.
+///
+/// Note that the identifiers are only unguessable to the degree that provider
+/// is, which varies with how the library was built, and that the requirement
+/// on a generator is strict: "Random number generators MUST NOT rely on any
+/// information that can potentially be user-identifiable". For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/http.h>
+/// #include <cassert>
+/// #include <string_view>
+///
+/// const auto value{sourcemeta::core::http_make_traceparent(true)};
+/// const std::string_view view{value.data(), value.size()};
+/// assert(view.size() == 55);
+/// assert(sourcemeta::core::http_is_traceparent(view));
+/// assert(view.starts_with("00-"));
+/// assert(view.ends_with("-01"));
+/// ```
+///
+/// @see https://www.w3.org/TR/trace-context/#mutating-the-traceparent-field
+/// @see https://www.w3.org/TR/trace-context/#randomness-of-trace-id
+/// @see https://www.w3.org/TR/trace-context/#privacy-of-traceparent-field
+SOURCEMETA_CORE_HTTP_EXPORT
+auto http_make_traceparent(const bool sampled) -> std::array<char, 55>;
+
+/// @ingroup http
+/// Generate the traceparent field value to send onward for a request that
+/// arrived carrying one. The trace continues, so its identifier is kept, while
+/// the operation is this one rather than the caller's, which is the mutation
+/// the specification calls "the most typical" and says "should be considered a
+/// default".
+///
+/// The sampling decision is the one being made here rather than the one that
+/// arrived, since the flag "reflects the caller's recording behavior" and the
+/// caller is now this service. Pass on the decision that arrived by reading it
+/// off the flags. A value read at a later revision is written back at the
+/// revision this library implements, which is the downgrade a reader of one
+/// owes, and whatever that value appended is dropped with it. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/http.h>
+/// #include <cassert>
+/// #include <string_view>
+///
+/// const auto parent{sourcemeta::core::http_parse_traceparent(
+///     "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01")};
+/// assert(parent.has_value());
+/// const auto value{sourcemeta::core::http_continue_traceparent(
+///     *parent, sourcemeta::core::http_traceparent_sampled(parent->flags))};
+/// const std::string_view view{value.data(), value.size()};
+/// assert(sourcemeta::core::http_is_traceparent(view));
+/// assert(view.substr(3, 32) == "0af7651916cd43dd8448eb211c80319c");
+/// assert(view.substr(36, 16) != "b7ad6b7169203331");
+/// ```
+///
+/// @see https://www.w3.org/TR/trace-context/#mutating-the-traceparent-field
+/// @see https://www.w3.org/TR/trace-context/#versioning-of-traceparent
+SOURCEMETA_CORE_HTTP_EXPORT
+auto http_continue_traceparent(const HTTPTraceParent &parent,
+                               const bool sampled) -> std::array<char, 55>;
 
 /// @ingroup http
 /// Whether the input is a well-formed tracestate field value (RFC 5234 ABNF in

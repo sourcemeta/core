@@ -15,6 +15,8 @@ sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME http
           http_is_traceparent_test.cc http_parse_traceparent_test.cc
           http_is_tracestate_test.cc http_parse_tracestate_test.cc
           http_traceparent_sampled_test.cc
+          http_make_traceparent_test.cc
+          http_continue_traceparent_test.cc
           http_parse_bearer_test.cc http_cache_control_max_age_test.cc
           http_serialize_cookie_test.cc http_parse_cookies_test.cc
           http_cookie_values_test.cc

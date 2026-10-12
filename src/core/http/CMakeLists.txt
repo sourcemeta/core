@@ -19,6 +19,7 @@ sourcemeta_library(NAMESPACE sourcemeta PROJECT core NAME http
           cache_control_max_age.cc serialize_cookie.cc aws_sigv4.cc
           serialize_challenge.cc parse_challenges.cc
           is_traceparent.cc parse_traceparent.cc is_tracestate.cc
+    make_traceparent.cc continue_traceparent.cc
           serialize_cache_control.cc
           scan_quoted_string.cc
           ${SOURCEMETA_CORE_HTTP_CLIENT_SOURCE})
