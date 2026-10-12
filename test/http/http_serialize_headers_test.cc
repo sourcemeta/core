@@ -131,3 +131,24 @@ TEST(drops_only_the_injected_wiping_value) {
   EXPECT_EQ(sourcemeta::core::http_serialize_headers(headers),
             "Accept: application/json\r\n");
 }
+
+// RFC 9110 Section 5.5 has a recipient of a carriage return, line feed, or NUL
+// within a field value either reject the message or replace the character, so
+// a value holding one is dropped wherever the value keeps its bytes behind an
+// accessor rather than standing as a string of its own
+TEST(value_behind_an_accessor_holding_a_forbidden_byte_is_dropped) {
+  const std::vector<
+      std::pair<std::string, sourcemeta::core::HTTPSystemRequest::HeaderValue>>
+      headers{{"Accept", {std::string{"application/json"}}},
+              {"X-Bad", {std::string{"one\r\nTwo: three"}}}};
+  EXPECT_EQ(sourcemeta::core::http_serialize_headers(headers),
+            "Accept: application/json\r\n");
+}
+
+TEST(value_behind_an_accessor_is_written_from_its_bytes) {
+  const std::vector<
+      std::pair<std::string, sourcemeta::core::HTTPSystemRequest::HeaderValue>>
+      headers{{"Accept", {std::string{"application/json"}}}};
+  EXPECT_EQ(sourcemeta::core::http_serialize_headers(headers),
+            "Accept: application/json\r\n");
+}

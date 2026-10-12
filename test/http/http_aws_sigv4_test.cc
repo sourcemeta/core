@@ -111,3 +111,25 @@ TEST(signature_known_vector) {
   EXPECT_EQ(sourcemeta::core::http_aws_sigv4_signature(key, string_to_sign),
             "5fa00fa31553b73ebf1942676e86291e8372ff2a2260956d9b8aae1d763fbf31");
 }
+
+// AWS Signature Version 4 joins the values of a header name that repeats into
+// one value separated by commas, and names that header once in the signed list
+TEST(canonical_request_joins_a_header_name_that_repeats) {
+  const std::vector<std::pair<std::string_view, std::string_view>> headers{
+      {"Host", "example.amazonaws.com"},
+      {"X-Amz-Meta", "first"},
+      {"X-Amz-Meta", "second"}};
+  const auto canonical{sourcemeta::core::http_aws_sigv4_canonical_request(
+      "GET", "/", "", headers,
+      "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")};
+  EXPECT_TRUE(canonical.find("x-amz-meta:first,second\n") != std::string::npos);
+}
+
+TEST(signed_headers_names_a_repeated_header_once) {
+  const std::vector<std::pair<std::string_view, std::string_view>> headers{
+      {"Host", "example.amazonaws.com"},
+      {"X-Amz-Meta", "first"},
+      {"X-Amz-Meta", "second"}};
+  EXPECT_EQ(sourcemeta::core::http_aws_sigv4_signed_headers(headers),
+            "host;x-amz-meta");
+}

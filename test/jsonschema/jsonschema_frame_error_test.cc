@@ -3160,3 +3160,28 @@ TEST(root_identifier_with_a_fragment_in_root_mode) {
     FAIL();
   }
 }
+
+// The dialect a subschema declares is read as a URI so that it can be resolved
+// against the one in force, so a value that is no URI names no dialect
+TEST(subschema_dialect_that_is_not_a_uri) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$defs": {
+      "inner": {
+        "$schema": "http://example.com:99999999999/"
+      }
+    }
+  })JSON");
+
+  try {
+    [[maybe_unused]] const sourcemeta::core::SchemaFrame frame{
+        sourcemeta::core::SchemaFrame::Mode::References, document,
+        sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_EQ(error.keyword(), "$schema");
+    EXPECT_EQ(error.value(), "http://example.com:99999999999/");
+  } catch (...) {
+    FAIL();
+  }
+}

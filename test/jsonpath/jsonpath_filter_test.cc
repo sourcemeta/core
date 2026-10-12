@@ -3,7 +3,9 @@
 #include <sourcemeta/core/jsonpointer.h>
 #include <sourcemeta/core/test.h>
 
-#include <string> // std::string
+#include <cstddef> // std::size_t
+#include <string>  // std::string
+#include <utility> // std::move
 
 namespace {
 
@@ -383,15 +385,20 @@ TEST(jsonpath_filter_search_literal_dollar) {
 }
 
 TEST(jsonpath_filter_existence_deep_document) {
-  std::string text{"[ "};
+  auto nested{sourcemeta::core::JSON::make_object()};
+  nested.assign("leaf", sourcemeta::core::JSON{1});
   for (std::size_t index = 0; index < 10000; ++index) {
-    text += "{\"a\":";
+    auto wrapper{sourcemeta::core::JSON::make_object()};
+    wrapper.assign("a", std::move(nested));
+    nested = std::move(wrapper);
   }
 
-  text += "{\"leaf\":1}";
-  text += std::string(10000, '}');
-  text += ", { \"b\": 2 } ]";
-  const auto document{sourcemeta::core::parse_json(text)};
+  auto sibling{sourcemeta::core::JSON::make_object()};
+  sibling.assign("b", sourcemeta::core::JSON{2});
+  auto document{sourcemeta::core::JSON::make_array()};
+  document.push_back(std::move(nested));
+  document.push_back(std::move(sibling));
+
   const sourcemeta::core::JSONPath path{"$[?@..leaf]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);

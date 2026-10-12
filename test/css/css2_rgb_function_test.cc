@@ -117,3 +117,24 @@ TEST(invalid_empty_value) {
 TEST(invalid_dot_only) {
   EXPECT_FALSE(sourcemeta::core::is_css2_rgb_function("rgb(., ., .)"));
 }
+
+// CSS 2.1 Section 4.3.6 writes the function as three values separated by
+// commas, so a space in place of a comma separates nothing
+TEST(invalid_values_separated_by_spaces) {
+  EXPECT_FALSE(sourcemeta::core::is_css2_rgb_function("rgb(255 0 128)"));
+}
+
+TEST(invalid_second_value_missing) {
+  EXPECT_FALSE(sourcemeta::core::is_css2_rgb_function("rgb(0, , 0)"));
+}
+
+TEST(invalid_third_value_missing) {
+  EXPECT_FALSE(sourcemeta::core::is_css2_rgb_function("rgb(0, 0, )"));
+}
+
+// CSS 2.1 Section 4.3.6 writes that the three values are "either three
+// integer values or three percentage values", so one that arrives in the
+// other format than the first disagrees with it wherever it sits
+TEST(invalid_third_value_in_another_format) {
+  EXPECT_FALSE(sourcemeta::core::is_css2_rgb_function("rgb(0, 0, 50%)"));
+}

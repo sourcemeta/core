@@ -802,3 +802,26 @@ TEST(extended_autolink_xmpp_followed_by_text) {
   EXPECT_EQ(result, "<p><a href=\"xmpp:foo@bar.baz\">xmpp:foo@bar.baz</a>"
                     " and more</p>\n");
 }
+
+// GFM section 6.9 lets an extended autolink come only "at the beginning of a
+// line, after whitespace, or any of the delimiting characters *, _, ~, and (",
+// so one that follows code spans is no autolink
+TEST(extended_autolink_after_a_code_span) {
+  EXPECT_EQ(sourcemeta::core::markdown_to_html("`x`www.example.com\n"),
+            "<p><code>x</code>www.example.com</p>\n");
+}
+
+// An entity reference resolves to text, and the character it leaves behind is
+// what the autolink is weighed against
+TEST(extended_autolink_after_an_entity_reference) {
+  EXPECT_EQ(sourcemeta::core::markdown_to_html("&amp;www.example.com\n"),
+            "<p>&amp;www.example.com</p>\n");
+}
+
+// GFM section 6.9 ends an extended autolink at a `<`, so what follows one
+// stands outside the link
+TEST(extended_autolink_ends_at_a_less_than) {
+  EXPECT_EQ(sourcemeta::core::markdown_to_html("www.example.com<x\n"),
+            "<p><a href=\"http://www.example.com\">www.example.com</a>"
+            "&lt;x</p>\n");
+}

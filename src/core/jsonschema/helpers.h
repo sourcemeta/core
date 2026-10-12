@@ -231,6 +231,17 @@ ref_overrides_adjacent_keywords(const SchemaBaseDialect base_dialect) -> bool {
   }
 }
 
+// An identifier that reads as no URI has no canonical form to be compared
+// against, which is as good as not matching whatever it is held up to
+inline auto maybe_canonicalize(const std::string_view identifier)
+    -> std::optional<sourcemeta::core::JSON::String> {
+  try {
+    return sourcemeta::core::URI::canonicalize(identifier);
+  } catch (const sourcemeta::core::URIParseError &) {
+    return std::nullopt;
+  }
+}
+
 inline auto embedded_metaschema_identifier_matches(
     const sourcemeta::core::JSON &candidate, const SchemaKeyword keyword,
     const std::string_view identifier,
@@ -284,12 +295,7 @@ embedded_metaschema_candidate(const sourcemeta::core::JSON &document,
     return {nullptr, ""};
   }
 
-  std::optional<sourcemeta::core::JSON::String> canonical;
-  try {
-    canonical = sourcemeta::core::URI::canonicalize(identifier);
-  } catch (const sourcemeta::core::URIParseError &) {
-    canonical = std::nullopt;
-  }
+  const auto canonical{maybe_canonicalize(identifier)};
 
   constexpr std::array<SchemaKeyword, 2> CONTAINERS{
       {{.name = "$defs"sv, .hash = JSONSCHEMA_HASH_DEFS},
@@ -338,12 +344,7 @@ inline auto embedded_metaschema_link_valid(const sourcemeta::core::JSON &link,
       }
   }
 
-  std::optional<sourcemeta::core::JSON::String> canonical;
-  try {
-    canonical = sourcemeta::core::URI::canonicalize(identifier);
-  } catch (const sourcemeta::core::URIParseError &) {
-    canonical = std::nullopt;
-  }
+  const auto canonical{maybe_canonicalize(identifier)};
 
   return embedded_metaschema_identifier_matches(link, id_keyword(base_dialect),
                                                 identifier, canonical);

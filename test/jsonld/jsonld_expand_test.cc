@@ -5,10 +5,16 @@
 #include <cstddef>  // std::size_t
 #include <optional> // std::optional, std::nullopt
 #include <string>   // std::string
+#include <utility>  // std::move
 
 TEST(deeply_nested_input_is_rejected) {
-  const auto input{sourcemeta::core::parse_json(std::string(1500, '[') +
-                                                std::string(1500, ']'))};
+  auto input{sourcemeta::core::JSON::make_array()};
+  for (std::size_t level = 0; level < 1500; level++) {
+    auto wrapper{sourcemeta::core::JSON::make_array()};
+    wrapper.push_back(std::move(input));
+    input = std::move(wrapper);
+  }
+
   try {
     const auto result{sourcemeta::core::jsonld_expand(input)};
     FAIL();
@@ -3372,4 +3378,31 @@ TEST(property_scoped_context_that_cannot_be_read) {
   } catch (const sourcemeta::core::JSONLDError &error) {
     EXPECT_EQ(std::string{error.what()}, "Invalid scoped context");
   }
+}
+
+// JSON-LD 1.1 API Section 5.1.2 step 13 adds nothing to the result for a
+// keyword it has no handler for, so one reached through an alias in property
+// position carries no expanded value of its own
+TEST(aliased_keyword_without_a_handler_adds_nothing) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "none": "@none", "p": "http://example.com/p" },
+    "none": "ignored",
+    "p": "kept"
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    { "http://example.com/p": [ { "@value": "kept" } ] }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+// JSON-LD 1.1 API Section 5.1.2 drops a result that carries nothing but an
+// identifier, since there is nothing said about the node it names
+TEST(object_of_only_an_identifier_expands_to_nothing) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@id": "http://example.com/a"
+  })");
+  const auto expected = sourcemeta::core::parse_json("[]");
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
 }

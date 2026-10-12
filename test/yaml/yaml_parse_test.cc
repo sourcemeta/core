@@ -5456,3 +5456,80 @@ TEST(flow_sequence_pair_without_a_value_at_the_end) {
   EXPECT_EQ(result,
             sourcemeta::core::parse_json(R"JSON([ "b", { "a": null } ])JSON"));
 }
+
+// YAML 1.2.2 production 194 writes an explicit key after a question mark, and
+// production 104 lets an alias node stand wherever a node stands, so one may
+// stand as that key and name whatever it was anchored to
+TEST(alias_as_an_explicit_mapping_key) {
+  const auto result{
+      sourcemeta::core::parse_yaml(std::string{"a: &k name\n? *k\n: 1\n"})};
+  EXPECT_EQ(result, sourcemeta::core::parse_json(
+                        R"JSON({ "a": "name", "name": 1 })JSON"));
+}
+
+TEST(alias_as_an_explicit_mapping_key_without_a_value) {
+  const auto result{
+      sourcemeta::core::parse_yaml(std::string{"a: &k name\n? *k\n"})};
+  EXPECT_EQ(result, sourcemeta::core::parse_json(
+                        R"JSON({ "a": "name", "name": null })JSON"));
+}
+
+// Production 104 lets an alias node stand wherever a node stands, so one may
+// stand as the key of a nested mapping, and production 102 keeps the colon out
+// of the anchor name only when a space separates them
+TEST(alias_as_a_key_of_a_nested_mapping) {
+  const auto result{sourcemeta::core::parse_yaml(
+      std::string{"a: &k name\nouter:\n  *k : 1\n"})};
+  EXPECT_EQ(result, sourcemeta::core::parse_json(
+                        R"JSON({ "a": "name", "outer": { "name": 1 } })JSON"));
+}
+
+// Without the colon the alias names no key, so it stands as the value of the
+// key above it instead
+TEST(alias_alone_under_a_key_is_its_value) {
+  const auto result{
+      sourcemeta::core::parse_yaml(std::string{"a: &k name\nouter:\n  *k\n"})};
+  EXPECT_EQ(result, sourcemeta::core::parse_json(
+                        R"JSON({ "a": "name", "outer": "name" })JSON"));
+}
+
+// Production 104 lets an alias node stand wherever a node stands, so one may
+// stand as an explicit key, and it names whatever was anchored rather than
+// anchoring anything itself
+TEST(alias_as_an_explicit_key_naming_an_anchored_value) {
+  const auto result{sourcemeta::core::parse_yaml(
+      std::string{"? one\n: &k val\n? *k\n: 2\n"})};
+  EXPECT_EQ(result, sourcemeta::core::parse_json(
+                        R"JSON({ "one": "val", "val": 2 })JSON"));
+}
+
+// Production 195 lets an explicit entry leave its value out, which holds for
+// an alias standing as that key just as it does for a scalar
+TEST(alias_as_an_explicit_key_without_a_value) {
+  const auto result{
+      sourcemeta::core::parse_yaml(std::string{"? one\n: &k val\n? *k\n"})};
+  EXPECT_EQ(result, sourcemeta::core::parse_json(
+                        R"JSON({ "one": "val", "val": null })JSON"));
+}
+
+// Production 158 admits an empty plain scalar in a flow mapping, which stands
+// for nothing rather than for the empty string
+TEST(empty_plain_scalar_in_a_flow_mapping) {
+  const auto result{sourcemeta::core::parse_yaml(std::string{"{a: }"})};
+  EXPECT_EQ(result, sourcemeta::core::parse_json(R"JSON({ "a": null })JSON"));
+}
+
+// Production 195 writes the key of an explicit entry as a node, and a question
+// mark with no node after it names the empty key
+TEST(explicit_key_with_nothing_after_the_question_mark) {
+  const auto result{sourcemeta::core::parse_yaml(std::string{"?\n: 1\n"})};
+  EXPECT_EQ(result, sourcemeta::core::parse_json(R"JSON({ "": 1 })JSON"));
+}
+
+// Production 158 admits an empty value before the comma that separates one
+// flow entry from the next
+TEST(flow_entry_following_an_empty_value) {
+  const auto result{sourcemeta::core::parse_yaml(std::string{"{a: , b: 1}"})};
+  EXPECT_EQ(result,
+            sourcemeta::core::parse_json(R"JSON({ "a": null, "b": 1 })JSON"));
+}

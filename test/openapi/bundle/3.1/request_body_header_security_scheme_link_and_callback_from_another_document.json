@@ -1,0 +1,242 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/a": {
+        "post": {
+          "operationId": "op",
+          "requestBody": {
+            "$ref": "shared.json#/components/requestBodies/Body"
+          },
+          "responses": {
+            "200": {
+              "description": "OK",
+              "headers": {
+                "X-H": {
+                  "$ref": "shared.json#/components/headers/H"
+                }
+              },
+              "links": {
+                "L": {
+                  "$ref": "shared.json#/components/links/L"
+                }
+              }
+            }
+          },
+          "callbacks": {
+            "C": {
+              "$ref": "shared.json#/components/callbacks/C"
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "securitySchemes": {
+        "S": {
+          "$ref": "shared.json#/components/securitySchemes/S"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/shared.json": {
+      "openapi": "3.1.1",
+      "info": {
+        "title": "Shared",
+        "version": "1.0.0"
+      },
+      "components": {
+        "requestBodies": {
+          "Body": {
+            "description": "Body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "headers": {
+          "H": {
+            "description": "H",
+            "schema": {
+              "type": "string"
+            }
+          }
+        },
+        "securitySchemes": {
+          "S": {
+            "type": "http",
+            "scheme": "basic"
+          }
+        },
+        "links": {
+          "L": {
+            "operationId": "op"
+          }
+        },
+        "callbacks": {
+          "C": {
+            "{$request.body#/url}": {
+              "post": {
+                "responses": {
+                  "200": {
+                    "description": "OK"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/a": {
+        "post": {
+          "operationId": "op",
+          "requestBody": {
+            "$ref": "#/components/requestBodies/Body"
+          },
+          "responses": {
+            "200": {
+              "description": "OK",
+              "headers": {
+                "X-H": {
+                  "$ref": "#/components/headers/H"
+                }
+              },
+              "links": {
+                "L": {
+                  "$ref": "#/components/links/L"
+                }
+              }
+            }
+          },
+          "callbacks": {
+            "C": {
+              "$ref": "#/components/callbacks/C"
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "securitySchemes": {
+        "S": {
+          "$ref": "#/components/securitySchemes/S_"
+        },
+        "S_": {
+          "type": "http",
+          "scheme": "basic"
+        }
+      },
+      "callbacks": {
+        "C": {
+          "{$request.body#/url}": {
+            "post": {
+              "responses": {
+                "200": {
+                  "description": "OK"
+                }
+              }
+            }
+          }
+        }
+      },
+      "requestBodies": {
+        "Body": {
+          "description": "Body",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      },
+      "headers": {
+        "H": {
+          "description": "H",
+          "schema": {
+            "type": "string"
+          }
+        }
+      },
+      "links": {
+        "L": {
+          "operationId": "op"
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/shared.json#/components/securitySchemes/S",
+      "at": "/components/securitySchemes/S_"
+    },
+    {
+      "from": "https://example.com/shared.json#/components/callbacks/C",
+      "at": "/components/callbacks/C"
+    },
+    {
+      "from": "https://example.com/shared.json#/components/requestBodies/Body",
+      "at": "/components/requestBodies/Body"
+    },
+    {
+      "from": "https://example.com/shared.json#/components/headers/H",
+      "at": "/components/headers/H"
+    },
+    {
+      "from": "https://example.com/shared.json#/components/links/L",
+      "at": "/components/links/L"
+    }
+  ],
+  "reads": {
+    "https://example.com/shared.json": 1
+  },
+  "schemaReads": {},
+  "standalone": true,
+  "relocatable": true,
+  "operations": [
+    {
+      "type": "path",
+      "path": "/a",
+      "method": "post",
+      "origin": "https://example.com/openapi.json#/paths/~1a/post",
+      "endpoint": "https://example.com/openapi.json#/paths/~1a",
+      "tags": [],
+      "servers": [],
+      "security": [],
+      "parameters": []
+    },
+    {
+      "type": "callback",
+      "path": "{$request.body#/url}",
+      "method": "post",
+      "origin": "https://example.com/openapi.json#/components/callbacks/C/%7B$request.body%23~1url%7D/post",
+      "endpoint": "https://example.com/openapi.json#/components/callbacks/C/%7B$request.body%23~1url%7D",
+      "parent": "https://example.com/openapi.json#/paths/~1a/post",
+      "tags": [],
+      "servers": [],
+      "security": [],
+      "parameters": []
+    }
+  ]
+}

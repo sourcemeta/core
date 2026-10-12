@@ -1,0 +1,23 @@
+{
+  "schema": {
+    "$schema": "https://example.com/meta",
+    "type": "string"
+  },
+  "resolver": {
+    "https://example.com/meta": {
+      "title": "A metaschema that names no dialect of its own"
+    }
+  },
+  "errors": {
+    "nonOfficialMetaschemas": {
+      "type": "SchemaUnknownBaseDialectError",
+      "message": "Could not determine the base dialect of the schema"
+    },
+    "references": {
+      "type": "SchemaUnknownBaseDialectError",
+      "message": "Could not determine the base dialect of the schema"
+    }
+  },
+  "inserted": {},
+  "result": {}
+}

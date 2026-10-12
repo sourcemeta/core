@@ -292,3 +292,12 @@ TEST(parse_challenges_scheme_followed_by_a_quoted_string) {
   EXPECT_FALSE(
       sourcemeta::core::http_parse_challenges("Basic \"foo\"", challenges));
 }
+
+// RFC 9110 Section 11.2 writes an auth-param value as either a token or a
+// quoted-string, so one that opens with a character belonging to neither is
+// no value at all
+TEST(parse_challenges_parameter_value_that_is_neither_token_nor_quoted) {
+  Challenges challenges;
+  EXPECT_FALSE(
+      sourcemeta::core::http_parse_challenges("Bearer realm=(", challenges));
+}

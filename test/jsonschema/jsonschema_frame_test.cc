@@ -2339,3 +2339,21 @@ TEST(anchor_of_a_dialect_drawing_on_two_core_vocabularies) {
   EXPECT_TRUE(frame.traverse("https://example.com/schema#x").has_value());
   EXPECT_EQ(frame.location_count(), 2);
 }
+
+TEST(mode_reads_back_what_the_frame_was_given) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema"
+  })JSON")};
+
+  sourcemeta::core::SchemaFrame references{
+      sourcemeta::core::SchemaFrame::Mode::References, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+  EXPECT_TRUE(references.mode() ==
+              sourcemeta::core::SchemaFrame::Mode::References);
+
+  sourcemeta::core::SchemaFrame locations{
+      sourcemeta::core::SchemaFrame::Mode::Locations, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+  EXPECT_TRUE(locations.mode() ==
+              sourcemeta::core::SchemaFrame::Mode::Locations);
+}
