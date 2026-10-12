@@ -36,7 +36,7 @@ namespace sourcemeta::core {
 /// })JSON")};
 /// const sourcemeta::core::MCPImplementation server{.name = "srv",
 ///                                                  .version = "1.0.0"};
-/// assert(sourcemeta::core::mcp_make_initialize_result(
+/// assert(sourcemeta::core::mcp_make_initialize_response(
 ///            request, sourcemeta::core::MCPServerCapabilities{}, server,
 ///            SUPPORTED) == sourcemeta::core::parse_json(R"JSON({
 ///          "jsonrpc": "2.0",

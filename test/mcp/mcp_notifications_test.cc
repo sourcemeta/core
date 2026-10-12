@@ -431,7 +431,7 @@ TEST(make_subscription_acknowledged_notification_rejects_null_identifier) {
 // subscription it ends
 // https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/subscriptions
 TEST(make_subscription_close_result) {
-  EXPECT_EQ(sourcemeta::core::mcp_make_subscription_close_result(
+  EXPECT_EQ(sourcemeta::core::mcp_make_subscription_close_response(
                 sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                 sourcemeta::core::JSON{60}),
             sourcemeta::core::parse_json(R"JSON({
@@ -445,7 +445,7 @@ TEST(make_subscription_close_result) {
 }
 
 TEST(make_subscription_close_result_with_string_identifier) {
-  EXPECT_EQ(sourcemeta::core::mcp_make_subscription_close_result(
+  EXPECT_EQ(sourcemeta::core::mcp_make_subscription_close_response(
                 sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                 sourcemeta::core::JSON{"listen"}),
             sourcemeta::core::parse_json(R"JSON({
@@ -459,14 +459,14 @@ TEST(make_subscription_close_result_with_string_identifier) {
 }
 
 TEST(make_subscription_close_result_rejects_2025_11_25) {
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_subscription_close_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_subscription_close_response(
                          sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
                          sourcemeta::core::JSON{1}),
                      "Subscriptions require MCP 2026-07-28");
 }
 
 TEST(make_subscription_close_result_rejects_null_identifier) {
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_subscription_close_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_subscription_close_response(
                          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                          sourcemeta::core::JSON{nullptr}),
                      "Invalid subscription identifier");

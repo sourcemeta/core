@@ -88,7 +88,11 @@ constexpr auto mcp_resolve_cache_scope(const JSON::StringView scope) noexcept
 /// @see
 /// https://modelcontextprotocol.io/specification/2026-07-28/server/utilities/caching#cacheable-results
 struct MCPCachePolicy {
-  /// Time-to-live in milliseconds. Builders clamp negative inputs to zero.
+  /// Time-to-live in milliseconds. The schema bounds this below by zero, so a
+  /// negative value is refused rather than folded to zero.
+  ///
+  /// @see
+  /// https://modelcontextprotocol.io/specification/2026-07-28/server/utilities/caching#cacheable-results
   std::int64_t ttl_ms = 0;
   /// Cache scope (public or private).
   MCPCacheScope scope = MCPCacheScope::Private;
@@ -125,7 +129,11 @@ struct MCPToolAnnotations {
 struct MCPResourceAnnotations {
   /// Optional audience roles ("user" and/or "assistant"). Empty stays explicit.
   std::optional<std::span<const JSON::StringView>> audience = std::nullopt;
-  /// Optional priority, clamped to [0,1] as in the existing resource builder.
+  /// Optional priority. The schema bounds this between zero and one, so a
+  /// value outside them is refused rather than folded in.
+  ///
+  /// @see
+  /// https://modelcontextprotocol.io/specification/2026-07-28/schema#annotations
   std::optional<double> priority = std::nullopt;
   /// Optional timestamp string. The caller supplies a valid ISO 8601 timestamp.
   JSON::StringView last_modified = {};
@@ -399,15 +407,21 @@ auto mcp_decorate_cacheable_result(const MCPProtocolVersion version,
     -> sourcemeta::core::JSON;
 
 /// @ingroup mcp
-/// Build an empty MCP result response envelope with `resultType: "complete"`.
-/// Returns a complete JSON-RPC envelope, since it takes the identifier to
-/// echo. For example:
+/// Build an empty MCP response with `resultType: "complete"`.
+///
+/// The builders in this header come in two shapes, and the name says which.
+/// A function named for a result returns the bare payload that belongs under
+/// the `result` key, while one named for a response returns the whole
+/// JSON-RPC envelope around it and therefore takes the identifier to echo.
+/// That is the specification's own distinction, which pairs a result such as
+/// `DiscoverResult` with the envelope `DiscoverResultResponse`, and reserves
+/// `JSONRPCResultResponse` for the generic shape. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/mcp.h>
 /// #include <cassert>
 ///
-/// assert(sourcemeta::core::mcp_make_empty_result(
+/// assert(sourcemeta::core::mcp_make_empty_response(
 ///            sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
 ///            sourcemeta::core::JSON{0}) ==
 ///        sourcemeta::core::parse_json(R"JSON({
@@ -419,8 +433,10 @@ auto mcp_decorate_cacheable_result(const MCPProtocolVersion version,
 ///
 /// @see
 /// https://modelcontextprotocol.io/specification/2026-07-28/schema#emptyresult
+/// @see
+/// https://modelcontextprotocol.io/specification/2026-07-28/schema#jsonrpcresultresponse
 SOURCEMETA_CORE_MCP_EXPORT
-auto mcp_make_empty_result(
+auto mcp_make_empty_response(
     const MCPProtocolVersion version, const sourcemeta::core::JSON &identifier,
     const std::optional<MCPImplementation> &server_info = std::nullopt)
     -> sourcemeta::core::JSON;
@@ -953,7 +969,7 @@ auto mcp_write_result(
 /// })JSON")};
 /// const sourcemeta::core::MCPImplementation server{.name = "srv",
 ///                                                  .version = "1.0.0"};
-/// assert(sourcemeta::core::mcp_make_initialize_result(
+/// assert(sourcemeta::core::mcp_make_initialize_response(
 ///            request, sourcemeta::core::MCPServerCapabilities{}, server,
 ///            SUPPORTED) ==
 ///        sourcemeta::core::parse_json(R"JSON({
@@ -976,7 +992,7 @@ auto mcp_write_result(
 ///     "clientInfo": { "name": "client", "version": "1" }
 ///   }
 /// })JSON")};
-/// assert(sourcemeta::core::mcp_make_initialize_result(
+/// assert(sourcemeta::core::mcp_make_initialize_response(
 ///            unknown, sourcemeta::core::MCPServerCapabilities{}, server,
 ///            SUPPORTED)
 ///            .at("result")
@@ -986,7 +1002,7 @@ auto mcp_write_result(
 /// @see
 /// https://modelcontextprotocol.io/specification/2025-11-25/basic/lifecycle#initialization
 SOURCEMETA_CORE_MCP_EXPORT
-auto mcp_make_initialize_result(
+auto mcp_make_initialize_response(
     const sourcemeta::core::JSON &request,
     const MCPServerCapabilities &capabilities, const MCPImplementation &server,
     const std::span<const JSON::StringView> supported_versions,
@@ -1009,7 +1025,7 @@ auto mcp_make_initialize_result(
 ///     {"2026-07-28"}};
 /// const sourcemeta::core::MCPImplementation server{.name = "srv",
 ///                                                  .version = "2.0.0"};
-/// const auto envelope{sourcemeta::core::mcp_make_server_discover_result(
+/// const auto envelope{sourcemeta::core::mcp_make_server_discover_response(
 ///     sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
 ///     sourcemeta::core::JSON{1}, sourcemeta::core::MCPServerCapabilities{},
 ///     server, SUPPORTED, "Instructions here",
@@ -1026,7 +1042,7 @@ auto mcp_make_initialize_result(
 /// @see
 /// https://modelcontextprotocol.io/specification/2026-07-28/schema#discoverresult
 SOURCEMETA_CORE_MCP_EXPORT
-auto mcp_make_server_discover_result(
+auto mcp_make_server_discover_response(
     const MCPProtocolVersion version, const sourcemeta::core::JSON &identifier,
     const MCPServerCapabilities &capabilities, const MCPImplementation &server,
     const std::span<const JSON::StringView> supported_versions,
@@ -1064,7 +1080,7 @@ auto mcp_make_server_discover_result(
 ///     }
 ///   }
 /// })JSON")};
-/// const auto envelope{sourcemeta::core::mcp_make_input_required_result(
+/// const auto envelope{sourcemeta::core::mcp_make_input_required_response(
 ///     sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tools/call",
 ///     sourcemeta::core::JSON{50}, std::move(input_requests),
 ///     "opaque-state-token-123",
@@ -1079,7 +1095,7 @@ auto mcp_make_server_discover_result(
 /// @see
 /// https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/mrtr#supported-requests
 SOURCEMETA_CORE_MCP_EXPORT
-auto mcp_make_input_required_result(
+auto mcp_make_input_required_response(
     const MCPProtocolVersion version, const JSON::StringView method,
     const sourcemeta::core::JSON &identifier,
     std::optional<sourcemeta::core::JSON> input_requests,
@@ -1480,7 +1496,7 @@ auto mcp_make_subscription_acknowledged_notification(
 /// #include <sourcemeta/core/mcp.h>
 /// #include <cassert>
 ///
-/// assert(sourcemeta::core::mcp_make_subscription_close_result(
+/// assert(sourcemeta::core::mcp_make_subscription_close_response(
 ///            sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
 ///            sourcemeta::core::JSON{9})
 ///            .at("id") == sourcemeta::core::JSON{9});
@@ -1489,7 +1505,7 @@ auto mcp_make_subscription_acknowledged_notification(
 /// @see
 /// https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/subscriptions
 SOURCEMETA_CORE_MCP_EXPORT
-auto mcp_make_subscription_close_result(
+auto mcp_make_subscription_close_response(
     const MCPProtocolVersion version, const sourcemeta::core::JSON &identifier,
     const std::optional<MCPImplementation> &server_info = std::nullopt)
     -> sourcemeta::core::JSON;
