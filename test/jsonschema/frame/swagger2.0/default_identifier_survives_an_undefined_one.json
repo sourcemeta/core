@@ -1,0 +1,96 @@
+{
+  "schema": {
+    "id": "https://www.sourcemeta.com/declared",
+    "type": "object"
+  },
+  "defaultDialect": "tag:spec.openapis.org,2017-08-27:oas/2.0/dialect",
+  "defaultId": "https://www.sourcemeta.com/given",
+  "root": {
+    "mode": "root",
+    "locations": {
+      "static": {
+        "https://www.sourcemeta.com/given": {
+          "parent": null,
+          "type": "resource",
+          "root": "https://www.sourcemeta.com/given",
+          "base": "https://www.sourcemeta.com/given",
+          "pointer": "",
+          "relativePointer": "",
+          "dialect": "tag:spec.openapis.org,2017-08-27:oas/2.0/dialect",
+          "baseDialect": "http://json-schema.org/draft-04/schema#",
+          "propertyName": false,
+          "orphan": false,
+          "hasReferencesTo": false,
+          "hasReferencesThrough": false,
+          "vocabularies": {
+            "tag:swagger.io,2014:oas/2.0/vocab/base": true
+          }
+        }
+      },
+      "dynamic": {}
+    },
+    "references": []
+  },
+  "pointers": {
+    "mode": "pointers",
+    "locations": {
+      "static": {
+        "https://www.sourcemeta.com/given": {
+          "parent": null,
+          "type": "resource",
+          "root": "https://www.sourcemeta.com/given",
+          "base": "https://www.sourcemeta.com/given",
+          "pointer": "",
+          "relativePointer": "",
+          "dialect": "tag:spec.openapis.org,2017-08-27:oas/2.0/dialect",
+          "baseDialect": "http://json-schema.org/draft-04/schema#",
+          "propertyName": false,
+          "orphan": false,
+          "hasReferencesTo": false,
+          "hasReferencesThrough": false,
+          "vocabularies": {
+            "tag:swagger.io,2014:oas/2.0/vocab/base": true
+          }
+        },
+        "https://www.sourcemeta.com/given#/id": {
+          "parent": "",
+          "type": "pointer",
+          "root": "https://www.sourcemeta.com/given",
+          "base": "https://www.sourcemeta.com/given",
+          "pointer": "/id",
+          "relativePointer": "/id",
+          "dialect": "tag:spec.openapis.org,2017-08-27:oas/2.0/dialect",
+          "baseDialect": "http://json-schema.org/draft-04/schema#",
+          "propertyName": false,
+          "orphan": false,
+          "hasReferencesTo": false,
+          "hasReferencesThrough": false,
+          "vocabularies": {
+            "tag:swagger.io,2014:oas/2.0/vocab/base": true
+          }
+        },
+        "https://www.sourcemeta.com/given#/type": {
+          "parent": "",
+          "type": "pointer",
+          "root": "https://www.sourcemeta.com/given",
+          "base": "https://www.sourcemeta.com/given",
+          "pointer": "/type",
+          "relativePointer": "/type",
+          "dialect": "tag:spec.openapis.org,2017-08-27:oas/2.0/dialect",
+          "baseDialect": "http://json-schema.org/draft-04/schema#",
+          "propertyName": false,
+          "orphan": false,
+          "hasReferencesTo": false,
+          "hasReferencesThrough": false,
+          "vocabularies": {
+            "tag:swagger.io,2014:oas/2.0/vocab/base": true
+          }
+        }
+      },
+      "dynamic": {}
+    },
+    "references": []
+  },
+  "standalone": true,
+  "standaloneIgnoringMetaschemas": true
+}
