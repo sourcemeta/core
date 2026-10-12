@@ -17,9 +17,10 @@ TEST(the_worked_example_with_properties) {
       "propertyKey=propertyValue"));
 }
 
-// There is no alternative for an empty member, so a list must hold one, which
-// is the opposite of tracestate
+// There is no alternative for an empty member, so a list must hold one, where
+// tracestate allows one: "Empty and whitespace-only list members are allowed"
 // https://www.w3.org/TR/baggage/#definition
+// https://www.w3.org/TR/trace-context/#tracestate-header-field-values
 TEST(an_empty_field_value_is_rejected) {
   EXPECT_FALSE(sourcemeta::core::http_is_baggage(""));
 }
@@ -48,8 +49,10 @@ TEST(an_empty_member_value_is_accepted) {
 
 // "Leading and trailing whitespaces (OWS) are allowed and are not considered
 // to be a part of the key", and the same holds of the value, so a member may
-// be padded anywhere, which is also the opposite of tracestate
+// be padded anywhere, where the tracestate list production places no
+// whitespace inside a member at all
 // https://www.w3.org/TR/baggage/#key
+// https://www.w3.org/TR/trace-context/#list
 TEST(whitespace_around_the_equals_sign_is_accepted) {
   EXPECT_TRUE(sourcemeta::core::http_is_baggage("userId = alice"));
 }
@@ -59,8 +62,10 @@ TEST(whitespace_around_a_member_is_accepted) {
 }
 
 // "Uniqueness of keys between multiple list-members in a baggage-string is
-// not guaranteed", so a repeat is well formed, which tracestate refuses
+// not guaranteed", so a repeat is well formed, where tracestate holds that
+// "Only one entry per key is allowed"
 // https://www.w3.org/TR/baggage/#baggage-string
+// https://www.w3.org/TR/trace-context/#combined-header-value
 TEST(a_duplicate_key_is_accepted) {
   EXPECT_TRUE(sourcemeta::core::http_is_baggage("a=1,a=2"));
 }
@@ -68,6 +73,7 @@ TEST(a_duplicate_key_is_accepted) {
 // A key is the token this module already knows, so it admits uppercase and a
 // dot, neither of which a tracestate key may carry
 // https://www.w3.org/TR/baggage/#key
+// https://www.w3.org/TR/trace-context/#key
 TEST(an_uppercase_key_is_accepted) {
   EXPECT_TRUE(sourcemeta::core::http_is_baggage("UserId=alice"));
 }

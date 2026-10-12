@@ -28,10 +28,11 @@ auto http_is_baggage(const std::string_view value) noexcept -> bool {
     // only the pair must hold an equals sign, since "Additional metadata MAY
     // be appended to values in the form of property set" whose entries are
     // "keys and/or key-value pairs". The list production offers no alternative
-    // for an empty member, so one is malformed, which is the opposite of
-    // tracestate
+    // for an empty member, so one is malformed, where tracestate allows one:
+    // "Empty and whitespace-only list members are allowed"
     // https://www.w3.org/TR/baggage/#property
     // https://www.w3.org/TR/baggage/#definition
+    // https://www.w3.org/TR/trace-context/#tracestate-header-field-values
     bool pair{true};
     while (true) {
       const auto semicolon{member.find(';')};

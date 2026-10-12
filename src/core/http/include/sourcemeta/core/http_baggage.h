@@ -25,8 +25,8 @@ namespace sourcemeta::core {
 /// carrying any of those has to percent-encode it. This also requires that a
 /// percent introduces an encoded octet, which is stricter than the grammar,
 /// where the percent is an octet like any other. The prose is what forbids a
-/// bare one. An empty value is well formed, which is where baggage parts ways
-/// with tracestate. For example:
+/// bare one. An empty value is well formed, where a tracestate value has to
+/// end in a mandatory non-blank character and so cannot be empty. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/http.h>
@@ -40,6 +40,7 @@ namespace sourcemeta::core {
 /// ```
 ///
 /// @see https://www.w3.org/TR/baggage/#value
+/// @see https://www.w3.org/TR/trace-context/#value
 SOURCEMETA_CORE_HTTP_EXPORT
 auto http_is_baggage_value(const std::string_view value) noexcept -> bool;
 
@@ -53,7 +54,8 @@ auto http_is_baggage_value(const std::string_view value) noexcept -> bool;
 /// property set whose own entries may be a bare key. Whitespace around a key
 /// or a value is allowed and is not part of it. A repeated key is allowed,
 /// since "Uniqueness of keys between multiple list-members in a
-/// baggage-string is not guaranteed", which is the opposite of tracestate.
+/// baggage-string is not guaranteed", where tracestate holds that "Only one
+/// entry per key is allowed".
 ///
 /// The grammar caps the list at 180 members. The separate figures of 64
 /// members and 8192 bytes are the point past which a platform "MAY drop
@@ -76,6 +78,7 @@ auto http_is_baggage_value(const std::string_view value) noexcept -> bool;
 /// @see https://www.w3.org/TR/baggage/#definition
 /// @see https://www.w3.org/TR/baggage/#baggage-string
 /// @see https://www.w3.org/TR/baggage/#limits
+/// @see https://www.w3.org/TR/trace-context/#combined-header-value
 /// @see https://www.rfc-editor.org/rfc/rfc9110#section-5.5
 SOURCEMETA_CORE_HTTP_EXPORT
 auto http_is_baggage(const std::string_view value) noexcept -> bool;

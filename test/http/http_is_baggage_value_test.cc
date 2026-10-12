@@ -8,9 +8,11 @@ TEST(a_plain_value) {
   EXPECT_TRUE(sourcemeta::core::http_is_baggage_value("alice"));
 }
 
-// "value = *baggage-octet" counts zero or more, so nothing at all is a value,
-// which is where baggage parts ways with tracestate
+// The value production counts zero or more octets, so nothing at all is a
+// value, where a tracestate value has to end in a mandatory non-blank
+// character and so cannot be empty
 // https://www.w3.org/TR/baggage/#value
+// https://www.w3.org/TR/trace-context/#value
 TEST(an_empty_value_is_accepted) {
   EXPECT_TRUE(sourcemeta::core::http_is_baggage_value(""));
 }
