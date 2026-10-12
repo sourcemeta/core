@@ -1898,6 +1898,32 @@ TEST(request_metadata_rejects_a_malformed_baggage) {
                    .second.has_value());
 }
 
+// The format checks apply to what this module builds, not to what a peer
+// sends, so a received timestamp that is not ISO 8601 does not cost the
+// message. Both reference implementations type this field as a plain string
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/index#general-fields
+TEST(a_received_icon_is_not_held_to_its_formats) {
+  const auto value{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {},
+      "io.modelcontextprotocol/clientInfo": {
+        "name": "c",
+        "version": "1",
+        "icons": [
+          {
+            "src": "/relative",
+            "mimeType": "not a media type",
+            "sizes": [ "big" ]
+          }
+        ]
+      }
+    }
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_validate_request_parameters(value).first,
+            sourcemeta::core::MCPRequestMetaStatus::Valid);
+}
+
 TEST(legacy_result_allows_unreserved_traceparent) {
   const auto legacy{sourcemeta::core::parse_json(
       R"JSON({ "_meta": { "traceparent": false } })JSON")};
