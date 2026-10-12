@@ -39,10 +39,15 @@ TEST(an_uppercase_escape_is_accepted) {
   EXPECT_TRUE(sourcemeta::core::http_is_baggage_value("%3B%2C"));
 }
 
-// A comma is what separates members, so a value can only carry one encoded
+// A comma separates members, so a comma inside a value has to be
+// percent-encoded, and a value may carry as many of them as it likes
 // https://www.w3.org/TR/baggage/#definition
 TEST(an_encoded_comma_is_accepted) {
   EXPECT_TRUE(sourcemeta::core::http_is_baggage_value("a%2Cb"));
+}
+
+TEST(several_encoded_commas_are_accepted) {
+  EXPECT_TRUE(sourcemeta::core::http_is_baggage_value("a%2Cb%2Cc%2C"));
 }
 
 TEST(a_null_byte_is_rejected) {

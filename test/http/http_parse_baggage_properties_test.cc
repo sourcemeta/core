@@ -111,3 +111,14 @@ TEST(an_empty_set_parses_and_visits_nothing) {
       "", [&visited](const auto, const auto) { visited = true; }));
   EXPECT_FALSE(visited);
 }
+
+// Running the repetition zero times leaves nothing at all, not whitespace, so
+// a set of only whitespace is not the same thing: reaching one means a
+// semicolon was followed by nothing a property could be
+// https://www.w3.org/TR/baggage/#definition
+TEST(a_whitespace_only_set_is_rejected) {
+  bool visited{false};
+  EXPECT_FALSE(sourcemeta::core::http_parse_baggage_properties(
+      " ", [&visited](const auto, const auto) { visited = true; }));
+  EXPECT_FALSE(visited);
+}

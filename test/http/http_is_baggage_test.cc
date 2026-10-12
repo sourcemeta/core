@@ -121,6 +121,14 @@ TEST(a_property_key_that_is_not_a_token_is_rejected) {
   EXPECT_FALSE(sourcemeta::core::http_is_baggage("a=1;k(x)=v"));
 }
 
+TEST(a_trailing_semicolon_is_rejected) {
+  EXPECT_FALSE(sourcemeta::core::http_is_baggage("a=1;"));
+}
+
+TEST(a_trailing_semicolon_and_whitespace_are_rejected) {
+  EXPECT_FALSE(sourcemeta::core::http_is_baggage("a=1; "));
+}
+
 TEST(an_empty_property_is_rejected) {
   EXPECT_FALSE(sourcemeta::core::http_is_baggage("a=1;;k=v"));
 }
