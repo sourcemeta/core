@@ -57,13 +57,13 @@ auto http_is_tracestate(const std::string_view value) noexcept -> bool {
     // of one made of nothing else is the empty member the next rule allows.
     // The list production brackets only its inner boundaries, so stripping at
     // the two outer ends accepts a little more than the grammar writes down.
-    // That is deliberate and costs nothing: whitespace there is excluded from
-    // a field value before it ever reaches a reader, and stripping can never
-    // turn one well-formed member into another, since a key cannot begin with
-    // a space or a tab and a value cannot end with one
+    // That is deliberate and costs nothing, since "A field value does not
+    // include leading or trailing whitespace" in the first place, and
+    // stripping can never turn one well-formed member into another, because a
+    // key cannot begin with a space or a tab and a value cannot end with one
     // https://www.w3.org/TR/trace-context/#tracestate-header-field-values
     // https://www.w3.org/TR/trace-context/#list
-    // https://www.rfc-editor.org/rfc/rfc7230#section-3.2.4
+    // https://www.rfc-editor.org/rfc/rfc9110#section-5.5
     const auto entry{trim(rest.substr(0, comma), http_is_ows)};
 
     // "Empty and whitespace-only list members are allowed. Vendors MUST accept

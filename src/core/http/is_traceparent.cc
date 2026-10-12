@@ -1,8 +1,25 @@
 #include <sourcemeta/core/http.h>
 #include <sourcemeta/core/text.h>
 
+#include <algorithm>   // std::all_of
 #include <cstddef>     // std::size_t
 #include <string_view> // std::string_view
+
+namespace {
+
+// A field value carries visible characters, the spaces and horizontal tabs
+// that sit between them, and the bytes above the US-ASCII range, of which
+// "A recipient SHOULD treat other allowed octets in field content (i.e.,
+// obs-text) as opaque data". Every other control character cannot appear in
+// one at all:
+// "field-vchar    = VCHAR / obs-text"
+// https://www.rfc-editor.org/rfc/rfc9110#section-5.5
+auto is_field_octet(const char character) noexcept -> bool {
+  const auto byte{static_cast<unsigned char>(character)};
+  return byte == 0x09 || (byte >= 0x20 && byte != 0x7F);
+}
+
+} // namespace
 
 namespace sourcemeta::core {
 
@@ -17,12 +34,12 @@ auto http_is_traceparent(const std::string_view value) noexcept -> bool {
   // beyond the flags
   // https://www.w3.org/TR/trace-context/#versioning-of-traceparent
   //
-  // What a later version appends past that dash is left alone, since the rules
-  // for reading one enumerate three checks and no more, and "Vendors MUST NOT
-  // parse or assume anything about unknown fields for this version". Refusing
-  // a value on the strength of those bytes would discard a trace the same
-  // section says to keep: "If all three values were parsed successfully, the
-  // vendor should use them"
+  // What a later version appends past that dash is left uninterpreted, since
+  // the rules for reading one enumerate three checks and no more, and "Vendors
+  // MUST NOT parse or assume anything about unknown fields for this version".
+  // Reading nothing into those bytes is not the same as taking any byte at
+  // all, though: whatever they turn out to mean, they travel in a field value,
+  // and the octets one may hold are settled below
   if (value.size() < 55 || value[2] != '-' || value[35] != '-' ||
       value[52] != '-' || (value.starts_with("00") && value.size() != 55) ||
       (value.size() > 55 && value[55] != '-')) {
@@ -45,6 +62,18 @@ auto http_is_traceparent(const std::string_view value) noexcept -> bool {
         (!is_hex_digit(value[index]) || !is_lowercase(value[index]))) {
       return false;
     }
+  }
+
+  // Holding the appended bytes to the octets of a field value says nothing
+  // about what they mean, so it leaves them as opaque as the rule above
+  // demands. "Field values containing CR, LF, or NUL characters are invalid
+  // and dangerous", and a recipient of one "MUST either reject the message or
+  // replace each of those characters with SP before further processing", of
+  // which refusing the value is the first
+  // https://www.rfc-editor.org/rfc/rfc9110#section-5.5
+  const auto appended{value.substr(55)};
+  if (!std::all_of(appended.begin(), appended.end(), is_field_octet)) {
+    return false;
   }
 
   // "If the trace-id value is invalid (for example if it contains non-allowed

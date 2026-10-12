@@ -156,11 +156,12 @@ TEST(a_missing_dash_is_rejected) {
       "0004bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"));
 }
 
-// What a later version appends is left alone, since the rules for reading one
-// enumerate three checks and no more and "Vendors MUST NOT parse or assume
-// anything about unknown fields for this version", so refusing a value over
-// those bytes would discard a trace the same section says to keep
+// What a later version appends is left uninterpreted, since "Vendors MUST NOT
+// parse or assume anything about unknown fields for this version". Reading
+// nothing into those bytes still leaves them travelling in a field value, so
+// they are held to the octets one may hold and to nothing further
 // https://www.w3.org/TR/trace-context/#versioning-of-traceparent
+// https://www.rfc-editor.org/rfc/rfc9110#section-5.5
 TEST(an_appended_visible_field_is_accepted) {
   EXPECT_TRUE(sourcemeta::core::http_is_traceparent(
       "01-12345678901234567890123456789012-1234567890123456-00-cafe01"));
@@ -171,14 +172,45 @@ TEST(an_appended_space_is_accepted) {
       "01-12345678901234567890123456789012-1234567890123456-00-a b"));
 }
 
-TEST(an_appended_control_character_is_accepted) {
+TEST(an_appended_horizontal_tab_is_accepted) {
   EXPECT_TRUE(sourcemeta::core::http_is_traceparent(
-      "01-12345678901234567890123456789012-1234567890123456-00-a\nb"));
+      "01-12345678901234567890123456789012-1234567890123456-00-a\tb"));
 }
 
+// "A recipient SHOULD treat other allowed octets in field content (i.e.,
+// obs-text) as opaque data", so a byte above the range is not grounds for
+// refusing what is opaque to begin with
+// https://www.rfc-editor.org/rfc/rfc9110#section-5.5
 TEST(an_appended_byte_above_ascii_is_accepted) {
   EXPECT_TRUE(sourcemeta::core::http_is_traceparent(
       "01-12345678901234567890123456789012-1234567890123456-00-\xc3\xa9"));
+}
+
+// "Field values containing CR, LF, or NUL characters are invalid and
+// dangerous", and a recipient of one "MUST either reject the message or
+// replace each of those characters with SP before further processing"
+// https://www.rfc-editor.org/rfc/rfc9110#section-5.5
+TEST(an_appended_line_feed_is_rejected) {
+  EXPECT_FALSE(sourcemeta::core::http_is_traceparent(
+      "01-12345678901234567890123456789012-1234567890123456-00-a\nb"));
+}
+
+TEST(an_appended_carriage_return_is_rejected) {
+  EXPECT_FALSE(sourcemeta::core::http_is_traceparent(
+      "01-12345678901234567890123456789012-1234567890123456-00-a\rb"));
+}
+
+TEST(an_appended_null_byte_is_rejected) {
+  const std::string value{
+      std::string{"01-12345678901234567890123456789012-1234567890123456-00-"} +
+      '\0' + "x"};
+  EXPECT_FALSE(sourcemeta::core::http_is_traceparent(value));
+}
+
+TEST(an_appended_delete_is_rejected) {
+  EXPECT_FALSE(sourcemeta::core::http_is_traceparent(
+      "01-12345678901234567890123456789012-1234567890123456-00-a\x7f"
+      "b"));
 }
 
 TEST(a_bare_dash_after_the_flags_is_accepted) {

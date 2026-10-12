@@ -69,11 +69,12 @@ constexpr auto http_traceparent_sampled(const std::uint8_t flags) noexcept
 /// Version `00` is exactly 55 characters and admits nothing further. A later
 /// version may append, since a reader is told to "check that the 2 characters
 /// are either the end of the string or a dash", so a longer value must carry a
-/// dash where the flags end. Whatever follows that dash is left alone, because
-/// "Vendors MUST NOT parse or assume anything about unknown fields for this
-/// version", and refusing a value over those bytes would discard a trace the
-/// same section says to keep. Version `ff` is invalid, and an identifier of
-/// all zeroes is "considered an invalid value". For example:
+/// dash where the flags end. Whatever follows that dash is left
+/// uninterpreted, because "Vendors MUST NOT parse or assume anything about
+/// unknown fields for this version", but it is still held to the octets a
+/// field value may carry, so a carriage return or a line feed there is
+/// refused. Version `ff` is invalid, and an identifier of all zeroes is
+/// "considered an invalid value". For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/http.h>
