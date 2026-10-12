@@ -6853,7 +6853,7 @@ TEST(resources_list_result_rejects_a_malformed_key_entry_metadata) {
 // https://modelcontextprotocol.io/specification/2026-07-28/server/resources#security-considerations
 TEST(resource_text_content_rejects_a_relative_uri) {
   EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_resource_text_content(
-                         "not a uri", "text/plain", "hello"),
+                         "relative/path", "text/plain", "hello"),
                      "Invalid resource contents");
 }
 
@@ -6874,7 +6874,7 @@ TEST(resource_text_content_accepts_an_absent_media_type) {
 
 TEST(resource_blob_content_rejects_a_relative_uri) {
   EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_resource_blob_content(
-                         "not a uri", "image/png", "AAAA"),
+                         "relative/path", "image/png", "AAAA"),
                      "Invalid resource contents");
 }
 
@@ -6899,7 +6899,7 @@ TEST(resources_list_result_rejects_a_relative_uri) {
                          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                          sourcemeta::core::parse_json(
                              R"JSON([
-                               { "name": "r", "uri": "not a uri" }
+                               { "name": "r", "uri": "relative/path" }
                              ])JSON"),
                          std::nullopt, {}),
                      "Invalid MCP resource descriptor entry");
@@ -6917,6 +6917,17 @@ TEST(resources_list_result_accepts_an_absolute_uri) {
     "ttlMs": 0,
     "cacheScope": "private"
   })JSON"));
+}
+
+TEST(resources_list_result_rejects_a_uri_that_is_not_one) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_resources_list_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         sourcemeta::core::parse_json(
+                             R"JSON([
+                               { "name": "r", "uri": "not a uri" }
+                             ])JSON"),
+                         std::nullopt, {}),
+                     "Invalid MCP resource descriptor entry");
 }
 
 TEST(resources_list_result_rejects_a_malformed_media_type) {
