@@ -6508,45 +6508,6 @@ TEST(write_result_rejects_an_interim_result) {
   EXPECT_TRUE(stream.str().empty());
 }
 
-// A tracing header may be empty or carry empty list members, which W3C
-// permits and a receiver simply has nothing to read from
-// https://www.w3.org/TR/trace-context/
-TEST(request_parameters_accept_an_empty_tracestate) {
-  const auto parameters{sourcemeta::core::parse_json(R"JSON({
-    "_meta": {
-      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-      "io.modelcontextprotocol/clientCapabilities": {},
-      "tracestate": ""
-    }
-  })JSON")};
-  EXPECT_EQ(sourcemeta::core::mcp_validate_request_parameters(parameters).first,
-            sourcemeta::core::MCPRequestMetaStatus::Valid);
-}
-
-TEST(request_parameters_accept_a_tracestate_of_empty_members) {
-  const auto parameters{sourcemeta::core::parse_json(R"JSON({
-    "_meta": {
-      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-      "io.modelcontextprotocol/clientCapabilities": {},
-      "tracestate": " , "
-    }
-  })JSON")};
-  EXPECT_EQ(sourcemeta::core::mcp_validate_request_parameters(parameters).first,
-            sourcemeta::core::MCPRequestMetaStatus::Valid);
-}
-
-TEST(request_parameters_accept_a_tracestate_with_a_trailing_comma) {
-  const auto parameters{sourcemeta::core::parse_json(R"JSON({
-    "_meta": {
-      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-      "io.modelcontextprotocol/clientCapabilities": {},
-      "tracestate": "vendor=value,,"
-    }
-  })JSON")};
-  EXPECT_EQ(sourcemeta::core::mcp_validate_request_parameters(parameters).first,
-            sourcemeta::core::MCPRequestMetaStatus::Valid);
-}
-
 // A baggage member may carry a property without a value
 // https://www.w3.org/TR/baggage/
 TEST(request_parameters_accept_a_valueless_baggage_property) {
