@@ -10,14 +10,14 @@
 #include "swagger_parameter.h"
 #include "swagger_response.h"
 
-#include <array>       // std::array
 #include <algorithm>   // std::max, std::ranges::all_of, std::ranges::find
+#include <array>       // std::array
 #include <cstddef>     // std::size_t
 #include <map>         // std::map
 #include <optional>    // std::optional
 #include <set>         // std::set
-#include <utility>     // std::pair
 #include <string_view> // std::string_view
+#include <utility>     // std::pair
 
 namespace sourcemeta::core {
 
@@ -37,8 +37,7 @@ constexpr std::array<JSON::StringView, 9> SWAGGER_PATH_ITEM_FIELDS{
 
 // The seven in the order the specification tables them
 constexpr std::array<JSON::StringView, 7> SWAGGER_METHODS{
-    {"get"sv, "put"sv, "post"sv, "delete"sv, "options"sv, "head"sv,
-     "patch"sv}};
+    {"get"sv, "put"sv, "post"sv, "delete"sv, "options"sv, "head"sv, "patch"sv}};
 
 // Swagger 2.0, Operation Object
 constexpr std::array<JSON::StringView, 12> SWAGGER_OPERATION_FIELDS{
@@ -69,8 +68,8 @@ inline auto swagger_check_schemes(const JSON &value, const Pointer &base,
   std::size_t index{0};
   for (const auto &entry : value.as_array()) {
     openapi_expect_enumeration(
-        entry, base, JSON::String{std::to_string(index)},
-        SWAGGER_SCHEMES, "A scheme must be a string",
+        entry, base, JSON::String{std::to_string(index)}, SWAGGER_SCHEMES,
+        "A scheme must be a string",
         "A scheme must name a transfer protocol this revision admits");
     index += 1;
   }
@@ -95,8 +94,7 @@ inline auto swagger_check_schemes(const JSON &value, const Pointer &base,
 // same operation", which its Form bullet repeats from the other side: "Since
 // form parameters are sent in the payload, they cannot be declared together
 // with a body parameter for the same operation"
-inline auto swagger_check_parameter_list(const JSON &value,
-                                         const Pointer &base,
+inline auto swagger_check_parameter_list(const JSON &value, const Pointer &base,
                                          const char *type_message,
                                          OpenAPIWalk &walk)
     -> std::vector<JSON::String> {
@@ -121,8 +119,8 @@ inline auto swagger_check_parameter_list(const JSON &value,
       }
     } else {
       const auto named{swagger_check_parameter(entry, location, walk)};
-      identity = std::pair{JSON::String{named.first},
-                           JSON::String{named.second}};
+      identity =
+          std::pair{JSON::String{named.first}, JSON::String{named.second}};
     }
 
     if (identity.has_value()) {
@@ -227,10 +225,11 @@ constexpr std::initializer_list<JSON::StringView> SWAGGER_FORM_MEDIA_TYPES{
 // The parameters reaching an operation are the ones it declares and the ones
 // its Path Item Object declares for every operation under it, so both lists
 // are asked
-inline auto swagger_check_what_a_file_requires(
-    const JSON &value, const Pointer &base,
-    const std::vector<JSON::String> &own,
-    const std::vector<JSON::String> &inherited, OpenAPIWalk &walk) -> void {
+inline auto
+swagger_check_what_a_file_requires(const JSON &value, const Pointer &base,
+                                   const std::vector<JSON::String> &own,
+                                   const std::vector<JSON::String> &inherited,
+                                   OpenAPIWalk &walk) -> void {
   const auto *declared{value.try_at("consumes"sv, SWAGGER_HASH_CONSUMES)};
   std::vector<JSON::StringView> effective;
   if (declared != nullptr && declared->is_array()) {
@@ -263,8 +262,7 @@ inline auto swagger_check_what_a_file_requires(
       if (walk.file_parameters.contains(
               openapi_resolve_position(walk, position))) {
         throw OpenAPIError{
-            base,
-            "An operation taking a file must consume a form media type"};
+            base, "An operation taking a file must consume a form media type"};
       }
     }
   }
@@ -344,8 +342,7 @@ inline auto swagger_check_operation(const JSON &value, const Pointer &base,
         "The Operation Object produced media types must be strings");
   }
 
-  const auto *parameters{
-      value.try_at("parameters"sv, SWAGGER_HASH_PARAMETERS)};
+  const auto *parameters{value.try_at("parameters"sv, SWAGGER_HASH_PARAMETERS)};
   if (parameters != nullptr) {
     record.parameters = swagger_check_parameter_list(
         *parameters, openapi_child(base, "parameters"sv),
@@ -374,9 +371,9 @@ inline auto swagger_check_operation(const JSON &value, const Pointer &base,
 
   // Operation Object: "responses | Responses Object | **Required.** The list
   // of possible responses as they are returned from executing this operation"
-  const auto &responses{openapi_require(
-      value, "responses"sv, SWAGGER_HASH_RESPONSES, base,
-      "The Operation Object must declare its responses")};
+  const auto &responses{
+      openapi_require(value, "responses"sv, SWAGGER_HASH_RESPONSES, base,
+                      "The Operation Object must declare its responses")};
   swagger_check_responses(responses, openapi_child(base, "responses"sv), walk);
 
   swagger_check_what_an_operation_carries(base, record.parameters, inherited,
@@ -401,8 +398,7 @@ inline auto swagger_check_path_item(const JSON &value, const Pointer &base,
 
   OpenAPIPathItemRecord record;
 
-  const auto *parameters{
-      value.try_at("parameters"sv, SWAGGER_HASH_PARAMETERS)};
+  const auto *parameters{value.try_at("parameters"sv, SWAGGER_HASH_PARAMETERS)};
   if (parameters != nullptr) {
     record.parameters = swagger_check_parameter_list(
         *parameters, openapi_child(base, "parameters"sv),

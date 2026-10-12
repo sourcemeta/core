@@ -145,8 +145,8 @@ inline auto swagger_check_typed_value(
     const JSON &value, const Pointer &base,
     const std::initializer_list<JSON::StringView> types,
     const std::initializer_list<JSON::StringView> collection_formats,
-    const char *type_message, const char *type_value_message,
-    OpenAPIWalk &walk) -> void;
+    const char *type_message, const char *type_value_message, OpenAPIWalk &walk)
+    -> void;
 
 // Swagger 2.0, Items Object: "A limited subset of JSON-Schema's items object.
 // It is used by parameter definitions that are not located in `"body"`".
@@ -168,19 +168,18 @@ inline auto swagger_check_items(const JSON &value, const Pointer &base,
   openapi_require(value, "type"sv, SWAGGER_HASH_TYPE, base,
                   "The Items Object must declare a type");
 
-  swagger_check_typed_value(value, base, SWAGGER_SIMPLE_TYPES,
-                            SWAGGER_COLLECTION_FORMATS,
-                            "The Items Object type must be a string",
-                            "The Items Object type must name a simple type",
-                            walk);
+  swagger_check_typed_value(
+      value, base, SWAGGER_SIMPLE_TYPES, SWAGGER_COLLECTION_FORMATS,
+      "The Items Object type must be a string",
+      "The Items Object type must name a simple type", walk);
 }
 
 inline auto swagger_check_typed_value(
     const JSON &value, const Pointer &base,
     const std::initializer_list<JSON::StringView> types,
     const std::initializer_list<JSON::StringView> collection_formats,
-    const char *type_message, const char *type_value_message,
-    OpenAPIWalk &walk) -> void {
+    const char *type_message, const char *type_value_message, OpenAPIWalk &walk)
+    -> void {
   const auto *type{value.try_at("type"sv, SWAGGER_HASH_TYPE)};
   JSON::StringView named;
   if (type != nullptr) {

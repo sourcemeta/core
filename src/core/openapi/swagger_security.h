@@ -76,9 +76,9 @@ inline auto swagger_check_security_scheme(const JSON &value,
       value, SWAGGER_SECURITY_SCHEME_FIELDS, base,
       "The Security Scheme Object does not define this field");
 
-  const auto &declared{openapi_require(
-      value, "type"sv, SWAGGER_HASH_TYPE, base,
-      "The Security Scheme Object must declare a type")};
+  const auto &declared{
+      openapi_require(value, "type"sv, SWAGGER_HASH_TYPE, base,
+                      "The Security Scheme Object must declare a type")};
   const auto type{openapi_expect_enumeration(
       declared, base, "type"sv, SWAGGER_SCHEME_TYPES,
       "The Security Scheme Object type must be a string",
@@ -217,8 +217,7 @@ inline auto swagger_collect_security_schemes(const JSON &document,
     // `"oauth2"`, then the value is a list of scope names required for the
     // execution. For other security scheme types, the array MUST be empty"
     const auto *type{entry.second.try_at("type"sv, SWAGGER_HASH_TYPE)};
-    if (type != nullptr && type->is_string() &&
-        type->to_string() != "oauth2") {
+    if (type != nullptr && type->is_string() && type->to_string() != "oauth2") {
       walk.security_schemes_without_scopes.insert(entry.first, entry.hash);
     }
   }

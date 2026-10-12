@@ -52,11 +52,10 @@ inline auto swagger_check_header(const JSON &value, const Pointer &base,
 
   // A header is sent once with its value, so it separates rather than repeats,
   // and the format that stands for repeating is not one it admits
-  swagger_check_typed_value(value, base, SWAGGER_SIMPLE_TYPES,
-                            SWAGGER_COLLECTION_FORMATS,
-                            "The Header Object type must be a string",
-                            "The Header Object type must name a simple type",
-                            walk);
+  swagger_check_typed_value(
+      value, base, SWAGGER_SIMPLE_TYPES, SWAGGER_COLLECTION_FORMATS,
+      "The Header Object type must be a string",
+      "The Header Object type must name a simple type", walk);
 }
 
 // Swagger 2.0, Headers Object: "Lists the headers that can be sent as part of
@@ -99,9 +98,9 @@ inline auto swagger_check_response(const JSON &value, const Pointer &base,
 
   // Response Object: "description | string | **Required.** A short description
   // of the response"
-  const auto &description{openapi_require(
-      value, "description"sv, OPENAPI_HASH_DESCRIPTION, base,
-      "The Response Object must declare a description")};
+  const auto &description{
+      openapi_require(value, "description"sv, OPENAPI_HASH_DESCRIPTION, base,
+                      "The Response Object must declare a description")};
   openapi_expect_string(description, base, "description"sv,
                         "The Response Object description must be a string");
 

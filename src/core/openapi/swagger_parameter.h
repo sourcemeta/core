@@ -8,8 +8,8 @@
 #include "swagger_items.h"
 
 #include <array>       // std::array
-#include <utility>     // std::pair
 #include <string_view> // std::string_view
+#include <utility>     // std::pair
 
 namespace sourcemeta::core {
 
@@ -18,11 +18,29 @@ namespace sourcemeta::core {
 constexpr auto SWAGGER_HASH_PARAMETERS{JSON::Object::hash("parameters"sv)};
 
 constexpr std::array<JSON::StringView, 23> SWAGGER_PARAMETER_FIELDS{
-    {"name"sv, "in"sv, "description"sv, "required"sv, "schema"sv, "type"sv,
-     "format"sv, "allowEmptyValue"sv, "items"sv, "collectionFormat"sv,
-     "default"sv, "maximum"sv, "exclusiveMaximum"sv, "minimum"sv,
-     "exclusiveMinimum"sv, "maxLength"sv, "minLength"sv, "pattern"sv,
-     "maxItems"sv, "minItems"sv, "uniqueItems"sv, "enum"sv, "multipleOf"sv}};
+    {"name"sv,
+     "in"sv,
+     "description"sv,
+     "required"sv,
+     "schema"sv,
+     "type"sv,
+     "format"sv,
+     "allowEmptyValue"sv,
+     "items"sv,
+     "collectionFormat"sv,
+     "default"sv,
+     "maximum"sv,
+     "exclusiveMaximum"sv,
+     "minimum"sv,
+     "exclusiveMinimum"sv,
+     "maxLength"sv,
+     "minLength"sv,
+     "pattern"sv,
+     "maxItems"sv,
+     "minItems"sv,
+     "uniqueItems"sv,
+     "enum"sv,
+     "multipleOf"sv}};
 
 // Parameter Object: "in | string | **Required.** The location of the
 // parameter. Possible values are "query", "header", "path", "formData" or
@@ -85,10 +103,9 @@ inline auto swagger_check_parameter(const JSON &value, const Pointer &base,
                            "boolean");
   }
 
-  if (where == "path"sv &&
-      (required == nullptr || !required->to_boolean())) {
-    throw OpenAPIError{base,
-                       "A Parameter Object of a path must be declared required"};
+  if (where == "path"sv && (required == nullptr || !required->to_boolean())) {
+    throw OpenAPIError{
+        base, "A Parameter Object of a path must be declared required"};
   }
 
   // Parameter Object, of the field that lets a name be sent without a value:
@@ -111,9 +128,9 @@ inline auto swagger_check_parameter(const JSON &value, const Pointer &base,
   // Parameter Object: "If `in` is "body": schema | Schema Object |
   // **Required.** The schema defining the type used for the body parameter"
   if (where == "body"sv) {
-    const auto &schema{openapi_require(
-        value, "schema"sv, SWAGGER_HASH_SCHEMA, base,
-        "A Parameter Object of a body must declare a schema")};
+    const auto &schema{
+        openapi_require(value, "schema"sv, SWAGGER_HASH_SCHEMA, base,
+                        "A Parameter Object of a body must declare a schema")};
 
     for (const auto &field : SWAGGER_ITEMS_FIELDS) {
       if (value.defines(JSON::String{field})) {
@@ -185,9 +202,9 @@ inline auto swagger_check_parameter_discarding_identity(const JSON &value,
 inline auto swagger_check_parameter_or_reference(const JSON &value,
                                                  const Pointer &base,
                                                  OpenAPIWalk &walk) -> void {
-  openapi_check_or_reference<
-      OpenAPIObjectKind::Parameter,
-      swagger_check_parameter_discarding_identity>(value, base, walk);
+  openapi_check_or_reference<OpenAPIObjectKind::Parameter,
+                             swagger_check_parameter_discarding_identity>(
+      value, base, walk);
 }
 
 // Swagger 2.0, Parameters Definitions Object: "An object to hold parameters to
@@ -203,9 +220,8 @@ inline auto swagger_check_parameters_definitions(const JSON &document,
 
   const Pointer base{"parameters"};
   openapi_record(walk, base, OpenAPIObjectKind::ParametersDefinitions);
-  openapi_expect_object(
-      *definitions, base,
-      "The Parameters Definitions Object must be an object");
+  openapi_expect_object(*definitions, base,
+                        "The Parameters Definitions Object must be an object");
 
   for (const auto &entry : definitions->as_object()) {
     swagger_check_parameter_discarding_identity(

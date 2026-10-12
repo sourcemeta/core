@@ -54,8 +54,7 @@ inline auto swagger_check_definitions(const JSON &document, OpenAPIWalk &walk)
                         "The Definitions Object must be an object");
 
   for (const auto &entry : definitions->as_object()) {
-    openapi_expect_schema(entry.second, openapi_child(base, entry.first),
-                          walk);
+    openapi_expect_schema(entry.second, openapi_child(base, entry.first), walk);
   }
 }
 
@@ -149,9 +148,9 @@ inline auto swagger_check_root(const JSON &document, OpenAPIWalk &walk)
   // introduces the port this allows for
   const auto *host{document.try_at("host"sv, SWAGGER_HASH_HOST)};
   if (host != nullptr) {
-    const auto name{openapi_expect_string(
-        *host, EMPTY_POINTER, "host"sv,
-        "The Swagger Object host must be a string")};
+    const auto name{
+        openapi_expect_string(*host, EMPTY_POINTER, "host"sv,
+                              "The Swagger Object host must be a string")};
     const auto port{name.find(':')};
     const auto authority{name.substr(0, port)};
     const auto valid{
@@ -171,12 +170,11 @@ inline auto swagger_check_root(const JSON &document, OpenAPIWalk &walk)
 
   // "basePath | string | The base path on which the API is served [...] The
   // value MUST start with a leading slash (`/`)"
-  const auto *base_path{
-      document.try_at("basePath"sv, SWAGGER_HASH_BASE_PATH)};
+  const auto *base_path{document.try_at("basePath"sv, SWAGGER_HASH_BASE_PATH)};
   if (base_path != nullptr) {
-    const auto value{openapi_expect_string(
-        *base_path, EMPTY_POINTER, "basePath"sv,
-        "The Swagger Object base path must be a string")};
+    const auto value{
+        openapi_expect_string(*base_path, EMPTY_POINTER, "basePath"sv,
+                              "The Swagger Object base path must be a string")};
     if (!value.starts_with('/')) {
       throw OpenAPIError{Pointer{"basePath"},
                          "The Swagger Object base path must begin with a "
