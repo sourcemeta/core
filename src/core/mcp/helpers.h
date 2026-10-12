@@ -3,6 +3,7 @@
 
 #include <sourcemeta/core/json.h>
 
+#include <algorithm>   // std::all_of
 #include <string_view> // std::string_view, std::string_view_literals
 
 namespace sourcemeta::core {
@@ -274,6 +275,42 @@ inline constexpr auto MCP_HASH_TRACESTATE{
     sourcemeta::core::JSON::Object::hash("tracestate"sv)};
 inline constexpr auto MCP_HASH_VALUES{
     sourcemeta::core::JSON::Object::hash("values"sv)};
+
+// A value travels literally when "every byte is printable ASCII, it neither
+// begins nor ends with a space", which is narrower than what a field value may
+// carry, since this is a rule the MCP specification states for itself
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#value-encoding
+inline auto mcp_is_plain_header_value(const JSON::StringView value) noexcept
+    -> bool {
+  if (!value.empty() && (value.front() == ' ' || value.back() == ' ')) {
+    return false;
+  }
+
+  return std::all_of(value.begin(), value.end(), [](const char character) {
+    const auto byte{static_cast<unsigned char>(character)};
+    return byte >= 0x20 && byte < 0x7f;
+  });
+}
+
+inline constexpr auto MCP_HEADER_SENTINEL_PREFIX{"=?base64?"sv};
+inline constexpr auto MCP_HEADER_SENTINEL_SUFFIX{"?="sv};
+
+// The shortest encoded form is the two markers around one base64 quantum
+inline auto mcp_is_encoded_header_value(const JSON::StringView value) noexcept
+    -> bool {
+  return value.starts_with(MCP_HEADER_SENTINEL_PREFIX) &&
+         value.ends_with(MCP_HEADER_SENTINEL_SUFFIX) &&
+         value.size() >= MCP_HEADER_SENTINEL_PREFIX.size() +
+                             MCP_HEADER_SENTINEL_SUFFIX.size();
+}
+
+// What the two markers enclose, which is the base64 the encoded form carries
+inline auto mcp_header_sentinel_body(const JSON::StringView value) noexcept
+    -> JSON::StringView {
+  return value.substr(MCP_HEADER_SENTINEL_PREFIX.size(),
+                      value.size() - MCP_HEADER_SENTINEL_PREFIX.size() -
+                          MCP_HEADER_SENTINEL_SUFFIX.size());
+}
 
 } // namespace sourcemeta::core
 

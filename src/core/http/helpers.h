@@ -21,18 +21,6 @@ inline auto http_subview(const std::string_view value, const std::size_t offset,
   return std::string_view{value.data() + offset, length};
 }
 
-// Every identifier in a trace context field is spelled as lowercase
-// hexadecimal, two characters to the byte
-// https://www.w3.org/TR/trace-context/#version-format
-inline auto http_write_hex(const std::span<const std::uint8_t> bytes,
-                           const std::span<char> target) noexcept -> void {
-  assert(target.size() == bytes.size() * 2);
-  for (std::size_t index{0}; index < bytes.size(); ++index) {
-    target[index * 2] = "0123456789abcdef"[bytes[index] >> 4];
-    target[(index * 2) + 1] = "0123456789abcdef"[bytes[index] & 0x0F];
-  }
-}
-
 // RFC 9110 §8.3.1: "media-type = type "/" subtype parameters", where both
 // "type = token" and "subtype = token", which rules out the comments and
 // folding whitespace that the MIME grammar of RFC 2045 §5.1 admits

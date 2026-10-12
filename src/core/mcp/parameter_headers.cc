@@ -7,10 +7,9 @@
 #include <sourcemeta/core/text.h>
 #include <sourcemeta/core/unicode.h>
 
-#include <algorithm> // std::all_of
-#include <set>       // std::set
-#include <string>    // std::string, std::to_string
-#include <vector>    // std::vector
+#include <set>    // std::set
+#include <string> // std::string, std::to_string
+#include <vector> // std::vector
 
 namespace {
 using sourcemeta::core::JSON;
@@ -82,23 +81,21 @@ auto parameter_text(const JSON &value) -> std::string {
 
 auto decode(const JSON::StringView value, std::string &storage)
     -> std::optional<JSON::StringView> {
-  if ((!value.empty() && (value.front() == ' ' || value.back() == ' ')) ||
-      !std::all_of(value.begin(), value.end(), [](const char character) {
-        const auto byte{static_cast<unsigned char>(character)};
-        return byte >= 0x20 && byte < 0x7f;
-      })) {
+  if (!sourcemeta::core::mcp_is_plain_header_value(value)) {
     return std::nullopt;
   }
-  if (value.starts_with("=?base64?") && value.ends_with("?=") &&
-      value.size() >= 11) {
-    auto decoded{
-        sourcemeta::core::base64_decode(value.substr(9, value.size() - 11))};
+
+  if (sourcemeta::core::mcp_is_encoded_header_value(value)) {
+    auto decoded{sourcemeta::core::base64_decode(
+        sourcemeta::core::mcp_header_sentinel_body(value))};
     if (!decoded || !sourcemeta::core::is_valid_utf8(*decoded)) {
       return std::nullopt;
     }
+
     storage = std::move(*decoded);
     return JSON::StringView{storage};
   }
+
   return value;
 }
 } // namespace

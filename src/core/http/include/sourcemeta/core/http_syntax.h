@@ -40,6 +40,31 @@ inline auto http_is_ows(const char character) noexcept -> bool {
 /// assert(sourcemeta::core::http_is_tchar('a'));
 /// assert(!sourcemeta::core::http_is_tchar('"'));
 /// ```
+/// @ingroup http
+/// Whether the character is one a field value may carry. RFC 9110 Section 5.5
+/// admits the visible characters and obsolete text, along with the spaces and
+/// horizontal tabs between them, and nothing else:
+/// "field-vchar    = VCHAR / obs-text"
+/// Every other control character is excluded, and a recipient of one of those
+/// "MUST either reject the message or replace each of those characters with SP
+/// before further processing". For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/http.h>
+/// #include <cassert>
+///
+/// assert(sourcemeta::core::http_is_field_octet('a'));
+/// assert(sourcemeta::core::http_is_field_octet(' '));
+/// assert(sourcemeta::core::http_is_field_octet('\t'));
+/// assert(!sourcemeta::core::http_is_field_octet('\n'));
+/// ```
+///
+/// @see https://www.rfc-editor.org/rfc/rfc9110#section-5.5
+inline auto http_is_field_octet(const char character) noexcept -> bool {
+  const auto byte{static_cast<unsigned char>(character)};
+  return byte == 0x09 || (byte >= 0x20 && byte != 0x7F);
+}
+
 inline auto http_is_tchar(const char character) noexcept -> bool {
   switch (character) {
     case '!':

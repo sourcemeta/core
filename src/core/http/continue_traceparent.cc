@@ -1,4 +1,5 @@
 #include <sourcemeta/core/http.h>
+#include <sourcemeta/core/text.h>
 
 #include <algorithm>   // std::ranges::copy
 #include <array>       // std::array
@@ -8,7 +9,6 @@
 #include <string_view> // std::string_view
 
 #include "entropy.h"
-#include "helpers.h"
 
 namespace sourcemeta::core {
 
@@ -42,7 +42,7 @@ auto http_continue_traceparent(const std::string_view value, const bool sampled)
   // that arrived: "The parent-id field MUST be set to a new value with the
   // sampled flag update"
   // https://www.w3.org/TR/trace-context/#mutating-the-traceparent-field
-  http_write_hex(parent, std::span{result}.subspan(36, 16));
+  bytes_to_hex(parent, std::span{result}.subspan(36, 16));
   result[52] = '-';
   result[53] = '0';
   result[54] = sampled ? '1' : '0';

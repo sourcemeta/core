@@ -5,22 +5,6 @@
 #include <cstddef>     // std::size_t
 #include <string_view> // std::string_view
 
-namespace {
-
-// A field value carries visible characters, the spaces and horizontal tabs
-// that sit between them, and the bytes above the US-ASCII range, of which
-// "A recipient SHOULD treat other allowed octets in field content (i.e.,
-// obs-text) as opaque data". Every other control character cannot appear in
-// one at all:
-// "field-vchar    = VCHAR / obs-text"
-// https://www.rfc-editor.org/rfc/rfc9110#section-5.5
-auto is_field_octet(const char character) noexcept -> bool {
-  const auto byte{static_cast<unsigned char>(character)};
-  return byte == 0x09 || (byte >= 0x20 && byte != 0x7F);
-}
-
-} // namespace
-
 namespace sourcemeta::core {
 
 auto http_is_traceparent(const std::string_view value) noexcept -> bool {
@@ -72,7 +56,7 @@ auto http_is_traceparent(const std::string_view value) noexcept -> bool {
   // which refusing the value is the first
   // https://www.rfc-editor.org/rfc/rfc9110#section-5.5
   const auto appended{value.substr(55)};
-  if (!std::all_of(appended.begin(), appended.end(), is_field_octet)) {
+  if (!std::all_of(appended.begin(), appended.end(), http_is_field_octet)) {
     return false;
   }
 
