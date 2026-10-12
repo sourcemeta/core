@@ -54,6 +54,7 @@ struct HTTPTraceParent {
 /// assert(sourcemeta::core::http_traceparent_sampled(0x05));
 /// ```
 ///
+/// @see https://www.w3.org/TR/trace-context/#trace-flags
 /// @see https://www.w3.org/TR/trace-context/#sampled-flag
 constexpr auto http_traceparent_sampled(const std::uint8_t flags) noexcept
     -> bool {
@@ -61,16 +62,18 @@ constexpr auto http_traceparent_sampled(const std::uint8_t flags) noexcept
 }
 
 /// @ingroup http
-/// Whether the input is a well-formed traceparent field value (RFC 5234 ABNF
-/// in W3C Trace Context Section 3.2.2).
+/// Whether the input is a well-formed traceparent field value. The grammar in
+/// W3C Trace Context Section 3.2.2 is written for version `00`, and a higher
+/// version is admitted under the rules for reading one in Section 3.2.4.
 ///
 /// Version `00` is exactly 55 characters and admits nothing further. A later
 /// version may append, since a reader is told to "check that the 2 characters
 /// are either the end of the string or a dash", so a longer value must carry a
-/// dash where the flags end. What follows it is left uninterpreted but must
-/// still be a field value, so a control character is refused there as
-/// anywhere. Version `ff` is forbidden, and an identifier of all zeroes is
-/// "considered an invalid value". For example:
+/// dash where the flags end. Whatever follows that dash is left alone, because
+/// "Vendors MUST NOT parse or assume anything about unknown fields for this
+/// version", and refusing a value over those bytes would discard a trace the
+/// same section says to keep. Version `ff` is invalid, and an identifier of
+/// all zeroes is "considered an invalid value". For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/http.h>
@@ -117,13 +120,17 @@ auto http_parse_traceparent(const std::string_view value) noexcept
 /// The grammar is permissive in ways that surprise: at most 32 members, and
 /// "Empty and whitespace-only list members are allowed. Vendors MUST accept
 /// empty tracestate headers". Since "Spaces and horizontal tabs surrounding
-/// list-members are ignored", a member padded on either side is well formed
-/// and so is one made only of padding. A member's value, in contrast, cannot
-/// be empty. Note that baggage differs on every one of those points.
+/// list-members are ignored", a member padded on either side is accepted and
+/// so is one made only of padding. Padding at the two outer ends of the whole
+/// value is a little more than the list production writes down, and is
+/// accepted on that same sentence. A member's value, in contrast, cannot be
+/// empty. Note that baggage differs on every one of those points.
 ///
-/// This rejects a repeated key, which the grammar alone does not forbid,
-/// on the rule that "Only one entry per key is allowed because the entry
-/// represents that last position in the trace". For example:
+/// This rejects a repeated key, which the grammar alone does not forbid, on
+/// the rule that "Only one entry per key is allowed because the entry
+/// represents that last position in the trace". A reader is offered the
+/// alternative of dropping just the repeated entry, but only in a section
+/// marked non-normative. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/http.h>

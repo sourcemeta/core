@@ -13,25 +13,27 @@ TEST(not_sampled) {
       "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-00"));
 }
 
-// Every flag bit beyond the lowest is reserved and a reader is told to mask
-// rather than compare, so no value of the byte is refused
+// "The behavior of other flags, such as (00000100) is not defined and is
+// reserved for future use", and a reader is told to mask rather than compare,
+// so no value of the byte is refused
+// https://www.w3.org/TR/trace-context/#other-flags
 // https://www.w3.org/TR/trace-context/#trace-flags
 TEST(any_flag_byte_is_accepted) {
   EXPECT_TRUE(sourcemeta::core::http_is_traceparent(
       "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-ff"));
 }
 
-// Version ff is excluded by the grammar's own comment on the production
+// "Version ff is invalid"
 // https://www.w3.org/TR/trace-context/#version
 TEST(version_ff_is_rejected) {
   EXPECT_FALSE(sourcemeta::core::http_is_traceparent(
       "ff-12345678901234567890123456789012-1234567890123456-00"));
 }
 
-// A value of exactly 55 characters is well formed whatever its version, since
-// the flags may be followed by "either the end of the string or a dash". These
-// three versions come from the upstream corpus, whose permissive base parser
-// accepts each of them, at vendor/w3c-trace-context/test/tracecontext
+// A version above the lowest is accepted, and at exactly 55 characters the
+// flags end the value, which satisfies "either the end of the string or a
+// dash". These three versions come from the upstream corpus, whose permissive
+// base parser accepts each of them
 // https://www.w3.org/TR/trace-context/#versioning-of-traceparent
 TEST(version_01_of_exactly_fifty_five_characters) {
   EXPECT_TRUE(sourcemeta::core::http_is_traceparent(
@@ -85,10 +87,10 @@ TEST(an_identifier_of_one_non_zero_digit_is_accepted) {
       "00-00000000000000000000000000000001-0000000000000001-00"));
 }
 
-// The grammar admits only lowercase hexadecimal, and a reader "MUST ignore the
-// traceparent when the parent-id is invalid (for example, if it contains
-// non-lowercase hex characters)"
-// https://www.w3.org/TR/trace-context/#parent-id
+// The grammar admits only lowercase hexadecimal, and "If the trace-id value is
+// invalid (for example if it contains non-allowed characters or all zeros),
+// vendors MUST ignore the traceparent"
+// https://www.w3.org/TR/trace-context/#trace-id
 TEST(uppercase_hexadecimal_is_rejected) {
   EXPECT_FALSE(sourcemeta::core::http_is_traceparent(
       "00-4BF92F3577B34DA6A3CE929D0E0E4736-00f067aa0ba902b7-01"));
@@ -154,34 +156,48 @@ TEST(a_missing_dash_is_rejected) {
       "0004bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"));
 }
 
-// What a later version appends is left uninterpreted but is still part of a
-// field value, and "The value is US-ASCII encoded (which is UTF-8
-// compliant)", so a control character or a byte above the range is refused
-// there as it would be anywhere else
-// https://www.w3.org/TR/trace-context/#version
-TEST(an_appended_carriage_return_is_rejected) {
-  EXPECT_FALSE(sourcemeta::core::http_is_traceparent(
-      "01-12345678901234567890123456789012-1234567890123456-00-\r\nFoo: 1"));
-}
-
-TEST(an_appended_null_byte_is_rejected) {
-  const std::string value{
-      std::string{"01-12345678901234567890123456789012-1234567890123456-00-"} +
-      '\0' + "x"};
-  EXPECT_FALSE(sourcemeta::core::http_is_traceparent(value));
-}
-
-TEST(an_appended_high_byte_is_rejected) {
-  EXPECT_FALSE(sourcemeta::core::http_is_traceparent(
-      "01-12345678901234567890123456789012-1234567890123456-00-\xc3\xa9"));
-}
-
-TEST(an_appended_space_is_rejected) {
-  EXPECT_FALSE(sourcemeta::core::http_is_traceparent(
-      "01-12345678901234567890123456789012-1234567890123456-00-a b"));
-}
-
+// What a later version appends is left alone, since the rules for reading one
+// enumerate three checks and no more and "Vendors MUST NOT parse or assume
+// anything about unknown fields for this version", so refusing a value over
+// those bytes would discard a trace the same section says to keep
+// https://www.w3.org/TR/trace-context/#versioning-of-traceparent
 TEST(an_appended_visible_field_is_accepted) {
   EXPECT_TRUE(sourcemeta::core::http_is_traceparent(
       "01-12345678901234567890123456789012-1234567890123456-00-cafe01"));
+}
+
+TEST(an_appended_space_is_accepted) {
+  EXPECT_TRUE(sourcemeta::core::http_is_traceparent(
+      "01-12345678901234567890123456789012-1234567890123456-00-a b"));
+}
+
+TEST(an_appended_control_character_is_accepted) {
+  EXPECT_TRUE(sourcemeta::core::http_is_traceparent(
+      "01-12345678901234567890123456789012-1234567890123456-00-a\nb"));
+}
+
+TEST(an_appended_byte_above_ascii_is_accepted) {
+  EXPECT_TRUE(sourcemeta::core::http_is_traceparent(
+      "01-12345678901234567890123456789012-1234567890123456-00-\xc3\xa9"));
+}
+
+TEST(a_bare_dash_after_the_flags_is_accepted) {
+  EXPECT_TRUE(sourcemeta::core::http_is_traceparent(
+      "01-12345678901234567890123456789012-1234567890123456-00-"));
+}
+
+// The version prefix is held to the same lowercase hexadecimal as every other
+// field, so an uppercase one fails to parse
+// https://www.w3.org/TR/trace-context/#version
+TEST(an_uppercase_version_is_rejected) {
+  EXPECT_FALSE(sourcemeta::core::http_is_traceparent(
+      "CC-12345678901234567890123456789012-1234567890123456-00"));
+}
+
+// "If the size of the header is shorter than 55 characters, the vendor should
+// not parse the header and should restart the trace"
+// https://www.w3.org/TR/trace-context/#versioning-of-traceparent
+TEST(a_value_one_character_short_is_rejected) {
+  EXPECT_FALSE(sourcemeta::core::http_is_traceparent(
+      "01-12345678901234567890123456789012-1234567890123456-0"));
 }

@@ -4,7 +4,7 @@
 // "As this is a bit field, you cannot interpret flags by decoding the hex
 // value and looking at the resulting number", so the one defined bit is masked
 // out rather than compared against the byte
-// https://www.w3.org/TR/trace-context/#sampled-flag
+// https://www.w3.org/TR/trace-context/#trace-flags
 TEST(the_sampled_bit_alone_is_set) {
   EXPECT_TRUE(sourcemeta::core::http_traceparent_sampled(0x01));
 }

@@ -17,9 +17,11 @@ TEST(the_example_from_the_specification) {
   EXPECT_EQ(members.at(1).second, "t61rcWkgMzE");
 }
 
-// The leftmost member is the most recent position in the trace, so order is
-// reported as it arrives
-// https://www.w3.org/TR/trace-context/#combined-header-value
+// Order is reported as it arrives, which is what a reader can rely on. A
+// writer is told that "The new key/value pair SHOULD be added to the beginning
+// of the list", so the leftmost member is usually the most recent, but that is
+// a recommendation to a producer rather than a guarantee to a consumer
+// https://www.w3.org/TR/trace-context/#mutating-the-tracestate-field
 TEST(order_is_preserved) {
   std::vector<std::pair<std::string_view, std::string_view>> members;
   EXPECT_TRUE(sourcemeta::core::http_parse_tracestate("a=1,b=2,c=3", members));
@@ -41,7 +43,7 @@ TEST(empty_members_are_skipped) {
   EXPECT_EQ(members.at(1).first, "congo");
 }
 
-TEST(an_empty_value_yields_no_members) {
+TEST(an_empty_field_value_yields_no_members) {
   std::vector<std::pair<std::string_view, std::string_view>> members;
   EXPECT_TRUE(sourcemeta::core::http_parse_tracestate("", members));
   EXPECT_TRUE(members.empty());

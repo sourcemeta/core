@@ -1,35 +1,37 @@
 #include <sourcemeta/core/http.h>
 #include <sourcemeta/core/text.h>
 
-#include <algorithm>   // std::all_of
 #include <cstddef>     // std::size_t
 #include <string_view> // std::string_view
-
-namespace {
-
-// "The value is US-ASCII encoded (which is UTF-8 compliant)", which rules out
-// a byte above the range, and a field value carries no control character
-// https://www.w3.org/TR/trace-context/#version
-auto is_visible(const char character) noexcept -> bool {
-  return character >= 0x21 && character <= 0x7E;
-}
-
-} // namespace
 
 namespace sourcemeta::core {
 
 auto http_is_traceparent(const std::string_view value) noexcept -> bool {
   // The size test comes first so that the indexing below stays in range, as a
   // view offers no character past its end, and the dashes sit where the four
-  // fields of version 00 meet. A value carrying fields of a later version must
-  // put one where the flags end: "Vendors MUST check that the 2 characters are
-  // either the end of the string or a dash". Version ff is excluded by its own
-  // comment in the grammar, and version 00 admits nothing beyond the flags
+  // fields meet: "If the size of the header is shorter than 55 characters, the
+  // vendor should not parse the header and should restart the trace". A value
+  // carrying fields of a later version must put a dash where the flags end:
+  // "Vendors MUST check that the 2 characters are either the end of the string
+  // or a dash". The lowest version is the whole value, so it admits nothing
+  // beyond the flags
   // https://www.w3.org/TR/trace-context/#versioning-of-traceparent
+  //
+  // What a later version appends past that dash is left alone, since the rules
+  // for reading one enumerate three checks and no more, and "Vendors MUST NOT
+  // parse or assume anything about unknown fields for this version". Refusing
+  // a value on the strength of those bytes would discard a trace the same
+  // section says to keep: "If all three values were parsed successfully, the
+  // vendor should use them"
   if (value.size() < 55 || value[2] != '-' || value[35] != '-' ||
-      value[52] != '-' || value.starts_with("ff") ||
-      (value.starts_with("00") && value.size() != 55) ||
+      value[52] != '-' || (value.starts_with("00") && value.size() != 55) ||
       (value.size() > 55 && value[55] != '-')) {
+    return false;
+  }
+
+  // "Version ff is invalid"
+  // https://www.w3.org/TR/trace-context/#version
+  if (value.starts_with("ff")) {
     return false;
   }
 
@@ -45,22 +47,11 @@ auto http_is_traceparent(const std::string_view value) noexcept -> bool {
     }
   }
 
-  // What a later version appends is left uninterpreted, since a reader "MUST
-  // NOT parse or assume anything about unknown fields for this version", but
-  // being unread is not the same as being unchecked: it still has to be a
-  // field value. That keeps a carriage return or a line feed out of what this
-  // accepts, which matters because a reader of one "MUST send it to outgoing
-  // requests", so whatever passes here is what gets forwarded
-  // https://www.w3.org/TR/trace-context/#versioning-of-traceparent
-  // https://www.w3.org/TR/trace-context/#mutating-the-traceparent-field
-  const auto appended{value.substr(55)};
-  if (!std::all_of(appended.begin(), appended.end(), is_visible)) {
-    return false;
-  }
-
-  // "All bytes as zero (00000000000000000000000000000000) is considered an
-  // invalid value", and the same for the eight byte identifier
+  // "If the trace-id value is invalid (for example if it contains non-allowed
+  // characters or all zeros), vendors MUST ignore the traceparent", and the
+  // same holds of the eight byte identifier
   // https://www.w3.org/TR/trace-context/#trace-id
+  // https://www.w3.org/TR/trace-context/#parent-id
   return value.substr(3, 32).find_first_not_of('0') != std::string_view::npos &&
          value.substr(36, 16).find_first_not_of('0') != std::string_view::npos;
 }

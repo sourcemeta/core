@@ -13,18 +13,19 @@ namespace {
 // them: only a tenant admits a leading digit, where the other two require a
 // lowercase letter
 // https://www.w3.org/TR/trace-context/#key
-auto key_part(const std::string_view value, const bool tenant,
+auto key_part(const std::string_view identifier, const bool tenant,
               const std::size_t maximum) noexcept -> bool {
-  if (value.empty() || value.size() > maximum ||
-      !((value.front() >= 'a' && value.front() <= 'z') ||
-        (tenant && sourcemeta::core::is_digit(value.front())))) {
+  if (identifier.empty() || identifier.size() > maximum ||
+      !((identifier.front() >= 'a' && identifier.front() <= 'z') ||
+        (tenant && sourcemeta::core::is_digit(identifier.front())))) {
     return false;
   }
-  return std::all_of(value.begin(), value.end(), [](const char character) {
-    return (character >= 'a' && character <= 'z') ||
-           sourcemeta::core::is_digit(character) || character == '_' ||
-           character == '-' || character == '*' || character == '/';
-  });
+  return std::all_of(
+      identifier.begin() + 1, identifier.end(), [](const char character) {
+        return (character >= 'a' && character <= 'z') ||
+               sourcemeta::core::is_digit(character) || character == '_' ||
+               character == '-' || character == '*' || character == '/';
+      });
 }
 
 // "There can be a maximum of 32 list-members in a list", which bounds both the
@@ -53,16 +54,26 @@ auto http_is_tracestate(const std::string_view value) noexcept -> bool {
 
     // "Spaces and horizontal tabs surrounding list-members are ignored", so
     // they are stripped from every member wherever it sits, and what is left
-    // of one made of nothing else is the empty member the next rule allows
+    // of one made of nothing else is the empty member the next rule allows.
+    // The list production brackets only its inner boundaries, so stripping at
+    // the two outer ends accepts a little more than the grammar writes down.
+    // That is deliberate and costs nothing: whitespace there is excluded from
+    // a field value before it ever reaches a reader, and stripping can never
+    // turn one well-formed member into another, since a key cannot begin with
+    // a space or a tab and a value cannot end with one
     // https://www.w3.org/TR/trace-context/#tracestate-header-field-values
+    // https://www.w3.org/TR/trace-context/#list
+    // https://www.rfc-editor.org/rfc/rfc7230#section-3.2.4
     const auto entry{trim(rest.substr(0, comma), http_is_ows)};
 
     // "Empty and whitespace-only list members are allowed. Vendors MUST accept
     // empty tracestate headers but SHOULD avoid sending them", which is there
     // because "some vendors automatically inject whitespace after a comma
-    // separator, even in the case of an empty header". Baggage forbids an
-    // empty member, so a reader coming from that parser should not expect this
+    // separator, even in the case of an empty header". Baggage has no such
+    // alternative in its own member production, so a reader coming from that
+    // parser should not expect this
     // https://www.w3.org/TR/trace-context/#tracestate-header-field-values
+    // https://www.w3.org/TR/baggage/#definition
     if (!entry.empty()) {
       const auto equal{entry.find('=')};
       if (equal == std::string_view::npos) {
@@ -85,12 +96,19 @@ auto http_is_tracestate(const std::string_view value) noexcept -> bool {
       }
 
       // "Only one entry per key is allowed because the entry represents that
-      // last position in the trace", which the grammar cannot say and which
-      // this rejects rather than resolves, leaving to a caller the choice the
-      // sentence implies for a producer: "vendors must overwrite their entry
-      // upon reentry to their tracing system". Baggage is the opposite again,
-      // where a repeated key is legal and its order carries meaning
+      // last position in the trace", which the grammar itself cannot say. The
+      // obligation that follows it is addressed to a producer and is not in
+      // capitals, so it is not a requirement in the sense this document
+      // reserves for those: "vendors must overwrite their entry upon reentry
+      // to their tracing system". A reader is offered the alternative of
+      // dropping the repeated entry instead of the whole value, which this
+      // declines so that a caller is told rather than quietly corrected, and
+      // which is only offered in a section marked non-normative. Baggage is
+      // the opposite, where "Uniqueness of keys between multiple list-members
+      // in a baggage-string is not guaranteed"
       // https://www.w3.org/TR/trace-context/#combined-header-value
+      // https://www.w3.org/TR/trace-context/#a-traceparent-is-received
+      // https://www.w3.org/TR/baggage/#baggage-string
       if (std::find(keys.begin(), keys.begin() + seen, key) !=
           keys.begin() + seen) {
         return false;
@@ -98,11 +116,14 @@ auto http_is_tracestate(const std::string_view value) noexcept -> bool {
       keys[seen] = key;
       ++seen;
 
-      // A value is at most 256 characters and ends in a mandatory non-blank
-      // one, which stripping the surrounding whitespace has already settled,
-      // and it excludes the comma at %x2C and the equals at %x3D that the two
-      // ranges of nblk-chr leave out. Baggage permits an empty value
+      // "The value is an opaque string containing up to 256 printable ASCII
+      // [RFC0020] characters (i.e., the range 0x20 to 0x7E) except comma (,)
+      // and (=)", and it ends in a mandatory non-blank character, which
+      // stripping the surrounding whitespace has already settled. Baggage
+      // instead counts zero or more of its own octets, so it permits an empty
+      // value
       // https://www.w3.org/TR/trace-context/#value
+      // https://www.w3.org/TR/baggage/#definition
       if (content.empty() || content.size() > 256 ||
           !std::all_of(content.begin(), content.end(),
                        [](const char character) {
