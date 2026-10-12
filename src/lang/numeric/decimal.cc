@@ -847,21 +847,22 @@ Decimal::Decimal(Decimal &&other) noexcept
 auto Decimal::operator=(const Decimal &other) -> Decimal & {
   if (this != &other) {
     if ((other.flags_ & FLAG_HEAP) != 0) {
-      // Copy the heap coefficient before releasing the current one, so that a
-      // failed allocation leaves this value intact rather than owning storage
-      // shared with the source, which would then be released twice. Taking the
-      // copy over needs room of its own, and the flag that says the coefficient
-      // is a pointer worth releasing is raised only once there is a pointer
-      // there to release, so running out of that room leaves nothing behind
-      // pointing at storage already handed in
-      auto cloned{load_big_pointer(other.coefficient_)->clone()};
+      // Copy the heap coefficient, and take over somewhere to point at it
+      // from, before releasing the current one, so that a failed allocation
+      // along the way leaves this value intact rather than owning storage
+      // shared with the source, which would then be released twice. Carrying
+      // the flags over is what hands the copy what it points at, and what is
+      // left to do once it holds it cannot fail
+      StagedResult staged;
+      store_big_pointer(staged.coefficient,
+                        load_big_pointer(other.coefficient_)->clone());
+      staged.flags = other.flags_;
       free_big_coefficient(this->coefficient_, this->flags_);
-      this->coefficient_ = 0;
+      this->coefficient_ = staged.coefficient;
       this->coefficient_high_ = other.coefficient_high_;
       this->exponent_ = other.exponent_;
-      this->flags_ = static_cast<std::uint8_t>(other.flags_ & ~FLAG_HEAP);
-      store_big_pointer(this->coefficient_, std::move(cloned));
-      this->flags_ = other.flags_;
+      this->flags_ = staged.flags;
+      staged.release();
     } else {
       free_big_coefficient(this->coefficient_, this->flags_);
       this->coefficient_ = other.coefficient_;
