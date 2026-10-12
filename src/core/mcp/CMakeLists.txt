@@ -9,6 +9,7 @@ target_link_libraries(sourcemeta_core_mcp PRIVATE sourcemeta::core::crypto)
 target_link_libraries(sourcemeta_core_mcp PRIVATE sourcemeta::core::unicode)
 target_link_libraries(sourcemeta_core_mcp PRIVATE sourcemeta::core::text)
 target_link_libraries(sourcemeta_core_mcp PRIVATE sourcemeta::core::uri)
+target_link_libraries(sourcemeta_core_mcp PRIVATE sourcemeta::core::time)
 
 if(SOURCEMETA_CORE_INSTALL)
   sourcemeta_library_install(NAMESPACE sourcemeta PROJECT core NAME mcp)

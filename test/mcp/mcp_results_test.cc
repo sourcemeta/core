@@ -6717,6 +6717,130 @@ TEST(resources_list_result_rejects_a_malformed_key_entry_metadata) {
                      "Invalid MCP resource descriptor entry");
 }
 
+// Four string fields name an external format in prose rather than in capitals,
+// and a value this module builds is held to that format anyway, since the
+// recommendation is addressed to whoever writes the value
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/index#general-fields
+TEST(resources_list_result_rejects_a_relative_uri) {
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_resources_list_result(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+          sourcemeta::core::parse_json(
+              R"JSON([ { "name": "r", "uri": "not a uri" } ])JSON"),
+          std::nullopt, {}),
+      "Invalid MCP resource descriptor entry");
+}
+
+TEST(resources_list_result_accepts_an_absolute_uri) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_resources_list_result(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::parse_json(
+                    R"JSON([ { "name": "r", "uri": "file:///r" } ])JSON"),
+                std::nullopt, {}),
+            sourcemeta::core::parse_json(R"JSON({
+    "resultType": "complete",
+    "resources": [ { "name": "r", "uri": "file:///r" } ],
+    "ttlMs": 0,
+    "cacheScope": "private"
+  })JSON"));
+}
+
+TEST(resources_list_result_rejects_a_malformed_media_type) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_resources_list_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         sourcemeta::core::parse_json(
+                             R"JSON([ { "name": "r", "uri": "file:///r",
+                         "mimeType": "not a media type" } ])JSON"),
+                         std::nullopt, {}),
+                     "Invalid MCP resource descriptor entry");
+}
+
+TEST(resources_list_result_rejects_a_malformed_last_modified) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_resources_list_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         sourcemeta::core::parse_json(
+                             R"JSON([ { "name": "r", "uri": "file:///r",
+                         "annotations": { "lastModified": "yesterday" } } ])JSON"),
+                         std::nullopt, {}),
+                     "Invalid MCP resource descriptor entry");
+}
+
+// The example the specification gives is written in the profile of ISO 8601
+// that RFC 3339 defines, which is what this accepts
+TEST(resources_list_result_accepts_the_documented_timestamp) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_resources_list_result(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::parse_json(R"JSON([
+                  {
+                    "name": "r",
+                    "uri": "file:///r",
+                    "annotations": { "lastModified": "2025-01-12T15:00:58Z" }
+                  }
+                ])JSON"),
+                std::nullopt, {}),
+            sourcemeta::core::parse_json(R"JSON({
+    "resultType": "complete",
+    "resources": [
+      {
+        "name": "r",
+        "uri": "file:///r",
+        "annotations": { "lastModified": "2025-01-12T15:00:58Z" }
+      }
+    ],
+    "ttlMs": 0,
+    "cacheScope": "private"
+  })JSON"));
+}
+
+TEST(resources_list_result_rejects_a_malformed_icon_size) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_resources_list_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         sourcemeta::core::parse_json(
+                             R"JSON([ { "name": "r", "uri": "file:///r",
+                         "icons": [ { "src": "file:///i", "sizes": [ "big" ] } ] } ])JSON"),
+                         std::nullopt, {}),
+                     "Invalid MCP resource descriptor entry");
+}
+
+TEST(resources_list_result_accepts_the_documented_icon_sizes) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_resources_list_result(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::parse_json(R"JSON([
+                  {
+                    "name": "r",
+                    "uri": "file:///r",
+                    "icons": [
+                      { "src": "file:///i", "sizes": [ "48x48", "96x96", "any" ] }
+                    ]
+                  }
+                ])JSON"),
+                std::nullopt, {}),
+            sourcemeta::core::parse_json(R"JSON({
+    "resultType": "complete",
+    "resources": [
+      {
+        "name": "r",
+        "uri": "file:///r",
+        "icons": [
+          { "src": "file:///i", "sizes": [ "48x48", "96x96", "any" ] }
+        ]
+      }
+    ],
+    "ttlMs": 0,
+    "cacheScope": "private"
+  })JSON"));
+}
+
+TEST(resources_list_result_rejects_a_relative_icon_source) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_resources_list_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         sourcemeta::core::parse_json(
+                             R"JSON([ { "name": "r", "uri": "file:///r",
+                         "icons": [ { "src": "/icons/i.png" } ] } ])JSON"),
+                         std::nullopt, {}),
+                     "Invalid MCP resource descriptor entry");
+}
+
 TEST(resources_list_result_rejects_a_boolean_traceparent_entry_metadata) {
   EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_resources_list_result(
                          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,

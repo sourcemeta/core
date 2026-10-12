@@ -7,6 +7,7 @@
 
 #include <sourcemeta/core/http.h>
 #include <sourcemeta/core/text.h>
+#include <sourcemeta/core/time.h>
 #include <sourcemeta/core/uri.h>
 
 #include <algorithm>        // std::all_of
@@ -27,8 +28,8 @@ inline auto valid_id(const JSON &identifier) noexcept -> bool {
   return identifier.is_string() || identifier.is_integer();
 }
 
-inline auto valid_implementation(MCPProtocolVersion version, const JSON &value)
-    -> bool;
+inline auto valid_implementation(MCPProtocolVersion version, const JSON &value,
+                                 bool received = false) -> bool;
 inline auto make_implementation(MCPProtocolVersion version,
                                 const MCPImplementation &value) -> JSON;
 inline auto valid_capabilities(MCPProtocolVersion version, const JSON &value,
@@ -80,6 +81,88 @@ optional_fields(const JSON &value,
   });
 }
 
+// The specification describes four string fields by naming an external format
+// and then only recommending it, in prose rather than in capitals. These hold
+// such a field to its format anyway, which is stricter than what is required.
+//
+// What makes the strictness safe is where it applies. A recommendation about a
+// format is addressed to whoever writes the value, so holding a value this
+// module builds to it refuses only what this module would have emitted, which
+// costs no interoperability. A value arriving from a peer is a different
+// matter, and refusing a handshake over the shape of an icon would cost a
+// great deal, so the receive path asks only that such a field be a string.
+//
+// Almost every path reaching these checks builds a value, so the distinction
+// needs carrying in one place only: an implementation descriptor is validated
+// in both directions, and the flag it takes says which direction this is.
+//
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/index#general-fields
+
+// "The moment the resource was last modified, as an ISO 8601 formatted string"
+// with the example "2025-01-12T15:00:58Z". This holds it to RFC 3339, which is
+// the profile of ISO 8601 that example is written in and the one that
+// interoperates, rather than to the wider calendar formats ISO 8601 also
+// admits
+// https://www.rfc-editor.org/rfc/rfc3339
+inline auto timestamp_field(const JSON &value, const JSON::StringView name,
+                            const JSON::Object::hash_type hash) -> bool {
+  const auto *item{value.try_at(name, hash)};
+  return (item == nullptr) ||
+         (item->is_string() &&
+          sourcemeta::core::is_rfc3339_datetime(item->to_string()));
+}
+
+// A media type is the one the HTTP module already parses, since the examples
+// the specification gives are ordinary ones such as "image/svg+xml"
+inline auto media_type_field(const JSON &value, const JSON::StringView name,
+                             const JSON::Object::hash_type hash,
+                             const bool required = false) -> bool {
+  const auto *item{value.try_at(name, hash)};
+  if (item == nullptr) {
+    return !required;
+  }
+
+  return item->is_string() &&
+         sourcemeta::core::http_parse_media_type(item->to_string()).has_value();
+}
+
+// "A standard URI pointing to an icon resource", and for a resource the
+// security considerations turn the same expectation into a requirement:
+// "Servers MUST validate all resource URIs". A resource is addressed by scheme,
+// which is why this asks for a URI rather than a reference to resolve
+// https://modelcontextprotocol.io/specification/2026-07-28/schema#icon
+// https://modelcontextprotocol.io/specification/2026-07-28/server/resources#security-considerations
+inline auto uri_field(const JSON &value, const JSON::StringView name,
+                      const JSON::Object::hash_type hash,
+                      const bool required = false) -> bool {
+  const auto *item{value.try_at(name, hash)};
+  if (item == nullptr) {
+    return !required;
+  }
+
+  return item->is_string() && sourcemeta::core::URI::is_uri(item->to_string());
+}
+
+// "Each string should be in WxH format (e.g., "48x48", "96x96") or "any" for
+// scalable formats like SVG", so each is a pair of decimal counts or the one
+// word that stands for every size
+// https://modelcontextprotocol.io/specification/2026-07-28/schema#icon
+inline auto icon_size(const JSON::StringView value) -> bool {
+  if (value == "any") {
+    return true;
+  }
+
+  const auto separator{value.find('x')};
+  if (separator == JSON::StringView::npos || separator == 0 ||
+      separator + 1 == value.size()) {
+    return false;
+  }
+
+  return std::all_of(value.begin(), value.end(), [](const char character) {
+    return sourcemeta::core::is_digit(character) || character == 'x';
+  });
+}
+
 inline auto strings(const JSON &value) -> bool {
   return value.is_array() &&
          std::all_of(value.as_array().begin(), value.as_array().end(),
@@ -93,8 +176,8 @@ inline auto annotations(const JSON &value) -> bool {
     return true;
   }
   if (!item->is_object() ||
-      !string_field(*item, "lastModified",
-                    sourcemeta::core::MCP_HASH_LAST_MODIFIED)) {
+      !timestamp_field(*item, "lastModified",
+                       sourcemeta::core::MCP_HASH_LAST_MODIFIED)) {
     return false;
   }
   if (const auto *priority{
@@ -120,7 +203,7 @@ inline auto annotations(const JSON &value) -> bool {
   return true;
 }
 
-inline auto icons(const JSON &value) -> bool {
+inline auto icons(const JSON &value, const bool received = false) -> bool {
   const auto *items{field(value, "icons", sourcemeta::core::MCP_HASH_ICONS)};
   if (items == nullptr) {
     return true;
@@ -130,14 +213,27 @@ inline auto icons(const JSON &value) -> bool {
   }
   for (const auto &item : items->as_array()) {
     if (!item.is_object() ||
-        !string_field(item, "src", sourcemeta::core::MCP_HASH_SRC, true) ||
-        !string_field(item, "mimeType", sourcemeta::core::MCP_HASH_MIME_TYPE)) {
+        !(received
+              ? string_field(item, "src", sourcemeta::core::MCP_HASH_SRC, true)
+              : uri_field(item, "src", sourcemeta::core::MCP_HASH_SRC, true)) ||
+        !(received ? string_field(item, "mimeType",
+                                  sourcemeta::core::MCP_HASH_MIME_TYPE)
+                   : media_type_field(item, "mimeType",
+                                      sourcemeta::core::MCP_HASH_MIME_TYPE))) {
       return false;
     }
     if (const auto *sizes{
             field(item, "sizes", sourcemeta::core::MCP_HASH_SIZES)};
-        (sizes != nullptr) && !strings(*sizes)) {
-      return false;
+        sizes != nullptr) {
+      if (!strings(*sizes)) {
+        return false;
+      }
+
+      for (const auto &size : sizes->as_array()) {
+        if (!received && !icon_size(size.to_string())) {
+          return false;
+        }
+      }
     }
     if (const auto *theme{
             field(item, "theme", sourcemeta::core::MCP_HASH_THEME)};
@@ -525,7 +621,8 @@ inline auto valid_metadata_object(const JSON &meta, const bool received)
 }
 
 inline auto valid_implementation(const MCPProtocolVersion version,
-                                 const JSON &value) -> bool {
+                                 const JSON &value, const bool received)
+    -> bool {
   if (!value.is_object() ||
       !validation::string_field(value, "name", sourcemeta::core::MCP_HASH_NAME,
                                 true) ||
@@ -543,7 +640,7 @@ inline auto valid_implementation(const MCPProtocolVersion version,
                                    sourcemeta::core::MCP_HASH_DESCRIPTION) &&
           validation::string_field(value, "websiteUrl",
                                    sourcemeta::core::MCP_HASH_WEBSITE_URL) &&
-          validation::icons(value));
+          validation::icons(value, received));
 }
 
 inline auto make_implementation(const MCPProtocolVersion version,
@@ -785,13 +882,13 @@ inline auto valid_resource(const MCPProtocolVersion version, const JSON &value,
                            const bool contents, const bool is_template)
     -> bool {
   if (!value.is_object() || !valid_meta(version, value) ||
-      !validation::string_field(value, is_template ? "uriTemplate" : "uri",
-                                is_template
-                                    ? sourcemeta::core::MCP_HASH_URI_TEMPLATE
-                                    : sourcemeta::core::MCP_HASH_URI,
-                                true) ||
-      !validation::string_field(value, "mimeType",
-                                sourcemeta::core::MCP_HASH_MIME_TYPE)) {
+      (is_template ? !validation::string_field(
+                         value, "uriTemplate",
+                         sourcemeta::core::MCP_HASH_URI_TEMPLATE, true)
+                   : !validation::uri_field(
+                         value, "uri", sourcemeta::core::MCP_HASH_URI, true)) ||
+      !validation::media_type_field(value, "mimeType",
+                                    sourcemeta::core::MCP_HASH_MIME_TYPE)) {
     return false;
   }
   if (contents) {
@@ -827,8 +924,8 @@ inline auto valid_content(const MCPProtocolVersion version, const JSON &value)
   if (name == "image" || name == "audio") {
     return validation::string_field(value, "data",
                                     sourcemeta::core::MCP_HASH_DATA, true) &&
-           validation::string_field(value, "mimeType",
-                                    sourcemeta::core::MCP_HASH_MIME_TYPE, true);
+           validation::media_type_field(
+               value, "mimeType", sourcemeta::core::MCP_HASH_MIME_TYPE, true);
   }
   if (name == "resource") {
     const auto *resource{validation::field(

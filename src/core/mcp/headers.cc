@@ -176,7 +176,8 @@ auto mcp_validate_request_parameters(const JSON &parameters_value)
       }
       info.website_url = website_url_field->to_string();
     }
-    if (!internal::valid_implementation(resolved.value(), *client_info_field)) {
+    if (!internal::valid_implementation(resolved.value(), *client_info_field,
+                                        true)) {
       return {MCPRequestMetaStatus::InvalidClientInfo, std::nullopt};
     }
 
