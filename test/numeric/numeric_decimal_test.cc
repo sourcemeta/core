@@ -4326,6 +4326,64 @@ TEST(scale_by_huge_scale_throws) {
   }
 }
 
+// The scale is read before the value is, so a scale outside the range it has to
+// fall inside is refused whatever it was handed, rather than an infinity coming
+// back as though the scale had been a usable one
+TEST(scale_by_an_oversized_scale_on_an_infinity_throws) {
+  const sourcemeta::core::Decimal scale{"2147483648"};
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::Decimal::infinity().scale_by(scale)};
+    FAIL();
+  } catch (const sourcemeta::core::NumericOverflowError &error) {
+    EXPECT_STREQ(error.what(), "Numeric overflow");
+  }
+}
+
+TEST(scale_by_an_undersized_scale_on_a_negative_infinity_throws) {
+  const sourcemeta::core::Decimal scale{"-2147483649"};
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::Decimal::negative_infinity().scale_by(scale)};
+    FAIL();
+  } catch (const sourcemeta::core::NumericOverflowError &error) {
+    EXPECT_STREQ(error.what(), "Numeric overflow");
+  }
+}
+
+TEST(scale_by_a_scale_wider_than_an_integer_on_an_infinity_throws) {
+  const sourcemeta::core::Decimal scale{"99999999999999999999"};
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::Decimal::infinity().scale_by(scale)};
+    FAIL();
+  } catch (const sourcemeta::core::NumericOverflowError &error) {
+    EXPECT_STREQ(error.what(), "Numeric overflow");
+  }
+}
+
+TEST(scale_by_a_scale_the_range_holds_on_an_infinity_passes_it_through) {
+  const sourcemeta::core::Decimal scale{"2147483647"};
+  EXPECT_TRUE(
+      sourcemeta::core::Decimal::infinity().scale_by(scale).is_infinite());
+  const sourcemeta::core::Decimal lowest{"-2147483648"};
+  const auto result{
+      sourcemeta::core::Decimal::negative_infinity().scale_by(lowest)};
+  EXPECT_TRUE(result.is_infinite());
+  EXPECT_TRUE(result.is_signed());
+}
+
+TEST(scale_by_a_non_integer_scale_on_an_infinity_throws) {
+  const sourcemeta::core::Decimal scale{"1.5"};
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::Decimal::infinity().scale_by(scale)};
+    FAIL();
+  } catch (const sourcemeta::core::NumericInvalidOperationError &error) {
+    EXPECT_STREQ(error.what(), "Invalid numeric operation");
+  }
+}
+
 TEST(same_quantum_same_exponent) {
   const sourcemeta::core::Decimal left{"1.23"};
   const sourcemeta::core::Decimal right{"4.56"};
@@ -4700,6 +4758,46 @@ TEST(zero_with_extreme_positive_exponent_to_int64) {
   EXPECT_EQ(value.to_int64(), 0);
 }
 
+// The widest integer this module works a magnitude out in wraps at two to the
+// hundred and twenty-eighth, so a value standing at or past that boundary is
+// where reading one out through it would hand back a small number and call it a
+// fit
+TEST(two_to_the_hundred_and_twenty_eighth_fits_no_integer_type) {
+  const sourcemeta::core::Decimal value{
+      "340282366920938463463374607431768211456"};
+  EXPECT_TRUE(value.is_integral());
+  EXPECT_FALSE(value.is_int32());
+  EXPECT_FALSE(value.is_int64());
+  EXPECT_FALSE(value.is_uint32());
+  EXPECT_FALSE(value.is_uint64());
+}
+
+TEST(one_past_two_to_the_hundred_and_twenty_eighth_fits_no_integer_type) {
+  const sourcemeta::core::Decimal value{
+      "340282366920938463463374607431768211457"};
+  EXPECT_TRUE(value.is_integral());
+  EXPECT_FALSE(value.is_int64());
+  EXPECT_FALSE(value.is_uint64());
+}
+
+TEST(negative_two_to_the_hundred_and_twenty_eighth_fits_no_integer_type) {
+  const sourcemeta::core::Decimal value{
+      "-340282366920938463463374607431768211456"};
+  EXPECT_TRUE(value.is_integral());
+  EXPECT_FALSE(value.is_int32());
+  EXPECT_FALSE(value.is_int64());
+  EXPECT_FALSE(value.is_uint32());
+  EXPECT_FALSE(value.is_uint64());
+}
+
+TEST(two_to_the_hundred_and_twenty_eighth_written_with_a_point_fits_nothing) {
+  const sourcemeta::core::Decimal value{
+      "34028236692093846346337460743176821145.6e1"};
+  EXPECT_TRUE(value.is_integral());
+  EXPECT_FALSE(value.is_int64());
+  EXPECT_FALSE(value.is_uint64());
+}
+
 TEST(zero_with_extreme_positive_exponent_to_uint64) {
   const sourcemeta::core::Decimal value{"0e2147483647"};
   EXPECT_TRUE(value.is_integral());
@@ -4707,10 +4805,44 @@ TEST(zero_with_extreme_positive_exponent_to_uint64) {
   EXPECT_EQ(value.to_uint64(), 0ULL);
 }
 
-TEST(nan_with_payload_longer_than_storage_saturates) {
-  const sourcemeta::core::Decimal value{"NaN99999999999999999999999"};
+TEST(nan_with_payload_longer_than_storage_is_rejected) {
+  try {
+    const sourcemeta::core::Decimal value{"NaN99999999999999999999999"};
+    FAIL();
+  } catch (const sourcemeta::core::DecimalParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid decimal string format");
+  }
+}
+
+TEST(nan_with_the_longest_payload_the_storage_holds) {
+  const sourcemeta::core::Decimal value{"NaN18446744073709551615"};
   EXPECT_TRUE(value.is_nan());
-  EXPECT_EQ(value.nan_payload(), std::numeric_limits<std::int64_t>::max());
+  EXPECT_TRUE(value.is_qnan());
+  EXPECT_EQ(value.nan_payload(), std::numeric_limits<std::uint64_t>::max());
+}
+
+TEST(nan_one_past_the_longest_payload_the_storage_holds_is_rejected) {
+  try {
+    const sourcemeta::core::Decimal value{"NaN18446744073709551616"};
+    FAIL();
+  } catch (const sourcemeta::core::DecimalParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid decimal string format");
+  }
+}
+
+TEST(signaling_nan_with_the_longest_payload_the_storage_holds) {
+  const sourcemeta::core::Decimal value{"sNaN18446744073709551615"};
+  EXPECT_TRUE(value.is_snan());
+  EXPECT_EQ(value.nan_payload(), std::numeric_limits<std::uint64_t>::max());
+}
+
+TEST(signed_nan_with_a_payload_longer_than_the_storage_is_rejected) {
+  try {
+    const sourcemeta::core::Decimal value{"-sNaN99999999999999999999"};
+    FAIL();
+  } catch (const sourcemeta::core::DecimalParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid decimal string format");
+  }
 }
 
 TEST(parse_minimum_exponent) {
@@ -5354,6 +5486,49 @@ TEST(add_exact_fractional_carry_chain) {
   EXPECT_EQ(left + right, sourcemeta::core::Decimal{"10000000000000000"});
 }
 
+// Replacing what a value holds on the heap with something else held there goes
+// through storage of its own, so these walk a receiver that already carries one
+// through each operator that hands it a replacement
+TEST(add_assign_replaces_a_heap_coefficient_with_another) {
+  sourcemeta::core::Decimal accumulator{
+      "999999999999999999999999999999999999999999999"};
+  accumulator += sourcemeta::core::Decimal{
+      "123456789012345678901234567890123456789012345"};
+  EXPECT_EQ(accumulator.to_string(),
+            "1123456789012345678901234567890123456789012344");
+  accumulator += sourcemeta::core::Decimal{
+      "123456789012345678901234567890123456789012345"};
+  EXPECT_EQ(accumulator.to_string(),
+            "1246913578024691357802469135780246913578024689");
+}
+
+TEST(subtract_assign_replaces_a_heap_coefficient_with_another) {
+  sourcemeta::core::Decimal accumulator{
+      "999999999999999999999999999999999999999999999"};
+  accumulator -= sourcemeta::core::Decimal{
+      "123456789012345678901234567890123456789012345"};
+  EXPECT_EQ(accumulator.to_string(),
+            "876543210987654321098765432109876543210987654");
+}
+
+TEST(modulo_assign_replaces_a_heap_coefficient_with_another) {
+  sourcemeta::core::Decimal dividend{
+      "1428571428571428571428571428571428571428571428571428571428571428571428"
+      "57142857142857142857142857142"};
+  dividend %=
+      sourcemeta::core::Decimal{"9999999999999999999999999999999999999997"};
+  EXPECT_EQ(dividend.to_string(), "12857142857142857142");
+}
+
+TEST(modulo_assign_of_a_heap_dividend_leaving_a_heap_remainder) {
+  sourcemeta::core::Decimal dividend{
+      "123456789012345678901234567890123456789012345"};
+  dividend %= sourcemeta::core::Decimal{
+      "1000000000000000000000000000000000000000000000"};
+  EXPECT_EQ(dividend.to_string(),
+            "123456789012345678901234567890123456789012345");
+}
+
 TEST(parse_two_thousand_one_digit_literal) {
   const std::string digits(2001, '1');
   const sourcemeta::core::Decimal value{digits};
@@ -5663,12 +5838,62 @@ TEST(divide_integer_thirty_six_digits_by_nearby_divisor) {
   EXPECT_EQ(quotient.to_string(), "999999999999999999");
 }
 
-TEST(nan_with_oversized_payload_saturates) {
-  const sourcemeta::core::Decimal value{"NaN99999999999999999999"};
-  EXPECT_TRUE(value.is_qnan());
-  EXPECT_EQ(value.nan_payload(), static_cast<std::uint64_t>(
-                                     std::numeric_limits<std::int64_t>::max()));
-  EXPECT_EQ(value.to_string(), "NaN9223372036854775807");
+TEST(nan_with_oversized_payload_is_rejected) {
+  try {
+    const sourcemeta::core::Decimal value{"NaN99999999999999999999"};
+    FAIL();
+  } catch (const sourcemeta::core::DecimalParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid decimal string format");
+  }
+}
+
+// A payload is counted over the whole width of the coefficient it is held in,
+// so one past the signed half of that width is still written out in full and
+// read back as it was
+TEST(nan_with_a_payload_past_the_signed_half_of_the_storage_round_trips) {
+  const auto value{sourcemeta::core::Decimal::nan(
+      std::numeric_limits<std::uint64_t>::max())};
+  EXPECT_EQ(value.nan_payload(), std::numeric_limits<std::uint64_t>::max());
+  EXPECT_EQ(value.to_string(), "NaN18446744073709551615");
+  EXPECT_EQ(value.to_scientific_string(), "NaN18446744073709551615");
+
+  const sourcemeta::core::Decimal round_trip{value.to_string()};
+  EXPECT_TRUE(round_trip.is_qnan());
+  EXPECT_EQ(round_trip.nan_payload(),
+            std::numeric_limits<std::uint64_t>::max());
+}
+
+TEST(signaling_nan_with_a_payload_past_the_signed_half_round_trips) {
+  const auto value{sourcemeta::core::Decimal::snan(
+      std::numeric_limits<std::uint64_t>::max())};
+  EXPECT_EQ(value.to_string(), "sNaN18446744073709551615");
+
+  const sourcemeta::core::Decimal round_trip{value.to_scientific_string()};
+  EXPECT_TRUE(round_trip.is_snan());
+  EXPECT_EQ(round_trip.nan_payload(),
+            std::numeric_limits<std::uint64_t>::max());
+}
+
+TEST(negative_nan_with_a_payload_past_the_signed_half_round_trips) {
+  auto value{sourcemeta::core::Decimal::nan(
+      std::numeric_limits<std::uint64_t>::max())};
+  value = -value;
+  EXPECT_EQ(value.to_string(), "-NaN18446744073709551615");
+
+  const sourcemeta::core::Decimal round_trip{value.to_string()};
+  EXPECT_TRUE(round_trip.is_qnan());
+  EXPECT_TRUE(round_trip.is_signed());
+  EXPECT_EQ(round_trip.nan_payload(),
+            std::numeric_limits<std::uint64_t>::max());
+}
+
+TEST(nan_payload_past_the_signed_half_survives_arithmetic) {
+  const auto left{sourcemeta::core::Decimal::nan(
+      std::numeric_limits<std::uint64_t>::max())};
+  const sourcemeta::core::Decimal right{1};
+  const auto result{left + right};
+  EXPECT_TRUE(result.is_qnan());
+  EXPECT_EQ(result.nan_payload(), std::numeric_limits<std::uint64_t>::max());
 }
 
 TEST(is_integer_add_zero_clears_flag) {
@@ -6020,6 +6245,56 @@ TEST(compare_total_of_adjusted_exponents_past_the_exponent_range) {
   EXPECT_EQ(small.compare_total(big).to_string(), "-1");
 }
 
+// Lining two wide coefficients up over the distance between their exponents
+// would take a coefficient as long as that distance, which is further than
+// either exponent reaches. Two numbers that far apart are settled from the
+// orders of magnitude they stand at, the same way the ordering settles them
+TEST(equality_of_wide_coefficients_at_opposite_ends_of_the_exponent_range) {
+  const sourcemeta::core::Decimal big{"1000000000000000000e2147483647"};
+  const sourcemeta::core::Decimal small{"1e-2147483648"};
+  EXPECT_FALSE(big == small);
+  EXPECT_FALSE(small == big);
+  EXPECT_TRUE(big != small);
+  EXPECT_TRUE(small != big);
+}
+
+TEST(equality_of_a_wide_coefficient_with_itself_at_the_top_of_the_range) {
+  const sourcemeta::core::Decimal value{"1000000000000000000e2147483647"};
+  EXPECT_TRUE(value == value);
+  EXPECT_FALSE(value != value);
+}
+
+TEST(equality_of_a_wide_coefficient_with_itself_at_the_bottom_of_the_range) {
+  const sourcemeta::core::Decimal value{"1000000000000000000e-2147483648"};
+  EXPECT_TRUE(value == value);
+  EXPECT_FALSE(value != value);
+}
+
+// Two spellings of one number stand at the same order of magnitude, so the
+// shortcut above lets them through to be lined up and compared
+TEST(equality_of_wide_coefficients_spelling_one_number_two_ways) {
+  const sourcemeta::core::Decimal left{"1000000000000000000e5"};
+  const sourcemeta::core::Decimal right{"10000000000000000000000e1"};
+  EXPECT_TRUE(left == right);
+  EXPECT_TRUE(right == left);
+  EXPECT_FALSE(left != right);
+}
+
+TEST(inequality_of_wide_coefficients_at_one_order_of_magnitude) {
+  const sourcemeta::core::Decimal left{"1000000000000000001e5"};
+  const sourcemeta::core::Decimal right{"10000000000000000000000e1"};
+  EXPECT_FALSE(left == right);
+  EXPECT_TRUE(left != right);
+}
+
+TEST(equality_of_a_wide_coefficient_with_a_zero_at_the_same_magnitude) {
+  const sourcemeta::core::Decimal value{"1000000000000000000e-2147483648"};
+  const sourcemeta::core::Decimal zero{"0e-2147483630"};
+  EXPECT_FALSE(value == zero);
+  EXPECT_FALSE(zero == value);
+  EXPECT_TRUE(value != zero);
+}
+
 TEST(divide_integer_of_adjusted_exponents_past_the_exponent_range) {
   const sourcemeta::core::Decimal big{"999E2147483646"};
   const sourcemeta::core::Decimal small{"1E2147483646"};
@@ -6272,6 +6547,51 @@ TEST(dividing_rounds_half_even_at_the_lowest_exponent) {
   const auto result{dividend / divisor};
   EXPECT_EQ(result, expected);
   EXPECT_TRUE(result.same_quantum(expected));
+}
+
+// Rounding up here carries past the precision, which gives up one more digit
+// and lifts the exponent once further than the coefficient width alone
+// predicts. That last step is what brings the result back inside the range, so
+// a quotient refused on the prediction would be one the storage holds
+TEST(dividing_carries_a_rounded_quotient_back_into_the_lowest_exponent) {
+  const sourcemeta::core::Decimal dividend{"99999999999999995e-2147483648"};
+  const sourcemeta::core::Decimal divisor{100};
+  const sourcemeta::core::Decimal expected{"1000000000000000e-2147483648"};
+  const auto result{dividend / divisor};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.same_quantum(expected));
+}
+
+TEST(dividing_carries_a_negative_quotient_back_into_the_lowest_exponent) {
+  const sourcemeta::core::Decimal dividend{"-99999999999999995e-2147483648"};
+  const sourcemeta::core::Decimal divisor{100};
+  const sourcemeta::core::Decimal expected{"-1000000000000000e-2147483648"};
+  const auto result{dividend / divisor};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.is_signed());
+  EXPECT_TRUE(result.same_quantum(expected));
+}
+
+TEST(compound_dividing_carries_a_quotient_back_into_the_lowest_exponent) {
+  sourcemeta::core::Decimal dividend{"99999999999999995e-2147483648"};
+  const sourcemeta::core::Decimal divisor{100};
+  dividend /= divisor;
+  const sourcemeta::core::Decimal expected{"1000000000000000e-2147483648"};
+  EXPECT_EQ(dividend, expected);
+  EXPECT_TRUE(dividend.same_quantum(expected));
+}
+
+// A quotient the carry cannot rescue is still refused, which is what keeps the
+// allowance above from letting a result past the range through
+TEST(dividing_past_the_lowest_exponent_beyond_the_carry_overflows) {
+  const sourcemeta::core::Decimal dividend{"99999999999999995e-2147483648"};
+  const sourcemeta::core::Decimal divisor{1000};
+  try {
+    [[maybe_unused]] const auto result{dividend / divisor};
+    FAIL();
+  } catch (const sourcemeta::core::NumericOverflowError &error) {
+    EXPECT_STREQ(error.what(), "Numeric overflow");
+  }
 }
 
 TEST(dividing_a_zero_at_the_lowest_exponent_keeps_its_quantum) {

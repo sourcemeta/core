@@ -392,6 +392,35 @@ TEST(divide_with_high_half_dividend) {
   EXPECT_EQ(static_cast<std::uint64_t>(result >> 64), 1);
 }
 
+// A divisor with every bit of its lower half set is the widest one a long
+// division normalizes by nothing at all, which leaves the correction step
+// carrying the whole of the work
+TEST(divide_the_top_bit_by_the_widest_half) {
+  const auto dividend = sourcemeta::core::uint128_t{1} << 127;
+  const auto divisor = sourcemeta::core::uint128_t{0xFFFFFFFFFFFFFFFFULL};
+  const auto quotient = dividend / divisor;
+  const auto remainder = dividend % divisor;
+  EXPECT_EQ(static_cast<std::uint64_t>(quotient), std::uint64_t{1} << 63);
+  EXPECT_EQ(static_cast<std::uint64_t>(quotient >> 64), 0);
+  EXPECT_EQ(static_cast<std::uint64_t>(remainder), std::uint64_t{1} << 63);
+  EXPECT_EQ(static_cast<std::uint64_t>(remainder >> 64), 0);
+}
+
+TEST(divide_a_populated_high_half_by_the_widest_half_carries) {
+  const auto dividend =
+      (sourcemeta::core::uint128_t{0x8000000000000001ULL} << 64) |
+      sourcemeta::core::uint128_t{0xFFFFFFFFFFFFFFFFULL};
+  const auto divisor = sourcemeta::core::uint128_t{0xFFFFFFFFFFFFFFFFULL};
+  const auto quotient = dividend / divisor;
+  const auto remainder = dividend % divisor;
+  EXPECT_TRUE(remainder < divisor);
+  const auto reconstructed = (quotient * divisor) + remainder;
+  EXPECT_EQ(static_cast<std::uint64_t>(reconstructed),
+            static_cast<std::uint64_t>(dividend));
+  EXPECT_EQ(static_cast<std::uint64_t>(reconstructed >> 64),
+            static_cast<std::uint64_t>(dividend >> 64));
+}
+
 TEST(shift_at_64_bits) {
   const sourcemeta::core::uint128_t value{0xDEADBEEFULL};
   const auto shifted = value << 64;
