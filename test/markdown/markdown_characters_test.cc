@@ -486,3 +486,12 @@ TEST(nul_characters_are_replaced) {
   const auto result{sourcemeta::core::markdown_to_html("one\0two\0"sv)};
   EXPECT_EQ(result, "<p>one\xef\xbf\xbdtwo\xef\xbf\xbd</p>\n");
 }
+
+// A label is matched against the definitions by the name it reduces to, and
+// what a byte sequence that is not well formed stands for is settled on the
+// whole input beforehand, so both halves of the pair reduce to the same name
+TEST(invalid_utf8_in_a_link_reference_label_is_replaced) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("[\xFF]: /url\n\n[\xFF]")};
+  EXPECT_EQ(result, "<p><a href=\"/url\">\xEF\xBF\xBD</a></p>\n");
+}
