@@ -753,3 +753,223 @@ TEST(format_orders_two_keywords_of_equal_rank_by_name) {
   "zzz": 1
 })JSON");
 }
+
+TEST(format_swagger_2_0_names_an_extension_it_knows) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "x-definitions": { "tag": { "type": "string" } },
+    "x-vendor": "something",
+    "type": "object"
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Locations, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver,
+      "tag:spec.openapis.org,2017-08-27:oas/2.0/dialect"};
+
+  sourcemeta::core::schema_format(document, frame);
+  std::ostringstream stream;
+  sourcemeta::core::prettify(document, stream);
+  EXPECT_EQ(stream.str(), R"JSON({
+  "x-vendor": "something",
+  "type": "object",
+  "x-definitions": {
+    "tag": {
+      "type": "string"
+    }
+  }
+})JSON");
+}
+
+TEST(format_swagger_2_0_orders_within_a_tuple_element) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "items": [
+      { "type": "string", "title": "First" },
+      { "maxLength": 4, "type": "string" }
+    ],
+    "type": "array"
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Locations, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver,
+      "tag:spec.openapis.org,2017-08-27:oas/2.0/dialect"};
+
+  sourcemeta::core::schema_format(document, frame);
+  std::ostringstream stream;
+  sourcemeta::core::prettify(document, stream);
+  EXPECT_EQ(stream.str(), R"JSON({
+  "type": "array",
+  "items": [
+    {
+      "title": "First",
+      "type": "string"
+    },
+    {
+      "type": "string",
+      "maxLength": 4
+    }
+  ]
+})JSON");
+}
+
+TEST(format_openapi_3_0_leaves_a_tuple_element_alone) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "items": [
+      { "type": "string", "title": "First" },
+      { "maxLength": 4, "type": "string" }
+    ],
+    "type": "array"
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Locations, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver,
+      "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect"};
+
+  sourcemeta::core::schema_format(document, frame);
+  std::ostringstream stream;
+  sourcemeta::core::prettify(document, stream);
+  EXPECT_EQ(stream.str(), R"JSON({
+  "type": "array",
+  "items": [
+    {
+      "type": "string",
+      "title": "First"
+    },
+    {
+      "maxLength": 4,
+      "type": "string"
+    }
+  ]
+})JSON");
+}
+
+TEST(format_swagger_2_0_leaves_an_undefined_applicator_alone) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "allOf": [ { "type": "object", "title": "Inner" } ],
+    "oneOf": [ { "type": "object", "title": "Outer" } ],
+    "type": "object"
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Locations, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver,
+      "tag:spec.openapis.org,2017-08-27:oas/2.0/dialect"};
+
+  sourcemeta::core::schema_format(document, frame);
+  std::ostringstream stream;
+  sourcemeta::core::prettify(document, stream);
+  EXPECT_EQ(stream.str(), R"JSON({
+  "type": "object",
+  "allOf": [
+    {
+      "title": "Inner",
+      "type": "object"
+    }
+  ],
+  "oneOf": [
+    {
+      "type": "object",
+      "title": "Outer"
+    }
+  ]
+})JSON");
+}
+
+TEST(format_swagger_2_0_every_keyword) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "xml": { "name": "pet" },
+    "x-definitions": { "tag": { "type": "string" } },
+    "uniqueItems": true,
+    "type": "object",
+    "title": "Pet",
+    "required": [ "name" ],
+    "readOnly": false,
+    "properties": { "name": { "type": "string" } },
+    "pattern": "^.+$",
+    "multipleOf": 2,
+    "minProperties": 1,
+    "minimum": 0,
+    "minLength": 1,
+    "minItems": 1,
+    "maxProperties": 8,
+    "maximum": 10,
+    "maxLength": 32,
+    "maxItems": 4,
+    "items": { "type": "string" },
+    "format": "int32",
+    "externalDocs": { "url": "https://www.sourcemeta.com" },
+    "exclusiveMinimum": false,
+    "exclusiveMaximum": false,
+    "example": { "name": "Cheddar" },
+    "enum": [ "cat" ],
+    "discriminator": "kind",
+    "description": "A pet",
+    "default": {},
+    "allOf": [ { "type": "object" } ],
+    "additionalProperties": false,
+    "$ref": "#/x-definitions/tag"
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Locations, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver,
+      "tag:spec.openapis.org,2017-08-27:oas/2.0/dialect"};
+
+  sourcemeta::core::schema_format(document, frame);
+  std::ostringstream stream;
+  sourcemeta::core::prettify(document, stream);
+  EXPECT_EQ(stream.str(), R"JSON({
+  "title": "Pet",
+  "description": "A pet",
+  "example": {
+    "name": "Cheddar"
+  },
+  "externalDocs": {
+    "url": "https://www.sourcemeta.com"
+  },
+  "readOnly": false,
+  "default": {},
+  "$ref": "#/x-definitions/tag",
+  "type": "object",
+  "enum": [ "cat" ],
+  "allOf": [
+    {
+      "type": "object"
+    }
+  ],
+  "discriminator": "kind",
+  "exclusiveMaximum": false,
+  "maximum": 10,
+  "exclusiveMinimum": false,
+  "minimum": 0,
+  "multipleOf": 2,
+  "pattern": "^.+$",
+  "format": "int32",
+  "maxLength": 32,
+  "minLength": 1,
+  "maxItems": 4,
+  "minItems": 1,
+  "uniqueItems": true,
+  "items": {
+    "type": "string"
+  },
+  "required": [ "name" ],
+  "maxProperties": 8,
+  "minProperties": 1,
+  "properties": {
+    "name": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "xml": {
+    "name": "pet"
+  },
+  "x-definitions": {
+    "tag": {
+      "type": "string"
+    }
+  }
+})JSON");
+}
