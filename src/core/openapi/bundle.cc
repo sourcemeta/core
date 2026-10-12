@@ -684,9 +684,7 @@ auto repoint_schemas(
     const sourcemeta::core::SchemaWalker &walker,
     const sourcemeta::core::SchemaResolver &resolver, std::uint64_t &remaining)
     -> void {
-  if (renamed.empty()) {
-    return;
-  }
+  assert(!renamed.empty());
 
   sourcemeta::core::Pointer container;
   container.push_back(sourcemeta::core::JSON::String{"components"});
@@ -1271,12 +1269,10 @@ auto target_of(const sourcemeta::core::JSON::String &destination)
     -> std::optional<sourcemeta::core::Pointer> {
   const auto pointer{sourcemeta::core::fragment_to_pointer(
       sourcemeta::core::URI{destination})};
-  // An empty fragment names the root of the document, which is the document
-  // itself just as naming no fragment at all is
-  if (pointer.has_value() && pointer.value().empty()) {
-    return std::nullopt;
-  }
-
+  // Resolving a reference canonicalises what it leads to, which takes off a
+  // fragment that names nothing, so naming the root of a document reaches here
+  // as naming no fragment at all rather than as naming an empty one
+  assert(!pointer.has_value() || !pointer.value().empty());
   return pointer;
 }
 
