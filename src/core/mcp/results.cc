@@ -958,7 +958,7 @@ auto mcp_request_subscription_id(const MCPProtocolVersion version,
 
   const auto *sub_id{meta->try_at("io.modelcontextprotocol/subscriptionId",
                                   MCP_HASH_META_SUBSCRIPTION_ID)};
-  if (sub_id == nullptr || (!sub_id->is_string() && !sub_id->is_integer())) {
+  if (sub_id == nullptr || !internal::valid_id(*sub_id)) {
     return nullptr;
   }
   return sub_id;

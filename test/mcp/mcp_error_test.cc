@@ -53,6 +53,46 @@ TEST(make_error_with_integer_identifier) {
   })JSON"));
 }
 
+TEST(make_error_preserves_integral_real_identifier_2025_03_26) {
+  const sourcemeta::core::JSON identifier{42.0};
+  const auto error{sourcemeta::core::mcp_make_error(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, &identifier,
+      sourcemeta::core::JSONRPC_CODE_INVALID_PARAMS, "Invalid params")};
+  EXPECT_TRUE(error.defines("id"));
+  EXPECT_EQ(error.at("id"), identifier);
+  EXPECT_TRUE(error.at("id").is_real());
+}
+
+TEST(make_error_preserves_integral_real_identifier_2025_06_18) {
+  const sourcemeta::core::JSON identifier{42.0};
+  const auto error{sourcemeta::core::mcp_make_error(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, &identifier,
+      sourcemeta::core::JSONRPC_CODE_INVALID_PARAMS, "Invalid params")};
+  EXPECT_TRUE(error.defines("id"));
+  EXPECT_EQ(error.at("id"), identifier);
+  EXPECT_TRUE(error.at("id").is_real());
+}
+
+TEST(make_error_preserves_integral_real_identifier_2025_11_25) {
+  const sourcemeta::core::JSON identifier{42.0};
+  const auto error{sourcemeta::core::mcp_make_error(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, &identifier,
+      sourcemeta::core::JSONRPC_CODE_INVALID_PARAMS, "Invalid params")};
+  EXPECT_TRUE(error.defines("id"));
+  EXPECT_EQ(error.at("id"), identifier);
+  EXPECT_TRUE(error.at("id").is_real());
+}
+
+TEST(make_error_preserves_integral_real_identifier_2026_07_28) {
+  const sourcemeta::core::JSON identifier{42.0};
+  const auto error{sourcemeta::core::mcp_make_error(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, &identifier,
+      sourcemeta::core::JSONRPC_CODE_INVALID_PARAMS, "Invalid params")};
+  EXPECT_TRUE(error.defines("id"));
+  EXPECT_EQ(error.at("id"), identifier);
+  EXPECT_TRUE(error.at("id").is_real());
+}
+
 TEST(make_error_with_string_identifier) {
   const sourcemeta::core::JSON identifier{"abc"};
   EXPECT_EQ(sourcemeta::core::mcp_make_error(

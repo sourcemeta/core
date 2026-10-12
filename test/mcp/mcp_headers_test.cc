@@ -36,6 +36,60 @@ TEST(request_meta_validation_valid_minimum) {
   EXPECT_EQ(meta->progress_token, nullptr);
 }
 
+// Integer-valued numbers are integers regardless of their JSON representation
+// https://json-schema.org/understanding-json-schema/reference/numeric#integer
+TEST(request_meta_validation_accepts_integral_real_identifier) {
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0", "id": 42.0, "method": "tools/list",
+    "params": { "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    } }
+  })JSON")};
+  EXPECT_TRUE(envelope.at("id").is_real());
+  EXPECT_EQ(sourcemeta::core::mcp_validate_request_meta(envelope).first,
+            sourcemeta::core::MCPRequestMetaStatus::Valid);
+}
+
+TEST(request_meta_validation_accepts_integral_exponent_identifier) {
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0", "id": 4.2e1, "method": "tools/list",
+    "params": { "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    } }
+  })JSON")};
+  EXPECT_EQ(envelope.at("id"), sourcemeta::core::JSON{42});
+  EXPECT_EQ(sourcemeta::core::mcp_validate_request_meta(envelope).first,
+            sourcemeta::core::MCPRequestMetaStatus::Valid);
+}
+
+TEST(request_meta_validation_accepts_integral_decimal_identifier) {
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0", "id": 18446744073709551617, "method": "tools/list",
+    "params": { "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    } }
+  })JSON")};
+  EXPECT_TRUE(envelope.at("id").is_decimal());
+  EXPECT_EQ(sourcemeta::core::mcp_validate_request_meta(envelope).first,
+            sourcemeta::core::MCPRequestMetaStatus::Valid);
+}
+
+TEST(request_meta_validation_rejects_fractional_decimal_identifier) {
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0", "id": 42.00000000000000000001, "method": "tools/list",
+    "params": { "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    } }
+  })JSON")};
+  EXPECT_TRUE(envelope.at("id").is_decimal());
+  EXPECT_EQ(sourcemeta::core::mcp_validate_request_meta(envelope).first,
+            sourcemeta::core::MCPRequestMetaStatus::InvalidEnvelope);
+}
+
 TEST(request_meta_validation_valid_with_client_info) {
   const auto envelope{sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
@@ -1761,6 +1815,36 @@ TEST(request_client_info_rejects_icon_src_number) {
           })JSON"));
   EXPECT_FALSE(sourcemeta::core::mcp_validate_request_parameters(value)
                    .second.has_value());
+}
+
+TEST(request_metadata_accepts_integral_real_progress_token) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {},
+      "progressToken": 7.0
+    }
+  })JSON")};
+  const auto [status, meta]{
+      sourcemeta::core::mcp_validate_request_parameters(parameters)};
+  EXPECT_EQ(status, sourcemeta::core::MCPRequestMetaStatus::Valid);
+  EXPECT_TRUE(meta.has_value());
+  EXPECT_EQ(meta->progress_token, &parameters.at("_meta").at("progressToken"));
+}
+
+TEST(request_metadata_accepts_integral_decimal_progress_token) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {},
+      "progressToken": 18446744073709551617
+    }
+  })JSON")};
+  const auto [status, meta]{
+      sourcemeta::core::mcp_validate_request_parameters(parameters)};
+  EXPECT_EQ(status, sourcemeta::core::MCPRequestMetaStatus::Valid);
+  EXPECT_TRUE(meta.has_value());
+  EXPECT_EQ(meta->progress_token, &parameters.at("_meta").at("progressToken"));
 }
 
 TEST(request_metadata_rejects_fractional_progress_token) {
