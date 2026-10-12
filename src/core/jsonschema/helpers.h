@@ -6,7 +6,6 @@
 #include <sourcemeta/core/uri.h>
 
 #include <array>         // std::array
-#include <cassert>       // assert
 #include <deque>         // std::deque
 #include <optional>      // std::optional
 #include <string_view>   // std::string_view
@@ -327,20 +326,13 @@ inline auto embedded_metaschema_link_valid(const sourcemeta::core::JSON &link,
                                            const std::string_view container,
                                            const SchemaBaseDialect base_dialect)
     -> bool {
-  // In 2019-09 and 2020-12, `definitions` is still supported
-  // for backwards compatibility
-  switch (base_dialect) {
-    case SchemaBaseDialect::JSON_SCHEMA_2020_12:
-    case SchemaBaseDialect::JSON_SCHEMA_2020_12_HYPER:
-    case SchemaBaseDialect::JSON_SCHEMA_2019_09:
-    case SchemaBaseDialect::JSON_SCHEMA_2019_09_HYPER:
-      // The search that found this link looks under no name but those two
-      assert(container == "$defs" || container == "definitions");
-      break;
-    default:
-      if (container != definitions_keyword(base_dialect)) {
-        return false;
-      }
+  // In 2019-09 and 2020-12, `definitions` is still supported for backwards
+  // compatibility, so the older name answers for a dialect that reserves the
+  // newer one as well as for the ones that reserve it in their own right
+  const auto keyword{definitions_keyword(base_dialect)};
+  if (container != keyword &&
+      !(keyword == "$defs" && container == "definitions")) {
+    return false;
   }
 
   const auto canonical{maybe_canonicalize(identifier)};
