@@ -1,0 +1,33 @@
+{
+  "schema": {
+    "type": "object",
+    "oneOf": [
+      {
+        "$ref": "https://www.sourcemeta.com/absent"
+      }
+    ]
+  },
+  "defaultDialect": "tag:spec.openapis.org,2017-08-27:oas/2.0/dialect",
+  "result": {
+    "nonOfficialMetaschemas": {
+      "type": "object",
+      "oneOf": [
+        {
+          "$ref": "https://www.sourcemeta.com/absent"
+        }
+      ]
+    },
+    "references": {
+      "type": "object",
+      "oneOf": [
+        {
+          "$ref": "https://www.sourcemeta.com/absent"
+        }
+      ]
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [],
+    "references": []
+  }
+}

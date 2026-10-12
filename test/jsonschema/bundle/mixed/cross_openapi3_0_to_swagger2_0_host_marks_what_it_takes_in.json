@@ -1,0 +1,80 @@
+{
+  "schema": {
+    "x-sourcemeta-dialect-override-subschema": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+    "properties": {
+      "pet": {
+        "$ref": "https://www.sourcemeta.com/pet"
+      }
+    }
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/pet": {
+      "type": "object",
+      "discriminator": "kind",
+      "properties": {
+        "name": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "defaultDialect": "tag:spec.openapis.org,2017-08-27:oas/2.0/dialect",
+  "result": {
+    "nonOfficialMetaschemas": {
+      "x-sourcemeta-dialect-override-subschema": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+      "properties": {
+        "pet": {
+          "$ref": "#/x-definitions/https:~1~1www.sourcemeta.com~1pet"
+        }
+      },
+      "x-definitions": {
+        "https://www.sourcemeta.com/pet": {
+          "type": "object",
+          "discriminator": "kind",
+          "properties": {
+            "name": {
+              "type": "string",
+              "x-sourcemeta-dialect-override-subschema": "tag:spec.openapis.org,2017-08-27:oas/2.0/dialect"
+            }
+          },
+          "x-sourcemeta-dialect-override-subschema": "tag:spec.openapis.org,2017-08-27:oas/2.0/dialect"
+        }
+      }
+    },
+    "references": {
+      "x-sourcemeta-dialect-override-subschema": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+      "properties": {
+        "pet": {
+          "$ref": "#/x-definitions/https:~1~1www.sourcemeta.com~1pet"
+        }
+      },
+      "x-definitions": {
+        "https://www.sourcemeta.com/pet": {
+          "type": "object",
+          "discriminator": "kind",
+          "properties": {
+            "name": {
+              "type": "string",
+              "x-sourcemeta-dialect-override-subschema": "tag:spec.openapis.org,2017-08-27:oas/2.0/dialect"
+            }
+          },
+          "x-sourcemeta-dialect-override-subschema": "tag:spec.openapis.org,2017-08-27:oas/2.0/dialect"
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://www.sourcemeta.com/pet",
+        "at": "/x-definitions/https:~1~1www.sourcemeta.com~1pet"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://www.sourcemeta.com/pet",
+        "at": "/x-definitions/https:~1~1www.sourcemeta.com~1pet"
+      }
+    ]
+  }
+}

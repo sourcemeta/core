@@ -1,0 +1,24 @@
+{
+  "schema": {
+    "properties": {
+      "pet": {
+        "$ref": "https://www.sourcemeta.com/absent"
+      }
+    }
+  },
+  "defaultDialect": "tag:spec.openapis.org,2017-08-27:oas/2.0/dialect",
+  "result": {},
+  "errors": {
+    "nonOfficialMetaschemas": {
+      "type": "SchemaResolutionError",
+      "message": "Could not resolve the reference to an external schema",
+      "identifier": "https://www.sourcemeta.com/absent"
+    },
+    "references": {
+      "type": "SchemaResolutionError",
+      "message": "Could not resolve the reference to an external schema",
+      "identifier": "https://www.sourcemeta.com/absent"
+    }
+  },
+  "inserted": {}
+}
