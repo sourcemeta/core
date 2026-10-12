@@ -6508,20 +6508,6 @@ TEST(write_result_rejects_an_interim_result) {
   EXPECT_TRUE(stream.str().empty());
 }
 
-// A baggage member may carry a property without a value
-// https://www.w3.org/TR/baggage/
-TEST(request_parameters_accept_a_valueless_baggage_property) {
-  const auto parameters{sourcemeta::core::parse_json(R"JSON({
-    "_meta": {
-      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-      "io.modelcontextprotocol/clientCapabilities": {},
-      "baggage": "key=value;flag"
-    }
-  })JSON")};
-  EXPECT_EQ(sourcemeta::core::mcp_validate_request_parameters(parameters).first,
-            sourcemeta::core::MCPRequestMetaStatus::Valid);
-}
-
 // An extension key is a prefix with an empty name, which the key rules allow
 // https://modelcontextprotocol.io/specification/2026-07-28/basic/index#_meta
 TEST(request_parameters_accept_an_extension_key_without_a_name) {

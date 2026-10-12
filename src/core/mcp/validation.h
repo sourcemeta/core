@@ -226,59 +226,6 @@ inline auto metadata_key(const JSON::StringView key, const bool prefix_required)
           }));
 }
 
-inline auto baggage_value(const JSON::StringView value) -> bool {
-  for (std::size_t index = 0; index < value.size(); ++index) {
-    const auto character{value[index]};
-    if (character <= 0x20 || character > 0x7e || character == '"' ||
-        character == ',' || character == ';' || character == '\\') {
-      return false;
-    }
-    if (character == '%') {
-      if (!sourcemeta::core::is_percent_triplet(value, index)) {
-        return false;
-      }
-      index += 2;
-    }
-  }
-  return true;
-}
-
-inline auto baggage(JSON::StringView value) -> bool {
-  std::size_t count = 0;
-  while (true) {
-    if (++count > 180) {
-      return false;
-    }
-    const auto comma{value.find(',')};
-    auto member{sourcemeta::core::trim(value.substr(0, comma),
-                                       sourcemeta::core::http_is_ows)};
-    bool first = true;
-    while (true) {
-      const auto semicolon{member.find(';')};
-      const auto property{sourcemeta::core::trim(
-          member.substr(0, semicolon), sourcemeta::core::http_is_ows)};
-      const auto equal{property.find('=')};
-      if ((first && equal == JSON::StringView::npos) ||
-          !sourcemeta::core::http_is_token(sourcemeta::core::trim(
-              property.substr(0, equal), sourcemeta::core::http_is_ows)) ||
-          (equal != JSON::StringView::npos &&
-           !baggage_value(sourcemeta::core::trim(
-               property.substr(equal + 1), sourcemeta::core::http_is_ows)))) {
-        return false;
-      }
-      first = false;
-      if (semicolon == JSON::StringView::npos) {
-        break;
-      }
-      member.remove_prefix(semicolon + 1);
-    }
-    if (comma == JSON::StringView::npos) {
-      return true;
-    }
-    value.remove_prefix(comma + 1);
-  }
-}
-
 inline auto sampling_block(const JSON &value) -> bool {
   const auto *type{field(value, "type", sourcemeta::core::MCP_HASH_TYPE)};
   if ((type == nullptr) || !type->is_string() ||
@@ -544,7 +491,7 @@ inline auto valid_metadata_object(const JSON &meta, const bool received)
   if (const auto *baggage{
           meta.try_at("baggage", sourcemeta::core::MCP_HASH_BAGGAGE)};
       baggage != nullptr &&
-      (!baggage->is_string() || !validation::baggage(baggage->to_string()))) {
+      (!baggage->is_string() || !http_is_baggage(baggage->to_string()))) {
     return false;
   }
   return true;
