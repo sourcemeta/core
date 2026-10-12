@@ -116,27 +116,29 @@ inline auto unescape_string(const char *data, const std::uint32_t length,
 // A number literal that the scanner accepts can still name a value outside the
 // range this module represents, and where it does the failure belongs at the
 // literal rather than at the start of the document
+inline auto construct_decimal(const std::string_view value,
+                              const std::uint64_t line,
+                              const std::uint64_t column) -> JSON {
+  try {
+    return JSON{Decimal{value}};
+  } catch (const DecimalParseError &) {
+    throw JSONParseError(line, column);
+  }
+}
+
 inline auto construct_number(const char *data, const std::uint32_t length,
                              const std::uint8_t flags,
                              const std::uint32_t significant_digits,
                              const std::uint64_t line,
                              const std::uint64_t column) -> JSON {
   if ((flags & TAPE_FLAG_NUMBER_EXPONENT) != 0) {
-    try {
-      return JSON{Decimal{std::string_view{data, length}}};
-    } catch (const DecimalParseError &) {
-      throw JSONParseError(line, column);
-    }
+    return construct_decimal(std::string_view{data, length}, line, column);
   }
 
   if ((flags & TAPE_FLAG_NUMBER_DOT) != 0) {
     constexpr std::uint32_t MAX_SAFE_SIGNIFICANT_DIGITS{15};
     if (significant_digits > MAX_SAFE_SIGNIFICANT_DIGITS) {
-      try {
-        return JSON{Decimal{std::string_view{data, length}}};
-      } catch (const DecimalParseError &) {
-        throw JSONParseError(line, column);
-      }
+      return construct_decimal(std::string_view{data, length}, line, column);
     }
 
     const std::string_view value{data, length};
@@ -145,11 +147,7 @@ inline auto construct_number(const char *data, const std::uint32_t length,
       return JSON{double_result.value()};
     }
 
-    try {
-      return JSON{Decimal{value}};
-    } catch (const DecimalParseError &) {
-      throw JSONParseError(line, column);
-    }
+    return construct_decimal(value, line, column);
   }
 
   auto digit_length = length;

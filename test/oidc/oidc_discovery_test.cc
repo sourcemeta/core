@@ -149,6 +149,19 @@ TEST(webfinger_request_uses_https_for_a_user_and_host_with_a_port) {
             "http%3A%2F%2Fopenid.net%2Fspecs%2Fconnect%2F1.0%2Fissuer");
 }
 
+// A colon that opens a run of digits names a port rather than a scheme, so a
+// bare host carrying one is still read as a host and given the https scheme
+TEST(webfinger_request_uses_https_for_a_bare_host_with_a_port) {
+  const auto request{
+      sourcemeta::core::oidc_webfinger_request("example.com:8080")};
+  EXPECT_TRUE(request.has_value());
+  EXPECT_EQ(request.value().resource, "https://example.com:8080");
+  EXPECT_EQ(request.value().url,
+            "https://example.com:8080/.well-known/"
+            "webfinger?resource=https%3A%2F%2Fexample.com%3A8080&rel="
+            "http%3A%2F%2Fopenid.net%2Fspecs%2Fconnect%2F1.0%2Fissuer");
+}
+
 TEST(webfinger_request_uses_https_for_a_user_and_host_with_a_path) {
   const auto request{
       sourcemeta::core::oidc_webfinger_request("joe@example.com/path")};
@@ -261,6 +274,27 @@ TEST(webfinger_issuer_skips_an_invalid_matching_link) {
       {
         "rel": "http://openid.net/specs/connect/1.0/issuer",
         "href": "http://example.com"
+      },
+      {
+        "rel": "http://openid.net/specs/connect/1.0/issuer",
+        "href": "https://example.com"
+      }
+    ]
+  })JSON")};
+  const auto issuer{sourcemeta::core::oidc_webfinger_issuer(descriptor)};
+  EXPECT_TRUE(issuer.has_value());
+  EXPECT_EQ(issuer.value(), "https://example.com");
+}
+
+// A response is not held to having been written by anything in particular, so
+// an address that cannot be read as a URI at all is passed over the same way as
+// one that reads as the wrong kind, and the search goes on
+TEST(webfinger_issuer_skips_a_matching_link_whose_href_is_unparseable) {
+  const auto descriptor{sourcemeta::core::parse_json(R"JSON({
+    "links": [
+      {
+        "rel": "http://openid.net/specs/connect/1.0/issuer",
+        "href": "http://[vA.123456"
       },
       {
         "rel": "http://openid.net/specs/connect/1.0/issuer",
