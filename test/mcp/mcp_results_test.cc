@@ -312,30 +312,47 @@ TEST(make_resource_with_priority_without_size) {
   EXPECT_EQ(resource, expected);
 }
 
-TEST(make_resource_with_priority_clamped_high) {
-  const auto resource{sourcemeta::core::mcp_make_resource(
-      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "file:///a", "Alpha",
-      "text/plain", {}, std::nullopt, std::optional<double>{2.5})};
-  const auto expected{sourcemeta::core::parse_json(R"JSON({
-    "uri": "file:///a",
-    "name": "Alpha",
-    "mimeType": "text/plain",
-    "annotations": { "priority": 1.0 }
-  })JSON")};
-  EXPECT_EQ(resource, expected);
+// The schema bounds this between zero and one, so a value outside them is
+// refused rather than folded in, which is the same answer a descriptor
+// carrying one gets from the validator
+// https://modelcontextprotocol.io/specification/2026-07-28/schema#annotations
+TEST(make_resource_rejects_a_priority_above_one) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_resource(
+                         sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+                         "file:///a", "Alpha", "text/plain", {}, std::nullopt,
+                         std::optional<double>{2.5}),
+                     "Annotation priority must be between zero and one");
 }
 
-TEST(make_resource_with_priority_clamped_low) {
-  const auto resource{sourcemeta::core::mcp_make_resource(
-      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "file:///a", "Alpha",
-      "text/plain", {}, std::nullopt, std::optional<double>{-5.0})};
-  const auto expected{sourcemeta::core::parse_json(R"JSON({
+TEST(make_resource_rejects_a_priority_below_zero) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_resource(
+                         sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+                         "file:///a", "Alpha", "text/plain", {}, std::nullopt,
+                         std::optional<double>{-5.0}),
+                     "Annotation priority must be between zero and one");
+}
+
+TEST(make_resource_accepts_a_priority_at_each_bound) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_resource(
+                sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "file:///a",
+                "Alpha", "text/plain", {}, std::nullopt,
+                std::optional<double>{0.0}),
+            sourcemeta::core::parse_json(R"JSON({
     "uri": "file:///a",
     "name": "Alpha",
     "mimeType": "text/plain",
     "annotations": { "priority": 0.0 }
-  })JSON")};
-  EXPECT_EQ(resource, expected);
+  })JSON"));
+  EXPECT_EQ(sourcemeta::core::mcp_make_resource(
+                sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "file:///a",
+                "Alpha", "text/plain", {}, std::nullopt,
+                std::optional<double>{1.0}),
+            sourcemeta::core::parse_json(R"JSON({
+    "uri": "file:///a",
+    "name": "Alpha",
+    "mimeType": "text/plain",
+    "annotations": { "priority": 1.0 }
+  })JSON"));
 }
 
 TEST(make_resource_rejects_priority_positive_infinity) {
@@ -523,7 +540,7 @@ TEST(make_initialize_result_minimal_2025_11_25) {
                                                    .title = {},
                                                    .description = {},
                                                    .website_url = {}};
-  const auto envelope{sourcemeta::core::mcp_make_initialize_result(
+  const auto envelope{sourcemeta::core::mcp_make_initialize_response(
       request, capabilities, server, SUPPORTED)};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
@@ -579,8 +596,8 @@ TEST(make_initialize_result_accepts_loose_client_icon_formats) {
       "serverInfo": { "name": "srv", "version": "1.0.0" }
     }
   })JSON")};
-  EXPECT_EQ(sourcemeta::core::mcp_make_initialize_result(request, capabilities,
-                                                         server, SUPPORTED),
+  EXPECT_EQ(sourcemeta::core::mcp_make_initialize_response(
+                request, capabilities, server, SUPPORTED),
             expected);
 }
 
@@ -599,7 +616,7 @@ TEST(make_initialize_result_missing_protocol_version_is_invalid_params) {
                                                    .title = {},
                                                    .description = {},
                                                    .website_url = {}};
-  const auto envelope{sourcemeta::core::mcp_make_initialize_result(
+  const auto envelope{sourcemeta::core::mcp_make_initialize_response(
       request, capabilities, server, SUPPORTED)};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
@@ -624,7 +641,7 @@ TEST(make_initialize_result_non_string_protocol_version_is_invalid_params) {
                                                    .title = {},
                                                    .description = {},
                                                    .website_url = {}};
-  const auto envelope{sourcemeta::core::mcp_make_initialize_result(
+  const auto envelope{sourcemeta::core::mcp_make_initialize_response(
       request, capabilities, server, SUPPORTED)};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
@@ -653,7 +670,7 @@ TEST(make_initialize_result_unsupported_protocol_version_negotiates_latest) {
                                                    .title = {},
                                                    .description = {},
                                                    .website_url = {}};
-  const auto envelope{sourcemeta::core::mcp_make_initialize_result(
+  const auto envelope{sourcemeta::core::mcp_make_initialize_response(
       request, capabilities, server, SUPPORTED)};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
@@ -691,7 +708,7 @@ TEST(make_initialize_result_with_all_capabilities) {
                                                    .title = {},
                                                    .description = {},
                                                    .website_url = {}};
-  const auto envelope{sourcemeta::core::mcp_make_initialize_result(
+  const auto envelope{sourcemeta::core::mcp_make_initialize_response(
       request, capabilities, server, SUPPORTED)};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
@@ -730,7 +747,7 @@ TEST(make_initialize_result_includes_instructions_when_provided) {
                                                    .title = {},
                                                    .description = {},
                                                    .website_url = {}};
-  const auto envelope{sourcemeta::core::mcp_make_initialize_result(
+  const auto envelope{sourcemeta::core::mcp_make_initialize_response(
       request, capabilities, server, SUPPORTED, "Be careful.")};
   EXPECT_EQ(envelope.at("result").at("instructions").to_string(),
             "Be careful.");
@@ -748,7 +765,7 @@ TEST(make_initialize_result_includes_only_the_title_on_2025_06_18) {
                                                    .description = "desc",
                                                    .website_url =
                                                        "https://example.com"};
-  EXPECT_EQ(sourcemeta::core::mcp_make_initialize_result(
+  EXPECT_EQ(sourcemeta::core::mcp_make_initialize_response(
                 sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "id": 1,
@@ -790,7 +807,7 @@ TEST(make_initialize_result_includes_full_implementation_on_2025_11_25) {
                                                    .title = "Server",
                                                    .description = "desc",
                                                    .website_url = "https://x"};
-  const auto envelope{sourcemeta::core::mcp_make_initialize_result(
+  const auto envelope{sourcemeta::core::mcp_make_initialize_response(
       request, capabilities, server, SUPPORTED)};
   EXPECT_EQ(envelope.at("result").at("serverInfo").at("title").to_string(),
             "Server");
@@ -821,8 +838,8 @@ TEST(
                                                    .title = "Server",
                                                    .description = "desc",
                                                    .website_url = "https://x"};
-  EXPECT_EQ(sourcemeta::core::mcp_make_initialize_result(request, capabilities,
-                                                         server, SUPPORTED),
+  EXPECT_EQ(sourcemeta::core::mcp_make_initialize_response(
+                request, capabilities, server, SUPPORTED),
             sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "id": 1,
@@ -853,7 +870,7 @@ TEST(make_initialize_result_falls_back_to_2025_11_25_on_unknown_version) {
                                                    .title = {},
                                                    .description = {},
                                                    .website_url = {}};
-  const auto envelope{sourcemeta::core::mcp_make_initialize_result(
+  const auto envelope{sourcemeta::core::mcp_make_initialize_response(
       request, capabilities, server, SUPPORTED)};
   EXPECT_EQ(envelope.at("result").at("protocolVersion").to_string(),
             "2025-11-25");
@@ -870,7 +887,7 @@ TEST(make_initialize_result_returns_invalid_request_when_missing_params) {
                                                    .title = {},
                                                    .description = {},
                                                    .website_url = {}};
-  const auto envelope{sourcemeta::core::mcp_make_initialize_result(
+  const auto envelope{sourcemeta::core::mcp_make_initialize_response(
       request, capabilities, server, SUPPORTED)};
   EXPECT_EQ(envelope.at("error").at("code").to_integer(),
             sourcemeta::core::JSONRPC_CODE_INVALID_REQUEST);
@@ -891,7 +908,7 @@ TEST(make_initialize_result_returns_invalid_request_when_id_missing) {
                                                    .title = {},
                                                    .description = {},
                                                    .website_url = {}};
-  const auto envelope{sourcemeta::core::mcp_make_initialize_result(
+  const auto envelope{sourcemeta::core::mcp_make_initialize_response(
       request, capabilities, server, SUPPORTED)};
   EXPECT_EQ(envelope.at("error").at("code").to_integer(),
             sourcemeta::core::JSONRPC_CODE_INVALID_REQUEST);
@@ -1259,7 +1276,7 @@ TEST(server_discover_result) {
 
   const std::vector<sourcemeta::core::JSON::StringView> discovery_versions{
       "2026-07-28", "2025-11-25", "2025-06-18", "2025-03-26"};
-  const auto envelope{sourcemeta::core::mcp_make_server_discover_result(
+  const auto envelope{sourcemeta::core::mcp_make_server_discover_response(
       sourcemeta::core::MCPProtocolVersion::V_2026_07_28, identifier,
       capabilities, server, discovery_versions, "Instructions here", cache)};
 
@@ -1294,7 +1311,7 @@ TEST(make_initialize_result_negotiates_down_from_2026_07_28) {
       {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
   const sourcemeta::core::MCPImplementation server{.name = "srv",
                                                    .version = "1.0.0"};
-  EXPECT_EQ(sourcemeta::core::mcp_make_initialize_result(
+  EXPECT_EQ(sourcemeta::core::mcp_make_initialize_response(
                 sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "id": 1,
@@ -1334,7 +1351,7 @@ TEST(initialize_negotiation_with_unknown_version) {
   const sourcemeta::core::MCPServerCapabilities capabilities;
   const sourcemeta::core::MCPImplementation server{.name = "srv",
                                                    .version = "1.0.0"};
-  const auto envelope{sourcemeta::core::mcp_make_initialize_result(
+  const auto envelope{sourcemeta::core::mcp_make_initialize_response(
       request, capabilities, server, SUPPORTED)};
 
   EXPECT_EQ(envelope.at("result").at("protocolVersion").to_string(),
@@ -1353,7 +1370,7 @@ TEST(mrtr_input_required_result) {
           })JSON"));
   input_requests.assign("confirm", std::move(input_request));
 
-  const auto envelope{sourcemeta::core::mcp_make_input_required_result(
+  const auto envelope{sourcemeta::core::mcp_make_input_required_response(
       sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tools/call",
       identifier, std::move(input_requests), "opaque-state-token-123",
       sourcemeta::core::MCPClientCapabilities{.elicitation = true,
@@ -1745,7 +1762,7 @@ TEST(make_initialize_result_negotiates_up_from_an_unknown_revision) {
       {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
   const sourcemeta::core::MCPImplementation server{.name = "srv",
                                                    .version = "1.0.0"};
-  EXPECT_EQ(sourcemeta::core::mcp_make_initialize_result(
+  EXPECT_EQ(sourcemeta::core::mcp_make_initialize_response(
                 sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "id": 1,
@@ -1773,7 +1790,7 @@ TEST(make_initialize_result_negotiates_up_from_an_unknown_revision) {
 TEST(make_empty_result_with_server_information) {
   const sourcemeta::core::MCPImplementation server{.name = "srv",
                                                    .version = "1.0.0"};
-  EXPECT_EQ(sourcemeta::core::mcp_make_empty_result(
+  EXPECT_EQ(sourcemeta::core::mcp_make_empty_response(
                 sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                 sourcemeta::core::JSON{100}, server),
             sourcemeta::core::parse_json(R"JSON({
@@ -1791,7 +1808,7 @@ TEST(make_empty_result_with_server_information) {
 TEST(make_empty_result_ignores_server_information_on_2025_11_25) {
   const sourcemeta::core::MCPImplementation server{.name = "srv",
                                                    .version = "1.0.0"};
-  EXPECT_EQ(sourcemeta::core::mcp_make_empty_result(
+  EXPECT_EQ(sourcemeta::core::mcp_make_empty_response(
                 sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
                 sourcemeta::core::JSON{100}, server),
             sourcemeta::core::parse_json(
@@ -2063,7 +2080,7 @@ TEST(result_type_rejects_boolean_2026_07_28) {
 
 TEST(empty_result_rejects_null_id_2025_03_26) {
   const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_03_26};
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_response(
                          version, sourcemeta::core::JSON{nullptr}),
                      "MCP identifiers must be strings or integers");
 }
@@ -2077,7 +2094,7 @@ TEST(tool_error_rejects_null_id_2025_03_26) {
 
 TEST(empty_result_rejects_boolean_id_2025_03_26) {
   const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_03_26};
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_response(
                          version, sourcemeta::core::JSON{true}),
                      "MCP identifiers must be strings or integers");
 }
@@ -2091,7 +2108,7 @@ TEST(tool_error_rejects_boolean_id_2025_03_26) {
 
 TEST(empty_result_rejects_real_id_2025_03_26) {
   const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_03_26};
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_response(
                          version, sourcemeta::core::JSON{1.5}),
                      "MCP identifiers must be strings or integers");
 }
@@ -2105,7 +2122,7 @@ TEST(tool_error_rejects_real_id_2025_03_26) {
 
 TEST(empty_result_rejects_array_id_2025_03_26) {
   const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_03_26};
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_response(
                          version, sourcemeta::core::JSON::make_array()),
                      "MCP identifiers must be strings or integers");
 }
@@ -2120,7 +2137,7 @@ TEST(tool_error_rejects_array_id_2025_03_26) {
 
 TEST(empty_result_rejects_object_id_2025_03_26) {
   const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_03_26};
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_response(
                          version, sourcemeta::core::JSON::make_object()),
                      "MCP identifiers must be strings or integers");
 }
@@ -2135,23 +2152,23 @@ TEST(tool_error_rejects_object_id_2025_03_26) {
 
 TEST(empty_result_accepts_zero_id_2025_03_26) {
   const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_03_26};
-  EXPECT_EQ(sourcemeta::core::mcp_make_empty_result(version,
-                                                    sourcemeta::core::JSON{0})
+  EXPECT_EQ(sourcemeta::core::mcp_make_empty_response(version,
+                                                      sourcemeta::core::JSON{0})
                 .at("id"),
             sourcemeta::core::JSON{0});
 }
 
 TEST(empty_result_accepts_empty_string_id_2025_03_26) {
   const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_03_26};
-  EXPECT_EQ(sourcemeta::core::mcp_make_empty_result(version,
-                                                    sourcemeta::core::JSON{""})
+  EXPECT_EQ(sourcemeta::core::mcp_make_empty_response(
+                version, sourcemeta::core::JSON{""})
                 .at("id"),
             sourcemeta::core::JSON{""});
 }
 
 TEST(empty_result_rejects_null_id_2025_06_18) {
   const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_06_18};
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_response(
                          version, sourcemeta::core::JSON{nullptr}),
                      "MCP identifiers must be strings or integers");
 }
@@ -2165,7 +2182,7 @@ TEST(tool_error_rejects_null_id_2025_06_18) {
 
 TEST(empty_result_rejects_boolean_id_2025_06_18) {
   const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_06_18};
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_response(
                          version, sourcemeta::core::JSON{true}),
                      "MCP identifiers must be strings or integers");
 }
@@ -2179,7 +2196,7 @@ TEST(tool_error_rejects_boolean_id_2025_06_18) {
 
 TEST(empty_result_rejects_real_id_2025_06_18) {
   const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_06_18};
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_response(
                          version, sourcemeta::core::JSON{1.5}),
                      "MCP identifiers must be strings or integers");
 }
@@ -2193,7 +2210,7 @@ TEST(tool_error_rejects_real_id_2025_06_18) {
 
 TEST(empty_result_rejects_array_id_2025_06_18) {
   const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_06_18};
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_response(
                          version, sourcemeta::core::JSON::make_array()),
                      "MCP identifiers must be strings or integers");
 }
@@ -2208,7 +2225,7 @@ TEST(tool_error_rejects_array_id_2025_06_18) {
 
 TEST(empty_result_rejects_object_id_2025_06_18) {
   const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_06_18};
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_response(
                          version, sourcemeta::core::JSON::make_object()),
                      "MCP identifiers must be strings or integers");
 }
@@ -2223,23 +2240,23 @@ TEST(tool_error_rejects_object_id_2025_06_18) {
 
 TEST(empty_result_accepts_zero_id_2025_06_18) {
   const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_06_18};
-  EXPECT_EQ(sourcemeta::core::mcp_make_empty_result(version,
-                                                    sourcemeta::core::JSON{0})
+  EXPECT_EQ(sourcemeta::core::mcp_make_empty_response(version,
+                                                      sourcemeta::core::JSON{0})
                 .at("id"),
             sourcemeta::core::JSON{0});
 }
 
 TEST(empty_result_accepts_empty_string_id_2025_06_18) {
   const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_06_18};
-  EXPECT_EQ(sourcemeta::core::mcp_make_empty_result(version,
-                                                    sourcemeta::core::JSON{""})
+  EXPECT_EQ(sourcemeta::core::mcp_make_empty_response(
+                version, sourcemeta::core::JSON{""})
                 .at("id"),
             sourcemeta::core::JSON{""});
 }
 
 TEST(empty_result_rejects_null_id_2025_11_25) {
   const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_11_25};
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_response(
                          version, sourcemeta::core::JSON{nullptr}),
                      "MCP identifiers must be strings or integers");
 }
@@ -2253,7 +2270,7 @@ TEST(tool_error_rejects_null_id_2025_11_25) {
 
 TEST(empty_result_rejects_boolean_id_2025_11_25) {
   const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_11_25};
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_response(
                          version, sourcemeta::core::JSON{true}),
                      "MCP identifiers must be strings or integers");
 }
@@ -2267,7 +2284,7 @@ TEST(tool_error_rejects_boolean_id_2025_11_25) {
 
 TEST(empty_result_rejects_real_id_2025_11_25) {
   const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_11_25};
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_response(
                          version, sourcemeta::core::JSON{1.5}),
                      "MCP identifiers must be strings or integers");
 }
@@ -2281,7 +2298,7 @@ TEST(tool_error_rejects_real_id_2025_11_25) {
 
 TEST(empty_result_rejects_array_id_2025_11_25) {
   const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_11_25};
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_response(
                          version, sourcemeta::core::JSON::make_array()),
                      "MCP identifiers must be strings or integers");
 }
@@ -2296,7 +2313,7 @@ TEST(tool_error_rejects_array_id_2025_11_25) {
 
 TEST(empty_result_rejects_object_id_2025_11_25) {
   const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_11_25};
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_response(
                          version, sourcemeta::core::JSON::make_object()),
                      "MCP identifiers must be strings or integers");
 }
@@ -2311,23 +2328,23 @@ TEST(tool_error_rejects_object_id_2025_11_25) {
 
 TEST(empty_result_accepts_zero_id_2025_11_25) {
   const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_11_25};
-  EXPECT_EQ(sourcemeta::core::mcp_make_empty_result(version,
-                                                    sourcemeta::core::JSON{0})
+  EXPECT_EQ(sourcemeta::core::mcp_make_empty_response(version,
+                                                      sourcemeta::core::JSON{0})
                 .at("id"),
             sourcemeta::core::JSON{0});
 }
 
 TEST(empty_result_accepts_empty_string_id_2025_11_25) {
   const auto version{sourcemeta::core::MCPProtocolVersion::V_2025_11_25};
-  EXPECT_EQ(sourcemeta::core::mcp_make_empty_result(version,
-                                                    sourcemeta::core::JSON{""})
+  EXPECT_EQ(sourcemeta::core::mcp_make_empty_response(
+                version, sourcemeta::core::JSON{""})
                 .at("id"),
             sourcemeta::core::JSON{""});
 }
 
 TEST(empty_result_rejects_null_id_2026_07_28) {
   const auto version{sourcemeta::core::MCPProtocolVersion::V_2026_07_28};
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_response(
                          version, sourcemeta::core::JSON{nullptr}),
                      "MCP identifiers must be strings or integers");
 }
@@ -2341,7 +2358,7 @@ TEST(tool_error_rejects_null_id_2026_07_28) {
 
 TEST(empty_result_rejects_boolean_id_2026_07_28) {
   const auto version{sourcemeta::core::MCPProtocolVersion::V_2026_07_28};
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_response(
                          version, sourcemeta::core::JSON{true}),
                      "MCP identifiers must be strings or integers");
 }
@@ -2355,7 +2372,7 @@ TEST(tool_error_rejects_boolean_id_2026_07_28) {
 
 TEST(empty_result_rejects_real_id_2026_07_28) {
   const auto version{sourcemeta::core::MCPProtocolVersion::V_2026_07_28};
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_response(
                          version, sourcemeta::core::JSON{1.5}),
                      "MCP identifiers must be strings or integers");
 }
@@ -2369,7 +2386,7 @@ TEST(tool_error_rejects_real_id_2026_07_28) {
 
 TEST(empty_result_rejects_array_id_2026_07_28) {
   const auto version{sourcemeta::core::MCPProtocolVersion::V_2026_07_28};
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_response(
                          version, sourcemeta::core::JSON::make_array()),
                      "MCP identifiers must be strings or integers");
 }
@@ -2384,7 +2401,7 @@ TEST(tool_error_rejects_array_id_2026_07_28) {
 
 TEST(empty_result_rejects_object_id_2026_07_28) {
   const auto version{sourcemeta::core::MCPProtocolVersion::V_2026_07_28};
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_empty_response(
                          version, sourcemeta::core::JSON::make_object()),
                      "MCP identifiers must be strings or integers");
 }
@@ -2399,16 +2416,16 @@ TEST(tool_error_rejects_object_id_2026_07_28) {
 
 TEST(empty_result_accepts_zero_id_2026_07_28) {
   const auto version{sourcemeta::core::MCPProtocolVersion::V_2026_07_28};
-  EXPECT_EQ(sourcemeta::core::mcp_make_empty_result(version,
-                                                    sourcemeta::core::JSON{0})
+  EXPECT_EQ(sourcemeta::core::mcp_make_empty_response(version,
+                                                      sourcemeta::core::JSON{0})
                 .at("id"),
             sourcemeta::core::JSON{0});
 }
 
 TEST(empty_result_accepts_empty_string_id_2026_07_28) {
   const auto version{sourcemeta::core::MCPProtocolVersion::V_2026_07_28};
-  EXPECT_EQ(sourcemeta::core::mcp_make_empty_result(version,
-                                                    sourcemeta::core::JSON{""})
+  EXPECT_EQ(sourcemeta::core::mcp_make_empty_response(
+                version, sourcemeta::core::JSON{""})
                 .at("id"),
             sourcemeta::core::JSON{""});
 }
@@ -2426,7 +2443,7 @@ TEST(initialize_supported_subset) {
           "clientInfo": { "name": "client", "version": "1" }
         }
       })JSON")};
-  const auto result{sourcemeta::core::mcp_make_initialize_result(
+  const auto result{sourcemeta::core::mcp_make_initialize_response(
       init, {}, {.name = "server", .version = "1"}, only)};
   EXPECT_EQ(result.at("result").at("protocolVersion"),
             sourcemeta::core::JSON{"2025-03-26"});
@@ -2447,8 +2464,8 @@ TEST(initialize_missing_client_info) {
       })JSON")};
   auto invalid{init};
   invalid.at("params").erase("clientInfo");
-  EXPECT_EQ(sourcemeta::core::mcp_make_initialize_result(invalid, {},
-                                                         {"server", "1"}, only)
+  EXPECT_EQ(sourcemeta::core::mcp_make_initialize_response(
+                invalid, {}, {"server", "1"}, only)
                 .at("error")
                 .at("code"),
             sourcemeta::core::JSON{-32602});
@@ -2471,7 +2488,7 @@ TEST(initialize_invalid_identifier) {
   auto invalid{init};
   invalid.at("params").erase("clientInfo");
   invalid.assign("id", sourcemeta::core::JSON{});
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_initialize_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_initialize_response(
                          invalid, {}, {.name = "server", .version = "1"}, only),
                      "This MCP revision requires a readable error identifier");
 }
@@ -2491,7 +2508,7 @@ TEST(initialize_rejects_modern_only_support) {
   const std::array<sourcemeta::core::JSON::StringView, 1> modern_only{
       {"2026-07-28"}};
   EXPECT_MCP_REJECTS(
-      sourcemeta::core::mcp_make_initialize_result(
+      sourcemeta::core::mcp_make_initialize_response(
           init, {}, {.name = "server", .version = "1"}, modern_only),
       "No initialization-compatible version is supported");
 }
@@ -2585,18 +2602,16 @@ TEST(decorate_cacheable_result_rejects_a_non_cacheable_operation) {
 // A time to live is a count of milliseconds, so a negative hint becomes an
 // immediately stale one
 // https://modelcontextprotocol.io/specification/2026-07-28/server/utilities/caching#time-to-live-ttl-field
-TEST(decorate_cacheable_result_clamps_a_negative_time_to_live) {
-  EXPECT_EQ(
+// The schema bounds the hint below by zero, so a negative one is refused
+// https://modelcontextprotocol.io/specification/2026-07-28/server/utilities/caching#cacheable-results
+TEST(decorate_cacheable_result_rejects_a_negative_time_to_live) {
+  EXPECT_MCP_REJECTS(
       sourcemeta::core::mcp_decorate_cacheable_result(
           sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
           sourcemeta::core::JSON::make_object(),
           {.ttl_ms = -4, .scope = sourcemeta::core::MCPCacheScope::Private},
           "resources/read"),
-      sourcemeta::core::parse_json(R"JSON({
-    "resultType": "complete",
-    "ttlMs": 0,
-    "cacheScope": "private"
-  })JSON"));
+      "A cache time to live cannot be negative");
 }
 
 TEST(decorate_result_rejects_incomplete_server_information) {
@@ -3074,7 +3089,7 @@ TEST(input_required_result_with_a_roots_request) {
   capabilities.elicitation = true;
   capabilities.elicitation_url = true;
   capabilities.elicitation_form = true;
-  EXPECT_EQ(sourcemeta::core::mcp_make_input_required_result(
+  EXPECT_EQ(sourcemeta::core::mcp_make_input_required_response(
                 sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                 "tools/call", sourcemeta::core::JSON{0},
                 sourcemeta::core::parse_json(
@@ -3093,7 +3108,7 @@ TEST(input_required_result_with_a_url_elicitation) {
   capabilities.elicitation = true;
   capabilities.elicitation_url = true;
   capabilities.elicitation_form = true;
-  EXPECT_EQ(sourcemeta::core::mcp_make_input_required_result(
+  EXPECT_EQ(sourcemeta::core::mcp_make_input_required_response(
                 sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                 "tools/call", sourcemeta::core::JSON{0},
                 sourcemeta::core::parse_json(R"JSON({
@@ -3119,7 +3134,7 @@ TEST(input_required_result_rejects_a_relative_elicitation_url) {
   sourcemeta::core::MCPClientCapabilities capabilities;
   capabilities.elicitation = true;
   capabilities.elicitation_url = true;
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
                          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                          "tools/call", sourcemeta::core::JSON{0},
                          sourcemeta::core::parse_json(R"JSON({
@@ -3140,7 +3155,7 @@ TEST(input_required_result_rejects_a_malformed_elicitation_url) {
   sourcemeta::core::MCPClientCapabilities capabilities;
   capabilities.elicitation = true;
   capabilities.elicitation_url = true;
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
                          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                          "tools/call", sourcemeta::core::JSON{0},
                          sourcemeta::core::parse_json(R"JSON({
@@ -3163,7 +3178,7 @@ TEST(input_required_result_accepts_a_non_web_elicitation_url) {
   sourcemeta::core::MCPClientCapabilities capabilities;
   capabilities.elicitation = true;
   capabilities.elicitation_url = true;
-  EXPECT_EQ(sourcemeta::core::mcp_make_input_required_result(
+  EXPECT_EQ(sourcemeta::core::mcp_make_input_required_response(
                 sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                 "tools/call", sourcemeta::core::JSON{0},
                 sourcemeta::core::parse_json(R"JSON({
@@ -3190,7 +3205,7 @@ TEST(input_required_result_with_a_form_elicitation) {
   capabilities.elicitation = true;
   capabilities.elicitation_url = true;
   capabilities.elicitation_form = true;
-  EXPECT_EQ(sourcemeta::core::mcp_make_input_required_result(
+  EXPECT_EQ(sourcemeta::core::mcp_make_input_required_response(
                 sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                 "tools/call", sourcemeta::core::JSON{0},
                 sourcemeta::core::parse_json(R"JSON({
@@ -3224,7 +3239,7 @@ TEST(input_required_result_with_a_sampling_request) {
   capabilities.elicitation = true;
   capabilities.elicitation_url = true;
   capabilities.elicitation_form = true;
-  EXPECT_EQ(sourcemeta::core::mcp_make_input_required_result(
+  EXPECT_EQ(sourcemeta::core::mcp_make_input_required_response(
                 sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                 "tools/call", sourcemeta::core::JSON{0},
                 sourcemeta::core::parse_json(R"JSON({
@@ -3275,7 +3290,7 @@ TEST(input_required_result_rejects_non_object_roots_parameters) {
   capabilities.elicitation = true;
   capabilities.elicitation_url = true;
   capabilities.elicitation_form = true;
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
                          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                          "tools/call", sourcemeta::core::JSON{0},
                          sourcemeta::core::parse_json(
@@ -3296,7 +3311,7 @@ TEST(input_required_result_rejects_a_non_object_elicitation_schema) {
   capabilities.elicitation = true;
   capabilities.elicitation_url = true;
   capabilities.elicitation_form = true;
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
                          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                          "tools/call", sourcemeta::core::JSON{0},
                          sourcemeta::core::parse_json(R"JSON({
@@ -3318,7 +3333,7 @@ TEST(input_required_result_rejects_an_elicitation_schema_without_properties) {
   sourcemeta::core::MCPClientCapabilities capabilities;
   capabilities.elicitation = true;
   capabilities.elicitation_form = true;
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
                          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                          "tools/call", sourcemeta::core::JSON{0},
                          sourcemeta::core::parse_json(R"JSON({
@@ -3338,7 +3353,7 @@ TEST(input_required_result_rejects_non_object_elicitation_properties) {
   sourcemeta::core::MCPClientCapabilities capabilities;
   capabilities.elicitation = true;
   capabilities.elicitation_form = true;
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
                          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                          "tools/call", sourcemeta::core::JSON{0},
                          sourcemeta::core::parse_json(R"JSON({
@@ -3360,7 +3375,7 @@ TEST(input_required_result_accepts_an_uninterpreted_property_schema) {
   sourcemeta::core::MCPClientCapabilities capabilities;
   capabilities.elicitation = true;
   capabilities.elicitation_form = true;
-  const auto envelope{sourcemeta::core::mcp_make_input_required_result(
+  const auto envelope{sourcemeta::core::mcp_make_input_required_response(
       sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tools/call",
       sourcemeta::core::JSON{0}, sourcemeta::core::parse_json(R"JSON({
     "r": {
@@ -3513,7 +3528,7 @@ TEST(tool_success_ignores_server_information_on_2025_11_25) {
 TEST(input_required_result_carries_server_information) {
   const sourcemeta::core::MCPImplementation server{.name = "srv",
                                                    .version = "1.0.0"};
-  EXPECT_EQ(sourcemeta::core::mcp_make_input_required_result(
+  EXPECT_EQ(sourcemeta::core::mcp_make_input_required_response(
                 sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                 "tools/call", sourcemeta::core::JSON{50}, std::nullopt, "token",
                 sourcemeta::core::MCPClientCapabilities{}, server),
@@ -3536,7 +3551,7 @@ TEST(input_required_result_carries_server_information) {
 TEST(subscription_close_result_carries_server_information) {
   const sourcemeta::core::MCPImplementation server{.name = "srv",
                                                    .version = "1.0.0"};
-  EXPECT_EQ(sourcemeta::core::mcp_make_subscription_close_result(
+  EXPECT_EQ(sourcemeta::core::mcp_make_subscription_close_response(
                 sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                 sourcemeta::core::JSON{"sub-1"}, server),
             sourcemeta::core::parse_json(R"JSON({
@@ -3565,7 +3580,7 @@ TEST(input_required_result_rejects_a_resource_link_sampling_message) {
   capabilities.elicitation = true;
   capabilities.elicitation_url = true;
   capabilities.elicitation_form = true;
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
                          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                          "tools/call", sourcemeta::core::JSON{0},
                          sourcemeta::core::parse_json(R"JSON({
@@ -3598,7 +3613,7 @@ TEST(input_required_result_rejects_a_non_numeric_temperature) {
   capabilities.elicitation = true;
   capabilities.elicitation_url = true;
   capabilities.elicitation_form = true;
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
                          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                          "tools/call", sourcemeta::core::JSON{0},
                          sourcemeta::core::parse_json(R"JSON({
@@ -3625,7 +3640,7 @@ TEST(input_required_result_rejects_an_out_of_range_model_priority) {
   capabilities.elicitation = true;
   capabilities.elicitation_url = true;
   capabilities.elicitation_form = true;
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
                          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                          "tools/call", sourcemeta::core::JSON{0},
                          sourcemeta::core::parse_json(R"JSON({
@@ -3650,7 +3665,7 @@ TEST(input_required_result_rejects_an_unknown_tool_choice_mode) {
   capabilities.elicitation = true;
   capabilities.elicitation_url = true;
   capabilities.elicitation_form = true;
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
                          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                          "tools/call", sourcemeta::core::JSON{0},
                          sourcemeta::core::parse_json(R"JSON({
@@ -3671,7 +3686,7 @@ TEST(input_required_result_rejects_an_unknown_tool_choice_mode) {
 // interim result
 // https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/mrtr#supported-requests
 TEST(input_required_result_rejects_tools_list) {
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
                          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                          "tools/list", sourcemeta::core::JSON{0}, std::nullopt,
                          "token", {}),
@@ -3679,7 +3694,7 @@ TEST(input_required_result_rejects_tools_list) {
 }
 
 TEST(input_required_result_rejects_prompts_list) {
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
                          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                          "prompts/list", sourcemeta::core::JSON{0},
                          std::nullopt, "token", {}),
@@ -3687,7 +3702,7 @@ TEST(input_required_result_rejects_prompts_list) {
 }
 
 TEST(input_required_result_rejects_server_discover) {
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
                          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                          "server/discover", sourcemeta::core::JSON{0},
                          std::nullopt, "token", {}),
@@ -3695,7 +3710,7 @@ TEST(input_required_result_rejects_server_discover) {
 }
 
 TEST(input_required_result_rejects_2025_03_26) {
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
                          sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
                          "tools/call", sourcemeta::core::JSON{0}, std::nullopt,
                          "token", {}),
@@ -3703,7 +3718,7 @@ TEST(input_required_result_rejects_2025_03_26) {
 }
 
 TEST(input_required_result_rejects_2025_06_18) {
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
                          sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
                          "tools/call", sourcemeta::core::JSON{0}, std::nullopt,
                          "token", {}),
@@ -3711,7 +3726,7 @@ TEST(input_required_result_rejects_2025_06_18) {
 }
 
 TEST(input_required_result_rejects_2025_11_25) {
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
                          sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
                          "tools/call", sourcemeta::core::JSON{0}, std::nullopt,
                          "token", {}),
@@ -3721,7 +3736,7 @@ TEST(input_required_result_rejects_2025_11_25) {
 // An interim result carries input requests, a state token, or both
 // https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/mrtr#inputrequiredresult
 TEST(input_required_result_requires_requests_or_state) {
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
                          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                          "tools/call", sourcemeta::core::JSON{0}, std::nullopt,
                          std::nullopt, {}),
@@ -3772,7 +3787,7 @@ TEST(request_input_responses_of_a_non_mrtr_method) {
 }
 
 TEST(make_empty_result_2025_03_26) {
-  EXPECT_EQ(sourcemeta::core::mcp_make_empty_result(
+  EXPECT_EQ(sourcemeta::core::mcp_make_empty_response(
                 sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
                 sourcemeta::core::JSON{0}),
             sourcemeta::core::parse_json(
@@ -3780,7 +3795,7 @@ TEST(make_empty_result_2025_03_26) {
 }
 
 TEST(make_empty_result_2025_06_18) {
-  EXPECT_EQ(sourcemeta::core::mcp_make_empty_result(
+  EXPECT_EQ(sourcemeta::core::mcp_make_empty_response(
                 sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
                 sourcemeta::core::JSON{0}),
             sourcemeta::core::parse_json(
@@ -3788,7 +3803,7 @@ TEST(make_empty_result_2025_06_18) {
 }
 
 TEST(make_empty_result_2025_11_25) {
-  EXPECT_EQ(sourcemeta::core::mcp_make_empty_result(
+  EXPECT_EQ(sourcemeta::core::mcp_make_empty_response(
                 sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
                 sourcemeta::core::JSON{0}),
             sourcemeta::core::parse_json(
@@ -3796,7 +3811,7 @@ TEST(make_empty_result_2025_11_25) {
 }
 
 TEST(make_empty_result_2026_07_28) {
-  EXPECT_EQ(sourcemeta::core::mcp_make_empty_result(
+  EXPECT_EQ(sourcemeta::core::mcp_make_empty_response(
                 sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                 sourcemeta::core::JSON{0}),
             sourcemeta::core::parse_json(R"JSON({
@@ -4567,7 +4582,7 @@ TEST(make_initialize_result_2025_03_26) {
                                                    .description = "Description",
                                                    .website_url =
                                                        "https://example.com"};
-  EXPECT_EQ(sourcemeta::core::mcp_make_initialize_result(
+  EXPECT_EQ(sourcemeta::core::mcp_make_initialize_response(
                 sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "id": 0,
@@ -4599,7 +4614,7 @@ TEST(make_initialize_result_2025_06_18) {
                                                    .description = "Description",
                                                    .website_url =
                                                        "https://example.com"};
-  EXPECT_EQ(sourcemeta::core::mcp_make_initialize_result(
+  EXPECT_EQ(sourcemeta::core::mcp_make_initialize_response(
                 sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "id": 0,
@@ -4631,7 +4646,7 @@ TEST(make_initialize_result_2025_11_25) {
                                                    .description = "Description",
                                                    .website_url =
                                                        "https://example.com"};
-  EXPECT_EQ(sourcemeta::core::mcp_make_initialize_result(
+  EXPECT_EQ(sourcemeta::core::mcp_make_initialize_response(
                 sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "id": 0,
@@ -4669,7 +4684,7 @@ TEST(make_server_discover_result) {
                                                    .description = "Description",
                                                    .website_url =
                                                        "https://example.com"};
-  EXPECT_EQ(sourcemeta::core::mcp_make_server_discover_result(
+  EXPECT_EQ(sourcemeta::core::mcp_make_server_discover_response(
                 sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                 sourcemeta::core::JSON{0}, {}, server, SUPPORTED,
                 "instructions", {}),
@@ -4702,7 +4717,7 @@ TEST(make_server_discover_result) {
 }
 
 TEST(make_input_required_result_from_request_state) {
-  EXPECT_EQ(sourcemeta::core::mcp_make_input_required_result(
+  EXPECT_EQ(sourcemeta::core::mcp_make_input_required_response(
                 sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                 "resources/read", sourcemeta::core::JSON{0}, std::nullopt,
                 "state", {}),
@@ -5316,7 +5331,7 @@ TEST(validate_continuation_rejects_content_on_a_cancelled_elicitation) {
 TEST(input_required_result_accepts_a_fractional_token_budget) {
   sourcemeta::core::MCPClientCapabilities capabilities;
   capabilities.sampling = true;
-  EXPECT_EQ(sourcemeta::core::mcp_make_input_required_result(
+  EXPECT_EQ(sourcemeta::core::mcp_make_input_required_response(
                 sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                 "tools/call", sourcemeta::core::JSON{0},
                 sourcemeta::core::parse_json(R"JSON({
@@ -5334,7 +5349,7 @@ TEST(input_required_result_accepts_a_fractional_token_budget) {
 TEST(input_required_result_accepts_a_zero_token_budget) {
   sourcemeta::core::MCPClientCapabilities capabilities;
   capabilities.sampling = true;
-  EXPECT_EQ(sourcemeta::core::mcp_make_input_required_result(
+  EXPECT_EQ(sourcemeta::core::mcp_make_input_required_response(
                 sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                 "tools/call", sourcemeta::core::JSON{0},
                 sourcemeta::core::parse_json(R"JSON({
@@ -5352,7 +5367,7 @@ TEST(input_required_result_accepts_a_zero_token_budget) {
 TEST(input_required_result_accepts_a_negative_token_budget) {
   sourcemeta::core::MCPClientCapabilities capabilities;
   capabilities.sampling = true;
-  EXPECT_EQ(sourcemeta::core::mcp_make_input_required_result(
+  EXPECT_EQ(sourcemeta::core::mcp_make_input_required_response(
                 sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                 "tools/call", sourcemeta::core::JSON{0},
                 sourcemeta::core::parse_json(R"JSON({
@@ -6698,7 +6713,7 @@ TEST(input_required_result_carries_enum_form_schemas_through) {
       }
     }
   })JSON")};
-  EXPECT_EQ(sourcemeta::core::mcp_make_input_required_result(
+  EXPECT_EQ(sourcemeta::core::mcp_make_input_required_response(
                 sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                 "tools/call", sourcemeta::core::JSON{0}, requests, std::nullopt,
                 capabilities)
@@ -6832,12 +6847,59 @@ TEST(resources_list_result_rejects_a_malformed_key_entry_metadata) {
 // and a value this module builds is held to that format anyway, since the
 // recommendation is addressed to whoever writes the value
 // https://modelcontextprotocol.io/specification/2026-07-28/basic/index#general-fields
+// A resource built through a content builder never passes through a list
+// builder, so the two fields it carries are checked where they are written
+// rather than left to a path it does not take
+// https://modelcontextprotocol.io/specification/2026-07-28/server/resources#security-considerations
+TEST(resource_text_content_rejects_a_relative_uri) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_resource_text_content(
+                         "relative/path", "text/plain", "hello"),
+                     "Invalid resource contents");
+}
+
+TEST(resource_text_content_rejects_a_malformed_media_type) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_resource_text_content(
+                         "file:///r", "not a media type", "hello"),
+                     "Invalid resource contents");
+}
+
+TEST(resource_text_content_accepts_an_absent_media_type) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_resource_text_content("file:///r", "",
+                                                             "hello"),
+            sourcemeta::core::parse_json(R"JSON({
+    "uri": "file:///r",
+    "text": "hello"
+  })JSON"));
+}
+
+TEST(resource_blob_content_rejects_a_relative_uri) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_resource_blob_content(
+                         "relative/path", "image/png", "AAAA"),
+                     "Invalid resource contents");
+}
+
+TEST(resource_blob_content_rejects_a_malformed_media_type) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_resource_blob_content(
+                         "file:///r", "not a media type", "AAAA"),
+                     "Invalid resource contents");
+}
+
+TEST(resource_blob_content_accepts_a_well_formed_pair) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_resource_blob_content(
+                "file:///r", "image/png", "AAAA"),
+            sourcemeta::core::parse_json(R"JSON({
+    "uri": "file:///r",
+    "mimeType": "image/png",
+    "blob": "AAAA"
+  })JSON"));
+}
+
 TEST(resources_list_result_rejects_a_relative_uri) {
   EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_resources_list_result(
                          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                          sourcemeta::core::parse_json(
                              R"JSON([
-                               { "name": "r", "uri": "not a uri" }
+                               { "name": "r", "uri": "relative/path" }
                              ])JSON"),
                          std::nullopt, {}),
                      "Invalid MCP resource descriptor entry");
@@ -6855,6 +6917,17 @@ TEST(resources_list_result_accepts_an_absolute_uri) {
     "ttlMs": 0,
     "cacheScope": "private"
   })JSON"));
+}
+
+TEST(resources_list_result_rejects_a_uri_that_is_not_one) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_resources_list_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         sourcemeta::core::parse_json(
+                             R"JSON([
+                               { "name": "r", "uri": "not a uri" }
+                             ])JSON"),
+                         std::nullopt, {}),
+                     "Invalid MCP resource descriptor entry");
 }
 
 TEST(resources_list_result_rejects_a_malformed_media_type) {
@@ -7405,7 +7478,7 @@ TEST(embedded_resource_metadata) {
 TEST(input_required_result_rejects_a_boolean_in_roots_list_metadata) {
   sourcemeta::core::MCPClientCapabilities capabilities;
   capabilities.roots = true;
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
                          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                          "tools/call", sourcemeta::core::JSON{1},
                          sourcemeta::core::parse_json(R"JSON({
@@ -7418,7 +7491,7 @@ TEST(input_required_result_rejects_a_boolean_in_roots_list_metadata) {
 TEST(input_required_result_rejects_a_null_in_roots_list_metadata) {
   sourcemeta::core::MCPClientCapabilities capabilities;
   capabilities.roots = true;
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
                          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                          "tools/call", sourcemeta::core::JSON{1},
                          sourcemeta::core::parse_json(R"JSON({
@@ -7431,7 +7504,7 @@ TEST(input_required_result_rejects_a_null_in_roots_list_metadata) {
 TEST(input_required_result_rejects_an_array_in_roots_list_metadata) {
   sourcemeta::core::MCPClientCapabilities capabilities;
   capabilities.roots = true;
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
                          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                          "tools/call", sourcemeta::core::JSON{1},
                          sourcemeta::core::parse_json(R"JSON({
@@ -7444,7 +7517,7 @@ TEST(input_required_result_rejects_an_array_in_roots_list_metadata) {
 TEST(input_required_result_rejects_a_malformed_key_in_roots_list_metadata) {
   sourcemeta::core::MCPClientCapabilities capabilities;
   capabilities.roots = true;
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
                          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                          "tools/call", sourcemeta::core::JSON{1},
                          sourcemeta::core::parse_json(R"JSON({
@@ -7461,7 +7534,7 @@ TEST(
     input_required_result_rejects_a_malformed_traceparent_in_roots_list_metadata) {
   sourcemeta::core::MCPClientCapabilities capabilities;
   capabilities.roots = true;
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
                          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                          "tools/call", sourcemeta::core::JSON{1},
                          sourcemeta::core::parse_json(R"JSON({
@@ -7478,7 +7551,7 @@ TEST(input_required_result_rejects_a_boolean_in_elicitation_create_metadata) {
   sourcemeta::core::MCPClientCapabilities capabilities;
   capabilities.elicitation = true;
   capabilities.elicitation_form = true;
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
                          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                          "tools/call", sourcemeta::core::JSON{1},
                          sourcemeta::core::parse_json(R"JSON({
@@ -7499,7 +7572,7 @@ TEST(input_required_result_rejects_a_null_in_elicitation_create_metadata) {
   sourcemeta::core::MCPClientCapabilities capabilities;
   capabilities.elicitation = true;
   capabilities.elicitation_form = true;
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
                          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                          "tools/call", sourcemeta::core::JSON{1},
                          sourcemeta::core::parse_json(R"JSON({
@@ -7520,7 +7593,7 @@ TEST(input_required_result_rejects_an_array_in_elicitation_create_metadata) {
   sourcemeta::core::MCPClientCapabilities capabilities;
   capabilities.elicitation = true;
   capabilities.elicitation_form = true;
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
                          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                          "tools/call", sourcemeta::core::JSON{1},
                          sourcemeta::core::parse_json(R"JSON({
@@ -7542,7 +7615,7 @@ TEST(
   sourcemeta::core::MCPClientCapabilities capabilities;
   capabilities.elicitation = true;
   capabilities.elicitation_form = true;
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
                          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                          "tools/call", sourcemeta::core::JSON{1},
                          sourcemeta::core::parse_json(R"JSON({
@@ -7564,7 +7637,7 @@ TEST(
   sourcemeta::core::MCPClientCapabilities capabilities;
   capabilities.elicitation = true;
   capabilities.elicitation_form = true;
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
                          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                          "tools/call", sourcemeta::core::JSON{1},
                          sourcemeta::core::parse_json(R"JSON({
@@ -7585,7 +7658,7 @@ TEST(
     input_required_result_rejects_a_boolean_in_sampling_create_message_metadata) {
   sourcemeta::core::MCPClientCapabilities capabilities;
   capabilities.sampling = true;
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
                          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                          "tools/call", sourcemeta::core::JSON{1},
                          sourcemeta::core::parse_json(R"JSON({
@@ -7610,7 +7683,7 @@ TEST(
 TEST(input_required_result_rejects_a_null_in_sampling_create_message_metadata) {
   sourcemeta::core::MCPClientCapabilities capabilities;
   capabilities.sampling = true;
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
                          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                          "tools/call", sourcemeta::core::JSON{1},
                          sourcemeta::core::parse_json(R"JSON({
@@ -7636,7 +7709,7 @@ TEST(
     input_required_result_rejects_an_array_in_sampling_create_message_metadata) {
   sourcemeta::core::MCPClientCapabilities capabilities;
   capabilities.sampling = true;
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
                          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                          "tools/call", sourcemeta::core::JSON{1},
                          sourcemeta::core::parse_json(R"JSON({
@@ -7662,7 +7735,7 @@ TEST(
     input_required_result_rejects_a_malformed_key_in_sampling_create_message_metadata) {
   sourcemeta::core::MCPClientCapabilities capabilities;
   capabilities.sampling = true;
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
                          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                          "tools/call", sourcemeta::core::JSON{1},
                          sourcemeta::core::parse_json(R"JSON({
@@ -7688,7 +7761,7 @@ TEST(
     input_required_result_rejects_a_malformed_traceparent_in_sampling_create_message_metadata) {
   sourcemeta::core::MCPClientCapabilities capabilities;
   capabilities.sampling = true;
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
                          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                          "tools/call", sourcemeta::core::JSON{1},
                          sourcemeta::core::parse_json(R"JSON({
@@ -7928,7 +8001,7 @@ TEST(sampling_history_accepts_tool_calls_answered_in_any_order) {
       }
     }
   })JSON")};
-  EXPECT_EQ(sourcemeta::core::mcp_make_input_required_result(
+  EXPECT_EQ(sourcemeta::core::mcp_make_input_required_response(
                 sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                 "tools/call", sourcemeta::core::JSON{1}, requests, std::nullopt,
                 capabilities)
@@ -7986,7 +8059,7 @@ TEST(sampling_history_requires_the_tool_use_capability) {
       }
     }
   })JSON")};
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
                          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                          "tools/call", sourcemeta::core::JSON{1}, requests,
                          std::nullopt, capabilities),
@@ -8017,7 +8090,7 @@ TEST(sampling_history_rejects_a_tool_call_from_a_user) {
       }
     }
   })JSON")};
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
                          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                          "tools/call", sourcemeta::core::JSON{1}, requests,
                          std::nullopt, capabilities),
@@ -8047,7 +8120,7 @@ TEST(sampling_history_rejects_an_unanswered_tool_call) {
       }
     }
   })JSON")};
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
                          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                          "tools/call", sourcemeta::core::JSON{1}, requests,
                          std::nullopt, capabilities),
@@ -8085,7 +8158,7 @@ TEST(sampling_history_rejects_a_tool_result_from_an_assistant) {
       }
     }
   })JSON")};
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
                          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                          "tools/call", sourcemeta::core::JSON{1}, requests,
                          std::nullopt, capabilities),
@@ -8128,7 +8201,7 @@ TEST(sampling_history_rejects_a_tool_result_mixed_with_other_content) {
       }
     }
   })JSON")};
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
                          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                          "tools/call", sourcemeta::core::JSON{1}, requests,
                          std::nullopt, capabilities),
@@ -8166,7 +8239,7 @@ TEST(sampling_history_rejects_an_unknown_tool_use_identifier) {
       }
     }
   })JSON")};
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
                          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                          "tools/call", sourcemeta::core::JSON{1}, requests,
                          std::nullopt, capabilities),
@@ -8214,7 +8287,7 @@ TEST(sampling_history_rejects_duplicate_tool_use_identifiers) {
       }
     }
   })JSON")};
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
                          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                          "tools/call", sourcemeta::core::JSON{1}, requests,
                          std::nullopt, capabilities),
@@ -8258,7 +8331,7 @@ TEST(sampling_history_rejects_an_interrupted_tool_call) {
       }
     }
   })JSON")};
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
                          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                          "tools/call", sourcemeta::core::JSON{1}, requests,
                          std::nullopt, capabilities),
@@ -8287,7 +8360,7 @@ TEST(sampling_history_rejects_an_orphan_tool_result) {
       }
     }
   })JSON")};
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
                          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                          "tools/call", sourcemeta::core::JSON{1}, requests,
                          std::nullopt, capabilities),
@@ -8325,7 +8398,7 @@ TEST(sampling_history_rejects_a_non_object_tool_input) {
       }
     }
   })JSON")};
-  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_result(
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
                          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                          "tools/call", sourcemeta::core::JSON{1}, requests,
                          std::nullopt, capabilities),
@@ -8727,7 +8800,7 @@ TEST(make_initialize_result_returns_invalid_request_when_params_is_an_array) {
                                                    .title = {},
                                                    .description = {},
                                                    .website_url = {}};
-  const auto envelope{sourcemeta::core::mcp_make_initialize_result(
+  const auto envelope{sourcemeta::core::mcp_make_initialize_response(
       request, capabilities, server, SUPPORTED)};
   EXPECT_EQ(envelope.at("error").at("code").to_integer(),
             sourcemeta::core::JSONRPC_CODE_INVALID_REQUEST);

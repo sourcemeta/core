@@ -3,10 +3,12 @@
 #include "helpers.h"
 #include "validation.h"
 
+#include <sourcemeta/core/http.h>
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonrpc.h>
+#include <sourcemeta/core/uri.h>
 
-#include <algorithm> // std::clamp, std::find, std::max
+#include <algorithm> // std::find
 #include <cmath>     // std::isfinite
 #include <optional>  // std::optional, std::nullopt
 #include <span>      // std::span
@@ -68,14 +70,18 @@ auto mcp_serialize_resource_annotations(
                              MCP_HASH_AUDIENCE);
   }
   if (annotations.priority.has_value()) {
-    // Annotation priority is a number between 0 and 1, and JSON has no
-    // representation for infinity or NaN, so a non-finite input is not a
-    // priority this builder can express
+    // The schema bounds this between zero and one, and JSON has no
+    // representation for infinity or NaN, so neither a non-finite input nor
+    // one outside the bounds is a priority this builder can express. Refusing
+    // rather than folding the value in is what keeps a caller of the typed
+    // struct and a caller handing over a descriptor the same answer
     // https://modelcontextprotocol.io/specification/2026-07-28/schema#annotations
     internal::require(std::isfinite(*annotations.priority),
                       "Annotation priority must be a finite number");
-    result.assign_assume_new("priority",
-                             JSON{std::clamp(*annotations.priority, 0.0, 1.0)},
+    internal::require(*annotations.priority >= 0.0 &&
+                          *annotations.priority <= 1.0,
+                      "Annotation priority must be between zero and one");
+    result.assign_assume_new("priority", JSON{*annotations.priority},
                              MCP_HASH_PRIORITY);
   }
   if (mcp_protocol_version_at_least(version,
@@ -88,6 +94,18 @@ auto mcp_serialize_resource_annotations(
 }
 
 namespace {
+// A resource built through one of these carries the same two fields a
+// descriptor passing through a list builder is held to, so building one
+// directly is held to them as well rather than slipping past
+auto require_resource_contents(const JSON::StringView uri,
+                               const JSON::StringView mime_type) -> void {
+  internal::require(
+      sourcemeta::core::URI::is_uri(uri) &&
+          (mime_type.empty() ||
+           sourcemeta::core::http_parse_media_type(mime_type).has_value()),
+      "Invalid resource contents");
+}
+
 auto media_block(const MCPProtocolVersion version, const JSON::StringView type,
                  const JSON::StringView data, const JSON::StringView mime_type,
                  const MCPResourceAnnotations &annotations) -> JSON {
@@ -140,6 +158,7 @@ auto mcp_make_embedded_resource(const MCPProtocolVersion version, JSON resource,
 auto mcp_make_resource_blob_content(const JSON::StringView uri,
                                     const JSON::StringView mime_type,
                                     const JSON::StringView blob) -> JSON {
+  require_resource_contents(uri, mime_type);
   auto result{JSON::make_object()};
   result.assign_assume_new("uri", JSON{uri}, MCP_HASH_URI);
   if (!mime_type.empty()) {
@@ -271,9 +290,10 @@ auto decorate_cacheable_result(const MCPProtocolVersion version,
   internal::require((result_type != nullptr) && result_type->is_string() &&
                         result_type->to_string() == "complete",
                     "Only complete results are cacheable");
-  const auto clamped_ttl{std::max<std::int64_t>(0, cache_policy.ttl_ms)};
+  internal::require(cache_policy.ttl_ms >= 0,
+                    "A cache time to live cannot be negative");
   // An already decorated result carries both hints, which this policy replaces
-  result.assign("ttlMs", sourcemeta::core::JSON{clamped_ttl});
+  result.assign("ttlMs", sourcemeta::core::JSON{cache_policy.ttl_ms});
   result.assign("cacheScope", sourcemeta::core::JSON{
                                   mcp_cache_scope_string(cache_policy.scope)});
 }
@@ -289,9 +309,9 @@ auto mcp_decorate_cacheable_result(const MCPProtocolVersion version,
   return result;
 }
 
-auto mcp_make_empty_result(const MCPProtocolVersion version,
-                           const sourcemeta::core::JSON &identifier,
-                           const std::optional<MCPImplementation> &server_info)
+auto mcp_make_empty_response(
+    const MCPProtocolVersion version, const sourcemeta::core::JSON &identifier,
+    const std::optional<MCPImplementation> &server_info)
     -> sourcemeta::core::JSON {
   auto result{sourcemeta::core::JSON::make_object()};
   return checked_success(
@@ -420,6 +440,7 @@ auto mcp_make_resource_text_content(const JSON::StringView uri,
                                     const JSON::StringView mime_type,
                                     const JSON::StringView text)
     -> sourcemeta::core::JSON {
+  require_resource_contents(uri, mime_type);
   auto entry{sourcemeta::core::JSON::make_object()};
   entry.assign_assume_new("uri", sourcemeta::core::JSON{uri}, MCP_HASH_URI);
   if (!mime_type.empty()) {
@@ -625,7 +646,7 @@ auto mcp_make_tool_descriptor(
   return entry;
 }
 
-auto mcp_make_initialize_result(
+auto mcp_make_initialize_response(
     const sourcemeta::core::JSON &request,
     const MCPServerCapabilities &capabilities, const MCPImplementation &server,
     const std::span<const JSON::StringView> supported_versions,
@@ -701,7 +722,7 @@ auto mcp_make_initialize_result(
   return checked_success(*identifier, std::move(result));
 }
 
-auto mcp_make_server_discover_result(
+auto mcp_make_server_discover_response(
     const MCPProtocolVersion version, const sourcemeta::core::JSON &identifier,
     const MCPServerCapabilities &capabilities, const MCPImplementation &server,
     const std::span<const JSON::StringView> supported_versions,
@@ -748,8 +769,9 @@ auto mcp_make_server_discover_result(
                              MCP_HASH_INSTRUCTIONS);
   }
 
-  const auto clamped_ttl{std::max<std::int64_t>(0, cache_policy.ttl_ms)};
-  result.assign_assume_new("ttlMs", sourcemeta::core::JSON{clamped_ttl},
+  internal::require(cache_policy.ttl_ms >= 0,
+                    "A cache time to live cannot be negative");
+  result.assign_assume_new("ttlMs", sourcemeta::core::JSON{cache_policy.ttl_ms},
                            MCP_HASH_TTL_MS);
   result.assign_assume_new(
       "cacheScope",
@@ -759,7 +781,7 @@ auto mcp_make_server_discover_result(
   return checked_success(identifier, std::move(result));
 }
 
-auto mcp_make_input_required_result(
+auto mcp_make_input_required_response(
     const MCPProtocolVersion version, const JSON::StringView method,
     const sourcemeta::core::JSON &identifier,
     std::optional<sourcemeta::core::JSON> input_requests,
@@ -912,7 +934,7 @@ auto mcp_make_subscription_acknowledged_notification(
       version, sourcemeta::core::JSON{subscription_id}, requested, supported);
 }
 
-auto mcp_make_subscription_close_result(
+auto mcp_make_subscription_close_response(
     const MCPProtocolVersion version, const sourcemeta::core::JSON &identifier,
     const std::optional<MCPImplementation> &server_info)
     -> sourcemeta::core::JSON {
