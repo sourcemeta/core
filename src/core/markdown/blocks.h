@@ -492,10 +492,10 @@ private:
       return;
     }
 
+    // Held to the same reading as the case above, where the content is built
+    // from lines that each end with a line feed
     auto position{content.find('\n')};
-    if (position == std::string_view::npos) {
-      position = content.size();
-    }
+    assert(position != std::string_view::npos);
 
     this->value_buffer_.clear();
     decode_escapes_and_references(this->value_buffer_,
