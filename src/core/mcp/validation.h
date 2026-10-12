@@ -182,6 +182,33 @@ inline auto base(const JSON &value) -> bool {
          sourcemeta::core::internal::valid_meta(value) && icons(value);
 }
 
+// A key is an optional prefix followed by a name. The prefix reads like a
+// reverse domain name and deliberately is not one, so this spells out its own
+// rules rather than deferring to the host name predicate this project already
+// offers.
+//
+// What the two have in common is the shape: dot separated labels of letters,
+// digits and hyphens. Where they part is the first character of a label.
+// Here, "Labels MUST start with a letter and end with a letter or digit",
+// while host names were changed in 1989 so that "the restriction on the first
+// character is relaxed to allow either a letter or a digit", in Section 2.1 of
+// the host requirements. A prefix beginning with a digit is therefore a
+// perfectly good host name and malformed here.
+//
+// The divergence runs the other way too, which is why neither rule contains
+// the other. A host name caps its total length and holds an
+// internationalized label to decoding as Punycode and round tripping, and
+// neither of those constrains a prefix. Reverse domain notation is only what
+// "Implementations SHOULD use reverse DNS notation", a recommendation about
+// how to choose a prefix rather than a requirement that it resolve.
+//
+// The name after the slash is looser than the prefix and unrelated to host
+// names: it "MUST begin and end with an alphanumeric character" and may carry
+// hyphens, underscores and dots in between. It may also be absent entirely,
+// which is what an extension key is.
+//
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/index#_meta
+// https://www.rfc-editor.org/rfc/rfc1123
 inline auto metadata_key(const JSON::StringView key, const bool prefix_required)
     -> bool {
   const auto slash{key.find('/')};

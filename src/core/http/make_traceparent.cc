@@ -1,11 +1,11 @@
 #include <sourcemeta/core/http.h>
+#include <sourcemeta/core/text.h>
 
 #include <array>   // std::array
 #include <cstdint> // std::uint8_t
 #include <span>    // std::span
 
 #include "entropy.h"
-#include "helpers.h"
 
 namespace sourcemeta::core {
 
@@ -21,9 +21,9 @@ auto http_make_traceparent(const bool sampled) -> std::array<char, 55> {
   result[0] = '0';
   result[1] = '0';
   result[2] = '-';
-  http_write_hex(trace, std::span{result}.subspan(3, 32));
+  bytes_to_hex(trace, std::span{result}.subspan(3, 32));
   result[35] = '-';
-  http_write_hex(parent, std::span{result}.subspan(36, 16));
+  bytes_to_hex(parent, std::span{result}.subspan(36, 16));
   result[52] = '-';
 
   // Only the lowest bit carries a meaning, and the rest are left clear because

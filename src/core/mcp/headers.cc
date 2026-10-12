@@ -9,7 +9,7 @@
 #include <sourcemeta/core/text.h>
 #include <sourcemeta/core/unicode.h>
 
-#include <algorithm> // std::all_of, std::find
+#include <algorithm> // std::find
 #include <optional>  // std::optional, std::nullopt
 #include <span>      // std::span
 #include <string>    // std::string
@@ -17,35 +17,18 @@
 
 namespace {
 
-auto plain_header_value(const sourcemeta::core::JSON::StringView value) noexcept
-    -> bool {
-  if (!value.empty() && (value.front() == ' ' || value.back() == ' ')) {
-    return false;
-  }
-  return std::all_of(value.begin(), value.end(), [](const char character) {
-    const auto byte{static_cast<unsigned char>(character)};
-    return byte >= 0x20 && byte < 0x7f;
-  });
-}
-
-auto encoded_header_value(
-    const sourcemeta::core::JSON::StringView value) noexcept -> bool {
-  return value.starts_with("=?base64?") && value.ends_with("?=") &&
-         value.size() >= 11;
-}
-
 auto header_matches(const sourcemeta::core::JSON::StringView header,
                     const sourcemeta::core::JSON::StringView body) -> bool {
-  if (!plain_header_value(header)) {
+  if (!sourcemeta::core::mcp_is_plain_header_value(header)) {
     return false;
   }
-  if (encoded_header_value(header)) {
-    const auto decoded{
-        sourcemeta::core::base64_decode(header.substr(9, header.size() - 11))};
+  if (sourcemeta::core::mcp_is_encoded_header_value(header)) {
+    const auto decoded{sourcemeta::core::base64_decode(
+        sourcemeta::core::mcp_header_sentinel_body(header))};
     return decoded && sourcemeta::core::is_valid_utf8(*decoded) &&
            *decoded == body;
   }
-  return plain_header_value(body) && header == body;
+  return sourcemeta::core::mcp_is_plain_header_value(body) && header == body;
 }
 
 auto transport_error(const sourcemeta::core::MCPProtocolVersion version,
@@ -341,10 +324,13 @@ auto mcp_request_name_from_body(const sourcemeta::core::JSON &envelope)
 
 auto mcp_encode_header_value(const JSON::StringView value) -> std::string {
   internal::require(is_valid_utf8(value), "MCP header values must be UTF-8");
-  if (plain_header_value(value) && !encoded_header_value(value)) {
+  if (sourcemeta::core::mcp_is_plain_header_value(value) &&
+      !sourcemeta::core::mcp_is_encoded_header_value(value)) {
     return std::string{value};
   }
-  return "=?base64?" + sourcemeta::core::base64_encode(value) + "?=";
+  return std::string{sourcemeta::core::MCP_HEADER_SENTINEL_PREFIX} +
+         sourcemeta::core::base64_encode(value) +
+         std::string{sourcemeta::core::MCP_HEADER_SENTINEL_SUFFIX};
 }
 
 auto mcp_validate_request_headers(
@@ -392,7 +378,8 @@ auto mcp_validate_request_headers(
     if (!protocol_version_header) {
       return std::nullopt;
     }
-    if (!plain_header_value(*protocol_version_header)) {
+    if (!sourcemeta::core::mcp_is_plain_header_value(
+            *protocol_version_header)) {
       return transport_error(version, identifier, JSONRPC_CODE_INVALID_REQUEST,
                              "Invalid protocol version header");
     }
@@ -447,7 +434,7 @@ auto mcp_validate_request_headers(
     }
   }
   if (!protocol_version_header ||
-      !plain_header_value(*protocol_version_header)) {
+      !sourcemeta::core::mcp_is_plain_header_value(*protocol_version_header)) {
     return mcp_make_error_header_mismatch(
         version, identifier, "Missing or malformed MCP-Protocol-Version");
   }
@@ -473,7 +460,8 @@ auto mcp_validate_request_headers(
                                        *protocol_version_header,
                                        supported_versions);
   }
-  if (!method_header || !plain_header_value(*method_header)) {
+  if (!method_header ||
+      !sourcemeta::core::mcp_is_plain_header_value(*method_header)) {
     return mcp_make_error_header_mismatch(version, identifier,
                                           "Missing or malformed Mcp-Method");
   }

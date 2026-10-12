@@ -2512,6 +2512,38 @@ TEST(encoded_name_header_roundtrip_base64_marker) {
                    .has_value());
 }
 
+// A space between the visible characters is printable ASCII, so a value
+// carrying one travels literally. Only a leading or trailing space forces the
+// encoded form
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#value-encoding
+TEST(an_interior_space_travels_literally) {
+  EXPECT_EQ(sourcemeta::core::mcp_encode_header_value("get weather"),
+            "get weather");
+}
+
+TEST(a_leading_space_is_encoded) {
+  EXPECT_EQ(sourcemeta::core::mcp_encode_header_value(" weather"),
+            "=?base64?IHdlYXRoZXI=?=");
+}
+
+TEST(a_trailing_space_is_encoded) {
+  EXPECT_EQ(sourcemeta::core::mcp_encode_header_value("weather "),
+            "=?base64?d2VhdGhlciA=?=");
+}
+
+// A horizontal tab is a control character, which the specification sends to
+// the encoded form even though the same passage lists it among what a field
+// value may carry. Encoding is the safe side of that disagreement
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#value-encoding
+TEST(a_horizontal_tab_is_encoded) {
+  EXPECT_EQ(sourcemeta::core::mcp_encode_header_value("a\tb"),
+            "=?base64?YQli?=");
+}
+
+TEST(a_tilde_travels_literally) {
+  EXPECT_EQ(sourcemeta::core::mcp_encode_header_value("a~b"), "a~b");
+}
+
 TEST(encoded_name_header_roundtrip_padded) {
   constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
       {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
